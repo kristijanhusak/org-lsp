@@ -10,6 +10,9 @@ name: CI
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -18,10 +21,12 @@ jobs:
   server:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       - name: Install Rust
         run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy && rustup default stable
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             ~/.cargo/registry
@@ -54,9 +59,11 @@ jobs:
       fail-fast: false
       matrix:
         # The oldest supported release and the current one.
-        neovim: [v0.11.0, stable]
+        neovim: [v0.12.0, stable]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       - name: Install Rust
         run: rustup toolchain install stable --profile minimal && rustup default stable
       - name: Install Neovim
@@ -72,10 +79,12 @@ jobs:
       run:
         working-directory: editors/vscode
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       - name: Install Rust
         run: rustup toolchain install stable --profile minimal && rustup default stable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
       - run: cargo build -p org-lsp
@@ -94,12 +103,14 @@ jobs:
   vim:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       - name: Install Rust
         run: rustup toolchain install stable --profile minimal && rustup default stable
       - name: Install Vim and tmux
         run: sudo apt-get update -q && sudo apt-get install -y -q vim tmux
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
       # The LSP clients the plugin has adapters for.
@@ -117,10 +128,12 @@ jobs:
   sublime:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       - name: Install Rust
         run: rustup toolchain install stable --profile minimal && rustup default stable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
       - run: cargo build -p org-lsp
@@ -131,10 +144,12 @@ jobs:
   zed:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       - name: Install Rust
         run: rustup toolchain install stable --profile minimal --target wasm32-wasip2 && rustup default stable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
       - run: cargo build -p org-lsp
@@ -146,7 +161,9 @@ jobs:
       # The tree-sitter queries must compile against the grammar.
       - name: Check the queries
         run: |
-          curl -sSL https://github.com/tree-sitter/tree-sitter/releases/download/v0.25.10/tree-sitter-linux-x64.gz | gunzip > "$RUNNER_TEMP/tree-sitter"
+          curl -fsSL -o "$RUNNER_TEMP/tree-sitter.gz" https://github.com/tree-sitter/tree-sitter/releases/download/v0.25.10/tree-sitter-linux-x64.gz
+          echo "8283ddba69253c698f6e987ba0e2f9285e079c8db4d36ebe1394b5bb3a0ebdfd  $RUNNER_TEMP/tree-sitter.gz" | sha256sum -c -
+          gunzip -c "$RUNNER_TEMP/tree-sitter.gz" > "$RUNNER_TEMP/tree-sitter"
           chmod +x "$RUNNER_TEMP/tree-sitter"
           commit=$(sed -n 's/^commit = "\(.*\)"/\1/p' editors/zed/extension.toml)
           git clone -q https://github.com/milisims/tree-sitter-org "$RUNNER_TEMP/tree-sitter-org"

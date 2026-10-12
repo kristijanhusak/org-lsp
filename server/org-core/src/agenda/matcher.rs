@@ -300,14 +300,14 @@ fn time_operand(value: &str) -> Option<TimeValue> {
         _ => {
             let relative = inner.strip_prefix(['+', '-']).and_then(|rest| {
                 let unit = rest.chars().last()?;
-                let number: i64 = rest[..rest.len() - 1].parse().ok()?;
+                let number: i64 = rest[..rest.len() - unit.len_utf8()].parse().ok()?;
                 let number = if inner.starts_with('-') { -number } else { number };
                 match unit {
                     'h' => Some(TimeValue::Hours(number)),
                     'd' => Some(TimeValue::Days(number)),
-                    'w' => Some(TimeValue::Days(7 * number)),
-                    'm' => Some(TimeValue::Days(30 * number)),
-                    'y' => Some(TimeValue::Days(365 * number)),
+                    'w' => Some(TimeValue::Days(number.saturating_mul(7))),
+                    'm' => Some(TimeValue::Days(number.saturating_mul(30))),
+                    'y' => Some(TimeValue::Days(number.saturating_mul(365))),
                     _ => None,
                 }
             });
@@ -328,8 +328,8 @@ impl TimeValue {
         let today = clock.today * 1440;
         match self {
             TimeValue::Now => (today + clock.minute) as f64,
-            TimeValue::Today(days) | TimeValue::Days(days) => (today + days * 1440) as f64,
-            TimeValue::Hours(hours) => (today + clock.minute + hours * 60) as f64,
+            TimeValue::Today(days) | TimeValue::Days(days) => today.saturating_add(days.saturating_mul(1440)) as f64,
+            TimeValue::Hours(hours) => (today + clock.minute).saturating_add(hours.saturating_mul(60)) as f64,
             // `org-matcher-time` gives 0 for what it cannot read.
             TimeValue::At(minutes) => minutes.unwrap_or(0) as f64,
         }
@@ -374,9 +374,14 @@ impl Test {
                     Value::Text(text) => compare_text(&got, *op, text),
                     Value::Number(number) => compare(string_to_number(&got), *op, *number),
                     Value::Time(time) => {
-                        // `org-2ft`: what is not a timestamp is 0.
+                        // `org-2ft`: what is not a timestamp is 0, and
+                        // `org-time<` and the others hold only when both
+                        // sides are times. Org's `org-time<>` is written
+                        // `(\= a b)`, which is `=`: the same here.
                         let got = stamp_minutes(got.trim_matches(['<', '>', '[', ']'])).unwrap_or(0) as f64;
-                        compare(got, *op, time.minutes(clock))
+                        let wanted = time.minutes(clock);
+                        let op = if *op == Op::NotEqual { Op::Equal } else { *op };
+                        got > 0.0 && wanted > 0.0 && compare(got, op, wanted)
                     }
                 }
             }
@@ -736,10 +741,13 @@ mod tests {
             let matcher = Matcher::new(text);
             (0..3).filter(|index| matcher.matches(&outline, *index, false, clock)).map(|i| ["a", "b", "c"][i]).collect()
         };
-        assert_eq!(matched("SCHEDULED<\"<today>\""), ["a", "c"]);
+        // Without a SCHEDULED, `c` is no time: no comparison holds.
+        assert_eq!(matched("SCHEDULED<\"<today>\""), ["a"]);
         assert_eq!(matched("SCHEDULED>=\"<today>\""), ["b"]);
         assert_eq!(matched("SCHEDULED<*\"<+1w>\""), ["a", "b"]);
         assert_eq!(matched("SCHEDULED=\"<2026-10-09>\""), ["b"]);
+        // Org's `org-time<>` is `=`.
+        assert_eq!(matched("SCHEDULED<>\"<2026-10-09>\""), ["b"]);
     }
 
     #[test]
@@ -747,5 +755,12 @@ mod tests {
         assert!(emacs_regex(r"^\(?:wo\|ho\)").unwrap().is_match("Home"));
         assert!(emacs_regex(r"a(b)").unwrap().is_match("a(b)"));
         assert!(emacs_regex(r"[[:alpha:]]x").unwrap().is_match("ax"));
+    }
+
+    #[test]
+    fn reads_a_relative_time_with_a_wide_unit() {
+        // The unit of `<+5日>` is not one Org knows, and three bytes long.
+        let _ = Matcher::new("SCHEDULED<\"<+5日>\"");
+        let _ = Matcher::new("SCHEDULED<\"<+999999999999999999y>\"");
     }
 }

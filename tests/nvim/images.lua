@@ -184,7 +184,39 @@ wait('no picture once more', function()
   return #previews.list(bufnr) == 0
 end)
 
--- 8. An `attachment:` link: the file in the entry's attachment directory,
+-- 8. A GIF, made a PNG with ImageMagick; and a file whose bytes are not
+-- what its extension says, which ImageMagick reads as its extension says
+-- (and so not at all).
+local gif = directory .. '/green.gif'
+check(vim.system({ 'convert', '-size', '200x100', 'xc:green', gif }):wait().code == 0, 'a GIF')
+vim.fn.writefile(vim.fn.readfile(png, 'b'), directory .. '/fake.gif', 'b')
+vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, { '* Formats', '[[file:green.gif]]', '[[file:fake.gif]]' })
+local said = {}
+local notify = vim.notify
+vim.notify = function(message)
+  table.insert(said, message)
+end
+vim.api.nvim_win_set_cursor(0, { vim.api.nvim_buf_line_count(bufnr) - 1, 3 })
+require('org-lsp').run('org.link.preview')
+wait('the GIF', function()
+  return #previews.list(bufnr) == 1 and previews.list(bufnr)[1].path == gif
+end)
+eq({ previews.list(bufnr)[1].width, previews.list(bufnr)[1].height }, { 20, 5 }, 'the cells of its size in pixels')
+vim.api.nvim_win_set_cursor(0, { vim.api.nvim_buf_line_count(bufnr), 3 })
+require('org-lsp').run('org.link.preview')
+wait('no picture for the PNG named a GIF', function()
+  return vim.iter(said):any(function(message)
+    return message:find('No images to display inline', 1, true) ~= nil
+  end)
+end)
+eq(#previews.list(bufnr), 1, 'only the GIF shows')
+vim.notify = notify
+require('org-lsp').run('org.link.preview', { count = 64 })
+wait('no picture after the formats', function()
+  return #previews.list(bufnr) == 0
+end)
+
+-- 9. An `attachment:` link: the file in the entry's attachment directory,
 -- as Emacs finds it (`org-attach-expand`).
 if vim.fn.executable('emacs') == 1 then
   local attached = directory .. '/data'

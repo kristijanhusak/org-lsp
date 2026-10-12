@@ -6,19 +6,33 @@
 
   var root = document.body.getAttribute('data-root') || '';
 
-  // ----- the theme: the system's until one is picked
+  // ----- the theme: the system's, light or dark, in turn
 
   var theme = document.querySelector('.theme');
   if (theme) {
+    var themes = ['system', 'light', 'dark'];
+    var names = { system: 'the system\'s', light: 'light', dark: 'dark' };
+    var picked = function () {
+      return document.documentElement.dataset.theme || 'system';
+    };
+    var after = function (name) {
+      return themes[(themes.indexOf(name) + 1) % themes.length];
+    };
+    var describe = function () {
+      var text = 'Theme: ' + names[picked()] + '; switch to ' + names[after(picked())];
+      theme.setAttribute('aria-label', text);
+      theme.title = text;
+    };
+    describe();
     theme.addEventListener('click', function () {
-      var dark = document.documentElement.dataset.theme
-        ? document.documentElement.dataset.theme === 'dark'
-        : window.matchMedia('(prefers-color-scheme: dark)').matches;
-      var next = dark ? 'light' : 'dark';
-      document.documentElement.dataset.theme = next;
+      var next = after(picked());
       try {
-        localStorage.setItem('theme', next);
+        if (next === 'system') localStorage.removeItem('theme');
+        else localStorage.setItem('theme', next);
       } catch (e) {}
+      if (next === 'system') delete document.documentElement.dataset.theme;
+      else document.documentElement.dataset.theme = next;
+      describe();
     });
   }
 
@@ -195,7 +209,7 @@
       .map(function (entry, index) {
         return (
           '<li role="option" id="result-' + index + '" aria-selected="' + (index === 0) + '">' +
-          '<a href="' + root + entry.url + '">' +
+          '<a href="' + escapeHtml(root + entry.url) + '">' +
           '<span class="where">' + escapeHtml(entry.page) + '</span>' +
           '<span class="heading">' + highlight(entry.heading, terms) + '</span>' +
           '<span class="snippet">' + highlight(snippet(entry.text, terms), terms) + '</span>' +

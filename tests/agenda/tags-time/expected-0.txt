@@ -1,0 +1,2 @@
+Headlines with TAGS match: DEADLINE<"<-7d>"
+  dates:      TODO Deadline a month ago

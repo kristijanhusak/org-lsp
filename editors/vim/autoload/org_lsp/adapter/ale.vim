@@ -99,6 +99,11 @@ function! org_lsp#adapter#ale#encoding() abort
   return 'utf-16'
 endfunction
 
+" A file's URI as ALE opens it (its hex digits in lower case).
+function! org_lsp#adapter#ale#uri(path) abort
+  return ale#path#ToFileURI(a:path)
+endfunction
+
 function! s:send(method, params, Callback, conn_id) abort
   let id = ale#lsp#Send(a:conn_id, [0, a:method, a:params])
   if id > 0

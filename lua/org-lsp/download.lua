@@ -77,6 +77,11 @@ end
 ---@param callback fun(err: string|nil, path: string|nil)
 function M.download(release, callback)
   local done = vim.schedule_wrap(callback)
+  -- The release goes into a URL and into `gh`'s arguments: only a name
+  -- that can be a release's.
+  if type(release) ~= 'string' or release ~= 'nightly' and not release:match('^v%d[%w._-]*$') then
+    return done(('%s is not a release: use nightly or a version tag such as v0.2.0'):format(vim.inspect(release)))
+  end
   local platform = M.platform()
   if not platform then
     local uname = vim.uv.os_uname()

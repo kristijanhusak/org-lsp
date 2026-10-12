@@ -843,7 +843,7 @@ impl<'a> Grouper<'a> {
             "ancestor-with-todo" => {
                 let (keyword, limit, nearest) = match args.first() {
                     Some(Value::Array(list)) => {
-                        let options = options(&list[1..]);
+                        let options = options(list.get(1..).unwrap_or_default());
                         (
                             list.first().map(lisp).unwrap_or_default(),
                             options.get("limit").and_then(Value::as_i64),
@@ -1272,5 +1272,10 @@ mod tests {
     fn takes_an_empty_order_multi() {
         let lines = grouped(json!([{ "order-multi": [] }]));
         assert_eq!(lines.iter().filter(|line| line.starts_with("  notes:")).count(), 3);
+    }
+
+    #[test]
+    fn takes_an_empty_ancestor_list() {
+        let _ = grouped(json!([{ "ancestor-with-todo": [[]] }]));
     }
 }

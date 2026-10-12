@@ -823,7 +823,10 @@ fn datetree(buffer: &mut Buffer, date: Date, keywords: &TodoKeywords) {
         buffer.narrow_to_subtree(tree);
         level = buffer.level(tree).unwrap_or(0) + 1;
     }
+    // A month or day out of range counts on, as Emacs's calendar does
+    // (month 13 is January of the next year).
     let day = date.to_day();
+    let date = Date::from_day(day);
     let titles = [
         (&*YEAR, format!("{:04}", date.year)),
         (&*MONTH, format!("{:04}-{:02} {}", date.year, date.month, MONTH_NAMES[date.month as usize - 1])),
@@ -1341,5 +1344,21 @@ mod tests {
         let (text, message) = toggle_tag(&text, 0, &Settings::default()).unwrap();
         assert_eq!(message, "Subtree unarchived");
         assert!(text.trim_end().ends_with(":x:"));
+    }
+
+    #[test]
+    fn counts_a_month_out_of_range_on() {
+        let context = Context {
+            path: Path::new("/home/u/notes/a.org"),
+            home: Some(Path::new("/home/u")),
+            now: DateTime::new(Date::new(2026, 5, 18), 10, 30),
+        };
+        let text = "#+ARCHIVE: a.org_archive::datetree/\n* DONE x\nCLOSED: [2024-13-01 Mon 10:00]\n";
+        let offset = text.find("* DONE").unwrap();
+        let archived =
+            archive_subtree(text, offset, &TodoKeywords::default(), &context, &Settings::default(), &mut |_| None)
+                .unwrap();
+        let archive = &archived.files[0].text;
+        assert!(archive.contains("* 2025-01 January\n"), "{archive}");
     }
 }

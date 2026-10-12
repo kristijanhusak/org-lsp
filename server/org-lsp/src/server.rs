@@ -337,13 +337,30 @@ enum DimBlocked {
     Hide,
 }
 
+/// The largest count a command takes, either way.
+const COUNT_MAX: i64 = 100_000;
+
+/// A file an `#+INCLUDE:` line names: its time of change and size when it
+/// was read, and its text.
+type Included = (Option<std::time::SystemTime>, u64, Option<String>);
+
+/// How long the `ID`s of the files that are not open are taken as they
+/// were last found, for `invalid-id-link`.
+const IDS_FRESH: std::time::Duration = std::time::Duration::from_secs(5);
+
+fn bounded_count<'de, D: serde::Deserializer<'de>>(deserializer: D) -> std::result::Result<Option<i64>, D::Error> {
+    Ok(Option::<i64>::deserialize(deserializer)?.map(|count| count.clamp(-COUNT_MAX, COUNT_MAX)))
+}
+
 /// Where a command was invoked: a document and a place in it.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Context {
     text_document: lsp_types::TextDocumentIdentifier,
     position: Position,
-    /// The count the user typed before the key, if any.
+    /// The count the user typed before the key, if any, within
+    /// `COUNT_MAX` either way: the commands repeat a step that many times.
+    #[serde(default, deserialize_with = "bounded_count")]
     count: Option<i64>,
     /// The answer to what the command asked for.
     input: Option<String>,
@@ -965,6 +982,12 @@ struct Server {
     /// The `ID`s of the files on disk that IDs are looked for in, as of
     /// their time of change (`org-id-locations`).
     id_files: HashMap<PathBuf, (std::time::SystemTime, Vec<String>)>,
+    /// The `ID`s of the files that are not open, and when they were
+    /// looked for (`known_ids`).
+    ids_on_disk: Option<(std::time::Instant, HashSet<String>)>,
+    /// The files `#+INCLUDE:` lines name, as the lint last read them,
+    /// with their time of change and size: read again once those change.
+    included: std::cell::RefCell<HashMap<PathBuf, Included>>,
     /// `org_lint`: Org's linter checks the documents.
     lint: bool,
     /// `org_lint_ignore`: the checkers it leaves out.
@@ -1322,6 +1345,8 @@ pub fn run(connection: Connection) -> Result<()> {
         bibliographies: HashMap::new(),
         diagnosed: HashSet::new(),
         id_files: HashMap::new(),
+        ids_on_disk: None,
+        included: std::cell::RefCell::new(HashMap::new()),
         lint: options.lint.unwrap_or(true),
         lint_ignore: options.lint_ignore.clone().unwrap_or_default(),
         clock: options.clock.as_ref().and_then(|clock| clock.to_now()),
@@ -1409,27 +1434,34 @@ pub fn run(connection: Connection) -> Result<()> {
                     if connection.handle_shutdown(&request)? {
                         break;
                     }
-                    let response = server.request(request);
+                    let (id, method) = (request.id.clone(), request.method.clone());
+                    let response = guarded(&mut server, &method, |server| server.request(request))
+                        .unwrap_or_else(|message| Response::new_err(id, ErrorCode::InternalError as i32, message));
                     connection.sender.send(Message::Response(response))?;
                 }
-                Ok(Message::Notification(notification)) => server.notification(notification),
-                Ok(Message::Response(response)) => server.response(response),
+                Ok(Message::Notification(notification)) => {
+                    let method = notification.method.clone();
+                    let _ = guarded(&mut server, &method, |server| server.notification(notification));
+                }
+                Ok(Message::Response(response)) => {
+                    let _ = guarded(&mut server, "a response", |server| server.response(response));
+                }
                 Err(_) => break,
             },
             recv(port_receiver) -> command => {
                 if let Ok(command) = command {
-                    server.run_from_port(command);
+                    let _ = guarded(&mut server, &command.command.clone(), |server| server.run_from_port(command));
                 }
             }
             recv(emacs_events) -> event => {
                 if let Ok(event) = event {
-                    server.emacs_event(event);
+                    let _ = guarded(&mut server, "Emacs's answer", |server| server.emacs_event(event));
                 }
             }
-            recv(alarm) -> _ => server.countdown_done(),
-            recv(overrun) -> _ => server.overrun_done(),
-            recv(appt) -> _ => server.appt_check(),
-            recv(special) -> _ => server.check_special_edits(),
+            recv(alarm) -> _ => { let _ = guarded(&mut server, "the timer", Server::countdown_done); }
+            recv(overrun) -> _ => { let _ = guarded(&mut server, "the clock", Server::overrun_done); }
+            recv(appt) -> _ => { let _ = guarded(&mut server, "the appointments", Server::appt_check); }
+            recv(special) -> _ => { let _ = guarded(&mut server, "the edit buffers", Server::check_special_edits); }
         }
     }
     if let Some(port) = &server.port {
@@ -1440,12 +1472,17 @@ pub fn run(connection: Connection) -> Result<()> {
     if !server.client.zed_agenda() {
         server.remove_view_file();
     }
-    if server.captures > 0 {
-        let _ = std::fs::remove_dir_all(&server.capture_directory);
+    // The server's temporary directories, made when it started.
+    let roam = server.roam.as_ref().map(|roam| roam.buffer_directory.clone());
+    for directory in [&server.capture_directory, &server.export_directory, &server.special_directory]
+        .into_iter()
+        .chain([&server.journal_views])
+        .chain(roam.as_ref())
+    {
+        let _ = std::fs::remove_dir_all(directory);
     }
-    let _ = std::fs::remove_dir_all(&server.export_directory);
-    if !server.special_edits.is_empty() {
-        let _ = std::fs::remove_dir_all(&server.special_directory);
+    if !server.client.zed_agenda() {
+        let _ = std::fs::remove_dir(&server.view_directory);
     }
     Ok(())
 }
@@ -1726,8 +1763,6 @@ fn span_name(span: Span) -> String {
     }
 }
 
-/// A directory for the capture buffers or the agenda file of a server:
-/// one of its own, also when a process runs more than one (the tests).
 /// Where the agenda's file goes for a client that keeps its tabs across
 /// restarts (`command_actions`, Zed): the same place for the same folders
 /// each time, beside the port's script, so that the tab it opens again
@@ -1744,10 +1779,36 @@ fn agenda_directory(client: &Client, folders: &[PathBuf]) -> Option<PathBuf> {
     Some(client.command_script.as_ref()?.parent()?.join("agenda").join(format!("{hash:016x}")))
 }
 
+/// A directory for the capture buffers or the agenda file of a server:
+/// one of its own, also when a process runs more than one (the tests).
+/// It is made at once, the user's alone (mode 0700) and under a name no one
+/// can guess, and it must be new: on a machine others use, no one else can
+/// read the notes and exports in it, nor put a file or a link there for the
+/// server to write through or read back.
 fn server_directory(kind: &str) -> PathBuf {
-    static SERVERS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
-    let server = SERVERS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-    temp_dir().join(format!("org-lsp-{kind}-{}-{server}", std::process::id()))
+    let temp = temp_dir();
+    for _ in 0..16 {
+        let directory = temp.join(format!("org-lsp-{kind}-{}-{}", std::process::id(), &port::token()[..16]));
+        match create_new_private_dir(&directory) {
+            Ok(()) => return directory,
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(_) => break,
+        }
+    }
+    // A temporary directory the server cannot write in: the commands that
+    // need one say so when they fail to write there.
+    temp.join(format!("org-lsp-{kind}-{}-{}", std::process::id(), port::token()))
+}
+
+#[cfg(unix)]
+fn create_new_private_dir(directory: &Path) -> std::io::Result<()> {
+    use std::os::unix::fs::DirBuilderExt;
+    std::fs::DirBuilder::new().mode(0o700).create(directory)
+}
+
+#[cfg(not(unix))]
+fn create_new_private_dir(directory: &Path) -> std::io::Result<()> {
+    std::fs::create_dir(directory)
 }
 
 /// The directory for temporary files, with its links resolved. Editors
@@ -1810,6 +1871,22 @@ fn set_writable(file: &Path) -> std::io::Result<()> {
     #[allow(clippy::permissions_set_readonly_false)]
     permissions.set_readonly(false);
     std::fs::set_permissions(file, permissions)
+}
+
+/// Run `work`, the handling of one message, on the server: a panic in it
+/// is a bug of the server's, which ends that message's handling with an
+/// error the user sees, not the server and the editor's session with it.
+fn guarded<T>(server: &mut Server, what: &str, work: impl FnOnce(&mut Server) -> T) -> std::result::Result<T, String> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| work(server))).map_err(|panic| {
+        let reason = panic
+            .downcast_ref::<&str>()
+            .map(|reason| reason.to_string())
+            .or_else(|| panic.downcast_ref::<String>().cloned())
+            .unwrap_or_default();
+        let message = format!("org-lsp: {what} failed, a bug of the server's: {reason}");
+        server.show_message(MessageType::ERROR, message.clone());
+        message
+    })
 }
 
 /// What the server does. `inlay_hints`: show `org-indent-mode`'s prefixes
@@ -1974,6 +2051,44 @@ fn planning_command(id: &str) -> Option<PlanningCommand> {
         commands::TIMESTAMP_CHANGE => Some(PlanningCommand::Timestamp { inactive: false }),
         _ => None,
     }
+}
+
+/// Write `text` as the whole of the file at `path`, an archive or journal
+/// file no editor has open, making its directory. A file there that the
+/// server could not read (not UTF-8, not readable) was taken for a missing
+/// one, so it is left alone and the write refused. The text goes to a new
+/// file renamed over the old one, with the old one's permissions, so that
+/// a write cut short leaves the old file whole.
+pub(crate) fn write_whole(path: &Path, text: &str) -> std::result::Result<(), String> {
+    let refused = |error: &dyn std::fmt::Display| format!("Cannot write {}: {error}", path.display());
+    let permissions = match std::fs::read(path) {
+        Ok(bytes) if std::str::from_utf8(&bytes).is_err() => {
+            return Err(refused(&"it is not UTF-8 text, and is left as it is"));
+        }
+        Ok(_) => std::fs::metadata(path).ok().map(|metadata| metadata.permissions()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+        Err(error) => return Err(refused(&error)),
+    };
+    let directory = path.parent().filter(|parent| !parent.as_os_str().is_empty()).unwrap_or(Path::new("."));
+    std::fs::create_dir_all(directory).map_err(|error| refused(&error))?;
+    let name = path.file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default();
+    let temporary = directory.join(format!(".{name}.org-lsp-{}", port::token()));
+    let written = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&temporary)
+        .and_then(|mut file| {
+            use std::io::Write;
+            file.write_all(text.as_bytes())?;
+            file.sync_all()
+        })
+        .and_then(|()| permissions.map_or(Ok(()), |permissions| std::fs::set_permissions(&temporary, permissions)))
+        .and_then(|()| std::fs::rename(&temporary, path));
+    if let Err(error) = written {
+        let _ = std::fs::remove_file(&temporary);
+        return Err(refused(&error));
+    }
+    Ok(())
 }
 
 /// Write a tangled file as `org-babel-tangle` writes it: only when its text
@@ -2352,6 +2467,12 @@ impl Server {
             }
         } else {
             self.drop_closed_view();
+        }
+        if matches!(
+            notification.method.as_str(),
+            DidOpenTextDocument::METHOD | DidSaveTextDocument::METHOD | DidCloseTextDocument::METHOD
+        ) {
+            self.ids_on_disk = None;
         }
         match notification.method.as_str() {
             AGENDA_WIDTH => self.agenda_width(&notification.params),
@@ -3458,26 +3579,36 @@ impl Server {
     /// The Org files the server knows: the agenda files and the files open
     /// in the editor, each with its text.
     fn known_files(&mut self) -> Vec<(Uri, String)> {
-        let mut files: Vec<(Uri, String)> = self
-            .agenda_files()
+        self.known_parses().into_iter().map(|(uri, text, _)| (uri, text)).collect()
+    }
+
+    /// `known_files`, each with its parse: the one the server keeps for
+    /// it, not made again.
+    fn known_parses(&mut self) -> Vec<(Uri, String, Parse)> {
+        let held = self.agenda_files();
+        let mut files: Vec<(Uri, String, Parse)> = held
             .into_iter()
-            .map(|(uri, held)| {
-                let text = match &held {
-                    Held::Open(outline) => outline.text.clone(),
-                    Held::Disk(source) => source.text.clone(),
-                };
-                (uri, text)
+            .map(|(uri, held)| match held {
+                Held::Open(outline) => {
+                    let parse = match self.document(&uri).filter(|document| document.text == outline.text) {
+                        Some(document) => document.parse.clone(),
+                        None => org_syntax::parse(&outline.text, &self.todo),
+                    };
+                    (uri, outline.text.clone(), parse)
+                }
+                Held::Disk(source) => (uri, source.text.clone(), source.parse.clone()),
             })
             .collect();
-        let mut paths: Vec<PathBuf> = files.iter().filter_map(|(uri, _)| uri::to_path(uri)).collect();
+        let mut paths: HashSet<PathBuf> = files.iter().filter_map(|(uri, _, _)| uri::to_path(uri)).collect();
         let mut keys: Vec<&String> = self.documents.keys().collect();
         keys.sort();
         for key in keys {
             let Ok(uri) = key.parse::<Uri>() else { continue };
             let Some(path) = uri::to_path(&uri) else { continue };
             if !paths.contains(&path) && !self.is_view(&uri) {
-                paths.push(path);
-                files.push((uri, self.documents[key].text.clone()));
+                paths.insert(path);
+                let document = &self.documents[key];
+                files.push((uri, document.text.clone(), document.parse.clone()));
             }
         }
         files
@@ -3542,9 +3673,8 @@ impl Server {
             outline.entry_at(heading).and_then(|entry| outline.entry_property(Some(entry), "ID", false))
         };
         let mut out = Vec::new();
-        for (file, file_text) in self.known_files() {
+        for (file, file_text, file_parse) in self.known_parses() {
             let Some(file_path) = uri::to_path(&file) else { continue };
-            let file_parse = org_syntax::parse(&file_text, &self.todo);
             for link in open::links(&file_text, &file_parse, &self.link_abbreviations) {
                 let leads = match &link.open {
                     Ok(Open::Here(at)) => same(&file_path) && *at == heading,
@@ -3690,8 +3820,7 @@ impl Server {
             wanted.peek().is_none()
         };
         let mut out = Vec::new();
-        for (file, text) in self.known_files() {
-            let parse = org_syntax::parse(&text, &self.todo);
+        for (file, text, parse) in self.known_parses() {
             let index = LineIndex::new(&text);
             let name = uri::file_name(&file);
             for mut symbol in symbols::symbol_information(&parse.syntax(), &text, &index, encoding, &file) {
@@ -3978,17 +4107,32 @@ impl Server {
     }
 
     /// Every `ID` of the files IDs are looked for in: the open files as
-    /// the editor has them, the others as they are on disk, read again
-    /// once they change.
+    /// the editor has them, the others as they are on disk. Those on disk
+    /// are looked for again after `IDS_FRESH`, or once a file opens, closes
+    /// or is saved: the diagnostics ask on every change.
     fn known_ids(&mut self) -> HashSet<String> {
+        if self.ids_on_disk.as_ref().is_none_or(|(at, _)| at.elapsed() >= IDS_FRESH) {
+            let found = self.ids_on_disk();
+            self.ids_on_disk = Some((std::time::Instant::now(), found));
+        }
+        let mut ids = self.ids_on_disk.as_ref().map(|(_, ids)| ids.clone()).unwrap_or_default();
+        for (key, document) in &self.documents {
+            if key.parse::<Uri>().ok().and_then(|uri| uri::to_path(&uri)).is_some() {
+                ids.extend(property_ids(&document.text));
+            }
+        }
+        ids
+    }
+
+    /// The `ID`s of the files IDs are looked for in that are not open,
+    /// each file read again once it changes.
+    fn ids_on_disk(&mut self) -> HashSet<String> {
         let mut ids = HashSet::new();
         let mut on_disk = HashMap::new();
+        let open: HashSet<PathBuf> =
+            self.documents.keys().filter_map(|key| uri::to_path(&key.parse::<Uri>().ok()?)).collect();
         for path in self.id_paths() {
-            let open = self.documents.iter().find(|(key, _)| {
-                key.parse::<Uri>().ok().and_then(|key| uri::to_path(&key)).is_some_and(|key| key == path)
-            });
-            if let Some((_, document)) = open {
-                ids.extend(property_ids(&document.text));
+            if open.contains(&path) {
                 continue;
             }
             let Some(changed) = std::fs::metadata(&path).and_then(|metadata| metadata.modified()).ok() else {
@@ -6697,13 +6841,7 @@ impl Server {
             });
             match open {
                 Some((uri, version, now)) => documents.push((uri, Some(version), self.text_edits(&now, &written.text))),
-                None => {
-                    if let Some(directory) = written.path.parent() {
-                        let _ = std::fs::create_dir_all(directory);
-                    }
-                    std::fs::write(&written.path, &written.text)
-                        .map_err(|error| format!("Cannot write {}: {error}", written.path.display()))?;
-                }
+                None => write_whole(&written.path, &written.text)?,
             }
         }
         documents.retain(|(_, _, edits)| !edits.is_empty());
@@ -11773,7 +11911,20 @@ impl Server {
                 _ => path,
             })
         };
-        let read = |name: &str| resolve(name).and_then(|path| std::fs::read_to_string(path).ok());
+        let read = |name: &str| {
+            let path = resolve(name)?;
+            let metadata = std::fs::metadata(&path).ok()?;
+            let stamp = (metadata.modified().ok(), metadata.len());
+            let mut included = self.included.borrow_mut();
+            match included.get(&path) {
+                Some((modified, len, text)) if (*modified, *len) == stamp && stamp.0.is_some() => text.clone(),
+                _ => {
+                    let text = std::fs::read_to_string(&path).ok();
+                    included.insert(path, (stamp.0, stamp.1, text.clone()));
+                    text
+                }
+            }
+        };
         let file_name = || uri::to_path(uri).and_then(|path| Some(path.file_name()?.to_string_lossy().into_owned()));
         let id_known = |id: &str| ids.map(|ids| ids.contains(id));
         let context = org_core::lint::Context {
@@ -12841,4 +12992,63 @@ fn column_ranges(input: &str, count: usize) -> std::collections::BTreeSet<usize>
         out.extend(from.max(1)..=to.min(count));
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn makes_temporary_directories_no_one_else_can_enter() {
+        use std::os::unix::fs::PermissionsExt;
+        let (one, two) = (server_directory("test"), server_directory("test"));
+        assert_ne!(one, two);
+        for directory in [&one, &two] {
+            assert_eq!(std::fs::metadata(directory).unwrap().permissions().mode() & 0o777, 0o700);
+            std::fs::remove_dir(directory).unwrap();
+        }
+    }
+
+    #[test]
+    fn writes_a_file_whole_and_never_over_one_it_cannot_read() {
+        let directory = std::env::temp_dir().join(format!("org-lsp-write-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&directory);
+        let file = directory.join("sub").join("a.org_archive");
+        write_whole(&file, "* one\n").unwrap();
+        write_whole(&file, "* two\n").unwrap();
+        assert_eq!(std::fs::read_to_string(&file).unwrap(), "* two\n");
+        // Only the file: no temporary one left beside it.
+        assert_eq!(std::fs::read_dir(file.parent().unwrap()).unwrap().count(), 1);
+        // A Latin-1 archive from years ago stays as it is.
+        let latin = directory.join("old.org_archive");
+        std::fs::write(&latin, b"* caf\xe9\n").unwrap();
+        assert!(write_whole(&latin, "* new\n").unwrap_err().contains("not UTF-8"));
+        assert_eq!(std::fs::read(&latin).unwrap(), b"* caf\xe9\n");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o600)).unwrap();
+            write_whole(&file, "* three\n").unwrap();
+            assert_eq!(std::fs::metadata(&file).unwrap().permissions().mode() & 0o777, 0o600);
+        }
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    #[test]
+    fn keeps_a_count_within_bounds() {
+        let context = |count: Value| {
+            serde_json::from_value::<Context>(json!({
+                "textDocument": { "uri": "file:///a.org" },
+                "position": { "line": 0, "character": 0 },
+                "count": count,
+            }))
+            .unwrap()
+            .count
+        };
+        assert_eq!(context(json!(4)), Some(4));
+        assert_eq!(context(json!(4_000_000_000_i64)), Some(COUNT_MAX));
+        assert_eq!(context(json!(i64::MIN)), Some(-COUNT_MAX));
+        assert_eq!(context(Value::Null), None);
+    }
 }

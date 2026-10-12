@@ -128,6 +128,14 @@ local function png_size(data)
   return number(17), number(21)
 end
 
+--- The extensions of the image files the server previews that are not PNG
+--- (`image-file-name-extensions`), each the name of ImageMagick's coder
+--- for its files.
+local coders = {}
+for _, extension in ipairs({ 'jpeg', 'jpg', 'gif', 'tiff', 'tif', 'xbm', 'xpm', 'pbm', 'pgm', 'ppm', 'pnm', 'svg', 'webp' }) do
+  coders[extension] = true
+end
+
 --- The image of `path` as PNG: as it is, or made a PNG with ImageMagick,
 --- which Neovim can show.
 ---@param path string
@@ -149,7 +157,16 @@ local function load(path)
     vim.fn.mkdir(directory, 'p')
     png = vim.fs.joinpath(directory, vim.fn.sha256(key) .. '.png')
     if not vim.uv.fs_stat(png) then
-      vim.system({ converter, path .. '[0]', png }):wait()
+      -- Read as what its extension says (`svg:pic.svg`), not as what
+      -- ImageMagick makes of its bytes, and within limits: the editor
+      -- waits for it.
+      local extension = (path:match('%.(%w+)$') or ''):lower()
+      local input = (coders[extension] and extension .. ':' or '') .. path .. '[0]'
+      local limits = { '-limit', 'memory', '256MiB', '-limit', 'area', '128MP', '-limit', 'time', '10' }
+      local made = vim.system(vim.list_extend({ converter, unpack(limits) }, { input, png }), { timeout = 10000 }):wait()
+      if made.code ~= 0 then
+        os.remove(png)
+      end
     end
   end
   local ok, data = pcall(vim.fn.readblob, png)
@@ -286,6 +303,28 @@ function M.render(bufnr)
   end
 end
 
+--- What the windows showing buffer `bufnr` show of it: the lines, where
+--- and how high (folds count), and the buffer's version. The images
+--- stay where they are while it stays the same.
+---@param bufnr integer
+---@return string
+local function view_of(bufnr)
+  local parts = { vim.api.nvim_buf_get_changedtick(bufnr) }
+  for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
+    local info = vim.fn.getwininfo(win)[1]
+    local height = vim.api.nvim_win_text_height(win, { start_row = info.topline - 1, end_row = info.botline - 1 }).all
+    table.insert(
+      parts,
+      table.concat({ win, info.topline, info.botline, info.winrow, info.wincol, info.width, info.height, info.textoff, height }, ',')
+    )
+  end
+  return table.concat(parts, ';')
+end
+
+--- The view each buffer's images were last put in.
+---@type table<integer, string>
+local rendered = {}
+
 local scheduled = {}
 
 --- Render buffer `bufnr` once Neovim has drawn its windows.
@@ -297,16 +336,30 @@ local function later(bufnr)
   vim.schedule(function()
     scheduled[bufnr] = nil
     M.render(bufnr)
+    if vim.api.nvim_buf_is_valid(bufnr) then
+      rendered[bufnr] = view_of(bufnr)
+    end
   end)
 end
 
 local function watch(bufnr)
   local group = vim.api.nvim_create_augroup('org_lsp_images_' .. bufnr, { clear = true })
-  vim.api.nvim_create_autocmd({ 'TextChanged', 'TextChangedI', 'CursorMoved', 'BufWinEnter' }, {
+  vim.api.nvim_create_autocmd({ 'TextChanged', 'TextChangedI', 'BufWinEnter' }, {
     group = group,
     buffer = bufnr,
     callback = function()
       later(bufnr)
+    end,
+  })
+  -- A move of the cursor moves the images only when it scrolls, opens or
+  -- closes a fold, or changes the text.
+  vim.api.nvim_create_autocmd('CursorMoved', {
+    group = group,
+    buffer = bufnr,
+    callback = function()
+      if shown[bufnr] and next(shown[bufnr]) and rendered[bufnr] ~= view_of(bufnr) then
+        later(bufnr)
+      end
     end,
   })
   vim.api.nvim_create_autocmd({ 'WinScrolled', 'WinResized', 'VimResized', 'WinClosed', 'TabEnter' }, {
@@ -327,6 +380,7 @@ local function watch(bufnr)
     buffer = bufnr,
     callback = function()
       M.clear(bufnr)
+      rendered[bufnr] = nil
     end,
   })
 end

@@ -7,7 +7,9 @@
 //! org-site --tree FILE
 //! ```
 //!
-//! `--out` is where the site goes (`target/site` by default); `--check`
+//! `--out` is where the site goes (`target/site` by default), emptied
+//! first, which it refuses for a directory that is not a site it wrote
+//! (one without its `.nojekyll`); `--check`
 //! fails when a link points to a file or a heading that is not there.
 //! `--tree` prints the syntax tree of a file, to see how it parses.
 
@@ -138,6 +140,17 @@ pub struct Page {
     pub options: html::Options,
 }
 
+impl Page {
+    /// The page of the Org file `source`, whose contents are `text`.
+    fn new(source: String, group: String, label: String, text: &str) -> Page {
+        let root = org_syntax::parse(text, &TodoKeywords::default()).syntax();
+        let options = html::Options::read(&root);
+        let title = keyword(&root, "title").unwrap_or_else(|| label.clone());
+        let headings = headings(&root);
+        Page { out: out_path(&source), source, title, group, label, root, headings, options }
+    }
+}
+
 #[derive(Clone)]
 pub struct Heading {
     pub level: usize,
@@ -183,20 +196,7 @@ impl Site {
         let mut pages = Vec::new();
         for (source, group, label) in listed {
             let text = std::fs::read_to_string(root.join(&source)).map_err(|error| format!("{source}: {error}"))?;
-            let root_node = org_syntax::parse(&text, &TodoKeywords::default()).syntax();
-            let options = html::Options::read(&root_node);
-            let title = keyword(&root_node, "title").unwrap_or_else(|| label.clone());
-            let headings = headings(&root_node);
-            pages.push(Page {
-                out: out_path(&source),
-                source,
-                title,
-                group,
-                label,
-                root: root_node,
-                headings,
-                options,
-            });
+            pages.push(Page::new(source, group, label, &text));
         }
         Ok(Site { root: root.to_path_buf(), pages })
     }
@@ -204,7 +204,7 @@ impl Site {
     /// Write every page and what they need into `out`; returns the broken
     /// links found on the way.
     fn write(&self, out: &Path) -> Result<Vec<String>, String> {
-        let _ = std::fs::remove_dir_all(out);
+        clear(out)?;
         std::fs::create_dir_all(out).map_err(|error| format!("{}: {error}", out.display()))?;
         let mut problems = Vec::new();
         let mut files = BTreeSet::new();
@@ -238,7 +238,7 @@ impl Site {
         std::fs::write(out.join("assets/search.js"), search::script(&index)).map_err(|error| error.to_string())?;
         std::fs::write(out.join("404.html"), self.not_found()).map_err(|error| error.to_string())?;
         // GitHub Pages serves the files as they are.
-        std::fs::write(out.join(".nojekyll"), "").map_err(|error| error.to_string())?;
+        std::fs::write(out.join(MARKER), "").map_err(|error| error.to_string())?;
         Ok(problems)
     }
 
@@ -271,7 +271,7 @@ impl Site {
             outline.push_str(&format!(
                 "<li class=\"level-{}\"><a href=\"#{}\">{}</a></li>",
                 heading.level,
-                heading.id,
+                html::escape(&heading.id),
                 html::escape(&heading.text)
             ));
         }
@@ -315,7 +315,7 @@ impl Site {
   <button class="search-open" type="button" aria-label="Search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Search</span><kbd>/</kbd></button>
   <nav class="links">
     <a href="{REPOSITORY}" aria-label="GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a>
-    <button class="theme" type="button" aria-label="Switch between light and dark"><svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg></button>
+    <button class="theme" type="button" aria-label="Theme"><svg class="system" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg><svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg></button>
   </nav>
 </header>
 <div class="shell">
@@ -498,10 +498,13 @@ impl Links<'_> {
         let extension = Path::new(&target).extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
         let up = relative_prefix(&self.page.out);
         if IMAGES.contains(&extension.as_str()) && search.is_none() {
-            if !self.site.root.join(&target).is_file() {
+            // Only an image that is there is copied: a missing one is a
+            // problem reported with the others, not a failed copy.
+            if self.site.root.join(&target).is_file() {
+                self.files.insert(target.clone());
+            } else {
                 self.problems.push(format!("{}: no image `{target}`", self.page.source));
             }
-            self.files.insert(target.clone());
             return Target::Image(format!("{up}{target}"));
         }
         if let Some(other) = self.site.pages.iter().find(|other| other.source == target) {
@@ -543,6 +546,25 @@ impl Links<'_> {
     }
 }
 
+/// The marker `Site::write` leaves in the site, which says the directory
+/// is one it wrote (GitHub Pages reads it too: files served as they are).
+const MARKER: &str = ".nojekyll";
+
+/// Empty `out` before the site is written into it: only a site written
+/// earlier, so that `--out .` cannot take the checkout with it.
+fn clear(out: &Path) -> Result<(), String> {
+    let Ok(mut entries) = std::fs::read_dir(out) else {
+        return Ok(());
+    };
+    if entries.next().is_some() && !out.join(MARKER).is_file() {
+        return Err(format!(
+            "{}: not emptied, as it is not a site written by org-site (it has no {MARKER}); remove it or give another --out",
+            out.display()
+        ));
+    }
+    std::fs::remove_dir_all(out).map_err(|error| format!("{}: {error}", out.display()))
+}
+
 /// `path` without `.` and `..`, relative to the checkout; `None` above it.
 fn normalize(path: &Path) -> Option<String> {
     let mut parts: Vec<String> = Vec::new();
@@ -579,5 +601,65 @@ mod tests {
         assert_eq!(relative_prefix("keys/vim.html"), "../");
         assert_eq!(normalize(Path::new("docs/../editors/vim/TESTING.org")).as_deref(), Some("editors/vim/TESTING.org"));
         assert_eq!(normalize(Path::new("../x")), None);
+    }
+
+    /// The body of a page `docs/test.org` holding `text` in this checkout,
+    /// the problems found and the files to copy.
+    fn render(text: &str) -> (String, Vec<String>, BTreeSet<String>) {
+        let page = Page::new("docs/test.org".into(), "More".into(), "test".into(), text);
+        let site = Site { root: repository_root().unwrap(), pages: vec![page] };
+        let mut problems = Vec::new();
+        let mut files = BTreeSet::new();
+        let mut links = Links { site: &site, page: &site.pages[0], problems: &mut problems, files: &mut files };
+        let (body, _) = html::render(&site.pages[0], &mut links);
+        (body, problems, files)
+    }
+
+    #[test]
+    fn a_broken_link_alone_in_its_paragraph_is_reported_once() {
+        let (body, problems, _) = render("[[file:not-there.org]]\n");
+        assert_eq!(problems, ["docs/test.org: no file `docs/not-there.org`"]);
+        assert!(body.contains("<p><a href="), "{body}");
+    }
+
+    #[test]
+    fn missing_images_are_reported_not_copied() {
+        let (_, problems, files) = render("[[file:images/not-there.png]]\n\nSee [[file:images/not-there.png]].\n");
+        assert_eq!(problems.len(), 2, "{problems:?}");
+        assert!(files.is_empty(), "{files:?}");
+    }
+
+    #[test]
+    fn custom_ids_are_escaped() {
+        let (body, problems, _) = render("* A\n:PROPERTIES:\n:CUSTOM_ID: a\"b<c\n:END:\n");
+        assert!(problems.is_empty(), "{problems:?}");
+        assert!(body.contains("id=\"a&quot;b&lt;c\""), "{body}");
+        assert!(body.contains("href=\"#a&quot;b&lt;c\""), "{body}");
+    }
+
+    #[test]
+    fn only_a_site_it_wrote_is_emptied() {
+        let base = std::env::temp_dir().join(format!("org-site-clear-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        // Not there, or empty: nothing to keep.
+        assert_eq!(clear(&base.join("missing")), Ok(()));
+        let empty = base.join("empty");
+        std::fs::create_dir_all(&empty).unwrap();
+        assert_eq!(clear(&empty), Ok(()));
+        // Anything else is kept, and named in the error.
+        let other = base.join("other");
+        std::fs::create_dir_all(&other).unwrap();
+        std::fs::write(other.join("Cargo.toml"), "").unwrap();
+        let error = clear(&other).unwrap_err();
+        assert!(error.contains(&other.display().to_string()), "{error}");
+        assert!(other.join("Cargo.toml").is_file());
+        // A site written earlier goes.
+        let site = base.join("site");
+        std::fs::create_dir_all(site.join("assets")).unwrap();
+        std::fs::write(site.join(MARKER), "").unwrap();
+        std::fs::write(site.join("assets/style.css"), "").unwrap();
+        assert_eq!(clear(&site), Ok(()));
+        assert!(!site.exists());
+        std::fs::remove_dir_all(&base).unwrap();
     }
 }

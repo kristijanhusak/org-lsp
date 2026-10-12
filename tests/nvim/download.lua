@@ -113,5 +113,21 @@ check(failure[1]:find('v0.0.0-missing', 1, true), 'the failure names the release
 check(vim.uv.fs_stat(download.path()) ~= nil, 'the server downloaded before stays')
 check(not client:is_stopped(), 'the running server keeps running')
 
+-- 4. A release that is no release's name (it would go into the URL and
+-- `gh`'s arguments) is refused before anything is fetched.
+org_lsp.setup({ release = '../nightly' })
+messages = {}
+vim.cmd('OrgLspDownload')
+wait('the refusal', function()
+  return vim.iter(messages):any(function(message)
+    return message[2] == vim.log.levels.ERROR
+  end)
+end)
+failure = vim.iter(messages):find(function(message)
+  return message[2] == vim.log.levels.ERROR
+end)
+check(failure[1]:find('"../nightly" is not a release', 1, true), 'the refusal names the release: ' .. failure[1])
+check(vim.uv.fs_stat(download.path()) ~= nil, 'the server downloaded before stays')
+
 io.stdout:write(('ok: %d download checks passed\n'):format(checks))
 vim.cmd('qall!')

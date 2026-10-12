@@ -546,6 +546,10 @@ fn row_type(rule: bool, n: i64, mut i: i64, backwards: bool, desc: &str, analysi
                 break;
             }
         }
+        // Out of the table, the rest of the steps change nothing.
+        if i < 0 || i >= l {
+            break;
+        }
     }
     if i < 0 || i >= l {
         return Err(format!("Row descriptor {desc} leads outside table"));
@@ -559,6 +563,15 @@ static RANGE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"@([-+]?I*[-+]?[0-9]*)(\$[-+]?[0-9]+)?(\.\.@?([-+]?I*[-+]?[0-9]*)(\$[-+]?[0-9]+)?)?")
         .expect("a valid regex")
 });
+
+/// The widest field and the most digits a format gives: Emacs refuses
+/// what it cannot print, the server prints at most this.
+const FORMAT_MAX: usize = 1000;
+
+/// The most references a formula has replaced, and the longest it may
+/// grow, before it is taken to refer to itself.
+const REFERENCES_MAX: usize = 10_000;
+const FORMULA_MAX: usize = 1 << 20;
 
 /// What a reference reads: a field, or the fields of a range.
 enum Read {
@@ -899,7 +912,7 @@ fn parse_modes(modes: &str) -> Result<FormulaModes, String> {
     let (mut numbers, mut keep_empty, mut duration) = (false, false, None);
     while let Some(captures) = NUMERIC.captures(&fmt) {
         let n: i64 = captures[2].parse().unwrap_or(0);
-        let digits = n.max(0) as usize;
+        let digits = n.clamp(0, FORMAT_MAX as i64) as usize;
         match &captures[1] {
             "p" => {}
             "n" => calc.float_format = FloatFormat::Float(digits),
@@ -986,8 +999,15 @@ fn eval_formula(
     if REMOTE.is_match(&form) {
         return Err("Remote references are not supported".to_string());
     }
-    // Ranges and fields given by row.
+    // Ranges and fields given by row. A field holding a reference is
+    // read again, so fields that refer to each other would go on for
+    // ever: Emacs leaves that to `C-g`, the server stops on its own.
+    let mut replaced = 0;
     while let Some(found) = RANGE.find(&form).filter(|found| found.len() > 1) {
+        replaced += 1;
+        if replaced > REFERENCES_MAX || form.len() > FORMULA_MAX {
+            return Err(format!("Spreadsheet error: invalid reference \"{formula}\""));
+        }
         let read = get_range(found.as_str(), line, column, table, analysis, false)?;
         let Ok(mut read) = read else { unreachable!("not corners") };
         if modes.duration.is_some() {
@@ -1006,6 +1026,10 @@ fn eval_formula(
     static SIMPLE_RANGE: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r"\$(([-+])?[0-9]+)\.\.\$(([-+])?[0-9]+)").expect("a valid regex"));
     while let Some(captures) = SIMPLE_RANGE.captures(&form) {
+        replaced += 1;
+        if replaced > REFERENCES_MAX || form.len() > FORMULA_MAX {
+            return Err(format!("Invalid field specifier \"{}\"", &captures[0]));
+        }
         let bound = |group: usize, sign: usize| {
             let n: i64 = captures[group].parse().unwrap_or(0);
             n + if captures.get(sign).is_some() { column as i64 } else { 0 }
@@ -1022,6 +1046,10 @@ fn eval_formula(
     // Fields of the line.
     static FIELD: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\$(([-+])?[0-9]+)").expect("a valid regex"));
     while let Some(captures) = FIELD.captures(&form) {
+        replaced += 1;
+        if replaced > REFERENCES_MAX || form.len() > FORMULA_MAX {
+            return Err(format!("Invalid field specifier \"{}\"", &captures[0]));
+        }
         let n: i64 =
             captures[1].parse::<i64>().unwrap_or(0) + if captures.get(2).is_some() { column as i64 } else { 0 };
         let index = if n == 0 { column as i64 } else { n.max(1) };
@@ -1272,7 +1300,7 @@ fn printf(format: &str, number: Lisp) -> String {
                 digits.push(digit);
                 chars.next();
             }
-            precision = Some(digits.parse().unwrap_or(0));
+            precision = Some(digits.parse().unwrap_or(0).min(FORMAT_MAX));
         }
         let Some(conversion) = chars.next() else { break };
         if conversion == '%' {
@@ -1339,7 +1367,7 @@ fn printf(format: &str, number: Lisp) -> String {
                 ("", text, false)
             }
         };
-        let width: usize = width.parse().unwrap_or(0);
+        let width: usize = width.parse().unwrap_or(0).min(FORMAT_MAX);
         let length = sign.len() + body.chars().count();
         let padding = width.saturating_sub(length);
         if left {

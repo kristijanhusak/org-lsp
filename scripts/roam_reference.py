@@ -194,6 +194,7 @@ def reference(cases):
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             env=dict(os.environ, TZ="UTC"),
+            timeout=1200,
         )
         for case, target in outputs:
             with open(target, encoding="utf-8") as handle:

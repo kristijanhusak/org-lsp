@@ -164,6 +164,27 @@ vim.cmd.split(brief)
 vim.cmd.close()
 vim.wait(500)
 eq(vim.v.errmsg, '', 'no error for a window closed before its folds came')
+-- A buffer wiped out before a command's edits come back: they go nowhere.
+local wiped = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* A' }, wiped)
+vim.cmd.edit(wiped)
+local wiped_buf = vim.api.nvim_get_current_buf()
+wait('the server on the file', function()
+  return #vim.lsp.get_clients({ bufnr = wiped_buf, name = 'org_lsp' }) == 1
+end)
+local errors = {}
+local notify = vim.notify
+vim.notify = function(message, level)
+  if level == vim.log.levels.ERROR then
+    table.insert(errors, message)
+  end
+end
+vim.api.nvim_win_set_cursor(0, { 1, 2 })
+require('org-lsp').run('org.meta.return')
+vim.cmd('bwipeout! ' .. wiped_buf)
+vim.wait(500)
+vim.notify = notify
+eq({ vim.v.errmsg, errors }, { '', {} }, 'no error for a buffer gone before the edits came')
 require('org-lsp').config.startup_folded = nil
 vim.cmd.buffer(bufnr)
 
@@ -1533,8 +1554,7 @@ do
     return not vim.api.nvim_win_is_valid(roam_win)
   end)
   -- Completing a node in a link whose `]]` a closing pair typed, with
-  -- Neovim's own completion: the link has one `]]`, and one `id:`. A
-  -- title of one word: before 0.12 it cuts a completion at a space.
+  -- Neovim's own completion: the link has one `]]`, and one `id:`.
   local links = roam_dir .. '/links.org'
   vim.fn.writefile({ '#+title: Links', '', 'See [[]]', 'See [[id:]]' }, links)
   vim.cmd.edit(links)

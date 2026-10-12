@@ -153,6 +153,7 @@ def reference(cases):
                 # File times as they are: Emacs asks about a file changed on disk
                 # after it was read otherwise.
                 env=dict(os.environ, TZ="UTC", NO_FAKE_STAT="1"),
+                timeout=1200,
             )
             for case, target, directory in outputs:
                 with open(target, encoding="utf-8") as handle:

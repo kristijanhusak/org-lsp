@@ -535,10 +535,14 @@ impl Snapshot {
         let at = at.min(self.text.len().saturating_sub(1));
         let mut candidates = &self.roots;
         let mut found = None;
-        while let Some(index) = candidates.iter().copied().find(|index| {
-            let element = &self.elements[*index];
-            element.begin <= at && at < element.end
-        }) {
+        // Siblings follow each other in the text: the one that holds `at`
+        // is the last to begin at or before it, if it ends after.
+        let holding = |candidates: &[usize]| {
+            let after = candidates.partition_point(|index| self.elements[*index].begin <= at);
+            let index = *candidates.get(after.checked_sub(1)?)?;
+            (at < self.elements[index].end).then_some(index)
+        };
+        while let Some(index) = holding(candidates) {
             found = Some(index);
             let element = &self.elements[index];
             match element.contents {
@@ -838,8 +842,26 @@ fn is_blank(line: &str) -> bool {
 struct Pass {
     lines: Vec<String>,
     settings: Settings,
-    snapshot: Snapshot,
+    /// The parse of the top-level subtree being indented, made again
+    /// after a change.
+    window: Option<Window>,
     changed: bool,
+    /// The whole text as one part: what the parts must come to.
+    #[cfg(test)]
+    whole: bool,
+}
+
+/// The parse of lines `first` up to `end`: a top-level headline's
+/// subtree, or the text before the first headline. Org parses each such
+/// part on its own, so the elements there are those of the whole text,
+/// and a change is parsed again in its part alone rather than in the
+/// whole document, once for each line indented.
+struct Window {
+    first: usize,
+    end: usize,
+    snapshot: Snapshot,
+    /// Where each of its lines starts in `snapshot`'s text.
+    starts: Vec<usize>,
 }
 
 /// What `org-indent-region` needs of an element, in lines.
@@ -860,17 +882,40 @@ impl Pass {
         Pass {
             lines: text.split('\n').map(str::to_string).collect(),
             settings: settings.clone(),
-            snapshot: Snapshot::new(text, settings),
+            window: None,
             changed: false,
+            #[cfg(test)]
+            whole: false,
         }
     }
 
-    fn snapshot(&mut self) -> &Snapshot {
-        if self.changed {
-            self.snapshot = Snapshot::new(&self.lines.join("\n"), &self.settings);
+    /// The parse of the part of the text `line` is in, as it is now.
+    fn window(&mut self, line: usize) -> &Window {
+        let top = |text: &String| is_heading_line(text);
+        let first =
+            (0..=line.min(self.lines.len().saturating_sub(1))).rev().find(|at| top(&self.lines[*at])).unwrap_or(0);
+        let end = (first + 1..self.lines.len()).find(|at| top(&self.lines[*at])).unwrap_or(self.lines.len());
+        #[cfg(test)]
+        let (first, end) = if self.whole { (0, self.lines.len()) } else { (first, end) };
+        let current = self.window.as_ref().is_some_and(|window| window.first == first && window.end == end);
+        if self.changed || !current {
+            // The newline before the next headline ends the part's last
+            // element, as it does in the whole text.
+            let mut text = self.lines[first..end].join("\n");
+            if end < self.lines.len() {
+                text.push('\n');
+            }
+            let mut starts = Vec::with_capacity(end - first);
+            let mut at = 0;
+            for line in &self.lines[first..end] {
+                starts.push(at);
+                at += line.len() + 1;
+            }
+            let snapshot = Snapshot::new(&text, &self.settings);
+            self.window = Some(Window { first, end, snapshot, starts });
             self.changed = false;
         }
-        &self.snapshot
+        self.window.as_ref().expect("made above")
     }
 
     /// `indent-line-to`: a line already at `column` stays as it is.
@@ -918,9 +963,9 @@ impl Pass {
 
     /// `org--align-node-property` on `line`.
     fn align(&mut self, line: usize) {
-        let snapshot = self.snapshot();
-        let start = snapshot.text.split('\n').take(line).map(|text| text.len() + 1).sum();
-        let Some(aligned) = snapshot.align_property(start) else { return };
+        let window = self.window(line);
+        let start = window.starts[line - window.first];
+        let Some(aligned) = window.snapshot.align_property(start) else { return };
         let text = &self.lines[line];
         let blanks = text.bytes().take_while(|b| matches!(b, b' ' | b'\t')).count();
         if text[blanks..] != aligned {
@@ -932,8 +977,9 @@ impl Pass {
     /// The element at the start of `line` and what `org-indent-region`
     /// needs of it.
     fn found(&mut self, line: usize) -> Option<Found> {
-        let snapshot = self.snapshot();
-        let start: usize = snapshot.text.split('\n').take(line).map(|text| text.len() + 1).sum();
+        let window = self.window(line);
+        let (snapshot, base) = (&window.snapshot, window.first);
+        let start = window.starts[line - base];
         let index = snapshot.element_at(start)?;
         let element = &snapshot.elements[index];
         let column = snapshot.expected(Some(index), false, start);
@@ -962,16 +1008,17 @@ impl Pass {
             Some((_, end)) => snapshot.line_index_after(end),
             None => last_line(),
         };
+        // In lines of the whole text.
         Some(Found {
             kind: element.kind,
             has_contents: element.contents.is_some(),
             preserve: element.preserve,
             column,
-            begin: snapshot.line_index(element.begin),
-            post_affiliated,
-            end: snapshot.line_index_after(element.end),
-            contents_begin,
-            contents_end,
+            begin: base + snapshot.line_index(element.begin),
+            post_affiliated: base + post_affiliated,
+            end: base + snapshot.line_index_after(element.end),
+            contents_begin: base + contents_begin,
+            contents_end: base + contents_end,
         })
     }
 
@@ -1118,9 +1165,21 @@ pub fn indent_line(text: &str, at: usize, settings: &Settings) -> Option<Edit> {
 
 /// `org-indent-region` over the lines from `start` up to `end`.
 pub fn indent_region(text: &str, start: usize, end: usize, settings: &Settings) -> Vec<Edit> {
+    region_in_parts(text, start, end, settings, true)
+}
+
+/// `indent_region`, the text parsed in parts or, for the tests, whole.
+fn region_in_parts(text: &str, start: usize, end: usize, settings: &Settings, parts: bool) -> Vec<Edit> {
     let mut pass = Pass::new(text, settings);
-    let first = pass.snapshot.line_index(start);
-    let last = pass.snapshot.line_index_after(end.min(text.len()));
+    #[cfg(test)]
+    {
+        pass.whole = !parts;
+    }
+    #[cfg(not(test))]
+    let _ = parts;
+    let first = text[..start.min(text.len())].matches('\n').count();
+    let end_at = end.min(text.len());
+    let last = text[..end_at].matches('\n').count() + usize::from(end_at > 0 && text.as_bytes()[end_at - 1] != b'\n');
     // The empty line after a final newline is the end of the buffer,
     // where `org-indent-region` stops.
     let lines = pass.lines.len() - usize::from(text.ends_with('\n'));
@@ -1461,4 +1520,38 @@ pub fn virtual_indentation(text: &str, indent: bool, hide_stars: bool, adapt: Ad
         }
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Parsing each part on its own gives what parsing the whole text
+    /// gives, for every Org file of the tests.
+    #[test]
+    fn indents_in_parts_as_in_the_whole() {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests");
+        let mut files = Vec::new();
+        let mut directories = vec![root];
+        while let Some(directory) = directories.pop() {
+            for entry in std::fs::read_dir(directory).unwrap().flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    directories.push(path);
+                } else if path.extension().is_some_and(|extension| extension == "org") {
+                    files.push(path);
+                }
+            }
+        }
+        assert!(files.len() > 20, "{} files", files.len());
+        for path in files {
+            let Ok(text) = std::fs::read_to_string(&path) else { continue };
+            for adapt in [Adapt::Off, Adapt::All, Adapt::HeadlineData] {
+                let settings = Settings { adapt, ..Settings::default() };
+                let parts = region_in_parts(&text, 0, text.len(), &settings, true);
+                let whole = region_in_parts(&text, 0, text.len(), &settings, false);
+                assert_eq!(parts, whole, "{} with {adapt:?}", path.display());
+            }
+        }
+    }
 }

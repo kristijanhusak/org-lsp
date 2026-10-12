@@ -1,0 +1,2 @@
+Headlines with TAGS match: DEADLINE<>"<2026-10-15>"
+  dates:      TODO Deadline in 3 days

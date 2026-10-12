@@ -177,11 +177,17 @@ impl Lisp {
 struct Reader {
     chars: Vec<char>,
     at: usize,
+    /// How deep in lists the reader is: a list nested past `NESTING_MAX`
+    /// is refused rather than read until the stack runs out.
+    depth: usize,
 }
+
+/// The deepest a list or form read from a document may nest.
+const NESTING_MAX: usize = 200;
 
 impl Reader {
     fn new(text: &str) -> Reader {
-        Reader { chars: text.chars().collect(), at: 0 }
+        Reader { chars: text.chars().collect(), at: 0, depth: 0 }
     }
 
     fn peek(&self) -> Option<char> {
@@ -214,6 +220,16 @@ impl Reader {
     }
 
     fn read(&mut self) -> Result<Lisp, String> {
+        if self.depth == NESTING_MAX {
+            return Err("Lisp nesting exceeds `max-lisp-eval-depth'".to_string());
+        }
+        self.depth += 1;
+        let read = self.read_form();
+        self.depth -= 1;
+        read
+    }
+
+    fn read_form(&mut self) -> Result<Lisp, String> {
         self.skip_blanks();
         let Some(c) = self.peek() else { return Err(EOF.to_string()) };
         match c {
@@ -1830,5 +1846,12 @@ mod tests {
         assert_eq!(matcher_time("<+2h>", now), day + 750);
         assert_eq!(matcher_time("<2026-05-12>", now), Date::new(2026, 5, 12).to_day() * 1440);
         assert_eq!(matcher_time("[2026-05-12 Tue 10:00]", now), Date::new(2026, 5, 12).to_day() * 1440 + 600);
+    }
+
+    #[test]
+    fn refuses_a_list_nested_past_the_stack() {
+        let nested = format!("{}1{}", "(".repeat(100_000), ")".repeat(100_000));
+        assert!(Reader::new(&nested).read_all().is_err());
+        assert!(Reader::new("(1 (2 3))").read_all().is_ok());
     }
 }

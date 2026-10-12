@@ -9,6 +9,7 @@
 
 use std::collections::BTreeMap;
 use std::ops::Range;
+use std::sync::LazyLock;
 
 use regex::{Regex, RegexBuilder};
 
@@ -108,7 +109,7 @@ impl Default for Settings {
 
 impl Settings {
     /// `org-journal--daily-p`
-    fn daily(&self) -> bool {
+    pub fn daily(&self) -> bool {
         self.file_type == FileType::Daily
     }
 
@@ -405,13 +406,17 @@ fn files_between(names: &[String], start: DateTime, end: DateTime, settings: &Se
     Ok(found)
 }
 
+/// The names of encrypted journal files, which are left out.
+static ENCRYPTED: LazyLock<Regex> =
+    LazyLock::new(|| RegexBuilder::new(r".(?:gpg|age)$").case_insensitive(true).build().expect("valid"));
+
 /// `org-journal--update-org-agenda-files`
 /// (`org-journal-enable-agenda-integration`): the journal files among
 /// `names` (relative to the directory, in `org-journal--list-files`'s
 /// order) of today and the days to come, until 2030.
 pub fn agenda_files(names: &[String], now: DateTime, settings: &Settings) -> Result<Vec<String>, String> {
     let files = Files::new(settings);
-    let encrypted = RegexBuilder::new(r".(?:gpg|age)$").case_insensitive(true).build().expect("valid");
+    let encrypted = &*ENCRYPTED;
     let mut names: Vec<String> =
         names.iter().filter(|name| files.is_journal(name) && !encrypted.is_match(name)).cloned().collect();
     crate::roam::sync_order(&mut names);
@@ -434,12 +439,36 @@ pub fn entry_days(files: &BTreeMap<String, String>, settings: &Settings) -> Vec<
     emacs.list_dates().map(|dates| dates.iter().map(|date| date.time().day).collect()).unwrap_or_default()
 }
 
+/// A pattern of `org-journal-created-property-timestamp-format` and its
+/// regexp.
+type Created = (std::rc::Rc<Pattern>, Option<Regex>);
+
+/// The pattern of `org-journal-created-property-timestamp-format` and its
+/// regexp, built once for each format: every entry of a file asks for it.
+fn created_pattern(format: &str) -> Created {
+    thread_local! {
+        static LAST: std::cell::RefCell<Option<(String, Created)>> =
+            const { std::cell::RefCell::new(None) };
+    }
+    LAST.with_borrow_mut(|last| {
+        if let Some((built, created)) = last {
+            if built == format {
+                return created.clone();
+            }
+        }
+        let pattern = std::rc::Rc::new(Pattern::new(format));
+        let regex = RegexBuilder::new(&pattern.regex).case_insensitive(true).build().ok();
+        *last = Some((format.to_string(), (pattern.clone(), regex.clone())));
+        (pattern, regex)
+    })
+}
+
 /// `org-journal--entry-date->calendar-date` for the entry at `at`.
 fn entry_date(settings: &Settings, buffer: &Buffer, at: usize) -> Result<CalendarDate, String> {
-    let pattern = Pattern::new(&settings.created_property_timestamp_format);
+    let (pattern, regex) = created_pattern(&settings.created_property_timestamp_format);
     let value = crate::properties::entry_get(&buffer.text, at, "CREATED", &settings.properties);
     let matched = value.as_deref().and_then(|value| {
-        let regex = RegexBuilder::new(&pattern.regex).case_insensitive(true).build().ok()?;
+        let regex = regex.as_ref()?;
         let captures = regex.captures(value)?;
         let group = |part: Part| -> Option<i64> {
             let mut found = None;
@@ -678,7 +707,7 @@ impl<'a> Emacs<'a> {
 
     /// `org-journal--list-files`
     fn list_files(&self) -> Vec<String> {
-        let encrypted = RegexBuilder::new(r".(?:gpg|age)$").case_insensitive(true).build().expect("valid");
+        let encrypted = &*ENCRYPTED;
         let mut names: Vec<String> = self
             .request
             .files
@@ -1050,7 +1079,8 @@ impl<'a> Emacs<'a> {
 
 /// The end of a time range as `org-insert-timestamp` reads it.
 fn end_time(text: &str) -> Option<(i64, i64)> {
-    let captures = Regex::new(r"([0-9]+):([0-9]+)").expect("valid").captures(text)?;
+    static TIME: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"([0-9]+):([0-9]+)").expect("valid"));
+    let captures = TIME.captures(text)?;
     Some((captures[1].parse().ok()?, captures[2].parse().ok()?))
 }
 

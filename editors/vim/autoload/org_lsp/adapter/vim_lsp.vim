@@ -58,6 +58,11 @@ function! org_lsp#adapter#vim_lsp#encoding() abort
   return 'utf-16'
 endfunction
 
+" A file's URI as vim-lsp opens it.
+function! org_lsp#adapter#vim_lsp#uri(path) abort
+  return lsp#utils#path_to_uri(a:path)
+endfunction
+
 function! org_lsp#adapter#vim_lsp#request(bufnr, method, params, Callback) abort
   call lsp#send_request(s:name, {
         \ 'method': a:method,

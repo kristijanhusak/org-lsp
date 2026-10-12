@@ -95,8 +95,8 @@ def main():
 
     dump = os.path.join(ROOT, "scripts", "org-element-dump.el")
     for start in range(0, len(paths), 200):
-        subprocess.run([*EMACS, "-l", dump, *paths[start : start + 200]], check=True,
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run([*EMACS, "-l", dump, *paths[start : start + 200]], check=True, stdin=subprocess.DEVNULL,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=1200)
     rejected = [path for path in paths if not os.path.exists(path[:-4] + ".elements")]
     for path in rejected:
         os.remove(path)

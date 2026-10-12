@@ -1,5 +1,7 @@
 //! Parse configuration: the TODO keywords that are valid in a document.
 
+use std::collections::BTreeMap;
+
 /// Whether a state change is recorded, as the keyword's definition asks:
 /// `WAIT(w@/!)` records a note on entering and a time on leaving.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,6 +44,8 @@ struct Keyword {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TodoKeywords {
     keywords: Vec<Keyword>,
+    /// Where each keyword is in `keywords`: looked up for every headline.
+    index: BTreeMap<String, usize>,
 }
 
 impl Default for TodoKeywords {
@@ -87,7 +91,7 @@ impl TodoKeywords {
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        let mut out = TodoKeywords { keywords: Vec::new() };
+        let mut out = TodoKeywords { keywords: Vec::new(), index: BTreeMap::new() };
         out.push_sequence(Interpretation::Sequence, words);
         out
     }
@@ -99,7 +103,7 @@ impl TodoKeywords {
         W: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        let mut out = TodoKeywords { keywords: Vec::new() };
+        let mut out = TodoKeywords { keywords: Vec::new(), index: BTreeMap::new() };
         for (interpretation, words) in sequences {
             out.push_sequence(interpretation, words);
         }
@@ -125,6 +129,7 @@ impl TodoKeywords {
             if self.contains(name) {
                 continue;
             }
+            self.index.insert(name.to_string(), self.keywords.len());
             self.keywords.push(Keyword {
                 name: name.to_string(),
                 key: *key,
@@ -140,7 +145,7 @@ impl TodoKeywords {
     /// Keywords declared in the document itself (`#+TODO:`, `#+SEQ_TODO:`,
     /// `#+TYP_TODO:`), or `None` when the document declares none.
     pub fn from_document(text: &str) -> Option<Self> {
-        let mut out = TodoKeywords { keywords: Vec::new() };
+        let mut out = TodoKeywords { keywords: Vec::new(), index: BTreeMap::new() };
         let mut found = false;
         for line in text.lines() {
             let line = line.trim_start();
@@ -174,7 +179,7 @@ impl TodoKeywords {
     }
 
     fn get(&self, word: &str) -> Option<&Keyword> {
-        self.keywords.iter().find(|keyword| keyword.name == word)
+        self.keywords.get(*self.index.get(word)?)
     }
 
     pub fn contains(&self, word: &str) -> bool {
@@ -359,7 +364,7 @@ impl TodoKeywords {
     }
 
     fn position(&self, word: &str) -> Option<usize> {
-        self.keywords.iter().position(|keyword| keyword.name == word)
+        self.index.get(word).copied()
     }
 }
 

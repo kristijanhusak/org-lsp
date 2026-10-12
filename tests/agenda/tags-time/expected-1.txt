@@ -1,0 +1,3 @@
+Headlines with TAGS match: DEADLINE<"<-7d>"|SCHEDULED<"<-7d>"
+  dates:      TODO Deadline a month ago
+  dates:      TODO Scheduled ten days ago

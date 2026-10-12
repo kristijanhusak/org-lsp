@@ -160,7 +160,8 @@ end
 ---@param bufnr integer
 ---@param code org_lsp.SrcCode
 ---@param lang string
-local function with_parser(bufnr, code, lang)
+---@param marks integer[] Where the extmarks made are added.
+local function with_parser(bufnr, code, lang, marks)
   local ok, parser = pcall(vim.treesitter.get_string_parser, code.text, lang)
   if not ok or not parser then
     return
@@ -176,12 +177,15 @@ local function with_parser(bufnr, code, lang)
       local capture = query.captures[id]
       if not capture:match('^_') and capture ~= 'spell' and capture ~= 'nospell' and capture ~= 'conceal' then
         local start_row, start_col, end_row, end_col = node:range()
-        pcall(vim.api.nvim_buf_set_extmark, bufnr, ns, code.row + start_row, (start_row == 0 and code.col or 0) + start_col, {
+        local set, id = pcall(vim.api.nvim_buf_set_extmark, bufnr, ns, code.row + start_row, (start_row == 0 and code.col or 0) + start_col, {
           end_row = code.row + end_row,
           end_col = (end_row == 0 and code.col or 0) + end_col,
           hl_group = '@' .. capture .. '.' .. language_tree:lang(),
           priority = vim.hl and vim.hl.priorities.treesitter or 100,
         })
+        if set then
+          table.insert(marks, id)
+        end
       end
     end
   end)
@@ -240,34 +244,97 @@ end
 ---@param bufnr integer
 ---@param code org_lsp.SrcCode
 ---@param syntax string
-local function with_syntax(bufnr, code, syntax)
+---@param marks integer[] Where the extmarks made are added.
+local function with_syntax(bufnr, code, syntax, marks)
   for _, span in ipairs(syntax_spans(syntax, code.text)) do
     local row, start_col, end_col, group = span[1], span[2], span[3], span[4]
     local offset = row == 0 and code.col or 0
-    pcall(vim.api.nvim_buf_set_extmark, bufnr, ns, code.row + row, offset + start_col, {
+    local set, id = pcall(vim.api.nvim_buf_set_extmark, bufnr, ns, code.row + row, offset + start_col, {
       end_col = offset + end_col,
       hl_group = group,
       priority = vim.hl and vim.hl.priorities.treesitter or 100,
     })
+    if set then
+      table.insert(marks, id)
+    end
   end
 end
 
+---@class org_lsp.SrcDone
+---@field marks integer[] The extmarks of the code's colors.
+---@field row integer? Where the first one starts, relative to the code.
+
+--- What each buffer's code was colored with, by language, column and
+--- text: code that has not changed keeps its extmarks, which move with
+--- the lines around it.
+---@type table<integer, table<string, org_lsp.SrcDone[]>>
+local done = {}
+
+---@param code org_lsp.SrcCode
+---@return string
+local function key_of(code)
+  return code.name .. '\0' .. code.col .. '\0' .. code.text
+end
+
+--- Whether the extmarks of `kept` are still where `code` is: an edit that
+--- took the code away and put it back leaves them elsewhere.
+---@param bufnr integer
+---@param code org_lsp.SrcCode
+---@param kept org_lsp.SrcDone
+local function in_place(bufnr, code, kept)
+  if not kept.marks[1] then
+    return true
+  end
+  local at = vim.api.nvim_buf_get_extmark_by_id(bufnr, ns, kept.marks[1], {})
+  return at[1] ~= nil and at[1] == code.row + kept.row
+end
+
+--- Color `code`.
+---@param bufnr integer
+---@param code org_lsp.SrcCode
+---@return org_lsp.SrcDone
+local function color(bufnr, code)
+  local marks = {}
+  local lang = parser_for(code.name)
+  if lang then
+    with_parser(bufnr, code, lang, marks)
+  else
+    local syntax = syntax_for(code.name)
+    if syntax then
+      with_syntax(bufnr, code, syntax, marks)
+    end
+  end
+  local first = marks[1] and vim.api.nvim_buf_get_extmark_by_id(bufnr, ns, marks[1], {})
+  return { marks = marks, row = first and first[1] and first[1] - code.row or 0 }
+end
+
 --- Highlight the code of every source, export and inline source block of
---- the buffer.
+--- the buffer: again only the code that changed since the last time.
 ---@param bufnr integer
 function M.highlight(bufnr)
-  vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
+  local before = done[bufnr] or {}
+  local now = {}
   for _, code in ipairs(code_of(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false))) do
-    local lang = parser_for(code.name)
-    if lang then
-      with_parser(bufnr, code, lang)
-    else
-      local syntax = syntax_for(code.name)
-      if syntax then
-        with_syntax(bufnr, code, syntax)
+    local key = key_of(code)
+    local kept = before[key] and table.remove(before[key])
+    if kept and not in_place(bufnr, code, kept) then
+      for _, id in ipairs(kept.marks) do
+        vim.api.nvim_buf_del_extmark(bufnr, ns, id)
+      end
+      kept = nil
+    end
+    now[key] = now[key] or {}
+    table.insert(now[key], kept or color(bufnr, code))
+  end
+  -- The code that is gone or changed.
+  for _, list in pairs(before) do
+    for _, gone in ipairs(list) do
+      for _, id in ipairs(gone.marks) do
+        vim.api.nvim_buf_del_extmark(bufnr, ns, id)
       end
     end
   end
+  done[bufnr] = now
 end
 
 --- Highlight the buffer's code, and again a moment after each change.
@@ -295,6 +362,7 @@ function M.attach(bufnr)
     on_detach = function()
       timer:stop()
       timer:close()
+      done[bufnr] = nil
     end,
   })
 end

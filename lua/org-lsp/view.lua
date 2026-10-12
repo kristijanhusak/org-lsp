@@ -365,9 +365,9 @@ local function prompt_window(bufnr)
       restore_view(from, kept)
     end
     -- The window takes the folding of the window it came from. The
-    -- calendar has nothing to fold, and asking the server for folds of a
-    -- buffer that is about to go trips an assertion in Neovim 0.11.0:
-    -- turn it off before the calendar is loaded here.
+    -- calendar has nothing to fold, and the server is not asked for folds
+    -- of a buffer that is about to go: turn it off before the calendar is
+    -- loaded here.
     vim.wo[win].foldmethod = 'manual'
     vim.wo[win].foldenable = false
     if vim.api.nvim_win_get_buf(win) ~= bufnr then

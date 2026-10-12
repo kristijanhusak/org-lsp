@@ -292,14 +292,27 @@ fn list_key(region: &str, at: usize, kind: char, now: DateTime) -> Option<Key> {
     })
 }
 
-/// `org-complex-heading-regexp` with the keywords of the file.
+/// `org-complex-heading-regexp` with the keywords of the file, built once
+/// for each set of keywords: sorting asks for it for every record.
 fn heading_regex(keywords: &TodoKeywords) -> Regex {
+    thread_local! {
+        static LAST: std::cell::RefCell<Option<(String, Regex)>> = const { std::cell::RefCell::new(None) };
+    }
     let names: Vec<String> = keywords.names().map(regex::escape).collect();
     let todo = if names.is_empty() { String::from("[^\\s\\S]") } else { names.join("|") };
-    Regex::new(&format!(
-        r"^(\*+)(?: +({todo}))?(?: +(\[#(?:[A-Z]|[0-9]|[1-5][0-9]|6[0-4])\]))?(?: +(.*?))??(?:[ \t]+(:[\w@#%:]+:))?[ \t]*$"
-    ))
-    .expect("the heading regexp is valid")
+    LAST.with_borrow_mut(|last| {
+        if let Some((built, regex)) = last {
+            if *built == todo {
+                return regex.clone();
+            }
+        }
+        let regex = Regex::new(&format!(
+            r"^(\*+)(?: +({todo}))?(?: +(\[#(?:[A-Z]|[0-9]|[1-5][0-9]|6[0-4])\]))?(?: +(.*?))??(?:[ \t]+(:[\w@#%:]+:))?[ \t]*$"
+        ))
+        .expect("the heading regexp is valid");
+        *last = Some((todo, regex.clone()));
+        regex
+    })
 }
 
 /// The sort key of the record whose headline starts at `heading`.

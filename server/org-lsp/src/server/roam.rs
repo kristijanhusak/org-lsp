@@ -42,7 +42,7 @@ pub(super) struct Roam {
     directory: PathBuf,
     files: HashMap<PathBuf, Scanned>,
     /// Where the org-roam buffer's files go.
-    buffer_directory: PathBuf,
+    pub(super) buffer_directory: PathBuf,
     /// The node the persistent buffer shows.
     buffer_node: Option<String>,
 }

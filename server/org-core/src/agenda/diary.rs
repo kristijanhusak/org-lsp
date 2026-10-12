@@ -32,10 +32,15 @@ impl Value {
 /// Read one Lisp form from `text`.
 fn read(text: &str) -> Option<Value> {
     let mut chars = text.chars().peekable();
-    read_form(&mut chars)
+    read_form(&mut chars, 0)
 }
 
-fn read_form(chars: &mut std::iter::Peekable<std::str::Chars>) -> Option<Value> {
+/// One form, `depth` lists deep: deeper than 200 is not read, rather
+/// than read until the stack runs out.
+fn read_form(chars: &mut std::iter::Peekable<std::str::Chars>, depth: usize) -> Option<Value> {
+    if depth == 200 {
+        return None;
+    }
     while chars.peek().is_some_and(|c| c.is_whitespace()) {
         chars.next();
     }
@@ -52,13 +57,13 @@ fn read_form(chars: &mut std::iter::Peekable<std::str::Chars>) -> Option<Value> 
                         chars.next();
                         return Some(Value::List(items));
                     }
-                    _ => items.push(read_form(chars)?),
+                    _ => items.push(read_form(chars, depth + 1)?),
                 }
             }
         }
         '\'' => {
             chars.next();
-            let quoted = read_form(chars)?;
+            let quoted = read_form(chars, depth + 1)?;
             Some(Value::List(vec![Value::Symbol("quote".to_string()), quoted]))
         }
         '"' => {
@@ -428,5 +433,10 @@ mod tests {
         assert_eq!(shown("(org-class 2026 5 1 2026 6 30 1)", "Class", "2026-05-18"), Some(vec!["Class".to_string()]));
         assert_eq!(shown("(my-own-function)", "x", "2026-05-18"), None);
         assert_eq!(shown("\"a; b\"", "x", "2026-05-18"), Some(vec!["a".to_string(), "b".to_string()]));
+    }
+
+    #[test]
+    fn does_not_read_a_form_nested_past_the_stack() {
+        assert_eq!(read(&"(".repeat(100_000)), None);
     }
 }
