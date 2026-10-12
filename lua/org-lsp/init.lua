@@ -956,7 +956,10 @@ end
 --- (`org-lsp/folds`), in the windows that show it.
 ---@param params { uri: string, open: table[], close: table[] }
 function M.journal_folds(params)
-  local bufnr = vim.uri_to_bufnr(params.uri)
+  local bufnr = require('org-lsp.buffers').of(params.uri)
+  if not bufnr then
+    return
+  end
   for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
     set_folds(win, bufnr, params.open or {}, params.close or {})
   end

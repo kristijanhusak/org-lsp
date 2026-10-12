@@ -30,7 +30,16 @@ set -euo pipefail
 
 repo=kristijanhusak/org-lsp
 releases=${ORG_LSP_RELEASES:-https://github.com/$repo/releases/download}
-usage() { sed -n '2,25s/^# \{0,1\}//p' "${BASH_SOURCE[0]}"; }
+# The comment at the top; through a pipe (`curl | bash`) there is no file
+# to read it from.
+usage() {
+  if [ -f "${BASH_SOURCE[0]:-}" ]; then
+    sed -n '2,25s/^# \{0,1\}//p' "${BASH_SOURCE[0]}"
+  else
+    say "Usage: install.sh [--release TAG] [--source] vscode|sublime|zed|helix|server"
+    say "See https://github.com/$repo/blob/main/scripts/install.sh for more."
+  fi
+}
 say() { printf '%s\n' "$*"; }
 fail() {
   printf '%s\n' "$*" >&2
@@ -250,12 +259,14 @@ install_sublime() {
   packages=$(sublime_packages)
   [ -n "$packages" ] || fail "No Sublime Text Packages folder found. Start Sublime Text once, or set SUBLIME_PACKAGES (Preferences > Browse Packages... shows it)."
   local target=$packages/LSP-org
-  rm -rf "$target"
   if $source; then
+    rm -rf "$target"
     ln -s "$root/editors/sublime/LSP-org" "$target"
     say "Linked $target to $root/editors/sublime/LSP-org"
   else
+    # The package that is there stays until the new one has come.
     fetch org-lsp-sublime.zip "$work/org-lsp-sublime.zip"
+    rm -rf "$target"
     unpack "$work/org-lsp-sublime.zip" "$packages"
     say "Installed the package in $target"
   fi

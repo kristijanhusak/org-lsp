@@ -412,8 +412,8 @@ end
 ---@param uris string[]
 function M.save(uris)
   for _, uri in ipairs(uris) do
-    local bufnr = vim.uri_to_bufnr(uri)
-    if vim.api.nvim_buf_is_loaded(bufnr) and vim.bo[bufnr].modified then
+    local bufnr = require('org-lsp.buffers').of(uri)
+    if bufnr and vim.bo[bufnr].modified then
       vim.api.nvim_buf_call(bufnr, function()
         vim.cmd('silent write')
       end)
@@ -458,7 +458,10 @@ end
 --- Close the document at `uri`, as `close_buffer` does.
 ---@param uri string
 function M.close(uri)
-  M.close_buffer(vim.uri_to_bufnr(uri))
+  local bufnr = require('org-lsp.buffers').of(uri)
+  if bufnr then
+    M.close_buffer(bufnr)
+  end
 end
 
 --- Tell the server of the changes to `bufnr` now, not after Neovim's
@@ -560,7 +563,10 @@ M.handlers = {
     local result = vim.lsp.handlers['workspace/applyEdit'](err, params, ctx)
     local client = vim.lsp.get_client_by_id(ctx.client_id)
     for _, uri in ipairs(uris) do
-      send_changes(client, vim.uri_to_bufnr(uri))
+      local bufnr = require('org-lsp.buffers').of(uri)
+      if bufnr then
+        send_changes(client, bufnr)
+      end
     end
     return result
   end,

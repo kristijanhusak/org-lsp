@@ -63,9 +63,9 @@ end
 ---@param client vim.lsp.Client
 ---@param params { uri: string, version: integer, items: any[][] }
 function M.show(client, params)
-  local bufnr = vim.uri_to_bufnr(params.uri)
+  local bufnr = require('org-lsp.buffers').of(params.uri)
   -- For older text than the buffer has: newer is on its way.
-  if not vim.api.nvim_buf_is_loaded(bufnr) or vim.lsp.util.buf_versions[bufnr] ~= params.version then
+  if not bufnr or vim.lsp.util.buf_versions[bufnr] ~= params.version then
     return
   end
   vim.api.nvim_buf_clear_namespace(bufnr, namespace, 0, -1)

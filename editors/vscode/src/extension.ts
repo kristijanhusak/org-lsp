@@ -666,6 +666,20 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
   }
 }
 
+/** The last restart: a restart waits for the one before, so that two never
+ * start two servers. */
+let restarting: Promise<void> = Promise.resolve();
+
+function restartClient(context: vscode.ExtensionContext): Promise<void> {
+  restarting = restarting
+    .catch(() => undefined)
+    .then(async () => {
+      await stopClient();
+      await startClient(context);
+    });
+  return restarting;
+}
+
 async function stopClient(): Promise<void> {
   const running = client;
   client = undefined;
@@ -2009,10 +2023,7 @@ export interface Api {
 export async function activate(context: vscode.ExtensionContext): Promise<Api> {
   iconDirectory = vscode.Uri.joinPath(context.globalStorageUri, 'icons');
   context.subscriptions.push(
-    vscode.commands.registerCommand('org-lsp.restartServer', async () => {
-      await stopClient();
-      await startClient(context);
-    }),
+    vscode.commands.registerCommand('org-lsp.restartServer', () => restartClient(context)),
     // The server reads its settings once, at start.
     vscode.workspace.onDidChangeConfiguration(async (event) => {
       if (
@@ -2020,8 +2031,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
         event.affectsConfiguration('org-lsp.server') ||
         event.affectsConfiguration('org-lsp.images')
       ) {
-        await stopClient();
-        await startClient(context);
+        await restartClient(context);
       }
     }),
   );
