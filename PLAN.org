@@ -649,7 +649,9 @@ Emacs in ~tests/tblfm/cases.json~.
 
 1. /Typed input over LSP only./ Decided: the editor's input box, and
    a calendar for dates; see milestone 4.
-2. /Licence./ Decided: MIT (~LICENSE~).
+2. /Licence./ Decided: the GNU GPL, version 3 or later (~LICENSE~), as
+   Org mode's: ~org-core~ ports Org's own code, which makes it a work
+   based on Org. (MIT before.)
 3. /Saving after edits from the agenda./ Decided: saved by default
    (~auto_save~), unlike Emacs: the files a command changes other than the
    one it was run in (from the agenda, a capture or refile target) are

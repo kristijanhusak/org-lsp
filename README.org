@@ -175,6 +175,13 @@ area; [[file:PLAN.org][PLAN.org]] says in what order it comes.
 
 * Licence
 
-MIT, see [[file:LICENSE][LICENSE]]. The website's logo, [[file:site/assets/logo.svg][site/assets/logo.svg]], is Org mode's
-unicorn by Christophe Bataillon and, as Org mode, under the GNU GPL version
-3 or later.
+Copyright (C) 2026 Kristijan Husak
+
+org-lsp is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option)
+any later version, as Org mode, whose logic it ports, is. See
+[[file:LICENSE][LICENSE]].
+
+The website's logo, [[file:site/assets/logo.svg][site/assets/logo.svg]], is Org mode's unicorn by
+Christophe Bataillon.
