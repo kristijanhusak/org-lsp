@@ -853,6 +853,9 @@ struct Server {
     all_agenda_tags: bool,
     /// The files to save once the edit request with this id is applied.
     saving: HashMap<RequestId, Vec<Uri>>,
+    /// The documents each `workspace/applyEdit` changes, by request: if
+    /// the editor does not apply it, the server forgets the change.
+    applying: HashMap<RequestId, Vec<String>>,
     todo: TodoKeywords,
     agenda: AgendaConfig,
     /// The `agenda` options as given, for the custom commands' own.
@@ -878,7 +881,7 @@ struct Server {
     /// How many captures there were.
     captures: u32,
     /// Where the capture and note buffers go, one directory each.
-    capture_directory: PathBuf,
+    capture_directory: Private,
     /// Emacs, for export (`emacs`); it starts when first asked.
     emacs: crate::emacs::Emacs,
     /// The export menu, the publishing projects and the structure
@@ -895,7 +898,7 @@ struct Server {
     /// The parts of Org files edited in files of their own, and where
     /// those files are.
     special_edits: Vec<SpecialEdit>,
-    special_directory: PathBuf,
+    special_directory: Private,
     /// Narrowed files widened and asked closed: removed again when the
     /// editor closes them, as some save a file before closing it.
     widened: Vec<PathBuf>,
@@ -923,7 +926,7 @@ struct Server {
     /// What Emacs is doing, by tag.
     emacs_jobs: HashMap<u64, EmacsJob>,
     /// Where exports to a buffer are written to be shown.
-    export_directory: PathBuf,
+    export_directory: Private,
     next_export: u64,
     /// Where the agenda's file goes, for a client that cannot fetch it.
     view_directory: PathBuf,
@@ -1063,7 +1066,7 @@ struct Server {
     /// on with: its id and its context so far.
     journal_state: Option<(String, Value)>,
     /// The directory of the journal's search results and schedule.
-    journal_views: PathBuf,
+    journal_views: Private,
     /// `org-clock-display`: by document, the lines of headlines and the
     /// minutes clocked under them, shown as inlay hints until the
     /// document changes.
@@ -1282,6 +1285,7 @@ pub fn run(connection: Connection) -> Result<()> {
             emphasis: options.hide_emphasis_markers.unwrap_or(false),
         },
         saving: HashMap::new(),
+        applying: HashMap::new(),
         todo,
         agenda,
         agenda_options: options.agenda.clone(),
@@ -1296,7 +1300,7 @@ pub fn run(connection: Connection) -> Result<()> {
         capture: None,
         note: None,
         captures: 0,
-        capture_directory: server_directory("capture"),
+        capture_directory: Private::new("capture"),
         emacs,
         export_menu: None,
         structure_templates: None,
@@ -1305,7 +1309,7 @@ pub fn run(connection: Connection) -> Result<()> {
         appt_check: None,
         special_edits: Vec::new(),
         widened: Vec::new(),
-        special_directory: server_directory("edit"),
+        special_directory: Private::new("edit"),
         special_tick: crossbeam_channel::tick(std::time::Duration::from_millis(500)),
         appt_minute: std::time::Duration::from_secs_f64(
             options.clock.as_ref().and_then(|clock| clock.minute).unwrap_or(60.0),
@@ -1316,7 +1320,7 @@ pub fn run(connection: Connection) -> Result<()> {
         publish_projects: None,
         emacs_jobs: HashMap::new(),
         export_stack: Vec::new(),
-        export_directory: server_directory("export"),
+        export_directory: Private::new("export"),
         next_export: 0,
         view_directory,
         prompt_uri,
@@ -1382,7 +1386,7 @@ pub fn run(connection: Connection) -> Result<()> {
         roam: options.roam().map(roam::Roam::new),
         journal: options.journal(),
         journal_state: None,
-        journal_views: server_directory("journal"),
+        journal_views: Private::new("journal"),
         clock_display: HashMap::new(),
         clock_display_range: options.clock_display_default_range.clone().unwrap_or_else(|| "thisyear".to_string()),
         refile_current: None,
@@ -1472,12 +1476,13 @@ pub fn run(connection: Connection) -> Result<()> {
     if !server.client.zed_agenda() {
         server.remove_view_file();
     }
-    // The server's temporary directories, made when it started.
-    let roam = server.roam.as_ref().map(|roam| roam.buffer_directory.clone());
+    // The server's temporary directories that were made.
+    let roam = server.roam.as_ref().map(|roam| &roam.buffer_directory);
     for directory in [&server.capture_directory, &server.export_directory, &server.special_directory]
         .into_iter()
         .chain([&server.journal_views])
-        .chain(roam.as_ref())
+        .chain(roam)
+        .filter_map(Private::made)
     {
         let _ = std::fs::remove_dir_all(directory);
     }
@@ -1779,6 +1784,30 @@ fn agenda_directory(client: &Client, folders: &[PathBuf]) -> Option<PathBuf> {
     Some(client.command_script.as_ref()?.parent()?.join("agenda").join(format!("{hash:016x}")))
 }
 
+/// A private directory of the server ([`server_directory`]), made the first
+/// time it is needed: a server that never captures leaves no capture
+/// directory behind.
+pub(crate) struct Private {
+    kind: &'static str,
+    path: std::cell::OnceCell<PathBuf>,
+}
+
+impl Private {
+    pub(crate) fn new(kind: &'static str) -> Private {
+        Private { kind, path: std::cell::OnceCell::new() }
+    }
+
+    /// The directory, made now if it is not yet.
+    pub(crate) fn path(&self) -> &Path {
+        self.path.get_or_init(|| server_directory(self.kind))
+    }
+
+    /// The directory, if it was made.
+    pub(crate) fn made(&self) -> Option<&Path> {
+        self.path.get().map(PathBuf::as_path)
+    }
+}
+
 /// A directory for the capture buffers or the agenda file of a server:
 /// one of its own, also when a process runs more than one (the tests).
 /// It is made at once, the user's alone (mode 0700) and under a name no one
@@ -2061,16 +2090,26 @@ fn planning_command(id: &str) -> Option<PlanningCommand> {
 /// a write cut short leaves the old file whole.
 pub(crate) fn write_whole(path: &Path, text: &str) -> std::result::Result<(), String> {
     let refused = |error: &dyn std::fmt::Display| format!("Cannot write {}: {error}", path.display());
-    let permissions = match std::fs::read(path) {
+    match std::fs::read(path) {
         Ok(bytes) if std::str::from_utf8(&bytes).is_err() => {
             return Err(refused(&"it is not UTF-8 text, and is left as it is"));
         }
-        Ok(_) => std::fs::metadata(path).ok().map(|metadata| metadata.permissions()),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+        Ok(_) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
         Err(error) => return Err(refused(&error)),
-    };
+    }
+    replace_whole(path, text.as_bytes()).map_err(|error| refused(&error))
+}
+
+/// Write `bytes` to `path` at once: to a file beside it, then renamed over
+/// it, keeping its permissions. A link is written through, to the file it
+/// leads to, as Emacs writes it.
+fn replace_whole(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    let target = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+    let path = target.as_path();
+    let permissions = std::fs::metadata(path).ok().map(|metadata| metadata.permissions());
     let directory = path.parent().filter(|parent| !parent.as_os_str().is_empty()).unwrap_or(Path::new("."));
-    std::fs::create_dir_all(directory).map_err(|error| refused(&error))?;
+    std::fs::create_dir_all(directory)?;
     let name = path.file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default();
     let temporary = directory.join(format!(".{name}.org-lsp-{}", port::token()));
     let written = std::fs::OpenOptions::new()
@@ -2079,16 +2118,15 @@ pub(crate) fn write_whole(path: &Path, text: &str) -> std::result::Result<(), St
         .open(&temporary)
         .and_then(|mut file| {
             use std::io::Write;
-            file.write_all(text.as_bytes())?;
+            file.write_all(bytes)?;
             file.sync_all()
         })
         .and_then(|()| permissions.map_or(Ok(()), |permissions| std::fs::set_permissions(&temporary, permissions)))
         .and_then(|()| std::fs::rename(&temporary, path));
-    if let Err(error) = written {
+    if written.is_err() {
         let _ = std::fs::remove_file(&temporary);
-        return Err(refused(&error));
     }
-    Ok(())
+    written
 }
 
 /// Write a tangled file as `org-babel-tangle` writes it: only when its text
@@ -2102,7 +2140,7 @@ fn write_tangled(file: &org_core::tangle::File) -> std::io::Result<()> {
             std::fs::create_dir_all(parent)?;
         }
     }
-    std::fs::write(&file.path, &file.text)?;
+    replace_whole(&file.path, file.text.as_bytes())?;
     #[cfg(unix)]
     if let Some(mode) = file.mode {
         use std::os::unix::fs::PermissionsExt;
@@ -2236,12 +2274,14 @@ impl Server {
             (_, Some(changes)) => changes.keys().cloned().collect(),
             _ => Vec::new(),
         };
+        let changed: Vec<String> = files.iter().map(|uri| uri.as_str().to_string()).collect();
         files.retain(|uri| Some(uri.as_str()) != self.origin.as_deref() && !is_view_uri(uri));
         let request = self.new_request(
             ApplyWorkspaceEdit::METHOD,
             serde_json::to_value(params).unwrap_or(Value::Null),
             Some(pending),
         );
+        self.applying.insert(request.id.clone(), changed);
         if self.auto_save && !files.is_empty() {
             self.saving.insert(request.id.clone(), files);
         }
@@ -2270,6 +2310,32 @@ impl Server {
     }
 
     fn response(&mut self, response: Response) {
+        // An edit the editor did not apply: the server takes back what it
+        // expected of it.
+        if let Some(files) = self.applying.remove(&response.id) {
+            let result = response.response_result.as_ref();
+            let refused =
+                result.is_err() || result.ok().and_then(|result| result.get("applied")?.as_bool()) == Some(false);
+            if refused {
+                for file in &files {
+                    self.edited.remove(file);
+                }
+                self.clock_pending = false;
+                let running = self.find_running();
+                if running.as_ref().map(|clock| (&clock.uri, clock.start))
+                    != self.running.as_ref().map(|clock| (&clock.uri, clock.start))
+                {
+                    self.running = running;
+                    self.publish_clock();
+                }
+                let reason = result.ok().and_then(|result| result.get("failureReason")?.as_str().map(str::to_string));
+                let message = match reason {
+                    Some(reason) => format!("The editor did not make the change: {reason}"),
+                    None => "The editor did not make the change".to_string(),
+                };
+                self.show_message(MessageType::WARNING, message);
+            }
+        }
         // An edit to save, now that the editor has applied it.
         if let Some(files) = self.saving.remove(&response.id) {
             let applied = response.response_result.as_ref().ok().and_then(|result| result.get("applied")?.as_bool());
@@ -6253,7 +6319,7 @@ impl Server {
         if let Some(directory) = path.parent() {
             let _ = std::fs::create_dir_all(directory);
         }
-        std::fs::write(&path, text)
+        replace_whole(&path, text.as_bytes())
             .map_err(|error| format!("Cannot write agenda to file {}: {error}", path.display()))?;
         self.show_message(MessageType::INFO, format!("{done} {}", path.display()));
         Ok(Value::Null)
@@ -7481,7 +7547,7 @@ impl Server {
     /// the capture places in its target, with the cursor where `%?` was.
     fn show_capture(&mut self, target_uri: &Uri, placed: &capture::Placed) -> std::result::Result<Uri, Refusal> {
         self.captures += 1;
-        let directory = self.capture_directory.join(self.captures.to_string());
+        let directory = self.capture_directory.path().join(self.captures.to_string());
         std::fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
         // It is an Org buffer whatever the target is called (Org's default
         // notes file is `~/.notes`), and editors tell that by the name.
@@ -7582,7 +7648,7 @@ impl Server {
         wanted: org_core::todo::WantedNote,
     ) -> std::result::Result<Value, Refusal> {
         self.captures += 1;
-        let directory = self.capture_directory.join(self.captures.to_string());
+        let directory = self.capture_directory.path().join(self.captures.to_string());
         std::fs::create_dir_all(&directory).map_err(|error| error.to_string())?;
         let buffer = directory.join(format!("{CAPTURE_PREFIX}Note.org"));
         // The note goes on the third line, as in Emacs; an editor that takes
@@ -9211,6 +9277,10 @@ impl Server {
                     Some(Pending::EmacsQuestion(answer)),
                 );
             }
+            // As Emacs's echo area shows a question and its answer.
+            crate::emacs::Event::Declined { prompt } => {
+                self.show_message(MessageType::INFO, format!("{prompt} (y or n) n"));
+            }
             crate::emacs::Event::Done { tag, result } => match (self.emacs_jobs.remove(&tag), result) {
                 (Some(EmacsJob::Export(label)), Err(error)) => {
                     self.show_message(MessageType::ERROR, format!("{label}: {error}"));
@@ -9624,8 +9694,8 @@ impl Server {
             match version {
                 Some(version) => documents.push((file_uri.clone(), Some(*version), self.text_edits(old, text))),
                 None => {
-                    if let Err(error) = std::fs::write(file, text) {
-                        self.show_message(MessageType::ERROR, format!("Cannot write {file}: {error}"));
+                    if let Err(error) = write_whole(Path::new(file), text) {
+                        self.show_message(MessageType::ERROR, error);
                     }
                 }
             }
@@ -9819,7 +9889,7 @@ impl Server {
             self.send_request::<ShowDocument>(params, None);
             return Ok(Value::Null);
         }
-        let directory = self.special_directory.join(self.special_edits.len().to_string());
+        let directory = self.special_directory.path().join(self.special_edits.len().to_string());
         let suffix = if new.kind == SpecialKind::Region { "narrowed" } else { "edit" };
         let file = directory.join(format!("{}-{suffix}.{}", new.stem, new.extension));
         std::fs::create_dir_all(&directory)
@@ -10923,8 +10993,9 @@ impl Server {
         if let Some(text) = result.get("text").and_then(Value::as_str) {
             let name = result.get("name").and_then(Value::as_str).unwrap_or("Org Export").trim_matches('*');
             let extension = result.get("extension").and_then(Value::as_str).unwrap_or("txt");
-            let file = self.export_directory.join(format!("{name}.{extension}"));
-            let written = std::fs::create_dir_all(&self.export_directory).and_then(|()| std::fs::write(&file, text));
+            let directory = self.export_directory.path();
+            let file = directory.join(format!("{name}.{extension}"));
+            let written = std::fs::create_dir_all(directory).and_then(|()| std::fs::write(&file, text));
             if let Err(error) = written {
                 self.show_message(MessageType::ERROR, format!("Cannot write {}: {error}", file.display()));
                 return;
@@ -13031,6 +13102,15 @@ mod tests {
             std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o600)).unwrap();
             write_whole(&file, "* three\n").unwrap();
             assert_eq!(std::fs::metadata(&file).unwrap().permissions().mode() & 0o777, 0o600);
+        }
+        // A link stays a link: the file it leads to is written.
+        #[cfg(unix)]
+        {
+            let link = directory.join("linked.org_archive");
+            std::os::unix::fs::symlink(&file, &link).unwrap();
+            write_whole(&link, "* four\n").unwrap();
+            assert!(std::fs::symlink_metadata(&link).unwrap().file_type().is_symlink());
+            assert_eq!(std::fs::read_to_string(&file).unwrap(), "* four\n");
         }
         std::fs::remove_dir_all(directory).unwrap();
     }

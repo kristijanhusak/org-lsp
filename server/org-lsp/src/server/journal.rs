@@ -454,7 +454,7 @@ impl Server {
             text.replace_range(link.at..after, &format!("[[file:{}::{line}][{label}]]  ", path.display()));
         }
         let name = if id == commands::JOURNAL_SCHEDULE_VIEW { SCHEDULE_FILE } else { SEARCH_FILE };
-        let path = self.journal_views.join(name);
+        let path = self.journal_views.path().join(name);
         self.own_file_show(&path, &text, true, true)?;
         Ok(())
     }

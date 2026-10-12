@@ -2114,7 +2114,7 @@ fn keeps_timers_through_emacs() {
         client
             .connection
             .sender
-            .send(Message::Response(Response::new_ok(edit.id.clone(), json!({ "applied": false }))))
+            .send(Message::Response(Response::new_ok(edit.id.clone(), json!({ "applied": true }))))
             .unwrap();
         serde_json::from_value(edit.params["edit"]["changes"][uri.as_str()].clone()).unwrap()
     };
@@ -2658,6 +2658,54 @@ fn edits_through_emacs() {
     assert_eq!(cursor, Some((1, 2)));
     run(&mut client, &mut text, &mut version, "org.shift.right", (1, 2), json!({}));
     assert_eq!(text, "| c | b |\n| d | a |\n");
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
+#[test]
+fn takes_back_an_edit_the_editor_does_not_make() {
+    let directory = std::env::temp_dir().join(format!("org-lsp-refused-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let file = directory.join("tasks.org");
+    let text = "* Task\n";
+    std::fs::write(&file, text).unwrap();
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let mut client = Client::start(json!({}), json!({}));
+    client.open(&uri, text);
+    let run = |client: &mut Client, command: &str| -> Response {
+        let argument = json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 0, "character": 0 } });
+        client.raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [argument] }))
+    };
+    run(&mut client, "org.clock.in");
+    // The editor does not make the clock's edit.
+    let edit = match client.asked.iter().position(|request| request.method == "workspace/applyEdit") {
+        Some(at) => client.asked.remove(at),
+        None => {
+            let Message::Request(edit) = next_from_server(
+                &client,
+                |message| matches!(message, Message::Request(request) if request.method == "workspace/applyEdit"),
+            ) else {
+                unreachable!()
+            };
+            edit
+        }
+    };
+    client
+        .connection
+        .sender
+        .send(Message::Response(Response::new_ok(edit.id, json!({ "applied": false, "failureReason": "read-only" }))))
+        .unwrap();
+    let Message::Notification(said) = next_from_server(&client, |message| {
+        matches!(message, Message::Notification(note) if note.method == "window/showMessage"
+            && note.params["message"].as_str().is_some_and(|text| text.starts_with("The editor did not")))
+    }) else {
+        unreachable!()
+    };
+    assert_eq!(said.params["message"], "The editor did not make the change: read-only");
+    // No clock runs: the file has none.
+    let out = run(&mut client, "org.clock.out");
+    assert_eq!(out.response_result.unwrap_err().message, "No active clock");
     client.shutdown();
     std::fs::remove_dir_all(directory).unwrap();
 }

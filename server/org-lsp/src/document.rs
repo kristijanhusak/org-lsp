@@ -25,6 +25,10 @@ impl Document {
     }
 
     /// Apply the changes of one `didChange` notification, in order, then reparse.
+    ///
+    /// The text, its index, version and parse change together: a parser
+    /// that fails on the new text leaves an empty parse, not the old one,
+    /// so the text and version still agree with the editor's.
     pub fn apply(
         &mut self,
         changes: Vec<TextDocumentContentChangeEvent>,
@@ -32,19 +36,22 @@ impl Document {
         encoding: Encoding,
         todo: &TodoKeywords,
     ) {
+        let mut text = self.text.clone();
+        let mut index = self.index.clone();
         for change in changes {
             match change.range {
                 Some(range) => {
-                    let range = self.index.text_range(&self.text, range, encoding);
-                    self.text.replace_range(usize::from(range.start())..usize::from(range.end()), &change.text);
+                    let range = index.text_range(&text, range, encoding);
+                    text.replace_range(usize::from(range.start())..usize::from(range.end()), &change.text);
                 }
-                None => self.text = change.text,
+                None => text = change.text,
             }
             // Later changes in the same notification refer to the new text.
-            self.index = LineIndex::new(&self.text);
+            index = LineIndex::new(&text);
         }
-        self.version = version;
-        self.parse = org_syntax::parse(&self.text, todo);
+        let parse = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| org_syntax::parse(&text, todo)))
+            .unwrap_or_else(|_| org_syntax::parse("", todo));
+        *self = Document { version, text, index, parse };
     }
 }
 
