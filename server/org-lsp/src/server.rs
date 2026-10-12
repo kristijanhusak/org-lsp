@@ -340,6 +340,10 @@ enum DimBlocked {
 /// The largest count a command takes, either way.
 const COUNT_MAX: i64 = 100_000;
 
+/// How long the `ID`s of the files that are not open are taken as they
+/// were last found, for `invalid-id-link`.
+const IDS_FRESH: std::time::Duration = std::time::Duration::from_secs(5);
+
 fn bounded_count<'de, D: serde::Deserializer<'de>>(deserializer: D) -> std::result::Result<Option<i64>, D::Error> {
     Ok(Option::<i64>::deserialize(deserializer)?.map(|count| count.clamp(-COUNT_MAX, COUNT_MAX)))
 }
@@ -974,6 +978,9 @@ struct Server {
     /// The `ID`s of the files on disk that IDs are looked for in, as of
     /// their time of change (`org-id-locations`).
     id_files: HashMap<PathBuf, (std::time::SystemTime, Vec<String>)>,
+    /// The `ID`s of the files that are not open, and when they were
+    /// looked for (`known_ids`).
+    ids_on_disk: Option<(std::time::Instant, HashSet<String>)>,
     /// `org_lint`: Org's linter checks the documents.
     lint: bool,
     /// `org_lint_ignore`: the checkers it leaves out.
@@ -1331,6 +1338,7 @@ pub fn run(connection: Connection) -> Result<()> {
         bibliographies: HashMap::new(),
         diagnosed: HashSet::new(),
         id_files: HashMap::new(),
+        ids_on_disk: None,
         lint: options.lint.unwrap_or(true),
         lint_ignore: options.lint_ignore.clone().unwrap_or_default(),
         clock: options.clock.as_ref().and_then(|clock| clock.to_now()),
@@ -2452,6 +2460,12 @@ impl Server {
         } else {
             self.drop_closed_view();
         }
+        if matches!(
+            notification.method.as_str(),
+            DidOpenTextDocument::METHOD | DidSaveTextDocument::METHOD | DidCloseTextDocument::METHOD
+        ) {
+            self.ids_on_disk = None;
+        }
         match notification.method.as_str() {
             AGENDA_WIDTH => self.agenda_width(&notification.params),
             AGENDA_CURSOR => self.agenda_cursor(notification.params),
@@ -3557,26 +3571,36 @@ impl Server {
     /// The Org files the server knows: the agenda files and the files open
     /// in the editor, each with its text.
     fn known_files(&mut self) -> Vec<(Uri, String)> {
-        let mut files: Vec<(Uri, String)> = self
-            .agenda_files()
+        self.known_parses().into_iter().map(|(uri, text, _)| (uri, text)).collect()
+    }
+
+    /// `known_files`, each with its parse: the one the server keeps for
+    /// it, not made again.
+    fn known_parses(&mut self) -> Vec<(Uri, String, Parse)> {
+        let held = self.agenda_files();
+        let mut files: Vec<(Uri, String, Parse)> = held
             .into_iter()
-            .map(|(uri, held)| {
-                let text = match &held {
-                    Held::Open(outline) => outline.text.clone(),
-                    Held::Disk(source) => source.text.clone(),
-                };
-                (uri, text)
+            .map(|(uri, held)| match held {
+                Held::Open(outline) => {
+                    let parse = match self.document(&uri).filter(|document| document.text == outline.text) {
+                        Some(document) => document.parse.clone(),
+                        None => org_syntax::parse(&outline.text, &self.todo),
+                    };
+                    (uri, outline.text.clone(), parse)
+                }
+                Held::Disk(source) => (uri, source.text.clone(), source.parse.clone()),
             })
             .collect();
-        let mut paths: Vec<PathBuf> = files.iter().filter_map(|(uri, _)| uri::to_path(uri)).collect();
+        let mut paths: HashSet<PathBuf> = files.iter().filter_map(|(uri, _, _)| uri::to_path(uri)).collect();
         let mut keys: Vec<&String> = self.documents.keys().collect();
         keys.sort();
         for key in keys {
             let Ok(uri) = key.parse::<Uri>() else { continue };
             let Some(path) = uri::to_path(&uri) else { continue };
             if !paths.contains(&path) && !self.is_view(&uri) {
-                paths.push(path);
-                files.push((uri, self.documents[key].text.clone()));
+                paths.insert(path);
+                let document = &self.documents[key];
+                files.push((uri, document.text.clone(), document.parse.clone()));
             }
         }
         files
@@ -3641,9 +3665,8 @@ impl Server {
             outline.entry_at(heading).and_then(|entry| outline.entry_property(Some(entry), "ID", false))
         };
         let mut out = Vec::new();
-        for (file, file_text) in self.known_files() {
+        for (file, file_text, file_parse) in self.known_parses() {
             let Some(file_path) = uri::to_path(&file) else { continue };
-            let file_parse = org_syntax::parse(&file_text, &self.todo);
             for link in open::links(&file_text, &file_parse, &self.link_abbreviations) {
                 let leads = match &link.open {
                     Ok(Open::Here(at)) => same(&file_path) && *at == heading,
@@ -3789,8 +3812,7 @@ impl Server {
             wanted.peek().is_none()
         };
         let mut out = Vec::new();
-        for (file, text) in self.known_files() {
-            let parse = org_syntax::parse(&text, &self.todo);
+        for (file, text, parse) in self.known_parses() {
             let index = LineIndex::new(&text);
             let name = uri::file_name(&file);
             for mut symbol in symbols::symbol_information(&parse.syntax(), &text, &index, encoding, &file) {
@@ -4077,17 +4099,32 @@ impl Server {
     }
 
     /// Every `ID` of the files IDs are looked for in: the open files as
-    /// the editor has them, the others as they are on disk, read again
-    /// once they change.
+    /// the editor has them, the others as they are on disk. Those on disk
+    /// are looked for again after `IDS_FRESH`, or once a file opens, closes
+    /// or is saved: the diagnostics ask on every change.
     fn known_ids(&mut self) -> HashSet<String> {
+        if self.ids_on_disk.as_ref().is_none_or(|(at, _)| at.elapsed() >= IDS_FRESH) {
+            let found = self.ids_on_disk();
+            self.ids_on_disk = Some((std::time::Instant::now(), found));
+        }
+        let mut ids = self.ids_on_disk.as_ref().map(|(_, ids)| ids.clone()).unwrap_or_default();
+        for (key, document) in &self.documents {
+            if key.parse::<Uri>().ok().and_then(|uri| uri::to_path(&uri)).is_some() {
+                ids.extend(property_ids(&document.text));
+            }
+        }
+        ids
+    }
+
+    /// The `ID`s of the files IDs are looked for in that are not open,
+    /// each file read again once it changes.
+    fn ids_on_disk(&mut self) -> HashSet<String> {
         let mut ids = HashSet::new();
         let mut on_disk = HashMap::new();
+        let open: HashSet<PathBuf> =
+            self.documents.keys().filter_map(|key| uri::to_path(&key.parse::<Uri>().ok()?)).collect();
         for path in self.id_paths() {
-            let open = self.documents.iter().find(|(key, _)| {
-                key.parse::<Uri>().ok().and_then(|key| uri::to_path(&key)).is_some_and(|key| key == path)
-            });
-            if let Some((_, document)) = open {
-                ids.extend(property_ids(&document.text));
+            if open.contains(&path) {
                 continue;
             }
             let Some(changed) = std::fs::metadata(&path).and_then(|metadata| metadata.modified()).ok() else {

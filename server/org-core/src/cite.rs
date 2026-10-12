@@ -667,13 +667,12 @@ impl Bib<'_> {
                 point = line + 1;
             }
         }
-        let mut keys: Vec<String> = Vec::new();
+        let mut keys: std::collections::HashSet<String> = std::collections::HashSet::new();
         for start in self.entries()? {
             let key = self.head(start).and_then(|head| head.key).unwrap_or_default();
-            if keys.contains(&key) {
+            if !keys.insert(key) {
                 return Ok(false);
             }
-            keys.push(key);
         }
         Ok(true)
     }
@@ -681,6 +680,8 @@ impl Bib<'_> {
     /// `bibtex-map-entries`: the start of each valid entry.
     fn entries(&self) -> Result<Vec<usize>, String> {
         let text = self.text;
+        // The lines that start with `@`, found once.
+        let at_lines = self.at_lines();
         let mut starts = Vec::new();
         let mut pos = 0;
         loop {
@@ -697,8 +698,8 @@ impl Bib<'_> {
                     Some(newline) => {
                         let next = line + newline + 1;
                         // To the next line that starts with `@`.
-                        match self.at_lines().into_iter().find(|start| *start >= next) {
-                            Some(start) => line = start,
+                        match at_lines.get(at_lines.partition_point(|start| *start < next)) {
+                            Some(start) => line = *start,
                             None => break None,
                         }
                     }

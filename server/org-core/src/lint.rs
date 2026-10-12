@@ -246,15 +246,15 @@ impl Doc<'_> {
                 let name = element_name(&node)?;
                 // The line of the keyword that names it.
                 let begin = range(&node).0;
-                let mut at = begin;
-                let pattern =
-                    RegexBuilder::new(&format!(r"(?m)^[ \t]*#\+[A-Za-z]+:[ \t]*{}[ \t]*$", regex::escape(&name)))
-                        .case_insensitive(true)
-                        .build()
-                        .ok()?;
-                if let Some(found) = pattern.find_at(self.text, begin) {
-                    at = found.start();
-                }
+                static KEYWORD: LazyLock<Regex> =
+                    LazyLock::new(|| Regex::new(r"(?m)^[ \t]*#\+[A-Za-z]+:[ \t]*(.*?)[ \t]*$").expect("valid"));
+                let folded = |text: &str| text.chars().flat_map(char::to_lowercase).collect::<String>();
+                let wanted = folded(&name);
+                let at = KEYWORD
+                    .captures_iter(&self.text[begin..])
+                    .find(|found| found.get(1).is_some_and(|value| folded(value.as_str()) == wanted))
+                    .and_then(|found| found.get(0))
+                    .map_or(begin, |found| begin + found.start());
                 Some((name, at))
             })
             .collect();
