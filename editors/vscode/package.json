@@ -4,7 +4,7 @@
   "description": "Org mode support through the org-lsp language server: highlighting, folding, outline, TODO states and the agenda.",
   "version": "0.1.0",
   "publisher": "org-lsp",
-  "license": "MIT",
+  "license": "GPL-3.0-or-later",
   "private": true,
   "repository": {
     "type": "git",
