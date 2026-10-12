@@ -726,6 +726,28 @@ function! s:code_link_note() abort
 endfunction
 call s:test('source blocks in their syntax, links followed, notes added', function('s:code_link_note'))
 
+" A file name that is not ASCII: its URI has the bytes of its UTF-8 name,
+" as the clients and the server write it, and comes back as the name.
+function! s:non_ascii_name() abort
+  call mkdir(s:work . '/names', 'p')
+  let file = s:work . '/names/café 日記.org'
+  call writefile(['* TODO Café'], file)
+  execute 'edit' fnameescape(file)
+  let uri = org_lsp#uri(bufnr())
+  let expected = 'file://' . s:work . '/names/caf%C3%A9%20%E6%97%A5%E8%A8%98.org'
+  " ALE writes the hex digits in lower case.
+  call assert_equal($ORG_LSP_TEST_CLIENT ==# 'ale' ? substitute(expected, '%\x\x', '\L&', 'g') : expected, uri)
+  call assert_equal(file, org_lsp#uri_to_path(uri))
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  call s:until('highlighting', {-> index(s:types(1), 'org_lsp_stars.level1') >= 0})
+  call cursor(1, 3)
+  call feedkeys('cit', 'x')
+  call s:until('DONE', {-> getline(1) ==# '* DONE Café'})
+  silent write
+  execute 'buffer' s:work_buf
+endfunction
+call s:test('a file whose name is not ASCII', function('s:non_ascii_name'))
+
 function! s:virtual_indent() abort
   let file = s:work . '/notes/indented.org'
   call writefile(['#+STARTUP: indent', '* A', 'text', '** B', '- item'], file)

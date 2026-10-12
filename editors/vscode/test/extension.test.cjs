@@ -93,6 +93,14 @@ describe('Org files', () => {
     await until('the server', async () => (await tokens(workUri)) !== undefined);
   });
 
+  // In restricted mode VS Code reads these from the user's settings only:
+  // a folder's settings could name a program for the server to run.
+  it('declares the settings that name programs restricted in untrusted workspaces', () => {
+    const declared = vscode.extensions.getExtension('org-lsp.org-lsp').packageJSON.capabilities.untrustedWorkspaces;
+    assert.equal(declared.supported, 'limited');
+    assert.deepEqual(declared.restrictedConfigurations, ['org-lsp.server.path', 'org-lsp.settings']);
+  });
+
   it('highlights with the server\'s tokens', async () => {
     const found = await tokens(workUri);
     assert.deepEqual(found.slice(0, 6), [

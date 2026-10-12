@@ -584,7 +584,9 @@ An image shows below the line of its link or fragment, in lines kept free
 for it, from where the line's text starts, and follows it as the window
 scrolls; it goes when its text does. PNG images show as they are; others
 are made PNG with ImageMagick (~magick~ or ~convert~) when it is
-installed. Older versions of Neovim say that they cannot show images.
+installed: read as their extension says (a ~.gif~ file as a GIF), in at
+most ten seconds. Older versions of Neovim say that they cannot show
+images.
 
 An image keeps its proportions: it shows at its own size, and one larger
 than ~max_width~ or ~max_height~ (in cells) allows is given only the width
@@ -661,7 +663,11 @@ with their types and defaults.
 | ~org-lsp.messages~        | ~"notification"~ | How Org's messages show (~Priority of current item set to A~): ~"notification"~ in the corner of the window, ~"statusBar"~ in the status bar for a few seconds. Errors always show as notifications.                                                          |
 
 When ~org-lsp.settings~ or ~org-lsp.server.path~ changes, the extension
-restarts the server, so the change applies at once. While a clock runs,
+restarts the server, so the change applies at once. In a workspace VS Code
+does not trust (/restricted mode/), these two come from the user's settings
+only: a folder's ~.vscode/settings.json~ could otherwise name a program for
+the server to run (~emacs~, a capture template's ~function~). They follow
+the folder's settings again once it is trusted. While a clock runs,
 the status bar shows it as Emacs's mode line does, such as
 ~[0:25/1:00] (Write the report)~; clicking it goes to the entry.
 

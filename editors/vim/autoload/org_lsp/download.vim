@@ -67,6 +67,11 @@ endfunction
 " this platform, replacing the server downloaded before. `Callback` is
 " called with what went wrong and '', or with '' and the server's path.
 function! org_lsp#download#download(release, Callback) abort
+  " The release goes into a URL and into `gh`'s arguments: only a name that
+  " can be a release's.
+  if type(a:release) != v:t_string || a:release !~# '^\%(nightly\|v[0-9][0-9A-Za-z._-]*\)$'
+    return a:Callback(printf('%s is not a release: use nightly or a version tag such as v0.2.0', string(a:release)), '')
+  endif
   let platform = org_lsp#download#platform()
   if empty(platform)
     return a:Callback(printf('there is no build for %s; build it with `cargo build --release -p org-lsp`',

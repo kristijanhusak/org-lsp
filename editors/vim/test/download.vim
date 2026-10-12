@@ -65,6 +65,18 @@ function! s:missing() abort
   call assert_true(executable(org_lsp#download#path()), 'the server downloaded before stays')
 endfunction
 
+" A release that is no release's name (it would go into the URL and `gh`'s
+" arguments) is refused before anything is fetched.
+function! s:not_a_release() abort
+  let g:org_lsp.release = '../nightly'
+  messages clear
+  OrgLspDownload
+  call s:until('the refusal', {-> !org_lsp#download#running()})
+  call assert_match("'../nightly' is not a release", s:messages())
+  call assert_notmatch('could not download', s:messages())
+  call assert_true(executable(org_lsp#download#path()), 'the server downloaded before stays')
+endfunction
+
 " From a timer: vimrc sources this file with execute(), which is silent,
 " and a silent message is not kept in the message history.
 function! s:main(...) abort
@@ -72,6 +84,7 @@ function! s:main(...) abort
   call s:test('downloads the server for the first Org file and starts it', function('s:first_file'))
   call s:test(':OrgLspDownload downloads it again', function('s:again'))
   call s:test('a release that does not exist is an error', function('s:missing'))
+  call s:test('a release that is no release name is refused', function('s:not_a_release'))
   for error in v:errors
     call add(s:results, 'not ok - ' . error)
   endfor

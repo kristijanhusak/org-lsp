@@ -18,6 +18,16 @@
     "Programming Languages"
   ],
   "main": "./dist/extension.js",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "In a workspace that is not trusted, the server binary and the server's options come from the user's settings only: they name programs the server runs (Emacs, capture functions) and files it reads.",
+      "restrictedConfigurations": [
+        "org-lsp.server.path",
+        "org-lsp.settings"
+      ]
+    }
+  },
   "contributes": {
     "languages": [
       {
