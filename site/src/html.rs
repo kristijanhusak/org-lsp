@@ -193,8 +193,17 @@ impl Renderer<'_, '_> {
                 self.out.push_str(&format!("<pre class=\"latex\">{}</pre>\n", escape(&node.text().to_string())));
             }
             DYNAMIC_BLOCK => self.elements(node),
-            // Keywords, comments, planning, property drawers, clocks and
-            // diary sexps are not shown.
+            // `#+HTML:` goes into the page as it is, as Org's HTML export
+            // puts it.
+            KEYWORD => {
+                let (key, value) = keyword_parts(node);
+                if key == "html" {
+                    self.out.push_str(&value);
+                    self.out.push('\n');
+                }
+            }
+            // Other keywords, comments, planning, property drawers, clocks
+            // and diary sexps are not shown.
             _ => {}
         }
     }
