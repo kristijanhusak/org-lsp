@@ -48,3 +48,11 @@ fn tangles_as_emacs_does() {
     }
     assert!(failures.is_empty(), "{} of {} cases differ:{}", failures.len(), cases.len(), failures.join("\n"));
 }
+
+#[test]
+fn refuses_a_block_that_refers_to_itself() {
+    let text = "#+name: a\n#+begin_src sh :noweb yes :tangle out.sh\n<<a>>\n#+end_src\n";
+    let parse = org_syntax::parse(text, &TodoKeywords::default());
+    let tangled = tangle::tangle(text, &parse, Path::new("/case/a.org"), &Settings { preserve_indentation: false });
+    assert_eq!(tangled.err().as_deref(), Some("Lisp nesting exceeds `max-lisp-eval-depth'"));
+}

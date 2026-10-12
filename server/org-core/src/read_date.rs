@@ -442,7 +442,7 @@ fn relative(text: &str, today: Day, default: Day) -> Result<Option<(Relative, us
                 }
             }
             if n > 1 {
-                delta += (n - 1) * if backward { -7 } else { 7 };
+                delta = delta.saturating_add((n - 1).saturating_mul(if backward { -7 } else { 7 }));
             }
             Relative { n: delta, what: "d".to_string(), from_default }
         }

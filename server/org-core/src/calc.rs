@@ -106,7 +106,7 @@ impl Default for Modes {
 /// would. `Err` for what Calc cannot read (`#ERROR` in a table).
 pub fn eval(formula: &str, modes: &Modes) -> Result<String, String> {
     let tokens = tokenize(formula)?;
-    let mut parser = Parser { tokens, at: 0, modes };
+    let mut parser = Parser { tokens, at: 0, modes, depth: 0 };
     let value = parser.expression(0)?;
     if parser.at < parser.tokens.len() {
         return Err(format!("Unexpected {:?}", parser.tokens[parser.at]));
@@ -262,6 +262,9 @@ struct Parser<'a> {
     tokens: Vec<Token>,
     at: usize,
     modes: &'a Modes,
+    /// How deep in subexpressions the parser is: a formula nested past
+    /// 200 is refused rather than parsed until the stack runs out.
+    depth: usize,
 }
 
 /// Binding powers: left, and right for the operand after.
@@ -307,6 +310,16 @@ impl Parser<'_> {
 
     /// An expression whose operators bind tighter than `min`.
     fn expression(&mut self, min: u8) -> Result<Outcome, String> {
+        if self.depth == 200 {
+            return Err("Formula nests too deep".to_string());
+        }
+        self.depth += 1;
+        let expression = self.operations(min);
+        self.depth -= 1;
+        expression
+    }
+
+    fn operations(&mut self, min: u8) -> Result<Outcome, String> {
         let mut left = self.prefix()?;
         while let Some(token) = self.peek().cloned() {
             let (left_power, right_power, operator) = match infix(&token) {
@@ -1105,5 +1118,12 @@ mod tests {
         ] {
             assert_eq!(calc(formula), expected, "{formula}");
         }
+    }
+
+    #[test]
+    fn refuses_a_formula_nested_past_the_stack() {
+        let formula = format!("{}1{}", "(".repeat(100_000), ")".repeat(100_000));
+        assert!(eval(&formula, &Modes::default()).is_err());
+        assert_eq!(eval("((1+2))", &Modes::default()), Ok("3".to_string()));
     }
 }

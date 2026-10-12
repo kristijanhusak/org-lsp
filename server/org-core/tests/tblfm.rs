@@ -48,3 +48,16 @@ fn recalculates_as_emacs_does() {
     }
     assert!(failures.is_empty(), "{} of {} cases differ:{}", failures.len(), cases.len(), failures.join("\n"));
 }
+
+/// Formulas that once held the server for ever, or asked for gigabytes.
+#[test]
+fn stops_on_formulas_that_never_end() {
+    let recalculate = |text: &str| tblfm::recalculate(text, 0, Mode::All, &|_| None);
+    let error = recalculate("| 1 |\n| 2 |\n#+TBLFM: @2$1=@+999999999999$1\n").unwrap_err();
+    assert!(error.contains("leads outside table"), "{error}");
+    assert!(recalculate("| @2$1 |\n| @1$1 |\n| x |\n#+TBLFM: @3$1=@1$1+1\n").is_err());
+    let wide = recalculate("| 1 |\n| 2 |\n#+TBLFM: @2$1=@1$1;%9999999999d\n").unwrap().text;
+    assert!(wide.len() < 10_000, "{} bytes", wide.len());
+    let precise = recalculate("| 1 |\n| 2 |\n#+TBLFM: @2$1=@1$1/3;f999999999\n").unwrap().text;
+    assert!(precise.len() < 10_000, "{} bytes", precise.len());
+}

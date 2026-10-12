@@ -890,6 +890,9 @@ impl Json {
 struct JsonReader<'a> {
     text: &'a [u8],
     at: usize,
+    /// How deep in arrays and objects the reader is: past 200 the text is
+    /// refused rather than read until the stack runs out.
+    depth: usize,
 }
 
 impl JsonReader<'_> {
@@ -900,6 +903,17 @@ impl JsonReader<'_> {
     }
 
     fn value(&mut self) -> Result<Json, String> {
+        // Emacs allows 10000 levels; the server's stack holds fewer.
+        if self.depth == 200 {
+            return Err("JSON object too deep".to_string());
+        }
+        self.depth += 1;
+        let value = self.read_value();
+        self.depth -= 1;
+        value
+    }
+
+    fn read_value(&mut self) -> Result<Json, String> {
         self.blank();
         let error = || "JSON readtable error".to_string();
         match *self.text.get(self.at).ok_or_else(error)? {
@@ -1045,7 +1059,7 @@ fn lisp_number(number: &str) -> String {
 
 /// `org-cite-basic--parse-json`
 pub fn parse_json(text: &str) -> Result<Vec<Entry>, String> {
-    let mut reader = JsonReader { text: text.as_bytes(), at: 0 };
+    let mut reader = JsonReader { text: text.as_bytes(), at: 0, depth: 0 };
     let items = match reader.value()? {
         Json::Array(items) => items,
         _ => return Err("Wrong type argument: listp".to_string()),
@@ -1125,6 +1139,12 @@ fn first_year(date: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn refuses_json_nested_past_the_stack() {
+        assert!(parse_json(&"[".repeat(100_000)).is_err());
+        assert!(parse_json("[[[]]]").is_ok());
+    }
 
     #[test]
     fn finds_the_keys_of_a_citation() {

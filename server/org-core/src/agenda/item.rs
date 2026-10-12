@@ -271,7 +271,8 @@ fn parse_specifier(chars: &[char]) -> Option<(Specifier, usize)> {
         Some((width, precision)) => (width, Some(precision.parse().unwrap_or(0))),
         None => (digits, None),
     };
-    let width = width.parse().unwrap_or(0);
+    // A format no line could fill is cut to the widest one could.
+    let width = width.parse().unwrap_or(0).min(1000);
     let total = at + usize::from(suffix.is_some()) + length;
     Some((Specifier { field, optional, left, width, precision, suffix }, total))
 }

@@ -434,7 +434,11 @@ fn timestamp(text: &str) -> Option<Open> {
         })
         .collect();
     match dates.as_slice() {
-        [first, last] => Some(Open::Agenda { date: *first, span: last.to_day() - first.to_day() + 1 }),
+        // A range of centuries opens as Emacs's would, cut short to the
+        // longest agenda the server builds (`agenda::DAYS_MAX`).
+        [first, last] => {
+            Some(Open::Agenda { date: *first, span: (last.to_day() - first.to_day() + 1).min(crate::agenda::DAYS_MAX) })
+        }
         [first, ..] => Some(Open::Agenda { date: *first, span: 1 }),
         [] => None,
     }
@@ -833,5 +837,11 @@ mod tests {
         let function = vec![("f".to_string(), "%(my-function)".to_string())];
         assert!(expand_abbreviation("f:x", &function).is_err());
         assert_eq!(expand_abbreviation("other:x", &function), Ok("other:x".to_string()));
+    }
+
+    #[test]
+    fn opens_a_range_of_centuries_cut_short() {
+        let Some(Open::Agenda { span, .. }) = timestamp("<2026-10-12 Mon>--<2126-10-12 Mon>") else { panic!() };
+        assert_eq!(span, crate::agenda::DAYS_MAX);
     }
 }
