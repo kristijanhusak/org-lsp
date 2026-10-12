@@ -76,3 +76,13 @@ fn table_commands_as_in_emacs() {
     }
     assert!(failures.is_empty(), "{} of {} cases differ:\n{}", failures.len(), cases.len(), failures.join("\n"));
 }
+
+/// A Windows file's table: worked on as Org's, its lines still ending
+/// with `\r\n`.
+#[test]
+fn keeps_the_line_ends_of_a_windows_file() {
+    let text = "| a | bb |\r\n|-\r\n| ccc | 1 |\r\n";
+    let done = table::run(text, 2, Command::NextField).unwrap();
+    assert_eq!(done.text, "| a   | bb |\r\n|-----+----|\r\n| ccc |  1 |\r\n");
+    assert_eq!(&done.text[done.cursor..done.cursor + 2], "bb");
+}

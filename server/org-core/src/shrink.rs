@@ -79,8 +79,10 @@ fn fields(text: &str, line: (usize, usize)) -> (Vec<(usize, usize)>, bool) {
     (out, rule)
 }
 
-/// The width cookies of a table (`<10>`, `<l10>`, `<r>`): by column, from
-/// 1, the width (none for an alignment alone) and the alignment.
+/// The width cookies of a table (`<10>`, `<l10>`): by column, from 1, the
+/// width and the alignment, each the first a cookie of the column gives,
+/// as `org-table--shrink-columns` reads them. A cookie without a width
+/// (`<r>`) is not one of them.
 pub fn cookies(text: &str, table: &Table) -> Vec<(usize, Option<usize>, Option<char>)> {
     let mut out: Vec<(usize, Option<usize>, Option<char>)> = Vec::new();
     for line in &table.lines {
@@ -95,12 +97,16 @@ pub fn cookies(text: &str, table: &Table) -> Vec<(usize, Option<usize>, Option<c
                 Some(c @ ('l' | 'r' | 'c')) => (Some(c), &inner[1..]),
                 _ => (None, inner),
             };
-            if !digits.chars().all(|c| c.is_ascii_digit()) || (align.is_none() && digits.is_empty()) {
+            if digits.is_empty() || !digits.chars().all(|c| c.is_ascii_digit()) {
                 continue;
             }
             let width = digits.parse().ok();
-            if !out.iter().any(|(column, _, _)| *column == index + 1) {
-                out.push((index + 1, width, align));
+            match out.iter_mut().find(|(column, _, _)| *column == index + 1) {
+                Some((_, known_width, known_align)) => {
+                    *known_width = known_width.or(width);
+                    *known_align = known_align.or(align);
+                }
+                None => out.push((index + 1, width, align)),
             }
         }
     }
@@ -317,5 +323,16 @@ mod tests {
         assert_eq!(found[0].line_range(text), (1, 2));
         assert_eq!(cookie_columns(text, &found[0]), [1].into_iter().collect());
         assert!(cookie_columns(text, &found[1]).is_empty());
+    }
+
+    /// `org-table--shrink-columns`: the first width and the first
+    /// alignment of the column's cookies, each on its own; a cookie with
+    /// no width is none.
+    #[test]
+    fn takes_the_first_width_and_alignment_of_a_column() {
+        let text = "| <l> |\n| <5> |\n| <r3> |\n| abcdefghijkl |\n";
+        let found = tables(text);
+        assert_eq!(cookies(text, &found[0]), [(1, Some(5), Some('r'))]);
+        assert_eq!(shrunk_width(text, &found[0], 1), 5);
     }
 }

@@ -214,6 +214,14 @@ clients that send none of their own):
 UTF-32, and falls back to UTF-16.
 
 *Line endings.* ~\n~, ~\r\n~ and a lone ~\r~ all end a line for positions.
+A file whose every line ends with ~\r\n~ keeps its endings in the edits
+of formatting and the table commands.
+
+*Not followed.* The server does not register for
+~workspace/didChangeWorkspaceFolders~ or ~workspace/didChangeWatchedFiles~:
+a folder added after ~initialize~ is read only when the server starts
+again, and a file renamed outside the editor keeps its old name for the
+clock's history and the agenda's marks until then.
 
 * Options
 :PROPERTIES:

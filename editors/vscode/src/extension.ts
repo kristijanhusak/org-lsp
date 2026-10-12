@@ -674,7 +674,8 @@ function restartClient(context: vscode.ExtensionContext): Promise<void> {
   restarting = restarting
     .catch(() => undefined)
     .then(async () => {
-      await stopClient();
+      // A server that is already gone cannot be stopped: start a new one all the same.
+      await stopClient().catch(() => undefined);
       await startClient(context);
     });
   return restarting;
@@ -2048,7 +2049,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
   timerItem.name = 'Org timer';
   timerItem.tooltip = 'Org: the relative timer, or the countdown.';
   context.subscriptions.push(timerItem, { dispose: () => clearInterval(timerTicks) });
-  await startClient(context);
+  // In the same chain as the restarts, so that a setting changed meanwhile starts no second client.
+  restarting = restarting.catch(() => undefined).then(() => startClient(context));
+  await restarting;
   watchConcealing(context);
   concealVisible();
   context.subscriptions.push(

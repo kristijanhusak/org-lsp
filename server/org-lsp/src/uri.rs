@@ -34,6 +34,25 @@ pub fn from_path(path: &Path) -> Option<Uri> {
     uri.parse().ok()
 }
 
+/// The URI of a link's URL, as a browser takes it: what RFC 3986 does
+/// not allow (`é`, a blank) percent-encoded, what it allows and the `%`s
+/// already there left as they are.
+pub fn from_url(url: &str) -> Option<Uri> {
+    if let Ok(uri) = url.parse() {
+        return Some(uri);
+    }
+    let mut encoded = String::with_capacity(url.len());
+    for byte in url.bytes() {
+        let allowed = byte.is_ascii_alphanumeric() || b"-._~:/?#[]@!$&'()*+,;=%".contains(&byte);
+        if allowed {
+            encoded.push(char::from(byte));
+        } else {
+            encoded.push_str(&format!("%{byte:02X}"));
+        }
+    }
+    encoded.parse().ok()
+}
+
 fn percent_decode(text: &str) -> String {
     let bytes = text.as_bytes();
     let mut out = Vec::with_capacity(bytes.len());
@@ -91,5 +110,12 @@ mod tests {
         assert_eq!(to_path(&other), None);
         assert_eq!(file_stem(&"file:///tmp/my%20notes.org".parse().unwrap()), "my notes");
         assert_eq!(file_stem(&"untitled:Untitled-1".parse().unwrap()), "untitled:Untitled-1");
+    }
+
+    #[test]
+    fn encodes_what_a_url_cannot_hold() {
+        assert_eq!(from_url("https://example.com/é").unwrap().as_str(), "https://example.com/%C3%A9");
+        assert_eq!(from_url("https://example.com/日本").unwrap().as_str(), "https://example.com/%E6%97%A5%E6%9C%AC");
+        assert_eq!(from_url("https://example.com/a%20b?q=1#x").unwrap().as_str(), "https://example.com/a%20b?q=1#x");
     }
 }

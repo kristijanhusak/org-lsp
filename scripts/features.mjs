@@ -557,7 +557,7 @@ export const AREAS = [
     checks: [
       { text: 'With `org_journal_enabled` on, a new entry makes today\'s file in `org_journal_dir` (a file without an extension, opened as Org) with today\'s date and an entry with the time, the cursor after it', cmd: 'org.journal.new.entry', in: 'global' },
       { text: 'With a journal file of yesterday holding a TODO entry, the first new entry of today moves it to today\'s file', cmd: 'org.journal.new.entry', in: 'global' },
-      { text: 'The other entries of the file are folded; the new one shows', cmd: 'org.journal.new.entry', in: 'global' },
+      { text: 'The other entries of the file are folded; the new one shows', cmd: 'org.journal.new.entry', in: 'global', not: ['zed'] },
       { text: 'An entry for a date asked for goes into that date\'s file, without the time', cmd: 'org.journal.new.date.entry', not: ['zed'] },
       { text: 'A scheduled entry for tomorrow is a TODO with tomorrow\'s timestamp below it', cmd: 'org.journal.new.scheduled.entry', not: ['zed'] },
       { text: 'In a journal file, the previous entry goes to the day before; on the first, it says *No journal entry before this one*', cmd: 'org.journal.previous.entry' },
@@ -855,10 +855,11 @@ export const AREAS = [
       helix: ['no', `A note is typed text: ${HELIX_TEXT}.`],
     },
     checks: [
-      { text: 'Adding a note: a note buffer opens, and finishing writes it in the entry\'s log', cmd: 'org.add.note' },
+      { text: 'Adding a note: a note buffer opens, and finishing writes it in the entry\'s log', cmd: 'org.add.note', not: ['zed'] },
+      { text: 'Adding a note: it is asked for, and goes in the entry\'s log', cmd: 'org.add.note', only: ['zed'] },
       { text: 'With `LOG_INTO_DRAWER`, the note goes in `:LOGBOOK:`', cmd: 'org.add.note' },
       { text: 'Adding a note from the agenda', in: 'agenda', cmd: 'org.add.note' },
-      { text: 'With `org_log_reschedule` `"time"` (or `#+STARTUP: logreschedule`), rescheduling logs `Rescheduled from "[…]" on […]`; with `"note"` a note buffer opens for it', cmd: 'org.schedule', not: ['helix'] },
+      { text: 'With `org_log_reschedule` `"time"` (or `#+STARTUP: logreschedule`), rescheduling logs `Rescheduled from "[…]" on […]`; with `"note"` a note buffer opens for it', cmd: 'org.schedule', not: ['zed', 'helix'] },
     ],
   },
   {

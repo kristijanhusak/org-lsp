@@ -861,6 +861,51 @@
   }
  },
  {
+  "text": "| # | 1¦ |  |\n#+TBLFM: $3=$2*2\n",
+  "key": "TAB",
+  "expected": {
+   "text": "| # | 1 | 2 |\n#+TBLFM: $3=$2*2\n",
+   "point": 10,
+   "killed": null
+  }
+ },
+ {
+  "text": "| # | 1 | ¦ |\n| # | 3 |  |\n#+TBLFM: $3=$2*2\n",
+  "key": "<backtab>",
+  "expected": {
+   "text": "| # | 1 | 2 |\n| # | 3 |   |\n#+TBLFM: $3=$2*2\n",
+   "point": 6,
+   "killed": null
+  }
+ },
+ {
+  "text": "| a | b | c |\n| # | 2¦ |  |\n#+TBLFM: $3=$2*2\n",
+  "key": "C-c RET",
+  "expected": {
+   "text": "| a | b | c |\n| # | 2 | 4 |\n|---+---+---|\n|   |   |   |\n#+TBLFM: $3=$2*2\n",
+   "point": 44,
+   "killed": null
+  }
+ },
+ {
+  "text": "| a | b | c |\n| # | 2¦ |  |\n#+TBLFM: $3=$2*2\n",
+  "key": "C-c C-c",
+  "expected": {
+   "text": "| a | b | c |\n| # | 2 | 4 |\n#+TBLFM: $3=$2*2\n",
+   "point": 20,
+   "killed": null
+  }
+ },
+ {
+  "text": "| a | b | c |\n| # | 20¦ | 1 |\n| # | 3 |  |\n#+TBLFM: $3=$2*2\n",
+  "key": "TAB",
+  "expected": {
+   "text": "| a |  b |  c |\n| # | 20 | 40 |\n| # |  3 |    |\n#+TBLFM: $3=$2*2\n",
+   "point": 27,
+   "killed": null
+  }
+ },
+ {
   "text": "Para\n\n  |été   ¦|\n  | \tx |  \n  |  <r5> |1   |\n  |1h |\n  |  -4   |2:05   |\n#+TBLFM: $2=$1*2::@1=2::@2$2=$1\n\n* Next\n",
   "key": "C-c C-c",
   "expected": {
