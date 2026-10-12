@@ -1,6 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Org's headline star between a protocol's angle brackets: Org,
+       spoken to editors through a language server. -->
   <rect width="64" height="64" rx="14" fill="#2a7a64"/>
-  <g fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round">
-    <path d="M32 14v36M16.4 23l31.2 18M16.4 41l31.2-18"/>
+  <g fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round">
+    <path stroke-width="5" d="M18 20 8 32l10 12M46 20l10 12-10 12"/>
+    <path stroke-width="4.5" d="M32 21v22M22.5 26.5l19 11M22.5 37.5l19-11"/>
   </g>
 </svg>
