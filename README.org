@@ -1,8 +1,12 @@
 #+title: org-lsp
 #+options: ^:{} toc:nil
 
+#+html: <div align="center">
+
 #+attr_html: :width 128 :alt org-lsp
 [[file:site/assets/logo.svg]]
+
+#+html: </div>
 
 A language server for [[https://orgmode.org][Org mode]] documents, so that Org works in any editor
 with an LSP client instead of in one editor at a time.
