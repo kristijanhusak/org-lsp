@@ -404,3 +404,24 @@ pub fn update_counts_keeping(
     }
     (out, cursor)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_headline_goes_by_its_first_item_after_its_drawers() {
+        // As Emacs's `org-toggle-checkbox` does: an item in the LOGBOOK is
+        // neither the box the others follow nor toggled.
+        let keywords = TodoKeywords::default();
+        let toggled = |text: &str| toggle(text, &keywords, 1, -77).unwrap();
+        assert_eq!(
+            toggled("* H\n:LOGBOOK:\n- [ ] note\n:END:\n- [ ] a\n- [X] b\n"),
+            "* H\n:LOGBOOK:\n- [ ] note\n:END:\n- [X] a\n- [X] b\n"
+        );
+        assert_eq!(
+            toggled("* H\n:LOGBOOK:\n- [X] note\n:END:\n- [ ] a\n- [ ] b\n"),
+            "* H\n:LOGBOOK:\n- [X] note\n:END:\n- [X] a\n- [X] b\n"
+        );
+    }
+}

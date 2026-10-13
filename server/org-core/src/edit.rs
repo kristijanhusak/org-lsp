@@ -221,6 +221,7 @@ pub fn run(
                 priorities: document_priorities(parse).unwrap_or(settings.priorities),
                 start_cycle_with_default: settings.priority_start_cycle_with_default,
                 tags_column: settings.todo.tags_column,
+                auto_align: settings.tags.auto_align,
             };
             priority::change(text, parse.todo_keywords(), offset, *action, call.repeated, &priority).map(unplaced)
         }

@@ -250,6 +250,16 @@ impl Server {
         Ok((db, candidates))
     }
 
+    /// org-roam's files, when it is on.
+    pub(super) fn roam_paths(&self) -> Vec<PathBuf> {
+        let Some(roam) = self.roam.as_ref() else { return Vec::new() };
+        let mut names = Vec::new();
+        list_files(&roam.directory, "", 0, &mut names);
+        names.retain(|name| roam::is_roam_file(name, &roam.settings.files));
+        roam::sync_order(&mut names);
+        names.iter().map(|name| roam.directory.join(name)).collect()
+    }
+
     /// org-roam's database as `org-roam-db-sync` would make it now, and
     /// when each file was modified.
     fn roam_db(&mut self) -> Result<(Db, HashMap<String, u64>), Refusal> {
@@ -463,22 +473,32 @@ impl Server {
             edit::property_context(&org_syntax::parse(text, &todo), &edit_settings, "")
         };
         let levels = refile::Settings { adapt: self.adapt_in(""), ..self.refile.2 };
+        let read_date = self.read_date;
         let id = link::new_uuid();
-        let request = roam_capture::Request {
-            template: &template,
-            title,
-            id: existing.unwrap_or(&id),
-            file: file.as_deref(),
-            answers: &answers,
-            context: &fill_context,
-            read_date: &self.read_date,
-            directory: &directory,
-            read: &read,
-            properties: &properties,
-            levels: &levels,
-            find_node: &find_node,
+        // The capture, with the target's text as `changed` has it when
+        // stopping the clock changed it.
+        let capture_with = |changed: Option<&(PathBuf, String)>| {
+            let read = |path: &Path| match changed {
+                Some((file, text)) if file == path => Some(text.clone()),
+                _ => read(path),
+            };
+            let request = roam_capture::Request {
+                template: &template,
+                title,
+                id: existing.unwrap_or(&id),
+                file: file.as_deref(),
+                answers: &answers,
+                context: &fill_context,
+                read_date: &read_date,
+                directory: &directory,
+                read: &read,
+                properties: &properties,
+                levels: &levels,
+                find_node: &find_node,
+            };
+            roam_capture::capture(&request)
         };
-        let ready = match roam_capture::capture(&request)? {
+        let mut ready = match capture_with(None)? {
             roam_capture::Step::Ask(question) => {
                 state["step"] = json!("capture");
                 state["keys"] = json!(option.key);
@@ -496,7 +516,42 @@ impl Server {
             roam_capture::Step::Ready(ready) => ready,
         };
         let target = self.uri_for_path(&ready.path).ok_or("Cannot name the target file")?;
-        let snapshot = if ready.new_file { String::new() } else { read(&ready.path).unwrap_or_default() };
+        let mut snapshot = if ready.new_file { String::new() } else { read(&ready.path).unwrap_or_default() };
+        // `:clock-in`, as for any capture: the clock that runs stops now,
+        // and when it ran in the target, the capture goes in after that.
+        let immediate = option.immediate_finish == Some(true);
+        let mut before = snapshot.clone();
+        let clock = if option.clock_in == Some(true) && template.kind == capture::Kind::Entry {
+            let mut interrupted = None;
+            if let Some((change, entry)) = self.stop_clock_for_capture() {
+                interrupted = Some(entry);
+                if change.0 == target {
+                    snapshot = change.3.clone();
+                    if !immediate {
+                        self.send_texts(vec![change]);
+                        before = snapshot.clone();
+                    }
+                    let changed = (ready.path.clone(), snapshot.clone());
+                    ready = match capture_with(Some(&changed))? {
+                        roam_capture::Step::Ready(ready) => ready,
+                        roam_capture::Step::Ask(_) => {
+                            return Err("The target file has changed since the capture began".into())
+                        }
+                    };
+                } else {
+                    self.send_texts(vec![change]);
+                }
+            }
+            Some(super::CaptureClock {
+                start: self.date_time(),
+                keep: option.clock_keep == Some(true),
+                resume: option.clock_resume == Some(true),
+                interrupted,
+            })
+        } else {
+            None
+        };
+        let jump = option.jump_to_captured == Some(true);
         let finalize = match command {
             commands::ROAM_NODE_FIND => Finalize::FindFile,
             commands::ROAM_NODE_INSERT => {
@@ -516,6 +571,19 @@ impl Server {
             }
             _ => Finalize::Nothing,
         };
+        let captured = Captured { id: ready.id, finalize };
+        // `:immediate-finish`: filed at once, as `org-capture-finalize`
+        // files it, then org-roam's finalizing.
+        if immediate {
+            let keywords = org_syntax::parse(&before, &self.todo).todo_keywords().clone();
+            let time = self.date_time();
+            let done = ready.placed.finalize(ready.placed.shown(), &keywords, &self.edit_settings.todo, time);
+            let version = self.document(&target).map(|document| document.version);
+            let start = ready.placed.begin;
+            self.file_capture(&target, version, &before, done.clone(), start, &keywords, clock.as_ref(), jump)?;
+            self.roam_finalize(&captured, &target, &done);
+            return Ok(Value::Null);
+        }
         let uri = self.show_capture(&target, &ready.placed)?;
         let unnarrowed = template.unnarrowed;
         self.capture = Some(Capturing {
@@ -524,10 +592,10 @@ impl Server {
             snapshot,
             placed: ready.placed,
             spec: (capture::Target::File, template.kind, template.properties.clone()),
-            clock: None,
-            jump: false,
+            clock,
+            jump,
             unnarrowed,
-            roam: Some(Captured { id: ready.id, finalize }),
+            roam: Some(captured),
         });
         Ok(Value::Null)
     }

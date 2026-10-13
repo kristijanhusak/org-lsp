@@ -176,6 +176,7 @@ export const AREAS = [
       ['Toggling `COMMENT` (`C-c ;`, through Emacs)', true],
       ['Cloning a subtree with its dates shifted (`C-c C-x c`, through Emacs)', true],
       ['Commands on a region, a selection in the editor: the headlines in it promoted, demoted or moved, lines turned into headings or items, checkboxes toggled, the region wrapped in a block, a drawer or emphasis (through Emacs)', true],
+      ['Sparse trees that tell case apart (`org-occur-case-fold-search`), or by a kind of date asked for (`org-sparse-tree-default-date-type`)', false],
     ],
     editors: {
       zed: ['part', `A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, ${ZED_TEXT}.`],
@@ -275,6 +276,7 @@ export const AREAS = [
       ['Raising, lowering, setting and removing', true],
       ['`#+PRIORITIES:` and number priorities', true],
       ['From the agenda', true],
+      ['Turning the priority commands off (`org-priority-enable-commands`)', false],
     ],
     checks: [
       { text: 'Raising and lowering the priority of a headline', cmd: ['org.priority.up', 'org.priority.down'] },
@@ -291,6 +293,7 @@ export const AREAS = [
       ['Completion', true],
       ['Group tags in searches', true],
       ['A sparse tree by tags', true],
+      ['The TODO keywords in the tag selection (`org-fast-tag-selection-include-todo`), and matches without the entries below a match (`org-tags-match-list-sublevels`)', false],
     ],
     editors: {
       zed: ['part', `Tags are typed, not set with keys pressed in turn: ${ZED_TEXT}. Completion and renaming work.`],
@@ -314,6 +317,8 @@ export const AREAS = [
       ['Inheritance, special properties and property searches', true],
       ['Column view (`C-c C-x C-c`, through Emacs): the columns over the headlines, the header, summaries; editing, cycling and the allowed values of a column, moving, narrowing, widening and deleting columns, moving entries', true],
       ['Column view dynamic blocks and summaries (`C-c C-x x`, filled in by Emacs)', true],
+      ['Properties written as `org-property-format` says, efforts in units of `org-effort-durations`', false],
+      ['IDs made as `org-id-method`, `org-id-prefix` and `org-id-ts-format` say (they are always UUIDs)', false],
     ],
     editors: {
       vim: ['part', 'Column view\'s header is in the window\'s status line, shown when the window has one (`laststatus`).'],
@@ -513,6 +518,10 @@ export const AREAS = [
       ['Aliases, tags and references added and removed (`org-roam-alias-add` …)', true],
       ['The org-roam buffer: backlinks, reflinks and unlinked references (`org_roam_mode_sections`), following the cursor, dedicated buffers', true],
       ['Completing node titles as they are typed (`org-roam-completion-everywhere`)', true],
+      ['Daily notes (`org-roam-dailies-capture-today`, `org-roam-dailies-goto-date` …)', false],
+      ['Extracting a subtree to a node of its own, refiling to a node, promoting and demoting a whole file (`org-roam-extract-subtree`, `org-roam-refile`, `org-roam-promote-entire-buffer`)', false],
+      ['Finding a node by a reference (`org-roam-ref-find`), and the graph (`org-roam-graph`)', false],
+      ['Lisp that chooses the nodes and how they show (`org-roam-node-formatter`, `org-roam-db-node-include-function`), and which links count (`org-roam-db-extra-links-elements`, `org-roam-db-extra-links-exclude-keys`)', false],
     ],
     editors: {
       zed: ['part', `A node's title is typed, without completion: ${ZED_TEXT}. The org-roam buffer does not follow the cursor: Zed reports no cursor moves to an extension.`],
@@ -549,6 +558,7 @@ export const AREAS = [
       ['The days with an entry marked in the date prompt\'s calendar (`org-journal-mark-entries`)', true],
       ['The keys org-journal adds to `M-x calendar` (`j r`, `[`, `]` …)', false],
       ['Files encrypted whole (`org-journal-encrypt-journal`)', false],
+      ['Visiting the file of a day another way, following the calendar, and remembering the dates between commands (`org-journal-find-file-fn`, `org-journal-follow-mode`, `org-journal-enable-cache`)', false],
     ],
     editors: {
       zed: ['part', `For the dates and searches the commands ask for, ${ZED_TEXT}. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with \`file_types\` in Zed's settings.`],
@@ -612,6 +622,8 @@ export const AREAS = [
       ['Completing `id:` links to entries, which get an ID (`org-id-complete`; Org completes no `help:` links)', true],
       ['Default descriptions from the link type: an `id:` link\'s headline, an `info:` link\'s command', true],
       ['Moving to the next and previous link (`C-c C-x C-n`, `C-c C-x C-p`)', true],
+      ['A search by regular expression (`file:x.org::/regexp/`): a sparse tree of its matches (`org-occur`), in the file the link is in', true],
+      ['Making a missing headline a link searches for (`org-link-search-must-match-exact-headline`)', false],
     ],
     editors: {
       zed: ['part', `A link's target is typed, without completion: ${ZED_TEXT}. Following works through go to definition, for links inside Org files and to files.`],
@@ -798,6 +810,7 @@ export const AREAS = [
       ['A key\'s entry on hover, following a key', true],
       ['Unknown keys reported', true],
       ['Inserting, editing and deleting citations (`C-c C-x @`)', true],
+      ['Another processor to insert citations (`org-cite-insert-processor`)', false],
     ],
     editors: {
       helix: ['part', 'Inserting citations is not offered as a code action yet. Completion, hover and following work.'],
@@ -827,6 +840,7 @@ export const AREAS = [
       ['Indenting lines and regions (`org-indent-line`, `org-indent-region`)', true],
       ['Aligning tables and tags', true],
       ['Lines a long line wraps into indented (`wrap-prefix`)', false],
+      ['Other widths of virtual indentation (`org-indent-indentation-per-level`, `org-description-max-indent`)', false],
     ],
     editors: {
       vim: ['part', 'The lines a long line wraps into are not indented.'],

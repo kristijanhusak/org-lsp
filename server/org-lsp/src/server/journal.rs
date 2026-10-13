@@ -380,6 +380,15 @@ impl Server {
                 }
                 None => {
                     texts.remove(name);
+                    // Emacs kills the file's buffer before deleting it: one
+                    // the editor has open is emptied, or saving it would
+                    // bring back the entries carried over.
+                    if let Some((uri, version, now)) = self.journal_open(&path) {
+                        let edits = self.text_edits(&now, "");
+                        if !edits.is_empty() {
+                            documents.push((uri, Some(version), edits));
+                        }
+                    }
                     let _ = std::fs::remove_file(&path);
                 }
             }

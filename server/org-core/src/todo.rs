@@ -1762,13 +1762,19 @@ pub fn edits(old: &str, new: &str) -> Vec<LineEdit> {
     }
     // Too much to compare line by line: one edit.
     if a.len() * b.len() > 4_000_000 {
-        return vec![LineEdit { start: prefix, end: prefix + a.len(), text: b.concat() }];
+        return line_for_line(LineEdit { start: prefix, end: prefix + a.len(), text: b.concat() });
     }
-    // Longest common subsequence of the lines in between.
-    let mut table = vec![vec![0u32; b.len() + 1]; a.len() + 1];
+    // Longest common subsequence of the lines in between, `table[i][j]`
+    // at `i * width + j`.
+    let width = b.len() + 1;
+    let mut table = vec![0u32; (a.len() + 1) * width];
     for i in (0..a.len()).rev() {
         for j in (0..b.len()).rev() {
-            table[i][j] = if a[i] == b[j] { table[i + 1][j + 1] + 1 } else { table[i + 1][j].max(table[i][j + 1]) };
+            table[i * width + j] = if a[i] == b[j] {
+                table[(i + 1) * width + j + 1] + 1
+            } else {
+                table[(i + 1) * width + j].max(table[i * width + j + 1])
+            };
         }
     }
     let mut out: Vec<LineEdit> = Vec::new();
@@ -1782,7 +1788,7 @@ pub fn edits(old: &str, new: &str) -> Vec<LineEdit> {
             continue;
         }
         let edit = open.get_or_insert(LineEdit { start: prefix + i, end: prefix + i, text: String::new() });
-        if j < b.len() && (i == a.len() || table[i][j + 1] >= table[i + 1][j]) {
+        if j < b.len() && (i == a.len() || table[i * width + j + 1] >= table[(i + 1) * width + j]) {
             edit.text.push_str(b[j]);
             j += 1;
         } else {
@@ -1791,6 +1797,25 @@ pub fn edits(old: &str, new: &str) -> Vec<LineEdit> {
         }
     }
     out.extend(open);
+    out.into_iter().flat_map(line_for_line).collect()
+}
+
+/// An edit of several lines as an edit for each line it replaces with
+/// another, then one for the lines left over: what an editor keeps on a
+/// line (a mark, a fold) stays on it.
+fn line_for_line(edit: LineEdit) -> Vec<LineEdit> {
+    let lines: Vec<&str> = edit.text.split_inclusive('\n').collect();
+    let paired = (edit.end - edit.start).min(lines.len());
+    if paired < 2 {
+        return vec![edit];
+    }
+    let mut out: Vec<LineEdit> = (0..paired)
+        .map(|at| LineEdit { start: edit.start + at, end: edit.start + at + 1, text: lines[at].to_string() })
+        .collect();
+    let start = edit.start + paired;
+    if start < edit.end || paired < lines.len() {
+        out.push(LineEdit { start, end: edit.end, text: lines[paired..].concat() });
+    }
     out
 }
 
