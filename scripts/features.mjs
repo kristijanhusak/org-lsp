@@ -108,6 +108,8 @@ export const AREAS = [
       ['Radio targets turning their words into links: highlighted, followed, document links', true],
       ['Entities shown as their characters (`org-pretty-entities`, `#+STARTUP: entitiespretty` or `entitiesplain`): hidden, the character in their place (drawn by the editor where it can, else an inlay hint)', true],
       ['Sub- and superscripts raised and lowered (`org-pretty-entities-include-sub-superscripts`, `org-use-sub-superscripts`): where Org raises them, shown in Unicode (`x²`, `H₂O`) in place of the hidden text (drawn by the editor where it can, else an inlay hint) where every character has a raised or lowered form; the others left as they are, as an editor cannot raise text', true],
+      ['Done headlines in `org-headline-done` past their keyword (`org-fontify-done-headline` at its default), complete statistics cookies as done, the title and the information of the document (`org-document-title`, `org-document-info`)', true],
+      ['The options of how headlines, blocks and markup are shown, set away from their defaults (`org-fontify-done-headline`, `org-fontify-whole-heading-line`, `org-fontify-quote-and-verse-blocks`, `org-hidden-keywords`, `org-hide-macro-markers`, `org-emphasis-alist`, `org-cycle-level-faces`, `org-n-level-faces`, `org-ellipsis`)', false],
     ],
     editors: {
       vim: ['part', 'Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Vim cannot hide text that has text properties.'],
@@ -142,14 +144,18 @@ export const AREAS = [
       ['Sparse trees (`C-c /`)', true],
       ['Narrowing to a subtree or block (`C-x n s`, `C-x n b`) and the subtree in an indirect buffer (`C-c C-x b`): it in a file of its own, all there is to see there, written back each time it is saved', true],
       ['Showing the context of the cursor (`org-reveal`, `C-c C-r`): its entry, the next headline, its siblings and its ancestors, the other folds left as they are; `org.reveal.siblings` (`C-u`) each level with its children, `org.reveal.tree` (`C-u C-u`) the parent\'s whole tree', true],
+      ['The options of cycling (`org-cycle-emulate-tab`, `org-cycle-include-plain-lists`, `org-cycle-global-at-bob`, `org-cycle-max-level`, `org-show-context-detail`, `org-fold-catch-invisible-edits`)', false],
     ],
     editors: {
+      neovim: ['part', 'Cycling the whole file goes between overview and everything: it has no contents state, which needs folds of a headline\'s own text that Neovim\'s fold levels do not make.'],
+      vim: ['part', 'Cycling the whole file goes between overview and everything: it has no contents state, which needs folds of a headline\'s own text that Vim\'s fold levels do not make.'],
       zed: ['part', 'Zed folds with its own folding: Org\'s cycling and sparse trees need folds an extension can set, which Zed does not offer.'],
       helix: ['no', 'Helix has no folding.'],
     },
     checks: [
       { text: 'On a headline, cycling goes folded → children → subtree', keys: { neovim: '`<Tab>`', vim: '`<Tab>`', vscode: '`Tab`', sublime: '`Tab`' } },
-      { text: 'Cycling the whole file goes overview → contents → everything', keys: { neovim: '`<S-Tab>`', vim: '`<S-Tab>`', vscode: '`Shift+Tab`', sublime: '`Shift+Tab`' } },
+      { text: 'Cycling the whole file goes overview → contents → everything', keys: { vscode: '`Shift+Tab`', sublime: '`Shift+Tab`' }, only: ['vscode', 'sublime'] },
+      { text: 'Cycling the whole file goes overview → everything', keys: { neovim: '`<S-Tab>`', vim: '`<S-Tab>`' }, only: ['neovim', 'vim'] },
       { text: 'A file with `#+STARTUP: overview` opens folded; with `content` its headlines show, those without children folded, and its drawers folded', only: ['neovim', 'vim', 'vscode', 'sublime'] },
       { text: 'A subtree with `:VISIBILITY: children` opens with its children folded, one with `all` open', only: ['neovim', 'vim', 'vscode', 'sublime'] },
       { text: 'Two blank lines after a subtree stay visible below it when it is folded', only: ['neovim', 'vim', 'vscode', 'sublime'] },
@@ -624,6 +630,7 @@ export const AREAS = [
       ['Moving to the next and previous link (`C-c C-x C-n`, `C-c C-x C-p`)', true],
       ['A search by regular expression (`file:x.org::/regexp/`): a sparse tree of its matches (`org-occur`), in the file the link is in', true],
       ['Making a missing headline a link searches for (`org-link-search-must-match-exact-headline`)', false],
+      ['Following a link with `RET` (`org-return-follows-link`)', false],
     ],
     editors: {
       zed: ['part', `A link's target is typed, without completion: ${ZED_TEXT}. Following works through go to definition, for links inside Org files and to files.`],

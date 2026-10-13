@@ -103,8 +103,9 @@ describe('Org files', () => {
 
   it('highlights with the server\'s tokens', async () => {
     const found = await tokens(workUri);
-    assert.deepEqual(found.slice(0, 6), [
+    assert.deepEqual(found.slice(0, 7), [
       [0, '#+TITLE:', 'keyword', []],
+      [0, 'Work', 'documentTitle', []],
       [1, '*', 'stars', ['level1']],
       [1, 'TODO', 'todoKeyword', []],
       [1, '[#A]', 'priority', []],

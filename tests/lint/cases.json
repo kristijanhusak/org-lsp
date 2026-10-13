@@ -8399,5 +8399,38 @@
         "invalid-fuzzy-link"
       ]
     ]
+  },
+  {
+    "text": "* Task :a::\n",
+    "expected": [
+      [
+        0,
+        "nil",
+        "Tags contain a spurious colon",
+        "spurious-colons"
+      ]
+    ]
+  },
+  {
+    "text": "* Task ::a:\n",
+    "expected": [
+      [
+        0,
+        "nil",
+        "Tags contain a spurious colon",
+        "spurious-colons"
+      ]
+    ]
+  },
+  {
+    "text": "* Task :a::b:\n",
+    "expected": [
+      [
+        0,
+        "nil",
+        "Tags contain a spurious colon",
+        "spurious-colons"
+      ]
+    ]
   }
 ]

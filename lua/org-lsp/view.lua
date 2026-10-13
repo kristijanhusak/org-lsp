@@ -521,6 +521,81 @@ local function set_text(bufnr, text)
   send_changes(vim.lsp.get_clients({ bufnr = bufnr, name = 'org_lsp' })[1], bufnr)
 end
 
+local prompt_highlights = vim.api.nvim_create_namespace('org_lsp_prompt_highlights')
+
+---@param bufnr integer
+---@return boolean
+local function is_prompt(bufnr)
+  return documents.datePrompt ~= nil and vim.uri_from_bufnr(bufnr) == documents.datePrompt.uri
+end
+
+--- Highlight the date prompt with the server's tokens `data`, as Neovim
+--- highlights semantic tokens.
+---@param bufnr integer
+---@param client vim.lsp.Client
+---@param data integer[]
+local function paint(bufnr, client, data)
+  vim.api.nvim_buf_clear_namespace(bufnr, prompt_highlights, 0, -1)
+  local provider = client.server_capabilities.semanticTokensProvider
+  if not provider then
+    return
+  end
+  local types, modifiers = provider.legend.tokenTypes, provider.legend.tokenModifiers
+  local filetype = vim.bo[bufnr].filetype
+  local priority = (vim.hl or vim.highlight).priorities.semantic_tokens
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local line, start = 0, 0
+  local function mark(from, to, group, level)
+    pcall(vim.api.nvim_buf_set_extmark, bufnr, prompt_highlights, line, from, {
+      end_col = to,
+      hl_group = group,
+      priority = level,
+      strict = false,
+    })
+  end
+  for i = 1, #data, 5 do
+    line = line + data[i]
+    start = data[i] == 0 and start + data[i + 1] or data[i + 1]
+    local type = types[data[i + 3] + 1]
+    if type then
+      local text = lines[line + 1] or ''
+      local from = vim.str_byteindex(text, client.offset_encoding, start, false)
+      local to = vim.str_byteindex(text, client.offset_encoding, start + data[i + 2], false)
+      mark(from, to, ('@lsp.type.%s.%s'):format(type, filetype), priority)
+      local bits, index = data[i + 4], 1
+      while bits > 0 do
+        if bits % 2 == 1 and modifiers[index] then
+          mark(from, to, ('@lsp.mod.%s.%s'):format(modifiers[index], filetype), priority + 1)
+          mark(from, to, ('@lsp.typemod.%s.%s.%s'):format(type, modifiers[index], filetype), priority + 2)
+        end
+        bits, index = math.floor(bits / 2), index + 1
+      end
+    end
+  end
+end
+
+--- Show the date prompt's new text, if any, and its highlighting at the
+--- same time. Neovim's own highlighting is off in it: that drops the
+--- highlighting of a line the moment the line changes and draws it again
+--- only once the new tokens arrive, so the calendar flickers at each key
+--- and may keep the old field marked.
+---@param bufnr integer
+---@param client vim.lsp.Client
+---@param text string?
+local function update_prompt(bufnr, client, text)
+  local params = { textDocument = { uri = documents.datePrompt.uri } }
+  client:request('textDocument/semanticTokens/full', params, function(_, result)
+    if not vim.api.nvim_buf_is_loaded(bufnr) then
+      return
+    end
+    if text then
+      set_text(bufnr, text)
+      prompt_window(bufnr)
+    end
+    paint(bufnr, client, result and result.data or {})
+  end, bufnr)
+end
+
 --- Fill a new buffer of the server's scheme and attach the server to it,
 --- so that highlighting and commands work in it as in any document.
 ---@param bufnr integer
@@ -536,7 +611,14 @@ local function load(bufnr, language)
   local response = client:request_sync('workspace/textDocumentContent', params, 2000)
   set_text(bufnr, response and response.result and response.result.text or '')
   vim.bo[bufnr].filetype = language
+  local prompt = is_prompt(bufnr)
+  if prompt then
+    pcall(vim.lsp.semantic_tokens.enable, false, { bufnr = bufnr })
+  end
   vim.lsp.buf_attach_client(bufnr, client.id)
+  if prompt then
+    update_prompt(bufnr, client)
+  end
 end
 
 local line_highlights = vim.api.nvim_create_namespace('org_lsp_line_highlights')
@@ -720,16 +802,30 @@ M.handlers = {
     for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
       if client and vim.api.nvim_buf_is_loaded(bufnr) and vim.uri_from_bufnr(bufnr) == params.uri then
         client:request('workspace/textDocumentContent', { uri = params.uri }, function(_, result)
-          if result and vim.api.nvim_buf_is_loaded(bufnr) then
+          if not (result and vim.api.nvim_buf_is_loaded(bufnr)) then
+            return
+          end
+          if is_prompt(bufnr) then
+            update_prompt(bufnr, client, result.text)
+          else
             set_text(bufnr, result.text)
-            if documents.datePrompt and params.uri == documents.datePrompt.uri then
-              prompt_window(bufnr)
-            end
           end
         end)
       end
     end
     return vim.NIL
+  end,
+
+  --- The server's highlighting has changed: Neovim fetches it again for
+  --- the documents it highlights, and the date prompt is highlighted here.
+  ['workspace/semanticTokens/refresh'] = function(err, result, ctx)
+    local client = vim.lsp.get_client_by_id(ctx.client_id)
+    for bufnr in pairs(client and client.attached_buffers or {}) do
+      if is_prompt(bufnr) and vim.api.nvim_buf_is_loaded(bufnr) then
+        update_prompt(bufnr, client)
+      end
+    end
+    return vim.lsp.handlers['workspace/semanticTokens/refresh'](err, result, ctx)
   end,
 }
 

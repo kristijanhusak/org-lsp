@@ -4513,7 +4513,8 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
         for _ in 0..2000 {
             client.settle();
             let now = std::fs::read_to_string(&agenda_path).unwrap_or_default();
-            if now != before {
+            // Empty while the server writes it.
+            if !now.is_empty() && now != before {
                 return now;
             }
             std::thread::sleep(std::time::Duration::from_millis(5));

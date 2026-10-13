@@ -1613,6 +1613,11 @@ pub fn run(connection: Connection) -> Result<()> {
         let _ = std::fs::remove_dir_all(directory);
     }
     if let Some(directory) = server.view_directory.made().filter(|_| !server.client.zed_agenda()) {
+        // The date prompt's file, read-only, goes first.
+        if let Some(file) = &server.prompt_file {
+            let _ = set_writable(file);
+            let _ = std::fs::remove_file(file);
+        }
         let _ = std::fs::remove_dir(directory);
     }
     if exited && !shut_down {
@@ -1703,13 +1708,7 @@ fn prompt_label(choice: &Value) -> String {
 
 /// The words of a file's `#+STARTUP:` lines, lowercased, in order.
 fn startup_words(text: &str) -> Vec<String> {
-    text.lines()
-        .filter_map(|line| {
-            let line = line.trim_start_matches([' ', '\t']);
-            line.get(..10).filter(|key| key.eq_ignore_ascii_case("#+startup:")).map(|_| &line[10..])
-        })
-        .flat_map(|words| words.split_whitespace().map(str::to_ascii_lowercase))
-        .collect()
+    org_core::text::startup_words(text).into_iter().map(str::to_ascii_lowercase).collect()
 }
 
 /// What a column view command asks, Org's question with its default, as
@@ -2310,6 +2309,9 @@ fn replace_whole(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     if std::fs::metadata(path).is_ok_and(|metadata| std::os::unix::fs::MetadataExt::nlink(&metadata) > 1) {
         use std::io::Write;
         write_new(&temporary)?;
+        if let Some(permissions) = permissions.clone() {
+            std::fs::set_permissions(&temporary, permissions)?;
+        }
         let mut file = std::fs::OpenOptions::new().write(true).truncate(true).open(path)?;
         file.write_all(bytes)?;
         file.sync_all()?;
@@ -9560,8 +9562,11 @@ impl Server {
         let encoding = self.client.encoding;
         let uri = &context.text_document.uri;
         let text = self.document(uri).ok_or("This file is not open")?.text.clone();
-        let settings =
-            org_core::newline::Settings { indent: self.indent_in(&text), tags_column: self.refile.2.tags_column };
+        let settings = org_core::newline::Settings {
+            indent: self.indent_in(&text),
+            tags_column: self.refile.2.tags_column,
+            auto_align: self.edit_settings.tags.auto_align,
+        };
         let document = self.document(uri).ok_or("This file is not open")?;
         let offset = document.index.offset(&document.text, context.position, encoding);
         // `return_uses_meta_return`, and `org.return.item` always: on the first
@@ -10011,17 +10016,11 @@ impl Server {
     /// with a width cookie shrunk when a file opens.
     fn shrink_at_startup(&mut self, key: &str, text: &str) {
         let mut shrink = self.startup_shrink;
-        for line in text.lines() {
-            let line = line.trim_start();
-            if !line.get(..10).is_some_and(|start| start.eq_ignore_ascii_case("#+startup:")) {
-                continue;
-            }
-            for word in line[10..].split_whitespace() {
-                match word.to_ascii_lowercase().as_str() {
-                    "shrink" => shrink = true,
-                    "noshrink" => shrink = false,
-                    _ => {}
-                }
+        for word in startup_words(text) {
+            match word.as_str() {
+                "shrink" => shrink = true,
+                "noshrink" => shrink = false,
+                _ => {}
             }
         }
         if !shrink {

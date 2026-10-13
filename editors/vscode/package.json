@@ -3570,6 +3570,14 @@
         "description": "An entity such as \\alpha"
       },
       {
+        "id": "documentTitle",
+        "description": "The value of #+TITLE:"
+      },
+      {
+        "id": "documentInfo",
+        "description": "The value of #+SUBTITLE:, #+AUTHOR:, #+EMAIL: or #+DATE:"
+      },
+      {
         "id": "agendaStructure",
         "description": "Agenda: the title line of a view"
       },
@@ -3665,7 +3673,7 @@
       },
       {
         "id": "done",
-        "description": "A TODO keyword that marks the entry as finished"
+        "description": "A TODO keyword that marks the entry as finished; the rest of its headline; a complete statistics cookie"
       },
       {
         "id": "inactive",
@@ -3892,6 +3900,27 @@
           "cookie": [
             "constant.numeric.cookie.org",
             "constant.numeric"
+          ],
+          "cookie.done": [
+            "constant.numeric.cookie.done.org",
+            "markup.inserted",
+            "string"
+          ],
+          "headline.done": [
+            "markup.heading.done.org",
+            "comment"
+          ],
+          "*.done": [
+            "comment.done.org",
+            "comment"
+          ],
+          "documentTitle": [
+            "markup.heading.title.org",
+            "entity.name.section"
+          ],
+          "documentInfo": [
+            "string.other.info.org",
+            "string"
           ],
           "target": [
             "entity.name.label.org",
@@ -4187,6 +4216,27 @@
             "constant.numeric.cookie.org",
             "constant.numeric"
           ],
+          "cookie.done": [
+            "constant.numeric.cookie.done.org",
+            "markup.inserted",
+            "string"
+          ],
+          "headline.done": [
+            "markup.heading.done.org",
+            "comment"
+          ],
+          "*.done": [
+            "comment.done.org",
+            "comment"
+          ],
+          "documentTitle": [
+            "markup.heading.title.org",
+            "entity.name.section"
+          ],
+          "documentInfo": [
+            "string.other.info.org",
+            "string"
+          ],
           "target": [
             "entity.name.label.org",
             "entity.name.label"
@@ -4480,6 +4530,27 @@
           "cookie": [
             "constant.numeric.cookie.org",
             "constant.numeric"
+          ],
+          "cookie.done": [
+            "constant.numeric.cookie.done.org",
+            "markup.inserted",
+            "string"
+          ],
+          "headline.done": [
+            "markup.heading.done.org",
+            "comment"
+          ],
+          "*.done": [
+            "comment.done.org",
+            "comment"
+          ],
+          "documentTitle": [
+            "markup.heading.title.org",
+            "entity.name.section"
+          ],
+          "documentInfo": [
+            "string.other.info.org",
+            "string"
           ],
           "target": [
             "entity.name.label.org",

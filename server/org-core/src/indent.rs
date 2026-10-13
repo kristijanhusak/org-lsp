@@ -1370,19 +1370,13 @@ pub struct Startup {
 
 pub fn startup(text: &str) -> Startup {
     let mut out = Startup::default();
-    for line in text.lines() {
-        let line = line.trim_start_matches([' ', '\t']);
-        if !starts_with_ignore_case(line, "#+STARTUP:") {
-            continue;
-        }
-        for word in line["#+STARTUP:".len()..].split_whitespace() {
-            match word.to_ascii_lowercase().as_str() {
-                "indent" => out.indent = Some(true),
-                "noindent" => out.indent = Some(false),
-                "hidestars" => out.hide_stars = Some(true),
-                "showstars" => out.hide_stars = Some(false),
-                _ => {}
-            }
+    for word in crate::text::startup_words(text) {
+        match word.to_ascii_lowercase().as_str() {
+            "indent" => out.indent = Some(true),
+            "noindent" => out.indent = Some(false),
+            "hidestars" => out.hide_stars = Some(true),
+            "showstars" => out.hide_stars = Some(false),
+            _ => {}
         }
     }
     out

@@ -168,3 +168,48 @@ mod line_end_tests {
         assert_eq!(from_lf(&lf, at), ("ab\r\ncd\r\n".to_string(), 5));
     }
 }
+
+/// The words of the file's `#+STARTUP:` lines, as `org-collect-keywords`
+/// finds them: keywords, so not lines inside a block whose contents Org
+/// does not parse (source, example, export, comment and verse blocks).
+pub fn startup_words(text: &str) -> Vec<&str> {
+    let mut words = Vec::new();
+    let mut inside: Option<String> = None;
+    for line in text.lines() {
+        let line = line.trim_start_matches([' ', '\t']);
+        let lower = line.get(..8).map(str::to_ascii_lowercase);
+        match &inside {
+            Some(name) => {
+                let end = format!("#+end_{name}");
+                if line.get(..end.len()).is_some_and(|start| start.eq_ignore_ascii_case(&end)) {
+                    inside = None;
+                }
+            }
+            None if lower.as_deref() == Some("#+begin_") => {
+                let name: String =
+                    line[8..].chars().take_while(|c| !c.is_whitespace()).collect::<String>().to_ascii_lowercase();
+                if matches!(name.as_str(), "src" | "example" | "export" | "comment" | "verse") {
+                    inside = Some(name);
+                }
+            }
+            None => {
+                if let Some(rest) =
+                    line.get(..10).filter(|key| key.eq_ignore_ascii_case("#+startup:")).map(|_| &line[10..])
+                {
+                    words.extend(rest.split_whitespace());
+                }
+            }
+        }
+    }
+    words
+}
+
+#[cfg(test)]
+mod startup_tests {
+    #[test]
+    fn startup_words_are_keywords_only() {
+        let text = "#+STARTUP: overview indent\n#+begin_example\n#+STARTUP: showall\n#+end_example\n\
+                    #+BEGIN_SRC org\n#+startup: noindent\n#+END_SRC\n#+begin_quote\n#+STARTUP: hidestars\n#+end_quote\n";
+        assert_eq!(super::startup_words(text), ["overview", "indent", "hidestars"]);
+    }
+}

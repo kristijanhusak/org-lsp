@@ -115,8 +115,8 @@ server first, with a tab that says so and closes when the agenda opens.
 
 | Feature | Parity | Sublime Text | What does not work, and why |
 |---+---+---+---|
-| [[file:parity.org::#highlighting][Highlighting]] | 100% | ❓ | Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Sublime Text cannot hide text in a view. The colors need LSP's ~semantic_highlighting~ on. |
-| [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 100% | ✅ |  |
+| [[file:parity.org::#highlighting][Highlighting]] | 93% | ❓ | Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Sublime Text cannot hide text in a view. The colors need LSP's ~semantic_highlighting~ on. |
+| [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 89% | ✅ |  |
 | [[file:parity.org::#headings-and-structure][Headings and structure]] | 92% | ✅ |  |
 | [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 100% | ✅ |  |
 | [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ❓ | Faces of particular keywords and priorities are not shown in the file: Sublime Text colors text by its color scheme only. The list of TODO states shows them in the color of each item's kind, the nearest of those Sublime Text has. |
@@ -130,7 +130,7 @@ server first, with a tab that says so and closes when the agenda opens.
 | [[file:parity.org::#notes-org-roam][Notes (org-roam)]] | 67% | ✅ |  |
 | [[file:parity.org::#a-journal-org-journal][A journal (org-journal)]] | 77% | ✅ |  |
 | [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ |  |
-| [[file:parity.org::#links][Links]] | 92% | ✅ |  |
+| [[file:parity.org::#links][Links]] | 86% | ✅ |  |
 | [[file:parity.org::#footnotes][Footnotes]] | 100% | ✅ |  |
 | [[file:parity.org::#tables][Tables]] | 94% | ❓ | A shrunk column shows its whole text and ~…~: Sublime Text cannot hide text in a view. |
 | [[file:parity.org::#table-formulas][Table formulas]] | 100% | ✅ |  |
@@ -145,7 +145,7 @@ server first, with a tab that says so and closes when the agenda opens.
 | [[file:parity.org::#attachments][Attachments]] | 100% | ✅ |  |
 | [[file:parity.org::#encryption][Encryption]] | 100% | ✅ |  |
 | [[file:parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | ❓ | An image shows below its line (a phantom), not over the link; PNG, JPEG and GIF only. Counts through a key's ~args~. |
-| *All of Org* | *94%* |  |  |
+| *All of Org* | *93%* |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what and why),
 ❌ none does, — nothing to support yet. Parity is the share of what

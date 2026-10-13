@@ -447,6 +447,41 @@ press('<Leader>ois')
 wait('the calendar once more', function()
   return prompt_window() ~= nil
 end)
+-- The plugin highlights the calendar itself, in the same moment as its
+-- text changes: the field of the time being picked stays marked.
+local function marked(pattern)
+  local bufnr = vim.api.nvim_win_get_buf(prompt_window())
+  local namespace = vim.api.nvim_create_namespace('org_lsp_prompt_highlights')
+  for row, text in ipairs(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)) do
+    local start, _, at = text:find(pattern)
+    local col = at or start
+    if col then
+      local marks = vim.api.nvim_buf_get_extmarks(bufnr, namespace, { row - 1, col - 1 }, { row - 1, col - 1 }, {
+        details = true,
+        overlap = true,
+      })
+      return vim.tbl_contains(marks, function(mark)
+        return mark[4].hl_group == '@lsp.type.calendarSelected.org-date'
+      end, { predicate = true })
+    end
+  end
+  return false
+end
+press('t')
+wait('the hour picked', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return marked('Time: ()09') and not marked('Time: %d%d:()')
+end)
+press('k')
+wait('an hour later', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return marked('Time: ()10')
+end)
+press('l')
+wait('the minute picked', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return marked('Time: %d%d:()') and not marked('Time: ()10')
+end)
 press('q')
 wait('the calendar to close when cancelled', function()
   return prompt_window() == nil

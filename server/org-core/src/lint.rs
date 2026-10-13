@@ -972,8 +972,11 @@ impl Doc<'_> {
             .filter(|node| {
                 let line = headline_line(self.text, node);
                 crate::text::tag_group(line).is_some_and(|(_, start)| {
+                    // One colon at each end is the group's: an empty tag
+                    // at its edge (`:a::`) counts too.
                     let group = line[start..].trim_end_matches([' ', '\t']);
-                    group.trim_matches(':').split(':').any(str::is_empty)
+                    let inner = group.strip_prefix(':').unwrap_or(group);
+                    inner.strip_suffix(':').unwrap_or(inner).split(':').any(str::is_empty)
                 })
             })
             .map(|node| (range(&node).0, "Tags contain a spurious colon".to_string()))

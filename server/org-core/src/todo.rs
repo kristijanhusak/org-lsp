@@ -247,19 +247,12 @@ impl Log {
             into_drawer: settings.log_into_drawer.clone(),
             states: None,
         };
-        for line in text.lines() {
-            let line = line.trim_start_matches([' ', '\t']);
-            let Some(words) = line.get(..10).filter(|key| key.eq_ignore_ascii_case("#+startup:")).map(|_| &line[10..])
-            else {
-                continue;
-            };
-            for word in words.split_whitespace() {
-                match word {
-                    "logdrawer" => log.into_drawer = Some("LOGBOOK".to_string()),
-                    "nologdrawer" => log.into_drawer = None,
-                    word => {
-                        log.set(word);
-                    }
+        for word in crate::text::startup_words(text) {
+            match word {
+                "logdrawer" => log.into_drawer = Some("LOGBOOK".to_string()),
+                "nologdrawer" => log.into_drawer = None,
+                word => {
+                    log.set(word);
                 }
             }
         }

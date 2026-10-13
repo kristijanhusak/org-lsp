@@ -120,20 +120,13 @@ pub fn startup_folds(
     options: &Startup,
 ) -> Vec<FoldingRange> {
     let mut startup = options.clone();
-    for line in text.lines() {
-        let line = line.trim_start_matches([' ', '\t']);
-        let Some(words) = line.get(..10).filter(|key| key.eq_ignore_ascii_case("#+startup:")).map(|_| &line[10..])
-        else {
-            continue;
-        };
-        for word in words.split_whitespace() {
-            match word.to_ascii_lowercase().as_str() {
-                folded @ ("overview" | "fold" | "content" | "show2levels" | "show3levels" | "show4levels"
-                | "show5levels" | "showall" | "nofold" | "showeverything") => startup.folded = folded.to_string(),
-                "hideblocks" => startup.hide_blocks = true,
-                "nohideblocks" | "showblocks" => startup.hide_blocks = false,
-                _ => {}
-            }
+    for word in org_core::text::startup_words(text) {
+        match word.to_ascii_lowercase().as_str() {
+            folded @ ("overview" | "fold" | "content" | "show2levels" | "show3levels" | "show4levels"
+            | "show5levels" | "showall" | "nofold" | "showeverything") => startup.folded = folded.to_string(),
+            "hideblocks" => startup.hide_blocks = true,
+            "nohideblocks" | "showblocks" => startup.hide_blocks = false,
+            _ => {}
         }
     }
     // `showeverything` leaves drawers, blocks and archived subtrees open
