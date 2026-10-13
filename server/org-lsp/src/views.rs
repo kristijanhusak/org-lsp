@@ -252,14 +252,18 @@ pub fn render(
     let mut lines: Vec<ViewLine> = Vec::with_capacity(rendered.len());
     let mut tokens = Vec::new();
     let mut today_line = None;
+    // The agenda's today, which late at night is yesterday
+    // (`org-extend-today-until`): the day the agenda marks as today.
+    let mut today = now.today;
     let mut clocking_lines = Vec::new();
     let mut day = None;
     for (number, (block, line)) in rendered.iter().enumerate() {
         match line.kind {
-            LineKind::Date { day: date, today, .. } => {
+            LineKind::Date { day: date, today: is_today, .. } => {
                 day = Some(date);
-                if today && today_line.is_none() {
+                if is_today && today_line.is_none() {
                     today_line = Some(number as u32);
+                    today = date;
                 }
             }
             LineKind::Header | LineKind::Separator | LineKind::Table => day = None,
@@ -338,7 +342,7 @@ pub fn render(
         tokens,
         clocking: clocking_lines,
         today_line,
-        today: now.today,
+        today,
     }
 }
 

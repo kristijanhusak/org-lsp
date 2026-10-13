@@ -2925,5 +2925,599 @@
    ]
   },
   "expected": "* Entry\n"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun .+1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-18 Mon .+1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 02:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 02:30]"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-10 Sun .+1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-18 Mon .+1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 02:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 02:30]"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun .+2d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-19 Tue .+2d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 02:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 02:30]"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-10 Sun .+2d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-19 Tue .+2d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 02:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 02:30]"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun ++1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-18 Mon ++1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 02:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 02:30]"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-10 Sun ++1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-18 Mon ++1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 02:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 02:30]"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun ++1w>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-24 Sun ++1w>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 02:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 02:30]"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-10 Sun ++1w>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-24 Sun ++1w>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 02:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 02:30]"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-17 Sun ++1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-18 Mon ++1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 02:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 02:30]"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-17 Sun ++1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-18 Mon ++1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 02:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 02:30]"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-17 Sun .+1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-18 Mon .+1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 02:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 02:30]"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-17 Sun .+1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-18 Mon .+1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 02:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 02:30]"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-18 Mon ++1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-19 Tue ++1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 02:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 02:30]"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-18 Mon ++1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-19 Tue ++1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 02:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 02:30]"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun 10:00 .+3h>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-18 Mon 05:30 .+3h>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 02:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 02:30]"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-10 Sun 10:00 .+3h>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-18 Mon 05:30 .+3h>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 02:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 02:30]"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-17 Sun 22:00 ++2h>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-18 Mon 04:00 ++2h>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 02:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 02:30]"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-17 Sun 22:00 ++2h>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-18 Mon 04:00 ++2h>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 02:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 02:30]"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun +1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-11 Mon +1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 02:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 02:30]"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-10 Sun +1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-11 Mon +1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 02:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 02:30]"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-16 Sat ++1m>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-06-16 Tue ++1m>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 02:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 02:30]"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-16 Sat ++1m>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-06-16 Tue ++1m>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 02:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 02:30]"
+ },
+ {
+  "clock": "2026-05-18 04:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun .+1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-19 Tue .+1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 04:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 04:30]"
+ },
+ {
+  "clock": "2026-05-18 04:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-10 Sun .+1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-19 Tue .+1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 04:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 04:30]"
+ },
+ {
+  "clock": "2026-05-18 04:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun .+2d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-20 Wed .+2d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 04:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 04:30]"
+ },
+ {
+  "clock": "2026-05-18 04:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-10 Sun .+2d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-20 Wed .+2d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 04:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 04:30]"
+ },
+ {
+  "clock": "2026-05-18 04:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun ++1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-19 Tue ++1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 04:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 04:30]"
+ },
+ {
+  "clock": "2026-05-18 04:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-10 Sun ++1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-19 Tue ++1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 04:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 04:30]"
+ },
+ {
+  "clock": "2026-05-18 04:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun ++1w>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-24 Sun ++1w>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 04:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 04:30]"
+ },
+ {
+  "clock": "2026-05-18 04:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-10 Sun ++1w>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-24 Sun ++1w>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 04:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 04:30]"
+ },
+ {
+  "clock": "2026-05-18 04:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-17 Sun ++1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-19 Tue ++1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 04:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 04:30]"
+ },
+ {
+  "clock": "2026-05-18 04:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-17 Sun ++1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-19 Tue ++1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 04:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 04:30]"
+ },
+ {
+  "clock": "2026-05-18 04:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-17 Sun .+1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-19 Tue .+1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 04:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 04:30]"
+ },
+ {
+  "clock": "2026-05-18 04:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-17 Sun .+1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-19 Tue .+1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 04:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 04:30]"
+ },
+ {
+  "clock": "2026-05-18 04:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-18 Mon ++1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-19 Tue ++1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 04:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 04:30]"
+ },
+ {
+  "clock": "2026-05-18 04:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-18 Mon ++1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-19 Tue ++1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 04:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 04:30]"
+ },
+ {
+  "clock": "2026-05-18 04:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun 10:00 .+3h>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-18 Mon 07:30 .+3h>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 04:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 04:30]"
+ },
+ {
+  "clock": "2026-05-18 04:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-10 Sun 10:00 .+3h>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-18 Mon 07:30 .+3h>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 04:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 04:30]"
+ },
+ {
+  "clock": "2026-05-18 04:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-17 Sun 22:00 ++2h>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-18 Mon 06:00 ++2h>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 04:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 04:30]"
+ },
+ {
+  "clock": "2026-05-18 04:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-17 Sun 22:00 ++2h>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-18 Mon 06:00 ++2h>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 04:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 04:30]"
+ },
+ {
+  "clock": "2026-05-18 04:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun +1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-11 Mon +1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 04:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 04:30]"
+ },
+ {
+  "clock": "2026-05-18 04:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-10 Sun +1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-11 Mon +1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 04:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 04:30]"
+ },
+ {
+  "clock": "2026-05-18 04:30",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-16 Sat ++1m>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-06-16 Tue ++1m>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 04:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 04:30]"
+ },
+ {
+  "clock": "2026-05-18 04:30",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-16 Sat ++1m>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-06-16 Tue ++1m>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 04:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 04:30]"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun .+1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-01 Fri .+1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-01 Fri 00:10]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-01 Fri 00:10]"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-10 Sun .+1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-01 Fri .+1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-01 Fri 00:10]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-01 Fri 00:10]"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun .+2d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-02 Sat .+2d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-01 Fri 00:10]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-01 Fri 00:10]"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-10 Sun .+2d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-02 Sat .+2d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-01 Fri 00:10]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-01 Fri 00:10]"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun ++1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-11 Mon ++1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-01 Fri 00:10]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-01 Fri 00:10]"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-10 Sun ++1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-11 Mon ++1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-01 Fri 00:10]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-01 Fri 00:10]"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun ++1w>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-17 Sun ++1w>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-01 Fri 00:10]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-01 Fri 00:10]"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-10 Sun ++1w>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-17 Sun ++1w>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-01 Fri 00:10]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-01 Fri 00:10]"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-17 Sun ++1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-18 Mon ++1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-01 Fri 00:10]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-01 Fri 00:10]"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-17 Sun ++1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-18 Mon ++1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-01 Fri 00:10]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-01 Fri 00:10]"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-17 Sun .+1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-01 Fri .+1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-01 Fri 00:10]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-01 Fri 00:10]"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-17 Sun .+1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-01 Fri .+1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-01 Fri 00:10]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-01 Fri 00:10]"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-18 Mon ++1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-19 Tue ++1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-01 Fri 00:10]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-01 Fri 00:10]"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-18 Mon ++1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-19 Tue ++1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-01 Fri 00:10]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-01 Fri 00:10]"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun 10:00 .+3h>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-01 Fri 03:10 .+3h>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-01 Fri 00:10]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-01 Fri 00:10]"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-10 Sun 10:00 .+3h>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-01 Fri 03:10 .+3h>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-01 Fri 00:10]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-01 Fri 00:10]"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-17 Sun 22:00 ++2h>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-18 Mon 00:00 ++2h>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-01 Fri 00:10]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-01 Fri 00:10]"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-17 Sun 22:00 ++2h>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-18 Mon 00:00 ++2h>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-01 Fri 00:10]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-01 Fri 00:10]"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-10 Sun +1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-11 Mon +1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-01 Fri 00:10]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-01 Fri 00:10]"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-10 Sun +1d>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-05-11 Mon +1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-01 Fri 00:10]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-01 Fri 00:10]"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "text": "* TODO a¦\nSCHEDULED: <2026-05-16 Sat ++1m>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-06-16 Tue ++1m>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-01 Fri 00:10]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-01 Fri 00:10]"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "text": "* TODO a¦\nDEADLINE: <2026-05-16 Sat ++1m>\n",
+  "command": "next",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO a\nDEADLINE: <2026-06-16 Tue ++1m>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-01 Fri 00:10]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-01 Fri 00:10]"
  }
 ]

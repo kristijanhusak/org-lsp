@@ -358,6 +358,7 @@ export const AREAS = [
       ['Moving a date by days (`S-<left>`, `S-<right>`)', true],
       ['Removing a scheduled date or a deadline (`C-u C-c C-s`, `C-u C-c C-d`)', true],
       ['Setting a delay or a warning period (`C-u C-u C-c C-s`, `C-u C-u C-c C-d`)', true],
+      ['A day that ends after midnight (`org-extend-today-until`): the agenda\'s today, the date prompt, the times capture puts in and its datetree, `.+` and `++` repeaters', true],
     ],
     editors: {
       sublime: ['part', 'Dates are typed, without the calendar: the package asks with an input panel.'],

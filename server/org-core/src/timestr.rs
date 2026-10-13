@@ -125,6 +125,12 @@ pub enum Prefer {
 /// `org-closest-date`: the occurrence of the repeating timestamp `start`
 /// that is closest to `current`. Without a repeater this is `start` itself.
 pub fn closest_date(start: &str, current: Day, prefer: Prefer) -> Option<Day> {
+    closest_date_until(start, current, prefer, 0)
+}
+
+/// [`closest_date`] with `org-extend-today-until`, by which an hourly
+/// repeater's days start later.
+pub fn closest_date_until(start: &str, current: Day, prefer: Prefer, extend_today_until: i64) -> Option<Day> {
     let base = parse_time_string(start)?;
     let interval = match repeater(start) {
         Some(interval) if interval.value != 0 => interval,
@@ -142,7 +148,7 @@ pub fn closest_date(start: &str, current: Day, prefer: Prefer) -> Option<Day> {
     let (n1, n2) = match interval.unit {
         b'h' => {
             let start_hour = base.time.map_or(0, |(hour, _)| hour);
-            let missing = (24 * (current - sday) - start_hour).rem_euclid(value);
+            let missing = (24 * (current - sday) - start_hour + extend_today_until).rem_euclid(value);
             let n1 = if missing == 0 { current } else { current - (1 + missing / 24) };
             (n1, current + (value - missing) / 24)
         }

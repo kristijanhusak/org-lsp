@@ -1494,7 +1494,9 @@ pub const SETTINGS: &[Setting] = &[
         "number",
         "0",
         "org-extend-today-until",
-        "The hour before which it is still yesterday, for org-journal's new entries.",
+        "The hour before which it is still yesterday: for the agenda's today, the date prompt with nothing to \
+         start from, the times capture templates put in and the day of a datetree, `.+` and `++` repeaters, \
+         clock report ranges and org-journal's new entries.",
     ),
     setting(
         "org_agenda_search_view_always_boolean",

@@ -32,7 +32,7 @@ pub use item::{format_numbers, format_with, Eval, Evaluator, PrefixFormat, Remov
 use crate::date::{days_in_month, is_leap_year, iso_week, weekday, Date, Day, MONTH_NAMES, WEEKDAY_NAMES};
 use crate::outline::{Entry, LogKind, Outline};
 use crate::priority::Priorities;
-use crate::timestr::{closest_date, time_string_to_day, warning_days, Prefer};
+use crate::timestr::{closest_date_until, time_string_to_day, warning_days, Prefer};
 
 /// The most days an agenda of days covers, about ten years: each day is
 /// a block, and a span of centuries would hold the server for minutes.
@@ -206,6 +206,9 @@ pub struct Config {
     pub skip_timestamp_if_done: bool,
     /// `org-agenda-show-future-repeats`
     pub show_future_repeats: FutureRepeats,
+    /// `org-extend-today-until`: the hour before which the agenda's today
+    /// (`org-today`) is still yesterday.
+    pub extend_today_until: i64,
     /// `org-agenda-show-all-dates`
     pub show_all_dates: bool,
     /// `org-agenda-tags-column`
@@ -389,6 +392,7 @@ impl Default for Config {
             skip_deadline_if_done: false,
             skip_timestamp_if_done: false,
             show_future_repeats: FutureRepeats::All,
+            extend_today_until: 0,
             show_all_dates: true,
             tags_column: TagsColumn::Auto,
             window_width: None,
@@ -436,6 +440,14 @@ pub struct Now {
     pub today: Day,
     /// Minutes since midnight.
     pub minute: i64,
+}
+
+impl Now {
+    /// `org-today`: the day it still is `extend_today_until` hours past
+    /// midnight.
+    pub fn org_today(self, extend_today_until: i64) -> Day {
+        crate::date::DateTime { day: self.today, minute: self.minute }.org_today(extend_today_until)
+    }
 }
 
 struct Builder<'a> {
@@ -510,7 +522,7 @@ impl Builder<'_> {
             FutureRepeats::Next => self.today + 1,
             FutureRepeats::All => current,
         };
-        closest_date(raw, from, Prefer::Future).unwrap_or(base)
+        closest_date_until(raw, from, Prefer::Future, self.config.extend_today_until).unwrap_or(base)
     }
 
     fn item(
@@ -864,7 +876,10 @@ impl Builder<'_> {
             if repeats {
                 // Past occurrences show up to today, future ones after it.
                 let base = if current > self.today { self.today } else { current };
-                let Some(past) = closest_date(&shown.text, base, Prefer::Past) else { continue };
+                let Some(past) = closest_date_until(&shown.text, base, Prefer::Past, self.config.extend_today_until)
+                else {
+                    continue;
+                };
                 let future = self.future_repeat(&shown.text, past, current);
                 if current != past && current != future {
                     continue;
@@ -1316,6 +1331,9 @@ fn date_heading(day: Day, config: &Config) -> String {
 /// `org-agenda-list`: the day or week agenda. `start_day` is the day the
 /// view should include; `None` means today.
 pub fn view(files: &[&Outline], now: Now, start_day: Option<Day>, span: Span, config: &Config) -> View {
+    // `org-today`: late at night, the agenda's today is still yesterday,
+    // with the time of the grid's now as it is.
+    let now = Now { today: now.org_today(config.extend_today_until), minute: now.minute };
     let builder = Builder::new(files, config, now.today, ViewKind::Agenda);
     let start = span_start(start_day.unwrap_or(now.today), span, config);
     let ndays = span.days(start_day.unwrap_or(now.today));

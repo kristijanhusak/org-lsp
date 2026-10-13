@@ -121,13 +121,16 @@ impl DatePrompt {
         settings: &Settings,
         (months, week_start): (usize, usize),
     ) -> DatePrompt {
-        let selected = default.unwrap_or(now).day;
+        // Late at night, the prompt with nothing to start from starts
+        // from yesterday (`org-extend-today-until`), as `org-read-date`.
+        let start = default.unwrap_or_else(|| now.late_night(settings.extend_today_until));
+        let selected = start.day;
         let mut prompt = DatePrompt {
             id: id.to_string(),
             command,
             target,
             default,
-            label: planning::label(command, default, now),
+            label: planning::label(command, Some(start), now),
             typed,
             selected,
             moved: false,
@@ -407,6 +410,18 @@ mod tests {
         assert_eq!(prompt.cursor(), Position::new(3, 40));
         assert_eq!(&lines[3][39..41], " 7");
         assert!(prompt.tokens.iter().any(|token| token.ty == TokenType::CalendarSelected));
+    }
+
+    #[test]
+    fn starts_from_yesterday_late_at_night() {
+        let file: Uri = "file:///org/notes.org".parse().unwrap();
+        let settings = Settings { extend_today_until: 4, ..Settings::default() };
+        let late = DateTime::new(Date::new(2026, 10, 5), 2, 30);
+        let target = Target::Place { uri: file, position: Position::new(0, 0) };
+        let prompt =
+            DatePrompt::new("org.schedule", Command::Schedule, target, None, String::new(), late, &settings, (1, 0));
+        assert_eq!(Date::from_day(prompt.selected), Date::new(2026, 10, 4));
+        assert_eq!(prompt.text.lines().last(), Some("SCHEDULED Date+time [2026-10-04]:    => <2026-10-04 Sun>"));
     }
 
     #[test]

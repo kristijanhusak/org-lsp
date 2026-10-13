@@ -20,7 +20,7 @@ decides the outcome (see "How the work is checked" in [[file:development.org::#h
 | [[#priorities][Priorities]] | 75% | 3 of 4 |
 | [[#tags][Tags]] | 86% | 6 of 7 |
 | [[#properties-and-column-view][Properties and column view]] | 75% | 6 of 8 |
-| [[#dates-and-times][Dates and times]] | 100% | 8 of 8 |
+| [[#dates-and-times][Dates and times]] | 100% | 9 of 9 |
 | [[#agenda][Agenda]] | 100% | 23 of 23 |
 | [[#clocking][Clocking]] | 100% | 8 of 8 |
 | [[#capture][Capture]] | 100% | 11 of 11 |
@@ -231,7 +231,7 @@ Where editors fall short:
 :CUSTOM_ID: dates-and-times
 :END:
 
-100% (8 of 8)
+100% (9 of 9)
 
 - ✅ Inserting active and inactive timestamps (~C-c .~, ~C-c !~)
 - ✅ Scheduling and deadlines (~C-c C-s~, ~C-c C-d~)
@@ -241,6 +241,7 @@ Where editors fall short:
 - ✅ Moving a date by days (~S-<left>~, ~S-<right>~)
 - ✅ Removing a scheduled date or a deadline (~C-u C-c C-s~, ~C-u C-c C-d~)
 - ✅ Setting a delay or a warning period (~C-u C-u C-c C-s~, ~C-u C-u C-c C-d~)
+- ✅ A day that ends after midnight (~org-extend-today-until~): the agenda's today, the date prompt, the times capture puts in and its datetree, ~.+~ and ~++~ repeaters
 
 Where editors fall short:
 

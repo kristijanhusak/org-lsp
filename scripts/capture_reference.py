@@ -155,7 +155,7 @@ def reference(cases):
             forms = [DRIVER]
             outputs = []
             for index, case in enumerate(group):
-                folder = os.path.join(directory, f"{clock[:10]}-{index}")
+                folder = os.path.join(directory, f"{clock.replace(' ', '-').replace(':', '')}-{index}")
                 os.makedirs(folder)
                 paths = {}
                 for name, text in sorted(case["files"].items()):
@@ -169,14 +169,15 @@ def reference(cases):
                 source = lisp_string(paths[case["from"]]) if "from" in case else "nil"
                 adapt = case.get("options", {}).get("org_adapt_indentation", False)
                 adapt = "t" if adapt is True else "nil" if adapt is False else "'" + adapt
+                extend = case.get("options", {}).get("org_extend_today_until", 0)
                 forms.append(
-                    f"(let ((org-adapt-indentation {adapt}))"
+                    f"(let ((org-adapt-indentation {adapt}) (org-extend-today-until {extend}))"
                     f" (org-lsp-capture-case (list {files}) {source} {template_form(case['template'], paths)}"
                     f" (list {answers}) {lisp_string(case.get('typed', ''))} {lisp_string(target)}"
                     f" {clock_form(case.get('clock_in'), paths)}"
                     f" {lisp_string(case['clipboard']) if 'clipboard' in case else 'nil'}))"
                 )
-            driver = os.path.join(directory, f"driver-{clock[:10]}.el")
+            driver = os.path.join(directory, f"driver-{clock.replace(' ', '-').replace(':', '')}.el")
             with open(driver, "w", encoding="utf-8") as handle:
                 handle.write("\n".join(forms))
             subprocess.run(

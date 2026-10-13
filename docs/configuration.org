@@ -1668,8 +1668,10 @@ org_journal_search_result_date_format = "%A, %x"
 # first, or `desc`, the last. (org-journal-search-results-order-by)
 org_journal_search_results_order_by = "asc"
 
-# The hour before which it is still yesterday, for org-journal's new entries.
-# (org-extend-today-until)
+# The hour before which it is still yesterday: for the agenda's today, the
+# date prompt with nothing to start from, the times capture templates put in
+# and the day of a datetree, `.+` and `++` repeaters, clock report ranges and
+# org-journal's new entries. (org-extend-today-until)
 org_extend_today_until = 0
 
 # Read every search string of the search view (`s`) as words that must
@@ -2680,8 +2682,10 @@ org_agenda_custom_commands = []
   // first, or `desc`, the last. (org-journal-search-results-order-by)
   "org_journal_search_results_order_by": "asc",
 
-  // The hour before which it is still yesterday, for org-journal's new
-  // entries. (org-extend-today-until)
+  // The hour before which it is still yesterday: for the agenda's today, the
+  // date prompt with nothing to start from, the times capture templates put
+  // in and the day of a datetree, `.+` and `++` repeaters, clock report
+  // ranges and org-journal's new entries. (org-extend-today-until)
   "org_extend_today_until": 0,
 
   // Read every search string of the search view (`s`) as words that must

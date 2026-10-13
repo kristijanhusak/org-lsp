@@ -1656,7 +1656,7 @@
       "type": "integer",
       "minimum": 0,
       "maximum": 23,
-      "description": "The hour before which it is still yesterday, for org-journal's new entries. (`org-extend-today-until`)",
+      "description": "The hour before which it is still yesterday: for the agenda's today, the date prompt with nothing to start from, the times capture templates put in and the day of a datetree, `.+` and `++` repeaters, clock report ranges and org-journal's new entries. (`org-extend-today-until`)",
       "default": 0
     },
     "org_agenda_search_view_always_boolean": {
