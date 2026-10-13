@@ -240,5 +240,69 @@
     "Question: "
    ]
   }
+ },
+ {
+  "title": "Alpha",
+  "files": {
+   "notes.org": "#+title: Notes\n\n* Alpha\n:PROPERTIES:\n:ID:       alpha-1\n:END:\nOld.\n"
+  },
+  "node": [
+   "notes.org",
+   "alpha-1"
+  ],
+  "body": "More.",
+  "expected": {
+   "files": {
+    "notes.org": ":PROPERTIES:\n:ID:       alpha-1\n:END:\n#+title: Notes\n\n* Alpha\n:PROPERTIES:\n:ID:       alpha-1\n:END:\nOld.\nMore.\n"
+   },
+   "prompts": []
+  }
+ },
+ {
+  "title": "Alpha",
+  "files": {
+   "notes.org": ":PROPERTIES:\n:ID:       notes-0\n:END:\n#+title: Notes\n\n* Alpha\n:PROPERTIES:\n:ID:       alpha-1\n:END:\nOld.\n"
+  },
+  "node": [
+   "notes.org",
+   "alpha-1"
+  ],
+  "body": "More.",
+  "expected": {
+   "files": {
+    "notes.org": ":PROPERTIES:\n:ID:       notes-0\n:END:\n#+title: Notes\n\n* Alpha\n:PROPERTIES:\n:ID:       alpha-1\n:END:\nOld.\nMore.\n"
+   },
+   "prompts": []
+  }
+ },
+ {
+  "title": "Alpha",
+  "files": {
+   "notes.org": "#+title: Notes\n\n* Alpha\n:PROPERTIES:\n:ID:       alpha-1\n:END:\nOld.\n"
+  },
+  "node": [
+   "notes.org",
+   "alpha-1"
+  ],
+  "templates": [
+   {
+    "key": "h",
+    "description": "head",
+    "template": "* %?",
+    "target": [
+     "file+head+olp",
+     "x.org",
+     "#+title: x\n",
+     "Alpha"
+    ]
+   }
+  ],
+  "body": "More.",
+  "expected": {
+   "files": {
+    "notes.org": ":PROPERTIES:\n:ID:       alpha-1\n:END:\n#+title: Notes\n\n* Alpha\n:PROPERTIES:\n:ID:       alpha-1\n:END:\nOld.\n\n** More.\n"
+   },
+   "prompts": []
+  }
  }
 ]

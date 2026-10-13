@@ -1259,7 +1259,8 @@ fn edits_list_items() {
     client.open(&uri(), "1. a\n3. b\n7. c\n");
     let repair = client.code_actions(&uri(), Position::new(1, 1), "org.checkbox.toggle");
     let changed: Vec<String> = edits(&repair[0]).into_iter().map(|edit| edit.new_text).collect();
-    assert_eq!(changed, ["2. b\n3"]);
+    // An edit for each line it changes.
+    assert_eq!(changed, ["2", "3"]);
     client.shutdown();
 }
 
@@ -1457,7 +1458,7 @@ fn toggles_checkboxes() {
     client.open(&uri(), "* Groceries [0/2]\n- [ ] milk\n- [ ] eggs\n");
     let toggle = client.code_actions(&uri(), Position::new(1, 3), "org.checkbox.toggle");
     let changed: Vec<String> = edits(&toggle[0]).into_iter().map(|edit| edit.new_text).collect();
-    assert_eq!(changed, ["1/2]\n- [X"]);
+    assert_eq!(changed, ["1", "X"]);
     // Nothing to toggle on text.
     client.open(&uri(), "* a\ntext\n");
     assert!(client.code_actions(&uri(), Position::new(1, 0), "org.checkbox.toggle").is_empty());

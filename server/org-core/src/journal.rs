@@ -261,7 +261,9 @@ fn translate(emacs: &str) -> (String, Vec<Part>) {
                     class.push(c);
                 }
                 if class == "[:alpha:]" {
-                    out.push_str(r"\p{Alphabetic}");
+                    // What Emacs's `alphabeticp` takes: letters, marks and
+                    // letter numbers.
+                    out.push_str(r"[\p{L}\p{M}\p{Nl}]");
                 } else {
                     out.push('[');
                     out.push_str(&class.replace('[', r"\[").replace(r"\[:alpha:]", "[:alpha:]"));
@@ -1186,5 +1188,22 @@ impl Emacs<'_> {
             Visit { file: buffer.file.clone(), offset: buffer.point, hidden, hidden_lines: buffer.hidden_lines() }
         });
         Outcome { changed, visit, messages: self.messages, view: self.view, shown: self.shown }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_format_directive_builds_a_regex() {
+        for format in ["%Y%m%d", "%Y-%m-%d-%A.org", "%a %d %b %Y", "%B %Y", "%G-W%V", "%F", "[%Y-%m-%d %a]"] {
+            let pattern = Pattern::new(format);
+            assert!(Regex::new(&pattern.regex).is_ok(), "{format}: {}", pattern.regex);
+        }
+        let settings = Settings { file_format: "%Y-%m-%d-%A.org".to_string(), ..Settings::default() };
+        assert!(is_journal_file("2026-10-09-Friday.org", &settings));
+        assert!(is_journal_file("2026-10-09-Čtvrtek.org", &settings));
+        assert!(!is_journal_file("2026-10-09-12.org", &settings));
     }
 }

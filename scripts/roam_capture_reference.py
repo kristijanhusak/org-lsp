@@ -17,6 +17,8 @@ A case is a JSON object:
       "finalize": "insert-link"          optional: `org-roam-node-insert`'s
                                          way, a link inserted where the
                                          capture started; else `find-file`
+      "node": ["a.org", "id"]            optional: capture to this existing
+                                         node of that file, not a new one
     }
 
 `reference(cases)` adds `expected`: `{"files": {...}, "prompts": [...]}`,
@@ -55,7 +57,7 @@ DRIVER = r"""
 (defun org-lsp-answer (prompt &rest _)
   (push (substring-no-properties prompt) org-lsp-prompts)
   (if org-lsp-answers (pop org-lsp-answers) (error "No answer for %s" prompt)))
-(defun org-lsp-roam-capture (dir out title templates keys answers body finalize cursor-file cursor)
+(defun org-lsp-roam-capture (dir out title templates keys answers body finalize cursor-file cursor node)
   (dolist (buffer (buffer-list))
     (when (buffer-file-name buffer)
       (with-current-buffer buffer (set-buffer-modified-p nil))
@@ -80,7 +82,7 @@ DRIVER = r"""
                 (with-current-buffer (if cursor-file (find-file-noselect cursor-file) (get-buffer-create "*scratch*"))
                   (when cursor (goto-char (1+ cursor)))
                   (org-roam-capture-
-                   :node (org-roam-node-create :title title)
+                   :node (if node (org-roam-node-from-id node) (org-roam-node-create :title title))
                    :keys keys
                    :templates templates
                    :props (if (equal finalize "insert-link")
@@ -180,7 +182,8 @@ def reference(cases):
                 f"(org-lsp-roam-capture {lisp_string(folder)} {lisp_string(target)} {lisp_string(case['title'])}"
                 f" {templates_form} {lisp_string(case['keys']) if 'keys' in case else 'nil'} {answers}"
                 f" {lisp_string(case.get('body', ''))} {lisp_string(case.get('finalize', 'find-file'))}"
-                f" {lisp_string(cursor[0]) if cursor else 'nil'} {cursor[1] if cursor else 'nil'})"
+                f" {lisp_string(cursor[0]) if cursor else 'nil'} {cursor[1] if cursor else 'nil'}"
+                f" {lisp_string(case['node'][1]) if 'node' in case else 'nil'})"
             )
         driver = os.path.join(directory, "driver.el")
         with open(driver, "w", encoding="utf-8") as handle:

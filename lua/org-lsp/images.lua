@@ -154,7 +154,8 @@ end
 
 --- Remove the images ImageMagick made that no preview asked for in a
 --- month, once a session: each one's time is set when it is shown, as
---- access times are not kept everywhere (`noatime`).
+--- access times are not kept everywhere (`noatime`). Half-made ones an
+--- editor stopped while making them go after an hour.
 local pruned = false
 ---@param directory string
 local function prune(directory)
@@ -162,11 +163,12 @@ local function prune(directory)
     return
   end
   pruned = true
-  local old = os.time() - 30 * 24 * 60 * 60
+  local now = os.time()
   for name, kind in vim.fs.dir(directory) do
     local file = vim.fs.joinpath(directory, name)
-    local stat = kind == 'file' and name:match('%.png$') and vim.uv.fs_stat(file)
-    if stat and stat.mtime.sec < old then
+    local age = (name:match('%.png$') and 30 * 24 * 60 * 60) or (name:match('%.part$') and 60 * 60)
+    local stat = kind == 'file' and age and vim.uv.fs_stat(file)
+    if stat and stat.mtime.sec < now - age then
       os.remove(file)
     end
   end
@@ -204,8 +206,9 @@ local function load(path)
       local input = (coders[extension] and extension .. ':' or '') .. path .. '[0]'
       local limits = { '-limit', 'memory', '256MiB', '-limit', 'area', '128MP', '-limit', 'time', '10' }
       -- Made beside, then renamed: a Neovim stopped meanwhile leaves no
-      -- half an image to be taken for one.
-      local part = png .. '.part'
+      -- half an image to be taken for one, and another Neovim making the
+      -- same image writes a file of its own.
+      local part = ('%s.%d.part'):format(png, vim.fn.getpid())
       local made = vim.system(vim.list_extend({ converter, unpack(limits) }, { input, 'png:' .. part }), { timeout = 10000 }):wait()
       if made.code ~= 0 or not os.rename(part, png) then
         -- Not kept as no image: the next preview tries again.
@@ -218,6 +221,11 @@ local function load(path)
   local width, height
   if ok then
     width, height = png_size(data)
+  end
+  if not width and png ~= path then
+    -- A made image that is no PNG is made again the next time.
+    os.remove(png)
+    return nil
   end
   remember(key, width and { data = data, width = width, height = height } or false)
   return files[key] or nil

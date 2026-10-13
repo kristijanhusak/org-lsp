@@ -100,35 +100,35 @@ calendar, or typed as at Org's prompt (~fri 10:00~, ~+2d~, ~2/15~, ~++1w~).
 |---+---+---+---|
 | [[file:parity.org::#highlighting][Highlighting]] | 100% | ✅ |  |
 | [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 100% | ✅ |  |
-| [[file:parity.org::#headings-and-structure][Headings and structure]] | 100% | ✅ |  |
+| [[file:parity.org::#headings-and-structure][Headings and structure]] | 92% | ✅ |  |
 | [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 100% | ✅ |  |
 | [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ✅ |  |
-| [[file:parity.org::#priorities][Priorities]] | 100% | ✅ |  |
-| [[file:parity.org::#tags][Tags]] | 100% | ✅ |  |
-| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 100% | ✅ |  |
+| [[file:parity.org::#priorities][Priorities]] | 75% | ✅ |  |
+| [[file:parity.org::#tags][Tags]] | 86% | ✅ |  |
+| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 75% | ✅ |  |
 | [[file:parity.org::#dates-and-times][Dates and times]] | 100% | ✅ |  |
 | [[file:parity.org::#agenda][Agenda]] | 100% | ✅ |  |
 | [[file:parity.org::#clocking][Clocking]] | 100% | ✅ |  |
 | [[file:parity.org::#capture][Capture]] | 100% | ✅ |  |
-| [[file:parity.org::#notes-org-roam][Notes (org-roam)]] | 100% | ✅ |  |
-| [[file:parity.org::#a-journal-org-journal][A journal (org-journal)]] | 83% | ✅ |  |
+| [[file:parity.org::#notes-org-roam][Notes (org-roam)]] | 67% | ✅ |  |
+| [[file:parity.org::#a-journal-org-journal][A journal (org-journal)]] | 77% | ✅ |  |
 | [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ |  |
-| [[file:parity.org::#links][Links]] | 100% | ✅ |  |
+| [[file:parity.org::#links][Links]] | 92% | ✅ |  |
 | [[file:parity.org::#footnotes][Footnotes]] | 100% | ✅ |  |
 | [[file:parity.org::#tables][Tables]] | 94% | ✅ |  |
 | [[file:parity.org::#table-formulas][Table formulas]] | 100% | ✅ |  |
 | [[file:parity.org::#code-blocks-babel][Code blocks (Babel)]] | 100% | ✅ |  |
 | [[file:parity.org::#export-and-publishing][Export and publishing]] | 100% | ✅ |  |
-| [[file:parity.org::#citations][Citations]] | 100% | ✅ |  |
+| [[file:parity.org::#citations][Citations]] | 83% | ✅ |  |
 | [[file:parity.org::#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% | ✅ |  |
-| [[file:parity.org::#indentation-and-formatting][Indentation and formatting]] | 83% | ✅ |  |
+| [[file:parity.org::#indentation-and-formatting][Indentation and formatting]] | 71% | ✅ |  |
 | [[file:parity.org::#notes-and-logging][Notes and logging]] | 100% | ✅ |  |
 | [[file:parity.org::#completion-and-editing-helpers][Completion and editing helpers]] | 100% | ✅ | Completion needs an LSP completion plugin (or ~vim.lsp.completion~). |
 | [[file:parity.org::#timers][Timers]] | 100% | ✅ |  |
 | [[file:parity.org::#attachments][Attachments]] | 100% | ✅ |  |
 | [[file:parity.org::#encryption][Encryption]] | 100% | ✅ |  |
 | [[file:parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | ❓ | From Neovim 0.13 (~vim.ui.img~), in a terminal with the Kitty graphics protocol: an image shows below its line, not over the link; images other than PNG need ImageMagick. |
-| *All of Org* | *99%* |  |  |
+| *All of Org* | *94%* |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what and why),
 ❌ none does, — nothing to support yet. Parity is the share of what

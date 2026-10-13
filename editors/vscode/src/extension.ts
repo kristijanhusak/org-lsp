@@ -669,6 +669,8 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
 /** The last restart: a restart waits for the one before, so that two never
  * start two servers. */
 let restarting: Promise<void> = Promise.resolve();
+// Once the extension is deactivated, a restart under way starts no server.
+let deactivated = false;
 
 function restartClient(context: vscode.ExtensionContext): Promise<void> {
   restarting = restarting
@@ -676,7 +678,9 @@ function restartClient(context: vscode.ExtensionContext): Promise<void> {
     .then(async () => {
       // A server that is already gone cannot be stopped: start a new one all the same.
       await stopClient().catch(() => undefined);
-      await startClient(context);
+      if (!deactivated) {
+        await startClient(context);
+      }
     });
   return restarting;
 }
@@ -2129,5 +2133,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
 }
 
 export function deactivate(): Promise<void> {
-  return stopClient();
+  // After any restart under way, so that the server it starts is stopped too.
+  deactivated = true;
+  restarting = restarting.catch(() => undefined).then(stopClient);
+  return restarting;
 }

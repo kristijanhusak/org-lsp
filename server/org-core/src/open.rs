@@ -393,6 +393,12 @@ fn open_link(node: &SyntaxNode, text: &str, parse: &Parse, abbreviations: &Abbre
     search(text, parse, &raw).map(Open::Here)
 }
 
+/// The regexp of a search `/regexp/`, which `org-link-search` gives to
+/// `org-occur`.
+pub fn occur_regexp(search: &str) -> Option<&str> {
+    search.strip_prefix('/')?.strip_suffix('/').filter(|regexp| !regexp.is_empty())
+}
+
 /// A `file:` link to `path` (with a search after `::`), as [`file`] opens
 /// it: an attachment once its directory is known.
 pub fn file_link(path: &str) -> Open {
@@ -661,7 +667,7 @@ pub fn search(text: &str, parse: &Parse, search: &str) -> Result<usize, String> 
         return coderef(&root, text, name).ok_or_else(|| format!("No match for coderef: {name}"));
     }
     if normalized.len() > 1 && normalized.starts_with('/') && normalized.ends_with('/') {
-        return Err("Searches by regular expression are not supported".to_string());
+        return Err("A search by regular expression is followed only in the file the link is in".to_string());
     }
     let starred = normalized.starts_with('*');
     let words: Vec<String> = (if starred { &normalized[1..] } else { normalized.as_str() })
