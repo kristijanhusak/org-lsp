@@ -108,7 +108,8 @@ export const AREAS = [
       ['Radio targets turning their words into links: highlighted, followed, document links', true],
       ['Entities shown as their characters (`org-pretty-entities`, `#+STARTUP: entitiespretty` or `entitiesplain`): hidden, the character in their place (drawn by the editor where it can, else an inlay hint)', true],
       ['Sub- and superscripts raised and lowered (`org-pretty-entities-include-sub-superscripts`, `org-use-sub-superscripts`): where Org raises them, shown in Unicode (`x²`, `H₂O`) in place of the hidden text (drawn by the editor where it can, else an inlay hint) where every character has a raised or lowered form; the others left as they are, as an editor cannot raise text', true],
-      ['The options of how headlines, blocks and markup are shown (`org-fontify-done-headline`, `org-fontify-whole-heading-line`, `org-fontify-quote-and-verse-blocks`, `org-hidden-keywords`, `org-hide-macro-markers`, `org-emphasis-alist`, `org-cycle-level-faces`, `org-n-level-faces`, `org-ellipsis`)', false],
+      ['Done headlines in `org-headline-done` past their keyword (`org-fontify-done-headline` at its default), complete statistics cookies as done, the title and the information of the document (`org-document-title`, `org-document-info`)', true],
+      ['The options of how headlines, blocks and markup are shown, set away from their defaults (`org-fontify-done-headline`, `org-fontify-whole-heading-line`, `org-fontify-quote-and-verse-blocks`, `org-hidden-keywords`, `org-hide-macro-markers`, `org-emphasis-alist`, `org-cycle-level-faces`, `org-n-level-faces`, `org-ellipsis`)', false],
     ],
     editors: {
       vim: ['part', 'Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Vim cannot hide text that has text properties.'],

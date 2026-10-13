@@ -1804,6 +1804,8 @@ graph have no standard kind and get no token.
 | ~latex~          | LaTeX fragments and environments                                                            |
 | ~entity~         | An entity such as ~\alpha~                                                                  |
 | ~macro~          | ~{{{macro}}}~                                                                               |
+| ~documentTitle~  | The value of ~#+TITLE:~ (~org-document-title~)                                              |
+| ~documentInfo~   | The values of ~#+SUBTITLE:~, ~#+AUTHOR:~, ~#+EMAIL:~ and ~#+DATE:~ (~org-document-info~)    |
 
 Plain text gets no token, and neither do the contents of source and example
 blocks.
@@ -1826,19 +1828,20 @@ faces:
 
 ** In the date prompt
 
-| Type               | Covers                                 | Modifiers |
-|--------------------+----------------------------------------+-----------|
-| ~calendarHeader~   | The month and year above a month       |           |
-| ~calendarWeekday~  | The name of a weekday above its column | ~weekend~ |
-| ~calendarSelected~ | The selected day                       |           |
-| ~calendarPrompt~   | The prompt in the minibuffer line      |           |
-| ~timestamp~        | What the answer means                  |           |
+| Type               | Covers                                                 | Modifiers |
+|--------------------+--------------------------------------------------------+-----------|
+| ~calendarHeader~   | The month and year above a month                       |           |
+| ~calendarWeekday~  | The name of a weekday above its column                 | ~weekend~ |
+| ~calendarSelected~ | The selected day; the hour or the minutes being picked |           |
+| ~calendarPrompt~   | The prompt in the minibuffer line                      |           |
+| ~timestamp~        | What the answer means                                  |           |
 
 ** Modifiers
 
 - ~level1~ … ~level8~ :: On ~headline~ and ~stars~. Levels above eight wrap
   around.
-- ~done~ :: On ~todoKeyword~.
+- ~done~ :: On ~todoKeyword~; on the rest of a done headline (~org-headline-done~),
+  in place of its level; on a complete ~cookie~ (~[2/2]~, ~[100%]~).
 - ~inactive~ :: On ~timestamp~.
 - ~checked~, ~partial~ :: On ~checkbox~.
 - ~bold~, ~italic~, ~underline~, ~strikethrough~ :: On ~text~ and

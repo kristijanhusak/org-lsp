@@ -1708,13 +1708,7 @@ fn prompt_label(choice: &Value) -> String {
 
 /// The words of a file's `#+STARTUP:` lines, lowercased, in order.
 fn startup_words(text: &str) -> Vec<String> {
-    text.lines()
-        .filter_map(|line| {
-            let line = line.trim_start_matches([' ', '\t']);
-            line.get(..10).filter(|key| key.eq_ignore_ascii_case("#+startup:")).map(|_| &line[10..])
-        })
-        .flat_map(|words| words.split_whitespace().map(str::to_ascii_lowercase))
-        .collect()
+    org_core::text::startup_words(text).into_iter().map(str::to_ascii_lowercase).collect()
 }
 
 /// What a column view command asks, Org's question with its default, as
@@ -10022,17 +10016,11 @@ impl Server {
     /// with a width cookie shrunk when a file opens.
     fn shrink_at_startup(&mut self, key: &str, text: &str) {
         let mut shrink = self.startup_shrink;
-        for line in text.lines() {
-            let line = line.trim_start();
-            if !line.get(..10).is_some_and(|start| start.eq_ignore_ascii_case("#+startup:")) {
-                continue;
-            }
-            for word in line[10..].split_whitespace() {
-                match word.to_ascii_lowercase().as_str() {
-                    "shrink" => shrink = true,
-                    "noshrink" => shrink = false,
-                    _ => {}
-                }
+        for word in startup_words(text) {
+            match word.as_str() {
+                "shrink" => shrink = true,
+                "noshrink" => shrink = false,
+                _ => {}
             }
         }
         if !shrink {

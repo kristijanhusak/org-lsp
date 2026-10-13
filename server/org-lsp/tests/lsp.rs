@@ -221,6 +221,8 @@ fn negotiates_position_encoding() {
 #[test]
 fn semantic_tokens_full_and_range() {
     let mut client = Client::start(json!({}), Value::Null);
+    let legend =
+        serde_json::to_value(&client.initialize.capabilities.semantic_tokens_provider).unwrap()["legend"].clone();
     client.open(&uri(), DOCUMENT);
     let full = client.request::<SemanticTokensFullRequest>(SemanticTokensParams {
         text_document: identifier(),
@@ -231,11 +233,15 @@ fn semantic_tokens_full_and_range() {
     // `#+TITLE:` is the first token: line 0, column 0, eight characters, type `keyword`.
     let keyword = &full.data[0];
     assert_eq!((keyword.delta_line, keyword.delta_start, keyword.length, keyword.token_type), (0, 0, 8, 9));
+    // Its value, `org-document-title`.
+    let title = &full.data[1];
+    assert_eq!((title.delta_line, title.delta_start, title.length), (0, 9, 4));
+    assert_eq!(legend["tokenTypes"][title.token_type as usize], "documentTitle");
     // Stars of the first headline: next line, level-1 modifier.
-    let stars = &full.data[1];
+    let stars = &full.data[2];
     assert_eq!((stars.delta_line, stars.delta_start, stars.length, stars.token_type), (1, 0, 1, 1));
     assert_eq!(stars.token_modifiers_bitset, 1);
-    assert_eq!(full.data.len(), 11);
+    assert_eq!(full.data.len(), 12);
 
     let range = client.request::<SemanticTokensRangeRequest>(SemanticTokensRangeParams {
         text_document: identifier(),

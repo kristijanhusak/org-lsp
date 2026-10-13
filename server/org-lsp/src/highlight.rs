@@ -53,6 +53,8 @@ token_types! {
     Latex => "latex",
     Entity => "entity",
     Macro => "macro",
+    DocumentTitle => "documentTitle",
+    DocumentInfo => "documentInfo",
     AgendaStructure => "agendaStructure",
     AgendaDate => "agendaDate",
     AgendaScheduled => "agendaScheduled",
@@ -105,6 +107,8 @@ pub mod modifier {
         "future",
     ];
 
+    /// The bits of `level1` to `level8`.
+    pub const LEVELS: u32 = 0xff;
     pub const DONE: u32 = 1 << 8;
     pub const INACTIVE: u32 = 1 << 9;
     pub const CHECKED: u32 = 1 << 10;
@@ -213,6 +217,10 @@ pub mod standard {
         }
         let name = match ty {
             TokenType::Headline | TokenType::Stars if has(modifier::ARCHIVED) => "comment",
+            // `org-headline-done` over a done headline's title and tags; a
+            // complete cookie in `org-done`'s color.
+            TokenType::Cookie if has(modifier::DONE) => "string",
+            TokenType::Headline | TokenType::Priority | TokenType::Tag if has(modifier::DONE) => "comment",
             TokenType::Headline | TokenType::Stars => level(modifiers),
             TokenType::TodoKeyword if has(modifier::DONE) => "string",
             TokenType::TodoKeyword | TokenType::Planning => "keyword",
@@ -228,6 +236,8 @@ pub mod standard {
             TokenType::Link | TokenType::Target => "namespace",
             TokenType::Code | TokenType::Verbatim => "string",
             TokenType::Footnote => "parameter",
+            TokenType::DocumentTitle => "type",
+            TokenType::DocumentInfo => "variable",
             // Bold, italic and underline have no standard kind.
             TokenType::Text if struck != 0 => "variable",
             TokenType::Text => return None,
@@ -627,7 +637,12 @@ impl Walker<'_> {
                 self.push(range, TokenType::Timestamp, if inactive { modifier::INACTIVE } else { 0 });
             }
             FOOTNOTE_REFERENCE => self.push(range, TokenType::Footnote, 0),
-            STATISTICS_COOKIE => self.push(range, TokenType::Cookie, 0),
+            // `org-get-checkbox-statistics-face`: a complete cookie is done.
+            STATISTICS_COOKIE => {
+                let done = cookie_complete(&node.text().to_string());
+                self.push(range, TokenType::Cookie, if done { modifier::DONE } else { 0 })
+            }
+            KEYWORD => self.keyword(node),
             TARGET | RADIO_TARGET => self.push(range, TokenType::Target, 0),
             LATEX_FRAGMENT => self.push(range, TokenType::Latex, 0),
             LATEX_ENVIRONMENT => {
@@ -656,6 +671,12 @@ impl Walker<'_> {
         // `:ARCHIVE:` in it.
         let line = node.text().to_string();
         let archived = line.split('\n').next().is_some_and(|line| line.contains(":ARCHIVE:"));
+        // `org-fontify-done-headline`: after a done keyword, the rest of
+        // the headline is `org-headline-done`.
+        let done = node
+            .children_with_tokens()
+            .find(|child| child.kind() == TODO_KEYWORD)
+            .is_some_and(|keyword| self.todo.is_done(&keyword.to_string()));
         let mut after_stars = self.out.len();
         for child in node.children_with_tokens() {
             if child.kind() == STARS {
@@ -671,12 +692,38 @@ impl Walker<'_> {
                 _ => self.element(node, child, Style::PLAIN),
             }
         }
+        let headline_end = node.text_range().start() + TextSize::from(line.find('\n').unwrap_or(line.len()) as u32);
+        if done {
+            for token in &mut self.out[after_stars..] {
+                if token.range.start() < headline_end && token.ty != TokenType::TodoKeyword {
+                    // In place of the level, which would color it as well.
+                    token.modifiers = (token.modifiers & !modifier::LEVELS) | modifier::DONE;
+                }
+            }
+        }
         if archived {
-            let headline_end = node.text_range().start() + TextSize::from(line.find('\n').unwrap_or(line.len()) as u32);
             for token in &mut self.out[after_stars..] {
                 if token.range.start() < headline_end {
                     token.modifiers |= modifier::ARCHIVED;
                 }
+            }
+        }
+    }
+
+    /// A keyword line; the values of `#+TITLE:`, and of `#+SUBTITLE:`,
+    /// `#+AUTHOR:`, `#+EMAIL:` and `#+DATE:`, in `org-document-title` and
+    /// `org-document-info`.
+    fn keyword(&mut self, node: &SyntaxNode) {
+        let key = node.children_with_tokens().find(|child| child.kind() == KEYWORD_KEY).map(|key| key.to_string());
+        let value = match key.map(|key| key.to_ascii_lowercase()).as_deref() {
+            Some("#+title:") => Some(TokenType::DocumentTitle),
+            Some("#+subtitle:" | "#+author:" | "#+email:" | "#+date:") => Some(TokenType::DocumentInfo),
+            _ => None,
+        };
+        for child in node.children_with_tokens() {
+            match (child.kind(), value) {
+                (KEYWORD_VALUE, Some(ty)) => self.push(child.text_range(), ty, 0),
+                _ => self.element(node, child, Style::PLAIN),
             }
         }
     }
@@ -704,6 +751,16 @@ impl Walker<'_> {
                 _ => self.element(node, child, Style::PLAIN),
             }
         }
+    }
+}
+
+/// Whether a statistics cookie is complete: `[100%]`, or `[n/n]` with both
+/// numbers the same (`[0/0]` too).
+fn cookie_complete(cookie: &str) -> bool {
+    let inner = cookie.trim_start_matches('[').trim_end_matches(']');
+    match inner.split_once('/') {
+        Some((done, all)) => !done.is_empty() && done == all,
+        None => inner == "100%",
     }
 }
 
@@ -989,8 +1046,38 @@ mod tests {
                 0:39 ":work:rust:" tag
                 1:0 "***" stars +level3
                 1:4 "DONE" todoKeyword +done
-                1:9 "x" headline +level3
+                1:9 "x" headline +done
             "#]],
+        );
+    }
+
+    #[test]
+    fn done_headlines_cookies_and_document_keywords() {
+        // `org-fontify-done-headline`, `org-checkbox-statistics-done` for a
+        // complete cookie only, `org-document-title` and `-info`.
+        check(
+            "#+TITLE: Notes\n#+AUTHOR: Me\n#+OPTIONS: toc:nil\n* DONE [#B] Task [2/2] :a:\n* TODO Other [1/2] [100%] [0/0]\n",
+            expect![[r##"
+                0:0 "#+TITLE:" keyword
+                0:9 "Notes" documentTitle
+                1:0 "#+AUTHOR:" keyword
+                1:10 "Me" documentInfo
+                2:0 "#+OPTIONS:" keyword
+                3:0 "*" stars +level1
+                3:2 "DONE" todoKeyword +done
+                3:7 "[#B]" priority +done
+                3:12 "Task " headline +done
+                3:17 "[2/2]" cookie +done
+                3:23 ":a:" tag +done
+                4:0 "*" stars +level1
+                4:2 "TODO" todoKeyword
+                4:7 "Other " headline +level1
+                4:13 "[1/2]" cookie
+                4:18 " " headline +level1
+                4:19 "[100%]" cookie +done
+                4:25 " " headline +level1
+                4:26 "[0/0]" cookie +done
+            "##]],
         );
     }
 
@@ -1046,6 +1133,7 @@ mod tests {
                 3:0 ":ID:" property
                 4:0 ":END:" drawer
                 5:0 "#+TITLE:" keyword
+                5:9 "t" documentTitle
                 6:0 "# comment" comment
                 7:0 ": fixed" verbatim
                 8:0 "-" bullet
