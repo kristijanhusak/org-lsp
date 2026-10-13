@@ -75,6 +75,10 @@ vim.g.org_lsp = {
   -- A key of the user's own, for a command the server binds no key to.
   mappings = { global = { ['org.agenda.todos'] = '<F7>' } },
 }
+-- A root for every server, as a configuration may give: the server
+-- started for the agenda, with no file, is the one the Org files use too.
+vim.fn.mkdir(vim.fs.joinpath(directory, '.git'), 'p')
+vim.lsp.config('*', { root_markers = { '.git' } })
 vim.opt.runtimepath:prepend(root)
 vim.cmd('filetype plugin on')
 vim.cmd('runtime plugin/org-lsp.lua')
@@ -633,6 +637,10 @@ local function is_float()
   return vim.api.nvim_win_get_config(0).relative ~= ''
 end
 only_window()
+wait('the Org file attached', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+eq(#vim.lsp.get_clients({ name = 'org_lsp' }), 1, 'one server for the agenda and the Org files')
 org_lsp.setup({ win_split_mode = 'vsplit' })
 press('<F7>')
 wait_for_view('Global list of TODO items of type: ALL')
