@@ -17,6 +17,9 @@ pub struct Settings {
     pub indent: indent::Settings,
     /// `org-tags-column`.
     pub tags_column: i64,
+    /// `org-auto-align-tags`: off, a split headline keeps its tags where
+    /// they were (`org--align-tags-here`).
+    pub auto_align: bool,
 }
 
 /// The document after the key, and where the cursor is in it.
@@ -206,8 +209,14 @@ fn split_headline(text: &str, at: usize, keywords: &TodoKeywords, settings: &Set
     let mut headline = line.to_string();
     if let Some(string) = &string {
         headline.replace_range(cursor..cursor + string.len(), "");
-        if tags.is_some() {
+        if let Some((_, tags_start)) = tags {
             if let Some((blanks, tags, padding)) = tags_padding(&headline, settings.tags_column) {
+                let padding = if settings.auto_align {
+                    padding
+                } else {
+                    let column = crate::text::width(&line[..tags_start]);
+                    " ".repeat(column.saturating_sub(crate::text::width(&headline[..blanks])).max(1))
+                };
                 headline = format!("{}{}{}", &headline[..blanks], padding, &headline[tags..]);
             }
         }

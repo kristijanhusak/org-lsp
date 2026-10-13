@@ -1613,6 +1613,11 @@ pub fn run(connection: Connection) -> Result<()> {
         let _ = std::fs::remove_dir_all(directory);
     }
     if let Some(directory) = server.view_directory.made().filter(|_| !server.client.zed_agenda()) {
+        // The date prompt's file, read-only, goes first.
+        if let Some(file) = &server.prompt_file {
+            let _ = set_writable(file);
+            let _ = std::fs::remove_file(file);
+        }
         let _ = std::fs::remove_dir(directory);
     }
     if exited && !shut_down {
@@ -2310,6 +2315,9 @@ fn replace_whole(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     if std::fs::metadata(path).is_ok_and(|metadata| std::os::unix::fs::MetadataExt::nlink(&metadata) > 1) {
         use std::io::Write;
         write_new(&temporary)?;
+        if let Some(permissions) = permissions.clone() {
+            std::fs::set_permissions(&temporary, permissions)?;
+        }
         let mut file = std::fs::OpenOptions::new().write(true).truncate(true).open(path)?;
         file.write_all(bytes)?;
         file.sync_all()?;
@@ -9560,8 +9568,11 @@ impl Server {
         let encoding = self.client.encoding;
         let uri = &context.text_document.uri;
         let text = self.document(uri).ok_or("This file is not open")?.text.clone();
-        let settings =
-            org_core::newline::Settings { indent: self.indent_in(&text), tags_column: self.refile.2.tags_column };
+        let settings = org_core::newline::Settings {
+            indent: self.indent_in(&text),
+            tags_column: self.refile.2.tags_column,
+            auto_align: self.edit_settings.tags.auto_align,
+        };
         let document = self.document(uri).ok_or("This file is not open")?;
         let offset = document.index.offset(&document.text, context.position, encoding);
         // `return_uses_meta_return`, and `org.return.item` always: on the first

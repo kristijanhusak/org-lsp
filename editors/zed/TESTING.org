@@ -37,7 +37,6 @@ its sections says what it should look like.
 *Partly:* Zed folds with its own folding: Org's cycling and sparse trees need folds an extension can set, which Zed does not offer.
 
 - [ ] On a headline, cycling goes folded → children → subtree
-- [ ] Cycling the whole file goes overview → contents → everything
 - [ ] Narrowing to the subtree opens it in a file of its own; saving that file writes it back into the Org file and saves it: the code action /Narrow to the subtree: it in a file of its own/
 - [ ] Widening in the narrowed file writes it back and closes it (~C-c '~ there does the same): the code action /Widen: the narrowed file written back and closed/
 - [ ] Zed's own folds open and close on headlines, drawers and blocks

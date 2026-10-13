@@ -104,6 +104,15 @@ fn replace_unescaped(
     regexp: &Regex,
     mut replacement: impl FnMut(&regex::Captures) -> Result<Option<String>, Refusal>,
 ) -> Result<String, Refusal> {
+    replace_unescaped_after(text, regexp, |captures, _| replacement(captures))
+}
+
+/// [`replace_unescaped`], `replacement` also given the text made so far.
+fn replace_unescaped_after(
+    text: &str,
+    regexp: &Regex,
+    mut replacement: impl FnMut(&regex::Captures, &str) -> Result<Option<String>, Refusal>,
+) -> Result<String, Refusal> {
     let mut out = String::with_capacity(text.len());
     let mut last = 0;
     for captures in regexp.captures_iter(text) {
@@ -113,7 +122,7 @@ fn replace_unescaped(
         if is_escaped {
             out.push_str(found.as_str());
         } else {
-            match replacement(&captures)? {
+            match replacement(&captures, &out)? {
                 Some(value) => out.push_str(&value),
                 None => out.push_str(found.as_str()),
             }
@@ -460,10 +469,9 @@ pub fn fill_counting(
     };
     let (file, full) = context.file.clone().unwrap_or_default();
     // The non-interactive escapes.
-    let text = replace_unescaped(template, &NON_INTERACTIVE, |captures| {
+    let text = replace_unescaped_after(template, &NON_INTERACTIVE, |captures, made| {
         let value = &captures[1];
         let start = captures.get(0).expect("whole match").start();
-        let line_start = template[..start].rfind('\n').map_or(0, |at| at + 1);
         let before = &template[..start];
         let inside = before.matches(SEXP_START).count() > before.matches(SEXP_END).count();
         let value = match value.as_bytes()[0] {
@@ -480,8 +488,9 @@ pub fn fill_counting(
             },
             b'i' if inside => context.initial.clone(),
             b'i' => {
-                // Lines after the first repeat what stands before `%i`.
-                let lead = &template[line_start..start];
+                // Lines after the first repeat what stands before `%i` on
+                // its line as it is filled so far.
+                let lead = &made[made.rfind('\n').map_or(0, |at| at + 1)..];
                 context.initial.replace('\n', &format!("\n{lead}"))
             }
             b'a' => annotation.to_string(),
@@ -1761,6 +1770,37 @@ mod tests {
         let settings = ReadDateSettings::default();
         let filled = fill("%:type %:link %:annotation %:initial [%:description] [%:Type]", &context, &[], &settings);
         assert_eq!(filled.unwrap(), Filled::Text("id id:1 [[id:1][Head]] start [] []\n".into()));
+    }
+
+    #[test]
+    fn repeats_the_filled_lead_of_initial_text() {
+        let context = Context {
+            now: now(),
+            file: None,
+            initial: "first line\nsecond line\nthird".into(),
+            annotation: String::new(),
+            link_props: Vec::new(),
+            user_name: String::new(),
+            clock_heading: String::new(),
+            clock_link: String::new(),
+            tags_column: -77,
+            clipboard: String::new(),
+        };
+        let settings = ReadDateSettings::default();
+        // As `org-capture-fill-template` gives them, the escapes before
+        // `%i` on its line already expanded.
+        assert_eq!(
+            fill("- %t %i", &context, &[], &settings).unwrap(),
+            Filled::Text(
+                "- <2026-05-18 Mon> first line\n- <2026-05-18 Mon> second line\n- <2026-05-18 Mon> third\n".into()
+            )
+        );
+        assert_eq!(
+            fill("- %i %i", &context, &[], &settings).unwrap(),
+            Filled::Text(
+                "- first line\n- second line\n- third first line\n- third second line\n- third third\n".into()
+            )
+        );
     }
 
     #[test]

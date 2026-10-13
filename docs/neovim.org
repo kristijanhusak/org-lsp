@@ -41,7 +41,8 @@ from, and the agenda files.
 
 Set ~vim.g.org_lsp~ before the plugin loads (lazy.nvim's ~init~, as above),
 or call ~setup()~ at any time. The server's options go in ~settings~, the
-plugin's own beside it:
+plugin's own beside it. The server reads its options when it starts: once it
+runs, settings changed by ~setup()~ take effect after ~:lsp restart~.
 
 #+begin_src lua
 require('org-lsp').setup({
@@ -98,8 +99,8 @@ calendar, or typed as at Org's prompt (~fri 10:00~, ~+2d~, ~2/15~, ~++1w~).
 
 | Feature | Parity | Neovim | What does not work, and why |
 |---+---+---+---|
-| [[file:parity.org::#highlighting][Highlighting]] | 100% | ✅ |  |
-| [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 100% | ✅ |  |
+| [[file:parity.org::#highlighting][Highlighting]] | 93% | ✅ |  |
+| [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 89% | ❓ | Cycling the whole file goes between overview and everything: it has no contents state, which needs folds of a headline's own text that Neovim's fold levels do not make. |
 | [[file:parity.org::#headings-and-structure][Headings and structure]] | 92% | ✅ |  |
 | [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 100% | ✅ |  |
 | [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ✅ |  |
@@ -113,7 +114,7 @@ calendar, or typed as at Org's prompt (~fri 10:00~, ~+2d~, ~2/15~, ~++1w~).
 | [[file:parity.org::#notes-org-roam][Notes (org-roam)]] | 67% | ✅ |  |
 | [[file:parity.org::#a-journal-org-journal][A journal (org-journal)]] | 77% | ✅ |  |
 | [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ |  |
-| [[file:parity.org::#links][Links]] | 92% | ✅ |  |
+| [[file:parity.org::#links][Links]] | 86% | ✅ |  |
 | [[file:parity.org::#footnotes][Footnotes]] | 100% | ✅ |  |
 | [[file:parity.org::#tables][Tables]] | 94% | ✅ |  |
 | [[file:parity.org::#table-formulas][Table formulas]] | 100% | ✅ |  |
@@ -128,7 +129,7 @@ calendar, or typed as at Org's prompt (~fri 10:00~, ~+2d~, ~2/15~, ~++1w~).
 | [[file:parity.org::#attachments][Attachments]] | 100% | ✅ |  |
 | [[file:parity.org::#encryption][Encryption]] | 100% | ✅ |  |
 | [[file:parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | ❓ | From Neovim 0.13 (~vim.ui.img~), in a terminal with the Kitty graphics protocol: an image shows below its line, not over the link; images other than PNG need ImageMagick. |
-| *All of Org* | *94%* |  |  |
+| *All of Org* | *93%* |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what and why),
 ❌ none does, — nothing to support yet. Parity is the share of what
