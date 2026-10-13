@@ -8,34 +8,34 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in [[file:development.org::#how-the-work-is-checked][development.org]]).
 
-*All of Org: 99%*
+*All of Org: 94%*
 
 | Feature | Parity | Done |
 |---+---+---|
 | [[#highlighting][Highlighting]] | 100% | 13 of 13 |
 | [[#folding-and-visibility][Folding and visibility]] | 100% | 8 of 8 |
-| [[#headings-and-structure][Headings and structure]] | 100% | 12 of 12 |
+| [[#headings-and-structure][Headings and structure]] | 92% | 12 of 13 |
 | [[#lists-and-checkboxes][Lists and checkboxes]] | 100% | 10 of 10 |
 | [[#todo-keywords][TODO keywords]] | 100% | 10 of 10 |
-| [[#priorities][Priorities]] | 100% | 3 of 3 |
-| [[#tags][Tags]] | 100% | 6 of 6 |
-| [[#properties-and-column-view][Properties and column view]] | 100% | 6 of 6 |
+| [[#priorities][Priorities]] | 75% | 3 of 4 |
+| [[#tags][Tags]] | 86% | 6 of 7 |
+| [[#properties-and-column-view][Properties and column view]] | 75% | 6 of 8 |
 | [[#dates-and-times][Dates and times]] | 100% | 8 of 8 |
 | [[#agenda][Agenda]] | 100% | 23 of 23 |
 | [[#clocking][Clocking]] | 100% | 8 of 8 |
 | [[#capture][Capture]] | 100% | 11 of 11 |
-| [[#notes-org-roam][Notes (org-roam)]] | 100% | 8 of 8 |
-| [[#a-journal-org-journal][A journal (org-journal)]] | 83% | 10 of 12 |
+| [[#notes-org-roam][Notes (org-roam)]] | 67% | 8 of 12 |
+| [[#a-journal-org-journal][A journal (org-journal)]] | 77% | 10 of 13 |
 | [[#refile-and-archive][Refile and archive]] | 100% | 11 of 11 |
-| [[#links][Links]] | 100% | 11 of 11 |
+| [[#links][Links]] | 92% | 12 of 13 |
 | [[#footnotes][Footnotes]] | 100% | 4 of 4 |
 | [[#tables][Tables]] | 94% | 16 of 17 |
 | [[#table-formulas][Table formulas]] | 100% | 12 of 12 |
 | [[#code-blocks-babel][Code blocks (Babel)]] | 100% | 11 of 11 |
 | [[#export-and-publishing][Export and publishing]] | 100% | 9 of 9 |
-| [[#citations][Citations]] | 100% | 5 of 5 |
+| [[#citations][Citations]] | 83% | 5 of 6 |
 | [[#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% | 61 of 61 |
-| [[#indentation-and-formatting][Indentation and formatting]] | 83% | 5 of 6 |
+| [[#indentation-and-formatting][Indentation and formatting]] | 71% | 5 of 7 |
 | [[#notes-and-logging][Notes and logging]] | 100% | 4 of 4 |
 | [[#completion-and-editing-helpers][Completion and editing helpers]] | 100% | 4 of 4 |
 | [[#timers][Timers]] | 100% | 5 of 5 |
@@ -97,7 +97,7 @@ Where editors fall short:
 :CUSTOM_ID: headings-and-structure
 :END:
 
-100% (12 of 12)
+92% (12 of 13)
 
 - ✅ New headings (~M-RET~, ~M-S-RET~, ~C-RET~, ~C-S-RET~)
 - ✅ Promoting and demoting a heading or a subtree
@@ -111,6 +111,7 @@ Where editors fall short:
 - ✅ Toggling ~COMMENT~ (~C-c ;~, through Emacs)
 - ✅ Cloning a subtree with its dates shifted (~C-c C-x c~, through Emacs)
 - ✅ Commands on a region, a selection in the editor: the headlines in it promoted, demoted or moved, lines turned into headings or items, checkboxes toggled, the region wrapped in a block, a drawer or emphasis (through Emacs)
+- ❌ Sparse trees that tell case apart (~org-occur-case-fold-search~), or by a kind of date asked for (~org-sparse-tree-default-date-type~)
 
 Where editors fall short:
 
@@ -169,18 +170,19 @@ Where editors fall short:
 :CUSTOM_ID: priorities
 :END:
 
-100% (3 of 3)
+75% (3 of 4)
 
 - ✅ Raising, lowering, setting and removing
 - ✅ ~#+PRIORITIES:~ and number priorities
 - ✅ From the agenda
+- ❌ Turning the priority commands off (~org-priority-enable-commands~)
 
 * Tags
 :PROPERTIES:
 :CUSTOM_ID: tags
 :END:
 
-100% (6 of 6)
+86% (6 of 7)
 
 - ✅ Setting tags: fast selection by key, exclusive groups, typed
 - ✅ Aligning tags (~org_tags_column~)
@@ -188,6 +190,7 @@ Where editors fall short:
 - ✅ Completion
 - ✅ Group tags in searches
 - ✅ A sparse tree by tags
+- ❌ The TODO keywords in the tag selection (~org-fast-tag-selection-include-todo~), and matches without the entries below a match (~org-tags-match-list-sublevels~)
 
 Where editors fall short:
 
@@ -199,7 +202,7 @@ Where editors fall short:
 :CUSTOM_ID: properties-and-column-view
 :END:
 
-100% (6 of 6)
+75% (6 of 8)
 
 - ✅ Setting and deleting properties, also from the agenda
 - ✅ Allowed values (~NAME_ALL~) cycled with ~S-<left>~ and ~S-<right>~
@@ -207,6 +210,8 @@ Where editors fall short:
 - ✅ Inheritance, special properties and property searches
 - ✅ Column view (~C-c C-x C-c~, through Emacs): the columns over the headlines, the header, summaries; editing, cycling and the allowed values of a column, moving, narrowing, widening and deleting columns, moving entries
 - ✅ Column view dynamic blocks and summaries (~C-c C-x x~, filled in by Emacs)
+- ❌ Properties written as ~org-property-format~ says, efforts in units of ~org-effort-durations~
+- ❌ IDs made as ~org-id-method~, ~org-id-prefix~ and ~org-id-ts-format~ say (they are always UUIDs)
 
 Where editors fall short:
 
@@ -326,7 +331,7 @@ Where editors fall short:
 :CUSTOM_ID: notes-org-roam
 :END:
 
-100% (8 of 8)
+67% (8 of 12)
 
 - ✅ The nodes of ~org_roam_directory~, files and entries with an ~ID~, as ~org-roam-db-sync~ finds them (~org_roam_file_extensions~, ~org_roam_file_exclude_regexp~), read again as they change
 - ✅ Finding a node by its title or an alias (~org-roam-node-find~), offered as ~org_roam_node_display_template~ shows it, the files changed last first; a random node
@@ -336,6 +341,10 @@ Where editors fall short:
 - ✅ Aliases, tags and references added and removed (~org-roam-alias-add~ …)
 - ✅ The org-roam buffer: backlinks, reflinks and unlinked references (~org_roam_mode_sections~), following the cursor, dedicated buffers
 - ✅ Completing node titles as they are typed (~org-roam-completion-everywhere~)
+- ❌ Daily notes (~org-roam-dailies-capture-today~, ~org-roam-dailies-goto-date~ …)
+- ❌ Extracting a subtree to a node of its own, refiling to a node, promoting and demoting a whole file (~org-roam-extract-subtree~, ~org-roam-refile~, ~org-roam-promote-entire-buffer~)
+- ❌ Finding a node by a reference (~org-roam-ref-find~), and the graph (~org-roam-graph~)
+- ❌ Lisp that chooses the nodes and how they show (~org-roam-node-formatter~, ~org-roam-db-node-include-function~), and which links count (~org-roam-db-extra-links-elements~, ~org-roam-db-extra-links-exclude-keys~)
 
 Where editors fall short:
 
@@ -347,7 +356,7 @@ Where editors fall short:
 :CUSTOM_ID: a-journal-org-journal
 :END:
 
-83% (10 of 12)
+77% (10 of 13)
 
 - ✅ A file a day, week, month or year in ~org_journal_dir~, an entry for each day and one for each time (~org-journal-new-entry~), today's entry only with ~C-u~
 - ✅ An entry for a date asked for, and a TODO entry for a day to come with its timestamp (~org-journal-new-date-entry~, ~org-journal-new-scheduled-entry~)
@@ -361,6 +370,7 @@ Where editors fall short:
 - ✅ The days with an entry marked in the date prompt's calendar (~org-journal-mark-entries~)
 - ❌ The keys org-journal adds to ~M-x calendar~ (~j r~, ~[~, ~]~ …)
 - ❌ Files encrypted whole (~org-journal-encrypt-journal~)
+- ❌ Visiting the file of a day another way, following the calendar, and remembering the dates between commands (~org-journal-find-file-fn~, ~org-journal-follow-mode~, ~org-journal-enable-cache~)
 
 Where editors fall short:
 
@@ -395,7 +405,7 @@ Where editors fall short:
 :CUSTOM_ID: links
 :END:
 
-100% (11 of 11)
+92% (12 of 13)
 
 - ✅ Following links: headlines, targets, custom IDs, files with searches, IDs, URLs, timestamps, tags
 - ✅ Storing and inserting links, with descriptions, editing the link at the cursor
@@ -408,6 +418,8 @@ Where editors fall short:
 - ✅ Completing ~id:~ links to entries, which get an ID (~org-id-complete~; Org completes no ~help:~ links)
 - ✅ Default descriptions from the link type: an ~id:~ link's headline, an ~info:~ link's command
 - ✅ Moving to the next and previous link (~C-c C-x C-n~, ~C-c C-x C-p~)
+- ✅ A search by regular expression (~file:x.org::/regexp/~): a sparse tree of its matches (~org-occur~), in the file the link is in
+- ❌ Making a missing headline a link searches for (~org-link-search-must-match-exact-headline~)
 
 Where editors fall short:
 
@@ -532,13 +544,14 @@ Where editors fall short:
 :CUSTOM_ID: citations
 :END:
 
-100% (5 of 5)
+83% (5 of 6)
 
 - ✅ Bibliographies from ~#+BIBLIOGRAPHY:~ and ~org_cite_global_bibliography~ (BibTeX, CSL-JSON)
 - ✅ Keys completed
 - ✅ A key's entry on hover, following a key
 - ✅ Unknown keys reported
 - ✅ Inserting, editing and deleting citations (~C-c C-x @~)
+- ❌ Another processor to insert citations (~org-cite-insert-processor~)
 
 Where editors fall short:
 
@@ -558,7 +571,7 @@ Where editors fall short:
 :CUSTOM_ID: indentation-and-formatting
 :END:
 
-83% (5 of 6)
+71% (5 of 7)
 
 - ✅ Virtual indentation (~org-indent-mode~, ~#+STARTUP: indent~)
 - ✅ Hidden leading stars (~org-hide-leading-stars~)
@@ -566,6 +579,7 @@ Where editors fall short:
 - ✅ Indenting lines and regions (~org-indent-line~, ~org-indent-region~)
 - ✅ Aligning tables and tags
 - ❌ Lines a long line wraps into indented (~wrap-prefix~)
+- ❌ Other widths of virtual indentation (~org-indent-indentation-per-level~, ~org-description-max-indent~)
 
 Where editors fall short:
 

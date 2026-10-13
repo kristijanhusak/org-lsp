@@ -296,6 +296,9 @@ against Emacs by recorded cases and differential fuzzing. What differs:
 - Unlinked references are found by the server itself, as ripgrep finds
   them for org-roam (its PCRE pattern, word boundaries, any case), so no
   ~rg~ is needed; encrypted files are not searched.
+- ~org-id-locations-file~ is neither read nor written: an ~id:~ link is
+  followed to the files open in the editor, the agenda files and
+  org-roam's files.
 
 * A journal (org-journal)
 :PROPERTIES:
@@ -418,3 +421,8 @@ before all the others goes first in its file). What differs:
 - The keys org-journal adds to ~M-x calendar~ (~j r~, ~j d~, ~[~, ~]~,
   ~j s~ …) are not there: org-lsp has no calendar of its own, only the
   date prompt's, where Emacs has them neither.
+- Dates are written as in the C locale: ~%x~ is ~05/15/26~ and ~%A~
+  ~Friday~ whatever the system's locale is. A journal Emacs kept under
+  another locale (~en_US.UTF-8~ writes ~05/15/2026~) has headings org-lsp
+  does not find; set ~org_journal_date_format~ to a format without ~%x~,
+  such as ~"%A, %m/%d/%Y"~, to match them.

@@ -198,6 +198,9 @@ enum EmacsJob {
     /// The images of the LaTeX fragments of `uri` at its `version`, for
     /// the preview `preview` (`org-lsp/images`) without its items.
     LatexPreview { uri: Uri, version: i32, text: String, preview: Value },
+    /// The `%(…)` of the prefix formats of the agenda's lines; `all` when
+    /// they are all those of the view, else those it lacked.
+    Prefixes { forms: Vec<agenda::Eval>, all: bool },
 }
 
 /// The files sent to Emacs for a command in the agenda: each its URI, its
@@ -205,11 +208,38 @@ enum EmacsJob {
 type SentFiles = Vec<(Uri, Option<i32>, String)>;
 
 /// The `%(…)` of `org-agenda-prefix-format` on the lines of the view being
-/// built: what Emacs made of them, and those it has yet to evaluate.
+/// built: what Emacs made of them, those it was asked and that were
+/// used, and those it has yet to evaluate.
 #[derive(Default)]
 struct PrefixForms {
     answers: HashMap<agenda::Eval, String>,
+    used: HashSet<agenda::Eval>,
     missed: HashSet<agenda::Eval>,
+    /// The view is being built again with what Emacs just answered: only
+    /// what it was not asked is asked now.
+    fresh: bool,
+    /// The job whose answer the view waits for; an earlier one's is late.
+    pending: Option<u64>,
+}
+
+/// What Emacs made of `forms`, and the error of the first that failed. A
+/// form that fails stops Org's agenda with its error; here the agenda
+/// shows, the form empty, and the error is said.
+fn prefix_answers(
+    forms: &[agenda::Eval],
+    result: std::result::Result<Value, String>,
+) -> std::result::Result<(HashMap<agenda::Eval, String>, Option<String>), String> {
+    let result = result?;
+    let shown = result.as_array().ok_or("Emacs gave no list")?;
+    let mut answers = HashMap::new();
+    let mut failed = None;
+    for (form, shown) in forms.iter().zip(shown) {
+        if let Some(error) = shown.get("error").and_then(Value::as_str) {
+            failed.get_or_insert_with(|| error.to_string());
+        }
+        answers.insert(form.clone(), shown.as_str().unwrap_or_default().to_string());
+    }
+    Ok((answers, failed))
 }
 
 /// Column view (`org-columns`) on a document: where it was turned on (a
@@ -1264,9 +1294,12 @@ pub fn run(connection: Connection) -> Result<()> {
     // which a client that fetches them never needs.
     let view_directory = match agenda_directory(&client, &folders) {
         Some(directory) => Private::at("view", directory),
-        None => Private::new("view"),
+        None if client.virtual_documents => Private::new("view"),
+        // The date prompt's file is named now and written when it opens.
+        None => Private::named("view"),
     };
-    let prompt_file = (!client.virtual_documents).then(|| view_directory.path().join(prompt::FILE_NAME));
+    let prompt_file =
+        (!client.virtual_documents).then(|| view_directory.name().unwrap_or(Path::new("")).join(prompt::FILE_NAME));
     let prompt_uri =
         prompt_file.as_deref().and_then(uri::from_path).unwrap_or_else(|| prompt::URI.parse().expect("valid URI"));
 
@@ -1313,8 +1346,9 @@ pub fn run(connection: Connection) -> Result<()> {
     let noted = prefix_forms.clone();
     agenda.prefix_evaluator = agenda::Evaluator(Some(std::sync::Arc::new(move |eval| {
         let mut forms = noted.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
-        if let Some(answer) = forms.answers.get(eval) {
-            return answer.clone();
+        if let Some(answer) = forms.answers.get(eval).cloned() {
+            forms.used.insert(eval.clone());
+            return answer;
         }
         forms.missed.insert(eval.clone());
         String::new()
@@ -1879,32 +1913,72 @@ fn agenda_directory(client: &Client, folders: &[PathBuf]) -> Option<PathBuf> {
     Some(client.command_script.as_ref()?.parent()?.join("agenda").join(format!("{hash:016x}")))
 }
 
+/// The home directory of the user `name` (`getpwnam`): the user running
+/// the server's own, or on Unix as `/etc/passwd` has it.
+fn user_home(name: &str) -> Option<PathBuf> {
+    let me = std::env::var("USER").or_else(|_| std::env::var("USERNAME")).ok();
+    if me.as_deref() == Some(name) {
+        return std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
+    }
+    if cfg!(unix) {
+        let passwd = std::fs::read_to_string("/etc/passwd").ok()?;
+        return passwd.lines().find_map(|line| {
+            let fields: Vec<&str> = line.split(':').collect();
+            (fields.len() >= 6 && fields[0] == name).then(|| PathBuf::from(fields[5]))
+        });
+    }
+    None
+}
+
 /// A private directory of the server ([`server_directory`]), made the first
 /// time it is needed: a server that never captures leaves no capture
 /// directory behind.
 pub(crate) struct Private {
     kind: &'static str,
     path: std::cell::OnceCell<PathBuf>,
+    /// Whether the directory was made (or is made by those who write in it).
+    made: std::cell::Cell<bool>,
 }
 
 impl Private {
     pub(crate) fn new(kind: &'static str) -> Private {
-        Private { kind, path: std::cell::OnceCell::new() }
+        Private { kind, path: std::cell::OnceCell::new(), made: std::cell::Cell::new(false) }
     }
 
     /// A directory chosen ahead, made by those who write in it.
     pub(crate) fn at(kind: &'static str, path: PathBuf) -> Private {
-        Private { kind, path: std::cell::OnceCell::from(path) }
+        Private { kind, path: std::cell::OnceCell::from(path), made: std::cell::Cell::new(true) }
+    }
+
+    /// A directory named now, for a client to be told of its files, and
+    /// made, the user's alone, the first time it is needed. Its name is
+    /// one no one can guess, and on no disk until then.
+    pub(crate) fn named(kind: &'static str) -> Private {
+        let path = temp_dir().join(format!("org-lsp-{kind}-{}-{}", std::process::id(), &port::token()[..16]));
+        Private { kind, path: std::cell::OnceCell::from(path), made: std::cell::Cell::new(false) }
     }
 
     /// The directory, made now if it is not yet.
     pub(crate) fn path(&self) -> &Path {
-        self.path.get_or_init(|| server_directory(self.kind))
+        let path = self.path.get_or_init(|| {
+            self.made.set(true);
+            server_directory(self.kind)
+        });
+        if !self.made.replace(true) {
+            // Writing in it fails when it cannot be made.
+            let _ = create_new_private_dir(path);
+        }
+        path
+    }
+
+    /// Its name, without making it.
+    pub(crate) fn name(&self) -> Option<&Path> {
+        self.path.get().map(PathBuf::as_path)
     }
 
     /// The directory, if it was made.
     pub(crate) fn made(&self) -> Option<&Path> {
-        self.path.get().map(PathBuf::as_path)
+        self.path.get().filter(|_| self.made.get()).map(PathBuf::as_path)
     }
 }
 
@@ -2216,29 +2290,32 @@ pub(crate) fn write_whole(path: &Path, text: &str) -> std::result::Result<(), St
 fn replace_whole(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     let target = written_path(path);
     let path = target.as_path();
-    // A file with other names (a hard link) is written in place, as Emacs
-    // writes it: a new file renamed over it would leave the others behind.
-    #[cfg(unix)]
-    if std::fs::metadata(path).is_ok_and(|metadata| std::os::unix::fs::MetadataExt::nlink(&metadata) > 1) {
-        use std::io::Write;
-        let mut file = std::fs::OpenOptions::new().write(true).truncate(true).open(path)?;
-        file.write_all(bytes)?;
-        return file.sync_all();
-    }
     let permissions = std::fs::metadata(path).ok().map(|metadata| metadata.permissions());
     let directory = path.parent().filter(|parent| !parent.as_os_str().is_empty()).unwrap_or(Path::new("."));
     std::fs::create_dir_all(directory)?;
     let name = path.file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default();
     let temporary = directory.join(format!(".{name}.org-lsp-{}", port::token()));
-    let written = std::fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(&temporary)
-        .and_then(|mut file| {
+    let write_new = |file: &Path| {
+        std::fs::OpenOptions::new().write(true).create_new(true).open(file).and_then(|mut file| {
             use std::io::Write;
             file.write_all(bytes)?;
             file.sync_all()
         })
+    };
+    // A file with other names (a hard link) is written in place, as Emacs
+    // writes it: a new file renamed over it would leave the others behind.
+    // The text goes to the file beside it first, which is kept if writing
+    // in place fails: the file's text is then there.
+    #[cfg(unix)]
+    if std::fs::metadata(path).is_ok_and(|metadata| std::os::unix::fs::MetadataExt::nlink(&metadata) > 1) {
+        use std::io::Write;
+        write_new(&temporary)?;
+        let mut file = std::fs::OpenOptions::new().write(true).truncate(true).open(path)?;
+        file.write_all(bytes)?;
+        file.sync_all()?;
+        return std::fs::remove_file(&temporary);
+    }
+    let written = write_new(&temporary)
         .and_then(|()| permissions.map_or(Ok(()), |permissions| std::fs::set_permissions(&temporary, permissions)))
         .and_then(|()| std::fs::rename(&temporary, path));
     if written.is_err() {
@@ -4194,6 +4271,23 @@ impl Server {
             let full = found.as_str().ok_or("No attachment directory for this entry")?;
             opened = open::file_link(&format!("{full}{}", search.unwrap_or("")));
         }
+        // `/regexp/`: a sparse tree of its matches, which the editor shows
+        // in the file the link is in.
+        let occur = match &opened {
+            Open::File { path, search: Some(search), system: false } => open::occur_regexp(search)
+                .filter(|_| {
+                    let here = uri::to_path(&uri).map(|path| self.canonical(&path));
+                    self.link_path(&uri, path).is_some_and(|path| Some(self.canonical(&path)) == here)
+                })
+                .map(str::to_string),
+            _ => None,
+        };
+        if let Some(regexp) = occur {
+            if self.is_view(&context.text_document.uri) {
+                return Err("Searches by regular expression are followed in their file, not in the agenda".into());
+            }
+            return self.occur(&text, &regexp);
+        }
         match &opened {
             Open::External(url) => {
                 let target = uri::from_url(url).ok_or_else(|| format!("Cannot open {url}"))?;
@@ -4278,10 +4372,14 @@ impl Server {
     fn link_path(&self, from: &Uri, path: &str) -> Option<PathBuf> {
         let home = || std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
         let path = match path.strip_prefix('~') {
-            // `~/`, the user's home; `~name/`, the home of `name`, beside it.
+            // `~/`, the user's home; `~name/`, the home of `name`, and for
+            // no such user, as `expand-file-name` takes it, a file named so.
             Some(rest) => match rest.split_once('/').unwrap_or((rest, "")) {
                 ("", rest) => home()?.join(rest),
-                (name, rest) => home()?.parent()?.join(name).join(rest),
+                (name, rest) => match user_home(name) {
+                    Some(home) => home.join(rest),
+                    None => PathBuf::from(path),
+                },
             },
             None => PathBuf::from(path),
         };
@@ -4375,13 +4473,17 @@ impl Server {
     }
 
     /// The files whose IDs Org knows: those open in the editor, then the
-    /// agenda files.
+    /// agenda files, then org-roam's files, which `org-roam-db-sync` puts
+    /// in `org-id-locations`.
     fn id_paths(&mut self) -> Vec<PathBuf> {
         let mut paths: Vec<PathBuf> =
             self.documents.keys().filter_map(|key| uri::to_path(&key.parse().ok()?)).collect();
         paths.sort();
-        for (file, _) in self.agenda_files() {
-            if let Some(path) = uri::to_path(&file).filter(|path| !paths.contains(path)) {
+        // A file is the same reached through a link.
+        let mut seen: HashSet<PathBuf> = paths.iter().map(|path| self.canonical(path)).collect();
+        let agenda = self.agenda_files().into_iter().filter_map(|(file, _)| uri::to_path(&file));
+        for path in agenda.chain(self.roam_paths()) {
+            if seen.insert(self.canonical(&path)) {
                 paths.push(path);
             }
         }
@@ -4411,10 +4513,14 @@ impl Server {
     fn ids_on_disk(&mut self) -> HashSet<String> {
         let mut ids = HashSet::new();
         let mut on_disk = HashMap::new();
-        let open: HashSet<PathBuf> =
-            self.documents.keys().filter_map(|key| uri::to_path(&key.parse::<Uri>().ok()?)).collect();
+        let open: HashSet<PathBuf> = self
+            .documents
+            .keys()
+            .filter_map(|key| uri::to_path(&key.parse::<Uri>().ok()?))
+            .map(|path| self.canonical(&path))
+            .collect();
         for path in self.id_paths() {
-            if open.contains(&path) {
+            if open.contains(&self.canonical(&path)) {
                 continue;
             }
             let Some(changed) = std::fs::metadata(&path).and_then(|metadata| metadata.modified()).ok() else {
@@ -4703,9 +4809,9 @@ impl Server {
     /// Build the view with the outline of one file replaced, and its text:
     /// what the agenda will show once that file has changed.
     ///
-    /// When the prefix formats have `%(…)`, the view is built twice: the
-    /// first time notes the forms on its lines, which Emacs evaluates all
-    /// at once, and the second shows what they gave.
+    /// When the prefix formats have `%(…)`, the view shows what Emacs last
+    /// made of them, and Emacs is asked for those of this view without
+    /// waiting: once it answers, the view is built again.
     fn render_with(&mut self, query: Query, replaced: Option<(&Uri, Outline, &str)>) -> View {
         let mut files = self.agenda_files();
         // A command that no longer reads shows nothing; opening it said why.
@@ -4733,7 +4839,7 @@ impl Server {
             Some((uri, outline.entries[line.entry?].offset))
         });
         let now = self.now();
-        let (mut view, prefixes) = self.with_prefix_forms(replaced_text.as_ref(), || {
+        let (mut view, wanted) = self.with_prefix_answers(|| {
             views::render(
                 query.clone(),
                 &blocks,
@@ -4747,9 +4853,80 @@ impl Server {
         });
         drop(outlines);
         drop(files);
-        self.say_prefix_failure(prefixes);
+        if let Some((forms, all)) = wanted {
+            self.ask_prefixes(forms, all, replaced_text.as_ref());
+        }
         self.dim_blocked(&mut view);
         view
+    }
+
+    /// `build` with what Emacs last made of the `%(…)` of the prefix
+    /// formats; and the forms to ask it for, with whether they are all
+    /// those of the view: all of them, as Org's agenda evaluates them each
+    /// time it is built, unless the view is built for what Emacs has just
+    /// answered, when only those it lacks.
+    fn with_prefix_answers<T>(&self, build: impl Fn() -> T) -> (T, Option<(Vec<agenda::Eval>, bool)>) {
+        {
+            let mut forms = self.prefix_forms();
+            forms.used.clear();
+            forms.missed.clear();
+        }
+        let built = build();
+        let mut forms = self.prefix_forms();
+        let missed: Vec<agenda::Eval> = forms.missed.drain().collect();
+        let used: Vec<agenda::Eval> = forms.used.drain().collect();
+        let wanted = if std::mem::take(&mut forms.fresh) {
+            (!missed.is_empty()).then_some((missed, false))
+        } else {
+            let all: Vec<agenda::Eval> = missed.into_iter().chain(used).collect();
+            (!all.is_empty()).then_some((all, true))
+        };
+        (built, wanted)
+    }
+
+    /// Emacs asked for the `%(…)` of the prefix formats, without waiting
+    /// (see [`Server::prefixes_evaluated`]).
+    fn ask_prefixes(&mut self, forms: Vec<agenda::Eval>, all: bool, replaced: Option<&(Uri, String)>) {
+        let params = self.prefix_params(&forms, replaced);
+        self.next_export += 1;
+        let tag = self.next_export;
+        self.prefix_forms().pending = Some(tag);
+        self.emacs_jobs.insert(tag, EmacsJob::Prefixes { forms, all });
+        self.emacs.start(tag, "agenda-prefix", params);
+    }
+
+    /// Emacs's answer for the `%(…)` of the view's lines: the view built
+    /// again with it, and what failed said once.
+    fn prefixes_evaluated(
+        &mut self,
+        tag: u64,
+        forms: &[agenda::Eval],
+        all: bool,
+        result: std::result::Result<Value, String>,
+    ) {
+        if self.prefix_forms().pending != Some(tag) {
+            return;
+        }
+        self.prefix_forms().pending = None;
+        let failed = match prefix_answers(forms, result) {
+            Ok((answers, error)) => {
+                {
+                    let mut known = self.prefix_forms();
+                    if all {
+                        known.answers = answers;
+                    } else {
+                        known.answers.extend(answers);
+                    }
+                    known.fresh = true;
+                }
+                self.refresh_view();
+                self.prefix_forms().fresh = false;
+                error.map(|error| (MessageType::ERROR, error))
+            }
+            // Without Emacs, the forms stay empty.
+            Err(error) => Some((MessageType::WARNING, format!("org-agenda-prefix-format: {error}"))),
+        };
+        self.say_prefix_failure(Some(failed));
     }
 
     /// `build` the view, and when its lines have `%(…)` of the prefix
@@ -4762,26 +4939,31 @@ impl Server {
         replaced: Option<&(Uri, String)>,
         build: impl Fn() -> T,
     ) -> (T, Option<Option<(MessageType, String)>>) {
-        {
+        // What the agenda's view was answered stays for it.
+        let kept = {
             let mut forms = self.prefix_forms();
-            forms.answers.clear();
             forms.missed.clear();
-        }
+            std::mem::take(&mut forms.answers)
+        };
         let built = build();
         let missed: Vec<agenda::Eval> = self.prefix_forms().missed.drain().collect();
-        if missed.is_empty() {
-            return (built, None);
-        }
-        match self.evaluate_prefixes(&missed, replaced) {
-            Ok((answers, error)) => {
-                self.prefix_forms().answers = answers;
-                let built = build();
-                self.prefix_forms().answers.clear();
-                (built, Some(error.map(|error| (MessageType::ERROR, error))))
+        let outcome = if missed.is_empty() {
+            (built, None)
+        } else {
+            match self.evaluate_prefixes(&missed, replaced) {
+                Ok((answers, error)) => {
+                    self.prefix_forms().answers = answers;
+                    let built = build();
+                    (built, Some(error.map(|error| (MessageType::ERROR, error))))
+                }
+                // Without Emacs, the forms stay empty.
+                Err(error) => (built, Some(Some((MessageType::WARNING, format!("org-agenda-prefix-format: {error}"))))),
             }
-            // Without Emacs, the forms stay empty.
-            Err(error) => (built, Some(Some((MessageType::WARNING, format!("org-agenda-prefix-format: {error}"))))),
-        }
+        };
+        let mut forms = self.prefix_forms();
+        forms.answers = kept;
+        forms.used.clear();
+        outcome
     }
 
     /// What a `%(…)` signalled is said, as Org's agenda would, but once
@@ -4808,6 +4990,13 @@ impl Server {
         forms: &[agenda::Eval],
         replaced: Option<&(Uri, String)>,
     ) -> std::result::Result<(HashMap<agenda::Eval, String>, Option<String>), String> {
+        let params = self.prefix_params(forms, replaced);
+        prefix_answers(forms, self.emacs.call("agenda-prefix", params, std::time::Duration::from_secs(10)))
+    }
+
+    /// What Emacs is sent to evaluate `forms`: each with its variables and
+    /// its entry's place, and the text of their files.
+    fn prefix_params(&self, forms: &[agenda::Eval], replaced: Option<&(Uri, String)>) -> Value {
         let mut files: Vec<(String, String)> = Vec::new();
         let mut sent = Vec::with_capacity(forms.len());
         for form in forms {
@@ -4841,20 +5030,7 @@ impl Server {
             sent.push(item);
         }
         let files: Vec<Value> = files.into_iter().map(|(file, text)| json!({ "file": file, "text": text })).collect();
-        let params = json!({ "files": files, "forms": sent });
-        let result = self.emacs.call("agenda-prefix", params, std::time::Duration::from_secs(10))?;
-        let shown = result.as_array().ok_or("Emacs gave no list")?;
-        // A form that fails stops Org's agenda with its error; here the
-        // agenda shows, the form empty, and the error is said.
-        let mut answers = HashMap::new();
-        let mut failed = None;
-        for (form, shown) in forms.iter().zip(shown) {
-            if let Some(error) = shown.get("error").and_then(Value::as_str) {
-                failed.get_or_insert_with(|| error.to_string());
-            }
-            answers.insert(form.clone(), shown.as_str().unwrap_or_default().to_string());
-        }
-        Ok((answers, failed))
+        json!({ "files": files, "forms": sent })
     }
 
     /// `org-agenda-dim-blocked-tasks`: the lines of tasks their
@@ -6109,6 +6285,9 @@ impl Server {
             return;
         };
         let Some(text) = self.date_prompt.as_ref().map(|open| open.text.clone()) else { return };
+        // Made now, the first time: a server never asked for a date makes
+        // no directory.
+        let _ = self.view_directory.path();
         let written = file.parent().map_or(Ok(()), std::fs::create_dir_all).and_then(|()| write_read_only(file, &text));
         match written {
             Err(error) => self.show_message(MessageType::ERROR, format!("Cannot write the date prompt: {error}")),
@@ -9096,6 +9275,20 @@ impl Server {
                 })?;
                 let value = question.answer(&answer);
                 self.last_property = Some(name.clone());
+                // `org-entry-put` of a date: `org-schedule` or `org-deadline`
+                // with the value, or with `C-u` when it is empty.
+                if let Some((set, remove)) = match name.as_str() {
+                    "SCHEDULED" => Some((commands::SCHEDULE, commands::SCHEDULE_REMOVE)),
+                    "DEADLINE" => Some((commands::DEADLINE, commands::DEADLINE_REMOVE)),
+                    _ => None,
+                } {
+                    if value.trim().is_empty() {
+                        return self.remove_date(remove, context);
+                    }
+                    let target = self.date_target(set, context)?;
+                    self.apply_date(set, &target, value.trim())?;
+                    return Ok(Value::Null);
+                }
                 edit(self, EditCommand::Property { name, value })
             }
             "delete" => self.property_step_delete(context, &file, offset, &settings, &category),
@@ -9697,6 +9890,7 @@ impl Server {
                 self.show_message(MessageType::INFO, format!("{prompt} (y or n) n"));
             }
             crate::emacs::Event::Done { tag, result } => match (self.emacs_jobs.remove(&tag), result) {
+                (Some(EmacsJob::Prefixes { forms, all }), result) => self.prefixes_evaluated(tag, &forms, all, result),
                 (Some(EmacsJob::Export(label)), Err(error)) => {
                     self.show_message(MessageType::ERROR, format!("{label}: {error}"));
                 }
@@ -11596,7 +11790,6 @@ impl Server {
     /// until the text changes.
     fn sparse_tree(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
         use org_core::sparse;
-        let encoding = self.client.encoding;
         let uri = context.text_document.uri.clone();
         let document = self.document(&uri).ok_or("This file is not open")?;
         let text = document.text.clone();
@@ -11733,18 +11926,33 @@ impl Server {
             }
             (other, _) => return Err(Refusal::Failed(format!("No such sparse tree command \"{other}\""))),
         };
-        let document = self.document(&uri).ok_or("This file is not open")?;
-        let index = &document.index;
-        let lines: Vec<u32> = found.lines.iter().map(|at| index.position(&text, *at, encoding).line).collect();
+        self.message = message;
+        Ok(json!({ "sparse": self.sparse_shown(&text, &found) }))
+    }
+
+    /// What the editor is told of a sparse tree of `text`: the lines to
+    /// show and the matches to highlight.
+    fn sparse_shown(&self, text: &str, found: &org_core::sparse::Sparse) -> Value {
+        let (index, encoding) = (LineIndex::new(text), self.client.encoding);
+        let lines: Vec<u32> = found.lines.iter().map(|at| index.position(text, *at, encoding).line).collect();
         let highlights: Vec<Range> = found
             .highlights
             .iter()
             .map(|(start, end)| {
-                Range::new(index.position(&text, *start, encoding), index.position(&text, *end, encoding))
+                Range::new(index.position(text, *start, encoding), index.position(text, *end, encoding))
             })
             .collect();
-        self.message = message;
-        Ok(json!({ "sparse": { "lines": lines, "highlights": highlights } }))
+        json!({ "lines": lines, "highlights": highlights })
+    }
+
+    /// `org-occur` for a link's search `/regexp/` in its own file: a
+    /// sparse tree of the matches.
+    fn occur(&mut self, text: &str, regexp: &str) -> std::result::Result<Value, Refusal> {
+        let regex = org_core::agenda::matcher::emacs_buffer_regex(regexp)
+            .ok_or_else(|| Refusal::Failed(format!("Invalid regexp: {regexp}")))?;
+        let found = org_core::sparse::occur(text, &regex, |_| true);
+        self.message = Some(format!("{} match(es) for regexp {regexp}", found.count));
+        Ok(json!({ "sparse": self.sparse_shown(text, &found) }))
     }
 
     /// `org-reveal` (`C-c C-r`): the lines to show around the cursor, as
@@ -13507,6 +13715,14 @@ mod tests {
             assert_eq!(std::fs::metadata(directory).unwrap().permissions().mode() & 0o777, 0o700);
             std::fs::remove_dir(directory).unwrap();
         }
+        // Named ahead, made only once it is needed, as private.
+        let named = Private::named("test");
+        let name = named.name().unwrap().to_path_buf();
+        assert!(!name.exists() && named.made().is_none());
+        assert_eq!(named.path(), name);
+        assert_eq!(std::fs::metadata(&name).unwrap().permissions().mode() & 0o777, 0o700);
+        assert_eq!(named.made(), Some(name.as_path()));
+        std::fs::remove_dir(&name).unwrap();
     }
 
     #[test]

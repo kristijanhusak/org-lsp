@@ -236,6 +236,10 @@ fn run_capture(case: &Value) -> Value {
         ..Default::default()
     };
     let find_node = |_: &str| None;
+    // An existing node: its file and ID.
+    let node = case["node"]
+        .as_array()
+        .map(|node| (directory.join(node[0].as_str().unwrap_or_default()), node[1].as_str().unwrap_or_default()));
     let given = strings(&case["answers"]);
     let mut answers: Vec<String> = Vec::new();
     let mut prompts: Vec<String> = Vec::new();
@@ -243,8 +247,8 @@ fn run_capture(case: &Value) -> Value {
         let request = roam::capture::Request {
             template: &template,
             title,
-            id: ID,
-            file: None,
+            id: node.as_ref().map_or(ID, |(_, id)| id),
+            file: node.as_ref().map(|(file, _)| file.as_path()),
             answers: &answers,
             context: &context,
             read_date: &read_date,

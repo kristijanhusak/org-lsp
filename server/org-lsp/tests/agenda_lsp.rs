@@ -252,6 +252,17 @@ impl Client {
         result["text"].as_str().expect("the view has text").to_string()
     }
 
+    /// Wait, a minute at most, for what the server does in the background
+    /// (Emacs's answers) to make `done` true.
+    fn wait_until(&mut self, done: impl Fn(&mut Client) -> bool) {
+        let start = std::time::Instant::now();
+        while !done(self) {
+            assert!(start.elapsed() < std::time::Duration::from_secs(60), "waited a minute");
+            std::thread::sleep(std::time::Duration::from_millis(50));
+            self.settle();
+        }
+    }
+
     fn shutdown(mut self) {
         self.request("shutdown", Value::Null).unwrap();
         self.notify("exit", Value::Null);
@@ -2177,6 +2188,8 @@ fn prefix_forms_go_to_emacs() {
     let text = "* TODO Write report\n:PROPERTIES:\n:X: 7\n:END:\n** TODO Sub task\n";
     client.open(uri, text);
     client.command("org.agenda.todos", uri, 0);
+    // The view shows at once; what Emacs makes of the forms comes after.
+    client.wait_until(|client| client.view_text(VIEW).contains("<7>"));
     expect![[r#"
         Global list of TODO items of type: ALL
          work:   7    |work/ |<7>| TODO Write report
@@ -2194,7 +2207,9 @@ fn prefix_forms_go_to_emacs() {
         }),
     );
     client.command("org.agenda.todos", uri, 0);
+    client.wait_until(|client| client.view_text(VIEW).contains("|work/ ||"));
     client.command("org.agenda.todos", uri, 0);
+    client.wait_until(|client| client.view_text(VIEW).contains("|work/ ||"));
     expect![[r#"
         Global list of TODO items of type: ALL
          work:   8    |work/ || TODO Write report
@@ -2221,8 +2236,13 @@ fn prefix_forms_without_emacs_stay_empty() {
     let mut client = Client::editor(options, None);
     let uri = "file:///org/work.org";
     client.open(uri, "* TODO Write report\n");
+    let said = |client: &mut Client| {
+        client.notifications.iter().filter(|notification| notification.method == "window/showMessage").count()
+    };
     client.command("org.agenda.todos", uri, 0);
+    client.wait_until(|client| said(client) > 0);
     client.command("org.agenda.todos", uri, 0);
+    client.settle();
     expect![[r#"
         Global list of TODO items of type: ALL
          work:        |TODO Write report
@@ -2828,7 +2848,25 @@ fn knows_an_open_file_reached_through_a_link() {
     client.command("org.agenda.todos", VIEW, 0);
     let listed = client.view_text(VIEW);
     assert!(listed.contains("TODO Unsaved"), "{listed}");
+    // An ID taken out in the editor is gone, though the file on disk,
+    // reached through the link, still has it.
+    std::fs::write(root.join("ids.org"), "* Kept\n:PROPERTIES:\n:ID: gone\n:END:\n").unwrap();
+    client.open(&format!("file://{}/ids.org", root.display()), "* Kept\n");
+    let linking = format!("file://{}/linking.org", root.display());
+    client.open(&linking, "[[id:gone][x]]\n");
+    client.settle();
+    let said = client
+        .notifications
+        .iter()
+        .rev()
+        .find(|notification| {
+            notification.method == "textDocument/publishDiagnostics" && notification.params["uri"] == linking
+        })
+        .map(|notification| notification.params["diagnostics"].to_string())
+        .unwrap_or_default();
+    assert!(said.contains("Unknown ID"), "{said}");
     client.shutdown();
+    std::fs::remove_file(root.join("ids.org")).unwrap();
     std::fs::remove_file(link).unwrap();
 }
 
@@ -4932,6 +4970,27 @@ fn captures_into_a_file() {
     std::fs::remove_dir_all(root).unwrap();
 }
 
+/// A link's search `::/regexp/` is `org-occur` in the link's file: a sparse
+/// tree of the matches, as Emacs says.
+#[test]
+fn follows_a_regexp_search_as_a_sparse_tree() {
+    let mut client = Client::editor(clock(), None);
+    let uri = "file:///org/occur.org";
+    client.open(uri, "* A\nfoo here\n* B\nbar\n** C\nfood\n[[file:occur.org::/fo+/]] [[file:other.org::/x/]]\n");
+    let open = |client: &mut Client, character: u32| {
+        let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 6, "character": character } });
+        client.request("workspace/executeCommand", json!({ "command": "org.open", "arguments": [context] }))
+    };
+    let shown = open(&mut client, 3).unwrap();
+    assert_eq!(shown["sparse"]["lines"], json!([1, 5, 6]));
+    assert_eq!(shown["sparse"]["highlights"].as_array().unwrap().len(), 3, "{shown}");
+    assert_eq!(shown["message"], "3 match(es) for regexp fo+");
+    client.open("file:///org/other.org", "x\n");
+    let refused = open(&mut client, 33);
+    assert_eq!(refused, Err("A search by regular expression is followed only in the file the link is in".to_string()));
+    client.shutdown();
+}
+
 /// `org-open-at-point` (`org.open`): an internal link moves the cursor in
 /// its file, a URL goes to the system, a `file:` link and an `id:` link
 /// open the other file at their place, a timestamp opens the agenda of its
@@ -5623,6 +5682,24 @@ fn sets_and_deletes_properties() {
         &mut text,
     );
     assert!(text.starts_with("#+PROPERTY: Color_ALL red green\n* DONE Task"), "{text}");
+    // SCHEDULED through a property schedules the entry, as `org-schedule`
+    // does; an empty value takes the date out.
+    client.edit(
+        "org.property.set",
+        uri,
+        (1, 0),
+        json!({ "step": "value", "answers": "SCHEDULED", "input": "2026-05-20" }),
+        &mut text,
+    );
+    assert!(text.contains("\nSCHEDULED: <2026-05-20 Wed>\n"), "{text}");
+    client.edit(
+        "org.property.set",
+        uri,
+        (1, 0),
+        json!({ "step": "value", "answers": "SCHEDULED", "input": "" }),
+        &mut text,
+    );
+    assert!(!text.contains("SCHEDULED"), "{text}");
     let error = client
         .request(
             "workspace/executeCommand",
@@ -6284,10 +6361,21 @@ fn links_are_document_links_with_hover() {
     // `./` and `../` taken out of a file's path; a URL with what a URI
     // cannot hold, encoded.
     let other = "file:///org/sub/c.org";
-    client.open(other, "[[./../b.org]] [[https://example.com/é]]\n");
+    client.open(other, "[[./../b.org]] [[https://example.com/é]] [[file:~nosuchuser-x/n.org]] [[file:~root/r.org]]\n");
     let links = client.request("textDocument/documentLink", json!({ "textDocument": { "uri": other } })).unwrap();
     let targets: Vec<Value> = links.as_array().unwrap().iter().map(|link| link["target"].clone()).collect();
-    assert_eq!(targets, [json!("file:///org/b.org"), json!("https://example.com/%C3%A9")]);
+    // `~name/` is the home of that user; with no such user, a directory
+    // named so, as `expand-file-name` makes it.
+    let root = if cfg!(target_os = "macos") { "file:///var/root/r.org" } else { "file:///root/r.org" };
+    assert_eq!(
+        targets,
+        [
+            json!("file:///org/b.org"),
+            json!("https://example.com/%C3%A9"),
+            json!("file:///org/sub/~nosuchuser-x/n.org"),
+            json!(root),
+        ]
+    );
 }
 
 /// Backlinks (`textDocument/references`) of an entry: links by its ID,
@@ -6709,6 +6797,16 @@ fn finds_links_and_captures_roam_nodes() {
     let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the node");
     assert_eq!(show.params["uri"], format!("file://{}", root.join("sub/b.org").display()));
     assert_eq!(show.params["selection"]["start"], json!({ "line": 1, "character": 0 }));
+    // An `id:` link to a node whose file is neither open nor an agenda
+    // file: org-roam's files are where IDs are looked for too.
+    let c_uri = format!("file://{}", root.join("unsaved.org").display());
+    client.open(&c_uri, "See [[id:b-id][B]].\n");
+    let link = json!({ "textDocument": { "uri": c_uri }, "position": { "line": 0, "character": 8 } });
+    run(&mut client, "org.open", &link).unwrap();
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the node");
+    assert_eq!(show.params["uri"], format!("file://{}", root.join("sub/b.org").display()));
+    let found = client.request("textDocument/definition", link).unwrap();
+    assert_eq!(found["uri"], format!("file://{}", root.join("sub/b.org").display()));
 
     // A link to a node, by its alias.
     let mut answer = at(6);
@@ -6783,6 +6881,32 @@ fn finds_links_and_captures_roam_nodes() {
     assert!(buffer.ends_with("/CAPTURE-a_paper.org"), "{buffer}");
     let shown = std::fs::read_to_string(buffer.strip_prefix("file://").unwrap()).unwrap();
     assert_eq!(shown, "* \n");
+    client.shutdown();
+
+    // `immediate_finish` files the node at once, and `jump_to_captured`
+    // shows it.
+    let mut options = clock();
+    options["org_roam_enabled"] = json!(true);
+    options["org_roam_directory"] = json!(root.display().to_string());
+    options["org_roam_capture_templates"] = json!([
+        { "key": "q", "description": "quick", "type": "plain", "template": "Noted.",
+          "target": ["file+head", "${slug}.org", "#+title: ${title}\n"],
+          "immediate_finish": true, "jump_to_captured": true },
+    ]);
+    let mut client = Client::editor(options, None);
+    let mut answer = at(0);
+    answer["step"] = json!("node");
+    answer["input"] = json!("Quick one");
+    run(&mut client, "org.roam.capture", &answer).unwrap();
+    let written = std::fs::read_to_string(root.join("quick_one.org")).unwrap();
+    assert!(written.ends_with("#+title: Quick one\nNoted.\n"), "{written}");
+    let shown: Vec<&str> = client
+        .received
+        .iter()
+        .filter(|request| request.method == "window/showDocument")
+        .map(|request| request.params["uri"].as_str().unwrap())
+        .collect();
+    assert_eq!(shown, [format!("file://{}", root.join("quick_one.org").display())]);
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
 }
@@ -7009,6 +7133,38 @@ fn shows_the_org_roam_buffer() {
     run(&mut client, "org.roam.buffer.dedicated", &answer).unwrap();
     let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the buffer");
     assert!(show.params["uri"].as_str().unwrap().ends_with("/org-roam-buffer-a_note.org"), "{}", show.params["uri"]);
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// A journal file the carryover leaves empty is deleted
+/// (`org_journal_carryover_delete_empty_journal`); when the editor has it
+/// open, it is emptied there too, as Emacs kills its buffer.
+#[test]
+fn empties_an_open_journal_file_the_carryover_deletes() {
+    let root = std::env::temp_dir().join(format!("org-lsp-journal-empty-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    let directory = root.join("journal");
+    std::fs::create_dir_all(&directory).unwrap();
+    let mut options = clock();
+    options["org_journal_enabled"] = json!(true);
+    options["org_journal_dir"] = json!(directory.display().to_string());
+    options["org_journal_carryover_delete_empty_journal"] = json!("always");
+    let mut client = Client::editor(options, None);
+    let friday = "* Friday, 05/15/26\n** TODO call Bob\n";
+    std::fs::write(directory.join("20260515"), friday).unwrap();
+    let friday_uri = format!("file://{}", directory.join("20260515").display());
+    client.open(&friday_uri, friday);
+    client.received.clear();
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.journal.new.entry", "arguments": [{}] }))
+        .unwrap();
+    client.settle();
+    assert!(!directory.join("20260515").exists());
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let (file, edits) = edits_of(edit);
+    assert_eq!(file, friday_uri);
+    assert_eq!(apply(friday, &edits), "");
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
 }
@@ -7263,6 +7419,49 @@ fn keeps_bulk_marks_on_their_entries() {
     assert_eq!(work.matches("SCHEDULED: <2026-05-20 Wed>").count(), 3, "{work}");
     assert_eq!(work.matches("DEADLINE: <2026-05-22 Fri>").count(), 3, "{work}");
     client.shutdown();
+
+    // An action that rewrites headlines next to each other, the editor
+    // sending its edits back as they are and as the whole text.
+    for whole in [false, true] {
+        let mut options = clock();
+        options["org_agenda_persistent_marks"] = json!(true);
+        let mut client = Client::editor(options, None);
+        let mut work = "#+TODO: TODO NEXT | DONE\n* TODO Alpha\n* TODO Beta\n* TODO Gamma\n".to_string();
+        client.open(uri, &work);
+        run(&mut client, "org.agenda.todos", json!({})).unwrap();
+        client.show_view();
+        run(&mut client, "org.agenda.bulk.mark.all", json!({})).unwrap();
+        let asked = run(&mut client, "org.agenda.bulk.action", json!({ "step": "action", "input": "t" })).unwrap();
+        let mut context = asked["input"]["context"].clone();
+        context["input"] = json!("NEXT");
+        let done = run(&mut client, "org.agenda.bulk.action", context).unwrap();
+        assert_eq!(done["message"], "Acted on 3 entries (kept marked)");
+        let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+        let (_, changes) = edits_of(edit);
+        assert_eq!(changes.len(), 3, "{changes:?}");
+        work = apply(&work, &changes);
+        assert_eq!(work, "#+TODO: TODO NEXT | DONE\n* NEXT Alpha\n* NEXT Beta\n* NEXT Gamma\n");
+        let content: Vec<Value> = if whole {
+            vec![json!({ "text": work })]
+        } else {
+            changes.iter().rev().map(|change| json!({ "range": change["range"], "text": change["newText"] })).collect()
+        };
+        client.notify(
+            "textDocument/didChange",
+            json!({ "textDocument": { "uri": uri, "version": 2 }, "contentChanges": content }),
+        );
+        client.settle();
+        client.show_view();
+        let asked = run(&mut client, "org.agenda.bulk.action", json!({ "step": "action", "input": "s" })).unwrap();
+        let done = run(
+            &mut client,
+            "org.agenda.bulk.action",
+            json!({ "step": "s", "input": "2026-05-20", "answers": asked["input"]["context"]["answers"] }),
+        )
+        .unwrap();
+        assert_eq!(done["message"], "Acted on 3 entries (kept marked)", "whole text: {whole}");
+        client.shutdown();
+    }
 }
 
 /// A capture with `:clock-in :clock-keep` refiled to another file: the

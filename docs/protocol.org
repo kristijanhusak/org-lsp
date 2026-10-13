@@ -1502,14 +1502,16 @@ tangling a file whose header arguments are Emacs Lisp or whose Noweb
 references call a block (~org.babel.tangle~). Emacs is optional; without it
 those commands fail with /Cannot start Emacs (…)/ and nothing else changes.
 
-The ~%(…)~ of ~org_agenda_prefix_format~ are Emacs's too. Once a view is
-built, the forms on its lines go to Emacs in one request, each run as
+The ~%(…)~ of ~org_agenda_prefix_format~ are Emacs's too. A view is
+built at once with what Emacs last made of them (empty the first time),
+and the forms on its lines go to Emacs in one request in the background,
+each run as
 ~org-agenda-format-item~ runs it: in the entry's file as the editor has it,
 point at the start of the headline (Org leaves it where its search
 stopped, on that line or its timestamp), with ~category~, ~extra~, ~time~,
 ~level~, ~tag~, ~effort~ and ~breadcrumbs~ bound to the line's; a line of
-the time grid is in no Org buffer. The view is then built again with what
-they gave. A form that signals an error stops Org's agenda; here the
+the time grid is in no Org buffer. Once Emacs answers, the view is built
+again with what they gave, and the editor told that it changed. A form that signals an error stops Org's agenda; here the
 agenda shows, the field empty, and the error is said once. Without Emacs
 the fields are empty, and ~org-lsp agenda~ in a terminal leaves them so.
 

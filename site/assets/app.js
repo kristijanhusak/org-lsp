@@ -143,13 +143,29 @@
     });
   }
 
+  // The terms marked in one pass over the plain text, escaped as it is
+  // put together: a term never matches inside a mark or an entity.
   function highlight(text, terms) {
-    var html = escapeHtml(text);
-    terms.forEach(function (term) {
-      var pattern = new RegExp('(' + escapeHtml(term).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
-      html = html.replace(pattern, '<mark>$1</mark>');
+    var wanted = terms.filter(function (term) {
+      return term;
     });
-    return html;
+    if (!wanted.length) return escapeHtml(text);
+    var pattern = new RegExp(
+      wanted
+        .map(function (term) {
+          return term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        })
+        .join('|'),
+      'gi'
+    );
+    var html = '';
+    var at = 0;
+    text.replace(pattern, function (found, offset) {
+      html += escapeHtml(text.slice(at, offset)) + '<mark>' + escapeHtml(found) + '</mark>';
+      at = offset + found.length;
+      return found;
+    });
+    return html + escapeHtml(text.slice(at));
   }
 
   function snippet(text, terms) {

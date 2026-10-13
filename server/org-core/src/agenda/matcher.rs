@@ -278,19 +278,21 @@ fn operand(text: &str) -> Option<(Value, &str)> {
 }
 
 /// `"<today>"`, `"<+2d>"`, `"<2026-10-05 Mon>"`: a time to compare with.
+/// What `org-make-tags-matcher` takes for one (`timep`): in `<…>` or
+/// `[…]`, starting with digits, `now`, `today`, `tomorrow` or a number of
+/// days, weeks, months or years; anything else (`<yesterday>`, `<+2h>`) is
+/// compared as a string. Its time is `org-matcher-time`'s.
 fn time_operand(value: &str) -> Option<TimeValue> {
-    let looks_like_time =
-        (value.starts_with('<') && value.ends_with('>')) || (value.starts_with('[') && value.ends_with(']'));
-    let inner = value.get(1..value.len().checked_sub(1)?)?;
-    let first = inner.chars().next()?;
-    if !looks_like_time
-        || !(first.is_ascii_digit()
-            || first == '+'
-            || first == '-'
-            || inner.starts_with("now")
-            || inner.starts_with("today")
-            || inner.starts_with("tomorrow"))
-    {
+    let inner = value.strip_prefix(['<', '['])?.strip_suffix(['>', ']'])?;
+    let relative_head = |text: &str| {
+        let Some(rest) = text.strip_prefix(['+', '-']) else { return false };
+        let digits = rest.bytes().take_while(u8::is_ascii_digit).count();
+        digits > 0 && matches!(rest.as_bytes().get(digits), Some(b'd' | b'm' | b'w' | b'y'))
+    };
+    let timep = inner.starts_with(|c: char| c.is_ascii_digit())
+        || ["now", "today", "tomorrow"].iter().any(|word| inner.starts_with(word))
+        || relative_head(inner);
+    if !timep {
         return None;
     }
     Some(match value {
@@ -299,11 +301,17 @@ fn time_operand(value: &str) -> Option<TimeValue> {
         "<tomorrow>" => TimeValue::Today(1),
         "<yesterday>" => TimeValue::Today(-1),
         _ => {
-            let relative = inner.strip_prefix(['+', '-']).and_then(|rest| {
+            // `\`<\([-+][0-9]+\)\([hdwmy]\)>\'`, the whole of it.
+            let relative = value.strip_prefix('<').and_then(|rest| rest.strip_suffix('>')).and_then(|inner| {
+                let sign = if inner.starts_with('-') { -1 } else { 1 };
+                let rest = inner.strip_prefix(['+', '-'])?;
                 let unit = rest.chars().last()?;
-                let number: i64 = rest[..rest.len() - unit.len_utf8()].parse().ok()?;
-                let number = if inner.starts_with('-') { -number } else { number };
-                // `org-matcher-time`: a month is 31 days, a year 365.25.
+                let digits = &rest[..rest.len() - unit.len_utf8()];
+                if digits.is_empty() || !digits.bytes().all(|byte| byte.is_ascii_digit()) {
+                    return None;
+                }
+                let number = digits.parse::<i64>().unwrap_or(i64::MAX).saturating_mul(sign);
+                // A month is 31 days, a year 365.25.
                 let minutes = |per: i64| Some(TimeValue::Minutes(number.saturating_mul(per)));
                 match unit {
                     'h' => Some(TimeValue::Hours(number)),
@@ -772,6 +780,12 @@ mod tests {
         assert_eq!(matched("SCHEDULED<\"<-1m>\""), ["b"]);
         assert_eq!(matched("SCHEDULED>=\"<-1m>\""), ["a"]);
         assert_eq!(matched("SCHEDULED<\"<-1y>\""), ["b"]);
+        // What `timep` does not take is a string: hours, `<yesterday>`.
+        assert!(time_operand("<+2h>").is_none());
+        assert!(time_operand("<yesterday>").is_none());
+        assert!(matches!(time_operand("[+2d]"), Some(TimeValue::At(None))));
+        assert!(matches!(time_operand("<+2dx>"), Some(TimeValue::At(None))));
+        assert!(matches!(time_operand("<+2d>"), Some(TimeValue::Minutes(2880))));
     }
 
     #[test]

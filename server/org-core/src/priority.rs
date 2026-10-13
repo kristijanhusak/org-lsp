@@ -77,11 +77,18 @@ pub struct Settings {
     pub start_cycle_with_default: bool,
     /// `org-tags-column`
     pub tags_column: i64,
+    /// `org-auto-align-tags`
+    pub auto_align: bool,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings { priorities: Priorities::default(), start_cycle_with_default: true, tags_column: -77 }
+        Settings {
+            priorities: Priorities::default(),
+            start_cycle_with_default: true,
+            tags_column: -77,
+            auto_align: true,
+        }
     }
 }
 
@@ -260,7 +267,8 @@ pub fn change(
             new_line.insert_str(at, &cookie);
         }
     }
-    if let Some((blanks, tags, padding)) = tags_padding(&new_line, settings.tags_column) {
+    if let Some((blanks, tags, padding)) = tags_padding(&new_line, settings.tags_column).filter(|_| settings.auto_align)
+    {
         new_line.replace_range(blanks..tags, &padding);
     }
     Ok(format!("{}{new_line}{}", &text[..heading], &text[heading + line.len()..]))
@@ -309,6 +317,10 @@ mod tests {
     fn realigns_the_tags() {
         assert_eq!(up("* [#A] a¦ :t:\n"), format!("* a{}:t:\n", " ".repeat(71)));
         assert_eq!(up("* a¦ :t:\n"), format!("* [#B] a{}:t:\n", " ".repeat(66)));
+        // Unless `org-auto-align-tags` is off.
+        let settings = Settings { auto_align: false, ..Settings::default() };
+        let changed = change("* a   :t:\n", &TodoKeywords::default(), 2, Action::Up, false, &settings).unwrap();
+        assert_eq!(changed, "* [#B] a   :t:\n");
     }
 
     #[test]

@@ -498,6 +498,11 @@ impl Links<'_> {
         let extension = Path::new(&target).extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
         let up = relative_prefix(&self.page.out);
         if IMAGES.contains(&extension.as_str()) && search.is_none() {
+            // One of the site's own files (the logo) is where the site has
+            // it already: not copied again.
+            if let Some(own) = target.strip_prefix("site/").filter(|_| self.site.root.join(&target).is_file()) {
+                return Target::Image(format!("{up}{own}"));
+            }
             // Only an image that is there is copied: a missing one is a
             // problem reported with the others, not a failed copy.
             if self.site.root.join(&target).is_file() {
