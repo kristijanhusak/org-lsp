@@ -145,9 +145,10 @@ local function warn_missing_server()
   )
 end
 
+--- The server: the one of the current buffer, else the one that runs.
 ---@return vim.lsp.Client|nil
 local function running_client()
-  return vim.lsp.get_clients({ name = SERVER })[1]
+  return vim.lsp.get_clients({ bufnr = 0, name = SERVER })[1] or vim.lsp.get_clients({ name = SERVER })[1]
 end
 
 -- ----- commands
@@ -1179,6 +1180,12 @@ local function enable()
     }),
     handlers = view.handlers,
     on_init = on_init,
+    -- One server for every Org file, whatever its root, and the one
+    -- started for the agenda with no file open: the server reads the
+    -- agenda files from its settings, not from a workspace.
+    reuse_client = function(client, config)
+      return client.name == config.name and not client:is_stopped()
+    end,
   })
   vim.lsp.enable(SERVER)
   return true
