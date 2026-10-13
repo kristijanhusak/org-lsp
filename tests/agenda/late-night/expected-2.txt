@@ -1,0 +1,15 @@
+Day-agenda (W21):
+Monday     18 May 2026 W21
+  tasks:       1:00...... Scheduled:  NEXT Late night task                :work:
+  tasks:       8:00...... Breakfast
+               8:00...... ----------------
+              10:00...... ----------------
+              12:00...... ----------------
+              14:00...... ----------------
+              16:00...... ----------------
+              18:00...... ----------------
+  tasks:      20:00...... Scheduled:  TODO Stretch
+              20:00...... ----------------
+  tasks:      23:00...... TODO Check mail
+  tasks:      Scheduled:  TODO Water plants
+  tasks:      Deadline:   TODO Pay rent                                   :home:

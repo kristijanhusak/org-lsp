@@ -41,7 +41,8 @@ fn answers_read_as_emacs_reads_them() {
             Some(Value::String(time)) if time == "time" => PreferFuture::Time,
             _ => PreferFuture::Yes,
         };
-        let settings = Settings { prefer_future, ..Settings::default() };
+        let extend_today_until = case.get("extendTodayUntil").and_then(Value::as_i64).unwrap_or(0);
+        let settings = Settings { prefer_future, extend_today_until, ..Settings::default() };
         let actual = match read_date(answer, default, now, &settings) {
             Ok(read) => match &read.end {
                 Some(end) => format!("{} | {end}", read.to_org()),

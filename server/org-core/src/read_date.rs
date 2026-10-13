@@ -35,11 +35,14 @@ pub struct Settings {
     /// `org-read-date-force-compatible-dates`: keep the year within 1970
     /// to 2037.
     pub force_compatible_dates: bool,
+    /// `org-extend-today-until`: the hour before which, with no date to
+    /// start from, the prompt starts from the last minute of yesterday.
+    pub extend_today_until: i64,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings { prefer_future: PreferFuture::Yes, force_compatible_dates: true }
+        Settings { prefer_future: PreferFuture::Yes, force_compatible_dates: true, extend_today_until: 0 }
     }
 }
 
@@ -490,6 +493,9 @@ pub fn read_date(
     now: DateTime,
     settings: &Settings,
 ) -> Result<ReadDate, String> {
+    // `org-read-date`: with no date to start from, late at night it is
+    // still yesterday.
+    let default = default.or_else(|| Some(now.late_night(settings.extend_today_until)).filter(|late| *late != now));
     let nowdecode = Fields::of(now);
     let defdecode = Fields::of(default.unwrap_or(now));
     let current_year = nowdecode.year;

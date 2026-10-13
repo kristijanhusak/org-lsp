@@ -483,6 +483,28 @@ fn opens_the_agenda_from_open_documents() {
 }
 
 #[test]
+fn late_at_night_the_agenda_is_still_yesterday() {
+    // `org-extend-today-until`: at 02:30 with the day ending at 04:00,
+    // today is Sunday, and Wednesday's deadline is three days away.
+    let options = json!({
+        "clock": { "today": "2026-05-18", "now": "02:30" },
+        "org_extend_today_until": 4,
+        "org_agenda_span": "day",
+    });
+    let mut client = Client::editor(options, None);
+    client.open("file:///org/work.org", WORK);
+    let requests = client.command("org.agenda.list", "file:///org/work.org", 0);
+    assert_eq!(requests[1].params["selection"]["start"], json!({ "line": 1, "character": 0 }));
+    let text = client.view_text(VIEW);
+    let lines: Vec<&str> = text.lines().take(3).collect();
+    assert_eq!(
+        lines,
+        ["Day-agenda (W20):", "Sunday     17 May 2026", "  work:       In   3 d.:  TODO Call the client"]
+    );
+    client.shutdown();
+}
+
+#[test]
 fn moves_through_time_and_changes_span() {
     let mut client = Client::editor(clock(), None);
     client.open("file:///org/work.org", WORK);

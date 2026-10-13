@@ -91,6 +91,9 @@ pub struct Settings {
     pub repeat_to_state: RepeatTo,
     /// `org-adapt-indentation`: how the lines Org writes are indented.
     pub adapt: Adapt,
+    /// `org-extend-today-until`: the hour before which `.+` and `++`
+    /// repeaters count from yesterday.
+    pub extend_today_until: i64,
 }
 
 impl Default for Settings {
@@ -107,6 +110,7 @@ impl Default for Settings {
             tags_column: -77,
             repeat_to_state: RepeatTo::Head,
             adapt: Adapt::Off,
+            extend_today_until: 0,
         }
     }
 }
@@ -1257,6 +1261,7 @@ impl<'a> Editor<'a> {
         // the cursor: it starts behind the repeater, and every change is
         // made to the timestamp the cursor is then in.
         let mut message = "Entry repeats: ".to_string();
+        let today = self.now.org_today(self.settings.extend_today_until);
         let mut at = self.heading;
         loop {
             let (parse, _, end) = self.entry_outline();
@@ -1278,14 +1283,15 @@ impl<'a> Editor<'a> {
                 return Err(format!("Cannot repeat in {count} hour(s) because no hour has been set"));
             }
             match kind {
-                // `.+`: count from today, or from now when repeating by hours.
+                // `.+`: count from today (`org-today`, which late at night
+                // is yesterday), or from now when repeating by hours.
                 Some('.') => {
                     let time = time_of(&stamp)?;
                     if unit == 'h' {
                         let minutes = (self.now.day - time.day) * 1440 + self.now.minute - time.minute;
                         point = self.shift_timestamp(point, minutes, 'M', false)?.cursor;
                     } else {
-                        point = self.shift_timestamp(point, self.now.day - time.day, 'd', false)?.cursor;
+                        point = self.shift_timestamp(point, today - time.day, 'd', false)?.cursor;
                     }
                 }
                 // `++`: keep the rhythm, but land in the future.
@@ -1296,7 +1302,7 @@ impl<'a> Editor<'a> {
                         let behind = if unit == 'h' {
                             (self.now.day, self.now.minute) >= (time.day, time.minute)
                         } else {
-                            self.now.day >= time.day
+                            today >= time.day
                         };
                         if shifts > 0 && !behind {
                             break;

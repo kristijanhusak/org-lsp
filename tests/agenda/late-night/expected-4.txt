@@ -1,0 +1,4 @@
+Headlines with TAGS match: work
+  tasks:      TODO Call Ann                                               :work:
+  tasks:      TODO Overdue report                                         :work:
+  tasks:      NEXT Late night task                                        :work:

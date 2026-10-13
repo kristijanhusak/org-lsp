@@ -5423,5 +5423,884 @@
     "snippet.txt": "Snippet line\nsecond %U\n"
    }
   }
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "files": {
+   "notes.org": "* Tasks\n"
+  },
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Tasks"
+   ],
+   "template": "* TODO %?\n%U\n%t %T %u\n%<%Y-%m-%d %H:%M>"
+  },
+  "answers": [],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "** TODO ¦\n[2026-05-17 Sun 23:59]\n<2026-05-17 Sun> <2026-05-17 Sun 23:59> [2026-05-17 Sun]\n2026-05-17 23:59\n",
+   "files": {
+    "notes.org": "* Tasks\n** TODO X\n[2026-05-17 Sun 23:59]\n<2026-05-17 Sun> <2026-05-17 Sun 23:59> [2026-05-17 Sun]\n2026-05-17 23:59\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "files": {
+   "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org"
+   ],
+   "template": "* %?\n%U"
+  },
+  "answers": [],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "**** ¦\n[2026-05-17 Sun 23:59]\n",
+   "files": {
+    "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n**** X\n[2026-05-17 Sun 23:59]\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "files": {
+   "notes.org": "* Tasks\n"
+  },
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Tasks"
+   ],
+   "template": "* %?\n%^t %^T"
+  },
+  "answers": [
+   "",
+   ""
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "** ¦\n<2026-05-17 Sun> <2026-05-17 Sun 23:59>\n",
+   "files": {
+    "notes.org": "* Tasks\n** X\n<2026-05-17 Sun> <2026-05-17 Sun 23:59>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "files": {
+   "notes.org": "* Tasks\n"
+  },
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Tasks"
+   ],
+   "template": "* %?\n%^T"
+  },
+  "answers": [
+   "+1d"
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "** ¦\n<2026-05-19 Tue 23:59>\n",
+   "files": {
+    "notes.org": "* Tasks\n** X\n<2026-05-19 Tue 23:59>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "files": {
+   "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org"
+   ],
+   "template": "* %?\n%U %T",
+   "time_prompt": true
+  },
+  "answers": [
+   ""
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "**** ¦\n[2026-05-17 Sun 23:59] <2026-05-17 Sun 23:59>\n",
+   "files": {
+    "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n**** X\n[2026-05-17 Sun 23:59] <2026-05-17 Sun 23:59>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "files": {
+   "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org"
+   ],
+   "template": "* %?\n%U %T",
+   "time_prompt": true
+  },
+  "answers": [
+   "."
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "**** ¦\n[2026-05-18 Mon 04:00] <2026-05-18 Mon 04:00>\n",
+   "files": {
+    "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n*** 2026-05-18 Monday\n**** X\n[2026-05-18 Mon 04:00] <2026-05-18 Mon 04:00>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "files": {
+   "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org"
+   ],
+   "template": "* %?\n%U %T",
+   "time_prompt": true
+  },
+  "answers": [
+   "+1d"
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "**** ¦\n[2026-05-19 Tue 04:00] <2026-05-19 Tue 04:00>\n",
+   "files": {
+    "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n*** 2026-05-19 Tuesday\n**** X\n[2026-05-19 Tue 04:00] <2026-05-19 Tue 04:00>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "files": {
+   "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org"
+   ],
+   "template": "* %?\n%U %T",
+   "time_prompt": true
+  },
+  "answers": [
+   "fri"
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "**** ¦\n[2026-05-22 Fri 04:00] <2026-05-22 Fri 04:00>\n",
+   "files": {
+    "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n*** 2026-05-22 Friday\n**** X\n[2026-05-22 Fri 04:00] <2026-05-22 Fri 04:00>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "files": {
+   "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org"
+   ],
+   "template": "* %?\n%U %T",
+   "time_prompt": true
+  },
+  "answers": [
+   "2026-05-10 1am"
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "**** ¦\n[2026-05-09 Sat 23:59] <2026-05-09 Sat 23:59>",
+   "files": {
+    "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-10 Sunday\n**** X\n[2026-05-09 Sat 23:59] <2026-05-09 Sat 23:59>\n*** 2026-05-17 Sunday\nOld.\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "files": {
+   "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org"
+   ],
+   "template": "* %?\n%U %T",
+   "time_prompt": true
+  },
+  "answers": [
+   "17"
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "**** ¦\n[2026-06-17 Wed 04:00] <2026-06-17 Wed 04:00>\n",
+   "files": {
+    "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n** 2026-06 June\n*** 2026-06-17 Wednesday\n**** X\n[2026-06-17 Wed 04:00] <2026-06-17 Wed 04:00>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "files": {
+   "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org"
+   ],
+   "template": "* %?\n%U %T",
+   "time_prompt": true
+  },
+  "answers": [
+   "3pm"
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "**** ¦\n[2026-05-17 Sun 15:00] <2026-05-17 Sun 15:00>\n",
+   "files": {
+    "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n**** X\n[2026-05-17 Sun 15:00] <2026-05-17 Sun 15:00>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 04:00",
+  "files": {
+   "notes.org": "* Tasks\n"
+  },
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Tasks"
+   ],
+   "template": "* TODO %?\n%U\n%t %T %u\n%<%Y-%m-%d %H:%M>"
+  },
+  "answers": [],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "** TODO ¦\n[2026-05-18 Mon 04:00]\n<2026-05-18 Mon> <2026-05-18 Mon 04:00> [2026-05-18 Mon]\n2026-05-18 04:00\n",
+   "files": {
+    "notes.org": "* Tasks\n** TODO X\n[2026-05-18 Mon 04:00]\n<2026-05-18 Mon> <2026-05-18 Mon 04:00> [2026-05-18 Mon]\n2026-05-18 04:00\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 04:00",
+  "files": {
+   "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org"
+   ],
+   "template": "* %?\n%U"
+  },
+  "answers": [],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "**** ¦\n[2026-05-18 Mon 04:00]\n",
+   "files": {
+    "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n*** 2026-05-18 Monday\n**** X\n[2026-05-18 Mon 04:00]\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 04:00",
+  "files": {
+   "notes.org": "* Tasks\n"
+  },
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Tasks"
+   ],
+   "template": "* %?\n%^t %^T"
+  },
+  "answers": [
+   "",
+   ""
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "** ¦\n<2026-05-18 Mon> <2026-05-18 Mon 04:00>\n",
+   "files": {
+    "notes.org": "* Tasks\n** X\n<2026-05-18 Mon> <2026-05-18 Mon 04:00>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 04:00",
+  "files": {
+   "notes.org": "* Tasks\n"
+  },
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Tasks"
+   ],
+   "template": "* %?\n%^T"
+  },
+  "answers": [
+   "+1d"
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "** ¦\n<2026-05-19 Tue 04:00>\n",
+   "files": {
+    "notes.org": "* Tasks\n** X\n<2026-05-19 Tue 04:00>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 04:00",
+  "files": {
+   "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org"
+   ],
+   "template": "* %?\n%U %T",
+   "time_prompt": true
+  },
+  "answers": [
+   ""
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "**** ¦\n[2026-05-18 Mon 04:00] <2026-05-18 Mon 04:00>\n",
+   "files": {
+    "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n*** 2026-05-18 Monday\n**** X\n[2026-05-18 Mon 04:00] <2026-05-18 Mon 04:00>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 04:00",
+  "files": {
+   "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org"
+   ],
+   "template": "* %?\n%U %T",
+   "time_prompt": true
+  },
+  "answers": [
+   "."
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "**** ¦\n[2026-05-18 Mon 04:00] <2026-05-18 Mon 04:00>\n",
+   "files": {
+    "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n*** 2026-05-18 Monday\n**** X\n[2026-05-18 Mon 04:00] <2026-05-18 Mon 04:00>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 04:00",
+  "files": {
+   "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org"
+   ],
+   "template": "* %?\n%U %T",
+   "time_prompt": true
+  },
+  "answers": [
+   "+1d"
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "**** ¦\n[2026-05-19 Tue 04:00] <2026-05-19 Tue 04:00>\n",
+   "files": {
+    "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n*** 2026-05-19 Tuesday\n**** X\n[2026-05-19 Tue 04:00] <2026-05-19 Tue 04:00>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 04:00",
+  "files": {
+   "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org"
+   ],
+   "template": "* %?\n%U %T",
+   "time_prompt": true
+  },
+  "answers": [
+   "fri"
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "**** ¦\n[2026-05-22 Fri 04:00] <2026-05-22 Fri 04:00>\n",
+   "files": {
+    "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n*** 2026-05-22 Friday\n**** X\n[2026-05-22 Fri 04:00] <2026-05-22 Fri 04:00>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 04:00",
+  "files": {
+   "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org"
+   ],
+   "template": "* %?\n%U %T",
+   "time_prompt": true
+  },
+  "answers": [
+   "2026-05-10 1am"
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "**** ¦\n[2026-05-09 Sat 23:59] <2026-05-09 Sat 23:59>",
+   "files": {
+    "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-10 Sunday\n**** X\n[2026-05-09 Sat 23:59] <2026-05-09 Sat 23:59>\n*** 2026-05-17 Sunday\nOld.\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 04:00",
+  "files": {
+   "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org"
+   ],
+   "template": "* %?\n%U %T",
+   "time_prompt": true
+  },
+  "answers": [
+   "17"
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "**** ¦\n[2026-06-17 Wed 04:00] <2026-06-17 Wed 04:00>\n",
+   "files": {
+    "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n** 2026-06 June\n*** 2026-06-17 Wednesday\n**** X\n[2026-06-17 Wed 04:00] <2026-06-17 Wed 04:00>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 04:00",
+  "files": {
+   "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org"
+   ],
+   "template": "* %?\n%U %T",
+   "time_prompt": true
+  },
+  "answers": [
+   "3pm"
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "**** ¦\n[2026-05-18 Mon 15:00] <2026-05-18 Mon 15:00>\n",
+   "files": {
+    "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n*** 2026-05-18 Monday\n**** X\n[2026-05-18 Mon 15:00] <2026-05-18 Mon 15:00>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "files": {
+   "notes.org": "* Tasks\n"
+  },
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Tasks"
+   ],
+   "template": "* TODO %?\n%U\n%t %T %u\n%<%Y-%m-%d %H:%M>"
+  },
+  "answers": [],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "** TODO ¦\n[2026-04-30 Thu 23:59]\n<2026-04-30 Thu> <2026-04-30 Thu 23:59> [2026-04-30 Thu]\n2026-04-30 23:59\n",
+   "files": {
+    "notes.org": "* Tasks\n** TODO X\n[2026-04-30 Thu 23:59]\n<2026-04-30 Thu> <2026-04-30 Thu 23:59> [2026-04-30 Thu]\n2026-04-30 23:59\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "files": {
+   "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org"
+   ],
+   "template": "* %?\n%U"
+  },
+  "answers": [],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "**** ¦\n[2026-04-30 Thu 23:59]",
+   "files": {
+    "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-04 April\n*** 2026-04-30 Thursday\n**** X\n[2026-04-30 Thu 23:59]\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "files": {
+   "notes.org": "* Tasks\n"
+  },
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Tasks"
+   ],
+   "template": "* %?\n%^t %^T"
+  },
+  "answers": [
+   "",
+   ""
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "** ¦\n<2026-04-30 Thu> <2026-04-30 Thu 23:59>\n",
+   "files": {
+    "notes.org": "* Tasks\n** X\n<2026-04-30 Thu> <2026-04-30 Thu 23:59>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "files": {
+   "notes.org": "* Tasks\n"
+  },
+  "template": {
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Tasks"
+   ],
+   "template": "* %?\n%^T"
+  },
+  "answers": [
+   "+1d"
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "** ¦\n<2026-05-02 Sat 23:59>\n",
+   "files": {
+    "notes.org": "* Tasks\n** X\n<2026-05-02 Sat 23:59>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "files": {
+   "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org"
+   ],
+   "template": "* %?\n%U %T",
+   "time_prompt": true
+  },
+  "answers": [
+   ""
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "**** ¦\n[2026-04-30 Thu 23:59] <2026-04-30 Thu 23:59>",
+   "files": {
+    "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-04 April\n*** 2026-04-30 Thursday\n**** X\n[2026-04-30 Thu 23:59] <2026-04-30 Thu 23:59>\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "files": {
+   "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org"
+   ],
+   "template": "* %?\n%U %T",
+   "time_prompt": true
+  },
+  "answers": [
+   "."
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "**** ¦\n[2026-05-01 Fri 04:00] <2026-05-01 Fri 04:00>",
+   "files": {
+    "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-01 Friday\n**** X\n[2026-05-01 Fri 04:00] <2026-05-01 Fri 04:00>\n*** 2026-05-17 Sunday\nOld.\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "files": {
+   "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org"
+   ],
+   "template": "* %?\n%U %T",
+   "time_prompt": true
+  },
+  "answers": [
+   "+1d"
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "**** ¦\n[2026-05-02 Sat 04:00] <2026-05-02 Sat 04:00>",
+   "files": {
+    "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-02 Saturday\n**** X\n[2026-05-02 Sat 04:00] <2026-05-02 Sat 04:00>\n*** 2026-05-17 Sunday\nOld.\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "files": {
+   "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org"
+   ],
+   "template": "* %?\n%U %T",
+   "time_prompt": true
+  },
+  "answers": [
+   "fri"
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "**** ¦\n[2026-05-08 Fri 04:00] <2026-05-08 Fri 04:00>",
+   "files": {
+    "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-08 Friday\n**** X\n[2026-05-08 Fri 04:00] <2026-05-08 Fri 04:00>\n*** 2026-05-17 Sunday\nOld.\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "files": {
+   "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org"
+   ],
+   "template": "* %?\n%U %T",
+   "time_prompt": true
+  },
+  "answers": [
+   "2026-05-10 1am"
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "**** ¦\n[2026-05-09 Sat 23:59] <2026-05-09 Sat 23:59>",
+   "files": {
+    "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-10 Sunday\n**** X\n[2026-05-09 Sat 23:59] <2026-05-09 Sat 23:59>\n*** 2026-05-17 Sunday\nOld.\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "files": {
+   "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org"
+   ],
+   "template": "* %?\n%U %T",
+   "time_prompt": true
+  },
+  "answers": [
+   "17"
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "**** ¦\n[2026-05-17 Sun 04:00] <2026-05-17 Sun 04:00>\n",
+   "files": {
+    "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n**** X\n[2026-05-17 Sun 04:00] <2026-05-17 Sun 04:00>\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "files": {
+   "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org"
+   ],
+   "template": "* %?\n%U %T",
+   "time_prompt": true
+  },
+  "answers": [
+   "3pm"
+  ],
+  "typed": "X",
+  "options": {
+   "org_extend_today_until": 4
+  },
+  "expected": {
+   "buffer": "**** ¦\n[2026-04-30 Thu 15:00] <2026-04-30 Thu 15:00>",
+   "files": {
+    "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-04 April\n*** 2026-04-30 Thursday\n**** X\n[2026-04-30 Thu 15:00] <2026-04-30 Thu 15:00>\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
+   }
+  }
  }
 ]

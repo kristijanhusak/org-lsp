@@ -9,6 +9,7 @@ A case is a JSON object:
                                        from, as when a timestamp is changed
       "preferFuture": true             optional: org-read-date-prefer-future,
                                        true, false or "time"
+      "extendTodayUntil": 4            optional: org-extend-today-until
     }
 
 `reference(cases)` adds `expected` to each case: the date `org-read-date`
@@ -87,7 +88,8 @@ def reference(cases):
                 target = os.path.join(directory, f"out-{index}.txt")
                 outputs.append((case, target))
                 forms.append(
-                    f"(let ((org-read-date-prefer-future {lisp_prefer_future(case.get('preferFuture', True))}))\n"
+                    f"(let ((org-read-date-prefer-future {lisp_prefer_future(case.get('preferFuture', True))})\n"
+                    f"      (org-extend-today-until {case.get('extendTodayUntil', 0)}))\n"
                     f"  (org-lsp-read-date-case {lisp_string(case['answer'])} {lisp_default(case.get('default'))}"
                     f" {lisp_string(target)}))"
                 )

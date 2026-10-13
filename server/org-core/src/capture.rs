@@ -422,6 +422,30 @@ pub fn fill(
     fill_with(template, context, answers, settings, None)
 }
 
+/// The day of a datetree's entry with no `:time-prompt`: `org-today`,
+/// which late at night is still yesterday.
+pub fn tree_date(now: DateTime, settings: &ReadDateSettings) -> crate::date::Date {
+    crate::date::Date::from_day(now.org_today(settings.extend_today_until))
+}
+
+/// `:time-prompt`: the date the answer gives the tree entry, and the time
+/// it stands for in the template. That is the typed time; on today's date
+/// the prompt's default (late at night, 23:59 yesterday); else the start
+/// of the day, which Org puts at `org-extend-today-until` o'clock.
+pub fn prompted_time(answer: &str, now: DateTime, settings: &ReadDateSettings) -> Result<DateTime, String> {
+    let read = read_date(answer, None, now, settings)?;
+    let extend = settings.extend_today_until;
+    let (hour, minute) = match read.time {
+        Some(time) => time,
+        None if read.date.to_day() == now.org_today(extend) => {
+            let default = now.late_night(extend);
+            (default.minute / 60, default.minute % 60)
+        }
+        None => (extend, 0),
+    };
+    Ok(DateTime::new(read.date, hour, minute))
+}
+
 /// [`fill`], with `%[file]` and `%(sexp)` expanded by `outside`: the files
 /// first, their text expanded as the template's; then the sexps marked,
 /// the escapes inside them expanded with `\` and `"` escaped; then the
@@ -452,6 +476,9 @@ pub fn fill_counting(
     };
     let template = template.as_str();
     let time = context.now;
+    // The time `%t`, `%U` and `%<…>` show: late at night, the last minute
+    // of yesterday (`org-extend-today-until`).
+    let stamped = time.late_night(settings.extend_today_until);
     let annotation = if context.annotation == "[[]]" { "" } else { context.annotation.as_str() };
     let link = |with: &str| -> String {
         match LINK.captures(annotation) {
@@ -475,7 +502,7 @@ pub fn fill_counting(
         let before = &template[..start];
         let inside = before.matches(SEXP_START).count() > before.matches(SEXP_END).count();
         let value = match value.as_bytes()[0] {
-            b'<' => format_time(&captures[2], time),
+            b'<' => format_time(&captures[2], stamped),
             b':' => match value {
                 ":annotation" => annotation.to_string(),
                 ":initial" => context.initial.clone(),
@@ -503,10 +530,10 @@ pub fn fill_counting(
             b'f' => file.clone(),
             b'F' => full.clone(),
             b'n' => context.user_name.clone(),
-            b't' => format_timestamp(time, false, false, ""),
-            b'T' => format_timestamp(time, true, false, ""),
-            b'u' => format_timestamp(time, false, true, ""),
-            b'U' => format_timestamp(time, true, true, ""),
+            b't' => format_timestamp(stamped, false, false, ""),
+            b'T' => format_timestamp(stamped, true, false, ""),
+            b'u' => format_timestamp(stamped, false, true, ""),
+            b'U' => format_timestamp(stamped, true, true, ""),
             _ => return Ok(None),
         };
         // In Lisp, the value is a string's content.
@@ -601,10 +628,12 @@ pub fn fill_counting(
             }
             Question::Date { with_time, inactive, .. } => {
                 let mut read = read_date(answer, None, time, settings)?;
-                // `%^T` and `%^U` have a time, the current one when none
-                // was typed.
+                // `%^T` and `%^U` have a time, the prompt's default when
+                // none was typed: the current one, or late at night the
+                // last minute of yesterday.
                 if with_time && read.time.is_none() {
-                    read.time = Some((time.minute / 60, time.minute % 60));
+                    let default = time.late_night(settings.extend_today_until);
+                    read.time = Some((default.minute / 60, default.minute % 60));
                 }
                 let stamp = crate::planning::timestamp_for(&read, inactive);
                 strings_all.push(stamp.clone());

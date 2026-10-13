@@ -1,0 +1,10 @@
+Global list of TODO items of type: ALL
+  tasks:      TODO Pay rent                                               :home:
+  tasks:      TODO Call Ann                                               :work:
+  tasks:      TODO Overdue report                                         :work:
+  tasks:      TODO Plan trip
+  tasks:      TODO Water plants
+  tasks:      TODO Stretch
+  tasks:      TODO Check mail
+  tasks:      NEXT Late night task                                        :work:
+  tasks:      TODO Shave

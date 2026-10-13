@@ -7868,7 +7868,7 @@ impl Server {
         // stands for the time of the capture.
         let now = self.date_time();
         let mut default_time = now;
-        let mut tree_date = now.date();
+        let mut tree_date = capture::tree_date(now, &self.read_date);
         let mut asked = answers.as_slice();
         if template.time_prompt == Some(true) {
             let Some((answer, rest)) = answers.split_first() else {
@@ -7880,14 +7880,8 @@ impl Server {
                     "context": context,
                 } }));
             };
-            let read = org_core::read_date::read_date(answer, None, now, &self.read_date)?;
-            tree_date = read.date;
-            let (hour, minute) = match read.time {
-                Some(time) => time,
-                None if read.date == now.date() => (now.minute / 60, now.minute % 60),
-                None => (0, 0),
-            };
-            default_time = DateTime::new(read.date, hour, minute);
+            default_time = capture::prompted_time(answer, now, &self.read_date)?;
+            tree_date = default_time.date();
             asked = rest;
         }
         let document = context.text_document.as_ref().map(|document| document.uri.clone());

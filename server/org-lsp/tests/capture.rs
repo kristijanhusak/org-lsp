@@ -30,18 +30,14 @@ fn run(case: &Value) -> Result<(String, String, String), String> {
         case["answers"].as_array().into_iter().flatten().map(|answer| answer.as_str().unwrap().to_string()).collect();
     // `:time-prompt`: the date of the tree comes first, and stands for
     // the time of the capture.
+    let extend_today_until = case.pointer("/options/org_extend_today_until").and_then(Value::as_i64).unwrap_or(0);
+    let settings = Settings { extend_today_until, ..Settings::default() };
     let mut default_time = now;
-    let mut tree_date = now.date();
+    let mut tree_date = org_core::capture::tree_date(now, &settings);
     if template["time_prompt"].as_bool() == Some(true) {
         let answer = if answers.is_empty() { String::new() } else { answers.remove(0) };
-        let read = org_core::read_date::read_date(&answer, None, now, &Settings::default())?;
-        tree_date = read.date;
-        let (hour, minute) = match read.time {
-            Some(time) => time,
-            None if read.date == now.date() => (now.minute / 60, now.minute % 60),
-            None => (0, 0),
-        };
-        default_time = DateTime::new(read.date, hour, minute);
+        default_time = org_core::capture::prompted_time(&answer, now, &settings)?;
+        tree_date = default_time.date();
     }
     // `%k`: the headline clocked into first.
     let clock_heading =
@@ -72,7 +68,7 @@ fn run(case: &Value) -> Result<(String, String, String), String> {
     let given = answers.len();
     let text = loop {
         let outside = Outside { insert_file: &insert_file, eval: &mut eval };
-        match fill_with(template["template"].as_str().unwrap(), &context, &answers, &Settings::default(), Some(outside))
+        match fill_with(template["template"].as_str().unwrap(), &context, &answers, &settings, Some(outside))
             .map_err(|refusal| refusal.message().to_string())?
         {
             Filled::Text(text) => break text,

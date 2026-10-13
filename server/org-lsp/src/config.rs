@@ -1117,6 +1117,7 @@ impl Options {
             tag_alist: tags.alist,
             tag_persistent_alist: tags.persistent,
             group_tags: self.group_tags.unwrap_or(true),
+            extend_today_until: self.extend_today_until.unwrap_or(0),
             ..self.agenda.to_config()
         }
     }
@@ -1132,6 +1133,7 @@ impl Options {
                 None => defaults.prefer_future,
             },
             force_compatible_dates: self.read_date_force_compatible_dates.unwrap_or(defaults.force_compatible_dates),
+            extend_today_until: self.extend_today_until.unwrap_or(0),
         }
     }
 
@@ -1307,6 +1309,7 @@ impl Options {
         if let Some(column) = self.tags_column {
             settings.tags_column = column;
         }
+        settings.extend_today_until = self.extend_today_until.unwrap_or(0);
         settings.repeat_to_state = match &self.todo_repeat_to_state {
             Some(RepeatToOption::Flag(true)) => RepeatTo::Previous,
             Some(RepeatToOption::State(state)) => RepeatTo::State(state.clone()),

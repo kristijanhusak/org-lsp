@@ -1,0 +1,28 @@
+Week-agenda (W20):
+Monday     11 May 2026 W20
+Tuesday    12 May 2026
+Wednesday  13 May 2026
+Thursday   14 May 2026
+  tasks:      Scheduled:  TODO Water plants
+Friday     15 May 2026
+  tasks:      Scheduled:  TODO Overdue report                             :work:
+Saturday   16 May 2026
+  tasks:      23:00...... TODO Check mail
+Sunday     17 May 2026
+               2:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+               8:00...... ----------------
+              10:00...... ----------------
+              12:00...... ----------------
+              14:00...... ----------------
+              16:00...... ----------------
+              18:00...... ----------------
+  tasks:      20:00...... Scheduled:  TODO Stretch
+              20:00...... ----------------
+  tasks:      22:00-23:00 Meeting
+  tasks:      23:00...... TODO Check mail
+  tasks:      Sched. 3x:  TODO Water plants
+  tasks:      Sched. 2x:  TODO Overdue report                             :work:
+  tasks:      Scheduled:  TODO Call Ann                                   :work:
+  tasks:      In   1 d.:  TODO Pay rent                                   :home:
+  tasks:      In   3 d.:  TODO Plan trip
+  tasks:      TODO Shave                                *  * !       

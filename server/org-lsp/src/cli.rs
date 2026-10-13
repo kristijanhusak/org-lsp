@@ -147,6 +147,7 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
         config.tag_alist = tags.alist;
         config.tag_persistent_alist = tags.persistent;
         config.group_tags = tag_options.group_tags.unwrap_or(true);
+        config.extend_today_until = tag_options.extend_today_until.unwrap_or(0);
     }
     config.show_log |= log;
     config.clockreport |= clockreport;

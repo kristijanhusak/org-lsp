@@ -75,6 +75,7 @@ fn block_config(
         tag_alist: priorities.tag_alist,
         tag_persistent_alist: priorities.tag_persistent_alist,
         group_tags: priorities.group_tags,
+        extend_today_until: priorities.extend_today_until,
         ..options.to_config()
     };
     Ok((options, config))

@@ -137,6 +137,8 @@ def bindings(options):
             out["org-log-into-drawer"] = lisp_value(value)
         elif key == "org_tags_column":
             out["org-tags-column"] = str(value)
+        elif key == "org_extend_today_until":
+            out["org-extend-today-until"] = str(value)
         elif key == "org_todo_repeat_to_state":
             out["org-todo-repeat-to-state"] = lisp_value(value)
         elif key == "org_adapt_indentation":
