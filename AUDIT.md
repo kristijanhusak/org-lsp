@@ -1,200 +1,155 @@
-# Audit findings, round three
+# Audit findings, round four
 
-A third review of org-lsp after the second round's fixes landed on `main`
-(PRs #221 to #225). This file replaces the earlier rounds; their text is in
-this file's git history. Parts:
+A fourth review of org-lsp after the third round's fixes landed on `main`
+(PR #227) together with #226 (`%(…)` in `org-agenda-prefix-format` through
+Emacs). This file replaces the earlier rounds; their text is in this file's
+git history. Parts:
 
-1. the status of every round-two finding,
-2. regressions from the round-two fixes,
-3. new findings, in areas no round had examined for correctness before:
-   the editing commands, agenda rendering, the standard LSP features, and
-   files outside the workspace,
+1. the status of every round-three finding,
+2. regressions and residue from those fixes, and a review of #226,
+3. new findings in areas no round had examined for correctness: tags,
+   properties, priorities, sparse trees, motion and link search; org-roam
+   and org-journal; the docs website,
 4. what was checked and found sound.
 
 "Verified" means the trigger was run here; "unverified" means established
-by reading. No Emacs or Org sources are on this machine, so "what Emacs
-does" comes from the reviewers' knowledge of Org 9.8 and from the recorded
-cases under `tests/`. `check.sh` passes on the merged tree; one test
-(`offers_commands_as_actions_and_asks_with_buttons`) failed once under
-heavy load and passes alone, see 3e.
+by reading. `check.sh` passes on the merged tree (the VS Code type check
+needs `npm ci` in `editors/vscode` first in a fresh container). One
+reviewer fetched Org 9.8.10's `org.el` and `org-table.el` to settle three
+questions by source; everything else about Emacs comes from memory and the
+recorded cases.
 
-Deliberately left as they are, per the maintainer: diagnostics debounce,
-caching the workspace file list, Sublime file-and-position paths, coc.nvim
-on Windows and the Neovim edit version check, roam finalize and
-jump-to-captured after a refiled capture, the encryption docs, tangle
-paths, the synchronous Enter/o/Tab waits, and the `zed-extension` hash
-(still 403 from here).
+A correction to round three: **E3 was wrong.** `org-table--shrink-columns`
+(Org 9.8.10, `org-table.el:4176-4183`) sets `align` and `width` only when
+unset, so the *first* alignment and the *first* width of a column win, each
+on its own, and its regexp requires digits so `<l>` alone is not a cookie.
+The fix in #227 does exactly this.
+
+Deliberately left as they are, per the maintainer (unchanged list):
+diagnostics debounce, caching the workspace file list, Sublime
+file-and-position paths, coc.nvim on Windows and the Neovim edit version
+check, roam finalize and jump-to-captured after a refiled capture, the
+encryption docs, tangle paths, the synchronous Enter/o/Tab waits, and the
+`zed-extension` hash.
 
 ---
 
-## 1. Status of the round-two findings
+## 1. Status of the round-three findings
 
 | ID | Finding | Status |
 | --- | --- | --- |
-| R1 | Emacs killed by short calls during a slow start | Fixed, verified with a stand-in Emacs: short calls after a slow start succeed, a hung call is killed and the next call restarts Emacs, parallel calls during start-up share one Emacs |
-| R2 | formula cycle cap costs 1.6 s | Fixed, verified: legitimate repeated references all evaluate, real cycles refused in milliseconds |
-| R3 | `catch_unwind` leaves a document inconsistent | Fixed. Note `Document::apply` now clones the whole text and `LineIndex` per `didChange` (`document.rs:71-101`); fine for normal files, a copy per keystroke on a 10 MB one |
-| R4 | `write_whole` replaces a symlink | Fixed for live symlinks and symlinked parents. A dangling symlink still becomes a regular file (`canonicalize` fails), and a hard link is still broken by the rename |
-| R5 | silent "no" to Emacs questions | Fixed ("prompt (y or n) n" messages) |
-| R6 | temp directories created eagerly | Fixed for five of six; `view_directory` (`server.rs:1234`) is still made at start |
-| R7 | port read timeout per read | Fixed (whole-line deadline) |
-| R8 | `src.lua` duplicate blocks | Fixed; the undo-within-debounce case was not addressed (not verifiable here) |
-| N1 | capture clocks the wrong entry after the target changed | Fixed, verified |
-| N2 | clock history by title | Fixed (`ClockTask { uri, offset, title }`) |
-| N3 | bulk actions on same-headline entries | **Partly fixed**: the loop re-maps the marks, but the "kept marked" path still collapses, see 2.1 |
-| N4 | agenda `S-right` after an unsaved edit | Fixed, verified with two extra cases |
-| N5 | capture abort leaves the clock stopped | Fixed |
-| N6 | capture refile drops the clock | Fixed except the deliberate part, but see 2.2 |
-| N7 | rejected `applyEdit` believed applied | Fixed for `edited` and `running`; see 2.4 for what is left |
-| D2 | non-atomic writes | Fixed: tangle, Emacs results and the agenda export go through `replace_whole` |
-| D5 | hung Emacs never recovers | Fixed for `call()` jobs; **`start()` jobs still hang forever**, see 2.3 |
-| P6 | roam directory walk | Fixed (each canonical directory once) |
-| S5 | ImageMagick | **Still synchronous** (`images.lua:202`, `vim.system(...):wait()` with 10 s). Cache bounded to 64 entries by count, not bytes; disk cache pruned after 30 days; failures no longer cached |
-| S11 | `install.sh` | Fixed |
-| B3 | Emacs script timeouts | Fixed; the fuzzers still never run in CI |
-| 2c | VS Code double restart, Sublime `image_size`, Neovim phantom buffers | Fixed; see 2.6 and 2.7 for residue |
-| 3a.1-4, 3b.1-10 | parity docs | Fixed and regenerated; every new claim was checked against the code and holds, except 3a.3's schema half (2.9) and the Zed checks in 2.8 |
+| 2.1 | persistent marks lost after bulk actions | Fixed for `s`/`d`; **still lost for actions that rewrite adjacent headlines**, see 2.1 below |
+| 2.2 | refiled capture's clock points at the wrong file | Fixed, test passes |
+| 2.3 | hung `start()` job holds Emacs forever | Fixed (`LATER_TIME` 1800 s, `Done { Err }` delivered, Emacs restarted) |
+| 2.4 | rejected `applyEdit` clock residue | Fixed (`ClockState` restored only when the command changed the clock) |
+| 2.5 | `Caller::call` abandons a job | Fixed (`begun` set before `starting` cleared) |
+| 2.6 | VS Code restart chain | Fixed; `deactivate` is still outside the chain, see 2.6 below |
+| 2.7 | Neovim buffer lookup, image cache | Fixed; two small residues, see 2.7 below |
+| 2.8 | Zed over-claimed checks | Fixed (exactly the three named) |
+| 2.9 | `stuck` in the schema | Fixed, generated |
+| R4 | `write_whole` and symlinks | Fixed for dangling links; hard links are written in place and that write is not atomic, see 2.3 below |
+| R6 | view directory made eagerly | Still made at `initialize` for clients without virtual documents (`server.rs:1269`, `prompt_file`); verified with the binary, removed at exit |
+| E1 | `#` rows refuse TAB | Fixed, five Emacs cases recorded, cursor back in its column |
+| E3 | shrink cookies | Fixed; the audit was wrong, see above |
+| E4 | CRLF tables | Fixed for pure-CRLF files (TAB, `C-c RET`, `#` rows, `#+TBLFM`, recalculation, formatting all restore `\r`); **mixed endings still mangled**, see 2.4 below |
+| A1 | `<+Nm>`/`<+Ny>` | Fixed (31 and 365.25 days); `<+Nh>` is still a time comparison where Emacs compares strings (`matcher.rs:309`), and an unknown unit becomes time 0 |
+| A2 | `PRIORITY` as text | Fixed, matches 9.8.10's `org-priority-to-string` |
+| A4 | `org-class` split | Fixed |
+| L1 | diagnostics on close | Fixed |
+| L2 | non-ASCII URLs | Fixed; a bare `%` (`https://example.com/100%`) is still dropped since `%` is kept as is and then fails to parse |
+| L3 | shutdown handling | Fixed, verified with the binary (codes, `InvalidRequest`, cleanup) |
+| L4 | code action kinds | Fixed (`org` and `quickfix` announced; `only: ["org"]` works) |
+| L5 | link path normalisation | Fixed for `./`, `../`, `~/`, `USERPROFILE`; `~name/` for an unknown user becomes `<home parent>/name` (`server.rs:4281-4284`) where Emacs leaves it alone, and real homes outside the parent directory are wrong |
+| W1 | symlink spellings | Fixed for `file_text` and `agenda_files` with a per-document cache; `id_paths`/`ids_on_disk` (`server.rs:4381-4418`) still compare by spelt path, so an ID removed in the editor stays known from disk until the next scan |
+| W2 | `**` glob loops | Fixed |
+| 3e | test waits | Fixed (10 s and 5 min) |
+| S5 | ImageMagick synchronous | **Still synchronous** (`images.lua:208`, `:wait()` with 10 s on the main loop). Not on the maintainer's left-as-is list |
 
 ---
 
-## 2. Regressions and residue from the round-two fixes
+## 2. Regressions and residue from the round-three fixes, and #226
 
-### 2.1 Medium — Persistent agenda marks are lost after any bulk action
-`server/org-lsp/src/server.rs:2651-2665` (the new `follow` on `didChange`) with `server/bulk.rs:567-585`. `kept` is resolved against the staged (new) text, so its offsets are in new-text coordinates; the view rendered at the end of `run_bulk` is still from the old text, and when the editor's `didChange` arrives the new follow shifts the kept marks again, so they match no line (marks match by `EntryRef` equality, `views.rs:280`).
-**Verified**: `* TODO Alpha\n* TODO Beta\n* TODO Gamma\n`, persistent marks, mark all, bulk `s`, apply the edit: only Alpha stays marked. On the commit before the fix all three stayed marked.
-Also, `kept` is built from the original `agenda_marks` resolved by nearest same head, so with `* TODO Review\n* TODO Review\n` a bulk `s` then bulk `d` says "Acted on 2 entries (kept marked)" but only the first gets the DEADLINE (the N3 residue).
-Fix: keep `kept` in old-text coordinates (the followed marks' original offsets, with the head from the staged entry) so the `didChange` follow brings them to the new text; or skip following `agenda_marks` for a `didChange` the server caused itself (`self.edited` holds the key).
+### 2.1 Medium — Persistent marks are still lost by any bulk action that rewrites adjacent headline lines
+`server/org-core/src/todo.rs:1753-1795` (`edits`) with `server/org-lsp/src/document.rs:50-58` (`Change::moved`) and the follow at `server.rs:2776-2790`. When a run of changed lines has no common line, `edits` emits one block edit covering all of them; the server's own `applyEdit` for bulk `t`, `+tag` and the like is therefore a single edit spanning every marked headline. The editor applies it as one change, `Change::moved` sends every offset inside the block to its start, and the follow puts the second and later marks mid-way through the first headline.
+**Verified** over LSP: `#+TODO: TODO NEXT | DONE`, three `* TODO` headlines, persistent marks, mark all, bulk `t` to NEXT, apply the edit as whole text or incrementally: only Alpha stays marked, and the next bulk `s` says "Acted on 1 entries, skipped 2 (disappeared before their turn)". The merged test uses only `s` and `d`, which insert lines after headlines.
+Fix: in `todo::edits`, when a block replaces n lines by m, pair them one to one as separate edits (the edits get smaller for editors too); or re-attach kept marks by `views::resolve` after the `edited` refresh.
 
-### 2.2 Medium — `org.capture.refile` with `:clock-in :clock-keep` leaves the running clock pointing at the wrong file
-`server.rs:8257-8290` (`refile_capture` → `clock_capture` sets `self.running` with the capture target's URI at 8159), then `refile_from` moves the entry to another file.
-**Verified** on disk files: capture into `notes.org`, refile to `other.org`: the CLOCK line is correctly under the entry in `other.org`, but `org.clock.out` then fails with "Clock start time is gone" and the clock display stays pending. Same-file refile works.
-Fix: after a successful refile set `running.uri` and `last_clocked` to the destination, or `self.running = self.find_running()` after staging.
+### 2.2 Medium-low — `%(…)` prefix forms (#226) block the main loop on every view build
+`server.rs:4845`: `render_with`/`org_text` call `self.emacs.call("agenda-prefix", …, 10 s)` synchronously on every agenda build: every `didSave` of any open file (`refresh_view`), every server-caused `didChange`, every agenda command that re-renders, and the first call also waits for Emacs to start. Emacs creates a buffer per agenda file and runs `org-mode` on the full text (`bridge.el:514-524`). A slow form over many entries past 10 s is LATE, which kills Emacs and empties every field with a warning. The view is also built twice whenever any form is missed. Unverified by execution (no Emacs here).
+Suggest a `Later` job with the view rebuilt on `Done`, as exports do, or a size-dependent deadline.
+Otherwise #226 is sound: the form comes only from settings (never from a document), crosses as JSON and is `read` and evaluated in Emacs with no string interpolation, one batched call per render deduplicated by form and entry, one failing form empties its line only, no Emacs or a timeout gives one warning. The trust boundary is the same as `emacs_config` and diary sexps already have. One fragility: the `Evaluator` is attached to `self.agenda` at start (`server.rs:1314`), so any future rebuild of `AgendaConfig` from options must carry it over or forms silently go empty.
 
-### 2.3 Medium-low — A hung `start()` job holds Emacs forever
-`server/org-lsp/src/emacs.rs:216-224`, `322-325`: `Reply::Later` jobs (export, publish, tangle through Emacs, column view, LaTeX preview) have `timeout: None`, so `request` does `process.lines.recv()` with no deadline. The Emacs thread blocks for the session, every later `call()` reports "did not answer in time", no `Done` event comes, Emacs is never killed.
-**Verified** with the stand-in Emacs: `start("hang")`, then `call("ping", 300 ms)` is LATE, still LATE 2 s later, no events.
-Fix: a generous deadline (minutes) for `Later` jobs with `Done { Err }` on expiry, or keep the child handle where the server loop can kill it.
+### 2.3 Low — Hard links are written in place, non-atomically
+`server.rs:2221-2229` (`replace_whole` for `nlink > 1`): `truncate(true)`, then `write_all`, then `sync_all`. A crash or full disk between the truncate and the write loses the file's contents, where every other write is now atomic. The commit calls it "as Emacs writes it", which is true. Acceptable if documented; otherwise write a temp file first and copy its bytes back on success, which keeps both names.
 
-### 2.4 Low — Rejected `applyEdit` residue
-`server.rs:2335-2360`: the clock state undone is `running` and `clock_pending` only; `clock_history`, `clock_interrupted`, `last_clocked` and `clock_out_time` set in `clock_in_after` (12967-12985) stay, so `org.clock.in.last` afterwards clocks into an entry that was never clocked. And `self.running = find_running()` runs for any refused edit, not only clock ones: a running clock in a file that is neither open nor an agenda file is dropped. Unverified.
+### 2.4 Low — Mixed line endings are still mangled
+`text::crlf` is true only when every line ends in `\r\n`. **Verified**: `| a | bb |\r\n|-\n| ccc | 1 |\r\n` still gets `\r` as a cell from `table::run` and `format::format`. Suggest converting whenever any `\r\n` is present and remembering per line, or treating a file as CRLF when most lines are.
 
-### 2.5 Low — `Caller::call` can abandon a job Emacs is about to run
-`emacs.rs:149-162` vs `194-216`: the thread clears `starting` before it records `begun`; a caller polling in that window sees "not sent, not starting" and gives up, and the result goes to a dropped receiver. Microsecond window, unverified. Fix: record `begun` before `starting.store(false)`.
+### 2.5 Low — Whole-text `didChange` cost
+`todo::edits` builds an LCS table up to 4 000 000 cells; a 2 000-line file whose first and last lines both change takes about 200 ms per `didChange` in a debug build, then falls back to one edit above the cap. Only clients that send full text pay it (the server announces incremental sync). The `Vec<Vec<u32>>` could be one flat `Vec`.
 
-### 2.6 Low — VS Code restart chain gaps
-`editors/vscode/src/extension.ts:671-681`: the chain serialises restarts correctly, but if `stopClient` rejects (stopping a dead server) `startClient` is skipped and no client runs until the next manual restart; and the config listener (`:2028`) is registered before activation's own `startClient` (`:2051`), which is outside the chain, so a settings change during activation can start two clients. Unverified.
+### 2.6 Low — `deactivate` is outside the VS Code restart chain
+`editors/vscode/src/extension.ts:2131-2133`: `deactivate` calls `stopClient()` directly. If it runs while a restart is between its stop and its start, it stops nothing and the chained `startClient` starts a server after deactivation. Unverified. Fix: `restarting = restarting.catch(() => undefined).then(stopClient); return restarting;`.
 
-### 2.7 Low — Neovim buffer lookup and image cache details
-- `lua/org-lsp/buffers.lua:11` matches by exact string, while the old `vim.uri_to_bufnr` went through `bufadd`, whose name comparison is case-insensitive on Windows and macOS. A server-composed URI (agenda files from settings, journal, roam) differing in drive-letter or path case now finds no buffer, so `org-lsp/columns`, `folds`, `images` and `view.save` silently do nothing for it. Fix: `vim.fn.bufnr(name)` (finds without creating) or compare normalised paths.
-- `images.lua:166-168`: the prune condition needs `atime`; on `noatime` mounts a PNG shown daily but converted over 30 days ago is deleted and reconverted synchronously once a month. A partial PNG left by a Neovim killed mid-conversion fails `png_size` and is treated as "no image" for the session without being removed (`:211-215`).
-
-### 2.8 Low — The Zed parity fix over-claims three checks
-Changing `ZED_TEXT` and dropping `not: ['zed']` in `scripts/features.mjs` turned three areas to `part` for Zed, so checks now render in `editors/zed/TESTING.org` that Zed cannot pass: journal "the other entries of the file are folded" (`features.mjs:504`, rendered at `TESTING.org:209`) while the same area's Zed note says Zed lets no server fold; the notes area (`:859-861`, rendered at `:330-333`) says a note buffer opens, contradicting its own Zed note that a note is one line; `org.schedule` with `org_log_reschedule = "note"` (`:671`). Fix: restore `not: ['zed']` on those checks.
-
-### 2.9 Low — `stuck` is missing from the custom-command schema
-`server/org-lsp/src/settings.rs:2116` and `2121` still have `"enum": ["agenda", "alltodo", "todo", "tags", "tags-todo", "search"]`, so `docs/config.schema.json` and VS Code's `package.json` flag `type = "stuck"` invalid although `custom.rs:102` accepts it and `configuration.org` now lists it. Fix: add `"stuck"` and regen.
+### 2.7 Low — Image cache residue
+`lua/org-lsp/images.lua:205-214`: the temporary name is `png .. '.part'`, the same for every converter of a key, so two Neovim instances previewing the same new image can leave a truncated PNG that `png_size` then rejects and `remember(key, false)` keeps for the session without removing the file. Orphaned `.part` files are never pruned (`prune` matches `%.png$` only, `:168`). Fix: a per-process suffix, prune `.part` too, remove a cached PNG when `png_size` fails on it.
 
 ---
 
 ## 3. New findings
 
-### 3a. Editing commands (tables, lists, structure, links, timestamps)
+### 3a. org-journal and org-roam
 
-#### E1. Medium — TAB, S-TAB, `C-c RET` and `C-c C-c` are refused on any table row marked `#`
-`server/org-core/src/table.rs:670` (`maybe_recalculate_line` returns an error), called from `next_field` (`:681`), `previous_field` (`:722`), `hline_and_move` (`:1018`) and `Command::Align` (`:103`); `server.rs:11210` turns it into a refusal with no fallback. In Emacs `org-table-maybe-recalculate-line` recalculates the line and the command continues, so TAB moves on. The `#` mark is what the manual recommends for automatic recalculation; in such tables the main navigation key is dead.
-**Verified**: `| # | 1¦ |  |\n#+TBLFM: $3=$2*2\n` with next field gives the error; expected `| # | 1 | ¦2 |`.
-Fix: on that error run the line recalculation the server already has and re-run the table command on the result.
+#### J1. High — Any journal file format with `%a`, `%A`, `%b` or `%B` turns org-journal off
+`server/org-core/src/journal.rs:264` emits `\p{Alphabetic}` for Emacs's `[[:alpha:]]`, but `server/org-core/Cargo.toml:12` builds `regex` without the `unicode-bool` feature, so the pattern fails to compile ("Unicode property not found") and `Files::new` (`journal.rs:300-303`) silently falls back to a regex that never matches. The same happens to `created_pattern` (`journal.rs:460`) when the CREATED timestamp format has a day or month name.
+**Verified** (the regex failure reproduced independently): with `org_journal_file_format = "%Y-%m-%d-%A.org"`, no file is a journal file; a new entry fails with "Failed to extract year from file", previous-entry says "called outside calendar/org-journal mode", search and the agenda see nothing; with `%A` in the CREATED format every entry of a weekly file errors "doesn't match CREATED property value". Emacs matches these names.
+Fix: add `"unicode-bool"` to the regex features, or emit `[\p{L}\p{M}\p{Nl}]`, and make `Files::new` and `created_pattern` report a build error instead of swallowing it.
 
-#### E2. Low — Table alignment ignores `org_link_descriptive`, `literallinks` and `org_hide_emphasis_markers`
-`server/org-core/src/table.rs:136` (`hidden_parts`, unconditional) and `format.rs:133`; `Server::table` (`server.rs:11195`) passes no display settings. Links are always measured at the description's width and emphasis markers always counted, while Emacs measures the fontified text: with `org-link-descriptive` nil the column is the full link width, with `org-hide-emphasis-markers` t `*bold*` counts 4. The result is a table Emacs realigns on `C-c C-c`. Unverified against Emacs, certain from its mechanism.
+#### J2. Medium — `id:` links to org-roam nodes cannot be followed unless the node's file is open or an agenda file
+`server/org-lsp/src/server.rs:4379-4389` (`id_paths`: open documents, then agenda files) and `:4438-4446` (`find_id`), used by `open_location`, hover and go-to-definition; nothing consults the roam database. In Emacs org-roam's `org-roam-id-open` finds the node in the database, and `org-roam-db-sync` registers every node in `org-id-locations`.
+**Verified** over LSP: `a.org` holds `[[id:b-id][B]]`, `sub/b.org` holds the headline node; `org.open` answers `Cannot find entry with ID "b-id"`, definition is `null`. `known_ids` uses the same lookup, so lint likely flags such links as unknown (unverified).
+Fix: in `find_id` and `known_ids`, when roam is on, look the ID up in the roam database.
 
-#### E3. Low — A column with several width cookies uses the first; Emacs uses the last of each kind
-`server/org-core/src/shrink.rs:84`: the first cookie of a column wins, with alignment and width from that one cookie. `org-table--shrink-columns` lets every later `<l>`/`<r>`/`<c>` and `<N>` overwrite, separately.
-**Verified**: `| <l> |\n| <5> |\n| <r3> |\n| abcdefghijkl |` shrinks to a bare `…` here; Emacs shrinks to 3 characters, right-aligned. Rare, cosmetic.
+#### J3. Medium — Capturing to an existing headline node with a `file`/`file+head` template duplicates the node's ID at the file level
+`server/org-lsp/src/server/roam.rs:468-492` (existing node: `file` is the node's file, `id` the headline's ID) and `server/org-core/src/roam/capture.rs:124-187` (for `file` targets `id_point = 0`, and the ID is written there when the file has none).
+**Verified** (org-core): `#+title: Notes\n\n* Alpha\n:PROPERTIES:\n:ID: alpha-1\n:END:\n`, capture to node `alpha-1`: the file gains a file-level `:ID: alpha-1` while `* Alpha` keeps its own; `Db::add` then keeps the file node and drops Alpha, so backlinks and finds point at the wrong node. The Emacs side is from memory (org-roam creates a fresh ID at the target point rather than copying the node's); either way Emacs does not make two entries with one ID. Worth a recorded case; the capture recorder only covers new nodes.
 
-#### E4. Low — CRLF files: formatting corrupts tables and table edits mix line endings
-`server/org-core/src/format.rs:38` (`text.split('\n')`) and `:102-114` (`row()` reads up to `|`, so the trailing `\r` becomes an extra cell), reached from `textDocument/formatting` and `rangeFormatting` (`server.rs:3415`, `3440`).
-**Verified**: formatting `| a | b |\r\n|-\r\n| 1 | 2 |\r\n` returns edits making every row `| a | b | \r  |` and the rule three columns; the `org.table.recalculate` action drops the `\r`s, leaving mixed endings; `:t:\r` is not seen as a tag group. LF text is correct and idempotent; parsing, tokens, folds and symbols on CRLF are right. Windows editors default to CRLF, so format-on-save mangles every table there.
-Fix: strip a trailing `\r` per line in the table and format paths and put it back, or normalise to LF for org-core and map edits back.
+#### J4. Low-medium — `immediate_finish`, `jump_to_captured` and `clock_in` are ignored on roam capture templates
+`server/org-lsp/src/server/roam.rs:644-669` (`roam_template` drops them) and `:510-528` (always `show_capture`). `plugins.org` says the templates are written as `org_capture_templates`, where `immediate_finish` is documented; in Emacs org-roam's templates go through `org-capture`, so `:immediate-finish t` files the node at once.
+**Verified** over LSP: a template with `immediate_finish` and a new title shows a capture buffer and writes no file.
 
-Options named in the Org manual that have no setting here, so the defaults always apply (not in `parity.org`): `org-list-allow-alphabetical`, `org-list-indent-offset`, `org-M-RET-may-split-line`, `org-insert-heading-respect-content`, `org-table-tab-jumps-over-hlines`, `org-list-demote-modify-bullet`. A formula typed into a cell (`=$1*2`) is refused with a message pointing at `#+TBLFM`, deliberate but undocumented.
+#### J5. Low — Carryover can delete a journal file the editor has open
+`server/org-lsp/src/server/journal.rs:381-384`: a file org-journal emptied (`org_journal_carryover_delete_empty_journal`) is removed from disk even when open in the editor; the buffer still holds the old entry with the items just moved to today, and saving writes it back, so the items exist in both files. Emacs kills the buffer first. Unverified. Fix: refuse to delete an open file, or send an edit emptying it.
 
-### 3b. Agenda rendering and matching
+Documented but worth a sentence: `format_time` writes `%x`, `%A`, `%p` in the C locale. A journal Emacs kept under `en_US.UTF-8` has `* Friday, 10/09/2026` headings; org-lsp looks for `* Friday, 10/09/26`, finds none, and adds a second date heading for the day. Also, org-lsp neither reads nor writes `org-id-locations-file`; the docs do not say so.
 
-#### A1. Medium — `"<+Nm>"` and `"<+Ny>"` in a match string use 30 and 365 days; Emacs uses 31 and 365.25
-`server/org-core/src/agenda/matcher.rs:309-310`. `org-matcher-time` uses 2 678 400 s (31 days) and 31 557 600 s (365.25 days); `clocktable.rs:838-839` already has those values, so the two disagree.
-**Verified** on the org-lsp side: `SCHEDULED<"<-1m>"` on 2026-10-12 lists an entry scheduled 2026-09-11; Emacs's threshold is 09-11 00:00, so it does not. Also, Emacs only treats `[dmwy]` units as times, so `"<+2h>"` is a string comparison there.
-Fix: share `clocktable::matcher_time`.
+Not implemented and not documented as missing while `parity.org` reads the roam section as complete: org-roam dailies entirely (directory, capture templates, the `org-roam-dailies-*` commands; `plugins.org` only says `file+datetree` is refused), `org-roam-node-formatter`, `org-roam-db-node-include-function`, `org-roam-db-extra-links-elements` and `-exclude-keys` (hard-coded), `org-roam-extract-subtree`, `org-roam-refile`, `org-roam-promote/demote-entire-buffer`, `org-roam-ref-find`, `org-roam-graph`; org-journal `org-journal-carryover-headings-only`, `org-journal-find-file`, `org-journal-follow-mode`, `org-journal-enable-cache`, `org-journal-encrypt-on`.
 
-#### A2. Low-medium — `PRIORITY="5"` never matches with numeric priority cookies
-`matcher.rs:429-433`: the cookie's value is converted through `priority::value` and `char::from_u32`, so `[#5]` yields `"\u{5}"`. Emacs's `PRIORITY` special property is the cookie's text; only the default falls back to the character.
-**Verified**: `#+PRIORITIES: 1 9 5`, `* TODO [#5] five`, match `PRIORITY="5"` prints nothing; Emacs lists it. Related: `item.rs:647-659` reads cookies as one capital or 0 to 64, while `org-priority-regexp` is `[A-Z0-9]+`, so `[#100]` and `[#AB]` sort differently.
+### 3b. Tags, properties, priorities, sparse trees, motion, link search
 
-#### A3. Low-medium (unverified) — A multi-day range whose ends carry the same time shows no time on the days between
-`agenda/mod.rs:794-799`: `dotime` is `None` when neither end has a time flag. In `org-agenda-get-blocks` the first branch is `(string= hhmm1 hhmm2)`, so when both ends have the same time the full `<a>--<b>` text is the `dotime` on every day and the first stamp's time goes in the prefix. `<2026-10-12 Mon 10:00>--<2026-10-14 Wed 10:00>` on 10-13 shows `(2/3):` with no `10:00......` here. With no times on either end nothing differs, which is why the recorded cases pass.
+All low; nothing corrupts text or loses data.
 
-#### A4. Low — `%%(org-class …)` text is not split on `"; "`
-`agenda/diary.rs:243-248` returns `Value::Entry`, one line. `org-class` returns a bare string, which `org-diary-sexp-entry` splits, so `Lecture; Room 5` is two agenda lines in Emacs. Fix: return `Value::Str`.
+- **`file:x.org::/regexp/` and `[[/regexp/]]` are refused** (`server/org-core/src/open.rs:661-663`, "Searches by regular expression are not supported"). `org-link-search` runs `org-occur` and shows a sparse tree. Verified. Not in `parity.org`. Fix: route `/…/` searches through the sparse-tree path, or document.
+- **Setting `SCHEDULED`/`DEADLINE` as a property is refused** (`properties.rs:842`, "Set SCHEDULED with its own command"). `org-entry-put` calls `org-schedule`/`org-deadline` with the value (empty removes). Verified. Fix: return a planning change and route it, or document.
+- **Priority changes realign tags even with `org_auto_align_tags` off** (`edit.rs:220-225` builds `priority::Settings` without the flag; `priority.rs:306` always pads). `org-priority` ends with `(when org-auto-align-tags (org-align-tags))`. Certain from the mechanism; visible only with the option off.
+- **`S-up`/`S-down` do not see cookies Emacs reads** (`priority.rs:169-181` accepts one alphanumeric or 10 to 64; `org-priority-regexp` is `[A-Z0-9]+`). Verified: `* [#AB] x` + up gives `* [#B] [#AB] x`, two cookies. Garbage in, but Emacs removes the out-of-range cookie instead.
+- **`C-c C-c` on a headline whose LOGBOOK holds a checkbox item** (`checkbox.rs:138-142` skips drawers before the first item; `org-toggle-checkbox` takes the first item after the heading, drawer or not, as the reference box). Unverified; worth one recording from the headline.
+- **"Setting file tags is not supported yet"** (`tags.rs:534`): whether Org 9.8's `org-set-tags-command` sets `#+FILETAGS` before the first headline or errors could not be settled from memory; no recorded case has the cursor there. Worth a recording.
 
-#### A5. Low — Minor matcher and format divergences (verified on the org-lsp side)
-- `matcher.rs:286-289`: `!=` and `/=` are accepted as operators; Emacs's regexp is `[<>=]{1,2}`, so `PRIORITY!="A"` is a tag there. `LEVEL="2"` matches here; `LEVEL` is not a string property in Emacs.
-- `mod.rs:1510` (search view `!`/`S`): the open-keyword test uses a word boundary; Emacs's `org-not-done-regexp` against the entry text has none, so `* TODOX` and a deeper `TODO` child under `org-agenda-search-view-max-outline-level` pass there.
-- `mod.rs:917-922` (log mode): the note is placed before any tag group; Emacs's regexp only matches a single tag, so with `:a:b:` the note lands after the tags, then the tags are re-added (`Title :a:b: - note   :a:b:`). Worth a recording; unverified.
-- `mod.rs:776` (`blocks`): a range inside a comment or src block is shown by Emacs and skipped here (arguably Emacs's bug).
-- `diary.rs:170-190` (`format_count`): `%d`/`%s` taken in order of appearance; Emacs's `format` is positional.
-- Clock sums (`clock.rs:422`) and `<+Nh>` work in wall-clock minutes; Emacs in epoch seconds, so a clock across the autumn DST change is an hour longer there.
+Options named in the manual with no setting here (defaults always apply; not in `parity.org`): `org-id-method`, `org-id-prefix`, `org-id-ts-format` (IDs are always UUIDs), `org-property-format`, `org-effort-durations`, `org-fast-tag-selection-include-todo`, `org-tags-match-list-sublevels`, `org-occur-case-fold-search`, `org-sparse-tree-default-date-type`, `org-link-search-must-match-exact-headline` (no "create as a new heading?" offer either), `org-priority-enable-commands`, `org-indent-indentation-per-level`, `org-description-max-indent`, `org-cite-insert-processor`.
 
-Agenda options with no setting here, so the defaults always apply (not in `parity.org`, whose agenda section reads as complete): `org-agenda-sorting-strategy`, `org-agenda-todo-ignore-*`, `org-agenda-skip-scheduled-if-deadline-is-shown`, `-skip-deadline-prewarning-if-scheduled`, `-skip-scheduled-delay-if-deadline`, `org-agenda-prefer-last-repeat`, `org-agenda-category-icon-alist` (`%i` is always empty), `org-agenda-include-diary`, `org-agenda-remove-times-when-in-prefix 'beg`, `org-sort-agenda-notime-is-late nil`.
+### 3c. Docs website
 
-### 3c. Standard LSP features
-
-#### L1. Low-medium — Diagnostics of a closed document are never cleared
-`server.rs:2699-2712` (`DidCloseTextDocument`): the document is removed, `self.diagnosed` is left, no empty `publishDiagnostics` is sent. **Verified**: open `[[*Missing]]`, two lint items published, close, nothing follows. VS Code, Sublime and Neovim's diagnostic list keep them, so the Problems panel shows lint of closed files, stale after the file is edited elsewhere. Fix: on close, if `diagnosed.remove(key)`, publish an empty list.
-
-#### L2. Low-medium — Links whose URL has a non-ASCII character are dropped from `documentLink` and go-to-definition
-`server.rs:3626`: `Ok(Open::External(url)) => (url.parse::<Uri>().ok(), None)`; `fluent-uri` refuses `https://example.com/é`, so target and data are both `None` and the link is skipped at `:3634`. **Verified**: of `[[https://example.com/é]]`, `https://example.com/日本` and `[[https://example.com/a%20b]]` only the third is returned, and definition on the first is `null`. Emacs opens all three. Fix: percent-encode bytes outside RFC 3986's set before parsing, as `uri::from_path` does for paths.
-
-#### L3. Low — A message between `shutdown` and `exit` kills the server without a response or clean-up
-`server.rs:1462-1464`: `lsp_server::Connection::handle_shutdown` returns an error for anything after `shutdown` that is not `exit` (a request, which the spec says to answer with `InvalidRequest`; a `$/cancelRequest` or `didClose`, which some clients send while stopping), and the `?` leaves `run` before the clean-up at `:1492-1509`. **Verified** with the binary: `shutdown`, then `foldingRange`: no reply, exit code 1, the view directory left behind. Also `exit` without `shutdown` exits 0 (spec: 1). Fix: handle `shutdown` in the loop with a flag, answer later requests with `InvalidRequest`, ignore notifications, break on `exit`.
-
-#### L4. Low — `codeActionProvider.codeActionKinds` lists 13 kinds; `code_actions` returns many more
-`server.rs:2006-2008` vs `:3200+`: `org.meta.right`, `org.shiftmeta.*`, table row/hline/width actions, `org.archive.*`, `org.clock.in` and, with `more_actions`, every command are returned but not announced. A client building menus or `only` filters from the announcement never sees them. Fix: announce what is offered, or the `org` prefix.
-
-#### L5. Low — `file:` link targets are not normalised
-`server.rs:4128-4137` (`link_path`) joins `./rel.org` onto the directory as is, so `documentLink` for `[[./rel.org]]` in `/tmp/x.org` has `target: file:///tmp/./rel.org`; clients comparing URIs do not match it to the open buffer. Also `~` expands only with `HOME`, not `USERPROFILE` (`Workspace::expand` handles both), and `~user/` is unsupported (Emacs expands it). Fix: lexically normalise `.` and `..`, keep symlinks.
-
-### 3d. Files outside the workspace and symlinks
-
-#### W1. Medium-low — An open file is not recognised as an agenda file when the folder and the editor spell its path through different symlinks
-`server.rs:4345-4357` matches open documents to `workspace.files()` by decoded path, not canonical path; `id_paths`, `ids_on_disk` (`4202-4255`) and `file_text` (`4141-4151`) compare the same way. **Verified**: the root folder given as a symlink to the real directory, the editor opens `work.org` by the real path with an unsaved extra entry: the agenda shows the disk copy, and an agenda command on such an entry edits the disk-path URI with `version: null` while the buffer is open, so the editor opens a second buffer or applies to stale text. Same for `~/org -> /data/org` the other way round. Fix: canonicalise both sides, cached per document.
-
-#### W2. Low — `org_agenda_files` globs with `**` follow directory symlink loops
-`workspace.rs:143-153` (`glob`) has no depth cap or seen set (`org_files_below` has `MAX_DEPTH`). **Verified**: `sub/up -> root` with `root/**/*.org` yields 123 paths for 3 files; each entry shows about 41 times. Fix: canonicalise and skip seen directories, as `roam::walk_files` now does.
-
-#### W3. Low — `Workspace::read` cache keyed by the path as spelt
-`workspace.rs:283-298`: the same file reached by two spellings is parsed and cached twice and never evicted; `org_files_below` dedups by spelt path, so symlinked duplicates inside a folder appear twice.
-
-#### W4. Note — No `didChangeWorkspaceFolders`, `didChangeWatchedFiles` or rename handling
-Nothing is announced, so not a bug: folders added after `initialize` (`server.rs:1229-1232`) are invisible until restart, and `ClockTask`/`EntryRef` URIs go stale on a rename. Worth a line in `parity.org`.
-
-### 3e. Tests and tooling
-
-- **Low** — `offers_commands_as_actions_and_asks_with_buttons` (`server/org-lsp/tests/agenda_lsp.rs:4360-4377`) waits about a second (200 × 5 ms) for the agenda file to be rewritten through the command port. It failed once in the full `check.sh` run while five other processes were compiling, and passes alone. A longer wait would make it robust under load.
-- **Low** — `editors/vim/test/run.sh:27-30` waits at most 120 s per client, while `test.vim` has about 45 tests with waits up to 15 s each, so a slow CI run fails as "Vim did not finish" rather than naming the failing test. Fail-closed, so safe.
+- **Low, verified** — Search result highlighting corrupts its HTML with two terms (`site/assets/app.js:141-148`): terms are applied one after another on the already-marked HTML, so a later term matching inside `<mark>` or an entity breaks the markup (`highlight('the agenda marks', ['agenda','mark'])` gives `<<mark>mark</mark>>agenda</<mark>mark</mark>>`). Fix: one alternation applied once on the plain text, escaping as it is emitted.
+- Notes: the README's logo link copies `site/assets/logo.svg` a second time under `site/site/assets/`; the README screenshots have empty `alt`.
 
 ---
 
 ## 4. Checked and found sound this round
 
-- Emacs bridge after #221: no reply delivered twice, reader threads end with the pipe, a job behind a long one still gets its own LATE, `Declined` events become messages, `Process::drop` kills and waits.
-- `document.rs`: `Change::between` respects char boundaries, `moved` is right at both edit boundaries, incremental changes apply in order, UTF-16 untouched, `catch_unwind` leaves text, index, version and parse consistent.
-- `bulk.rs` `moved`: sorted non-overlapping edits, marks processed by file then ascending offset; `Private` directories: every use site creates on demand, cleanup uses `made()`.
-- `write_whole` through a live symlink and a symlinked parent (merged test); `replace_whole` used by tangle, Emacs results and the agenda export.
-- Semantic tokens: full equals the union of range requests in UTF-8, UTF-16 and UTF-32 on text with emoji and CJK on every kind of line, in order, never overlapping, correct after incremental changes and on CRLF; every legend type is produced.
-- Folding, startup folds for every `#+STARTUP` visibility value, document and workspace symbols, completion ranges after multi-byte text, hover escaping, definition and references for every link form, rename rules and edits across files, code action filtering and versions, LF formatting idempotence, diagnostic columns in all encodings, the `initialize` result (every claimed capability has a handler and every unclaimed method answers `MethodNotFound`, all 264 commands announced), proper shutdown and exit.
-- Tables: alignment with emoji, combining marks, ZWJ sequences and CJK; TAB at the last cell; `S-TAB` from the first field; row and column insert, delete and move with formula references rewritten as `org-table-fix-formulas` does; marker rows `*`/`$`/`!`/`_`; sort with ties, accents, durations and timestamps; forty formula shapes including `$<`, `@>`, `@I..@II`, `::` lists, field-over-column precedence, `;f3`, `;t`, `;U`, `;N`, `;E`, `;L`.
-- Lists, headlines, links and timestamps: every case in the reviewer's 150-input probe matched Emacs, including M-RET variants at every cursor position, promote and demote with each `org-adapt-indentation` value, subtree moves and paste, checkbox cookies, `org-link-escape`, and S-up/down on every stamp field at its boundary.
-- Agenda: which days scheduled and deadline entries appear with every repeater and warning form, the `org-closest-date` quirks, week and year boundaries, source order and `org-entries-lessp`, the time grid, `org-agenda-format-item` with every `%` field, log mode, the tag matcher, search view parsing, stuck projects, habits, diary sexps, clock tables (138 recorded cases), block agendas.
-- Zed and Helix docs after #224: every command now claimed for Zed is in `tasks.json` and `keymap.json`, and the server turns its choices into buttons; every Helix action listed is offered without a capability; the protocol doc's `org-lsp/display`, `clipboard`, `folds` and `folded` shapes match the code.
-- Tests that cannot fail: none found in the VS Code, Sublime, Neovim or Vim suites; `test-all.sh` propagates exit codes.
-- `release.yml` checksum step: correct `sha256sum -c` syntax, fails the step on mismatch, right platform file.
+- #227 server fixes confirmed as listed in section 1, each by re-running the round-three trigger: refiled capture clock, `Later` deadlines with restart, clock state restore, the `begun`/`starting` order, dangling links (target created, link kept), `#` rows on every table key with the cursor back in its column, pure-CRLF tables, `PRIORITY` text per 9.8.10, `org-class`, diagnostics cleared, non-ASCII URLs with `a%20b` kept as is, shutdown codes and cleanup with the real binary, code action kinds, `./` and `../` paths, symlinked agenda files, `**` loops, longer test waits.
+- #226 wiring: settings only, JSON across, batched, per-form errors isolated, warning once, the terminal agenda leaves forms empty, docs and checks present for all six editors.
+- Editor fixes: `buffers.lua` compares normalised names case-insensitively on Windows and macOS only and creates nothing; `images.lua` forces the PNG coder, renames atomically, refreshes mtime on reuse, caches nothing on failure; the three Zed checks re-excluded and nothing else lost; `stuck` generated everywhere; `update-table-fixtures.py` adds five `#`-row cases and runs under `python3 -I`; the Vim test wait is five minutes.
+- Website: 20 pages build with no broken links, every page in NAV and the search index, one `<h1>` on the landing page, anchors, images, tables, description lists and source languages all render, the theme switch reads `localStorage` in `try/catch`.
+- Tags, properties, priorities, sparse trees, radio targets, motion, link search, virtual indentation, citations and IDs: every behaviour probed matched the recordings and Emacs (2160 tag cases, 433 property cases, 517 motion cases, 88 sparse cases, 333 citation cases plus fuzzing).
+- org-journal: daily/weekly/monthly/yearly naming with week starts and year boundaries, directories created for `%Y/%m/%d.org`, date headings with case folding, carryover of nested items, `org_extend_today_until`, search, scheduled entries. org-roam: file detection, duplicate-ID rule, aliases, refs, slugs with accents and CJK, display templates, find and insert, region descriptions, `roam:` links, tag/alias/ref edits, backlinks, cache invalidation by text hash or mtime.
