@@ -19,7 +19,11 @@ fn formats_as_emacs_does() {
     for case in &cases {
         let Some(expected) = case["expected"].as_str() else { continue };
         let text = case["text"].as_str().unwrap();
-        let settings = Settings { tags_column: case["tagsColumn"].as_i64().unwrap_or(-77) };
+        let alignment = format::Alignment {
+            number: case["numberRegexp"].as_str().and_then(org_core::text::EmacsRegexp::new),
+            fraction: case["numberFraction"].as_f64().unwrap_or(0.5),
+        };
+        let settings = Settings { tags_column: case["tagsColumn"].as_i64().unwrap_or(-77), alignment };
         let changes = format::format(text, &TodoKeywords::default(), &settings);
         let got = format::apply(text, &changes);
         if got != expected {

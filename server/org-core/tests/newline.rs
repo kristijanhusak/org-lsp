@@ -38,6 +38,10 @@ fn returns_as_emacs_does() {
             indent: indent::Settings { adapt, ..indent::Settings::default() },
             tags_column: -77,
             auto_align: true,
+            table: org_core::table::Settings {
+                automatic_realign: case["settings"]["automatic_realign"].as_bool().unwrap_or(true),
+                ..Default::default()
+            },
         };
         let Ok(outcome) = newline::org_return(text, point, &TodoKeywords::default(), &settings) else {
             // In a source block's code Emacs indents as the language does;
@@ -65,7 +69,12 @@ fn returns_as_emacs_does() {
 /// tags stay in their column, as Emacs leaves them.
 #[test]
 fn keeps_the_tags_column_without_auto_align() {
-    let settings = Settings { indent: indent::Settings::default(), tags_column: -77, auto_align: false };
+    let settings = Settings {
+        indent: indent::Settings::default(),
+        tags_column: -77,
+        auto_align: false,
+        table: Default::default(),
+    };
     let text = "* TODO Write the report      :work:\n";
     let outcome = newline::org_return(text, 12, &TodoKeywords::default(), &settings).unwrap();
     assert_eq!(outcome.text, "* TODO Write                 :work:\nthe report\n");

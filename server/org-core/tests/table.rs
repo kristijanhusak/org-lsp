@@ -32,13 +32,16 @@ fn command(key: &str) -> Command {
     }
 }
 
-/// The options of a case: `evaluate_inline`, `line_recalculation`.
+/// The options of a case: `evaluate_inline`, `line_recalculation`,
+/// `automatic_realign`, `tab_jumps_over_hlines`.
 fn settings(case: &Value) -> table::Settings {
     let options = &case["settings"];
     let defaults = table::Settings::default();
     table::Settings {
         evaluate_inline: options["evaluate_inline"].as_bool().unwrap_or(defaults.evaluate_inline),
         line_recalculation: options["line_recalculation"].as_bool().unwrap_or(defaults.line_recalculation),
+        automatic_realign: options["automatic_realign"].as_bool().unwrap_or(defaults.automatic_realign),
+        tab_jumps_over_hlines: options["tab_jumps_over_hlines"].as_bool().unwrap_or(defaults.tab_jumps_over_hlines),
         ..defaults
     }
 }

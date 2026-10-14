@@ -690,6 +690,7 @@ export const AREAS = [
     emacs: [
       ['Aligning (`C-c C-c`, formatting)', true],
       ['Moving between fields (`TAB`, `S-TAB`), a row made past the last', true],
+      ['Their options: what counts as a number for right alignment, aligning only on `C-c C-c`, a row before a rule rather than past it, the shrunk columns\' indicator (`org-table-number-regexp`, `org-table-automatic-realign`, `org-table-tab-jumps-over-hlines`, `org-table-shrunk-column-indicator`)', true],
       ['Moving, inserting and deleting rows and columns', true],
       ['Rules (`C-c -`, `C-c RET`)', true],
       ['Blanking a field', true],

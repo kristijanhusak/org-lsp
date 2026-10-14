@@ -31,7 +31,7 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#refile-and-archive][Refile and archive]] | 100% | 11 of 11 |
 | [[#links][Links]] | 86% | 12 of 14 |
 | [[#footnotes][Footnotes]] | 100% | 4 of 4 |
-| [[#tables][Tables]] | 94% | 16 of 17 |
+| [[#tables][Tables]] | 94% | 17 of 18 |
 | [[#table-formulas][Table formulas]] | 100% | 13 of 13 |
 | [[#code-blocks-babel][Code blocks (Babel)]] | 100% | 11 of 11 |
 | [[#export-and-publishing][Export and publishing]] | 100% | 9 of 9 |
@@ -468,10 +468,11 @@ Where editors fall short:
 :CUSTOM_ID: tables
 :END:
 
-94% (16 of 17)
+94% (17 of 18)
 
 - ✅ Aligning (~C-c C-c~, formatting)
 - ✅ Moving between fields (~TAB~, ~S-TAB~), a row made past the last
+- ✅ Their options: what counts as a number for right alignment, aligning only on ~C-c C-c~, a row before a rule rather than past it, the shrunk columns' indicator (~org-table-number-regexp~, ~org-table-automatic-realign~, ~org-table-tab-jumps-over-hlines~, ~org-table-shrunk-column-indicator~)
 - ✅ Moving, inserting and deleting rows and columns
 - ✅ Rules (~C-c -~, ~C-c RET~)
 - ✅ Blanking a field
@@ -713,25 +714,26 @@ Where editors fall short:
 :END:
 
 Each of the 1025 options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with
-it. Of the 307 that change what org-lsp does itself, 69% can be set.
+it. Of the 304 that change what org-lsp does itself, 72% can be set.
 [[file:../scripts/org-options.json][scripts/org-options.json]] says it for each; ~scripts/check.sh~ fails when the
 server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,
 when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 207 | A setting of the same name |
-| missing | 95 | org-lsp does what the option is about, but the option cannot be set yet |
-| other | 5 | Done another way, as its note says |
-| emacs | 479 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
+| setting | 212 | A setting of the same name |
+| missing | 86 | org-lsp does what the option is about, but the option cannot be set yet |
+| other | 6 | Done another way, as its note says |
+| emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 48 | Its value is Lisp (a function, a hook), which the server does not run |
-| absent | 85 | Part of something org-lsp does not do |
-| emacs-only | 106 | About Emacs itself (windows, faces, menus, the mouse, the mode line): nothing to do in an editor |
+| absent | 86 | Part of something org-lsp does not do |
+| emacs-only | 107 | About Emacs itself (windows, faces, menus, the mouse, the mode line): nothing to do in an editor |
 
 ** Done another way
 
 - ~org-agenda-add-entry-text-maxlines~ :: entry text mode (~E~) shows ~org_agenda_entry_text_maxlines~ lines; text added to agenda files written with ~C-x C-w~ is not
 - ~org-agenda-skip-timestamp-if-deadline-is-shown~ :: no effect in Org 9.8.10: ~org-agenda-get-timestamps~ looks the entry up with ~assq~ in a list of positions, which finds none; none here either
+- ~org-table-auto-blank-field~ :: the editor types into a field as into any text: TAB leaves the cursor at the start of the field's text, as in Emacs, and the first character typed does not blank it
 - ~org-table-formula-use-constants~ :: only for a formula evaluated on its own (~C-c =~, a field starting with ~=~), which org-lsp does not do; the formulas of ~#+TBLFM:~ lines always use the constants, in Emacs too
 - ~org-startup-truncated~ :: the editor decides how long lines wrap
 - ~org-timestamp-rounding-minutes~ :: the setting ~org_time_stamp_rounding_minutes~, its name before Org 9.6
@@ -756,5 +758,4 @@ Options of what org-lsp does that cannot be set yet, by the file of Org they are
 - org-keys.el (2) :: ~org-tab-follows-link~, ~org-return-follows-link~
 - org-list.el (3) :: ~org-cycle-include-plain-lists~, ~org-plain-list-ordered-item-terminator~, ~org-list-allow-alphabetical~
 - org-src.el (1) :: ~org-src-content-indentation~
-- org-table.el (9) :: ~org-table-header-line-p~, ~org-table-number-regexp~, ~org-table-number-fraction~, ~org-table-automatic-realign~, ~org-table-auto-blank-field~, ~org-table-exit-follow-field-mode-when-leaving-table~, ~org-table-tab-jumps-over-hlines~, ~org-table-shrunk-column-indicator~, ~org-table-use-standard-references~
 - org.el (37) :: ~org-startup-align-all-tables~, ~org-ellipsis~, ~org-file-apps~, ~org-odd-levels-only~, ~org-special-ctrl-a/e~, ~org-special-ctrl-k~, ~org-yank-adjusted-subtrees~, ~org-todo-interpretation~, ~org-use-fast-todo-selection~, ~org-treat-insert-todo-heading-as-state-change~, ~org-treat-S-cursor-todo-selection-as-state-change~, ~org-priority-enable-commands~, ~org-display-custom-times~, ~org-timestamp-custom-formats~, ~org-agenda-jump-prefer-future~, ~org-use-effective-time~, ~org-use-last-clock-out-time-as-effective-time~, ~org-edit-timestamp-down-means-later~, ~org-tags-match-list-sublevels~, ~org-property-format~, ~org-property-separators~, ~org-agenda-file-regexp~, ~org-agenda-skip-unavailable-files~, ~org-hidden-keywords~, ~org-custom-properties~, ~org-fontify-todo-headline~, ~org-fontify-done-headline~, ~org-fontify-emphasized-text~, ~org-fontify-whole-heading-line~, ~org-hide-macro-markers~, ~org-emphasis-alist~, ~org-agenda-skip-archived-trees~, ~org-sparse-tree-open-archived-trees~, ~org-src-fontify-natively~, ~org-allow-promoting-top-level-subtree~, ~org-track-ordered-property-with-tag~, ~org-image-actual-width~

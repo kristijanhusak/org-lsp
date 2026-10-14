@@ -53,6 +53,9 @@ pub struct Settings {
     /// `org-calc-default-modes`: the float format and the angle unit
     /// formulas start with.
     pub calc: Modes,
+    /// How the table aligns after (`org-table-number-regexp`,
+    /// `org-table-number-fraction`).
+    pub alignment: crate::format::Alignment,
 }
 
 impl Default for Settings {
@@ -64,6 +67,7 @@ impl Default for Settings {
             duration_format: DurationFormat::Hours,
             hour_zero_padding: true,
             calc: Modes::default(),
+            alignment: crate::format::Alignment::default(),
         }
     }
 }
@@ -349,7 +353,7 @@ impl Table {
     }
 
     /// The lines, aligned as `org-table-align` aligns them.
-    fn write(&self) -> Vec<String> {
+    fn write(&self, alignment: &crate::format::Alignment) -> Vec<String> {
         let lines: Vec<String> = self
             .rows
             .iter()
@@ -361,7 +365,7 @@ impl Table {
             })
             .collect();
         let lines: Vec<&str> = lines.iter().map(String::as_str).collect();
-        align_table(&lines)
+        align_table(&lines, alignment)
     }
 }
 
@@ -936,7 +940,7 @@ fn recalculate_once(
         }
         eval_formula(&mut table, &analysis, line, column, formula, names.settings)?;
     }
-    Ok(table.write())
+    Ok(table.write(&names.settings.alignment))
 }
 
 /// What `(aref org-table-dlines n)` says past the last data line.

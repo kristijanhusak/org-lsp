@@ -7,6 +7,8 @@ A case is a JSON object:
     {
       "text": "| a |bb|\\n",   an Org document
       "tagsColumn": -77      org-tags-column (optional)
+      "numberRegexp": "^[0-9]+$"   org-table-number-regexp (optional)
+      "numberFraction": 0.8        org-table-number-fraction (optional)
     }
 
 `reference(cases)` adds `expected`: the formatted document, or
@@ -23,8 +25,10 @@ import tempfile
 DRIVER = r"""
 (require 'org)
 (require 'json)
-(defun org-lsp-format-case (in out tags-column)
-  (let ((org-tags-column tags-column))
+(defun org-lsp-format-case (in out tags-column &optional number-regexp number-fraction)
+  (let ((org-tags-column tags-column)
+        (org-table-number-regexp (or number-regexp org-table-number-regexp))
+        (org-table-number-fraction (or number-fraction org-table-number-fraction)))
     (with-temp-buffer
       (insert-file-contents in)
       (org-mode)
@@ -69,7 +73,9 @@ def reference(cases):
             outputs.append((case, target))
             forms.append(
                 f"(condition-case err (org-lsp-format-case {lisp_string(source)} {lisp_string(target)}"
-                f" {case.get('tagsColumn', -77)})"
+                f" {case.get('tagsColumn', -77)}"
+                f" {lisp_string(case['numberRegexp']) if 'numberRegexp' in case else 'nil'}"
+                f" {case.get('numberFraction', 'nil')})"
                 f" (error (with-temp-file {lisp_string(target)}"
                 f" (insert (json-encode (list (cons 'error (error-message-string err))))))))"
             )
