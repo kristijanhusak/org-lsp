@@ -327,7 +327,7 @@ export const AREAS = [
       ['Column view (`C-c C-x C-c`, through Emacs): the columns over the headlines, the header, summaries; editing, cycling and the allowed values of a column, moving, narrowing, widening and deleting columns, moving entries', true],
       ['Column view dynamic blocks and summaries (`C-c C-x x`, filled in by Emacs)', true],
       ['Properties written as `org-property-format` says, efforts in units of `org-effort-durations`', false],
-      ['IDs made as `org-id-method`, `org-id-prefix` and `org-id-ts-format` say (they are always UUIDs)', false],
+      ['IDs made as `org-id-method`, `org-id-prefix`, `org-id-ts-format` and `org-id-include-domain` say', true],
     ],
     editors: {
       vim: ['part', 'Column view\'s header is in the window\'s status line, shown when the window has one (`laststatus`).'],

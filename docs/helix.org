@@ -88,7 +88,7 @@ menu on another key.
 | [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ❓ | A note for a state change (~@~) cannot be typed: Helix cannot ask for text on a server's behalf. Faces of particular keywords and priorities are not shown. |
 | [[file:parity.org::#priorities][Priorities]] | 75% | ✅ |  |
 | [[file:parity.org::#tags][Tags]] | 86% | ❓ | Setting tags is left out: it needs keys pressed in turn, or typed tags, and Helix cannot ask for text on a server's behalf. Completion and renaming work. |
-| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 75% | ❓ | Setting a property or the effort is left out: they are typed, and Helix cannot ask for text on a server's behalf. Column view is left out: it draws over the headlines. |
+| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 88% | ❓ | Setting a property or the effort is left out: they are typed, and Helix cannot ask for text on a server's behalf. Column view is left out: it draws over the headlines. |
 | [[file:parity.org::#dates-and-times][Dates and times]] | 100% | ❓ | Scheduling, deadlines and new timestamps are left out: they ask for a date, and Helix cannot ask for text on a server's behalf. Changing a timestamp works. |
 | [[file:parity.org::#agenda][Agenda]] | 100% | ❌ | Helix cannot open a document on a server's request. ~org-lsp agenda FILE...~ prints the agenda in a terminal. |
 | [[file:parity.org::#clocking][Clocking]] | 100% | ❓ | No clock in the status line: Helix has no place there for a server's text. |

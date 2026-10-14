@@ -1115,6 +1115,23 @@ org_lint = true
 # it (`"misplaced-heading"`). (org-lint)
 org_lint_ignore = []
 
+# How a new `ID` is made (`org.id.create`, a link stored by ID, org-roam): a
+# random UUID, the time in base 36 (`org`), or the time as `org_id_ts_format`
+# writes it (`ts`). (org-id-method)
+org_id_method = "uuid"
+
+# What a new `ID` starts with, before a colon: `"Org"` makes `Org:…`.
+# (org-id-prefix)
+org_id_prefix = false
+
+# How the `ts` method writes the time, as `format-time-string` does.
+# (org-id-ts-format)
+org_id_ts_format = "%Y%m%dT%H%M%S.%6N"
+
+# The `org` and `ts` methods end a new `ID` with `@` and the machine's domain.
+# (org-id-include-domain)
+org_id_include_domain = false
+
 # Whether `org.link.store` (`C-c l`) links to an entry by its ID: `true` makes
 # one when the entry has none, `"create-if-interactive"` only from the command
 # (not for capture's `%a`), `"create-if-interactive-and-no-custom-id"`
@@ -2452,6 +2469,23 @@ org_agenda_custom_commands = []
   // The `org-lint` checkers to leave out, by name, as a diagnostic's code
   // shows it (`"misplaced-heading"`). (org-lint)
   "org_lint_ignore": [],
+
+  // How a new `ID` is made (`org.id.create`, a link stored by ID, org-roam):
+  // a random UUID, the time in base 36 (`org`), or the time as
+  // `org_id_ts_format` writes it (`ts`). (org-id-method)
+  "org_id_method": "uuid",
+
+  // What a new `ID` starts with, before a colon: `"Org"` makes `Org:…`.
+  // (org-id-prefix)
+  "org_id_prefix": false,
+
+  // How the `ts` method writes the time, as `format-time-string` does.
+  // (org-id-ts-format)
+  "org_id_ts_format": "%Y%m%dT%H%M%S.%6N",
+
+  // The `org` and `ts` methods end a new `ID` with `@` and the machine's
+  // domain. (org-id-include-domain)
+  "org_id_include_domain": false,
 
   // Whether `org.link.store` (`C-c l`) links to an entry by its ID: `true`
   // makes one when the entry has none, `"create-if-interactive"` only from

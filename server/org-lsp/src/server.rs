@@ -946,6 +946,9 @@ struct Server {
     /// The table options set, as Emacs variables, for the formulas Emacs
     /// computes.
     table_variables: Vec<(String, String)>,
+    /// How new IDs are made (`org-id-new`), and the domain they may end
+    /// with (`message-make-fqdn`).
+    ids: (link::IdSettings, String),
     read_date: ReadDateSettings,
     /// `org-refile-targets`, `org-refile-use-outline-path` and how a
     /// subtree is filed.
@@ -1405,6 +1408,7 @@ pub fn run(connection: Connection) -> Result<()> {
         agenda_options: options.agenda.clone(),
         edit_settings: options.edit_settings(),
         table_variables: options.table_emacs_variables(),
+        ids: (options.id_settings(), link::fqdn(&system_name())),
         read_date: options.read_date_settings(),
         refile: (options.refile_targets(), options.refile_outline_path(), options.refile_settings()),
         archive: (options.archive_settings(), options.archive_default_command().to_string()),
@@ -2464,6 +2468,25 @@ impl Server {
 
     fn now(&self) -> Now {
         self.clock.unwrap_or_else(cli::now)
+    }
+
+    /// `org-id-new` as the settings have it: what makes new IDs, keeping
+    /// nothing of the server.
+    fn id_maker(&self) -> impl FnMut() -> String + 'static {
+        let ((settings, fqdn), fixed) = (self.ids.clone(), self.clock);
+        move || {
+            use chrono::Timelike;
+            let now = chrono::Local::now();
+            let fixed = fixed.unwrap_or_else(cli::now);
+            let clock = link::IdClock {
+                local: DateTime { day: fixed.today, minute: fixed.minute },
+                second: now.second(),
+                nanosecond: now.nanosecond() % 1_000_000_000,
+                unix_seconds: u64::try_from(now.timestamp()).unwrap_or(0),
+                unix_microseconds: now.timestamp_subsec_micros() % 1_000_000,
+            };
+            link::new_id(&settings, &clock, &fqdn)
+        }
     }
 
     /// The current local time, for timestamps the server writes.
@@ -8348,11 +8371,12 @@ impl Server {
         let Some((path, home)) = Self::link_file(uri) else { return (String::new(), Vec::new()) };
         let (settings, edit_settings, category) =
             (self.link_settings.clone(), self.edit_settings.clone(), uri::file_stem(uri));
+        let mut new_id = self.id_maker();
         let made = self.with_source(uri, |text, index, parse, _, version| {
             let offset = index.offset(text, position, encoding);
             let property_context = edit::property_context(parse, &edit_settings, &category);
             let file = link::File { path: &path, home: home.as_deref() };
-            link::store(text, offset, None, &file, &settings, false, false, &property_context, &mut link::new_uuid)
+            link::store(text, offset, None, &file, &settings, false, false, &property_context, &mut new_id)
                 .map(|made| (made, text.to_string(), version))
         });
         let Some(Ok((made, text, version))) = made else { return (String::new(), Vec::new()) };
@@ -8380,22 +8404,13 @@ impl Server {
         let region = self.region_of(context).filter(|_| !self.is_view(&context.text_document.uri));
         let (settings, edit_settings, category) =
             (self.link_settings.clone(), self.edit_settings.clone(), uri::file_stem(&uri));
+        let mut new_id = self.id_maker();
         let (made, text, version) = self
             .with_source(&uri, |text, _, parse, _, version| {
                 let property_context = edit::property_context(parse, &edit_settings, &category);
                 let file = link::File { path: &path, home: home.as_deref() };
-                link::store(
-                    text,
-                    offset,
-                    region,
-                    &file,
-                    &settings,
-                    true,
-                    negate,
-                    &property_context,
-                    &mut link::new_uuid,
-                )
-                .map(|made| (made, text.to_string(), version))
+                link::store(text, offset, region, &file, &settings, true, negate, &property_context, &mut new_id)
+                    .map(|made| (made, text.to_string(), version))
             })
             .ok_or("Cannot read the file")?
             .map_err(Refusal::Failed)?;
@@ -8486,6 +8501,7 @@ impl Server {
             let (edit_settings, category) = (self.edit_settings.clone(), uri::file_stem(&uri));
             let context = edit::property_context(&parse, &edit_settings, &category);
             let mut made_there = None;
+            let (mut new_id, mut new_id_there) = (self.id_maker(), self.id_maker());
             let mut id_entry = |answer: &str| {
                 let (index, target) = refile::find(&targets, answer)?;
                 let offset = target.offset?;
@@ -8494,7 +8510,7 @@ impl Server {
                 }
                 let (other, version, other_text, other_parse) = &others[index - 1];
                 let other_context = edit::property_context(other_parse, &edit_settings, &uri::file_stem(other));
-                let (edited, id) = link::id_get_create(other_text, offset, &other_context, &mut link::new_uuid).ok()?;
+                let (edited, id) = link::id_get_create(other_text, offset, &other_context, &mut new_id_there).ok()?;
                 made_there = edited.map(|(edited, _)| (other.clone(), *version, other_text.clone(), edited));
                 let heading = link::entry_heading(other_text, offset, &other_keywords[index - 1]);
                 Some(link::IdEntry::There { id, heading })
@@ -8518,7 +8534,7 @@ impl Server {
                 id_entry: &mut id_entry,
                 id_heading: &mut id_heading,
                 context: &context,
-                new_id: &mut link::new_uuid,
+                new_id: &mut new_id,
             };
             let step = link::insert(
                 &text,
@@ -8580,10 +8596,11 @@ impl Server {
     fn id_get_create(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
         let (uri, offset) = self.command_place(context)?;
         let (edit_settings, category) = (self.edit_settings.clone(), uri::file_stem(&uri));
+        let mut new_id = self.id_maker();
         let (made, text, version) = self
             .with_source(&uri, |text, _, parse, _, version| {
                 let property_context = edit::property_context(parse, &edit_settings, &category);
-                link::id_get_create(text, offset, &property_context, &mut link::new_uuid)
+                link::id_get_create(text, offset, &property_context, &mut new_id)
                     .map(|made| (made, text.to_string(), version))
             })
             .ok_or("Cannot read the file")?
@@ -13854,6 +13871,20 @@ fn column_ranges(input: &str, count: usize) -> std::collections::BTreeSet<usize>
         out.extend(from.max(1)..=to.min(count));
     }
     out
+}
+
+/// The name of this machine (`system-name`).
+fn system_name() -> String {
+    let read = |path: &str| std::fs::read_to_string(path).ok().map(|name| name.trim().to_string());
+    read("/proc/sys/kernel/hostname")
+        .or_else(|| read("/etc/hostname"))
+        .or_else(|| std::env::var("HOSTNAME").ok())
+        .or_else(|| {
+            let out = std::process::Command::new("hostname").output().ok()?;
+            Some(String::from_utf8_lossy(&out.stdout).trim().to_string())
+        })
+        .filter(|name| !name.is_empty())
+        .unwrap_or_else(|| "localhost".to_string())
 }
 
 #[cfg(test)]

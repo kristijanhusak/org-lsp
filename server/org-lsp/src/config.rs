@@ -217,6 +217,18 @@ pub struct Options {
     /// `org-clock-file-time-cell-format`
     #[serde(rename = "org_clock_file_time_cell_format")]
     pub clock_file_time_cell_format: Option<String>,
+    /// `org-id-method`: `uuid` (or `uuidgen`), `org` or `ts`.
+    #[serde(rename = "org_id_method")]
+    pub id_method: Option<String>,
+    /// `org-id-prefix`
+    #[serde(rename = "org_id_prefix")]
+    pub id_prefix: Option<serde_json::Value>,
+    /// `org-id-ts-format`
+    #[serde(rename = "org_id_ts_format")]
+    pub id_ts_format: Option<String>,
+    /// `org-id-include-domain`
+    #[serde(rename = "org_id_include_domain")]
+    pub id_include_domain: Option<bool>,
     /// `org-id-link-to-org-use-id`: a boolean or the name of a choice.
     #[serde(rename = "org_id_link_to_org_use_id")]
     pub id_link_to_org_use_id: Option<serde_json::Value>,
@@ -1575,6 +1587,22 @@ impl Options {
             ));
         }
         out
+    }
+
+    /// How new IDs are made (`org-id-new`).
+    pub fn id_settings(&self) -> org_core::link::IdSettings {
+        use org_core::link::{IdMethod, IdSettings};
+        let defaults = IdSettings::default();
+        IdSettings {
+            method: match self.id_method.as_deref() {
+                Some("org") => IdMethod::Org,
+                Some("ts") => IdMethod::Ts,
+                _ => IdMethod::Uuid,
+            },
+            prefix: self.id_prefix.as_ref().and_then(serde_json::Value::as_str).map(str::to_string),
+            ts_format: self.id_ts_format.clone().unwrap_or(defaults.ts_format),
+            include_domain: self.id_include_domain.unwrap_or(defaults.include_domain),
+        }
     }
 
     pub fn edit_settings(&self) -> EditSettings {

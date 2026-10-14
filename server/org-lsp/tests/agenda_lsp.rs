@@ -6383,6 +6383,17 @@ fn stores_and_inserts_links() {
     assert_eq!(id.len(), 36, "{text}");
     run_applying(&mut client, uri, &mut text, "org.link.insert.last", 4, json!({}));
     assert!(text.ends_with(&format!(":END:\n[[id:{id}][Tasks]]\n")), "{text}");
+    // `org-id-method` and `org-id-prefix`: the time, as `org-id-ts-format`
+    // writes it, after `Org:`.
+    let mut options = clock();
+    options["org_id_method"] = json!("ts");
+    options["org_id_prefix"] = json!("Org");
+    let mut client = Client::editor(options.clone(), None);
+    let mut text = "* Tasks\n".to_string();
+    client.open(uri, &text);
+    run_applying(&mut client, uri, &mut text, "org.id.create", 0, json!({}));
+    let id = text.lines().find_map(|line| line.strip_prefix(":ID:")).map(str::trim).unwrap_or_default().to_string();
+    assert!(id.starts_with("Org:20260518T1030") && id.len() == "Org:20260518T103000.000000".len(), "{id}");
 }
 
 /// `org-id-complete`: `id:` at the link prompt asks for an entry, of

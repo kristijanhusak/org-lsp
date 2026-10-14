@@ -681,6 +681,141 @@ pub fn id_get_create(
     Ok((Some((edited, cursor)), id))
 }
 
+/// How new IDs are made: the options of `org-id-new`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IdSettings {
+    /// `org-id-method`
+    pub method: IdMethod,
+    /// `org-id-prefix`: before the ID and a colon.
+    pub prefix: Option<String>,
+    /// `org-id-ts-format`, for the `ts` method.
+    pub ts_format: String,
+    /// `org-id-include-domain`: `@` and the domain after the ID, with the
+    /// `org` and `ts` methods.
+    pub include_domain: bool,
+}
+
+impl Default for IdSettings {
+    fn default() -> Self {
+        IdSettings {
+            method: IdMethod::Uuid,
+            prefix: None,
+            ts_format: "%Y%m%dT%H%M%S.%6N".to_string(),
+            include_domain: false,
+        }
+    }
+}
+
+/// The values of `org-id-method`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IdMethod {
+    /// `uuid` (and `uuidgen`): a random UUID.
+    Uuid,
+    /// `org`: the time in base 36, reversed.
+    Org,
+    /// `ts`: the time as `org-id-ts-format` writes it.
+    Ts,
+}
+
+/// The time a new ID is made at: the local date and minute, the seconds
+/// and nanoseconds of the minute, and the time since the epoch.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct IdClock {
+    pub local: crate::date::DateTime,
+    pub second: u32,
+    pub nanosecond: u32,
+    pub unix_seconds: u64,
+    pub unix_microseconds: u32,
+}
+
+/// `org-id-new`: a new ID, as `settings` say, `fqdn` the domain
+/// (`message-make-fqdn`).
+pub fn new_id(settings: &IdSettings, clock: &IdClock, fqdn: &str) -> String {
+    let prefix = match settings.prefix.as_deref() {
+        Some(prefix) if !prefix.is_empty() => format!("{prefix}:"),
+        _ => String::new(),
+    };
+    let domain = || if settings.include_domain { format!("@{fqdn}") } else { String::new() };
+    let unique = match settings.method {
+        IdMethod::Uuid => new_uuid(),
+        IdMethod::Org => {
+            // `org-id-time-to-b36`: the high and low parts of the seconds
+            // and the microseconds, four digits each, then reversed.
+            let time = format!(
+                "{}{}{}",
+                to_b36(clock.unix_seconds >> 16, 4),
+                to_b36(clock.unix_seconds & 0xffff, 4),
+                to_b36(u64::from(clock.unix_microseconds), 4)
+            );
+            format!("{}{}", time.chars().rev().collect::<String>(), domain())
+        }
+        IdMethod::Ts => format!("{}{}", format_time_precise(&settings.ts_format, clock), domain()),
+    };
+    format!("{prefix}{unique}")
+}
+
+/// `org-id-int-to-b36`: `number` in base 36, with at least `length` digits.
+fn to_b36(mut number: u64, length: usize) -> String {
+    let mut digits = Vec::new();
+    while number > 0 {
+        digits.push(char::from_digit((number % 36) as u32, 36).unwrap_or('0'));
+        number /= 36;
+    }
+    let mut out: String = digits.iter().rev().collect();
+    while out.len() < length.max(1) {
+        out.insert(0, '0');
+    }
+    out
+}
+
+/// `format-time-string` with the seconds (`%S`), their fraction (`%N`,
+/// `%3N`) and the seconds since the epoch (`%s`) of `clock`.
+fn format_time_precise(format: &str, clock: &IdClock) -> String {
+    let mut out = String::new();
+    let mut chars = format.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c != '%' {
+            out.push(c);
+            continue;
+        }
+        let mut spec = String::new();
+        while let Some(&next) = chars.peek() {
+            if next.is_ascii_digit() || matches!(next, '-' | '_' | '0' | '^' | '#') {
+                spec.push(next);
+                chars.next();
+            } else {
+                break;
+            }
+        }
+        match chars.next() {
+            Some('S') if spec.is_empty() => out.push_str(&format!("{:02}", clock.second)),
+            Some('s') if spec.is_empty() => out.push_str(&clock.unix_seconds.to_string()),
+            Some('N') => {
+                let digits = spec.parse::<usize>().ok().filter(|digits| (1..=9).contains(digits)).unwrap_or(9);
+                out.push_str(&format!("{:09}", clock.nanosecond)[..digits]);
+            }
+            Some(other) => {
+                out.push_str(&crate::capture::format_time(&format!("%{spec}{other}"), clock.local));
+            }
+            None => out.push('%'),
+        }
+    }
+    out
+}
+
+/// `message-make-fqdn` for a system named `system_name`, without a mail
+/// address set: the name when it has a dot and is not `localhost.` or
+/// `.local`, else the name and `.mail-host-address-is-not-set`.
+pub fn fqdn(system_name: &str) -> String {
+    let lower = system_name.to_lowercase();
+    let bogus = lower.starts_with("localhost.") || lower.ends_with(".local");
+    if system_name.contains('.') && !bogus {
+        system_name.to_string()
+    } else {
+        format!("{system_name}.mail-host-address-is-not-set")
+    }
+}
+
 /// A new ID (`org-id-uuid`): a random UUID.
 pub fn new_uuid() -> String {
     use std::collections::hash_map::RandomState;
@@ -1108,6 +1243,42 @@ pub fn insert_all(
 
 #[cfg(test)]
 mod tests {
+
+    /// `org-id-new` at 2025-10-09 08:53:20.123456789 UTC, as Emacs makes
+    /// it with each method.
+    #[test]
+    fn new_ids_as_emacs_makes_them() {
+        use crate::date::{Date, DateTime};
+        let clock = IdClock {
+            local: DateTime { day: Date::new(2025, 10, 9).to_day(), minute: 8 * 60 + 53 },
+            second: 20,
+            nanosecond: 123_456_789,
+            unix_seconds: 1_760_000_000,
+            unix_microseconds: 123_456,
+        };
+        let id = |method, prefix: Option<&str>, domain, format: &str| {
+            let settings = IdSettings {
+                method,
+                prefix: prefix.map(str::to_string),
+                ts_format: format.to_string(),
+                include_domain: domain,
+            };
+            new_id(&settings, &clock, &fqdn("vm"))
+        };
+        let ts = IdSettings::default().ts_format;
+        assert_eq!(id(IdMethod::Org, None, false, &ts), "c9n2cpn0zpk0");
+        assert_eq!(id(IdMethod::Org, Some("Org"), false, &ts), "Org:c9n2cpn0zpk0");
+        assert_eq!(id(IdMethod::Org, None, true, &ts), "c9n2cpn0zpk0@vm.mail-host-address-is-not-set");
+        assert_eq!(id(IdMethod::Ts, None, false, &ts), "20251009T085320.123456");
+        assert_eq!(
+            id(IdMethod::Ts, None, false, "%Y-%m-%d %H:%M:%S %3N %s %% %N"),
+            "2025-10-09 08:53:20 123 1760000000 % 123456789"
+        );
+        assert_eq!(fqdn("host.example.org"), "host.example.org");
+        assert_eq!(fqdn("box.local"), "box.local.mail-host-address-is-not-set");
+        let uuid = id(IdMethod::Uuid, Some("P"), true, &ts);
+        assert!(uuid.starts_with("P:") && uuid.len() == 38 && !uuid.contains('@'), "{uuid}");
+    }
     use super::*;
 
     #[test]
