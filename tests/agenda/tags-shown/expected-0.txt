@@ -1,0 +1,4 @@
+Day-agenda (W21):
+Monday     18 May 2026 W21
+  work:       Scheduled:  TODO plain one
+  work:       Scheduled:  TODO write the plan                              :doc:

@@ -1082,6 +1082,34 @@ pub const SETTINGS: &[Setting] = &[
         )
     },
     setting(
+        "org_agenda_show_inherited_tags",
+        r#"boolean, "always", string[]"#,
+        "true",
+        "org-agenda-show-inherited-tags",
+        "Show the inherited tags of an entry on its agenda lines: where `org_agenda_use_tag_inheritance` has \
+         them (`true`), always, never (`false`), or in these kinds of views (`agenda`, `todo`, `search`). \
+         Sorting by tag and `org_agenda_max_tags` go by the tags a line shows.",
+    ),
+    setting(
+        "org_agenda_use_tag_inheritance",
+        "boolean, string[]",
+        r#"["todo", "search", "agenda"]"#,
+        "org-agenda-use-tag-inheritance",
+        "The kinds of views whose lines have inherited tags (`true`: all). Tags matches always have them.",
+    ),
+    Setting {
+        default: None,
+        unset: "none",
+        ..setting(
+            "org_agenda_hide_tags_regexp",
+            "string",
+            "",
+            "org-agenda-hide-tags-regexp",
+            "A regexp (Emacs's syntax): the tags it matches are not shown on agenda lines, but filters still \
+             see them.",
+        )
+    },
+    setting(
         "org_agenda_include_deadlines",
         "boolean",
         "true",
@@ -2252,6 +2280,15 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_agenda_default_appointment_duration", INTEGER),
     ("org_agenda_remove_timeranges_from_blocks", BOOLEAN),
     ("org_agenda_diary_sexp_prefix", STRING),
+    (
+        "org_agenda_show_inherited_tags",
+        r#"{ "anyOf": [{ "type": "boolean" }, { "enum": ["always"] }, { "type": "array", "items": { "enum": ["agenda", "todo", "search"] } }] }"#,
+    ),
+    (
+        "org_agenda_use_tag_inheritance",
+        r#"{ "anyOf": [{ "type": "boolean" }, { "type": "array", "items": { "enum": ["agenda", "todo", "search"] } }] }"#,
+    ),
+    ("org_agenda_hide_tags_regexp", STRING),
     ("org_agenda_include_deadlines", BOOLEAN),
     (
         "org_agenda_prefer_last_repeat",

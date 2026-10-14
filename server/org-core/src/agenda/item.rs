@@ -5,6 +5,8 @@
 //! default two blanks, the category padded to twelve columns, the time
 //! when there is one, and a leader such as `Scheduled:`.
 
+use regex::Regex;
+
 use crate::outline::Tag;
 use crate::priority::Priorities;
 use crate::text::{pad_left, pad_right, tag_group, trim, width};
@@ -105,6 +107,10 @@ pub struct Item {
     /// with: the kind of timestamp `ts_date` is, as the sorting strategy
     /// asks (`org-agenda-entry-get-agenda-timestamp`).
     pub ts_type: &'static str,
+    /// The line carries the entry's own tags only, not inherited ones
+    /// (`org-agenda-show-inherited-tags`): sorting by tag and
+    /// `org-agenda-max-tags` read those.
+    pub own_tags_only: bool,
 }
 
 /// What a specifier of `org-agenda-prefix-format` stands for.
@@ -554,6 +560,11 @@ pub struct FormatInput<'a> {
     /// Text taken out of the headline wherever it is (a date range,
     /// `org-agenda-remove-timeranges-from-blocks`).
     pub remove: Option<&'a str>,
+    /// `org-agenda-show-inherited-tags` is on: the headline's tags are
+    /// replaced by `tags`, inherited ones too.
+    pub add_inherited: bool,
+    /// `org-agenda-hide-tags-regexp`
+    pub hide_tags: Option<&'a Regex>,
 }
 
 pub struct Formatted {
@@ -568,7 +579,20 @@ pub struct Formatted {
 /// Org marks a tag as inherited with a text property, which an empty tag
 /// (`:a::b:`) cannot carry. So an empty tag always looks like the entry's
 /// own, and the separator lands in front of it.
-fn fix_displayed_tags(text: &str, tags: &[Tag]) -> String {
+///
+/// Org does it only when it shows inherited tags (`add_inherited`) or
+/// hides some (`hide`, `org-agenda-hide-tags-regexp`); else the headline
+/// keeps its tags as written.
+fn fix_displayed_tags(text: &str, tags: &[Tag], add_inherited: bool, hide: Option<&Regex>) -> String {
+    if !add_inherited && hide.is_none() {
+        return text.to_string();
+    }
+    let tags: Vec<Tag> = tags
+        .iter()
+        .filter(|tag| !hide.is_some_and(|hide| hide.is_match(&tag.name)) && (add_inherited || !tag.inherited))
+        .cloned()
+        .collect();
+    let tags = tags.as_slice();
     let mut out = match tag_group(text) {
         Some((blanks, _)) => text[..blanks].to_string(),
         None => text.to_string(),
@@ -663,7 +687,7 @@ fn remove_active_timestamps(text: &str) -> String {
 
 /// `org-agenda-format-item`.
 pub fn format_item(input: &FormatInput<'_>) -> Formatted {
-    let mut txt = fix_displayed_tags(trim(input.head), input.tags);
+    let mut txt = fix_displayed_tags(trim(input.head), input.tags, input.add_inherited, input.hide_tags);
 
     // The text searched for a time: the given one, then the headline
     // without its timestamps (`org-agenda-search-headline-for-time`).
@@ -971,6 +995,8 @@ mod tests {
             evaluator: &Evaluator::default(),
             times: &TimeSettings::default(),
             remove: None,
+            add_inherited: true,
+            hide_tags: None,
         })
         .text
     }
@@ -1007,6 +1033,8 @@ mod tests {
             evaluator: &evaluator,
             times: &TimeSettings::default(),
             remove: None,
+            add_inherited: true,
+            hide_tags: None,
         })
         .text;
         assert_eq!(text, "x   |   |x|work Task                                          :z:");
@@ -1073,15 +1101,15 @@ mod tests {
     #[test]
     fn displayed_tags() {
         let both = [tag("file", true), tag("p", true), tag("own", false)];
-        assert_eq!(fix_displayed_tags("Title :own:", &both), "Title :file:p::own:");
-        assert_eq!(fix_displayed_tags("Title", &both[..2]), "Title :file:p::");
-        assert_eq!(fix_displayed_tags("Title :own:", &both[2..]), "Title :own:");
-        assert_eq!(fix_displayed_tags("Title :gone:", &[]), "Title");
+        assert_eq!(fix_displayed_tags("Title :own:", &both, true, None), "Title :file:p::own:");
+        assert_eq!(fix_displayed_tags("Title", &both[..2], true, None), "Title :file:p::");
+        assert_eq!(fix_displayed_tags("Title :own:", &both[2..], true, None), "Title :own:");
+        assert_eq!(fix_displayed_tags("Title :gone:", &[], true, None), "Title");
         // An empty tag never looks inherited.
         let with_empty = [tag("a", true), tag("", true), tag("b", true), tag("own", false)];
-        assert_eq!(fix_displayed_tags("Title", &with_empty[..3]), "Title :a:::b:");
-        assert_eq!(fix_displayed_tags("Title", &with_empty), "Title :a:::b:own:");
-        assert_eq!(fix_displayed_tags("Title", &with_empty[1..3]), "Title ::b:");
+        assert_eq!(fix_displayed_tags("Title", &with_empty[..3], true, None), "Title :a:::b:");
+        assert_eq!(fix_displayed_tags("Title", &with_empty, true, None), "Title :a:::b:own:");
+        assert_eq!(fix_displayed_tags("Title", &with_empty[1..3], true, None), "Title ::b:");
     }
 
     #[test]

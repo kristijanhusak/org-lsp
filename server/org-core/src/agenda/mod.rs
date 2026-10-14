@@ -116,6 +116,32 @@ pub enum FutureRepeats {
     None,
 }
 
+/// `org-agenda-show-inherited-tags`
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub enum ShowInheritedTags {
+    /// `t`: where `org-agenda-use-tag-inheritance` has them.
+    #[default]
+    Yes,
+    Always,
+    No,
+    /// In these kinds of views (`agenda`, `todo`, `search`).
+    Views(Vec<String>),
+}
+
+/// `org-agenda-use-tag-inheritance`
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UseTagInheritance {
+    All,
+    /// In these kinds of views; by default `todo`, `search` and `agenda`.
+    Views(Vec<String>),
+}
+
+impl Default for UseTagInheritance {
+    fn default() -> Self {
+        UseTagInheritance::Views(["todo", "search", "agenda"].map(str::to_string).to_vec())
+    }
+}
+
 /// `org-agenda-prefer-last-repeat`: which repeating entries show their
 /// last repeat up to today instead of their base date.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -304,6 +330,12 @@ pub struct Config {
     pub times: TimeSettings,
     /// `org-agenda-remove-timeranges-from-blocks`
     pub remove_timeranges_from_blocks: bool,
+    /// `org-agenda-show-inherited-tags`
+    pub show_inherited_tags: ShowInheritedTags,
+    /// `org-agenda-use-tag-inheritance`
+    pub use_tag_inheritance: UseTagInheritance,
+    /// `org-agenda-hide-tags-regexp`, in Emacs's syntax.
+    pub hide_tags_regexp: Option<String>,
     /// `org-agenda-diary-sexp-prefix`: a regexp (Emacs's syntax) for what
     /// of a diary sexp's text goes in front, as the line's leader.
     pub diary_sexp_prefix: Option<String>,
@@ -493,6 +525,9 @@ impl Default for Config {
             times: TimeSettings::default(),
             remove_timeranges_from_blocks: false,
             diary_sexp_prefix: None,
+            show_inherited_tags: ShowInheritedTags::Yes,
+            use_tag_inheritance: UseTagInheritance::default(),
+            hide_tags_regexp: None,
             include_deadlines: true,
             prefer_last_repeat: PreferLastRepeat::None,
             skip_deadline_prewarning_if_scheduled: None,
@@ -551,6 +586,9 @@ struct Builder<'a> {
     format: PrefixFormat,
     /// The first habit Org could not read: the view fails with it.
     error: std::cell::RefCell<Option<String>>,
+    /// `org-agenda-hide-tags-regexp`, matched with case (as in the TODO
+    /// list, where Org binds `case-fold-search` to nil) and without.
+    hide_tags: Option<(regex::Regex, regex::Regex)>,
 }
 
 /// Which of `org-agenda-prefix-format`'s formats a view uses.
@@ -571,7 +609,13 @@ impl<'a> Builder<'a> {
             ViewKind::Tags => &formats.tags,
             ViewKind::Search => &formats.search,
         };
-        Builder { files, config, today, format: PrefixFormat::new(format), error: Default::default() }
+        let hide_tags = config.hide_tags_regexp.as_deref().filter(|text| !text.is_empty()).and_then(|text| {
+            let pattern = matcher::translate(text);
+            let with_case = regex::Regex::new(&pattern).ok()?;
+            let without = regex::RegexBuilder::new(&pattern).case_insensitive(true).build().ok()?;
+            Some((with_case, without))
+        });
+        Builder { files, config, today, format: PrefixFormat::new(format), error: Default::default(), hide_tags }
     }
 
     /// `%b`: the titles above the entry, each followed by the separator
@@ -671,6 +715,19 @@ impl Builder<'_> {
         // `org-scan-tags` passes no category for `nil`, and
         // `org-agenda-format-item` takes the file name instead.
         let category = if kind == ItemKind::Tags && entry.no_category { &outline.name } else { &entry.category };
+        // The entry's own tags only, or inherited ones too.
+        let inherited = self.config.inherited_tags(kind);
+        let own: Vec<crate::outline::Tag>;
+        let tags = if inherited {
+            entry.tags.as_slice()
+        } else {
+            own = entry.tags.iter().filter(|tag| !tag.inherited).cloned().collect();
+            own.as_slice()
+        };
+        let hide = self
+            .hide_tags
+            .as_ref()
+            .map(|(with_case, without)| if kind == ItemKind::Todo { with_case } else { without });
         // A date range has no default duration (`org-agenda-get-blocks`).
         let times = TimeSettings {
             appointment_duration: self.config.times.appointment_duration.filter(|_| kind != ItemKind::Block),
@@ -681,7 +738,7 @@ impl Builder<'_> {
             extra,
             head,
             category,
-            tags: &entry.tags,
+            tags,
             dotime,
             remove_stamps: kind == ItemKind::Timestamp,
             time_trailer: &self.config.time_grid.trailer,
@@ -693,6 +750,8 @@ impl Builder<'_> {
             evaluator: &self.config.prefix_evaluator,
             times: &times,
             remove,
+            add_inherited: self.config.show_inherited_tags != ShowInheritedTags::No,
+            hide_tags: hide,
         });
         let mut text = formatted.text;
         // `org-scan-tags` reads the cookie ignoring case (`[#a]`).
@@ -719,6 +778,7 @@ impl Builder<'_> {
             ts_date: None,
             log: None,
             ts_type: "",
+            own_tags_only: !inherited,
         }
     }
 
@@ -1149,12 +1209,14 @@ impl Builder<'_> {
                     None => format!("{} - {note}", entry.head),
                 },
             };
+            let inherited = self.config.inherited_tags(ItemKind::Log);
+            let own: Vec<crate::outline::Tag> = entry.tags.iter().filter(|tag| !tag.inherited).cloned().collect();
             let formatted = format_item(&FormatInput {
                 format: &self.format,
                 extra: &extra,
                 head: &head,
                 category: &entry.category,
-                tags: &entry.tags,
+                tags: if inherited { &entry.tags } else { &own },
                 dotime: Dotime::Text(&log.time),
                 remove_stamps: false,
                 time_trailer: &self.config.time_grid.trailer,
@@ -1166,6 +1228,8 @@ impl Builder<'_> {
                 evaluator: &self.config.prefix_evaluator,
                 times: &self.config.times,
                 remove: None,
+                add_inherited: self.config.show_inherited_tags != ShowInheritedTags::No,
+                hide_tags: self.hide_tags.as_ref().map(|(_, without)| without),
             });
             let mut text = formatted.text;
             let keyword_len =
@@ -1193,6 +1257,7 @@ impl Builder<'_> {
                     LogKind::State(_) => "state",
                 }),
                 ts_type: "",
+                own_tags_only: !inherited,
             });
         }
     }
@@ -1247,6 +1312,8 @@ impl Builder<'_> {
                 // And with no default duration.
                 times: &grid_times,
                 remove: None,
+                add_inherited: false,
+                hide_tags: None,
             });
             Item {
                 text: formatted.text,
@@ -1265,6 +1332,7 @@ impl Builder<'_> {
                 ts_date: None,
                 log: None,
                 ts_type: "",
+                own_tags_only: false,
             }
         };
         // Org builds this list back to front, and the order decides ties.
@@ -1457,6 +1525,29 @@ fn ignored_for_date(outline: &Outline, index: usize, now: Now, config: &Config) 
     let end = outline.entries.get(index + 1).map_or(outline.text.len(), |next| next.offset);
     let text = &outline.text[entry.offset..end];
     todo_ignore::ignored(text, entry.done, &config.todo_ignore, now, config.deadline_warning_days)
+}
+
+impl Config {
+    /// Whether a line of `kind` shows the inherited tags of its entry
+    /// (`org-agenda-show-inherited-tags`, `org-agenda-use-tag-inheritance`).
+    /// A TODO entry, a search result and a log line count as `todo`, the
+    /// lines of a day as `agenda`; a tags match always has them.
+    fn inherited_tags(&self, kind: ItemKind) -> bool {
+        let view = match kind {
+            ItemKind::Tags => return true,
+            ItemKind::Todo | ItemKind::Search | ItemKind::Log => "todo",
+            _ => "agenda",
+        };
+        match &self.show_inherited_tags {
+            ShowInheritedTags::Always => true,
+            ShowInheritedTags::No => false,
+            ShowInheritedTags::Views(views) => views.iter().any(|name| name == view),
+            ShowInheritedTags::Yes => match &self.use_tag_inheritance {
+                UseTagInheritance::All => true,
+                UseTagInheritance::Views(views) => views.iter().any(|name| name == view),
+            },
+        }
+    }
 }
 
 impl crate::outline::Entry {

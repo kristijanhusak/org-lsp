@@ -151,6 +151,9 @@ DEFAULTS = r"""
       org-agenda-default-appointment-duration nil
       org-agenda-remove-timeranges-from-blocks nil
       org-agenda-diary-sexp-prefix nil
+      org-agenda-show-inherited-tags t
+      org-agenda-use-tag-inheritance '(todo search agenda)
+      org-agenda-hide-tags-regexp nil
       org-agenda-prefer-last-repeat nil
       org-agenda-skip-deadline-prewarning-if-scheduled nil
       org-agenda-skip-scheduled-delay-if-deadline nil
