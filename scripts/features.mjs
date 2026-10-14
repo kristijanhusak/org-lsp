@@ -395,6 +395,7 @@ export const AREAS = [
       ['Stuck projects', true],
       ['Custom commands and block agendas (`org-agenda-custom-commands`)', true],
       ['Sorting by any of Org\'s strategies, for each kind of view (`org-agenda-sorting-strategy`), and limits on how many entries show (`org-agenda-max-entries`, `-todos`, `-tags`, `-effort`)', true],
+      ['The TODO list leaving out entries for a date of their own (`org-agenda-todo-ignore-scheduled`, `-deadlines`, `-timestamp`, `-with-date`), in `tags-todo` too (`org-agenda-tags-todo-honor-ignore-options`), and without sublevels (`org-agenda-todo-list-sublevels`); commented subtrees shown (`org-agenda-skip-comment-trees`)', true],
       ['Commands offered by context (`org-agenda-custom-commands-contexts`)', true],
       ['Filters by tag, category, effort, regexp and top headline', true],
       ['Bulk marks and actions', true],

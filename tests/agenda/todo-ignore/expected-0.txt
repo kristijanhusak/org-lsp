@@ -1,0 +1,11 @@
+Global list of TODO items of type: ALL
+  work:       TODO no date
+  work:       TODO scheduled today
+  work:       TODO scheduled last week
+  work:       TODO deadline soon
+  work:       TODO deadline far, warned early
+  work:       TODO a meeting <2026-05-25 Mon>
+  work:       TODO scheduled, then a timestamp
+  work:       TODO below it
+  work:       TODO a parent with a date <2026-06-10 Wed>
+  work:       TODO its child

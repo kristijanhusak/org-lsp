@@ -1,0 +1,15 @@
+{
+  "today": "2026-05-18",
+  "now": "10:30",
+  "runs": [
+    { "view": "todo" },
+    { "view": "tags-todo", "match": "LEVEL>0" }
+  ],
+  "options": {
+    "org_agenda_todo_ignore_scheduled": "future",
+    "org_agenda_todo_ignore_deadlines": "far",
+    "org_agenda_todo_ignore_timestamp": "past",
+    "org_agenda_todo_ignore_time_comparison_use_seconds": true
+  },
+  "emacs": "(setq org-agenda-todo-ignore-scheduled 'future org-agenda-todo-ignore-deadlines 'far org-agenda-todo-ignore-timestamp 'past org-agenda-todo-ignore-time-comparison-use-seconds t)"
+}

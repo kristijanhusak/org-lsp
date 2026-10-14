@@ -643,14 +643,14 @@ impl Outline {
     /// The entry a timestamp counts for when the scan stops at `point`, or
     /// `None` when Org skips it there: in a date range, on a planning
     /// line, before the first headline, where the text is not a timestamp
-    /// to Org, or in a commented subtree. (Archived subtrees are left out
-    /// by the agenda, unless it is asked for them.)
+    /// to Org. (Archived and commented subtrees are left out by the
+    /// agenda, as `org-agenda-skip` does.)
     ///
     /// `inside` is a byte of the timestamp, used to look at its context;
     /// `end` is where the timestamp text ends.
     fn stamp_entry(&self, root: &SyntaxNode, text: &str, point: usize, inside: usize, end: usize) -> Option<usize> {
         let entry = self.entry_at(point)?;
-        if self.entries[entry].commented || at_date_range(text, point) {
+        if at_date_range(text, point) {
             return None;
         }
         let token = token_at(root, inside)?;
@@ -700,9 +700,9 @@ impl Outline {
     }
 
     /// Date ranges, found the way `org-agenda-get-blocks` finds them: by
-    /// scanning the text, wherever they are, except in comments, source
-    /// blocks and commented subtrees. With `inactive`, inactive ranges as
-    /// well (`org-tr-regexp-both`).
+    /// scanning the text, wherever they are, except in comments and source
+    /// blocks. With `inactive`, inactive ranges as well
+    /// (`org-tr-regexp-both`).
     fn collect_blocks(&self, root: &SyntaxNode, text: &str, inactive: bool) -> Vec<Block> {
         let mut blocks = Vec::new();
         let mut at = 0;
@@ -714,7 +714,7 @@ impl Outline {
                 continue;
             }
             let Some(entry) = self.entry_at(range.end) else { continue };
-            if self.entries[entry].commented || in_source_block(root, range.end - 1) {
+            if in_source_block(root, range.end - 1) {
                 continue;
             }
             blocks.push(Block {

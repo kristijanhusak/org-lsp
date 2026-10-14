@@ -1023,6 +1023,70 @@ pub const SETTINGS: &[Setting] = &[
         "Leave out timestamps of entries that are done.",
     ),
     setting(
+        "org_agenda_skip_comment_trees",
+        "boolean",
+        "true",
+        "org-agenda-skip-comment-trees",
+        "Leave out of every view the entries of a commented subtree (`COMMENT` after the stars).",
+    ),
+    setting(
+        "org_agenda_todo_list_sublevels",
+        "boolean",
+        "true",
+        "org-agenda-todo-list-sublevels",
+        "Show in the TODO list the TODO entries below another one. Off, the list skips the subtree of \
+         each entry it shows or leaves out for a date.",
+    ),
+    setting(
+        "org_agenda_todo_ignore_with_date",
+        "boolean",
+        "false",
+        "org-agenda-todo-ignore-with-date",
+        "Leave out of the TODO list the entries with an active timestamp anywhere in their text, \
+         scheduled and deadline dates too.",
+    ),
+    setting(
+        "org_agenda_todo_ignore_scheduled",
+        r#"boolean, "future", "past", "all", number"#,
+        "false",
+        "org-agenda-todo-ignore-scheduled",
+        "Leave out of the TODO list the scheduled entries: all of them (`true`, `all`), those scheduled \
+         after today (`future`), today or before (`past`), or with a number N, N days from now or later \
+         (a negative N: N days ago or before).",
+    ),
+    setting(
+        "org_agenda_todo_ignore_deadlines",
+        r#"boolean, "near", "far", "all", "future", "past", number"#,
+        "false",
+        "org-agenda-todo-ignore-deadlines",
+        "Leave out of the TODO list the entries with a deadline: in its warning period, that is, shown in \
+         the agenda (`true`, `near`), not yet in it (`far`), all of them (`all`), after today (`future`), \
+         today or before (`past`), or with a number as for `org_agenda_todo_ignore_scheduled`.",
+    ),
+    setting(
+        "org_agenda_todo_ignore_timestamp",
+        r#"boolean, "future", "past", "all", number"#,
+        "false",
+        "org-agenda-todo-ignore-timestamp",
+        "Leave out of the TODO list the entries with an active timestamp that is no scheduled or \
+         deadline date, with the values of `org_agenda_todo_ignore_scheduled`.",
+    ),
+    setting(
+        "org_agenda_todo_ignore_time_comparison_use_seconds",
+        "boolean",
+        "false",
+        "org-agenda-todo-ignore-time-comparison-use-seconds",
+        "Compare the dates of the `org_agenda_todo_ignore_*` settings with now to the second instead of \
+         by day: `future` is then later than now, and a number counts seconds.",
+    ),
+    setting(
+        "org_agenda_tags_todo_honor_ignore_options",
+        "boolean",
+        "false",
+        "org-agenda-tags-todo-honor-ignore-options",
+        "Have the `org_agenda_todo_ignore_*` settings leave entries out of `tags-todo` matches as well.",
+    ),
+    setting(
         "org_agenda_sorting_strategy",
         "{ agenda?, todo?, tags?, search? } of string[], or string[]",
         r#"{ "agenda": ["habit-down", "time-up", "urgency-down", "category-keep"], "todo": ["urgency-down", "category-keep"], "tags": ["urgency-down", "category-keep"], "search": ["category-keep"] }"#,
@@ -2075,6 +2139,14 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_agenda_skip_scheduled_if_done", BOOLEAN),
     ("org_agenda_skip_deadline_if_done", BOOLEAN),
     ("org_agenda_skip_timestamp_if_done", BOOLEAN),
+    ("org_agenda_skip_comment_trees", BOOLEAN),
+    ("org_agenda_todo_list_sublevels", BOOLEAN),
+    ("org_agenda_todo_ignore_with_date", BOOLEAN),
+    ("org_agenda_todo_ignore_scheduled", TODO_IGNORE),
+    ("org_agenda_todo_ignore_deadlines", TODO_IGNORE_DEADLINES),
+    ("org_agenda_todo_ignore_timestamp", TODO_IGNORE),
+    ("org_agenda_todo_ignore_time_comparison_use_seconds", BOOLEAN),
+    ("org_agenda_tags_todo_honor_ignore_options", BOOLEAN),
     (
         "org_agenda_sorting_strategy",
         concat!(
@@ -2257,6 +2329,9 @@ const SCHEMAS: &[(&str, &str)] = &[
 
 const BOOLEAN: &str = r#"{ "type": "boolean" }"#;
 /// A limit of `org-agenda-max-…`: one for all views, or one for each kind.
+const TODO_IGNORE: &str =
+    r#"{ "anyOf": [{ "type": "boolean" }, { "enum": ["future", "past", "all"] }, { "type": "integer" }] }"#;
+const TODO_IGNORE_DEADLINES: &str = r#"{ "anyOf": [{ "type": "boolean" }, { "enum": ["near", "far", "all", "future", "past"] }, { "type": "integer" }] }"#;
 const AGENDA_LIMIT: &str = r#"{ "anyOf": [{ "type": "integer" }, { "type": "object", "additionalProperties": false, "properties": {
     "agenda": { "type": "integer" }, "todo": { "type": "integer" }, "tags": { "type": "integer" }, "search": { "type": "integer" }
 } }] }"#;

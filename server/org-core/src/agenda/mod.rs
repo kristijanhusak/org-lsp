@@ -19,6 +19,7 @@ pub mod report;
 pub mod search;
 pub mod sorting;
 pub mod super_agenda;
+pub mod todo_ignore;
 
 pub use search::SearchSettings;
 
@@ -252,6 +253,15 @@ pub struct Config {
     /// `org-agenda-archives-mode`: entries in archived trees are shown
     /// (`v a`). Archive files are the caller's to add (`v A`).
     pub archives: bool,
+    /// `org-agenda-skip-comment-trees`
+    pub skip_comment_trees: bool,
+    /// `org-agenda-todo-list-sublevels`: the TODO list shows the TODO
+    /// entries below another one.
+    pub todo_list_sublevels: bool,
+    /// `org-agenda-todo-ignore-with-date` and its kin.
+    pub todo_ignore: todo_ignore::TodoIgnore,
+    /// `org-agenda-tags-todo-honor-ignore-options`
+    pub tags_todo_honor_ignore: bool,
     /// `org-agenda-prefix-format`
     pub prefix_format: PrefixFormats,
     /// The `org-habit-…` options, when `org-habit` is loaded (it is one of
@@ -415,6 +425,10 @@ impl Default for Config {
             compact_blocks: false,
             hide_empty_blocks: false,
             archives: false,
+            skip_comment_trees: true,
+            todo_list_sublevels: true,
+            todo_ignore: todo_ignore::TodoIgnore::default(),
+            tags_todo_honor_ignore: false,
             prefix_format: PrefixFormats::default(),
             habits: None,
             diary: diary::Outside::default(),
@@ -631,7 +645,7 @@ impl Builder<'_> {
                 self.error.borrow_mut().get_or_insert(error);
                 continue;
             };
-            if outline.entries[entry].skipped(self.config.archives) {
+            if outline.entries[entry].skipped_by(self.config) {
                 continue;
             }
             for result in results {
@@ -654,7 +668,7 @@ impl Builder<'_> {
         let is_today = current == self.today;
         for (index, entry) in self.files[file].entries.iter().enumerate() {
             let found = entry.deadline.as_ref().filter(|planning| planning.active && planning.searchable);
-            let Some(planning) = found.filter(|_| !entry.skipped(self.config.archives)) else {
+            let Some(planning) = found.filter(|_| !entry.skipped_by(self.config)) else {
                 continue;
             };
             let raw = planning.raw.as_str();
@@ -738,7 +752,7 @@ impl Builder<'_> {
         let is_today = current == self.today;
         for (index, entry) in self.files[file].entries.iter().enumerate() {
             let found = entry.scheduled.as_ref().filter(|planning| planning.active && planning.searchable);
-            let Some(planning) = found.filter(|_| !entry.skipped(self.config.archives)) else {
+            let Some(planning) = found.filter(|_| !entry.skipped_by(self.config)) else {
                 continue;
             };
             let raw = planning.raw.as_str();
@@ -820,7 +834,7 @@ impl Builder<'_> {
             if current < first
                 || current > last
                 || (entry.done && self.config.skip_timestamp_if_done)
-                || entry.skipped(self.config.archives)
+                || entry.skipped_by(self.config)
             {
                 continue;
             }
@@ -860,7 +874,7 @@ impl Builder<'_> {
                 let Some((sexp, shown)) = &stamp.diary else { continue };
                 scanned_to = stamp.offset + shown.text.len();
                 let entry = &outline.entries[shown.entry];
-                if entry.skipped(self.config.archives)
+                if entry.skipped_by(self.config)
                     || (entry.done && self.config.skip_timestamp_if_done)
                     || diary::entries_with(sexp, "", current, &self.config.diary).is_none()
                 {
@@ -890,7 +904,7 @@ impl Builder<'_> {
             };
             let Some(shown) = shown else { continue };
             // In an archived tree (`org-agenda-skip`).
-            if outline.entries[shown.entry].skipped(self.config.archives) {
+            if outline.entries[shown.entry].skipped_by(self.config) {
                 continue;
             }
             if outline.entries[shown.entry].done && self.config.skip_timestamp_if_done {
@@ -944,7 +958,7 @@ impl Builder<'_> {
                 LogKind::Clock(_) => items.clock,
                 LogKind::State(_) => items.state,
             };
-            if !wanted || log.date.to_day() != current || outline.entries[log.entry].skipped(self.config.archives) {
+            if !wanted || log.date.to_day() != current || outline.entries[log.entry].skipped_by(self.config) {
                 continue;
             }
             let extra = match &log.kind {
@@ -1210,16 +1224,35 @@ pub fn day_items(files: &[&Outline], current: Day, today: Day, config: &Config) 
 
 /// `org-agenda-get-todos` over all files: every entry in a not-done state,
 /// or with one of `keywords` (`org-todo-list` with an argument).
-pub fn todo_items(files: &[&Outline], keywords: Option<&[String]>, config: &Config) -> Vec<Item> {
+pub fn todo_items(files: &[&Outline], keywords: Option<&[String]>, now: Now, config: &Config) -> Vec<Item> {
     let builder = Builder::new(files, config, 0, ViewKind::Todo);
     let mut items = Vec::new();
     for (file, outline) in files.iter().enumerate() {
+        // The level of the entry whose subtree is passed over, when the
+        // TODO list leaves it out or shows it without its sublevels.
+        let mut passing: Option<usize> = None;
         for (index, entry) in outline.entries.iter().enumerate() {
+            if passing.is_some_and(|level| entry.level > level) {
+                continue;
+            }
+            passing = None;
             let wanted = match keywords {
                 Some(keywords) => entry.todo.as_ref().is_some_and(|todo| keywords.contains(todo)),
                 None => entry.is_open_todo(),
             };
-            if entry.skipped(config.archives) || !wanted {
+            if !wanted {
+                continue;
+            }
+            // `org-agenda-skip` passes over the whole subtree.
+            if entry.skipped_by(config) {
+                passing = Some(entry.level);
+                continue;
+            }
+            let ignored = ignored_for_date(outline, index, now, config);
+            if !config.todo_list_sublevels {
+                passing = Some(entry.level);
+            }
+            if ignored {
                 continue;
             }
             let mut item = builder.item(file, index, ItemKind::Todo, Face::Default, "", Dotime::Headline);
@@ -1229,6 +1262,25 @@ pub fn todo_items(files: &[&Outline], keywords: Option<&[String]>, config: &Conf
         }
     }
     items
+}
+
+/// Whether the TODO entry `index` is left out for a date of its own
+/// (`org-agenda-check-for-timestamp-as-reason-to-ignore-todo-item`): the
+/// text from its headline to the next one is searched.
+fn ignored_for_date(outline: &Outline, index: usize, now: Now, config: &Config) -> bool {
+    let entry = &outline.entries[index];
+    let end = outline.entries.get(index + 1).map_or(outline.text.len(), |next| next.offset);
+    let text = &outline.text[entry.offset..end];
+    todo_ignore::ignored(text, entry.done, &config.todo_ignore, now, config.deadline_warning_days)
+}
+
+impl crate::outline::Entry {
+    /// Whether `org-agenda-skip` passes over the entry: in a commented
+    /// subtree (`org-agenda-skip-comment-trees`), or an archived one
+    /// unless archived trees are shown.
+    fn skipped_by(&self, config: &Config) -> bool {
+        (self.commented && config.skip_comment_trees) || (self.archived && !config.archives)
+    }
 }
 
 /// What a line of a view is.
@@ -1470,7 +1522,8 @@ pub fn todo_view(files: &[&Outline], keywords: Option<&str>, now: Now, config: &
     let shown = wanted.as_ref().map_or("ALL".to_string(), |keywords| keywords.join("|"));
     let header = format!("Global list of TODO items of type: {shown}");
     let lines = vec![Line { text: header, kind: LineKind::Header, item: None }];
-    let lines = listed(lines, todo_items(files, wanted.as_deref(), config), files, config, (now.today, ViewType::Todo));
+    let lines =
+        listed(lines, todo_items(files, wanted.as_deref(), now, config), files, config, (now.today, ViewType::Todo));
     View { lines, start: 0, end: 0 }
 }
 
@@ -1483,7 +1536,14 @@ pub fn tags_view(files: &[&Outline], matcher: &Matcher, todo_only: bool, now: No
     let mut items = Vec::new();
     for (file, outline) in files.iter().enumerate() {
         for index in 0..outline.entries.len() {
-            if outline.entries[index].skipped(config.archives) || !matcher.matches(outline, index, todo_only, clock) {
+            if outline.entries[index].skipped_by(config) || !matcher.matches(outline, index, todo_only, clock) {
+                continue;
+            }
+            // `org-agenda-tags-todo-honor-ignore-options`
+            if (todo_only || matcher.todo_only)
+                && config.tags_todo_honor_ignore
+                && ignored_for_date(outline, index, now, config)
+            {
                 continue;
             }
             let mut item = builder.scanned(file, index);
@@ -1547,7 +1607,7 @@ pub fn stuck_view(files: &[&Outline], now: Now, config: &Config) -> Result<View,
     for (file, outline) in files.iter().enumerate() {
         for index in 0..outline.entries.len() {
             let entry = &outline.entries[index];
-            if entry.skipped(config.archives) || !matcher.matches(outline, index, false, clock) {
+            if entry.skipped_by(config) || !matcher.matches(outline, index, false, clock) {
                 continue;
             }
             // `org-end-of-subtree`: before the next headline as high, and
@@ -1617,7 +1677,7 @@ pub fn search_view(
             let before_end = floor_char(text, end.saturating_sub(1));
             let line_end = text[begin..].find('\n').map_or(text.len(), |at| begin + at);
             let seen = &text[begin..if search.headline_only { line_end } else { end }];
-            let wanted = !outline.entries[entry].skipped(config.archives)
+            let wanted = !outline.entries[entry].skipped_by(config)
                 && !search.minus.iter().any(|pattern| pattern.is_match(seen))
                 && (!search.todo_only || todo.is_match(seen))
                 && search.plus.iter().all(|pattern| pattern.is_match(seen));
