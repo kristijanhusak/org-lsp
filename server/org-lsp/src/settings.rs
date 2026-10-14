@@ -1113,7 +1113,8 @@ pub const SETTINGS: &[Setting] = &[
         "3",
         "",
         "How many months the calendar of the date prompt shows: 3 side by side, as Emacs's calendar shows them, \
-         the one with the selected day in the middle; or 1, that month alone, for a narrow window.",
+         the one with the selected day in the middle; or 1, that month alone, for a narrow window, with the \
+         answer on a line under the prompt.",
     ),
     setting(
         "calendar_week_start_day",

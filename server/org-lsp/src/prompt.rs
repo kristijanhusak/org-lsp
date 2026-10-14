@@ -342,13 +342,30 @@ impl DatePrompt {
         // The minibuffer, after a blank line.
         text.push('\n');
         let start = text.len();
-        token(start, self.label.len(), TokenType::CalendarPrompt, 0);
+        let label = if self.calendar.months == 1 { self.label.trim_end() } else { self.label.as_str() };
+        token(start, label.len(), TokenType::CalendarPrompt, 0);
         // A picked time shows in place of a typed one, as `i` would start.
-        let mut line = format!("{}{}", self.label, self.typed_with_time());
-        // `org-read-date-display` pads the answer with four blanks.
-        while !line.ends_with("    ") {
-            line.push(' ');
-        }
+        let typed = self.typed_with_time();
+        let mut line = if self.calendar.months == 1 {
+            // Under one month, the prompt on a line of its own and the
+            // answer below it, so the window is not wider than the prompt.
+            text.push_str(label);
+            text.push('\n');
+            let typed = typed.trim();
+            if typed.is_empty() {
+                String::new()
+            } else {
+                format!("{typed} ")
+            }
+        } else {
+            // `org-read-date-display` pads the answer with four blanks.
+            let mut line = format!("{}{typed}", self.label);
+            while !line.ends_with("    ") {
+                line.push(' ');
+            }
+            line
+        };
+        let start = text.len();
         let display = planning::display(self.command, &self.answer(), self.default, now, settings);
         if let Some(at) = display.find(['<', '[']) {
             let end = display[at..].find(['>', ']']).map_or(display.len(), |end| at + end + 1);
@@ -412,6 +429,40 @@ mod tests {
         assert!(prompt.tokens.iter().any(|token| token.ty == TokenType::CalendarSelected));
     }
 
+    /// With one month, the prompt and the answer go on lines of their own,
+    /// so the window is about as wide as the month.
+    #[test]
+    fn puts_the_answer_under_the_prompt_with_one_month() {
+        let file: Uri = "file:///org/notes.org".parse().unwrap();
+        let default = Some(DateTime::new(Date::new(2026, 10, 7), 10, 0));
+        let target = Target::Place { uri: file, position: Position::new(0, 0) };
+        let mut prompt = DatePrompt::new(
+            "org.schedule",
+            Command::Schedule,
+            target,
+            default,
+            "10:00".to_string(),
+            now(),
+            &Settings::default(),
+            (1, 0),
+        );
+        let lines: Vec<&str> = prompt.text.lines().collect();
+        assert_eq!(lines[0].trim(), "October 2026");
+        assert_eq!(
+            &lines[lines.len() - 3..],
+            ["", "SCHEDULED Date+time [2026-10-07]:", "10:00 => <2026-10-07 Wed 10:00>"]
+        );
+        let widest = lines.iter().map(|line| line.len()).max().unwrap();
+        assert_eq!(widest, "SCHEDULED Date+time [2026-10-07]:".len());
+        let label = prompt.tokens.iter().find(|token| token.ty == TokenType::CalendarPrompt).unwrap();
+        assert_eq!(&prompt.text[label.range], "SCHEDULED Date+time [2026-10-07]:");
+        let stamp = prompt.tokens.iter().find(|token| token.ty == TokenType::Timestamp).unwrap();
+        assert_eq!(&prompt.text[stamp.range], "<2026-10-07 Wed 10:00>");
+        // Nothing typed: the answer alone.
+        prompt.set_typed(String::new(), now(), &Settings::default());
+        assert_eq!(prompt.text.lines().last(), Some("=> <2026-10-07 Wed>"));
+    }
+
     #[test]
     fn starts_from_yesterday_late_at_night() {
         let file: Uri = "file:///org/notes.org".parse().unwrap();
@@ -421,7 +472,8 @@ mod tests {
         let prompt =
             DatePrompt::new("org.schedule", Command::Schedule, target, None, String::new(), late, &settings, (1, 0));
         assert_eq!(Date::from_day(prompt.selected), Date::new(2026, 10, 4));
-        assert_eq!(prompt.text.lines().last(), Some("SCHEDULED Date+time [2026-10-04]:    => <2026-10-04 Sun>"));
+        let lines: Vec<&str> = prompt.text.lines().collect();
+        assert_eq!(&lines[lines.len() - 2..], ["SCHEDULED Date+time [2026-10-04]:", "=> <2026-10-04 Sun>"]);
     }
 
     #[test]
