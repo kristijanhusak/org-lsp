@@ -29,7 +29,7 @@ pub use item::{align_tags, display_column, hidden_ranges, Face, Item, ItemKind, 
 pub use matcher::Matcher;
 
 use item::{format_item, normalise_keyword, priority, Dotime, FormatInput};
-pub use item::{format_numbers, format_with, Eval, Evaluator, PrefixFormat, RemoveTags};
+pub use item::{format_numbers, format_with, Eval, Evaluator, PrefixFormat, RemoveTags, RemoveTimes, TimeSettings};
 use sorting::ViewType;
 
 use crate::date::{days_in_month, is_leap_year, iso_week, weekday, Date, Day, MONTH_NAMES, WEEKDAY_NAMES};
@@ -299,6 +299,14 @@ pub struct Config {
     pub archives: bool,
     /// `org-agenda-skip-comment-trees`
     pub skip_comment_trees: bool,
+    /// How times of day are found and shown (`org-agenda-time-leading-zero`
+    /// and its kin).
+    pub times: TimeSettings,
+    /// `org-agenda-remove-timeranges-from-blocks`
+    pub remove_timeranges_from_blocks: bool,
+    /// `org-agenda-diary-sexp-prefix`: a regexp (Emacs's syntax) for what
+    /// of a diary sexp's text goes in front, as the line's leader.
+    pub diary_sexp_prefix: Option<String>,
     /// `org-agenda-include-deadlines`
     pub include_deadlines: bool,
     /// `org-agenda-prefer-last-repeat`
@@ -482,6 +490,9 @@ impl Default for Config {
             hide_empty_blocks: false,
             archives: false,
             skip_comment_trees: true,
+            times: TimeSettings::default(),
+            remove_timeranges_from_blocks: false,
+            diary_sexp_prefix: None,
             include_deadlines: true,
             prefer_last_repeat: PreferLastRepeat::None,
             skip_deadline_prewarning_if_scheduled: None,
@@ -627,7 +638,7 @@ impl Builder<'_> {
         dotime: Dotime<'_>,
     ) -> Item {
         let head = self.files[file].entries[entry_index].head.clone();
-        self.line_item(file, entry_index, &head, kind, face, extra, dotime)
+        self.line_item(file, entry_index, &head, kind, face, extra, dotime, None)
     }
 
     /// A line of `org-scan-tags` for the entry `entry_index`: its
@@ -637,11 +648,11 @@ impl Builder<'_> {
         let entry = &outline.entries[entry_index];
         let line = &outline.text[entry.offset..entry.line_end];
         let heading = crate::outline::get_heading(line, entry.level, &outline.todo);
-        self.line_item(file, entry_index, heading.trim_start(), ItemKind::Tags, Face::Default, "", Dotime::No)
+        self.line_item(file, entry_index, heading.trim_start(), ItemKind::Tags, Face::Default, "", Dotime::No, None)
     }
 
     /// An item of `head` (the headline, or what a diary sexp gives) for the
-    /// entry `entry_index`.
+    /// entry `entry_index`; `remove` is text taken out of it.
     #[allow(clippy::too_many_arguments)]
     fn line_item(
         &self,
@@ -652,6 +663,7 @@ impl Builder<'_> {
         face: Face,
         extra: &str,
         dotime: Dotime<'_>,
+        remove: Option<&str>,
     ) -> Item {
         let outline = self.files[file];
         let entry = &outline.entries[entry_index];
@@ -659,6 +671,11 @@ impl Builder<'_> {
         // `org-scan-tags` passes no category for `nil`, and
         // `org-agenda-format-item` takes the file name instead.
         let category = if kind == ItemKind::Tags && entry.no_category { &outline.name } else { &entry.category };
+        // A date range has no default duration (`org-agenda-get-blocks`).
+        let times = TimeSettings {
+            appointment_duration: self.config.times.appointment_duration.filter(|_| kind != ItemKind::Block),
+            ..self.config.times.clone()
+        };
         let formatted = format_item(&FormatInput {
             format: &self.format,
             extra,
@@ -674,6 +691,8 @@ impl Builder<'_> {
             remove_tags: self.config.remove_tags,
             entry: self.config.file_paths.get(file).map(|path| (path.as_str(), entry.offset)),
             evaluator: &self.config.prefix_evaluator,
+            times: &times,
+            remove,
         });
         let mut text = formatted.text;
         // `org-scan-tags` reads the cookie ignoring case (`[#a]`).
@@ -720,14 +739,34 @@ impl Builder<'_> {
             if outline.entries[entry].skipped_by(self.config) {
                 continue;
             }
-            for result in results {
+            // `org-agenda-diary-sexp-prefix`: the leader, which a result
+            // without one keeps from the one before.
+            let prefix = self
+                .config
+                .diary_sexp_prefix
+                .as_deref()
+                .and_then(|prefix| regex::Regex::new(&matcher::translate(prefix)).ok());
+            let mut extra = String::new();
+            for mut result in results {
+                if let Some(found) = prefix.as_ref().and_then(|prefix| prefix.find(&result)) {
+                    extra = found.as_str().to_string();
+                    result.replace_range(found.range(), "");
+                }
                 let text = if result.chars().any(|c| !c.is_whitespace()) {
                     result
                 } else {
                     "SEXP entry returned empty string".to_string()
                 };
-                let mut item =
-                    self.line_item(file, entry, &text, ItemKind::Sexp, Face::CalendarSexp, "", Dotime::Headline);
+                let mut item = self.line_item(
+                    file,
+                    entry,
+                    &text,
+                    ItemKind::Sexp,
+                    Face::CalendarSexp,
+                    &extra,
+                    Dotime::Headline,
+                    None,
+                );
                 item.marker = Some(line.offset);
                 item.priority = 0;
                 out.push(item);
@@ -975,7 +1014,13 @@ impl Builder<'_> {
                 (false, false) => None,
             };
             let dotime = dotime.as_deref().map_or(Dotime::No, Dotime::Text);
-            let mut item = self.item(file, block.entry, ItemKind::Block, face, &extra, dotime);
+            // `org-agenda-remove-timeranges-from-blocks`: the range out of
+            // the headline.
+            let range =
+                self.config.remove_timeranges_from_blocks.then(|| format!("<{}>--<{}>", block.first, block.second));
+            let head = entry.head.clone();
+            let mut item =
+                self.line_item(file, block.entry, &head, ItemKind::Block, face, &extra, dotime, range.as_deref());
             item.marker = Some(block.offset);
             out.push(item);
         }
@@ -1119,6 +1164,8 @@ impl Builder<'_> {
                 remove_tags: self.config.remove_tags,
                 entry: self.config.file_paths.get(file).map(|path| (path.as_str(), entry.offset)),
                 evaluator: &self.config.prefix_evaluator,
+                times: &self.config.times,
+                remove: None,
             });
             let mut text = formatted.text;
             let keyword_len =
@@ -1179,6 +1226,7 @@ impl Builder<'_> {
         if !wanted || (grid.require_timed && have.is_empty()) {
             return;
         }
+        let grid_times = TimeSettings { appointment_duration: None, ..self.config.times.clone() };
         let line = |text: &str, time: &str, face: Face| {
             let formatted = format_item(&FormatInput {
                 format: &self.format,
@@ -1196,6 +1244,9 @@ impl Builder<'_> {
                 // Org formats grid lines in the agenda's buffer, no entry's.
                 entry: None,
                 evaluator: &self.config.prefix_evaluator,
+                // And with no default duration.
+                times: &grid_times,
+                remove: None,
             });
             Item {
                 text: formatted.text,
@@ -1820,7 +1871,7 @@ pub fn search_view(
                 let line = &text[outline.entries[entry].offset..outline.entries[entry].line_end];
                 let head = crate::text::trim(line.trim_start_matches(['*', ' ']));
                 let mut item =
-                    builder.line_item(file, entry, head, ItemKind::Search, Face::Default, "", Dotime::Headline);
+                    builder.line_item(file, entry, head, ItemKind::Search, Face::Default, "", Dotime::Headline, None);
                 // `priority` and `urgency` are 1000 for every line.
                 item.priority = 1000;
                 item.base_priority = 1000;

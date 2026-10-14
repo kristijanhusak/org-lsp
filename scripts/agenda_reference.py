@@ -144,6 +144,13 @@ DEFAULTS = r"""
       org-agenda-max-effort nil
       org-agenda-skip-comment-trees t
       org-agenda-include-deadlines t
+      org-agenda-time-leading-zero nil
+      org-agenda-timegrid-use-ampm nil
+      org-agenda-search-headline-for-time t
+      org-agenda-remove-times-when-in-prefix t
+      org-agenda-default-appointment-duration nil
+      org-agenda-remove-timeranges-from-blocks nil
+      org-agenda-diary-sexp-prefix nil
       org-agenda-prefer-last-repeat nil
       org-agenda-skip-deadline-prewarning-if-scheduled nil
       org-agenda-skip-scheduled-delay-if-deadline nil

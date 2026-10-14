@@ -1023,6 +1023,65 @@ pub const SETTINGS: &[Setting] = &[
         "Leave out timestamps of entries that are done.",
     ),
     setting(
+        "org_agenda_time_leading_zero",
+        "boolean",
+        "false",
+        "org-agenda-time-leading-zero",
+        "Write times with two digits for the hour (`08:00`).",
+    ),
+    setting(
+        "org_agenda_timegrid_use_ampm",
+        "boolean",
+        "false",
+        "org-agenda-timegrid-use-ampm",
+        "Write the times of the agenda, the time grid's too, in 12-hour form (`8:00am`).",
+    ),
+    setting(
+        "org_agenda_search_headline_for_time",
+        "boolean",
+        "true",
+        "org-agenda-search-headline-for-time",
+        "Take a time in a headline (`Call at 15:00`) as the time of its entry.",
+    ),
+    setting(
+        "org_agenda_remove_times_when_in_prefix",
+        r#"boolean, "beg""#,
+        "true",
+        "org-agenda-remove-times-when-in-prefix",
+        "Take a time out of the headline when the prefix shows it; `beg` only one at the start of the \
+         headline.",
+    ),
+    Setting {
+        default: None,
+        unset: "none",
+        ..setting(
+            "org_agenda_default_appointment_duration",
+            "integer",
+            "",
+            "org-agenda-default-appointment-duration",
+            "Minutes an entry with a start time and no end time lasts: the agenda shows it as a range.",
+        )
+    },
+    setting(
+        "org_agenda_remove_timeranges_from_blocks",
+        "boolean",
+        "false",
+        "org-agenda-remove-timeranges-from-blocks",
+        "Take a date range out of the headline of its lines.",
+    ),
+    Setting {
+        default: None,
+        unset: "none",
+        ..setting(
+            "org_agenda_diary_sexp_prefix",
+            "string",
+            "",
+            "org-agenda-diary-sexp-prefix",
+            "A regexp (Emacs's syntax): what it matches of a diary sexp's text goes in front of the line, as \
+             a scheduled date's `Scheduled:` does.",
+        )
+    },
+    setting(
         "org_agenda_include_deadlines",
         "boolean",
         "true",
@@ -2186,6 +2245,13 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_agenda_skip_scheduled_if_done", BOOLEAN),
     ("org_agenda_skip_deadline_if_done", BOOLEAN),
     ("org_agenda_skip_timestamp_if_done", BOOLEAN),
+    ("org_agenda_time_leading_zero", BOOLEAN),
+    ("org_agenda_timegrid_use_ampm", BOOLEAN),
+    ("org_agenda_search_headline_for_time", BOOLEAN),
+    ("org_agenda_remove_times_when_in_prefix", r#"{ "enum": [true, false, "beg"] }"#),
+    ("org_agenda_default_appointment_duration", INTEGER),
+    ("org_agenda_remove_timeranges_from_blocks", BOOLEAN),
+    ("org_agenda_diary_sexp_prefix", STRING),
     ("org_agenda_include_deadlines", BOOLEAN),
     (
         "org_agenda_prefer_last_repeat",

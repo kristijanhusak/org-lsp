@@ -1,0 +1,15 @@
+{
+  "today": "2026-05-18",
+  "now": "10:30",
+  "runs": [
+    { "view": "agenda", "span": "day" }
+  ],
+  "options": {
+    "org_agenda_time_leading_zero": true,
+    "org_agenda_timegrid_use_ampm": true,
+    "org_agenda_remove_times_when_in_prefix": "beg",
+    "org_agenda_default_appointment_duration": 60,
+    "org_agenda_remove_timeranges_from_blocks": true
+  },
+  "emacs": "(setq org-agenda-time-leading-zero t org-agenda-timegrid-use-ampm t org-agenda-remove-times-when-in-prefix 'beg org-agenda-default-appointment-duration 60 org-agenda-remove-timeranges-from-blocks t)"
+}

@@ -2600,6 +2600,43 @@
               "markdownDescription": "Leave out timestamps of entries that are done. (`org-agenda-skip-timestamp-if-done`)",
               "default": false
             },
+            "org_agenda_time_leading_zero": {
+              "type": "boolean",
+              "markdownDescription": "Write times with two digits for the hour (`08:00`). (`org-agenda-time-leading-zero`)",
+              "default": false
+            },
+            "org_agenda_timegrid_use_ampm": {
+              "type": "boolean",
+              "markdownDescription": "Write the times of the agenda, the time grid's too, in 12-hour form (`8:00am`). (`org-agenda-timegrid-use-ampm`)",
+              "default": false
+            },
+            "org_agenda_search_headline_for_time": {
+              "type": "boolean",
+              "markdownDescription": "Take a time in a headline (`Call at 15:00`) as the time of its entry. (`org-agenda-search-headline-for-time`)",
+              "default": true
+            },
+            "org_agenda_remove_times_when_in_prefix": {
+              "enum": [
+                true,
+                false,
+                "beg"
+              ],
+              "markdownDescription": "Take a time out of the headline when the prefix shows it; `beg` only one at the start of the headline. (`org-agenda-remove-times-when-in-prefix`)",
+              "default": true
+            },
+            "org_agenda_default_appointment_duration": {
+              "type": "integer",
+              "markdownDescription": "Minutes an entry with a start time and no end time lasts: the agenda shows it as a range. (`org-agenda-default-appointment-duration`)"
+            },
+            "org_agenda_remove_timeranges_from_blocks": {
+              "type": "boolean",
+              "markdownDescription": "Take a date range out of the headline of its lines. (`org-agenda-remove-timeranges-from-blocks`)",
+              "default": false
+            },
+            "org_agenda_diary_sexp_prefix": {
+              "type": "string",
+              "markdownDescription": "A regexp (Emacs's syntax): what it matches of a diary sexp's text goes in front of the line, as a scheduled date's `Scheduled:` does. (`org-agenda-diary-sexp-prefix`)"
+            },
             "org_agenda_include_deadlines": {
               "type": "boolean",
               "markdownDescription": "Show deadlines in the agenda. (`org-agenda-include-deadlines`)",

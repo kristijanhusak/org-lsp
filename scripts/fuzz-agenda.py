@@ -5,7 +5,7 @@ Generates random agenda files, has Emacs print the agenda for them under a
 fixed clock, and runs the agenda test over the same cases. Cases the two
 disagree on stay in the output directory.
 
-    scripts/fuzz-agenda.py [--count 200] [--seed 1] [--out DIR] [--super] [--sorting] [--todo-options] [--skip-options]
+    scripts/fuzz-agenda.py [--count 200] [--seed 1] [--out DIR] [--super] [--sorting] [--todo-options] [--skip-options] [--display-options]
 
 With --super, each case also turns org-super-agenda on with random groups;
 ORG_LSP_EMACS_PACKAGES must then name the directory of its packages (see
@@ -17,7 +17,9 @@ sets the options of the TODO list at random (`org-agenda-todo-ignore-*`,
 `org-agenda-tags-todo-honor-ignore-options`). With --skip-options, the
 options of what the agenda leaves out or where repeats show
 (`org-agenda-skip-scheduled-if-deadline-is-shown` and its kin,
-`org-agenda-prefer-last-repeat`, `org-agenda-include-deadlines`).
+`org-agenda-prefer-last-repeat`, `org-agenda-include-deadlines`). With
+--display-options, those of how lines show their times
+(`org-agenda-time-leading-zero` and its kin).
 
 Requires Emacs, faketime and cargo.
 """
@@ -193,6 +195,27 @@ def skip_options(rng):
     choose("agenda_skip_scheduled_repeats_after_deadline", [True], 0.3)
     choose("agenda_skip_scheduled_if_done", [True], 0.2)
     choose("agenda_skip_deadline_if_done", [True], 0.2)
+    return options, " ".join(forms)
+
+
+def display_options(rng):
+    """Random options of how the agenda shows times, for org-lsp and as Emacs Lisp."""
+    options, forms = {}, []
+
+    def choose(name, values, probability):
+        if rng.random() < probability:
+            value = rng.choice(values)
+            options[f"org_{name}"] = value
+            text = '"' + value.replace("\\", "\\\\") + '"' if name == "agenda_diary_sexp_prefix" else lisp_value(value)
+            forms.append(f"(setq org-{name.replace('_', '-')} {text})")
+
+    choose("agenda_time_leading_zero", [True], 0.4)
+    choose("agenda_timegrid_use_ampm", [True], 0.4)
+    choose("agenda_search_headline_for_time", [False], 0.3)
+    choose("agenda_remove_times_when_in_prefix", [False, "beg"], 0.4)
+    choose("agenda_default_appointment_duration", [30, 60, 90], 0.4)
+    choose("agenda_remove_timeranges_from_blocks", [True], 0.4)
+    choose("agenda_diary_sexp_prefix", ["^[A-Za-z]+ ", "^X"], 0.3)
     return options, " ".join(forms)
 
 
@@ -394,6 +417,7 @@ def main():
     parser.add_argument("--sorting", action="store_true", help="random sorting strategies and limits")
     parser.add_argument("--todo-options", action="store_true", help="random options of the TODO list")
     parser.add_argument("--skip-options", action="store_true", help="random options of what the agenda leaves out")
+    parser.add_argument("--display-options", action="store_true", help="random options of how times show")
     args = parser.parse_args()
 
     out = args.out or tempfile.mkdtemp(prefix="org-agenda-fuzz-")
@@ -437,6 +461,10 @@ def main():
             case.setdefault("options", {}).update(options)
             case["emacs"] = emacs
             case["runs"].append({"view": rng.choice(["tags", "tags-todo"]), "match": rng.choice(["LEVEL>0", "a|work", "-home"])})
+        if args.display_options:
+            options, emacs = display_options(rng)
+            case.setdefault("options", {}).update(options)
+            case["emacs"] = " ".join(part for part in (case.get("emacs", ""), emacs) if part)
         if args.skip_options:
             options, emacs = skip_options(rng)
             case.setdefault("options", {}).update(options)
