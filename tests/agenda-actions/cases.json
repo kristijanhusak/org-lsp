@@ -19,6 +19,22 @@
    "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
   },
   "line": "Sched. 2x:  TODO Water plants",
+  "command": "date-later",
+  "options": {
+   "org_agenda_move_date_from_past_immediately_to_today": false
+  },
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-17 Sun +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "#+CATEGORY: work\n* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n* Conference\n<2026-05-21 Thu>--<2026-05-22 Fri>\n* TODO Old deadline\nDEADLINE: <2026-05-10 Sun -3d>\n* Standup <2026-05-11 Mon 9:30 +1w>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n"
+  },
+  "line": "Sched. 2x:  TODO Water plants",
   "command": "date-earlier",
   "expected": {
    "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-15 Fri +1w>\n* DONE Buy milk\n* TODO Holiday\nSCHEDULED: <2026-05-19 Tue>--<2026-05-21 Thu>\n* TODO Pay rent                                                         :money:\nDEADLINE: <2026-05-18 Mon> SCHEDULED: <2026-05-15 Fri>\n",

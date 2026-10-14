@@ -1200,6 +1200,15 @@
       "description": "Show deadlines in the agenda. (`org-agenda-include-deadlines`)",
       "default": true
     },
+    "org_agenda_fontify_priorities": {
+      "enum": [
+        true,
+        false,
+        "cookies"
+      ],
+      "description": "Highlight the priority cookies of agenda lines (`cookies`), or each line from its cookie on (`true`; links and tags keep their own look); the highest priority shows in bold, the lowest in italic. `false` highlights none. Org's list of faces by priority is not read here: `org_priority_faces` gives them. (`org-agenda-fontify-priorities`)",
+      "default": "cookies"
+    },
     "org_agenda_prefer_last_repeat": {
       "anyOf": [
         {
@@ -1813,6 +1822,10 @@
       "description": "Start the agenda with the clock report under it (`R` toggles it). (`org-agenda-start-with-clockreport-mode`)",
       "default": false
     },
+    "org_agenda_clock_report_header": {
+      "type": "string",
+      "description": "Text on a line of its own (or lines) before the clock report. (`org-agenda-clock-report-header`)"
+    },
     "org_agenda_start_with_archives_mode": {
       "enum": [
         "trees",
@@ -1836,6 +1849,16 @@
         "closed",
         "clock"
       ]
+    },
+    "org_agenda_log_mode_add_notes": {
+      "type": "boolean",
+      "description": "Show the note of a state change or a clock line after the headline in log mode. (`org-agenda-log-mode-add-notes`)",
+      "default": true
+    },
+    "org_agenda_move_date_from_past_immediately_to_today": {
+      "type": "boolean",
+      "description": "Moving a date of the past one day later from the agenda (`S-<right>`) takes it to today. (`org-agenda-move-date-from-past-immediately-to-today`)",
+      "default": true
     },
     "org_agenda_persistent_marks": {
       "type": "boolean",

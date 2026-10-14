@@ -24,7 +24,7 @@ pub mod todo_ignore;
 pub use search::SearchSettings;
 
 pub use crate::text::tag_group;
-pub use display::{display, mark, Displayed, Link, Segment, Style};
+pub use display::{display, mark, Displayed, Fontify, Link, Rank, Segment, Style};
 pub use item::{align_tags, display_column, hidden_ranges, Face, Item, ItemKind, Source};
 pub use matcher::Matcher;
 
@@ -114,6 +114,18 @@ pub enum FutureRepeats {
     /// Only the next one.
     Next,
     None,
+}
+
+/// `org-agenda-fontify-priorities`: how lines show their priority cookies.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum FontifyPriorities {
+    /// `nil`: as the rest of the line.
+    No,
+    /// `cookies`: the cookies alone.
+    #[default]
+    Cookies,
+    /// `t`: from the cookie to the end of the line.
+    Lines,
 }
 
 /// `org-agenda-show-inherited-tags`
@@ -311,6 +323,8 @@ pub struct Config {
     pub log_items: LogItems,
     /// `org-agenda-clockreport-mode`: the clock report, `R`.
     pub clockreport: bool,
+    /// `org-agenda-clock-report-header`: text before the clock report.
+    pub clock_report_header: Option<String>,
     /// `org-agenda-block-separator`: the lines between this block and
     /// the one before it, in a block agenda; none with `None`.
     pub block_separator: Option<String>,
@@ -341,6 +355,10 @@ pub struct Config {
     pub diary_sexp_prefix: Option<String>,
     /// `org-agenda-include-deadlines`
     pub include_deadlines: bool,
+    /// `org-agenda-fontify-priorities`
+    pub fontify_priorities: FontifyPriorities,
+    /// `org-agenda-log-mode-add-notes`
+    pub log_mode_add_notes: bool,
     /// `org-agenda-prefer-last-repeat`
     pub prefer_last_repeat: PreferLastRepeat,
     /// `org-agenda-skip-deadline-prewarning-if-scheduled`
@@ -517,6 +535,7 @@ impl Default for Config {
             show_log: false,
             log_items: LogItems::default(),
             clockreport: false,
+            clock_report_header: None,
             block_separator: Some(default_separator()),
             compact_blocks: false,
             hide_empty_blocks: false,
@@ -529,6 +548,8 @@ impl Default for Config {
             use_tag_inheritance: UseTagInheritance::default(),
             hide_tags_regexp: None,
             include_deadlines: true,
+            fontify_priorities: FontifyPriorities::Cookies,
+            log_mode_add_notes: true,
             prefer_last_repeat: PreferLastRepeat::None,
             skip_deadline_prewarning_if_scheduled: None,
             skip_scheduled_delay_if_deadline: None,
@@ -779,7 +800,25 @@ impl Builder<'_> {
             log: None,
             ts_type: "",
             own_tags_only: !inherited,
+            fontify: self.fontify(file),
         }
+    }
+
+    /// How the lines of the file `file` show their priority cookies.
+    fn fontify(&self, file: usize) -> Option<display::Fontify> {
+        let own = self.files[file].priorities.as_ref().unwrap_or(&self.config.priorities);
+        let global = &self.config.priorities;
+        let lines = match self.config.fontify_priorities {
+            FontifyPriorities::No => return None,
+            FontifyPriorities::Cookies => false,
+            FontifyPriorities::Lines => true,
+        };
+        let byte = display::Fontify::byte;
+        Some(display::Fontify {
+            lines,
+            file: (byte(own.highest), byte(own.lowest)),
+            global: (byte(global.highest), byte(global.lowest)),
+        })
     }
 
     /// `org-agenda-get-sexps`: the lines the diary sexps of the file give
@@ -1199,8 +1238,10 @@ impl Builder<'_> {
             };
             let entry = &outline.entries[log.entry];
             let breadcrumbs = self.breadcrumbs(file, log.entry);
-            // The note goes before the tags.
-            let head = match &log.note {
+            // The note goes before the tags, with
+            // `org-agenda-log-mode-add-notes`.
+            let note = log.note.as_ref().filter(|_| self.config.log_mode_add_notes);
+            let head = match note {
                 None => entry.head.clone(),
                 Some(note) => match crate::text::tag_group(&entry.head) {
                     Some((blanks, tags)) => {
@@ -1258,6 +1299,7 @@ impl Builder<'_> {
                 }),
                 ts_type: "",
                 own_tags_only: !inherited,
+                fontify: self.fontify(file),
             });
         }
     }
@@ -1333,6 +1375,7 @@ impl Builder<'_> {
                 log: None,
                 ts_type: "",
                 own_tags_only: false,
+                fontify: None,
             }
         };
         // Org builds this list back to front, and the order decides ties.

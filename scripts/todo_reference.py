@@ -137,6 +137,8 @@ def bindings(options):
             out["org-log-into-drawer"] = lisp_value(value)
         elif key == "org_tags_column":
             out["org-tags-column"] = str(value)
+        elif key == "org_agenda_move_date_from_past_immediately_to_today":
+            out["org-agenda-move-date-from-past-immediately-to-today"] = lisp_value(value)
         elif key == "org_extend_today_until":
             out["org-extend-today-until"] = str(value)
         elif key == "org_todo_repeat_to_state":

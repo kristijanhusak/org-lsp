@@ -144,6 +144,10 @@ DEFAULTS = r"""
       org-agenda-max-effort nil
       org-agenda-skip-comment-trees t
       org-agenda-include-deadlines t
+      org-agenda-log-mode-add-notes t
+      org-agenda-clock-report-header nil
+      org-agenda-fontify-priorities 'cookies
+      org-agenda-move-date-from-past-immediately-to-today t
       org-agenda-time-leading-zero nil
       org-agenda-timegrid-use-ampm nil
       org-agenda-search-headline-for-time t

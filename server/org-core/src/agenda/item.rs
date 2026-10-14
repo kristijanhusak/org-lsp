@@ -111,6 +111,9 @@ pub struct Item {
     /// (`org-agenda-show-inherited-tags`): sorting by tag and
     /// `org-agenda-max-tags` read those.
     pub own_tags_only: bool,
+    /// How the line shows its priority cookies, if it does
+    /// (`org-agenda-fontify-priorities`).
+    pub fontify: Option<super::display::Fontify>,
 }
 
 /// What a specifier of `org-agenda-prefix-format` stands for.

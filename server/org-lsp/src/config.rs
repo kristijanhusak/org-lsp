@@ -6,8 +6,8 @@
 use org_core::agenda::sorting::{Limit, Sorting, Strategies};
 use org_core::agenda::todo_ignore::When;
 use org_core::agenda::{
-    Config as AgendaConfig, FutureRepeats, PreferLastRepeat, RemoveTags, RemoveTimes, ShowInheritedTags,
-    SkipByOtherDate, SkipScheduledIfDeadline, Span, TagsColumn, TimeGrid, UseTagInheritance,
+    Config as AgendaConfig, FontifyPriorities, FutureRepeats, PreferLastRepeat, RemoveTags, RemoveTimes,
+    ShowInheritedTags, SkipByOtherDate, SkipScheduledIfDeadline, Span, TagsColumn, TimeGrid, UseTagInheritance,
 };
 use org_core::archive::{ContextInfo, InheritedTags, MarkDone, Settings as ArchiveSettings};
 use org_core::edit::Settings as EditSettings;
@@ -49,6 +49,9 @@ pub struct Options {
     /// `org-list-use-circular-motion`
     #[serde(rename = "org_list_use_circular_motion")]
     pub list_use_circular_motion: Option<bool>,
+    /// `org-agenda-move-date-from-past-immediately-to-today`
+    #[serde(rename = "org_agenda_move_date_from_past_immediately_to_today")]
+    pub agenda_move_date_from_past_immediately_to_today: Option<bool>,
     /// `org-agenda-dim-blocked-tasks`
     #[serde(rename = "org_agenda_dim_blocked_tasks")]
     pub agenda_dim_blocked_tasks: Option<LogOption>,
@@ -1260,6 +1263,9 @@ impl Options {
             tags: self.tag_settings(),
             global_properties: self.global_properties.clone().unwrap_or_default().into_iter().collect(),
             list_circular_motion: self.list_use_circular_motion.unwrap_or(false),
+            move_date_from_past_to_today: self
+                .agenda_move_date_from_past_immediately_to_today
+                .unwrap_or(defaults.move_date_from_past_to_today),
         }
     }
 
@@ -1972,6 +1978,13 @@ pub struct AgendaOptions {
     pub skip_comment_trees: Option<bool>,
     #[serde(rename = "org_agenda_include_deadlines")]
     pub include_deadlines: Option<bool>,
+    /// `true`, `false` or `"cookies"`.
+    #[serde(rename = "org_agenda_fontify_priorities")]
+    pub fontify_priorities: Option<serde_json::Value>,
+    #[serde(rename = "org_agenda_log_mode_add_notes")]
+    pub log_mode_add_notes: Option<bool>,
+    #[serde(rename = "org_agenda_clock_report_header")]
+    pub clock_report_header: Option<String>,
     #[serde(rename = "org_agenda_time_leading_zero")]
     pub time_leading_zero: Option<bool>,
     #[serde(rename = "org_agenda_timegrid_use_ampm")]
@@ -2269,6 +2282,7 @@ impl AgendaOptions {
             show_all_dates,
             skip_comment_trees,
             include_deadlines,
+            log_mode_add_notes,
             remove_timeranges_from_blocks,
             skip_scheduled_repeats_after_deadline,
             todo_list_sublevels,
@@ -2313,6 +2327,16 @@ impl AgendaOptions {
                 serde_json::Value::Bool(true) => UseTagInheritance::All,
                 _ => UseTagInheritance::Views(views(value)),
             };
+        }
+        if let Some(value) = &self.fontify_priorities {
+            config.fontify_priorities = match value {
+                serde_json::Value::Bool(false) | serde_json::Value::Null => FontifyPriorities::No,
+                serde_json::Value::String(symbol) if symbol == "cookies" => FontifyPriorities::Cookies,
+                _ => FontifyPriorities::Lines,
+            };
+        }
+        if self.clock_report_header.is_some() {
+            config.clock_report_header = self.clock_report_header.clone();
         }
         if self.hide_tags_regexp.is_some() {
             config.hide_tags_regexp = self.hide_tags_regexp.clone().filter(|regexp| !regexp.is_empty());

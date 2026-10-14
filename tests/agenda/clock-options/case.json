@@ -1,0 +1,28 @@
+{
+  "today": "2026-10-05",
+  "now": "10:30",
+  "runs": [
+    {
+      "view": "agenda",
+      "span": "day",
+      "log": true
+    },
+    {
+      "view": "agenda",
+      "span": "day",
+      "clockreport": true
+    },
+    {
+      "view": "agenda",
+      "span": "week",
+      "log": true,
+      "clockreport": true
+    }
+  ],
+  "options": {
+    "org_agenda_log_mode_items": ["closed", "clock", "state"],
+    "org_agenda_log_mode_add_notes": false,
+    "org_agenda_clock_report_header": "Clock summary\nof the week"
+  },
+  "emacs": "(setq org-agenda-log-mode-items '(closed clock state) org-agenda-log-mode-add-notes nil org-agenda-clock-report-header \"Clock summary\\nof the week\")"
+}

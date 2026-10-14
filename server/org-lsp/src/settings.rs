@@ -1117,6 +1117,16 @@ pub const SETTINGS: &[Setting] = &[
         "Show deadlines in the agenda.",
     ),
     setting(
+        "org_agenda_fontify_priorities",
+        r#"boolean, "cookies""#,
+        r#""cookies""#,
+        "org-agenda-fontify-priorities",
+        "Highlight the priority cookies of agenda lines (`cookies`), or each line from its cookie on \
+         (`true`; links and tags keep their own look); the highest priority shows in bold, the lowest in \
+         italic. `false` highlights none. Org's list of faces by priority is not read here: \
+         `org_priority_faces` gives them.",
+    ),
+    setting(
         "org_agenda_prefer_last_repeat",
         "boolean, string[]",
         "false",
@@ -1364,6 +1374,17 @@ pub const SETTINGS: &[Setting] = &[
         "org-agenda-start-with-clockreport-mode",
         "Start the agenda with the clock report under it (`R` toggles it).",
     ),
+    Setting {
+        default: None,
+        unset: "none",
+        ..setting(
+            "org_agenda_clock_report_header",
+            "string",
+            "",
+            "org-agenda-clock-report-header",
+            "Text on a line of its own (or lines) before the clock report.",
+        )
+    },
     setting(
         "org_agenda_start_with_archives_mode",
         "\"trees\" | \"files\" | false",
@@ -1378,6 +1399,20 @@ pub const SETTINGS: &[Setting] = &[
         r#"["closed", "clock"]"#,
         "org-agenda-log-mode-items",
         "What log mode shows: `closed` entries, `clock` lines and `state` changes.",
+    ),
+    setting(
+        "org_agenda_log_mode_add_notes",
+        "boolean",
+        "true",
+        "org-agenda-log-mode-add-notes",
+        "Show the note of a state change or a clock line after the headline in log mode.",
+    ),
+    setting(
+        "org_agenda_move_date_from_past_immediately_to_today",
+        "boolean",
+        "true",
+        "org-agenda-move-date-from-past-immediately-to-today",
+        "Moving a date of the past one day later from the agenda (`S-<right>`) takes it to today.",
     ),
     setting(
         "org_agenda_persistent_marks",
@@ -2290,6 +2325,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ),
     ("org_agenda_hide_tags_regexp", STRING),
     ("org_agenda_include_deadlines", BOOLEAN),
+    ("org_agenda_fontify_priorities", r#"{ "enum": [true, false, "cookies"] }"#),
     (
         "org_agenda_prefer_last_repeat",
         r#"{ "anyOf": [{ "type": "boolean" }, { "type": "array", "items": { "type": "string" } }] }"#,
@@ -2362,8 +2398,11 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_agenda_start_day", STRING),
     ("org_agenda_start_with_log_mode", BOOLEAN),
     ("org_agenda_start_with_clockreport_mode", BOOLEAN),
+    ("org_agenda_clock_report_header", STRING),
     ("org_agenda_start_with_archives_mode", r#"{ "enum": ["trees", "files", false] }"#),
     ("org_agenda_log_mode_items", r#"{ "type": "array", "items": { "enum": ["closed", "clock", "state"] } }"#),
+    ("org_agenda_log_mode_add_notes", BOOLEAN),
+    ("org_agenda_move_date_from_past_immediately_to_today", BOOLEAN),
     ("org_agenda_persistent_marks", BOOLEAN),
     ("org_agenda_start_with_follow_mode", BOOLEAN),
     ("org_agenda_start_with_entry_text_mode", BOOLEAN),
