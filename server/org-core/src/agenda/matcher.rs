@@ -118,8 +118,9 @@ impl Matcher {
     /// `tags-todo`.
     pub fn matches(&self, outline: &Outline, index: usize, todo_only: bool, clock: Clock) -> bool {
         let entry = &outline.entries[index];
-        let todo = entry.todo.as_deref();
-        if (todo_only || self.todo_only) && (todo.is_none() || entry.done) {
+        // `org-scan-tags` takes the keyword of the syntax tree.
+        let todo = entry.element_todo.as_deref();
+        if (todo_only || self.todo_only) && (todo.is_none() || entry.element_done) {
             return false;
         }
         let holds = |term: &Term| term.negated != term.test.holds(index, outline, clock);
@@ -373,8 +374,8 @@ impl Test {
         match self {
             Test::Tag(tag) => entry.tags.iter().any(|candidate| candidate.name == *tag),
             Test::TagRegex(regex) => entry.tags.iter().any(|tag| regex.is_match(&tag.name)),
-            Test::Keyword(keyword) => entry.todo.as_deref() == Some(keyword.as_str()),
-            Test::KeywordRegex(regex) => regex.is_match(entry.todo.as_deref().unwrap_or("")),
+            Test::Keyword(keyword) => entry.element_todo.as_deref() == Some(keyword.as_str()),
+            Test::KeywordRegex(regex) => regex.is_match(entry.element_todo.as_deref().unwrap_or("")),
             Test::Property { name, op, value, present } => {
                 let got = property_value(index, outline, name);
                 if *present && got.is_none() {

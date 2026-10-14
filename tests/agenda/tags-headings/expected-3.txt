@@ -1,0 +1,16 @@
+Global list of TODO items of type: ALL
+  work:       TODO [#7]  :a-b:
+  work:       TODO [#A] capital priority
+  kw:         TODO before the drawer
+  ???:        TODO unset
+  ???:        TODO child of unset
+              TODO empty
+  nil more:   TODO more
+  work:       TODO [#a] small priority
+  work:       TODO [#b] another small one
+  work:       TODO plain
+  work:       NEXT [#B]  spaced  out                                         :t:
+  work:       TODO                                                        :only:
+  work:       TODO under it
+  work:       TODO alpha [#b] COMMENT x
+  work:       NEXT below it

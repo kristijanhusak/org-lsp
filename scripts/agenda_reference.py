@@ -90,6 +90,15 @@ text `E' shows after the lines."
     (when (buffer-file-name buffer) (kill-buffer buffer))))
 """
 
+# Whether each headline of the agenda files is commented, asked as the
+# agenda asks (see `reference`).
+SETTLE_COMMENTED = r"""
+(dolist (file (org-agenda-files nil 'ifmode))
+  (with-current-buffer (org-get-agenda-file-buffer file)
+    (let ((case-fold-search nil))
+      (org-element-cache-map (lambda (headline) (org-element-property :commentedp headline))))))
+"""
+
 # Everything a case may change, back to its default before the next one.
 DEFAULTS = r"""
 (setq org-agenda-entry-text-leaders "    > "
@@ -353,6 +362,11 @@ def reference(directories):
             # The group tags of the files, which Emacs reads when it builds
             # an agenda and a match string uses from the one built before.
             forms.append("(org-agenda-prepare-buffers (org-agenda-files nil 'ifmode))")
+            # Whether a headline is commented is worked out once, when first
+            # asked, and kept: the agenda asks with `case-fold-search' nil, a
+            # tags match with it on, where `[#a] COMMENT' counts as commented.
+            # Asking first as the agenda does makes it the same for every run.
+            forms.append(SETTLE_COMMENTED)
             for index, run in enumerate(case["runs"]):
                 out = os.path.join(directory, f"expected-{index}.txt")
                 outputs.append((out, run))

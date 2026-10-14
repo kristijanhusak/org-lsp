@@ -1,0 +1,16 @@
+#+CATEGORY: kw
+* TODO before the drawer
+* TODO unset
+:PROPERTIES:
+:CATEGORY: nil
+:END:
+** TODO child of unset
+* TODO empty
+:PROPERTIES:
+:CATEGORY:
+:END:
+* TODO more
+:PROPERTIES:
+:CATEGORY: nil
+:CATEGORY+: more
+:END:

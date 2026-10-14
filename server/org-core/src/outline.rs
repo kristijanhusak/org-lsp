@@ -118,6 +118,9 @@ pub struct Entry {
     /// appears more than once is kept at its most local position.
     pub tags: Vec<Tag>,
     pub category: String,
+    /// No category applies: the value is `nil`. The agenda shows `???`
+    /// (`org-get-category`), a tags match the file name.
+    pub no_category: bool,
     /// The entry or one of its parents is commented. The agenda leaves
     /// such entries out.
     pub commented: bool,
@@ -246,6 +249,8 @@ pub struct ClockLine {
 pub struct Outline {
     /// The category entries get when no property sets one.
     pub category: String,
+    /// The file name without directory and extension.
+    pub name: String,
     pub file_tags: Vec<String>,
     pub todo: TodoKeywords,
     /// The priorities the file sets with `#+PRIORITIES:`.
@@ -298,6 +303,7 @@ impl Outline {
         let mut outline = Outline {
             text: text.to_string(),
             category: shown_category(&category),
+            name: name.to_string(),
             file_tags,
             todo,
             // Only the first such line counts.
@@ -508,6 +514,7 @@ impl Outline {
             element_todo,
             tags: deduped,
             category: shown_category(&category),
+            no_category: category == "nil",
             commented,
             archived,
             scheduled: planning.as_ref().and_then(|planning| planning_time(planning, "SCHEDULED:")),
@@ -760,6 +767,8 @@ pub(crate) struct HeadingParts {
     pub priority: Span,
     /// The title (the fourth).
     pub title: Span,
+    /// The tags, `:a:b:` (the fifth).
+    pub tags: Span,
 }
 
 /// The keyword, priority cookie and title of a headline line as
@@ -800,15 +809,29 @@ pub(crate) fn complex_heading_parts(line: &str, level: usize, todo: &TodoKeyword
             }
         }
     }
+    let tags_end = line.trim_end_matches([' ', '\t']).len();
     if is_tail(&line[pos..]) {
-        return HeadingParts { keyword, priority, title: None };
+        let tags = crate::text::tag_group(&line[pos..]).map(|(_, tags)| (pos + tags, tags_end));
+        return HeadingParts { keyword, priority, title: None, tags };
     }
     let start = pos + spaces(pos);
-    let end = match crate::text::tag_group(&line[start..]) {
-        Some((blanks, _)) => start + blanks,
-        None => line.trim_end_matches([' ', '\t']).len(),
+    let (end, tags) = match crate::text::tag_group(&line[start..]) {
+        Some((blanks, tags)) => (start + blanks, Some((start + tags, tags_end))),
+        None => (tags_end, None),
     };
-    HeadingParts { keyword, priority, title: (end > start).then_some((start, end)) }
+    HeadingParts { keyword, priority, title: (end > start).then_some((start, end)), tags }
+}
+
+/// `org-get-heading` of a headline line: the keyword, the priority, the
+/// title (empty when there is none) and the tags, a space apart.
+pub(crate) fn get_heading(line: &str, level: usize, todo: &TodoKeywords) -> String {
+    let parts = complex_heading_parts(line, level, todo);
+    let text = |span: Span| span.map(|(start, end)| &line[start..end]);
+    [text(parts.keyword), text(parts.priority), Some(text(parts.title).unwrap_or("")), text(parts.tags)]
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 /// The properties of a drawer, keys without colons and in upper case.
@@ -1302,6 +1325,21 @@ mod tests {
         let nil = outline("#+CATEGORY: kw\n* a\n:PROPERTIES:\n:CATEGORY: nil\n:END:\n** b\n* c\n:PROPERTIES:\n:CATEGORY+: more\n:END:\n");
         let categories: Vec<&str> = nil.entries.iter().map(|entry| entry.category.as_str()).collect();
         assert_eq!(categories, ["???", "???", "kw more"]);
+        let unset: Vec<bool> = nil.entries.iter().map(|entry| entry.no_category).collect();
+        assert_eq!(unset, [true, true, false]);
+    }
+
+    #[test]
+    fn get_heading_puts_the_parts_a_space_apart() {
+        let todo = TodoKeywords::default();
+        let heading = |line: &str| get_heading(line, 1, &todo);
+        assert_eq!(heading("* TODO [#7]  :a-b:"), "TODO [#7] :a-b:");
+        assert_eq!(heading("* TODO  [#A]  x  :t:"), "TODO [#A] x :t:");
+        assert_eq!(heading("*  TODO x\t:a:b:"), "TODO x :a:b:");
+        assert_eq!(heading("* TODO [#a]  x"), "TODO [#a]  x");
+        assert_eq!(heading("* \tTODO two"), "\tTODO two");
+        assert_eq!(heading("* TODO :t:"), "TODO  :t:");
+        assert_eq!(heading("* TODO   "), "TODO ");
     }
 
     #[test]
