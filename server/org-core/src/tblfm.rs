@@ -34,6 +34,62 @@ pub enum Mode {
     Iterate,
 }
 
+/// The options of Org's table formulas.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Settings {
+    /// `org-table-formula-constants`: constants for every file, after its
+    /// `#+CONSTANTS:`.
+    pub constants: Vec<(String, String)>,
+    /// `org-table-relative-ref-may-cross-hline`
+    pub cross_hline: CrossHline,
+    /// `org-table-formula-create-columns`: a field formula past the last
+    /// column adds the columns it needs.
+    pub create_columns: bool,
+    /// `org-table-duration-custom-format`: how `;t` writes a duration.
+    pub duration_format: DurationFormat,
+    /// `org-table-duration-hour-zero-padding`: `08:32:34` rather than
+    /// `8:32:34`.
+    pub hour_zero_padding: bool,
+    /// `org-calc-default-modes`: the float format and the angle unit
+    /// formulas start with.
+    pub calc: Modes,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Settings {
+            constants: Vec::new(),
+            cross_hline: CrossHline::Cross,
+            create_columns: false,
+            duration_format: DurationFormat::Hours,
+            hour_zero_padding: true,
+            calc: Modes::default(),
+        }
+    }
+}
+
+/// What a relative reference does at a horizontal line
+/// (`org-table-relative-ref-may-cross-hline`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CrossHline {
+    /// `t`: it goes on past it.
+    Cross,
+    /// `nil`: it stops at the field next to it.
+    Stop,
+    /// `error`: the formula fails.
+    Error,
+}
+
+/// The values of `org-table-duration-custom-format`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DurationFormat {
+    Seconds,
+    Minutes,
+    Hours,
+    Days,
+    HoursMinutes,
+}
+
 /// The table after the formulas.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Recalculated {
@@ -69,11 +125,13 @@ pub fn recalculate(
     offset: usize,
     mode: Mode,
     property: &dyn Fn(&str) -> Option<String>,
+    settings: &Settings,
 ) -> Result<Recalculated, String> {
     let place = locate(text, offset)?;
     let lines: Vec<&str> = text[place.start..place.end].split_terminator('\n').collect();
-    let constants = constants(text);
-    let names = Names { constants: &constants, property };
+    let mut constants = constants(text);
+    constants.extend(settings.constants.iter().cloned());
+    let names = Names { constants: &constants, property, settings };
     let formulas = stored_formulas(&place.formulas)?;
     let mode = if place.on_formulas && mode == Mode::Line { Mode::All } else { mode };
     let mut current: Vec<String> = lines.iter().map(|line| (*line).to_string()).collect();
@@ -331,6 +389,8 @@ struct Analysis {
     parameters: Vec<(String, String)>,
     /// Named fields: name, line, column.
     named: Vec<(String, usize, usize)>,
+    /// `org-table-relative-ref-may-cross-hline`
+    cross_hline: CrossHline,
 }
 
 static NAME: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[a-zA-Z][_a-zA-Z0-9]*$").expect("a valid regex"));
@@ -380,14 +440,16 @@ fn analyze(table: &Table) -> Result<Analysis, String> {
     let mut dlines = vec![0];
     dlines.extend((0..rows.len()).filter(|&line| rows[line].is_some()));
     let columns = rows.iter().flatten().next().map(Vec::len).ok_or("No table data line around here")?;
-    Ok(Analysis { rules, dlines, columns, column_names, parameters, named })
+    Ok(Analysis { rules, dlines, columns, column_names, parameters, named, cross_hline: CrossHline::Cross })
 }
 
 // ----- names
 
 struct Names<'a> {
+    /// The file's constants, then `org-table-formula-constants`.
     constants: &'a [(String, String)],
     property: &'a dyn Fn(&str) -> Option<String>,
+    settings: &'a Settings,
 }
 
 /// `org-table-formula-handle-first/last-rc`: `@<`, `@>`, `$<`, `$>` as
@@ -502,7 +564,7 @@ fn descriptor_line(desc: &str, cline: usize, analysis: &Analysis) -> Result<Opti
         if n == 0 {
             return Ok(None);
         }
-        return analysis.dlines.get(n).copied().map(Some).ok_or_else(|| format!("Invalid row number in @{desc}"));
+        return analysis.dlines.get(n).copied().map(Some).ok_or_else(|| out_of_range(analysis, n));
     }
     static DESCRIPTOR: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r"^(([-+])?(I+))?(([-+])?([0-9]+))?").expect("a valid regex"));
@@ -524,26 +586,44 @@ fn descriptor_line(desc: &str, cline: usize, analysis: &Analysis) -> Result<Opti
         }
     }
     if let Some(n) = hn {
-        cline = row_type(true, n, cline, hdir == Some("-"), desc, analysis)?;
+        cline = row_type(true, n, cline, hdir == Some("-"), false, desc, analysis)?;
     }
     if let Some(on) = on {
         let n: i64 = on.as_str().parse().unwrap_or(0);
-        cline = row_type(false, n, cline, odir == Some("-"), desc, analysis)?;
+        cline = row_type(false, n, cline, odir == Some("-"), relative, desc, analysis)?;
     }
-    let _ = relative;
     Ok(Some(cline as usize))
 }
 
 /// `org-table--row-type`: the line of the nth rule (`rule`) or data line
-/// from line `i`. Relative references may cross rules
-/// (`org-table-relative-ref-may-cross-hline` is t).
-fn row_type(rule: bool, n: i64, mut i: i64, backwards: bool, desc: &str, analysis: &Analysis) -> Result<i64, String> {
+/// from line `i`. A `relative` reference crosses a rule on its way as
+/// `org-table-relative-ref-may-cross-hline` says.
+fn row_type(
+    rule: bool,
+    n: i64,
+    mut i: i64,
+    backwards: bool,
+    relative: bool,
+    desc: &str,
+    analysis: &Analysis,
+) -> Result<i64, String> {
     let l = analysis.rules.len() as i64;
-    for _ in 0..n {
+    let step = if backwards { -1 } else { 1 };
+    'steps: for _ in 0..n {
         loop {
-            i += if backwards { -1 } else { 1 };
+            i += step;
             if i < 0 || i >= l || analysis.rules[i as usize] == rule {
                 break;
+            }
+            if relative && analysis.rules[i as usize] {
+                match analysis.cross_hline {
+                    CrossHline::Cross => {}
+                    CrossHline::Error => return Err(format!("Row descriptor {desc} crosses hline")),
+                    CrossHline::Stop => {
+                        i -= step;
+                        break 'steps;
+                    }
+                }
             }
         }
         // Out of the table, the rest of the steps change nothing.
@@ -711,7 +791,8 @@ fn recalculate_once(
         return Ok(lines.to_vec());
     }
     let mut table = Table::read(lines);
-    let analysis = analyze(&table)?;
+    let mut analysis = analyze(&table)?;
+    analysis.cross_hline = names.settings.cross_hline;
     let mut sorted = stored.to_vec();
     sorted.sort_by(|a, b| a.0.cmp(&b.0));
     let mut columns: Vec<(usize, String)> = Vec::new();
@@ -772,7 +853,7 @@ fn recalculate_once(
             None => match ABSOLUTE_ROW.captures(name) {
                 Some(captures) => {
                     let n: usize = captures[1].parse().unwrap_or(usize::MAX);
-                    Some(*analysis.dlines.get(n).ok_or_else(|| format!("Invalid row number in {name}"))?)
+                    Some(*analysis.dlines.get(n).ok_or_else(|| out_of_range(&analysis, n))?)
                 }
                 None => None,
             },
@@ -792,12 +873,15 @@ fn recalculate_once(
         }
     }
 
-    // The column formulas, line by line.
+    // The column formulas, line by line. The point stays on the last line
+    // they go through, where the field formulas count the columns.
+    let mut point_line = start;
     for line in start..end {
         let applies = if only_marked { marked(&table, line, "#*") } else { table.is_data(line) };
         if !applies {
             continue;
         }
+        point_line = line;
         if table.rows[line].as_ref().is_some_and(|fields| {
             let first = first_field(fields);
             first.len() == 1 && "_^!$/".contains(first)
@@ -814,23 +898,51 @@ fn recalculate_once(
                     row.resize(*column, String::new());
                 }
             }
-            eval_formula(&mut table, &analysis, line, *column, formula)?;
+            eval_formula(&mut table, &analysis, line, *column, formula, names.settings)?;
         }
     }
 
-    // The field formulas.
+    // The field formulas. Emacs counts the columns of the line the point
+    // is on, the last field's: past them, a column is made
+    // (`org-table-formula-create-columns`) or the formula fails; within
+    // them, a field past the end of its own line is not set.
+    // A rule has as many as it has parts between its `+`s
+    // (`org-table-current-column` counts them there).
+    let columns_of = |table: &Table, line: usize| match table.rows.get(line) {
+        Some(Some(fields)) => fields.len(),
+        Some(None) => {
+            table.rules.get(line).map_or(0, |rule| rule.trim_end().trim_end_matches('|').matches('+').count() + 1)
+        }
+        None => 0,
+    };
     for (reference, formula) in &fields {
         let (line, column) = goto_field(reference, &analysis)?;
         if column > 1000 {
             return Err("Formula column target too large".to_string());
         }
-        let count = table.rows.get(line).and_then(Option::as_ref).map_or(0, Vec::len);
+        let count = columns_of(&table, point_line);
+        point_line = line;
         if column > count {
-            return Err("Missing columns in the table.  Aborting".to_string());
+            if !names.settings.create_columns {
+                return Err("Missing columns in the table.  Aborting".to_string());
+            }
+            if let Some(Some(row)) = table.rows.get_mut(line) {
+                if row.len() < column {
+                    row.resize(column, String::new());
+                }
+            }
+        } else if column > columns_of(&table, line) {
+            continue;
         }
-        eval_formula(&mut table, &analysis, line, column, formula)?;
+        eval_formula(&mut table, &analysis, line, column, formula, names.settings)?;
     }
     Ok(table.write())
+}
+
+/// What `(aref org-table-dlines n)` says past the last data line.
+fn out_of_range(analysis: &Analysis, n: usize) -> String {
+    let lines: Vec<String> = analysis.dlines[1..].iter().map(ToString::to_string).collect();
+    format!("Args out of range: [nil{}{}], {n}", if lines.is_empty() { "" } else { " " }, lines.join(" "))
 }
 
 /// `org-table-goto-field`: the line and column of a named field or of an
@@ -894,21 +1006,19 @@ struct FormulaModes {
     format: Option<String>,
 }
 
-/// How a duration is written: `HH:MM:SS` (`;T`), `HH:MM` (`;U`), or
-/// hours with two decimals (`;t`, as `org-table-duration-custom-format`
-/// is by default).
+/// How a duration is written: `HH:MM:SS` (`;T`), `HH:MM` (`;U`), or as
+/// `org-table-duration-custom-format` says (`;t`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Duration {
     Clock,
-    HoursMinutes,
-    Hours,
+    Custom(DurationFormat),
 }
 
-fn parse_modes(modes: &str) -> Result<FormulaModes, String> {
+fn parse_modes(modes: &str, settings: &Settings) -> Result<FormulaModes, String> {
     static NUMERIC: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"([pnfse])(-?[0-9]+)").expect("a valid regex"));
     static FLAG: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[tTUNLEDRFSu]").expect("a valid regex"));
     let mut fmt = modes.to_string();
-    let mut calc = Modes::default();
+    let mut calc = settings.calc;
     let (mut numbers, mut keep_empty, mut duration) = (false, false, None);
     while let Some(captures) = NUMERIC.captures(&fmt) {
         let n: i64 = captures[2].parse().unwrap_or(0);
@@ -928,9 +1038,9 @@ fn parse_modes(modes: &str) -> Result<FormulaModes, String> {
             "t" | "T" | "U" => {
                 numbers = true;
                 duration = Some(match found.as_str() {
-                    "t" => Duration::Hours,
+                    "t" => Duration::Custom(settings.duration_format),
                     "T" => Duration::Clock,
-                    _ => Duration::HoursMinutes,
+                    _ => Duration::Custom(DurationFormat::HoursMinutes),
                 });
             }
             "N" => numbers = true,
@@ -958,6 +1068,7 @@ fn eval_formula(
     line: usize,
     column: usize,
     formula: &str,
+    settings: &Settings,
 ) -> Result<(), String> {
     // The modes follow the last `;`.
     let (formula, modes) = match formula.rfind(';') {
@@ -968,10 +1079,8 @@ fn eval_formula(
         None => (formula, None),
     };
     let modes = match &modes {
-        Some(modes) => parse_modes(modes)?,
-        None => {
-            FormulaModes { calc: Modes::default(), duration: None, numbers: false, keep_empty: false, format: None }
-        }
+        Some(modes) => parse_modes(modes, settings)?,
+        None => FormulaModes { calc: settings.calc, duration: None, numbers: false, keep_empty: false, format: None },
     };
     if formula.len() > 2 && formula.starts_with("'(") {
         return Err("Emacs Lisp formulas are not supported".to_string());
@@ -1087,7 +1196,7 @@ fn eval_formula(
             } else {
                 string_to_number(&value)
             };
-            Ok(seconds_to_string(seconds, duration))
+            Ok(seconds_to_string(seconds, duration, settings.hour_zero_padding))
         }
         (other, _) => other,
     };
@@ -1152,8 +1261,9 @@ fn time_string_to_seconds(text: &str) -> String {
     number_to_string(seconds)
 }
 
-/// `org-table-time-seconds-to-string`.
-fn seconds_to_string(seconds: Lisp, duration: Duration) -> String {
+/// `org-table-time-seconds-to-string`, hours padded to two digits with
+/// `padding` (`org-table-duration-hour-zero-padding`).
+fn seconds_to_string(seconds: Lisp, duration: Duration, padding: bool) -> String {
     let value = match seconds {
         Lisp::Int(n) => n as f64,
         Lisp::Float(f) => f,
@@ -1161,11 +1271,16 @@ fn seconds_to_string(seconds: Lisp, duration: Duration) -> String {
     let magnitude = value.abs();
     // `format-seconds` counts whole seconds.
     let whole = magnitude.floor() as i64;
-    let clock = format!("{:02}:{:02}:{:02}", whole / 3600, whole % 3600 / 60, whole % 60);
+    let hours = if padding { format!("{:02}", whole / 3600) } else { (whole / 3600).to_string() };
+    let clock = format!("{hours}:{:02}:{:02}", whole % 3600 / 60, whole % 60);
     let text = match duration {
-        Duration::Hours => format!("{:.2}", magnitude / 3600.0),
         Duration::Clock => clock,
-        Duration::HoursMinutes => clock[..clock.len() - 3].to_string(),
+        Duration::Custom(DurationFormat::HoursMinutes) => clock[..clock.len() - 3].to_string(),
+        Duration::Custom(DurationFormat::Days) => format!("{:.3}", magnitude / 86400.0),
+        Duration::Custom(DurationFormat::Hours) => format!("{:.2}", magnitude / 3600.0),
+        Duration::Custom(DurationFormat::Minutes) => format!("{:.1}", magnitude / 60.0),
+        // `(format "%d" secs)`: a float loses its fraction.
+        Duration::Custom(DurationFormat::Seconds) => format!("{}", magnitude.trunc() as i64),
     };
     if value < 0.0 {
         format!("-{text}")

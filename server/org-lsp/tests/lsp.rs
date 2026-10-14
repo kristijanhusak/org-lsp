@@ -2428,7 +2428,8 @@ fn edits_through_emacs() {
     let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
     let config =
         std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
-    let mut client = Client::start(json!({}), json!({ "emacs_config": config }));
+    let options = json!({ "emacs_config": config, "org_table_formula_constants": { "k": "10" } });
+    let mut client = Client::start(json!({}), options);
     let mut version = 1;
     let mut text = "* Head\nSome text here.\nline\n".to_string();
     client.open(&uri, &text);
@@ -2568,6 +2569,11 @@ fn edits_through_emacs() {
     replace(&mut client, &mut text, &mut version, changed);
     run(&mut client, &mut text, &mut version, "org.checkbox.toggle", (3, 0), json!({}));
     assert_eq!(text, "* Sums\n| 1 | 2 |  2 |\n| 3 | 4 | 12 |\n#+TBLFM: $3='(* $1 $2);N\n");
+    // Emacs has the constants of the settings (`org-table-formula-constants`).
+    let changed = text.replace("(* $1 $2)", "(* $1 $k)");
+    replace(&mut client, &mut text, &mut version, changed);
+    run(&mut client, &mut text, &mut version, "org.table.recalculate", (1, 2), json!({}));
+    assert_eq!(text, "* Sums\n| 1 | 2 | 10 |\n| 3 | 4 | 30 |\n#+TBLFM: $3='(* $1 $k);N\n");
     // Tangling to a file named by Emacs Lisp: Emacs tangles.
     let source = "#+begin_src emacs-lisp :tangle (concat \"out\" \".el\")\n(message \"hi\")\n#+end_src\n";
     replace(&mut client, &mut text, &mut version, source.to_string());

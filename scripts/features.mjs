@@ -738,6 +738,7 @@ export const AREAS = [
       ['Calc\'s arithmetic, vectors, dates and durations', true],
       ['Modes and formats (`;%.2f`, `;N`, `;T`)', true],
       ['Recalculating the line, the table, until stable', true],
+      ['Their options: constants for every file, references stopping at rules, columns made past the last, durations\' format, Calc\'s default modes, formulas in fields left as text, no recalculation of `#` lines (`org-table-formula-constants` and the rest, set for Emacs too where it computes)', true],
       ['Formulas in Emacs Lisp (through Emacs)', true],
       ['Remote references (through Emacs)', true],
       ['Units (through Emacs)', true],

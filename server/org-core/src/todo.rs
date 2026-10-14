@@ -126,6 +126,8 @@ pub struct Settings {
     pub tags_sort: Option<crate::tags::Sort>,
     /// How lists are edited, and how checkbox cookies count.
     pub lists: crate::list::Settings,
+    /// How tables are edited and calculated.
+    pub table: crate::table::Settings,
 }
 
 /// `org-provide-todo-statistics`: which entries the cookies of their
@@ -282,6 +284,7 @@ impl Default for Settings {
             state_tags_triggers: Vec::new(),
             tags_sort: None,
             lists: crate::list::Settings::default(),
+            table: crate::table::Settings::default(),
         }
     }
 }

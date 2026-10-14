@@ -943,6 +943,9 @@ struct Server {
     /// The `agenda` options as given, for the custom commands' own.
     agenda_options: crate::config::AgendaOptions,
     edit_settings: EditSettings,
+    /// The table options set, as Emacs variables, for the formulas Emacs
+    /// computes.
+    table_variables: Vec<(String, String)>,
     read_date: ReadDateSettings,
     /// `org-refile-targets`, `org-refile-use-outline-path` and how a
     /// subtree is filed.
@@ -1401,6 +1404,7 @@ pub fn run(connection: Connection) -> Result<()> {
         prefix_failed: None,
         agenda_options: options.agenda.clone(),
         edit_settings: options.edit_settings(),
+        table_variables: options.table_emacs_variables(),
         read_date: options.read_date_settings(),
         refile: (options.refile_targets(), options.refile_outline_path(), options.refile_settings()),
         archive: (options.archive_settings(), options.archive_default_command().to_string()),
@@ -3528,7 +3532,8 @@ impl Server {
             ];
             for id in ids {
                 let Some(command) = table_command(id).filter(|_| actions::requested(id, only)) else { continue };
-                let Ok(done) = org_core::table::run(text, offset, command) else { continue };
+                let settings = &self.edit_settings.todo.table;
+                let Ok(done) = org_core::table::run_with(text, offset, command, &|_| None, settings) else { continue };
                 if done.text == *text {
                     continue;
                 }
@@ -11586,16 +11591,13 @@ impl Server {
                 _ => ("org-table-recalculate", vec![]),
             }
         };
+        let variables = self.table_variables.clone();
         if self.formula_debug {
             let mut wrapped = vec![json!(command)];
             wrapped.extend(args);
-            return self.emacs_run_with("org-lsp-bridge-debug-formulas", wrapped, context);
+            return self.emacs_run_binding("org-lsp-bridge-debug-formulas", wrapped, &variables, context);
         }
-        if args.is_empty() {
-            self.emacs_run(command, context)
-        } else {
-            self.emacs_run_with(command, args, context)
-        }
+        self.emacs_run_binding(command, args, &variables, context)
     }
 
     /// Whether the command was run on a selection (`org-region-active-p`).
@@ -11621,6 +11623,19 @@ impl Server {
         args: Vec<Value>,
         context: &Context,
     ) -> std::result::Result<Value, Refusal> {
+        self.emacs_run_binding(command, args, &[], context)
+    }
+
+    /// [`Self::emacs_run_with`], the document's buffer giving `variables`
+    /// (Emacs variables and their values in Lisp) the values org-lsp's
+    /// settings give them.
+    fn emacs_run_binding(
+        &mut self,
+        command: &str,
+        args: Vec<Value>,
+        variables: &[(String, String)],
+        context: &Context,
+    ) -> std::result::Result<Value, Refusal> {
         let uri = context.text_document.uri.clone();
         let path = uri::to_path(&uri).ok_or("Only a file on disk can run code through Emacs")?;
         let encoding = self.client.encoding;
@@ -11633,6 +11648,7 @@ impl Server {
             "point": point,
             "command": command,
             "args": args,
+            "variables": variables,
         });
         // The region: the mark at the end of the selection the cursor is
         // not at.
@@ -11846,7 +11862,7 @@ impl Server {
         let outline = Outline::new(&document.parse, &text, "");
         let entry = outline.entry_at(offset);
         let property = |name: &str| outline.entry_property(entry, name, true);
-        let done = match table::run_with(&text, offset, command, &property) {
+        let done = match table::run_with(&text, offset, command, &property, &self.edit_settings.todo.table) {
             Ok(done) => done,
             // `C-c C-c` at the start of the table.
             Err(error) if error == table::RECALCULATE => {

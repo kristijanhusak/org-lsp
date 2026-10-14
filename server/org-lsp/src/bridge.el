@@ -267,6 +267,17 @@ was to be opened, or the text of an export to a buffer."
       (setq org-lsp-bridge--message said))
     said))
 
+;; `org-table-formula-constants' and its relatives, as org-lsp's settings
+;; have them: the formulas org-lsp leaves to Emacs follow them too.
+(defun org-lsp-bridge--bind (variables)
+  "Give Org's table options among VARIABLES, pairs of a name and a value
+in Lisp, those values in the current buffer."
+  (dolist (pair (append variables nil))
+    (let ((name (elt pair 0)))
+      (when (string-match-p "\\`org-\\(?:table-\\|calc-default-modes\\'\\)" name)
+        (set (make-local-variable (intern name))
+             (eval (car (read-from-string (elt pair 1))) t))))))
+
 (defun org-lsp-bridge-run (params)
   "Run the command PARAMS names in its document, at its point: the text it
 leaves, where the point is then, and what Emacs said last. With `args' it
@@ -281,6 +292,7 @@ wants one), else interactively."
           org-lsp-bridge--visited nil
           org-lsp-bridge--extra nil)
     (org-lsp-bridge--in-document params
+      (org-lsp-bridge--bind (alist-get 'variables params))
       ;; The selection, as the active region.
       (when-let* ((mark (alist-get 'mark params)))
         (transient-mark-mode 1)

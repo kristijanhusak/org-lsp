@@ -37,6 +37,8 @@ pub struct Settings {
     pub file_time_cell_format: String,
     pub keywords: TodoKeywords,
     pub inheritance: Inheritance,
+    /// What the table's formulas do.
+    pub formulas: crate::tblfm::Settings,
 }
 
 impl Default for Settings {
@@ -49,6 +51,7 @@ impl Default for Settings {
             file_time_cell_format: "*%s*".to_string(),
             keywords: TodoKeywords::default(),
             inheritance: Inheritance::default(),
+            formulas: crate::tblfm::Settings::default(),
         }
     }
 }
@@ -1778,7 +1781,8 @@ fn write_default(
         }
     }
     if recalculate {
-        let done = crate::tblfm::recalculate(&buffer.text, bar, crate::tblfm::Mode::All, &|_| None)?;
+        let done =
+            crate::tblfm::recalculate(&buffer.text, bar, crate::tblfm::Mode::All, &|_| None, &settings.formulas)?;
         buffer.text = done.text;
     }
     buffer.point = bar;

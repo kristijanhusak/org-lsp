@@ -58,6 +58,21 @@ CASES += [
 rng = random.Random(0)
 CASES += [fuzz.case(rng) for _ in range(300)]
 
+# The options, each a setting of the test and a binding for Emacs: a
+# formula in a field left as text (`org-table-formula-evaluate-inline`), a
+# line marked `#` not recalculated
+# (`org-table-allow-automatic-line-recalculation`).
+INLINE = {"settings": {"evaluate_inline": False}, "emacs": "(org-table-formula-evaluate-inline nil)"}
+LINE = {"settings": {"line_recalculation": False}, "emacs": "(org-table-allow-automatic-line-recalculation nil)"}
+CASES += [
+    {"text": "| a | =1+2¦ |\n| b | c |\n", "key": "TAB", **INLINE},
+    {"text": "| a | :=1+2¦ |\n| b | c |\n", "key": "TAB", **INLINE},
+    {"text": "| a | =1+2¦ |\n| b | c |\n", "key": "C-c C-c", **INLINE},
+    {"text": "| # | 1 | ¦ |\n#+TBLFM: $3=$2*2\n", "key": "TAB", **LINE},
+    {"text": "| # | 1 | ¦ |\n#+TBLFM: $3=$2*2\n", "key": "C-c C-c", **LINE},
+    {"text": "| # | 1 | ¦ |\n#+TBLFM: $3=$2*2\n", "key": "<backtab>", **LINE},
+]
+
 if __name__ == "__main__":
     path = os.path.join(HERE, "..", "tests", "table", "cases.json")
     os.makedirs(os.path.dirname(path), exist_ok=True)

@@ -182,6 +182,95 @@
       "description": "A checkbox cookie counts the boxes of the items right below it; `false` counts every box further down too, as `recursive` in a `COOKIE_DATA` property does. (`org-checkbox-hierarchical-statistics`)",
       "default": true
     },
+    "org_table_formula_constants": {
+      "type": "object",
+      "additionalProperties": {
+        "type": [
+          "string",
+          "number"
+        ]
+      },
+      "description": "Constants for the table formulas of every file, by name: `{ \"c\": \"299792458.\" }` gives `$c`. A file's `#+CONSTANTS:` come first. (`org-table-formula-constants`)",
+      "default": {}
+    },
+    "org_table_relative_ref_may_cross_hline": {
+      "enum": [
+        true,
+        false,
+        "error"
+      ],
+      "description": "Whether a relative reference in a formula (`@-1`) goes past a horizontal line: `false` stops at the field next to it, `\"error\"` makes the formula fail. (`org-table-relative-ref-may-cross-hline`)",
+      "default": true
+    },
+    "org_table_formula_create_columns": {
+      "type": "boolean",
+      "description": "A field formula past the last column adds the columns it needs, rather than failing. (`org-table-formula-create-columns`)",
+      "default": false
+    },
+    "org_table_duration_custom_format": {
+      "enum": [
+        "seconds",
+        "minutes",
+        "hours",
+        "days",
+        "hh:mm"
+      ],
+      "description": "How a formula with `;t` writes a duration: a number of seconds, minutes, hours or days, or hours and minutes. (`org-table-duration-custom-format`)",
+      "default": "hours"
+    },
+    "org_table_duration_hour_zero_padding": {
+      "type": "boolean",
+      "description": "Durations of formulas (`;T`, `;U`) have their hours on two digits: `08:32:34` rather than `8:32:34`. (`org-table-duration-hour-zero-padding`)",
+      "default": true
+    },
+    "org_calc_default_modes": {
+      "type": "object",
+      "properties": {
+        "float_format": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": [
+            {
+              "enum": [
+                "float",
+                "fix",
+                "sci"
+              ]
+            },
+            {
+              "type": "integer",
+              "minimum": 0
+            }
+          ]
+        },
+        "angle_mode": {
+          "enum": [
+            "deg",
+            "rad"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "The modes table formulas start with: `float_format`, `[\"float\", digits]`, `[\"fix\", decimals]` or `[\"sci\", digits]`, and `angle_mode`, `\"deg\"` or `\"rad\"`. A formula's own modes (`;f2`) win; Calc's other modes are not offered. (`org-calc-default-modes`)",
+      "default": {
+        "float_format": [
+          "float",
+          8
+        ],
+        "angle_mode": "deg"
+      }
+    },
+    "org_table_formula_evaluate_inline": {
+      "type": "boolean",
+      "description": "TAB and RET on a field that is a formula (`=$1*2`, `:=...`) evaluate it, which org-lsp refuses (the formula goes in a `#+TBLFM:` line); `false` leaves the field as text. (`org-table-formula-evaluate-inline`)",
+      "default": true
+    },
+    "org_table_allow_automatic_line_recalculation": {
+      "type": "boolean",
+      "description": "TAB, RET and C-c C-c on a line marked `#` recalculate it. (`org-table-allow-automatic-line-recalculation`)",
+      "default": true
+    },
     "org_list_use_circular_motion": {
       "type": "boolean",
       "description": "Moving to the next item from the last goes to the first, and back; moving the last item down puts it first, the first up puts it last. (`org-list-use-circular-motion`)",
