@@ -1117,6 +1117,13 @@ pub const SETTINGS: &[Setting] = &[
         "Show deadlines in the agenda.",
     ),
     setting(
+        "org_agenda_skip_additional_timestamps_same_entry",
+        "boolean",
+        "false",
+        "org-agenda-skip-additional-timestamps-same-entry",
+        "Once a timestamp of an entry has made a line for a day, leave out its other timestamps on that day.",
+    ),
+    setting(
         "org_agenda_fontify_priorities",
         r#"boolean, "cookies""#,
         r#""cookies""#,
@@ -2333,6 +2340,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ),
     ("org_agenda_hide_tags_regexp", STRING),
     ("org_agenda_include_deadlines", BOOLEAN),
+    ("org_agenda_skip_additional_timestamps_same_entry", BOOLEAN),
     ("org_agenda_fontify_priorities", r#"{ "enum": [true, false, "cookies"] }"#),
     (
         "org_agenda_prefer_last_repeat",

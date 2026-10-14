@@ -17,6 +17,7 @@ sets the options of the TODO list at random (`org-agenda-todo-ignore-*`,
 `org-agenda-tags-todo-honor-ignore-options`). With --skip-options, the
 options of what the agenda leaves out or where repeats show
 (`org-agenda-skip-scheduled-if-deadline-is-shown` and its kin,
+`org-agenda-skip-additional-timestamps-same-entry`,
 `org-agenda-prefer-last-repeat`, `org-agenda-include-deadlines`). With
 --display-options, those of how lines show their times
 (`org-agenda-time-leading-zero` and its kin).
@@ -195,6 +196,7 @@ def skip_options(rng):
     choose("agenda_skip_scheduled_repeats_after_deadline", [True], 0.3)
     choose("agenda_skip_scheduled_if_done", [True], 0.2)
     choose("agenda_skip_deadline_if_done", [True], 0.2)
+    choose("agenda_skip_additional_timestamps_same_entry", [True], 0.5)
     return options, " ".join(forms)
 
 

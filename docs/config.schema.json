@@ -1200,6 +1200,11 @@
       "description": "Show deadlines in the agenda. (`org-agenda-include-deadlines`)",
       "default": true
     },
+    "org_agenda_skip_additional_timestamps_same_entry": {
+      "type": "boolean",
+      "description": "Once a timestamp of an entry has made a line for a day, leave out its other timestamps on that day. (`org-agenda-skip-additional-timestamps-same-entry`)",
+      "default": false
+    },
     "org_agenda_fontify_priorities": {
       "enum": [
         true,

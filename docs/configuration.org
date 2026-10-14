@@ -1447,6 +1447,10 @@ org_agenda_use_tag_inheritance = ["todo", "search", "agenda"]
 # Show deadlines in the agenda. (org-agenda-include-deadlines)
 org_agenda_include_deadlines = true
 
+# Once a timestamp of an entry has made a line for a day, leave out its other
+# timestamps on that day. (org-agenda-skip-additional-timestamps-same-entry)
+org_agenda_skip_additional_timestamps_same_entry = false
+
 # Highlight the priority cookies of agenda lines (`cookies`), or each line
 # from its cookie on (`true`; links and tags keep their own look); the highest
 # priority shows in bold, the lowest in italic. `false` highlights none. Org's
@@ -2640,6 +2644,11 @@ org_agenda_custom_commands = []
 
   // Show deadlines in the agenda. (org-agenda-include-deadlines)
   "org_agenda_include_deadlines": true,
+
+  // Once a timestamp of an entry has made a line for a day, leave out its
+  // other timestamps on that day.
+  // (org-agenda-skip-additional-timestamps-same-entry)
+  "org_agenda_skip_additional_timestamps_same_entry": false,
 
   // Highlight the priority cookies of agenda lines (`cookies`), or each line
   // from its cookie on (`true`; links and tags keep their own look); the

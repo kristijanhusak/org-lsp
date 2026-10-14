@@ -144,6 +144,7 @@ DEFAULTS = r"""
       org-agenda-max-effort nil
       org-agenda-skip-comment-trees t
       org-agenda-include-deadlines t
+      org-agenda-skip-additional-timestamps-same-entry nil
       org-agenda-log-mode-add-notes t
       org-agenda-clock-report-header nil
       org-agenda-clockreport-parameter-plist '(:link t :maxlevel 2)

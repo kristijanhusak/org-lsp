@@ -1,0 +1,11 @@
+{
+  "today": "2026-05-18",
+  "now": "10:30",
+  "runs": [
+    { "view": "agenda", "span": "week" }
+  ],
+  "options": {
+    "org_agenda_skip_additional_timestamps_same_entry": true
+  },
+  "emacs": "(setq org-agenda-skip-additional-timestamps-same-entry t)"
+}
