@@ -335,6 +335,12 @@ pub struct Options {
     /// images when a file opens.
     #[serde(rename = "org_startup_with_link_previews")]
     pub startup_with_link_previews: Option<bool>,
+    /// `org-image-actual-width`
+    #[serde(rename = "org_image_actual_width")]
+    pub image_actual_width: Option<serde_json::Value>,
+    /// `org-image-max-width`
+    #[serde(rename = "org_image_max_width")]
+    pub image_max_width: Option<serde_json::Value>,
     /// `org-startup-with-latex-preview`: show the LaTeX fragments as images
     /// when a file opens.
     #[serde(rename = "org_startup_with_latex_preview")]
@@ -1577,6 +1583,39 @@ impl Options {
             startup_indented: self.startup_indented.unwrap_or(false),
             hide_leading_stars: self.hide_leading_stars.unwrap_or(false),
             bullets: self.bullets().is_some(),
+        }
+    }
+
+    /// `org-image-actual-width`: `true` (the default), `false`, a number, or
+    /// a list of one number.
+    pub fn image_actual_width(&self) -> org_core::link_preview::ActualWidth {
+        use org_core::link_preview::{ActualWidth, Number};
+        let number = |value: &serde_json::Value| match value.as_i64() {
+            Some(integer) => Some(Number::Integer(integer)),
+            None => value.as_f64().map(Number::Float),
+        };
+        match &self.image_actual_width {
+            None | Some(serde_json::Value::Bool(true)) => ActualWidth::Actual,
+            Some(serde_json::Value::Bool(false)) | Some(serde_json::Value::Null) => ActualWidth::Attributes(None),
+            Some(serde_json::Value::Array(items)) => ActualWidth::Attributes(items.first().and_then(number)),
+            Some(value) => number(value).map_or(ActualWidth::Actual, ActualWidth::Fixed),
+        }
+    }
+
+    /// `org-image-max-width`, as the editors are told it: `{ "columns" }`
+    /// for `fill-column` (the default, Emacs's 70), `{ "fraction" }` of the
+    /// window for `window` (all of it) or a float, `{ "pixels" }` for an
+    /// integer; null for none.
+    pub fn image_max_width(&self) -> serde_json::Value {
+        match &self.image_max_width {
+            None => serde_json::json!({ "columns": 70 }),
+            Some(serde_json::Value::String(name)) if name == "fill-column" => serde_json::json!({ "columns": 70 }),
+            Some(serde_json::Value::String(name)) if name == "window" => serde_json::json!({ "fraction": 1.0 }),
+            Some(serde_json::Value::Number(number)) if number.is_f64() => {
+                serde_json::json!({ "fraction": number.as_f64() })
+            }
+            Some(serde_json::Value::Number(number)) => serde_json::json!({ "pixels": number }),
+            _ => serde_json::Value::Null,
         }
     }
 

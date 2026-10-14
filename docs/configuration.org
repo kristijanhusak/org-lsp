@@ -423,9 +423,10 @@ require('org-lsp').setup({
   calendar_border = 'rounded',
 
   -- Previews of links to images and of LaTeX (`<Leader>oxv`, `<Leader>oxl`),
-  -- drawn with `vim.ui.img` (Neovim 0.13): the most cells an image takes,
-  -- or false for none. See below.
-  images = { max_width = 80, max_height = 20 },
+  -- drawn with `vim.ui.img` (Neovim 0.13): the most lines an image takes
+  -- (and columns, `max_width`, on top of `org_image_max_width`), or false
+  -- for none. See below.
+  images = { max_height = 20 },
 
   -- Keys by scope; see docs/keys/neovim.org. `false` sets no keys at all.
   mappings = {
@@ -610,9 +611,13 @@ installed: read as their extension says (a ~.gif~ file as a GIF), in at
 most ten seconds. Older versions of Neovim say that they cannot show
 images.
 
-An image keeps its proportions: it shows at its own size, and one larger
-than ~max_width~ or ~max_height~ (in cells) allows is given only the width
-or the height it may take, the terminal working out the other. The lines
+An image keeps its proportions: it shows as wide as
+~org_image_actual_width~ says (its own width, a number of pixels, or the
+~:width~ of the paragraph's ~#+ATTR_ORG:~, ~300~, ~50%~ or ~0.5~ of the
+window's text), at most ~org_image_max_width~ when at its own width (70
+columns, Emacs's ~fill-column~), and one larger than ~max_width~ or
+~max_height~ (in cells) allows is given only the width or the height it may
+take, the terminal working out the other. The lines
 kept free below it are those it takes, by the size of the terminal's cells
 in pixels, which the terminal tells (Kitty, Ghostty and WezTerm do). Where
 it does not (some multiplexers), cells are taken as 10 by 20 pixels; set
@@ -1523,6 +1528,20 @@ org_cycle_open_archived_trees = false
 # below the headline. Applies to new lines, to re-indenting (range formatting)
 # and to what commands write. (org-adapt-indentation)
 org_adapt_indentation = false
+
+# How wide the image of a link shows: `true` at its own width; a number, that
+# many pixels; `false` or a list of one number, the `:width` of the
+# paragraph's `#+ATTR_ORG:` or else of another `#+ATTR_…:` (pixels, `50%` or a
+# fraction up to 2 of the text's width, `t` for its own width), else the
+# list's number. An entry's `ORG-IMAGE-ACTUAL-WIDTH` property decides for its
+# own text. (org-image-actual-width)
+org_image_actual_width = true
+
+# How wide at most an image shown at its own width is: `"fill-column"`, 70
+# columns; `"window"`, the window's width; an integer, that many pixels; a
+# float, that part of the window's width; null for no limit.
+# (org-image-max-width)
+org_image_max_width = "fill-column"
 
 # Show the images of links to image files in place when a file opens, as `C-c
 # C-x C-v` (`org.link.preview`) shows them. `#+STARTUP: inlineimages` (or
@@ -2982,6 +3001,20 @@ org_agenda_custom_commands = []
   // right below the headline. Applies to new lines, to re-indenting (range
   // formatting) and to what commands write. (org-adapt-indentation)
   "org_adapt_indentation": false,
+
+  // How wide the image of a link shows: `true` at its own width; a number,
+  // that many pixels; `false` or a list of one number, the `:width` of the
+  // paragraph's `#+ATTR_ORG:` or else of another `#+ATTR_…:` (pixels, `50%`
+  // or a fraction up to 2 of the text's width, `t` for its own width), else
+  // the list's number. An entry's `ORG-IMAGE-ACTUAL-WIDTH` property decides
+  // for its own text. (org-image-actual-width)
+  "org_image_actual_width": true,
+
+  // How wide at most an image shown at its own width is: `"fill-column"`, 70
+  // columns; `"window"`, the window's width; an integer, that many pixels; a
+  // float, that part of the window's width; null for no limit.
+  // (org-image-max-width)
+  "org_image_max_width": "fill-column",
 
   // Show the images of links to image files in place when a file opens, as
   // `C-c C-x C-v` (`org.link.preview`) shows them. `#+STARTUP: inlineimages`

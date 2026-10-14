@@ -102,6 +102,238 @@ fn sole_link(node: &SyntaxNode, text: &str) -> Option<(String, bool)> {
     }
 }
 
+/// A number as Lisp has it: an integer or a float, which Org tells apart.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Number {
+    Integer(i64),
+    Float(f64),
+}
+
+impl Number {
+    fn value(self) -> f64 {
+        match self {
+            Number::Integer(value) => value as f64,
+            Number::Float(value) => value,
+        }
+    }
+}
+
+/// `org-image-actual-width`
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ActualWidth {
+    /// `t`: the image's own width.
+    Actual,
+    /// A number: that width.
+    Fixed(Number),
+    /// `nil`, or a list of a number: the `:width` of `#+ATTR_ORG:` or else
+    /// of another `#+ATTR_…:`, else the list's number.
+    Attributes(Option<Number>),
+}
+
+impl ActualWidth {
+    /// The value of the property `ORG-IMAGE-ACTUAL-WIDTH`, as `read` reads
+    /// it; anything else Org takes for the image's own width.
+    pub fn read(value: &str) -> ActualWidth {
+        let value = value.trim();
+        if value == "nil" || value == "()" {
+            return ActualWidth::Attributes(None);
+        }
+        if let Some(inner) = value.strip_prefix('(').and_then(|rest| rest.strip_suffix(')')) {
+            let first = inner.split_whitespace().next();
+            return ActualWidth::Attributes(first.and_then(read_number));
+        }
+        read_number(value).map_or(ActualWidth::Actual, ActualWidth::Fixed)
+    }
+}
+
+/// A number written as Lisp reads one, or none.
+fn read_number(text: &str) -> Option<Number> {
+    let digits = text.strip_prefix(['+', '-']).unwrap_or(text);
+    if digits.is_empty() || !digits.chars().all(|c| c.is_ascii_digit() || c == '.') {
+        return None;
+    }
+    let number = string_to_number(text);
+    (digits.chars().any(|c| c.is_ascii_digit())).then_some(number)
+}
+
+/// `string-to-number`: the number the text starts with, 0 when none; a
+/// float when it has a fraction.
+fn string_to_number(text: &str) -> Number {
+    let text = text.trim_start_matches([' ', '\t']);
+    let (sign, rest) = match text.strip_prefix('-') {
+        Some(rest) => (-1.0, rest),
+        None => (1.0, text.strip_prefix('+').unwrap_or(text)),
+    };
+    let whole = rest.bytes().take_while(u8::is_ascii_digit).count();
+    let after = &rest[whole..];
+    let fraction = after
+        .strip_prefix('.')
+        .map(|digits| digits.bytes().take_while(u8::is_ascii_digit).count())
+        .filter(|count| *count > 0);
+    match fraction {
+        Some(count) => {
+            let number: f64 = rest[..whole + 1 + count].parse().unwrap_or(0.0);
+            Number::Float(sign * number)
+        }
+        None => Number::Integer(rest[..whole].parse::<i64>().map_or(0, |number| number * sign as i64)),
+    }
+}
+
+/// How wide an image shows: in pixels, or as a part of the width of the
+/// text in the window.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ImageWidth {
+    Pixels(f64),
+    Fraction(f64),
+}
+
+/// `org-display-inline-image--width`: how wide the image of the link at
+/// `start` shows, by `setting` (`org-image-actual-width`, or the entry's
+/// `ORG-IMAGE-ACTUAL-WIDTH` property), or none for its own width.
+pub fn image_width(parse: &Parse, start: usize, setting: ActualWidth) -> Option<ImageWidth> {
+    match setting {
+        ActualWidth::Actual => None,
+        ActualWidth::Fixed(number) => Some(ImageWidth::Pixels(number.value())),
+        ActualWidth::Attributes(default) => {
+            let attributes = paragraph_attributes(parse, start);
+            let width_of = |name: &str| {
+                attributes.iter().find(|(key, _)| key == name).and_then(|(_, value)| read_attribute(value, ":width"))
+            };
+            let org = width_of("ATTR_ORG");
+            let width = if !unreadable(org.as_deref()) {
+                org
+            } else {
+                attributes
+                    .iter()
+                    .filter(|(key, _)| key != "ATTR_ORG")
+                    .map(|(_, value)| read_attribute(value, ":width"))
+                    .find(|width| !unreadable(width.as_deref()))
+                    .flatten()
+            };
+            let number = match width.as_deref() {
+                Some("t") => None,
+                width if unreadable(width) => default,
+                Some(width) if PERCENT.is_match(width) => {
+                    Some(Number::Float(string_to_number(width.trim_start_matches('[')).value() / 100.0))
+                }
+                Some(width) => Some(string_to_number(width)),
+                None => default,
+            };
+            number.map(|number| match number {
+                Number::Float(part) if (0.0..=2.0).contains(&part) => ImageWidth::Fraction(part),
+                number => ImageWidth::Pixels(number.value()),
+            })
+        }
+    }
+}
+
+/// [`image_width`] for the link at `start` of the text of `outline`, by
+/// the entry's own `ORG-IMAGE-ACTUAL-WIDTH` when it has one
+/// (`org-property-or-variable-value`), else by `setting`.
+pub fn image_width_in(
+    outline: &crate::outline::Outline,
+    parse: &Parse,
+    start: usize,
+    setting: ActualWidth,
+) -> Option<ImageWidth> {
+    let property = outline.entry_property(outline.entry_at(start), "ORG-IMAGE-ACTUAL-WIDTH", false);
+    let setting = property.filter(|value| !value.trim().is_empty()).map_or(setting, |value| ActualWidth::read(&value));
+    image_width(parse, start, setting)
+}
+
+/// `\`[[+]?[0-9.]+%`, as Org writes it: `[` or `+`, then a percentage.
+static PERCENT: std::sync::LazyLock<regex::Regex> =
+    std::sync::LazyLock::new(|| regex::Regex::new(r"^[\[+]?[0-9.]+%").expect("valid regexp"));
+
+/// A width Org cannot read (`width-unreadable?`): a lone number of pixels,
+/// a percentage, a fraction, or `t`; a float that is not a percentage is
+/// read only between 0 and 2.
+fn unreadable(value: Option<&str>) -> bool {
+    static READABLE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+        regex::Regex::new(r"^\+?(?:[0-9]+(?:px)?$|[0-9.]+(%)|[0-9]*\.[0-9]+)").expect("valid regexp")
+    });
+    let Some(value) = value else { return true };
+    if value == "t" {
+        return false;
+    }
+    let Some(captures) = READABLE.captures(value) else { return true };
+    match string_to_number(value) {
+        Number::Float(number) => captures.get(1).is_none() && !(0.0..=2.0).contains(&number),
+        Number::Integer(_) => false,
+    }
+}
+
+/// The attributes of the paragraph the link at `start` is in, its
+/// affiliated `#+ATTR_…:` keywords: each name upper-cased with its values
+/// joined by a space, in the order they first come.
+fn paragraph_attributes(parse: &Parse, start: usize) -> Vec<(String, String)> {
+    let mut out: Vec<(String, String)> = Vec::new();
+    let token = parse.syntax().token_at_offset(org_syntax::TextSize::from(start as u32)).right_biased();
+    let Some(paragraph) =
+        token.and_then(|token| token.parent_ancestors().find(|node| node.kind() == SyntaxKind::PARAGRAPH))
+    else {
+        return out;
+    };
+    for keyword in paragraph.children().take_while(org_syntax::ast::is_affiliated_keyword) {
+        let token = |kind| {
+            keyword
+                .children_with_tokens()
+                .filter_map(|child| child.into_token())
+                .find(|token| token.kind() == kind)
+                .map(|token| token.text().to_string())
+        };
+        let key = token(SyntaxKind::KEYWORD_KEY).unwrap_or_default().to_ascii_uppercase();
+        let key = key.trim_start_matches("#+").trim_end_matches(':').to_string();
+        if !key.starts_with("ATTR_") {
+            continue;
+        }
+        let value = token(SyntaxKind::KEYWORD_VALUE).unwrap_or_default().trim().to_string();
+        match out.iter_mut().find(|(name, _)| *name == key) {
+            Some((_, values)) => {
+                values.push(' ');
+                values.push_str(&value);
+            }
+            None => out.push((key, value)),
+        }
+    }
+    out
+}
+
+/// `org-export-read-attribute`: the value of `property` (`:width`) in
+/// `attributes`, a list of `:key value` pairs; none for an empty value or
+/// `nil`, and `""` for a value of double quotes alone.
+fn read_attribute(attributes: &str, property: &str) -> Option<String> {
+    static KEY: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+        regex::Regex::new(r"(?:^|[ \t]+)(:[-a-zA-Z0-9_]+)(?:[ \t]+|$)").expect("valid regexp")
+    });
+    let prepare = |value: &str| -> Option<String> {
+        if value.is_empty() || value == "nil" {
+            return None;
+        }
+        if value.len() >= 2 && value.starts_with('"') && value.ends_with('"') && value.bytes().all(|b| b == b'"') {
+            return Some(value[1..value.len() - 1].to_string());
+        }
+        Some(value.to_string())
+    };
+    let mut rest = attributes;
+    let mut key: Option<&str> = None;
+    loop {
+        let found = KEY.captures(rest);
+        let value_end = found.as_ref().map_or(rest.len(), |captures| captures.get(0).map_or(0, |m| m.start()));
+        if key == Some(property) {
+            return prepare(&rest[..value_end]);
+        }
+        let captures = found?;
+        let (name, end) = (captures.get(1)?, captures.get(0)?.end());
+        key = Some(&rest[name.start()..name.end()]);
+        // An empty match at the end would go on for ever.
+        if end == 0 && rest.is_empty() {
+            return None;
+        }
+        rest = &rest[end..];
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

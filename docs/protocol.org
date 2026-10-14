@@ -392,6 +392,8 @@ Each option with its type, its default and what it means:
 - ~org_cycle_hide_drawer_startup~ :: boolean, ~true~. Fold drawers when a file opens folded (~org_startup_folded~). (~org-cycle-hide-drawer-startup~)
 - ~org_cycle_open_archived_trees~ :: boolean, ~false~. Leave archived subtrees open when a file opens folded (~org_startup_folded~). (~org-cycle-open-archived-trees~)
 - ~org_adapt_indentation~ :: boolean | "headline-data", ~false~. Indent the lines of an entry past its headline's stars: ~true~ for all of them, ~"headline-data"~ for the planning line, drawers and clock lines right below the headline. Applies to new lines, to re-indenting (range formatting) and to what commands write. (~org-adapt-indentation~)
+- ~org_image_actual_width~ :: boolean, number, or [number], ~true~. How wide the image of a link shows: ~true~ at its own width; a number, that many pixels; ~false~ or a list of one number, the ~:width~ of the paragraph's ~#+ATTR_ORG:~ or else of another ~#+ATTR_…:~ (pixels, ~50%~ or a fraction up to 2 of the text's width, ~t~ for its own width), else the list's number. An entry's ~ORG-IMAGE-ACTUAL-WIDTH~ property decides for its own text. (~org-image-actual-width~)
+- ~org_image_max_width~ :: "fill-column", "window", number, or null, ~"fill-column"~. How wide at most an image shown at its own width is: ~"fill-column"~, 70 columns; ~"window"~, the window's width; an integer, that many pixels; a float, that part of the window's width; null for no limit. (~org-image-max-width~)
 - ~org_startup_with_link_previews~ :: boolean, ~false~. Show the images of links to image files in place when a file opens, as ~C-c C-x C-v~ (~org.link.preview~) shows them. ~#+STARTUP: inlineimages~ (or ~linkpreviews~) and ~noinlineimages~ decide for a file. Editors that can show images: Neovim from 0.13 (~vim.ui.img~), in a terminal with the Kitty graphics protocol. (~org-startup-with-link-previews~)
 - ~org_startup_with_latex_preview~ :: boolean, ~false~. Show the LaTeX fragments as images when a file opens, as ~C-c C-x C-l~ (~org.latex.preview~) shows them, made by Emacs. ~#+STARTUP: latexpreview~ and ~nolatexpreview~ decide for a file. (~org-startup-with-latex-preview~)
 - ~org_startup_indented~ :: boolean, ~false~. Show files indented by level without changing them (~org-indent-mode~): the text under a headline lines up with its title, and leading stars are hidden. ~#+STARTUP: indent~ and ~noindent~ decide for a file. It turns ~org_adapt_indentation~ off in such files, unless that is ~"headline-data"~. Editors that can show it: Neovim, and VS Code (not on wrapped lines). (~org-startup-indented~)
@@ -988,7 +990,13 @@ increments a number.
   with a description too. ~scope~ is what Emacs names in its messages. With
   ~"startup": true~ in the argument, the whole file when it opens with
   previews (~org_startup_with_link_previews~, ~#+STARTUP: inlineimages~),
-  else null. ~attachment:~ links are left out.
+  else null. ~attachment:~ links are left out. An item has ~"width"~ when
+  the image shows at a width of its own (~org_image_actual_width~,
+  ~#+ATTR_ORG: :width~, ~org-display-inline-image--width~): ~{ "pixels" }~,
+  or ~{ "fraction" }~ of the width of the window's text; else
+  ~"maxWidth"~, the most it shows at (~org_image_max_width~):
+  ~{ "columns" }~, ~{ "pixels" }~ or ~{ "fraction" }~ of the window,
+  unless there is no limit.
 - ~org.latex.preview~ :: ~org-latex-preview~ (~C-c C-x C-l~), for a client
   that announces ~experimental.orgImages: true~: the same parts and counts
   as ~org.link.preview~, the images made by Emacs as Org makes them

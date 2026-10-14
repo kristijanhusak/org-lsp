@@ -242,7 +242,7 @@
   "org-link-preview-delay": "emacs-only",
   "org-link-preview-batch-size": "emacs-only",
   "org-display-remote-inline-images": "absent",
-  "org-image-max-width": "missing",
+  "org-image-max-width": "setting",
   "org-image-align": "emacs-only"
  },
  "org-agenda.el": {
@@ -874,7 +874,7 @@
   "org-allow-promoting-top-level-subtree": "missing",
   "org-structure-template-alist": "emacs",
   "org-track-ordered-property-with-tag": "missing",
-  "org-image-actual-width": "missing",
+  "org-image-actual-width": "setting",
   "org-agenda-inhibit-startup": "emacs-only",
   "org-agenda-ignore-properties": "emacs-only",
   "org-yank-image-save-method": "emacs-only",
