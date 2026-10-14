@@ -395,7 +395,7 @@ Each option with its type, its default and what it means:
 - ~org_bullets_mode~ :: boolean, ~false~. org-bullets: the last star of each headline shows as a bullet, those of ~org_bullets_bullet_list~ by level, and the stars before it are hidden, as with ~org_hide_leading_stars~. (~org-bullets-mode~)
 - ~org_bullets_bullet_list~ :: string[], ~["◉", "○", "✸", "✿"]~. The bullets of ~org_bullets_mode~, one a level, repeating after the last. (~org-bullets-bullet-list~)
 - ~org_bullets_list_bullet~ :: false, or a string, ~"•"~. What ~org_bullets_mode~ shows in place of the ~-~, ~+~ or ~*~ of an item, as org-bullets.nvim does; ~false~ leaves them as they are.
-- ~org_bullets_checkboxes~ :: false, or { todo, half, done }, ~{ "done": "✓", "half": "-", "todo": "˟" }~. What ~org_bullets_mode~ shows between the brackets of a checkbox, ~[ ]~, ~[-]~ and ~[X]~, as org-bullets.nvim does; ~false~ leaves them as they are. A state left out keeps its default.
+- ~org_bullets_checkboxes~ :: false, or { todo, half, done }, ~{ "done": "✓", "half": "-", "todo": " " }~. What ~org_bullets_mode~ shows between the brackets of a checkbox, ~[ ]~, ~[-]~ and ~[X]~, as org-bullets.nvim does; ~false~ leaves them as they are. A state left out keeps its default.
 - ~org_src_preserve_indentation~ :: boolean, ~false~. Leave the code of source blocks as it is indented when re-indenting. (~org-src-preserve-indentation~)
 - ~org_edit_src_content_indentation~ :: number, ~2~. How far code is indented past its source block when re-indenting. (~org-edit-src-content-indentation~)
 - ~org_agenda_span~ :: "day", "week", "fortnight", "month", "year", or a number of days, ~"week"~. How much time the agenda shows. (~org-agenda-span~)

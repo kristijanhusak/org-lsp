@@ -481,12 +481,13 @@ org_bullets_bullet_list = ["●", "○", "◆", "◇"]
 
 As [[https://github.com/nvim-orgmode/org-bullets.nvim][org-bullets.nvim]] does, the ~-~, ~+~ and ~*~ of list items show as
 ~org_bullets_list_bullet~ (~•~), and the mark between the brackets of a
-checkbox as the one ~org_bullets_checkboxes~ gives its state: ~[˟]~ for
-~[ ]~, ~[-]~ as it is, ~[✓]~ for ~[X]~. ~false~ turns either off:
+checkbox as the one ~org_bullets_checkboxes~ gives its state: ~[ ]~ and
+~[-]~ as they are, ~[✓]~ for ~[X]~ (org-bullets.nvim shows ~[˟]~ for
+~[ ]~). ~false~ turns either off:
 
 #+begin_src toml
 org_bullets_list_bullet = "–"
-org_bullets_checkboxes = { todo = " ", done = "✔" }
+org_bullets_checkboxes = { todo = "˟", done = "✔" }
 #+end_src
 
 The text does not change: the bullet is drawn in place of the star, as

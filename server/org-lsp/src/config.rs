@@ -1597,7 +1597,7 @@ impl Options {
         let checkboxes = match &self.bullets_checkboxes {
             Some(serde_json::Value::Bool(false)) => None,
             _ => Some(org_core::pretty::Checkboxes {
-                todo: mark("todo", "˟"),
+                todo: mark("todo", " "),
                 half: mark("half", "-"),
                 done: mark("done", "✓"),
             }),
