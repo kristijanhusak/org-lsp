@@ -1023,6 +1023,86 @@ pub const SETTINGS: &[Setting] = &[
         "Leave out timestamps of entries that are done.",
     ),
     setting(
+        "org_agenda_sorting_strategy",
+        "{ agenda?, todo?, tags?, search? } of string[], or string[]",
+        r#"{ "agenda": ["habit-down", "time-up", "urgency-down", "category-keep"], "todo": ["urgency-down", "category-keep"], "tags": ["urgency-down", "category-keep"], "search": ["category-keep"] }"#,
+        "org-agenda-sorting-strategy",
+        "How the lines of a day (`agenda`), the TODO list (`todo`), a tags match (`tags`, `tags-todo` too) \
+         and a search (`search`) are ordered: the strategies in turn, each deciding when the ones before do \
+         not. A view without a list takes `agenda`'s, and without that `time-up`, `category-keep`, \
+         `urgency-down`; one list alone is for every view. `time-up`/`-down` the time of day; \
+         `timestamp-`, `scheduled-`, `deadline-`, `ts-` (active) and `tsia-` (inactive) `up`/`down` the date \
+         of that kind (in the TODO list and a tags match, the entry's); `priority-` the priority, \
+         `urgency-` the priority with how near or overdue the date is; `effort-`, `category-` (and \
+         `category-keep`, the order the entries come in), `tag-` (the last tag), `todo-state-` (where the \
+         keyword is in the file's list, done ones first), `habit-`, `alpha-` (the headline), `stats-` (the \
+         statistics cookie). `user-defined-up` and `-down` call Lisp, which the server does not run.",
+    ),
+    setting(
+        "org_agenda_sort_notime_is_late",
+        "boolean",
+        "true",
+        "org-agenda-sort-notime-is-late",
+        "Lines without a time (or without the date a strategy sorts by) come after those with one.",
+    ),
+    setting(
+        "org_agenda_sort_noeffort_is_high",
+        "boolean",
+        "true",
+        "org-agenda-sort-noeffort-is-high",
+        "Entries without an effort count as having the highest when sorted, filtered or limited by effort.",
+    ),
+    Setting {
+        default: None,
+        unset: "no limit",
+        ..setting(
+            "org_agenda_max_entries",
+            "integer, or { agenda?, todo?, tags?, search? } of integers",
+            "",
+            "org-agenda-max-entries",
+            "How many entries a day of the agenda, the TODO list, a tags match or a search shows at most: one \
+             number for all, or one for each kind of view. Other lines, such as those of the time grid, go \
+             as well; with a negative number they stay.",
+        )
+    },
+    Setting {
+        default: None,
+        unset: "no limit",
+        ..setting(
+            "org_agenda_max_todos",
+            "integer, or { agenda?, todo?, tags?, search? } of integers",
+            "",
+            "org-agenda-max-todos",
+            "How many entries with a TODO keyword a view shows at most, the other lines going as well; with a \
+             negative number, those stay.",
+        )
+    },
+    Setting {
+        default: None,
+        unset: "no limit",
+        ..setting(
+            "org_agenda_max_tags",
+            "integer, or { agenda?, todo?, tags?, search? } of integers",
+            "",
+            "org-agenda-max-tags",
+            "How many entries with tags a view shows at most, the other lines going as well; with a negative \
+             number, those stay.",
+        )
+    },
+    Setting {
+        default: None,
+        unset: "no limit",
+        ..setting(
+            "org_agenda_max_effort",
+            "integer, or { agenda?, todo?, tags?, search? } of integers",
+            "",
+            "org-agenda-max-effort",
+            "The most minutes of effort the entries of a view add up to: entries show while their efforts, \
+             in order, stay within it (an entry without one counts as the highest, or as -1 with \
+             `org_agenda_sort_noeffort_is_high` off).",
+        )
+    },
+    setting(
         "org_agenda_show_future_repeats",
         r#"boolean, "next""#,
         "true",
@@ -1799,6 +1879,17 @@ pub const SETTINGS: &[Setting] = &[
     },
 ];
 
+/// The strategies of `org-agenda-sorting-strategy`.
+macro_rules! strategy {
+    () => {
+        r#"{ "enum": ["time-up", "time-down", "timestamp-up", "timestamp-down", "scheduled-up", "scheduled-down",
+            "deadline-up", "deadline-down", "tsia-up", "tsia-down", "ts-up", "ts-down", "stats-up", "stats-down",
+            "priority-up", "priority-down", "urgency-up", "urgency-down", "effort-up", "effort-down", "category-up",
+            "category-down", "category-keep", "tag-up", "tag-down", "todo-state-up", "todo-state-down", "habit-up",
+            "habit-down", "alpha-up", "alpha-down", "user-defined-up", "user-defined-down"] }"#
+    };
+}
+
 /// The values each option takes, as JSON Schema: what editors complete and
 /// check the options against (VS Code's settings, the schema of the shared
 /// file, Neovim's type annotations). An object that is a type of its own
@@ -1984,6 +2075,28 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_agenda_skip_scheduled_if_done", BOOLEAN),
     ("org_agenda_skip_deadline_if_done", BOOLEAN),
     ("org_agenda_skip_timestamp_if_done", BOOLEAN),
+    (
+        "org_agenda_sorting_strategy",
+        concat!(
+            r#"{ "anyOf": [{ "type": "array", "items": "#,
+            strategy!(),
+            r#" }, { "type": "object", "additionalProperties": false, "properties": { "agenda": { "type": "array", "items": "#,
+            strategy!(),
+            r#" }, "todo": { "type": "array", "items": "#,
+            strategy!(),
+            r#" }, "tags": { "type": "array", "items": "#,
+            strategy!(),
+            r#" }, "search": { "type": "array", "items": "#,
+            strategy!(),
+            r#" } } }] }"#
+        ),
+    ),
+    ("org_agenda_sort_notime_is_late", BOOLEAN),
+    ("org_agenda_sort_noeffort_is_high", BOOLEAN),
+    ("org_agenda_max_entries", AGENDA_LIMIT),
+    ("org_agenda_max_todos", AGENDA_LIMIT),
+    ("org_agenda_max_tags", AGENDA_LIMIT),
+    ("org_agenda_max_effort", AGENDA_LIMIT),
     ("org_agenda_show_future_repeats", r#"{ "enum": [true, false, "next"] }"#),
     ("org_agenda_show_all_dates", BOOLEAN),
     ("org_agenda_tags_column", r#"{ "anyOf": [{ "type": "integer" }, { "const": "auto" }] }"#),
@@ -2143,6 +2256,10 @@ const SCHEMAS: &[(&str, &str)] = &[
 ];
 
 const BOOLEAN: &str = r#"{ "type": "boolean" }"#;
+/// A limit of `org-agenda-max-…`: one for all views, or one for each kind.
+const AGENDA_LIMIT: &str = r#"{ "anyOf": [{ "type": "integer" }, { "type": "object", "additionalProperties": false, "properties": {
+    "agenda": { "type": "integer" }, "todo": { "type": "integer" }, "tags": { "type": "integer" }, "search": { "type": "integer" }
+} }] }"#;
 /// `org-capture-templates-contexts`, `org-agenda-custom-commands-contexts`
 const CONTEXTS: &str = r#"{ "type": "array", "items": { "type": "object", "required": ["key", "contexts"], "additionalProperties": false, "properties": {
             "key": { "type": "string", "description": "The keys the context is about" },

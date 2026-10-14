@@ -1,0 +1,2 @@
+Global list of TODO items of type: ALL
+  alpha:      TODO [#A] mow lawn                                :house::outside:

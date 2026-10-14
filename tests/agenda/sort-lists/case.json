@@ -1,0 +1,43 @@
+{
+  "today": "2026-05-18",
+  "now": "10:30",
+  "runs": [
+    {
+      "view": "agenda",
+      "span": "day"
+    },
+    {
+      "view": "todo"
+    },
+    {
+      "view": "tags-todo",
+      "match": "LEVEL>0"
+    },
+    {
+      "view": "search",
+      "match": "e"
+    }
+  ],
+  "options": {
+    "org_agenda_sorting_strategy": {
+      "agenda": [
+        "effort-up",
+        "tag-down",
+        "stats-up"
+      ],
+      "todo": [
+        "todo-state-up",
+        "alpha-down"
+      ],
+      "tags": [
+        "deadline-up",
+        "effort-down"
+      ],
+      "search": [
+        "alpha-up"
+      ]
+    },
+    "org_agenda_sort_noeffort_is_high": true
+  },
+  "emacs": "(setq org-agenda-sorting-strategy '((agenda effort-up tag-down stats-up) (todo todo-state-up alpha-down) (tags deadline-up effort-down) (search alpha-up)) org-agenda-sort-noeffort-is-high t)"
+}

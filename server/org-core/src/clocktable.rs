@@ -965,21 +965,30 @@ fn clock_sum(
 /// The first timestamp in `text` that is active (`<…>`) or inactive, with
 /// the other half of a range.
 fn first_stamp(text: &str, active: bool) -> Option<String> {
+    // A range is of the kind of its first timestamp, whatever the
+    // brackets of the second: `<a>--[b]` is active.
     static ACTIVE: LazyLock<Regex> = LazyLock::new(|| {
-        Regex::new(r"<[0-9]{4}-[0-9]{2}-[0-9]{2}[^>\n]*>(?:--<[0-9]{4}-[0-9]{2}-[0-9]{2}[^>\n]*>)?")
+        Regex::new(r"<[0-9]{4}-[0-9]{2}-[0-9]{2}[^>\n]*>(?:--(?:<[0-9]{4}-[0-9]{2}-[0-9]{2}[^>\n]*>|\[[0-9]{4}-[0-9]{2}-[0-9]{2}[^\]\n]*\]))?")
             .expect("a valid regex")
     });
     static INACTIVE: LazyLock<Regex> = LazyLock::new(|| {
-        Regex::new(r"\[[0-9]{4}-[0-9]{2}-[0-9]{2}[^\]\n]*\](?:--\[[0-9]{4}-[0-9]{2}-[0-9]{2}[^\]\n]*\])?")
+        Regex::new(r"\[[0-9]{4}-[0-9]{2}-[0-9]{2}[^\]\n]*\](?:--(?:\[[0-9]{4}-[0-9]{2}-[0-9]{2}[^\]\n]*\]|<[0-9]{4}-[0-9]{2}-[0-9]{2}[^>\n]*>))?")
             .expect("a valid regex")
     });
-    let regex = if active { &ACTIVE } else { &INACTIVE };
-    regex.find(text).map(|found| found.as_str().to_string())
+    let (regex, other_end) = if active { (&ACTIVE, "]--") } else { (&INACTIVE, ">--") };
+    // Not the second timestamp of a range of the other kind.
+    regex
+        .find_iter(text)
+        .find(|found| !text[..found.start()].ends_with(other_end))
+        .map(|found| found.as_str().to_string())
 }
 
 /// `org-entry-get` of `TIMESTAMP` (`active`) or `TIMESTAMP_IA`: the first
 /// such timestamp in the headline, then in the section after the planning
-/// line, clocks and properties aside.
+/// line. Only a timestamp of the syntax tree counts: not one in a clock
+/// line, a property, a comment, a keyword, a fixed-width line, or a block
+/// whose contents Org does not parse (`src`, `example`, `export`,
+/// `comment`).
 pub(crate) fn entry_stamp(text: &str, outline: &Outline, index: usize, active: bool) -> Option<String> {
     static PLANNING: LazyLock<Regex> = LazyLock::new(|| {
         RegexBuilder::new(r"^[ \t]*(?:CLOSED|DEADLINE|SCHEDULED):")
@@ -993,18 +1002,47 @@ pub(crate) fn entry_stamp(text: &str, outline: &Outline, index: usize, active: b
     }
     let end = outline.entries.get(index + 1).map_or(text.len(), |next| next.offset);
     let mut at = next_line(text, entry.line_end);
-    if at < end && PLANNING.is_match(&text[at..line_end(text, at)]) {
+    let planning = at < end && PLANNING.is_match(&text[at..line_end(text, at)]);
+    if planning {
         at = next_line(text, at);
     }
+    static BLOCK: LazyLock<Regex> = LazyLock::new(|| {
+        RegexBuilder::new(r"^#\+begin_(src|example|export|comment)(?:[ \t]|$)")
+            .case_insensitive(true)
+            .build()
+            .expect("a valid regex")
+    });
     let mut in_properties = false;
+    // The property drawer comes first, or after the planning line and
+    // blank lines; a drawer named so further down holds plain text.
+    let mut drawer_allowed = true;
+    // The end line of the block whose lines are raw text.
+    let mut raw_block: Option<String> = None;
     while at < end {
         let line = &text[at..line_end(text, at).min(end)];
         let trimmed = line.trim_matches([' ', '\t']);
-        if trimmed.eq_ignore_ascii_case(":PROPERTIES:") {
+        let first = drawer_allowed;
+        drawer_allowed = first && planning && trimmed.is_empty();
+        if let Some(close) = &raw_block {
+            if trimmed.eq_ignore_ascii_case(close) {
+                raw_block = None;
+            }
+        } else if let Some(found) = BLOCK.captures(trimmed) {
+            raw_block = Some(format!("#+end_{}", &found[1]));
+        } else if first && trimmed.eq_ignore_ascii_case(":PROPERTIES:") {
             in_properties = true;
         } else if in_properties {
             in_properties = !trimmed.eq_ignore_ascii_case(":END:");
-        } else if parse_line(line).is_none() {
+        } else if trimmed == "#"
+            || trimmed.starts_with("# ")
+            || trimmed.starts_with("#+")
+            || trimmed.starts_with(": ")
+            || trimmed == ":"
+        {
+            // A comment, a keyword or a fixed-width line.
+        } else if !trimmed.get(..6).is_some_and(|start| start.eq_ignore_ascii_case("CLOCK:")) {
+            // A clock line (`org-clock-line-re`), even one whose times
+            // do not read, holds no timestamp objects.
             if let Some(found) = first_stamp(line, active) {
                 return Some(found);
             }

@@ -1,0 +1,25 @@
+Day-agenda (W21):
+Monday     18 May 2026 W21
+  travel:      7:00...... Scheduled:  TODO [#B] book flights            :travel:
+               8:00...... ----------------
+  work:        8:30...... Scheduled:  TODO Call Bob                      :phone:
+  work:        9:00...... Deadline:   WAIT Banana bread [1/3]
+              10:00...... ----------------
+  alpha:      10:00...... Deadline:   NEXT buy seeds                    :house::
+              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+  work:       11:00-12:00 Meeting 
+              12:00...... ----------------
+              14:00...... ----------------
+  work:       14:00...... Scheduled:  TODO [#B] Write report            :office:
+              16:00...... ----------------
+              18:00...... ----------------
+  home:       18:00...... Scheduled:  TODO [#C] water plants            :house::
+              20:00...... ----------------
+  home:       In   5 d.:  TODO Bake bread                       :house::kitchen:
+  alpha:      Scheduled:  TODO [#A] mow lawn                    :house::outside:
+  home:       Scheduled:  DONE laundry                                  :house::
+  work:       Scheduled:  TODO [#A] Zebra crossing                      :office:
+  work:       In   4 d.:  TODO [#A] Zebra crossing                      :office:
+  work:       Scheduled:  NEXT apple pie                          :home:kitchen:
+  work:       In   2 d.:  TODO step two                                 :urgent:
+  travel:     In   1 d.:  TODO Plan trip [50%]

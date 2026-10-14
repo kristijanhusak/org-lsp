@@ -1,0 +1,22 @@
+{
+  "today": "2026-05-18",
+  "now": "10:30",
+  "runs": [
+    {
+      "view": "agenda",
+      "span": "day"
+    },
+    {
+      "view": "todo"
+    },
+    {
+      "view": "tags",
+      "match": "LEVEL>0"
+    }
+  ],
+  "options": {
+    "org_agenda_max_todos": -2,
+    "org_agenda_max_tags": 1
+  },
+  "emacs": "(setq org-agenda-max-todos -2 org-agenda-max-tags 1)"
+}

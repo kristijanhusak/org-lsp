@@ -1,0 +1,27 @@
+{
+  "today": "2026-05-18",
+  "now": "10:30",
+  "runs": [
+    {
+      "view": "agenda",
+      "span": "day"
+    },
+    {
+      "view": "todo"
+    },
+    {
+      "view": "tags",
+      "match": "LEVEL=1"
+    }
+  ],
+  "options": {
+    "org_agenda_sorting_strategy": [
+      "tag-up",
+      "stats-down",
+      "habit-up",
+      "category-down",
+      "urgency-up"
+    ]
+  },
+  "emacs": "(setq org-agenda-sorting-strategy '(tag-up stats-down habit-up category-down urgency-up))"
+}

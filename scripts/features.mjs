@@ -394,6 +394,7 @@ export const AREAS = [
       ['Searches for words, phrases and regexps', true],
       ['Stuck projects', true],
       ['Custom commands and block agendas (`org-agenda-custom-commands`)', true],
+      ['Sorting by any of Org\'s strategies, for each kind of view (`org-agenda-sorting-strategy`), and limits on how many entries show (`org-agenda-max-entries`, `-todos`, `-tags`, `-effort`)', true],
       ['Commands offered by context (`org-agenda-custom-commands-contexts`)', true],
       ['Filters by tag, category, effort, regexp and top headline', true],
       ['Bulk marks and actions', true],

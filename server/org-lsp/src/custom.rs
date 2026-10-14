@@ -78,6 +78,12 @@ fn block_config(
         extend_today_until: priorities.extend_today_until,
         ..options.to_config()
     };
+    // `org-tags-sort-function` is no agenda option: the command's tags
+    // sort as everywhere.
+    let config = Config {
+        sorting: org_core::agenda::sorting::Sorting { tags_sort: priorities.sorting.tags_sort, ..config.sorting },
+        ..config
+    };
     Ok((options, config))
 }
 

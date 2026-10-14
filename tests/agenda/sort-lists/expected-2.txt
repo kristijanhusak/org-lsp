@@ -1,0 +1,15 @@
+Headlines with TAGS match: LEVEL>0
+  work:       WAIT Banana bread [1/3]
+  travel:     TODO Plan trip [50%]
+  work:       TODO step two                                             :urgent:
+  work:       TODO [#A] Zebra crossing                                  :office:
+  home:       TODO Bake bread                                   :house::kitchen:
+  alpha:      TODO Garden [2/2]                                         :house::
+  alpha:      TODO [#A] mow lawn                                :house::outside:
+  work:       TODO [#C] step three
+  work:       TODO Call Bob                                              :phone:
+  travel:     TODO [#B] book flights                                    :travel:
+  work:       TODO no date at all
+  work:       TODO [#B] Write report                                    :office:
+  work:       NEXT apple pie                                      :home:kitchen:
+  home:       TODO [#C] water plants                                    :house::

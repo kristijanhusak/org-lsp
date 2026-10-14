@@ -72,7 +72,11 @@ pub struct Item {
     pub heading: usize,
     /// Military time for sorting, when the line carries a time of day.
     pub time_of_day: Option<i64>,
+    /// Org's `urgency`: the priority, adjusted for how near a deadline is,
+    /// how long ago a date was, or a habit's need.
     pub priority: i64,
+    /// Org's `priority`: the priority of the headline (`org-get-priority`).
+    pub base_priority: i64,
     pub kind: ItemKind,
     pub face: Face,
     pub source: Option<Source>,
@@ -94,6 +98,10 @@ pub struct Item {
     /// What a line of log mode logs (Org's `type`): `closed`, `clock` or
     /// `state`.
     pub log: Option<&'static str>,
+    /// What the `type` of a line of the TODO list or of a tags match ends
+    /// with: the kind of timestamp `ts_date` is, as the sorting strategy
+    /// asks (`org-agenda-entry-get-agenda-timestamp`).
+    pub ts_type: &'static str,
 }
 
 /// What a specifier of `org-agenda-prefix-format` stands for.

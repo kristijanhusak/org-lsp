@@ -17,6 +17,7 @@ mod item;
 pub mod matcher;
 pub mod report;
 pub mod search;
+pub mod sorting;
 pub mod super_agenda;
 
 pub use search::SearchSettings;
@@ -28,6 +29,7 @@ pub use matcher::Matcher;
 
 use item::{format_item, normalise_keyword, priority, Dotime, FormatInput};
 pub use item::{format_numbers, format_with, Eval, Evaluator, PrefixFormat, RemoveTags};
+use sorting::ViewType;
 
 use crate::date::{days_in_month, is_leap_year, iso_week, weekday, Date, Day, MONTH_NAMES, WEEKDAY_NAMES};
 use crate::outline::{Entry, LogKind, Outline};
@@ -297,6 +299,9 @@ pub struct Config {
     /// under each entry's line, when on.
     pub entry_text: Option<usize>,
     pub entry_text_settings: entry_text::Settings,
+    /// `org-agenda-sorting-strategy` and the options that go with it, and
+    /// the limits of `org-agenda-max-entries` and its kin.
+    pub sorting: sorting::Sorting,
 }
 
 /// `org-tag-groups-alist-for-agenda`: the group tags of the files, those
@@ -429,6 +434,7 @@ impl Default for Config {
             group_tags: true,
             entry_text: None,
             entry_text_settings: entry_text::Settings::default(),
+            sorting: sorting::Sorting::default(),
             format_date: None,
         }
     }
@@ -581,6 +587,7 @@ impl Builder<'_> {
             heading: formatted.heading,
             time_of_day: formatted.time_of_day,
             priority,
+            base_priority: priority,
             kind,
             face,
             source: Some(Source { file, entry: entry_index }),
@@ -591,6 +598,7 @@ impl Builder<'_> {
             graph: None,
             ts_date: None,
             log: None,
+            ts_type: "",
         }
     }
 
@@ -967,6 +975,7 @@ impl Builder<'_> {
                 heading: formatted.heading,
                 time_of_day: formatted.time_of_day,
                 priority: 100_000,
+                base_priority: 100_000,
                 kind: ItemKind::Log,
                 face: Face::Done,
                 source: Some(Source { file, entry: log.entry }),
@@ -981,6 +990,7 @@ impl Builder<'_> {
                     LogKind::Clock(_) => "clock",
                     LogKind::State(_) => "state",
                 }),
+                ts_type: "",
             });
         }
     }
@@ -1029,6 +1039,7 @@ impl Builder<'_> {
                 heading: formatted.heading,
                 time_of_day: formatted.time_of_day,
                 priority: 0,
+                base_priority: 0,
                 kind: ItemKind::Grid,
                 face,
                 source: None,
@@ -1039,6 +1050,7 @@ impl Builder<'_> {
                 graph: None,
                 ts_date: None,
                 log: None,
+                ts_type: "",
             }
         };
         // Org builds this list back to front, and the order decides ties.
@@ -1054,8 +1066,19 @@ impl Builder<'_> {
             let time = format!("{:02}:{:02}", time / 100, time % 100);
             lines.push(line(&grid.line, &time, Face::TimeGrid));
         }
-        lines.append(items);
-        *items = lines;
+        // Before the entries when they are sorted by time, else after:
+        // the order of lines that compare equal.
+        let time_up = self
+            .config
+            .sorting
+            .selected(ViewType::Agenda)
+            .is_ok_and(|strategies| strategies.contains(&sorting::Strategy::TimeUp));
+        if time_up {
+            lines.append(items);
+            *items = lines;
+        } else {
+            items.append(&mut lines);
+        }
     }
 }
 
@@ -1104,22 +1127,29 @@ fn planning_time(raw: &str, reminder: bool) -> PlanningTime {
     }
 }
 
-/// `org-entries-lessp` with the default strategies: in the agenda, habits
-/// last (`habit-down`), then by time (lines without one last); then by
-/// urgency, highest first.
-fn sort(items: &mut [Item], by_time: bool) {
-    items.sort_by(|a, b| compare(a, b, by_time));
+/// `(sort items #'org-entries-lessp)`, with the strategies of a view of
+/// `view` (`org-set-sorting-strategy`). A strategy Org does not know
+/// stops the view, as it does Emacs's once two lines are compared.
+fn sort(items: &mut Vec<Item>, files: &[&Outline], config: &Config, view: ViewType) -> Result<(), String> {
+    if items.len() < 2 {
+        return Ok(());
+    }
+    let strategies = config.sorting.selected(view)?;
+    sorting::sort(items, files, &strategies, &config.sorting);
+    Ok(())
 }
 
-/// `org-entries-lessp`, as [`sort`] uses it.
-fn compare(a: &Item, b: &Item, by_time: bool) -> std::cmp::Ordering {
-    let time = |item: &Item| item.time_of_day.unwrap_or(9901);
-    let by_time = if by_time {
-        a.habit.is_some().cmp(&b.habit.is_some()).then(time(a).cmp(&time(b)))
-    } else {
-        std::cmp::Ordering::Equal
-    };
-    by_time.then(b.priority.cmp(&a.priority))
+/// The date a line of the TODO list or of a tags match is sorted by, and
+/// what its `type` ends with: from the property the strategies of `view`
+/// ask for (`org-agenda-entry-get-agenda-timestamp`).
+fn sort_date(item: &mut Item, outline: &Outline, index: usize, config: &Config, view: ViewType) {
+    let strategies = config.sorting.selected(view).unwrap_or_default();
+    let (properties, kind) = sorting::Sorting::timestamp_property(&strategies);
+    item.ts_type = kind;
+    item.ts_date = properties
+        .iter()
+        .find_map(|name| matcher::property_value(index, outline, name))
+        .and_then(|stamp| crate::timestr::time_string_to_day(&stamp));
 }
 
 /// `org-agenda-finalize-entries`: the lines of sorted `items`, in the
@@ -1131,13 +1161,14 @@ fn finalize(
     files: &[&Outline],
     config: &Config,
     (today, graph_today): (Day, Day),
-    sorting: Option<bool>,
+    view: ViewType,
 ) -> Result<Vec<Line>, String> {
+    let items = sorting::limit(items, files, view, &config.sorting);
     let line = |item: Item| item_line(item, config, graph_today);
     let Some(settings) = &config.super_agenda else {
         return Ok(items.into_iter().map(line).collect());
     };
-    let grouper = super_agenda::Grouper::new(files, config, settings, today, sorting);
+    let grouper = super_agenda::Grouper::new(files, config, settings, today, view);
     let mut lines: Vec<Line> = Vec::new();
     for grouped in grouper.group(items)? {
         match grouped {
@@ -1157,7 +1188,8 @@ pub fn day_items(files: &[&Outline], current: Day, today: Day, config: &Config) 
     for file in 0..files.len() {
         builder.day(file, current, &mut items);
     }
-    sort(&mut items, true);
+    // A strategy Org does not know leaves them as found.
+    let _ = sort(&mut items, files, config, ViewType::Agenda);
     items
 }
 
@@ -1177,10 +1209,10 @@ pub fn todo_items(files: &[&Outline], keywords: Option<&[String]>, config: &Conf
             }
             let mut item = builder.item(file, index, ItemKind::Todo, Face::Default, "", Dotime::Headline);
             item.priority += 1;
+            sort_date(&mut item, outline, index, config, ViewType::Todo);
             items.push(item);
         }
     }
-    sort(&mut items, false);
     items
 }
 
@@ -1202,6 +1234,10 @@ pub enum LineKind {
     /// A line of the header of a group of org-super-agenda, in the
     /// header's face from `faced` on.
     Group { faced: usize },
+    /// The empty line of a day whose entries the limits all left out
+    /// (`org-agenda-max-entries` and its kin): Org inserts what remains of
+    /// them, nothing, and a newline.
+    Blank,
 }
 
 /// One line of a rendered view.
@@ -1367,8 +1403,14 @@ pub fn view(files: &[&Outline], now: Now, start_day: Option<Day>, span: Span, co
             item: None,
         });
         builder.add_time_grid(&mut items, ndays, is_today, now.minute);
-        sort(&mut items, true);
-        match finalize(items, files, config, (now.today, now.today), Some(true)) {
+        if let Err(error) = sort(&mut items, files, config, ViewType::Agenda) {
+            builder.error.borrow_mut().get_or_insert(error);
+        }
+        let had_items = !items.is_empty();
+        match finalize(items, files, config, (now.today, now.today), ViewType::Agenda) {
+            Ok(finalized) if finalized.is_empty() && had_items => {
+                lines.push(Line { text: String::new(), kind: LineKind::Blank, item: None })
+            }
             Ok(finalized) => lines.extend(finalized),
             Err(error) => {
                 builder.error.borrow_mut().get_or_insert(error);
@@ -1384,16 +1426,19 @@ pub fn view(files: &[&Outline], now: Now, start_day: Option<Day>, span: Span, co
 }
 
 /// The lines of a view that is no agenda: `lines` (its header), then those
-/// of its sorted `items`; or only what stops it, a group org-super-agenda
-/// cannot make.
+/// of its `items`, sorted for a view of `view`; or only what stops it, a
+/// strategy Org does not know or a group org-super-agenda cannot make.
 fn listed(
     mut lines: Vec<Line>,
-    items: Vec<Item>,
+    mut items: Vec<Item>,
     files: &[&Outline],
     config: &Config,
-    (today, sorting): (Day, Option<bool>),
+    (today, view): (Day, ViewType),
 ) -> Vec<Line> {
-    match finalize(items, files, config, (today, 0), sorting) {
+    if let Err(error) = sort(&mut items, files, config, view) {
+        return vec![Line { text: error, kind: LineKind::Header, item: None }];
+    }
+    match finalize(items, files, config, (today, 0), view) {
         Ok(finalized) => {
             lines.extend(finalized);
             lines
@@ -1410,7 +1455,7 @@ pub fn todo_view(files: &[&Outline], keywords: Option<&str>, now: Now, config: &
     let shown = wanted.as_ref().map_or("ALL".to_string(), |keywords| keywords.join("|"));
     let header = format!("Global list of TODO items of type: {shown}");
     let lines = vec![Line { text: header, kind: LineKind::Header, item: None }];
-    let lines = listed(lines, todo_items(files, wanted.as_deref(), config), files, config, (now.today, Some(false)));
+    let lines = listed(lines, todo_items(files, wanted.as_deref(), config), files, config, (now.today, ViewType::Todo));
     View { lines, start: 0, end: 0 }
 }
 
@@ -1426,13 +1471,15 @@ pub fn tags_view(files: &[&Outline], matcher: &Matcher, todo_only: bool, now: No
             if outline.entries[index].skipped(config.archives) || !matcher.matches(outline, index, todo_only, clock) {
                 continue;
             }
-            items.push(builder.item(file, index, ItemKind::Todo, Face::Default, "", Dotime::Headline));
+            // `org-scan-tags` formats the line without a time (`dotime`).
+            let mut item = builder.item(file, index, ItemKind::Todo, Face::Default, "", Dotime::No);
+            sort_date(&mut item, outline, index, config, ViewType::Tags);
+            items.push(item);
         }
     }
-    sort(&mut items, false);
     let header = format!("Headlines with TAGS match: {}", matcher.text);
     let lines = vec![Line { text: header, kind: LineKind::Header, item: None }];
-    let lines = listed(lines, items, files, config, (now.today, Some(false)));
+    let lines = listed(lines, items, files, config, (now.today, ViewType::Tags));
     View { lines, start: 0, end: 0 }
 }
 
@@ -1505,12 +1552,14 @@ pub fn stuck_view(files: &[&Outline], now: Now, config: &Config) -> Result<View,
             if skip.iter().any(|pattern| pattern.is_match(subtree)) {
                 continue;
             }
-            items.push(builder.item(file, index, ItemKind::Todo, Face::Default, "", Dotime::Headline));
+            // `org-scan-tags` formats the line without a time (`dotime`).
+            let mut item = builder.item(file, index, ItemKind::Todo, Face::Default, "", Dotime::No);
+            sort_date(&mut item, outline, index, config, ViewType::Tags);
+            items.push(item);
         }
     }
-    sort(&mut items, false);
     let lines = vec![Line { text: "List of stuck projects: ".to_string(), kind: LineKind::Header, item: None }];
-    let lines = listed(lines, items, files, config, (now.today, Some(false)));
+    let lines = listed(lines, items, files, config, (now.today, ViewType::Tags));
     Ok(View { lines, start: 0, end: 0 })
 }
 
@@ -1560,7 +1609,11 @@ pub fn search_view(
                 && (!search.todo_only || todo.is_match(seen))
                 && search.plus.iter().all(|pattern| pattern.is_match(seen));
             let resume = if wanted {
-                items.push(builder.item(file, entry, ItemKind::Search, Face::Default, "", Dotime::Headline));
+                let mut item = builder.item(file, entry, ItemKind::Search, Face::Default, "", Dotime::Headline);
+                // `priority` and `urgency` are 1000 for every line.
+                item.priority = 1000;
+                item.base_priority = 1000;
+                items.push(item);
                 before_end.max(last_end)
             } else {
                 before_end
@@ -1572,11 +1625,9 @@ pub fn search_view(
             }
         }
     }
-    // Every line has the same priority (1000), and `category-keep` keeps
-    // the order: as found.
     let header = format!("Search words: {string}");
     let lines = vec![Line { text: header, kind: LineKind::Header, item: None }];
-    let lines = listed(lines, items, files, config, (now.today, None));
+    let lines = listed(lines, items, files, config, (now.today, ViewType::Search));
     Ok(View { lines, start: 0, end: 0 })
 }
 

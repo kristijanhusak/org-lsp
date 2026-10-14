@@ -1,0 +1,7 @@
+Day-agenda (W21):
+Monday     18 May 2026 W21
+  work:       Deadline:   TODO [0/4] deadline
+  work:       [4/4] tagged                                                   :t:
+  work:       (2/4):  [1/4] a block <2026-05-17 Sun>--<2026-05-20 Wed>
+  work:       Scheduled:  TODO [2/4] scheduled
+  work:       [3/4] a timestamp 

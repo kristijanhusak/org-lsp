@@ -1,0 +1,5 @@
+Day-agenda (W21):
+Monday     18 May 2026 W21
+  travel:      7:00...... Scheduled:  TODO [#B] book flights            :travel:
+  work:        8:30...... Scheduled:  TODO Call Bob                      :phone:
+  work:        9:00...... Deadline:   WAIT Banana bread [1/3]

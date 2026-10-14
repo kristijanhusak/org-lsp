@@ -1,0 +1,21 @@
+* [1/4] a block <2026-05-17 Sun>--<2026-05-20 Wed>
+* [3/4] a timestamp <2026-05-18 Mon>
+* TODO [2/4] scheduled
+  SCHEDULED: <2026-05-18 Mon>
+* TODO [0/4] deadline
+  DEADLINE: <2026-05-18 Mon>
+* [4/4] tagged <2026-05-18 Mon>                                         :t:
+* TODO a clock that does not read
+:LOGBOOK:
+CLOCK: [2026-02-24 Tue]--[2026-03-01 Sun 25:00] =>  1:00
+:END:
+* TODO a drawer further down
+text
+:PROPERTIES:
+:WHEN: [2026-03-10 Tue]
+:END:
+* TODO the property drawer
+:PROPERTIES:
+:WHEN: [2026-03-01 Sun]
+:END:
+* TODO a plain stamp [2026-03-05 Thu]

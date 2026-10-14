@@ -124,6 +124,15 @@ DEFAULTS = r"""
       org-agenda-deadline-leaders '("Deadline:  " "In %3d d.: " "%2d d. ago: ")
       org-agenda-timerange-leaders '("" "(%d/%d): ")
       org-agenda-remove-tags nil
+      org-agenda-sorting-strategy '((agenda habit-down time-up urgency-down category-keep)
+                                    (todo urgency-down category-keep) (tags urgency-down category-keep)
+                                    (search category-keep))
+      org-agenda-sort-notime-is-late t
+      org-agenda-sort-noeffort-is-high t
+      org-agenda-max-entries nil
+      org-agenda-max-todos nil
+      org-agenda-max-tags nil
+      org-agenda-max-effort nil
       org-agenda-breadcrumbs-separator "->"
       org-agenda-format-date 'org-agenda-format-date-aligned
       org-use-tag-inheritance t

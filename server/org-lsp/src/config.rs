@@ -3,6 +3,7 @@
 //! (`org_agenda_files`; `org-agenda-files` is read too); those of the
 //! server's own, without `org_`.
 
+use org_core::agenda::sorting::{Limit, Sorting, Strategies};
 use org_core::agenda::{Config as AgendaConfig, FutureRepeats, RemoveTags, Span, TagsColumn, TimeGrid};
 use org_core::archive::{ContextInfo, InheritedTags, MarkDone, Settings as ArchiveSettings};
 use org_core::edit::Settings as EditSettings;
@@ -1112,13 +1113,15 @@ impl Options {
     /// The agenda settings, with the priorities the agenda sorts by.
     pub fn agenda_config(&self) -> AgendaConfig {
         let tags = self.tag_settings();
+        let agenda = self.agenda.to_config();
         AgendaConfig {
+            sorting: Sorting { tags_sort: tags.sort, ..agenda.sorting },
             priorities: self.priorities(),
             tag_alist: tags.alist,
             tag_persistent_alist: tags.persistent,
             group_tags: self.group_tags.unwrap_or(true),
             extend_today_until: self.extend_today_until.unwrap_or(0),
-            ..self.agenda.to_config()
+            ..agenda
         }
     }
 
@@ -1961,6 +1964,24 @@ pub struct AgendaOptions {
     pub skip_deadline_if_done: Option<bool>,
     #[serde(rename = "org_agenda_skip_timestamp_if_done")]
     pub skip_timestamp_if_done: Option<bool>,
+    /// `org-agenda-sorting-strategy`: a list of strategies for each kind
+    /// of view (`agenda`, `todo`, `tags`, `search`), or one list for all.
+    #[serde(rename = "org_agenda_sorting_strategy")]
+    pub sorting_strategy: Option<serde_json::Value>,
+    #[serde(rename = "org_agenda_sort_notime_is_late")]
+    pub sort_notime_is_late: Option<bool>,
+    #[serde(rename = "org_agenda_sort_noeffort_is_high")]
+    pub sort_noeffort_is_high: Option<bool>,
+    /// `org-agenda-max-entries` and its kin: a number for every kind of
+    /// view, or one for each kind.
+    #[serde(rename = "org_agenda_max_entries")]
+    pub max_entries: Option<serde_json::Value>,
+    #[serde(rename = "org_agenda_max_todos")]
+    pub max_todos: Option<serde_json::Value>,
+    #[serde(rename = "org_agenda_max_tags")]
+    pub max_tags: Option<serde_json::Value>,
+    #[serde(rename = "org_agenda_max_effort")]
+    pub max_effort: Option<serde_json::Value>,
     #[serde(rename = "org_agenda_show_future_repeats")]
     pub show_future_repeats: Option<FutureRepeatsOption>,
     #[serde(rename = "org_agenda_show_all_dates")]
@@ -2193,6 +2214,41 @@ impl AgendaOptions {
         if let Some(on) = self.search_view_always_boolean {
             config.search.always_boolean = on;
         }
+        // `org-agenda-sorting-strategy`: a list for each kind of view, or
+        // one list for all of them.
+        let names = |value: &serde_json::Value| -> Option<Vec<String>> {
+            value.as_array()?.iter().map(|name| name.as_str().map(str::to_string)).collect()
+        };
+        match &self.sorting_strategy {
+            Some(serde_json::Value::Object(views)) => {
+                let lists = views.iter().filter_map(|(view, list)| Some((view.clone(), names(list)?))).collect();
+                config.sorting.strategies = Strategies::ByView(lists);
+            }
+            Some(list) => {
+                if let Some(list) = names(list) {
+                    config.sorting.strategies = Strategies::All(list);
+                }
+            }
+            None => {}
+        }
+        if let Some(on) = self.sort_notime_is_late {
+            config.sorting.notime_is_late = on;
+        }
+        if let Some(on) = self.sort_noeffort_is_high {
+            config.sorting.noeffort_is_high = on;
+        }
+        // A number for every kind of view, or one for each kind.
+        let limit = |value: &Option<serde_json::Value>| match value {
+            Some(serde_json::Value::Number(number)) => number.as_i64().map(Limit::All),
+            Some(serde_json::Value::Object(views)) => Some(Limit::ByView(
+                views.iter().filter_map(|(view, limit)| Some((view.clone(), limit.as_i64()?))).collect(),
+            )),
+            _ => None,
+        };
+        config.sorting.max_entries = limit(&self.max_entries);
+        config.sorting.max_todos = limit(&self.max_todos);
+        config.sorting.max_tags = limit(&self.max_tags);
+        config.sorting.max_effort = limit(&self.max_effort);
         // `org-habit`, when it is one of `org-modules`.
         if self.modules.iter().flatten().any(|module| module == "org-habit") {
             let mut habits = org_core::agenda::habit::Settings::default();
