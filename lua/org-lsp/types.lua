@@ -150,6 +150,8 @@
 ---@field org_startup_with_latex_preview? boolean Show the LaTeX fragments as images when a file opens, as `C-c C-x C-l` (`org.latex.preview`) shows them, made by Emacs. `#+STARTUP: latexpreview` and `nolatexpreview` decide for a file. (`org-startup-with-latex-preview`)
 ---@field org_startup_indented? boolean Show files indented by level without changing them (`org-indent-mode`): the text under a headline lines up with its title, and leading stars are hidden. `#+STARTUP: indent` and `noindent` decide for a file. It turns `org_adapt_indentation` off in such files, unless that is `"headline-data"`. Editors that can show it: Neovim, and VS Code (not on wrapped lines). (`org-startup-indented`)
 ---@field org_hide_leading_stars? boolean Hide all the stars of a headline but the last; they keep their place. `#+STARTUP: hidestars` and `showstars` decide for a file. (`org-hide-leading-stars`)
+---@field org_bullets_mode? boolean org-bullets: the last star of each headline shows as a bullet, those of `org_bullets_bullet_list` by level, and the stars before it are hidden, as with `org_hide_leading_stars`. (`org-bullets-mode`)
+---@field org_bullets_bullet_list? string[] The bullets of `org_bullets_mode`, one a level, repeating after the last. (`org-bullets-bullet-list`)
 ---@field org_src_preserve_indentation? boolean Leave the code of source blocks as it is indented when re-indenting. (`org-src-preserve-indentation`)
 ---@field org_edit_src_content_indentation? integer How far code is indented past its source block when re-indenting. (`org-edit-src-content-indentation`)
 ---@field org_agenda_span? 'day'|'week'|'fortnight'|'month'|'year'|integer How much time the agenda shows. (`org-agenda-span`)

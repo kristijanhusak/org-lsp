@@ -3007,6 +3007,25 @@
               "markdownDescription": "Hide all the stars of a headline but the last; they keep their place. `#+STARTUP: hidestars` and `showstars` decide for a file. (`org-hide-leading-stars`)",
               "default": false
             },
+            "org_bullets_mode": {
+              "type": "boolean",
+              "markdownDescription": "org-bullets: the last star of each headline shows as a bullet, those of `org_bullets_bullet_list` by level, and the stars before it are hidden, as with `org_hide_leading_stars`. (`org-bullets-mode`)",
+              "default": false
+            },
+            "org_bullets_bullet_list": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "markdownDescription": "The bullets of `org_bullets_mode`, one a level, repeating after the last. (`org-bullets-bullet-list`)",
+              "default": [
+                "◉",
+                "○",
+                "✸",
+                "✿"
+              ]
+            },
             "org_src_preserve_indentation": {
               "type": "boolean",
               "markdownDescription": "Leave the code of source blocks as it is indented when re-indenting. (`org-src-preserve-indentation`)",

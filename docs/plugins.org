@@ -11,6 +11,7 @@ are; [[file:configuration.org::#every-option-at-its-default][configuration.org]]
 - [[#agenda-groups-org-super-agenda][org-super-agenda]] :: the agenda in groups (~org_super_agenda_mode~).
 - [[#notes-org-roam][org-roam]] :: a network of notes (~org_roam_enabled~).
 - [[#a-journal-org-journal][org-journal]] :: a journal, a file a day (~org_journal_enabled~).
+- [[#bullets-org-bullets][org-bullets]] :: headline stars shown as bullets (~org_bullets_mode~).
 
 * Agenda groups (org-super-agenda)
 :PROPERTIES:
@@ -461,3 +462,28 @@ before all the others goes first in its file). What differs:
   another locale (~en_US.UTF-8~ writes ~05/15/2026~) has headings org-lsp
   does not find; set ~org_journal_date_format~ to a format without ~%x~,
   such as ~"%A, %m/%d/%Y"~, to match them.
+
+* Bullets (org-bullets)
+:PROPERTIES:
+:CUSTOM_ID: bullets-org-bullets
+:END:
+
+Headlines can show as [[https://github.com/sabof/org-bullets][org-bullets]] shows them: the last star of each is
+drawn as a bullet, the one of its level in ~org_bullets_bullet_list~ (~◉~,
+~○~, ~✸~, ~✿~, then again from the first), and the stars before it are
+hidden in their place, as ~org_hide_leading_stars~ hides them. It is off
+until ~org_bullets_mode~ is ~true~:
+
+#+begin_src toml
+org_bullets_mode = true
+org_bullets_bullet_list = ["●", "○", "◆", "◇"]
+#+end_src
+
+The text does not change: the bullet is drawn in place of the star, as
+pretty entities are, by the editor where it can (Neovim), else as an inlay
+hint (VS Code, Zed, Helix); the leading stars are hidden where virtual
+indentation can hide them (Neovim, VS Code). As in Emacs, every line that
+starts with stars and a space gets its bullet. What differs:
+~org-bullets-face-name~ is not read (the bullet keeps the headline's
+colors), clicking a bullet does not cycle the headline, and inline tasks
+have no second bullet.

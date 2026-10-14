@@ -14,7 +14,7 @@ Org's options, one by one, are under [[#options][Options]].
 
 | Feature | Parity | Done |
 |---+---+---|
-| [[#highlighting][Highlighting]] | 93% | 14 of 15 |
+| [[#highlighting][Highlighting]] | 94% | 15 of 16 |
 | [[#folding-and-visibility][Folding and visibility]] | 89% | 8 of 9 |
 | [[#headings-and-structure][Headings and structure]] | 92% | 12 of 13 |
 | [[#lists-and-checkboxes][Lists and checkboxes]] | 100% | 12 of 12 |
@@ -50,7 +50,7 @@ Org's options, one by one, are under [[#options][Options]].
 :CUSTOM_ID: highlighting
 :END:
 
-93% (14 of 15)
+94% (15 of 16)
 
 - ✅ Headlines by level, TODO keywords, priorities and tags
 - ✅ Emphasis, verbatim and code
@@ -64,6 +64,7 @@ Org's options, one by one, are under [[#options][Options]].
 - ✅ Archived subtrees shaded (~org-archived~)
 - ✅ Radio targets turning their words into links: highlighted, followed, document links
 - ✅ Entities shown as their characters (~org-pretty-entities~, ~#+STARTUP: entitiespretty~ or ~entitiesplain~): hidden, the character in their place (drawn by the editor where it can, else an inlay hint)
+- ✅ Headline stars as bullets, the leading ones hidden (org-bullets: ~org_bullets_mode~, ~org_bullets_bullet_list~)
 - ✅ Sub- and superscripts raised and lowered (~org-pretty-entities-include-sub-superscripts~, ~org-use-sub-superscripts~): where Org raises them, shown in Unicode (~x²~, ~H₂O~) in place of the hidden text (drawn by the editor where it can, else an inlay hint) where every character has a raised or lowered form; the others left as they are, as an editor cannot raise text
 - ✅ Done headlines in ~org-headline-done~ past their keyword (~org-fontify-done-headline~ at its default), complete statistics cookies as done, the title and the information of the document (~org-document-title~, ~org-document-info~)
 - ❌ The options of how headlines, blocks and markup are shown, set away from their defaults (~org-fontify-done-headline~, ~org-fontify-whole-heading-line~, ~org-fontify-quote-and-verse-blocks~, ~org-hidden-keywords~, ~org-hide-macro-markers~, ~org-emphasis-alist~, ~org-cycle-level-faces~, ~org-n-level-faces~, ~org-ellipsis~)

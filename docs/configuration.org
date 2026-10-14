@@ -1549,6 +1549,15 @@ org_startup_indented = false
 # (org-hide-leading-stars)
 org_hide_leading_stars = false
 
+# org-bullets: the last star of each headline shows as a bullet, those of
+# `org_bullets_bullet_list` by level, and the stars before it are hidden, as
+# with `org_hide_leading_stars`. (org-bullets-mode)
+org_bullets_mode = false
+
+# The bullets of `org_bullets_mode`, one a level, repeating after the last.
+# (org-bullets-bullet-list)
+org_bullets_bullet_list = ["◉", "○", "✸", "✿"]
+
 # Leave the code of source blocks as it is indented when re-indenting.
 # (org-src-preserve-indentation)
 org_src_preserve_indentation = false
@@ -2985,6 +2994,15 @@ org_agenda_custom_commands = []
   // `#+STARTUP: hidestars` and `showstars` decide for a file.
   // (org-hide-leading-stars)
   "org_hide_leading_stars": false,
+
+  // org-bullets: the last star of each headline shows as a bullet, those of
+  // `org_bullets_bullet_list` by level, and the stars before it are hidden,
+  // as with `org_hide_leading_stars`. (org-bullets-mode)
+  "org_bullets_mode": false,
+
+  // The bullets of `org_bullets_mode`, one a level, repeating after the last.
+  // (org-bullets-bullet-list)
+  "org_bullets_bullet_list": ["◉", "○", "✸", "✿"],
 
   // Leave the code of source blocks as it is indented when re-indenting.
   // (org-src-preserve-indentation)

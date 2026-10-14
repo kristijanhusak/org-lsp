@@ -1395,6 +1395,8 @@ pub struct Display {
     pub startup_indented: bool,
     /// `org-hide-leading-stars`
     pub hide_leading_stars: bool,
+    /// org-bullets is on: it hides the leading stars whatever the rest says.
+    pub bullets: bool,
 }
 
 impl Display {
@@ -1407,7 +1409,9 @@ impl Display {
     /// `org-indent-mode` hides them (`org-indent-mode-turns-on-hiding-stars`).
     pub fn hides_stars(&self, text: &str) -> bool {
         let startup = startup(text);
-        startup.indent.unwrap_or(self.startup_indented) || startup.hide_stars.unwrap_or(self.hide_leading_stars)
+        self.bullets
+            || startup.indent.unwrap_or(self.startup_indented)
+            || startup.hide_stars.unwrap_or(self.hide_leading_stars)
     }
 
     /// `org-adapt-indentation` in `text`: `org-indent-mode` turns it off,

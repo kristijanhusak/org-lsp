@@ -818,6 +818,28 @@ fn sends_what_stands_in_for_hidden_text() {
     client.shutdown();
 }
 
+/// org-bullets (`org_bullets_mode`): each headline's last star shows as
+/// the bullet of its level, the list repeating, and the stars before it are
+/// hidden as `org-hide-leading-stars` hides them.
+#[test]
+fn shows_headline_stars_as_bullets() {
+    let capabilities = json!({ "experimental": { "orgDisplay": true, "orgVirtualIndent": true } });
+    let settings = json!({ "org_bullets_mode": true, "org_bullets_bullet_list": ["●", "○"] });
+    let client = Client::start(capabilities, settings);
+    client.open(&uri(), "* One\n** Two\n*** Three\ntext\n");
+    let indent = client.notification("org-lsp/virtualIndent");
+    let hidden: Vec<(u64, u64)> = indent["lines"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|line| (line[0].as_u64().unwrap(), line[3].as_u64().unwrap()))
+        .collect();
+    assert_eq!(hidden, [(1, 1), (2, 2)]);
+    let sent = client.notification("org-lsp/display");
+    assert_eq!(sent["items"], json!([[0, 0, 0, 1, "●"], [1, 1, 1, 2, "○"], [2, 2, 2, 3, "●"]]));
+    client.shutdown();
+}
+
 /// `#+STARTUP:` decides for its file: `entitiespretty` shows entities as
 /// their characters with the setting off, `literallinks` leaves links as
 /// they are with `org_link_descriptive` on; `entitiesplain` and

@@ -344,6 +344,11 @@ pub struct Options {
     /// `org-hide-leading-stars`
     #[serde(rename = "org_hide_leading_stars")]
     pub hide_leading_stars: Option<bool>,
+    /// org-bullets: `org-bullets-mode` and `org-bullets-bullet-list`.
+    #[serde(rename = "org_bullets_mode")]
+    pub bullets_mode: Option<bool>,
+    #[serde(rename = "org_bullets_bullet_list")]
+    pub bullets_bullet_list: Option<Vec<String>>,
     /// `org-edit-src-content-indentation`
     #[serde(rename = "org_edit_src_content_indentation")]
     pub edit_src_content_indentation: Option<i64>,
@@ -1563,7 +1568,17 @@ impl Options {
         org_core::indent::Display {
             startup_indented: self.startup_indented.unwrap_or(false),
             hide_leading_stars: self.hide_leading_stars.unwrap_or(false),
+            bullets: self.bullets().is_some(),
         }
+    }
+
+    /// The bullets of org-bullets, when it is on.
+    pub fn bullets(&self) -> Option<Vec<String>> {
+        if self.bullets_mode != Some(true) {
+            return None;
+        }
+        let defaults = || ["◉", "○", "✸", "✿"].iter().map(|bullet| bullet.to_string()).collect();
+        Some(self.bullets_bullet_list.clone().unwrap_or_else(defaults))
     }
 
     /// `org-adapt-indentation`
