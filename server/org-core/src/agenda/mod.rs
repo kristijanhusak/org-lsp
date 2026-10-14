@@ -359,6 +359,8 @@ pub struct Config {
     pub diary_sexp_prefix: Option<String>,
     /// `org-agenda-include-deadlines`
     pub include_deadlines: bool,
+    /// `org-agenda-skip-additional-timestamps-same-entry`
+    pub skip_additional_timestamps_same_entry: bool,
     /// `org-agenda-fontify-priorities`
     pub fontify_priorities: FontifyPriorities,
     /// `org-agenda-log-mode-add-notes`
@@ -554,6 +556,7 @@ impl Default for Config {
             use_tag_inheritance: UseTagInheritance::default(),
             hide_tags_regexp: None,
             include_deadlines: true,
+            skip_additional_timestamps_same_entry: false,
             fontify_priorities: FontifyPriorities::Cookies,
             log_mode_add_notes: true,
             prefer_last_repeat: PreferLastRepeat::None,
@@ -1138,6 +1141,14 @@ impl Builder<'_> {
         // Org scans the text once per day and stops where today's date
         // or a repeater stands; the next stop comes after the last one.
         let mut scanned_to = 0;
+        // With `org-agenda-skip-additional-timestamps-same-entry`, a line
+        // made sends the scan on to the next headline.
+        let next_heading = |entry: usize| -> usize {
+            if !self.config.skip_additional_timestamps_same_entry {
+                return 0;
+            }
+            outline.entries.get(entry + 1).map_or(outline.text.len(), |next| next.offset)
+        };
         for stamp in &outline.stamps {
             if stamp.offset < scanned_to || (stamp.inactive && !self.config.include_inactive) {
                 continue;
@@ -1164,6 +1175,7 @@ impl Builder<'_> {
                 item.marker = Some(stamp.offset);
                 item.ts_date = Some(current);
                 out.push(item);
+                scanned_to = scanned_to.max(next_heading(shown.entry));
                 continue;
             }
             let (shown, repeats) = if stamp.date == Some(current_date) {
@@ -1221,6 +1233,7 @@ impl Builder<'_> {
                 }
             }
             out.push(item);
+            scanned_to = scanned_to.max(next_heading(shown.entry));
         }
     }
 

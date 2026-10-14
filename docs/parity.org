@@ -267,7 +267,7 @@ Where editors fall short:
 - ✅ Sorting by any of Org's strategies, for each kind of view (~org-agenda-sorting-strategy~), and limits on how many entries show (~org-agenda-max-entries~, ~-todos~, ~-tags~, ~-effort~)
 - ✅ Inherited tags on agenda lines or not, by kind of view (~org-agenda-show-inherited-tags~, ~org-agenda-use-tag-inheritance~), and tags hidden by a regexp (~org-agenda-hide-tags-regexp~)
 - ✅ How times show: two-digit hours (~org-agenda-time-leading-zero~), 12-hour form (~org-agenda-timegrid-use-ampm~), a default duration (~org-agenda-default-appointment-duration~), taken from headlines or not (~org-agenda-search-headline-for-time~, ~-remove-times-when-in-prefix~); date ranges out of headlines (~org-agenda-remove-timeranges-from-blocks~); diary sexp leaders (~org-agenda-diary-sexp-prefix~)
-- ✅ For an entry with both a scheduled date and a deadline, one of them left out or held back (~org-agenda-skip-scheduled-if-deadline-is-shown~, ~-deadline-prewarning-if-scheduled~, ~-scheduled-delay-if-deadline~, ~-scheduled-repeats-after-deadline~); repeats at their last date (~org-agenda-prefer-last-repeat~); no deadlines (~org-agenda-include-deadlines~)
+- ✅ For an entry with both a scheduled date and a deadline, one of them left out or held back (~org-agenda-skip-scheduled-if-deadline-is-shown~, ~-deadline-prewarning-if-scheduled~, ~-scheduled-delay-if-deadline~, ~-scheduled-repeats-after-deadline~); repeats at their last date (~org-agenda-prefer-last-repeat~); no deadlines (~org-agenda-include-deadlines~); one timestamp line a day for an entry (~org-agenda-skip-additional-timestamps-same-entry~)
 - ✅ The TODO list leaving out entries for a date of their own (~org-agenda-todo-ignore-scheduled~, ~-deadlines~, ~-timestamp~, ~-with-date~), in ~tags-todo~ too (~org-agenda-tags-todo-honor-ignore-options~), and without sublevels (~org-agenda-todo-list-sublevels~); commented subtrees shown (~org-agenda-skip-comment-trees~)
 - ✅ Commands offered by context (~org-agenda-custom-commands-contexts~)
 - ✅ Filters by tag, category, effort, regexp and top headline
@@ -707,15 +707,15 @@ Where editors fall short:
 :END:
 
 Each of the 1025 options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with
-it. Of the 307 that change what org-lsp does itself, 60% can be set.
+it. Of the 307 that change what org-lsp does itself, 61% can be set.
 [[file:../scripts/org-options.json][scripts/org-options.json]] says it for each; ~scripts/check.sh~ fails when the
 server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,
 when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 181 | A setting of the same name |
-| missing | 122 | org-lsp does what the option is about, but the option cannot be set yet |
+| setting | 182 | A setting of the same name |
+| missing | 121 | org-lsp does what the option is about, but the option cannot be set yet |
 | other | 4 | Done another way, as its note says |
 | emacs | 479 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 48 | Its value is Lisp (a function, a hook), which the server does not run |
@@ -737,7 +737,7 @@ Options of what org-lsp does that cannot be set yet, by the file of Org they are
 - ob-tangle.el (8) :: ~org-babel-tangle-lang-exts~, ~org-babel-tangle-use-relative-file-links~, ~org-babel-tangle-comment-format-beg~, ~org-babel-tangle-comment-format-end~, ~org-babel-tangle-uncomment-comments~, ~org-babel-process-comment-text~, ~org-babel-tangle-default-file-mode~, ~org-babel-tangle-remove-file-before-write~
 - ol-doi.el (1) :: ~org-link-doi-server-url~
 - ol.el (2) :: ~org-link-search-must-match-exact-headline~, ~org-image-max-width~
-- org-agenda.el (2) :: ~org-agenda-skip-additional-timestamps-same-entry~, ~org-agenda-show-outline-path~
+- org-agenda.el (1) :: ~org-agenda-show-outline-path~
 - org-archive.el (2) :: ~org-archive-stamp-time~, ~org-archive-subtree-save-file-p~
 - org-clock.el (5) :: ~org-clock-rounding-minutes~, ~org-clocktable-defaults~, ~org-clock-clocktable-language-setup~, ~org-clock-report-include-clocking-task~, ~org-clock-continuously~
 - org-cycle.el (3) :: ~org-cycle-max-level~, ~org-cycle-global-at-bob~, ~org-cycle-level-after-item/entry-creation~

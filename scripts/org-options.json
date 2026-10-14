@@ -281,7 +281,7 @@
   "org-agenda-skip-deadline-if-done": "setting",
   "org-agenda-skip-deadline-prewarning-if-scheduled": "setting",
   "org-agenda-skip-scheduled-delay-if-deadline": "setting",
-  "org-agenda-skip-additional-timestamps-same-entry": "missing",
+  "org-agenda-skip-additional-timestamps-same-entry": "setting",
   "org-agenda-skip-timestamp-if-done": "setting",
   "org-agenda-dim-blocked-tasks": "setting",
   "org-agenda-menu-show-matcher": "emacs-only",

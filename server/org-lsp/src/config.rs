@@ -1984,6 +1984,8 @@ pub struct AgendaOptions {
     pub skip_comment_trees: Option<bool>,
     #[serde(rename = "org_agenda_include_deadlines")]
     pub include_deadlines: Option<bool>,
+    #[serde(rename = "org_agenda_skip_additional_timestamps_same_entry")]
+    pub skip_additional_timestamps_same_entry: Option<bool>,
     /// `true`, `false` or `"cookies"`.
     #[serde(rename = "org_agenda_fontify_priorities")]
     pub fontify_priorities: Option<serde_json::Value>,
@@ -2291,6 +2293,7 @@ impl AgendaOptions {
             show_all_dates,
             skip_comment_trees,
             include_deadlines,
+            skip_additional_timestamps_same_entry,
             log_mode_add_notes,
             remove_timeranges_from_blocks,
             skip_scheduled_repeats_after_deadline,
