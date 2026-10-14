@@ -913,6 +913,8 @@ struct Server {
     conceal: highlight::Conceal,
     /// `org-pretty-entities`
     pretty_entities: bool,
+    /// The bullets of org-bullets, when it is on.
+    bullets: Option<Vec<String>>,
     /// `org-startup-with-link-previews`.
     startup_link_previews: bool,
     /// `org-startup-with-latex-preview`
@@ -1397,6 +1399,7 @@ pub fn run(connection: Connection) -> Result<()> {
         calendar_week_start: options.calendar_week_start_day.unwrap_or(0) % 7,
         all_agenda_tags: options.complete_tags_always_offer_all_agenda_tags.unwrap_or(false),
         pretty_entities: options.pretty_entities.unwrap_or(false),
+        bullets: options.bullets(),
         startup_link_previews: options.startup_with_link_previews.unwrap_or(false),
         startup_latex_preview: options.startup_with_latex_preview.unwrap_or(false),
         formula_debug: false,
@@ -3042,8 +3045,8 @@ impl Server {
 
     /// What stands in for hidden text of the document `key`, as
     /// `(start, end, shown)`, in order: each entity's character
-    /// (`org-pretty-entities`), sub- and superscripts in Unicode, and what
-    /// shrunk table fields show.
+    /// (`org-pretty-entities`), sub- and superscripts in Unicode, the
+    /// bullets of org-bullets, and what shrunk table fields show.
     fn stand_ins(&self, key: &str, text: &str, root: &org_syntax::SyntaxNode) -> Vec<(usize, usize, String)> {
         let (_, pretty, scripts) = self.display_of(text);
         let mut out: Vec<(usize, usize, String)> = Vec::new();
@@ -3054,6 +3057,9 @@ impl Server {
         }
         if let Some(braces) = scripts {
             out.extend(org_core::pretty::scripts(root, text, braces));
+        }
+        if let Some(bullets) = &self.bullets {
+            out.extend(org_core::pretty::bullets(text, bullets));
         }
         out.extend(
             self.shrunk_overlays(key, text).into_iter().map(|overlay| (overlay.start, overlay.end, overlay.display)),

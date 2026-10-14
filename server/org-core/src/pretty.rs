@@ -320,3 +320,36 @@ mod tests {
         assert_eq!(scripts(&parse.syntax(), "x^2 y^{2}\n", true), [(5, 9, "²".to_string())]);
     }
 }
+
+/// org-bullets (`org-bullets-mode`): the last star of each line that
+/// starts with stars and a space (`^\\*+ `), shown as the bullet of its
+/// level, `bullets` repeating (`org-bullets-level-char`). The stars before
+/// it are hidden, which the caller does as `org-hide-leading-stars` does.
+pub fn bullets(text: &str, bullets: &[String]) -> Vec<(usize, usize, String)> {
+    let mut out = Vec::new();
+    if bullets.is_empty() {
+        return out;
+    }
+    let mut start = 0;
+    for line in text.split_inclusive('\n') {
+        let stars = line.bytes().take_while(|byte| *byte == b'*').count();
+        if stars > 0 && line.as_bytes().get(stars) == Some(&b' ') {
+            out.push((start + stars - 1, start + stars, bullets[(stars - 1) % bullets.len()].clone()));
+        }
+        start += line.len();
+    }
+    out
+}
+
+#[cfg(test)]
+mod bullet_tests {
+    use super::bullets;
+
+    #[test]
+    fn shows_the_last_star_as_the_bullet_of_its_level() {
+        let list: Vec<String> = ["◉", "○", "✸", "✿"].iter().map(|bullet| bullet.to_string()).collect();
+        let text = "* One\n** Two\n***** Five\n*not\n**\tTab\ntext * star\n";
+        assert_eq!(bullets(text, &list), [(0, 1, "◉".to_string()), (7, 8, "○".to_string()), (17, 18, "◉".to_string())]);
+        assert!(bullets(text, &[]).is_empty());
+    }
+}

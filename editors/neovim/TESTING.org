@@ -29,6 +29,7 @@ its sections says what it should look like.
 - [ ] A link shows its description alone; its brackets and target show when the cursor is on its line
 - [ ] With ~org_hide_emphasis_markers = true~, the markers of ~*bold*~ are hidden
 - [ ] With ~org_pretty_entities = true~, ~\alpha~ shows as ~α~
+- [ ] With ~org_bullets_mode = true~, ~** Two~ shows as ~○ Two~, its first star hidden
 - [ ] On the cursor's line ~\alpha~ shows as typed, without ~α~ beside it; typing or deleting one leaves nothing behind
 - [ ] With ~org_pretty_entities = true~, ~x^2~ shows as ~x²~ and ~H_{2}O~ as ~H₂O~
 - [ ] Timestamps, ~SCHEDULED:~ and ~DEADLINE:~, ~CLOCK:~ lines, drawers, ~#+~ keywords and ~#~ comments are colored

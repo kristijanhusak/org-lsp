@@ -1264,6 +1264,21 @@ pub const SETTINGS: &[Setting] = &[
          `showstars` decide for a file.",
     ),
     setting(
+        "org_bullets_mode",
+        "boolean",
+        "false",
+        "org-bullets-mode",
+        "org-bullets: the last star of each headline shows as a bullet, those of `org_bullets_bullet_list` by \
+         level, and the stars before it are hidden, as with `org_hide_leading_stars`.",
+    ),
+    setting(
+        "org_bullets_bullet_list",
+        "string[]",
+        r#"["◉", "○", "✸", "✿"]"#,
+        "org-bullets-bullet-list",
+        "The bullets of `org_bullets_mode`, one a level, repeating after the last.",
+    ),
+    setting(
         "org_src_preserve_indentation",
         "boolean",
         "false",
@@ -2776,6 +2791,8 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_startup_with_latex_preview", BOOLEAN),
     ("org_startup_indented", BOOLEAN),
     ("org_hide_leading_stars", BOOLEAN),
+    ("org_bullets_mode", BOOLEAN),
+    ("org_bullets_bullet_list", r#"{ "type": "array", "items": { "type": "string" }, "minItems": 1 }"#),
     ("org_src_preserve_indentation", BOOLEAN),
     ("org_edit_src_content_indentation", r#"{ "type": "integer", "minimum": 0 }"#),
     (
