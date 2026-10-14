@@ -207,6 +207,19 @@ class Generator:
         if self.chance(0.3):
             options["org_log_state_notes_insert_after_drawers"] = True
         if self.chance(0.25):
+            options["org_provide_todo_statistics"] = self.pick(
+                [False, "all-headlines", keywords[:1], [keywords[:1], keywords[-1:]]])
+        if self.chance(0.25):
+            options["org_hierarchical_todo_statistics"] = False
+        if self.chance(0.2):
+            options["org_closed_keep_when_no_todo"] = True
+        if self.chance(0.3):
+            options["org_todo_state_tags_triggers"] = self.pick([
+                {"todo": ["-done", "+open"], "done": ["+done", "-open"]},
+                {keywords[0]: ["+first"], "": ["-first", "+none"]},
+                {keywords[-1]: ["-a", "+zz", "+aa"]},
+            ])
+        if self.chance(0.25):
             options["org_log_note_headings"] = self.pick([
                 {"state": "State %s from %S %t"},
                 {"state": "%-8s <- %-8S at %d"},

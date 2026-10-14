@@ -225,6 +225,44 @@ pub const SETTINGS: &[Setting] = &[
          `#+STARTUP:` `lognoteclock-out` and `nolognoteclock-out` change it in a file.",
     ),
     setting(
+        "org_provide_todo_statistics",
+        r#"boolean, "all-headlines", string[], [string[], string[]]"#,
+        "true",
+        "org-provide-todo-statistics",
+        "Update the `[1/3]` and `[33%]` cookies of the parent when a state changes, counting the entries \
+         with a keyword (`true`), every entry (`all-headlines`, those without a keyword as not done), those \
+         with these keywords and the done ones (a list), or those of the first list as not done and of the \
+         second as done (two lists). `false` leaves the cookies.",
+    ),
+    setting(
+        "org_hierarchical_todo_statistics",
+        "boolean",
+        "true",
+        "org-hierarchical-todo-statistics",
+        "TODO statistics count the children only; `false`: the whole subtree, and the cookies above too. A \
+         `COOKIE_DATA` property with `recursive` does this for a subtree.",
+    ),
+    setting(
+        "org_closed_keep_when_no_todo",
+        "boolean",
+        "false",
+        "org-closed-keep-when-no-todo",
+        "Keep the `CLOSED:` timestamp when an entry is left with no keyword.",
+    ),
+    Setting {
+        default: None,
+        unset: "none",
+        ..setting(
+            "org_todo_state_tags_triggers",
+            "object",
+            "",
+            "org-todo-state-tags-triggers",
+            "Tags that change with the state, by state: a keyword, `\"\"` for none, `todo` for any not done, \
+             `done` for any done; each a list of tags to set (`+TAG`) or remove (`-TAG`), in order: \
+             `{ \"WAIT\": [\"+waiting\"], \"todo\": [\"-done\"], \"done\": [\"+done\", \"-waiting\"] }`.",
+        )
+    },
+    setting(
         "org_tags_column",
         "number",
         "-77",
@@ -2218,6 +2256,16 @@ const SCHEMAS: &[(&str, &str)] = &[
     ),
     ("org_log_states_order_reversed", BOOLEAN),
     ("org_log_note_clock_out", BOOLEAN),
+    (
+        "org_provide_todo_statistics",
+        r#"{ "anyOf": [{ "type": "boolean" }, { "const": "all-headlines" }, { "type": "array", "items": { "type": "string" } }, { "type": "array", "items": { "type": "array", "items": { "type": "string" } }, "minItems": 2, "maxItems": 2 }] }"#,
+    ),
+    ("org_hierarchical_todo_statistics", BOOLEAN),
+    ("org_closed_keep_when_no_todo", BOOLEAN),
+    (
+        "org_todo_state_tags_triggers",
+        r#"{ "type": "object", "additionalProperties": { "type": "array", "items": { "type": "string", "pattern": "^[+-]" } } }"#,
+    ),
     ("org_log_state_notes_insert_after_drawers", BOOLEAN),
     ("org_tags_column", r#"{ "type": "integer" }"#),
     ("org_use_tag_inheritance", r#"{ "type": ["boolean", "array", "string"], "items": { "type": "string" } }"#),

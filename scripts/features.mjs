@@ -248,6 +248,7 @@ export const AREAS = [
       ['Several sequences: cycling stays in the entry\'s sequence, and `C-S-<right>`, `C-S-<left>` switch sets', true],
       ['Faces of particular keywords and priorities (`org-todo-keyword-faces`, `org-priority-faces`)', true],
       ['Logging: `CLOSED:`, the time or a note on a state change (`!`, `@`), `LOG_INTO_DRAWER`', true],
+      ['TODO statistics of the parent, counting what `org-provide-todo-statistics` says, children only or the subtree (`org-hierarchical-todo-statistics`); tags set and removed with the state (`org-todo-state-tags-triggers`); `CLOSED:` kept without a keyword (`org-closed-keep-when-no-todo`)', true],
       ['Repeating entries moving to their next date', true],
       ['The parent\'s statistics cookies recounted', true],
       ['Blocking a state change by children, `ORDERED` siblings and checkboxes (`org-enforce-todo-dependencies`)', true],

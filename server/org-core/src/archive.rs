@@ -695,6 +695,10 @@ fn update_after_cut(
     settings: &todo::Settings,
     now: DateTime,
 ) -> String {
+    // With `org-provide-todo-statistics`.
+    if !settings.statistics.provided() {
+        return text;
+    }
     let target = match heading_at(&text, at) {
         Some(heading) => parent(&text, heading).unwrap_or(heading),
         None => at,
@@ -1167,7 +1171,9 @@ pub fn to_sibling(
     let sibling = parent(&editor.text, editor.heading).unwrap_or(editor.heading);
     let before = editor.text.clone();
     editor.heading = sibling;
-    editor.update_parent_statistics();
+    if settings.todo.statistics.provided() {
+        editor.update_parent_statistics();
+    }
     let marker = track(&before, &editor.text, marker);
     let text = editor.text;
     let cursor = settle(&text, marker.min(text.len()));

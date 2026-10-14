@@ -30,6 +30,8 @@ pub struct Settings {
     /// the item even where its bullet has nothing after it. Nothing is
     /// split, and nothing goes above.
     pub below: bool,
+    /// `org-provide-todo-statistics` and `org-hierarchical-todo-statistics`
+    pub statistics: crate::todo::Statistics,
 }
 
 /// Text and a point, edited as Emacs edits a buffer.
@@ -335,10 +337,16 @@ fn mark_todo(buffer: &mut Buffer, keywords: &TodoKeywords, settings: &Settings) 
     let Some(stars) = headline_level(line(&buffer.text, heading)) else { return };
     buffer.point = heading + stars + 1;
     buffer.insert(&format!("{mark} "));
-    let todo_settings = todo::Settings { tags_column: settings.tags_column, ..todo::Settings::default() };
+    let todo_settings = todo::Settings {
+        tags_column: settings.tags_column,
+        statistics: settings.statistics.clone(),
+        ..todo::Settings::default()
+    };
     let mut editor = Editor::new(&buffer.text, keywords, &todo_settings, DateTime::new(Date::new(1970, 1, 1), 0, 0));
     editor.heading = heading;
-    editor.update_parent_statistics();
+    if settings.statistics.provided() {
+        editor.update_parent_statistics();
+    }
     let point = follow(&buffer.text, &editor.text, buffer.point);
     buffer.text = editor.text;
     buffer.point = point;
@@ -596,7 +604,7 @@ mod tests {
     #[test]
     fn below_an_empty_item() {
         let keywords = TodoKeywords::default();
-        let settings = Settings { tags_column: -77, below: true };
+        let settings = Settings { tags_column: -77, below: true, statistics: Default::default() };
         for (text, at, expected, cursor) in
             [("1. \n2. two\n", 0, "1. \n2. \n3. two\n", 7), ("- [ ] \n", 2, "- [ ] \n- [ ] \n", 13)]
         {

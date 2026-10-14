@@ -46,7 +46,7 @@ fn inserts_as_emacs_does() {
         let below = key.starts_with("below:");
         let name = key;
         let key = key.trim_start_matches("below:");
-        let settings = Settings { tags_column: -77, below };
+        let settings = Settings { tags_column: -77, below, statistics: Default::default() };
         let line_start = text[..point].rfind('\n').map_or(0, |at| at + 1);
         let line_end = text[point..].find('\n').map_or(text.len(), |at| point + at);
         if below && EMPTY_ITEM.is_match(&text[line_start..line_end]) {
