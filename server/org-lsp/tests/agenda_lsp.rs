@@ -1735,6 +1735,57 @@ fn writes_a_state_note_in_a_buffer_of_its_own() {
     client.shutdown();
 }
 
+/// `org_log_note_clock_out`: clocking out asks for a note in its buffer,
+/// which names the task, and the note goes right after the clock line.
+#[test]
+fn asks_for_a_note_on_clocking_out() {
+    let mut options = clock();
+    options["org_log_note_clock_out"] = json!(true);
+    let mut client = Client::with_date_prompt(options);
+    let file = "file:///org/a.org";
+    let text = "* TODO Call  :work:\n";
+    client.open(file, text);
+    let context = json!({ "textDocument": { "uri": file }, "position": { "line": 0, "character": 0 } });
+    client.received.clear();
+    client.request("workspace/executeCommand", json!({ "command": "org.clock.in", "arguments": [context] })).unwrap();
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the clock");
+    let clocked = apply(text, &edits_of(edit).1);
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": file, "version": 2 }, "contentChanges": [{ "text": clocked }] }),
+    );
+    client.received.clear();
+    client.request("workspace/executeCommand", json!({ "command": "org.clock.out", "arguments": [context] })).unwrap();
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the clock out");
+    let out = apply(&clocked, &edits_of(edit).1);
+    let line = "CLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00";
+    assert_eq!(out, format!("* TODO Call  :work:\n:LOGBOOK:\n{line}\n:END:\n"));
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the note buffer");
+    let buffer = show.params["uri"].as_str().unwrap().to_string();
+    assert_eq!(show.params["selection"]["start"]["line"], 4);
+    let note = std::fs::read_to_string(buffer.strip_prefix("file://").unwrap()).unwrap();
+    assert_eq!(note, "# Insert note for stopped clock.\n\n# Task: TODO Call\n\n\n");
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": file, "version": 3 }, "contentChanges": [{ "text": out }] }),
+    );
+    client.open(&buffer, "# Insert note for stopped clock.\n\n# Task: TODO Call\n\nCalled, no answer\n");
+    client.received.clear();
+    let context = json!({ "textDocument": { "uri": buffer }, "position": { "line": 0, "character": 0 } });
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.capture.finish", "arguments": [context] }))
+        .unwrap();
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the note");
+    assert_eq!(
+        apply(&out, &edits_of(edit).1),
+        format!("* TODO Call  :work:\n:LOGBOOK:\n{line}\n- Called, no answer\n:END:\n")
+    );
+    client.shutdown();
+}
+
 /// `org_log_reschedule` `note`: the date changes, then the note is asked
 /// for in its buffer and logged with the old date; removing the date logs
 /// the time with `time`.

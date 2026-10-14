@@ -217,6 +217,14 @@ pub const SETTINGS: &[Setting] = &[
          before them.",
     ),
     setting(
+        "org_log_note_clock_out",
+        "boolean",
+        "false",
+        "org-log-note-clock-out",
+        "Ask for a note when the clock stops (`org.clock.out`), which goes right after the clock line. \
+         `#+STARTUP:` `lognoteclock-out` and `nolognoteclock-out` change it in a file.",
+    ),
+    setting(
         "org_tags_column",
         "number",
         "-77",
@@ -2209,6 +2217,7 @@ const SCHEMAS: &[(&str, &str)] = &[
         r#"{ "type": "object", "properties": { "done": { "type": "string" }, "state": { "type": "string" }, "note": { "type": "string" }, "reschedule": { "type": "string" }, "delschedule": { "type": "string" }, "redeadline": { "type": "string" }, "deldeadline": { "type": "string" }, "refile": { "type": "string" }, "clock_out": { "type": "string" } }, "additionalProperties": false }"#,
     ),
     ("org_log_states_order_reversed", BOOLEAN),
+    ("org_log_note_clock_out", BOOLEAN),
     ("org_log_state_notes_insert_after_drawers", BOOLEAN),
     ("org_tags_column", r#"{ "type": "integer" }"#),
     ("org_use_tag_inheritance", r#"{ "type": ["boolean", "array", "string"], "items": { "type": "string" } }"#),

@@ -780,7 +780,7 @@
   "org-log-done": "setting",
   "org-log-reschedule": "setting",
   "org-log-redeadline": "setting",
-  "org-log-note-clock-out": "missing",
+  "org-log-note-clock-out": "setting",
   "org-log-done-with-time": "setting",
   "org-log-note-headings": "setting",
   "org-log-into-drawer": "setting",
