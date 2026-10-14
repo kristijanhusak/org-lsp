@@ -107,6 +107,20 @@ def lisp_value(value):
     return lisp_string(value)
 
 
+# `org-log-note-headings` as Org has it.
+NOTE_HEADINGS = {
+    "done": "CLOSING NOTE %t",
+    "state": "State %-12s from %-12S %t",
+    "note": "Note taken on %t",
+    "reschedule": "Rescheduled from %S on %t",
+    "delschedule": "Not scheduled, was %S on %t",
+    "redeadline": "New deadline from %S on %t",
+    "deldeadline": "Removed deadline, was %S on %t",
+    "refile": "Refiled on %t",
+    "clock_out": "",
+}
+
+
 def bindings(options):
     """The Emacs variables that correspond to the server options."""
     symbol = lambda value: "'" + value if isinstance(value, str) else lisp_value(value)
@@ -137,6 +151,14 @@ def bindings(options):
             out["org-log-into-drawer"] = lisp_value(value)
         elif key == "org_tags_column":
             out["org-tags-column"] = str(value)
+        elif key in ("org_log_states_order_reversed", "org_log_state_notes_insert_after_drawers", "org_log_done_with_time"):
+            out[key.replace("_", "-")] = lisp_value(value)
+        elif key == "org_log_note_headings":
+            # Org's headings, with those the option gives in their place.
+            headings = dict(NOTE_HEADINGS, **value)
+            out["org-log-note-headings"] = "'(" + " ".join(
+                f"({name.replace('_', '-')} . {lisp_string(text)})" for name, text in headings.items()
+            ) + ")"
         elif key == "org_agenda_move_date_from_past_immediately_to_today":
             out["org-agenda-move-date-from-past-immediately-to-today"] = lisp_value(value)
         elif key == "org_extend_today_until":

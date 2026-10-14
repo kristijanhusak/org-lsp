@@ -149,6 +149,7 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
         config.group_tags = tag_options.group_tags.unwrap_or(true);
         config.extend_today_until = tag_options.extend_today_until.unwrap_or(0);
         config.sorting.tags_sort = tags.sort;
+        tag_options.habit_notes(&mut config);
     }
     config.show_log |= log;
     config.clockreport |= clockreport;

@@ -178,6 +178,45 @@ pub const SETTINGS: &[Setting] = &[
          property (inherited) says which drawer for it (`t` for `LOGBOOK`, `nil` for none).",
     ),
     setting(
+        "org_log_done_with_time",
+        "boolean",
+        "true",
+        "org-log-done-with-time",
+        "The `CLOSED:` timestamp of an entry done has the time, not only the date.",
+    ),
+    Setting {
+        default: None,
+        unset: "Org's headings",
+        ..setting(
+            "org_log_note_headings",
+            "object",
+            "",
+            "org-log-note-headings",
+            "The heading of each kind of note, by kind: `done` (`CLOSING NOTE %t`), `state` (`State %-12s from \
+             %-12S %t`), `note`, `reschedule`, `delschedule`, `redeadline`, `deldeadline`, `refile` and \
+             `clock_out`. In a heading `%t` is the time, `%T` the time active, `%d` and `%D` the date, `%s` \
+             the new state or date and `%S` the old one, `%u` the login name and `%U` the full name; an empty \
+             heading leaves the note its text only. Kinds left out keep Org's headings. Habits take notes \
+             with the `done` heading for days done.",
+        )
+    },
+    setting(
+        "org_log_states_order_reversed",
+        "boolean",
+        "true",
+        "org-log-states-order-reversed",
+        "Put a new state note, note or clock line above the others (`false`: below them). `#+STARTUP:` \
+         `logstatesreversed` and `nologstatesreversed` change it in a file.",
+    ),
+    setting(
+        "org_log_state_notes_insert_after_drawers",
+        "boolean",
+        "false",
+        "org-log-state-notes-insert-after-drawers",
+        "Without a log drawer, put notes after the drawers right under the headline and planning line, not \
+         before them.",
+    ),
+    setting(
         "org_tags_column",
         "number",
         "-77",
@@ -2164,6 +2203,13 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_log_reschedule", r#"{ "enum": [false, "time", "note"] }"#),
     ("org_log_redeadline", r#"{ "enum": [false, "time", "note"] }"#),
     ("org_log_into_drawer", r#"{ "type": ["boolean", "string"] }"#),
+    ("org_log_done_with_time", BOOLEAN),
+    (
+        "org_log_note_headings",
+        r#"{ "type": "object", "properties": { "done": { "type": "string" }, "state": { "type": "string" }, "note": { "type": "string" }, "reschedule": { "type": "string" }, "delschedule": { "type": "string" }, "redeadline": { "type": "string" }, "deldeadline": { "type": "string" }, "refile": { "type": "string" }, "clock_out": { "type": "string" } }, "additionalProperties": false }"#,
+    ),
+    ("org_log_states_order_reversed", BOOLEAN),
+    ("org_log_state_notes_insert_after_drawers", BOOLEAN),
     ("org_tags_column", r#"{ "type": "integer" }"#),
     ("org_use_tag_inheritance", r#"{ "type": ["boolean", "array", "string"], "items": { "type": "string" } }"#),
     ("org_tags_exclude_from_inheritance", r#"{ "type": "array", "items": { "type": "string" } }"#),

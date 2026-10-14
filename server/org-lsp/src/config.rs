@@ -73,6 +73,20 @@ pub struct Options {
     /// `org-log-into-drawer`: `true` for `LOGBOOK`, or a drawer name.
     #[serde(rename = "org_log_into_drawer")]
     pub log_into_drawer: Option<DrawerOption>,
+    /// `org-log-done-with-time`
+    #[serde(rename = "org_log_done_with_time")]
+    pub log_done_with_time: Option<bool>,
+    /// `org-log-note-headings`: headings by kind of note (`done`, `state`,
+    /// `note`, `reschedule`, `delschedule`, `redeadline`, `deldeadline`,
+    /// `refile`, `clock_out`).
+    #[serde(rename = "org_log_note_headings")]
+    pub log_note_headings: Option<std::collections::BTreeMap<String, String>>,
+    /// `org-log-states-order-reversed`
+    #[serde(rename = "org_log_states_order_reversed")]
+    pub log_states_order_reversed: Option<bool>,
+    /// `org-log-state-notes-insert-after-drawers`
+    #[serde(rename = "org_log_state_notes_insert_after_drawers")]
+    pub log_state_notes_insert_after_drawers: Option<bool>,
     /// `org-tags-column`
     #[serde(rename = "org_tags_column")]
     pub tags_column: Option<i64>,
@@ -1117,10 +1131,21 @@ impl Options {
         priorities
     }
 
+    /// Habits read their notes as notes are written
+    /// (`org-log-note-headings`, `org-log-states-order-reversed`).
+    pub fn habit_notes(&self, agenda: &mut AgendaConfig) {
+        if let Some(habits) = &mut agenda.habits {
+            let todo = self.todo_settings();
+            habits.done_heading = todo.note_headings.done;
+            habits.states_order_reversed = todo.states_order_reversed;
+        }
+    }
+
     /// The agenda settings, with the priorities the agenda sorts by.
     pub fn agenda_config(&self) -> AgendaConfig {
         let tags = self.tag_settings();
-        let agenda = self.agenda.to_config();
+        let mut agenda = self.agenda.to_config();
+        self.habit_notes(&mut agenda);
         AgendaConfig {
             sorting: Sorting { tags_sort: tags.sort, ..agenda.sorting },
             priorities: self.priorities(),
@@ -1197,6 +1222,7 @@ impl Options {
             remove_zero: self.clock_out_remove_zero_time_clocks.unwrap_or(false),
             adapt: self.adapt(),
             log_into_drawer: self.todo_settings().log_into_drawer,
+            states_order_reversed: self.log_states_order_reversed.unwrap_or(true),
         }
     }
 
@@ -1335,6 +1361,25 @@ impl Options {
             _ => RepeatTo::Head,
         };
         settings.adapt = self.adapt();
+        settings.log_done_with_time = self.log_done_with_time.unwrap_or(true);
+        settings.states_order_reversed = self.log_states_order_reversed.unwrap_or(true);
+        settings.notes_after_drawers = self.log_state_notes_insert_after_drawers.unwrap_or(false);
+        for (kind, heading) in self.log_note_headings.iter().flatten() {
+            let headings = &mut settings.note_headings;
+            let slot = match kind.as_str() {
+                "done" => &mut headings.done,
+                "state" => &mut headings.state,
+                "note" => &mut headings.note,
+                "reschedule" => &mut headings.reschedule,
+                "delschedule" => &mut headings.delschedule,
+                "redeadline" => &mut headings.redeadline,
+                "deldeadline" => &mut headings.deldeadline,
+                "refile" => &mut headings.refile,
+                "clock_out" | "clock-out" => &mut headings.clock_out,
+                _ => continue,
+            };
+            *slot = heading.clone();
+        }
         settings
     }
 }

@@ -108,6 +108,20 @@ class Generator:
                 lines.append(indent + f":{key}: {value}")
             lines.append(indent + ":END:")
         if self.chance(0.15):
+            lines.append(indent + ":NOTES:")
+            lines.append(indent + "kept")
+            lines.append(indent + ":END:")
+        if self.chance(0.2):
+            # State notes outside a drawer, maybe after a clock line.
+            if self.chance(0.3):
+                lines.append(indent + "CLOCK: [2026-01-02 Fri 09:00]--[2026-01-02 Fri 10:00] =>  1:00")
+            for _ in range(self.pick([1, 2])):
+                lines.append(indent + self.pick([
+                    '- State "DONE"       from "TODO"       [2026-01-01 Thu 09:00]',
+                    '- State "TODO"       from              [2026-01-03 Sat 09:00]',
+                    '- Note taken on [2026-01-04 Sun 09:00] \\\\\n' + indent + '  text',
+                ]))
+        if self.chance(0.15):
             lines.append(indent + ":LOGBOOK:")
             if self.chance(0.6):
                 lines.append(indent + '- State "DONE"       from "TODO"       [2026-01-01 Thu 09:00]')
@@ -150,7 +164,8 @@ class Generator:
         if self.chance(0.2):
             lines.append("#+STARTUP: " + " ".join(self.rng.sample(
                 ["logdone", "lognotedone", "nologdone", "logrepeat", "lognoterepeat", "nologrepeat",
-                 "logdrawer", "nologdrawer", "overview"], self.pick([1, 1, 2]))))
+                 "logdrawer", "nologdrawer", "overview", "logstatesreversed", "nologstatesreversed"],
+                self.pick([1, 1, 2]))))
         if self.chance(0.3):
             lines.append("Text before the first headline.")
 
@@ -185,9 +200,25 @@ class Generator:
             options["org_todo_repeat_to_state"] = self.pick([True, keywords[0], keywords[-1]])
         if self.chance(0.35):
             options["org_adapt_indentation"] = self.pick([True, "headline-data", False])
+        if self.chance(0.2):
+            options["org_log_done_with_time"] = False
+        if self.chance(0.3):
+            options["org_log_states_order_reversed"] = False
+        if self.chance(0.3):
+            options["org_log_state_notes_insert_after_drawers"] = True
+        if self.chance(0.25):
+            options["org_log_note_headings"] = self.pick([
+                {"state": "State %s from %S %t"},
+                {"state": "%-8s <- %-8S at %d"},
+                {"done": "Closed %D"},
+                {"done": ""},
+                {"state": "", "done": "Done %T"},
+            ])
         roll = self.rng.random()
         command = "next" if roll < 0.5 else "previous" if roll < 0.65 else {"state": self.pick(keywords)}
         case = {"clock": self.now.strftime("%Y-%m-%d %H:%M"), "text": text, "command": command}
+        if self.chance(0.4):
+            case["note"] = self.pick(["A note", "two\nlines", "  padded  "])
         if options:
             case["options"] = options
         return case

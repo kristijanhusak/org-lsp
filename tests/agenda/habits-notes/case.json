@@ -1,0 +1,15 @@
+{
+  "today": "2026-05-18",
+  "now": "08:20",
+  "runs": [
+    { "view": "agenda", "span": "day" }
+  ],
+  "options": {
+    "org_modules": ["org-habit"],
+    "org_log_note_headings": { "done": "Closed %D by %u" },
+    "org_log_states_order_reversed": false,
+    "org_habit_preceding_days": 10,
+    "org_habit_following_days": 1
+  },
+  "emacs": "(require 'org-habit) (setq org-log-note-headings '((done . \"Closed %D by %u\") (state . \"State %-12s from %-12S %t\") (note . \"Note taken on %t\")) org-log-states-order-reversed nil org-habit-preceding-days 10 org-habit-following-days 1)"
+}

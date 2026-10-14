@@ -64,6 +64,16 @@ pub enum RepeatTo {
     Previous,
 }
 
+/// `org-ts-regexp`: an active timestamp.
+static ACTIVE_STAMP: std::sync::LazyLock<regex::Regex> =
+    std::sync::LazyLock::new(|| regex::Regex::new(r"<[0-9]{4}-[0-9]{2}-[0-9]{2}[^>\n]*>").expect("a valid regex"));
+/// Runs of spaces, which a heading's pattern takes as ` +`.
+static SPACES: std::sync::LazyLock<regex::Regex> =
+    std::sync::LazyLock::new(|| regex::Regex::new(" +").expect("a valid regex"));
+/// `org-drawer-regexp`
+static DRAWER_LINE: std::sync::LazyLock<regex::Regex> =
+    std::sync::LazyLock::new(|| regex::Regex::new(r"^[ \t]*:(?:\w|[-_])+:[ \t]*$").expect("a valid regex"));
+
 /// Settings, named after Org's variables.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Settings {
@@ -94,6 +104,86 @@ pub struct Settings {
     /// `org-extend-today-until`: the hour before which `.+` and `++`
     /// repeaters count from yesterday.
     pub extend_today_until: i64,
+    /// `org-log-done-with-time`: the `CLOSED:` timestamp has the time.
+    pub log_done_with_time: bool,
+    /// `org-log-note-headings`
+    pub note_headings: NoteHeadings,
+    /// `org-log-states-order-reversed`: the latest note first.
+    pub states_order_reversed: bool,
+    /// `org-log-state-notes-insert-after-drawers`
+    pub notes_after_drawers: bool,
+}
+
+/// `org-log-note-headings`: the heading of each kind of note, with Org's
+/// `%`-escapes (`%t` the time, `%s` the new state, `%S` the old one…).
+/// An empty heading leaves the note its text only.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NoteHeadings {
+    pub done: String,
+    pub state: String,
+    pub note: String,
+    pub reschedule: String,
+    pub delschedule: String,
+    pub redeadline: String,
+    pub deldeadline: String,
+    pub refile: String,
+    pub clock_out: String,
+}
+
+impl Default for NoteHeadings {
+    fn default() -> Self {
+        NoteHeadings {
+            done: "CLOSING NOTE %t".to_string(),
+            state: "State %-12s from %-12S %t".to_string(),
+            note: "Note taken on %t".to_string(),
+            reschedule: "Rescheduled from %S on %t".to_string(),
+            delschedule: "Not scheduled, was %S on %t".to_string(),
+            redeadline: "New deadline from %S on %t".to_string(),
+            deldeadline: "Removed deadline, was %S on %t".to_string(),
+            refile: "Refiled on %t".to_string(),
+            clock_out: String::new(),
+        }
+    }
+}
+
+impl NoteHeadings {
+    /// The heading for the note of `purpose`.
+    fn of(&self, purpose: Purpose) -> &str {
+        match purpose {
+            Purpose::Done => &self.done,
+            Purpose::State => &self.state,
+            Purpose::Note => &self.note,
+            Purpose::Refile => &self.refile,
+            Purpose::Planning(PlanningChange::Reschedule) => &self.reschedule,
+            Purpose::Planning(PlanningChange::Unschedule) => &self.delschedule,
+            Purpose::Planning(PlanningChange::Redeadline) => &self.redeadline,
+            Purpose::Planning(PlanningChange::Undeadline) => &self.deldeadline,
+        }
+    }
+}
+
+/// `user-login-name`, from the environment.
+fn login_name() -> String {
+    ["LOGNAME", "USER", "USERNAME"].iter().find_map(|name| std::env::var(name).ok()).unwrap_or_default()
+}
+
+/// `user-full-name`: `NAME`, or the user's name in `/etc/passwd`.
+fn full_name() -> String {
+    if let Ok(name) = std::env::var("NAME") {
+        return name;
+    }
+    let login = login_name();
+    std::fs::read_to_string("/etc/passwd")
+        .ok()
+        .and_then(|passwd| {
+            passwd.lines().find_map(|line| {
+                let fields: Vec<&str> = line.split(':').collect();
+                (fields.first() == Some(&login.as_str()))
+                    .then(|| fields.get(4).map(|gecos| gecos.split(',').next().unwrap_or("").to_string()))
+                    .flatten()
+            })
+        })
+        .unwrap_or_default()
 }
 
 impl Default for Settings {
@@ -111,6 +201,10 @@ impl Default for Settings {
             repeat_to_state: RepeatTo::Head,
             adapt: Adapt::Off,
             extend_today_until: 0,
+            log_done_with_time: true,
+            note_headings: NoteHeadings::default(),
+            states_order_reversed: true,
+            notes_after_drawers: false,
         }
     }
 }
@@ -235,6 +329,8 @@ struct Log {
     redeadline: Option<Logging>,
     refile: Option<Logging>,
     into_drawer: Option<String>,
+    /// `org-log-states-order-reversed`, as `#+STARTUP:` may set it.
+    reversed: bool,
     /// The states that log when entered and when left; `None` for those
     /// the keywords say (`WAIT(w@/!)`).
     states: Option<Vec<LogState>>,
@@ -253,12 +349,15 @@ impl Log {
             redeadline: settings.log_redeadline,
             refile: settings.log_refile,
             into_drawer: settings.log_into_drawer.clone(),
+            reversed: settings.states_order_reversed,
             states: None,
         };
         for word in crate::text::startup_words(text) {
             match word {
                 "logdrawer" => log.into_drawer = Some("LOGBOOK".to_string()),
                 "nologdrawer" => log.into_drawer = None,
+                "logstatesreversed" => log.reversed = true,
+                "nologstatesreversed" => log.reversed = false,
                 word => {
                     log.set(word);
                 }
@@ -808,14 +907,15 @@ impl<'a> Editor<'a> {
                 let trimmed = self.text[content..line_end].trim_end_matches([' ', '\t']).len();
                 self.replace(content + trimmed, line_end, "");
                 if add {
-                    let stamp = format_timestamp(self.now, true, true, "");
+                    // `org-log-done-with-time`
+                    let stamp = format_timestamp(self.now, self.settings.log_done_with_time, true, "");
                     let space = if content == self.line_end(line) { "" } else { " " };
                     self.replace(content, content, &format!("CLOSED: {stamp}{space}"));
                 }
             }
             None if add => {
                 let at = self.line_end(self.heading);
-                let stamp = format_timestamp(self.now, true, true, "");
+                let stamp = format_timestamp(self.now, self.settings.log_done_with_time, true, "");
                 let indentation = self.planning_indentation();
                 self.replace(at, at, &format!("\n{indentation}CLOSED: {stamp}"));
             }
@@ -917,39 +1017,45 @@ impl<'a> Editor<'a> {
     /// `org-store-log-note`: write the note at `org-log-beginning`, with
     /// the text the user wrote for it.
     fn store_note(&mut self, note: &Note, text: &str) {
-        let quoted = |state: &Option<String>| state.as_ref().map(|state| format!("\"{state}\"")).unwrap_or_default();
-        let time = format_timestamp(self.now, true, true, "");
-        let heading = match note.purpose {
-            Purpose::State => format!("State {:<12} from {:<12} {time}", quoted(&note.state), quoted(&note.previous)),
-            Purpose::Done => format!("CLOSING NOTE {time}"),
-            Purpose::Note => format!("Note taken on {time}"),
-            Purpose::Refile => format!("Refiled on {time}"),
-            Purpose::Planning(change) => {
-                // `%S`: a timestamp as an inactive one, in quotes.
-                let old = note.previous.clone().unwrap_or_default();
-                let old = if old.len() > 2 && (old.starts_with('<') || old.starts_with('[')) {
-                    format!("\"[{}]\"", &old[1..old.len() - 1])
-                } else {
-                    format!("\"{old}\"")
-                };
-                match change {
-                    PlanningChange::Reschedule => format!("Rescheduled from {old} on {time}"),
-                    PlanningChange::Unschedule => format!("Not scheduled, was {old} on {time}"),
-                    PlanningChange::Redeadline => format!("New deadline from {old} on {time}"),
-                    PlanningChange::Undeadline => format!("Removed deadline, was {old} on {time}"),
-                }
+        // `%s` and `%S`: a state in quotes, an active timestamp as an
+        // inactive one.
+        let quoted = |state: &Option<String>| match state {
+            None => String::new(),
+            Some(state) if ACTIVE_STAMP.is_match(state) => {
+                let inner: String = state.chars().skip(1).take(state.chars().count().saturating_sub(2)).collect();
+                format!("\"[{inner}]\"")
             }
+            Some(state) => format!("\"{state}\""),
         };
+        let now = self.now;
+        let template = self.settings.note_headings.of(note.purpose);
+        let heading = (!template.trim().is_empty()).then(|| {
+            crate::text::replace_escapes(template, |c| {
+                Some(match c {
+                    'u' => login_name(),
+                    'U' => full_name(),
+                    't' => format_timestamp(now, true, true, ""),
+                    'T' => format_timestamp(now, true, false, ""),
+                    'd' => format_timestamp(now, false, true, ""),
+                    'D' => format_timestamp(now, false, false, ""),
+                    's' => quoted(&note.state),
+                    'S' => quoted(&note.previous),
+                    _ => return None,
+                })
+            })
+        });
+        let mut lines: Vec<String> = note_lines(text).into_iter().map(str::to_string).collect();
+        if let Some(mut heading) = heading {
+            if !lines.is_empty() {
+                heading.push_str(" \\\\");
+            }
+            lines.insert(0, heading);
+        }
+        if lines.is_empty() {
+            return;
+        }
 
-        let mut at = match self.log_into_drawer() {
-            Some(drawer) => self.log_drawer(&drawer),
-            None => {
-                let meta = self.end_of_meta_data();
-                // Past blank lines, to the start of the next line with text.
-                let skipped = self.text[meta..].bytes().take_while(|b| matches!(b, b' ' | b'\t' | b'\n')).count();
-                self.line_start(meta + skipped).max(meta)
-            }
-        };
+        let mut at = self.log_beginning();
         // The note needs a line of its own.
         if at > 0 && self.text.as_bytes()[at - 1] != b'\n' {
             self.replace(at, at, "\n");
@@ -957,19 +1063,18 @@ impl<'a> Editor<'a> {
         } else if self.line(at).bytes().any(|b| !is_blank(b)) {
             self.replace(at, at, "\n");
         }
+        // In an existing list, the top level of the list; else
         // `org-indent-line` on the note's line.
         let blanks = leading_blanks(self.line(at));
-        let indent = match indent::line_column(&self.text, at, &self.indent_settings()) {
+        let top = crate::list::in_item(&self.text, at)
+            .and_then(|item| crate::list::structure(&self.text, item).first().map(|first| first.ind.max(0) as usize));
+        let indent = match top.or_else(|| indent::line_column(&self.text, at, &self.indent_settings())) {
             Some(column) => " ".repeat(column),
             None => self.line(at)[..blanks].to_string(),
         };
-        let lines = note_lines(text);
-        let mut item = format!("{indent}- {heading}");
-        if !lines.is_empty() {
-            item.push_str(" \\\\");
-        }
+        let mut item = format!("{indent}- {}", lines[0]);
         // The text below the heading, indented to the item's body.
-        for line in lines {
+        for line in &lines[1..] {
             item.push('\n');
             if !line.is_empty() {
                 item.push_str(&indent);
@@ -980,8 +1085,103 @@ impl<'a> Editor<'a> {
         self.replace(at, at + blanks, &item);
     }
 
+    /// `org-log-beginning`: where a note goes, in the log drawer or after
+    /// the entry's meta data; at the top of the notes there, or with
+    /// `org-log-states-order-reversed` off, at their bottom.
+    fn log_beginning(&mut self) -> usize {
+        if let Some(drawer) = self.log_into_drawer() {
+            return self.log_drawer(&drawer);
+        }
+        // `org-end-of-meta-data`, past all drawers with
+        // `org-log-state-notes-insert-after-drawers`.
+        let meta =
+            if self.settings.notes_after_drawers { self.end_of_all_meta_data() } else { self.end_of_meta_data() };
+        // Past blank lines, to the start of the next line with text.
+        let skipped = self.text[meta..].bytes().take_while(|b| matches!(b, b' ' | b'\t' | b'\n')).count();
+        let mut at = self.line_start(meta + skipped);
+        if !self.log.reversed {
+            // `org-skip-over-state-notes`, then back over blank lines.
+            at = self.skip_over_state_notes(at);
+            let back = self.text[..at].bytes().rev().take_while(|b| matches!(b, b' ' | b'\t' | b'\n')).count();
+            at = self.next_line(at - back);
+        }
+        let at = at.max(meta);
+        if at == self.line_start(at) {
+            at
+        } else {
+            self.next_line(at)
+        }
+    }
+
+    /// `org-end-of-meta-data` with `full` `t`: past the planning line,
+    /// the property drawer, and then clock lines, blank lines and drawers.
+    fn end_of_all_meta_data(&self) -> usize {
+        let mut at = self.end_of_meta_data();
+        let end = self.entry_end();
+        if headline_level(self.line(at)).is_some() {
+            return at;
+        }
+        while at < self.text.len() {
+            let line = self.line(at);
+            let trimmed = line.trim_start_matches([' ', '\t']);
+            if trimmed.trim_end_matches([' ', '\t']).is_empty() || trimmed.starts_with("CLOCK:") {
+                at = self.next_line(at);
+                continue;
+            }
+            if !DRAWER_LINE.is_match(line) {
+                break;
+            }
+            // Its `:END:`, before the next headline.
+            let mut close = self.next_line(at);
+            while close < end && !self.line(close).trim_matches([' ', '\t']).eq_ignore_ascii_case(":END:") {
+                close = self.next_line(close);
+            }
+            if close >= end {
+                break;
+            }
+            at = self.next_line(close);
+        }
+        at
+    }
+
+    /// `org-skip-over-state-notes` at `at`: past the items of the list
+    /// there that are state notes (`org-log-note-headings`' `state`).
+    fn skip_over_state_notes(&self, at: usize) -> usize {
+        let Some(item) = crate::list::in_item(&self.text, at) else { return at };
+        let list = crate::list::structure(&self.text, item);
+        // `regexp-quote` of the heading, its escapes as regexps.
+        const PATTERNS: [(char, &str); 8] = [
+            ('d', r"\[([0-9]{4}-[0-9]{2}-[0-9]{2}(?: .*?)?)\]"),
+            ('t', r"\[([0-9]{4}-[0-9]{2}-[0-9]{2}(?: .*?)?)\]"),
+            ('D', r"<([0-9]{4}-[0-9]{2}-[0-9]{2}(?: .*?)?)>"),
+            ('T', r"<([0-9]{4}-[0-9]{2}-[0-9]{2}(?: .*?)?)>"),
+            ('s', r#"(?:"\S+")?"#),
+            ('S', r#"(?:"\S+")?"#),
+            ('u', ".*?"),
+            ('U', ".*?"),
+        ];
+        let marked = crate::text::replace_escapes(&self.settings.note_headings.state, |c| {
+            PATTERNS.iter().position(|(key, _)| *key == c).map(|index| format!("\0{index}\0"))
+        });
+        let mut pattern = regex::escape(&marked);
+        for (index, (_, regexp)) in PATTERNS.iter().enumerate() {
+            pattern = pattern.replace(&format!("\0{index}\0"), regexp);
+        }
+        let pattern = format!("^[ \t]*- +{}", SPACES.replace_all(&pattern, " +"));
+        let Ok(state) = regex::Regex::new(&pattern) else { return at };
+        let mut at = item;
+        while at < self.text.len() && state.is_match(&self.text[at..]) {
+            match crate::list::next_item_or_end(&list, at) {
+                Some(next) if next > at => at = next,
+                _ => break,
+            }
+        }
+        at
+    }
+
     /// `org-log-beginning` with a drawer: the line below the drawer's
-    /// first line. The drawer is created after the entry's planning line
+    /// first line, or with `org-log-states-order-reversed` off, its
+    /// `:END:` line. The drawer is created after the entry's planning line
     /// and property drawer when it does not exist.
     pub(crate) fn log_drawer(&mut self, name: &str) -> usize {
         let meta = self.end_of_meta_data();
@@ -991,6 +1191,13 @@ impl<'a> Editor<'a> {
         while line < end {
             if self.line(line).trim_matches([' ', '\t']).eq_ignore_ascii_case(&opening) && self.drawer_closes(line, end)
             {
+                if !self.log.reversed {
+                    let mut close = self.next_line(line);
+                    while !self.line(close).trim_matches([' ', '\t']).eq_ignore_ascii_case(":END:") {
+                        close = self.next_line(close);
+                    }
+                    return close;
+                }
                 return self.next_line(line);
             }
             let next = self.next_line(line);
@@ -1244,11 +1451,32 @@ impl<'a> Editor<'a> {
         });
         let head = previous.as_deref().and_then(|state| self.keywords.head(state)).map(str::to_string);
         let state = to_state.filter(|state| self.keywords.contains(state)).or(head);
-        self.set_state(&Target::State(state), false)?;
+        let (this, _, _) = self.keyword_match();
+        self.set_state(&Target::State(state.clone()), false)?;
+        // `org-todo` back to that state runs with no logging of its own
+        // (`org-log-done`, `org-todo-log-states` nil) but reads the entry's
+        // `LOGGING` again: the states it names log.
+        if self.log.states.is_some() {
+            let record = state
+                .as_deref()
+                .and_then(|state| self.logs_entering(state))
+                .or_else(|| this.as_deref().and_then(|this| self.logs_leaving(this)));
+            if let (Some(_), Some(record)) = (&state, record) {
+                let text = record == Logging::Note;
+                self.note = Some(Note { purpose: Purpose::State, state: state.clone(), previous: this, text });
+            }
+        }
 
         self.planning_closed(false);
         if self.log.repeat.is_some() || self.has_clock() {
             self.put_last_repeat();
+        }
+        // Already set up for a note, `org-log-repeat` `note` makes it want
+        // text.
+        if self.log.repeat == Some(Logging::Note) {
+            if let Some(note) = &mut self.note {
+                note.text = true;
+            }
         }
         if self.log.repeat.is_some() && self.note.is_none() {
             self.note = Some(Note {
@@ -1288,9 +1516,11 @@ impl<'a> Editor<'a> {
             let stamp = self.text[start..repeater_end].to_string();
             let Some((kind, count, unit)) = repeater_parts(&stamp) else { continue };
             let (count, unit) = if unit == 'w' { (count.saturating_mul(7), 'd') } else { (count, unit) };
-            // A repeater of 0 leaves its timestamp where it is: shifting by
-            // nothing would never land in the future.
-            if count == 0 {
+            // A `++` repeater of 0 leaves its timestamp where it is:
+            // shifting by nothing would never land in the future. Others
+            // are changed by nothing, which writes the timestamp again
+            // with the right day name.
+            if count == 0 && kind == Some('+') {
                 continue;
             }
             if unit == 'h' && !has_clock_time(&stamp) {
@@ -1655,7 +1885,17 @@ pub fn log_planning_change(
 ) -> Result<String, String> {
     let mut editor = Editor::new(text, keywords, settings, now);
     editor.go_to_heading(offset)?;
-    let wanted = Note { purpose: Purpose::Planning(change), state: None, previous: Some(old.to_string()), text: true };
+    // The new date, for `%s` (`org-last-inserted-timestamp`).
+    let state = match change {
+        PlanningChange::Reschedule | PlanningChange::Redeadline => editor.planning_line().and_then(|line| {
+            let keyword = if change == PlanningChange::Redeadline { "DEADLINE:" } else { "SCHEDULED:" };
+            let text = editor.line(line);
+            let after = text[text.find(keyword)? + keyword.len()..].trim_start_matches(' ');
+            after.starts_with('<').then(|| after[..after.find('>').map_or(after.len(), |end| end + 1)].to_string())
+        }),
+        _ => None,
+    };
+    let wanted = Note { purpose: Purpose::Planning(change), state, previous: Some(old.to_string()), text: true };
     editor.store_note(&wanted, note);
     Ok(editor.text)
 }

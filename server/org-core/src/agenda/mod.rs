@@ -965,7 +965,20 @@ impl Builder<'_> {
         let done: Vec<String> =
             outline.todo.names().filter(|name| outline.todo.is_done(name)).map(str::to_string).collect();
         let parsed = match scheduled {
-            Some(scheduled) => habit::parse(scheduled, &found.head, text, &done, limit),
+            Some(scheduled) => {
+                // `org-log-states-order-reversed`, as the file's
+                // `#+STARTUP:` may set it.
+                let mut reversed = settings.states_order_reversed;
+                for word in crate::text::startup_words(&outline.text) {
+                    match word {
+                        "logstatesreversed" => reversed = true,
+                        "nologstatesreversed" => reversed = false,
+                        _ => {}
+                    }
+                }
+                let notes = habit::Notes { done_heading: &settings.done_heading, reversed };
+                habit::parse(scheduled, &found.head, text, &done, limit, notes)
+            }
             None => Err(format!("Habit {} has no scheduled date", found.head)),
         };
         match parsed {

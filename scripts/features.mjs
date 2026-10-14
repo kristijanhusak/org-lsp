@@ -879,6 +879,7 @@ export const AREAS = [
       ['Notes and times on state changes', true],
       ['`LOG_INTO_DRAWER` and the `LOGGING` property', true],
       ['Logging rescheduled dates and deadlines (`org-log-reschedule`, `org-log-redeadline`)', true],
+      ['The headings of notes (`org-log-note-headings`), the latest note first or last (`org-log-states-order-reversed`, for clock lines too), notes after drawers (`org-log-state-notes-insert-after-drawers`), `CLOSED:` without the time (`org-log-done-with-time`)', true],
     ],
     editors: {
       zed: ['part', `A note is one line, with no buffer to write it in: ${ZED_TEXT}.`],
