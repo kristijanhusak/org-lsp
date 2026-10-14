@@ -1,0 +1,16 @@
+{
+  "today": "2026-05-18",
+  "now": "10:30",
+  "runs": [
+    { "view": "agenda", "span": "day" },
+    { "view": "todo" },
+    { "view": "search", "match": "o" },
+    { "view": "tags", "match": "LEVEL>0" }
+  ],
+  "options": {
+    "org_agenda_show_inherited_tags": ["todo"],
+    "org_agenda_hide_tags_regexp": "^x",
+    "org_agenda_sorting_strategy": { "todo": ["tag-up"], "agenda": ["tag-down"] }
+  },
+  "emacs": "(setq org-agenda-show-inherited-tags '(todo) org-agenda-hide-tags-regexp \"^x\" org-agenda-sorting-strategy '((todo tag-up) (agenda tag-down)))"
+}

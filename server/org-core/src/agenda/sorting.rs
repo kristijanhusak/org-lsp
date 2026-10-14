@@ -285,7 +285,12 @@ fn keys(item: &Item, files: &[&Outline]) -> Keys {
         ItemKind::Log => item.log.unwrap_or("").to_string(),
         ItemKind::Grid => String::new(),
     };
-    let tag = entry.and_then(|(outline, entry)| last_tag(outline, entry));
+    // The tags the line carries: the entry's own only when the view does
+    // not show inherited ones.
+    let tag = entry.and_then(|(outline, entry)| match item.own_tags_only {
+        true => entry.tags.iter().rfind(|tag| !tag.inherited).map(|tag| tag.name.clone()),
+        false => last_tag(outline, entry),
+    });
     let todo = entry.and_then(|(_, entry)| todo_state(item, entry)).map(str::to_string);
     // `org-stats` is on the text of the headline in the Org buffer, and
     // `org-cmp-values` reads it at the end of the line: a line that shows
@@ -623,7 +628,11 @@ pub fn limit(items: Vec<Item>, files: &[&Outline], view: ViewType, sorting: &Sor
         items = limit_entries(items, max, |item| entry(item).and_then(|entry| todo_state(item, entry)).map(|_| 1.0));
     }
     if let Some(max) = sorting.max_tags.as_ref().and_then(|limit| limit.of(view)) {
-        items = limit_entries(items, max, |item| entry(item).filter(|entry| !entry.tags.is_empty()).map(|_| 1.0));
+        let tagged = |item: &Item, entry: &crate::outline::Entry| match item.own_tags_only {
+            true => entry.tags.iter().any(|tag| !tag.inherited),
+            false => !entry.tags.is_empty(),
+        };
+        items = limit_entries(items, max, |item| entry(item).filter(|entry| tagged(item, entry)).map(|_| 1.0));
     }
     if let Some(max) = sorting.max_entries.as_ref().and_then(|limit| limit.of(view)) {
         items = limit_entries(items, max, |item| item.source.map(|_| 1.0));

@@ -261,6 +261,7 @@ mod tests {
                 ts_date: None,
                 log: None,
                 ts_type: "",
+                own_tags_only: false,
             }),
         }
     }

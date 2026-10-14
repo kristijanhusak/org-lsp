@@ -1429,6 +1429,21 @@ org_agenda_remove_timeranges_from_blocks = false
 # (org-agenda-diary-sexp-prefix)
 # org_agenda_diary_sexp_prefix = …  (unset: none)
 
+# Show the inherited tags of an entry on its agenda lines: where
+# `org_agenda_use_tag_inheritance` has them (`true`), always, never (`false`),
+# or in these kinds of views (`agenda`, `todo`, `search`). Sorting by tag and
+# `org_agenda_max_tags` go by the tags a line shows.
+# (org-agenda-show-inherited-tags)
+org_agenda_show_inherited_tags = true
+
+# The kinds of views whose lines have inherited tags (`true`: all). Tags
+# matches always have them. (org-agenda-use-tag-inheritance)
+org_agenda_use_tag_inheritance = ["todo", "search", "agenda"]
+
+# A regexp (Emacs's syntax): the tags it matches are not shown on agenda
+# lines, but filters still see them. (org-agenda-hide-tags-regexp)
+# org_agenda_hide_tags_regexp = …  (unset: none)
+
 # Show deadlines in the agenda. (org-agenda-include-deadlines)
 org_agenda_include_deadlines = true
 
@@ -2583,6 +2598,21 @@ org_agenda_custom_commands = []
   // front of the line, as a scheduled date's `Scheduled:` does.
   // (org-agenda-diary-sexp-prefix)
   // "org_agenda_diary_sexp_prefix": unset: none
+
+  // Show the inherited tags of an entry on its agenda lines: where
+  // `org_agenda_use_tag_inheritance` has them (`true`), always, never
+  // (`false`), or in these kinds of views (`agenda`, `todo`, `search`).
+  // Sorting by tag and `org_agenda_max_tags` go by the tags a line shows.
+  // (org-agenda-show-inherited-tags)
+  "org_agenda_show_inherited_tags": true,
+
+  // The kinds of views whose lines have inherited tags (`true`: all). Tags
+  // matches always have them. (org-agenda-use-tag-inheritance)
+  "org_agenda_use_tag_inheritance": ["todo", "search", "agenda"],
+
+  // A regexp (Emacs's syntax): the tags it matches are not shown on agenda
+  // lines, but filters still see them. (org-agenda-hide-tags-regexp)
+  // "org_agenda_hide_tags_regexp": unset: none
 
   // Show deadlines in the agenda. (org-agenda-include-deadlines)
   "org_agenda_include_deadlines": true,

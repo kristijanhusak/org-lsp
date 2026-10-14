@@ -216,6 +216,17 @@ def display_options(rng):
     choose("agenda_default_appointment_duration", [30, 60, 90], 0.4)
     choose("agenda_remove_timeranges_from_blocks", [True], 0.4)
     choose("agenda_diary_sexp_prefix", ["^[A-Za-z]+ ", "^X"], 0.3)
+    views = [["todo"], ["agenda"], ["search", "todo"], ["agenda", "search"]]
+    symbols = lambda value: "'(" + " ".join(value) + ")" if isinstance(value, list) else lisp_value(value)
+    for name, values in (("show_inherited_tags", [False, "always", *views]), ("use_tag_inheritance", [True, False, *views])):
+        if rng.random() < 0.3:
+            value = rng.choice(values)
+            options[f"org_agenda_{name}"] = value
+            forms.append(f"(setq org-agenda-{name.replace('_', '-')} {symbols(value)})")
+    if rng.random() < 0.3:
+        value = rng.choice(["^f", "a", "^[xy]", "日本"])
+        options["org_agenda_hide_tags_regexp"] = value
+        forms.append(f'(setq org-agenda-hide-tags-regexp "{value}")')
     return options, " ".join(forms)
 
 

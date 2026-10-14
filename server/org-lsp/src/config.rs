@@ -6,8 +6,8 @@
 use org_core::agenda::sorting::{Limit, Sorting, Strategies};
 use org_core::agenda::todo_ignore::When;
 use org_core::agenda::{
-    Config as AgendaConfig, FutureRepeats, PreferLastRepeat, RemoveTags, RemoveTimes, SkipByOtherDate,
-    SkipScheduledIfDeadline, Span, TagsColumn, TimeGrid,
+    Config as AgendaConfig, FutureRepeats, PreferLastRepeat, RemoveTags, RemoveTimes, ShowInheritedTags,
+    SkipByOtherDate, SkipScheduledIfDeadline, Span, TagsColumn, TimeGrid, UseTagInheritance,
 };
 use org_core::archive::{ContextInfo, InheritedTags, MarkDone, Settings as ArchiveSettings};
 use org_core::edit::Settings as EditSettings;
@@ -1987,6 +1987,14 @@ pub struct AgendaOptions {
     pub remove_timeranges_from_blocks: Option<bool>,
     #[serde(rename = "org_agenda_diary_sexp_prefix")]
     pub diary_sexp_prefix: Option<String>,
+    /// `true`, `"always"`, `false` or a list of kinds of views.
+    #[serde(rename = "org_agenda_show_inherited_tags")]
+    pub show_inherited_tags: Option<serde_json::Value>,
+    /// `true` or a list of kinds of views.
+    #[serde(rename = "org_agenda_use_tag_inheritance")]
+    pub use_tag_inheritance: Option<serde_json::Value>,
+    #[serde(rename = "org_agenda_hide_tags_regexp")]
+    pub hide_tags_regexp: Option<String>,
     /// `org-agenda-prefer-last-repeat`: `true`, or a list of TODO keywords.
     #[serde(rename = "org_agenda_prefer_last_repeat")]
     pub prefer_last_repeat: Option<serde_json::Value>,
@@ -2287,6 +2295,27 @@ impl AgendaOptions {
         }
         if self.default_appointment_duration.is_some() {
             config.times.appointment_duration = self.default_appointment_duration;
+        }
+        // A list of kinds of views (`agenda`, `todo`, `search`).
+        let views = |value: &serde_json::Value| -> Vec<String> {
+            value.as_array().into_iter().flatten().filter_map(|view| view.as_str().map(str::to_string)).collect()
+        };
+        if let Some(value) = &self.show_inherited_tags {
+            config.show_inherited_tags = match value {
+                serde_json::Value::Bool(true) => ShowInheritedTags::Yes,
+                serde_json::Value::String(symbol) if symbol == "always" => ShowInheritedTags::Always,
+                serde_json::Value::Array(_) => ShowInheritedTags::Views(views(value)),
+                _ => ShowInheritedTags::No,
+            };
+        }
+        if let Some(value) = &self.use_tag_inheritance {
+            config.use_tag_inheritance = match value {
+                serde_json::Value::Bool(true) => UseTagInheritance::All,
+                _ => UseTagInheritance::Views(views(value)),
+            };
+        }
+        if self.hide_tags_regexp.is_some() {
+            config.hide_tags_regexp = self.hide_tags_regexp.clone().filter(|regexp| !regexp.is_empty());
         }
         if self.diary_sexp_prefix.is_some() {
             config.diary_sexp_prefix = self.diary_sexp_prefix.clone().filter(|prefix| !prefix.is_empty());
