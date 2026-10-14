@@ -112,6 +112,8 @@ pub struct Settings {
     pub states_order_reversed: bool,
     /// `org-log-state-notes-insert-after-drawers`
     pub notes_after_drawers: bool,
+    /// `org-log-note-clock-out`: a note when the clock stops.
+    pub note_clock_out: bool,
 }
 
 /// `org-log-note-headings`: the heading of each kind of note, with Org's
@@ -158,6 +160,7 @@ impl NoteHeadings {
             Purpose::Planning(PlanningChange::Unschedule) => &self.delschedule,
             Purpose::Planning(PlanningChange::Redeadline) => &self.redeadline,
             Purpose::Planning(PlanningChange::Undeadline) => &self.deldeadline,
+            Purpose::ClockOut => &self.clock_out,
         }
     }
 }
@@ -205,6 +208,7 @@ impl Default for Settings {
             note_headings: NoteHeadings::default(),
             states_order_reversed: true,
             notes_after_drawers: false,
+            note_clock_out: false,
         }
     }
 }
@@ -255,6 +259,8 @@ enum Purpose {
     Planning(PlanningChange),
     /// `Refiled on`, of `org-log-refile`.
     Refile,
+    /// After a clock line closed (`org-log-note-clock-out`).
+    ClockOut,
 }
 
 /// A change of an entry's `SCHEDULED` or `DEADLINE` date, which
@@ -315,6 +321,8 @@ pub(crate) struct Editor<'a> {
     before_repeat: Option<String>,
     /// The logging in force for this command.
     log: Log,
+    /// Where a note on a clock goes: the end of its line.
+    clock_note_at: Option<usize>,
 }
 
 /// What is logged: `org-log-done`, `org-log-repeat`, `org-log-into-drawer`
@@ -558,6 +566,7 @@ impl<'a> Editor<'a> {
             repeated: None,
             before_repeat: None,
             log,
+            clock_note_at: None,
         }
     }
 
@@ -1055,7 +1064,11 @@ impl<'a> Editor<'a> {
             return;
         }
 
-        let mut at = self.log_beginning();
+        // A note on a clock goes right after its line.
+        let mut at = match note.purpose {
+            Purpose::ClockOut => self.clock_note_at.take().unwrap_or(self.heading),
+            _ => self.log_beginning(),
+        };
         // The note needs a line of its own.
         if at > 0 && self.text.as_bytes()[at - 1] != b'\n' {
             self.replace(at, at, "\n");
@@ -1855,6 +1868,33 @@ pub fn refile_logging(settings: &Settings, text: &str) -> Option<Logging> {
 
 /// `org-store-log-note` for the entry at byte `offset` just refiled:
 /// `Refiled on [now]`, with the text `note` (empty for a time only).
+/// `org-log-note-clock-out` for the file `text`: `setting`, unless its
+/// `#+STARTUP:` says `lognoteclock-out` or `nolognoteclock-out`.
+pub fn note_clock_out(setting: bool, text: &str) -> bool {
+    crate::text::startup_words(text).into_iter().fold(setting, |on, word| match word {
+        "lognoteclock-out" => true,
+        "nolognoteclock-out" => false,
+        _ => on,
+    })
+}
+
+/// `org-store-log-note` for `org-log-note-clock-out`: the note with the
+/// text `note` right after the clock line that ends at byte `line_end`.
+pub fn log_clock_out(
+    text: &str,
+    keywords: &TodoKeywords,
+    line_end: usize,
+    settings: &Settings,
+    now: DateTime,
+    note: &str,
+) -> Result<String, String> {
+    let mut editor = Editor::new(text, keywords, settings, now);
+    editor.go_to_heading(line_end)?;
+    editor.clock_note_at = Some(line_end);
+    editor.store_note(&Note { purpose: Purpose::ClockOut, state: None, previous: None, text: true }, note);
+    Ok(editor.text)
+}
+
 pub fn log_refile(
     text: &str,
     keywords: &TodoKeywords,
@@ -1996,6 +2036,7 @@ pub fn change_state_noted(
                 Purpose::Note => "this entry".to_string(),
                 Purpose::Planning(change) => change.purpose().to_string(),
                 Purpose::Refile => "refiling".to_string(),
+                Purpose::ClockOut => "stopped clock".to_string(),
             };
             Some(WantedNote { purpose, state: wanted.state })
         }
@@ -2144,6 +2185,42 @@ mod tests {
             change("* a¦\n", named, &Settings::default()),
             Err("State `NOPE' not valid in this file".to_string())
         );
+    }
+
+    /// Recorded from Emacs: `org-clock-out` with `org-log-note-clock-out`,
+    /// then `org-store-log-note`.
+    #[test]
+    fn notes_on_clocks_follow_their_line() {
+        let now = DateTime::new(Date::new(2026, 5, 18), 10, 30);
+        let line = "CLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00";
+        let note = |text: &str, note: &str, settings: &Settings| {
+            let end = text.find(line).unwrap() + line.len();
+            log_clock_out(text, &TodoKeywords::default(), end, settings, now, note).unwrap()
+        };
+        let settings = Settings::default();
+        let closed = format!("* TODO a\n:LOGBOOK:\n{line}\n:END:\n");
+        assert_eq!(
+            note(&closed, "Done for now", &settings),
+            format!("* TODO a\n:LOGBOOK:\n{line}\n- Done for now\n:END:\n")
+        );
+        assert_eq!(note(&closed, "", &settings), closed);
+        let older = "CLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00";
+        let two = format!("* TODO a\n:LOGBOOK:\n{line}\n{older}\n:END:\nText\n");
+        assert_eq!(
+            note(&two, "two\nlines", &settings),
+            format!("* TODO a\n:LOGBOOK:\n{line}\n- two\n  lines\n{older}\n:END:\nText\n")
+        );
+        let headed = Settings {
+            note_headings: NoteHeadings { clock_out: "Stopped at %t".to_string(), ..NoteHeadings::default() },
+            ..Settings::default()
+        };
+        let item = format!("* TODO a\n:LOGBOOK:\n{line}\n:END:\n- item\n");
+        assert_eq!(
+            note(&item, "x", &headed),
+            format!("* TODO a\n:LOGBOOK:\n{line}\n- Stopped at [2026-05-18 Mon 10:30] \\\\\n  x\n:END:\n- item\n")
+        );
+        assert!(note_clock_out(false, "#+STARTUP: lognoteclock-out\n"));
+        assert!(!note_clock_out(true, "#+STARTUP: nolognoteclock-out\n"));
     }
 
     #[test]

@@ -908,6 +908,11 @@ org_log_states_order_reversed = true
 # (org-log-state-notes-insert-after-drawers)
 org_log_state_notes_insert_after_drawers = false
 
+# Ask for a note when the clock stops (`org.clock.out`), which goes right
+# after the clock line. `#+STARTUP:` `lognoteclock-out` and
+# `nolognoteclock-out` change it in a file. (org-log-note-clock-out)
+org_log_note_clock_out = false
+
 # Where tags are aligned after a change to a headline. Negative: they end at
 # that column. (org-tags-column)
 org_tags_column = -77
@@ -2118,6 +2123,11 @@ org_agenda_custom_commands = []
   // headline and planning line, not before them.
   // (org-log-state-notes-insert-after-drawers)
   "org_log_state_notes_insert_after_drawers": false,
+
+  // Ask for a note when the clock stops (`org.clock.out`), which goes right
+  // after the clock line. `#+STARTUP:` `lognoteclock-out` and
+  // `nolognoteclock-out` change it in a file. (org-log-note-clock-out)
+  "org_log_note_clock_out": false,
 
   // Where tags are aligned after a change to a headline. Negative: they end
   // at that column. (org-tags-column)

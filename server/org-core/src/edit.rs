@@ -58,6 +58,9 @@ pub enum Command {
     /// The note `org-log-refile` asked for (`note`), for the entry just
     /// refiled, or nothing when it was cancelled.
     RefileNote,
+    /// The note `org-log-note-clock-out` asked for, after the clock line
+    /// `line` (its text), or nothing when it was cancelled.
+    ClockOutNote { line: String },
     /// `org-table-recalculate` and `org-table-iterate`: the table's
     /// formulas, or those of the `#+TBLFM:` line at the cursor.
     Table(tblfm::Mode),
@@ -271,6 +274,17 @@ pub fn run(
             )
             .map(unplaced)
             .map_err(Refusal::Failed),
+            _ => Ok(unplaced(text.to_string())),
+        },
+        Command::ClockOutNote { line } => match (&call.note, call.skip_note) {
+            (Some(note), false) => {
+                // The clock line, wherever it is now.
+                let Some(start) = text.find(line.as_str()) else { return Ok(unplaced(text.to_string())) };
+                let end = start + line.len();
+                todo::log_clock_out(text, parse.todo_keywords(), end, &settings.todo, call.now, note)
+                    .map(unplaced)
+                    .map_err(Refusal::Failed)
+            }
             _ => Ok(unplaced(text.to_string())),
         },
         Command::RefileNote => match (&call.note, call.skip_note) {

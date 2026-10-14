@@ -87,6 +87,9 @@ pub struct Options {
     /// `org-log-state-notes-insert-after-drawers`
     #[serde(rename = "org_log_state_notes_insert_after_drawers")]
     pub log_state_notes_insert_after_drawers: Option<bool>,
+    /// `org-log-note-clock-out`
+    #[serde(rename = "org_log_note_clock_out")]
+    pub log_note_clock_out: Option<bool>,
     /// `org-tags-column`
     #[serde(rename = "org_tags_column")]
     pub tags_column: Option<i64>,
@@ -1364,6 +1367,7 @@ impl Options {
         settings.log_done_with_time = self.log_done_with_time.unwrap_or(true);
         settings.states_order_reversed = self.log_states_order_reversed.unwrap_or(true);
         settings.notes_after_drawers = self.log_state_notes_insert_after_drawers.unwrap_or(false);
+        settings.note_clock_out = self.log_note_clock_out.unwrap_or(false);
         for (kind, heading) in self.log_note_headings.iter().flatten() {
             let headings = &mut settings.note_headings;
             let slot = match kind.as_str() {

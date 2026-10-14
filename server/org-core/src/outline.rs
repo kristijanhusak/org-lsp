@@ -825,9 +825,19 @@ pub(crate) fn complex_heading_parts(line: &str, level: usize, todo: &TodoKeyword
 /// `org-get-heading` of a headline line: the keyword, the priority, the
 /// title (empty when there is none) and the tags, a space apart.
 pub(crate) fn get_heading(line: &str, level: usize, todo: &TodoKeywords) -> String {
+    heading_parts_joined(line, level, todo, true)
+}
+
+/// `org-get-heading t`: [`get_heading`] without the tags.
+pub fn get_heading_without_tags(line: &str, level: usize, todo: &TodoKeywords) -> String {
+    heading_parts_joined(line, level, todo, false)
+}
+
+fn heading_parts_joined(line: &str, level: usize, todo: &TodoKeywords, tags: bool) -> String {
     let parts = complex_heading_parts(line, level, todo);
     let text = |span: Span| span.map(|(start, end)| &line[start..end]);
-    [text(parts.keyword), text(parts.priority), Some(text(parts.title).unwrap_or("")), text(parts.tags)]
+    let tags = if tags { text(parts.tags) } else { None };
+    [text(parts.keyword), text(parts.priority), Some(text(parts.title).unwrap_or("")), tags]
         .into_iter()
         .flatten()
         .collect::<Vec<_>>()

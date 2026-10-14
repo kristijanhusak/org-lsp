@@ -624,6 +624,8 @@ enum NoteLog {
     Planning(org_core::todo::PlanningChange, String),
     /// The entry refiled (`org-log-refile`).
     Refile,
+    /// The clock stopped (`org-log-note-clock-out`): the text of its line.
+    ClockOut(String),
 }
 
 /// The relative timer or the countdown of Org in Emacs, for the editor's
@@ -6224,7 +6226,7 @@ impl Server {
             }))
             .map_err(|error| error.to_string())?;
             let wanted = org_core::todo::WantedNote { purpose: changed.change.purpose().to_string(), state: None };
-            self.open_note(&context, id, wanted)?;
+            self.open_note(&context, id, wanted, "")?;
             if let Some(note) = &mut self.note {
                 note.log = Some(NoteLog::Planning(changed.change, changed.old));
             }
@@ -7854,7 +7856,7 @@ impl Server {
                 serde_json::from_value(json!({ "textDocument": { "uri": uri.as_str() }, "position": position }))
                     .map_err(|error| error.to_string())?;
             let wanted = org_core::todo::WantedNote { purpose: "refiling".to_string(), state: None };
-            self.open_note(&context, commands::REFILE, wanted)?;
+            self.open_note(&context, commands::REFILE, wanted, "")?;
             if let Some(note) = &mut self.note {
                 note.log = Some(NoteLog::Refile);
             }
@@ -8245,6 +8247,7 @@ impl Server {
         context: &Context,
         id: &str,
         wanted: org_core::todo::WantedNote,
+        extra: &str,
     ) -> std::result::Result<Value, Refusal> {
         self.captures += 1;
         let directory = self.capture_directory.path().join(self.captures.to_string());
@@ -8252,7 +8255,8 @@ impl Server {
         let buffer = directory.join(format!("{CAPTURE_PREFIX}Note.org"));
         // The note goes on the third line, as in Emacs; an editor that takes
         // the last newline for the end of the file still has that line.
-        let text = format!("# Insert note for {}.\n\n\n", wanted.purpose);
+        // `org-log-note-extra` after the first lines.
+        let text = format!("# Insert note for {}.\n\n{extra}\n", wanted.purpose);
         std::fs::write(&buffer, &text).map_err(|error| error.to_string())?;
         let uri = uri::from_path(&buffer).ok_or("Cannot name the note buffer")?;
         self.note = Some(Noting {
@@ -8262,7 +8266,7 @@ impl Server {
             state: wanted.state.unwrap_or_default(),
             log: None,
         });
-        let end = Position::new(2, 0);
+        let end = Position::new(2 + extra.matches('\n').count() as u32, 0);
         let params =
             ShowDocumentParams { uri, external: None, take_focus: Some(true), selection: Some(Range::new(end, end)) };
         self.send_request::<ShowDocument>(params, None);
@@ -8296,6 +8300,7 @@ impl Server {
                 EditCommand::PlanningNote { change: *change, old: old.clone() }
             }
             (_, Some(NoteLog::Refile)) => EditCommand::RefileNote,
+            (_, Some(NoteLog::ClockOut(line))) => EditCommand::ClockOutNote { line: line.clone() },
             (commands::ADD_NOTE, _) => EditCommand::Note,
             _ => EditCommand::Todo(TodoTarget::State((!note.state.is_empty()).then(|| note.state.clone()))),
         };
@@ -9105,7 +9110,7 @@ impl Server {
         // project shows a note buffer, as Emacs does (`*Org Note*`).
         if let Some(wanted) = wanted {
             if self.client.date_prompt && self.client.show_document {
-                return self.open_note(context, id, wanted);
+                return self.open_note(context, id, wanted, "");
             }
             return Ok(json!({ "input": {
                 "kind": "note",
@@ -13138,9 +13143,16 @@ impl Server {
                     self.publish_clock();
                     return Err("Clock start time is gone".into());
                 };
+                let mut clock_note = None;
                 let (new_text, message) = if id == commands::CLOCK_OUT {
                     let out = clock::clock_out(&text, line, self.date_time(), &self.clock_settings)?;
                     self.clock_out_time = Some(self.date_time());
+                    // `org-log-note-clock-out`, unless the line went.
+                    let closed = out.text[line..].lines().next().unwrap_or("").to_string();
+                    let note = org_core::todo::note_clock_out(self.edit_settings.todo.note_clock_out, &text);
+                    if note && closed.trim_start().starts_with("CLOCK:") && closed.contains("=>") {
+                        clock_note = Some(closed);
+                    }
                     let switched = match Self::heading_above(&text, line) {
                         Some(heading) => self.switch_state(&out.text, heading, self.clock_out_switch.as_deref())?,
                         None => out.text,
@@ -13154,9 +13166,36 @@ impl Server {
                     self.last_clocked = Some((running.uri.clone(), head));
                 }
                 self.running = None;
-                self.send_texts(vec![(running.uri, version, text, new_text)]);
+                // The note goes after the clock line, which the note buffer
+                // names its entry for (`# Task:`).
+                let note_at = clock_note.as_ref().and_then(|closed| {
+                    let at = new_text.find(closed.as_str())?;
+                    let heading = Self::heading_above(&new_text, at)?;
+                    let head = new_text[heading..].lines().next().unwrap_or("");
+                    let level = head.bytes().take_while(|b| *b == b'*').count();
+                    let keywords = org_syntax::parse(&new_text, &self.todo).todo_keywords().clone();
+                    Some((at, org_core::outline::get_heading_without_tags(head, level, &keywords)))
+                });
+                let uri = running.uri.clone();
+                self.send_texts(vec![(running.uri, version, text, new_text.clone())]);
                 self.message = Some(message);
                 self.publish_clock();
+                if let (Some(closed), Some((at, title))) = (clock_note, note_at) {
+                    if self.client.date_prompt && self.client.show_document {
+                        let encoding = self.client.encoding;
+                        let index = LineIndex::new(&new_text);
+                        let position = index.position(&new_text, at, encoding);
+                        let context: Context = serde_json::from_value(
+                            json!({ "textDocument": { "uri": uri.as_str() }, "position": position }),
+                        )
+                        .map_err(|error| error.to_string())?;
+                        let wanted = org_core::todo::WantedNote { purpose: "stopped clock".to_string(), state: None };
+                        self.open_note(&context, commands::CLOCK_OUT, wanted, &format!("# Task: {title}\n\n"))?;
+                        if let Some(note) = &mut self.note {
+                            note.log = Some(NoteLog::ClockOut(closed));
+                        }
+                    }
+                }
                 Ok(Value::Null)
             }
             commands::CLOCK_GOTO => {
