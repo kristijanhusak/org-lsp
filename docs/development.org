@@ -23,7 +23,11 @@ others), as close to Emacs Org mode as it can get.
   logic. A new feature should need no new editor code.
 - /Emacs is the reference./ Org logic is ported from the Emacs sources
   (Org 9.8.10) and compared with Emacs by committed reference cases and
-  by differential fuzzing. A deliberate difference is written down.
+  by differential fuzzing. A deliberate difference is written down. The
+  options are part of it: each of Org's options is in
+  ~scripts/org-options.json~, with what org-lsp does with it (a setting,
+  missing, read by Emacs, and so on), and [[file:parity.org::#options][parity.org]] lists those
+  missing.
 - /One repository/, Neovim files at the root (~plugin/~, ~lua/~), other
   editors under ~editors/~. The repository is private and stays private.
 - /Small changes./ Each is one pull request, with its tests, its docs and

@@ -59,6 +59,7 @@ they are out of date.
 | `editors/zed/languages/org/*.json`, `keymap.json`, `tasks.json` | the same |
 | Between `# BEGIN generated: NAME` and `# END generated` in the Org docs (key tables, option lists); `docs/config.schema.json`; `lua/org-lsp/types.lua` | `settings.rs` and the manifest |
 | What works (`README.org`, `docs/<editor>.org`), `docs/parity.org`, `editors/*/TESTING.org` | `scripts/features.mjs` |
+| The Options section of `docs/parity.org` | `scripts/org-options.json` |
 | `editors/vscode/README.md` (written when the extension is packaged, not kept) | `docs/vscode.org`, by `editors/vscode/scripts/readme.mjs` |
 
 Written by hand: the `configuration` section of `package.json` (the
@@ -71,6 +72,9 @@ kept by the generator), and every doc outside the generated blocks.
 - **Emacs is the reference.** Port Org logic from the Org 9.8.10 sources,
   and check it against Emacs with recorded cases and differential fuzzing
   (`.claude/skills/port-from-emacs`). Write down any deliberate difference.
+  The options of what you port are part of it: each of Org's options is in
+  `scripts/org-options.json`, and a new setting marks its option there as
+  `setting`.
   Where porting would be a lot of code for little use, call Emacs through
   the bridge instead.
 - **Say what Emacs says.** A command's messages have Emacs's exact text.
