@@ -8,6 +8,11 @@ A case is a JSON object:
       "answer": "1"                               optional: the key pressed
                                                   when Emacs offers the links
                                                   of an entry
+      "exact": "nil"                              optional: the Lisp value of
+                                                  `org-link-search-must-match-exact-headline'
+      "create": true                              optional: yes to making a
+                                                  missing headline
+      "doi": "https://dx.doi.org/"                optional: `org-link-doi-server-url'
     }
 
 `reference(cases)` adds `expected` to each case, one of
@@ -20,7 +25,8 @@ A case is a JSON object:
     {"error": "No link found"}                             a refusal
 
 with `"offered": "..."` as well when Emacs listed the entry's links to
-pick from. The `.org` files are the agenda files, where `id:` links are
+pick from, and `"text"`, the buffer point is in, when a headline was
+made. The `.org` files are the agenda files, where `id:` links are
 looked for. PDF and HTML files go to the system's application, as Org's
 `org-file-apps` has it by default. Set ORG_LISP_DIR to the `lisp`
 directory of an Org checkout to use that version instead of the one
@@ -39,7 +45,7 @@ DRIVER = r"""
 (require 'org-id)
 (require 'org-agenda)
 (require 'cl-lib)
-(defun org-lsp-open-case (files cursor-file offset answer out)
+(defun org-lsp-open-case (files cursor-file offset answer out exact create doi)
   (dolist (buffer (buffer-list))
     (when (buffer-file-name buffer)
       (with-current-buffer buffer (set-buffer-modified-p nil))
@@ -52,6 +58,8 @@ DRIVER = r"""
                      (org-id-locations-file (make-temp-file "org-lsp-ids"))
                      (org-id-locations nil)
                      (org-id-track-globally t)
+                     (org-link-search-must-match-exact-headline exact)
+                     (org-link-doi-server-url doi)
                      (org-file-apps '((auto-mode . emacs) (directory . emacs)
                                       ("\\.mm\\'" . "SYSTEM %s") ("\\.x?html?\\'" . "SYSTEM %s")
                                       ("\\.pdf\\'" . "SYSTEM %s"))))
@@ -71,7 +79,7 @@ DRIVER = r"""
                              (setq recorded (format "system\0%s" (file-name-nondirectory
                                                                   (replace-regexp-in-string "\\`SYSTEM \\|['\"]" "" command))))
                              nil))
-                          ((symbol-function 'yes-or-no-p) (lambda (&rest _) nil))
+                          ((symbol-function 'yes-or-no-p) (lambda (&rest _) create))
                           ((symbol-function 'read-char-exclusive)
                            (lambda (&rest _)
                              (setq offered (with-current-buffer "*Select Link*" (buffer-string)))
@@ -80,9 +88,10 @@ DRIVER = r"""
                   (goto-char (1+ offset))
                   (org-open-at-point)
                   (or recorded
-                      (format "goto\0%s\0%d\0%d"
+                      (format "goto\0%s\0%d\0%d%s"
                               (file-name-nondirectory (or (buffer-file-name) (buffer-name)))
-                              (line-number-at-pos) (current-column)))))
+                              (line-number-at-pos) (current-column)
+                              (if create (concat "\0" (buffer-string)) "")))))
             (error (format "error\0%s" (error-message-string err))))))
     (with-temp-file out
       (insert (or offered "") "\1" result))))
@@ -110,9 +119,12 @@ def reference(cases):
             target = os.path.join(folder, "out")
             outputs.append((case, target))
             files = " ".join(lisp_string(paths[name]) for name in sorted(paths))
+            exact = case.get("exact", "'query-to-create")
             forms.append(
                 f"(org-lsp-open-case (list {files}) {lisp_string(cursor[0])} {cursor[1]}"
-                f" {lisp_string(case.get('answer', '1'))} {lisp_string(target)})"
+                f" {lisp_string(case.get('answer', '1'))} {lisp_string(target)}"
+                f" {exact} {'t' if case.get('create') else 'nil'}"
+                f" {lisp_string(case.get('doi', 'https://doi.org/'))})"
             )
         driver = os.path.join(directory, "driver.el")
         with open(driver, "w", encoding="utf-8") as handle:
@@ -132,6 +144,8 @@ def reference(cases):
             kind, *values = result.split("\0")
             if kind == "goto":
                 expected = {"goto": {"file": values[0], "line": int(values[1]), "column": int(values[2])}}
+                if len(values) > 3:
+                    expected["text"] = values[3]
             elif kind == "agenda":
                 expected = {"agenda": values[0], "span": int(values[1])}
             else:

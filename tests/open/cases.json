@@ -908,5 +908,228 @@
     "column": 0
    }
   }
+ },
+ {
+  "files": {
+   "a.org": "See [[Missing ¦one]] there.\n* A\nText.\n"
+  },
+  "note": "missing headline, not made",
+  "expected": {
+   "error": "No match for fuzzy expression: Missing one"
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[Missing ¦one]] there.\n* A\nText.\n"
+  },
+  "create": true,
+  "note": "missing headline, made",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 4,
+    "column": 0
+   },
+   "text": "See [[Missing one]] there.\n* A\nText.\n* Missing one\n"
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[*New ¦thing]]\n* A\n\n* B\ntext"
+  },
+  "create": true,
+  "note": "missing starred headline, made after blank-separated headings",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 7,
+    "column": 0
+   },
+   "text": "See [[*New thing]]\n* A\n\n* B\ntext\n\n* New thing\n"
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[¦Brand  new]]"
+  },
+  "create": true,
+  "note": "made in a file without headings or final newline",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 2,
+    "column": 0
+   },
+   "text": "[[Brand  new]]\n* Brand  new\n"
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[Missing ¦one]] there.\n* A\nText.\n"
+  },
+  "exact": "t",
+  "note": "missing headline with exact headlines",
+  "expected": {
+   "error": "No match for fuzzy expression: Missing one"
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[some ¦words]] there.\n* A\nHere are Some\n  WORDS in text.\n"
+  },
+  "exact": "nil",
+  "note": "words in the text without exact headlines",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 3,
+    "column": 9
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[only ¦here]] there.\n* A\nText.\n"
+  },
+  "exact": "nil",
+  "note": "words only in the link itself",
+  "expected": {
+   "error": "No match for fuzzy expression: only here"
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[only here]] and [[only ¦here]]\n"
+  },
+  "exact": "nil",
+  "note": "words in another link",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 1,
+    "column": 2
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[*some ¦words]] there.\n* A\nsome words\n"
+  },
+  "exact": "nil",
+  "note": "starred words not in the text",
+  "expected": {
+   "error": "No match for fuzzy expression: *some words"
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[file:b.org::*Not ¦there]]\n",
+   "b.org": "* B\nbody\n"
+  },
+  "create": true,
+  "note": "missing headline of another file, made",
+  "expected": {
+   "goto": {
+    "file": "b.org",
+    "line": 3,
+    "column": 0
+   },
+   "text": "* B\nbody\n* Not there\n"
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[file:b.org::Not ¦there]]\n",
+   "b.org": "* B\nbody\n"
+  },
+  "note": "missing headline of another file, not made",
+  "expected": {
+   "error": "No match for fuzzy expression: Not there"
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[file:b.org::in ¦body]]\n",
+   "b.org": "* B\nthe text in\nbody\n"
+  },
+  "exact": "nil",
+  "note": "words in another file without exact headlines",
+  "expected": {
+   "goto": {
+    "file": "b.org",
+    "line": 2,
+    "column": 9
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "[[doi:10.1000/¦182]]\n"
+  },
+  "doi": "https://dx.doi.org/",
+  "note": "doi with another server",
+  "expected": {
+   "external": "https://dx.doi.org/10.1000/182"
+  }
+ },
+ {
+  "files": {
+   "a.org": "intro [[N¦ew]]\n\n\n"
+  },
+  "create": true,
+  "note": "made after trailing blank lines",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 2,
+    "column": 0
+   },
+   "text": "intro [[New]]\n* New\n"
+  }
+ },
+ {
+  "files": {
+   "a.org": "* A\n\n* B\n\n[[N¦ew]]\n\n"
+  },
+  "create": true,
+  "note": "made after blank-separated headings and blank lines",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 7,
+    "column": 0
+   },
+   "text": "* A\n\n* B\n\n[[New]]\n\n* New\n"
+  }
+ },
+ {
+  "files": {
+   "a.org": "* A\n** B\n   [[N¦ew]]\n"
+  },
+  "create": true,
+  "note": "made after a subtree",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 4,
+    "column": 0
+   },
+   "text": "* A\n** B\n   [[New]]\n* New\n"
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+TITLE: x\n[[*N¦ew one :tag:]]"
+  },
+  "create": true,
+  "note": "made with a tag in the link",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 3,
+    "column": 0
+   },
+   "text": "#+TITLE: x\n[[*New one :tag:]]\n* New one :tag:\n"
+  }
  }
 ]

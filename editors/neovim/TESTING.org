@@ -252,6 +252,7 @@ its sections says what it should look like.
 - [ ] A ~#+LINK: gh https://github.com/%s~ line makes ~[[gh:org-lsp]]~ follow ~https://github.com/org-lsp~; ~org_link_abbrev_alist~ does the same from the settings: ~<Leader>oo~
 - [ ] Following a link to a headline, a custom ID and a ~<<target>>~: ~<Leader>oo~
 - [ ] Following a ~file:~ link with a search (~file:notes.org::*Heading~) and an ~id:~ link: ~<Leader>oo~
+- [ ] Following ~[[No such heading]]~ asks whether to make it; yes adds ~* No such heading~ at the end of the file and goes there: ~<Leader>oo~
 - [ ] Following a URL opens the browser; a timestamp opens its day's agenda: ~<Leader>oo~
 - [ ] Go to definition on a link does the same: ~gd~ or ~vim.lsp.buf.definition()~
 - [ ] Storing a link to a headline and inserting it elsewhere with a description: ~<Leader>ols~, ~<Leader>oli~

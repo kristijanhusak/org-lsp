@@ -643,7 +643,7 @@ export const AREAS = [
       ['Default descriptions from the link type: an `id:` link\'s headline, an `info:` link\'s command', true],
       ['Moving to the next and previous link (`C-c C-x C-n`, `C-c C-x C-p`)', true],
       ['A search by regular expression (`file:x.org::/regexp/`): a sparse tree of its matches (`org-occur`), in the file the link is in', true],
-      ['Making a missing headline a link searches for (`org-link-search-must-match-exact-headline`)', false],
+      ['Making a missing headline a link searches for, or looking for its words in the text (`org-link-search-must-match-exact-headline`); `doi:` links at `org-link-doi-server-url`', true],
       ['Following a link with `RET` (`org-return-follows-link`)', false],
     ],
     editors: {
@@ -654,6 +654,7 @@ export const AREAS = [
       { text: 'A `#+LINK: gh https://github.com/%s` line makes `[[gh:org-lsp]]` follow `https://github.com/org-lsp`; `org_link_abbrev_alist` does the same from the settings', cmd: 'org.open' },
       { text: 'Following a link to a headline, a custom ID and a `<<target>>`', cmd: 'org.open' },
       { text: 'Following a `file:` link with a search (`file:notes.org::*Heading`) and an `id:` link', cmd: 'org.open' },
+      { text: 'Following `[[No such heading]]` asks whether to make it; yes adds `* No such heading` at the end of the file and goes there', cmd: 'org.open', not: ['helix'] },
       { text: 'Following a URL opens the browser; a timestamp opens its day\'s agenda', cmd: 'org.open', not: ['helix'] },
       { text: 'Go to definition on a link does the same', keys: { neovim: '`gd` or `vim.lsp.buf.definition()`', vim: 'the client\'s go to definition', vscode: '`F12`', sublime: '*LSP: Goto Definition*', zed: '`F12`', helix: '`gd`' } },
       { text: 'Storing a link to a headline and inserting it elsewhere with a description', cmd: ['org.link.store', 'org.link.insert'], not: ['helix'] },

@@ -210,7 +210,7 @@ fn up_heading(text: &str, offset: usize, count: i64) -> Result<usize, String> {
 
 /// `org-next-link`, or `org-previous-link` when `backward`.
 fn next_link(text: &str, parse: &Parse, offset: usize, backward: bool, failed_before: bool) -> Moved {
-    let links = crate::open::links(text, parse, &[]);
+    let links = crate::open::links(text, parse, &[], &crate::open::Settings::default());
     let mut point = offset;
     let mut message = None;
     if failed_before {

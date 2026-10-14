@@ -206,7 +206,7 @@
   "org-bibtex-type-property-name": "absent"
  },
  "ol-doi.el": {
-  "org-link-doi-server-url": "missing"
+  "org-link-doi-server-url": "setting"
  },
  "ol-gnus.el": {
   "org-gnus-prefer-web-links": "absent",
@@ -229,7 +229,7 @@
   "org-link-abbrev-alist": "setting",
   "org-link-translation-function": "lisp",
   "org-link-frame-setup": "emacs-only",
-  "org-link-search-must-match-exact-headline": "missing",
+  "org-link-search-must-match-exact-headline": "setting",
   "org-link-use-indirect-buffer-for-internals": "emacs-only",
   "org-link-shell-confirm-function": "lisp",
   "org-link-shell-skip-confirm-regexp": "absent",

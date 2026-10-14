@@ -2198,6 +2198,20 @@
                 }
               ]
             },
+            "org_link_search_must_match_exact_headline": {
+              "enum": [
+                true,
+                false,
+                "query-to-create"
+              ],
+              "markdownDescription": "What a link to a headline that is not there does: `\"query-to-create\"` asks whether to make it, at the end of the file, when the link is followed (`org.open`); `true` is an error; `false` looks for its words in the text. (`org-link-search-must-match-exact-headline`)",
+              "default": "query-to-create"
+            },
+            "org_link_doi_server_url": {
+              "type": "string",
+              "markdownDescription": "What a `doi:` link is opened at: this, then the DOI. (`org-link-doi-server-url`)",
+              "default": "https://doi.org/"
+            },
             "org_id_link_to_org_use_id": {
               "enum": [
                 true,

@@ -41,6 +41,38 @@ pub enum Open {
     /// An `attachment:` link: a file of the entry's attachment directory,
     /// which Emacs knows (`org-attach-expand`), and a search after `::`.
     Attachment(String),
+    /// A link to a headline of this text that is not there, which
+    /// `org-link-search-must-match-exact-headline` offers to make: the
+    /// search, as the link has it.
+    Create(String),
+}
+
+/// `org-link-search-must-match-exact-headline`: what a search for a
+/// headline that is not there does.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ExactHeadline {
+    /// `nil`: the words are looked for in the text.
+    No,
+    /// `t`: an error.
+    Yes,
+    /// `query-to-create`: the headline is offered to be made.
+    #[default]
+    QueryToCreate,
+}
+
+/// How links are followed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Settings {
+    /// `org-link-search-must-match-exact-headline`
+    pub exact_headline: ExactHeadline,
+    /// `org-link-doi-server-url`
+    pub doi_server: String,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Settings { exact_headline: ExactHeadline::default(), doi_server: "https://doi.org/".to_string() }
+    }
 }
 
 /// A link offered by `org-offer-links-in-entry`.
@@ -55,11 +87,12 @@ pub struct Choice {
 /// abbreviations in force, the file's first, the link it stands for.
 pub type CallAbbreviation<'a> = &'a dyn Fn(&str, &[(String, String)]) -> Result<String, String>;
 
-/// The link abbreviations in force, and what expands those that call a
-/// function, if anything.
+/// The link abbreviations in force, what expands those that call a
+/// function, if anything, and how links are followed.
 struct Abbreviations<'a> {
     list: Vec<(String, String)>,
     call: Option<CallAbbreviation<'a>>,
+    settings: &'a Settings,
 }
 
 /// `org-open-at-point` at `offset`. `answer` is the key picked when the
@@ -71,7 +104,7 @@ pub fn at_point(
     answer: Option<char>,
     global: &[(String, String)],
 ) -> Result<Open, String> {
-    at_point_calling(text, parse, offset, answer, global, None)
+    at_point_calling(text, parse, offset, answer, global, None, &Settings::default())
 }
 
 /// `at_point`, with `call` for the abbreviations that call a function.
@@ -82,8 +115,9 @@ pub fn at_point_calling(
     answer: Option<char>,
     global: &[(String, String)],
     call: Option<CallAbbreviation>,
+    settings: &Settings,
 ) -> Result<Open, String> {
-    let abbreviations = Abbreviations { list: abbreviations(text, global), call };
+    let abbreviations = Abbreviations { list: abbreviations(text, global), call, settings };
     // A word a radio target makes a link: to the target, when it is there
     // as written.
     // The link takes the blanks after it in.
@@ -135,7 +169,7 @@ pub fn at_point_calling(
                 Some("src") => return Err("Source block results are not supported".to_string()),
                 _ => {}
             },
-            SyntaxKind::HEADLINE => return headline(&node, text, parse, offset, answer, global, call),
+            SyntaxKind::HEADLINE => return headline(&node, text, parse, offset, answer, global, call, settings),
             _ => {}
         }
     }
@@ -184,8 +218,8 @@ fn is_link(node: &SyntaxNode) -> bool {
 
 /// The links of a text: bracket, angle and plain links, in order.
 /// `global` is `org-link-abbrev-alist`.
-pub fn links(text: &str, parse: &Parse, global: &[(String, String)]) -> Vec<Link> {
-    let abbreviations = Abbreviations { list: abbreviations(text, global), call: None };
+pub fn links(text: &str, parse: &Parse, global: &[(String, String)], settings: &Settings) -> Vec<Link> {
+    let abbreviations = Abbreviations { list: abbreviations(text, global), call: None, settings };
     let mut links: Vec<Link> =
         parse.syntax().descendants().filter(is_link).map(|node| link_of(&node, text, parse, &abbreviations)).collect();
     // And the words radio targets make links.
@@ -202,10 +236,16 @@ pub fn links(text: &str, parse: &Parse, global: &[(String, String)]) -> Vec<Link
 }
 
 /// The link the character at `offset` is in.
-pub fn link_at(text: &str, parse: &Parse, offset: usize, global: &[(String, String)]) -> Option<Link> {
+pub fn link_at(
+    text: &str,
+    parse: &Parse,
+    offset: usize,
+    global: &[(String, String)],
+    settings: &Settings,
+) -> Option<Link> {
     let token = token_at(&parse.syntax(), offset)?;
     let node = token.parent_ancestors().find(is_link)?;
-    Some(link_of(&node, text, parse, &Abbreviations { list: abbreviations(text, global), call: None }))
+    Some(link_of(&node, text, parse, &Abbreviations { list: abbreviations(text, global), call: None, settings }))
 }
 
 /// The link abbreviations of `text`: its `#+LINK:` lines, the last first
@@ -382,15 +422,22 @@ fn open_link(node: &SyntaxNode, text: &str, parse: &Parse, abbreviations: &Abbre
             "id" => Ok(Open::Id(path.split("::").next().unwrap_or(path).to_string())),
             "http" | "https" | "ftp" | "mailto" | "news" => Ok(Open::External(raw.clone())),
             // `org-link-doi-server-url`.
-            "doi" => Ok(Open::External(format!("https://doi.org/{path}"))),
+            "doi" => Ok(Open::External(format!("{}{path}", abbreviations.settings.doi_server))),
             other => Err(format!("Links of type \"{other}\" are not supported")),
         };
     }
     if !bracket {
         return Err(NO_LINK.to_string());
     }
-    // Internal: a coderef `(name)`, a custom ID `#id`, or fuzzy.
-    search(text, parse, &raw).map(Open::Here)
+    // Internal: a coderef `(name)`, a custom ID `#id`, or fuzzy, which
+    // does not find itself.
+    let exact = abbreviations.settings.exact_headline;
+    let avoid = usize::from(node.text_range().start()) + 2;
+    match search_with(text, parse, &raw, Some(avoid), exact) {
+        Ok(at) => Ok(Open::Here(at)),
+        Err(_) if exact == ExactHeadline::QueryToCreate && may_create(&raw) => Ok(Open::Create(raw)),
+        Err(error) => Err(error),
+    }
 }
 
 /// The regexp of a search `/regexp/`, which `org-link-search` gives to
@@ -533,6 +580,7 @@ fn open_in_line(text: &str, offset: usize, abbreviations: &Abbreviations) -> Res
 
 /// On a headline: its tag under the cursor (`org-tags-view`), else the
 /// links of the entry (`org-offer-links-in-entry`).
+#[allow(clippy::too_many_arguments)]
 fn headline(
     node: &SyntaxNode,
     text: &str,
@@ -541,6 +589,7 @@ fn headline(
     answer: Option<char>,
     global: &[(String, String)],
     call: Option<CallAbbreviation>,
+    settings: &Settings,
 ) -> Result<Open, String> {
     let line_end = text[usize::from(node.text_range().start())..]
         .find('\n')
@@ -576,7 +625,7 @@ fn headline(
             Some(key) => (0..links.len()).find(|index| offered_key(*index) == key).ok_or("Abort")?,
         },
     };
-    at_point_calling(text, parse, links[chosen].2, None, global, call)
+    at_point_calling(text, parse, links[chosen].2, None, global, call, settings)
 }
 
 /// The key of the link at `index` among those offered: `1`, `2`…
@@ -652,8 +701,34 @@ fn normalized(search: &str) -> String {
 
 /// `org-link-search` in an Org text: where `search` leads. `#id` is a
 /// custom ID, `(name)` a coderef, `*words` a headline, other words a
-/// target, then a `#+NAME:`, then a headline.
+/// target, then a `#+NAME:`, then a headline. A headline must be there,
+/// as with `org-link-search-must-match-exact-headline` set.
 pub fn search(text: &str, parse: &Parse, search: &str) -> Result<usize, String> {
+    search_with(text, parse, search, None, ExactHeadline::Yes)
+}
+
+/// Whether a search that found nothing is one `org-link-search` offers
+/// to make a headline for: one that is not a custom ID, a coderef or a
+/// regular expression.
+pub fn may_create(search: &str) -> bool {
+    let normalized = normalized(search);
+    !(search.trim().is_empty()
+        || normalized.starts_with('#')
+        || (normalized.len() > 1 && normalized.starts_with('(') && normalized.ends_with(')'))
+        || (normalized.len() > 1 && normalized.starts_with('/') && normalized.ends_with('/')))
+}
+
+/// `org-link-search`, with `org-link-search-must-match-exact-headline`
+/// as `exact` says: without it, words that are no headline are looked
+/// for in the text, leaving out a match over `avoid` (the link itself).
+/// A headline to make is an error here, which the caller may offer.
+pub fn search_with(
+    text: &str,
+    parse: &Parse,
+    search: &str,
+    avoid: Option<usize>,
+    exact: ExactHeadline,
+) -> Result<usize, String> {
     if search.trim().is_empty() {
         return Err(format!("Invalid search string \"{search}\""));
     }
@@ -705,7 +780,28 @@ pub fn search(text: &str, parse: &Parse, search: &str) -> Result<usize, String> 
     if let Some(headline) = headline {
         return Ok(usize::from(headline.syntax().text_range().start()));
     }
+    if exact == ExactHeadline::No && !starred {
+        if let Some(at) = words_in_text(text, search, avoid) {
+            return Ok(at);
+        }
+    }
     Err(format!("No match for fuzzy expression: {normalized}"))
+}
+
+/// The regular text search of `org-link-search`: the first place of the
+/// words of `search`, in any case, with any blanks and newlines between
+/// them, that does not hold `avoid`.
+fn words_in_text(text: &str, search: &str, avoid: Option<usize>) -> Option<usize> {
+    let words: Vec<String> = search.split_whitespace().map(regex::escape).collect();
+    if words.is_empty() {
+        return None;
+    }
+    let pattern = regex::RegexBuilder::new(&words.join("[ \\t\\n]+")).case_insensitive(true).build().ok()?;
+    let found = pattern
+        .find_iter(text)
+        .find(|found| !avoid.is_some_and(|avoid| found.start() <= avoid && avoid < found.end()))
+        .map(|found| found.start());
+    found
 }
 
 /// The text of a node's token of `kind`.
@@ -795,12 +891,23 @@ fn coderef(root: &SyntaxNode, text: &str, name: &str) -> Option<usize> {
 /// Where a `file:` link's search option leads in its file: a line number,
 /// `org-link-search` in an Org file (`parse`), else the words in the text.
 pub fn search_in_file(text: &str, parse: Option<&Parse>, option: &str) -> Result<usize, String> {
+    search_in_file_with(text, parse, option, ExactHeadline::Yes)
+}
+
+/// `search_in_file`, with `org-link-search-must-match-exact-headline` as
+/// `exact` says.
+pub fn search_in_file_with(
+    text: &str,
+    parse: Option<&Parse>,
+    option: &str,
+    exact: ExactHeadline,
+) -> Result<usize, String> {
     if !option.is_empty() && option.chars().all(|c| c.is_ascii_digit()) {
         let line: usize = option.parse().unwrap_or(1);
         return Ok(text.split_inclusive('\n').take(line.saturating_sub(1)).map(str::len).sum());
     }
     if let Some(parse) = parse {
-        return search(text, parse, option);
+        return search_with(text, parse, option, None, exact);
     }
     let words: Vec<String> = normalized(option).split_whitespace().map(str::to_lowercase).collect();
     let lower = text.to_lowercase();
@@ -837,7 +944,8 @@ mod tests {
             vec![("gh".to_string(), "https://global/%s".to_string()), ("w".to_string(), "https://w/".to_string())];
         let text = "#+LINK: gh https://local/%s\n[[gh:x]] [[w:Page]] [[fn:f]]\n";
         let parsed = org_syntax::parse(text, &Default::default());
-        let opened: Vec<_> = links(text, &parsed, &global).into_iter().map(|link| link.open).collect();
+        let opened: Vec<_> =
+            links(text, &parsed, &global, &Settings::default()).into_iter().map(|link| link.open).collect();
         assert_eq!(opened[0], Ok(Open::External("https://local/x".to_string())));
         assert_eq!(opened[1], Ok(Open::External("https://w/Page".to_string())));
         let function = vec![("f".to_string(), "%(my-function)".to_string())];

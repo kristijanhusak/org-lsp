@@ -57,7 +57,7 @@ pub fn previews(
         }
         let described = has_description(&node);
         let (path, attachment) = if !described || include_linked {
-            let Some(link) = open::link_at(text, parse, start, global) else { continue };
+            let Some(link) = open::link_at(text, parse, start, global, &open::Settings::default()) else { continue };
             match link.open {
                 Ok(Open::File { path, search: None, .. }) => (path, false),
                 Ok(Open::Attachment(path)) if !path.contains("::") => (path, true),
