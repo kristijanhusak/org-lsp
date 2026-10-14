@@ -1975,6 +1975,21 @@ endfunction
 
 " ----- folds
 
+" 'foldtext' of Org buffers: the fold's first line, then what the server
+" says closed folds show after it (`org-ellipsis`), as Emacs shows a folded
+" heading.
+function! org_lsp#foldtext() abort
+  let text = substitute(getline(v:foldstart), '\t', repeat(' ', &tabstop), 'g')
+  return text . get(s:, 'ellipsis', '...')
+endfunction
+
+function! s:got_ellipsis(error, result) abort
+  if empty(a:error) && type(a:result) == v:t_string
+    let s:ellipsis = a:result
+    redraw!
+  endif
+endfunction
+
 " 'foldexpr' of Org buffers: the levels of the server's folding ranges,
 " fetched after each change.
 function! org_lsp#foldexpr(lnum) abort
@@ -2116,6 +2131,15 @@ function! org_lsp#refold() abort
   setlocal foldmethod=manual
   setlocal foldexpr=org_lsp#foldexpr(v:lnum) foldmethod=expr
   if first
+    " A closed fold shows its first line and `org-ellipsis`, nothing after.
+    setlocal foldtext=org_lsp#foldtext()
+    if &l:fillchars !~# 'fold:' && &fillchars !~# 'fold:'
+      let &l:fillchars = &fillchars . (empty(&fillchars) ? '' : ',') . 'fold: '
+    endif
+    if !exists('s:ellipsis')
+      let s:ellipsis = '...'
+      call org_lsp#request(bufnr(), 'org-lsp/ellipsis', v:null, function('s:got_ellipsis'))
+    endif
     let &l:foldlevel = org_lsp#config().startup_folded ==# 'overview' ? 0 : 99
     if empty(org_lsp#config().startup_folded)
       let params = {'textDocument': {'uri': org_lsp#uri(bufnr())}}

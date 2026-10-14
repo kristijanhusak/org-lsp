@@ -110,7 +110,7 @@ export const AREAS = [
       ['Headline stars as bullets in the colors of their level, the leading ones hidden (org-bullets: `org_bullets_mode`, `org_bullets_bullet_list`); bullets of lists and marks of checkboxes as org-bullets.nvim shows them (`org_bullets_list_bullet`, `org_bullets_checkboxes`)', true],
       ['Sub- and superscripts raised and lowered (`org-pretty-entities-include-sub-superscripts`, `org-use-sub-superscripts`): where Org raises them, shown in Unicode (`x²`, `H₂O`) in place of the hidden text (drawn by the editor where it can, else an inlay hint) where every character has a raised or lowered form; the others left as they are, as an editor cannot raise text', true],
       ['Done headlines in `org-headline-done` past their keyword (`org-fontify-done-headline` at its default), complete statistics cookies as done, the title and the information of the document (`org-document-title`, `org-document-info`)', true],
-      ['The options of how headlines, blocks and markup are shown, set away from their defaults (`org-fontify-done-headline`, `org-fontify-whole-heading-line`, `org-fontify-quote-and-verse-blocks`, `org-hidden-keywords`, `org-hide-macro-markers`, `org-emphasis-alist`, `org-cycle-level-faces`, `org-n-level-faces`, `org-ellipsis`)', false],
+      ['The options of how headlines, blocks and markup are shown, set away from their defaults (`org-fontify-done-headline`, `org-fontify-whole-heading-line`, `org-fontify-quote-and-verse-blocks`, `org-hidden-keywords`, `org-hide-macro-markers`, `org-emphasis-alist`, `org-cycle-level-faces`, `org-n-level-faces`)', false],
     ],
     editors: {
       vim: ['part', 'Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Vim cannot hide text that has text properties.'],
@@ -145,6 +145,7 @@ export const AREAS = [
       ['Startup visibility (`org_startup_folded`, `#+STARTUP:` `overview`, `content`, `show2levels` …, `showall`, `showeverything`), the `VISIBILITY` property, archived subtrees and drawers folded, `hideblocks`; where Org shows a headline\'s children but not its text, the text shows', true],
       ['Blank lines after a subtree kept outside its fold (`org-cycle-separator-lines`)', true],
       ['Archived subtrees left folded (`org-cycle-hide-archived-subtrees`)', true],
+      ['A closed fold shows its first line, then the ellipsis (`org-ellipsis`, `org_ellipsis`)', true],
       ['Sparse trees (`C-c /`)', true],
       ['Narrowing to a subtree or block (`C-x n s`, `C-x n b`) and the subtree in an indirect buffer (`C-c C-x b`): it in a file of its own, all there is to see there, written back each time it is saved', true],
       ['Showing the context of the cursor (`org-reveal`, `C-c C-r`): its entry, the next headline, its siblings and its ancestors, the other folds left as they are; `org.reveal.siblings` (`C-u`) each level with its children, `org.reveal.tree` (`C-u C-u`) the parent\'s whole tree', true],
@@ -152,12 +153,15 @@ export const AREAS = [
     ],
     editors: {
       neovim: ['part', 'Cycling the whole file goes between overview and everything: it has no contents state, which needs folds of a headline\'s own text that Neovim\'s fold levels do not make.'],
-      vim: ['part', 'Cycling the whole file goes between overview and everything: it has no contents state, which needs folds of a headline\'s own text that Vim\'s fold levels do not make.'],
+      vim: ['part', 'Cycling the whole file goes between overview and everything: it has no contents state, which needs folds of a headline\'s own text that Vim\'s fold levels do not make. A closed fold\'s line is not highlighted: Vim draws it in one color.'],
+      vscode: ['part', 'A closed fold ends in VS Code\'s own `⋯`: an extension cannot change it (`org_ellipsis`).'],
+      sublime: ['part', 'A closed fold ends in Sublime Text\'s own marker: a package cannot change it (`org_ellipsis`).'],
       zed: ['part', 'Zed folds with its own folding: Org\'s cycling and sparse trees need folds an extension can set, which Zed does not offer.'],
       helix: ['no', 'Helix has no folding.'],
     },
     checks: [
       { text: 'On a headline, cycling goes folded → children → subtree', keys: { neovim: '`<Tab>`', vim: '`<Tab>`', vscode: '`Tab`', sublime: '`Tab`' } },
+      { text: 'A folded headline shows as it does open, followed by `...`; with `org_ellipsis = " ▾"`, by ` ▾`', only: ['neovim', 'vim'] },
       { text: 'Cycling the whole file goes overview → contents → everything', keys: { vscode: '`Shift+Tab`', sublime: '`Shift+Tab`' }, only: ['vscode', 'sublime'] },
       { text: 'Cycling the whole file goes overview → everything', keys: { neovim: '`<S-Tab>`', vim: '`<S-Tab>`' }, only: ['neovim', 'vim'] },
       { text: 'A file with `#+STARTUP: overview` opens folded; with `content` its headlines show, those without children folded, and its drawers folded', only: ['neovim', 'vim', 'vscode', 'sublime'] },

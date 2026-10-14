@@ -128,6 +128,19 @@ eq(vim.fn.foldclosed(2), -1, 'file starts with everything visible')
 vim.api.nvim_win_set_cursor(0, { 2, 0 })
 press('<Tab>')
 eq({ vim.fn.foldclosed(2), vim.fn.foldclosedend(2) }, { 2, 7 }, 'TAB folds the subtree')
+-- The closed fold shows its headline as it shows open, then
+-- `org-ellipsis` (`...`), as Emacs shows a folded heading.
+local folded = vim.api.nvim_win_call(0, function()
+  vim.v.foldstart = 2
+  return require('org-lsp.folds').foldtext()
+end)
+eq(folded[#folded], { '...', 'OrgLspEllipsis' }, 'the ellipsis after the headline')
+local shown = vim.iter(folded):map(function(chunk)
+  return chunk[1]
+end):join('')
+eq(shown, '* TODO First *bold* :tag:...', 'the headline as it shows open')
+check(vim.tbl_contains(folded[1][2], '@lsp.typemod.stars.level1.org'), 'the stars in the color of their level')
+eq(vim.wo.foldtext, "v:lua.require'org-lsp.folds'.foldtext()", 'foldtext')
 press('<Tab>')
 eq(vim.fn.foldclosed(2), -1, 'TAB again opens it')
 eq({ vim.fn.foldclosed(5), vim.fn.foldclosedend(5) }, { 5, 7 }, '...with the child still folded')

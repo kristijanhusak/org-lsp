@@ -97,7 +97,7 @@ does not work there and why.
 | Feature | Parity | Neovim / Vim / VS Code / Sublime Text / Zed / Helix |
 |---+---+---|
 | [[file:docs/parity.org::#highlighting][Highlighting]] | 94% | ✅ / ❓ / ✅ / ❓ / ❓ / ❌ |
-| [[file:docs/parity.org::#folding-and-visibility][Folding and visibility]] | 89% | ❓ / ❓ / ✅ / ✅ / ❓ / ❌ |
+| [[file:docs/parity.org::#folding-and-visibility][Folding and visibility]] | 90% | ❓ / ❓ / ❓ / ❓ / ❓ / ❌ |
 | [[file:docs/parity.org::#headings-and-structure][Headings and structure]] | 92% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#todo-keywords][TODO keywords]] | 100% | ✅ / ✅ / ✅ / ❓ / ❓ / ❓ |

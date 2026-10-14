@@ -997,6 +997,12 @@ local function set_window_folds(win)
   vim.w[win][key] = true
   vim.wo[win][0].foldmethod = 'expr'
   vim.wo[win][0].foldexpr = 'v:lua.vim.lsp.foldexpr()'
+  -- A closed fold shows its first line and `org-ellipsis`, nothing after.
+  vim.wo[win][0].foldtext = "v:lua.require'org-lsp.folds'.foldtext()"
+  local fillchars = vim.api.nvim_get_option_value('fillchars', { win = win })
+  if not fillchars:find('fold:') then
+    vim.wo[win][0].fillchars = fillchars .. (fillchars == '' and '' or ',') .. 'fold: '
+  end
   -- Everything open, then closed as the server says the file opens
   -- (`#+STARTUP:`, `VISIBILITY`, the settings): the user's 'foldlevel'
   -- does not decide for an Org file.
@@ -1066,6 +1072,7 @@ local function on_init(client)
   end
   require('org-lsp.highlights').define(M.manifest)
   require('org-lsp.highlights').define_faces((client.server_capabilities.experimental or {}).orgFaces)
+  require('org-lsp.folds').ellipsis = (client.server_capabilities.experimental or {}).orgEllipsis or '...'
   require('org-lsp.view').setup(M.manifest)
   set_keys('global')
   for _, fn in ipairs(waiting) do

@@ -40,6 +40,8 @@ its sections says what it should look like.
 
 * Folding and visibility
 
+*Partly:* A closed fold ends in VS Code's own ~⋯~: an extension cannot change it (~org_ellipsis~).
+
 - [ ] On a headline, cycling goes folded → children → subtree: ~Tab~
 - [ ] Cycling the whole file goes overview → contents → everything: ~Shift+Tab~
 - [ ] A file with ~#+STARTUP: overview~ opens folded; with ~content~ its headlines show, those without children folded, and its drawers folded
