@@ -98,6 +98,9 @@ pub struct Settings {
     pub list_circular_motion: bool,
     /// `org-agenda-move-date-from-past-immediately-to-today`
     pub move_date_from_past_to_today: bool,
+    /// How M-RET and its kin insert (`org-M-RET-may-split-line`,
+    /// `org-blank-before-new-entry`, `org-insert-heading-respect-content`).
+    pub insert: crate::meta_return::Settings,
 }
 
 impl Default for Settings {
@@ -111,6 +114,7 @@ impl Default for Settings {
             global_properties: Vec::new(),
             list_circular_motion: false,
             move_date_from_past_to_today: true,
+            insert: crate::meta_return::Settings::default(),
         }
     }
 }

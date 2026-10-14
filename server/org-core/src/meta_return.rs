@@ -20,6 +20,7 @@ use crate::text::tag_group;
 use crate::todo::{self, headline_level, tags_padding, Editor};
 use crate::Refusal;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Settings {
     /// `org-tags-column`.
     pub tags_column: i64,
@@ -32,6 +33,44 @@ pub struct Settings {
     pub below: bool,
     /// `org-provide-todo-statistics` and `org-hierarchical-todo-statistics`
     pub statistics: crate::todo::Statistics,
+    /// `org-M-RET-may-split-line`, for headlines (and text), items and
+    /// tables.
+    pub split: Split,
+    /// `org-blank-before-new-entry`: an empty line before a new heading
+    /// and before a new item, or none for `auto`.
+    pub blank_heading: Option<bool>,
+    pub blank_item: Option<bool>,
+    /// `org-insert-heading-respect-content`: a new heading goes after the
+    /// subtree.
+    pub respect_content: bool,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Settings {
+            tags_column: -77,
+            below: false,
+            statistics: crate::todo::Statistics::default(),
+            split: Split::default(),
+            blank_heading: None,
+            blank_item: None,
+            respect_content: false,
+        }
+    }
+}
+
+/// `org-M-RET-may-split-line`, by context.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Split {
+    pub headline: bool,
+    pub item: bool,
+    pub table: bool,
+}
+
+impl Default for Split {
+    fn default() -> Self {
+        Split { headline: true, item: true, table: true }
+    }
 }
 
 /// Text and a point, edited as Emacs edits a buffer.
@@ -199,7 +238,7 @@ fn title_range(line: &str, keywords: &TodoKeywords) -> Option<(usize, usize)> {
 /// `org-insert-heading`, without the `C-u C-u` form. `respect_content`
 /// puts the heading after the subtree.
 fn insert_heading(buffer: &mut Buffer, keywords: &TodoKeywords, settings: &Settings, respect_content: bool) {
-    let blank = blank_before_heading(&buffer.text, buffer.point);
+    let blank = settings.blank_heading.unwrap_or_else(|| blank_before_heading(&buffer.text, buffer.point));
     let current_heading = heading_at_or_above(&buffer.text, buffer.point);
     let level = current_heading.and_then(|heading| headline_level(line(&buffer.text, heading)));
     let stars = "*".repeat(level.unwrap_or(1));
@@ -242,7 +281,8 @@ fn insert_heading(buffer: &mut Buffer, keywords: &TodoKeywords, settings: &Setti
             buffer.point = buffer.eol();
             return;
         }
-        let title = title_range(line(&buffer.text, bol), keywords).filter(|_| !settings.below);
+        let title =
+            title_range(line(&buffer.text, bol), keywords).filter(|_| !settings.below && settings.split.headline);
         if let Some((_, end)) = title.filter(|(start, end)| (bol + start..=bol + end).contains(&buffer.point)) {
             let split = buffer.text[buffer.point..bol + end].to_string();
             buffer.text.replace_range(buffer.point..bol + end, "");
@@ -274,6 +314,9 @@ fn insert_heading(buffer: &mut Buffer, keywords: &TodoKeywords, settings: &Setti
     if buffer.point == buffer.bol() {
         buffer.insert(&format!("{stars} "));
     } else {
+        if !settings.split.headline {
+            buffer.point = buffer.eol();
+        }
         buffer.insert(&format!("\n{stars} "));
     }
     if !(blank && previous_line_empty(&buffer.text, buffer.point)) {
@@ -388,13 +431,19 @@ pub fn meta_return(text: &str, at: usize, keywords: &TodoKeywords, settings: &Se
     let at = place(text, at, settings);
     // From the end of the line, the table is the line's.
     if at_table(text, if settings.below { line_start(text, at) } else { at }, keywords) {
-        return if settings.below { Ok(insert_row_below(text, at)) } else { wrap_field(text, at) };
+        return if settings.below {
+            Ok(insert_row_below(text, at))
+        } else {
+            wrap_field(text, at, settings.split.table)
+        };
     }
-    if let Some(inserted) = list::insert_item(text, at, false, settings.below, keywords, settings.tags_column)? {
+    let options = list::ItemOptions { split: settings.split.item, blank: settings.blank_item };
+    if let Some(inserted) = list::insert_item(text, at, false, settings.below, keywords, settings.tags_column, options)?
+    {
         return Ok(Outcome { text: inserted.text, cursor: inserted.cursor });
     }
     let mut buffer = Buffer { text: text.to_string(), point: at };
-    insert_heading(&mut buffer, keywords, settings, false);
+    insert_heading(&mut buffer, keywords, settings, settings.respect_content);
     Ok(Outcome { text: buffer.text, cursor: buffer.point })
 }
 
@@ -410,12 +459,15 @@ pub fn insert_todo_heading(
 ) -> Result<Outcome, Refusal> {
     let at = place(text, at, settings);
     if !respect_content {
-        if let Some(inserted) = list::insert_item(text, at, true, settings.below, keywords, settings.tags_column)? {
+        let options = list::ItemOptions { split: settings.split.item, blank: settings.blank_item };
+        if let Some(inserted) =
+            list::insert_item(text, at, true, settings.below, keywords, settings.tags_column, options)?
+        {
             return Ok(Outcome { text: inserted.text, cursor: inserted.cursor });
         }
     }
     let mut buffer = Buffer { text: text.to_string(), point: at };
-    insert_heading(&mut buffer, keywords, settings, respect_content);
+    insert_heading(&mut buffer, keywords, settings, respect_content || settings.respect_content);
     mark_todo(&mut buffer, keywords, settings);
     Ok(Outcome { text: buffer.text, cursor: buffer.point })
 }
@@ -430,13 +482,16 @@ pub fn insert_heading_after(text: &str, at: usize, keywords: &TodoKeywords, sett
 
 /// `org-table-wrap-region` without a region: the field split at the
 /// cursor, what follows it put in front of the field one row down.
-fn wrap_field(text: &str, at: usize) -> Result<Outcome, Refusal> {
+fn wrap_field(text: &str, at: usize, split: bool) -> Result<Outcome, Refusal> {
     let start = line_start(text, at);
     let end = line_end(text, at);
     let current = &text[start..end];
     if is_blank(&text[start..at]) || current.trim_start().starts_with("|-") || is_blank(&text[at..end]) {
         return Err(Refusal::Failed("Not in table data field".to_string()));
     }
+    // Without `org-M-RET-may-split-line` for tables, from the end of the
+    // field.
+    let at = if split { at } else { text[at..end].find(['|', '\r']).map_or(end, |bar| at + bar) };
     let Some(bar) = text[at..].find('|').filter(|bar| *bar > 0) else {
         // `org-table-next-row` aligns the table first: its last row ends
         // with a newline then.
@@ -498,7 +553,9 @@ fn insert_row_below(text: &str, at: usize) -> Outcome {
     }
     let dline = text[first..row].split_terminator('\n').filter(|line| is_data_line(line)).count() + 1;
     let text = fix_formulas(&text, row, dline - 1);
-    Outcome { text, cursor }
+    // `org-table-align`, as a table that was edited may need it
+    // (`org-table-may-need-update`).
+    align(&text, cursor)
 }
 
 /// `org-table-dataline-regexp`
@@ -604,7 +661,7 @@ mod tests {
     #[test]
     fn below_an_empty_item() {
         let keywords = TodoKeywords::default();
-        let settings = Settings { tags_column: -77, below: true, statistics: Default::default() };
+        let settings = Settings { below: true, ..Settings::default() };
         for (text, at, expected, cursor) in
             [("1. \n2. two\n", 0, "1. \n2. \n3. two\n", 7), ("- [ ] \n", 2, "- [ ] \n- [ ] \n", 13)]
         {

@@ -112,6 +112,34 @@ pub const SETTINGS: &[Setting] = &[
          `lognoterepeat` and `nologrepeat` change it in a file, and the `LOGGING` property in an entry.",
     ),
     setting(
+        "org_M_RET_may_split_line",
+        "boolean, object",
+        "true",
+        "org-M-RET-may-split-line",
+        "Inserting a heading, an item or a table row (M-RET) in the middle of a line splits it, the rest going \
+         to the new one; `false`: it goes in after the line. One by context: `{ \"headline\": false, \"item\": \
+         true, \"table\": true }`, `default` for those not named.",
+    ),
+    Setting {
+        default: None,
+        unset: "`auto` for both",
+        ..setting(
+            "org_blank_before_new_entry",
+            "object",
+            "",
+            "org-blank-before-new-entry",
+            "Whether a new heading (`heading`) and a new item (`plain_list_item`) get an empty line before them: \
+             `true`, `false`, or `\"auto\"`, as the headings or items around them have.",
+        )
+    },
+    setting(
+        "org_insert_heading_respect_content",
+        "boolean",
+        "false",
+        "org-insert-heading-respect-content",
+        "M-RET and M-S-RET outside lists put the new heading after the subtree, as C-RET does.",
+    ),
+    setting(
         "org_list_use_circular_motion",
         "boolean",
         "false",
@@ -2243,6 +2271,15 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_log_repeat", r#"{ "enum": [false, "time", "note"] }"#),
     ("org_agenda_dim_blocked_tasks", r#"{ "enum": [true, false, "invisible"] }"#),
     ("org_list_use_circular_motion", BOOLEAN),
+    (
+        "org_M_RET_may_split_line",
+        r#"{ "anyOf": [{ "type": "boolean" }, { "type": "object", "properties": { "headline": { "type": "boolean" }, "item": { "type": "boolean" }, "table": { "type": "boolean" }, "default": { "type": "boolean" } }, "additionalProperties": false }] }"#,
+    ),
+    (
+        "org_blank_before_new_entry",
+        r#"{ "type": "object", "properties": { "heading": { "enum": [true, false, "auto"] }, "plain_list_item": { "enum": [true, false, "auto"] } }, "additionalProperties": false }"#,
+    ),
+    ("org_insert_heading_respect_content", BOOLEAN),
     ("org_enforce_todo_dependencies", BOOLEAN),
     ("org_enforce_todo_checkbox_dependencies", BOOLEAN),
     ("org_log_refile", r#"{ "enum": [false, "time", "note"] }"#),

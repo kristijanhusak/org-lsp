@@ -12,6 +12,8 @@ A case is a JSON object:
                           nil, in a table `org-table-insert-row` with its
                           argument
       "adapt": "nil"      org-adapt-indentation: nil, t or headline-data
+      "emacs": "(org-insert-heading-respect-content t)"
+                          optional: more bindings for the case, as Lisp
     }
 
 `reference(cases)` adds `expected`: `{"text", "point"}` after the key, or
@@ -90,7 +92,7 @@ def reference(cases, timeout=None, preamble=""):
             adapt = adapt if adapt in ("nil", "t") else "'" + adapt
             circular = "t" if case.get("circular") else "nil"
             forms.append(
-                f"(let ((org-list-use-circular-motion {circular}))"
+                f"(let ((org-list-use-circular-motion {circular}) {case.get('emacs', '')})"
                 f" (condition-case err (org-lsp-return-case {lisp_string(source)} {lisp_string(target)}"
                 f" {case['point']} {lisp_string(case.get('key', 'RET'))} {adapt})"
                 f" (error (with-temp-file {lisp_string(target)}"

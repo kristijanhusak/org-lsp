@@ -720,6 +720,22 @@ pub(crate) struct Inserted {
 /// `org-insert-item` at byte `pos`, with a checkbox when `checkbox`, and
 /// after the item at `pos` when `below`. None when `pos` is not in an
 /// item.
+/// How a new item goes in: `org-M-RET-may-split-line` for items, and
+/// the `plain-list-item` of `org-blank-before-new-entry` (none for
+/// `auto`).
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct ItemOptions {
+    pub split: bool,
+    pub blank: Option<bool>,
+}
+
+impl Default for ItemOptions {
+    fn default() -> Self {
+        ItemOptions { split: true, blank: None }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn insert_item(
     text: &str,
     pos: usize,
@@ -727,6 +743,7 @@ pub(crate) fn insert_item(
     below: bool,
     keywords: &org_syntax::TodoKeywords,
     tags_column: i64,
+    options: ItemOptions,
 ) -> Result<Option<Inserted>, Refusal> {
     let Some(itemp) = in_item(text, pos) else { return Ok(None) };
     let list = structure(text, itemp);
@@ -743,7 +760,7 @@ pub(crate) fn insert_item(
     let desc = descriptive.then_some(" :: ");
     let mut buffer = Buffer { text: text.to_string(), point: pos, md: MatchData::default() };
     let mut list = list;
-    insert_in_struct(&mut buffer, pos, &mut list, checkbox, below, desc);
+    insert_in_struct(&mut buffer, pos, &mut list, checkbox, below, desc, options);
     let parents_of = parents(&list);
     write_struct(&mut buffer, &mut list, &parents_of, None)?;
     let mut text = buffer.text;
@@ -864,6 +881,7 @@ fn insert_in_struct(
     checkbox: bool,
     below: bool,
     after_bullet: Option<&str>,
+    options: ItemOptions,
 ) {
     let text = buffer.text.clone();
     // The item that contains `pos`, or the last one.
@@ -900,9 +918,14 @@ fn insert_in_struct(
         }
         None => !below,
     };
-    let split_line = !below;
+    let split_line = !below && options.split;
     let prevs_of = prevs(list);
-    let blank_nb = separating_blank_lines(&text, pos, list, item_index, &prevs_of, &mut buffer.md);
+    // `org-list-separating-blank-lines-number`, with the
+    // `plain-list-item` of `org-blank-before-new-entry`.
+    let blank_nb = match options.blank {
+        Some(blank) => usize::from(blank),
+        None => separating_blank_lines(&text, pos, list, item_index, &prevs_of, &mut buffer.md),
+    };
     let ind = list[item_index].ind.max(0) as usize;
     let bullet = bullet_string(&list[item_index].bullet);
     let box_text = if checkbox { "[ ] " } else { "" };

@@ -100,6 +100,17 @@ pub struct Options {
     /// `org-closed-keep-when-no-todo`
     #[serde(rename = "org_closed_keep_when_no_todo")]
     pub closed_keep_when_no_todo: Option<bool>,
+    /// `org-M-RET-may-split-line`: a boolean, or one by context
+    /// (`headline`, `item`, `table`, `default`).
+    #[serde(rename = "org_M_RET_may_split_line")]
+    pub m_ret_may_split_line: Option<serde_json::Value>,
+    /// `org-blank-before-new-entry`: `heading` and `plain_list_item`, each
+    /// `true`, `false` or `"auto"`.
+    #[serde(rename = "org_blank_before_new_entry")]
+    pub blank_before_new_entry: Option<serde_json::Map<String, serde_json::Value>>,
+    /// `org-insert-heading-respect-content`
+    #[serde(rename = "org_insert_heading_respect_content")]
+    pub insert_heading_respect_content: Option<bool>,
     /// `org-todo-state-tags-triggers`: by state (`""` for none, `todo`,
     /// `done`), the tags to set (`+TAG`) or remove (`-TAG`).
     #[serde(rename = "org_todo_state_tags_triggers")]
@@ -1148,6 +1159,41 @@ impl Options {
         priorities
     }
 
+    /// How M-RET and its kin insert: `org-M-RET-may-split-line`,
+    /// `org-blank-before-new-entry`, `org-insert-heading-respect-content`.
+    pub fn insert_settings(&self) -> org_core::meta_return::Settings {
+        // `org-get-alist-option`: the context's value, else `default`.
+        let split = |context: &str| match &self.m_ret_may_split_line {
+            None => true,
+            Some(serde_json::Value::Object(contexts)) => contexts
+                .get(context)
+                .or_else(|| contexts.get("default"))
+                .is_some_and(|value| value.as_bool().unwrap_or(false)),
+            Some(value) => value.as_bool().unwrap_or(false),
+        };
+        // `auto` is none.
+        let blank = |names: &[&str]| {
+            let entries = self.blank_before_new_entry.as_ref()?;
+            match names.iter().find_map(|name| entries.get(*name)) {
+                None => Some(false),
+                Some(serde_json::Value::Bool(on)) => Some(*on),
+                Some(_) => None,
+            }
+        };
+        org_core::meta_return::Settings {
+            split: org_core::meta_return::Split {
+                headline: split("headline"),
+                item: split("item"),
+                table: split("table"),
+            },
+            blank_heading: blank(&["heading"]),
+            blank_item: blank(&["plain_list_item", "plain-list-item"]),
+            respect_content: self.insert_heading_respect_content.unwrap_or(false),
+            statistics: self.todo_statistics(),
+            ..org_core::meta_return::Settings::default()
+        }
+    }
+
     /// `org-provide-todo-statistics` and `org-hierarchical-todo-statistics`.
     pub fn todo_statistics(&self) -> org_core::todo::Statistics {
         use org_core::todo::ProvideStatistics;
@@ -1333,6 +1379,7 @@ impl Options {
             move_date_from_past_to_today: self
                 .agenda_move_date_from_past_immediately_to_today
                 .unwrap_or(defaults.move_date_from_past_to_today),
+            insert: self.insert_settings(),
         }
     }
 

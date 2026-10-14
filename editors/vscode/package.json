@@ -1568,6 +1568,59 @@
               "markdownDescription": "Record when a repeating entry is done and moves to its next date. `#+STARTUP:` `logrepeat`, `lognoterepeat` and `nologrepeat` change it in a file, and the `LOGGING` property in an entry. (`org-log-repeat`)",
               "default": "time"
             },
+            "org_M_RET_may_split_line": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "headline": {
+                      "type": "boolean"
+                    },
+                    "item": {
+                      "type": "boolean"
+                    },
+                    "table": {
+                      "type": "boolean"
+                    },
+                    "default": {
+                      "type": "boolean"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              ],
+              "markdownDescription": "Inserting a heading, an item or a table row (M-RET) in the middle of a line splits it, the rest going to the new one; `false`: it goes in after the line. One by context: `{ \"headline\": false, \"item\": true, \"table\": true }`, `default` for those not named. (`org-M-RET-may-split-line`)",
+              "default": true
+            },
+            "org_blank_before_new_entry": {
+              "type": "object",
+              "properties": {
+                "heading": {
+                  "enum": [
+                    true,
+                    false,
+                    "auto"
+                  ]
+                },
+                "plain_list_item": {
+                  "enum": [
+                    true,
+                    false,
+                    "auto"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "markdownDescription": "Whether a new heading (`heading`) and a new item (`plain_list_item`) get an empty line before them: `true`, `false`, or `\"auto\"`, as the headings or items around them have. (`org-blank-before-new-entry`)"
+            },
+            "org_insert_heading_respect_content": {
+              "type": "boolean",
+              "markdownDescription": "M-RET and M-S-RET outside lists put the new heading after the subtree, as C-RET does. (`org-insert-heading-respect-content`)",
+              "default": false
+            },
             "org_list_use_circular_motion": {
               "type": "boolean",
               "markdownDescription": "Moving to the next item from the last goes to the first, and back; moving the last item down puts it first, the first up puts it last. (`org-list-use-circular-motion`)",

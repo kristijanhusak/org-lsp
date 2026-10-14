@@ -1458,5 +1458,600 @@
    "text": "3. [@3] counted\n4. [ ] \n5. next\n",
    "point": 23
   }
+ },
+ {
+  "text": "* D [1/3]\n\n   continued text\n\n",
+  "point": 16,
+  "key": "below:M-RET",
+  "settings": {
+   "split_headline": false,
+   "split_item": true,
+   "split_table": false,
+   "respect_content": true
+  },
+  "emacs": "(org-M-RET-may-split-line '((headline . nil) (item . t) (table . nil))) (org-insert-heading-respect-content t)",
+  "expected": {
+   "text": "* D [1/3]\n\n   continued text\n\n* \n",
+   "point": 32
+  }
+ },
+ {
+  "text": "** B :tag:\n1. \n  - [ ] two words [1/2]\n  3. \n  * two words [1/2]\n- [ ] two words [%]\n* E",
+  "point": 54,
+  "key": "C-S-<return>",
+  "settings": {
+   "split_headline": true,
+   "split_item": false,
+   "split_table": true
+  },
+  "emacs": "(org-M-RET-may-split-line '((headline . t) (item . nil) (table . t)))",
+  "expected": {
+   "text": "** B :tag:\n1. \n  - [ ] two words [1/2]\n  3. \n  * two words [1/2]\n- [ ] two words [%]\n** TODO \n* E",
+   "point": 93
+  }
+ },
+ {
+  "text": "** TODO b\nSCHEDULED: <2026-10-05 Mon>\n#+TITLE: x\n\n\n** d\n- a\n  text of a\n- b\n:PROPERTIES:\n:ID: 1\n:Effort:   1:00\n:END:\n  \\end{equation}\n  #+BEGIN: clocktable\n  | x |\n  #+END:\n  |---+---|\n* d\n\n",
+  "point": 13,
+  "key": "M-RET",
+  "settings": {
+   "blank_heading": true,
+   "blank_item": null
+  },
+  "emacs": "(org-blank-before-new-entry '((heading . t) (plain-list-item . auto)))",
+  "expected": {
+   "text": "** TODO b\nSCH\n\n** EDULED: <2026-10-05 Mon>\n#+TITLE: x\n\n\n** d\n- a\n  text of a\n- b\n:PROPERTIES:\n:ID: 1\n:Effort:   1:00\n:END:\n  \\end{equation}\n  #+BEGIN: clocktable\n  | x |\n  #+END:\n  |---+---|\n* d\n\n",
+   "point": 18
+  }
+ },
+ {
+  "text": "** TODO b\n* Title   :tag:\n      #+begin_example\n        example\n      more\n      #+end_example\n\n      #+begin_example\n        example\n      more\n      #+end_example\n\n** c :tag:\n| a | bb | ccc |\n|---+----+-----|\n| 1 | 22 |\n%%(diary-float t 4 2)\n \n\n* c :tag:\n \n\n  - term :: description\n  - other :: x\n  \\begin{equation}\n# comment\n\n  \n \n: fixed\n\n  \n  \n** d\n\t: fixed\n\n* A [0/2]\n \n",
+  "point": 255,
+  "key": "C-S-<return>",
+  "settings": {
+   "split_headline": false,
+   "split_item": true,
+   "split_table": true
+  },
+  "emacs": "(org-M-RET-may-split-line '((headline . nil) (item . t) (table . t)))",
+  "expected": {
+   "text": "** TODO b\n* Title   :tag:\n      #+begin_example\n        example\n      more\n      #+end_example\n\n      #+begin_example\n        example\n      more\n      #+end_example\n\n** c :tag:\n| a | bb | ccc |\n|---+----+-----|\n| 1 | 22 |\n%%(diary-float t 4 2)\n \n\n* c :tag:\n \n\n  - term :: description\n  - other :: x\n  \\begin{equation}\n# comment\n\n  \n \n: fixed\n\n  \n  \n** d\n\t: fixed\n\n* TODO \n\n* A [0/2]\n \n",
+   "point": 371
+  }
+ },
+ {
+  "text": "  + \n  1. [ ] a longer item text\n   | x |\n   * two words\n\n\tz\n",
+  "point": 54,
+  "key": "M-RET",
+  "settings": {
+   "split_headline": false,
+   "split_item": true,
+   "split_table": false
+  },
+  "emacs": "(org-M-RET-may-split-line '((headline . nil) (item . t) (table . nil)))",
+  "expected": {
+   "text": "  + \n  + [ ] a longer item text\n   | x |\n    * two wor\n\n    * ds\n\n\t z\n",
+   "point": 62
+  }
+ },
+ {
+  "text": "* a\n      DEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n1) numbered\n   #+begin_verse\n     verse\n   lines\n   #+end_verse\n\n* d\n\t:NOTES:\n\tinside\n\t:END:\n\t- [ ] box\n\t  - nested\n\t    body\n\t- [X] done\n\ttext\n\n\n\t[fn:2] A footnote\n\tcontinued\n\t\n\tafter one blank\n\t\\begin{equation}\n\n \n  \n\n",
+  "point": 210,
+  "key": "C-S-<return>",
+  "settings": {
+   "blank_heading": null,
+   "blank_item": true
+  },
+  "emacs": "(org-blank-before-new-entry '((heading . auto) (plain-list-item . t)))",
+  "expected": {
+   "text": "* a\n      DEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n1) numbered\n   #+begin_verse\n     verse\n   lines\n   #+end_verse\n\n* d\n\t:NOTES:\n\tinside\n\t:END:\n\t- [ ] box\n\t  - nested\n\t    body\n\t- [X] done\n\ttext\n\n\n\t[fn:2] A footnote\n\tcontinued\n\t\n\tafter one blank\n\t\\begin{equation}\n\n \n  \n\n* TODO \n",
+   "point": 292
+  }
+ },
+ {
+  "text": "* TODO b\nDEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n\n[fn:2] A footnote\ncontinued\n\nafter one blank\n - term :: description\n - other :: x\nmore text\n* TODO b\n* Title   :tag:\n      text\n      x *\n      \\begin{equation}\n      x\n      \\end{equation}\n      \\begin{equation}\n* c :tag:\n\t: fixed\n\t#+TITLE: x\n  \n\n\n* TODO b\n| x |\n| y | z |\n      SCHEDULED: <2026-10-05 Mon>\n  \n\n",
+  "point": 168,
+  "key": "M-RET",
+  "settings": {
+   "split_headline": true,
+   "split_item": false,
+   "split_table": false,
+   "respect_content": true
+  },
+  "emacs": "(org-M-RET-may-split-line '((headline . t) (item . nil) (table . nil))) (org-insert-heading-respect-content t)",
+  "expected": {
+   "text": "* TODO b\nDEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n\n[fn:2] A footnote\ncontinued\n\nafter one blank\n - term :: description\n - other :: x\nmore text\n* TODO b\n* Title   :tag:\n      text\n      x *\n      \\begin{equation}\n      x\n      \\end{equation}\n      \\begin{equation}\n* \n* c :tag:\n\t: fixed\n\t#+TITLE: x\n  \n\n\n* TODO b\n| x |\n| y | z |\n      SCHEDULED: <2026-10-05 Mon>\n  \n\n",
+   "point": 280
+  }
+ },
+ {
+  "text": "\n\n",
+  "point": 0,
+  "key": "C-<return>",
+  "settings": {
+   "split_headline": false,
+   "split_item": false,
+   "split_table": false
+  },
+  "emacs": "(org-M-RET-may-split-line '((headline . nil) (item . nil) (table . nil)))",
+  "expected": {
+   "text": "\n* \n",
+   "point": 3
+  }
+ },
+ {
+  "text": "| a | bb |\n   | x |",
+  "point": 9,
+  "key": "M-RET",
+  "settings": {
+   "split_headline": false,
+   "split_item": true,
+   "split_table": true
+  },
+  "emacs": "(org-M-RET-may-split-line '((headline . nil) (item . t) (table . t)))",
+  "expected": {
+   "text": "| a | bb |\n| x |    |\n",
+   "point": 17
+  }
+ },
+ {
+  "text": "      :PROPERTIES:\n      :ID: 1\n      :Effort:   1:00\n      :END:\n      # comment\n\n \\end{equation}\n\t:LOGBOOK:\n\t- note\n\tCLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n\t:END:\n    [fn:2] A footnote\n    continued\n    \n    after one blank\n** d\n  \n      DEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n- [X] checked item with text\n      # comment\n%%(diary-float t 4 2)\n DEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n* c :tag:\n:NOTES:\n- [ ] parent [1/2]\n  - [X] one\n  - [ ] two\ninside\n:END:\n\n \n\n** d\n\tSCHEDULED: <2026-10-05 Mon>\n\ttext\n** a\n      DEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n      [fn:1] note\n\n\n** c :tag:\n  \n| a | bb | ccc |\n|---+----+-----|\n| 1 | 22 |\n\n\n1. one\n2. two\n3. three",
+  "point": 187,
+  "key": "below:M-RET",
+  "settings": {
+   "respect_content": true
+  },
+  "emacs": "(org-insert-heading-respect-content t)",
+  "expected": {
+   "text": "      :PROPERTIES:\n      :ID: 1\n      :Effort:   1:00\n      :END:\n      # comment\n\n \\end{equation}\n\t:LOGBOOK:\n\t- note\n\tCLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n\t:END:\n    [fn:2] A footnote\n    continued\n    \n    after one blank\n* \n\n** d\n  \n      DEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n- [X] checked item with text\n      # comment\n%%(diary-float t 4 2)\n DEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n* c :tag:\n:NOTES:\n- [ ] parent [1/2]\n  - [X] one\n  - [ ] two\ninside\n:END:\n\n \n\n** d\n\tSCHEDULED: <2026-10-05 Mon>\n\ttext\n** a\n      DEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n      [fn:1] note\n\n\n** c :tag:\n  \n| a | bb | ccc |\n|---+----+-----|\n| 1 | 22 |\n\n\n1. one\n2. two\n3. three",
+   "point": 252
+  }
+ },
+ {
+  "text": "    | c | d |\n  + [ ] one [1/2]\n   - [ ] a longer item text [%]\n  continued text\n\n",
+  "point": 35,
+  "key": "below:M-S-<return>",
+  "settings": {
+   "respect_content": true
+  },
+  "emacs": "(org-insert-heading-respect-content t)",
+  "expected": {
+   "text": "    | c | d |\n  + [ ] one [0/2]\n    - [ ] a longer item text [0%]\n    - [ ] \n  continued text\n\n",
+   "point": 76
+  }
+ },
+ {
+  "text": "** B :tag:\n1. [X] a longer item text [%]\n:DRAWER:\n- in drawer\n:END:\n\n    \tz",
+  "point": 50,
+  "key": "below:M-RET",
+  "settings": {
+   "split_headline": true,
+   "split_item": false,
+   "split_table": true,
+   "respect_content": true
+  },
+  "emacs": "(org-M-RET-may-split-line '((headline . t) (item . nil) (table . t))) (org-insert-heading-respect-content t)",
+  "expected": {
+   "text": "** B :tag:\n1. [X] a longer item text [%]\n:DRAWER:\n- in drawer\n- \n:END:\n\n    \tz",
+   "point": 64
+  }
+ },
+ {
+  "text": "* d\n\t:LOGBOOK:\n\t- note\n\tCLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n\t:END:\n  :PROPERTIES:\n  :ID: 1\n  :Effort:   1:00\n  :END:\n\n  \n* c :tag:\n #+BEGIN: clocktable\n | x |\n #+END:\n  \n \n\n:PROPERTIES:\n:END:\n\\end{equation}\n** TODO b\nDEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n    # comment\n\n  - nested item\n    1. first\n    2. second\n       continued\n* d\n\t#+begin_quote\n\tquoted\n\t\n\tagain\n\t#+end_quote\n \n  \n- term :: definition\n- other :: more\n** c :tag:\n\\begin{equation}\n  - nested item\n\n\n\n",
+  "point": 497,
+  "key": "C-S-<return>",
+  "settings": {
+   "split_headline": false,
+   "split_item": true,
+   "split_table": true
+  },
+  "emacs": "(org-M-RET-may-split-line '((headline . nil) (item . t) (table . t)))",
+  "expected": {
+   "text": "* d\n\t:LOGBOOK:\n\t- note\n\tCLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n\t:END:\n  :PROPERTIES:\n  :ID: 1\n  :Effort:   1:00\n  :END:\n\n  \n* c :tag:\n #+BEGIN: clocktable\n | x |\n #+END:\n  \n \n\n:PROPERTIES:\n:END:\n\\end{equation}\n** TODO b\nDEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n    # comment\n\n  - nested item\n    1. first\n    2. second\n       continued\n* d\n\t#+begin_quote\n\tquoted\n\t\n\tagain\n\t#+end_quote\n \n  \n- term :: definition\n- other :: more\n** c :tag:\n\\begin{equation}\n  - nested item\n** TODO \n",
+   "point": 517
+  }
+ },
+ {
+  "text": "* D [1/3]\n\n",
+  "point": 3,
+  "key": "C-<return>",
+  "settings": {
+   "split_headline": true,
+   "split_item": true,
+   "split_table": true
+  },
+  "emacs": "(org-M-RET-may-split-line '((headline . t) (item . t) (table . t)))",
+  "expected": {
+   "text": "* D [1/3]\n\n* \n",
+   "point": 13
+  }
+ },
+ {
+  "text": "** a\nSCHEDULED: <2026-10-05 Mon>\n  text\n- [ ] a box item\n  - one\n    two\n  \n  - three\n\n** a\n#+NAME: tbl\n| x |\n* a\n  \n  SCHEDULED: <2026-10-05 Mon>\n  : fixed\n  | a | b |\n    \\begin{equation}\n    x\n    \\end{equation}\n\n| x |\n| y | z |\n\n\n\n** DONE Done title :x:",
+  "point": 184,
+  "key": "below:M-S-<return>",
+  "settings": {
+   "split_headline": true,
+   "split_item": false,
+   "split_table": true,
+   "blank_heading": null,
+   "blank_item": true
+  },
+  "emacs": "(org-M-RET-may-split-line '((headline . t) (item . nil) (table . t))) (org-blank-before-new-entry '((heading . auto) (plain-list-item . t)))",
+  "expected": {
+   "text": "** a\nSCHEDULED: <2026-10-05 Mon>\n  text\n- [ ] a box item\n  - one\n    two\n  \n  - three\n\n** a\n#+NAME: tbl\n| x |\n* a\n  \n  SCHEDULED: <2026-10-05 Mon>\n  : fixed\n  | a | b |\n    \\begin{equation}\n* TODO \n    x\n    \\end{equation}\n\n| x |\n| y | z |\n\n\n\n** DONE Done title :x:",
+   "point": 197
+  }
+ },
+ {
+  "text": "+ one\n\n",
+  "point": 7,
+  "key": "C-S-<return>",
+  "settings": {
+   "respect_content": true
+  },
+  "emacs": "(org-insert-heading-respect-content t)",
+  "expected": {
+   "text": "+ one\n* TODO \n",
+   "point": 13
+  }
+ },
+ {
+  "text": "* d\n      | a | b |\n\n\n      [fn:2] A footnote\n      continued\n      \n      after one blank\n\t- term :: description\n\t- other :: x\n\t\\begin{equation}\n* TODO b\n\n* c :tag:\n\n- one\n  two\n\n- three\ntext\n  \n \n\n\n \n\n  - nested item\n* c :tag:\nDEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n- one\n  two\n\n- three\n\n\n\n** a\n \n\n\n",
+  "point": 283,
+  "key": "M-RET",
+  "settings": {
+   "respect_content": true
+  },
+  "emacs": "(org-insert-heading-respect-content t)",
+  "expected": {
+   "text": "* d\n      | a | b |\n\n\n      [fn:2] A footnote\n      continued\n      \n      after one blank\n\t- term :: description\n\t- other :: x\n\t\\begin{equation}\n* TODO b\n\n* c :tag:\n\n- one\n  two\n\n- three\ntext\n  \n \n\n\n \n\n  - nested item\n* c :tag:\nDEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n- one\n  two\n\n- three\n\n\n\n** a\n* \n",
+   "point": 315
+  }
+ },
+ {
+  "text": "** B :tag:\n1. [X] two words\n| x |\n+ \n\n",
+  "point": 13,
+  "key": "C-<return>",
+  "settings": {
+   "respect_content": true
+  },
+  "emacs": "(org-insert-heading-respect-content t)",
+  "expected": {
+   "text": "** B :tag:\n1. [X] two words\n| x |\n+ \n\n** \n",
+   "point": 41
+  }
+ },
+ {
+  "text": "| a | bb |\n   - term :: definition\n    + \n\n1. [ ] term :: definition [1/2]\n\n",
+  "point": 66,
+  "key": "C-<return>",
+  "settings": {
+   "split_headline": false,
+   "split_item": false,
+   "split_table": false
+  },
+  "emacs": "(org-M-RET-may-split-line '((headline . nil) (item . nil) (table . nil)))",
+  "expected": {
+   "text": "| a | bb |\n   - term :: definition\n    + \n\n1. [ ] term :: definition [1/2]\n* \n",
+   "point": 77
+  }
+ },
+ {
+  "text": "** d\n\\begin{equation}\n  \n\n  \n  x *\n\n*** d\nDEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n\n**** c :tag:\n#+begin_src emacs-lisp -i\n(message)\n#+end_src\n    *bold* start\n",
+  "point": 126,
+  "key": "C-<return>",
+  "settings": {
+   "blank_heading": true,
+   "blank_item": true
+  },
+  "emacs": "(org-blank-before-new-entry '((heading . t) (plain-list-item . t)))",
+  "expected": {
+   "text": "** d\n\\begin{equation}\n  \n\n  \n  x *\n\n*** d\nDEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n\n**** c :tag:\n#+begin_src emacs-lisp -i\n(message)\n#+end_src\n    *bold* start\n\n**** \n",
+   "point": 180
+  }
+ },
+ {
+  "text": "* TODO C [0/2]\n  |---+----|\n  2) \n   | a | bb |\n\n",
+  "point": 39,
+  "key": "M-S-<return>",
+  "settings": {
+   "split_headline": false,
+   "split_item": false,
+   "split_table": false,
+   "blank_heading": false,
+   "blank_item": true
+  },
+  "emacs": "(org-M-RET-may-split-line '((headline . nil) (item . nil) (table . nil))) (org-blank-before-new-entry '((heading . nil) (plain-list-item . t)))",
+  "expected": {
+   "text": "* TODO C [0/1]\n  |---+----|\n  1) \n   | a | bb |\n\n  2) [ ] \n\n",
+   "point": 58
+  }
+ },
+ {
+  "text": "* TODO C [0/2]\n\n   - x\n- [X] two words\n   * a longer item text\n   + \n\n  2) two words [%]",
+  "point": 21,
+  "key": "M-S-<return>",
+  "settings": {
+   "blank_heading": false,
+   "blank_item": null
+  },
+  "emacs": "(org-blank-before-new-entry '((heading . nil) (plain-list-item . auto)))",
+  "expected": {
+   "text": "* TODO C [1/2]\n\n   - [ ] \n   - x\n   - [X] two words\n     * a longer item text\n     * \n\n   - two words [0%]",
+   "point": 25
+  }
+ },
+ {
+  "text": "** d\nDEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n\\begin{equation}\n  \n* A [0/2]\n\n* TODO [#A] A title here :work:home:\n  %%(diary-float t 4 2)\n  #+begin_src sh\n  echo\n- [X] checked item with text\n    nested\n  #+end_src\n",
+  "point": 3,
+  "key": "below:M-RET",
+  "settings": {
+   "blank_heading": true,
+   "blank_item": null
+  },
+  "emacs": "(org-blank-before-new-entry '((heading . t) (plain-list-item . auto)))",
+  "expected": {
+   "text": "** d\n\n** \nDEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n\\begin{equation}\n  \n* A [0/2]\n\n* TODO [#A] A title here :work:home:\n  %%(diary-float t 4 2)\n  #+begin_src sh\n  echo\n- [X] checked item with text\n    nested\n  #+end_src\n",
+   "point": 9
+  }
+ },
+ {
+  "text": "* TODO b\n#+begin_verse\n- term :: definition\n- other :: more\n  verse\nlines\n#+end_verse\n1) numbered\n\n: fixed\n* Plain title\n%%(diary-float t 4 2)\n\n  \n[fn:1] note\n* d\n   \\end{equation}\n",
+  "point": 148,
+  "key": "M-RET",
+  "settings": {
+   "blank_heading": true,
+   "blank_item": true,
+   "respect_content": true
+  },
+  "emacs": "(org-blank-before-new-entry '((heading . t) (plain-list-item . t))) (org-insert-heading-respect-content t)",
+  "expected": {
+   "text": "* TODO b\n#+begin_verse\n- term :: definition\n- other :: more\n  verse\nlines\n#+end_verse\n1) numbered\n\n: fixed\n* Plain title\n%%(diary-float t 4 2)\n\n  \n[fn:1] note\n\n* \n\n* d\n   \\end{equation}\n",
+   "point": 162
+  }
+ },
+ {
+  "text": "   \\end{equation}\n* Title   :tag:\nDEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n# comment\n    #+begin_verse\n      verse\n    lines\n    #+end_verse\n\n  \n* a\nSCHEDULED: <2026-10-05 Mon>\n: fixed\n \n  \n1. one\n2. two\n3. three\nCLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\nmore text\n  # comment\n \n\n \n* TODO b\n  \\begin{equation}\n  1. first\n  2. second\n     continued\n\n  \n* TODO b\n:PROPERTIES:\n:END:\nx *\n- [ ] a box item\n",
+  "point": 269,
+  "key": "C-<return>",
+  "settings": {
+   "respect_content": true
+  },
+  "emacs": "(org-insert-heading-respect-content t)",
+  "expected": {
+   "text": "   \\end{equation}\n* Title   :tag:\nDEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n# comment\n    #+begin_verse\n      verse\n    lines\n    #+end_verse\n\n  \n* a\nSCHEDULED: <2026-10-05 Mon>\n: fixed\n \n  \n1. one\n2. two\n3. three\nCLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\nmore text\n  # comment\n \n\n \n* \n\n* TODO b\n  \\begin{equation}\n  1. first\n  2. second\n     continued\n\n  \n* TODO b\n:PROPERTIES:\n:END:\nx *\n- [ ] a box item\n",
+   "point": 319
+  }
+ },
+ {
+  "text": "",
+  "point": 0,
+  "key": "M-RET",
+  "settings": {
+   "split_headline": false,
+   "split_item": true,
+   "split_table": false,
+   "blank_heading": null,
+   "blank_item": false
+  },
+  "emacs": "(org-M-RET-may-split-line '((headline . nil) (item . t) (table . nil))) (org-blank-before-new-entry '((heading . auto) (plain-list-item . nil)))",
+  "expected": {
+   "text": "* ",
+   "point": 2
+  }
+ },
+ {
+  "text": "** NEXT x\n* c :tag:\n\\end{equation}\n\n** d\n   a longer line of text\n* d\n  - nested item\n:LOGBOOK:\n- note\nCLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n:END:\na longer line of text\n:NOTES:\ninside\n:END:\n*bold* start\n\n[fn:1] note\n  \n\n* c :tag:\n      CLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n #+NAME: thing\n      : fixed\n    : fixed\n \n  \n** NEXT x",
+  "point": 276,
+  "key": "below:M-S-<return>",
+  "settings": {
+   "split_headline": false,
+   "split_item": false,
+   "split_table": true
+  },
+  "emacs": "(org-M-RET-may-split-line '((headline . nil) (item . nil) (table . t)))",
+  "expected": {
+   "text": "** NEXT x\n* c :tag:\n\\end{equation}\n\n** d\n   a longer line of text\n* d\n  - nested item\n:LOGBOOK:\n- note\nCLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n:END:\na longer line of text\n:NOTES:\ninside\n:END:\n*bold* start\n\n[fn:1] note\n  \n\n* c :tag:\n      CLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n\n* TODO \n #+NAME: thing\n      : fixed\n    : fixed\n \n  \n** NEXT x",
+   "point": 332
+  }
+ },
+ {
+  "text": "* TODO C [0/2]\n  - \n3.  [%]\n   3. [X] a longer item text [1/2]",
+  "point": 7,
+  "key": "M-S-<return>",
+  "settings": {
+   "respect_content": true
+  },
+  "emacs": "(org-insert-heading-respect-content t)",
+  "expected": {
+   "text": "* TODO C [0/2]\n  - \n3.  [%]\n   3. [X] a longer item text [1/2]\n* TODO \n",
+   "point": 70
+  }
+ },
+ {
+  "text": "  * [@4] [ ]\n- a longer item text [%]\n| c | d |\n| c | d |\n    3.\n3. [@4] a longer item text\n  3. ",
+  "point": 45,
+  "key": "below:M-RET",
+  "settings": {
+   "split_headline": false,
+   "split_item": true,
+   "split_table": false,
+   "blank_heading": true,
+   "blank_item": false,
+   "respect_content": true
+  },
+  "emacs": "(org-M-RET-may-split-line '((headline . nil) (item . t) (table . nil))) (org-blank-before-new-entry '((heading . t) (plain-list-item . nil))) (org-insert-heading-respect-content t)",
+  "expected": {
+   "text": "  * [@4] [ ]\n- a longer item text [%]\n| c | d |\n|   |   |\n| c | d |\n    3.\n3. [@4] a longer item text\n  3. ",
+   "point": 50
+  }
+ },
+ {
+  "text": "** B :tag:\n3. [X] a longer item text\n\n",
+  "point": 34,
+  "key": "M-S-<return>",
+  "settings": {
+   "blank_heading": true,
+   "blank_item": true
+  },
+  "emacs": "(org-blank-before-new-entry '((heading . t) (plain-list-item . t)))",
+  "expected": {
+   "text": "** B :tag:\n1. [X] a longer item te\n\n2. [ ] xt\n\n",
+   "point": 43
+  }
+ },
+ {
+  "text": "* A\n2) [ ] term :: definition [%]\n| a | bb |\n  3. one [1/2]\n| c | d |\n    | x |\n    more\n2) ",
+  "point": 91,
+  "key": "M-RET",
+  "settings": {
+   "blank_heading": false,
+   "blank_item": false,
+   "respect_content": true
+  },
+  "emacs": "(org-blank-before-new-entry '((heading . nil) (plain-list-item . nil))) (org-insert-heading-respect-content t)",
+  "expected": {
+   "text": "* A\n2) [ ] term :: definition [%]\n| a | bb |\n  3. one [1/2]\n| c | d |\n    | x |\n    more\n1) \n2) ",
+   "point": 92
+  }
+ },
+ {
+  "text": "** c :tag:\n:PROPERTIES:\n:ID: 1\n:Effort:   1:00\n:END:\n-----\n \n  \n\n*** c :tag:\n\t# comment\n\t[fn:2] A footnote\n\tcontinued\n\t\n\tafter one blank\n\n-----\n \n*** TODO b\n\n  \n  \n** TODO b\n:NOTES:\ninside\n:END:\n*bold* start\n \n  \n\n\n\n",
+  "point": 25,
+  "key": "M-RET",
+  "settings": {
+   "blank_heading": false,
+   "blank_item": null
+  },
+  "emacs": "(org-blank-before-new-entry '((heading . nil) (plain-list-item . auto)))",
+  "expected": {
+   "text": "** c :tag:\n:PROPERTIES:\n:\n** ID: 1\n:Effort:   1:00\n:END:\n-----\n \n  \n\n*** c :tag:\n\t# comment\n\t[fn:2] A footnote\n\tcontinued\n\t\n\tafter one blank\n\n-----\n \n*** TODO b\n\n  \n  \n** TODO b\n:NOTES:\ninside\n:END:\n*bold* start\n \n  \n\n\n\n",
+   "point": 29
+  }
+ },
+ {
+  "text": "** c :tag:\n\n \n \n\tmore text\n \n\n** c :tag:\n-----\n- [ ] parent [1/2]\n  - [X] one\n  - [ ] two\n   #+begin_comment\n   commented\n   #+end_comment\n   CLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n   #+begin_example\n     example\n- [ ] parent [1/2]\n  - [X] one\n  - [ ] two\n   more\n   #+end_example\n*** TODO b\n # comment\n\n- [ ] box\n  - nested item\n  - nested\n    body\n- [X] done\n \n1. first\n2. second\n   continued\n  x *\n\n\n**** a\n    %%(diary-float t 4 2)\nmore text\n  DEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n\n\n \n**** a\nDEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n      \\end{equation}\n|---+---|\n\n\n \n\n",
+  "point": 361,
+  "key": "M-S-<return>",
+  "settings": {
+   "blank_heading": false,
+   "blank_item": false
+  },
+  "emacs": "(org-blank-before-new-entry '((heading . nil) (plain-list-item . nil)))",
+  "expected": {
+   "text": "** c :tag:\n\n \n \n\tmore text\n \n\n** c :tag:\n-----\n- [ ] parent [1/2]\n  - [X] one\n  - [ ] two\n   #+begin_comment\n   commented\n   #+end_comment\n   CLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n   #+begin_example\n     example\n- [ ] parent [1/2]\n  - [X] one\n  - [ ] two\n   more\n   #+end_example\n*** TODO b\n # comment\n\n- [ ] box\n  - nested item\n  - nes\n  - [ ] ted\n    body\n- [X] done\n \n- first\n- second\n  continued\n x *\n\n\n**** a\n    %%(diary-float t 4 2)\nmore text\n  DEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n\n\n \n**** a\nDEADLINE: <2026-10-09 Fri> SCHEDULED: <2026-10-05 Mon>\n      \\end{equation}\n|---+---|\n\n\n \n\n",
+   "point": 370
+  }
+ },
+ {
+  "text": "   3. \n\n   1. [-] x [%]\n    more\n- two words [%]\n  + [X] a longer item text [1/2]\n  - [ ] two words\n+ [-] x [%]\n",
+  "point": 82,
+  "key": "M-S-<return>",
+  "settings": {
+   "split_headline": true,
+   "split_item": true,
+   "split_table": true
+  },
+  "emacs": "(org-M-RET-may-split-line '((headline . t) (item . t) (table . t)))",
+  "expected": {
+   "text": "   1. \n\n   2. [-] x [0%]\n    more\n   3. two words [33%]\n      + [X] a longer item text [0/0]\n      + [ ] \n      + [ ] two words\n   4. [-] x [0%]\n",
+   "point": 105
+  }
+ },
+ {
+  "text": "* d\n :PROPERTIES:\n :END:\n    CLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n    | a | b |\n    #+begin_export html\n    <b>x</b>\n    #+end_export\n* TODO b\n|---+---|\nx *\n\tCLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n\n\n",
+  "point": 70,
+  "key": "M-RET",
+  "settings": {
+   "split_headline": true,
+   "split_item": true,
+   "split_table": false
+  },
+  "emacs": "(org-M-RET-may-split-line '((headline . t) (item . t) (table . nil)))",
+  "expected": {
+   "text": "* d\n :PROPERTIES:\n :END:\n    CLOCK: [2026-10-05 Mon 09:00]--[2026-10-0\n* 5 Mon 10:00] =>  1:00\n    | a | b |\n    #+begin_export html\n    <b>x</b>\n    #+end_export\n* TODO b\n|---+---|\nx *\n\tCLOCK: [2026-10-05 Mon 09:00]--[2026-10-05 Mon 10:00] =>  1:00\n\n\n",
+   "point": 73
+  }
+ },
+ {
+  "text": "* D [1/3]\n    |---+----|\n    - [ ] term :: definition\n\n\n   - [ ] one [1/2]\n   - [-] x [%]\n   * [ ] a longer item text [1/2]\n    + [ ] term :: definition [%]\n\n",
+  "point": 113,
+  "key": "C-<return>",
+  "settings": {
+   "split_headline": true,
+   "split_item": false,
+   "split_table": true
+  },
+  "emacs": "(org-M-RET-may-split-line '((headline . t) (item . nil) (table . t)))",
+  "expected": {
+   "text": "* D [1/3]\n    |---+----|\n    - [ ] term :: definition\n\n\n   - [ ] one [1/2]\n   - [-] x [%]\n   * [ ] a longer item text [1/2]\n    + [ ] term :: definition [%]\n\n* \n",
+   "point": 160
+  }
+ },
+ {
+  "text": "Text with   trailing   \n* TODO b",
+  "point": 17,
+  "key": "C-S-<return>",
+  "settings": {
+   "split_headline": false,
+   "split_item": false,
+   "split_table": false,
+   "blank_heading": false,
+   "blank_item": null
+  },
+  "emacs": "(org-M-RET-may-split-line '((headline . nil) (item . nil) (table . nil))) (org-blank-before-new-entry '((heading . nil) (plain-list-item . auto)))",
+  "expected": {
+   "text": "Text with   trailing   \n* TODO \n\n* TODO b",
+   "point": 31
+  }
+ },
+ {
+  "text": "      -----\n  \n\n \n\n* c :tag:\n\\begin{equation}\n \n\n\n  - nested item\n  \n\n\n",
+  "point": 27,
+  "key": "C-<return>",
+  "settings": {
+   "blank_heading": null,
+   "blank_item": true
+  },
+  "emacs": "(org-blank-before-new-entry '((heading . auto) (plain-list-item . t)))",
+  "expected": {
+   "text": "      -----\n  \n\n \n\n* c :tag:\n\\begin{equation}\n \n\n\n  - nested item\n  \n\n\n* \n",
+   "point": 73
+  }
+ },
+ {
+  "text": "* TODO C [0/2]\n   continued text\n    + [-] a longer item text\n   -\n** F\n\n   - [@4] [ ] two words\n    * [-] a longer item text [%]\n  *  [1/2]\n\n",
+  "point": 70,
+  "key": "M-RET",
+  "settings": {
+   "split_headline": true,
+   "split_item": false,
+   "split_table": false,
+   "blank_heading": false,
+   "blank_item": true
+  },
+  "emacs": "(org-M-RET-may-split-line '((headline . t) (item . nil) (table . nil))) (org-blank-before-new-entry '((heading . nil) (plain-list-item . t)))",
+  "expected": {
+   "text": "* TODO C [0/2]\n   continued text\n    + [-] a longer item text\n   -\n** \n** F\n\n   - [@4] [ ] two words\n    * [-] a longer item text [%]\n  *  [1/2]\n\n",
+   "point": 75
+  }
+ },
+ {
+  "text": "\t:PROPERTIES:\n\t:END:\n* TODO [#A] A title here :work:home:\n*bold* start\n\n  \n  \n** TODO b\n  :PROPERTIES:\n  :ID: 1\n  :Effort:   1:00\n  :END:\n- [X] checked item with text\n#+NAME: thing\n    |---+---|\n* c :tag:\n#+TITLE: x\n  *bold* start\n\t| a | b |\n\ta longer line of text\n  \n\n",
+  "point": 137,
+  "key": "below:M-RET",
+  "settings": {
+   "split_headline": true,
+   "split_item": false,
+   "split_table": true,
+   "blank_heading": null,
+   "blank_item": true
+  },
+  "emacs": "(org-M-RET-may-split-line '((headline . t) (item . nil) (table . t))) (org-blank-before-new-entry '((heading . auto) (plain-list-item . t)))",
+  "expected": {
+   "text": "\t:PROPERTIES:\n\t:END:\n* TODO [#A] A title here :work:home:\n*bold* start\n\n  \n  \n** TODO b\n  :PROPERTIES:\n  :ID: 1\n  :Effort:   1:00\n  :END:\n\n** \n- [X] checked item with text\n#+NAME: thing\n    |---+---|\n* c :tag:\n#+TITLE: x\n  *bold* start\n\t| a | b |\n\ta longer line of text\n  \n\n",
+   "point": 142
+  }
  }
 ]
