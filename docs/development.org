@@ -137,3 +137,12 @@ their GitHub releases.
    (Vim 9's own), vim-lsp, coc.nvim and ALE. Clients without server-owned
    documents get the agenda as a file (the server already writes one) and
    the plain input box instead of the calendar.
+5. /A small priority cookie before ~COMMENT~./ Decided: ~* [#a] COMMENT x~
+   is not a commented headline, in every view. Emacs works out
+   ~:commentedp~ once, when it is first asked, and keeps it: the agenda
+   and the TODO list ask with ~case-fold-search~ nil, where ~[#a]~ is no
+   cookie, a tags match with it on, where it is one and the headline is
+   commented. What a view shows then depends on which view ran first.
+   org-lsp reads the cookie with case, as the agenda, ~org-get-heading~
+   and ~org-element-context~ do, and ~scripts/agenda_reference.py~ asks
+   Emacs that way before any view, so the recorded cases agree.

@@ -280,6 +280,7 @@ fn keys(item: &Item, files: &[&Outline]) -> Keys {
         ItemKind::Block => "block".to_string(),
         ItemKind::Sexp => "sexp".to_string(),
         ItemKind::Todo => format!("todo{}", item.ts_type),
+        ItemKind::Tags => format!("tagsmatch{}", item.ts_type),
         ItemKind::Search => "search".to_string(),
         ItemKind::Log => item.log.unwrap_or("").to_string(),
         ItemKind::Grid => String::new(),
@@ -307,7 +308,11 @@ fn keys(item: &Item, files: &[&Outline]) -> Keys {
         priority: item.base_priority,
         urgency: item.priority,
         effort: effort_minutes(item, files),
-        category: entry.map(|(_, entry)| entry.category.clone()).unwrap_or_default(),
+        // `org-scan-tags` leaves `org-category` nil for `nil`.
+        category: entry
+            .filter(|(_, entry)| !(item.kind == ItemKind::Tags && entry.no_category))
+            .map(|(_, entry)| entry.category.clone())
+            .unwrap_or_default(),
         tag,
         todo,
         keywords: entry.map(|(outline, _)| outline.todo.names().map(str::to_string).collect()).unwrap_or_default(),
@@ -319,11 +324,12 @@ fn keys(item: &Item, files: &[&Outline]) -> Keys {
 }
 
 /// `todo-state`: the keyword of the entry, as the syntax tree has it for
-/// a planning line; none on a line of a search, which Org makes without.
+/// a planning line and a tags match; none on a line of a search, which
+/// Org makes without.
 fn todo_state<'a>(item: &Item, entry: &'a crate::outline::Entry) -> Option<&'a str> {
     match item.kind {
         ItemKind::Search => None,
-        ItemKind::Deadline | ItemKind::Scheduled => entry.element_todo.as_deref(),
+        ItemKind::Deadline | ItemKind::Scheduled | ItemKind::Tags => entry.element_todo.as_deref(),
         _ => entry.todo.as_deref(),
     }
 }

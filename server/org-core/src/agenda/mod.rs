@@ -544,6 +544,16 @@ impl Builder<'_> {
         self.line_item(file, entry_index, &head, kind, face, extra, dotime)
     }
 
+    /// A line of `org-scan-tags` for the entry `entry_index`: its
+    /// `org-get-heading`, without a time (`dotime`).
+    fn scanned(&self, file: usize, entry_index: usize) -> Item {
+        let outline = self.files[file];
+        let entry = &outline.entries[entry_index];
+        let line = &outline.text[entry.offset..entry.line_end];
+        let heading = crate::outline::get_heading(line, entry.level, &outline.todo);
+        self.line_item(file, entry_index, heading.trim_start(), ItemKind::Tags, Face::Default, "", Dotime::No)
+    }
+
     /// An item of `head` (the headline, or what a diary sexp gives) for the
     /// entry `entry_index`.
     #[allow(clippy::too_many_arguments)]
@@ -560,11 +570,14 @@ impl Builder<'_> {
         let outline = self.files[file];
         let entry = &outline.entries[entry_index];
         let breadcrumbs = self.breadcrumbs(file, entry_index);
+        // `org-scan-tags` passes no category for `nil`, and
+        // `org-agenda-format-item` takes the file name instead.
+        let category = if kind == ItemKind::Tags && entry.no_category { &outline.name } else { &entry.category };
         let formatted = format_item(&FormatInput {
             format: &self.format,
             extra,
             head,
-            category: &entry.category,
+            category,
             tags: &entry.tags,
             dotime,
             remove_stamps: kind == ItemKind::Timestamp,
@@ -577,7 +590,9 @@ impl Builder<'_> {
             evaluator: &self.config.prefix_evaluator,
         });
         let mut text = formatted.text;
-        let priority = priority(&text, outline.priorities.as_ref().unwrap_or(&self.config.priorities));
+        // `org-scan-tags` reads the cookie ignoring case (`[#a]`).
+        let priorities = outline.priorities.as_ref().unwrap_or(&self.config.priorities);
+        let priority = priority(&text, priorities, kind == ItemKind::Tags);
         let keyword_len =
             normalise_keyword(&mut text, formatted.heading, outline.todo.names(), &self.config.todo_keyword_format)
                 .unwrap_or(0);
@@ -1471,8 +1486,7 @@ pub fn tags_view(files: &[&Outline], matcher: &Matcher, todo_only: bool, now: No
             if outline.entries[index].skipped(config.archives) || !matcher.matches(outline, index, todo_only, clock) {
                 continue;
             }
-            // `org-scan-tags` formats the line without a time (`dotime`).
-            let mut item = builder.item(file, index, ItemKind::Todo, Face::Default, "", Dotime::No);
+            let mut item = builder.scanned(file, index);
             sort_date(&mut item, outline, index, config, ViewType::Tags);
             items.push(item);
         }
@@ -1552,8 +1566,7 @@ pub fn stuck_view(files: &[&Outline], now: Now, config: &Config) -> Result<View,
             if skip.iter().any(|pattern| pattern.is_match(subtree)) {
                 continue;
             }
-            // `org-scan-tags` formats the line without a time (`dotime`).
-            let mut item = builder.item(file, index, ItemKind::Todo, Face::Default, "", Dotime::No);
+            let mut item = builder.scanned(file, index);
             sort_date(&mut item, outline, index, config, ViewType::Tags);
             items.push(item);
         }
@@ -1609,7 +1622,11 @@ pub fn search_view(
                 && (!search.todo_only || todo.is_match(seen))
                 && search.plus.iter().all(|pattern| pattern.is_match(seen));
             let resume = if wanted {
-                let mut item = builder.item(file, entry, ItemKind::Search, Face::Default, "", Dotime::Headline);
+                // `(skip-chars-forward "* ")`: a title's own leading stars go too.
+                let line = &text[outline.entries[entry].offset..outline.entries[entry].line_end];
+                let head = crate::text::trim(line.trim_start_matches(['*', ' ']));
+                let mut item =
+                    builder.line_item(file, entry, head, ItemKind::Search, Face::Default, "", Dotime::Headline);
                 // `priority` and `urgency` are 1000 for every line.
                 item.priority = 1000;
                 item.base_priority = 1000;

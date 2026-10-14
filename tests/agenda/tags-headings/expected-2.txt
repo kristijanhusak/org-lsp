@@ -1,0 +1,15 @@
+Headlines with TAGS match: /TODO
+  work:       TODO [#7] :a-b:
+  work:       TODO [#A] capital priority
+  kw:         TODO before the drawer
+  notes:      TODO unset
+  notes:      TODO child of unset
+              TODO empty
+  nil more:   TODO more
+  work:       TODO keyword after a tab
+  work:       TODO plain
+  work:       TODO                                                        :only:
+  work:       TODO under it
+  work:       TODO [#a] small priority
+  work:       TODO [#b] another small one
+  work:       TODO alpha [#b] COMMENT x

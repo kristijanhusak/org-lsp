@@ -46,6 +46,9 @@ pub enum ItemKind {
     Block,
     Timestamp,
     Todo,
+    /// A line of a tags match or of stuck projects (`org-scan-tags`),
+    /// whose `todo-state` is the keyword of the syntax tree.
+    Tags,
     Grid,
     /// A line of log mode: closed, clocked, or a state change.
     Log,
@@ -744,12 +747,15 @@ pub fn format_item(input: &FormatInput<'_>) -> Formatted {
 /// `org-get-priority`: the value of the first priority cookie in `text`,
 /// or the default priority. Higher is more urgent.
 ///
-/// A cookie holds one capital letter or a number from 0 to 64.
-pub fn priority(text: &str, priorities: &Priorities) -> i64 {
+/// A cookie holds one capital letter or a number from 0 to 64; any
+/// letter with `case_fold` (`case-fold-search`).
+pub fn priority(text: &str, priorities: &Priorities, case_fold: bool) -> i64 {
     let bytes = text.as_bytes();
     let digit = |b: u8| i64::from(b - b'0');
     let value = text.match_indices("[#").find_map(|(at, _)| match bytes[at + 2..] {
-        [letter, b']', ..] if letter.is_ascii_uppercase() => Some(i64::from(letter)),
+        [letter, b']', ..] if letter.is_ascii_uppercase() || (case_fold && letter.is_ascii_lowercase()) => {
+            Some(i64::from(letter))
+        }
         [ones, b']', ..] if ones.is_ascii_digit() => Some(digit(ones)),
         [tens @ b'1'..=b'5', ones @ b'0'..=b'9', b']', ..] | [tens @ b'6', ones @ b'0'..=b'4', b']', ..] => {
             Some(10 * digit(tens) + digit(ones))
@@ -1022,19 +1028,21 @@ mod tests {
 
     #[test]
     fn priorities() {
-        let priority_of = |text: &str| priority(text, &Priorities::default());
+        let priority_of = |text: &str| priority(text, &Priorities::default(), false);
         assert_eq!(priority_of("TODO Task"), 1000);
         assert_eq!(priority_of("TODO [#A] Task"), 2000);
         assert_eq!(priority_of("TODO [#C] Task"), 0);
         assert_eq!(priority_of("x [#a] y"), 1000);
+        // With case folding, as in a tags match, `a` is 97.
+        assert_eq!(priority("x [#a] y", &Priorities::default(), true), -30000);
         assert_eq!(priority_of("x [#Z] y"), -23000);
         assert_eq!(priority_of("x [#5] y"), 62000);
         assert_eq!(priority_of("x [#64] y"), 3000);
         assert_eq!(priority_of("x [#65] [#05] y"), 1000);
         assert_eq!(priority_of("[#] [#B]"), 1000);
         let wide = Priorities { highest: 65, lowest: 69, default: 67 };
-        assert_eq!(priority("TODO Task", &wide), 2000);
-        assert_eq!(priority("[#A]", &wide), 4000);
+        assert_eq!(priority("TODO Task", &wide, false), 2000);
+        assert_eq!(priority("[#A]", &wide, false), 4000);
     }
 
     #[test]

@@ -1009,9 +1009,12 @@ fn item_tags(facts: &Facts) -> Vec<String> {
 fn todo_state<'a>(facts: &Facts<'a>) -> Option<&'a str> {
     match facts.item.kind {
         ItemKind::Grid | ItemKind::Log | ItemKind::Search => None,
-        // `org-agenda-get-deadlines` and `-scheduled` read the element,
-        // the others `org-get-todo-state`: tabs around the keyword differ.
-        ItemKind::Deadline | ItemKind::Scheduled => facts.entry.and_then(|(_, entry)| entry.element_todo.as_deref()),
+        // `org-agenda-get-deadlines`, `-scheduled` and `org-scan-tags`
+        // read the element, the others `org-get-todo-state`: tabs around
+        // the keyword differ.
+        ItemKind::Deadline | ItemKind::Scheduled | ItemKind::Tags => {
+            facts.entry.and_then(|(_, entry)| entry.element_todo.as_deref())
+        }
         _ => facts.entry.and_then(|(_, entry)| entry.todo.as_deref()),
     }
 }
