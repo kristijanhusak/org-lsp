@@ -233,17 +233,38 @@ end
 
 --- How an image of `file` shows in a window `available` columns wide:
 --- the cells it takes, and the one side the terminal is told to scale it
---- to (`{ width = n }` or `{ height = n }`), when it is larger than
---- `max_width` and `max_height` allow. An image is never given both: the
---- terminal keeps its proportions, at its own size in pixels where it fits,
---- rather than stretching it over whole cells.
+--- to (`{ width = n }` or `{ height = n }`), when the server gives it a
+--- width (`org-image-actual-width`) or it is larger than `maxWidth`
+--- (`org-image-max-width`), `max_width` and `max_height` allow. An image is
+--- never given both: the terminal keeps its proportions, at its own size
+--- in pixels where it fits, rather than stretching it over whole cells.
+---@param sizing { width?: table, maxWidth?: table } what the server says of the item
 ---@return integer width, integer height, table scale
-local function cells(file, available)
+local function cells(file, available, sizing)
   local cell = cell_size()
   local columns, rows = file.width / cell.width, file.height / cell.height
-  local most_columns = math.max(1, math.min(config().max_width or 80, available))
+  -- A width as the server gives it: pixels, a part of the window's text, or columns.
+  local function of(size)
+    if type(size) ~= 'table' then
+      return nil
+    end
+    return size.pixels and size.pixels / cell.width
+      or size.fraction and size.fraction * available
+      or size.columns
+  end
+  local most_columns = math.max(1, math.min(config().max_width or available, available))
   local most_rows = config().max_height or 20
+  local wanted = of(sizing.width)
+  if wanted and wanted > 0 then
+    rows, columns = rows * wanted / columns, wanted
+  elseif of(sizing.maxWidth) then
+    most_columns = math.max(1, math.min(most_columns, of(sizing.maxWidth)))
+  end
   if columns <= most_columns and rows <= most_rows then
+    if wanted then
+      local width = math.max(1, math.floor(columns + 0.5))
+      return width, math.max(1, math.ceil(rows)), { width = width }
+    end
     return math.max(1, math.ceil(columns)), math.max(1, math.ceil(rows)), {}
   end
   if most_columns / columns <= most_rows / rows then
@@ -479,8 +500,9 @@ function M.clear(bufnr)
   end
 end
 
---- Show image `path` at `range` (an LSP range) of buffer `bufnr`.
-local function add(bufnr, kind, range, path)
+--- Show image `path` at `range` (an LSP range) of buffer `bufnr`, as wide
+--- as `sizing` says (the server's `width` and `maxWidth`).
+local function add(bufnr, kind, range, path, sizing)
   local file = load(path)
   if not file then
     return false
@@ -489,7 +511,8 @@ local function add(bufnr, kind, range, path)
   local info = win ~= -1 and vim.fn.getwininfo(win)[1] or { width = vim.o.columns, textoff = 0 }
   local start = math.min(range.start.line, vim.api.nvim_buf_line_count(bufnr) - 1)
   local available = info.width - info.textoff - 1
-  local width, height, scale = cells(file, math.max(available - indentation(bufnr, start), math.floor(available / 2)))
+  local width, height, scale =
+    cells(file, math.max(available - indentation(bufnr, start), math.floor(available / 2)), sizing or {})
   local lines = {}
   for _ = 1, height do
     table.insert(lines, { { '' } })
@@ -549,7 +572,7 @@ function M.apply(preview, quiet)
     remove(bufnr, old)
     local count = 0
     for _, item in ipairs(preview.items or {}) do
-      if add(bufnr, preview.kind, item.range, item.path) then
+      if add(bufnr, preview.kind, item.range, item.path, item) then
         count = count + 1
       end
     end
@@ -586,6 +609,7 @@ function M.list(bufnr)
       width = entry.width,
       height = entry.height,
       windows = vim.tbl_count(entry.ids),
+      scale = entry.scale,
     })
   end
   table.sort(out, function(a, b)

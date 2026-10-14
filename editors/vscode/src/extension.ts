@@ -1256,8 +1256,18 @@ interface Preview {
   range: { start: { line: number; character: number }; end: { line: number; character: number } };
   remove: boolean | null;
   includeLinked?: boolean;
-  items?: { range: Preview['range']; path: string }[];
+  items?: { range: Preview['range']; path: string; width?: ImageSize; maxWidth?: ImageSize }[];
   startup?: boolean;
+}
+
+/**
+ * A width the server gives an image (`org-image-actual-width`,
+ * `org-image-max-width`): pixels, a part of the window's text, or columns.
+ */
+interface ImageSize {
+  pixels?: number;
+  fraction?: number;
+  columns?: number;
 }
 
 /** An image file: as a `data:` URI, its type and its size in pixels. */
@@ -1278,6 +1288,8 @@ interface ImageShown {
   end: number;
   text: string;
   file: ImageFile;
+  /** How wide the server says it shows, or at most. */
+  sizing: { width?: ImageSize; maxWidth?: ImageSize };
   /** The image as the editor draws it: an SVG of the size it takes in the line. */
   icon: vscode.Uri;
   width: number;
@@ -1439,7 +1451,8 @@ async function applyPreview(preview: Preview, quiet = false): Promise<void> {
       const start = offset(item.range.start);
       const end = offset(item.range.end);
       const text = document.getText(new vscode.Range(document.positionAt(start), document.positionAt(end)));
-      kept.push({ kind: preview.kind, path: item.path, start, end, text, file, ...lineImage(file) });
+      const sizing = { width: item.width, maxWidth: item.maxWidth };
+      kept.push({ kind: preview.kind, path: item.path, start, end, text, file, sizing, ...lineImage(file) });
       count += 1;
     });
     kept.sort((a, b) => a.start - b.start);
@@ -1532,6 +1545,22 @@ function imagesChanged(event: vscode.TextDocumentChangeEvent): void {
   }
 }
 
+/**
+ * How wide the image of a preview shows on hover, in pixels: as wide as
+ * the server says (`org-image-actual-width`), else its own width up to the
+ * most it says (`org-image-max-width`), and never more than 600, the
+ * hover's width. Columns are those of the editor's font.
+ */
+function hoverWidth(entry: ImageShown): number {
+  const hover = 600;
+  const column = vscode.workspace.getConfiguration('editor').get<number>('fontSize', 14) * 0.6;
+  const pixels = (size?: ImageSize) =>
+    size?.pixels ?? (size?.fraction !== undefined ? size.fraction * hover : size?.columns !== undefined ? size.columns * column : undefined);
+  const wanted = pixels(entry.sizing.width);
+  const shown = wanted ?? Math.min(entry.file.width, pixels(entry.sizing.maxWidth) ?? entry.file.width);
+  return Math.max(1, Math.round(Math.min(shown, hover)));
+}
+
 /** The image of a preview, whole, on hover over it. */
 const imageHover: vscode.HoverProvider = {
   provideHover(document, position) {
@@ -1540,7 +1569,7 @@ const imageHover: vscode.HoverProvider = {
     if (!entry) {
       return undefined;
     }
-    const width = Math.min(entry.file.width, 600);
+    const width = hoverWidth(entry);
     // The file itself, not its data: VS Code cuts a hover's text short
     // past 100,000 characters.
     const markdown = new vscode.MarkdownString(`![](${vscode.Uri.file(entry.path).toString()}|width=${width})`);

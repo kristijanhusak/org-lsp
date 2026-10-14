@@ -469,8 +469,9 @@ IMAGE_MAX_WIDTH = 800
 IMAGE_MAX_HEIGHT = 400
 
 # The previews each view shows, by view id, as Emacs keeps its overlays:
-# `{key, kind, path, text, width, height}`, where `key` names a region
-# that follows the edits around its text.
+# `{key, kind, path, text, width, height, sizing}`, where `key` names a
+# region that follows the edits around its text and `sizing` is how wide
+# the server says it shows (`width`) or at most (`maxWidth`).
 image_previews = {}
 image_phantoms = {}
 image_keys = [0]
@@ -585,7 +586,8 @@ def apply_preview(preview, quiet=False) -> None:
             key = 'org-lsp-image-{}'.format(image_keys[0])
             view.add_regions(key, [region], '', '', sublime.HIDDEN)
             entries.append({'key': key, 'kind': preview['kind'], 'path': item['path'], 'text': view.substr(region),
-                            'width': size[0], 'height': size[1]})
+                            'width': size[0], 'height': size[1],
+                            'sizing': {'width': item.get('width'), 'maxWidth': item.get('maxWidth')}})
             count += 1
         if link:
             if count:
@@ -597,6 +599,35 @@ def apply_preview(preview, quiet=False) -> None:
                 tell("[{}] No images to display inline.  Use `C-u C-u' or 11 argument to preview the whole "
                      'buffer'.format(scope))
     draw_images(view)
+
+
+def image_shown(view, entry, most):
+    """The width and height in pixels the image of `entry` shows at, in a
+    view at most `most` wide: as wide as the server says
+    (`org-image-actual-width`), else its own width up to the most it says
+    (`org-image-max-width`), never wider than `most` nor higher than
+    `IMAGE_MAX_HEIGHT`, keeping its proportions."""
+    sizing = entry.get('sizing') or {}
+
+    def pixels(size):
+        if not isinstance(size, dict):
+            return None
+        if size.get('pixels') is not None:
+            return size['pixels']
+        if size.get('fraction') is not None:
+            return size['fraction'] * most
+        if size.get('columns') is not None:
+            return size['columns'] * view.em_width()
+        return None
+
+    wanted = pixels(sizing.get('width'))
+    if wanted:
+        scale = wanted / entry['width']
+    else:
+        limit = pixels(sizing.get('maxWidth'))
+        scale = min(1.0, limit / entry['width']) if limit else 1.0
+    scale = min(scale, most / entry['width'], IMAGE_MAX_HEIGHT / entry['height'])
+    return max(1, round(entry['width'] * scale)), max(1, round(entry['height'] * scale))
 
 
 def draw_images(view) -> None:
@@ -613,8 +644,7 @@ def draw_images(view) -> None:
             view.erase_regions(entry['key'])
             entries.remove(entry)
             continue
-        scale = min(1.0, most / entry['width'], IMAGE_MAX_HEIGHT / entry['height'])
-        width, height = max(1, round(entry['width'] * scale)), max(1, round(entry['height'] * scale))
+        width, height = image_shown(view, entry, most)
         content = '<body style="margin: 0.2rem 0; padding: 0"><img src="{}" width="{}" height="{}"></body>'.format(
             html.escape(file_url(entry['path'])), width, height)
         phantoms.append(sublime.Phantom(sublime.Region(regions[0].end()), content, sublime.LAYOUT_BELOW))

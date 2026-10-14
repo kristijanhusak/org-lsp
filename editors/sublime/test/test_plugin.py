@@ -787,6 +787,18 @@ class Tests(unittest.TestCase):
         self.assertEqual([(note.method, note.params) for note in sent], [('org-lsp/cursor', {
             'textDocument': {'uri': 'file:///roam/a.org'}, 'position': {'line': 2, 'character': 1}})])
 
+    def test_images_show_as_wide_as_the_server_says(self):
+        view = types.SimpleNamespace(em_width=lambda: 8.0)
+        entry = {'width': 400, 'height': 100}
+        shown = lambda sizing: self.plugin.image_shown(view, dict(entry, sizing=sizing), 800)
+        self.assertEqual(shown({}), (400, 100))
+        # `org-image-actual-width`: pixels, or a part of the view.
+        self.assertEqual(shown({'width': {'pixels': 200}}), (200, 50))
+        self.assertEqual(shown({'width': {'fraction': 0.75}}), (600, 150))
+        # `org-image-max-width`: 40 columns of 8 pixels, for one at its own width.
+        self.assertEqual(shown({'maxWidth': {'columns': 40}}), (320, 80))
+        self.assertEqual(shown({'maxWidth': {'columns': 70}}), (400, 100))
+
     def test_tells_the_server_how_wide_the_agenda_is(self):
         sent = []
         session = types.SimpleNamespace(send_notification=sent.append)

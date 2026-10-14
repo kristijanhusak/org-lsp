@@ -1228,6 +1228,25 @@ pub const SETTINGS: &[Setting] = &[
          re-indenting (range formatting) and to what commands write.",
     ),
     setting(
+        "org_image_actual_width",
+        "boolean, number, or [number]",
+        "true",
+        "org-image-actual-width",
+        "How wide the image of a link shows: `true` at its own width; a number, that many pixels; `false` or a \
+         list of one number, the `:width` of the paragraph's `#+ATTR_ORG:` or else of another `#+ATTR_…:` \
+         (pixels, `50%` or a fraction up to 2 of the text's width, `t` for its own width), else the list's \
+         number. An entry's `ORG-IMAGE-ACTUAL-WIDTH` property decides for its own text.",
+    ),
+    setting(
+        "org_image_max_width",
+        "\"fill-column\", \"window\", number, or null",
+        r#""fill-column""#,
+        "org-image-max-width",
+        "How wide at most an image shown at its own width is: `\"fill-column\"`, 70 columns; `\"window\"`, \
+         the window's width; an integer, that many pixels; a float, that part of the window's width; null for \
+         no limit.",
+    ),
+    setting(
         "org_startup_with_link_previews",
         "boolean",
         "false",
@@ -2816,6 +2835,11 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_cycle_open_archived_trees", BOOLEAN),
     ("org_adapt_indentation", r#"{ "enum": [true, false, "headline-data"] }"#),
     ("org_startup_with_link_previews", BOOLEAN),
+    (
+        "org_image_actual_width",
+        r#"{ "anyOf": [{ "type": "boolean" }, { "type": "number" }, { "type": "array", "items": { "type": "number" }, "maxItems": 1 }] }"#,
+    ),
+    ("org_image_max_width", r#"{ "anyOf": [{ "enum": ["fill-column", "window", null] }, { "type": "number" }] }"#),
     ("org_startup_with_latex_preview", BOOLEAN),
     ("org_startup_indented", BOOLEAN),
     ("org_hide_leading_stars", BOOLEAN),

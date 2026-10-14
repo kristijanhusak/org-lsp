@@ -6964,7 +6964,7 @@ fn previews_the_images_of_links() {
     let text =
         "#+STARTUP: inlineimages\n* One\n[[file:img/a.png]] [[./missing.png]] [[file:b.png][B]]\n* Two\n[[./b.png]]\n";
     let capabilities = json!({ "experimental": { "orgImages": true }, "general": { "positionEncodings": ["utf-8"] } });
-    let mut client = Client::start(capabilities, clock(), None);
+    let mut client = Client::start(capabilities.clone(), clock(), None);
     client.open(&uri, text);
     let preview = |client: &mut Client, line: u32, character: u32, extra: Value| {
         let mut context =
@@ -7001,6 +7001,30 @@ fn previews_the_images_of_links() {
     // `#+STARTUP: inlineimages`: the whole file when it opens.
     let startup = preview(&mut client, 0, 0, json!({ "startup": true }));
     assert_eq!((startup["scope"].as_str(), paths(&startup).len()), (Some("buffer"), 2));
+    client.shutdown();
+
+    // How wide each shows: at its own width, `org-image-max-width` at most
+    // (`fill-column`, 70 columns); with `org-image-actual-width` nil, the
+    // `:width` of `#+ATTR_ORG:` or a part of the window.
+    let sized = "#+ATTR_ORG: :width 100\n[[file:b.png]]\n\n#+ATTR_HTML: :width 50%\n[[file:b.png]]\n";
+    let mut options = clock();
+    options["org_image_actual_width"] = json!(false);
+    let mut client = Client::start(capabilities.clone(), options, None);
+    client.open(&uri, sized);
+    let whole = preview(&mut client, 0, 0, json!({ "count": 16 }));
+    let widths: Vec<(Value, Value)> = whole["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|item| (item["width"].clone(), item["maxWidth"].clone()))
+        .collect();
+    assert_eq!(widths, [(json!({ "pixels": 100.0 }), Value::Null), (json!({ "fraction": 0.5 }), Value::Null)]);
+    client.shutdown();
+    let mut client = Client::start(capabilities, clock(), None);
+    client.open(&uri, sized);
+    let whole = preview(&mut client, 0, 0, json!({ "count": 16 }));
+    assert_eq!(whole["items"][0]["maxWidth"], json!({ "columns": 70 }));
+    assert!(whole["items"][0].get("width").is_none());
     client.shutdown();
 
     // An editor that cannot show images is told so.

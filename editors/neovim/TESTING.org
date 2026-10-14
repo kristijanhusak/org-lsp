@@ -402,6 +402,7 @@ its sections says what it should look like.
 - [ ] On a line with ~[[file:pic.png]]~, the key shows the picture below the line, and takes it away again: ~<Leader>oxv~
 - [ ] Away from a link, the pictures of the section; with a count of 16 those of the whole file; 64 takes them all away: ~<Leader>oxv~
 - [ ] A file with ~#+STARTUP: inlineimages~ opens with its pictures
+- [ ] With ~org_image_actual_width = false~, a picture below ~#+ATTR_ORG: :width 100~ shows 100 pixels wide: ~<Leader>oxv~
 - [ ] Scrolling moves the pictures with their lines; editing a link takes its picture away
 - [ ] ~$e^{i\pi} = -1$~ shows as its image (needs Emacs, ~latex~ and ~dvipng~): ~<Leader>oxl~
 - [ ] A file with ~#+STARTUP: latexpreview~ opens with its fragments as images (needs Emacs, ~latex~ and ~dvipng~)

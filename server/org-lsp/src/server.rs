@@ -920,6 +920,10 @@ struct Server {
     bullets: Option<org_core::pretty::Bullets>,
     /// `org-startup-with-link-previews`.
     startup_link_previews: bool,
+    /// `org-image-actual-width`
+    image_actual_width: org_core::link_preview::ActualWidth,
+    /// `org-image-max-width`, as the editors are told it.
+    image_max_width: Value,
     /// `org-startup-with-latex-preview`
     startup_latex_preview: bool,
     /// `org-table-formula-debug`: recalculating goes through Emacs, which
@@ -1407,6 +1411,8 @@ pub fn run(connection: Connection) -> Result<()> {
         pretty_entities: options.pretty_entities.unwrap_or(false),
         bullets: options.bullets(),
         startup_link_previews: options.startup_with_link_previews.unwrap_or(false),
+        image_actual_width: options.image_actual_width(),
+        image_max_width: options.image_max_width(),
         startup_latex_preview: options.startup_with_latex_preview.unwrap_or(false),
         formula_debug: false,
         pretty_scripts: match (
@@ -11787,21 +11793,39 @@ impl Server {
             self.emacs.start(tag, "latex-preview", params);
             return Ok(json!({ "message": "Creating LaTeX previews..." }));
         }
-        let items: Vec<Value> =
-            org_core::link_preview::previews(&text, &parse, &self.link_abbreviations, include_linked, from, to)
-                .into_iter()
-                .filter_map(|found| {
-                    let path = if found.attachment {
-                        self.attachment_path(&uri, &text, found.start, &found.path)?
-                    } else {
-                        self.link_path(&uri, &found.path)?
-                    };
-                    // `a/./b.png` as `a/b.png`.
-                    let path: PathBuf = path.components().collect();
-                    let path = Some(path).filter(|path| path.is_file())?;
-                    Some(json!({ "range": range(found.start, found.end), "path": path.to_string_lossy() }))
-                })
-                .collect();
+        let found = org_core::link_preview::previews(&text, &parse, &self.link_abbreviations, include_linked, from, to);
+        // How wide each shows (`org-display-inline-image--width`), and how
+        // wide at most one shown at its own width (`org-image-max-width`).
+        let outline = (!found.is_empty()).then(|| org_core::outline::Outline::new(&parse, &text, ""));
+        let (actual_width, max_width) = (self.image_actual_width, self.image_max_width.clone());
+        let items: Vec<Value> = found
+            .into_iter()
+            .filter_map(|found| {
+                let path = if found.attachment {
+                    self.attachment_path(&uri, &text, found.start, &found.path)?
+                } else {
+                    self.link_path(&uri, &found.path)?
+                };
+                // `a/./b.png` as `a/b.png`.
+                let path: PathBuf = path.components().collect();
+                let path = Some(path).filter(|path| path.is_file())?;
+                let mut item = json!({ "range": range(found.start, found.end), "path": path.to_string_lossy() });
+                let width = outline.as_ref().and_then(|outline| {
+                    org_core::link_preview::image_width_in(outline, &parse, found.start, actual_width)
+                });
+                match width {
+                    Some(org_core::link_preview::ImageWidth::Pixels(pixels)) => {
+                        item["width"] = json!({ "pixels": pixels })
+                    }
+                    Some(org_core::link_preview::ImageWidth::Fraction(part)) => {
+                        item["width"] = json!({ "fraction": part })
+                    }
+                    None if !max_width.is_null() => item["maxWidth"] = max_width.clone(),
+                    None => {}
+                }
+                Some(item)
+            })
+            .collect();
         preview["items"] = json!(items);
         Ok(json!({ "preview": preview }))
     }

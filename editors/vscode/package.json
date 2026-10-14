@@ -2987,6 +2987,41 @@
               "markdownDescription": "Indent the lines of an entry past its headline's stars: `true` for all of them, `\"headline-data\"` for the planning line, drawers and clock lines right below the headline. Applies to new lines, to re-indenting (range formatting) and to what commands write. (`org-adapt-indentation`)",
               "default": false
             },
+            "org_image_actual_width": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "maxItems": 1
+                }
+              ],
+              "markdownDescription": "How wide the image of a link shows: `true` at its own width; a number, that many pixels; `false` or a list of one number, the `:width` of the paragraph's `#+ATTR_ORG:` or else of another `#+ATTR_…:` (pixels, `50%` or a fraction up to 2 of the text's width, `t` for its own width), else the list's number. An entry's `ORG-IMAGE-ACTUAL-WIDTH` property decides for its own text. (`org-image-actual-width`)",
+              "default": true
+            },
+            "org_image_max_width": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "fill-column",
+                    "window",
+                    null
+                  ]
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "markdownDescription": "How wide at most an image shown at its own width is: `\"fill-column\"`, 70 columns; `\"window\"`, the window's width; an integer, that many pixels; a float, that part of the window's width; null for no limit. (`org-image-max-width`)",
+              "default": "fill-column"
+            },
             "org_startup_with_link_previews": {
               "type": "boolean",
               "markdownDescription": "Show the images of links to image files in place when a file opens, as `C-c C-x C-v` (`org.link.preview`) shows them. `#+STARTUP: inlineimages` (or `linkpreviews`) and `noinlineimages` decide for a file. Editors that can show images: Neovim from 0.13 (`vim.ui.img`), in a terminal with the Kitty graphics protocol. (`org-startup-with-link-previews`)",
