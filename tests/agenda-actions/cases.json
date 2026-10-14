@@ -2422,5 +2422,235 @@
     "DONE(d@)"
    ]
   }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* TODO Pay rent\nDEADLINE: <2026-05-25 Mon +1m>\n* DONE Buy milk\n"
+  },
+  "view": "agenda",
+  "line": "In   2 d.:  TODO Call the client",
+  "command": "todo-next",
+  "view_after": true,
+  "cursor": 12,
+  "agenda": "Week-agenda (W21):\nMonday     18 May 2026 W21\n               8:00...... ----------------\n  work:        9:00...... Scheduled:  TODO [#A] Write report            :office:\n              10:00...... ----------------\n              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -\n              12:00...... ----------------\n              14:00...... ----------------\n              16:00...... ----------------\n              18:00...... ----------------\n              20:00...... ----------------\n  home:       Sched. 2x:  TODO Water plants\n  work:       In   2 d.:  DONE Call the client\n  home:       In   7 d.:  TODO Pay rent\nTuesday    19 May 2026\n  work:       14:00-15:00 Meeting \nWednesday  20 May 2026\n  work:       Deadline:   DONE Call the client\nThursday   21 May 2026\nFriday     22 May 2026\nSaturday   23 May 2026\n  home:       Scheduled:  TODO Water plants\nSunday     24 May 2026\n",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* TODO Pay rent\nDEADLINE: <2026-05-25 Mon +1m>\n* DONE Buy milk\n",
+   "work.org": "* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* DONE Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* TODO Pay rent\nDEADLINE: <2026-05-25 Mon +1m>\n* DONE Buy milk\n"
+  },
+  "view": "agenda",
+  "line": "Sched. 2x:  TODO Water plants",
+  "command": "todo-next",
+  "view_after": true,
+  "cursor": 11,
+  "agenda": "Week-agenda (W21):\nMonday     18 May 2026 W21\n               8:00...... ----------------\n  work:        9:00...... Scheduled:  TODO [#A] Write report            :office:\n              10:00...... ----------------\n              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -\n              12:00...... ----------------\n              14:00...... ----------------\n              16:00...... ----------------\n              18:00...... ----------------\n              20:00...... ----------------\n  home:       Sched. 2x:  DONE Water plants\n  work:       In   2 d.:  TODO Call the client\n  home:       In   7 d.:  TODO Pay rent\nTuesday    19 May 2026\n  work:       14:00-15:00 Meeting \nWednesday  20 May 2026\n  work:       Deadline:   TODO Call the client\nThursday   21 May 2026\nFriday     22 May 2026\nSaturday   23 May 2026\n  home:       Scheduled:  TODO Water plants\nSunday     24 May 2026\n",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-23 Sat +1w>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]\n* TODO Pay rent\nDEADLINE: <2026-05-25 Mon +1m>\n* DONE Buy milk\n",
+   "work.org": "* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* TODO Pay rent\nDEADLINE: <2026-05-25 Mon +1m>\n* DONE Buy milk\n"
+  },
+  "view": "agenda",
+  "line": "In   7 d.:  TODO Pay rent",
+  "command": "todo-next",
+  "view_after": true,
+  "cursor": 13,
+  "agenda": "Week-agenda (W21):\nMonday     18 May 2026 W21\n               8:00...... ----------------\n  work:        9:00...... Scheduled:  TODO [#A] Write report            :office:\n              10:00...... ----------------\n              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -\n              12:00...... ----------------\n              14:00...... ----------------\n              16:00...... ----------------\n              18:00...... ----------------\n              20:00...... ----------------\n  home:       Sched. 2x:  TODO Water plants\n  work:       In   2 d.:  TODO Call the client\n  home:       In   7 d.:  DONE Pay rent\nTuesday    19 May 2026\n  work:       14:00-15:00 Meeting \nWednesday  20 May 2026\n  work:       Deadline:   TODO Call the client\nThursday   21 May 2026\nFriday     22 May 2026\nSaturday   23 May 2026\n  home:       Scheduled:  TODO Water plants\nSunday     24 May 2026\n",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* TODO Pay rent\nDEADLINE: <2026-06-25 Thu +1m>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-18 Mon 10:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-05-18 Mon 10:30]\n* DONE Buy milk\n",
+   "work.org": "* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* TODO Pay rent\nDEADLINE: <2026-05-25 Mon +1m>\n* DONE Buy milk\n"
+  },
+  "view": "agenda",
+  "line": "Scheduled:  TODO [#A] Write report",
+  "command": "todo-previous",
+  "view_after": true,
+  "cursor": 3,
+  "agenda": "Week-agenda (W21):\nMonday     18 May 2026 W21\n               8:00...... ----------------\n  work:        9:00...... Scheduled:  [#A] Write report                 :office:\n              10:00...... ----------------\n              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -\n              12:00...... ----------------\n              14:00...... ----------------\n              16:00...... ----------------\n              18:00...... ----------------\n              20:00...... ----------------\n  home:       Sched. 2x:  TODO Water plants\n  work:       In   2 d.:  TODO Call the client\n  home:       In   7 d.:  TODO Pay rent\nTuesday    19 May 2026\n  work:       14:00-15:00 Meeting \nWednesday  20 May 2026\n  work:       Deadline:   TODO Call the client\nThursday   21 May 2026\nFriday     22 May 2026\nSaturday   23 May 2026\n  home:       Scheduled:  TODO Water plants\nSunday     24 May 2026\n",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* TODO Pay rent\nDEADLINE: <2026-05-25 Mon +1m>\n* DONE Buy milk\n",
+   "work.org": "* [#A] Write report                                                  :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* TODO Pay rent\nDEADLINE: <2026-05-25 Mon +1m>\n* DONE Buy milk\n"
+  },
+  "view": "todo",
+  "line": "TODO Call the client",
+  "command": "todo-next",
+  "view_after": true,
+  "cursor": 4,
+  "agenda": "Global list of TODO items of type: ALL\n  work:       TODO [#A] Write report                                    :office:\n  home:       TODO Water plants\n  home:       TODO Pay rent\n  work:       DONE Call the client\n",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* TODO Pay rent\nDEADLINE: <2026-05-25 Mon +1m>\n* DONE Buy milk\n",
+   "work.org": "* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* DONE Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* TODO Pay rent\nDEADLINE: <2026-05-25 Mon +1m>\n* DONE Buy milk\n"
+  },
+  "view": "agenda",
+  "line": "Sched. 2x:  TODO Water plants",
+  "command": "schedule",
+  "view_after": true,
+  "answer": "fri",
+  "prompt": "",
+  "cursor": 11,
+  "agenda": "Week-agenda (W21):\nMonday     18 May 2026 W21\n               8:00...... ----------------\n  work:        9:00...... Scheduled:  TODO [#A] Write report            :office:\n              10:00...... ----------------\n              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -\n              12:00...... ----------------\n              14:00...... ----------------\n              16:00...... ----------------\n              18:00...... ----------------\n              20:00...... ----------------\n  home:       Sched. 2x:  TODO Water p S => Scheduled to <2026-05-22 Fri +1w> \n  work:       In   2 d.:  TODO Call the client\n  home:       In   7 d.:  TODO Pay rent\nTuesday    19 May 2026\n  work:       14:00-15:00 Meeting \nWednesday  20 May 2026\n  work:       Deadline:   TODO Call the client\nThursday   21 May 2026\nFriday     22 May 2026\nSaturday   23 May 2026\n  home:       Scheduled:  TODO Water p S => Scheduled to <2026-05-22 Fri +1w> \nSunday     24 May 2026\n",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-22 Fri +1w>\n* TODO Pay rent\nDEADLINE: <2026-05-25 Mon +1m>\n* DONE Buy milk\n",
+   "work.org": "* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* TODO Pay rent\nDEADLINE: <2026-05-25 Mon +1m>\n* DONE Buy milk\n"
+  },
+  "view": "agenda",
+  "line": "In   2 d.:  TODO Call the client",
+  "command": "schedule",
+  "view_after": true,
+  "answer": "+3d",
+  "prompt": "",
+  "cursor": 12,
+  "agenda": "Week-agenda (W21):\nMonday     18 May 2026 W21\n               8:00...... ----------------\n  work:        9:00...... Scheduled:  TODO [#A] Write report            :office:\n              10:00...... ----------------\n              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -\n              12:00...... ----------------\n              14:00...... ----------------\n              16:00...... ----------------\n              18:00...... ----------------\n              20:00...... ----------------\n  home:       Sched. 2x:  TODO Water plants\n  work:       In   2 d.:  TODO Call the cl S => Scheduled to <2026-05-21 Thu> \n  home:       In   7 d.:  TODO Pay rent\nTuesday    19 May 2026\n  work:       14:00-15:00 Meeting \nWednesday  20 May 2026\n  work:       Deadline:   TODO Call the cl S => Scheduled to <2026-05-21 Thu> \nThursday   21 May 2026\nFriday     22 May 2026\nSaturday   23 May 2026\n  home:       Scheduled:  TODO Water plants\nSunday     24 May 2026\n",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* TODO Pay rent\nDEADLINE: <2026-05-25 Mon +1m>\n* DONE Buy milk\n",
+   "work.org": "* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nSCHEDULED: <2026-05-21 Thu> DEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* TODO Pay rent\nDEADLINE: <2026-05-25 Mon +1m>\n* DONE Buy milk\n"
+  },
+  "view": "agenda",
+  "line": "Scheduled:  TODO [#A] Write report",
+  "command": "deadline",
+  "view_after": true,
+  "answer": "2026-05-21",
+  "prompt": "",
+  "cursor": 3,
+  "agenda": "Week-agenda (W21):\nMonday     18 May 2026 W21\n               8:00...... ----------------\n  work:        9:00...... Scheduled:  TODO  D => Deadline on <2026-05-21 Thu> \n              10:00...... ----------------\n              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -\n              12:00...... ----------------\n              14:00...... ----------------\n              16:00...... ----------------\n              18:00...... ----------------\n              20:00...... ----------------\n  home:       Sched. 2x:  TODO Water plants\n  work:       In   2 d.:  TODO Call the client\n  home:       In   7 d.:  TODO Pay rent\nTuesday    19 May 2026\n  work:       14:00-15:00 Meeting \nWednesday  20 May 2026\n  work:       Deadline:   TODO Call the client\nThursday   21 May 2026\nFriday     22 May 2026\nSaturday   23 May 2026\n  home:       Scheduled:  TODO Water plants\nSunday     24 May 2026\n",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* TODO Pay rent\nDEADLINE: <2026-05-25 Mon +1m>\n* DONE Buy milk\n",
+   "work.org": "* TODO [#A] Write report :office:\nDEADLINE: <2026-05-21 Thu> SCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* TODO Pay rent\nDEADLINE: <2026-05-25 Mon +1m>\n* DONE Buy milk\n"
+  },
+  "view": "agenda",
+  "line": "Sched. 2x:  TODO Water plants",
+  "command": "date-later",
+  "view_after": true,
+  "cursor": 11,
+  "agenda": "Week-agenda (W21):\nMonday     18 May 2026 W21\n               8:00...... ----------------\n  work:        9:00...... Scheduled:  TODO [#A] Write report            :office:\n              10:00...... ----------------\n              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -\n              12:00...... ----------------\n              14:00...... ----------------\n              16:00...... ----------------\n              18:00...... ----------------\n              20:00...... ----------------\n  home:       Sched. 2x:  TODO Water plants           => <2026-05-18 Mon +1w> \n  work:       In   2 d.:  TODO Call the client\n  home:       In   7 d.:  TODO Pay rent\nTuesday    19 May 2026\n  work:       14:00-15:00 Meeting \nWednesday  20 May 2026\n  work:       Deadline:   TODO Call the client\nThursday   21 May 2026\nFriday     22 May 2026\nSaturday   23 May 2026\n  home:       Scheduled:  TODO Water plants           => <2026-05-18 Mon +1w> \nSunday     24 May 2026\n",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-18 Mon +1w>\n* TODO Pay rent\nDEADLINE: <2026-05-25 Mon +1m>\n* DONE Buy milk\n",
+   "work.org": "* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* TODO Pay rent\nDEADLINE: <2026-05-25 Mon +1m>\n* DONE Buy milk\n"
+  },
+  "view": "agenda",
+  "line": "Scheduled:  TODO [#A] Write report",
+  "command": "date-later",
+  "view_after": true,
+  "count": 2,
+  "cursor": 3,
+  "agenda": "Week-agenda (W21):\nMonday     18 May 2026 W21\n               8:00...... ----------------\n  work:        9:00...... Scheduled:  TODO [#A] Wri => <2026-05-20 Wed 09:00> \n              10:00...... ----------------\n              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -\n              12:00...... ----------------\n              14:00...... ----------------\n              16:00...... ----------------\n              18:00...... ----------------\n              20:00...... ----------------\n  home:       Sched. 2x:  TODO Water plants\n  work:       In   2 d.:  TODO Call the client\n  home:       In   7 d.:  TODO Pay rent\nTuesday    19 May 2026\n  work:       14:00-15:00 Meeting \nWednesday  20 May 2026\n  work:       Deadline:   TODO Call the client\nThursday   21 May 2026\nFriday     22 May 2026\nSaturday   23 May 2026\n  home:       Scheduled:  TODO Water plants\nSunday     24 May 2026\n",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* TODO Pay rent\nDEADLINE: <2026-05-25 Mon +1m>\n* DONE Buy milk\n",
+   "work.org": "* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-20 Wed 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* TODO Pay rent\nDEADLINE: <2026-05-25 Mon +1m>\n* DONE Buy milk\n"
+  },
+  "view": "agenda",
+  "line": "Deadline:   TODO Call the client",
+  "command": "date-earlier",
+  "view_after": true,
+  "cursor": 17,
+  "agenda": "Week-agenda (W21):\nMonday     18 May 2026 W21\n               8:00...... ----------------\n  work:        9:00...... Scheduled:  TODO [#A] Write report            :office:\n              10:00...... ----------------\n              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -\n              12:00...... ----------------\n              14:00...... ----------------\n              16:00...... ----------------\n              18:00...... ----------------\n              20:00...... ----------------\n  home:       Sched. 2x:  TODO Water plants\n  work:       In   2 d.:  TODO Call the client            => <2026-05-19 Tue> \n  home:       In   7 d.:  TODO Pay rent\nTuesday    19 May 2026\n  work:       14:00-15:00 Meeting \nWednesday  20 May 2026\n  work:       Deadline:   TODO Call the client            => <2026-05-19 Tue> \nThursday   21 May 2026\nFriday     22 May 2026\nSaturday   23 May 2026\n  home:       Scheduled:  TODO Water plants\nSunday     24 May 2026\n",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* TODO Pay rent\nDEADLINE: <2026-05-25 Mon +1m>\n* DONE Buy milk\n",
+   "work.org": "* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-19 Tue>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* TODO Pay rent\nDEADLINE: <2026-05-25 Mon +1m>\n* DONE Buy milk\n"
+  },
+  "view": "agenda",
+  "line": "In   2 d.:  TODO Call the client",
+  "command": "priority-up",
+  "view_after": true,
+  "cursor": 12,
+  "agenda": "Week-agenda (W21):\nMonday     18 May 2026 W21\n               8:00...... ----------------\n  work:        9:00...... Scheduled:  TODO [#A] Write report            :office:\n              10:00...... ----------------\n              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -\n              12:00...... ----------------\n              14:00...... ----------------\n              16:00...... ----------------\n              18:00...... ----------------\n              20:00...... ----------------\n  home:       Sched. 2x:  TODO Water plants\n  work:       In   2 d.:  TODO [#B] Call the client\n  home:       In   7 d.:  TODO Pay rent\nTuesday    19 May 2026\n  work:       14:00-15:00 Meeting \nWednesday  20 May 2026\n  work:       Deadline:   TODO [#B] Call the client\nThursday   21 May 2026\nFriday     22 May 2026\nSaturday   23 May 2026\n  home:       Scheduled:  TODO Water plants\nSunday     24 May 2026\n",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* TODO Pay rent\nDEADLINE: <2026-05-25 Mon +1m>\n* DONE Buy milk\n",
+   "work.org": "* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO [#B] Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n"
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "work.org": "* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n",
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-16 Sat +1w>\n* TODO Pay rent\nDEADLINE: <2026-05-25 Mon +1m>\n* DONE Buy milk\n"
+  },
+  "view": "todo",
+  "line": "TODO Water plants",
+  "command": "schedule",
+  "view_after": true,
+  "answer": "fri",
+  "prompt": "",
+  "cursor": 2,
+  "agenda": "Global list of TODO items of type: ALL\n  work:       TODO [#A] Write report                                    :office:\n  home:       TODO Water plants        S => Scheduled to <2026-05-22 Fri +1w> \n  home:       TODO Pay rent\n  work:       TODO Call the client\n",
+  "expected": {
+   "home.org": "* TODO Water plants\nSCHEDULED: <2026-05-22 Fri +1w>\n* TODO Pay rent\nDEADLINE: <2026-05-25 Mon +1m>\n* DONE Buy milk\n",
+   "work.org": "* TODO [#A] Write report :office:\nSCHEDULED: <2026-05-18 Mon 09:00>\n* TODO Call the client\nDEADLINE: <2026-05-20 Wed>\n* Meeting <2026-05-19 Tue 14:00-15:00>\n"
+  }
  }
 ]

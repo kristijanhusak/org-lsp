@@ -168,6 +168,9 @@ pub struct Outcome {
     pub note: Option<todo::WantedNote>,
     /// What to tell the user.
     pub message: Option<String>,
+    /// The headline as a change to a done state made it, before the
+    /// entry's repeater set it back (`org-agenda-headline-snapshot-before-repeat`).
+    pub before_repeat: Option<String>,
 }
 
 /// Run `command` with the cursor at byte `offset` of `text`, whose parse
@@ -185,12 +188,13 @@ pub fn run(
         offset -= 1;
     }
     let steps = |forward: bool| call.count.unwrap_or(1) * if forward { 1 } else { -1 };
-    let unplaced = |text: String| Outcome { text, cursor: None, note: None, message: None };
+    let unplaced = |text: String| Outcome { text, cursor: None, note: None, message: None, before_repeat: None };
     let placed = |changed: stamp::Changed| Outcome {
         text: changed.text,
         cursor: Some(changed.cursor),
         note: None,
         message: None,
+        before_repeat: None,
     };
     match command {
         Command::Todo(target) => {
@@ -207,6 +211,7 @@ pub fn run(
                     cursor: None,
                     note: changed.wants_note,
                     message: changed.message,
+                    before_repeat: changed.before_repeat,
                 })
                 .map_err(|message| {
                     if message == "Before first headline" {
@@ -241,7 +246,13 @@ pub fn run(
                 todo::add_note(text, parse.todo_keywords(), offset, &settings.todo, call.now, "")
                     .map_err(Refusal::NotHere)?;
                 let wanted = todo::WantedNote { purpose: "this entry".to_string(), state: None };
-                Ok(Outcome { text: text.to_string(), cursor: None, note: Some(wanted), message: None })
+                Ok(Outcome {
+                    text: text.to_string(),
+                    cursor: None,
+                    note: Some(wanted),
+                    message: None,
+                    before_repeat: None,
+                })
             }
         },
         Command::PlanningNote { change, old } => match (&call.note, call.skip_note) {
@@ -283,8 +294,15 @@ pub fn run(
             let outline = crate::outline::Outline::new(parse, text, "");
             let ordered = outline.entry_property(outline.entry_at(offset), "ORDERED", false);
             let ordered = ordered.is_some_and(|value| value != "nil");
-            crate::checkbox::ctrl_c_ctrl_c(text, parse.todo_keywords(), offset, settings.todo.tags_column, ordered)
-                .map(|(text, cursor, message)| Outcome { text, cursor: Some(cursor), note: None, message })
+            crate::checkbox::ctrl_c_ctrl_c(text, parse.todo_keywords(), offset, settings.todo.tags_column, ordered).map(
+                |(text, cursor, message)| Outcome {
+                    text,
+                    cursor: Some(cursor),
+                    note: None,
+                    message,
+                    before_repeat: None,
+                },
+            )
         }
         Command::Checkbox => {
             crate::checkbox::toggle(text, parse.todo_keywords(), offset, settings.todo.tags_column).map(unplaced)
@@ -304,9 +322,13 @@ pub fn run(
                 tblfm::recalculate(text, offset, *mode, &property)
             };
             match recalculated {
-                Ok(recalculated) => {
-                    Ok(Outcome { text: recalculated.text, cursor: None, note: None, message: recalculated.message })
-                }
+                Ok(recalculated) => Ok(Outcome {
+                    text: recalculated.text,
+                    cursor: None,
+                    note: None,
+                    message: recalculated.message,
+                    before_repeat: None,
+                }),
                 Err(message) if message == "Not at a table" => Err(Refusal::NotHere(message)),
                 Err(message) => Err(Refusal::Failed(message)),
             }
@@ -337,23 +359,29 @@ pub fn run(
         }
         Command::DeleteProperty(name) => {
             let (text, _, _) = properties::delete(text, offset, name);
-            Ok(Outcome { text, cursor: None, note: None, message: Some(format!("Property \"{name}\" deleted")) })
+            Ok(Outcome {
+                text,
+                cursor: None,
+                note: None,
+                message: Some(format!("Property \"{name}\" deleted")),
+                before_repeat: None,
+            })
         }
         Command::DeletePropertyGlobally(name) => {
             let (text, count) = properties::delete_globally(text, name);
             let message = format!("Property \"{name}\" removed from {count} entries");
-            Ok(Outcome { text, cursor: None, note: None, message: Some(message) })
+            Ok(Outcome { text, cursor: None, note: None, message: Some(message), before_repeat: None })
         }
         Command::Effort(value) => {
             let context = property_context(parse, settings, "");
             let (text, message) =
                 properties::set_effort(text, offset, value.as_deref(), &context).map_err(Refusal::Failed)?;
-            Ok(Outcome { text, cursor: None, note: None, message: Some(message) })
+            Ok(Outcome { text, cursor: None, note: None, message: Some(message), before_repeat: None })
         }
         Command::Ordered => {
             let context = property_context(parse, settings, "");
             let (text, message) = properties::toggle_ordered(text, offset, &context).map_err(Refusal::NotHere)?;
-            Ok(Outcome { text, cursor: None, note: None, message: Some(message) })
+            Ok(Outcome { text, cursor: None, note: None, message: Some(message), before_repeat: None })
         }
         Command::Tags(tags) => {
             let heading = crate::tags::heading_at(text, offset)?;
@@ -416,7 +444,13 @@ pub fn run(
                 // before or after (`org-previous-item`, `org-next-item`).
                 Direction::Left | Direction::Right if crate::list::at_item(text, offset) => {
                     let edited = crate::list::cycle_bullet(text, offset, *direction == Direction::Left)?;
-                    return Ok(Outcome { text: edited.text, cursor: Some(edited.cursor), note: None, message: None });
+                    return Ok(Outcome {
+                        text: edited.text,
+                        cursor: Some(edited.cursor),
+                        note: None,
+                        message: None,
+                        before_repeat: None,
+                    });
                 }
                 Direction::Up | Direction::Down if crate::list::at_item(text, offset) => {
                     let cursor = crate::list::next_item(
@@ -425,7 +459,13 @@ pub fn run(
                         *direction == Direction::Up,
                         settings.list_circular_motion,
                     )?;
-                    return Ok(Outcome { text: text.to_string(), cursor: Some(cursor), note: None, message: None });
+                    return Ok(Outcome {
+                        text: text.to_string(),
+                        cursor: Some(cursor),
+                        note: None,
+                        message: None,
+                        before_repeat: None,
+                    });
                 }
                 // On a property line: its next or previous allowed value
                 // (`org-property-next-allowed-value`).
@@ -434,7 +474,7 @@ pub fn run(
                     let (text, cursor) =
                         properties::next_allowed(text, offset, *direction == Direction::Left, &context)
                             .map_err(Refusal::Failed)?;
-                    return Ok(Outcome { text, cursor: Some(cursor), note: None, message: None });
+                    return Ok(Outcome { text, cursor: Some(cursor), note: None, message: None, before_repeat: None });
                 }
                 _ => return Err(Refusal::NotHere("No timestamp, headline, item or property here".to_string())),
             };

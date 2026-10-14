@@ -493,14 +493,15 @@ struct Last {
     heading: Option<usize>,
 }
 
-/// Where the agenda's cursor goes once the view shows the effect of an
-/// edit: to the line of the entry that was changed.
-struct Follow {
-    /// The view as it will read then.
-    text: String,
-    /// The line the cursor is on now.
-    from: u32,
-    position: Position,
+/// What an edit made of the headline and the timestamp of an entry, for
+/// the agenda to show on the entry's lines.
+struct EditShown {
+    /// The headline's TODO keyword now, and whether it is a done one.
+    state: (Option<String>, bool),
+    /// The keyword and whether it is done before a repeater set it back.
+    before_repeat: Option<(Option<String>, bool)>,
+    /// The timestamp the command changed, as it reads now.
+    stamp: Option<String>,
 }
 
 /// A capture going on (`org-capture`): the buffer the editor shows, and
@@ -793,8 +794,6 @@ struct DateSource {
     offset: usize,
     /// The version of the editor's copy, when the file is open there.
     version: Option<i32>,
-    /// The headline of the entry, for a command run from the agenda.
-    heading: Option<usize>,
 }
 
 /// Where the agenda's cursor goes once the client shows the current view.
@@ -1177,11 +1176,14 @@ struct Server {
     edited: HashSet<String>,
     /// Where to put the cursor once the client shows the current view.
     reveal: Option<Reveal>,
-    follow: Option<Follow>,
-    /// The cursor of the agenda is on its way from a line of the current
-    /// view to another: the client was asked to move it and has not
-    /// answered yet. A command from the old line is meant for the new one.
-    moving: Option<(u32, u32)>,
+    /// Changes made from the agenda that its lines are yet to show where
+    /// they are, as Emacs's agenda shows them until it is built again
+    /// (`org-agenda-change-all-lines`, `org-agenda-show-new-time`): each
+    /// waits for the edit of its file, and is then part of the view. While
+    /// the view holds changes, how many entries each agenda file had when
+    /// the first was made, which its lines count on.
+    held: Vec<views::Held>,
+    held_counts: Option<Vec<usize>>,
     last: Option<Last>,
     /// The sequence an entry was in when its keyword was cleared, by file
     /// and headline offset: where cycling starts again (the
@@ -1510,8 +1512,8 @@ pub fn run(connection: Connection) -> Result<()> {
         view: None,
         edited: HashSet::new(),
         reveal: None,
-        follow: None,
-        moving: None,
+        held: Vec::new(),
+        held_counts: None,
         last: None,
         todo_heads: HashMap::new(),
         faces,
@@ -2444,14 +2446,9 @@ impl Server {
     }
 
     /// The line of the agenda that a request at `line` of `uri` is about,
-    /// with its number. That is the line the client shows there, or the
-    /// line the cursor is being moved to from there.
+    /// with its number: the line the client shows there.
     fn view_line(&self, uri: &Uri, line: u32) -> Option<(u32, &ViewLine)> {
         let open = self.view.as_ref().filter(|open| open.uri == *uri)?;
-        let line = match self.moving {
-            Some((from, to)) if from == line && open.is_current() => to,
-            _ => line,
-        };
         Some((line, open.on_screen().line(line)?))
     }
 
@@ -2591,7 +2588,7 @@ impl Server {
                     self.send_request::<ShowDocument>(params, Some(Pending::Folds { uri, folds }));
                 }
             }
-            Some(Pending::Reveal) => self.moving = None,
+            Some(Pending::Reveal) => {}
             Some(Pending::PromptCursor) => {
                 if let Some(open) = self.date_prompt.as_mut() {
                     open.moving_cursor = false;
@@ -2863,6 +2860,7 @@ impl Server {
                         }
                     }
                     self.agenda_marks.iter_mut().for_each(follow);
+                    self.held.iter_mut().for_each(|held| follow(held.entry_mut()));
                 }
                 if let Some(old) = shrunk_before {
                     self.shrunk_after_change(key, &old, changed_lines);
@@ -2888,6 +2886,9 @@ impl Server {
                     self.refresh_view();
                 } else {
                     self.last = None;
+                    // The user changed a file: the agenda shows it as it
+                    // is once it is built again.
+                    self.release_held();
                 }
             }
             DidSaveTextDocument::METHOD => {
@@ -4831,15 +4832,7 @@ impl Server {
         }
         let outlines: Vec<(Uri, &Outline)> = files.iter().map(|(uri, held)| (uri.clone(), held.outline())).collect();
         // The entry the clock runs on, highlighted.
-        let clocked = self.running.as_ref().and_then(|running| {
-            let (uri, outline) = outlines.iter().find(|(uri, _)| *uri == running.uri)?;
-            let line = outline.clocks.iter().find(|line| {
-                line.clock.is_running()
-                    && line.clock.start == Some(running.start)
-                    && line.entry.is_some_and(|entry| outline.entries[entry].head == running.head)
-            })?;
-            Some((uri, outline.entries[line.entry?].offset))
-        });
+        let clocked = self.clocked_in(&outlines);
         let now = self.now();
         let (mut view, wanted) = self.with_prefix_answers(|| {
             views::render(
@@ -5211,8 +5204,7 @@ impl Server {
             self.remove_view_file();
             self.view = None;
             self.reveal = None;
-            self.follow = None;
-            self.moving = None;
+            self.release_held();
         }
     }
 
@@ -5428,9 +5420,8 @@ impl Server {
         if !self.client.show_document {
             return Err("This editor cannot open documents on the server's request".to_string());
         }
+        self.release_held();
         self.set_view(query);
-        self.follow = None;
-        self.moving = None;
         let Some(open) = &self.view else { return Err("Cannot create the agenda".to_string()) };
         let line = reveal.position(&open.view);
         match &open.client {
@@ -5453,24 +5444,91 @@ impl Server {
         Ok(())
     }
 
+    /// Show `change` on the agenda's lines where they are, until the
+    /// agenda is built again; the cursor stays on its line.
+    fn hold(&mut self, change: views::Held) {
+        if self.held_counts.is_none() {
+            self.held_counts = Some(self.agenda_files().iter().map(|(_, held)| held.outline().entries.len()).collect());
+        }
+        self.held.push(change);
+    }
+
+    /// Build the agenda anew from now on, without the changes it held.
+    fn release_held(&mut self) {
+        self.held.clear();
+        self.held_counts = None;
+    }
+
+    /// The view with the changes it holds shown on its lines, unless its
+    /// lines no longer stand for the entries they did: a file gained or
+    /// lost entries since.
+    fn held_view(&mut self) -> Option<View> {
+        let query = self.view.as_ref()?.view.query.clone();
+        let fresh = self.render(query.clone());
+        let mut files = self.agenda_files();
+        let blocks = self.blocks(&query).unwrap_or_default();
+        if blocks.iter().any(|block| matches!(block.kind, views::BlockKind::Search { .. })) {
+            self.search_files(&mut files);
+        }
+        let counts = files.iter().map(|(_, held)| held.outline().entries.len());
+        let then = self.held_counts.as_ref()?;
+        if files.len() < then.len() || counts.zip(then).any(|(now, then)| now != *then) {
+            return None;
+        }
+        let outlines: Vec<(Uri, &Outline)> = files.iter().map(|(uri, held)| (uri.clone(), held.outline())).collect();
+        let clocked = self.clocked_in(&outlines);
+        let open = self.view.as_ref()?;
+        // `window-max-chars-per-line` of a window in a terminal, which
+        // keeps its last column for the continuation glyph.
+        let width = self.agenda.window_width.unwrap_or(80).saturating_sub(1);
+        let mut view =
+            views::hold(&open.view, &fresh, &self.held, &outlines, self.now(), clocked, &self.agenda_marks, width);
+        drop(outlines);
+        drop(files);
+        self.dim_blocked(&mut view);
+        Some(view)
+    }
+
+    /// The entry the clock runs on, as the agenda highlights it.
+    fn clocked_in<'a>(&self, outlines: &'a [(Uri, &Outline)]) -> Option<(&'a Uri, usize)> {
+        let running = self.running.as_ref()?;
+        let (uri, outline) = outlines.iter().find(|(uri, _)| *uri == running.uri)?;
+        let line = outline.clocks.iter().find(|line| {
+            line.clock.is_running()
+                && line.clock.start == Some(running.start)
+                && line.entry.is_some_and(|entry| outline.entries[entry].head == running.head)
+        })?;
+        Some((uri, outline.entries[line.entry?].offset))
+    }
+
     /// Rebuild the view after its files changed. The cursor stays, unless
     /// the change is the edit of a command that takes the cursor along.
+    /// Changes made from the agenda stay on their lines.
     fn refresh_view(&mut self) {
         let Some(query) = self.view.as_ref().map(|open| open.view.query.clone()) else { return };
-        let view = self.render(query);
+        let held = if self.held_counts.is_none() { None } else { self.held_view() };
+        // A change is shown once its edit has arrived; the view keeps it
+        // from then on, as later changes build on it.
+        if held.is_some() {
+            let edited = &self.edited;
+            self.held.retain(|change| edited.contains(change.entry().uri.as_str()));
+        }
+        let view = match held {
+            Some(view) => view,
+            None => {
+                self.release_held();
+                self.render(query)
+            }
+        };
         let Some(open) = &mut self.view else { return };
         let changed = view.text != open.view.text;
         // The same text highlighted anew: the entry the clock runs on.
         let recoloured = !changed && view.tokens != open.view.tokens;
         // The same text may still stand for entries that moved.
         open.replace(view);
-        if let Some(follow) = self.follow.take_if(|follow| follow.text == open.view.text) {
-            self.reveal = Some(Reveal::At(follow.position));
-            self.moving = Some((follow.from, follow.position.line));
-        } else if changed {
+        if changed {
             // Line numbers of the old text: the cursor stays where it is.
             self.reveal = self.reveal.take().filter(|reveal| !matches!(reveal, Reveal::At(_)));
-            self.moving = None;
         }
         if changed {
             self.publish_view();
@@ -5974,7 +6032,6 @@ impl Server {
                     text: document.text.clone(),
                     offset: document.index.offset(&document.text, *position, self.client.encoding),
                     version: Some(document.version),
-                    heading: None,
                 })
             }
             Target::Agenda { .. } => Err("The agenda has no file to change".into()),
@@ -5988,13 +6045,7 @@ impl Server {
                     // stands for, seen from the headline, or the headline.
                     let offset =
                         reference.marker.map_or(heading, |marker| heading + marker.saturating_sub(reference.offset));
-                    Ok(DateSource {
-                        file: reference.uri.clone(),
-                        text: text.to_string(),
-                        offset,
-                        version,
-                        heading: Some(heading),
-                    })
+                    Ok(DateSource { file: reference.uri.clone(), text: text.to_string(), offset, version })
                 })
                 .ok_or("Cannot read the file of this entry")?
             }
@@ -6138,12 +6189,19 @@ impl Server {
             _ => outcome.cursor,
         };
         let pending = match (target, cursor) {
-            // From the agenda, its cursor follows the entry, as after the
-            // agenda's other commands.
-            (Target::Entry { line, character, row, .. }, _) => {
-                let from = (Position::new(*line, *character), row);
-                self.follow =
-                    source.heading.and_then(|heading| self.followed(&source.file, &outcome.text, heading, from));
+            // From the agenda, the entry's lines for the timestamp show
+            // what the command says at their end, where they are, until the
+            // agenda is built again (`org-agenda-show-new-time`); the cursor
+            // stays.
+            (Target::Entry { row, .. }, _) => {
+                let prefix = match id {
+                    commands::SCHEDULE | commands::SCHEDULE_REMOVE | commands::SCHEDULE_DELAY => " S",
+                    _ => " D",
+                };
+                let said = outcome.message.clone().unwrap_or_default();
+                if let Some(entry) = row.entry.clone() {
+                    self.hold(views::Held::Stamp { entry, text: format!("{prefix} => {said} ") });
+                }
                 Pending::Edit
             }
             (_, Some(cursor)) => {
@@ -6468,6 +6526,7 @@ impl Server {
             }
             commands::AGENDA_REDO => {
                 self.view.as_ref().ok_or("No agenda is open")?;
+                self.release_held();
                 self.refresh_view();
                 Ok(())
             }
@@ -9007,7 +9066,24 @@ impl Server {
                         )
                     })
                 });
-                (edits, version, outcome.text, outcome.note, message, forget)
+                // What the agenda's lines of the entry show of the change.
+                let shown = heading.map(|heading| {
+                    let state = |text: &str, at: usize| {
+                        let keyword = headline_keyword(text, at, keywords);
+                        let done = keyword.as_deref().is_some_and(|keyword| keywords.is_done(keyword));
+                        (keyword, done)
+                    };
+                    let stamp = matches!(command, EditCommand::AgendaDate { .. })
+                        .then(|| org_core::stamp::Stamp::around(&outcome.text, offset))
+                        .flatten()
+                        .map(|stamp| outcome.text[stamp.start..stamp.end].to_string());
+                    EditShown {
+                        state: state(&outcome.text, heading),
+                        before_repeat: outcome.before_repeat.as_deref().map(|line| state(line, 0)),
+                        stamp,
+                    }
+                });
+                (edits, version, outcome.text, outcome.note, message, forget, shown)
             });
             Ok::<_, Refusal>((last, Some(outcome)))
         });
@@ -9016,7 +9092,7 @@ impl Server {
         let heading = last.heading;
         self.last = Some(last);
         let Some(outcome) = outcome else { return Ok(Value::Null) };
-        let (edits, version, new_text, wanted, message, forget) = outcome?;
+        let (edits, version, new_text, wanted, message, forget, shown) = outcome?;
         if let Some((heading, head)) = forget {
             let heads = self.todo_heads.entry(file.as_str().to_string()).or_default();
             match head {
@@ -9039,31 +9115,43 @@ impl Server {
             } }));
         }
         self.message = message;
-        let (edits, new_text) = match heading {
-            Some(heading) => self.clock_out_if_done(&file, heading, edits, new_text),
-            None => (edits, new_text),
+        let edits = match heading {
+            Some(heading) => self.clock_out_if_done(&file, heading, edits, new_text).0,
+            None => edits,
         };
         if edits.is_empty() {
             return Ok(Value::Null);
         }
-        // A change to priority or date can move the entry to another line
-        // of the agenda. The cursor goes with it, so that the next press
-        // of the key reaches the same entry.
-        self.follow = match (&line, heading) {
-            (Some((number, line)), Some(heading))
-                if !matches!(
-                    id,
-                    commands::TODO
-                        | commands::TODO_NEXT
-                        | commands::TODO_PREVIOUS
-                        | commands::TODO_NEXT_SET
-                        | commands::TODO_PREVIOUS_SET
-                ) =>
-            {
-                self.followed(&file, &new_text, heading, (Position::new(*number, position.character), line))
-            }
+        // From the agenda, the entry's lines show the change where they
+        // are, as Emacs's do until the agenda is built again: the new
+        // headline (`org-agenda-change-all-lines`), or the new date at
+        // their end (`org-agenda-show-new-time`). The cursor stays.
+        let today = self.view.as_ref().map(|open| open.view.today);
+        let held = match (&line, &shown) {
+            (Some((number, row)), Some(shown)) => row.entry.clone().and_then(|entry| {
+                if matches!(command, EditCommand::AgendaDate { .. }) {
+                    let text = format!(" => {} ", shown.stamp.as_deref()?);
+                    return Some(views::Held::Stamp { entry, text });
+                }
+                // A repeater set the state back: today's line shows the
+                // state it had reached (`org-agenda-todo`).
+                Some(match &shown.before_repeat {
+                    Some((keyword, done)) if row.day.is_some() && row.day == today => views::Held::Headline {
+                        entry,
+                        keyword: keyword.clone(),
+                        done: *done,
+                        only: Some(*number as usize),
+                    },
+                    _ => {
+                        views::Held::Headline { entry, keyword: shown.state.0.clone(), done: shown.state.1, only: None }
+                    }
+                })
+            }),
             _ => None,
         };
+        if let Some(held) = held {
+            self.hold(held);
+        }
         let edit = self.workspace_edit(&file, version, edits);
         self.edited.insert(key);
         // No label: some editors print it every time an edit is applied.
@@ -13609,23 +13697,6 @@ impl Server {
         let edit = self.workspace_edits(documents);
         let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
         self.apply_edit(params, Pending::Edit);
-    }
-
-    /// Where the entry at `heading` of `file` will stand in the agenda
-    /// once `file` reads `text`, if that is on another line than the one
-    /// the cursor is on.
-    fn followed(&mut self, file: &Uri, text: &str, heading: usize, from: (Position, &ViewLine)) -> Option<Follow> {
-        let query = self.view.as_ref()?.view.query.clone();
-        let parse = org_syntax::parse(text, &self.todo);
-        let outline = Outline::with_inheritance(&parse, text, &uri::file_stem(file), &self.workspace.inheritance);
-        let view = self.render_with(query, Some((file, outline, text)));
-        let (position, line) = from;
-        let target = view.line_of(file, heading, (position.line, line))?;
-        (target != position.line).then(|| Follow {
-            text: view.text,
-            from: position.line,
-            position: Position::new(target, position.character),
-        })
     }
 }
 

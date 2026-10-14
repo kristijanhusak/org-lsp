@@ -282,16 +282,24 @@ press('.')
 wait_for_view('Week-agenda (W21):')
 wait_for_cursor('Monday     18 May 2026 W21')
 
--- 5. Changing an entry from the agenda edits its file and the agenda follows.
+-- 5. Changing an entry from the agenda edits its file. As in Emacs
+-- (`org-agenda-change-all-lines`), every line of the entry shows the new
+-- state where it is, until the agenda is built again.
 vim.api.nvim_win_set_cursor(0, { 13, 0 })
 eq(cursor_line(), '  work:       In   2 d.:  TODO Call the client', 'on an entry')
 press('t')
--- Done, the entry no longer warns of its deadline; it stays on the day itself.
 wait('the agenda to show the new state', function()
+  return line(13) == '  work:       In   2 d.:  DONE Call the client'
+end)
+eq(line(17), '  work:       Deadline:   DONE Call the client', 'the entry is done on its deadline day too')
+eq(vim.api.nvim_win_get_cursor(0)[1], 13, 'the cursor stays where it was')
+-- Done, the entry no longer warns of its deadline once the agenda is
+-- built again; it stays on the day itself.
+press('r')
+wait('the agenda built again', function()
   return line(13) == 'Tuesday    19 May 2026'
 end)
 eq(line(16), '  work:       Deadline:   DONE Call the client', 'the entry is done on its deadline day')
-eq(vim.api.nvim_win_get_cursor(0)[1], 13, 'the cursor stays where it was')
 local work_buf = vim.fn.bufnr(work)
 check(work_buf > 0 and vim.api.nvim_buf_is_loaded(work_buf), 'the file of the entry is loaded')
 eq(vim.api.nvim_buf_get_lines(work_buf, 2, 3, false), { '* DONE Call the client' }, 'the entry changed in its file')
@@ -306,8 +314,9 @@ wait('the file to be saved', function()
   return not vim.bo[work_buf].modified
 end)
 
--- 6. Priority and date change from the agenda, and the cursor goes with
--- the entry when it moves to another line.
+-- 6. Priority and date change from the agenda. The entry's lines stay
+-- where they are, and so does the cursor; a new date shows at their end
+-- (`org-agenda-show-new-time`).
 local home_buf = vim.fn.bufnr(vim.fs.joinpath(directory, 'home.org'))
 local function home_line(number)
   home_buf = home_buf > 0 and home_buf or vim.fn.bufnr(vim.fs.joinpath(directory, 'home.org'))
@@ -321,6 +330,13 @@ local function find(text)
   end
   error('no agenda line `' .. text .. '`')
 end
+-- `text` with `stamp` over its end, as Emacs shows a new date: at the
+-- right edge of the window, but for the column a terminal keeps.
+local function stamped(text, stamp)
+  local info = vim.fn.getwininfo(vim.api.nvim_get_current_win())[1]
+  local keep = info.width - info.textoff - 1 - #stamp - 1
+  return (text .. string.rep(' ', keep)):sub(1, keep) .. stamp
+end
 vim.api.nvim_win_set_cursor(0, { find('  home:       Sched. 2x:  TODO Water plants'), 14 })
 press('+')
 wait('the priority in the file', function()
@@ -330,22 +346,25 @@ wait_for_cursor('  home:       Sched. 2x:  TODO [#B] Water plants')
 press('+')
 wait_for_cursor('  home:       Sched. 2x:  TODO [#A] Water plants')
 -- One step later takes a date that has passed to today, …
+local plants = '  home:       Sched. 2x:  TODO [#A] Water plants'
+local row = vim.api.nvim_win_get_cursor(0)[1]
 press('<S-Right>')
 wait('the date in the file', function()
   return home_line(2) == 'SCHEDULED: <2026-05-18 Mon +1w>'
 end)
-wait_for_cursor('  home:       Scheduled:  TODO [#A] Water plants')
--- … and the next one to tomorrow, where the cursor follows the entry.
+wait_for_cursor(stamped(plants, ' => <2026-05-18 Mon +1w> '))
+-- … and the next one to tomorrow; the line stays where it is.
 press('<S-Right>')
 wait('the next day in the file', function()
   return home_line(2) == 'SCHEDULED: <2026-05-19 Tue +1w>'
 end)
-wait('the cursor to follow the entry to Tuesday', function()
-  local row = vim.api.nvim_win_get_cursor(0)[1]
-  return line(row) == '  home:       Scheduled:  TODO [#A] Water plants' and line(row - 2) == 'Tuesday    19 May 2026'
-end)
-eq(line(vim.api.nvim_win_get_cursor(0)[1] - 1), '  work:       14:00-15:00 Meeting ', 'below what Tuesday already had')
-eq(vim.api.nvim_win_get_cursor(0)[2], 14, 'the cursor keeps its column')
+wait_for_cursor(stamped(plants, ' => <2026-05-19 Tue +1w> '))
+eq(vim.api.nvim_win_get_cursor(0), { row, 14 }, 'the cursor stays, in its column')
+eq(
+  line(find('Saturday   23 May 2026') + 1),
+  stamped('  home:       Scheduled:  TODO [#A] Water plants', ' => <2026-05-19 Tue +1w> '),
+  'the other line of the entry says so too'
+)
 -- Held down, the key repeats faster than Neovim usually reports changes
 -- to the server. No press is lost: each builds on the one before.
 for _ = 1, 5 do
@@ -355,23 +374,20 @@ end
 wait('five more days in the file', function()
   return home_line(2) == 'SCHEDULED: <2026-05-24 Sun +1w>'
 end)
-wait('the cursor to follow the entry to Sunday', function()
-  local row = vim.api.nvim_win_get_cursor(0)[1]
-  return line(row) == '  home:       Scheduled:  TODO [#A] Water plants' and line(row - 1) == 'Sunday     24 May 2026'
-end)
+wait_for_cursor(stamped(plants, ' => <2026-05-24 Sun +1w> '))
 press('5<S-Left>')
 wait('back on Tuesday', function()
-  local row = vim.api.nvim_win_get_cursor(0)[1]
   return home_line(2) == 'SCHEDULED: <2026-05-19 Tue +1w>'
-    and line(row) == '  home:       Scheduled:  TODO [#A] Water plants'
-    and line(row - 2) == 'Tuesday    19 May 2026'
 end)
+wait_for_cursor(stamped(plants, ' => <2026-05-19 Tue +1w> '))
 -- A count is a number of days. Back to how it was.
 press('3<S-Left>')
 wait('the old date in the file', function()
   return home_line(2) == 'SCHEDULED: <2026-05-16 Sat +1w>'
 end)
-wait_for_cursor('  home:       Sched. 2x:  TODO [#A] Water plants')
+wait_for_cursor(stamped(plants, ' => <2026-05-16 Sat +1w> '))
+eq(vim.api.nvim_win_get_cursor(0), { row, 14 }, 'the cursor has not moved')
+-- A new priority writes the line anew, without the date.
 press('-')
 wait_for_cursor('  home:       Sched. 2x:  TODO [#B] Water plants')
 press('-')
@@ -403,7 +419,8 @@ end
 
 -- 6b. Scheduling from the agenda (`org-agenda-schedule`) opens the
 -- calendar on the entry's date; the day taken there goes to its file, and
--- the cursor follows the entry.
+-- the entry's line says so where it is, with the cursor on it.
+local scheduled_from = vim.api.nvim_win_get_cursor(0)
 press('<C-c><C-s>')
 wait('the calendar on the scheduled day', in_calendar_on('16'))
 eq(vim.api.nvim_buf_get_lines(0, -2, -1, false), { 'SCHEDULED Date+time [2026-05-16]:    => <2026-05-16 Sat>' }, 'the minibuffer')
@@ -413,13 +430,12 @@ press('<CR>')
 wait('the new date in the file', function()
   return home_line(2) == 'SCHEDULED: <2026-05-23 Sat +1w>'
 end)
-wait('the calendar to close and the cursor to follow the entry to Saturday', function()
+wait('the calendar to close and the line to show the new date', function()
   vim.api.nvim_feedkeys('', 'x', false)
-  local row = vim.api.nvim_win_get_cursor(0)[1]
   return prompt_window() == nil
-    and line(row) == '  home:       Scheduled:  TODO Water plants'
-    and line(row - 1) == 'Saturday   23 May 2026'
+    and cursor_line() == stamped('  home:       Sched. 2x:  TODO Water plants', ' S => Scheduled to <2026-05-23 Sat +1w> ')
 end)
+eq(vim.api.nvim_win_get_cursor(0), scheduled_from, 'the cursor is back where it was')
 -- Typed in the minibuffer, back to where it was.
 local input = vim.ui.input
 vim.ui.input = function(_, on_confirm)
@@ -431,17 +447,29 @@ press('i')
 wait('the old date in the file again', function()
   return home_line(2) == 'SCHEDULED: <2026-05-16 Sat +1w>'
 end)
--- The entry repeats weekly, so Saturday still shows it: the cursor stays.
-wait('the agenda to show the entry today again', function()
+wait('the calendar to close and the line to show the old date', function()
   vim.api.nvim_feedkeys('', 'x', false)
-  return prompt_window() == nil and vim.tbl_contains(lines(), '  home:       Sched. 2x:  TODO Water plants')
+  return prompt_window() == nil
+    and cursor_line() == stamped('  home:       Sched. 2x:  TODO Water plants', ' S => Scheduled to <2026-05-16 Sat +1w> ')
 end)
-wait('the cursor to stay on the entry on Saturday', function()
-  local row = vim.api.nvim_win_get_cursor(0)[1]
-  return line(row) == '  home:       Scheduled:  TODO Water plants' and line(row - 1) == 'Saturday   23 May 2026'
+eq(vim.api.nvim_win_get_cursor(0), scheduled_from, 'the cursor is back where it was')
+vim.ui.input = input
+-- Cancelled, the calendar leaves the agenda as it was, the cursor too.
+press('<C-c><C-s>')
+wait('the calendar again', in_calendar_on('16'))
+press('q')
+wait('the calendar to close', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return prompt_window() == nil
+end)
+eq(vim.api.nvim_win_get_cursor(0), scheduled_from, 'the cursor is where it was')
+eq(home_line(2), 'SCHEDULED: <2026-05-16 Sat +1w>', 'the file as it was')
+-- Built again, the agenda shows the entries where they now belong.
+press('r')
+wait('the agenda built again', function()
+  return vim.tbl_contains(lines(), '  home:       Sched. 2x:  TODO Water plants')
 end)
 vim.api.nvim_win_set_cursor(0, { find('  home:       Sched. 2x:  TODO Water plants'), 14 })
-vim.ui.input = input
 
 -- 6c. TAB shows the entry in another window: a new one when the agenda
 -- is alone, then the one that shows the file, an empty one, or the

@@ -999,10 +999,11 @@ describe('The agenda', () => {
     await until('the agenda to drop the old date', () => !activeText().includes('Sched. 2x:'));
   });
 
-  it('changes priority and date from a line, and the cursor goes with the entry', async () => {
+  it('changes priority and date from a line, which stays where it is with the cursor', async () => {
     const home = await vscode.workspace.openTextDocument(vscode.Uri.file(path.join(workspace, 'home.org')));
     const lines = activeText().split('\n');
-    moveTo(lines.findIndex((line) => line.endsWith('Scheduled:  TODO Water plants')), 14);
+    const row = lines.findIndex((line) => line.endsWith('Scheduled:  TODO Water plants'));
+    moveTo(row, 14);
     // What Emacs says comes as a notification, or with
     // `org-lsp.messages` set to `statusBar` in the status bar.
     const said = [];
@@ -1034,23 +1035,21 @@ describe('The agenda', () => {
     assert.deepEqual(shown, ['Priority of current item set to A', 'Priority of current item set to B']);
     await until('the priority in the file', () => home.lineAt(0).text === '* TODO [#B] Water plants');
     await until('the priority in the agenda', () => activeLine()?.endsWith('Scheduled:  TODO [#B] Water plants'));
-    // The entry moves to the next day, and the cursor with it.
+    // The entry moves to the next day. As in Emacs
+    // (`org-agenda-show-new-time`), its line stays with the new date at its
+    // end, and so does the cursor.
+    const cursor = () => vscode.window.activeTextEditor.selection.active;
     await vscode.commands.executeCommand('org.date.later');
     await until('the date in the file', () => home.lineAt(1).text === 'SCHEDULED: <2026-05-24 Sun +1w>');
-    await until('the cursor on Sunday', () => {
-      const editor = vscode.window.activeTextEditor;
-      const line = editor.selection.active.line;
-      return (
-        line > 0 &&
-        editor.document.lineAt(line).text.endsWith('TODO [#B] Water plants') &&
-        editor.document.lineAt(line - 1).text === 'Sunday     24 May 2026'
-      );
-    });
-    assert.equal(vscode.window.activeTextEditor.selection.active.character, 14, 'the cursor keeps its column');
+    await until('the new date on the line', () => activeLine()?.endsWith(' => <2026-05-24 Sun +1w> '));
+    assert.ok(activeLine().includes('Scheduled:  TODO [#B] Water'), activeLine());
+    assert.deepEqual([cursor().line, cursor().character], [row, 14], 'the cursor stays');
     // Back as it was.
     await vscode.commands.executeCommand('org.date.earlier');
     await until('the old date', () => home.lineAt(1).text === 'SCHEDULED: <2026-05-23 Sat +1w>');
-    await until('the cursor on Saturday', () => activeLine()?.endsWith('TODO [#B] Water plants') && activeText().includes('Saturday   23 May 2026\n  home:'));
+    await until('the old date on the line', () => activeLine()?.endsWith(' => <2026-05-23 Sat +1w> '));
+    assert.equal(cursor().line, row, 'the cursor stays');
+    // A new priority writes the line anew, without the date.
     await vscode.commands.executeCommand('org.priority.down');
     await until('a lower priority', () => home.lineAt(0).text === '* TODO [#C] Water plants');
     await until('the lower priority in the agenda', () => activeLine()?.endsWith('TODO [#C] Water plants'));
@@ -1085,19 +1084,25 @@ describe('The agenda', () => {
       await until('the date in the file', () => home.lineAt(1).text === 'SCHEDULED: <2026-05-16 Sat +1w>');
       await until('the calendar to close', () => !calendar());
       await agenda('Week-agenda (W21):');
-      await until('the agenda to show it today', () => activeText().includes('Sched. 2x:  TODO Water plants'));
+      // The line stays, saying what was done, with the cursor on it.
+      await until('the new date on the line', () => activeLine()?.endsWith(' S => Scheduled to <2026-05-16 Sat +1w> '));
+      assert.equal(vscode.window.activeTextEditor.selection.active.line, entry - 1, 'the cursor stays');
       // Typed in the minibuffer, back to Saturday.
-      moveTo(activeText().split('\n').findIndex((text) => text.endsWith('Sched. 2x:  TODO Water plants')));
       await vscode.commands.executeCommand('org.schedule');
       await until('the calendar again', () => vscode.window.activeTextEditor?.document.languageId === 'org-date');
       await vscode.commands.executeCommand('org.calendar.type');
       await until('the old date in the file', () => home.lineAt(1).text === 'SCHEDULED: <2026-05-23 Sat +1w>');
       await until('the calendar to close again', () => !calendar());
+      await agenda('Week-agenda (W21):');
+      await until('the old date on the line', () => activeLine()?.endsWith(' S => Scheduled to <2026-05-23 Sat +1w> '));
+      assert.equal(vscode.window.activeTextEditor.selection.active.line, entry - 1, 'the cursor stays');
     } finally {
       vscode.window.showInputBox = showInputBox;
     }
-    await agenda('Week-agenda (W21):');
-    await until('the agenda without the old date', () => !activeText().includes('Sched. 2x:'));
+    // Built again, the agenda shows the entry where it belongs.
+    await vscode.commands.executeCommand('org.agenda.redo');
+    await until('the agenda built again', () => !activeText().includes(' => '));
+    assert.ok(activeText().includes('Scheduled:  TODO Water plants'), activeText());
   });
 
   it('goes to the entry of a line', async () => {
