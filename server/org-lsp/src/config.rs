@@ -5,7 +5,10 @@
 
 use org_core::agenda::sorting::{Limit, Sorting, Strategies};
 use org_core::agenda::todo_ignore::When;
-use org_core::agenda::{Config as AgendaConfig, FutureRepeats, RemoveTags, Span, TagsColumn, TimeGrid};
+use org_core::agenda::{
+    Config as AgendaConfig, FutureRepeats, PreferLastRepeat, RemoveTags, SkipByOtherDate, SkipScheduledIfDeadline,
+    Span, TagsColumn, TimeGrid,
+};
 use org_core::archive::{ContextInfo, InheritedTags, MarkDone, Settings as ArchiveSettings};
 use org_core::edit::Settings as EditSettings;
 use org_core::outline::{Inherit, Inheritance};
@@ -1967,6 +1970,22 @@ pub struct AgendaOptions {
     pub skip_timestamp_if_done: Option<bool>,
     #[serde(rename = "org_agenda_skip_comment_trees")]
     pub skip_comment_trees: Option<bool>,
+    #[serde(rename = "org_agenda_include_deadlines")]
+    pub include_deadlines: Option<bool>,
+    /// `org-agenda-prefer-last-repeat`: `true`, or a list of TODO keywords.
+    #[serde(rename = "org_agenda_prefer_last_repeat")]
+    pub prefer_last_repeat: Option<serde_json::Value>,
+    /// `true`, `"pre-scheduled"` or a number of days.
+    #[serde(rename = "org_agenda_skip_deadline_prewarning_if_scheduled")]
+    pub skip_deadline_prewarning_if_scheduled: Option<serde_json::Value>,
+    /// `true`, `"post-deadline"` or a number of days.
+    #[serde(rename = "org_agenda_skip_scheduled_delay_if_deadline")]
+    pub skip_scheduled_delay_if_deadline: Option<serde_json::Value>,
+    /// `true`, `"not-today"` or `"repeated-after-deadline"`.
+    #[serde(rename = "org_agenda_skip_scheduled_if_deadline_is_shown")]
+    pub skip_scheduled_if_deadline_is_shown: Option<serde_json::Value>,
+    #[serde(rename = "org_agenda_skip_scheduled_repeats_after_deadline")]
+    pub skip_scheduled_repeats_after_deadline: Option<bool>,
     #[serde(rename = "org_agenda_todo_list_sublevels")]
     pub todo_list_sublevels: Option<bool>,
     #[serde(rename = "org_agenda_todo_ignore_with_date")]
@@ -2226,12 +2245,45 @@ impl AgendaOptions {
             skip_timestamp_if_done,
             show_all_dates,
             skip_comment_trees,
+            include_deadlines,
+            skip_scheduled_repeats_after_deadline,
             todo_list_sublevels,
             use_time_grid,
             show_current_time_in_grid,
             compact_blocks,
             hide_empty_blocks
         );
+        if let Some(value) = &self.prefer_last_repeat {
+            config.prefer_last_repeat = match value {
+                serde_json::Value::Bool(true) => PreferLastRepeat::All,
+                serde_json::Value::Array(states) => PreferLastRepeat::States(
+                    states.iter().filter_map(|state| state.as_str().map(str::to_string)).collect(),
+                ),
+                _ => PreferLastRepeat::None,
+            };
+        }
+        // `t`, the symbol of the other date, or a number of days.
+        let by_other_date = |value: &serde_json::Value, name: &str| match value {
+            serde_json::Value::Bool(true) => Some(SkipByOtherDate::All),
+            serde_json::Value::String(symbol) if symbol == name => Some(SkipByOtherDate::ByOtherDate),
+            serde_json::Value::String(_) => Some(SkipByOtherDate::All),
+            serde_json::Value::Number(number) => number.as_i64().map(SkipByOtherDate::Days),
+            _ => None,
+        };
+        if let Some(value) = &self.skip_deadline_prewarning_if_scheduled {
+            config.skip_deadline_prewarning_if_scheduled = by_other_date(value, "pre-scheduled");
+        }
+        if let Some(value) = &self.skip_scheduled_delay_if_deadline {
+            config.skip_scheduled_delay_if_deadline = by_other_date(value, "post-deadline");
+        }
+        if let Some(value) = &self.skip_scheduled_if_deadline_is_shown {
+            config.skip_scheduled_if_deadline_is_shown = match value.as_str() {
+                _ if value == &serde_json::Value::Bool(true) => SkipScheduledIfDeadline::Yes,
+                Some("not-today") => SkipScheduledIfDeadline::NotToday,
+                Some("repeated-after-deadline") => SkipScheduledIfDeadline::RepeatedAfterDeadline,
+                _ => SkipScheduledIfDeadline::No,
+            };
+        }
         // `org-agenda-todo-ignore-*`: `false` is nil, as unset.
         let when = |value: &Option<serde_json::Value>| value.as_ref().and_then(When::parse);
         if let Some(on) = self.todo_ignore_with_date {

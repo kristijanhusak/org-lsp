@@ -116,6 +116,50 @@ pub enum FutureRepeats {
     None,
 }
 
+/// `org-agenda-prefer-last-repeat`: which repeating entries show their
+/// last repeat up to today instead of their base date.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub enum PreferLastRepeat {
+    #[default]
+    None,
+    All,
+    /// Only entries with one of these TODO keywords.
+    States(Vec<String>),
+}
+
+impl PreferLastRepeat {
+    fn applies(&self, keyword: Option<&str>) -> bool {
+        match self {
+            PreferLastRepeat::None => false,
+            PreferLastRepeat::All => true,
+            PreferLastRepeat::States(states) => keyword.is_some_and(|keyword| states.iter().any(|s| s == keyword)),
+        }
+    }
+}
+
+/// `org-agenda-skip-deadline-prewarning-if-scheduled` and
+/// `org-agenda-skip-scheduled-delay-if-deadline`: for an entry with both
+/// dates, the warning (or delay) is dropped (`t`), limited by the other
+/// date (`pre-scheduled`, `post-deadline`), or set to a number of days.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SkipByOtherDate {
+    All,
+    ByOtherDate,
+    Days(i64),
+}
+
+/// `org-agenda-skip-scheduled-if-deadline-is-shown`
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum SkipScheduledIfDeadline {
+    #[default]
+    No,
+    Yes,
+    /// Only when scheduled before today.
+    NotToday,
+    /// `repeated-after-deadline`, as `org-agenda-skip-scheduled-repeats-after-deadline`.
+    RepeatedAfterDeadline,
+}
+
 /// When and how the time grid is drawn.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TimeGrid {
@@ -255,6 +299,18 @@ pub struct Config {
     pub archives: bool,
     /// `org-agenda-skip-comment-trees`
     pub skip_comment_trees: bool,
+    /// `org-agenda-include-deadlines`
+    pub include_deadlines: bool,
+    /// `org-agenda-prefer-last-repeat`
+    pub prefer_last_repeat: PreferLastRepeat,
+    /// `org-agenda-skip-deadline-prewarning-if-scheduled`
+    pub skip_deadline_prewarning_if_scheduled: Option<SkipByOtherDate>,
+    /// `org-agenda-skip-scheduled-delay-if-deadline`
+    pub skip_scheduled_delay_if_deadline: Option<SkipByOtherDate>,
+    /// `org-agenda-skip-scheduled-if-deadline-is-shown`
+    pub skip_scheduled_if_deadline_is_shown: SkipScheduledIfDeadline,
+    /// `org-agenda-skip-scheduled-repeats-after-deadline`
+    pub skip_scheduled_repeats_after_deadline: bool,
     /// `org-agenda-todo-list-sublevels`: the TODO list shows the TODO
     /// entries below another one.
     pub todo_list_sublevels: bool,
@@ -426,6 +482,12 @@ impl Default for Config {
             hide_empty_blocks: false,
             archives: false,
             skip_comment_trees: true,
+            include_deadlines: true,
+            prefer_last_repeat: PreferLastRepeat::None,
+            skip_deadline_prewarning_if_scheduled: None,
+            skip_scheduled_delay_if_deadline: None,
+            skip_scheduled_if_deadline_is_shown: SkipScheduledIfDeadline::No,
+            skip_scheduled_repeats_after_deadline: false,
             todo_list_sublevels: true,
             todo_ignore: todo_ignore::TodoIgnore::default(),
             tags_todo_honor_ignore: false,
@@ -543,6 +605,16 @@ impl Builder<'_> {
             FutureRepeats::All => current,
         };
         closest_date_until(raw, from, Prefer::Future, self.config.extend_today_until).unwrap_or(base)
+    }
+
+    /// `org-agenda-prefer-last-repeat`: the last repeat of `raw` up to
+    /// today for an entry it applies to (its keyword `keyword`), else the
+    /// base date `base`.
+    fn last_repeat(&self, raw: &str, base: Day, keyword: Option<&str>) -> Day {
+        if !self.config.prefer_last_repeat.applies(keyword) {
+            return base;
+        }
+        closest_date_until(raw, self.today, Prefer::Past, self.config.extend_today_until).unwrap_or(base)
     }
 
     fn item(
@@ -672,10 +744,21 @@ impl Builder<'_> {
                 continue;
             };
             let raw = planning.raw.as_str();
-            let Some(deadline) = time_string_to_day(raw) else { continue };
+            let Some(base) = time_string_to_day(raw) else { continue };
+            // The base date, or the last repeat up to today.
+            let deadline = self.last_repeat(raw, base, entry.element_todo.as_deref());
             let repeat = self.future_repeat(raw, deadline, current);
             let diff = deadline - current;
-            let wdays = warning_days(raw, self.config.deadline_warning_days, false, false);
+            // No earlier warning than the scheduled date allows.
+            let scheduled = self.config.skip_deadline_prewarning_if_scheduled.zip(entry.scheduled.as_ref());
+            let max_warning = match scheduled {
+                None => i64::MAX,
+                Some((SkipByOtherDate::Days(days), _)) => days,
+                Some((SkipByOtherDate::ByOtherDate, scheduled)) => time_string_to_day(&scheduled.raw)
+                    .map_or(i64::MAX, |day| (deadline - day).min(self.config.deadline_warning_days)),
+                Some((SkipByOtherDate::All, _)) => 0,
+            };
+            let wdays = max_warning.min(warning_days(raw, self.config.deadline_warning_days, false, false));
             // A deadline shows on its date, on later repeats, and today
             // while it is within its warning period or overdue.
             let shown = current == deadline
@@ -748,7 +831,7 @@ impl Builder<'_> {
     }
 
     /// `org-agenda-get-scheduled`
-    fn scheduled(&self, file: usize, current: Day, out: &mut Vec<Item>) {
+    fn scheduled(&self, file: usize, current: Day, deadlines: &[usize], out: &mut Vec<Item>) {
         let is_today = current == self.today;
         for (index, entry) in self.files[file].entries.iter().enumerate() {
             let found = entry.scheduled.as_ref().filter(|planning| planning.active && planning.searchable);
@@ -756,14 +839,32 @@ impl Builder<'_> {
                 continue;
             };
             let raw = planning.raw.as_str();
-            let Some(schedule) = time_string_to_day(raw) else { continue };
+            let Some(base) = time_string_to_day(raw) else { continue };
+            // The base date, or the last repeat up to today.
+            let schedule = self.last_repeat(raw, base, entry.element_todo.as_deref());
             let repeat = self.future_repeat(raw, schedule, current);
             let diff = current - schedule;
             let past = schedule < self.today;
             let future = schedule > self.today;
             let habits = self.config.habits.as_ref();
             let is_habit = self.is_habit(file, index);
-            let delay = warning_days(raw, self.config.scheduled_delay_days, true, false);
+            // No longer a delay than the deadline allows.
+            let deadline = self.config.skip_scheduled_delay_if_deadline.zip(entry.deadline.as_ref());
+            let max_delay = match deadline {
+                None => i64::MAX,
+                Some((SkipByOtherDate::Days(days), _)) => -days,
+                Some((SkipByOtherDate::ByOtherDate, deadline)) => time_string_to_day(&deadline.raw)
+                    .map_or(i64::MAX, |day| (schedule - day).min(self.config.scheduled_delay_days)),
+                Some((SkipByOtherDate::All, _)) => 0,
+            };
+            // A `--Xd` delay is gone once a repeat has come.
+            static ONCE: std::sync::LazyLock<regex::Regex> =
+                std::sync::LazyLock::new(|| regex::Regex::new(r"--[0-9]+[hdwmy]").expect("a valid regex"));
+            let delay = if ONCE.is_match(raw) && schedule > base {
+                0
+            } else {
+                max_delay.min(warning_days(raw, self.config.scheduled_delay_days, true, false))
+            };
             // A scheduled entry shows on its date, today once that date has
             // passed, and on later repeats; a delay holds it back. With
             // `org-habit-show-all-today`, a habit shows today in any case.
@@ -779,6 +880,28 @@ impl Builder<'_> {
                     || (current != schedule && !is_today && current != repeat));
             if hidden || (entry.element_done && (self.config.skip_scheduled_if_done || schedule != current)) {
                 continue;
+            }
+            // `org-agenda-skip-scheduled-repeats-after-deadline`: no repeat
+            // after the deadline (today's date without one).
+            if self.config.skip_scheduled_repeats_after_deadline
+                || self.config.skip_scheduled_if_deadline_is_shown == SkipScheduledIfDeadline::RepeatedAfterDeadline
+            {
+                let deadline = entry
+                    .deadline
+                    .as_ref()
+                    .and_then(|deadline| time_string_to_day(&deadline.raw))
+                    .unwrap_or(self.today);
+                if (base <= deadline || schedule != current) && current > deadline {
+                    continue;
+                }
+            }
+            // `org-agenda-skip-scheduled-if-deadline-is-shown`, not for habits.
+            if deadlines.contains(&index) && !is_habit {
+                match self.config.skip_scheduled_if_deadline_is_shown {
+                    SkipScheduledIfDeadline::Yes => continue,
+                    SkipScheduledIfDeadline::NotToday if past => continue,
+                    _ => {}
+                }
             }
             // Habits not shown, or only today, and never once done.
             if is_habit
@@ -911,8 +1034,11 @@ impl Builder<'_> {
                 continue;
             }
             if repeats {
-                // Past occurrences show up to today, future ones after it.
-                let base = if current > self.today { self.today } else { current };
+                // Past occurrences show up to today, future ones after it;
+                // with `org-agenda-prefer-last-repeat`, only the last one.
+                let keyword = outline.entries[shown.entry].todo.as_deref();
+                let last = self.config.prefer_last_repeat.applies(keyword);
+                let base = if current > self.today || last { self.today } else { current };
                 let Some(past) = closest_date_until(&shown.text, base, Prefer::Past, self.config.extend_today_until)
                 else {
                     continue;
@@ -1026,11 +1152,19 @@ impl Builder<'_> {
 
     /// `org-agenda-get-day-entries` for one file, in Org's order.
     fn day(&self, file: usize, current: Day, out: &mut Vec<Item>) {
-        self.deadlines(file, current, out);
+        // The entries whose deadline shows, for their scheduled dates.
+        // (`org-agenda-get-timestamps` has them too, but looks them up
+        // with `assq` in a list of positions, which finds none.)
+        let start = out.len();
+        if self.config.include_deadlines {
+            self.deadlines(file, current, out);
+        }
+        let deadlines: Vec<usize> =
+            out[start..].iter().filter_map(|item| item.source.map(|source| source.entry)).collect();
         if self.config.show_log {
             self.progress(file, current, out);
         }
-        self.scheduled(file, current, out);
+        self.scheduled(file, current, &deadlines, out);
         self.blocks(file, current, out);
         self.timestamps(file, current, out);
         self.sexps(file, current, out);

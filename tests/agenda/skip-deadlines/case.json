@@ -1,0 +1,13 @@
+{
+  "today": "2026-05-18",
+  "now": "10:30",
+  "runs": [
+    { "view": "agenda", "span": "day" }
+  ],
+  "options": {
+    "org_agenda_include_deadlines": false,
+    "org_agenda_skip_scheduled_if_deadline_is_shown": true,
+    "org_agenda_skip_deadline_prewarning_if_scheduled": 2
+  },
+  "emacs": "(setq org-agenda-include-deadlines nil org-agenda-skip-scheduled-if-deadline-is-shown t org-agenda-skip-deadline-prewarning-if-scheduled 2)"
+}

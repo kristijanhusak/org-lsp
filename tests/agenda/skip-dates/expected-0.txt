@@ -1,0 +1,24 @@
+Week-agenda (W21):
+Monday     18 May 2026 W21
+  work:       Sched.14x:  NEXT a weekly repeat
+  work:       Scheduled:  TODO scheduled today, due soon
+  work:       Scheduled:  TODO a daily repeat
+  work:       Scheduled:  TODO a repeat that stops at its deadline
+  work:       Deadline:   TODO a repeating deadline
+  work:       In   2 d.:  TODO scheduled today, due soon
+  work:       In   2 d.:  TODO a repeat that stops at its deadline
+  work:       In   4 d.:  TODO delayed, due soon
+  work:       In   7 d.:  TODO scheduled before its deadline
+Tuesday    19 May 2026
+  work:       Scheduled:  TODO a repeat that stops at its deadline
+  work:       Deadline:   TODO scheduled after its deadline
+Wednesday  20 May 2026
+  work:       Scheduled:  TODO a repeat that stops at its deadline
+  work:       Deadline:   TODO scheduled today, due soon
+  work:       Deadline:   TODO a repeat that stops at its deadline
+Thursday   21 May 2026
+  work:       Scheduled:  TODO scheduled after its deadline
+Friday     22 May 2026
+  work:       Deadline:   TODO delayed, due soon
+Saturday   23 May 2026
+Sunday     24 May 2026
