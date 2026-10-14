@@ -847,6 +847,11 @@ impl Placed {
     /// (`org-capture-finalize`), and saved as Org mode saves it, with a
     /// newline at the end (`require-final-newline`).
     pub fn finish(&self, edited: &str) -> String {
+        self.finish_with(edited, &crate::tblfm::Settings::default())
+    }
+
+    /// [`Placed::finish`], a table recalculated with `formulas`.
+    fn finish_with(&self, edited: &str, formulas: &crate::tblfm::Settings) -> String {
         let mut text = format!("{}{edited}{}", &self.text[..self.start], &self.text[self.end..]);
         // A table line: the table aligned, when the capture is a table line.
         if self.align_table {
@@ -868,7 +873,7 @@ impl Placed {
                 // With formulas, the table is calculated again, which
                 // aligns it (`org-table-fix-formulas` is not ported).
                 let recalculated = crate::tblfm::has_formulas(&text, start)
-                    .then(|| crate::tblfm::recalculate(&text, start, crate::tblfm::Mode::All, &|_| None).ok())
+                    .then(|| crate::tblfm::recalculate(&text, start, crate::tblfm::Mode::All, &|_| None, formulas).ok())
                     .flatten();
                 match recalculated {
                     Some(done) => text = done.text,
@@ -902,7 +907,7 @@ impl Placed {
         settings: &crate::todo::Settings,
         now: DateTime,
     ) -> String {
-        let text = self.finish(edited);
+        let text = self.finish_with(edited, &settings.table.formulas);
         let Some(heading) = heading_at(&text, self.begin.min(text.len())) else { return text };
         let mut editor = crate::todo::Editor::new(&text, keywords, settings, now);
         editor.heading = heading;

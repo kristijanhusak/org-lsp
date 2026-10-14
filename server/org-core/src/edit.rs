@@ -348,10 +348,10 @@ pub fn run(
             let crlf = crate::text::crlf(text);
             let recalculated = if crlf {
                 let (lf, offset) = crate::text::to_lf(text, offset);
-                tblfm::recalculate(&lf, offset, *mode, &property)
+                tblfm::recalculate(&lf, offset, *mode, &property, &settings.todo.table.formulas)
                     .map(|done| tblfm::Recalculated { text: crate::text::from_lf(&done.text, 0).0, ..done })
             } else {
-                tblfm::recalculate(text, offset, *mode, &property)
+                tblfm::recalculate(text, offset, *mode, &property, &settings.todo.table.formulas)
             };
             match recalculated {
                 Ok(recalculated) => Ok(Outcome {

@@ -180,6 +180,68 @@ pub const SETTINGS: &[Setting] = &[
          down too, as `recursive` in a `COOKIE_DATA` property does.",
     ),
     setting(
+        "org_table_formula_constants",
+        "object",
+        "{}",
+        "org-table-formula-constants",
+        "Constants for the table formulas of every file, by name: `{ \"c\": \"299792458.\" }` gives `$c`. A \
+         file's `#+CONSTANTS:` come first.",
+    ),
+    setting(
+        "org_table_relative_ref_may_cross_hline",
+        r#"true, false, "error""#,
+        "true",
+        "org-table-relative-ref-may-cross-hline",
+        "Whether a relative reference in a formula (`@-1`) goes past a horizontal line: `false` stops at the \
+         field next to it, `\"error\"` makes the formula fail.",
+    ),
+    setting(
+        "org_table_formula_create_columns",
+        "boolean",
+        "false",
+        "org-table-formula-create-columns",
+        "A field formula past the last column adds the columns it needs, rather than failing.",
+    ),
+    setting(
+        "org_table_duration_custom_format",
+        r#""seconds", "minutes", "hours", "days", "hh:mm""#,
+        r#""hours""#,
+        "org-table-duration-custom-format",
+        "How a formula with `;t` writes a duration: a number of seconds, minutes, hours or days, or hours and \
+         minutes.",
+    ),
+    setting(
+        "org_table_duration_hour_zero_padding",
+        "boolean",
+        "true",
+        "org-table-duration-hour-zero-padding",
+        "Durations of formulas (`;T`, `;U`) have their hours on two digits: `08:32:34` rather than `8:32:34`.",
+    ),
+    setting(
+        "org_calc_default_modes",
+        "object",
+        r#"{ "float_format": ["float", 8], "angle_mode": "deg" }"#,
+        "org-calc-default-modes",
+        "The modes table formulas start with: `float_format`, `[\"float\", digits]`, `[\"fix\", decimals]` or \
+         `[\"sci\", digits]`, and `angle_mode`, `\"deg\"` or `\"rad\"`. A formula's own modes (`;f2`) win; \
+         Calc's other modes are not offered.",
+    ),
+    setting(
+        "org_table_formula_evaluate_inline",
+        "boolean",
+        "true",
+        "org-table-formula-evaluate-inline",
+        "TAB and RET on a field that is a formula (`=$1*2`, `:=...`) evaluate it, which org-lsp refuses (the \
+         formula goes in a `#+TBLFM:` line); `false` leaves the field as text.",
+    ),
+    setting(
+        "org_table_allow_automatic_line_recalculation",
+        "boolean",
+        "true",
+        "org-table-allow-automatic-line-recalculation",
+        "TAB, RET and C-c C-c on a line marked `#` recalculate it.",
+    ),
+    setting(
         "org_list_use_circular_motion",
         "boolean",
         "false",
@@ -2331,6 +2393,20 @@ const SCHEMAS: &[(&str, &str)] = &[
         r#"{ "type": "object", "properties": { "checkbox": { "type": "boolean" }, "indent": { "type": "boolean" } }, "additionalProperties": false }"#,
     ),
     ("org_checkbox_hierarchical_statistics", BOOLEAN),
+    (
+        "org_table_formula_constants",
+        r#"{ "type": "object", "additionalProperties": { "type": ["string", "number"] } }"#,
+    ),
+    ("org_table_relative_ref_may_cross_hline", r#"{ "enum": [true, false, "error"] }"#),
+    ("org_table_formula_create_columns", BOOLEAN),
+    ("org_table_duration_custom_format", r#"{ "enum": ["seconds", "minutes", "hours", "days", "hh:mm"] }"#),
+    ("org_table_duration_hour_zero_padding", BOOLEAN),
+    (
+        "org_calc_default_modes",
+        r#"{ "type": "object", "properties": { "float_format": { "type": "array", "minItems": 2, "maxItems": 2, "items": [{ "enum": ["float", "fix", "sci"] }, { "type": "integer", "minimum": 0 }] }, "angle_mode": { "enum": ["deg", "rad"] } }, "additionalProperties": false }"#,
+    ),
+    ("org_table_formula_evaluate_inline", BOOLEAN),
+    ("org_table_allow_automatic_line_recalculation", BOOLEAN),
     ("org_enforce_todo_dependencies", BOOLEAN),
     ("org_enforce_todo_checkbox_dependencies", BOOLEAN),
     ("org_log_refile", r#"{ "enum": [false, "time", "note"] }"#),

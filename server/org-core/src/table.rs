@@ -14,6 +14,28 @@ use regex::Regex;
 
 use crate::text::char_width;
 
+/// The options of Org's tables.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Settings {
+    /// What the formulas do.
+    pub formulas: crate::tblfm::Settings,
+    /// `org-table-formula-evaluate-inline`: a field that is a formula
+    /// (`=...`, `:=...`) is evaluated by `TAB` and `RET`, which org-lsp
+    /// refuses; without it, it is text.
+    pub evaluate_inline: bool,
+    /// `org-table-allow-automatic-line-recalculation`: a line marked `#`
+    /// is recalculated by `TAB`, `RET` and `C-c C-c` on it.
+    pub line_recalculation: bool,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Settings { formulas: crate::tblfm::Settings::default(), evaluate_inline: true, line_recalculation: true }
+    }
+}
+
+static DEFAULT_SETTINGS: LazyLock<Settings> = LazyLock::new(Settings::default);
+
 /// What a table command makes of the text.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Done {
@@ -81,27 +103,31 @@ pub fn at_table(text: &str, at: usize) -> bool {
     text[start..].trim_start_matches([' ', '\t']).starts_with('|')
 }
 
-/// Run `command` with the cursor at byte `at`, which is on a table line.
+/// Run `command` with the cursor at byte `at`, which is on a table line,
+/// with Org's default options.
 pub fn run(text: &str, at: usize, command: Command) -> Result<Done, String> {
-    run_with(text, at, command, &|_| None)
+    run_with(text, at, command, &|_| None, &DEFAULT_SETTINGS)
 }
 
-/// [`run`], `property` reading an Org property at the table for the
-/// `$PROP_name` of a line recalculated on the way (a row marked `#`).
+/// [`run`] with `settings`, `property` reading an Org property at the
+/// table for the `$PROP_name` of a line recalculated on the way (a row
+/// marked `#`).
 pub fn run_with(
     text: &str,
     at: usize,
     command: Command,
     property: &dyn Fn(&str) -> Option<String>,
+    settings: &Settings,
 ) -> Result<Done, String> {
     if crate::text::crlf(text) {
         let (lf, at) = crate::text::to_lf(text, at);
-        let done = run_with(&lf, at, command, property)?;
+        let done = run_with(&lf, at, command, property, settings)?;
         let (text, cursor) = crate::text::from_lf(&done.text, done.cursor);
         return Ok(Done { text, cursor, killed: done.killed });
     }
     let mut buffer = Buffer::new(text, at);
     buffer.property = property;
+    buffer.settings = settings;
     if !buffer.at_table() {
         return Err("Not at a table".to_string());
     }
@@ -146,6 +172,7 @@ struct Buffer<'a> {
     /// Reads an Org property at the table, for the formulas of a line
     /// recalculated on the way.
     property: &'a dyn Fn(&str) -> Option<String>,
+    settings: &'a Settings,
 }
 
 /// `org-link-bracket-re`
@@ -185,6 +212,7 @@ impl Buffer<'_> {
             may_need_update: true,
             hidden: hidden_parts(text, 0, text.len()),
             property: &|_| None,
+            settings: &DEFAULT_SETTINGS,
         }
     }
 
@@ -677,9 +705,13 @@ impl Buffer<'_> {
     }
 
     /// `org-table-maybe-eval-formula`: a field that is a formula
-    /// (`=...`, `:=...`) is evaluated, which org-lsp refuses.
+    /// (`=...`, `:=...`) is evaluated with `org-table-formula-evaluate-inline`,
+    /// which org-lsp refuses.
     fn maybe_eval_formula(&mut self) -> Result<(), String> {
         static FORMULA: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^:?=(.*[^=])$").unwrap());
+        if !self.settings.evaluate_inline {
+            return Ok(());
+        }
         let field = self.get_field();
         if FORMULA.is_match(field.trim_matches([' ', '\t', '\n', '\r'])) {
             return Err("A formula in a field is not evaluated; put it in a #+TBLFM: line".to_string());
@@ -689,15 +721,21 @@ impl Buffer<'_> {
 
     /// `org-table-maybe-recalculate-line`: a line marked `#` is
     /// recalculated (`org-table-recalculate` on it), point staying in its
-    /// field.
+    /// field, with `org-table-allow-automatic-line-recalculation`.
     fn maybe_recalculate_line(&mut self) -> Result<(), String> {
         static MARKED: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[ \t]*\| *# *(\||$)").unwrap());
-        if !MARKED.is_match(self.line()) {
+        if !self.settings.line_recalculation || !MARKED.is_match(self.line()) {
             return Ok(());
         }
         let line = self.text[..self.bol()].matches('\n').count();
         let column = self.table_column();
-        let recalculated = crate::tblfm::recalculate(&self.text, self.point, crate::tblfm::Mode::Line, self.property)?;
+        let recalculated = crate::tblfm::recalculate(
+            &self.text,
+            self.point,
+            crate::tblfm::Mode::Line,
+            self.property,
+            &self.settings.formulas,
+        )?;
         self.text = recalculated.text;
         self.hidden = hidden_parts(&self.text, 0, self.text.len());
         self.markers.clear();

@@ -8,7 +8,8 @@ cursor is, and the keys pressed (`TAB`, `<backtab>`, `M-<left>`,
 (`fn:org-table-blank-field`, which Org 9.8 binds to no key in Org mode).
 `reference(cases)` adds `expected`: `{"text", "point",
 "killed"}` (the point in characters, `killed` what went to the kill ring),
-or `{"error": "..."}` when Org stops with an error.
+or `{"error": "..."}` when Org stops with an error. A case's `emacs`
+gives options as `let` bindings (`(org-table-tab-jumps-over-hlines nil)`).
 """
 
 import json
@@ -25,7 +26,7 @@ DRIVER = r"""
 ;; cannot be answered here.
 (advice-add 'read-from-minibuffer :override
             (lambda (prompt &rest _) (error "Asked: %s" prompt)))
-(defun org-lsp-table-case (in out key)
+(defun org-lsp-table-case (in out key bindings)
   (with-temp-buffer
     (insert-file-contents in)
     (org-mode)
@@ -35,6 +36,8 @@ DRIVER = r"""
     (delete-char -1)
     ;; As Emacs shows the buffer: links show their descriptions.
     (font-lock-ensure)
+    (dolist (binding bindings)
+      (set (make-local-variable (car binding)) (eval (cadr binding) t)))
     (setq org-table-may-need-update t
           org-table-last-alignment nil
           org-table-last-column-widths nil
@@ -77,7 +80,10 @@ def reference(cases, timeout=300):
             with open(source, "w", encoding="utf-8") as handle:
                 handle.write(case["text"])
             outputs.append((case, target))
-            forms.append(f"(org-lsp-table-case {lisp_string(source)} {lisp_string(target)} {lisp_string(case['key'])})")
+            forms.append(
+                f"(org-lsp-table-case {lisp_string(source)} {lisp_string(target)} {lisp_string(case['key'])}"
+                f" '({case.get('emacs', '')}))"
+            )
         driver = os.path.join(directory, "driver.el")
         with open(driver, "w", encoding="utf-8") as handle:
             handle.write("\n".join(forms))

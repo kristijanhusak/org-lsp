@@ -126,6 +126,32 @@ pub struct Options {
     /// `org-checkbox-hierarchical-statistics`
     #[serde(rename = "org_checkbox_hierarchical_statistics")]
     pub checkbox_hierarchical_statistics: Option<bool>,
+    /// `org-table-formula-constants`: by name, the value.
+    #[serde(rename = "org_table_formula_constants")]
+    pub table_formula_constants: Option<std::collections::BTreeMap<String, serde_json::Value>>,
+    /// `org-table-relative-ref-may-cross-hline`: a boolean or `"error"`.
+    #[serde(rename = "org_table_relative_ref_may_cross_hline")]
+    pub table_relative_ref_may_cross_hline: Option<serde_json::Value>,
+    /// `org-table-formula-create-columns`
+    #[serde(rename = "org_table_formula_create_columns")]
+    pub table_formula_create_columns: Option<bool>,
+    /// `org-table-duration-custom-format`: `seconds`, `minutes`, `hours`,
+    /// `days` or `hh:mm`.
+    #[serde(rename = "org_table_duration_custom_format")]
+    pub table_duration_custom_format: Option<String>,
+    /// `org-table-duration-hour-zero-padding`
+    #[serde(rename = "org_table_duration_hour_zero_padding")]
+    pub table_duration_hour_zero_padding: Option<bool>,
+    /// `org-calc-default-modes`: `float_format` (`["fix", 2]`) and
+    /// `angle_mode` (`"deg"` or `"rad"`).
+    #[serde(rename = "org_calc_default_modes")]
+    pub calc_default_modes: Option<serde_json::Map<String, serde_json::Value>>,
+    /// `org-table-formula-evaluate-inline`
+    #[serde(rename = "org_table_formula_evaluate_inline")]
+    pub table_formula_evaluate_inline: Option<bool>,
+    /// `org-table-allow-automatic-line-recalculation`
+    #[serde(rename = "org_table_allow_automatic_line_recalculation")]
+    pub table_allow_automatic_line_recalculation: Option<bool>,
     /// `org-todo-state-tags-triggers`: by state (`""` for none, `todo`,
     /// `done`), the tags to set (`+TAG`) or remove (`-TAG`).
     #[serde(rename = "org_todo_state_tags_triggers")]
@@ -1397,8 +1423,119 @@ impl Options {
                 .clock_file_time_cell_format
                 .clone()
                 .unwrap_or(defaults.file_time_cell_format.clone()),
+            formulas: self.table_settings().formulas,
             ..defaults
         }
+    }
+
+    /// How tables are edited and calculated: the options of
+    /// `org-table.el`.
+    pub fn table_settings(&self) -> org_core::table::Settings {
+        use org_core::tblfm::{CrossHline, DurationFormat};
+        let defaults = org_core::table::Settings::default();
+        let mut calc = defaults.formulas.calc;
+        if let Some(modes) = &self.calc_default_modes {
+            if let Some([kind, digits]) =
+                modes.get("float_format").and_then(|value| value.as_array()).map(Vec::as_slice)
+            {
+                let digits = digits.as_u64().unwrap_or(0).min(1000) as usize;
+                calc.float_format = match kind.as_str() {
+                    Some("fix") => org_core::calc::FloatFormat::Fix(digits),
+                    Some("sci") => org_core::calc::FloatFormat::Sci(digits),
+                    _ => org_core::calc::FloatFormat::Float(digits),
+                };
+            }
+            if let Some(angle) = modes.get("angle_mode").and_then(serde_json::Value::as_str) {
+                calc.radians = angle == "rad";
+            }
+        }
+        let formulas = org_core::tblfm::Settings {
+            constants: self
+                .table_formula_constants
+                .iter()
+                .flatten()
+                .map(|(name, value)| {
+                    let value = match value {
+                        serde_json::Value::String(text) => text.clone(),
+                        other => other.to_string(),
+                    };
+                    (name.clone(), value)
+                })
+                .collect(),
+            cross_hline: match &self.table_relative_ref_may_cross_hline {
+                Some(serde_json::Value::Bool(false)) => CrossHline::Stop,
+                Some(serde_json::Value::String(word)) if word == "error" => CrossHline::Error,
+                _ => CrossHline::Cross,
+            },
+            create_columns: self.table_formula_create_columns.unwrap_or(defaults.formulas.create_columns),
+            duration_format: match self.table_duration_custom_format.as_deref() {
+                Some("seconds") => DurationFormat::Seconds,
+                Some("minutes") => DurationFormat::Minutes,
+                Some("days") => DurationFormat::Days,
+                Some("hh:mm") => DurationFormat::HoursMinutes,
+                _ => DurationFormat::Hours,
+            },
+            hour_zero_padding: self.table_duration_hour_zero_padding.unwrap_or(defaults.formulas.hour_zero_padding),
+            calc,
+        };
+        org_core::table::Settings {
+            formulas,
+            evaluate_inline: self.table_formula_evaluate_inline.unwrap_or(defaults.evaluate_inline),
+            line_recalculation: self.table_allow_automatic_line_recalculation.unwrap_or(defaults.line_recalculation),
+        }
+    }
+
+    /// The table options set, as Emacs variables and their values in Lisp,
+    /// for the formulas Emacs computes in org-lsp's place.
+    pub fn table_emacs_variables(&self) -> Vec<(String, String)> {
+        let lisp_string = |text: &str| format!("\"{}\"", text.replace('\\', "\\\\").replace('"', "\\\""));
+        let flag = |on: bool| if on { "t" } else { "nil" }.to_string();
+        let settings = self.table_settings();
+        let formulas = &settings.formulas;
+        let mut out = Vec::new();
+        if self.table_formula_constants.is_some() {
+            let pairs: Vec<String> = formulas
+                .constants
+                .iter()
+                .map(|(name, value)| format!("({} . {})", lisp_string(name), lisp_string(value)))
+                .collect();
+            out.push(("org-table-formula-constants".to_string(), format!("'({})", pairs.join(" "))));
+        }
+        if self.table_relative_ref_may_cross_hline.is_some() {
+            let value = match formulas.cross_hline {
+                org_core::tblfm::CrossHline::Cross => "t",
+                org_core::tblfm::CrossHline::Stop => "nil",
+                org_core::tblfm::CrossHline::Error => "'error",
+            };
+            out.push(("org-table-relative-ref-may-cross-hline".to_string(), value.to_string()));
+        }
+        if let Some(on) = self.table_formula_create_columns {
+            out.push(("org-table-formula-create-columns".to_string(), flag(on)));
+        }
+        if let Some(format) = &self.table_duration_custom_format {
+            if ["seconds", "minutes", "hours", "days", "hh:mm"].contains(&format.as_str()) {
+                out.push(("org-table-duration-custom-format".to_string(), format!("'{format}")));
+            }
+        }
+        if let Some(on) = self.table_duration_hour_zero_padding {
+            out.push(("org-table-duration-hour-zero-padding".to_string(), flag(on)));
+        }
+        if self.calc_default_modes.is_some() {
+            let float = match formulas.calc.float_format {
+                org_core::calc::FloatFormat::Float(digits) => format!("(float {digits})"),
+                org_core::calc::FloatFormat::Fix(digits) => format!("(fix {digits})"),
+                org_core::calc::FloatFormat::Sci(digits) => format!("(sci {digits})"),
+            };
+            let angle = if formulas.calc.radians { "rad" } else { "deg" };
+            out.push((
+                "org-calc-default-modes".to_string(),
+                format!(
+                    "(plist-put (plist-put (copy-sequence (default-value 'org-calc-default-modes)) \
+                     'calc-float-format '{float}) 'calc-angle-mode '{angle})"
+                ),
+            ));
+        }
+        out
     }
 
     pub fn edit_settings(&self) -> EditSettings {
@@ -1507,6 +1644,7 @@ impl Options {
             .collect();
         settings.tags_sort = self.tag_settings().sort;
         settings.lists = self.list_settings();
+        settings.table = self.table_settings();
         for (kind, heading) in self.log_note_headings.iter().flatten() {
             let headings = &mut settings.note_headings;
             let slot = match kind.as_str() {

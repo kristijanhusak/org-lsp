@@ -879,6 +879,43 @@ org_list_automatic_rules = { checkbox = true, indent = true }
 # property does. (org-checkbox-hierarchical-statistics)
 org_checkbox_hierarchical_statistics = true
 
+# Constants for the table formulas of every file, by name: `{ "c":
+# "299792458." }` gives `$c`. A file's `#+CONSTANTS:` come first.
+# (org-table-formula-constants)
+org_table_formula_constants = {  }
+
+# Whether a relative reference in a formula (`@-1`) goes past a horizontal
+# line: `false` stops at the field next to it, `"error"` makes the formula
+# fail. (org-table-relative-ref-may-cross-hline)
+org_table_relative_ref_may_cross_hline = true
+
+# A field formula past the last column adds the columns it needs, rather than
+# failing. (org-table-formula-create-columns)
+org_table_formula_create_columns = false
+
+# How a formula with `;t` writes a duration: a number of seconds, minutes,
+# hours or days, or hours and minutes. (org-table-duration-custom-format)
+org_table_duration_custom_format = "hours"
+
+# Durations of formulas (`;T`, `;U`) have their hours on two digits:
+# `08:32:34` rather than `8:32:34`. (org-table-duration-hour-zero-padding)
+org_table_duration_hour_zero_padding = true
+
+# The modes table formulas start with: `float_format`, `["float", digits]`,
+# `["fix", decimals]` or `["sci", digits]`, and `angle_mode`, `"deg"` or
+# `"rad"`. A formula's own modes (`;f2`) win; Calc's other modes are not
+# offered. (org-calc-default-modes)
+org_calc_default_modes = { angle_mode = "deg", float_format = ["float", 8] }
+
+# TAB and RET on a field that is a formula (`=$1*2`, `:=...`) evaluate it,
+# which org-lsp refuses (the formula goes in a `#+TBLFM:` line); `false`
+# leaves the field as text. (org-table-formula-evaluate-inline)
+org_table_formula_evaluate_inline = true
+
+# TAB, RET and C-c C-c on a line marked `#` recalculate it.
+# (org-table-allow-automatic-line-recalculation)
+org_table_allow_automatic_line_recalculation = true
+
 # Moving to the next item from the last goes to the first, and back; moving
 # the last item down puts it first, the first up puts it last.
 # (org-list-use-circular-motion)
@@ -2154,6 +2191,43 @@ org_agenda_custom_commands = []
   // counts every box further down too, as `recursive` in a `COOKIE_DATA`
   // property does. (org-checkbox-hierarchical-statistics)
   "org_checkbox_hierarchical_statistics": true,
+
+  // Constants for the table formulas of every file, by name: `{ "c":
+  // "299792458." }` gives `$c`. A file's `#+CONSTANTS:` come first.
+  // (org-table-formula-constants)
+  "org_table_formula_constants": {  },
+
+  // Whether a relative reference in a formula (`@-1`) goes past a horizontal
+  // line: `false` stops at the field next to it, `"error"` makes the formula
+  // fail. (org-table-relative-ref-may-cross-hline)
+  "org_table_relative_ref_may_cross_hline": true,
+
+  // A field formula past the last column adds the columns it needs, rather
+  // than failing. (org-table-formula-create-columns)
+  "org_table_formula_create_columns": false,
+
+  // How a formula with `;t` writes a duration: a number of seconds, minutes,
+  // hours or days, or hours and minutes. (org-table-duration-custom-format)
+  "org_table_duration_custom_format": "hours",
+
+  // Durations of formulas (`;T`, `;U`) have their hours on two digits:
+  // `08:32:34` rather than `8:32:34`. (org-table-duration-hour-zero-padding)
+  "org_table_duration_hour_zero_padding": true,
+
+  // The modes table formulas start with: `float_format`, `["float", digits]`,
+  // `["fix", decimals]` or `["sci", digits]`, and `angle_mode`, `"deg"` or
+  // `"rad"`. A formula's own modes (`;f2`) win; Calc's other modes are not
+  // offered. (org-calc-default-modes)
+  "org_calc_default_modes": { "angle_mode": "deg", "float_format": ["float", 8] },
+
+  // TAB and RET on a field that is a formula (`=$1*2`, `:=...`) evaluate it,
+  // which org-lsp refuses (the formula goes in a `#+TBLFM:` line); `false`
+  // leaves the field as text. (org-table-formula-evaluate-inline)
+  "org_table_formula_evaluate_inline": true,
+
+  // TAB, RET and C-c C-c on a line marked `#` recalculate it.
+  // (org-table-allow-automatic-line-recalculation)
+  "org_table_allow_automatic_line_recalculation": true,
 
   // Moving to the next item from the last goes to the first, and back; moving
   // the last item down puts it first, the first up puts it last.

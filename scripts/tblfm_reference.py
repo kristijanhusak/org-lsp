@@ -11,6 +11,8 @@ A case is a JSON object:
                                                        default), "line"
                                                        (`C-c *`) or "iterate"
                                                        (`C-u C-u C-c *`)
+      "emacs": "(org-table-formula-create-columns t)"  optional: options,
+                                                       as `let` bindings
     }
 
 `reference(cases)` adds `expected`: `{"text": ...}`, the file after, or
@@ -30,13 +32,15 @@ DRIVER = r"""
 (require 'org)
 (require 'org-table)
 (require 'calc)
-(defun org-lsp-tblfm-case (text offset command out)
+(defun org-lsp-tblfm-case (text offset command out bindings)
   (let ((result
          (condition-case err
              (with-temp-buffer
                (insert text)
                (let ((org-mode-hook nil)) (org-mode))
                (goto-char (1+ offset))
+               (dolist (binding bindings)
+                 (set (make-local-variable (car binding)) (eval (cadr binding) t)))
                (let ((inhibit-message t))
                  (pcase command
                    ("line" (org-table-recalculate nil))
@@ -63,7 +67,7 @@ def reference(cases):
             outputs.append((case, out))
             forms.append(
                 f"(org-lsp-tblfm-case {lisp_string(text.replace(CURSOR, '', 1))} {offset}"
-                f" {lisp_string(case.get('command', 'all'))} {lisp_string(out)})"
+                f" {lisp_string(case.get('command', 'all'))} {lisp_string(out)} '({case.get('emacs', '')}))"
             )
         driver = os.path.join(directory, "driver.el")
         with open(driver, "w", encoding="utf-8") as handle:
