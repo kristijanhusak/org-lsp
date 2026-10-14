@@ -179,6 +179,47 @@ pub const SETTINGS: &[Setting] = &[
         "A checkbox cookie counts the boxes of the items right below it; `false` counts every box further \
          down too, as `recursive` in a `COOKIE_DATA` property does.",
     ),
+    Setting {
+        default: None,
+        unset: "Org's: integers, decimals, `2.4e-08`, `0x1F`, `nan`, `inf` and their relatives",
+        ..setting(
+            "org_table_number_regexp",
+            "string",
+            "",
+            "org-table-number-regexp",
+            "An Emacs regexp: the fields it matches are numbers, and a column mostly of numbers aligns right.",
+        )
+    },
+    setting(
+        "org_table_number_fraction",
+        "number",
+        "0.5",
+        "org-table-number-fraction",
+        "How much of a column's filled fields must be numbers for it to align right.",
+    ),
+    setting(
+        "org_table_automatic_realign",
+        "boolean",
+        "true",
+        "org-table-automatic-realign",
+        "TAB and RET in a table align it before they move; `false`: only C-c C-c and the commands that change \
+         rows or columns do.",
+    ),
+    setting(
+        "org_table_tab_jumps_over_hlines",
+        "boolean",
+        "true",
+        "org-table-tab-jumps-over-hlines",
+        "TAB at the end of a row before a horizontal line goes to the row after it; `false`: it makes a row \
+         before the line.",
+    ),
+    setting(
+        "org_table_shrunk_column_indicator",
+        "string",
+        r#""…""#,
+        "org-table-shrunk-column-indicator",
+        "What shows at the end of each field of a shrunk column.",
+    ),
     setting(
         "org_table_formula_constants",
         "object",
@@ -2407,6 +2448,11 @@ const SCHEMAS: &[(&str, &str)] = &[
     ),
     ("org_table_formula_evaluate_inline", BOOLEAN),
     ("org_table_allow_automatic_line_recalculation", BOOLEAN),
+    ("org_table_number_regexp", STRING),
+    ("org_table_number_fraction", r#"{ "type": "number", "minimum": 0 }"#),
+    ("org_table_automatic_realign", BOOLEAN),
+    ("org_table_tab_jumps_over_hlines", BOOLEAN),
+    ("org_table_shrunk_column_indicator", STRING),
     ("org_enforce_todo_dependencies", BOOLEAN),
     ("org_enforce_todo_checkbox_dependencies", BOOLEAN),
     ("org_log_refile", r#"{ "enum": [false, "time", "note"] }"#),
@@ -2971,6 +3017,7 @@ mod tests {
             "boolean" => value.is_boolean(),
             "string" => value.is_string(),
             "integer" => value.is_i64() || value.is_u64(),
+            "number" => value.is_number(),
             "array" => value.as_array().is_some_and(|items| match schema.get("items") {
                 // A list of schemas: one for each item in turn.
                 Some(Value::Array(schemas)) => {

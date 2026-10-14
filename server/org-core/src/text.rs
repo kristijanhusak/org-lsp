@@ -247,3 +247,28 @@ pub fn replace_escapes(template: &str, value: impl Fn(char) -> Option<String>) -
     out.push_str(rest);
     out
 }
+
+/// A regexp written as Emacs writes it, matched as `string-match` does,
+/// ignoring case (`case-fold-search`).
+#[derive(Debug, Clone)]
+pub struct EmacsRegexp(regex::Regex);
+
+impl EmacsRegexp {
+    /// `None` when it is not a regexp.
+    pub fn new(emacs: &str) -> Option<EmacsRegexp> {
+        let translated = crate::agenda::matcher::translate(emacs);
+        regex::RegexBuilder::new(&translated).case_insensitive(true).build().ok().map(EmacsRegexp)
+    }
+
+    pub fn is_match(&self, text: &str) -> bool {
+        self.0.is_match(text)
+    }
+}
+
+impl PartialEq for EmacsRegexp {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.as_str() == other.0.as_str()
+    }
+}
+
+impl Eq for EmacsRegexp {}

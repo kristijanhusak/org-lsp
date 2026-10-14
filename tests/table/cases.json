@@ -3548,5 +3548,96 @@
    "point": 6,
    "killed": null
   }
+ },
+ {
+  "text": "| a | bbbb¦ |\n| cc | d |\n",
+  "key": "TAB",
+  "settings": {
+   "automatic_realign": false
+  },
+  "emacs": "(org-table-automatic-realign nil)",
+  "expected": {
+   "text": "| a | bbbb |\n| cc | d |\n",
+   "point": 15,
+   "killed": null
+  }
+ },
+ {
+  "text": "| a | bbbb |\n| cc | d¦ |\n",
+  "key": "TAB",
+  "settings": {
+   "automatic_realign": false
+  },
+  "emacs": "(org-table-automatic-realign nil)",
+  "expected": {
+   "text": "| a  | bbbb |\n| cc | d    |\n|    |      |\n",
+   "point": 30,
+   "killed": null
+  }
+ },
+ {
+  "text": "| a | bbbb |\n| cc¦ | d |\n",
+  "key": "<backtab>",
+  "settings": {
+   "automatic_realign": false
+  },
+  "emacs": "(org-table-automatic-realign nil)",
+  "expected": {
+   "text": "| a | bbbb |\n| cc | d |\n",
+   "point": 6,
+   "killed": null
+  }
+ },
+ {
+  "text": "| aaa | b |\n| c | ddd¦ |\n|---+---|\n| e | f |\n",
+  "key": "TAB",
+  "settings": {
+   "automatic_realign": false
+  },
+  "emacs": "(org-table-automatic-realign nil)",
+  "expected": {
+   "text": "| aaa | b |\n| c | ddd |\n|---+---|\n| e | f |\n",
+   "point": 36,
+   "killed": null
+  }
+ },
+ {
+  "text": "| a | b¦ |\n|---+---|\n| c | d |\n",
+  "key": "TAB",
+  "settings": {
+   "tab_jumps_over_hlines": false
+  },
+  "emacs": "(org-table-tab-jumps-over-hlines nil)",
+  "expected": {
+   "text": "| a | b |\n|   |   |\n|---+---|\n| c | d |\n",
+   "point": 12,
+   "killed": null
+  }
+ },
+ {
+  "text": "| a | b¦ |\n|---+---|\n",
+  "key": "TAB",
+  "settings": {
+   "tab_jumps_over_hlines": false
+  },
+  "emacs": "(org-table-tab-jumps-over-hlines nil)",
+  "expected": {
+   "text": "| a | b |\n|   |   |\n|---+---|\n",
+   "point": 12,
+   "killed": null
+  }
+ },
+ {
+  "text": "| aaa | b |\n| c¦ | ddd |\n|---+---|\n| e | f |\n",
+  "key": "TAB",
+  "settings": {
+   "tab_jumps_over_hlines": false
+  },
+  "emacs": "(org-table-tab-jumps-over-hlines nil)",
+  "expected": {
+   "text": "| aaa | b   |\n| c   | ddd |\n|-----+-----|\n| e   | f   |\n",
+   "point": 22,
+   "killed": null
+  }
  }
 ]

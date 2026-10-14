@@ -879,7 +879,7 @@ impl Placed {
                     Some(done) => text = done.text,
                     None => {
                         let lines: Vec<&str> = text[first..end].lines().collect();
-                        let mut aligned = crate::format::align_table(&lines).join("\n");
+                        let mut aligned = crate::format::align_table(&lines, &formulas.alignment).join("\n");
                         if text[first..end].ends_with('\n') {
                             aligned.push('\n');
                         }

@@ -152,6 +152,21 @@ pub struct Options {
     /// `org-table-allow-automatic-line-recalculation`
     #[serde(rename = "org_table_allow_automatic_line_recalculation")]
     pub table_allow_automatic_line_recalculation: Option<bool>,
+    /// `org-table-number-regexp`
+    #[serde(rename = "org_table_number_regexp")]
+    pub table_number_regexp: Option<String>,
+    /// `org-table-number-fraction`
+    #[serde(rename = "org_table_number_fraction")]
+    pub table_number_fraction: Option<f64>,
+    /// `org-table-automatic-realign`
+    #[serde(rename = "org_table_automatic_realign")]
+    pub table_automatic_realign: Option<bool>,
+    /// `org-table-tab-jumps-over-hlines`
+    #[serde(rename = "org_table_tab_jumps_over_hlines")]
+    pub table_tab_jumps_over_hlines: Option<bool>,
+    /// `org-table-shrunk-column-indicator`
+    #[serde(rename = "org_table_shrunk_column_indicator")]
+    pub table_shrunk_column_indicator: Option<String>,
     /// `org-todo-state-tags-triggers`: by state (`""` for none, `todo`,
     /// `done`), the tags to set (`+TAG`) or remove (`-TAG`).
     #[serde(rename = "org_todo_state_tags_triggers")]
@@ -1232,6 +1247,7 @@ impl Options {
             respect_content: self.insert_heading_respect_content.unwrap_or(false),
             statistics: self.todo_statistics(),
             lists: self.list_settings(),
+            table: self.table_settings(),
             ..org_core::meta_return::Settings::default()
         }
     }
@@ -1477,11 +1493,28 @@ impl Options {
             },
             hour_zero_padding: self.table_duration_hour_zero_padding.unwrap_or(defaults.formulas.hour_zero_padding),
             calc,
+            alignment: self.table_alignment(),
         };
         org_core::table::Settings {
             formulas,
             evaluate_inline: self.table_formula_evaluate_inline.unwrap_or(defaults.evaluate_inline),
             line_recalculation: self.table_allow_automatic_line_recalculation.unwrap_or(defaults.line_recalculation),
+            automatic_realign: self.table_automatic_realign.unwrap_or(defaults.automatic_realign),
+            tab_jumps_over_hlines: self.table_tab_jumps_over_hlines.unwrap_or(defaults.tab_jumps_over_hlines),
+            shrunk_column_indicator: self
+                .table_shrunk_column_indicator
+                .clone()
+                .unwrap_or(defaults.shrunk_column_indicator),
+        }
+    }
+
+    /// When a column of a table aligns right: `org-table-number-regexp`
+    /// and `org-table-number-fraction`.
+    pub fn table_alignment(&self) -> org_core::format::Alignment {
+        let defaults = org_core::format::Alignment::default();
+        org_core::format::Alignment {
+            number: self.table_number_regexp.as_deref().and_then(org_core::text::EmacsRegexp::new),
+            fraction: self.table_number_fraction.filter(|fraction| fraction.is_finite()).unwrap_or(defaults.fraction),
         }
     }
 
@@ -1516,6 +1549,12 @@ impl Options {
             if ["seconds", "minutes", "hours", "days", "hh:mm"].contains(&format.as_str()) {
                 out.push(("org-table-duration-custom-format".to_string(), format!("'{format}")));
             }
+        }
+        if let Some(regexp) = &self.table_number_regexp {
+            out.push(("org-table-number-regexp".to_string(), lisp_string(regexp)));
+        }
+        if let Some(fraction) = self.table_number_fraction.filter(|fraction| fraction.is_finite()) {
+            out.push(("org-table-number-fraction".to_string(), format!("{fraction:?}")));
         }
         if let Some(on) = self.table_duration_hour_zero_padding {
             out.push(("org-table-duration-hour-zero-padding".to_string(), flag(on)));

@@ -84,30 +84,8 @@ impl Default for Settings {
     }
 }
 
-/// The regexp of `org-list-two-spaces-after-bullet-regexp`, matched as
-/// `string-match` does, ignoring case.
-#[derive(Debug, Clone)]
-pub struct BulletRegexp(Regex);
-
-impl BulletRegexp {
-    /// The regexp written as Emacs writes it; `None` when it is not one.
-    pub fn new(emacs: &str) -> Option<BulletRegexp> {
-        let translated = crate::agenda::matcher::translate(emacs);
-        regex::RegexBuilder::new(&translated).case_insensitive(true).build().ok().map(BulletRegexp)
-    }
-
-    pub fn is_match(&self, text: &str) -> bool {
-        self.0.is_match(text)
-    }
-}
-
-impl PartialEq for BulletRegexp {
-    fn eq(&self, other: &Self) -> bool {
-        self.0.as_str() == other.0.as_str()
-    }
-}
-
-impl Eq for BulletRegexp {}
+/// The regexp of `org-list-two-spaces-after-bullet-regexp`.
+pub type BulletRegexp = crate::text::EmacsRegexp;
 
 // ----- lines
 

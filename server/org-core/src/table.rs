@@ -26,11 +26,27 @@ pub struct Settings {
     /// `org-table-allow-automatic-line-recalculation`: a line marked `#`
     /// is recalculated by `TAB`, `RET` and `C-c C-c` on it.
     pub line_recalculation: bool,
+    /// `org-table-automatic-realign`: `TAB` and `RET` align the table before
+    /// they move.
+    pub automatic_realign: bool,
+    /// `org-table-tab-jumps-over-hlines`: `TAB` at the end of a row before a
+    /// rule goes to the row after it, rather than making one before it.
+    pub tab_jumps_over_hlines: bool,
+    /// `org-table-shrunk-column-indicator`: what shows at the end of a
+    /// shrunk field.
+    pub shrunk_column_indicator: String,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings { formulas: crate::tblfm::Settings::default(), evaluate_inline: true, line_recalculation: true }
+        Settings {
+            formulas: crate::tblfm::Settings::default(),
+            evaluate_inline: true,
+            line_recalculation: true,
+            automatic_realign: true,
+            tab_jumps_over_hlines: true,
+            shrunk_column_indicator: crate::shrink::INDICATOR.to_string(),
+        }
     }
 }
 
@@ -648,7 +664,7 @@ impl Buffer<'_> {
         let text = self.text.clone();
         let lines: Vec<&str> = text[begin..end].split_terminator('\n').collect();
         if !lines.is_empty() {
-            let aligned = crate::format::align_table(&lines);
+            let aligned = crate::format::align_table(&lines, &self.settings.formulas.alignment);
             let mut out = String::new();
             let mut at = begin;
             for (old, new) in lines.iter().zip(&aligned) {
@@ -753,7 +769,7 @@ impl Buffer<'_> {
     fn next_field(&mut self) -> Result<(), String> {
         self.maybe_eval_formula()?;
         self.maybe_recalculate_line()?;
-        if self.may_need_update {
+        if self.settings.automatic_realign && self.may_need_update {
             self.align();
         }
         let end = self.table_end();
@@ -769,7 +785,7 @@ impl Buffer<'_> {
             {
                 return false;
             }
-            if self.rest().starts_with('-') {
+            if self.rest().starts_with('-') && self.settings.tab_jumps_over_hlines {
                 // `org-table-tab-jumps-over-hlines`: to the next data line.
                 if let Some(found) = DATA_LINE.find_at(&self.text, self.point).filter(|found| found.end() <= end) {
                     self.point = found.end() - found.as_str().chars().last().map_or(0, char::len_utf8);
@@ -793,7 +809,7 @@ impl Buffer<'_> {
     /// `org-table-previous-field`
     fn previous_field(&mut self) -> Result<(), String> {
         self.maybe_recalculate_line()?;
-        if self.may_need_update {
+        if self.settings.automatic_realign && self.may_need_update {
             self.align();
         }
         if self.at_hline() {

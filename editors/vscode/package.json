@@ -1675,6 +1675,31 @@
               "markdownDescription": "A checkbox cookie counts the boxes of the items right below it; `false` counts every box further down too, as `recursive` in a `COOKIE_DATA` property does. (`org-checkbox-hierarchical-statistics`)",
               "default": true
             },
+            "org_table_number_regexp": {
+              "type": "string",
+              "markdownDescription": "An Emacs regexp: the fields it matches are numbers, and a column mostly of numbers aligns right. (`org-table-number-regexp`)"
+            },
+            "org_table_number_fraction": {
+              "type": "number",
+              "minimum": 0,
+              "markdownDescription": "How much of a column's filled fields must be numbers for it to align right. (`org-table-number-fraction`)",
+              "default": 0.5
+            },
+            "org_table_automatic_realign": {
+              "type": "boolean",
+              "markdownDescription": "TAB and RET in a table align it before they move; `false`: only C-c C-c and the commands that change rows or columns do. (`org-table-automatic-realign`)",
+              "default": true
+            },
+            "org_table_tab_jumps_over_hlines": {
+              "type": "boolean",
+              "markdownDescription": "TAB at the end of a row before a horizontal line goes to the row after it; `false`: it makes a row before the line. (`org-table-tab-jumps-over-hlines`)",
+              "default": true
+            },
+            "org_table_shrunk_column_indicator": {
+              "type": "string",
+              "markdownDescription": "What shows at the end of each field of a shrunk column. (`org-table-shrunk-column-indicator`)",
+              "default": "…"
+            },
             "org_table_formula_constants": {
               "type": "object",
               "additionalProperties": {

@@ -45,6 +45,8 @@ pub struct Settings {
     pub respect_content: bool,
     /// How lists are edited.
     pub lists: list::Settings,
+    /// How tables are edited.
+    pub table: crate::table::Settings,
 }
 
 impl Default for Settings {
@@ -58,6 +60,7 @@ impl Default for Settings {
             blank_item: None,
             respect_content: false,
             lists: list::Settings::default(),
+            table: crate::table::Settings::default(),
         }
     }
 }
@@ -435,9 +438,9 @@ pub fn meta_return(text: &str, at: usize, keywords: &TodoKeywords, settings: &Se
     // From the end of the line, the table is the line's.
     if at_table(text, if settings.below { line_start(text, at) } else { at }, keywords) {
         return if settings.below {
-            Ok(insert_row_below(text, at))
+            Ok(insert_row_below(text, at, &settings.table))
         } else {
-            wrap_field(text, at, settings.split.table)
+            wrap_field(text, at, settings.split.table, &settings.table)
         };
     }
     let options = list::ItemOptions { split: settings.split.item, blank: settings.blank_item };
@@ -486,7 +489,7 @@ pub fn insert_heading_after(text: &str, at: usize, keywords: &TodoKeywords, sett
 
 /// `org-table-wrap-region` without a region: the field split at the
 /// cursor, what follows it put in front of the field one row down.
-fn wrap_field(text: &str, at: usize, split: bool) -> Result<Outcome, Refusal> {
+fn wrap_field(text: &str, at: usize, split: bool, table: &crate::table::Settings) -> Result<Outcome, Refusal> {
     let start = line_start(text, at);
     let end = line_end(text, at);
     let current = &text[start..end];
@@ -500,7 +503,7 @@ fn wrap_field(text: &str, at: usize, split: bool) -> Result<Outcome, Refusal> {
         // `org-table-align` writes again, with a newline, the rows that
         // change: a last row without one gets it when it changes, or when
         // `org-table-next-row` adds a row after it.
-        let mut outcome = next_row(text, at);
+        let mut outcome = next_row(text, at, table);
         let last = |text: &str| line(text, line_start(text, text.len())).to_string();
         let rewritten =
             outcome.text.matches('\n').count() > text.matches('\n').count() || last(&outcome.text) != last(text);
@@ -514,17 +517,17 @@ fn wrap_field(text: &str, at: usize, split: bool) -> Result<Outcome, Refusal> {
     };
     let field = text[at..at + bar].trim_matches([' ', '\t', '\n', '\r']).to_string();
     let cut = format!("{} |{}", &text[..at], &text[at + bar + 1..]);
-    let moved = next_row(&cut, at);
+    let moved = next_row(&cut, at, table);
     let mut out = moved.text;
     out.insert_str(moved.cursor, &format!("{field} "));
-    Ok(align(&out, moved.cursor))
+    Ok(align(&out, moved.cursor, &table.formulas.alignment))
 }
 
 /// `org-table-insert-row` with its argument, from the end of the row at
 /// `at`: a row of blanks like it below it, the cursor in its first field,
 /// and the formulas after the table that name the rows after it by number
 /// (`@3`) moved along with them (`org-table-fix-formulas`).
-fn insert_row_below(text: &str, at: usize) -> Outcome {
+fn insert_row_below(text: &str, at: usize, table: &crate::table::Settings) -> Outcome {
     static END_BAR: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\|[ \t]*$").expect("valid"));
     static MARKER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[ \t]*\| *[#*$] *\|").expect("valid"));
     let mut text = text.to_string();
@@ -533,7 +536,7 @@ fn insert_row_below(text: &str, at: usize) -> Outcome {
         text.push('\n');
     }
     if !END_BAR.is_match(line(&text, line_start(&text, at))) {
-        let aligned = align(&text, at);
+        let aligned = align(&text, at, &table.formulas.alignment);
         text = aligned.text;
         at = aligned.cursor;
     }
@@ -564,7 +567,7 @@ fn insert_row_below(text: &str, at: usize) -> Outcome {
     let text = fix_formulas(&text, row, dline - 1);
     // `org-table-align`, as a table that was edited may need it
     // (`org-table-may-need-update`).
-    align(&text, cursor)
+    align(&text, cursor, &table.formulas.alignment)
 }
 
 /// `org-table-dataline-regexp`
@@ -624,7 +627,7 @@ fn fix_formulas(text: &str, row: usize, limit: usize) -> String {
 
 /// `org-table-align` on the table at `at`, the cursor at the start of its
 /// field after (`org-table-save-field`).
-fn align(text: &str, at: usize) -> Outcome {
+fn align(text: &str, at: usize, alignment: &format::Alignment) -> Outcome {
     let start = line_start(text, at);
     let mut first = start;
     while first > 0 {
@@ -645,7 +648,7 @@ fn align(text: &str, at: usize) -> Outcome {
     let lines: Vec<&str> = text[first..last_end].split('\n').collect();
     let row = text[first..start].matches('\n').count();
     let column = text[start..at].matches('|').count();
-    let aligned = format::align_table(&lines);
+    let aligned = format::align_table(&lines, alignment);
     let row_start = first + aligned[..row].iter().map(|line| line.len() + 1).sum::<usize>();
     let target = &aligned[row];
     let bars: Vec<usize> = target.match_indices('|').map(|(bar, _)| bar + 1).collect();

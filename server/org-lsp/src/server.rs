@@ -3640,7 +3640,10 @@ impl Server {
     /// headlines put in their column.
     fn range_formatting(&mut self, params: lsp_types::DocumentRangeFormattingParams) -> Option<Vec<TextEdit>> {
         let encoding = self.client.encoding;
-        let settings = org_core::format::Settings { tags_column: self.refile.2.tags_column };
+        let settings = org_core::format::Settings {
+            tags_column: self.refile.2.tags_column,
+            alignment: self.edit_settings.todo.table.formulas.alignment.clone(),
+        };
         let indent = self.indent_in(&self.document(&params.text_document.uri)?.text.clone());
         let document = self.document(&params.text_document.uri)?;
         let (original, index) = (&document.text, &document.index);
@@ -3675,7 +3678,10 @@ impl Server {
     /// in their column (`org-align-tags`).
     fn formatting(&mut self, params: lsp_types::DocumentFormattingParams) -> Option<Vec<TextEdit>> {
         let encoding = self.client.encoding;
-        let settings = org_core::format::Settings { tags_column: self.refile.2.tags_column };
+        let settings = org_core::format::Settings {
+            tags_column: self.refile.2.tags_column,
+            alignment: self.edit_settings.todo.table.formulas.alignment.clone(),
+        };
         let document = self.document(&params.text_document.uri)?;
         let (original, index) = (&document.text, &document.index);
         // A Windows file's lines, without their `\r`s and with them again.
@@ -9672,6 +9678,7 @@ impl Server {
             indent: self.indent_in(&text),
             tags_column: self.refile.2.tags_column,
             auto_align: self.edit_settings.tags.auto_align,
+            table: self.edit_settings.todo.table.clone(),
         };
         let document = self.document(uri).ok_or("This file is not open")?;
         let offset = document.index.offset(&document.text, context.position, encoding);
@@ -10145,7 +10152,9 @@ impl Server {
         let mut out: Vec<org_core::shrink::Overlay> = tables
             .iter()
             .zip(sets)
-            .flat_map(|(table, columns)| org_core::shrink::overlays(text, table, columns))
+            .flat_map(|(table, columns)| {
+                org_core::shrink::overlays(text, table, columns, &self.edit_settings.todo.table.shrunk_column_indicator)
+            })
             .collect();
         out.sort_by_key(|overlay| overlay.start);
         out

@@ -13,11 +13,45 @@ use crate::todo::{headline_level, tags_padding};
 pub struct Settings {
     /// `org-tags-column`.
     pub tags_column: i64,
+    /// How the columns of tables align.
+    pub alignment: Alignment,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings { tags_column: -77 }
+        Settings { tags_column: -77, alignment: Alignment::default() }
+    }
+}
+
+/// When a column of a table aligns right: when at least `fraction`
+/// (`org-table-number-fraction`) of its fields are numbers, as `number`
+/// (`org-table-number-regexp`, Org's when `None`) has them.
+#[derive(Debug, Clone)]
+pub struct Alignment {
+    pub number: Option<crate::text::EmacsRegexp>,
+    pub fraction: f64,
+}
+
+impl Default for Alignment {
+    fn default() -> Self {
+        Alignment { number: None, fraction: 0.5 }
+    }
+}
+
+impl PartialEq for Alignment {
+    fn eq(&self, other: &Self) -> bool {
+        self.number == other.number && self.fraction.to_bits() == other.fraction.to_bits()
+    }
+}
+
+impl Eq for Alignment {}
+
+impl Alignment {
+    fn is_number(&self, field: &str) -> bool {
+        match &self.number {
+            Some(regexp) => regexp.is_match(field),
+            None => NUMBER.is_match(field),
+        }
     }
 }
 
@@ -57,7 +91,7 @@ pub fn format_lines(
         if last < *lines_asked.start() || first > *lines_asked.end() {
             continue;
         }
-        for (offset, new) in align_table(&lines[first..=last]).into_iter().enumerate() {
+        for (offset, new) in align_table(&lines[first..=last], &settings.alignment).into_iter().enumerate() {
             if new != lines[first + offset] {
                 changed.push((first + offset, new));
             }
@@ -149,7 +183,7 @@ fn align_field(field: &str, width: usize, align: char) -> String {
 }
 
 /// `org-table-align`: the lines of a table, aligned.
-pub(crate) fn align_table(lines: &[&str]) -> Vec<String> {
+pub(crate) fn align_table(lines: &[&str], alignment: &Alignment) -> Vec<String> {
     let table: Vec<Row> = lines.iter().map(|line| row(line)).collect();
     let rows: Vec<&Vec<String>> = table
         .iter()
@@ -181,14 +215,14 @@ pub(crate) fn align_table(lines: &[&str]) -> Vec<String> {
                     fixed = cookie[1].chars().next();
                 } else {
                     non_empty += 1;
-                    if NUMBER.is_match(cell) {
+                    if alignment.is_number(cell) {
                         numbers += 1;
                     }
                 }
             }
             widths.push(max_width);
-            // `org-table-number-fraction` is 0.5.
-            alignments.push(fixed.unwrap_or(if 2 * numbers >= non_empty { 'r' } else { 'l' }));
+            let right = numbers as f64 >= alignment.fraction * non_empty as f64;
+            alignments.push(fixed.unwrap_or(if right { 'r' } else { 'l' }));
         }
         (widths, alignments)
     };

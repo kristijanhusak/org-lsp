@@ -1730,7 +1730,7 @@ fn write_default(
     }
     let block = buffer.text[table_start..table_end].to_string();
     let lines: Vec<&str> = block.lines().collect();
-    let aligned = align_table(&lines);
+    let aligned = align_table(&lines, &settings.formulas.alignment);
     let mut replaced: String = aligned.join("\n");
     if block.ends_with('\n') {
         replaced.push('\n');
