@@ -151,3 +151,30 @@ fn opening_matches_emacs() {
     }
     assert!(failures.is_empty(), "{failures}");
 }
+
+/// `org-return` with `org-return-follows-link`: where RET follows a link,
+/// at every place of each text of `tests/open/return-follows.json`, as
+/// `scripts/return_follows_reference.py` recorded it in Emacs.
+#[test]
+fn return_follows_links_where_emacs_does() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/open/return-follows.json");
+    let cases: Vec<Value> = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let mut failures = String::new();
+    for case in &cases {
+        let text = case["text"].as_str().unwrap();
+        let parsed = parse(text);
+        let expected: Vec<u64> = case["follows"].as_array().unwrap().iter().map(|at| at.as_u64().unwrap()).collect();
+        let actual: Vec<u64> = text
+            .char_indices()
+            .map(|(at, _)| at)
+            .chain([text.len()])
+            .enumerate()
+            .filter(|(_, at)| org_core::open::return_follows(text, &parsed, *at))
+            .map(|(index, _)| index as u64)
+            .collect();
+        if actual != expected {
+            failures.push_str(&format!("{text:?}: expected {expected:?}, got {actual:?}\n"));
+        }
+    }
+    assert!(failures.is_empty(), "{failures}");
+}

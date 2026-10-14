@@ -1413,6 +1413,11 @@ org_use_sub_superscripts = true
 # with the vim keys) always does it.
 return_uses_meta_return = false
 
+# RET (`org.return`) on a link, a timestamp or a citation follows it, as
+# `org.open` (`C-c C-o`) does. In a table RET still moves down.
+# (org-return-follows-link)
+org_return_follows_link = false
+
 # The deepest headings `org.goto` (`C-c C-j`) offers. (org-goto-max-level)
 org_goto_max_level = 5
 
@@ -2806,6 +2811,11 @@ org_agenda_custom_commands = []
   // RET is Org's: a new line in the item. `org.return.item` (`<S-CR>`,
   // Shift+Enter, with the vim keys) always does it.
   "return_uses_meta_return": false,
+
+  // RET (`org.return`) on a link, a timestamp or a citation follows it, as
+  // `org.open` (`C-c C-o`) does. In a table RET still moves down.
+  // (org-return-follows-link)
+  "org_return_follows_link": false,
 
   // The deepest headings `org.goto` (`C-c C-j`) offers. (org-goto-max-level)
   "org_goto_max_level": 5,

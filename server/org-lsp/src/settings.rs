@@ -1045,6 +1045,14 @@ pub const SETTINGS: &[Setting] = &[
          `org.return.item` (`<S-CR>`, Shift+Enter, with the vim keys) always does it.",
     ),
     setting(
+        "org_return_follows_link",
+        "boolean",
+        "false",
+        "org-return-follows-link",
+        "RET (`org.return`) on a link, a timestamp or a citation follows it, as `org.open` (`C-c C-o`) does. \
+         In a table RET still moves down.",
+    ),
+    setting(
         "org_goto_max_level",
         "number",
         "5",
@@ -2674,6 +2682,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_pretty_entities_include_sub_superscripts", BOOLEAN),
     ("org_use_sub_superscripts", r#"{ "enum": [true, false, "{}"] }"#),
     ("return_uses_meta_return", BOOLEAN),
+    ("org_return_follows_link", BOOLEAN),
     ("org_goto_max_level", INTEGER),
     ("calendar_months", r#"{ "enum": [1, 3] }"#),
     ("calendar_week_start_day", r#"{ "type": "integer", "minimum": 0, "maximum": 6 }"#),

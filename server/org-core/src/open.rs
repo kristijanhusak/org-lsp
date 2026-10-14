@@ -178,6 +178,62 @@ pub fn at_point_calling(
 
 const NO_LINK: &str = "No link found";
 
+/// Whether RET follows a link at `offset` with `org-return-follows-link`
+/// set (`org-return`): on a link or a citation, not on the blanks after
+/// it, or within what reads as a timestamp or a link on the line, as
+/// `org-in-regexp` finds them. Not in a table, where RET moves down.
+pub fn return_follows(text: &str, parse: &Parse, offset: usize) -> bool {
+    static TIMESTAMP: LazyLock<Regex> = LazyLock::new(|| {
+        let one = r"[\[<][[:digit:]]{4}-[[:digit:]]{2}-[[:digit:]]{2}(?: .*?)?[\]>]";
+        Regex::new(&format!("{one}(?:--?-?{one})?")).expect("a valid regex")
+    });
+    static BRACKET: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r"\[\[(?:[^\]\[\\]|\\(?:\\\\)*[\]\[]|\\+[^\]\[])+\](?:\[.+?\])?\]").expect("a valid regex")
+    });
+    let root = parse.syntax();
+    let Some(token) = token_at(&root, offset) else { return false };
+    let start = text[..offset].rfind('\n').map_or(0, |at| at + 1);
+    let end = text[offset..].find('\n').map_or(text.len(), |at| offset + at);
+    let line = &text[start..end];
+    if line.trim_start().starts_with('|') && token.parent_ancestors().any(|node| node.kind() == SyntaxKind::TABLE) {
+        return false;
+    }
+    let on_object = token.parent_ancestors().find(|node| {
+        matches!(node.kind(), SyntaxKind::LINK | SyntaxKind::PLAIN_LINK | SyntaxKind::ANGLE_LINK | SyntaxKind::CITATION)
+    });
+    if let Some(node) = on_object {
+        let node_start = usize::from(node.text_range().start());
+        let node_text = node.text().to_string();
+        // `org-element-context` on a citation's closing bracket finds no
+        // citation.
+        let closing = usize::from(node.kind() == SyntaxKind::CITATION);
+        if offset + closing < node_start + node_text.trim_end_matches([' ', '\t']).len() {
+            return true;
+        }
+    }
+    // `org-in-regexp` with VISUALLY: a match on the line that starts at
+    // or before the point and ends after it.
+    let at = offset - start;
+    let within =
+        |regex: &Regex| regex.find_iter(line).take_while(|found| found.start() <= at).any(|found| found.end() > at);
+    if within(&TIMESTAMP) || within(&BRACKET) {
+        return true;
+    }
+    let angle = line.match_indices('<').take_while(|(from, _)| *from <= at).any(|(from, _)| {
+        let Some(close) = line[from..].find('>') else { return false };
+        let inner = &line[from + 1..from + close];
+        from + close + 1 > at && inner.split_once(':').is_some_and(|(kind, _)| org_syntax::link_types().contains(&kind))
+    });
+    if angle {
+        return true;
+    }
+    // A plain link: a link type at the start of a word.
+    line.char_indices().take_while(|(from, _)| *from <= at).any(|(from, _)| {
+        let word_start = line[..from].chars().next_back().is_none_or(|before| !before.is_alphanumeric());
+        word_start && org_syntax::plain_link_end(line, from).is_some_and(|link_end| link_end > at)
+    })
+}
+
 /// A link of a text.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Link {

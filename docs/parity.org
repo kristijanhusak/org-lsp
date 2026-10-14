@@ -29,7 +29,7 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#notes-org-roam][Notes (org-roam)]] | 67% | 8 of 12 |
 | [[#a-journal-org-journal][A journal (org-journal)]] | 77% | 10 of 13 |
 | [[#refile-and-archive][Refile and archive]] | 100% | 11 of 11 |
-| [[#links][Links]] | 93% | 13 of 14 |
+| [[#links][Links]] | 100% | 14 of 14 |
 | [[#footnotes][Footnotes]] | 100% | 4 of 4 |
 | [[#tables][Tables]] | 94% | 17 of 18 |
 | [[#table-formulas][Table formulas]] | 100% | 13 of 13 |
@@ -426,7 +426,7 @@ Where editors fall short:
 :CUSTOM_ID: links
 :END:
 
-93% (13 of 14)
+100% (14 of 14)
 
 - ✅ Following links: headlines, targets, custom IDs, files with searches, IDs, URLs, timestamps, tags
 - ✅ Storing and inserting links, with descriptions, editing the link at the cursor
@@ -441,7 +441,7 @@ Where editors fall short:
 - ✅ Moving to the next and previous link (~C-c C-x C-n~, ~C-c C-x C-p~)
 - ✅ A search by regular expression (~file:x.org::/regexp/~): a sparse tree of its matches (~org-occur~), in the file the link is in
 - ✅ Making a missing headline a link searches for, or looking for its words in the text (~org-link-search-must-match-exact-headline~); ~doi:~ links at ~org-link-doi-server-url~
-- ❌ Following a link with ~RET~ (~org-return-follows-link~)
+- ✅ Following a link, a timestamp or a citation with ~RET~ (~org-return-follows-link~)
 
 Where editors fall short:
 
@@ -722,9 +722,9 @@ when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 223 | A setting of the same name |
-| missing | 74 | org-lsp does what the option is about, but the option cannot be set yet |
-| other | 7 | Done another way, as its note says |
+| setting | 224 | A setting of the same name |
+| missing | 72 | org-lsp does what the option is about, but the option cannot be set yet |
+| other | 8 | Done another way, as its note says |
 | emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 48 | Its value is Lisp (a function, a hook), which the server does not run |
 | absent | 86 | Part of something org-lsp does not do |
@@ -735,6 +735,7 @@ when Org has an option it does not list.
 - ~org-agenda-add-entry-text-maxlines~ :: entry text mode (~E~) shows ~org_agenda_entry_text_maxlines~ lines; text added to agenda files written with ~C-x C-w~ is not
 - ~org-agenda-skip-timestamp-if-deadline-is-shown~ :: no effect in Org 9.8.10: ~org-agenda-get-timestamps~ looks the entry up with ~assq~ in a list of positions, which finds none; none here either
 - ~org-id-locations-file-relative~ :: org-lsp reads the locations file and never writes it; names in it that are not absolute are relative to its directory, as Emacs reads them
+- ~org-tab-follows-link~ :: TAB is the editor's key for folding and tables; a link is followed with org.open (C-c C-o), go to definition, or RET with org_return_follows_link
 - ~org-table-auto-blank-field~ :: the editor types into a field as into any text: TAB leaves the cursor at the start of the field's text, as in Emacs, and the first character typed does not blank it
 - ~org-table-formula-use-constants~ :: only for a formula evaluated on its own (~C-c =~, a field starting with ~=~), which org-lsp does not do; the formulas of ~#+TBLFM:~ lines always use the constants, in Emacs too
 - ~org-startup-truncated~ :: the editor decides how long lines wrap
@@ -755,7 +756,6 @@ Options of what org-lsp does that cannot be set yet, by the file of Org they are
 - org-entities.el (1) :: ~org-entities-user~
 - org-faces.el (3) :: ~org-tag-faces~, ~org-fontify-quote-and-verse-blocks~, ~org-agenda-deadline-faces~
 - org-indent.el (3) :: ~org-indent-mode-turns-off-org-adapt-indentation~, ~org-indent-mode-turns-on-hiding-stars~, ~org-indent-indentation-per-level~
-- org-keys.el (2) :: ~org-tab-follows-link~, ~org-return-follows-link~
 - org-list.el (3) :: ~org-cycle-include-plain-lists~, ~org-plain-list-ordered-item-terminator~, ~org-list-allow-alphabetical~
 - org-src.el (1) :: ~org-src-content-indentation~
 - org.el (37) :: ~org-startup-align-all-tables~, ~org-ellipsis~, ~org-file-apps~, ~org-odd-levels-only~, ~org-special-ctrl-a/e~, ~org-special-ctrl-k~, ~org-yank-adjusted-subtrees~, ~org-todo-interpretation~, ~org-use-fast-todo-selection~, ~org-treat-insert-todo-heading-as-state-change~, ~org-treat-S-cursor-todo-selection-as-state-change~, ~org-priority-enable-commands~, ~org-display-custom-times~, ~org-timestamp-custom-formats~, ~org-agenda-jump-prefer-future~, ~org-use-effective-time~, ~org-use-last-clock-out-time-as-effective-time~, ~org-edit-timestamp-down-means-later~, ~org-tags-match-list-sublevels~, ~org-property-format~, ~org-property-separators~, ~org-agenda-file-regexp~, ~org-agenda-skip-unavailable-files~, ~org-hidden-keywords~, ~org-custom-properties~, ~org-fontify-todo-headline~, ~org-fontify-done-headline~, ~org-fontify-emphasized-text~, ~org-fontify-whole-heading-line~, ~org-hide-macro-markers~, ~org-emphasis-alist~, ~org-agenda-skip-archived-trees~, ~org-sparse-tree-open-archived-trees~, ~org-src-fontify-natively~, ~org-allow-promoting-top-level-subtree~, ~org-track-ordered-property-with-tag~, ~org-image-actual-width~

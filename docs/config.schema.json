@@ -1321,6 +1321,11 @@
       "description": "RET on the first line of a list item makes the next item, numbered and with a checkbox as M-RET (`org-meta-return`) makes it, the items after it renumbered, as nvim-orgmode's `org_return_uses_meta_return` does. Off, RET is Org's: a new line in the item. `org.return.item` (`<S-CR>`, Shift+Enter, with the vim keys) always does it.",
       "default": false
     },
+    "org_return_follows_link": {
+      "type": "boolean",
+      "description": "RET (`org.return`) on a link, a timestamp or a citation follows it, as `org.open` (`C-c C-o`) does. In a table RET still moves down. (`org-return-follows-link`)",
+      "default": false
+    },
     "org_goto_max_level": {
       "type": "integer",
       "description": "The deepest headings `org.goto` (`C-c C-j`) offers. (`org-goto-max-level`)",
