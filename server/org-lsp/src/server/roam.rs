@@ -474,7 +474,7 @@ impl Server {
         };
         let levels = refile::Settings { adapt: self.adapt_in(""), ..self.refile.2 };
         let read_date = self.read_date;
-        let id = link::new_uuid();
+        let id = self.id_maker()();
         // The capture, with the target's text as `changed` has it when
         // stopping the clock changed it.
         let capture_with = |changed: Option<&(PathBuf, String)>| {

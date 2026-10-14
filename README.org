@@ -103,7 +103,7 @@ does not work there and why.
 | [[file:docs/parity.org::#todo-keywords][TODO keywords]] | 100% | ✅ / ✅ / ✅ / ❓ / ❓ / ❓ |
 | [[file:docs/parity.org::#priorities][Priorities]] | 75% | ✅ / ✅ / ✅ / ✅ / ✅ / ✅ |
 | [[file:docs/parity.org::#tags][Tags]] | 86% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
-| [[file:docs/parity.org::#properties-and-column-view][Properties and column view]] | 75% | ✅ / ❓ / ❓ / ❓ / ❓ / ❓ |
+| [[file:docs/parity.org::#properties-and-column-view][Properties and column view]] | 88% | ✅ / ❓ / ❓ / ❓ / ❓ / ❓ |
 | [[file:docs/parity.org::#dates-and-times][Dates and times]] | 100% | ✅ / ✅ / ✅ / ❓ / ❓ / ❓ |
 | [[file:docs/parity.org::#agenda][Agenda]] | 100% | ✅ / ✅ / ❓ / ❓ / ❓ / ❌ |
 | [[file:docs/parity.org::#clocking][Clocking]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |

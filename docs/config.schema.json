@@ -584,6 +584,38 @@
       "description": "The `org-lint` checkers to leave out, by name, as a diagnostic's code shows it (`\"misplaced-heading\"`). (`org-lint`)",
       "default": []
     },
+    "org_id_method": {
+      "enum": [
+        "uuid",
+        "uuidgen",
+        "org",
+        "ts"
+      ],
+      "description": "How a new `ID` is made (`org.id.create`, a link stored by ID, org-roam): a random UUID, the time in base 36 (`org`), or the time as `org_id_ts_format` writes it (`ts`). (`org-id-method`)",
+      "default": "uuid"
+    },
+    "org_id_prefix": {
+      "anyOf": [
+        {
+          "const": false
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "What a new `ID` starts with, before a colon: `\"Org\"` makes `Org:…`. (`org-id-prefix`)",
+      "default": false
+    },
+    "org_id_ts_format": {
+      "type": "string",
+      "description": "How the `ts` method writes the time, as `format-time-string` does. (`org-id-ts-format`)",
+      "default": "%Y%m%dT%H%M%S.%6N"
+    },
+    "org_id_include_domain": {
+      "type": "boolean",
+      "description": "The `org` and `ts` methods end a new `ID` with `@` and the machine's domain. (`org-id-include-domain`)",
+      "default": false
+    },
     "org_id_link_to_org_use_id": {
       "enum": [
         true,

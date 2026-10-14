@@ -119,7 +119,7 @@ command. [[file:keys/vim.org][keys/vim.org]] lists every key and how to change i
 | [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ✅ |  |
 | [[file:parity.org::#priorities][Priorities]] | 75% | ✅ |  |
 | [[file:parity.org::#tags][Tags]] | 86% | ✅ |  |
-| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 75% | ❓ | Column view's header is in the window's status line, shown when the window has one (~laststatus~). |
+| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 88% | ❓ | Column view's header is in the window's status line, shown when the window has one (~laststatus~). |
 | [[file:parity.org::#dates-and-times][Dates and times]] | 100% | ✅ |  |
 | [[file:parity.org::#agenda][Agenda]] | 100% | ✅ |  |
 | [[file:parity.org::#clocking][Clocking]] | 100% | ✅ |  |
