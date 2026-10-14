@@ -26,11 +26,20 @@ pub struct Settings {
     /// `org-log-into-drawer`, which says whether a drawer is headline data
     /// to indentation.
     pub log_into_drawer: Option<String>,
+    /// `org-log-states-order-reversed`: a new clock line goes above the
+    /// others.
+    pub states_order_reversed: bool,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings { drawer: Some("LOGBOOK".to_string()), remove_zero: false, adapt: Adapt::Off, log_into_drawer: None }
+        Settings {
+            drawer: Some("LOGBOOK".to_string()),
+            remove_zero: false,
+            adapt: Adapt::Off,
+            log_into_drawer: None,
+            states_order_reversed: true,
+        }
     }
 }
 
@@ -213,12 +222,27 @@ pub fn clock_in(
         at
     };
 
-    // An existing drawer: at its top.
+    // `org-log-states-order-reversed`, as `#+STARTUP:` may set it.
+    let mut reversed = settings.states_order_reversed;
+    for word in crate::text::startup_words(text) {
+        match word {
+            "logstatesreversed" => reversed = true,
+            "nologstatesreversed" => reversed = false,
+            _ => {}
+        }
+    }
+
+    // An existing drawer: at its top, or at its bottom.
     if let Some(drawer) = settings.drawer.as_deref() {
         let mut line = editor.next_line(editor.heading);
         while line < end && line > editor.heading {
             if opens(editor.line(line), drawer) && editor.drawer_closes(line, end) {
-                let at = editor.next_line(line);
+                let mut at = editor.next_line(line);
+                if !reversed {
+                    while !editor.line(at).trim_matches([' ', '\t']).eq_ignore_ascii_case(":END:") {
+                        at = editor.next_line(at);
+                    }
+                }
                 let at = insert(&mut editor, at);
                 return Ok((editor.text, at));
             }
@@ -245,9 +269,12 @@ pub fn clock_in(
     }
     let meta = editor.end_of_meta_data();
     match (settings.drawer.as_deref(), clocks.first()) {
-        // No drawer: before the first clock line, or after the meta data.
+        // No drawer: before the first clock line (with
+        // `org-log-states-order-reversed` off, the last), or after the
+        // meta data.
         (None, first) => {
-            let at = first.copied().unwrap_or(meta);
+            let last = if reversed { first } else { clocks.last() };
+            let at = last.copied().unwrap_or(meta);
             let (at, prefix) = line_start_for(&editor.text, at);
             editor.replace(at, at, prefix);
             let at = insert(&mut editor, at + prefix.len());
@@ -265,9 +292,10 @@ pub fn clock_in(
             let at = insert(&mut editor, at);
             Ok((editor.text, at))
         }
-        // A new drawer, with the clock lines of the entry moved into it.
+        // A new drawer, with the clock lines of the entry moved into it,
+        // the last first, as Emacs collects them.
         (Some(drawer), Some(_)) => {
-            let moved: Vec<String> = clocks.iter().map(|line| editor.line(*line).trim().to_string()).collect();
+            let moved: Vec<String> = clocks.iter().rev().map(|line| editor.line(*line).trim().to_string()).collect();
             for line in clocks.iter().rev() {
                 let next = editor.next_line(*line);
                 editor.replace(*line, next, "");
@@ -290,9 +318,10 @@ pub fn clock_in(
             // line: the marker of the point it saved moved past it.
             let first = editor.next_line(start);
             editor.indent_region(first, editor.next_line(end_line));
-            // Emacs puts the new line after the ones it moved.
-            let mut line = start;
-            for _ in 0..=moved.len() {
+            // Emacs puts the new line below the first line it moved, or
+            // with `org-log-states-order-reversed` off, above the last.
+            let mut line = editor.next_line(start);
+            for _ in 0..if reversed { 1 } else { moved.len() - 1 } {
                 line = editor.next_line(line);
             }
             let at = insert(&mut editor, line);

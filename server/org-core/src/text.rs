@@ -213,3 +213,37 @@ mod startup_tests {
         assert_eq!(super::startup_words(text), ["overview", "indent", "hidestars"]);
     }
 }
+
+/// `org-replace-escapes`: each `%c` of `template` whose `c` `value` knows
+/// replaced by its value, as `format` writes it with the field width and
+/// precision written between (`%-12s`): padded to the width in columns,
+/// on the left unless the width has a `-`.
+pub fn replace_escapes(template: &str, value: impl Fn(char) -> Option<String>) -> String {
+    let mut out = String::with_capacity(template.len());
+    let mut rest = template;
+    while let Some(at) = rest.find('%') {
+        out.push_str(&rest[..at]);
+        let after = &rest[at + 1..];
+        let left = after.starts_with('-');
+        let spec = &after[usize::from(left)..];
+        let digits = spec.bytes().take_while(|b| b.is_ascii_digit() || *b == b'.').count();
+        let replaced = spec[digits..].chars().next().and_then(|c| Some((c, value(c)?)));
+        let Some((c, mut text)) = replaced else {
+            out.push('%');
+            rest = after;
+            continue;
+        };
+        let (width, precision) = match spec[..digits].split_once('.') {
+            Some((width, precision)) => (width, precision.parse::<usize>().ok()),
+            None => (&spec[..digits], None),
+        };
+        if let Some(precision) = precision {
+            text = text.chars().take(precision).collect();
+        }
+        let width = width.parse::<usize>().unwrap_or(0);
+        out.push_str(&if left { pad_right(&text, width) } else { pad_left(&text, width) });
+        rest = &spec[digits + c.len_utf8()..];
+    }
+    out.push_str(rest);
+    out
+}

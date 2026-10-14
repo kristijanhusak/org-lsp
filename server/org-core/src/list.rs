@@ -596,6 +596,15 @@ fn assoc_end(items: &mut [Item], end_list: &[(isize, usize)]) {
     }
 }
 
+/// `org-list-get-next-item`, or else `org-list-get-item-end`: where the
+/// item at `pos` of `list` is followed by the next in its sub-list, or
+/// where it ends.
+pub(crate) fn next_item_or_end(list: &Struct, pos: usize) -> Option<usize> {
+    let index = list.iter().position(|item| item.pos == pos)?;
+    let prevs = prevs(list);
+    Some(prevs.iter().position(|prev| *prev == Some(index)).map_or(list[index].end, |next| list[next].pos))
+}
+
 /// `org-list-prevs-alist`: each item's previous item in its sub-list.
 fn prevs(list: &Struct) -> Vec<Option<usize>> {
     list.iter().map(|item| list.iter().position(|other| other.end == item.pos)).collect()

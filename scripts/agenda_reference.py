@@ -183,6 +183,8 @@ DEFAULTS = r"""
       org-habit-show-all-today nil
       org-habit-graph-column 40
       org-habit-preceding-days 21
+      org-log-states-order-reversed t
+      org-log-note-headings (eval (car (get 'org-log-note-headings 'standard-value)))
       org-habit-following-days 7
       org-habit-today-glyph ?!
       org-habit-completed-glyph ?*
