@@ -1279,6 +1279,22 @@ pub const SETTINGS: &[Setting] = &[
         "The bullets of `org_bullets_mode`, one a level, repeating after the last.",
     ),
     setting(
+        "org_bullets_list_bullet",
+        "false, or a string",
+        r#""•""#,
+        "",
+        "What `org_bullets_mode` shows in place of the `-`, `+` or `*` of an item, as org-bullets.nvim does; \
+         `false` leaves them as they are.",
+    ),
+    setting(
+        "org_bullets_checkboxes",
+        "false, or { todo, half, done }",
+        r#"{ "todo": "˟", "half": "-", "done": "✓" }"#,
+        "",
+        "What `org_bullets_mode` shows between the brackets of a checkbox, `[ ]`, `[-]` and `[X]`, as \
+         org-bullets.nvim does; `false` leaves them as they are. A state left out keeps its default.",
+    ),
+    setting(
         "org_src_preserve_indentation",
         "boolean",
         "false",
@@ -2793,6 +2809,11 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_hide_leading_stars", BOOLEAN),
     ("org_bullets_mode", BOOLEAN),
     ("org_bullets_bullet_list", r#"{ "type": "array", "items": { "type": "string" }, "minItems": 1 }"#),
+    ("org_bullets_list_bullet", r#"{ "anyOf": [{ "const": false }, { "type": "string" }] }"#),
+    (
+        "org_bullets_checkboxes",
+        r#"{ "anyOf": [{ "const": false }, { "type": "object", "properties": { "todo": { "type": "string" }, "half": { "type": "string" }, "done": { "type": "string" } }, "additionalProperties": false }] }"#,
+    ),
     ("org_src_preserve_indentation", BOOLEAN),
     ("org_edit_src_content_indentation", r#"{ "type": "integer", "minimum": 0 }"#),
     (

@@ -913,8 +913,8 @@ struct Server {
     conceal: highlight::Conceal,
     /// `org-pretty-entities`
     pretty_entities: bool,
-    /// The bullets of org-bullets, when it is on.
-    bullets: Option<Vec<String>>,
+    /// What org-bullets shows, when it is on.
+    bullets: Option<org_core::pretty::Bullets>,
     /// `org-startup-with-link-previews`.
     startup_link_previews: bool,
     /// `org-startup-with-latex-preview`
@@ -3026,7 +3026,7 @@ impl Server {
         } else {
             self.stand_ins(uri.as_str(), &document.text, &document.syntax())
                 .into_iter()
-                .map(|(start, end, _)| (start, end))
+                .map(|(start, end, _, _)| (start, end))
                 .collect()
         };
         hidden.sort_unstable();
@@ -3044,35 +3044,62 @@ impl Server {
     }
 
     /// What stands in for hidden text of the document `key`, as
-    /// `(start, end, shown)`, in order: each entity's character
+    /// `(start, end, shown, look)`, in order: each entity's character
     /// (`org-pretty-entities`), sub- and superscripts in Unicode, the
-    /// bullets of org-bullets, and what shrunk table fields show.
-    fn stand_ins(&self, key: &str, text: &str, root: &org_syntax::SyntaxNode) -> Vec<(usize, usize, String)> {
+    /// bullets of org-bullets, and what shrunk table fields show. `look`
+    /// is the token whose look it takes (`stars.level1`), if any: the
+    /// bullets look like what they stand for, as in Emacs, where the
+    /// composed character keeps the face of the star.
+    fn stand_ins(
+        &self,
+        key: &str,
+        text: &str,
+        root: &org_syntax::SyntaxNode,
+    ) -> Vec<(usize, usize, String, Option<String>)> {
         let (_, pretty, scripts) = self.display_of(text);
-        let mut out: Vec<(usize, usize, String)> = Vec::new();
+        let mut out: Vec<(usize, usize, String, Option<String>)> = Vec::new();
         if pretty {
             out.extend(
-                org_core::pretty::entities(text).into_iter().map(|(start, end, utf8)| (start, end, utf8.to_string())),
+                org_core::pretty::entities(text)
+                    .into_iter()
+                    .map(|(start, end, utf8)| (start, end, utf8.to_string(), None)),
             );
         }
         if let Some(braces) = scripts {
-            out.extend(org_core::pretty::scripts(root, text, braces));
+            out.extend(
+                org_core::pretty::scripts(root, text, braces)
+                    .into_iter()
+                    .map(|(start, end, shown)| (start, end, shown, None)),
+            );
         }
         if let Some(bullets) = &self.bullets {
-            out.extend(org_core::pretty::bullets(text, bullets));
+            out.extend(org_core::pretty::bullets(root, text, bullets).into_iter().map(|(start, end, shown, what)| {
+                let look = match what {
+                    // Levels repeat after eight, as their tokens do.
+                    org_core::pretty::Bulleted::Headline(level) => format!("stars.level{}", (level - 1) % 8 + 1),
+                    org_core::pretty::Bulleted::Item => "bullet".to_string(),
+                    org_core::pretty::Bulleted::Checkbox('X') => "checkbox.checked".to_string(),
+                    org_core::pretty::Bulleted::Checkbox('-') => "checkbox.partial".to_string(),
+                    org_core::pretty::Bulleted::Checkbox(_) => "checkbox".to_string(),
+                };
+                (start, end, shown, Some(look))
+            }));
         }
         out.extend(
-            self.shrunk_overlays(key, text).into_iter().map(|overlay| (overlay.start, overlay.end, overlay.display)),
+            self.shrunk_overlays(key, text)
+                .into_iter()
+                .map(|overlay| (overlay.start, overlay.end, overlay.display, None)),
         );
-        out.sort_by_key(|(start, end, _)| (*start, *end));
+        out.sort_by_key(|(start, end, _, _)| (*start, *end));
         out
     }
 
     /// What stands in for hidden text of the document `key` (see
     /// [`Self::stand_ins`]), for a client that shows it itself, as
     /// `org-lsp/display` `{ uri, version, items }`, each item `[line,
-    /// character, end line, end character, shown]`. Sent after every
-    /// change while there is some, and once more when there is none.
+    /// character, end line, end character, shown]`, and the token whose
+    /// look it takes after them when it has one. Sent after every change
+    /// while there is some, and once more when there is none.
     fn publish_display(&mut self, key: &str) {
         if !self.client.display {
             return;
@@ -3083,10 +3110,13 @@ impl Server {
         let items: Vec<Value> = self
             .stand_ins(key, text, &document.syntax())
             .into_iter()
-            .map(|(start, end, shown)| {
+            .map(|(start, end, shown, look)| {
                 let (from, to) =
                     (document.index.position(text, start, encoding), document.index.position(text, end, encoding));
-                json!([from.line, from.character, to.line, to.character, shown])
+                match look {
+                    Some(look) => json!([from.line, from.character, to.line, to.character, shown, look]),
+                    None => json!([from.line, from.character, to.line, to.character, shown]),
+                }
             })
             .collect();
         if items.is_empty() && !self.displayed.remove(key) {
@@ -3219,7 +3249,7 @@ impl Server {
         // the tokens hide; so with sub- and superscripts, in Unicode where
         // they can be, and shrunk table fields, what Org's overlays show.
         if !self.client.display {
-            for (start, _, shown) in self.stand_ins(params.text_document.uri.as_str(), text, &document.syntax()) {
+            for (start, _, shown, _) in self.stand_ins(params.text_document.uri.as_str(), text, &document.syntax()) {
                 let at = document.index.position(text, start, self.client.encoding);
                 if (first..=last).contains(&(at.line as usize)) && !shown.is_empty() {
                     hints.push(hint(at.line, at.character, shown));

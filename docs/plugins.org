@@ -479,11 +479,24 @@ org_bullets_mode = true
 org_bullets_bullet_list = ["●", "○", "◆", "◇"]
 #+end_src
 
+As [[https://github.com/nvim-orgmode/org-bullets.nvim][org-bullets.nvim]] does, the ~-~, ~+~ and ~*~ of list items show as
+~org_bullets_list_bullet~ (~•~), and the mark between the brackets of a
+checkbox as the one ~org_bullets_checkboxes~ gives its state: ~[˟]~ for
+~[ ]~, ~[-]~ as it is, ~[✓]~ for ~[X]~. ~false~ turns either off:
+
+#+begin_src toml
+org_bullets_list_bullet = "–"
+org_bullets_checkboxes = { todo = " ", done = "✔" }
+#+end_src
+
 The text does not change: the bullet is drawn in place of the star, as
 pretty entities are, by the editor where it can (Neovim), else as an inlay
 hint (VS Code, Zed, Helix); the leading stars are hidden where virtual
-indentation can hide them (Neovim, VS Code). As in Emacs, every line that
-starts with stars and a space gets its bullet. What differs:
-~org-bullets-face-name~ is not read (the bullet keeps the headline's
-colors), clicking a bullet does not cycle the headline, and inline tasks
-have no second bullet.
+indentation can hide them (Neovim, VS Code). A bullet takes the colors of
+what it stands for, as the composed character keeps the face of the star
+in Emacs: the headline's level, the list's bullet, the checkbox's state.
+That is in Neovim only: VS Code cannot give a decoration or an inlay hint
+the colors of a token. As in Emacs, every line that starts with stars and
+a space gets its bullet. What differs: ~org-bullets-face-name~ is not read
+(the bullet keeps the headline's colors), clicking a bullet does not cycle
+the headline, and inline tasks have no second bullet.

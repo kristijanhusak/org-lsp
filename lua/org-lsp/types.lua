@@ -152,6 +152,8 @@
 ---@field org_hide_leading_stars? boolean Hide all the stars of a headline but the last; they keep their place. `#+STARTUP: hidestars` and `showstars` decide for a file. (`org-hide-leading-stars`)
 ---@field org_bullets_mode? boolean org-bullets: the last star of each headline shows as a bullet, those of `org_bullets_bullet_list` by level, and the stars before it are hidden, as with `org_hide_leading_stars`. (`org-bullets-mode`)
 ---@field org_bullets_bullet_list? string[] The bullets of `org_bullets_mode`, one a level, repeating after the last. (`org-bullets-bullet-list`)
+---@field org_bullets_list_bullet? false|string What `org_bullets_mode` shows in place of the `-`, `+` or `*` of an item, as org-bullets.nvim does; `false` leaves them as they are.
+---@field org_bullets_checkboxes? false|table What `org_bullets_mode` shows between the brackets of a checkbox, `[ ]`, `[-]` and `[X]`, as org-bullets.nvim does; `false` leaves them as they are. A state left out keeps its default.
 ---@field org_src_preserve_indentation? boolean Leave the code of source blocks as it is indented when re-indenting. (`org-src-preserve-indentation`)
 ---@field org_edit_src_content_indentation? integer How far code is indented past its source block when re-indenting. (`org-edit-src-content-indentation`)
 ---@field org_agenda_span? 'day'|'week'|'fortnight'|'month'|'year'|integer How much time the agenda shows. (`org-agenda-span`)

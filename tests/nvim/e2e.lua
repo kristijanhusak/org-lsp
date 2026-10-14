@@ -773,6 +773,20 @@ vim.api.nvim_buf_set_lines(0, 2, 3, false, { 'x alpha y' })
 wait('nothing shown once the entity is gone', function()
   return #displayed() == 0
 end)
+-- A bullet of org-bullets takes the look of the token the server names:
+-- its replacing character is in the token's highlight group.
+local display_client = vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' })[1]
+require('org-lsp.display').show(display_client, {
+  uri = vim.uri_from_bufnr(0),
+  version = vim.lsp.util.buf_versions[vim.api.nvim_get_current_buf()],
+  items = { { 1, 0, 1, 1, '◉', 'stars.level1' }, { 2, 0, 2, 1, 'χ' } },
+})
+local looks = {}
+for _, mark in ipairs(vim.api.nvim_buf_get_extmarks(0, display_ns, 0, -1, { details = true })) do
+  table.insert(looks, { mark[2], mark[4].conceal, mark[4].hl_group })
+end
+eq(looks, { { 1, '◉', '@lsp.typemod.stars.level1.org' }, { 2, 'χ', 'OrgLspDisplay' } },
+  'the bullet in the group of its level, the rest in OrgLspDisplay')
 
 -- 22. `g?` lists the keys of the buffer, the user's own among them, in a
 -- window that `q` closes.

@@ -64,7 +64,7 @@ Org's options, one by one, are under [[#options][Options]].
 - ✅ Archived subtrees shaded (~org-archived~)
 - ✅ Radio targets turning their words into links: highlighted, followed, document links
 - ✅ Entities shown as their characters (~org-pretty-entities~, ~#+STARTUP: entitiespretty~ or ~entitiesplain~): hidden, the character in their place (drawn by the editor where it can, else an inlay hint)
-- ✅ Headline stars as bullets, the leading ones hidden (org-bullets: ~org_bullets_mode~, ~org_bullets_bullet_list~)
+- ✅ Headline stars as bullets in the colors of their level, the leading ones hidden (org-bullets: ~org_bullets_mode~, ~org_bullets_bullet_list~); bullets of lists and marks of checkboxes as org-bullets.nvim shows them (~org_bullets_list_bullet~, ~org_bullets_checkboxes~)
 - ✅ Sub- and superscripts raised and lowered (~org-pretty-entities-include-sub-superscripts~, ~org-use-sub-superscripts~): where Org raises them, shown in Unicode (~x²~, ~H₂O~) in place of the hidden text (drawn by the editor where it can, else an inlay hint) where every character has a raised or lowered form; the others left as they are, as an editor cannot raise text
 - ✅ Done headlines in ~org-headline-done~ past their keyword (~org-fontify-done-headline~ at its default), complete statistics cookies as done, the title and the information of the document (~org-document-title~, ~org-document-info~)
 - ❌ The options of how headlines, blocks and markup are shown, set away from their defaults (~org-fontify-done-headline~, ~org-fontify-whole-heading-line~, ~org-fontify-quote-and-verse-blocks~, ~org-hidden-keywords~, ~org-hide-macro-markers~, ~org-emphasis-alist~, ~org-cycle-level-faces~, ~org-n-level-faces~, ~org-ellipsis~)

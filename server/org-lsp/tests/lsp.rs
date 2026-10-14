@@ -820,13 +820,19 @@ fn sends_what_stands_in_for_hidden_text() {
 
 /// org-bullets (`org_bullets_mode`): each headline's last star shows as
 /// the bullet of its level, the list repeating, and the stars before it are
-/// hidden as `org-hide-leading-stars` hides them.
+/// hidden as `org-hide-leading-stars` hides them; the bullets of lists and
+/// the marks of checkboxes as org-bullets.nvim shows them. Each takes the
+/// look of the token it stands for.
 #[test]
 fn shows_headline_stars_as_bullets() {
     let capabilities = json!({ "experimental": { "orgDisplay": true, "orgVirtualIndent": true } });
-    let settings = json!({ "org_bullets_mode": true, "org_bullets_bullet_list": ["●", "○"] });
+    let settings = json!({
+        "org_bullets_mode": true,
+        "org_bullets_bullet_list": ["●", "○"],
+        "org_bullets_checkboxes": { "half": "~" },
+    });
     let client = Client::start(capabilities, settings);
-    client.open(&uri(), "* One\n** Two\n*** Three\ntext\n");
+    client.open(&uri(), "* One\n** Two\n*** Three\n- [X] a\n  + [-] b\n1. [ ] c\n");
     let indent = client.notification("org-lsp/virtualIndent");
     let hidden: Vec<(u64, u64)> = indent["lines"]
         .as_array()
@@ -836,7 +842,27 @@ fn shows_headline_stars_as_bullets() {
         .collect();
     assert_eq!(hidden, [(1, 1), (2, 2)]);
     let sent = client.notification("org-lsp/display");
-    assert_eq!(sent["items"], json!([[0, 0, 0, 1, "●"], [1, 1, 1, 2, "○"], [2, 2, 2, 3, "●"]]));
+    assert_eq!(
+        sent["items"],
+        json!([
+            [0, 0, 0, 1, "●", "stars.level1"],
+            [1, 1, 1, 2, "○", "stars.level2"],
+            [2, 2, 2, 3, "●", "stars.level3"],
+            [3, 0, 3, 1, "•", "bullet"],
+            [3, 3, 3, 4, "✓", "checkbox.checked"],
+            [4, 2, 4, 3, "•", "bullet"],
+            [4, 5, 4, 6, "~", "checkbox.partial"],
+            [5, 4, 5, 5, "˟", "checkbox"]
+        ])
+    );
+    client.shutdown();
+    // Off, lists and checkboxes are left as they are.
+    let settings =
+        json!({ "org_bullets_mode": true, "org_bullets_list_bullet": false, "org_bullets_checkboxes": false });
+    let client = Client::start(json!({ "experimental": { "orgDisplay": true } }), settings);
+    client.open(&uri(), "* One\n- [X] a\n");
+    let sent = client.notification("org-lsp/display");
+    assert_eq!(sent["items"], json!([[0, 0, 0, 1, "◉", "stars.level1"]]));
     client.shutdown();
 }
 

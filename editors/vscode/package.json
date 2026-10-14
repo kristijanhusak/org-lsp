@@ -3026,6 +3026,46 @@
                 "✿"
               ]
             },
+            "org_bullets_list_bullet": {
+              "anyOf": [
+                {
+                  "const": false
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "markdownDescription": "What `org_bullets_mode` shows in place of the `-`, `+` or `*` of an item, as org-bullets.nvim does; `false` leaves them as they are.",
+              "default": "•"
+            },
+            "org_bullets_checkboxes": {
+              "anyOf": [
+                {
+                  "const": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "todo": {
+                      "type": "string"
+                    },
+                    "half": {
+                      "type": "string"
+                    },
+                    "done": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              ],
+              "markdownDescription": "What `org_bullets_mode` shows between the brackets of a checkbox, `[ ]`, `[-]` and `[X]`, as org-bullets.nvim does; `false` leaves them as they are. A state left out keeps its default.",
+              "default": {
+                "todo": "˟",
+                "half": "-",
+                "done": "✓"
+              }
+            },
             "org_src_preserve_indentation": {
               "type": "boolean",
               "markdownDescription": "Leave the code of source blocks as it is indented when re-indenting. (`org-src-preserve-indentation`)",
