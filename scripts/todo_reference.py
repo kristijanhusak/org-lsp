@@ -153,6 +153,28 @@ def bindings(options):
             out["org-tags-column"] = str(value)
         elif key in ("org_log_states_order_reversed", "org_log_state_notes_insert_after_drawers", "org_log_done_with_time"):
             out[key.replace("_", "-")] = lisp_value(value)
+        elif key in ("org_hierarchical_todo_statistics", "org_closed_keep_when_no_todo"):
+            out[key.replace("_", "-")] = lisp_value(value)
+        elif key == "org_provide_todo_statistics":
+            if value == "all-headlines":
+                out["org-provide-todo-statistics"] = "'all-headlines"
+            elif isinstance(value, list) and value and isinstance(value[0], list):
+                lists = " ".join("(" + " ".join(lisp_string(word) for word in part) + ")" for part in value)
+                out["org-provide-todo-statistics"] = "'(" + lists + ")"
+            elif isinstance(value, list):
+                out["org-provide-todo-statistics"] = "'(" + " ".join(lisp_string(word) for word in value) + ")"
+            else:
+                out["org-provide-todo-statistics"] = lisp_value(value)
+        elif key == "org_todo_state_tags_triggers":
+            entries = []
+            for state, changes in value.items():
+                head = state if state in ("todo", "done") else lisp_string(state)
+                tags = " ".join(
+                    f"({lisp_string(change[1:])} . t)" if change.startswith("+") else f"({lisp_string(change[1:])})"
+                    for change in changes
+                )
+                entries.append(f"({head} {tags})")
+            out["org-todo-state-tags-triggers"] = "'(" + " ".join(entries) + ")"
         elif key == "org_log_note_headings":
             # Org's headings, with those the option gives in their place.
             headings = dict(NOTE_HEADINGS, **value)

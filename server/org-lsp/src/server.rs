@@ -11740,7 +11740,11 @@ impl Server {
         let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
         let offset = document.index.offset(&document.text, context.position, encoding);
         let keywords = document.parse.todo_keywords();
-        let settings = meta_return::Settings { tags_column: self.refile.2.tags_column, below: context.below };
+        let settings = meta_return::Settings {
+            tags_column: self.refile.2.tags_column,
+            below: context.below,
+            statistics: self.edit_settings.todo.statistics.clone(),
+        };
         let text = &document.text;
         let outcome = match id {
             commands::META_RETURN => meta_return::meta_return(text, offset, keywords, &settings)?,

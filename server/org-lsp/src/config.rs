@@ -90,6 +90,20 @@ pub struct Options {
     /// `org-log-note-clock-out`
     #[serde(rename = "org_log_note_clock_out")]
     pub log_note_clock_out: Option<bool>,
+    /// `org-provide-todo-statistics`: `true`, `false`, `"all-headlines"`, a
+    /// list of keywords, or a list of two lists (not done, done).
+    #[serde(rename = "org_provide_todo_statistics")]
+    pub provide_todo_statistics: Option<serde_json::Value>,
+    /// `org-hierarchical-todo-statistics`
+    #[serde(rename = "org_hierarchical_todo_statistics")]
+    pub hierarchical_todo_statistics: Option<bool>,
+    /// `org-closed-keep-when-no-todo`
+    #[serde(rename = "org_closed_keep_when_no_todo")]
+    pub closed_keep_when_no_todo: Option<bool>,
+    /// `org-todo-state-tags-triggers`: by state (`""` for none, `todo`,
+    /// `done`), the tags to set (`+TAG`) or remove (`-TAG`).
+    #[serde(rename = "org_todo_state_tags_triggers")]
+    pub todo_state_tags_triggers: Option<std::collections::BTreeMap<String, Vec<String>>>,
     /// `org-tags-column`
     #[serde(rename = "org_tags_column")]
     pub tags_column: Option<i64>,
@@ -1134,6 +1148,24 @@ impl Options {
         priorities
     }
 
+    /// `org-provide-todo-statistics` and `org-hierarchical-todo-statistics`.
+    pub fn todo_statistics(&self) -> org_core::todo::Statistics {
+        use org_core::todo::ProvideStatistics;
+        let strings = |value: &serde_json::Value| -> Vec<String> {
+            value.as_array().into_iter().flatten().filter_map(|item| item.as_str().map(str::to_string)).collect()
+        };
+        let provide = match &self.provide_todo_statistics {
+            None | Some(serde_json::Value::Bool(true)) => ProvideStatistics::Todo,
+            Some(serde_json::Value::String(symbol)) if symbol == "all-headlines" => ProvideStatistics::All,
+            Some(serde_json::Value::Array(items)) if items.first().is_some_and(serde_json::Value::is_array) => {
+                ProvideStatistics::Split(strings(&items[0]), items.get(1).map(strings).unwrap_or_default())
+            }
+            Some(value @ serde_json::Value::Array(_)) => ProvideStatistics::Keywords(strings(value)),
+            Some(_) => ProvideStatistics::No,
+        };
+        org_core::todo::Statistics { provide, hierarchical: self.hierarchical_todo_statistics.unwrap_or(true) }
+    }
+
     /// Habits read their notes as notes are written
     /// (`org-log-note-headings`, `org-log-states-order-reversed`).
     pub fn habit_notes(&self, agenda: &mut AgendaConfig) {
@@ -1368,6 +1400,25 @@ impl Options {
         settings.states_order_reversed = self.log_states_order_reversed.unwrap_or(true);
         settings.notes_after_drawers = self.log_state_notes_insert_after_drawers.unwrap_or(false);
         settings.note_clock_out = self.log_note_clock_out.unwrap_or(false);
+        settings.statistics = self.todo_statistics();
+        settings.closed_keep_when_no_todo = self.closed_keep_when_no_todo.unwrap_or(false);
+        settings.state_tags_triggers = self
+            .todo_state_tags_triggers
+            .iter()
+            .flatten()
+            .map(|(state, changes)| {
+                let changes = changes
+                    .iter()
+                    .filter_map(|change| match change.split_at_checked(1) {
+                        Some(("+", tag)) if !tag.is_empty() => Some((tag.to_string(), true)),
+                        Some(("-", tag)) if !tag.is_empty() => Some((tag.to_string(), false)),
+                        _ => None,
+                    })
+                    .collect();
+                (state.clone(), changes)
+            })
+            .collect();
+        settings.tags_sort = self.tag_settings().sort;
         for (kind, heading) in self.log_note_headings.iter().flatten() {
             let headings = &mut settings.note_headings;
             let slot = match kind.as_str() {

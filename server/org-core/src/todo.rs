@@ -114,6 +114,72 @@ pub struct Settings {
     pub notes_after_drawers: bool,
     /// `org-log-note-clock-out`: a note when the clock stops.
     pub note_clock_out: bool,
+    /// `org-provide-todo-statistics` and `org-hierarchical-todo-statistics`
+    pub statistics: Statistics,
+    /// `org-closed-keep-when-no-todo`
+    pub closed_keep_when_no_todo: bool,
+    /// `org-todo-state-tags-triggers`: for a state (`""` for none, `todo`
+    /// and `done` for any not done or done), the tags set (`true`) or
+    /// removed, in order.
+    pub state_tags_triggers: Vec<(String, Vec<(String, bool)>)>,
+    /// `org-tags-sort-function`, for the tags the triggers change.
+    pub tags_sort: Option<crate::tags::Sort>,
+}
+
+/// `org-provide-todo-statistics`: which entries the cookies of their
+/// parent count.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub enum ProvideStatistics {
+    /// `nil`: cookies are not updated on state changes.
+    No,
+    /// `t`: the entries with a keyword.
+    #[default]
+    Todo,
+    /// `all-headlines`: every entry, those without a keyword as not done.
+    All,
+    /// These keywords, and the done ones.
+    Keywords(Vec<String>),
+    /// Keywords counted as not done, and done ones counted as done.
+    Split(Vec<String>, Vec<String>),
+}
+
+/// How TODO statistics are counted.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Statistics {
+    /// `org-provide-todo-statistics`
+    pub provide: ProvideStatistics,
+    /// `org-hierarchical-todo-statistics`: children only.
+    pub hierarchical: bool,
+}
+
+impl Default for Statistics {
+    fn default() -> Self {
+        Statistics { provide: ProvideStatistics::Todo, hierarchical: true }
+    }
+}
+
+impl Statistics {
+    /// Whether cookies are updated on changes (`org-provide-todo-statistics`
+    /// non-nil).
+    pub fn provided(&self) -> bool {
+        self.provide != ProvideStatistics::No
+    }
+
+    /// Whether an entry with the keyword `keyword` (none for an entry
+    /// that has none or does not count) counts, and whether as done.
+    fn count(&self, keyword: Option<&str>, keywords: &TodoKeywords) -> (bool, bool) {
+        let done = keyword.is_some_and(|keyword| keywords.is_done(keyword));
+        let listed = |list: &[String]| keyword.is_some_and(|keyword| list.iter().any(|name| name == keyword));
+        match &self.provide {
+            ProvideStatistics::No => (false, false),
+            ProvideStatistics::Todo => (keyword.is_some(), done),
+            ProvideStatistics::All => (true, done),
+            ProvideStatistics::Keywords(list) => (listed(list) || done, done),
+            ProvideStatistics::Split(open, closed) => {
+                (listed(open) || (done && listed(closed)), done && listed(closed))
+            }
+        }
+    }
 }
 
 /// `org-log-note-headings`: the heading of each kind of note, with Org's
@@ -209,6 +275,10 @@ impl Default for Settings {
             states_order_reversed: true,
             notes_after_drawers: false,
             note_clock_out: false,
+            statistics: Statistics::default(),
+            closed_keep_when_no_todo: false,
+            state_tags_triggers: Vec::new(),
+            tags_sort: None,
         }
     }
 }
@@ -791,14 +861,15 @@ impl<'a> Editor<'a> {
             }
             owner = self.parent_of(at, at_level);
         }
-        let recursive = has_word(&inherited, "recursive");
+        let recursive = !self.settings.statistics.hierarchical || has_word(&inherited, "recursive");
 
         loop {
             let (parent, parent_level) = ancestor;
             if has_word(&self.cookie_data(parent), "checkbox") {
                 return;
             }
-            // Count the entries below that have a keyword.
+            // Count the entries below, as `org-provide-todo-statistics`
+            // says: their keywords, only the children's unless recursive.
             let (mut all, mut done) = (0, 0);
             let mut line = self.next_heading(parent);
             while line < self.text.len() {
@@ -806,14 +877,10 @@ impl<'a> Editor<'a> {
                 if found <= parent_level {
                     break;
                 }
-                if recursive || found == level {
-                    if let Some(keyword) = self.complex_keyword(line) {
-                        all += 1;
-                        if self.keywords.is_done(&keyword) {
-                            done += 1;
-                        }
-                    }
-                }
+                let keyword = if recursive || found == level { self.complex_keyword(line) } else { None };
+                let (counts, is_done) = self.settings.statistics.count(keyword.as_deref(), self.keywords);
+                all += usize::from(counts);
+                done += usize::from(is_done);
                 let next = self.next_heading(line);
                 if next == line {
                     break;
@@ -842,6 +909,49 @@ impl<'a> Editor<'a> {
                 Some(next) => ancestor = next,
                 None => return,
             }
+        }
+    }
+
+    /// `org-todo-trigger-tag-changes`: the tags `org-todo-state-tags-triggers`
+    /// says the entry gets or loses in `state`, each with `org-toggle-tag`.
+    fn trigger_tag_changes(&mut self, state: &Option<String>) {
+        let triggers = &self.settings.state_tags_triggers;
+        if triggers.is_empty() {
+            return;
+        }
+        let of = |name: &str| triggers.iter().find(|(state, _)| state == name).map(|(_, changes)| changes.clone());
+        let mut changes = Vec::new();
+        match state.as_deref().filter(|state| !state.is_empty()) {
+            None => changes.extend(of("").unwrap_or_default()),
+            Some(state) => {
+                changes.extend(of(state).unwrap_or_default());
+                if self.keywords.contains(state) && !self.keywords.is_done(state) {
+                    changes.extend(of("todo").unwrap_or_default());
+                }
+                if self.keywords.is_done(state) {
+                    changes.extend(of("done").unwrap_or_default());
+                }
+            }
+        }
+        for (tag, on) in changes {
+            let line_end = self.line_end(self.heading);
+            let mut tags = crate::tags::local_tags(&self.text[self.heading..line_end]);
+            let has = tags.contains(&tag);
+            if on && !has {
+                tags.push(tag);
+            } else if !on {
+                tags.retain(|other| *other != tag);
+            }
+            let settings = crate::tags::Settings {
+                sort: self.settings.tags_sort,
+                tags_column: self.settings.tags_column,
+                ..crate::tags::Settings::default()
+            };
+            let text = crate::tags::set_tags(&self.text, self.heading, &tags, &settings);
+            let heading = self.heading;
+            let new_end = text[heading..].find('\n').map_or(text.len(), |index| heading + index);
+            let line = text[heading..new_end].to_string();
+            self.replace(heading, line_end, &line);
         }
     }
 
@@ -1672,7 +1782,7 @@ impl<'a> Editor<'a> {
                 .as_deref()
                 .and_then(|state| self.logs_entering(state))
                 .or_else(|| this.as_deref().and_then(|this| self.logs_leaving(this)));
-            if state.is_none() || (is_open(&state) && !is_open(&this)) {
+            if (state.is_none() && !self.settings.closed_keep_when_no_todo) || (is_open(&state) && !is_open(&this)) {
                 // No longer done: a `CLOSED:` timestamp is out of date.
                 self.planning_closed(false);
             }
@@ -1688,8 +1798,12 @@ impl<'a> Editor<'a> {
                 self.note = Some(Note { purpose: Purpose::State, state: state.clone(), previous: this.clone(), text });
             }
         }
+        // `org-todo-trigger-tag-changes`
+        self.trigger_tag_changes(&state);
         self.align_tags(self.heading);
-        self.update_parent_statistics();
+        if self.settings.statistics.provided() {
+            self.update_parent_statistics();
+        }
         if now_done {
             let before = self.line(self.line_start(self.heading)).to_string();
             self.auto_repeat(&state, &this)?;
