@@ -2046,6 +2046,36 @@
               "markdownDescription": "The parameters a new clock table gets on its `#+BEGIN:` line from `org.clock.report` (`C-c C-x C-r`), after `:scope`, as Emacs Lisp reads them (`:maxlevel 3 :link t`). (`org-clock-clocktable-default-properties`)",
               "default": ":maxlevel 2"
             },
+            "org_clocktable_defaults": {
+              "type": "string",
+              "markdownDescription": "The parameters every clock table has unless its `#+BEGIN:` line gives them, as Emacs Lisp reads them. Set, it replaces Org's whole list. (`org-clocktable-defaults`)"
+            },
+            "org_clock_clocktable_language_setup": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1
+              },
+              "markdownDescription": "The words of a clock table in each language its `:lang` names: the language, then its words for `File`, `L`, `Timestamp`, `Headline`, `Time`, `ALL`, `Total time`, `File time` and `Clock summary at`. A word left out stays English. Set, it replaces Org's languages. (`org-clock-clocktable-language-setup`)"
+            },
+            "org_clock_report_include_clocking_task": {
+              "type": "boolean",
+              "markdownDescription": "A clock table counts the time of the clock that runs, for its entry, when the table covers a time (`:block`, `:tstart` and `:tend`) and the clock started within it. (`org-clock-report-include-clocking-task`)",
+              "default": false
+            },
+            "org_clock_rounding_minutes": {
+              "type": "integer",
+              "markdownDescription": "Clocking in and out happens at the multiple of this many minutes nearest now; a clock never starts later than now. Below 1, at the minute. (`org-clock-rounding-minutes`)",
+              "default": 0
+            },
+            "org_clock_continuously": {
+              "type": "boolean",
+              "markdownDescription": "A clock starts when the last one stopped, not now. (`org-clock-continuously`)",
+              "default": false
+            },
             "org_clock_total_time_cell_format": {
               "type": "string",
               "markdownDescription": "How a clock table writes its total time and the words before it; `%s` is the text. (`org-clock-total-time-cell-format`)",

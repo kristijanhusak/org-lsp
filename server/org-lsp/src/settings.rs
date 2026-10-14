@@ -528,6 +528,54 @@ pub const SETTINGS: &[Setting] = &[
         "org-clock-clocktable-default-properties",
         "The parameters a new clock table gets on its `#+BEGIN:` line from `org.clock.report` (`C-c C-x C-r`), after `:scope`, as Emacs Lisp reads them (`:maxlevel 3 :link t`).",
     ),
+    Setting {
+        default: None,
+        unset: "Org's: `:maxlevel 2 :lang \"en\" :scope file :narrow 40! :indent t`, the others `nil`",
+        ..setting(
+            "org_clocktable_defaults",
+            "string",
+            "",
+            "org-clocktable-defaults",
+            "The parameters every clock table has unless its `#+BEGIN:` line gives them, as Emacs Lisp reads \
+             them. Set, it replaces Org's whole list.",
+        )
+    },
+    Setting {
+        default: None,
+        unset: "Org's: `en`, `de`, `es`, `fr`, `nl`, `nn`, `pl`, `pt-BR` and `sk`",
+        ..setting(
+            "org_clock_clocktable_language_setup",
+            "string[][]",
+            "",
+            "org-clock-clocktable-language-setup",
+            "The words of a clock table in each language its `:lang` names: the language, then its words for \
+             `File`, `L`, `Timestamp`, `Headline`, `Time`, `ALL`, `Total time`, `File time` and `Clock summary \
+             at`. A word left out stays English. Set, it replaces Org's languages.",
+        )
+    },
+    setting(
+        "org_clock_report_include_clocking_task",
+        "boolean",
+        "false",
+        "org-clock-report-include-clocking-task",
+        "A clock table counts the time of the clock that runs, for its entry, when the table covers a time \
+         (`:block`, `:tstart` and `:tend`) and the clock started within it.",
+    ),
+    setting(
+        "org_clock_rounding_minutes",
+        "number",
+        "0",
+        "org-clock-rounding-minutes",
+        "Clocking in and out happens at the multiple of this many minutes nearest now; a clock never starts \
+         later than now. Below 1, at the minute.",
+    ),
+    setting(
+        "org_clock_continuously",
+        "boolean",
+        "false",
+        "org-clock-continuously",
+        "A clock starts when the last one stopped, not now.",
+    ),
     setting(
         "org_clock_total_time_cell_format",
         "string",
@@ -2598,6 +2646,14 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_clock_idle_time", r#"{ "type": "integer", "minimum": 1 }"#),
     ("org_clock_history_length", r#"{ "type": "integer", "minimum": 1 }"#),
     ("org_clock_clocktable_default_properties", STRING),
+    ("org_clocktable_defaults", STRING),
+    (
+        "org_clock_clocktable_language_setup",
+        r#"{ "type": "array", "items": { "type": "array", "items": { "type": "string" }, "minItems": 1 } }"#,
+    ),
+    ("org_clock_report_include_clocking_task", BOOLEAN),
+    ("org_clock_rounding_minutes", r#"{ "type": "integer" }"#),
+    ("org_clock_continuously", BOOLEAN),
     ("org_clock_total_time_cell_format", STRING),
     ("org_clock_file_time_cell_format", STRING),
     ("org_clock_in_switch_to_state", STRING),

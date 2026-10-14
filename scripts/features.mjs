@@ -473,6 +473,8 @@ export const AREAS = [
       ['Clocking from the agenda, the clocked entry highlighted', true],
       ['A notice when the clock passes the effort (`org-clock-notify-once-if-expired`)', true],
       ['A note when the clock stops (`org-log-note-clock-out`), in a note buffer', true],
+      ['Clock times rounded (`org-clock-rounding-minutes`), clocks started when the last stopped (`org-clock-continuously`)', true],
+      ['Clock tables with `org-clocktable-defaults`, words in other languages (`org-clock-clocktable-language-setup`) and the running clock counted (`org-clock-report-include-clocking-task`)', true],
     ],
     editors: {
       zed: ['part', 'No clock in the status line: Zed has no place there for an extension\'s text.'],

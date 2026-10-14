@@ -209,6 +209,16 @@ pub struct Options {
     #[serde(rename = "org_clock_history_length")]
     pub clock_history_length: Option<usize>,
     /// `org-clock-clocktable-default-properties`, as the text of a plist.
+    #[serde(rename = "org_clock_rounding_minutes")]
+    pub clock_rounding_minutes: Option<i64>,
+    #[serde(rename = "org_clock_continuously")]
+    pub clock_continuously: Option<bool>,
+    #[serde(rename = "org_clock_report_include_clocking_task")]
+    pub clock_report_include_clocking_task: Option<bool>,
+    #[serde(rename = "org_clocktable_defaults")]
+    pub clocktable_defaults: Option<String>,
+    #[serde(rename = "org_clock_clocktable_language_setup")]
+    pub clock_clocktable_language_setup: Option<Vec<Vec<String>>>,
     #[serde(rename = "org_clock_clocktable_default_properties")]
     pub clock_clocktable_default_properties: Option<String>,
     /// `org-clock-total-time-cell-format`
@@ -1561,6 +1571,14 @@ impl Options {
                 .clone()
                 .unwrap_or(defaults.file_time_cell_format.clone()),
             formulas: self.table_settings().formulas,
+            defaults: self.clocktable_defaults.clone().unwrap_or(defaults.defaults.clone()),
+            // Each a language, then its words.
+            languages: match &self.clock_clocktable_language_setup {
+                Some(languages) => {
+                    languages.iter().filter_map(|entry| Some((entry.first()?.clone(), entry[1..].to_vec()))).collect()
+                }
+                None => defaults.languages.clone(),
+            },
             ..defaults
         }
     }

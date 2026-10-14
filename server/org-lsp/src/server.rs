@@ -1117,6 +1117,12 @@ struct Server {
     /// `org-clock-idle-time`: after how many minutes without a message
     /// from the editor a clock that runs is a question.
     clock_idle_time: Option<i64>,
+    /// `org-clock-rounding-minutes`
+    clock_rounding: i64,
+    /// `org-clock-continuously`: a clock starts when the last one stopped.
+    clock_continuously: bool,
+    /// `org-clock-report-include-clocking-task`
+    clock_report_running: bool,
     /// When the editor last sent something, in minutes.
     last_activity: Option<i64>,
     /// When the idle time asked about began.
@@ -1495,6 +1501,9 @@ pub fn run(connection: Connection) -> Result<()> {
         clock_interrupted: None,
         clock_out_time: None,
         clock_idle_time: options.clock_idle_time.filter(|minutes| *minutes > 0),
+        clock_rounding: options.clock_rounding_minutes.unwrap_or(0),
+        clock_continuously: options.clock_continuously.unwrap_or(false),
+        clock_report_running: options.clock_report_include_clocking_task.unwrap_or(false),
         last_activity: None,
         idle_since: None,
         clock_settings: options.clock_settings(),
@@ -8933,7 +8942,7 @@ impl Server {
         let (text, version, line) = self.clock_line(&running)?;
         let heading = Self::heading_above(&text, line)?;
         let task = self.clock_task(&running.uri, heading)?;
-        let now = self.date_time();
+        let now = self.clock_time(false);
         let out = clock::clock_out(&text, line, now, &self.clock_settings).ok()?;
         self.clock_out_time = Some(now);
         self.running = None;
@@ -13206,10 +13215,16 @@ impl Server {
         let offset = document.index.offset(&text, context.position, encoding);
         let path = uri::to_path(&uri).map(|path| path.to_string_lossy().into_owned());
         let files = self.clocktable_files(path.as_deref());
+        // `org-clock-report-include-clocking-task`: the clock that runs.
+        let clocking = self.running.clone().filter(|_| self.clock_report_running).and_then(|running| {
+            let path = uri::to_path(&running.uri)?.to_string_lossy().into_owned();
+            Some(clocktable::Clocking { path, start: running.start })
+        });
         let settings = clocktable::Settings {
             now: self.date_time(),
             keywords: self.todo.clone(),
             inheritance: self.workspace.inheritance.clone(),
+            clocking,
             ..self.clocktable.clone()
         };
         let table = clocktable::Context { path: path.as_deref(), settings: &settings, files: &files };
@@ -13433,8 +13448,9 @@ impl Server {
                 };
                 let mut clock_note = None;
                 let (new_text, message) = if id == commands::CLOCK_OUT {
-                    let out = clock::clock_out(&text, line, self.date_time(), &self.clock_settings)?;
-                    self.clock_out_time = Some(self.date_time());
+                    let now = self.clock_time(false);
+                    let out = clock::clock_out(&text, line, now, &self.clock_settings)?;
+                    self.clock_out_time = Some(now);
                     // `org-log-note-clock-out`, unless the line went.
                     let closed = out.text[line..].lines().next().unwrap_or("").to_string();
                     let note = org_core::todo::note_clock_out(self.edit_settings.todo.note_clock_out, &text);
@@ -13537,7 +13553,7 @@ impl Server {
             self.clock_default_task = self.clock_task(&file, heading);
         }
         // `C-u C-u C-u`: from when the last clock stopped.
-        let now = self.date_time();
+        let now = self.clock_time(true);
         let start = if count == 64 { self.clock_out_time.unwrap_or(now) } else { now };
         self.clock_in_at(file, heading, start)
     }
@@ -13794,8 +13810,9 @@ impl Server {
         };
         let heading = self.find_task(&task).ok_or("The entry clocked last is gone")?;
         let ClockTask { uri, title, .. } = task;
-        let now = self.date_time();
-        let start = if count == 16 { self.clock_out_time.unwrap_or(now) } else { now };
+        let now = self.clock_time(true);
+        let continuing = count == 16 || self.clock_continuously;
+        let start = if continuing { self.clock_out_time.unwrap_or(now) } else { now };
         let already = self.running.is_some();
         let result = self.clock_in_at(uri.clone(), heading, start)?;
         if !already {
@@ -13832,6 +13849,12 @@ impl Server {
 
     /// The clock started on the entry at `heading` of `file` at `start`;
     /// one that runs elsewhere stops now.
+    /// `org-current-time` with `org-clock-rounding-minutes`; with `past`,
+    /// not later than now.
+    fn clock_time(&self, past: bool) -> DateTime {
+        clock::round_time(self.date_time(), self.clock_rounding, past)
+    }
+
     fn clock_in_at(&mut self, file: Uri, heading: usize, start: DateTime) -> std::result::Result<Value, Refusal> {
         self.clock_in_after(file, heading, start, Vec::new())
     }
@@ -13845,7 +13868,8 @@ impl Server {
         start: DateTime,
         changes: Vec<(Uri, Option<i32>, String, String)>,
     ) -> std::result::Result<Value, Refusal> {
-        let now = self.date_time();
+        // The clock that runs stops as `org-clock-out` stops it.
+        let now = self.clock_time(false);
         let mut changes = changes;
         let mut heading = heading;
         let task = self.clock_task(&file, heading);
@@ -13895,6 +13919,11 @@ impl Server {
                 }
             }
         }
+        // `org-clock-continuously`: from when the last clock stopped.
+        let start = match self.clock_out_time {
+            Some(stopped) if self.clock_continuously => stopped,
+            _ => start,
+        };
         let mut settings = self.clock_settings.clone();
         let (display, adapt) = (self.display, self.indent.adapt);
         let base = changes.iter().find(|(uri, ..)| *uri == file).map(|(_, _, _, new)| new.clone());

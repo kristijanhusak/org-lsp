@@ -39,6 +39,36 @@ pub struct Settings {
     pub inheritance: Inheritance,
     /// What the table's formulas do.
     pub formulas: crate::tblfm::Settings,
+    /// `org-clocktable-defaults`, as the text of a plist.
+    pub defaults: String,
+    /// `org-clock-clocktable-language-setup`: by language, its words for
+    /// "File", "L", "Timestamp", "Headline", "Time", "ALL", "Total time",
+    /// "File time" and "Clock summary at".
+    pub languages: Vec<(String, Vec<String>)>,
+    /// The clock that runs, when `org-clock-report-include-clocking-task`
+    /// counts it.
+    pub clocking: Option<Clocking>,
+}
+
+/// The clock that runs: its file, and when it started, which its open
+/// `CLOCK:` line in that file says.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Clocking {
+    pub path: String,
+    pub start: DateTime,
+}
+
+/// `org-clocktable-defaults`
+pub const DEFAULTS: &str = ":maxlevel 2 :lang \"en\" :scope file :block nil :wstart 1 :mstart 1 :tstart nil :tend nil \
+     :step nil :stepskip0 nil :fileskip0 nil :tags nil :match nil :emphasize nil :link nil :narrow 40! :indent t \
+     :filetitle nil :hidefiles nil :formula nil :timestamp nil :level nil :tcolumns nil :formatter nil";
+
+/// `org-clock-clocktable-language-setup`
+pub fn default_languages() -> Vec<(String, Vec<String>)> {
+    LANGUAGES
+        .iter()
+        .map(|(name, terms)| (name.to_string(), terms.iter().map(|term| term.to_string()).collect()))
+        .collect()
 }
 
 impl Default for Settings {
@@ -52,6 +82,9 @@ impl Default for Settings {
             keywords: TodoKeywords::default(),
             inheritance: Inheritance::default(),
             formulas: crate::tblfm::Settings::default(),
+            defaults: DEFAULTS.to_string(),
+            languages: default_languages(),
+            clocking: None,
         }
     }
 }
@@ -453,13 +486,9 @@ impl Plist {
 }
 
 /// `org-clocktable-defaults`
+#[cfg(test)]
 fn defaults() -> Plist {
-    Plist::read(
-        ":maxlevel 2 :lang \"en\" :scope file :block nil :wstart 1 :mstart 1 :tstart nil :tend nil :step nil \
-         :stepskip0 nil :fileskip0 nil :tags nil :match nil :emphasize nil :link nil :narrow 40! :indent t \
-         :filetitle nil :hidefiles nil :formula nil :timestamp nil :level nil :tcolumns nil :formatter nil",
-    )
-    .expect("valid defaults")
+    Plist::read(DEFAULTS).expect("valid defaults")
 }
 
 // ----- the text as a buffer
@@ -948,6 +977,7 @@ fn clock_sum(
     (start, end): (usize, usize),
     (from, to): (Option<i64>, Option<i64>),
     include: Option<&dyn Fn(usize) -> bool>,
+    running: Option<(DateTime, i64)>,
 ) -> (Vec<(usize, i64)>, i64) {
     let mut lines = Vec::new();
     let mut at = start;
@@ -995,6 +1025,11 @@ fn clock_sum(
             }
         } else if let Some(clock) = parse_line(line) {
             pending += clock_minutes(&clock, from, to);
+            // The time of the clock that runs, for its headline.
+            if let Some((_, minutes)) = running.filter(|(start, _)| clock.start == Some(*start) && clock.end.is_none())
+            {
+                pending += minutes;
+            }
         }
     }
     found.reverse();
@@ -1168,7 +1203,16 @@ fn table_data(
         (Some(matcher), Some(index)) => matcher.matches(&outline, index, false, clock),
         _ => true,
     };
-    let (times, total) = clock_sum(text, region, window, matcher.as_ref().map(|_| &include as &dyn Fn(usize) -> bool));
+    // `org-clock-report-include-clocking-task`: the clock that runs in
+    // this file, when it started within the table's window.
+    let running = settings.clocking.as_ref().and_then(|clocking| {
+        let start = crate::clock::minutes_of(clocking.start);
+        let (from, to) = (window.0?, window.1?);
+        (Some(clocking.path.as_str()) == path && from <= start && start <= to)
+            .then(|| (clocking.start, crate::clock::minutes_of(settings.now) - start))
+    });
+    let include = matcher.as_ref().map(|_| &include as &dyn Fn(usize) -> bool);
+    let (times, total) = clock_sum(text, region, window, include, running);
     let link = params.flag("link");
     let properties: Vec<String> = match params.get("properties") {
         Some(Lisp::List(items)) => items
@@ -1340,10 +1384,15 @@ const LANGUAGES: &[(&str, [&str; 9])] = &[
     ),
 ];
 
-/// `org-clock--translate`
-fn translate(term: &'static str, language: &str) -> &'static str {
+/// `org-clock--translate`: `term`, one of the English words, in
+/// `language`, as `languages` has it; else as it is.
+fn translate<'a>(term: &'a str, language: &str, languages: &'a [(String, Vec<String>)]) -> &'a str {
     let index = LANGUAGES[0].1.iter().position(|english| *english == term).expect("a known term");
-    LANGUAGES.iter().find(|(name, _)| name.eq_ignore_ascii_case(language)).map_or(term, |(_, terms)| terms[index])
+    languages
+        .iter()
+        .find(|(name, _)| name.eq_ignore_ascii_case(language))
+        .and_then(|(_, terms)| terms.get(index))
+        .map_or(term, String::as_str)
 }
 
 /// `format` with one `%s`.
@@ -1355,7 +1404,7 @@ fn format_cell(format: &str, value: &str) -> String {
 /// time, or nothing for tables in steps.
 fn write_clocktable(buffer: &mut Buffer, params: &Plist, context: &Context) -> Result<Option<i64>, String> {
     let settings = context.settings;
-    let params = defaults().combine(params);
+    let params = Plist::read(&settings.defaults)?.combine(params);
     let scope = params.get("scope").cloned();
     enum Files {
         Current,
@@ -1535,7 +1584,7 @@ fn write_default(
             };
             out.push_str(&format!(
                 "#+CAPTION: {} {}{range}\n",
-                translate("Clock summary at", lang),
+                translate("Clock summary at", lang, &settings.languages),
                 format_timestamp(settings.now, true, true, "")
             ));
         }
@@ -1560,13 +1609,13 @@ fn write_default(
     // The header line.
     out.push('|');
     if multifile {
-        out.push_str(&format!("{}|", translate("File", lang)));
+        out.push_str(&format!("{}|", translate("File", lang, &settings.languages)));
     }
     if level_column {
-        out.push_str(&format!("{}|", translate("L", lang)));
+        out.push_str(&format!("{}|", translate("L", lang, &settings.languages)));
     }
     if timestamp {
-        out.push_str(&format!("{}|", translate("Timestamp", lang)));
+        out.push_str(&format!("{}|", translate("Timestamp", lang, &settings.languages)));
     }
     if tags {
         out.push_str("Tags |");
@@ -1574,14 +1623,14 @@ fn write_default(
     if !properties.is_empty() {
         out.push_str(&format!("{}|", properties.join("|")));
     }
-    out.push_str(&format!("{}|", translate("Headline", lang)));
-    out.push_str(&format!("{}|", translate("Time", lang)));
+    out.push_str(&format!("{}|", translate("Headline", lang, &settings.languages)));
+    out.push_str(&format!("{}|", translate("Time", lang, &settings.languages)));
     out.push_str(&"|".repeat(time_columns.saturating_sub(1)));
     out.push_str(if percent { "%|\n" } else { "\n" });
     // The total.
     out.push_str("|-\n|");
     if multifile {
-        out.push_str(&format!("| {} ", translate("ALL", lang)));
+        out.push_str(&format!("| {} ", translate("ALL", lang, &settings.languages)));
     }
     if level_column {
         out.push('|');
@@ -1593,7 +1642,7 @@ fn write_default(
         out.push('|');
     }
     out.push_str(&"|".repeat(properties.len()));
-    out.push_str(&format_cell(&settings.total_time_cell_format, translate("Total time", lang)));
+    out.push_str(&format_cell(&settings.total_time_cell_format, translate("Total time", lang, &settings.languages)));
     out.push_str("| ");
     out.push_str(&format_cell(&settings.total_time_cell_format, &duration(total)));
     out.push('|');
@@ -1621,7 +1670,7 @@ fn write_default(
                     if timestamp { "| " } else { "" },
                     if tags { "| " } else { "" },
                     "|".repeat(properties.len()),
-                    format_cell(&settings.file_time_cell_format, translate("File time", lang)),
+                    format_cell(&settings.file_time_cell_format, translate("File time", lang, &settings.languages)),
                     duration(table.time),
                     "|".repeat(time_columns.saturating_sub(1)),
                     if percent { format!(" {} |", share(table.time)) } else { String::new() },
