@@ -1,0 +1,12 @@
+{
+  "today": "2026-05-18",
+  "now": "10:30",
+  "runs": [
+    { "view": "agenda", "span": "day" }
+  ],
+  "options": {
+    "org_agenda_search_headline_for_time": false,
+    "org_agenda_remove_times_when_in_prefix": false
+  },
+  "emacs": "(setq org-agenda-search-headline-for-time nil org-agenda-remove-times-when-in-prefix nil)"
+}

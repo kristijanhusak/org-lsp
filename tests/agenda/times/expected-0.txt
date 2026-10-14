@@ -1,0 +1,16 @@
+Day-agenda (W21):
+Monday     18 May 2026 W21
+              08:00am...... ----------------
+  work:       09:30am-10:30am Scheduled:  TODO 9:30 standup
+              10:00am...... ----------------
+              10:30am...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+  work:       12:00pm-01:00pm Lunch
+              12:00pm...... ----------------
+  work:       02:00pm-04:30pm Workshop 
+              02:00pm...... ----------------
+  work:       03:00pm-04:00pm Scheduled:  TODO Call Bob at 15:00 about the plan
+              04:00pm...... ----------------
+              06:00pm...... ----------------
+              08:00pm...... ----------------
+  work:       11:30pm-00:30am Scheduled:  TODO Late night
+  work:       (2/3):  Conference 

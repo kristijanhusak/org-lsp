@@ -6,8 +6,8 @@
 use org_core::agenda::sorting::{Limit, Sorting, Strategies};
 use org_core::agenda::todo_ignore::When;
 use org_core::agenda::{
-    Config as AgendaConfig, FutureRepeats, PreferLastRepeat, RemoveTags, SkipByOtherDate, SkipScheduledIfDeadline,
-    Span, TagsColumn, TimeGrid,
+    Config as AgendaConfig, FutureRepeats, PreferLastRepeat, RemoveTags, RemoveTimes, SkipByOtherDate,
+    SkipScheduledIfDeadline, Span, TagsColumn, TimeGrid,
 };
 use org_core::archive::{ContextInfo, InheritedTags, MarkDone, Settings as ArchiveSettings};
 use org_core::edit::Settings as EditSettings;
@@ -1972,6 +1972,21 @@ pub struct AgendaOptions {
     pub skip_comment_trees: Option<bool>,
     #[serde(rename = "org_agenda_include_deadlines")]
     pub include_deadlines: Option<bool>,
+    #[serde(rename = "org_agenda_time_leading_zero")]
+    pub time_leading_zero: Option<bool>,
+    #[serde(rename = "org_agenda_timegrid_use_ampm")]
+    pub timegrid_use_ampm: Option<bool>,
+    #[serde(rename = "org_agenda_search_headline_for_time")]
+    pub search_headline_for_time: Option<bool>,
+    /// `true`, `false` or `"beg"`.
+    #[serde(rename = "org_agenda_remove_times_when_in_prefix")]
+    pub remove_times_when_in_prefix: Option<serde_json::Value>,
+    #[serde(rename = "org_agenda_default_appointment_duration")]
+    pub default_appointment_duration: Option<i64>,
+    #[serde(rename = "org_agenda_remove_timeranges_from_blocks")]
+    pub remove_timeranges_from_blocks: Option<bool>,
+    #[serde(rename = "org_agenda_diary_sexp_prefix")]
+    pub diary_sexp_prefix: Option<String>,
     /// `org-agenda-prefer-last-repeat`: `true`, or a list of TODO keywords.
     #[serde(rename = "org_agenda_prefer_last_repeat")]
     pub prefer_last_repeat: Option<serde_json::Value>,
@@ -2246,6 +2261,7 @@ impl AgendaOptions {
             show_all_dates,
             skip_comment_trees,
             include_deadlines,
+            remove_timeranges_from_blocks,
             skip_scheduled_repeats_after_deadline,
             todo_list_sublevels,
             use_time_grid,
@@ -2253,6 +2269,28 @@ impl AgendaOptions {
             compact_blocks,
             hide_empty_blocks
         );
+        if let Some(on) = self.time_leading_zero {
+            config.times.leading_zero = on;
+        }
+        if let Some(on) = self.timegrid_use_ampm {
+            config.times.ampm = on;
+        }
+        if let Some(on) = self.search_headline_for_time {
+            config.times.headline_has_none = !on;
+        }
+        if let Some(value) = &self.remove_times_when_in_prefix {
+            config.times.remove_in_prefix = match value {
+                serde_json::Value::Bool(false) | serde_json::Value::Null => RemoveTimes::No,
+                serde_json::Value::String(symbol) if symbol == "beg" => RemoveTimes::Beginning,
+                _ => RemoveTimes::Yes,
+            };
+        }
+        if self.default_appointment_duration.is_some() {
+            config.times.appointment_duration = self.default_appointment_duration;
+        }
+        if self.diary_sexp_prefix.is_some() {
+            config.diary_sexp_prefix = self.diary_sexp_prefix.clone().filter(|prefix| !prefix.is_empty());
+        }
         if let Some(value) = &self.prefer_last_repeat {
             config.prefer_last_repeat = match value {
                 serde_json::Value::Bool(true) => PreferLastRepeat::All,

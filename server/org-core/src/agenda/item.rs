@@ -498,6 +498,32 @@ pub enum Dotime<'a> {
     Text(&'a str),
 }
 
+/// `org-agenda-remove-times-when-in-prefix`
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum RemoveTimes {
+    #[default]
+    Yes,
+    /// `beg`: only a time at the start of the headline.
+    Beginning,
+    No,
+}
+
+/// How times of day are found and shown.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct TimeSettings {
+    /// `org-agenda-time-leading-zero`
+    pub leading_zero: bool,
+    /// `org-agenda-timegrid-use-ampm`
+    pub ampm: bool,
+    /// `org-agenda-search-headline-for-time` is off.
+    pub headline_has_none: bool,
+    /// `org-agenda-remove-times-when-in-prefix`
+    pub remove_in_prefix: RemoveTimes,
+    /// `org-agenda-default-appointment-duration`: minutes an entry with a
+    /// start time lasts.
+    pub appointment_duration: Option<i64>,
+}
+
 pub struct FormatInput<'a> {
     pub format: &'a PrefixFormat,
     /// The leader, such as `Scheduled: `; may be empty.
@@ -524,6 +550,10 @@ pub struct FormatInput<'a> {
     pub entry: Option<(&'a str, usize)>,
     /// What evaluates `%(…)`.
     pub evaluator: &'a Evaluator,
+    pub times: &'a TimeSettings,
+    /// Text taken out of the headline wherever it is (a date range,
+    /// `org-agenda-remove-timeranges-from-blocks`).
+    pub remove: Option<&'a str>,
 }
 
 pub struct Formatted {
@@ -563,18 +593,36 @@ fn fix_displayed_tags(text: &str, tags: &[Tag]) -> String {
     out
 }
 
-/// `org-get-time-of-day` with a string result: `H:MM` in 24-hour form.
-fn clock_text(time: TimeOfDay) -> String {
-    format!("{}:{:02}", time.hours, time.minutes)
-}
-
-/// The `overtime` form: times past midnight become `+H:MM`.
-fn overtime_text(time: TimeOfDay) -> String {
+/// `org-get-time-of-day` in its `overtime` form: times past midnight
+/// become `+H:MM`, others `H:MM` (`HH:MM` with
+/// `org-agenda-time-leading-zero`).
+fn overtime_text(time: TimeOfDay, leading_zero: bool) -> String {
     if time.hours > 24 || (time.hours == 24 && time.minutes > 0) {
         format!("+{}:{:02}", time.hours - 24, time.minutes)
+    } else if leading_zero {
+        format!("{:02}:{:02}", time.hours, time.minutes)
     } else {
-        clock_text(time)
+        format!("{}:{:02}", time.hours, time.minutes)
     }
+}
+
+/// `org-agenda-time-of-day-to-ampm`: a time such as ` 8:00` or `13:45`
+/// as `8:00am`, ` 1:45pm`.
+fn ampm_text(time: &str, leading_zero: bool) -> String {
+    let split = time.len().saturating_sub(3);
+    let (hour, minute) = (&time[..split], &time[time.len().saturating_sub(2)..]);
+    // `string-to-number`: the leading number, blanks and a sign allowed.
+    let digits: String = hour.trim_start().trim_start_matches('+').chars().take_while(char::is_ascii_digit).collect();
+    let mut hour: i64 = digits.parse().unwrap_or(0);
+    let mut ampm = "am";
+    if hour == 12 {
+        ampm = "pm";
+    } else if hour > 12 {
+        ampm = "pm";
+        hour -= 12;
+    }
+    let hour = if leading_zero { format!("{hour:02}") } else { format!("{hour:>2}") };
+    format!("{hour}:{minute}{ampm}")
 }
 
 /// Remove every timestamp, active or not (`org-ts-regexp-both`), from `text`.
@@ -618,11 +666,13 @@ pub fn format_item(input: &FormatInput<'_>) -> Formatted {
     let mut txt = fix_displayed_tags(trim(input.head), input.tags);
 
     // The text searched for a time: the given one, then the headline
-    // without its timestamps.
+    // without its timestamps (`org-agenda-search-headline-for-time`).
+    let times = input.times;
+    let headline = || if times.headline_has_none { String::new() } else { remove_timestamps(&txt) };
     let searched = match input.dotime {
         Dotime::No => None,
-        Dotime::Headline => Some(remove_timestamps(&txt)),
-        Dotime::Text(text) => Some(format!("{text}{}", remove_timestamps(&txt))),
+        Dotime::Headline => Some(headline()),
+        Dotime::Text(text) => Some(format!("{text}{}", headline())),
     };
     let found = searched.as_deref().and_then(|ts| time_of_day(ts).map(|time| (ts, time)));
     let mut time = String::new();
@@ -645,19 +695,41 @@ pub fn format_item(input: &FormatInput<'_>) -> Formatted {
             },
         };
         // The time moves to the prefix, so take it out of the headline,
-        // unless what follows it is a closing bracket.
-        if input.format.has_time && !matched.is_empty() {
+        // unless what follows it is a closing bracket
+        // (`org-agenda-remove-times-when-in-prefix`).
+        if input.format.has_time && !matched.is_empty() && times.remove_in_prefix != RemoveTimes::No {
             if let Some(at) = txt.find(matched) {
                 let after = at + matched.len();
                 let spaces = txt[after..].bytes().take_while(|b| *b == b' ').count();
-                if !txt[after + spaces..].starts_with(']') {
+                let wanted = times.remove_in_prefix == RemoveTimes::Yes || at == 0;
+                if !txt[after + spaces..].starts_with(']') && wanted {
                     txt.replace_range(at..after + spaces, "");
                 }
             }
         }
+        // `org-agenda-default-appointment-duration` gives a start time an
+        // end. `org-duration-from-minutes` writes a day apart (`1d 2:00`),
+        // and the time read back is that of the day.
+        let end = end.or_else(|| {
+            let start = start?;
+            let total = (start.hours * 60 + start.minutes + times.appointment_duration?).rem_euclid(1440);
+            Some(TimeOfDay { hours: total / 60, minutes: total % 60, start: 0, end: 0 })
+        });
+        let shown = |time: TimeOfDay, width: usize| {
+            let text = pad_left(&overtime_text(time, times.leading_zero), width);
+            if times.ampm {
+                ampm_text(&text, times.leading_zero)
+            } else {
+                text
+            }
+        };
         time = match (start, end) {
-            (Some(start), Some(end)) => format!("{}-{}", pad_left(&overtime_text(start), 5), overtime_text(end)),
-            (Some(start), None) => format!("{}{}", pad_left(&overtime_text(start), 5), input.time_trailer),
+            (Some(start), Some(end)) => {
+                format!("{}-{}{}", shown(start, 5), shown(end, 0), if times.ampm { " " } else { "" })
+            }
+            (Some(start), None) => {
+                format!("{}{}{}", shown(start, 5), input.time_trailer, if times.ampm { " " } else { "" })
+            }
             _ => String::new(),
         };
     }
@@ -680,6 +752,10 @@ pub fn format_item(input: &FormatInput<'_>) -> Formatted {
             txt.push_str(&" ".repeat(padding));
             txt.push_str(&group);
         }
+    }
+
+    if let Some(remove) = input.remove.filter(|remove| !remove.is_empty()) {
+        txt = txt.replace(remove, "");
     }
 
     if input.remove_stamps {
@@ -893,6 +969,8 @@ mod tests {
             remove_tags: RemoveTags::No,
             entry: None,
             evaluator: &Evaluator::default(),
+            times: &TimeSettings::default(),
+            remove: None,
         })
         .text
     }
@@ -927,6 +1005,8 @@ mod tests {
             remove_tags: RemoveTags::No,
             entry: Some(("/org/a.org", 42)),
             evaluator: &evaluator,
+            times: &TimeSettings::default(),
+            remove: None,
         })
         .text;
         assert_eq!(text, "x   |   |x|work Task                                          :z:");
