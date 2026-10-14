@@ -525,9 +525,12 @@ the calendar Emacs shows with the prompt. ~calendar_win_mode~ says where.
 ~'cursor'~), as ~nvim_open_win()~ takes it: ~'rounded'~ unset, ~'none'~ for
 none.
 
-The calendar shows three months, as Emacs's does; the server's
-~calendar_months~ option set to ~1~ shows the month of the selected day
-alone, which suits a floating window. Its weeks start on Sunday;
+The calendar shows three months, as Emacs's does (Emacs has no other
+number); the server's ~calendar_months~ option set to ~1~ shows the month of
+the selected day alone, which suits a floating window. Under one month the
+prompt is on a line of its own and the answer below it
+(~10:00 => <2026-10-07 Wed 10:00>~), so the window is not much wider than
+the month. Its weeks start on Sunday;
 ~calendar_week_start_day~ set to ~1~ starts them on Monday, as Emacs's
 ~calendar-week-start-day~ does:
 
@@ -1448,7 +1451,8 @@ org_goto_max_level = 5
 
 # How many months the calendar of the date prompt shows: 3 side by side, as
 # Emacs's calendar shows them, the one with the selected day in the middle; or
-# 1, that month alone, for a narrow window.
+# 1, that month alone, for a narrow window, with the answer on a line under
+# the prompt.
 calendar_months = 3
 
 # The day the weeks of the date prompt's calendar start on: 1 starts them on
@@ -2873,7 +2877,8 @@ org_agenda_custom_commands = []
 
   // How many months the calendar of the date prompt shows: 3 side by side, as
   // Emacs's calendar shows them, the one with the selected day in the middle;
-  // or 1, that month alone, for a narrow window.
+  // or 1, that month alone, for a narrow window, with the answer on a line
+  // under the prompt.
   "calendar_months": 3,
 
   // The day the weeks of the date prompt's calendar start on: 1 starts them
