@@ -1234,6 +1234,55 @@ fn says_when_the_clock_passes_the_effort() {
     client.shutdown();
 }
 
+/// `org-clock-rounding-minutes`: a clock starts at the multiple of five
+/// minutes nearest now, not after it, and stops at the nearest one;
+/// `org-clock-continuously`: the next clock starts when the last stopped.
+#[test]
+fn rounds_clock_times_and_clocks_continuously() {
+    const URI: &str = "file:///org/round.org";
+    let ran = |continuously: bool| {
+        let mut options = json!({ "clock": { "today": "2026-05-18", "now": "10:33" } });
+        options["org_clock_rounding_minutes"] = json!(5);
+        options["org_clock_continuously"] = json!(continuously);
+        let mut client = Client::editor(options, None);
+        let mut text = "* Write
+* Other
+"
+        .to_string();
+        client.open(URI, &text);
+        let mut version = 1;
+        for heading in ["* Write", "* Other"] {
+            let line = text.lines().position(|line| line == heading).unwrap();
+            let at = json!({ "textDocument": { "uri": URI }, "position": { "line": line, "character": 0 } });
+            client.received.clear();
+            client
+                .request("workspace/executeCommand", json!({ "command": "org.clock.in", "arguments": [at] }))
+                .unwrap();
+            client.settle();
+            let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").unwrap();
+            text = apply(&text, &edits_of(edit).1);
+            version += 1;
+            client.notify(
+                "textDocument/didChange",
+                json!({ "textDocument": { "uri": URI, "version": version }, "contentChanges": [{ "text": text }] }),
+            );
+            client.settle();
+        }
+        client.shutdown();
+        text
+    };
+    assert_eq!(
+        ran(false),
+        "* Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:35] =>  0:05\n:END:\n\
+         * Other\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n"
+    );
+    assert_eq!(
+        ran(true),
+        "* Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:35] =>  0:05\n:END:\n\
+         * Other\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:35]\n:END:\n"
+    );
+}
+
 /// `org-clock-in` and its relatives: the `CLOCK:` line in its drawer, the
 /// clock's status for the editor (`org-lsp/clock`), switching to another
 /// entry, clocking out, cancelling, and a done state stopping the clock.

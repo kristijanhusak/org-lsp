@@ -21,6 +21,9 @@ A case is a JSON object:
                                           after it), `["goto", "text"]`: the
                                           cursor to the start of that text
       "options": {"org_extend_today_until": 4}   optional
+      "clocking": ["Task", "2026-05-18 09:00"]   optional: the clock runs
+                                          on the first headline with that
+                                          text, started then
     }
 
 `reference(cases)` adds `expected`: the file after the steps with `¦`
@@ -47,13 +50,23 @@ DRIVER = r"""
 (require 'org-clock)
 ;; Archive files are Org files, as Org's autoloads make them.
 (add-to-list 'auto-mode-alist '("\\.org_archive\\'" . org-mode))
-(defun org-lsp-clocktable-case (file out offset steps)
+(defun org-lsp-clocktable-case (file out offset steps clocking)
   (let ((result
          (condition-case err
              (with-current-buffer (find-file-noselect file)
                ;; Shown in the selected window, as Org expects of the
                ;; buffer it updates a block in.
                (set-window-buffer nil (current-buffer))
+               ;; A clock that runs, without its line in the file.
+               (when clocking
+                 (save-excursion
+                   (goto-char (point-min))
+                   (search-forward (car clocking))
+                   (org-back-to-heading t)
+                   (move-marker org-clock-marker (point))
+                   (move-marker org-clock-hd-marker (point))
+                   (setq org-clock-start-time
+                         (org-encode-time (org-parse-time-string (cadr clocking))))))
                (goto-char (1+ offset))
                (dolist (step steps)
                  (pcase (car step)
@@ -74,6 +87,9 @@ DRIVER = r"""
                               (buffer-substring (point) (point-max)))
                  (set-buffer-modified-p nil)))
            (error (format "ERROR: %s" (error-message-string err))))))
+    ;; No clock runs in a buffer killed: Emacs would ask.
+    (move-marker org-clock-marker nil)
+    (move-marker org-clock-hd-marker nil)
     (dolist (buffer (buffer-list))
       (when (buffer-file-name buffer)
         (with-current-buffer buffer (set-buffer-modified-p nil))
@@ -94,13 +110,29 @@ def bindings(options, agenda):
     options = dict(options or {})
     own = {name: options.pop(key) for key, name in OPTIONS.items() if key in options}
     defaults = options.pop("org_clock_clocktable_default_properties", None)
+    table_defaults = options.pop("org_clocktable_defaults", None)
+    languages = options.pop("org_clock_clocktable_language_setup", None)
+    running = options.pop("org_clock_report_include_clocking_task", None)
     out = todo_reference.bindings(options)
     for name, value in own.items():
         out += f" ({name} {lisp_value(value)})"
     if defaults is not None:
         out += f" (org-clock-clocktable-default-properties (car (read-from-string {lisp_string('(' + defaults + ')')})))"
+    if table_defaults is not None:
+        out += f" (org-clocktable-defaults (car (read-from-string {lisp_string('(' + table_defaults + ')')})))"
+    if languages is not None:
+        entries = " ".join("(" + " ".join(lisp_string(word) for word in entry) + ")" for entry in languages)
+        out += f" (org-clock-clocktable-language-setup '({entries}))"
+    if running is not None:
+        out += f" (org-clock-report-include-clocking-task {'t' if running else 'nil'})"
     out += " (org-agenda-files '(" + " ".join(lisp_string(path) for path in agenda) + "))"
     return out
+
+
+def clocking_form(clocking):
+    if not clocking:
+        return "nil"
+    return f"(list {lisp_string(clocking[0])} {lisp_string(clocking[1])})"
 
 
 def steps_form(steps):
@@ -139,7 +171,7 @@ def reference(cases):
                 forms.append(
                     f"(let ({bindings(case.get('options'), agenda)})\n"
                     f"  (org-lsp-clocktable-case {lisp_string(path)} {lisp_string(target)} {max(offset, 0)} "
-                    f"{steps_form(case['steps'])}))"
+                    f"{steps_form(case['steps'])} {clocking_form(case.get('clocking'))}))"
                 )
             driver = os.path.join(BASE, f"driver-{number}.el")
             with open(driver, "w", encoding="utf-8") as handle:

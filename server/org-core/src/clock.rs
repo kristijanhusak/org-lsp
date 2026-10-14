@@ -64,6 +64,28 @@ pub fn minutes_of(time: DateTime) -> i64 {
     time.day * 1440 + time.minute
 }
 
+/// `org-current-time` with `org-clock-rounding-minutes`: `now` at the
+/// nearest multiple of `rounding` minutes within its hour (a half to the
+/// even multiple, as `round` does); with `past`, never later than `now`.
+/// Below 1, `now` as it is.
+pub fn round_time(now: DateTime, rounding: i64, past: bool) -> DateTime {
+    if rounding < 1 {
+        return now;
+    }
+    let minute = now.minute.rem_euclid(60);
+    let (quotient, remainder) = (minute / rounding, minute % rounding);
+    let nearest = match (2 * remainder).cmp(&rounding) {
+        std::cmp::Ordering::Greater => quotient + 1,
+        std::cmp::Ordering::Equal => quotient + quotient % 2,
+        std::cmp::Ordering::Less => quotient,
+    };
+    let mut rounded = minutes_of(now) - minute + nearest * rounding;
+    if past && rounded > minutes_of(now) {
+        rounded -= rounding;
+    }
+    DateTime { day: rounded.div_euclid(1440), minute: rounded.rem_euclid(1440) }
+}
+
 /// `[2026-10-05 Mon 10:30]`: the date and time of an inactive timestamp
 /// that starts `text`, and where it ends.
 fn stamp(text: &str) -> Option<(DateTime, usize)> {
@@ -519,6 +541,27 @@ pub fn subtree_minutes(text: &str, heading: usize, since: Option<i64>) -> i64 {
 
 #[cfg(test)]
 mod tests {
+
+    /// `org-current-time` at 23:MM:30 on 2025-12-31 for every minute,
+    /// each rounding, without and with PAST, as Emacs gives it
+    /// (`tests/clock/rounding.txt`: rounding, past, then `DD HH:MM` each).
+    #[test]
+    fn rounds_times_as_emacs_does() {
+        let recorded = include_str!("../../../tests/clock/rounding.txt");
+        for line in recorded.lines() {
+            let mut parts = line.splitn(3, ' ');
+            let rounding: i64 = parts.next().unwrap().parse().unwrap();
+            let past = parts.next() == Some("t");
+            let day = Date::new(2025, 12, 31).to_day();
+            for (minute, expected) in parts.next().unwrap().split(',').enumerate() {
+                let now = DateTime { day, minute: 23 * 60 + minute as i64 };
+                let got = round_time(now, rounding, past);
+                let shown = format!("{:02} {:02}:{:02}", Date::from_day(got.day).day, got.minute / 60, got.minute % 60);
+                assert_eq!(shown, expected, "rounding {rounding}, past {past}, minute {minute}");
+            }
+        }
+    }
+
     use super::*;
     use crate::date::Date;
 
