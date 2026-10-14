@@ -1668,18 +1668,23 @@ For step 3 the client must sync the agenda document like any other:
 ~didOpen~ when it shows it, ~didChange~ when it replaces the text, ~didClose~
 when it closes it. After ~didClose~ the server stops rebuilding the view.
 
-*The cursor follows an entry.* A change of priority or date can move an
-entry to another line, or another day. The server then moves the cursor to
-the entry's new line the same way, once the client shows the new text, so
-that the next press of the key reaches the same entry. Emacs instead leaves
-the line where it is until the agenda is rebuilt. A TODO change leaves the
-cursor where it is, as in Emacs.
+*Changed lines stay where they are.* As in Emacs, a change made from the
+agenda does not move the entry's lines: they show the new state, priority
+or tags where they are (~org-agenda-change-all-lines~), a new date at their
+end, such as ~=> <2026-05-23 Sat>~ or ~S => Scheduled to <2026-05-23 Sat>~
+(~org-agenda-show-new-time~), and the cursor stays on its line, so that the
+next press of the key reaches the same entry. A repeating entry marked done
+shows the state it reached on today's line until the agenda is built again
+(~org-agenda-headline-snapshot-before-repeat~). The agenda is built anew
+with ~r~ (~org.agenda.redo~), another view, a change typed in a file, or a
+change that adds or removes entries. The new date fills the line up to the
+width the client reported with ~org-lsp/agendaWidth~ (80 columns without
+it), less the column a terminal keeps.
 
 *Lines of a view the client still shows.* A key pressed before the client
 has fetched the new text names a line of the old one. The server keeps the
 old view until the client's copy has changed, and resolves the line against
-it. Likewise, while the cursor is on its way to an entry's new line, a
-command from the line it is leaving is meant for the entry.
+it.
 
 * The date prompt document
 :PROPERTIES:

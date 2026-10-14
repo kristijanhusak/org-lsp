@@ -21,7 +21,7 @@ decides the outcome (see "How the work is checked" in [[file:development.org::#h
 | [[#tags][Tags]] | 86% | 6 of 7 |
 | [[#properties-and-column-view][Properties and column view]] | 75% | 6 of 8 |
 | [[#dates-and-times][Dates and times]] | 100% | 9 of 9 |
-| [[#agenda][Agenda]] | 100% | 23 of 23 |
+| [[#agenda][Agenda]] | 100% | 24 of 24 |
 | [[#clocking][Clocking]] | 100% | 8 of 8 |
 | [[#capture][Capture]] | 100% | 11 of 11 |
 | [[#notes-org-roam][Notes (org-roam)]] | 67% | 8 of 12 |
@@ -254,7 +254,7 @@ Where editors fall short:
 :CUSTOM_ID: agenda
 :END:
 
-100% (23 of 23)
+100% (24 of 24)
 
 - ✅ Day, week, fortnight, month and year views, going to a date
 - ✅ The list of TODO entries
@@ -270,6 +270,7 @@ Where editors fall short:
 - ✅ Archives mode
 - ✅ Inactive timestamps in the agenda once (~[~, ~v [~: ~org-agenda-include-inactive-timestamps~)
 - ✅ Changing an entry from the agenda: state, priority, tags, dates, notes, refile, archive, clock
+- ✅ Changed lines kept where they are until the agenda is rebuilt, the new date at their end (~org-agenda-change-all-lines~, ~org-agenda-show-new-time~)
 - ✅ Lines formatted as Org formats them (~org-agenda-prefix-format~ and the rest); ~%(…)~ in the format run by Emacs on each entry (through Emacs)
 - ✅ The time grid
 - ✅ Habits (~org-habit~): the consistency graph, ~K~

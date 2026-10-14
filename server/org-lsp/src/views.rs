@@ -135,6 +135,11 @@ pub struct View {
     /// The line of today's date, if it is shown.
     pub today_line: Option<u32>,
     pub today: Day,
+    /// The lines of the blocks the view is made of, to show changes on
+    /// them where they are ([`hold`]).
+    pub source: Vec<(usize, agenda::Line)>,
+    /// What lines show at their end, after a date changed from the agenda.
+    pub stamps: Vec<(usize, String)>,
 }
 
 fn token_style(style: Style) -> Option<(TokenType, u32)> {
@@ -239,7 +244,6 @@ pub fn render(
     filters: Option<&agenda::filter::Filters>,
     marks: &[EntryRef],
 ) -> View {
-    let outlines: Vec<&Outline> = files.iter().map(|(_, outline)| *outline).collect();
     let named: Vec<(&Outline, String, String)> = files
         .iter()
         .map(|(uri, outline)| {
@@ -248,6 +252,196 @@ pub fn render(
         })
         .collect();
     let (rendered, starts) = block_lines(blocks, &named, search, now, false, filters);
+    assemble(query, rendered, starts, files, now, clocked, marks, Vec::new(), 0)
+}
+
+/// A change made from the agenda to an entry, which the lines of the
+/// entry show where they are until the agenda is built again: Emacs
+/// changes them, and does not move them.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Held {
+    /// `org-agenda-change-all-lines`: the entry's lines show its new
+    /// headline, the state `keyword` (`done` or not) where no line of the
+    /// view built anew stands in for them. With `only`, that line alone
+    /// shows it: the state a repeater has since set back, on today's line
+    /// (`org-agenda-headline-snapshot-before-repeat`).
+    Headline { entry: EntryRef, keyword: Option<String>, done: bool, only: Option<usize> },
+    /// `org-agenda-show-new-time`: the entry's lines for the timestamp at
+    /// `entry.marker` show `text` at their end.
+    Stamp { entry: EntryRef, text: String },
+}
+
+impl Held {
+    /// The entry it changes.
+    pub fn entry(&self) -> &EntryRef {
+        match self {
+            Held::Headline { entry, .. } | Held::Stamp { entry, .. } => entry,
+        }
+    }
+
+    /// The entry it changes, which follows edits to its file.
+    pub fn entry_mut(&mut self) -> &mut EntryRef {
+        match self {
+            Held::Headline { entry, .. } | Held::Stamp { entry, .. } => entry,
+        }
+    }
+}
+
+/// `view` with `held` shown on its lines, the rest of it as it was: the
+/// agenda as Emacs keeps it after changes made from it. `fresh` is the
+/// view built anew, whose lines stand in for those of a changed entry
+/// where it has them; `files` are the agenda files as they read now, with
+/// as many entries each as when `view` was built.
+#[allow(clippy::too_many_arguments)]
+pub fn hold(
+    view: &View,
+    fresh: &View,
+    held: &[Held],
+    files: &[(Uri, &Outline)],
+    now: Now,
+    clocked: Option<(&Uri, usize)>,
+    marks: &[EntryRef],
+    width: usize,
+) -> View {
+    let same = |a: &EntryRef, b: &EntryRef| a.uri == b.uri && a.offset == b.offset;
+    let mut source = view.source.clone();
+    // The timestamps where they are now, their files having changed.
+    for ((_, line), shown) in source.iter_mut().zip(&view.lines) {
+        if let (Some(item), Some(entry)) = (line.item.as_mut(), shown.entry.as_ref()) {
+            item.marker = entry.marker;
+        }
+    }
+    let mut stamps = view.stamps.clone();
+    for change in held {
+        for (number, shown) in view.lines.iter().enumerate() {
+            let is_item = source[number].1.kind == LineKind::Item;
+            let Some(entry) = shown.entry.as_ref().filter(|_| is_item) else { continue };
+            match change {
+                Held::Headline { entry: changed, keyword, done, only } => {
+                    if !same(entry, changed) || only.is_some_and(|only| only != number) {
+                        continue;
+                    }
+                    let of_entry = |(line, (_, rendered)): &(&ViewLine, &(usize, agenda::Line))| {
+                        rendered.kind == LineKind::Item && line.entry.as_ref().is_some_and(|other| same(other, entry))
+                    };
+                    let mut lines = fresh.lines.iter().zip(&fresh.source).filter(of_entry);
+                    let standing = lines.clone().find(|(line, _)| line.kind == shown.kind && line.day == shown.day);
+                    source[number].1 = match (standing, lines.next()) {
+                        _ if only.is_some() => with_keyword(&source[number].1, keyword.as_deref(), *done, None),
+                        (Some((_, (_, rendered))), _) => rendered.clone(),
+                        (None, other) => {
+                            with_keyword(&source[number].1, keyword.as_deref(), *done, other.map(|(_, (_, line))| line))
+                        }
+                    };
+                    // The line is written anew, without the date it showed.
+                    stamps.retain(|(line, _)| *line != number);
+                }
+                Held::Stamp { entry: changed, text } => {
+                    if same(entry, changed) && entry.marker == changed.marker {
+                        stamps.retain(|(line, _)| *line != number);
+                        stamps.push((number, text.clone()));
+                    }
+                }
+            }
+        }
+    }
+    assemble(view.query.clone(), source, view.blocks.clone(), files, now, clocked, marks, stamps, width)
+}
+
+/// `line` with its TODO keyword `keyword` in place of the one it has, its
+/// tags where they ended: what `org-agenda-change-all-lines` makes of a
+/// line no view built anew stands in for. With `other`, a line of the same
+/// entry in that view, the whole headline is that line's (its priority and
+/// title too), after this line's own prefix.
+fn with_keyword(line: &agenda::Line, keyword: Option<&str>, done: bool, other: Option<&agenda::Line>) -> agenda::Line {
+    let Some(item) = &line.item else { return line.clone() };
+    let text = &line.text;
+    let after_dots = |text: &str, heading: usize| {
+        let heading = heading.min(text.len());
+        heading + text[heading..].bytes().take_while(|b| *b == b'.').count()
+    };
+    let start = after_dots(text, item.heading);
+    // A habit's graph stands on the headline: only the keyword changes.
+    let other = other
+        .filter(|_| item.graph.is_none())
+        .and_then(|other| Some((other, other.item.as_ref().filter(|other| other.graph.is_none())?)));
+    let (mut changed, delta, mut item) = if let Some((other, other_item)) = other {
+        let tail = &other.text[after_dots(&other.text, other_item.heading)..];
+        let changed = format!("{}{}", &text[..start], tail.trim_end_matches([' ', '\t']));
+        let mut item = item.clone();
+        item.priority = other_item.priority;
+        (changed, 0, item)
+    } else {
+        // The old keyword and the blank after it, or nothing.
+        let old_end = if item.keyword_len > 0 {
+            let end = (start + item.keyword_len).min(text.len());
+            end + usize::from(text[end..].starts_with(' '))
+        } else {
+            start
+        };
+        let new = keyword.map(|keyword| format!("{keyword} ")).unwrap_or_default();
+        let changed = format!("{}{new}{}", &text[..start], &text[old_end..]);
+        (changed, new.len() as isize - (old_end - start) as isize, item.clone())
+    };
+    // The tags end where they did, unless a habit's graph stands on them.
+    if item.graph.is_none() {
+        if let Some((_, tags_start)) = agenda::tag_group(text) {
+            let end = text.trim_end_matches([' ', '\t']).len();
+            let column = agenda::display_column(&text[..tags_start]) + agenda::display_column(&text[tags_start..end]);
+            changed = agenda::align_tags(&changed, -(column as i64));
+        }
+    }
+    if let Some((graph, _)) = item.graph.as_mut() {
+        *graph = graph.saturating_add_signed(delta);
+    }
+    item.text = changed.clone();
+    item.keyword_len = keyword.map_or(0, str::len);
+    item.keyword_done = done;
+    if done {
+        item.face = agenda::Face::Done;
+    } else if let Some((_, other_item)) = other.filter(|_| item.face == agenda::Face::Done) {
+        item.face = other_item.face;
+    }
+    agenda::Line { text: changed, kind: line.kind, item: Some(item) }
+}
+
+/// `org-agenda-show-new-time`: `stamp` over the end of `shown`, from the
+/// column before the one where it then ends at `width`, the line made
+/// longer with blanks to reach it.
+fn put_stamp(shown: &mut agenda::Displayed, stamp: &str, width: usize) {
+    let keep = width.saturating_sub(stamp.chars().count()).max(1) - 1;
+    let count = shown.text.chars().count();
+    let cut = if count <= keep {
+        shown.text.push_str(&" ".repeat(keep - count));
+        shown.text.len()
+    } else {
+        shown.text.char_indices().nth(keep).map_or(shown.text.len(), |(at, _)| at)
+    };
+    shown.text.truncate(cut);
+    shown.segments.retain(|segment| segment.start < cut);
+    for segment in &mut shown.segments {
+        segment.end = segment.end.min(cut);
+    }
+    shown.links.retain(|link| link.end <= cut);
+    shown.text.push_str(stamp);
+}
+
+/// The view of `rendered`, the lines of the agenda's blocks: its text,
+/// highlighting and entries, with `stamps` over the ends of their lines
+/// for a window `width` columns wide.
+#[allow(clippy::too_many_arguments)]
+fn assemble(
+    query: Query,
+    rendered: Vec<(usize, agenda::Line)>,
+    starts: Vec<Option<(Day, Span)>>,
+    files: &[(Uri, &Outline)],
+    now: Now,
+    clocked: Option<(&Uri, usize)>,
+    marks: &[EntryRef],
+    stamps: Vec<(usize, String)>,
+    width: usize,
+) -> View {
+    let outlines: Vec<&Outline> = files.iter().map(|(_, outline)| *outline).collect();
     let mut text = String::new();
     let mut lines: Vec<ViewLine> = Vec::with_capacity(rendered.len());
     let mut tokens = Vec::new();
@@ -283,6 +477,9 @@ pub fn render(
         // Marked for a bulk action (`org-agenda-bulk-mark-char`).
         if entry.as_ref().is_some_and(|entry| marks.contains(entry)) {
             agenda::mark(&mut shown, ">");
+        }
+        if let Some((_, stamp)) = stamps.iter().find(|(line, _)| *line == number) {
+            put_stamp(&mut shown, stamp, width);
         }
         let base = text.len();
         // The entry the clock runs on shows with `org-agenda-clocking`:
@@ -343,6 +540,8 @@ pub fn render(
         clocking: clocking_lines,
         today_line,
         today,
+        source: rendered,
+        stamps,
     }
 }
 
@@ -583,30 +782,22 @@ impl View {
         let renumber = |line: u32| moved.get(line as usize).copied().flatten().map(|(number, _)| number);
         self.clocking = self.clocking.iter().filter_map(|line| renumber(*line)).collect();
         self.today_line = self.today_line.and_then(renumber);
+        self.stamps = std::mem::take(&mut self.stamps)
+            .into_iter()
+            .filter_map(|(line, stamp)| Some((renumber(line as u32)? as usize, stamp)))
+            .collect();
         let mut number = 0;
         self.lines.retain(|_| {
             number += 1;
             !hidden.contains(&(number - 1))
         });
+        let mut number = 0;
+        self.source.retain(|_| {
+            number += 1;
+            !hidden.contains(&(number - 1))
+        });
         self.index = LineIndex::new(&text);
         self.text = text;
-    }
-
-    /// The line that shows the entry at `offset` of `uri` the way line
-    /// `from` did before the view was rebuilt: for the same reason and
-    /// under the same day if there is such a line, or else the nearest
-    /// one.
-    pub fn line_of(&self, uri: &Uri, offset: usize, from: (u32, &ViewLine)) -> Option<u32> {
-        let (number, old) = from;
-        let shows =
-            |line: &ViewLine| line.entry.as_ref().is_some_and(|entry| entry.uri == *uri && entry.offset == offset);
-        let candidates = || self.lines.iter().enumerate().filter(|(_, line)| shows(line));
-        let nearest = |lines: &mut dyn Iterator<Item = (usize, &ViewLine)>| {
-            lines.min_by_key(|(index, _)| index.abs_diff(number as usize)).map(|(index, _)| index as u32)
-        };
-        nearest(&mut candidates().filter(|(_, line)| line.kind == old.kind && line.day == old.day))
-            .or_else(|| nearest(&mut candidates().filter(|(_, line)| line.kind == old.kind)))
-            .or_else(|| nearest(&mut candidates()))
     }
 
     /// The line the cursor should go to when the view is first shown:

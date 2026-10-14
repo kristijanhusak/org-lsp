@@ -603,7 +603,7 @@ impl Server {
         self.refile_current = None;
         self.finish_staging();
         self.agenda_marks = kept;
-        self.follow = None;
+        self.release_held();
         self.refresh_view();
         if let Some(failure) = failure {
             return Err(failure);

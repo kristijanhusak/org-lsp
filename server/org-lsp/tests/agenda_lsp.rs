@@ -612,7 +612,9 @@ fn changes_an_entry_from_the_agenda() {
         ]
     );
 
-    // The editor applies the edit; the agenda follows.
+    // The editor applies the edit; the entry's line shows the new state
+    // where it is until the agenda is built again
+    // (`org-agenda-change-all-lines`).
     client.received.clear();
     let changed = apply(WORK, &edits);
     client.notify(
@@ -624,6 +626,7 @@ fn changes_an_entry_from_the_agenda() {
     expect![[r#"
         Global list of TODO items of type: ALL
           work:       TODO [#A] Write report                                    :office:
+          work:       DONE Call the client
     "#]]
     .assert_eq(&client.view_text(VIEW));
 
@@ -3025,7 +3028,7 @@ fn lines_between(text: &str, from: &str, until: &str) -> String {
 }
 
 #[test]
-fn changes_priority_from_the_agenda_and_the_cursor_follows() {
+fn changes_priority_from_the_agenda_on_its_line() {
     let mut client = Client::editor(clock(), None);
     let mut work = WORK.to_string();
     client.open("file:///org/work.org", WORK);
@@ -3055,15 +3058,22 @@ fn changes_priority_from_the_agenda_and_the_cursor_follows() {
     assert_eq!(methods(&client.received), [] as [&str; 0]);
     assert_eq!(text.lines().nth(call as usize).unwrap(), "  work:       In   2 d.:  TODO [#B] Call the client");
 
-    // Up again: A, which sorts the entry above the other one. The cursor
-    // goes with it, in its column, once the editor shows the new text.
+    // Up again: A, which would sort the entry above the other one. As in
+    // Emacs, its line stays where it is until the agenda is built again
+    // (`org-agenda-change-all-lines`), and so does the cursor.
     let requests = client.edit("org.priority.up", VIEW, (call, 14), json!({}), &mut work);
     assert_eq!(methods(&requests), ["workspace/applyEdit", "workspace/textDocumentContent/refresh"]);
     client.received.clear();
     let text = client.refetch_view();
     client.settle();
-    assert_eq!(methods(&client.received), ["window/showDocument"]);
-    assert_eq!(client.received[0].params["selection"]["start"], json!({ "line": call - 1, "character": 14 }));
+    assert_eq!(methods(&client.received), [] as [&str; 0]);
+    assert_eq!(
+        lines_between(&text, "  home:       Sched", "Tuesday"),
+        "  home:       Sched. 2x:  TODO Water plants\n  work:       In   2 d.:  TODO [#A] Call the client\n"
+    );
+    // Built again, it sorts above.
+    client.command("org.agenda.redo", VIEW, 0);
+    let text = client.refetch_view();
     assert_eq!(
         lines_between(&text, "  work:       In", "Tuesday"),
         "  work:       In   2 d.:  TODO [#A] Call the client\n  home:       Sched. 2x:  TODO Water plants\n"
@@ -3149,21 +3159,21 @@ fn changes_dates_from_the_agenda() {
             json!({ "range": { "start": { "line": 2, "character": 21 }, "end": { "line": 2, "character": 26 } }, "newText": "8 Mon" })
         ]
     );
+    // The line stays where it is, the new date at its end, as Emacs shows
+    // it until the agenda is built again (`org-agenda-show-new-time`).
     let text = client.refetch_view();
-    assert_eq!(text.lines().nth(plants as usize).unwrap(), "  home:       Scheduled:  TODO Water plants");
+    let shown = |date: &str| format!("  home:       Sched. 2x:  TODO Water plants           => <{date} +1w> ");
+    assert_eq!(text.lines().nth(plants as usize).unwrap(), shown("2026-05-18 Mon"));
 
-    // From there, day by day. The entry leaves today's list, and the
-    // cursor goes with it.
+    // From there, day by day: the line and the cursor stay.
     client.received.clear();
     client.edit("org.date.later", VIEW, (plants, 0), json!({}), &mut home);
     assert_eq!(home.lines().nth(2).unwrap(), "SCHEDULED: <2026-05-19 Tue +1w>");
     client.received.clear();
     let text = client.refetch_view();
     client.settle();
-    assert_eq!(methods(&client.received), ["window/showDocument"]);
-    let plants = line_of(&text, "Water plants");
-    assert_eq!(client.received[0].params["selection"]["start"]["line"], plants);
-    assert_eq!(text.lines().nth(plants as usize - 1).unwrap(), "Tuesday    19 May 2026");
+    assert_eq!(methods(&client.received), [] as [&str; 0]);
+    assert_eq!(text.lines().nth(plants as usize).unwrap(), shown("2026-05-19 Tue"));
 
     // A count is a number of days.
     client.edit("org.date.earlier", VIEW, (plants, 0), json!({ "count": 3 }), &mut home);
@@ -3404,9 +3414,25 @@ fn agenda_actions_match_emacs() {
         // A command that changes the view: the new text, and where the
         // cursor goes in it.
         if let (Some(agenda), Ok(_)) = (case.get("agenda"), &result) {
+            // The editor applies the edits, as the server then learns.
+            for (name, text) in &after {
+                if files.get(name) != Some(text) {
+                    client.notify(
+                        "textDocument/didChange",
+                        json!({
+                            "textDocument": { "uri": format!("file:///org/{name}"), "version": 100 },
+                            "contentChanges": [{ "text": text }],
+                        }),
+                    );
+                }
+            }
+            client.settle();
             let shown = client.view_text(VIEW);
             let reveal = client.received.iter().rev().find(|request| request.method == "window/showDocument");
-            let cursor = reveal.map(|request| request.params["selection"]["start"]["line"].clone());
+            // Without being moved, the cursor stays on the line it was on.
+            let cursor = reveal
+                .map(|request| request.params["selection"]["start"]["line"].clone())
+                .or_else(|| Some(context["position"]["line"].clone()));
             if shown != agenda.as_str().unwrap() || cursor.as_ref() != Some(&case["cursor"]) {
                 failures.push_str(&format!(
                     "\ncase {index}: {command} `{}`\n--- emacs (cursor {})\n{}\n--- org-lsp (cursor {cursor:?})\n{shown}\n",
@@ -3438,9 +3464,9 @@ fn agenda_actions_match_emacs() {
 }
 
 /// Keys can come faster than the agenda is redrawn. A line number then
-/// names a line of the text the editor still shows, or the line the
-/// cursor is about to leave. The command must reach the entry the user
-/// sees under the cursor, never the one that has since taken its place.
+/// names a line of the text the editor still shows. The command must reach
+/// the entry the user sees there, never the one that has since taken its
+/// place.
 #[test]
 fn a_command_from_a_stale_agenda_reaches_its_entry() {
     const NOTES: &str = "* TODO First\nSCHEDULED: <2026-05-18 Mon>\n* TODO Second\nSCHEDULED: <2026-05-18 Mon>\n";
@@ -3454,14 +3480,32 @@ fn a_command_from_a_stale_agenda_reaches_its_entry() {
     let first = line_of(&text, "TODO First");
     assert_eq!(line_of(&text, "TODO Second"), first + 1);
 
-    // "First" moves to Tuesday. Its line now shows "Second", but the
-    // editor has not fetched the new text.
+    // "First" moves to Tuesday. As in Emacs, its line stays until the
+    // agenda is redone, with the new date at its end; the same key again
+    // moves it once more.
     client.edit("org.date.later", VIEW, (first, 0), json!({}), &mut notes);
     assert_eq!(notes, "* TODO First\nSCHEDULED: <2026-05-19 Tue>\n* TODO Second\nSCHEDULED: <2026-05-18 Mon>\n");
-    assert_eq!(client.view_text(VIEW).lines().nth(first as usize).unwrap(), "  notes:      Scheduled:  TODO Second");
-    // The same key again, from the same line of the old text.
+    let shown = client.view_text(VIEW);
+    assert!(shown.lines().nth(first as usize).unwrap().ends_with(" => <2026-05-19 Tue> "), "{shown}");
     client.edit("org.date.later", VIEW, (first, 0), json!({}), &mut notes);
     assert_eq!(notes, "* TODO First\nSCHEDULED: <2026-05-20 Wed>\n* TODO Second\nSCHEDULED: <2026-05-18 Mon>\n");
+    client.refetch_view();
+    client.settle();
+
+    // A change typed in the file and saved redoes the agenda: "Second" now
+    // has the line of "First". The editor has not fetched the new text yet.
+    notes = notes.replace("* TODO Second", "* TODO Second :x:");
+    client.file_version += 1;
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": URI, "version": client.file_version }, "contentChanges": [{ "text": notes }] }),
+    );
+    client.notify("textDocument/didSave", json!({ "textDocument": { "uri": URI } }));
+    client.settle();
+    let text = client.view_text(VIEW);
+    assert!(text.lines().nth(first as usize).unwrap().contains("TODO Second"), "{text}");
+    client.edit("org.date.later", VIEW, (first, 0), json!({}), &mut notes);
+    assert!(notes.starts_with("* TODO First\nSCHEDULED: <2026-05-21 Thu>\n"), "{notes}");
     // What the editor asks about its old text is answered from that text.
     let definition = client
         .request(
@@ -3471,59 +3515,70 @@ fn a_command_from_a_stale_agenda_reaches_its_entry() {
         .unwrap();
     assert_eq!(definition["range"]["start"]["line"], 0);
 
-    // Now the editor shows the new text. The server asks it to move the
-    // cursor to the entry; until the editor has done that, the cursor is
-    // still reported on the old line, and still means "First".
-    client.hold_show = true;
-    client.received.clear();
-    let text = client.refetch_view();
-    client.settle();
-    assert_eq!(client.held.len(), 1);
-    let target = client.held[0].params["selection"]["start"]["line"].as_u64().unwrap() as u32;
-    assert_eq!(target, line_of(&text, "TODO First"));
-    assert_eq!(text.lines().nth(first as usize).unwrap(), "  notes:      Scheduled:  TODO Second");
-    client.edit("org.date.later", VIEW, (first, 0), json!({}), &mut notes);
-    assert_eq!(notes, "* TODO First\nSCHEDULED: <2026-05-21 Thu>\n* TODO Second\nSCHEDULED: <2026-05-18 Mon>\n");
-
-    // Once the cursor has moved, a line means what it shows.
-    client.hold_show = false;
-    for request in std::mem::take(&mut client.held) {
-        client.answer(request);
-    }
+    // Once the editor shows the new text, a line means what it shows.
     client.refetch_view();
     client.settle();
     client.edit("org.date.later", VIEW, (first, 0), json!({}), &mut notes);
-    assert_eq!(notes, "* TODO First\nSCHEDULED: <2026-05-21 Thu>\n* TODO Second\nSCHEDULED: <2026-05-19 Tue>\n");
+    assert!(notes.ends_with("* TODO Second :x:\nSCHEDULED: <2026-05-19 Tue>\n"), "{notes}");
     client.shutdown();
 }
 
+/// Two repeating entries one after the other. Done, the first is logged
+/// (`org-log-repeat`), which pushes the second down its file while the
+/// agenda keeps its lines: commands on the second's line still reach it.
 #[test]
-fn a_cursor_move_for_an_older_view_is_dropped() {
-    const HOME: &str = "* TODO Water plants\nSCHEDULED: <2026-05-24 Sun +1w>\n* Meeting <2026-05-19 Tue 14:00>\n";
-    const URI: &str = "file:///org/home.org";
+fn held_lines_follow_entries_pushed_down_their_file() {
+    const NOTES: &str =
+        "* TODO First\nSCHEDULED: <2026-05-18 Mon +1d>\n* TODO Second\nSCHEDULED: <2026-05-18 Mon +1d>\n";
+    const URI: &str = "file:///org/notes.org";
     let mut client = Client::editor(clock(), None);
-    let mut home = HOME.to_string();
-    client.open(URI, HOME);
+    let mut notes = NOTES.to_string();
+    client.open(URI, NOTES);
     client.command("org.agenda.list", VIEW, 0);
     let text = client.show_view();
-    let plants = text.lines().position(|line| line.contains("Water plants")).unwrap() as u32;
+    let line_of = |text: &str, needle: &str| text.lines().position(|line| line.contains(needle)).unwrap() as u32;
+    let first = line_of(&text, "TODO First");
+    let second = first + 1;
+    assert!(text.lines().nth(second as usize).unwrap().contains("TODO Second"));
 
-    // The entry moves to Tuesday, and the cursor is to go with it once the
-    // editor shows the new text. Before it does, the same line moves the
-    // entry back to Saturday, where its repeat stands on that very line.
-    client.edit("org.date.earlier", VIEW, (plants, 0), json!({ "count": 5 }), &mut home);
-    assert_eq!(home.lines().nth(1).unwrap(), "SCHEDULED: <2026-05-19 Tue +1w>");
-    client.edit("org.date.earlier", VIEW, (plants, 0), json!({ "count": 3 }), &mut home);
-    assert_eq!(home.lines().nth(1).unwrap(), "SCHEDULED: <2026-05-16 Sat +1w>");
-
-    // The cursor stays: the line it would have gone to belongs to a view
-    // the editor never showed, and now shows the meeting.
-    client.received.clear();
-    let text = client.refetch_view();
+    client.edit("org.todo.next", VIEW, (first, 0), json!({}), &mut notes);
+    assert!(notes.starts_with("* TODO First\nSCHEDULED: <2026-05-19 Tue +1d>\n"), "{notes}");
+    let pushed = notes.lines().position(|line| line == "* TODO Second").unwrap();
+    assert!(pushed > 2, "{notes}");
+    let shown = client.refetch_view();
     client.settle();
-    assert_eq!(methods(&client.received), Vec::<&str>::new());
-    assert_eq!(text.lines().nth(plants as usize).unwrap(), "  home:       Scheduled:  TODO Water plants");
-    assert_eq!(text.lines().nth(plants as usize - 1).unwrap(), "Saturday   23 May 2026");
+    assert_eq!(shown.lines().nth(first as usize).unwrap(), "  notes:      Scheduled:  DONE First");
+    assert_eq!(shown.lines().nth(second as usize).unwrap(), "  notes:      Scheduled:  TODO Second");
+
+    // Going to the second entry finds it where it is now.
+    let requests = client.command("org.agenda.goto", VIEW, second);
+    let reveal = requests.iter().find(|request| request.method == "window/showDocument").expect("a reveal");
+    assert_eq!(reveal.params["selection"]["start"]["line"], pushed as u64);
+    // Its state and its date change, and nothing else does.
+    client.edit("org.todo.next", VIEW, (second, 0), json!({}), &mut notes);
+    assert_eq!(notes.matches("SCHEDULED: <2026-05-19 Tue +1d>").count(), 2, "{notes}");
+    assert_eq!(notes.matches("LAST_REPEAT").count(), 2, "{notes}");
+    client.edit("org.date.later", VIEW, (second, 0), json!({}), &mut notes);
+    assert_eq!(notes.matches("SCHEDULED: <2026-05-19 Tue +1d>").count(), 1, "{notes}");
+    assert_eq!(notes.matches("SCHEDULED: <2026-05-20 Wed +1d>").count(), 1, "{notes}");
+    let second_at = notes.find("* TODO Second").unwrap();
+    assert!(notes[second_at..].contains("<2026-05-20 Wed +1d>"), "{notes}");
+    let shown = client.refetch_view();
+    client.settle();
+    assert_eq!(shown.lines().nth(first as usize).unwrap(), "  notes:      Scheduled:  DONE First");
+    let line = shown.lines().nth(second as usize).unwrap();
+    assert!(
+        line.starts_with("  notes:      Scheduled:  DONE Second") && line.ends_with(" => <2026-05-20 Wed +1d> "),
+        "{shown}"
+    );
+
+    // A priority after the date: the line is written anew, the new date
+    // no longer at its end (`org-agenda-change-all-lines`).
+    client.edit("org.priority.up", VIEW, (second, 0), json!({}), &mut notes);
+    assert!(notes.contains("* TODO [#B] Second"), "{notes}");
+    let shown = client.refetch_view();
+    client.settle();
+    assert_eq!(shown.lines().nth(second as usize).unwrap(), "  notes:      Scheduled:  TODO [#B] Second");
     client.shutdown();
 }
 
@@ -3776,8 +3831,7 @@ fn completes_tags_of_the_agenda_files() {
 
 /// `C-c C-s` on an agenda line (`org-agenda-schedule`): the calendar
 /// opens on the entry's date, and the day picked there goes to the
-/// entry's file, which need not be open in the editor. The agenda's
-/// cursor then follows the entry.
+/// entry's file, which need not be open in the editor.
 #[test]
 fn schedules_from_the_agenda() {
     const PROMPT: &str = "org-agenda:/Org%20Date";
@@ -3823,8 +3877,9 @@ fn schedules_from_the_agenda() {
     let scheduled = apply(HOME, &edits);
     assert_eq!(scheduled, "* TODO Water plants\nSCHEDULED: <2026-05-23 Sat +1w>\n* DONE Buy milk\n");
 
-    // The editor opens the file to apply the edit, and then changes it;
-    // the agenda shows the entry on Saturday, and its cursor goes there.
+    // The editor opens the file to apply the edit, and then changes it.
+    // As in Emacs (`org-agenda-show-new-time`), the line stays where it
+    // was, with the new date at its end, and so does the cursor.
     client.open(&uri, HOME);
     client.notify(
         "textDocument/didChange",
@@ -3834,10 +3889,11 @@ fn schedules_from_the_agenda() {
     client.received.clear();
     let view = client.refetch_view();
     client.settle();
-    let saturday = view.lines().position(|line| line.contains("Scheduled:  TODO Water plants")).unwrap();
-    assert!(view.lines().nth(saturday - 1).unwrap().starts_with("Saturday   23 May 2026"), "{view}");
-    let reveal = client.received.iter().find(|request| request.method == "window/showDocument").expect("a reveal");
-    assert_eq!(reveal.params["selection"]["start"]["line"], saturday as u64);
+    let stamped = "  home:       Sched. 2x:  TODO Water p S => Scheduled to <2026-05-23 Sat +1w> ";
+    assert_eq!(view.lines().nth(line as usize).unwrap(), stamped);
+    // Every line of the entry says so, its Saturday too.
+    assert_eq!(view.lines().filter(|shown| shown.contains("S => Scheduled to")).count(), 2, "{view}");
+    assert!(client.received.iter().all(|request| request.method != "window/showDocument"));
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
 }

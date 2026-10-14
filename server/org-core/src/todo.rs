@@ -215,6 +215,10 @@ pub(crate) struct Editor<'a> {
     /// What `org-auto-repeat-maybe` says when it moved the timestamps:
     /// `Entry repeats: SCHEDULED: <…> `.
     repeated: Option<String>,
+    /// The headline as the change made it, before a repeater set the
+    /// state back: what the agenda shows on the entry's line until it is
+    /// rebuilt (`org-agenda-headline-snapshot-before-repeat`).
+    before_repeat: Option<String>,
     /// The logging in force for this command.
     log: Log,
 }
@@ -445,7 +449,17 @@ fn repeater_parts(stamp: &str) -> Option<(Option<char>, i64, char)> {
 impl<'a> Editor<'a> {
     pub(crate) fn new(text: &str, keywords: &'a TodoKeywords, settings: &'a Settings, now: DateTime) -> Editor<'a> {
         let log = Log::new(settings, text);
-        Editor { text: text.to_string(), keywords, settings, now, heading: 0, note: None, repeated: None, log }
+        Editor {
+            text: text.to_string(),
+            keywords,
+            settings,
+            now,
+            heading: 0,
+            note: None,
+            repeated: None,
+            before_repeat: None,
+            log,
+        }
     }
 
     pub(crate) fn replace(&mut self, start: usize, end: usize, new: &str) {
@@ -1434,7 +1448,11 @@ impl<'a> Editor<'a> {
         self.align_tags(self.heading);
         self.update_parent_statistics();
         if now_done {
+            let before = self.line(self.line_start(self.heading)).to_string();
             self.auto_repeat(&state, &this)?;
+            if self.repeated.is_some() {
+                self.before_repeat = Some(before);
+            }
         }
         Ok(())
     }
@@ -1651,6 +1669,8 @@ pub struct Changed {
     /// The note the change wants, when no text was given for it. The text
     /// is then without the note.
     pub wants_note: Option<WantedNote>,
+    /// The headline line before a repeater set the state back.
+    pub before_repeat: Option<String>,
 }
 
 /// A note a state change wants (`org-add-note`).
@@ -1741,7 +1761,7 @@ pub fn change_state_noted(
         }
         (None, _) => None,
     };
-    Ok(Changed { text: editor.text, wants_note, message: editor.repeated })
+    Ok(Changed { text: editor.text, wants_note, message: editor.repeated, before_repeat: editor.before_repeat })
 }
 
 /// The line edits that turn `old` into `new`.

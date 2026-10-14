@@ -21,8 +21,11 @@ number of days).
 `reference(cases)` adds `expected`: the files after the command, or
 `ERROR: …` when Emacs refuses. A case with an answer also gets `prompt`,
 the text the date prompt offered before the answer replaced it. A command
-that changes the view (`agenda-goto-date`) also gets `agenda`, the text of the
-agenda after it, and `cursor`, the line the cursor is left on (from 0). Emacs runs under faketime, so both programs
+that changes the view (`agenda-goto-date`), or a case with `"view_after":
+true`, also gets `agenda`, the text of the agenda after it as it shows
+(text a `display` property covers shows as that: the new date of
+`org-agenda-show-new-time`), and `cursor`, the line the cursor is left on
+(from 0). Emacs runs under faketime, so both programs
 see the same clock. Set ORG_LISP_DIR to the `lisp` directory of an Org
 checkout to use that version instead of the one bundled with Emacs.
 """
@@ -65,6 +68,15 @@ DRIVER = r"""
       org-agenda-window-setup 'current-window
       org-agenda-sticky nil)
 (defvar org-lsp-prompt nil)
+(defun org-lsp-shown (text)
+  "TEXT as it shows: what a `display' string covers is that string."
+  (let ((at 0) (out ""))
+    (while (< at (length text))
+      (let* ((next (next-single-property-change at 'display text (length text)))
+             (display (get-text-property at 'display text)))
+        (setq out (concat out (if (stringp display) display (substring-no-properties text at next))))
+        (setq at next)))
+    out))
 (defun org-lsp-agenda-case (files out view span needle count form answer)
   (remove-hook 'post-command-hook 'org-add-log-note)
   (setq org-log-setup nil)
@@ -96,7 +108,7 @@ DRIVER = r"""
                      (eval form)
                      (org-lsp-finish-notes)))
                  (let ((view (with-current-buffer org-agenda-buffer-name
-                               (format "%d\n%s" (1- (line-number-at-pos)) (buffer-string)))))
+                               (format "%d\n%s" (1- (line-number-at-pos)) (org-lsp-shown (buffer-string))))))
                    (with-temp-file (concat out ".view") (insert view))))
                (mapconcat
                 (lambda (file)
@@ -127,6 +139,24 @@ def bulk_form(case):
         f"           ((symbol-function 'read-number) (lambda (&rest _) (string-to-number {answer}))))"
         f"   (org-agenda-bulk-action)))"
     )
+
+
+def without_hints(cursor, agenda):
+    """The agenda without Emacs's hints about its key bindings, which the
+    server leaves out (see `agenda_reference.clean`), and the cursor's
+    line in it."""
+    kept = []
+    skipping = False
+    for number, line in enumerate(agenda.split("\n")):
+        if line.startswith("Press ") and ("to search again" in line or "to add/sub word" in line):
+            skipping = True
+        elif not (skipping and line.startswith("                     ")):
+            skipping = False
+            kept.append(line)
+            continue
+        if number < cursor:
+            cursor -= 1
+    return cursor, "\n".join(kept)
 
 
 def reference(cases):
@@ -180,11 +210,11 @@ def reference(cases):
                 if "answer" in case:
                     with open(target + ".prompt", encoding="utf-8") as handle:
                         case["prompt"] = handle.read()
-                if case["command"] in VIEW_COMMANDS and os.path.exists(target + ".view"):
+                wants_view = case["command"] in VIEW_COMMANDS or case.get("view_after")
+                if wants_view and os.path.exists(target + ".view"):
                     with open(target + ".view", encoding="utf-8") as handle:
                         cursor, agenda = handle.read().split("\n", 1)
-                    case["cursor"] = int(cursor)
-                    case["agenda"] = agenda
+                    case["cursor"], case["agenda"] = without_hints(int(cursor), agenda)
                 if result.startswith("ERROR:"):
                     case["expected"] = result
                 else:

@@ -108,9 +108,9 @@ to take the day under the cursor, ~i~ to type the answer, ~q~ or ~Ctrl+G~ to
 give up.
 
 A change made from the agenda edits the entry's file and saves it
-(~auto_save~; off, it is left unsaved, as in Emacs); the agenda follows at
-once, and after a change of priority or date the cursor goes with the
-entry to its new line.
+(~auto_save~; off, it is left unsaved, as in Emacs). As in Emacs, the
+entry's lines stay where they are, showing the new state, priority or date,
+with the cursor on them, until the agenda is built again with ~r~.
 
 * What works
 

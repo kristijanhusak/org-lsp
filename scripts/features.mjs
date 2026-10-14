@@ -402,6 +402,7 @@ export const AREAS = [
       ['Archives mode', true],
       ['Inactive timestamps in the agenda once (`[`, `v [`: `org-agenda-include-inactive-timestamps`)', true],
       ['Changing an entry from the agenda: state, priority, tags, dates, notes, refile, archive, clock', true],
+      ['Changed lines kept where they are until the agenda is rebuilt, the new date at their end (`org-agenda-change-all-lines`, `org-agenda-show-new-time`)', true],
       ['Lines formatted as Org formats them (`org-agenda-prefix-format` and the rest); `%(…)` in the format run by Emacs on each entry (through Emacs)', true],
       ['The time grid', true],
       ['Habits (`org-habit`): the consistency graph, `K`', true],
