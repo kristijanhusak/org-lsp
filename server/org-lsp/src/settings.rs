@@ -651,6 +651,22 @@ pub const SETTINGS: &[Setting] = &[
          default every headline of the file and of the files with IDs.",
     ),
     setting(
+        "org_link_search_must_match_exact_headline",
+        r#"boolean, "query-to-create""#,
+        r#""query-to-create""#,
+        "org-link-search-must-match-exact-headline",
+        "What a link to a headline that is not there does: `\"query-to-create\"` asks whether to make it, at \
+         the end of the file, when the link is followed (`org.open`); `true` is an error; `false` looks for its \
+         words in the text.",
+    ),
+    setting(
+        "org_link_doi_server_url",
+        "string",
+        r#""https://doi.org/""#,
+        "org-link-doi-server-url",
+        "What a `doi:` link is opened at: this, then the DOI.",
+    ),
+    setting(
         "org_id_link_to_org_use_id",
         "boolean, string",
         "false",
@@ -2586,6 +2602,8 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_id_prefix", r#"{ "anyOf": [{ "const": false }, { "type": "string" }] }"#),
     ("org_id_ts_format", STRING),
     ("org_id_include_domain", BOOLEAN),
+    ("org_link_search_must_match_exact_headline", r#"{ "enum": [true, false, "query-to-create"] }"#),
+    ("org_link_doi_server_url", STRING),
     ("org_link_context_for_files", BOOLEAN),
     ("org_lint", BOOLEAN),
     ("org_lint_ignore", r#"{ "type": "array", "items": { "type": "string" } }"#),

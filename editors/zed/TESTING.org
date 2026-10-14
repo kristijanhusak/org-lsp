@@ -228,6 +228,7 @@ its sections says what it should look like.
 - [ ] A ~#+LINK: gh https://github.com/%s~ line makes ~[[gh:org-lsp]]~ follow ~https://github.com/org-lsp~; ~org_link_abbrev_alist~ does the same from the settings: the code action /Open the link or thing at the cursor/
 - [ ] Following a link to a headline, a custom ID and a ~<<target>>~: the code action /Open the link or thing at the cursor/
 - [ ] Following a ~file:~ link with a search (~file:notes.org::*Heading~) and an ~id:~ link: the code action /Open the link or thing at the cursor/
+- [ ] Following ~[[No such heading]]~ asks whether to make it; yes adds ~* No such heading~ at the end of the file and goes there: the code action /Open the link or thing at the cursor/
 - [ ] Following a URL opens the browser; a timestamp opens its day's agenda: the code action /Open the link or thing at the cursor/
 - [ ] Go to definition on a link does the same: ~F12~
 - [ ] Storing a link to a headline and inserting it elsewhere with a description: the code action /Store a link to the place at the cursor/, the code action /Insert a link, or edit the one at the cursor/

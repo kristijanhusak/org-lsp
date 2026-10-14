@@ -244,10 +244,22 @@ fn title_range(line: &str, keywords: &TodoKeywords) -> Option<(usize, usize)> {
 /// `org-insert-heading`, without the `C-u C-u` form. `respect_content`
 /// puts the heading after the subtree.
 fn insert_heading(buffer: &mut Buffer, keywords: &TodoKeywords, settings: &Settings, respect_content: bool) {
+    insert_heading_at(buffer, keywords, settings, respect_content, None);
+}
+
+/// `org-insert-heading` with its `level` argument, which gives the new
+/// heading that many stars.
+fn insert_heading_at(
+    buffer: &mut Buffer,
+    keywords: &TodoKeywords,
+    settings: &Settings,
+    respect_content: bool,
+    new_level: Option<usize>,
+) {
     let blank = settings.blank_heading.unwrap_or_else(|| blank_before_heading(&buffer.text, buffer.point));
     let current_heading = heading_at_or_above(&buffer.text, buffer.point);
     let level = current_heading.and_then(|heading| headline_level(line(&buffer.text, heading)));
-    let stars = "*".repeat(level.unwrap_or(1));
+    let stars = "*".repeat(new_level.or(level).unwrap_or(1));
     if respect_content {
         buffer.point = match current_heading {
             None => next_heading(&buffer.text, buffer.point).unwrap_or(buffer.text.len()),
@@ -477,6 +489,21 @@ pub fn insert_todo_heading(
     insert_heading(&mut buffer, keywords, settings, respect_content || settings.respect_content);
     mark_todo(&mut buffer, keywords, settings);
     Ok(Outcome { text: buffer.text, cursor: buffer.point })
+}
+
+/// The heading `org-link-search` makes when a link's headline is not
+/// there and `org-link-search-must-match-exact-headline` says to: at the
+/// end of the text, of level 1, with the words of `search` (a `*` in
+/// front taken off). The cursor is at the start of its line.
+pub fn insert_link_heading(text: &str, search: &str, keywords: &TodoKeywords, settings: &Settings) -> Outcome {
+    let mut buffer = Buffer { text: text.to_string(), point: text.len() };
+    if buffer.point != buffer.bol() {
+        buffer.insert("\n");
+    }
+    insert_heading_at(&mut buffer, keywords, settings, false, Some(1));
+    buffer.insert(&format!("{}\n", search.strip_prefix('*').unwrap_or(search)));
+    let cursor = line_start(&buffer.text, buffer.point - 1);
+    Outcome { text: buffer.text, cursor }
 }
 
 /// C-RET (`org-insert-heading-respect-content`): a heading after the

@@ -1102,6 +1102,8 @@ struct Server {
     stored_links: org_core::link::Stored,
     /// The options of the link commands.
     link_settings: org_core::link::Settings,
+    /// How links are followed.
+    open_settings: open::Settings,
     /// `org-clock-default-task`, marked by clocking in with `C-u C-u`.
     clock_default_task: Option<ClockTask>,
     /// `org-clock-interrupted-task`: the entry whose clock the last
@@ -1484,6 +1486,7 @@ pub fn run(connection: Connection) -> Result<()> {
         clock_history_length: options.clock_history_length.unwrap_or(5).max(1),
         stored_links: Vec::new(),
         link_settings: options.link_settings(),
+        open_settings: options.open_settings(),
         clock_default_task: None,
         clock_interrupted: None,
         clock_out_time: None,
@@ -2618,7 +2621,8 @@ impl Server {
                     let selection = Some(Range::new(position, position));
                     let params =
                         ShowDocumentParams { uri: uri.clone(), external: None, take_focus: Some(true), selection };
-                    self.send_request::<ShowDocument>(params, Some(Pending::Folds { uri, folds }));
+                    let then = (!folds.is_null()).then_some(Pending::Folds { uri, folds });
+                    self.send_request::<ShowDocument>(params, then);
                 }
             }
             Some(Pending::Reveal) => {}
@@ -3842,8 +3846,16 @@ impl Server {
         let text = document.text.clone();
         let offset = document.index.offset(&text, position.position, self.client.encoding);
         let call = |link: &str, list: &[(String, String)]| self.expand_abbreviation(link, list);
-        let opened =
-            open::at_point_calling(&text, &document.parse, offset, None, &self.link_abbreviations, Some(&call)).ok()?;
+        let opened = open::at_point_calling(
+            &text,
+            &document.parse,
+            offset,
+            None,
+            &self.link_abbreviations,
+            Some(&call),
+            &self.open_settings,
+        )
+        .ok()?;
         // A citation: the entries of its keys.
         if let Open::Citation(keys) = &opened {
             let files = self.bibliography(uri, &text);
@@ -3890,7 +3902,7 @@ impl Server {
         let document = self.document(&uri)?;
         let (text, parse, index) = (document.text.clone(), document.parse.clone(), document.index.clone());
         let mut out = Vec::new();
-        for link in open::links(&text, &parse, &self.link_abbreviations) {
+        for link in open::links(&text, &parse, &self.link_abbreviations, &self.open_settings) {
             let (target, data) = match &link.open {
                 Ok(Open::External(url)) => (uri::from_url(url), None),
                 Ok(Open::File { path, search: None, .. }) => {
@@ -3919,7 +3931,8 @@ impl Server {
         let (Some(uri), Some(offset)) = (uri, offset) else { return link };
         let Some(document) = self.document(&uri) else { return link };
         let (text, parse) = (document.text.clone(), document.parse.clone());
-        let Some(Ok(opened)) = open::link_at(&text, &parse, offset, &self.link_abbreviations).map(|found| found.open)
+        let Some(Ok(opened)) =
+            open::link_at(&text, &parse, offset, &self.link_abbreviations, &self.open_settings).map(|found| found.open)
         else {
             return link;
         };
@@ -3937,7 +3950,7 @@ impl Server {
         let document = self.document(uri)?;
         let (text, parse, index) = (document.text.clone(), document.parse.clone(), document.index.clone());
         let offset = index.offset(&text, position, encoding);
-        let link = open::link_at(&text, &parse, offset, &self.link_abbreviations)?;
+        let link = open::link_at(&text, &parse, offset, &self.link_abbreviations, &self.open_settings)?;
         let entry = link.open.as_ref().ok().and_then(|opened| self.link_entry(uri, &text, opened));
         let line = format!("LINK: {}", link.raw);
         let value = match entry {
@@ -4006,20 +4019,21 @@ impl Server {
         let document = self.document(&uri)?;
         let (text, parse) = (document.text.clone(), document.parse.clone());
         let offset = document.index.offset(&text, place.position, encoding);
-        let (target, target_text, heading) = match open::link_at(&text, &parse, offset, &self.link_abbreviations) {
-            Some(link) => {
-                let opened = link.open.ok()?;
-                let location = self.open_location(&uri, &text, &opened).ok()??;
-                let (_, target_text) = self.file_text(&uri::to_path(&location.uri)?)?;
-                let at = LineIndex::new(&target_text).offset(&target_text, location.range.start, encoding);
-                let heading = org_core::properties::heading_at(&target_text, at)?;
-                (location.uri, target_text, heading)
-            }
-            None => {
-                let heading = org_core::properties::heading_at(&text, offset)?;
-                (uri.clone(), text.clone(), heading)
-            }
-        };
+        let (target, target_text, heading) =
+            match open::link_at(&text, &parse, offset, &self.link_abbreviations, &self.open_settings) {
+                Some(link) => {
+                    let opened = link.open.ok()?;
+                    let location = self.open_location(&uri, &text, &opened).ok()??;
+                    let (_, target_text) = self.file_text(&uri::to_path(&location.uri)?)?;
+                    let at = LineIndex::new(&target_text).offset(&target_text, location.range.start, encoding);
+                    let heading = org_core::properties::heading_at(&target_text, at)?;
+                    (location.uri, target_text, heading)
+                }
+                None => {
+                    let heading = org_core::properties::heading_at(&text, offset)?;
+                    (uri.clone(), text.clone(), heading)
+                }
+            };
         let mut out = Vec::new();
         if params.context.include_declaration {
             let position = LineIndex::new(&target_text).position(&target_text, heading, encoding);
@@ -4053,13 +4067,20 @@ impl Server {
         let mut out = Vec::new();
         for (file, file_text, file_parse) in self.known_parses() {
             let Some(file_path) = uri::to_path(&file) else { continue };
-            for link in open::links(&file_text, &file_parse, &self.link_abbreviations) {
+            for link in open::links(&file_text, &file_parse, &self.link_abbreviations, &self.open_settings) {
                 let leads = match &link.open {
                     Ok(Open::Here(at)) => same(&file_path) && *at == heading,
                     Ok(Open::Id(found)) => id.as_deref() == Some(found.as_str()),
                     Ok(Open::File { path, search: Some(search), system: false }) => {
                         self.link_path(&file, path).is_some_and(|path| same(&path))
-                            && open::search_in_file(target_text, Some(&target_parse), search).ok() == Some(heading)
+                            && open::search_in_file_with(
+                                target_text,
+                                Some(&target_parse),
+                                search,
+                                self.open_settings.exact_headline,
+                            )
+                            .ok()
+                                == Some(heading)
                     }
                     _ => false,
                 };
@@ -4234,7 +4255,8 @@ impl Server {
                 }
                 let (_, target) = self.file_text(&path)?;
                 let parse = org_syntax::parse(&target, &self.todo);
-                let offset = open::search_in_file(&target, Some(&parse), search).ok()?;
+                let offset =
+                    open::search_in_file_with(&target, Some(&parse), search, self.open_settings.exact_headline).ok()?;
                 (target, offset)
             }
             _ => return None,
@@ -4299,9 +4321,21 @@ impl Server {
             (uri.clone(), document.text.clone(), offset)
         };
         let parse = org_syntax::parse(&text, &self.todo);
-        let answer = context.input.as_deref().and_then(|input| input.chars().next());
+        // Answering whether to make a missing headline, the link picked
+        // among the entry's, if one was, is in `answers`.
+        let creating = context.step.as_deref() == Some("create");
+        let answer = if creating { context.answers.as_deref() } else { context.input.as_deref() }
+            .and_then(|input| input.chars().next());
         let call = |link: &str, list: &[(String, String)]| self.expand_abbreviation(link, list);
-        let mut opened = open::at_point_calling(&text, &parse, offset, answer, &self.link_abbreviations, Some(&call))?;
+        let mut opened = open::at_point_calling(
+            &text,
+            &parse,
+            offset,
+            answer,
+            &self.link_abbreviations,
+            Some(&call),
+            &self.open_settings,
+        )?;
         // `org-attach-follow`: the file in the entry's attachment
         // directory, as Emacs finds it.
         if let Open::Attachment(link) = &opened {
@@ -4336,6 +4370,9 @@ impl Server {
             }
             return self.occur(&text, &regexp);
         }
+        if let Some((target, search)) = self.missing_headline(&uri, &opened) {
+            return self.create_link_heading(context, creating, answer, &target, &search);
+        }
         match &opened {
             Open::External(url) => {
                 let target = uri::from_url(url).ok_or_else(|| format!("Cannot open {url}"))?;
@@ -4366,6 +4403,7 @@ impl Server {
                 } }));
             }
             Open::Nothing(message) => self.message = Some(message.clone()),
+            Open::Create(_) => {}
             Open::Roam(title) => return self.roam_follow(&uri, offset, title),
             Open::Attachment(_) => return Err("No attachment directory for this entry".into()),
             // `org-cite-basic-goto`: the entry of the key, picked among
@@ -4406,6 +4444,72 @@ impl Server {
                 self.send_request::<ShowDocument>(params, None);
             }
         }
+        Ok(Value::Null)
+    }
+
+    /// The Org file and the search of a link to a headline that is not
+    /// there, which `org-link-search-must-match-exact-headline` offers to
+    /// make: in this file, or in the Org file a `file:` link names.
+    fn missing_headline(&self, uri: &Uri, opened: &Open) -> Option<(std::path::PathBuf, String)> {
+        match opened {
+            Open::Create(search) => Some((uri::to_path(uri)?, search.clone())),
+            Open::File { path, search: Some(search), system: false }
+                if self.open_settings.exact_headline == open::ExactHeadline::QueryToCreate
+                    && open::may_create(search) =>
+            {
+                let path = self.link_path(uri, path)?;
+                if !path.extension().is_some_and(|extension| extension == "org" || extension == "org_archive") {
+                    return None;
+                }
+                let (_, text) = self.file_text(&path)?;
+                let parse = org_syntax::parse(&text, &self.todo);
+                let exact = open::ExactHeadline::QueryToCreate;
+                open::search_in_file_with(&text, Some(&parse), search, exact).is_err().then(|| (path, search.clone()))
+            }
+            _ => None,
+        }
+    }
+
+    /// `org-link-search` with `org-link-search-must-match-exact-headline`
+    /// set to `query-to-create`: asked whether to, a heading of level 1
+    /// with the link's words is made at the end of `path`, and shown;
+    /// else Emacs's error.
+    fn create_link_heading(
+        &mut self,
+        context: &Context,
+        answered: bool,
+        picked: Option<char>,
+        path: &Path,
+        search: &str,
+    ) -> std::result::Result<Value, Refusal> {
+        if !answered {
+            let mut input = json!({
+                "kind": "key",
+                "prompt": "No match - create this as a new heading? ",
+                "value": "",
+                "choices": [{ "key": "y", "label": "yes" }, { "key": "n", "label": "no" }],
+            });
+            input["context"] = json!({ "step": "create", "answers": picked.map(String::from).unwrap_or_default() });
+            return Ok(json!({ "input": input }));
+        }
+        let (target, text) = self.file_text(path).ok_or("Cannot read the file")?;
+        let parse = org_syntax::parse(&text, &self.todo);
+        if !matches!(context.input.as_deref(), Some("y" | "Y" | "yes")) {
+            let missing = open::search_in_file_with(&text, Some(&parse), search, open::ExactHeadline::Yes);
+            return Err(missing.err().unwrap_or_else(|| "Abort".to_string()).into());
+        }
+        let settings = org_core::meta_return::Settings {
+            tags_column: self.refile.2.tags_column,
+            statistics: self.edit_settings.todo.statistics.clone(),
+            ..self.edit_settings.insert.clone()
+        };
+        let outcome = org_core::meta_return::insert_link_heading(&text, search, parse.todo_keywords(), &settings);
+        let version = self.document(&target).map(|document| document.version);
+        let position = LineIndex::new(&outcome.text).position(&outcome.text, outcome.cursor, self.client.encoding);
+        let edits = self.text_edits(&text, &outcome.text);
+        let edit = self.workspace_edit(&target, version, edits);
+        let pending = Pending::EditAndShow { uri: target, position, folds: Value::Null };
+        self.apply_edit(lsp_types::ApplyWorkspaceEditParams { label: None, edit }, pending);
         Ok(Value::Null)
     }
 
@@ -4494,7 +4598,8 @@ impl Server {
                 let (target, text) = self.file_text(&path).ok_or_else(|| format!("Cannot read {}", path.display()))?;
                 let org = path.extension().is_some_and(|extension| extension == "org" || extension == "org_archive");
                 let parse = org.then(|| org_syntax::parse(&text, &self.todo));
-                let offset = open::search_in_file(&text, parse.as_ref(), search)?;
+                let offset =
+                    open::search_in_file_with(&text, parse.as_ref(), search, self.open_settings.exact_headline)?;
                 Ok(Some(at(target, &text, offset)))
             }
             Open::Id(id) => {
@@ -11548,7 +11653,8 @@ impl Server {
                 })
                 .map(|node| (usize::from(node.text_range().start()), usize::from(node.text_range().end())))
         } else {
-            open::link_at(&text, &parse, offset, &self.link_abbreviations).map(|link| (link.start, link.end))
+            open::link_at(&text, &parse, offset, &self.link_abbreviations, &self.open_settings)
+                .map(|link| (link.start, link.end))
         };
         let whole = (0, text.len());
         let section = section_bounds(&text, offset);

@@ -4,7 +4,8 @@
 
 use std::path::{Path, PathBuf};
 
-use org_core::open::{at_point, find_id, search_in_file, Open};
+use org_core::meta_return;
+use org_core::open::{at_point_calling, find_id, may_create, search_in_file_with, ExactHeadline, Open, Settings};
 use org_syntax::{Parse, TodoKeywords};
 use serde_json::{json, Value};
 
@@ -52,12 +53,36 @@ fn opening_matches_emacs() {
             }
             files.iter().find(|(other, _)| other == wanted).map(|(_, text)| text.clone())
         };
+        // `org-link-search-must-match-exact-headline`, yes to making a
+        // missing headline, and `org-link-doi-server-url`.
+        let exact = match case["exact"].as_str() {
+            Some("nil") => ExactHeadline::No,
+            Some("t") => ExactHeadline::Yes,
+            _ => ExactHeadline::QueryToCreate,
+        };
+        let create = case["create"] == json!(true);
+        let mut settings = Settings { exact_headline: exact, ..Settings::default() };
+        if let Some(doi) = case["doi"].as_str() {
+            settings.doi_server = doi.to_string();
+        }
+        // The heading made in a file, and where it is.
+        let made = |file: &str, target: &str, search: &str| {
+            let outcome =
+                meta_return::insert_link_heading(target, search, &TodoKeywords::default(), &Default::default());
+            let mut place = goto(file, &outcome.text, outcome.cursor);
+            place["text"] = json!(outcome.text);
+            place
+        };
+        let missing = |target: &str, search: &str| {
+            let error = search_in_file_with(target, Some(&parse(target)), search, ExactHeadline::Yes);
+            json!({ "error": error.err().unwrap_or_default() })
+        };
         let mut offered = None;
-        let mut result = at_point(&text, &parsed, offset, None, &[]);
+        let mut result = at_point_calling(&text, &parsed, offset, None, &[], None, &settings);
         if let Ok(Open::Choose(choices)) = &result {
             offered =
                 Some(choices.iter().map(|choice| format!("[{}]  {}\n", choice.key, choice.label)).collect::<String>());
-            result = at_point(&text, &parsed, offset, answer, &[]);
+            result = at_point_calling(&text, &parsed, offset, answer, &[], None, &settings);
         }
         let mut actual = match result {
             Ok(Open::Here(at)) => goto(name, &text, at),
@@ -72,10 +97,20 @@ fn opening_matches_emacs() {
                     let target_parse = parse(&target);
                     match search {
                         None => goto(&wanted, &target, 0),
-                        Some(option) => match search_in_file(&target, org.then_some(&target_parse), &option) {
-                            Ok(at) => goto(&wanted, &target, at),
-                            Err(error) => json!({ "error": error }),
-                        },
+                        Some(option) => {
+                            match search_in_file_with(&target, org.then_some(&target_parse), &option, exact) {
+                                Ok(at) => goto(&wanted, &target, at),
+                                Err(_)
+                                    if org
+                                        && create
+                                        && exact == ExactHeadline::QueryToCreate
+                                        && may_create(&option) =>
+                                {
+                                    made(&wanted, &target, &option)
+                                }
+                                Err(error) => json!({ "error": error }),
+                            }
+                        }
                     }
                 }
             }
@@ -98,6 +133,8 @@ fn opening_matches_emacs() {
             Ok(Open::Nothing(_)) => goto(name, &text, offset),
             Ok(Open::Choose(_)) => json!({ "error": "asked twice" }),
             Ok(Open::Citation(keys)) => json!({ "citation": keys }),
+            Ok(Open::Create(search)) if create => made(name, &text, &search),
+            Ok(Open::Create(search)) => missing(&text, &search),
             Err(error) => json!({ "error": error }),
         };
         if let Some(offered) = offered {

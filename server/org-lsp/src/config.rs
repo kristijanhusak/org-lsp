@@ -409,6 +409,10 @@ pub struct Options {
     #[serde(rename = "org_refile_targets")]
     pub refile_targets: Option<Vec<RefileTargetOption>>,
     /// `org-id-completion-targets`, as `org_refile_targets` is written.
+    #[serde(rename = "org_link_search_must_match_exact_headline")]
+    pub link_search_must_match_exact_headline: Option<LogOption>,
+    #[serde(rename = "org_link_doi_server_url")]
+    pub link_doi_server_url: Option<String>,
     #[serde(rename = "org_id_completion_targets")]
     pub id_completion_targets: Option<Vec<RefileTargetOption>>,
     /// `org-id-track-globally`
@@ -1439,6 +1443,22 @@ impl Options {
     }
 
     /// How clocking writes (`org-clock-into-drawer` and its relatives).
+    /// How links are followed (`org-link-search-must-match-exact-headline`,
+    /// `org-link-doi-server-url`).
+    pub fn open_settings(&self) -> org_core::open::Settings {
+        use org_core::open::ExactHeadline;
+        let defaults = org_core::open::Settings::default();
+        org_core::open::Settings {
+            exact_headline: match &self.link_search_must_match_exact_headline {
+                Some(LogOption::Flag(false)) => ExactHeadline::No,
+                Some(LogOption::Name(name)) if name == "query-to-create" => ExactHeadline::QueryToCreate,
+                Some(_) => ExactHeadline::Yes,
+                None => defaults.exact_headline,
+            },
+            doi_server: self.link_doi_server_url.clone().unwrap_or(defaults.doi_server),
+        }
+    }
+
     /// The options of the link commands.
     pub fn link_settings(&self) -> org_core::link::Settings {
         use org_core::link::{PathType, UseId};

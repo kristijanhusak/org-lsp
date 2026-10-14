@@ -1155,6 +1155,16 @@ org_id_locations_file = "~/.emacs.d/.org-id-locations"
 # of the files with IDs. (org-id-completion-targets)
 org_id_completion_targets = [{ files = "current", all = true }, { files = "org-id-files", all = true }]
 
+# What a link to a headline that is not there does: `"query-to-create"` asks
+# whether to make it, at the end of the file, when the link is followed
+# (`org.open`); `true` is an error; `false` looks for its words in the text.
+# (org-link-search-must-match-exact-headline)
+org_link_search_must_match_exact_headline = "query-to-create"
+
+# What a `doi:` link is opened at: this, then the DOI.
+# (org-link-doi-server-url)
+org_link_doi_server_url = "https://doi.org/"
+
 # Whether `org.link.store` (`C-c l`) links to an entry by its ID: `true` makes
 # one when the entry has none, `"create-if-interactive"` only from the command
 # (not for capture's `%a`), `"create-if-interactive-and-no-custom-id"`
@@ -2533,6 +2543,16 @@ org_agenda_custom_commands = []
   // `org_refile_targets` names them: by default every headline of the file
   // and of the files with IDs. (org-id-completion-targets)
   "org_id_completion_targets": [{ "files": "current", "all": true }, { "files": "org-id-files", "all": true }],
+
+  // What a link to a headline that is not there does: `"query-to-create"`
+  // asks whether to make it, at the end of the file, when the link is
+  // followed (`org.open`); `true` is an error; `false` looks for its words in
+  // the text. (org-link-search-must-match-exact-headline)
+  "org_link_search_must_match_exact_headline": "query-to-create",
+
+  // What a `doi:` link is opened at: this, then the DOI.
+  // (org-link-doi-server-url)
+  "org_link_doi_server_url": "https://doi.org/",
 
   // Whether `org.link.store` (`C-c l`) links to an entry by its ID: `true`
   // makes one when the entry has none, `"create-if-interactive"` only from

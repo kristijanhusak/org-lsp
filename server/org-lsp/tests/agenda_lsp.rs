@@ -6525,6 +6525,50 @@ fn looks_for_ids_where_the_id_options_say() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
+/// `org-link-search-must-match-exact-headline`: following a link to a
+/// headline that is not there asks whether to make it (`query-to-create`),
+/// at the end of the file, and shows it; no is Emacs's error. With the
+/// option off, the words are looked for in the text.
+#[test]
+fn offers_to_make_a_missing_headline() {
+    let uri = "file:///org/make.org";
+    let text = "See [[Missing one]].\n* A\nmissing  one here\n";
+    let open = |client: &mut Client, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 8 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client.received.clear();
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": "org.open", "arguments": [context] }));
+        client.settle();
+        result
+    };
+    let mut client = Client::editor(clock(), None);
+    client.open(uri, text);
+    let asked = open(&mut client, json!({})).unwrap();
+    assert_eq!(asked["input"]["prompt"], "No match - create this as a new heading? ", "{asked}");
+    let context = asked["input"]["context"].clone();
+    let refused = open(&mut client, json!({ "input": "n", "step": context["step"], "answers": context["answers"] }));
+    assert_eq!(refused, Err("No match for fuzzy expression: Missing one".to_string()));
+    let mut edited = text.to_string();
+    open(&mut client, json!({ "input": "y", "step": context["step"], "answers": context["answers"] })).unwrap();
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("shown");
+    assert_eq!(shown.params["selection"]["start"], json!({ "line": 3, "character": 0 }));
+    apply_received(&mut client, uri, &mut edited);
+    assert_eq!(edited, format!("{text}* Missing one\n"));
+    client.shutdown();
+
+    let mut options = clock();
+    options["org_link_search_must_match_exact_headline"] = json!(false);
+    let mut client = Client::editor(options, None);
+    client.open(uri, text);
+    assert_eq!(open(&mut client, json!({})), Ok(Value::Null));
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("shown");
+    assert_eq!(shown.params["selection"]["start"], json!({ "line": 2, "character": 0 }));
+    client.shutdown();
+}
+
 /// `textDocument/documentLink`: URLs and files at once, places in files
 /// once resolved, as the file and the line; hover over a link shows it as
 /// Emacs does, and the entry it leads to.
