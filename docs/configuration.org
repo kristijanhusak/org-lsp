@@ -1447,6 +1447,13 @@ org_agenda_use_tag_inheritance = ["todo", "search", "agenda"]
 # Show deadlines in the agenda. (org-agenda-include-deadlines)
 org_agenda_include_deadlines = true
 
+# Highlight the priority cookies of agenda lines (`cookies`), or each line
+# from its cookie on (`true`; links and tags keep their own look); the highest
+# priority shows in bold, the lowest in italic. `false` highlights none. Org's
+# list of faces by priority is not read here: `org_priority_faces` gives them.
+# (org-agenda-fontify-priorities)
+org_agenda_fontify_priorities = "cookies"
+
 # Show a repeating scheduled date, deadline or timestamp at its last repeat up
 # to today instead of its base date, for every entry (`true`) or for those
 # with one of these TODO keywords. (org-agenda-prefer-last-repeat)
@@ -1601,6 +1608,10 @@ org_agenda_start_with_log_mode = false
 # (org-agenda-start-with-clockreport-mode)
 org_agenda_start_with_clockreport_mode = false
 
+# Text on a line of its own (or lines) before the clock report.
+# (org-agenda-clock-report-header)
+# org_agenda_clock_report_header = …  (unset: none)
+
 # Start the agenda with entries in archived trees (`trees`; `v a` toggles it),
 # or those and the files the agenda files archive to (`files`; `v A`).
 # (org-agenda-start-with-archives-mode)
@@ -1609,6 +1620,14 @@ org_agenda_start_with_archives_mode = false
 # What log mode shows: `closed` entries, `clock` lines and `state` changes.
 # (org-agenda-log-mode-items)
 org_agenda_log_mode_items = ["closed", "clock"]
+
+# Show the note of a state change or a clock line after the headline in log
+# mode. (org-agenda-log-mode-add-notes)
+org_agenda_log_mode_add_notes = true
+
+# Moving a date of the past one day later from the agenda (`S-<right>`) takes
+# it to today. (org-agenda-move-date-from-past-immediately-to-today)
+org_agenda_move_date_from_past_immediately_to_today = true
 
 # Keep the marks of a bulk action (`B`) after it (`p` in its menu toggles this
 # for one action). (org-agenda-persistent-marks)
@@ -2617,6 +2636,13 @@ org_agenda_custom_commands = []
   // Show deadlines in the agenda. (org-agenda-include-deadlines)
   "org_agenda_include_deadlines": true,
 
+  // Highlight the priority cookies of agenda lines (`cookies`), or each line
+  // from its cookie on (`true`; links and tags keep their own look); the
+  // highest priority shows in bold, the lowest in italic. `false` highlights
+  // none. Org's list of faces by priority is not read here:
+  // `org_priority_faces` gives them. (org-agenda-fontify-priorities)
+  "org_agenda_fontify_priorities": "cookies",
+
   // Show a repeating scheduled date, deadline or timestamp at its last repeat
   // up to today instead of its base date, for every entry (`true`) or for
   // those with one of these TODO keywords. (org-agenda-prefer-last-repeat)
@@ -2776,6 +2802,10 @@ org_agenda_custom_commands = []
   // (org-agenda-start-with-clockreport-mode)
   "org_agenda_start_with_clockreport_mode": false,
 
+  // Text on a line of its own (or lines) before the clock report.
+  // (org-agenda-clock-report-header)
+  // "org_agenda_clock_report_header": unset: none
+
   // Start the agenda with entries in archived trees (`trees`; `v a` toggles
   // it), or those and the files the agenda files archive to (`files`; `v A`).
   // (org-agenda-start-with-archives-mode)
@@ -2784,6 +2814,14 @@ org_agenda_custom_commands = []
   // What log mode shows: `closed` entries, `clock` lines and `state` changes.
   // (org-agenda-log-mode-items)
   "org_agenda_log_mode_items": ["closed", "clock"],
+
+  // Show the note of a state change or a clock line after the headline in log
+  // mode. (org-agenda-log-mode-add-notes)
+  "org_agenda_log_mode_add_notes": true,
+
+  // Moving a date of the past one day later from the agenda (`S-<right>`)
+  // takes it to today. (org-agenda-move-date-from-past-immediately-to-today)
+  "org_agenda_move_date_from_past_immediately_to_today": true,
 
   // Keep the marks of a bulk action (`B`) after it (`p` in its menu toggles
   // this for one action). (org-agenda-persistent-marks)

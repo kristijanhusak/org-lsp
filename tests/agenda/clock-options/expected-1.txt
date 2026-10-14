@@ -1,0 +1,24 @@
+Day-agenda (W41):
+Monday      5 October 2026 W41
+               8:00...... ----------------
+  work:        9:00...... Scheduled:  TODO Write the report [1/2]       :office:
+              10:00...... ----------------
+              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+              12:00...... ----------------
+              14:00...... ----------------
+              16:00...... ----------------
+              18:00...... ----------------
+              20:00...... ----------------
+Clock summary
+of the week
+| File     | Headline                 | Time   |      |
+|----------+--------------------------+--------+------|
+|          | ALL *Total time*         | *2:35* |      |
+|----------+--------------------------+--------+------|
+| home.org | *File time*              | *0:20* |      |
+|          | [[file:{dir}/home.org::*Water plants][Water plants]]             | 0:20   |      |
+|----------+--------------------------+--------+------|
+| work.org | *File time*              | *2:15* |      |
+|          | [[file:{dir}/work.org::*Write the report][Write the report]]         | 1:45   |      |
+|          | \_  [[file:{dir}/work.org::*Outline the sections][Outline the sections]] |        | 0:30 |
+|          | [[file:{dir}/work.org::*Archived][Archived]]                 | 0:30   |      |

@@ -93,6 +93,8 @@ pub struct Settings {
     pub global_properties: Vec<(String, String)>,
     /// `org-list-use-circular-motion`
     pub list_circular_motion: bool,
+    /// `org-agenda-move-date-from-past-immediately-to-today`
+    pub move_date_from_past_to_today: bool,
 }
 
 impl Default for Settings {
@@ -105,6 +107,7 @@ impl Default for Settings {
             tags: crate::tags::Settings::default(),
             global_properties: Vec::new(),
             list_circular_motion: false,
+            move_date_from_past_to_today: true,
         }
     }
 }
@@ -406,7 +409,7 @@ pub fn run(
             if *unit == Unit::Minute {
                 days *= rounding.max(1);
             }
-            if days == 1 && range.is_none() && *unit == Unit::Day {
+            if settings.move_date_from_past_to_today && days == 1 && range.is_none() && *unit == Unit::Day {
                 // `org-agenda-move-date-from-past-immediately-to-today`: one
                 // step forward takes a date that has passed to today.
                 let date = parse_time_string(&text[stamp.start..stamp.end]).map(|parsed| parsed.date.to_day());

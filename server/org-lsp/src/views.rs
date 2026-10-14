@@ -150,7 +150,14 @@ fn token_style(style: Style) -> Option<(TokenType, u32)> {
             (TokenType::AgendaDate, today | if weekend { modifier::WEEKEND } else { 0 })
         }
         Style::Keyword { done } => (TokenType::TodoKeyword, if done { modifier::DONE } else { 0 }),
-        Style::Priority => (TokenType::Priority, 0),
+        Style::Priority(rank) => (
+            TokenType::Priority,
+            match rank {
+                agenda::Rank::Highest => modifier::BOLD,
+                agenda::Rank::Lowest => modifier::ITALIC,
+                agenda::Rank::Other => 0,
+            },
+        ),
         Style::Tags => (TokenType::Tag, 0),
         Style::Link => (TokenType::Link, 0),
         Style::Table => (TokenType::TableDelimiter, 0),
@@ -730,6 +737,14 @@ fn block_lines(
                 .iter()
                 .map(|(outline, path, name)| (*outline, path.as_str(), name.as_str()))
                 .collect();
+            // `org-agenda-clock-report-header`, ending its last line.
+            if let Some(header) = &config.clock_report_header {
+                let header = header.strip_suffix('\n').unwrap_or(header);
+                for text in header.split('\n') {
+                    rendered
+                        .push((number, agenda::Line { text: text.to_string(), kind: LineKind::Header, item: None }));
+                }
+            }
             for text in agenda::report::clock_table(&named, start, end) {
                 rendered.push((number, agenda::Line { text, kind: LineKind::Table, item: None }));
             }
@@ -914,7 +929,8 @@ mod tests {
                 ("  notes:      Scheduled:  ", TokenType::AgendaScheduled, modifier::TODAY),
                 ("TODO", TokenType::TodoKeyword, 0),
                 (" ", TokenType::AgendaScheduled, modifier::TODAY),
-                ("[#A]", TokenType::Priority, 0),
+                // The highest priority, in bold.
+                ("[#A]", TokenType::Priority, modifier::BOLD),
                 (" Call ", TokenType::AgendaScheduled, modifier::TODAY),
                 ("them", TokenType::Link, 0),
                 ("                             ", TokenType::AgendaScheduled, modifier::TODAY),
