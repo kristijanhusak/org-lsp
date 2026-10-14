@@ -65,6 +65,10 @@ function! s:keyword_faces() abort
   call s:until('the face on TODO', {-> index(s:types(2), 'org_lsp_face_todo_TODO') >= 0})
   call assert_equal('#ff8800', synIDattr(hlID('OrgLspTodoFace_TODO'), 'fg#', 'gui'))
   call assert_equal('1', synIDattr(hlID('OrgLspTodoFace_TODO'), 'bold', 'gui'))
+  " A tag with a face of its own (`org_tag_faces`): its name, not the colons.
+  let tag = filter(prop_list(2), 'v:val.type ==# "org_lsp_face_tag_office"')
+  call assert_equal([[27, 6]], map(tag, '[v:val.col, v:val.length]'))
+  call assert_equal('#0088ff', synIDattr(hlID('OrgLspTagFace_office'), 'fg#', 'gui'))
 endfunction
 call s:test('gives keywords their faces', function('s:keyword_faces'))
 

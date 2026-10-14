@@ -1600,6 +1600,14 @@
               "markdownDescription": "Faces for particular priorities, by their letter, written as in `org_todo_keyword_faces`: `{ \"A\": \":foreground red :weight bold\" }`. (`org-priority-faces`)",
               "default": {}
             },
+            "org_tag_faces": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "markdownDescription": "Faces for particular tags of headlines, written as in `org_todo_keyword_faces`: `{ \"work\": \"orange\" }`. Shown in Org files (not the agenda, as in Emacs) by Neovim, Vim and VS Code. (`org-tag-faces`)",
+              "default": {}
+            },
             "org_log_done": {
               "enum": [
                 false,

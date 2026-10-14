@@ -35,6 +35,9 @@ pub struct Options {
     /// `org-priority-faces`: a face for a priority, by its letter.
     #[serde(rename = "org_priority_faces")]
     pub priority_faces: std::collections::BTreeMap<String, String>,
+    /// `org-tag-faces`: a face for a tag.
+    #[serde(rename = "org_tag_faces")]
+    pub tag_faces: std::collections::BTreeMap<String, String>,
     /// Files, directories and glob patterns the agenda is built from.
     #[serde(rename = "org_agenda_files")]
     pub agenda_files: Vec<String>,

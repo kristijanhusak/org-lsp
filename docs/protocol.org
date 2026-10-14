@@ -64,11 +64,13 @@ The requests the server answers:
   semantic tokens, for an editor that shows it in a popup of its own:
   ~{ "text", "data" }~ (~data~ as in ~SemanticTokens~), or null. Params:
   ~TextDocumentPositionParams~.
-- ~org-lsp/faces~ :: The faces of particular TODO keywords and priorities
-  (~org_todo_keyword_faces~, ~org_priority_faces~), for an editor to apply
-  over the semantic tokens of the keyword (~todoKeyword~) or the priority
-  (~priority~):
-  ~{ "todo": { KEYWORD: face }, "priority": { LETTER: face } }~, each face
+- ~org-lsp/faces~ :: The faces of particular TODO keywords, priorities
+  and tags (~org_todo_keyword_faces~, ~org_priority_faces~,
+  ~org_tag_faces~), for an editor to apply over the semantic tokens of the
+  keyword (~todoKeyword~) or the priority (~priority~), and, in Org files
+  only, over the name of each tag of a headline's ~tag~ token (~:a:b:~,
+  the colons left as they are):
+  ~{ "todo": { KEYWORD: face }, "priority": { LETTER: face }, "tag": { TAG: face } }~, each face
   ~{ "foreground", "background", "bold", "italic", "underline", "strikethrough" }~,
   those set. The same is in the initialize result as
   ~capabilities.experimental.orgFaces~. Params: none.
@@ -256,6 +258,7 @@ Each option with its type, its default and what it means:
 - ~org_todo_keywords~ :: string[] | string[][], ~["TODO", "|", "DONE"]~. The TODO sequence, written like Org's ~#+TODO:~ line. ~|~ separates the states that count as done; without it the last keyword is the only done state. ~TODO(t)~ gives a keyword a key for fast selection, and ~WAIT(w@/!)~ makes it log a note (~@~) or the time (~!~) on entering and leaving it. Several sequences go in a list of lists, ~[["TODO", "|", "DONE"], ["REPORT", "|", "FIXED"]]~; cycling stays in the sequence of the entry, and ~C-S-<right>~ switches to the next. A list that starts with ~type~ is a type sequence (~#+TYP_TODO:~): each of its keywords goes straight to done. A file's own ~#+TODO:~ lines take precedence. (~org-todo-keywords~)
 - ~org_todo_keyword_faces~ :: { [keyword]: string }, ~{  }~. Faces for particular TODO keywords: a color, ~{ "WAIT": "orange" }~, or attributes written as Org writes them, ~{ "CANCELLED": ":foreground gray :slant italic :strike-through t" }~ (~:foreground~, ~:background~, ~:weight bold~, ~:slant italic~, ~:underline t~, ~:strike-through t~). Shown in Org files and in the agenda by Neovim, Vim and VS Code. (~org-todo-keyword-faces~)
 - ~org_priority_faces~ :: { [priority]: string }, ~{  }~. Faces for particular priorities, by their letter, written as in ~org_todo_keyword_faces~: ~{ "A": ":foreground red :weight bold" }~. (~org-priority-faces~)
+- ~org_tag_faces~ :: { [tag]: string }, ~{  }~. Faces for particular tags of headlines, written as in ~org_todo_keyword_faces~: ~{ "work": "orange" }~. Shown in Org files (not the agenda, as in Emacs) by Neovim, Vim and VS Code. (~org-tag-faces~)
 - ~org_log_done~ :: false, "time", "note", ~false~. Write ~CLOSED:~ with the time when an entry is done, and with ~note~ ask for a note too. A file's ~#+STARTUP:~ words ~logdone~, ~lognotedone~ and ~nologdone~ change it there; an entry's ~LOGGING~ property (inherited) says what its state changes log instead: those words, ~logrepeat~ and its relatives, and keywords with what they log (~WAIT(@/!)~), or ~nil~ for nothing. (~org-log-done~)
 - ~org_log_repeat~ :: false, "time", "note", ~"time"~. Record when a repeating entry is done and moves to its next date. ~#+STARTUP:~ ~logrepeat~, ~lognoterepeat~ and ~nologrepeat~ change it in a file, and the ~LOGGING~ property in an entry. (~org-log-repeat~)
 - ~org_M_RET_may_split_line~ :: boolean, object, ~true~. Inserting a heading, an item or a table row (M-RET) in the middle of a line splits it, the rest going to the new one; ~false~: it goes in after the line. One by context: ~{ "headline": false, "item": true, "table": true }~, ~default~ for those not named. (~org-M-RET-may-split-line~)

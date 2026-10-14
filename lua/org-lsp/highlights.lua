@@ -63,7 +63,8 @@ local faces = { todo = {}, priority = {} }
 ---@param name string
 ---@return string
 local function face_group(kind, name)
-  return ('OrgLsp%sFace_%s'):format(kind == 'todo' and 'Todo' or 'Priority', (name:gsub('[^%w_]', '_')))
+  local prefix = ({ todo = 'Todo', priority = 'Priority', tag = 'Tag' })[kind] or 'Priority'
+  return ('OrgLsp%sFace_%s'):format(prefix, (name:gsub('[^%w_]', '_')))
 end
 
 --- Define highlight group `name` as `face` looks, unless it is defined.
@@ -110,8 +111,42 @@ end
 --- Give the TODO keywords and priorities of buffer `bufnr` that have a
 --- face of their own that face, over the server's highlighting.
 ---@param bufnr integer
+--- `org-tag-faces`: each tag of the headline's `:a:b:` that has a face
+--- of its own in that face, its name without the colons, as Org gives it.
+---@param bufnr integer
+---@param token table
+---@param client_id integer
+---@param priority integer
+local function tag_faces(bufnr, token, client_id, priority)
+  local ok, text = pcall(vim.api.nvim_buf_get_text, bufnr, token.line, token.start_col, token.line, token.end_col, {})
+  -- In Org files only: the agenda shows tags in `org-tag` alone.
+  if not ok or vim.tbl_isempty(faces.tag or {}) or vim.bo[bufnr].filetype ~= 'org' then
+    return
+  end
+  -- The marks go in the semantic tokens' namespace, cleared with them.
+  local namespace = vim.api.nvim_create_namespace('nvim.lsp.semantic_tokens:' .. client_id)
+  local line = text[1] or ''
+  local at = 1
+  while true do
+    local start, finish, name = line:find(':([^:%s]+):', at)
+    if not start then
+      break
+    end
+    if faces.tag[name] then
+      pcall(vim.api.nvim_buf_set_extmark, bufnr, namespace, token.line, token.start_col + start, {
+        end_col = token.start_col + finish - 1,
+        hl_group = face_group('tag', name),
+        priority = priority,
+        strict = false,
+      })
+    end
+    -- The colon after a tag starts the next.
+    at = finish
+  end
+end
+
 function M.attach_faces(bufnr)
-  if vim.tbl_isempty(faces.todo or {}) and vim.tbl_isempty(faces.priority or {}) then
+  if vim.tbl_isempty(faces.todo or {}) and vim.tbl_isempty(faces.priority or {}) and vim.tbl_isempty(faces.tag or {}) then
     return
   end
   local priority = (vim.hl or vim.highlight).priorities.semantic_tokens + 3
@@ -120,6 +155,9 @@ function M.attach_faces(bufnr)
     group = vim.api.nvim_create_augroup('org_lsp_faces_' .. bufnr, { clear = true }),
     callback = function(args)
       local token = args.data.token
+      if token.type == 'tag' then
+        return tag_faces(bufnr, token, args.data.client_id, priority)
+      end
       local kind = (token.type == 'todoKeyword' and 'todo') or (token.type == 'priority' and 'priority') or nil
       if not kind then
         return

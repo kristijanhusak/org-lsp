@@ -51,6 +51,7 @@ writeFileSync(
       clock: { today: '2026-05-18', now: '10:30' },
       org_todo_keyword_faces: { TODO: ':foreground #ff8800 :weight bold' },
       org_priority_faces: { A: 'red' },
+      org_tag_faces: { office: '#0088ff' },
       org_capture_templates: [{ key: 't', description: 'Task', target: ['file', captured], template: '* TODO %?' }],
       org_roam_enabled: true,
       org_roam_directory: roam,

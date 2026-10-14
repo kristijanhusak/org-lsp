@@ -94,6 +94,14 @@ pub const SETTINGS: &[Setting] = &[
          `{ \"A\": \":foreground red :weight bold\" }`.",
     ),
     setting(
+        "org_tag_faces",
+        "{ [tag]: string }",
+        "{}",
+        "org-tag-faces",
+        "Faces for particular tags of headlines, written as in `org_todo_keyword_faces`: \
+         `{ \"work\": \"orange\" }`. Shown in Org files (not the agenda, as in Emacs) by Neovim, Vim and VS Code.",
+    ),
+    setting(
         "org_log_done",
         r#"false, "time", "note""#,
         "false",
@@ -2632,6 +2640,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ),
     ("org_todo_keyword_faces", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
     ("org_priority_faces", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
+    ("org_tag_faces", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
     ("org_log_done", r#"{ "enum": [false, "time", "note"] }"#),
     ("org_log_repeat", r#"{ "enum": [false, "time", "note"] }"#),
     ("org_agenda_dim_blocked_tasks", r#"{ "enum": [true, false, "invisible"] }"#),

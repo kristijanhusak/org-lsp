@@ -2852,3 +2852,17 @@ fn announces_the_ellipsis() {
         client.shutdown();
     }
 }
+
+/// `org-tag-faces`, with the faces of keywords and priorities: announced
+/// in the initialize result and on request, a color as the foreground.
+#[test]
+fn announces_the_faces_of_tags() {
+    let settings = json!({ "org_tag_faces": { "work": "orange", "home": ":weight bold" } });
+    let mut client = Client::start(json!({}), settings);
+    let faces = client.initialize.capabilities.experimental.clone().unwrap()["orgFaces"].clone();
+    let expected = json!({ "work": { "foreground": "orange" }, "home": { "bold": true } });
+    assert_eq!(faces["tag"], expected);
+    let response = client.raw_request("org-lsp/faces", Value::Null);
+    assert_eq!(response.response_result.ok().map(|faces| faces["tag"].clone()), Some(expected));
+    client.shutdown();
+}
