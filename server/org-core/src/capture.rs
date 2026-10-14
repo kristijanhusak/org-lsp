@@ -909,7 +909,13 @@ impl Placed {
         editor.update_parent_statistics();
         let text = editor.text;
         let heading = heading_at(&text, self.begin.min(text.len())).unwrap_or(heading);
-        crate::checkbox::update_counts(&text, keywords, heading, settings.tags_column)
+        crate::checkbox::update_counts(
+            &text,
+            keywords,
+            heading,
+            settings.tags_column,
+            settings.lists.checkbox_hierarchical,
+        )
     }
 }
 
@@ -1344,6 +1350,7 @@ fn property_heading(text: &str, name: &str) -> Option<usize> {
 }
 
 /// Put the expanded `template` into `text` as `kind` at `target`.
+#[allow(clippy::too_many_arguments)]
 pub fn place(
     text: &str,
     keywords: &TodoKeywords,
@@ -1352,6 +1359,7 @@ pub fn place(
     template: &str,
     properties: &Properties,
     levels: &LevelSettings,
+    lists: &crate::list::Settings,
 ) -> Result<Placed, Refusal> {
     let mut text = text.to_string();
     let location = find_target(&mut text, target, keywords, properties.prepend)?;
@@ -1360,7 +1368,7 @@ pub fn place(
     let (start, end) = match kind {
         Kind::Entry => place_entry(&mut buffer, location.heading, template, properties, levels)?,
         Kind::Plain => place_plain(&mut buffer, location, template, properties),
-        Kind::Item | Kind::CheckItem => place_item(&mut buffer, location, template, properties)?,
+        Kind::Item | Kind::CheckItem => place_item(&mut buffer, location, template, properties, lists)?,
         Kind::TableLine => place_table_line(&mut buffer, location, template, properties)?,
     };
     // `org-capture--position-cursor`: at the first `%?`, which goes.
@@ -1495,6 +1503,7 @@ fn place_item(
     location: Location,
     template: &str,
     properties: &Properties,
+    lists: &crate::list::Settings,
 ) -> Result<(usize, usize), Refusal> {
     static ITEM_RE: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r"\A[ \t]*(?:[-+*]|[0-9]+[.)])(?:[ \t]+|$)").unwrap());
@@ -1590,12 +1599,12 @@ fn place_item(
             let ordered = items[0].bullet.trim().starts_with(|c: char| c.is_ascii_digit());
             if ordered != ORDERED.is_match(&template) {
                 let (text, marker) =
-                    crate::list::set_bullet(&buffer.text, start, if ordered { "1." } else { "-" }, end)?;
+                    crate::list::set_bullet(&buffer.text, start, if ordered { "1." } else { "-" }, end, lists)?;
                 buffer.text = text;
                 end = marker;
             }
         }
-        let (text, marker) = crate::list::repair_with_marker(&buffer.text, start, end)?;
+        let (text, marker) = crate::list::repair_with_marker(&buffer.text, start, end, lists)?;
         buffer.text = text;
         end = marker;
     }

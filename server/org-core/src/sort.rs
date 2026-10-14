@@ -194,7 +194,13 @@ pub const LIST_TYPES: &[(char, &str)] = &[('a', "alpha"), ('n', "numeric"), ('t'
 /// item: the items of its list sorted by their first line (sub-lists go
 /// with their items and are not sorted), then the list put right
 /// (`org-list-repair`). The cursor goes to the start of the list.
-pub fn sort_list(text: &str, at: usize, kind: char, now: DateTime) -> Result<Outcome, Refusal> {
+pub fn sort_list(
+    text: &str,
+    at: usize,
+    kind: char,
+    now: DateTime,
+    settings: &crate::list::Settings,
+) -> Result<Outcome, Refusal> {
     let lower = kind.to_ascii_lowercase();
     if lower == 'f' {
         return Err(Refusal::Failed("Sorting by a function of your own is not supported".to_string()));
@@ -245,7 +251,7 @@ pub fn sort_list(text: &str, at: usize, kind: char, now: DateTime) -> Result<Out
         last = old.2;
     }
     out.push_str(&region[last..]);
-    let repaired = crate::list::repair(&out, 0)?;
+    let repaired = crate::list::repair(&out, 0, settings)?;
     let mut text_out = String::with_capacity(text.len());
     text_out.push_str(&text[..start]);
     text_out.push_str(&repaired.text);

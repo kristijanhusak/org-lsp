@@ -2962,6 +2962,8 @@ impl Server {
         let document = self.document(uri)?;
         let (conceal, _, _) = self.display_of(&document.text);
         let tokens = highlight::tokens(&document.syntax(), document.parse.todo_keywords(), conceal);
+        let tokens =
+            if self.edit_settings.todo.lists.checkbox_rule { tokens } else { highlight::without_cookies(tokens) };
         let radio: Vec<(usize, usize)> =
             org_core::radio::links(&document.text, &document.parse).iter().map(|link| (link.start, link.end)).collect();
         let tokens = highlight::with_radio_links(tokens, &radio);
@@ -3153,7 +3155,7 @@ impl Server {
         if !self.client.virtual_indent && self.display.indented(text) {
             let adapt = self.display.adapt(text, self.indent.adapt);
             hints.extend(
-                org_core::indent::virtual_indentation(text, true, false, adapt)
+                org_core::indent::virtual_indentation(text, true, false, adapt, self.indent.two_spaces.as_ref())
                     .into_iter()
                     .filter(|line| line.prefix > 0 && (first..=last).contains(&line.line))
                     .map(|line| hint(line.line as u32, 0, " ".repeat(line.prefix))),
@@ -3484,6 +3486,7 @@ impl Server {
                     keywords,
                     self.refile.2.tags_column,
                     self.edit_settings.list_circular_motion,
+                    &self.edit_settings.todo.lists,
                 ) else {
                     continue;
                 };
@@ -4228,6 +4231,8 @@ impl Server {
         };
         let parse = org_syntax::parse(&text, &self.todo);
         let tokens = highlight::tokens(&parse.syntax(), parse.todo_keywords(), self.conceal);
+        let tokens =
+            if self.edit_settings.todo.lists.checkbox_rule { tokens } else { highlight::without_cookies(tokens) };
         let radio: Vec<(usize, usize)> =
             org_core::radio::links(&text, &parse).iter().map(|link| (link.start, link.end)).collect();
         let tokens = highlight::with_radio_links(tokens, &radio);
@@ -8116,7 +8121,16 @@ impl Server {
             table_line_pos: template.table_line_pos.clone(),
         };
         let levels = refile::Settings { adapt: self.adapt_in(&snapshot), ..self.refile.2 };
-        let mut placed = capture::place(&snapshot, &keywords, &target, kind, &filled, &properties, &levels)?;
+        let mut placed = capture::place(
+            &snapshot,
+            &keywords,
+            &target,
+            kind,
+            &filled,
+            &properties,
+            &levels,
+            &self.edit_settings.todo.lists,
+        )?;
         let jump = template.jump_to_captured == Some(true);
         if template.immediate_finish == Some(true) {
             let done = placed.finalize(placed.shown(), &keywords, &self.edit_settings.todo, self.date_time());
@@ -8613,7 +8627,7 @@ impl Server {
         } else {
             let (target, kind, properties) = &capture.spec;
             let levels = refile::Settings { adapt: self.adapt_in(&now), ..self.refile.2 };
-            let placed = capture::place(&now, &keywords, target, *kind, &edited, properties, &levels)?;
+            let placed = capture::place(&now, &keywords, target, *kind, &edited, properties, &levels, &todo.lists)?;
             (placed.finalize(placed.shown(), &keywords, todo, time), placed.begin)
         };
         Ok((now, version, done, begin))
@@ -11787,8 +11801,15 @@ impl Server {
         }
         let tags_column = self.refile.2.tags_column;
         if !structure::at_heading(&text, offset) && org_core::list::at_item(&text, offset) {
-            let edited =
-                item_structure(id, &text, offset, &keywords, tags_column, self.edit_settings.list_circular_motion)?;
+            let edited = item_structure(
+                id,
+                &text,
+                offset,
+                &keywords,
+                tags_column,
+                self.edit_settings.list_circular_motion,
+                &self.edit_settings.todo.lists,
+            )?;
             let outcome = org_core::newline::Outcome { text: edited.text, cursor: edited.cursor };
             return self.carried(context, outcome);
         }
@@ -11858,7 +11879,7 @@ impl Server {
         }
         let outcome = match id {
             commands::SHIFT_LEFT | commands::SHIFT_RIGHT => {
-                org_core::list::cycle_bullet(&text, offset, id == commands::SHIFT_LEFT)
+                org_core::list::cycle_bullet(&text, offset, id == commands::SHIFT_LEFT, &self.edit_settings.todo.lists)
                     .map(|edited| org_core::newline::Outcome { text: edited.text, cursor: edited.cursor })
             }
             _ => org_core::list::next_item(
@@ -12144,7 +12165,7 @@ impl Server {
                 return Ok(json!({ "input": input }));
             };
             let kind = answer.chars().next().ok_or("Abort")?;
-            let outcome = sort::sort_list(&text, offset, kind, self.date_time())?;
+            let outcome = sort::sort_list(&text, offset, kind, self.date_time(), &self.edit_settings.todo.lists)?;
             self.message = Some("Sorting items...done".to_string());
             return self.carried(context, outcome);
         }
@@ -12767,7 +12788,7 @@ impl Server {
         let (indent, hide_stars) = (self.display.indented(text), self.display.hides_stars(text));
         let lines: Vec<[usize; 4]> = if indent || hide_stars {
             let adapt = self.display.adapt(text, self.indent.adapt);
-            org_core::indent::virtual_indentation(text, indent, hide_stars, adapt)
+            org_core::indent::virtual_indentation(text, indent, hide_stars, adapt, self.indent.two_spaces.as_ref())
                 .into_iter()
                 .map(|line| [line.line, line.prefix, line.wrap, line.hidden_stars])
                 .collect()
@@ -13754,15 +13775,16 @@ fn item_structure(
     keywords: &org_syntax::TodoKeywords,
     tags_column: i64,
     circular: bool,
+    settings: &org_core::list::Settings,
 ) -> std::result::Result<org_core::list::Edited, Refusal> {
     use org_core::list;
     match id {
-        commands::META_LEFT => list::indent_item(text, offset, -1, false, keywords, tags_column),
-        commands::META_RIGHT => list::indent_item(text, offset, 1, false, keywords, tags_column),
-        commands::SHIFT_META_LEFT => list::indent_item(text, offset, -1, true, keywords, tags_column),
-        commands::SHIFT_META_RIGHT => list::indent_item(text, offset, 1, true, keywords, tags_column),
-        commands::META_UP => list::move_item(text, offset, false, circular),
-        _ => list::move_item(text, offset, true, circular),
+        commands::META_LEFT => list::indent_item(text, offset, -1, false, keywords, tags_column, settings),
+        commands::META_RIGHT => list::indent_item(text, offset, 1, false, keywords, tags_column, settings),
+        commands::SHIFT_META_LEFT => list::indent_item(text, offset, -1, true, keywords, tags_column, settings),
+        commands::SHIFT_META_RIGHT => list::indent_item(text, offset, 1, true, keywords, tags_column, settings),
+        commands::META_UP => list::move_item(text, offset, false, circular, settings),
+        _ => list::move_item(text, offset, true, circular, settings),
     }
 }
 

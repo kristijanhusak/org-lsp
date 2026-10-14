@@ -315,19 +315,30 @@ pub fn run(
             let outline = crate::outline::Outline::new(parse, text, "");
             let ordered = outline.entry_property(outline.entry_at(offset), "ORDERED", false);
             let ordered = ordered.is_some_and(|value| value != "nil");
-            crate::checkbox::ctrl_c_ctrl_c(text, parse.todo_keywords(), offset, settings.todo.tags_column, ordered).map(
-                |(text, cursor, message)| Outcome {
-                    text,
-                    cursor: Some(cursor),
-                    note: None,
-                    message,
-                    before_repeat: None,
-                },
+            crate::checkbox::ctrl_c_ctrl_c(
+                text,
+                parse.todo_keywords(),
+                offset,
+                settings.todo.tags_column,
+                ordered,
+                &settings.todo.lists,
             )
+            .map(|(text, cursor, message)| Outcome {
+                text,
+                cursor: Some(cursor),
+                note: None,
+                message,
+                before_repeat: None,
+            })
         }
-        Command::Checkbox => {
-            crate::checkbox::toggle(text, parse.todo_keywords(), offset, settings.todo.tags_column).map(unplaced)
-        }
+        Command::Checkbox => crate::checkbox::toggle(
+            text,
+            parse.todo_keywords(),
+            offset,
+            settings.todo.tags_column,
+            &settings.todo.lists,
+        )
+        .map(unplaced),
         Command::Table(mode) => {
             let outline = crate::outline::Outline::new(parse, text, "");
             let entry = outline.entry_at(offset);
@@ -464,7 +475,8 @@ pub fn run(
                 // (`org-cycle-list-bullet`), or the cursor to the item
                 // before or after (`org-previous-item`, `org-next-item`).
                 Direction::Left | Direction::Right if crate::list::at_item(text, offset) => {
-                    let edited = crate::list::cycle_bullet(text, offset, *direction == Direction::Left)?;
+                    let edited =
+                        crate::list::cycle_bullet(text, offset, *direction == Direction::Left, &settings.todo.lists)?;
                     return Ok(Outcome {
                         text: edited.text,
                         cursor: Some(edited.cursor),

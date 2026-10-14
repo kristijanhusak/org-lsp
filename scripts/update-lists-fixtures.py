@@ -62,6 +62,29 @@ for text in ["- a\n- b\n  - c\n  - d\n- e\n", "1. one\n2. two\n3. three\nafter\n
             for key in ["S-<up>", "S-<down>", "M-<up>", "M-<down>"]:
                 CASES.append({"text": text, "point": start + column, "key": key, "circular": True})
 
+# The list options: two spaces after some bullets, the bullets of demoted
+# items, a wider indent for sub-items, the automatic rules off, cookies
+# counting every box below them. Each on a few lists, from the end of each
+# item's line.
+OPTIONS = [
+    ({"two_spaces": "[0-9]"}, '(org-list-two-spaces-after-bullet-regexp "[0-9]")'),
+    ({"demote": {"-": "+", "+": "1.", "1.": "-"}},
+     """(org-list-demote-modify-bullet '(("-" . "+") ("+" . "1.") ("1." . "-")))"""),
+    ({"indent_offset": 2}, "(org-list-indent-offset 2)"),
+    ({"checkbox_rule": False, "indent_rule": False}, "(org-list-automatic-rules '((checkbox) (indent)))"),
+    ({"hierarchical": False}, "(org-checkbox-hierarchical-statistics nil)"),
+]
+for settings, lisp in OPTIONS:
+    for text in TEXTS[:4]:
+        starts = [0] + [index + 1 for index, c in enumerate(text) if c == "\n" and index + 1 < len(text)]
+        for start in starts:
+            line = text[start:].split("\n", 1)[0]
+            if line.startswith("* "):
+                continue
+            for key in KEYS[:8] + ["C-c C-c"]:
+                CASES.append({"text": text, "point": start + len(line), "key": key, "settings": settings,
+                              "emacs": lisp})
+
 if __name__ == "__main__":
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "tests", "lists", "cases.json")
     os.makedirs(os.path.dirname(path), exist_ok=True)

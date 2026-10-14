@@ -494,6 +494,7 @@ impl Server {
                 read: &read,
                 properties: &properties,
                 levels: &levels,
+                lists: &edit_settings.todo.lists,
                 find_node: &find_node,
             };
             roam_capture::capture(&request)

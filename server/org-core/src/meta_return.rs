@@ -43,6 +43,8 @@ pub struct Settings {
     /// `org-insert-heading-respect-content`: a new heading goes after the
     /// subtree.
     pub respect_content: bool,
+    /// How lists are edited.
+    pub lists: list::Settings,
 }
 
 impl Default for Settings {
@@ -55,6 +57,7 @@ impl Default for Settings {
             blank_heading: None,
             blank_item: None,
             respect_content: false,
+            lists: list::Settings::default(),
         }
     }
 }
@@ -438,7 +441,8 @@ pub fn meta_return(text: &str, at: usize, keywords: &TodoKeywords, settings: &Se
         };
     }
     let options = list::ItemOptions { split: settings.split.item, blank: settings.blank_item };
-    if let Some(inserted) = list::insert_item(text, at, false, settings.below, keywords, settings.tags_column, options)?
+    if let Some(inserted) =
+        list::insert_item(text, at, false, settings.below, keywords, settings.tags_column, options, &settings.lists)?
     {
         return Ok(Outcome { text: inserted.text, cursor: inserted.cursor });
     }
@@ -461,7 +465,7 @@ pub fn insert_todo_heading(
     if !respect_content {
         let options = list::ItemOptions { split: settings.split.item, blank: settings.blank_item };
         if let Some(inserted) =
-            list::insert_item(text, at, true, settings.below, keywords, settings.tags_column, options)?
+            list::insert_item(text, at, true, settings.below, keywords, settings.tags_column, options, &settings.lists)?
         {
             return Ok(Outcome { text: inserted.text, cursor: inserted.cursor });
         }
@@ -493,10 +497,15 @@ fn wrap_field(text: &str, at: usize, split: bool) -> Result<Outcome, Refusal> {
     // field.
     let at = if split { at } else { text[at..end].find(['|', '\r']).map_or(end, |bar| at + bar) };
     let Some(bar) = text[at..].find('|').filter(|bar| *bar > 0) else {
-        // `org-table-next-row` aligns the table first: its last row ends
-        // with a newline then.
+        // `org-table-align` writes again, with a newline, the rows that
+        // change: a last row without one gets it when it changes, or when
+        // `org-table-next-row` adds a row after it.
         let mut outcome = next_row(text, at);
-        if !outcome.text.ends_with('\n')
+        let last = |text: &str| line(text, line_start(text, text.len())).to_string();
+        let rewritten =
+            outcome.text.matches('\n').count() > text.matches('\n').count() || last(&outcome.text) != last(text);
+        if rewritten
+            && !outcome.text.ends_with('\n')
             && is_table_line(line(&outcome.text, line_start(&outcome.text, outcome.text.len())))
         {
             outcome.text.push('\n');

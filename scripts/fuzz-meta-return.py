@@ -22,7 +22,7 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from return_reference import reference, save  # noqa: E402
+from return_reference import lisp_string, reference, save  # noqa: E402
 
 spec = importlib.util.spec_from_file_location("fuzz_indent", os.path.join(HERE, "fuzz-indent.py"))
 fuzz_indent = importlib.util.module_from_spec(spec)
@@ -87,8 +87,8 @@ def list_document(rng):
 
 def options(rng):
     """Random `org-M-RET-may-split-line`, `org-blank-before-new-entry` and
-    `org-insert-heading-respect-content`: the settings of the test, and the
-    same as Lisp bindings."""
+    `org-insert-heading-respect-content`, and the list options that new items
+    follow: the settings of the test, and the same as Lisp bindings."""
     settings, lisp = {}, []
     if rng.random() < 0.3:
         split = {context: rng.random() < 0.5 for context in ("headline", "item", "table")}
@@ -103,6 +103,16 @@ def options(rng):
     if rng.random() < 0.15:
         settings["respect_content"] = True
         lisp.append("(org-insert-heading-respect-content t)")
+    if rng.random() < 0.15:
+        regexp = rng.choice([r"[0-9]", r"[.)]", r"-", r"[+*]\|1)"])
+        settings["two_spaces"] = regexp
+        lisp.append(f"(org-list-two-spaces-after-bullet-regexp {lisp_string(regexp)})")
+    if rng.random() < 0.15:
+        settings["checkbox_rule"] = False
+        lisp.append("(org-list-automatic-rules '((checkbox) (indent . t)))")
+    if rng.random() < 0.15:
+        settings["hierarchical"] = False
+        lisp.append("(org-checkbox-hierarchical-statistics nil)")
     return settings, " ".join(lisp)
 
 

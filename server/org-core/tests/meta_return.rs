@@ -59,6 +59,12 @@ fn inserts_as_emacs_does() {
             blank_heading: flag("blank_heading"),
             blank_item: flag("blank_item"),
             respect_content: flag("respect_content").unwrap_or(false),
+            lists: org_core::list::Settings {
+                two_spaces: options["two_spaces"].as_str().and_then(org_core::list::BulletRegexp::new),
+                checkbox_rule: flag("checkbox_rule").unwrap_or(true),
+                checkbox_hierarchical: flag("hierarchical").unwrap_or(true),
+                ..Default::default()
+            },
             ..Settings::default()
         };
         let line_start = text[..point].rfind('\n').map_or(0, |at| at + 1);

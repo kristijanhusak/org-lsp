@@ -660,14 +660,26 @@ fn update_statistics(
     let at = at.min(text.len());
     let start = text[..at].rfind('\n').map_or(0, |index| index + 1);
     let Some(level) = headline_level(&text[start..line_end(&text, start)]) else {
-        return checkbox::update_counts(&text, keywords, at, settings.tags_column);
+        return checkbox::update_counts(
+            &text,
+            keywords,
+            at,
+            settings.tags_column,
+            settings.lists.checkbox_hierarchical,
+        );
     };
     let at = start;
     let end = refile::next_heading(&text, at).unwrap_or(text.len());
     let child = (end < text.len()).then(|| headline_level(&text[end..line_end(&text, end)])).flatten();
     let section = &text[at..end];
     if CHECKBOX_ITEM.is_match(section) && !COOKIE_DATA_TODO.is_match(section) {
-        return checkbox::update_counts(&text, keywords, at, settings.tags_column);
+        return checkbox::update_counts(
+            &text,
+            keywords,
+            at,
+            settings.tags_column,
+            settings.lists.checkbox_hierarchical,
+        );
     }
     if child.is_some_and(|child| child > level) {
         let mut editor = Editor::new(&text, keywords, settings, now);

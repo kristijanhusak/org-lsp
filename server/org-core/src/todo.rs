@@ -124,6 +124,8 @@ pub struct Settings {
     pub state_tags_triggers: Vec<(String, Vec<(String, bool)>)>,
     /// `org-tags-sort-function`, for the tags the triggers change.
     pub tags_sort: Option<crate::tags::Sort>,
+    /// How lists are edited, and how checkbox cookies count.
+    pub lists: crate::list::Settings,
 }
 
 /// `org-provide-todo-statistics`: which entries the cookies of their
@@ -279,6 +281,7 @@ impl Default for Settings {
             closed_keep_when_no_todo: false,
             state_tags_triggers: Vec::new(),
             tags_sort: None,
+            lists: crate::list::Settings::default(),
         }
     }
 }
@@ -655,6 +658,7 @@ impl<'a> Editor<'a> {
         indent::Settings {
             adapt: self.settings.adapt,
             log_into_drawer: self.settings.log_into_drawer.clone(),
+            two_spaces: self.settings.lists.two_spaces.clone(),
             ..indent::Settings::default()
         }
     }

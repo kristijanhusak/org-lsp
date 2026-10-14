@@ -592,14 +592,14 @@
  },
  "org-list.el": {
   "org-cycle-include-plain-lists": "missing",
-  "org-list-demote-modify-bullet": "missing",
+  "org-list-demote-modify-bullet": "setting",
   "org-plain-list-ordered-item-terminator": "missing",
   "org-list-allow-alphabetical": "missing",
-  "org-list-two-spaces-after-bullet-regexp": "missing",
-  "org-list-automatic-rules": "missing",
+  "org-list-two-spaces-after-bullet-regexp": "setting",
+  "org-list-automatic-rules": "setting",
   "org-list-use-circular-motion": "setting",
-  "org-checkbox-hierarchical-statistics": "missing",
-  "org-list-indent-offset": "missing"
+  "org-checkbox-hierarchical-statistics": "setting",
+  "org-list-indent-offset": "setting"
  },
  "org-macs.el": {
   "org-sort-function": "lisp"

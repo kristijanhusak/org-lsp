@@ -140,6 +140,46 @@ pub const SETTINGS: &[Setting] = &[
         "M-RET and M-S-RET outside lists put the new heading after the subtree, as C-RET does.",
     ),
     setting(
+        "org_list_two_spaces_after_bullet_regexp",
+        "false, string",
+        "false",
+        "org-list-two-spaces-after-bullet-regexp",
+        "An Emacs regexp: the bullets it matches get two spaces after them when Org writes them (a new item, \
+         a bullet changed, a list repaired).",
+    ),
+    setting(
+        "org_list_demote_modify_bullet",
+        "object",
+        "{}",
+        "org-list-demote-modify-bullet",
+        "By bullet (`-`, `+`, `*`, `1.`, `1)`), the bullet an item gets when it is indented: \
+         `{ \"+\": \"-\", \"-\": \"+\" }`.",
+    ),
+    setting(
+        "org_list_indent_offset",
+        "integer",
+        "0",
+        "org-list-indent-offset",
+        "How many more columns sub-items are indented, past their parent's bullet.",
+    ),
+    setting(
+        "org_list_automatic_rules",
+        "object",
+        r#"{ "checkbox": true, "indent": true }"#,
+        "org-list-automatic-rules",
+        "`checkbox`: the statistics cookies are counted again when a box changes, and colored as done or \
+         not. `indent`: indenting the first item of a list with its children (M-S-<right>) moves the whole \
+         list. A rule left out of the object is off.",
+    ),
+    setting(
+        "org_checkbox_hierarchical_statistics",
+        "boolean",
+        "true",
+        "org-checkbox-hierarchical-statistics",
+        "A checkbox cookie counts the boxes of the items right below it; `false` counts every box further \
+         down too, as `recursive` in a `COOKIE_DATA` property does.",
+    ),
+    setting(
         "org_list_use_circular_motion",
         "boolean",
         "false",
@@ -2280,6 +2320,17 @@ const SCHEMAS: &[(&str, &str)] = &[
         r#"{ "type": "object", "properties": { "heading": { "enum": [true, false, "auto"] }, "plain_list_item": { "enum": [true, false, "auto"] } }, "additionalProperties": false }"#,
     ),
     ("org_insert_heading_respect_content", BOOLEAN),
+    ("org_list_two_spaces_after_bullet_regexp", r#"{ "anyOf": [{ "const": false }, { "type": "string" }] }"#),
+    (
+        "org_list_demote_modify_bullet",
+        r#"{ "type": "object", "additionalProperties": { "enum": ["-", "+", "*", "1.", "1)"] } }"#,
+    ),
+    ("org_list_indent_offset", r#"{ "type": "integer", "minimum": 0 }"#),
+    (
+        "org_list_automatic_rules",
+        r#"{ "type": "object", "properties": { "checkbox": { "type": "boolean" }, "indent": { "type": "boolean" } }, "additionalProperties": false }"#,
+    ),
+    ("org_checkbox_hierarchical_statistics", BOOLEAN),
     ("org_enforce_todo_dependencies", BOOLEAN),
     ("org_enforce_todo_checkbox_dependencies", BOOLEAN),
     ("org_log_refile", r#"{ "enum": [false, "time", "note"] }"#),

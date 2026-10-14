@@ -111,6 +111,21 @@ pub struct Options {
     /// `org-insert-heading-respect-content`
     #[serde(rename = "org_insert_heading_respect_content")]
     pub insert_heading_respect_content: Option<bool>,
+    /// `org-list-two-spaces-after-bullet-regexp`: a regexp, or `false`.
+    #[serde(rename = "org_list_two_spaces_after_bullet_regexp")]
+    pub list_two_spaces_after_bullet_regexp: Option<serde_json::Value>,
+    /// `org-list-demote-modify-bullet`: by bullet, the bullet it becomes.
+    #[serde(rename = "org_list_demote_modify_bullet")]
+    pub list_demote_modify_bullet: Option<std::collections::BTreeMap<String, String>>,
+    /// `org-list-indent-offset`
+    #[serde(rename = "org_list_indent_offset")]
+    pub list_indent_offset: Option<usize>,
+    /// `org-list-automatic-rules`: `checkbox` and `indent`, each a boolean.
+    #[serde(rename = "org_list_automatic_rules")]
+    pub list_automatic_rules: Option<serde_json::Map<String, serde_json::Value>>,
+    /// `org-checkbox-hierarchical-statistics`
+    #[serde(rename = "org_checkbox_hierarchical_statistics")]
+    pub checkbox_hierarchical_statistics: Option<bool>,
     /// `org-todo-state-tags-triggers`: by state (`""` for none, `todo`,
     /// `done`), the tags to set (`+TAG`) or remove (`-TAG`).
     #[serde(rename = "org_todo_state_tags_triggers")]
@@ -1190,7 +1205,31 @@ impl Options {
             blank_item: blank(&["plain_list_item", "plain-list-item"]),
             respect_content: self.insert_heading_respect_content.unwrap_or(false),
             statistics: self.todo_statistics(),
+            lists: self.list_settings(),
             ..org_core::meta_return::Settings::default()
+        }
+    }
+
+    /// How lists are edited: the options of `org-list.el`.
+    pub fn list_settings(&self) -> org_core::list::Settings {
+        let defaults = org_core::list::Settings::default();
+        // `(cdr (assq RULE org-list-automatic-rules))`: a rule left out
+        // of the option is off.
+        let rule = |name: &str, default: bool| match &self.list_automatic_rules {
+            None => default,
+            Some(rules) => rules.get(name).and_then(serde_json::Value::as_bool).unwrap_or(false),
+        };
+        org_core::list::Settings {
+            two_spaces: self
+                .list_two_spaces_after_bullet_regexp
+                .as_ref()
+                .and_then(serde_json::Value::as_str)
+                .and_then(org_core::list::BulletRegexp::new),
+            demote_bullets: self.list_demote_modify_bullet.clone().unwrap_or_default().into_iter().collect(),
+            indent_offset: self.list_indent_offset.unwrap_or(defaults.indent_offset),
+            checkbox_rule: rule("checkbox", defaults.checkbox_rule),
+            indent_rule: rule("indent", defaults.indent_rule),
+            checkbox_hierarchical: self.checkbox_hierarchical_statistics.unwrap_or(defaults.checkbox_hierarchical),
         }
     }
 
@@ -1319,6 +1358,7 @@ impl Options {
                 .edit_src_content_indentation
                 .and_then(|columns| usize::try_from(columns).ok())
                 .unwrap_or(defaults.src_content_indentation),
+            two_spaces: self.list_settings().two_spaces,
         }
     }
 
@@ -1466,6 +1506,7 @@ impl Options {
             })
             .collect();
         settings.tags_sort = self.tag_settings().sort;
+        settings.lists = self.list_settings();
         for (kind, heading) in self.log_note_headings.iter().flatten() {
             let headings = &mut settings.note_headings;
             let slot = match kind.as_str() {
