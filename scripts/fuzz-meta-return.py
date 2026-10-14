@@ -85,16 +85,41 @@ def list_document(rng):
     return "\n".join(lines) + rng.choice(["", "\n", "\n\n"])
 
 
+def options(rng):
+    """Random `org-M-RET-may-split-line`, `org-blank-before-new-entry` and
+    `org-insert-heading-respect-content`: the settings of the test, and the
+    same as Lisp bindings."""
+    settings, lisp = {}, []
+    if rng.random() < 0.3:
+        split = {context: rng.random() < 0.5 for context in ("headline", "item", "table")}
+        settings.update({f"split_{context}": on for context, on in split.items()})
+        pairs = " ".join(f"({context} . {'t' if on else 'nil'})" for context, on in split.items())
+        lisp.append(f"(org-M-RET-may-split-line '({pairs}))")
+    if rng.random() < 0.3:
+        heading, item = rng.choice([True, False, None]), rng.choice([True, False, None])
+        settings["blank_heading"], settings["blank_item"] = heading, item
+        value = lambda on: "auto" if on is None else ("t" if on else "nil")
+        lisp.append(f"(org-blank-before-new-entry '((heading . {value(heading)}) (plain-list-item . {value(item)})))")
+    if rng.random() < 0.15:
+        settings["respect_content"] = True
+        lisp.append("(org-insert-heading-respect-content t)")
+    return settings, " ".join(lisp)
+
+
 def case(rng, generator):
     if rng.random() < 0.5:
         text = list_document(rng)
-        return {"text": text, "point": rng.randint(0, len(text)), "key": rng.choice(KEYS)}
-    document = generator.case()
-    lines = document["text"].split("\n")
-    for _ in range(rng.randint(0, 4)):
-        lines.insert(rng.randint(0, len(lines)), rng.choice(EXTRA))
-    text = "\n".join(lines)
-    return {"text": text, "point": rng.randint(0, len(text)), "key": rng.choice(KEYS)}
+    else:
+        document = generator.case()
+        lines = document["text"].split("\n")
+        for _ in range(rng.randint(0, 4)):
+            lines.insert(rng.randint(0, len(lines)), rng.choice(EXTRA))
+        text = "\n".join(lines)
+    out = {"text": text, "point": rng.randint(0, len(text)), "key": rng.choice(KEYS)}
+    settings, lisp = options(rng)
+    if settings:
+        out["settings"], out["emacs"] = settings, lisp
+    return out
 
 
 def main():

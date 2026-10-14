@@ -170,7 +170,7 @@ export const AREAS = [
   {
     name: 'Headings and structure',
     emacs: [
-      ['New headings (`M-RET`, `M-S-RET`, `C-RET`, `C-S-RET`)', true],
+      ['New headings (`M-RET`, `M-S-RET`, `C-RET`, `C-S-RET`), the line split or not (`org-M-RET-may-split-line`), with empty lines before them as `org-blank-before-new-entry` says, after the subtree (`org-insert-heading-respect-content`)', true],
       ['Promoting and demoting a heading or a subtree', true],
       ['Moving a subtree up and down', true],
       ['Cutting, copying and pasting subtrees, their level fitted', true],

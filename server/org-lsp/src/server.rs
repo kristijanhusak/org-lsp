@@ -11744,6 +11744,7 @@ impl Server {
             tags_column: self.refile.2.tags_column,
             below: context.below,
             statistics: self.edit_settings.todo.statistics.clone(),
+            ..self.edit_settings.insert.clone()
         };
         let text = &document.text;
         let outcome = match id {
