@@ -168,7 +168,10 @@ fn run(case: &Value) -> Result<Value, String> {
                         title: None,
                     })
                     .collect();
-                let targets = link::id_targets(&refile_files);
+                // The default `org-id-completion-targets`.
+                let selections =
+                    vec![(refile::Select::All, vec![0]), (refile::Select::All, (1..refile_files.len()).collect())];
+                let targets = link::id_targets(&selections, &refile_files, refile::OutlinePath::Yes);
                 let entries = refile::names(&targets);
                 let abbreviations = org_core::open::abbreviations(&text, &[]);
                 let before = ids.get();

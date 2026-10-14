@@ -6455,6 +6455,76 @@ fn completes_id_links_to_entries() {
     assert_eq!(text, format!("* Here\n:PROPERTIES:\n:ID:       {id}\n:END:\n[[id:{id}]]x\n"));
 }
 
+/// `org-id-find`: an ID is looked for in the link's file, then in the
+/// files `org-id-locations-file` lists (names relative to it), the
+/// agenda files and their archives; without `org-id-track-globally`
+/// only in the link's file. `org-id-completion-targets` says what an
+/// `id:` link completes to.
+#[test]
+fn looks_for_ids_where_the_id_options_say() {
+    let root = std::env::temp_dir().join(format!("org-lsp-id-lookup-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(root.join("far")).unwrap();
+    std::fs::write(root.join("far/kept.org"), "* Kept\n:PROPERTIES:\n:ID: kept-id\n:END:\n").unwrap();
+    std::fs::write(root.join(".org-id-locations"), "\n((\"far/kept.org\" \"kept-id\"))\n").unwrap();
+    std::fs::write(root.join("agenda.org"), "* Top\n** Sub\n").unwrap();
+    std::fs::write(root.join("agenda.org_archive"), "* Old\n:PROPERTIES:\n:ID: old-id\n:END:\n").unwrap();
+    let uri = format!("file://{}/notes.org", root.display());
+    let text = "* Here\n:PROPERTIES:\n:ID: here-id\n:END:\n[[id:kept-id]] [[id:old-id]] [[id:here-id]]\n";
+    let open = |client: &mut Client, character: u32| {
+        let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 4, "character": character } });
+        client.received.clear();
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": "org.open", "arguments": [context] }));
+        client.settle();
+        result.map(|_| {
+            let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("shown");
+            shown.params["uri"].as_str().unwrap().rsplit('/').next().unwrap().to_string()
+        })
+    };
+    let mut options = clock();
+    options["org_agenda_files"] = json!([root.join("agenda.org").display().to_string()]);
+    options["org_id_locations_file"] = json!(root.join(".org-id-locations").display().to_string());
+    let mut client = Client::editor(options.clone(), None);
+    client.open(&uri, text);
+    assert_eq!(open(&mut client, 3).as_deref(), Ok("kept.org"));
+    assert_eq!(open(&mut client, 20).as_deref(), Ok("agenda.org_archive"));
+    client.shutdown();
+
+    // `org-id-search-archives` off: not in the archives.
+    options["org_id_search_archives"] = json!(false);
+    let mut client = Client::editor(options.clone(), None);
+    client.open(&uri, text);
+    assert_eq!(open(&mut client, 20), Err("Cannot find entry with ID \"old-id\"".to_string()));
+    client.shutdown();
+
+    // `org-id-track-globally` off: only in this file.
+    options["org_id_track_globally"] = json!(false);
+    let mut client = Client::editor(options.clone(), None);
+    client.open(&uri, text);
+    assert_eq!(open(&mut client, 35).as_deref(), Ok("notes.org"));
+    assert_eq!(
+        open(&mut client, 3),
+        Err("Please turn on `org-id-track-globally' if you want to track IDs".to_string())
+    );
+    client.shutdown();
+
+    // `org-id-completion-targets`: the agenda files' top headlines, by
+    // the file's name first as the first targets are not this file.
+    options["org_id_track_globally"] = json!(true);
+    options["org_id_completion_targets"] = json!([{ "files": "agenda", "level": 1 }]);
+    let mut client = Client::editor(options, None);
+    let mut text = text.to_string();
+    client.open(&uri, &text);
+    let asked = run_applying(&mut client, &uri, &mut text, "org.link.insert", 5, json!({}));
+    let context = asked["input"]["context"].clone();
+    let extra = json!({ "input": "id:", "step": context["step"], "answers": context["answers"] });
+    let asked = run_applying(&mut client, &uri, &mut text, "org.link.insert", 5, extra);
+    assert_eq!(asked["input"]["completions"], json!(["agenda.org/", "agenda.org/Top/"]), "{asked}");
+    client.shutdown();
+    let _ = std::fs::remove_dir_all(&root);
+}
+
 /// `textDocument/documentLink`: URLs and files at once, places in files
 /// once resolved, as the file and the line; hover over a link shows it as
 /// Emacs does, and the entry it leads to.

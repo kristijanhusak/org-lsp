@@ -559,12 +559,12 @@
   "org-id-method": "setting",
   "org-id-prefix": "setting",
   "org-id-include-domain": "setting",
-  "org-id-track-globally": "missing",
-  "org-id-locations-file": "missing",
-  "org-id-locations-file-relative": "missing",
-  "org-id-extra-files": "missing",
-  "org-id-search-archives": "missing",
-  "org-id-completion-targets": "missing"
+  "org-id-track-globally": "setting",
+  "org-id-locations-file": "setting",
+  "org-id-locations-file-relative": ["other", "org-lsp reads the locations file and never writes it; names in it that are not absolute are relative to its directory, as Emacs reads them"],
+  "org-id-extra-files": "setting",
+  "org-id-search-archives": "setting",
+  "org-id-completion-targets": "setting"
  },
  "org-indent.el": {
   "org-indent-boundary-char": "emacs-only",

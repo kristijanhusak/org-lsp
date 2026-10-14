@@ -608,6 +608,49 @@ pub const SETTINGS: &[Setting] = &[
         "The `org` and `ts` methods end a new `ID` with `@` and the machine's domain.",
     ),
     setting(
+        "org_id_track_globally",
+        "boolean",
+        "true",
+        "org-id-track-globally",
+        "IDs are looked for in other files than the link's own: those of `org_id_search_archives`, \
+         `org_id_extra_files` and `org_id_locations_file`, the agenda files, the open ones and org-roam's. Off, \
+         an `id:` link leads only within its file.",
+    ),
+    setting(
+        "org_id_search_archives",
+        "boolean",
+        "true",
+        "org-id-search-archives",
+        "IDs are looked for in the archive files of the agenda files too.",
+    ),
+    Setting {
+        default: None,
+        unset: "`org_agenda_text_search_extra_files`",
+        ..setting(
+            "org_id_extra_files",
+            "string[]",
+            "",
+            "org-id-extra-files",
+            "More files to look for IDs in: paths or glob patterns.",
+        )
+    },
+    setting(
+        "org_id_locations_file",
+        "string",
+        r#""~/.emacs.d/.org-id-locations""#,
+        "org-id-locations-file",
+        "The file where Emacs keeps the files it found IDs in: org-lsp looks in them too, and never writes it. \
+         Names in it that are not absolute are relative to its directory.",
+    ),
+    setting(
+        "org_id_completion_targets",
+        "object[]",
+        r#"[{ "files": "current", "all": true }, { "files": "org-id-files", "all": true }]"#,
+        "org-id-completion-targets",
+        "The headlines an `id:` link completes to (`org.link.insert`), as `org_refile_targets` names them: by \
+         default every headline of the file and of the files with IDs.",
+    ),
+    setting(
         "org_id_link_to_org_use_id",
         "boolean, string",
         "false",
@@ -790,7 +833,7 @@ pub const SETTINGS: &[Setting] = &[
         r#"[{ "files": "current", "level": 1 }]"#,
         "org-refile-targets",
         "Where entries can be refiled to. Each entry has `files`: `current` (the entry's own file), `agenda`, \
-         a path or a list of paths; and one of `level`, `maxlevel`, `tag`, `todo`, `regexp` (the Rust `regex` \
+         `org-id-files` (the files with IDs), a path or a list of paths; and one of `level`, `maxlevel`, `tag`, `todo`, `regexp` (the Rust `regex` \
          crate's syntax) or `all` (true), which says which headlines there are targets.",
     ),
     setting(
@@ -2558,19 +2601,12 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_time_stamp_rounding_minutes", r#"{ "type": "integer", "minimum": 0 }"#),
     ("org_read_date_prefer_future", r#"{ "enum": [true, false, "time"] }"#),
     ("org_read_date_force_compatible_dates", BOOLEAN),
-    (
-        "org_refile_targets",
-        r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.RefileTarget", "additionalProperties": false, "properties": {
-            "files": { "anyOf": [{ "enum": ["current", "agenda"] }, { "type": "string" }, { "type": "array", "items": { "type": "string" } }],
-                "description": "`current` (the entry's own file), `agenda`, a path or a list of paths" },
-            "level": { "type": "integer", "minimum": 1, "description": "The headlines of this level" },
-            "maxlevel": { "type": "integer", "minimum": 1, "description": "The headlines up to this level" },
-            "tag": { "type": "string", "description": "The headlines with this tag" },
-            "todo": { "type": "string", "description": "The headlines with this TODO keyword" },
-            "regexp": { "type": "string", "description": "The headlines that match this regular expression" },
-            "all": { "type": "boolean", "description": "Every headline" }
-        } } }"#,
-    ),
+    ("org_refile_targets", REFILE_TARGETS),
+    ("org_id_completion_targets", REFILE_TARGETS),
+    ("org_id_track_globally", BOOLEAN),
+    ("org_id_search_archives", BOOLEAN),
+    ("org_id_extra_files", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("org_id_locations_file", STRING),
     ("org_refile_use_outline_path", r#"{ "enum": [true, false, "file", "full-file-path", "title"] }"#),
     ("org_refile_allow_creating_parent_nodes", r#"{ "enum": [true, false, "confirm"] }"#),
     ("org_refile_target_verify_function", STRING),
@@ -2896,6 +2932,18 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("command_actions", BOOLEAN),
     ("command_script", STRING),
 ];
+
+/// `org_refile_targets` and `org_id_completion_targets`.
+const REFILE_TARGETS: &str = r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.RefileTarget", "additionalProperties": false, "properties": {
+    "files": { "anyOf": [{ "enum": ["current", "agenda", "org-id-files"] }, { "type": "string" }, { "type": "array", "items": { "type": "string" } }],
+        "description": "`current` (the entry's own file), `agenda`, `org-id-files` (the files with IDs), a path or a list of paths" },
+    "level": { "type": "integer", "minimum": 1, "description": "The headlines of this level" },
+    "maxlevel": { "type": "integer", "minimum": 1, "description": "The headlines up to this level" },
+    "tag": { "type": "string", "description": "The headlines with this tag" },
+    "todo": { "type": "string", "description": "The headlines with this TODO keyword" },
+    "regexp": { "type": "string", "description": "The headlines that match this regular expression" },
+    "all": { "type": "boolean", "description": "Every headline" }
+} } }"#;
 
 const BOOLEAN: &str = r#"{ "type": "boolean" }"#;
 /// A limit of `org-agenda-max-…`: one for all views, or one for each kind.

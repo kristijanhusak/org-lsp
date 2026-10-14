@@ -408,6 +408,21 @@ pub struct Options {
     /// the top-level headlines of the entry's own file.
     #[serde(rename = "org_refile_targets")]
     pub refile_targets: Option<Vec<RefileTargetOption>>,
+    /// `org-id-completion-targets`, as `org_refile_targets` is written.
+    #[serde(rename = "org_id_completion_targets")]
+    pub id_completion_targets: Option<Vec<RefileTargetOption>>,
+    /// `org-id-track-globally`
+    #[serde(rename = "org_id_track_globally")]
+    pub id_track_globally: Option<bool>,
+    /// `org-id-search-archives`
+    #[serde(rename = "org_id_search_archives")]
+    pub id_search_archives: Option<bool>,
+    /// `org-id-extra-files`: files or patterns.
+    #[serde(rename = "org_id_extra_files")]
+    pub id_extra_files: Option<Vec<String>>,
+    /// `org-id-locations-file`
+    #[serde(rename = "org_id_locations_file")]
+    pub id_locations_file: Option<String>,
     /// `org-refile-use-outline-path`: `false`, `true`, `"file"`,
     /// `"full-file-path"` or `"title"`.
     #[serde(rename = "org_refile_use_outline_path")]
@@ -616,7 +631,24 @@ pub enum RefileFiles {
     Current,
     /// The agenda files.
     Agenda,
+    /// The files known to have IDs (`org-id-files`).
+    IdFiles,
     Paths(Vec<String>),
+}
+
+/// Where IDs are looked for: the options of `org-id.el`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IdLookup {
+    /// `org-id-track-globally`: off, an ID is looked for in its own file
+    /// only.
+    pub track_globally: bool,
+    /// `org-id-search-archives`: the archives of the agenda files too.
+    pub search_archives: bool,
+    /// `org-id-extra-files`: more files or patterns, and the archives of
+    /// the agenda files when one is `agenda-archives`.
+    pub extra_files: Vec<String>,
+    /// `org-id-locations-file`: Emacs's list of the files with IDs, read.
+    pub locations_file: Option<PathBuf>,
 }
 
 /// An entry of `org-refile-targets`, read.
@@ -994,34 +1026,88 @@ impl Options {
         let Some(targets) = &self.refile_targets else {
             return vec![RefileTarget { files: RefileFiles::Current, select: Select::Level(1) }];
         };
-        targets
-            .iter()
-            .filter_map(|target| {
-                let files = match &target.files {
-                    None => RefileFiles::Current,
-                    Some(RefileFilesOption::One(name)) if name == "current" => RefileFiles::Current,
-                    Some(RefileFilesOption::One(name)) if name == "agenda" => RefileFiles::Agenda,
-                    Some(RefileFilesOption::One(path)) => RefileFiles::Paths(vec![path.clone()]),
-                    Some(RefileFilesOption::Many(paths)) => RefileFiles::Paths(paths.clone()),
-                };
-                let select = if target.all == Some(true) {
-                    Select::All
-                } else if let Some(level) = target.level {
-                    Select::Level(level)
-                } else if let Some(level) = target.max_level {
-                    Select::MaxLevel(level)
-                } else if let Some(tag) = &target.tag {
-                    Select::Tag(tag.clone())
-                } else if let Some(keyword) = &target.todo {
-                    Select::Todo(keyword.clone())
-                } else {
-                    Select::regexp(target.regexp.as_deref()?)?
-                };
-                Some(RefileTarget { files, select })
-            })
-            .collect()
+        read_targets(targets)
     }
 
+    /// `org-id-completion-targets`: by default every headline of the
+    /// current file and of the files with IDs.
+    pub fn id_completion_targets(&self) -> Vec<RefileTarget> {
+        let Some(targets) = &self.id_completion_targets else {
+            return vec![
+                RefileTarget { files: RefileFiles::Current, select: Select::All },
+                RefileTarget { files: RefileFiles::IdFiles, select: Select::All },
+            ];
+        };
+        read_targets(targets)
+    }
+
+    /// Where IDs are looked for. `org-id-extra-files` is by default
+    /// `org-agenda-text-search-extra-files`; `org-id-locations-file`,
+    /// `.org-id-locations` in Emacs's directory.
+    pub fn id_lookup(&self) -> IdLookup {
+        let home = std::env::var_os("HOME").map(PathBuf::from);
+        // `locate-user-emacs-file`: `~/.emacs.d` unless only the XDG one is there.
+        let emacs_directory = || {
+            let home = home.clone()?;
+            let dot = home.join(".emacs.d");
+            let xdg = std::env::var_os("XDG_CONFIG_HOME")
+                .map(PathBuf::from)
+                .unwrap_or_else(|| home.join(".config"))
+                .join("emacs");
+            Some(if !dot.exists() && xdg.exists() { xdg } else { dot })
+        };
+        let expand = |path: &str| match (path.strip_prefix("~/"), &home) {
+            (Some(rest), Some(home)) => home.join(rest),
+            _ => PathBuf::from(path),
+        };
+        IdLookup {
+            track_globally: self.id_track_globally.unwrap_or(true),
+            search_archives: self.id_search_archives.unwrap_or(true),
+            extra_files: self
+                .id_extra_files
+                .clone()
+                .or_else(|| self.agenda.text_search_extra_files.clone())
+                .unwrap_or_default(),
+            locations_file: match &self.id_locations_file {
+                Some(path) => Some(expand(path)),
+                None => emacs_directory().map(|directory| directory.join(".org-id-locations")),
+            },
+        }
+    }
+}
+
+/// `org_refile_targets` and its kin, read.
+fn read_targets(targets: &[RefileTargetOption]) -> Vec<RefileTarget> {
+    targets
+        .iter()
+        .filter_map(|target| {
+            let files = match &target.files {
+                None => RefileFiles::Current,
+                Some(RefileFilesOption::One(name)) if name == "current" => RefileFiles::Current,
+                Some(RefileFilesOption::One(name)) if name == "agenda" => RefileFiles::Agenda,
+                Some(RefileFilesOption::One(name)) if name == "org-id-files" => RefileFiles::IdFiles,
+                Some(RefileFilesOption::One(path)) => RefileFiles::Paths(vec![path.clone()]),
+                Some(RefileFilesOption::Many(paths)) => RefileFiles::Paths(paths.clone()),
+            };
+            let select = if target.all == Some(true) {
+                Select::All
+            } else if let Some(level) = target.level {
+                Select::Level(level)
+            } else if let Some(level) = target.max_level {
+                Select::MaxLevel(level)
+            } else if let Some(tag) = &target.tag {
+                Select::Tag(tag.clone())
+            } else if let Some(keyword) = &target.todo {
+                Select::Todo(keyword.clone())
+            } else {
+                Select::regexp(target.regexp.as_deref()?)?
+            };
+            Some(RefileTarget { files, select })
+        })
+        .collect()
+}
+
+impl Options {
     /// `org-refile-use-outline-path`
     pub fn refile_new_nodes(&self) -> org_core::refile::NewNodes {
         use org_core::refile::NewNodes;

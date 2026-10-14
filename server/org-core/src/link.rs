@@ -866,13 +866,65 @@ pub enum IdEntry {
     There { id: String, heading: String },
 }
 
-/// The entries `org-id-complete` offers (`org-id-completion-targets`):
-/// every headline of `files[0]`, the file the link goes in, then of the
-/// others (`org-id-files`), by their outline paths.
-pub fn id_targets(files: &[crate::refile::File]) -> Vec<(usize, crate::refile::Target)> {
-    use crate::refile::{all_targets, OutlinePath, Select};
-    let selections = vec![(Select::All, vec![0]), (Select::All, (1..files.len()).collect())];
-    all_targets(&selections, files, Some(0), OutlinePath::Yes)
+/// The entries `org-id-complete` offers (`org-id-completion-targets`),
+/// as `org-refile-get-targets` finds them: `files[0]` is the file the
+/// link goes in, `selections` the files and headlines of each target.
+pub fn id_targets(
+    selections: &[(crate::refile::Select, Vec<usize>)],
+    files: &[crate::refile::File],
+    outline_path: crate::refile::OutlinePath,
+) -> Vec<(usize, crate::refile::Target)> {
+    crate::refile::all_targets(selections, files, Some(0), outline_path)
+}
+
+/// The files of an `org-id-locations-file` as `org-id-locations-load`
+/// reads it: the alist `(("FILE" "ID" ...) ...)` that
+/// `org-id-locations-save` prints, the first string of each element.
+/// Names are as written, relative ones relative to the file's directory.
+pub fn id_location_files(text: &str) -> Vec<String> {
+    let mut files = Vec::new();
+    let mut depth = 0;
+    // Whether the next string is the first thing of an element.
+    let mut first = false;
+    let mut chars = text.chars();
+    while let Some(char) = chars.next() {
+        match char {
+            '(' => {
+                depth += 1;
+                first = depth == 2;
+            }
+            ')' => {
+                depth -= 1;
+                first = false;
+                if depth <= 0 {
+                    break;
+                }
+            }
+            '"' => {
+                let mut string = String::new();
+                while let Some(char) = chars.next() {
+                    match char {
+                        '"' => break,
+                        '\\' => match chars.next() {
+                            Some('\n') | None => {}
+                            Some(next) => string.push(next),
+                        },
+                        _ => string.push(char),
+                    }
+                }
+                if first && !files.contains(&string) {
+                    files.push(string);
+                }
+                first = false;
+            }
+            ';' if depth == 0 => {
+                chars.by_ref().find(|char| *char == '\n');
+            }
+            char if char.is_whitespace() => {}
+            _ => first = false,
+        }
+    }
+    files
 }
 
 /// Whether a file has entries with IDs, and so is one of `org-id-files`
@@ -1243,6 +1295,16 @@ pub fn insert_all(
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn reads_the_files_of_an_id_locations_file() {
+        // As `org-id-locations-save` prints it; Emacs's `read` gives the
+        // same names.
+        let text = "\n((\"~/notes/a.org\" \"id-1\" \"id-2\") (\"rel/b \\\"q\\\" \\\\ c.org\" \"x\") (\"/abs/ü.org\" \"y\") (\"~/notes/a.org\" \"z\"))\n";
+        assert_eq!(id_location_files(text), ["~/notes/a.org", "rel/b \"q\" \\ c.org", "/abs/ü.org"]);
+        assert!(id_location_files("").is_empty());
+        assert!(id_location_files("nil").is_empty());
+    }
 
     /// `org-id-new` at 2025-10-09 08:53:20.123456789 UTC, as Emacs makes
     /// it with each method.

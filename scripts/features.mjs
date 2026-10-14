@@ -328,6 +328,7 @@ export const AREAS = [
       ['Column view dynamic blocks and summaries (`C-c C-x x`, filled in by Emacs)', true],
       ['Properties written as `org-property-format` says, efforts in units of `org-effort-durations`', false],
       ['IDs made as `org-id-method`, `org-id-prefix`, `org-id-ts-format` and `org-id-include-domain` say', true],
+      ['IDs looked for where `org-id-track-globally`, `org-id-search-archives`, `org-id-extra-files` and `org-id-locations-file` say; `id:` links completing to `org-id-completion-targets`', true],
     ],
     editors: {
       vim: ['part', 'Column view\'s header is in the window\'s status line, shown when the window has one (`laststatus`).'],

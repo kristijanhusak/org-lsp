@@ -616,6 +616,95 @@
       "description": "The `org` and `ts` methods end a new `ID` with `@` and the machine's domain. (`org-id-include-domain`)",
       "default": false
     },
+    "org_id_track_globally": {
+      "type": "boolean",
+      "description": "IDs are looked for in other files than the link's own: those of `org_id_search_archives`, `org_id_extra_files` and `org_id_locations_file`, the agenda files, the open ones and org-roam's. Off, an `id:` link leads only within its file. (`org-id-track-globally`)",
+      "default": true
+    },
+    "org_id_search_archives": {
+      "type": "boolean",
+      "description": "IDs are looked for in the archive files of the agenda files too. (`org-id-search-archives`)",
+      "default": true
+    },
+    "org_id_extra_files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "More files to look for IDs in: paths or glob patterns. (`org-id-extra-files`)"
+    },
+    "org_id_locations_file": {
+      "type": "string",
+      "description": "The file where Emacs keeps the files it found IDs in: org-lsp looks in them too, and never writes it. Names in it that are not absolute are relative to its directory. (`org-id-locations-file`)",
+      "default": "~/.emacs.d/.org-id-locations"
+    },
+    "org_id_completion_targets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "files": {
+            "anyOf": [
+              {
+                "enum": [
+                  "current",
+                  "agenda",
+                  "org-id-files"
+                ]
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ],
+            "description": "`current` (the entry's own file), `agenda`, `org-id-files` (the files with IDs), a path or a list of paths"
+          },
+          "level": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "The headlines of this level"
+          },
+          "maxlevel": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "The headlines up to this level"
+          },
+          "tag": {
+            "type": "string",
+            "description": "The headlines with this tag"
+          },
+          "todo": {
+            "type": "string",
+            "description": "The headlines with this TODO keyword"
+          },
+          "regexp": {
+            "type": "string",
+            "description": "The headlines that match this regular expression"
+          },
+          "all": {
+            "type": "boolean",
+            "description": "Every headline"
+          }
+        }
+      },
+      "description": "The headlines an `id:` link completes to (`org.link.insert`), as `org_refile_targets` names them: by default every headline of the file and of the files with IDs. (`org-id-completion-targets`)",
+      "default": [
+        {
+          "files": "current",
+          "all": true
+        },
+        {
+          "files": "org-id-files",
+          "all": true
+        }
+      ]
+    },
     "org_id_link_to_org_use_id": {
       "enum": [
         true,
@@ -823,7 +912,8 @@
               {
                 "enum": [
                   "current",
-                  "agenda"
+                  "agenda",
+                  "org-id-files"
                 ]
               },
               {
@@ -836,7 +926,7 @@
                 }
               }
             ],
-            "description": "`current` (the entry's own file), `agenda`, a path or a list of paths"
+            "description": "`current` (the entry's own file), `agenda`, `org-id-files` (the files with IDs), a path or a list of paths"
           },
           "level": {
             "type": "integer",
@@ -866,7 +956,7 @@
           }
         }
       },
-      "description": "Where entries can be refiled to. Each entry has `files`: `current` (the entry's own file), `agenda`, a path or a list of paths; and one of `level`, `maxlevel`, `tag`, `todo`, `regexp` (the Rust `regex` crate's syntax) or `all` (true), which says which headlines there are targets. (`org-refile-targets`)",
+      "description": "Where entries can be refiled to. Each entry has `files`: `current` (the entry's own file), `agenda`, `org-id-files` (the files with IDs), a path or a list of paths; and one of `level`, `maxlevel`, `tag`, `todo`, `regexp` (the Rust `regex` crate's syntax) or `all` (true), which says which headlines there are targets. (`org-refile-targets`)",
       "default": [
         {
           "files": "current",

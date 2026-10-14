@@ -72,6 +72,11 @@
 ---@field org_id_prefix? false|string What a new `ID` starts with, before a colon: `"Org"` makes `Org:…`. (`org-id-prefix`)
 ---@field org_id_ts_format? string How the `ts` method writes the time, as `format-time-string` does. (`org-id-ts-format`)
 ---@field org_id_include_domain? boolean The `org` and `ts` methods end a new `ID` with `@` and the machine's domain. (`org-id-include-domain`)
+---@field org_id_track_globally? boolean IDs are looked for in other files than the link's own: those of `org_id_search_archives`, `org_id_extra_files` and `org_id_locations_file`, the agenda files, the open ones and org-roam's. Off, an `id:` link leads only within its file. (`org-id-track-globally`)
+---@field org_id_search_archives? boolean IDs are looked for in the archive files of the agenda files too. (`org-id-search-archives`)
+---@field org_id_extra_files? string[] More files to look for IDs in: paths or glob patterns. (`org-id-extra-files`)
+---@field org_id_locations_file? string The file where Emacs keeps the files it found IDs in: org-lsp looks in them too, and never writes it. Names in it that are not absolute are relative to its directory. (`org-id-locations-file`)
+---@field org_id_completion_targets? org_lsp.RefileTarget[] The headlines an `id:` link completes to (`org.link.insert`), as `org_refile_targets` names them: by default every headline of the file and of the files with IDs. (`org-id-completion-targets`)
 ---@field org_id_link_to_org_use_id? true|false|'create-if-interactive'|'create-if-interactive-and-no-custom-id'|'use-existing' Whether `org.link.store` (`C-c l`) links to an entry by its ID: `true` makes one when the entry has none, `"create-if-interactive"` only from the command (not for capture's `%a`), `"create-if-interactive-and-no-custom-id"` likewise unless the entry has a `CUSTOM_ID`, `"use-existing"` only when it has one already. Off, the link searches for the headline. (`org-id-link-to-org-use-id`)
 ---@field org_link_context_for_files? boolean Links to a place in a file search for it (`file:notes.org::*Heading`); `C-u` turns it around for one link. (`org-link-context-for-files`)
 ---@field org_id_link_use_context? boolean ID links to a place below the entry's headline search for it as well (`id:…::name`). (`org-id-link-use-context`)
@@ -96,7 +101,7 @@
 ---@field org_time_stamp_rounding_minutes? integer The step in which the minutes of a timestamp change (the second number of Org's option). (`org-time-stamp-rounding-minutes`)
 ---@field org_read_date_prefer_future? true|false|'time' A date typed without a year or month is the next one to come. With `time`, a time that has passed today is tomorrow's. (`org-read-date-prefer-future`)
 ---@field org_read_date_force_compatible_dates? boolean A typed year is kept within 1970 to 2037. (`org-read-date-force-compatible-dates`)
----@field org_refile_targets? org_lsp.RefileTarget[] Where entries can be refiled to. Each entry has `files`: `current` (the entry's own file), `agenda`, a path or a list of paths; and one of `level`, `maxlevel`, `tag`, `todo`, `regexp` (the Rust `regex` crate's syntax) or `all` (true), which says which headlines there are targets. (`org-refile-targets`)
+---@field org_refile_targets? org_lsp.RefileTarget[] Where entries can be refiled to. Each entry has `files`: `current` (the entry's own file), `agenda`, `org-id-files` (the files with IDs), a path or a list of paths; and one of `level`, `maxlevel`, `tag`, `todo`, `regexp` (the Rust `regex` crate's syntax) or `all` (true), which says which headlines there are targets. (`org-refile-targets`)
 ---@field org_refile_use_outline_path? true|false|'file'|'full-file-path'|'title' Name targets by their outline path (`Projects/Alpha/`). The three names start the path with the file, and offer the file itself, for its top level. (`org-refile-use-outline-path`)
 ---@field org_refile_allow_creating_parent_nodes? true|false|'confirm' A target that is not there yet can be named after an existing one, `Projects/New`: it is made, as the last child of `Projects`, and the entry goes under it. `confirm` asks first. (`org-refile-allow-creating-parent-nodes`)
 ---@field org_refile_target_verify_function? string The name of an Emacs Lisp function that decides which headlines are refile targets: the server's Emacs calls it at the start of each, and keeps those it says yes to. Where it leaves the point, the search goes on: a function can skip a subtree. (`org-refile-target-verify-function`)
@@ -279,7 +284,7 @@
 ---@field org_agenda_custom_commands? org_lsp.AgendaCommand[] Commands of the agenda menu. Each has a `key` and a `description`, and either a `type` (`agenda`, `alltodo`, `todo`, `tags` or `tags-todo`) with a `match` (keywords such as `NEXT|WAIT` for `todo`, a match string such as `work-home` or `PRIORITY="A"` for `tags`), or `blocks`, a list of such views shown one after the other. `header` replaces a view's header (empty: none), and `settings` holds agenda options for the command or a block (`org_agenda_span`, `org_agenda_start_day` …). A command with only a key and a description groups the commands whose keys start with its key. (`org-agenda-custom-commands`)
 
 ---@class org_lsp.RefileTarget
----@field files? 'current'|'agenda'|string|string[] `current` (the entry's own file), `agenda`, a path or a list of paths
+---@field files? 'current'|'agenda'|'org-id-files'|string|string[] `current` (the entry's own file), `agenda`, `org-id-files` (the files with IDs), a path or a list of paths
 ---@field level? integer The headlines of this level
 ---@field maxlevel? integer The headlines up to this level
 ---@field tag? string The headlines with this tag

@@ -1132,6 +1132,29 @@ org_id_ts_format = "%Y%m%dT%H%M%S.%6N"
 # (org-id-include-domain)
 org_id_include_domain = false
 
+# IDs are looked for in other files than the link's own: those of
+# `org_id_search_archives`, `org_id_extra_files` and `org_id_locations_file`,
+# the agenda files, the open ones and org-roam's. Off, an `id:` link leads
+# only within its file. (org-id-track-globally)
+org_id_track_globally = true
+
+# IDs are looked for in the archive files of the agenda files too.
+# (org-id-search-archives)
+org_id_search_archives = true
+
+# More files to look for IDs in: paths or glob patterns. (org-id-extra-files)
+# org_id_extra_files = …  (unset: `org_agenda_text_search_extra_files`)
+
+# The file where Emacs keeps the files it found IDs in: org-lsp looks in them
+# too, and never writes it. Names in it that are not absolute are relative to
+# its directory. (org-id-locations-file)
+org_id_locations_file = "~/.emacs.d/.org-id-locations"
+
+# The headlines an `id:` link completes to (`org.link.insert`), as
+# `org_refile_targets` names them: by default every headline of the file and
+# of the files with IDs. (org-id-completion-targets)
+org_id_completion_targets = [{ files = "current", all = true }, { files = "org-id-files", all = true }]
+
 # Whether `org.link.store` (`C-c l`) links to an entry by its ID: `true` makes
 # one when the entry has none, `"create-if-interactive"` only from the command
 # (not for capture's `%a`), `"create-if-interactive-and-no-custom-id"`
@@ -1245,10 +1268,10 @@ org_read_date_prefer_future = true
 org_read_date_force_compatible_dates = true
 
 # Where entries can be refiled to. Each entry has `files`: `current` (the
-# entry's own file), `agenda`, a path or a list of paths; and one of `level`,
-# `maxlevel`, `tag`, `todo`, `regexp` (the Rust `regex` crate's syntax) or
-# `all` (true), which says which headlines there are targets.
-# (org-refile-targets)
+# entry's own file), `agenda`, `org-id-files` (the files with IDs), a path or
+# a list of paths; and one of `level`, `maxlevel`, `tag`, `todo`, `regexp`
+# (the Rust `regex` crate's syntax) or `all` (true), which says which
+# headlines there are targets. (org-refile-targets)
 org_refile_targets = [{ files = "current", level = 1 }]
 
 # Name targets by their outline path (`Projects/Alpha/`). The three names
@@ -2487,6 +2510,30 @@ org_agenda_custom_commands = []
   // domain. (org-id-include-domain)
   "org_id_include_domain": false,
 
+  // IDs are looked for in other files than the link's own: those of
+  // `org_id_search_archives`, `org_id_extra_files` and
+  // `org_id_locations_file`, the agenda files, the open ones and org-roam's.
+  // Off, an `id:` link leads only within its file. (org-id-track-globally)
+  "org_id_track_globally": true,
+
+  // IDs are looked for in the archive files of the agenda files too.
+  // (org-id-search-archives)
+  "org_id_search_archives": true,
+
+  // More files to look for IDs in: paths or glob patterns.
+  // (org-id-extra-files)
+  // "org_id_extra_files": unset: `org_agenda_text_search_extra_files`
+
+  // The file where Emacs keeps the files it found IDs in: org-lsp looks in
+  // them too, and never writes it. Names in it that are not absolute are
+  // relative to its directory. (org-id-locations-file)
+  "org_id_locations_file": "~/.emacs.d/.org-id-locations",
+
+  // The headlines an `id:` link completes to (`org.link.insert`), as
+  // `org_refile_targets` names them: by default every headline of the file
+  // and of the files with IDs. (org-id-completion-targets)
+  "org_id_completion_targets": [{ "files": "current", "all": true }, { "files": "org-id-files", "all": true }],
+
   // Whether `org.link.store` (`C-c l`) links to an entry by its ID: `true`
   // makes one when the entry has none, `"create-if-interactive"` only from
   // the command (not for capture's `%a`),
@@ -2603,10 +2650,10 @@ org_agenda_custom_commands = []
   "org_read_date_force_compatible_dates": true,
 
   // Where entries can be refiled to. Each entry has `files`: `current` (the
-  // entry's own file), `agenda`, a path or a list of paths; and one of
-  // `level`, `maxlevel`, `tag`, `todo`, `regexp` (the Rust `regex` crate's
-  // syntax) or `all` (true), which says which headlines there are targets.
-  // (org-refile-targets)
+  // entry's own file), `agenda`, `org-id-files` (the files with IDs), a path
+  // or a list of paths; and one of `level`, `maxlevel`, `tag`, `todo`,
+  // `regexp` (the Rust `regex` crate's syntax) or `all` (true), which says
+  // which headlines there are targets. (org-refile-targets)
   "org_refile_targets": [{ "files": "current", "level": 1 }],
 
   // Name targets by their outline path (`Projects/Alpha/`). The three names

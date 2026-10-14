@@ -953,6 +953,9 @@ struct Server {
     /// `org-refile-targets`, `org-refile-use-outline-path` and how a
     /// subtree is filed.
     refile: (Vec<RefileTarget>, OutlinePath, RefileSettings),
+    /// Where IDs are looked for, and what `id:` links complete to
+    /// (`org-id-completion-targets`).
+    id_lookup: (crate::config::IdLookup, Vec<RefileTarget>),
     /// How archiving goes, and `org-archive-default-command`.
     archive: (ArchiveSettings, String),
     /// `org-capture-templates`, `org-directory` and
@@ -1411,6 +1414,7 @@ pub fn run(connection: Connection) -> Result<()> {
         ids: (options.id_settings(), link::fqdn(&system_name())),
         read_date: options.read_date_settings(),
         refile: (options.refile_targets(), options.refile_outline_path(), options.refile_settings()),
+        id_lookup: (options.id_lookup(), options.id_completion_targets()),
         archive: (options.archive_settings(), options.archive_default_command().to_string()),
         capture_templates: options.capture_templates(),
         capture_contexts: config::contexts(options.capture_templates_contexts.as_deref()),
@@ -4220,7 +4224,7 @@ impl Server {
         let (target, offset) = match opened {
             Open::Here(offset) => (text.to_string(), *offset),
             Open::Id(id) => {
-                let (file, offset) = self.find_id(id)?;
+                let (file, offset) = self.find_id(id, Some(uri))?;
                 (self.file_text(&uri::to_path(&file)?)?.1, offset)
             }
             Open::File { path, search: Some(search), system: false } => {
@@ -4494,7 +4498,9 @@ impl Server {
                 Ok(Some(at(target, &text, offset)))
             }
             Open::Id(id) => {
-                let (target, offset) = self.find_id(id).ok_or_else(|| format!("Cannot find entry with ID \"{id}\""))?;
+                let (target, offset) = self
+                    .find_id(id, Some(uri))
+                    .ok_or_else(|| self.id_missing(format!("Cannot find entry with ID \"{id}\"")))?;
                 let (_, text) = self
                     .file_text(&uri::to_path(&target).ok_or("Cannot read the file")?)
                     .ok_or("Cannot read the file")?;
@@ -4516,17 +4522,45 @@ impl Server {
         expanded.as_str().map(str::to_string).ok_or_else(|| format!("Cannot expand the link {link}"))
     }
 
-    /// The files whose IDs Org knows: those open in the editor, then the
-    /// agenda files, then org-roam's files, which `org-roam-db-sync` puts
-    /// in `org-id-locations`.
+    /// The files whose IDs Org knows (`org-id-update-id-locations`): those
+    /// open in the editor, the agenda files and their archives
+    /// (`org-id-search-archives`), `org-id-extra-files`, the files of
+    /// Emacs's `org-id-locations-file`, then org-roam's files, which
+    /// `org-roam-db-sync` puts in `org-id-locations`. None without
+    /// `org-id-track-globally`.
     fn id_paths(&mut self) -> Vec<PathBuf> {
+        let lookup = self.id_lookup.0.clone();
+        if !lookup.track_globally {
+            return Vec::new();
+        }
         let mut paths: Vec<PathBuf> =
             self.documents.keys().filter_map(|key| uri::to_path(&key.parse().ok()?)).collect();
         paths.sort();
         // A file is the same reached through a link.
         let mut seen: HashSet<PathBuf> = paths.iter().map(|path| self.canonical(path)).collect();
-        let agenda = self.agenda_files().into_iter().filter_map(|(file, _)| uri::to_path(&file));
-        for path in agenda.chain(self.roam_paths()) {
+        let agenda: Vec<PathBuf> =
+            self.agenda_files().into_iter().filter_map(|(file, _)| uri::to_path(&file)).collect();
+        let open: HashMap<PathBuf, String> = self
+            .documents
+            .keys()
+            .filter_map(|key| Some((uri::to_path(&key.parse::<Uri>().ok()?)?, key.clone())))
+            .collect();
+        let mut more = agenda.clone();
+        // `agenda-archives' in `org-id-extra-files' is not a file name:
+        // Emacs drops it, and only `org-id-search-archives' adds archives.
+        if lookup.search_archives {
+            for path in &agenda {
+                more.extend(self.archives_of(path, &open));
+            }
+        }
+        for pattern in lookup.extra_files.iter().filter(|extra| *extra != "agenda-archives") {
+            more.extend(self.workspace.org_files(pattern));
+        }
+        if let Some(file) = &lookup.locations_file {
+            more.extend(id_location_files(file));
+        }
+        more.extend(self.roam_paths());
+        for path in more {
             if seen.insert(self.canonical(&path)) {
                 paths.push(path);
             }
@@ -4584,15 +4618,27 @@ impl Server {
     }
 
     /// `org-id-find`: the file and the headline of the entry with this
-    /// `ID`, in the files open in the editor, then in the agenda files.
-    fn find_id(&mut self, id: &str) -> Option<(Uri, usize)> {
-        for path in self.id_paths() {
+    /// `ID`, in `from` (the file of the link), then in the files IDs are
+    /// looked for in.
+    fn find_id(&mut self, id: &str, from: Option<&Uri>) -> Option<(Uri, usize)> {
+        let own = from.and_then(uri::to_path);
+        for path in own.into_iter().chain(self.id_paths()) {
             let Some((target, text)) = self.file_text(&path) else { continue };
             if let Some(offset) = open::find_id(&org_syntax::parse(&text, &self.todo), id) {
                 return Some((target, offset));
             }
         }
         None
+    }
+
+    /// The error when an `ID` is not found: without `org-id-track-globally`
+    /// Emacs refuses to look further than the file itself.
+    fn id_missing(&self, message: String) -> String {
+        if self.id_lookup.0.track_globally {
+            message
+        } else {
+            "Please turn on `org-id-track-globally' if you want to track IDs".to_string()
+        }
     }
 
     fn text_document_content(&mut self, params: &Value) -> Value {
@@ -7613,6 +7659,12 @@ impl Server {
                     .flat_map(|pattern| self.workspace.org_files(pattern))
                     .filter_map(|path| uri::from_path(&path))
                     .collect(),
+                RefileFiles::IdFiles => self
+                    .id_paths()
+                    .into_iter()
+                    .filter(|path| self.file_text(path).is_some_and(|(_, text)| link::has_ids(&text)))
+                    .filter_map(|path| uri::from_path(&path))
+                    .collect(),
             };
             let indexes = found.into_iter().map(|found| add(&mut uris, found)).collect();
             selections.push((target.select.clone(), indexes));
@@ -8091,7 +8143,9 @@ impl Server {
                 (running.uri, capture::Target::Heading(heading))
             }
             TargetSpec::Id(id) => {
-                let (uri, heading) = self.find_id(&id).ok_or_else(|| format!("Cannot find target ID \"{id}\""))?;
+                let (uri, heading) = self
+                    .find_id(&id, None)
+                    .ok_or_else(|| self.id_missing(format!("Cannot find target ID \"{id}\"")))?;
                 (uri, capture::Target::Heading(heading))
             }
             TargetSpec::Function { file, name } => {
@@ -8461,21 +8515,65 @@ impl Server {
             // `id:` link is being inserted.
             let wants_ids = answers.iter().any(|answer| answer == "id" || answer.starts_with("id:"))
                 || self.stored_links.first().is_some_and(|(link, _)| link.starts_with("id:"));
+            // The files of `org-id-completion-targets`, and those with IDs
+            // that descriptions are looked for in, by their index in
+            // `refile_files` (this file first).
             let mut others: Vec<(Uri, Option<i32>, String, org_syntax::Parse)> = Vec::new();
+            let mut selections: Vec<(refile::Select, Vec<usize>)> = Vec::new();
             if wants_ids {
-                let own = uri::to_path(&uri);
-                for path in self.id_paths() {
-                    if Some(&path) == own.as_ref() {
-                        continue;
+                let own = uri::to_path(&uri).map(|path| self.canonical(&path));
+                let mut index_of: HashMap<PathBuf, usize> = HashMap::new();
+                let mut load = |this: &mut Self, path: &Path, others: &mut Vec<_>, ids_only: bool| -> Option<usize> {
+                    let canonical = this.canonical(path);
+                    if own.as_ref() == Some(&canonical) {
+                        return Some(0);
                     }
-                    let Some((other, text)) = self.file_text(&path) else { continue };
-                    if link::has_ids(&text) {
-                        let version = self.document(&other).map(|document| document.version);
-                        let parse = org_syntax::parse(&text, &self.todo);
-                        others.push((other, version, text, parse));
+                    if let Some(index) = index_of.get(&canonical) {
+                        return Some(*index);
                     }
+                    let (other, text) = this.file_text(path)?;
+                    if ids_only && !link::has_ids(&text) {
+                        return None;
+                    }
+                    let version = this.document(&other).map(|document| document.version);
+                    let parse = org_syntax::parse(&text, &this.todo);
+                    others.push((other, version, text, parse));
+                    index_of.insert(canonical, others.len());
+                    Some(others.len())
+                };
+                let id_files: Vec<usize> = self
+                    .id_paths()
+                    .iter()
+                    .filter_map(|path| load(self, path, &mut others, true))
+                    .filter(|index| *index != 0)
+                    .collect();
+                for target in self.id_lookup.1.clone() {
+                    let indexes: Vec<usize> = match &target.files {
+                        RefileFiles::Current => vec![0],
+                        RefileFiles::IdFiles => id_files.clone(),
+                        RefileFiles::Agenda => self
+                            .agenda_files()
+                            .into_iter()
+                            .filter_map(|(file, _)| uri::to_path(&file))
+                            .filter_map(|path| load(self, &path, &mut others, false))
+                            .collect(),
+                        RefileFiles::Paths(patterns) => patterns
+                            .iter()
+                            .flat_map(|pattern| self.workspace.org_files(pattern))
+                            .collect::<Vec<_>>()
+                            .iter()
+                            .filter_map(|path| load(self, path, &mut others, false))
+                            .collect(),
+                    };
+                    selections.push((target.select.clone(), indexes));
                 }
             }
+            // `org-id-get-with-outline-path-completion`: the file's name
+            // first unless the first targets are the file itself.
+            let outline_path = match self.id_lookup.1.first() {
+                Some(RefileTarget { files: RefileFiles::Current, .. }) | None => OutlinePath::Yes,
+                Some(_) => OutlinePath::File,
+            };
             let parse = org_syntax::parse(&text, &self.todo);
             let keywords = parse.todo_keywords().clone();
             let names: Vec<String> =
@@ -8496,7 +8594,8 @@ impl Server {
                     title: None,
                 })
                 .collect();
-            let targets = if wants_ids { link::id_targets(&refile_files) } else { Vec::new() };
+            let targets =
+                if wants_ids { link::id_targets(&selections, &refile_files, outline_path) } else { Vec::new() };
             let entries = refile::names(&targets);
             let (edit_settings, category) = (self.edit_settings.clone(), uri::file_stem(&uri));
             let context = edit::property_context(&parse, &edit_settings, &category);
@@ -13871,6 +13970,21 @@ fn column_ranges(input: &str, count: usize) -> std::collections::BTreeSet<usize>
         out.extend(from.max(1)..=to.min(count));
     }
     out
+}
+
+/// The files Emacs's `org-id-locations-file` lists (`org-id-locations-load`):
+/// names relative to its directory, `~` the home directory.
+fn id_location_files(file: &Path) -> Vec<PathBuf> {
+    let Ok(text) = std::fs::read_to_string(file) else { return Vec::new() };
+    let directory = file.parent().unwrap_or(Path::new("."));
+    let home = std::env::var_os("HOME").map(PathBuf::from);
+    org_core::link::id_location_files(&text)
+        .into_iter()
+        .map(|name| match (name.strip_prefix("~/"), &home) {
+            (Some(rest), Some(home)) => home.join(rest),
+            _ => directory.join(name),
+        })
+        .collect()
 }
 
 /// The name of this machine (`system-name`).
