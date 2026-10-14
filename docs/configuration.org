@@ -1558,6 +1558,15 @@ org_bullets_mode = false
 # (org-bullets-bullet-list)
 org_bullets_bullet_list = ["◉", "○", "✸", "✿"]
 
+# What `org_bullets_mode` shows in place of the `-`, `+` or `*` of an item, as
+# org-bullets.nvim does; `false` leaves them as they are.
+org_bullets_list_bullet = "•"
+
+# What `org_bullets_mode` shows between the brackets of a checkbox, `[ ]`,
+# `[-]` and `[X]`, as org-bullets.nvim does; `false` leaves them as they are.
+# A state left out keeps its default.
+org_bullets_checkboxes = { done = "✓", half = "-", todo = "˟" }
+
 # Leave the code of source blocks as it is indented when re-indenting.
 # (org-src-preserve-indentation)
 org_src_preserve_indentation = false
@@ -3003,6 +3012,15 @@ org_agenda_custom_commands = []
   // The bullets of `org_bullets_mode`, one a level, repeating after the last.
   // (org-bullets-bullet-list)
   "org_bullets_bullet_list": ["◉", "○", "✸", "✿"],
+
+  // What `org_bullets_mode` shows in place of the `-`, `+` or `*` of an item,
+  // as org-bullets.nvim does; `false` leaves them as they are.
+  "org_bullets_list_bullet": "•",
+
+  // What `org_bullets_mode` shows between the brackets of a checkbox, `[ ]`,
+  // `[-]` and `[X]`, as org-bullets.nvim does; `false` leaves them as they
+  // are. A state left out keeps its default.
+  "org_bullets_checkboxes": { "done": "✓", "half": "-", "todo": "˟" },
 
   // Leave the code of source blocks as it is indented when re-indenting.
   // (org-src-preserve-indentation)

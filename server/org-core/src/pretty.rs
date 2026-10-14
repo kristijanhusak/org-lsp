@@ -321,35 +321,129 @@ mod tests {
     }
 }
 
+/// What org-bullets shows: the bullets of headlines by level
+/// (`org-bullets-bullet-list`), and, as org-bullets.nvim does, the one of
+/// unordered list items and the marks of checkboxes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Bullets {
+    pub headlines: Vec<String>,
+    /// In place of the `-`, `+` or `*` of an item.
+    pub list: Option<String>,
+    pub checkboxes: Option<Checkboxes>,
+}
+
+/// What shows inside the brackets of a checkbox, for each of its states.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Checkboxes {
+    pub todo: String,
+    pub half: String,
+    pub done: String,
+}
+
+/// What a bullet stands in for, whose look it takes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Bulleted {
+    /// The last star of a headline of this level.
+    Headline(usize),
+    Item,
+    /// The mark of a checkbox: ` `, `X` or `-`.
+    Checkbox(char),
+}
+
 /// org-bullets (`org-bullets-mode`): the last star of each line that
 /// starts with stars and a space (`^\\*+ `), shown as the bullet of its
-/// level, `bullets` repeating (`org-bullets-level-char`). The stars before
-/// it are hidden, which the caller does as `org-hide-leading-stars` does.
-pub fn bullets(text: &str, bullets: &[String]) -> Vec<(usize, usize, String)> {
+/// level, the headline bullets repeating (`org-bullets-level-char`). The
+/// stars before it are hidden, which the caller does as
+/// `org-hide-leading-stars` does. Then the bullets of unordered items and
+/// the marks of checkboxes, as org-bullets.nvim shows them.
+pub fn bullets(root: &org_syntax::SyntaxNode, text: &str, bullets: &Bullets) -> Vec<(usize, usize, String, Bulleted)> {
     let mut out = Vec::new();
-    if bullets.is_empty() {
+    if !bullets.headlines.is_empty() {
+        let mut start = 0;
+        for line in text.split_inclusive('\n') {
+            let stars = line.bytes().take_while(|byte| *byte == b'*').count();
+            if stars > 0 && line.as_bytes().get(stars) == Some(&b' ') {
+                let bullet = bullets.headlines[(stars - 1) % bullets.headlines.len()].clone();
+                out.push((start + stars - 1, start + stars, bullet, Bulleted::Headline(stars)));
+            }
+            start += line.len();
+        }
+    }
+    if bullets.list.is_none() && bullets.checkboxes.is_none() {
         return out;
     }
-    let mut start = 0;
-    for line in text.split_inclusive('\n') {
-        let stars = line.bytes().take_while(|byte| *byte == b'*').count();
-        if stars > 0 && line.as_bytes().get(stars) == Some(&b' ') {
-            out.push((start + stars - 1, start + stars, bullets[(stars - 1) % bullets.len()].clone()));
+    for token in root.descendants_with_tokens().filter_map(|element| element.into_token()) {
+        let (start, end) = (usize::from(token.text_range().start()), usize::from(token.text_range().end()));
+        match token.kind() {
+            org_syntax::SyntaxKind::BULLET => {
+                if let Some(list) = &bullets.list {
+                    if matches!(token.text(), "-" | "+" | "*") {
+                        out.push((start, end, list.clone(), Bulleted::Item));
+                    }
+                }
+            }
+            org_syntax::SyntaxKind::CHECKBOX => {
+                if let Some(checkboxes) = &bullets.checkboxes {
+                    let mark = token.text().chars().nth(1).unwrap_or(' ');
+                    let shown = match mark {
+                        'X' | 'x' => &checkboxes.done,
+                        '-' => &checkboxes.half,
+                        _ => &checkboxes.todo,
+                    };
+                    out.push((start + 1, end - 1, shown.clone(), Bulleted::Checkbox(mark.to_ascii_uppercase())));
+                }
+            }
+            _ => {}
         }
-        start += line.len();
     }
+    out.sort_by_key(|(start, end, _, _)| (*start, *end));
     out
 }
 
 #[cfg(test)]
 mod bullet_tests {
-    use super::bullets;
+    use super::{bullets, Bulleted, Bullets, Checkboxes};
+
+    fn shown(text: &str, settings: &Bullets) -> Vec<(usize, usize, String, Bulleted)> {
+        bullets(&org_syntax::parse(text, &Default::default()).syntax(), text, settings)
+    }
+
+    fn headlines() -> Vec<String> {
+        ["◉", "○", "✸", "✿"].iter().map(|bullet| bullet.to_string()).collect()
+    }
 
     #[test]
     fn shows_the_last_star_as_the_bullet_of_its_level() {
-        let list: Vec<String> = ["◉", "○", "✸", "✿"].iter().map(|bullet| bullet.to_string()).collect();
+        let only = Bullets { headlines: headlines(), list: None, checkboxes: None };
         let text = "* One\n** Two\n***** Five\n*not\n**\tTab\ntext * star\n";
-        assert_eq!(bullets(text, &list), [(0, 1, "◉".to_string()), (7, 8, "○".to_string()), (17, 18, "◉".to_string())]);
-        assert!(bullets(text, &[]).is_empty());
+        let at = |start, bullet: &str, level| (start, start + 1, bullet.to_string(), Bulleted::Headline(level));
+        assert_eq!(shown(text, &only), [at(0, "◉", 1), at(7, "○", 2), at(17, "◉", 5)]);
+        assert!(shown(text, &Bullets { headlines: Vec::new(), ..only }).is_empty());
+    }
+
+    #[test]
+    fn shows_unordered_bullets_and_checkbox_marks() {
+        let settings = Bullets {
+            headlines: Vec::new(),
+            list: Some("•".to_string()),
+            checkboxes: Some(Checkboxes { todo: "˟".to_string(), half: "~".to_string(), done: "✓".to_string() }),
+        };
+        let text = "- a\n  + [ ] b\n  * [x] c\n1. [-] d\n- [X]\n-not\n";
+        let item = |start| (start, start + 1, "•".to_string(), Bulleted::Item);
+        let mark = |start, shown: &str, mark| (start, start + 1, shown.to_string(), Bulleted::Checkbox(mark));
+        assert_eq!(
+            shown(text, &settings),
+            [
+                item(0),
+                item(6),
+                mark(9, "˟", ' '),
+                item(16),
+                mark(19, "✓", 'X'),
+                mark(28, "~", '-'),
+                item(33),
+                mark(36, "✓", 'X')
+            ]
+        );
+        assert!(shown(text, &Bullets { list: None, checkboxes: None, ..settings }).is_empty());
     }
 }

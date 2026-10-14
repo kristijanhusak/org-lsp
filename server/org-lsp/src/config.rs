@@ -349,6 +349,11 @@ pub struct Options {
     pub bullets_mode: Option<bool>,
     #[serde(rename = "org_bullets_bullet_list")]
     pub bullets_bullet_list: Option<Vec<String>>,
+    /// org-bullets.nvim's bullets of lists and marks of checkboxes.
+    #[serde(rename = "org_bullets_list_bullet")]
+    pub bullets_list_bullet: Option<serde_json::Value>,
+    #[serde(rename = "org_bullets_checkboxes")]
+    pub bullets_checkboxes: Option<serde_json::Value>,
     /// `org-edit-src-content-indentation`
     #[serde(rename = "org_edit_src_content_indentation")]
     pub edit_src_content_indentation: Option<i64>,
@@ -1572,13 +1577,36 @@ impl Options {
         }
     }
 
-    /// The bullets of org-bullets, when it is on.
-    pub fn bullets(&self) -> Option<Vec<String>> {
+    /// What org-bullets shows, when it is on: the bullets of headlines,
+    /// and, unless `false`, those of list items and the marks of
+    /// checkboxes.
+    pub fn bullets(&self) -> Option<org_core::pretty::Bullets> {
         if self.bullets_mode != Some(true) {
             return None;
         }
-        let defaults = || ["◉", "○", "✸", "✿"].iter().map(|bullet| bullet.to_string()).collect();
-        Some(self.bullets_bullet_list.clone().unwrap_or_else(defaults))
+        let headlines = || ["◉", "○", "✸", "✿"].iter().map(|bullet| bullet.to_string()).collect();
+        let list = match &self.bullets_list_bullet {
+            Some(serde_json::Value::String(bullet)) => Some(bullet.clone()),
+            Some(serde_json::Value::Bool(false)) => None,
+            _ => Some("•".to_string()),
+        };
+        let mark = |name: &str, default: &str| {
+            let given = self.bullets_checkboxes.as_ref().and_then(|marks| marks.get(name));
+            given.and_then(serde_json::Value::as_str).unwrap_or(default).to_string()
+        };
+        let checkboxes = match &self.bullets_checkboxes {
+            Some(serde_json::Value::Bool(false)) => None,
+            _ => Some(org_core::pretty::Checkboxes {
+                todo: mark("todo", "˟"),
+                half: mark("half", "-"),
+                done: mark("done", "✓"),
+            }),
+        };
+        Some(org_core::pretty::Bullets {
+            headlines: self.bullets_bullet_list.clone().unwrap_or_else(headlines),
+            list,
+            checkboxes,
+        })
     }
 
     /// `org-adapt-indentation`
