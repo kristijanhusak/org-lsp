@@ -390,7 +390,10 @@ pub fn bullets(root: &org_syntax::SyntaxNode, text: &str, bullets: &Bullets) -> 
                         '-' => &checkboxes.half,
                         _ => &checkboxes.todo,
                     };
-                    out.push((start + 1, end - 1, shown.clone(), Bulleted::Checkbox(mark.to_ascii_uppercase())));
+                    // A mark shown as it is (`[ ]` empty) needs nothing.
+                    if *shown != token.text()[1..2] {
+                        out.push((start + 1, end - 1, shown.clone(), Bulleted::Checkbox(mark.to_ascii_uppercase())));
+                    }
                 }
             }
             _ => {}
@@ -444,6 +447,10 @@ mod bullet_tests {
                 mark(36, "✓", 'X')
             ]
         );
+        // A mark shown as it is stands in for nothing.
+        let empty = Checkboxes { todo: " ".to_string(), half: "-".to_string(), done: "✓".to_string() };
+        let marks = Bullets { list: None, checkboxes: Some(empty), ..settings.clone() };
+        assert_eq!(shown(text, &marks), [mark(19, "✓", 'X'), mark(36, "✓", 'X')]);
         assert!(shown(text, &Bullets { list: None, checkboxes: None, ..settings }).is_empty());
     }
 }

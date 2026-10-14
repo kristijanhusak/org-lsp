@@ -126,7 +126,7 @@ export const AREAS = [
       { text: 'With `org_pretty_entities = true`, `\\alpha` shows as `α`', not: ['vim', 'sublime', 'zed'] },
       { text: 'With `org_bullets_mode = true`, `** Two` shows as `○ Two`, its first star hidden', not: ['vim', 'sublime', 'zed'] },
       { text: 'With `org_bullets_mode = true`, a level 1 bullet has the color of a level 1 headline', only: ['neovim'] },
-      { text: 'With `org_bullets_mode = true`, `- [X] a` shows as `• [✓] a` and `- [ ] b` as `• [˟] b`', not: ['vim', 'sublime', 'zed'] },
+      { text: 'With `org_bullets_mode = true`, `- [X] a` shows as `• [✓] a` and `- [ ] b` as `• [ ] b`', not: ['vim', 'sublime', 'zed'] },
       { text: 'On the cursor\'s line `\\alpha` shows as typed, without `α` beside it; typing or deleting one leaves nothing behind', only: ['neovim', 'vscode'] },
       { text: 'With `org_pretty_entities = true`, `x^2` shows as `x²` and `H_{2}O` as `H₂O`', not: ['vim', 'sublime', 'zed'] },
       { text: 'Timestamps, `SCHEDULED:` and `DEADLINE:`, `CLOCK:` lines, drawers, `#+` keywords and `#` comments are colored' },

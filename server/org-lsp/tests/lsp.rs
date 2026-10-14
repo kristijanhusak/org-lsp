@@ -851,8 +851,7 @@ fn shows_headline_stars_as_bullets() {
             [3, 0, 3, 1, "•", "bullet"],
             [3, 3, 3, 4, "✓", "checkbox.checked"],
             [4, 2, 4, 3, "•", "bullet"],
-            [4, 5, 4, 6, "~", "checkbox.partial"],
-            [5, 4, 5, 5, "˟", "checkbox"]
+            [4, 5, 4, 6, "~", "checkbox.partial"]
         ])
     );
     client.shutdown();

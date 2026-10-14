@@ -31,7 +31,7 @@ its sections says what it should look like.
 - [ ] With ~org_pretty_entities = true~, ~\alpha~ shows as ~α~
 - [ ] With ~org_bullets_mode = true~, ~** Two~ shows as ~○ Two~, its first star hidden
 - [ ] With ~org_bullets_mode = true~, a level 1 bullet has the color of a level 1 headline
-- [ ] With ~org_bullets_mode = true~, ~- [X] a~ shows as ~• [✓] a~ and ~- [ ] b~ as ~• [˟] b~
+- [ ] With ~org_bullets_mode = true~, ~- [X] a~ shows as ~• [✓] a~ and ~- [ ] b~ as ~• [ ] b~
 - [ ] On the cursor's line ~\alpha~ shows as typed, without ~α~ beside it; typing or deleting one leaves nothing behind
 - [ ] With ~org_pretty_entities = true~, ~x^2~ shows as ~x²~ and ~H_{2}O~ as ~H₂O~
 - [ ] Timestamps, ~SCHEDULED:~ and ~DEADLINE:~, ~CLOCK:~ lines, drawers, ~#+~ keywords and ~#~ comments are colored

@@ -1289,7 +1289,7 @@ pub const SETTINGS: &[Setting] = &[
     setting(
         "org_bullets_checkboxes",
         "false, or { todo, half, done }",
-        r#"{ "todo": "˟", "half": "-", "done": "✓" }"#,
+        r#"{ "todo": " ", "half": "-", "done": "✓" }"#,
         "",
         "What `org_bullets_mode` shows between the brackets of a checkbox, `[ ]`, `[-]` and `[X]`, as \
          org-bullets.nvim does; `false` leaves them as they are. A state left out keeps its default.",
