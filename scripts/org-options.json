@@ -734,7 +734,7 @@
   "org-startup-with-link-previews": "setting",
   "org-startup-with-latex-preview": "setting",
   "org-insert-mode-line-in-empty-file": "emacs-only",
-  "org-ellipsis": "missing",
+  "org-ellipsis": "setting",
   "org-directory": "setting",
   "org-default-notes-file": "setting",
   "org-reverse-note-order": "setting",

@@ -1263,6 +1263,18 @@ pub const SETTINGS: &[Setting] = &[
         "Hide all the stars of a headline but the last; they keep their place. `#+STARTUP: hidestars` and \
          `showstars` decide for a file.",
     ),
+    Setting {
+        default: None,
+        unset: "the standard three dots, `...`",
+        ..setting(
+            "org_ellipsis",
+            "string",
+            "",
+            "org-ellipsis",
+            "What a closed fold shows after its first line, such as `\" ▾\"`, in the highlight group \
+             `OrgLspEllipsis` (Neovim). Editors that can show it: Neovim and Vim.",
+        )
+    },
     setting(
         "org_bullets_mode",
         "boolean",
@@ -2807,6 +2819,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_startup_with_latex_preview", BOOLEAN),
     ("org_startup_indented", BOOLEAN),
     ("org_hide_leading_stars", BOOLEAN),
+    ("org_ellipsis", STRING),
     ("org_bullets_mode", BOOLEAN),
     ("org_bullets_bullet_list", r#"{ "type": "array", "items": { "type": "string" }, "minItems": 1 }"#),
     ("org_bullets_list_bullet", r#"{ "anyOf": [{ "const": false }, { "type": "string" }] }"#),

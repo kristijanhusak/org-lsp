@@ -87,6 +87,9 @@ function! s:folds() abort
   call cursor(2, 1)
   call org_lsp#cycle()
   call assert_equal(2, foldclosed(2))
+  " The closed fold shows its headline, then `org-ellipsis`.
+  call assert_equal('org_lsp#foldtext()', &l:foldtext)
+  call s:until('the ellipsis', {-> foldtextresult(2) ==# getline(2) . '...'})
   call org_lsp#cycle()
   call assert_equal(-1, foldclosed(2))
   call assert_equal(-1, foldclosed(3))

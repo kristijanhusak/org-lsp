@@ -3007,6 +3007,10 @@
               "markdownDescription": "Hide all the stars of a headline but the last; they keep their place. `#+STARTUP: hidestars` and `showstars` decide for a file. (`org-hide-leading-stars`)",
               "default": false
             },
+            "org_ellipsis": {
+              "type": "string",
+              "markdownDescription": "What a closed fold shows after its first line, such as `\" ▾\"`, in the highlight group `OrgLspEllipsis` (Neovim). Editors that can show it: Neovim and Vim. (`org-ellipsis`)"
+            },
             "org_bullets_mode": {
               "type": "boolean",
               "markdownDescription": "org-bullets: the last star of each headline shows as a bullet, those of `org_bullets_bullet_list` by level, and the stars before it are hidden, as with `org_hide_leading_stars`. (`org-bullets-mode`)",

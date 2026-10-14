@@ -1549,6 +1549,11 @@ org_startup_indented = false
 # (org-hide-leading-stars)
 org_hide_leading_stars = false
 
+# What a closed fold shows after its first line, such as `" ▾"`, in the
+# highlight group `OrgLspEllipsis` (Neovim). Editors that can show it: Neovim
+# and Vim. (org-ellipsis)
+# org_ellipsis = …  (unset: the standard three dots, `...`)
+
 # org-bullets: the last star of each headline shows as a bullet, those of
 # `org_bullets_bullet_list` by level, and the stars before it are hidden, as
 # with `org_hide_leading_stars`. (org-bullets-mode)
@@ -3003,6 +3008,11 @@ org_agenda_custom_commands = []
   // `#+STARTUP: hidestars` and `showstars` decide for a file.
   // (org-hide-leading-stars)
   "org_hide_leading_stars": false,
+
+  // What a closed fold shows after its first line, such as `" ▾"`, in the
+  // highlight group `OrgLspEllipsis` (Neovim). Editors that can show it:
+  // Neovim and Vim. (org-ellipsis)
+  // "org_ellipsis": unset: the standard three dots, `...`
 
   // org-bullets: the last star of each headline shows as a bullet, those of
   // `org_bullets_bullet_list` by level, and the stars before it are hidden,

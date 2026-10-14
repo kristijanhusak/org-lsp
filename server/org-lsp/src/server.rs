@@ -653,6 +653,9 @@ pub const FACES: &str = "org-lsp/faces";
 /// The journal's directory, as `capabilities.experimental.orgJournal` has
 /// it, for clients that cannot read the `initialize` result.
 pub const JOURNAL: &str = "org-lsp/journal";
+/// What a closed fold shows after its first line (`org-ellipsis`), as
+/// `capabilities.experimental.orgEllipsis` has it.
+pub const ELLIPSIS: &str = "org-lsp/ellipsis";
 /// Images to show in place of text, or to take away: what
 /// `org.latex.preview` made, once Emacs has made it. `{ "kind": "latex",
 /// "uri", "scope", "range", "remove", "items": [{ "range", "path" }] }`, as
@@ -1166,6 +1169,8 @@ struct Server {
     roam: Option<roam::Roam>,
     /// org-journal, when it is on.
     journal: Option<crate::config::JournalSettings>,
+    /// `org-ellipsis`
+    ellipsis: String,
     /// What a journal command that asked for a date in the calendar goes
     /// on with: its id and its context so far.
     journal_state: Option<(String, Value)>,
@@ -1337,6 +1342,7 @@ pub fn run(connection: Connection) -> Result<()> {
             client.standard_tokens,
             &faces,
             options.journal().as_ref(),
+            &options.ellipsis(),
         ),
         server_info: Some(ServerInfo {
             name: "org-lsp".to_string(),
@@ -1527,6 +1533,7 @@ pub fn run(connection: Connection) -> Result<()> {
         staging: None,
         roam: options.roam().map(roam::Roam::new),
         journal: options.journal(),
+        ellipsis: options.ellipsis(),
         journal_state: None,
         journal_views: Private::new("journal"),
         clock_display: HashMap::new(),
@@ -2149,6 +2156,7 @@ fn capabilities(
     standard_tokens: bool,
     faces: &Value,
     journal: Option<&crate::config::JournalSettings>,
+    ellipsis: &str,
 ) -> ServerCapabilities {
     // `orgJournal`: the journal's directory, whose files are Org files
     // without the name saying so (`org-journal-is-journal`).
@@ -2213,8 +2221,14 @@ fn capabilities(
         inlay_hint_provider: inlay_hints.then_some(OneOf::Left(true)),
         document_highlight_provider: cursor.then_some(OneOf::Left(true)),
         // `orgFaces`: the faces of particular keywords and priorities
-        // (see `org-lsp/faces`).
-        experimental: Some(json!({ "org": manifest::manifest(), "orgFaces": faces, "orgJournal": journal })),
+        // (see `org-lsp/faces`); `orgEllipsis`, what closed folds show
+        // after their first line (see `org-lsp/ellipsis`).
+        experimental: Some(json!({
+            "org": manifest::manifest(),
+            "orgFaces": faces,
+            "orgJournal": journal,
+            "orgEllipsis": ellipsis,
+        })),
         ..Default::default()
     }
 }
@@ -2719,6 +2733,7 @@ impl Server {
                     },
                     FACES => Response::new_ok(request.id, self.faces.clone()),
                     JOURNAL => Response::new_ok(request.id, journal_directory(self.journal.as_ref())),
+                    ELLIPSIS => Response::new_ok(request.id, &self.ellipsis),
                     PREVIEW => match parameters::<Value>(request) {
                         Ok((id, params)) => respond(id, self.preview(&params)),
                         Err(response) => *response,

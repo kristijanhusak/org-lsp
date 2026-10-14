@@ -2837,3 +2837,18 @@ fn refuses_requests_after_shutdown() {
     client.notify::<lsp_types::notification::Exit>(());
     client.server.take().unwrap().join().expect("the server ends cleanly");
 }
+
+/// `org-ellipsis`: what closed folds show after their first line, in the
+/// initialize result and on request; the standard three dots unless it is
+/// a string that is not empty.
+#[test]
+fn announces_the_ellipsis() {
+    for (setting, shown) in [(json!(null), "..."), (json!(""), "..."), (json!(" ▾"), " ▾")] {
+        let mut client = Client::start(json!({}), json!({ "org_ellipsis": setting }));
+        let experimental = client.initialize.capabilities.experimental.clone().unwrap();
+        assert_eq!(experimental["orgEllipsis"], json!(shown));
+        let response = client.raw_request("org-lsp/ellipsis", Value::Null);
+        assert_eq!(response.response_result.ok(), Some(json!(shown)));
+        client.shutdown();
+    }
+}

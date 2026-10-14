@@ -344,6 +344,9 @@ pub struct Options {
     /// `org-hide-leading-stars`
     #[serde(rename = "org_hide_leading_stars")]
     pub hide_leading_stars: Option<bool>,
+    /// `org-ellipsis`
+    #[serde(rename = "org_ellipsis")]
+    pub ellipsis: Option<String>,
     /// org-bullets: `org-bullets-mode` and `org-bullets-bullet-list`.
     #[serde(rename = "org_bullets_mode")]
     pub bullets_mode: Option<bool>,
@@ -1575,6 +1578,12 @@ impl Options {
             hide_leading_stars: self.hide_leading_stars.unwrap_or(false),
             bullets: self.bullets().is_some(),
         }
+    }
+
+    /// What a folded heading shows after its text (`org-ellipsis`): the
+    /// string when it is one and not empty, else the standard three dots.
+    pub fn ellipsis(&self) -> String {
+        self.ellipsis.clone().filter(|ellipsis| !ellipsis.is_empty()).unwrap_or_else(|| "...".to_string())
     }
 
     /// What org-bullets shows, when it is on: the bullets of headlines,

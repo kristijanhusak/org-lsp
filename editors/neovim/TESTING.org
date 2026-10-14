@@ -46,6 +46,7 @@ its sections says what it should look like.
 *Partly:* Cycling the whole file goes between overview and everything: it has no contents state, which needs folds of a headline's own text that Neovim's fold levels do not make.
 
 - [ ] On a headline, cycling goes folded → children → subtree: ~<Tab>~
+- [ ] A folded headline shows as it does open, followed by ~...~; with ~org_ellipsis = " ▾"~, by ~ ▾~
 - [ ] Cycling the whole file goes overview → everything: ~<S-Tab>~
 - [ ] A file with ~#+STARTUP: overview~ opens folded; with ~content~ its headlines show, those without children folded, and its drawers folded
 - [ ] A subtree with ~:VISIBILITY: children~ opens with its children folded, one with ~all~ open
