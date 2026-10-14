@@ -3315,6 +3315,11 @@
               "markdownDescription": "Start the agenda with the clock report under it (`R` toggles it). (`org-agenda-start-with-clockreport-mode`)",
               "default": false
             },
+            "org_agenda_clockreport_parameter_plist": {
+              "type": "string",
+              "markdownDescription": "The parameters of the clock report's table, as those of a clock table block (`:maxlevel 3 :tags t`); `:block`, `:tstart`, `:tend` and `:scope` are the agenda's. (`org-agenda-clockreport-parameter-plist`)",
+              "default": ":link t :maxlevel 2"
+            },
             "org_agenda_clock_report_header": {
               "type": "string",
               "markdownDescription": "Text on a line of its own (or lines) before the clock report. (`org-agenda-clock-report-header`)"

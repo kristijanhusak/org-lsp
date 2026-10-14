@@ -1,0 +1,10 @@
+Day-agenda (W41):
+Wednesday   7 October 2026
+| File     | Tags   | Headline                   | Time   |        |      |
+|----------+--------+----------------------------+--------+--------+------|
+|          | ALL    | *Total time*               | *1:00* |        |      |
+|----------+--------+----------------------------+--------+--------+------|
+| work.org |        | *File time*                | *1:00* |        |      |
+|          | office | *Write the report [1/2]*   | *1:00* |        |      |
+|          | office | \_  /Outline the sections/ |        | /1:00/ |      |
+|          | office | \_    A third level        |        |        | 1:00 |

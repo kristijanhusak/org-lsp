@@ -1374,6 +1374,14 @@ pub const SETTINGS: &[Setting] = &[
         "org-agenda-start-with-clockreport-mode",
         "Start the agenda with the clock report under it (`R` toggles it).",
     ),
+    setting(
+        "org_agenda_clockreport_parameter_plist",
+        "string",
+        r#"":link t :maxlevel 2""#,
+        "org-agenda-clockreport-parameter-plist",
+        "The parameters of the clock report's table, as those of a clock table block (`:maxlevel 3 :tags t`); \
+         `:block`, `:tstart`, `:tend` and `:scope` are the agenda's.",
+    ),
     Setting {
         default: None,
         unset: "none",
@@ -2398,6 +2406,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_agenda_start_day", STRING),
     ("org_agenda_start_with_log_mode", BOOLEAN),
     ("org_agenda_start_with_clockreport_mode", BOOLEAN),
+    ("org_agenda_clockreport_parameter_plist", STRING),
     ("org_agenda_clock_report_header", STRING),
     ("org_agenda_start_with_archives_mode", r#"{ "enum": ["trees", "files", false] }"#),
     ("org_agenda_log_mode_items", r#"{ "type": "array", "items": { "enum": ["closed", "clock", "state"] } }"#),

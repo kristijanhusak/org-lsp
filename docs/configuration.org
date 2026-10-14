@@ -1608,6 +1608,11 @@ org_agenda_start_with_log_mode = false
 # (org-agenda-start-with-clockreport-mode)
 org_agenda_start_with_clockreport_mode = false
 
+# The parameters of the clock report's table, as those of a clock table block
+# (`:maxlevel 3 :tags t`); `:block`, `:tstart`, `:tend` and `:scope` are the
+# agenda's. (org-agenda-clockreport-parameter-plist)
+org_agenda_clockreport_parameter_plist = ":link t :maxlevel 2"
+
 # Text on a line of its own (or lines) before the clock report.
 # (org-agenda-clock-report-header)
 # org_agenda_clock_report_header = …  (unset: none)
@@ -2801,6 +2806,11 @@ org_agenda_custom_commands = []
   // Start the agenda with the clock report under it (`R` toggles it).
   // (org-agenda-start-with-clockreport-mode)
   "org_agenda_start_with_clockreport_mode": false,
+
+  // The parameters of the clock report's table, as those of a clock table
+  // block (`:maxlevel 3 :tags t`); `:block`, `:tstart`, `:tend` and `:scope`
+  // are the agenda's. (org-agenda-clockreport-parameter-plist)
+  "org_agenda_clockreport_parameter_plist": ":link t :maxlevel 2",
 
   // Text on a line of its own (or lines) before the clock report.
   // (org-agenda-clock-report-header)
