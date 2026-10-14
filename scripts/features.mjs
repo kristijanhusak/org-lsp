@@ -403,7 +403,7 @@ export const AREAS = [
       ['Filters by tag, category, effort, regexp and top headline', true],
       ['Bulk marks and actions', true],
       ['Follow mode and entry text', true],
-      ['Log mode, with or without notes (`org-agenda-log-mode-add-notes`), and the clock report, with a header (`org-agenda-clock-report-header`)', true],
+      ['Log mode, with or without notes (`org-agenda-log-mode-add-notes`), and the clock report, with a header (`org-agenda-clock-report-header`) and any clock table parameters (`org-agenda-clockreport-parameter-plist`)', true],
       ['Priority cookies highlighted, or the rest of their lines, the highest in bold and the lowest in italic (`org-agenda-fontify-priorities`)', true],
       ['Archives mode', true],
       ['Inactive timestamps in the agenda once (`[`, `v [`: `org-agenda-include-inactive-timestamps`)', true],

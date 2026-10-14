@@ -733,10 +733,6 @@ fn block_lines(
         rendered.extend(view.lines.into_iter().map(|line| (number, line)));
         // `org-agenda-clockreport-mode`: the clock table for the days shown.
         if config.clockreport && agenda {
-            let named: Vec<(&Outline, &str, &str)> = files[..agenda_count]
-                .iter()
-                .map(|(outline, path, name)| (*outline, path.as_str(), name.as_str()))
-                .collect();
             // `org-agenda-clock-report-header`, ending its last line.
             if let Some(header) = &config.clock_report_header {
                 let header = header.strip_suffix('\n').unwrap_or(header);
@@ -745,12 +741,44 @@ fn block_lines(
                         .push((number, agenda::Line { text: text.to_string(), kind: LineKind::Header, item: None }));
                 }
             }
-            for text in agenda::report::clock_table(&named, start, end) {
-                rendered.push((number, agenda::Line { text, kind: LineKind::Table, item: None }));
+            // `org-clock-get-clocktable`, with
+            // `org-agenda-clockreport-parameter-plist`.
+            let report = AgendaFiles(&files[..agenda_count]);
+            let settings = org_core::clocktable::Settings {
+                now: org_core::date::DateTime::new(org_core::date::Date::from_day(now.today), 0, now.minute),
+                ..config.clocktable.clone()
+            };
+            let context = org_core::clocktable::Context { path: None, settings: &settings, files: &report };
+            match org_core::clocktable::agenda_report(&config.clockreport_parameters, start, end, &context) {
+                Ok(table) => {
+                    rendered.extend(table.lines().map(|text| {
+                        (number, agenda::Line { text: text.to_string(), kind: LineKind::Table, item: None })
+                    }))
+                }
+                Err(error) => {
+                    rendered.push((number, agenda::Line { text: error, kind: LineKind::Header, item: None }));
+                }
             }
         }
     }
     (rendered, starts)
+}
+
+/// The agenda files, for the clock report.
+struct AgendaFiles<'a>(&'a [(&'a Outline, String, String)]);
+
+impl org_core::clocktable::Files for AgendaFiles<'_> {
+    fn agenda_files(&self) -> Vec<String> {
+        self.0.iter().map(|(_, path, _)| path.clone()).collect()
+    }
+
+    fn archive_files(&self, _: &str, _: &str) -> Vec<String> {
+        Vec::new()
+    }
+
+    fn read(&self, path: &str) -> Option<String> {
+        self.0.iter().find(|(_, other, _)| other == path).map(|(outline, _, _)| outline.text.clone())
+    }
 }
 
 impl View {

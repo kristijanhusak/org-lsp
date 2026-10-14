@@ -325,6 +325,10 @@ pub struct Config {
     pub clockreport: bool,
     /// `org-agenda-clock-report-header`: text before the clock report.
     pub clock_report_header: Option<String>,
+    /// `org-agenda-clockreport-parameter-plist`, as the text of a plist.
+    pub clockreport_parameters: String,
+    /// How the clock report is written (the time comes from the view).
+    pub clocktable: crate::clocktable::Settings,
     /// `org-agenda-block-separator`: the lines between this block and
     /// the one before it, in a block agenda; none with `None`.
     pub block_separator: Option<String>,
@@ -536,6 +540,8 @@ impl Default for Config {
             log_items: LogItems::default(),
             clockreport: false,
             clock_report_header: None,
+            clockreport_parameters: ":link t :maxlevel 2".to_string(),
+            clocktable: crate::clocktable::Settings::default(),
             block_separator: Some(default_separator()),
             compact_blocks: false,
             hide_empty_blocks: false,

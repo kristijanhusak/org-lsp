@@ -1128,6 +1128,12 @@ impl Options {
             tag_persistent_alist: tags.persistent,
             group_tags: self.group_tags.unwrap_or(true),
             extend_today_until: self.extend_today_until.unwrap_or(0),
+            clocktable: org_core::clocktable::Settings {
+                extend_today_until: self.extend_today_until.unwrap_or(0),
+                keywords: self.todo_keywords(),
+                inheritance: self.inheritance(),
+                ..self.clocktable_settings()
+            },
             ..agenda
         }
     }
@@ -1985,6 +1991,9 @@ pub struct AgendaOptions {
     pub log_mode_add_notes: Option<bool>,
     #[serde(rename = "org_agenda_clock_report_header")]
     pub clock_report_header: Option<String>,
+    /// The text of a plist (`:link t :maxlevel 2`).
+    #[serde(rename = "org_agenda_clockreport_parameter_plist")]
+    pub clockreport_parameter_plist: Option<String>,
     #[serde(rename = "org_agenda_time_leading_zero")]
     pub time_leading_zero: Option<bool>,
     #[serde(rename = "org_agenda_timegrid_use_ampm")]
@@ -2334,6 +2343,9 @@ impl AgendaOptions {
                 serde_json::Value::String(symbol) if symbol == "cookies" => FontifyPriorities::Cookies,
                 _ => FontifyPriorities::Lines,
             };
+        }
+        if let Some(plist) = &self.clockreport_parameter_plist {
+            config.clockreport_parameters = plist.clone();
         }
         if self.clock_report_header.is_some() {
             config.clock_report_header = self.clock_report_header.clone();

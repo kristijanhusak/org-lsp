@@ -167,6 +167,7 @@
 ---@field org_agenda_weekend_days? integer[] The days drawn as the weekend (0 is Sunday). (`org-agenda-weekend-days`)
 ---@field org_agenda_start_with_log_mode? boolean Start the agenda in log mode, which shows what was closed and clocked each day (`l` toggles it). (`org-agenda-start-with-log-mode`)
 ---@field org_agenda_start_with_clockreport_mode? boolean Start the agenda with the clock report under it (`R` toggles it). (`org-agenda-start-with-clockreport-mode`)
+---@field org_agenda_clockreport_parameter_plist? string The parameters of the clock report's table, as those of a clock table block (`:maxlevel 3 :tags t`); `:block`, `:tstart`, `:tend` and `:scope` are the agenda's. (`org-agenda-clockreport-parameter-plist`)
 ---@field org_agenda_clock_report_header? string Text on a line of its own (or lines) before the clock report. (`org-agenda-clock-report-header`)
 ---@field org_agenda_start_with_archives_mode? 'trees'|'files'|false Start the agenda with entries in archived trees (`trees`; `v a` toggles it), or those and the files the agenda files archive to (`files`; `v A`). (`org-agenda-start-with-archives-mode`)
 ---@field org_agenda_log_mode_items? ('closed'|'clock'|'state')[] What log mode shows: `closed` entries, `clock` lines and `state` changes. (`org-agenda-log-mode-items`)

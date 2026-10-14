@@ -1,0 +1,5 @@
+* TODO Water plants
+:LOGBOOK:
+CLOCK: [2026-10-05 Mon 07:00]--[2026-10-05 Mon 07:20] =>  0:20
+:END:
+* Nothing here

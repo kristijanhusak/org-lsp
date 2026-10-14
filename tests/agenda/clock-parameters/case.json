@@ -1,0 +1,21 @@
+{
+  "today": "2026-10-05",
+  "now": "10:30",
+  "runs": [
+    {
+      "view": "agenda",
+      "span": "week",
+      "clockreport": true
+    },
+    {
+      "view": "agenda",
+      "span": "day",
+      "start": "2026-10-07",
+      "clockreport": true
+    }
+  ],
+  "options": {
+    "org_agenda_clockreport_parameter_plist": ":maxlevel 3 :fileskip0 t :tags t :block thismonth :emphasize t"
+  },
+  "emacs": "(setq org-agenda-clockreport-parameter-plist '(:maxlevel 3 :fileskip0 t :tags t :block thismonth :emphasize t))"
+}

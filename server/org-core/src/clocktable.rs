@@ -23,7 +23,7 @@ use crate::timestr::parse_time_string;
 use crate::todo::headline_level;
 
 /// What the clock tables need to know beyond the file.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Settings {
     pub now: DateTime,
     /// `org-extend-today-until`
@@ -393,6 +393,18 @@ impl Plist {
         self.put(Lisp::Symbol(format!(":{key}")), value);
     }
 
+    /// `org-plist-delete`
+    fn delete(&mut self, key: &str) {
+        let key = format!(":{key}");
+        self.0.retain(|(other, _)| other.symbol() != Some(&key));
+    }
+
+    /// `plist-member`
+    fn member(&self, key: &str) -> bool {
+        let key = format!(":{key}");
+        self.0.iter().any(|(other, _)| other.symbol() == Some(&key))
+    }
+
     fn combine(&self, other: &Plist) -> Plist {
         let mut out = self.clone();
         for (key, value) in &other.0 {
@@ -725,6 +737,30 @@ fn create_block(text: &str, point: usize, plist: &Plist) -> (String, usize) {
     text.insert_str(point, &block);
     let begin = line_start(&text, point);
     (text, begin)
+}
+
+/// The clock report of the agenda (`org-agenda-clockreport-mode`): the
+/// table `org-clock-get-clocktable` makes of `parameters`
+/// (`org-agenda-clockreport-parameter-plist`, as text) for the agenda
+/// files and the days `[start, end)`, without its first line.
+pub fn agenda_report(parameters: &str, start: Day, end: Day, context: &Context) -> Result<String, String> {
+    let mut plist = Plist::read(parameters)?;
+    plist.delete("block");
+    plist.set("tstart", Lisp::Int(start));
+    plist.set("tend", Lisp::Int(end));
+    plist.set("scope", Lisp::Symbol("agenda".to_string()));
+    if !plist.member("maxlevel") {
+        plist.set("maxlevel", Lisp::Int(2));
+    }
+    let (text, begin) = create_block("", 0, &plist);
+    let text = update_block(&text, begin, context)?;
+    // After the `#+BEGIN:` line and the one after it, up to `#+END:`.
+    let from = next_line(&text, next_line(&text, begin));
+    let mut to = from;
+    while to < text.len() && !END.is_match(&text[to..line_end(&text, to)]) {
+        to = next_line(&text, to);
+    }
+    Ok(text[from.min(to)..to].to_string())
 }
 
 // ----- shifting the block

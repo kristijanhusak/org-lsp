@@ -146,6 +146,7 @@ DEFAULTS = r"""
       org-agenda-include-deadlines t
       org-agenda-log-mode-add-notes t
       org-agenda-clock-report-header nil
+      org-agenda-clockreport-parameter-plist '(:link t :maxlevel 2)
       org-agenda-fontify-priorities 'cookies
       org-agenda-move-date-from-past-immediately-to-today t
       org-agenda-time-leading-zero nil
