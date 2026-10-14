@@ -48,6 +48,7 @@ vim.g.org_lsp = {
   cmd = { server },
   settings = {
     org_todo_keyword_faces = { TODO = ':foreground #ff8800 :weight bold' },
+    org_tag_faces = { tag = '#0088ff' },
     org_roam_enabled = true,
     org_roam_directory = roam_dir,
     org_journal_enabled = true,
@@ -115,6 +116,17 @@ wait('the face on the TODO keyword', function()
   end
   return false
 end)
+-- A tag with a face of its own (`org_tag_faces`): its name, not the colons.
+wait('the face on the tag', function()
+  local marks = vim.api.nvim_buf_get_extmarks(bufnr, -1, { 1, 0 }, { 1, -1 }, { details = true })
+  for _, mark in ipairs(marks) do
+    if mark[4].hl_group == 'OrgLspTagFace_tag' then
+      return mark[3] == 21 and mark[4].end_col == 24
+    end
+  end
+  return false
+end)
+eq(vim.api.nvim_get_hl(0, { name = 'OrgLspTagFace_tag' }).fg, 0x0088ff, 'the face of the tag')
 wait('regex syntax to be replaced', function()
   return vim.bo.syntax == ''
 end)

@@ -835,6 +835,11 @@ org_todo_keyword_faces = {  }
 # (org-priority-faces)
 org_priority_faces = {  }
 
+# Faces for particular tags of headlines, written as in
+# `org_todo_keyword_faces`: `{ "work": "orange" }`. Shown in Org files (not
+# the agenda, as in Emacs) by Neovim, Vim and VS Code. (org-tag-faces)
+org_tag_faces = {  }
+
 # Write `CLOSED:` with the time when an entry is done, and with `note` ask for
 # a note too. A file's `#+STARTUP:` words `logdone`, `lognotedone` and
 # `nologdone` change it there; an entry's `LOGGING` property (inherited) says
@@ -2294,6 +2299,11 @@ org_agenda_custom_commands = []
   // `org_todo_keyword_faces`: `{ "A": ":foreground red :weight bold" }`.
   // (org-priority-faces)
   "org_priority_faces": {  },
+
+  // Faces for particular tags of headlines, written as in
+  // `org_todo_keyword_faces`: `{ "work": "orange" }`. Shown in Org files (not
+  // the agenda, as in Emacs) by Neovim, Vim and VS Code. (org-tag-faces)
+  "org_tag_faces": {  },
 
   // Write `CLOSED:` with the time when an entry is done, and with `note` ask
   // for a note too. A file's `#+STARTUP:` words `logdone`, `lognotedone` and

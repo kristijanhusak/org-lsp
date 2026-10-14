@@ -115,6 +115,7 @@ its sections says what it should look like.
 - [ ] Typing tags when none have keys; they are sorted and aligned to ~org_tags_column~: ~Ctrl+C Ctrl+Q~
 - [ ] While typing tags, the file's tags are completed, after each ~:~ too: ~Ctrl+C Ctrl+Q~
 - [ ] Tags are completed after ~:~ at the end of a headline
+- [ ] With ~org_tag_faces = { work = "orange" }~, ~work~ in a headline's ~:work:home:~ shows in orange, not its colons nor ~home~
 - [ ] Renaming a tag renames it in every headline and ~#+FILETAGS:~: ~F2~ on the tag
 
 * Properties and column view

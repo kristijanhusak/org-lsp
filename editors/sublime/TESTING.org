@@ -106,6 +106,8 @@ its sections says what it should look like.
 
 * Tags
 
+*Partly:* Faces of particular tags are not shown: Sublime Text colors text by its color scheme only.
+
 - [ ] Setting tags from ~#+TAGS: work(w) home(h)~ by key; each key turns its tag on and off: ~Ctrl+C Ctrl+Q~
 - [ ] An exclusive group (~{ @office(o) @home(m) }~) turns the other tag off: ~Ctrl+C Ctrl+Q~
 - [ ] Typing tags when none have keys; they are sorted and aligned to ~org_tags_column~: ~Ctrl+C Ctrl+Q~

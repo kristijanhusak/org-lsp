@@ -71,7 +71,7 @@ its sections says what it should look like.
 
 * Tags
 
-*Partly:* Setting tags is left out: it needs keys pressed in turn, or typed tags, and Helix cannot ask for text on a server's behalf. Completion and renaming work.
+*Partly:* Setting tags is left out: it needs keys pressed in turn, or typed tags, and Helix cannot ask for text on a server's behalf. Completion and renaming work. Faces of particular tags are not shown.
 
 - [ ] Tags are completed after ~:~ at the end of a headline
 - [ ] Renaming a tag renames it in every headline and ~#+FILETAGS:~: ~Space r~ on the tag

@@ -644,10 +644,10 @@ pub const PREVIEW: &str = "org-lsp/preview";
 /// The agenda's file has been written anew, `{ "uri" }`: for a client
 /// with the option `view_changed`, which reads it again.
 pub const VIEW_CHANGED: &str = "org-lsp/viewChanged";
-/// The faces of particular TODO keywords and priorities
-/// (`org_todo_keyword_faces`, `org_priority_faces`), for the editor to
-/// apply over the highlighting: `{ "todo": { KEYWORD: face }, "priority":
-/// { LETTER: face } }`, each face `{ "foreground", "background", "bold",
+/// The faces of particular TODO keywords, priorities and tags
+/// (`org_todo_keyword_faces`, `org_priority_faces`, `org_tag_faces`), for
+/// the editor to apply over the highlighting: `{ "todo": { KEYWORD: face
+/// }, "priority": { LETTER: face }, "tag": { TAG: face } }`, each face `{ "foreground", "background", "bold",
 /// "italic", "underline", "strikethrough" }` as set.
 pub const FACES: &str = "org-lsp/faces";
 /// The journal's directory, as `capabilities.experimental.orgJournal` has
@@ -1317,7 +1317,7 @@ pub fn run(connection: Connection) -> Result<()> {
     let client = Client { date_prompt: client.date_prompt && shown && client.show_document, ..client };
 
     let todo = options.todo_keywords();
-    let faces = faces::faces(&options.todo_keyword_faces, &options.priority_faces);
+    let faces = faces::faces(&options.todo_keyword_faces, &options.priority_faces, &options.tag_faces);
 
     #[allow(deprecated)]
     let folders: Vec<PathBuf> = match &params.workspace_folders {

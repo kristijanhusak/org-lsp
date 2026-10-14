@@ -99,7 +99,7 @@ its sections says what it should look like.
 
 * Tags
 
-*Partly:* Tags are typed, not set with keys pressed in turn: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Completion and renaming work.
+*Partly:* Tags are typed, not set with keys pressed in turn: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Completion and renaming work. Faces of particular tags are not shown: Zed colors tokens by its theme only.
 
 - [ ] Typing tags when none have keys; they are sorted and aligned to ~org_tags_column~: the code action /Set the tags of the headline/
 - [ ] Tags are completed after ~:~ at the end of a headline

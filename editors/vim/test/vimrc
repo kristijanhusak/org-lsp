@@ -18,6 +18,7 @@ let g:org_lsp = {
       \ 'settings': {
       \   'clock': {'today': '2026-05-18', 'now': '10:30'},
       \   'org_todo_keyword_faces': {'TODO': ':foreground #ff8800 :weight bold'},
+      \   'org_tag_faces': {'office': '#0088ff'},
       \   'org_agenda_files': [$ORG_LSP_TEST_WORK . '/notes'],
       \   'org_roam_enabled': v:true,
       \   'org_roam_directory': $ORG_LSP_TEST_WORK . '/roam',

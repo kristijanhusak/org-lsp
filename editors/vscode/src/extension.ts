@@ -761,6 +761,23 @@ async function paintFaces(editor: vscode.TextEditor): Promise<void> {
     line += data[i];
     character = data[i] === 0 ? character + data[i + 1] : data[i + 1];
     const type = legend.tokenTypes[data[i + 3]];
+    // `org-tag-faces`: each tag of a headline in an Org file with a face of
+    // its own, its name without the colons; the agenda shows tags in
+    // `org-tag` alone.
+    if (type === 'tag' && document.languageId === 'org' && line < document.lineCount) {
+      const text = document.lineAt(line).text.slice(character, character + data[i + 2]);
+      const names = /:([^:\s]+)(?=:)/g;
+      for (let found = names.exec(text); found; found = names.exec(text)) {
+        const key = `tag:${found[1]}`;
+        if (faceDecorations.has(key)) {
+          const start = character + found.index + 1;
+          const range = new vscode.Range(line, start, line, start + found[1].length);
+          ranges.set(key, [...(ranges.get(key) ?? []), range]);
+          shown.push([line, found[1]]);
+        }
+      }
+      continue;
+    }
     const kind = type === 'todoKeyword' ? 'todo' : type === 'priority' ? 'priority' : undefined;
     if (!kind || line >= document.lineCount) {
       continue;

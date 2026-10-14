@@ -310,11 +310,13 @@ export const AREAS = [
       ['Completion', true],
       ['Group tags in searches', true],
       ['A sparse tree by tags', true],
+      ['Faces of particular tags in headlines (`org-tag-faces`)', true],
       ['The TODO keywords in the tag selection (`org-fast-tag-selection-include-todo`), and matches without the entries below a match (`org-tags-match-list-sublevels`)', false],
     ],
     editors: {
-      zed: ['part', `Tags are typed, not set with keys pressed in turn: ${ZED_TEXT}. Completion and renaming work.`],
-      helix: ['part', `Setting tags is left out: it needs keys pressed in turn, or typed tags, and ${HELIX_TEXT}. Completion and renaming work.`],
+      sublime: ['part', 'Faces of particular tags are not shown: Sublime Text colors text by its color scheme only.'],
+      zed: ['part', `Tags are typed, not set with keys pressed in turn: ${ZED_TEXT}. Completion and renaming work. Faces of particular tags are not shown: Zed colors tokens by its theme only.`],
+      helix: ['part', `Setting tags is left out: it needs keys pressed in turn, or typed tags, and ${HELIX_TEXT}. Completion and renaming work. Faces of particular tags are not shown.`],
     },
     checks: [
       { text: 'Setting tags from `#+TAGS: work(w) home(h)` by key; each key turns its tag on and off', cmd: 'org.tags.set', not: ['zed', 'helix'] },
@@ -322,6 +324,7 @@ export const AREAS = [
       { text: 'Typing tags when none have keys; they are sorted and aligned to `org_tags_column`', cmd: 'org.tags.set', not: ['helix'] },
       { text: 'While typing tags, the file\'s tags are completed, after each `:` too', cmd: 'org.tags.set', only: ['neovim', 'vim', 'vscode'] },
       { text: 'Tags are completed after `:` at the end of a headline' },
+      { text: 'With `org_tag_faces = { work = "orange" }`, `work` in a headline\'s `:work:home:` shows in orange, not its colons nor `home`', only: ['neovim', 'vim', 'vscode'] },
       { text: 'Renaming a tag renames it in every headline and `#+FILETAGS:`', keys: { neovim: '`:lua vim.lsp.buf.rename()` on the tag', vim: 'the client\'s rename on the tag', vscode: '`F2` on the tag', sublime: '*LSP: Rename* on the tag', zed: '`F2` on the tag', helix: '`Space r` on the tag' } },
     ],
   },

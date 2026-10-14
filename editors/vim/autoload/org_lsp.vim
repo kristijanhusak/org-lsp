@@ -2366,7 +2366,8 @@ function! s:got_faces(nr, error, result) abort
 endfunction
 
 function! s:face_group(kind, name) abort
-  return 'OrgLsp' . (a:kind ==# 'todo' ? 'Todo' : 'Priority') . 'Face_' . substitute(a:name, '\W', '_', 'g')
+  let prefix = get({'todo': 'Todo', 'priority': 'Priority', 'tag': 'Tag'}, a:kind, 'Priority')
+  return 'OrgLsp' . prefix . 'Face_' . substitute(a:name, '\W', '_', 'g')
 endfunction
 
 function! s:define_faces() abort
@@ -2440,6 +2441,7 @@ function! s:paint_absolute(nr, lines, tokens) abort
   let modifiers = map(copy(manifest.tokenModifiers), 'v:val.id')
   let props = {}
   let lines = a:lines
+  let is_org = getbufvar(a:nr, '&filetype') ==# 'org'
   for [line, character, length, type_index, modifier_bits] in a:tokens
     let type = get(types, type_index, '')
     let text = get(lines, line, '')
@@ -2462,6 +2464,23 @@ function! s:paint_absolute(nr, lines, tokens) abort
         let name = substitute(name, '^\[#\(.\{-}\)\]$', '\1', '')
       endif
       call add(selectors, 'face:' . (type ==# 'todoKeyword' ? 'todo' : 'priority') . ':' . name)
+    endif
+    " `org-tag-faces`: each tag of a headline in an Org file that has a face
+    " of its own, its name without the colons.
+    if type ==# 'tag' && is_org
+      let at = start
+      while 1
+        let found = matchstrpos(text, ':\zs[^: \t]\+\ze:', at)
+        if found[1] < 0 || found[1] >= end
+          break
+        endif
+        let selector = 'face:tag:' . found[0]
+        if has_key(s:selectors, selector)
+          call add(get(extend(props, {selector: []}, 'keep'), selector), [line + 1, found[1] + 1, line + 1, found[2] + 1])
+        endif
+        " The colon after a tag starts the next.
+        let at = found[2]
+      endwhile
     endif
     for selector in selectors
       if has_key(s:selectors, selector)

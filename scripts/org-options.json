@@ -503,7 +503,7 @@
   "org-faces-easy-properties": "emacs-only",
   "org-todo-keyword-faces": "setting",
   "org-priority-faces": "setting",
-  "org-tag-faces": "missing",
+  "org-tag-faces": "setting",
   "org-fontify-quote-and-verse-blocks": "missing",
   "org-agenda-deadline-faces": "missing",
   "org-n-level-faces": "emacs-only",
