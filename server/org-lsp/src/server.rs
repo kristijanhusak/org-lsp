@@ -901,6 +901,9 @@ struct Server {
     /// `auto_save`: save the files a command changes elsewhere.
     /// `return_uses_meta_return`: RET on a list item makes the next item.
     return_uses_meta_return: bool,
+    /// `org-return-follows-link`: RET on a link, a timestamp or a
+    /// citation follows it.
+    return_follows_link: bool,
     /// How many months the date prompt's calendar shows (`calendar_months`).
     calendar_months: usize,
     /// The day the calendar's weeks start on (`calendar_week_start_day`).
@@ -1383,6 +1386,7 @@ pub fn run(connection: Connection) -> Result<()> {
         origin: None,
         auto_save: options.auto_save.unwrap_or(true),
         return_uses_meta_return: options.return_uses_meta_return.unwrap_or(false),
+        return_follows_link: options.return_follows_link.unwrap_or(false),
         calendar_months: options.calendar_months.unwrap_or(3),
         calendar_week_start: options.calendar_week_start_day.unwrap_or(0) % 7,
         all_agenda_tags: options.complete_tags_always_offer_all_agenda_tags.unwrap_or(false),
@@ -9903,6 +9907,17 @@ impl Server {
         };
         let document = self.document(uri).ok_or("This file is not open")?;
         let offset = document.index.offset(&document.text, context.position, encoding);
+        // `org-return-follows-link`: the link followed, with nothing typed.
+        // What following it asks is asked with `window/showMessageRequest`,
+        // as the key's result has no room for a question.
+        if self.return_follows_link && open::return_follows(&document.text, &document.parse, offset) {
+            let result = self.open_at_point(context)?;
+            if result.get("input").is_some() {
+                let argument = json!({ "textDocument": { "uri": uri.as_str() }, "position": context.position });
+                self.prompt_with_messages(commands::OPEN.to_string(), argument, &result);
+            }
+            return Ok(json!({ "edits": [] }));
+        }
         // `return_uses_meta_return`, and `org.return.item` always: on the first
         // line of a list item, the next item, numbered as M-RET numbers it.
         if (items || self.return_uses_meta_return) && on_item_line(&document.parse.syntax(), &document.text, offset) {

@@ -130,7 +130,7 @@ server first, with a tab that says so and closes when the agenda opens.
 | [[file:parity.org::#notes-org-roam][Notes (org-roam)]] | 67% | ✅ |  |
 | [[file:parity.org::#a-journal-org-journal][A journal (org-journal)]] | 77% | ✅ |  |
 | [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ |  |
-| [[file:parity.org::#links][Links]] | 93% | ✅ |  |
+| [[file:parity.org::#links][Links]] | 100% | ✅ |  |
 | [[file:parity.org::#footnotes][Footnotes]] | 100% | ✅ |  |
 | [[file:parity.org::#tables][Tables]] | 94% | ❓ | A shrunk column shows its whole text and ~…~: Sublime Text cannot hide text in a view. |
 | [[file:parity.org::#table-formulas][Table formulas]] | 100% | ✅ |  |

@@ -96,7 +96,7 @@ menu on another key.
 | [[file:parity.org::#notes-org-roam][Notes (org-roam)]] | 67% | ❌ | Helix cannot ask for text on a server's behalf, and the commands ask for a node; nor can Helix open the org-roam buffer on a server's request. |
 | [[file:parity.org::#a-journal-org-journal][A journal (org-journal)]] | 77% | ❌ | Helix cannot open the journal file on a server's request, and Helix cannot ask for text on a server's behalf. |
 | [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ❓ | Refiling is left out: it asks for a target from a list, which Helix cannot show for a server. Archiving works as code actions. |
-| [[file:parity.org::#links][Links]] | 93% | ❓ | Storing and inserting links are left out: they ask for text, and Helix cannot ask for text on a server's behalf; moving between links needs a key. Following works through go to definition. |
+| [[file:parity.org::#links][Links]] | 100% | ❓ | Storing and inserting links are left out: they ask for text, and Helix cannot ask for text on a server's behalf; moving between links needs a key. Following works through go to definition. |
 | [[file:parity.org::#footnotes][Footnotes]] | 100% | ❓ | Making footnotes and their menu are left out: they are not among Helix's code actions. Following them works. |
 | [[file:parity.org::#tables][Tables]] | 94% | ❓ | Moving between fields with ~TAB~, copying down, summing, field information and creating a table are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and ~…~: Helix lets no server hide text. |
 | [[file:parity.org::#table-formulas][Table formulas]] | 100% | ✅ |  |

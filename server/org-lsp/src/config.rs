@@ -585,6 +585,9 @@ pub struct Options {
     pub auto_save: Option<bool>,
     /// RET on the first line of a list item makes the next item, as M-RET.
     pub return_uses_meta_return: Option<bool>,
+    /// `org-return-follows-link`
+    #[serde(rename = "org_return_follows_link")]
+    pub return_follows_link: Option<bool>,
     /// `org-goto-max-level`
     #[serde(rename = "org_goto_max_level")]
     pub goto_max_level: Option<usize>,

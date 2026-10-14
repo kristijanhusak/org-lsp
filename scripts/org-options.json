@@ -583,9 +583,9 @@
   "org-use-extra-keys": "emacs-only",
   "org-disputed-keys": "emacs-only",
   "org-mouse-1-follows-link": "emacs-only",
-  "org-tab-follows-link": "missing",
+  "org-tab-follows-link": ["other", "TAB is the editor's key for folding and tables; a link is followed with org.open (C-c C-o), go to definition, or RET with org_return_follows_link"],
   "org-follow-link-hook": "lisp",
-  "org-return-follows-link": "missing",
+  "org-return-follows-link": "setting",
   "org-use-speed-commands": "emacs-only",
   "org-speed-command-hook": "lisp",
   "org-speed-commands": "emacs-only"

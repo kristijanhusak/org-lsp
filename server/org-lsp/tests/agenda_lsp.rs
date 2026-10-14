@@ -6569,6 +6569,42 @@ fn offers_to_make_a_missing_headline() {
     client.shutdown();
 }
 
+/// `org-return-follows-link`: RET on a link follows it and types nothing;
+/// a question following asks goes by `window/showMessageRequest`. Off,
+/// RET breaks the line.
+#[test]
+fn return_follows_links_when_asked() {
+    let uri = "file:///org/ret.org";
+    let text = "See [[*Target]] and [[Nowhere]] x\n* Target\n";
+    let ret = |client: &mut Client, character: u32| {
+        let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": character } });
+        client.received.clear();
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": "org.return", "arguments": [context] }));
+        client.settle();
+        result.unwrap()
+    };
+    let mut options = clock();
+    options["org_return_follows_link"] = json!(true);
+    let mut client = Client::editor(options, None);
+    client.open(uri, text);
+    assert_eq!(ret(&mut client, 6)["edits"], json!([]));
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("shown");
+    assert_eq!(shown.params["selection"]["start"], json!({ "line": 1, "character": 0 }));
+    assert_eq!(ret(&mut client, 22)["edits"], json!([]));
+    let asked = client.received.iter().find(|request| request.method == "window/showMessageRequest").expect("asked");
+    assert_eq!(asked.params["message"], "No match - create this as a new heading? ");
+    // After the link, a new line.
+    assert_ne!(ret(&mut client, 33)["edits"], json!([]));
+    client.shutdown();
+
+    let mut client = Client::editor(clock(), None);
+    client.open(uri, text);
+    assert_ne!(ret(&mut client, 6)["edits"], json!([]));
+    assert!(!client.received.iter().any(|request| request.method == "window/showDocument"));
+    client.shutdown();
+}
+
 /// `textDocument/documentLink`: URLs and files at once, places in files
 /// once resolved, as the file and the line; hover over a link shows it as
 /// Emacs does, and the entry it leads to.

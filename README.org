@@ -111,7 +111,7 @@ does not work there and why.
 | [[file:docs/parity.org::#notes-org-roam][Notes (org-roam)]] | 67% | ✅ / ✅ / ✅ / ✅ / ❓ / ❌ |
 | [[file:docs/parity.org::#a-journal-org-journal][A journal (org-journal)]] | 77% | ✅ / ✅ / ✅ / ✅ / ❓ / ❌ |
 | [[file:docs/parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ❓ |
-| [[file:docs/parity.org::#links][Links]] | 93% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
+| [[file:docs/parity.org::#links][Links]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#footnotes][Footnotes]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ❓ |
 | [[file:docs/parity.org::#tables][Tables]] | 94% | ✅ / ❓ / ✅ / ❓ / ❓ / ❓ |
 | [[file:docs/parity.org::#table-formulas][Table formulas]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ✅ |
