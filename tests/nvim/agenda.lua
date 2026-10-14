@@ -454,16 +454,37 @@ wait('the calendar to close and the line to show the old date', function()
 end)
 eq(vim.api.nvim_win_get_cursor(0), scheduled_from, 'the cursor is back where it was')
 vim.ui.input = input
--- Cancelled, the calendar leaves the agenda as it was, the cursor too.
+-- Cancelled, the calendar leaves the cursor where it was, also when the
+-- agenda changed above and below it in the meantime.
 press('<C-c><C-s>')
 wait('the calendar again', in_calendar_on('16'))
+local function edit_work(from, to)
+  local text = vim.api.nvim_buf_get_lines(work_buf, 0, -1, false)
+  for number, content in ipairs(text) do
+    text[number] = content:gsub(from[1], to[1]):gsub(from[2], to[2])
+  end
+  vim.api.nvim_buf_set_lines(work_buf, 0, -1, false, text)
+  vim.api.nvim_buf_call(work_buf, function()
+    vim.cmd('silent write')
+  end)
+end
+edit_work({ 'Write report', 'Meeting' }, { 'Write a report', 'A meeting' })
+wait('the agenda to change under the calendar', function()
+  return vim.tbl_contains(vim.api.nvim_buf_get_lines(agenda_buf, 0, -1, false), '  work:       14:00-15:00 A meeting ')
+end)
+check(prompt_window() ~= nil, 'the calendar is still open')
 press('q')
 wait('the calendar to close', function()
   vim.api.nvim_feedkeys('', 'x', false)
   return prompt_window() == nil
 end)
 eq(vim.api.nvim_win_get_cursor(0), scheduled_from, 'the cursor is where it was')
+eq(cursor_line(), '  home:       Sched. 2x:  TODO Water plants', 'on the entry, the agenda built anew')
 eq(home_line(2), 'SCHEDULED: <2026-05-16 Sat +1w>', 'the file as it was')
+edit_work({ 'Write a report', 'A meeting' }, { 'Write report', 'Meeting' })
+wait('the agenda as it was', function()
+  return vim.tbl_contains(lines(), '  work:       14:00-15:00 Meeting ')
+end)
 -- Built again, the agenda shows the entries where they now belong.
 press('r')
 wait('the agenda built again', function()

@@ -479,6 +479,35 @@ local function send_changes(client, bufnr)
   end
 end
 
+--- Change line `row` (from 0) of `bufnr` from `old` to `new`, only the
+--- part between what they start and end with alike.
+---@param bufnr integer
+---@param row integer
+---@param old string
+---@param new string
+local function change_line(bufnr, row, old, new)
+  local function continues(text, at)
+    local byte = text:byte(at)
+    return byte ~= nil and byte >= 0x80 and byte < 0xC0
+  end
+  local start = 0
+  while start < #old and start < #new and old:byte(start + 1) == new:byte(start + 1) do
+    start = start + 1
+  end
+  -- Not within a character.
+  while start > 0 and continues(old, start + 1) do
+    start = start - 1
+  end
+  local tail = 0
+  while tail < #old - start and tail < #new - start and old:byte(#old - tail) == new:byte(#new - tail) do
+    tail = tail + 1
+  end
+  while tail > 0 and continues(old, #old - tail + 1) do
+    tail = tail - 1
+  end
+  vim.api.nvim_buf_set_text(bufnr, row, start, row, #old - tail, { new:sub(start + 1, #new - tail) })
+end
+
 ---@param bufnr integer
 ---@param text string
 local function set_text(bufnr, text)
@@ -491,22 +520,34 @@ local function set_text(bufnr, text)
   for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
     saved[win] = vim.api.nvim_win_call(win, vim.fn.winsaveview)
   end
-  -- Only the lines that changed: the others keep their highlighting
-  -- until the new arrives.
+  -- Only what changed: the other lines keep their highlighting until the
+  -- new arrives, and marks on them, such as where a window opened from
+  -- here puts the cursor back, stay where they are. A line changed where
+  -- it is changes from where it differs, as Emacs changes an agenda line
+  -- (a new date at its end), and the marks before that stay on it.
   local old = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-  local first = 1
-  while first <= #old and first <= #lines and old[first] == lines[first] do
-    first = first + 1
-  end
-  local last_old, last_new = #old, #lines
-  while last_old >= first and last_new >= first and old[last_old] == lines[last_new] do
-    last_old, last_new = last_old - 1, last_new - 1
-  end
   vim.bo[bufnr].modifiable = true
   if #old == 1 and old[1] == '' then
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
-  elseif first <= last_old or first <= last_new then
-    vim.api.nvim_buf_set_lines(bufnr, first - 1, last_old, false, vim.list_slice(lines, first, last_new))
+  else
+    local hunks = (vim.text and vim.text.diff or vim.diff)(
+      table.concat(old, '\n') .. '\n',
+      table.concat(lines, '\n') .. '\n',
+      { result_type = 'indices' }
+    )
+    -- From the last, so that the line numbers of the others still hold.
+    for i = #hunks, 1, -1 do
+      local at, count, from, new_count = unpack(hunks[i])
+      if count == new_count then
+        for k = 0, count - 1 do
+          change_line(bufnr, at + k - 1, old[at + k], lines[from + k])
+        end
+      else
+        -- With no old lines, the new ones go after line `at`.
+        local start = count == 0 and at or at - 1
+        vim.api.nvim_buf_set_lines(bufnr, start, start + count, false, vim.list_slice(lines, from, from + new_count - 1))
+      end
+    end
   end
   vim.bo[bufnr].modifiable = false
   vim.bo[bufnr].modified = false
