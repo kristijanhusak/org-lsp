@@ -5,11 +5,13 @@ Generates random agenda files, has Emacs print the agenda for them under a
 fixed clock, and runs the agenda test over the same cases. Cases the two
 disagree on stay in the output directory.
 
-    scripts/fuzz-agenda.py [--count 200] [--seed 1] [--out DIR] [--super]
+    scripts/fuzz-agenda.py [--count 200] [--seed 1] [--out DIR] [--super] [--sorting]
 
 With --super, each case also turns org-super-agenda on with random groups;
 ORG_LSP_EMACS_PACKAGES must then name the directory of its packages (see
-agenda_reference.py).
+agenda_reference.py). With --sorting, each case sorts and limits its views
+with random strategies (`org-agenda-sorting-strategy`) and limits
+(`org-agenda-max-entries` and its kin).
 
 Requires Emacs, faketime and cargo.
 """
@@ -81,6 +83,50 @@ def super_groups(rng):
             group = {"discard": group}
         groups.append(group)
     return groups
+
+
+STRATEGIES = [
+    "time-up", "time-down", "timestamp-up", "timestamp-down", "scheduled-up", "scheduled-down", "deadline-up",
+    "deadline-down", "tsia-up", "tsia-down", "ts-up", "ts-down", "stats-up", "stats-down", "priority-up",
+    "priority-down", "urgency-up", "urgency-down", "effort-up", "effort-down", "category-up", "category-down",
+    "category-keep", "tag-up", "tag-down", "todo-state-up", "todo-state-down", "habit-up", "habit-down", "alpha-up",
+    "alpha-down",
+]
+
+
+def sorting_options(rng):
+    """Random sorting strategies and limits, for org-lsp and as Emacs Lisp."""
+    def strategies():
+        return rng.sample(STRATEGIES, rng.randint(1, 4))
+
+    options, forms = {}, []
+    if rng.random() < 0.3:
+        flat = strategies()
+        options["org_agenda_sorting_strategy"] = flat
+        forms.append(f"(setq org-agenda-sorting-strategy '({' '.join(flat)}))")
+    else:
+        views = {view: strategies() for view in rng.sample(["agenda", "todo", "tags", "search"], rng.randint(1, 4))}
+        options["org_agenda_sorting_strategy"] = views
+        alist = " ".join(f"({view} {' '.join(names)})" for view, names in views.items())
+        forms.append(f"(setq org-agenda-sorting-strategy '({alist}))")
+    for name in ("sort_notime_is_late", "sort_noeffort_is_high"):
+        if rng.random() < 0.4:
+            value = rng.random() < 0.5
+            options[f"org_agenda_{name}"] = value
+            forms.append(f"(setq org-agenda-{name.replace('_', '-')} {'t' if value else 'nil'})")
+    for name in ("max_entries", "max_todos", "max_tags", "max_effort"):
+        if rng.random() < 0.2:
+            limit = lambda: rng.choice([-3, -1, 1, 2, 5]) * (30 if name == "max_effort" else 1)
+            if rng.random() < 0.5:
+                value = limit()
+                options[f"org_agenda_{name}"] = value
+                forms.append(f"(setq org-agenda-{name.replace('_', '-')} {value})")
+            else:
+                value = {view: limit() for view in rng.sample(["agenda", "todo", "tags", "search"], 2)}
+                options[f"org_agenda_{name}"] = value
+                pairs = " ".join(f"({view} . {limit})" for view, limit in value.items())
+                forms.append(f"(setq org-agenda-{name.replace('_', '-')} '({pairs}))")
+    return options, " ".join(forms)
 
 
 def search_string(rng):
@@ -278,6 +324,7 @@ def main():
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--out", default=None)
     parser.add_argument("--super", action="store_true", help="group the views with org-super-agenda")
+    parser.add_argument("--sorting", action="store_true", help="random sorting strategies and limits")
     args = parser.parse_args()
 
     out = args.out or tempfile.mkdtemp(prefix="org-agenda-fuzz-")
@@ -316,6 +363,11 @@ def main():
                 case["options"]["org_super_agenda_hide_empty_groups"] = True
             if rng.random() < 0.3:
                 case["options"]["org_super_agenda_keep_order"] = True
+        if args.sorting:
+            options, emacs = sorting_options(rng)
+            case.setdefault("options", {}).update(options)
+            case["emacs"] = emacs
+            case["runs"].append({"view": rng.choice(["tags", "tags-todo"]), "match": rng.choice(["LEVEL>0", "a|work", "-home"])})
         with open(os.path.join(directory, "case.json"), "w", encoding="utf-8") as handle:
             json.dump(case, handle)
         directories.append(directory)

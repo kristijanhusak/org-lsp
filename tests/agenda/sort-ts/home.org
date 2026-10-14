@@ -1,0 +1,22 @@
+#+CATEGORY: home
+#+FILETAGS: :house:
+* TODO [#C] water plants
+SCHEDULED: <2026-05-18 Mon 18:00>
+:PROPERTIES:
+:Effort: 0:10
+:END:
+* TODO Garden [2/2]
+:PROPERTIES:
+:CATEGORY: alpha
+:END:
+** TODO [#A] mow lawn :outside:
+SCHEDULED: <2026-05-18 Mon>
+** NEXT buy seeds
+DEADLINE: <2026-05-18 Mon 10:00>
+* DONE laundry
+SCHEDULED: <2026-05-18 Mon>
+* TODO Bake bread :kitchen:
+DEADLINE: <2026-05-23 Sat>
+:PROPERTIES:
+:Effort: 1:00
+:END:

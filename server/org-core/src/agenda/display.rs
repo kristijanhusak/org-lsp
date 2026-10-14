@@ -75,6 +75,7 @@ pub fn display(line: &Line) -> Displayed {
     let raw = line.text.as_str();
     let item = match (&line.kind, &line.item) {
         (LineKind::Header | LineKind::Separator, _) => return whole(raw, Style::Structure),
+        (LineKind::Blank, _) => return whole(raw, Style::Structure),
         // org-super-agenda's header face inherits `org-agenda-structure`.
         (LineKind::Group { faced }, _) => {
             let faced = (*faced).min(raw.len());
@@ -248,6 +249,7 @@ mod tests {
                 heading,
                 time_of_day: None,
                 priority: 0,
+                base_priority: 0,
                 kind: ItemKind::Scheduled,
                 face,
                 source: Some(Source { file: 0, entry: 0 }),
@@ -258,6 +260,7 @@ mod tests {
                 graph: None,
                 ts_date: None,
                 log: None,
+                ts_type: "",
             }),
         }
     }

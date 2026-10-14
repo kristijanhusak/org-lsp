@@ -1,0 +1,35 @@
+{
+  "today": "2026-05-18",
+  "now": "10:30",
+  "runs": [
+    {
+      "view": "agenda",
+      "span": "day"
+    },
+    {
+      "view": "todo"
+    },
+    {
+      "view": "tags",
+      "match": "LEVEL>0"
+    },
+    {
+      "view": "search",
+      "match": "o"
+    }
+  ],
+  "options": {
+    "org_agenda_sorting_strategy": {
+      "todo": [
+        "timestamp-up"
+      ],
+      "tags": [
+        "scheduled-down"
+      ],
+      "search": [
+        "ts-up"
+      ]
+    }
+  },
+  "emacs": "(setq org-agenda-sorting-strategy '((todo timestamp-up) (tags scheduled-down) (search ts-up)))"
+}

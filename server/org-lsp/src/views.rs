@@ -462,7 +462,7 @@ fn assemble(
             }
             LineKind::Header | LineKind::Separator | LineKind::Table => day = None,
             // A group of org-super-agenda stays in its day.
-            LineKind::Item | LineKind::EntryText | LineKind::Group { .. } => {}
+            LineKind::Item | LineKind::EntryText | LineKind::Group { .. } | LineKind::Blank => {}
         }
         let entry = line.item.as_ref().and_then(|item| Some((item, item.source?))).map(|(item, source)| {
             let entry = agenda::entry(&outlines, source);
@@ -682,7 +682,7 @@ fn block_lines(
         // The lines the filters keep out (`org-agenda-filter-apply`).
         if let Some(filters) = filters.filter(|filters| !filters.is_empty()) {
             let groups = if config.group_tags { agenda::tag_groups(outlines, config) } else { Vec::new() };
-            agenda::filter::apply(&mut view, &all, filters, &groups);
+            agenda::filter::apply(&mut view, &all, filters, &groups, config.sorting.noeffort_is_high);
             if config.super_agenda.as_ref().is_some_and(|settings| settings.hide_empty_groups) {
                 agenda::super_agenda::hide_empty_groups(&mut view.lines);
             }

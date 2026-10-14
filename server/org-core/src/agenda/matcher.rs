@@ -425,7 +425,7 @@ fn compare_text(a: &str, op: Op, b: &str) -> bool {
 
 /// `org-entry-get` for the matcher: the entry's own property, or one of
 /// Org's special properties.
-fn property_value(index: usize, outline: &Outline, name: &str) -> Option<String> {
+pub(crate) fn property_value(index: usize, outline: &Outline, name: &str) -> Option<String> {
     let entry = &outline.entries[index];
     let stamp = |planning: &Option<crate::outline::Planning>| {
         planning.as_ref().map(|planning| {

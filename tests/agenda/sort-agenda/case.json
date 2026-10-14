@@ -1,0 +1,32 @@
+{
+  "today": "2026-05-18",
+  "now": "10:30",
+  "runs": [
+    {
+      "view": "agenda",
+      "span": "day"
+    },
+    {
+      "view": "agenda",
+      "span": "week"
+    },
+    {
+      "view": "todo"
+    },
+    {
+      "view": "tags-todo",
+      "match": "office|house"
+    }
+  ],
+  "options": {
+    "org_agenda_sorting_strategy": {
+      "agenda": [
+        "category-keep",
+        "priority-up",
+        "time-down"
+      ]
+    },
+    "org_agenda_sort_notime_is_late": false
+  },
+  "emacs": "(setq org-agenda-sorting-strategy '((agenda category-keep priority-up time-down)) org-agenda-sort-notime-is-late nil)"
+}

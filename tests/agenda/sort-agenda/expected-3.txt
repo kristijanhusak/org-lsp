@@ -1,0 +1,7 @@
+Headlines with TAGS match: office|house
+  home:       TODO [#C] water plants                                    :house::
+  alpha:      TODO Garden [2/2]                                         :house::
+  alpha:      TODO [#A] mow lawn                                :house::outside:
+  home:       TODO Bake bread                                   :house::kitchen:
+  work:       TODO [#B] Write report                                    :office:
+  work:       TODO [#A] Zebra crossing                                  :office:

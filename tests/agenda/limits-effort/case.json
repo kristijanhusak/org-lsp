@@ -1,0 +1,21 @@
+{
+  "today": "2026-05-18",
+  "now": "10:30",
+  "runs": [
+    {
+      "view": "agenda",
+      "span": "day"
+    },
+    {
+      "view": "todo"
+    },
+    {
+      "view": "search",
+      "match": "o"
+    }
+  ],
+  "options": {
+    "org_agenda_max_effort": 120
+  },
+  "emacs": "(setq org-agenda-max-effort 120)"
+}

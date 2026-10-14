@@ -23,7 +23,7 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#tags][Tags]] | 86% | 6 of 7 |
 | [[#properties-and-column-view][Properties and column view]] | 75% | 6 of 8 |
 | [[#dates-and-times][Dates and times]] | 100% | 9 of 9 |
-| [[#agenda][Agenda]] | 100% | 24 of 24 |
+| [[#agenda][Agenda]] | 100% | 25 of 25 |
 | [[#clocking][Clocking]] | 100% | 8 of 8 |
 | [[#capture][Capture]] | 100% | 11 of 11 |
 | [[#notes-org-roam][Notes (org-roam)]] | 67% | 8 of 12 |
@@ -256,7 +256,7 @@ Where editors fall short:
 :CUSTOM_ID: agenda
 :END:
 
-100% (24 of 24)
+100% (25 of 25)
 
 - ✅ Day, week, fortnight, month and year views, going to a date
 - ✅ The list of TODO entries
@@ -264,6 +264,7 @@ Where editors fall short:
 - ✅ Searches for words, phrases and regexps
 - ✅ Stuck projects
 - ✅ Custom commands and block agendas (~org-agenda-custom-commands~)
+- ✅ Sorting by any of Org's strategies, for each kind of view (~org-agenda-sorting-strategy~), and limits on how many entries show (~org-agenda-max-entries~, ~-todos~, ~-tags~, ~-effort~)
 - ✅ Commands offered by context (~org-agenda-custom-commands-contexts~)
 - ✅ Filters by tag, category, effort, regexp and top headline
 - ✅ Bulk marks and actions
@@ -700,15 +701,15 @@ Where editors fall short:
 :END:
 
 Each of the 1025 options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with
-it. Of the 306 that change what org-lsp does itself, 48% can be set.
+it. Of the 306 that change what org-lsp does itself, 51% can be set.
 [[file:../scripts/org-options.json][scripts/org-options.json]] says it for each; ~scripts/check.sh~ fails when the
 server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,
 when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 145 | A setting of the same name |
-| missing | 158 | org-lsp does what the option is about, but the option cannot be set yet |
+| setting | 152 | A setting of the same name |
+| missing | 151 | org-lsp does what the option is about, but the option cannot be set yet |
 | other | 3 | Done another way, as its note says |
 | emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 48 | Its value is Lisp (a function, a hook), which the server does not run |
@@ -729,7 +730,7 @@ Options of what org-lsp does that cannot be set yet, by the file of Org they are
 - ob-tangle.el (8) :: ~org-babel-tangle-lang-exts~, ~org-babel-tangle-use-relative-file-links~, ~org-babel-tangle-comment-format-beg~, ~org-babel-tangle-comment-format-end~, ~org-babel-tangle-uncomment-comments~, ~org-babel-process-comment-text~, ~org-babel-tangle-default-file-mode~, ~org-babel-tangle-remove-file-before-write~
 - ol-doi.el (1) :: ~org-link-doi-server-url~
 - ol.el (2) :: ~org-link-search-must-match-exact-headline~, ~org-image-max-width~
-- org-agenda.el (38) :: ~org-agenda-skip-comment-trees~, ~org-agenda-todo-list-sublevels~, ~org-agenda-todo-ignore-with-date~, ~org-agenda-todo-ignore-timestamp~, ~org-agenda-todo-ignore-scheduled~, ~org-agenda-todo-ignore-deadlines~, ~org-agenda-todo-ignore-time-comparison-use-seconds~, ~org-agenda-tags-todo-honor-ignore-options~, ~org-agenda-skip-scheduled-if-deadline-is-shown~, ~org-agenda-skip-timestamp-if-deadline-is-shown~, ~org-agenda-skip-deadline-prewarning-if-scheduled~, ~org-agenda-skip-scheduled-delay-if-deadline~, ~org-agenda-skip-additional-timestamps-same-entry~, ~org-agenda-show-outline-path~, ~org-agenda-time-leading-zero~, ~org-agenda-timegrid-use-ampm~, ~org-agenda-clock-report-header~, ~org-agenda-move-date-from-past-immediately-to-today~, ~org-agenda-include-deadlines~, ~org-agenda-skip-scheduled-repeats-after-deadline~, ~org-agenda-prefer-last-repeat~, ~org-agenda-log-mode-add-notes~, ~org-agenda-clockreport-parameter-plist~, ~org-agenda-search-headline-for-time~, ~org-agenda-sorting-strategy~, ~org-agenda-sort-notime-is-late~, ~org-agenda-sort-noeffort-is-high~, ~org-agenda-diary-sexp-prefix~, ~org-agenda-remove-times-when-in-prefix~, ~org-agenda-remove-timeranges-from-blocks~, ~org-agenda-show-inherited-tags~, ~org-agenda-use-tag-inheritance~, ~org-agenda-hide-tags-regexp~, ~org-agenda-fontify-priorities~, ~org-agenda-max-entries~, ~org-agenda-max-todos~, ~org-agenda-max-tags~, ~org-agenda-max-effort~
+- org-agenda.el (31) :: ~org-agenda-skip-comment-trees~, ~org-agenda-todo-list-sublevels~, ~org-agenda-todo-ignore-with-date~, ~org-agenda-todo-ignore-timestamp~, ~org-agenda-todo-ignore-scheduled~, ~org-agenda-todo-ignore-deadlines~, ~org-agenda-todo-ignore-time-comparison-use-seconds~, ~org-agenda-tags-todo-honor-ignore-options~, ~org-agenda-skip-scheduled-if-deadline-is-shown~, ~org-agenda-skip-timestamp-if-deadline-is-shown~, ~org-agenda-skip-deadline-prewarning-if-scheduled~, ~org-agenda-skip-scheduled-delay-if-deadline~, ~org-agenda-skip-additional-timestamps-same-entry~, ~org-agenda-show-outline-path~, ~org-agenda-time-leading-zero~, ~org-agenda-timegrid-use-ampm~, ~org-agenda-clock-report-header~, ~org-agenda-move-date-from-past-immediately-to-today~, ~org-agenda-include-deadlines~, ~org-agenda-skip-scheduled-repeats-after-deadline~, ~org-agenda-prefer-last-repeat~, ~org-agenda-log-mode-add-notes~, ~org-agenda-clockreport-parameter-plist~, ~org-agenda-search-headline-for-time~, ~org-agenda-diary-sexp-prefix~, ~org-agenda-remove-times-when-in-prefix~, ~org-agenda-remove-timeranges-from-blocks~, ~org-agenda-show-inherited-tags~, ~org-agenda-use-tag-inheritance~, ~org-agenda-hide-tags-regexp~, ~org-agenda-fontify-priorities~
 - org-archive.el (2) :: ~org-archive-stamp-time~, ~org-archive-subtree-save-file-p~
 - org-clock.el (5) :: ~org-clock-rounding-minutes~, ~org-clocktable-defaults~, ~org-clock-clocktable-language-setup~, ~org-clock-report-include-clocking-task~, ~org-clock-continuously~
 - org-cycle.el (3) :: ~org-cycle-max-level~, ~org-cycle-global-at-bob~, ~org-cycle-level-after-item/entry-creation~
