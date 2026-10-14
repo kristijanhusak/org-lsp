@@ -173,7 +173,7 @@ impl Server {
         let Some(id) = node_named(&db, title)? else {
             // Its questions come back to `org.open` with the title.
             let context = RoamContext { title: Some(title.to_string()), ..Default::default() };
-            return self.roam_capture(commands::ROAM_NODE_FIND, &context, &db, title, None);
+            return self.roam_capture(commands::ROAM_NODE_FIND, &context, &db, title, None, None);
         };
         if self.roam.as_ref().is_some_and(|roam| roam.settings.link_auto_replace) {
             if let Some(document) = self.document(uri) {

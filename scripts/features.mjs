@@ -540,7 +540,8 @@ export const AREAS = [
       ['Aliases, tags and references added and removed (`org-roam-alias-add` …)', true],
       ['The org-roam buffer: backlinks, reflinks and unlinked references (`org_roam_mode_sections`), following the cursor, dedicated buffers', true],
       ['Completing node titles as they are typed (`org-roam-completion-everywhere`)', true],
-      ['Daily notes (`org-roam-dailies-capture-today`, `org-roam-dailies-goto-date` …)', false],
+      ['Daily notes: capturing to and going to a day\'s note, today, tomorrow, yesterday or a date typed, and the next and previous notes (`org-roam-dailies-capture-today`, `org-roam-dailies-goto-date` …)', true],
+      ['Daily notes: the directory opened, the days with a note marked in the calendar, and the calendar to pick a date (`org-roam-dailies-find-directory`, `org-roam-dailies-calendar-mark-entries`)', false],
       ['Extracting a subtree to a node of its own, refiling to a node, promoting and demoting a whole file (`org-roam-extract-subtree`, `org-roam-refile`, `org-roam-promote-entire-buffer`)', false],
       ['Finding a node by a reference (`org-roam-ref-find`), and the graph (`org-roam-graph`)', false],
       ['Lisp that chooses the nodes and how they show (`org-roam-node-formatter`, `org-roam-db-node-include-function`), and which links count (`org-roam-db-extra-links-elements`, `org-roam-db-extra-links-exclude-keys`)', false],
@@ -563,6 +564,7 @@ export const AREAS = [
       { text: 'Following an item of the buffer visits the line of the link', cmd: 'org.open' },
       { text: 'A dedicated buffer for a node asked for opens in a file of its own and stays on that node', cmd: 'org.roam.buffer.dedicated' },
       { text: 'With `"unlinked-references"` in `org_roam_mode_sections`, a line naming the node\'s title without a link is listed under *Unlinked References*', cmd: 'org.roam.buffer.refresh' },
+      { text: 'Going to today\'s daily note makes `daily/YYYY-MM-DD.org` with its `ID` and `#+title:`; capturing to it adds an entry at its end; the next and previous notes go from one to the other', cmd: ['org.roam.dailies.goto.today', 'org.roam.dailies.capture.today', 'org.roam.dailies.goto.next'] },
     ],
   },
   {

@@ -328,6 +328,16 @@ pub const ROAM_TAG_ADD: &str = "org.roam.tag.add";
 pub const ROAM_TAG_REMOVE: &str = "org.roam.tag.remove";
 pub const ROAM_REF_ADD: &str = "org.roam.ref.add";
 pub const ROAM_REF_REMOVE: &str = "org.roam.ref.remove";
+pub const ROAM_DAILIES_CAPTURE_TODAY: &str = "org.roam.dailies.capture.today";
+pub const ROAM_DAILIES_GOTO_TODAY: &str = "org.roam.dailies.goto.today";
+pub const ROAM_DAILIES_CAPTURE_TOMORROW: &str = "org.roam.dailies.capture.tomorrow";
+pub const ROAM_DAILIES_GOTO_TOMORROW: &str = "org.roam.dailies.goto.tomorrow";
+pub const ROAM_DAILIES_CAPTURE_YESTERDAY: &str = "org.roam.dailies.capture.yesterday";
+pub const ROAM_DAILIES_GOTO_YESTERDAY: &str = "org.roam.dailies.goto.yesterday";
+pub const ROAM_DAILIES_CAPTURE_DATE: &str = "org.roam.dailies.capture.date";
+pub const ROAM_DAILIES_GOTO_DATE: &str = "org.roam.dailies.goto.date";
+pub const ROAM_DAILIES_GOTO_NEXT: &str = "org.roam.dailies.goto.next";
+pub const ROAM_DAILIES_GOTO_PREVIOUS: &str = "org.roam.dailies.goto.previous";
 pub const JOURNAL_NEW_ENTRY: &str = "org.journal.new.entry";
 pub const JOURNAL_NEW_DATE_ENTRY: &str = "org.journal.new.date.entry";
 pub const JOURNAL_NEW_SCHEDULED_ENTRY: &str = "org.journal.new.scheduled.entry";
@@ -1394,6 +1404,51 @@ pub const COMMANDS: &[Command] = &[
         ..command(ROAM_CAPTURE, "Roam: capture to a node")
     },
     command(ROAM_NODE_RANDOM, "Roam: visit a random node"),
+    // `org-roam-dailies-map`, under `C-c n d` as org-roam's manual binds it.
+    Command {
+        emacs: &[key(Global, "C-c n d n")],
+        vim: &[key(Org, "<Leader>ndn")],
+        clipboard: true,
+        ..command(ROAM_DAILIES_CAPTURE_TODAY, "Roam: capture to today's daily note")
+    },
+    Command {
+        emacs: &[key(Global, "C-c n d d")],
+        vim: &[key(Org, "<Leader>ndd")],
+        ..command(ROAM_DAILIES_GOTO_TODAY, "Roam: go to today's daily note")
+    },
+    Command { clipboard: true, ..command(ROAM_DAILIES_CAPTURE_TOMORROW, "Roam: capture to tomorrow's daily note") },
+    Command {
+        emacs: &[key(Global, "C-c n d t")],
+        vim: &[key(Org, "<Leader>ndt")],
+        ..command(ROAM_DAILIES_GOTO_TOMORROW, "Roam: go to tomorrow's daily note")
+    },
+    Command { clipboard: true, ..command(ROAM_DAILIES_CAPTURE_YESTERDAY, "Roam: capture to yesterday's daily note") },
+    Command {
+        emacs: &[key(Global, "C-c n d y")],
+        vim: &[key(Org, "<Leader>ndy")],
+        ..command(ROAM_DAILIES_GOTO_YESTERDAY, "Roam: go to yesterday's daily note")
+    },
+    Command {
+        emacs: &[key(Global, "C-c n d v")],
+        vim: &[key(Org, "<Leader>ndv")],
+        clipboard: true,
+        ..command(ROAM_DAILIES_CAPTURE_DATE, "Roam: capture to the daily note of a date")
+    },
+    Command {
+        emacs: &[key(Global, "C-c n d c")],
+        vim: &[key(Org, "<Leader>ndc")],
+        ..command(ROAM_DAILIES_GOTO_DATE, "Roam: go to the daily note of a date")
+    },
+    Command {
+        emacs: &[key(Org, "C-c n d f")],
+        vim: &[key(Org, "<Leader>ndf")],
+        ..command(ROAM_DAILIES_GOTO_NEXT, "Roam: go to the next daily note")
+    },
+    Command {
+        emacs: &[key(Org, "C-c n d b")],
+        vim: &[key(Org, "<Leader>ndb")],
+        ..command(ROAM_DAILIES_GOTO_PREVIOUS, "Roam: go to the previous daily note")
+    },
     Command {
         emacs: &[key(Global, "C-c n l")],
         vim: &[key(Org, "<Leader>nl")],

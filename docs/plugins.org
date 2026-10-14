@@ -265,6 +265,37 @@ what goes into the target: with ~unnarrowed~, the whole file, its ~ID~ and
 head too. The node's file is written when the capture is filed
 (~org.capture.finish~), and the link of ~org.roam.node.insert~ goes in then.
 
+Daily notes are org-roam-dailies': a file a day in ~org_roam_dailies_directory~
+(~daily/~ under ~org_roam_directory~), made with
+~org_roam_dailies_capture_templates~, whose default is an entry in a file
+named after the day:
+
+#+begin_src toml
+[[org_roam_dailies_capture_templates]]
+key = "d"
+description = "default"
+type = "entry"
+template = "* %?"
+target = ["file+head", "%<%Y-%m-%d>.org", "#+title: %<%Y-%m-%d>\n"]
+#+end_src
+
+~%<…>~ and the other escapes of time are the note's day. The commands, under
+~C-c n d~ as org-roam's manual binds them:
+
+- ~org.roam.dailies.capture.today~ :: ~org-roam-dailies-capture-today~ (~n~):
+  a capture to today's note; with ~C-u~, the note itself.
+- ~org.roam.dailies.goto.today~ :: ~org-roam-dailies-goto-today~ (~d~): the
+  note of today, made with its ~ID~ and head if it is not there.
+- ~org.roam.dailies.goto.tomorrow~, ~org.roam.dailies.goto.yesterday~ ::
+  (~t~, ~y~) the note a day on or back, or as many days as the count; their
+  ~capture~ relatives capture to it.
+- ~org.roam.dailies.capture.date~, ~org.roam.dailies.goto.date~ :: (~v~,
+  ~c~) the note of a date typed as Org's date prompt reads it, a date
+  without a year in the past (/Capture to daily-note/, /Find daily-note/).
+- ~org.roam.dailies.goto.next~, ~org.roam.dailies.goto.previous~ :: (~f~,
+  ~b~) from a daily note, the next or previous one there is, or as many on
+  as the count: /Already at newest note/ at the last.
+
 The server keeps no database: it reads the files of the directory when a
 command needs them, again when they have changed, in the editor or on
 disk, and they are what ~org-roam-db-sync~ would make of them, checked
@@ -296,9 +327,13 @@ against Emacs by recorded cases and differential fuzzing. What differs:
 - Unlinked references are found by the server itself, as ripgrep finds
   them for org-roam (its PCRE pattern, word boundaries, any case), so no
   ~rg~ is needed; encrypted files are not searched.
-- ~org-id-locations-file~ is neither read nor written: an ~id:~ link is
-  followed to the files open in the editor, the agenda files and
-  org-roam's files.
+- ~org-id-locations-file~ is read, never written: an ~id:~ link is
+  followed to the files open in the editor, the agenda files, the files
+  Emacs listed there and org-roam's files.
+- Going to a daily note that is not there writes it, its ~ID~ and head in
+  it; Emacs leaves its buffer unsaved. Its date is typed, without the
+  calendar, which marks no days with a note; the directory of the notes is
+  not opened (~org-roam-dailies-find-directory~).
 
 * A journal (org-journal)
 :PROPERTIES:

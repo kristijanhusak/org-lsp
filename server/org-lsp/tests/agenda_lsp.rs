@@ -7251,6 +7251,77 @@ fn finds_links_and_captures_roam_nodes() {
     std::fs::remove_dir_all(root).unwrap();
 }
 
+/// org-roam-dailies: going to the day's note makes it, with its `ID`
+/// and title, as Emacs does; capturing to it adds an entry; another day
+/// by its count or a typed date; the next and previous notes.
+#[test]
+fn keeps_daily_notes_with_org_roam() {
+    let root = std::env::temp_dir().join(format!("org-lsp-roam-dailies-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(root.join("daily")).unwrap();
+    std::fs::write(root.join("daily/2026-05-10.org"), "#+title: 2026-05-10\n").unwrap();
+    let mut options = clock();
+    options["org_roam_enabled"] = json!(true);
+    options["org_roam_directory"] = json!(root.display().to_string());
+    let mut client = Client::editor(options, None);
+    let run = |client: &mut Client, command: &str, context: &Value| {
+        client.received.clear();
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+    let shown = |client: &Client| {
+        let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("shown");
+        show.params["uri"].as_str().unwrap().to_string()
+    };
+    let today = root.join("daily/2026-05-18.org");
+    let none = json!({});
+    run(&mut client, "org.roam.dailies.goto.today", &none).unwrap();
+    assert_eq!(shown(&client), format!("file://{}", today.display()));
+    let written = std::fs::read_to_string(&today).unwrap();
+    let id = written.lines().nth(1).unwrap().strip_prefix(":ID:       ").unwrap().to_string();
+    assert_eq!(written, format!(":PROPERTIES:\n:ID:       {id}\n:END:\n#+title: 2026-05-18\n"));
+
+    // A capture to it: an entry at its end.
+    run(&mut client, "org.roam.dailies.capture.today", &none).unwrap();
+    let buffer = shown(&client);
+    assert!(buffer.ends_with("/CAPTURE-2026-05-18.org"), "{buffer}");
+    assert_eq!(std::fs::read_to_string(buffer.strip_prefix("file://").unwrap()).unwrap(), "* \n");
+    client.open(&buffer, "* Did a thing\n");
+    let finish = json!({ "textDocument": { "uri": buffer }, "position": { "line": 0, "character": 0 } });
+    assert_eq!(run(&mut client, "org.capture.finish", &finish), Ok(json!({ "close": buffer })));
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the entry");
+    assert_eq!(
+        apply(&written, &edits_of(edit).1),
+        format!(":PROPERTIES:\n:ID:       {id}\n:END:\n#+title: 2026-05-18\n* Did a thing\n")
+    );
+
+    // Two days back, and a typed date.
+    run(&mut client, "org.roam.dailies.goto.yesterday", &json!({ "count": 2 })).unwrap();
+    assert!(shown(&client).ends_with("/daily/2026-05-16.org"));
+    let asked = run(&mut client, "org.roam.dailies.goto.date", &none).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Find daily-note");
+    let mut answer = asked["input"]["context"].clone();
+    answer["input"] = json!("2026-05-01");
+    run(&mut client, "org.roam.dailies.goto.date", &answer).unwrap();
+    assert!(shown(&client).ends_with("/daily/2026-05-01.org"));
+
+    // The notes in order: 05-01, 05-10, 05-16, 05-18.
+    let at = |name: &str| json!({ "textDocument": { "uri": format!("file://{}", root.join("daily").join(name).display()) } });
+    run(&mut client, "org.roam.dailies.goto.next", &at("2026-05-10.org")).unwrap();
+    assert!(shown(&client).ends_with("/daily/2026-05-16.org"));
+    run(&mut client, "org.roam.dailies.goto.previous", &at("2026-05-10.org")).unwrap();
+    assert!(shown(&client).ends_with("/daily/2026-05-01.org"));
+    assert_eq!(
+        run(&mut client, "org.roam.dailies.goto.next", &at("2026-05-18.org")),
+        Err("Already at newest note".to_string())
+    );
+    let elsewhere = json!({ "textDocument": { "uri": format!("file://{}", root.join("x.org").display()) } });
+    assert_eq!(run(&mut client, "org.roam.dailies.goto.next", &elsewhere), Err("Not in a daily-note".to_string()));
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
 /// org-roam's editing of the node at the cursor, and `roam:` links:
 /// followed, turned into `id:` links on saving, and completed.
 #[test]

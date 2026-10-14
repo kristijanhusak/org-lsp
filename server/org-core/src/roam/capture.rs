@@ -101,16 +101,16 @@ struct Answers<'a> {
     named: Vec<(String, String)>,
 }
 
-/// `org-roam-capture-`: the template filled and placed, or the next
+/// `org-roam-capture--prepare-buffer` before the template: the target
+/// found or made, its `ID`, and the place the capture goes; or the next
 /// question.
-pub fn capture(request: &Request) -> Result<Step, Refusal> {
-    let mut answers = Answers { list: request.answers, used: 0, named: Vec::new() };
+fn locate(request: &Request, answers: &mut Answers) -> Result<Result<Located, Question>, Refusal> {
     let template = request.template;
     macro_rules! fill {
         ($text:expr, $newline:expr) => {
-            match fill_template($text, request, &mut answers, $newline)? {
+            match fill_template($text, request, answers, $newline)? {
                 Ok(text) => text,
-                Err(question) => return Ok(Step::Ask(question)),
+                Err(question) => return Ok(Err(question)),
             }
         };
     }
@@ -188,6 +188,26 @@ pub fn capture(request: &Request) -> Result<Step, Refusal> {
         }
     };
     let point = adjust_point(&text, point, template.kind, template.properties.prepend, &(request.properties)(&text));
+    Ok(Ok(Located { path, text, new_file, point, id }))
+}
+
+/// `org-roam-capture-`: the template filled and placed, or the next
+/// question.
+pub fn capture(request: &Request) -> Result<Step, Refusal> {
+    let mut answers = Answers { list: request.answers, used: 0, named: Vec::new() };
+    let template = request.template;
+    macro_rules! fill {
+        ($text:expr, $newline:expr) => {
+            match fill_template($text, request, &mut answers, $newline)? {
+                Ok(text) => text,
+                Err(question) => return Ok(Step::Ask(question)),
+            }
+        };
+    }
+    let Located { path, text, new_file, point, id } = match locate(request, &mut answers)? {
+        Ok(located) => located,
+        Err(question) => return Ok(Step::Ask(question)),
+    };
     // The body: filled by org-roam, then again by `org-capture`.
     let body = fill!(&template.body, false);
     let (filled, _) = capture::fill_counting(&body, request.context, &[], request.read_date, None)?;
@@ -209,6 +229,28 @@ pub fn capture(request: &Request) -> Result<Step, Refusal> {
         placed.unnarrow();
     }
     Ok(Step::Ready(Ready { path, new_file, placed, id }))
+}
+
+/// `org-capture` with `C-u` (`org-capture-goto-target`) on a template of
+/// org-roam: the target found or made, as the capture would, without the
+/// template.
+pub fn goto(request: &Request) -> Result<Result<Located, Question>, Refusal> {
+    let mut answers = Answers { list: request.answers, used: 0, named: Vec::new() };
+    locate(request, &mut answers)
+}
+
+/// The target of a capture, ready for the template.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Located {
+    /// The target file, its text with the head and the `ID` put in, and
+    /// whether it is new.
+    pub path: PathBuf,
+    pub text: String,
+    pub new_file: bool,
+    /// Where the template goes.
+    pub point: usize,
+    /// The node's `ID`: the one given, or the target's own.
+    pub id: String,
 }
 
 /// The `${name}` and `${name=default}` of a template.

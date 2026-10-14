@@ -138,6 +138,14 @@ in a popup. [[file:../vim.org][vim.org]] says how to install and set up the plug
 | ~<Leader>nf~ | ~org.roam.node.find~ | Roam: find a node |
 | ~<Leader>ni~ | ~org.roam.node.insert~ | Roam: insert a link to a node |
 | ~<Leader>nc~ | ~org.roam.capture~ | Roam: capture to a node |
+| ~<Leader>ndn~ | ~org.roam.dailies.capture.today~ | Roam: capture to today's daily note |
+| ~<Leader>ndd~ | ~org.roam.dailies.goto.today~ | Roam: go to today's daily note |
+| ~<Leader>ndt~ | ~org.roam.dailies.goto.tomorrow~ | Roam: go to tomorrow's daily note |
+| ~<Leader>ndy~ | ~org.roam.dailies.goto.yesterday~ | Roam: go to yesterday's daily note |
+| ~<Leader>ndv~ | ~org.roam.dailies.capture.date~ | Roam: capture to the daily note of a date |
+| ~<Leader>ndc~ | ~org.roam.dailies.goto.date~ | Roam: go to the daily note of a date |
+| ~<Leader>ndf~ | ~org.roam.dailies.goto.next~ | Roam: go to the next daily note |
+| ~<Leader>ndb~ | ~org.roam.dailies.goto.previous~ | Roam: go to the previous daily note |
 | ~<Leader>nl~ | ~org.roam.buffer.toggle~ | Roam: show or hide the org-roam buffer |
 | ~<Leader>jf~ | ~org.journal.next.entry~ | Journal: next entry |
 | ~<Leader>jb~ | ~org.journal.previous.entry~ | Journal: previous entry |
@@ -313,6 +321,8 @@ in a popup. [[file:../vim.org][vim.org]] says how to install and set up the plug
 | ~org.archive.done~ | Archive the subtrees without open TODO items |
 | ~org.archive.tag.done~ | Tag the subtrees without open TODO items as archived |
 | ~org.roam.node.random~ | Roam: visit a random node |
+| ~org.roam.dailies.capture.tomorrow~ | Roam: capture to tomorrow's daily note |
+| ~org.roam.dailies.capture.yesterday~ | Roam: capture to yesterday's daily note |
 | ~org.roam.buffer.dedicated~ | Roam: show the org-roam buffer of a node |
 | ~org.roam.buffer.refresh~ | Roam: refresh the org-roam buffer |
 | ~org.roam.alias.add~ | Roam: add an alias |

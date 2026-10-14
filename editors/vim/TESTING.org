@@ -216,6 +216,7 @@ its sections says what it should look like.
 - [ ] Following an item of the buffer visits the line of the link: ~<Leader>oo~
 - [ ] A dedicated buffer for a node asked for opens in a file of its own and stays on that node: ~:Org roam buffer dedicated~
 - [ ] With ~"unlinked-references"~ in ~org_roam_mode_sections~, a line naming the node's title without a link is listed under /Unlinked References/: ~:Org roam buffer refresh~
+- [ ] Going to today's daily note makes ~daily/YYYY-MM-DD.org~ with its ~ID~ and ~#+title:~; capturing to it adds an entry at its end; the next and previous notes go from one to the other: ~<Leader>ndd~, ~<Leader>ndn~, ~<Leader>ndf~
 
 * A journal (org-journal)
 

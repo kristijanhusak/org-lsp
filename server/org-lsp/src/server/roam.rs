@@ -21,6 +21,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 pub mod buffer;
+mod dailies;
 mod node_edit;
 
 use super::{template_choices, template_text, Capturing, Pending, Server};
@@ -119,7 +120,7 @@ fn nanos(time: Option<SystemTime>) -> u64 {
 }
 
 /// What a roam command is run with: where, and the answers so far.
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct RoamContext {
     text_document: Option<TextDocumentIdentifier>,
@@ -143,6 +144,10 @@ pub(super) struct RoamContext {
     visible: Option<bool>,
     /// The count typed before the key (`C-u` is 4).
     count: Option<i64>,
+    /// For the daily notes: the day captured to (`YYYY-MM-DD HH:MM`), and
+    /// whether the command only goes to the note.
+    day: Option<String>,
+    goto: Option<bool>,
 }
 
 /// A capture of org-roam's: the node's `ID`, and what is done once it is
@@ -167,6 +172,9 @@ impl Server {
     pub(super) fn roam_command(&mut self, id: &str, context: &RoamContext) -> Result<Value, Refusal> {
         if self.roam.is_none() {
             return Err(OFF.into());
+        }
+        if id.starts_with("org.roam.dailies.") {
+            return self.roam_dailies(id, context);
         }
         if matches!(id, commands::ROAM_BUFFER_TOGGLE | commands::ROAM_BUFFER_DEDICATED | commands::ROAM_BUFFER_REFRESH)
         {
@@ -230,13 +238,13 @@ impl Server {
                     (_, found) => {
                         let title = found.map_or(answer.clone(), |candidate| candidate.title.clone());
                         let existing = found.map(|candidate| candidate.id.clone());
-                        self.roam_capture(id, context, &db, &title, existing.as_deref())
+                        self.roam_capture(id, context, &db, &title, existing.as_deref(), None)
                     }
                 }
             }
             Some(_) => {
                 let title = context.title.clone().unwrap_or_default();
-                self.roam_capture(id, context, &db, &title, context.id.as_deref())
+                self.roam_capture(id, context, &db, &title, context.id.as_deref(), None)
             }
         }
     }
@@ -400,12 +408,21 @@ impl Server {
         db: &Db,
         title: &str,
         existing: Option<&str>,
+        daily: Option<dailies::Daily>,
     ) -> Result<Value, Refusal> {
         let roam = self.roam.as_ref().ok_or(OFF)?;
-        let templates = roam.settings.templates.clone();
-        let directory = roam.directory.clone();
+        // org-roam-dailies: its templates, in its directory.
+        let (templates, directory) = match daily {
+            Some(_) => (roam.settings.dailies_templates.clone(), roam.directory.join(&roam.settings.dailies_directory)),
+            None => (roam.settings.templates.clone(), roam.directory.clone()),
+        };
         // What the next question's answer is sent back with.
         let mut state = json!({ "title": title });
+        if let Some(daily) = &daily {
+            for (key, value) in daily.state().as_object().into_iter().flatten() {
+                state[key] = value.clone();
+            }
+        }
         if let Some(id) = existing {
             state["id"] = json!(id);
         }
@@ -443,8 +460,9 @@ impl Server {
         let region = self.roam_region(context);
         let document = context.text_document.as_ref().map(|document| document.uri.clone());
         let clipboard = context.clipboard.clone().unwrap_or_default();
-        let mut fill_context =
-            self.capture_fill_context(document.as_ref(), context.position, self.date_time(), clipboard);
+        // The day of a daily note is the capture's time (`:default-time`).
+        let time = daily.map_or_else(|| self.date_time(), |daily| daily.time);
+        let mut fill_context = self.capture_fill_context(document.as_ref(), context.position, time, clipboard);
         fill_context.initial = region.as_ref().map(|(_, _, text)| text.clone()).unwrap_or_default();
         // The node that exists: its file, which the capture goes to.
         let node_of = |id: &str| db.nodes.iter().find(|(_, node)| node.id == id);
@@ -477,7 +495,7 @@ impl Server {
         let id = self.id_maker()();
         // The capture, with the target's text as `changed` has it when
         // stopping the clock changed it.
-        let capture_with = |changed: Option<&(PathBuf, String)>| {
+        let capture_with = |changed: Option<&(PathBuf, String)>, goto: bool| {
             let read = |path: &Path| match changed {
                 Some((file, text)) if file == path => Some(text.clone()),
                 _ => read(path),
@@ -497,9 +515,20 @@ impl Server {
                 lists: &edit_settings.todo.lists,
                 find_node: &find_node,
             };
-            roam_capture::capture(&request)
+            if goto {
+                return roam_capture::goto(&request).map(|located| match located {
+                    Ok(located) => Run::Goto(located),
+                    Err(question) => Run::Step(roam_capture::Step::Ask(question)),
+                });
+            }
+            roam_capture::capture(&request).map(Run::Step)
         };
-        let mut ready = match capture_with(None)? {
+        let goto = daily.is_some_and(|daily| daily.goto);
+        let step = match capture_with(None, goto)? {
+            Run::Goto(located) => return self.roam_goto(located),
+            Run::Step(step) => step,
+        };
+        let mut ready = match step {
             roam_capture::Step::Ask(question) => {
                 state["step"] = json!("capture");
                 state["keys"] = json!(option.key);
@@ -533,11 +562,9 @@ impl Server {
                         before = snapshot.clone();
                     }
                     let changed = (ready.path.clone(), snapshot.clone());
-                    ready = match capture_with(Some(&changed))? {
-                        roam_capture::Step::Ready(ready) => ready,
-                        roam_capture::Step::Ask(_) => {
-                            return Err("The target file has changed since the capture began".into())
-                        }
+                    ready = match capture_with(Some(&changed), false)? {
+                        Run::Step(roam_capture::Step::Ready(ready)) => ready,
+                        _ => return Err("The target file has changed since the capture began".into()),
                     };
                 } else {
                     self.send_texts(vec![change]);
@@ -636,6 +663,13 @@ impl Server {
             }
         }
     }
+}
+
+/// What a capture of org-roam comes to: its next step, or for `:goto`
+/// the place its target is.
+enum Run {
+    Step(roam_capture::Step),
+    Goto(roam_capture::Located),
 }
 
 /// Where `offset` of `old` is in `new`, the text changed in one place: a

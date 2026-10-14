@@ -2064,6 +2064,21 @@ pub const SETTINGS: &[Setting] = &[
          escapes of `org_capture_templates`. `unnarrowed` shows the whole file in the capture buffer.",
     ),
     setting(
+        "org_roam_dailies_directory",
+        "string",
+        r#""daily/""#,
+        "org-roam-dailies-directory",
+        "Where the daily notes are, relative to `org_roam_directory`.",
+    ),
+    setting(
+        "org_roam_dailies_capture_templates",
+        "object[]",
+        r##"[{ "key": "d", "description": "default", "type": "entry", "template": "* %?", "target": ["file+head", "%<%Y-%m-%d>.org", "#+title: %<%Y-%m-%d>\n"] }]"##,
+        "org-roam-dailies-capture-templates",
+        "The templates of the daily notes, as `org_roam_capture_templates` writes them, with paths relative to \
+         `org_roam_dailies_directory`; `%<…>` is the note's day.",
+    ),
+    setting(
         "org_journal_enabled",
         "boolean",
         "false",
@@ -2946,22 +2961,9 @@ const SCHEMAS: &[(&str, &str)] = &[
         "org_roam_mode_sections",
         r#"{ "type": "array", "items": { "enum": ["backlinks", "reflinks", "unlinked-references"] } }"#,
     ),
-    (
-        "org_roam_capture_templates",
-        r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.RoamCaptureTemplate", "required": ["key", "description"], "additionalProperties": false, "properties": {
-            "key": { "type": "string", "description": "The keys that pick the template" },
-            "description": { "type": "string", "description": "What the menu shows" },
-            "type": { "enum": ["entry", "plain", "item", "checkitem", "table-line"], "description": "An Org entry (the default), plain text, a list item, a checkbox item or a table line" },
-            "target": { "type": "array", "items": { "type": "string" },
-                "description": "`file` and a path; `file+head`, a path and the head of a new file; `file+olp`, a path and an outline path; `file+head+olp`, a path, a head and an outline path; or `node` and a node's title, alias or ID" },
-            "template": { "anyOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }], "description": "The template, or its lines" },
-            "prepend": { "type": "boolean", "description": "First under the target, not last" },
-            "empty_lines": { "type": "integer", "minimum": 0, "description": "Blank lines before and after" },
-            "empty_lines_before": { "type": "integer", "minimum": 0, "description": "Blank lines before" },
-            "empty_lines_after": { "type": "integer", "minimum": 0, "description": "Blank lines after" },
-            "unnarrowed": { "type": "boolean", "description": "Show the whole file in the capture buffer" }
-        } } }"#,
-    ),
+    ("org_roam_capture_templates", ROAM_TEMPLATES),
+    ("org_roam_dailies_capture_templates", ROAM_TEMPLATES),
+    ("org_roam_dailies_directory", STRING),
     ("org_agenda_search_view_always_boolean", BOOLEAN),
     ("org_agenda_search_view_force_full_words", BOOLEAN),
     ("org_agenda_search_view_max_outline_level", r#"{ "type": "integer", "minimum": 0 }"#),
@@ -3027,6 +3029,21 @@ const REFILE_TARGETS: &str = r#"{ "type": "array", "items": { "type": "object", 
     "todo": { "type": "string", "description": "The headlines with this TODO keyword" },
     "regexp": { "type": "string", "description": "The headlines that match this regular expression" },
     "all": { "type": "boolean", "description": "Every headline" }
+} } }"#;
+
+/// `org_roam_capture_templates` and `org_roam_dailies_capture_templates`.
+const ROAM_TEMPLATES: &str = r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.RoamCaptureTemplate", "required": ["key", "description"], "additionalProperties": false, "properties": {
+    "key": { "type": "string", "description": "The keys that pick the template" },
+    "description": { "type": "string", "description": "What the menu shows" },
+    "type": { "enum": ["entry", "plain", "item", "checkitem", "table-line"], "description": "An Org entry (the default), plain text, a list item, a checkbox item or a table line" },
+    "target": { "type": "array", "items": { "type": "string" },
+        "description": "`file` and a path; `file+head`, a path and the head of a new file; `file+olp`, a path and an outline path; `file+head+olp`, a path, a head and an outline path; or `node` and a node's title, alias or ID" },
+    "template": { "anyOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }], "description": "The template, or its lines" },
+    "prepend": { "type": "boolean", "description": "First under the target, not last" },
+    "empty_lines": { "type": "integer", "minimum": 0, "description": "Blank lines before and after" },
+    "empty_lines_before": { "type": "integer", "minimum": 0, "description": "Blank lines before" },
+    "empty_lines_after": { "type": "integer", "minimum": 0, "description": "Blank lines after" },
+    "unnarrowed": { "type": "boolean", "description": "Show the whole file in the capture buffer" }
 } } }"#;
 
 const BOOLEAN: &str = r#"{ "type": "boolean" }"#;

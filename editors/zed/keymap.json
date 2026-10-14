@@ -455,6 +455,42 @@
           "task_name": "Org: Roam: capture to a node"
         }
       ],
+      "ctrl-c n d n": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: capture to today's daily note"
+        }
+      ],
+      "ctrl-c n d d": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: go to today's daily note"
+        }
+      ],
+      "ctrl-c n d t": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: go to tomorrow's daily note"
+        }
+      ],
+      "ctrl-c n d y": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: go to yesterday's daily note"
+        }
+      ],
+      "ctrl-c n d v": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: capture to the daily note of a date"
+        }
+      ],
+      "ctrl-c n d c": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: go to the daily note of a date"
+        }
+      ],
       "ctrl-c n l": [
         "task::Spawn",
         {
@@ -1072,6 +1108,18 @@
           "task_name": "Org: Roam: insert a link to a node"
         }
       ],
+      "ctrl-c n d f": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: go to the next daily note"
+        }
+      ],
+      "ctrl-c n d b": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: go to the previous daily note"
+        }
+      ],
       "ctrl-c j f": [
         "task::Spawn",
         {
@@ -1142,6 +1190,42 @@
         "task::Spawn",
         {
           "task_name": "Org: Roam: capture to a node"
+        }
+      ],
+      "ctrl-c n d n": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: capture to today's daily note"
+        }
+      ],
+      "ctrl-c n d d": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: go to today's daily note"
+        }
+      ],
+      "ctrl-c n d t": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: go to tomorrow's daily note"
+        }
+      ],
+      "ctrl-c n d y": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: go to yesterday's daily note"
+        }
+      ],
+      "ctrl-c n d v": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: capture to the daily note of a date"
+        }
+      ],
+      "ctrl-c n d c": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: go to the daily note of a date"
         }
       ],
       "ctrl-c n l": [
