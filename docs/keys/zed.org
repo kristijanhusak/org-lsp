@@ -183,6 +183,12 @@ its motions.
 | ~ctrl-c c~ | ~org.capture~ | Capture |
 | ~ctrl-c n f~ | ~org.roam.node.find~ | Roam: find a node |
 | ~ctrl-c n c~ | ~org.roam.capture~ | Roam: capture to a node |
+| ~ctrl-c n d n~ | ~org.roam.dailies.capture.today~ | Roam: capture to today's daily note |
+| ~ctrl-c n d d~ | ~org.roam.dailies.goto.today~ | Roam: go to today's daily note |
+| ~ctrl-c n d t~ | ~org.roam.dailies.goto.tomorrow~ | Roam: go to tomorrow's daily note |
+| ~ctrl-c n d y~ | ~org.roam.dailies.goto.yesterday~ | Roam: go to yesterday's daily note |
+| ~ctrl-c n d v~ | ~org.roam.dailies.capture.date~ | Roam: capture to the daily note of a date |
+| ~ctrl-c n d c~ | ~org.roam.dailies.goto.date~ | Roam: go to the daily note of a date |
 | ~ctrl-c n l~ | ~org.roam.buffer.toggle~ | Roam: show or hide the org-roam buffer |
 | ~ctrl-c j j~ | ~org.journal.new.entry~ | Journal: new entry |
 
@@ -285,6 +291,8 @@ its motions.
 | ~ctrl-c ctrl-x a~ | ~org.archive.tag~ | Toggle the ARCHIVE tag |
 | ~ctrl-c ctrl-x ctrl-a~ | ~org.archive.default~ | Archive with the default command |
 | ~ctrl-c n i~ | ~org.roam.node.insert~ | Roam: insert a link to a node |
+| ~ctrl-c n d f~ | ~org.roam.dailies.goto.next~ | Roam: go to the next daily note |
+| ~ctrl-c n d b~ | ~org.roam.dailies.goto.previous~ | Roam: go to the previous daily note |
 | ~ctrl-c j f~ | ~org.journal.next.entry~ | Journal: next entry |
 | ~ctrl-c j b~ | ~org.journal.previous.entry~ | Journal: previous entry |
 | ~ctrl-c j s~ | ~org.journal.search~ | Journal: search between two dates |
@@ -297,6 +305,12 @@ its motions.
 | ~ctrl-c c~ | ~org.capture~ | Capture |
 | ~ctrl-c n f~ | ~org.roam.node.find~ | Roam: find a node |
 | ~ctrl-c n c~ | ~org.roam.capture~ | Roam: capture to a node |
+| ~ctrl-c n d n~ | ~org.roam.dailies.capture.today~ | Roam: capture to today's daily note |
+| ~ctrl-c n d d~ | ~org.roam.dailies.goto.today~ | Roam: go to today's daily note |
+| ~ctrl-c n d t~ | ~org.roam.dailies.goto.tomorrow~ | Roam: go to tomorrow's daily note |
+| ~ctrl-c n d y~ | ~org.roam.dailies.goto.yesterday~ | Roam: go to yesterday's daily note |
+| ~ctrl-c n d v~ | ~org.roam.dailies.capture.date~ | Roam: capture to the daily note of a date |
+| ~ctrl-c n d c~ | ~org.roam.dailies.goto.date~ | Roam: go to the daily note of a date |
 | ~ctrl-c n l~ | ~org.roam.buffer.toggle~ | Roam: show or hide the org-roam buffer |
 | ~ctrl-c j j~ | ~org.journal.new.entry~ | Journal: new entry |
 

@@ -524,6 +524,10 @@ pub struct Options {
     #[serde(rename = "org_roam_mode_sections")]
     pub roam_mode_sections: Option<Vec<String>>,
     /// `org-roam-capture-templates`, written as `org_capture_templates`.
+    #[serde(rename = "org_roam_dailies_directory")]
+    pub roam_dailies_directory: Option<String>,
+    #[serde(rename = "org_roam_dailies_capture_templates")]
+    pub roam_dailies_capture_templates: Option<Vec<CaptureTemplateOption>>,
     #[serde(rename = "org_roam_capture_templates")]
     pub roam_capture_templates: Option<Vec<CaptureTemplateOption>>,
     /// org-journal: off unless switched on.
@@ -683,6 +687,10 @@ pub struct RoamSettings {
     pub files: org_core::roam::Settings,
     pub display_template: String,
     pub templates: Vec<CaptureTemplateOption>,
+    /// `org-roam-dailies-directory`, relative to the directory, and
+    /// `org-roam-dailies-capture-templates`.
+    pub dailies_directory: String,
+    pub dailies_templates: Vec<CaptureTemplateOption>,
     /// `org-roam-link-auto-replace`
     pub link_auto_replace: bool,
     /// `org-roam-completion-everywhere`
@@ -1234,6 +1242,21 @@ impl Options {
                 },
             },
             display_template: self.roam_node_display_template.clone().unwrap_or_else(|| "${title}".to_string()),
+            dailies_directory: self.roam_dailies_directory.clone().unwrap_or_else(|| "daily/".to_string()),
+            dailies_templates: self.roam_dailies_capture_templates.clone().unwrap_or_else(|| {
+                vec![CaptureTemplateOption {
+                    key: "d".to_string(),
+                    description: "default".to_string(),
+                    kind: Some("entry".to_string()),
+                    target: vec![
+                        "file+head".to_string(),
+                        "%<%Y-%m-%d>.org".to_string(),
+                        "#+title: %<%Y-%m-%d>\n".to_string(),
+                    ],
+                    template: Some(TemplateText::Text("* %?".to_string())),
+                    ..CaptureTemplateOption::default()
+                }]
+            }),
             link_auto_replace: self.roam_link_auto_replace.unwrap_or(true),
             completion_everywhere: self.roam_completion_everywhere.unwrap_or(false),
             sections: self
@@ -2201,7 +2224,10 @@ pub fn current_names(value: serde_json::Value, renamed: &mut Vec<String>) -> ser
             None => key,
         };
         match name.as_str() {
-            "org_capture_templates" | "org_roam_capture_templates" | "org_refile_targets" => {
+            "org_capture_templates"
+            | "org_roam_capture_templates"
+            | "org_roam_dailies_capture_templates"
+            | "org_refile_targets" => {
                 for item in field.as_array_mut().into_iter().flatten() {
                     underscored(item);
                     if let Some(fields) = item.as_object_mut() {

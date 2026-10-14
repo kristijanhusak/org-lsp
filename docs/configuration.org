@@ -2011,6 +2011,15 @@ org_roam_mode_sections = ["backlinks", "reflinks"]
 # buffer. (org-roam-capture-templates)
 org_roam_capture_templates = [{ key = "d", description = "default", type = "plain", target = ["file+head", "%<%Y%m%d%H%M%S>-${slug}.org", "#+title: ${title}\n"], template = "%?", unnarrowed = true }]
 
+# Where the daily notes are, relative to `org_roam_directory`.
+# (org-roam-dailies-directory)
+org_roam_dailies_directory = "daily/"
+
+# The templates of the daily notes, as `org_roam_capture_templates` writes
+# them, with paths relative to `org_roam_dailies_directory`; `%<…>` is the
+# note's day. (org-roam-dailies-capture-templates)
+org_roam_dailies_capture_templates = [{ key = "d", description = "default", type = "entry", target = ["file+head", "%<%Y-%m-%d>.org", "#+title: %<%Y-%m-%d>\n"], template = "* %?" }]
+
 # org-journal: a journal in `org_journal_dir`, a file a day (or week, month,
 # year), written with the `org.journal.*` commands. Off, those commands only
 # say so.
@@ -3449,6 +3458,15 @@ org_agenda_custom_commands = []
   // of `org_capture_templates`. `unnarrowed` shows the whole file in the
   // capture buffer. (org-roam-capture-templates)
   "org_roam_capture_templates": [{ "key": "d", "description": "default", "type": "plain", "target": ["file+head", "%<%Y%m%d%H%M%S>-${slug}.org", "#+title: ${title}\n"], "template": "%?", "unnarrowed": true }],
+
+  // Where the daily notes are, relative to `org_roam_directory`.
+  // (org-roam-dailies-directory)
+  "org_roam_dailies_directory": "daily/",
+
+  // The templates of the daily notes, as `org_roam_capture_templates` writes
+  // them, with paths relative to `org_roam_dailies_directory`; `%<…>` is the
+  // note's day. (org-roam-dailies-capture-templates)
+  "org_roam_dailies_capture_templates": [{ "key": "d", "description": "default", "type": "entry", "target": ["file+head", "%<%Y-%m-%d>.org", "#+title: %<%Y-%m-%d>\n"], "template": "* %?" }],
 
   // org-journal: a journal in `org_journal_dir`, a file a day (or week,
   // month, year), written with the `org.journal.*` commands. Off, those

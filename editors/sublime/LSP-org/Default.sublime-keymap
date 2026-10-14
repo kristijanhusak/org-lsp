@@ -2676,6 +2676,54 @@
   {
     "keys": [
       "ctrl+c",
+      "n",
+      "d",
+      "f"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.goto.next"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "n",
+      "d",
+      "b"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.goto.previous"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
       "j",
       "f"
     ],
@@ -3467,6 +3515,294 @@
     "command": "org_lsp_run",
     "args": {
       "command": "org.roam.capture"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "n",
+      "d",
+      "n"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.capture.today"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "n",
+      "d",
+      "n"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.capture.today"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "n",
+      "d",
+      "d"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.goto.today"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "n",
+      "d",
+      "d"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.goto.today"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "n",
+      "d",
+      "t"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.goto.tomorrow"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "n",
+      "d",
+      "t"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.goto.tomorrow"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "n",
+      "d",
+      "y"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.goto.yesterday"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "n",
+      "d",
+      "y"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.goto.yesterday"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "n",
+      "d",
+      "v"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.capture.date"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "n",
+      "d",
+      "v"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.capture.date"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "n",
+      "d",
+      "c"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.goto.date"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "n",
+      "d",
+      "c"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.goto.date"
     },
     "context": [
       {

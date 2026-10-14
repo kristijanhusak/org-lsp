@@ -1428,6 +1428,76 @@
     }
   },
   {
+    "caption": "Org: Roam: capture to today's daily note",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.capture.today"
+    }
+  },
+  {
+    "caption": "Org: Roam: go to today's daily note",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.goto.today"
+    }
+  },
+  {
+    "caption": "Org: Roam: capture to tomorrow's daily note",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.capture.tomorrow"
+    }
+  },
+  {
+    "caption": "Org: Roam: go to tomorrow's daily note",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.goto.tomorrow"
+    }
+  },
+  {
+    "caption": "Org: Roam: capture to yesterday's daily note",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.capture.yesterday"
+    }
+  },
+  {
+    "caption": "Org: Roam: go to yesterday's daily note",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.goto.yesterday"
+    }
+  },
+  {
+    "caption": "Org: Roam: capture to the daily note of a date",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.capture.date"
+    }
+  },
+  {
+    "caption": "Org: Roam: go to the daily note of a date",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.goto.date"
+    }
+  },
+  {
+    "caption": "Org: Roam: go to the next daily note",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.goto.next"
+    }
+  },
+  {
+    "caption": "Org: Roam: go to the previous daily note",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.goto.previous"
+    }
+  },
+  {
     "caption": "Org: Roam: show or hide the org-roam buffer",
     "command": "org_lsp_run",
     "args": {

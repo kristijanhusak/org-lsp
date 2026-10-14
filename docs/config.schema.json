@@ -2649,6 +2649,100 @@
         }
       ]
     },
+    "org_roam_dailies_directory": {
+      "type": "string",
+      "description": "Where the daily notes are, relative to `org_roam_directory`. (`org-roam-dailies-directory`)",
+      "default": "daily/"
+    },
+    "org_roam_dailies_capture_templates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "description"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The keys that pick the template"
+          },
+          "description": {
+            "type": "string",
+            "description": "What the menu shows"
+          },
+          "type": {
+            "enum": [
+              "entry",
+              "plain",
+              "item",
+              "checkitem",
+              "table-line"
+            ],
+            "description": "An Org entry (the default), plain text, a list item, a checkbox item or a table line"
+          },
+          "target": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "`file` and a path; `file+head`, a path and the head of a new file; `file+olp`, a path and an outline path; `file+head+olp`, a path, a head and an outline path; or `node` and a node's title, alias or ID"
+          },
+          "template": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ],
+            "description": "The template, or its lines"
+          },
+          "prepend": {
+            "type": "boolean",
+            "description": "First under the target, not last"
+          },
+          "empty_lines": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Blank lines before and after"
+          },
+          "empty_lines_before": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Blank lines before"
+          },
+          "empty_lines_after": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Blank lines after"
+          },
+          "unnarrowed": {
+            "type": "boolean",
+            "description": "Show the whole file in the capture buffer"
+          }
+        }
+      },
+      "description": "The templates of the daily notes, as `org_roam_capture_templates` writes them, with paths relative to `org_roam_dailies_directory`; `%<…>` is the note's day. (`org-roam-dailies-capture-templates`)",
+      "default": [
+        {
+          "key": "d",
+          "description": "default",
+          "type": "entry",
+          "template": "* %?",
+          "target": [
+            "file+head",
+            "%<%Y-%m-%d>.org",
+            "#+title: %<%Y-%m-%d>\n"
+          ]
+        }
+      ]
+    },
     "org_journal_enabled": {
       "type": "boolean",
       "description": "org-journal: a journal in `org_journal_dir`, a file a day (or week, month, year), written with the `org.journal.*` commands. Off, those commands only say so.",

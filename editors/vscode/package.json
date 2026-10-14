@@ -1086,6 +1086,56 @@
         "category": "Org"
       },
       {
+        "command": "org.roam.dailies.capture.today",
+        "title": "Roam: capture to today's daily note",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.dailies.goto.today",
+        "title": "Roam: go to today's daily note",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.dailies.capture.tomorrow",
+        "title": "Roam: capture to tomorrow's daily note",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.dailies.goto.tomorrow",
+        "title": "Roam: go to tomorrow's daily note",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.dailies.capture.yesterday",
+        "title": "Roam: capture to yesterday's daily note",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.dailies.goto.yesterday",
+        "title": "Roam: go to yesterday's daily note",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.dailies.capture.date",
+        "title": "Roam: capture to the daily note of a date",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.dailies.goto.date",
+        "title": "Roam: go to the daily note of a date",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.dailies.goto.next",
+        "title": "Roam: go to the next daily note",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.dailies.goto.previous",
+        "title": "Roam: go to the previous daily note",
+        "category": "Org"
+      },
+      {
         "command": "org.roam.buffer.toggle",
         "title": "Roam: show or hide the org-roam buffer",
         "category": "Org"
@@ -4142,6 +4192,100 @@
                 }
               ]
             },
+            "org_roam_dailies_directory": {
+              "type": "string",
+              "markdownDescription": "Where the daily notes are, relative to `org_roam_directory`. (`org-roam-dailies-directory`)",
+              "default": "daily/"
+            },
+            "org_roam_dailies_capture_templates": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "description"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "description": "The keys that pick the template"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "What the menu shows"
+                  },
+                  "type": {
+                    "enum": [
+                      "entry",
+                      "plain",
+                      "item",
+                      "checkitem",
+                      "table-line"
+                    ],
+                    "description": "An Org entry (the default), plain text, a list item, a checkbox item or a table line"
+                  },
+                  "target": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "`file` and a path; `file+head`, a path and the head of a new file; `file+olp`, a path and an outline path; `file+head+olp`, a path, a head and an outline path; or `node` and a node's title, alias or ID"
+                  },
+                  "template": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "description": "The template, or its lines"
+                  },
+                  "prepend": {
+                    "type": "boolean",
+                    "description": "First under the target, not last"
+                  },
+                  "empty_lines": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Blank lines before and after"
+                  },
+                  "empty_lines_before": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Blank lines before"
+                  },
+                  "empty_lines_after": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Blank lines after"
+                  },
+                  "unnarrowed": {
+                    "type": "boolean",
+                    "description": "Show the whole file in the capture buffer"
+                  }
+                }
+              },
+              "markdownDescription": "The templates of the daily notes, as `org_roam_capture_templates` writes them, with paths relative to `org_roam_dailies_directory`; `%<…>` is the note's day. (`org-roam-dailies-capture-templates`)",
+              "default": [
+                {
+                  "key": "d",
+                  "description": "default",
+                  "type": "entry",
+                  "template": "* %?",
+                  "target": [
+                    "file+head",
+                    "%<%Y-%m-%d>.org",
+                    "#+title: %<%Y-%m-%d>\n"
+                  ]
+                }
+              ]
+            },
             "org_journal_enabled": {
               "type": "boolean",
               "markdownDescription": "org-journal: a journal in `org_journal_dir`, a file a day (or week, month, year), written with the `org.journal.*` commands. Off, those commands only say so.",
@@ -6501,6 +6645,16 @@
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
+        "command": "org.roam.dailies.goto.next",
+        "key": "ctrl+c n d f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.dailies.goto.previous",
+        "key": "ctrl+c n d b",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
         "command": "org.journal.next.entry",
         "key": "ctrl+c j f",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
@@ -6700,6 +6854,66 @@
       {
         "command": "org.roam.capture",
         "key": "ctrl+c n c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.roam.dailies.capture.today",
+        "key": "ctrl+c n d n",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.dailies.capture.today",
+        "key": "ctrl+c n d n",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.roam.dailies.goto.today",
+        "key": "ctrl+c n d d",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.dailies.goto.today",
+        "key": "ctrl+c n d d",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.roam.dailies.goto.tomorrow",
+        "key": "ctrl+c n d t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.dailies.goto.tomorrow",
+        "key": "ctrl+c n d t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.roam.dailies.goto.yesterday",
+        "key": "ctrl+c n d y",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.dailies.goto.yesterday",
+        "key": "ctrl+c n d y",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.roam.dailies.capture.date",
+        "key": "ctrl+c n d v",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.dailies.capture.date",
+        "key": "ctrl+c n d v",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.roam.dailies.goto.date",
+        "key": "ctrl+c n d c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.dailies.goto.date",
+        "key": "ctrl+c n d c",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -7997,7 +8211,11 @@
       "org.paste.subtree",
       "org.capture",
       "org.roam.node.insert",
-      "org.roam.capture"
+      "org.roam.capture",
+      "org.roam.dailies.capture.today",
+      "org.roam.dailies.capture.tomorrow",
+      "org.roam.dailies.capture.yesterday",
+      "org.roam.dailies.capture.date"
     ]
   }
 }
