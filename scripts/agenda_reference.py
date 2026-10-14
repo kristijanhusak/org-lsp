@@ -142,6 +142,14 @@ DEFAULTS = r"""
       org-agenda-max-todos nil
       org-agenda-max-tags nil
       org-agenda-max-effort nil
+      org-agenda-skip-comment-trees t
+      org-agenda-todo-list-sublevels t
+      org-agenda-todo-ignore-with-date nil
+      org-agenda-todo-ignore-scheduled nil
+      org-agenda-todo-ignore-deadlines nil
+      org-agenda-todo-ignore-timestamp nil
+      org-agenda-todo-ignore-time-comparison-use-seconds nil
+      org-agenda-tags-todo-honor-ignore-options nil
       org-agenda-breadcrumbs-separator "->"
       org-agenda-format-date 'org-agenda-format-date-aligned
       org-use-tag-inheritance t

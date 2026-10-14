@@ -4,6 +4,7 @@
 //! server's own, without `org_`.
 
 use org_core::agenda::sorting::{Limit, Sorting, Strategies};
+use org_core::agenda::todo_ignore::When;
 use org_core::agenda::{Config as AgendaConfig, FutureRepeats, RemoveTags, Span, TagsColumn, TimeGrid};
 use org_core::archive::{ContextInfo, InheritedTags, MarkDone, Settings as ArchiveSettings};
 use org_core::edit::Settings as EditSettings;
@@ -1964,6 +1965,24 @@ pub struct AgendaOptions {
     pub skip_deadline_if_done: Option<bool>,
     #[serde(rename = "org_agenda_skip_timestamp_if_done")]
     pub skip_timestamp_if_done: Option<bool>,
+    #[serde(rename = "org_agenda_skip_comment_trees")]
+    pub skip_comment_trees: Option<bool>,
+    #[serde(rename = "org_agenda_todo_list_sublevels")]
+    pub todo_list_sublevels: Option<bool>,
+    #[serde(rename = "org_agenda_todo_ignore_with_date")]
+    pub todo_ignore_with_date: Option<bool>,
+    /// `org-agenda-todo-ignore-scheduled` and the two after it: `true`, a
+    /// name or a number of days.
+    #[serde(rename = "org_agenda_todo_ignore_scheduled")]
+    pub todo_ignore_scheduled: Option<serde_json::Value>,
+    #[serde(rename = "org_agenda_todo_ignore_deadlines")]
+    pub todo_ignore_deadlines: Option<serde_json::Value>,
+    #[serde(rename = "org_agenda_todo_ignore_timestamp")]
+    pub todo_ignore_timestamp: Option<serde_json::Value>,
+    #[serde(rename = "org_agenda_todo_ignore_time_comparison_use_seconds")]
+    pub todo_ignore_time_comparison_use_seconds: Option<bool>,
+    #[serde(rename = "org_agenda_tags_todo_honor_ignore_options")]
+    pub tags_todo_honor_ignore_options: Option<bool>,
     /// `org-agenda-sorting-strategy`: a list of strategies for each kind
     /// of view (`agenda`, `todo`, `tags`, `search`), or one list for all.
     #[serde(rename = "org_agenda_sorting_strategy")]
@@ -2206,11 +2225,33 @@ impl AgendaOptions {
             skip_deadline_if_done,
             skip_timestamp_if_done,
             show_all_dates,
+            skip_comment_trees,
+            todo_list_sublevels,
             use_time_grid,
             show_current_time_in_grid,
             compact_blocks,
             hide_empty_blocks
         );
+        // `org-agenda-todo-ignore-*`: `false` is nil, as unset.
+        let when = |value: &Option<serde_json::Value>| value.as_ref().and_then(When::parse);
+        if let Some(on) = self.todo_ignore_with_date {
+            config.todo_ignore.with_date = on;
+        }
+        if self.todo_ignore_scheduled.is_some() {
+            config.todo_ignore.scheduled = when(&self.todo_ignore_scheduled);
+        }
+        if self.todo_ignore_deadlines.is_some() {
+            config.todo_ignore.deadlines = when(&self.todo_ignore_deadlines);
+        }
+        if self.todo_ignore_timestamp.is_some() {
+            config.todo_ignore.timestamp = when(&self.todo_ignore_timestamp);
+        }
+        if let Some(on) = self.todo_ignore_time_comparison_use_seconds {
+            config.todo_ignore.use_seconds = on;
+        }
+        if let Some(on) = self.tags_todo_honor_ignore_options {
+            config.tags_todo_honor_ignore = on;
+        }
         if let Some(on) = self.search_view_always_boolean {
             config.search.always_boolean = on;
         }

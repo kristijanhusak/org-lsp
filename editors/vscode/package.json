@@ -2600,6 +2600,90 @@
               "markdownDescription": "Leave out timestamps of entries that are done. (`org-agenda-skip-timestamp-if-done`)",
               "default": false
             },
+            "org_agenda_skip_comment_trees": {
+              "type": "boolean",
+              "markdownDescription": "Leave out of every view the entries of a commented subtree (`COMMENT` after the stars). (`org-agenda-skip-comment-trees`)",
+              "default": true
+            },
+            "org_agenda_todo_list_sublevels": {
+              "type": "boolean",
+              "markdownDescription": "Show in the TODO list the TODO entries below another one. Off, the list skips the subtree of each entry it shows or leaves out for a date. (`org-agenda-todo-list-sublevels`)",
+              "default": true
+            },
+            "org_agenda_todo_ignore_with_date": {
+              "type": "boolean",
+              "markdownDescription": "Leave out of the TODO list the entries with an active timestamp anywhere in their text, scheduled and deadline dates too. (`org-agenda-todo-ignore-with-date`)",
+              "default": false
+            },
+            "org_agenda_todo_ignore_scheduled": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "enum": [
+                    "future",
+                    "past",
+                    "all"
+                  ]
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "markdownDescription": "Leave out of the TODO list the scheduled entries: all of them (`true`, `all`), those scheduled after today (`future`), today or before (`past`), or with a number N, N days from now or later (a negative N: N days ago or before). (`org-agenda-todo-ignore-scheduled`)",
+              "default": false
+            },
+            "org_agenda_todo_ignore_deadlines": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "enum": [
+                    "near",
+                    "far",
+                    "all",
+                    "future",
+                    "past"
+                  ]
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "markdownDescription": "Leave out of the TODO list the entries with a deadline: in its warning period, that is, shown in the agenda (`true`, `near`), not yet in it (`far`), all of them (`all`), after today (`future`), today or before (`past`), or with a number as for `org_agenda_todo_ignore_scheduled`. (`org-agenda-todo-ignore-deadlines`)",
+              "default": false
+            },
+            "org_agenda_todo_ignore_timestamp": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "enum": [
+                    "future",
+                    "past",
+                    "all"
+                  ]
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "markdownDescription": "Leave out of the TODO list the entries with an active timestamp that is no scheduled or deadline date, with the values of `org_agenda_todo_ignore_scheduled`. (`org-agenda-todo-ignore-timestamp`)",
+              "default": false
+            },
+            "org_agenda_todo_ignore_time_comparison_use_seconds": {
+              "type": "boolean",
+              "markdownDescription": "Compare the dates of the `org_agenda_todo_ignore_*` settings with now to the second instead of by day: `future` is then later than now, and a number counts seconds. (`org-agenda-todo-ignore-time-comparison-use-seconds`)",
+              "default": false
+            },
+            "org_agenda_tags_todo_honor_ignore_options": {
+              "type": "boolean",
+              "markdownDescription": "Have the `org_agenda_todo_ignore_*` settings leave entries out of `tags-todo` matches as well. (`org-agenda-tags-todo-honor-ignore-options`)",
+              "default": false
+            },
             "org_agenda_sorting_strategy": {
               "anyOf": [
                 {

@@ -242,6 +242,14 @@ description = "Due tomorrow"
 type = "tags-todo"
 match = "DEADLINE>=\"<+1d>\"&DEADLINE<\"<+2d>\""
 settings = { org_agenda_sorting_strategy = ["deadline-up", "urgency-down"] }
+
+# Open TODO entries the agenda does not show yet: nothing scheduled, no
+# deadline in its warning period.
+[[org_agenda_custom_commands]]
+key = "u"
+description = "Not planned"
+type = "alltodo"
+settings = { org_agenda_todo_ignore_scheduled = "all", org_agenda_todo_ignore_deadlines = "near" }
 #+end_src
 
 The views:
@@ -1392,6 +1400,47 @@ org_agenda_skip_deadline_if_done = false
 # (org-agenda-skip-timestamp-if-done)
 org_agenda_skip_timestamp_if_done = false
 
+# Leave out of every view the entries of a commented subtree (`COMMENT` after
+# the stars). (org-agenda-skip-comment-trees)
+org_agenda_skip_comment_trees = true
+
+# Show in the TODO list the TODO entries below another one. Off, the list
+# skips the subtree of each entry it shows or leaves out for a date.
+# (org-agenda-todo-list-sublevels)
+org_agenda_todo_list_sublevels = true
+
+# Leave out of the TODO list the entries with an active timestamp anywhere in
+# their text, scheduled and deadline dates too.
+# (org-agenda-todo-ignore-with-date)
+org_agenda_todo_ignore_with_date = false
+
+# Leave out of the TODO list the scheduled entries: all of them (`true`,
+# `all`), those scheduled after today (`future`), today or before (`past`), or
+# with a number N, N days from now or later (a negative N: N days ago or
+# before). (org-agenda-todo-ignore-scheduled)
+org_agenda_todo_ignore_scheduled = false
+
+# Leave out of the TODO list the entries with a deadline: in its warning
+# period, that is, shown in the agenda (`true`, `near`), not yet in it
+# (`far`), all of them (`all`), after today (`future`), today or before
+# (`past`), or with a number as for `org_agenda_todo_ignore_scheduled`.
+# (org-agenda-todo-ignore-deadlines)
+org_agenda_todo_ignore_deadlines = false
+
+# Leave out of the TODO list the entries with an active timestamp that is no
+# scheduled or deadline date, with the values of
+# `org_agenda_todo_ignore_scheduled`. (org-agenda-todo-ignore-timestamp)
+org_agenda_todo_ignore_timestamp = false
+
+# Compare the dates of the `org_agenda_todo_ignore_*` settings with now to the
+# second instead of by day: `future` is then later than now, and a number
+# counts seconds. (org-agenda-todo-ignore-time-comparison-use-seconds)
+org_agenda_todo_ignore_time_comparison_use_seconds = false
+
+# Have the `org_agenda_todo_ignore_*` settings leave entries out of
+# `tags-todo` matches as well. (org-agenda-tags-todo-honor-ignore-options)
+org_agenda_tags_todo_honor_ignore_options = false
+
 # How the lines of a day (`agenda`), the TODO list (`todo`), a tags match
 # (`tags`, `tags-todo` too) and a search (`search`) are ordered: the
 # strategies in turn, each deciding when the ones before do not. A view
@@ -2446,6 +2495,48 @@ org_agenda_custom_commands = []
   // Leave out timestamps of entries that are done.
   // (org-agenda-skip-timestamp-if-done)
   "org_agenda_skip_timestamp_if_done": false,
+
+  // Leave out of every view the entries of a commented subtree (`COMMENT`
+  // after the stars). (org-agenda-skip-comment-trees)
+  "org_agenda_skip_comment_trees": true,
+
+  // Show in the TODO list the TODO entries below another one. Off, the list
+  // skips the subtree of each entry it shows or leaves out for a date.
+  // (org-agenda-todo-list-sublevels)
+  "org_agenda_todo_list_sublevels": true,
+
+  // Leave out of the TODO list the entries with an active timestamp anywhere
+  // in their text, scheduled and deadline dates too.
+  // (org-agenda-todo-ignore-with-date)
+  "org_agenda_todo_ignore_with_date": false,
+
+  // Leave out of the TODO list the scheduled entries: all of them (`true`,
+  // `all`), those scheduled after today (`future`), today or before (`past`),
+  // or with a number N, N days from now or later (a negative N: N days ago or
+  // before). (org-agenda-todo-ignore-scheduled)
+  "org_agenda_todo_ignore_scheduled": false,
+
+  // Leave out of the TODO list the entries with a deadline: in its warning
+  // period, that is, shown in the agenda (`true`, `near`), not yet in it
+  // (`far`), all of them (`all`), after today (`future`), today or before
+  // (`past`), or with a number as for `org_agenda_todo_ignore_scheduled`.
+  // (org-agenda-todo-ignore-deadlines)
+  "org_agenda_todo_ignore_deadlines": false,
+
+  // Leave out of the TODO list the entries with an active timestamp that is
+  // no scheduled or deadline date, with the values of
+  // `org_agenda_todo_ignore_scheduled`. (org-agenda-todo-ignore-timestamp)
+  "org_agenda_todo_ignore_timestamp": false,
+
+  // Compare the dates of the `org_agenda_todo_ignore_*` settings with now to
+  // the second instead of by day: `future` is then later than now, and a
+  // number counts seconds.
+  // (org-agenda-todo-ignore-time-comparison-use-seconds)
+  "org_agenda_todo_ignore_time_comparison_use_seconds": false,
+
+  // Have the `org_agenda_todo_ignore_*` settings leave entries out of
+  // `tags-todo` matches as well. (org-agenda-tags-todo-honor-ignore-options)
+  "org_agenda_tags_todo_honor_ignore_options": false,
 
   // How the lines of a day (`agenda`), the TODO list (`todo`), a tags match
   // (`tags`, `tags-todo` too) and a search (`search`) are ordered: the

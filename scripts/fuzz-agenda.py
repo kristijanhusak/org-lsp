@@ -5,13 +5,16 @@ Generates random agenda files, has Emacs print the agenda for them under a
 fixed clock, and runs the agenda test over the same cases. Cases the two
 disagree on stay in the output directory.
 
-    scripts/fuzz-agenda.py [--count 200] [--seed 1] [--out DIR] [--super] [--sorting]
+    scripts/fuzz-agenda.py [--count 200] [--seed 1] [--out DIR] [--super] [--sorting] [--todo-options]
 
 With --super, each case also turns org-super-agenda on with random groups;
 ORG_LSP_EMACS_PACKAGES must then name the directory of its packages (see
 agenda_reference.py). With --sorting, each case sorts and limits its views
 with random strategies (`org-agenda-sorting-strategy`) and limits
-(`org-agenda-max-entries` and its kin).
+(`org-agenda-max-entries` and its kin). With --todo-options, each case
+sets the options of the TODO list at random (`org-agenda-todo-ignore-*`,
+`org-agenda-todo-list-sublevels`, `org-agenda-skip-comment-trees`,
+`org-agenda-tags-todo-honor-ignore-options`).
 
 Requires Emacs, faketime and cargo.
 """
@@ -126,6 +129,40 @@ def sorting_options(rng):
                 options[f"org_agenda_{name}"] = value
                 pairs = " ".join(f"({view} . {limit})" for view, limit in value.items())
                 forms.append(f"(setq org-agenda-{name.replace('_', '-')} '({pairs}))")
+    return options, " ".join(forms)
+
+
+def lisp_value(value):
+    """A JSON option value as Emacs Lisp: t or nil, a symbol, a number."""
+    if value is True:
+        return "t"
+    if value is False:
+        return "nil"
+    if isinstance(value, str):
+        return f"'{value}"
+    return str(value)
+
+
+def todo_options(rng):
+    """Random options of the TODO list, for org-lsp and as Emacs Lisp."""
+    options, forms = {}, []
+
+    def choose(name, values, probability):
+        if rng.random() < probability:
+            value = rng.choice(values)
+            options[f"org_{name}"] = value
+            forms.append(f"(setq org-{name.replace('_', '-')} {lisp_value(value)})")
+
+    choose("agenda_skip_comment_trees", [False], 0.3)
+    choose("agenda_todo_list_sublevels", [False], 0.4)
+    choose("agenda_todo_ignore_with_date", [True], 0.2)
+    dated = [True, "all", "future", "past", 0, 2, 30, -1, -10]
+    choose("agenda_todo_ignore_scheduled", dated, 0.5)
+    choose("agenda_todo_ignore_deadlines", [True, "near", "far", "all", "future", "past", 0, 3, -2], 0.5)
+    choose("agenda_todo_ignore_timestamp", dated, 0.4)
+    choose("agenda_todo_ignore_time_comparison_use_seconds", [True], 0.3)
+    choose("agenda_tags_todo_honor_ignore_options", [True], 0.5)
+    choose("deadline_warning_days", [0, 3, 30], 0.3)
     return options, " ".join(forms)
 
 
@@ -325,6 +362,7 @@ def main():
     parser.add_argument("--out", default=None)
     parser.add_argument("--super", action="store_true", help="group the views with org-super-agenda")
     parser.add_argument("--sorting", action="store_true", help="random sorting strategies and limits")
+    parser.add_argument("--todo-options", action="store_true", help="random options of the TODO list")
     args = parser.parse_args()
 
     out = args.out or tempfile.mkdtemp(prefix="org-agenda-fuzz-")
@@ -368,6 +406,11 @@ def main():
             case.setdefault("options", {}).update(options)
             case["emacs"] = emacs
             case["runs"].append({"view": rng.choice(["tags", "tags-todo"]), "match": rng.choice(["LEVEL>0", "a|work", "-home"])})
+        if args.todo_options:
+            options, emacs = todo_options(rng)
+            case.setdefault("options", {}).update(options)
+            case["emacs"] = " ".join(part for part in (case.get("emacs", ""), emacs) if part)
+            case["runs"].append({"view": "tags-todo", "match": rng.choice(["LEVEL>0", "a|work", "-home", "/TODO|NEXT"])})
         with open(os.path.join(directory, "case.json"), "w", encoding="utf-8") as handle:
             json.dump(case, handle)
         directories.append(directory)

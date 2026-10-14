@@ -145,15 +145,18 @@ fn facts<'a>(line: &'a Line, files: &[&'a Outline]) -> Option<LineFacts<'a>> {
     let source = item.source?;
     let outline = files.get(source.file)?;
     let entry = outline.entries.get(source.entry)?;
+    let txt = &item.text[item.heading..];
+    // On the headline's text (`txt`): an empty one has no effort.
     let effort = entry
         .properties
         .iter()
         .find(|(name, _)| name == "EFFORT")
-        .and_then(|(_, value)| crate::clock::duration_to_minutes(value));
+        .and_then(|(_, value)| crate::clock::duration_to_minutes(value))
+        .filter(|_| !txt.is_empty());
     Some(LineFacts {
         tags: entry.tags.iter().map(|tag| tag.name.as_str()).collect(),
         category: &entry.category,
-        txt: &item.text[item.heading..],
+        txt,
         effort,
         top: top_headline(outline, source.entry),
     })

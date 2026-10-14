@@ -307,7 +307,10 @@ fn keys(item: &Item, files: &[&Outline]) -> Keys {
         stats,
         priority: item.base_priority,
         urgency: item.priority,
-        effort: effort_minutes(item, files),
+        // `org-cmp-effort` reads it at the start of the headline's text
+        // (`txt`), which an empty headline does not have.
+        effort: effort_minutes(item, files)
+            .filter(|_| item.text.get(item.heading..).is_some_and(|txt| !txt.is_empty())),
         // `org-scan-tags` leaves `org-category` nil for `nil`.
         category: entry
             .filter(|(_, entry)| !(item.kind == ItemKind::Tags && entry.no_category))
