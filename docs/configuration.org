@@ -1400,6 +1400,36 @@ org_agenda_skip_deadline_if_done = false
 # (org-agenda-skip-timestamp-if-done)
 org_agenda_skip_timestamp_if_done = false
 
+# Show deadlines in the agenda. (org-agenda-include-deadlines)
+org_agenda_include_deadlines = true
+
+# Show a repeating scheduled date, deadline or timestamp at its last repeat up
+# to today instead of its base date, for every entry (`true`) or for those
+# with one of these TODO keywords. (org-agenda-prefer-last-repeat)
+org_agenda_prefer_last_repeat = false
+
+# For a scheduled entry, show its deadline only on its date (`true`), not
+# before its scheduled date (`pre-scheduled`), or from N days before it (a
+# number). (org-agenda-skip-deadline-prewarning-if-scheduled)
+org_agenda_skip_deadline_prewarning_if_scheduled = false
+
+# For an entry with a deadline, drop the delay of its scheduled date (`--2d`)
+# (`true`), or keep it no later than the deadline (`post-deadline`). A number
+# drops it too, as Org's code does.
+# (org-agenda-skip-scheduled-delay-if-deadline)
+org_agenda_skip_scheduled_delay_if_deadline = false
+
+# Leave out a scheduled date on a day its entry's deadline shows (`true`),
+# only when it was scheduled before today (`not-today`);
+# `repeated-after-deadline` is
+# `org_agenda_skip_scheduled_repeats_after_deadline`. Not for habits.
+# (org-agenda-skip-scheduled-if-deadline-is-shown)
+org_agenda_skip_scheduled_if_deadline_is_shown = false
+
+# Leave out the repeats of a scheduled date that come after the entry's
+# deadline. (org-agenda-skip-scheduled-repeats-after-deadline)
+org_agenda_skip_scheduled_repeats_after_deadline = false
+
 # Leave out of every view the entries of a commented subtree (`COMMENT` after
 # the stars). (org-agenda-skip-comment-trees)
 org_agenda_skip_comment_trees = true
@@ -2495,6 +2525,36 @@ org_agenda_custom_commands = []
   // Leave out timestamps of entries that are done.
   // (org-agenda-skip-timestamp-if-done)
   "org_agenda_skip_timestamp_if_done": false,
+
+  // Show deadlines in the agenda. (org-agenda-include-deadlines)
+  "org_agenda_include_deadlines": true,
+
+  // Show a repeating scheduled date, deadline or timestamp at its last repeat
+  // up to today instead of its base date, for every entry (`true`) or for
+  // those with one of these TODO keywords. (org-agenda-prefer-last-repeat)
+  "org_agenda_prefer_last_repeat": false,
+
+  // For a scheduled entry, show its deadline only on its date (`true`), not
+  // before its scheduled date (`pre-scheduled`), or from N days before it (a
+  // number). (org-agenda-skip-deadline-prewarning-if-scheduled)
+  "org_agenda_skip_deadline_prewarning_if_scheduled": false,
+
+  // For an entry with a deadline, drop the delay of its scheduled date
+  // (`--2d`) (`true`), or keep it no later than the deadline
+  // (`post-deadline`). A number drops it too, as Org's code does.
+  // (org-agenda-skip-scheduled-delay-if-deadline)
+  "org_agenda_skip_scheduled_delay_if_deadline": false,
+
+  // Leave out a scheduled date on a day its entry's deadline shows (`true`),
+  // only when it was scheduled before today (`not-today`);
+  // `repeated-after-deadline` is
+  // `org_agenda_skip_scheduled_repeats_after_deadline`. Not for habits.
+  // (org-agenda-skip-scheduled-if-deadline-is-shown)
+  "org_agenda_skip_scheduled_if_deadline_is_shown": false,
+
+  // Leave out the repeats of a scheduled date that come after the entry's
+  // deadline. (org-agenda-skip-scheduled-repeats-after-deadline)
+  "org_agenda_skip_scheduled_repeats_after_deadline": false,
 
   // Leave out of every view the entries of a commented subtree (`COMMENT`
   // after the stars). (org-agenda-skip-comment-trees)

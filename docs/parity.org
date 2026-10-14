@@ -23,7 +23,7 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#tags][Tags]] | 86% | 6 of 7 |
 | [[#properties-and-column-view][Properties and column view]] | 75% | 6 of 8 |
 | [[#dates-and-times][Dates and times]] | 100% | 9 of 9 |
-| [[#agenda][Agenda]] | 100% | 26 of 26 |
+| [[#agenda][Agenda]] | 100% | 27 of 27 |
 | [[#clocking][Clocking]] | 100% | 8 of 8 |
 | [[#capture][Capture]] | 100% | 11 of 11 |
 | [[#notes-org-roam][Notes (org-roam)]] | 67% | 8 of 12 |
@@ -256,7 +256,7 @@ Where editors fall short:
 :CUSTOM_ID: agenda
 :END:
 
-100% (26 of 26)
+100% (27 of 27)
 
 - ✅ Day, week, fortnight, month and year views, going to a date
 - ✅ The list of TODO entries
@@ -265,6 +265,7 @@ Where editors fall short:
 - ✅ Stuck projects
 - ✅ Custom commands and block agendas (~org-agenda-custom-commands~)
 - ✅ Sorting by any of Org's strategies, for each kind of view (~org-agenda-sorting-strategy~), and limits on how many entries show (~org-agenda-max-entries~, ~-todos~, ~-tags~, ~-effort~)
+- ✅ For an entry with both a scheduled date and a deadline, one of them left out or held back (~org-agenda-skip-scheduled-if-deadline-is-shown~, ~-deadline-prewarning-if-scheduled~, ~-scheduled-delay-if-deadline~, ~-scheduled-repeats-after-deadline~); repeats at their last date (~org-agenda-prefer-last-repeat~); no deadlines (~org-agenda-include-deadlines~)
 - ✅ The TODO list leaving out entries for a date of their own (~org-agenda-todo-ignore-scheduled~, ~-deadlines~, ~-timestamp~, ~-with-date~), in ~tags-todo~ too (~org-agenda-tags-todo-honor-ignore-options~), and without sublevels (~org-agenda-todo-list-sublevels~); commented subtrees shown (~org-agenda-skip-comment-trees~)
 - ✅ Commands offered by context (~org-agenda-custom-commands-contexts~)
 - ✅ Filters by tag, category, effort, regexp and top headline
@@ -702,16 +703,16 @@ Where editors fall short:
 :END:
 
 Each of the 1025 options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with
-it. Of the 306 that change what org-lsp does itself, 53% can be set.
+it. Of the 306 that change what org-lsp does itself, 56% can be set.
 [[file:../scripts/org-options.json][scripts/org-options.json]] says it for each; ~scripts/check.sh~ fails when the
 server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,
 when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 160 | A setting of the same name |
-| missing | 143 | org-lsp does what the option is about, but the option cannot be set yet |
-| other | 3 | Done another way, as its note says |
+| setting | 166 | A setting of the same name |
+| missing | 136 | org-lsp does what the option is about, but the option cannot be set yet |
+| other | 4 | Done another way, as its note says |
 | emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 48 | Its value is Lisp (a function, a hook), which the server does not run |
 | absent | 85 | Part of something org-lsp does not do |
@@ -720,6 +721,7 @@ when Org has an option it does not list.
 ** Done another way
 
 - ~org-agenda-add-entry-text-maxlines~ :: entry text mode (~E~) shows ~org_agenda_entry_text_maxlines~ lines; text added to agenda files written with ~C-x C-w~ is not
+- ~org-agenda-skip-timestamp-if-deadline-is-shown~ :: no effect in Org 9.8.10: ~org-agenda-get-timestamps~ looks the entry up with ~assq~ in a list of positions, which finds none; none here either
 - ~org-startup-truncated~ :: the editor decides how long lines wrap
 - ~org-timestamp-rounding-minutes~ :: the setting ~org_time_stamp_rounding_minutes~, its name before Org 9.6
 
@@ -731,7 +733,7 @@ Options of what org-lsp does that cannot be set yet, by the file of Org they are
 - ob-tangle.el (8) :: ~org-babel-tangle-lang-exts~, ~org-babel-tangle-use-relative-file-links~, ~org-babel-tangle-comment-format-beg~, ~org-babel-tangle-comment-format-end~, ~org-babel-tangle-uncomment-comments~, ~org-babel-process-comment-text~, ~org-babel-tangle-default-file-mode~, ~org-babel-tangle-remove-file-before-write~
 - ol-doi.el (1) :: ~org-link-doi-server-url~
 - ol.el (2) :: ~org-link-search-must-match-exact-headline~, ~org-image-max-width~
-- org-agenda.el (23) :: ~org-agenda-skip-scheduled-if-deadline-is-shown~, ~org-agenda-skip-timestamp-if-deadline-is-shown~, ~org-agenda-skip-deadline-prewarning-if-scheduled~, ~org-agenda-skip-scheduled-delay-if-deadline~, ~org-agenda-skip-additional-timestamps-same-entry~, ~org-agenda-show-outline-path~, ~org-agenda-time-leading-zero~, ~org-agenda-timegrid-use-ampm~, ~org-agenda-clock-report-header~, ~org-agenda-move-date-from-past-immediately-to-today~, ~org-agenda-include-deadlines~, ~org-agenda-skip-scheduled-repeats-after-deadline~, ~org-agenda-prefer-last-repeat~, ~org-agenda-log-mode-add-notes~, ~org-agenda-clockreport-parameter-plist~, ~org-agenda-search-headline-for-time~, ~org-agenda-diary-sexp-prefix~, ~org-agenda-remove-times-when-in-prefix~, ~org-agenda-remove-timeranges-from-blocks~, ~org-agenda-show-inherited-tags~, ~org-agenda-use-tag-inheritance~, ~org-agenda-hide-tags-regexp~, ~org-agenda-fontify-priorities~
+- org-agenda.el (16) :: ~org-agenda-skip-additional-timestamps-same-entry~, ~org-agenda-show-outline-path~, ~org-agenda-time-leading-zero~, ~org-agenda-timegrid-use-ampm~, ~org-agenda-clock-report-header~, ~org-agenda-move-date-from-past-immediately-to-today~, ~org-agenda-log-mode-add-notes~, ~org-agenda-clockreport-parameter-plist~, ~org-agenda-search-headline-for-time~, ~org-agenda-diary-sexp-prefix~, ~org-agenda-remove-times-when-in-prefix~, ~org-agenda-remove-timeranges-from-blocks~, ~org-agenda-show-inherited-tags~, ~org-agenda-use-tag-inheritance~, ~org-agenda-hide-tags-regexp~, ~org-agenda-fontify-priorities~
 - org-archive.el (2) :: ~org-archive-stamp-time~, ~org-archive-subtree-save-file-p~
 - org-clock.el (5) :: ~org-clock-rounding-minutes~, ~org-clocktable-defaults~, ~org-clock-clocktable-language-setup~, ~org-clock-report-include-clocking-task~, ~org-clock-continuously~
 - org-cycle.el (3) :: ~org-cycle-max-level~, ~org-cycle-global-at-bob~, ~org-cycle-level-after-item/entry-creation~

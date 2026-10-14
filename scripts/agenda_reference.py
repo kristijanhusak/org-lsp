@@ -143,6 +143,13 @@ DEFAULTS = r"""
       org-agenda-max-tags nil
       org-agenda-max-effort nil
       org-agenda-skip-comment-trees t
+      org-agenda-include-deadlines t
+      org-agenda-prefer-last-repeat nil
+      org-agenda-skip-deadline-prewarning-if-scheduled nil
+      org-agenda-skip-scheduled-delay-if-deadline nil
+      org-agenda-skip-scheduled-if-deadline-is-shown nil
+      org-agenda-skip-scheduled-repeats-after-deadline nil
+      org-agenda-skip-timestamp-if-deadline-is-shown nil
       org-agenda-todo-list-sublevels t
       org-agenda-todo-ignore-with-date nil
       org-agenda-todo-ignore-scheduled nil

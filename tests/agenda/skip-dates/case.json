@@ -1,0 +1,16 @@
+{
+  "today": "2026-05-18",
+  "now": "10:30",
+  "runs": [
+    { "view": "agenda", "span": "week" },
+    { "view": "agenda", "span": "day" }
+  ],
+  "options": {
+    "org_agenda_skip_scheduled_if_deadline_is_shown": "not-today",
+    "org_agenda_skip_deadline_prewarning_if_scheduled": "pre-scheduled",
+    "org_agenda_skip_scheduled_delay_if_deadline": true,
+    "org_agenda_skip_scheduled_repeats_after_deadline": true,
+    "org_agenda_prefer_last_repeat": ["TODO"]
+  },
+  "emacs": "(setq org-agenda-skip-scheduled-if-deadline-is-shown 'not-today org-agenda-skip-deadline-prewarning-if-scheduled 'pre-scheduled org-agenda-skip-scheduled-delay-if-deadline t org-agenda-skip-scheduled-repeats-after-deadline t org-agenda-prefer-last-repeat '(\"TODO\"))"
+}

@@ -1,0 +1,7 @@
+Day-agenda (W21):
+Monday     18 May 2026 W21
+  work:       Sched.14x:  NEXT a weekly repeat
+  work:       Sched. 8x:  TODO a daily repeat
+  work:       Sched. 3x:  TODO scheduled before its deadline
+  work:       Sched. 2x:  TODO a repeat that stops at its deadline
+  work:       Scheduled:  TODO scheduled today, due soon

@@ -1023,6 +1023,53 @@ pub const SETTINGS: &[Setting] = &[
         "Leave out timestamps of entries that are done.",
     ),
     setting(
+        "org_agenda_include_deadlines",
+        "boolean",
+        "true",
+        "org-agenda-include-deadlines",
+        "Show deadlines in the agenda.",
+    ),
+    setting(
+        "org_agenda_prefer_last_repeat",
+        "boolean, string[]",
+        "false",
+        "org-agenda-prefer-last-repeat",
+        "Show a repeating scheduled date, deadline or timestamp at its last repeat up to today instead of its \
+         base date, for every entry (`true`) or for those with one of these TODO keywords.",
+    ),
+    setting(
+        "org_agenda_skip_deadline_prewarning_if_scheduled",
+        r#"boolean, "pre-scheduled", number"#,
+        "false",
+        "org-agenda-skip-deadline-prewarning-if-scheduled",
+        "For a scheduled entry, show its deadline only on its date (`true`), not before its scheduled date \
+         (`pre-scheduled`), or from N days before it (a number).",
+    ),
+    setting(
+        "org_agenda_skip_scheduled_delay_if_deadline",
+        r#"boolean, "post-deadline", number"#,
+        "false",
+        "org-agenda-skip-scheduled-delay-if-deadline",
+        "For an entry with a deadline, drop the delay of its scheduled date (`--2d`) (`true`), or keep it no \
+         later than the deadline (`post-deadline`). A number drops it too, as Org's code does.",
+    ),
+    setting(
+        "org_agenda_skip_scheduled_if_deadline_is_shown",
+        r#"boolean, "not-today", "repeated-after-deadline""#,
+        "false",
+        "org-agenda-skip-scheduled-if-deadline-is-shown",
+        "Leave out a scheduled date on a day its entry's deadline shows (`true`), only when it was scheduled \
+         before today (`not-today`); `repeated-after-deadline` is \
+         `org_agenda_skip_scheduled_repeats_after_deadline`. Not for habits.",
+    ),
+    setting(
+        "org_agenda_skip_scheduled_repeats_after_deadline",
+        "boolean",
+        "false",
+        "org-agenda-skip-scheduled-repeats-after-deadline",
+        "Leave out the repeats of a scheduled date that come after the entry's deadline.",
+    ),
+    setting(
         "org_agenda_skip_comment_trees",
         "boolean",
         "true",
@@ -2139,6 +2186,24 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_agenda_skip_scheduled_if_done", BOOLEAN),
     ("org_agenda_skip_deadline_if_done", BOOLEAN),
     ("org_agenda_skip_timestamp_if_done", BOOLEAN),
+    ("org_agenda_include_deadlines", BOOLEAN),
+    (
+        "org_agenda_prefer_last_repeat",
+        r#"{ "anyOf": [{ "type": "boolean" }, { "type": "array", "items": { "type": "string" } }] }"#,
+    ),
+    (
+        "org_agenda_skip_deadline_prewarning_if_scheduled",
+        r#"{ "anyOf": [{ "type": "boolean" }, { "enum": ["pre-scheduled"] }, { "type": "integer" }] }"#,
+    ),
+    (
+        "org_agenda_skip_scheduled_delay_if_deadline",
+        r#"{ "anyOf": [{ "type": "boolean" }, { "enum": ["post-deadline"] }, { "type": "integer" }] }"#,
+    ),
+    (
+        "org_agenda_skip_scheduled_if_deadline_is_shown",
+        r#"{ "anyOf": [{ "type": "boolean" }, { "enum": ["not-today", "repeated-after-deadline"] }] }"#,
+    ),
+    ("org_agenda_skip_scheduled_repeats_after_deadline", BOOLEAN),
     ("org_agenda_skip_comment_trees", BOOLEAN),
     ("org_agenda_todo_list_sublevels", BOOLEAN),
     ("org_agenda_todo_ignore_with_date", BOOLEAN),

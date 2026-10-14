@@ -5,7 +5,7 @@ Generates random agenda files, has Emacs print the agenda for them under a
 fixed clock, and runs the agenda test over the same cases. Cases the two
 disagree on stay in the output directory.
 
-    scripts/fuzz-agenda.py [--count 200] [--seed 1] [--out DIR] [--super] [--sorting] [--todo-options]
+    scripts/fuzz-agenda.py [--count 200] [--seed 1] [--out DIR] [--super] [--sorting] [--todo-options] [--skip-options]
 
 With --super, each case also turns org-super-agenda on with random groups;
 ORG_LSP_EMACS_PACKAGES must then name the directory of its packages (see
@@ -14,7 +14,10 @@ with random strategies (`org-agenda-sorting-strategy`) and limits
 (`org-agenda-max-entries` and its kin). With --todo-options, each case
 sets the options of the TODO list at random (`org-agenda-todo-ignore-*`,
 `org-agenda-todo-list-sublevels`, `org-agenda-skip-comment-trees`,
-`org-agenda-tags-todo-honor-ignore-options`).
+`org-agenda-tags-todo-honor-ignore-options`). With --skip-options, the
+options of what the agenda leaves out or where repeats show
+(`org-agenda-skip-scheduled-if-deadline-is-shown` and its kin,
+`org-agenda-prefer-last-repeat`, `org-agenda-include-deadlines`).
 
 Requires Emacs, faketime and cargo.
 """
@@ -163,6 +166,33 @@ def todo_options(rng):
     choose("agenda_todo_ignore_time_comparison_use_seconds", [True], 0.3)
     choose("agenda_tags_todo_honor_ignore_options", [True], 0.5)
     choose("deadline_warning_days", [0, 3, 30], 0.3)
+    return options, " ".join(forms)
+
+
+def skip_options(rng):
+    """Random options of what the day agenda leaves out, for org-lsp and as Emacs Lisp."""
+    options, forms = {}, []
+
+    def choose(name, values, probability, lisp=None):
+        if rng.random() < probability:
+            value = rng.choice(values)
+            options[f"org_{name}"] = value
+            text = lisp(value) if lisp else lisp_value(value)
+            forms.append(f"(setq org-{name.replace('_', '-')} {text})")
+
+    choose("agenda_include_deadlines", [False], 0.15)
+    choose(
+        "agenda_prefer_last_repeat",
+        [True, ["TODO"], ["DONE", "NEXT"]],
+        0.4,
+        lambda value: lisp_value(value) if value is True else "'(" + " ".join(f'"{state}"' for state in value) + ")",
+    )
+    choose("agenda_skip_deadline_prewarning_if_scheduled", [True, "pre-scheduled", 0, 3, 10], 0.5)
+    choose("agenda_skip_scheduled_delay_if_deadline", [True, "post-deadline", 2], 0.4)
+    choose("agenda_skip_scheduled_if_deadline_is_shown", [True, "not-today", "repeated-after-deadline"], 0.5)
+    choose("agenda_skip_scheduled_repeats_after_deadline", [True], 0.3)
+    choose("agenda_skip_scheduled_if_done", [True], 0.2)
+    choose("agenda_skip_deadline_if_done", [True], 0.2)
     return options, " ".join(forms)
 
 
@@ -363,6 +393,7 @@ def main():
     parser.add_argument("--super", action="store_true", help="group the views with org-super-agenda")
     parser.add_argument("--sorting", action="store_true", help="random sorting strategies and limits")
     parser.add_argument("--todo-options", action="store_true", help="random options of the TODO list")
+    parser.add_argument("--skip-options", action="store_true", help="random options of what the agenda leaves out")
     args = parser.parse_args()
 
     out = args.out or tempfile.mkdtemp(prefix="org-agenda-fuzz-")
@@ -406,6 +437,10 @@ def main():
             case.setdefault("options", {}).update(options)
             case["emacs"] = emacs
             case["runs"].append({"view": rng.choice(["tags", "tags-todo"]), "match": rng.choice(["LEVEL>0", "a|work", "-home"])})
+        if args.skip_options:
+            options, emacs = skip_options(rng)
+            case.setdefault("options", {}).update(options)
+            case["emacs"] = " ".join(part for part in (case.get("emacs", ""), emacs) if part)
         if args.todo_options:
             options, emacs = todo_options(rng)
             case.setdefault("options", {}).update(options)
