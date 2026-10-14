@@ -4,8 +4,9 @@
 //!
 //! `tests/lists/cases.json` is written by `scripts/update-lists-fixtures.py`:
 //! a list, where the cursor is, the key, and the list and cursor after the
-//! key as Emacs leaves them, or the error it shows. `ORG_LISTS_CASES`
-//! points the test at another file.
+//! key as Emacs leaves them, or the error it shows, and at times the
+//! list options the case was recorded with. `ORG_LISTS_CASES` points the
+//! test at another file.
 
 use std::path::Path;
 
@@ -16,6 +17,25 @@ use serde_json::Value;
 
 fn byte(text: &str, chars: usize) -> usize {
     text.char_indices().nth(chars).map_or(text.len(), |(at, _)| at)
+}
+
+/// The list options of a case: `org-list-two-spaces-after-bullet-regexp`,
+/// `org-list-demote-modify-bullet`, `org-list-indent-offset`,
+/// `org-list-automatic-rules` and `org-checkbox-hierarchical-statistics`.
+fn settings(case: &Value) -> list::Settings {
+    let options = &case["settings"];
+    let defaults = list::Settings::default();
+    list::Settings {
+        two_spaces: options["two_spaces"].as_str().and_then(list::BulletRegexp::new),
+        demote_bullets: options["demote"]
+            .as_object()
+            .map(|map| map.iter().map(|(old, new)| (old.clone(), new.as_str().unwrap().to_string())).collect())
+            .unwrap_or_default(),
+        indent_offset: options["indent_offset"].as_u64().map_or(defaults.indent_offset, |offset| offset as usize),
+        checkbox_rule: options["checkbox_rule"].as_bool().unwrap_or(defaults.checkbox_rule),
+        indent_rule: options["indent_rule"].as_bool().unwrap_or(defaults.indent_rule),
+        checkbox_hierarchical: options["hierarchical"].as_bool().unwrap_or(defaults.checkbox_hierarchical),
+    }
 }
 
 #[test]
@@ -30,25 +50,27 @@ fn edits_lists_as_emacs_does() {
         let point = byte(text, case["point"].as_u64().unwrap() as usize);
         let key = case["key"].as_str().unwrap();
         let circular = case["circular"].as_bool() == Some(true);
+        let settings = settings(case);
+        let settings = &settings;
         // On a timestamp the shifted keys change it, not the list.
         if key.starts_with("S-<") && !org_core::edit::shifts_item(text, point) {
             continue;
         }
         let outcome = match key {
-            "M-<left>" => list::indent_item(text, point, -1, false, &keywords, -77),
-            "M-<right>" => list::indent_item(text, point, 1, false, &keywords, -77),
-            "M-S-<left>" => list::indent_item(text, point, -1, true, &keywords, -77),
-            "M-S-<right>" => list::indent_item(text, point, 1, true, &keywords, -77),
-            "M-<up>" => list::move_item(text, point, false, circular),
-            "M-<down>" => list::move_item(text, point, true, circular),
-            "S-<left>" => list::cycle_bullet(text, point, true),
-            "S-<right>" => list::cycle_bullet(text, point, false),
+            "M-<left>" => list::indent_item(text, point, -1, false, &keywords, -77, settings),
+            "M-<right>" => list::indent_item(text, point, 1, false, &keywords, -77, settings),
+            "M-S-<left>" => list::indent_item(text, point, -1, true, &keywords, -77, settings),
+            "M-S-<right>" => list::indent_item(text, point, 1, true, &keywords, -77, settings),
+            "M-<up>" => list::move_item(text, point, false, circular, settings),
+            "M-<down>" => list::move_item(text, point, true, circular, settings),
+            "S-<left>" => list::cycle_bullet(text, point, true, settings),
+            "S-<right>" => list::cycle_bullet(text, point, false, settings),
             "S-<up>" | "S-<down>" => list::next_item(text, point, key == "S-<up>", circular)
                 .map(|cursor| list::Edited { text: text.to_string(), cursor }),
             sort if sort.starts_with("C-c ^ ") => {
                 // Items without a date sort as now, after the dates here.
                 let now = DateTime { day: Date::new(2026, 10, 7).to_day(), minute: 0 };
-                org_core::sort::sort_list(text, point, sort.chars().last().unwrap(), now)
+                org_core::sort::sort_list(text, point, sort.chars().last().unwrap(), now, settings)
                     .map(|outcome| list::Edited { text: outcome.text, cursor: outcome.cursor })
             }
             // On a timestamp, `C-c C-c` is about the timestamp.
@@ -62,8 +84,10 @@ fn edits_lists_as_emacs_does() {
                 org_core::stamp::change(text, point, &shift, 5)
                     .map(|changed| list::Edited { text: changed.text, cursor: changed.cursor })
             }
-            "C-c C-c" => org_core::checkbox::ctrl_c_ctrl_c(text, &keywords, point, -77, text.contains(":ORDERED: t"))
-                .map(|(text, cursor, _)| list::Edited { text, cursor }),
+            "C-c C-c" => {
+                org_core::checkbox::ctrl_c_ctrl_c(text, &keywords, point, -77, text.contains(":ORDERED: t"), settings)
+                    .map(|(text, cursor, _)| list::Edited { text, cursor })
+            }
             _ => panic!("unknown key {key}"),
         };
         let expected = &case["expected"];

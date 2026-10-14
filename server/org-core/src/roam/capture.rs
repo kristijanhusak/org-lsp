@@ -63,6 +63,8 @@ pub struct Request<'a> {
     /// How to read and change the properties of a file's text.
     pub properties: &'a dyn Fn(&str) -> properties::Context,
     pub levels: &'a LevelSettings,
+    /// How a list item goes in.
+    pub lists: &'a crate::list::Settings,
     /// The file and headline (or 0 for the file) of the node with this
     /// `ID`, title or alias.
     pub find_node: &'a dyn Fn(&str) -> Option<(PathBuf, usize)>,
@@ -201,6 +203,7 @@ pub fn capture(request: &Request) -> Result<Step, Refusal> {
         &body,
         &template.properties,
         request.levels,
+        request.lists,
     )?;
     if template.unnarrowed {
         placed.unnarrow();

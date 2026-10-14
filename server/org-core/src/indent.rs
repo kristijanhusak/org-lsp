@@ -38,6 +38,9 @@ pub struct Settings {
     /// `org-edit-src-content-indentation`: how far code is indented past
     /// its block.
     pub src_content_indentation: usize,
+    /// `org-list-two-spaces-after-bullet-regexp`: the text of an item
+    /// whose bullet it matches starts two columns after the bullet.
+    pub two_spaces: Option<crate::list::BulletRegexp>,
 }
 
 impl Default for Settings {
@@ -47,6 +50,7 @@ impl Default for Settings {
             log_into_drawer: None,
             src_preserve_indentation: false,
             src_content_indentation: 2,
+            two_spaces: None,
         }
     }
 }
@@ -510,12 +514,13 @@ impl Snapshot {
         stars > 0 && line.as_bytes().get(stars) == Some(&b' ')
     }
 
-    /// `org-list-item-body-column`: past the bullet and one space.
+    /// `org-list-item-body-column`: past the bullet and one space, or two
+    /// when `org-list-two-spaces-after-bullet-regexp` matches the bullet.
     fn body_column(&self, item: usize) -> usize {
         let line = self.line(item);
         let blanks = line.bytes().take_while(|b| matches!(b, b' ' | b'\t')).count();
-        let bullet = line[blanks..].chars().take_while(|c| !c.is_whitespace()).count();
-        self.indentation(item) + bullet + 1
+        let bullet: String = line[blanks..].chars().take_while(|c| !c.is_whitespace()).collect();
+        self.indentation(item) + bullet.chars().count() + spaces_after(&bullet, self.settings.two_spaces.as_ref())
     }
 
     // ----- elements
@@ -1429,9 +1434,18 @@ pub struct LinePrefix {
     pub hidden_stars: usize,
 }
 
+/// The spaces `org-list-item-body-column` counts after `bullet`.
+fn spaces_after(bullet: &str, two_spaces: Option<&crate::list::BulletRegexp>) -> usize {
+    if two_spaces.is_some_and(|regexp| regexp.is_match(bullet)) {
+        2
+    } else {
+        1
+    }
+}
+
 /// `org-list-item-body-column` of `line` if it is a list item
 /// (`org-item-re`), else `None`.
-fn item_body_column(line: &str) -> Option<usize> {
+fn item_body_column(line: &str, two_spaces: Option<&crate::list::BulletRegexp>) -> Option<usize> {
     let blanks = line.bytes().take_while(|b| matches!(b, b' ' | b'\t')).count();
     let rest = &line[blanks..];
     let bullet = match rest.bytes().next()? {
@@ -1450,15 +1464,22 @@ fn item_body_column(line: &str) -> Option<usize> {
     if !matches!(rest.as_bytes().get(bullet), None | Some(b' ' | b'\t')) {
         return None;
     }
-    Some(width(line) + bullet + 1)
+    Some(width(line) + bullet + spaces_after(&rest[..bullet], two_spaces))
 }
 
 /// `org-indent-add-properties`: how each line of `text` shows with
 /// `org-indent-mode` (`indent`) and with hidden leading stars
 /// (`hide_stars`). `adapt` `headline-data` lines up the planning lines,
 /// drawers and clock lines of an entry with its headline's stars. Lines
-/// shown as they are, are left out.
-pub fn virtual_indentation(text: &str, indent: bool, hide_stars: bool, adapt: Adapt) -> Vec<LinePrefix> {
+/// shown as they are, are left out. `two_spaces` is
+/// `org-list-two-spaces-after-bullet-regexp`.
+pub fn virtual_indentation(
+    text: &str,
+    indent: bool,
+    hide_stars: bool,
+    adapt: Adapt,
+    two_spaces: Option<&crate::list::BulletRegexp>,
+) -> Vec<LinePrefix> {
     // `org-indent-indentation-per-level` is 2: a headline of level `n`
     // has `n - 1` columns before its stars, so that its title starts at
     // `2n`, where the text below it starts too.
@@ -1487,7 +1508,7 @@ pub fn virtual_indentation(text: &str, indent: bool, hide_stars: bool, adapt: Ad
             level = stars;
             let prefix = heading_prefix(stars);
             (prefix, prefix + stars + 1, if hide_stars { stars - 1 } else { 0 })
-        } else if let Some(body) = item_body_column(line) {
+        } else if let Some(body) = item_body_column(line, two_spaces) {
             (text_prefix(level), text_prefix(level) + body, 0)
         } else {
             let trimmed = line.trim_start_matches([' ', '\t']);
@@ -1519,6 +1540,23 @@ pub fn virtual_indentation(text: &str, indent: bool, hide_stars: bool, adapt: Ad
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// With `org-list-two-spaces-after-bullet-regexp`, the text of an item
+    /// whose bullet it matches lines up two columns after the bullet, as
+    /// `org-indent-line` puts it in Emacs; so does `org-indent-mode`.
+    #[test]
+    fn items_with_two_spaces_after_the_bullet() {
+        let settings = Settings { two_spaces: crate::list::BulletRegexp::new("[0-9]"), ..Settings::default() };
+        let text = "1. a\n b\n- c\n d\n";
+        let edits = indent_region(text, 0, text.len(), &settings);
+        assert_eq!(apply(text, &edits), "1. a\n    b\n- c\n  d\n");
+        let wraps: Vec<usize> = virtual_indentation(text, true, false, Adapt::Off, settings.two_spaces.as_ref())
+            .into_iter()
+            .filter(|line| line.line == 0 || line.line == 2)
+            .map(|line| line.wrap)
+            .collect();
+        assert_eq!(wraps, [4, 2]);
+    }
 
     /// Parsing each part on its own gives what parsing the whole text
     /// gives, for every Org file of the tests.

@@ -1621,6 +1621,60 @@
               "markdownDescription": "M-RET and M-S-RET outside lists put the new heading after the subtree, as C-RET does. (`org-insert-heading-respect-content`)",
               "default": false
             },
+            "org_list_two_spaces_after_bullet_regexp": {
+              "anyOf": [
+                {
+                  "const": false
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "markdownDescription": "An Emacs regexp: the bullets it matches get two spaces after them when Org writes them (a new item, a bullet changed, a list repaired). (`org-list-two-spaces-after-bullet-regexp`)",
+              "default": false
+            },
+            "org_list_demote_modify_bullet": {
+              "type": "object",
+              "additionalProperties": {
+                "enum": [
+                  "-",
+                  "+",
+                  "*",
+                  "1.",
+                  "1)"
+                ]
+              },
+              "markdownDescription": "By bullet (`-`, `+`, `*`, `1.`, `1)`), the bullet an item gets when it is indented: `{ \"+\": \"-\", \"-\": \"+\" }`. (`org-list-demote-modify-bullet`)",
+              "default": {}
+            },
+            "org_list_indent_offset": {
+              "type": "integer",
+              "minimum": 0,
+              "markdownDescription": "How many more columns sub-items are indented, past their parent's bullet. (`org-list-indent-offset`)",
+              "default": 0
+            },
+            "org_list_automatic_rules": {
+              "type": "object",
+              "properties": {
+                "checkbox": {
+                  "type": "boolean"
+                },
+                "indent": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false,
+              "markdownDescription": "`checkbox`: the statistics cookies are counted again when a box changes, and colored as done or not. `indent`: indenting the first item of a list with its children (M-S-<right>) moves the whole list. A rule left out of the object is off. (`org-list-automatic-rules`)",
+              "default": {
+                "checkbox": true,
+                "indent": true
+              }
+            },
+            "org_checkbox_hierarchical_statistics": {
+              "type": "boolean",
+              "markdownDescription": "A checkbox cookie counts the boxes of the items right below it; `false` counts every box further down too, as `recursive` in a `COOKIE_DATA` property does. (`org-checkbox-hierarchical-statistics`)",
+              "default": true
+            },
             "org_list_use_circular_motion": {
               "type": "boolean",
               "markdownDescription": "Moving to the next item from the last goes to the first, and back; moving the last item down puts it first, the first up puts it last. (`org-list-use-circular-motion`)",

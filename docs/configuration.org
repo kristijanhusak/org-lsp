@@ -855,6 +855,30 @@ org_M_RET_may_split_line = true
 # C-RET does. (org-insert-heading-respect-content)
 org_insert_heading_respect_content = false
 
+# An Emacs regexp: the bullets it matches get two spaces after them when Org
+# writes them (a new item, a bullet changed, a list repaired).
+# (org-list-two-spaces-after-bullet-regexp)
+org_list_two_spaces_after_bullet_regexp = false
+
+# By bullet (`-`, `+`, `*`, `1.`, `1)`), the bullet an item gets when it is
+# indented: `{ "+": "-", "-": "+" }`. (org-list-demote-modify-bullet)
+org_list_demote_modify_bullet = {  }
+
+# How many more columns sub-items are indented, past their parent's bullet.
+# (org-list-indent-offset)
+org_list_indent_offset = 0
+
+# `checkbox`: the statistics cookies are counted again when a box changes, and
+# colored as done or not. `indent`: indenting the first item of a list with
+# its children (M-S-<right>) moves the whole list. A rule left out of the
+# object is off. (org-list-automatic-rules)
+org_list_automatic_rules = { checkbox = true, indent = true }
+
+# A checkbox cookie counts the boxes of the items right below it; `false`
+# counts every box further down too, as `recursive` in a `COOKIE_DATA`
+# property does. (org-checkbox-hierarchical-statistics)
+org_checkbox_hierarchical_statistics = true
+
 # Moving to the next item from the last goes to the first, and back; moving
 # the last item down puts it first, the first up puts it last.
 # (org-list-use-circular-motion)
@@ -2106,6 +2130,30 @@ org_agenda_custom_commands = []
   // M-RET and M-S-RET outside lists put the new heading after the subtree, as
   // C-RET does. (org-insert-heading-respect-content)
   "org_insert_heading_respect_content": false,
+
+  // An Emacs regexp: the bullets it matches get two spaces after them when
+  // Org writes them (a new item, a bullet changed, a list repaired).
+  // (org-list-two-spaces-after-bullet-regexp)
+  "org_list_two_spaces_after_bullet_regexp": false,
+
+  // By bullet (`-`, `+`, `*`, `1.`, `1)`), the bullet an item gets when it is
+  // indented: `{ "+": "-", "-": "+" }`. (org-list-demote-modify-bullet)
+  "org_list_demote_modify_bullet": {  },
+
+  // How many more columns sub-items are indented, past their parent's bullet.
+  // (org-list-indent-offset)
+  "org_list_indent_offset": 0,
+
+  // `checkbox`: the statistics cookies are counted again when a box changes,
+  // and colored as done or not. `indent`: indenting the first item of a list
+  // with its children (M-S-<right>) moves the whole list. A rule left out of
+  // the object is off. (org-list-automatic-rules)
+  "org_list_automatic_rules": { "checkbox": true, "indent": true },
+
+  // A checkbox cookie counts the boxes of the items right below it; `false`
+  // counts every box further down too, as `recursive` in a `COOKIE_DATA`
+  // property does. (org-checkbox-hierarchical-statistics)
+  "org_checkbox_hierarchical_statistics": true,
 
   // Moving to the next item from the last goes to the first, and back; moving
   // the last item down puts it first, the first up puts it last.

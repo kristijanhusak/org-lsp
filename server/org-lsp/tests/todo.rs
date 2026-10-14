@@ -47,7 +47,8 @@ fn todo_changes_match_emacs() {
         let keywords = TodoKeywords::from_document(&text).unwrap_or(default);
         // `org-toggle-checkbox`, on an item or a headline.
         if case["command"] == "checkbox" {
-            let actual = org_core::checkbox::toggle(&text, &keywords, offset, options.todo_settings().tags_column)
+            let settings = options.todo_settings();
+            let actual = org_core::checkbox::toggle(&text, &keywords, offset, settings.tags_column, &settings.lists)
                 .unwrap_or_else(|refusal| format!("ERROR: {}", refusal.message()));
             compared += 1;
             if actual != expected {

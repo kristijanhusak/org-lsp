@@ -256,6 +256,7 @@ fn run_capture(case: &Value) -> Value {
             read: &read,
             properties: &properties,
             levels: &levels,
+            lists: &Default::default(),
             find_node: &find_node,
         };
         match roam::capture::capture(&request) {

@@ -4553,5 +4553,70 @@
    }
   },
   "expected": "* TODO Call them\nCLOSED: [2027-10-22 Fri]\n- Note taken on [2026-01-04 Sun 09:00] \\\\\n  text\n- note\nplain text\n1. numbered\n* TODO žć                                                   :work:home:first:\nSCHEDULED: <2027-10-24 Sun +2d>\n:PROPERTIES:\n:LAST_REPEAT: [2027-10-21 Thu 19:48]\n:END:\n:NOTES:\nkept\n:END:\n- State \"DONE\"       from \"\"           [2027-10-21 Thu 19:48] \\\\\n  A note\nText with <2027-10-13 Wed 9:30> in it.\n*  DONE\t:a:\n* DONE žć\t:a:\n  SCHEDULED: <2027-10-19 Tue ++1d --1w> CLOSED: [2027-10-23 Sat 00:00] DEADLINE:  <2027-07-04 Sun 9:30 +0d>\n# <2028-08-31 Thu 14:00-15:30 +0d>\n  - item <2027-11-30 Sun>\n  Text with <2027-11-06 Sat 10:00 +1w -0d> in it.\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* TODO Trip [/]\n- [ ] pack [/]\n  - [ ]¦ socks\n  - [X] shirts\n- [X] tickets\n",
+  "command": "checkbox",
+  "options": {
+   "org_checkbox_hierarchical_statistics": false
+  },
+  "expected": "* TODO Trip [4/4]\n- [X] pack [2/2]\n  - [X] socks\n  - [X] shirts\n- [X] tickets\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* TODO Trip [%]\n- [-] pack\n  - [ ] socks¦\n  - [X] shirts\n- [ ] tickets\n",
+  "command": "checkbox",
+  "options": {
+   "org_checkbox_hierarchical_statistics": false
+  },
+  "expected": "* TODO Trip [75%]\n- [X] pack\n  - [X] socks\n  - [X] shirts\n- [ ] tickets\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* TODO Trip [0/2]\n- [ ]¦ pack\n- [ ] tickets\n",
+  "command": "checkbox",
+  "options": {
+   "org_list_automatic_rules": {
+    "checkbox": false,
+    "indent": true
+   }
+  },
+  "expected": "* TODO Trip [0/2]\n- [X] pack\n- [ ] tickets\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* TODO Trip [0/2]\n- [ ]¦ pack\n- [ ] tickets\n",
+  "command": "checkbox",
+  "options": {
+   "org_list_automatic_rules": {
+    "indent": true
+   }
+  },
+  "expected": "* TODO Trip [0/2]\n- [X] pack\n- [ ] tickets\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Trip [0/2]\n1. [ ]¦ pack\n2. [ ] tickets\n",
+  "command": "checkbox",
+  "options": {
+   "org_list_two_spaces_after_bullet_regexp": "[0-9]"
+  },
+  "expected": "* Trip [1/2]\n1.  [X] pack\n2. [ ] tickets\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Trip [0/2]\n-   [ ] pack¦\n-   [ ] tickets\n",
+  "command": "checkbox",
+  "expected": "* Trip [1/2]\n- [X] pack\n-   [ ] tickets\n"
+ },
+ {
+  "clock": "2026-10-05 10:30",
+  "text": "* Trip\n- [ ] pack\n  + [ ]¦ socks\n  + [ ] shirts\n",
+  "command": "checkbox",
+  "options": {
+   "org_list_two_spaces_after_bullet_regexp": "\\+"
+  },
+  "expected": "* Trip\n- [-] pack\n  +  [X] socks\n  + [ ] shirts\n"
  }
 ]

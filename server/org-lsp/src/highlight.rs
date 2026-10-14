@@ -390,6 +390,13 @@ pub fn tokens(root: &SyntaxNode, todo: &TodoKeywords, conceal: Conceal) -> Vec<T
 
 /// `tokens` with the words radio targets make links (`ranges`, byte
 /// offsets) as links, over what was there; emphasis stays.
+/// The tokens without the statistics cookies: Org colors them only with
+/// the `checkbox` rule of `org-list-automatic-rules`.
+pub fn without_cookies(mut tokens: Vec<Token>) -> Vec<Token> {
+    tokens.retain(|token| token.ty != TokenType::Cookie);
+    tokens
+}
+
 pub fn with_radio_links(tokens: Vec<Token>, ranges: &[(usize, usize)]) -> Vec<Token> {
     if ranges.is_empty() {
         return tokens;

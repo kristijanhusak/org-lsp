@@ -155,6 +155,13 @@ def bindings(options):
             out[key.replace("_", "-")] = lisp_value(value)
         elif key in ("org_hierarchical_todo_statistics", "org_closed_keep_when_no_todo"):
             out[key.replace("_", "-")] = lisp_value(value)
+        elif key == "org_checkbox_hierarchical_statistics":
+            out["org-checkbox-hierarchical-statistics"] = lisp_value(value)
+        elif key == "org_list_automatic_rules":
+            rules = " ".join(f"({rule} . {lisp_value(on)})" for rule, on in value.items())
+            out["org-list-automatic-rules"] = f"'({rules})"
+        elif key == "org_list_two_spaces_after_bullet_regexp":
+            out["org-list-two-spaces-after-bullet-regexp"] = lisp_string(value) if value else "nil"
         elif key == "org_provide_todo_statistics":
             if value == "all-headlines":
                 out["org-provide-todo-statistics"] = "'all-headlines"

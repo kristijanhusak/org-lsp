@@ -101,7 +101,7 @@ fn indents_as_org_does() {
         }
         // `org-indent-mode`: the prefixes of every line.
         if let Some(virtual_lines) = expected.get("virtual").and_then(Value::as_array) {
-            let shown = indent::virtual_indentation(&text, true, false, settings.adapt);
+            let shown = indent::virtual_indentation(&text, true, false, settings.adapt, None);
             for (number, wanted) in virtual_lines.iter().enumerate() {
                 let found = shown.iter().find(|prefix| prefix.line == number);
                 let got = found.map_or((0, 0), |prefix| (prefix.prefix, prefix.wrap));

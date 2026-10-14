@@ -151,7 +151,7 @@ fn run(case: &Value) -> Result<(String, String, String), String> {
         _ => Adapt::Off,
     };
     let levels = org_core::refile::Settings { adapt, ..Default::default() };
-    let placed = place(original, &keywords, &target, kind, &text, &properties, &levels)
+    let placed = place(original, &keywords, &target, kind, &text, &properties, &levels, &Default::default())
         .map_err(|refusal| refusal.message().to_string())?;
     let at = placed.cursor - placed.start;
     let shown = placed.shown();

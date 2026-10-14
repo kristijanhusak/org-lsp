@@ -48,6 +48,67 @@ pub(crate) struct Item {
 
 pub(crate) type Struct = Vec<Item>;
 
+/// How lists are edited: the options of `org-list.el`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Settings {
+    /// `org-list-two-spaces-after-bullet-regexp`: the bullets with two
+    /// spaces after them.
+    pub two_spaces: Option<BulletRegexp>,
+    /// `org-list-demote-modify-bullet`: the bullet an item gets when it is
+    /// indented, for each bullet (`-`, `+`, `*`, `1.`, `1)`).
+    pub demote_bullets: Vec<(String, String)>,
+    /// `org-list-indent-offset`: how much further than their parent's
+    /// text sub-items are indented.
+    pub indent_offset: usize,
+    /// The `checkbox` rule of `org-list-automatic-rules`: the statistics
+    /// cookies are counted again after a box changes.
+    pub checkbox_rule: bool,
+    /// The `indent` rule of `org-list-automatic-rules`: indenting the
+    /// first item of a list with its children moves the whole list.
+    pub indent_rule: bool,
+    /// `org-checkbox-hierarchical-statistics`: a cookie counts the boxes
+    /// of the items right below it, not those further down.
+    pub checkbox_hierarchical: bool,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Settings {
+            two_spaces: None,
+            demote_bullets: Vec::new(),
+            indent_offset: 0,
+            checkbox_rule: true,
+            indent_rule: true,
+            checkbox_hierarchical: true,
+        }
+    }
+}
+
+/// The regexp of `org-list-two-spaces-after-bullet-regexp`, matched as
+/// `string-match` does, ignoring case.
+#[derive(Debug, Clone)]
+pub struct BulletRegexp(Regex);
+
+impl BulletRegexp {
+    /// The regexp written as Emacs writes it; `None` when it is not one.
+    pub fn new(emacs: &str) -> Option<BulletRegexp> {
+        let translated = crate::agenda::matcher::translate(emacs);
+        regex::RegexBuilder::new(&translated).case_insensitive(true).build().ok().map(BulletRegexp)
+    }
+
+    pub fn is_match(&self, text: &str) -> bool {
+        self.0.is_match(text)
+    }
+}
+
+impl PartialEq for BulletRegexp {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.as_str() == other.0.as_str()
+    }
+}
+
+impl Eq for BulletRegexp {}
+
 // ----- lines
 
 /// `at` moved back to the start of the character it is in. Positions
@@ -645,13 +706,15 @@ fn parents(list: &Struct) -> Vec<Option<usize>> {
     out
 }
 
-/// `org-list-bullet-string`: the bullet with one space after it.
-fn bullet_string(bullet: &str) -> String {
+/// `org-list-bullet-string`: the bullet with one space after it, or two
+/// when `org-list-two-spaces-after-bullet-regexp` matches it.
+pub(crate) fn bullet_string(bullet: &str, settings: &Settings) -> String {
     let trimmed = bullet.trim_end_matches([' ', '\t']);
     if trimmed.is_empty() {
         return bullet.to_string();
     }
-    format!("{trimmed} ")
+    let two = settings.two_spaces.as_ref().is_some_and(|regexp| regexp.is_match(bullet));
+    format!("{trimmed}{}", if two { "  " } else { " " })
 }
 
 fn end_before_blank(text: &str, end: usize) -> usize {
@@ -744,6 +807,7 @@ pub(crate) fn insert_item(
     keywords: &org_syntax::TodoKeywords,
     tags_column: i64,
     options: ItemOptions,
+    settings: &Settings,
 ) -> Result<Option<Inserted>, Refusal> {
     let Some(itemp) = in_item(text, pos) else { return Ok(None) };
     let list = structure(text, itemp);
@@ -758,17 +822,17 @@ pub(crate) fn insert_item(
     let descriptive =
         !list[first].bullet.trim_end().chars().any(|c| c.is_ascii_alphanumeric()) && list[first].tag.is_some();
     let desc = descriptive.then_some(" :: ");
-    let mut buffer = Buffer { text: text.to_string(), point: pos, md: MatchData::default() };
+    let mut buffer = Buffer { text: text.to_string(), point: pos, md: MatchData::default(), settings };
     let mut list = list;
     insert_in_struct(&mut buffer, pos, &mut list, checkbox, below, desc, options);
     let parents_of = parents(&list);
     write_struct(&mut buffer, &mut list, &parents_of, None)?;
     let mut text = buffer.text;
     let mut point = buffer.point;
-    if checkbox {
+    if checkbox && settings.checkbox_rule {
         // The cookies change, not the lines: the cursor stays on its line.
         let line_number = text[..point].matches('\n').count();
-        text = crate::checkbox::update_counts(&text, keywords, point, tags_column);
+        text = crate::checkbox::update_counts(&text, keywords, point, tags_column, settings.checkbox_hierarchical);
         point = text.match_indices('\n').nth(line_number.wrapping_sub(1)).map_or(0, |(at, _)| at + 1);
     }
     // After the bullet, the counter, the checkbox and the tag.
@@ -793,10 +857,11 @@ pub(crate) fn insert_item(
 /// of the last search: `org-list-struct-apply-struct` goes on with it when
 /// an item of the structure is no longer at the start of a line, as Emacs
 /// does.
-struct Buffer {
+struct Buffer<'s> {
     text: String,
     point: usize,
     md: MatchData,
+    settings: &'s Settings,
 }
 
 /// The match data: the bounds of each group, in the buffer.
@@ -927,7 +992,7 @@ fn insert_in_struct(
         None => separating_blank_lines(&text, pos, list, item_index, &prevs_of, &mut buffer.md),
     };
     let ind = list[item_index].ind.max(0) as usize;
-    let bullet = bullet_string(&list[item_index].bullet);
+    let bullet = bullet_string(&list[item_index].bullet, buffer.settings);
     let box_text = if checkbox { "[ ] " } else { "" };
     let mut text = text;
     let mut pos = pos;
@@ -1066,23 +1131,26 @@ fn write_struct(
     old: Option<&Struct>,
 ) -> Result<(), Refusal> {
     let old = old.cloned().unwrap_or_else(|| list.clone());
-    fix_ind(list, parents_of, Some(2));
+    fix_ind(list, parents_of, Some(2), buffer.settings);
     fix_item_end(list);
     let prevs_of = prevs(list);
-    if fix_bul(list, &prevs_of) {
+    if fix_bul(list, &prevs_of, buffer.settings) {
         buffer.md = MatchData::string();
     }
-    fix_ind(list, parents_of, None);
+    fix_ind(list, parents_of, None, buffer.settings);
     fix_box(list, parents_of);
     apply_struct(buffer, list, &old)
 }
 
-/// `org-list-struct-fix-ind`, with `org-list-indent-offset` at 0.
-fn fix_ind(list: &mut Struct, parents_of: &[Option<usize>], bullet_size: Option<usize>) {
+/// `org-list-struct-fix-ind`: an item indented past its parent's bullet
+/// (or `bullet_size`) and `org-list-indent-offset`.
+fn fix_ind(list: &mut Struct, parents_of: &[Option<usize>], bullet_size: Option<usize>, settings: &Settings) {
     let top_ind = list[0].ind;
     for index in 1..list.len() {
         list[index].ind = match parents_of[index] {
-            Some(parent) => bullet_size.unwrap_or(list[parent].bullet.len()) as isize + list[parent].ind,
+            Some(parent) => {
+                (bullet_size.unwrap_or(list[parent].bullet.len()) + settings.indent_offset) as isize + list[parent].ind
+            }
             None => top_ind,
         };
     }
@@ -1124,7 +1192,7 @@ fn inc_bullet(bullet: &str) -> String {
 
 /// `org-list-struct-fix-bul`, without alphabetical bullets. Whether a
 /// `string-match` of it matched, which leaves the match data on a string.
-fn fix_bul(list: &mut Struct, prevs_of: &[Option<usize>]) -> bool {
+fn fix_bul(list: &mut Struct, prevs_of: &[Option<usize>], settings: &Settings) -> bool {
     let alnum = |text: &str| text.chars().any(|c| c.is_ascii_alphanumeric());
     let mut matched = false;
     static NUMBER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[0-9]+").unwrap());
@@ -1149,7 +1217,7 @@ fn fix_bul(list: &mut Struct, prevs_of: &[Option<usize>]) -> bool {
             (None, _) if NUMBER_OR_LETTER.is_match(&bullet) => NUMBER_OR_LETTER.replace(&bullet, "1").into_owned(),
             (None, _) => bullet,
         };
-        list[index].bullet = bullet_string(&new);
+        list[index].bullet = bullet_string(&new, settings);
     }
     matched
 }
@@ -1438,7 +1506,7 @@ fn modify_item(
     let new_item = list.iter().find(|found| found.pos == item).expect("the item");
     let new_ind = new_item.ind;
     let old_ind = indentation(line(&buffer.text, line_start(&buffer.text, item)));
-    let new_bullet = bullet_string(&new_item.bullet);
+    let new_bullet = bullet_string(&new_item.bullet, buffer.settings);
     let old_bullet = old.iter().find(|found| found.pos == item).map(|found| found.bullet.clone());
     let new_box = new_item.checkbox.clone();
     if let Some(found) = MatchData::full_item(&buffer.text, item) {
@@ -1559,13 +1627,15 @@ fn struct_outdent(
 }
 
 /// `org-list-struct-indent`: the new parents of the items from `start`
-/// (included) to `end` (excluded).
+/// (included) to `end` (excluded), whose bullets change as
+/// `org-list-demote-modify-bullet` says.
 fn struct_indent(
     start: usize,
     end: usize,
-    list: &Struct,
+    list: &mut Struct,
     parents_of: &[Option<usize>],
     prevs_of: &[Option<usize>],
+    settings: &Settings,
 ) -> Result<Vec<Option<usize>>, Refusal> {
     let mut acc: Vec<(usize, Option<usize>)> = Vec::new();
     let mut out = Vec::with_capacity(list.len());
@@ -1579,6 +1649,10 @@ fn struct_indent(
                 None => parent,
             }
         } else {
+            let kind = demoted_kind(&list[item].bullet);
+            if let Some((_, new)) = settings.demote_bullets.iter().find(|(old, _)| *old == kind) {
+                list[item].bullet = bullet_string(new, settings);
+            }
             let cell = match prevs_of[item] {
                 None if parent.is_none_or(|parent| list[parent].pos < start) => {
                     return Err(failed("Cannot indent the first item of a list"));
@@ -1594,12 +1668,33 @@ fn struct_indent(
     Ok(out)
 }
 
+/// The kind of `bullet` that `org-list-demote-modify-bullet` is keyed by.
+fn demoted_kind(bullet: &str) -> String {
+    type Class = fn(&u8) -> bool;
+    let bytes = bullet.as_bytes();
+    let kinds: [(Class, u8, &str); 6] = [
+        (u8::is_ascii_uppercase, b'.', "A."),
+        (u8::is_ascii_uppercase, b')', "A)"),
+        (u8::is_ascii_lowercase, b'.', "a."),
+        (u8::is_ascii_lowercase, b')', "a)"),
+        (u8::is_ascii_digit, b'.', "1."),
+        (u8::is_ascii_digit, b')', "1)"),
+    ];
+    for (class, terminator, kind) in kinds {
+        if bytes.windows(2).any(|pair| class(&pair[0]) && pair[1] == terminator) {
+            return kind.to_string();
+        }
+    }
+    bullet.trim_matches([' ', '\t', '\n', '\r']).to_string()
+}
+
 /// `org-list-indent-item-generic` from Org's meta keys on an item:
 /// `M-<right>` (`org-indent-item`, the item alone), `M-S-<right>`
 /// (`org-indent-item-tree`, with its children), and `M-<left>`,
 /// `M-S-<left>` outdenting them (`change` below 0). On the first item of
-/// a list the whole list moves by a column. Otherwise the checkbox
-/// cookies are counted again (`org-update-checkbox-count-maybe`).
+/// a list the whole list moves by a column, with the `indent` rule of
+/// `org-list-automatic-rules`. Otherwise the checkbox cookies are counted
+/// again (`org-update-checkbox-count-maybe`).
 pub fn indent_item(
     text: &str,
     at: usize,
@@ -1607,12 +1702,13 @@ pub fn indent_item(
     subtree: bool,
     keywords: &org_syntax::TodoKeywords,
     tags_column: i64,
+    settings: &Settings,
 ) -> Result<Edited, Refusal> {
     let (pos, mut list, index) = item_here(text, at)?;
     let parents_of = parents(&list);
     let prevs_of = prevs(&list);
     let top = list[0].pos;
-    let special = top == pos;
+    let special = top == pos && settings.indent_rule;
     if special && !subtree {
         return Err(failed("At first item: use S-M-<left/right> to move the whole list"));
     }
@@ -1624,7 +1720,7 @@ pub fn indent_item(
     } else {
         list[index].end
     };
-    let mut buffer = Buffer { text: text.to_string(), point: at.min(text.len()), md: MatchData::default() };
+    let mut buffer = Buffer { text: text.to_string(), point: at.min(text.len()), md: MatchData::default(), settings };
     let has_child = |list: &Struct, item: usize| list.get(item + 1).is_some_and(|next| list[item].ind < next.ind);
     if special {
         let offset: isize = if change < 0 { -1 } else { 1 };
@@ -1634,12 +1730,12 @@ pub fn indent_item(
         }
         let old = list.clone();
         if top_ind + offset == 0 && list[index].bullet.contains('*') {
-            list[index].bullet = bullet_string("-");
+            list[index].bullet = bullet_string("-", settings);
         }
         for item in list.iter_mut() {
             item.ind += offset;
         }
-        if fix_bul(&mut list, &prevs_of) {
+        if fix_bul(&mut list, &prevs_of, settings) {
             buffer.md = MatchData::string();
         }
         apply_struct(&mut buffer, &list, &old)?;
@@ -1654,12 +1750,21 @@ pub fn indent_item(
         let new_parents = if change < 0 {
             struct_outdent(beg, end, &list, &parents_of)?
         } else {
-            struct_indent(beg, end, &list, &parents_of, &prevs_of)?
+            struct_indent(beg, end, &mut list, &parents_of, &prevs_of, settings)?
         };
         write_struct(&mut buffer, &mut list, &new_parents, Some(&old))?;
     }
-    let (text, cursor) =
-        crate::checkbox::update_counts_keeping(&buffer.text, keywords, buffer.point, tags_column, buffer.point);
+    if !settings.checkbox_rule {
+        return Ok(Edited { cursor: buffer.point, text: buffer.text });
+    }
+    let (text, cursor) = crate::checkbox::update_counts_keeping(
+        &buffer.text,
+        keywords,
+        buffer.point,
+        tags_column,
+        buffer.point,
+        settings.checkbox_hierarchical,
+    );
     Ok(Edited { text, cursor })
 }
 
@@ -1668,14 +1773,14 @@ pub fn indent_item(
 /// cursor going with it, at its column. With `circular`
 /// (`org-list-use-circular-motion`) the last item goes to the start of
 /// its list, the first to its end.
-pub fn move_item(text: &str, at: usize, down: bool, circular: bool) -> Result<Edited, Refusal> {
+pub fn move_item(text: &str, at: usize, down: bool, circular: bool, settings: &Settings) -> Result<Edited, Refusal> {
     let (item, mut list, index) = item_here(text, at)?;
     let column = text[item..at.min(text.len())].chars().count();
     let prevs_of = prevs(&list);
-    let mut buffer = Buffer { text: text.to_string(), point: at.min(text.len()), md: MatchData::default() };
+    let mut buffer = Buffer { text: text.to_string(), point: at.min(text.len()), md: MatchData::default(), settings };
     let next_of = |index: usize| prevs_of.iter().position(|prev| *prev == Some(index));
     if circular && ((down && next_of(index).is_none()) || (!down && prevs_of[index].is_none())) {
-        return send_item(text, at, item, column, down);
+        return send_item(text, at, item, column, down, settings);
     }
     if down {
         let Some(next) = prevs_of.iter().position(|prev| *prev == Some(index)) else {
@@ -1709,7 +1814,7 @@ pub fn move_item(text: &str, at: usize, down: bool, circular: bool) -> Result<Ed
 /// `org-cycle-list-bullet` (`S-<right>` on an item; `S-<left>` with
 /// `previous`): the bullets of the item's sub-list through `-`, `+`, `*`
 /// (not at the margin), `1.` and `1)` (not on a description list).
-pub fn cycle_bullet(text: &str, at: usize, previous: bool) -> Result<Edited, Refusal> {
+pub fn cycle_bullet(text: &str, at: usize, previous: bool, settings: &Settings) -> Result<Edited, Refusal> {
     let (pos, mut list, index) = item_here(text, at)?;
     let parents_of = parents(&list);
     let prevs_of = prevs(&list);
@@ -1746,16 +1851,16 @@ pub fn cycle_bullet(text: &str, at: usize, previous: bool) -> Result<Edited, Ref
     let item_index = choices.iter().position(|choice| *choice == current).map_or(len, |found| found as isize);
     let new = choices[(item_index + if previous { -1 } else { 1 }).rem_euclid(len) as usize];
     let old = list.clone();
-    list[first].bullet = bullet_string(new);
+    list[first].bullet = bullet_string(new, settings);
     // `org-list-struct-apply-struct` runs from the start of the line, so
     // the spaces after a cursor in the bullet are not kept; the cursor
     // is placed again below, or else follows the edits as a marker.
     let point = if offset >= 0 { pos } else { origin };
-    let mut buffer = Buffer { text: text.to_string(), point, md: MatchData::default() };
-    if fix_bul(&mut list, &prevs_of) {
+    let mut buffer = Buffer { text: text.to_string(), point, md: MatchData::default(), settings };
+    if fix_bul(&mut list, &prevs_of, settings) {
         buffer.md = MatchData::string();
     }
-    fix_ind(&mut list, &parents_of, None);
+    fix_ind(&mut list, &parents_of, None, settings);
     apply_struct(&mut buffer, &list, &old)?;
     // The cursor keeps its place after the bullet, or before it.
     let origin = buffer.point;
@@ -1774,7 +1879,13 @@ pub fn cycle_bullet(text: &str, at: usize, previous: bool) -> Result<Edited, Ref
 
 /// `org-cycle-list-bullet` with the bullet given (`1.`, `-`): the item at
 /// `at` and its siblings take it. `marker` follows the edits.
-pub(crate) fn set_bullet(text: &str, at: usize, new: &str, marker: usize) -> Result<(String, usize), Refusal> {
+pub(crate) fn set_bullet(
+    text: &str,
+    at: usize,
+    new: &str,
+    marker: usize,
+    settings: &Settings,
+) -> Result<(String, usize), Refusal> {
     let (_, mut list, index) = item_here(text, at)?;
     let parents_of = parents(&list);
     let prevs_of = prevs(&list);
@@ -1783,21 +1894,26 @@ pub(crate) fn set_bullet(text: &str, at: usize, new: &str, marker: usize) -> Res
         first = prev;
     }
     let old = list.clone();
-    list[first].bullet = bullet_string(new);
-    let mut buffer = Buffer { text: text.to_string(), point: marker, md: MatchData::default() };
-    if fix_bul(&mut list, &prevs_of) {
+    list[first].bullet = bullet_string(new, settings);
+    let mut buffer = Buffer { text: text.to_string(), point: marker, md: MatchData::default(), settings };
+    if fix_bul(&mut list, &prevs_of, settings) {
         buffer.md = MatchData::string();
     }
-    fix_ind(&mut list, &parents_of, None);
+    fix_ind(&mut list, &parents_of, None, settings);
     apply_struct(&mut buffer, &list, &old)?;
     Ok((buffer.text, buffer.point))
 }
 
 /// [`repair`] with the point at `at` and `marker` following the edits.
-pub(crate) fn repair_with_marker(text: &str, at: usize, marker: usize) -> Result<(String, usize), Refusal> {
+pub(crate) fn repair_with_marker(
+    text: &str,
+    at: usize,
+    marker: usize,
+    settings: &Settings,
+) -> Result<(String, usize), Refusal> {
     let (_, mut list, _) = item_here(text, at)?;
     let parents_of = parents(&list);
-    let mut buffer = Buffer { text: text.to_string(), point: marker, md: MatchData::default() };
+    let mut buffer = Buffer { text: text.to_string(), point: marker, md: MatchData::default(), settings };
     write_struct(&mut buffer, &mut list, &parents_of, None)?;
     Ok((buffer.text, buffer.point))
 }
@@ -1813,6 +1929,7 @@ pub(crate) fn ctrl_c_ctrl_c(
     begin: usize,
     limit: usize,
     ordered: bool,
+    settings: &Settings,
 ) -> Result<(String, usize, Option<String>), Refusal> {
     let pos = line_start(text, at.min(text.len()));
     let mut list = element_structure(text, begin, limit);
@@ -1827,15 +1944,15 @@ pub(crate) fn ctrl_c_ctrl_c(
         Some("[X]") => Some("[ ]".to_string()),
         Some(_) => Some("[X]".to_string()),
     };
-    let mut buffer = Buffer { text: text.to_string(), point: at.min(text.len()), md: MatchData::default() };
+    let mut buffer = Buffer { text: text.to_string(), point: at.min(text.len()), md: MatchData::default(), settings };
     // `org-list-write-struct`, but bullets follow the items before them as
     // they were.
-    fix_ind(&mut list, &parents_of, Some(2));
+    fix_ind(&mut list, &parents_of, Some(2), settings);
     fix_item_end(&mut list);
-    if fix_bul(&mut list, &prevs_of) {
+    if fix_bul(&mut list, &prevs_of, settings) {
         buffer.md = MatchData::string();
     }
-    fix_ind(&mut list, &parents_of, None);
+    fix_ind(&mut list, &parents_of, None, settings);
     let blocked = fix_box_ordered(&mut list, &parents_of, ordered);
     if checkbox.is_some() && list == old {
         let why = if checkbox.as_deref() == Some("[X]") { "all subitems checked" } else { "unchecked subitems" };
@@ -1858,6 +1975,7 @@ pub(crate) fn ctrl_c_ctrl_c_list(
     at: usize,
     begin: usize,
     limit: usize,
+    settings: &Settings,
 ) -> Result<(String, usize, Option<String>), Refusal> {
     let pos = line_start(text, at.min(text.len()));
     let mut list = element_structure(text, begin, limit);
@@ -1868,7 +1986,7 @@ pub(crate) fn ctrl_c_ctrl_c_list(
         list[index].checkbox = Some(if checkbox == "[X]" { "[ ]" } else { "[X]" }.to_string());
     }
     let parents_of = parents(&list);
-    let mut buffer = Buffer { text: text.to_string(), point: at.min(text.len()), md: MatchData::default() };
+    let mut buffer = Buffer { text: text.to_string(), point: at.min(text.len()), md: MatchData::default(), settings };
     write_struct(&mut buffer, &mut list, &parents_of, Some(&old))?;
     Ok((buffer.text, buffer.point, None))
 }
@@ -1898,10 +2016,10 @@ pub(crate) fn sort_bounds(text: &str, at: usize) -> Result<SortBounds, Refusal> 
 
 /// `org-list-repair` with the cursor at `at` on an item: the list's
 /// indentation, bullets and checkboxes put right.
-pub(crate) fn repair(text: &str, at: usize) -> Result<Edited, Refusal> {
+pub(crate) fn repair(text: &str, at: usize, settings: &Settings) -> Result<Edited, Refusal> {
     let (_, mut list, _) = item_here(text, at)?;
     let parents_of = parents(&list);
-    let mut buffer = Buffer { text: text.to_string(), point: at.min(text.len()), md: MatchData::default() };
+    let mut buffer = Buffer { text: text.to_string(), point: at.min(text.len()), md: MatchData::default(), settings };
     write_struct(&mut buffer, &mut list, &parents_of, None)?;
     Ok(Edited { text: buffer.text, cursor: buffer.point })
 }
@@ -1940,7 +2058,14 @@ pub fn next_item(text: &str, at: usize, previous: bool, circular: bool) -> Resul
 /// `org-list-send-item` to `begin` (the last item moved down) or `end`
 /// (the first moved up): the item swapped past each of its siblings, the
 /// cursor going with it, at its column.
-fn send_item(text: &str, _at: usize, item: usize, column: usize, to_begin: bool) -> Result<Edited, Refusal> {
+fn send_item(
+    text: &str,
+    _at: usize,
+    item: usize,
+    column: usize,
+    to_begin: bool,
+    settings: &Settings,
+) -> Result<Edited, Refusal> {
     let mut current = text.to_string();
     let mut place = item;
     loop {
@@ -1949,7 +2074,7 @@ fn send_item(text: &str, _at: usize, item: usize, column: usize, to_begin: bool)
         let other = if to_begin { prevs_of[index] } else { prevs_of.iter().position(|prev| *prev == Some(index)) };
         let Some(other) = other else { break };
         let _ = other;
-        let edited = move_item(&current, here, !to_begin, false)?;
+        let edited = move_item(&current, here, !to_begin, false, settings)?;
         current = edited.text;
         place = line_start(&current, edited.cursor);
     }
