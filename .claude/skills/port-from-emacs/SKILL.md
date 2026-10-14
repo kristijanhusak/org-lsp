@@ -21,7 +21,9 @@ complete example to copy:
 1. **Read the Org source first**, the command and everything it calls, in
    `$ORG_LISP_DIR`. Note its options, prompts, messages and errors (the
    port has to say exactly what Emacs says), and what it reads from the
-   buffer.
+   buffer. Every option it reads is in `scripts/org-options.json`: port
+   them with it (each becomes a setting, `missing` → `setting`), not only
+   their defaults.
 2. **Decide: port, or the bridge.** Port what is pure text work. Run in
    Emacs through the bridge (`server/org-lsp/src/bridge.el`, a function
    `org-lsp-bridge-NAME` called as method `NAME` from `emacs.rs`) what
@@ -47,7 +49,8 @@ complete example to copy:
    A difference kept on purpose is written down in the code and in
    `docs/parity.org` (`scripts/features.mjs`).
 7. **Wire it into the server** (`server/org-lsp`): the command in
-   `commands.rs` with its Emacs key, options in `settings.rs`, the
+   `commands.rs` with its Emacs key, options in `settings.rs` (and
+   marked `setting` in `scripts/org-options.json`), the
    handler in `server.rs`; an LSP test in `server/org-lsp/tests/`.
 8. **Record it** in the table of `docs/development.org` ("How the work is checked"), in
    `scripts/features.mjs` (Emacs feature, editors' support, manual checks),

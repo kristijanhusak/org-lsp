@@ -9,7 +9,10 @@
 //   docs/configuration.org           every option at its default
 //   docs/protocol.org                the table of options
 //   docs/<editor>.org, README.org    what works, from scripts/features.mjs
-//   docs/parity.org                  the same area by area (whole)
+//   docs/parity.org                  the same area by area (whole), and
+//                                    each of Org's options and what
+//                                    org-lsp does with it, from
+//                                    scripts/org-options.json
 //   editors/<editor>/TESTING.org     what to try by hand (whole)
 //   docs/config.schema.json          the JSON Schema of the shared file
 //   lua/org-lsp/types.lua            the options' types, for lua-language-server
@@ -20,7 +23,7 @@
 //   node scripts/generate-docs.mjs [path/to/org-lsp]   rewrite the pages
 //   node scripts/generate-docs.mjs --check             fail if out of date
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, schemaProperties } from './settings-schema.mjs';
@@ -41,6 +44,55 @@ const run = (command) => JSON.parse(execFileSync(resolve(binary), [command], { e
 const manifest = run('manifest');
 const settings = run('settings');
 const vscode = JSON.parse(readFileSync(join(root, 'editors', 'vscode', 'package.json'), 'utf8'));
+
+// ----- Org's options (scripts/org-options.json)
+
+/** Every option of Org 9.8.10 (`defcustom`), by the file it is in, and what
+ * org-lsp does with it. */
+const OPTIONS = JSON.parse(readFileSync(join(root, 'scripts', 'org-options.json'), 'utf8'));
+/** What an option's status means. */
+const STATUSES = {
+  setting: 'A setting of the same name',
+  missing: 'org-lsp does what the option is about, but the option cannot be set yet',
+  other: 'Done another way, as its note says',
+  emacs: 'Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~',
+  lisp: 'Its value is Lisp (a function, a hook), which the server does not run',
+  absent: 'Part of something org-lsp does not do',
+  'emacs-only': 'About Emacs itself (windows, faces, menus, the mouse, the mode line): nothing to do in an editor',
+};
+const statusOf = (value) => (Array.isArray(value) ? value[0] : value);
+
+/** What is wrong with scripts/org-options.json: an option marked as a
+ * setting that the server does not have, or the other way round, a status
+ * it does not know, and, with `ORG_LISP_DIR`, an option of Org it does not
+ * list or one Org no longer has. */
+function optionProblems() {
+  const problems = [];
+  const names = new Set(settings.map((setting) => setting.name));
+  const listed = new Set();
+  for (const [file, options] of Object.entries(OPTIONS)) {
+    for (const [name, value] of Object.entries(options)) {
+      listed.add(name);
+      const status = statusOf(value);
+      const setting = names.has(name.replaceAll('-', '_'));
+      if (!(status in STATUSES)) problems.push(`${name} (${file}): no such status \`${status}\``);
+      else if (setting && status !== 'setting') problems.push(`${name} is a setting now: mark it \`setting\``);
+      else if (!setting && status === 'setting') problems.push(`${name} is marked \`setting\`, but the server has no ${name.replaceAll('-', '_')}`);
+    }
+  }
+  const lisp = process.env.ORG_LISP_DIR;
+  if (lisp && existsSync(lisp)) {
+    const found = new Set();
+    for (const file of readdirSync(lisp).filter((name) => name.endsWith('.el'))) {
+      for (const match of readFileSync(join(lisp, file), 'utf8').matchAll(/^\(defcustom\s+([^\s()]+)/gm)) {
+        found.add(match[1]);
+        if (!listed.has(match[1])) problems.push(`${match[1]} (${file}) is not in scripts/org-options.json`);
+      }
+    }
+    for (const name of listed) if (!found.has(name)) problems.push(`${name} is no longer an option of Org`);
+  }
+  return problems;
+}
 
 const SCOPES = [
   ['global', 'Anywhere'],
@@ -728,6 +780,8 @@ function parityPage() {
     '',
     `*All of Org: ${overall()}%*`,
     '',
+    `Org's options, one by one, are under ${link('#options', 'Options')}.`,
+    '',
     table(
       ['Feature', 'Parity', 'Done'],
       AREAS.map((area) => {
@@ -749,6 +803,44 @@ function parityPage() {
       lines.push('', 'Where editors fall short:', '');
       for (const [editor, status, why] of short) lines.push(`- ${editor.name} ${MARK[status]}: ${org(why)}`);
     }
+  }
+  return lines.join('\n') + '\n' + optionsSection();
+}
+
+/** Every option of Org and what org-lsp does with it: how many there are
+ * of each status, and those that are missing, file by file. */
+function optionsSection() {
+  const all = Object.entries(OPTIONS).flatMap(([file, options]) => Object.entries(options).map(([name, value]) => ({ file, name, value })));
+  const count = (status) => all.filter((option) => statusOf(option.value) === status).length;
+  const settable = count('setting') + count('missing') + count('other');
+  const lines = [
+    '',
+    heading(1, 'Options'),
+    ':PROPERTIES:',
+    ':CUSTOM_ID: options',
+    ':END:',
+    '',
+    `Each of the ${all.length} options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with`,
+    `it. Of the ${settable} that change what org-lsp does itself, ${Math.round((100 * (count('setting') + count('other'))) / settable)}% can be set.`,
+    `${link('file:../scripts/org-options.json', 'scripts/org-options.json')} says it for each; ~scripts/check.sh~ fails when the`,
+    'server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,',
+    'when Org has an option it does not list.',
+    '',
+    table(
+      ['Status', 'Options', 'Meaning'],
+      Object.entries(STATUSES).map(([status, meaning]) => [status, String(count(status)), meaning]),
+    ),
+  ];
+  const other = all.filter((option) => statusOf(option.value) === 'other');
+  if (other.length > 0) {
+    lines.push('', heading(2, 'Done another way'), '');
+    for (const option of other) lines.push(`- ~${option.name}~ :: ${org(option.value[1])}`);
+  }
+  lines.push('', heading(2, 'Missing'), '', 'Options of what org-lsp does that cannot be set yet, by the file of Org they are in.', '');
+  const files = [...new Set(all.filter((option) => statusOf(option.value) === 'missing').map((option) => option.file))];
+  for (const file of files) {
+    const names = all.filter((option) => option.file === file && statusOf(option.value) === 'missing').map((option) => `~${option.name}~`);
+    lines.push(`- ${file} (${names.length}) :: ${names.join(', ')}`);
   }
   return lines.join('\n') + '\n';
 }
@@ -828,6 +920,12 @@ const FILES = {
 };
 /** Files written whole that keep what a person ticked. */
 const TESTS = Object.fromEntries(EDITORS.map((editor) => [`${editor.dir}/TESTING.org`, editor.id]));
+
+const problems = optionProblems();
+if (problems.length > 0) {
+  console.error(`scripts/org-options.json does not match:\n  ${problems.join('\n  ')}`);
+  process.exit(1);
+}
 
 let stale = false;
 for (const [file, render] of Object.entries(FILES)) {
