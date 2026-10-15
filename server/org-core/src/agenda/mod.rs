@@ -268,7 +268,7 @@ pub enum TagsColumn {
 }
 
 /// Agenda settings. The names and defaults are Org's.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Config {
     /// `org-agenda-span`
     pub span: Span,
@@ -401,6 +401,10 @@ pub struct Config {
     /// `org-agenda-deadline-leaders`: on its day, before it (`%d` the days
     /// left) and after it (the days since).
     pub deadline_leaders: [String; 3],
+    /// `org-agenda-deadline-faces`: the face of a deadline by the part of
+    /// its warning time that has passed, the first whose part is no more
+    /// than that; none past the last.
+    pub deadline_faces: Vec<(f64, Face)>,
     /// `org-agenda-timerange-leaders`: a range within a day, and one over
     /// days (`%d` the day of the range, `%d` its length).
     pub timerange_leaders: [String; 2],
@@ -575,6 +579,11 @@ impl Default for Config {
             todo_keyword_format: "%-1s".to_string(),
             scheduled_leaders: ["Scheduled: ".to_string(), "Sched.%2dx: ".to_string()],
             deadline_leaders: ["Deadline:  ".to_string(), "In %3d d.: ".to_string(), "%2d d. ago: ".to_string()],
+            deadline_faces: vec![
+                (1.0, Face::DeadlineWarning),
+                (0.5, Face::DeadlineUpcoming),
+                (0.0, Face::DeadlineDistant),
+            ],
             timerange_leaders: [String::new(), "(%d/%d): ".to_string()],
             inactive_leader: "[".to_string(),
             include_inactive: false,
@@ -924,15 +933,8 @@ impl Builder<'_> {
                 now.clone()
             };
             let fraction = 1.0 - diff as f64 / wdays.max(1) as f64;
-            let face = if entry.element_done {
-                Face::Done
-            } else if fraction >= 1.0 {
-                Face::DeadlineWarning
-            } else if fraction >= 0.5 {
-                Face::DeadlineUpcoming
-            } else {
-                Face::DeadlineDistant
-            };
+            let face =
+                if entry.element_done { Face::Done } else { deadline_face(&self.config.deadline_faces, fraction) };
             let time = planning_time(raw, current != deadline && current != repeat);
             let mut item = self.item(file, index, ItemKind::Deadline, face, &extra, time.as_dotime());
             item.marker = Some(planning.offset);
@@ -2120,5 +2122,49 @@ mod tests {
             let _ = span.shift(today, -100_000);
         }
         assert_eq!(Span::from_days(i64::MAX), Span::Days(DAYS_MAX));
+    }
+}
+
+/// `org-agenda-deadline-face`: the face of `faces`
+/// (`org-agenda-deadline-faces`) whose part of the warning time is the
+/// first no more than `fraction`, the part that has passed; none past the
+/// last.
+pub fn deadline_face(faces: &[(f64, Face)], fraction: f64) -> Face {
+    faces.iter().find(|(part, _)| *part <= fraction).map_or(Face::Default, |(_, face)| *face)
+}
+
+#[cfg(test)]
+mod deadline_face_tests {
+    use super::{deadline_face, Face};
+
+    /// As Emacs answers for these lists and fractions.
+    #[test]
+    fn the_first_part_no_more_than_the_fraction() {
+        let fractions = [1.5, 1.0, 0.95, 0.9, 0.6, 0.5, 0.4, 0.3, 0.1, 0.0, -0.5];
+        let faces = |list: &[(f64, Face)]| -> Vec<Face> {
+            fractions.iter().map(|fraction| deadline_face(list, *fraction)).collect()
+        };
+        let (w, u, d, n) = (Face::DeadlineWarning, Face::DeadlineUpcoming, Face::DeadlineDistant, Face::Default);
+        assert_eq!(faces(&[(1.0, w), (0.5, u), (0.0, d)]), [w, w, u, u, u, u, d, d, d, d, n]);
+        assert_eq!(faces(&[(0.9, w), (0.3, u)]), [w, w, w, w, u, u, u, u, n, n, n]);
+        assert_eq!(faces(&[(1.0, w)]), [w, w, n, n, n, n, n, n, n, n, n]);
+    }
+
+    /// A deadline in 3 days of a 14-day warning time: upcoming by Org's
+    /// faces, imminent from a part of 0.5 on.
+    #[test]
+    fn deadlines_of_the_agenda_take_their_face() {
+        use crate::date::Date;
+        let text = "* TODO Pay\nDEADLINE: <2026-10-15 Thu>\n";
+        let parse = org_syntax::parse(text, &Default::default());
+        let outline = crate::outline::Outline::new(&parse, text, "a.org");
+        let today = Date::new(2026, 10, 12).to_day();
+        let face = |config: &super::Config| super::day_items(&[&outline], today, today, config)[0].face;
+        let mut config = super::Config::default();
+        assert_eq!(face(&config), Face::DeadlineUpcoming);
+        config.deadline_faces = vec![(0.5, Face::DeadlineWarning)];
+        assert_eq!(face(&config), Face::DeadlineWarning);
+        config.deadline_faces = vec![(0.9, Face::DeadlineWarning)];
+        assert_eq!(face(&config), Face::Default);
     }
 }

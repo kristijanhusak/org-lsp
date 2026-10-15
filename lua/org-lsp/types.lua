@@ -297,6 +297,7 @@
 ---@field org_agenda_todo_keyword_format? string How a TODO keyword is written in the agenda: `%-4s` pads it to four columns, so that the titles line up; an empty format leaves keywords out. (`org-agenda-todo-keyword-format`)
 ---@field org_agenda_scheduled_leaders? string[] The leader of a scheduled entry on its day, and on today when its day has passed (`%d`: the days since). (`org-agenda-scheduled-leaders`)
 ---@field org_agenda_deadline_leaders? string[] The leader of a deadline on its day, on today before it (`%d`: the days left), and on today after it (`%d`: the days since). (`org-agenda-deadline-leaders`)
+---@field org_agenda_deadline_faces? any[][] The look of a deadline in the agenda by the part of its warning time that has passed: the first whose part is no more than that, none past the last. The faces are Org's: `org-imminent-deadline` (or `org-warning`), `org-upcoming-deadline`, `org-upcoming-distant-deadline`; any other name is the plain look. (`org-agenda-deadline-faces`)
 ---@field org_agenda_timerange_leaders? string[] The leader of a time range within a day, and of a range over days (`%d`: which day of it, `%d`: how many days). (`org-agenda-timerange-leaders`)
 ---@field org_agenda_inactive_leader? string What goes before an inactive timestamp's line, when the agenda shows them (`[`, `v [`). (`org-agenda-inactive-leader`)
 ---@field org_agenda_remove_tags? true|false|'prefix' Leave the tags out of the agenda's lines; `prefix` only when the prefix shows a tag (`%T`). (`org-agenda-remove-tags`)
