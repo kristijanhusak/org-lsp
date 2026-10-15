@@ -118,8 +118,10 @@ pub struct Target<'a> {
     pub directory: bool,
 }
 
-/// `org-open-file`: what opens `target`, or Org's error.
-pub fn open(apps: &FileApps, target: &Target<'_>, prefix: Prefix) -> Result<Opener, String> {
+/// `org-open-file`: what opens `target`, or Org's error. A file that is not
+/// there opens only in Emacs, unless `non_existing`
+/// (`org-open-non-existing-files`).
+pub fn open(apps: &FileApps, target: &Target<'_>, prefix: Prefix, non_existing: bool) -> Result<Opener, String> {
     // The system's own, after the user's (`org-file-apps-gnu`).
     let mut all = apps.0.clone();
     all.extend([(Selector::Remote, App::Emacs), (Selector::System, App::Mailcap), (Selector::Other, App::Mailcap)]);
@@ -184,8 +186,9 @@ pub fn open(apps: &FileApps, target: &Target<'_>, prefix: Prefix) -> Result<Open
         Some(App::Default) => of(&Selector::Other),
         app => app,
     };
-    // Only Emacs visits a file that is not there.
-    if app != Some(App::Emacs) && !target.exists {
+    // Only Emacs visits a file that is not there, unless
+    // `org-open-non-existing-files`.
+    if app != Some(App::Emacs) && !target.exists && !non_existing {
         return Err(format!("No such file: {file}"));
     }
     Ok(match app {

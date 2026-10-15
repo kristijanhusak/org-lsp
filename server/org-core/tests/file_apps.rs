@@ -36,7 +36,8 @@ fn files_open_as_emacs_opens_them() {
             Some(16) => Prefix::System,
             _ => Prefix::None,
         };
-        let got = match open(&apps(&case["apps"]), &target, prefix) {
+        let non_existing = case["vars"]["org-open-non-existing-files"].as_bool().unwrap_or(false);
+        let got = match open(&apps(&case["apps"]), &target, prefix, non_existing) {
             Ok(Opener::Editor) => json!({ "emacs": true }),
             Ok(Opener::System) => json!({ "command": format!("xdg-open {}", shell_quote(&file)) }),
             Ok(Opener::Command(command)) => json!({ "command": command }),

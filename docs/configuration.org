@@ -6686,6 +6686,23 @@ The ~org-lint~ checkers to leave out, by name, as a diagnostic's code shows it
 org_lint_ignore = []
 #+end_src
 
+*** org_open_non_existing_files
+:PROPERTIES:
+:CUSTOM_ID: org_open_non_existing_files
+:END:
+
+Open a linked file that is not there with the application ~org_file_apps~
+gives it, rather than saying ~No such file~. The editor opens such a file
+either way.
+
+- Org's option :: ~org-open-non-existing-files~
+- Type :: boolean
+- Default :: ~false~
+
+#+begin_src toml
+org_open_non_existing_files = false
+#+end_src
+
 *** return_uses_meta_return
 :PROPERTIES:
 :CUSTOM_ID: return_uses_meta_return

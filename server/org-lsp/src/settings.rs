@@ -982,6 +982,14 @@ pub const SETTINGS: &[Setting] = &[
          the file in the editor. A Lisp function is not a command here.",
     ),
     setting(
+        "org_open_non_existing_files",
+        "boolean",
+        "false",
+        "org-open-non-existing-files",
+        "Open a linked file that is not there with the application `org_file_apps` gives it, rather than \
+         saying `No such file`. The editor opens such a file either way.",
+    ),
+    setting(
         "org_tag_alist",
         "string, string[]",
         r#""""#,
@@ -3384,6 +3392,7 @@ const SCHEMAS: &[(&str, &str)] = &[
         "org_file_apps",
         r#"{ "type": "array", "items": { "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 2 } }"#,
     ),
+    ("org_open_non_existing_files", BOOLEAN),
     ("org_tag_alist", r#"{ "type": ["string", "array"], "items": { "type": "string" } }"#),
     ("org_tag_persistent_alist", r#"{ "type": ["string", "array"], "items": { "type": "string" } }"#),
     ("org_group_tags", BOOLEAN),

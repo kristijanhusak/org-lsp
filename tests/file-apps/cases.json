@@ -6752,5 +6752,1265 @@
   "expected": {
    "error": "No such file: {dir}/missing.txt"
   }
+ },
+ {
+  "file": "missing.pdf",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "expected": {
+   "command": "xdg-open {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.txt",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.txt",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "missing.org",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.org",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.org",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/missing.org"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "expected": {
+   "command": "evince {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.txt",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.txt",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "missing.org",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.org",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.org",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/missing.org"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "expected": {
+   "command": "zathura {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.txt",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.txt",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "missing.org",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.org",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.org",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/missing.org"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "expected": {
+   "command": "less {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "expected": {
+   "command": "xdg-open {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.txt",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "missing.org",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.org",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.org",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/missing.org"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "expected": {
+   "command": "upper {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "open {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "expected": {
+   "command": "xdg-open {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.txt",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "open {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "missing.org",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "expected": {
+   "command": "xdg-open {dir}/missing.org"
+  }
+ },
+ {
+  "file": "missing.org",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.org",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "open {dir}/missing.org"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "expected": {
+   "command": "view %s {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "expected": {
+   "command": "view %s {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.txt",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "missing.org",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "expected": {
+   "command": "xdg-open {dir}/missing.org"
+  }
+ },
+ {
+  "file": "missing.org",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.org",
+  "vars": {
+   "org-open-non-existing-files": true
+  },
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/missing.org"
+  }
  }
 ]

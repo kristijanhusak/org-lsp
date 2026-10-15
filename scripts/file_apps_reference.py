@@ -11,7 +11,8 @@ A case is a JSON object:
                      `mailcap` too
       "file": "a.pdf",       a file of the case's directory (`sub/` one there)
       "search": "5",         what follows `::` in the link, if anything
-      "prefix": 4            `C-u` (4) or `C-u C-u` (16), if any
+      "prefix": 4,           `C-u` (4) or `C-u C-u` (16), if any
+      "vars": {"org-open-non-existing-files": true}   Org's options, if any
     }
 
 The system's own entries are `(remote . emacs) (system . "xdg-open %s")
@@ -32,11 +33,12 @@ FILES = ["a.pdf", "b.html", "c.txt", "D.PDF", "e.tar.gz", "notes.org", "x.xyz", 
 DRIVER = r"""
 (require 'org)
 (require 'json)
-(defun org-lsp-file-apps-case (dir out apps file search prefix)
+(defun org-lsp-file-apps-case (dir out apps file search prefix vars)
   (let* ((result
           (catch 'org-lsp-done
             (condition-case err
-                (cl-letf* ((org-file-apps (if (eq apps 'default) org-file-apps apps))
+                (cl-progv (mapcar #'car vars) (mapcar #'cdr vars)
+                 (cl-letf* ((org-file-apps (if (eq apps 'default) org-file-apps apps))
                            (auto-mode-alist '(("" . fundamental-mode)))
                            ((symbol-function 'org--file-default-apps)
                             (lambda () '((remote . emacs) (system . "xdg-open %s") (t . "xdg-open %s"))))
@@ -47,7 +49,7 @@ DRIVER = r"""
                             (lambda (&rest _) (throw 'org-lsp-done '((emacs . t)))))
                            ((symbol-function 'dired) (lambda (&rest _) (throw 'org-lsp-done '((emacs . t))))))
                   (org-open-file (expand-file-name file dir) prefix nil search)
-                  '((none . t)))
+                  '((none . t))))
               (error (list (cons 'error (error-message-string err))))))))
     (with-temp-file out
       (insert (json-encode
@@ -61,6 +63,16 @@ DRIVER = r"""
 
 def lisp_string(text):
     return '"' + text.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def lisp_vars(variables):
+    """Org's options as an alist of their values: JSON's true and false are
+    `t` and `nil`."""
+    pairs = []
+    for name, value in (variables or {}).items():
+        lisp = {True: "t", False: "nil"}.get(value) if isinstance(value, bool) else json.dumps(value)
+        pairs.append(f"({name} . {lisp})")
+    return "'(" + " ".join(pairs) + ")"
 
 
 def lisp_apps(apps):
@@ -105,7 +117,7 @@ def reference(cases):
             prefix = f"'({case['prefix']})" if case.get("prefix") else "nil"
             forms.append(
                 f"(org-lsp-file-apps-case {lisp_string(directory)} {lisp_string(target)} {lisp_apps(case.get('apps'))}"
-                f" {lisp_string(case['file'])} {search} {prefix})"
+                f" {lisp_string(case['file'])} {search} {prefix} {lisp_vars(case.get('vars'))})"
             )
         driver = os.path.join(directory, "driver.el")
         with open(driver, "w", encoding="utf-8") as handle:
@@ -145,6 +157,17 @@ def default_cases():
             if prefix:
                 case["prefix"] = prefix
             cases.append(case)
+    # `org-open-non-existing-files`: what is not there opens as well,
+    # except in Emacs, which visits it either way.
+    for apps in APPS:
+        for file in ["missing.pdf", "missing.txt", "missing.org"]:
+            for prefix in [None, 4, 16]:
+                case = {"file": file, "vars": {"org-open-non-existing-files": True}}
+                if apps is not None:
+                    case["apps"] = apps
+                if prefix:
+                    case["prefix"] = prefix
+                cases.append(case)
     return cases
 
 
