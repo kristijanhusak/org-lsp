@@ -406,6 +406,13 @@
     }
   },
   {
+    "caption": "Org: Change the TODO state as if it were yesterday",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.todo.yesterday"
+    }
+  },
+  {
     "caption": "Org: Cycle TODO state forward",
     "command": "org_lsp_run",
     "args": {

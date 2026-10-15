@@ -370,6 +370,7 @@ its sections says what it should look like.
 - [ ] With ~LOG_INTO_DRAWER~, the note goes in ~:LOGBOOK:~: ~<Leader>ona~
 - [ ] Adding a note from the agenda: ~z~ or ~<Leader>ona~
 - [ ] With ~org_log_reschedule~ ~"time"~ (or ~#+STARTUP: logreschedule~), rescheduling logs ~Rescheduled from "[…]" on […]~; with ~"note"~ a note buffer opens for it: ~<Leader>ois~
+- [ ] With ~org_log_done~ ~"time"~, ~org.todo.yesterday~ marks an entry done with ~CLOSED:~ at 23:59 of yesterday: ~:Org todo yesterday~
 
 * Completion and editing helpers
 

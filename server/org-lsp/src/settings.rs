@@ -2500,6 +2500,22 @@ pub const SETTINGS: &[Setting] = &[
          clock report ranges and org-journal's new entries.",
     ),
     setting(
+        "org_use_effective_time",
+        "boolean",
+        "false",
+        "org-use-effective-time",
+        "Before the hour `org_extend_today_until`, a TODO change records 23:59 of the day before: in \
+         `CLOSED:`, `LAST_REPEAT` and the notes' timestamps. `org.todo.yesterday` does so at any hour.",
+    ),
+    setting(
+        "org_use_last_clock_out_time_as_effective_time",
+        "boolean",
+        "false",
+        "org-use-last-clock-out-time-as-effective-time",
+        "A TODO change records the end of the first closed clock of the subtree instead of the time now, \
+         when there is one; this comes before `org_use_effective_time`.",
+    ),
+    setting(
         "org_agenda_search_view_always_boolean",
         "boolean",
         "false",
@@ -3286,6 +3302,8 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_roam_capture_templates", ROAM_TEMPLATES),
     ("org_roam_dailies_capture_templates", ROAM_TEMPLATES),
     ("org_roam_dailies_directory", STRING),
+    ("org_use_effective_time", BOOLEAN),
+    ("org_use_last_clock_out_time_as_effective_time", BOOLEAN),
     ("org_agenda_search_view_always_boolean", BOOLEAN),
     ("org_agenda_search_view_force_full_words", BOOLEAN),
     ("org_agenda_search_view_max_outline_level", r#"{ "type": "integer", "minimum": 0 }"#),

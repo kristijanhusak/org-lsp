@@ -1588,6 +1588,29 @@ fn run_saving(client: &mut Client, command: &str, uri: &str, at: (u32, u32), ext
     (result, saved)
 }
 
+/// `org-todo-yesterday`: the change records 23:59 of yesterday, and a
+/// `.+` repeater counts from yesterday; `org.todo` afterwards records now.
+#[test]
+fn changes_todo_states_as_if_it_were_yesterday() {
+    let mut options = clock();
+    options["org_todo_keywords"] = json!(["TODO(t)", "|", "DONE(d)"]);
+    options["org_log_done"] = json!("time");
+    let mut client = Client::editor(options, None);
+    let mut text = "* TODO Water\nSCHEDULED: <2026-05-16 Sat .+1d>\n".to_string();
+    client.open("file:///org/yesterday.org", &text);
+    client.edit("org.todo.yesterday", "file:///org/yesterday.org", (0, 0), json!({ "input": "d" }), &mut text);
+    assert_eq!(
+        text,
+        "* TODO Water\nSCHEDULED: <2026-05-18 Mon .+1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-17 Sun 23:59]\n:END:\n\
+         - State \"DONE\"       from \"TODO\"       [2026-05-17 Sun 23:59]"
+    );
+    let mut text = "* TODO Read\n".to_string();
+    client.open("file:///org/today.org", &text);
+    client.edit("org.todo", "file:///org/today.org", (0, 0), json!({ "input": "d" }), &mut text);
+    assert_eq!(text, "* DONE Read\nCLOSED: [2026-05-18 Mon 10:30]\n");
+    client.shutdown();
+}
+
 /// Commands say what they did, as Emacs says it in the echo area, and the
 /// files they change from elsewhere are saved.
 #[test]

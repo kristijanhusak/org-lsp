@@ -923,6 +923,7 @@ export const AREAS = [
       ['`LOG_INTO_DRAWER` and the `LOGGING` property', true],
       ['Logging rescheduled dates and deadlines (`org-log-reschedule`, `org-log-redeadline`)', true],
       ['The headings of notes (`org-log-note-headings`), the latest note first or last (`org-log-states-order-reversed`, for clock lines too), notes after drawers (`org-log-state-notes-insert-after-drawers`), `CLOSED:` without the time (`org-log-done-with-time`)', true],
+      ['Late-night changes counted on the day before (`org-use-effective-time`, `org-todo-yesterday`, `org-agenda-todo-yesterday`), or at the last clock-out (`org-use-last-clock-out-time-as-effective-time`)', true],
     ],
     editors: {
       zed: ['part', `A note is one line, with no buffer to write it in: ${ZED_TEXT}.`],
@@ -934,6 +935,7 @@ export const AREAS = [
       { text: 'With `LOG_INTO_DRAWER`, the note goes in `:LOGBOOK:`', cmd: 'org.add.note' },
       { text: 'Adding a note from the agenda', in: 'agenda', cmd: 'org.add.note' },
       { text: 'With `org_log_reschedule` `"time"` (or `#+STARTUP: logreschedule`), rescheduling logs `Rescheduled from "[…]" on […]`; with `"note"` a note buffer opens for it', cmd: 'org.schedule', not: ['zed', 'helix'] },
+      { text: 'With `org_log_done` `"time"`, `org.todo.yesterday` marks an entry done with `CLOSED:` at 23:59 of yesterday', cmd: 'org.todo.yesterday', not: ['helix'] },
     ],
   },
   {

@@ -4618,5 +4618,225 @@
    "org_list_two_spaces_after_bullet_regexp": "\\+"
   },
   "expected": "* Trip\n- [-] pack\n  +  [X] socks\n  + [ ] shirts\n"
+ },
+ {
+  "clock": "2026-10-15 02:30",
+  "text": "* TODO Late¦ task\n",
+  "command": "next",
+  "options": {
+   "org_use_effective_time": true,
+   "org_extend_today_until": 4,
+   "org_log_done": "time"
+  },
+  "expected": "* DONE Late task\nCLOSED: [2026-10-14 Wed 23:59]\n"
+ },
+ {
+  "clock": "2026-10-15 10:30",
+  "text": "* TODO Day¦ task\n",
+  "command": "next",
+  "options": {
+   "org_use_effective_time": true,
+   "org_extend_today_until": 4,
+   "org_log_done": "time"
+  },
+  "expected": "* DONE Day task\nCLOSED: [2026-10-15 Thu 10:30]\n"
+ },
+ {
+  "clock": "2026-10-15 02:30",
+  "text": "* TODO Early¦\n",
+  "command": "next",
+  "options": {
+   "org_use_effective_time": true,
+   "org_log_done": "time"
+  },
+  "expected": "* DONE Early\nCLOSED: [2026-10-15 Thu 02:30]\n"
+ },
+ {
+  "clock": "2026-10-15 03:59",
+  "text": "* TODO Edge¦\n",
+  "command": "next",
+  "options": {
+   "org_use_effective_time": true,
+   "org_extend_today_until": 4,
+   "org_log_done": "time",
+   "org_log_done_with_time": false
+  },
+  "expected": "* DONE Edge\nCLOSED: [2026-10-14 Wed]\n"
+ },
+ {
+  "clock": "2026-10-15 04:00",
+  "text": "* TODO Edge¦\n",
+  "command": "next",
+  "options": {
+   "org_use_effective_time": true,
+   "org_extend_today_until": 4,
+   "org_log_done": "time"
+  },
+  "expected": "* DONE Edge\nCLOSED: [2026-10-15 Thu 04:00]\n"
+ },
+ {
+  "clock": "2026-10-15 02:30",
+  "text": "* TODO Water¦ plants\nSCHEDULED: <2026-10-13 Tue .+1d>\n",
+  "command": "next",
+  "options": {
+   "org_use_effective_time": true,
+   "org_extend_today_until": 4
+  },
+  "expected": "* TODO Water plants\nSCHEDULED: <2026-10-15 Thu .+1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-10-14 Wed 23:59]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-10-14 Wed 23:59]"
+ },
+ {
+  "clock": "2026-10-15 02:30",
+  "text": "* TODO Water¦ plants\nSCHEDULED: <2026-10-13 Tue ++1d>\n",
+  "command": "next",
+  "options": {
+   "org_use_effective_time": true,
+   "org_extend_today_until": 4,
+   "org_log_repeat": "note"
+  },
+  "note": "late",
+  "expected": "* TODO Water plants\nSCHEDULED: <2026-10-15 Thu ++1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-10-14 Wed 23:59]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-10-14 Wed 23:59] \\\\\n  late"
+ },
+ {
+  "clock": "2026-10-15 02:30",
+  "text": "* TODO Write¦\n",
+  "command": "next",
+  "options": {
+   "org_use_effective_time": true,
+   "org_extend_today_until": 4,
+   "org_log_done": "note"
+  },
+  "note": "finished",
+  "expected": "* DONE Write\nCLOSED: [2026-10-14 Wed 23:59]\n- CLOSING NOTE [2026-10-14 Wed 23:59] \\\\\n  finished"
+ },
+ {
+  "clock": "2026-10-15 02:30",
+  "text": "* TODO Write¦\n",
+  "command": "next",
+  "options": {
+   "org_use_effective_time": true,
+   "org_extend_today_until": 4,
+   "org_todo_keywords": [
+    "TODO(t!)",
+    "|",
+    "DONE(d!)"
+   ],
+   "org_log_into_drawer": true
+  },
+  "expected": "* DONE Write\n:LOGBOOK:\n- State \"DONE\"       from \"TODO\"       [2026-10-14 Wed 23:59]\n:END:\n"
+ },
+ {
+  "clock": "2026-10-15 02:30",
+  "text": "* TODO Note¦ here\n",
+  "command": "note",
+  "options": {
+   "org_use_effective_time": true,
+   "org_extend_today_until": 4
+  },
+  "note": "thought",
+  "expected": "* TODO Note here\n- Note taken on [2026-10-14 Wed 23:59] \\\\\n  thought"
+ },
+ {
+  "clock": "2026-10-15 10:30",
+  "text": "* TODO Clocked¦\n:LOGBOOK:\nCLOCK: [2026-10-14 Wed 21:00]--[2026-10-14 Wed 22:15] =>  1:15\nCLOCK: [2026-10-13 Tue 09:00]--[2026-10-13 Tue 10:00] =>  1:00\n:END:\n",
+  "command": "next",
+  "options": {
+   "org_use_last_clock_out_time_as_effective_time": true,
+   "org_log_done": "time"
+  },
+  "expected": "* DONE Clocked\nCLOSED: [2026-10-14 Wed 22:15]\n:LOGBOOK:\nCLOCK: [2026-10-14 Wed 21:00]--[2026-10-14 Wed 22:15] =>  1:15\nCLOCK: [2026-10-13 Tue 09:00]--[2026-10-13 Tue 10:00] =>  1:00\n:END:\n"
+ },
+ {
+  "clock": "2026-10-15 10:30",
+  "text": "* TODO Unclocked¦\n",
+  "command": "next",
+  "options": {
+   "org_use_last_clock_out_time_as_effective_time": true,
+   "org_log_done": "time"
+  },
+  "expected": "* DONE Unclocked\nCLOSED: [2026-10-15 Thu 10:30]\n"
+ },
+ {
+  "clock": "2026-10-15 02:30",
+  "text": "* TODO Both¦\n:LOGBOOK:\nCLOCK: [2026-10-12 Mon 18:00]--[2026-10-12 Mon 19:30] =>  1:30\n:END:\n",
+  "command": "next",
+  "options": {
+   "org_use_effective_time": true,
+   "org_extend_today_until": 4,
+   "org_use_last_clock_out_time_as_effective_time": true,
+   "org_log_done": "time"
+  },
+  "expected": "* DONE Both\nCLOSED: [2026-10-12 Mon 19:30]\n:LOGBOOK:\nCLOCK: [2026-10-12 Mon 18:00]--[2026-10-12 Mon 19:30] =>  1:30\n:END:\n"
+ },
+ {
+  "clock": "2026-10-15 10:30",
+  "text": "* TODO Parent¦\n** Child\n:LOGBOOK:\nCLOCK: [2026-10-11 Sun 08:00]--[2026-10-11 Sun 08:45] =>  0:45\n:END:\n* Other\nCLOCK: [2026-10-14 Wed 08:00]--[2026-10-14 Wed 08:45] =>  0:45\n",
+  "command": "next",
+  "options": {
+   "org_use_last_clock_out_time_as_effective_time": true,
+   "org_log_done": "time"
+  },
+  "expected": "* DONE Parent\nCLOSED: [2026-10-11 Sun 08:45]\n** Child\n:LOGBOOK:\nCLOCK: [2026-10-11 Sun 08:00]--[2026-10-11 Sun 08:45] =>  0:45\n:END:\n* Other\nCLOCK: [2026-10-14 Wed 08:00]--[2026-10-14 Wed 08:45] =>  0:45\n"
+ },
+ {
+  "clock": "2026-10-15 10:30",
+  "text": "* TODO Running¦\n:LOGBOOK:\nCLOCK: [2026-10-15 Thu 09:00]\nCLOCK: [2026-10-14 Wed 13:00]--[2026-10-14 Wed 14:10] =>  1:10\n:END:\n",
+  "command": "next",
+  "options": {
+   "org_use_last_clock_out_time_as_effective_time": true,
+   "org_log_done": "time",
+   "org_todo_keywords": [
+    "TODO(t!)",
+    "|",
+    "DONE(d!)"
+   ]
+  },
+  "expected": "* DONE Running\nCLOSED: [2026-10-14 Wed 14:10]\n- State \"DONE\"       from \"TODO\"       [2026-10-14 Wed 14:10]\n:LOGBOOK:\nCLOCK: [2026-10-15 Thu 09:00]\nCLOCK: [2026-10-14 Wed 13:00]--[2026-10-14 Wed 14:10] =>  1:10\n:END:\n"
+ },
+ {
+  "clock": "2026-10-15 10:30",
+  "text": "* TODO Water¦ plants\nSCHEDULED: <2026-10-13 Tue .+1d>\n:LOGBOOK:\nCLOCK: [2026-10-12 Mon 18:00]--[2026-10-12 Mon 19:30] =>  1:30\n:END:\n",
+  "command": "next",
+  "options": {
+   "org_use_last_clock_out_time_as_effective_time": true
+  },
+  "expected": "* TODO Water plants\nSCHEDULED: <2026-10-16 Fri .+1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-10-12 Mon 19:30]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-10-12 Mon 19:30]\n:LOGBOOK:\nCLOCK: [2026-10-12 Mon 18:00]--[2026-10-12 Mon 19:30] =>  1:30\n:END:\n"
+ },
+ {
+  "clock": "2026-10-15 10:30",
+  "text": "* TODO Yesterday¦\n",
+  "command": "yesterday",
+  "options": {
+   "org_log_done": "time"
+  },
+  "expected": "* DONE Yesterday\nCLOSED: [2026-10-14 Wed 23:59]\n"
+ },
+ {
+  "clock": "2026-10-15 10:30",
+  "text": "* TODO Water¦ plants\nSCHEDULED: <2026-10-10 Sat .+2d>\n",
+  "command": "yesterday",
+  "expected": "* TODO Water plants\nSCHEDULED: <2026-10-16 Fri .+2d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-10-14 Wed 23:59]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-10-14 Wed 23:59]"
+ },
+ {
+  "clock": "2026-10-15 23:30",
+  "text": "* TODO Water¦ plants\nSCHEDULED: <2026-10-10 Sat ++1d>\n",
+  "command": "yesterday",
+  "options": {
+   "org_todo_keywords": [
+    "TODO(t!)",
+    "|",
+    "DONE(d!)"
+   ]
+  },
+  "expected": "* TODO Water plants\nSCHEDULED: <2026-10-15 Thu ++1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-10-14 Wed 23:59]\n:END:\n- State \"DONE\"       from \"TODO\"       [2026-10-14 Wed 23:59]"
+ },
+ {
+  "clock": "2026-10-15 10:30",
+  "text": "* TODO Yesterday¦\n",
+  "command": "yesterday",
+  "options": {
+   "org_log_done": "note"
+  },
+  "note": "done late",
+  "expected": "* DONE Yesterday\nCLOSED: [2026-10-14 Wed 23:59]\n- CLOSING NOTE [2026-10-14 Wed 23:59] \\\\\n  done late"
  }
 ]

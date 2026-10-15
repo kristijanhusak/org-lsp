@@ -2285,6 +2285,16 @@ org_journal_search_results_order_by = "asc"
 # org-journal's new entries. (org-extend-today-until)
 org_extend_today_until = 0
 
+# Before the hour `org_extend_today_until`, a TODO change records 23:59 of the
+# day before: in `CLOSED:`, `LAST_REPEAT` and the notes' timestamps.
+# `org.todo.yesterday` does so at any hour. (org-use-effective-time)
+org_use_effective_time = false
+
+# A TODO change records the end of the first closed clock of the subtree
+# instead of the time now, when there is one; this comes before
+# `org_use_effective_time`. (org-use-last-clock-out-time-as-effective-time)
+org_use_last_clock_out_time_as_effective_time = false
+
 # Read every search string of the search view (`s`) as words that must
 # (`+word`, `word`) or must not (`-word`) occur, regexps in braces
 # (`{regexp}`) and `"quoted phrases"`. Off, it is a phrase whose spaces match
@@ -3905,6 +3915,16 @@ org_agenda_custom_commands = []
   // in and the day of a datetree, `.+` and `++` repeaters, clock report
   // ranges and org-journal's new entries. (org-extend-today-until)
   "org_extend_today_until": 0,
+
+  // Before the hour `org_extend_today_until`, a TODO change records 23:59 of
+  // the day before: in `CLOSED:`, `LAST_REPEAT` and the notes' timestamps.
+  // `org.todo.yesterday` does so at any hour. (org-use-effective-time)
+  "org_use_effective_time": false,
+
+  // A TODO change records the end of the first closed clock of the subtree
+  // instead of the time now, when there is one; this comes before
+  // `org_use_effective_time`. (org-use-last-clock-out-time-as-effective-time)
+  "org_use_last_clock_out_time_as_effective_time": false,
 
   // Read every search string of the search view (`s`) as words that must
   // (`+word`, `word`) or must not (`-word`) occur, regexps in braces

@@ -106,6 +106,12 @@ pub struct Settings {
     pub extend_today_until: i64,
     /// `org-log-done-with-time`: the `CLOSED:` timestamp has the time.
     pub log_done_with_time: bool,
+    /// `org-use-effective-time`: before `extend_today_until`, `CLOSED:`,
+    /// `LAST_REPEAT` and notes record 23:59 of the day before.
+    pub use_effective_time: bool,
+    /// `org-use-last-clock-out-time-as-effective-time`: they record the
+    /// end of the subtree's first closed clock instead.
+    pub last_clock_out_as_effective_time: bool,
     /// `org-log-note-headings`
     pub note_headings: NoteHeadings,
     /// `org-log-states-order-reversed`: the latest note first.
@@ -275,6 +281,8 @@ impl Default for Settings {
             adapt: Adapt::Off,
             extend_today_until: 0,
             log_done_with_time: true,
+            use_effective_time: false,
+            last_clock_out_as_effective_time: false,
             note_headings: NoteHeadings::default(),
             states_order_reversed: true,
             notes_after_drawers: false,
@@ -644,6 +652,27 @@ impl<'a> Editor<'a> {
             log,
             clock_note_at: None,
         }
+    }
+
+    /// `org-current-effective-time`: the time a state change records.
+    fn effective_time(&self) -> DateTime {
+        if self.settings.last_clock_out_as_effective_time {
+            return self.last_clock_out().unwrap_or(self.now);
+        }
+        if self.settings.use_effective_time && self.now.minute / 60 < self.settings.extend_today_until {
+            return DateTime { day: self.now.day - 1, minute: 23 * 60 + 59 };
+        }
+        self.now
+    }
+
+    /// `org-clock-get-last-clock-out-time`: the end of the first closed
+    /// clock in the entry's subtree.
+    fn last_clock_out(&self) -> Option<DateTime> {
+        static CLOCK_OUT: std::sync::LazyLock<regex::Regex> =
+            std::sync::LazyLock::new(|| regex::Regex::new(r"CLOCK:.*\]--(\[[^\]]+\])").unwrap());
+        let end = crate::structure::subtree_end(&self.text, self.heading);
+        let found = CLOCK_OUT.captures(&self.text[self.heading..end])?;
+        time_of(found.get(1)?.as_str()).ok()
     }
 
     pub(crate) fn replace(&mut self, start: usize, end: usize, new: &str) {
@@ -1034,14 +1063,14 @@ impl<'a> Editor<'a> {
                 self.replace(content + trimmed, line_end, "");
                 if add {
                     // `org-log-done-with-time`
-                    let stamp = format_timestamp(self.now, self.settings.log_done_with_time, true, "");
+                    let stamp = format_timestamp(self.effective_time(), self.settings.log_done_with_time, true, "");
                     let space = if content == self.line_end(line) { "" } else { " " };
                     self.replace(content, content, &format!("CLOSED: {stamp}{space}"));
                 }
             }
             None if add => {
                 let at = self.line_end(self.heading);
-                let stamp = format_timestamp(self.now, self.settings.log_done_with_time, true, "");
+                let stamp = format_timestamp(self.effective_time(), self.settings.log_done_with_time, true, "");
                 let indentation = self.planning_indentation();
                 self.replace(at, at, &format!("\n{indentation}CLOSED: {stamp}"));
             }
@@ -1089,7 +1118,7 @@ impl<'a> Editor<'a> {
 
     /// `org-entry-put` for `LAST_REPEAT`.
     fn put_last_repeat(&mut self) {
-        let value = format_timestamp(self.now, true, true, "");
+        let value = format_timestamp(self.effective_time(), true, true, "");
         self.put_property("LAST_REPEAT", &value);
     }
 
@@ -1153,7 +1182,7 @@ impl<'a> Editor<'a> {
             }
             Some(state) => format!("\"{state}\""),
         };
-        let now = self.now;
+        let now = self.effective_time();
         let template = self.settings.note_headings.of(note.purpose);
         let heading = (!template.trim().is_empty()).then(|| {
             crate::text::replace_escapes(template, |c| {
