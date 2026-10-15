@@ -31,7 +31,7 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#refile-and-archive][Refile and archive]] | 100% | 11 of 11 |
 | [[#links][Links]] | 100% | 15 of 15 |
 | [[#footnotes][Footnotes]] | 100% | 4 of 4 |
-| [[#tables][Tables]] | 94% | 17 of 18 |
+| [[#tables][Tables]] | 95% | 18 of 19 |
 | [[#table-formulas][Table formulas]] | 100% | 13 of 13 |
 | [[#code-blocks-babel][Code blocks (Babel)]] | 100% | 11 of 11 |
 | [[#export-and-publishing][Export and publishing]] | 100% | 9 of 9 |
@@ -491,7 +491,7 @@ Where editors fall short:
 :CUSTOM_ID: tables
 :END:
 
-94% (17 of 18)
+95% (18 of 19)
 
 - ✅ Aligning (~C-c C-c~, formatting)
 - ✅ Moving between fields (~TAB~, ~S-TAB~), a row made past the last
@@ -505,6 +505,7 @@ Where editors fall short:
 - ✅ Copying down (~S-RET~, through Emacs)
 - ✅ Editing a field in a file of its own (~org-table-edit-field~, through Emacs): put back, the table realigned, each time it is saved
 - ✅ Shrunk columns (~<5>~): ~C-c TAB~, ~org-startup-shrink-all-tables~ and ~#+STARTUP: shrink~; the hidden text concealed where the editor can hide it, ~…~ drawn in its place or an inlay hint
+- ✅ Every table aligned when a file opens (~org-startup-align-all-tables~, ~#+STARTUP: align~, ~noalign~)
 - ✅ Creating an empty table (~C-c |~, through Emacs)
 - ✅ Making a table from a region (~C-c |~ on a selection, through Emacs)
 - ✅ Summing (~C-c +~) and field information (~C-c ?~), through Emacs
@@ -739,15 +740,15 @@ Where editors fall short:
 :END:
 
 Each of the 1025 options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with
-it. Of the 304 that change what org-lsp does itself, 90% can be set.
+it. Of the 304 that change what org-lsp does itself, 91% can be set.
 [[file:../scripts/org-options.json][scripts/org-options.json]] says it for each; ~scripts/check.sh~ fails when the
 server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,
 when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 263 | A setting of the same name |
-| missing | 29 | org-lsp does what the option is about, but the option cannot be set yet |
+| setting | 264 | A setting of the same name |
+| missing | 28 | org-lsp does what the option is about, but the option cannot be set yet |
 | other | 12 | Done another way, as its note says |
 | emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 48 | Its value is Lisp (a function, a hook), which the server does not run |
@@ -779,4 +780,4 @@ Options of what org-lsp does that cannot be set yet, by the file of Org they are
 - org-entities.el (1) :: ~org-entities-user~
 - org-indent.el (3) :: ~org-indent-mode-turns-off-org-adapt-indentation~, ~org-indent-mode-turns-on-hiding-stars~, ~org-indent-indentation-per-level~
 - org-list.el (2) :: ~org-plain-list-ordered-item-terminator~, ~org-list-allow-alphabetical~
-- org.el (11) :: ~org-startup-align-all-tables~, ~org-odd-levels-only~, ~org-todo-interpretation~, ~org-treat-insert-todo-heading-as-state-change~, ~org-treat-S-cursor-todo-selection-as-state-change~, ~org-priority-enable-commands~, ~org-edit-timestamp-down-means-later~, ~org-property-format~, ~org-property-separators~, ~org-custom-properties~, ~org-track-ordered-property-with-tag~
+- org.el (10) :: ~org-odd-levels-only~, ~org-todo-interpretation~, ~org-treat-insert-todo-heading-as-state-change~, ~org-treat-S-cursor-todo-selection-as-state-change~, ~org-priority-enable-commands~, ~org-edit-timestamp-down-means-later~, ~org-property-format~, ~org-property-separators~, ~org-custom-properties~, ~org-track-ordered-property-with-tag~

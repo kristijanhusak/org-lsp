@@ -4325,6 +4325,38 @@ fn asks_about_agenda_files_that_are_not_there() {
     client.shutdown();
 }
 
+/// `org-startup-align-all-tables`: a file opened has its tables aligned,
+/// an edit the server asks the editor for; `#+STARTUP: noalign` keeps
+/// them as they are, `align` aligns them without the option.
+#[test]
+fn aligns_tables_when_a_file_opens() {
+    let mut options = clock();
+    options["org_startup_align_all_tables"] = json!(true);
+    let mut client = Client::editor(options, None);
+    client.received.clear();
+    client.open("file:///org/tables.org", "* Data\n| a |bb|\n|ccc|d|\n");
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let (_, edits) = edits_of(edit);
+    assert_eq!(apply("* Data\n| a |bb|\n|ccc|d|\n", &edits), "* Data\n| a   | bb |\n| ccc | d  |\n");
+    client.received.clear();
+    client.open("file:///org/kept.org", "#+STARTUP: noalign\n| a |bb|\n");
+    client.settle();
+    assert!(!client.received.iter().any(|request| request.method == "workspace/applyEdit"));
+    client.shutdown();
+
+    let mut client = Client::editor(clock(), None);
+    client.received.clear();
+    client.open("file:///org/plain.org", "| a |bb|\n");
+    client.open("file:///org/asked.org", "#+STARTUP: align\n| a |bb|\n");
+    client.settle();
+    let edits: Vec<&Request> =
+        client.received.iter().filter(|request| request.method == "workspace/applyEdit").collect();
+    assert_eq!(edits.len(), 1);
+    assert_eq!(edits_of(edits[0]).0, "file:///org/asked.org");
+    client.shutdown();
+}
+
 /// A keyword with a face of its own (`org_todo_keyword_faces`) is offered
 /// in that face when the server asks for a TODO state.
 #[test]

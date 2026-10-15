@@ -113,7 +113,7 @@ does not work there and why.
 | [[file:docs/parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ❓ |
 | [[file:docs/parity.org::#links][Links]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#footnotes][Footnotes]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ❓ |
-| [[file:docs/parity.org::#tables][Tables]] | 94% | ✅ / ❓ / ✅ / ❓ / ❓ / ❓ |
+| [[file:docs/parity.org::#tables][Tables]] | 95% | ✅ / ❓ / ✅ / ❓ / ❓ / ❓ |
 | [[file:docs/parity.org::#table-formulas][Table formulas]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ✅ |
 | [[file:docs/parity.org::#code-blocks-babel][Code blocks (Babel)]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ❓ |
 | [[file:docs/parity.org::#export-and-publishing][Export and publishing]] | 100% | ✅ / ✅ / ❓ / ✅ / ✅ / ❌ |

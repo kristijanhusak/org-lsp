@@ -1075,6 +1075,10 @@ struct Server {
     shrunk: HashMap<String, Vec<std::collections::BTreeSet<usize>>>,
     /// `org-startup-shrink-all-tables`
     startup_shrink: bool,
+    /// `org-startup-align-all-tables`
+    startup_align: bool,
+    /// The text files opened are to have once their tables are aligned.
+    startup_aligned: HashMap<String, String>,
     /// Whether Emacs encrypts entries before a file is saved
     /// (`org-crypt-use-before-save-magic`), once it said.
     crypt_before_save: Option<bool>,
@@ -1534,6 +1538,8 @@ pub fn run(connection: Connection) -> Result<()> {
         columns: HashMap::new(),
         shrunk: HashMap::new(),
         startup_shrink: options.startup_shrink_all_tables.unwrap_or(false),
+        startup_align: options.startup_align_all_tables.unwrap_or(false),
+        startup_aligned: HashMap::new(),
         crypt_before_save: None,
         indent: options.indent_settings(),
         display: options.display(),
@@ -2966,7 +2972,15 @@ impl Server {
                 let key = document.uri.as_str().to_string();
                 self.remember_start_file(&document.uri);
                 self.shrink_at_startup(&key, &document.text);
+                let aligned = self.align_at_startup(&document.text);
+                let (uri, version, opened) = (document.uri.clone(), document.version, document.text.clone());
                 self.documents.insert(key.clone(), Document::new(document.text, document.version, &self.todo));
+                if let Some(aligned) = aligned {
+                    self.startup_aligned.insert(key.clone(), aligned.clone());
+                    let edits = self.text_edits(&opened, &aligned);
+                    let edit = self.workspace_edit(&uri, Some(version), edits);
+                    self.apply_edit(lsp_types::ApplyWorkspaceEditParams { label: None, edit }, Pending::Edit);
+                }
                 self.sync_clock(&key);
                 self.publish_virtual_indent(&key);
                 self.publish_display(&key);
@@ -3030,6 +3044,14 @@ impl Server {
                 }
                 if let Some(old) = shrunk_before {
                     self.shrunk_after_change(key, &old, changed_lines);
+                }
+                // The tables aligned as the file opened: shrunk after that,
+                // as `org-mode` aligns them first.
+                let aligned = self.documents.get(key).map(|document| &document.text);
+                if aligned.is_some() && self.startup_aligned.get(key) == aligned {
+                    self.startup_aligned.remove(key);
+                    let text = aligned.cloned().unwrap_or_default();
+                    self.shrink_at_startup(key, &text);
                 }
                 self.sync_clock(key);
                 // Column view follows the text.
@@ -10693,6 +10715,25 @@ impl Server {
             self.overrun_said = self.running.as_ref().map(|running| running.start);
             self.show_message(MessageType::INFO, message);
         }
+    }
+
+    /// `org-startup-align-all-tables` (`#+STARTUP: align`): the text of a
+    /// file opened with its tables aligned, when that changes it.
+    fn align_at_startup(&self, text: &str) -> Option<String> {
+        let mut align = self.startup_align;
+        for word in startup_words(text) {
+            match word.as_str() {
+                "align" => align = true,
+                "noalign" => align = false,
+                _ => {}
+            }
+        }
+        if !align {
+            return None;
+        }
+        let keywords = TodoKeywords::from_document(text).unwrap_or_else(|| self.todo.clone());
+        let alignment = &self.edit_settings.todo.table.formulas.alignment;
+        Some(org_core::format::align_tables(text, &keywords, alignment)).filter(|aligned| aligned != text)
     }
 
     /// `org-startup-shrink-all-tables` (`#+STARTUP: shrink`): the columns

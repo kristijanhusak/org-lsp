@@ -1627,6 +1627,11 @@ org_cycle_level_after_item_entry_creation = true
 # text, the text shows. (org-startup-folded)
 org_startup_folded = "showeverything"
 
+# Align every table of a file when it opens (an edit of the file, as in
+# Emacs). `#+STARTUP: align` and `noalign` decide for a file.
+# (org-startup-align-all-tables)
+org_startup_align_all_tables = false
+
 # Shrink the columns of every table that have a width cookie (`<10>`) when a
 # file opens. `#+STARTUP: shrink` decides for a file. Shrunk fields show their
 # first characters and `…`, in editors that can hide text.
@@ -3287,6 +3292,11 @@ org_agenda_custom_commands = []
   // headline's children but not its text, the text shows.
   // (org-startup-folded)
   "org_startup_folded": "showeverything",
+
+  // Align every table of a file when it opens (an edit of the file, as in
+  // Emacs). `#+STARTUP: align` and `noalign` decide for a file.
+  // (org-startup-align-all-tables)
+  "org_startup_align_all_tables": false,
 
   // Shrink the columns of every table that have a width cookie (`<10>`) when
   // a file opens. `#+STARTUP: shrink` decides for a file. Shrunk fields show
