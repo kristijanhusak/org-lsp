@@ -24,6 +24,7 @@ its sections says what it should look like.
 * Highlighting
 
 - [ ] Headlines are colored by level; TODO and DONE keywords, priorities (~[#A]~) and tags have colors of their own
+- [ ] With ~org_fontify_todo_headline = true~ the text of a TODO headline, and with ~org_fontify_quote_and_verse_blocks = true~ the lines of a quote block, take a look of their own
 - [ ] ~*bold*~, ~/italic/~, ~_underline_~, ~+strike+~, ~=verbatim=~ and =~code~= are colored
 - [ ] A link shows its description alone; its brackets and target show when the cursor is on its line
 - [ ] With ~org_hide_emphasis_markers = true~, the markers of ~*bold*~ are hidden
