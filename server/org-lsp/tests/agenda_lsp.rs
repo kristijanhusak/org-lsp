@@ -4407,6 +4407,100 @@ fn finds_roam_nodes_by_reference_and_promotes_whole_files() {
     client.shutdown();
 }
 
+/// `org-roam-refile`: the subtree at the cursor goes under the node
+/// picked, after its subtree, and a file refiled whole is deleted.
+/// `org-roam-extract-subtree`: the subtree gets an `ID` and goes to a file
+/// of its own, offered as `org_roam_extract_new_file_path` names it.
+#[test]
+fn refiles_and_extracts_roam_subtrees() {
+    let root = std::env::temp_dir().join(format!("org-lsp-roam-move-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).unwrap();
+    let a = ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\n* First\n:PROPERTIES:\n:ID: f1\n:END:\ntext\n* Second\nmore\n";
+    let b = ":PROPERTIES:\n:ID: b1\n:END:\n#+title: B\n* B one\n:PROPERTIES:\n:ID: b2\n:END:\n** B child\n* B two\n";
+    let c = ":PROPERTIES:\n:ID: c0\n:END:\n#+title: C\nIntro\n";
+    for (name, text) in [("a.org", a), ("b.org", b), ("c.org", c)] {
+        std::fs::write(root.join(name), text).unwrap();
+    }
+    let mut options = clock();
+    options["org_roam_enabled"] = json!(true);
+    options["org_roam_directory"] = json!(root.display().to_string());
+    let capabilities = json!({
+        "workspace": { "workspaceEdit": { "documentChanges": true, "resourceOperations": ["create", "rename", "delete"] } },
+        "window": { "showDocument": { "support": true } },
+        "general": { "positionEncodings": ["utf-8"] }
+    });
+    let mut client = Client::start(capabilities, options, None);
+    let uri = |name: &str| format!("file://{}", root.join(name).display());
+    client.open(&uri("a.org"), a);
+    client.open(&uri("c.org"), c);
+    let at = |name: &str, line: u32| json!({ "textDocument": { "uri": uri(name) }, "position": { "line": line, "character": 2 } });
+    let run = |client: &mut Client, command: &str, context: &Value| {
+        client.received.clear();
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+    let answered = |asked: &Value, context: &Value, answer: &str| {
+        let mut context = context.clone();
+        for (key, value) in asked["input"]["context"].as_object().unwrap() {
+            context[key] = value.clone();
+        }
+        context["input"] = json!(answer);
+        context
+    };
+
+    let asked = run(&mut client, "org.roam.refile", &at("a.org", 4)).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Node");
+    assert!(asked["input"]["completions"].as_array().unwrap().contains(&json!("B one")));
+    let refused = run(&mut client, "org.roam.refile", &answered(&asked, &at("a.org", 4), "First"));
+    assert_eq!(refused, Err("Target is the same as current node".to_string()));
+    run(&mut client, "org.roam.refile", &answered(&asked, &at("a.org", 4), "B one")).unwrap();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let changes = edit.params["edit"]["documentChanges"].as_array().unwrap();
+    let edited = |name: &str, text: &str| {
+        let change = changes.iter().find(|change| change["textDocument"]["uri"] == uri(name)).expect("the file");
+        apply(text, change["edits"].as_array().unwrap())
+    };
+    assert_eq!(
+        edited("b.org", b),
+        ":PROPERTIES:\n:ID: b1\n:END:\n#+title: B\n* B one\n:PROPERTIES:\n:ID: b2\n:END:\n** B child\n\
+         ** First\n:PROPERTIES:\n:ID: f1\n:END:\ntext\n* B two\n"
+    );
+    assert_eq!(edited("a.org", a), ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\n* Second\nmore\n");
+
+    // Before the first headline, the whole file, and the file goes.
+    run(&mut client, "org.roam.refile", &answered(&asked, &at("c.org", 4), "B one")).unwrap();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let changes = edit.params["edit"]["documentChanges"].as_array().unwrap();
+    assert_eq!(changes.len(), 2);
+    assert_eq!(
+        apply(b, changes[0]["edits"].as_array().unwrap()),
+        ":PROPERTIES:\n:ID: b1\n:END:\n#+title: B\n* B one\n:PROPERTIES:\n:ID: b2\n:END:\n** B child\n\
+         ** C\n:PROPERTIES:\n:ID: c0\n:END:\nIntro\n* B two\n"
+    );
+    assert_eq!(changes[1], json!({ "kind": "delete", "uri": uri("c.org") }));
+
+    let asked = run(&mut client, "org.roam.extract", &at("a.org", 9)).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Extract node to: ");
+    assert_eq!(asked["input"]["value"], "20260518103000-second.org");
+    let refused = run(&mut client, "org.roam.extract", &answered(&asked, &at("a.org", 9), "b.org"));
+    assert_eq!(refused, Err(format!("{} exists. Aborting", root.join("b.org").display())));
+    let refused = run(&mut client, "org.roam.extract", &at("a.org", 0));
+    assert_eq!(refused, Err("Already a top-level node".to_string()));
+    run(&mut client, "org.roam.extract", &answered(&asked, &at("a.org", 9), "second.org")).unwrap();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    assert_eq!(
+        apply(a, &edits_of(edit).1),
+        ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\n* First\n:PROPERTIES:\n:ID: f1\n:END:\ntext\n"
+    );
+    let extracted = std::fs::read_to_string(root.join("second.org")).unwrap();
+    assert!(extracted.starts_with(":PROPERTIES:\n:ID:       "), "{extracted}");
+    assert!(extracted.ends_with(":END:\n#+title: Second\nmore\n"), "{extracted}");
+    client.shutdown();
+    let _ = std::fs::remove_dir_all(&root);
+}
+
 /// A keyword with a face of its own (`org_todo_keyword_faces`) is offered
 /// in that face when the server asks for a TODO state.
 #[test]

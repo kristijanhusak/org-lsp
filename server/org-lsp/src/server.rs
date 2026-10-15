@@ -79,6 +79,8 @@ struct Client {
     encoding: Encoding,
     hierarchical_symbols: bool,
     document_changes: bool,
+    /// A workspace edit may delete files (`resourceOperations`).
+    delete_files: bool,
     /// The client fetches documents of the agenda scheme from the server.
     virtual_documents: bool,
     show_document: bool,
@@ -1306,6 +1308,14 @@ pub fn run(connection: Connection) -> Result<()> {
             .and_then(|workspace| workspace.workspace_edit.as_ref())
             .and_then(|edit| edit.document_changes)
             .unwrap_or(false),
+        delete_files: params
+            .capabilities
+            .workspace
+            .as_ref()
+            .and_then(|workspace| workspace.workspace_edit.as_ref())
+            .filter(|edit| edit.document_changes == Some(true))
+            .and_then(|edit| edit.resource_operations.as_ref())
+            .is_some_and(|operations| operations.contains(&lsp_types::ResourceOperationKind::Delete)),
         virtual_documents: options.virtual_documents.unwrap_or_else(|| {
             raw_params.pointer("/capabilities/workspace/textDocumentContent").is_some_and(|value| !value.is_null())
         }),

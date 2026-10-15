@@ -592,6 +592,9 @@ pub struct Options {
     /// `org-roam-node-display-template`
     #[serde(rename = "org_roam_node_display_template")]
     pub roam_node_display_template: Option<String>,
+    /// `org-roam-extract-new-file-path`
+    #[serde(rename = "org_roam_extract_new_file_path")]
+    pub roam_extract_new_file_path: Option<String>,
     /// `org-roam-link-auto-replace`
     #[serde(rename = "org_roam_link_auto_replace")]
     pub roam_link_auto_replace: Option<bool>,
@@ -781,6 +784,8 @@ pub struct RoamSettings {
     pub directory: String,
     pub files: org_core::roam::Settings,
     pub display_template: String,
+    /// `org-roam-extract-new-file-path`, relative to the directory.
+    pub extract_new_file_path: String,
     pub templates: Vec<CaptureTemplateOption>,
     /// `org-roam-dailies-directory`, relative to the directory, and
     /// `org-roam-dailies-capture-templates`.
@@ -1362,6 +1367,10 @@ impl Options {
                 },
             },
             display_template: self.roam_node_display_template.clone().unwrap_or_else(|| "${title}".to_string()),
+            extract_new_file_path: self
+                .roam_extract_new_file_path
+                .clone()
+                .unwrap_or_else(|| "%<%Y%m%d%H%M%S>-${slug}.org".to_string()),
             dailies_directory: self.roam_dailies_directory.clone().unwrap_or_else(|| "daily/".to_string()),
             dailies_templates: self.roam_dailies_capture_templates.clone().unwrap_or_else(|| {
                 vec![CaptureTemplateOption {

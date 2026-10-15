@@ -340,6 +340,8 @@ command. [[file:../neovim.org][neovim.org]] says how to install and set up the p
 | ~org.roam.ref.find~ | Roam: find a node by a reference |
 | ~org.roam.promote~ | Roam: make the file's one top headline the file's node |
 | ~org.roam.demote~ | Roam: make the file's node a headline of its own |
+| ~org.roam.refile~ | Roam: refile to a node |
+| ~org.roam.extract~ | Roam: extract the subtree to a file of its own |
 | ~org.journal.new.date.entry~ | Journal: new entry for a date |
 | ~org.journal.new.scheduled.entry~ | Journal: new entry for a day to come |
 | ~org.journal.open.current~ | Journal: open the current file |

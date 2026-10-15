@@ -252,6 +252,86 @@ pub fn demote_entire_buffer(
     Ok(text)
 }
 
+/// `org-roam-refile` of the subtree at `point` of `source` to the node
+/// whose headline is at `to` of `target` (`None`: the same file), or to
+/// the file's node when `to` is none: as `org-refile` pastes it there, a
+/// level below the node, after its subtree. Before the first headline the
+/// whole file goes, its node made a headline first
+/// (`org-roam-demote-entire-buffer`). The source left empty is for the
+/// caller to delete, as org-roam deletes its file.
+#[allow(clippy::too_many_arguments)]
+pub fn refile(
+    source: &str,
+    point: usize,
+    target: Option<&str>,
+    to: Option<usize>,
+    keywords: &TodoKeywords,
+    structure: &crate::structure::Settings,
+    tags: &tags::Settings,
+    settings: &crate::refile::Settings,
+) -> Result<crate::refile::Refiled, Refusal> {
+    let (source, point) = match properties::heading_at(source, point) {
+        Some(_) => (source.to_string(), point),
+        None => (demote_entire_buffer(source, keywords, structure, tags).map_err(Refusal::Failed)?, 0),
+    };
+    crate::refile::refile(&source, point, None, target, to, settings, false)
+}
+
+/// `org-roam-extract-subtree`, the subtree at `at` having its `ID`
+/// already (`org-id-get-create`): the file without the subtree, and the
+/// text of the new file it goes to, its first headline made the file's
+/// node (`org-roam-promote-entire-buffer`).
+pub fn extract_subtree(
+    text: &str,
+    at: usize,
+    keywords: &TodoKeywords,
+    structure: &crate::structure::Settings,
+    tags: &tags::Settings,
+) -> Result<(String, String), Refusal> {
+    let heading = extracted_heading(text, at)?;
+    let (cut, tree, _) = crate::structure::copy_subtree(text, heading, 1, true)?;
+    // `org-paste-subtree` into the empty file puts it at level 1.
+    let (pasted, _) = crate::structure::paste_subtree("", 0, &tree, None, structure)?;
+    let extracted = promote_entire_buffer(&pasted.text, keywords, structure, tags).map_err(Refusal::Failed)?;
+    Ok((cut.text, extracted))
+}
+
+/// The headline `org-roam-extract-subtree` extracts from `at`, unless
+/// it is at the start of the file (`org-back-to-heading-or-point-min`,
+/// then `bobp`).
+pub fn extracted_heading(text: &str, at: usize) -> Result<usize, Refusal> {
+    match properties::heading_at(text, at) {
+        Some(heading) if heading > 0 => Ok(heading),
+        _ => Err(Refusal::Failed("Already a top-level node".to_string())),
+    }
+}
+
+/// `org-roam-extract-new-file-path` filled for the headline at
+/// `heading`, with the `ID` `id`: `%<…>` the time as `format-time-string`
+/// writes it, `${title}`, `${slug}` and `${id}` the node's.
+pub fn extract_file_name(
+    template: &str,
+    text: &str,
+    heading: usize,
+    id: &str,
+    keywords: &TodoKeywords,
+    time: crate::date::DateTime,
+) -> String {
+    let line = line_at(text, heading);
+    let title = crate::outline::complex_heading_title(line, level_of(text, heading), keywords)
+        .map_or("", |(start, end)| &line[start..end]);
+    static TIME: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"%<([^>]*)>").expect("a valid regex"));
+    static FIELD: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\$\{([^}=]+)(?:=[^}]*)?\}").expect("a valid regex"));
+    let timed = TIME.replace_all(template, |found: &regex::Captures| crate::journal::format_time(&found[1], time));
+    let filled = FIELD.replace_all(&timed, |found: &regex::Captures| match &found[1] {
+        "title" => title.to_string(),
+        "slug" => crate::roam::slugify(title),
+        "id" => id.to_string(),
+        _ => found[0].to_string(),
+    });
+    filled.trim().to_string()
+}
+
 /// Every headline's level changed by `change`, from the last up
 /// (`org-map-region` with `org-promote` or `org-do-demote`).
 fn change_every_level(
