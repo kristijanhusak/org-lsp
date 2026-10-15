@@ -41,6 +41,10 @@ pub struct Options {
     /// Files, directories and glob patterns the agenda is built from.
     #[serde(rename = "org_agenda_files")]
     pub agenda_files: Vec<String>,
+    #[serde(rename = "org_agenda_file_regexp")]
+    pub agenda_file_regexp: Option<String>,
+    #[serde(rename = "org_agenda_skip_unavailable_files")]
+    pub agenda_skip_unavailable_files: Option<bool>,
     #[serde(flatten)]
     pub agenda: AgendaOptions,
     /// `org-log-done`: `false`, `"time"` or `"note"`.

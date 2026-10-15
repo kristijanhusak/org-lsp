@@ -298,6 +298,7 @@ dependencies = [
  "lsp-types",
  "org-core",
  "org-syntax",
+ "regex",
  "serde",
  "serde_json",
  "toml",

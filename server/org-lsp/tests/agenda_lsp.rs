@@ -4285,6 +4285,46 @@ fn shows_the_outline_path_of_the_agenda_line() {
     client.shutdown();
 }
 
+/// `org-check-agenda-file`: an agenda file that is not there is asked
+/// about before a view is built; `r` removes it from the list for the
+/// session, anything else aborts. With
+/// `org_agenda_skip_unavailable_files` it is left out without a word.
+#[test]
+fn asks_about_agenda_files_that_are_not_there() {
+    let directory = workspace("unavailable");
+    let gone = directory.join("gone.org");
+    let mut options = clock();
+    options["org_agenda_files"] = json!([directory.join("work.org"), gone]);
+    let mut client = Client::editor(options.clone(), None);
+    let list = |client: &mut Client, extra: Value| {
+        let mut context = json!({});
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client.request("workspace/executeCommand", json!({ "command": "org.agenda.list", "arguments": [context] }))
+    };
+    let asked = list(&mut client, json!({})).unwrap();
+    let shown = gone.display().to_string();
+    assert_eq!(asked["input"]["prompt"], format!("Non-existent agenda file {shown}.  [R]emove from list or [A]bort?"));
+    assert_eq!(asked["input"]["context"]["unavailable"], shown);
+    let mut answer = asked["input"]["context"].clone();
+    answer["input"] = json!("a");
+    assert_eq!(list(&mut client, answer.clone()), Err("Abort".to_string()));
+    answer["input"] = json!("r");
+    let removed = list(&mut client, answer).unwrap();
+    assert_eq!(removed["message"], format!("Removed from Org Agenda list: {shown}"));
+    client.settle();
+    assert!(client.show_view().starts_with("Week-agenda"));
+    // Not asked again.
+    assert_eq!(list(&mut client, json!({})).unwrap(), Value::Null);
+    client.shutdown();
+
+    options["org_agenda_skip_unavailable_files"] = json!(true);
+    let mut client = Client::editor(options, None);
+    assert_eq!(list(&mut client, json!({})).unwrap(), Value::Null);
+    client.shutdown();
+}
+
 /// A keyword with a face of its own (`org_todo_keyword_faces`) is offered
 /// in that face when the server asks for a TODO state.
 #[test]

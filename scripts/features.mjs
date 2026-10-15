@@ -422,6 +422,7 @@ export const AREAS = [
     emacs: [
       ['Day, week, fortnight, month and year views, going to a date', true],
       ['The list of TODO entries', true],
+      ['Directories of agenda files read by a regexp (`org-agenda-file-regexp`); a listed file that is not there asked about, removed or aborting, or left out (`org-agenda-skip-unavailable-files`)', true],
       ['Tag, property and group tag searches', true],
       ['Searches for words, phrases and regexps', true],
       ['Stuck projects', true],

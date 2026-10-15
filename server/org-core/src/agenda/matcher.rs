@@ -588,6 +588,12 @@ pub fn emacs_regex(pattern: &str) -> Option<Regex> {
     RegexBuilder::new(&translate(pattern)).case_insensitive(true).build().ok()
 }
 
+/// An Emacs regexp matched with regard to case, as `directory-files`
+/// matches file names.
+pub fn emacs_regex_with_case(pattern: &str) -> Option<Regex> {
+    Regex::new(&translate(pattern)).ok()
+}
+
 /// [`emacs_regex`] for searching a whole buffer: `^` and `$` match at the
 /// start and end of every line, as in Emacs.
 pub fn emacs_buffer_regex(pattern: &str) -> Option<Regex> {

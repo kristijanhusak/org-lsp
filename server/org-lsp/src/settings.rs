@@ -62,6 +62,26 @@ pub const SETTINGS: &[Setting] = &[
          from the Org files under the workspace folders (hidden directories, `node_modules` and `target` left \
          out), or else from the Org files that are open.",
     ),
+    Setting {
+        default: None,
+        unset: "the `.org` files whose names do not start with a dot",
+        ..setting(
+            "org_agenda_file_regexp",
+            "string",
+            "",
+            "org-agenda-file-regexp",
+            "Which files of a directory in `org_agenda_files` are agenda files: an Emacs regular expression \
+             their names match (Org's is `\\\\`[^.].*\\\\.org\\\\'`).",
+        )
+    },
+    setting(
+        "org_agenda_skip_unavailable_files",
+        "boolean",
+        "false",
+        "org-agenda-skip-unavailable-files",
+        "Leave out the files of `org_agenda_files` that are not there. With `false`, opening an agenda view \
+         asks about each: `r` removes it from the list until the server starts again, anything else aborts.",
+    ),
     setting(
         "org_todo_keywords",
         "string[] | string[][]",
@@ -2898,6 +2918,8 @@ macro_rules! strategy {
 const SCHEMAS: &[(&str, &str)] = &[
     ("config_file", r#"{ "anyOf": [{ "const": false }, { "type": "string" }] }"#),
     ("org_agenda_files", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("org_agenda_file_regexp", STRING),
+    ("org_agenda_skip_unavailable_files", BOOLEAN),
     (
         "org_todo_keywords",
         r#"{ "anyOf": [

@@ -1140,6 +1140,11 @@ struct Server {
     allow_promoting_top_level: bool,
     /// `org-yank-adjusted-subtrees`
     yank_adjusted_subtrees: bool,
+    /// `org-agenda-skip-unavailable-files`
+    skip_unavailable_files: bool,
+    /// Agenda files that are not there, removed from the list
+    /// (`org-remove-file`) until the server starts again.
+    removed_agenda_files: HashSet<PathBuf>,
     /// `org-sparse-tree-open-archived-trees`
     sparse_tree_open_archived_trees: bool,
     /// `org-clock-default-task`, marked by clocking in with `C-u C-u`.
@@ -1561,6 +1566,8 @@ pub fn run(connection: Connection) -> Result<()> {
         file_apps: options.file_apps.as_deref().map(org_core::file_apps::FileApps::from_pairs).unwrap_or_default(),
         allow_promoting_top_level: options.allow_promoting_top_level_subtree.unwrap_or(false),
         yank_adjusted_subtrees: options.yank_adjusted_subtrees.unwrap_or(false),
+        skip_unavailable_files: options.agenda_skip_unavailable_files.unwrap_or(false),
+        removed_agenda_files: HashSet::new(),
         sparse_tree_open_archived_trees: options.sparse_tree_open_archived_trees.unwrap_or(false),
         clock_default_task: None,
         clock_interrupted: None,
@@ -1607,8 +1614,10 @@ pub fn run(connection: Connection) -> Result<()> {
         documents: HashMap::new(),
         workspace: {
             let inheritance = options.inheritance();
-            let mut workspace = Workspace::new(options.agenda_files, folders);
+            let mut workspace = Workspace::new(options.agenda_files.clone(), folders);
             workspace.inheritance = inheritance;
+            workspace.file_regexp =
+                options.agenda_file_regexp.as_deref().and_then(org_core::agenda::matcher::emacs_regex_with_case);
             workspace
         },
         view: None,
@@ -6057,6 +6066,19 @@ impl Server {
 
     fn execute_command(&mut self, params: ExecuteCommandParams) -> std::result::Result<Value, Refusal> {
         let argument = params.arguments.into_iter().next();
+        // `org-check-agenda-file`: before a view is built, each agenda
+        // file that is not there is removed from the list or aborts.
+        let argument = if matches!(
+            params.command.as_str(),
+            commands::AGENDA_DISPATCH | commands::AGENDA_LIST | commands::AGENDA_TODOS
+        ) {
+            match self.check_agenda_files(argument)? {
+                Ok(argument) => argument,
+                Err(asked) => return Ok(asked),
+            }
+        } else {
+            argument
+        };
         // Capturing and the agenda menu need no document.
         if params.command == commands::AGENDA_DISPATCH {
             return self.dispatch(argument.as_ref());
@@ -6936,6 +6958,45 @@ impl Server {
         let read = org_core::read_date::read_date(answer, start.default, now, &settings)?;
         let stamp = planning::timestamp_for(&read, matches!(command, PlanningCommand::Timestamp { inactive: true }));
         Ok(json!({ "timestamp": stamp }))
+    }
+
+    /// `org-check-agenda-file` for each file of `org_agenda_files` that is
+    /// not there, unless `org-agenda-skip-unavailable-files`: the answer
+    /// to the question about the first (`unavailable` in the context)
+    /// removes it, or aborts. `Ok(argument)` when none is left to ask
+    /// about, with the command's own context; `Err` with the question.
+    fn check_agenda_files(
+        &mut self,
+        argument: Option<Value>,
+    ) -> std::result::Result<std::result::Result<Option<Value>, Value>, Refusal> {
+        let mut argument = argument;
+        let asked = argument.as_mut().and_then(|value| value.as_object_mut()).and_then(|fields| {
+            let path = fields.remove("unavailable")?;
+            Some((path, fields.remove("input")))
+        });
+        if let Some((path, answer)) = asked {
+            if answer.as_ref().and_then(Value::as_str).map(str::to_lowercase).as_deref() != Some("r") {
+                return Err(Refusal::Failed("Abort".to_string()));
+            }
+            let path = PathBuf::from(path.as_str().unwrap_or_default());
+            self.message = Some(format!("Removed from Org Agenda list: {}", abbreviate_path(&path)));
+            self.removed_agenda_files.insert(path);
+        }
+        if self.skip_unavailable_files {
+            return Ok(Ok(argument));
+        }
+        let missing = self.workspace.missing().into_iter().find(|path| !self.removed_agenda_files.contains(path));
+        let Some(path) = missing else { return Ok(Ok(argument)) };
+        let mut context = argument.filter(Value::is_object).unwrap_or_else(|| json!({}));
+        context["unavailable"] = json!(path.to_string_lossy());
+        let prompt = format!("Non-existent agenda file {}.  [R]emove from list or [A]bort?", abbreviate_path(&path));
+        Ok(Err(json!({ "input": {
+            "kind": "key",
+            "prompt": prompt,
+            "value": "",
+            "choices": [{ "key": "r", "label": "Remove from list" }, { "key": "a", "label": "Abort" }],
+            "context": context,
+        } })))
     }
 
     fn execute(&mut self, command: &str, context: Option<Context>) -> std::result::Result<(), Refusal> {
@@ -14649,6 +14710,15 @@ fn fit_outline_path(path: &str, width: usize) -> String {
         return path.chars().take(width).collect();
     }
     path.chars().take(width - 2).chain("..".chars()).collect()
+}
+
+/// `abbreviate-file-name`: the home directory as `~`.
+fn abbreviate_path(path: &Path) -> String {
+    let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
+    match home.as_deref().and_then(|home| path.strip_prefix(home).ok()) {
+        Some(rest) => format!("~/{}", rest.to_string_lossy()),
+        None => path.to_string_lossy().into_owned(),
+    }
 }
 
 #[cfg(test)]

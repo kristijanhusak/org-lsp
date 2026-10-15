@@ -49,6 +49,9 @@ pub struct Workspace {
     /// `org_agenda_files`, as configured.
     patterns: Vec<String>,
     folders: Vec<PathBuf>,
+    /// `org-agenda-file-regexp`: which files of a directory listed are
+    /// agenda files; unset, the `.org` files that are not hidden.
+    pub file_regexp: Option<regex::Regex>,
     cache: HashMap<PathBuf, Cached>,
     /// What entries inherit, for the outlines of the files read.
     pub inheritance: Inheritance,
@@ -109,8 +112,13 @@ fn is_hidden(path: &Path) -> bool {
 
 /// The Org files directly in `directory`, as `org-agenda-files` reads a
 /// directory.
-fn org_files_in(directory: &Path) -> Vec<PathBuf> {
-    sorted_entries(directory).into_iter().filter(|path| path.is_file() && is_org_file(path)).collect()
+fn org_files_in(directory: &Path, regexp: Option<&regex::Regex>) -> Vec<PathBuf> {
+    let wanted = |path: &Path| match regexp {
+        // `org-agenda-file-regexp`, against the file's name.
+        Some(regexp) => path.file_name().is_some_and(|name| regexp.is_match(&name.to_string_lossy())),
+        None => is_org_file(path),
+    };
+    sorted_entries(directory).into_iter().filter(|path| path.is_file() && wanted(path)).collect()
 }
 
 /// The Org files below `directory`, skipping hidden directories and the
@@ -165,7 +173,7 @@ fn glob(base: &Path, parts: &[&str], out: &mut Vec<PathBuf>, seen: &mut std::col
 
 impl Workspace {
     pub fn new(patterns: Vec<String>, folders: Vec<PathBuf>) -> Workspace {
-        Workspace { patterns, folders, cache: HashMap::new(), inheritance: Inheritance::default() }
+        Workspace { patterns, folders, file_regexp: None, cache: HashMap::new(), inheritance: Inheritance::default() }
     }
 
     /// The workspace folders.
@@ -189,7 +197,7 @@ impl Workspace {
         for pattern in &self.patterns {
             for path in self.expand(pattern) {
                 if path.is_dir() {
-                    files.extend(org_files_in(&path));
+                    files.extend(org_files_in(&path, self.file_regexp.as_ref()));
                 } else if path.is_file() && (is_org_file(&path) || !has_wildcard(pattern)) {
                     files.push(path);
                 }
@@ -200,12 +208,27 @@ impl Workspace {
         files
     }
 
+    /// The files `org_agenda_files` names that are not there: each entry
+    /// without wildcards that names nothing, as a path.
+    pub fn missing(&self) -> Vec<PathBuf> {
+        let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
+        self.patterns
+            .iter()
+            .filter(|pattern| !has_wildcard(pattern) && !self.expand(pattern).iter().any(|path| path.exists()))
+            .map(|pattern| match (pattern.strip_prefix("~/"), &home) {
+                (Some(rest), Some(home)) => home.join(rest),
+                _ if Path::new(pattern).is_absolute() => PathBuf::from(pattern),
+                _ => self.folders.first().map_or_else(|| PathBuf::from(pattern), |folder| folder.join(pattern)),
+            })
+            .collect()
+    }
+
     /// The Org files `pattern` names, as for the agenda files.
     pub fn org_files(&self, pattern: &str) -> Vec<PathBuf> {
         let mut files = Vec::new();
         for path in self.expand(pattern) {
             if path.is_dir() {
-                files.extend(org_files_in(&path));
+                files.extend(org_files_in(&path, self.file_regexp.as_ref()));
             } else if path.is_file() {
                 files.push(path);
             }
@@ -282,6 +305,35 @@ mod tests {
 
     fn names(root: &Path, files: Vec<PathBuf>) -> Vec<String> {
         files.iter().map(|path| path.strip_prefix(root).unwrap().to_string_lossy().replace('\\', "/")).collect()
+    }
+
+    /// `org-agenda-file-regexp` for the files of a directory, as
+    /// `directory-files` matches their names: with regard to case.
+    #[test]
+    fn lists_a_directory_s_files_by_org_agenda_file_regexp() {
+        let root = std::env::temp_dir().join(format!("org-lsp-workspace-regexp-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+        for file in ["a.org", ".hidden.org", "b.txt", "c.org_archive", "D.ORG", "notes.md", "e.org.bak"] {
+            std::fs::write(root.join(file), "* TODO x\n").unwrap();
+        }
+        // As Emacs lists them, `(org-agenda-files)` of the directory.
+        for (regexp, expected) in [
+            (r"\`[^.].*\.org\'", vec!["a.org"]),
+            (r"\.txt\'", vec!["b.txt"]),
+            (r"\(org\|md\)\'", vec![".hidden.org", "a.org", "notes.md"]),
+        ] {
+            let mut workspace = Workspace::new(vec![root.display().to_string()], vec![]);
+            workspace.file_regexp = org_core::agenda::matcher::emacs_regex_with_case(regexp);
+            assert_eq!(names(&root, workspace.files()), expected, "{regexp}");
+        }
+        // A file named that is not there is missing; one that is, a
+        // directory or a pattern are not.
+        let missing = Workspace::new(
+            vec![root.join("gone.org").display().to_string(), root.display().to_string(), "*.org".to_string()],
+            vec![],
+        );
+        assert_eq!(missing.missing(), [root.join("gone.org")]);
     }
 
     #[test]
