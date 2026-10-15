@@ -293,6 +293,7 @@ command. [[file:../neovim.org][neovim.org]] says how to install and set up the p
 | ~org.agenda.todos~ | List of all TODO entries |
 | ~org.agenda.habits~ | Agenda: show or hide habits |
 | ~org.agenda.appt~ | Add today's appointments from the agenda files |
+| ~org.todo.yesterday~ | Change the TODO state as if it were yesterday |
 | ~org.todo.next~ | Cycle TODO state forward |
 | ~org.property.delete~ | Delete a property of the entry |
 | ~org.property.delete.globally~ | Delete a property from every entry of the file |

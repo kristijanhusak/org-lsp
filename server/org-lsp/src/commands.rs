@@ -199,6 +199,7 @@ pub const DBLOCK_UPDATE: &str = "org.dblock.update";
 pub const DBLOCK_INSERT: &str = "org.dblock.insert";
 pub const ATTACH: &str = "org.attach";
 pub const TODO: &str = "org.todo";
+pub const TODO_YESTERDAY: &str = "org.todo.yesterday";
 pub const SET_TAGS: &str = "org.tags.set";
 pub const SET_PROPERTY: &str = "org.property.set";
 pub const DELETE_PROPERTY: &str = "org.property.delete";
@@ -617,6 +618,9 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, "cit")],
         ..edit(TODO, "Change the TODO state")
     },
+    // `org-todo-yesterday` and `org-agenda-todo-yesterday`: `org-todo` as
+    // if it were 23:59 of yesterday.
+    Command { in_agenda: true, ..edit(TODO_YESTERDAY, "Change the TODO state as if it were yesterday") },
     Command { ..edit(TODO_NEXT, "Cycle TODO state forward") },
     Command { vim: &[key(Org, "ciT")], ..edit(TODO_PREVIOUS, "Cycle TODO state backward") },
     // `org-shiftcontrolright` and `org-shiftcontrolleft` on a headline:

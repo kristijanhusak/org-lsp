@@ -645,6 +645,10 @@ pub struct Options {
     /// `org-extend-today-until`: the hour before which it is yesterday.
     #[serde(rename = "org_extend_today_until")]
     pub extend_today_until: Option<i64>,
+    #[serde(rename = "org_use_effective_time")]
+    pub use_effective_time: Option<bool>,
+    #[serde(rename = "org_use_last_clock_out_time_as_effective_time")]
+    pub use_last_clock_out_time_as_effective_time: Option<bool>,
     /// `org-directory`: where relative capture targets are. `~/org`.
     pub org_directory: Option<String>,
     /// `org-default-notes-file`: the target of a template whose file is
@@ -2109,6 +2113,8 @@ impl Options {
             settings.tags_column = column;
         }
         settings.extend_today_until = self.extend_today_until.unwrap_or(0);
+        settings.use_effective_time = self.use_effective_time.unwrap_or(false);
+        settings.last_clock_out_as_effective_time = self.use_last_clock_out_time_as_effective_time.unwrap_or(false);
         settings.repeat_to_state = match &self.todo_repeat_to_state {
             Some(RepeatToOption::Flag(true)) => RepeatTo::Previous,
             Some(RepeatToOption::State(state)) => RepeatTo::State(state.clone()),

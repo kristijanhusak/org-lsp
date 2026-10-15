@@ -333,6 +333,7 @@ its sections says what it should look like.
 - [ ] Adding a note: it is asked for, and goes in the entry's log: the code action /Add a note to the entry/
 - [ ] With ~LOG_INTO_DRAWER~, the note goes in ~:LOGBOOK:~: the code action /Add a note to the entry/
 - [ ] Adding a note from the agenda: the code action /Add a note to the entry/
+- [ ] With ~org_log_done~ ~"time"~, ~org.todo.yesterday~ marks an entry done with ~CLOSED:~ at 23:59 of yesterday: the code action /Change the TODO state as if it were yesterday/
 
 * Completion and editing helpers
 

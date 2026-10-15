@@ -628,6 +628,7 @@ every file; outside Org files the commands say they do not apply):
 | ~org.dblock.insert~ | Org: Insert a dynamic block |
 | ~org.attach~ | Org: Attachments of the entry |
 | ~org.todo~ | Org: Change the TODO state |
+| ~org.todo.yesterday~ | Org: Change the TODO state as if it were yesterday |
 | ~org.todo.next~ | Org: Cycle TODO state forward |
 | ~org.todo.previous~ | Org: Cycle TODO state backward |
 | ~org.todo.nextset~ | Org: Switch to the next TODO keyword set |

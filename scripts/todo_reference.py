@@ -6,6 +6,8 @@ A case is a JSON object:
       "clock": "2026-05-18 10:30",     the pretended current time
       "text": "* TODO a¦\\n",          an Org document; ¦ marks the cursor
       "command": "next",               "next", "previous", {"state": "DONE"},
+                                       "yesterday": `org-todo-yesterday` to
+                                       the next state,
                                        or {"key": "d"}: `org-todo` with its
                                        fast selection answered with that key;
                                        "checkbox": `org-toggle-checkbox`;
@@ -33,6 +35,7 @@ CURSOR = "¦"
 
 DRIVER = r"""
 (require 'org)
+(require 'org-clock)
 (require 'cl-lib)
 ;; The blockers of `org-enforce-todo-dependencies' and its checkbox
 ;; sibling, in the order Org installs them when it loads with both set (the
@@ -78,6 +81,7 @@ DRIVER = r"""
                  (let ((org-lsp-note-text (or note "")))
                    (cond ((eq arg 'checkbox) (org-toggle-checkbox))
                          ((eq arg 'note) (org-add-note))
+                         ((eq arg 'yesterday) (org-todo-yesterday 'right))
                          ;; Cycling, pressed once: a `type' keyword goes
                          ;; to done (`this-command' is not `last-command').
                          ((eq arg 'cycle)
@@ -190,6 +194,8 @@ def bindings(options):
             ) + ")"
         elif key == "org_agenda_move_date_from_past_immediately_to_today":
             out["org-agenda-move-date-from-past-immediately-to-today"] = lisp_value(value)
+        elif key in ("org_use_effective_time", "org_use_last_clock_out_time_as_effective_time"):
+            out[key.replace("_", "-")] = lisp_value(value)
         elif key == "org_extend_today_until":
             out["org-extend-today-until"] = str(value)
         elif key == "org_todo_repeat_to_state":
@@ -215,6 +221,8 @@ def command_argument(command):
         return "'checkbox"
     if command == "note":
         return "'note"
+    if command == "yesterday":
+        return "'yesterday"
     if command == "cycle":
         return "'cycle"
     if command in ("nextset", "previousset"):

@@ -386,6 +386,7 @@ line.
 | ~org.agenda.todos~ | Org: List of all TODO entries |
 | ~org.agenda.appt~ | Org: Add today's appointments from the agenda files |
 | ~org.clock.resolve~ | Org: Resolve a dangling clock |
+| ~org.todo.yesterday~ | Org: Change the TODO state as if it were yesterday |
 | ~org.todo.next~ | Org: Cycle TODO state forward |
 | ~org.todo.previous~ | Org: Cycle TODO state backward |
 | ~org.property.delete~ | Org: Delete a property of the entry |

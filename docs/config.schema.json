@@ -3251,6 +3251,16 @@
       "description": "The hour before which it is still yesterday: for the agenda's today, the date prompt with nothing to start from, the times capture templates put in and the day of a datetree, `.+` and `++` repeaters, clock report ranges and org-journal's new entries. (`org-extend-today-until`)",
       "default": 0
     },
+    "org_use_effective_time": {
+      "type": "boolean",
+      "description": "Before the hour `org_extend_today_until`, a TODO change records 23:59 of the day before: in `CLOSED:`, `LAST_REPEAT` and the notes' timestamps. `org.todo.yesterday` does so at any hour. (`org-use-effective-time`)",
+      "default": false
+    },
+    "org_use_last_clock_out_time_as_effective_time": {
+      "type": "boolean",
+      "description": "A TODO change records the end of the first closed clock of the subtree instead of the time now, when there is one; this comes before `org_use_effective_time`. (`org-use-last-clock-out-time-as-effective-time`)",
+      "default": false
+    },
     "org_agenda_search_view_always_boolean": {
       "type": "boolean",
       "description": "Read every search string of the search view (`s`) as words that must (`+word`, `word`) or must not (`-word`) occur, regexps in braces (`{regexp}`) and `\"quoted phrases\"`. Off, it is a phrase whose spaces match any whitespace, unless its first word starts with `+`, `-` or `{`. (`org-agenda-search-view-always-boolean`)",

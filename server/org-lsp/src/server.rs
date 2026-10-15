@@ -6332,6 +6332,7 @@ impl Server {
                 self.clocktable(id, &context.ok_or("This command needs the cursor position")?)
             }
             id if id.starts_with("org.clock.") => self.clock_command(id, context.as_ref()),
+            commands::TODO_YESTERDAY => self.todo_yesterday(context),
             id if id == commands::TODO
                 || commands::AGENDA_DATE_COMMANDS.contains(&id)
                 || id == commands::SET_TAGS
@@ -9974,6 +9975,18 @@ impl Server {
     /// (`state` in the context); `org.todo` asks for the key of the new
     /// state when the keywords have keys (`org-todo` with fast selection),
     /// and cycles when they have none.
+    /// `org-todo-yesterday`: `org-todo` with `org-use-effective-time` on
+    /// and `org-extend-today-until` past the hour now, so that the change
+    /// records 23:59 of yesterday and repeaters count from yesterday.
+    fn todo_yesterday(&mut self, context: Option<Context>) -> std::result::Result<Value, Refusal> {
+        let saved = self.edit_settings.todo.clone();
+        self.edit_settings.todo.use_effective_time = true;
+        self.edit_settings.todo.extend_today_until = self.date_time().minute / 60 + 1;
+        let result = self.run_edit(commands::TODO, context);
+        self.edit_settings.todo = saved;
+        result
+    }
+
     fn run_edit(&mut self, id: &str, context: Option<Context>) -> std::result::Result<Value, Refusal> {
         let context = context.ok_or("This command needs the cursor position")?;
         // `org-add-note`: asks for the note, then writes the one given.
