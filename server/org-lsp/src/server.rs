@@ -1156,6 +1156,8 @@ struct Server {
     file_apps: org_core::file_apps::FileApps,
     /// `org-open-non-existing-files`
     open_non_existing_files: bool,
+    /// `org-capture-use-agenda-date`
+    capture_use_agenda_date: bool,
     /// `org-open-directory-means-index-dot-org`
     open_directory_index: bool,
     /// `org-allow-promoting-top-level-subtree`
@@ -1634,6 +1636,7 @@ pub fn run(connection: Connection) -> Result<()> {
         open_settings: options.open_settings(),
         file_apps: options.file_apps.as_deref().map(org_core::file_apps::FileApps::from_pairs).unwrap_or_default(),
         open_non_existing_files: options.open_non_existing_files.unwrap_or(false),
+        capture_use_agenda_date: options.capture_use_agenda_date.unwrap_or(false),
         open_directory_index: options.open_directory_means_index_dot_org.unwrap_or(false),
         allow_promoting_top_level: options.allow_promoting_top_level_subtree.unwrap_or(false),
         odd_levels: options.odd_levels_only.unwrap_or(false),
@@ -8583,6 +8586,20 @@ impl Server {
     /// and show the capture buffer, a file of its own with the template
     /// as it will stand in its target. Each step asks with an `input`
     /// whose `context` the editor sends back.
+    /// `org-get-cursor-date` in the agenda, for `org-capture-use-agenda-date`:
+    /// the day of the line the capture starts from, at the hour
+    /// `org-extend-today-until`.
+    fn capture_agenda_date(&self, context: &CaptureContext) -> Option<DateTime> {
+        if !self.capture_use_agenda_date {
+            return None;
+        }
+        let open = self.view.as_ref()?;
+        context.text_document.as_ref().filter(|document| document.uri == open.uri)?;
+        let line = context.position?.line;
+        let day = open.on_screen().line(line)?.day?;
+        Some(DateTime { day, minute: self.agenda.extend_today_until * 60 })
+    }
+
     fn capture(&mut self, context: &CaptureContext) -> std::result::Result<Value, Refusal> {
         // The templates offered where the capture starts.
         let (file, mode, buffer) = self.here(context.text_document.as_ref().map(|document| &document.uri));
@@ -8623,11 +8640,18 @@ impl Server {
         let from = context.text_document.as_ref().map(|document| &document.uri).filter(|uri| !self.is_view(uri));
         // `:time-prompt`: the date of the tree entry is asked first, and
         // stands for the time of the capture.
-        let now = self.date_time();
+        // `org-capture-use-agenda-date`: from the agenda, the day at the
+        // cursor (`org-get-cursor-date`) is the time of the capture and the
+        // date of a tree entry, which is then not asked.
+        let agenda_date = self.capture_agenda_date(context);
+        let now = agenda_date.unwrap_or_else(|| self.date_time());
         let mut default_time = now;
-        let mut tree_date = capture::tree_date(now, &self.read_date);
+        let mut tree_date = match agenda_date {
+            Some(date) => org_core::date::Date::from_day(date.day),
+            None => capture::tree_date(now, &self.read_date),
+        };
         let mut asked = answers.as_slice();
-        if template.time_prompt == Some(true) {
+        if template.time_prompt == Some(true) && agenda_date.is_none() {
             let Some((answer, rest)) = answers.split_first() else {
                 let context = json!({ "keys": keys, "answers": answers });
                 return Ok(json!({ "input": {

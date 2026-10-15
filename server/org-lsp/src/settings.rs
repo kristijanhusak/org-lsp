@@ -1250,6 +1250,15 @@ pub const SETTINGS: &[Setting] = &[
          its changes in the editor, as `auto_save` does not save it.",
     ),
     setting(
+        "org_capture_use_agenda_date",
+        "boolean",
+        "false",
+        "org-capture-use-agenda-date",
+        "Capturing from the agenda takes the day of the line the cursor is on, at midnight (or the hour of \
+         `org_extend_today_until`), for `%t`, `%U` and the like and for the date of a date tree, which a \
+         `time_prompt` template then does not ask for.",
+    ),
+    setting(
         "org_capture_templates_contexts",
         "object[]",
         "[]",
@@ -3488,6 +3497,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_archive_file_header_format", r#"{ "anyOf": [{ "type": "string" }, { "const": false }] }"#),
     ("org_archive_default_command", r#"{ "enum": ["subtree", "sibling", "tag"] }"#),
     ("org_archive_subtree_save_file_p", r#"{ "enum": [true, false, "from-org", "from-agenda"] }"#),
+    ("org_capture_use_agenda_date", BOOLEAN),
     ("org_capture_templates_contexts", CONTEXTS),
     ("org_agenda_custom_commands_contexts", CONTEXTS),
     (
