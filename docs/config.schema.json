@@ -1034,6 +1034,11 @@
       "description": "Open a linked file that is not there with the application `org_file_apps` gives it, rather than saying `No such file`. The editor opens such a file either way. (`org-open-non-existing-files`)",
       "default": false
     },
+    "org_open_directory_means_index_dot_org": {
+      "type": "boolean",
+      "description": "Following a link to a directory opens the `index.org` in it, rather than the directory. (`org-open-directory-means-index-dot-org`)",
+      "default": false
+    },
     "org_tag_alist": {
       "type": [
         "string",

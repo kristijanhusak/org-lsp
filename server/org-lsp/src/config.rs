@@ -567,6 +567,8 @@ pub struct Options {
     pub file_apps: Option<Vec<(String, String)>>,
     #[serde(rename = "org_open_non_existing_files")]
     pub open_non_existing_files: Option<bool>,
+    #[serde(rename = "org_open_directory_means_index_dot_org")]
+    pub open_directory_means_index_dot_org: Option<bool>,
     #[serde(rename = "org_link_search_must_match_exact_headline")]
     pub link_search_must_match_exact_headline: Option<LogOption>,
     #[serde(rename = "org_link_doi_server_url")]

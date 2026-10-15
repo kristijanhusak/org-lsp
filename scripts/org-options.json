@@ -747,7 +747,7 @@
   "org-resource-download-policy": "absent",
   "org-safe-remote-resources": "absent",
   "org-open-non-existing-files": "setting",
-  "org-open-directory-means-index-dot-org": "absent",
+  "org-open-directory-means-index-dot-org": "setting",
   "org-bookmark-names-plist": "emacs-only",
   "org-odd-levels-only": "setting",
   "org-adapt-indentation": "setting",

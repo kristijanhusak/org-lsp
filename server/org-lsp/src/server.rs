@@ -1154,6 +1154,8 @@ struct Server {
     file_apps: org_core::file_apps::FileApps,
     /// `org-open-non-existing-files`
     open_non_existing_files: bool,
+    /// `org-open-directory-means-index-dot-org`
+    open_directory_index: bool,
     /// `org-allow-promoting-top-level-subtree`
     allow_promoting_top_level: bool,
     /// `org-odd-levels-only`, unless a document's `#+STARTUP:` says
@@ -1629,6 +1631,7 @@ pub fn run(connection: Connection) -> Result<()> {
         open_settings: options.open_settings(),
         file_apps: options.file_apps.as_deref().map(org_core::file_apps::FileApps::from_pairs).unwrap_or_default(),
         open_non_existing_files: options.open_non_existing_files.unwrap_or(false),
+        open_directory_index: options.open_directory_means_index_dot_org.unwrap_or(false),
         allow_promoting_top_level: options.allow_promoting_top_level_subtree.unwrap_or(false),
         odd_levels: options.odd_levels_only.unwrap_or(false),
         yank_adjusted_subtrees: options.yank_adjusted_subtrees.unwrap_or(false),
@@ -4681,13 +4684,23 @@ impl Server {
         }
         // `org-open-file`: `org-file-apps` picks what opens the file, unless
         // the link says (`file+sys:`, `file+emacs:`).
+        // `org-open-directory-means-index-dot-org`: a directory is its
+        // `index.org`, which `org-file-apps` takes as a directory still.
+        let mut directory = false;
+        if let Open::File { path, .. } = &mut opened {
+            let full = self.link_path(&uri, path).ok_or("Cannot open the file")?;
+            directory = full.is_dir();
+            if directory && self.open_directory_index {
+                *path = full.join("index.org").to_string_lossy().into_owned();
+            }
+        }
         if let Open::File { path, search, system, forced: false } = &mut opened {
             let full = self.link_path(&uri, path).ok_or("Cannot open the file")?;
             let target = file_apps::Target {
                 file: &full.to_string_lossy(),
                 search: search.as_deref(),
                 exists: full.exists(),
-                directory: full.is_dir(),
+                directory,
             };
             let prefix = match context.count {
                 Some(16) => file_apps::Prefix::System,

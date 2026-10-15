@@ -6703,6 +6703,22 @@ either way.
 org_open_non_existing_files = false
 #+end_src
 
+*** org_open_directory_means_index_dot_org
+:PROPERTIES:
+:CUSTOM_ID: org_open_directory_means_index_dot_org
+:END:
+
+Following a link to a directory opens the ~index.org~ in it, rather than the
+directory.
+
+- Org's option :: ~org-open-directory-means-index-dot-org~
+- Type :: boolean
+- Default :: ~false~
+
+#+begin_src toml
+org_open_directory_means_index_dot_org = false
+#+end_src
+
 *** return_uses_meta_return
 :PROPERTIES:
 :CUSTOM_ID: return_uses_meta_return
