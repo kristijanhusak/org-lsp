@@ -262,6 +262,8 @@ Each option with its type, its default and what it means:
 
 - ~config_file~ :: false, or a path, the shared file, =~/.config/org-lsp/config.toml= or ~config.json~. The shared configuration file, whose options this editor's go on top of: ~false~ for none, or the path of another file (JSON if it ends in ~.json~, else TOML). Unset, it is ~$ORG_LSP_CONFIG~, else ~config.toml~ or ~config.json~ in ~$XDG_CONFIG_HOME/org-lsp~ (=~/.config/org-lsp=; ~%APPDATA%\org-lsp~ on Windows).
 - ~org_agenda_files~ :: string[], ~[]~. Files, directories and glob patterns (~*~, ~?~, ~**~) the agenda is built from. =~/= is the home directory, and a directory stands for the Org files directly in it. When empty, the agenda is built from the Org files under the workspace folders (hidden directories, ~node_modules~ and ~target~ left out), or else from the Org files that are open. (~org-agenda-files~)
+- ~org_agenda_file_regexp~ :: string, the ~.org~ files whose names do not start with a dot. Which files of a directory in ~org_agenda_files~ are agenda files: an Emacs regular expression their names match (Org's is ~\\~[^.].*\\.org\\'`). (~org-agenda-file-regexp~)
+- ~org_agenda_skip_unavailable_files~ :: boolean, ~false~. Leave out the files of ~org_agenda_files~ that are not there. With ~false~, opening an agenda view asks about each: ~r~ removes it from the list until the server starts again, anything else aborts. (~org-agenda-skip-unavailable-files~)
 - ~org_todo_keywords~ :: string[] | string[][], ~["TODO", "|", "DONE"]~. The TODO sequence, written like Org's ~#+TODO:~ line. ~|~ separates the states that count as done; without it the last keyword is the only done state. ~TODO(t)~ gives a keyword a key for fast selection, and ~WAIT(w@/!)~ makes it log a note (~@~) or the time (~!~) on entering and leaving it. Several sequences go in a list of lists, ~[["TODO", "|", "DONE"], ["REPORT", "|", "FIXED"]]~; cycling stays in the sequence of the entry, and ~C-S-<right>~ switches to the next. A list that starts with ~type~ is a type sequence (~#+TYP_TODO:~): each of its keywords goes straight to done. A file's own ~#+TODO:~ lines take precedence. (~org-todo-keywords~)
 - ~org_todo_keyword_faces~ :: { [keyword]: string }, ~{  }~. Faces for particular TODO keywords: a color, ~{ "WAIT": "orange" }~, or attributes written as Org writes them, ~{ "CANCELLED": ":foreground gray :slant italic :strike-through t" }~ (~:foreground~, ~:background~, ~:weight bold~, ~:slant italic~, ~:underline t~, ~:strike-through t~). Shown in Org files and in the agenda by Neovim, Vim and VS Code. (~org-todo-keyword-faces~)
 - ~org_priority_faces~ :: { [priority]: string }, ~{  }~. Faces for particular priorities, by their letter, written as in ~org_todo_keyword_faces~: ~{ "A": ":foreground red :weight bold" }~. (~org-priority-faces~)
@@ -687,6 +689,13 @@ increments a number.
 
 ** The commands
 
+- Before ~org.agenda.dispatch~, ~org.agenda.list~ and ~org.agenda.todos~ ::
+  ~org-check-agenda-file~: for a file of ~org_agenda_files~ that is not
+  there (unless ~org_agenda_skip_unavailable_files~), the command first
+  asks /Non-existent agenda file ~/gone.org.  [R]emove from list or
+  [A]bort?/ (input kind ~key~, ~unavailable~ in the context). ~r~ removes it
+  until the server starts again (/Removed from Org Agenda list: …/) and the
+  command goes on; anything else is /Abort/.
 - ~org.agenda.dispatch~ :: ~org-agenda~ (~C-c a~): asks for a view by its
   key, as Emacs's menu does (input kind ~key~; ~a~ for the agenda, ~t~ for
   the TODO list, ~m~ / ~M~ for a tags search, ~s~ / ~S~ for a search, ~#~

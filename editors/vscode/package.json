@@ -1589,6 +1589,15 @@
               "markdownDescription": "Files, directories and glob patterns (`*`, `?`, `**`) the agenda is built from. `~/` is the home directory, and a directory stands for the Org files directly in it. When empty, the agenda is built from the Org files under the workspace folders (hidden directories, `node_modules` and `target` left out), or else from the Org files that are open. (`org-agenda-files`)",
               "default": []
             },
+            "org_agenda_file_regexp": {
+              "type": "string",
+              "markdownDescription": "Which files of a directory in `org_agenda_files` are agenda files: an Emacs regular expression their names match (Org's is `\\\\`[^.].*\\\\.org\\\\'`). (`org-agenda-file-regexp`)"
+            },
+            "org_agenda_skip_unavailable_files": {
+              "type": "boolean",
+              "markdownDescription": "Leave out the files of `org_agenda_files` that are not there. With `false`, opening an agenda view asks about each: `r` removes it from the list until the server starts again, anything else aborts. (`org-agenda-skip-unavailable-files`)",
+              "default": false
+            },
             "org_todo_keywords": {
               "anyOf": [
                 {

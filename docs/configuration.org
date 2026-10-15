@@ -812,6 +812,17 @@ editor; only the syntax changes ([[#the-shared-configuration-file][above]], and 
 # out), or else from the Org files that are open. (org-agenda-files)
 org_agenda_files = []
 
+# Which files of a directory in `org_agenda_files` are agenda files: an Emacs
+# regular expression their names match (Org's is `\\`[^.].*\\.org\\'`).
+# (org-agenda-file-regexp)
+# org_agenda_file_regexp = …  (unset: the `.org` files whose names do not start with a dot)
+
+# Leave out the files of `org_agenda_files` that are not there. With `false`,
+# opening an agenda view asks about each: `r` removes it from the list until
+# the server starts again, anything else aborts.
+# (org-agenda-skip-unavailable-files)
+org_agenda_skip_unavailable_files = false
+
 # The TODO sequence, written like Org's `#+TODO:` line. `|` separates the
 # states that count as done; without it the last keyword is the only done
 # state. `TODO(t)` gives a keyword a key for fast selection, and `WAIT(w@/!)`
@@ -2443,6 +2454,17 @@ org_agenda_custom_commands = []
   // `target` left out), or else from the Org files that are open.
   // (org-agenda-files)
   "org_agenda_files": [],
+
+  // Which files of a directory in `org_agenda_files` are agenda files: an
+  // Emacs regular expression their names match (Org's is
+  // `\\`[^.].*\\.org\\'`). (org-agenda-file-regexp)
+  // "org_agenda_file_regexp": unset: the `.org` files whose names do not start with a dot
+
+  // Leave out the files of `org_agenda_files` that are not there. With
+  // `false`, opening an agenda view asks about each: `r` removes it from the
+  // list until the server starts again, anything else aborts.
+  // (org-agenda-skip-unavailable-files)
+  "org_agenda_skip_unavailable_files": false,
 
   // The TODO sequence, written like Org's `#+TODO:` line. `|` separates the
   // states that count as done; without it the last keyword is the only done
