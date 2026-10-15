@@ -70,6 +70,8 @@ token_types! {
     CalendarSelected => "calendarSelected",
     CalendarPrompt => "calendarPrompt",
     CalendarJournal => "calendarJournal",
+    Quote => "quote",
+    Verse => "verse",
 }
 
 /// Token modifiers, in legend order; each is one bit.
@@ -105,6 +107,7 @@ pub mod modifier {
         "alert",
         "overdue",
         "future",
+        "todo",
     ];
 
     /// The bits of `level1` to `level8`.
@@ -141,6 +144,9 @@ pub mod modifier {
     pub const OVERDUE: u32 = 1 << 28;
     /// A day of the graph to come (the `-future` faces).
     pub const FUTURE: u32 = 1 << 29;
+    /// A headline marked with a TODO keyword not done, past the keyword
+    /// (`org-headline-todo`, with `org-fontify-todo-headline`).
+    pub const TODO: u32 = 1 << 30;
 
     /// Headline levels repeat after eight, like Org's level faces.
     pub fn level(level: usize) -> u32 {
@@ -221,6 +227,8 @@ pub mod standard {
             // complete cookie in `org-done`'s color.
             TokenType::Cookie if has(modifier::DONE) => "string",
             TokenType::Headline | TokenType::Priority | TokenType::Tag if has(modifier::DONE) => "comment",
+            // `org-headline-todo`, copied from the string face.
+            TokenType::Headline | TokenType::Priority | TokenType::Tag if has(modifier::TODO) => "string",
             TokenType::Headline | TokenType::Stars => level(modifiers),
             TokenType::TodoKeyword if has(modifier::DONE) => "string",
             TokenType::TodoKeyword | TokenType::Planning => "keyword",
@@ -257,6 +265,9 @@ pub mod standard {
             TokenType::CalendarWeekday => "comment",
             TokenType::CalendarSelected | TokenType::CalendarPrompt => "keyword",
             TokenType::CalendarJournal => "string",
+            // `org-quote` and `org-verse` are `org-block`, which has no color.
+            TokenType::Quote | TokenType::Verse if struck != 0 => "variable",
+            TokenType::Quote | TokenType::Verse => return None,
         };
         Some((name, struck))
     }
@@ -381,9 +392,34 @@ pub struct Conceal {
     pub emphasis: bool,
 }
 
+/// How headlines and blocks are shown, as Org's options say.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Fontify {
+    /// `org-fontify-done-headline`: past a done keyword, the headline is
+    /// `org-headline-done`.
+    pub done_headline: bool,
+    /// `org-fontify-todo-headline`: past a keyword not done, the headline
+    /// is `org-headline-todo`.
+    pub todo_headline: bool,
+    /// `org-fontify-quote-and-verse-blocks`: the lines of quote and verse
+    /// blocks are `org-quote` and `org-verse`.
+    pub quote_and_verse: bool,
+}
+
+impl Default for Fontify {
+    fn default() -> Self {
+        Fontify { done_headline: true, todo_headline: false, quote_and_verse: false }
+    }
+}
+
 /// All tokens of a document, in order.
 pub fn tokens(root: &SyntaxNode, todo: &TodoKeywords, conceal: Conceal) -> Vec<Token> {
-    let mut walker = Walker { todo, conceal, out: Vec::new() };
+    tokens_with(root, todo, conceal, Fontify::default())
+}
+
+/// [`tokens`], headlines and blocks shown as `fontify` says.
+pub fn tokens_with(root: &SyntaxNode, todo: &TodoKeywords, conceal: Conceal, fontify: Fontify) -> Vec<Token> {
+    let mut walker = Walker { todo, conceal, fontify, out: Vec::new() };
     walker.children(root, Style::PLAIN);
     walker.out
 }
@@ -492,6 +528,7 @@ pub fn with_hidden(tokens: Vec<Token>, ranges: &[(usize, usize)]) -> Vec<Token> 
 struct Walker<'a> {
     todo: &'a TodoKeywords,
     conceal: Conceal,
+    fontify: Fontify,
     out: Vec<Token>,
 }
 
@@ -679,11 +716,14 @@ impl Walker<'_> {
         let line = node.text().to_string();
         let archived = line.split('\n').next().is_some_and(|line| line.contains(":ARCHIVE:"));
         // `org-fontify-done-headline`: after a done keyword, the rest of
-        // the headline is `org-headline-done`.
-        let done = node
-            .children_with_tokens()
-            .find(|child| child.kind() == TODO_KEYWORD)
-            .is_some_and(|keyword| self.todo.is_done(&keyword.to_string()));
+        // the headline is `org-headline-done`; `org-fontify-todo-headline`:
+        // after one not done, `org-headline-todo`.
+        let keyword = node.children_with_tokens().find(|child| child.kind() == TODO_KEYWORD);
+        let state = keyword.map(|keyword| match self.todo.is_done(&keyword.to_string()) {
+            true if self.fontify.done_headline => modifier::DONE,
+            false if self.fontify.todo_headline => modifier::TODO,
+            _ => 0,
+        });
         let mut after_stars = self.out.len();
         for child in node.children_with_tokens() {
             if child.kind() == STARS {
@@ -700,11 +740,11 @@ impl Walker<'_> {
             }
         }
         let headline_end = node.text_range().start() + TextSize::from(line.find('\n').unwrap_or(line.len()) as u32);
-        if done {
+        if let Some(state) = state.filter(|state| *state != 0) {
             for token in &mut self.out[after_stars..] {
                 if token.range.start() < headline_end && token.ty != TokenType::TodoKeyword {
                     // In place of the level, which would color it as well.
-                    token.modifiers = (token.modifiers & !modifier::LEVELS) | modifier::DONE;
+                    token.modifiers = (token.modifiers & !modifier::LEVELS) | state;
                 }
             }
         }
@@ -741,6 +781,18 @@ impl Walker<'_> {
             .as_ref()
             .and_then(|begin| begin.as_token())
             .is_some_and(|begin| begin.text().eq_ignore_ascii_case("#+begin_comment"));
+        // `org-fontify-quote-and-verse-blocks`: the lines inside quote and
+        // verse blocks, under what they contain.
+        let quoted = begin
+            .as_ref()
+            .and_then(|begin| begin.as_token())
+            .and_then(|begin| match begin.text().to_ascii_lowercase().as_str() {
+                "#+begin_quote" => Some(TokenType::Quote),
+                "#+begin_verse" => Some(TokenType::Verse),
+                _ => None,
+            })
+            .filter(|_| self.fontify.quote_and_verse);
+        let inside = Style { text: quoted, modifiers: 0 };
         for child in node.children_with_tokens() {
             match child.kind() {
                 // The whole opening line, parameters included, is one token.
@@ -753,9 +805,10 @@ impl Walker<'_> {
                     }
                 }
                 TEXT if is_comment => self.push(child.text_range(), TokenType::Comment, 0),
+                TEXT if quoted.is_some() => self.push(child.text_range(), quoted.expect("quoted"), 0),
                 // Raw contents (source code, examples) are left to the editor.
                 TEXT => {}
-                _ => self.element(node, child, Style::PLAIN),
+                _ => self.element(node, child, inside),
             }
         }
     }
@@ -915,9 +968,13 @@ mod tests {
     }
 
     fn render_concealed(text: &str, encoding: Encoding, conceal: Conceal) -> String {
+        render_with(text, encoding, conceal, Fontify::default())
+    }
+
+    fn render_with(text: &str, encoding: Encoding, conceal: Conceal, fontify: Fontify) -> String {
         let parse = org_syntax::parse(text, &TodoKeywords::default());
         let index = LineIndex::new(text);
-        let tokens = tokens(&parse.syntax(), parse.todo_keywords(), conceal);
+        let tokens = tokens_with(&parse.syntax(), parse.todo_keywords(), conceal, fontify);
         let mut out = String::new();
         let (mut line, mut column) = (0, 0);
         for token in encode(&tokens, text, &index, encoding, None) {
@@ -952,6 +1009,36 @@ mod tests {
 
     fn check(text: &str, expected: Expect) {
         expected.assert_eq(&render(text, Encoding::Utf16));
+    }
+
+    #[test]
+    fn fontify_options() {
+        // `org-fontify-todo-headline` on, `org-fontify-done-headline` off,
+        // `org-fontify-quote-and-verse-blocks` on: the text of quote and
+        // verse blocks, under the emphasis it carries.
+        let fontify = Fontify { done_headline: false, todo_headline: true, quote_and_verse: true };
+        let text = "* TODO [#A] Call :x:\n* DONE Done\n#+begin_quote\nSaid *this*\n#+end_quote\n\
+                    #+begin_verse\nA line\n#+end_verse\n#+begin_example\nraw\n#+end_example\n";
+        expect![[r##"
+            0:0 "*" stars +level1
+            0:2 "TODO" todoKeyword
+            0:7 "[#A]" priority +todo
+            0:12 "Call" headline +todo
+            0:17 ":x:" tag +todo
+            1:0 "*" stars +level1
+            1:2 "DONE" todoKeyword +done
+            1:7 "Done" headline +level1
+            2:0 "#+begin_quote" block
+            3:0 "Said " quote
+            3:5 "*this*" quote +bold
+            4:0 "#+end_quote" block
+            5:0 "#+begin_verse" block
+            6:0 "A line" verse
+            7:0 "#+end_verse" block
+            8:0 "#+begin_example" block
+            10:0 "#+end_example" block
+        "##]]
+        .assert_eq(&render_with(text, Encoding::Utf16, Conceal::default(), fontify));
     }
 
     #[test]

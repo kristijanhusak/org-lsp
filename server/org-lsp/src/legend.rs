@@ -57,6 +57,8 @@ fn describe_type(ty: TokenType) -> &'static str {
         TokenType::CalendarSelected => "Date prompt: the selected day",
         TokenType::CalendarPrompt => "Date prompt: the prompt before the answer",
         TokenType::CalendarJournal => "Date prompt: a day with an entry of org-journal; to come with `future`",
+        TokenType::Quote => "The text of a quote block, with org_fontify_quote_and_verse_blocks",
+        TokenType::Verse => "The text of a verse block, with org_fontify_quote_and_verse_blocks",
     }
 }
 
@@ -92,6 +94,7 @@ const MODIFIER_DESCRIPTIONS: &[&str] = &[
     "Agenda: the day a habit is due by",
     "Agenda: a day of a habit's graph past its due day",
     "Agenda: a day of a habit's graph to come",
+    "A headline marked with a TODO keyword not done, past the keyword, with org_fontify_todo_headline",
 ];
 
 /// The default look of the tokens a selector matches.
@@ -164,6 +167,9 @@ pub const LOOKS: &[Look] = &[
         &["meta.preprocessor.keyword.org", "meta.preprocessor", "comment"],
     ),
     look("block", &["@org.block", "@comment"], &["punctuation.definition.block.org", "comment"]),
+    // `org-quote` and `org-verse`, which are `org-block`.
+    look("quote", &["@org.quote", "@markup.quote"], &["markup.quote.org", "markup.quote"]),
+    look("verse", &["@org.verse", "@markup.quote"], &["markup.quote.verse.org", "markup.quote"]),
     look("comment", &["@org.comment", "@comment"], &["comment.line.org", "comment"]),
     look(
         "bullet",
@@ -205,6 +211,9 @@ pub const LOOKS: &[Look] = &[
     // `org-headline-done`: what follows a done keyword on its headline.
     look("headline.done", &["@org.headline.done", "Comment"], &["markup.heading.done.org", "comment"]),
     look("*.done", &["@org.headline.done", "Comment"], &["comment.done.org", "comment"]),
+    // `org-headline-todo`, copied from `font-lock-string-face`.
+    look("headline.todo", &["@org.headline.todo", "String"], &["markup.heading.todo.org", "string"]),
+    look("*.todo", &["@org.headline.todo", "String"], &["string.todo.org", "string"]),
     look("documentTitle", &["@org.document.title", "Title"], &["markup.heading.title.org", "entity.name.section"]),
     look("documentInfo", &["@org.document.info", "Special"], &["string.other.info.org", "string"]),
     look("target", &["@org.hyperlink.desc", "@markup.link.label"], &["entity.name.label.org", "entity.name.label"]),

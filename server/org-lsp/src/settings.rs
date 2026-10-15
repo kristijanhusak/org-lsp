@@ -1300,6 +1300,29 @@ pub const SETTINGS: &[Setting] = &[
         "Hide all the stars of a headline but the last; they keep their place. `#+STARTUP: hidestars` and \
          `showstars` decide for a file.",
     ),
+    setting(
+        "org_fontify_done_headline",
+        "boolean",
+        "true",
+        "org-fontify-done-headline",
+        "Show a headline marked done in the look of done headlines past its keyword (`org-headline-done`).",
+    ),
+    setting(
+        "org_fontify_todo_headline",
+        "boolean",
+        "false",
+        "org-fontify-todo-headline",
+        "Show a headline marked with a keyword not done in the look of TODO headlines past its keyword \
+         (`org-headline-todo`, the token modifier `todo`).",
+    ),
+    setting(
+        "org_fontify_quote_and_verse_blocks",
+        "boolean",
+        "false",
+        "org-fontify-quote-and-verse-blocks",
+        "Show the lines inside quote and verse blocks in their own look (`org-quote`, `org-verse`: the token \
+         types `quote` and `verse`).",
+    ),
     Setting {
         default: None,
         unset: "the standard three dots, `...`",
@@ -2865,6 +2888,9 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_startup_with_latex_preview", BOOLEAN),
     ("org_startup_indented", BOOLEAN),
     ("org_hide_leading_stars", BOOLEAN),
+    ("org_fontify_done_headline", BOOLEAN),
+    ("org_fontify_todo_headline", BOOLEAN),
+    ("org_fontify_quote_and_verse_blocks", BOOLEAN),
     ("org_ellipsis", STRING),
     ("org_bullets_mode", BOOLEAN),
     ("org_bullets_bullet_list", r#"{ "type": "array", "items": { "type": "string" }, "minItems": 1 }"#),

@@ -110,7 +110,8 @@ export const AREAS = [
       ['Headline stars as bullets in the colors of their level, the leading ones hidden (org-bullets: `org_bullets_mode`, `org_bullets_bullet_list`); bullets of lists and marks of checkboxes as org-bullets.nvim shows them (`org_bullets_list_bullet`, `org_bullets_checkboxes`)', true],
       ['Sub- and superscripts raised and lowered (`org-pretty-entities-include-sub-superscripts`, `org-use-sub-superscripts`): where Org raises them, shown in Unicode (`x²`, `H₂O`) in place of the hidden text (drawn by the editor where it can, else an inlay hint) where every character has a raised or lowered form; the others left as they are, as an editor cannot raise text', true],
       ['Done headlines in `org-headline-done` past their keyword (`org-fontify-done-headline` at its default), complete statistics cookies as done, the title and the information of the document (`org-document-title`, `org-document-info`)', true],
-      ['The options of how headlines, blocks and markup are shown, set away from their defaults (`org-fontify-done-headline`, `org-fontify-whole-heading-line`, `org-fontify-quote-and-verse-blocks`, `org-hidden-keywords`, `org-hide-macro-markers`, `org-emphasis-alist`, `org-cycle-level-faces`, `org-n-level-faces`)', false],
+      ['Headlines past a done or TODO keyword, and the lines of quote and verse blocks, in their own look (`org-fontify-done-headline`, `org-fontify-todo-headline`, `org-fontify-quote-and-verse-blocks`)', true],
+      ['The other options of how headlines and markup are shown, set away from their defaults (`org-fontify-whole-heading-line`, `org-hidden-keywords`, `org-hide-macro-markers`, `org-emphasis-alist`, `org-cycle-level-faces`, `org-n-level-faces`)', false],
     ],
     editors: {
       vim: ['part', 'Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Vim cannot hide text that has text properties.'],
@@ -120,6 +121,7 @@ export const AREAS = [
     },
     checks: [
       { text: 'Headlines are colored by level; TODO and DONE keywords, priorities (`[#A]`) and tags have colors of their own' },
+      { text: 'With `org_fontify_todo_headline = true` the text of a TODO headline, and with `org_fontify_quote_and_verse_blocks = true` the lines of a quote block, take a look of their own', not: ['helix'] },
       { text: '`*bold*`, `/italic/`, `_underline_`, `+strike+`, `=verbatim=` and `~code~` are colored' },
       { text: 'A link shows its description alone; its brackets and target show when the cursor is on its line', not: ['vim', 'sublime', 'zed'] },
       { text: 'With `org_hide_emphasis_markers = true`, the markers of `*bold*` are hidden', not: ['vim', 'sublime', 'zed'] },

@@ -356,6 +356,14 @@ pub struct Options {
     /// `org-hide-leading-stars`
     #[serde(rename = "org_hide_leading_stars")]
     pub hide_leading_stars: Option<bool>,
+    /// `org-fontify-done-headline`, `org-fontify-todo-headline`,
+    /// `org-fontify-quote-and-verse-blocks`
+    #[serde(rename = "org_fontify_done_headline")]
+    pub fontify_done_headline: Option<bool>,
+    #[serde(rename = "org_fontify_todo_headline")]
+    pub fontify_todo_headline: Option<bool>,
+    #[serde(rename = "org_fontify_quote_and_verse_blocks")]
+    pub fontify_quote_and_verse_blocks: Option<bool>,
     /// `org-ellipsis`
     #[serde(rename = "org_ellipsis")]
     pub ellipsis: Option<String>,
@@ -1633,6 +1641,16 @@ impl Options {
             Some(serde_json::Value::Bool(false)) | Some(serde_json::Value::Null) => FastTodo::Never,
             Some(serde_json::Value::String(name)) if name == "expert" => FastTodo::Expert,
             _ => FastTodo::Auto,
+        }
+    }
+
+    /// How headlines and blocks are shown (`org-fontify-…`).
+    pub fn fontify(&self) -> crate::highlight::Fontify {
+        let defaults = crate::highlight::Fontify::default();
+        crate::highlight::Fontify {
+            done_headline: self.fontify_done_headline.unwrap_or(defaults.done_headline),
+            todo_headline: self.fontify_todo_headline.unwrap_or(defaults.todo_headline),
+            quote_and_verse: self.fontify_quote_and_verse_blocks.unwrap_or(defaults.quote_and_verse),
         }
     }
 

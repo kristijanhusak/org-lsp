@@ -1177,6 +1177,8 @@ struct Server {
     journal: Option<crate::config::JournalSettings>,
     /// `org-ellipsis`
     ellipsis: String,
+    /// How headlines and blocks are shown (`org-fontify-…`).
+    fontify: highlight::Fontify,
     /// What a journal command that asked for a date in the calendar goes
     /// on with: its id and its context so far.
     journal_state: Option<(String, Value)>,
@@ -1543,6 +1545,7 @@ pub fn run(connection: Connection) -> Result<()> {
         roam: options.roam().map(roam::Roam::new),
         journal: options.journal(),
         ellipsis: options.ellipsis(),
+        fontify: options.fontify(),
         journal_state: None,
         journal_views: Private::new("journal"),
         clock_display: HashMap::new(),
@@ -3036,7 +3039,7 @@ impl Server {
         }
         let document = self.document(uri)?;
         let (conceal, _, _) = self.display_of(&document.text);
-        let tokens = highlight::tokens(&document.syntax(), document.parse.todo_keywords(), conceal);
+        let tokens = highlight::tokens_with(&document.syntax(), document.parse.todo_keywords(), conceal, self.fontify);
         let tokens =
             if self.edit_settings.todo.lists.checkbox_rule { tokens } else { highlight::without_cookies(tokens) };
         let radio: Vec<(usize, usize)> =
@@ -4363,7 +4366,7 @@ impl Server {
             return Value::Null;
         };
         let parse = org_syntax::parse(&text, &self.todo);
-        let tokens = highlight::tokens(&parse.syntax(), parse.todo_keywords(), self.conceal);
+        let tokens = highlight::tokens_with(&parse.syntax(), parse.todo_keywords(), self.conceal, self.fontify);
         let tokens =
             if self.edit_settings.todo.lists.checkbox_rule { tokens } else { highlight::without_cookies(tokens) };
         let radio: Vec<(usize, usize)> =
