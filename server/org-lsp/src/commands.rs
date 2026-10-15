@@ -338,6 +338,7 @@ pub const ROAM_PROMOTE: &str = "org.roam.promote";
 pub const ROAM_DEMOTE: &str = "org.roam.demote";
 pub const ROAM_REFILE: &str = "org.roam.refile";
 pub const ROAM_EXTRACT: &str = "org.roam.extract";
+pub const ROAM_GRAPH: &str = "org.roam.graph";
 pub const ROAM_DAILIES_CAPTURE_TODAY: &str = "org.roam.dailies.capture.today";
 pub const ROAM_DAILIES_GOTO_TODAY: &str = "org.roam.dailies.goto.today";
 pub const ROAM_DAILIES_CAPTURE_TOMORROW: &str = "org.roam.dailies.capture.tomorrow";
@@ -1513,6 +1514,8 @@ pub const COMMANDS: &[Command] = &[
         input: Some(Input { kind: "text", prompt: "Extract node to: " }),
         ..edit(ROAM_EXTRACT, "Roam: extract the subtree to a file of its own")
     },
+    // `org-roam-graph`
+    command(ROAM_GRAPH, "Roam: show the graph of the nodes"),
     // org-journal's keys, under the prefix its README suggests (`C-c j `)
     // rather than its default (`C-c C-`), whose keys are Org's.
     Command {

@@ -1,0 +1,199 @@
+[
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a1\n:END:\n#+title: Alpha\nSee [[id:b1][B]] and [[https://example.com/x][web]] and [[file:c.org][c]] and [[id:gone][gone]].\n* Sub\n:PROPERTIES:\n:ID: a2\n:END:\nAlso [[id:b2][B two]] and [[http://plain.org][plain]].\n",
+   "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: Say \"hi\" \\ <there> & 'you'\n* Beta two\n:PROPERTIES:\n:ID: b2\n:END:\nBack to [[id:a1][A]] and [[https://example.com/x][web]].\n",
+   "c.org": ":PROPERTIES:\n:ID: c1\n:END:\n#+title: A very long title that goes on and on well past the limit of one hundred columns, for sure it does now\n",
+   "d.org": ":PROPERTIES:\n:ID: x/y+z é\n:END:\n#+title: 日本語のタイトルです長い\nTo [[id:e1][E]].\n",
+   "e.org": ":PROPERTIES:\n:ID: e1\n:END:\n#+title: Echo\nTo [[id:f1][F]].\n",
+   "f.org": ":PROPERTIES:\n:ID: f1\n:END:\n#+title: Foxtrot\n"
+  },
+  "expected": "digraph \"org-roam\" {\n edge [];\n\"a1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Alpha\",URL=\"org-protocol://roam-node?node=a1\",tooltip=\"Alpha\"];\n\"b1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Say \\\\\\\"hi\\\\\\\" \\\\\\\\ <there> & 'you'\",URL=\"org-protocol://roam-node?node=b1\",tooltip=\"Say \\&quot;hi\\&quot; \\\\ &lt;there&gt; &amp; &apos;you&apos;\"];\n  \"a1\" -> \"b1\";\n\"//example.com/x\" [style=\"rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#0A97A6\",label=\"https://example.com/x\",URL=\"https://example.com/x\"];\n  \"a1\" -> \"//example.com/x\";\n\"gone\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"id:gone\"];\n  \"a1\" -> \"gone\";\n\"a2\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Sub\",URL=\"org-protocol://roam-node?node=a2\",tooltip=\"Sub\"];\n\"b2\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Beta two\",URL=\"org-protocol://roam-node?node=b2\",tooltip=\"Beta two\"];\n  \"a2\" -> \"b2\";\n\"//plain.org\" [style=\"rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#0A97A6\",label=\"http://plain.org\",URL=\"http://plain.org\"];\n  \"a2\" -> \"//plain.org\";\n  \"b2\" -> \"a1\";\n  \"b2\" -> \"//example.com/x\";\n\"x/y+z é\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"日本語のタイトルです長い\",URL=\"org-protocol://roam-node?node=x%2Fy%2Bz%20%C3%A9\",tooltip=\"日本語のタイトルです長い\"];\n\"e1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Echo\",URL=\"org-protocol://roam-node?node=e1\",tooltip=\"Echo\"];\n  \"x/y+z é\" -> \"e1\";\n\"f1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Foxtrot\",URL=\"org-protocol://roam-node?node=f1\",tooltip=\"Foxtrot\"];\n  \"e1\" -> \"f1\";\n\"c1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"A very long title that goes on and on well past the limit of one hundred columns, for sure it doe...\",URL=\"org-protocol://roam-node?node=c1\",tooltip=\"A very long title that goes on and on well past the limit of one hundred columns, for sure it does now\"];\n}"
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a1\n:END:\n#+title: Alpha\nSee [[id:b1][B]] and [[https://example.com/x][web]] and [[file:c.org][c]] and [[id:gone][gone]].\n* Sub\n:PROPERTIES:\n:ID: a2\n:END:\nAlso [[id:b2][B two]] and [[http://plain.org][plain]].\n",
+   "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: Say \"hi\" \\ <there> & 'you'\n* Beta two\n:PROPERTIES:\n:ID: b2\n:END:\nBack to [[id:a1][A]] and [[https://example.com/x][web]].\n",
+   "c.org": ":PROPERTIES:\n:ID: c1\n:END:\n#+title: A very long title that goes on and on well past the limit of one hundred columns, for sure it does now\n",
+   "d.org": ":PROPERTIES:\n:ID: x/y+z é\n:END:\n#+title: 日本語のタイトルです長い\nTo [[id:e1][E]].\n",
+   "e.org": ":PROPERTIES:\n:ID: e1\n:END:\n#+title: Echo\nTo [[id:f1][F]].\n",
+   "f.org": ":PROPERTIES:\n:ID: f1\n:END:\n#+title: Foxtrot\n"
+  },
+  "options": {
+   "org-roam-graph-shorten-titles": "wrap",
+   "org-roam-graph-max-title-length": 10
+  },
+  "expected": "digraph \"org-roam\" {\n edge [];\n\"a1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Alpha\",URL=\"org-protocol://roam-node?node=a1\",tooltip=\"Alpha\"];\n\"b1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Say \\\\\\\"hi\\\\\\\"\n\\\\\\\\ <there>\n& 'you'\",URL=\"org-protocol://roam-node?node=b1\",tooltip=\"Say \\&quot;hi\\&quot; \\\\ &lt;there&gt; &amp; &apos;you&apos;\"];\n  \"a1\" -> \"b1\";\n\"//example.com/x\" [style=\"rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#0A97A6\",label=\"https://example.com/x\",URL=\"https://example.com/x\"];\n  \"a1\" -> \"//example.com/x\";\n\"gone\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"id:gone\"];\n  \"a1\" -> \"gone\";\n\"a2\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Sub\",URL=\"org-protocol://roam-node?node=a2\",tooltip=\"Sub\"];\n\"b2\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Beta two\",URL=\"org-protocol://roam-node?node=b2\",tooltip=\"Beta two\"];\n  \"a2\" -> \"b2\";\n\"//plain.org\" [style=\"rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#0A97A6\",label=\"http://plain.org\",URL=\"http://plain.org\"];\n  \"a2\" -> \"//plain.org\";\n  \"b2\" -> \"a1\";\n  \"b2\" -> \"//example.com/x\";\n\"x/y+z é\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"日本語のタ\nイトルです\n長い\",URL=\"org-protocol://roam-node?node=x%2Fy%2Bz%20%C3%A9\",tooltip=\"日本語のタイトルです長い\"];\n\"e1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Echo\",URL=\"org-protocol://roam-node?node=e1\",tooltip=\"Echo\"];\n  \"x/y+z é\" -> \"e1\";\n\"f1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Foxtrot\",URL=\"org-protocol://roam-node?node=f1\",tooltip=\"Foxtrot\"];\n  \"e1\" -> \"f1\";\n\"c1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"A very\nlong title\nthat goes\non and on\nwell past\nthe limit\nof one\nhundred\ncolumns,\nfor sure\nit does\nnow\",URL=\"org-protocol://roam-node?node=c1\",tooltip=\"A very long title that goes on and on well past the limit of one hundred columns, for sure it does now\"];\n}"
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a1\n:END:\n#+title: Alpha\nSee [[id:b1][B]] and [[https://example.com/x][web]] and [[file:c.org][c]] and [[id:gone][gone]].\n* Sub\n:PROPERTIES:\n:ID: a2\n:END:\nAlso [[id:b2][B two]] and [[http://plain.org][plain]].\n",
+   "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: Say \"hi\" \\ <there> & 'you'\n* Beta two\n:PROPERTIES:\n:ID: b2\n:END:\nBack to [[id:a1][A]] and [[https://example.com/x][web]].\n",
+   "c.org": ":PROPERTIES:\n:ID: c1\n:END:\n#+title: A very long title that goes on and on well past the limit of one hundred columns, for sure it does now\n",
+   "d.org": ":PROPERTIES:\n:ID: x/y+z é\n:END:\n#+title: 日本語のタイトルです長い\nTo [[id:e1][E]].\n",
+   "e.org": ":PROPERTIES:\n:ID: e1\n:END:\n#+title: Echo\nTo [[id:f1][F]].\n",
+   "f.org": ":PROPERTIES:\n:ID: f1\n:END:\n#+title: Foxtrot\n"
+  },
+  "options": {
+   "org-roam-graph-shorten-titles": "truncate",
+   "org-roam-graph-max-title-length": 10
+  },
+  "expected": "digraph \"org-roam\" {\n edge [];\n\"a1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Alpha\",URL=\"org-protocol://roam-node?node=a1\",tooltip=\"Alpha\"];\n\"b1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Say \\\\\\\"h...\",URL=\"org-protocol://roam-node?node=b1\",tooltip=\"Say \\&quot;hi\\&quot; \\\\ &lt;there&gt; &amp; &apos;you&apos;\"];\n  \"a1\" -> \"b1\";\n\"//example.com/x\" [style=\"rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#0A97A6\",label=\"https://example.com/x\",URL=\"https://example.com/x\"];\n  \"a1\" -> \"//example.com/x\";\n\"gone\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"id:gone\"];\n  \"a1\" -> \"gone\";\n\"a2\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Sub\",URL=\"org-protocol://roam-node?node=a2\",tooltip=\"Sub\"];\n\"b2\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Beta two\",URL=\"org-protocol://roam-node?node=b2\",tooltip=\"Beta two\"];\n  \"a2\" -> \"b2\";\n\"//plain.org\" [style=\"rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#0A97A6\",label=\"http://plain.org\",URL=\"http://plain.org\"];\n  \"a2\" -> \"//plain.org\";\n  \"b2\" -> \"a1\";\n  \"b2\" -> \"//example.com/x\";\n\"x/y+z é\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"日本語...\",URL=\"org-protocol://roam-node?node=x%2Fy%2Bz%20%C3%A9\",tooltip=\"日本語のタイトルです長い\"];\n\"e1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Echo\",URL=\"org-protocol://roam-node?node=e1\",tooltip=\"Echo\"];\n  \"x/y+z é\" -> \"e1\";\n\"f1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Foxtrot\",URL=\"org-protocol://roam-node?node=f1\",tooltip=\"Foxtrot\"];\n  \"e1\" -> \"f1\";\n\"c1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"A very ...\",URL=\"org-protocol://roam-node?node=c1\",tooltip=\"A very long title that goes on and on well past the limit of one hundred columns, for sure it does now\"];\n}"
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a1\n:END:\n#+title: Alpha\nSee [[id:b1][B]] and [[https://example.com/x][web]] and [[file:c.org][c]] and [[id:gone][gone]].\n* Sub\n:PROPERTIES:\n:ID: a2\n:END:\nAlso [[id:b2][B two]] and [[http://plain.org][plain]].\n",
+   "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: Say \"hi\" \\ <there> & 'you'\n* Beta two\n:PROPERTIES:\n:ID: b2\n:END:\nBack to [[id:a1][A]] and [[https://example.com/x][web]].\n",
+   "c.org": ":PROPERTIES:\n:ID: c1\n:END:\n#+title: A very long title that goes on and on well past the limit of one hundred columns, for sure it does now\n",
+   "d.org": ":PROPERTIES:\n:ID: x/y+z é\n:END:\n#+title: 日本語のタイトルです長い\nTo [[id:e1][E]].\n",
+   "e.org": ":PROPERTIES:\n:ID: e1\n:END:\n#+title: Echo\nTo [[id:f1][F]].\n",
+   "f.org": ":PROPERTIES:\n:ID: f1\n:END:\n#+title: Foxtrot\n"
+  },
+  "options": {
+   "org-roam-graph-shorten-titles": null
+  },
+  "expected": "digraph \"org-roam\" {\n edge [];\n\"a1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Alpha\",URL=\"org-protocol://roam-node?node=a1\",tooltip=\"Alpha\"];\n\"b1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Say \\\\\\\"hi\\\\\\\" \\\\\\\\ <there> & 'you'\",URL=\"org-protocol://roam-node?node=b1\",tooltip=\"Say \\&quot;hi\\&quot; \\\\ &lt;there&gt; &amp; &apos;you&apos;\"];\n  \"a1\" -> \"b1\";\n\"//example.com/x\" [style=\"rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#0A97A6\",label=\"https://example.com/x\",URL=\"https://example.com/x\"];\n  \"a1\" -> \"//example.com/x\";\n\"gone\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"id:gone\"];\n  \"a1\" -> \"gone\";\n\"a2\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Sub\",URL=\"org-protocol://roam-node?node=a2\",tooltip=\"Sub\"];\n\"b2\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Beta two\",URL=\"org-protocol://roam-node?node=b2\",tooltip=\"Beta two\"];\n  \"a2\" -> \"b2\";\n\"//plain.org\" [style=\"rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#0A97A6\",label=\"http://plain.org\",URL=\"http://plain.org\"];\n  \"a2\" -> \"//plain.org\";\n  \"b2\" -> \"a1\";\n  \"b2\" -> \"//example.com/x\";\n\"x/y+z é\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"日本語のタイトルです長い\",URL=\"org-protocol://roam-node?node=x%2Fy%2Bz%20%C3%A9\",tooltip=\"日本語のタイトルです長い\"];\n\"e1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Echo\",URL=\"org-protocol://roam-node?node=e1\",tooltip=\"Echo\"];\n  \"x/y+z é\" -> \"e1\";\n\"f1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Foxtrot\",URL=\"org-protocol://roam-node?node=f1\",tooltip=\"Foxtrot\"];\n  \"e1\" -> \"f1\";\n\"c1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"A very long title that goes on and on well past the limit of one hundred columns, for sure it does now\",URL=\"org-protocol://roam-node?node=c1\",tooltip=\"A very long title that goes on and on well past the limit of one hundred columns, for sure it does now\"];\n}"
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a1\n:END:\n#+title: Alpha\nSee [[id:b1][B]] and [[https://example.com/x][web]] and [[file:c.org][c]] and [[id:gone][gone]].\n* Sub\n:PROPERTIES:\n:ID: a2\n:END:\nAlso [[id:b2][B two]] and [[http://plain.org][plain]].\n",
+   "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: Say \"hi\" \\ <there> & 'you'\n* Beta two\n:PROPERTIES:\n:ID: b2\n:END:\nBack to [[id:a1][A]] and [[https://example.com/x][web]].\n",
+   "c.org": ":PROPERTIES:\n:ID: c1\n:END:\n#+title: A very long title that goes on and on well past the limit of one hundred columns, for sure it does now\n",
+   "d.org": ":PROPERTIES:\n:ID: x/y+z é\n:END:\n#+title: 日本語のタイトルです長い\nTo [[id:e1][E]].\n",
+   "e.org": ":PROPERTIES:\n:ID: e1\n:END:\n#+title: Echo\nTo [[id:f1][F]].\n",
+   "f.org": ":PROPERTIES:\n:ID: f1\n:END:\n#+title: Foxtrot\n"
+  },
+  "node": "a1",
+  "distance": 0,
+  "expected": "digraph \"org-roam\" {\n edge [];\n\"a1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Alpha\",URL=\"org-protocol://roam-node?node=a1\",tooltip=\"Alpha\"];\n\"b1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Say \\\\\\\"hi\\\\\\\" \\\\\\\\ <there> & 'you'\",URL=\"org-protocol://roam-node?node=b1\",tooltip=\"Say \\&quot;hi\\&quot; \\\\ &lt;there&gt; &amp; &apos;you&apos;\"];\n  \"a1\" -> \"b1\";\n\"//example.com/x\" [style=\"rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#0A97A6\",label=\"https://example.com/x\",URL=\"https://example.com/x\"];\n  \"a1\" -> \"//example.com/x\";\n\"gone\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"id:gone\"];\n  \"a1\" -> \"gone\";\n\"a2\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Sub\",URL=\"org-protocol://roam-node?node=a2\",tooltip=\"Sub\"];\n\"b2\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Beta two\",URL=\"org-protocol://roam-node?node=b2\",tooltip=\"Beta two\"];\n  \"a2\" -> \"b2\";\n\"//plain.org\" [style=\"rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#0A97A6\",label=\"http://plain.org\",URL=\"http://plain.org\"];\n  \"a2\" -> \"//plain.org\";\n  \"b2\" -> \"a1\";\n  \"b2\" -> \"//example.com/x\";\n}"
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a1\n:END:\n#+title: Alpha\nSee [[id:b1][B]] and [[https://example.com/x][web]] and [[file:c.org][c]] and [[id:gone][gone]].\n* Sub\n:PROPERTIES:\n:ID: a2\n:END:\nAlso [[id:b2][B two]] and [[http://plain.org][plain]].\n",
+   "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: Say \"hi\" \\ <there> & 'you'\n* Beta two\n:PROPERTIES:\n:ID: b2\n:END:\nBack to [[id:a1][A]] and [[https://example.com/x][web]].\n",
+   "c.org": ":PROPERTIES:\n:ID: c1\n:END:\n#+title: A very long title that goes on and on well past the limit of one hundred columns, for sure it does now\n",
+   "d.org": ":PROPERTIES:\n:ID: x/y+z é\n:END:\n#+title: 日本語のタイトルです長い\nTo [[id:e1][E]].\n",
+   "e.org": ":PROPERTIES:\n:ID: e1\n:END:\n#+title: Echo\nTo [[id:f1][F]].\n",
+   "f.org": ":PROPERTIES:\n:ID: f1\n:END:\n#+title: Foxtrot\n"
+  },
+  "node": "a1",
+  "distance": 1,
+  "expected": "digraph \"org-roam\" {\n edge [];\n\"a1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Alpha\",URL=\"org-protocol://roam-node?node=a1\",tooltip=\"Alpha\"];\n\"b1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Say \\\\\\\"hi\\\\\\\" \\\\\\\\ <there> & 'you'\",URL=\"org-protocol://roam-node?node=b1\",tooltip=\"Say \\&quot;hi\\&quot; \\\\ &lt;there&gt; &amp; &apos;you&apos;\"];\n  \"a1\" -> \"b1\";\n\"//example.com/x\" [style=\"rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#0A97A6\",label=\"https://example.com/x\",URL=\"https://example.com/x\"];\n  \"a1\" -> \"//example.com/x\";\n\"gone\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"id:gone\"];\n  \"a1\" -> \"gone\";\n\"b2\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Beta two\",URL=\"org-protocol://roam-node?node=b2\",tooltip=\"Beta two\"];\n  \"b2\" -> \"a1\";\n}"
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a1\n:END:\n#+title: Alpha\nSee [[id:b1][B]] and [[https://example.com/x][web]] and [[file:c.org][c]] and [[id:gone][gone]].\n* Sub\n:PROPERTIES:\n:ID: a2\n:END:\nAlso [[id:b2][B two]] and [[http://plain.org][plain]].\n",
+   "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: Say \"hi\" \\ <there> & 'you'\n* Beta two\n:PROPERTIES:\n:ID: b2\n:END:\nBack to [[id:a1][A]] and [[https://example.com/x][web]].\n",
+   "c.org": ":PROPERTIES:\n:ID: c1\n:END:\n#+title: A very long title that goes on and on well past the limit of one hundred columns, for sure it does now\n",
+   "d.org": ":PROPERTIES:\n:ID: x/y+z é\n:END:\n#+title: 日本語のタイトルです長い\nTo [[id:e1][E]].\n",
+   "e.org": ":PROPERTIES:\n:ID: e1\n:END:\n#+title: Echo\nTo [[id:f1][F]].\n",
+   "f.org": ":PROPERTIES:\n:ID: f1\n:END:\n#+title: Foxtrot\n"
+  },
+  "node": "a1",
+  "distance": 2,
+  "expected": "digraph \"org-roam\" {\n edge [];\n\"a1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Alpha\",URL=\"org-protocol://roam-node?node=a1\",tooltip=\"Alpha\"];\n\"b1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Say \\\\\\\"hi\\\\\\\" \\\\\\\\ <there> & 'you'\",URL=\"org-protocol://roam-node?node=b1\",tooltip=\"Say \\&quot;hi\\&quot; \\\\ &lt;there&gt; &amp; &apos;you&apos;\"];\n  \"a1\" -> \"b1\";\n\"//example.com/x\" [style=\"rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#0A97A6\",label=\"https://example.com/x\",URL=\"https://example.com/x\"];\n  \"a1\" -> \"//example.com/x\";\n\"gone\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"id:gone\"];\n  \"a1\" -> \"gone\";\n\"a2\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Sub\",URL=\"org-protocol://roam-node?node=a2\",tooltip=\"Sub\"];\n\"b2\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Beta two\",URL=\"org-protocol://roam-node?node=b2\",tooltip=\"Beta two\"];\n  \"a2\" -> \"b2\";\n  \"b2\" -> \"a1\";\n  \"b2\" -> \"//example.com/x\";\n}"
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a1\n:END:\n#+title: Alpha\nSee [[id:b1][B]] and [[https://example.com/x][web]] and [[file:c.org][c]] and [[id:gone][gone]].\n* Sub\n:PROPERTIES:\n:ID: a2\n:END:\nAlso [[id:b2][B two]] and [[http://plain.org][plain]].\n",
+   "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: Say \"hi\" \\ <there> & 'you'\n* Beta two\n:PROPERTIES:\n:ID: b2\n:END:\nBack to [[id:a1][A]] and [[https://example.com/x][web]].\n",
+   "c.org": ":PROPERTIES:\n:ID: c1\n:END:\n#+title: A very long title that goes on and on well past the limit of one hundred columns, for sure it does now\n",
+   "d.org": ":PROPERTIES:\n:ID: x/y+z é\n:END:\n#+title: 日本語のタイトルです長い\nTo [[id:e1][E]].\n",
+   "e.org": ":PROPERTIES:\n:ID: e1\n:END:\n#+title: Echo\nTo [[id:f1][F]].\n",
+   "f.org": ":PROPERTIES:\n:ID: f1\n:END:\n#+title: Foxtrot\n"
+  },
+  "node": "a2",
+  "distance": 3,
+  "expected": "digraph \"org-roam\" {\n edge [];\n\"a1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Alpha\",URL=\"org-protocol://roam-node?node=a1\",tooltip=\"Alpha\"];\n\"b1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Say \\\\\\\"hi\\\\\\\" \\\\\\\\ <there> & 'you'\",URL=\"org-protocol://roam-node?node=b1\",tooltip=\"Say \\&quot;hi\\&quot; \\\\ &lt;there&gt; &amp; &apos;you&apos;\"];\n  \"a1\" -> \"b1\";\n\"//example.com/x\" [style=\"rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#0A97A6\",label=\"https://example.com/x\",URL=\"https://example.com/x\"];\n  \"a1\" -> \"//example.com/x\";\n\"gone\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"id:gone\"];\n  \"a1\" -> \"gone\";\n\"a2\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Sub\",URL=\"org-protocol://roam-node?node=a2\",tooltip=\"Sub\"];\n\"b2\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Beta two\",URL=\"org-protocol://roam-node?node=b2\",tooltip=\"Beta two\"];\n  \"a2\" -> \"b2\";\n\"//plain.org\" [style=\"rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#0A97A6\",label=\"http://plain.org\",URL=\"http://plain.org\"];\n  \"a2\" -> \"//plain.org\";\n  \"b2\" -> \"a1\";\n  \"b2\" -> \"//example.com/x\";\n}"
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a1\n:END:\n#+title: Alpha\nSee [[id:b1][B]] and [[https://example.com/x][web]] and [[file:c.org][c]] and [[id:gone][gone]].\n* Sub\n:PROPERTIES:\n:ID: a2\n:END:\nAlso [[id:b2][B two]] and [[http://plain.org][plain]].\n",
+   "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: Say \"hi\" \\ <there> & 'you'\n* Beta two\n:PROPERTIES:\n:ID: b2\n:END:\nBack to [[id:a1][A]] and [[https://example.com/x][web]].\n",
+   "c.org": ":PROPERTIES:\n:ID: c1\n:END:\n#+title: A very long title that goes on and on well past the limit of one hundred columns, for sure it does now\n",
+   "d.org": ":PROPERTIES:\n:ID: x/y+z é\n:END:\n#+title: 日本語のタイトルです長い\nTo [[id:e1][E]].\n",
+   "e.org": ":PROPERTIES:\n:ID: e1\n:END:\n#+title: Echo\nTo [[id:f1][F]].\n",
+   "f.org": ":PROPERTIES:\n:ID: f1\n:END:\n#+title: Foxtrot\n"
+  },
+  "node": "c1",
+  "distance": 0,
+  "expected": "digraph \"org-roam\" {\n edge [];\n\"a1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Alpha\",URL=\"org-protocol://roam-node?node=a1\",tooltip=\"Alpha\"];\n\"b1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Say \\\\\\\"hi\\\\\\\" \\\\\\\\ <there> & 'you'\",URL=\"org-protocol://roam-node?node=b1\",tooltip=\"Say \\&quot;hi\\&quot; \\\\ &lt;there&gt; &amp; &apos;you&apos;\"];\n  \"a1\" -> \"b1\";\n\"//example.com/x\" [style=\"rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#0A97A6\",label=\"https://example.com/x\",URL=\"https://example.com/x\"];\n  \"a1\" -> \"//example.com/x\";\n\"gone\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"id:gone\"];\n  \"a1\" -> \"gone\";\n\"a2\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Sub\",URL=\"org-protocol://roam-node?node=a2\",tooltip=\"Sub\"];\n\"b2\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Beta two\",URL=\"org-protocol://roam-node?node=b2\",tooltip=\"Beta two\"];\n  \"a2\" -> \"b2\";\n\"//plain.org\" [style=\"rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#0A97A6\",label=\"http://plain.org\",URL=\"http://plain.org\"];\n  \"a2\" -> \"//plain.org\";\n  \"b2\" -> \"a1\";\n  \"b2\" -> \"//example.com/x\";\n\"x/y+z é\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"日本語のタイトルです長い\",URL=\"org-protocol://roam-node?node=x%2Fy%2Bz%20%C3%A9\",tooltip=\"日本語のタイトルです長い\"];\n\"e1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Echo\",URL=\"org-protocol://roam-node?node=e1\",tooltip=\"Echo\"];\n  \"x/y+z é\" -> \"e1\";\n\"f1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Foxtrot\",URL=\"org-protocol://roam-node?node=f1\",tooltip=\"Foxtrot\"];\n  \"e1\" -> \"f1\";\n}"
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a1\n:END:\n#+title: Alpha\nSee [[id:b1][B]] and [[https://example.com/x][web]] and [[file:c.org][c]] and [[id:gone][gone]].\n* Sub\n:PROPERTIES:\n:ID: a2\n:END:\nAlso [[id:b2][B two]] and [[http://plain.org][plain]].\n",
+   "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: Say \"hi\" \\ <there> & 'you'\n* Beta two\n:PROPERTIES:\n:ID: b2\n:END:\nBack to [[id:a1][A]] and [[https://example.com/x][web]].\n",
+   "c.org": ":PROPERTIES:\n:ID: c1\n:END:\n#+title: A very long title that goes on and on well past the limit of one hundred columns, for sure it does now\n",
+   "d.org": ":PROPERTIES:\n:ID: x/y+z é\n:END:\n#+title: 日本語のタイトルです長い\nTo [[id:e1][E]].\n",
+   "e.org": ":PROPERTIES:\n:ID: e1\n:END:\n#+title: Echo\nTo [[id:f1][F]].\n",
+   "f.org": ":PROPERTIES:\n:ID: f1\n:END:\n#+title: Foxtrot\n"
+  },
+  "node": "e1",
+  "distance": 0,
+  "expected": "digraph \"org-roam\" {\n edge [];\n\"x/y+z é\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"日本語のタイトルです長い\",URL=\"org-protocol://roam-node?node=x%2Fy%2Bz%20%C3%A9\",tooltip=\"日本語のタイトルです長い\"];\n\"e1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Echo\",URL=\"org-protocol://roam-node?node=e1\",tooltip=\"Echo\"];\n  \"x/y+z é\" -> \"e1\";\n\"f1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Foxtrot\",URL=\"org-protocol://roam-node?node=f1\",tooltip=\"Foxtrot\"];\n  \"e1\" -> \"f1\";\n}"
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a1\n:END:\n#+title: Alpha\nSee [[id:b1][B]] and [[https://example.com/x][web]] and [[file:c.org][c]] and [[id:gone][gone]].\n* Sub\n:PROPERTIES:\n:ID: a2\n:END:\nAlso [[id:b2][B two]] and [[http://plain.org][plain]].\n",
+   "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: Say \"hi\" \\ <there> & 'you'\n* Beta two\n:PROPERTIES:\n:ID: b2\n:END:\nBack to [[id:a1][A]] and [[https://example.com/x][web]].\n",
+   "c.org": ":PROPERTIES:\n:ID: c1\n:END:\n#+title: A very long title that goes on and on well past the limit of one hundred columns, for sure it does now\n",
+   "d.org": ":PROPERTIES:\n:ID: x/y+z é\n:END:\n#+title: 日本語のタイトルです長い\nTo [[id:e1][E]].\n",
+   "e.org": ":PROPERTIES:\n:ID: e1\n:END:\n#+title: Echo\nTo [[id:f1][F]].\n",
+   "f.org": ":PROPERTIES:\n:ID: f1\n:END:\n#+title: Foxtrot\n"
+  },
+  "node": "f1",
+  "distance": 2,
+  "expected": "digraph \"org-roam\" {\n edge [];\n\"x/y+z é\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"日本語のタイトルです長い\",URL=\"org-protocol://roam-node?node=x%2Fy%2Bz%20%C3%A9\",tooltip=\"日本語のタイトルです長い\"];\n\"e1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Echo\",URL=\"org-protocol://roam-node?node=e1\",tooltip=\"Echo\"];\n  \"x/y+z é\" -> \"e1\";\n\"f1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Foxtrot\",URL=\"org-protocol://roam-node?node=f1\",tooltip=\"Foxtrot\"];\n  \"e1\" -> \"f1\";\n}"
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a1\n:END:\n#+title: Alpha\nSee [[id:b1][B]] and [[https://example.com/x][web]] and [[file:c.org][c]] and [[id:gone][gone]].\n* Sub\n:PROPERTIES:\n:ID: a2\n:END:\nAlso [[id:b2][B two]] and [[http://plain.org][plain]].\n",
+   "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: Say \"hi\" \\ <there> & 'you'\n* Beta two\n:PROPERTIES:\n:ID: b2\n:END:\nBack to [[id:a1][A]] and [[https://example.com/x][web]].\n",
+   "c.org": ":PROPERTIES:\n:ID: c1\n:END:\n#+title: A very long title that goes on and on well past the limit of one hundred columns, for sure it does now\n",
+   "d.org": ":PROPERTIES:\n:ID: x/y+z é\n:END:\n#+title: 日本語のタイトルです長い\nTo [[id:e1][E]].\n",
+   "e.org": ":PROPERTIES:\n:ID: e1\n:END:\n#+title: Echo\nTo [[id:f1][F]].\n",
+   "f.org": ":PROPERTIES:\n:ID: f1\n:END:\n#+title: Foxtrot\n"
+  },
+  "options": {
+   "org-roam-graph-link-hidden-types": [
+    "file",
+    "https"
+   ],
+   "org-roam-graph-extra-config": [
+    [
+     "rankdir",
+     "LR"
+    ],
+    [
+     "bgcolor",
+     "white"
+    ]
+   ],
+   "org-roam-graph-edge-extra-config": [
+    [
+     "dir",
+     "back"
+    ],
+    [
+     "color",
+     "red"
+    ]
+   ]
+  },
+  "expected": "digraph \"org-roam\" {\nrankdir=LR;\nbgcolor=white;\n edge [dir=\"back\",color=\"red\"];\n\"a1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Alpha\",URL=\"org-protocol://roam-node?node=a1\",tooltip=\"Alpha\"];\n\"b1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Say \\\\\\\"hi\\\\\\\" \\\\\\\\ <there> & 'you'\",URL=\"org-protocol://roam-node?node=b1\",tooltip=\"Say \\&quot;hi\\&quot; \\\\ &lt;there&gt; &amp; &apos;you&apos;\"];\n  \"a1\" -> \"b1\";\n\"gone\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"id:gone\"];\n  \"a1\" -> \"gone\";\n\"a2\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Sub\",URL=\"org-protocol://roam-node?node=a2\",tooltip=\"Sub\"];\n\"b2\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Beta two\",URL=\"org-protocol://roam-node?node=b2\",tooltip=\"Beta two\"];\n  \"a2\" -> \"b2\";\n\"//plain.org\" [style=\"rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#0A97A6\",label=\"http://plain.org\",URL=\"http://plain.org\"];\n  \"a2\" -> \"//plain.org\";\n  \"b2\" -> \"a1\";\n\"x/y+z é\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"日本語のタイトルです長い\",URL=\"org-protocol://roam-node?node=x%2Fy%2Bz%20%C3%A9\",tooltip=\"日本語のタイトルです長い\"];\n\"e1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Echo\",URL=\"org-protocol://roam-node?node=e1\",tooltip=\"Echo\"];\n  \"x/y+z é\" -> \"e1\";\n\"f1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Foxtrot\",URL=\"org-protocol://roam-node?node=f1\",tooltip=\"Foxtrot\"];\n  \"e1\" -> \"f1\";\n\"c1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"A very long title that goes on and on well past the limit of one hundred columns, for sure it doe...\",URL=\"org-protocol://roam-node?node=c1\",tooltip=\"A very long title that goes on and on well past the limit of one hundred columns, for sure it does now\"];\n}"
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a1\n:END:\n#+title: Alpha\nSee [[id:b1][B]] and [[https://example.com/x][web]] and [[file:c.org][c]] and [[id:gone][gone]].\n* Sub\n:PROPERTIES:\n:ID: a2\n:END:\nAlso [[id:b2][B two]] and [[http://plain.org][plain]].\n",
+   "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: Say \"hi\" \\ <there> & 'you'\n* Beta two\n:PROPERTIES:\n:ID: b2\n:END:\nBack to [[id:a1][A]] and [[https://example.com/x][web]].\n",
+   "c.org": ":PROPERTIES:\n:ID: c1\n:END:\n#+title: A very long title that goes on and on well past the limit of one hundred columns, for sure it does now\n",
+   "d.org": ":PROPERTIES:\n:ID: x/y+z é\n:END:\n#+title: 日本語のタイトルです長い\nTo [[id:e1][E]].\n",
+   "e.org": ":PROPERTIES:\n:ID: e1\n:END:\n#+title: Echo\nTo [[id:f1][F]].\n",
+   "f.org": ":PROPERTIES:\n:ID: f1\n:END:\n#+title: Foxtrot\n"
+  },
+  "options": {
+   "org-roam-graph-link-hidden-types": []
+  },
+  "expected": "digraph \"org-roam\" {\n edge [];\n\"a1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Alpha\",URL=\"org-protocol://roam-node?node=a1\",tooltip=\"Alpha\"];\n\"b1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Say \\\\\\\"hi\\\\\\\" \\\\\\\\ <there> & 'you'\",URL=\"org-protocol://roam-node?node=b1\",tooltip=\"Say \\&quot;hi\\&quot; \\\\ &lt;there&gt; &amp; &apos;you&apos;\"];\n  \"a1\" -> \"b1\";\n\"//example.com/x\" [style=\"rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#0A97A6\",label=\"https://example.com/x\",URL=\"https://example.com/x\"];\n  \"a1\" -> \"//example.com/x\";\n\"c.org\" [label=\"file:c.org\"];\n  \"a1\" -> \"c.org\";\n\"gone\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"id:gone\"];\n  \"a1\" -> \"gone\";\n\"a2\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Sub\",URL=\"org-protocol://roam-node?node=a2\",tooltip=\"Sub\"];\n\"b2\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Beta two\",URL=\"org-protocol://roam-node?node=b2\",tooltip=\"Beta two\"];\n  \"a2\" -> \"b2\";\n\"//plain.org\" [style=\"rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#0A97A6\",label=\"http://plain.org\",URL=\"http://plain.org\"];\n  \"a2\" -> \"//plain.org\";\n  \"b2\" -> \"a1\";\n  \"b2\" -> \"//example.com/x\";\n\"x/y+z é\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"日本語のタイトルです長い\",URL=\"org-protocol://roam-node?node=x%2Fy%2Bz%20%C3%A9\",tooltip=\"日本語のタイトルです長い\"];\n\"e1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Echo\",URL=\"org-protocol://roam-node?node=e1\",tooltip=\"Echo\"];\n  \"x/y+z é\" -> \"e1\";\n\"f1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"Foxtrot\",URL=\"org-protocol://roam-node?node=f1\",tooltip=\"Foxtrot\"];\n  \"e1\" -> \"f1\";\n\"c1\" [style=\"bold,rounded,filled\",fillcolor=\"#EEEEEE\",color=\"#C9C9C9\",fontcolor=\"#111111\",label=\"A very long title that goes on and on well past the limit of one hundred columns, for sure it doe...\",URL=\"org-protocol://roam-node?node=c1\",tooltip=\"A very long title that goes on and on well past the limit of one hundred columns, for sure it does now\"];\n}"
+ }
+]

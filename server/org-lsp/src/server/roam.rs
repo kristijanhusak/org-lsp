@@ -22,6 +22,7 @@ use serde_json::{json, Value};
 
 pub mod buffer;
 mod dailies;
+mod graph;
 mod move_node;
 mod node_edit;
 
@@ -47,6 +48,8 @@ pub(super) struct Roam {
     pub(super) buffer_directory: super::Private,
     /// The node the persistent buffer shows.
     buffer_node: Option<String>,
+    /// Where `org.roam.graph` writes the graph.
+    pub(super) graph_directory: super::Private,
 }
 
 /// A file as org-roam last read it.
@@ -67,7 +70,8 @@ impl Roam {
     pub fn new(settings: RoamSettings) -> Roam {
         let directory = expand(&settings.directory);
         let buffer_directory = super::Private::new("roam");
-        Roam { settings, directory, files: HashMap::new(), buffer_directory, buffer_node: None }
+        let graph_directory = super::Private::new("roam-graph");
+        Roam { settings, directory, files: HashMap::new(), buffer_directory, buffer_node: None, graph_directory }
     }
 }
 
@@ -203,6 +207,9 @@ impl Server {
         }
         if id == commands::ROAM_REFILE {
             return self.roam_refile(context);
+        }
+        if id == commands::ROAM_GRAPH {
+            return self.roam_graph(context);
         }
         let (db, candidates) = self.roam_nodes()?;
         if id == commands::ROAM_NODE_RANDOM {

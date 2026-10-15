@@ -178,7 +178,7 @@ fn parent_executable() -> Option<PathBuf> {
 }
 
 /// `name` in a directory of `PATH`.
-fn on_path(name: &str) -> Option<PathBuf> {
+pub(crate) fn on_path(name: &str) -> Option<PathBuf> {
     let suffixes: &[&str] = if cfg!(windows) { &[".exe", ".cmd"] } else { &[""] };
     std::env::split_paths(&std::env::var_os("PATH")?).find_map(|directory| {
         suffixes.iter().map(|suffix| directory.join(format!("{name}{suffix}"))).find(|path| path.is_file())

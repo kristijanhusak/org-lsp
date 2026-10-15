@@ -20,6 +20,7 @@ use crate::outline::{complex_heading_parts, Outline};
 pub mod buffer;
 pub mod capture;
 pub mod edit;
+pub mod graph;
 
 /// Which files are org-roam's.
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -575,11 +575,11 @@ export const AREAS = [
       ['Aliases, tags and references added and removed (`org-roam-alias-add` …)', true],
       ['A node found by a reference (`org-roam-ref-find`); a file\'s one headline made the file\'s node and back (`org-roam-promote-entire-buffer`, `org-roam-demote-entire-buffer`)', true],
       ['A subtree refiled to a node, or extracted to a file of its own as a node (`org-roam-refile`, `org-roam-extract-subtree`)', true],
+      ['The graph of the nodes, all of them or those near the node at the cursor, drawn by Graphviz (`org-roam-graph`)', true],
       ['The org-roam buffer: backlinks, reflinks and unlinked references (`org_roam_mode_sections`), following the cursor, dedicated buffers', true],
       ['Completing node titles as they are typed (`org-roam-completion-everywhere`)', true],
       ['Daily notes: capturing to and going to a day\'s note, today, tomorrow, yesterday or a date typed, and the next and previous notes (`org-roam-dailies-capture-today`, `org-roam-dailies-goto-date` …)', true],
       ['Daily notes: the directory opened, the days with a note marked in the calendar, and the calendar to pick a date (`org-roam-dailies-find-directory`, `org-roam-dailies-calendar-mark-entries`)', false],
-      ['The graph (`org-roam-graph`)', false],
       ['Lisp that chooses the nodes and how they show (`org-roam-node-formatter`, `org-roam-db-node-include-function`), and which links count (`org-roam-db-extra-links-elements`, `org-roam-db-extra-links-exclude-keys`)', false],
     ],
     editors: {

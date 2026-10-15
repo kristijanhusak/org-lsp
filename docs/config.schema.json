@@ -2964,6 +2964,90 @@
       "description": "How a node is offered: `${field}` for its `title`, `tags`, `todo`, `file`, `olp`, `aliases` and the other fields of `org-roam-node`, `${field:N}` in N columns, `${field:*}` in what is left of the window's 79 columns. (`org-roam-node-display-template`)",
       "default": "${title}"
     },
+    "org_roam_graph_executable": {
+      "type": "string",
+      "description": "The Graphviz program that draws `org.roam.graph`'s graph, found on `PATH` or a path. (`org-roam-graph-executable`)",
+      "default": "dot"
+    },
+    "org_roam_graph_viewer": {
+      "type": "string",
+      "description": "The program that shows the graph, given its file. (`org-roam-graph-viewer`)"
+    },
+    "org_roam_graph_filetype": {
+      "type": "string",
+      "description": "What Graphviz draws the graph as (its `-T`): `svg`, `png`, `pdf`… (`org-roam-graph-filetype`)",
+      "default": "svg"
+    },
+    "org_roam_graph_extra_config": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Graphviz's attributes of the graph, in their order: `{ \"rankdir\": \"LR\" }`. (`org-roam-graph-extra-config`)",
+      "default": {}
+    },
+    "org_roam_graph_edge_extra_config": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Graphviz's attributes of the links: `{ \"dir\": \"back\" }`. (`org-roam-graph-edge-extra-config`)",
+      "default": {}
+    },
+    "org_roam_graph_node_extra_config": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string"
+        }
+      },
+      "description": "Graphviz's attributes of the nodes, by the type of the link to them: `id` for org-roam's nodes, `https` for the web pages linked to. (`org-roam-graph-node-extra-config`)",
+      "default": {
+        "id": {
+          "style": "bold,rounded,filled",
+          "fillcolor": "#EEEEEE",
+          "color": "#C9C9C9",
+          "fontcolor": "#111111"
+        },
+        "http": {
+          "style": "rounded,filled",
+          "fillcolor": "#EEEEEE",
+          "color": "#C9C9C9",
+          "fontcolor": "#0A97A6"
+        },
+        "https": {
+          "style": "rounded,filled",
+          "fillcolor": "#EEEEEE",
+          "color": "#C9C9C9",
+          "fontcolor": "#0A97A6"
+        }
+      }
+    },
+    "org_roam_graph_link_hidden_types": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "The types of links the graph leaves out. (`org-roam-graph-link-hidden-types`)",
+      "default": [
+        "file"
+      ]
+    },
+    "org_roam_graph_max_title_length": {
+      "type": "integer",
+      "description": "The width a title takes in the graph, at most. (`org-roam-graph-max-title-length`)",
+      "default": 100
+    },
+    "org_roam_graph_shorten_titles": {
+      "enum": [
+        "truncate",
+        "wrap",
+        false
+      ],
+      "description": "What becomes of a title wider than `org_roam_graph_max_title_length`: cut with `...` (`truncate`), over lines (`wrap`), or nothing (`false`). (`org-roam-graph-shorten-titles`)",
+      "default": "truncate"
+    },
     "org_roam_extract_new_file_path": {
       "type": "string",
       "description": "The file `org.roam.extract` offers for a node, relative to `org_roam_directory`: `%<…>` is the time as `format-time-string` writes it, `${title}`, `${slug}` and `${id}` the node's. (`org-roam-extract-new-file-path`)",

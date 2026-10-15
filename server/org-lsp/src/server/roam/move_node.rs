@@ -20,7 +20,7 @@ use crate::uri;
 type Here = (Uri, String, i32, usize);
 
 impl Server {
-    fn roam_here(&self, context: &RoamContext) -> Result<Here, Refusal> {
+    pub(super) fn roam_here(&self, context: &RoamContext) -> Result<Here, Refusal> {
         let not_here = || Refusal::NotHere("This command works in Org files".to_string());
         let uri = context.text_document.as_ref().ok_or_else(not_here)?.uri.clone();
         if self.is_view(&uri) {

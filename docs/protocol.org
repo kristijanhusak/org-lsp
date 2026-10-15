@@ -539,6 +539,15 @@ Each option with its type, its default and what it means:
 - ~org_roam_file_extensions~ :: string[], ~["org"]~. The extensions of org-roam's files; each may be followed by ~.gpg~ or ~.age~, which the server cannot read. (~org-roam-file-extensions~)
 - ~org_roam_file_exclude_regexp~ :: string or string[], ~["data/"]~. Emacs regexps for the files that are not org-roam's, matched against their names relative to ~org_roam_directory~; the default leaves out attachments. (~org-roam-file-exclude-regexp~)
 - ~org_roam_node_display_template~ :: string, ~"${title}"~. How a node is offered: ~${field}~ for its ~title~, ~tags~, ~todo~, ~file~, ~olp~, ~aliases~ and the other fields of ~org-roam-node~, ~${field:N}~ in N columns, ~${field:*}~ in what is left of the window's 79 columns. (~org-roam-node-display-template~)
+- ~org_roam_graph_executable~ :: string, ~"dot"~. The Graphviz program that draws ~org.roam.graph~'s graph, found on ~PATH~ or a path. (~org-roam-graph-executable~)
+- ~org_roam_graph_viewer~ :: string, the editor's: it opens the file as the system does. The program that shows the graph, given its file. (~org-roam-graph-viewer~)
+- ~org_roam_graph_filetype~ :: string, ~"svg"~. What Graphviz draws the graph as (its ~-T~): ~svg~, ~png~, ~pdf~​… (~org-roam-graph-filetype~)
+- ~org_roam_graph_extra_config~ :: object, ~{  }~. Graphviz's attributes of the graph, in their order: ~{ "rankdir": "LR" }~. (~org-roam-graph-extra-config~)
+- ~org_roam_graph_edge_extra_config~ :: object, ~{  }~. Graphviz's attributes of the links: ~{ "dir": "back" }~. (~org-roam-graph-edge-extra-config~)
+- ~org_roam_graph_node_extra_config~ :: object, ~{ "http": { "color": "#C9C9C9", "fillcolor": "#EEEEEE", "fontcolor": "#0A97A6", "style": "rounded,filled" }, "https": { "color": "#C9C9C9", "fillcolor": "#EEEEEE", "fontcolor": "#0A97A6", "style": "rounded,filled" }, "id": { "color": "#C9C9C9", "fillcolor": "#EEEEEE", "fontcolor": "#111111", "style": "bold,rounded,filled" } }~. Graphviz's attributes of the nodes, by the type of the link to them: ~id~ for org-roam's nodes, ~https~ for the web pages linked to. (~org-roam-graph-node-extra-config~)
+- ~org_roam_graph_link_hidden_types~ :: string[], ~["file"]~. The types of links the graph leaves out. (~org-roam-graph-link-hidden-types~)
+- ~org_roam_graph_max_title_length~ :: integer, ~100~. The width a title takes in the graph, at most. (~org-roam-graph-max-title-length~)
+- ~org_roam_graph_shorten_titles~ :: "truncate", "wrap", false, ~"truncate"~. What becomes of a title wider than ~org_roam_graph_max_title_length~: cut with ~...~ (~truncate~), over lines (~wrap~), or nothing (~false~). (~org-roam-graph-shorten-titles~)
 - ~org_roam_extract_new_file_path~ :: string, ~"%<%Y%m%d%H%M%S>-${slug}.org"~. The file ~org.roam.extract~ offers for a node, relative to ~org_roam_directory~: ~%<…>~ is the time as ~format-time-string~ writes it, ~${title}~, ~${slug}~ and ~${id}~ the node's. (~org-roam-extract-new-file-path~)
 - ~org_roam_link_auto_replace~ :: boolean, ~true~. Turn the ~roam:~ links of org-roam's files into ~id:~ links to their nodes as the files are saved, and as a link is followed. (~org-roam-link-auto-replace~)
 - ~org_roam_completion_everywhere~ :: boolean, ~false~. In org-roam's files, offer the titles of the nodes for the word at the cursor, not only in a link; the one picked becomes a link to its node. (~org-roam-completion-everywhere~)
@@ -1158,6 +1167,10 @@ increments a number.
   ~{ "step": "node" }~), then edits both files. A file refiled whole is
   deleted by the same edit (a ~delete~ resource operation) when the client
   announces ~workspace.workspaceEdit.resourceOperations~ with ~delete~.
+- ~org.roam.graph~ :: ~org-roam-graph~: draws the graph with Graphviz and
+  shows it with ~window/showDocument~ (~external~ ~true~), or runs
+  ~org_roam_graph_viewer~ on it; ~count~ limits it to the node at the cursor
+  and those near it.
 - ~org.roam.extract~ :: ~org-roam-extract-subtree~: asks for the file
   (input kind ~text~, prompt ~Extract node to: ~, its ~value~ the name
   offered, ~context~ ~{ "step": "file" }~), writes the new file itself and

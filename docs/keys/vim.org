@@ -341,6 +341,7 @@ in a popup. [[file:../vim.org][vim.org]] says how to install and set up the plug
 | ~org.roam.demote~ | Roam: make the file's node a headline of its own |
 | ~org.roam.refile~ | Roam: refile to a node |
 | ~org.roam.extract~ | Roam: extract the subtree to a file of its own |
+| ~org.roam.graph~ | Roam: show the graph of the nodes |
 | ~org.journal.new.date.entry~ | Journal: new entry for a date |
 | ~org.journal.new.scheduled.entry~ | Journal: new entry for a day to come |
 | ~org.journal.open.current~ | Journal: open the current file |

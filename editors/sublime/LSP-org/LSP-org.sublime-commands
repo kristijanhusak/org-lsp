@@ -1631,6 +1631,13 @@
     }
   },
   {
+    "caption": "Org: Roam: show the graph of the nodes",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.graph"
+    }
+  },
+  {
     "caption": "Org: Journal: new entry",
     "command": "org_lsp_run",
     "args": {

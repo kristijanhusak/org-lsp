@@ -592,6 +592,33 @@ pub struct Options {
     /// `org-roam-node-display-template`
     #[serde(rename = "org_roam_node_display_template")]
     pub roam_node_display_template: Option<String>,
+    /// `org-roam-graph-executable`
+    #[serde(rename = "org_roam_graph_executable")]
+    pub roam_graph_executable: Option<String>,
+    /// `org-roam-graph-viewer`
+    #[serde(rename = "org_roam_graph_viewer")]
+    pub roam_graph_viewer: Option<String>,
+    /// `org-roam-graph-filetype`
+    #[serde(rename = "org_roam_graph_filetype")]
+    pub roam_graph_filetype: Option<String>,
+    /// `org-roam-graph-extra-config`, `org-roam-graph-edge-extra-config`
+    /// and `org-roam-graph-node-extra-config`: Graphviz's attributes, in
+    /// their order.
+    #[serde(rename = "org_roam_graph_extra_config")]
+    pub roam_graph_extra_config: Option<serde_json::Map<String, serde_json::Value>>,
+    #[serde(rename = "org_roam_graph_edge_extra_config")]
+    pub roam_graph_edge_extra_config: Option<serde_json::Map<String, serde_json::Value>>,
+    #[serde(rename = "org_roam_graph_node_extra_config")]
+    pub roam_graph_node_extra_config: Option<serde_json::Map<String, serde_json::Value>>,
+    /// `org-roam-graph-link-hidden-types`
+    #[serde(rename = "org_roam_graph_link_hidden_types")]
+    pub roam_graph_link_hidden_types: Option<Vec<String>>,
+    /// `org-roam-graph-max-title-length`
+    #[serde(rename = "org_roam_graph_max_title_length")]
+    pub roam_graph_max_title_length: Option<usize>,
+    /// `org-roam-graph-shorten-titles`: `truncate`, `wrap`, or `false`.
+    #[serde(rename = "org_roam_graph_shorten_titles")]
+    pub roam_graph_shorten_titles: Option<serde_json::Value>,
     /// `org-roam-extract-new-file-path`
     #[serde(rename = "org_roam_extract_new_file_path")]
     pub roam_extract_new_file_path: Option<String>,
@@ -786,6 +813,13 @@ pub struct RoamSettings {
     pub display_template: String,
     /// `org-roam-extract-new-file-path`, relative to the directory.
     pub extract_new_file_path: String,
+    /// `org-roam-graph`'s options, and `org-roam-graph-executable`,
+    /// `org-roam-graph-viewer` (none: the editor's) and
+    /// `org-roam-graph-filetype`.
+    pub graph: org_core::roam::graph::Settings,
+    pub graph_executable: String,
+    pub graph_viewer: Option<String>,
+    pub graph_filetype: String,
     pub templates: Vec<CaptureTemplateOption>,
     /// `org-roam-dailies-directory`, relative to the directory, and
     /// `org-roam-dailies-capture-templates`.
@@ -1351,6 +1385,36 @@ impl Options {
         })
     }
 
+    /// `org-roam-graph`'s options, the defaults for those not given.
+    fn roam_graph_settings(&self) -> org_core::roam::graph::Settings {
+        use org_core::roam::graph::{Settings, Shorten};
+        let defaults = Settings::default();
+        let pairs = |map: &serde_json::Map<String, serde_json::Value>| -> Vec<(String, String)> {
+            map.iter()
+                .map(|(key, value)| (key.clone(), value.as_str().map_or_else(|| value.to_string(), str::to_string)))
+                .collect()
+        };
+        Settings {
+            extra: self.roam_graph_extra_config.as_ref().map_or(defaults.extra, pairs),
+            edge: self.roam_graph_edge_extra_config.as_ref().map_or(defaults.edge, pairs),
+            node: self.roam_graph_node_extra_config.as_ref().map_or(defaults.node, |map| {
+                map.iter()
+                    .map(|(kind, value)| (kind.clone(), value.as_object().map(pairs).unwrap_or_default()))
+                    .collect()
+            }),
+            hidden: self.roam_graph_link_hidden_types.clone().unwrap_or(defaults.hidden),
+            max_title_length: self.roam_graph_max_title_length.unwrap_or(defaults.max_title_length),
+            shorten: match &self.roam_graph_shorten_titles {
+                None => defaults.shorten,
+                Some(value) => match value.as_str() {
+                    Some("truncate") => Shorten::Truncate,
+                    Some("wrap") => Shorten::Wrap,
+                    _ => Shorten::No,
+                },
+            },
+        }
+    }
+
     pub fn roam(&self) -> Option<RoamSettings> {
         if self.roam_enabled != Some(true) {
             return None;
@@ -1367,6 +1431,10 @@ impl Options {
                 },
             },
             display_template: self.roam_node_display_template.clone().unwrap_or_else(|| "${title}".to_string()),
+            graph: self.roam_graph_settings(),
+            graph_executable: self.roam_graph_executable.clone().unwrap_or_else(|| "dot".to_string()),
+            graph_viewer: self.roam_graph_viewer.clone().filter(|viewer| !viewer.is_empty()),
+            graph_filetype: self.roam_graph_filetype.clone().unwrap_or_else(|| "svg".to_string()),
             extract_new_file_path: self
                 .roam_extract_new_file_path
                 .clone()

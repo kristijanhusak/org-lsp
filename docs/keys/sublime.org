@@ -449,6 +449,7 @@ line.
 | ~org.roam.demote~ | Org: Roam: make the file's node a headline of its own |
 | ~org.roam.refile~ | Org: Roam: refile to a node |
 | ~org.roam.extract~ | Org: Roam: extract the subtree to a file of its own |
+| ~org.roam.graph~ | Org: Roam: show the graph of the nodes |
 | ~org.journal.new.date.entry~ | Org: Journal: new entry for a date |
 | ~org.journal.new.scheduled.entry~ | Org: Journal: new entry for a day to come |
 | ~org.journal.open.current~ | Org: Journal: open the current file |

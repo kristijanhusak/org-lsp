@@ -4501,6 +4501,79 @@ fn refiles_and_extracts_roam_subtrees() {
     let _ = std::fs::remove_dir_all(&root);
 }
 
+/// `org-roam-graph`: the Graphviz text of the nodes and links goes to
+/// `org_roam_graph_executable`, and the editor shows what it draws; with
+/// a count, only the nodes connected to the one at the cursor.
+#[cfg(unix)]
+#[test]
+fn draws_the_roam_graph() {
+    use std::os::unix::fs::PermissionsExt;
+    let root = std::env::temp_dir().join(format!("org-lsp-roam-graph-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(root.join("notes")).unwrap();
+    // A stand-in for `dot`: the picture is the text it was given.
+    let dot = root.join("dot");
+    std::fs::write(&dot, "#!/bin/sh\ncp \"$1\" \"$5\"\n").unwrap();
+    std::fs::set_permissions(&dot, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let a = ":PROPERTIES:\n:ID: a1\n:END:\n#+title: A\nTo [[id:b1][B]].\n";
+    let b = ":PROPERTIES:\n:ID: b1\n:END:\n#+title: B\n";
+    let c = ":PROPERTIES:\n:ID: c1\n:END:\n#+title: C\nTo [[id:d1][D]].\n";
+    let d = ":PROPERTIES:\n:ID: d1\n:END:\n#+title: D\n";
+    for (name, text) in [("a.org", a), ("b.org", b), ("c.org", c), ("d.org", d)] {
+        std::fs::write(root.join("notes").join(name), text).unwrap();
+    }
+    let mut options = clock();
+    options["org_roam_enabled"] = json!(true);
+    options["org_roam_directory"] = json!(root.join("notes").display().to_string());
+    options["org_roam_graph_executable"] = json!(dot.display().to_string());
+    options["org_roam_graph_extra_config"] = json!({ "rankdir": "LR" });
+    let mut client = Client::editor(options, None);
+    let a_uri = format!("file://{}", root.join("notes").join("a.org").display());
+    client.open(&a_uri, a);
+    let run = |client: &mut Client, context: Value| {
+        client.received.clear();
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": "org.roam.graph", "arguments": [context] }));
+        client.settle();
+        result
+    };
+    let picture = |client: &Client| {
+        let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the graph");
+        assert_eq!(show.params["external"], true);
+        let uri = show.params["uri"].as_str().unwrap();
+        assert!(uri.ends_with("/graph.svg"), "{uri}");
+        std::fs::read_to_string(uri.strip_prefix("file://").unwrap()).unwrap()
+    };
+    let said = run(&mut client, json!({ "textDocument": { "uri": a_uri }, "position": { "line": 4, "character": 0 } }));
+    assert_eq!(said, Ok(json!({ "message": "(org-roam) building graph" })));
+    let all = picture(&client);
+    assert!(all.starts_with("digraph \"org-roam\" {\nrankdir=LR;\n edge [];\n"), "{all}");
+    assert!(all.contains("  \"a1\" -> \"b1\";\n") && all.contains("  \"c1\" -> \"d1\";\n"), "{all}");
+
+    // `C-u`: the nodes connected to the one at the cursor.
+    run(
+        &mut client,
+        json!({ "textDocument": { "uri": a_uri }, "position": { "line": 4, "character": 0 }, "count": 4 }),
+    )
+    .unwrap();
+    let connected = picture(&client);
+    assert!(connected.contains("  \"a1\" -> \"b1\";\n") && !connected.contains("c1"), "{connected}");
+    client.shutdown();
+
+    let mut options = clock();
+    options["org_roam_enabled"] = json!(true);
+    options["org_roam_directory"] = json!(root.join("notes").display().to_string());
+    options["org_roam_graph_executable"] = json!("no-such-dot-program");
+    let mut client = Client::editor(options, None);
+    let refused = run(&mut client, json!({}));
+    assert_eq!(
+        refused,
+        Err("Cannot find executable \"no-such-dot-program\" to generate the graph.  Please adjust ‘org-roam-graph-executable’".to_string())
+    );
+    client.shutdown();
+    let _ = std::fs::remove_dir_all(&root);
+}
+
 /// A keyword with a face of its own (`org_todo_keyword_faces`) is offered
 /// in that face when the server asks for a TODO state.
 #[test]

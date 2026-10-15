@@ -1732,7 +1732,7 @@ pub fn run(connection: Connection) -> Result<()> {
         server.remove_view_file();
     }
     // The server's temporary directories that were made.
-    let roam = server.roam.as_ref().map(|roam| &roam.buffer_directory);
+    let roam = server.roam.as_ref().into_iter().flat_map(|roam| [&roam.buffer_directory, &roam.graph_directory]);
     for directory in [&server.capture_directory, &server.export_directory, &server.special_directory]
         .into_iter()
         .chain([&server.journal_views])
