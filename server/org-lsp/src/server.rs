@@ -1166,6 +1166,12 @@ struct Server {
     highlight_sparse_tree_matches: bool,
     /// `org-agenda-view-columns-initially`
     agenda_view_columns_initially: bool,
+    /// `org-num-mode`'s options.
+    num_settings: org_core::num::Settings,
+    /// `org-startup-numerated`
+    startup_numerated: bool,
+    /// `org-num-mode` as `org.num.mode` turned it, by document.
+    num_mode: HashMap<String, bool>,
     /// `org-open-directory-means-index-dot-org`
     open_directory_index: bool,
     /// `org-allow-promoting-top-level-subtree`
@@ -1649,6 +1655,9 @@ pub fn run(connection: Connection) -> Result<()> {
         clock_in_resume: options.clock_in_resume.unwrap_or(false),
         highlight_sparse_tree_matches: options.highlight_sparse_tree_matches.unwrap_or(true),
         agenda_view_columns_initially: options.agenda_view_columns_initially.unwrap_or(false),
+        num_settings: options.num_settings(),
+        startup_numerated: options.startup_numerated.unwrap_or(false),
+        num_mode: HashMap::new(),
         open_directory_index: options.open_directory_means_index_dot_org.unwrap_or(false),
         allow_promoting_top_level: options.allow_promoting_top_level_subtree.unwrap_or(false),
         odd_levels: options.odd_levels_only.unwrap_or(false),
@@ -3512,6 +3521,7 @@ impl Server {
     /// lines, for a client that does not show `org-lsp/virtualIndent`.
     /// Hidden stars and the prefixes of wrapped lines cannot be shown so.
     fn inlay_hints(&mut self, params: lsp_types::InlayHintParams) -> Option<Vec<lsp_types::InlayHint>> {
+        let numbers = self.num_hints(&params.text_document.uri);
         let document = self.document(&params.text_document.uri)?;
         let text = &document.text;
         let (first, last) = (params.range.start.line as usize, params.range.end.line as usize);
@@ -3553,6 +3563,13 @@ impl Server {
                 if (first..=last).contains(&(at.line as usize)) && !shown.is_empty() {
                     hints.push(hint(at.line, at.character, shown));
                 }
+            }
+        }
+        // `org-num-mode`: the number of each headline after its stars, where
+        // Emacs's overlay puts it.
+        for (line, character, label) in numbers {
+            if (first..=last).contains(&(line as usize)) {
+                hints.push(hint(line, character, label));
             }
         }
         // `org-clock-display`: the time after each headline, its line
@@ -6556,6 +6573,7 @@ impl Server {
                 self.refile_capture(context.as_ref().and_then(refile_answer).as_deref(), text)
             }
             commands::CLOCK_DISPLAY => self.clock_display(&context.ok_or("This command needs the cursor position")?),
+            commands::NUM_MODE => self.num_mode(&context.ok_or("This command needs the cursor position")?),
             // `C-c C-c` takes the clock's times away first.
             commands::CHECKBOX_TOGGLE
                 if context
@@ -14001,6 +14019,50 @@ impl Server {
             }
             line = text[..line - 1].rfind('\n').map_or(0, |index| index + 1);
         }
+    }
+
+    /// Whether `org-num-mode` is on in the document `uri` of `text`: as
+    /// `org.num.mode` last turned it, else as `#+STARTUP: num` or `nonum`
+    /// say (the last wins), else `org-startup-numerated`.
+    fn numerated(&self, uri: &Uri, text: &str) -> bool {
+        self.num_mode.get(uri.as_str()).copied().unwrap_or_else(|| {
+            org_core::text::startup_words(text).into_iter().fold(self.startup_numerated, |on, word| match word {
+                "num" => true,
+                "nonum" => false,
+                _ => on,
+            })
+        })
+    }
+
+    /// The numbers `org-num-mode` shows in the document `uri`, where they
+    /// go: line, character and text.
+    fn num_hints(&mut self, uri: &Uri) -> Vec<(u32, u32, String)> {
+        let Some(text) = self.document(uri).map(|document| document.text.clone()) else { return Vec::new() };
+        if !self.numerated(uri, &text) {
+            return Vec::new();
+        }
+        let (settings, encoding) = (self.num_settings.clone(), self.client.encoding);
+        self.with_source(uri, |text, index, parse, outline, _| {
+            org_core::num::numbers(text, outline, parse.todo_keywords(), &settings)
+                .into_iter()
+                .filter_map(|number| {
+                    let at = index.position(text, number.at, encoding);
+                    Some((at.line, at.character, number.shown?))
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+    }
+
+    /// `org-num-mode`: numbers before the headlines of the file, or none.
+    fn num_mode(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        let uri = context.text_document.uri.clone();
+        let text = self.document(&uri).map(|document| document.text.clone()).ok_or("This file is not open")?;
+        let on = !self.numerated(&uri, &text);
+        self.num_mode.insert(uri.as_str().to_string(), on);
+        self.refresh_inlay_hints();
+        let state = if on { "enabled" } else { "disabled" };
+        Ok(json!({ "message": format!("Org-Num mode {state} in current buffer") }))
     }
 
     /// Ask the client for inlay hints again, if it can be asked.

@@ -327,6 +327,7 @@ its sections says what it should look like.
 - [ ] A file with ~#+STARTUP: indent~ shows its text indented by level, the file unchanged
 - [ ] Re-indenting a selection indents it as Org does: format selections
 - [ ] Formatting the file aligns tables and puts tags in their column
+- [ ] A file with ~#+STARTUP: num~ shows ~1~, ~1.1~​… after the stars of its headlines; the command turns them off and on: the code action /Number the headlines, or stop numbering them/
 
 * Notes and logging
 

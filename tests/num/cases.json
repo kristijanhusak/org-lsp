@@ -1,0 +1,1510 @@
+[
+ {
+  "text": "* A\n** B\n** C\n*** D\n* E\n",
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ],
+   [
+    2,
+    3,
+    "1.2 "
+   ],
+   [
+    3,
+    4,
+    "1.2.1 "
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** B\n** C\n*** D\n* E\n",
+  "options": {
+   "org-num-max-level": 2
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ],
+   [
+    2,
+    3,
+    "1.2 "
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** B\n** C\n*** D\n* E\n",
+  "options": {
+   "org-num-skip-commented": true
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ],
+   [
+    2,
+    3,
+    "1.2 "
+   ],
+   [
+    3,
+    4,
+    "1.2.1 "
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** B\n** C\n*** D\n* E\n",
+  "options": {
+   "org-num-skip-footnotes": true
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ],
+   [
+    2,
+    3,
+    "1.2 "
+   ],
+   [
+    3,
+    4,
+    "1.2.1 "
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** B\n** C\n*** D\n* E\n",
+  "options": {
+   "org-num-skip-tags": [
+    "noexport"
+   ]
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ],
+   [
+    2,
+    3,
+    "1.2 "
+   ],
+   [
+    3,
+    4,
+    "1.2.1 "
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** B\n** C\n*** D\n* E\n",
+  "options": {
+   "org-num-skip-unnumbered": true
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ],
+   [
+    2,
+    3,
+    "1.2 "
+   ],
+   [
+    3,
+    4,
+    "1.2.1 "
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** B\n** C\n*** D\n* E\n",
+  "options": {
+   "org-num-max-level": 1,
+   "org-num-skip-commented": true,
+   "org-num-skip-tags": [
+    "noexport"
+   ]
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "** A\n* B\n*** C\n** D\n* E\n",
+  "expected": [
+   [
+    0,
+    3,
+    "0.1 "
+   ],
+   [
+    1,
+    2,
+    "1 "
+   ],
+   [
+    2,
+    4,
+    "1.0.1 "
+   ],
+   [
+    3,
+    3,
+    "1.1 "
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "** A\n* B\n*** C\n** D\n* E\n",
+  "options": {
+   "org-num-max-level": 2
+  },
+  "expected": [
+   [
+    0,
+    3,
+    "0.1 "
+   ],
+   [
+    1,
+    2,
+    "1 "
+   ],
+   [
+    3,
+    3,
+    "1.1 "
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "** A\n* B\n*** C\n** D\n* E\n",
+  "options": {
+   "org-num-skip-commented": true
+  },
+  "expected": [
+   [
+    0,
+    3,
+    "0.1 "
+   ],
+   [
+    1,
+    2,
+    "1 "
+   ],
+   [
+    2,
+    4,
+    "1.0.1 "
+   ],
+   [
+    3,
+    3,
+    "1.1 "
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "** A\n* B\n*** C\n** D\n* E\n",
+  "options": {
+   "org-num-skip-footnotes": true
+  },
+  "expected": [
+   [
+    0,
+    3,
+    "0.1 "
+   ],
+   [
+    1,
+    2,
+    "1 "
+   ],
+   [
+    2,
+    4,
+    "1.0.1 "
+   ],
+   [
+    3,
+    3,
+    "1.1 "
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "** A\n* B\n*** C\n** D\n* E\n",
+  "options": {
+   "org-num-skip-tags": [
+    "noexport"
+   ]
+  },
+  "expected": [
+   [
+    0,
+    3,
+    "0.1 "
+   ],
+   [
+    1,
+    2,
+    "1 "
+   ],
+   [
+    2,
+    4,
+    "1.0.1 "
+   ],
+   [
+    3,
+    3,
+    "1.1 "
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "** A\n* B\n*** C\n** D\n* E\n",
+  "options": {
+   "org-num-skip-unnumbered": true
+  },
+  "expected": [
+   [
+    0,
+    3,
+    "0.1 "
+   ],
+   [
+    1,
+    2,
+    "1 "
+   ],
+   [
+    2,
+    4,
+    "1.0.1 "
+   ],
+   [
+    3,
+    3,
+    "1.1 "
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "** A\n* B\n*** C\n** D\n* E\n",
+  "options": {
+   "org-num-max-level": 1,
+   "org-num-skip-commented": true,
+   "org-num-skip-tags": [
+    "noexport"
+   ]
+  },
+  "expected": [
+   [
+    1,
+    2,
+    "1 "
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** COMMENT B\n*** C\n** D\n* COMMENT\n* Footnotes\n** F\n* G\n",
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ],
+   [
+    2,
+    4,
+    "1.1.1 "
+   ],
+   [
+    3,
+    3,
+    "1.2 "
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ],
+   [
+    5,
+    2,
+    "3 "
+   ],
+   [
+    6,
+    3,
+    "3.1 "
+   ],
+   [
+    7,
+    2,
+    "4 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** COMMENT B\n*** C\n** D\n* COMMENT\n* Footnotes\n** F\n* G\n",
+  "options": {
+   "org-num-max-level": 2
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ],
+   [
+    3,
+    3,
+    "1.2 "
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ],
+   [
+    5,
+    2,
+    "3 "
+   ],
+   [
+    6,
+    3,
+    "3.1 "
+   ],
+   [
+    7,
+    2,
+    "4 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** COMMENT B\n*** C\n** D\n* COMMENT\n* Footnotes\n** F\n* G\n",
+  "options": {
+   "org-num-skip-commented": true
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    null
+   ],
+   [
+    2,
+    4,
+    null
+   ],
+   [
+    3,
+    3,
+    "1.1 "
+   ],
+   [
+    4,
+    2,
+    null
+   ],
+   [
+    5,
+    2,
+    "2 "
+   ],
+   [
+    6,
+    3,
+    "2.1 "
+   ],
+   [
+    7,
+    2,
+    "3 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** COMMENT B\n*** C\n** D\n* COMMENT\n* Footnotes\n** F\n* G\n",
+  "options": {
+   "org-num-skip-footnotes": true
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ],
+   [
+    2,
+    4,
+    "1.1.1 "
+   ],
+   [
+    3,
+    3,
+    "1.2 "
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ],
+   [
+    5,
+    2,
+    null
+   ],
+   [
+    6,
+    3,
+    null
+   ],
+   [
+    7,
+    2,
+    "3 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** COMMENT B\n*** C\n** D\n* COMMENT\n* Footnotes\n** F\n* G\n",
+  "options": {
+   "org-num-skip-tags": [
+    "noexport"
+   ]
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ],
+   [
+    2,
+    4,
+    "1.1.1 "
+   ],
+   [
+    3,
+    3,
+    "1.2 "
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ],
+   [
+    5,
+    2,
+    "3 "
+   ],
+   [
+    6,
+    3,
+    "3.1 "
+   ],
+   [
+    7,
+    2,
+    "4 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** COMMENT B\n*** C\n** D\n* COMMENT\n* Footnotes\n** F\n* G\n",
+  "options": {
+   "org-num-skip-unnumbered": true
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ],
+   [
+    2,
+    4,
+    "1.1.1 "
+   ],
+   [
+    3,
+    3,
+    "1.2 "
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ],
+   [
+    5,
+    2,
+    "3 "
+   ],
+   [
+    6,
+    3,
+    "3.1 "
+   ],
+   [
+    7,
+    2,
+    "4 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** COMMENT B\n*** C\n** D\n* COMMENT\n* Footnotes\n** F\n* G\n",
+  "options": {
+   "org-num-max-level": 1,
+   "org-num-skip-commented": true,
+   "org-num-skip-tags": [
+    "noexport"
+   ]
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    4,
+    2,
+    null
+   ],
+   [
+    5,
+    2,
+    "2 "
+   ],
+   [
+    7,
+    2,
+    "3 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** B :noexport:\n*** C\n** D :other:noexport:\n* E\n",
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ],
+   [
+    2,
+    4,
+    "1.1.1 "
+   ],
+   [
+    3,
+    3,
+    "1.2 "
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** B :noexport:\n*** C\n** D :other:noexport:\n* E\n",
+  "options": {
+   "org-num-max-level": 2
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ],
+   [
+    3,
+    3,
+    "1.2 "
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** B :noexport:\n*** C\n** D :other:noexport:\n* E\n",
+  "options": {
+   "org-num-skip-commented": true
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ],
+   [
+    2,
+    4,
+    "1.1.1 "
+   ],
+   [
+    3,
+    3,
+    "1.2 "
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** B :noexport:\n*** C\n** D :other:noexport:\n* E\n",
+  "options": {
+   "org-num-skip-footnotes": true
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ],
+   [
+    2,
+    4,
+    "1.1.1 "
+   ],
+   [
+    3,
+    3,
+    "1.2 "
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** B :noexport:\n*** C\n** D :other:noexport:\n* E\n",
+  "options": {
+   "org-num-skip-tags": [
+    "noexport"
+   ]
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    null
+   ],
+   [
+    2,
+    4,
+    null
+   ],
+   [
+    3,
+    3,
+    null
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** B :noexport:\n*** C\n** D :other:noexport:\n* E\n",
+  "options": {
+   "org-num-skip-unnumbered": true
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ],
+   [
+    2,
+    4,
+    "1.1.1 "
+   ],
+   [
+    3,
+    3,
+    "1.2 "
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** B :noexport:\n*** C\n** D :other:noexport:\n* E\n",
+  "options": {
+   "org-num-max-level": 1,
+   "org-num-skip-commented": true,
+   "org-num-skip-tags": [
+    "noexport"
+   ]
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    4,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** B\n:PROPERTIES:\n:UNNUMBERED: t\n:END:\n*** C\n** D\n:PROPERTIES:\n:UNNUMBERED: notoc\n:END:\n* E\n",
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ],
+   [
+    5,
+    4,
+    "1.1.1 "
+   ],
+   [
+    6,
+    3,
+    "1.2 "
+   ],
+   [
+    10,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** B\n:PROPERTIES:\n:UNNUMBERED: t\n:END:\n*** C\n** D\n:PROPERTIES:\n:UNNUMBERED: notoc\n:END:\n* E\n",
+  "options": {
+   "org-num-max-level": 2
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ],
+   [
+    6,
+    3,
+    "1.2 "
+   ],
+   [
+    10,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** B\n:PROPERTIES:\n:UNNUMBERED: t\n:END:\n*** C\n** D\n:PROPERTIES:\n:UNNUMBERED: notoc\n:END:\n* E\n",
+  "options": {
+   "org-num-skip-commented": true
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ],
+   [
+    5,
+    4,
+    "1.1.1 "
+   ],
+   [
+    6,
+    3,
+    "1.2 "
+   ],
+   [
+    10,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** B\n:PROPERTIES:\n:UNNUMBERED: t\n:END:\n*** C\n** D\n:PROPERTIES:\n:UNNUMBERED: notoc\n:END:\n* E\n",
+  "options": {
+   "org-num-skip-footnotes": true
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ],
+   [
+    5,
+    4,
+    "1.1.1 "
+   ],
+   [
+    6,
+    3,
+    "1.2 "
+   ],
+   [
+    10,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** B\n:PROPERTIES:\n:UNNUMBERED: t\n:END:\n*** C\n** D\n:PROPERTIES:\n:UNNUMBERED: notoc\n:END:\n* E\n",
+  "options": {
+   "org-num-skip-tags": [
+    "noexport"
+   ]
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ],
+   [
+    5,
+    4,
+    "1.1.1 "
+   ],
+   [
+    6,
+    3,
+    "1.2 "
+   ],
+   [
+    10,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** B\n:PROPERTIES:\n:UNNUMBERED: t\n:END:\n*** C\n** D\n:PROPERTIES:\n:UNNUMBERED: notoc\n:END:\n* E\n",
+  "options": {
+   "org-num-skip-unnumbered": true
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    null
+   ],
+   [
+    5,
+    4,
+    null
+   ],
+   [
+    6,
+    3,
+    null
+   ],
+   [
+    10,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "* A\n** B\n:PROPERTIES:\n:UNNUMBERED: t\n:END:\n*** C\n** D\n:PROPERTIES:\n:UNNUMBERED: notoc\n:END:\n* E\n",
+  "options": {
+   "org-num-max-level": 1,
+   "org-num-skip-commented": true,
+   "org-num-skip-tags": [
+    "noexport"
+   ]
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    10,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "#+STARTUP: odd\n* A\n*** B\n***** C\n*** D\n* E\n",
+  "expected": [
+   [
+    1,
+    2,
+    "1 "
+   ],
+   [
+    2,
+    4,
+    "1.1 "
+   ],
+   [
+    3,
+    6,
+    "1.1.1 "
+   ],
+   [
+    4,
+    4,
+    "1.2 "
+   ],
+   [
+    5,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "#+STARTUP: odd\n* A\n*** B\n***** C\n*** D\n* E\n",
+  "options": {
+   "org-num-max-level": 2
+  },
+  "expected": [
+   [
+    1,
+    2,
+    "1 "
+   ],
+   [
+    2,
+    4,
+    "1.1 "
+   ],
+   [
+    4,
+    4,
+    "1.2 "
+   ],
+   [
+    5,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "#+STARTUP: odd\n* A\n*** B\n***** C\n*** D\n* E\n",
+  "options": {
+   "org-num-skip-commented": true
+  },
+  "expected": [
+   [
+    1,
+    2,
+    "1 "
+   ],
+   [
+    2,
+    4,
+    "1.1 "
+   ],
+   [
+    3,
+    6,
+    "1.1.1 "
+   ],
+   [
+    4,
+    4,
+    "1.2 "
+   ],
+   [
+    5,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "#+STARTUP: odd\n* A\n*** B\n***** C\n*** D\n* E\n",
+  "options": {
+   "org-num-skip-footnotes": true
+  },
+  "expected": [
+   [
+    1,
+    2,
+    "1 "
+   ],
+   [
+    2,
+    4,
+    "1.1 "
+   ],
+   [
+    3,
+    6,
+    "1.1.1 "
+   ],
+   [
+    4,
+    4,
+    "1.2 "
+   ],
+   [
+    5,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "#+STARTUP: odd\n* A\n*** B\n***** C\n*** D\n* E\n",
+  "options": {
+   "org-num-skip-tags": [
+    "noexport"
+   ]
+  },
+  "expected": [
+   [
+    1,
+    2,
+    "1 "
+   ],
+   [
+    2,
+    4,
+    "1.1 "
+   ],
+   [
+    3,
+    6,
+    "1.1.1 "
+   ],
+   [
+    4,
+    4,
+    "1.2 "
+   ],
+   [
+    5,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "#+STARTUP: odd\n* A\n*** B\n***** C\n*** D\n* E\n",
+  "options": {
+   "org-num-skip-unnumbered": true
+  },
+  "expected": [
+   [
+    1,
+    2,
+    "1 "
+   ],
+   [
+    2,
+    4,
+    "1.1 "
+   ],
+   [
+    3,
+    6,
+    "1.1.1 "
+   ],
+   [
+    4,
+    4,
+    "1.2 "
+   ],
+   [
+    5,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "#+STARTUP: odd\n* A\n*** B\n***** C\n*** D\n* E\n",
+  "options": {
+   "org-num-max-level": 1,
+   "org-num-skip-commented": true,
+   "org-num-skip-tags": [
+    "noexport"
+   ]
+  },
+  "expected": [
+   [
+    1,
+    2,
+    "1 "
+   ],
+   [
+    5,
+    2,
+    "2 "
+   ]
+  ]
+ },
+ {
+  "text": "* TODO [#A] A :tag:\n** DONE B\n",
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ]
+  ]
+ },
+ {
+  "text": "* TODO [#A] A :tag:\n** DONE B\n",
+  "options": {
+   "org-num-max-level": 2
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ]
+  ]
+ },
+ {
+  "text": "* TODO [#A] A :tag:\n** DONE B\n",
+  "options": {
+   "org-num-skip-commented": true
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ]
+  ]
+ },
+ {
+  "text": "* TODO [#A] A :tag:\n** DONE B\n",
+  "options": {
+   "org-num-skip-footnotes": true
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ]
+  ]
+ },
+ {
+  "text": "* TODO [#A] A :tag:\n** DONE B\n",
+  "options": {
+   "org-num-skip-tags": [
+    "noexport"
+   ]
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ]
+  ]
+ },
+ {
+  "text": "* TODO [#A] A :tag:\n** DONE B\n",
+  "options": {
+   "org-num-skip-unnumbered": true
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ],
+   [
+    1,
+    3,
+    "1.1 "
+   ]
+  ]
+ },
+ {
+  "text": "* TODO [#A] A :tag:\n** DONE B\n",
+  "options": {
+   "org-num-max-level": 1,
+   "org-num-skip-commented": true,
+   "org-num-skip-tags": [
+    "noexport"
+   ]
+  },
+  "expected": [
+   [
+    0,
+    2,
+    "1 "
+   ]
+  ]
+ }
+]

@@ -1661,6 +1661,54 @@ pub const SETTINGS: &[Setting] = &[
          Neovim, and VS Code (not on wrapped lines).",
     ),
     setting(
+        "org_startup_numerated",
+        "boolean",
+        "false",
+        "org-startup-numerated",
+        "Number the headlines of files (`org-num-mode`): `1`, `1.1`, `1.2`… after the stars, shown as inlay \
+         hints without changing the file. `#+STARTUP: num` and `nonum` decide for a file, and `org.num.mode` turns \
+         it on and off.",
+    ),
+    Setting {
+        default: None,
+        unset: "every level",
+        ..setting(
+            "org_num_max_level",
+            "integer",
+            "",
+            "org-num-max-level",
+            "The deepest level `org-num-mode` numbers.",
+        )
+    },
+    setting(
+        "org_num_skip_commented",
+        "boolean",
+        "false",
+        "org-num-skip-commented",
+        "`org-num-mode` leaves `COMMENT` subtrees unnumbered.",
+    ),
+    setting(
+        "org_num_skip_footnotes",
+        "boolean",
+        "false",
+        "org-num-skip-footnotes",
+        "`org-num-mode` leaves the footnotes section (`* Footnotes`) unnumbered.",
+    ),
+    setting(
+        "org_num_skip_tags",
+        "string[]",
+        "[]",
+        "org-num-skip-tags",
+        "`org-num-mode` leaves the subtrees of headlines with one of these tags (their own, not inherited) unnumbered.",
+    ),
+    setting(
+        "org_num_skip_unnumbered",
+        "boolean",
+        "false",
+        "org-num-skip-unnumbered",
+        "`org-num-mode` leaves the subtrees of headlines with an `UNNUMBERED` property unnumbered.",
+    ),
+    setting(
         "org_hide_leading_stars",
         "boolean",
         "false",
@@ -3615,6 +3663,12 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_image_max_width", r#"{ "anyOf": [{ "enum": ["fill-column", "window", null] }, { "type": "number" }] }"#),
     ("org_startup_with_latex_preview", BOOLEAN),
     ("org_startup_indented", BOOLEAN),
+    ("org_startup_numerated", BOOLEAN),
+    ("org_num_max_level", r#"{ "type": "integer", "minimum": 1 }"#),
+    ("org_num_skip_commented", BOOLEAN),
+    ("org_num_skip_footnotes", BOOLEAN),
+    ("org_num_skip_tags", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("org_num_skip_unnumbered", BOOLEAN),
     ("org_hide_leading_stars", BOOLEAN),
     ("org_indent_mode_turns_on_hiding_stars", BOOLEAN),
     ("org_indent_mode_turns_off_org_adapt_indentation", BOOLEAN),

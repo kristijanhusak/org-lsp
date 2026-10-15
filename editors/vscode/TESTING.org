@@ -367,6 +367,7 @@ its sections says what it should look like.
 - [ ] With ~org_adapt_indentation = true~, a new line below a headline is indented
 - [ ] Re-indenting a selection indents it as Org does: Format Selection
 - [ ] Formatting the file aligns tables and puts tags in their column
+- [ ] A file with ~#+STARTUP: num~ shows ~1~, ~1.1~​… after the stars of its headlines; the command turns them off and on: /Org: Number the headlines, or stop numbering them/
 
 * Notes and logging
 

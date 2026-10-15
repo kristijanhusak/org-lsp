@@ -1412,6 +1412,12 @@ org_startup_with_latex_preview = false
 # (org-startup-indented)
 org_startup_indented = false
 
+# Number the headlines of files (`org-num-mode`): `1`, `1.1`, `1.2`… after the
+# stars, shown as inlay hints without changing the file. `#+STARTUP: num` and
+# `nonum` decide for a file, and `org.num.mode` turns it on and off.
+# (org-startup-numerated)
+org_startup_numerated = false
+
 # Hide all the stars of a headline but the last; they keep their place.
 # `#+STARTUP: hidestars` and `showstars` decide for a file.
 # (org-hide-leading-stars)
@@ -1925,6 +1931,25 @@ org_cycle_global_at_bob = false
 # each level up, then a sibling again; on an empty item, it indents and
 # outdents the item the same way. (org-cycle-level-after-item/entry-creation)
 org_cycle_level_after_item_entry_creation = true
+
+# The deepest level `org-num-mode` numbers. (org-num-max-level)
+# org_num_max_level = … (unset: every level)
+
+# `org-num-mode` leaves `COMMENT` subtrees unnumbered.
+# (org-num-skip-commented)
+org_num_skip_commented = false
+
+# `org-num-mode` leaves the footnotes section (`* Footnotes`) unnumbered.
+# (org-num-skip-footnotes)
+org_num_skip_footnotes = false
+
+# `org-num-mode` leaves the subtrees of headlines with one of these tags
+# (their own, not inherited) unnumbered. (org-num-skip-tags)
+org_num_skip_tags = []
+
+# `org-num-mode` leaves the subtrees of headlines with an `UNNUMBERED`
+# property unnumbered. (org-num-skip-unnumbered)
+org_num_skip_unnumbered = false
 
 
 # ----- Emacs and the server

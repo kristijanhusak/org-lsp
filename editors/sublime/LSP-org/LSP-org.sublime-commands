@@ -371,6 +371,13 @@
     }
   },
   {
+    "caption": "Org: Number the headlines, or stop numbering them",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.num.mode"
+    }
+  },
+  {
     "caption": "Org: Insert or update a clock table",
     "command": "org_lsp_run",
     "args": {

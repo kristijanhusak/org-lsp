@@ -571,6 +571,18 @@ pub struct Options {
     pub yank_adjusted_subtrees: Option<bool>,
     #[serde(rename = "org_file_apps")]
     pub file_apps: Option<Vec<(String, String)>>,
+    #[serde(rename = "org_startup_numerated")]
+    pub startup_numerated: Option<bool>,
+    #[serde(rename = "org_num_max_level")]
+    pub num_max_level: Option<usize>,
+    #[serde(rename = "org_num_skip_commented")]
+    pub num_skip_commented: Option<bool>,
+    #[serde(rename = "org_num_skip_footnotes")]
+    pub num_skip_footnotes: Option<bool>,
+    #[serde(rename = "org_num_skip_tags")]
+    pub num_skip_tags: Option<Vec<String>>,
+    #[serde(rename = "org_num_skip_unnumbered")]
+    pub num_skip_unnumbered: Option<bool>,
     #[serde(rename = "org_agenda_view_columns_initially")]
     pub agenda_view_columns_initially: Option<bool>,
     #[serde(rename = "org_agenda_persistent_filter")]
@@ -2022,6 +2034,17 @@ impl Options {
     }
 
     /// How answers to the date prompt are read.
+    /// `org-num-mode`'s options.
+    pub fn num_settings(&self) -> org_core::num::Settings {
+        org_core::num::Settings {
+            max_level: self.num_max_level,
+            skip_commented: self.num_skip_commented.unwrap_or(false),
+            skip_footnotes: self.num_skip_footnotes.unwrap_or(false),
+            skip_tags: self.num_skip_tags.clone().unwrap_or_default(),
+            skip_unnumbered: self.num_skip_unnumbered.unwrap_or(false),
+        }
+    }
+
     pub fn read_date_settings(&self) -> ReadDateSettings {
         let defaults = ReadDateSettings::default();
         ReadDateSettings {
