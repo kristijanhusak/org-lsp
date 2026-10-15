@@ -2,6 +2,28 @@
 //!
 //! Generated from Org 9.8.10; regenerate with `scripts/update-entities.sh`.
 
+use std::sync::RwLock;
+
+/// `org-entities-user`: the user's entities, by name, with what each is in
+/// UTF-8. They come before Org's own (`org-entity-get`).
+static USER: RwLock<&'static [(&'static str, &'static str)]> = RwLock::new(&[]);
+
+/// Set the user's entities (`org-entities-user`), once the options are
+/// read. They stay for the life of the process.
+pub fn set_user_entities(entities: &[(String, String)]) {
+    let leak = |text: &String| -> &'static str { Box::leak(text.clone().into_boxed_str()) };
+    let entities: Vec<(&'static str, &'static str)> =
+        entities.iter().map(|(name, utf8)| (leak(name), leak(utf8))).collect();
+    if let Ok(mut user) = USER.write() {
+        *user = Box::leak(entities.into_boxed_slice());
+    }
+}
+
+/// The user's entities.
+pub(crate) fn user() -> &'static [(&'static str, &'static str)] {
+    USER.read().map_or(&[], |user| *user)
+}
+
 /// Sorted for binary search.
 pub(crate) const ENTITIES: &[&str] = &[
     "AA",

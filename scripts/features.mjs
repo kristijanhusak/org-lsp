@@ -107,6 +107,7 @@ export const AREAS = [
       ['Archived subtrees shaded (`org-archived`)', true],
       ['Radio targets turning their words into links: highlighted, followed, document links', true],
       ['Entities shown as their characters (`org-pretty-entities`, `#+STARTUP: entitiespretty` or `entitiesplain`): hidden, the character in their place (drawn by the editor where it can, else an inlay hint)', true],
+      ['Entities of one\'s own (`org-entities-user`): parsed, shown, completed and exported as Org\'s', true],
       ['Timestamps in formats of one\'s own (`org-display-custom-times`, `org-timestamp-custom-formats`, `#+STARTUP: customtime`, `C-c C-x C-t`): the date and time hidden, the custom form in their place as for entities; in exports through Emacs too', true],
       ['Headline stars as bullets in the colors of their level, the leading ones hidden (org-bullets: `org_bullets_mode`, `org_bullets_bullet_list`); bullets of lists and marks of checkboxes as org-bullets.nvim shows them (`org_bullets_list_bullet`, `org_bullets_checkboxes`)', true],
       ['Sub- and superscripts raised and lowered (`org-pretty-entities-include-sub-superscripts`, `org-use-sub-superscripts`): where Org raises them, shown in Unicode (`x²`, `H₂O`) in place of the hidden text (drawn by the editor where it can, else an inlay hint) where every character has a raised or lowered form; the others left as they are, as an editor cannot raise text', true],

@@ -1248,6 +1248,16 @@ pub const SETTINGS: &[Setting] = &[
          brackets around a format are dropped.",
     ),
     setting(
+        "org_entities_user",
+        "[name, LaTeX, math?, HTML, ASCII, Latin-1, UTF-8][]",
+        "[]",
+        "org-entities-user",
+        "Entities of your own, used as `\\name`: what each is in LaTeX (and whether that needs math mode), \
+         HTML, ASCII, Latin-1 and UTF-8, as `[\"myarrow\", \"\\\\to\", true, \"&rarr;\", \"->\", \"->\", \"→\"]`. A name \
+         is letters only, and one of Org's own is replaced. The server shows them as `org_pretty_entities` \
+         says and completes them; Emacs exports them.",
+    ),
+    setting(
         "org_pretty_entities",
         "boolean",
         "false",
@@ -3281,6 +3291,10 @@ const SCHEMAS: &[(&str, &str)] = &[
         r#"{ "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 2 }"#,
     ),
     ("org_pretty_entities", BOOLEAN),
+    (
+        "org_entities_user",
+        r#"{ "type": "array", "items": { "type": "array", "minItems": 7, "maxItems": 7, "items": [{ "type": "string" }, { "type": "string" }, { "type": "boolean" }, { "type": "string" }, { "type": "string" }, { "type": "string" }, { "type": "string" }] } }"#,
+    ),
     ("org_pretty_entities_include_sub_superscripts", BOOLEAN),
     ("org_use_sub_superscripts", r#"{ "enum": [true, false, "{}"] }"#),
     ("return_uses_meta_return", BOOLEAN),

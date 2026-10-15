@@ -1293,6 +1293,8 @@ pub fn run(connection: Connection) -> Result<()> {
         eprintln!("org-lsp: {problem}");
     }
     let options = loaded.options;
+    // `org-entities-user`: the parser knows them from here on.
+    org_syntax::set_user_entities(&options.user_entities());
     let (port_sender, port_receiver) = crossbeam_channel::unbounded();
 
     let org_client = raw_params.pointer("/capabilities/experimental/orgClient").and_then(Value::as_bool) == Some(true)
@@ -1427,7 +1429,15 @@ pub fn run(connection: Connection) -> Result<()> {
     let emacs = crate::emacs::Emacs::new(crate::emacs::Settings {
         program: options.emacs.clone().unwrap_or_default(),
         config_file: options.emacs_config_file.clone().filter(|file| !file.is_empty()),
-        config: options.emacs_config.clone().filter(|config| !config.trim().is_empty()),
+        config: {
+            // The user's entities, which Emacs exports as the settings say,
+            // before the user's own Lisp.
+            let config = options.emacs_config.clone().filter(|config| !config.trim().is_empty());
+            match (options.user_entities_lisp(), config) {
+                (Some(entities), Some(config)) => Some(format!("{entities}\n{config}")),
+                (entities, config) => entities.or(config),
+            }
+        },
     });
     let mut agenda = options.agenda_config();
     // The diary sexps the agenda cannot read, read by Emacs

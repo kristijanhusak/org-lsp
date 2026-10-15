@@ -538,7 +538,7 @@ fn entity(before: &str) -> Option<(usize, Vec<Candidate>)> {
     if backslash == 0 || before.as_bytes()[backslash - 1] != b'\\' {
         return None;
     }
-    let candidates = org_syntax::entity_names().iter().map(|name| Candidate::new(*name, Kind::Entity)).collect();
+    let candidates = org_syntax::entity_names().into_iter().map(|name| Candidate::new(name, Kind::Entity)).collect();
     Some((backslash, candidates))
 }
 

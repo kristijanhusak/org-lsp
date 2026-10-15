@@ -589,7 +589,9 @@ fn match_entity(text: &str, i: usize) -> Option<usize> {
         let len = rest.bytes().take_while(u8::is_ascii_alphabetic).count();
         (len > 0 && terminated(&rest[..len])).then_some(&rest[..len])
     })?;
-    ENTITIES.binary_search(&name).ok()?;
+    if ENTITIES.binary_search(&name).is_err() && !crate::entities::user().iter().any(|(known, _)| *known == name) {
+        return None;
+    }
     let braces = if rest[name.len()..].starts_with("{}") { 2 } else { 0 };
     Some(i + 1 + name.len() + braces)
 }

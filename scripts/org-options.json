@@ -500,7 +500,7 @@
   "org-duration-format": "setting"
  },
  "org-entities.el": {
-  "org-entities-user": "missing"
+  "org-entities-user": "setting"
  },
  "org-faces.el": {
   "org-faces-easy-properties": "emacs-only",
