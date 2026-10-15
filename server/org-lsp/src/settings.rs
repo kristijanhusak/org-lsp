@@ -2366,6 +2366,14 @@ pub const SETTINGS: &[Setting] = &[
          window's 79 columns.",
     ),
     setting(
+        "org_roam_extract_new_file_path",
+        "string",
+        r#""%<%Y%m%d%H%M%S>-${slug}.org""#,
+        "org-roam-extract-new-file-path",
+        "The file `org.roam.extract` offers for a node, relative to `org_roam_directory`: `%<…>` is the time \
+         as `format-time-string` writes it, `${title}`, `${slug}` and `${id}` the node's.",
+    ),
+    setting(
         "org_roam_link_auto_replace",
         "boolean",
         "true",
@@ -3362,6 +3370,7 @@ const SCHEMAS: &[(&str, &str)] = &[
         r#"{ "anyOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }] }"#,
     ),
     ("org_roam_node_display_template", STRING),
+    ("org_roam_extract_new_file_path", STRING),
     ("org_roam_link_auto_replace", BOOLEAN),
     ("org_roam_completion_everywhere", BOOLEAN),
     ("org_journal_enabled", BOOLEAN),

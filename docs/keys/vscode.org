@@ -802,6 +802,8 @@ every file; outside Org files the commands say they do not apply):
 | ~org.roam.ref.find~ | Org: Roam: find a node by a reference |
 | ~org.roam.promote~ | Org: Roam: make the file's one top headline the file's node |
 | ~org.roam.demote~ | Org: Roam: make the file's node a headline of its own |
+| ~org.roam.refile~ | Org: Roam: refile to a node |
+| ~org.roam.extract~ | Org: Roam: extract the subtree to a file of its own |
 | ~org.journal.new.entry~ | Org: Journal: new entry |
 | ~org.journal.new.date.entry~ | Org: Journal: new entry for a date |
 | ~org.journal.new.scheduled.entry~ | Org: Journal: new entry for a day to come |

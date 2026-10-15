@@ -1221,6 +1221,16 @@
         "category": "Org"
       },
       {
+        "command": "org.roam.refile",
+        "title": "Roam: refile to a node",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.extract",
+        "title": "Roam: extract the subtree to a file of its own",
+        "category": "Org"
+      },
+      {
         "command": "org.journal.new.entry",
         "title": "Journal: new entry",
         "category": "Org"
@@ -4551,6 +4561,11 @@
               "type": "string",
               "markdownDescription": "How a node is offered: `${field}` for its `title`, `tags`, `todo`, `file`, `olp`, `aliases` and the other fields of `org-roam-node`, `${field:N}` in N columns, `${field:*}` in what is left of the window's 79 columns. (`org-roam-node-display-template`)",
               "default": "${title}"
+            },
+            "org_roam_extract_new_file_path": {
+              "type": "string",
+              "markdownDescription": "The file `org.roam.extract` offers for a node, relative to `org_roam_directory`: `%<…>` is the time as `format-time-string` writes it, `${title}`, `${slug}` and `${id}` the node's. (`org-roam-extract-new-file-path`)",
+              "default": "%<%Y%m%d%H%M%S>-${slug}.org"
             },
             "org_roam_link_auto_replace": {
               "type": "boolean",

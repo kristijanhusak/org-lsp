@@ -447,6 +447,104 @@ fn roam_edits_match_emacs() {
     assert!(failures.is_empty(), "{} differences from Emacs:\n{}", failures.len(), failures.join("\n"));
 }
 
+/// What `org-roam-refile` and `org-roam-extract-subtree` leave: every
+/// file, and the error.
+fn run_move(case: &Value) -> Value {
+    use org_core::roam::edit;
+    const CURSOR: char = '¦';
+    let mut files: std::collections::BTreeMap<String, String> = case["files"]
+        .as_object()
+        .expect("files")
+        .iter()
+        .map(|(name, text)| (name.clone(), text.as_str().unwrap_or_default().to_string()))
+        .collect();
+    let (name, at) =
+        files.iter().find_map(|(name, text)| text.find(CURSOR).map(|at| (name.clone(), at))).expect("a cursor");
+    let text = files[&name].replace(CURSOR, "");
+    files.insert(name.clone(), text.clone());
+    let todo = org_syntax::TodoKeywords::from_document(&text).unwrap_or_default();
+    let context = org_core::properties::Context { keywords: todo.clone(), ..Default::default() };
+    let tags = org_core::tags::Settings { auto_align: true, tags_column: -77, ..Default::default() };
+    let structure = org_core::structure::Settings {
+        tags_column: -77,
+        indent: Default::default(),
+        allow_promoting_top_level: false,
+    };
+    let refile_settings = org_core::refile::Settings::default();
+    let arg = case["arg"].as_str().unwrap_or_default();
+    let result: Result<(), String> = (|| match case["command"].as_str().unwrap_or_default() {
+        "refile" => {
+            if edit::node_at(&text, at, &context).is_ok_and(|node| node.id == arg) {
+                return Err("Target is the same as current node".to_string());
+            }
+            let mut db = Db::default();
+            for (file, body) in &files {
+                let parse = org_syntax::parse(body, &todo);
+                let outline = Outline::new(&parse, body, "x");
+                db.add(file, roam::scan(body, &parse, &outline, file));
+            }
+            let (file, node) = db.nodes.iter().find(|(_, node)| node.id == arg).cloned().ok_or("no such node")?;
+            let to = (node.level > 0).then_some(node.offset);
+            let target = (file != name).then(|| files[&file].clone());
+            let refiled = edit::refile(&text, at, target.as_deref(), to, &todo, &structure, &tags, &refile_settings)
+                .map_err(|refusal| refusal.message().to_string())?;
+            if let Some(changed) = refiled.target {
+                files.insert(file, changed);
+            }
+            if refiled.source.is_empty() {
+                files.remove(&name);
+            } else {
+                files.insert(name.clone(), refiled.source);
+            }
+            Ok(())
+        }
+        "extract" => {
+            let heading = edit::extracted_heading(&text, at).map_err(|refusal| refusal.message().to_string())?;
+            let mut new_id = || "made-id".to_string();
+            let (made, _) = org_core::link::id_get_create(&text, heading, &context, &mut new_id)?;
+            let text = made.map_or(text.clone(), |(text, _)| text);
+            files.insert(name.clone(), text.clone());
+            if files.contains_key(arg) {
+                return Err(format!("{arg} exists. Aborting"));
+            }
+            let (cut, extracted) = edit::extract_subtree(&text, heading, &todo, &structure, &tags)
+                .map_err(|refusal| refusal.message().to_string())?;
+            files.insert(name.clone(), cut);
+            files.insert(arg.to_string(), extracted);
+            Ok(())
+        }
+        other => Err(format!("unknown command {other}")),
+    })();
+    // Emacs saves the files with a newline at the end (`require-final-newline`).
+    for text in files.values_mut() {
+        if !text.is_empty() && !text.ends_with('\n') {
+            text.push('\n');
+        }
+    }
+    json!({ "files": files, "error": result.err() })
+}
+
+#[test]
+fn roam_moves_match_emacs() {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/roam/move.json");
+    let cases: Vec<Value> = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    // The `ID` Emacs makes is random.
+    let uuid = regex::Regex::new(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}").unwrap();
+    let mut failures = Vec::new();
+    for (index, case) in cases.iter().enumerate() {
+        let actual = run_move(case);
+        let expected: Value =
+            serde_json::from_str(&uuid.replace_all(&case["expected"].to_string(), "made-id")).unwrap();
+        if actual != expected {
+            failures.push(format!(
+                "case {index} ({} {}):\n  emacs:   {expected}\n  org-lsp: {actual}",
+                case["command"], case["arg"]
+            ));
+        }
+    }
+    assert!(failures.is_empty(), "{} differences from Emacs:\n{}", failures.len(), failures.join("\n"));
+}
+
 /// What org-roam's buffer shows for the node at the cursor: its title and
 /// text, as Emacs shows them.
 fn run_buffer(case: &Value) -> Value {

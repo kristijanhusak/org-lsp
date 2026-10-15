@@ -1,0 +1,256 @@
+[
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\nIntro\n* Fi¦rst\n:PROPERTIES:\n:ID: f1\n:END:\nfirst text\n** Child\n* Second\n",
+   "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: B\n* B one\n:PROPERTIES:\n:ID: b2\n:END:\n** B child\n* B two\n"
+  },
+  "command": "refile",
+  "arg": "b1",
+  "expected": {
+   "files": {
+    "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: B\n* B one\n:PROPERTIES:\n:ID: b2\n:END:\n** B child\n* B two\n* First\n:PROPERTIES:\n:ID: f1\n:END:\nfirst text\n** Child\n",
+    "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\nIntro\n* Second\n"
+   },
+   "error": null
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\nIntro\n* Fi¦rst\n:PROPERTIES:\n:ID: f1\n:END:\nfirst text\n** Child\n* Second\n",
+   "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: B\n* B one\n:PROPERTIES:\n:ID: b2\n:END:\n** B child\n* B two\n"
+  },
+  "command": "refile",
+  "arg": "b2",
+  "expected": {
+   "files": {
+    "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: B\n* B one\n:PROPERTIES:\n:ID: b2\n:END:\n** B child\n** First\n:PROPERTIES:\n:ID: f1\n:END:\nfirst text\n*** Child\n* B two\n",
+    "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\nIntro\n* Second\n"
+   },
+   "error": null
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\nIntro\n* First\n:PROPERTIES:\n:ID: f1\n:END:\nfirst text\n** Ch¦ild\nchild text\n*** Grandchild\n* Second\n",
+   "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: B\n* B one\n:PROPERTIES:\n:ID: b2\n:END:\n** B child\n* B two\n"
+  },
+  "command": "refile",
+  "arg": "b1",
+  "expected": {
+   "files": {
+    "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: B\n* B one\n:PROPERTIES:\n:ID: b2\n:END:\n** B child\n* B two\n* Child\nchild text\n** Grandchild\n",
+    "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\nIntro\n* First\n:PROPERTIES:\n:ID: f1\n:END:\nfirst text\n* Second\n"
+   },
+   "error": null
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\nIntro\n* First\n:PROPERTIES:\n:ID: f1\n:END:\nfirst text\n** Ch¦ild\nchild text\n*** Grandchild\n* Second\n",
+   "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: B\n* B one\n:PROPERTIES:\n:ID: b2\n:END:\n** B child\n* B two\n"
+  },
+  "command": "refile",
+  "arg": "b2",
+  "expected": {
+   "files": {
+    "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: B\n* B one\n:PROPERTIES:\n:ID: b2\n:END:\n** B child\n** Child\nchild text\n*** Grandchild\n* B two\n",
+    "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\nIntro\n* First\n:PROPERTIES:\n:ID: f1\n:END:\nfirst text\n* Second\n"
+   },
+   "error": null
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\nIntro\n* Fi¦rst\n:PROPERTIES:\n:ID: f1\n:END:\nfirst text\n* Second\n:PROPERTIES:\n:ID: s1\n:END:\n* Third\n"
+  },
+  "command": "refile",
+  "arg": "s1",
+  "expected": {
+   "files": {
+    "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\nIntro\n* Second\n:PROPERTIES:\n:ID: s1\n:END:\n** First\n:PROPERTIES:\n:ID: f1\n:END:\nfirst text\n* Third\n"
+   },
+   "error": null
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\nIntro\n* Fi¦rst\n:PROPERTIES:\n:ID: f1\n:END:\nfirst text\n* Second\n"
+  },
+  "command": "refile",
+  "arg": "a0",
+  "expected": {
+   "files": {
+    "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\nIntro\n* Second\n* First\n:PROPERTIES:\n:ID: f1\n:END:\nfirst text\n"
+   },
+   "error": null
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\nIntro\n* Fi¦rst\n:PROPERTIES:\n:ID: f1\n:END:\nfirst text\n* Second\n"
+  },
+  "command": "refile",
+  "arg": "f1",
+  "expected": {
+   "files": {
+    "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\nIntro\n* First\n:PROPERTIES:\n:ID: f1\n:END:\nfirst text\n* Second\n"
+   },
+   "error": "Target is the same as current node"
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\n#+filetags: :one:\nIn¦tro\n* First\nfirst text\n",
+   "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: B\n* B one\n:PROPERTIES:\n:ID: b2\n:END:\n** B child\n* B two\n"
+  },
+  "command": "refile",
+  "arg": "b2",
+  "expected": {
+   "files": {
+    "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: B\n* B one\n:PROPERTIES:\n:ID: b2\n:END:\n** B child\n** A                                                                    :one:\n:PROPERTIES:\n:ID: a0\n:END:\nIntro\n*** First\nfirst text\n* B two\n"
+   },
+   "error": null
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\n* TODO Fi¦rst  :work:\n:PROPERTIES:\n:ID: f1\n:END:\n",
+   "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: B\n* B one\n:PROPERTIES:\n:ID: b2\n:END:\n** B child"
+  },
+  "command": "refile",
+  "arg": "b2",
+  "expected": {
+   "files": {
+    "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: B\n* B one\n:PROPERTIES:\n:ID: b2\n:END:\n** B child\n** TODO First                                                          :work:\n:PROPERTIES:\n:ID: f1\n:END:\n",
+    "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\n"
+   },
+   "error": null
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\n* Fi¦rst\n",
+   "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: B\n* B one\n:PROPERTIES:\n:ID: b2\n:END:\n** B child\n:PROPERTIES:\n:ID: b3\n:END:\n"
+  },
+  "command": "refile",
+  "arg": "b3",
+  "expected": {
+   "files": {
+    "b.org": ":PROPERTIES:\n:ID: b1\n:END:\n#+title: B\n* B one\n:PROPERTIES:\n:ID: b2\n:END:\n** B child\n:PROPERTIES:\n:ID: b3\n:END:\n*** First\n",
+    "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\n"
+   },
+   "error": null
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\nIntro\n* Fi¦rst\n:PROPERTIES:\n:ID: f1\n:END:\nfirst text\n** Child\n* Second\n"
+  },
+  "command": "extract",
+  "arg": "first.org",
+  "expected": {
+   "files": {
+    "first.org": ":PROPERTIES:\n:ID: f1\n:END:\n#+title: First\nfirst text\n* Child\n",
+    "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\nIntro\n* Second\n"
+   },
+   "error": null
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\nIntro\n* First\n** Ch¦ild   :one:two:\n:PROPERTIES:\n:ID: c1\n:CATEGORY: x\n:END:\nSCHEDULED: <2026-05-20 Wed>\nchild text\n*** Grandchild\n* Second\n"
+  },
+  "command": "extract",
+  "arg": "child.org",
+  "expected": {
+   "files": {
+    "child.org": ":PROPERTIES:\n:ID: c1\n:CATEGORY: x\n:END:\n#+title: Child\n#+filetags: :one:two:\nSCHEDULED: <2026-05-20 Wed>\nchild text\n* Grandchild\n",
+    "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\nIntro\n* First\n* Second\n"
+   },
+   "error": null
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\n#+filetags: :top:\nIntro\n* TODO [#A] First :x:\n:PROPERTIES:\n:ID: f1\n:END:\n¦first text\n"
+  },
+  "command": "extract",
+  "arg": "first.org",
+  "expected": {
+   "files": {
+    "first.org": ":PROPERTIES:\n:ID: f1\n:END:\n#+title: First\n#+filetags: :x:\nfirst text\n",
+    "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\n#+filetags: :top:\nIntro\n"
+   },
+   "error": null
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\nIn¦tro\n* First\n"
+  },
+  "command": "extract",
+  "arg": "first.org",
+  "expected": {
+   "files": {
+    "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\nIntro\n* First\n"
+   },
+   "error": "Already a top-level node"
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Fi¦rst\n:PROPERTIES:\n:ID: f1\n:END:\n* Second\n"
+  },
+  "command": "extract",
+  "arg": "first.org",
+  "expected": {
+   "files": {
+    "a.org": "* First\n:PROPERTIES:\n:ID: f1\n:END:\n* Second\n"
+   },
+   "error": "Already a top-level node"
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\n* Fi¦rst\n:PROPERTIES:\n:ID: f1\n:END:\n",
+   "first.org": "old\n"
+  },
+  "command": "extract",
+  "arg": "first.org",
+  "expected": {
+   "files": {
+    "first.org": "old\n",
+    "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\n* First\n:PROPERTIES:\n:ID: f1\n:END:\n"
+   },
+   "error": "first.org exists. Aborting"
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\n* First\n** Ch¦ild\n:PROPERTIES:\n:ID: c1\n:END:\n* Second"
+  },
+  "command": "extract",
+  "arg": "child.org",
+  "expected": {
+   "files": {
+    "child.org": ":PROPERTIES:\n:ID: c1\n:END:\n#+title: Child\n",
+    "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\n* First\n* Second\n"
+   },
+   "error": null
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\n* First\n** Ch¦ild\nchild text\n* Second\n"
+  },
+  "command": "extract",
+  "arg": "child.org",
+  "expected": {
+   "files": {
+    "child.org": ":PROPERTIES:\n:ID:       3fb48854-4ed1-445a-95af-ef4bebfd0e49\n:END:\n#+title: Child\nchild text\n",
+    "a.org": ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\n* First\n* Second\n"
+   },
+   "error": null
+  }
+ }
+]

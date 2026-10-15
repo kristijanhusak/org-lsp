@@ -22,6 +22,7 @@ use serde_json::{json, Value};
 
 pub mod buffer;
 mod dailies;
+mod move_node;
 mod node_edit;
 
 use super::{template_choices, template_text, Capturing, Pending, Server};
@@ -196,6 +197,12 @@ impl Server {
         }
         if id == commands::ROAM_REF_FIND {
             return self.roam_ref_find(context);
+        }
+        if id == commands::ROAM_EXTRACT {
+            return self.roam_extract(context);
+        }
+        if id == commands::ROAM_REFILE {
+            return self.roam_refile(context);
         }
         let (db, candidates) = self.roam_nodes()?;
         if id == commands::ROAM_NODE_RANDOM {

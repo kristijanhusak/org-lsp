@@ -127,7 +127,7 @@ server first, with a tab that says so and closes when the agenda opens.
 | [[file:parity.org::#agenda][Agenda]] | 100% | ❓ | Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot. |
 | [[file:parity.org::#clocking][Clocking]] | 100% | ✅ |  |
 | [[file:parity.org::#capture][Capture]] | 100% | ✅ |  |
-| [[file:parity.org::#notes-org-roam][Notes (org-roam)]] | 71% | ✅ |  |
+| [[file:parity.org::#notes-org-roam][Notes (org-roam)]] | 79% | ✅ |  |
 | [[file:parity.org::#a-journal-org-journal][A journal (org-journal)]] | 77% | ✅ |  |
 | [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ |  |
 | [[file:parity.org::#links][Links]] | 100% | ✅ |  |
@@ -145,7 +145,7 @@ server first, with a tab that says so and closes when the agenda opens.
 | [[file:parity.org::#attachments][Attachments]] | 100% | ✅ |  |
 | [[file:parity.org::#encryption][Encryption]] | 100% | ✅ |  |
 | [[file:parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | ❓ | An image shows below its line (a phantom), not over the link; PNG, JPEG and GIF only. Counts through a key's ~args~. |
-| *All of Org* | *94%* |  |  |
+| *All of Org* | *95%* |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what and why),
 ❌ none does, — nothing to support yet. Parity is the share of what

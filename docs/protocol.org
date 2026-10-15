@@ -539,6 +539,7 @@ Each option with its type, its default and what it means:
 - ~org_roam_file_extensions~ :: string[], ~["org"]~. The extensions of org-roam's files; each may be followed by ~.gpg~ or ~.age~, which the server cannot read. (~org-roam-file-extensions~)
 - ~org_roam_file_exclude_regexp~ :: string or string[], ~["data/"]~. Emacs regexps for the files that are not org-roam's, matched against their names relative to ~org_roam_directory~; the default leaves out attachments. (~org-roam-file-exclude-regexp~)
 - ~org_roam_node_display_template~ :: string, ~"${title}"~. How a node is offered: ~${field}~ for its ~title~, ~tags~, ~todo~, ~file~, ~olp~, ~aliases~ and the other fields of ~org-roam-node~, ~${field:N}~ in N columns, ~${field:*}~ in what is left of the window's 79 columns. (~org-roam-node-display-template~)
+- ~org_roam_extract_new_file_path~ :: string, ~"%<%Y%m%d%H%M%S>-${slug}.org"~. The file ~org.roam.extract~ offers for a node, relative to ~org_roam_directory~: ~%<…>~ is the time as ~format-time-string~ writes it, ~${title}~, ~${slug}~ and ~${id}~ the node's. (~org-roam-extract-new-file-path~)
 - ~org_roam_link_auto_replace~ :: boolean, ~true~. Turn the ~roam:~ links of org-roam's files into ~id:~ links to their nodes as the files are saved, and as a link is followed. (~org-roam-link-auto-replace~)
 - ~org_roam_completion_everywhere~ :: boolean, ~false~. In org-roam's files, offer the titles of the nodes for the word at the cursor, not only in a link; the one picked becomes a link to its node. (~org-roam-completion-everywhere~)
 - ~org_roam_mode_sections~ :: string[], ~["backlinks", "reflinks"]~. The sections of the org-roam buffer, in turn: ~backlinks~ (the nodes that link to the node), ~reflinks~ (those that link to or cite its references) and ~unlinked-references~ (the places that name it without a link, found by the server itself). (~org-roam-mode-sections~)
@@ -1152,6 +1153,15 @@ increments a number.
 - ~org.roam.promote~, ~org.roam.demote~ :: ~org-roam-promote-entire-buffer~
   and ~org-roam-demote-entire-buffer~ on the file at the cursor, an edit of
   it; or Emacs's error.
+- ~org.roam.refile~ :: ~org-roam-refile~: asks for a node (input kind
+  ~text~, prompt ~Node~, ~completions~ and ~select~, ~context~
+  ~{ "step": "node" }~), then edits both files. A file refiled whole is
+  deleted by the same edit (a ~delete~ resource operation) when the client
+  announces ~workspace.workspaceEdit.resourceOperations~ with ~delete~.
+- ~org.roam.extract~ :: ~org-roam-extract-subtree~: asks for the file
+  (input kind ~text~, prompt ~Extract node to: ~, its ~value~ the name
+  offered, ~context~ ~{ "step": "file" }~), writes the new file itself and
+  edits the one at the cursor.
 - ~org.roam.alias.add~, ~org.roam.alias.remove~, ~org.roam.tag.add~,
   ~org.roam.tag.remove~, ~org.roam.ref.add~, ~org.roam.ref.remove~ ::
   ~org-roam-alias-add~ and the like, on the node at the cursor: they ask

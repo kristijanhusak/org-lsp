@@ -2199,6 +2199,12 @@ org_roam_file_exclude_regexp = ["data/"]
 # (org-roam-node-display-template)
 org_roam_node_display_template = "${title}"
 
+# The file `org.roam.extract` offers for a node, relative to
+# `org_roam_directory`: `%<…>` is the time as `format-time-string` writes it,
+# `${title}`, `${slug}` and `${id}` the node's.
+# (org-roam-extract-new-file-path)
+org_roam_extract_new_file_path = "%<%Y%m%d%H%M%S>-${slug}.org"
+
 # Turn the `roam:` links of org-roam's files into `id:` links to their nodes
 # as the files are saved, and as a link is followed.
 # (org-roam-link-auto-replace)
@@ -3877,6 +3883,12 @@ org_agenda_custom_commands = []
   // `${field:N}` in N columns, `${field:*}` in what is left of the window's
   // 79 columns. (org-roam-node-display-template)
   "org_roam_node_display_template": "${title}",
+
+  // The file `org.roam.extract` offers for a node, relative to
+  // `org_roam_directory`: `%<…>` is the time as `format-time-string` writes
+  // it, `${title}`, `${slug}` and `${id}` the node's.
+  // (org-roam-extract-new-file-path)
+  "org_roam_extract_new_file_path": "%<%Y%m%d%H%M%S>-${slug}.org",
 
   // Turn the `roam:` links of org-roam's files into `id:` links to their
   // nodes as the files are saved, and as a link is followed.

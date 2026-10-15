@@ -1617,6 +1617,20 @@
     }
   },
   {
+    "caption": "Org: Roam: refile to a node",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.refile"
+    }
+  },
+  {
+    "caption": "Org: Roam: extract the subtree to a file of its own",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.extract"
+    }
+  },
+  {
     "caption": "Org: Journal: new entry",
     "command": "org_lsp_run",
     "args": {
