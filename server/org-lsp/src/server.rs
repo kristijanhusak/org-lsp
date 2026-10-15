@@ -975,6 +975,8 @@ struct Server {
     /// with (`message-make-fqdn`).
     ids: (link::IdSettings, String),
     read_date: ReadDateSettings,
+    /// `org-agenda-jump-prefer-future`, when it is not the prompt's.
+    agenda_jump_prefer_future: Option<org_core::read_date::PreferFuture>,
     /// `org-refile-targets`, `org-refile-use-outline-path` and how a
     /// subtree is filed.
     refile: (Vec<RefileTarget>, OutlinePath, RefileSettings),
@@ -1138,6 +1140,8 @@ struct Server {
     allow_promoting_top_level: bool,
     /// `org-yank-adjusted-subtrees`
     yank_adjusted_subtrees: bool,
+    /// `org-sparse-tree-open-archived-trees`
+    sparse_tree_open_archived_trees: bool,
     /// `org-clock-default-task`, marked by clocking in with `C-u C-u`.
     clock_default_task: Option<ClockTask>,
     /// `org-clock-interrupted-task`: the entry whose clock the last
@@ -1477,6 +1481,7 @@ pub fn run(connection: Connection) -> Result<()> {
         table_variables: options.table_emacs_variables(),
         ids: (options.id_settings(), link::fqdn(&system_name())),
         read_date: options.read_date_settings(),
+        agenda_jump_prefer_future: options.agenda_jump_prefer_future(),
         refile: (options.refile_targets(), options.refile_outline_path(), options.refile_settings()),
         id_lookup: (options.id_lookup(), options.id_completion_targets()),
         archive: (options.archive_settings(), options.archive_default_command().to_string()),
@@ -1553,6 +1558,7 @@ pub fn run(connection: Connection) -> Result<()> {
         file_apps: options.file_apps.as_deref().map(org_core::file_apps::FileApps::from_pairs).unwrap_or_default(),
         allow_promoting_top_level: options.allow_promoting_top_level_subtree.unwrap_or(false),
         yank_adjusted_subtrees: options.yank_adjusted_subtrees.unwrap_or(false),
+        sparse_tree_open_archived_trees: options.sparse_tree_open_archived_trees.unwrap_or(false),
         clock_default_task: None,
         clock_interrupted: None,
         clock_out_time: None,
@@ -6463,7 +6469,8 @@ impl Server {
             if self.client.date_prompt {
                 let now = self.date_time();
                 let (value, layout) = (prompt.value.clone(), (self.calendar_months, self.calendar_week_start));
-                let open = DatePrompt::new(id, command, target, prompt.default, value, now, &self.read_date, layout);
+                let settings = self.read_date_of(id);
+                let open = DatePrompt::new(id, command, target, prompt.default, value, now, &settings, layout);
                 self.open_date_prompt(open);
                 return Ok(Value::Null);
             }
@@ -6636,12 +6643,24 @@ impl Server {
         None
     }
 
+    /// How the prompt of the command `id` reads a date: the agenda's `j`
+    /// with `org-agenda-jump-prefer-future`.
+    fn read_date_of(&self, id: &str) -> ReadDateSettings {
+        match self.agenda_jump_prefer_future {
+            Some(prefer_future) if id == commands::AGENDA_GOTO_DATE => {
+                ReadDateSettings { prefer_future, ..self.read_date }
+            }
+            _ => self.read_date,
+        }
+    }
+
     /// `org-agenda-goto-date`: the agenda from the day `answer` names,
     /// over as many days as its span has from there, with the cursor on
     /// that day. A week or a fortnight still starts on the first day of
     /// the week (`org-agenda-start-on-weekday`).
     fn goto_date(&mut self, answer: &str, line: u32) -> std::result::Result<(), Refusal> {
-        let read = org_core::read_date::read_date(answer, None, self.date_time(), &self.read_date)?;
+        let settings = self.read_date_of(commands::AGENDA_GOTO_DATE);
+        let read = org_core::read_date::read_date(answer, None, self.date_time(), &settings)?;
         let day = read.date.to_day();
         let (block, _, span) = self.agenda_block(Some(line))?;
         let span = Span::from_days(span.days(day));
@@ -6755,7 +6774,8 @@ impl Server {
     /// A key of the date prompt. The day it starts from is the one under
     /// the cursor, as in Emacs's calendar, or else the selected one.
     fn calendar_command(&mut self, id: &str, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
-        let (now, settings) = (self.date_time(), self.read_date);
+        let prompt = self.date_prompt.as_ref().map(|open| open.id.clone()).unwrap_or_default();
+        let (now, settings) = (self.date_time(), self.read_date_of(&prompt));
         let step = self.edit_settings.timestamp_rounding_minutes.max(1);
         let open = self.date_prompt.as_mut().ok_or("No date prompt is open")?;
         // Picking the time: the keys that move by day choose the hours or
@@ -6863,7 +6883,8 @@ impl Server {
     fn preview_date(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
         let id = context.command.as_deref().ok_or("Which command's prompt?")?;
         let answer = context.input.as_deref().unwrap_or("");
-        let (now, settings) = (self.date_time(), self.read_date);
+        let prompt = self.date_prompt.as_ref().filter(|_| id == commands::CALENDAR_TYPE).map(|open| open.id.clone());
+        let (now, settings) = (self.date_time(), self.read_date_of(prompt.as_deref().unwrap_or(id)));
         // With the date prompt open, what is typed shows in its minibuffer
         // too, and the answer ends with the day moved to there.
         if let Some(open) = self.date_prompt.as_mut().filter(|open| open.id == id || id == commands::CALENDAR_TYPE) {
@@ -12691,6 +12712,13 @@ impl Server {
     /// What the editor is told of a sparse tree of `text`: the lines to
     /// show and the matches to highlight.
     fn sparse_shown(&self, text: &str, found: &org_core::sparse::Sparse) -> Value {
+        let hidden;
+        let found = if self.sparse_tree_open_archived_trees {
+            found
+        } else {
+            hidden = org_core::sparse::hide_archived(text, found);
+            &hidden
+        };
         let (index, encoding) = (LineIndex::new(text), self.client.encoding);
         let lines: Vec<u32> = found.lines.iter().map(|at| index.position(text, *at, encoding).line).collect();
         let highlights: Vec<Range> = found

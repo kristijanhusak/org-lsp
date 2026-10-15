@@ -426,6 +426,8 @@ pub struct Options {
     /// `org-read-date-prefer-future`: `true`, `false` or `"time"`.
     #[serde(rename = "org_read_date_prefer_future")]
     pub read_date_prefer_future: Option<PreferFutureOption>,
+    #[serde(rename = "org_agenda_jump_prefer_future")]
+    pub agenda_jump_prefer_future: Option<PreferFutureOption>,
     /// `org-read-date-force-compatible-dates`
     #[serde(rename = "org_read_date_force_compatible_dates")]
     pub read_date_force_compatible_dates: Option<bool>,
@@ -478,6 +480,8 @@ pub struct Options {
     /// `org-id-completion-targets`, as `org_refile_targets` is written.
     #[serde(rename = "org_allow_promoting_top_level_subtree")]
     pub allow_promoting_top_level_subtree: Option<bool>,
+    #[serde(rename = "org_sparse_tree_open_archived_trees")]
+    pub sparse_tree_open_archived_trees: Option<bool>,
     #[serde(rename = "org_yank_adjusted_subtrees")]
     pub yank_adjusted_subtrees: Option<bool>,
     #[serde(rename = "org_file_apps")]
@@ -1026,6 +1030,15 @@ pub enum PreferFutureOption {
     Name(String),
 }
 
+/// `org-read-date-prefer-future` and its kin: `true`, `false` or `"time"`.
+fn prefer_future(option: &Option<PreferFutureOption>) -> Option<PreferFuture> {
+    match option.as_ref()? {
+        PreferFutureOption::Flag(false) => Some(PreferFuture::No),
+        PreferFutureOption::Name(name) if name == "time" => Some(PreferFuture::Time),
+        _ => Some(PreferFuture::Yes),
+    }
+}
+
 /// A priority: `"A"` or `1`.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
@@ -1568,15 +1581,16 @@ impl Options {
     pub fn read_date_settings(&self) -> ReadDateSettings {
         let defaults = ReadDateSettings::default();
         ReadDateSettings {
-            prefer_future: match &self.read_date_prefer_future {
-                Some(PreferFutureOption::Flag(false)) => PreferFuture::No,
-                Some(PreferFutureOption::Name(name)) if name == "time" => PreferFuture::Time,
-                Some(_) => PreferFuture::Yes,
-                None => defaults.prefer_future,
-            },
+            prefer_future: prefer_future(&self.read_date_prefer_future).unwrap_or(defaults.prefer_future),
             force_compatible_dates: self.read_date_force_compatible_dates.unwrap_or(defaults.force_compatible_dates),
             extend_today_until: self.extend_today_until.unwrap_or(0),
         }
+    }
+
+    /// `org-agenda-jump-prefer-future`: how the agenda's `j` reads a date,
+    /// when not as every other prompt does.
+    pub fn agenda_jump_prefer_future(&self) -> Option<PreferFuture> {
+        prefer_future(&self.agenda_jump_prefer_future)
     }
 
     /// How clocking writes (`org-clock-into-drawer` and its relatives).
@@ -2860,6 +2874,8 @@ pub struct AgendaOptions {
     pub skip_timestamp_if_done: Option<bool>,
     #[serde(rename = "org_agenda_skip_comment_trees")]
     pub skip_comment_trees: Option<bool>,
+    #[serde(rename = "org_agenda_skip_archived_trees")]
+    pub skip_archived_trees: Option<bool>,
     #[serde(rename = "org_agenda_include_deadlines")]
     pub include_deadlines: Option<bool>,
     #[serde(rename = "org_agenda_skip_additional_timestamps_same_entry")]
@@ -3176,6 +3192,7 @@ impl AgendaOptions {
             skip_timestamp_if_done,
             show_all_dates,
             skip_comment_trees,
+            skip_archived_trees,
             include_deadlines,
             skip_additional_timestamps_same_entry,
             log_mode_add_notes,

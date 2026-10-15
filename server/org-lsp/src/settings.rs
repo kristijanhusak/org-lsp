@@ -160,6 +160,14 @@ pub const SETTINGS: &[Setting] = &[
          `false` the key keeps the editor's own meaning.",
     ),
     setting(
+        "org_sparse_tree_open_archived_trees",
+        "boolean",
+        "false",
+        "org-sparse-tree-open-archived-trees",
+        "A sparse tree (`C-c /`, and a link's `/regexp/`) shows its matches in archived subtrees (tagged \
+         `ARCHIVE`); with `false` those subtrees stay folded under their headline.",
+    ),
+    setting(
         "org_yank_adjusted_subtrees",
         "boolean",
         "false",
@@ -953,6 +961,18 @@ pub const SETTINGS: &[Setting] = &[
         "A date typed without a year or month is the next one to come. With `time`, a time that has passed \
          today is tomorrow's.",
     ),
+    Setting {
+        default: None,
+        unset: "as `org_read_date_prefer_future`",
+        ..setting(
+            "org_agenda_jump_prefer_future",
+            r#"boolean, "time""#,
+            "",
+            "org-agenda-jump-prefer-future",
+            "How the agenda's `j` (`org.agenda.goto.date`) reads a date typed without a year or month, as \
+             `org_read_date_prefer_future` does for every other prompt.",
+        )
+    },
     setting(
         "org_read_date_force_compatible_dates",
         "boolean",
@@ -1845,6 +1865,14 @@ pub const SETTINGS: &[Setting] = &[
         "true",
         "org-agenda-skip-comment-trees",
         "Leave out of every view the entries of a commented subtree (`COMMENT` after the stars).",
+    ),
+    setting(
+        "org_agenda_skip_archived_trees",
+        "boolean",
+        "true",
+        "org-agenda-skip-archived-trees",
+        "Leave out of every view the entries of an archived subtree (tagged `ARCHIVE`), unless archives \
+         mode (`v a`) shows them. Org advises leaving it on and using `v a` instead.",
     ),
     setting(
         "org_agenda_todo_list_sublevels",
@@ -2889,6 +2917,7 @@ const SCHEMAS: &[(&str, &str)] = &[
         r#"{ "anyOf": [{ "enum": [true, false, "reversed"] }, { "type": "array", "items": { "enum": [true, false, "reversed"] }, "minItems": 2, "maxItems": 2 }] }"#,
     ),
     ("org_special_ctrl_k", BOOLEAN),
+    ("org_sparse_tree_open_archived_trees", BOOLEAN),
     ("org_yank_adjusted_subtrees", BOOLEAN),
     ("org_allow_promoting_top_level_subtree", BOOLEAN),
     ("org_list_two_spaces_after_bullet_regexp", r#"{ "anyOf": [{ "const": false }, { "type": "string" }] }"#),
@@ -3011,6 +3040,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_priority_start_cycle_with_default", BOOLEAN),
     ("org_time_stamp_rounding_minutes", r#"{ "type": "integer", "minimum": 0 }"#),
     ("org_read_date_prefer_future", r#"{ "enum": [true, false, "time"] }"#),
+    ("org_agenda_jump_prefer_future", r#"{ "enum": [true, false, "time"] }"#),
     ("org_read_date_force_compatible_dates", BOOLEAN),
     ("org_refile_targets", REFILE_TARGETS),
     ("org_id_completion_targets", REFILE_TARGETS),
@@ -3197,6 +3227,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ),
     ("org_agenda_skip_scheduled_repeats_after_deadline", BOOLEAN),
     ("org_agenda_skip_comment_trees", BOOLEAN),
+    ("org_agenda_skip_archived_trees", BOOLEAN),
     ("org_agenda_todo_list_sublevels", BOOLEAN),
     ("org_agenda_todo_ignore_with_date", BOOLEAN),
     ("org_agenda_todo_ignore_scheduled", TODO_IGNORE),
