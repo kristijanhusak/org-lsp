@@ -504,6 +504,12 @@ pub struct Options {
     /// character.
     #[serde(rename = "org_pretty_entities")]
     pub pretty_entities: Option<bool>,
+    /// `org-display-custom-times`
+    #[serde(rename = "org_display_custom_times")]
+    pub display_custom_times: Option<bool>,
+    /// `org-timestamp-custom-formats`: the date, and the date with a time.
+    #[serde(rename = "org_timestamp_custom_formats")]
+    pub timestamp_custom_formats: Option<Vec<String>>,
     /// `org-pretty-entities-include-sub-superscripts`: with
     /// `org_pretty_entities`, sub- and superscripts shown too.
     #[serde(rename = "org_pretty_entities_include_sub_superscripts")]

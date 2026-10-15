@@ -379,6 +379,7 @@ pub const DEADLINE_WARNING: &str = "org.deadline.warning";
 pub const TIMESTAMP_INSERT: &str = "org.timestamp.insert";
 pub const TIMESTAMP_INSERT_INACTIVE: &str = "org.timestamp.insert.inactive";
 pub const TIMESTAMP_CHANGE: &str = "org.timestamp.change";
+pub const TIMESTAMP_OVERLAYS_TOGGLE: &str = "org.timestamp.overlays.toggle";
 /// What an answer to a date prompt means, for an editor that shows it
 /// while the answer is typed. Not a command of its own for users.
 pub const DATE_PREVIEW: &str = "org.date.preview";
@@ -1618,6 +1619,12 @@ pub const COMMANDS: &[Command] = &[
     Command {
         vim: &[key(Org, "cid")],
         ..ask_date(TIMESTAMP_CHANGE, "Change the timestamp at the cursor", "Timestamp")
+    },
+    // `org-toggle-timestamp-overlays`: timestamps in
+    // `org_timestamp_custom_formats` in this file, or not.
+    Command {
+        emacs: &[key(Org, "C-c C-x C-t")],
+        ..command(TIMESTAMP_OVERLAYS_TOGGLE, "Show timestamps in the custom formats, or not")
     },
     // The date prompt: the keys of `org-read-date-minibuffer-local-map`
     // and of the calendar Emacs shows with it.

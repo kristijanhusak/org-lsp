@@ -160,6 +160,7 @@ extension.
 | ~Ctrl+C Ctrl+D~ | ~org.deadline~ | Set the deadline of the entry |
 | ~Ctrl+C .~ | ~org.timestamp.insert~ | Insert or change a timestamp |
 | ~Ctrl+C !~ | ~org.timestamp.insert.inactive~ | Insert or change an inactive timestamp |
+| ~Ctrl+C Ctrl+X Ctrl+T~ | ~org.timestamp.overlays.toggle~ | Show timestamps in the custom formats, or not |
 | ~Tab~ ¹ | ~org-lsp.cycle~ | Cycle the visibility of the subtree, block or drawer at the cursor |
 | ~Shift+Tab~ | ~org-lsp.cycleGlobal~ | Cycle the visibility of the whole file |
 | ~Ctrl+C a~ | ~org.agenda.dispatch~ | Agenda commands |
@@ -830,6 +831,7 @@ every file; outside Org files the commands say they do not apply):
 | ~org.timestamp.insert~ | Org: Insert or change a timestamp |
 | ~org.timestamp.insert.inactive~ | Org: Insert or change an inactive timestamp |
 | ~org.timestamp.change~ | Org: Change the timestamp at the cursor |
+| ~org.timestamp.overlays.toggle~ | Org: Show timestamps in the custom formats, or not |
 | ~org.calendar.day.later~ | Org: Date prompt: one day later |
 | ~org.calendar.day.earlier~ | Org: Date prompt: one day earlier |
 | ~org.calendar.week.later~ | Org: Date prompt: one week later |

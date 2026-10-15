@@ -1134,6 +1134,24 @@ pub const SETTINGS: &[Setting] = &[
         "Hide the braces of macro calls, `{{{` and `}}}`, in editors that conceal text.",
     ),
     setting(
+        "org_display_custom_times",
+        "boolean",
+        "false",
+        "org-display-custom-times",
+        "Show timestamps in `org_timestamp_custom_formats`: the date and time inside the brackets is hidden \
+         and the custom form shows in its place, as entities do. `#+STARTUP: customtime` turns it on for a \
+         file, and `C-c C-x C-t` (`org.timestamp.overlays.toggle`) on and off. Exports through Emacs use \
+         them too; the date prompt shows its answer in Org's own form.",
+    ),
+    setting(
+        "org_timestamp_custom_formats",
+        "[date, date with time]",
+        r#"["%m/%d/%y %a", "%m/%d/%y %a %H:%M"]"#,
+        "org-timestamp-custom-formats",
+        "The formats of `org_display_custom_times`, as `format-time-string` reads them (`%d.%m.%Y`); \
+         brackets around a format are dropped.",
+    ),
+    setting(
         "org_pretty_entities",
         "boolean",
         "false",
@@ -3003,6 +3021,11 @@ const SCHEMAS: &[(&str, &str)] = &[
         r#"{ "type": "array", "items": { "enum": ["title", "subtitle", "author", "email", "date"] } }"#,
     ),
     ("org_hide_macro_markers", BOOLEAN),
+    ("org_display_custom_times", BOOLEAN),
+    (
+        "org_timestamp_custom_formats",
+        r#"{ "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 2 }"#,
+    ),
     ("org_pretty_entities", BOOLEAN),
     ("org_pretty_entities_include_sub_superscripts", BOOLEAN),
     ("org_use_sub_superscripts", r#"{ "enum": [true, false, "{}"] }"#),

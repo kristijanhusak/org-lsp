@@ -301,6 +301,7 @@ its motions.
 | ~ctrl-c ctrl-d~ | ~org.deadline~ | Set the deadline of the entry |
 | ~ctrl-c .~ | ~org.timestamp.insert~ | Insert or change a timestamp |
 | ~ctrl-c !~ | ~org.timestamp.insert.inactive~ | Insert or change an inactive timestamp |
+| ~ctrl-c ctrl-x ctrl-t~ | ~org.timestamp.overlays.toggle~ | Show timestamps in the custom formats, or not |
 | ~ctrl-c a~ | ~org.agenda.dispatch~ | Agenda commands |
 | ~ctrl-c c~ | ~org.capture~ | Capture |
 | ~ctrl-c n f~ | ~org.roam.node.find~ | Roam: find a node |

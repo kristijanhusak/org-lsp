@@ -1429,6 +1429,24 @@
       "description": "Hide the braces of macro calls, `{{{` and `}}}`, in editors that conceal text. (`org-hide-macro-markers`)",
       "default": false
     },
+    "org_display_custom_times": {
+      "type": "boolean",
+      "description": "Show timestamps in `org_timestamp_custom_formats`: the date and time inside the brackets is hidden and the custom form shows in its place, as entities do. `#+STARTUP: customtime` turns it on for a file, and `C-c C-x C-t` (`org.timestamp.overlays.toggle`) on and off. Exports through Emacs use them too; the date prompt shows its answer in Org's own form. (`org-display-custom-times`)",
+      "default": false
+    },
+    "org_timestamp_custom_formats": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 2,
+      "maxItems": 2,
+      "description": "The formats of `org_display_custom_times`, as `format-time-string` reads them (`%d.%m.%Y`); brackets around a format are dropped. (`org-timestamp-custom-formats`)",
+      "default": [
+        "%m/%d/%y %a",
+        "%m/%d/%y %a %H:%M"
+      ]
+    },
     "org_pretty_entities": {
       "type": "boolean",
       "description": "Show entities (`\\alpha`, `\\to`) as their character (`α`, `→`): the entity is hidden as link brackets are, and its character is an inlay hint in its place. (`org-pretty-entities`)",

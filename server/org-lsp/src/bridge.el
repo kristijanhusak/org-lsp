@@ -188,6 +188,12 @@ was to be opened, or the text of an export to a buffer."
     (unless (or action (eq first ?P))
       (error "No export command under %s %s" (string first) (if second (string second) "")))
     (org-lsp-bridge--in-document params
+      ;; Timestamps in custom formats, as the file shows them
+      ;; (`org-display-custom-times').
+      (let ((formats (alist-get 'custom_times params)))
+        (when formats
+          (setq-local org-display-custom-times t
+                      org-timestamp-custom-formats (cons (aref formats 0) (aref formats 1)))))
       ;; Visible only: what the editor has folded, folded here too.
       (when visible
         (dolist (fold (append (alist-get 'folded params) nil))

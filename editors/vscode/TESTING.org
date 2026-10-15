@@ -31,6 +31,7 @@ its sections says what it should look like.
 - [ ] With ~org_emphasis_alist = { "*": ["bold", "italic"] }~, ~*this*~ is bold and italic and ~/that/~ plain; with ~org_fontify_emphasized_text = false~ neither has a look
 - [ ] With ~org_hidden_keywords = ["title"]~ and ~org_hide_macro_markers = true~, ~#+TITLE:~ is hidden before the title, and ~{{{x}}}~ shows as ~x~
 - [ ] With ~org_pretty_entities = true~, ~\alpha~ shows as ~α~
+- [ ] With ~org_display_custom_times = true~, ~<2026-10-05 Mon 10:00>~ shows as ~<10/05/26 Mon 10:00>~; ~C-c C-x C-t~ shows it as written again: ~Ctrl+C Ctrl+X Ctrl+T~
 - [ ] With ~org_bullets_mode = true~, ~** Two~ shows as ~○ Two~, its first star hidden
 - [ ] With ~org_bullets_mode = true~, ~- [X] a~ shows as ~• [✓] a~ and ~- [ ] b~ as ~• [ ] b~
 - [ ] On the cursor's line ~\alpha~ shows as typed, without ~α~ beside it; typing or deleting one leaves nothing behind

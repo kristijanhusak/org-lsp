@@ -1827,6 +1827,13 @@
     }
   },
   {
+    "caption": "Org: Show timestamps in the custom formats, or not",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.timestamp.overlays.toggle"
+    }
+  },
+  {
     "caption": "Org: Date prompt: one day later",
     "command": "org_lsp_run",
     "args": {

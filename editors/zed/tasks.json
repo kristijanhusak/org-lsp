@@ -1495,6 +1495,19 @@
     "use_new_terminal": false
   },
   {
+    "label": "Org: Show timestamps in the custom formats, or not",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.timestamp.overlays.toggle",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
     "label": "Org: C-c C-c",
     "command": "$HOME/.local/state/org-lsp/agenda-command 'key:C-c C-c'",
     "tags": [
