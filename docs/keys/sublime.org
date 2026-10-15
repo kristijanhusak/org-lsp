@@ -84,6 +84,7 @@ to install and set up the package.
 | ~Ctrl+C Ctrl+X Ctrl+W~ | ~org.cut.subtree~ | Cut the subtree |
 | ~Ctrl+C Ctrl+X Alt+W~ | ~org.copy.subtree~ | Copy the subtree |
 | ~Ctrl+C Ctrl+X Ctrl+Y~ | ~org.paste.subtree~ | Paste the subtree |
+| ~Ctrl+Y~ ¹ | ~org.yank~ | Yank, a subtree at its level |
 | ~Ctrl+C Ctrl+W~ | ~org.refile~ | Refile the entry |
 | ~Ctrl+C Alt+W~ | ~org.refile.copy~ | Copy the entry to a refile target |
 | ~Ctrl+C Ctrl+Z~ | ~org.add.note~ | Add a note to the entry |

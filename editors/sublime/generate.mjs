@@ -97,6 +97,8 @@ const fallbacks = {
   'emacs:ctrl+a': { command: 'select_all' },
   'emacs:ctrl+e': { command: 'slurp_find_string' },
   'emacs:ctrl+k': { command: 'run_macro_file', args: { file: 'res://Packages/Default/Delete to Hard EOL.sublime-macro' } },
+  // C-y: Emacs's yank, the editor's paste.
+  'emacs:ctrl+y': { command: 'paste' },
 };
 
 /** The package's own commands, with their keys. */

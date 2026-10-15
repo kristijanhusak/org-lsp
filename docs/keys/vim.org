@@ -302,6 +302,7 @@ in a popup. [[file:../vim.org][vim.org]] says how to install and set up the plug
 | ~org.table.hline.above~ | Insert a rule above the table row |
 | ~org.reveal.siblings~ | Show the context of the cursor, each level with its children |
 | ~org.reveal.tree~ | Show the whole tree of the cursor's parent |
+| ~org.yank~ | Yank, a subtree at its level |
 | ~org.refile.goto~ | Go to a refile target |
 | ~org.refile.goto.last~ | Go to where the last refile put its entry |
 | ~org.beginning.of.line~ | Move to the start of the headline's title |

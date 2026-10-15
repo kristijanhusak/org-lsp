@@ -30,11 +30,26 @@ fn cuts_copies_and_pastes_as_emacs_does() {
             Some("headline-data") => Adapt::HeadlineData,
             _ => Adapt::Off,
         };
-        let settings = Settings { tags_column: -77, indent: indent::Settings { adapt, ..indent::Settings::default() } };
+        let settings = Settings {
+            tags_column: -77,
+            indent: indent::Settings { adapt, ..indent::Settings::default() },
+            allow_promoting_top_level: false,
+        };
         let count = case["count"].as_u64().unwrap_or(1) as usize;
         let outcome = match op {
             "cut" | "copy" => structure::copy_subtree(text, point, count, op == "cut")
                 .map(|(outcome, copied, _)| (outcome, Some(copied))),
+            // Where Org yanks the text as it is, the editor's own paste.
+            "yank" => {
+                let kill = case["kill"].as_str().unwrap();
+                match structure::yank_subtree(text, point, kill, &settings) {
+                    Some(yanked) => yanked.map(|(outcome, _)| (outcome, None)),
+                    None => {
+                        let text = format!("{}{kill}{}", &text[..point], &text[point..]);
+                        Ok((org_core::newline::Outcome { text, cursor: point + kill.len() }, None))
+                    }
+                }
+            }
             _ => {
                 let level = case["level"].as_u64().map(|level| level as usize);
                 structure::paste_subtree(text, point, case["kill"].as_str().unwrap(), level, &settings)

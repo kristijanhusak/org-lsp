@@ -190,9 +190,10 @@ export const AREAS = [
     name: 'Headings and structure',
     emacs: [
       ['New headings (`M-RET`, `M-S-RET`, `C-RET`, `C-S-RET`), the line split or not (`org-M-RET-may-split-line`), with empty lines before them as `org-blank-before-new-entry` says, after the subtree (`org-insert-heading-respect-content`)', true],
-      ['Promoting and demoting a heading or a subtree', true],
+      ['Promoting and demoting a heading or a subtree; a top-level one to a `#` line (`org-allow-promoting-top-level-subtree`)', true],
       ['Moving a subtree up and down', true],
       ['Cutting, copying and pasting subtrees, their level fitted', true],
+      ['Yanking subtrees with `C-y` at the level around them (`org-yank-adjusted-subtrees`)', true],
       ['Sorting entries (`C-c ^`)', true],
       ['The outline of the file (document symbols)', true],
       ['Moving between headings (`C-c C-n`, `C-c C-p`, `C-c C-f`, `C-c C-b`, `C-c C-u`)', true],
@@ -205,8 +206,8 @@ export const AREAS = [
       ['Sparse trees that tell case apart (`org-occur-case-fold-search`), or by a kind of date asked for (`org-sparse-tree-default-date-type`)', false],
     ],
     editors: {
-      zed: ['part', `A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, ${ZED_TEXT}. \`C-a\`, \`C-e\` and \`C-k\` keep Zed's own meaning.`],
-      helix: ['part', 'New headings (`M-RET` and its relatives), moving between headings, `org-goto` and Org\'s `C-a`, `C-e` and `C-k` are left out: they carry the cursor for the editor to move, which Helix\'s code actions cannot do; nor are the commands run by Emacs (`C-c *`, `C-c ;`, cloning) among its code actions.'],
+      zed: ['part', `A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, ${ZED_TEXT}. \`C-a\`, \`C-e\`, \`C-k\` and \`C-y\` keep Zed's own meaning.`],
+      helix: ['part', 'New headings (`M-RET` and its relatives), moving between headings, `org-goto` and Org\'s `C-a`, `C-e`, `C-k` and `C-y` are left out: they carry the cursor for the editor to move, which Helix\'s code actions cannot do; nor are the commands run by Emacs (`C-c *`, `C-c ;`, cloning) among its code actions.'],
     },
     checks: [
       { text: 'On a headline, a new heading of the same level goes below', cmd: 'org.meta.return', not: ['helix'] },
@@ -217,6 +218,8 @@ export const AREAS = [
       { text: 'Moving a subtree up and down past its siblings', cmd: ['org.meta.up', 'org.meta.down'] },
       { text: 'Cutting a subtree and pasting it under another heading: its level fits there', cmd: ['org.cut.subtree', 'org.paste.subtree'] },
       { text: 'Copying a subtree and pasting it', cmd: ['org.copy.subtree', 'org.paste.subtree'] },
+      { text: 'With `org_yank_adjusted_subtrees` on and Emacs keys, C-y of a copied `* A` subtree at the start of the line after a `** B` entry pastes it as `** A`; in the middle of a line C-y pastes as the editor does', cmd: 'org.yank', only: ['vscode', 'sublime'] },
+      { text: 'With `org_allow_promoting_top_level_subtree` on, promoting `* A` makes it `# A`', cmd: 'org.meta.left' },
       { text: 'Sorting the children of a heading alphabetically, then by TODO state', cmd: 'org.sort' },
       { text: 'Moving to the next and previous heading; with a count, that many', cmd: ['org.heading.next', 'org.heading.previous'], not: ['helix'] },
       { text: 'Moving to the next and previous heading of the same level, stopping at the parent\'s end', cmd: ['org.heading.forward', 'org.heading.backward'], not: ['helix'] },

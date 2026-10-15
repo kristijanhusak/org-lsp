@@ -735,6 +735,13 @@
     }
   },
   {
+    "caption": "Org: Yank, a subtree at its level",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.yank"
+    }
+  },
+  {
     "caption": "Org: Refile the entry",
     "command": "org_lsp_run",
     "args": {

@@ -30,13 +30,14 @@ its sections says what it should look like.
 
 * Headings and structure
 
-*Partly:* New headings (~M-RET~ and its relatives), moving between headings, ~org-goto~ and Org's ~C-a~, ~C-e~ and ~C-k~ are left out: they carry the cursor for the editor to move, which Helix's code actions cannot do; nor are the commands run by Emacs (~C-c *~, ~C-c ;~, cloning) among its code actions.
+*Partly:* New headings (~M-RET~ and its relatives), moving between headings, ~org-goto~ and Org's ~C-a~, ~C-e~, ~C-k~ and ~C-y~ are left out: they carry the cursor for the editor to move, which Helix's code actions cannot do; nor are the commands run by Emacs (~C-c *~, ~C-c ;~, cloning) among its code actions.
 
 - [ ] Promoting and demoting a heading; its tags stay aligned: the code action /Promote the heading; outdent the item; move the table column left/, the code action /Demote the heading; indent the item, the drawer or the block; move the table column right/
 - [ ] Promoting and demoting a subtree: the code action /Promote the subtree; outdent the item with its children; delete the table column/, the code action /Demote the subtree; indent the item with its children; insert a table column/
 - [ ] Moving a subtree up and down past its siblings: the code action /Move the subtree, the item or the table row up/, the code action /Move the subtree, the item or the table row down/
 - [ ] Cutting a subtree and pasting it under another heading: its level fits there: the code action /Cut the subtree/, the code action /Paste the subtree/
 - [ ] Copying a subtree and pasting it: the code action /Copy the subtree/, the code action /Paste the subtree/
+- [ ] With ~org_allow_promoting_top_level_subtree~ on, promoting ~* A~ makes it ~# A~: the code action /Promote the heading; outdent the item; move the table column left/
 - [ ] Sorting the children of a heading alphabetically, then by TODO state: the code action /Sort the entries, the items or the table rows/
 - [ ] The outline lists the headings nested, also in pickers that filter symbols by kind: ~Space s~
 

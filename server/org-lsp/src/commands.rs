@@ -248,6 +248,7 @@ pub const REVEAL_TREE: &str = "org.reveal.tree";
 pub const CUT_SUBTREE: &str = "org.cut.subtree";
 pub const COPY_SUBTREE: &str = "org.copy.subtree";
 pub const PASTE_SUBTREE: &str = "org.paste.subtree";
+pub const YANK: &str = "org.yank";
 pub const INSERT_TODO_HEADING: &str = "org.insert.todo.heading";
 pub const INSERT_HEADING_AFTER: &str = "org.insert.heading.after";
 pub const INSERT_TODO_HEADING_AFTER: &str = "org.insert.todo.heading.after";
@@ -862,6 +863,10 @@ pub const COMMANDS: &[Command] = &[
         clipboard: true,
         ..edit(PASTE_SUBTREE, "Paste the subtree")
     },
+    // `org-yank`: with `org_yank_adjusted_subtrees`, a subtree yanked at the
+    // start of a line goes in as `org-paste-subtree` puts it; anything else
+    // is the editor's own paste (`notApplicable`).
+    Command { emacs: &[native(Org, "C-y")], clipboard: true, ..edit(YANK, "Yank, a subtree at its level") },
     Command {
         emacs: &[key(Org, "C-c C-w"), key(Agenda, "C-c C-w")],
         vim: &[key(Org, "<Leader>or")],

@@ -476,6 +476,10 @@ pub struct Options {
     #[serde(rename = "org_refile_targets")]
     pub refile_targets: Option<Vec<RefileTargetOption>>,
     /// `org-id-completion-targets`, as `org_refile_targets` is written.
+    #[serde(rename = "org_allow_promoting_top_level_subtree")]
+    pub allow_promoting_top_level_subtree: Option<bool>,
+    #[serde(rename = "org_yank_adjusted_subtrees")]
+    pub yank_adjusted_subtrees: Option<bool>,
     #[serde(rename = "org_file_apps")]
     pub file_apps: Option<Vec<(String, String)>>,
     #[serde(rename = "org_link_search_must_match_exact_headline")]
