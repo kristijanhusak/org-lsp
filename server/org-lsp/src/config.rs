@@ -309,6 +309,9 @@ pub struct Options {
     /// document, after those of its `#+BIBLIOGRAPHY:` lines.
     #[serde(rename = "org_cite_global_bibliography")]
     pub cite_global_bibliography: Option<Vec<String>>,
+    /// `org-cite-insert-processor`: a processor's name, or `false`.
+    #[serde(rename = "org_cite_insert_processor")]
+    pub cite_insert_processor: Option<serde_json::Value>,
     /// `org-link-abbrev-alist`: link abbreviations, each with what it
     /// stands for (`%s` the tag, `%h` the tag URL-encoded).
     #[serde(rename = "org_link_abbrev_alist")]
@@ -1824,6 +1827,15 @@ impl Options {
             set("org-babel-noweb-wrap-end", lisp_string(end));
         }
         forms
+    }
+
+    /// `org-cite-insert-processor`: none for `false`.
+    pub fn cite_insert_processor(&self) -> Option<String> {
+        match &self.cite_insert_processor {
+            None => Some("basic".to_string()),
+            Some(serde_json::Value::String(name)) if !name.is_empty() => Some(name.clone()),
+            Some(_) => None,
+        }
     }
 
     /// `org-occur-case-fold-search`

@@ -1102,6 +1102,8 @@ struct Server {
     displayed: HashSet<String>,
     /// `org-cite-global-bibliography`
     cite_global: Vec<String>,
+    /// `org-cite-insert-processor`
+    cite_insert_processor: Option<String>,
     /// `org-link-abbrev-alist`.
     link_abbreviations: Vec<(String, String)>,
     /// `org-agenda-dim-blocked-tasks`.
@@ -1594,6 +1596,7 @@ pub fn run(connection: Connection) -> Result<()> {
         virtually_indented: HashSet::new(),
         displayed: HashSet::new(),
         cite_global: options.cite_global_bibliography.clone().unwrap_or_default(),
+        cite_insert_processor: options.cite_insert_processor(),
         dim_blocked: match &options.agenda_dim_blocked_tasks {
             Some(LogOption::Flag(false)) => DimBlocked::No,
             Some(LogOption::Name(name)) if name == "invisible" => DimBlocked::Hide,
@@ -13465,6 +13468,17 @@ impl Server {
     /// `arg` on a citation, it goes, or the reference at the cursor.
     fn cite_insert(&mut self, arg: bool, context: &Context) -> std::result::Result<Value, Refusal> {
         use org_core::cite::{self, Insert};
+        // `org-cite-insert-processor`: org-lsp inserts as `basic` does;
+        // Org's other processors cannot insert, and one of a package
+        // (citar) asks in Emacs's minibuffer.
+        match self.cite_insert_processor.as_deref() {
+            None => return Err(Refusal::Failed("No processor set to insert citations".to_string())),
+            Some("basic") => {}
+            Some(name @ ("biblatex" | "bibtex" | "csl" | "natbib")) => {
+                return Err(Refusal::Failed(format!("Processor {name} cannot insert citations")));
+            }
+            Some(name) => return Err(Refusal::Failed(format!("Unknown processor {name}"))),
+        }
         let uri = context.text_document.uri.clone();
         if self.is_view(&uri) {
             return Err(Refusal::NotHere("This command works in Org files".to_string()));

@@ -6347,6 +6347,26 @@ fn edits_tables() {
     client.shutdown();
 }
 
+/// `org-cite-insert-processor`: none, one of Org's that cannot insert,
+/// and one org-lsp does not have, refused with Org's messages.
+#[test]
+fn refuses_citation_processors_other_than_basic() {
+    let uri = "file:///tmp/org-lsp-cite-processor/notes.org";
+    for (processor, refused) in [
+        (json!(false), "No processor set to insert citations"),
+        (json!("csl"), "Processor csl cannot insert citations"),
+        (json!("citar"), "Unknown processor citar"),
+    ] {
+        let mut client = Client::editor(json!({ "org_cite_insert_processor": processor }), None);
+        client.open(uri, "See here.\n");
+        let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 4 } });
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": "org.cite.insert", "arguments": [context] }));
+        assert_eq!(result, Err(refused.to_string()));
+        client.shutdown();
+    }
+}
+
 /// `org-cite-insert` (`C-c C-x @`): keys one at a time from the
 /// bibliography until done, a style with the prefix argument; on a
 /// citation a key added after the others; with the prefix argument on a

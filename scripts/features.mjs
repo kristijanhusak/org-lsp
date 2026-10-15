@@ -888,7 +888,8 @@ export const AREAS = [
       ['A key\'s entry on hover, following a key', true],
       ['Unknown keys reported', true],
       ['Inserting, editing and deleting citations (`C-c C-x @`)', true],
-      ['Another processor to insert citations (`org-cite-insert-processor`)', false],
+      ['No processor to insert citations, or one of Org\'s that cannot (`org-cite-insert-processor`)', true],
+      ['A package\'s processor to insert citations, citar\'s (`org-cite-insert-processor`)', false],
     ],
     editors: {
       helix: ['part', 'Inserting citations is not offered as a code action yet. Completion, hover and following work.'],

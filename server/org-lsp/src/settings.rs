@@ -935,6 +935,14 @@ pub const SETTINGS: &[Setting] = &[
          completed after `@`, shown over a key, and where following a key goes; a key none has is marked.",
     ),
     setting(
+        "org_cite_insert_processor",
+        "string, false",
+        r#""basic""#,
+        "org-cite-insert-processor",
+        "The citation processor `org.cite.insert` inserts with: `basic`, as Org's own does; Org's other \
+         processors cannot insert, and those of packages (citar) are not run; `false` for none.",
+    ),
+    setting(
         "org_link_abbrev_alist",
         "{ [abbreviation]: string }",
         "{}",
@@ -3351,6 +3359,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_global_properties", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
     ("org_complete_tags_always_offer_all_agenda_tags", BOOLEAN),
     ("org_cite_global_bibliography", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("org_cite_insert_processor", r#"{ "anyOf": [{ "type": "string" }, { "const": false }] }"#),
     ("org_link_abbrev_alist", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
     (
         "org_file_apps",
