@@ -470,9 +470,10 @@ function! s:executed(bufnr, name, context, opts, error, result) abort
       execute at_end ? 'startinsert!' : 'startinsert'
     endif
   endif
-  " What was cut or copied goes to the register, by lines.
+  " What was cut or copied goes to the register, by lines, or by
+  " characters for a kill of part of a line (`org.kill.line`).
   if type(get(result, 'copy', 0)) == v:t_string
-    call setreg(get(a:opts, 'register', '"'), result.copy, 'l')
+    call setreg(get(a:opts, 'register', '"'), result.copy, get(result, 'copyCharacters', v:false) is v:true ? 'c' : 'l')
   endif
   " A sparse tree: everything folded but the lines shown.
   if type(get(result, 'sparse', 0)) == v:t_dict && bufnr() == a:bufnr

@@ -148,6 +148,27 @@ pub const SETTINGS: &[Setting] = &[
         "M-RET and M-S-RET outside lists put the new heading after the subtree, as C-RET does.",
     ),
     setting(
+        "org_special_ctrl_a_e",
+        r#"false, true, "reversed", [C-a, C-e]"#,
+        "false",
+        "org-special-ctrl-a/e",
+        "How C-a and C-e (`org.beginning.of.line`, `org.end.of.line`) move on a headline or an item: `true` \
+         to the start of the headline's title, after the stars, TODO keyword and priority, or after the \
+         item's bullet and check-box, and to the end of the title, before the tags; the same key again to \
+         the line's own start or end. `reversed` goes to the line's start or end first, and to those \
+         places on the same key right after. A pair, as `[true, false]`, sets C-a and C-e apart. With \
+         `false` the key keeps the editor's own meaning.",
+    ),
+    setting(
+        "org_special_ctrl_k",
+        "boolean",
+        "false",
+        "org-special-ctrl-k",
+        "C-k (`org.kill.line`) on a headline kills the text to the tags, and the tags when the cursor is \
+         past the title; at the start of the line, the whole line. With `false` the key keeps the editor's \
+         own meaning.",
+    ),
+    setting(
         "org_list_two_spaces_after_bullet_regexp",
         "false, string",
         "false",
@@ -2718,6 +2739,11 @@ const SCHEMAS: &[(&str, &str)] = &[
         r#"{ "type": "object", "properties": { "heading": { "enum": [true, false, "auto"] }, "plain_list_item": { "enum": [true, false, "auto"] } }, "additionalProperties": false }"#,
     ),
     ("org_insert_heading_respect_content", BOOLEAN),
+    (
+        "org_special_ctrl_a_e",
+        r#"{ "anyOf": [{ "enum": [true, false, "reversed"] }, { "type": "array", "items": { "enum": [true, false, "reversed"] }, "minItems": 2, "maxItems": 2 }] }"#,
+    ),
+    ("org_special_ctrl_k", BOOLEAN),
     ("org_list_two_spaces_after_bullet_regexp", r#"{ "anyOf": [{ "const": false }, { "type": "string" }] }"#),
     (
         "org_list_demote_modify_bullet",

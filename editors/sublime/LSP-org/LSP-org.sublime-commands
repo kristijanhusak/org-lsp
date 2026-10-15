@@ -854,6 +854,27 @@
     }
   },
   {
+    "caption": "Org: Move to the start of the headline's title",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.beginning.of.line"
+    }
+  },
+  {
+    "caption": "Org: Move to the end of the headline's title",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.end.of.line"
+    }
+  },
+  {
+    "caption": "Org: Kill the headline's text to the tags, or the tags",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.kill.line"
+    }
+  },
+  {
     "caption": "Org: Go to a heading of the file",
     "command": "org_lsp_run",
     "args": {

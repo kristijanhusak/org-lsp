@@ -267,6 +267,9 @@ pub const HEADING_UP: &str = "org.heading.up";
 pub const LINK_NEXT: &str = "org.link.next";
 pub const LINK_PREVIOUS: &str = "org.link.previous";
 pub const GOTO: &str = "org.goto";
+pub const BEGINNING_OF_LINE: &str = "org.beginning.of.line";
+pub const END_OF_LINE: &str = "org.end.of.line";
+pub const KILL_LINE: &str = "org.kill.line";
 pub const FOOTNOTE_ACTION: &str = "org.footnote.action";
 pub const FOOTNOTE_MENU: &str = "org.footnote.menu";
 pub const TOGGLE_ITEM: &str = "org.toggle.item";
@@ -958,6 +961,13 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, "[l")],
         ..command(LINK_PREVIOUS, "Move to the previous link")
     },
+    // `org-beginning-of-line`, `org-end-of-line` and `org-kill-line`, as
+    // `org_special_ctrl_a_e` and `org_special_ctrl_k` make them; with
+    // those off the keys keep the editor's meaning (`notApplicable`).
+    // C-k's kill is in `copy`, by characters.
+    Command { emacs: &[native(Org, "C-a")], ..command(BEGINNING_OF_LINE, "Move to the start of the headline's title") },
+    Command { emacs: &[native(Org, "C-e")], ..command(END_OF_LINE, "Move to the end of the headline's title") },
+    Command { emacs: &[native(Org, "C-k")], ..edit(KILL_LINE, "Kill the headline's text to the tags, or the tags") },
     // `org-goto` with its `outline-path-completion` interface: the file's
     // headings by their outline path, to `org_goto_max_level`.
     Command {

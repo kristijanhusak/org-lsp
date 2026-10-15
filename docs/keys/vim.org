@@ -303,6 +303,9 @@ in a popup. [[file:../vim.org][vim.org]] says how to install and set up the plug
 | ~org.reveal.tree~ | Show the whole tree of the cursor's parent |
 | ~org.refile.goto~ | Go to a refile target |
 | ~org.refile.goto.last~ | Go to where the last refile put its entry |
+| ~org.beginning.of.line~ | Move to the start of the headline's title |
+| ~org.end.of.line~ | Move to the end of the headline's title |
+| ~org.kill.line~ | Kill the headline's text to the tags, or the tags |
 | ~org.toggle.item~ | Turn the line into an item, or the item into a line |
 | ~org.toggle.heading~ | Turn the line into a heading, or the heading into a line |
 | ~org.table.import~ | Import a file as a table |

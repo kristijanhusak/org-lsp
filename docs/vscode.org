@@ -120,7 +120,7 @@ with the cursor on them, until the agenda is built again with ~r~.
 |---+---+---+---|
 | [[file:parity.org::#highlighting][Highlighting]] | 94% | ✅ |  |
 | [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 90% | ❓ | A closed fold ends in VS Code's own ~⋯~: an extension cannot change it (~org_ellipsis~). |
-| [[file:parity.org::#headings-and-structure][Headings and structure]] | 92% | ✅ |  |
+| [[file:parity.org::#headings-and-structure][Headings and structure]] | 93% | ✅ |  |
 | [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 100% | ✅ |  |
 | [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ✅ |  |
 | [[file:parity.org::#priorities][Priorities]] | 75% | ✅ |  |

@@ -188,6 +188,7 @@ export const AREAS = [
       ['The outline of the file (document symbols)', true],
       ['Moving between headings (`C-c C-n`, `C-c C-p`, `C-c C-f`, `C-c C-b`, `C-c C-u`)', true],
       ['Jumping to a heading (`org-goto`, `C-c C-j`, by outline path)', true],
+      ['`C-a`, `C-e` and `C-k` on headlines and items, to the title and the tags (`org-special-ctrl-a/e`, `org-special-ctrl-k`)', true],
       ['Turning lines into headings and back (`C-c *`, through Emacs)', true],
       ['Toggling `COMMENT` (`C-c ;`, through Emacs)', true],
       ['Cloning a subtree with its dates shifted (`C-c C-x c`, through Emacs)', true],
@@ -195,8 +196,8 @@ export const AREAS = [
       ['Sparse trees that tell case apart (`org-occur-case-fold-search`), or by a kind of date asked for (`org-sparse-tree-default-date-type`)', false],
     ],
     editors: {
-      zed: ['part', `A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, ${ZED_TEXT}.`],
-      helix: ['part', 'New headings (`M-RET` and its relatives), moving between headings and `org-goto` are left out: they carry the cursor for the editor to move, which Helix\'s code actions cannot do; nor are the commands run by Emacs (`C-c *`, `C-c ;`, cloning) among its code actions.'],
+      zed: ['part', `A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, ${ZED_TEXT}. \`C-a\`, \`C-e\` and \`C-k\` keep Zed's own meaning.`],
+      helix: ['part', 'New headings (`M-RET` and its relatives), moving between headings, `org-goto` and Org\'s `C-a`, `C-e` and `C-k` are left out: they carry the cursor for the editor to move, which Helix\'s code actions cannot do; nor are the commands run by Emacs (`C-c *`, `C-c ;`, cloning) among its code actions.'],
     },
     checks: [
       { text: 'On a headline, a new heading of the same level goes below', cmd: 'org.meta.return', not: ['helix'] },
@@ -212,6 +213,7 @@ export const AREAS = [
       { text: 'Moving to the next and previous heading of the same level, stopping at the parent\'s end', cmd: ['org.heading.forward', 'org.heading.backward'], not: ['helix'] },
       { text: 'Moving to the parent heading; on a top heading Org says it is at the top level', cmd: 'org.heading.up', not: ['helix'] },
       { text: 'Going to a heading picked by its outline path (`A/B/`)', cmd: 'org.goto', not: ['helix'] },
+      { text: 'With `org_special_ctrl_a_e` and `org_special_ctrl_k` set to `true`, on `* TODO Title :tag:`: C-a goes to the start of `Title`, again to the line\'s start; C-e to the end of `Title`, again after the tags; C-k in the title kills to the tags, which stay aligned, and C-k again kills the tags', cmd: ['org.beginning.of.line', 'org.end.of.line', 'org.kill.line'], not: ['zed', 'helix'] },
       { text: 'Off a table, turning a line into a heading and back (needs Emacs)', cmd: 'org.toggle.heading', not: ['helix'] },
       { text: 'Toggling `COMMENT` on the heading (needs Emacs)', cmd: 'org.toggle.comment', not: ['helix'] },
       { text: 'Cloning the subtree twice a week apart (`+1w`): the copies follow it with their dates moved (needs Emacs)', cmd: 'org.subtree.clone', not: ['helix'] },

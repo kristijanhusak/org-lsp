@@ -101,7 +101,7 @@ calendar, or typed as at Org's prompt (~fri 10:00~, ~+2d~, ~2/15~, ~++1w~).
 |---+---+---+---|
 | [[file:parity.org::#highlighting][Highlighting]] | 94% | ✅ |  |
 | [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 90% | ❓ | Cycling the whole file goes between overview and everything: it has no contents state, which needs folds of a headline's own text that Neovim's fold levels do not make. |
-| [[file:parity.org::#headings-and-structure][Headings and structure]] | 92% | ✅ |  |
+| [[file:parity.org::#headings-and-structure][Headings and structure]] | 93% | ✅ |  |
 | [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 100% | ✅ |  |
 | [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ✅ |  |
 | [[file:parity.org::#priorities][Priorities]] | 75% | ✅ |  |

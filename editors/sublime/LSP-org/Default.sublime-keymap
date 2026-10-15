@@ -1548,6 +1548,81 @@
   },
   {
     "keys": [
+      "ctrl+a"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.beginning.of.line",
+      "fallback": {
+        "command": "select_all"
+      }
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+e"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.end.of.line",
+      "fallback": {
+        "command": "slurp_find_string"
+      }
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+k"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.kill.line",
+      "fallback": {
+        "command": "run_macro_file",
+        "args": {
+          "file": "res://Packages/Default/Delete to Hard EOL.sublime-macro"
+        }
+      }
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
       "ctrl+c",
       "ctrl+j"
     ],

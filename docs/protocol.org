@@ -264,6 +264,8 @@ Each option with its type, its default and what it means:
 - ~org_M_RET_may_split_line~ :: boolean, object, ~true~. Inserting a heading, an item or a table row (M-RET) in the middle of a line splits it, the rest going to the new one; ~false~: it goes in after the line. One by context: ~{ "headline": false, "item": true, "table": true }~, ~default~ for those not named. (~org-M-RET-may-split-line~)
 - ~org_blank_before_new_entry~ :: object, ~auto~ for both. Whether a new heading (~heading~) and a new item (~plain_list_item~) get an empty line before them: ~true~, ~false~, or ~"auto"~, as the headings or items around them have. (~org-blank-before-new-entry~)
 - ~org_insert_heading_respect_content~ :: boolean, ~false~. M-RET and M-S-RET outside lists put the new heading after the subtree, as C-RET does. (~org-insert-heading-respect-content~)
+- ~org_special_ctrl_a_e~ :: false, true, "reversed", [C-a, C-e], ~false~. How C-a and C-e (~org.beginning.of.line~, ~org.end.of.line~) move on a headline or an item: ~true~ to the start of the headline's title, after the stars, TODO keyword and priority, or after the item's bullet and check-box, and to the end of the title, before the tags; the same key again to the line's own start or end. ~reversed~ goes to the line's start or end first, and to those places on the same key right after. A pair, as ~[true, false]~, sets C-a and C-e apart. With ~false~ the key keeps the editor's own meaning. (~org-special-ctrl-a/e~)
+- ~org_special_ctrl_k~ :: boolean, ~false~. C-k (~org.kill.line~) on a headline kills the text to the tags, and the tags when the cursor is past the title; at the start of the line, the whole line. With ~false~ the key keeps the editor's own meaning. (~org-special-ctrl-k~)
 - ~org_list_two_spaces_after_bullet_regexp~ :: false, string, ~false~. An Emacs regexp: the bullets it matches get two spaces after them when Org writes them (a new item, a bullet changed, a list repaired). (~org-list-two-spaces-after-bullet-regexp~)
 - ~org_list_demote_modify_bullet~ :: object, ~{  }~. By bullet (~-~, ~+~, ~*~, ~1.~, ~1)~), the bullet an item gets when it is indented: ~{ "+": "-", "-": "+" }~. (~org-list-demote-modify-bullet~)
 - ~org_list_indent_offset~ :: integer, ~0~. How many more columns sub-items are indented, past their parent's bullet. (~org-list-indent-offset~)
@@ -1327,6 +1329,25 @@ increments a number.
   from the other end of the file
   (~Link search wrapped back to beginning of buffer~). ~org.heading.up~ on a
   top heading fails with ~Already at top level of the outline~.
+- ~org.beginning.of.line~, ~org.end.of.line~, ~org.kill.line~ ::
+  ~org-beginning-of-line~ (~C-a~), ~org-end-of-line~ (~C-e~) and
+  ~org-kill-line~ (~C-k~), as ~org_special_ctrl_a_e~ and
+  ~org_special_ctrl_k~ make them; with those ~false~ they are
+  ~notApplicable~, so that the keys keep the editor's meaning. ~C-a~ goes to
+  the start of a headline's title (after the stars, TODO keyword and
+  priority) or after an item's bullet and check-box, ~C-e~ to the end of a
+  headline's title before its tags, the same key again to the line's own
+  start or end; with ~reversed~ the other way round. ~C-k~ on a headline
+  kills to the tags, or the tags from the cursor, and aligns them again
+  (~org_auto_align_tags~); at the start of the line, and off headlines, it
+  kills as ~kill-line~ does (the newline too when only blanks follow; ~End
+  of buffer~ at the end). The count moves that many lines first, as
+  Emacs's does. The same command again from where the last one left the
+  cursor is a repeat (Emacs's ~last-command~): ~reversed~ goes on to the
+  special place, and a kill adds to the one before. The motions carry the
+  cursor (~{ "edits": [], "cursor" }~); ~org.kill.line~ carries its edit and
+  the kill in ~copy~, with ~"copyCharacters": true~ for an editor whose
+  registers are by lines or by characters (Neovim, Vim).
 - ~org.goto~ :: ~org-goto~ (~C-c C-j~) with its ~outline-path-completion~
   interface: kind ~choice~, prompt ~Goto~, the file's headings to
   ~org_goto_max_level~ by their outline path (~A/B/~, as ~org-refile~ names
