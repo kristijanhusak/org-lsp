@@ -276,6 +276,7 @@ export const AREAS = [
       ['Cycling states, and fast selection by key (`TODO(t)`), from a menu or the keys in the prompt alone, or never (`org-use-fast-todo-selection`)', true],
       ['Sequences and types from `#+TODO:` and `org_todo_keywords`', true],
       ['Several sequences: cycling stays in the entry\'s sequence, and `C-S-<right>`, `C-S-<left>` switch sets', true],
+      ['Keywords given alone read as a sequence or as types (`org-todo-interpretation`)', true],
       ['Faces of particular keywords and priorities (`org-todo-keyword-faces`, `org-priority-faces`)', true],
       ['Logging: `CLOSED:`, the time or a note on a state change (`!`, `@`), `LOG_INTO_DRAWER`', true],
       ['TODO statistics of the parent, counting what `org-provide-todo-statistics` says, children only or the subtree (`org-hierarchical-todo-statistics`); tags set and removed with the state (`org-todo-state-tags-triggers`); `CLOSED:` kept without a keyword (`org-closed-keep-when-no-todo`)', true],

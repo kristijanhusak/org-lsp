@@ -28,6 +28,10 @@ pub struct Options {
     /// starting with `sequence` or `type`. Documents can override them.
     #[serde(rename = "org_todo_keywords")]
     pub todo_keywords: Option<TodoKeywordsOption>,
+    /// `org-todo-interpretation`: `"sequence"` or `"type"`, for a list of
+    /// keywords alone (Org's old syntax).
+    #[serde(rename = "org_todo_interpretation")]
+    pub todo_interpretation: Option<String>,
     /// `org-todo-keyword-faces`: a face for a keyword, a color or a
     /// property list (`:foreground blue :weight bold`).
     #[serde(rename = "org_todo_keyword_faces")]
@@ -1221,13 +1225,15 @@ pub enum TodoKeywordsOption {
 }
 
 impl TodoKeywordsOption {
-    pub fn keywords(&self) -> TodoKeywords {
+    /// The keywords, a sequence without `sequence` or `type` first read as
+    /// `interpretation` says (`org-todo-interpretation`).
+    pub fn keywords_with(&self, interpretation: org_syntax::Interpretation) -> TodoKeywords {
         use org_syntax::Interpretation;
         // `sequence` or `type` first, as in `(sequence "TODO" "|" "DONE")`.
         let read = |words: &[String]| match words.first().map(String::as_str) {
             Some("type") => (Interpretation::Type, words[1..].to_vec()),
             Some("sequence") => (Interpretation::Sequence, words[1..].to_vec()),
-            _ => (Interpretation::Sequence, words.to_vec()),
+            _ => (interpretation, words.to_vec()),
         };
         match self {
             TodoKeywordsOption::One(words) => TodoKeywords::from_sequences([read(words)]),
@@ -1265,9 +1271,13 @@ impl Options {
     }
 
     pub fn todo_keywords(&self) -> TodoKeywords {
+        let interpretation = match self.todo_interpretation.as_deref() {
+            Some("type") => org_syntax::Interpretation::Type,
+            _ => org_syntax::Interpretation::Sequence,
+        };
         self.todo_keywords
             .as_ref()
-            .map(TodoKeywordsOption::keywords)
+            .map(|keywords| keywords.keywords_with(interpretation))
             .filter(|keywords| !keywords.is_empty())
             .unwrap_or_default()
     }
@@ -4077,6 +4087,28 @@ mod tests {
             ]
             .join("\n")
         );
+    }
+
+    /// `org-todo-interpretation`: a list of keywords alone is a sequence,
+    /// or with `type` one of types, each going straight to done.
+    #[test]
+    fn keywords_alone_are_read_as_org_todo_interpretation_says() {
+        let options = |interpretation: Option<&str>| -> Options {
+            let mut value = serde_json::json!({ "org_todo_keywords": ["Fred", "Sara", "|", "DONE"] });
+            if let Some(interpretation) = interpretation {
+                value["org_todo_interpretation"] = serde_json::json!(interpretation);
+            }
+            serde_json::from_value(value).unwrap()
+        };
+        assert_eq!(options(None).todo_keywords().cycle(Some("Fred"), None, false), Some("Sara"));
+        assert_eq!(options(Some("type")).todo_keywords().cycle(Some("Fred"), None, false), Some("DONE"));
+        // A sequence that says what it is keeps it.
+        let typed: Options = serde_json::from_value(serde_json::json!({
+            "org_todo_keywords": ["sequence", "Fred", "Sara", "|", "DONE"],
+            "org_todo_interpretation": "type"
+        }))
+        .unwrap();
+        assert_eq!(typed.todo_keywords().cycle(Some("Fred"), None, false), Some("Sara"));
     }
 
     #[test]
