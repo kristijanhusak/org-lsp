@@ -3538,6 +3538,14 @@
       "description": "Fold all but the new entry. (`org-journal-hide-entries-p`)",
       "default": true
     },
+    "org_journal_find_file_fn": {
+      "enum": [
+        "find-file-other-window",
+        "find-file"
+      ],
+      "description": "Where a new entry and today's file (`org.journal.open.current`) show: in another window, or (`\"find-file\"`) in the window of the command. (`org-journal-find-file-fn`)",
+      "default": "find-file-other-window"
+    },
     "org_journal_carryover_items": {
       "type": "string",
       "description": "The items of the entry before that move to today's, with the headlines above them: a match of the tags view (`m`); empty for none. (`org-journal-carryover-items`)",

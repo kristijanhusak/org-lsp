@@ -2783,6 +2783,14 @@ pub const SETTINGS: &[Setting] = &[
         "Fold all but the new entry.",
     ),
     setting(
+        "org_journal_find_file_fn",
+        "\"find-file-other-window\", \"find-file\"",
+        r#""find-file-other-window""#,
+        "org-journal-find-file-fn",
+        "Where a new entry and today's file (`org.journal.open.current`) show: in another window, or \
+         (`\"find-file\"`) in the window of the command.",
+    ),
+    setting(
         "org_journal_carryover_items",
         "string",
         r#""TODO=\"TODO\"""#,
@@ -3705,6 +3713,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_journal_time_format_post_midnight", STRING),
     ("org_journal_time_prefix", STRING),
     ("org_journal_hide_entries_p", BOOLEAN),
+    ("org_journal_find_file_fn", r#"{ "enum": ["find-file-other-window", "find-file"] }"#),
     ("org_journal_carryover_items", STRING),
     ("org_journal_skip_carryover_drawers", r#"{ "type": "array", "items": { "type": "string" } }"#),
     ("org_journal_carryover_delete_empty_journal", r#"{ "enum": ["never", "always", "ask"] }"#),

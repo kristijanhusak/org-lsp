@@ -112,7 +112,7 @@ impl Server {
             Some((now, version)) if now != located.text => {
                 let edits = self.text_edits(&now, &located.text);
                 let edit = self.workspace_edit(&uri, Some(version), edits);
-                let pending = Pending::EditAndShow { uri, position, folds: Value::Null };
+                let pending = Pending::EditAndShow { uri, position, folds: Value::Null, other_window: false };
                 self.apply_edit(lsp_types::ApplyWorkspaceEditParams { label: None, edit }, pending);
                 return Ok(Value::Null);
             }
