@@ -86,13 +86,35 @@ CLOCK_OPTIONS = {
 }
 
 
+def duration_lisp(value):
+    """`org-duration-format` or `org-duration-units`, as the settings
+    write them: `"h:mm"`, or a list of `[unit, value]` and `"compact"`."""
+    if isinstance(value, str):
+        return value
+    items = []
+    for item in value:
+        if item == "compact":
+            items.append("compact")
+            continue
+        key, rest = item
+        key = "special" if key == "special" else lisp_string(key)
+        rest = {True: "t", False: "nil"}.get(rest, rest) if not isinstance(rest, (int, float)) or isinstance(rest, bool) else rest
+        items.append(f"({key} . {rest})")
+    return "(" + " ".join(items) + ")"
+
+
 def bindings(options):
     options = dict(options or {})
     clock = {name: options.pop(key) for key, name in CLOCK_OPTIONS.items() if key in options}
+    durations = {name: options.pop(key) for key, name in
+                 (("org_duration_format", "org-duration-format"), ("org_duration_units", "org-duration-units"))
+                 if key in options}
     out = todo_reference.bindings(options)
     out += " (org-clock-in-switch-to-state nil) (org-clock-out-switch-to-state nil)"
     for name, value in clock.items():
         out += f" ({name} {lisp_value(value)})"
+    for name, value in durations.items():
+        out += f" ({name} '{duration_lisp(value)})"
     return out
 
 

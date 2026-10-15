@@ -364,6 +364,11 @@ pub struct Options {
     pub fontify_todo_headline: Option<bool>,
     #[serde(rename = "org_fontify_quote_and_verse_blocks")]
     pub fontify_quote_and_verse_blocks: Option<bool>,
+    /// `org-duration-format` and `org-duration-units`
+    #[serde(rename = "org_duration_format")]
+    pub duration_format: Option<serde_json::Value>,
+    #[serde(rename = "org_duration_units")]
+    pub duration_units: Option<serde_json::Value>,
     /// `org-ellipsis`
     #[serde(rename = "org_ellipsis")]
     pub ellipsis: Option<String>,
@@ -1641,6 +1646,55 @@ impl Options {
             Some(serde_json::Value::Bool(false)) | Some(serde_json::Value::Null) => FastTodo::Never,
             Some(serde_json::Value::String(name)) if name == "expert" => FastTodo::Expert,
             _ => FastTodo::Auto,
+        }
+    }
+
+    /// How durations are written and read (`org-duration-format`,
+    /// `org-duration-units`): Org's defaults for what is not set, or does
+    /// not hold together (a unit of the format that the units do not have).
+    pub fn durations(&self) -> org_core::duration::Durations {
+        use org_core::duration::{Durations, Format, Special, Unit};
+        let defaults = Durations::default();
+        let units = match &self.duration_units {
+            Some(serde_json::Value::Array(pairs)) => pairs
+                .iter()
+                .filter_map(|pair| {
+                    let name = pair.get(0)?.as_str()?;
+                    let minutes = pair.get(1)?;
+                    Some(Unit { name: name.to_string(), minutes: minutes.as_f64()?, float: minutes.is_f64() })
+                })
+                .collect(),
+            _ => defaults.units.clone(),
+        };
+        let format = match &self.duration_format {
+            Some(serde_json::Value::String(name)) if name == "h:mm" => Format::HMm,
+            Some(serde_json::Value::String(name)) if name == "h:mm:ss" => Format::HMmSs,
+            Some(serde_json::Value::Array(items)) => {
+                let (mut list, mut special, mut compact) = (Vec::new(), None, false);
+                for item in items {
+                    match (item.as_str(), item.get(0).and_then(serde_json::Value::as_str), item.get(1)) {
+                        (Some("compact"), _, _) => compact = true,
+                        (_, Some("special"), Some(value)) => {
+                            special = match value.as_str() {
+                                Some("h:mm") => Some(Special::HMm),
+                                Some("h:mm:ss") => Some(Special::HMmSs),
+                                _ => value.as_u64().map(|digits| Special::Precision(digits as usize)),
+                            }
+                        }
+                        (_, Some(unit), required) => list
+                            .push((unit.to_string(), required.and_then(serde_json::Value::as_bool).unwrap_or(false))),
+                        _ => {}
+                    }
+                }
+                Format::Units { units: list, special, compact }
+            }
+            _ => defaults.format.clone(),
+        };
+        let durations = Durations { format, units };
+        if durations.is_valid() {
+            durations
+        } else {
+            defaults
         }
     }
 

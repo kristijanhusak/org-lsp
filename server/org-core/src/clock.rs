@@ -148,63 +148,21 @@ pub fn running(text: &str) -> Vec<(usize, DateTime)> {
         .collect()
 }
 
-/// `org-duration-from-minutes` with Org's default format
-/// (`org-duration-format`): `h:mm`, after the days when there are any
-/// (`1d 2:30`).
+/// `org-duration-from-minutes`, as `org-duration-format` says (`1d 2:30`
+/// by default); see [`crate::duration`].
 pub fn duration(minutes: i64) -> String {
-    let sign = if minutes < 0 { "-" } else { "" };
-    let minutes = minutes.abs();
-    let days = minutes / 1440;
-    let rest = minutes % 1440;
-    let time = format!("{}:{:02}", rest / 60, rest % 60);
-    if days > 0 {
-        format!("{sign}{days}d {time}")
-    } else {
-        format!("{sign}{time}")
-    }
+    crate::duration::from_minutes(minutes as f64)
 }
 
 /// `org-duration-to-minutes`: `1:30`, `1:30:00`, `90` (minutes), `2h`,
-/// `1h 30min`, `1d 2h`, `1.5h`.
+/// `1h 30min`, `1d 2h`, `1.5h`, the units of `org-duration-units`; none
+/// for the empty text and what is no duration.
 pub fn duration_to_minutes(text: &str) -> Option<f64> {
     let text = text.trim();
     if text.is_empty() {
         return None;
     }
-    if let Ok(minutes) = text.parse::<f64>() {
-        return Some(minutes);
-    }
-    // `h:mm` or `h:mm:ss`.
-    let parts: Vec<&str> = text.split(':').collect();
-    if parts.len() >= 2 && parts.iter().all(|part| !part.is_empty() && part.chars().all(|c| c.is_ascii_digit())) {
-        let numbers: Vec<f64> = parts.iter().filter_map(|part| part.parse().ok()).collect();
-        let seconds = numbers.get(2).copied().unwrap_or(0.0);
-        return Some(numbers[0] * 60.0 + numbers[1] + seconds / 60.0);
-    }
-    // Units: `min`, `h`, `d`, `w`, `m` (months), `y`.
-    let mut total = 0.0;
-    let mut rest = text;
-    let mut any = false;
-    while !rest.is_empty() {
-        rest = rest.trim_start();
-        let number_end = rest.find(|c: char| !(c.is_ascii_digit() || c == '.')).unwrap_or(rest.len());
-        let number: f64 = rest[..number_end].parse().ok()?;
-        rest = &rest[number_end..];
-        let unit_end = rest.find(|c: char| !c.is_ascii_alphabetic()).unwrap_or(rest.len());
-        let factor = match &rest[..unit_end] {
-            "min" => 1.0,
-            "h" => 60.0,
-            "d" => 1440.0,
-            "w" => 10080.0,
-            "m" => 43200.0,
-            "y" => 525_960.0,
-            _ => return None,
-        };
-        total += number * factor;
-        any = true;
-        rest = &rest[unit_end..];
-    }
-    any.then_some(total)
+    crate::duration::to_minutes(text)
 }
 
 /// The text of the inactive timestamp `org-clock-in` writes.

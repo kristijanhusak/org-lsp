@@ -1301,6 +1301,25 @@ pub const SETTINGS: &[Setting] = &[
          `showstars` decide for a file.",
     ),
     setting(
+        "org_duration_format",
+        r#""h:mm", "h:mm:ss", or a list"#,
+        r#"[["d", false], ["special", "h:mm"]]"#,
+        "org-duration-format",
+        "How durations are written (clock tables, clock lines, efforts): `\"h:mm\"` or `\"h:mm:ss\"`, or a list \
+         of units each with whether it is written when zero (`[\"d\", false]`), with perhaps `[\"special\", \
+         \"h:mm\"]` (the hours and minutes as `H:MM` after the larger units), `[\"special\", \"h:mm:ss\"]`, \
+         `[\"special\", 2]` (one unit with 2 decimals) and `\"compact\"` (no space between units). The units \
+         are those of `org_duration_units`.",
+    ),
+    setting(
+        "org_duration_units",
+        "[unit, minutes][]",
+        r#"[["min", 1], ["h", 60], ["d", 1440], ["w", 10080], ["m", 43200], ["y", 525960.0]]"#,
+        "org-duration-units",
+        "The units of durations and the minutes in each, for reading efforts and writing durations: \
+         `[\"d\", 480]` for days of 8 hours.",
+    ),
+    setting(
         "org_fontify_done_headline",
         "boolean",
         "true",
@@ -2888,6 +2907,14 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_startup_with_latex_preview", BOOLEAN),
     ("org_startup_indented", BOOLEAN),
     ("org_hide_leading_stars", BOOLEAN),
+    (
+        "org_duration_format",
+        r#"{ "anyOf": [{ "enum": ["h:mm", "h:mm:ss"] }, { "type": "array", "items": { "anyOf": [{ "const": "compact" }, { "type": "array", "minItems": 2, "maxItems": 2 }] } }] }"#,
+    ),
+    (
+        "org_duration_units",
+        r#"{ "type": "array", "items": { "type": "array", "prefixItems": [{ "type": "string" }, { "type": "number" }], "minItems": 2, "maxItems": 2 } }"#,
+    ),
     ("org_fontify_done_headline", BOOLEAN),
     ("org_fontify_todo_headline", BOOLEAN),
     ("org_fontify_quote_and_verse_blocks", BOOLEAN),

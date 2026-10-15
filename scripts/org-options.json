@@ -493,8 +493,8 @@
   "org-datetree-add-timestamp": "emacs"
  },
  "org-duration.el": {
-  "org-duration-units": "missing",
-  "org-duration-format": "missing"
+  "org-duration-units": "setting",
+  "org-duration-format": "setting"
  },
  "org-entities.el": {
   "org-entities-user": "missing"
