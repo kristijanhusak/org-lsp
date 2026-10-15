@@ -354,7 +354,7 @@
   "org-agenda-fontify-priorities": "setting",
   "org-agenda-day-face-function": "emacs-only",
   "org-agenda-category-icon-alist": "emacs-only",
-  "org-agenda-view-columns-initially": "absent",
+  "org-agenda-view-columns-initially": "setting",
   "org-agenda-columns-show-summaries": "emacs",
   "org-agenda-columns-compute-summary-properties": "emacs",
   "org-agenda-columns-add-appointments-to-effort-sum": "emacs",

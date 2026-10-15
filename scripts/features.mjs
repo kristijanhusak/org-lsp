@@ -464,6 +464,7 @@ export const AREAS = [
       ['Diary sexps (`%%(diary-…)` lines, `<%%(…)>` timestamps): the date functions of `diary-lib` and Org (`diary-anniversary`, `-block`, `-cyclic`, `-date`, `-float`, `org-class` …) with `and`, `or`, `not` and comparisons', true],
       ['Diary sexps calling other Lisp, evaluated by Emacs (`org-diary-sexp-entry`) for each day of the view', true],
       ['Column view in the agenda (`C-c C-x C-c`, through Emacs): each entry\'s line covered by its columns, the summaries on the date lines and the blocks\' headers; editing, cycling and showing the values of the entries, changed in their files', true],
+      ['Column view as soon as the agenda is made (`org-agenda-view-columns-initially`)', true],
       ['Writing the agenda to a file (`C-x C-w`): `.org` and plain text', true],
       ['Appointment reminders (`org-agenda-to-appt`, through Emacs\'s `appt.el`): today\'s entries with a time, checked each minute, the reminders shown as messages', true],
     ],
