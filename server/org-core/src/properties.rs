@@ -938,6 +938,9 @@ pub fn set_effort(
     Ok((text, format!("{EFFORT} is now {value}")))
 }
 
+/// What `org-toggle-ordered-property` says when it sets `ORDERED`.
+pub const ORDERED_ON: &str = "Subtasks must be completed in sequence";
+
 /// `org-toggle-ordered-property`: `ORDERED` set to `t`, or taken out when
 /// the entry has it; the new text and Org's message.
 pub fn toggle_ordered(text: &str, offset: usize, context: &Context) -> Result<(String, String), String> {
@@ -946,7 +949,7 @@ pub fn toggle_ordered(text: &str, offset: usize, context: &Context) -> Result<(S
         let (text, _, _) = delete(text, heading, "ORDERED");
         Ok((text, "Subtasks can be completed in arbitrary order".to_string()))
     } else {
-        Ok((put(text, heading, "ORDERED", "t", context)?, "Subtasks must be completed in sequence".to_string()))
+        Ok((put(text, heading, "ORDERED", "t", context)?, ORDERED_ON.to_string()))
     }
 }
 

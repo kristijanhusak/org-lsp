@@ -117,7 +117,7 @@ command. [[file:keys/vim.org][keys/vim.org]] lists every key and how to change i
 | [[file:parity.org::#headings-and-structure][Headings and structure]] | 93% | ✅ |  |
 | [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 100% | ✅ |  |
 | [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ✅ |  |
-| [[file:parity.org::#priorities][Priorities]] | 75% | ✅ |  |
+| [[file:parity.org::#priorities][Priorities]] | 100% | ✅ |  |
 | [[file:parity.org::#tags][Tags]] | 88% | ✅ |  |
 | [[file:parity.org::#properties-and-column-view][Properties and column view]] | 90% | ❓ | Column view's header is in the window's status line, shown when the window has one (~laststatus~). |
 | [[file:parity.org::#dates-and-times][Dates and times]] | 100% | ✅ |  |
@@ -142,7 +142,7 @@ command. [[file:keys/vim.org][keys/vim.org]] lists every key and how to change i
 | [[file:parity.org::#attachments][Attachments]] | 100% | ✅ |  |
 | [[file:parity.org::#encryption][Encryption]] | 100% | ✅ |  |
 | [[file:parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | ❌ | Vim cannot show images. |
-| *All of Org* | *95%* |  |  |
+| *All of Org* | *96%* |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what and why),
 ❌ none does, — nothing to support yet. Parity is the share of what

@@ -9545,6 +9545,9 @@ impl Server {
     /// "priority", "prompt", "value" } }`; with `input` it sets the
     /// priority the answer names, or removes it for a space.
     fn ask_priority(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        if !self.edit_settings.priority_commands {
+            return Err(Refusal::Failed(edit::PRIORITY_DISABLED.to_string()));
+        }
         let uri = &context.text_document.uri;
         let settings = self.edit_settings.priorities;
         // The priorities of the file the entry is in.

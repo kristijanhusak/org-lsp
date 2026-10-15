@@ -228,6 +228,22 @@ pub const SETTINGS: &[Setting] = &[
         "`S-<down>` makes a timestamp later and `S-<up>` earlier, the other way round from Org's default.",
     ),
     setting(
+        "org_priority_enable_commands",
+        "boolean",
+        "true",
+        "org-priority-enable-commands",
+        "Whether the priority commands work. With `false` they refuse (`Priority commands are disabled`), and \
+         `S-<up>` and `S-<down>` on a headline do not change its priority.",
+    ),
+    setting(
+        "org_track_ordered_property_with_tag",
+        "boolean, string",
+        "false",
+        "org-track-ordered-property-with-tag",
+        "A tag that `org.ordered.toggle` (`C-c C-x o`) puts on the headline with the `ORDERED` property and takes off \
+         without it: `true` for `ORDERED`, or a tag of your own. Only the property orders the subtasks.",
+    ),
+    setting(
         "org_special_ctrl_k",
         "boolean",
         "false",
@@ -3134,6 +3150,8 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_treat_S_cursor_todo_selection_as_state_change", BOOLEAN),
     ("org_treat_insert_todo_heading_as_state_change", BOOLEAN),
     ("org_edit_timestamp_down_means_later", BOOLEAN),
+    ("org_priority_enable_commands", BOOLEAN),
+    ("org_track_ordered_property_with_tag", r#"{ "anyOf": [{ "type": "boolean" }, { "type": "string" }] }"#),
     ("org_sparse_tree_open_archived_trees", BOOLEAN),
     ("org_yank_adjusted_subtrees", BOOLEAN),
     ("org_allow_promoting_top_level_subtree", BOOLEAN),
