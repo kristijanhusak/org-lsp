@@ -2571,6 +2571,30 @@ pub const SETTINGS: &[Setting] = &[
          window's 79 columns.",
     ),
     setting(
+        "org_roam_node_formatter",
+        "string",
+        r#""""#,
+        "org-roam-node-formatter",
+        "The description of a link `org.roam.node.insert` makes, a template as \
+         `org_roam_node_display_template` is (`${title} (${file})`); empty for the node's title.",
+    ),
+    setting(
+        "org_roam_db_extra_links_elements",
+        "array",
+        r#"["node-property", "keyword"]"#,
+        "org-roam-db-extra-links-elements",
+        "Where else org-roam finds links than where Org does: in property drawers (`node-property`) and \
+         keyword lines (`keyword`).",
+    ),
+    setting(
+        "org_roam_db_extra_links_exclude_keys",
+        "object",
+        r#"{ "node-property": ["ROAM_REFS"], "keyword": ["transclude"] }"#,
+        "org-roam-db-extra-links-exclude-keys",
+        "By `node-property` and `keyword`, the properties and keywords whose links are not links, in any \
+         case. A list given replaces the default one.",
+    ),
+    setting(
         "org_roam_graph_executable",
         "string",
         r#""dot""#,
@@ -3687,6 +3711,12 @@ const SCHEMAS: &[(&str, &str)] = &[
         r#"{ "anyOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }] }"#,
     ),
     ("org_roam_node_display_template", STRING),
+    ("org_roam_node_formatter", STRING),
+    ("org_roam_db_extra_links_elements", r#"{ "type": "array", "items": { "enum": ["node-property", "keyword"] } }"#),
+    (
+        "org_roam_db_extra_links_exclude_keys",
+        r#"{ "type": "object", "properties": { "node-property": { "type": "array", "items": { "type": "string" } }, "keyword": { "type": "array", "items": { "type": "string" } } }, "additionalProperties": false }"#,
+    ),
     ("org_roam_extract_new_file_path", STRING),
     ("org_roam_graph_executable", STRING),
     ("org_roam_graph_viewer", STRING),

@@ -660,6 +660,16 @@ pub struct Options {
     /// `org-roam-node-display-template`
     #[serde(rename = "org_roam_node_display_template")]
     pub roam_node_display_template: Option<String>,
+    /// `org-roam-node-formatter`: a template.
+    #[serde(rename = "org_roam_node_formatter")]
+    pub roam_node_formatter: Option<String>,
+    /// `org-roam-db-extra-links-elements`: `"keyword"`, `"node-property"`.
+    #[serde(rename = "org_roam_db_extra_links_elements")]
+    pub roam_db_extra_links_elements: Option<Vec<String>>,
+    /// `org-roam-db-extra-links-exclude-keys`: by `"keyword"` and
+    /// `"node-property"`, the keys whose links are not recorded.
+    #[serde(rename = "org_roam_db_extra_links_exclude_keys")]
+    pub roam_db_extra_links_exclude_keys: Option<std::collections::BTreeMap<String, Vec<String>>>,
     /// `org-roam-graph-executable`
     #[serde(rename = "org_roam_graph_executable")]
     pub roam_graph_executable: Option<String>,
@@ -883,6 +893,11 @@ pub struct RoamSettings {
     pub directory: String,
     pub files: org_core::roam::Settings,
     pub display_template: String,
+    /// `org-roam-node-formatter`: the template of an inserted link's
+    /// description.
+    pub node_formatter: Option<String>,
+    /// `org-roam-db-extra-links-elements`, `org-roam-db-extra-links-exclude-keys`
+    pub extra_links: org_core::roam::ExtraLinks,
     /// `org-roam-extract-new-file-path`, relative to the directory.
     pub extract_new_file_path: String,
     /// `org-roam-graph`'s options, and `org-roam-graph-executable`,
@@ -1523,6 +1538,21 @@ impl Options {
                 },
             },
             display_template: self.roam_node_display_template.clone().unwrap_or_else(|| "${title}".to_string()),
+            node_formatter: self.roam_node_formatter.clone().filter(|template| !template.is_empty()),
+            extra_links: {
+                let mut links = org_core::roam::ExtraLinks::default();
+                if let Some(elements) = &self.roam_db_extra_links_elements {
+                    links.keywords = elements.iter().any(|element| element == "keyword");
+                    links.properties = elements.iter().any(|element| element == "node-property");
+                }
+                // A list given replaces the default one whole, as Emacs's
+                // alist does.
+                if let Some(excluded) = &self.roam_db_extra_links_exclude_keys {
+                    links.excluded_keywords = excluded.get("keyword").cloned().unwrap_or_default();
+                    links.excluded_properties = excluded.get("node-property").cloned().unwrap_or_default();
+                }
+                links
+            },
             graph: self.roam_graph_settings(),
             graph_executable: self.roam_graph_executable.clone().unwrap_or_else(|| "dot".to_string()),
             graph_viewer: self.roam_graph_viewer.clone().filter(|viewer| !viewer.is_empty()),

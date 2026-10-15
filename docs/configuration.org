@@ -2327,6 +2327,21 @@ org_roam_file_exclude_regexp = ["data/"]
 # (org-roam-node-display-template)
 org_roam_node_display_template = "${title}"
 
+# The description of a link `org.roam.node.insert` makes, a template as
+# `org_roam_node_display_template` is (`${title} (${file})`); empty for the
+# node's title. (org-roam-node-formatter)
+org_roam_node_formatter = ""
+
+# Where else org-roam finds links than where Org does: in property drawers
+# (`node-property`) and keyword lines (`keyword`).
+# (org-roam-db-extra-links-elements)
+org_roam_db_extra_links_elements = ["node-property", "keyword"]
+
+# By `node-property` and `keyword`, the properties and keywords whose links
+# are not links, in any case. A list given replaces the default one.
+# (org-roam-db-extra-links-exclude-keys)
+org_roam_db_extra_links_exclude_keys = { keyword = ["transclude"], node-property = ["ROAM_REFS"] }
+
 # The Graphviz program that draws `org.roam.graph`'s graph, found on `PATH` or
 # a path. (org-roam-graph-executable)
 org_roam_graph_executable = "dot"
@@ -4186,6 +4201,21 @@ org_agenda_custom_commands = []
   // `${field:N}` in N columns, `${field:*}` in what is left of the window's
   // 79 columns. (org-roam-node-display-template)
   "org_roam_node_display_template": "${title}",
+
+  // The description of a link `org.roam.node.insert` makes, a template as
+  // `org_roam_node_display_template` is (`${title} (${file})`); empty for the
+  // node's title. (org-roam-node-formatter)
+  "org_roam_node_formatter": "",
+
+  // Where else org-roam finds links than where Org does: in property drawers
+  // (`node-property`) and keyword lines (`keyword`).
+  // (org-roam-db-extra-links-elements)
+  "org_roam_db_extra_links_elements": ["node-property", "keyword"],
+
+  // By `node-property` and `keyword`, the properties and keywords whose links
+  // are not links, in any case. A list given replaces the default one.
+  // (org-roam-db-extra-links-exclude-keys)
+  "org_roam_db_extra_links_exclude_keys": { "keyword": ["transclude"], "node-property": ["ROAM_REFS"] },
 
   // The Graphviz program that draws `org.roam.graph`'s graph, found on `PATH`
   // or a path. (org-roam-graph-executable)

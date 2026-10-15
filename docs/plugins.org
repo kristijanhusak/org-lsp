@@ -187,9 +187,12 @@ The commands are org-roam's:
   first, as ~org_roam_node_display_template~ shows them) and visits it; a
   title no node has makes a new node, with a capture.
 - ~org.roam.node.insert~ :: ~org-roam-node-insert~: the same question, then
-  a link to the node, ~[[id:…][title]]~, at the cursor. On a selection, the
-  selection is what is typed first and the link's description, and the link
-  takes its place. A new node is linked to once its capture is filed.
+  a link to the node, ~[[id:…][title]]~, at the cursor; with
+  ~org_roam_node_formatter~, a template as
+  ~org_roam_node_display_template~ is, the description is the node as it
+  formats it (~"${title} (${file})"~). On a selection, the selection is
+  what is typed first and the link's description, and the link takes its
+  place. A new node is linked to once its capture is filed.
 - ~org.roam.capture~ :: ~org-roam-capture~: the same question, then a
   capture to the node: to its file for a node that exists.
 - ~org.roam.node.random~ :: ~org-roam-node-random~: visits a node picked at
@@ -361,6 +364,11 @@ against Emacs by recorded cases and differential fuzzing. What differs:
 - ~org-id-locations-file~ is read, never written: an ~id:~ link is
   followed to the files open in the editor, the agenda files, the files
   Emacs listed there and org-roam's files.
+- What only Lisp can say is not there: ~org-roam-node-formatter~ as a
+  function, and ~org-roam-db-node-include-function~, which decides
+  whether each node is one. The links of keyword lines and property
+  drawers follow ~org_roam_db_extra_links_elements~ and
+  ~org_roam_db_extra_links_exclude_keys~.
 - Going to a daily note that is not there writes it, its ~ID~ and head in
   it; Emacs leaves its buffer unsaved. Its date is typed, without the
   calendar, which marks no days with a note; the directory of the notes is

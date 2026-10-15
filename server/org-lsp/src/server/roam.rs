@@ -252,7 +252,10 @@ impl Server {
                 match (id, found) {
                     (commands::ROAM_NODE_FIND, Some(candidate)) => self.roam_visit(&db, &candidate.id),
                     (commands::ROAM_NODE_INSERT, Some(candidate)) => {
-                        let description = region.as_ref().map_or(candidate.title.clone(), |(_, _, text)| text.clone());
+                        let description = match &region {
+                            Some((_, _, text)) => text.clone(),
+                            None => self.roam_formatted(&db, &candidate.id, &candidate.title)?,
+                        };
                         self.roam_insert_link(context, &candidate.id, &description)
                     }
                     (_, found) => {
@@ -294,6 +297,16 @@ impl Server {
         self.roam_visit(&db, &node)
     }
 
+    /// `org-roam-node-formatted`: the description of a link to the node
+    /// `id` (none for a node to be made) by `title`, as
+    /// `org-roam-node-formatter` makes it.
+    fn roam_formatted(&self, db: &roam::Db, id: &str, title: &str) -> Result<String, Refusal> {
+        match self.roam.as_ref().and_then(|roam| roam.settings.node_formatter.clone()) {
+            Some(template) => Ok(db.formatted(id, title, &template)?),
+            None => Ok(title.to_string()),
+        }
+    }
+
     /// org-roam's database as `org-roam-db-sync` would make it now, and
     /// the lines that offer its nodes (`org-roam-node-read--completions`).
     fn roam_nodes(&mut self) -> Result<(Db, Vec<Candidate>), Refusal> {
@@ -330,6 +343,7 @@ impl Server {
             .filter_map(|key| Some((uri::to_path(&key.parse::<Uri>().ok()?)?, key.clone())))
             .collect();
         let mut db = Db::default();
+        db.directory = format!("{}/", directory.display()).replace("//", "/");
         let mut mtimes: HashMap<String, u64> = HashMap::new();
         let mut seen = Vec::new();
         for name in names {
@@ -356,8 +370,11 @@ impl Server {
                         Err("encrypted".to_string())
                     } else {
                         let uri = key.and_then(|key| key.parse::<Uri>().ok()).or_else(|| uri::from_path(&path));
+                        let extra_links = roam.settings.extra_links.clone();
                         uri.and_then(|uri| {
-                            self.with_source(&uri, |text, _, parse, outline, _| roam::scan(text, parse, outline, &file))
+                            self.with_source(&uri, |text, _, parse, outline, _| {
+                                roam::scan_with(text, parse, outline, &file, &extra_links)
+                            })
                         })
                         .unwrap_or_else(|| Err("unreadable".to_string()))
                     };
@@ -639,7 +656,10 @@ impl Server {
                         (at, at)
                     }
                 };
-                let description = region.map_or(title.to_string(), |(_, _, text)| text);
+                let description = match region {
+                    Some((_, _, text)) => text,
+                    None => self.roam_formatted(&roam::Db::default(), "", title)?,
+                };
                 Finalize::InsertLink { uri, text, start, end, description }
             }
             _ => Finalize::Nothing,

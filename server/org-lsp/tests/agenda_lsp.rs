@@ -7766,6 +7766,35 @@ fn previews_latex_through_emacs() {
 /// org-roam, switched on: the nodes of its directory are offered by their
 /// titles and aliases, visited, linked to, and a title no node has makes
 /// a node in a new file, linked to where the capture started.
+/// `org-roam-node-formatter`: the description of an inserted link.
+#[test]
+fn formats_inserted_roam_links() {
+    let root = std::env::temp_dir().join(format!("org-lsp-roam-formatter-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).unwrap();
+    let a = ":PROPERTIES:\n:ID:       a-id\n:ROAM_ALIASES: Alpha\n:END:\n#+title: A note\n#+filetags: :one:\n\nText.\n";
+    std::fs::write(root.join("a.org"), a).unwrap();
+    let a_uri = format!("file://{}", root.join("a.org").display());
+    let mut options = clock();
+    options["org_roam_enabled"] = json!(true);
+    options["org_roam_directory"] = json!(root.display().to_string());
+    options["org_roam_node_formatter"] = json!("${title} (${file}) ${tags}");
+    let mut client = Client::editor(options, None);
+    client.open(&a_uri, a);
+    let answer = json!({
+        "textDocument": { "uri": a_uri }, "position": { "line": 7, "character": 0 },
+        "step": "node", "input": "Alpha",
+    });
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.roam.node.insert", "arguments": [answer] }))
+        .unwrap();
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    assert_eq!(apply(a, &edits_of(edit).1), a.replace("Text.", "[[id:a-id][Alpha (a.org) #one]]Text."));
+    client.shutdown();
+    let _ = std::fs::remove_dir_all(&root);
+}
+
 #[test]
 fn finds_links_and_captures_roam_nodes() {
     let root = std::env::temp_dir().join(format!("org-lsp-roam-{}", std::process::id()));

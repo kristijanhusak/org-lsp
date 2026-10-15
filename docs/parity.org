@@ -26,7 +26,7 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#agenda][Agenda]] | 100% | 36 of 36 |
 | [[#clocking][Clocking]] | 100% | 12 of 12 |
 | [[#capture][Capture]] | 100% | 11 of 11 |
-| [[#notes-org-roam][Notes (org-roam)]] | 86% | 12 of 14 |
+| [[#notes-org-roam][Notes (org-roam)]] | 87% | 13 of 15 |
 | [[#a-journal-org-journal][A journal (org-journal)]] | 79% | 11 of 14 |
 | [[#refile-and-archive][Refile and archive]] | 100% | 12 of 12 |
 | [[#links][Links]] | 100% | 15 of 15 |
@@ -377,7 +377,7 @@ Where editors fall short:
 :CUSTOM_ID: notes-org-roam
 :END:
 
-86% (12 of 14)
+87% (13 of 15)
 
 - ✅ The nodes of ~org_roam_directory~, files and entries with an ~ID~, as ~org-roam-db-sync~ finds them (~org_roam_file_extensions~, ~org_roam_file_exclude_regexp~), read again as they change
 - ✅ Finding a node by its title or an alias (~org-roam-node-find~), offered as ~org_roam_node_display_template~ shows it, the files changed last first; a random node
@@ -392,7 +392,8 @@ Where editors fall short:
 - ✅ Completing node titles as they are typed (~org-roam-completion-everywhere~)
 - ✅ Daily notes: capturing to and going to a day's note, today, tomorrow, yesterday or a date typed, and the next and previous notes (~org-roam-dailies-capture-today~, ~org-roam-dailies-goto-date~ …)
 - ❌ Daily notes: the directory opened, the days with a note marked in the calendar, and the calendar to pick a date (~org-roam-dailies-find-directory~, ~org-roam-dailies-calendar-mark-entries~)
-- ❌ Lisp that chooses the nodes and how they show (~org-roam-node-formatter~, ~org-roam-db-node-include-function~), and which links count (~org-roam-db-extra-links-elements~, ~org-roam-db-extra-links-exclude-keys~)
+- ✅ The description of an inserted link by a template (~org-roam-node-formatter~), and which links of keyword lines and property drawers count (~org-roam-db-extra-links-elements~, ~org-roam-db-extra-links-exclude-keys~)
+- ❌ Lisp that formats a link's description or chooses the nodes (~org-roam-node-formatter~ as a function, ~org-roam-db-node-include-function~)
 
 Where editors fall short:
 
