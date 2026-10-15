@@ -1351,11 +1351,13 @@ pub const SETTINGS: &[Setting] = &[
         "Leave the code of source blocks as it is indented when re-indenting.",
     ),
     setting(
-        "org_edit_src_content_indentation",
+        "org_src_content_indentation",
         "number",
         "2",
-        "org-edit-src-content-indentation",
-        "How far code is indented past its source block when re-indenting.",
+        "org-src-content-indentation",
+        "How far code is indented past its source block: when re-indenting, and when the code of a block \
+         edited in a file of its own (`C-c '`) is written back. Formerly `org_edit_src_content_indentation`, \
+         which is still read.",
     ),
     setting(
         "org_agenda_span",
@@ -2872,7 +2874,7 @@ const SCHEMAS: &[(&str, &str)] = &[
         r#"{ "anyOf": [{ "const": false }, { "type": "object", "properties": { "todo": { "type": "string" }, "half": { "type": "string" }, "done": { "type": "string" } }, "additionalProperties": false }] }"#,
     ),
     ("org_src_preserve_indentation", BOOLEAN),
-    ("org_edit_src_content_indentation", r#"{ "type": "integer", "minimum": 0 }"#),
+    ("org_src_content_indentation", r#"{ "type": "integer", "minimum": 0 }"#),
     (
         "org_agenda_span",
         r#"{ "anyOf": [{ "enum": ["day", "week", "fortnight", "month", "year"] }, { "type": "integer", "minimum": 1 }] }"#,

@@ -2632,6 +2632,41 @@ fn edits_blocks_in_files_of_their_own() {
     assert_eq!(run(&mut client, 2), format!("file://{}", edited.display()));
     assert_eq!(run(&mut client, 4), format!("file://{}", directory.join("work.org").display()));
     client.shutdown();
+
+    // `org-src-content-indentation` 0 (here by its old name,
+    // `org_edit_src_content_indentation`): the code is written back at the
+    // block's own column.
+    let flush = directory.join("flush.org");
+    let mut text = "* Code\n  #+begin_src python\n    x = 1\n  #+end_src\n".to_string();
+    std::fs::write(&flush, &text).unwrap();
+    let mut options = clock();
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        options["emacs_config"] = json!(format!("(add-to-list 'load-path {dir:?})"));
+    }
+    options["org_edit_src_content_indentation"] = json!(0);
+    let mut client = Client::editor(options, None);
+    let uri = format!("file://{}", flush.display());
+    client.open(&uri, &text);
+    let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 2, "character": 4 } });
+    client.received.clear();
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.edit.special", "arguments": [context] }))
+        .unwrap();
+    client.settle();
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("a file shown");
+    let edited = PathBuf::from(shown.params["uri"].as_str().unwrap().strip_prefix("file://").unwrap());
+    client.received.clear();
+    std::fs::write(&edited, "y = 2\n").unwrap();
+    let start = std::time::Instant::now();
+    while !client.received.iter().any(|request| request.method == "workspace/applyEdit")
+        && start.elapsed() < std::time::Duration::from_secs(10)
+    {
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        client.settle();
+    }
+    apply_received(&mut client, &uri, &mut text);
+    assert_eq!(text, "* Code\n  #+begin_src python\n  y = 2\n  #+end_src\n");
+    client.shutdown();
 }
 
 /// `C-c '` on a table: its formulas, one by line (`org-table-edit-formulas`);

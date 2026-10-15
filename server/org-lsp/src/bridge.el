@@ -270,11 +270,14 @@ was to be opened, or the text of an export to a buffer."
 ;; `org-table-formula-constants' and its relatives, as org-lsp's settings
 ;; have them: the formulas org-lsp leaves to Emacs follow them too.
 (defun org-lsp-bridge--bind (variables)
-  "Give Org's table options among VARIABLES, pairs of a name and a value
-in Lisp, those values in the current buffer."
+  "Give Org's table options and the indentation of source blocks
+\(`org-src-content-indentation', `org-src-preserve-indentation') among
+VARIABLES, pairs of a name and a value in Lisp, those values in the
+current buffer."
   (dolist (pair (append variables nil))
     (let ((name (elt pair 0)))
-      (when (string-match-p "\\`org-\\(?:table-\\|calc-default-modes\\'\\)" name)
+      (when (string-match-p
+             "\\`org-\\(?:table-\\|calc-default-modes\\'\\|src-\\(?:content\\|preserve\\)-indentation\\'\\)" name)
         (set (make-local-variable (intern name))
              (eval (car (read-from-string (elt pair 1))) t))))))
 
@@ -704,6 +707,7 @@ extension for its file, and the part of the document it edits, from
 what the element is, for the server to do as Org does there."
   (require 'org-src)
   (org-lsp-bridge--in-document params
+    (org-lsp-bridge--bind (alist-get 'variables params))
     (let* ((element (org-element-at-point))
            (context (org-element-context element)))
       (pcase (org-element-type element)
