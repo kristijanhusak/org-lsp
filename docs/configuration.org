@@ -3006,6 +3006,22 @@ a count and ~org.clock.in.last~.
 org_clock_history_length = 5
 #+end_src
 
+*** org_clock_in_resume
+:PROPERTIES:
+:CUSTOM_ID: org_clock_in_resume
+:END:
+
+Clocking into an entry whose ~CLOCK:~ line was left without an end goes on
+with that clock, from when it started, rather than starting a new line.
+
+- Org's option :: ~org-clock-in-resume~
+- Type :: boolean
+- Default :: ~false~
+
+#+begin_src toml
+org_clock_in_resume = false
+#+end_src
+
 *** org_clock_goto_may_find_recent_task
 :PROPERTIES:
 :CUSTOM_ID: org_clock_goto_may_find_recent_task

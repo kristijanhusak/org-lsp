@@ -1405,6 +1405,47 @@ fn clocks_in_and_out() {
     client.shutdown();
 }
 
+/// `org-clock-in-resume`: clocking into an entry whose clock was left
+/// running goes on from when it started, as Emacs does, its line as it
+/// is; clocking out closes that line.
+#[test]
+fn resumes_a_clock_left_running() {
+    const URI: &str = "file:///org/resume.org";
+    // The clock of `Other` runs; the one of `Write` was left behind.
+    let mut text = "* TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\n:END:\n* Other\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n".to_string();
+    let mut options = clock();
+    options["org_clock_in_resume"] = json!(true);
+    let mut client = Client::editor(options, None);
+    client.open(URI, &text);
+    let mut version = 1;
+    let mut run = |client: &mut Client, text: &mut String, command: &str| {
+        client.received.clear();
+        let at = json!({ "textDocument": { "uri": URI }, "position": { "line": 0, "character": 0 } });
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [at] }));
+        client.settle();
+        if let Some(edit) = client.received.iter().find(|request| request.method == "workspace/applyEdit") {
+            let (_, edits) = edits_of(edit);
+            *text = apply(text, &edits);
+            version += 1;
+            client.notify(
+                "textDocument/didChange",
+                json!({ "textDocument": { "uri": URI, "version": version }, "contentChanges": [{ "text": text }] }),
+            );
+            client.settle();
+        }
+        result
+    };
+    let result = run(&mut client, &mut text, "org.clock.in").unwrap();
+    assert_eq!(result["message"], "Clock starts at [2026-05-18 Mon 09:00] - showing entire task time.");
+    // `Other` stopped; no new line in `Write`.
+    assert!(text.contains("CLOCK: [2026-05-18 Mon 10:00]--[2026-05-18 Mon 10:30] =>  0:30\n"), "{text}");
+    assert_eq!(text.matches("CLOCK:").count(), 3, "{text}");
+    run(&mut client, &mut text, "org.clock.out").unwrap();
+    assert!(text.contains("CLOCK: [2026-05-18 Mon 09:00]--[2026-05-18 Mon 10:30] =>  1:30\n"), "{text}");
+    assert_eq!(text.matches("CLOCK:").count(), 3, "{text}");
+    client.shutdown();
+}
+
 /// `org-clock-goto-may-find-recent-task` off: with no clock running,
 /// `org-clock-goto` finds no entry.
 #[test]

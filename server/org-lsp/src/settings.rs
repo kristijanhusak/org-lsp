@@ -700,6 +700,14 @@ pub const SETTINGS: &[Setting] = &[
         "How many entries clocked into the clock history keeps, for `org.clock.in` with a count and `org.clock.in.last`.",
     ),
     setting(
+        "org_clock_in_resume",
+        "boolean",
+        "false",
+        "org-clock-in-resume",
+        "Clocking into an entry whose `CLOCK:` line was left without an end goes on with that clock, from \
+         when it started, rather than starting a new line.",
+    ),
+    setting(
         "org_clock_goto_may_find_recent_task",
         "boolean",
         "true",
@@ -3443,6 +3451,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ),
     ("org_clock_idle_time", r#"{ "type": "integer", "minimum": 1 }"#),
     ("org_clock_history_length", r#"{ "type": "integer", "minimum": 1 }"#),
+    ("org_clock_in_resume", BOOLEAN),
     ("org_clock_goto_may_find_recent_task", BOOLEAN),
     ("org_clock_clocktable_default_properties", STRING),
     ("org_clocktable_defaults", STRING),

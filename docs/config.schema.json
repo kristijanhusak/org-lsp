@@ -720,6 +720,11 @@
       "description": "How many entries clocked into the clock history keeps, for `org.clock.in` with a count and `org.clock.in.last`. (`org-clock-history-length`)",
       "default": 5
     },
+    "org_clock_in_resume": {
+      "type": "boolean",
+      "description": "Clocking into an entry whose `CLOCK:` line was left without an end goes on with that clock, from when it started, rather than starting a new line. (`org-clock-in-resume`)",
+      "default": false
+    },
     "org_clock_goto_may_find_recent_task": {
       "type": "boolean",
       "description": "With no clock running, `org.clock.goto` goes to the entry clocked last. With `false`, it says `No active or recent clock task`. (`org-clock-goto-may-find-recent-task`)",
