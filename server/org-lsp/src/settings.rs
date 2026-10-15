@@ -188,6 +188,22 @@ pub const SETTINGS: &[Setting] = &[
          `ARCHIVE`); with `false` those subtrees stay folded under their headline.",
     ),
     setting(
+        "org_occur_case_fold_search",
+        "true, false, \"smart\"",
+        "true",
+        "org-occur-case-fold-search",
+        "Whether a sparse tree (`C-c /`, and a link's `/regexp/`) ignores case; `\"smart\"` ignores it unless \
+         what is searched for has an upper-case letter.",
+    ),
+    setting(
+        "org_sparse_tree_default_date_type",
+        "null, \"all\", \"active\", \"inactive\", \"scheduled\", \"deadline\", \"closed\"",
+        "null",
+        "org-sparse-tree-default-date-type",
+        "The timestamps the date sparse trees (`C-c /` `b`, `a`, `D`) look at first: `null` for scheduled \
+         and deadline dates, or one kind; `c` in the menu turns to the next kind.",
+    ),
+    setting(
         "org_yank_adjusted_subtrees",
         "boolean",
         "false",
@@ -3153,6 +3169,11 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_priority_enable_commands", BOOLEAN),
     ("org_track_ordered_property_with_tag", r#"{ "anyOf": [{ "type": "boolean" }, { "type": "string" }] }"#),
     ("org_sparse_tree_open_archived_trees", BOOLEAN),
+    ("org_occur_case_fold_search", r#"{ "enum": [true, false, "smart"] }"#),
+    (
+        "org_sparse_tree_default_date_type",
+        r#"{ "enum": [null, "all", "active", "inactive", "scheduled", "deadline", "closed"] }"#,
+    ),
     ("org_yank_adjusted_subtrees", BOOLEAN),
     ("org_allow_promoting_top_level_subtree", BOOLEAN),
     ("org_list_allow_alphabetical", BOOLEAN),

@@ -204,7 +204,7 @@ export const AREAS = [
       ['Toggling `COMMENT` (`C-c ;`, through Emacs)', true],
       ['Cloning a subtree with its dates shifted (`C-c C-x c`, through Emacs)', true],
       ['Commands on a region, a selection in the editor: the headlines in it promoted, demoted or moved, lines turned into headings or items, checkboxes toggled, the region wrapped in a block, a drawer or emphasis (through Emacs)', true],
-      ['Sparse trees that tell case apart (`org-occur-case-fold-search`), or by a kind of date asked for (`org-sparse-tree-default-date-type`)', false],
+      ['Sparse trees that tell case apart (`org-occur-case-fold-search`), and by a kind of date, cycled with `c` (`org-sparse-tree-default-date-type`)', true],
     ],
     editors: {
       zed: ['part', `A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, ${ZED_TEXT}. \`C-a\`, \`C-e\`, \`C-k\` and \`C-y\` keep Zed's own meaning.`],

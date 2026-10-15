@@ -1160,6 +1160,10 @@ struct Server {
     removed_agenda_files: HashSet<PathBuf>,
     /// `org-sparse-tree-open-archived-trees`
     sparse_tree_open_archived_trees: bool,
+    /// `org-occur-case-fold-search`
+    occur_case_fold: org_core::sparse::CaseFold,
+    /// `org-sparse-tree-default-date-type`
+    sparse_date_type: org_core::sparse::DateType,
     /// `org-clock-default-task`, marked by clocking in with `C-u C-u`.
     clock_default_task: Option<ClockTask>,
     /// `org-clock-interrupted-task`: the entry whose clock the last
@@ -1614,6 +1618,8 @@ pub fn run(connection: Connection) -> Result<()> {
         skip_unavailable_files: options.agenda_skip_unavailable_files.unwrap_or(false),
         removed_agenda_files: HashSet::new(),
         sparse_tree_open_archived_trees: options.sparse_tree_open_archived_trees.unwrap_or(false),
+        occur_case_fold: options.occur_case_fold(),
+        sparse_date_type: options.sparse_date_type(),
         clock_default_task: None,
         clock_interrupted: None,
         clock_out_time: None,
@@ -12828,7 +12834,17 @@ impl Server {
             .as_deref()
             .map(|answers| answers.split('\n').map(str::to_string).collect())
             .unwrap_or_default();
-        let Some(input) = context.input.clone() else {
+        // The date type, `c` turning it to the next one; it comes first in
+        // the answers, as `type=NAME`.
+        let date_type = match answers.first().and_then(|first| first.strip_prefix("type=")) {
+            Some(name) => {
+                let date_type = sparse::DateType::from_name(name).unwrap_or_default();
+                answers.remove(0);
+                date_type
+            }
+            None => self.sparse_date_type,
+        };
+        let menu = |date_type: sparse::DateType| {
             let choices = json!([
                 { "key": "r", "label": "regexp" },
                 { "key": "t", "label": "todo" },
@@ -12839,13 +12855,27 @@ impl Server {
                 { "key": "b", "label": "before date" },
                 { "key": "a", "label": "after date" },
                 { "key": "D", "label": "dates range" },
+                { "key": "c", "label": format!("cycle through date types: {}", date_type.describe()) },
             ]);
-            return Ok(json!({ "input": { "kind": "key", "prompt": "Sparse tree", "value": "", "choices": choices } }));
+            let mut input = json!({ "kind": "key", "prompt": "Sparse tree", "value": "", "choices": choices });
+            if date_type != sparse::DateType::Planned {
+                input["context"] = json!({ "answers": format!("type={}", date_type.name()) });
+            }
+            Ok(json!({ "input": input }))
         };
+        let Some(input) = context.input.clone() else { return menu(date_type) };
+        if answers.is_empty() && input == "c" {
+            return menu(date_type.next());
+        }
         answers.push(input);
         let kind = answers[0].clone();
         let args = &answers[1..];
+        let case = self.occur_case_fold;
         let ask = |kind: &str, prompt: &str, choices: Option<Vec<String>>, answers: &[String]| {
+            let mut answers = answers.to_vec();
+            if date_type != sparse::DateType::Planned {
+                answers.insert(0, format!("type={}", date_type.name()));
+            }
             let mut input =
                 json!({ "kind": kind, "prompt": prompt, "value": "", "context": { "answers": answers.join("\n") } });
             if let Some(choices) = choices {
@@ -12868,14 +12898,14 @@ impl Server {
                 if args[0].is_empty() {
                     return Err(Refusal::Failed("Regexp cannot be empty".to_string()));
                 }
-                let regex = org_core::agenda::matcher::emacs_buffer_regex(&args[0])
+                let regex = sparse::occur_regex(&args[0], case)
                     .ok_or_else(|| Refusal::Failed(format!("Invalid regexp: {}", args[0])))?;
                 let found = sparse::occur(&text, &regex, |_| true);
                 let message = format!("{} match(es) for regexp {}", found.count, args[0]);
                 (found, Some(message))
             }
             ("t", _) => {
-                let found = sparse::todo_tree(&text, &keywords, None);
+                let found = sparse::todo_tree(&text, &keywords, None, case);
                 let message = format!("{} TODO entries found", found.count);
                 (found, Some(message))
             }
@@ -12885,7 +12915,7 @@ impl Server {
             }
             ("T", _) => {
                 let wanted: Vec<String> = args[0].split('|').map(str::to_string).collect();
-                let found = sparse::todo_tree(&text, &keywords, Some(&wanted));
+                let found = sparse::todo_tree(&text, &keywords, Some(&wanted), case);
                 let message = format!("{} TODO entries found", found.count);
                 (found, Some(message))
             }
@@ -12930,20 +12960,20 @@ impl Server {
             }
             ("d", _) => {
                 let days = self.agenda.deadline_warning_days.abs();
-                let found = sparse::deadlines(&text, &keywords, self.now().today, days);
+                let found = sparse::deadlines(&text, &keywords, self.now().today, days, case);
                 let message = format!("{} deadlines past-due or due within {days} days", found.count);
                 (found, Some(message))
             }
             ("b" | "a", 0) => return ask("date", "Date", None, &answers),
             ("b", _) => {
                 let (date, shown) = read_date(&args[0])?;
-                let found = sparse::dates(&text, None, Some(date));
+                let found = sparse::dates(&text, &parse, None, Some(date), date_type, case);
                 let message = format!("{} entries before {shown}", found.count);
                 (found, Some(message))
             }
             ("a", _) => {
                 let (date, shown) = read_date(&args[0])?;
-                let found = sparse::dates(&text, Some(date), None);
+                let found = sparse::dates(&text, &parse, Some(date), None, date_type, case);
                 let message = format!("{} entries after {shown}", found.count);
                 (found, Some(message))
             }
@@ -12952,7 +12982,7 @@ impl Server {
             ("D", _) => {
                 let (start, start_shown) = read_date(&args[0])?;
                 let (end, end_shown) = read_date(&args[1])?;
-                let found = sparse::dates(&text, Some(start), Some(end));
+                let found = sparse::dates(&text, &parse, Some(start), Some(end), date_type, case);
                 let message = format!("{} entries between {start_shown} and {end_shown}", found.count);
                 (found, Some(message))
             }
@@ -12987,7 +13017,7 @@ impl Server {
     /// `org-occur` for a link's search `/regexp/` in its own file: a
     /// sparse tree of the matches.
     fn occur(&mut self, text: &str, regexp: &str) -> std::result::Result<Value, Refusal> {
-        let regex = org_core::agenda::matcher::emacs_buffer_regex(regexp)
+        let regex = org_core::sparse::occur_regex(regexp, self.occur_case_fold)
             .ok_or_else(|| Refusal::Failed(format!("Invalid regexp: {regexp}")))?;
         let found = org_core::sparse::occur(text, &regex, |_| true);
         self.message = Some(format!("{} match(es) for regexp {regexp}", found.count));
