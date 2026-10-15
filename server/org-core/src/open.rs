@@ -360,7 +360,7 @@ fn abbreviation_of<'a>(raw: &'a str, abbreviations: &'a [(String, String)]) -> O
 }
 
 /// `url-hexify-string`: all but the unreserved characters percent-encoded.
-fn hexify(text: &str) -> String {
+pub(crate) fn hexify(text: &str) -> String {
     let mut out = String::new();
     for byte in text.bytes() {
         if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'~') {

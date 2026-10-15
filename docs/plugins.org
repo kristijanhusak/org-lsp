@@ -215,6 +215,14 @@ The commands are org-roam's:
   file goes, its node made a headline first, and the file is deleted when
   the editor can delete files (else it is left empty). The selection is not
   refiled instead of the subtree, as it is in Emacs.
+- ~org.roam.graph~ :: ~org-roam-graph~: the nodes and the links between
+  them drawn by Graphviz (~org_roam_graph_executable~, ~dot~), then shown by
+  ~org_roam_graph_viewer~, or opened as the system opens the file. With a
+  count, only the nodes connected to the one at the cursor: ~C-u~ (4) any
+  number of steps away, another count that many nodes along the way
+  (~1~ the node and its own links). Where Emacs says nothing when Graphviz
+  fails, org-lsp shows what it wrote; ~org-roam-graph-link-builder~ is
+  always org-roam's (an ~org-protocol://roam-node~ link).
 - ~org.roam.extract~ :: ~org-roam-extract-subtree~: the subtree at the
   cursor, given an ~ID~ unless it has one, moved to a new file (/Extract
   node to:/, relative to ~org_roam_directory~, offered as

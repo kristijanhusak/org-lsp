@@ -447,6 +447,67 @@ fn roam_edits_match_emacs() {
     assert!(failures.is_empty(), "{} differences from Emacs:\n{}", failures.len(), failures.join("\n"));
 }
 
+/// The Graphviz text of org-roam's graph.
+fn run_graph(case: &Value) -> String {
+    use org_core::roam::graph;
+    let mut files: Vec<String> = case["files"].as_object().expect("files").keys().cloned().collect();
+    roam::sync_order(&mut files);
+    let mut db = Db::default();
+    for file in &files {
+        let body = case["files"][file.as_str()].as_str().unwrap_or_default();
+        let todo = org_syntax::TodoKeywords::from_document(body).unwrap_or_default();
+        let parse = org_syntax::parse(body, &todo);
+        let outline = Outline::new(&parse, body, "x");
+        db.add(file, roam::scan(body, &parse, &outline, file));
+    }
+    let mut settings = graph::Settings::default();
+    let options = &case["options"];
+    let pairs = |value: &Value| -> Vec<(String, String)> {
+        value
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|pair| (pair[0].as_str().unwrap().into(), pair[1].as_str().unwrap().into()))
+            .collect()
+    };
+    if let Some(shorten) = options.get("org-roam-graph-shorten-titles") {
+        settings.shorten = match shorten.as_str() {
+            Some("truncate") => graph::Shorten::Truncate,
+            Some("wrap") => graph::Shorten::Wrap,
+            _ => graph::Shorten::No,
+        };
+    }
+    if let Some(length) = options["org-roam-graph-max-title-length"].as_u64() {
+        settings.max_title_length = length as usize;
+    }
+    if options.get("org-roam-graph-link-hidden-types").is_some() {
+        settings.hidden = strings(&options["org-roam-graph-link-hidden-types"]);
+    }
+    settings.extra = pairs(&options["org-roam-graph-extra-config"]);
+    settings.edge = pairs(&options["org-roam-graph-edge-extra-config"]);
+    match case["node"].as_str() {
+        Some(node) => {
+            let distance = case["distance"].as_u64().unwrap_or(0) as usize;
+            graph::dot(&db, Some(graph::connected_component(&db, node, distance)), false, &settings)
+        }
+        None => graph::dot(&db, None, true, &settings),
+    }
+}
+
+#[test]
+fn roam_graphs_match_emacs() {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/roam/graph.json");
+    let cases: Vec<Value> = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    let mut failures = Vec::new();
+    for (index, case) in cases.iter().enumerate() {
+        let actual = run_graph(case);
+        if actual != case["expected"] {
+            failures.push(format!("case {index}:\n  emacs:   {}\n  org-lsp: {actual}", case["expected"]));
+        }
+    }
+    assert!(failures.is_empty(), "{} differences from Emacs:\n{}", failures.len(), failures.join("\n"));
+}
+
 /// What `org-roam-refile` and `org-roam-extract-subtree` leave: every
 /// file, and the error.
 fn run_move(case: &Value) -> Value {

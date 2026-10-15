@@ -2199,6 +2199,42 @@ org_roam_file_exclude_regexp = ["data/"]
 # (org-roam-node-display-template)
 org_roam_node_display_template = "${title}"
 
+# The Graphviz program that draws `org.roam.graph`'s graph, found on `PATH` or
+# a path. (org-roam-graph-executable)
+org_roam_graph_executable = "dot"
+
+# The program that shows the graph, given its file. (org-roam-graph-viewer)
+# org_roam_graph_viewer = …  (unset: the editor's: it opens the file as the system does)
+
+# What Graphviz draws the graph as (its `-T`): `svg`, `png`, `pdf`…
+# (org-roam-graph-filetype)
+org_roam_graph_filetype = "svg"
+
+# Graphviz's attributes of the graph, in their order: `{ "rankdir": "LR" }`.
+# (org-roam-graph-extra-config)
+org_roam_graph_extra_config = {  }
+
+# Graphviz's attributes of the links: `{ "dir": "back" }`.
+# (org-roam-graph-edge-extra-config)
+org_roam_graph_edge_extra_config = {  }
+
+# Graphviz's attributes of the nodes, by the type of the link to them: `id`
+# for org-roam's nodes, `https` for the web pages linked to.
+# (org-roam-graph-node-extra-config)
+org_roam_graph_node_extra_config = { http = { color = "#C9C9C9", fillcolor = "#EEEEEE", fontcolor = "#0A97A6", style = "rounded,filled" }, https = { color = "#C9C9C9", fillcolor = "#EEEEEE", fontcolor = "#0A97A6", style = "rounded,filled" }, id = { color = "#C9C9C9", fillcolor = "#EEEEEE", fontcolor = "#111111", style = "bold,rounded,filled" } }
+
+# The types of links the graph leaves out. (org-roam-graph-link-hidden-types)
+org_roam_graph_link_hidden_types = ["file"]
+
+# The width a title takes in the graph, at most.
+# (org-roam-graph-max-title-length)
+org_roam_graph_max_title_length = 100
+
+# What becomes of a title wider than `org_roam_graph_max_title_length`: cut
+# with `...` (`truncate`), over lines (`wrap`), or nothing (`false`).
+# (org-roam-graph-shorten-titles)
+org_roam_graph_shorten_titles = "truncate"
+
 # The file `org.roam.extract` offers for a node, relative to
 # `org_roam_directory`: `%<…>` is the time as `format-time-string` writes it,
 # `${title}`, `${slug}` and `${id}` the node's.
@@ -3883,6 +3919,43 @@ org_agenda_custom_commands = []
   // `${field:N}` in N columns, `${field:*}` in what is left of the window's
   // 79 columns. (org-roam-node-display-template)
   "org_roam_node_display_template": "${title}",
+
+  // The Graphviz program that draws `org.roam.graph`'s graph, found on `PATH`
+  // or a path. (org-roam-graph-executable)
+  "org_roam_graph_executable": "dot",
+
+  // The program that shows the graph, given its file. (org-roam-graph-viewer)
+  // "org_roam_graph_viewer": unset: the editor's: it opens the file as the system does
+
+  // What Graphviz draws the graph as (its `-T`): `svg`, `png`, `pdf`…
+  // (org-roam-graph-filetype)
+  "org_roam_graph_filetype": "svg",
+
+  // Graphviz's attributes of the graph, in their order: `{ "rankdir": "LR"
+  // }`. (org-roam-graph-extra-config)
+  "org_roam_graph_extra_config": {  },
+
+  // Graphviz's attributes of the links: `{ "dir": "back" }`.
+  // (org-roam-graph-edge-extra-config)
+  "org_roam_graph_edge_extra_config": {  },
+
+  // Graphviz's attributes of the nodes, by the type of the link to them: `id`
+  // for org-roam's nodes, `https` for the web pages linked to.
+  // (org-roam-graph-node-extra-config)
+  "org_roam_graph_node_extra_config": { "http": { "color": "#C9C9C9", "fillcolor": "#EEEEEE", "fontcolor": "#0A97A6", "style": "rounded,filled" }, "https": { "color": "#C9C9C9", "fillcolor": "#EEEEEE", "fontcolor": "#0A97A6", "style": "rounded,filled" }, "id": { "color": "#C9C9C9", "fillcolor": "#EEEEEE", "fontcolor": "#111111", "style": "bold,rounded,filled" } },
+
+  // The types of links the graph leaves out.
+  // (org-roam-graph-link-hidden-types)
+  "org_roam_graph_link_hidden_types": ["file"],
+
+  // The width a title takes in the graph, at most.
+  // (org-roam-graph-max-title-length)
+  "org_roam_graph_max_title_length": 100,
+
+  // What becomes of a title wider than `org_roam_graph_max_title_length`: cut
+  // with `...` (`truncate`), over lines (`wrap`), or nothing (`false`).
+  // (org-roam-graph-shorten-titles)
+  "org_roam_graph_shorten_titles": "truncate",
 
   // The file `org.roam.extract` offers for a node, relative to
   // `org_roam_directory`: `%<…>` is the time as `format-time-string` writes

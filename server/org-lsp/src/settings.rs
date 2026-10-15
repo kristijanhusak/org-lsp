@@ -2366,6 +2366,75 @@ pub const SETTINGS: &[Setting] = &[
          window's 79 columns.",
     ),
     setting(
+        "org_roam_graph_executable",
+        "string",
+        r#""dot""#,
+        "org-roam-graph-executable",
+        "The Graphviz program that draws `org.roam.graph`'s graph, found on `PATH` or a path.",
+    ),
+    Setting {
+        default: None,
+        unset: "the editor's: it opens the file as the system does",
+        ..setting(
+            "org_roam_graph_viewer",
+            "string",
+            "",
+            "org-roam-graph-viewer",
+            "The program that shows the graph, given its file.",
+        )
+    },
+    setting(
+        "org_roam_graph_filetype",
+        "string",
+        r#""svg""#,
+        "org-roam-graph-filetype",
+        "What Graphviz draws the graph as (its `-T`): `svg`, `png`, `pdf`…",
+    ),
+    setting(
+        "org_roam_graph_extra_config",
+        "object",
+        "{}",
+        "org-roam-graph-extra-config",
+        "Graphviz's attributes of the graph, in their order: `{ \"rankdir\": \"LR\" }`.",
+    ),
+    setting(
+        "org_roam_graph_edge_extra_config",
+        "object",
+        "{}",
+        "org-roam-graph-edge-extra-config",
+        "Graphviz's attributes of the links: `{ \"dir\": \"back\" }`.",
+    ),
+    setting(
+        "org_roam_graph_node_extra_config",
+        "object",
+        r##"{ "id": { "style": "bold,rounded,filled", "fillcolor": "#EEEEEE", "color": "#C9C9C9", "fontcolor": "#111111" }, "http": { "style": "rounded,filled", "fillcolor": "#EEEEEE", "color": "#C9C9C9", "fontcolor": "#0A97A6" }, "https": { "style": "rounded,filled", "fillcolor": "#EEEEEE", "color": "#C9C9C9", "fontcolor": "#0A97A6" } }"##,
+        "org-roam-graph-node-extra-config",
+        "Graphviz's attributes of the nodes, by the type of the link to them: `id` for org-roam's nodes, \
+         `https` for the web pages linked to.",
+    ),
+    setting(
+        "org_roam_graph_link_hidden_types",
+        "string[]",
+        r#"["file"]"#,
+        "org-roam-graph-link-hidden-types",
+        "The types of links the graph leaves out.",
+    ),
+    setting(
+        "org_roam_graph_max_title_length",
+        "integer",
+        "100",
+        "org-roam-graph-max-title-length",
+        "The width a title takes in the graph, at most.",
+    ),
+    setting(
+        "org_roam_graph_shorten_titles",
+        "\"truncate\", \"wrap\", false",
+        r#""truncate""#,
+        "org-roam-graph-shorten-titles",
+        "What becomes of a title wider than `org_roam_graph_max_title_length`: cut with `...` (`truncate`), \
+         over lines (`wrap`), or nothing (`false`).",
+    ),
+    setting(
         "org_roam_extract_new_file_path",
         "string",
         r#""%<%Y%m%d%H%M%S>-${slug}.org""#,
@@ -3371,6 +3440,18 @@ const SCHEMAS: &[(&str, &str)] = &[
     ),
     ("org_roam_node_display_template", STRING),
     ("org_roam_extract_new_file_path", STRING),
+    ("org_roam_graph_executable", STRING),
+    ("org_roam_graph_viewer", STRING),
+    ("org_roam_graph_filetype", STRING),
+    ("org_roam_graph_extra_config", STRING_MAP),
+    ("org_roam_graph_edge_extra_config", STRING_MAP),
+    (
+        "org_roam_graph_node_extra_config",
+        r#"{ "type": "object", "additionalProperties": { "type": "object", "additionalProperties": { "type": "string" } } }"#,
+    ),
+    ("org_roam_graph_link_hidden_types", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("org_roam_graph_max_title_length", INTEGER),
+    ("org_roam_graph_shorten_titles", r#"{ "enum": ["truncate", "wrap", false] }"#),
     ("org_roam_link_auto_replace", BOOLEAN),
     ("org_roam_completion_everywhere", BOOLEAN),
     ("org_journal_enabled", BOOLEAN),
@@ -3508,6 +3589,7 @@ const CONTEXTS: &str = r#"{ "type": "array", "items": { "type": "object", "requi
                 "description": "Rules, each a regexp on the file, the mode or the buffer's name; the context holds where one of them does" } } } }"#;
 const INTEGER: &str = r#"{ "type": "integer" }"#;
 const STRING: &str = r#"{ "type": "string" }"#;
+const STRING_MAP: &str = r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#;
 const PRIORITY: &str = r#"{ "anyOf": [{ "type": "string", "pattern": "^[A-Za-z]$" }, { "type": "integer", "minimum": 0, "maximum": 64 }] }"#;
 
 /// The schema of the option `name`.
@@ -3653,8 +3735,12 @@ mod tests {
                 None => true,
             }),
             "object" => value.as_object().is_some_and(|fields| {
-                fields.iter().all(|(key, field)| {
-                    schema.pointer(&format!("/properties/{key}")).is_some_and(|property| allows(property, field))
+                fields.iter().all(|(key, field)| match schema.pointer(&format!("/properties/{key}")) {
+                    Some(property) => allows(property, field),
+                    // A schema for the fields not named.
+                    None => schema
+                        .get("additionalProperties")
+                        .is_some_and(|other| other.is_object() && allows(other, field)),
                 })
             }),
             _ => false,
