@@ -353,5 +353,176 @@
    "modes": {},
    "message": "Tangled 1 code block from i.org"
   }
+ },
+ {
+  "name": "org-babel-tangle-lang-exts: an extension of the user's, and one of Org's replaced",
+  "files": {
+   "x.org": "#+begin_src python :tangle yes\nprint(1)\n#+end_src\n#+begin_src emacs-lisp :tangle yes\n(+ 1 2)\n#+end_src\n#+begin_src haskell :tangle yes\nmain = 1\n#+end_src\n"
+  },
+  "settings": {
+   "org_babel_tangle_lang_exts": {
+    "python": "py",
+    "emacs-lisp": "elisp"
+   }
+  },
+  "emacs": "(setq org-babel-tangle-lang-exts (append '((\"python\" . \"py\") (\"emacs-lisp\" . \"elisp\")) org-babel-tangle-lang-exts))",
+  "expected": {
+   "files": {
+    "x.elisp": "(+ 1 2)\n",
+    "x.haskell": "main = 1\n",
+    "x.py": "print(1)\n"
+   },
+   "modes": {},
+   "message": "Tangled 3 code blocks from x.org"
+  }
+ },
+ {
+  "name": "org-babel-tangle-use-relative-file-links nil: links and %file absolute",
+  "files": {
+   "c.org": "#+TITLE: t\n* Heading one\nSome text\n  indented more\n#+begin_src sh :tangle out.sh :comments both\necho one\n#+end_src\n#+name: named\n#+begin_src python :tangle sub/out.py :comments link :mkdirp yes\nprint(1)\n#+end_src\n"
+  },
+  "settings": {
+   "org_babel_tangle_use_relative_file_links": false,
+   "org_babel_tangle_comment_format_end": "%source-name ends here (%file)"
+  },
+  "emacs": "(setq org-babel-tangle-use-relative-file-links nil org-babel-tangle-comment-format-end \"%source-name ends here (%file)\")",
+  "expected": {
+   "files": {
+    "out.sh": "# Heading one\n# Some text\n#   indented more\n\n# [[file:/case/c.org::*Heading one][Heading one:1]]\necho one\n# Heading one:1 ends here (/case/c.org)\n",
+    "sub/out.py": "# [[file:/case/c.org::named][named]]\nprint(1)\n# named ends here (/case/c.org)\n"
+   },
+   "modes": {},
+   "message": "Tangled 2 code blocks from c.org"
+  }
+ },
+ {
+  "name": "comment formats with every key",
+  "files": {
+   "c.org": "#+TITLE: t\n* Heading one\nSome text\n  indented more\n#+begin_src sh :tangle out.sh :comments both\necho one\n#+end_src\n#+name: named\n#+begin_src python :tangle sub/out.py :comments link :mkdirp yes\nprint(1)\n#+end_src\n"
+  },
+  "settings": {
+   "org_babel_tangle_comment_format_beg": "BEGIN %source-name at %start-line of %file: %link",
+   "org_babel_tangle_comment_format_end": "END %source-name %start-line"
+  },
+  "emacs": "(setq org-babel-tangle-comment-format-beg \"BEGIN %source-name at %start-line of %file: %link\" org-babel-tangle-comment-format-end \"END %source-name %start-line\")",
+  "expected": {
+   "files": {
+    "out.sh": "# Heading one\n# Some text\n#   indented more\n\n# BEGIN Heading one:1 at 6 of c.org: file:c.org::*Heading one\necho one\n# END Heading one:1 6\n",
+    "sub/out.py": "# BEGIN named at 10 of c.org: file:../c.org::named\nprint(1)\n# END named 10\n"
+   },
+   "modes": {},
+   "message": "Tangled 2 code blocks from c.org"
+  }
+ },
+ {
+  "name": "org-babel-tangle-uncomment-comments: comments as they are",
+  "files": {
+   "c.org": "#+TITLE: t\n* Heading one\nSome text\n  indented more\n#+begin_src sh :tangle out.sh :comments both\necho one\n#+end_src\n#+name: named\n#+begin_src python :tangle sub/out.py :comments link :mkdirp yes\nprint(1)\n#+end_src\n"
+  },
+  "settings": {
+   "org_babel_tangle_uncomment_comments": true
+  },
+  "emacs": "(setq org-babel-tangle-uncomment-comments t)",
+  "expected": {
+   "files": {
+    "out.sh": "Heading one\nSome text\n  indented more\n[[file:c.org::*Heading one][Heading one:1]]echo one\nHeading one:1 ends here",
+    "sub/out.py": "[[file:../c.org::named][named]]print(1)\nnamed ends here"
+   },
+   "modes": {},
+   "message": "Tangled 2 code blocks from c.org"
+  }
+ },
+ {
+  "name": "org-babel-process-comment-text identity: the Org text keeps its indentation",
+  "files": {
+   "c.org": "* H\n   first line\n     second line\n#+begin_src sh :tangle out.sh :comments org\necho 1\n#+end_src\n"
+  },
+  "settings": {
+   "org_babel_process_comment_text": "identity"
+  },
+  "emacs": "(setq org-babel-process-comment-text #'identity)",
+  "expected": {
+   "files": {
+    "out.sh": "# H\n#    first line\n#      second line\n\necho 1\n"
+   },
+   "modes": {},
+   "message": "Tangled 1 code block from c.org"
+  }
+ },
+ {
+  "name": "org-babel-tangle-default-file-mode: what symbolic modes start from",
+  "files": {
+   "m.org": "#+begin_src sh :tangle a.sh :tangle-mode u+x\necho a\n#+end_src\n#+begin_src sh :tangle b.sh :tangle-mode g+w\necho b\n#+end_src\n#+begin_src sh :tangle c.sh\necho c\n#+end_src\n"
+  },
+  "settings": {
+   "org_babel_tangle_default_file_mode": "600"
+  },
+  "emacs": "(setq org-babel-tangle-default-file-mode #o600)",
+  "expected": {
+   "files": {
+    "a.sh": "echo a\n",
+    "b.sh": "echo b\n",
+    "c.sh": "echo c\n"
+   },
+   "modes": {
+    "a.sh": "700",
+    "b.sh": "620"
+   },
+   "message": "Tangled 3 code blocks from m.org"
+  }
+ },
+ {
+  "name": "noweb wrap of the user's",
+  "files": {
+   "n.org": "#+name: inner\n#+begin_src sh\necho inner\n#+end_src\n#+begin_src sh :tangle out.sh :noweb yes\n  {{{inner}}}\necho <<inner>>\n{{{ inner}}} {{{missing}}}\n#+end_src\n#+begin_src sh :tangle strip.sh :noweb strip-tangle\na {{{inner}}} b\n#+end_src\n"
+  },
+  "settings": {
+   "org_babel_noweb_wrap_start": "{{{",
+   "org_babel_noweb_wrap_end": "}}}"
+  },
+  "emacs": "(setq org-babel-noweb-wrap-start \"{{{\" org-babel-noweb-wrap-end \"}}}\")",
+  "expected": {
+   "files": {
+    "out.sh": "echo inner\necho <<inner>>\n{{{ inner}}}\n",
+    "strip.sh": "a  b\n"
+   },
+   "modes": {},
+   "message": "Tangled 2 code blocks from n.org"
+  }
+ },
+ {
+  "name": "noweb comments with uncommented comments and relative links off",
+  "files": {
+   "n.org": "* Top\n#+name: inner\n#+begin_src sh\necho inner\n#+end_src\n#+begin_src sh :tangle out.sh :noweb yes :comments noweb\n<<inner>>\n#+end_src\n"
+  },
+  "settings": {
+   "org_babel_tangle_uncomment_comments": true
+  },
+  "emacs": "(setq org-babel-tangle-uncomment-comments t)",
+  "expected": {
+   "files": {
+    "out.sh": "[[file:n.org::*Top][Top:2]]echo inner\nTop:2 ends here"
+   },
+   "modes": {},
+   "message": "Tangled 1 code block from n.org"
+  }
+ },
+ {
+  "name": "noweb comments with their own formats and absolute links",
+  "files": {
+   "n.org": "* Top\n#+name: inner\n#+begin_src sh\necho inner\n#+end_src\n#+begin_src sh :tangle out.sh :noweb yes :comments noweb\n<<inner>>\n#+end_src\n"
+  },
+  "settings": {
+   "org_babel_tangle_use_relative_file_links": false,
+   "org_babel_tangle_comment_format_beg": "B %source-name %start-line %file %link"
+  },
+  "emacs": "(setq org-babel-tangle-use-relative-file-links nil org-babel-tangle-comment-format-beg \"B %source-name %start-line %file %link\")",
+  "expected": {
+   "files": {
+    "out.sh": "# B Top:2 7 /case/n.org file:/case/n.org::*Top\n# B inner 3 /case/n.org file:/case/n.org::inner\necho inner\n# inner ends here\n# Top:2 ends here\n"
+   },
+   "modes": {},
+   "message": "Tangled 1 code block from n.org"
+  }
  }
 ]

@@ -2032,6 +2032,64 @@
       "description": "Leave the code of source blocks as it is indented when re-indenting. (`org-src-preserve-indentation`)",
       "default": false
     },
+    "org_babel_tangle_lang_exts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "By language, the extension of the file `:tangle yes` writes its blocks to, before Org's own (`emacs-lisp` → `el`): `{ \"python\": \"py\" }`. A language without one gives its name. (`org-babel-tangle-lang-exts`)",
+      "default": {}
+    },
+    "org_babel_tangle_use_relative_file_links": {
+      "type": "boolean",
+      "description": "Whether the link comments of tangled files (`:comments link`) point back to the Org file by a relative path; with `false` by its whole path. (`org-babel-tangle-use-relative-file-links`)",
+      "default": true
+    },
+    "org_babel_tangle_comment_format_beg": {
+      "type": "string",
+      "description": "The comment before a tangled block (`:comments link`): `%link` the link back to it, `%source-name` its name, `%file` the Org file, `%start-line` the line its code starts on. (`org-babel-tangle-comment-format-beg`)",
+      "default": "[[%link][%source-name]]"
+    },
+    "org_babel_tangle_comment_format_end": {
+      "type": "string",
+      "description": "The comment after a tangled block, with the keys of `org_babel_tangle_comment_format_beg`. (`org-babel-tangle-comment-format-end`)",
+      "default": "%source-name ends here"
+    },
+    "org_babel_tangle_uncomment_comments": {
+      "type": "boolean",
+      "description": "Write the comments of tangled blocks as they are: not commented, and no line break after them. (`org-babel-tangle-uncomment-comments`)",
+      "default": false
+    },
+    "org_babel_process_comment_text": {
+      "type": "string",
+      "description": "The function the Org text of `:comments org` goes through: `org-remove-indentation` takes its common indentation away, `identity` leaves it; Emacs tangles with any other. (`org-babel-process-comment-text`)",
+      "default": "org-remove-indentation"
+    },
+    "org_babel_tangle_default_file_mode": {
+      "type": "string",
+      "pattern": "^[0-7]{3,4}$",
+      "description": "In octal, the mode a symbolic `:tangle-mode` (`u+x`) changes. (`org-babel-tangle-default-file-mode`)",
+      "default": "644"
+    },
+    "org_babel_tangle_remove_file_before_write": {
+      "enum": [
+        true,
+        false,
+        "auto"
+      ],
+      "description": "Whether a file tangling writes again is deleted first: `true` always (a link to it becomes a file of its own), `false` never (a read-only file refuses), `\"auto\"` when it is read-only. (`org-babel-tangle-remove-file-before-write`)",
+      "default": "auto"
+    },
+    "org_babel_noweb_wrap_start": {
+      "type": "string",
+      "description": "What opens a Noweb reference in a source block (`<<name>>`). (`org-babel-noweb-wrap-start`)",
+      "default": "<<"
+    },
+    "org_babel_noweb_wrap_end": {
+      "type": "string",
+      "description": "What closes a Noweb reference. (`org-babel-noweb-wrap-end`)",
+      "default": ">>"
+    },
     "org_src_content_indentation": {
       "type": "integer",
       "minimum": 0,

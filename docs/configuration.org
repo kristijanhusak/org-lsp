@@ -1833,6 +1833,50 @@ org_bullets_checkboxes = { done = "✓", half = "-", todo = " " }
 # (org-src-preserve-indentation)
 org_src_preserve_indentation = false
 
+# By language, the extension of the file `:tangle yes` writes its blocks to,
+# before Org's own (`emacs-lisp` → `el`): `{ "python": "py" }`. A language
+# without one gives its name. (org-babel-tangle-lang-exts)
+org_babel_tangle_lang_exts = {  }
+
+# Whether the link comments of tangled files (`:comments link`) point back to
+# the Org file by a relative path; with `false` by its whole path.
+# (org-babel-tangle-use-relative-file-links)
+org_babel_tangle_use_relative_file_links = true
+
+# The comment before a tangled block (`:comments link`): `%link` the link back
+# to it, `%source-name` its name, `%file` the Org file, `%start-line` the line
+# its code starts on. (org-babel-tangle-comment-format-beg)
+org_babel_tangle_comment_format_beg = "[[%link][%source-name]]"
+
+# The comment after a tangled block, with the keys of
+# `org_babel_tangle_comment_format_beg`. (org-babel-tangle-comment-format-end)
+org_babel_tangle_comment_format_end = "%source-name ends here"
+
+# Write the comments of tangled blocks as they are: not commented, and no line
+# break after them. (org-babel-tangle-uncomment-comments)
+org_babel_tangle_uncomment_comments = false
+
+# The function the Org text of `:comments org` goes through:
+# `org-remove-indentation` takes its common indentation away, `identity`
+# leaves it; Emacs tangles with any other. (org-babel-process-comment-text)
+org_babel_process_comment_text = "org-remove-indentation"
+
+# In octal, the mode a symbolic `:tangle-mode` (`u+x`) changes.
+# (org-babel-tangle-default-file-mode)
+org_babel_tangle_default_file_mode = "644"
+
+# Whether a file tangling writes again is deleted first: `true` always (a link
+# to it becomes a file of its own), `false` never (a read-only file refuses),
+# `"auto"` when it is read-only. (org-babel-tangle-remove-file-before-write)
+org_babel_tangle_remove_file_before_write = "auto"
+
+# What opens a Noweb reference in a source block (`<<name>>`).
+# (org-babel-noweb-wrap-start)
+org_babel_noweb_wrap_start = "<<"
+
+# What closes a Noweb reference. (org-babel-noweb-wrap-end)
+org_babel_noweb_wrap_end = ">>"
+
 # How far code is indented past its source block: when re-indenting, and when
 # the code of a block edited in a file of its own (`C-c '`) is written back.
 # Formerly `org_edit_src_content_indentation`, which is still read.
@@ -3630,6 +3674,52 @@ org_agenda_custom_commands = []
   // Leave the code of source blocks as it is indented when re-indenting.
   // (org-src-preserve-indentation)
   "org_src_preserve_indentation": false,
+
+  // By language, the extension of the file `:tangle yes` writes its blocks
+  // to, before Org's own (`emacs-lisp` → `el`): `{ "python": "py" }`. A
+  // language without one gives its name. (org-babel-tangle-lang-exts)
+  "org_babel_tangle_lang_exts": {  },
+
+  // Whether the link comments of tangled files (`:comments link`) point back
+  // to the Org file by a relative path; with `false` by its whole path.
+  // (org-babel-tangle-use-relative-file-links)
+  "org_babel_tangle_use_relative_file_links": true,
+
+  // The comment before a tangled block (`:comments link`): `%link` the link
+  // back to it, `%source-name` its name, `%file` the Org file, `%start-line`
+  // the line its code starts on. (org-babel-tangle-comment-format-beg)
+  "org_babel_tangle_comment_format_beg": "[[%link][%source-name]]",
+
+  // The comment after a tangled block, with the keys of
+  // `org_babel_tangle_comment_format_beg`.
+  // (org-babel-tangle-comment-format-end)
+  "org_babel_tangle_comment_format_end": "%source-name ends here",
+
+  // Write the comments of tangled blocks as they are: not commented, and no
+  // line break after them. (org-babel-tangle-uncomment-comments)
+  "org_babel_tangle_uncomment_comments": false,
+
+  // The function the Org text of `:comments org` goes through:
+  // `org-remove-indentation` takes its common indentation away, `identity`
+  // leaves it; Emacs tangles with any other. (org-babel-process-comment-text)
+  "org_babel_process_comment_text": "org-remove-indentation",
+
+  // In octal, the mode a symbolic `:tangle-mode` (`u+x`) changes.
+  // (org-babel-tangle-default-file-mode)
+  "org_babel_tangle_default_file_mode": "644",
+
+  // Whether a file tangling writes again is deleted first: `true` always (a
+  // link to it becomes a file of its own), `false` never (a read-only file
+  // refuses), `"auto"` when it is read-only.
+  // (org-babel-tangle-remove-file-before-write)
+  "org_babel_tangle_remove_file_before_write": "auto",
+
+  // What opens a Noweb reference in a source block (`<<name>>`).
+  // (org-babel-noweb-wrap-start)
+  "org_babel_noweb_wrap_start": "<<",
+
+  // What closes a Noweb reference. (org-babel-noweb-wrap-end)
+  "org_babel_noweb_wrap_end": ">>",
 
   // How far code is indented past its source block: when re-indenting, and
   // when the code of a block edited in a file of its own (`C-c '`) is written

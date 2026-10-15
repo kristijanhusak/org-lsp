@@ -22,8 +22,8 @@
   "org-confirm-babel-evaluate": "emacs",
   "org-babel-no-eval-on-ctrl-c-ctrl-c": "emacs",
   "org-babel-results-keyword": "emacs",
-  "org-babel-noweb-wrap-start": "missing",
-  "org-babel-noweb-wrap-end": "missing",
+  "org-babel-noweb-wrap-start": "setting",
+  "org-babel-noweb-wrap-end": "setting",
   "org-babel-inline-result-wrap": "emacs",
   "org-babel-hash-show-time": "emacs",
   "org-babel-uppercase-example-markers": "emacs",
@@ -128,18 +128,18 @@
   "org-babel-shell-results-defaults-to-output": "emacs"
  },
  "ob-tangle.el": {
-  "org-babel-tangle-lang-exts": "missing",
-  "org-babel-tangle-use-relative-file-links": "missing",
+  "org-babel-tangle-lang-exts": "setting",
+  "org-babel-tangle-use-relative-file-links": "setting",
   "org-babel-post-tangle-hook": "lisp",
   "org-babel-pre-tangle-hook": "lisp",
   "org-babel-tangle-body-hook": "lisp",
   "org-babel-tangle-finished-hook": "lisp",
-  "org-babel-tangle-comment-format-beg": "missing",
-  "org-babel-tangle-comment-format-end": "missing",
-  "org-babel-tangle-uncomment-comments": "missing",
-  "org-babel-process-comment-text": "missing",
-  "org-babel-tangle-default-file-mode": "missing",
-  "org-babel-tangle-remove-file-before-write": "missing"
+  "org-babel-tangle-comment-format-beg": "setting",
+  "org-babel-tangle-comment-format-end": "setting",
+  "org-babel-tangle-uncomment-comments": "setting",
+  "org-babel-process-comment-text": "setting",
+  "org-babel-tangle-default-file-mode": "setting",
+  "org-babel-tangle-remove-file-before-write": "setting"
  },
  "oc-basic.el": {
   "org-cite-basic-sorting-field": "absent",
