@@ -249,6 +249,7 @@ export const AREAS = [
       ['Circular motion between items (`org-list-use-circular-motion`)', true],
       ['Two spaces after chosen bullets, a bullet of their own for indented items, a wider indent for sub-items (`org-list-two-spaces-after-bullet-regexp`, `org-list-demote-modify-bullet`, `org-list-indent-offset`)', true],
       ['Turning off the automatic rules, and cookies counting every box below them (`org-list-automatic-rules`, `org-checkbox-hierarchical-statistics`)', true],
+      ['Lettered items (`a.`, `B)`) and one terminator for numbers (`org-list-allow-alphabetical`, `org-plain-list-ordered-item-terminator`)', true],
     ],
     editors: {
       zed: ['part', '`RET` stays Zed\'s own, and so do Shift and Alt with the arrows, which cycle bullets and move items in Org.'],

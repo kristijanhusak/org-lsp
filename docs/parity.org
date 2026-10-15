@@ -17,7 +17,7 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#highlighting][Highlighting]] | 95% | 19 of 20 |
 | [[#folding-and-visibility][Folding and visibility]] | 91% | 10 of 11 |
 | [[#headings-and-structure][Headings and structure]] | 93% | 14 of 15 |
-| [[#lists-and-checkboxes][Lists and checkboxes]] | 100% | 12 of 12 |
+| [[#lists-and-checkboxes][Lists and checkboxes]] | 100% | 13 of 13 |
 | [[#todo-keywords][TODO keywords]] | 100% | 12 of 12 |
 | [[#priorities][Priorities]] | 75% | 3 of 4 |
 | [[#tags][Tags]] | 88% | 7 of 8 |
@@ -141,7 +141,7 @@ Where editors fall short:
 :CUSTOM_ID: lists-and-checkboxes
 :END:
 
-100% (12 of 12)
+100% (13 of 13)
 
 - ✅ New items, numbered and with checkboxes (~M-RET~, ~M-S-RET~)
 - ✅ ~RET~ in an item (~org-return~)
@@ -155,6 +155,7 @@ Where editors fall short:
 - ✅ Circular motion between items (~org-list-use-circular-motion~)
 - ✅ Two spaces after chosen bullets, a bullet of their own for indented items, a wider indent for sub-items (~org-list-two-spaces-after-bullet-regexp~, ~org-list-demote-modify-bullet~, ~org-list-indent-offset~)
 - ✅ Turning off the automatic rules, and cookies counting every box below them (~org-list-automatic-rules~, ~org-checkbox-hierarchical-statistics~)
+- ✅ Lettered items (~a.~, ~B)~) and one terminator for numbers (~org-list-allow-alphabetical~, ~org-plain-list-ordered-item-terminator~)
 
 Where editors fall short:
 
@@ -745,15 +746,15 @@ Where editors fall short:
 :END:
 
 Each of the 1025 options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with
-it. Of the 304 that change what org-lsp does itself, 94% can be set.
+it. Of the 304 that change what org-lsp does itself, 95% can be set.
 [[file:../scripts/org-options.json][scripts/org-options.json]] says it for each; ~scripts/check.sh~ fails when the
 server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,
 when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 274 | A setting of the same name |
-| missing | 17 | org-lsp does what the option is about, but the option cannot be set yet |
+| setting | 276 | A setting of the same name |
+| missing | 15 | org-lsp does what the option is about, but the option cannot be set yet |
 | other | 13 | Done another way, as its note says |
 | emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 48 | Its value is Lisp (a function, a hook), which the server does not run |
@@ -782,5 +783,4 @@ Options of what org-lsp does that cannot be set yet, by the file of Org they are
 
 - ob-core.el (2) :: ~org-babel-noweb-wrap-start~, ~org-babel-noweb-wrap-end~
 - ob-tangle.el (8) :: ~org-babel-tangle-lang-exts~, ~org-babel-tangle-use-relative-file-links~, ~org-babel-tangle-comment-format-beg~, ~org-babel-tangle-comment-format-end~, ~org-babel-tangle-uncomment-comments~, ~org-babel-process-comment-text~, ~org-babel-tangle-default-file-mode~, ~org-babel-tangle-remove-file-before-write~
-- org-list.el (2) :: ~org-plain-list-ordered-item-terminator~, ~org-list-allow-alphabetical~
 - org.el (5) :: ~org-odd-levels-only~, ~org-todo-interpretation~, ~org-priority-enable-commands~, ~org-custom-properties~, ~org-track-ordered-property-with-tag~

@@ -26,6 +26,8 @@
 ---@field org_treat_insert_todo_heading_as_state_change? boolean The keyword of a heading `org.insert.todo.heading` (M-S-RET) makes is set as a TODO change: logged as the keyword says (a note wanted is a time only), with its tag triggers. (`org-treat-insert-todo-heading-as-state-change`)
 ---@field org_edit_timestamp_down_means_later? boolean `S-<down>` makes a timestamp later and `S-<up>` earlier, the other way round from Org's default. (`org-edit-timestamp-down-means-later`)
 ---@field org_special_ctrl_k? boolean C-k (`org.kill.line`) on a headline kills the text to the tags, and the tags when the cursor is past the title; at the start of the line, the whole line. With `false` the key keeps the editor's own meaning. (`org-special-ctrl-k`)
+---@field org_list_allow_alphabetical? boolean Whether a letter may stand for the number of an ordered item (`a.`, `B)`). A list of more than 26 items is numbered. (`org-list-allow-alphabetical`)
+---@field org_plain_list_ordered_item_terminator? true|'.'|')' What ends the number of an ordered item: `"."`, `")"`, or `true` for either. (`org-plain-list-ordered-item-terminator`)
 ---@field org_list_two_spaces_after_bullet_regexp? false|string An Emacs regexp: the bullets it matches get two spaces after them when Org writes them (a new item, a bullet changed, a list repaired). (`org-list-two-spaces-after-bullet-regexp`)
 ---@field org_list_demote_modify_bullet? table By bullet (`-`, `+`, `*`, `1.`, `1)`), the bullet an item gets when it is indented: `{ "+": "-", "-": "+" }`. (`org-list-demote-modify-bullet`)
 ---@field org_list_indent_offset? integer How many more columns sub-items are indented, past their parent's bullet. (`org-list-indent-offset`)

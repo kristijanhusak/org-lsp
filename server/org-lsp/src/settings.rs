@@ -237,6 +237,21 @@ pub const SETTINGS: &[Setting] = &[
          own meaning.",
     ),
     setting(
+        "org_list_allow_alphabetical",
+        "boolean",
+        "false",
+        "org-list-allow-alphabetical",
+        "Whether a letter may stand for the number of an ordered item (`a.`, `B)`). A list of more than 26 \
+         items is numbered.",
+    ),
+    setting(
+        "org_plain_list_ordered_item_terminator",
+        "true, \".\", \")\"",
+        "true",
+        "org-plain-list-ordered-item-terminator",
+        "What ends the number of an ordered item: `\".\"`, `\")\"`, or `true` for either.",
+    ),
+    setting(
         "org_list_two_spaces_after_bullet_regexp",
         "false, string",
         "false",
@@ -3122,6 +3137,8 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_sparse_tree_open_archived_trees", BOOLEAN),
     ("org_yank_adjusted_subtrees", BOOLEAN),
     ("org_allow_promoting_top_level_subtree", BOOLEAN),
+    ("org_list_allow_alphabetical", BOOLEAN),
+    ("org_plain_list_ordered_item_terminator", r#"{ "enum": [true, ".", ")"] }"#),
     ("org_list_two_spaces_after_bullet_regexp", r#"{ "anyOf": [{ "const": false }, { "type": "string" }] }"#),
     (
         "org_list_demote_modify_bullet",

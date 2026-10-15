@@ -596,8 +596,8 @@
  "org-list.el": {
   "org-cycle-include-plain-lists": "setting",
   "org-list-demote-modify-bullet": "setting",
-  "org-plain-list-ordered-item-terminator": "missing",
-  "org-list-allow-alphabetical": "missing",
+  "org-plain-list-ordered-item-terminator": "setting",
+  "org-list-allow-alphabetical": "setting",
   "org-list-two-spaces-after-bullet-regexp": "setting",
   "org-list-automatic-rules": "setting",
   "org-list-use-circular-motion": "setting",

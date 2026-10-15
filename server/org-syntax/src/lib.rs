@@ -21,6 +21,7 @@ pub mod ast;
 mod config;
 mod entities;
 mod kind;
+mod lists;
 mod objects;
 mod parser;
 
@@ -39,6 +40,7 @@ pub fn plain_link_end(text: &str, at: usize) -> Option<usize> {
 }
 
 pub use entities::set_user_entities;
+pub use lists::{list_syntax, set_list_syntax, with_list_syntax, ListSyntax, Terminator};
 
 /// The names of the entities: the user's (`org-entities-user`), then
 /// Org's.

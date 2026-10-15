@@ -38,6 +38,20 @@ fn settings(case: &Value) -> list::Settings {
     }
 }
 
+/// How a case writes ordered items: `org-list-allow-alphabetical` and
+/// `org-plain-list-ordered-item-terminator`.
+fn syntax(case: &Value) -> org_syntax::ListSyntax {
+    let options = &case["settings"];
+    org_syntax::ListSyntax {
+        alphabetical: options["alphabetical"].as_bool().unwrap_or(false),
+        terminator: match options["terminator"].as_str() {
+            Some(".") => org_syntax::Terminator::Dot,
+            Some(")") => org_syntax::Terminator::Paren,
+            _ => org_syntax::Terminator::Both,
+        },
+    }
+}
+
 #[test]
 fn edits_lists_as_emacs_does() {
     let path = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../../tests/lists/cases.json"));
@@ -56,7 +70,7 @@ fn edits_lists_as_emacs_does() {
         if key.starts_with("S-<") && !org_core::edit::shifts_item(text, point) {
             continue;
         }
-        let outcome = match key {
+        let outcome = org_syntax::with_list_syntax(syntax(case), || match key {
             "M-<left>" => list::indent_item(text, point, -1, false, &keywords, -77, settings),
             "M-<right>" => list::indent_item(text, point, 1, false, &keywords, -77, settings),
             "M-S-<left>" => list::indent_item(text, point, -1, true, &keywords, -77, settings),
@@ -88,8 +102,13 @@ fn edits_lists_as_emacs_does() {
                 org_core::checkbox::ctrl_c_ctrl_c(text, &keywords, point, -77, text.contains(":ORDERED: t"), settings)
                     .map(|(text, cursor, _)| list::Edited { text, cursor })
             }
+            "M-RET" => {
+                let insert = org_core::meta_return::Settings { lists: settings.clone(), ..Default::default() };
+                org_core::meta_return::meta_return(text, point, &keywords, &insert)
+                    .map(|outcome| list::Edited { text: outcome.text, cursor: outcome.cursor })
+            }
             _ => panic!("unknown key {key}"),
-        };
+        });
         let expected = &case["expected"];
         let show = |text: &str, at: usize| {
             format!("{:?}", format!("{}§{}", &text[..at.min(text.len())], &text[at.min(text.len())..]))

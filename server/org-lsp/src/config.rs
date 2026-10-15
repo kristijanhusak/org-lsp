@@ -383,6 +383,11 @@ pub struct Options {
     /// UTF-8]` for each entity of the user's.
     #[serde(rename = "org_entities_user")]
     pub entities_user: Option<Vec<Vec<serde_json::Value>>>,
+    #[serde(rename = "org_list_allow_alphabetical")]
+    pub list_allow_alphabetical: Option<bool>,
+    /// `org-plain-list-ordered-item-terminator`: `true`, `"."` or `")"`.
+    #[serde(rename = "org_plain_list_ordered_item_terminator")]
+    pub plain_list_ordered_item_terminator: Option<serde_json::Value>,
     #[serde(rename = "org_indent_mode_turns_on_hiding_stars")]
     pub indent_mode_turns_on_hiding_stars: Option<bool>,
     #[serde(rename = "org_indent_mode_turns_off_org_adapt_indentation")]
@@ -1609,6 +1614,41 @@ impl Options {
             })
             .collect();
         Some(format!("(setq org-entities-user '({}))", entries.join(" ")))
+    }
+
+    /// `org-list-allow-alphabetical` and
+    /// `org-plain-list-ordered-item-terminator`: how ordered items are
+    /// written.
+    pub fn list_syntax(&self) -> org_syntax::ListSyntax {
+        let terminator = match self.plain_list_ordered_item_terminator.as_ref().and_then(serde_json::Value::as_str) {
+            Some(".") => org_syntax::Terminator::Dot,
+            Some(")") => org_syntax::Terminator::Paren,
+            _ => org_syntax::Terminator::Both,
+        };
+        org_syntax::ListSyntax { alphabetical: self.list_allow_alphabetical == Some(true), terminator }
+    }
+
+    /// The options Emacs must know before it reads Org, as Emacs Lisp:
+    /// `org-entities-user`, `org-list-allow-alphabetical`,
+    /// `org-plain-list-ordered-item-terminator`.
+    pub fn emacs_lisp(&self) -> Option<String> {
+        let mut forms: Vec<String> = self.user_entities_lisp().into_iter().collect();
+        let syntax = self.list_syntax();
+        if syntax != org_syntax::ListSyntax::default() {
+            let terminator = match syntax.terminator {
+                org_syntax::Terminator::Both => "t",
+                org_syntax::Terminator::Dot => "?.",
+                org_syntax::Terminator::Paren => "?\\)",
+            };
+            forms.push(format!(
+                "(setq org-list-allow-alphabetical {} org-plain-list-ordered-item-terminator {terminator})",
+                if syntax.alphabetical { "t" } else { "nil" }
+            ));
+            // When the configuration file has loaded Org already, its
+            // parser reads them again.
+            forms.push("(when (featurep 'org-element) (org-element-update-syntax))".to_string());
+        }
+        (!forms.is_empty()).then(|| forms.join("\n"))
     }
 
     /// `org-archive-subtree-save-file-p`: whether the archive file is
@@ -3765,6 +3805,28 @@ mod tests {
             options.user_entities_lisp().unwrap(),
             r#"(setq org-entities-user '(("myarrow" "\\to" t "&rarr;" "->" "\"q\"" "→")))"#
         );
+    }
+
+    /// `org-list-allow-alphabetical` and
+    /// `org-plain-list-ordered-item-terminator`, for the parser and the
+    /// server's Emacs.
+    #[test]
+    fn list_syntax_from_the_options() {
+        let options: Options = serde_json::from_value(serde_json::json!({
+            "org_list_allow_alphabetical": true,
+            "org_plain_list_ordered_item_terminator": ")"
+        }))
+        .unwrap();
+        assert_eq!(
+            options.list_syntax(),
+            org_syntax::ListSyntax { alphabetical: true, terminator: org_syntax::Terminator::Paren }
+        );
+        assert_eq!(
+            options.emacs_lisp().unwrap(),
+            "(setq org-list-allow-alphabetical t org-plain-list-ordered-item-terminator ?\\))\n\
+             (when (featurep 'org-element) (org-element-update-syntax))"
+        );
+        assert_eq!(Options::default().emacs_lisp(), None);
     }
 
     #[test]

@@ -205,6 +205,20 @@
       "description": "C-k (`org.kill.line`) on a headline kills the text to the tags, and the tags when the cursor is past the title; at the start of the line, the whole line. With `false` the key keeps the editor's own meaning. (`org-special-ctrl-k`)",
       "default": false
     },
+    "org_list_allow_alphabetical": {
+      "type": "boolean",
+      "description": "Whether a letter may stand for the number of an ordered item (`a.`, `B)`). A list of more than 26 items is numbered. (`org-list-allow-alphabetical`)",
+      "default": false
+    },
+    "org_plain_list_ordered_item_terminator": {
+      "enum": [
+        true,
+        ".",
+        ")"
+      ],
+      "description": "What ends the number of an ordered item: `\".\"`, `\")\"`, or `true` for either. (`org-plain-list-ordered-item-terminator`)",
+      "default": true
+    },
     "org_list_two_spaces_after_bullet_regexp": {
       "anyOf": [
         {
