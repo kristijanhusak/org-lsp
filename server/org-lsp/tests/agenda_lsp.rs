@@ -4231,6 +4231,60 @@ fn goes_to_dates_as_org_agenda_jump_prefer_future_says() {
     }
 }
 
+/// `org-agenda-show-outline-path`: answering where the cursor is in the
+/// agenda, the server gives the entry's outline path for the echo area,
+/// as Emacs shows it: after the file's name, or with `title` its title,
+/// the headlines above it without keyword, priority, tags or link
+/// brackets.
+#[test]
+fn shows_the_outline_path_of_the_agenda_line() {
+    const NOTES: &str = "#+TITLE: Work notes\n* Projects\n** TODO [#A] Write [[https://x.org][the report]]   :tag:\n\
+                         *** TODO Draft section\n* TODO Top level task\n";
+    for (option, expected) in [
+        (None, ["work.org/Projects", "work.org/Projects/Write the report", "work.org"]),
+        (Some("title"), ["Work notes/Projects", "Work notes/Projects/Write the report", "Work notes"]),
+    ] {
+        let mut options = clock();
+        if let Some(option) = option {
+            options["org_agenda_show_outline_path"] = json!(option);
+        }
+        let mut client = Client::editor(options, None);
+        client.open("file:///org/work.org", NOTES);
+        client.command("org.agenda.todos", VIEW, 0);
+        let text = client.show_view();
+        let echo = |client: &mut Client, needle: &str| {
+            let line = text.lines().position(|line| line.contains(needle)).unwrap();
+            let context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } });
+            client.request("org-lsp/agendaCursor", context).unwrap()
+        };
+        assert_eq!(echo(&mut client, "Write"), json!({ "echo": expected[0] }));
+        assert_eq!(echo(&mut client, "Draft"), json!({ "echo": expected[1] }));
+        assert_eq!(echo(&mut client, "Top level"), json!({ "echo": expected[2] }));
+        assert_eq!(echo(&mut client, "Global list"), Value::Null);
+        client.shutdown();
+    }
+    // Wider than the echo area the editor says it has (`width`, the
+    // frame's), it is cut as `org-format-outline-path` cuts it.
+    let mut client = Client::editor(clock(), None);
+    client.open("file:///org/work.org", NOTES);
+    client.command("org.agenda.todos", VIEW, 0);
+    let text = client.show_view();
+    let line = text.lines().position(|line| line.contains("Draft")).unwrap();
+    let context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 }, "width": 21 });
+    assert_eq!(client.request("org-lsp/agendaCursor", context).unwrap(), json!({ "echo": "work.org/Projects/.." }));
+    client.shutdown();
+    let mut options = clock();
+    options["org_agenda_show_outline_path"] = json!(false);
+    let mut client = Client::editor(options, None);
+    client.open("file:///org/work.org", NOTES);
+    client.command("org.agenda.todos", VIEW, 0);
+    let text = client.show_view();
+    let line = text.lines().position(|line| line.contains("Draft")).unwrap();
+    let context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } });
+    assert_eq!(client.request("org-lsp/agendaCursor", context).unwrap(), Value::Null);
+    client.shutdown();
+}
+
 /// A keyword with a face of its own (`org_todo_keyword_faces`) is offered
 /// in that face when the server asks for a TODO state.
 #[test]

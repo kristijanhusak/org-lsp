@@ -208,6 +208,11 @@ clients that send none of their own):
   (~org.agenda.follow~) the server answers with ~window/showDocument~ for
   the entry of that line, ~takeFocus: false~ and ~orgOtherWindow: true~: the
   client shows it in another window and keeps the cursor in the agenda.
+  Sent as a request, with ~width~ the columns of the editor's echo area if
+  it has one, it is answered with ~{ "echo": "work.org/Projects" }~: the
+  outline path of the line's entry (~org-agenda-show-outline-path~), cut
+  to fit as Emacs cuts it, for the client to show as Emacs's
+  ~org-unlogged-message~ does (the echo area, the status bar), or ~null~.
 - ~org-lsp/cursor~ :: ~{ "textDocument", "position" }~: the line of an Org
   file the cursor is on, each time it changes, while the editor shows the
   persistent org-roam buffer. When the cursor is in another node of
@@ -505,6 +510,7 @@ Each option with its type, its default and what it means:
 - ~org_agenda_log_mode_add_notes~ :: boolean, ~true~. Show the note of a state change or a clock line after the headline in log mode. (~org-agenda-log-mode-add-notes~)
 - ~org_agenda_move_date_from_past_immediately_to_today~ :: boolean, ~true~. Moving a date of the past one day later from the agenda (~S-<right>~) takes it to today. (~org-agenda-move-date-from-past-immediately-to-today~)
 - ~org_agenda_persistent_marks~ :: boolean, ~false~. Keep the marks of a bulk action (~B~) after it (~p~ in its menu toggles this for one action). (~org-agenda-persistent-marks~)
+- ~org_agenda_show_outline_path~ :: boolean, "title", ~true~. As the cursor moves in the agenda, show where the entry of its line is: the file's name and the headlines above it (~work.org/Projects/Report~), in the echo area or the status bar. With ~title~ the file's ~#+TITLE:~ comes first instead of its name. (~org-agenda-show-outline-path~)
 - ~org_agenda_start_with_follow_mode~ :: boolean, ~false~. Start the agenda in follow mode, which shows the entry of the cursor's line in another window as the cursor moves (~F~ toggles it). (~org-agenda-start-with-follow-mode~)
 - ~org_agenda_start_with_entry_text_mode~ :: boolean, ~false~. Start the agenda with some text of each entry under its line (~E~ toggles it). (~org-agenda-start-with-entry-text-mode~)
 - ~org_agenda_entry_text_maxlines~ :: integer, ~5~. The most lines of an entry's text ~E~ shows. (~org-agenda-entry-text-maxlines~)

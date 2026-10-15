@@ -621,10 +621,17 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
         return;
       }
       agendaLines.set(uri.toString(), line);
-      void client.sendNotification('org-lsp/agendaCursor', {
-        textDocument: { uri: uri.toString() },
-        position: { line, character: 0 },
-      });
+      // `org-agenda-show-outline-path`: the entry's outline path, in the
+      // status bar for a while, as Emacs shows it in the echo area.
+      void client
+        .sendRequest('org-lsp/agendaCursor', { textDocument: { uri: uri.toString() }, position: { line, character: 0 } })
+        .then((result) => {
+          const echo = (result as { echo?: unknown } | null)?.echo;
+          if (typeof echo === 'string') {
+            echoed = echo;
+            vscode.window.setStatusBarMessage(echo, 5000);
+          }
+        });
     }),
   );
   try {
@@ -824,6 +831,8 @@ interface ColumnsShown {
 }
 
 const columnsShown = new Map<string, ColumnsShown>();
+/** The outline path the status bar showed last for the agenda's cursor. */
+let echoed = '';
 const columnsPicked = new Map<string, number>();
 /** A headline's own text, under its columns. */
 const columnsHidden = vscode.window.createTextEditorDecorationType({ textDecoration: 'none; display: none;' });
@@ -2100,6 +2109,8 @@ export interface Api {
   help(editor: vscode.TextEditor): string[][];
   /** The previews of `editor`: `[kind, line, file name, width, height]` each. */
   images(editor: vscode.TextEditor): [string, number, string, number, number][];
+  /** The outline path of the agenda line shown last (`org-agenda-show-outline-path`). */
+  echoed(): string;
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<Api> {
@@ -2190,6 +2201,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     concealed: (editor) => concealedText.get(editor) ?? [],
     clock: clockText,
     columns: () => columnsItem?.text ?? '',
+    echoed: () => echoed,
     columnsShown: (editor) => (columnsShown.get(editor.document.uri.toString())?.lines ?? []).map(([line, text]) => [line, text]),
     timer: timerText,
     standIns: (editor) => standInsShown.get(editor) ?? [],

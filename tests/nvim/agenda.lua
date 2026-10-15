@@ -567,6 +567,21 @@ vim.wait(200)
 eq(shown_line(), 3, 'off: the other window stays')
 vim.cmd('only')
 
+-- 6e. The outline path of the line's entry in the echo area, out of the
+-- message history (`org-agenda-show-outline-path`).
+local echo, echoed = vim.api.nvim_echo, {}
+vim.api.nvim_echo = function(chunks, history, opts)
+  table.insert(echoed, { chunks[1][1], history })
+  return echo(chunks, history, opts)
+end
+vim.api.nvim_win_set_cursor(agenda_win, { find('  home:       Sched. 2x:  TODO Water plants'), 0 })
+vim.api.nvim_exec_autocmds('CursorMoved', { buffer = agenda_buf })
+wait('the outline path', function()
+  return #echoed > 0
+end)
+vim.api.nvim_echo = echo
+eq(echoed[#echoed], { 'home.org', false }, 'the file of a top-level entry')
+
 -- 7. Enter goes to the entry.
 vim.api.nvim_win_set_cursor(0, { 16, 0 })
 press('<CR>')

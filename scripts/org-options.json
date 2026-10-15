@@ -291,7 +291,7 @@
   "org-agenda-mouse-1-follows-link": "emacs-only",
   "org-agenda-start-with-follow-mode": "setting",
   "org-agenda-follow-indirect": "emacs-only",
-  "org-agenda-show-outline-path": "missing",
+  "org-agenda-show-outline-path": "setting",
   "org-agenda-start-with-entry-text-mode": "setting",
   "org-agenda-entry-text-maxlines": "setting",
   "org-agenda-entry-text-exclude-regexps": "setting",

@@ -226,7 +226,7 @@ pub fn find<'a>(targets: &'a [(usize, Target)], answer: &str) -> Option<&'a (usi
 
 /// `org-get-outline-path`: the titles of the headlines above the one at
 /// `offset`, outermost first.
-pub(crate) fn outline_path(text: &str, offset: usize, keywords: &TodoKeywords) -> Vec<String> {
+pub fn outline_path(text: &str, offset: usize, keywords: &TodoKeywords) -> Vec<String> {
     let file = File { text, keywords, name: "", path: "", title: None };
     ancestors(text, offset).into_iter().map(|at| path_part(text, at, &file)).collect()
 }

@@ -347,6 +347,8 @@ function! s:agenda_follow() abort
   call cursor(search('Call', 'n'), 1)
   call org_lsp#tell_agenda_cursor()
   call s:until('the next entry', {-> getbufline(s:work_buf, line('.', Shown()[0]))[0] =~# 'Call'})
+  " The outline path of its entry, echoed (`org-agenda-show-outline-path`).
+  call s:until('the outline path', {-> org_lsp#echoed() ==# 'work.org'})
   call assert_equal(agenda, win_getid(), 'still in the agenda')
   " Off: the other window stays where it was.
   call feedkeys('F', 'x')

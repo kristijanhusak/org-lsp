@@ -437,6 +437,7 @@ export const AREAS = [
       ['Filters by tag, category, effort, regexp and top headline', true],
       ['Bulk marks and actions', true],
       ['Follow mode and entry text', true],
+      ['The outline path of the cursor\'s entry as it moves (`org-agenda-show-outline-path`)', true],
       ['Log mode, with or without notes (`org-agenda-log-mode-add-notes`), and the clock report, with a header (`org-agenda-clock-report-header`) and any clock table parameters (`org-agenda-clockreport-parameter-plist`)', true],
       ['Priority cookies highlighted, or the rest of their lines, the highest in bold and the lowest in italic (`org-agenda-fontify-priorities`)', true],
       ['Archives mode; archived trees in every view without it (`org-agenda-skip-archived-trees`)', true],
@@ -458,7 +459,7 @@ export const AREAS = [
     editors: {
       sublime: ['part', 'Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot.'],
       vscode: ['part', 'Tags are at column 80, not at the window\'s edge (`org_agenda_tags_column` `"auto"`): VS Code does not tell an extension how many columns an editor shows.'],
-      zed: ['part', `The agenda is a file, its commands code actions (or keys through Zed's tasks); for a search and a date, ${ZED_TEXT}. Follow mode is left out: Zed reports no cursor moves to an extension. Column view in the agenda is left out: it draws over the lines.`],
+      zed: ['part', `The agenda is a file, its commands code actions (or keys through Zed's tasks); for a search and a date, ${ZED_TEXT}. Follow mode and the outline path of the cursor's entry are left out: Zed reports no cursor moves to an extension. Column view in the agenda is left out: it draws over the lines.`],
       helix: ['no', 'Helix cannot open a document on a server\'s request. `org-lsp agenda FILE...` prints the agenda in a terminal.'],
     },
     checks: [
@@ -477,6 +478,7 @@ export const AREAS = [
       { text: 'Filters by tag, category and effort, and removing them', in: 'agenda', cmd: ['org.agenda.filter.tag', 'org.agenda.filter.category', 'org.agenda.filter.effort', 'org.agenda.filter.remove'], not: ['zed'] },
       { text: 'Marking lines and a bulk action on them', in: 'agenda', cmd: ['org.agenda.bulk.mark', 'org.agenda.bulk.action'] },
       { text: 'Follow mode shows the cursor\'s entry as the cursor moves', in: 'agenda', cmd: 'org.agenda.follow', not: ['zed'] },
+      { text: 'Moving the cursor in the agenda shows where its entry is, `work.org/Projects`, in the echo area (the status bar in VS Code and Sublime Text)', in: 'agenda', not: ['zed'] },
       { text: 'Entry text, log mode, the clock report, archives mode', in: 'agenda', cmd: ['org.agenda.entry.text', 'org.agenda.log', 'org.agenda.clockreport', 'org.agenda.archives'] },
       { text: 'In the week view, inactive timestamps show after `[` with *Display now includes inactive timestamps as well*, marked `[`, and are gone again when the agenda is rebuilt', in: 'agenda', cmd: ['org.agenda.query.add', 'org.agenda.inactive', 'org.agenda.redo'] },
       { text: 'Hovering a line shows its entry', in: 'agenda', keys: { neovim: '`K`', vim: '`K`', vscode: 'the mouse, `Ctrl+K Ctrl+I`', sublime: 'the mouse', zed: 'the mouse' } },

@@ -922,7 +922,8 @@ function M.setup(manifest)
     end,
   })
   -- The line of the agenda the cursor is on, each time it changes, for
-  -- follow mode (`F`), which the server keeps.
+  -- follow mode (`F`), which the server keeps, and the outline path of
+  -- its entry.
   vim.api.nvim_create_autocmd('CursorMoved', {
     group = 'org_lsp_view',
     pattern = manifest.agenda.scheme .. ':/*',
@@ -937,7 +938,15 @@ function M.setup(manifest)
       vim.b[args.buf].org_lsp_cursor_line = line
       local client = vim.lsp.get_clients({ name = 'org_lsp' })[1]
       if client then
-        client:notify('org-lsp/agendaCursor', vim.lsp.util.make_position_params(0, client.offset_encoding))
+        local params = vim.lsp.util.make_position_params(0, client.offset_encoding)
+        params.width = vim.o.columns
+        -- `org-agenda-show-outline-path`: the entry's outline path, in the
+        -- echo area and not in the message history, as Emacs shows it.
+        client:request('org-lsp/agendaCursor', params, function(_, result)
+          if type(result) == 'table' and type(result.echo) == 'string' then
+            vim.api.nvim_echo({ { result.echo } }, false, {})
+          end
+        end, args.buf)
       end
     end,
   })

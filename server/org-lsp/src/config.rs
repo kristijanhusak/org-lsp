@@ -2997,6 +2997,8 @@ pub struct AgendaOptions {
     /// `org-agenda-start-with-follow-mode`
     #[serde(rename = "org_agenda_start_with_follow_mode")]
     pub start_with_follow_mode: Option<bool>,
+    #[serde(rename = "org_agenda_show_outline_path")]
+    pub show_outline_path: Option<OutlinePathOption>,
     /// `org-agenda-start-with-entry-text-mode`
     #[serde(rename = "org_agenda_start_with_entry_text_mode")]
     pub start_with_entry_text_mode: Option<bool>,
