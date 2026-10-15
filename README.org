@@ -119,7 +119,7 @@ does not work there and why.
 | [[file:docs/parity.org::#export-and-publishing][Export and publishing]] | 100% | ✅ / ✅ / ❓ / ✅ / ✅ / ❌ |
 | [[file:docs/parity.org::#citations][Citations]] | 86% | ✅ / ✅ / ✅ / ✅ / ✅ / ❓ |
 | [[file:docs/parity.org::#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ✅ |
-| [[file:docs/parity.org::#indentation-and-formatting][Indentation and formatting]] | 86% | ✅ / ❓ / ✅ / ❓ / ❓ / ❓ |
+| [[file:docs/parity.org::#indentation-and-formatting][Indentation and formatting]] | 88% | ✅ / ❓ / ✅ / ❓ / ❓ / ❓ |
 | [[file:docs/parity.org::#notes-and-logging][Notes and logging]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❌ |
 | [[file:docs/parity.org::#completion-and-editing-helpers][Completion and editing helpers]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ❓ |
 | [[file:docs/parity.org::#timers][Timers]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❌ |

@@ -930,6 +930,7 @@ export const AREAS = [
       ['Aligning tables and tags', true],
       ['Lines a long line wraps into indented (`wrap-prefix`)', false],
       ['Other widths of virtual indentation, stars left showing and `org-adapt-indentation` left on with it (`org-indent-indentation-per-level`, `org-indent-mode-turns-on-hiding-stars`, `org-indent-mode-turns-off-org-adapt-indentation`)', true],
+      ['Numbered headlines (`org-num-mode`, `#+STARTUP: num`), as inlay hints, with its options (`org-num-max-level`, `org-num-skip-commented`, `org-num-skip-footnotes`, `org-num-skip-tags`, `org-num-skip-unnumbered`)', true],
     ],
     editors: {
       vim: ['part', 'The lines a long line wraps into are not indented.'],
@@ -943,6 +944,7 @@ export const AREAS = [
       { text: 'With `org_adapt_indentation = true`, a new line below a headline is indented', not: ['sublime', 'zed', 'helix'] },
       { text: 'Re-indenting a selection indents it as Org does', keys: { neovim: '`=`', vim: '`=`', vscode: 'Format Selection', sublime: '*LSP: Format Selection*', zed: 'format selections', helix: '`=`' } },
       { text: 'Formatting the file aligns tables and puts tags in their column' },
+      { text: 'A file with `#+STARTUP: num` shows `1`, `1.1`… after the stars of its headlines; the command turns them off and on', cmd: 'org.num.mode' },
     ],
   },
   {

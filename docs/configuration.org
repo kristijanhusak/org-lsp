@@ -5218,6 +5218,23 @@ Editors that can show it: Neovim, and VS Code (not on wrapped lines).
 org_startup_indented = false
 #+end_src
 
+*** org_startup_numerated
+:PROPERTIES:
+:CUSTOM_ID: org_startup_numerated
+:END:
+
+Number the headlines of files (~org-num-mode~): ~1~, ~1.1~, ~1.2~​… after the
+stars, shown as inlay hints without changing the file. ~#+STARTUP: num~ and
+~nonum~ decide for a file, and ~org.num.mode~ turns it on and off.
+
+- Org's option :: ~org-startup-numerated~
+- Type :: boolean
+- Default :: ~false~
+
+#+begin_src toml
+org_startup_numerated = false
+#+end_src
+
 *** org_hide_leading_stars
 :PROPERTIES:
 :CUSTOM_ID: org_hide_leading_stars
@@ -6926,6 +6943,79 @@ the item the same way.
 
 #+begin_src toml
 org_cycle_level_after_item_entry_creation = true
+#+end_src
+
+*** org_num_max_level
+:PROPERTIES:
+:CUSTOM_ID: org_num_max_level
+:END:
+
+The deepest level ~org-num-mode~ numbers.
+
+- Org's option :: ~org-num-max-level~
+- Type :: integer
+- Default :: unset: every level
+
+*** org_num_skip_commented
+:PROPERTIES:
+:CUSTOM_ID: org_num_skip_commented
+:END:
+
+~org-num-mode~ leaves ~COMMENT~ subtrees unnumbered.
+
+- Org's option :: ~org-num-skip-commented~
+- Type :: boolean
+- Default :: ~false~
+
+#+begin_src toml
+org_num_skip_commented = false
+#+end_src
+
+*** org_num_skip_footnotes
+:PROPERTIES:
+:CUSTOM_ID: org_num_skip_footnotes
+:END:
+
+~org-num-mode~ leaves the footnotes section (~* Footnotes~) unnumbered.
+
+- Org's option :: ~org-num-skip-footnotes~
+- Type :: boolean
+- Default :: ~false~
+
+#+begin_src toml
+org_num_skip_footnotes = false
+#+end_src
+
+*** org_num_skip_tags
+:PROPERTIES:
+:CUSTOM_ID: org_num_skip_tags
+:END:
+
+~org-num-mode~ leaves the subtrees of headlines with one of these tags (their
+own, not inherited) unnumbered.
+
+- Org's option :: ~org-num-skip-tags~
+- Type :: string[]
+- Default :: ~[]~
+
+#+begin_src toml
+org_num_skip_tags = []
+#+end_src
+
+*** org_num_skip_unnumbered
+:PROPERTIES:
+:CUSTOM_ID: org_num_skip_unnumbered
+:END:
+
+~org-num-mode~ leaves the subtrees of headlines with an ~UNNUMBERED~ property
+unnumbered.
+
+- Org's option :: ~org-num-skip-unnumbered~
+- Type :: boolean
+- Default :: ~false~
+
+#+begin_src toml
+org_num_skip_unnumbered = false
 #+end_src
 
 ** Emacs and the server

@@ -629,11 +629,11 @@
  "org-num.el": {
   "org-num-face": "emacs-only",
   "org-num-format-function": "lisp",
-  "org-num-max-level": "absent",
-  "org-num-skip-commented": "absent",
-  "org-num-skip-footnotes": "absent",
-  "org-num-skip-tags": "absent",
-  "org-num-skip-unnumbered": "absent"
+  "org-num-max-level": "setting",
+  "org-num-skip-commented": "setting",
+  "org-num-skip-footnotes": "setting",
+  "org-num-skip-tags": "setting",
+  "org-num-skip-unnumbered": "setting"
  },
  "org-persist.el": {
   "org-persist-directory": "emacs-only",
@@ -729,7 +729,7 @@
    "the editor decides how long lines wrap"
   ],
   "org-startup-indented": "setting",
-  "org-startup-numerated": "absent",
+  "org-startup-numerated": "setting",
   "org-use-sub-superscripts": "setting",
   "org-startup-with-beamer-mode": "emacs-only",
   "org-startup-align-all-tables": "setting",

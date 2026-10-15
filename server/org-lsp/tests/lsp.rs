@@ -1565,6 +1565,37 @@ fn makes_sparse_trees_without_highlights() {
     client.shutdown();
 }
 
+/// `org-num-mode`: `#+STARTUP: num` numbers the headlines as inlay hints
+/// after their stars; `org.num.mode` turns it off and on, saying so as
+/// Emacs does.
+#[test]
+fn numbers_headlines() {
+    let capabilities = json!({ "textDocument": { "inlayHint": {} } });
+    let mut client = Client::start(capabilities, json!({ "org_num_skip_tags": ["noexport"] }));
+    client.open(&uri(), "#+STARTUP: num\n* A\n** B\n** C :noexport:\n*** D\n* E\n");
+    let hints = |client: &mut Client| -> Vec<Value> {
+        let range = json!({ "start": { "line": 0, "character": 0 }, "end": { "line": 6, "character": 0 } });
+        let params = json!({ "textDocument": { "uri": uri().as_str() }, "range": range });
+        let result = client.raw_request("textDocument/inlayHint", params).response_result.unwrap();
+        result.as_array().unwrap().iter().map(|hint| json!([hint["position"], hint["label"]])).collect()
+    };
+    let at = |line: u32, character: u32, label: &str| json!([{ "line": line, "character": character }, label]);
+    assert_eq!(hints(&mut client), [at(1, 2, "1 "), at(2, 3, "1.1 "), at(5, 2, "2 ")]);
+    let toggle = |client: &mut Client| {
+        let argument = json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": 0, "character": 0 } });
+        client
+            .raw_request("workspace/executeCommand", json!({ "command": "org.num.mode", "arguments": [argument] }))
+            .response_result
+            .unwrap()["message"]
+            .clone()
+    };
+    assert_eq!(toggle(&mut client), "Org-Num mode disabled in current buffer");
+    assert_eq!(hints(&mut client), Vec::<Value>::new());
+    assert_eq!(toggle(&mut client), "Org-Num mode enabled in current buffer");
+    assert_eq!(hints(&mut client).len(), 3);
+    client.shutdown();
+}
+
 /// Recalculating a table with formulas as a code action, in the table and
 /// on its `#+TBLFM:` line; none where nothing would change.
 #[test]

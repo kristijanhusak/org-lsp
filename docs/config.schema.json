@@ -1904,6 +1904,39 @@
       "description": "Show files indented by level without changing them (`org-indent-mode`): the text under a headline lines up with its title, and leading stars are hidden. `#+STARTUP: indent` and `noindent` decide for a file. It turns `org_adapt_indentation` off in such files, unless that is `\"headline-data\"`. Editors that can show it: Neovim, and VS Code (not on wrapped lines). (`org-startup-indented`)",
       "default": false
     },
+    "org_startup_numerated": {
+      "type": "boolean",
+      "description": "Number the headlines of files (`org-num-mode`): `1`, `1.1`, `1.2`… after the stars, shown as inlay hints without changing the file. `#+STARTUP: num` and `nonum` decide for a file, and `org.num.mode` turns it on and off. (`org-startup-numerated`)",
+      "default": false
+    },
+    "org_num_max_level": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "The deepest level `org-num-mode` numbers. (`org-num-max-level`)"
+    },
+    "org_num_skip_commented": {
+      "type": "boolean",
+      "description": "`org-num-mode` leaves `COMMENT` subtrees unnumbered. (`org-num-skip-commented`)",
+      "default": false
+    },
+    "org_num_skip_footnotes": {
+      "type": "boolean",
+      "description": "`org-num-mode` leaves the footnotes section (`* Footnotes`) unnumbered. (`org-num-skip-footnotes`)",
+      "default": false
+    },
+    "org_num_skip_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "`org-num-mode` leaves the subtrees of headlines with one of these tags (their own, not inherited) unnumbered. (`org-num-skip-tags`)",
+      "default": []
+    },
+    "org_num_skip_unnumbered": {
+      "type": "boolean",
+      "description": "`org-num-mode` leaves the subtrees of headlines with an `UNNUMBERED` property unnumbered. (`org-num-skip-unnumbered`)",
+      "default": false
+    },
     "org_hide_leading_stars": {
       "type": "boolean",
       "description": "Hide all the stars of a headline but the last; they keep their place. `#+STARTUP: hidestars` and `showstars` decide for a file. (`org-hide-leading-stars`)",
