@@ -1158,6 +1158,8 @@ struct Server {
     open_non_existing_files: bool,
     /// `org-capture-use-agenda-date`
     capture_use_agenda_date: bool,
+    /// `org-agenda-persistent-filter`
+    agenda_persistent_filter: bool,
     /// `org-open-directory-means-index-dot-org`
     open_directory_index: bool,
     /// `org-allow-promoting-top-level-subtree`
@@ -1637,6 +1639,7 @@ pub fn run(connection: Connection) -> Result<()> {
         file_apps: options.file_apps.as_deref().map(org_core::file_apps::FileApps::from_pairs).unwrap_or_default(),
         open_non_existing_files: options.open_non_existing_files.unwrap_or(false),
         capture_use_agenda_date: options.capture_use_agenda_date.unwrap_or(false),
+        agenda_persistent_filter: options.agenda_persistent_filter.unwrap_or(false),
         open_directory_index: options.open_directory_means_index_dot_org.unwrap_or(false),
         allow_promoting_top_level: options.allow_promoting_top_level_subtree.unwrap_or(false),
         odd_levels: options.odd_levels_only.unwrap_or(false),
@@ -7158,12 +7161,12 @@ impl Server {
         }
         match command {
             commands::AGENDA_LIST => {
-                self.agenda_filters = Default::default();
+                self.agenda_filters = self.new_view_filters();
                 self.agenda_marks.clear();
                 Ok(self.open_view(Query::Agenda { start: self.start_day(), span: self.agenda.span })?)
             }
             commands::AGENDA_TODOS => {
-                self.agenda_filters = Default::default();
+                self.agenda_filters = self.new_view_filters();
                 self.agenda_marks.clear();
                 Ok(self.open_view(Query::Todo)?)
             }
@@ -7368,7 +7371,7 @@ impl Server {
         let input = get("input");
         if get("ask").as_deref() == Some("match") {
             let matching = input.unwrap_or_default();
-            self.agenda_filters = Default::default();
+            self.agenda_filters = self.new_view_filters();
             self.agenda_marks.clear();
             self.open_view(Query::Tags { matching, todo_only: prefix == "M" })?;
             return Ok(Value::Null);
@@ -7407,7 +7410,7 @@ impl Server {
             let used = keyed.iter().find(|(key, _)| *key == keys).map_or(keys.clone(), |(_, used)| used.clone());
             let query = Query::Custom { keys: used, moved: None };
             self.blocks(&query)?;
-            self.agenda_filters = Default::default();
+            self.agenda_filters = self.new_view_filters();
             self.agenda_marks.clear();
             self.open_view(query)?;
             return Ok(Value::Null);
@@ -7453,7 +7456,7 @@ impl Server {
             }
             "s" | "S" => return Ok(self.search_input(&keys, "")),
             "#" => {
-                self.agenda_filters = Default::default();
+                self.agenda_filters = self.new_view_filters();
                 self.agenda_marks.clear();
                 self.open_view(Query::Stuck)?
             }
@@ -7912,12 +7915,23 @@ impl Server {
     }
 
     /// `org-search-view` for `string`, which Org must be able to read.
+    /// The filters of a new agenda view: none, or with
+    /// `org-agenda-persistent-filter` those of the view still open by tag,
+    /// category, regexp and effort (not its top headline). A closed agenda
+    /// takes its filters with it, as its buffer goes in Emacs.
+    fn new_view_filters(&self) -> org_core::agenda::filter::Filters {
+        if !self.agenda_persistent_filter || self.view.is_none() {
+            return Default::default();
+        }
+        org_core::agenda::filter::Filters { top_headline: None, ..self.agenda_filters.clone() }
+    }
+
     fn search(&mut self, string: String, todo_only: bool) -> std::result::Result<Value, Refusal> {
         if !string.chars().any(|c| !c.is_whitespace()) {
             return Ok(Value::Null);
         }
         org_core::agenda::search::parse(&string, todo_only, &self.agenda.search).map_err(Refusal::Failed)?;
-        self.agenda_filters = Default::default();
+        self.agenda_filters = self.new_view_filters();
         self.agenda_marks.clear();
         self.open_view(Query::Search { string, todo_only })?;
         Ok(Value::Null)

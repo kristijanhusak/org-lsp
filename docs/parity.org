@@ -23,7 +23,7 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#tags][Tags]] | 88% | 7 of 8 |
 | [[#properties-and-column-view][Properties and column view]] | 90% | 9 of 10 |
 | [[#dates-and-times][Dates and times]] | 100% | 9 of 9 |
-| [[#agenda][Agenda]] | 100% | 36 of 36 |
+| [[#agenda][Agenda]] | 100% | 37 of 37 |
 | [[#clocking][Clocking]] | 100% | 12 of 12 |
 | [[#capture][Capture]] | 100% | 12 of 12 |
 | [[#notes-org-roam][Notes (org-roam)]] | 87% | 13 of 15 |
@@ -280,7 +280,7 @@ Where editors fall short:
 :CUSTOM_ID: agenda
 :END:
 
-100% (36 of 36)
+100% (37 of 37)
 
 - ✅ Day, week, fortnight, month and year views, going to a date
 - ✅ The list of TODO entries
@@ -298,6 +298,7 @@ Where editors fall short:
 - ✅ The TODO list leaving out entries for a date of their own (~org-agenda-todo-ignore-scheduled~, ~-deadlines~, ~-timestamp~, ~-with-date~), in ~tags-todo~ too (~org-agenda-tags-todo-honor-ignore-options~), and without sublevels (~org-agenda-todo-list-sublevels~); commented subtrees shown (~org-agenda-skip-comment-trees~)
 - ✅ Commands offered by context (~org-agenda-custom-commands-contexts~)
 - ✅ Filters by tag, category, effort, regexp and top headline
+- ✅ Filters kept from one view to the next (~org-agenda-persistent-filter~)
 - ✅ Bulk marks and actions
 - ✅ Follow mode and entry text
 - ✅ The outline path of the cursor's entry as it moves (~org-agenda-show-outline-path~)
@@ -757,19 +758,19 @@ Where editors fall short:
 :END:
 
 Each of the 1025 options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with
-it. Of the 311 that change what org-lsp does itself, 100% can be set.
+it. Of the 312 that change what org-lsp does itself, 100% can be set.
 [[file:../scripts/org-options.json][scripts/org-options.json]] says it for each; ~scripts/check.sh~ fails when the
 server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,
 when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 297 | A setting of the same name |
+| setting | 298 | A setting of the same name |
 | missing | 1 | org-lsp does what the option is about, but the option cannot be set yet |
 | other | 13 | Done another way, as its note says |
 | emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 47 | Its value is Lisp (a function, a hook), which the server does not run |
-| absent | 80 | Part of something org-lsp does not do |
+| absent | 79 | Part of something org-lsp does not do |
 | emacs-only | 107 | About Emacs itself (windows, faces, menus, the mouse, the mode line): nothing to do in an editor |
 
 ** Done another way

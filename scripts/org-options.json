@@ -258,7 +258,7 @@
   ],
   "org-agenda-add-entry-text-descriptive-links": "absent",
   "org-agenda-export-html-style": "emacs-only",
-  "org-agenda-persistent-filter": "absent",
+  "org-agenda-persistent-filter": "setting",
   "org-agenda-custom-commands": "setting",
   "org-agenda-query-register": "emacs-only",
   "org-stuck-projects": "setting",

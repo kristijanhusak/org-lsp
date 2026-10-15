@@ -807,6 +807,38 @@ fn filters_the_agenda() {
     client.shutdown();
 }
 
+/// `org-agenda-persistent-filter`: a new view keeps the filters of the
+/// last one.
+#[test]
+fn keeps_filters_from_view_to_view() {
+    let mut options = clock();
+    options["org_agenda_persistent_filter"] = json!(true);
+    let mut client = Client::editor(options, None);
+    client.open("file:///org/work.org", WORK);
+    client.open("file:///org/home.org", HOME);
+    let run = |client: &mut Client, command: &str, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 0, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+    run(&mut client, "org.agenda.dispatch", json!({ "input": "t" })).unwrap();
+    run(&mut client, "org.agenda.filter", json!({ "input": "+office" })).unwrap();
+    run(&mut client, "org.agenda.dispatch", json!({ "input": "t" })).unwrap();
+    let text = client.view_text(VIEW);
+    assert!(text.contains("Write report") && !text.contains("Water plants"), "{text}");
+    // And the agenda of days, another view, too.
+    run(&mut client, "org.agenda.dispatch", json!({ "input": "a" })).unwrap();
+    let text = client.view_text(VIEW);
+    assert!(!text.contains("Water plants"), "{text}");
+    let done = run(&mut client, "org.agenda.filter.remove", json!({})).unwrap();
+    assert_eq!(done["message"], "All agenda filters removed");
+    client.shutdown();
+}
+
 /// `E` (`org-agenda-entry-text-mode`): the text of each entry under its
 /// line, at most as many lines as a count says; filtering turns it off,
 /// and a filtered view does not take it.

@@ -4457,6 +4457,22 @@ Emacs regexps whose matches are left out of the entry text ~E~ shows.
 org_agenda_entry_text_exclude_regexps = []
 #+end_src
 
+*** org_agenda_persistent_filter
+:PROPERTIES:
+:CUSTOM_ID: org_agenda_persistent_filter
+:END:
+
+A new agenda view keeps the filters by tag, category, regexp and effort of the
+agenda still open, rather than starting without them.
+
+- Org's option :: ~org-agenda-persistent-filter~
+- Type :: boolean
+- Default :: ~false~
+
+#+begin_src toml
+org_agenda_persistent_filter = false
+#+end_src
+
 *** org_agenda_block_separator
 :PROPERTIES:
 :CUSTOM_ID: org_agenda_block_separator

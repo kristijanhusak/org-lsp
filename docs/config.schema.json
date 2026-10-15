@@ -3089,6 +3089,11 @@
       "description": "Emacs regexps whose matches are left out of the entry text `E` shows. (`org-agenda-entry-text-exclude-regexps`)",
       "default": []
     },
+    "org_agenda_persistent_filter": {
+      "type": "boolean",
+      "description": "A new agenda view keeps the filters by tag, category, regexp and effort of the agenda still open, rather than starting without them. (`org-agenda-persistent-filter`)",
+      "default": false
+    },
     "org_agenda_block_separator": {
       "anyOf": [
         {
