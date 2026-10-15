@@ -3990,6 +3990,17 @@ mod tests {
     }
 
     #[test]
+    fn docs_config_toml_is_read_as_the_defaults() {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/config.toml");
+        let var = |name: &str| (name == "ORG_LSP_CONFIG").then(|| path.to_string());
+        let loaded = crate::config::load(None, &var);
+        assert!(loaded.read);
+        assert_eq!(loaded.problems, Vec::<String>::new());
+        let none: Options = serde_json::from_str("{}").unwrap();
+        assert_eq!(resolved(&loaded.options), resolved(&none));
+    }
+
+    #[test]
     fn the_defaults_of_org_roam_are_the_ones_that_apply() {
         let on = |mut value: Value| {
             value["org_roam_enabled"] = json!(true);

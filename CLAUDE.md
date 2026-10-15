@@ -57,7 +57,7 @@ they are out of date.
 | `editors/vscode/package.json`: commands, keys, tokens, `org-lsp.settings` | `commands.rs`, `legend.rs`, `settings.rs` |
 | `editors/sublime/LSP-org/*` keymap, commands, `semantic_tokens` | the same |
 | `editors/zed/languages/org/*.json`, `keymap.json`, `tasks.json` | the same |
-| Between `# BEGIN generated: NAME` and `# END generated` in the Org docs (key tables, option lists); `docs/config.schema.json`; `lua/org-lsp/types.lua` | `settings.rs` and the manifest |
+| Between `# BEGIN generated: NAME` and `# END generated` in the Org docs (key tables, option lists); `docs/config.schema.json`; `docs/config.toml`; `lua/org-lsp/types.lua` | `settings.rs` and the manifest |
 | What works (`README.org`, `docs/<editor>.org`), `docs/parity.org`, `editors/*/TESTING.org` | `scripts/features.mjs` |
 | The Options section of `docs/parity.org` | `scripts/org-options.json` |
 | `editors/vscode/README.md` (written when the extension is packaged, not kept) | `docs/vscode.org`, by `editors/vscode/scripts/readme.mjs` |
