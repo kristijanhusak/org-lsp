@@ -677,6 +677,7 @@ export const AREAS = [
       ['A search by regular expression (`file:x.org::/regexp/`): a sparse tree of its matches (`org-occur`), in the file the link is in', true],
       ['Making a missing headline a link searches for, or looking for its words in the text (`org-link-search-must-match-exact-headline`); `doi:` links at `org-link-doi-server-url`', true],
       ['Following a link, a timestamp or a citation with `RET` (`org-return-follows-link`)', true],
+      ['Which program opens a linked file (`org-file-apps`): the editor, the system\'s application or a shell command; `C-u` opens it in the editor, `C-u C-u` by the system', true],
     ],
     editors: {
       zed: ['part', `A link's target is typed, without completion: ${ZED_TEXT}. Following works through go to definition, for links inside Org files and to files.`],
@@ -688,6 +689,7 @@ export const AREAS = [
       { text: 'Following a `file:` link with a search (`file:notes.org::*Heading`) and an `id:` link', cmd: 'org.open' },
       { text: 'Following `[[No such heading]]` asks whether to make it; yes adds `* No such heading` at the end of the file and goes there', cmd: 'org.open', not: ['helix'] },
       { text: 'With `org_return_follows_link` on, RET on a link follows it and types nothing; after the link, RET breaks the line', cmd: 'org.return', not: ['helix', 'zed'] },
+      { text: 'With `org_file_apps` set to `[["txt", "cp %s copy.txt"]]`, following `[[file:notes.txt]]` says `Running cp …/notes.txt copy.txt...done` and makes `copy.txt`; `C-u C-c C-o` opens `notes.txt` in the editor', cmd: 'org.open', not: ['helix', 'zed'] },
       { text: 'Following a URL opens the browser; a timestamp opens its day\'s agenda', cmd: 'org.open', not: ['helix'] },
       { text: 'Go to definition on a link does the same', keys: { neovim: '`gd` or `vim.lsp.buf.definition()`', vim: 'the client\'s go to definition', vscode: '`F12`', sublime: '*LSP: Goto Definition*', zed: '`F12`', helix: '`gd`' } },
       { text: 'Storing a link to a headline and inserting it elsewhere with a description', cmd: ['org.link.store', 'org.link.insert'], not: ['helix'] },

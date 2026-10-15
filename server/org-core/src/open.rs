@@ -19,8 +19,10 @@ pub enum Open {
     Here(usize),
     /// A file, at the place `search` names (`file:notes.org::*Heading`).
     /// The path is as written: relative to the text's own file.
-    /// `system`: the system's application opens it, not the editor.
-    File { path: String, search: Option<String>, system: bool },
+    /// `system`: the system's application opens it, not the editor, as
+    /// Org's default `org-file-apps` has it; `forced`: the link says who
+    /// (`file+sys:`, `file+emacs:`), whatever `org-file-apps` says.
+    File { path: String, search: Option<String>, system: bool, forced: bool },
     /// The entry with this `ID` property, in some Org file.
     Id(String),
     /// A URL, for the system to open.
@@ -526,7 +528,7 @@ fn file(path: &str, application: Option<&str>) -> Open {
         Some("emacs") => false,
         _ => system_type,
     };
-    Open::File { path, search, system }
+    Open::File { path, search, system, forced: application.is_some() }
 }
 
 /// `org-follow-timestamp-link`: the agenda of the day of a timestamp, or

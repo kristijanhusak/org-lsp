@@ -1,0 +1,6756 @@
+[
+ {
+  "file": "a.pdf",
+  "expected": {
+   "command": "xdg-open {dir}/a.pdf"
+  }
+ },
+ {
+  "file": "a.pdf",
+  "search": "5",
+  "expected": {
+   "command": "xdg-open {dir}/a.pdf"
+  }
+ },
+ {
+  "file": "a.pdf",
+  "search": "*Heading",
+  "expected": {
+   "command": "xdg-open {dir}/a.pdf"
+  }
+ },
+ {
+  "file": "a.pdf",
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "a.pdf",
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/a.pdf"
+  }
+ },
+ {
+  "file": "b.html",
+  "expected": {
+   "command": "xdg-open {dir}/b.html"
+  }
+ },
+ {
+  "file": "b.html",
+  "search": "5",
+  "expected": {
+   "command": "xdg-open {dir}/b.html"
+  }
+ },
+ {
+  "file": "b.html",
+  "search": "*Heading",
+  "expected": {
+   "command": "xdg-open {dir}/b.html"
+  }
+ },
+ {
+  "file": "b.html",
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "b.html",
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/b.html"
+  }
+ },
+ {
+  "file": "c.txt",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "c.txt",
+  "search": "5",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "c.txt",
+  "search": "*Heading",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "c.txt",
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "c.txt",
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/c.txt"
+  }
+ },
+ {
+  "file": "D.PDF",
+  "expected": {
+   "command": "xdg-open {dir}/D.PDF"
+  }
+ },
+ {
+  "file": "D.PDF",
+  "search": "5",
+  "expected": {
+   "command": "xdg-open {dir}/D.PDF"
+  }
+ },
+ {
+  "file": "D.PDF",
+  "search": "*Heading",
+  "expected": {
+   "command": "xdg-open {dir}/D.PDF"
+  }
+ },
+ {
+  "file": "D.PDF",
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "D.PDF",
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/D.PDF"
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "search": "5",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "search": "*Heading",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/e.tar.gz"
+  }
+ },
+ {
+  "file": "notes.org",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "notes.org",
+  "search": "5",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "notes.org",
+  "search": "*Heading",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "notes.org",
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "notes.org",
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/notes.org"
+  }
+ },
+ {
+  "file": "x.xyz",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "x.xyz",
+  "search": "5",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "x.xyz",
+  "search": "*Heading",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "x.xyz",
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "x.xyz",
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/x.xyz"
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "expected": {
+   "command": "xdg-open {dir}/it\\'s\\ here.pdf"
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "search": "5",
+  "expected": {
+   "command": "xdg-open {dir}/it\\'s\\ here.pdf"
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "search": "*Heading",
+  "expected": {
+   "command": "xdg-open {dir}/it\\'s\\ here.pdf"
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/it\\'s\\ here.pdf"
+  }
+ },
+ {
+  "file": "sub",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "sub",
+  "search": "5",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "sub",
+  "search": "*Heading",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "sub",
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "sub",
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/sub"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "expected": {
+   "error": "No such file: {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "search": "5",
+  "expected": {
+   "error": "No such file: {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "search": "*Heading",
+  "expected": {
+   "error": "No such file: {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "prefix": 16,
+  "expected": {
+   "error": "No such file: {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.txt",
+  "search": "5",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.txt",
+  "search": "*Heading",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.txt",
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.txt",
+  "prefix": 16,
+  "expected": {
+   "error": "No such file: {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "a.pdf",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "expected": {
+   "command": "evince {dir}/a.pdf"
+  }
+ },
+ {
+  "file": "a.pdf",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "evince {dir}/a.pdf"
+  }
+ },
+ {
+  "file": "a.pdf",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "evince {dir}/a.pdf"
+  }
+ },
+ {
+  "file": "a.pdf",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "a.pdf",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/a.pdf"
+  }
+ },
+ {
+  "file": "b.html",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "expected": {
+   "command": "firefox {dir}/b.html"
+  }
+ },
+ {
+  "file": "b.html",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "firefox {dir}/b.html"
+  }
+ },
+ {
+  "file": "b.html",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "firefox {dir}/b.html"
+  }
+ },
+ {
+  "file": "b.html",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "b.html",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/b.html"
+  }
+ },
+ {
+  "file": "c.txt",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "c.txt",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "c.txt",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "c.txt",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "c.txt",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/c.txt"
+  }
+ },
+ {
+  "file": "D.PDF",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "expected": {
+   "command": "evince {dir}/D.PDF"
+  }
+ },
+ {
+  "file": "D.PDF",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "evince {dir}/D.PDF"
+  }
+ },
+ {
+  "file": "D.PDF",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "evince {dir}/D.PDF"
+  }
+ },
+ {
+  "file": "D.PDF",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "D.PDF",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/D.PDF"
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/e.tar.gz"
+  }
+ },
+ {
+  "file": "notes.org",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "notes.org",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "notes.org",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "notes.org",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "notes.org",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/notes.org"
+  }
+ },
+ {
+  "file": "x.xyz",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "x.xyz",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "x.xyz",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "x.xyz",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "x.xyz",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/x.xyz"
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "expected": {
+   "command": "evince {dir}/it\\'s\\ here.pdf"
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "evince {dir}/it\\'s\\ here.pdf"
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "evince {dir}/it\\'s\\ here.pdf"
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/it\\'s\\ here.pdf"
+  }
+ },
+ {
+  "file": "sub",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "sub",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "sub",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "sub",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "sub",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/sub"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "expected": {
+   "error": "No such file: {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "error": "No such file: {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "error": "No such file: {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "error": "No such file: {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "expected": {
+   "error": "No such file: {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "error": "No such file: {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "error": "No such file: {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.txt",
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "error": "No such file: {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "a.pdf",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "expected": {
+   "command": "zathura {dir}/a.pdf"
+  }
+ },
+ {
+  "file": "a.pdf",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "evince -p 5 {dir}/a.pdf"
+  }
+ },
+ {
+  "file": "a.pdf",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "zathura {dir}/a.pdf"
+  }
+ },
+ {
+  "file": "a.pdf",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "a.pdf",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/a.pdf"
+  }
+ },
+ {
+  "file": "b.html",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "b.html",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "b.html",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "b.html",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "b.html",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/b.html"
+  }
+ },
+ {
+  "file": "c.txt",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "c.txt",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "c.txt",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "c.txt",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "c.txt",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/c.txt"
+  }
+ },
+ {
+  "file": "D.PDF",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "expected": {
+   "command": "zathura {dir}/D.PDF"
+  }
+ },
+ {
+  "file": "D.PDF",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "evince -p 5 {dir}/D.PDF"
+  }
+ },
+ {
+  "file": "D.PDF",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "zathura {dir}/D.PDF"
+  }
+ },
+ {
+  "file": "D.PDF",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "D.PDF",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/D.PDF"
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/e.tar.gz"
+  }
+ },
+ {
+  "file": "notes.org",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "notes.org",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "notes.org",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "notes.org",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "notes.org",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/notes.org"
+  }
+ },
+ {
+  "file": "x.xyz",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "x.xyz",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "x.xyz",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "x.xyz",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "x.xyz",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/x.xyz"
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "expected": {
+   "command": "zathura {dir}/it\\'s\\ here.pdf"
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "evince -p 5 {dir}/it\\'s\\ here.pdf"
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "zathura {dir}/it\\'s\\ here.pdf"
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/it\\'s\\ here.pdf"
+  }
+ },
+ {
+  "file": "sub",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "sub",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "sub",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "sub",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "sub",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/sub"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "expected": {
+   "error": "No such file: {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "error": "No such file: {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "error": "No such file: {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "error": "No such file: {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.txt",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.txt",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.txt",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.txt",
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "error": "No such file: {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "a.pdf",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "expected": {
+   "command": "less {dir}/a.pdf"
+  }
+ },
+ {
+  "file": "a.pdf",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "less {dir}/a.pdf"
+  }
+ },
+ {
+  "file": "a.pdf",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "less {dir}/a.pdf"
+  }
+ },
+ {
+  "file": "a.pdf",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "a.pdf",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/a.pdf"
+  }
+ },
+ {
+  "file": "b.html",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "expected": {
+   "command": "less {dir}/b.html"
+  }
+ },
+ {
+  "file": "b.html",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "less {dir}/b.html"
+  }
+ },
+ {
+  "file": "b.html",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "less {dir}/b.html"
+  }
+ },
+ {
+  "file": "b.html",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "b.html",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/b.html"
+  }
+ },
+ {
+  "file": "c.txt",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "expected": {
+   "command": "xdg-open {dir}/c.txt"
+  }
+ },
+ {
+  "file": "c.txt",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "xdg-open {dir}/c.txt"
+  }
+ },
+ {
+  "file": "c.txt",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "xdg-open {dir}/c.txt"
+  }
+ },
+ {
+  "file": "c.txt",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "c.txt",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/c.txt"
+  }
+ },
+ {
+  "file": "D.PDF",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "expected": {
+   "command": "less {dir}/D.PDF"
+  }
+ },
+ {
+  "file": "D.PDF",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "less {dir}/D.PDF"
+  }
+ },
+ {
+  "file": "D.PDF",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "less {dir}/D.PDF"
+  }
+ },
+ {
+  "file": "D.PDF",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "D.PDF",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/D.PDF"
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "expected": {
+   "command": "zcat {dir}/e.tar.gz | less"
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "zcat {dir}/e.tar.gz | less"
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "zcat {dir}/e.tar.gz | less"
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/e.tar.gz"
+  }
+ },
+ {
+  "file": "notes.org",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "notes.org",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "notes.org",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "notes.org",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "notes.org",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/notes.org"
+  }
+ },
+ {
+  "file": "x.xyz",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "expected": {
+   "command": "less {dir}/x.xyz"
+  }
+ },
+ {
+  "file": "x.xyz",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "less {dir}/x.xyz"
+  }
+ },
+ {
+  "file": "x.xyz",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "less {dir}/x.xyz"
+  }
+ },
+ {
+  "file": "x.xyz",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "x.xyz",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/x.xyz"
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "expected": {
+   "command": "less {dir}/it\\'s\\ here.pdf"
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "less {dir}/it\\'s\\ here.pdf"
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "less {dir}/it\\'s\\ here.pdf"
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/it\\'s\\ here.pdf"
+  }
+ },
+ {
+  "file": "sub",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "expected": {
+   "command": "less {dir}/sub"
+  }
+ },
+ {
+  "file": "sub",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "less {dir}/sub"
+  }
+ },
+ {
+  "file": "sub",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "less {dir}/sub"
+  }
+ },
+ {
+  "file": "sub",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "sub",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/sub"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "expected": {
+   "error": "No such file: {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "error": "No such file: {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "error": "No such file: {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "error": "No such file: {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "expected": {
+   "error": "No such file: {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "error": "No such file: {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "error": "No such file: {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.txt",
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "error": "No such file: {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "a.pdf",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "expected": {
+   "command": "upper {dir}/a.pdf"
+  }
+ },
+ {
+  "file": "a.pdf",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "upper {dir}/a.pdf"
+  }
+ },
+ {
+  "file": "a.pdf",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "upper {dir}/a.pdf"
+  }
+ },
+ {
+  "file": "a.pdf",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "a.pdf",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "open {dir}/a.pdf"
+  }
+ },
+ {
+  "file": "b.html",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "expected": {
+   "command": "xdg-open {dir}/b.html"
+  }
+ },
+ {
+  "file": "b.html",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "xdg-open {dir}/b.html"
+  }
+ },
+ {
+  "file": "b.html",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "xdg-open {dir}/b.html"
+  }
+ },
+ {
+  "file": "b.html",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "b.html",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "open {dir}/b.html"
+  }
+ },
+ {
+  "file": "c.txt",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "expected": {
+   "command": "xdg-open {dir}/c.txt"
+  }
+ },
+ {
+  "file": "c.txt",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "xdg-open {dir}/c.txt"
+  }
+ },
+ {
+  "file": "c.txt",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "xdg-open {dir}/c.txt"
+  }
+ },
+ {
+  "file": "c.txt",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "c.txt",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "open {dir}/c.txt"
+  }
+ },
+ {
+  "file": "D.PDF",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "expected": {
+   "command": "upper {dir}/D.PDF"
+  }
+ },
+ {
+  "file": "D.PDF",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "upper {dir}/D.PDF"
+  }
+ },
+ {
+  "file": "D.PDF",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "upper {dir}/D.PDF"
+  }
+ },
+ {
+  "file": "D.PDF",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "D.PDF",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "open {dir}/D.PDF"
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "expected": {
+   "command": "xdg-open {dir}/e.tar.gz"
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "xdg-open {dir}/e.tar.gz"
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "xdg-open {dir}/e.tar.gz"
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "open {dir}/e.tar.gz"
+  }
+ },
+ {
+  "file": "notes.org",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "expected": {
+   "command": "xdg-open {dir}/notes.org"
+  }
+ },
+ {
+  "file": "notes.org",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "xdg-open {dir}/notes.org"
+  }
+ },
+ {
+  "file": "notes.org",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "xdg-open {dir}/notes.org"
+  }
+ },
+ {
+  "file": "notes.org",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "notes.org",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "open {dir}/notes.org"
+  }
+ },
+ {
+  "file": "x.xyz",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "expected": {
+   "command": "open {dir}/x.xyz"
+  }
+ },
+ {
+  "file": "x.xyz",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "open {dir}/x.xyz"
+  }
+ },
+ {
+  "file": "x.xyz",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "open {dir}/x.xyz"
+  }
+ },
+ {
+  "file": "x.xyz",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "x.xyz",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "open {dir}/x.xyz"
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "expected": {
+   "command": "upper {dir}/it\\'s\\ here.pdf"
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "upper {dir}/it\\'s\\ here.pdf"
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "upper {dir}/it\\'s\\ here.pdf"
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "open {dir}/it\\'s\\ here.pdf"
+  }
+ },
+ {
+  "file": "sub",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "expected": {
+   "command": "ls {dir}/sub"
+  }
+ },
+ {
+  "file": "sub",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "ls {dir}/sub"
+  }
+ },
+ {
+  "file": "sub",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "ls {dir}/sub"
+  }
+ },
+ {
+  "file": "sub",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "sub",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "open {dir}/sub"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "expected": {
+   "error": "No such file: {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "error": "No such file: {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "error": "No such file: {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "error": "No such file: {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "expected": {
+   "error": "No such file: {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "error": "No such file: {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "error": "No such file: {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.txt",
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "error": "No such file: {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "a.pdf",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "expected": {
+   "command": "view %s {dir}/a.pdf"
+  }
+ },
+ {
+  "file": "a.pdf",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "view %s {dir}/a.pdf"
+  }
+ },
+ {
+  "file": "a.pdf",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "view %s {dir}/a.pdf"
+  }
+ },
+ {
+  "file": "a.pdf",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "a.pdf",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/a.pdf"
+  }
+ },
+ {
+  "file": "b.html",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "expected": {
+   "error": "Invalid format ‘%x’"
+  }
+ },
+ {
+  "file": "b.html",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "error": "Invalid format ‘%x’"
+  }
+ },
+ {
+  "file": "b.html",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "error": "Invalid format ‘%x’"
+  }
+ },
+ {
+  "file": "b.html",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "b.html",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/b.html"
+  }
+ },
+ {
+  "file": "c.txt",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "expected": {
+   "command": "view %s {dir}/c.txt"
+  }
+ },
+ {
+  "file": "c.txt",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "view %s {dir}/c.txt"
+  }
+ },
+ {
+  "file": "c.txt",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "view %s {dir}/c.txt"
+  }
+ },
+ {
+  "file": "c.txt",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "c.txt",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/c.txt"
+  }
+ },
+ {
+  "file": "D.PDF",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "expected": {
+   "command": "view %s {dir}/D.PDF"
+  }
+ },
+ {
+  "file": "D.PDF",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "view %s {dir}/D.PDF"
+  }
+ },
+ {
+  "file": "D.PDF",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "view %s {dir}/D.PDF"
+  }
+ },
+ {
+  "file": "D.PDF",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "D.PDF",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/D.PDF"
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "expected": {
+   "command": "xdg-open {dir}/e.tar.gz"
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "xdg-open {dir}/e.tar.gz"
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "xdg-open {dir}/e.tar.gz"
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "e.tar.gz",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/e.tar.gz"
+  }
+ },
+ {
+  "file": "notes.org",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "expected": {
+   "command": "xdg-open {dir}/notes.org"
+  }
+ },
+ {
+  "file": "notes.org",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "xdg-open {dir}/notes.org"
+  }
+ },
+ {
+  "file": "notes.org",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "xdg-open {dir}/notes.org"
+  }
+ },
+ {
+  "file": "notes.org",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "notes.org",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/notes.org"
+  }
+ },
+ {
+  "file": "x.xyz",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "expected": {
+   "command": "xdg-open {dir}/x.xyz"
+  }
+ },
+ {
+  "file": "x.xyz",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "xdg-open {dir}/x.xyz"
+  }
+ },
+ {
+  "file": "x.xyz",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "xdg-open {dir}/x.xyz"
+  }
+ },
+ {
+  "file": "x.xyz",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "x.xyz",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/x.xyz"
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "expected": {
+   "command": "view %s {dir}/it\\'s\\ here.pdf"
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "view %s {dir}/it\\'s\\ here.pdf"
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "view %s {dir}/it\\'s\\ here.pdf"
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "it's here.pdf",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/it\\'s\\ here.pdf"
+  }
+ },
+ {
+  "file": "sub",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "expected": {
+   "command": "xdg-open {dir}/sub"
+  }
+ },
+ {
+  "file": "sub",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "command": "xdg-open {dir}/sub"
+  }
+ },
+ {
+  "file": "sub",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "command": "xdg-open {dir}/sub"
+  }
+ },
+ {
+  "file": "sub",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "sub",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/sub"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "expected": {
+   "error": "No such file: {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "error": "No such file: {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "error": "No such file: {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.pdf",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "error": "No such file: {dir}/missing.pdf"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "expected": {
+   "error": "No such file: {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "search": "5",
+  "expected": {
+   "error": "No such file: {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "search": "*Heading",
+  "expected": {
+   "error": "No such file: {dir}/missing.txt"
+  }
+ },
+ {
+  "file": "missing.txt",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "missing.txt",
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "error": "No such file: {dir}/missing.txt"
+  }
+ }
+]

@@ -2562,6 +2562,61 @@ fn follows_attachment_links() {
     client.shutdown();
 }
 
+/// `org-file-apps`: a command of its runs with the file in place of `%s`
+/// (`Running ...done`), `C-u` opens the file in the editor anyway, and a
+/// PDF goes to the system's application.
+#[test]
+fn opens_files_as_org_file_apps_says() {
+    let directory = workspace("file-apps");
+    std::fs::write(directory.join("notes.txt"), "notes\n").unwrap();
+    std::fs::write(directory.join("paper.pdf"), "%PDF\n").unwrap();
+    let file = directory.join("index.org");
+    let text = "[[file:notes.txt]] [[./paper.pdf]] [[file:missing.txt]]\n";
+    std::fs::write(&file, text).unwrap();
+    let mut options = clock();
+    options["org_file_apps"] = json!([["txt", "cp %s copied.txt"], ["\\.pdf\\'", "default"]]);
+    let mut client = Client::editor(options, None);
+    let uri = format!("file://{}", file.display());
+    client.open(&uri, text);
+    let open = |client: &mut Client, character: u32, count: Option<i64>| {
+        let mut context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": character } });
+        if let Some(count) = count {
+            context["count"] = json!(count);
+        }
+        client.received.clear();
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": "org.open", "arguments": [context] }));
+        client.settle();
+        result
+    };
+
+    let notes = directory.join("notes.txt");
+    let result = open(&mut client, 3, None).unwrap();
+    // The path as `shell-quote-argument` quotes it: no character of it needs it.
+    assert_eq!(result["message"], format!("Running cp {} copied.txt...done", notes.display()));
+    assert!(!client.received.iter().any(|request| request.method == "window/showDocument"));
+    let copied = directory.join("copied.txt");
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    while !copied.exists() && std::time::Instant::now() < deadline {
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+    assert_eq!(std::fs::read_to_string(&copied).unwrap(), "notes\n");
+
+    open(&mut client, 3, Some(4)).unwrap();
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("shown");
+    assert_eq!(shown.params["uri"], format!("file://{}", notes.display()));
+    assert!(shown.params["external"].as_bool() != Some(true), "{shown:?}");
+
+    open(&mut client, 22, None).unwrap();
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("shown");
+    assert_eq!(shown.params["uri"], format!("file://{}", directory.join("paper.pdf").display()));
+    assert_eq!(shown.params["external"], true);
+
+    let missing = open(&mut client, 40, None).unwrap_err();
+    assert_eq!(missing, format!("No such file: {}", directory.join("missing.txt").display()));
+    client.shutdown();
+}
+
 /// `org-edit-special` (`C-c '`): a code block in a file of its own, its
 /// text as Org's edit buffer has it; each save of the file writes it back
 /// as Org does (`org-edit-src-save`), and the Org file is saved. At

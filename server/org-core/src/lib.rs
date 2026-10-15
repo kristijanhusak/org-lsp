@@ -19,6 +19,7 @@ pub mod custom_time;
 pub mod date;
 pub mod duration;
 pub mod edit;
+pub mod file_apps;
 pub mod format;
 pub mod indent;
 pub mod journal;
