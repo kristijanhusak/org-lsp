@@ -205,6 +205,29 @@ pub const SETTINGS: &[Setting] = &[
          up with a subtree's promotion. With `false` it is an error.",
     ),
     setting(
+        "org_treat_S_cursor_todo_selection_as_state_change",
+        "boolean",
+        "true",
+        "org-treat-S-cursor-todo-selection-as-state-change",
+        "`S-<left>` and `S-<right>` on a headline change its TODO state as any change does: logged, and blocked \
+         by its dependencies. Off, they change it with nothing logged and nothing in the way.",
+    ),
+    setting(
+        "org_treat_insert_todo_heading_as_state_change",
+        "boolean",
+        "false",
+        "org-treat-insert-todo-heading-as-state-change",
+        "The keyword of a heading `org.insert.todo.heading` (M-S-RET) makes is set as a TODO change: logged \
+         as the keyword says (a note wanted is a time only), with its tag triggers.",
+    ),
+    setting(
+        "org_edit_timestamp_down_means_later",
+        "boolean",
+        "false",
+        "org-edit-timestamp-down-means-later",
+        "`S-<down>` makes a timestamp later and `S-<up>` earlier, the other way round from Org's default.",
+    ),
+    setting(
         "org_special_ctrl_k",
         "boolean",
         "false",
@@ -3093,6 +3116,9 @@ const SCHEMAS: &[(&str, &str)] = &[
         r#"{ "anyOf": [{ "enum": [true, false, "reversed"] }, { "type": "array", "items": { "enum": [true, false, "reversed"] }, "minItems": 2, "maxItems": 2 }] }"#,
     ),
     ("org_special_ctrl_k", BOOLEAN),
+    ("org_treat_S_cursor_todo_selection_as_state_change", BOOLEAN),
+    ("org_treat_insert_todo_heading_as_state_change", BOOLEAN),
+    ("org_edit_timestamp_down_means_later", BOOLEAN),
     ("org_sparse_tree_open_archived_trees", BOOLEAN),
     ("org_yank_adjusted_subtrees", BOOLEAN),
     ("org_allow_promoting_top_level_subtree", BOOLEAN),

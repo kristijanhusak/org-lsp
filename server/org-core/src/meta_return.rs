@@ -47,6 +47,10 @@ pub struct Settings {
     pub lists: list::Settings,
     /// How tables are edited.
     pub table: crate::table::Settings,
+    /// `org-treat-insert-todo-heading-as-state-change`: the keyword of a
+    /// new TODO heading set as `org-todo` sets it, logged and triggered,
+    /// with these settings at this time.
+    pub todo_state_change: Option<(crate::todo::Settings, DateTime)>,
 }
 
 impl Default for Settings {
@@ -61,6 +65,7 @@ impl Default for Settings {
             respect_content: false,
             lists: list::Settings::default(),
             table: crate::table::Settings::default(),
+            todo_state_change: None,
         }
     }
 }
@@ -397,6 +402,18 @@ fn mark_todo(buffer: &mut Buffer, keywords: &TodoKeywords, settings: &Settings) 
     let Some(mark) = new_mark(&buffer.text, heading, keywords) else { return };
     let Some(stars) = headline_level(line(&buffer.text, heading)) else { return };
     buffer.point = heading + stars + 1;
+    if let Some((todo_settings, now)) = &settings.todo_state_change {
+        // `org-todo` with the keyword, from no keyword.
+        let mut editor = Editor::new(&buffer.text, keywords, todo_settings, *now);
+        editor.heading = heading;
+        if editor.enter_state(mark).is_ok() {
+            let point = follow(&buffer.text, &editor.text, buffer.point);
+            buffer.text = editor.text;
+            // After the keyword and its space, as `org-todo` leaves it.
+            buffer.point = point + mark.len() + 1;
+        }
+        return;
+    }
     buffer.insert(&format!("{mark} "));
     let todo_settings = todo::Settings {
         tags_column: settings.tags_column,

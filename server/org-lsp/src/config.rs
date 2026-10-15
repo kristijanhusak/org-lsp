@@ -125,6 +125,12 @@ pub struct Options {
     /// `org-special-ctrl-k`
     #[serde(rename = "org_special_ctrl_k")]
     pub special_ctrl_k: Option<bool>,
+    #[serde(rename = "org_treat_S_cursor_todo_selection_as_state_change")]
+    pub treat_s_cursor_todo_selection_as_state_change: Option<bool>,
+    #[serde(rename = "org_treat_insert_todo_heading_as_state_change")]
+    pub treat_insert_todo_heading_as_state_change: Option<bool>,
+    #[serde(rename = "org_edit_timestamp_down_means_later")]
+    pub edit_timestamp_down_means_later: Option<bool>,
     /// `org-list-two-spaces-after-bullet-regexp`: a regexp, or `false`.
     #[serde(rename = "org_list_two_spaces_after_bullet_regexp")]
     pub list_two_spaces_after_bullet_regexp: Option<serde_json::Value>,
@@ -2227,6 +2233,8 @@ impl Options {
             insert: self.insert_settings(),
             special_ctrl_a_e: self.special_ctrl_a_e(),
             special_ctrl_k: self.special_ctrl_k.unwrap_or(false),
+            shift_todo_is_state_change: self.treat_s_cursor_todo_selection_as_state_change.unwrap_or(true),
+            timestamp_down_means_later: self.edit_timestamp_down_means_later.unwrap_or(false),
         }
     }
 

@@ -410,6 +410,9 @@ pub(crate) struct Editor<'a> {
     log: Log,
     /// Where a note on a clock goes: the end of its line.
     clock_note_at: Option<usize>,
+    /// `org-inhibit-logging` and `org-inhibit-blocking` `t`: the state
+    /// changes with nothing logged and nothing blocking it.
+    quiet: bool,
 }
 
 /// What is logged: `org-log-done`, `org-log-repeat`, `org-log-into-drawer`
@@ -654,7 +657,21 @@ impl<'a> Editor<'a> {
             before_repeat: None,
             log,
             clock_note_at: None,
+            quiet: false,
         }
+    }
+
+    /// `org-todo` to `state` on the entry of [`Editor::heading`], as
+    /// `org-insert-todo-heading` calls it with
+    /// `org-treat-insert-todo-heading-as-state-change`: logged and
+    /// triggered as any change. A note it wants is a time only, as no one
+    /// writes it here.
+    pub(crate) fn enter_state(&mut self, state: &str) -> Result<(), String> {
+        self.set_state(&Target::State(Some(state.to_string())), true)?;
+        if let Some(note) = self.note.take() {
+            self.store_note(&note, "");
+        }
+        Ok(())
     }
 
     /// `org-current-effective-time`: the time a state change records.
@@ -1797,7 +1814,7 @@ impl<'a> Editor<'a> {
                 Some(state.clone())
             }
         };
-        if top {
+        if top && !self.quiet {
             if let Some(reason) = self.blocked(&this, &state) {
                 return Err(format!(
                     "TODO state change from {} to {} blocked (by {reason})",
@@ -1817,7 +1834,7 @@ impl<'a> Editor<'a> {
             state.as_deref().is_some_and(|state| self.keywords.contains(state) && !self.keywords.is_done(state))
         };
         let now_done = is_done(&state) && !is_done(&this);
-        if top && (self.logs_any() || self.log.done.is_some()) {
+        if top && !self.quiet && (self.logs_any() || self.log.done.is_some()) {
             let record = state
                 .as_deref()
                 .and_then(|state| self.logs_entering(state))
@@ -2149,6 +2166,26 @@ pub fn change_state_with_note(
     change_state_noted(text, keywords, offset, target, settings, now, note)
 }
 
+/// [`change_state`] with `org-inhibit-logging` and `org-inhibit-blocking`
+/// `t`, as `S-<left>` and `S-<right>` change it unless
+/// `org-treat-S-cursor-todo-selection-as-state-change`: no `CLOSED:`
+/// stamp added or taken out, no note, and no dependency in the way. A
+/// repeater still repeats, and logs as `org-log-repeat` says.
+pub fn change_state_quietly(
+    text: &str,
+    keywords: &TodoKeywords,
+    offset: usize,
+    target: &Target,
+    settings: &Settings,
+    now: DateTime,
+) -> Result<Changed, String> {
+    let mut editor = Editor::new(text, keywords, settings, now);
+    editor.quiet = true;
+    editor.go_to_heading(offset)?;
+    editor.set_state(target, true)?;
+    Ok(noted(editor, NoteText::Ask))
+}
+
 /// [`change_state_with_note`], where the note may also be cancelled.
 pub fn change_state_noted(
     text: &str,
@@ -2162,6 +2199,12 @@ pub fn change_state_noted(
     let mut editor = Editor::new(text, keywords, settings, now);
     editor.go_to_heading(offset)?;
     editor.set_state(target, true)?;
+    Ok(noted(editor, note))
+}
+
+/// The change `editor` made, with the note it wants written as `note`
+/// says, or asked for.
+fn noted(mut editor: Editor, note: NoteText) -> Changed {
     let wants_note = match (editor.note.take(), note) {
         // `org-store-log-note` with `org-note-abort`: nothing is stored.
         (Some(wanted), NoteText::Skip) if wanted.text => None,
@@ -2196,7 +2239,7 @@ pub fn change_state_noted(
         }
         (None, _) => None,
     };
-    Ok(Changed { text: editor.text, wants_note, message: editor.repeated, before_repeat: editor.before_repeat })
+    Changed { text: editor.text, wants_note, message: editor.repeated, before_repeat: editor.before_repeat }
 }
 
 /// The line edits that turn `old` into `new`.
