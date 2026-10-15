@@ -1253,6 +1253,41 @@ pub const SETTINGS: &[Setting] = &[
          all of them stay outside. `0`: none does.",
     ),
     setting(
+        "org_cycle_include_plain_lists",
+        r#"true, false, "integrate""#,
+        "true",
+        "org-cycle-include-plain-lists",
+        "Whether list items fold, as subtrees do. `integrate` makes them part of the outline: TAB showing \
+         a headline's children folds its lists to their top items too. `false`: they do not fold.",
+    ),
+    Setting {
+        default: None,
+        unset: "every level",
+        ..setting(
+            "org_cycle_max_level",
+            "number",
+            "",
+            "org-cycle-max-level",
+            "The deepest headlines that fold; deeper ones are text of the subtree they are in.",
+        )
+    },
+    setting(
+        "org_cycle_global_at_bob",
+        "boolean",
+        "false",
+        "org-cycle-global-at-bob",
+        "TAB at the very start of the file, when its first line is no headline, cycles the whole file as \
+         S-TAB does.",
+    ),
+    setting(
+        "org_cycle_level_after_item_entry_creation",
+        "boolean",
+        "true",
+        "org-cycle-level-after-item/entry-creation",
+        "TAB on a new, empty headline makes it a child of the headline before, then each level up, then a \
+         sibling again; on an empty item, it indents and outdents the item the same way.",
+    ),
+    setting(
         "org_startup_folded",
         "string",
         "\"showeverything\"",
@@ -2972,6 +3007,10 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("emacs_config", STRING),
     ("auto_save", BOOLEAN),
     ("org_cycle_separator_lines", r#"{ "type": "integer" }"#),
+    ("org_cycle_include_plain_lists", r#"{ "enum": [true, false, "integrate"] }"#),
+    ("org_cycle_max_level", r#"{ "type": "integer", "minimum": 1 }"#),
+    ("org_cycle_global_at_bob", BOOLEAN),
+    ("org_cycle_level_after_item_entry_creation", BOOLEAN),
     (
         "org_startup_folded",
         r#"{ "enum": ["overview", "fold", "content", "show2levels", "show3levels", "show4levels", "show5levels", "showeverything", "nofold", "showall"] }"#,

@@ -30,6 +30,49 @@ local function ranges(bufnr)
   return out
 end
 
+--- Whether line `line` starts a list item, which folds with its
+--- headline's children only with `org_cycle_include_plain_lists`
+--- `integrate`.
+---@param bufnr integer
+---@param line integer 1-based
+---@return boolean
+local function item(bufnr, line)
+  local text = vim.api.nvim_buf_get_lines(bufnr, line - 1, line, false)[1] or ''
+  return text:match('^%s*[-+]%s') ~= nil
+    or text:match('^%s*[-+]$') ~= nil
+    or text:match('^%s*%d+[.)]%s') ~= nil
+    or text:match('^%s*%d+[.)]$') ~= nil
+    or text:match('^%s+%*%s') ~= nil
+end
+
+--- What TAB does before it folds (`org.cycle`): an edit of a new entry,
+--- which is made, or global cycling, or how to fold. Nil when TAB is
+--- done; else whether lists fold with a headline's children.
+---@param bufnr integer
+---@return { global: boolean?, integrateLists: boolean? }?
+local function before_folding(bufnr)
+  local client = vim.lsp.get_clients({ bufnr = bufnr, name = 'org_lsp' })[1]
+  if not client then
+    return {}
+  end
+  local context = vim.lsp.util.make_position_params(0, client.offset_encoding)
+  local params = { command = 'org.cycle', arguments = { context } }
+  local response = client:request_sync('workspace/executeCommand', params, 1000, bufnr)
+  if not response then
+    return {}
+  end
+  if response.err then
+    notify(response.err.message, vim.log.levels.ERROR)
+    return nil
+  end
+  local result = response.result or {}
+  if type(result.edits) == 'table' then
+    require('org-lsp').apply_carried(result, bufnr, client)
+    return nil
+  end
+  return result
+end
+
 --- Whether line `line` is a headline with the ARCHIVE tag of its own.
 ---@param bufnr integer
 ---@param line integer 1-based
@@ -58,12 +101,21 @@ end
 --- Cycle the subtree (or block, drawer, list item) at the cursor:
 --- folded -> children visible -> everything visible -> folded. Archived
 --- subtrees stay closed, as `org-cycle-hide-archived-subtrees` keeps them.
+--- First the server says what TAB does there before it folds: a new,
+--- empty entry changes level, the start of the file cycles globally.
 function M.cycle()
   -- In a table, TAB goes to the next field (`org-table-next-field`).
   if vim.api.nvim_get_current_line():match('^%s*|') then
     return require('org-lsp').run('org.table.next.field')
   end
   local bufnr = vim.api.nvim_get_current_buf()
+  -- A new entry's level, or global cycling at the start of the file.
+  local before = before_folding(bufnr)
+  if not before then
+    return
+  elseif before.global then
+    return M.global_cycle()
+  end
   local all = ranges(bufnr)
   if not all then
     return
@@ -98,7 +150,8 @@ function M.cycle()
         break
       end
     end
-    if not nested then
+    -- Lists stay open but with `org_cycle_include_plain_lists` `integrate`.
+    if not nested and (before.integrateLists or not item(bufnr, range[1]) or item(bufnr, start)) then
       table.insert(children, range)
     end
   end

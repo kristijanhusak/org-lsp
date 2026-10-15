@@ -20,7 +20,9 @@ The requests the server answers:
 - ~textDocument/foldingRange~ :: Subtrees, drawers, blocks, LaTeX
   environments and multi-line list items. Whole lines only. A subtree takes
   the blank lines before the next headline along, as Emacs hides them; see
-  ~org_cycle_separator_lines~.
+  ~org_cycle_separator_lines~. Headlines deeper than ~org_cycle_max_level~
+  have no fold of their own, nor list items with
+  ~org_cycle_include_plain_lists~ ~false~.
 - ~textDocument/documentSymbol~ :: The outline of headlines. Hierarchical
   when the client supports it, flat otherwise.
 - ~textDocument/codeAction~ :: The commands that apply at the cursor. See
@@ -396,6 +398,10 @@ Each option with its type, its default and what it means:
 - ~emacs_config~ :: string, none. Emacs Lisp that Emacs evaluates after ~emacs_config_file~ and before loading Org, for a few settings without a file: ~(setq org-export-with-toc nil)~, or ~(add-to-list 'load-path "~/src/org-mode/lisp")~ for another Org. A yes-or-no question Emacs asks while it works (~org-confirm-babel-evaluate~) is asked in the editor.
 - ~auto_save~ :: boolean, ~true~. Save the files a command changes other than the one it was run in: an entry's file changed from the agenda, the target of a capture or of a refile. The editor saves them once it has made the change. Off, they are left with unsaved changes, as Emacs leaves them.
 - ~org_cycle_separator_lines~ :: number, ~2~. With at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. ~0~: none does. (~org-cycle-separator-lines~)
+- ~org_cycle_include_plain_lists~ :: true, false, "integrate", ~true~. Whether list items fold, as subtrees do. ~integrate~ makes them part of the outline: TAB showing a headline's children folds its lists to their top items too. ~false~: they do not fold. (~org-cycle-include-plain-lists~)
+- ~org_cycle_max_level~ :: number, every level. The deepest headlines that fold; deeper ones are text of the subtree they are in. (~org-cycle-max-level~)
+- ~org_cycle_global_at_bob~ :: boolean, ~false~. TAB at the very start of the file, when its first line is no headline, cycles the whole file as S-TAB does. (~org-cycle-global-at-bob~)
+- ~org_cycle_level_after_item_entry_creation~ :: boolean, ~true~. TAB on a new, empty headline makes it a child of the headline before, then each level up, then a sibling again; on an empty item, it indents and outdents the item the same way. (~org-cycle-level-after-item/entry-creation~)
 - ~org_startup_folded~ :: string, ~"showeverything"~. How files show when opened: ~"overview"~ (or ~"fold"~) only the top headlines, ~"content"~ all the headlines, ~"show2levels"~ to ~"show5levels"~ the headlines down to that level, ~"showeverything"~ (or ~"nofold"~, ~"showall"~) everything. ~#+STARTUP:~ decides for a file. Unless everything shows, a subtree's ~VISIBILITY~ property (~folded~, ~children~, ~content~, ~all~) decides for it, archived subtrees are folded, and drawers too. Folds hide whole subtrees, so where Org shows a headline's children but not its text, the text shows. (~org-startup-folded~)
 - ~org_startup_shrink_all_tables~ :: boolean, ~false~. Shrink the columns of every table that have a width cookie (~<10>~) when a file opens. ~#+STARTUP: shrink~ decides for a file. Shrunk fields show their first characters and ~…~, in editors that can hide text. (~org-startup-shrink-all-tables~)
 - ~org_cycle_hide_block_startup~ :: boolean, ~false~. Fold blocks when a file opens folded (~org_startup_folded~). ~#+STARTUP: hideblocks~ and ~nohideblocks~ decide for a file. (~org-cycle-hide-block-startup~)
@@ -1489,6 +1495,21 @@ increments a number.
   only.
 - ~org.date.preview~ :: Not for users: what an answer to a date prompt
   means; see below. Not in the manifest.
+- ~org.cycle~ :: Not for users: what an editor's own TAB in an Org file does
+  before it folds (~org-cycle~). Not in the manifest. On a new, empty
+  headline (the cursor at its end, with stars and perhaps a TODO keyword)
+  its level changes as ~org-cycle-level~ changes it: a child of the
+  headline before, then each level up, then a sibling again; on an empty
+  item, its indentation as ~org-cycle-item-indentation~ changes it, the
+  same command again from where the last one left the cursor going on with
+  that item's cycle (~Cannot move item~ where it cannot). The edit is
+  carried in the result as ~org.return~'s is. Both need
+  ~org_cycle_level_after_item_entry_creation~. At the start of the file,
+  with ~org_cycle_global_at_bob~ and no headline there:
+  ~{ "global": true }~, for the editor to cycle the whole file. Else
+  ~{ "integrateLists" }~: the editor cycles its folds, and when a
+  headline's children show, folds its list items too only when this is
+  ~true~ (~org_cycle_include_plain_lists~ ~integrate~).
 - ~org.calendar.day.later~, ~.day.earlier~, ~.week.later~, ~.week.earlier~,
   ~.month.later~, ~.month.earlier~, ~.year.later~, ~.year.earlier~ :: In the
   date prompt: move the selected day.

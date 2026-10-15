@@ -382,6 +382,9 @@ pub const TIMESTAMP_CHANGE: &str = "org.timestamp.change";
 /// What an answer to a date prompt means, for an editor that shows it
 /// while the answer is typed. Not a command of its own for users.
 pub const DATE_PREVIEW: &str = "org.date.preview";
+/// What TAB does in an Org file before it folds, for an editor's own TAB
+/// (`org-cycle`). Not a command of its own for users.
+pub const CYCLE: &str = "org.cycle";
 pub const CALENDAR_DAY_LATER: &str = "org.calendar.day.later";
 pub const CALENDAR_DAY_EARLIER: &str = "org.calendar.day.earlier";
 pub const CALENDAR_WEEK_LATER: &str = "org.calendar.week.later";
@@ -1702,7 +1705,7 @@ pub const COMMANDS: &[Command] = &[
 /// Every command the server runs: the table's, and those editors call
 /// on their own.
 pub fn ids() -> Vec<String> {
-    COMMANDS.iter().map(|command| command.id).chain([DATE_PREVIEW]).map(str::to_string).collect()
+    COMMANDS.iter().map(|command| command.id).chain([DATE_PREVIEW, CYCLE]).map(str::to_string).collect()
 }
 
 /// The input the command `id` asks for, if any.
@@ -1902,7 +1905,7 @@ mod tests {
         let mut ids = ids();
         ids.sort();
         ids.dedup();
-        assert_eq!(ids.len(), COMMANDS.len() + 1);
+        assert_eq!(ids.len(), COMMANDS.len() + 2);
         for preset in [|command: &Command| command.emacs, |command: &Command| command.vim] {
             let mut keys: Vec<(&str, &str)> = COMMANDS
                 .iter()

@@ -1,0 +1,755 @@
+[
+ {
+  "text": "* A\n** ",
+  "point": 7,
+  "times": 6,
+  "expected": [
+   {
+    "text": "* A\n* ",
+    "point": 6
+   },
+   {
+    "text": "* A\n** ",
+    "point": 7
+   },
+   {
+    "text": "* A\n* ",
+    "point": 6
+   },
+   {
+    "text": "* A\n** ",
+    "point": 7
+   },
+   {
+    "text": "* A\n* ",
+    "point": 6
+   },
+   {
+    "text": "* A\n** ",
+    "point": 7
+   }
+  ]
+ },
+ {
+  "text": "* A\n** B\n*** ",
+  "point": 13,
+  "times": 6,
+  "expected": [
+   {
+    "text": "* A\n** B\n* ",
+    "point": 11
+   },
+   {
+    "text": "* A\n** B\n** ",
+    "point": 12
+   },
+   {
+    "text": "* A\n** B\n*** ",
+    "point": 13
+   },
+   {
+    "text": "* A\n** B\n* ",
+    "point": 11
+   },
+   {
+    "text": "* A\n** B\n** ",
+    "point": 12
+   },
+   {
+    "text": "* A\n** B\n*** ",
+    "point": 13
+   }
+  ]
+ },
+ {
+  "text": "* A\n* ",
+  "point": 6,
+  "times": 6,
+  "expected": [
+   {
+    "text": "* A\n** ",
+    "point": 7
+   },
+   {
+    "text": "* A\n* ",
+    "point": 6
+   },
+   {
+    "text": "* A\n** ",
+    "point": 7
+   },
+   {
+    "text": "* A\n* ",
+    "point": 6
+   },
+   {
+    "text": "* A\n** ",
+    "point": 7
+   },
+   {
+    "text": "* A\n* ",
+    "point": 6
+   }
+  ]
+ },
+ {
+  "text": "** ",
+  "point": 3,
+  "times": 6,
+  "expected": [
+   {
+    "text": "* ",
+    "point": 2
+   },
+   {
+    "text": "* ",
+    "point": 2
+   },
+   {
+    "text": "* ",
+    "point": 2
+   },
+   {
+    "text": "* ",
+    "point": 2
+   },
+   {
+    "text": "* ",
+    "point": 2
+   },
+   {
+    "text": "* ",
+    "point": 2
+   }
+  ]
+ },
+ {
+  "text": "Intro\n*** ",
+  "point": 10,
+  "times": 6,
+  "expected": [
+   {
+    "text": "Intro\n* ",
+    "point": 8
+   },
+   {
+    "text": "Intro\n* ",
+    "point": 8
+   },
+   {
+    "text": "Intro\n* ",
+    "point": 8
+   },
+   {
+    "text": "Intro\n* ",
+    "point": 8
+   },
+   {
+    "text": "Intro\n* ",
+    "point": 8
+   },
+   {
+    "text": "Intro\n* ",
+    "point": 8
+   }
+  ]
+ },
+ {
+  "text": "* A\n** B\n* ",
+  "point": 11,
+  "times": 6,
+  "expected": [
+   {
+    "text": "* A\n** B\n** ",
+    "point": 12
+   },
+   {
+    "text": "* A\n** B\n*** ",
+    "point": 13
+   },
+   {
+    "text": "* A\n** B\n* ",
+    "point": 11
+   },
+   {
+    "text": "* A\n** B\n** ",
+    "point": 12
+   },
+   {
+    "text": "* A\n** B\n*** ",
+    "point": 13
+   },
+   {
+    "text": "* A\n** B\n* ",
+    "point": 11
+   }
+  ]
+ },
+ {
+  "text": "* A\n*** B\n** ",
+  "point": 13,
+  "times": 6,
+  "expected": [
+   {
+    "text": "* A\n*** B\n* ",
+    "point": 12
+   },
+   {
+    "text": "* A\n*** B\n*** ",
+    "point": 14
+   },
+   {
+    "text": "* A\n*** B\n**** ",
+    "point": 15
+   },
+   {
+    "text": "* A\n*** B\n** ",
+    "point": 13
+   },
+   {
+    "text": "* A\n*** B\n* ",
+    "point": 12
+   },
+   {
+    "text": "* A\n*** B\n*** ",
+    "point": 14
+   }
+  ]
+ },
+ {
+  "text": "* A\n** B\n*** C\n**** ",
+  "point": 20,
+  "times": 6,
+  "expected": [
+   {
+    "text": "* A\n** B\n*** C\n** ",
+    "point": 18
+   },
+   {
+    "text": "* A\n** B\n*** C\n* ",
+    "point": 17
+   },
+   {
+    "text": "* A\n** B\n*** C\n*** ",
+    "point": 19
+   },
+   {
+    "text": "* A\n** B\n*** C\n**** ",
+    "point": 20
+   },
+   {
+    "text": "* A\n** B\n*** C\n** ",
+    "point": 18
+   },
+   {
+    "text": "* A\n** B\n*** C\n* ",
+    "point": 17
+   }
+  ]
+ },
+ {
+  "text": "* A\n* TODO ",
+  "point": 11,
+  "times": 6,
+  "expected": [
+   {
+    "text": "* A\n** TODO ",
+    "point": 12
+   },
+   {
+    "text": "* A\n* TODO ",
+    "point": 11
+   },
+   {
+    "text": "* A\n** TODO ",
+    "point": 12
+   },
+   {
+    "text": "* A\n* TODO ",
+    "point": 11
+   },
+   {
+    "text": "* A\n** TODO ",
+    "point": 12
+   },
+   {
+    "text": "* A\n* TODO ",
+    "point": 11
+   }
+  ]
+ },
+ {
+  "text": "* A\n* TODO",
+  "point": 10,
+  "times": 6,
+  "expected": [
+   {
+    "text": "* A\n* TODO",
+    "point": 10
+   },
+   {
+    "text": "* A\n* TODO",
+    "point": 10
+   },
+   {
+    "text": "* A\n* TODO",
+    "point": 10
+   },
+   {
+    "text": "* A\n* TODO",
+    "point": 10
+   },
+   {
+    "text": "* A\n* TODO",
+    "point": 10
+   },
+   {
+    "text": "* A\n* TODO",
+    "point": 10
+   }
+  ]
+ },
+ {
+  "text": "* A\n**  ",
+  "point": 8,
+  "times": 6,
+  "expected": [
+   {
+    "text": "* A\n*  ",
+    "point": 7
+   },
+   {
+    "text": "* A\n**  ",
+    "point": 8
+   },
+   {
+    "text": "* A\n*  ",
+    "point": 7
+   },
+   {
+    "text": "* A\n**  ",
+    "point": 8
+   },
+   {
+    "text": "* A\n*  ",
+    "point": 7
+   },
+   {
+    "text": "* A\n**  ",
+    "point": 8
+   }
+  ]
+ },
+ {
+  "text": "* A :x:\n** ",
+  "point": 11,
+  "times": 6,
+  "expected": [
+   {
+    "text": "* A :x:\n* ",
+    "point": 10
+   },
+   {
+    "text": "* A :x:\n** ",
+    "point": 11
+   },
+   {
+    "text": "* A :x:\n* ",
+    "point": 10
+   },
+   {
+    "text": "* A :x:\n** ",
+    "point": 11
+   },
+   {
+    "text": "* A :x:\n* ",
+    "point": 10
+   },
+   {
+    "text": "* A :x:\n** ",
+    "point": 11
+   }
+  ]
+ },
+ {
+  "text": "- a\n- ",
+  "point": 6,
+  "times": 6,
+  "expected": [
+   {
+    "text": "- a\n  - ",
+    "point": 8
+   },
+   {
+    "text": "- a\n- ",
+    "point": 6
+   },
+   {
+    "text": "- a\n  - ",
+    "point": 8
+   },
+   {
+    "text": "- a\n- ",
+    "point": 6
+   },
+   {
+    "text": "- a\n  - ",
+    "point": 8
+   },
+   {
+    "text": "- a\n- ",
+    "point": 6
+   }
+  ]
+ },
+ {
+  "text": "- a\n  - b\n  - ",
+  "point": 14,
+  "times": 6,
+  "expected": [
+   {
+    "text": "- a\n  - b\n    - ",
+    "point": 16
+   },
+   {
+    "text": "- a\n  - b\n- ",
+    "point": 12
+   },
+   {
+    "text": "- a\n  - b\n  - ",
+    "point": 14
+   },
+   {
+    "text": "- a\n  - b\n    - ",
+    "point": 16
+   },
+   {
+    "text": "- a\n  - b\n- ",
+    "point": 12
+   },
+   {
+    "text": "- a\n  - b\n  - ",
+    "point": 14
+   }
+  ]
+ },
+ {
+  "text": "1. a\n2. ",
+  "point": 8,
+  "times": 6,
+  "expected": [
+   {
+    "text": "1. a\n   1. ",
+    "point": 11
+   },
+   {
+    "text": "1. a\n2. ",
+    "point": 8
+   },
+   {
+    "text": "1. a\n   1. ",
+    "point": 11
+   },
+   {
+    "text": "1. a\n2. ",
+    "point": 8
+   },
+   {
+    "text": "1. a\n   1. ",
+    "point": 11
+   },
+   {
+    "text": "1. a\n2. ",
+    "point": 8
+   }
+  ]
+ },
+ {
+  "text": "- a\n- [ ] ",
+  "point": 10,
+  "times": 6,
+  "expected": [
+   {
+    "text": "- a\n  - [ ] ",
+    "point": 12
+   },
+   {
+    "text": "- a\n- [ ] ",
+    "point": 10
+   },
+   {
+    "text": "- a\n  - [ ] ",
+    "point": 12
+   },
+   {
+    "text": "- a\n- [ ] ",
+    "point": 10
+   },
+   {
+    "text": "- a\n  - [ ] ",
+    "point": 12
+   },
+   {
+    "text": "- a\n- [ ] ",
+    "point": 10
+   }
+  ]
+ },
+ {
+  "text": "- ",
+  "point": 2,
+  "times": 6,
+  "expected": [
+   {
+    "error": "Cannot move item"
+   }
+  ]
+ },
+ {
+  "text": "- a\n  - ",
+  "point": 8,
+  "times": 6,
+  "expected": [
+   {
+    "text": "- a\n- ",
+    "point": 6
+   },
+   {
+    "text": "- a\n  - ",
+    "point": 8
+   },
+   {
+    "text": "- a\n- ",
+    "point": 6
+   },
+   {
+    "text": "- a\n  - ",
+    "point": 8
+   },
+   {
+    "text": "- a\n- ",
+    "point": 6
+   },
+   {
+    "text": "- a\n  - ",
+    "point": 8
+   }
+  ]
+ },
+ {
+  "text": "+ a\n+ b\n+ ",
+  "point": 10,
+  "times": 6,
+  "expected": [
+   {
+    "text": "+ a\n+ b\n  + ",
+    "point": 12
+   },
+   {
+    "text": "+ a\n+ b\n+ ",
+    "point": 10
+   },
+   {
+    "text": "+ a\n+ b\n  + ",
+    "point": 12
+   },
+   {
+    "text": "+ a\n+ b\n+ ",
+    "point": 10
+   },
+   {
+    "text": "+ a\n+ b\n  + ",
+    "point": 12
+   },
+   {
+    "text": "+ a\n+ b\n+ ",
+    "point": 10
+   }
+  ]
+ },
+ {
+  "text": "1) a\n   1) b\n   2) ",
+  "point": 19,
+  "times": 6,
+  "expected": [
+   {
+    "text": "1) a\n   1) b\n      1) ",
+    "point": 22
+   },
+   {
+    "text": "1) a\n   1) b\n2) ",
+    "point": 16
+   },
+   {
+    "text": "1) a\n   1) b\n   2) ",
+    "point": 19
+   },
+   {
+    "text": "1) a\n   1) b\n      1) ",
+    "point": 22
+   },
+   {
+    "text": "1) a\n   1) b\n2) ",
+    "point": 16
+   },
+   {
+    "text": "1) a\n   1) b\n   2) ",
+    "point": 19
+   }
+  ]
+ },
+ {
+  "text": "* H\n- a\n- ",
+  "point": 10,
+  "times": 6,
+  "expected": [
+   {
+    "text": "* H\n- a\n  - ",
+    "point": 12
+   },
+   {
+    "text": "* H\n- a\n- ",
+    "point": 10
+   },
+   {
+    "text": "* H\n- a\n  - ",
+    "point": 12
+   },
+   {
+    "text": "* H\n- a\n- ",
+    "point": 10
+   },
+   {
+    "text": "* H\n- a\n  - ",
+    "point": 12
+   },
+   {
+    "text": "* H\n- a\n- ",
+    "point": 10
+   }
+  ]
+ },
+ {
+  "text": "- a\n- b",
+  "point": 7,
+  "times": 6,
+  "expected": [
+   {
+    "text": "- a\n- b",
+    "point": 7
+   },
+   {
+    "text": "- a\n- b",
+    "point": 7
+   },
+   {
+    "text": "- a\n- b",
+    "point": 7
+   },
+   {
+    "text": "- a\n- b",
+    "point": 7
+   },
+   {
+    "text": "- a\n- b",
+    "point": 7
+   },
+   {
+    "text": "- a\n- b",
+    "point": 7
+   }
+  ]
+ },
+ {
+  "text": "* A\n** B",
+  "point": 8,
+  "times": 6,
+  "expected": [
+   {
+    "text": "* A\n** B",
+    "point": 8
+   },
+   {
+    "text": "* A\n** B",
+    "point": 8
+   },
+   {
+    "text": "* A\n** B",
+    "point": 8
+   },
+   {
+    "text": "* A\n** B",
+    "point": 8
+   },
+   {
+    "text": "* A\n** B",
+    "point": 8
+   },
+   {
+    "text": "* A\n** B",
+    "point": 8
+   }
+  ]
+ },
+ {
+  "text": "- a\n- \n- c\n",
+  "point": 6,
+  "times": 4,
+  "expected": [
+   {
+    "text": "- a\n  - \n- c\n",
+    "point": 8
+   },
+   {
+    "text": "- a\n- \n- c\n",
+    "point": 6
+   },
+   {
+    "text": "- a\n  - \n- c\n",
+    "point": 8
+   },
+   {
+    "text": "- a\n- \n- c\n",
+    "point": 6
+   }
+  ]
+ },
+ {
+  "text": "- a\n- \n- c\n",
+  "point": 4,
+  "times": 4,
+  "expected": [
+   {
+    "text": "- a\n  - \n- c\n",
+    "point": 4
+   },
+   {
+    "text": "- a\n- \n- c\n",
+    "point": 6
+   },
+   {
+    "text": "- a\n  - \n- c\n",
+    "point": 8
+   },
+   {
+    "text": "- a\n- \n- c\n",
+    "point": 6
+   }
+  ]
+ },
+ {
+  "text": "* A\n** \n",
+  "point": 4,
+  "times": 2,
+  "expected": [
+   {
+    "text": "* A\n** \n",
+    "point": 4
+   },
+   {
+    "text": "* A\n** \n",
+    "point": 4
+   }
+  ]
+ }
+]

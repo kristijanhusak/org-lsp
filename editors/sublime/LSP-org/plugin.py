@@ -877,14 +877,7 @@ class OrgLspRunCommand(LspWindowCommand):
         result = result if isinstance(result, dict) else {}
         # The edit and the cursor, carried in the result (`org.return`).
         if isinstance(result.get('edits'), list):
-            cursor = result.get('cursor')
-
-            def place(_) -> None:
-                if cursor:
-                    point = position_to_offset(cursor, view)
-                    view.sel().clear()
-                    view.sel().add(sublime.Region(point))
-            apply_text_edits(view, result['edits']).then(lambda done: sublime.set_timeout(lambda: place(done)))
+            apply_carried(view, result)
         # What was cut or copied goes to the clipboard.
         if isinstance(result.get('copy'), str):
             sublime.set_clipboard(result['copy'])
@@ -1152,6 +1145,27 @@ def last_state(view, line: int):
     return None
 
 
+def apply_carried(view, result) -> None:
+    """Apply the edits a command's result carries, and put the cursor
+    where it says."""
+    cursor = result.get('cursor')
+
+    def place(_) -> None:
+        if cursor:
+            point = position_to_offset(cursor, view)
+            view.sel().clear()
+            view.sel().add(sublime.Region(point))
+    apply_text_edits(view, result['edits']).then(lambda done: sublime.set_timeout(lambda: place(done)))
+
+
+ITEM = re.compile(r'^(\s*([-+]|\d+[.)])|\s+\*)(\s|$)')
+
+
+def is_item(view, line) -> bool:
+    """Whether line `line` starts a list item."""
+    return ITEM.match(view.substr(view.line(view.text_point(line, 0)))) is not None
+
+
 def children_of(outer, ranges):
     inside = [r for r in ranges if r['startLine'] > outer['startLine'] and r['endLine'] <= outer['endLine']]
     return [r for r in inside if not any(
@@ -1179,12 +1193,33 @@ class OrgLspCycleCommand(LspTextCommand):
         if at_table(self.view):
             self.view.window().run_command('org_lsp_run', {'command': 'org.table.next.field'})
             return
+        # What TAB does before it folds (`org.cycle`): a new, empty entry
+        # changes level, the start of the file cycles globally.
+        context = text_document_position_params(self.view, self.view.sel()[0].b)
+
+        def failed(error) -> None:
+            message = error.get('message', error) if isinstance(error, dict) else error
+            say('org-lsp: {}'.format(message), self.view, error=True)
+        session.send_request(
+            Request('workspace/executeCommand', {'command': 'org.cycle', 'arguments': [context]}),
+            lambda result: sublime.set_timeout(lambda: self.before(session, result, fallback)),
+            lambda error: sublime.set_timeout(lambda: failed(error)))
+
+    def before(self, session, result, fallback) -> None:
+        result = result if isinstance(result, dict) else {}
+        if isinstance(result.get('edits'), list):
+            apply_carried(self.view, result)
+            return
+        if result.get('global') is True:
+            self.view.run_command('org_lsp_cycle_global')
+            return
+        integrate = result.get('integrateLists') is True
         params = {'textDocument': text_document_identifier(self.view)}
         session.send_request(
             Request('textDocument/foldingRange', params),
-            lambda ranges: sublime.set_timeout(lambda: self.cycle(ranges or [], fallback)))
+            lambda ranges: sublime.set_timeout(lambda: self.cycle(ranges or [], fallback, integrate)))
 
-    def cycle(self, ranges, fallback) -> None:
+    def cycle(self, ranges, fallback, integrate=False) -> None:
         view = self.view
         ranges = [r for r in ranges if r['endLine'] > r['startLine']]
         line = view.rowcol(view.sel()[0].b)[0]
@@ -1202,6 +1237,9 @@ class OrgLspCycleCommand(LspTextCommand):
         if view.is_folded(region):
             view.unfold(region)
             children = children_of(current, ranges)
+            # Lists stay open but with `org_cycle_include_plain_lists` `integrate`.
+            if not integrate and not is_item(view, start):
+                children = [child for child in children if not is_item(view, child['startLine'])]
             for child in children:
                 view.fold(fold_region(view, child))
             remember(view, start, 'children' if children else 'subtree')

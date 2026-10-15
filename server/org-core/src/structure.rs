@@ -217,6 +217,71 @@ pub fn change_levels(
     Ok(Outcome { text: buffer.text, cursor: buffer.point })
 }
 
+/// `org-cycle-level`: TAB at the end of a new, empty headline (stars, and
+/// perhaps a TODO keyword) makes it a child of the headline before, then
+/// its parent's sibling and further up, then a sibling again. None
+/// elsewhere.
+pub fn cycle_level(text: &str, at: usize, keywords: &TodoKeywords, settings: &Settings) -> Option<Outcome> {
+    let start = line_start(text, at);
+    let end = line_end(text, at);
+    // `org-point-at-end-of-empty-headline`
+    if !text[at..end].trim_matches([' ', '\t']).is_empty() || !empty_headline(&text[start..end], keywords) {
+        return None;
+    }
+    let current = text[start..].bytes().take_while(|b| *b == b'*').count();
+    // `org-get-previous-line-level`: that of the headline the line before
+    // is in, 0 for none.
+    let previous = if start == 0 {
+        0
+    } else {
+        let mut line = line_start(text, start - 1);
+        loop {
+            if let Some(level) = level_at(text, line) {
+                break level;
+            }
+            if line == 0 {
+                break 0;
+            }
+            line = line_start(text, line - 1);
+        }
+    };
+    // With `org-adapt-indentation` off, as `org-cycle-level` binds it.
+    let settings = Settings {
+        tags_column: settings.tags_column,
+        indent: indent::Settings { adapt: indent::Adapt::Off, ..settings.indent.clone() },
+    };
+    let steps: isize = if previous == 0 {
+        -(current as isize - 1)
+    } else if previous == current {
+        1
+    } else if previous == 1 {
+        -(current as isize - 1)
+    } else if current == 1 {
+        previous as isize - 1
+    } else if current < previous {
+        -1
+    } else {
+        -(1 + (current - previous) as isize)
+    };
+    let mut outcome = Outcome { text: text.to_string(), cursor: at };
+    for _ in 0..steps.unsigned_abs() {
+        outcome = change_levels(&outcome.text, outcome.cursor, steps.signum(), false, keywords, &settings).ok()?;
+    }
+    Some(outcome)
+}
+
+/// `org-todo-line-regexp` matched with an empty title: the stars, perhaps
+/// a TODO keyword, and blanks.
+fn empty_headline(line: &str, keywords: &TodoKeywords) -> bool {
+    let names: Vec<String> = keywords.names().map(regex::escape).collect();
+    let keyword = if names.is_empty() { String::new() } else { format!("(?: +(?:{}))?", names.join("|")) };
+    let pattern = format!(r"^\*+{keyword}(?: +(.*?))?[ \t]*$");
+    Regex::new(&pattern)
+        .ok()
+        .and_then(|re| re.captures(line))
+        .is_some_and(|found| found.get(1).is_some_and(|title| title.as_str().is_empty()))
+}
+
 /// `org-get-next-sibling` from the headline at `at`.
 fn next_sibling(text: &str, at: usize) -> Option<usize> {
     let level = level_at(text, at)?;

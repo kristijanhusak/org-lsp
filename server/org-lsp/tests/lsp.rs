@@ -2071,6 +2071,68 @@ fn line_keys_as_org_special_ctrl_a_e_and_k_make_them() {
     client.shutdown();
 }
 
+#[test]
+fn tab_before_folding_as_org_cycle_does() {
+    let run = |client: &mut Client, line: u32, character: u32| {
+        let argument =
+            json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": line, "character": character } });
+        client
+            .raw_request("workspace/executeCommand", json!({ "command": "org.cycle", "arguments": [argument] }))
+            .response_result
+    };
+    let text = "Intro\n* A\n** \n- a\n- \n";
+    let mut client = Client::start(json!({}), json!({ "org_cycle_global_at_bob": true }));
+    client.open(&uri(), text);
+    // A new, empty headline: a sibling of its parent, the stars after it.
+    let promoted = run(&mut client, 2, 3).unwrap();
+    let edits: Vec<TextEdit> = serde_json::from_value(promoted["edits"].clone()).unwrap();
+    assert_eq!(apply_text_edits(text, &edits), "Intro\n* A\n* \n- a\n- \n");
+    assert_eq!(promoted["cursor"], json!({ "line": 2, "character": 2 }));
+    // A new, empty item: in under the one before.
+    let indented = run(&mut client, 4, 2).unwrap();
+    let edits: Vec<TextEdit> = serde_json::from_value(indented["edits"].clone()).unwrap();
+    assert_eq!(apply_text_edits(text, &edits), "Intro\n* A\n** \n- a\n  - \n");
+    // At the start of the file, off a headline: global cycling.
+    assert_eq!(run(&mut client, 0, 0).unwrap(), json!({ "global": true }));
+    // Elsewhere the editor folds.
+    assert_eq!(run(&mut client, 1, 0).unwrap(), json!({ "integrateLists": false }));
+    client.shutdown();
+
+    let mut client = Client::start(
+        json!({}),
+        json!({ "org_cycle_level_after_item_entry_creation": false, "org_cycle_include_plain_lists": "integrate" }),
+    );
+    client.open(&uri(), text);
+    assert_eq!(run(&mut client, 2, 3).unwrap(), json!({ "integrateLists": true }));
+    assert_eq!(run(&mut client, 0, 0).unwrap(), json!({ "integrateLists": true }));
+    client.shutdown();
+}
+
+#[test]
+fn folds_as_org_cycle_max_level_and_plain_lists_say() {
+    let text = "* A\n** B\ntext\n*** C\nmore\n- item\n  more\n";
+    let folds = |options: Value| {
+        let mut client = Client::start(json!({}), options);
+        client.open(&uri(), text);
+        let result = client
+            .raw_request("textDocument/foldingRange", json!({ "textDocument": { "uri": uri().as_str() } }))
+            .response_result
+            .unwrap();
+        client.shutdown();
+        let mut ranges: Vec<(u64, u64)> = result
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|range| (range["startLine"].as_u64().unwrap(), range["endLine"].as_u64().unwrap()))
+            .collect();
+        ranges.sort();
+        ranges
+    };
+    assert_eq!(folds(Value::Null), [(0, 6), (1, 6), (3, 6), (5, 6)]);
+    assert_eq!(folds(json!({ "org_cycle_max_level": 2 })), [(0, 6), (1, 6), (5, 6)]);
+    assert_eq!(folds(json!({ "org_cycle_include_plain_lists": false })), [(0, 6), (1, 6), (3, 6)]);
+}
+
 /// `text` with `edits` applied (positions in characters; ASCII text).
 fn apply_text_edits(text: &str, edits: &[TextEdit]) -> String {
     let offset = |position: Position| -> usize {

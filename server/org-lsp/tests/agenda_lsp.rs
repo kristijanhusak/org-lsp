@@ -316,10 +316,10 @@ fn announces_the_agenda() {
     // The manifest: what editors build their keys and highlighting from.
     let manifest = &capabilities["experimental"]["org"];
     let table = manifest["commands"].as_array().unwrap();
-    // Every command but the one editors call on their own while a date is
-    // typed.
-    assert_eq!(table.len() + 1, commands.len());
-    assert!(commands.contains(&"org.date.preview"));
+    // Every command but those editors call on their own: while a date is
+    // typed, and before TAB folds.
+    assert_eq!(table.len() + 2, commands.len());
+    assert!(commands.contains(&"org.date.preview") && commands.contains(&"org.cycle"));
     let find = |id: &str| table.iter().find(|command| command["command"] == id).unwrap();
     assert_eq!(
         find("org.agenda.goto")["keys"],

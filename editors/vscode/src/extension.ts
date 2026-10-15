@@ -1895,6 +1895,29 @@ async function cycle(args?: Partial<KeyArgs>): Promise<void> {
     await vscode.commands.executeCommand('org.table.next.field');
     return;
   }
+  // What TAB does before it folds (`org.cycle`): a new, empty entry
+  // changes level, the start of the file cycles globally.
+  let integrateLists = false;
+  const running = client;
+  if (running) {
+    type Before = { edits?: unknown[]; global?: boolean; integrateLists?: boolean } | null;
+    let before: Before;
+    try {
+      before = (await running.sendRequest('workspace/executeCommand', { command: 'org.cycle', arguments: cursor(running) })) as Before;
+    } catch (error) {
+      void vscode.window.showErrorMessage(error instanceof Error ? error.message : String(error));
+      return;
+    }
+    if (Array.isArray(before?.edits)) {
+      await applyCarried(running, before);
+      return;
+    }
+    if (before?.global) {
+      await cycleGlobal();
+      return;
+    }
+    integrateLists = before?.integrateLists === true;
+  }
   const ranges = await foldingRanges(editor.document);
   const line = editor.selection.active.line;
   let current = ranges.find((range) => range.start === line);
@@ -1914,7 +1937,10 @@ async function cycle(args?: Partial<KeyArgs>): Promise<void> {
   const archived = archivedAt(editor, start);
   if (await closed(editor, start)) {
     await unfoldAll(start);
-    const children = [...new Set(childrenOf(current, ranges).map((range) => range.start))];
+    // Lists stay open but with `org_cycle_include_plain_lists` `integrate`.
+    const folded = (range: vscode.FoldingRange) =>
+      integrateLists || !isItem(editor, range.start) || isItem(editor, start);
+    const children = [...new Set(childrenOf(current, ranges).filter(folded).map((range) => range.start))];
     await fold(children);
     // An archived subtree stays closed (`org-cycle-hide-archived-subtrees`).
     if (archived) {
@@ -1934,6 +1960,11 @@ async function cycle(args?: Partial<KeyArgs>): Promise<void> {
     await fold([start]);
     remember(editor, start, 'folded');
   }
+}
+
+/** Whether line `line` starts a list item. */
+function isItem(editor: vscode.TextEditor, line: number): boolean {
+  return /^(\s*([-+]|\d+[.)])|\s+\*)(\s|$)/.test(editor.document.lineAt(line).text);
 }
 
 /** Whether the cursor is on a line of a table. */
