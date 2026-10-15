@@ -1,0 +1,12 @@
+{
+  "today": "2026-10-05",
+  "now": "10:30",
+  "runs": [
+    { "view": "tags", "match": "work" },
+    { "view": "tags-todo", "match": "work" },
+    { "view": "tags", "match": "LEVEL>0" },
+    { "view": "stuck" }
+  ],
+  "options": { "org_tags_match_list_sublevels": false, "org_stuck_projects": ["+LEVEL=1", ["TODO", "NEXT"], [], ""] },
+  "emacs": "(setq org-tags-match-list-sublevels nil org-stuck-projects '(\"+LEVEL=1\" (\"TODO\" \"NEXT\") nil \"\"))"
+}

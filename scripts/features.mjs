@@ -420,6 +420,7 @@ export const AREAS = [
       ['Tag, property and group tag searches', true],
       ['Searches for words, phrases and regexps', true],
       ['Stuck projects', true],
+      ['Tag matches and stuck projects without the entries below one they list, or with them shown indented by dots (`org-tags-match-list-sublevels`), in sparse trees too', true],
       ['Custom commands and block agendas (`org-agenda-custom-commands`)', true],
       ['Sorting by any of Org\'s strategies, for each kind of view (`org-agenda-sorting-strategy`), and limits on how many entries show (`org-agenda-max-entries`, `-todos`, `-tags`, `-effort`)', true],
       ['Inherited tags on agenda lines or not, by kind of view (`org-agenda-show-inherited-tags`, `org-agenda-use-tag-inheritance`), and tags hidden by a regexp (`org-agenda-hide-tags-regexp`)', true],

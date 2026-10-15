@@ -48,10 +48,10 @@ fn finds_what_emacs_finds() {
                 let message = format!("{} TODO entries found", found.count);
                 (found, Some(message))
             }
-            "m" => {
+            "m" | "M" => {
                 let outline = Outline::new(&parse, text, "case.org");
                 let clock = Clock { today, minute: 630 };
-                (sparse::tags_match(text, &outline, &Matcher::new(args[0]), clock), None)
+                (sparse::tags_match(text, &outline, &Matcher::new(args[0]), clock, kind == "m"), None)
             }
             "d" => {
                 let found = sparse::deadlines(text, &keywords, today, 14);

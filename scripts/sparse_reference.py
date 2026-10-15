@@ -5,7 +5,8 @@ A case is a JSON object:
     {
       "text": "* a\\n",   an Org document
       "type": "r",       r (`org-occur`), t (`org-show-todo-tree`), T
-                         (keywords), m (`org-match-sparse-tree`), d
+                         (keywords), m (`org-match-sparse-tree`), M (the
+                         same with `org-tags-match-list-sublevels` nil), d
                          (`org-check-deadlines`), b, a (before, after a
                          date), D (between two dates)
       "args": ["x"]      what is asked: the regexp, the keywords, the
@@ -40,6 +41,7 @@ DRIVER = r"""
       ("t" (org-show-todo-tree nil))
       ("T" (cl-letf (((symbol-function 'completing-read) (lambda (&rest _) (car args)))) (org-show-todo-tree '(4))))
       ("m" (org-match-sparse-tree nil (car args)))
+      ("M" (let ((org-tags-match-list-sublevels nil)) (org-match-sparse-tree nil (car args))))
       ("d" (org-check-deadlines nil))
       ("b" (org-check-before-date (car args)))
       ("a" (org-check-after-date (car args)))

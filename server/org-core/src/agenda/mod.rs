@@ -378,6 +378,9 @@ pub struct Config {
     /// `org-agenda-todo-list-sublevels`: the TODO list shows the TODO
     /// entries below another one.
     pub todo_list_sublevels: bool,
+    /// `org-tags-match-list-sublevels`: whether tags matches and stuck
+    /// projects list the entries below one they list.
+    pub tags_match_list_sublevels: Sublevels,
     /// `org-agenda-todo-ignore-with-date` and its kin.
     pub todo_ignore: todo_ignore::TodoIgnore,
     /// `org-agenda-tags-todo-honor-ignore-options`
@@ -569,6 +572,7 @@ impl Default for Config {
             skip_scheduled_if_deadline_is_shown: SkipScheduledIfDeadline::No,
             skip_scheduled_repeats_after_deadline: false,
             todo_list_sublevels: true,
+            tags_match_list_sublevels: Sublevels::Listed,
             todo_ignore: todo_ignore::TodoIgnore::default(),
             tags_todo_honor_ignore: false,
             prefix_format: PrefixFormats::default(),
@@ -731,7 +735,13 @@ impl Builder<'_> {
         let entry = &outline.entries[entry_index];
         let line = &outline.text[entry.offset..entry.line_end];
         let heading = crate::outline::get_heading(line, entry.level, &outline.todo);
-        self.line_item(file, entry_index, heading.trim_start(), ItemKind::Tags, Face::Default, "", Dotime::No, None)
+        // `indented`: a dot for each level below the first.
+        let dots = match self.config.tags_match_list_sublevels {
+            Sublevels::Indented => ".".repeat(entry.level.saturating_sub(1)),
+            _ => String::new(),
+        };
+        let head = format!("{dots}{}", heading.trim_start());
+        self.line_item(file, entry_index, &head, ItemKind::Tags, Face::Default, "", Dotime::No, None)
     }
 
     /// An item of `head` (the headline, or what a diary sexp gives) for the
@@ -1880,6 +1890,20 @@ pub fn todo_view(files: &[&Outline], keywords: Option<&str>, now: Now, config: &
     View { lines, start: 0, end: 0 }
 }
 
+/// `org-tags-match-list-sublevels`: what a tags match does with the
+/// entries below one it lists.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Sublevels {
+    /// Listed as well.
+    #[default]
+    Listed,
+    /// Passed over (`nil`).
+    Skipped,
+    /// Listed, with a dot before each for each level below the first
+    /// (`indented`).
+    Indented,
+}
+
 /// `org-tags-view`: the entries `matcher` matches, only open TODO
 /// entries with `todo_only` (`tags-todo`).
 pub fn tags_view(files: &[&Outline], matcher: &Matcher, todo_only: bool, now: Now, config: &Config) -> View {
@@ -1888,7 +1912,14 @@ pub fn tags_view(files: &[&Outline], matcher: &Matcher, todo_only: bool, now: No
     let clock = matcher::Clock { today: now.today, minute: now.minute };
     let mut items = Vec::new();
     for (file, outline) in files.iter().enumerate() {
+        // The level of an entry listed whose subtree is passed over.
+        let mut passing: Option<usize> = None;
         for index in 0..outline.entries.len() {
+            let level = outline.entries[index].level;
+            if passing.is_some_and(|above| level > above) {
+                continue;
+            }
+            passing = None;
             if outline.entries[index].skipped_by(config) || !matcher.matches(outline, index, todo_only, clock) {
                 continue;
             }
@@ -1902,6 +1933,9 @@ pub fn tags_view(files: &[&Outline], matcher: &Matcher, todo_only: bool, now: No
             let mut item = builder.scanned(file, index);
             sort_date(&mut item, outline, index, config, ViewType::Tags);
             items.push(item);
+            if config.tags_match_list_sublevels == Sublevels::Skipped {
+                passing = Some(level);
+            }
         }
     }
     let header = format!("Headlines with TAGS match: {}", matcher.text);
@@ -1958,8 +1992,14 @@ pub fn stuck_view(files: &[&Outline], now: Now, config: &Config) -> Result<View,
     let clock = matcher::Clock { today: now.today, minute: now.minute };
     let mut items = Vec::new();
     for (file, outline) in files.iter().enumerate() {
+        // The level of a project listed whose subtree is passed over.
+        let mut passing: Option<usize> = None;
         for index in 0..outline.entries.len() {
             let entry = &outline.entries[index];
+            if passing.is_some_and(|above| entry.level > above) {
+                continue;
+            }
+            passing = None;
             if entry.skipped_by(config) || !matcher.matches(outline, index, false, clock) {
                 continue;
             }
@@ -1982,6 +2022,9 @@ pub fn stuck_view(files: &[&Outline], now: Now, config: &Config) -> Result<View,
             let mut item = builder.scanned(file, index);
             sort_date(&mut item, outline, index, config, ViewType::Tags);
             items.push(item);
+            if config.tags_match_list_sublevels == Sublevels::Skipped {
+                passing = Some(entry.level);
+            }
         }
     }
     let lines = vec![Line { text: "List of stuck projects: ".to_string(), kind: LineKind::Header, item: None }];

@@ -823,7 +823,7 @@
   "org-auto-align-tags": "setting",
   "org-use-tag-inheritance": "setting",
   "org-tags-exclude-from-inheritance": "setting",
-  "org-tags-match-list-sublevels": "missing",
+  "org-tags-match-list-sublevels": "setting",
   "org-tags-sort-function": "setting",
   "org-property-format": "missing",
   "org-properties-postprocess-alist": "lisp",
