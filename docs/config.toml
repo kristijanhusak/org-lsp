@@ -1854,6 +1854,11 @@ org_lint = true
 # it (`"misplaced-heading"`). (org-lint)
 org_lint_ignore = []
 
+# Open a linked file that is not there with the application `org_file_apps`
+# gives it, rather than saying `No such file`. The editor opens such a file
+# either way. (org-open-non-existing-files)
+org_open_non_existing_files = false
+
 # RET on the first line of a list item makes the next item, numbered and with
 # a checkbox as M-RET (`org-meta-return`) makes it, the items after it
 # renumbered, as nvim-orgmode's `org_return_uses_meta_return` does. Off, RET

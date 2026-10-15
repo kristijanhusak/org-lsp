@@ -1029,6 +1029,11 @@
         ]
       ]
     },
+    "org_open_non_existing_files": {
+      "type": "boolean",
+      "description": "Open a linked file that is not there with the application `org_file_apps` gives it, rather than saying `No such file`. The editor opens such a file either way. (`org-open-non-existing-files`)",
+      "default": false
+    },
     "org_tag_alist": {
       "type": [
         "string",

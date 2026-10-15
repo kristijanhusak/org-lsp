@@ -1152,6 +1152,8 @@ struct Server {
     open_settings: open::Settings,
     /// `org-file-apps`.
     file_apps: org_core::file_apps::FileApps,
+    /// `org-open-non-existing-files`
+    open_non_existing_files: bool,
     /// `org-allow-promoting-top-level-subtree`
     allow_promoting_top_level: bool,
     /// `org-odd-levels-only`, unless a document's `#+STARTUP:` says
@@ -1626,6 +1628,7 @@ pub fn run(connection: Connection) -> Result<()> {
         link_settings: options.link_settings(),
         open_settings: options.open_settings(),
         file_apps: options.file_apps.as_deref().map(org_core::file_apps::FileApps::from_pairs).unwrap_or_default(),
+        open_non_existing_files: options.open_non_existing_files.unwrap_or(false),
         allow_promoting_top_level: options.allow_promoting_top_level_subtree.unwrap_or(false),
         odd_levels: options.odd_levels_only.unwrap_or(false),
         yank_adjusted_subtrees: options.yank_adjusted_subtrees.unwrap_or(false),
@@ -4691,7 +4694,9 @@ impl Server {
                 Some(4) => file_apps::Prefix::Editor,
                 _ => file_apps::Prefix::None,
             };
-            match file_apps::open(&self.file_apps, &target, prefix).map_err(Refusal::Failed)? {
+            match file_apps::open(&self.file_apps, &target, prefix, self.open_non_existing_files)
+                .map_err(Refusal::Failed)?
+            {
                 file_apps::Opener::Editor => *system = false,
                 file_apps::Opener::System => *system = true,
                 file_apps::Opener::Command(command) => {

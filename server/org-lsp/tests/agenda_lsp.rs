@@ -2686,6 +2686,27 @@ fn opens_files_as_org_file_apps_says() {
     client.shutdown();
 }
 
+/// `org-open-non-existing-files`: a file that is not there is given to
+/// its program all the same.
+#[test]
+fn opens_files_that_are_not_there_when_told_to() {
+    let directory = workspace("file-apps-missing");
+    let file = directory.join("index.org");
+    let text = "[[file:missing.txt]]\n";
+    std::fs::write(&file, text).unwrap();
+    let mut options = clock();
+    options["org_file_apps"] = json!([["txt", "true %s"]]);
+    options["org_open_non_existing_files"] = json!(true);
+    let mut client = Client::editor(options, None);
+    let uri = format!("file://{}", file.display());
+    client.open(&uri, text);
+    let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 3 } });
+    let result =
+        client.request("workspace/executeCommand", json!({ "command": "org.open", "arguments": [context] })).unwrap();
+    assert_eq!(result["message"], format!("Running true {}...done", directory.join("missing.txt").display()));
+    client.shutdown();
+}
+
 /// `org-edit-special` (`C-c '`): a code block in a file of its own, its
 /// text as Org's edit buffer has it; each save of the file writes it back
 /// as Org does (`org-edit-src-save`), and the Org file is saved. At

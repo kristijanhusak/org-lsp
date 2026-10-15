@@ -697,6 +697,7 @@ export const AREAS = [
       ['Making a missing headline a link searches for, or looking for its words in the text (`org-link-search-must-match-exact-headline`); `doi:` links at `org-link-doi-server-url`', true],
       ['Following a link, a timestamp or a citation with `RET` (`org-return-follows-link`)', true],
       ['Which program opens a linked file (`org-file-apps`): the editor, the system\'s application or a shell command; `C-u` opens it in the editor, `C-u C-u` by the system', true],
+      ['Opening a linked file that is not there with its program rather than saying `No such file` (`org-open-non-existing-files`)', true],
     ],
     editors: {
       zed: ['part', `A link's target is typed, without completion: ${ZED_TEXT}. Following works through go to definition, for links inside Org files and to files.`],
