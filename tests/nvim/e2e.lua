@@ -580,6 +580,12 @@ press('gt')
 vim.wait(200)
 eq(line(2), '* WAIT Call them', 'an unknown key quits')
 plugin.read_key = read_key
+-- `org-use-fast-todo-selection` `expert`: the keys in the prompt, which
+-- shows alone, no window listing them.
+local windows = #vim.api.nvim_list_wins()
+vim.api.nvim_feedkeys('t', 'n', false)
+eq(plugin.read_key('[a-z..]:Set [SPC]:clear\n{[t] TODO }', { { key = 't', label = 'TODO' } }, true), 't', 'the key read')
+eq(#vim.api.nvim_list_wins(), windows, 'no window for the choices')
 
 -- 14b. `<Leader>ot` sets tags a key at a time, each turning its tag on or
 -- off, until RET; the tags go to their column.

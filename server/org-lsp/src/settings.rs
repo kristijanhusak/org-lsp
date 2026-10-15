@@ -816,6 +816,16 @@ pub const SETTINGS: &[Setting] = &[
          in the match string of a tags view stands for itself and the tags of its group.",
     ),
     setting(
+        "org_use_fast_todo_selection",
+        r#""auto", "expert", false"#,
+        r#""auto""#,
+        "org-use-fast-todo-selection",
+        "How `C-c C-t` (`org.todo`) changes the TODO state where keywords have keys (`TODO(t)`): `auto` picks \
+         the state by key from a menu of them; `expert` by key too, the keys listed in the prompt alone (in \
+         Neovim and Vim; other editors show their menu); `false` goes to the next state, as where no keyword \
+         has a key. `true` is `auto`.",
+    ),
+    setting(
         "org_use_fast_tag_selection",
         r#"true, false, "auto""#,
         r#""auto""#,
@@ -2719,6 +2729,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_tag_alist", r#"{ "type": ["string", "array"], "items": { "type": "string" } }"#),
     ("org_tag_persistent_alist", r#"{ "type": ["string", "array"], "items": { "type": "string" } }"#),
     ("org_group_tags", BOOLEAN),
+    ("org_use_fast_todo_selection", r#"{ "enum": ["auto", "expert", true, false] }"#),
     ("org_use_fast_tag_selection", r#"{ "enum": [true, false, "auto"] }"#),
     ("org_fast_tag_selection_single_key", BOOLEAN),
     ("org_tags_sort_function", r#"{ "enum": ["string<", "string>"] }"#),

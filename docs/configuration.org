@@ -1268,6 +1268,13 @@ org_tag_persistent_alist = ""
 # itself and the tags of its group. (org-group-tags)
 org_group_tags = true
 
+# How `C-c C-t` (`org.todo`) changes the TODO state where keywords have keys
+# (`TODO(t)`): `auto` picks the state by key from a menu of them; `expert` by
+# key too, the keys listed in the prompt alone (in Neovim and Vim; other
+# editors show their menu); `false` goes to the next state, as where no
+# keyword has a key. `true` is `auto`. (org-use-fast-todo-selection)
+org_use_fast_todo_selection = "auto"
+
 # Pick tags by key, each key turning its tag on or off until RET: `auto` when
 # some tag has a key, `true` always (keys are given to the tags without one),
 # `false` never: the tags are typed instead. (org-use-fast-tag-selection)
@@ -2740,6 +2747,14 @@ org_agenda_custom_commands = []
   // `#+TAGS:` or `org_tag_alist`) in the match string of a tags view stands
   // for itself and the tags of its group. (org-group-tags)
   "org_group_tags": true,
+
+  // How `C-c C-t` (`org.todo`) changes the TODO state where keywords have
+  // keys (`TODO(t)`): `auto` picks the state by key from a menu of them;
+  // `expert` by key too, the keys listed in the prompt alone (in Neovim and
+  // Vim; other editors show their menu); `false` goes to the next state, as
+  // where no keyword has a key. `true` is `auto`.
+  // (org-use-fast-todo-selection)
+  "org_use_fast_todo_selection": "auto",
 
   // Pick tags by key, each key turning its tag on or off until RET: `auto`
   // when some tag has a key, `true` always (keys are given to the tags

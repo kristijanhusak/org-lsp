@@ -316,7 +316,7 @@ function M.run(name, opts)
           end
         end
         if input.kind == 'key' then
-          return answered(M.read_key(input.prompt, input.choices))
+          return answered(M.read_key(input.prompt, input.choices, input.expert))
         end
         if input.choices then
           -- One of a list, such as the targets of a refile.
@@ -522,10 +522,13 @@ end
 --- cancels.
 ---@param prompt string
 ---@param choices? { key: string, label: string }[]
+---@param expert? boolean the keys in the prompt alone, no window
 ---@return string?
-function M.read_key(prompt, choices)
-  local win = choices and #choices > 0 and show_choices(prompt, choices) or nil
-  vim.api.nvim_echo({ { prompt .. ': ' } }, false, {})
+function M.read_key(prompt, choices, expert)
+  -- `expert` (`org-use-fast-todo-selection`): the keys are in the prompt,
+  -- which shows alone, as Emacs's message does.
+  local win = not expert and choices and #choices > 0 and show_choices(prompt, choices) or nil
+  vim.api.nvim_echo({ { expert and prompt or prompt .. ': ' } }, false, {})
   vim.cmd.redraw()
   local ok, key = pcall(vim.fn.getcharstr)
   vim.api.nvim_echo({ { '' } }, false, {})

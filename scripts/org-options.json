@@ -767,7 +767,7 @@
   "org-mark-ring-length": "emacs-only",
   "org-todo-keywords": "setting",
   "org-todo-interpretation": "missing",
-  "org-use-fast-todo-selection": "missing",
+  "org-use-fast-todo-selection": "setting",
   "org-provide-todo-statistics": "setting",
   "org-hierarchical-todo-statistics": "setting",
   "org-after-todo-state-change-hook": "lisp",

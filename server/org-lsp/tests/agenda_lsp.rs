@@ -4135,6 +4135,39 @@ fn selects_todo_states_by_key_and_asks_for_notes() {
     client.shutdown();
 }
 
+/// `org-use-fast-todo-selection`: `expert` asks for the key with the keys
+/// in the prompt, as Emacs's message has them, each sequence in braces;
+/// `false` goes to the next state, keys or not.
+#[test]
+fn fast_todo_selection_as_set() {
+    const URI: &str = "file:///org/fast.org";
+    const TEXT: &str = "#+TODO: TODO(t) | DONE(d)\n#+TODO: REPORT(r) BUG(b) | FIXED(f)\n* TODO Call\n";
+    let at = json!({ "textDocument": { "uri": URI }, "position": { "line": 2, "character": 3 } });
+    let mut options = clock();
+    options["org_use_fast_todo_selection"] = json!("expert");
+    let mut client = Client::editor(options, None);
+    client.open(URI, TEXT);
+    let asked = client
+        .request("workspace/executeCommand", json!({ "command": "org.todo", "arguments": [at.clone()] }))
+        .unwrap();
+    assert_eq!(asked["input"]["kind"], "key");
+    assert_eq!(asked["input"]["expert"], true);
+    assert_eq!(
+        asked["input"]["prompt"],
+        "[a-z..]:Set [SPC]:clear\n{[t] TODO [d] DONE }{[r] REPORT [b] BUG [f] FIXED }"
+    );
+    client.shutdown();
+
+    let mut options = clock();
+    options["org_use_fast_todo_selection"] = json!(false);
+    let mut client = Client::editor(options, None);
+    let mut text = TEXT.to_string();
+    client.open(URI, TEXT);
+    client.edit("org.todo", URI, (2, 3), json!({}), &mut text);
+    assert!(text.contains("* DONE Call"), "{text}");
+    client.shutdown();
+}
+
 /// `C-c C-w` (`org-refile`): the targets come from `refileTargets`; the
 /// subtree moves under the one picked, also into a file the editor does
 /// not have open. From the agenda every target names its file.

@@ -569,6 +569,11 @@ endfunction
 " a key, one of a list, or typed text; v:null when cancelled.
 function! org_lsp#prompt(input) abort
   if a:input.kind ==# 'key'
+    " `expert` (`org-use-fast-todo-selection`): the keys are in the prompt,
+    " which shows alone, as Emacs's message does.
+    if get(a:input, 'expert', v:false)
+      return org_lsp#read_key(a:input.prompt, [], 1)
+    endif
     return org_lsp#read_key(a:input.prompt, get(a:input, 'choices', []))
   elseif has_key(a:input, 'choices')
     let lines = [a:input.prompt . ':']
@@ -641,7 +646,7 @@ function! org_lsp#choice_line(choice) abort
   return line
 endfunction
 
-function! org_lsp#read_key(prompt, choices) abort
+function! org_lsp#read_key(prompt, choices, ...) abort
   let popup = 0
   if !empty(a:choices) && exists('*popup_create')
     let lines = map(copy(a:choices), {_, c -> org_lsp#choice_line(c)})
@@ -650,7 +655,8 @@ function! org_lsp#read_key(prompt, choices) abort
           \ 'border': [], 'title': ' ' . a:prompt . ' ', 'zindex': 300,
           \ })
   endif
-  echo a:prompt . ': '
+  " With a third argument, the prompt as it is.
+  echo a:0 > 0 && a:1 ? a:prompt : a:prompt . ': '
   redraw
   try
     let key = getcharstr()
