@@ -1,0 +1,12 @@
+{
+  "today": "2026-10-05",
+  "now": "10:30",
+  "options": { "org_agenda_skip_archived_trees": false },
+  "emacs": "(setq org-agenda-skip-archived-trees nil)",
+  "runs": [
+    { "view": "agenda", "span": "week" },
+    { "view": "todo" },
+    { "view": "tags", "match": "TODO=\"TODO\"" },
+    { "view": "agenda", "span": "week", "archives": "trees" }
+  ]
+}

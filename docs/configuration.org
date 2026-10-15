@@ -878,6 +878,11 @@ org_insert_heading_respect_content = false
 # (org-special-ctrl-a/e)
 org_special_ctrl_a_e = false
 
+# A sparse tree (`C-c /`, and a link's `/regexp/`) shows its matches in
+# archived subtrees (tagged `ARCHIVE`); with `false` those subtrees stay
+# folded under their headline. (org-sparse-tree-open-archived-trees)
+org_sparse_tree_open_archived_trees = false
+
 # C-y (`org.yank`, Emacs keys) of one or more subtrees at the start of a line,
 # or after the stars of an otherwise empty headline, pastes them as
 # `org.paste.subtree` does: at the level of the headlines around them.
@@ -1355,6 +1360,11 @@ org_time_stamp_rounding_minutes = 5
 # A date typed without a year or month is the next one to come. With `time`, a
 # time that has passed today is tomorrow's. (org-read-date-prefer-future)
 org_read_date_prefer_future = true
+
+# How the agenda's `j` (`org.agenda.goto.date`) reads a date typed without a
+# year or month, as `org_read_date_prefer_future` does for every other prompt.
+# (org-agenda-jump-prefer-future)
+# org_agenda_jump_prefer_future = …  (unset: as `org_read_date_prefer_future`)
 
 # A typed year is kept within 1970 to 2037.
 # (org-read-date-force-compatible-dates)
@@ -1891,6 +1901,11 @@ org_agenda_skip_scheduled_repeats_after_deadline = false
 # Leave out of every view the entries of a commented subtree (`COMMENT` after
 # the stars). (org-agenda-skip-comment-trees)
 org_agenda_skip_comment_trees = true
+
+# Leave out of every view the entries of an archived subtree (tagged
+# `ARCHIVE`), unless archives mode (`v a`) shows them. Org advises leaving it
+# on and using `v a` instead. (org-agenda-skip-archived-trees)
+org_agenda_skip_archived_trees = true
 
 # Show in the TODO list the TODO entries below another one. Off, the list
 # skips the subtree of each entry it shows or leaves out for a date.
@@ -2491,6 +2506,11 @@ org_agenda_custom_commands = []
   // editor's own meaning. (org-special-ctrl-a/e)
   "org_special_ctrl_a_e": false,
 
+  // A sparse tree (`C-c /`, and a link's `/regexp/`) shows its matches in
+  // archived subtrees (tagged `ARCHIVE`); with `false` those subtrees stay
+  // folded under their headline. (org-sparse-tree-open-archived-trees)
+  "org_sparse_tree_open_archived_trees": false,
+
   // C-y (`org.yank`, Emacs keys) of one or more subtrees at the start of a
   // line, or after the stars of an otherwise empty headline, pastes them as
   // `org.paste.subtree` does: at the level of the headlines around them.
@@ -2980,6 +3000,11 @@ org_agenda_custom_commands = []
   // `time`, a time that has passed today is tomorrow's.
   // (org-read-date-prefer-future)
   "org_read_date_prefer_future": true,
+
+  // How the agenda's `j` (`org.agenda.goto.date`) reads a date typed without
+  // a year or month, as `org_read_date_prefer_future` does for every other
+  // prompt. (org-agenda-jump-prefer-future)
+  // "org_agenda_jump_prefer_future": unset: as `org_read_date_prefer_future`
 
   // A typed year is kept within 1970 to 2037.
   // (org-read-date-force-compatible-dates)
@@ -3527,6 +3552,11 @@ org_agenda_custom_commands = []
   // Leave out of every view the entries of a commented subtree (`COMMENT`
   // after the stars). (org-agenda-skip-comment-trees)
   "org_agenda_skip_comment_trees": true,
+
+  // Leave out of every view the entries of an archived subtree (tagged
+  // `ARCHIVE`), unless archives mode (`v a`) shows them. Org advises leaving
+  // it on and using `v a` instead. (org-agenda-skip-archived-trees)
+  "org_agenda_skip_archived_trees": true,
 
   // Show in the TODO list the TODO entries below another one. Off, the list
   // skips the subtree of each entry it shows or leaves out for a date.

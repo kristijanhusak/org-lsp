@@ -46,6 +46,36 @@ impl Sparse {
     }
 }
 
+/// `org-fold-hide-archived-subtrees` after a sparse tree, unless
+/// `org-sparse-tree-open-archived-trees`: the subtree of each headline
+/// tagged `ARCHIVE` itself stays folded, so a line shown in one shows its
+/// archived headline instead.
+pub fn hide_archived(text: &str, sparse: &Sparse) -> Sparse {
+    let mut archived = Vec::new();
+    let mut at = 0;
+    while at < text.len() {
+        let end = line_end(text, at);
+        if level_at(text, at).is_some() && crate::tags::local_tags(&text[at..end]).iter().any(|tag| tag == "ARCHIVE") {
+            let subtree = crate::structure::subtree_end(text, at);
+            archived.push((at, next_line(text, at), subtree));
+            at = subtree;
+        } else {
+            at = next_line(text, at);
+        }
+    }
+    let mut lines = Vec::new();
+    for &line in &sparse.lines {
+        let shown = archived
+            .iter()
+            .find(|(_, body, end)| (*body..*end).contains(&line))
+            .map_or(line, |(heading, _, _)| *heading);
+        if !lines.contains(&shown) {
+            lines.push(shown);
+        }
+    }
+    Sparse { lines, ..sparse.clone() }
+}
+
 /// `org-occur`: the matches of `regex` (case folded, as with
 /// `org-occur-case-fold-search`), one after the other, those `keep`
 /// accepts.
@@ -189,4 +219,21 @@ pub fn tags_match(
         }
     }
     sparse
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// As Emacs leaves `org-occur "foo"`: the matches in archived subtrees
+    /// show their archived headline only.
+    #[test]
+    fn keeps_archived_subtrees_folded() {
+        let text = "* Top\n** Old :ARCHIVE:\nfoo here\n*** Deep\nfoo too\n** New\nfoo new\n* Other :ARCHIVE:\nfoo\n";
+        let found = occur(text, &Regex::new("(?i)foo").unwrap(), |_| true);
+        let line = |at: usize| text[..at].matches('\n').count();
+        let shown: Vec<usize> = hide_archived(text, &found).lines.into_iter().map(line).collect();
+        assert_eq!(shown, [1, 6, 7]);
+        assert_eq!(found.lines.into_iter().map(line).collect::<Vec<_>>(), [2, 4, 6, 8]);
+    }
 }

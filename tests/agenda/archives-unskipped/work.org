@@ -1,0 +1,11 @@
+#+ARCHIVE: work.org_archive::* Old work
+* TODO Write report
+SCHEDULED: <2026-10-05 Mon>
+* DONE Old project :ARCHIVE:
+** TODO Leftover task
+SCHEDULED: <2026-10-06 Tue>
+** NEXT Another leftover
+* Meeting <2026-10-07 Wed 14:00>
+* COMMENT Hidden
+** TODO Never shown
+SCHEDULED: <2026-10-05 Mon>

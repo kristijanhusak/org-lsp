@@ -343,6 +343,9 @@ pub struct Config {
     pub archives: bool,
     /// `org-agenda-skip-comment-trees`
     pub skip_comment_trees: bool,
+    /// `org-agenda-skip-archived-trees`: entries in archived trees are
+    /// left out unless `archives` shows them.
+    pub skip_archived_trees: bool,
     /// How times of day are found and shown (`org-agenda-time-leading-zero`
     /// and its kin).
     pub times: TimeSettings,
@@ -556,6 +559,7 @@ impl Default for Config {
             hide_empty_blocks: false,
             archives: false,
             skip_comment_trees: true,
+            skip_archived_trees: true,
             times: TimeSettings::default(),
             remove_timeranges_from_blocks: false,
             diary_sexp_prefix: None,
@@ -1640,9 +1644,10 @@ impl Config {
 impl crate::outline::Entry {
     /// Whether `org-agenda-skip` passes over the entry: in a commented
     /// subtree (`org-agenda-skip-comment-trees`), or an archived one
-    /// unless archived trees are shown.
+    /// unless archived trees are shown (`org-agenda-skip-archived-trees`).
     fn skipped_by(&self, config: &Config) -> bool {
-        (self.commented && config.skip_comment_trees) || (self.archived && !config.archives)
+        (self.commented && config.skip_comment_trees)
+            || (self.archived && config.skip_archived_trees && !config.archives)
     }
 }
 

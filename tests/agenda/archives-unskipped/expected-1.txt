@@ -1,0 +1,4 @@
+Global list of TODO items of type: ALL
+  home:       TODO Archived file task                                 :ARCHIVE::
+  work:       TODO Write report
+  work:       TODO Leftover task                                      :ARCHIVE::

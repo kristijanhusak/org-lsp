@@ -4206,6 +4206,31 @@ fn goes_to_a_date_in_the_agenda() {
     client.shutdown();
 }
 
+/// `org-agenda-jump-prefer-future`: `j` reads a day of the month as the
+/// option says, apart from the prompts of `org-read-date-prefer-future`.
+#[test]
+fn goes_to_dates_as_org_agenda_jump_prefer_future_says() {
+    for (jump, week) in [(None, "Week-agenda (W23):"), (Some(false), "Week-agenda (W18):")] {
+        let mut options = clock();
+        if let Some(jump) = jump {
+            options["org_agenda_jump_prefer_future"] = json!(jump);
+        }
+        let mut client = Client::editor(options, None);
+        client.open("file:///org/work.org", WORK);
+        client.command("org.agenda.list", VIEW, 0);
+        client.show_view();
+        let context =
+            json!({ "textDocument": { "uri": VIEW }, "position": { "line": 1, "character": 0 }, "input": "1" });
+        client
+            .request("workspace/executeCommand", json!({ "command": "org.agenda.goto.date", "arguments": [context] }))
+            .unwrap();
+        client.settle();
+        let view = client.refetch_view();
+        assert!(view.starts_with(week), "{jump:?}: {view}");
+        client.shutdown();
+    }
+}
+
 /// A keyword with a face of its own (`org_todo_keyword_faces`) is offered
 /// in that face when the server asks for a TODO state.
 #[test]
