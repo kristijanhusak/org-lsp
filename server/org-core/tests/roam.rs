@@ -34,6 +34,16 @@ fn run(case: &Value) -> Value {
     if let Some(extensions) = options.get("org_roam_file_extensions") {
         settings.extensions = strings(extensions);
     }
+    let mut extra_links = roam::ExtraLinks::default();
+    if let Some(elements) = options.get("org_roam_db_extra_links_elements") {
+        let elements = strings(elements);
+        extra_links.keywords = elements.iter().any(|element| element == "keyword");
+        extra_links.properties = elements.iter().any(|element| element == "node-property");
+    }
+    if let Some(excluded) = options.get("org_roam_db_extra_links_exclude_keys") {
+        extra_links.excluded_keywords = strings(&excluded["keyword"]);
+        extra_links.excluded_properties = strings(&excluded["node-property"]);
+    }
     let mut inheritance = Inheritance::default();
     if let Some(excluded) = options.get("org_tags_exclude_from_inheritance") {
         inheritance.tags_excluded = strings(excluded);
@@ -61,7 +71,11 @@ fn run(case: &Value) -> Value {
         let outline = Outline::with_inheritance(&parse, text, stem, &inheritance);
         // An encrypted file cannot be read without its key.
         let encrypted = name.ends_with(".gpg") || name.ends_with(".age");
-        let data = if encrypted { Err("encrypted".to_string()) } else { roam::scan(text, &parse, &outline, name) };
+        let data = if encrypted {
+            Err("encrypted".to_string())
+        } else {
+            roam::scan_with(text, &parse, &outline, name, &extra_links)
+        };
         db.add(name, data);
         texts.insert(name.to_string(), text.to_string());
     }
@@ -114,7 +128,19 @@ fn run(case: &Value) -> Value {
             Err(error) => json!(error),
         })
         .collect();
+    // `org-roam-node-formatted` for each node a completion offers.
+    let formatted: Vec<Value> = strings(&case["formatters"])
+        .iter()
+        .map(|formatter| match db.candidates("${title}", 79, &mtime) {
+            Ok(lines) => json!(lines
+                .iter()
+                .map(|line| db.formatted(&line.id, &line.title, formatter).unwrap_or_else(|error| error))
+                .collect::<Vec<_>>()),
+            Err(error) => json!(error),
+        })
+        .collect();
     json!({
+        "formatted": formatted,
         "files": files_rows,
         "nodes": node_rows,
         "aliases": aliases.iter().map(|(id, alias)| json!([id, alias])).collect::<Vec<_>>(),

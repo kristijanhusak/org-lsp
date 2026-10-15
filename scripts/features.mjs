@@ -585,7 +585,8 @@ export const AREAS = [
       ['Completing node titles as they are typed (`org-roam-completion-everywhere`)', true],
       ['Daily notes: capturing to and going to a day\'s note, today, tomorrow, yesterday or a date typed, and the next and previous notes (`org-roam-dailies-capture-today`, `org-roam-dailies-goto-date` …)', true],
       ['Daily notes: the directory opened, the days with a note marked in the calendar, and the calendar to pick a date (`org-roam-dailies-find-directory`, `org-roam-dailies-calendar-mark-entries`)', false],
-      ['Lisp that chooses the nodes and how they show (`org-roam-node-formatter`, `org-roam-db-node-include-function`), and which links count (`org-roam-db-extra-links-elements`, `org-roam-db-extra-links-exclude-keys`)', false],
+      ['The description of an inserted link by a template (`org-roam-node-formatter`), and which links of keyword lines and property drawers count (`org-roam-db-extra-links-elements`, `org-roam-db-extra-links-exclude-keys`)', true],
+      ['Lisp that formats a link\'s description or chooses the nodes (`org-roam-node-formatter` as a function, `org-roam-db-node-include-function`)', false],
     ],
     editors: {
       zed: ['part', `A node's title is typed, without completion: ${ZED_TEXT}. The org-roam buffer does not follow the cursor: Zed reports no cursor moves to an extension.`],

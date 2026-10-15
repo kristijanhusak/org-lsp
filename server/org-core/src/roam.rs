@@ -175,6 +175,9 @@ pub struct Db {
     /// Each link with the file it is in.
     pub links: Vec<(String, Link)>,
     pub citations: Vec<(String, Citation)>,
+    /// `org-roam-directory` with its `/`, when the files are named whole:
+    /// a template's `${file}` is relative to it.
+    pub directory: String,
     ids: HashSet<String>,
 }
 
@@ -216,6 +219,30 @@ impl Db {
 /// start of the file.
 type At = Option<usize>;
 
+/// Which links in keyword lines and property drawers org-roam records.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExtraLinks {
+    /// `org-roam-db-extra-links-elements`: those of keyword lines, and of
+    /// property drawers.
+    pub keywords: bool,
+    pub properties: bool,
+    /// `org-roam-db-extra-links-exclude-keys`: the keywords and properties
+    /// whose links are not recorded, in any case.
+    pub excluded_keywords: Vec<String>,
+    pub excluded_properties: Vec<String>,
+}
+
+impl Default for ExtraLinks {
+    fn default() -> Self {
+        ExtraLinks {
+            keywords: true,
+            properties: true,
+            excluded_keywords: vec!["transclude".to_string()],
+            excluded_properties: vec!["ROAM_REFS".to_string()],
+        }
+    }
+}
+
 /// One file read as org-roam reads it.
 struct Reader<'a> {
     text: &'a str,
@@ -223,12 +250,25 @@ struct Reader<'a> {
     outline: &'a Outline,
     /// The file's name, for `FILE`.
     file: &'a str,
+    extra_links: &'a ExtraLinks,
 }
 
 /// `org-roam-db-update-file` for one file: what it inserts, or why it
 /// failed. `file` is the file's absolute name.
 pub fn scan(text: &str, parse: &Parse, outline: &Outline, file: &str) -> Result<FileData, String> {
-    Reader { text, parse, outline, file }.scan()
+    scan_with(text, parse, outline, file, &ExtraLinks::default())
+}
+
+/// [`scan`] recording the links of keyword lines and property drawers
+/// `extra_links` says.
+pub fn scan_with(
+    text: &str,
+    parse: &Parse,
+    outline: &Outline,
+    file: &str,
+    extra_links: &ExtraLinks,
+) -> Result<FileData, String> {
+    Reader { text, parse, outline, file, extra_links }.scan()
 }
 
 impl Reader<'_> {
@@ -439,8 +479,9 @@ impl Reader<'_> {
 
     /// The links org-roam records: those Org parses (`org-element-
     /// context`), and those in keyword lines and property drawers
-    /// (`org-roam-db-extra-links-elements`), but for `#+TRANSCLUDE:` and
-    /// `ROAM_REFS`. Each with its offset, type and path.
+    /// (`org-roam-db-extra-links-elements`), but for the keys of
+    /// `org-roam-db-extra-links-exclude-keys` (`#+TRANSCLUDE:` and
+    /// `ROAM_REFS`). Each with its offset, type and path.
     fn links(&self) -> Vec<(usize, usize, String, String)> {
         let root = self.parse.syntax();
         let mut out: Vec<(usize, usize, String, String)> = Vec::new();
@@ -466,10 +507,13 @@ impl Reader<'_> {
             };
             let key_text = token(&node, key).map(|token| token.text().to_string()).unwrap_or_default();
             let name = key_text.trim_start_matches("#+").trim_matches(':').to_ascii_uppercase();
-            let excluded = match node.kind() {
-                SyntaxKind::KEYWORD => name == "TRANSCLUDE",
-                _ => name == "ROAM_REFS",
+            let extra = self.extra_links;
+            let (included, excluded_keys) = match node.kind() {
+                SyntaxKind::KEYWORD => (extra.keywords, &extra.excluded_keywords),
+                _ => (extra.properties, &extra.excluded_properties),
             };
+            // `member-ignore-case`
+            let excluded = !included || excluded_keys.iter().any(|key| key.to_ascii_uppercase() == name);
             let Some(value) = token(&node, value) else { continue };
             if excluded {
                 continue;
@@ -1020,8 +1064,9 @@ impl Db {
             tags.sort_by_key(|tag| printed(tag));
             tags.dedup();
             let file_title = self.files.iter().find(|(name, _)| name == file).map_or("", |(_, title)| title.as_str());
+            let relative = self.relative(file);
             for title in std::iter::once(node.title.as_str()).chain(aliases.iter().copied()) {
-                let fields = Fields { node, file, file_title, title, aliases: &aliases, tags: &tags };
+                let fields = Fields { node, file: relative, file_title, title, aliases: &aliases, tags: &tags };
                 let display = format_entry(&processed, &fields, width)?;
                 lines.push((mtime(file), Candidate { display, id: node.id.clone(), title: title.to_string() }));
             }
@@ -1029,6 +1074,45 @@ impl Db {
         // `org-roam-node-read-sort-by-file-mtime`, a stable sort.
         lines.sort_by_key(|line| std::cmp::Reverse(line.0));
         Ok(lines.into_iter().map(|(_, candidate)| candidate).collect())
+    }
+}
+
+impl Db {
+    /// `file-relative-name` of `file` in the directory.
+    fn relative<'a>(&self, file: &'a str) -> &'a str {
+        file.strip_prefix(self.directory.as_str()).unwrap_or(file)
+    }
+
+    /// `org-roam-node-formatted` with `org-roam-node-formatter` a template
+    /// (`${title} (${file})`): the description of a link to the node
+    /// `candidate` names, as `org-roam-node-insert` makes it. A node not
+    /// in the database yet (`id` empty) has its title only.
+    pub fn formatted(&self, id: &str, title: &str, template: &str) -> Result<String, String> {
+        let new = Node {
+            id: String::new(),
+            level: 0,
+            offset: 0,
+            todo: None,
+            priority: None,
+            scheduled: None,
+            deadline: None,
+            title: title.to_string(),
+            properties: Vec::new(),
+            olp: Vec::new(),
+        };
+        let found = self.nodes.iter().find(|(_, node)| !id.is_empty() && node.id == id);
+        let (file, node) = found.map_or(("", &new), |(file, node)| (file.as_str(), node));
+        let mut aliases: Vec<&str> =
+            self.aliases.iter().filter(|(of, _)| *of == node.id).map(|(_, alias)| alias.as_str()).collect();
+        aliases.sort_by_key(|alias| printed(alias));
+        aliases.dedup();
+        let mut tags: Vec<&str> =
+            self.tags.iter().filter(|(of, _)| *of == node.id).map(|(_, tag)| tag.as_str()).collect();
+        tags.sort_by_key(|tag| printed(tag));
+        tags.dedup();
+        let file_title = self.files.iter().find(|(name, _)| name == file).map_or("", |(_, title)| title.as_str());
+        let fields = Fields { node, file: self.relative(file), file_title, title, aliases: &aliases, tags: &tags };
+        format_entry_with(&process_display_format(template), &fields, None, true)
     }
 }
 
@@ -1131,6 +1215,18 @@ fn leading_number(text: &str) -> i64 {
 /// `org-roam-node--format-entry`: the line for a node, what a completion
 /// shows of it (the part a width cuts off is invisible).
 fn format_entry(processed: &(String, usize), fields: &Fields, width: usize) -> Result<String, String> {
+    format_entry_with(processed, fields, Some(width), false)
+}
+
+/// `org-roam-node--format-entry` for `width` columns, or none (a `*`
+/// field then takes the template's own width); with `invisible`, a value
+/// cut short keeps the part Emacs makes invisible.
+fn format_entry_with(
+    processed: &(String, usize),
+    fields: &Fields,
+    width: Option<usize>,
+    invisible: bool,
+) -> Result<String, String> {
     let (template, template_width) = processed;
     let mut error = None;
     let line = FIELD.replace_all(template, |found: &regex::Captures| {
@@ -1149,14 +1245,18 @@ fn format_entry(processed: &(String, usize), fields: &Fields, width: usize) -> R
         let value = values.iter().map(|value| format!("{prefix}{value}")).collect::<Vec<_>>().join(" ");
         let field_width = match field_width {
             None => None,
-            Some("*") => Some(width.saturating_sub(*template_width)),
+            Some("*") => Some(width.map_or(*template_width, |width| width.saturating_sub(*template_width))),
             Some(text) => usize::try_from(leading_number(text)).ok(),
         };
         let Some(field_width) = field_width else { return value };
         let truncated = truncate_to_width(&value, field_width);
         let (truncated_len, len) = (truncated.chars().count(), value.chars().count());
         if truncated_len < len {
-            value.chars().take(truncated_len).collect()
+            if invisible {
+                value
+            } else {
+                value.chars().take(truncated_len).collect()
+            }
         } else {
             truncated
         }

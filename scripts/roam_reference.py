@@ -18,6 +18,12 @@ A case is a JSON object:
                                           as `org-roam-node-find` offers
                                           them, in a window 80 wide
       "titles": ["Hello, World!"]         optional: titles to slugify
+      "formatters": ["${title} (${file})"]
+                                          optional: `org-roam-node-formatter`
+                                          templates: each node of the
+                                          completion (`${title}`) as
+                                          `org-roam-node-formatted` gives
+                                          it, the parts cut off kept
     }
 
 `reference(cases)` adds `expected`: the rows of org-roam's tables after
@@ -63,7 +69,7 @@ DRIVER = r"""
         ((eq x t) t)
         ((consp x) (vconcat (mapcar #'org-lsp-json x)))
         (t (format "%S" x))))
-(defun org-lsp-roam-case (dir out templates titles)
+(defun org-lsp-roam-case (dir out templates titles &optional formatters)
   (dolist (buffer (buffer-list))
     (when (buffer-file-name buffer) (kill-buffer buffer)))
   (let* ((org-roam-directory (file-name-as-directory dir))
@@ -116,6 +122,17 @@ DRIVER = r"""
                                  templates)))
           result)
     (push (cons 'slugs (vconcat (mapcar #'org-roam-node-slugify titles))) result)
+    (when formatters
+      (push (cons 'formatted
+                  (vconcat (mapcar (lambda (formatter)
+                                     (let ((org-roam-node-formatter formatter)
+                                           (org-roam-node-display-template "${title}"))
+                                       (vconcat (mapcar (lambda (c)
+                                                          (substring-no-properties
+                                                           (org-roam-node-formatted (cdr c))))
+                                                        (org-roam-node-read--completions)))))
+                                   formatters)))
+            result))
     (org-roam-db--close-all)
     (with-temp-file out
       (set-buffer-file-coding-system 'utf-8)
@@ -128,6 +145,10 @@ OPTIONS = {
     "org_tags_exclude_from_inheritance": lambda v: "(list " + " ".join(lisp_string(x) for x in v) + ")",
     "org_use_tag_inheritance": lambda v: "t" if v is True else "nil" if v is False else lisp_string(v),
     "org_roam_file_extensions": lambda v: "(list " + " ".join(lisp_string(x) for x in v) + ")",
+    "org_roam_db_extra_links_elements": lambda v: "'(" + " ".join(v) + ")",
+    "org_roam_db_extra_links_exclude_keys": lambda v: "'("
+    + " ".join(f"({kind} . ({' '.join(lisp_string(key) for key in keys)}))" for kind, keys in v.items())
+    + ")",
 }
 
 
@@ -178,10 +199,11 @@ def reference(cases):
             outputs.append((case, target))
             templates = " ".join(lisp_string(t) for t in case.get("templates", []))
             titles = " ".join(lisp_string(t) for t in case.get("titles", []))
+            formatters = " ".join(lisp_string(t) for t in case.get("formatters", []))
             forms.append(
                 f"(condition-case err (let ({bindings(case.get('options'))})"
                 f" (org-lsp-roam-case {lisp_string(folder)} {lisp_string(target)}"
-                f" (list {templates}) (list {titles})))"
+                f" (list {templates}) (list {titles}) (list {formatters})))"
                 f" (error (with-temp-file {lisp_string(target)} (insert (format \"ERROR: %S\" err)))))"
             )
         driver = os.path.join(directory, "driver.el")

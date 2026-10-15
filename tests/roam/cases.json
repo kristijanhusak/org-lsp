@@ -12295,5 +12295,1152 @@
     "id_missing_0_a_b_ca_it_s_日本"
    ]
   }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a\n:ROAM_REFS: https://ref.example\n:SEE: [[id:b][B]]\n:Other: [[id:c][C]]\n:END:\n#+title: A\n#+transclude: [[id:b]]\n#+see_also: [[id:c][C]]\n#+Other: [[id:b]]\nBody [[id:b][B]].\n",
+   "b.org": ":PROPERTIES:\n:ID: b\n:END:\n#+title: B\n",
+   "c.org": ":PROPERTIES:\n:ID: c\n:END:\n#+title: C\n* Sub\n:PROPERTIES:\n:ID: c-sub\n:ROAM_ALIASES: \"Sub alias\"\n:END:\n"
+  },
+  "options": {
+   "org_roam_db_extra_links_elements": []
+  },
+  "expected": {
+   "files": [
+    [
+     "a.org",
+     "A"
+    ],
+    [
+     "b.org",
+     "B"
+    ],
+    [
+     "c.org",
+     "C"
+    ]
+   ],
+   "nodes": [
+    [
+     "a",
+     "a.org",
+     0,
+     1,
+     null,
+     null,
+     null,
+     null,
+     "A",
+     [
+      [
+       "CATEGORY",
+       "a"
+      ],
+      [
+       "OTHER",
+       "[[id:c][C]]"
+      ],
+      [
+       "SEE",
+       "[[id:b][B]]"
+      ],
+      [
+       "ROAM_REFS",
+       "https://ref.example"
+      ],
+      [
+       "ID",
+       "a"
+      ],
+      [
+       "BLOCKED",
+       ""
+      ],
+      [
+       "FILE",
+       "a.org"
+      ],
+      [
+       "PRIORITY",
+       "B"
+      ]
+     ],
+     null
+    ],
+    [
+     "b",
+     "b.org",
+     0,
+     1,
+     null,
+     null,
+     null,
+     null,
+     "B",
+     [
+      [
+       "CATEGORY",
+       "b"
+      ],
+      [
+       "ID",
+       "b"
+      ],
+      [
+       "BLOCKED",
+       ""
+      ],
+      [
+       "FILE",
+       "b.org"
+      ],
+      [
+       "PRIORITY",
+       "B"
+      ]
+     ],
+     null
+    ],
+    [
+     "c",
+     "c.org",
+     0,
+     1,
+     null,
+     null,
+     null,
+     null,
+     "C",
+     [
+      [
+       "CATEGORY",
+       "c"
+      ],
+      [
+       "ID",
+       "c"
+      ],
+      [
+       "BLOCKED",
+       ""
+      ],
+      [
+       "FILE",
+       "c.org"
+      ],
+      [
+       "PRIORITY",
+       "B"
+      ]
+     ],
+     null
+    ],
+    [
+     "c-sub",
+     "c.org",
+     1,
+     38,
+     null,
+     null,
+     null,
+     null,
+     "Sub",
+     [
+      [
+       "CATEGORY",
+       "c"
+      ],
+      [
+       "ROAM_ALIASES",
+       "\"Sub alias\""
+      ],
+      [
+       "ID",
+       "c-sub"
+      ],
+      [
+       "BLOCKED",
+       ""
+      ],
+      [
+       "FILE",
+       "c.org"
+      ],
+      [
+       "PRIORITY",
+       "B"
+      ],
+      [
+       "ITEM",
+       "Sub"
+      ]
+     ],
+     null
+    ]
+   ],
+   "aliases": [
+    [
+     "c-sub",
+     "Sub alias"
+    ]
+   ],
+   "tags": [],
+   "refs": [
+    [
+     "a",
+     "//ref.example",
+     "https"
+    ]
+   ],
+   "links": [
+    [
+     178,
+     "a",
+     "b",
+     "id",
+     null,
+     null
+    ]
+   ],
+   "citations": [],
+   "candidates": [],
+   "slugs": []
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a\n:ROAM_REFS: https://ref.example\n:SEE: [[id:b][B]]\n:Other: [[id:c][C]]\n:END:\n#+title: A\n#+transclude: [[id:b]]\n#+see_also: [[id:c][C]]\n#+Other: [[id:b]]\nBody [[id:b][B]].\n",
+   "b.org": ":PROPERTIES:\n:ID: b\n:END:\n#+title: B\n",
+   "c.org": ":PROPERTIES:\n:ID: c\n:END:\n#+title: C\n* Sub\n:PROPERTIES:\n:ID: c-sub\n:ROAM_ALIASES: \"Sub alias\"\n:END:\n"
+  },
+  "options": {
+   "org_roam_db_extra_links_elements": [
+    "keyword"
+   ]
+  },
+  "expected": {
+   "files": [
+    [
+     "a.org",
+     "A"
+    ],
+    [
+     "b.org",
+     "B"
+    ],
+    [
+     "c.org",
+     "C"
+    ]
+   ],
+   "nodes": [
+    [
+     "a",
+     "a.org",
+     0,
+     1,
+     null,
+     null,
+     null,
+     null,
+     "A",
+     [
+      [
+       "CATEGORY",
+       "a"
+      ],
+      [
+       "OTHER",
+       "[[id:c][C]]"
+      ],
+      [
+       "SEE",
+       "[[id:b][B]]"
+      ],
+      [
+       "ROAM_REFS",
+       "https://ref.example"
+      ],
+      [
+       "ID",
+       "a"
+      ],
+      [
+       "BLOCKED",
+       ""
+      ],
+      [
+       "FILE",
+       "a.org"
+      ],
+      [
+       "PRIORITY",
+       "B"
+      ]
+     ],
+     null
+    ],
+    [
+     "b",
+     "b.org",
+     0,
+     1,
+     null,
+     null,
+     null,
+     null,
+     "B",
+     [
+      [
+       "CATEGORY",
+       "b"
+      ],
+      [
+       "ID",
+       "b"
+      ],
+      [
+       "BLOCKED",
+       ""
+      ],
+      [
+       "FILE",
+       "b.org"
+      ],
+      [
+       "PRIORITY",
+       "B"
+      ]
+     ],
+     null
+    ],
+    [
+     "c",
+     "c.org",
+     0,
+     1,
+     null,
+     null,
+     null,
+     null,
+     "C",
+     [
+      [
+       "CATEGORY",
+       "c"
+      ],
+      [
+       "ID",
+       "c"
+      ],
+      [
+       "BLOCKED",
+       ""
+      ],
+      [
+       "FILE",
+       "c.org"
+      ],
+      [
+       "PRIORITY",
+       "B"
+      ]
+     ],
+     null
+    ],
+    [
+     "c-sub",
+     "c.org",
+     1,
+     38,
+     null,
+     null,
+     null,
+     null,
+     "Sub",
+     [
+      [
+       "CATEGORY",
+       "c"
+      ],
+      [
+       "ROAM_ALIASES",
+       "\"Sub alias\""
+      ],
+      [
+       "ID",
+       "c-sub"
+      ],
+      [
+       "BLOCKED",
+       ""
+      ],
+      [
+       "FILE",
+       "c.org"
+      ],
+      [
+       "PRIORITY",
+       "B"
+      ],
+      [
+       "ITEM",
+       "Sub"
+      ]
+     ],
+     null
+    ]
+   ],
+   "aliases": [
+    [
+     "c-sub",
+     "Sub alias"
+    ]
+   ],
+   "tags": [],
+   "refs": [
+    [
+     "a",
+     "//ref.example",
+     "https"
+    ]
+   ],
+   "links": [
+    [
+     143,
+     "a",
+     "c",
+     "id",
+     null,
+     null
+    ],
+    [
+     164,
+     "a",
+     "b",
+     "id",
+     null,
+     null
+    ],
+    [
+     178,
+     "a",
+     "b",
+     "id",
+     null,
+     null
+    ]
+   ],
+   "citations": [],
+   "candidates": [],
+   "slugs": []
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a\n:ROAM_REFS: https://ref.example\n:SEE: [[id:b][B]]\n:Other: [[id:c][C]]\n:END:\n#+title: A\n#+transclude: [[id:b]]\n#+see_also: [[id:c][C]]\n#+Other: [[id:b]]\nBody [[id:b][B]].\n",
+   "b.org": ":PROPERTIES:\n:ID: b\n:END:\n#+title: B\n",
+   "c.org": ":PROPERTIES:\n:ID: c\n:END:\n#+title: C\n* Sub\n:PROPERTIES:\n:ID: c-sub\n:ROAM_ALIASES: \"Sub alias\"\n:END:\n"
+  },
+  "options": {
+   "org_roam_db_extra_links_elements": [
+    "node-property"
+   ],
+   "org_roam_db_extra_links_exclude_keys": {
+    "node-property": [
+     "roam_refs",
+     "other"
+    ]
+   }
+  },
+  "expected": {
+   "files": [
+    [
+     "a.org",
+     "A"
+    ],
+    [
+     "b.org",
+     "B"
+    ],
+    [
+     "c.org",
+     "C"
+    ]
+   ],
+   "nodes": [
+    [
+     "a",
+     "a.org",
+     0,
+     1,
+     null,
+     null,
+     null,
+     null,
+     "A",
+     [
+      [
+       "CATEGORY",
+       "a"
+      ],
+      [
+       "OTHER",
+       "[[id:c][C]]"
+      ],
+      [
+       "SEE",
+       "[[id:b][B]]"
+      ],
+      [
+       "ROAM_REFS",
+       "https://ref.example"
+      ],
+      [
+       "ID",
+       "a"
+      ],
+      [
+       "BLOCKED",
+       ""
+      ],
+      [
+       "FILE",
+       "a.org"
+      ],
+      [
+       "PRIORITY",
+       "B"
+      ]
+     ],
+     null
+    ],
+    [
+     "b",
+     "b.org",
+     0,
+     1,
+     null,
+     null,
+     null,
+     null,
+     "B",
+     [
+      [
+       "CATEGORY",
+       "b"
+      ],
+      [
+       "ID",
+       "b"
+      ],
+      [
+       "BLOCKED",
+       ""
+      ],
+      [
+       "FILE",
+       "b.org"
+      ],
+      [
+       "PRIORITY",
+       "B"
+      ]
+     ],
+     null
+    ],
+    [
+     "c",
+     "c.org",
+     0,
+     1,
+     null,
+     null,
+     null,
+     null,
+     "C",
+     [
+      [
+       "CATEGORY",
+       "c"
+      ],
+      [
+       "ID",
+       "c"
+      ],
+      [
+       "BLOCKED",
+       ""
+      ],
+      [
+       "FILE",
+       "c.org"
+      ],
+      [
+       "PRIORITY",
+       "B"
+      ]
+     ],
+     null
+    ],
+    [
+     "c-sub",
+     "c.org",
+     1,
+     38,
+     null,
+     null,
+     null,
+     null,
+     "Sub",
+     [
+      [
+       "CATEGORY",
+       "c"
+      ],
+      [
+       "ROAM_ALIASES",
+       "\"Sub alias\""
+      ],
+      [
+       "ID",
+       "c-sub"
+      ],
+      [
+       "BLOCKED",
+       ""
+      ],
+      [
+       "FILE",
+       "c.org"
+      ],
+      [
+       "PRIORITY",
+       "B"
+      ],
+      [
+       "ITEM",
+       "Sub"
+      ]
+     ],
+     null
+    ]
+   ],
+   "aliases": [
+    [
+     "c-sub",
+     "Sub alias"
+    ]
+   ],
+   "tags": [],
+   "refs": [
+    [
+     "a",
+     "//ref.example",
+     "https"
+    ]
+   ],
+   "links": [
+    [
+     59,
+     "a",
+     "b",
+     "id",
+     null,
+     null
+    ],
+    [
+     178,
+     "a",
+     "b",
+     "id",
+     null,
+     null
+    ]
+   ],
+   "citations": [],
+   "candidates": [],
+   "slugs": []
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a\n:ROAM_REFS: https://ref.example\n:SEE: [[id:b][B]]\n:Other: [[id:c][C]]\n:END:\n#+title: A\n#+transclude: [[id:b]]\n#+see_also: [[id:c][C]]\n#+Other: [[id:b]]\nBody [[id:b][B]].\n",
+   "b.org": ":PROPERTIES:\n:ID: b\n:END:\n#+title: B\n",
+   "c.org": ":PROPERTIES:\n:ID: c\n:END:\n#+title: C\n* Sub\n:PROPERTIES:\n:ID: c-sub\n:ROAM_ALIASES: \"Sub alias\"\n:END:\n"
+  },
+  "options": {
+   "org_roam_db_extra_links_exclude_keys": {
+    "keyword": [
+     "SEE_ALSO"
+    ]
+   }
+  },
+  "expected": {
+   "files": [
+    [
+     "a.org",
+     "A"
+    ],
+    [
+     "b.org",
+     "B"
+    ],
+    [
+     "c.org",
+     "C"
+    ]
+   ],
+   "nodes": [
+    [
+     "a",
+     "a.org",
+     0,
+     1,
+     null,
+     null,
+     null,
+     null,
+     "A",
+     [
+      [
+       "CATEGORY",
+       "a"
+      ],
+      [
+       "OTHER",
+       "[[id:c][C]]"
+      ],
+      [
+       "SEE",
+       "[[id:b][B]]"
+      ],
+      [
+       "ROAM_REFS",
+       "https://ref.example"
+      ],
+      [
+       "ID",
+       "a"
+      ],
+      [
+       "BLOCKED",
+       ""
+      ],
+      [
+       "FILE",
+       "a.org"
+      ],
+      [
+       "PRIORITY",
+       "B"
+      ]
+     ],
+     null
+    ],
+    [
+     "b",
+     "b.org",
+     0,
+     1,
+     null,
+     null,
+     null,
+     null,
+     "B",
+     [
+      [
+       "CATEGORY",
+       "b"
+      ],
+      [
+       "ID",
+       "b"
+      ],
+      [
+       "BLOCKED",
+       ""
+      ],
+      [
+       "FILE",
+       "b.org"
+      ],
+      [
+       "PRIORITY",
+       "B"
+      ]
+     ],
+     null
+    ],
+    [
+     "c",
+     "c.org",
+     0,
+     1,
+     null,
+     null,
+     null,
+     null,
+     "C",
+     [
+      [
+       "CATEGORY",
+       "c"
+      ],
+      [
+       "ID",
+       "c"
+      ],
+      [
+       "BLOCKED",
+       ""
+      ],
+      [
+       "FILE",
+       "c.org"
+      ],
+      [
+       "PRIORITY",
+       "B"
+      ]
+     ],
+     null
+    ],
+    [
+     "c-sub",
+     "c.org",
+     1,
+     38,
+     null,
+     null,
+     null,
+     null,
+     "Sub",
+     [
+      [
+       "CATEGORY",
+       "c"
+      ],
+      [
+       "ROAM_ALIASES",
+       "\"Sub alias\""
+      ],
+      [
+       "ID",
+       "c-sub"
+      ],
+      [
+       "BLOCKED",
+       ""
+      ],
+      [
+       "FILE",
+       "c.org"
+      ],
+      [
+       "PRIORITY",
+       "B"
+      ],
+      [
+       "ITEM",
+       "Sub"
+      ]
+     ],
+     null
+    ]
+   ],
+   "aliases": [
+    [
+     "c-sub",
+     "Sub alias"
+    ]
+   ],
+   "tags": [],
+   "refs": [
+    [
+     "a",
+     "//ref.example",
+     "https"
+    ]
+   ],
+   "links": [
+    [
+     33,
+     "a",
+     "//ref.example",
+     "https",
+     null,
+     null
+    ],
+    [
+     59,
+     "a",
+     "b",
+     "id",
+     null,
+     null
+    ],
+    [
+     79,
+     "a",
+     "c",
+     "id",
+     null,
+     null
+    ],
+    [
+     122,
+     "a",
+     "b",
+     "id",
+     null,
+     null
+    ],
+    [
+     164,
+     "a",
+     "b",
+     "id",
+     null,
+     null
+    ],
+    [
+     178,
+     "a",
+     "b",
+     "id",
+     null,
+     null
+    ]
+   ],
+   "citations": [],
+   "candidates": [],
+   "slugs": []
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: a\n:ROAM_ALIASES: Alpha\n:END:\n#+title: A node\n#+filetags: :one:two:\n* TODO [#B] Heading :x:\n:PROPERTIES:\n:ID: h\n:CATEGORY: cat\n:END:\n",
+   "sub/b.org": ":PROPERTIES:\n:ID: b\n:END:\n#+title: B\n"
+  },
+  "formatters": [
+   "${title}",
+   "${title} (${file})",
+   "${title:5}|",
+   "${title:*}|${tags}",
+   "${todo} ${olp} ${file-title} ${category} ${aliases}",
+   "plain"
+  ],
+  "expected": {
+   "files": [
+    [
+     "a.org",
+     "A node"
+    ],
+    [
+     "sub/b.org",
+     "B"
+    ]
+   ],
+   "nodes": [
+    [
+     "a",
+     "a.org",
+     0,
+     1,
+     null,
+     null,
+     null,
+     null,
+     "A node",
+     [
+      [
+       "CATEGORY",
+       "a"
+      ],
+      [
+       "ROAM_ALIASES",
+       "Alpha"
+      ],
+      [
+       "ID",
+       "a"
+      ],
+      [
+       "BLOCKED",
+       ""
+      ],
+      [
+       "ALLTAGS",
+       ":one:two:"
+      ],
+      [
+       "FILE",
+       "a.org"
+      ],
+      [
+       "PRIORITY",
+       "B"
+      ]
+     ],
+     null
+    ],
+    [
+     "h",
+     "a.org",
+     1,
+     86,
+     "TODO",
+     66,
+     null,
+     null,
+     "Heading",
+     [
+      [
+       "CATEGORY",
+       "cat"
+      ],
+      [
+       "ID",
+       "h"
+      ],
+      [
+       "BLOCKED",
+       ""
+      ],
+      [
+       "ALLTAGS",
+       ":one:two:x:"
+      ],
+      [
+       "TAGS",
+       ":x:"
+      ],
+      [
+       "FILE",
+       "a.org"
+      ],
+      [
+       "PRIORITY",
+       "B"
+      ],
+      [
+       "TODO",
+       "TODO"
+      ],
+      [
+       "ITEM",
+       "Heading"
+      ]
+     ],
+     null
+    ],
+    [
+     "b",
+     "sub/b.org",
+     0,
+     1,
+     null,
+     null,
+     null,
+     null,
+     "B",
+     [
+      [
+       "CATEGORY",
+       "b"
+      ],
+      [
+       "ID",
+       "b"
+      ],
+      [
+       "BLOCKED",
+       ""
+      ],
+      [
+       "FILE",
+       "sub/b.org"
+      ],
+      [
+       "PRIORITY",
+       "B"
+      ]
+     ],
+     null
+    ]
+   ],
+   "aliases": [
+    [
+     "a",
+     "Alpha"
+    ]
+   ],
+   "tags": [
+    [
+     "a",
+     "one"
+    ],
+    [
+     "a",
+     "two"
+    ],
+    [
+     "h",
+     "one"
+    ],
+    [
+     "h",
+     "two"
+    ],
+    [
+     "h",
+     "x"
+    ]
+   ],
+   "refs": [],
+   "links": [],
+   "citations": [],
+   "candidates": [],
+   "slugs": [],
+   "formatted": [
+    [
+     "B",
+     "A node",
+     "Alpha",
+     "Heading"
+    ],
+    [
+     "B (sub/b.org)",
+     "A node (a.org)",
+     "Alpha (a.org)",
+     "Heading (a.org)"
+    ],
+    [
+     "B    |",
+     "A node|",
+     "Alpha|",
+     "Heading|"
+    ],
+    [
+     "B  |",
+     "A node|#one #two",
+     "Alpha|#one #two",
+     "Heading|#one #two #x"
+    ],
+    [
+     "  B b ",
+     "  A node a Alpha",
+     "  A node a Alpha",
+     "t:TODO  A node cat "
+    ],
+    [
+     "plain",
+     "plain",
+     "plain",
+     "plain"
+    ]
+   ]
+  }
  }
 ]
