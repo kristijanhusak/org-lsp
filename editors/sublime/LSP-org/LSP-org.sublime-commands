@@ -1001,6 +1001,20 @@
     }
   },
   {
+    "caption": "Org: Plot the table with gnuplot",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.plot.gnuplot"
+    }
+  },
+  {
+    "caption": "Org: Draw the column at the cursor as bars",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.table.ascii.plot"
+    }
+  },
+  {
     "caption": "Org: Move to the next code block",
     "command": "org_lsp_run",
     "args": {

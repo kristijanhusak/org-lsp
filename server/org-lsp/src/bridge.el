@@ -258,7 +258,8 @@ was to be opened, or the text of an export to a buffer."
     org-update-all-dblocks org-lsp-bridge-columns-insert-dblock org-lsp-bridge-attach
     org-lsp-bridge-edit-special-save org-lsp-bridge-formulas-save
     org-lsp-bridge-field-save org-encrypt-entry org-decrypt-entry org-encrypt-entries
-    org-decrypt-entries org-lsp-bridge-columns-command)
+    org-decrypt-entries org-lsp-bridge-columns-command org-plot/gnuplot
+    orgtbl-ascii-plot)
   "The commands the server may run on a document.")
 
 (defvar org-lsp-bridge--extra nil

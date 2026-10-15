@@ -129,7 +129,7 @@ command. [[file:keys/vim.org][keys/vim.org]] lists every key and how to change i
 | [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ |  |
 | [[file:parity.org::#links][Links]] | 100% | ✅ |  |
 | [[file:parity.org::#footnotes][Footnotes]] | 100% | ✅ |  |
-| [[file:parity.org::#tables][Tables]] | 95% | ❓ | A shrunk column shows its whole text and ~…~: Vim cannot hide text that has text properties. |
+| [[file:parity.org::#tables][Tables]] | 100% | ❓ | A shrunk column shows its whole text and ~…~: Vim cannot hide text that has text properties. |
 | [[file:parity.org::#table-formulas][Table formulas]] | 100% | ✅ |  |
 | [[file:parity.org::#code-blocks-babel][Code blocks (Babel)]] | 100% | ✅ |  |
 | [[file:parity.org::#export-and-publishing][Export and publishing]] | 100% | ✅ |  |
@@ -142,7 +142,7 @@ command. [[file:keys/vim.org][keys/vim.org]] lists every key and how to change i
 | [[file:parity.org::#attachments][Attachments]] | 100% | ✅ |  |
 | [[file:parity.org::#encryption][Encryption]] | 100% | ✅ |  |
 | [[file:parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | ❌ | Vim cannot show images. |
-| *All of Org* | *96%* |  |  |
+| *All of Org* | *97%* |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what and why),
 ❌ none does, — nothing to support yet. Parity is the share of what

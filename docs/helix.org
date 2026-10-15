@@ -98,7 +98,7 @@ menu on another key.
 | [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ❓ | Refiling is left out: it asks for a target from a list, which Helix cannot show for a server. Archiving works as code actions. |
 | [[file:parity.org::#links][Links]] | 100% | ❓ | Storing and inserting links are left out: they ask for text, and Helix cannot ask for text on a server's behalf; moving between links needs a key. Following works through go to definition. |
 | [[file:parity.org::#footnotes][Footnotes]] | 100% | ❓ | Making footnotes and their menu are left out: they are not among Helix's code actions. Following them works. |
-| [[file:parity.org::#tables][Tables]] | 95% | ❓ | Moving between fields with ~TAB~, copying down, summing, field information and creating a table are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and ~…~: Helix lets no server hide text. |
+| [[file:parity.org::#tables][Tables]] | 100% | ❓ | Moving between fields with ~TAB~, copying down, summing, field information and creating a table are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and ~…~: Helix lets no server hide text. |
 | [[file:parity.org::#table-formulas][Table formulas]] | 100% | ✅ |  |
 | [[file:parity.org::#code-blocks-babel][Code blocks (Babel)]] | 100% | ❓ | Only tangling, the block at the cursor and editing it in a file of its own are offered (code actions in a block): the file's and the subtree's evaluation, removing results and moving between blocks need keys, which Helix cannot give a server. |
 | [[file:parity.org::#export-and-publishing][Export and publishing]] | 100% | ❌ | Not offered as a code action yet. |
@@ -111,7 +111,7 @@ menu on another key.
 | [[file:parity.org::#attachments][Attachments]] | 100% | ❓ | ~attachment:~ links open; the dispatcher (~C-c C-a~) is left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and it is not among them. |
 | [[file:parity.org::#encryption][Encryption]] | 100% | ✅ |  |
 | [[file:parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | ❌ | Helix cannot show images. |
-| *All of Org* | *96%* |  |  |
+| *All of Org* | *97%* |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what and why),
 ❌ none does, — nothing to support yet. Parity is the share of what

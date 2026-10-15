@@ -880,6 +880,18 @@
           "task_name": "Org: Insert an empty table"
         }
       ],
+      "ctrl-c \" g": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Plot the table with gnuplot"
+        }
+      ],
+      "ctrl-c \" a": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Draw the column at the cursor as bars"
+        }
+      ],
       "ctrl-c ctrl-v n": [
         "task::Spawn",
         {

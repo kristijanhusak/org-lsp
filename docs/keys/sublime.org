@@ -114,6 +114,8 @@ to install and set up the package.
 | ~Ctrl+C +~ | ~org.table.sum~ | Sum the numbers of the table column |
 | ~Ctrl+C ?~ | ~org.table.field.info~ | Show the references of the table field |
 | ~Ctrl+C ¦~ | ~org.table.create~ | Insert an empty table |
+| ~Ctrl+C " g~ | ~org.plot.gnuplot~ | Plot the table with gnuplot |
+| ~Ctrl+C " a~ | ~org.table.ascii.plot~ | Draw the column at the cursor as bars |
 | ~Ctrl+C Ctrl+V n~, ~Ctrl+C Ctrl+V Ctrl+N~ | ~org.babel.next~ | Move to the next code block |
 | ~Ctrl+C Ctrl+V p~, ~Ctrl+C Ctrl+V Ctrl+P~ | ~org.babel.previous~ | Move to the previous code block |
 | ~Ctrl+C Ctrl+V g~ | ~org.babel.goto~ | Go to a named code block |

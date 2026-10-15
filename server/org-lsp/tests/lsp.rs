@@ -2567,6 +2567,74 @@ fn detangles_through_emacs() {
     let _ = std::fs::remove_dir_all(&directory);
 }
 
+/// `org-plot/gnuplot` (`C-c " g`) and `orgtbl-ascii-plot` (`C-c " a`)
+/// through Emacs: gnuplot.el, here a stand-in that keeps what it is sent,
+/// gets the script org-plot writes from the `#+PLOT:` line; the bars are
+/// drawn in a new column.
+#[test]
+fn plots_tables_through_emacs() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("plots_tables_through_emacs: no Emacs, skipped");
+        return;
+    }
+    let directory = std::env::temp_dir().join(format!("org-lsp-plot-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let script = directory.join("sent.gp");
+    let file = directory.join("plot.org");
+    let text = "#+PLOT: title:\"Sales\" ind:1 deps:(2) type:2d with:lines file:\"sales.png\"\n\
+                | Month | Sales |\n|-------+-------|\n|     1 |    10 |\n|     2 |    30 |\n";
+    std::fs::write(&file, text).unwrap();
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let load = std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
+    let config = format!(
+        "{load}\n(defun gnuplot-mode () nil)\n\
+         (defun gnuplot-send-buffer-to-gnuplot () (write-region nil nil {:?}))\n(provide 'gnuplot)",
+        script.display().to_string()
+    );
+    let mut client = Client::start(json!({}), json!({ "emacs_config": config }));
+    client.open(&uri, text);
+    let at = |line: u32, character: u32| json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": line, "character": character } });
+    let result = client
+        .raw_request("workspace/executeCommand", json!({ "command": "org.plot.gnuplot", "arguments": [at(3, 2)] }))
+        .response_result
+        .expect("a result");
+    assert_eq!(result, Value::Null);
+    // Emacs plots after the command is answered.
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
+    while !script.exists() && std::time::Instant::now() < deadline {
+        if let Ok(Message::Notification(note)) =
+            client.connection.receiver.recv_timeout(std::time::Duration::from_millis(100))
+        {
+            assert_ne!(note.method, "window/showMessage", "Emacs said {}", note.params);
+        }
+    }
+    let sent = std::fs::read_to_string(&script).expect("the script gnuplot gets");
+    assert!(sent.contains("set title 'Sales'"), "{sent}");
+    // The plot's file is in the Org file's directory.
+    assert!(sent.contains(&format!("set output '{}'", directory.join("sales.png").display())), "{sent}");
+    assert!(sent.contains("with lines"), "{sent}");
+    // The bars of the column at the cursor, in a column of their own.
+    let result = client
+        .raw_request("workspace/executeCommand", json!({ "command": "org.table.ascii.plot", "arguments": [at(3, 12)] }))
+        .response_result
+        .expect("a result");
+    assert_eq!(result, Value::Null);
+    let message = next_from_server(&client, |message| {
+        matches!(message, Message::Request(request) if request.method == "workspace/applyEdit")
+            || matches!(message, Message::Notification(note) if note.method == "window/showMessage")
+    });
+    let Message::Request(edit) = message else { panic!("Emacs said {message:?}") };
+    let edits: Vec<TextEdit> = serde_json::from_value(edit.params["edit"]["changes"][uri.as_str()].clone()).unwrap();
+    let plotted = apply_text_edits(text, &edits);
+    assert!(plotted.contains("#+TBLFM: $3='(orgtbl-ascii-draw $2 10 30 12)"), "{plotted}");
+    client.connection.sender.send(Message::Response(Response::new_ok(edit.id, json!({ "applied": true })))).unwrap();
+    client.shutdown();
+    let _ = std::fs::remove_dir_all(&directory);
+}
+
 /// The formula debugger (`C-c {`): while it is on, recalculating goes
 /// through Emacs, which asks after each formula whether to go on, its
 /// substitution history with the question.

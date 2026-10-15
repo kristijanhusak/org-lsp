@@ -781,6 +781,16 @@
         "category": "Org"
       },
       {
+        "command": "org.plot.gnuplot",
+        "title": "Plot the table with gnuplot",
+        "category": "Org"
+      },
+      {
+        "command": "org.table.ascii.plot",
+        "title": "Draw the column at the cursor as bars",
+        "category": "Org"
+      },
+      {
         "command": "org.babel.next",
         "title": "Move to the next code block",
         "category": "Org"
@@ -7449,6 +7459,16 @@
       {
         "command": "org.table.create",
         "key": "ctrl+c shift+\\",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.plot.gnuplot",
+        "key": "ctrl+c shift+' g",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.table.ascii.plot",
+        "key": "ctrl+c shift+' a",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {

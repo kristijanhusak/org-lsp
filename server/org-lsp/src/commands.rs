@@ -287,6 +287,8 @@ pub const TABLE_FIELD_INFO: &str = "org.table.field.info";
 pub const TABLE_CREATE: &str = "org.table.create";
 pub const TABLE_IMPORT: &str = "org.table.import";
 pub const TABLE_EXPORT: &str = "org.table.export";
+pub const PLOT_GNUPLOT: &str = "org.plot.gnuplot";
+pub const TABLE_ASCII_PLOT: &str = "org.table.ascii.plot";
 pub const BABEL_NEXT: &str = "org.babel.next";
 pub const BABEL_PREVIOUS: &str = "org.babel.previous";
 pub const BABEL_GOTO: &str = "org.babel.goto";
@@ -1078,6 +1080,19 @@ pub const COMMANDS: &[Command] = &[
     Command {
         input: Some(Input { kind: "text", prompt: "Export table to" }),
         ..command(TABLE_EXPORT, "Export the table to a file")
+    },
+    // `org-plot/gnuplot` and `orgtbl-ascii-plot`, in Emacs: the table
+    // plotted by gnuplot as its `#+PLOT:` lines say, and a column of bars
+    // drawn in the table for the column at the cursor.
+    Command {
+        emacs: &[key(Org, "C-c \" g")],
+        vim: &[key(Org, "<Leader>opg")],
+        ..command(PLOT_GNUPLOT, "Plot the table with gnuplot")
+    },
+    Command {
+        emacs: &[key(Org, "C-c \" a")],
+        vim: &[key(Org, "<Leader>opa")],
+        ..edit(TABLE_ASCII_PLOT, "Draw the column at the cursor as bars")
     },
     // Moving between blocks, by Org in Emacs: source blocks
     // (`org-babel-next-src-block`, `-previous-`, `org-babel-goto-named-src-block`)

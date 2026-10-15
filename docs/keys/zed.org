@@ -256,6 +256,8 @@ its motions.
 | ~ctrl-c +~ | ~org.table.sum~ | Sum the numbers of the table column |
 | ~ctrl-c ?~ | ~org.table.field.info~ | Show the references of the table field |
 | ~ctrl-c ¦~ | ~org.table.create~ | Insert an empty table |
+| ~ctrl-c " g~ | ~org.plot.gnuplot~ | Plot the table with gnuplot |
+| ~ctrl-c " a~ | ~org.table.ascii.plot~ | Draw the column at the cursor as bars |
 | ~ctrl-c ctrl-v n~, ~ctrl-c ctrl-v ctrl-n~ | ~org.babel.next~ | Move to the next code block |
 | ~ctrl-c ctrl-v p~, ~ctrl-c ctrl-v ctrl-p~ | ~org.babel.previous~ | Move to the previous code block |
 | ~ctrl-c ctrl-v g~ | ~org.babel.goto~ | Go to a named code block |

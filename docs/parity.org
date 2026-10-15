@@ -8,7 +8,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in [[file:development.org::#how-the-work-is-checked][development.org]]).
 
-*All of Org: 96%*
+*All of Org: 97%*
 
 Org's options, one by one, are under [[#options][Options]].
 
@@ -31,7 +31,7 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#refile-and-archive][Refile and archive]] | 100% | 12 of 12 |
 | [[#links][Links]] | 100% | 15 of 15 |
 | [[#footnotes][Footnotes]] | 100% | 4 of 4 |
-| [[#tables][Tables]] | 95% | 18 of 19 |
+| [[#tables][Tables]] | 100% | 19 of 19 |
 | [[#table-formulas][Table formulas]] | 100% | 13 of 13 |
 | [[#code-blocks-babel][Code blocks (Babel)]] | 100% | 12 of 12 |
 | [[#export-and-publishing][Export and publishing]] | 100% | 9 of 9 |
@@ -500,7 +500,7 @@ Where editors fall short:
 :CUSTOM_ID: tables
 :END:
 
-95% (18 of 19)
+100% (19 of 19)
 
 - ✅ Aligning (~C-c C-c~, formatting)
 - ✅ Moving between fields (~TAB~, ~S-TAB~), a row made past the last
@@ -520,7 +520,7 @@ Where editors fall short:
 - ✅ Summing (~C-c +~) and field information (~C-c ?~), through Emacs
 - ✅ Moving the field with the shifted cursor keys (through Emacs)
 - ✅ Importing and exporting tables (~org-table-import~, ~org-table-export~, through Emacs)
-- ❌ Plotting (~org-plot~)
+- ✅ Plotting with gnuplot as the ~#+PLOT:~ lines say (~org-plot/gnuplot~, ~C-c " g~, through Emacs with gnuplot.el and gnuplot), and a column of bars in the table (~orgtbl-ascii-plot~, ~C-c " a~, through Emacs)
 
 Where editors fall short:
 

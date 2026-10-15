@@ -6364,6 +6364,8 @@ impl Server {
             | commands::TABLE_CREATE
             | commands::TABLE_IMPORT
             | commands::TABLE_EXPORT
+            | commands::PLOT_GNUPLOT
+            | commands::TABLE_ASCII_PLOT
             | commands::BABEL_NEXT
             | commands::BABEL_PREVIOUS
             | commands::BABEL_GOTO
@@ -12009,6 +12011,10 @@ impl Server {
             }
             commands::TABLE_SUM => self.emacs_run("org-lsp-bridge-table-sum", context),
             commands::TABLE_FIELD_INFO => self.emacs_run("org-table-field-info", context),
+            // gnuplot.el sends the script to gnuplot, which writes the
+            // `file:` of the `#+PLOT:` line or shows the plot itself.
+            commands::PLOT_GNUPLOT => self.emacs_run("org-plot/gnuplot", context),
+            commands::TABLE_ASCII_PLOT => self.emacs_run("orgtbl-ascii-plot", context),
             commands::TABLE_CREATE => {
                 let Some(answer) = answer else {
                     return Ok(json!({ "input": {

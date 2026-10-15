@@ -759,7 +759,7 @@ export const AREAS = [
       ['Summing (`C-c +`) and field information (`C-c ?`), through Emacs', true],
       ['Moving the field with the shifted cursor keys (through Emacs)', true],
       ['Importing and exporting tables (`org-table-import`, `org-table-export`, through Emacs)', true],
-      ['Plotting (`org-plot`)', false],
+      ['Plotting with gnuplot as the `#+PLOT:` lines say (`org-plot/gnuplot`, `C-c \" g`, through Emacs with gnuplot.el and gnuplot), and a column of bars in the table (`orgtbl-ascii-plot`, `C-c \" a`, through Emacs)', true],
     ],
     editors: {
       vim: ['part', 'A shrunk column shows its whole text and `…`: Vim cannot hide text that has text properties.'],
@@ -781,6 +781,7 @@ export const AREAS = [
       { text: 'The sum of the column and the field\'s references are shown as messages (needs Emacs)', cmd: ['org.table.sum', 'org.table.field.info'], not: ['helix'] },
       { text: 'Creating a table asks for its size (`3x2`; empty for Org\'s default) (needs Emacs)', cmd: 'org.table.create', not: ['helix'] },
       { text: 'Sorting the rows by the cursor\'s column', cmd: 'org.sort' },
+      { text: 'A table under `#+PLOT: file:\"plot.png\"` is plotted to `plot.png` (needs Emacs with gnuplot.el, and gnuplot); the bars of a column of numbers go in a column of their own with its `#+TBLFM:` (needs Emacs)', cmd: ['org.plot.gnuplot', 'org.table.ascii.plot'], not: ['helix'] },
       { text: 'The `#+TBLFM:` line follows a moved column' },
     ],
   },
