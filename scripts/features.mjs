@@ -506,7 +506,7 @@ export const AREAS = [
   {
     name: 'Clocking',
     emacs: [
-      ['Clocking in and out, cancelling, going to the clocked entry', true],
+      ['Clocking in and out, cancelling, going to the clocked entry, or with none the entry clocked last (`org-clock-goto-may-find-recent-task`)', true],
       ['The clock history and clocking in the last entry', true],
       ['The clock in the mode line', true],
       ['The time clocked under each headline (`C-c C-x C-d`)', true],

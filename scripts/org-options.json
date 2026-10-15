@@ -423,7 +423,7 @@
   "org-clock-in-switch-to-state": "setting",
   "org-clock-out-switch-to-state": "setting",
   "org-clock-history-length": "setting",
-  "org-clock-goto-may-find-recent-task": "absent",
+  "org-clock-goto-may-find-recent-task": "setting",
   "org-clock-heading-function": "lisp",
   "org-clock-string-limit": "emacs-only",
   "org-clock-in-resume": "absent",

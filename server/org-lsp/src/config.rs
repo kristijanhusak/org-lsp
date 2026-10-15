@@ -242,6 +242,8 @@ pub struct Options {
     #[serde(rename = "org_clock_idle_time")]
     pub clock_idle_time: Option<i64>,
     /// `org-clock-history-length`
+    #[serde(rename = "org_clock_goto_may_find_recent_task")]
+    pub clock_goto_may_find_recent_task: Option<bool>,
     #[serde(rename = "org_clock_history_length")]
     pub clock_history_length: Option<usize>,
     /// `org-clock-clocktable-default-properties`, as the text of a plist.

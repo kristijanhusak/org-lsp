@@ -1373,6 +1373,41 @@ fn clocks_in_and_out() {
     client.shutdown();
 }
 
+/// `org-clock-goto-may-find-recent-task` off: with no clock running,
+/// `org-clock-goto` finds no entry.
+#[test]
+fn goes_to_no_recent_task_when_told_not_to() {
+    const URI: &str = "file:///org/clock.org";
+    let mut text = "* TODO Write\n".to_string();
+    let mut options = clock();
+    options["org_clock_goto_may_find_recent_task"] = json!(false);
+    let mut client = Client::editor(options, None);
+    client.open(URI, &text);
+    let mut version = 1;
+    let mut run = |client: &mut Client, text: &mut String, command: &str| {
+        client.received.clear();
+        let at = json!({ "textDocument": { "uri": URI }, "position": { "line": 0, "character": 0 } });
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [at] }));
+        client.settle();
+        if let Some(edit) = client.received.iter().find(|request| request.method == "workspace/applyEdit") {
+            let (_, edits) = edits_of(edit);
+            *text = apply(text, &edits);
+            version += 1;
+            client.notify(
+                "textDocument/didChange",
+                json!({ "textDocument": { "uri": URI, "version": version }, "contentChanges": [{ "text": text }] }),
+            );
+            client.settle();
+        }
+        result
+    };
+    run(&mut client, &mut text, "org.clock.in").unwrap();
+    run(&mut client, &mut text, "org.clock.goto").unwrap();
+    run(&mut client, &mut text, "org.clock.out").unwrap();
+    assert_eq!(run(&mut client, &mut text, "org.clock.goto").unwrap_err(), "No active or recent clock task");
+    client.shutdown();
+}
+
 /// The agenda: the clocked entry's line highlighted; `l` and `R`.
 #[test]
 fn shows_the_clock_in_the_agenda() {
