@@ -9,8 +9,11 @@ A case is a JSON object:
       "command": "alias-add",             `alias-add`, `alias-remove`,
                                           `tag-add`, `tag-remove`,
                                           `ref-add`, `ref-remove` (each
-                                          `org-roam-…`), or `replace-links`
-                                          (`org-roam-link-replace-all`)
+                                          `org-roam-…`), `replace-links`
+                                          (`org-roam-link-replace-all`),
+                                          `promote` or `demote`
+                                          (`org-roam-promote-entire-buffer`,
+                                          `org-roam-demote-entire-buffer`)
       "arg": "x"                          its argument: a text, or a list
                                           of tags
     }
@@ -64,7 +67,9 @@ DRIVER = r"""
                     ("tag-remove" (org-roam-tag-remove arg))
                     ("ref-add" (org-roam-ref-add arg))
                     ("ref-remove" (org-roam-ref-remove arg))
-                    ("replace-links" (org-roam-link-replace-all)))
+                    ("replace-links" (org-roam-link-replace-all))
+                    ("promote" (org-roam-promote-entire-buffer))
+                    ("demote" (org-roam-demote-entire-buffer)))
                   (list (cons 'text (buffer-substring-no-properties (point-min) (point-max)))
                         (cons 'message (or org-lsp-said :null))))
               (error (list (cons 'text (buffer-substring-no-properties (point-min) (point-max)))

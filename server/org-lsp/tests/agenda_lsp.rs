@@ -4357,6 +4357,56 @@ fn aligns_tables_when_a_file_opens() {
     client.shutdown();
 }
 
+/// `org-roam-ref-find`: the references of the nodes offered as org-roam
+/// keeps them (a URL without its scheme), in its order; the answer visits
+/// the first node with it. `org-roam-promote-entire-buffer` and
+/// `org-roam-demote-entire-buffer` change the file at the cursor.
+#[test]
+fn finds_roam_nodes_by_reference_and_promotes_whole_files() {
+    let root = std::env::temp_dir().join(format!("org-lsp-roam-refs-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).unwrap();
+    let a = ":PROPERTIES:\n:ID: a1\n:ROAM_REFS: https://example.com/x @key2023\n:END:\n#+title: A\n";
+    let b = "* B node\n:PROPERTIES:\n:ID: b1\n:ROAM_REFS: https://example.com/x [cite:@other] http://y.org\n:END:\n";
+    std::fs::write(root.join("a.org"), a).unwrap();
+    std::fs::write(root.join("b.org"), b).unwrap();
+    let mut options = clock();
+    options["org_roam_enabled"] = json!(true);
+    options["org_roam_directory"] = json!(root.display().to_string());
+    let mut client = Client::editor(options, None);
+    let b_uri = format!("file://{}", root.join("b.org").display());
+    client.open(&b_uri, b);
+    let at = json!({ "textDocument": { "uri": b_uri }, "position": { "line": 0, "character": 0 } });
+    let run = |client: &mut Client, command: &str, context: &Value| {
+        client.received.clear();
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+    let asked = run(&mut client, "org.roam.ref.find", &at).unwrap();
+    // As `org-roam-ref-read--completions` lists them in Emacs, each once.
+    assert_eq!(asked["input"]["completions"], json!(["key2023", "//example.com/x", "//y.org", "other"]));
+    let mut answer = asked["input"]["context"].clone();
+    answer["input"] = json!("//y.org");
+    run(&mut client, "org.roam.ref.find", &answer).unwrap();
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the node");
+    assert_eq!(show.params["uri"], b_uri);
+    answer["input"] = json!("//example.com/x");
+    run(&mut client, "org.roam.ref.find", &answer).unwrap();
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the node");
+    assert_eq!(show.params["uri"], format!("file://{}", root.join("a.org").display()));
+
+    run(&mut client, "org.roam.promote", &at).unwrap();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    assert_eq!(
+        apply(b, &edits_of(edit).1),
+        ":PROPERTIES:\n:ID: b1\n:ROAM_REFS: https://example.com/x [cite:@other] http://y.org\n:END:\n#+title: B node\n"
+    );
+    let refused = run(&mut client, "org.roam.demote", &at);
+    assert_eq!(refused, Err("Wrong type argument: char-or-string-p, nil".to_string()));
+    client.shutdown();
+}
+
 /// A keyword with a face of its own (`org_todo_keyword_faces`) is offered
 /// in that face when the server asks for a TODO state.
 #[test]

@@ -4,6 +4,7 @@
 
 use std::sync::LazyLock;
 
+use org_syntax::TodoKeywords;
 use regex::Regex;
 
 use crate::outline::Outline;
@@ -188,6 +189,100 @@ fn set_node_tags(text: &str, point: usize, tags: &[String], settings: &tags::Set
     // `org-set-tags` keeps the order it is given.
     let settings = tags::Settings { sort: None, ..settings.clone() };
     tags::set_tags(text, heading, tags, &settings)
+}
+
+/// `org-roam-promote-entire-buffer`: a file of one level-1 headline made
+/// the file's node: the headline's line taken out, its title put in a
+/// `#+title:` line after the meta data then at the top, its tags in
+/// `#+filetags:`, and every other headline promoted.
+pub fn promote_entire_buffer(
+    text: &str,
+    keywords: &TodoKeywords,
+    structure: &crate::structure::Settings,
+    tags: &tags::Settings,
+) -> Result<String, String> {
+    let level_ones = text.split_inclusive('\n').filter(|line| headline_level(line) == Some(1)).count();
+    if level_ones != 1 || headline_level(line_at(text, 0)).is_none() {
+        return Err("Cannot promote: multiple root headings or there is extra file-level text".to_string());
+    }
+    let headline = line_at(text, 0);
+    let title = crate::outline::complex_heading_title(headline, 1, keywords)
+        .map_or(String::new(), |(start, end)| headline[start..end].to_string());
+    let heading_tags = tags::local_tags(headline);
+    // `kill-whole-line`, then `org-roam-end-of-meta-data` with FULL `t`.
+    let mut text = text[next_line(text, 0)..].to_string();
+    let at = end_of_meta_data_from(&text, 0, true);
+    text.insert_str(at, &format!("#+title: {title}\n"));
+    if !heading_tags.is_empty() {
+        let parse = org_syntax::parse(&text, keywords);
+        let outline = Outline::new(&parse, &text, "");
+        text = tag_add(&text, &outline, at, &heading_tags, tags);
+    }
+    // `org-map-region` with `org-promote`, from the last headline up.
+    change_every_level(&text, -1, keywords, structure)
+}
+
+/// `org-roam-demote-entire-buffer`: the file's node made a headline of
+/// its own: every headline demoted, the `#+title:` the title of a new
+/// level-1 headline at the top, with the `#+filetags:` as its tags, and
+/// both keyword lines taken out.
+pub fn demote_entire_buffer(
+    text: &str,
+    keywords: &TodoKeywords,
+    structure: &crate::structure::Settings,
+    tags: &tags::Settings,
+) -> Result<String, String> {
+    static TITLE: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"(?im)^#\+TITLE:[ \t]*([^\n]+)").expect("a valid regex"));
+    static FILETAGS: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"(?im)^#\+FILETAGS:[ \t]*([^\n]+)").expect("a valid regex"));
+    // Without a title Emacs fails at `(insert "* " nil "\n")`, the
+    // headlines demoted already; this fails before changing anything.
+    let title = TITLE.captures(text).map(|found| found[1].to_string());
+    let title = title.ok_or("Wrong type argument: char-or-string-p, nil")?;
+    let filetags = FILETAGS.captures(text).map(|found| found[1].to_string());
+    let mut text = change_every_level(text, 1, keywords, structure)?;
+    text.insert_str(0, &format!("* {title}\n"));
+    let filetags: Vec<String> = filetags.map_or(Vec::new(), |found| tags::parse_tags(&found));
+    let settings = tags::Settings { sort: None, ..tags.clone() };
+    text = tags::set_tags(&text, 0, &filetags, &settings);
+    for keyword in ["title", "filetags"] {
+        text = erase_keyword(&text, keyword);
+    }
+    Ok(text)
+}
+
+/// Every headline's level changed by `change`, from the last up
+/// (`org-map-region` with `org-promote` or `org-do-demote`).
+fn change_every_level(
+    text: &str,
+    change: isize,
+    keywords: &TodoKeywords,
+    settings: &crate::structure::Settings,
+) -> Result<String, String> {
+    let mut headlines = Vec::new();
+    let mut at = 0;
+    while at < text.len() {
+        if headline_level(line_at(text, at)).is_some() {
+            headlines.push(at);
+        }
+        at = next_line(text, at);
+    }
+    let mut text = text.to_string();
+    for heading in headlines.into_iter().rev() {
+        text = crate::structure::change_levels(&text, heading, change, false, keywords, settings)
+            .map_err(|refusal| refusal.message().to_string())?
+            .text;
+    }
+    Ok(text)
+}
+
+/// `org-roam-erase-keyword`: the first `#+KEYWORD:` line taken out.
+fn erase_keyword(text: &str, keyword: &str) -> String {
+    let pattern = Regex::new(&format!(r"(?im)^#\+{}:", regex::escape(keyword))).expect("a valid regex");
+    let Some(found) = pattern.find(text) else { return text.to_string() };
+    let end = next_line(text, found.start());
+    format!("{}{}", &text[..found.start()], &text[end..])
 }
 
 /// The start of the line after the one at `at`, or the end of the text

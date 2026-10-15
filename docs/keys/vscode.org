@@ -799,6 +799,9 @@ every file; outside Org files the commands say they do not apply):
 | ~org.roam.tag.remove~ | Org: Roam: remove tags |
 | ~org.roam.ref.add~ | Org: Roam: add a reference |
 | ~org.roam.ref.remove~ | Org: Roam: remove a reference |
+| ~org.roam.ref.find~ | Org: Roam: find a node by a reference |
+| ~org.roam.promote~ | Org: Roam: make the file's one top headline the file's node |
+| ~org.roam.demote~ | Org: Roam: make the file's node a headline of its own |
 | ~org.journal.new.entry~ | Org: Journal: new entry |
 | ~org.journal.new.date.entry~ | Org: Journal: new entry for a date |
 | ~org.journal.new.scheduled.entry~ | Org: Journal: new entry for a day to come |

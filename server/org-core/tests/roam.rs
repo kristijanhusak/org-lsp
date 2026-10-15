@@ -367,6 +367,25 @@ fn run_edit(case: &Value) -> Value {
             None => json!({ "text": edited, "message": null }),
         };
     }
+    if command == "promote" || command == "demote" {
+        let structure = org_core::structure::Settings {
+            tags_column: -77,
+            indent: Default::default(),
+            allow_promoting_top_level: false,
+        };
+        let edited = if command == "promote" {
+            edit::promote_entire_buffer(&text, &todo, &structure, &settings)
+        } else {
+            edit::demote_entire_buffer(&text, &todo, &structure, &settings)
+        };
+        // A deliberate difference: without a `#+title:`, Emacs fails
+        // having demoted the headlines and put `* ` at the top; org-lsp
+        // fails before changing anything. The error is the same.
+        if let (Err(error), Some(expected)) = (&edited, case["expected"]["error"].as_str()) {
+            return if error == expected { case["expected"].clone() } else { json!({ "error": error }) };
+        }
+        return done(edited.map(|text| (text, None)));
+    }
     let point = match edit::node_at(&text, at, &context) {
         // Where the database has the node: a position of its file, which
         // Emacs takes in this one when the node is in another.
