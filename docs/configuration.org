@@ -1696,6 +1696,20 @@ org_startup_indented = false
 # (org-hide-leading-stars)
 org_hide_leading_stars = false
 
+# Where `org_startup_indented` (or `#+STARTUP: indent`) shows a file indented,
+# hide the leading stars too, whatever `org_hide_leading_stars` says.
+# (org-indent-mode-turns-on-hiding-stars)
+org_indent_mode_turns_on_hiding_stars = true
+
+# Where a file shows indented, `org_adapt_indentation` is off (unless it is
+# `headline-data`): new and moved text is not indented to its headline.
+# (org-indent-mode-turns-off-org-adapt-indentation)
+org_indent_mode_turns_off_org_adapt_indentation = true
+
+# How many columns a file shown indented moves each level of headlines and
+# their text in; 0 shows them as they are. (org-indent-indentation-per-level)
+org_indent_indentation_per_level = 2
+
 # How durations are written (clock tables, clock lines, efforts): `"h:mm"` or
 # `"h:mm:ss"`, or a list of units each with whether it is written when zero
 # (`["d", false]`), with perhaps `["special", "h:mm"]` (the hours and minutes
@@ -3404,6 +3418,21 @@ org_agenda_custom_commands = []
   // `#+STARTUP: hidestars` and `showstars` decide for a file.
   // (org-hide-leading-stars)
   "org_hide_leading_stars": false,
+
+  // Where `org_startup_indented` (or `#+STARTUP: indent`) shows a file
+  // indented, hide the leading stars too, whatever `org_hide_leading_stars`
+  // says. (org-indent-mode-turns-on-hiding-stars)
+  "org_indent_mode_turns_on_hiding_stars": true,
+
+  // Where a file shows indented, `org_adapt_indentation` is off (unless it is
+  // `headline-data`): new and moved text is not indented to its headline.
+  // (org-indent-mode-turns-off-org-adapt-indentation)
+  "org_indent_mode_turns_off_org_adapt_indentation": true,
+
+  // How many columns a file shown indented moves each level of headlines and
+  // their text in; 0 shows them as they are.
+  // (org-indent-indentation-per-level)
+  "org_indent_indentation_per_level": 2,
 
   // How durations are written (clock tables, clock lines, efforts): `"h:mm"`
   // or `"h:mm:ss"`, or a list of units each with whether it is written when

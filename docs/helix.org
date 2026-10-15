@@ -104,7 +104,7 @@ menu on another key.
 | [[file:parity.org::#export-and-publishing][Export and publishing]] | 100% | ❌ | Not offered as a code action yet. |
 | [[file:parity.org::#citations][Citations]] | 83% | ❓ | Inserting citations is not offered as a code action yet. Completion, hover and following work. |
 | [[file:parity.org::#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% | ✅ |  |
-| [[file:parity.org::#indentation-and-formatting][Indentation and formatting]] | 71% | ❓ | Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. |
+| [[file:parity.org::#indentation-and-formatting][Indentation and formatting]] | 86% | ❓ | Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. |
 | [[file:parity.org::#notes-and-logging][Notes and logging]] | 100% | ❌ | A note is typed text: Helix cannot ask for text on a server's behalf. |
 | [[file:parity.org::#completion-and-editing-helpers][Completion and editing helpers]] | 100% | ❓ | Structure templates, emphasis and drawers are not among Helix's code actions. |
 | [[file:parity.org::#timers][Timers]] | 100% | ❌ | Timers are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and they are not among them. |

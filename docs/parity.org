@@ -37,7 +37,7 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#export-and-publishing][Export and publishing]] | 100% | 9 of 9 |
 | [[#citations][Citations]] | 83% | 5 of 6 |
 | [[#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% | 61 of 61 |
-| [[#indentation-and-formatting][Indentation and formatting]] | 71% | 5 of 7 |
+| [[#indentation-and-formatting][Indentation and formatting]] | 86% | 6 of 7 |
 | [[#notes-and-logging][Notes and logging]] | 100% | 6 of 6 |
 | [[#completion-and-editing-helpers][Completion and editing helpers]] | 100% | 4 of 4 |
 | [[#timers][Timers]] | 100% | 5 of 5 |
@@ -619,7 +619,7 @@ Where editors fall short:
 :CUSTOM_ID: indentation-and-formatting
 :END:
 
-71% (5 of 7)
+86% (6 of 7)
 
 - ✅ Virtual indentation (~org-indent-mode~, ~#+STARTUP: indent~)
 - ✅ Hidden leading stars (~org-hide-leading-stars~)
@@ -627,7 +627,7 @@ Where editors fall short:
 - ✅ Indenting lines and regions (~org-indent-line~, ~org-indent-region~)
 - ✅ Aligning tables and tags
 - ❌ Lines a long line wraps into indented (~wrap-prefix~)
-- ❌ Other widths of virtual indentation (~org-indent-indentation-per-level~, ~org-description-max-indent~)
+- ✅ Other widths of virtual indentation, stars left showing and ~org-adapt-indentation~ left on with it (~org-indent-indentation-per-level~, ~org-indent-mode-turns-on-hiding-stars~, ~org-indent-mode-turns-off-org-adapt-indentation~)
 
 Where editors fall short:
 
@@ -741,15 +741,15 @@ Where editors fall short:
 :END:
 
 Each of the 1025 options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with
-it. Of the 304 that change what org-lsp does itself, 91% can be set.
+it. Of the 304 that change what org-lsp does itself, 92% can be set.
 [[file:../scripts/org-options.json][scripts/org-options.json]] says it for each; ~scripts/check.sh~ fails when the
 server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,
 when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 264 | A setting of the same name |
-| missing | 28 | org-lsp does what the option is about, but the option cannot be set yet |
+| setting | 267 | A setting of the same name |
+| missing | 25 | org-lsp does what the option is about, but the option cannot be set yet |
 | other | 12 | Done another way, as its note says |
 | emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 48 | Its value is Lisp (a function, a hook), which the server does not run |
@@ -779,6 +779,5 @@ Options of what org-lsp does that cannot be set yet, by the file of Org they are
 - ob-tangle.el (8) :: ~org-babel-tangle-lang-exts~, ~org-babel-tangle-use-relative-file-links~, ~org-babel-tangle-comment-format-beg~, ~org-babel-tangle-comment-format-end~, ~org-babel-tangle-uncomment-comments~, ~org-babel-process-comment-text~, ~org-babel-tangle-default-file-mode~, ~org-babel-tangle-remove-file-before-write~
 - org-archive.el (2) :: ~org-archive-stamp-time~, ~org-archive-subtree-save-file-p~
 - org-entities.el (1) :: ~org-entities-user~
-- org-indent.el (3) :: ~org-indent-mode-turns-off-org-adapt-indentation~, ~org-indent-mode-turns-on-hiding-stars~, ~org-indent-indentation-per-level~
 - org-list.el (2) :: ~org-plain-list-ordered-item-terminator~, ~org-list-allow-alphabetical~
 - org.el (10) :: ~org-odd-levels-only~, ~org-todo-interpretation~, ~org-treat-insert-todo-heading-as-state-change~, ~org-treat-S-cursor-todo-selection-as-state-change~, ~org-priority-enable-commands~, ~org-edit-timestamp-down-means-later~, ~org-property-format~, ~org-property-separators~, ~org-custom-properties~, ~org-track-ordered-property-with-tag~

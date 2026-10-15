@@ -908,7 +908,7 @@ export const AREAS = [
       ['Indenting lines and regions (`org-indent-line`, `org-indent-region`)', true],
       ['Aligning tables and tags', true],
       ['Lines a long line wraps into indented (`wrap-prefix`)', false],
-      ['Other widths of virtual indentation (`org-indent-indentation-per-level`, `org-description-max-indent`)', false],
+      ['Other widths of virtual indentation, stars left showing and `org-adapt-indentation` left on with it (`org-indent-indentation-per-level`, `org-indent-mode-turns-on-hiding-stars`, `org-indent-mode-turns-off-org-adapt-indentation`)', true],
     ],
     editors: {
       vim: ['part', 'The lines a long line wraps into are not indented.'],

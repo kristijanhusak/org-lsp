@@ -135,7 +135,7 @@ command. [[file:keys/vim.org][keys/vim.org]] lists every key and how to change i
 | [[file:parity.org::#export-and-publishing][Export and publishing]] | 100% | ✅ |  |
 | [[file:parity.org::#citations][Citations]] | 83% | ✅ |  |
 | [[file:parity.org::#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% | ✅ |  |
-| [[file:parity.org::#indentation-and-formatting][Indentation and formatting]] | 71% | ❓ | The lines a long line wraps into are not indented. |
+| [[file:parity.org::#indentation-and-formatting][Indentation and formatting]] | 86% | ❓ | The lines a long line wraps into are not indented. |
 | [[file:parity.org::#notes-and-logging][Notes and logging]] | 100% | ✅ |  |
 | [[file:parity.org::#completion-and-editing-helpers][Completion and editing helpers]] | 100% | ✅ |  |
 | [[file:parity.org::#timers][Timers]] | 100% | ✅ |  |

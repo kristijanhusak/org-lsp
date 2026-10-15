@@ -1490,6 +1490,30 @@ pub const SETTINGS: &[Setting] = &[
          `showstars` decide for a file.",
     ),
     setting(
+        "org_indent_mode_turns_on_hiding_stars",
+        "boolean",
+        "true",
+        "org-indent-mode-turns-on-hiding-stars",
+        "Where `org_startup_indented` (or `#+STARTUP: indent`) shows a file indented, hide the leading stars \
+         too, whatever `org_hide_leading_stars` says.",
+    ),
+    setting(
+        "org_indent_mode_turns_off_org_adapt_indentation",
+        "boolean",
+        "true",
+        "org-indent-mode-turns-off-org-adapt-indentation",
+        "Where a file shows indented, `org_adapt_indentation` is off (unless it is `headline-data`): new and \
+         moved text is not indented to its headline.",
+    ),
+    setting(
+        "org_indent_indentation_per_level",
+        "integer",
+        "2",
+        "org-indent-indentation-per-level",
+        "How many columns a file shown indented moves each level of headlines and their text in; 0 shows \
+         them as they are.",
+    ),
+    setting(
         "org_duration_format",
         r#""h:mm", "h:mm:ss", or a list"#,
         r#"[["d", false], ["special", "h:mm"]]"#,
@@ -3260,6 +3284,9 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_startup_with_latex_preview", BOOLEAN),
     ("org_startup_indented", BOOLEAN),
     ("org_hide_leading_stars", BOOLEAN),
+    ("org_indent_mode_turns_on_hiding_stars", BOOLEAN),
+    ("org_indent_mode_turns_off_org_adapt_indentation", BOOLEAN),
+    ("org_indent_indentation_per_level", r#"{ "type": "integer", "minimum": 0 }"#),
     (
         "org_duration_format",
         r#"{ "anyOf": [{ "enum": ["h:mm", "h:mm:ss"] }, { "type": "array", "items": { "anyOf": [{ "const": "compact" }, { "type": "array", "minItems": 2, "maxItems": 2 }] } }] }"#,

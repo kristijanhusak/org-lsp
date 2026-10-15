@@ -1389,7 +1389,7 @@ pub fn startup(text: &str) -> Startup {
 
 /// How a document shows: `org-indent-mode` and `org-hide-leading-stars`,
 /// from the options and the document's `#+STARTUP:`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Display {
     /// `org-startup-indented`
     pub startup_indented: bool,
@@ -1397,6 +1397,25 @@ pub struct Display {
     pub hide_leading_stars: bool,
     /// org-bullets is on: it hides the leading stars whatever the rest says.
     pub bullets: bool,
+    /// `org-indent-mode-turns-on-hiding-stars`
+    pub indent_hides_stars: bool,
+    /// `org-indent-mode-turns-off-org-adapt-indentation`
+    pub indent_turns_off_adapt: bool,
+    /// `org-indent-indentation-per-level`
+    pub per_level: usize,
+}
+
+impl Default for Display {
+    fn default() -> Self {
+        Display {
+            startup_indented: false,
+            hide_leading_stars: false,
+            bullets: false,
+            indent_hides_stars: true,
+            indent_turns_off_adapt: true,
+            per_level: 2,
+        }
+    }
 }
 
 impl Display {
@@ -1410,7 +1429,7 @@ impl Display {
     pub fn hides_stars(&self, text: &str) -> bool {
         let startup = startup(text);
         self.bullets
-            || startup.indent.unwrap_or(self.startup_indented)
+            || (self.indent_hides_stars && startup.indent.unwrap_or(self.startup_indented))
             || startup.hide_stars.unwrap_or(self.hide_leading_stars)
     }
 
@@ -1418,7 +1437,7 @@ impl Display {
     /// unless it is `headline-data`
     /// (`org-indent-mode-turns-off-org-adapt-indentation`).
     pub fn adapt(&self, text: &str, adapt: Adapt) -> Adapt {
-        if adapt != Adapt::HeadlineData && self.indented(text) {
+        if self.indent_turns_off_adapt && adapt != Adapt::HeadlineData && self.indented(text) {
             Adapt::Off
         } else {
             adapt
@@ -1476,19 +1495,30 @@ fn item_body_column(line: &str, two_spaces: Option<&crate::list::BulletRegexp>) 
 /// (`hide_stars`). `adapt` `headline-data` lines up the planning lines,
 /// drawers and clock lines of an entry with its headline's stars. Lines
 /// shown as they are, are left out. `two_spaces` is
-/// `org-list-two-spaces-after-bullet-regexp`.
+/// `org-list-two-spaces-after-bullet-regexp`, `per_level`
+/// `org-indent-indentation-per-level`.
 pub fn virtual_indentation(
     text: &str,
     indent: bool,
     hide_stars: bool,
     adapt: Adapt,
     two_spaces: Option<&crate::list::BulletRegexp>,
+    per_level: usize,
 ) -> Vec<LinePrefix> {
-    // `org-indent-indentation-per-level` is 2: a headline of level `n`
-    // has `n - 1` columns before its stars, so that its title starts at
-    // `2n`, where the text below it starts too.
-    let heading_prefix = |level: usize| level.saturating_sub(1);
-    let text_prefix = |level: usize| 2 * level;
+    // `org-indent--compute-prefixes`: a headline of level `n` has
+    // `(per_level - 1) * (n - 1)` columns before its stars, and the text
+    // below it as many plus `n` and the boundary character, so that with
+    // 2 per level its title and its text start at `2n`. With 0 there are
+    // no prefixes.
+    let indentation = |level: usize| if level <= 1 { 0 } else { (per_level.saturating_sub(1)) * (level - 1) };
+    let heading_prefix = |level: usize| if per_level == 0 { 0 } else { indentation(level) };
+    let text_prefix = |level: usize| {
+        if per_level == 0 || level == 0 {
+            0
+        } else {
+            level + indentation(level) + 1
+        }
+    };
     let mut out = Vec::new();
     let mut level = 0;
     // Planning lines (and the blank lines after them, which belong to
@@ -1554,12 +1584,28 @@ mod tests {
         let text = "1. a\n b\n- c\n d\n";
         let edits = indent_region(text, 0, text.len(), &settings);
         assert_eq!(apply(text, &edits), "1. a\n    b\n- c\n  d\n");
-        let wraps: Vec<usize> = virtual_indentation(text, true, false, Adapt::Off, settings.two_spaces.as_ref())
+        let wraps: Vec<usize> = virtual_indentation(text, true, false, Adapt::Off, settings.two_spaces.as_ref(), 2)
             .into_iter()
             .filter(|line| line.line == 0 || line.line == 2)
             .map(|line| line.wrap)
             .collect();
         assert_eq!(wraps, [4, 2]);
+    }
+
+    /// `org-indent-mode-turns-on-hiding-stars` and
+    /// `org-indent-mode-turns-off-org-adapt-indentation` off: a file shown
+    /// indented keeps its stars and `org-adapt-indentation`.
+    #[test]
+    fn indent_mode_leaves_stars_and_adaptation_when_told() {
+        let indented = "#+STARTUP: indent\n* a\n";
+        let display = Display::default();
+        assert!(display.hides_stars(indented));
+        assert_eq!(display.adapt(indented, Adapt::All), Adapt::Off);
+        let display = Display { indent_hides_stars: false, indent_turns_off_adapt: false, ..Display::default() };
+        assert!(!display.hides_stars(indented));
+        assert_eq!(display.adapt(indented, Adapt::All), Adapt::All);
+        let display = Display { hide_leading_stars: true, ..display };
+        assert!(display.hides_stars(indented));
     }
 
     /// Parsing each part on its own gives what parsing the whole text

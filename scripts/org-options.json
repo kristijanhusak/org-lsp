@@ -568,9 +568,9 @@
  },
  "org-indent.el": {
   "org-indent-boundary-char": "emacs-only",
-  "org-indent-mode-turns-off-org-adapt-indentation": "missing",
-  "org-indent-mode-turns-on-hiding-stars": "missing",
-  "org-indent-indentation-per-level": "missing",
+  "org-indent-mode-turns-off-org-adapt-indentation": "setting",
+  "org-indent-mode-turns-on-hiding-stars": "setting",
+  "org-indent-indentation-per-level": "setting",
   "org-indent-post-buffer-init-functions": "lisp"
  },
  "org-inlinetask.el": {
