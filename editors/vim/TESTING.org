@@ -29,6 +29,7 @@ its sections says what it should look like.
 - [ ] Headlines are colored by level; TODO and DONE keywords, priorities (~[#A]~) and tags have colors of their own
 - [ ] With ~org_fontify_todo_headline = true~ the text of a TODO headline, and with ~org_fontify_quote_and_verse_blocks = true~ the lines of a quote block, take a look of their own
 - [ ] ~*bold*~, ~/italic/~, ~_underline_~, ~+strike+~, ~=verbatim=~ and =~code~= are colored
+- [ ] With ~org_emphasis_alist = { "*": ["bold", "italic"] }~, ~*this*~ is bold and italic and ~/that/~ plain; with ~org_fontify_emphasized_text = false~ neither has a look
 - [ ] Timestamps, ~SCHEDULED:~ and ~DEADLINE:~, ~CLOCK:~ lines, drawers, ~#+~ keywords and ~#~ comments are colored
 - [ ] A ~#+begin_src python~ block shows its code in Python's colors
 - [ ] Inline code (~src_python{x = 1}~) is in Python's colors

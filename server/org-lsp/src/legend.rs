@@ -87,7 +87,7 @@ const MODIFIER_DESCRIPTIONS: &[&str] = &[
     "Agenda: the deadline is far away",
     "Agenda: a day inside a date range",
     "Agenda: the current time",
-    "Text Org hides (link brackets and targets, emphasis markers); editors that can conceal text conceal it",
+    "Text Org hides (link brackets and targets, emphasis markers, hidden keywords, macro braces); editors that can conceal text conceal it",
     "Agenda: part of the line of the entry the clock runs on",
     "A headline with the ARCHIVE tag",
     "Agenda: a day of a habit's graph in its time to be done",

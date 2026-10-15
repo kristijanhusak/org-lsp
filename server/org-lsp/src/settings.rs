@@ -1097,6 +1097,43 @@ pub const SETTINGS: &[Setting] = &[
          and `~code~`, as for links.",
     ),
     setting(
+        "org_fontify_emphasized_text",
+        "boolean",
+        "true",
+        "org-fontify-emphasized-text",
+        "Show `*bold*`, `/italic/`, `_underline_`, `+strike-through+`, `=verbatim=` and `~code~` in their \
+         looks. With `false` they look as the text around them, their markers shown.",
+    ),
+    Setting {
+        default: None,
+        unset: "Org's: `bold`, `italic`, `underline`, `org-verbatim`, `org-code` and `:strike-through t`",
+        ..setting(
+            "org_emphasis_alist",
+            "{ [marker]: face | face[] | false }",
+            "",
+            "org-emphasis-alist",
+            "The look of each kind of emphasis, by its marker (`*`, `/`, `_`, `=`, `~`, `+`): a face of Org's, \
+             `bold`, `italic`, `bold-italic`, `underline`, `org-code` or `org-verbatim`, attributes as Org \
+             writes them (`:weight bold :slant italic :underline t :strike-through t`), or a list of them; \
+             `false` for none. As in Emacs, a marker left out has no look. Colors are not shown.",
+        )
+    },
+    setting(
+        "org_hidden_keywords",
+        r#"("title" | "subtitle" | "author" | "email" | "date")[]"#,
+        "[]",
+        "org-hidden-keywords",
+        "The keywords hidden before their values, such as `#+TITLE:` with `[\"title\"]`, in editors that \
+         conceal text.",
+    ),
+    setting(
+        "org_hide_macro_markers",
+        "boolean",
+        "false",
+        "org-hide-macro-markers",
+        "Hide the braces of macro calls, `{{{` and `}}}`, in editors that conceal text.",
+    ),
+    setting(
         "org_pretty_entities",
         "boolean",
         "false",
@@ -2912,6 +2949,16 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_default_notes_file", STRING),
     ("org_link_descriptive", BOOLEAN),
     ("org_hide_emphasis_markers", BOOLEAN),
+    ("org_fontify_emphasized_text", BOOLEAN),
+    (
+        "org_emphasis_alist",
+        r#"{ "type": "object", "propertyNames": { "enum": ["*", "/", "_", "=", "~", "+"] }, "additionalProperties": { "anyOf": [{ "const": false }, { "type": "string" }, { "type": "array", "items": { "type": "string" } }] } }"#,
+    ),
+    (
+        "org_hidden_keywords",
+        r#"{ "type": "array", "items": { "enum": ["title", "subtitle", "author", "email", "date"] } }"#,
+    ),
+    ("org_hide_macro_markers", BOOLEAN),
     ("org_pretty_entities", BOOLEAN),
     ("org_pretty_entities_include_sub_superscripts", BOOLEAN),
     ("org_use_sub_superscripts", r#"{ "enum": [true, false, "{}"] }"#),
