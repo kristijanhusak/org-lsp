@@ -1552,6 +1552,39 @@
         "%m/%d/%y %a %H:%M"
       ]
     },
+    "org_entities_user": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "minItems": 7,
+        "maxItems": 7,
+        "items": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "string"
+          }
+        ]
+      },
+      "description": "Entities of your own, used as `\\name`: what each is in LaTeX (and whether that needs math mode), HTML, ASCII, Latin-1 and UTF-8, as `[\"myarrow\", \"\\\\to\", true, \"&rarr;\", \"->\", \"->\", \"→\"]`. A name is letters only, and one of Org's own is replaced. The server shows them as `org_pretty_entities` says and completes them; Emacs exports them. (`org-entities-user`)",
+      "default": []
+    },
     "org_pretty_entities": {
       "type": "boolean",
       "description": "Show entities (`\\alpha`, `\\to`) as their character (`α`, `→`): the entity is hidden as link brackets are, and its character is an inlay hint in its place. (`org-pretty-entities`)",

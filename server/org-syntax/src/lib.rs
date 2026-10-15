@@ -38,13 +38,23 @@ pub fn plain_link_end(text: &str, at: usize) -> Option<usize> {
     objects::match_plain_link(text, at)
 }
 
-pub fn entity_names() -> &'static [&'static str] {
-    entities::ENTITIES
+pub use entities::set_user_entities;
+
+/// The names of the entities: the user's (`org-entities-user`), then
+/// Org's.
+pub fn entity_names() -> Vec<&'static str> {
+    let user = entities::user();
+    let mut names: Vec<&'static str> = user.iter().map(|(name, _)| *name).collect();
+    names.extend(entities::ENTITIES.iter().filter(|name| !user.iter().any(|(known, _)| known == *name)));
+    names
 }
 
-/// What the entity `name` (`alpha`) is in UTF-8 (`α`), as `org-entities`
-/// has it.
+/// What the entity `name` (`alpha`) is in UTF-8 (`α`), as
+/// `org-entity-get` has it: the user's entity of that name first.
 pub fn entity_utf8(name: &str) -> Option<&'static str> {
+    if let Some((_, utf8)) = entities::user().iter().find(|(known, _)| *known == name) {
+        return Some(utf8);
+    }
     entities::ENTITIES.binary_search(&name).ok().map(|index| entities::UTF8[index])
 }
 pub use kind::{OrgLanguage, SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken};

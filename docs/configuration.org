@@ -1547,6 +1547,13 @@ org_display_custom_times = false
 # (org-timestamp-custom-formats)
 org_timestamp_custom_formats = ["%m/%d/%y %a", "%m/%d/%y %a %H:%M"]
 
+# Entities of your own, used as `\name`: what each is in LaTeX (and whether
+# that needs math mode), HTML, ASCII, Latin-1 and UTF-8, as `["myarrow",
+# "\\to", true, "&rarr;", "->", "->", "→"]`. A name is letters only, and one
+# of Org's own is replaced. The server shows them as `org_pretty_entities`
+# says and completes them; Emacs exports them. (org-entities-user)
+org_entities_user = []
+
 # Show entities (`\alpha`, `\to`) as their character (`α`, `→`): the entity is
 # hidden as link brackets are, and its character is an inlay hint in its
 # place. (org-pretty-entities)
@@ -3285,6 +3292,14 @@ org_agenda_custom_commands = []
   // them (`%d.%m.%Y`); brackets around a format are dropped.
   // (org-timestamp-custom-formats)
   "org_timestamp_custom_formats": ["%m/%d/%y %a", "%m/%d/%y %a %H:%M"],
+
+  // Entities of your own, used as `\name`: what each is in LaTeX (and whether
+  // that needs math mode), HTML, ASCII, Latin-1 and UTF-8, as `["myarrow",
+  // "\\to", true, "&rarr;", "->", "->", "→"]`. A name is letters only, and
+  // one of Org's own is replaced. The server shows them as
+  // `org_pretty_entities` says and completes them; Emacs exports them.
+  // (org-entities-user)
+  "org_entities_user": [],
 
   // Show entities (`\alpha`, `\to`) as their character (`α`, `→`): the entity
   // is hidden as link brackets are, and its character is an inlay hint in its

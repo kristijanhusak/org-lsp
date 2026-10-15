@@ -373,6 +373,10 @@ pub struct Options {
     /// `org-hide-leading-stars`
     #[serde(rename = "org_hide_leading_stars")]
     pub hide_leading_stars: Option<bool>,
+    /// `org-entities-user`: `[name, LaTeX, math?, HTML, ASCII, Latin-1,
+    /// UTF-8]` for each entity of the user's.
+    #[serde(rename = "org_entities_user")]
+    pub entities_user: Option<Vec<Vec<serde_json::Value>>>,
     #[serde(rename = "org_indent_mode_turns_on_hiding_stars")]
     pub indent_mode_turns_on_hiding_stars: Option<bool>,
     #[serde(rename = "org_indent_mode_turns_off_org_adapt_indentation")]
@@ -1564,6 +1568,41 @@ impl Options {
             Some(command @ ("sibling" | "tag")) => command,
             _ => "subtree",
         }
+    }
+
+    /// `org-entities-user`: each entity's name and what it is in UTF-8.
+    pub fn user_entities(&self) -> Vec<(String, String)> {
+        self.entities_user
+            .iter()
+            .flatten()
+            .filter_map(|entity| {
+                let name = entity.first()?.as_str()?;
+                let utf8 = entity.get(6)?.as_str()?;
+                Some((name.to_string(), utf8.to_string()))
+            })
+            .collect()
+    }
+
+    /// `org-entities-user` as Emacs Lisp, for the server's Emacs to export
+    /// with.
+    pub fn user_entities_lisp(&self) -> Option<String> {
+        let entities = self.entities_user.as_ref().filter(|entities| !entities.is_empty())?;
+        let lisp_string = |text: &str| format!("\"{}\"", text.replace('\\', "\\\\").replace('"', "\\\""));
+        let entries: Vec<String> = entities
+            .iter()
+            .map(|entity| {
+                let fields: Vec<String> = entity
+                    .iter()
+                    .map(|field| match field {
+                        serde_json::Value::String(text) => lisp_string(text),
+                        serde_json::Value::Bool(true) => "t".to_string(),
+                        _ => "nil".to_string(),
+                    })
+                    .collect();
+                format!("({})", fields.join(" "))
+            })
+            .collect();
+        Some(format!("(setq org-entities-user '({}))", entries.join(" ")))
     }
 
     /// `org-archive-subtree-save-file-p`: whether the archive file is
@@ -3705,6 +3744,20 @@ impl AgendaOptions {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// `org-entities-user` as the server's Emacs is told it.
+    #[test]
+    fn user_entities_for_emacs() {
+        let options: Options = serde_json::from_value(serde_json::json!({
+            "org_entities_user": [["myarrow", "\\to", true, "&rarr;", "->", "\"q\"", "→"]]
+        }))
+        .unwrap();
+        assert_eq!(options.user_entities(), [("myarrow".to_string(), "→".to_string())]);
+        assert_eq!(
+            options.user_entities_lisp().unwrap(),
+            r#"(setq org-entities-user '(("myarrow" "\\to" t "&rarr;" "->" "\"q\"" "→")))"#
+        );
+    }
 
     #[test]
     fn emphasis_looks_as_org_emphasis_alist_gives_them() {
