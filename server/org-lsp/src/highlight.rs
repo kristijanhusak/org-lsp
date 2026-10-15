@@ -404,12 +404,59 @@ pub struct Fontify {
     /// `org-fontify-quote-and-verse-blocks`: the lines of quote and verse
     /// blocks are `org-quote` and `org-verse`.
     pub quote_and_verse: bool,
+    /// The looks of `*bold*`, `/italic/`, `_underline_`, `=verbatim=`,
+    /// `~code~` and `+strike-through+`, in that order
+    /// (`org-emphasis-alist`); none with `org-fontify-emphasized-text`
+    /// off.
+    pub emphasis: Option<[Emphasis; 6]>,
+    /// `org-hidden-keywords`: which of the keywords of [`HIDDEN_KEYWORDS`]
+    /// are hidden, a bit for each in its order.
+    pub hidden_keywords: u8,
+    /// `org-hide-macro-markers`: the braces of `{{{macro}}}` are hidden.
+    pub hide_macro_markers: bool,
 }
 
 impl Default for Fontify {
     fn default() -> Self {
-        Fontify { done_headline: true, todo_headline: false, quote_and_verse: false }
+        Fontify {
+            done_headline: true,
+            todo_headline: false,
+            quote_and_verse: false,
+            emphasis: Some(Emphasis::DEFAULTS),
+            hidden_keywords: 0,
+            hide_macro_markers: false,
+        }
     }
+}
+
+/// The keywords `org-hidden-keywords` can hide, before their values.
+pub const HIDDEN_KEYWORDS: [&str; 5] = ["title", "subtitle", "author", "email", "date"];
+
+/// The look of a kind of emphasis: a token type of its own (`org-code`,
+/// `org-verbatim`), or the text around it with modifiers (`bold`,
+/// `italic`, `underline`, `:strike-through t`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Emphasis {
+    pub ty: Option<TokenType>,
+    pub modifiers: u32,
+}
+
+impl Emphasis {
+    /// The markers, in the order of [`Fontify::emphasis`].
+    pub const MARKERS: [&'static str; 6] = ["*", "/", "_", "=", "~", "+"];
+
+    /// The default of `org-emphasis-alist`.
+    pub const DEFAULTS: [Emphasis; 6] = [
+        Emphasis { ty: None, modifiers: modifier::BOLD },
+        Emphasis { ty: None, modifiers: modifier::ITALIC },
+        Emphasis { ty: None, modifiers: modifier::UNDERLINE },
+        Emphasis { ty: Some(TokenType::Verbatim), modifiers: 0 },
+        Emphasis { ty: Some(TokenType::Code), modifiers: 0 },
+        Emphasis { ty: None, modifiers: modifier::STRIKETHROUGH },
+    ];
+
+    /// No face: the text looks as the text around it.
+    pub const NONE: Emphasis = Emphasis { ty: None, modifiers: 0 };
 }
 
 /// All tokens of a document, in order.
@@ -608,12 +655,7 @@ impl Walker<'_> {
                 if self.conceal.emphasis
                     && matches!(parent, BOLD | ITALIC | UNDERLINE | STRIKE_THROUGH | CODE | VERBATIM) =>
             {
-                let ty = match parent {
-                    CODE => TokenType::Code,
-                    VERBATIM => TokenType::Verbatim,
-                    _ => style.text.unwrap_or(TokenType::Text),
-                };
-                Some((ty, style.modifiers | modifier::HIDDEN))
+                Some((style.text.unwrap_or(TokenType::Text), style.modifiers | modifier::HIDDEN))
             }
             // Text and emphasis markers take the style of their context.
             TEXT | MARKER if style.text.is_some() || style.modifiers != 0 => {
@@ -651,19 +693,12 @@ impl Walker<'_> {
 
     fn node(&mut self, node: &SyntaxNode, style: Style) {
         let range = node.text_range();
-        let emphasis =
-            |modifier| Style { text: style.text.or(Some(TokenType::Text)), modifiers: style.modifiers | modifier };
         match node.kind() {
             HEADLINE => self.headline(node),
             // Tags, links and the like are single tokens whatever they contain.
             TAGS => self.push(range, TokenType::Tag, 0),
             LINK if self.conceal.links => self.link(node),
             LINK | PLAIN_LINK | ANGLE_LINK | CITATION => self.push(range, TokenType::Link, 0),
-            // With their markers apart, to hide them.
-            CODE | VERBATIM if self.conceal.emphasis => {
-                let ty = if node.kind() == CODE { TokenType::Code } else { TokenType::Verbatim };
-                self.children(node, Style { text: Some(ty), modifiers: 0 });
-            }
             // The code of `src_LANG{CODE}` is the editor's to color in its
             // language, as Emacs does with `org-src-fontify-natively`.
             INLINE_SRC_BLOCK => match inline_src_body(&node.text().to_string()) {
@@ -674,8 +709,8 @@ impl Walker<'_> {
                 }
                 None => self.push(range, TokenType::Code, 0),
             },
-            CODE | INLINE_BABEL_CALL => self.push(range, TokenType::Code, 0),
-            VERBATIM => self.push(range, TokenType::Verbatim, 0),
+            BOLD | ITALIC | UNDERLINE | VERBATIM | CODE | STRIKE_THROUGH => self.emphasis(node, style),
+            INLINE_BABEL_CALL => self.push(range, TokenType::Code, 0),
             TIMESTAMP => {
                 let inactive = node.first_token().is_some_and(|token| token.text().starts_with('['));
                 self.push(range, TokenType::Timestamp, if inactive { modifier::INACTIVE } else { 0 });
@@ -698,14 +733,49 @@ impl Walker<'_> {
                 }
             }
             ENTITY => self.push(range, TokenType::Entity, 0),
-            MACRO => self.push(range, TokenType::Macro, 0),
-            BOLD => self.children(node, emphasis(modifier::BOLD)),
-            ITALIC => self.children(node, emphasis(modifier::ITALIC)),
-            UNDERLINE => self.children(node, emphasis(modifier::UNDERLINE)),
-            STRIKE_THROUGH => self.children(node, emphasis(modifier::STRIKETHROUGH)),
+            MACRO => self.macro_call(node),
             BLOCK | DYNAMIC_BLOCK => self.block(node),
             _ => self.children(node, style),
         }
+    }
+
+    /// Emphasis in the look `org-emphasis-alist` gives its marker; the
+    /// text as around it with `org-fontify-emphasized-text` off.
+    fn emphasis(&mut self, node: &SyntaxNode, style: Style) {
+        let kind = node.kind();
+        let Some(looks) = self.fontify.emphasis else {
+            return self.children(node, style);
+        };
+        let index = [BOLD, ITALIC, UNDERLINE, VERBATIM, CODE, STRIKE_THROUGH]
+            .iter()
+            .position(|other| *other == kind)
+            .unwrap_or(0);
+        let look = looks[index];
+        let style = match look.ty {
+            Some(ty) => Style { text: Some(ty), modifiers: look.modifiers },
+            None => Style { text: style.text.or(Some(TokenType::Text)), modifiers: style.modifiers | look.modifiers },
+        };
+        match kind {
+            // Code and verbatim text hold no other objects: one token, or
+            // with their markers apart to hide them.
+            CODE | VERBATIM if !self.conceal.emphasis => {
+                self.push(node.text_range(), style.text.unwrap_or(TokenType::Text), style.modifiers)
+            }
+            _ => self.children(node, style),
+        }
+    }
+
+    /// `{{{name(args)}}}`, its braces hidden with `org-hide-macro-markers`.
+    fn macro_call(&mut self, node: &SyntaxNode) {
+        let range = node.text_range();
+        let text = node.text().to_string();
+        if !self.fontify.hide_macro_markers || !text.starts_with("{{{") || !text.ends_with("}}}") || text.len() < 6 {
+            return self.push(range, TokenType::Macro, 0);
+        }
+        let three = TextSize::from(3);
+        self.push(TextRange::new(range.start(), range.start() + three), TokenType::Macro, modifier::HIDDEN);
+        self.push(TextRange::new(range.start() + three, range.end() - three), TokenType::Macro, 0);
+        self.push(TextRange::new(range.end() - three, range.end()), TokenType::Macro, modifier::HIDDEN);
     }
 
     fn headline(&mut self, node: &SyntaxNode) {
@@ -762,14 +832,21 @@ impl Walker<'_> {
     /// `org-document-info`.
     fn keyword(&mut self, node: &SyntaxNode) {
         let key = node.children_with_tokens().find(|child| child.kind() == KEYWORD_KEY).map(|key| key.to_string());
-        let value = match key.map(|key| key.to_ascii_lowercase()).as_deref() {
+        let value = match key.as_ref().map(|key| key.to_ascii_lowercase()).as_deref() {
             Some("#+title:") => Some(TokenType::DocumentTitle),
             Some("#+subtitle:" | "#+author:" | "#+email:" | "#+date:") => Some(TokenType::DocumentInfo),
             _ => None,
         };
+        let hidden = key.as_deref().is_some_and(|key| {
+            let name = key.trim().trim_start_matches("#+").trim_end_matches(':').to_ascii_lowercase();
+            let bit = HIDDEN_KEYWORDS.iter().position(|hidden| *hidden == name);
+            value.is_some() && bit.is_some_and(|bit| self.fontify.hidden_keywords & (1 << bit) != 0)
+        });
         for child in node.children_with_tokens() {
             match (child.kind(), value) {
                 (KEYWORD_VALUE, Some(ty)) => self.push(child.text_range(), ty, 0),
+                // `org-hidden-keywords`: `#+TITLE:` hidden, its value shown.
+                (KEYWORD_KEY, _) if hidden => self.push(child.text_range(), TokenType::Keyword, modifier::HIDDEN),
                 _ => self.element(node, child, Style::PLAIN),
             }
         }
@@ -1012,11 +1089,41 @@ mod tests {
     }
 
     #[test]
+    fn markup_options() {
+        // `org-emphasis-alist` with bold italic and code as verbatim, no
+        // look for underline (left out); `org-hidden-keywords` hiding the
+        // title's keyword, `org-hide-macro-markers` the braces.
+        let mut emphasis = [Emphasis::NONE; 6];
+        emphasis[0] = Emphasis { ty: None, modifiers: modifier::BOLD | modifier::ITALIC };
+        emphasis[4] = Emphasis { ty: Some(TokenType::Verbatim), modifiers: 0 };
+        let fontify =
+            Fontify { emphasis: Some(emphasis), hidden_keywords: 1, hide_macro_markers: true, ..Fontify::default() };
+        let text = "#+TITLE: Doc\n#+AUTHOR: Me\n*b* _u_ ~c~ {{{m(1)}}}\n";
+        expect![[r##"
+            0:0 "#+TITLE:" keyword +hidden
+            0:9 "Doc" documentTitle
+            1:0 "#+AUTHOR:" keyword
+            1:10 "Me" documentInfo
+            2:0 "*b*" text +bold +italic
+            2:4 "_u_" text
+            2:8 "~c~" verbatim
+            2:12 "{{{" macro +hidden
+            2:15 "m(1)" macro
+            2:19 "}}}" macro +hidden
+        "##]]
+        .assert_eq(&render_with(text, Encoding::Utf16, Conceal::default(), fontify));
+        // `org-fontify-emphasized-text` off: no looks.
+        let plain = Fontify { emphasis: None, ..Fontify::default() };
+        expect![[""]].assert_eq(&render_with("*b* ~c~\n", Encoding::Utf16, Conceal::default(), plain));
+    }
+
+    #[test]
     fn fontify_options() {
         // `org-fontify-todo-headline` on, `org-fontify-done-headline` off,
         // `org-fontify-quote-and-verse-blocks` on: the text of quote and
         // verse blocks, under the emphasis it carries.
-        let fontify = Fontify { done_headline: false, todo_headline: true, quote_and_verse: true };
+        let fontify =
+            Fontify { done_headline: false, todo_headline: true, quote_and_verse: true, ..Fontify::default() };
         let text = "* TODO [#A] Call :x:\n* DONE Done\n#+begin_quote\nSaid *this*\n#+end_quote\n\
                     #+begin_verse\nA line\n#+end_verse\n#+begin_example\nraw\n#+end_example\n";
         expect![[r##"

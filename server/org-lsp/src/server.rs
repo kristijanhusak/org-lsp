@@ -1436,7 +1436,7 @@ pub fn run(connection: Connection) -> Result<()> {
         },
         conceal: highlight::Conceal {
             links: options.link_descriptive.unwrap_or(true),
-            emphasis: options.hide_emphasis_markers.unwrap_or(false),
+            emphasis: options.conceal_emphasis(),
         },
         saving: HashMap::new(),
         applying: HashMap::new(),

@@ -640,6 +640,18 @@ pub struct Options {
     /// `org-hide-emphasis-markers`
     #[serde(rename = "org_hide_emphasis_markers")]
     pub hide_emphasis_markers: Option<bool>,
+    /// `org-fontify-emphasized-text`
+    #[serde(rename = "org_fontify_emphasized_text")]
+    pub fontify_emphasized_text: Option<bool>,
+    /// `org-emphasis-alist`: a face by marker.
+    #[serde(rename = "org_emphasis_alist")]
+    pub emphasis_alist: Option<std::collections::BTreeMap<String, serde_json::Value>>,
+    /// `org-hidden-keywords`
+    #[serde(rename = "org_hidden_keywords")]
+    pub hidden_keywords: Option<Vec<String>>,
+    /// `org-hide-macro-markers`
+    #[serde(rename = "org_hide_macro_markers")]
+    pub hide_macro_markers: Option<bool>,
     /// Save the files a command changes other than the one it was run in.
     pub auto_save: Option<bool>,
     /// RET on the first line of a list item makes the next item, as M-RET.
@@ -1712,7 +1724,32 @@ impl Options {
             done_headline: self.fontify_done_headline.unwrap_or(defaults.done_headline),
             todo_headline: self.fontify_todo_headline.unwrap_or(defaults.todo_headline),
             quote_and_verse: self.fontify_quote_and_verse_blocks.unwrap_or(defaults.quote_and_verse),
+            emphasis: self.emphasis_looks(),
+            hidden_keywords: self.hidden_keywords.iter().flatten().fold(0, |bits, name| {
+                let bit = crate::highlight::HIDDEN_KEYWORDS.iter().position(|hidden| *hidden == name.as_str());
+                bit.map_or(bits, |bit| bits | (1 << bit))
+            }),
+            hide_macro_markers: self.hide_macro_markers.unwrap_or(false),
         }
+    }
+
+    /// The looks of emphasis (`org-emphasis-alist`), none with
+    /// `org-fontify-emphasized-text` off.
+    fn emphasis_looks(&self) -> Option<[crate::highlight::Emphasis; 6]> {
+        use crate::highlight::Emphasis;
+        if self.fontify_emphasized_text == Some(false) {
+            return None;
+        }
+        let Some(alist) = &self.emphasis_alist else {
+            return Some(Emphasis::DEFAULTS);
+        };
+        Some(Emphasis::MARKERS.map(|marker| alist.get(marker).map_or(Emphasis::NONE, emphasis_face)))
+    }
+
+    /// Whether the markers of emphasis are hidden: with
+    /// `org-hide-emphasis-markers`, where emphasis is shown at all.
+    pub fn conceal_emphasis(&self) -> bool {
+        self.hide_emphasis_markers.unwrap_or(false) && self.fontify_emphasized_text != Some(false)
     }
 
     /// What a folded heading shows after its text (`org-ellipsis`): the
@@ -2501,6 +2538,48 @@ fn current_settings(holder: &mut serde_json::Value, renamed: &mut Vec<String>) {
 /// An option of `agenda` as it was named before, under its name now.
 /// `org_agenda_time_grid` was an object; `org_agenda_time_grid` is Org's list, and
 /// its `now` is `org_agenda_current_time_string`.
+/// A face of `org-emphasis-alist` as a look: Org's faces of emphasis by
+/// name, the attributes editors can show of a property list, or a list of
+/// them. Colors and other faces add nothing.
+fn emphasis_face(face: &serde_json::Value) -> crate::highlight::Emphasis {
+    use crate::highlight::{modifier, Emphasis, TokenType};
+    let mut look = Emphasis::NONE;
+    let mut add = |name: &str| {
+        let name = name.trim();
+        if name.starts_with(':') {
+            let words: Vec<&str> = name.split_whitespace().collect();
+            for pair in words.chunks(2) {
+                let on = pair.get(1).is_some_and(|value| !matches!(*value, "nil" | "normal"));
+                look.modifiers |= match (pair[0], pair.get(1).copied()) {
+                    (":weight", Some("bold" | "extra-bold" | "ultra-bold" | "semi-bold" | "heavy" | "black")) => {
+                        modifier::BOLD
+                    }
+                    (":slant", Some("italic" | "oblique")) => modifier::ITALIC,
+                    (":underline", _) if on => modifier::UNDERLINE,
+                    (":strike-through", _) if on => modifier::STRIKETHROUGH,
+                    _ => 0,
+                };
+            }
+            return;
+        }
+        match name {
+            "bold" => look.modifiers |= modifier::BOLD,
+            "italic" => look.modifiers |= modifier::ITALIC,
+            "bold-italic" => look.modifiers |= modifier::BOLD | modifier::ITALIC,
+            "underline" => look.modifiers |= modifier::UNDERLINE,
+            "org-code" => look.ty = look.ty.or(Some(TokenType::Code)),
+            "org-verbatim" => look.ty = look.ty.or(Some(TokenType::Verbatim)),
+            _ => {}
+        }
+    };
+    match face {
+        serde_json::Value::String(name) => add(name),
+        serde_json::Value::Array(names) => names.iter().filter_map(serde_json::Value::as_str).for_each(&mut add),
+        _ => {}
+    }
+    look
+}
+
 fn old_agenda_option(key: &str, field: serde_json::Value) -> Option<(String, serde_json::Value)> {
     if key == "timeGrid" {
         let grid = TimeGrid::default();
@@ -3420,6 +3499,36 @@ impl AgendaOptions {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn emphasis_looks_as_org_emphasis_alist_gives_them() {
+        use crate::highlight::{modifier, Emphasis, TokenType};
+        let options: Options = serde_json::from_value(serde_json::json!({
+            "org_emphasis_alist": {
+                "*": ["bold", "italic"],
+                "/": ":slant italic :foreground red",
+                "~": "org-verbatim",
+                "+": false
+            }
+        }))
+        .unwrap();
+        let looks = options.fontify().emphasis.unwrap();
+        assert_eq!(looks[0], Emphasis { ty: None, modifiers: modifier::BOLD | modifier::ITALIC });
+        assert_eq!(looks[1], Emphasis { ty: None, modifiers: modifier::ITALIC });
+        // Left out: no look, as in Emacs.
+        assert_eq!(looks[2], Emphasis::NONE);
+        assert_eq!(looks[4], Emphasis { ty: Some(TokenType::Verbatim), modifiers: 0 });
+        assert_eq!(looks[5], Emphasis::NONE);
+        let off: Options = serde_json::from_value(
+            serde_json::json!({ "org_fontify_emphasized_text": false, "org_hide_emphasis_markers": true }),
+        )
+        .unwrap();
+        assert_eq!(off.fontify().emphasis, None);
+        assert!(!off.conceal_emphasis());
+        let hidden: Options =
+            serde_json::from_value(serde_json::json!({ "org_hidden_keywords": ["author", "title"] })).unwrap();
+        assert_eq!(hidden.fontify().hidden_keywords, 0b101);
+    }
 
     #[test]
     fn defaults_are_orgs() {

@@ -2933,6 +2933,60 @@
               "markdownDescription": "Hide the markers around `*bold*`, `/italic/`, `_underline_`, `+strike-through+`, `=verbatim=` and `~code~`, as for links. (`org-hide-emphasis-markers`)",
               "default": false
             },
+            "org_fontify_emphasized_text": {
+              "type": "boolean",
+              "markdownDescription": "Show `*bold*`, `/italic/`, `_underline_`, `+strike-through+`, `=verbatim=` and `~code~` in their looks. With `false` they look as the text around them, their markers shown. (`org-fontify-emphasized-text`)",
+              "default": true
+            },
+            "org_emphasis_alist": {
+              "type": "object",
+              "propertyNames": {
+                "enum": [
+                  "*",
+                  "/",
+                  "_",
+                  "=",
+                  "~",
+                  "+"
+                ]
+              },
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "const": false
+                  },
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                ]
+              },
+              "markdownDescription": "The look of each kind of emphasis, by its marker (`*`, `/`, `_`, `=`, `~`, `+`): a face of Org's, `bold`, `italic`, `bold-italic`, `underline`, `org-code` or `org-verbatim`, attributes as Org writes them (`:weight bold :slant italic :underline t :strike-through t`), or a list of them; `false` for none. As in Emacs, a marker left out has no look. Colors are not shown. (`org-emphasis-alist`)"
+            },
+            "org_hidden_keywords": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "title",
+                  "subtitle",
+                  "author",
+                  "email",
+                  "date"
+                ]
+              },
+              "markdownDescription": "The keywords hidden before their values, such as `#+TITLE:` with `[\"title\"]`, in editors that conceal text. (`org-hidden-keywords`)",
+              "default": []
+            },
+            "org_hide_macro_markers": {
+              "type": "boolean",
+              "markdownDescription": "Hide the braces of macro calls, `{{{` and `}}}`, in editors that conceal text. (`org-hide-macro-markers`)",
+              "default": false
+            },
             "org_pretty_entities": {
               "type": "boolean",
               "markdownDescription": "Show entities (`\\alpha`, `\\to`) as their character (`α`, `→`): the entity is hidden as link brackets are, and its character is an inlay hint in its place. (`org-pretty-entities`)",
@@ -5290,7 +5344,7 @@
       },
       {
         "id": "hidden",
-        "description": "Text Org hides (link brackets and targets, emphasis markers); editors that can conceal text conceal it"
+        "description": "Text Org hides (link brackets and targets, emphasis markers, hidden keywords, macro braces); editors that can conceal text conceal it"
       },
       {
         "id": "clocking",

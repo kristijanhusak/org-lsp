@@ -111,7 +111,8 @@ export const AREAS = [
       ['Sub- and superscripts raised and lowered (`org-pretty-entities-include-sub-superscripts`, `org-use-sub-superscripts`): where Org raises them, shown in Unicode (`x²`, `H₂O`) in place of the hidden text (drawn by the editor where it can, else an inlay hint) where every character has a raised or lowered form; the others left as they are, as an editor cannot raise text', true],
       ['Done headlines in `org-headline-done` past their keyword (`org-fontify-done-headline` at its default), complete statistics cookies as done, the title and the information of the document (`org-document-title`, `org-document-info`)', true],
       ['Headlines past a done or TODO keyword, and the lines of quote and verse blocks, in their own look (`org-fontify-done-headline`, `org-fontify-todo-headline`, `org-fontify-quote-and-verse-blocks`)', true],
-      ['The other options of how headlines and markup are shown, set away from their defaults (`org-fontify-whole-heading-line`, `org-hidden-keywords`, `org-hide-macro-markers`, `org-emphasis-alist`, `org-cycle-level-faces`, `org-n-level-faces`)', false],
+      ['Emphasis in the looks of `org-emphasis-alist` (bold, italic, underline, strike-through, code and verbatim, not colors), or none (`org-fontify-emphasized-text`); keywords such as `#+TITLE:` and the braces of macros hidden (`org-hidden-keywords`, `org-hide-macro-markers`)', true],
+      ['The other options of how headlines and markup are shown, set away from their defaults (`org-fontify-whole-heading-line`, `org-cycle-level-faces`, `org-n-level-faces`)', false],
     ],
     editors: {
       vim: ['part', 'Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Vim cannot hide text that has text properties.'],
@@ -125,6 +126,8 @@ export const AREAS = [
       { text: '`*bold*`, `/italic/`, `_underline_`, `+strike+`, `=verbatim=` and `~code~` are colored' },
       { text: 'A link shows its description alone; its brackets and target show when the cursor is on its line', not: ['vim', 'sublime', 'zed'] },
       { text: 'With `org_hide_emphasis_markers = true`, the markers of `*bold*` are hidden', not: ['vim', 'sublime', 'zed'] },
+      { text: 'With `org_emphasis_alist = { "*": ["bold", "italic"] }`, `*this*` is bold and italic and `/that/` plain; with `org_fontify_emphasized_text = false` neither has a look', not: ['helix'] },
+      { text: 'With `org_hidden_keywords = ["title"]` and `org_hide_macro_markers = true`, `#+TITLE:` is hidden before the title, and `{{{x}}}` shows as `x`', not: ['vim', 'sublime', 'zed', 'helix'] },
       { text: 'With `org_pretty_entities = true`, `\\alpha` shows as `α`', not: ['vim', 'sublime', 'zed'] },
       { text: 'With `org_bullets_mode = true`, `** Two` shows as `○ Two`, its first star hidden', not: ['vim', 'sublime', 'zed'] },
       { text: 'With `org_bullets_mode = true`, a level 1 bullet has the color of a level 1 headline', only: ['neovim'] },
