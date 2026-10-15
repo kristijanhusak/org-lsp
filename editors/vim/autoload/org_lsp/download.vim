@@ -1,7 +1,8 @@
 " Downloading the server: the build of a GitHub release for this
 " platform, unpacked into Vim's data directory
 " (`~/.local/share/vim/org-lsp/org-lsp`). It needs `curl` and `tar`
-" (Windows 10 and newer have both). A release curl cannot fetch, as one of
+" (Windows 10 and newer have both; on Windows its own `tar` is used, else
+" PowerShell). A release curl cannot fetch, as one of
 " a private repository, is fetched with the GitHub CLI (`gh`) when it is
 " installed and logged in.
 
@@ -51,6 +52,24 @@ function! org_lsp#download#version() abort
   return filereadable(file) ? get(readfile(file), 0, '') : ''
 endfunction
 
+" The command that unpacks the archive `file` into the directory `dir`. On
+" Windows it is Windows' own `tar` (bsdtar, which reads zip files): the
+" `tar` found first may be Git's GNU tar, which takes `C:` in a path for a
+" remote host and cannot read zip files. Without it, PowerShell's
+" `Expand-Archive`.
+function! org_lsp#download#unpack_command(file, dir) abort
+  if !has('win32')
+    return ['tar', '-xf', a:file, '-C', a:dir]
+  endif
+  let system_tar = (empty($SystemRoot) ? 'C:\Windows' : $SystemRoot) . '\System32\tar.exe'
+  if executable(system_tar)
+    return [system_tar, '-xf', a:file, '-C', a:dir]
+  endif
+  let Quote = {text -> "'" . substitute(text, "'", "''", 'g') . "'"}
+  return ['powershell.exe', '-NoProfile', '-NonInteractive', '-Command',
+        \ printf('Expand-Archive -Force -LiteralPath %s -DestinationPath %s', Quote(a:file), Quote(a:dir))]
+endfunction
+
 " Run `cmd`, then `Callback` with '' or what went wrong.
 function! s:run(cmd, Callback) abort
   let state = {'errors': []}
@@ -77,7 +96,8 @@ function! org_lsp#download#download(release, Callback) abort
     return a:Callback(printf('there is no build for %s; build it with `cargo build --release -p org-lsp`',
           \ has('win32') ? 'this Windows machine' : trim(system('uname -sm'))), '')
   endif
-  for tool in ['curl', 'tar']
+  " Windows has its own way to unpack, see `org_lsp#download#unpack_command`.
+  for tool in has('win32') ? ['curl'] : ['curl', 'tar']
     if !executable(tool)
       return a:Callback(tool . ' is not installed', '')
     endif
@@ -95,7 +115,8 @@ endfunction
 
 function! s:fetched(state, error) abort
   if empty(a:error)
-    return s:run(['tar', '-xf', a:state.file, '-C', a:state.staging], {error -> s:unpacked(a:state, error)})
+    return s:run(org_lsp#download#unpack_command(a:state.file, a:state.staging),
+          \ {error -> s:unpacked(a:state, error)})
   endif
   " A private repository's files need GitHub's login, which `gh` has.
   if executable('gh') && a:state.url =~# '^https://github\.com/' && !get(a:state, 'gh', 0)
