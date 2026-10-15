@@ -3663,11 +3663,16 @@ fn agenda_actions_match_emacs() {
         };
         // The files as they read once the editor has applied the edit.
         let mut after: serde_json::Map<String, Value> = files.clone();
+        // An archive file left unsaved, as Emacs leaves it, is no file of
+        // the case.
         for request in client.received.iter().filter(|request| request.method == "workspace/applyEdit") {
-            let (uri, edits) = edits_of(request);
-            let name = uri.rsplit('/').next().unwrap().to_string();
-            let changed = apply(after[&name].as_str().unwrap(), &edits);
-            after.insert(name, Value::String(changed));
+            for change in request.params["edit"]["documentChanges"].as_array().unwrap() {
+                let uri = change["textDocument"]["uri"].as_str().unwrap();
+                let name = uri.rsplit('/').next().unwrap().to_string();
+                let Some(now) = after.get(&name).and_then(Value::as_str) else { continue };
+                let changed = apply(now, change["edits"].as_array().unwrap());
+                after.insert(name, Value::String(changed));
+            }
         }
         changed += usize::from(after != *files);
         // A command that changes the view: the new text, and where the
@@ -4794,8 +4799,10 @@ fn run_edit(client: &mut Client, command: &str, uri: &str, at: (u32, u32), extra
 
 /// `C-c C-x C-s` (`org-archive-subtree`): the subtree goes to the archive
 /// file, which is written when no editor has it open, and `$` does the
-/// same from the agenda. `C-c C-x a` tags a subtree as archived, and
-/// `C-u C-c C-x C-s` asks about each subtree without open TODO items.
+/// same from the agenda, where the archive file is an edit left unsaved
+/// (`org-archive-subtree-save-file-p` is `from-org`). `C-c C-x a` tags a
+/// subtree as archived, and `C-u C-c C-x C-s` asks about each subtree
+/// without open TODO items.
 #[test]
 fn archives_subtrees() {
     let root = workspace("archive");
@@ -4829,9 +4836,19 @@ fn archives_subtrees() {
     client.command("org.agenda.todos", VIEW, 0);
     let view = client.show_view();
     let line = view.lines().position(|line| line.contains("Write report")).unwrap() as u32;
+    let before = std::fs::read_to_string(&archive).unwrap();
     run_edit(&mut client, "org.archive.subtree", VIEW, (line, 0), json!({}), &mut text);
     assert_eq!(text, "#+CATEGORY: work\n* Meeting <2026-05-19 Tue 14:00-15:00>\n");
-    assert!(std::fs::read_to_string(&archive).unwrap().contains("\n* TODO [#A] Write report :office:\n"));
+    assert_eq!(std::fs::read_to_string(&archive).unwrap(), before, "not saved from the agenda");
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").unwrap();
+    let changes = edit.params["edit"]["documentChanges"].as_array().unwrap();
+    let to_archive = changes
+        .iter()
+        .find(|change| change["textDocument"]["uri"] == format!("file://{}", archive.display()))
+        .expect("an edit of the archive");
+    assert_eq!(to_archive["textDocument"]["version"], Value::Null);
+    let archived = apply(&before, to_archive["edits"].as_array().unwrap());
+    assert!(archived.contains("\n* TODO [#A] Write report :office:\n"), "{archived}");
     assert!(!client.refetch_view().contains("Write report"));
 
     // The tag, on and off.
@@ -4856,6 +4873,59 @@ fn archives_subtrees() {
     assert_eq!(result, json!({ "message": "1 trees archived" }));
     assert_eq!(text, "Intro\n* DONE A\n* TODO B\n");
     assert!(std::fs::read_to_string(root.join("done.org_archive")).unwrap().contains("* DONE C\n"));
+    // `true`: saved from the agenda too, the archive written.
+    client.shutdown();
+    let mut options = clock();
+    options["org_agenda_files"] = json!([root.display().to_string()]);
+    options["org_archive_subtree_save_file_p"] = json!(true);
+    let mut client = Client::editor(options, None);
+    let mut text = "* TODO Again\n* Meeting <2026-05-19 Tue 14:00-15:00>\n".to_string();
+    client.open(&work, &text);
+    client.command("org.agenda.todos", VIEW, 0);
+    let view = client.show_view();
+    let line = view.lines().position(|line| line.contains("Again")).unwrap() as u32;
+    run_edit(&mut client, "org.archive.subtree", VIEW, (line, 0), json!({}), &mut text);
+    assert_eq!(text, "* Meeting <2026-05-19 Tue 14:00-15:00>\n");
+    assert!(std::fs::read_to_string(&archive).unwrap().contains("\n* TODO Again\n"));
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// From the agenda, a new archive file is made by the edit (a `create`
+/// resource operation) and left unsaved, when the client can make files.
+#[test]
+fn archives_from_the_agenda_to_a_new_file_left_unsaved() {
+    let root = workspace("archive-new");
+    let mut options = clock();
+    options["org_agenda_files"] = json!([root.display().to_string()]);
+    let capabilities = json!({
+        "workspace": {
+            "textDocumentContent": { "dynamicRegistration": true },
+            "workspaceEdit": { "documentChanges": true, "resourceOperations": ["create"] }
+        },
+        "window": { "showDocument": { "support": true } },
+        "general": { "positionEncodings": ["utf-8"] }
+    });
+    let mut client = Client::start(capabilities, options, None);
+    let work = format!("file://{}/work.org", root.display());
+    client.open(&work, "* TODO Old\n");
+    client.command("org.agenda.todos", VIEW, 0);
+    let view = client.show_view();
+    let line = view.lines().position(|line| line.contains("Old")).unwrap() as u32;
+    client.received.clear();
+    let context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } });
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.archive.subtree", "arguments": [context] }))
+        .unwrap();
+    client.settle();
+    let archive = root.join("work.org_archive");
+    assert!(!archive.exists(), "not written");
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").unwrap();
+    let changes = edit.params["edit"]["documentChanges"].as_array().unwrap();
+    let archive_uri = format!("file://{}", archive.display());
+    assert_eq!(changes[0], json!({ "kind": "create", "uri": archive_uri }));
+    let made = changes.iter().find(|change| change["textDocument"]["uri"] == archive_uri).unwrap();
+    assert!(made["edits"][0]["newText"].as_str().unwrap().contains("* TODO Old\n"));
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
 }

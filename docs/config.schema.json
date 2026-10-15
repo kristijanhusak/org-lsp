@@ -1257,6 +1257,16 @@
       "description": "What `org.archive.default` does: archive the subtree, archive it under its sibling, or tag it. (`org-archive-default-command`)",
       "default": "subtree"
     },
+    "org_archive_subtree_save_file_p": {
+      "enum": [
+        true,
+        false,
+        "from-org",
+        "from-agenda"
+      ],
+      "description": "Whether the archive file is saved once a subtree goes there: always (`true`), when archiving from an Org file (`from-org`), from the agenda (`from-agenda`), or never (`false`). Unsaved, it is left with its changes in the editor, as `auto_save` does not save it. (`org-archive-subtree-save-file-p`)",
+      "default": "from-org"
+    },
     "org_capture_templates_contexts": {
       "type": "array",
       "items": {

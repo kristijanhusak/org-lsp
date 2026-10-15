@@ -377,10 +377,13 @@
   "org-archive-reversed-order": "setting",
   "org-archive-sibling-heading": "setting",
   "org-archive-mark-done": "setting",
-  "org-archive-stamp-time": "missing",
+  "org-archive-stamp-time": [
+   "other",
+   "no effect in Org 9.8.10, which keeps it for old configurations: `org_archive_save_context_info` with `time` decides"
+  ],
   "org-archive-file-header-format": "setting",
   "org-archive-subtree-add-inherited-tags": "setting",
-  "org-archive-subtree-save-file-p": "missing",
+  "org-archive-subtree-save-file-p": "setting",
   "org-archive-save-context-info": "setting",
   "org-archive-hook": "lisp",
   "org-archive-finalize-hook": "lisp"

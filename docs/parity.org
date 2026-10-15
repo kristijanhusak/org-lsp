@@ -28,7 +28,7 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#capture][Capture]] | 100% | 11 of 11 |
 | [[#notes-org-roam][Notes (org-roam)]] | 86% | 12 of 14 |
 | [[#a-journal-org-journal][A journal (org-journal)]] | 77% | 10 of 13 |
-| [[#refile-and-archive][Refile and archive]] | 100% | 11 of 11 |
+| [[#refile-and-archive][Refile and archive]] | 100% | 12 of 12 |
 | [[#links][Links]] | 100% | 15 of 15 |
 | [[#footnotes][Footnotes]] | 100% | 4 of 4 |
 | [[#tables][Tables]] | 95% | 18 of 19 |
@@ -426,7 +426,7 @@ Where editors fall short:
 :CUSTOM_ID: refile-and-archive
 :END:
 
-100% (11 of 11)
+100% (12 of 12)
 
 - ✅ Refiling to a heading, between files too (~org-refile-targets~)
 - ✅ Archiving a subtree to its archive file
@@ -434,6 +434,7 @@ Where editors fall short:
 - ✅ Toggling the ~ARCHIVE~ tag
 - ✅ Archive locations, ~ARCHIVE~ properties, date trees, ~ARCHIVE_…~ context
 - ✅ Archiving all done subtrees
+- ✅ The archive file saved, or left with its changes in the editor, as ~org-archive-subtree-save-file-p~ says (from the agenda it is not, by default)
 - ✅ Logging refiles (~org-log-refile~)
 - ✅ Creating parent nodes as the target (~org-refile-allow-creating-parent-nodes~)
 - ✅ Refiling a region (a selection of whole subtrees)
@@ -742,16 +743,16 @@ Where editors fall short:
 :END:
 
 Each of the 1025 options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with
-it. Of the 304 that change what org-lsp does itself, 92% can be set.
+it. Of the 304 that change what org-lsp does itself, 93% can be set.
 [[file:../scripts/org-options.json][scripts/org-options.json]] says it for each; ~scripts/check.sh~ fails when the
 server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,
 when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 269 | A setting of the same name |
-| missing | 23 | org-lsp does what the option is about, but the option cannot be set yet |
-| other | 12 | Done another way, as its note says |
+| setting | 270 | A setting of the same name |
+| missing | 21 | org-lsp does what the option is about, but the option cannot be set yet |
+| other | 13 | Done another way, as its note says |
 | emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 48 | Its value is Lisp (a function, a hook), which the server does not run |
 | absent | 86 | Part of something org-lsp does not do |
@@ -761,6 +762,7 @@ when Org has an option it does not list.
 
 - ~org-agenda-add-entry-text-maxlines~ :: entry text mode (~E~) shows ~org_agenda_entry_text_maxlines~ lines; text added to agenda files written with ~C-x C-w~ is not
 - ~org-agenda-skip-timestamp-if-deadline-is-shown~ :: no effect in Org 9.8.10: ~org-agenda-get-timestamps~ looks the entry up with ~assq~ in a list of positions, which finds none; none here either
+- ~org-archive-stamp-time~ :: no effect in Org 9.8.10, which keeps it for old configurations: ~org_archive_save_context_info~ with ~time~ decides
 - ~org-cycle-level-after-item/entry-creation~ :: the setting ~org_cycle_level_after_item_entry_creation~, its name without the ~/~
 - ~org-id-locations-file-relative~ :: org-lsp reads the locations file and never writes it; names in it that are not absolute are relative to its directory, as Emacs reads them
 - ~org-tab-follows-link~ :: TAB is the editor's key for folding and tables; a link is followed with org.open (C-c C-o), go to definition, or RET with org_return_follows_link
@@ -778,7 +780,6 @@ Options of what org-lsp does that cannot be set yet, by the file of Org they are
 
 - ob-core.el (2) :: ~org-babel-noweb-wrap-start~, ~org-babel-noweb-wrap-end~
 - ob-tangle.el (8) :: ~org-babel-tangle-lang-exts~, ~org-babel-tangle-use-relative-file-links~, ~org-babel-tangle-comment-format-beg~, ~org-babel-tangle-comment-format-end~, ~org-babel-tangle-uncomment-comments~, ~org-babel-process-comment-text~, ~org-babel-tangle-default-file-mode~, ~org-babel-tangle-remove-file-before-write~
-- org-archive.el (2) :: ~org-archive-stamp-time~, ~org-archive-subtree-save-file-p~
 - org-entities.el (1) :: ~org-entities-user~
 - org-list.el (2) :: ~org-plain-list-ordered-item-terminator~, ~org-list-allow-alphabetical~
 - org.el (8) :: ~org-odd-levels-only~, ~org-todo-interpretation~, ~org-treat-insert-todo-heading-as-state-change~, ~org-treat-S-cursor-todo-selection-as-state-change~, ~org-priority-enable-commands~, ~org-edit-timestamp-down-means-later~, ~org-custom-properties~, ~org-track-ordered-property-with-tag~

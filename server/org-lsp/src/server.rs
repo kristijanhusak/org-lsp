@@ -81,6 +81,8 @@ struct Client {
     document_changes: bool,
     /// A workspace edit may delete files (`resourceOperations`).
     delete_files: bool,
+    /// A workspace edit may create files.
+    create_files: bool,
     /// The client fetches documents of the agenda scheme from the server.
     virtual_documents: bool,
     show_document: bool,
@@ -987,6 +989,9 @@ struct Server {
     id_lookup: (crate::config::IdLookup, Vec<RefileTarget>),
     /// How archiving goes, and `org-archive-default-command`.
     archive: (ArchiveSettings, String),
+    /// `org-archive-subtree-save-file-p`: the archive file saved when
+    /// archiving from an Org file, and from the agenda.
+    archive_save: (bool, bool),
     /// `org-capture-templates`, `org-directory` and
     /// `org-default-notes-file`.
     capture_templates: Vec<CaptureTemplateOption>,
@@ -1316,6 +1321,14 @@ pub fn run(connection: Connection) -> Result<()> {
             .filter(|edit| edit.document_changes == Some(true))
             .and_then(|edit| edit.resource_operations.as_ref())
             .is_some_and(|operations| operations.contains(&lsp_types::ResourceOperationKind::Delete)),
+        create_files: params
+            .capabilities
+            .workspace
+            .as_ref()
+            .and_then(|workspace| workspace.workspace_edit.as_ref())
+            .filter(|edit| edit.document_changes == Some(true))
+            .and_then(|edit| edit.resource_operations.as_ref())
+            .is_some_and(|operations| operations.contains(&lsp_types::ResourceOperationKind::Create)),
         virtual_documents: options.virtual_documents.unwrap_or_else(|| {
             raw_params.pointer("/capabilities/workspace/textDocumentContent").is_some_and(|value| !value.is_null())
         }),
@@ -1507,6 +1520,7 @@ pub fn run(connection: Connection) -> Result<()> {
         refile: (options.refile_targets(), options.refile_outline_path(), options.refile_settings()),
         id_lookup: (options.id_lookup(), options.id_completion_targets()),
         archive: (options.archive_settings(), options.archive_default_command().to_string()),
+        archive_save: options.archive_save(),
         capture_templates: options.capture_templates(),
         capture_contexts: config::contexts(options.capture_templates_contexts.as_deref()),
         org_directory: options.org_directory(),
@@ -2630,9 +2644,19 @@ impl Server {
     /// changed from the agenda, the target of a capture or a refile) are
     /// saved once the editor has applied the edit.
     fn apply_edit(&mut self, params: lsp_types::ApplyWorkspaceEditParams, pending: Pending) {
+        self.apply_edit_request(params, pending);
+    }
+
+    /// [`Server::apply_edit`], and the request that asks for it, unless the
+    /// edit is held for later.
+    fn apply_edit_request(
+        &mut self,
+        params: lsp_types::ApplyWorkspaceEditParams,
+        pending: Pending,
+    ) -> Option<RequestId> {
         if self.staging.is_some() {
             self.stage(&params.edit);
-            return;
+            return None;
         }
         let mut files: Vec<Uri> = match (&params.edit.document_changes, &params.edit.changes) {
             (Some(lsp_types::DocumentChanges::Edits(edits)), _) => {
@@ -2652,7 +2676,9 @@ impl Server {
         if self.auto_save && !files.is_empty() {
             self.saving.insert(request.id.clone(), files);
         }
+        let id = request.id.clone();
         let _ = self.sender.send(Message::Request(request));
+        Some(id)
     }
 
     fn send_raw_request(&mut self, method: &str, params: Value, pending: Option<Pending>) {
@@ -8023,8 +8049,14 @@ impl Server {
             _ => return Err(format!("Unknown command {id}").into()),
         };
         // The entry's file, and the archive files open in an editor, get
-        // edits; the others are written.
+        // edits. The others are written when `org-archive-subtree-save-file-p`
+        // says the archive is saved, and else get edits too, which the
+        // editor keeps unsaved as Emacs keeps the archive's buffer.
+        let (save_from_org, save_from_agenda) = self.archive_save;
+        let save = if self.is_view(uri) { save_from_agenda } else { save_from_org };
         let mut documents = vec![(file.clone(), version, self.text_edits(&text, &archived.source))];
+        let mut created: Vec<(Uri, String)> = Vec::new();
+        let mut archives: Vec<Uri> = Vec::new();
         for written in &archived.files {
             let open = uri::from_path(&written.path).and_then(|found| {
                 let key = self
@@ -8040,25 +8072,71 @@ impl Server {
                     self.open_text(&key).unwrap_or_default(),
                 ))
             });
-            match open {
-                Some((uri, version, now)) => documents.push((uri, Some(version), self.text_edits(&now, &written.text))),
-                None => write_whole(&written.path, &written.text)?,
+            match (open, uri::from_path(&written.path)) {
+                (Some((uri, version, now)), _) => {
+                    documents.push((uri.clone(), Some(version), self.text_edits(&now, &written.text)));
+                    archives.push(uri);
+                }
+                (None, Some(uri)) if !save => match std::fs::read_to_string(&written.path) {
+                    Ok(now) => {
+                        documents.push((uri.clone(), None, self.text_edits(&now, &written.text)));
+                        archives.push(uri);
+                    }
+                    // A new file is made by the edit, when the editor can.
+                    Err(_) if self.client.create_files => {
+                        created.push((uri.clone(), written.text.clone()));
+                        archives.push(uri);
+                    }
+                    Err(_) => write_whole(&written.path, &written.text)?,
+                },
+                _ => write_whole(&written.path, &written.text)?,
             }
         }
         documents.retain(|(_, _, edits)| !edits.is_empty());
         if !archived.message.is_empty() {
             self.message = Some(archived.message);
         }
-        if documents.is_empty() {
+        if documents.is_empty() && created.is_empty() {
             self.refresh_view();
             return Ok(Value::Null);
         }
-        for (uri, _, _) in &documents {
+        for uri in documents.iter().map(|(uri, _, _)| uri).chain(created.iter().map(|(uri, _)| uri)) {
             self.edited.insert(uri.as_str().to_string());
         }
-        let edit = self.workspace_edits(documents);
+        let edit = if created.is_empty() {
+            self.workspace_edits(documents)
+        } else {
+            let mut operations: Vec<lsp_types::DocumentChangeOperation> = Vec::new();
+            for (uri, text) in created {
+                operations.push(lsp_types::DocumentChangeOperation::Op(lsp_types::ResourceOp::Create(
+                    lsp_types::CreateFile { uri: uri.clone(), options: None, annotation_id: None },
+                )));
+                documents.push((uri, None, vec![TextEdit { range: Range::default(), new_text: text }]));
+            }
+            operations.extend(documents.into_iter().map(|(uri, version, edits)| {
+                lsp_types::DocumentChangeOperation::Edit(TextDocumentEdit {
+                    text_document: OptionalVersionedTextDocumentIdentifier { uri, version },
+                    edits: edits.into_iter().map(OneOf::Left).collect(),
+                })
+            }));
+            WorkspaceEdit {
+                document_changes: Some(lsp_types::DocumentChanges::Operations(operations)),
+                ..Default::default()
+            }
+        };
         let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
-        self.apply_edit(params, Pending::Edit);
+        // The archive files are saved as `org-archive-subtree-save-file-p`
+        // says, whatever `auto_save` says.
+        if let Some(id) = self.apply_edit_request(params, Pending::Edit) {
+            let saved = self.saving.entry(id.clone()).or_default();
+            saved.retain(|uri| !archives.contains(uri));
+            if save {
+                saved.extend(archives);
+            }
+            if saved.is_empty() {
+                self.saving.remove(&id);
+            }
+        }
         Ok(Value::Null)
     }
 

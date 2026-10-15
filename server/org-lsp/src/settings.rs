@@ -1123,6 +1123,15 @@ pub const SETTINGS: &[Setting] = &[
         "What `org.archive.default` does: archive the subtree, archive it under its sibling, or tag it.",
     ),
     setting(
+        "org_archive_subtree_save_file_p",
+        r#"boolean, "from-org", "from-agenda""#,
+        r#""from-org""#,
+        "org-archive-subtree-save-file-p",
+        "Whether the archive file is saved once a subtree goes there: always (`true`), when archiving from an \
+         Org file (`from-org`), from the agenda (`from-agenda`), or never (`false`). Unsaved, it is left with \
+         its changes in the editor, as `auto_save` does not save it.",
+    ),
+    setting(
         "org_capture_templates_contexts",
         "object[]",
         "[]",
@@ -3225,6 +3234,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_archive_sibling_heading", STRING),
     ("org_archive_file_header_format", r#"{ "anyOf": [{ "type": "string" }, { "const": false }] }"#),
     ("org_archive_default_command", r#"{ "enum": ["subtree", "sibling", "tag"] }"#),
+    ("org_archive_subtree_save_file_p", r#"{ "enum": [true, false, "from-org", "from-agenda"] }"#),
     ("org_capture_templates_contexts", CONTEXTS),
     ("org_agenda_custom_commands_contexts", CONTEXTS),
     (

@@ -1459,6 +1459,13 @@ org_archive_file_header_format = "\nArchived entries from file %s\n\n"
 # sibling, or tag it. (org-archive-default-command)
 org_archive_default_command = "subtree"
 
+# Whether the archive file is saved once a subtree goes there: always
+# (`true`), when archiving from an Org file (`from-org`), from the agenda
+# (`from-agenda`), or never (`false`). Unsaved, it is left with its changes in
+# the editor, as `auto_save` does not save it.
+# (org-archive-subtree-save-file-p)
+org_archive_subtree_save_file_p = "from-org"
+
 # Where templates are offered. Each has the `key` of a template, `contexts`,
 # rules such as `{ "in_file": "work" }` (`in_file`, `in_mode`, `in_buffer`,
 # `not_in_file`, `not_in_mode` or `not_in_buffer`, each with a regexp of the
@@ -3188,6 +3195,13 @@ org_agenda_custom_commands = []
   // What `org.archive.default` does: archive the subtree, archive it under
   // its sibling, or tag it. (org-archive-default-command)
   "org_archive_default_command": "subtree",
+
+  // Whether the archive file is saved once a subtree goes there: always
+  // (`true`), when archiving from an Org file (`from-org`), from the agenda
+  // (`from-agenda`), or never (`false`). Unsaved, it is left with its changes
+  // in the editor, as `auto_save` does not save it.
+  // (org-archive-subtree-save-file-p)
+  "org_archive_subtree_save_file_p": "from-org",
 
   // Where templates are offered. Each has the `key` of a template,
   // `contexts`, rules such as `{ "in_file": "work" }` (`in_file`, `in_mode`,

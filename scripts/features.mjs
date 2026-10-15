@@ -649,6 +649,7 @@ export const AREAS = [
       ['Toggling the `ARCHIVE` tag', true],
       ['Archive locations, `ARCHIVE` properties, date trees, `ARCHIVE_…` context', true],
       ['Archiving all done subtrees', true],
+      ['The archive file saved, or left with its changes in the editor, as `org-archive-subtree-save-file-p` says (from the agenda it is not, by default)', true],
       ['Logging refiles (`org-log-refile`)', true],
       ['Creating parent nodes as the target (`org-refile-allow-creating-parent-nodes`)', true],
       ['Refiling a region (a selection of whole subtrees)', true],

@@ -582,6 +582,10 @@ pub struct Options {
     /// `org-archive-default-command`: `"subtree"`, `"sibling"` or `"tag"`.
     #[serde(rename = "org_archive_default_command")]
     pub archive_default_command: Option<String>,
+    /// `org-archive-subtree-save-file-p`: `true`, `false`, `"from-org"`
+    /// or `"from-agenda"`.
+    #[serde(rename = "org_archive_subtree_save_file_p")]
+    pub archive_subtree_save_file_p: Option<serde_json::Value>,
     /// `org-capture-templates`. Without it, Org's default: a TODO under
     /// "Tasks" in `org_default_notes_file`.
     #[serde(rename = "org_capture_templates")]
@@ -1559,6 +1563,17 @@ impl Options {
         match self.archive_default_command.as_deref() {
             Some(command @ ("sibling" | "tag")) => command,
             _ => "subtree",
+        }
+    }
+
+    /// `org-archive-subtree-save-file-p`: whether the archive file is
+    /// saved, archiving from an Org file (`.0`) and from the agenda (`.1`).
+    pub fn archive_save(&self) -> (bool, bool) {
+        match &self.archive_subtree_save_file_p {
+            Some(serde_json::Value::Bool(true)) => (true, true),
+            Some(serde_json::Value::Bool(false)) => (false, false),
+            Some(serde_json::Value::String(when)) if when == "from-agenda" => (false, true),
+            _ => (true, false),
         }
     }
 
