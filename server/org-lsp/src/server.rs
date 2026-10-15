@@ -1160,6 +1160,8 @@ struct Server {
     capture_use_agenda_date: bool,
     /// `org-agenda-persistent-filter`
     agenda_persistent_filter: bool,
+    /// `org-clock-in-resume`
+    clock_in_resume: bool,
     /// `org-open-directory-means-index-dot-org`
     open_directory_index: bool,
     /// `org-allow-promoting-top-level-subtree`
@@ -1640,6 +1642,7 @@ pub fn run(connection: Connection) -> Result<()> {
         open_non_existing_files: options.open_non_existing_files.unwrap_or(false),
         capture_use_agenda_date: options.capture_use_agenda_date.unwrap_or(false),
         agenda_persistent_filter: options.agenda_persistent_filter.unwrap_or(false),
+        clock_in_resume: options.clock_in_resume.unwrap_or(false),
         open_directory_index: options.open_directory_means_index_dot_org.unwrap_or(false),
         allow_promoting_top_level: options.allow_promoting_top_level_subtree.unwrap_or(false),
         odd_levels: options.odd_levels_only.unwrap_or(false),
@@ -14772,7 +14775,8 @@ impl Server {
         let (display, adapt) = (self.display, self.indent.adapt);
         let base = changes.iter().find(|(uri, ..)| *uri == file).map(|(_, _, _, new)| new.clone());
         let switch = self.clock_in_switch.clone().filter(|state| !state.is_empty());
-        let (todo, now_time) = (self.edit_settings.todo.clone(), now);
+        let (todo, now_time, resume) = (self.edit_settings.todo.clone(), now, self.clock_in_resume);
+        let mut resumed = None;
         let found = self.with_source(&file, |text, _, parse, outline, version| {
             let base = base.clone().unwrap_or_else(|| text.to_string());
             let base = match &switch {
@@ -14780,7 +14784,13 @@ impl Server {
                 None => base,
             };
             settings.adapt = display.adapt(&base, adapt);
-            let clocked = clock::clock_in(&base, parse.todo_keywords(), heading, &settings, start)?;
+            // `org-clock-in-resume`: a clock of the entry left running goes
+            // on from when it started, its line as it is.
+            resumed = resume.then(|| clock::unclosed(&base, heading)).flatten();
+            let clocked = match resumed {
+                Some(_) => (base.clone(), heading),
+                None => clock::clock_in(&base, parse.todo_keywords(), heading, &settings, start)?,
+            };
             let entry = &outline.entries[outline.entry_at(heading).ok_or("Before first headline")?];
             let repeat = entry.properties.iter().any(|(key, _)| key == "LAST_REPEAT");
             // The headline as the clock leaves it, its state switched.
@@ -14788,6 +14798,7 @@ impl Server {
             Ok::<_, String>((text.to_string(), version, clocked.0, head, repeat))
         });
         let (old, version, new_text, head, repeat) = found.ok_or("Cannot read the file of this entry")??;
+        let start = resumed.unwrap_or(start);
         match changes.iter_mut().find(|(uri, ..)| *uri == file) {
             Some(change) => change.3 = new_text,
             None => changes.push((file.clone(), version, old, new_text)),

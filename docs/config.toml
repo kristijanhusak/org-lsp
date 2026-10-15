@@ -719,6 +719,11 @@ org_clock_display_default_range = "thisyear"
 # with a count and `org.clock.in.last`. (org-clock-history-length)
 org_clock_history_length = 5
 
+# Clocking into an entry whose `CLOCK:` line was left without an end goes on
+# with that clock, from when it started, rather than starting a new line.
+# (org-clock-in-resume)
+org_clock_in_resume = false
+
 # With no clock running, `org.clock.goto` goes to the entry clocked last. With
 # `false`, it says `No active or recent clock task`.
 # (org-clock-goto-may-find-recent-task)

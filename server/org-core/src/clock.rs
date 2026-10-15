@@ -175,6 +175,20 @@ fn opens(line: &str, name: &str) -> bool {
     line.trim_matches([' ', '\t']).eq_ignore_ascii_case(&format!(":{name}:"))
 }
 
+/// `org-clock-find-position` with `find-unclosed` (`org-clock-in-resume`):
+/// when the clock started on a `CLOCK:` line of the entry at byte
+/// `heading` that has no end, up to the next headline.
+pub fn unclosed(text: &str, heading: usize) -> Option<DateTime> {
+    let body = heading + text[heading..].find('\n').map_or(text.len() - heading, |end| end + 1);
+    let end = lines(&text[body..])
+        .find(|(_, line)| {
+            let stars = line.len() - line.trim_start_matches('*').len();
+            stars > 0 && line[stars..].starts_with([' ', '\t'])
+        })
+        .map_or(text.len(), |(start, _)| body + start);
+    running(text).into_iter().find(|(start, _)| (body..end).contains(start)).map(|(_, time)| time)
+}
+
 /// `org-clock-in` on the entry at byte `offset`: a `CLOCK:` line where
 /// `org-clock-find-position` puts it. Returns the new text and where the
 /// line starts.
@@ -499,6 +513,15 @@ pub fn subtree_minutes(text: &str, heading: usize, since: Option<i64>) -> i64 {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn finds_the_clock_an_entry_left_running() {
+        let text = "* A\n:LOGBOOK:\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\n:END:\n\
+                    * B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n";
+        assert_eq!(unclosed(text, 0), None);
+        let b = text.find("* B").unwrap();
+        let start = unclosed(text, b).unwrap();
+        assert_eq!((start.minute, crate::date::Date::from_day(start.day).day), (9 * 60, 18));
+    }
 
     /// `org-current-time` at 23:MM:30 on 2025-12-31 for every minute,
     /// each rounding, without and with PAST, as Emacs gives it

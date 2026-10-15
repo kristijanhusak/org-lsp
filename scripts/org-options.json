@@ -426,7 +426,7 @@
   "org-clock-goto-may-find-recent-task": "setting",
   "org-clock-heading-function": "lisp",
   "org-clock-string-limit": "emacs-only",
-  "org-clock-in-resume": "absent",
+  "org-clock-in-resume": "setting",
   "org-clock-persist": "absent",
   "org-clock-persist-file": "emacs-only",
   "org-clock-persist-query-save": "emacs-only",

@@ -24,7 +24,7 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#properties-and-column-view][Properties and column view]] | 90% | 9 of 10 |
 | [[#dates-and-times][Dates and times]] | 100% | 9 of 9 |
 | [[#agenda][Agenda]] | 100% | 37 of 37 |
-| [[#clocking][Clocking]] | 100% | 12 of 12 |
+| [[#clocking][Clocking]] | 100% | 13 of 13 |
 | [[#capture][Capture]] | 100% | 12 of 12 |
 | [[#notes-org-roam][Notes (org-roam)]] | 87% | 13 of 15 |
 | [[#a-journal-org-journal][A journal (org-journal)]] | 79% | 11 of 14 |
@@ -332,7 +332,7 @@ Where editors fall short:
 :CUSTOM_ID: clocking
 :END:
 
-100% (12 of 12)
+100% (13 of 13)
 
 - ✅ Clocking in and out, cancelling, going to the clocked entry, or with none the entry clocked last (~org-clock-goto-may-find-recent-task~)
 - ✅ The clock history and clocking in the last entry
@@ -341,6 +341,7 @@ Where editors fall short:
 - ✅ Clock tables, with every parameter
 - ✅ Durations written as ~org-duration-format~ says (~1d 2:30~, ~26:30~, ~1.09d~, ~1d2h15min~) and read with the units of ~org-duration-units~ (days of 8 hours)
 - ✅ Resolving dangling clocks and idle time
+- ✅ Clocking in again on a clock left running (~org-clock-in-resume~)
 - ✅ Clocking from the agenda, the clocked entry highlighted
 - ✅ A notice when the clock passes the effort (~org-clock-notify-once-if-expired~)
 - ✅ A note when the clock stops (~org-log-note-clock-out~), in a note buffer
@@ -758,19 +759,19 @@ Where editors fall short:
 :END:
 
 Each of the 1025 options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with
-it. Of the 312 that change what org-lsp does itself, 100% can be set.
+it. Of the 313 that change what org-lsp does itself, 100% can be set.
 [[file:../scripts/org-options.json][scripts/org-options.json]] says it for each; ~scripts/check.sh~ fails when the
 server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,
 when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 298 | A setting of the same name |
+| setting | 299 | A setting of the same name |
 | missing | 1 | org-lsp does what the option is about, but the option cannot be set yet |
 | other | 13 | Done another way, as its note says |
 | emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 47 | Its value is Lisp (a function, a hook), which the server does not run |
-| absent | 79 | Part of something org-lsp does not do |
+| absent | 78 | Part of something org-lsp does not do |
 | emacs-only | 107 | About Emacs itself (windows, faces, menus, the mouse, the mode line): nothing to do in an editor |
 
 ** Done another way
