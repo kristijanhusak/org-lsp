@@ -1859,6 +1859,10 @@ org_lint_ignore = []
 # either way. (org-open-non-existing-files)
 org_open_non_existing_files = false
 
+# Following a link to a directory opens the `index.org` in it, rather than the
+# directory. (org-open-directory-means-index-dot-org)
+org_open_directory_means_index_dot_org = false
+
 # RET on the first line of a list item makes the next item, numbered and with
 # a checkbox as M-RET (`org-meta-return`) makes it, the items after it
 # renumbered, as nvim-orgmode's `org_return_uses_meta_return` does. Off, RET

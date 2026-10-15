@@ -24,12 +24,16 @@ fn files_open_as_emacs_opens_them() {
     let mut failures = Vec::new();
     for case in &cases {
         let name = case["file"].as_str().unwrap();
-        let file = format!("{dir}/{name}");
+        let directory = name == "sub" || name == "wiki";
+        // `org-open-directory-means-index-dot-org`, as the server does it:
+        // the directory's `index.org`, still a directory's.
+        let index = directory && case["vars"]["org-open-directory-means-index-dot-org"] == true;
+        let file = if index { format!("{dir}/{name}/index.org") } else { format!("{dir}/{name}") };
         let target = Target {
             file: &file,
             search: case.get("search").and_then(Value::as_str),
-            exists: existing.contains(&name),
-            directory: name == "sub",
+            exists: if index { name == "wiki" } else { existing.contains(&name) },
+            directory,
         };
         let prefix = match case.get("prefix").and_then(Value::as_u64) {
             Some(4) => Prefix::Editor,

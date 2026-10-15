@@ -2707,6 +2707,30 @@ fn opens_files_that_are_not_there_when_told_to() {
     client.shutdown();
 }
 
+/// `org-open-directory-means-index-dot-org`: a link to a directory shows
+/// its `index.org`.
+#[test]
+fn opens_the_index_of_a_directory_when_told_to() {
+    let directory = workspace("file-apps-index");
+    std::fs::create_dir_all(directory.join("wiki")).unwrap();
+    std::fs::write(directory.join("wiki/index.org"), "* Wiki\n").unwrap();
+    let file = directory.join("notes.org");
+    let text = "[[file:wiki]]\n";
+    std::fs::write(&file, text).unwrap();
+    let mut options = clock();
+    options["org_open_directory_means_index_dot_org"] = json!(true);
+    let mut client = Client::editor(options, None);
+    let uri = format!("file://{}", file.display());
+    client.open(&uri, text);
+    let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 3 } });
+    client.received.clear();
+    client.request("workspace/executeCommand", json!({ "command": "org.open", "arguments": [context] })).unwrap();
+    client.settle();
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("shown");
+    assert_eq!(shown.params["uri"], format!("file://{}", directory.join("wiki/index.org").display()));
+    client.shutdown();
+}
+
 /// `org-edit-special` (`C-c '`): a code block in a file of its own, its
 /// text as Org's edit buffer has it; each save of the file writes it back
 /// as Org does (`org-edit-src-save`), and the Org file is saved. At

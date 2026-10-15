@@ -990,6 +990,13 @@ pub const SETTINGS: &[Setting] = &[
          saying `No such file`. The editor opens such a file either way.",
     ),
     setting(
+        "org_open_directory_means_index_dot_org",
+        "boolean",
+        "false",
+        "org-open-directory-means-index-dot-org",
+        "Following a link to a directory opens the `index.org` in it, rather than the directory.",
+    ),
+    setting(
         "org_tag_alist",
         "string, string[]",
         r#""""#,
@@ -3393,6 +3400,7 @@ const SCHEMAS: &[(&str, &str)] = &[
         r#"{ "type": "array", "items": { "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 2 } }"#,
     ),
     ("org_open_non_existing_files", BOOLEAN),
+    ("org_open_directory_means_index_dot_org", BOOLEAN),
     ("org_tag_alist", r#"{ "type": ["string", "array"], "items": { "type": "string" } }"#),
     ("org_tag_persistent_alist", r#"{ "type": ["string", "array"], "items": { "type": "string" } }"#),
     ("org_group_tags", BOOLEAN),

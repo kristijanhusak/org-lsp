@@ -9,7 +9,8 @@ A case is a JSON object:
                      `remote`, `auto-mode`, `system` and `t` are Emacs's
                      symbols, the cdrs `emacs`, `default`, `system` and
                      `mailcap` too
-      "file": "a.pdf",       a file of the case's directory (`sub/` one there)
+      "file": "a.pdf",       a file of the case's directory (`sub/` and
+                             `wiki/`, with an `index.org`, are directories)
       "search": "5",         what follows `::` in the link, if anything
       "prefix": 4,           `C-u` (4) or `C-u C-u` (16), if any
       "vars": {"org-open-non-existing-files": true}   Org's options, if any
@@ -108,6 +109,9 @@ def reference(cases):
             with open(os.path.join(directory, name), "w", encoding="utf-8") as handle:
                 handle.write("x\n")
         os.makedirs(os.path.join(directory, "sub"))
+        os.makedirs(os.path.join(directory, "wiki"))
+        with open(os.path.join(directory, "wiki", "index.org"), "w", encoding="utf-8") as handle:
+            handle.write("x\n")
         forms = [DRIVER]
         outputs = []
         for index, case in enumerate(cases):
@@ -163,6 +167,17 @@ def default_cases():
         for file in ["missing.pdf", "missing.txt", "missing.org"]:
             for prefix in [None, 4, 16]:
                 case = {"file": file, "vars": {"org-open-non-existing-files": True}}
+                if apps is not None:
+                    case["apps"] = apps
+                if prefix:
+                    case["prefix"] = prefix
+                cases.append(case)
+    # `org-open-directory-means-index-dot-org`: a directory is its
+    # `index.org`, there or not.
+    for apps in APPS:
+        for file in ["sub", "wiki"]:
+            for prefix in [None, 4, 16]:
+                case = {"file": file, "vars": {"org-open-directory-means-index-dot-org": True}}
                 if apps is not None:
                     case["apps"] = apps
                 if prefix:

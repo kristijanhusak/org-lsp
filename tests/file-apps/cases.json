@@ -8012,5 +8012,845 @@
   "expected": {
    "command": "xdg-open {dir}/missing.org"
   }
+ },
+ {
+  "file": "sub",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "sub",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "sub",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "prefix": 16,
+  "expected": {
+   "error": "No such file: {dir}/sub/index.org"
+  }
+ },
+ {
+  "file": "wiki",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "wiki",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "wiki",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/wiki/index.org"
+  }
+ },
+ {
+  "file": "sub",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "sub",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "sub",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "error": "No such file: {dir}/sub/index.org"
+  }
+ },
+ {
+  "file": "wiki",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "wiki",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "wiki",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "pdf",
+    "evince %s"
+   ],
+   [
+    "\\.x?html?\\'",
+    "firefox %s"
+   ],
+   [
+    "directory",
+    "emacs"
+   ],
+   [
+    "t",
+    "default"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/wiki/index.org"
+  }
+ },
+ {
+  "file": "sub",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "sub",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "sub",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "error": "No such file: {dir}/sub/index.org"
+  }
+ },
+ {
+  "file": "wiki",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "wiki",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "wiki",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "\\.pdf::\\([0-9]+\\)\\'",
+    "evince -p %1 %s"
+   ],
+   [
+    "pdf",
+    "zathura '%s'"
+   ],
+   [
+    "auto-mode",
+    "emacs"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/wiki/index.org"
+  }
+ },
+ {
+  "file": "sub",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "sub",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "sub",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "error": "No such file: {dir}/sub/index.org"
+  }
+ },
+ {
+  "file": "wiki",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "wiki",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "wiki",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "txt",
+    "system"
+   ],
+   [
+    "gz",
+    "zcat %s | less"
+   ],
+   [
+    "tar.gz",
+    "tar tzf \"%s\""
+   ],
+   [
+    "org",
+    "emacs"
+   ],
+   [
+    "t",
+    "less %s"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/wiki/index.org"
+  }
+ },
+ {
+  "file": "sub",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "expected": {
+   "error": "No such file: {dir}/sub/index.org"
+  }
+ },
+ {
+  "file": "sub",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "sub",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "error": "No such file: {dir}/sub/index.org"
+  }
+ },
+ {
+  "file": "wiki",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "expected": {
+   "command": "ls {dir}/wiki/index.org"
+  }
+ },
+ {
+  "file": "wiki",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "wiki",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "directory",
+    "ls %s"
+   ],
+   [
+    "\\.PDF\\'",
+    "upper %s"
+   ],
+   [
+    "system",
+    "open %s"
+   ],
+   [
+    "xyz",
+    "system"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "open {dir}/wiki/index.org"
+  }
+ },
+ {
+  "file": "sub",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "expected": {
+   "error": "No such file: {dir}/sub/index.org"
+  }
+ },
+ {
+  "file": "sub",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "sub",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "error": "No such file: {dir}/sub/index.org"
+  }
+ },
+ {
+  "file": "wiki",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "expected": {
+   "command": "xdg-open {dir}/wiki/index.org"
+  }
+ },
+ {
+  "file": "wiki",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 4,
+  "expected": {
+   "emacs": true
+  }
+ },
+ {
+  "file": "wiki",
+  "vars": {
+   "org-open-directory-means-index-dot-org": true
+  },
+  "apps": [
+   [
+    "\\(?:pdf\\|txt\\)\\'",
+    "view \\%s %s"
+   ],
+   [
+    "html",
+    "bad %x"
+   ]
+  ],
+  "prefix": 16,
+  "expected": {
+   "command": "xdg-open {dir}/wiki/index.org"
+  }
  }
 ]
