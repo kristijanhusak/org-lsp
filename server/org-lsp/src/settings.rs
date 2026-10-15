@@ -2491,6 +2491,13 @@ pub const SETTINGS: &[Setting] = &[
         "Emacs regexps whose matches are left out of the entry text `E` shows.",
     ),
     setting(
+        "org_agenda_view_columns_initially",
+        "boolean",
+        "false",
+        "org-agenda-view-columns-initially",
+        "Show column view (through Emacs) each time an agenda view is made, as `C-c C-x C-c` there would.",
+    ),
+    setting(
         "org_agenda_persistent_filter",
         "boolean",
         "false",
@@ -3775,6 +3782,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_agenda_entry_text_maxlines", r#"{ "type": "integer", "minimum": 1 }"#),
     ("org_agenda_entry_text_leaders", STRING),
     ("org_agenda_entry_text_exclude_regexps", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("org_agenda_view_columns_initially", BOOLEAN),
     ("org_agenda_persistent_filter", BOOLEAN),
     ("org_agenda_block_separator", r#"{ "anyOf": [{ "type": "string" }, { "const": false }] }"#),
     ("org_agenda_compact_blocks", BOOLEAN),

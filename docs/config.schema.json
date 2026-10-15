@@ -3099,6 +3099,11 @@
       "description": "Emacs regexps whose matches are left out of the entry text `E` shows. (`org-agenda-entry-text-exclude-regexps`)",
       "default": []
     },
+    "org_agenda_view_columns_initially": {
+      "type": "boolean",
+      "description": "Show column view (through Emacs) each time an agenda view is made, as `C-c C-x C-c` there would. (`org-agenda-view-columns-initially`)",
+      "default": false
+    },
     "org_agenda_persistent_filter": {
       "type": "boolean",
       "description": "A new agenda view keeps the filters by tag, category, regexp and effort of the agenda still open, rather than starting without them. (`org-agenda-persistent-filter`)",

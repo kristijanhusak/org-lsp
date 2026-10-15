@@ -1164,6 +1164,8 @@ struct Server {
     clock_in_resume: bool,
     /// `org-highlight-sparse-tree-matches`
     highlight_sparse_tree_matches: bool,
+    /// `org-agenda-view-columns-initially`
+    agenda_view_columns_initially: bool,
     /// `org-open-directory-means-index-dot-org`
     open_directory_index: bool,
     /// `org-allow-promoting-top-level-subtree`
@@ -1646,6 +1648,7 @@ pub fn run(connection: Connection) -> Result<()> {
         agenda_persistent_filter: options.agenda_persistent_filter.unwrap_or(false),
         clock_in_resume: options.clock_in_resume.unwrap_or(false),
         highlight_sparse_tree_matches: options.highlight_sparse_tree_matches.unwrap_or(true),
+        agenda_view_columns_initially: options.agenda_view_columns_initially.unwrap_or(false),
         open_directory_index: options.open_directory_means_index_dot_org.unwrap_or(false),
         allow_promoting_top_level: options.allow_promoting_top_level_subtree.unwrap_or(false),
         odd_levels: options.odd_levels_only.unwrap_or(false),
@@ -5998,10 +6001,20 @@ impl Server {
         self.release_held();
         self.set_view(query);
         let Some(open) = &self.view else { return Err("Cannot create the agenda".to_string()) };
+        // `org-agenda-view-columns-initially`: column view on, as
+        // `org-agenda-finalize` turns it on each time the agenda is made.
+        if self.agenda_view_columns_initially && !self.columns.contains_key(open.uri.as_str()) {
+            let on = ColumnsOn { start: 0, global: false, view: Value::Null };
+            self.columns.insert(open.uri.as_str().to_string(), on);
+        }
+        let Some(open) = &self.view else { return Err("Cannot create the agenda".to_string()) };
         let line = reveal.position(&open.view);
         match &open.client {
             // The client shows this very text already.
-            Some(copy) if copy.text == open.view.text => self.show_view(line),
+            Some(copy) if copy.text == open.view.text => {
+                self.show_view(line);
+                self.agenda_columns_view();
+            }
             // The client shows the old text. A cursor position sent now
             // would be applied to those lines, so it waits until the client
             // has replaced them; see `reveal_when_current`.

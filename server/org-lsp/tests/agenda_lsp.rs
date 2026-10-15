@@ -7792,6 +7792,50 @@ fn agenda_column_view_goes_to_emacs() {
     client.shutdown();
 }
 
+/// `org-agenda-view-columns-initially`: a new agenda shows column view
+/// at once (through Emacs).
+#[test]
+fn agenda_opens_in_column_view() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("agenda_opens_in_column_view: no Emacs, skipped");
+        return;
+    }
+    let mut options = clock();
+    let mut config = "(setq org-columns-default-format \"%25ITEM %TODO %Effort{:}\")".to_string();
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        config = format!("(add-to-list 'load-path {dir:?}) {config}");
+    }
+    options["emacs_config"] = json!(config);
+    options["org_agenda_view_columns_initially"] = json!(true);
+    let file = workspace("columns-initially").join("tasks.org");
+    let text = "* TODO Write\n:PROPERTIES:\n:Effort: 1:00\n:END:\n";
+    std::fs::write(&file, text).unwrap();
+    let uri = format!("file://{}", file.display());
+    let mut client = Client::editor(options, None);
+    client.open(&uri, text);
+    let context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 0, "character": 0 }, "input": "t" });
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.agenda.dispatch", "arguments": [context] }))
+        .unwrap();
+    let start = std::time::Instant::now();
+    let columns = loop {
+        client.settle();
+        if let Some(found) = client.notifications.iter().rev().find(|note| note.method == "org-lsp/columns") {
+            break found.params.clone();
+        }
+        assert!(start.elapsed() < std::time::Duration::from_secs(20), "column view shows");
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    };
+    assert_eq!(columns["uri"], VIEW);
+    assert_eq!(
+        columns["header"].as_str().unwrap().split('|').map(str::trim).collect::<Vec<_>>(),
+        ["ITEM", "TODO", "Effort", ""]
+    );
+    client.shutdown();
+}
+
 /// Several TODO sequences: `org.todo` cycles within the entry's sequence
 /// and, from no keyword, back into the one it was last in; `C-S-<right>`
 /// switches to the next sequence and says which it is.

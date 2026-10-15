@@ -299,6 +299,7 @@
 ---@field org_agenda_entry_text_maxlines? integer The most lines of an entry's text `E` shows. (`org-agenda-entry-text-maxlines`)
 ---@field org_agenda_entry_text_leaders? string What each line of an entry's text starts with in the agenda. (`org-agenda-entry-text-leaders`)
 ---@field org_agenda_entry_text_exclude_regexps? string[] Emacs regexps whose matches are left out of the entry text `E` shows. (`org-agenda-entry-text-exclude-regexps`)
+---@field org_agenda_view_columns_initially? boolean Show column view (through Emacs) each time an agenda view is made, as `C-c C-x C-c` there would. (`org-agenda-view-columns-initially`)
 ---@field org_agenda_persistent_filter? boolean A new agenda view keeps the filters by tag, category, regexp and effort of the agenda still open, rather than starting without them. (`org-agenda-persistent-filter`)
 ---@field org_agenda_block_separator? string|false What goes between the blocks of a block agenda: one character repeated across 79 columns, a longer text as it is, or `false` for nothing. In a block's `settings`, the separator above that block. (`org-agenda-block-separator`)
 ---@field org_agenda_compact_blocks? boolean Leave out the separators between blocks and the header over agenda blocks. (`org-agenda-compact-blocks`)

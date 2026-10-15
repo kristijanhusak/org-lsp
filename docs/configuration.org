@@ -4473,6 +4473,22 @@ Emacs regexps whose matches are left out of the entry text ~E~ shows.
 org_agenda_entry_text_exclude_regexps = []
 #+end_src
 
+*** org_agenda_view_columns_initially
+:PROPERTIES:
+:CUSTOM_ID: org_agenda_view_columns_initially
+:END:
+
+Show column view (through Emacs) each time an agenda view is made, as
+~C-c C-x C-c~ there would.
+
+- Org's option :: ~org-agenda-view-columns-initially~
+- Type :: boolean
+- Default :: ~false~
+
+#+begin_src toml
+org_agenda_view_columns_initially = false
+#+end_src
+
 *** org_agenda_persistent_filter
 :PROPERTIES:
 :CUSTOM_ID: org_agenda_persistent_filter

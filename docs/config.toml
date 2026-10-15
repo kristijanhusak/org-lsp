@@ -1162,6 +1162,10 @@ org_agenda_entry_text_leaders = "    > "
 # (org-agenda-entry-text-exclude-regexps)
 org_agenda_entry_text_exclude_regexps = []
 
+# Show column view (through Emacs) each time an agenda view is made, as `C-c
+# C-x C-c` there would. (org-agenda-view-columns-initially)
+org_agenda_view_columns_initially = false
+
 # A new agenda view keeps the filters by tag, category, regexp and effort of
 # the agenda still open, rather than starting without them.
 # (org-agenda-persistent-filter)
