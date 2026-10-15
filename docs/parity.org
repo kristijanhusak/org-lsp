@@ -333,7 +333,7 @@ Where editors fall short:
 
 100% (12 of 12)
 
-- ✅ Clocking in and out, cancelling, going to the clocked entry
+- ✅ Clocking in and out, cancelling, going to the clocked entry, or with none the entry clocked last (~org-clock-goto-may-find-recent-task~)
 - ✅ The clock history and clocking in the last entry
 - ✅ The clock in the mode line
 - ✅ The time clocked under each headline (~C-c C-x C-d~)
@@ -756,19 +756,19 @@ Where editors fall short:
 :END:
 
 Each of the 1025 options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with
-it. Of the 309 that change what org-lsp does itself, 100% can be set.
+it. Of the 310 that change what org-lsp does itself, 100% can be set.
 [[file:../scripts/org-options.json][scripts/org-options.json]] says it for each; ~scripts/check.sh~ fails when the
 server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,
 when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 295 | A setting of the same name |
+| setting | 296 | A setting of the same name |
 | missing | 1 | org-lsp does what the option is about, but the option cannot be set yet |
 | other | 13 | Done another way, as its note says |
 | emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 47 | Its value is Lisp (a function, a hook), which the server does not run |
-| absent | 82 | Part of something org-lsp does not do |
+| absent | 81 | Part of something org-lsp does not do |
 | emacs-only | 107 | About Emacs itself (windows, faces, menus, the mouse, the mode line): nothing to do in an editor |
 
 ** Done another way

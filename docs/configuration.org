@@ -2988,6 +2988,22 @@ a count and ~org.clock.in.last~.
 org_clock_history_length = 5
 #+end_src
 
+*** org_clock_goto_may_find_recent_task
+:PROPERTIES:
+:CUSTOM_ID: org_clock_goto_may_find_recent_task
+:END:
+
+With no clock running, ~org.clock.goto~ goes to the entry clocked last. With
+~false~, it says ~No active or recent clock task~.
+
+- Org's option :: ~org-clock-goto-may-find-recent-task~
+- Type :: boolean
+- Default :: ~true~
+
+#+begin_src toml
+org_clock_goto_may_find_recent_task = true
+#+end_src
+
 *** org_clock_clocktable_default_properties
 :PROPERTIES:
 :CUSTOM_ID: org_clock_clocktable_default_properties

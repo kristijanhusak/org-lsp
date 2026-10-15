@@ -700,6 +700,14 @@ pub const SETTINGS: &[Setting] = &[
         "How many entries clocked into the clock history keeps, for `org.clock.in` with a count and `org.clock.in.last`.",
     ),
     setting(
+        "org_clock_goto_may_find_recent_task",
+        "boolean",
+        "true",
+        "org-clock-goto-may-find-recent-task",
+        "With no clock running, `org.clock.goto` goes to the entry clocked last. With `false`, it says \
+         `No active or recent clock task`.",
+    ),
+    setting(
         "org_clock_clocktable_default_properties",
         "string",
         "\":maxlevel 2\"",
@@ -3418,6 +3426,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ),
     ("org_clock_idle_time", r#"{ "type": "integer", "minimum": 1 }"#),
     ("org_clock_history_length", r#"{ "type": "integer", "minimum": 1 }"#),
+    ("org_clock_goto_may_find_recent_task", BOOLEAN),
     ("org_clock_clocktable_default_properties", STRING),
     ("org_clocktable_defaults", STRING),
     (

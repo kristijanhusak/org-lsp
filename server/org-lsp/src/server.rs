@@ -1139,6 +1139,8 @@ struct Server {
     /// The entry clocked last: its file and headline, for
     /// `org.clock.goto` when no clock runs.
     last_clocked: Option<(Uri, String)>,
+    /// `org-clock-goto-may-find-recent-task`
+    clock_goto_recent: bool,
     /// `org-clock-history`: the entries clocked into, the last first, by
     /// file and title; at most `org-clock-history-length`.
     clock_history: Vec<ClockTask>,
@@ -1624,6 +1626,7 @@ pub fn run(connection: Connection) -> Result<()> {
         running: None,
         clock_pending: false,
         last_clocked: None,
+        clock_goto_recent: options.clock_goto_may_find_recent_task.unwrap_or(true),
         clock_history: Vec::new(),
         clock_history_length: options.clock_history_length.unwrap_or(5).max(1),
         stored_links: Vec::new(),
@@ -14305,8 +14308,14 @@ impl Server {
                         let (text, _, line) = self.clock_line(&running).ok_or("Clock start time is gone")?;
                         (running.uri, Self::heading_above(&text, line).ok_or("Clock start time is gone")?, false)
                     }
+                    // The last entry clocked, unless `org-clock-goto-may-find-recent-task`
+                    // is off.
                     None => {
-                        let (uri, head) = self.last_clocked.clone().ok_or("No active or recent clock task")?;
+                        let (uri, head) = self
+                            .last_clocked
+                            .clone()
+                            .filter(|_| self.clock_goto_recent)
+                            .ok_or("No active or recent clock task")?;
                         let offset = self
                             .with_source(&uri, |_, _, _, outline, _| {
                                 outline.entries.iter().find(|entry| entry.head == head).map(|entry| entry.offset)
