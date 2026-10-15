@@ -600,6 +600,12 @@ pub fn emacs_buffer_regex(pattern: &str) -> Option<Regex> {
     RegexBuilder::new(&translate(pattern)).case_insensitive(true).multi_line(true).build().ok()
 }
 
+/// [`emacs_buffer_regex`] ignoring case or not, as `case_fold_search`
+/// says.
+pub fn emacs_buffer_regex_folded(pattern: &str, case_fold_search: bool) -> Option<Regex> {
+    RegexBuilder::new(&translate(pattern)).case_insensitive(case_fold_search).multi_line(true).build().ok()
+}
+
 /// [`emacs_regex`] for matching tags, where `@` and `_` are parts of
 /// words, as in Org's tags syntax table: `\<@home\>` matches `@home`.
 fn tag_regex(pattern: &str) -> Option<Regex> {

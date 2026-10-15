@@ -894,6 +894,16 @@ org_special_ctrl_a_e = false
 # folded under their headline. (org-sparse-tree-open-archived-trees)
 org_sparse_tree_open_archived_trees = false
 
+# Whether a sparse tree (`C-c /`, and a link's `/regexp/`) ignores case;
+# `"smart"` ignores it unless what is searched for has an upper-case letter.
+# (org-occur-case-fold-search)
+org_occur_case_fold_search = true
+
+# The timestamps the date sparse trees (`C-c /` `b`, `a`, `D`) look at first:
+# `null` for scheduled and deadline dates, or one kind; `c` in the menu turns
+# to the next kind. (org-sparse-tree-default-date-type)
+org_sparse_tree_default_date_type = null
+
 # C-y (`org.yank`, Emacs keys) of one or more subtrees at the start of a line,
 # or after the stars of an otherwise empty headline, pastes them as
 # `org.paste.subtree` does: at the level of the headlines around them.
@@ -2659,6 +2669,16 @@ org_agenda_custom_commands = []
   // archived subtrees (tagged `ARCHIVE`); with `false` those subtrees stay
   // folded under their headline. (org-sparse-tree-open-archived-trees)
   "org_sparse_tree_open_archived_trees": false,
+
+  // Whether a sparse tree (`C-c /`, and a link's `/regexp/`) ignores case;
+  // `"smart"` ignores it unless what is searched for has an upper-case
+  // letter. (org-occur-case-fold-search)
+  "org_occur_case_fold_search": true,
+
+  // The timestamps the date sparse trees (`C-c /` `b`, `a`, `D`) look at
+  // first: `null` for scheduled and deadline dates, or one kind; `c` in the
+  // menu turns to the next kind. (org-sparse-tree-default-date-type)
+  "org_sparse_tree_default_date_type": null,
 
   // C-y (`org.yank`, Emacs keys) of one or more subtrees at the start of a
   // line, or after the stars of an otherwise empty headline, pastes them as

@@ -29,6 +29,28 @@ QUERIES = [
 ]
 CASES = [{"text": text, "type": kind, "args": args} for text in TEXTS for kind, args in QUERIES]
 
+# `org-occur-case-fold-search` and `org-sparse-tree-default-date-type`.
+CASE_TEXTS = TEXTS[:3] + [
+    "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\n"
+    "Body <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n"
+    "=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n"
+    "#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n"
+    "* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n"
+    "* <2026-05-23 Sat> in a headline\n",
+]
+CASE_QUERIES = [
+    ("r", ["apple"]), ("r", ["Apple"]), ("r", ["\\Wapple"]), ("r", ["[[:upper:]]pple"]),
+    ("t", []), ("T", ["todo"]), ("T", ["TODO"]), ("d", []),
+    ("b", ["2026-05-20"]), ("a", ["2026-05-01"]), ("D", ["2026-05-01", "2026-06-30"]),
+]
+for fold in ["nil", "smart"]:
+    CASES += [{"text": text, "type": kind, "args": args, "case": fold}
+              for text in CASE_TEXTS for kind, args in CASE_QUERIES]
+DATE_QUERIES = [("b", ["2026-05-20"]), ("a", ["2026-05-10"]), ("D", ["2026-05-01", "2026-06-30"])]
+for date_type in ["all", "active", "inactive", "scheduled", "deadline", "closed"]:
+    CASES += [{"text": text, "type": kind, "args": args, "date_type": date_type}
+              for text in CASE_TEXTS for kind, args in DATE_QUERIES]
+
 if __name__ == "__main__":
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "tests", "sparse", "cases.json")
     os.makedirs(os.path.dirname(path), exist_ok=True)

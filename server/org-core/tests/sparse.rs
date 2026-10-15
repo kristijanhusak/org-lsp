@@ -7,11 +7,11 @@
 
 use std::path::Path;
 
-use org_core::agenda::matcher::{emacs_buffer_regex, Clock};
+use org_core::agenda::matcher::Clock;
 use org_core::agenda::Matcher;
 use org_core::date::{Date, DateTime};
 use org_core::outline::Outline;
-use org_core::sparse::{self, Sparse};
+use org_core::sparse::{self, CaseFold, DateType, Sparse};
 use org_syntax::TodoKeywords;
 use serde_json::Value;
 
@@ -39,12 +39,18 @@ fn finds_what_emacs_finds() {
         let args: Vec<&str> = case["args"].as_array().unwrap().iter().map(|arg| arg.as_str().unwrap()).collect();
         let parse = org_syntax::parse(text, &TodoKeywords::default());
         let keywords = parse.todo_keywords().clone();
+        let case_fold = match case["case"].as_str() {
+            Some("nil") => CaseFold::Never,
+            Some("smart") => CaseFold::Smart,
+            _ => CaseFold::Always,
+        };
+        let date_type = case["date_type"].as_str().and_then(DateType::from_name).unwrap_or_default();
         let (found, message): (Sparse, Option<String>) = match kind {
-            "r" => (sparse::occur(text, &emacs_buffer_regex(args[0]).unwrap(), |_| true), None),
+            "r" => (sparse::occur(text, &sparse::occur_regex(args[0], case_fold).unwrap(), |_| true), None),
             "t" | "T" => {
                 let wanted: Option<Vec<String>> =
                     (kind == "T").then(|| args[0].split('|').map(str::to_string).collect());
-                let found = sparse::todo_tree(text, &keywords, wanted.as_deref());
+                let found = sparse::todo_tree(text, &keywords, wanted.as_deref(), case_fold);
                 let message = format!("{} TODO entries found", found.count);
                 (found, Some(message))
             }
@@ -54,22 +60,22 @@ fn finds_what_emacs_finds() {
                 (sparse::tags_match(text, &outline, &Matcher::new(args[0]), clock, kind == "m"), None)
             }
             "d" => {
-                let found = sparse::deadlines(text, &keywords, today, 14);
+                let found = sparse::deadlines(text, &keywords, today, 14, case_fold);
                 let message = format!("{} deadlines past-due or due within 14 days", found.count);
                 (found, Some(message))
             }
             "b" => {
-                let found = sparse::dates(text, None, Some(date(args[0])));
+                let found = sparse::dates(text, &parse, None, Some(date(args[0])), date_type, case_fold);
                 let message = format!("{} entries before {}", found.count, args[0]);
                 (found, Some(message))
             }
             "a" => {
-                let found = sparse::dates(text, Some(date(args[0])), None);
+                let found = sparse::dates(text, &parse, Some(date(args[0])), None, date_type, case_fold);
                 let message = format!("{} entries after {}", found.count, args[0]);
                 (found, Some(message))
             }
             _ => {
-                let found = sparse::dates(text, Some(date(args[0])), Some(date(args[1])));
+                let found = sparse::dates(text, &parse, Some(date(args[0])), Some(date(args[1])), date_type, case_fold);
                 let message = format!("{} entries between {} and {}", found.count, args[0], args[1]);
                 (found, Some(message))
             }
@@ -80,7 +86,8 @@ fn finds_what_emacs_finds() {
         let want_message = case["expected"]["message"].as_str().filter(|message| *message != "json-null");
         if highlights != want || message.as_deref() != want_message {
             failures.push(format!(
-                "{kind} {args:?} {text:?}\n  expected {want:?} {want_message:?}\n  got      {highlights:?} {message:?}"
+                "{kind} {args:?} {:?} {:?} {text:?}\n  expected {want:?} {want_message:?}\n  got      {highlights:?} {message:?}",
+                case["case"], case["date_type"]
             ));
         }
     }

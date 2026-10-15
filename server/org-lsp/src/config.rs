@@ -521,6 +521,12 @@ pub struct Options {
     pub allow_promoting_top_level_subtree: Option<bool>,
     #[serde(rename = "org_sparse_tree_open_archived_trees")]
     pub sparse_tree_open_archived_trees: Option<bool>,
+    /// `org-occur-case-fold-search`: `true`, `false` or `"smart"`.
+    #[serde(rename = "org_occur_case_fold_search")]
+    pub occur_case_fold_search: Option<serde_json::Value>,
+    /// `org-sparse-tree-default-date-type`: `null` or a type's name.
+    #[serde(rename = "org_sparse_tree_default_date_type")]
+    pub sparse_tree_default_date_type: Option<String>,
     #[serde(rename = "org_yank_adjusted_subtrees")]
     pub yank_adjusted_subtrees: Option<bool>,
     #[serde(rename = "org_file_apps")]
@@ -1655,6 +1661,24 @@ impl Options {
             forms.push("(when (featurep 'org-element) (org-element-update-syntax))".to_string());
         }
         (!forms.is_empty()).then(|| forms.join("\n"))
+    }
+
+    /// `org-occur-case-fold-search`
+    pub fn occur_case_fold(&self) -> org_core::sparse::CaseFold {
+        use org_core::sparse::CaseFold;
+        match &self.occur_case_fold_search {
+            Some(serde_json::Value::Bool(false)) => CaseFold::Never,
+            Some(serde_json::Value::String(smart)) if smart == "smart" => CaseFold::Smart,
+            _ => CaseFold::Always,
+        }
+    }
+
+    /// `org-sparse-tree-default-date-type`
+    pub fn sparse_date_type(&self) -> org_core::sparse::DateType {
+        self.sparse_tree_default_date_type
+            .as_deref()
+            .and_then(org_core::sparse::DateType::from_name)
+            .unwrap_or_default()
     }
 
     /// `org-archive-subtree-save-file-p`: whether the archive file is
