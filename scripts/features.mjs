@@ -253,7 +253,7 @@ export const AREAS = [
   {
     name: 'TODO keywords',
     emacs: [
-      ['Cycling states, and fast selection by key (`TODO(t)`)', true],
+      ['Cycling states, and fast selection by key (`TODO(t)`), from a menu or the keys in the prompt alone, or never (`org-use-fast-todo-selection`)', true],
       ['Sequences and types from `#+TODO:` and `org_todo_keywords`', true],
       ['Several sequences: cycling stays in the entry\'s sequence, and `C-S-<right>`, `C-S-<left>` switch sets', true],
       ['Faces of particular keywords and priorities (`org-todo-keyword-faces`, `org-priority-faces`)', true],
@@ -276,6 +276,7 @@ export const AREAS = [
       { text: 'Changing the TODO state of a headline (with `org_todo_keywords` keys, picked by key)', cmd: 'org.todo' },
       { text: 'The keywords offered show in their colors, as `org-fast-todo-selection` shows them: a face of their own, or that of a TODO or done keyword', cmd: 'org.todo', only: ['neovim', 'vim', 'vscode', 'sublime'] },
       { text: 'Cycling to the next and previous state', cmd: ['org.todo.next', 'org.todo.previous'], not: ['helix'] },
+      { text: 'With `org_use_fast_todo_selection = "expert"`, the keys are listed in the prompt `[a-z..]:Set [SPC]:clear`, no menu; with `false`, the state goes to the next one', cmd: 'org.todo', only: ['neovim', 'vim'] },
       { text: 'Repeating the change with `.`', only: ['neovim', 'vim'] },
       { text: 'Done with `org_log_done = "time"` writes `CLOSED: [...]` below the headline' , cmd: 'org.todo' },
       { text: 'A state with `@` (`WAIT(w@)`) asks for a note, written below the headline', cmd: 'org.todo', not: ['helix'] },

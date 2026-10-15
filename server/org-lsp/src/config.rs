@@ -295,6 +295,9 @@ pub struct Options {
     /// `org-group-tags`
     #[serde(rename = "org_group_tags")]
     pub group_tags: Option<bool>,
+    /// `org-use-fast-todo-selection`: `"auto"`, `"expert"` or `false`.
+    #[serde(rename = "org_use_fast_todo_selection")]
+    pub use_fast_todo_selection: Option<serde_json::Value>,
     /// `org-use-fast-tag-selection`: `true`, `false` or `"auto"`.
     #[serde(rename = "org_use_fast_tag_selection")]
     pub use_fast_tag_selection: Option<serde_json::Value>,
@@ -1619,6 +1622,17 @@ impl Options {
             }
             Some(serde_json::Value::Number(number)) => serde_json::json!({ "pixels": number }),
             _ => serde_json::Value::Null,
+        }
+    }
+
+    /// `org-use-fast-todo-selection`: whether `org-todo` picks the state by
+    /// key, and whether it lists the keys in its prompt alone (`expert`).
+    /// `true` is `auto`, as Org's `:set` makes it.
+    pub fn fast_todo_selection(&self) -> FastTodo {
+        match &self.use_fast_todo_selection {
+            Some(serde_json::Value::Bool(false)) | Some(serde_json::Value::Null) => FastTodo::Never,
+            Some(serde_json::Value::String(name)) if name == "expert" => FastTodo::Expert,
+            _ => FastTodo::Auto,
         }
     }
 
@@ -3572,4 +3586,15 @@ mod tests {
         assert_eq!(settings.header_separator, org_core::agenda::super_agenda::Separator::Char('='));
         assert_eq!(settings.unmatched_name, "Other items");
     }
+}
+
+/// `org-use-fast-todo-selection`
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FastTodo {
+    /// `nil`: the next state, always.
+    Never,
+    /// `auto`: by key where keywords have keys.
+    Auto,
+    /// `expert`: by key, the keys in the prompt alone.
+    Expert,
 }

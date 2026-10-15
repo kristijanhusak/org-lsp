@@ -92,6 +92,7 @@ its sections says what it should look like.
 - [ ] Changing the TODO state of a headline (with ~org_todo_keywords~ keys, picked by key): ~cit~
 - [ ] The keywords offered show in their colors, as ~org-fast-todo-selection~ shows them: a face of their own, or that of a TODO or done keyword: ~cit~
 - [ ] Cycling to the next and previous state: ~:Org todo next~, ~ciT~
+- [ ] With ~org_use_fast_todo_selection = "expert"~, the keys are listed in the prompt ~[a-z..]:Set [SPC]:clear~, no menu; with ~false~, the state goes to the next one: ~cit~
 - [ ] Repeating the change with ~.~
 - [ ] Done with ~org_log_done = "time"~ writes ~CLOSED: [...]~ below the headline: ~cit~
 - [ ] A state with ~@~ (~WAIT(w@)~) asks for a note, written below the headline: ~cit~

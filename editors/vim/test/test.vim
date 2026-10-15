@@ -36,7 +36,7 @@ call org_lsp#config()
 function! org_lsp#prompt(input) abort
   return empty(g:answers) ? v:null : remove(g:answers, 0)
 endfunction
-function! org_lsp#read_key(prompt, choices) abort
+function! org_lsp#read_key(prompt, choices, ...) abort
   return empty(g:answers) ? v:null : remove(g:answers, 0)
 endfunction
 

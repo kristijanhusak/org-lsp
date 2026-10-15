@@ -909,6 +909,8 @@ struct Server {
     return_follows_link: bool,
     /// How many months the date prompt's calendar shows (`calendar_months`).
     calendar_months: usize,
+    /// `org-use-fast-todo-selection`
+    fast_todo: crate::config::FastTodo,
     /// The day the calendar's weeks start on (`calendar_week_start_day`).
     calendar_week_start: usize,
     auto_save: bool,
@@ -1406,6 +1408,7 @@ pub fn run(connection: Connection) -> Result<()> {
         return_uses_meta_return: options.return_uses_meta_return.unwrap_or(false),
         return_follows_link: options.return_follows_link.unwrap_or(false),
         calendar_months: options.calendar_months.unwrap_or(3),
+        fast_todo: options.fast_todo_selection(),
         calendar_week_start: options.calendar_week_start_day.unwrap_or(0) % 7,
         all_agenda_tags: options.complete_tags_always_offer_all_agenda_tags.unwrap_or(false),
         pretty_entities: options.pretty_entities.unwrap_or(false),
@@ -9922,7 +9925,9 @@ impl Server {
         if id != commands::TODO {
             return self.edit_or_recalculate(&context, id);
         }
-        let keys = self.fast_keys(&context)?;
+        // `org-use-fast-todo-selection` nil: the next state, keys or not.
+        let keys =
+            if self.fast_todo == crate::config::FastTodo::Never { Vec::new() } else { self.fast_keys(&context)? };
         if keys.is_empty() {
             let cycle = TodoTarget::Cycle { head: None, repeated: false };
             return self.edit_with(&context, id, Some(EditCommand::Todo(cycle)), &Extra::default());
@@ -9934,7 +9939,7 @@ impl Server {
             // keyword, as the highlight of the token.
             let choices: Vec<Value> = keys
                 .iter()
-                .map(|(name, key, done)| {
+                .map(|(name, key, done, _)| {
                     let mut choice = json!({
                         "key": key.to_string(),
                         "label": name,
@@ -9947,6 +9952,28 @@ impl Server {
                 })
                 .chain([json!({ "key": " ", "label": "clear" })])
                 .collect();
+            if self.fast_todo == crate::config::FastTodo::Expert {
+                // No menu, the keys in the prompt, as Emacs puts them in
+                // its message: each sequence in braces.
+                let mut prompt = String::from("[a-z..]:Set [SPC]:clear\n");
+                for (index, (name, key, _, head)) in keys.iter().enumerate() {
+                    if *head {
+                        if index > 0 {
+                            prompt.push('}');
+                        }
+                        prompt.push('{');
+                    }
+                    prompt.push_str(&format!("[{key}] {name} "));
+                }
+                prompt.push('}');
+                return Ok(json!({ "input": {
+                    "kind": "key",
+                    "prompt": prompt,
+                    "value": "",
+                    "choices": choices,
+                    "expert": true,
+                } }));
+            }
             return Ok(json!({ "input": {
                 "kind": "key",
                 "prompt": "Select a TODO state",
@@ -12632,8 +12659,9 @@ impl Server {
 
     /// The keys of fast TODO selection in the file of `context`: an Org
     /// file, or the file of the entry of an agenda line. Each keyword with
-    /// its key and whether it is a done state.
-    fn fast_keys(&mut self, context: &Context) -> std::result::Result<Vec<(String, char, bool)>, Refusal> {
+    /// its key, whether it is a done state, and whether it starts its
+    /// sequence.
+    fn fast_keys(&mut self, context: &Context) -> std::result::Result<Vec<(String, char, bool, bool)>, Refusal> {
         let uri = &context.text_document.uri;
         let file = if self.is_view(uri) {
             self.entry_at(Some(context)).ok_or("No entry on this line")?.uri
@@ -12642,10 +12670,11 @@ impl Server {
         };
         let keys = self.with_source(&file, |_, _, parse, _, _| {
             let keywords = parse.todo_keywords();
+            let heads = keywords.heads();
             keywords
                 .fast_keys()
                 .into_iter()
-                .map(|(name, key)| (name.to_string(), key, keywords.is_done(name)))
+                .map(|(name, key)| (name.to_string(), key, keywords.is_done(name), heads.contains(&name)))
                 .collect()
         });
         Ok(keys.ok_or("Cannot read the file of this entry")?)
