@@ -180,7 +180,7 @@
   "org-cite-activate-processor": "emacs-only",
   "org-cite-export-processors": "emacs",
   "org-cite-follow-processor": "lisp",
-  "org-cite-insert-processor": "lisp",
+  "org-cite-insert-processor": "setting",
   "org-cite-adjust-note-numbers": "emacs",
   "org-cite-note-rules": "emacs",
   "org-cite-punctuation-marks": "emacs"
