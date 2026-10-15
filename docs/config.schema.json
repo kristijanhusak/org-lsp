@@ -1517,6 +1517,85 @@
       "description": "Hide all the stars of a headline but the last; they keep their place. `#+STARTUP: hidestars` and `showstars` decide for a file. (`org-hide-leading-stars`)",
       "default": false
     },
+    "org_duration_format": {
+      "anyOf": [
+        {
+          "enum": [
+            "h:mm",
+            "h:mm:ss"
+          ]
+        },
+        {
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "const": "compact"
+              },
+              {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2
+              }
+            ]
+          }
+        }
+      ],
+      "description": "How durations are written (clock tables, clock lines, efforts): `\"h:mm\"` or `\"h:mm:ss\"`, or a list of units each with whether it is written when zero (`[\"d\", false]`), with perhaps `[\"special\", \"h:mm\"]` (the hours and minutes as `H:MM` after the larger units), `[\"special\", \"h:mm:ss\"]`, `[\"special\", 2]` (one unit with 2 decimals) and `\"compact\"` (no space between units). The units are those of `org_duration_units`. (`org-duration-format`)",
+      "default": [
+        [
+          "d",
+          false
+        ],
+        [
+          "special",
+          "h:mm"
+        ]
+      ]
+    },
+    "org_duration_units": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "minItems": 2,
+        "maxItems": 2
+      },
+      "description": "The units of durations and the minutes in each, for reading efforts and writing durations: `[\"d\", 480]` for days of 8 hours. (`org-duration-units`)",
+      "default": [
+        [
+          "min",
+          1
+        ],
+        [
+          "h",
+          60
+        ],
+        [
+          "d",
+          1440
+        ],
+        [
+          "w",
+          10080
+        ],
+        [
+          "m",
+          43200
+        ],
+        [
+          "y",
+          525960
+        ]
+      ]
+    },
     "org_fontify_done_headline": {
       "type": "boolean",
       "description": "Show a headline marked done in the look of done headlines past its keyword (`org-headline-done`). (`org-fontify-done-headline`)",

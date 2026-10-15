@@ -1342,6 +1342,9 @@ pub fn run(connection: Connection) -> Result<()> {
     let prompt_uri =
         prompt_file.as_deref().and_then(uri::from_path).unwrap_or_else(|| prompt::URI.parse().expect("valid URI"));
 
+    // `org-duration-format`, `org-duration-units`: for all the server
+    // writes and reads, as Emacs's variables are.
+    org_core::duration::set(options.durations());
     let result = InitializeResult {
         capabilities: capabilities(
             client.encoding,

@@ -16,6 +16,7 @@ pub mod clock_range;
 pub mod clocktable;
 pub mod contexts;
 pub mod date;
+pub mod duration;
 pub mod edit;
 pub mod format;
 pub mod indent;

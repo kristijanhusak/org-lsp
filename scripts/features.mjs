@@ -483,6 +483,7 @@ export const AREAS = [
       ['The clock in the mode line', true],
       ['The time clocked under each headline (`C-c C-x C-d`)', true],
       ['Clock tables, with every parameter', true],
+      ['Durations written as `org-duration-format` says (`1d 2:30`, `26:30`, `1.09d`, `1d2h15min`) and read with the units of `org-duration-units` (days of 8 hours)', true],
       ['Resolving dangling clocks and idle time', true],
       ['Clocking from the agenda, the clocked entry highlighted', true],
       ['A notice when the clock passes the effort (`org-clock-notify-once-if-expired`)', true],

@@ -1580,6 +1580,18 @@ org_startup_indented = false
 # (org-hide-leading-stars)
 org_hide_leading_stars = false
 
+# How durations are written (clock tables, clock lines, efforts): `"h:mm"` or
+# `"h:mm:ss"`, or a list of units each with whether it is written when zero
+# (`["d", false]`), with perhaps `["special", "h:mm"]` (the hours and minutes
+# as `H:MM` after the larger units), `["special", "h:mm:ss"]`, `["special",
+# 2]` (one unit with 2 decimals) and `"compact"` (no space between units). The
+# units are those of `org_duration_units`. (org-duration-format)
+org_duration_format = [["d", false], ["special", "h:mm"]]
+
+# The units of durations and the minutes in each, for reading efforts and
+# writing durations: `["d", 480]` for days of 8 hours. (org-duration-units)
+org_duration_units = [["min", 1], ["h", 60], ["d", 1440], ["w", 10080], ["m", 43200], ["y", 525960]]
+
 # Show a headline marked done in the look of done headlines past its keyword
 # (`org-headline-done`). (org-fontify-done-headline)
 org_fontify_done_headline = true
@@ -3082,6 +3094,19 @@ org_agenda_custom_commands = []
   // `#+STARTUP: hidestars` and `showstars` decide for a file.
   // (org-hide-leading-stars)
   "org_hide_leading_stars": false,
+
+  // How durations are written (clock tables, clock lines, efforts): `"h:mm"`
+  // or `"h:mm:ss"`, or a list of units each with whether it is written when
+  // zero (`["d", false]`), with perhaps `["special", "h:mm"]` (the hours and
+  // minutes as `H:MM` after the larger units), `["special", "h:mm:ss"]`,
+  // `["special", 2]` (one unit with 2 decimals) and `"compact"` (no space
+  // between units). The units are those of `org_duration_units`.
+  // (org-duration-format)
+  "org_duration_format": [["d", false], ["special", "h:mm"]],
+
+  // The units of durations and the minutes in each, for reading efforts and
+  // writing durations: `["d", 480]` for days of 8 hours. (org-duration-units)
+  "org_duration_units": [["min", 1], ["h", 60], ["d", 1440], ["w", 10080], ["m", 43200], ["y", 525960]],
 
   // Show a headline marked done in the look of done headlines past its
   // keyword (`org-headline-done`). (org-fontify-done-headline)

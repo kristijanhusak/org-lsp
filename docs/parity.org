@@ -24,7 +24,7 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#properties-and-column-view][Properties and column view]] | 89% | 8 of 9 |
 | [[#dates-and-times][Dates and times]] | 100% | 9 of 9 |
 | [[#agenda][Agenda]] | 100% | 31 of 31 |
-| [[#clocking][Clocking]] | 100% | 11 of 11 |
+| [[#clocking][Clocking]] | 100% | 12 of 12 |
 | [[#capture][Capture]] | 100% | 11 of 11 |
 | [[#notes-org-roam][Notes (org-roam)]] | 69% | 9 of 13 |
 | [[#a-journal-org-journal][A journal (org-journal)]] | 77% | 10 of 13 |
@@ -313,13 +313,14 @@ Where editors fall short:
 :CUSTOM_ID: clocking
 :END:
 
-100% (11 of 11)
+100% (12 of 12)
 
 - ✅ Clocking in and out, cancelling, going to the clocked entry
 - ✅ The clock history and clocking in the last entry
 - ✅ The clock in the mode line
 - ✅ The time clocked under each headline (~C-c C-x C-d~)
 - ✅ Clock tables, with every parameter
+- ✅ Durations written as ~org-duration-format~ says (~1d 2:30~, ~26:30~, ~1.09d~, ~1d2h15min~) and read with the units of ~org-duration-units~ (days of 8 hours)
 - ✅ Resolving dangling clocks and idle time
 - ✅ Clocking from the agenda, the clocked entry highlighted
 - ✅ A notice when the clock passes the effort (~org-clock-notify-once-if-expired~)
@@ -733,8 +734,8 @@ when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 238 | A setting of the same name |
-| missing | 56 | org-lsp does what the option is about, but the option cannot be set yet |
+| setting | 240 | A setting of the same name |
+| missing | 54 | org-lsp does what the option is about, but the option cannot be set yet |
 | other | 10 | Done another way, as its note says |
 | emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 48 | Its value is Lisp (a function, a hook), which the server does not run |
@@ -763,7 +764,6 @@ Options of what org-lsp does that cannot be set yet, by the file of Org they are
 - org-agenda.el (1) :: ~org-agenda-show-outline-path~
 - org-archive.el (2) :: ~org-archive-stamp-time~, ~org-archive-subtree-save-file-p~
 - org-cycle.el (3) :: ~org-cycle-max-level~, ~org-cycle-global-at-bob~, ~org-cycle-level-after-item/entry-creation~
-- org-duration.el (2) :: ~org-duration-units~, ~org-duration-format~
 - org-entities.el (1) :: ~org-entities-user~
 - org-faces.el (1) :: ~org-agenda-deadline-faces~
 - org-indent.el (3) :: ~org-indent-mode-turns-off-org-adapt-indentation~, ~org-indent-mode-turns-on-hiding-stars~, ~org-indent-indentation-per-level~
