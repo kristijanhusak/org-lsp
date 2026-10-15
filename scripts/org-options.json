@@ -729,7 +729,7 @@
   "org-startup-numerated": "absent",
   "org-use-sub-superscripts": "setting",
   "org-startup-with-beamer-mode": "emacs-only",
-  "org-startup-align-all-tables": "missing",
+  "org-startup-align-all-tables": "setting",
   "org-startup-shrink-all-tables": "setting",
   "org-startup-with-link-previews": "setting",
   "org-startup-with-latex-preview": "setting",

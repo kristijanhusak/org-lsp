@@ -413,6 +413,8 @@ pub struct Options {
     #[serde(rename = "org_cycle_level_after_item_entry_creation")]
     pub cycle_level_after_creation: Option<bool>,
     /// `org-startup-shrink-all-tables`
+    #[serde(rename = "org_startup_align_all_tables")]
+    pub startup_align_all_tables: Option<bool>,
     #[serde(rename = "org_startup_shrink_all_tables")]
     pub startup_shrink_all_tables: Option<bool>,
     /// `org-startup-folded`

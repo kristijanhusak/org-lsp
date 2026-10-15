@@ -1,0 +1,124 @@
+[
+ {
+  "text": "| a |bb|\n|ccc|d|\n",
+  "align": true,
+  "expected": "| a   | bb |\n| ccc | d  |\n"
+ },
+ {
+  "text": "| a |bb|\n|ccc|d|\n",
+  "align": false,
+  "expected": "| a |bb|\n|ccc|d|\n"
+ },
+ {
+  "text": "#+STARTUP: align\n| a |bb|\n|ccc|d|\n",
+  "align": false,
+  "expected": "#+STARTUP: align\n| a   | bb |\n| ccc | d  |\n"
+ },
+ {
+  "text": "#+STARTUP: noalign\n| a |bb|\n|ccc|d|\n",
+  "align": true,
+  "expected": "#+STARTUP: noalign\n| a |bb|\n|ccc|d|\n"
+ },
+ {
+  "text": "* H\n  | x | y|\n  |-\n  |  1|22 |\ntext\n| p|\n",
+  "align": true,
+  "expected": "* H\n  | x |  y |\n  |---+----|\n  | 1 | 22 |\ntext\n| p |\n"
+ },
+ {
+  "text": "#+begin_src org\n| a |bb|\n#+end_src\n|q|\n",
+  "align": true,
+  "expected": "#+begin_src org\n| a |bb|\n#+end_src\n| q |\n"
+ },
+ {
+  "text": "#+begin_example\n| a |bb|\n#+end_example\n",
+  "align": true,
+  "expected": "#+begin_example\n| a |bb|\n#+end_example\n"
+ },
+ {
+  "text": "+---+--+\n| a |b |\n+---+--+\n",
+  "align": true,
+  "expected": "+---+--+\n| a |b |\n+---+--+\n"
+ },
+ {
+  "text": "| 1|2|\n| 3 |  |\n#+TBLFM: $2=$1*2\n",
+  "align": true,
+  "expected": "| 1 | 2 |\n| 3 |   |\n#+TBLFM: $2=$1*2\n"
+ },
+ {
+  "text": "| <5> | b|\n| a very long cell | c |\n",
+  "align": true,
+  "shrink": true,
+  "expected": "| <5>              | b |\n| a very long cell | c |\n"
+ },
+ {
+  "text": "| <5> | b|\n| a very long cell | c |\n",
+  "align": true,
+  "shrink": false,
+  "expected": "| <5>              | b |\n| a very long cell | c |\n"
+ },
+ {
+  "text": "|a|b|\n|-+-|\n|1|2|\n\n|z|\n",
+  "align": true,
+  "expected": "| a | b |\n|---+---|\n| 1 | 2 |\n\n| z |\n"
+ },
+ {
+  "text": "| [[https://example.com][link]] | x|\n",
+  "align": true,
+  "expected": "| [[https://example.com][link]] | x |\n"
+ },
+ {
+  "text": "| 12 | abc |\n| 3.5|d|\n|-\n| 100 | e |\n",
+  "align": true,
+  "expected": "|  12 | abc |\n| 3.5 | d   |\n|-----+-----|\n| 100 | e   |\n"
+ },
+ {
+  "text": "| a | b |\n| c | d |\n",
+  "align": true,
+  "expected": "| a | b |\n| c | d |\n"
+ },
+ {
+  "text": ":PROPERTIES:\n:X: | not |\n:END:\n|a|\n",
+  "align": true,
+  "expected": ":PROPERTIES:\n:X: | not |\n:END:\n| a |\n"
+ },
+ {
+  "text": "- item\n  |a|bb|\n  |c|d|\n",
+  "align": true,
+  "expected": "- item\n  | a | bb |\n  | c | d  |\n"
+ },
+ {
+  "text": "| [[https://example.com][link]] | x|\n| y | z |\n",
+  "align": true,
+  "expected": "| [[https://example.com][link]] | x |\n| y    | z |\n"
+ },
+ {
+  "text": "#+begin_quote\n|a|bb|\n#+end_quote\n",
+  "align": true,
+  "expected": "#+begin_quote\n| a | bb |\n#+end_quote\n"
+ },
+ {
+  "text": ":DRAWER:\n|a|bb|\n:END:\n",
+  "align": true,
+  "expected": ":DRAWER:\n| a | bb |\n:END:\n"
+ },
+ {
+  "text": "#+NAME: t\n|a|bb|\n|ccc|d|\n",
+  "align": true,
+  "expected": "#+NAME: t\n| a   | bb |\n| ccc | d  |\n"
+ },
+ {
+  "text": "| 日本 | x|\n| a | yy |\n",
+  "align": true,
+  "expected": "| 日本 | x  |\n| a    | yy |\n"
+ },
+ {
+  "text": "* TODO h :tag:\n|a|\n",
+  "align": true,
+  "expected": "* TODO h :tag:\n| a |\n"
+ },
+ {
+  "text": "#+begin_center\n| 1|2 |\n#+end_center\n",
+  "align": true,
+  "expected": "#+begin_center\n| 1 | 2 |\n#+end_center\n"
+ }
+]

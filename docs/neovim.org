@@ -116,7 +116,7 @@ calendar, or typed as at Org's prompt (~fri 10:00~, ~+2d~, ~2/15~, ~++1w~).
 | [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ |  |
 | [[file:parity.org::#links][Links]] | 100% | ✅ |  |
 | [[file:parity.org::#footnotes][Footnotes]] | 100% | ✅ |  |
-| [[file:parity.org::#tables][Tables]] | 94% | ✅ |  |
+| [[file:parity.org::#tables][Tables]] | 95% | ✅ |  |
 | [[file:parity.org::#table-formulas][Table formulas]] | 100% | ✅ |  |
 | [[file:parity.org::#code-blocks-babel][Code blocks (Babel)]] | 100% | ✅ |  |
 | [[file:parity.org::#export-and-publishing][Export and publishing]] | 100% | ✅ |  |

@@ -1388,6 +1388,14 @@ pub const SETTINGS: &[Setting] = &[
          Org shows a headline's children but not its text, the text shows.",
     ),
     setting(
+        "org_startup_align_all_tables",
+        "boolean",
+        "false",
+        "org-startup-align-all-tables",
+        "Align every table of a file when it opens (an edit of the file, as in Emacs). `#+STARTUP: align` and \
+         `noalign` decide for a file.",
+    ),
+    setting(
         "org_startup_shrink_all_tables",
         "boolean",
         "false",
@@ -3160,6 +3168,7 @@ const SCHEMAS: &[(&str, &str)] = &[
         "org_startup_folded",
         r#"{ "enum": ["overview", "fold", "content", "show2levels", "show3levels", "show4levels", "show5levels", "showeverything", "nofold", "showall"] }"#,
     ),
+    ("org_startup_align_all_tables", BOOLEAN),
     ("org_startup_shrink_all_tables", BOOLEAN),
     ("org_cycle_hide_block_startup", BOOLEAN),
     ("org_cycle_hide_drawer_startup", BOOLEAN),

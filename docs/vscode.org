@@ -135,7 +135,7 @@ with the cursor on them, until the agenda is built again with ~r~.
 | [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ |  |
 | [[file:parity.org::#links][Links]] | 100% | ✅ |  |
 | [[file:parity.org::#footnotes][Footnotes]] | 100% | ✅ |  |
-| [[file:parity.org::#tables][Tables]] | 94% | ✅ |  |
+| [[file:parity.org::#tables][Tables]] | 95% | ✅ |  |
 | [[file:parity.org::#table-formulas][Table formulas]] | 100% | ✅ |  |
 | [[file:parity.org::#code-blocks-babel][Code blocks (Babel)]] | 100% | ✅ |  |
 | [[file:parity.org::#export-and-publishing][Export and publishing]] | 100% | ❓ | VS Code does not tell an extension which folds are closed: with ~C-v~ everything is exported. |

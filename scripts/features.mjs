@@ -744,6 +744,7 @@ export const AREAS = [
       ['Copying down (`S-RET`, through Emacs)', true],
       ['Editing a field in a file of its own (`org-table-edit-field`, through Emacs): put back, the table realigned, each time it is saved', true],
       ['Shrunk columns (`<5>`): `C-c TAB`, `org-startup-shrink-all-tables` and `#+STARTUP: shrink`; the hidden text concealed where the editor can hide it, `…` drawn in its place or an inlay hint', true],
+      ['Every table aligned when a file opens (`org-startup-align-all-tables`, `#+STARTUP: align`, `noalign`)', true],
       ['Creating an empty table (`C-c |`, through Emacs)', true],
       ['Making a table from a region (`C-c |` on a selection, through Emacs)', true],
       ['Summing (`C-c +`) and field information (`C-c ?`), through Emacs', true],
