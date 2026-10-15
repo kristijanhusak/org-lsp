@@ -106,7 +106,7 @@ calendar, or typed as at Org's prompt (~fri 10:00~, ~+2d~, ~2/15~, ~++1w~).
 | [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ✅ |  |
 | [[file:parity.org::#priorities][Priorities]] | 75% | ✅ |  |
 | [[file:parity.org::#tags][Tags]] | 88% | ✅ |  |
-| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 89% | ✅ |  |
+| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 90% | ✅ |  |
 | [[file:parity.org::#dates-and-times][Dates and times]] | 100% | ✅ |  |
 | [[file:parity.org::#agenda][Agenda]] | 100% | ✅ |  |
 | [[file:parity.org::#clocking][Clocking]] | 100% | ✅ |  |

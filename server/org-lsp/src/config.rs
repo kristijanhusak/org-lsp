@@ -199,6 +199,12 @@ pub struct Options {
     /// properties or a regexp.
     #[serde(rename = "org_use_property_inheritance")]
     pub use_property_inheritance: Option<InheritOption>,
+    /// `org-property-separators`: `[names or a regexp, separator]` pairs.
+    #[serde(rename = "org_property_separators")]
+    pub property_separators: Option<Vec<(InheritOption, String)>>,
+    /// `org-property-format`
+    #[serde(rename = "org_property_format")]
+    pub property_format: Option<String>,
     /// `org-global-properties`: properties every entry inherits, such as
     /// the allowed values of one (`Effort_ALL`).
     #[serde(rename = "org_global_properties")]
@@ -977,6 +983,8 @@ pub struct InheritanceOptions {
     pub tags_exclude_from_inheritance: Option<Vec<String>>,
     #[serde(rename = "org_use_property_inheritance")]
     pub use_property_inheritance: Option<InheritOption>,
+    #[serde(rename = "org_property_separators")]
+    pub property_separators: Option<Vec<(InheritOption, String)>>,
 }
 
 impl InheritanceOptions {
@@ -986,6 +994,19 @@ impl InheritanceOptions {
             tags: self.use_tag_inheritance.as_ref().map_or(default.tags, InheritOption::to_inherit),
             tags_excluded: self.tags_exclude_from_inheritance.clone().unwrap_or_default(),
             properties: self.use_property_inheritance.as_ref().map_or(default.properties, InheritOption::to_inherit),
+            separators: self
+                .property_separators
+                .iter()
+                .flatten()
+                .filter_map(|(which, separator)| {
+                    let which = match which {
+                        InheritOption::Names(names) => org_core::outline::Separated::Names(names.clone()),
+                        InheritOption::Matching(pattern) => org_core::outline::Separated::Matching(pattern.clone()),
+                        InheritOption::Flag(_) => return None,
+                    };
+                    Some((which, separator.clone()))
+                })
+                .collect(),
         }
     }
 }
@@ -1155,6 +1176,7 @@ impl Options {
             use_tag_inheritance: self.use_tag_inheritance.clone(),
             tags_exclude_from_inheritance: self.tags_exclude_from_inheritance.clone(),
             use_property_inheritance: self.use_property_inheritance.clone(),
+            property_separators: self.property_separators.clone(),
         }
         .inheritance()
     }
@@ -1759,6 +1781,7 @@ impl Options {
                 .and_then(|columns| usize::try_from(columns).ok())
                 .unwrap_or(defaults.src_content_indentation),
             two_spaces: self.list_settings().two_spaces,
+            property_format: self.property_format.clone().unwrap_or(defaults.property_format),
         }
     }
 
@@ -2231,6 +2254,9 @@ impl Options {
             _ => RepeatTo::Head,
         };
         settings.adapt = self.adapt();
+        if let Some(format) = &self.property_format {
+            settings.property_format = format.clone();
+        }
         settings.log_done_with_time = self.log_done_with_time.unwrap_or(true);
         settings.states_order_reversed = self.log_states_order_reversed.unwrap_or(true);
         settings.notes_after_drawers = self.log_state_notes_insert_after_drawers.unwrap_or(false);

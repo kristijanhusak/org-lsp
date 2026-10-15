@@ -6357,6 +6357,26 @@ fn inserts_and_deletes_citations() {
     std::fs::remove_dir_all(directory).unwrap();
 }
 
+/// `org_property_format`: a property set is written as the format says.
+#[test]
+fn writes_properties_with_org_property_format() {
+    let mut options = clock();
+    options["org_property_format"] = json!("%-6s| %s");
+    let mut client = Client::editor(options, None);
+    let uri = "file:///org/format.org";
+    let mut text = "* Task\n".to_string();
+    client.open(uri, &text);
+    client.edit(
+        "org.property.set",
+        uri,
+        (0, 0),
+        json!({ "step": "value", "answers": "Color", "input": "red" }),
+        &mut text,
+    );
+    assert_eq!(text, "* Task\n:PROPERTIES:\n:Color:| red\n:END:\n");
+    client.shutdown();
+}
+
 /// `org-set-property` asks for a name, then a value: one of the allowed
 /// ones when `NAME_ALL` says which; `S-<right>` goes to the next of them,
 /// `C-c C-c` in the drawer asks what to do, and the effort is set from

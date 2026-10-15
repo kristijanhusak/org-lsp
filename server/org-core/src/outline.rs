@@ -40,15 +40,43 @@ pub struct Inheritance {
     pub tags_excluded: Vec<String>,
     /// `org-use-property-inheritance`
     pub properties: Inherit,
+    /// `org-property-separators`: what joins the values of a property
+    /// and its `PROPERTY+` lines, for the properties named or matched.
+    pub separators: Vec<(Separated, String)>,
+}
+
+/// The properties an entry of `org-property-separators` is for: a list
+/// of names, matched with regard to case, or an Emacs regexp, without.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Separated {
+    Names(Vec<String>),
+    Matching(String),
 }
 
 impl Default for Inheritance {
     fn default() -> Self {
-        Inheritance { tags: Inherit::All, tags_excluded: Vec::new(), properties: Inherit::Nothing }
+        Inheritance {
+            tags: Inherit::All,
+            tags_excluded: Vec::new(),
+            properties: Inherit::Nothing,
+            separators: Vec::new(),
+        }
     }
 }
 
 impl Inheritance {
+    /// `org--property-get-separator`: what joins the values of `property`,
+    /// a space unless `org-property-separators` says otherwise.
+    pub fn separator(&self, property: &str) -> &str {
+        self.separators
+            .iter()
+            .find(|(separated, _)| match separated {
+                Separated::Names(names) => names.iter().any(|name| name == property),
+                Separated::Matching(pattern) => matches(pattern, property),
+            })
+            .map_or(" ", |(_, separator)| separator.as_str())
+    }
+
     /// `org-remove-uninherited-tags`, for one tag: whether entries below
     /// get it. The excluded tags count with `t` and a regexp, not with a
     /// list.
@@ -392,7 +420,7 @@ impl Outline {
             let (base, extra) = local(own(entry));
             // `org--property-local-values` drops a base value of `nil`.
             let parts: Vec<String> = base.and_then(not_nil).into_iter().chain(extra).collect();
-            return (!parts.is_empty()).then(|| parts.join(" ")).and_then(not_nil);
+            return (!parts.is_empty()).then(|| parts.join(self.inheritance.separator(name))).and_then(not_nil);
         }
         // `org-entry-get-with-inheritance`: up the lineage, the file last.
         let mut values: Vec<String> = Vec::new();
@@ -424,7 +452,7 @@ impl Outline {
                 values.insert(0, global.clone());
             }
         }
-        let joined = (!values.is_empty()).then(|| values.join(" "));
+        let joined = (!values.is_empty()).then(|| values.join(self.inheritance.separator(name)));
         if literal_nil {
             joined
         } else {
@@ -1287,6 +1315,31 @@ mod tests {
 
     fn tag_names(entry: &Entry) -> Vec<String> {
         entry.tags.iter().map(|tag| format!("{}{}", if tag.inherited { "^" } else { "" }, tag.name)).collect()
+    }
+
+    /// `org-property-separators`: the values of `X` and `X+` joined with
+    /// `, ` for the names listed (with regard to case), with `|` for those
+    /// a regexp matches (without), as `org-entry-get` gives them in Emacs.
+    #[test]
+    fn joins_property_values_with_their_separators() {
+        let text = "* h\n:PROPERTIES:\n:X: 1\n:X+: 2\n:Y: a\n:Y+: b\n:Z: q\n:Z+: r\n:END:\n\
+                    ** c\n:PROPERTIES:\n:X+: 3\n:END:\n";
+        let parse = org_syntax::parse(text, &TodoKeywords::default());
+        let inheritance = Inheritance {
+            properties: Inherit::All,
+            separators: vec![
+                (Separated::Names(vec!["X".to_string()]), ", ".to_string()),
+                (Separated::Matching("^[YZ]$".to_string()), "|".to_string()),
+            ],
+            ..Inheritance::default()
+        };
+        let outline = Outline::with_inheritance(&parse, text, "notes", &inheritance);
+        let get = |entry, name: &str, inherit| outline.property_lookup(Some(entry), name, inherit, &[], false);
+        assert_eq!(get(0, "X", false).as_deref(), Some("1, 2"));
+        assert_eq!(get(0, "y", false).as_deref(), Some("a|b"));
+        assert_eq!(get(0, "Z", false).as_deref(), Some("q|r"));
+        assert_eq!(get(1, "X", true).as_deref(), Some("1, 2, 3"));
+        assert_eq!(get(1, "x", true).as_deref(), Some("1 2 3"));
     }
 
     #[test]

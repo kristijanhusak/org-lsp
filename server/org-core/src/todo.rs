@@ -132,6 +132,8 @@ pub struct Settings {
     pub tags_sort: Option<crate::tags::Sort>,
     /// How lists are edited, and how checkbox cookies count.
     pub lists: crate::list::Settings,
+    /// `org-property-format`, for the property lines Org writes.
+    pub property_format: String,
     /// How tables are edited and calculated.
     pub table: crate::table::Settings,
 }
@@ -292,6 +294,7 @@ impl Default for Settings {
             state_tags_triggers: Vec::new(),
             tags_sort: None,
             lists: crate::list::Settings::default(),
+            property_format: indent::Settings::default().property_format,
             table: crate::table::Settings::default(),
         }
     }
@@ -691,6 +694,7 @@ impl<'a> Editor<'a> {
             adapt: self.settings.adapt,
             log_into_drawer: self.settings.log_into_drawer.clone(),
             two_spaces: self.settings.lists.two_spaces.clone(),
+            property_format: self.settings.property_format.clone(),
             ..indent::Settings::default()
         }
     }

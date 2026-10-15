@@ -15,6 +15,50 @@ pub fn width(text: &str) -> usize {
     text.chars().map(char_width).sum()
 }
 
+/// `format` with strings only: each `%s`, with a `-` flag, a width and
+/// a precision (`%-10s`, `%.3s`), takes the next of `args`; `%%` is `%`.
+/// Anything else stays as it is.
+pub fn format_strings(format: &str, args: &[&str]) -> String {
+    let mut out = String::new();
+    let mut args = args.iter();
+    let mut rest = format;
+    while let Some(at) = rest.find('%') {
+        out.push_str(&rest[..at]);
+        let spec = &rest[at + 1..];
+        if let Some(after) = spec.strip_prefix('%') {
+            out.push('%');
+            rest = after;
+            continue;
+        }
+        let left = spec.starts_with('-');
+        let digits = |text: &str| text.bytes().take_while(u8::is_ascii_digit).count();
+        let after_flag = &spec[usize::from(left)..];
+        let width_len = digits(after_flag);
+        let after_width = &after_flag[width_len..];
+        let (precision, after_precision) = match after_width.strip_prefix('.') {
+            Some(after_dot) => {
+                let length = digits(after_dot);
+                (Some(after_dot[..length].parse::<usize>().unwrap_or(0)), &after_dot[length..])
+            }
+            None => (None, after_width),
+        };
+        let Some(after) = after_precision.strip_prefix('s') else {
+            out.push('%');
+            rest = spec;
+            continue;
+        };
+        let mut value = args.next().copied().unwrap_or_default().to_string();
+        if let Some(precision) = precision {
+            value = value.chars().take(precision).collect();
+        }
+        let min = after_flag[..width_len].parse::<usize>().unwrap_or(0);
+        out.push_str(&if left { pad_right(&value, min) } else { pad_left(&value, min) });
+        rest = after;
+    }
+    out.push_str(rest);
+    out
+}
+
 /// `format "%-Ns"`: pad on the right to `min` columns.
 pub fn pad_right(text: &str, min: usize) -> String {
     let mut out = text.to_string();
