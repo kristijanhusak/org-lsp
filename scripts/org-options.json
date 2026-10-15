@@ -761,7 +761,7 @@
   "org-insert-heading-respect-content": "setting",
   "org-blank-before-new-entry": "setting",
   "org-insert-heading-hook": "lisp",
-  "org-highlight-sparse-tree-matches": "absent",
+  "org-highlight-sparse-tree-matches": "setting",
   "org-remove-highlights-with-change": "absent",
   "org-occur-case-fold-search": "setting",
   "org-occur-hook": "lisp",

@@ -1547,6 +1547,24 @@ fn makes_sparse_trees() {
     client.shutdown();
 }
 
+/// `org-highlight-sparse-tree-matches` off: the lines of the matches show,
+/// with nothing highlighted.
+#[test]
+fn makes_sparse_trees_without_highlights() {
+    let mut client = Client::start(json!({}), json!({ "org_highlight_sparse_tree_matches": false }));
+    client.open(&uri(), "* TODO a\nan apple\n* b :work:\n** c\nApple pie\n");
+    let context = json!({
+        "textDocument": { "uri": uri().as_str() }, "position": { "line": 0, "character": 0 },
+        "input": "apple", "answers": "r",
+    });
+    let shown = client
+        .raw_request("workspace/executeCommand", json!({ "command": "org.sparse.tree", "arguments": [context] }))
+        .response_result
+        .unwrap();
+    assert_eq!(shown["sparse"], json!({ "lines": [1, 4], "highlights": [] }));
+    client.shutdown();
+}
+
 /// Recalculating a table with formulas as a code action, in the table and
 /// on its `#+TBLFM:` line; none where nothing would change.
 #[test]

@@ -6634,6 +6634,22 @@ Whether a sparse tree (~C-c /~, and a link's ~/regexp/~) ignores case;
 org_occur_case_fold_search = true
 #+end_src
 
+*** org_highlight_sparse_tree_matches
+:PROPERTIES:
+:CUSTOM_ID: org_highlight_sparse_tree_matches
+:END:
+
+Highlight the matches of a sparse tree (~C-c /~, and a link's ~/regexp/~)
+until the text changes; with ~false~, only their lines show.
+
+- Org's option :: ~org-highlight-sparse-tree-matches~
+- Type :: boolean
+- Default :: ~true~
+
+#+begin_src toml
+org_highlight_sparse_tree_matches = true
+#+end_src
+
 *** org_sparse_tree_default_date_type
 :PROPERTIES:
 :CUSTOM_ID: org_sparse_tree_default_date_type

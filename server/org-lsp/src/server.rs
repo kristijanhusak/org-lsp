@@ -1162,6 +1162,8 @@ struct Server {
     agenda_persistent_filter: bool,
     /// `org-clock-in-resume`
     clock_in_resume: bool,
+    /// `org-highlight-sparse-tree-matches`
+    highlight_sparse_tree_matches: bool,
     /// `org-open-directory-means-index-dot-org`
     open_directory_index: bool,
     /// `org-allow-promoting-top-level-subtree`
@@ -1643,6 +1645,7 @@ pub fn run(connection: Connection) -> Result<()> {
         capture_use_agenda_date: options.capture_use_agenda_date.unwrap_or(false),
         agenda_persistent_filter: options.agenda_persistent_filter.unwrap_or(false),
         clock_in_resume: options.clock_in_resume.unwrap_or(false),
+        highlight_sparse_tree_matches: options.highlight_sparse_tree_matches.unwrap_or(true),
         open_directory_index: options.open_directory_means_index_dot_org.unwrap_or(false),
         allow_promoting_top_level: options.allow_promoting_top_level_subtree.unwrap_or(false),
         odd_levels: options.odd_levels_only.unwrap_or(false),
@@ -13117,8 +13120,10 @@ impl Server {
         };
         let (index, encoding) = (LineIndex::new(text), self.client.encoding);
         let lines: Vec<u32> = found.lines.iter().map(|at| index.position(text, *at, encoding).line).collect();
-        let highlights: Vec<Range> = found
-            .highlights
+        // `org-highlight-sparse-tree-matches`: the matches highlighted, or
+        // only their lines shown.
+        let matches = if self.highlight_sparse_tree_matches { found.highlights.as_slice() } else { &[] };
+        let highlights: Vec<Range> = matches
             .iter()
             .map(|(start, end)| {
                 Range::new(index.position(text, *start, encoding), index.position(text, *end, encoding))

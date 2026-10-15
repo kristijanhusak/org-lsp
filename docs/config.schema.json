@@ -192,6 +192,11 @@
       "description": "Whether a sparse tree (`C-c /`, and a link's `/regexp/`) ignores case; `\"smart\"` ignores it unless what is searched for has an upper-case letter. (`org-occur-case-fold-search`)",
       "default": true
     },
+    "org_highlight_sparse_tree_matches": {
+      "type": "boolean",
+      "description": "Highlight the matches of a sparse tree (`C-c /`, and a link's `/regexp/`) until the text changes; with `false`, only their lines show. (`org-highlight-sparse-tree-matches`)",
+      "default": true
+    },
     "org_sparse_tree_default_date_type": {
       "enum": [
         null,

@@ -204,6 +204,14 @@ pub const SETTINGS: &[Setting] = &[
          what is searched for has an upper-case letter.",
     ),
     setting(
+        "org_highlight_sparse_tree_matches",
+        "boolean",
+        "true",
+        "org-highlight-sparse-tree-matches",
+        "Highlight the matches of a sparse tree (`C-c /`, and a link's `/regexp/`) until the text changes; \
+         with `false`, only their lines show.",
+    ),
+    setting(
         "org_sparse_tree_default_date_type",
         "null, \"all\", \"active\", \"inactive\", \"scheduled\", \"deadline\", \"closed\"",
         "null",
@@ -3351,6 +3359,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_track_ordered_property_with_tag", r#"{ "anyOf": [{ "type": "boolean" }, { "type": "string" }] }"#),
     ("org_sparse_tree_open_archived_trees", BOOLEAN),
     ("org_occur_case_fold_search", r#"{ "enum": [true, false, "smart"] }"#),
+    ("org_highlight_sparse_tree_matches", BOOLEAN),
     (
         "org_sparse_tree_default_date_type",
         r#"{ "enum": [null, "all", "active", "inactive", "scheduled", "deadline", "closed"] }"#,
