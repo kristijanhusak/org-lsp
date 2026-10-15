@@ -749,7 +749,7 @@
   "org-open-non-existing-files": "absent",
   "org-open-directory-means-index-dot-org": "absent",
   "org-bookmark-names-plist": "emacs-only",
-  "org-odd-levels-only": "missing",
+  "org-odd-levels-only": "setting",
   "org-adapt-indentation": "setting",
   "org-special-ctrl-a/e": ["other", "the setting ~org_special_ctrl_a_e~, its name without the ~/~"],
   "org-special-ctrl-k": "setting",

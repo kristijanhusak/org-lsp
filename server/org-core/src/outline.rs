@@ -303,6 +303,9 @@ pub struct Outline {
     pub inheritance: Inheritance,
     /// The text the outline was made from, for the search view.
     pub text: String,
+    /// `org-odd-levels-only` in the file: levels are counted two stars a
+    /// level (`org-reduced-level`).
+    pub odd_levels: bool,
 }
 
 const ARCHIVE_TAG: &str = "ARCHIVE";
@@ -329,6 +332,7 @@ impl Outline {
         let category = category_values(&top_properties, &from_file);
 
         let mut outline = Outline {
+            odd_levels: crate::structure::odd_levels(text, crate::structure::odd_levels_default()),
             text: text.to_string(),
             category: shown_category(&category),
             name: name.to_string(),

@@ -221,6 +221,15 @@ pub const SETTINGS: &[Setting] = &[
          up with a subtree's promotion. With `false` it is an error.",
     ),
     setting(
+        "org_odd_levels_only",
+        "boolean",
+        "false",
+        "org-odd-levels-only",
+        "Only odd levels: `*`, `***`, `*****`, each counted as the next level. Promoting and demoting go two \
+         stars at a time, and a headline is colored and matched (`LEVEL`) by the level it counts as. \
+         `#+STARTUP: odd` and `oddeven` set it for a file.",
+    ),
+    setting(
         "org_treat_S_cursor_todo_selection_as_state_change",
         "boolean",
         "true",
@@ -3291,6 +3300,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ),
     ("org_yank_adjusted_subtrees", BOOLEAN),
     ("org_allow_promoting_top_level_subtree", BOOLEAN),
+    ("org_odd_levels_only", BOOLEAN),
     ("org_list_allow_alphabetical", BOOLEAN),
     ("org_plain_list_ordered_item_terminator", r#"{ "enum": [true, ".", ")"] }"#),
     ("org_list_two_spaces_after_bullet_regexp", r#"{ "anyOf": [{ "const": false }, { "type": "string" }] }"#),

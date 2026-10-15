@@ -43,6 +43,8 @@ fn edits_structure_as_emacs_does() {
             tags_column: -77,
             indent: indent::Settings { adapt, ..indent::Settings::default() },
             allow_promoting_top_level,
+            // `org-odd-levels-only`, bound for the case.
+            odd_levels: case["emacs"].as_str().is_some_and(|lisp| lisp.contains("(org-odd-levels-only t)")),
         };
         let (count, key) = match key.strip_prefix("C-u ") {
             Some(rest) => {

@@ -547,6 +547,8 @@ pub struct Options {
     /// `org-id-completion-targets`, as `org_refile_targets` is written.
     #[serde(rename = "org_allow_promoting_top_level_subtree")]
     pub allow_promoting_top_level_subtree: Option<bool>,
+    #[serde(rename = "org_odd_levels_only")]
+    pub odd_levels_only: Option<bool>,
     #[serde(rename = "org_sparse_tree_open_archived_trees")]
     pub sparse_tree_open_archived_trees: Option<bool>,
     /// `org-occur-case-fold-search`: `true`, `false` or `"smart"`.
@@ -2208,6 +2210,7 @@ impl Options {
                 bit.map_or(bits, |bit| bits | (1 << bit))
             }),
             hide_macro_markers: self.hide_macro_markers.unwrap_or(false),
+            odd_levels: self.odd_levels_only.unwrap_or(false),
         }
     }
 

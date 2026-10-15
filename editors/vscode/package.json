@@ -1820,6 +1820,11 @@
               "markdownDescription": "Promoting a headline of level 1 makes it a comment line: `# ` in place of `* `, its children a level up with a subtree's promotion. With `false` it is an error. (`org-allow-promoting-top-level-subtree`)",
               "default": false
             },
+            "org_odd_levels_only": {
+              "type": "boolean",
+              "markdownDescription": "Only odd levels: `*`, `***`, `*****`, each counted as the next level. Promoting and demoting go two stars at a time, and a headline is colored and matched (`LEVEL`) by the level it counts as. `#+STARTUP: odd` and `oddeven` set it for a file. (`org-odd-levels-only`)",
+              "default": false
+            },
             "org_treat_S_cursor_todo_selection_as_state_change": {
               "type": "boolean",
               "markdownDescription": "`S-<left>` and `S-<right>` on a headline change its TODO state as any change does: logged, and blocked by its dependencies. Off, they change it with nothing logged and nothing in the way. (`org-treat-S-cursor-todo-selection-as-state-change`)",

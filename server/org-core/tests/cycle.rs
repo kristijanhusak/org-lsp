@@ -13,7 +13,8 @@ fn tab_on_new_entries_as_emacs_presses_it() {
     let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../tests/cycle/cases.json");
     let cases: Vec<Value> = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
     let keywords = TodoKeywords::default();
-    let settings = Settings { tags_column: -77, indent: Default::default(), allow_promoting_top_level: false };
+    let settings =
+        Settings { tags_column: -77, indent: Default::default(), allow_promoting_top_level: false, odd_levels: false };
     let list_settings = ListSettings::default();
     let mut failures = Vec::new();
     for case in &cases {

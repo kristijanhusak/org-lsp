@@ -414,6 +414,9 @@ pub struct Fontify {
     pub hidden_keywords: u8,
     /// `org-hide-macro-markers`: the braces of `{{{macro}}}` are hidden.
     pub hide_macro_markers: bool,
+    /// `org-odd-levels-only`: a headline's face is that of its reduced
+    /// level (`org-get-level-face`), `***` the second.
+    pub odd_levels: bool,
 }
 
 impl Default for Fontify {
@@ -425,6 +428,7 @@ impl Default for Fontify {
             emphasis: Some(Emphasis::DEFAULTS),
             hidden_keywords: 0,
             hide_macro_markers: false,
+            odd_levels: false,
         }
     }
 }
@@ -780,7 +784,7 @@ impl Walker<'_> {
 
     fn headline(&mut self, node: &SyntaxNode) {
         let level = node.first_token().map_or(1, |stars| stars.text().len());
-        let level = modifier::level(level);
+        let level = modifier::level(org_core::structure::reduced_level(level, self.fontify.odd_levels));
         // `org-archived`: what follows the stars of a headline with
         // `:ARCHIVE:` in it.
         let line = node.text().to_string();
