@@ -111,7 +111,8 @@ they are:
 TOML is easier to write by hand: templates can go over several lines, and
 there are no braces to balance. JSON is easier to copy settings into from
 VS Code. [[#every-option-at-its-default][The end of this page]] has every option, each under its own
-heading, with its default.
+heading, with its default; [[file:config.toml][config.toml]] is the whole file with every option at
+its default and what it means, to copy and change.
 
 ~org-lsp config~ shows which file the server reads, anything wrong with
 it, and the options it comes to; with ~--options~, it puts an editor's
@@ -797,7 +798,8 @@ the Org option it stands for, the values it takes and its default, in
 JSON and as a line of the [[#the-shared-configuration-file][shared configuration file]]. You would never write
 them all out: set only what you want different. The names and values are
 the same in every editor; only the syntax changes ([[#the-shared-configuration-file][above]], and on each
-editor's page).
+editor's page). [[file:config.toml][config.toml]] has them all in one file, at their defaults,
+each with what it means.
 
 # The headings below are written by scripts/generate-docs.mjs from
 # `org-lsp settings`. Edit server/org-lsp/src/settings.rs, not them.
@@ -1926,10 +1928,10 @@ offered.
 
 - Org's option :: ~org-calc-default-modes~
 - Type :: object
-- Default :: ~{ "angle_mode": "deg", "float_format": ["float", 8] }~
+- Default :: ~{ "float_format": ["float", 8], "angle_mode": "deg" }~
 
 #+begin_src toml
-org_calc_default_modes = { angle_mode = "deg", float_format = ["float", 8] }
+org_calc_default_modes = { float_format = ["float", 8], angle_mode = "deg" }
 #+end_src
 
 *** org_table_formula_evaluate_inline
@@ -4000,10 +4002,10 @@ which the server does not run.
 
 - Org's option :: ~org-agenda-sorting-strategy~
 - Type :: { agenda?, todo?, tags?, search? } of string[], or string[]
-- Default :: ~{ "agenda": ["habit-down", "time-up", "urgency-down", "category-keep"], "search": ["category-keep"], "tags": ["urgency-down", "category-keep"], "todo": ["urgency-down", "category-keep"] }~
+- Default :: ~{ "agenda": ["habit-down", "time-up", "urgency-down", "category-keep"], "todo": ["urgency-down", "category-keep"], "tags": ["urgency-down", "category-keep"], "search": ["category-keep"] }~
 
 #+begin_src toml
-org_agenda_sorting_strategy = { agenda = ["habit-down", "time-up", "urgency-down", "category-keep"], search = ["category-keep"], tags = ["urgency-down", "category-keep"], todo = ["urgency-down", "category-keep"] }
+org_agenda_sorting_strategy = { agenda = ["habit-down", "time-up", "urgency-down", "category-keep"], todo = ["urgency-down", "category-keep"], tags = ["urgency-down", "category-keep"], search = ["category-keep"] }
 #+end_src
 
 *** org_agenda_sort_notime_is_late
@@ -4553,10 +4555,10 @@ is empty.
 
 - Org's option :: ~org-agenda-prefix-format~
 - Type :: { agenda?, todo?, tags?, search? }
-- Default :: ~{ "agenda": " %i %-12:c%?-12t% s", "search": " %i %-12:c", "tags": " %i %-12:c", "todo": " %i %-12:c" }~
+- Default :: ~{ "agenda": " %i %-12:c%?-12t% s", "todo": " %i %-12:c", "tags": " %i %-12:c", "search": " %i %-12:c" }~
 
 #+begin_src toml
-org_agenda_prefix_format = { agenda = " %i %-12:c%?-12t% s", search = " %i %-12:c", tags = " %i %-12:c", todo = " %i %-12:c" }
+org_agenda_prefix_format = { agenda = " %i %-12:c%?-12t% s", todo = " %i %-12:c", tags = " %i %-12:c", search = " %i %-12:c" }
 #+end_src
 
 *** org_agenda_todo_keyword_format
@@ -5316,10 +5318,10 @@ and ~[X]~, as org-bullets.nvim does; ~false~ leaves them as they are. A state
 left out keeps its default.
 
 - Type :: false, or { todo, half, done }
-- Default :: ~{ "done": "✓", "half": "-", "todo": " " }~
+- Default :: ~{ "todo": " ", "half": "-", "done": "✓" }~
 
 #+begin_src toml
-org_bullets_checkboxes = { done = "✓", half = "-", todo = " " }
+org_bullets_checkboxes = { todo = " ", half = "-", done = "✓" }
 #+end_src
 
 ** Source blocks and tangling
@@ -5846,10 +5848,10 @@ not links, in any case. A list given replaces the default one.
 
 - Org's option :: ~org-roam-db-extra-links-exclude-keys~
 - Type :: object
-- Default :: ~{ "keyword": ["transclude"], "node-property": ["ROAM_REFS"] }~
+- Default :: ~{ "node-property": ["ROAM_REFS"], "keyword": ["transclude"] }~
 
 #+begin_src toml
-org_roam_db_extra_links_exclude_keys = { keyword = ["transclude"], node-property = ["ROAM_REFS"] }
+org_roam_db_extra_links_exclude_keys = { node-property = ["ROAM_REFS"], keyword = ["transclude"] }
 #+end_src
 
 *** org_roam_graph_executable
@@ -5934,10 +5936,10 @@ org-roam's nodes, ~https~ for the web pages linked to.
 
 - Org's option :: ~org-roam-graph-node-extra-config~
 - Type :: object
-- Default :: ~{ "http": { "color": "#C9C9C9", "fillcolor": "#EEEEEE", "fontcolor": "#0A97A6", "style": "rounded,filled" }, "https": { "color": "#C9C9C9", "fillcolor": "#EEEEEE", "fontcolor": "#0A97A6", "style": "rounded,filled" }, "id": { "color": "#C9C9C9", "fillcolor": "#EEEEEE", "fontcolor": "#111111", "style": "bold,rounded,filled" } }~
+- Default :: ~{ "id": { "style": "bold,rounded,filled", "fillcolor": "#EEEEEE", "color": "#C9C9C9", "fontcolor": "#111111" }, "http": { "style": "rounded,filled", "fillcolor": "#EEEEEE", "color": "#C9C9C9", "fontcolor": "#0A97A6" }, "https": { "style": "rounded,filled", "fillcolor": "#EEEEEE", "color": "#C9C9C9", "fontcolor": "#0A97A6" } }~
 
 #+begin_src toml
-org_roam_graph_node_extra_config = { http = { color = "#C9C9C9", fillcolor = "#EEEEEE", fontcolor = "#0A97A6", style = "rounded,filled" }, https = { color = "#C9C9C9", fillcolor = "#EEEEEE", fontcolor = "#0A97A6", style = "rounded,filled" }, id = { color = "#C9C9C9", fillcolor = "#EEEEEE", fontcolor = "#111111", style = "bold,rounded,filled" } }
+org_roam_graph_node_extra_config = { id = { style = "bold,rounded,filled", fillcolor = "#EEEEEE", color = "#C9C9C9", fontcolor = "#111111" }, http = { style = "rounded,filled", fillcolor = "#EEEEEE", color = "#C9C9C9", fontcolor = "#0A97A6" }, https = { style = "rounded,filled", fillcolor = "#EEEEEE", color = "#C9C9C9", fontcolor = "#0A97A6" } }
 #+end_src
 
 *** org_roam_graph_link_hidden_types

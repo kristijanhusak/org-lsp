@@ -16,6 +16,7 @@
 //                                    scripts/org-options.json
 //   editors/<editor>/TESTING.org     what to try by hand (whole)
 //   docs/config.schema.json          the JSON Schema of the shared file
+//   docs/config.toml                 the shared file, every option at its default
 //   lua/org-lsp/types.lua            the options' types, for lua-language-server
 //
 // In a page written by hand, only the lines between `# BEGIN generated:
@@ -446,13 +447,13 @@ function optionTree({ editor = true } = {}) {
   return top;
 }
 
-// The server's JSON has its keys in alphabetical order; these read better
-// first, in this order.
+// These keys read better first, in this order; the others keep the
+// server's order (`org_agenda_sorting_strategy` lists the views as Org does).
 const FIRST = ['key', 'description', 'type', 'target', 'template', 'files'];
 const entries = (object) =>
   Object.entries(object).sort(([a], [b]) => {
     const rank = (key) => (FIRST.includes(key) ? FIRST.indexOf(key) : FIRST.length);
-    return rank(a) - rank(b) || a.localeCompare(b);
+    return rank(a) - rank(b);
   });
 
 function json(value) {
@@ -509,6 +510,61 @@ const OPTION_GROUPS = [
 ];
 const FALLBACK = OPTION_GROUPS.slice(-2);
 
+/** The options of the shared file by group, in the page's order. */
+function optionGroups() {
+  const groups = new Map(OPTION_GROUPS.map(([name]) => [name, []]));
+  for (const setting of settings.filter((setting) => !setting.integration && !setting.editorOnly)) {
+    const matches = ([, pattern]) => pattern.test(setting.name);
+    const [name] = OPTION_GROUPS.slice(0, -2).find(matches) ?? FALLBACK.find(matches);
+    groups.get(name).push(setting);
+  }
+  return groups;
+}
+
+/** `text` as comment lines of at most 78 columns. */
+function comment(text) {
+  const lines = [];
+  let line = '';
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    if (line && 2 + line.length + 1 + word.length > 78) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = line ? `${line} ${word}` : word;
+    }
+  }
+  if (line) lines.push(line);
+  return lines.map((text) => `# ${text}`);
+}
+
+/** docs/config.toml: the shared file with every option at its default,
+ * each with what it means, in the groups of docs/configuration.org. */
+function configToml() {
+  const lines = [
+    '#:schema https://raw.githubusercontent.com/kristijanhusak/org-lsp/main/docs/config.schema.json',
+    '',
+    ...comment(
+      "The shared configuration file of org-lsp with every option at its default. Written by scripts/generate-docs.mjs from `org-lsp settings`: edit server/org-lsp/src/settings.rs, not this file.",
+    ),
+    '#',
+    ...comment(
+      'Copy it to ~/.config/org-lsp/config.toml and change what you want different; the options left as they are can as well go. An option that has no default here (it depends on something else) is a comment. docs/configuration.org says more about each.',
+    ),
+  ];
+  for (const [name, group] of optionGroups()) {
+    if (group.length === 0) continue;
+    lines.push('', '', `# ----- ${name}`);
+    for (const setting of group) {
+      lines.push('', ...comment(setting.org ? `${setting.doc} (${setting.org})` : setting.doc));
+      const value = setting.default === undefined ? undefined : toml(setting.default);
+      if (value !== undefined) lines.push(`${setting.name} = ${value}`);
+      else if (setting.default === undefined) lines.push(...comment(`${setting.name} = …  (unset: ${setting.unset})`));
+      else lines.push(...comment(`${setting.name}: ${json(setting.default)} by default, which TOML has no word for`));
+    }
+  }
+  return lines.join('\n') + '\n';
+}
+
 /** `text` (the server's, with code in backticks) as Org lines of at most 78
  * columns, a code span never broken over two. */
 function filled(text, indent = '') {
@@ -530,12 +586,7 @@ function filled(text, indent = '') {
 /** The options on docs/configuration.org: a heading for each, under the
  * heading of its group, with what it means, its type and its default. */
 function fileOptions() {
-  const groups = new Map(OPTION_GROUPS.map(([name]) => [name, []]));
-  for (const setting of settings.filter((setting) => !setting.integration && !setting.editorOnly)) {
-    const matches = ([, pattern]) => pattern.test(setting.name);
-    const [name] = OPTION_GROUPS.slice(0, -2).find(matches) ?? FALLBACK.find(matches);
-    groups.get(name).push(setting);
-  }
+  const groups = optionGroups();
   const lines = [];
   for (const [name, group] of groups) {
     if (group.length === 0) continue;
@@ -927,6 +978,7 @@ const END = '# END generated';
 const FILES = {
   'lua/org-lsp/types.lua': luaTypes,
   'docs/config.schema.json': configSchema,
+  'docs/config.toml': configToml,
   'docs/parity.org': parityPage,
 };
 /** Files written whole that keep what a person ticked. */
