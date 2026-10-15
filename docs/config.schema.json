@@ -1714,6 +1714,22 @@
       "description": "Hide all the stars of a headline but the last; they keep their place. `#+STARTUP: hidestars` and `showstars` decide for a file. (`org-hide-leading-stars`)",
       "default": false
     },
+    "org_indent_mode_turns_on_hiding_stars": {
+      "type": "boolean",
+      "description": "Where `org_startup_indented` (or `#+STARTUP: indent`) shows a file indented, hide the leading stars too, whatever `org_hide_leading_stars` says. (`org-indent-mode-turns-on-hiding-stars`)",
+      "default": true
+    },
+    "org_indent_mode_turns_off_org_adapt_indentation": {
+      "type": "boolean",
+      "description": "Where a file shows indented, `org_adapt_indentation` is off (unless it is `headline-data`): new and moved text is not indented to its headline. (`org-indent-mode-turns-off-org-adapt-indentation`)",
+      "default": true
+    },
+    "org_indent_indentation_per_level": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "How many columns a file shown indented moves each level of headlines and their text in; 0 shows them as they are. (`org-indent-indentation-per-level`)",
+      "default": 2
+    },
     "org_duration_format": {
       "anyOf": [
         {

@@ -367,6 +367,12 @@ pub struct Options {
     /// `org-hide-leading-stars`
     #[serde(rename = "org_hide_leading_stars")]
     pub hide_leading_stars: Option<bool>,
+    #[serde(rename = "org_indent_mode_turns_on_hiding_stars")]
+    pub indent_mode_turns_on_hiding_stars: Option<bool>,
+    #[serde(rename = "org_indent_mode_turns_off_org_adapt_indentation")]
+    pub indent_mode_turns_off_org_adapt_indentation: Option<bool>,
+    #[serde(rename = "org_indent_indentation_per_level")]
+    pub indent_indentation_per_level: Option<usize>,
     /// `org-fontify-done-headline`, `org-fontify-todo-headline`,
     /// `org-fontify-quote-and-verse-blocks`
     #[serde(rename = "org_fontify_done_headline")]
@@ -1762,6 +1768,9 @@ impl Options {
             startup_indented: self.startup_indented.unwrap_or(false),
             hide_leading_stars: self.hide_leading_stars.unwrap_or(false),
             bullets: self.bullets().is_some(),
+            indent_hides_stars: self.indent_mode_turns_on_hiding_stars.unwrap_or(true),
+            indent_turns_off_adapt: self.indent_mode_turns_off_org_adapt_indentation.unwrap_or(true),
+            per_level: self.indent_indentation_per_level.unwrap_or(2),
         }
     }
 

@@ -14662,5 +14662,3525 @@
     ]
    ]
   }
+ },
+ {
+  "file": "tests/fixtures/lists.org",
+  "adapt": "nil",
+  "per_level": 0,
+  "expected": {
+   "lines": [
+    "- one",
+    "- two",
+    "  continued",
+    "  still two (indent 1 > 0)",
+    "- three",
+    "  ",
+    "  paragraph in three",
+    "  ",
+    "- four",
+    "  ",
+    "  ",
+    "- new list after two blank lines",
+    "+ plus bullet",
+    "1. ordered",
+    "2) paren",
+    "10. ten",
+    "1.not an item",
+    "-not an item",
+    "- ",
+    "-",
+    "  - nested a",
+    "    - nested b",
+    "      text b",
+    "    back in a",
+    "  - nested a2",
+    "back at zero ends list",
+    " * star bullet needs indent",
+    " * second star",
+    "   1. [@5] counter set",
+    "   2. [ ] unchecked",
+    "   3. [X] checked",
+    "   4. [-] partial",
+    "   5. [x] lowercase is not a checkbox",
+    "   6. [ ]no space after",
+    "- term :: description",
+    "- a :: b :: c",
+    "- no separator::here",
+    "- trailing separator ::",
+    "- :: empty term",
+    "- [ ] checkbox term :: desc",
+    "1. ordered :: no tag",
+    "- item with block",
+    "  #+begin_src sh",
+    "    echo hi",
+    "  #+end_src",
+    "  after block",
+    "- item with table",
+    "  | a | b |",
+    "- item with drawer",
+    "  :NOTE:",
+    "  inside",
+    "  :END:",
+    "\t- tab indented item",
+    "\t  tab continued",
+    "- last"
+   ],
+   "newline": [
+    2,
+    2,
+    2,
+    1,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    0,
+    2,
+    2,
+    3,
+    3,
+    4,
+    0,
+    0,
+    2,
+    2,
+    4,
+    6,
+    6,
+    4,
+    4,
+    0,
+    3,
+    3,
+    6,
+    6,
+    6,
+    6,
+    6,
+    6,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    3,
+    2,
+    4,
+    4,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    10,
+    10,
+    2
+   ],
+   "region": "- one\n- two\n  continued\n  still two (indent 1 > 0)\n- three\n\n  paragraph in three\n\n- four\n\n\n- new list after two blank lines\n+ plus bullet\n1. ordered\n2) paren\n10. ten\n1.not an item\n-not an item\n- \n-\n  - nested a\n    - nested b\n      text b\n    back in a\n  - nested a2\nback at zero ends list\n* star bullet needs indent\n* second star\n1. [@5] counter set\n2. [ ] unchecked\n3. [X] checked\n4. [-] partial\n5. [x] lowercase is not a checkbox\n6. [ ]no space after\n- term :: description\n- a :: b :: c\n- no separator::here\n- trailing separator ::\n- :: empty term\n- [ ] checkbox term :: desc\n1. ordered :: no tag\n- item with block\n  #+begin_src sh\n    echo hi\n  #+end_src\n  after block\n- item with table\n  | a | b |\n- item with drawer\n  :NOTE:\n  inside\n  :END:\n  - tab indented item\n    tab continued\n- last\n",
+   "virtual": [
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     4
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     4
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     4
+    ],
+    [
+     0,
+     4
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     10
+    ],
+    [
+     0,
+     10
+    ],
+    [
+     0,
+     2
+    ]
+   ]
+  }
+ },
+ {
+  "file": "tests/fixtures/kitchen-sink.org",
+  "adapt": "headline-data",
+  "per_level": 0,
+  "expected": {
+   "lines": [
+    "# -*- mode: org -*-",
+    "#+TITLE: Kitchen sink",
+    "#+TODO: TODO NEXT(n) | DONE CANCELLED(c@)",
+    "#+FILETAGS: :fixture:",
+    "",
+    "Text before the first headline, with *bold*, /italic/, _underline_,",
+    "+strike+, =verbatim= and ~code~. A */nested/* one too.",
+    "",
+    "* TODO [#A] Top level headline [1/3] :work:urgent:",
+    "  SCHEDULED: <2026-10-05 Mon 09:00 +1w> DEADLINE: <2026-10-09 Fri>",
+    ":PROPERTIES:",
+    ":ID:       0d1e2f",
+    ":CUSTOM_ID: top",
+    ":END:",
+    ":LOGBOOK:",
+    "CLOCK: [2026-10-04 Sun 10:00]--[2026-10-04 Sun 11:30] =>  1:30",
+    "- State \"TODO\"       from              [2026-10-04 Sun 09:00]",
+    ":END:",
+    "",
+    "A paragraph with a [[https://orgmode.org][link to *Org*]], a bare",
+    "https://example.com/path?q=1, an <https://example.com/angle> link,",
+    "a footnote[fn:1], an inline one[fn:: with *text*], a <<target>> and",
+    "an inactive stamp [2026-10-04 Sun].",
+    "",
+    "** NEXT Lists",
+    "- [ ] unchecked",
+    "- [X] checked",
+    "- [-] partial",
+    "  1. ordered child",
+    "  2) other bullet",
+    "     continued text",
+    "- term :: description",
+    "+ plus item",
+    "  ",
+    "  still the same item",
+    "  ",
+    "- after one blank line",
+    "",
+    "",
+    "Paragraph after two blank lines.",
+    "",
+    "** DONE Tables",
+    "   CLOSED: [2026-10-03 Sat 18:00]",
+    "| Name  | Value |",
+    "|-------+-------|",
+    "| alpha |     1 |",
+    "| *b*   |     2 |",
+    "#+TBLFM: $2=vsum(@I..@II)",
+    "",
+    "*** Deep headline without body",
+    "** CANCELLED Blocks :archive:",
+    "#+BEGIN_SRC rust :tangle yes",
+    "fn main() {",
+    "    println!(\"* not a headline? it is in Org, so avoid column 0\");",
+    "}",
+    "#+END_SRC",
+    "",
+    "#+begin_quote",
+    "Quoted /text/ in a greater block.",
+    "",
+    "- with a list",
+    "#+end_quote",
+    "",
+    "#+BEGIN_EXAMPLE",
+    ": not fixed width here",
+    "#+END_EXAMPLE",
+    "",
+    "#+BEGIN_SRC unclosed",
+    "This stays a paragraph because the block is never closed.",
+    "",
+    ": fixed width",
+    ": second line",
+    "",
+    "-----",
+    "",
+    "#+BEGIN: clocktable :scope file",
+    "| Headline | Time |",
+    "#+END:",
+    "",
+    "* Plain headline",
+    "[fn:1] The footnote definition",
+    "continues here.",
+    "",
+    "[fn:note] Another one.",
+    "",
+    "* COMMENT Unicode žćč ünïcödé 日本語 :tag_1:@home:",
+    "Emphasis next to wide chars: *žćč* and /日本語/ and 😀 *bold* after emoji."
+   ],
+   "newline": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    2,
+    5,
+    5,
+    5,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "region": "# -*- mode: org -*-\n#+TITLE: Kitchen sink\n#+TODO: TODO NEXT(n) | DONE CANCELLED(c@)\n#+FILETAGS: :fixture:\n\nText before the first headline, with *bold*, /italic/, _underline_,\n+strike+, =verbatim= and ~code~. A */nested/* one too.\n\n* TODO [#A] Top level headline [1/3] :work:urgent:\n  SCHEDULED: <2026-10-05 Mon 09:00 +1w> DEADLINE: <2026-10-09 Fri>\n  :PROPERTIES:\n  :ID:       0d1e2f\n  :CUSTOM_ID: top\n  :END:\n:LOGBOOK:\nCLOCK: [2026-10-04 Sun 10:00]--[2026-10-04 Sun 11:30] =>  1:30\n- State \"TODO\"       from              [2026-10-04 Sun 09:00]\n:END:\n\nA paragraph with a [[https://orgmode.org][link to *Org*]], a bare\nhttps://example.com/path?q=1, an <https://example.com/angle> link,\na footnote[fn:1], an inline one[fn:: with *text*], a <<target>> and\nan inactive stamp [2026-10-04 Sun].\n\n** NEXT Lists\n   - [ ] unchecked\n   - [X] checked\n   - [-] partial\n     1. ordered child\n     2) other bullet\n        continued text\n   - term :: description\n   + plus item\n\n     still the same item\n\n   - after one blank line\n\n\n   Paragraph after two blank lines.\n\n** DONE Tables\n   CLOSED: [2026-10-03 Sat 18:00]\n| Name  | Value |\n|-------+-------|\n| alpha |     1 |\n| *b*   |     2 |\n#+TBLFM: $2=vsum(@I..@II)\n\n*** Deep headline without body\n** CANCELLED Blocks :archive:\n   #+BEGIN_SRC rust :tangle yes\n     fn main() {\n     println!(\"* not a headline? it is in Org, so avoid column 0\");\n     }\n   #+END_SRC\n\n   #+begin_quote\n   Quoted /text/ in a greater block.\n\n   - with a list\n   #+end_quote\n\n   #+BEGIN_EXAMPLE\n     : not fixed width here\n   #+END_EXAMPLE\n\n   #+BEGIN_SRC unclosed\n   This stays a paragraph because the block is never closed.\n\n   : fixed width\n   : second line\n\n   -----\n\n   #+BEGIN: clocktable :scope file\n   | Headline | Time |\n   #+END:\n\n* Plain headline\n[fn:1] The footnote definition\ncontinues here.\n\n[fn:note] Another one.\n\n* COMMENT Unicode žćč ünïcödé 日本語 :tag_1:@home:\n  Emphasis next to wide chars: *žćč* and /日本語/ and 😀 *bold* after emoji.\n",
+   "virtual": [
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     5
+    ],
+    [
+     0,
+     5
+    ],
+    [
+     0,
+     5
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     4
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     4
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     0
+    ]
+   ]
+  }
+ },
+ {
+  "file": "tests/fixtures/lists.org",
+  "adapt": "nil",
+  "per_level": 1,
+  "expected": {
+   "lines": [
+    "- one",
+    "- two",
+    "  continued",
+    "  still two (indent 1 > 0)",
+    "- three",
+    "  ",
+    "  paragraph in three",
+    "  ",
+    "- four",
+    "  ",
+    "  ",
+    "- new list after two blank lines",
+    "+ plus bullet",
+    "1. ordered",
+    "2) paren",
+    "10. ten",
+    "1.not an item",
+    "-not an item",
+    "- ",
+    "-",
+    "  - nested a",
+    "    - nested b",
+    "      text b",
+    "    back in a",
+    "  - nested a2",
+    "back at zero ends list",
+    " * star bullet needs indent",
+    " * second star",
+    "   1. [@5] counter set",
+    "   2. [ ] unchecked",
+    "   3. [X] checked",
+    "   4. [-] partial",
+    "   5. [x] lowercase is not a checkbox",
+    "   6. [ ]no space after",
+    "- term :: description",
+    "- a :: b :: c",
+    "- no separator::here",
+    "- trailing separator ::",
+    "- :: empty term",
+    "- [ ] checkbox term :: desc",
+    "1. ordered :: no tag",
+    "- item with block",
+    "  #+begin_src sh",
+    "    echo hi",
+    "  #+end_src",
+    "  after block",
+    "- item with table",
+    "  | a | b |",
+    "- item with drawer",
+    "  :NOTE:",
+    "  inside",
+    "  :END:",
+    "\t- tab indented item",
+    "\t  tab continued",
+    "- last"
+   ],
+   "newline": [
+    2,
+    2,
+    2,
+    1,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    0,
+    2,
+    2,
+    3,
+    3,
+    4,
+    0,
+    0,
+    2,
+    2,
+    4,
+    6,
+    6,
+    4,
+    4,
+    0,
+    3,
+    3,
+    6,
+    6,
+    6,
+    6,
+    6,
+    6,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    3,
+    2,
+    4,
+    4,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    10,
+    10,
+    2
+   ],
+   "region": "- one\n- two\n  continued\n  still two (indent 1 > 0)\n- three\n\n  paragraph in three\n\n- four\n\n\n- new list after two blank lines\n+ plus bullet\n1. ordered\n2) paren\n10. ten\n1.not an item\n-not an item\n- \n-\n  - nested a\n    - nested b\n      text b\n    back in a\n  - nested a2\nback at zero ends list\n* star bullet needs indent\n* second star\n1. [@5] counter set\n2. [ ] unchecked\n3. [X] checked\n4. [-] partial\n5. [x] lowercase is not a checkbox\n6. [ ]no space after\n- term :: description\n- a :: b :: c\n- no separator::here\n- trailing separator ::\n- :: empty term\n- [ ] checkbox term :: desc\n1. ordered :: no tag\n- item with block\n  #+begin_src sh\n    echo hi\n  #+end_src\n  after block\n- item with table\n  | a | b |\n- item with drawer\n  :NOTE:\n  inside\n  :END:\n  - tab indented item\n    tab continued\n- last\n",
+   "virtual": [
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     4
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     4
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     4
+    ],
+    [
+     0,
+     4
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     10
+    ],
+    [
+     0,
+     10
+    ],
+    [
+     0,
+     2
+    ]
+   ]
+  }
+ },
+ {
+  "file": "tests/fixtures/kitchen-sink.org",
+  "adapt": "headline-data",
+  "per_level": 1,
+  "expected": {
+   "lines": [
+    "# -*- mode: org -*-",
+    "#+TITLE: Kitchen sink",
+    "#+TODO: TODO NEXT(n) | DONE CANCELLED(c@)",
+    "#+FILETAGS: :fixture:",
+    "",
+    "Text before the first headline, with *bold*, /italic/, _underline_,",
+    "+strike+, =verbatim= and ~code~. A */nested/* one too.",
+    "",
+    "* TODO [#A] Top level headline [1/3] :work:urgent:",
+    "  SCHEDULED: <2026-10-05 Mon 09:00 +1w> DEADLINE: <2026-10-09 Fri>",
+    ":PROPERTIES:",
+    ":ID:       0d1e2f",
+    ":CUSTOM_ID: top",
+    ":END:",
+    ":LOGBOOK:",
+    "CLOCK: [2026-10-04 Sun 10:00]--[2026-10-04 Sun 11:30] =>  1:30",
+    "- State \"TODO\"       from              [2026-10-04 Sun 09:00]",
+    ":END:",
+    "",
+    "A paragraph with a [[https://orgmode.org][link to *Org*]], a bare",
+    "https://example.com/path?q=1, an <https://example.com/angle> link,",
+    "a footnote[fn:1], an inline one[fn:: with *text*], a <<target>> and",
+    "an inactive stamp [2026-10-04 Sun].",
+    "",
+    "** NEXT Lists",
+    "- [ ] unchecked",
+    "- [X] checked",
+    "- [-] partial",
+    "  1. ordered child",
+    "  2) other bullet",
+    "     continued text",
+    "- term :: description",
+    "+ plus item",
+    "  ",
+    "  still the same item",
+    "  ",
+    "- after one blank line",
+    "",
+    "",
+    "Paragraph after two blank lines.",
+    "",
+    "** DONE Tables",
+    "   CLOSED: [2026-10-03 Sat 18:00]",
+    "| Name  | Value |",
+    "|-------+-------|",
+    "| alpha |     1 |",
+    "| *b*   |     2 |",
+    "#+TBLFM: $2=vsum(@I..@II)",
+    "",
+    "*** Deep headline without body",
+    "** CANCELLED Blocks :archive:",
+    "#+BEGIN_SRC rust :tangle yes",
+    "fn main() {",
+    "    println!(\"* not a headline? it is in Org, so avoid column 0\");",
+    "}",
+    "#+END_SRC",
+    "",
+    "#+begin_quote",
+    "Quoted /text/ in a greater block.",
+    "",
+    "- with a list",
+    "#+end_quote",
+    "",
+    "#+BEGIN_EXAMPLE",
+    ": not fixed width here",
+    "#+END_EXAMPLE",
+    "",
+    "#+BEGIN_SRC unclosed",
+    "This stays a paragraph because the block is never closed.",
+    "",
+    ": fixed width",
+    ": second line",
+    "",
+    "-----",
+    "",
+    "#+BEGIN: clocktable :scope file",
+    "| Headline | Time |",
+    "#+END:",
+    "",
+    "* Plain headline",
+    "[fn:1] The footnote definition",
+    "continues here.",
+    "",
+    "[fn:note] Another one.",
+    "",
+    "* COMMENT Unicode žćč ünïcödé 日本語 :tag_1:@home:",
+    "Emphasis next to wide chars: *žćč* and /日本語/ and 😀 *bold* after emoji."
+   ],
+   "newline": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    2,
+    5,
+    5,
+    5,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "region": "# -*- mode: org -*-\n#+TITLE: Kitchen sink\n#+TODO: TODO NEXT(n) | DONE CANCELLED(c@)\n#+FILETAGS: :fixture:\n\nText before the first headline, with *bold*, /italic/, _underline_,\n+strike+, =verbatim= and ~code~. A */nested/* one too.\n\n* TODO [#A] Top level headline [1/3] :work:urgent:\n  SCHEDULED: <2026-10-05 Mon 09:00 +1w> DEADLINE: <2026-10-09 Fri>\n  :PROPERTIES:\n  :ID:       0d1e2f\n  :CUSTOM_ID: top\n  :END:\n:LOGBOOK:\nCLOCK: [2026-10-04 Sun 10:00]--[2026-10-04 Sun 11:30] =>  1:30\n- State \"TODO\"       from              [2026-10-04 Sun 09:00]\n:END:\n\nA paragraph with a [[https://orgmode.org][link to *Org*]], a bare\nhttps://example.com/path?q=1, an <https://example.com/angle> link,\na footnote[fn:1], an inline one[fn:: with *text*], a <<target>> and\nan inactive stamp [2026-10-04 Sun].\n\n** NEXT Lists\n   - [ ] unchecked\n   - [X] checked\n   - [-] partial\n     1. ordered child\n     2) other bullet\n        continued text\n   - term :: description\n   + plus item\n\n     still the same item\n\n   - after one blank line\n\n\n   Paragraph after two blank lines.\n\n** DONE Tables\n   CLOSED: [2026-10-03 Sat 18:00]\n| Name  | Value |\n|-------+-------|\n| alpha |     1 |\n| *b*   |     2 |\n#+TBLFM: $2=vsum(@I..@II)\n\n*** Deep headline without body\n** CANCELLED Blocks :archive:\n   #+BEGIN_SRC rust :tangle yes\n     fn main() {\n     println!(\"* not a headline? it is in Org, so avoid column 0\");\n     }\n   #+END_SRC\n\n   #+begin_quote\n   Quoted /text/ in a greater block.\n\n   - with a list\n   #+end_quote\n\n   #+BEGIN_EXAMPLE\n     : not fixed width here\n   #+END_EXAMPLE\n\n   #+BEGIN_SRC unclosed\n   This stays a paragraph because the block is never closed.\n\n   : fixed width\n   : second line\n\n   -----\n\n   #+BEGIN: clocktable :scope file\n   | Headline | Time |\n   #+END:\n\n* Plain headline\n[fn:1] The footnote definition\ncontinues here.\n\n[fn:note] Another one.\n\n* COMMENT Unicode žćč ünïcödé 日本語 :tag_1:@home:\n  Emphasis next to wide chars: *žćč* and /日本語/ and 😀 *bold* after emoji.\n",
+   "virtual": [
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     2,
+     4
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     3,
+     5
+    ],
+    [
+     3,
+     5
+    ],
+    [
+     3,
+     5
+    ],
+    [
+     3,
+     8
+    ],
+    [
+     3,
+     8
+    ],
+    [
+     3,
+     8
+    ],
+    [
+     3,
+     5
+    ],
+    [
+     3,
+     5
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     5
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     5
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     0,
+     4
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     7
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     5
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     5
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     2,
+     2
+    ]
+   ]
+  }
+ },
+ {
+  "file": "tests/fixtures/lists.org",
+  "adapt": "nil",
+  "per_level": 3,
+  "expected": {
+   "lines": [
+    "- one",
+    "- two",
+    "  continued",
+    "  still two (indent 1 > 0)",
+    "- three",
+    "  ",
+    "  paragraph in three",
+    "  ",
+    "- four",
+    "  ",
+    "  ",
+    "- new list after two blank lines",
+    "+ plus bullet",
+    "1. ordered",
+    "2) paren",
+    "10. ten",
+    "1.not an item",
+    "-not an item",
+    "- ",
+    "-",
+    "  - nested a",
+    "    - nested b",
+    "      text b",
+    "    back in a",
+    "  - nested a2",
+    "back at zero ends list",
+    " * star bullet needs indent",
+    " * second star",
+    "   1. [@5] counter set",
+    "   2. [ ] unchecked",
+    "   3. [X] checked",
+    "   4. [-] partial",
+    "   5. [x] lowercase is not a checkbox",
+    "   6. [ ]no space after",
+    "- term :: description",
+    "- a :: b :: c",
+    "- no separator::here",
+    "- trailing separator ::",
+    "- :: empty term",
+    "- [ ] checkbox term :: desc",
+    "1. ordered :: no tag",
+    "- item with block",
+    "  #+begin_src sh",
+    "    echo hi",
+    "  #+end_src",
+    "  after block",
+    "- item with table",
+    "  | a | b |",
+    "- item with drawer",
+    "  :NOTE:",
+    "  inside",
+    "  :END:",
+    "\t- tab indented item",
+    "\t  tab continued",
+    "- last"
+   ],
+   "newline": [
+    2,
+    2,
+    2,
+    1,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    0,
+    2,
+    2,
+    3,
+    3,
+    4,
+    0,
+    0,
+    2,
+    2,
+    4,
+    6,
+    6,
+    4,
+    4,
+    0,
+    3,
+    3,
+    6,
+    6,
+    6,
+    6,
+    6,
+    6,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    3,
+    2,
+    4,
+    4,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    10,
+    10,
+    2
+   ],
+   "region": "- one\n- two\n  continued\n  still two (indent 1 > 0)\n- three\n\n  paragraph in three\n\n- four\n\n\n- new list after two blank lines\n+ plus bullet\n1. ordered\n2) paren\n10. ten\n1.not an item\n-not an item\n- \n-\n  - nested a\n    - nested b\n      text b\n    back in a\n  - nested a2\nback at zero ends list\n* star bullet needs indent\n* second star\n1. [@5] counter set\n2. [ ] unchecked\n3. [X] checked\n4. [-] partial\n5. [x] lowercase is not a checkbox\n6. [ ]no space after\n- term :: description\n- a :: b :: c\n- no separator::here\n- trailing separator ::\n- :: empty term\n- [ ] checkbox term :: desc\n1. ordered :: no tag\n- item with block\n  #+begin_src sh\n    echo hi\n  #+end_src\n  after block\n- item with table\n  | a | b |\n- item with drawer\n  :NOTE:\n  inside\n  :END:\n  - tab indented item\n    tab continued\n- last\n",
+   "virtual": [
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     4
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     4
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     4
+    ],
+    [
+     0,
+     4
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     10
+    ],
+    [
+     0,
+     10
+    ],
+    [
+     0,
+     2
+    ]
+   ]
+  }
+ },
+ {
+  "file": "tests/fixtures/kitchen-sink.org",
+  "adapt": "headline-data",
+  "per_level": 3,
+  "expected": {
+   "lines": [
+    "# -*- mode: org -*-",
+    "#+TITLE: Kitchen sink",
+    "#+TODO: TODO NEXT(n) | DONE CANCELLED(c@)",
+    "#+FILETAGS: :fixture:",
+    "",
+    "Text before the first headline, with *bold*, /italic/, _underline_,",
+    "+strike+, =verbatim= and ~code~. A */nested/* one too.",
+    "",
+    "* TODO [#A] Top level headline [1/3] :work:urgent:",
+    "  SCHEDULED: <2026-10-05 Mon 09:00 +1w> DEADLINE: <2026-10-09 Fri>",
+    ":PROPERTIES:",
+    ":ID:       0d1e2f",
+    ":CUSTOM_ID: top",
+    ":END:",
+    ":LOGBOOK:",
+    "CLOCK: [2026-10-04 Sun 10:00]--[2026-10-04 Sun 11:30] =>  1:30",
+    "- State \"TODO\"       from              [2026-10-04 Sun 09:00]",
+    ":END:",
+    "",
+    "A paragraph with a [[https://orgmode.org][link to *Org*]], a bare",
+    "https://example.com/path?q=1, an <https://example.com/angle> link,",
+    "a footnote[fn:1], an inline one[fn:: with *text*], a <<target>> and",
+    "an inactive stamp [2026-10-04 Sun].",
+    "",
+    "** NEXT Lists",
+    "- [ ] unchecked",
+    "- [X] checked",
+    "- [-] partial",
+    "  1. ordered child",
+    "  2) other bullet",
+    "     continued text",
+    "- term :: description",
+    "+ plus item",
+    "  ",
+    "  still the same item",
+    "  ",
+    "- after one blank line",
+    "",
+    "",
+    "Paragraph after two blank lines.",
+    "",
+    "** DONE Tables",
+    "   CLOSED: [2026-10-03 Sat 18:00]",
+    "| Name  | Value |",
+    "|-------+-------|",
+    "| alpha |     1 |",
+    "| *b*   |     2 |",
+    "#+TBLFM: $2=vsum(@I..@II)",
+    "",
+    "*** Deep headline without body",
+    "** CANCELLED Blocks :archive:",
+    "#+BEGIN_SRC rust :tangle yes",
+    "fn main() {",
+    "    println!(\"* not a headline? it is in Org, so avoid column 0\");",
+    "}",
+    "#+END_SRC",
+    "",
+    "#+begin_quote",
+    "Quoted /text/ in a greater block.",
+    "",
+    "- with a list",
+    "#+end_quote",
+    "",
+    "#+BEGIN_EXAMPLE",
+    ": not fixed width here",
+    "#+END_EXAMPLE",
+    "",
+    "#+BEGIN_SRC unclosed",
+    "This stays a paragraph because the block is never closed.",
+    "",
+    ": fixed width",
+    ": second line",
+    "",
+    "-----",
+    "",
+    "#+BEGIN: clocktable :scope file",
+    "| Headline | Time |",
+    "#+END:",
+    "",
+    "* Plain headline",
+    "[fn:1] The footnote definition",
+    "continues here.",
+    "",
+    "[fn:note] Another one.",
+    "",
+    "* COMMENT Unicode žćč ünïcödé 日本語 :tag_1:@home:",
+    "Emphasis next to wide chars: *žćč* and /日本語/ and 😀 *bold* after emoji."
+   ],
+   "newline": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    2,
+    5,
+    5,
+    5,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "region": "# -*- mode: org -*-\n#+TITLE: Kitchen sink\n#+TODO: TODO NEXT(n) | DONE CANCELLED(c@)\n#+FILETAGS: :fixture:\n\nText before the first headline, with *bold*, /italic/, _underline_,\n+strike+, =verbatim= and ~code~. A */nested/* one too.\n\n* TODO [#A] Top level headline [1/3] :work:urgent:\n  SCHEDULED: <2026-10-05 Mon 09:00 +1w> DEADLINE: <2026-10-09 Fri>\n  :PROPERTIES:\n  :ID:       0d1e2f\n  :CUSTOM_ID: top\n  :END:\n:LOGBOOK:\nCLOCK: [2026-10-04 Sun 10:00]--[2026-10-04 Sun 11:30] =>  1:30\n- State \"TODO\"       from              [2026-10-04 Sun 09:00]\n:END:\n\nA paragraph with a [[https://orgmode.org][link to *Org*]], a bare\nhttps://example.com/path?q=1, an <https://example.com/angle> link,\na footnote[fn:1], an inline one[fn:: with *text*], a <<target>> and\nan inactive stamp [2026-10-04 Sun].\n\n** NEXT Lists\n   - [ ] unchecked\n   - [X] checked\n   - [-] partial\n     1. ordered child\n     2) other bullet\n        continued text\n   - term :: description\n   + plus item\n\n     still the same item\n\n   - after one blank line\n\n\n   Paragraph after two blank lines.\n\n** DONE Tables\n   CLOSED: [2026-10-03 Sat 18:00]\n| Name  | Value |\n|-------+-------|\n| alpha |     1 |\n| *b*   |     2 |\n#+TBLFM: $2=vsum(@I..@II)\n\n*** Deep headline without body\n** CANCELLED Blocks :archive:\n   #+BEGIN_SRC rust :tangle yes\n     fn main() {\n     println!(\"* not a headline? it is in Org, so avoid column 0\");\n     }\n   #+END_SRC\n\n   #+begin_quote\n   Quoted /text/ in a greater block.\n\n   - with a list\n   #+end_quote\n\n   #+BEGIN_EXAMPLE\n     : not fixed width here\n   #+END_EXAMPLE\n\n   #+BEGIN_SRC unclosed\n   This stays a paragraph because the block is never closed.\n\n   : fixed width\n   : second line\n\n   -----\n\n   #+BEGIN: clocktable :scope file\n   | Headline | Time |\n   #+END:\n\n* Plain headline\n[fn:1] The footnote definition\ncontinues here.\n\n[fn:note] Another one.\n\n* COMMENT Unicode žćč ünïcödé 日本語 :tag_1:@home:\n  Emphasis next to wide chars: *žćč* and /日本語/ and 😀 *bold* after emoji.\n",
+   "virtual": [
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     2,
+     4
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     5
+    ],
+    [
+     5,
+     7
+    ],
+    [
+     5,
+     7
+    ],
+    [
+     5,
+     7
+    ],
+    [
+     5,
+     10
+    ],
+    [
+     5,
+     10
+    ],
+    [
+     5,
+     10
+    ],
+    [
+     5,
+     7
+    ],
+    [
+     5,
+     7
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     7
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     7
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     2,
+     5
+    ],
+    [
+     2,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     4,
+     8
+    ],
+    [
+     2,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     9
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     7
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     7
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     2,
+     2
+    ]
+   ]
+  }
+ },
+ {
+  "file": "tests/fixtures/lists.org",
+  "adapt": "nil",
+  "per_level": 4,
+  "expected": {
+   "lines": [
+    "- one",
+    "- two",
+    "  continued",
+    "  still two (indent 1 > 0)",
+    "- three",
+    "  ",
+    "  paragraph in three",
+    "  ",
+    "- four",
+    "  ",
+    "  ",
+    "- new list after two blank lines",
+    "+ plus bullet",
+    "1. ordered",
+    "2) paren",
+    "10. ten",
+    "1.not an item",
+    "-not an item",
+    "- ",
+    "-",
+    "  - nested a",
+    "    - nested b",
+    "      text b",
+    "    back in a",
+    "  - nested a2",
+    "back at zero ends list",
+    " * star bullet needs indent",
+    " * second star",
+    "   1. [@5] counter set",
+    "   2. [ ] unchecked",
+    "   3. [X] checked",
+    "   4. [-] partial",
+    "   5. [x] lowercase is not a checkbox",
+    "   6. [ ]no space after",
+    "- term :: description",
+    "- a :: b :: c",
+    "- no separator::here",
+    "- trailing separator ::",
+    "- :: empty term",
+    "- [ ] checkbox term :: desc",
+    "1. ordered :: no tag",
+    "- item with block",
+    "  #+begin_src sh",
+    "    echo hi",
+    "  #+end_src",
+    "  after block",
+    "- item with table",
+    "  | a | b |",
+    "- item with drawer",
+    "  :NOTE:",
+    "  inside",
+    "  :END:",
+    "\t- tab indented item",
+    "\t  tab continued",
+    "- last"
+   ],
+   "newline": [
+    2,
+    2,
+    2,
+    1,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    0,
+    2,
+    2,
+    3,
+    3,
+    4,
+    0,
+    0,
+    2,
+    2,
+    4,
+    6,
+    6,
+    4,
+    4,
+    0,
+    3,
+    3,
+    6,
+    6,
+    6,
+    6,
+    6,
+    6,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    3,
+    2,
+    4,
+    4,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    10,
+    10,
+    2
+   ],
+   "region": "- one\n- two\n  continued\n  still two (indent 1 > 0)\n- three\n\n  paragraph in three\n\n- four\n\n\n- new list after two blank lines\n+ plus bullet\n1. ordered\n2) paren\n10. ten\n1.not an item\n-not an item\n- \n-\n  - nested a\n    - nested b\n      text b\n    back in a\n  - nested a2\nback at zero ends list\n* star bullet needs indent\n* second star\n1. [@5] counter set\n2. [ ] unchecked\n3. [X] checked\n4. [-] partial\n5. [x] lowercase is not a checkbox\n6. [ ]no space after\n- term :: description\n- a :: b :: c\n- no separator::here\n- trailing separator ::\n- :: empty term\n- [ ] checkbox term :: desc\n1. ordered :: no tag\n- item with block\n  #+begin_src sh\n    echo hi\n  #+end_src\n  after block\n- item with table\n  | a | b |\n- item with drawer\n  :NOTE:\n  inside\n  :END:\n  - tab indented item\n    tab continued\n- last\n",
+   "virtual": [
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     4
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     4
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     4
+    ],
+    [
+     0,
+     4
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     6
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     3
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     10
+    ],
+    [
+     0,
+     10
+    ],
+    [
+     0,
+     2
+    ]
+   ]
+  }
+ },
+ {
+  "file": "tests/fixtures/kitchen-sink.org",
+  "adapt": "headline-data",
+  "per_level": 4,
+  "expected": {
+   "lines": [
+    "# -*- mode: org -*-",
+    "#+TITLE: Kitchen sink",
+    "#+TODO: TODO NEXT(n) | DONE CANCELLED(c@)",
+    "#+FILETAGS: :fixture:",
+    "",
+    "Text before the first headline, with *bold*, /italic/, _underline_,",
+    "+strike+, =verbatim= and ~code~. A */nested/* one too.",
+    "",
+    "* TODO [#A] Top level headline [1/3] :work:urgent:",
+    "  SCHEDULED: <2026-10-05 Mon 09:00 +1w> DEADLINE: <2026-10-09 Fri>",
+    ":PROPERTIES:",
+    ":ID:       0d1e2f",
+    ":CUSTOM_ID: top",
+    ":END:",
+    ":LOGBOOK:",
+    "CLOCK: [2026-10-04 Sun 10:00]--[2026-10-04 Sun 11:30] =>  1:30",
+    "- State \"TODO\"       from              [2026-10-04 Sun 09:00]",
+    ":END:",
+    "",
+    "A paragraph with a [[https://orgmode.org][link to *Org*]], a bare",
+    "https://example.com/path?q=1, an <https://example.com/angle> link,",
+    "a footnote[fn:1], an inline one[fn:: with *text*], a <<target>> and",
+    "an inactive stamp [2026-10-04 Sun].",
+    "",
+    "** NEXT Lists",
+    "- [ ] unchecked",
+    "- [X] checked",
+    "- [-] partial",
+    "  1. ordered child",
+    "  2) other bullet",
+    "     continued text",
+    "- term :: description",
+    "+ plus item",
+    "  ",
+    "  still the same item",
+    "  ",
+    "- after one blank line",
+    "",
+    "",
+    "Paragraph after two blank lines.",
+    "",
+    "** DONE Tables",
+    "   CLOSED: [2026-10-03 Sat 18:00]",
+    "| Name  | Value |",
+    "|-------+-------|",
+    "| alpha |     1 |",
+    "| *b*   |     2 |",
+    "#+TBLFM: $2=vsum(@I..@II)",
+    "",
+    "*** Deep headline without body",
+    "** CANCELLED Blocks :archive:",
+    "#+BEGIN_SRC rust :tangle yes",
+    "fn main() {",
+    "    println!(\"* not a headline? it is in Org, so avoid column 0\");",
+    "}",
+    "#+END_SRC",
+    "",
+    "#+begin_quote",
+    "Quoted /text/ in a greater block.",
+    "",
+    "- with a list",
+    "#+end_quote",
+    "",
+    "#+BEGIN_EXAMPLE",
+    ": not fixed width here",
+    "#+END_EXAMPLE",
+    "",
+    "#+BEGIN_SRC unclosed",
+    "This stays a paragraph because the block is never closed.",
+    "",
+    ": fixed width",
+    ": second line",
+    "",
+    "-----",
+    "",
+    "#+BEGIN: clocktable :scope file",
+    "| Headline | Time |",
+    "#+END:",
+    "",
+    "* Plain headline",
+    "[fn:1] The footnote definition",
+    "continues here.",
+    "",
+    "[fn:note] Another one.",
+    "",
+    "* COMMENT Unicode žćč ünïcödé 日本語 :tag_1:@home:",
+    "Emphasis next to wide chars: *žćč* and /日本語/ and 😀 *bold* after emoji."
+   ],
+   "newline": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    2,
+    5,
+    5,
+    5,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "region": "# -*- mode: org -*-\n#+TITLE: Kitchen sink\n#+TODO: TODO NEXT(n) | DONE CANCELLED(c@)\n#+FILETAGS: :fixture:\n\nText before the first headline, with *bold*, /italic/, _underline_,\n+strike+, =verbatim= and ~code~. A */nested/* one too.\n\n* TODO [#A] Top level headline [1/3] :work:urgent:\n  SCHEDULED: <2026-10-05 Mon 09:00 +1w> DEADLINE: <2026-10-09 Fri>\n  :PROPERTIES:\n  :ID:       0d1e2f\n  :CUSTOM_ID: top\n  :END:\n:LOGBOOK:\nCLOCK: [2026-10-04 Sun 10:00]--[2026-10-04 Sun 11:30] =>  1:30\n- State \"TODO\"       from              [2026-10-04 Sun 09:00]\n:END:\n\nA paragraph with a [[https://orgmode.org][link to *Org*]], a bare\nhttps://example.com/path?q=1, an <https://example.com/angle> link,\na footnote[fn:1], an inline one[fn:: with *text*], a <<target>> and\nan inactive stamp [2026-10-04 Sun].\n\n** NEXT Lists\n   - [ ] unchecked\n   - [X] checked\n   - [-] partial\n     1. ordered child\n     2) other bullet\n        continued text\n   - term :: description\n   + plus item\n\n     still the same item\n\n   - after one blank line\n\n\n   Paragraph after two blank lines.\n\n** DONE Tables\n   CLOSED: [2026-10-03 Sat 18:00]\n| Name  | Value |\n|-------+-------|\n| alpha |     1 |\n| *b*   |     2 |\n#+TBLFM: $2=vsum(@I..@II)\n\n*** Deep headline without body\n** CANCELLED Blocks :archive:\n   #+BEGIN_SRC rust :tangle yes\n     fn main() {\n     println!(\"* not a headline? it is in Org, so avoid column 0\");\n     }\n   #+END_SRC\n\n   #+begin_quote\n   Quoted /text/ in a greater block.\n\n   - with a list\n   #+end_quote\n\n   #+BEGIN_EXAMPLE\n     : not fixed width here\n   #+END_EXAMPLE\n\n   #+BEGIN_SRC unclosed\n   This stays a paragraph because the block is never closed.\n\n   : fixed width\n   : second line\n\n   -----\n\n   #+BEGIN: clocktable :scope file\n   | Headline | Time |\n   #+END:\n\n* Plain headline\n[fn:1] The footnote definition\ncontinues here.\n\n[fn:note] Another one.\n\n* COMMENT Unicode žćč ünïcödé 日本語 :tag_1:@home:\n  Emphasis next to wide chars: *žćč* and /日本語/ and 😀 *bold* after emoji.\n",
+   "virtual": [
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     2,
+     4
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     3,
+     6
+    ],
+    [
+     6,
+     8
+    ],
+    [
+     6,
+     8
+    ],
+    [
+     6,
+     8
+    ],
+    [
+     6,
+     11
+    ],
+    [
+     6,
+     11
+    ],
+    [
+     6,
+     11
+    ],
+    [
+     6,
+     8
+    ],
+    [
+     6,
+     8
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     8
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     8
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     3,
+     6
+    ],
+    [
+     3,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     10
+    ],
+    [
+     3,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     10
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     8
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     8
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     6
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     2,
+     2
+    ]
+   ]
+  }
  }
 ]

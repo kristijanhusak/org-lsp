@@ -684,6 +684,20 @@ fn sends_virtual_indentation() {
     client.shutdown();
 }
 
+/// `org_indent_indentation_per_level` widens the prefixes, and with
+/// `org_indent_mode_turns_on_hiding_stars` off the stars stay.
+#[test]
+fn sends_virtual_indentation_of_other_widths() {
+    let capabilities = json!({ "experimental": { "orgVirtualIndent": true } });
+    let options = json!({ "org_indent_indentation_per_level": 4, "org_indent_mode_turns_on_hiding_stars": false });
+    let client = Client::start(capabilities, options);
+    client.open(&uri(), "#+STARTUP: indent\n* A\ntext\n** B\n- item\n");
+    let sent = client.notification("org-lsp/virtualIndent");
+    // As `org-indent-mode` shows it in Emacs with 4 per level.
+    assert_eq!(sent["lines"], json!([[1, 0, 2, 0], [2, 2, 2, 0], [3, 3, 6, 0], [4, 6, 8, 0]]));
+    client.shutdown();
+}
+
 /// A client that does not show `org-lsp/virtualIndent` (Zed, Helix) gets
 /// `org-indent-mode`'s prefixes as inlay hints of blanks; one that does,
 /// or says so with the `virtualIndent` option, gets none of those.

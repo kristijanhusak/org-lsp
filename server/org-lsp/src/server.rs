@@ -3420,10 +3420,17 @@ impl Server {
         if !self.client.virtual_indent && self.display.indented(text) {
             let adapt = self.display.adapt(text, self.indent.adapt);
             hints.extend(
-                org_core::indent::virtual_indentation(text, true, false, adapt, self.indent.two_spaces.as_ref())
-                    .into_iter()
-                    .filter(|line| line.prefix > 0 && (first..=last).contains(&line.line))
-                    .map(|line| hint(line.line as u32, 0, " ".repeat(line.prefix))),
+                org_core::indent::virtual_indentation(
+                    text,
+                    true,
+                    false,
+                    adapt,
+                    self.indent.two_spaces.as_ref(),
+                    self.display.per_level,
+                )
+                .into_iter()
+                .filter(|line| line.prefix > 0 && (first..=last).contains(&line.line))
+                .map(|line| hint(line.line as u32, 0, " ".repeat(line.prefix))),
             );
         }
         // `org-pretty-entities`: the character of each entity, whose text
@@ -13623,10 +13630,17 @@ impl Server {
         let (indent, hide_stars) = (self.display.indented(text), self.display.hides_stars(text));
         let lines: Vec<[usize; 4]> = if indent || hide_stars {
             let adapt = self.display.adapt(text, self.indent.adapt);
-            org_core::indent::virtual_indentation(text, indent, hide_stars, adapt, self.indent.two_spaces.as_ref())
-                .into_iter()
-                .map(|line| [line.line, line.prefix, line.wrap, line.hidden_stars])
-                .collect()
+            org_core::indent::virtual_indentation(
+                text,
+                indent,
+                hide_stars,
+                adapt,
+                self.indent.two_spaces.as_ref(),
+                self.display.per_level,
+            )
+            .into_iter()
+            .map(|line| [line.line, line.prefix, line.wrap, line.hidden_stars])
+            .collect()
         } else {
             Vec::new()
         };
