@@ -8,7 +8,7 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use lsp_types::request::ShowDocument;
+use lsp_types::request::{Request as _, ShowDocument};
 use lsp_types::{FoldingRange, Position, Range, ShowDocumentParams, TextDocumentIdentifier, Uri};
 use org_core::journal::{self, Command, Outcome, Period, Request, Stop, View};
 use org_core::Refusal;
@@ -300,8 +300,25 @@ impl Server {
             from: from_offset.as_ref().map(|(file, offset)| (file.as_str(), *offset)),
             answers: &answers,
         };
+        // `org-journal-find-file-fn`, which the commands that visit a day's
+        // file call: `org-journal-new-entry` when the file is not the one
+        // it is run in, `org-journal-open-current-journal-file` always.
+        let finds_file = matches!(
+            command,
+            Command::NewEntry { .. }
+                | Command::NewDateEntry { .. }
+                | Command::NewScheduledEntry { .. }
+                | Command::OpenCurrent
+        );
+        let other_window = journal.find_file_other_window && finds_file;
+        let from_file = from.as_ref().map(|(_, relative)| relative.clone());
         match journal::run(&command, &request, &settings) {
-            Ok(outcome) => self.journal_apply(id, directory, &files, outcome, journal.core.hide_entries),
+            Ok(outcome) => {
+                let other_window = other_window
+                    && (matches!(command, Command::OpenCurrent)
+                        || outcome.visit.as_ref().is_some_and(|visit| Some(&visit.file) != from_file.as_ref()));
+                self.journal_apply(id, directory, &files, outcome, journal.core.hide_entries, other_window)
+            }
             Err(Stop::Ask(question)) => {
                 let mut sent = json!({ "step": "question", "answers": answered });
                 if let Some(date) = date {
@@ -360,6 +377,7 @@ impl Server {
         files: &BTreeMap<String, String>,
         outcome: Outcome,
         hide_entries: bool,
+        other_window: bool,
     ) -> Result<Value, Refusal> {
         let mut documents = Vec::new();
         let mut texts: BTreeMap<String, String> = files.clone();
@@ -430,11 +448,15 @@ impl Server {
         if documents.is_empty() {
             let selection = Some(Range::new(position, position));
             let params = ShowDocumentParams { uri: uri.clone(), external: None, take_focus: Some(true), selection };
-            self.send_request::<ShowDocument>(params, Some(Pending::Folds { uri, folds }));
+            let mut params = serde_json::to_value(params).unwrap_or_default();
+            if other_window {
+                params["orgOtherWindow"] = json!(true);
+            }
+            self.send_raw_request(ShowDocument::METHOD, params, Some(Pending::Folds { uri, folds }));
         } else {
             let edit = self.workspace_edits(documents);
             let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
-            self.apply_edit(params, Pending::EditAndShow { uri, position, folds });
+            self.apply_edit(params, Pending::EditAndShow { uri, position, folds, other_window });
         }
         Ok(Value::Null)
     }

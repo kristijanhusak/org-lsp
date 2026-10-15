@@ -8308,6 +8308,8 @@ fn writes_journal_entries() {
     let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("today's file");
     assert_eq!(show.params["uri"], today_uri);
     assert_eq!(show.params["selection"]["start"], json!({ "line": 2, "character": 9 }));
+    // In another window, as `org-journal-find-file-fn` shows it.
+    assert_eq!(show.params["orgOtherWindow"], true);
     let folds = client.notifications.iter().find(|notification| notification.method == "org-lsp/folds").expect("folds");
     assert_eq!(folds.params["uri"], today_uri);
     assert_eq!(folds.params["close"], json!([]));
@@ -8324,6 +8326,8 @@ fn writes_journal_entries() {
     run(&mut client, "org.journal.previous.entry", at_today.clone()).unwrap();
     let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("Friday");
     assert_eq!(show.params["uri"], friday_uri);
+    // `org-journal--open-entry` visits the file in the same window.
+    assert_eq!(show.params.get("orgOtherWindow"), None);
     assert_eq!(show.params["selection"]["start"], json!({ "line": 0, "character": 0 }));
     let folds = client.notifications.iter().find(|notification| notification.method == "org-lsp/folds").expect("folds");
     assert_eq!(folds.params["close"], json!([]));

@@ -443,7 +443,11 @@ The date prompt's calendar marks the days with an entry, as
 
 Each shows the entry it is about, in its file, and with
 ~org_journal_hide_entries_p~ (on by default) the other entries folded, as
-org-journal leaves them. A journal file that is not open is written to
+org-journal leaves them. A new entry made from another file, and today's
+file, show in another window, as ~org-journal-find-file-fn~
+(~find-file-other-window~) shows them; with
+~org_journal_find_file_fn = "find-file"~ they show where the command was
+run. Zed and Helix show them where they show any file. A journal file that is not open is written to
 disk; one that is open is changed in the editor, for it to save.
 ~org_journal_enable_agenda_integration~ puts the files from yesterday on
 in ~org_agenda_files~, as ~org-journal-enable-agenda-integration~ does.
@@ -477,7 +481,13 @@ before all the others goes first in its file). What differs:
 - Folds open and close only in Neovim, Vim, VS Code and Sublime Text; in
   Zed and Helix the file shows as it does.
 - ~org-journal-encrypt-journal~ (files encrypted whole, ~.gpg~) is not
-  there: ~org_journal_enable_encryption~, with ~org-crypt~, is.
+  there: Emacs decrypts such a file in memory, where the editors would
+  need it decrypted on disk, or a way of their own to read it.
+  ~org_journal_enable_encryption~, with ~org-crypt~, is there.
+- ~org-journal-follow-mode~ and ~org-journal-enable-cache~ are not there:
+  the one shows the entries of the days ~M-x calendar~ moves to, the other
+  keeps that calendar's days in a file between sessions, and the date
+  prompt's calendar reads the directory each time it opens.
 - The search results are an Org file whose dates are links, two blanks
   before the line found where Emacs has a tab, in place of a buffer of
   buttons (~n~, ~p~, ~TAB~ move between them, and the first

@@ -731,6 +731,10 @@ pub struct Options {
     pub journal_time_prefix: Option<String>,
     #[serde(rename = "org_journal_hide_entries_p")]
     pub journal_hide_entries: Option<bool>,
+    /// `org-journal-find-file-fn`: `"find-file-other-window"` or
+    /// `"find-file"`.
+    #[serde(rename = "org_journal_find_file_fn")]
+    pub journal_find_file_fn: Option<String>,
     #[serde(rename = "org_journal_carryover_items")]
     pub journal_carryover_items: Option<String>,
     #[serde(rename = "org_journal_skip_carryover_drawers")]
@@ -908,6 +912,9 @@ pub struct JournalSettings {
     pub directory: String,
     /// `org-journal-enable-agenda-integration`
     pub agenda_integration: bool,
+    /// `org-journal-find-file-fn` is `find-file-other-window`: the file of
+    /// a day shows in another window.
+    pub find_file_other_window: bool,
     pub core: org_core::journal::Settings,
 }
 
@@ -1465,6 +1472,7 @@ impl Options {
         Some(JournalSettings {
             directory: self.journal_dir.clone().unwrap_or_else(|| "~/Documents/journal/".to_string()),
             agenda_integration: self.journal_enable_agenda_integration.unwrap_or(false),
+            find_file_other_window: self.journal_find_file_fn.as_deref() != Some("find-file"),
             core,
         })
     }

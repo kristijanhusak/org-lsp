@@ -623,7 +623,8 @@ export const AREAS = [
       ['The days with an entry marked in the date prompt\'s calendar (`org-journal-mark-entries`)', true],
       ['The keys org-journal adds to `M-x calendar` (`j r`, `[`, `]` …)', false],
       ['Files encrypted whole (`org-journal-encrypt-journal`)', false],
-      ['Visiting the file of a day another way, following the calendar, and remembering the dates between commands (`org-journal-find-file-fn`, `org-journal-follow-mode`, `org-journal-enable-cache`)', false],
+      ['The file of a day in another window, or in the window of the command (`org-journal-find-file-fn`)', true],
+      ['Following the calendar, and remembering the dates between commands (`org-journal-follow-mode`, `org-journal-enable-cache`)', false],
     ],
     editors: {
       zed: ['part', `For the dates and searches the commands ask for, ${ZED_TEXT}. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with \`file_types\` in Zed's settings.`],

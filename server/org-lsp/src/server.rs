@@ -164,8 +164,9 @@ enum Pending {
     /// The document org-journal leaves the cursor in is shown: its
     /// headlines are folded as org-journal folds them (`org-lsp/folds`).
     Folds { uri: Uri, folds: Value },
-    /// An edit after which `uri` is shown at `position` and folded so.
-    EditAndShow { uri: Uri, position: Position, folds: Value },
+    /// An edit after which `uri` is shown at `position` and folded so, in
+    /// another window with `other_window` (`orgOtherWindow`).
+    EditAndShow { uri: Uri, position: Position, folds: Value, other_window: bool },
     /// A question of `command`, run with `argument`, asked with
     /// `window/showMessageRequest` (`message_prompts`); the answer runs it
     /// again.
@@ -2800,15 +2801,19 @@ impl Server {
                 let notification = Notification::new(FOLDS.to_string(), params);
                 let _ = self.sender.send(Message::Notification(notification));
             }
-            Some(Pending::EditAndShow { uri, position, folds }) => {
+            Some(Pending::EditAndShow { uri, position, folds, other_window }) => {
                 self.refresh_view();
                 let applied = response.response_result.ok().and_then(|result| result.get("applied")?.as_bool());
                 if applied == Some(true) {
                     let selection = Some(Range::new(position, position));
                     let params =
                         ShowDocumentParams { uri: uri.clone(), external: None, take_focus: Some(true), selection };
+                    let mut params = serde_json::to_value(params).unwrap_or_default();
+                    if other_window {
+                        params["orgOtherWindow"] = json!(true);
+                    }
                     let then = (!folds.is_null()).then_some(Pending::Folds { uri, folds });
-                    self.send_request::<ShowDocument>(params, then);
+                    self.send_raw_request(ShowDocument::METHOD, params, then);
                 }
             }
             Some(Pending::Reveal) => {}
@@ -4840,7 +4845,7 @@ impl Server {
         let position = LineIndex::new(&outcome.text).position(&outcome.text, outcome.cursor, self.client.encoding);
         let edits = self.text_edits(&text, &outcome.text);
         let edit = self.workspace_edit(&target, version, edits);
-        let pending = Pending::EditAndShow { uri: target, position, folds: Value::Null };
+        let pending = Pending::EditAndShow { uri: target, position, folds: Value::Null, other_window: false };
         self.apply_edit(lsp_types::ApplyWorkspaceEditParams { label: None, edit }, pending);
         Ok(Value::Null)
     }
