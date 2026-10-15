@@ -1,0 +1,5 @@
+Headlines with TAGS match: LEVEL>0
+  notes:      .TODO Child task                                       :work::sub:
+  notes:      TODO Solo                                                   :work:
+  notes:      .TODO Deep work                                             :work:
+  notes:      ..TODO Below it                                            :work::

@@ -1,0 +1,11 @@
+Headlines with TAGS match: LEVEL>0
+  notes:      .[#A] Other child                                          :work::
+  notes:      Project                                                     :work:
+  notes:      .TODO Child task                                       :work::sub:
+  notes:      ..NEXT Grandchild                                      :work:sub::
+  notes:      TODO Solo                                                   :work:
+  notes:      Plain
+  notes:      .TODO Deep work                                             :work:
+  notes:      ..TODO Below it                                            :work::
+  notes:      Stuck project                                               :proj:
+  notes:      .Note                                                      :proj::

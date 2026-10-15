@@ -1849,6 +1849,15 @@ pub const SETTINGS: &[Setting] = &[
          by day: `future` is then later than now, and a number counts seconds.",
     ),
     setting(
+        "org_tags_match_list_sublevels",
+        r#"true, false, "indented""#,
+        "true",
+        "org-tags-match-list-sublevels",
+        "Whether tags matches (agenda, sparse trees) and stuck projects list the entries below one they \
+         list: `false` passes over its subtree, `indented` shows them with a dot for each level below the \
+         first.",
+    ),
+    setting(
         "org_agenda_tags_todo_honor_ignore_options",
         "boolean",
         "false",
@@ -3119,6 +3128,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_agenda_todo_ignore_deadlines", TODO_IGNORE_DEADLINES),
     ("org_agenda_todo_ignore_timestamp", TODO_IGNORE),
     ("org_agenda_todo_ignore_time_comparison_use_seconds", BOOLEAN),
+    ("org_tags_match_list_sublevels", r#"{ "enum": [true, false, "indented"] }"#),
     ("org_agenda_tags_todo_honor_ignore_options", BOOLEAN),
     (
         "org_agenda_sorting_strategy",

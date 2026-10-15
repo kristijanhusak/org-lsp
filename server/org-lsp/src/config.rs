@@ -2909,6 +2909,9 @@ pub struct AgendaOptions {
     pub todo_ignore_time_comparison_use_seconds: Option<bool>,
     #[serde(rename = "org_agenda_tags_todo_honor_ignore_options")]
     pub tags_todo_honor_ignore_options: Option<bool>,
+    /// `org-tags-match-list-sublevels`: `true`, `false` or `"indented"`.
+    #[serde(rename = "org_tags_match_list_sublevels")]
+    pub tags_match_list_sublevels: Option<serde_json::Value>,
     /// `org-agenda-sorting-strategy`: a list of strategies for each kind
     /// of view (`agenda`, `todo`, `tags`, `search`), or one list for all.
     #[serde(rename = "org_agenda_sorting_strategy")]
@@ -3270,6 +3273,11 @@ impl AgendaOptions {
         if let Some(on) = self.todo_ignore_time_comparison_use_seconds {
             config.todo_ignore.use_seconds = on;
         }
+        config.tags_match_list_sublevels = match &self.tags_match_list_sublevels {
+            Some(serde_json::Value::Bool(false)) => org_core::agenda::Sublevels::Skipped,
+            Some(serde_json::Value::String(name)) if name == "indented" => org_core::agenda::Sublevels::Indented,
+            _ => org_core::agenda::Sublevels::Listed,
+        };
         if let Some(on) = self.tags_todo_honor_ignore_options {
             config.tags_todo_honor_ignore = on;
         }

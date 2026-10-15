@@ -1889,6 +1889,12 @@ org_agenda_todo_ignore_timestamp = false
 # counts seconds. (org-agenda-todo-ignore-time-comparison-use-seconds)
 org_agenda_todo_ignore_time_comparison_use_seconds = false
 
+# Whether tags matches (agenda, sparse trees) and stuck projects list the
+# entries below one they list: `false` passes over its subtree, `indented`
+# shows them with a dot for each level below the first.
+# (org-tags-match-list-sublevels)
+org_tags_match_list_sublevels = true
+
 # Have the `org_agenda_todo_ignore_*` settings leave entries out of
 # `tags-todo` matches as well. (org-agenda-tags-todo-honor-ignore-options)
 org_agenda_tags_todo_honor_ignore_options = false
@@ -3473,6 +3479,12 @@ org_agenda_custom_commands = []
   // number counts seconds.
   // (org-agenda-todo-ignore-time-comparison-use-seconds)
   "org_agenda_todo_ignore_time_comparison_use_seconds": false,
+
+  // Whether tags matches (agenda, sparse trees) and stuck projects list the
+  // entries below one they list: `false` passes over its subtree, `indented`
+  // shows them with a dot for each level below the first.
+  // (org-tags-match-list-sublevels)
+  "org_tags_match_list_sublevels": true,
 
   // Have the `org_agenda_todo_ignore_*` settings leave entries out of
   // `tags-todo` matches as well. (org-agenda-tags-todo-honor-ignore-options)

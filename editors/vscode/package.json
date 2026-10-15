@@ -3734,6 +3734,15 @@
               "markdownDescription": "Compare the dates of the `org_agenda_todo_ignore_*` settings with now to the second instead of by day: `future` is then later than now, and a number counts seconds. (`org-agenda-todo-ignore-time-comparison-use-seconds`)",
               "default": false
             },
+            "org_tags_match_list_sublevels": {
+              "enum": [
+                true,
+                false,
+                "indented"
+              ],
+              "markdownDescription": "Whether tags matches (agenda, sparse trees) and stuck projects list the entries below one they list: `false` passes over its subtree, `indented` shows them with a dot for each level below the first. (`org-tags-match-list-sublevels`)",
+              "default": true
+            },
             "org_agenda_tags_todo_honor_ignore_options": {
               "type": "boolean",
               "markdownDescription": "Have the `org_agenda_todo_ignore_*` settings leave entries out of `tags-todo` matches as well. (`org-agenda-tags-todo-honor-ignore-options`)",

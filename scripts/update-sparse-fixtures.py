@@ -15,12 +15,14 @@ TEXTS = [
     "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
     "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
     "no headlines, apple\n",
+    "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
 ]
 QUERIES = [
     ("r", ["apple"]), ("r", ["Ap+le"]), ("r", ["^\\*+ "]), ("r", ["\\(ap\\|ba\\)ke"]),
     ("t", []), ("T", ["NEXT|WAIT"]), ("T", ["DONE"]), ("T", ["TODO"]),
     ("m", ["work"]), ("m", ["urgent-work"]), ("m", ["food|home"]), ("m", ["WHO=\"alice\""]), ("m", ["TODO=\"NEXT\""]),
     ("m", ["LEVEL>1"]), ("m", ["/!"]),
+    ("M", ["work"]), ("M", ["urgent|work"]), ("M", ["LEVEL>0"]), ("M", ["food|home"]),
     ("d", []),
     ("b", ["2026-05-20"]), ("b", ["2026-05-18 10:00"]), ("a", ["2026-05-19"]), ("a", ["2026-01-01"]),
     ("D", ["2026-05-01", "2026-05-20"]), ("D", ["2026-04-01", "2026-12-31 23:59"]),

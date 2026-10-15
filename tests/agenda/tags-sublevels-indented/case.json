@@ -1,0 +1,11 @@
+{
+  "today": "2026-10-05",
+  "now": "10:30",
+  "runs": [
+    { "view": "tags", "match": "work" },
+    { "view": "tags-todo", "match": "LEVEL>0" },
+    { "view": "tags", "match": "LEVEL>0" }
+  ],
+  "options": { "org_tags_match_list_sublevels": "indented" },
+  "emacs": "(setq org-tags-match-list-sublevels 'indented)"
+}

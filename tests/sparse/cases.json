@@ -226,6 +226,73 @@
  },
  {
   "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "M",
+  "args": [
+   "work"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     57,
+     58
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "M",
+  "args": [
+   "urgent|work"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     57,
+     58
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "M",
+  "args": [
+   "LEVEL>0"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     0,
+     1
+    ],
+    [
+     57,
+     58
+    ],
+    [
+     128,
+     129
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "M",
+  "args": [
+   "food|home"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
   "type": "d",
   "args": [],
   "expected": {
@@ -651,6 +718,76 @@
  },
  {
   "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "M",
+  "args": [
+   "work"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "M",
+  "args": [
+   "urgent|work"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "M",
+  "args": [
+   "LEVEL>0"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     30,
+     31
+    ],
+    [
+     179,
+     180
+    ],
+    [
+     242,
+     243
+    ],
+    [
+     255,
+     256
+    ],
+    [
+     262,
+     263
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "M",
+  "args": [
+   "food|home"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     30,
+     31
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
   "type": "d",
   "args": [],
   "expected": {
@@ -1015,6 +1152,69 @@
  },
  {
   "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "M",
+  "args": [
+   "work"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     55,
+     56
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "M",
+  "args": [
+   "urgent|work"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     55,
+     56
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "M",
+  "args": [
+   "LEVEL>0"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     0,
+     1
+    ],
+    [
+     55,
+     56
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "M",
+  "args": [
+   "food|home"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
   "type": "d",
   "args": [],
   "expected": {
@@ -1307,6 +1507,50 @@
  },
  {
   "text": "no headlines, apple\n",
+  "type": "M",
+  "args": [
+   "work"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "no headlines, apple\n",
+  "type": "M",
+  "args": [
+   "urgent|work"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "no headlines, apple\n",
+  "type": "M",
+  "args": [
+   "LEVEL>0"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "no headlines, apple\n",
+  "type": "M",
+  "args": [
+   "food|home"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "no headlines, apple\n",
   "type": "d",
   "args": [],
   "expected": {
@@ -1372,6 +1616,400 @@
  },
  {
   "text": "no headlines, apple\n",
+  "type": "D",
+  "args": [
+   "2026-04-01",
+   "2026-12-31 23:59"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "0 entries between 2026-04-01 and 2026-12-31 23:59"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "r",
+  "args": [
+   "apple"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "r",
+  "args": [
+   "Ap+le"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "r",
+  "args": [
+   "^\\*+ "
+  ],
+  "expected": {
+   "highlights": [
+    [
+     0,
+     2
+    ],
+    [
+     17,
+     20
+    ],
+    [
+     26,
+     30
+    ],
+    [
+     50,
+     52
+    ],
+    [
+     58,
+     61
+    ],
+    [
+     73,
+     77
+    ],
+    [
+     83,
+     85
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "r",
+  "args": [
+   "\\(ap\\|ba\\)ke"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "t",
+  "args": [],
+  "expected": {
+   "highlights": [],
+   "message": "0 TODO entries found"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "T",
+  "args": [
+   "NEXT|WAIT"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "0 TODO entries found"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "T",
+  "args": [
+   "DONE"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "0 TODO entries found"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "T",
+  "args": [
+   "TODO"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "0 TODO entries found"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "m",
+  "args": [
+   "work"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     0,
+     1
+    ],
+    [
+     17,
+     19
+    ],
+    [
+     26,
+     29
+    ],
+    [
+     58,
+     60
+    ],
+    [
+     73,
+     76
+    ],
+    [
+     83,
+     84
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "m",
+  "args": [
+   "urgent-work"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "m",
+  "args": [
+   "food|home"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "m",
+  "args": [
+   "WHO=\"alice\""
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "m",
+  "args": [
+   "TODO=\"NEXT\""
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "m",
+  "args": [
+   "LEVEL>1"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     17,
+     19
+    ],
+    [
+     26,
+     29
+    ],
+    [
+     58,
+     60
+    ],
+    [
+     73,
+     76
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "m",
+  "args": [
+   "/!"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "M",
+  "args": [
+   "work"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     0,
+     1
+    ],
+    [
+     58,
+     60
+    ],
+    [
+     83,
+     84
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "M",
+  "args": [
+   "urgent|work"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     0,
+     1
+    ],
+    [
+     58,
+     60
+    ],
+    [
+     83,
+     84
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "M",
+  "args": [
+   "LEVEL>0"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     0,
+     1
+    ],
+    [
+     50,
+     51
+    ],
+    [
+     83,
+     84
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "M",
+  "args": [
+   "food|home"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "d",
+  "args": [],
+  "expected": {
+   "highlights": [],
+   "message": "0 deadlines past-due or due within 14 days"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "0 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "b",
+  "args": [
+   "2026-05-18 10:00"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "0 entries before 2026-05-18 10:00"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "a",
+  "args": [
+   "2026-05-19"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "0 entries after 2026-05-19"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "a",
+  "args": [
+   "2026-01-01"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "0 entries after 2026-01-01"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-05-20"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "0 entries between 2026-05-01 and 2026-05-20"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
   "type": "D",
   "args": [
    "2026-04-01",

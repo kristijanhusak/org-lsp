@@ -164,17 +164,28 @@ pub fn dates(text: &str, from: Option<DateTime>, to: Option<DateTime>) -> Sparse
 }
 
 /// `org-match-sparse-tree`: the entries of `outline` (of `text`) that
-/// `matcher` selects, as `org-scan-tags` finds them for a tags view.
+/// `matcher` selects, as `org-scan-tags` finds them for a tags view. With
+/// `sublevels` false (`org-tags-match-list-sublevels`) the subtree of an
+/// entry found is passed over.
 pub fn tags_match(
     text: &str,
     outline: &crate::outline::Outline,
     matcher: &crate::agenda::Matcher,
     clock: crate::agenda::matcher::Clock,
+    sublevels: bool,
 ) -> Sparse {
     let mut sparse = Sparse::default();
+    let mut passing: Option<usize> = None;
     for (index, entry) in outline.entries.iter().enumerate() {
+        if passing.is_some_and(|above| entry.level > above) {
+            continue;
+        }
+        passing = None;
         if matcher.matches(outline, index, false, clock) {
             sparse.add_heading(text, entry.offset);
+            if !sublevels {
+                passing = Some(entry.level);
+            }
         }
     }
     sparse

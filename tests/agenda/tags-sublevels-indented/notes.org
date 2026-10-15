@@ -1,0 +1,11 @@
+#+TAGS: work home
+* Project :work:
+** TODO Child task :sub:
+*** NEXT Grandchild
+** [#A] Other child
+* TODO Solo :work:
+* Plain
+** TODO Deep work :work:
+*** TODO Below it
+* Stuck project :proj:
+** Note

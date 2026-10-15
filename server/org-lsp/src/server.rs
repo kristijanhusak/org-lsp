@@ -12541,7 +12541,11 @@ impl Server {
                 let outline = org_core::outline::Outline::new(&parse, &text, uri.as_str());
                 let now = self.now();
                 let clock = org_core::agenda::matcher::Clock { today: now.today, minute: now.minute };
-                (sparse::tags_match(&text, &outline, &org_core::agenda::Matcher::new(&matching), clock), None)
+                let sublevels = self.agenda.tags_match_list_sublevels != org_core::agenda::Sublevels::Skipped;
+                (
+                    sparse::tags_match(&text, &outline, &org_core::agenda::Matcher::new(&matching), clock, sublevels),
+                    None,
+                )
             }
             ("d", _) => {
                 let days = self.agenda.deadline_warning_days.abs();
