@@ -605,8 +605,19 @@ pub(crate) fn translate(pattern: &str) -> String {
     translate_words(pattern, r"\b", r"\b")
 }
 
+/// [`translate`] keeping the groups `\(…\)` as groups that capture, as
+/// `match-string` reads them; shy groups `\(?:…\)` stay shy.
+pub(crate) fn translate_capturing(pattern: &str) -> String {
+    translate_with(pattern, r"\b", r"\b", true)
+}
+
 /// [`translate`] with `\<` and `\>` as `start` and `end`.
 fn translate_words(pattern: &str, start: &str, end: &str) -> String {
+    translate_with(pattern, start, end, false)
+}
+
+/// [`translate_words`], the plain groups capturing with `capture`.
+fn translate_with(pattern: &str, start: &str, end: &str, capture: bool) -> String {
     let mut out = String::new();
     let mut chars = pattern.chars().peekable();
     while let Some(c) = chars.next() {
@@ -621,8 +632,10 @@ fn translate_words(pattern: &str, start: &str, end: &str) -> String {
                                 break;
                             }
                         }
+                        out.push_str("(?:");
+                    } else {
+                        out.push_str(if capture { "(" } else { "(?:" });
                     }
-                    out.push_str("(?:");
                 }
                 Some(')') => out.push(')'),
                 Some('|') => out.push('|'),

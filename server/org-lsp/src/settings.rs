@@ -812,6 +812,19 @@ pub const SETTINGS: &[Setting] = &[
          either it goes at the end. A file's `#+LINK:` lines come first. `%(my-function)` calls an Emacs function with what follows the colon (through Emacs).",
     ),
     setting(
+        "org_file_apps",
+        "[match, command][]",
+        r#"[["auto-mode", "emacs"], ["directory", "emacs"], ["\\.mm\\'", "default"], ["\\.x?html?\\'", "default"], ["\\.pdf\\'", "default"]]"#,
+        "org-file-apps",
+        "What opens a linked file, the first entry that matches: a match is an extension (`txt`), an Emacs \
+         regular expression for the file name (`\\\\.pdf\\\\'` in JSON; with groups `%1`, `%2`... in the command, it \
+         matches the file followed by the link's `::` part), `directory`, `remote`, `system` (what `C-u C-u C-c C-o` uses), \
+         `auto-mode` (every file the editor can show) or `t` (any other file). A command is `emacs` (the \
+         editor), `default` (the `system` entry, else the editor), `system` or `mailcap` (the system's \
+         application, through the editor), or a shell command where `%s` is the file. `C-u C-c C-o` opens \
+         the file in the editor. A Lisp function is not a command here.",
+    ),
+    setting(
         "org_tag_alist",
         "string, string[]",
         r#""""#,
@@ -2905,6 +2918,10 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_complete_tags_always_offer_all_agenda_tags", BOOLEAN),
     ("org_cite_global_bibliography", r#"{ "type": "array", "items": { "type": "string" } }"#),
     ("org_link_abbrev_alist", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
+    (
+        "org_file_apps",
+        r#"{ "type": "array", "items": { "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 2 } }"#,
+    ),
     ("org_tag_alist", r#"{ "type": ["string", "array"], "items": { "type": "string" } }"#),
     ("org_tag_persistent_alist", r#"{ "type": ["string", "array"], "items": { "type": "string" } }"#),
     ("org_group_tags", BOOLEAN),

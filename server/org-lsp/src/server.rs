@@ -30,6 +30,7 @@ use org_core::capture;
 use org_core::clock;
 use org_core::date::{Date, DateTime, Day};
 use org_core::edit::{self, Call, Command as EditCommand, Settings as EditSettings};
+use org_core::file_apps;
 use org_core::link;
 use org_core::open::{self, Open};
 use org_core::outline::Outline;
@@ -1131,6 +1132,8 @@ struct Server {
     link_settings: org_core::link::Settings,
     /// How links are followed.
     open_settings: open::Settings,
+    /// `org-file-apps`.
+    file_apps: org_core::file_apps::FileApps,
     /// `org-clock-default-task`, marked by clocking in with `C-u C-u`.
     clock_default_task: Option<ClockTask>,
     /// `org-clock-interrupted-task`: the entry whose clock the last
@@ -1543,6 +1546,7 @@ pub fn run(connection: Connection) -> Result<()> {
         stored_links: Vec::new(),
         link_settings: options.link_settings(),
         open_settings: options.open_settings(),
+        file_apps: options.file_apps.as_deref().map(org_core::file_apps::FileApps::from_pairs).unwrap_or_default(),
         clock_default_task: None,
         clock_interrupted: None,
         clock_out_time: None,
@@ -4209,7 +4213,7 @@ impl Server {
                 let leads = match &link.open {
                     Ok(Open::Here(at)) => same(&file_path) && *at == heading,
                     Ok(Open::Id(found)) => id.as_deref() == Some(found.as_str()),
-                    Ok(Open::File { path, search: Some(search), system: false }) => {
+                    Ok(Open::File { path, search: Some(search), system: false, .. }) => {
                         self.link_path(&file, path).is_some_and(|path| same(&path))
                             && open::search_in_file_with(
                                 target_text,
@@ -4386,7 +4390,7 @@ impl Server {
                 let (file, offset) = self.find_id(id, Some(uri))?;
                 (self.file_text(&uri::to_path(&file)?)?.1, offset)
             }
-            Open::File { path, search: Some(search), system: false } => {
+            Open::File { path, search: Some(search), system: false, .. } => {
                 let path = self.link_path(uri, path)?;
                 if !path.extension().is_some_and(|extension| extension == "org" || extension == "org_archive") {
                     return None;
@@ -4491,10 +4495,37 @@ impl Server {
             let full = found.as_str().ok_or("No attachment directory for this entry")?;
             opened = open::file_link(&format!("{full}{}", search.unwrap_or("")));
         }
+        // `org-open-file`: `org-file-apps` picks what opens the file, unless
+        // the link says (`file+sys:`, `file+emacs:`).
+        if let Open::File { path, search, system, forced: false } = &mut opened {
+            let full = self.link_path(&uri, path).ok_or("Cannot open the file")?;
+            let target = file_apps::Target {
+                file: &full.to_string_lossy(),
+                search: search.as_deref(),
+                exists: full.exists(),
+                directory: full.is_dir(),
+            };
+            let prefix = match context.count {
+                Some(16) => file_apps::Prefix::System,
+                Some(4) => file_apps::Prefix::Editor,
+                _ => file_apps::Prefix::None,
+            };
+            match file_apps::open(&self.file_apps, &target, prefix).map_err(Refusal::Failed)? {
+                file_apps::Opener::Editor => *system = false,
+                file_apps::Opener::System => *system = true,
+                file_apps::Opener::Command(command) => {
+                    let directory = uri::to_path(&uri).and_then(|path| path.parent().map(PathBuf::from));
+                    run_shell(&command, directory.as_deref())
+                        .map_err(|error| Refusal::Failed(format!("{command}: {error}")))?;
+                    self.message = Some(format!("Running {command}...done"));
+                    return Ok(Value::Null);
+                }
+            }
+        }
         // `/regexp/`: a sparse tree of its matches, which the editor shows
         // in the file the link is in.
         let occur = match &opened {
-            Open::File { path, search: Some(search), system: false } => open::occur_regexp(search)
+            Open::File { path, search: Some(search), system: false, .. } => open::occur_regexp(search)
                 .filter(|_| {
                     let here = uri::to_path(&uri).map(|path| self.canonical(&path));
                     self.link_path(&uri, path).is_some_and(|path| Some(self.canonical(&path)) == here)
@@ -4591,7 +4622,7 @@ impl Server {
     fn missing_headline(&self, uri: &Uri, opened: &Open) -> Option<(std::path::PathBuf, String)> {
         match opened {
             Open::Create(search) => Some((uri::to_path(uri)?, search.clone())),
-            Open::File { path, search: Some(search), system: false }
+            Open::File { path, search: Some(search), system: false, .. }
                 if self.open_settings.exact_headline == open::ExactHeadline::QueryToCreate
                     && open::may_create(search) =>
             {
@@ -4727,7 +4758,7 @@ impl Server {
         };
         match opened {
             Open::Here(offset) => Ok(Some(at(uri.clone(), text, *offset))),
-            Open::File { path, search, system: false } => {
+            Open::File { path, search, system: false, .. } => {
                 let path = self.link_path(uri, path).ok_or("Cannot open the file")?;
                 let Some(search) = search else {
                     let target = uri::from_path(&path).ok_or("Cannot open the file")?;
@@ -14477,6 +14508,31 @@ fn system_name() -> String {
         })
         .filter(|name| !name.is_empty())
         .unwrap_or_else(|| "localhost".to_string())
+}
+
+/// `start-process-shell-command`: run `command` in the background from
+/// `directory`, as Emacs does from the buffer's `default-directory`.
+fn run_shell(command: &str, directory: Option<&std::path::Path>) -> std::io::Result<()> {
+    let mut shell = if cfg!(windows) {
+        let mut shell = std::process::Command::new("cmd");
+        shell.arg("/C").arg(command);
+        shell
+    } else {
+        let mut shell = std::process::Command::new("sh");
+        shell.arg("-c").arg(command);
+        shell
+    };
+    if let Some(directory) = directory {
+        shell.current_dir(directory);
+    }
+    let mut child = shell
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()?;
+    // Reaped when it ends, so that it does not linger.
+    std::thread::spawn(move || child.wait());
+    Ok(())
 }
 
 #[cfg(test)]

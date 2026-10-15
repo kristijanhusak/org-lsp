@@ -740,7 +740,7 @@
   "org-reverse-note-order": "setting",
   "org-closed-keep-when-no-todo": "setting",
   "org-indirect-buffer-display": "emacs-only",
-  "org-file-apps": "missing",
+  "org-file-apps": "setting",
   "org-resource-download-policy": "absent",
   "org-safe-remote-resources": "absent",
   "org-open-non-existing-files": "absent",

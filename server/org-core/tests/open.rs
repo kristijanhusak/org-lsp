@@ -86,7 +86,7 @@ fn opening_matches_emacs() {
         }
         let mut actual = match result {
             Ok(Open::Here(at)) => goto(name, &text, at),
-            Ok(Open::File { path, search, system }) => {
+            Ok(Open::File { path, search, system, .. }) => {
                 let base = Path::new(name).parent().unwrap_or(Path::new(""));
                 let wanted = base.join(path.trim_start_matches("./")).to_string_lossy().to_string();
                 if system {

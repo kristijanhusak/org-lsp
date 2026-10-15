@@ -849,6 +849,40 @@
       "description": "Link abbreviations: `[[gh:org-lsp]]` with `{ \"gh\": \"https://github.com/%s\" }` follows `https://github.com/org-lsp`. `%s` stands for what follows the colon, `%h` for it URL-encoded; without either it goes at the end. A file's `#+LINK:` lines come first. `%(my-function)` calls an Emacs function with what follows the colon (through Emacs). (`org-link-abbrev-alist`)",
       "default": {}
     },
+    "org_file_apps": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 2,
+        "maxItems": 2
+      },
+      "description": "What opens a linked file, the first entry that matches: a match is an extension (`txt`), an Emacs regular expression for the file name (`\\\\.pdf\\\\'` in JSON; with groups `%1`, `%2`... in the command, it matches the file followed by the link's `::` part), `directory`, `remote`, `system` (what `C-u C-u C-c C-o` uses), `auto-mode` (every file the editor can show) or `t` (any other file). A command is `emacs` (the editor), `default` (the `system` entry, else the editor), `system` or `mailcap` (the system's application, through the editor), or a shell command where `%s` is the file. `C-u C-c C-o` opens the file in the editor. A Lisp function is not a command here. (`org-file-apps`)",
+      "default": [
+        [
+          "auto-mode",
+          "emacs"
+        ],
+        [
+          "directory",
+          "emacs"
+        ],
+        [
+          "\\.mm\\'",
+          "default"
+        ],
+        [
+          "\\.x?html?\\'",
+          "default"
+        ],
+        [
+          "\\.pdf\\'",
+          "default"
+        ]
+      ]
+    },
     "org_tag_alist": {
       "type": [
         "string",

@@ -476,6 +476,8 @@ pub struct Options {
     #[serde(rename = "org_refile_targets")]
     pub refile_targets: Option<Vec<RefileTargetOption>>,
     /// `org-id-completion-targets`, as `org_refile_targets` is written.
+    #[serde(rename = "org_file_apps")]
+    pub file_apps: Option<Vec<(String, String)>>,
     #[serde(rename = "org_link_search_must_match_exact_headline")]
     pub link_search_must_match_exact_headline: Option<LogOption>,
     #[serde(rename = "org_link_doi_server_url")]

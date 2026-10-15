@@ -260,6 +260,7 @@ its sections says what it should look like.
 - [ ] Following a ~file:~ link with a search (~file:notes.org::*Heading~) and an ~id:~ link: ~<Leader>oo~
 - [ ] Following ~[[No such heading]]~ asks whether to make it; yes adds ~* No such heading~ at the end of the file and goes there: ~<Leader>oo~
 - [ ] With ~org_return_follows_link~ on, RET on a link follows it and types nothing; after the link, RET breaks the line: ~<CR>~
+- [ ] With ~org_file_apps~ set to ~[["txt", "cp %s copy.txt"]]~, following ~[[file:notes.txt]]~ says ~Running cp …/notes.txt copy.txt...done~ and makes ~copy.txt~; ~C-u C-c C-o~ opens ~notes.txt~ in the editor: ~<Leader>oo~
 - [ ] Following a URL opens the browser; a timestamp opens its day's agenda: ~<Leader>oo~
 - [ ] Go to definition on a link does the same: the client's go to definition
 - [ ] Storing a link to a headline and inserting it elsewhere with a description: ~<Leader>ols~, ~<Leader>oli~
