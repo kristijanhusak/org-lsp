@@ -280,6 +280,7 @@ export const AREAS = [
       ['Repeating entries moving to their next date', true],
       ['The parent\'s statistics cookies recounted', true],
       ['Blocking a state change by children, `ORDERED` siblings and checkboxes (`org-enforce-todo-dependencies`)', true],
+      ['A tag that shows the `ORDERED` property (`org-track-ordered-property-with-tag`)', true],
       ['`S-<left>`, `S-<right>` changing the state without logging or blocking (`org-treat-S-cursor-todo-selection-as-state-change`), a new TODO heading logged as a state change (`org-treat-insert-todo-heading-as-state-change`)', true],
       ['Dimming blocked tasks in the agenda (`org-agenda-dim-blocked-tasks`)', true],
       ['Hiding blocked tasks in the agenda (`org-agenda-dim-blocked-tasks` `invisible`)', true],
@@ -313,7 +314,7 @@ export const AREAS = [
       ['Raising, lowering, setting and removing', true],
       ['`#+PRIORITIES:` and number priorities', true],
       ['From the agenda', true],
-      ['Turning the priority commands off (`org-priority-enable-commands`)', false],
+      ['Turning the priority commands off (`org-priority-enable-commands`)', true],
     ],
     checks: [
       { text: 'Raising and lowering the priority of a headline', cmd: ['org.priority.up', 'org.priority.down'] },

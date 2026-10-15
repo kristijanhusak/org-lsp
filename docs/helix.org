@@ -86,7 +86,7 @@ menu on another key.
 | [[file:parity.org::#headings-and-structure][Headings and structure]] | 93% | ❓ | New headings (~M-RET~ and its relatives), moving between headings, ~org-goto~ and Org's ~C-a~, ~C-e~, ~C-k~ and ~C-y~ are left out: they carry the cursor for the editor to move, which Helix's code actions cannot do; nor are the commands run by Emacs (~C-c *~, ~C-c ;~, cloning) among its code actions. |
 | [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 100% | ❓ | ~RET~ stays Helix's own, new items, cycled bullets and lines turned into items are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and those are not among them. |
 | [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ❓ | A note for a state change (~@~) cannot be typed: Helix cannot ask for text on a server's behalf. Faces of particular keywords and priorities are not shown. |
-| [[file:parity.org::#priorities][Priorities]] | 75% | ✅ |  |
+| [[file:parity.org::#priorities][Priorities]] | 100% | ✅ |  |
 | [[file:parity.org::#tags][Tags]] | 88% | ❓ | Setting tags is left out: it needs keys pressed in turn, or typed tags, and Helix cannot ask for text on a server's behalf. Completion and renaming work. Faces of particular tags are not shown. |
 | [[file:parity.org::#properties-and-column-view][Properties and column view]] | 90% | ❓ | Setting a property or the effort is left out: they are typed, and Helix cannot ask for text on a server's behalf. Column view is left out: it draws over the headlines. |
 | [[file:parity.org::#dates-and-times][Dates and times]] | 100% | ❓ | Scheduling, deadlines and new timestamps are left out: they ask for a date, and Helix cannot ask for text on a server's behalf. Changing a timestamp works. |
@@ -111,7 +111,7 @@ menu on another key.
 | [[file:parity.org::#attachments][Attachments]] | 100% | ❓ | ~attachment:~ links open; the dispatcher (~C-c C-a~) is left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and it is not among them. |
 | [[file:parity.org::#encryption][Encryption]] | 100% | ✅ |  |
 | [[file:parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | ❌ | Helix cannot show images. |
-| *All of Org* | *95%* |  |  |
+| *All of Org* | *96%* |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what and why),
 ❌ none does, — nothing to support yet. Parity is the share of what

@@ -8,7 +8,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in [[file:development.org::#how-the-work-is-checked][development.org]]).
 
-*All of Org: 95%*
+*All of Org: 96%*
 
 Org's options, one by one, are under [[#options][Options]].
 
@@ -18,8 +18,8 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#folding-and-visibility][Folding and visibility]] | 91% | 10 of 11 |
 | [[#headings-and-structure][Headings and structure]] | 93% | 14 of 15 |
 | [[#lists-and-checkboxes][Lists and checkboxes]] | 100% | 13 of 13 |
-| [[#todo-keywords][TODO keywords]] | 100% | 12 of 12 |
-| [[#priorities][Priorities]] | 75% | 3 of 4 |
+| [[#todo-keywords][TODO keywords]] | 100% | 13 of 13 |
+| [[#priorities][Priorities]] | 100% | 4 of 4 |
 | [[#tags][Tags]] | 88% | 7 of 8 |
 | [[#properties-and-column-view][Properties and column view]] | 90% | 9 of 10 |
 | [[#dates-and-times][Dates and times]] | 100% | 9 of 9 |
@@ -167,7 +167,7 @@ Where editors fall short:
 :CUSTOM_ID: todo-keywords
 :END:
 
-100% (12 of 12)
+100% (13 of 13)
 
 - ✅ Cycling states, and fast selection by key (~TODO(t)~), from a menu or the keys in the prompt alone, or never (~org-use-fast-todo-selection~)
 - ✅ Sequences and types from ~#+TODO:~ and ~org_todo_keywords~
@@ -178,6 +178,7 @@ Where editors fall short:
 - ✅ Repeating entries moving to their next date
 - ✅ The parent's statistics cookies recounted
 - ✅ Blocking a state change by children, ~ORDERED~ siblings and checkboxes (~org-enforce-todo-dependencies~)
+- ✅ A tag that shows the ~ORDERED~ property (~org-track-ordered-property-with-tag~)
 - ✅ ~S-<left>~, ~S-<right>~ changing the state without logging or blocking (~org-treat-S-cursor-todo-selection-as-state-change~), a new TODO heading logged as a state change (~org-treat-insert-todo-heading-as-state-change~)
 - ✅ Dimming blocked tasks in the agenda (~org-agenda-dim-blocked-tasks~)
 - ✅ Hiding blocked tasks in the agenda (~org-agenda-dim-blocked-tasks~ ~invisible~)
@@ -193,12 +194,12 @@ Where editors fall short:
 :CUSTOM_ID: priorities
 :END:
 
-75% (3 of 4)
+100% (4 of 4)
 
 - ✅ Raising, lowering, setting and removing
 - ✅ ~#+PRIORITIES:~ and number priorities
 - ✅ From the agenda
-- ❌ Turning the priority commands off (~org-priority-enable-commands~)
+- ✅ Turning the priority commands off (~org-priority-enable-commands~)
 
 * Tags
 :PROPERTIES:
@@ -746,15 +747,15 @@ Where editors fall short:
 :END:
 
 Each of the 1025 options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with
-it. Of the 304 that change what org-lsp does itself, 95% can be set.
+it. Of the 304 that change what org-lsp does itself, 96% can be set.
 [[file:../scripts/org-options.json][scripts/org-options.json]] says it for each; ~scripts/check.sh~ fails when the
 server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,
 when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 276 | A setting of the same name |
-| missing | 15 | org-lsp does what the option is about, but the option cannot be set yet |
+| setting | 278 | A setting of the same name |
+| missing | 13 | org-lsp does what the option is about, but the option cannot be set yet |
 | other | 13 | Done another way, as its note says |
 | emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 48 | Its value is Lisp (a function, a hook), which the server does not run |
@@ -783,4 +784,4 @@ Options of what org-lsp does that cannot be set yet, by the file of Org they are
 
 - ob-core.el (2) :: ~org-babel-noweb-wrap-start~, ~org-babel-noweb-wrap-end~
 - ob-tangle.el (8) :: ~org-babel-tangle-lang-exts~, ~org-babel-tangle-use-relative-file-links~, ~org-babel-tangle-comment-format-beg~, ~org-babel-tangle-comment-format-end~, ~org-babel-tangle-uncomment-comments~, ~org-babel-process-comment-text~, ~org-babel-tangle-default-file-mode~, ~org-babel-tangle-remove-file-before-write~
-- org.el (5) :: ~org-odd-levels-only~, ~org-todo-interpretation~, ~org-priority-enable-commands~, ~org-custom-properties~, ~org-track-ordered-property-with-tag~
+- org.el (3) :: ~org-odd-levels-only~, ~org-todo-interpretation~, ~org-custom-properties~

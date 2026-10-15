@@ -120,7 +120,7 @@ server first, with a tab that says so and closes when the agenda opens.
 | [[file:parity.org::#headings-and-structure][Headings and structure]] | 93% | ✅ |  |
 | [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 100% | ✅ |  |
 | [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ❓ | Faces of particular keywords and priorities are not shown in the file: Sublime Text colors text by its color scheme only. The list of TODO states shows them in the color of each item's kind, the nearest of those Sublime Text has. |
-| [[file:parity.org::#priorities][Priorities]] | 75% | ✅ |  |
+| [[file:parity.org::#priorities][Priorities]] | 100% | ✅ |  |
 | [[file:parity.org::#tags][Tags]] | 88% | ❓ | Faces of particular tags are not shown: Sublime Text colors text by its color scheme only. |
 | [[file:parity.org::#properties-and-column-view][Properties and column view]] | 90% | ❓ | A property's name and value are typed in an input panel, without completion. Column view is left out: it draws over the headlines, which Sublime Text cannot. |
 | [[file:parity.org::#dates-and-times][Dates and times]] | 100% | ❓ | Dates are typed, without the calendar: the package asks with an input panel. |
@@ -145,7 +145,7 @@ server first, with a tab that says so and closes when the agenda opens.
 | [[file:parity.org::#attachments][Attachments]] | 100% | ✅ |  |
 | [[file:parity.org::#encryption][Encryption]] | 100% | ✅ |  |
 | [[file:parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | ❓ | An image shows below its line (a phantom), not over the link; PNG, JPEG and GIF only. Counts through a key's ~args~. |
-| *All of Org* | *95%* |  |  |
+| *All of Org* | *96%* |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what and why),
 ❌ none does, — nothing to support yet. Parity is the share of what

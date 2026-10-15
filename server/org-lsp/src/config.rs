@@ -131,6 +131,12 @@ pub struct Options {
     pub treat_insert_todo_heading_as_state_change: Option<bool>,
     #[serde(rename = "org_edit_timestamp_down_means_later")]
     pub edit_timestamp_down_means_later: Option<bool>,
+    #[serde(rename = "org_priority_enable_commands")]
+    pub priority_enable_commands: Option<bool>,
+    /// `org-track-ordered-property-with-tag`: `true` (the tag `ORDERED`),
+    /// `false`, or a tag.
+    #[serde(rename = "org_track_ordered_property_with_tag")]
+    pub track_ordered_property_with_tag: Option<serde_json::Value>,
     /// `org-list-two-spaces-after-bullet-regexp`: a regexp, or `false`.
     #[serde(rename = "org_list_two_spaces_after_bullet_regexp")]
     pub list_two_spaces_after_bullet_regexp: Option<serde_json::Value>,
@@ -2275,6 +2281,12 @@ impl Options {
             special_ctrl_k: self.special_ctrl_k.unwrap_or(false),
             shift_todo_is_state_change: self.treat_s_cursor_todo_selection_as_state_change.unwrap_or(true),
             timestamp_down_means_later: self.edit_timestamp_down_means_later.unwrap_or(false),
+            priority_commands: self.priority_enable_commands.unwrap_or(true),
+            ordered_tag: match &self.track_ordered_property_with_tag {
+                Some(serde_json::Value::Bool(true)) => Some("ORDERED".to_string()),
+                Some(serde_json::Value::String(tag)) if !tag.is_empty() => Some(tag.clone()),
+                _ => None,
+            },
         }
     }
 

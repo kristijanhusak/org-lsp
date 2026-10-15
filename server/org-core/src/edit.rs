@@ -16,6 +16,10 @@ use crate::timestr::parse_time_string;
 use crate::todo::{self, headline_level, Target};
 use crate::Refusal;
 
+/// What the priority commands say when `org-priority-enable-commands` is
+/// off.
+pub const PRIORITY_DISABLED: &str = "Priority commands are disabled";
+
 /// A shifted cursor key.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
@@ -111,6 +115,11 @@ pub struct Settings {
     /// `org-edit-timestamp-down-means-later`: `S-<down>` makes a
     /// timestamp later, `S-<up>` earlier.
     pub timestamp_down_means_later: bool,
+    /// `org-priority-enable-commands`
+    pub priority_commands: bool,
+    /// `org-track-ordered-property-with-tag`: the tag that shows the
+    /// `ORDERED` property.
+    pub ordered_tag: Option<String>,
 }
 
 impl Default for Settings {
@@ -129,6 +138,8 @@ impl Default for Settings {
             special_ctrl_k: false,
             shift_todo_is_state_change: true,
             timestamp_down_means_later: false,
+            priority_commands: true,
+            ordered_tag: None,
         }
     }
 }
@@ -246,6 +257,9 @@ pub fn run(
                 })
         }
         Command::Priority(action) => {
+            if !settings.priority_commands {
+                return Err(Refusal::Failed(PRIORITY_DISABLED.to_string()));
+            }
             let priority = priority::Settings {
                 priorities: document_priorities(parse).unwrap_or(settings.priorities),
                 start_cycle_with_default: settings.priority_start_cycle_with_default,
@@ -426,8 +440,24 @@ pub fn run(
         }
         Command::Ordered => {
             let context = property_context(parse, settings, "");
-            let (text, message) = properties::toggle_ordered(text, offset, &context).map_err(Refusal::NotHere)?;
-            Ok(Outcome { text, cursor: None, note: None, message: Some(message), before_repeat: None })
+            let (mut changed, message) =
+                properties::toggle_ordered(text, offset, &context).map_err(Refusal::NotHere)?;
+            // `org-track-ordered-property-with-tag`: the tag follows the
+            // property (`org-toggle-tag`), put last when it is not there yet.
+            if let Some(tag) = &settings.ordered_tag {
+                let heading = crate::tags::heading_at(text, offset)?;
+                let line = changed[heading..].lines().next().unwrap_or("");
+                let mut tags = crate::tags::local_tags(line);
+                if message != properties::ORDERED_ON {
+                    tags.retain(|known| known != tag);
+                } else if !tags.contains(tag) {
+                    tags.push(tag.clone());
+                }
+                let tag_settings =
+                    crate::tags::Settings { tags_column: settings.todo.tags_column, ..settings.tags.clone() };
+                changed = crate::tags::set_tags(&changed, heading, &tags, &tag_settings);
+            }
+            Ok(Outcome { text: changed, cursor: None, note: None, message: Some(message), before_repeat: None })
         }
         Command::Tags(tags) => {
             let heading = crate::tags::heading_at(text, offset)?;
@@ -478,8 +508,8 @@ pub fn run(
                 Direction::Up | Direction::Down if at_timestamp => {
                     Command::Timestamp { forward: (*direction == Direction::Up) != settings.timestamp_down_means_later }
                 }
-                Direction::Up if on_headline => Command::Priority(Action::Up),
-                Direction::Down if on_headline => Command::Priority(Action::Down),
+                Direction::Up if on_headline && settings.priority_commands => Command::Priority(Action::Up),
+                Direction::Down if on_headline && settings.priority_commands => Command::Priority(Action::Down),
                 Direction::Left | Direction::Right if at_timestamp => {
                     Command::Date { forward: *direction == Direction::Right }
                 }
