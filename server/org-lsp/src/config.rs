@@ -567,6 +567,8 @@ pub struct Options {
     pub yank_adjusted_subtrees: Option<bool>,
     #[serde(rename = "org_file_apps")]
     pub file_apps: Option<Vec<(String, String)>>,
+    #[serde(rename = "org_agenda_persistent_filter")]
+    pub agenda_persistent_filter: Option<bool>,
     #[serde(rename = "org_capture_use_agenda_date")]
     pub capture_use_agenda_date: Option<bool>,
     #[serde(rename = "org_open_non_existing_files")]

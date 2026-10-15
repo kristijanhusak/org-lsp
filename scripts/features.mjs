@@ -444,6 +444,7 @@ export const AREAS = [
       ['The TODO list leaving out entries for a date of their own (`org-agenda-todo-ignore-scheduled`, `-deadlines`, `-timestamp`, `-with-date`), in `tags-todo` too (`org-agenda-tags-todo-honor-ignore-options`), and without sublevels (`org-agenda-todo-list-sublevels`); commented subtrees shown (`org-agenda-skip-comment-trees`)', true],
       ['Commands offered by context (`org-agenda-custom-commands-contexts`)', true],
       ['Filters by tag, category, effort, regexp and top headline', true],
+      ['Filters kept from one view to the next (`org-agenda-persistent-filter`)', true],
       ['Bulk marks and actions', true],
       ['Follow mode and entry text', true],
       ['The outline path of the cursor\'s entry as it moves (`org-agenda-show-outline-path`)', true],

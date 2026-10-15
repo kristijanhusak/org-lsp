@@ -2475,6 +2475,14 @@ pub const SETTINGS: &[Setting] = &[
         "Emacs regexps whose matches are left out of the entry text `E` shows.",
     ),
     setting(
+        "org_agenda_persistent_filter",
+        "boolean",
+        "false",
+        "org-agenda-persistent-filter",
+        "A new agenda view keeps the filters by tag, category, regexp and effort of the agenda still open, \
+         rather than starting without them.",
+    ),
+    setting(
         "org_agenda_block_separator",
         "string | false",
         r#""=""#,
@@ -3749,6 +3757,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_agenda_entry_text_maxlines", r#"{ "type": "integer", "minimum": 1 }"#),
     ("org_agenda_entry_text_leaders", STRING),
     ("org_agenda_entry_text_exclude_regexps", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("org_agenda_persistent_filter", BOOLEAN),
     ("org_agenda_block_separator", r#"{ "anyOf": [{ "type": "string" }, { "const": false }] }"#),
     ("org_agenda_compact_blocks", BOOLEAN),
     ("agenda_hide_empty_blocks", BOOLEAN),

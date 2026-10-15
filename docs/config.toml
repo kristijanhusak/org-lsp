@@ -1157,6 +1157,11 @@ org_agenda_entry_text_leaders = "    > "
 # (org-agenda-entry-text-exclude-regexps)
 org_agenda_entry_text_exclude_regexps = []
 
+# A new agenda view keeps the filters by tag, category, regexp and effort of
+# the agenda still open, rather than starting without them.
+# (org-agenda-persistent-filter)
+org_agenda_persistent_filter = false
+
 # What goes between the blocks of a block agenda: one character repeated
 # across 79 columns, a longer text as it is, or `false` for nothing. In a
 # block's `settings`, the separator above that block.
