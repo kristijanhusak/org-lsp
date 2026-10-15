@@ -905,6 +905,21 @@ org_yank_adjusted_subtrees = false
 # error. (org-allow-promoting-top-level-subtree)
 org_allow_promoting_top_level_subtree = false
 
+# `S-<left>` and `S-<right>` on a headline change its TODO state as any change
+# does: logged, and blocked by its dependencies. Off, they change it with
+# nothing logged and nothing in the way.
+# (org-treat-S-cursor-todo-selection-as-state-change)
+org_treat_S_cursor_todo_selection_as_state_change = true
+
+# The keyword of a heading `org.insert.todo.heading` (M-S-RET) makes is set as
+# a TODO change: logged as the keyword says (a note wanted is a time only),
+# with its tag triggers. (org-treat-insert-todo-heading-as-state-change)
+org_treat_insert_todo_heading_as_state_change = false
+
+# `S-<down>` makes a timestamp later and `S-<up>` earlier, the other way round
+# from Org's default. (org-edit-timestamp-down-means-later)
+org_edit_timestamp_down_means_later = false
+
 # C-k (`org.kill.line`) on a headline kills the text to the tags, and the tags
 # when the cursor is past the title; at the start of the line, the whole line.
 # With `false` the key keeps the editor's own meaning. (org-special-ctrl-k)
@@ -2636,6 +2651,22 @@ org_agenda_custom_commands = []
   // `* `, its children a level up with a subtree's promotion. With `false` it
   // is an error. (org-allow-promoting-top-level-subtree)
   "org_allow_promoting_top_level_subtree": false,
+
+  // `S-<left>` and `S-<right>` on a headline change its TODO state as any
+  // change does: logged, and blocked by its dependencies. Off, they change it
+  // with nothing logged and nothing in the way.
+  // (org-treat-S-cursor-todo-selection-as-state-change)
+  "org_treat_S_cursor_todo_selection_as_state_change": true,
+
+  // The keyword of a heading `org.insert.todo.heading` (M-S-RET) makes is set
+  // as a TODO change: logged as the keyword says (a note wanted is a time
+  // only), with its tag triggers.
+  // (org-treat-insert-todo-heading-as-state-change)
+  "org_treat_insert_todo_heading_as_state_change": false,
+
+  // `S-<down>` makes a timestamp later and `S-<up>` earlier, the other way
+  // round from Org's default. (org-edit-timestamp-down-means-later)
+  "org_edit_timestamp_down_means_later": false,
 
   // C-k (`org.kill.line`) on a headline kills the text to the tags, and the
   // tags when the cursor is past the title; at the start of the line, the

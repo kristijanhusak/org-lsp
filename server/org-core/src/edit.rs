@@ -105,6 +105,12 @@ pub struct Settings {
     pub special_ctrl_a_e: (crate::line::Special, crate::line::Special),
     /// `org-special-ctrl-k`
     pub special_ctrl_k: bool,
+    /// `org-treat-S-cursor-todo-selection-as-state-change`: `S-<left>` and
+    /// `S-<right>` on a headline log and are blocked as any TODO change.
+    pub shift_todo_is_state_change: bool,
+    /// `org-edit-timestamp-down-means-later`: `S-<down>` makes a
+    /// timestamp later, `S-<up>` earlier.
+    pub timestamp_down_means_later: bool,
 }
 
 impl Default for Settings {
@@ -121,6 +127,8 @@ impl Default for Settings {
             insert: crate::meta_return::Settings::default(),
             special_ctrl_a_e: Default::default(),
             special_ctrl_k: false,
+            shift_todo_is_state_change: true,
+            timestamp_down_means_later: false,
         }
     }
 }
@@ -468,12 +476,31 @@ pub fn run(
             let on_headline = on_headline(text, offset);
             let next = match direction {
                 Direction::Up | Direction::Down if at_timestamp => {
-                    Command::Timestamp { forward: *direction == Direction::Up }
+                    Command::Timestamp { forward: (*direction == Direction::Up) != settings.timestamp_down_means_later }
                 }
                 Direction::Up if on_headline => Command::Priority(Action::Up),
                 Direction::Down if on_headline => Command::Priority(Action::Down),
                 Direction::Left | Direction::Right if at_timestamp => {
                     Command::Date { forward: *direction == Direction::Right }
+                }
+                Direction::Left | Direction::Right if on_headline && !settings.shift_todo_is_state_change => {
+                    let target = if *direction == Direction::Right { Target::Next } else { Target::Previous };
+                    return todo::change_state_quietly(
+                        text,
+                        parse.todo_keywords(),
+                        offset,
+                        &target,
+                        &settings.todo,
+                        call.now,
+                    )
+                    .map(|changed| Outcome {
+                        text: changed.text,
+                        cursor: None,
+                        note: changed.wants_note,
+                        message: changed.message,
+                        before_repeat: changed.before_repeat,
+                    })
+                    .map_err(Refusal::Failed);
                 }
                 Direction::Right if on_headline => Command::Todo(Target::Next),
                 Direction::Left if on_headline => Command::Todo(Target::Previous),

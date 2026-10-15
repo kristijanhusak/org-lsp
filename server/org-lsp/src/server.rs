@@ -992,6 +992,8 @@ struct Server {
     /// `org-archive-subtree-save-file-p`: the archive file saved when
     /// archiving from an Org file, and from the agenda.
     archive_save: (bool, bool),
+    /// `org-treat-insert-todo-heading-as-state-change`
+    treat_insert_todo_as_state_change: bool,
     /// `org-capture-templates`, `org-directory` and
     /// `org-default-notes-file`.
     capture_templates: Vec<CaptureTemplateOption>,
@@ -1531,6 +1533,7 @@ pub fn run(connection: Connection) -> Result<()> {
         id_lookup: (options.id_lookup(), options.id_completion_targets()),
         archive: (options.archive_settings(), options.archive_default_command().to_string()),
         archive_save: options.archive_save(),
+        treat_insert_todo_as_state_change: options.treat_insert_todo_heading_as_state_change.unwrap_or(false),
         capture_templates: options.capture_templates(),
         capture_contexts: config::contexts(options.capture_templates_contexts.as_deref()),
         org_directory: options.org_directory(),
@@ -12663,6 +12666,9 @@ impl Server {
             tags_column: self.refile.2.tags_column,
             below: context.below,
             statistics: self.edit_settings.todo.statistics.clone(),
+            todo_state_change: self
+                .treat_insert_todo_as_state_change
+                .then(|| (self.edit_settings.todo.clone(), self.date_time())),
             ..self.edit_settings.insert.clone()
         };
         let text = &document.text;
