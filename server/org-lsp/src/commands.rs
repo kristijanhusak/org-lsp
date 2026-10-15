@@ -333,6 +333,9 @@ pub const ROAM_TAG_ADD: &str = "org.roam.tag.add";
 pub const ROAM_TAG_REMOVE: &str = "org.roam.tag.remove";
 pub const ROAM_REF_ADD: &str = "org.roam.ref.add";
 pub const ROAM_REF_REMOVE: &str = "org.roam.ref.remove";
+pub const ROAM_REF_FIND: &str = "org.roam.ref.find";
+pub const ROAM_PROMOTE: &str = "org.roam.promote";
+pub const ROAM_DEMOTE: &str = "org.roam.demote";
 pub const ROAM_DAILIES_CAPTURE_TODAY: &str = "org.roam.dailies.capture.today";
 pub const ROAM_DAILIES_GOTO_TODAY: &str = "org.roam.dailies.goto.today";
 pub const ROAM_DAILIES_CAPTURE_TOMORROW: &str = "org.roam.dailies.capture.tomorrow";
@@ -1494,6 +1497,14 @@ pub const COMMANDS: &[Command] = &[
         input: Some(Input { kind: "text", prompt: "Remove" }),
         ..edit(ROAM_REF_REMOVE, "Roam: remove a reference")
     },
+    // `org-roam-ref-find`: a node by one of its references.
+    Command {
+        input: Some(Input { kind: "text", prompt: "Ref" }),
+        ..command(ROAM_REF_FIND, "Roam: find a node by a reference")
+    },
+    // `org-roam-promote-entire-buffer` and `org-roam-demote-entire-buffer`.
+    edit(ROAM_PROMOTE, "Roam: make the file's one top headline the file's node"),
+    edit(ROAM_DEMOTE, "Roam: make the file's node a headline of its own"),
     // org-journal's keys, under the prefix its README suggests (`C-c j `)
     // rather than its default (`C-c C-`), whose keys are Org's.
     Command {

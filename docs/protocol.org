@@ -1146,6 +1146,12 @@ increments a number.
   buffer as ~org.capture~ shows one, filed by ~org.capture.finish~, which
   writes a new file, and for ~org.roam.node.insert~ inserts the link where
   the command ran.
+- ~org.roam.ref.find~ :: ~org-roam-ref-find~: asks for a reference (input
+  kind ~text~, prompt ~Ref~, ~completions~ and ~select~, ~context~
+  ~{ "step": "ref" }~) and shows its node.
+- ~org.roam.promote~, ~org.roam.demote~ :: ~org-roam-promote-entire-buffer~
+  and ~org-roam-demote-entire-buffer~ on the file at the cursor, an edit of
+  it; or Emacs's error.
 - ~org.roam.alias.add~, ~org.roam.alias.remove~, ~org.roam.tag.add~,
   ~org.roam.tag.remove~, ~org.roam.ref.add~, ~org.roam.ref.remove~ ::
   ~org-roam-alias-add~ and the like, on the node at the cursor: they ask

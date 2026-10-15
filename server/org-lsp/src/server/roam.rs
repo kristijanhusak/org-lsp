@@ -191,6 +191,12 @@ impl Server {
         ) {
             return self.roam_edit(id, context);
         }
+        if matches!(id, commands::ROAM_PROMOTE | commands::ROAM_DEMOTE) {
+            return self.roam_whole_file(id, context);
+        }
+        if id == commands::ROAM_REF_FIND {
+            return self.roam_ref_find(context);
+        }
         let (db, candidates) = self.roam_nodes()?;
         if id == commands::ROAM_NODE_RANDOM {
             // `seq-random-elt` over the lines offered: a node with aliases
@@ -247,6 +253,31 @@ impl Server {
                 self.roam_capture(id, context, &db, &title, context.id.as_deref(), None)
             }
         }
+    }
+
+    /// `org-roam-ref-find`: asks for one of the references the nodes have
+    /// (`org-roam-ref-read`, the first node with it), and visits its node.
+    fn roam_ref_find(&mut self, context: &RoamContext) -> Result<Value, Refusal> {
+        let db = self.roam_db()?.0;
+        let Some(answer) = context.input.clone().filter(|_| context.step.as_deref() == Some("ref")) else {
+            let mut refs: Vec<&str> = Vec::new();
+            for found in &db.refs {
+                if !refs.contains(&found.reference.as_str()) {
+                    refs.push(&found.reference);
+                }
+            }
+            return Ok(json!({ "input": {
+                "kind": "text",
+                "prompt": "Ref",
+                "value": "",
+                "completions": refs,
+                "select": true,
+                "context": { "step": "ref" },
+            } }));
+        };
+        let found = db.refs.iter().find(|found| found.reference == answer).ok_or("No match")?;
+        let node = found.node.clone();
+        self.roam_visit(&db, &node)
     }
 
     /// org-roam's database as `org-roam-db-sync` would make it now, and

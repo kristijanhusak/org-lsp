@@ -200,6 +200,15 @@ The commands are org-roam's:
   (/Alias/), or one picked among them taken out (/Remove/).
 - ~org.roam.ref.add~, ~org.roam.ref.remove~ :: ~org-roam-ref-add~ and
   ~org-roam-ref-remove~: the same for its ~ROAM_REFS~ (/Ref/, /Remove/).
+- ~org.roam.ref.find~ :: ~org-roam-ref-find~: visits the node of a reference
+  picked among the nodes' references (/Ref/), as org-roam keeps them: a
+  URL without its scheme (~//example.com~), a citation key without ~@~.
+  When nodes share a reference, the first one's is visited.
+- ~org.roam.promote~, ~org.roam.demote~ :: ~org-roam-promote-entire-buffer~
+  and ~org-roam-demote-entire-buffer~: a file of one top-level headline made
+  the file's node (its title in ~#+title:~, its tags in ~#+filetags:~, the
+  other headlines a level up), or back. Without a ~#+title:~, demoting
+  fails as in Emacs, but leaves the file as it was.
 - ~org.roam.tag.add~, ~org.roam.tag.remove~ :: ~org-roam-tag-add~ and
   ~org-roam-tag-remove~: tags, separated by colons, added to the node or
   taken out (/Tag/): on its headline, or in ~#+filetags:~ for the file's

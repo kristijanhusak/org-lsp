@@ -1206,6 +1206,21 @@
         "category": "Org"
       },
       {
+        "command": "org.roam.ref.find",
+        "title": "Roam: find a node by a reference",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.promote",
+        "title": "Roam: make the file's one top headline the file's node",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.demote",
+        "title": "Roam: make the file's node a headline of its own",
+        "category": "Org"
+      },
+      {
         "command": "org.journal.new.entry",
         "title": "Journal: new entry",
         "category": "Org"

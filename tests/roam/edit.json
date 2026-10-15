@@ -783,5 +783,145 @@
    "text": ":PROPERTIES:\n:ID:       node-794-6\n:END:\n#+Title: 日本\n* (c) [[roam:alpha]] x the note\nCLOSED: [2026-12-09 Wed 9:30-10:00] SCHEDULED: <2026-05-26 25:00>--<2026-05-26>\n* <2026-10-23 25:00> it's [[#cid]] [[roam:Beta]]\nCLOSED: <2026-07-12> SCHEDULED: <2026-01-06 Mon>\n\n* DONE\t[cite:see @smith2020;see @doe:21 p. 3;@k1] Ünï\n:PROPERTIES:\n:ID:       769-3\n:END:\n[[id:id-989-2][Ça]] [[id:node-703-1][it's]] Ça\n",
    "message": "Property \"ROAM_REFS\" deleted"
   }
+ },
+ {
+  "files": {
+   "a.org": "* Head¦ :a:b:\n:PROPERTIES:\n:ID: x1\n:END:\nBody\n** Sub\ntext\n"
+  },
+  "command": "promote",
+  "expected": {
+   "text": ":PROPERTIES:\n:ID: x1\n:END:\n#+title: Head\n#+filetags: :a:b:\nBody\n* Sub\ntext\n",
+   "message": null
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Head¦\n:PROPERTIES:\n:ID: x1\n:ROAM_ALIASES: al\n:END:\n** Sub\n"
+  },
+  "command": "promote",
+  "expected": {
+   "text": ":PROPERTIES:\n:ID: x1\n:ROAM_ALIASES: al\n:END:\n#+title: Head\n* Sub\n",
+   "message": null
+  }
+ },
+ {
+  "files": {
+   "a.org": "* TODO [#A] Head¦ :t:\n:PROPERTIES:\n:ID: x1\n:END:\n"
+  },
+  "command": "promote",
+  "expected": {
+   "text": ":PROPERTIES:\n:ID: x1\n:END:\n#+title: Head\n#+filetags: :t:\n",
+   "message": null
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+title: Old\n* Head¦\n:PROPERTIES:\n:ID: x1\n:END:\n"
+  },
+  "command": "promote",
+  "expected": {
+   "text": "#+title: Old\n* Head\n:PROPERTIES:\n:ID: x1\n:END:\n",
+   "error": "Cannot promote: multiple root headings or there is extra file-level text"
+  }
+ },
+ {
+  "files": {
+   "a.org": "* One¦\n:PROPERTIES:\n:ID: x1\n:END:\n* Two\n"
+  },
+  "command": "promote",
+  "expected": {
+   "text": "* One\n:PROPERTIES:\n:ID: x1\n:END:\n* Two\n",
+   "error": "Cannot promote: multiple root headings or there is extra file-level text"
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Head¦\nSCHEDULED: <2026-10-15 Thu>\n:PROPERTIES:\n:ID: x1\n:END:\ntext\n"
+  },
+  "command": "promote",
+  "expected": {
+   "text": "SCHEDULED: <2026-10-15 Thu>\n:PROPERTIES:\n:ID: x1\n:END:\n#+title: Head\ntext\n",
+   "message": null
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Head¦\n:PROPERTIES:\n:ID: x1\n:END:\n** Sub :s:\n*** Deep\n** Two\n"
+  },
+  "command": "promote",
+  "expected": {
+   "text": ":PROPERTIES:\n:ID: x1\n:END:\n#+title: Head\n* Sub                                                                     :s:\n** Deep\n* Two\n",
+   "message": null
+  }
+ },
+ {
+  "files": {
+   "a.org": "* Head with [[https://x.org][a link]]¦\n:PROPERTIES:\n:ID: x1\n:END:\n"
+  },
+  "command": "promote",
+  "expected": {
+   "text": ":PROPERTIES:\n:ID: x1\n:END:\n#+title: Head with [[https://x.org][a link]]\n",
+   "message": null
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: f1\n:END:\n#+title: File¦\n#+filetags: :a:b:\nBody\n* H1\n** H2\n"
+  },
+  "command": "demote",
+  "expected": {
+   "text": "* File                                                                  :a:b:\n:PROPERTIES:\n:ID: f1\n:END:\nBody\n** H1\n*** H2\n",
+   "message": null
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: f1\n:END:\n#+title: File¦\nBody\n"
+  },
+  "command": "demote",
+  "expected": {
+   "text": "* File\n:PROPERTIES:\n:ID: f1\n:END:\nBody\n",
+   "message": null
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+title: T¦\n* A\ntext\n"
+  },
+  "command": "demote",
+  "expected": {
+   "text": "* T\n** A\ntext\n",
+   "message": null
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+filetags: :x:\n#+title: T¦\n#+author: me\n* A\n"
+  },
+  "command": "demote",
+  "expected": {
+   "text": "* T                                                                       :x:\n#+author: me\n** A\n",
+   "message": null
+  }
+ },
+ {
+  "files": {
+   "a.org": ":PROPERTIES:\n:ID: f1\n:END:\nNo title¦\n* A\n"
+  },
+  "command": "demote",
+  "expected": {
+   "text": "* :PROPERTIES:\n:ID: f1\n:END:\nNo title\n** A\n",
+   "error": "Wrong type argument: char-or-string-p, nil"
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+TITLE: Upper¦\n* A :t:\n"
+  },
+  "command": "demote",
+  "expected": {
+   "text": "* Upper\n** A                                                                      :t:\n",
+   "message": null
+  }
  }
 ]

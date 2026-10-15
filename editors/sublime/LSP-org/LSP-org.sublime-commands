@@ -1596,6 +1596,27 @@
     }
   },
   {
+    "caption": "Org: Roam: find a node by a reference",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.ref.find"
+    }
+  },
+  {
+    "caption": "Org: Roam: make the file's one top headline the file's node",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.promote"
+    }
+  },
+  {
+    "caption": "Org: Roam: make the file's node a headline of its own",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.demote"
+    }
+  },
+  {
     "caption": "Org: Journal: new entry",
     "command": "org_lsp_run",
     "args": {
