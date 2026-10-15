@@ -71,7 +71,7 @@ pub const SETTINGS: &[Setting] = &[
             "",
             "org-agenda-file-regexp",
             "Which files of a directory in `org_agenda_files` are agenda files: an Emacs regular expression \
-             their names match (Org's is `\\\\`[^.].*\\\\.org\\\\'`).",
+             their names match, such as `\\\\.txt\\\\'` for the names that end in `.txt`.",
         )
     },
     setting(

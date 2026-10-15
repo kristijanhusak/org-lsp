@@ -6,7 +6,8 @@
 //                                    keymap, Zed's from keymap.json and
 //                                    tasks.json, which their own generators
 //                                    write from the server's manifest)
-//   docs/configuration.org           every option at its default
+//   docs/configuration.org           a heading for each option, with its
+//                                    default
 //   docs/protocol.org                the table of options
 //   docs/<editor>.org, README.org    what works, from scripts/features.mjs
 //   docs/parity.org                  the same area by area (whole), and
@@ -445,28 +446,6 @@ function optionTree({ editor = true } = {}) {
   return top;
 }
 
-/** `text` as comment lines of at most 78 columns. */
-function comment(text, indent, marker) {
-  const lines = [];
-  let line = '';
-  for (const word of text.split(/\s+/)) {
-    if (line && indent.length + marker.length + 1 + line.length + 1 + word.length > 78) {
-      lines.push(line);
-      line = word;
-    } else {
-      line = line ? `${line} ${word}` : word;
-    }
-  }
-  if (line) lines.push(line);
-  return lines.map((text) => `${indent}${marker} ${text}`);
-}
-
-/** What a comment says about an option: its meaning and Org's name for it. */
-function about(setting) {
-  const org = setting.org ? ` (${setting.org})` : '';
-  return `${setting.doc}${org}`;
-}
-
 // The server's JSON has its keys in alphabetical order; these read better
 // first, in this order.
 const FIRST = ['key', 'description', 'type', 'target', 'template', 'files'];
@@ -479,73 +458,105 @@ const entries = (object) =>
 function json(value) {
   if (Array.isArray(value)) return value.length === 0 ? '[]' : `[${value.map(json).join(', ')}]`;
   if (value && typeof value === 'object') {
-    return `{ ${entries(value).map(([key, item]) => `${JSON.stringify(key)}: ${json(item)}`).join(', ')} }`;
+    const fields = entries(value);
+    return fields.length === 0 ? '{}' : `{ ${fields.map(([key, item]) => `${JSON.stringify(key)}: ${json(item)}`).join(', ')} }`;
   }
   return JSON.stringify(value);
 }
 
+/** `value` in TOML, or nothing for `null`, which TOML has no word for. */
 function toml(value) {
-  if (Array.isArray(value)) return `[${value.map(toml).join(', ')}]`;
+  if (value === null) return undefined;
+  if (Array.isArray(value)) {
+    const items = value.map(toml);
+    return items.includes(undefined) ? undefined : `[${items.join(', ')}]`;
+  }
   if (value && typeof value === 'object') {
-    return `{ ${entries(value).map(([key, item]) => `${key} = ${toml(item)}`).join(', ')} }`;
+    const fields = entries(value).map(([key, item]) => [/^[A-Za-z0-9_-]+$/.test(key) ? key : JSON.stringify(key), toml(item)]);
+    if (fields.some(([, item]) => item === undefined)) return undefined;
+    return fields.length === 0 ? '{}' : `{ ${fields.map(([key, item]) => `${key} = ${item}`).join(', ')} }`;
   }
   return JSON.stringify(value);
 }
 
-/** The options with their defaults in JSON with comments, for a `config.json`. */
-function jsonOptions(node, indent) {
+/**
+ * The groups of the options on docs/configuration.org, in the page's order:
+ * an option goes in the first whose pattern its name matches, and in the
+ * first of the last two, which take the rest, when none does.
+ */
+const OPTION_GROUPS = [
+  ['TODO keywords and logging', /^org_(todo|log|enforce_todo|treat_|closed_keep|provide_todo|hierarchical_todo|use_fast_todo|track_ordered)/],
+  ['Priorities', /^org_priority/],
+  ['Tags and properties', /^org_(tag|tags|use_tag|use_property|property|global_properties|group_tags|use_fast_tag|fast_tag|auto_align_tags|complete_tags)/],
+  ['Lists', /^org_(list|plain_list|checkbox)/],
+  ['Tables', /^org_(table|calc)/],
+  ['Links, IDs and citations', /^org_(link|id|file_apps|cite|return_follows_link)/],
+  ['Dates and times', /^org_(time_stamp|read_date|edit_timestamp|extend_today|use_effective|use_last_clock|duration|display_custom|timestamp_custom)|^calendar_/],
+  ['Capture, refile and archive', /^org_(capture|directory|default_notes|refile|reverse_note_order|archive)/],
+  ['Clocking', /^org_clock|^org_agenda_clock/],
+  ['Habits', /^org_habit_|^org_modules$/],
+  ['The agenda', /^org_agenda_|^agenda_|^org_(deadline|scheduled)_|^org_stuck_projects$|^org_tags_match_list_sublevels$/],
+  [
+    'Display',
+    /^org_(hide|fontify|emphasis|hidden_keywords|entities|pretty|use_sub|image|startup|adapt_indentation|indent|ellipsis|bullets|cycle_hide|cycle_open)/,
+  ],
+  ['Source blocks and tangling', /^org_(src|babel)/],
+  ['org-super-agenda', /^org_super_agenda_/],
+  ['org-roam', /^org_roam_/],
+  ['org-journal', /^org_journal_/],
+  ['Editing and motion', /^org_|^return_uses/],
+  ['Emacs and the server', /./],
+];
+const FALLBACK = OPTION_GROUPS.slice(-2);
+
+/** `text` (the server's, with code in backticks) as Org lines of at most 78
+ * columns, a code span never broken over two. */
+function filled(text, indent = '') {
+  const kept = text.replace(/`[^`]+`/g, (span) => span.replaceAll(' ', '\u0001'));
   const lines = [];
-  const children = node.children;
-  for (const [index, child] of children.entries()) {
-    const comma = index < children.length - 1 ? ',' : '';
-    if (index > 0) lines.push('');
-    if (child.setting) {
-      const setting = child.setting;
-      lines.push(...comment(about(setting), indent, '//'));
-      lines.push(
-        setting.default === undefined
-          ? `${indent}// ${JSON.stringify(child.name)}: unset: ${setting.unset}`
-          : `${indent}${JSON.stringify(child.name)}: ${json(setting.default)}${comma}`,
-      );
+  let line = '';
+  for (const word of org(kept).split(/\s+/).filter(Boolean)) {
+    if (line && indent.length + line.length + 1 + word.length > 78) {
+      lines.push(line);
+      line = word;
     } else {
-      lines.push(`${indent}${JSON.stringify(child.name)}: {`, ...jsonOptions(child, indent + '  '), `${indent}}${comma}`);
+      line = line ? `${line} ${word}` : word;
     }
   }
-  return lines;
+  if (line) lines.push(line);
+  return lines.map((line, index) => (index > 0 ? indent : '') + line.replaceAll('\u0001', ' ')).join('\n');
 }
 
-/** The same in TOML, as the shared file takes it. */
-function tomlOptions(node, table) {
-  const lines = table ? [`[${table}]`] : [];
-  const tables = [];
-  for (const child of node.children) {
-    if (!child.setting) {
-      tables.push(child);
-      continue;
-    }
-    const setting = child.setting;
-    lines.push(...comment(about(setting), '', '#'));
-    lines.push(
-      setting.default === undefined
-        ? `# ${child.name} = …  (unset: ${setting.unset})`
-        : `${child.name} = ${toml(setting.default)}`,
-      '',
-    );
-  }
-  for (const child of tables) lines.push(...tomlOptions(child, table ? `${table}.${child.name}` : child.name));
-  return lines;
-}
-
-/** The shared configuration file with every option at its default. */
+/** The options on docs/configuration.org: a heading for each, under the
+ * heading of its group, with what it means, its type and its default. */
 function fileOptions() {
-  const lines = tomlOptions(optionTree({ editor: false }), '');
+  const groups = new Map(OPTION_GROUPS.map(([name]) => [name, []]));
+  for (const setting of settings.filter((setting) => !setting.integration && !setting.editorOnly)) {
+    const matches = ([, pattern]) => pattern.test(setting.name);
+    const [name] = OPTION_GROUPS.slice(0, -2).find(matches) ?? FALLBACK.find(matches);
+    groups.get(name).push(setting);
+  }
+  const lines = [];
+  for (const [name, group] of groups) {
+    if (group.length === 0) continue;
+    lines.push(heading(2, name), ':PROPERTIES:', `:CUSTOM_ID: ${slug(name)}`, ':END:', '');
+    for (const setting of group) {
+      // GitHub's anchor of the heading, which keeps `_`.
+      lines.push(heading(3, setting.name), ':PROPERTIES:', `:CUSTOM_ID: ${setting.name.toLowerCase()}`, ':END:', '');
+      lines.push(filled(setting.doc), '');
+      if (setting.org) lines.push(`- Org's option :: ${code(setting.org)}`);
+      lines.push(`- Type :: ${org(setting.type)}`);
+      if (setting.default === undefined) {
+        lines.push(filled(`- Default :: unset: ${setting.unset}`, '  '), '');
+      } else {
+        lines.push(`- Default :: ${code(json(setting.default))}`, '');
+        const value = toml(setting.default);
+        if (value !== undefined) lines.push(block('toml', [`${setting.name} = ${value}`]), '');
+      }
+    }
+  }
   while (lines[lines.length - 1] === '') lines.pop();
-  return block('toml', lines);
-}
-
-/** The same as JSON with comments, for a `config.json`. */
-function fileOptionsJson() {
-  return block('json', ['{', ...jsonOptions(optionTree({ editor: false }), '  '), '}']);
+  return lines.join('\n');
 }
 
 /** The options in docs/protocol.org: a description list, each option with
@@ -906,7 +917,7 @@ const PAGES = {
   'docs/keys/sublime.org': { keys: sublimeKeys },
   'docs/keys/zed.org': { keys: zedKeys },
   'docs/protocol.org': { options: protocolOptions },
-  'docs/configuration.org': { options: fileOptions, 'options-json': fileOptionsJson },
+  'docs/configuration.org': { options: fileOptions },
   'README.org': { features: featureTable },
   ...Object.fromEntries(EDITORS.map((editor) => [`docs/${editor.id}.org`, { features: () => editorFeatureTable(editor.id) }])),
 };

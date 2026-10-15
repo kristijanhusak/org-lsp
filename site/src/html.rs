@@ -707,6 +707,13 @@ pub fn plain(node: &SyntaxNode) -> String {
             },
             SyntaxElement::Node(child) => match child.kind() {
                 CODE | VERBATIM => out.push_str(&marked_contents(&child)),
+                // `org_todo_keywords` keeps its `_` for the search, as the
+                // pages show it under `^:{}`.
+                SUBSCRIPT | SUPERSCRIPT
+                    if !child.children_with_tokens().any(|part| part.kind() == MARKER && part.to_string() == "{") =>
+                {
+                    out.push_str(&child.text().to_string())
+                }
                 ENTITY => {
                     let raw = child.text().to_string();
                     let name = raw.trim_start_matches('\\').trim_end_matches("{}");
@@ -768,6 +775,13 @@ mod tests {
         let root = org_syntax::parse("* The ~foo~ [[https://x][link]] \\alpha\n", &Default::default()).syntax();
         let title = root.descendants().find(|node| node.kind() == TITLE).unwrap();
         assert_eq!(plain(&title), "The foo link α");
+    }
+
+    #[test]
+    fn plain_text_keeps_the_underscores_of_names() {
+        let root = org_syntax::parse("* org_todo_keywords\n", &Default::default()).syntax();
+        let title = root.descendants().find(|node| node.kind() == TITLE).unwrap();
+        assert_eq!(plain(&title), "org_todo_keywords");
     }
 
     #[test]
