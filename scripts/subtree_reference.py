@@ -6,10 +6,11 @@ A case is a JSON object:
       "text": "* a\\n",   an Org document
       "point": 3,        where the cursor is, in characters from the start
       "op": "cut",       "cut" (`org-cut-subtree`), "copy"
-                         (`org-copy-subtree`) or "paste"
-                         (`org-paste-subtree`)
+                         (`org-copy-subtree`), "paste"
+                         (`org-paste-subtree`) or "yank" (`org-yank`
+                         with `org-yank-adjusted-subtrees`)
       "count": 2,        the prefix argument of a cut or copy (optional)
-      "kill": "* b\\n",  for a paste, what is pasted
+      "kill": "* b\\n",  for a paste or a yank, what is pasted
       "level": 3,        for a paste, a numeric prefix argument (optional)
       "adapt": "nil"     org-adapt-indentation: nil, t or headline-data
     }
@@ -39,6 +40,9 @@ DRIVER = r"""
       (cond
        ((equal op "cut") (let ((current-prefix-arg count)) (call-interactively #'org-cut-subtree)))
        ((equal op "copy") (let ((current-prefix-arg count)) (call-interactively #'org-copy-subtree)))
+       ((equal op "yank")
+        (kill-new kill)
+        (let ((org-yank-adjusted-subtrees t)) (call-interactively #'org-yank)))
        (t (kill-new kill)
           (let ((current-prefix-arg level)) (call-interactively #'org-paste-subtree))))
       (let ((text (buffer-substring-no-properties (point-min) (point-max)))

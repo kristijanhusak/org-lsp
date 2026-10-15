@@ -1588,6 +1588,52 @@ fn run_saving(client: &mut Client, command: &str, uri: &str, at: (u32, u32), ext
     (result, saved)
 }
 
+/// `org-yank` with `org_yank_adjusted_subtrees`: a subtree yanked at the
+/// start of a line takes the level there; anything else is the editor's
+/// own paste (`notApplicable`), as it is with the option off.
+#[test]
+fn yanks_subtrees_at_the_level_around_them() {
+    let mut options = clock();
+    options["org_yank_adjusted_subtrees"] = json!(true);
+    let mut client = Client::editor(options, None);
+    client.open("file:///org/yank.org", "* a\n** x\nwords\n");
+    // The edit and the cursor come back in the result, as `org.paste.subtree`'s.
+    let context = json!({
+        "textDocument": { "uri": "file:///org/yank.org" },
+        "position": { "line": 3, "character": 0 },
+        "clipboard": "* b\n** c\n",
+    });
+    let yanked =
+        client.request("workspace/executeCommand", json!({ "command": "org.yank", "arguments": [context] })).unwrap();
+    let edits = yanked["edits"].as_array().unwrap();
+    assert_eq!(apply("* a\n** x\nwords\n", edits), "* a\n** x\nwords\n** b\n*** c\n");
+    assert_eq!(yanked["cursor"], json!({ "line": 5, "character": 0 }));
+    assert_eq!(yanked["message"], "Clipboard pasted as level 2 subtree");
+    let context = json!({
+        "textDocument": { "uri": "file:///org/yank.org" },
+        "position": { "line": 2, "character": 2 },
+        "clipboard": "* b\n",
+    });
+    let error = client
+        .request_raw("workspace/executeCommand", json!({ "command": "org.yank", "arguments": [context] }))
+        .unwrap_err();
+    assert_eq!(error.data, Some(json!({ "notApplicable": true })));
+    client.shutdown();
+
+    let mut client = Client::editor(clock(), None);
+    client.open("file:///org/yank.org", "* a\n");
+    let context = json!({
+        "textDocument": { "uri": "file:///org/yank.org" },
+        "position": { "line": 1, "character": 0 },
+        "clipboard": "* b\n",
+    });
+    let error = client
+        .request_raw("workspace/executeCommand", json!({ "command": "org.yank", "arguments": [context] }))
+        .unwrap_err();
+    assert_eq!(error.data, Some(json!({ "notApplicable": true })));
+    client.shutdown();
+}
+
 /// `org-todo-yesterday`: the change records 23:59 of yesterday, and a
 /// `.+` repeater counts from yesterday; `org.todo` afterwards records now.
 #[test]

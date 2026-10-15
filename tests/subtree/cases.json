@@ -6663,5 +6663,288 @@
    "point": 10,
    "kill": "json-null"
   }
+ },
+ {
+  "text": "* a\n** x\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "* b\n** c\n",
+  "expected": {
+   "text": "* a\n** x\n** b\n*** c\n",
+   "point": 20,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "* b\n** c\n",
+  "expected": {
+   "text": "* a\n** x\n* b\n** c\n* y\n",
+   "point": 18,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "** b\nbody\n*** c\n** d\n",
+  "expected": {
+   "text": "* a\n** b\nbody\n*** c\n** d\n** x\n* y\n",
+   "point": 25,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* a\ntext\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "** b\nbody\n*** c\n** d\n",
+  "expected": {
+   "text": "* a\ntext\n* b\nbody\n** c\n* d\n",
+   "point": 27,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* a\ntext\n",
+  "point": 5,
+  "op": "yank",
+  "kill": "* b\n** c\n",
+  "expected": {
+   "text": "* a\nt* b\n** c\next\n",
+   "point": 14,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* a\n***\n* y\n",
+  "point": 7,
+  "op": "yank",
+  "kill": "* b\n** c\n",
+  "expected": {
+   "text": "* a\n* b\n** c\n* y\n",
+   "point": 13,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* a\n***  \n* y\n",
+  "point": 7,
+  "op": "yank",
+  "kill": "* b\n** c\n",
+  "expected": {
+   "text": "* a\n*** b\n**** c\n* y\n",
+   "point": 17,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* a\n*** \n* y\n",
+  "point": 8,
+  "op": "yank",
+  "kill": "* b\n** c\n",
+  "expected": {
+   "text": "* a\n*** * b\n** c\n\n* y\n",
+   "point": 17,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* a\nwords\n",
+  "point": 6,
+  "op": "yank",
+  "kill": "* b\n** c\n",
+  "expected": {
+   "text": "* a\nwo* b\n** c\nrds\n",
+   "point": 15,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* a\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "plain text\n",
+  "expected": {
+   "text": "* a\nplain text\n",
+   "point": 15,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* a\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "** b\n* c\n",
+  "expected": {
+   "text": "* a\n** b\n* c\n",
+   "point": 13,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* a\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "\n\n* b\n",
+  "expected": {
+   "text": "* a\n\n\n* b\n",
+   "point": 10,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* a\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "* b\n\n\n",
+  "expected": {
+   "text": "* a\n* b\n\n\n",
+   "point": 10,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* a\n\n\n* y\n",
+  "point": 5,
+  "op": "yank",
+  "kill": "** b\nbody\n*** c\n** d\n",
+  "expected": {
+   "text": "* a\n\n\n* b\nbody\n** c\n* d\n* y\n",
+   "point": 24,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* a\n  text\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "** b\nbody\n*** c\n** d\n",
+  "adapt": "t",
+  "expected": {
+   "text": "* a\n  text\n* b\nbody\n** c\n* d\n",
+   "point": 29,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "",
+  "point": 0,
+  "op": "yank",
+  "kill": "** b\nbody\n*** c\n** d\n",
+  "expected": {
+   "text": "* b\nbody\n** c\n* d\n",
+   "point": 18,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* a",
+  "point": 3,
+  "op": "yank",
+  "kill": "* b\n** c\n",
+  "expected": {
+   "text": "* a* b\n** c\n",
+   "point": 12,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* a\n** b\n*** c\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "* b\n** c\n",
+  "expected": {
+   "text": "* a\n** b\n*** c\n** b\n*** c\n",
+   "point": 15,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* a\n** b\n\n\n*** c\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "* q\n",
+  "expected": {
+   "text": "* a\n** q\n** b\n\n\n*** c\n",
+   "point": 9,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* a\n** b\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "* q",
+  "expected": {
+   "text": "* a\n** q\n** b\n",
+   "point": 9,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* a\n***\n* y\n",
+  "point": 7,
+  "op": "paste",
+  "kill": "* b\n** c\n",
+  "expected": {
+   "text": "* a\n* b\n** c\n* y\n",
+   "point": 4,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* a\n***\n** y\n",
+  "point": 7,
+  "op": "yank",
+  "kill": "** b\n*** c\n",
+  "expected": {
+   "text": "* a\n* b\n** c\n** y\n",
+   "point": 13,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "***\n",
+  "point": 3,
+  "op": "yank",
+  "kill": "** b\n",
+  "expected": {
+   "error": "Cannot promote to level 0.  UNDO to recover if necessary"
+  }
+ },
+ {
+  "text": "***\n",
+  "point": 3,
+  "op": "paste",
+  "kill": "** b\n",
+  "expected": {
+   "error": "Cannot promote to level 0.  UNDO to recover if necessary"
+  }
+ },
+ {
+  "text": "* a\n** x\n***\n",
+  "point": 12,
+  "op": "paste",
+  "kill": "* b\n",
+  "expected": {
+   "text": "* a\n** x\n** b\n",
+   "point": 9,
+   "kill": "json-null"
+  }
+ },
+ {
+  "text": "* a\n*\n",
+  "point": 5,
+  "op": "yank",
+  "kill": "** b\n",
+  "expected": {
+   "text": "* a\n* b\n",
+   "point": 8,
+   "kill": "json-null"
+  }
  }
 ]

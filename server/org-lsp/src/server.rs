@@ -1134,6 +1134,10 @@ struct Server {
     open_settings: open::Settings,
     /// `org-file-apps`.
     file_apps: org_core::file_apps::FileApps,
+    /// `org-allow-promoting-top-level-subtree`
+    allow_promoting_top_level: bool,
+    /// `org-yank-adjusted-subtrees`
+    yank_adjusted_subtrees: bool,
     /// `org-clock-default-task`, marked by clocking in with `C-u C-u`.
     clock_default_task: Option<ClockTask>,
     /// `org-clock-interrupted-task`: the entry whose clock the last
@@ -1547,6 +1551,8 @@ pub fn run(connection: Connection) -> Result<()> {
         link_settings: options.link_settings(),
         open_settings: options.open_settings(),
         file_apps: options.file_apps.as_deref().map(org_core::file_apps::FileApps::from_pairs).unwrap_or_default(),
+        allow_promoting_top_level: options.allow_promoting_top_level_subtree.unwrap_or(false),
+        yank_adjusted_subtrees: options.yank_adjusted_subtrees.unwrap_or(false),
         clock_default_task: None,
         clock_interrupted: None,
         clock_out_time: None,
@@ -3604,8 +3610,7 @@ impl Server {
             use org_core::structure;
             let text = &document.text;
             let keywords = document.parse.todo_keywords();
-            let structure_settings =
-                structure::Settings { tags_column: self.refile.2.tags_column, indent: self.indent_in(text) };
+            let structure_settings = self.structure_settings(text);
             let tried = [
                 (commands::META_LEFT, structure::change_levels(text, offset, -1, false, keywords, &structure_settings)),
                 (commands::META_RIGHT, structure::change_levels(text, offset, 1, false, keywords, &structure_settings)),
@@ -6268,7 +6273,7 @@ impl Server {
                 };
                 self.emacs_run(command, &context.expect("a context"))
             }
-            commands::CUT_SUBTREE | commands::COPY_SUBTREE | commands::PASTE_SUBTREE => {
+            commands::CUT_SUBTREE | commands::COPY_SUBTREE | commands::PASTE_SUBTREE | commands::YANK => {
                 self.subtree_clipboard(&params.command, &context.ok_or("This command needs the cursor position")?)
             }
             commands::META_RETURN
@@ -11544,7 +11549,7 @@ impl Server {
         let mut moved = None;
         if cycle.level_after_creation {
             let tags_column = self.refile.2.tags_column;
-            let settings = structure::Settings { tags_column, indent: self.indent_in(&text) };
+            let settings = self.structure_settings(&text);
             if let Some(outcome) = structure::cycle_level(&text, offset, &keywords, &settings) {
                 moved = Some(outcome);
             } else if let Some(cycled) = list::cycle_item_indentation(
@@ -12453,7 +12458,7 @@ impl Server {
         if !structure::at_heading(&text, offset) {
             return Err(Refusal::NotHere("Not at a headline".to_string()));
         }
-        let settings = structure::Settings { tags_column, indent: self.indent_in(&text) };
+        let settings = self.structure_settings(&text);
         let count = context.count.filter(|count| *count > 0).unwrap_or(1) as isize;
         let outcome = match id {
             commands::META_LEFT => structure::change_levels(&text, offset, -1, false, &keywords, &settings)?,
@@ -12847,7 +12852,8 @@ impl Server {
         self.carried(context, outcome)
     }
 
-    /// `org-cut-subtree`, `org-copy-subtree` and `org-paste-subtree`. What
+    /// `org-cut-subtree`, `org-copy-subtree`, `org-paste-subtree` and
+    /// `org-yank`. What
     /// is cut or copied goes back in `copy`, for the editor's clipboard,
     /// and stays with the server; pasting takes the editor's clipboard, or
     /// else that.
@@ -12857,10 +12863,21 @@ impl Server {
         let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
         let text = document.text.clone();
         let offset = document.index.offset(&text, context.position, encoding);
+        if id == commands::YANK {
+            let not_here = || Refusal::NotHere("Org yanks this as it is".to_string());
+            if !self.yank_adjusted_subtrees {
+                return Err(not_here());
+            }
+            let kill = context.clipboard.clone().or_else(|| self.kill.clone()).unwrap_or_default();
+            let settings = self.structure_settings(&text);
+            let (outcome, message) =
+                structure::yank_subtree(&text, offset, &kill, &settings).ok_or_else(not_here)??;
+            self.message = Some(message);
+            return self.carried(context, outcome);
+        }
         if id == commands::PASTE_SUBTREE {
             let tree = context.clipboard.clone().or_else(|| self.kill.clone()).unwrap_or_default();
-            let settings =
-                structure::Settings { tags_column: self.refile.2.tags_column, indent: self.indent_in(&text) };
+            let settings = self.structure_settings(&text);
             let level = context.count.filter(|count| *count > 0).map(|count| count as usize);
             let (outcome, message) = structure::paste_subtree(&text, offset, &tree, level, &settings)?;
             self.message = Some(message);
@@ -13456,6 +13473,15 @@ impl Server {
     }
 
     /// The indentation settings for a document.
+    /// How headlines change level in `text`.
+    fn structure_settings(&self, text: &str) -> org_core::structure::Settings {
+        org_core::structure::Settings {
+            tags_column: self.refile.2.tags_column,
+            indent: self.indent_in(text),
+            allow_promoting_top_level: self.allow_promoting_top_level,
+        }
+    }
+
     fn indent_in(&self, text: &str) -> org_core::indent::Settings {
         org_core::indent::Settings { adapt: self.adapt_in(text), ..self.indent.clone() }
     }

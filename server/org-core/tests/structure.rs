@@ -36,7 +36,14 @@ fn edits_structure_as_emacs_does() {
             _ => Adapt::Off,
         };
         let parse = org_syntax::parse(text, &keywords);
-        let settings = Settings { tags_column: -77, indent: indent::Settings { adapt, ..indent::Settings::default() } };
+        // `org-allow-promoting-top-level-subtree`, bound for the case.
+        let allow_promoting_top_level =
+            case["emacs"].as_str().is_some_and(|lisp| lisp.contains("(org-allow-promoting-top-level-subtree t)"));
+        let settings = Settings {
+            tags_column: -77,
+            indent: indent::Settings { adapt, ..indent::Settings::default() },
+            allow_promoting_top_level,
+        };
         let (count, key) = match key.strip_prefix("C-u ") {
             Some(rest) => {
                 let (number, key) = rest.split_once(' ').unwrap();

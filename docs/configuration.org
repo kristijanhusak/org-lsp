@@ -878,6 +878,17 @@ org_insert_heading_respect_content = false
 # (org-special-ctrl-a/e)
 org_special_ctrl_a_e = false
 
+# C-y (`org.yank`, Emacs keys) of one or more subtrees at the start of a line,
+# or after the stars of an otherwise empty headline, pastes them as
+# `org.paste.subtree` does: at the level of the headlines around them.
+# Anything else is the editor's own paste. (org-yank-adjusted-subtrees)
+org_yank_adjusted_subtrees = false
+
+# Promoting a headline of level 1 makes it a comment line: `# ` in place of `*
+# `, its children a level up with a subtree's promotion. With `false` it is an
+# error. (org-allow-promoting-top-level-subtree)
+org_allow_promoting_top_level_subtree = false
+
 # C-k (`org.kill.line`) on a headline kills the text to the tags, and the tags
 # when the cursor is past the title; at the start of the line, the whole line.
 # With `false` the key keeps the editor's own meaning. (org-special-ctrl-k)
@@ -2479,6 +2490,17 @@ org_agenda_custom_commands = []
   // `[true, false]`, sets C-a and C-e apart. With `false` the key keeps the
   // editor's own meaning. (org-special-ctrl-a/e)
   "org_special_ctrl_a_e": false,
+
+  // C-y (`org.yank`, Emacs keys) of one or more subtrees at the start of a
+  // line, or after the stars of an otherwise empty headline, pastes them as
+  // `org.paste.subtree` does: at the level of the headlines around them.
+  // Anything else is the editor's own paste. (org-yank-adjusted-subtrees)
+  "org_yank_adjusted_subtrees": false,
+
+  // Promoting a headline of level 1 makes it a comment line: `# ` in place of
+  // `* `, its children a level up with a subtree's promotion. With `false` it
+  // is an error. (org-allow-promoting-top-level-subtree)
+  "org_allow_promoting_top_level_subtree": false,
 
   // C-k (`org.kill.line`) on a headline kills the text to the tags, and the
   // tags when the cursor is past the title; at the start of the line, the

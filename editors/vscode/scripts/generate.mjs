@@ -117,6 +117,8 @@ const fallbacks = {
   // macOS.
   'ctrl+e': [{ command: 'cursorLineEnd', platform: 'darwin' }, 'workbench.action.quickOpen'],
   'ctrl+k': ['deleteAllRight'],
+  // C-y: Emacs's yank, the editor's paste.
+  'ctrl+y': ['editor.action.clipboardPasteAction'],
   'ctrl+x': ['extension.vim_ctrl+x', 'editor.action.clipboardCutAction'],
   tab: ['tab'],
   // Org's structure keys: on macOS a word, elsewhere VS Code's navigation

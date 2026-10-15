@@ -45,7 +45,7 @@ its sections says what it should look like.
 
 * Headings and structure
 
-*Partly:* A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. ~C-a~, ~C-e~ and ~C-k~ keep Zed's own meaning.
+*Partly:* A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. ~C-a~, ~C-e~, ~C-k~ and ~C-y~ keep Zed's own meaning.
 
 - [ ] On a headline, a new heading of the same level goes below: the code action /New heading, item or table row/
 - [ ] A new TODO heading: the code action /New TODO heading, or item with a checkbox/
@@ -55,6 +55,7 @@ its sections says what it should look like.
 - [ ] Moving a subtree up and down past its siblings: the code action /Move the subtree, the item or the table row up/, the code action /Move the subtree, the item or the table row down/
 - [ ] Cutting a subtree and pasting it under another heading: its level fits there: the code action /Cut the subtree/, the code action /Paste the subtree/
 - [ ] Copying a subtree and pasting it: the code action /Copy the subtree/, the code action /Paste the subtree/
+- [ ] With ~org_allow_promoting_top_level_subtree~ on, promoting ~* A~ makes it ~# A~: the code action /Promote the heading; outdent the item; move the table column left/
 - [ ] Sorting the children of a heading alphabetically, then by TODO state: the code action /Sort the entries, the items or the table rows/
 - [ ] Moving to the next and previous heading; with a count, that many: the code action /Move to the next heading/, the code action /Move to the previous heading/
 - [ ] Moving to the next and previous heading of the same level, stopping at the parent's end: the code action /Move to the next heading of the same level/, the code action /Move to the previous heading of the same level/

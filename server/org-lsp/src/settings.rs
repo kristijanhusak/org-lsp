@@ -160,6 +160,23 @@ pub const SETTINGS: &[Setting] = &[
          `false` the key keeps the editor's own meaning.",
     ),
     setting(
+        "org_yank_adjusted_subtrees",
+        "boolean",
+        "false",
+        "org-yank-adjusted-subtrees",
+        "C-y (`org.yank`, Emacs keys) of one or more subtrees at the start of a line, or after the stars of \
+         an otherwise empty headline, pastes them as `org.paste.subtree` does: at the level of the headlines \
+         around them. Anything else is the editor's own paste.",
+    ),
+    setting(
+        "org_allow_promoting_top_level_subtree",
+        "boolean",
+        "false",
+        "org-allow-promoting-top-level-subtree",
+        "Promoting a headline of level 1 makes it a comment line: `# ` in place of `* `, its children a level \
+         up with a subtree's promotion. With `false` it is an error.",
+    ),
+    setting(
         "org_special_ctrl_k",
         "boolean",
         "false",
@@ -2872,6 +2889,8 @@ const SCHEMAS: &[(&str, &str)] = &[
         r#"{ "anyOf": [{ "enum": [true, false, "reversed"] }, { "type": "array", "items": { "enum": [true, false, "reversed"] }, "minItems": 2, "maxItems": 2 }] }"#,
     ),
     ("org_special_ctrl_k", BOOLEAN),
+    ("org_yank_adjusted_subtrees", BOOLEAN),
+    ("org_allow_promoting_top_level_subtree", BOOLEAN),
     ("org_list_two_spaces_after_bullet_regexp", r#"{ "anyOf": [{ "const": false }, { "type": "string" }] }"#),
     (
         "org_list_demote_modify_bullet",

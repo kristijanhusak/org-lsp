@@ -22,6 +22,9 @@ pub struct Settings {
     /// `org-adapt-indentation` and what goes with it, for the text of an
     /// entry whose headline changes level (`org-fixup-indentation`).
     pub indent: indent::Settings,
+    /// `org-allow-promoting-top-level-subtree`: promoting a headline of
+    /// level 1 makes it a comment line, `# ` in place of `* `.
+    pub allow_promoting_top_level: bool,
 }
 
 /// Text and a point, edited as Emacs edits a buffer: the point moves as
@@ -138,6 +141,10 @@ fn align_tags(buffer: &mut Buffer, heading: usize, tags_column: i64) {
 /// `org-adapt-indentation` its text (`org-fixup-indentation`).
 fn change_level(buffer: &mut Buffer, heading: usize, change: isize, settings: &Settings) -> Result<(), Refusal> {
     let level = level_at(&buffer.text, heading).ok_or("Not at a headline")?;
+    if change < 0 && level == 1 && settings.allow_promoting_top_level {
+        buffer.replace(heading, heading + 2, "# ");
+        return Ok(());
+    }
     if change < 0 && level == 1 {
         return Err(Refusal::Failed("Cannot promote to level 0.  UNDO to recover if necessary".to_string()));
     }
@@ -249,6 +256,7 @@ pub fn cycle_level(text: &str, at: usize, keywords: &TodoKeywords, settings: &Se
     let settings = Settings {
         tags_column: settings.tags_column,
         indent: indent::Settings { adapt: indent::Adapt::Off, ..settings.indent.clone() },
+        allow_promoting_top_level: false,
     };
     let steps: isize = if previous == 0 {
         -(current as isize - 1)
@@ -520,6 +528,46 @@ pub fn paste_subtree(
     level: Option<usize>,
     settings: &Settings,
 ) -> Result<(Outcome, String), Refusal> {
+    paste(text, at, tree, level, settings).map(|(outcome, message, _)| (outcome, message))
+}
+
+/// `org-yank` (`C-y`) with `org-yank-adjusted-subtrees`: a kill of one
+/// or more subtrees, yanked at the start of a line or right after the
+/// stars of an otherwise empty headline, goes in as `org-paste-subtree`
+/// puts it (`for-yank`), the cursor on the line after it. None where Org
+/// yanks the text as it is.
+pub fn yank_subtree(
+    text: &str,
+    at: usize,
+    kill: &str,
+    settings: &Settings,
+) -> Option<Result<(Outcome, String), Refusal>> {
+    let at = at.min(text.len());
+    let bol = line_start(text, at);
+    let after_stars = !text[bol..at].is_empty()
+        && text[bol..at].bytes().all(|b| b == b'*')
+        && text[at..line_end(text, at)].bytes().all(|b| b == b' ' || b == b'\t');
+    if !is_subtree(kill) || !(at == bol || after_stars) {
+        return None;
+    }
+    Some(paste(text, at, kill, None, settings).map(|(mut outcome, message, end)| {
+        // `org-yank` with `org-yank-folded-subtrees`: past the blank text
+        // after it, at the start of that line.
+        let skipped =
+            end + (outcome.text.len() - end - outcome.text[end..].trim_start_matches([' ', '\t', '\n', '\r']).len());
+        outcome.cursor = line_start(&outcome.text, skipped);
+        (outcome, message)
+    }))
+}
+
+/// `org-paste-subtree`, and where what it pasted ends.
+fn paste(
+    text: &str,
+    at: usize,
+    tree: &str,
+    level: Option<usize>,
+    settings: &Settings,
+) -> Result<(Outcome, String, usize), Refusal> {
     if !is_subtree(tree) {
         return Err(Refusal::Failed("The clipboard is not a (set of) tree(s)".to_string()));
     }
@@ -547,7 +595,10 @@ pub fn paste_subtree(
         && current.trim_end_matches([' ', '\t']).bytes().all(|b| b == b'*')
         && !text[at..].starts_with('*');
     let force = if indicator {
-        Some(current.bytes().take_while(|b| *b == b'*').count())
+        // `org-outline-level`: stars with no space after them are no
+        // headline, and the level is that of the headline they are under
+        // (0 before the first).
+        Some(level_at(text, bol).or_else(|| previous_heading(text, bol).and_then(|h| level_at(text, h))).unwrap_or(0))
     } else if let Some(level) = level {
         Some(level)
     } else if at == bol && level_at(text, bol).is_some() {
@@ -612,7 +663,7 @@ pub fn paste_subtree(
         }
     }
     let message = format!("Clipboard pasted as level {new_level} subtree");
-    Ok((Outcome { text: buffer.text, cursor: first }, message))
+    Ok((Outcome { text: buffer.text, cursor: first }, message, end))
 }
 
 /// `change_level` within text that ends at `limit` (the narrowing of
