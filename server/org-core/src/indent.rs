@@ -1481,14 +1481,7 @@ fn item_body_column(line: &str, two_spaces: Option<&crate::list::BulletRegexp>) 
         b'-' | b'+' => 1,
         // A star at the start of the line is a headline's.
         b'*' if blanks > 0 => 1,
-        b'0'..=b'9' => {
-            let digits = rest.bytes().take_while(u8::is_ascii_digit).count();
-            if !matches!(rest.as_bytes().get(digits), Some(b'.' | b')')) {
-                return None;
-            }
-            digits + 1
-        }
-        _ => return None,
+        _ => org_syntax::list_syntax().ordered_len(rest.as_bytes())?,
     };
     if !matches!(rest.as_bytes().get(bullet), None | Some(b' ' | b'\t')) {
         return None;

@@ -1499,8 +1499,9 @@ fn remove_indentation(text: &str) -> String {
 }
 
 /// `org-item-beginning-re`
-static ITEM_START: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?m)^[ \t]*(?:[-+*]|[0-9]+[.)])(?:[ \t]+|$)").unwrap());
+fn item_start() -> Regex {
+    crate::list::item_regex(r"(?m)^[ \t]*(?:[-+*]|{ordered})(?:[ \t]+|$)")
+}
 
 /// `org-capture-place-item`
 fn place_item(
@@ -1510,12 +1511,11 @@ fn place_item(
     properties: &Properties,
     lists: &crate::list::Settings,
 ) -> Result<(usize, usize), Refusal> {
-    static ITEM_RE: LazyLock<Regex> =
-        LazyLock::new(|| Regex::new(r"\A[ \t]*(?:[-+*]|[0-9]+[.)])(?:[ \t]+|$)").unwrap());
+    let item_re = crate::list::item_regex(r"\A[ \t]*(?:[-+*]|{ordered})(?:[ \t]+|$)");
     static ORDERED: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A[A-Za-z0-9][.)]").unwrap());
     let prepend = properties.prepend;
     let mut template = remove_indentation(template);
-    if !ITEM_RE.is_match(&template) {
+    if !item_re.is_match(&template) {
         template = format!("- {}", template.split('\n').collect::<Vec<_>>().join("\n  "));
     }
     // Where to look for a list.
@@ -1529,7 +1529,7 @@ fn place_item(
     };
     // The first plain list there.
     let mut list: Option<crate::list::Struct> = None;
-    for found in ITEM_START.find_iter(&buffer.text[beg..end.max(beg)]) {
+    for found in item_start().find_iter(&buffer.text[beg..end.max(beg)]) {
         let at = beg + found.start();
         if headline_level(line_of(&buffer.text, at)).is_some() || !crate::list::at_item(&buffer.text, at) {
             continue;

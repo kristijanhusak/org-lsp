@@ -35168,5 +35168,4114 @@
    "text": "* H [2/3]\n- [ ] a\n- [X] b\n- [X] c\n",
    "point": 33
   }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 6,
+  "key": "M-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "At first item: use S-M-<left/right> to move the whole list"
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 6,
+  "key": "M-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "At first item: use S-M-<left/right> to move the whole list"
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 6,
+  "key": "M-S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent beyond margin"
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 6,
+  "key": "M-S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": " a. one\n b. two\n    A) sub\n    B) sub2\n c. three\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 6,
+  "key": "M-<up>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot move this item further up"
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 6,
+  "key": "M-<down>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. two\n   A) sub\n   B) sub2\nb. one\nc. three\n",
+   "point": 34
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 6,
+  "key": "S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1) one\n2) two\n   A) sub\n   B) sub2\n3) three\n",
+   "point": 6
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 6,
+  "key": "S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "A. one\nB. two\n   A) sub\n   B) sub2\nC. three\n",
+   "point": 6
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 6,
+  "key": "C-c C-c",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+   "point": 6
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 6,
+  "key": "M-RET",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\nb. \nc. two\n   A) sub\n   B) sub2\nd. three\n",
+   "point": 10
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 13,
+  "key": "M-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent an item without its children"
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 13,
+  "key": "M-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\n   a. two\n   b. sub\n   c. sub2\nb. three\n",
+   "point": 16
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 13,
+  "key": "M-S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 13,
+  "key": "M-S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\n   a. two\n      A) sub\n      B) sub2\nb. three\n",
+   "point": 16
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 13,
+  "key": "M-<up>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. two\n   A) sub\n   B) sub2\nb. one\nc. three\n",
+   "point": 6
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 13,
+  "key": "M-<down>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\nb. three\nc. two\n   A) sub\n   B) sub2\n",
+   "point": 22
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 13,
+  "key": "S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1) one\n2) two\n   A) sub\n   B) sub2\n3) three\n",
+   "point": 13
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 13,
+  "key": "S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "A. one\nB. two\n   A) sub\n   B) sub2\nC. three\n",
+   "point": 13
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 13,
+  "key": "C-c C-c",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+   "point": 13
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 13,
+  "key": "M-RET",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\nb. two\nc. \n   A) sub\n   B) sub2\nd. three\n",
+   "point": 17
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 23,
+  "key": "M-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\nb. two\nc. sub\n   A) sub2\nd. three\n",
+   "point": 20
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 23,
+  "key": "M-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot indent the first item of a list"
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 23,
+  "key": "M-S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\nb. two\nc. sub\n   A) sub2\nd. three\n",
+   "point": 20
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 23,
+  "key": "M-S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot indent the first item of a list"
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 23,
+  "key": "M-<up>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot move this item further up"
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 23,
+  "key": "M-<down>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\nb. two\n   A) sub2\n   B) sub\nc. three\n",
+   "point": 34
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 23,
+  "key": "S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\nb. two\n   a) sub\n   b) sub2\nc. three\n",
+   "point": 23
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 23,
+  "key": "S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\nb. two\n   - sub\n   - sub2\nc. three\n",
+   "point": 22
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 23,
+  "key": "C-c C-c",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+   "point": 23
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 23,
+  "key": "M-RET",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\nb. two\n   A) sub\n   B) \n   C) sub2\nc. three\n",
+   "point": 30
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 34,
+  "key": "M-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\nb. two\n   A) sub\nc. sub2\nd. three\n",
+   "point": 31
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 34,
+  "key": "M-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\nb. two\n   A) sub\n      A) sub2\nc. three\n",
+   "point": 37
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 34,
+  "key": "M-S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\nb. two\n   A) sub\nc. sub2\nd. three\n",
+   "point": 31
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 34,
+  "key": "M-S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\nb. two\n   A) sub\n      A) sub2\nc. three\n",
+   "point": 37
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 34,
+  "key": "M-<up>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\nb. two\n   A) sub2\n   B) sub\nc. three\n",
+   "point": 24
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 34,
+  "key": "M-<down>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot move this item further down"
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 34,
+  "key": "S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\nb. two\n   a) sub\n   b) sub2\nc. three\n",
+   "point": 34
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 34,
+  "key": "S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\nb. two\n   - sub\n   - sub2\nc. three\n",
+   "point": 32
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 34,
+  "key": "C-c C-c",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+   "point": 34
+  }
+ },
+ {
+  "text": "a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n",
+  "point": 34,
+  "key": "M-RET",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\nb. two\n   A) sub\n   B) sub2\n   C) \nc. three\n",
+   "point": 41
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 3,
+  "key": "M-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "At first item: use S-M-<left/right> to move the whole list"
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 3,
+  "key": "M-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "At first item: use S-M-<left/right> to move the whole list"
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 3,
+  "key": "M-S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent beyond margin"
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 3,
+  "key": "M-S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": " - a\n - b\n - c\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 3,
+  "key": "M-<up>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot move this item further up"
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 3,
+  "key": "M-<down>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "- b\n- a\n- c\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 3,
+  "key": "S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "A) a\nB) b\nC) c\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 3,
+  "key": "S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "+ a\n+ b\n+ c\n",
+   "point": 3
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 3,
+  "key": "C-c C-c",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n- b\n- c\n",
+   "point": 3
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 3,
+  "key": "M-RET",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n- \n- b\n- c\n",
+   "point": 6
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 7,
+  "key": "M-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 7,
+  "key": "M-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n  - b\n- c\n",
+   "point": 9
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 7,
+  "key": "M-S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 7,
+  "key": "M-S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n  - b\n- c\n",
+   "point": 9
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 7,
+  "key": "M-<up>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "- b\n- a\n- c\n",
+   "point": 3
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 7,
+  "key": "M-<down>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n- c\n- b\n",
+   "point": 11
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 7,
+  "key": "S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "A) a\nB) b\nC) c\n",
+   "point": 9
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 7,
+  "key": "S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "+ a\n+ b\n+ c\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 7,
+  "key": "C-c C-c",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n- b\n- c\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 7,
+  "key": "M-RET",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n- b\n- \n- c\n",
+   "point": 10
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 11,
+  "key": "M-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 11,
+  "key": "M-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n- b\n  - c\n",
+   "point": 13
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 11,
+  "key": "M-S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 11,
+  "key": "M-S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n- b\n  - c\n",
+   "point": 13
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 11,
+  "key": "M-<up>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n- c\n- b\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 11,
+  "key": "M-<down>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot move this item further down"
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 11,
+  "key": "S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "A) a\nB) b\nC) c\n",
+   "point": 14
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 11,
+  "key": "S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "+ a\n+ b\n+ c\n",
+   "point": 11
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 11,
+  "key": "C-c C-c",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n- b\n- c\n",
+   "point": 11
+  }
+ },
+ {
+  "text": "- a\n- b\n- c\n",
+  "point": 11,
+  "key": "M-RET",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n- b\n- c\n- \n",
+   "point": 14
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 4,
+  "key": "M-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "At first item: use S-M-<left/right> to move the whole list"
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 4,
+  "key": "M-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "At first item: use S-M-<left/right> to move the whole list"
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 4,
+  "key": "M-S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent beyond margin"
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 4,
+  "key": "M-S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": " 1. a\n 2. b\n",
+   "point": 5
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 4,
+  "key": "M-<up>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot move this item further up"
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 4,
+  "key": "M-<down>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. b\n2. a\n",
+   "point": 9
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 4,
+  "key": "S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "+ a\n+ b\n",
+   "point": 3
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 4,
+  "key": "S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1) a\n2) b\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 4,
+  "key": "C-c C-c",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. a\n2. b\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 4,
+  "key": "M-RET",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. a\n2. \n3. b\n",
+   "point": 8
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 9,
+  "key": "M-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 9,
+  "key": "M-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. a\n   1. b\n",
+   "point": 12
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 9,
+  "key": "M-S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 9,
+  "key": "M-S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. a\n   1. b\n",
+   "point": 12
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 9,
+  "key": "M-<up>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. b\n2. a\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 9,
+  "key": "M-<down>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot move this item further down"
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 9,
+  "key": "S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "+ a\n+ b\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 9,
+  "key": "S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1) a\n2) b\n",
+   "point": 9
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 9,
+  "key": "C-c C-c",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. a\n2. b\n",
+   "point": 9
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 9,
+  "key": "M-RET",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. a\n2. b\n3. \n",
+   "point": 13
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 6,
+  "key": "M-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "At first item: use S-M-<left/right> to move the whole list"
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 6,
+  "key": "M-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "At first item: use S-M-<left/right> to move the whole list"
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 6,
+  "key": "M-S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent beyond margin"
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 6,
+  "key": "M-S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": " a. one\n e. [@e] two\n f. three\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 6,
+  "key": "M-<up>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot move this item further up"
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 6,
+  "key": "M-<down>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "e. [@e] two\nf. one\ng. three\n",
+   "point": 18
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 6,
+  "key": "S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1) one\n2) [@e] two\n3) three\n",
+   "point": 6
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 6,
+  "key": "S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "A. one\nE. [@e] two\nF. three\n",
+   "point": 6
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 6,
+  "key": "C-c C-c",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\ne. [@e] two\nf. three\n",
+   "point": 6
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 6,
+  "key": "M-RET",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\nb. \ne. [@e] two\nf. three\n",
+   "point": 10
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 18,
+  "key": "M-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 18,
+  "key": "M-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\n   e. [@e] two\nb. three\n",
+   "point": 21
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 18,
+  "key": "M-S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 18,
+  "key": "M-S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\n   e. [@e] two\nb. three\n",
+   "point": 21
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 18,
+  "key": "M-<up>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "e. [@e] two\nf. one\ng. three\n",
+   "point": 11
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 18,
+  "key": "M-<down>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\nb. three\ne. [@e] two\n",
+   "point": 27
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 18,
+  "key": "S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1) one\n2) [@e] two\n3) three\n",
+   "point": 18
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 18,
+  "key": "S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "A. one\nE. [@e] two\nF. three\n",
+   "point": 18
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 18,
+  "key": "C-c C-c",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\ne. [@e] two\nf. three\n",
+   "point": 18
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 18,
+  "key": "M-RET",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\ne. [@e] two\nf. \ng. three\n",
+   "point": 22
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 27,
+  "key": "M-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 27,
+  "key": "M-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\ne. [@e] two\n   a. three\n",
+   "point": 30
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 27,
+  "key": "M-S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 27,
+  "key": "M-S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\ne. [@e] two\n   a. three\n",
+   "point": 30
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 27,
+  "key": "M-<up>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\nb. three\ne. [@e] two\n",
+   "point": 15
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 27,
+  "key": "M-<down>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot move this item further down"
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 27,
+  "key": "S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1) one\n2) [@e] two\n3) three\n",
+   "point": 27
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 27,
+  "key": "S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "A. one\nE. [@e] two\nF. three\n",
+   "point": 27
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 27,
+  "key": "C-c C-c",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\ne. [@e] two\nf. three\n",
+   "point": 27
+  }
+ },
+ {
+  "text": "a. one\nb. [@e] two\nc. three\n",
+  "point": 27,
+  "key": "M-RET",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. one\ne. [@e] two\nf. three\ng. \n",
+   "point": 31
+  }
+ },
+ {
+  "text": "A. term :: desc\nB. other :: thing\n",
+  "point": 15,
+  "key": "M-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "At first item: use S-M-<left/right> to move the whole list"
+  }
+ },
+ {
+  "text": "A. term :: desc\nB. other :: thing\n",
+  "point": 15,
+  "key": "M-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "At first item: use S-M-<left/right> to move the whole list"
+  }
+ },
+ {
+  "text": "A. term :: desc\nB. other :: thing\n",
+  "point": 15,
+  "key": "M-S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent beyond margin"
+  }
+ },
+ {
+  "text": "A. term :: desc\nB. other :: thing\n",
+  "point": 15,
+  "key": "M-S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": " A. term :: desc\n B. other :: thing\n",
+   "point": 16
+  }
+ },
+ {
+  "text": "A. term :: desc\nB. other :: thing\n",
+  "point": 15,
+  "key": "M-<up>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot move this item further up"
+  }
+ },
+ {
+  "text": "A. term :: desc\nB. other :: thing\n",
+  "point": 15,
+  "key": "M-<down>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "A. other :: thing\nB. term :: desc\n",
+   "point": 33
+  }
+ },
+ {
+  "text": "A. term :: desc\nB. other :: thing\n",
+  "point": 15,
+  "key": "S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "+ term :: desc\n+ other :: thing\n",
+   "point": 14
+  }
+ },
+ {
+  "text": "A. term :: desc\nB. other :: thing\n",
+  "point": 15,
+  "key": "S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "+ term :: desc\n+ other :: thing\n",
+   "point": 14
+  }
+ },
+ {
+  "text": "A. term :: desc\nB. other :: thing\n",
+  "point": 15,
+  "key": "C-c C-c",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "A. term :: desc\nB. other :: thing\n",
+   "point": 15
+  }
+ },
+ {
+  "text": "A. term :: desc\nB. other :: thing\n",
+  "point": 15,
+  "key": "M-RET",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "A. term :: desc\nB. \nC. other :: thing\n",
+   "point": 19
+  }
+ },
+ {
+  "text": "A. term :: desc\nB. other :: thing\n",
+  "point": 33,
+  "key": "M-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "A. term :: desc\nB. other :: thing\n",
+  "point": 33,
+  "key": "M-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "A. term :: desc\n   A. other :: thing\n",
+   "point": 36
+  }
+ },
+ {
+  "text": "A. term :: desc\nB. other :: thing\n",
+  "point": 33,
+  "key": "M-S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "A. term :: desc\nB. other :: thing\n",
+  "point": 33,
+  "key": "M-S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "A. term :: desc\n   A. other :: thing\n",
+   "point": 36
+  }
+ },
+ {
+  "text": "A. term :: desc\nB. other :: thing\n",
+  "point": 33,
+  "key": "M-<up>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "A. other :: thing\nB. term :: desc\n",
+   "point": 17
+  }
+ },
+ {
+  "text": "A. term :: desc\nB. other :: thing\n",
+  "point": 33,
+  "key": "M-<down>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot move this item further down"
+  }
+ },
+ {
+  "text": "A. term :: desc\nB. other :: thing\n",
+  "point": 33,
+  "key": "S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "+ term :: desc\n+ other :: thing\n",
+   "point": 31
+  }
+ },
+ {
+  "text": "A. term :: desc\nB. other :: thing\n",
+  "point": 33,
+  "key": "S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "+ term :: desc\n+ other :: thing\n",
+   "point": 31
+  }
+ },
+ {
+  "text": "A. term :: desc\nB. other :: thing\n",
+  "point": 33,
+  "key": "C-c C-c",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "A. term :: desc\nB. other :: thing\n",
+   "point": 33
+  }
+ },
+ {
+  "text": "A. term :: desc\nB. other :: thing\n",
+  "point": 33,
+  "key": "M-RET",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "A. term :: desc\nB. other :: thing\nC. \n",
+   "point": 37
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 4,
+  "key": "M-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "At first item: use S-M-<left/right> to move the whole list"
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 4,
+  "key": "M-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "At first item: use S-M-<left/right> to move the whole list"
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 4,
+  "key": "M-S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent beyond margin"
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 4,
+  "key": "M-S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": " 1. x\n 2. x\n 3. x\n 4. x\n 5. x\n 6. x\n 7. x\n 8. x\n 9. x\n 10. x\n 11. x\n 12. x\n 13. x\n 14. x\n 15. x\n 16. x\n 17. x\n 18. x\n 19. x\n 20. x\n 21. x\n 22. x\n 23. x\n 24. x\n 25. x\n 26. x\n 27. x\n",
+   "point": 5
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 4,
+  "key": "M-<up>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot move this item further up"
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 4,
+  "key": "M-<down>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. x\n2. x\n3. x\n4. x\n5. x\n6. x\n7. x\n8. x\n9. x\n10. x\n11. x\n12. x\n13. x\n14. x\n15. x\n16. x\n17. x\n18. x\n19. x\n20. x\n21. x\n22. x\n23. x\n24. x\n25. x\n26. x\n27. x\n",
+   "point": 9
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 4,
+  "key": "S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1) x\n2) x\n3) x\n4) x\n5) x\n6) x\n7) x\n8) x\n9) x\n10) x\n11) x\n12) x\n13) x\n14) x\n15) x\n16) x\n17) x\n18) x\n19) x\n20) x\n21) x\n22) x\n23) x\n24) x\n25) x\n26) x\n27) x\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 4,
+  "key": "S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n",
+   "point": 3
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 4,
+  "key": "C-c C-c",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. x\n2. x\n3. x\n4. x\n5. x\n6. x\n7. x\n8. x\n9. x\n10. x\n11. x\n12. x\n13. x\n14. x\n15. x\n16. x\n17. x\n18. x\n19. x\n20. x\n21. x\n22. x\n23. x\n24. x\n25. x\n26. x\n27. x\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 4,
+  "key": "M-RET",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. x\n2. \n3. x\n4. x\n5. x\n6. x\n7. x\n8. x\n9. x\n10. x\n11. x\n12. x\n13. x\n14. x\n15. x\n16. x\n17. x\n18. x\n19. x\n20. x\n21. x\n22. x\n23. x\n24. x\n25. x\n26. x\n27. x\n28. x\n",
+   "point": 8
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 9,
+  "key": "M-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 9,
+  "key": "M-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. x\n   a. x\nb. x\nc. x\nd. x\ne. x\nf. x\ng. x\nh. x\ni. x\nj. x\nk. x\nl. x\nm. x\nn. x\no. x\np. x\nq. x\nr. x\ns. x\nt. x\nu. x\nv. x\nw. x\nx. x\ny. x\nz. x\n",
+   "point": 12
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 9,
+  "key": "M-S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 9,
+  "key": "M-S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. x\n   a. x\nb. x\nc. x\nd. x\ne. x\nf. x\ng. x\nh. x\ni. x\nj. x\nk. x\nl. x\nm. x\nn. x\no. x\np. x\nq. x\nr. x\ns. x\nt. x\nu. x\nv. x\nw. x\nx. x\ny. x\nz. x\n",
+   "point": 12
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 9,
+  "key": "M-<up>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. x\n2. x\n3. x\n4. x\n5. x\n6. x\n7. x\n8. x\n9. x\n10. x\n11. x\n12. x\n13. x\n14. x\n15. x\n16. x\n17. x\n18. x\n19. x\n20. x\n21. x\n22. x\n23. x\n24. x\n25. x\n26. x\n27. x\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 9,
+  "key": "M-<down>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. x\n2. x\n3. x\n4. x\n5. x\n6. x\n7. x\n8. x\n9. x\n10. x\n11. x\n12. x\n13. x\n14. x\n15. x\n16. x\n17. x\n18. x\n19. x\n20. x\n21. x\n22. x\n23. x\n24. x\n25. x\n26. x\n27. x\n",
+   "point": 14
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 9,
+  "key": "S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1) x\n2) x\n3) x\n4) x\n5) x\n6) x\n7) x\n8) x\n9) x\n10) x\n11) x\n12) x\n13) x\n14) x\n15) x\n16) x\n17) x\n18) x\n19) x\n20) x\n21) x\n22) x\n23) x\n24) x\n25) x\n26) x\n27) x\n",
+   "point": 9
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 9,
+  "key": "S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 9,
+  "key": "C-c C-c",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. x\n2. x\n3. x\n4. x\n5. x\n6. x\n7. x\n8. x\n9. x\n10. x\n11. x\n12. x\n13. x\n14. x\n15. x\n16. x\n17. x\n18. x\n19. x\n20. x\n21. x\n22. x\n23. x\n24. x\n25. x\n26. x\n27. x\n",
+   "point": 9
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 9,
+  "key": "M-RET",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. x\n2. x\n3. \n4. x\n5. x\n6. x\n7. x\n8. x\n9. x\n10. x\n11. x\n12. x\n13. x\n14. x\n15. x\n16. x\n17. x\n18. x\n19. x\n20. x\n21. x\n22. x\n23. x\n24. x\n25. x\n26. x\n27. x\n28. x\n",
+   "point": 13
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 14,
+  "key": "M-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 14,
+  "key": "M-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. x\nb. x\n   a. x\nc. x\nd. x\ne. x\nf. x\ng. x\nh. x\ni. x\nj. x\nk. x\nl. x\nm. x\nn. x\no. x\np. x\nq. x\nr. x\ns. x\nt. x\nu. x\nv. x\nw. x\nx. x\ny. x\nz. x\n",
+   "point": 17
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 14,
+  "key": "M-S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 14,
+  "key": "M-S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. x\nb. x\n   a. x\nc. x\nd. x\ne. x\nf. x\ng. x\nh. x\ni. x\nj. x\nk. x\nl. x\nm. x\nn. x\no. x\np. x\nq. x\nr. x\ns. x\nt. x\nu. x\nv. x\nw. x\nx. x\ny. x\nz. x\n",
+   "point": 17
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 14,
+  "key": "M-<up>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. x\n2. x\n3. x\n4. x\n5. x\n6. x\n7. x\n8. x\n9. x\n10. x\n11. x\n12. x\n13. x\n14. x\n15. x\n16. x\n17. x\n18. x\n19. x\n20. x\n21. x\n22. x\n23. x\n24. x\n25. x\n26. x\n27. x\n",
+   "point": 9
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 14,
+  "key": "M-<down>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. x\n2. x\n3. x\n4. x\n5. x\n6. x\n7. x\n8. x\n9. x\n10. x\n11. x\n12. x\n13. x\n14. x\n15. x\n16. x\n17. x\n18. x\n19. x\n20. x\n21. x\n22. x\n23. x\n24. x\n25. x\n26. x\n27. x\n",
+   "point": 19
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 14,
+  "key": "S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1) x\n2) x\n3) x\n4) x\n5) x\n6) x\n7) x\n8) x\n9) x\n10) x\n11) x\n12) x\n13) x\n14) x\n15) x\n16) x\n17) x\n18) x\n19) x\n20) x\n21) x\n22) x\n23) x\n24) x\n25) x\n26) x\n27) x\n",
+   "point": 14
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 14,
+  "key": "S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n",
+   "point": 11
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 14,
+  "key": "C-c C-c",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. x\n2. x\n3. x\n4. x\n5. x\n6. x\n7. x\n8. x\n9. x\n10. x\n11. x\n12. x\n13. x\n14. x\n15. x\n16. x\n17. x\n18. x\n19. x\n20. x\n21. x\n22. x\n23. x\n24. x\n25. x\n26. x\n27. x\n",
+   "point": 14
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 14,
+  "key": "M-RET",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. x\n2. x\n3. x\n4. \n5. x\n6. x\n7. x\n8. x\n9. x\n10. x\n11. x\n12. x\n13. x\n14. x\n15. x\n16. x\n17. x\n18. x\n19. x\n20. x\n21. x\n22. x\n23. x\n24. x\n25. x\n26. x\n27. x\n28. x\n",
+   "point": 18
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 19,
+  "key": "M-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 19,
+  "key": "M-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. x\nb. x\nc. x\n   a. x\nd. x\ne. x\nf. x\ng. x\nh. x\ni. x\nj. x\nk. x\nl. x\nm. x\nn. x\no. x\np. x\nq. x\nr. x\ns. x\nt. x\nu. x\nv. x\nw. x\nx. x\ny. x\nz. x\n",
+   "point": 22
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 19,
+  "key": "M-S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 19,
+  "key": "M-S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "a. x\nb. x\nc. x\n   a. x\nd. x\ne. x\nf. x\ng. x\nh. x\ni. x\nj. x\nk. x\nl. x\nm. x\nn. x\no. x\np. x\nq. x\nr. x\ns. x\nt. x\nu. x\nv. x\nw. x\nx. x\ny. x\nz. x\n",
+   "point": 22
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 19,
+  "key": "M-<up>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. x\n2. x\n3. x\n4. x\n5. x\n6. x\n7. x\n8. x\n9. x\n10. x\n11. x\n12. x\n13. x\n14. x\n15. x\n16. x\n17. x\n18. x\n19. x\n20. x\n21. x\n22. x\n23. x\n24. x\n25. x\n26. x\n27. x\n",
+   "point": 14
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 19,
+  "key": "M-<down>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. x\n2. x\n3. x\n4. x\n5. x\n6. x\n7. x\n8. x\n9. x\n10. x\n11. x\n12. x\n13. x\n14. x\n15. x\n16. x\n17. x\n18. x\n19. x\n20. x\n21. x\n22. x\n23. x\n24. x\n25. x\n26. x\n27. x\n",
+   "point": 24
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 19,
+  "key": "S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1) x\n2) x\n3) x\n4) x\n5) x\n6) x\n7) x\n8) x\n9) x\n10) x\n11) x\n12) x\n13) x\n14) x\n15) x\n16) x\n17) x\n18) x\n19) x\n20) x\n21) x\n22) x\n23) x\n24) x\n25) x\n26) x\n27) x\n",
+   "point": 19
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 19,
+  "key": "S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n+ x\n",
+   "point": 15
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 19,
+  "key": "C-c C-c",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. x\n2. x\n3. x\n4. x\n5. x\n6. x\n7. x\n8. x\n9. x\n10. x\n11. x\n12. x\n13. x\n14. x\n15. x\n16. x\n17. x\n18. x\n19. x\n20. x\n21. x\n22. x\n23. x\n24. x\n25. x\n26. x\n27. x\n",
+   "point": 19
+  }
+ },
+ {
+  "text": "a. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\na. x\n",
+  "point": 19,
+  "key": "M-RET",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. x\n2. x\n3. x\n4. x\n5. \n6. x\n7. x\n8. x\n9. x\n10. x\n11. x\n12. x\n13. x\n14. x\n15. x\n16. x\n17. x\n18. x\n19. x\n20. x\n21. x\n22. x\n23. x\n24. x\n25. x\n26. x\n27. x\n28. x\n",
+   "point": 23
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 6,
+  "key": "M-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "At first item: use S-M-<left/right> to move the whole list"
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 6,
+  "key": "M-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "At first item: use S-M-<left/right> to move the whole list"
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 6,
+  "key": "M-S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent beyond margin"
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 6,
+  "key": "M-S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": " 1. one\n 2. two\n    a) sub\n    b) sub2\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 6,
+  "key": "M-<up>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot move this item further up"
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 6,
+  "key": "M-<down>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. two\n   a) sub\n   b) sub2\n2. one\n",
+   "point": 34
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 6,
+  "key": "S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "+ one\n+ two\n  a) sub\n  b) sub2\n",
+   "point": 5
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 6,
+  "key": "S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1) one\n2) two\n   a) sub\n   b) sub2\n",
+   "point": 6
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 6,
+  "key": "C-c C-c",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. one\n2. two\n   a) sub\n   b) sub2\n",
+   "point": 6
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 6,
+  "key": "M-RET",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. one\n2. \n3. two\n   a) sub\n   b) sub2\n",
+   "point": 10
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 13,
+  "key": "M-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent an item without its children"
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 13,
+  "key": "M-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. one\n   1. two\n   2. sub\n   3. sub2\n",
+   "point": 16
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 13,
+  "key": "M-S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 13,
+  "key": "M-S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. one\n   1. two\n      a) sub\n      b) sub2\n",
+   "point": 16
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 13,
+  "key": "M-<up>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. two\n   a) sub\n   b) sub2\n2. one\n",
+   "point": 6
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 13,
+  "key": "M-<down>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot move this item further down"
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 13,
+  "key": "S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "+ one\n+ two\n  a) sub\n  b) sub2\n",
+   "point": 11
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 13,
+  "key": "S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1) one\n2) two\n   a) sub\n   b) sub2\n",
+   "point": 13
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 13,
+  "key": "C-c C-c",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. one\n2. two\n   a) sub\n   b) sub2\n",
+   "point": 13
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 13,
+  "key": "M-RET",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. one\n2. two\n3. \n   a) sub\n   b) sub2\n",
+   "point": 17
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 23,
+  "key": "M-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. one\n2. two\n3. sub\n   a) sub2\n",
+   "point": 20
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 23,
+  "key": "M-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot indent the first item of a list"
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 23,
+  "key": "M-S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. one\n2. two\n3. sub\n   a) sub2\n",
+   "point": 20
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 23,
+  "key": "M-S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot indent the first item of a list"
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 23,
+  "key": "M-<up>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot move this item further up"
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 23,
+  "key": "M-<down>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. one\n2. two\n   a) sub2\n   b) sub\n",
+   "point": 34
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 23,
+  "key": "S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. one\n2. two\n   A. sub\n   B. sub2\n",
+   "point": 23
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 23,
+  "key": "S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. one\n2. two\n   A) sub\n   B) sub2\n",
+   "point": 23
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 23,
+  "key": "C-c C-c",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. one\n2. two\n   a) sub\n   b) sub2\n",
+   "point": 23
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 23,
+  "key": "M-RET",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. one\n2. two\n   a) sub\n   b) \n   c) sub2\n",
+   "point": 30
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 34,
+  "key": "M-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. one\n2. two\n   a) sub\n3. sub2\n",
+   "point": 31
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 34,
+  "key": "M-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. one\n2. two\n   a) sub\n      a) sub2\n",
+   "point": 37
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 34,
+  "key": "M-S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. one\n2. two\n   a) sub\n3. sub2\n",
+   "point": 31
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 34,
+  "key": "M-S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. one\n2. two\n   a) sub\n      a) sub2\n",
+   "point": 37
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 34,
+  "key": "M-<up>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. one\n2. two\n   a) sub2\n   b) sub\n",
+   "point": 24
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 34,
+  "key": "M-<down>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot move this item further down"
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 34,
+  "key": "S-<left>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. one\n2. two\n   A. sub\n   B. sub2\n",
+   "point": 34
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 34,
+  "key": "S-<right>",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. one\n2. two\n   A) sub\n   B) sub2\n",
+   "point": 34
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 34,
+  "key": "C-c C-c",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. one\n2. two\n   a) sub\n   b) sub2\n",
+   "point": 34
+  }
+ },
+ {
+  "text": "1. one\n2. two\n   b) sub\n   x) sub2\n",
+  "point": 34,
+  "key": "M-RET",
+  "settings": {
+   "alphabetical": true
+  },
+  "before": "(setq org-list-allow-alphabetical t) (org-element-update-syntax)",
+  "after": "(setq org-list-allow-alphabetical nil) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. one\n2. two\n   a) sub\n   b) sub2\n   c) \n",
+   "point": 41
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 4,
+  "key": "M-<left>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "At first item: use S-M-<left/right> to move the whole list"
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 4,
+  "key": "M-<right>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "At first item: use S-M-<left/right> to move the whole list"
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 4,
+  "key": "M-S-<left>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent beyond margin"
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 4,
+  "key": "M-S-<right>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": " 1. a\n 2. b\n",
+   "point": 5
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 4,
+  "key": "M-<up>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot move this item further up"
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 4,
+  "key": "M-<down>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. b\n2. a\n",
+   "point": 9
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 4,
+  "key": "S-<left>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "+ a\n+ b\n",
+   "point": 3
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 4,
+  "key": "S-<right>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n- b\n",
+   "point": 3
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 4,
+  "key": "C-c C-c",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. a\n2. b\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 4,
+  "key": "M-RET",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. a\n2. \n3. b\n",
+   "point": 8
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 9,
+  "key": "M-<left>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 9,
+  "key": "M-<right>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. a\n   1. b\n",
+   "point": 12
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 9,
+  "key": "M-S-<left>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 9,
+  "key": "M-S-<right>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. a\n   1. b\n",
+   "point": 12
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 9,
+  "key": "M-<up>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. b\n2. a\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 9,
+  "key": "M-<down>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot move this item further down"
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 9,
+  "key": "S-<left>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "+ a\n+ b\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 9,
+  "key": "S-<right>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n- b\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 9,
+  "key": "C-c C-c",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. a\n2. b\n",
+   "point": 9
+  }
+ },
+ {
+  "text": "1. a\n2. b\n",
+  "point": 9,
+  "key": "M-RET",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. a\n2. b\n3. \n",
+   "point": 13
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 3,
+  "key": "M-<left>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "At first item: use S-M-<left/right> to move the whole list"
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 3,
+  "key": "M-<right>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "At first item: use S-M-<left/right> to move the whole list"
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 3,
+  "key": "M-S-<left>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent beyond margin"
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 3,
+  "key": "M-S-<right>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": " - a\n - b\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 3,
+  "key": "M-<up>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot move this item further up"
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 3,
+  "key": "M-<down>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "- b\n- a\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 3,
+  "key": "S-<left>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. a\n2. b\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 3,
+  "key": "S-<right>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "+ a\n+ b\n",
+   "point": 3
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 3,
+  "key": "C-c C-c",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n- b\n",
+   "point": 3
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 3,
+  "key": "M-RET",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n- \n- b\n",
+   "point": 6
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 7,
+  "key": "M-<left>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 7,
+  "key": "M-<right>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n  - b\n",
+   "point": 9
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 7,
+  "key": "M-S-<left>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 7,
+  "key": "M-S-<right>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n  - b\n",
+   "point": 9
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 7,
+  "key": "M-<up>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "- b\n- a\n",
+   "point": 3
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 7,
+  "key": "M-<down>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot move this item further down"
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 7,
+  "key": "S-<left>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "1. a\n2. b\n",
+   "point": 9
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 7,
+  "key": "S-<right>",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "+ a\n+ b\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 7,
+  "key": "C-c C-c",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n- b\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 7,
+  "key": "M-RET",
+  "settings": {
+   "terminator": "."
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?.) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n- b\n- \n",
+   "point": 10
+  }
+ },
+ {
+  "text": "1) a\n2) b\n",
+  "point": 4,
+  "key": "M-<left>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "At first item: use S-M-<left/right> to move the whole list"
+  }
+ },
+ {
+  "text": "1) a\n2) b\n",
+  "point": 4,
+  "key": "M-<right>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "At first item: use S-M-<left/right> to move the whole list"
+  }
+ },
+ {
+  "text": "1) a\n2) b\n",
+  "point": 4,
+  "key": "M-S-<left>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent beyond margin"
+  }
+ },
+ {
+  "text": "1) a\n2) b\n",
+  "point": 4,
+  "key": "M-S-<right>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": " 1) a\n 2) b\n",
+   "point": 5
+  }
+ },
+ {
+  "text": "1) a\n2) b\n",
+  "point": 4,
+  "key": "M-<up>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot move this item further up"
+  }
+ },
+ {
+  "text": "1) a\n2) b\n",
+  "point": 4,
+  "key": "M-<down>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "1) b\n2) a\n",
+   "point": 9
+  }
+ },
+ {
+  "text": "1) a\n2) b\n",
+  "point": 4,
+  "key": "S-<left>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "+ a\n+ b\n",
+   "point": 3
+  }
+ },
+ {
+  "text": "1) a\n2) b\n",
+  "point": 4,
+  "key": "S-<right>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n- b\n",
+   "point": 3
+  }
+ },
+ {
+  "text": "1) a\n2) b\n",
+  "point": 4,
+  "key": "C-c C-c",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "1) a\n2) b\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "1) a\n2) b\n",
+  "point": 4,
+  "key": "M-RET",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "1) a\n2) \n3) b\n",
+   "point": 8
+  }
+ },
+ {
+  "text": "1) a\n2) b\n",
+  "point": 9,
+  "key": "M-<left>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "1) a\n2) b\n",
+  "point": 9,
+  "key": "M-<right>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "1) a\n   1) b\n",
+   "point": 12
+  }
+ },
+ {
+  "text": "1) a\n2) b\n",
+  "point": 9,
+  "key": "M-S-<left>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "1) a\n2) b\n",
+  "point": 9,
+  "key": "M-S-<right>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "1) a\n   1) b\n",
+   "point": 12
+  }
+ },
+ {
+  "text": "1) a\n2) b\n",
+  "point": 9,
+  "key": "M-<up>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "1) b\n2) a\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "1) a\n2) b\n",
+  "point": 9,
+  "key": "M-<down>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot move this item further down"
+  }
+ },
+ {
+  "text": "1) a\n2) b\n",
+  "point": 9,
+  "key": "S-<left>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "+ a\n+ b\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "1) a\n2) b\n",
+  "point": 9,
+  "key": "S-<right>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n- b\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "1) a\n2) b\n",
+  "point": 9,
+  "key": "C-c C-c",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "1) a\n2) b\n",
+   "point": 9
+  }
+ },
+ {
+  "text": "1) a\n2) b\n",
+  "point": 9,
+  "key": "M-RET",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "1) a\n2) b\n3) \n",
+   "point": 13
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 3,
+  "key": "M-<left>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "At first item: use S-M-<left/right> to move the whole list"
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 3,
+  "key": "M-<right>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "At first item: use S-M-<left/right> to move the whole list"
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 3,
+  "key": "M-S-<left>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent beyond margin"
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 3,
+  "key": "M-S-<right>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": " - a\n - b\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 3,
+  "key": "M-<up>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot move this item further up"
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 3,
+  "key": "M-<down>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "- b\n- a\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 3,
+  "key": "S-<left>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "1) a\n2) b\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 3,
+  "key": "S-<right>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "+ a\n+ b\n",
+   "point": 3
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 3,
+  "key": "C-c C-c",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n- b\n",
+   "point": 3
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 3,
+  "key": "M-RET",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n- \n- b\n",
+   "point": 6
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 7,
+  "key": "M-<left>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 7,
+  "key": "M-<right>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n  - b\n",
+   "point": 9
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 7,
+  "key": "M-S-<left>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot outdent top-level items"
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 7,
+  "key": "M-S-<right>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n  - b\n",
+   "point": 9
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 7,
+  "key": "M-<up>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "- b\n- a\n",
+   "point": 3
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 7,
+  "key": "M-<down>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "error": "Cannot move this item further down"
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 7,
+  "key": "S-<left>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "1) a\n2) b\n",
+   "point": 9
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 7,
+  "key": "S-<right>",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "+ a\n+ b\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 7,
+  "key": "C-c C-c",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n- b\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "- a\n- b\n",
+  "point": 7,
+  "key": "M-RET",
+  "settings": {
+   "terminator": ")"
+  },
+  "before": "(setq org-plain-list-ordered-item-terminator ?\\)) (org-element-update-syntax)",
+  "after": "(setq org-plain-list-ordered-item-terminator t) (org-element-update-syntax)",
+  "expected": {
+   "text": "- a\n- b\n- \n",
+   "point": 10
+  }
  }
 ]

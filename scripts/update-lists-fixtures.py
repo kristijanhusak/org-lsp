@@ -85,6 +85,31 @@ for settings, lisp in OPTIONS:
                 CASES.append({"text": text, "point": start + len(line), "key": key, "settings": settings,
                               "emacs": lisp})
 
+# How ordered items are written: letters (`org-list-allow-alphabetical`),
+# and one terminator only (`org-plain-list-ordered-item-terminator`). Org
+# reads them into its syntax, so each case sets them and puts them back.
+# (A number with the other terminator is no item then, as the parser's
+# tests check.)
+SYNTAX = [
+    ({"alphabetical": True}, "(setq org-list-allow-alphabetical t)", "(setq org-list-allow-alphabetical nil)",
+     ["a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n", "- a\n- b\n- c\n", "1. a\n2. b\n",
+      "a. one\nb. [@e] two\nc. three\n", "A. term :: desc\nB. other :: thing\n",
+      "a. x\n" * 27, "1. one\n2. two\n   b) sub\n   x) sub2\n"]),
+    ({"terminator": "."}, "(setq org-plain-list-ordered-item-terminator ?.)",
+     "(setq org-plain-list-ordered-item-terminator t)", ["1. a\n2. b\n", "- a\n- b\n"]),
+    ({"terminator": ")"}, "(setq org-plain-list-ordered-item-terminator ?\\))",
+     "(setq org-plain-list-ordered-item-terminator t)", ["1) a\n2) b\n", "- a\n- b\n"]),
+]
+for settings, before, after, texts in SYNTAX:
+    for text in texts:
+        starts = [0] + [index + 1 for index, c in enumerate(text) if c == "\n" and index + 1 < len(text)]
+        for start in starts[:4]:
+            line = text[start:].split("\n", 1)[0]
+            for key in KEYS[:8] + ["C-c C-c", "M-RET"]:
+                CASES.append({"text": text, "point": start + len(line), "key": key, "settings": settings,
+                              "before": before + " (org-element-update-syntax)",
+                              "after": after + " (org-element-update-syntax)"})
+
 if __name__ == "__main__":
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "tests", "lists", "cases.json")
     os.makedirs(os.path.dirname(path), exist_ok=True)

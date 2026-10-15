@@ -204,14 +204,10 @@ fn item_prefix(text: &str) -> Option<ItemPrefix> {
     let (bullet, ordered) = match *rest.first()? {
         b'-' | b'+' => (1, false),
         b'*' if indent > 0 => (1, false),
-        b'0'..=b'9' => {
-            let digits = rest.iter().take_while(|b| b.is_ascii_digit()).count();
-            match rest.get(digits) {
-                Some(b'.' | b')') => (digits + 1, true),
-                _ => return None,
-            }
-        }
-        _ => return None,
+        // `org-item-re`: a number, or a letter with
+        // `org-list-allow-alphabetical`, ended as
+        // `org-plain-list-ordered-item-terminator` says.
+        _ => (crate::lists::list_syntax().ordered_len(rest)?, true),
     };
     match rest.get(bullet) {
         None => Some(ItemPrefix { indent, bullet, ordered }),
@@ -956,7 +952,8 @@ impl<'a> Parser<'a> {
             b'%' if full.starts_with("%%(") => Some(Start::DiarySexp),
             b'|' => Some(Start::Table),
             b'+' if is_table_el_rule(text) => self.table_el_end(lines, i).map(|end| Start::TableEl { end }),
-            b'-' | b'+' | b'*' | b'0'..=b'9' => item_prefix(full).map(|_| Start::List),
+            // A letter starts an item with `org-list-allow-alphabetical`.
+            b'-' | b'+' | b'*' | b'0'..=b'9' | b'a'..=b'z' | b'A'..=b'Z' => item_prefix(full).map(|_| Start::List),
             _ => None,
         }
     }
@@ -991,13 +988,13 @@ impl<'a> Parser<'a> {
             // `:END:`, which looks like a drawer.
             b':' => is_fixed_width(text) || (is_drawer_begin(text) && self.closing_line(lines, j).is_some()),
             b'\\' => self.latex_environment_end(lines, j).is_some(),
-            b'C' | b'c' => is_clock_line(text),
+            b'C' | b'c' => is_clock_line(text) || item_prefix(full).is_some(),
             b'-' if is_rule(text) => true,
             b'+' if is_table_el_rule(text) => true,
             // A lone `*`, or one followed by a tab, is not a headline but
             // still separates paragraphs.
             b'*' => text.len() == 1 || is_space(text.as_bytes()[1]),
-            b'-' | b'+' | b'0'..=b'9' => item_prefix(full).is_some(),
+            b'-' | b'+' | b'0'..=b'9' | b'a'..=b'z' | b'A'..=b'Z' => item_prefix(full).is_some(),
             _ => false,
         }
     }

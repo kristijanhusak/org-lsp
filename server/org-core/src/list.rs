@@ -12,10 +12,31 @@ use crate::Refusal;
 
 use crate::todo::headline_level;
 
-/// `org-item-re`, at the start of a line, with Org's defaults (no
-/// alphabetical bullets, `.` and `)` both ending a number).
-static ITEM: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^(?:[ \t]*(?:[-+]|[0-9]+[.)])|[ \t]+\*)(?:[ \t]+|$)").unwrap());
+/// A regular expression of a list item, `{ordered}` in `template` the
+/// count and terminator of an ordered bullet as `org-item-re` has them
+/// (`org-list-allow-alphabetical`, `org-plain-list-ordered-item-terminator`),
+/// `{count}` the same with the count in a group. Made once for each.
+pub(crate) fn item_regex(template: &'static str) -> Regex {
+    use std::collections::HashMap;
+    use std::sync::Mutex;
+    static MADE: LazyLock<Mutex<HashMap<(&'static str, org_syntax::ListSyntax), Regex>>> =
+        LazyLock::new(|| Mutex::new(HashMap::new()));
+    let syntax = org_syntax::list_syntax();
+    let mut made = MADE.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    made.entry((template, syntax))
+        .or_insert_with(|| {
+            let pattern = template
+                .replace("{ordered}", &syntax.ordered_pattern(false))
+                .replace("{count}", &syntax.ordered_pattern(true));
+            Regex::new(&pattern).expect("a valid item regexp")
+        })
+        .clone()
+}
+
+/// `org-item-re`, at the start of a line.
+fn item_re() -> Regex {
+    item_regex(r"^(?:[ \t]*(?:[-+]|{ordered})|[ \t]+\*)(?:[ \t]+|$)")
+}
 
 /// `org-list-full-item-re`: bullet, counter, checkbox and tag.
 pub(crate) static FULL_ITEM: LazyLock<Regex> = LazyLock::new(|| {
@@ -150,7 +171,7 @@ fn is_heading(line: &str) -> bool {
 }
 
 fn is_item(line: &str) -> bool {
-    ITEM.is_match(line)
+    item_re().is_match(line)
 }
 
 /// Whether the two lines from `start` are blank, each ending with a line
@@ -1168,36 +1189,114 @@ fn inc_bullet(bullet: &str) -> String {
     bullet.to_string()
 }
 
-/// `org-list-struct-fix-bul`, without alphabetical bullets. Whether a
-/// `string-match` of it matched, which leaves the match data on a string.
+/// `org-list-use-alpha-bul-p`: whether the list from its first item
+/// `first` can count with letters: `org-list-allow-alphabetical`, and no
+/// more items than letters, counters taken into account.
+fn use_alpha_bullets(list: &Struct, first: usize, prevs_of: &[Option<usize>]) -> bool {
+    if !org_syntax::list_syntax().alphabetical {
+        return false;
+    }
+    let mut ascii: u32 = 64;
+    let mut item = Some(first);
+    while let Some(index) = item {
+        match list[index].counter.as_deref().filter(|count| count.bytes().any(|b| b.is_ascii_alphabetic())) {
+            Some(count) => ascii = count.to_ascii_uppercase().chars().next().map_or(ascii, u32::from),
+            None => ascii += 1,
+        }
+        if ascii > 90 {
+            return false;
+        }
+        item = prevs_of.iter().position(|prev| *prev == Some(index));
+    }
+    true
+}
+
+/// `org-list-struct-fix-bul`: each item's bullet from the one before it,
+/// a counter, or the list's first. Whether a `string-match` of it
+/// matched, which leaves the match data on a string.
 fn fix_bul(list: &mut Struct, prevs_of: &[Option<usize>], settings: &Settings) -> bool {
-    let alnum = |text: &str| text.chars().any(|c| c.is_ascii_alphanumeric());
-    let mut matched = false;
     static NUMBER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[0-9]+").unwrap());
+    static LETTER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[A-Za-z]").unwrap());
+    static LOWER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[a-z]").unwrap());
+    static UPPER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[A-Z]").unwrap());
     static NUMBER_OR_LETTER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[0-9]+|[A-Za-z]").unwrap());
+    let matched = std::cell::Cell::new(false);
+    // `string-match`, which says whether it matched.
+    let search = |regex: &Regex, text: &str| {
+        let found = regex.find(text).map(|found| found.range());
+        matched.set(matched.get() || found.is_some());
+        found
+    };
     for index in 0..list.len() {
         let prev = prevs_of[index];
+        let prev_bullet = prev.map(|prev| list[prev].bullet.clone());
         let counter = list[index].counter.clone();
         let bullet = list[index].bullet.clone();
-        let numeric = |text: &str| NUMBER.is_match(text);
-        matched |= match prev {
-            Some(prev) => counter.as_deref().is_some_and(alnum) || alnum(&list[prev].bullet),
-            None => counter.as_deref().is_some_and(numeric) || alnum(&bullet),
+        let replace = |text: &str, range: std::ops::Range<usize>, with: &str| {
+            format!("{}{with}{}", &text[..range.start], &text[range.end..])
         };
-        let new = match (prev, &counter) {
-            (Some(prev), Some(counter)) if numeric(counter) && numeric(&list[prev].bullet) => {
-                NUMBER.replace(&list[prev].bullet, counter.as_str()).into_owned()
+        // A letter counter written in the case of `bullet`, in its first
+        // letter of that case.
+        let lettered = |bullet: &str, counter: &str| {
+            if let Some(range) = search(&LOWER, bullet) {
+                Some(replace(bullet, range, &counter.to_lowercase()))
+            } else {
+                search(&UPPER, bullet).map(|range| replace(bullet, range, &counter.to_uppercase()))
             }
-            (Some(prev), _) => inc_bullet(&list[prev].bullet),
-            (None, Some(counter)) if numeric(counter) && numeric(&bullet) => {
-                NUMBER.replace(&bullet, counter.as_str()).into_owned()
+        };
+        let new = 'new: {
+            if let (Some(prev_bullet), Some(counter)) = (&prev_bullet, &counter) {
+                // A letter counter in a list of letters.
+                if search(&LETTER, counter).is_some() && search(&LETTER, prev_bullet).is_some() {
+                    if let Some(new) = lettered(prev_bullet, counter) {
+                        break 'new new;
+                    }
+                    break 'new prev_bullet.clone();
+                }
+                // A number counter in a list of numbers.
+                if search(&NUMBER, counter).is_some() {
+                    if let Some(range) = search(&NUMBER, prev_bullet) {
+                        break 'new replace(prev_bullet, range, counter);
+                    }
+                }
             }
-            (None, _) if NUMBER_OR_LETTER.is_match(&bullet) => NUMBER_OR_LETTER.replace(&bullet, "1").into_owned(),
-            (None, _) => bullet,
+            if let Some(prev_bullet) = &prev_bullet {
+                // `org-list-inc-bullet-maybe`
+                if search(&NUMBER, prev_bullet).is_none() {
+                    search(&LETTER, prev_bullet);
+                }
+                break 'new inc_bullet(prev_bullet);
+            }
+            let alphap = use_alpha_bullets(list, index, prevs_of);
+            if let Some(counter) = &counter {
+                if alphap && search(&LETTER, counter).is_some() && search(&LETTER, &bullet).is_some() {
+                    if let Some(new) = lettered(&bullet, counter) {
+                        break 'new new;
+                    }
+                    break 'new bullet.clone();
+                }
+                if search(&NUMBER, counter).is_some() {
+                    if let Some(range) = search(&NUMBER, &bullet) {
+                        break 'new replace(&bullet, range, counter);
+                    }
+                }
+            }
+            if alphap {
+                if let Some(range) = search(&UPPER, &bullet) {
+                    break 'new replace(&bullet, range, "A");
+                }
+                if let Some(range) = search(&LOWER, &bullet) {
+                    break 'new replace(&bullet, range, "a");
+                }
+            }
+            match search(&NUMBER_OR_LETTER, &bullet) {
+                Some(range) => replace(&bullet, range, "1"),
+                None => bullet.clone(),
+            }
         };
         list[index].bullet = bullet_string(&new, settings);
     }
-    matched
+    matched.get()
 }
 
 /// `org-list-struct-fix-box`, not ordered.
@@ -1444,8 +1543,7 @@ fn indent_line_to(buffer: &mut Buffer, origin: &mut usize, at: usize, column: us
 
 /// The body of an item between `beg` and `end` shifted by `delta` columns.
 fn shift_body(buffer: &mut Buffer, origin: &mut usize, end: usize, beg: usize, delta: isize, ind: Option<isize>) {
-    static ITEM_AT: LazyLock<Regex> =
-        LazyLock::new(|| Regex::new(r"(?m)\A([ \t]*([-+]|(([0-9]+)[.)]))|[ \t]+\*)([ \t]+|$)").unwrap());
+    let item_at = item_regex(r"(?m)\A([ \t]*([-+]|({count}))|[ \t]+\*)([ \t]+|$)");
     let end = char_start(&buffer.text, end);
     let trimmed = buffer.text[..end].trim_end_matches([' ', '\r', '\t', '\n']).len();
     let mut at = line_start(&buffer.text, trimmed);
@@ -1454,7 +1552,7 @@ fn shift_body(buffer: &mut Buffer, origin: &mut usize, end: usize, beg: usize, d
             break;
         }
         if at == beg {
-            if let Some(found) = buffer.text.get(at..).and_then(|rest| ITEM_AT.captures(rest)) {
+            if let Some(found) = buffer.text.get(at..).and_then(|rest| item_at.captures(rest)) {
                 buffer.md = MatchData::from_captures(&found, at);
                 break;
             }
@@ -1895,16 +1993,32 @@ pub fn cycle_bullet(text: &str, at: usize, previous: bool, settings: &Settings) 
         first = prev;
     }
     let bullet = list[first].bullet.trim().to_string();
-    let current = if bullet.contains('.') {
+    let alpha = use_alpha_bullets(&list, first, &prevs_of);
+    let letter_then = |lower: bool, terminator: char| {
+        bullet.as_bytes().windows(2).any(|pair| {
+            (if lower { pair[0].is_ascii_lowercase() } else { pair[0].is_ascii_uppercase() })
+                && pair[1] == terminator as u8
+        })
+    };
+    let current = if letter_then(true, '.') {
+        "a.".to_string()
+    } else if letter_then(true, ')') {
+        "a)".to_string()
+    } else if letter_then(false, '.') {
+        "A.".to_string()
+    } else if letter_then(false, ')') {
+        "A)".to_string()
+    } else if bullet.contains('.') {
         "1.".to_string()
     } else if bullet.contains(')') {
         "1)".to_string()
     } else {
-        bullet
+        bullet.clone()
     };
     // `org-at-item-description-p`: a tag of two characters or more, after
     // the counter, a checkbox counting as part of it.
-    static COUNTER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A\[@(?:start:)?[0-9]+\][ \t]*").unwrap());
+    static COUNTER: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"\A\[@(?:start:)?(?:[0-9]+|[A-Za-z])\][ \t]*").unwrap());
     static DESCRIPTION: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A\S.+[ \t]+::(?:[ \t]+|$)").unwrap());
     let after_bullet = line(text, pos).get(list[index].ind.max(0) as usize + list[index].bullet.len()..).unwrap_or("");
     let after_counter = COUNTER.find(after_bullet).map_or(after_bullet, |found| &after_bullet[found.end()..]);
@@ -1913,8 +2027,23 @@ pub fn cycle_bullet(text: &str, at: usize, previous: bool, settings: &Settings) 
     if text[pos..].starts_with([' ', '\t']) {
         choices.push("*");
     }
+    // As `org-plain-list-ordered-item-terminator` allows, and letters as
+    // `org-list-use-alpha-bul-p` does.
+    let terminator = org_syntax::list_syntax().terminator;
+    let (dot, paren) = (terminator.ends(b'.'), terminator.ends(b')'));
     if !description {
-        choices.extend(["1.", "1)"]);
+        if dot {
+            choices.push("1.");
+        }
+        if paren {
+            choices.push("1)");
+        }
+        if alpha && dot {
+            choices.extend(["a.", "A."]);
+        }
+        if alpha && paren {
+            choices.extend(["a)", "A)"]);
+        }
     }
     let len = choices.len() as isize;
     let item_index = choices.iter().position(|choice| *choice == current).map_or(len, |found| found as isize);

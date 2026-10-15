@@ -925,6 +925,14 @@ org_edit_timestamp_down_means_later = false
 # With `false` the key keeps the editor's own meaning. (org-special-ctrl-k)
 org_special_ctrl_k = false
 
+# Whether a letter may stand for the number of an ordered item (`a.`, `B)`). A
+# list of more than 26 items is numbered. (org-list-allow-alphabetical)
+org_list_allow_alphabetical = false
+
+# What ends the number of an ordered item: `"."`, `")"`, or `true` for either.
+# (org-plain-list-ordered-item-terminator)
+org_plain_list_ordered_item_terminator = true
+
 # An Emacs regexp: the bullets it matches get two spaces after them when Org
 # writes them (a new item, a bullet changed, a list repaired).
 # (org-list-two-spaces-after-bullet-regexp)
@@ -2673,6 +2681,15 @@ org_agenda_custom_commands = []
   // whole line. With `false` the key keeps the editor's own meaning.
   // (org-special-ctrl-k)
   "org_special_ctrl_k": false,
+
+  // Whether a letter may stand for the number of an ordered item (`a.`,
+  // `B)`). A list of more than 26 items is numbered.
+  // (org-list-allow-alphabetical)
+  "org_list_allow_alphabetical": false,
+
+  // What ends the number of an ordered item: `"."`, `")"`, or `true` for
+  // either. (org-plain-list-ordered-item-terminator)
+  "org_plain_list_ordered_item_terminator": true,
 
   // An Emacs regexp: the bullets it matches get two spaces after them when
   // Org writes them (a new item, a bullet changed, a list repaired).
