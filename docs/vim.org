@@ -24,7 +24,7 @@ With Vim's own packages, clone the repository and add ~editors/vim~ to
 'runtimepath'.
 
 Opening an Org file the first time downloads the server for your platform
-from the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]] (with ~curl~ and ~tar~), into
+from the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]] (with ~curl~ and ~tar~; on Windows, Windows' own ~tar~, not one Git put first on the ~PATH~), into
 =~/.local/share/vim/org-lsp=, and starts it. ~:OrgLspDownload~ downloads it
 again, to update it, and the ~do~ above does that on each update of the
 plugin; a server that runs already is replaced when Vim starts again.
