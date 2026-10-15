@@ -41,6 +41,9 @@ pub struct Settings {
     /// `org-list-two-spaces-after-bullet-regexp`: the text of an item
     /// whose bullet it matches starts two columns after the bullet.
     pub two_spaces: Option<crate::list::BulletRegexp>,
+    /// `org-property-format`: how a node property's key and value are
+    /// written when the line is indented.
+    pub property_format: String,
 }
 
 impl Default for Settings {
@@ -51,6 +54,7 @@ impl Default for Settings {
             src_preserve_indentation: false,
             src_content_indentation: 2,
             two_spaces: None,
+            property_format: "%-10s %s".to_string(),
         }
     }
 }
@@ -755,7 +759,8 @@ impl Snapshot {
     }
 
     /// The text of the node property at `line` aligned as
-    /// `org-property-format` (`%-10s %s`) has it, without indentation.
+    /// `org-property-format` (`%-10s %s`) has it, without indentation
+    /// (`org--align-node-property`).
     fn align_property(&self, line: usize) -> Option<String> {
         let text = self.line(line).trim_start_matches([' ', '\t']);
         let rest = text.strip_prefix(':')?;
@@ -771,7 +776,8 @@ impl Snapshot {
         let key_end = key_end?;
         let key = &text[..key_end + 1];
         let value = rest[key_end..].trim_matches([' ', '\t', '\r']);
-        Some(format!("{key:<10} {value}").trim_matches([' ', '\t']).to_string())
+        let formatted = crate::text::format_strings(&self.settings.property_format, &[key, value]);
+        Some(crate::text::trim(&formatted).to_string())
     }
 
     /// The index of the line at `at`.
@@ -1590,6 +1596,35 @@ mod tests {
             .map(|line| line.wrap)
             .collect();
         assert_eq!(wraps, [4, 2]);
+    }
+
+    /// `org-property-format`: a property line indented is written as the
+    /// format makes it, trimmed, as `org-indent-line` writes it in Emacs.
+    #[test]
+    fn writes_properties_as_org_property_format_says() {
+        let cases = [
+            ("%-10s %s", ":FOO:", ":FOO:"),
+            ("%-10s %s", ":FOO: bar", ":FOO:      bar"),
+            ("%-10s %s", ":LONGPROPERTYNAME: x  y ", ":LONGPROPERTYNAME: x  y"),
+            ("%-10s %s", "   :A+:   v", ":A+:       v"),
+            ("%s %s", "   :A+:   v", ":A+: v"),
+            ("%-15s %s", ":FOO: bar", ":FOO:           bar"),
+            ("%15s %s", ":FOO: bar", ":FOO: bar"),
+            ("%s: %s", ":FOO:", ":FOO::"),
+            ("%s: %s", ":FOO: bar", ":FOO:: bar"),
+            ("%.3s %s", ":FOO:", ":FO"),
+            ("%.3s %s", ":LONGPROPERTYNAME: x  y ", ":LO x  y"),
+            ("%-5s|%s", ":FOO:", ":FOO:|"),
+            ("%-5s|%s", "   :A+:   v", ":A+: |v"),
+        ];
+        for (format, line, wanted) in cases {
+            let text = format!("* h\n:PROPERTIES:\n{line}\n:END:\n");
+            let settings = Settings { property_format: format.to_string(), ..Settings::default() };
+            let at = text.find(line).unwrap();
+            let edit = indent_line(&text, at, &settings);
+            let got = apply(&text, &edit.into_iter().collect::<Vec<_>>());
+            assert_eq!(got.split('\n').nth(2).unwrap(), wanted, "{format:?} {line:?}");
+        }
     }
 
     /// `org-indent-mode-turns-on-hiding-stars` and

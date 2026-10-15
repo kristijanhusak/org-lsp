@@ -540,6 +540,23 @@ pub const SETTINGS: &[Setting] = &[
          of names, or a regexp (Emacs syntax). `CATEGORY` and `ARCHIVE` are always inherited.",
     ),
     setting(
+        "org_property_separators",
+        "[names or regexp, separator][]",
+        "[]",
+        "org-property-separators",
+        "What joins the values of a property with those of its `PROPERTY+` lines, and the inherited ones, \
+         instead of a space: `[[\"AUTHOR\", \"COAUTHOR\"], \", \"]` for the properties named, `[\"^TAG\", \";\"]` for \
+         those an Emacs regexp matches, without regard to case. The first that fits counts.",
+    ),
+    setting(
+        "org_property_format",
+        "string",
+        r#""%-10s %s""#,
+        "org-property-format",
+        "How a property line is written when it is indented (TAB, `org.indent`) or set: `format`'s `%s` for \
+         the key with its colons, then the value, with a width (`%-10s` pads the key to 10 columns).",
+    ),
+    setting(
         "org_global_properties",
         "{ [name]: string }",
         "{}",
@@ -3118,6 +3135,11 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_use_tag_inheritance", r#"{ "type": ["boolean", "array", "string"], "items": { "type": "string" } }"#),
     ("org_tags_exclude_from_inheritance", r#"{ "type": "array", "items": { "type": "string" } }"#),
     ("org_use_property_inheritance", r#"{ "type": ["boolean", "array", "string"], "items": { "type": "string" } }"#),
+    (
+        "org_property_separators",
+        r#"{ "type": "array", "items": { "type": "array", "minItems": 2, "maxItems": 2, "items": [{ "type": ["array", "string"], "items": { "type": "string" } }, { "type": "string" }] } }"#,
+    ),
+    ("org_property_format", STRING),
     ("org_global_properties", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
     ("org_complete_tags_always_offer_all_agenda_tags", BOOLEAN),
     ("org_cite_global_bibliography", r#"{ "type": "array", "items": { "type": "string" } }"#),

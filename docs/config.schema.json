@@ -558,6 +558,35 @@
       "description": "Which properties an entry without them takes from its parents, the file's property drawer and `#+PROPERTY:` lines, in property searches (`OWNER=\"alice\"`): `true` for all, `false` for none, a list of names, or a regexp (Emacs syntax). `CATEGORY` and `ARCHIVE` are always inherited. (`org-use-property-inheritance`)",
       "default": false
     },
+    "org_property_separators": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "minItems": 2,
+        "maxItems": 2,
+        "items": [
+          {
+            "type": [
+              "array",
+              "string"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          {
+            "type": "string"
+          }
+        ]
+      },
+      "description": "What joins the values of a property with those of its `PROPERTY+` lines, and the inherited ones, instead of a space: `[[\"AUTHOR\", \"COAUTHOR\"], \", \"]` for the properties named, `[\"^TAG\", \";\"]` for those an Emacs regexp matches, without regard to case. The first that fits counts. (`org-property-separators`)",
+      "default": []
+    },
+    "org_property_format": {
+      "type": "string",
+      "description": "How a property line is written when it is indented (TAB, `org.indent`) or set: `format`'s `%s` for the key with its colons, then the value, with a width (`%-10s` pads the key to 10 columns). (`org-property-format`)",
+      "default": "%-10s %s"
+    },
     "org_global_properties": {
       "type": "object",
       "additionalProperties": {
