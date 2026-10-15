@@ -1182,6 +1182,9 @@ struct Server {
     /// Follow mode (`F`): the entry of the cursor's line shows in another
     /// window as the cursor moves.
     agenda_follow: bool,
+    /// `org-agenda-show-outline-path`: `None` for `nil`, else whether the
+    /// file's title (`title`) comes before the path instead of its name.
+    agenda_outline_path: Option<bool>,
     /// The unit the last command moved an agenda timestamp by, when it was
     /// hours or minutes: the next `S-<right>` goes on by it (Emacs's
     /// `last-command`). `date_unit_before` is the one of the command
@@ -1579,6 +1582,11 @@ pub fn run(connection: Connection) -> Result<()> {
         agenda_inactive: false,
         agenda_entry_text: options.agenda_config().entry_text,
         agenda_follow: options.agenda.start_with_follow_mode.unwrap_or(false),
+        agenda_outline_path: match &options.agenda.show_outline_path {
+            Some(crate::config::OutlinePathOption::Flag(false)) => None,
+            Some(crate::config::OutlinePathOption::Name(name)) => Some(name == "title"),
+            _ => Some(false),
+        },
         date_unit: None,
         date_unit_before: None,
         agenda_marks: Vec::new(),
@@ -2776,8 +2784,8 @@ impl Server {
                     },
                     AGENDA_CURSOR => match parameters::<Value>(request) {
                         Ok((id, params)) => {
-                            self.agenda_cursor(params);
-                            Response::new_ok(id, Value::Null)
+                            let answer = self.agenda_cursor(params);
+                            Response::new_ok(id, answer)
                         }
                         Err(response) => *response,
                     },
@@ -2838,12 +2846,37 @@ impl Server {
     }
 
     /// The cursor is on another line of the agenda: in follow mode, its
-    /// entry shows in another window.
-    fn agenda_cursor(&mut self, params: Value) {
+    /// entry shows in another window, and with
+    /// `org-agenda-show-outline-path` the answer has its outline path for
+    /// the echo area, `{ "echo": "work.org/Projects" }`
+    /// (`org-agenda-do-context-action`).
+    fn agenda_cursor(&mut self, params: Value) -> Value {
+        let width = params.get("width").and_then(Value::as_u64).map(|width| width as usize);
+        let context = serde_json::from_value::<Context>(params).ok();
         if self.agenda_follow {
-            let context = serde_json::from_value::<Context>(params).ok();
             self.show_entry(context.as_ref());
         }
+        match self.agenda_outline_path(context.as_ref()) {
+            Some(path) => json!({ "echo": width.map_or(path.clone(), |width| fit_outline_path(&path, width)) }),
+            None => Value::Null,
+        }
+    }
+
+    /// `org-display-outline-path` at the entry of the agenda line: the
+    /// file's name, or its title, and the titles of the headlines above
+    /// the entry, joined by `/`.
+    fn agenda_outline_path(&mut self, context: Option<&Context>) -> Option<String> {
+        let title = self.agenda_outline_path?;
+        let reference = self.entry_at(context)?;
+        let name = uri::file_name(&reference.uri);
+        self.with_source(&reference.uri, |text, _, parse, outline, _| {
+            let entry = &outline.entries[views::resolve(&reference, outline)?];
+            let path = org_core::refile::outline_path(text, entry.offset, parse.todo_keywords());
+            let prefix = title.then(|| org_core::refile::file_title(parse)).flatten().unwrap_or(name);
+            let parts = path.iter().map(|part| part.trim_end_matches([' ', '\t']));
+            Some(std::iter::once(prefix.as_str()).chain(parts).collect::<Vec<_>>().join("/"))
+        })
+        .flatten()
     }
 
     fn notification(&mut self, notification: Notification) {
@@ -2881,7 +2914,9 @@ impl Server {
         }
         match notification.method.as_str() {
             AGENDA_WIDTH => self.agenda_width(&notification.params),
-            AGENDA_CURSOR => self.agenda_cursor(notification.params),
+            AGENDA_CURSOR => {
+                self.agenda_cursor(notification.params);
+            }
             CURSOR => self.roam_cursor(notification.params),
             DidOpenTextDocument::METHOD => {
                 let Some(params) = parse::<lsp_types::DidOpenTextDocumentParams>(notification) else { return };
@@ -14600,6 +14635,20 @@ fn run_shell(command: &str, directory: Option<&std::path::Path>) -> std::io::Res
     // Reaped when it ends, so that it does not linger.
     std::thread::spawn(move || child.wait());
     Ok(())
+}
+
+/// `org-format-outline-path` with the width of the frame, `width`
+/// columns: one less than that at most, cut with `..` at the end.
+fn fit_outline_path(path: &str, width: usize) -> String {
+    let width = width.saturating_sub(1).max(1);
+    let length = path.chars().count();
+    if length <= width {
+        return path.to_string();
+    }
+    if width < 7 {
+        return path.chars().take(width).collect();
+    }
+    path.chars().take(width - 2).chain("..".chars()).collect()
 }
 
 #[cfg(test)]

@@ -175,6 +175,7 @@ its sections says what it should look like.
 - [ ] Filters by tag, category and effort, and removing them: ~\~, ~<~, ~_~, ~|~
 - [ ] Marking lines and a bulk action on them: ~m~, ~B~
 - [ ] Follow mode shows the cursor's entry as the cursor moves: ~F~
+- [ ] Moving the cursor in the agenda shows where its entry is, ~work.org/Projects~, in the echo area (the status bar in VS Code and Sublime Text)
 - [ ] Entry text, log mode, the clock report, archives mode: ~E~ or ~vE~, ~vl~, ~R~ or ~vR~, ~va~
 - [ ] In the week view, inactive timestamps show after ~[~ with /Display now includes inactive timestamps as well/, marked ~[~, and are gone again when the agenda is rebuilt: ~[~, ~v[~, ~r~
 - [ ] Hovering a line shows its entry: ~K~

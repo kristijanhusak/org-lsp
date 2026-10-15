@@ -133,7 +133,7 @@ its sections says what it should look like.
 
 * Agenda
 
-*Partly:* The agenda is a file, its commands code actions (or keys through Zed's tasks); for a search and a date, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Follow mode is left out: Zed reports no cursor moves to an extension. Column view in the agenda is left out: it draws over the lines.
+*Partly:* The agenda is a file, its commands code actions (or keys through Zed's tasks); for a search and a date, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Follow mode and the outline path of the cursor's entry are left out: Zed reports no cursor moves to an extension. Column view in the agenda is left out: it draws over the lines.
 
 - [ ] The agenda menu lists the views and the custom commands: the code action /Agenda commands/
 - [ ] The week view: scheduled entries, deadlines with their warnings, the time grid: the code action /Agenda for the current week or day/

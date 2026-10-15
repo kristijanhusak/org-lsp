@@ -1426,15 +1426,31 @@ function! org_lsp#tell_agenda_width() abort
 endfunction
 
 " The line of the agenda the cursor is on, each time it changes, for
-" follow mode (`F`), which the server keeps.
+" follow mode (`F`), which the server keeps, and the outline path of its
+" entry (`org-agenda-show-outline-path`), echoed and not kept in the
+" message history, as Emacs shows it.
 function! org_lsp#tell_agenda_cursor() abort
   if &filetype !=# 'org-agenda' || get(b:, 'org_lsp_cursor_line', 0) == line('.')
     return
   endif
   let b:org_lsp_cursor_line = line('.')
   let params = {'textDocument': {'uri': org_lsp#uri(bufnr())},
-        \ 'position': {'line': line('.') - 1, 'character': 0}}
-  call org_lsp#request(bufnr(), 'org-lsp/agendaCursor', params, {_error, _result -> 0})
+        \ 'position': {'line': line('.') - 1, 'character': 0}, 'width': &columns}
+  call org_lsp#request(bufnr(), 'org-lsp/agendaCursor', params, {_error, result -> s:echo_path(result)})
+endfunction
+
+let s:echoed = ''
+
+function! s:echo_path(result) abort
+  if type(a:result) == v:t_dict && type(get(a:result, 'echo', 0)) == v:t_string
+    let s:echoed = a:result.echo
+    echo a:result.echo
+  endif
+endfunction
+
+" The outline path echoed last, for tests.
+function! org_lsp#echoed() abort
+  return s:echoed
 endfunction
 
 " The cursor on another line of an Org file while the org-roam buffer

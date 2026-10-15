@@ -2778,6 +2778,15 @@
       "description": "Keep the marks of a bulk action (`B`) after it (`p` in its menu toggles this for one action). (`org-agenda-persistent-marks`)",
       "default": false
     },
+    "org_agenda_show_outline_path": {
+      "enum": [
+        true,
+        false,
+        "title"
+      ],
+      "description": "As the cursor moves in the agenda, show where the entry of its line is: the file's name and the headlines above it (`work.org/Projects/Report`), in the echo area or the status bar. With `title` the file's `#+TITLE:` comes first instead of its name. (`org-agenda-show-outline-path`)",
+      "default": true
+    },
     "org_agenda_start_with_follow_mode": {
       "type": "boolean",
       "description": "Start the agenda in follow mode, which shows the entry of the cursor's line in another window as the cursor moves (`F` toggles it). (`org-agenda-start-with-follow-mode`)",

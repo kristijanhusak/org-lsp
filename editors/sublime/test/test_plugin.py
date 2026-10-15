@@ -794,6 +794,23 @@ class Tests(unittest.TestCase):
         self.assertEqual([(note.method, note.params) for note in sent], [('org-lsp/cursor', {
             'textDocument': {'uri': 'file:///roam/a.org'}, 'position': {'line': 2, 'character': 1}})])
 
+    def test_shows_the_outline_path_of_the_agenda_line(self):
+        sent = []
+        answer = {'echo': 'work.org/Projects'}
+        session = types.SimpleNamespace(send_request=lambda request, on_result: (sent.append(request), on_result(answer)))
+        self.plugin.OrgLsp(lambda: session)
+        agenda = View('  work:  TODO Write\n  work:  TODO Draft\n', '/tmp/org-lsp-1/Agenda.org-agenda')
+        agenda.cursor = agenda.text_point(1, 3)
+        del self.sublime.messages[:]
+        self.plugin.tell_agenda_cursor(agenda)
+        # The same line again asks nothing.
+        self.plugin.tell_agenda_cursor(agenda)
+        self.assertEqual([(request.method, request.params['position']) for request in sent],
+                         [('org-lsp/agendaCursor', {'line': 1, 'character': 0})])
+        # `org-agenda-show-outline-path`: in the status bar, no popup.
+        self.assertEqual(self.sublime.messages, ['work.org/Projects'])
+        self.assertEqual(agenda.popups, [])
+
     def test_images_show_as_wide_as_the_server_says(self):
         view = types.SimpleNamespace(em_width=lambda: 8.0)
         entry = {'width': 400, 'height': 100}

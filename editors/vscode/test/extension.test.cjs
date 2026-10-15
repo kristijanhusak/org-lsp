@@ -1154,6 +1154,9 @@ describe('The agenda', () => {
     moveTo(lines.findIndex((line) => line.includes('Call the client')));
     await until('the entry of the new line', () => shownLine() === call);
     assert.equal(vscode.window.activeTextEditor, agendaEditor, 'still in the agenda');
+    // The outline path of its entry in the status bar (`org-agenda-show-outline-path`).
+    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    await until('the outline path', () => api.echoed() === 'work.org');
     await vscode.commands.executeCommand('org.agenda.follow');
   });
 

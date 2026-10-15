@@ -2140,6 +2140,15 @@ pub const SETTINGS: &[Setting] = &[
         "Keep the marks of a bulk action (`B`) after it (`p` in its menu toggles this for one action).",
     ),
     setting(
+        "org_agenda_show_outline_path",
+        r#"boolean, "title""#,
+        "true",
+        "org-agenda-show-outline-path",
+        "As the cursor moves in the agenda, show where the entry of its line is: the file's name and the \
+         headlines above it (`work.org/Projects/Report`), in the echo area or the status bar. With `title` \
+         the file's `#+TITLE:` comes first instead of its name.",
+    ),
+    setting(
         "org_agenda_start_with_follow_mode",
         "boolean",
         "false",
@@ -3291,6 +3300,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_agenda_move_date_from_past_immediately_to_today", BOOLEAN),
     ("org_agenda_persistent_marks", BOOLEAN),
     ("org_agenda_start_with_follow_mode", BOOLEAN),
+    ("org_agenda_show_outline_path", r#"{ "enum": [true, false, "title"] }"#),
     ("org_agenda_start_with_entry_text_mode", BOOLEAN),
     ("org_agenda_entry_text_maxlines", r#"{ "type": "integer", "minimum": 1 }"#),
     ("org_agenda_entry_text_leaders", STRING),

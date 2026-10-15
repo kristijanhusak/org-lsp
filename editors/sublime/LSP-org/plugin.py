@@ -1328,7 +1328,9 @@ agenda_lines = {}
 
 def tell_agenda_cursor(view) -> None:
     """Tell the server the line of the agenda the cursor is on, each time it
-    changes, for follow mode (`F`), which the server keeps."""
+    changes, for follow mode (`F`), which the server keeps; the outline
+    path of its entry it answers with goes in the status bar
+    (`org-agenda-show-outline-path`)."""
     plugin = OrgLsp.current
     session = plugin.weaksession() if plugin else None
     if not session or len(view.sel()) == 0:
@@ -1338,7 +1340,12 @@ def tell_agenda_cursor(view) -> None:
         return
     agenda_lines[view.id()] = line
     params = text_document_position_params(view, view.text_point(line, 0))
-    session.send_notification(Notification('org-lsp/agendaCursor', params))
+    session.send_request(Request('org-lsp/agendaCursor', params), echo_outline_path)
+
+
+def echo_outline_path(result) -> None:
+    if isinstance(result, dict) and isinstance(result.get('echo'), str):
+        sublime.status_message(result['echo'])
 
 
 class OrgLspListener(sublime_plugin.EventListener):

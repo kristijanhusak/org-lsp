@@ -255,6 +255,7 @@
 ---@field org_agenda_log_mode_add_notes? boolean Show the note of a state change or a clock line after the headline in log mode. (`org-agenda-log-mode-add-notes`)
 ---@field org_agenda_move_date_from_past_immediately_to_today? boolean Moving a date of the past one day later from the agenda (`S-<right>`) takes it to today. (`org-agenda-move-date-from-past-immediately-to-today`)
 ---@field org_agenda_persistent_marks? boolean Keep the marks of a bulk action (`B`) after it (`p` in its menu toggles this for one action). (`org-agenda-persistent-marks`)
+---@field org_agenda_show_outline_path? true|false|'title' As the cursor moves in the agenda, show where the entry of its line is: the file's name and the headlines above it (`work.org/Projects/Report`), in the echo area or the status bar. With `title` the file's `#+TITLE:` comes first instead of its name. (`org-agenda-show-outline-path`)
 ---@field org_agenda_start_with_follow_mode? boolean Start the agenda in follow mode, which shows the entry of the cursor's line in another window as the cursor moves (`F` toggles it). (`org-agenda-start-with-follow-mode`)
 ---@field org_agenda_start_with_entry_text_mode? boolean Start the agenda with some text of each entry under its line (`E` toggles it). (`org-agenda-start-with-entry-text-mode`)
 ---@field org_agenda_entry_text_maxlines? integer The most lines of an entry's text `E` shows. (`org-agenda-entry-text-maxlines`)
