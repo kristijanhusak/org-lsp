@@ -69,6 +69,7 @@ its sections says what it should look like.
 - [ ] Moving to the next and previous heading of the same level, stopping at the parent's end: ~Ctrl+C Ctrl+F~, ~Ctrl+C Ctrl+B~
 - [ ] Moving to the parent heading; on a top heading Org says it is at the top level: ~Ctrl+C Ctrl+U~
 - [ ] Going to a heading picked by its outline path (~A/B/~): ~Ctrl+C Ctrl+J~
+- [ ] With ~org_special_ctrl_a_e~ and ~org_special_ctrl_k~ set to ~true~, on ~* TODO Title :tag:~: C-a goes to the start of ~Title~, again to the line's start; C-e to the end of ~Title~, again after the tags; C-k in the title kills to the tags, which stay aligned, and C-k again kills the tags: ~Ctrl+A~, ~Ctrl+E~, ~Ctrl+K~
 - [ ] Off a table, turning a line into a heading and back (needs Emacs): /Org: Turn the line into a heading, or the heading into a line/
 - [ ] Toggling ~COMMENT~ on the heading (needs Emacs): ~Ctrl+C ;~
 - [ ] Cloning the subtree twice a week apart (~+1w~): the copies follow it with their dates moved (needs Emacs): ~Ctrl+C Ctrl+X c~

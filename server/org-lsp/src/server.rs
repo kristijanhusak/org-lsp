@@ -491,6 +491,9 @@ struct Last {
     file: String,
     /// Byte offset of the entry's headline.
     heading: Option<usize>,
+    /// Where the command left the cursor, for the line commands: the
+    /// same key again from there repeats it.
+    cursor: Option<usize>,
 }
 
 /// What an edit made of the headline and the timestamp of an entry, for
@@ -6071,6 +6074,9 @@ impl Server {
                 self.motion(&params.command, &context.ok_or("This command needs the cursor position")?)
             }
             commands::GOTO => self.goto(&context.ok_or("This command needs the cursor position")?),
+            commands::BEGINNING_OF_LINE | commands::END_OF_LINE | commands::KILL_LINE => {
+                self.line_command(&params.command, &context.ok_or("This command needs the cursor position")?)
+            }
             commands::FOOTNOTE_ACTION
             | commands::FOOTNOTE_MENU
             | commands::TOGGLE_ITEM
@@ -6403,7 +6409,7 @@ impl Server {
             last.file == key
                 && matches!(last.command.as_str(), commands::TIMESTAMP_INSERT | commands::TIMESTAMP_INSERT_INACTIVE)
         });
-        self.last = Some(Last { command: id.to_string(), file: key.clone(), heading: None });
+        self.last = Some(Last { command: id.to_string(), file: key.clone(), heading: None, cursor: None });
         let now = self.date_time();
         let text = &source.text;
         let outcome =
@@ -9319,7 +9325,7 @@ impl Server {
                     (offset, outline.entry_at(offset).map(|entry| outline.entries[entry].offset))
                 }
             };
-            let last = Last { command: id.to_string(), file: key.clone(), heading };
+            let last = Last { command: id.to_string(), file: key.clone(), heading, cursor: None };
             // The state the key selects; a key that selects none quits.
             let command = match &extra.key {
                 Some(answer) => {
@@ -11336,9 +11342,70 @@ impl Server {
             .map_err(Refusal::Failed)?;
         let cursor = document.index.position(&document.text, moved.offset, encoding);
         self.link_search_failed = moved.failed;
-        self.last = Some(Last { command: id.to_string(), file: key, heading: None });
+        self.last = Some(Last { command: id.to_string(), file: key, heading: None, cursor: None });
         self.message = moved.message;
         Ok(json!({ "edits": [], "cursor": cursor }))
+    }
+
+    /// `org-beginning-of-line` (C-a), `org-end-of-line` (C-e) and
+    /// `org-kill-line` (C-k), where `org_special_ctrl_a_e` and
+    /// `org_special_ctrl_k` make them Org's; elsewhere the keys keep the
+    /// editor's meaning. The same key again from where the last one left
+    /// the cursor is a repeat (`last-command`): `reversed` goes on to the
+    /// special place, and kills add to the last kill.
+    fn line_command(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
+        use org_core::line::{self, KillSettings, Special};
+        let (special_a, special_e) = self.edit_settings.special_ctrl_a_e;
+        let special = match id {
+            commands::BEGINNING_OF_LINE => special_a,
+            commands::END_OF_LINE => special_e,
+            _ if self.edit_settings.special_ctrl_k => Special::On,
+            _ => Special::Off,
+        };
+        if special == Special::Off {
+            return Err(Refusal::NotHere("The key has its own meaning here".to_string()));
+        }
+        let uri = &context.text_document.uri;
+        let key = uri.as_str().to_string();
+        let encoding = self.client.encoding;
+        let document = self.document(uri).ok_or("This file is not open")?;
+        let offset = document.index.offset(&document.text, context.position, encoding);
+        let repeated = self
+            .last
+            .as_ref()
+            .is_some_and(|last| last.command == id && last.file == key && last.cursor == Some(offset));
+        let count = context.count.unwrap_or(1);
+        let keywords = document.parse.todo_keywords().clone();
+        if id != commands::KILL_LINE {
+            let moved = if id == commands::BEGINNING_OF_LINE {
+                line::beginning_of_line(&document.text, offset, count, special, repeated, &keywords)
+            } else {
+                line::end_of_line(&document.text, offset, count, special, repeated, &keywords)
+            };
+            let cursor = document.index.position(&document.text, moved, encoding);
+            self.last = Some(Last { command: id.to_string(), file: key, heading: None, cursor: Some(moved) });
+            return Ok(json!({ "edits": [], "cursor": cursor }));
+        }
+        let settings = KillSettings {
+            special: true,
+            auto_align_tags: self.edit_settings.tags.auto_align,
+            tags_column: self.edit_settings.tags.tags_column,
+        };
+        let done = line::kill_line(&document.text, offset, settings).map_err(Refusal::Failed)?;
+        // `kill-append` after a kill right before.
+        let killed = match (&self.kill, repeated) {
+            (Some(before), true) => format!("{before}{}", done.kill),
+            _ => done.kill,
+        };
+        self.kill = Some(killed.clone());
+        let cursor = done.cursor;
+        let mut result = self.carried(context, org_core::newline::Outcome { text: done.text, cursor })?;
+        if let Some(fields) = result.as_object_mut() {
+            fields.insert("copy".to_string(), json!(killed));
+            fields.insert("copyCharacters".to_string(), json!(true));
+        }
+        self.last = Some(Last { command: id.to_string(), file: key, heading: None, cursor: Some(cursor) });
+        Ok(result)
     }
 
     /// `org-goto` (`C-c C-j`), as with `org-goto-interface` set to

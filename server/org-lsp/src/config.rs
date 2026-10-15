@@ -114,6 +114,13 @@ pub struct Options {
     /// `org-insert-heading-respect-content`
     #[serde(rename = "org_insert_heading_respect_content")]
     pub insert_heading_respect_content: Option<bool>,
+    /// `org-special-ctrl-a/e`: `true`, `false`, `"reversed"`, or a pair
+    /// of them for C-a and C-e.
+    #[serde(rename = "org_special_ctrl_a_e")]
+    pub special_ctrl_a_e: Option<serde_json::Value>,
+    /// `org-special-ctrl-k`
+    #[serde(rename = "org_special_ctrl_k")]
+    pub special_ctrl_k: Option<bool>,
     /// `org-list-two-spaces-after-bullet-regexp`: a regexp, or `false`.
     #[serde(rename = "org_list_two_spaces_after_bullet_regexp")]
     pub list_two_spaces_after_bullet_regexp: Option<serde_json::Value>,
@@ -1954,6 +1961,24 @@ impl Options {
                 .agenda_move_date_from_past_immediately_to_today
                 .unwrap_or(defaults.move_date_from_past_to_today),
             insert: self.insert_settings(),
+            special_ctrl_a_e: self.special_ctrl_a_e(),
+            special_ctrl_k: self.special_ctrl_k.unwrap_or(false),
+        }
+    }
+
+    /// `org-special-ctrl-a/e` for C-a and for C-e: one value for both, or
+    /// a pair.
+    pub fn special_ctrl_a_e(&self) -> (org_core::line::Special, org_core::line::Special) {
+        use org_core::line::Special;
+        let one = |value: &serde_json::Value| match value {
+            serde_json::Value::Bool(true) => Special::On,
+            serde_json::Value::String(name) if name == "reversed" => Special::Reversed,
+            _ => Special::Off,
+        };
+        match &self.special_ctrl_a_e {
+            Some(serde_json::Value::Array(pair)) if pair.len() == 2 => (one(&pair[0]), one(&pair[1])),
+            Some(value) => (one(value), one(value)),
+            None => (Special::Off, Special::Off),
         }
     }
 

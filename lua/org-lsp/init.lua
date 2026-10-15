@@ -275,9 +275,10 @@ function M.run(name, opts)
           vim.cmd(at_end and 'startinsert!' or 'startinsert')
         end
       end
-      -- What was cut or copied goes to the register, by lines.
+      -- What was cut or copied goes to the register, by lines, or by
+      -- characters for a kill of part of a line (`org.kill.line`).
       if type(result) == 'table' and type(result.copy) == 'string' then
-        vim.fn.setreg(register, result.copy, 'l')
+        vim.fn.setreg(register, result.copy, result.copyCharacters and 'c' or 'l')
       end
       -- A sparse tree: everything folded but the lines shown, and the
       -- matches highlighted.

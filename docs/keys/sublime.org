@@ -99,6 +99,9 @@ to install and set up the package.
 | ~Ctrl+C Ctrl+U~ | ~org.heading.up~ | Move to the parent heading |
 | ~Ctrl+C Ctrl+X Ctrl+N~ | ~org.link.next~ | Move to the next link |
 | ~Ctrl+C Ctrl+X Ctrl+P~ | ~org.link.previous~ | Move to the previous link |
+| ~Ctrl+A~ ¹ | ~org.beginning.of.line~ | Move to the start of the headline's title |
+| ~Ctrl+E~ ¹ | ~org.end.of.line~ | Move to the end of the headline's title |
+| ~Ctrl+K~ ¹ | ~org.kill.line~ | Kill the headline's text to the tags, or the tags |
 | ~Ctrl+C Ctrl+J~ | ~org.goto~ | Go to a heading of the file |
 | ~Ctrl+C Ctrl+X f~ | ~org.footnote.action~ | Make a footnote, or go between a footnote and its definition |
 | ~Ctrl+C ;~ | ~org.toggle.comment~ | Toggle the COMMENT keyword of the heading |

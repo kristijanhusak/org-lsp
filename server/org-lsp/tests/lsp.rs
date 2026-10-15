@@ -2026,6 +2026,51 @@ fn moves_about_as_org_does() {
     client.shutdown();
 }
 
+#[test]
+fn line_keys_as_org_special_ctrl_a_e_and_k_make_them() {
+    let run = |client: &mut Client, command: &str, line: u32, character: u32| {
+        let argument =
+            json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": line, "character": character } });
+        client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [argument] }))
+            .response_result
+    };
+    let cursor = |result: &Result<Value, lsp_server::ResponseError>| {
+        let value = result.as_ref().expect("a result");
+        (value["cursor"]["line"].as_u64().unwrap(), value["cursor"]["character"].as_u64().unwrap())
+    };
+    let text = "* TODO Title :tag:\n- [ ] item\n";
+    // Off: the keys keep the editor's meaning.
+    let mut client = Client::start(json!({}), Value::Null);
+    client.open(&uri(), text);
+    for command in ["org.beginning.of.line", "org.end.of.line", "org.kill.line"] {
+        let refused = run(&mut client, command, 0, 9).unwrap_err();
+        assert_eq!(refused.data, Some(json!({ "notApplicable": true })), "{command}");
+    }
+    client.shutdown();
+
+    let mut client =
+        Client::start(json!({}), json!({ "org_special_ctrl_a_e": "reversed", "org_special_ctrl_k": true }));
+    client.open(&uri(), text);
+    // `reversed`: the line's start first, the title's on the key right after.
+    assert_eq!(cursor(&run(&mut client, "org.beginning.of.line", 0, 9)), (0, 0));
+    assert_eq!(cursor(&run(&mut client, "org.beginning.of.line", 0, 0)), (0, 7));
+    assert_eq!(cursor(&run(&mut client, "org.end.of.line", 1, 0)), (1, 10));
+    assert_eq!(cursor(&run(&mut client, "org.beginning.of.line", 1, 8)), (1, 0));
+    assert_eq!(cursor(&run(&mut client, "org.beginning.of.line", 1, 0)), (1, 6));
+    // C-k in the title: to the tags, the kill by characters.
+    let killed = run(&mut client, "org.kill.line", 0, 9).unwrap();
+    assert_eq!(killed["copy"], "tle");
+    assert_eq!(killed["copyCharacters"], true);
+    client.shutdown();
+
+    let mut client = Client::start(json!({}), json!({ "org_special_ctrl_a_e": [true, false] }));
+    client.open(&uri(), text);
+    assert_eq!(cursor(&run(&mut client, "org.beginning.of.line", 0, 9)), (0, 7));
+    assert!(run(&mut client, "org.end.of.line", 0, 9).is_err());
+    client.shutdown();
+}
+
 /// `text` with `edits` applied (positions in characters; ASCII text).
 fn apply_text_edits(text: &str, edits: &[TextEdit]) -> String {
     let offset = |position: Position| -> usize {

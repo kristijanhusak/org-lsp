@@ -114,7 +114,7 @@ command. [[file:keys/vim.org][keys/vim.org]] lists every key and how to change i
 |---+---+---+---|
 | [[file:parity.org::#highlighting][Highlighting]] | 94% | ❓ | Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Vim cannot hide text that has text properties. |
 | [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 90% | ❓ | Cycling the whole file goes between overview and everything: it has no contents state, which needs folds of a headline's own text that Vim's fold levels do not make. A closed fold's line is not highlighted: Vim draws it in one color. |
-| [[file:parity.org::#headings-and-structure][Headings and structure]] | 92% | ✅ |  |
+| [[file:parity.org::#headings-and-structure][Headings and structure]] | 93% | ✅ |  |
 | [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 100% | ✅ |  |
 | [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ✅ |  |
 | [[file:parity.org::#priorities][Priorities]] | 75% | ✅ |  |

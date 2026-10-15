@@ -16,7 +16,7 @@ Org's options, one by one, are under [[#options][Options]].
 |---+---+---|
 | [[#highlighting][Highlighting]] | 94% | 16 of 17 |
 | [[#folding-and-visibility][Folding and visibility]] | 90% | 9 of 10 |
-| [[#headings-and-structure][Headings and structure]] | 92% | 12 of 13 |
+| [[#headings-and-structure][Headings and structure]] | 93% | 13 of 14 |
 | [[#lists-and-checkboxes][Lists and checkboxes]] | 100% | 12 of 12 |
 | [[#todo-keywords][TODO keywords]] | 100% | 11 of 11 |
 | [[#priorities][Priorities]] | 75% | 3 of 4 |
@@ -109,7 +109,7 @@ Where editors fall short:
 :CUSTOM_ID: headings-and-structure
 :END:
 
-92% (12 of 13)
+93% (13 of 14)
 
 - ✅ New headings (~M-RET~, ~M-S-RET~, ~C-RET~, ~C-S-RET~), the line split or not (~org-M-RET-may-split-line~), with empty lines before them as ~org-blank-before-new-entry~ says, after the subtree (~org-insert-heading-respect-content~)
 - ✅ Promoting and demoting a heading or a subtree
@@ -119,6 +119,7 @@ Where editors fall short:
 - ✅ The outline of the file (document symbols)
 - ✅ Moving between headings (~C-c C-n~, ~C-c C-p~, ~C-c C-f~, ~C-c C-b~, ~C-c C-u~)
 - ✅ Jumping to a heading (~org-goto~, ~C-c C-j~, by outline path)
+- ✅ ~C-a~, ~C-e~ and ~C-k~ on headlines and items, to the title and the tags (~org-special-ctrl-a/e~, ~org-special-ctrl-k~)
 - ✅ Turning lines into headings and back (~C-c *~, through Emacs)
 - ✅ Toggling ~COMMENT~ (~C-c ;~, through Emacs)
 - ✅ Cloning a subtree with its dates shifted (~C-c C-x c~, through Emacs)
@@ -127,8 +128,8 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❓: A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text.
-- Helix ❓: New headings (~M-RET~ and its relatives), moving between headings and ~org-goto~ are left out: they carry the cursor for the editor to move, which Helix's code actions cannot do; nor are the commands run by Emacs (~C-c *~, ~C-c ;~, cloning) among its code actions.
+- Zed ❓: A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. ~C-a~, ~C-e~ and ~C-k~ keep Zed's own meaning.
+- Helix ❓: New headings (~M-RET~ and its relatives), moving between headings, ~org-goto~ and Org's ~C-a~, ~C-e~ and ~C-k~ are left out: they carry the cursor for the editor to move, which Helix's code actions cannot do; nor are the commands run by Emacs (~C-c *~, ~C-c ;~, cloning) among its code actions.
 
 * Lists and checkboxes
 :PROPERTIES:
@@ -735,9 +736,9 @@ when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 241 | A setting of the same name |
-| missing | 53 | org-lsp does what the option is about, but the option cannot be set yet |
-| other | 10 | Done another way, as its note says |
+| setting | 242 | A setting of the same name |
+| missing | 51 | org-lsp does what the option is about, but the option cannot be set yet |
+| other | 11 | Done another way, as its note says |
 | emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 48 | Its value is Lisp (a function, a hook), which the server does not run |
 | absent | 86 | Part of something org-lsp does not do |
@@ -752,6 +753,7 @@ when Org has an option it does not list.
 - ~org-table-auto-blank-field~ :: the editor types into a field as into any text: TAB leaves the cursor at the start of the field's text, as in Emacs, and the first character typed does not blank it
 - ~org-table-formula-use-constants~ :: only for a formula evaluated on its own (~C-c =~, a field starting with ~=~), which org-lsp does not do; the formulas of ~#+TBLFM:~ lines always use the constants, in Emacs too
 - ~org-startup-truncated~ :: the editor decides how long lines wrap
+- ~org-special-ctrl-a/e~ :: the setting ~org_special_ctrl_a_e~, its name without the ~/~
 - ~org-timestamp-rounding-minutes~ :: the setting ~org_time_stamp_rounding_minutes~, its name before Org 9.6
 - ~org-fontify-whole-heading-line~ :: editors draw a token's look over its text only: past the end of a headline's text the line keeps the editor's background
 - ~org-src-fontify-natively~ :: the editors' option ~src_highlight~ (Neovim, Vim); VS Code and Sublime Text color the code of blocks by their grammars, always
@@ -768,4 +770,4 @@ Options of what org-lsp does that cannot be set yet, by the file of Org they are
 - org-entities.el (1) :: ~org-entities-user~
 - org-indent.el (3) :: ~org-indent-mode-turns-off-org-adapt-indentation~, ~org-indent-mode-turns-on-hiding-stars~, ~org-indent-indentation-per-level~
 - org-list.el (3) :: ~org-cycle-include-plain-lists~, ~org-plain-list-ordered-item-terminator~, ~org-list-allow-alphabetical~
-- org.el (30) :: ~org-startup-align-all-tables~, ~org-file-apps~, ~org-odd-levels-only~, ~org-special-ctrl-a/e~, ~org-special-ctrl-k~, ~org-yank-adjusted-subtrees~, ~org-todo-interpretation~, ~org-treat-insert-todo-heading-as-state-change~, ~org-treat-S-cursor-todo-selection-as-state-change~, ~org-priority-enable-commands~, ~org-display-custom-times~, ~org-timestamp-custom-formats~, ~org-agenda-jump-prefer-future~, ~org-use-effective-time~, ~org-use-last-clock-out-time-as-effective-time~, ~org-edit-timestamp-down-means-later~, ~org-tags-match-list-sublevels~, ~org-property-format~, ~org-property-separators~, ~org-agenda-file-regexp~, ~org-agenda-skip-unavailable-files~, ~org-hidden-keywords~, ~org-custom-properties~, ~org-fontify-emphasized-text~, ~org-hide-macro-markers~, ~org-emphasis-alist~, ~org-agenda-skip-archived-trees~, ~org-sparse-tree-open-archived-trees~, ~org-allow-promoting-top-level-subtree~, ~org-track-ordered-property-with-tag~
+- org.el (28) :: ~org-startup-align-all-tables~, ~org-file-apps~, ~org-odd-levels-only~, ~org-yank-adjusted-subtrees~, ~org-todo-interpretation~, ~org-treat-insert-todo-heading-as-state-change~, ~org-treat-S-cursor-todo-selection-as-state-change~, ~org-priority-enable-commands~, ~org-display-custom-times~, ~org-timestamp-custom-formats~, ~org-agenda-jump-prefer-future~, ~org-use-effective-time~, ~org-use-last-clock-out-time-as-effective-time~, ~org-edit-timestamp-down-means-later~, ~org-tags-match-list-sublevels~, ~org-property-format~, ~org-property-separators~, ~org-agenda-file-regexp~, ~org-agenda-skip-unavailable-files~, ~org-hidden-keywords~, ~org-custom-properties~, ~org-fontify-emphasized-text~, ~org-hide-macro-markers~, ~org-emphasis-alist~, ~org-agenda-skip-archived-trees~, ~org-sparse-tree-open-archived-trees~, ~org-allow-promoting-top-level-subtree~, ~org-track-ordered-property-with-tag~

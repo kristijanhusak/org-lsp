@@ -30,7 +30,7 @@ its sections says what it should look like.
 
 * Headings and structure
 
-*Partly:* New headings (~M-RET~ and its relatives), moving between headings and ~org-goto~ are left out: they carry the cursor for the editor to move, which Helix's code actions cannot do; nor are the commands run by Emacs (~C-c *~, ~C-c ;~, cloning) among its code actions.
+*Partly:* New headings (~M-RET~ and its relatives), moving between headings, ~org-goto~ and Org's ~C-a~, ~C-e~ and ~C-k~ are left out: they carry the cursor for the editor to move, which Helix's code actions cannot do; nor are the commands run by Emacs (~C-c *~, ~C-c ;~, cloning) among its code actions.
 
 - [ ] Promoting and demoting a heading; its tags stay aligned: the code action /Promote the heading; outdent the item; move the table column left/, the code action /Demote the heading; indent the item, the drawer or the block; move the table column right/
 - [ ] Promoting and demoting a subtree: the code action /Promote the subtree; outdent the item with its children; delete the table column/, the code action /Demote the subtree; indent the item with its children; insert a table column/

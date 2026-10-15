@@ -18,7 +18,7 @@ static ITEM: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^(?:[ \t]*(?:[-+]|[0-9]+[.)])|[ \t]+\*)(?:[ \t]+|$)").unwrap());
 
 /// `org-list-full-item-re`: bullet, counter, checkbox and tag.
-static FULL_ITEM: LazyLock<Regex> = LazyLock::new(|| {
+pub(crate) static FULL_ITEM: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(concat!(
         r"^[ \t]*((?:[-+*]|(?:[0-9]+|[A-Za-z])[.)])(?:[ \t]+|$))",
         r"(?:\[@(?:start:)?([0-9]+|[A-Za-z])\][ \t]*)?",

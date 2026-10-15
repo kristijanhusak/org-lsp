@@ -101,6 +101,10 @@ pub struct Settings {
     /// How M-RET and its kin insert (`org-M-RET-may-split-line`,
     /// `org-blank-before-new-entry`, `org-insert-heading-respect-content`).
     pub insert: crate::meta_return::Settings,
+    /// `org-special-ctrl-a/e`, for C-a and for C-e.
+    pub special_ctrl_a_e: (crate::line::Special, crate::line::Special),
+    /// `org-special-ctrl-k`
+    pub special_ctrl_k: bool,
 }
 
 impl Default for Settings {
@@ -115,6 +119,8 @@ impl Default for Settings {
             list_circular_motion: false,
             move_date_from_past_to_today: true,
             insert: crate::meta_return::Settings::default(),
+            special_ctrl_a_e: Default::default(),
+            special_ctrl_k: false,
         }
     }
 }
