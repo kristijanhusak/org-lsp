@@ -818,6 +818,56 @@ fn sends_what_stands_in_for_hidden_text() {
     client.shutdown();
 }
 
+/// `org_display_custom_times`: each timestamp's date and time shown in the
+/// custom formats, a repeater left as it is; `#+STARTUP: customtime` turns
+/// it on for a file, and `org.timestamp.overlays.toggle` off and on.
+#[test]
+fn shows_timestamps_in_custom_formats() {
+    let capabilities = json!({ "experimental": { "orgDisplay": true } });
+    let settings =
+        json!({ "org_display_custom_times": true, "org_timestamp_custom_formats": ["%d.%m.%Y", "%d.%m.%Y %H:%M"] });
+    let client = Client::start(capabilities.clone(), settings.clone());
+    client.open(&uri(), "<2026-10-05 Mon 10:00 +1w> and [2026-10-06 Tue]\n");
+    let sent = client.notification("org-lsp/display");
+    assert_eq!(sent["items"], json!([[0, 1, 0, 21, "05.10.2026 10:00"], [0, 32, 0, 46, "06.10.2026"]]));
+    client.shutdown();
+
+    // For a client that does not show them itself, inlay hints; the
+    // command turns them off and on again.
+    let capabilities_hints = json!({ "textDocument": { "inlayHint": {} } });
+    let mut client = Client::start(capabilities_hints, settings);
+    client.open(&uri(), "<2026-10-05 Mon 10:00 +1w> and [2026-10-06 Tue]\n");
+    let hints = |client: &mut Client| -> Vec<String> {
+        let params = json!({ "textDocument": { "uri": uri().as_str() }, "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 1, "character": 0 } } });
+        let result = client.raw_request("textDocument/inlayHint", params).response_result.unwrap();
+        result.as_array().unwrap().iter().map(|hint| hint["label"].as_str().unwrap_or_default().to_string()).collect()
+    };
+    assert_eq!(hints(&mut client), ["05.10.2026 10:00", "06.10.2026"]);
+    let toggle = |client: &mut Client| {
+        let argument = json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": 0, "character": 0 } });
+        let result = client
+            .raw_request(
+                "workspace/executeCommand",
+                json!({ "command": "org.timestamp.overlays.toggle", "arguments": [argument] }),
+            )
+            .response_result
+            .unwrap();
+        result["message"].clone()
+    };
+    assert_eq!(toggle(&mut client), "Time stamp overlays removed");
+    assert!(hints(&mut client).is_empty());
+    assert_eq!(toggle(&mut client), "Time stamps are overlaid with custom format");
+    assert_eq!(hints(&mut client).len(), 2);
+    client.shutdown();
+
+    // Org's formats, for the file that asks for them.
+    let client = Client::start(capabilities, Value::Null);
+    client.open(&uri(), "#+STARTUP: customtime\n<2026-10-05 Mon>\n");
+    let sent = client.notification("org-lsp/display");
+    assert_eq!(sent["items"], json!([[1, 1, 1, 15, "10/05/26 Mon"]]));
+    client.shutdown();
+}
+
 /// org-bullets (`org_bullets_mode`): each headline's last star shows as
 /// the bullet of its level, the list repeating, and the stars before it are
 /// hidden as `org-hide-leading-stars` hides them; the bullets of lists and

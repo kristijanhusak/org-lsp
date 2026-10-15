@@ -921,6 +921,13 @@ struct Server {
     conceal: highlight::Conceal,
     /// `org-pretty-entities`
     pretty_entities: bool,
+    /// `org-display-custom-times`
+    custom_times: bool,
+    /// `org-timestamp-custom-formats`
+    custom_formats: (String, String),
+    /// The documents where `org-toggle-timestamp-overlays` turned custom
+    /// times the other way.
+    custom_times_toggled: HashSet<String>,
     /// What org-bullets shows, when it is on.
     bullets: Option<org_core::pretty::Bullets>,
     /// `org-startup-with-link-previews`.
@@ -1423,6 +1430,15 @@ pub fn run(connection: Connection) -> Result<()> {
         calendar_week_start: options.calendar_week_start_day.unwrap_or(0) % 7,
         all_agenda_tags: options.complete_tags_always_offer_all_agenda_tags.unwrap_or(false),
         pretty_entities: options.pretty_entities.unwrap_or(false),
+        custom_times: options.display_custom_times.unwrap_or(false),
+        custom_formats: match options.timestamp_custom_formats.as_deref() {
+            Some([date, time]) => (date.clone(), time.clone()),
+            _ => {
+                let (date, time) = org_core::custom_time::DEFAULT_FORMATS;
+                (date.to_string(), time.to_string())
+            }
+        },
+        custom_times_toggled: HashSet::new(),
         bullets: options.bullets(),
         startup_link_previews: options.startup_with_link_previews.unwrap_or(false),
         image_actual_width: options.image_actual_width(),
@@ -3095,6 +3111,14 @@ impl Server {
     ) -> Vec<(usize, usize, String, Option<String>)> {
         let (_, pretty, scripts) = self.display_of(text);
         let mut out: Vec<(usize, usize, String, Option<String>)> = Vec::new();
+        if self.custom_times_in(key, text) {
+            let formats = (self.custom_formats.0.as_str(), self.custom_formats.1.as_str());
+            out.extend(
+                org_core::custom_time::displays(text, formats)
+                    .into_iter()
+                    .map(|(start, end, shown)| (start, end, shown, None)),
+            );
+        }
         if pretty {
             out.extend(
                 org_core::pretty::entities(text)
@@ -3186,6 +3210,34 @@ impl Server {
             }
         }
         (conceal, pretty, self.pretty_scripts.filter(|_| pretty))
+    }
+
+    /// Whether the timestamps of the document `key` show in the custom
+    /// formats: `org_display_custom_times` or `#+STARTUP: customtime`,
+    /// turned the other way by `org-toggle-timestamp-overlays`.
+    fn custom_times_in(&self, key: &str, text: &str) -> bool {
+        let on = self.custom_times || startup_words(text).iter().any(|word| word == "customtime");
+        on != self.custom_times_toggled.contains(key)
+    }
+
+    /// `org-toggle-timestamp-overlays` (`C-c C-x C-t`) on the document.
+    fn toggle_custom_times(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        let key = context.text_document.uri.as_str().to_string();
+        let text = self.document(&context.text_document.uri).ok_or("This file is not open")?.text.clone();
+        if !self.custom_times_toggled.remove(&key) {
+            self.custom_times_toggled.insert(key.clone());
+        }
+        self.message = Some(if self.custom_times_in(&key, &text) {
+            "Time stamps are overlaid with custom format".to_string()
+        } else {
+            "Time stamp overlays removed".to_string()
+        });
+        if self.client.tokens_refresh {
+            self.send_raw_request("workspace/semanticTokens/refresh", Value::Null, None);
+        }
+        self.refresh_inlay_hints();
+        self.publish_display(&key);
+        Ok(Value::Null)
     }
 
     fn semantic_tokens_full(&mut self, params: SemanticTokensParams) -> Option<SemanticTokens> {
@@ -6029,6 +6081,9 @@ impl Server {
             }
             commands::DATE_PREVIEW => self.preview_date(&context.ok_or("This command needs the cursor position")?),
             commands::CYCLE => self.cycle(&context.ok_or("This command needs the cursor position")?),
+            commands::TIMESTAMP_OVERLAYS_TOGGLE => {
+                self.toggle_custom_times(&context.ok_or("This command needs the cursor position")?)
+            }
             id if id.starts_with("org.agenda.filter") => self.agenda_filter(id, context.as_ref()),
             commands::AGENDA_WRITE => self.agenda_write(context.as_ref()),
             commands::AGENDA_APPT => self.agenda_to_appt(context.as_ref()),
@@ -10310,6 +10365,7 @@ impl Server {
             .collect();
         let agenda_files: Vec<String> =
             self.workspace.files().iter().map(|file| file.to_string_lossy().into_owned()).collect();
+        let custom_times = self.custom_times_in(context.text_document.uri.as_str(), &document.text);
         let params = json!({
             "file": path.to_string_lossy(),
             "text": document.text,
@@ -10321,6 +10377,8 @@ impl Server {
             "agenda_files": agenda_files,
             // What `C-v` (visible only) leaves out: the editor's closed folds.
             "folded": context.folded.clone().unwrap_or_default(),
+            // `org-display-custom-times`, as the file shows: the formats.
+            "custom_times": custom_times.then(|| json!([self.custom_formats.0, self.custom_formats.1])),
         });
         self.next_export += 1;
         let tag = self.next_export;

@@ -799,8 +799,8 @@
    "other",
    "the setting `org_time_stamp_rounding_minutes`, its name before Org 9.6"
   ],
-  "org-display-custom-times": "missing",
-  "org-timestamp-custom-formats": "missing",
+  "org-display-custom-times": "setting",
+  "org-timestamp-custom-formats": "setting",
   "org-deadline-warning-days": "setting",
   "org-scheduled-delay-days": "setting",
   "org-read-date-prefer-future": "setting",

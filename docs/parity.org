@@ -14,7 +14,7 @@ Org's options, one by one, are under [[#options][Options]].
 
 | Feature | Parity | Done |
 |---+---+---|
-| [[#highlighting][Highlighting]] | 94% | 17 of 18 |
+| [[#highlighting][Highlighting]] | 95% | 18 of 19 |
 | [[#folding-and-visibility][Folding and visibility]] | 91% | 10 of 11 |
 | [[#headings-and-structure][Headings and structure]] | 93% | 13 of 14 |
 | [[#lists-and-checkboxes][Lists and checkboxes]] | 100% | 12 of 12 |
@@ -50,7 +50,7 @@ Org's options, one by one, are under [[#options][Options]].
 :CUSTOM_ID: highlighting
 :END:
 
-94% (17 of 18)
+95% (18 of 19)
 
 - ✅ Headlines by level, TODO keywords, priorities and tags
 - ✅ Emphasis, verbatim and code
@@ -64,6 +64,7 @@ Org's options, one by one, are under [[#options][Options]].
 - ✅ Archived subtrees shaded (~org-archived~)
 - ✅ Radio targets turning their words into links: highlighted, followed, document links
 - ✅ Entities shown as their characters (~org-pretty-entities~, ~#+STARTUP: entitiespretty~ or ~entitiesplain~): hidden, the character in their place (drawn by the editor where it can, else an inlay hint)
+- ✅ Timestamps in formats of one's own (~org-display-custom-times~, ~org-timestamp-custom-formats~, ~#+STARTUP: customtime~, ~C-c C-x C-t~): the date and time hidden, the custom form in their place as for entities; in exports through Emacs too
 - ✅ Headline stars as bullets in the colors of their level, the leading ones hidden (org-bullets: ~org_bullets_mode~, ~org_bullets_bullet_list~); bullets of lists and marks of checkboxes as org-bullets.nvim shows them (~org_bullets_list_bullet~, ~org_bullets_checkboxes~)
 - ✅ Sub- and superscripts raised and lowered (~org-pretty-entities-include-sub-superscripts~, ~org-use-sub-superscripts~): where Org raises them, shown in Unicode (~x²~, ~H₂O~) in place of the hidden text (drawn by the editor where it can, else an inlay hint) where every character has a raised or lowered form; the others left as they are, as an editor cannot raise text
 - ✅ Done headlines in ~org-headline-done~ past their keyword (~org-fontify-done-headline~ at its default), complete statistics cookies as done, the title and the information of the document (~org-document-title~, ~org-document-info~)
@@ -732,15 +733,15 @@ Where editors fall short:
 :END:
 
 Each of the 1025 options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with
-it. Of the 304 that change what org-lsp does itself, 86% can be set.
+it. Of the 304 that change what org-lsp does itself, 87% can be set.
 [[file:../scripts/org-options.json][scripts/org-options.json]] says it for each; ~scripts/check.sh~ fails when the
 server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,
 when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 250 | A setting of the same name |
-| missing | 42 | org-lsp does what the option is about, but the option cannot be set yet |
+| setting | 252 | A setting of the same name |
+| missing | 40 | org-lsp does what the option is about, but the option cannot be set yet |
 | other | 12 | Done another way, as its note says |
 | emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 48 | Its value is Lisp (a function, a hook), which the server does not run |
@@ -773,4 +774,4 @@ Options of what org-lsp does that cannot be set yet, by the file of Org they are
 - org-entities.el (1) :: ~org-entities-user~
 - org-indent.el (3) :: ~org-indent-mode-turns-off-org-adapt-indentation~, ~org-indent-mode-turns-on-hiding-stars~, ~org-indent-indentation-per-level~
 - org-list.el (2) :: ~org-plain-list-ordered-item-terminator~, ~org-list-allow-alphabetical~
-- org.el (23) :: ~org-startup-align-all-tables~, ~org-file-apps~, ~org-odd-levels-only~, ~org-yank-adjusted-subtrees~, ~org-todo-interpretation~, ~org-treat-insert-todo-heading-as-state-change~, ~org-treat-S-cursor-todo-selection-as-state-change~, ~org-priority-enable-commands~, ~org-display-custom-times~, ~org-timestamp-custom-formats~, ~org-agenda-jump-prefer-future~, ~org-use-effective-time~, ~org-use-last-clock-out-time-as-effective-time~, ~org-edit-timestamp-down-means-later~, ~org-property-format~, ~org-property-separators~, ~org-agenda-file-regexp~, ~org-agenda-skip-unavailable-files~, ~org-custom-properties~, ~org-agenda-skip-archived-trees~, ~org-sparse-tree-open-archived-trees~, ~org-allow-promoting-top-level-subtree~, ~org-track-ordered-property-with-tag~
+- org.el (21) :: ~org-startup-align-all-tables~, ~org-file-apps~, ~org-odd-levels-only~, ~org-yank-adjusted-subtrees~, ~org-todo-interpretation~, ~org-treat-insert-todo-heading-as-state-change~, ~org-treat-S-cursor-todo-selection-as-state-change~, ~org-priority-enable-commands~, ~org-agenda-jump-prefer-future~, ~org-use-effective-time~, ~org-use-last-clock-out-time-as-effective-time~, ~org-edit-timestamp-down-means-later~, ~org-property-format~, ~org-property-separators~, ~org-agenda-file-regexp~, ~org-agenda-skip-unavailable-files~, ~org-custom-properties~, ~org-agenda-skip-archived-trees~, ~org-sparse-tree-open-archived-trees~, ~org-allow-promoting-top-level-subtree~, ~org-track-ordered-property-with-tag~

@@ -1168,6 +1168,12 @@
           "task_name": "Org: Insert or change an inactive timestamp"
         }
       ],
+      "ctrl-c ctrl-x ctrl-t": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Show timestamps in the custom formats, or not"
+        }
+      ],
       "ctrl-c a": [
         "task::Spawn",
         {

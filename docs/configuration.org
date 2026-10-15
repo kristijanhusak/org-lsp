@@ -1471,6 +1471,19 @@ org_hidden_keywords = []
 # text. (org-hide-macro-markers)
 org_hide_macro_markers = false
 
+# Show timestamps in `org_timestamp_custom_formats`: the date and time inside
+# the brackets is hidden and the custom form shows in its place, as entities
+# do. `#+STARTUP: customtime` turns it on for a file, and `C-c C-x C-t`
+# (`org.timestamp.overlays.toggle`) on and off. Exports through Emacs use them
+# too; the date prompt shows its answer in Org's own form.
+# (org-display-custom-times)
+org_display_custom_times = false
+
+# The formats of `org_display_custom_times`, as `format-time-string` reads
+# them (`%d.%m.%Y`); brackets around a format are dropped.
+# (org-timestamp-custom-formats)
+org_timestamp_custom_formats = ["%m/%d/%y %a", "%m/%d/%y %a %H:%M"]
+
 # Show entities (`\alpha`, `\to`) as their character (`α`, `→`): the entity is
 # hidden as link brackets are, and its character is an inlay hint in its
 # place. (org-pretty-entities)
@@ -3051,6 +3064,19 @@ org_agenda_custom_commands = []
   // Hide the braces of macro calls, `{{{` and `}}}`, in editors that conceal
   // text. (org-hide-macro-markers)
   "org_hide_macro_markers": false,
+
+  // Show timestamps in `org_timestamp_custom_formats`: the date and time
+  // inside the brackets is hidden and the custom form shows in its place, as
+  // entities do. `#+STARTUP: customtime` turns it on for a file, and `C-c C-x
+  // C-t` (`org.timestamp.overlays.toggle`) on and off. Exports through Emacs
+  // use them too; the date prompt shows its answer in Org's own form.
+  // (org-display-custom-times)
+  "org_display_custom_times": false,
+
+  // The formats of `org_display_custom_times`, as `format-time-string` reads
+  // them (`%d.%m.%Y`); brackets around a format are dropped.
+  // (org-timestamp-custom-formats)
+  "org_timestamp_custom_formats": ["%m/%d/%y %a", "%m/%d/%y %a %H:%M"],
 
   // Show entities (`\alpha`, `\to`) as their character (`α`, `→`): the entity
   // is hidden as link brackets are, and its character is an inlay hint in its

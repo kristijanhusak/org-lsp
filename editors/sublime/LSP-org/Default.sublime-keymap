@@ -3271,6 +3271,29 @@
   },
   {
     "keys": [
+      "ctrl+c",
+      "ctrl+x",
+      "ctrl+t"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.timestamp.overlays.toggle"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
       "tab"
     ],
     "command": "org_lsp_cycle",
