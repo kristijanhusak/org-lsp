@@ -21,7 +21,7 @@ Install ~kristijanhusak/org-lsp~ with your plugin manager. With
 #+end_src
 
 Opening an Org file the first time downloads the server for your platform
-from the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]] (with ~curl~ and ~tar~) and starts it;
+from the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]] (with ~curl~ and ~tar~; on Windows, Windows' own ~tar~, not one Git put first on the ~PATH~) and starts it;
 ~:OrgLspDownload~ downloads it again, to update it, and the ~build~ above
 does that on each update of the plugin. ~release = 'v0.2.0'~ picks a
 release instead of the nightly build, and ~download = false~ turns the
