@@ -769,7 +769,7 @@
   "org-highlight-links": "emacs-only",
   "org-mark-ring-length": "emacs-only",
   "org-todo-keywords": "setting",
-  "org-todo-interpretation": "missing",
+  "org-todo-interpretation": "setting",
   "org-use-fast-todo-selection": "setting",
   "org-provide-todo-statistics": "setting",
   "org-hierarchical-todo-statistics": "setting",

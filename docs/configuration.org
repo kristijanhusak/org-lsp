@@ -834,6 +834,11 @@ org_agenda_skip_unavailable_files = false
 # file's own `#+TODO:` lines take precedence. (org-todo-keywords)
 org_todo_keywords = ["TODO", "|", "DONE"]
 
+# What a list of keywords alone in `org_todo_keywords` is (Org's old syntax):
+# a sequence, or types, each going straight to done. A list that starts with
+# `sequence` or `type` says it itself. (org-todo-interpretation)
+org_todo_interpretation = "sequence"
+
 # Faces for particular TODO keywords: a color, `{ "WAIT": "orange" }`, or
 # attributes written as Org writes them, `{ "CANCELLED": ":foreground gray
 # :slant italic :strike-through t" }` (`:foreground`, `:background`, `:weight
@@ -2683,6 +2688,12 @@ org_agenda_custom_commands = []
   // straight to done. A file's own `#+TODO:` lines take precedence.
   // (org-todo-keywords)
   "org_todo_keywords": ["TODO", "|", "DONE"],
+
+  // What a list of keywords alone in `org_todo_keywords` is (Org's old
+  // syntax): a sequence, or types, each going straight to done. A list that
+  // starts with `sequence` or `type` says it itself.
+  // (org-todo-interpretation)
+  "org_todo_interpretation": "sequence",
 
   // Faces for particular TODO keywords: a color, `{ "WAIT": "orange" }`, or
   // attributes written as Org writes them, `{ "CANCELLED": ":foreground gray

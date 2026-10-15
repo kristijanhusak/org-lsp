@@ -96,6 +96,14 @@ pub const SETTINGS: &[Setting] = &[
          own `#+TODO:` lines take precedence.",
     ),
     setting(
+        "org_todo_interpretation",
+        "\"sequence\", \"type\"",
+        r#""sequence""#,
+        "org-todo-interpretation",
+        "What a list of keywords alone in `org_todo_keywords` is (Org's old syntax): a sequence, or types, \
+         each going straight to done. A list that starts with `sequence` or `type` says it itself.",
+    ),
+    setting(
         "org_todo_keyword_faces",
         "{ [keyword]: string }",
         "{}",
@@ -3266,6 +3274,7 @@ const SCHEMAS: &[(&str, &str)] = &[
             { "type": "array", "items": { "type": "array", "items": { "type": "string" } } }
         ] }"#,
     ),
+    ("org_todo_interpretation", r#"{ "enum": ["sequence", "type"] }"#),
     ("org_todo_keyword_faces", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
     ("org_priority_faces", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
     ("org_tag_faces", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),

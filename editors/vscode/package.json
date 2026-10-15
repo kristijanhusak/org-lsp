@@ -1663,6 +1663,14 @@
                 "DONE"
               ]
             },
+            "org_todo_interpretation": {
+              "enum": [
+                "sequence",
+                "type"
+              ],
+              "markdownDescription": "What a list of keywords alone in `org_todo_keywords` is (Org's old syntax): a sequence, or types, each going straight to done. A list that starts with `sequence` or `type` says it itself. (`org-todo-interpretation`)",
+              "default": "sequence"
+            },
             "org_todo_keyword_faces": {
               "type": "object",
               "additionalProperties": {

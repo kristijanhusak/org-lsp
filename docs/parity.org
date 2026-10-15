@@ -18,7 +18,7 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#folding-and-visibility][Folding and visibility]] | 91% | 10 of 11 |
 | [[#headings-and-structure][Headings and structure]] | 94% | 16 of 17 |
 | [[#lists-and-checkboxes][Lists and checkboxes]] | 100% | 13 of 13 |
-| [[#todo-keywords][TODO keywords]] | 100% | 13 of 13 |
+| [[#todo-keywords][TODO keywords]] | 100% | 14 of 14 |
 | [[#priorities][Priorities]] | 100% | 4 of 4 |
 | [[#tags][Tags]] | 88% | 7 of 8 |
 | [[#properties-and-column-view][Properties and column view]] | 90% | 9 of 10 |
@@ -169,11 +169,12 @@ Where editors fall short:
 :CUSTOM_ID: todo-keywords
 :END:
 
-100% (13 of 13)
+100% (14 of 14)
 
 - ✅ Cycling states, and fast selection by key (~TODO(t)~), from a menu or the keys in the prompt alone, or never (~org-use-fast-todo-selection~)
 - ✅ Sequences and types from ~#+TODO:~ and ~org_todo_keywords~
 - ✅ Several sequences: cycling stays in the entry's sequence, and ~C-S-<right>~, ~C-S-<left>~ switch sets
+- ✅ Keywords given alone read as a sequence or as types (~org-todo-interpretation~)
 - ✅ Faces of particular keywords and priorities (~org-todo-keyword-faces~, ~org-priority-faces~)
 - ✅ Logging: ~CLOSED:~, the time or a note on a state change (~!~, ~@~), ~LOG_INTO_DRAWER~
 - ✅ TODO statistics of the parent, counting what ~org-provide-todo-statistics~ says, children only or the subtree (~org-hierarchical-todo-statistics~); tags set and removed with the state (~org-todo-state-tags-triggers~); ~CLOSED:~ kept without a keyword (~org-closed-keep-when-no-todo~)
@@ -753,15 +754,15 @@ Where editors fall short:
 :END:
 
 Each of the 1025 options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with
-it. Of the 307 that change what org-lsp does itself, 99% can be set.
+it. Of the 307 that change what org-lsp does itself, 100% can be set.
 [[file:../scripts/org-options.json][scripts/org-options.json]] says it for each; ~scripts/check.sh~ fails when the
 server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,
 when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 292 | A setting of the same name |
-| missing | 2 | org-lsp does what the option is about, but the option cannot be set yet |
+| setting | 293 | A setting of the same name |
+| missing | 1 | org-lsp does what the option is about, but the option cannot be set yet |
 | other | 13 | Done another way, as its note says |
 | emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 47 | Its value is Lisp (a function, a hook), which the server does not run |
@@ -788,4 +789,4 @@ when Org has an option it does not list.
 
 Options of what org-lsp does that cannot be set yet, by the file of Org they are in.
 
-- org.el (2) :: ~org-todo-interpretation~, ~org-custom-properties~
+- org.el (1) :: ~org-custom-properties~
