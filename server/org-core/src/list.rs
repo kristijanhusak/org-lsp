@@ -1746,6 +1746,97 @@ pub fn indent_item(
     Ok(Edited { text, cursor })
 }
 
+/// What `org-cycle-item-indentation` keeps between presses of TAB
+/// (`org-tab-ind-state`): the indentation and the line the item started
+/// with.
+pub type TabIndState = (isize, String);
+
+/// What a press of TAB made of an empty item.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ItemCycled {
+    pub text: String,
+    pub cursor: usize,
+    pub state: TabIndState,
+    /// The next press goes on with the cycle; else it starts over.
+    pub continues: bool,
+}
+
+/// `org-cycle-item-indentation`: TAB on a new, empty item indents it,
+/// then outdents it to the levels around it, then puts it back. `state`
+/// is the cycle a press right before started, for a press that goes on
+/// with it. None where the item is not empty or there is none.
+pub fn cycle_item_indentation(
+    text: &str,
+    at: usize,
+    state: Option<&TabIndState>,
+    keywords: &org_syntax::TodoKeywords,
+    tags_column: i64,
+    settings: &Settings,
+) -> Option<Result<ItemCycled, Refusal>> {
+    let (pos, list, index) = item_here(text, at).ok()?;
+    let ind = list[index].ind;
+    if state.is_none() {
+        // Only an item with nothing after its bullet, checkbox and tag.
+        let found = MatchData::full_item(text, pos)?;
+        let (_, match_end) = found.group(0)?;
+        let content_end = text[..list[index].end.min(text.len())].trim_end_matches([' ', '\t', '\n']).len();
+        if match_end < content_end {
+            return None;
+        }
+    }
+    let prevs_of = prevs(&list);
+    let parents_of = parents(&list);
+    let has_prev = prevs_of[index].is_some();
+    let indent =
+        |text: &str, at: usize, change: isize| indent_item(text, at, change, false, keywords, tags_column, settings);
+    let allow_outdent = |list: &Struct, index: usize| {
+        let prevs_of = prevs(list);
+        let has_next = prevs_of.contains(&Some(index));
+        let has_child = list.get(index + 1).is_some_and(|next| list[index].ind < next.ind);
+        !has_next && !has_child && parents(list)[index].is_some()
+    };
+    let done = |edited: Result<Edited, Refusal>, state: TabIndState, continues: bool| {
+        edited.map(|edited| ItemCycled { text: edited.text, cursor: edited.cursor, state, continues })
+    };
+    let Some((old_ind, old_bullet)) = state.cloned() else {
+        // A cycle starts: the item in, or else out.
+        let line_text = line(text, pos).trim_matches([' ', '\t', '\n', '\r']).to_string();
+        let state = (ind, line_text);
+        return Some(if has_prev {
+            done(indent(text, at, 1), state, true)
+        } else if !prevs_of.contains(&Some(index)) && parents_of[index].is_some() {
+            done(indent(text, at, -1), state, true)
+        } else {
+            Err(failed("Cannot move item"))
+        });
+    };
+    let state = (old_ind, old_bullet.clone());
+    if ind > old_ind && has_prev {
+        return Some(done(indent(text, at, 1), state, true));
+    }
+    if ind < old_ind && allow_outdent(&list, index) {
+        return Some(done(indent(text, at, -1), state, true));
+    }
+    // Back where it started, and out from there if it was going in.
+    let end = line_end(text, pos);
+    let restored = format!("{}{old_bullet} ", " ".repeat(old_ind.max(0) as usize));
+    let mut new_text = text.to_string();
+    new_text.replace_range(pos..end, &restored);
+    let cursor = pos + restored.len();
+    let list = structure(&new_text, pos);
+    let Some(index) = list.iter().position(|item| item.pos == pos) else {
+        return Some(Ok(ItemCycled { text: new_text, cursor, state, continues: false }));
+    };
+    if ind > old_ind && allow_outdent(&list, index) {
+        return Some(done(indent(&new_text, cursor, -1), state, true));
+    }
+    let mut list = list;
+    let parents_of = parents(&list);
+    let mut buffer = Buffer { text: new_text, point: cursor, md: MatchData::default(), settings };
+    let written = write_struct(&mut buffer, &mut list, &parents_of, None);
+    Some(written.map(|()| ItemCycled { text: buffer.text, cursor: buffer.point, state, continues: false }))
+}
+
 /// `org-move-item-down` (`M-<down>` on an item) and `org-move-item-up`:
 /// the item and its children swapped with the next or previous one, the
 /// cursor going with it, at its column. With `circular`

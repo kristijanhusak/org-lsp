@@ -481,7 +481,7 @@ impl Server {
         hide_entries: bool,
     ) -> Value {
         let parse = org_syntax::parse(text, &self.todo);
-        let folds = folding::headline_folds(&parse.syntax(), text, index, self.separator_lines);
+        let folds = folding::headline_folds(&parse.syntax(), text, index, self.cycle.folding);
         let hidden = |line: u32| hidden_lines.contains(&(line as usize + 1));
         let (mut close, mut open): (Vec<FoldingRange>, Vec<FoldingRange>) = (Vec::new(), Vec::new());
         if hide_entries {

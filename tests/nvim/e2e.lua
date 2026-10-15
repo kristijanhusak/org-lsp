@@ -1183,6 +1183,26 @@ press('<S-Tab>')
 press('<S-Tab>')
 eq({ vim.fn.foldclosed(1), vim.fn.foldclosed(3), vim.fn.foldclosed(5) }, { -1, 3, -1 }, 'S-TAB shows all but it too')
 
+-- 23d. TAB on a new, empty headline changes its level
+-- (`org-cycle-level-after-item/entry-creation`); showing a headline's
+-- children leaves its lists open (`org-cycle-include-plain-lists`).
+local fresh = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* A', '** ', '* L', '- a', '  more', '- b' }, fresh)
+vim.cmd.edit(fresh)
+wait('folds of the file with a new headline', function()
+  return vim.fn.foldlevel(4) > 1
+end)
+vim.api.nvim_win_set_cursor(0, { 2, 2 })
+press('<Tab>')
+wait('the new headline promoted', function()
+  return line(2) == '* '
+end)
+vim.api.nvim_win_set_cursor(0, { 3, 0 })
+press('<Tab>')
+eq(vim.fn.foldclosed(3), 3, 'TAB folds the headline with the list')
+press('<Tab>')
+eq({ vim.fn.foldclosed(3), vim.fn.foldclosed(4) }, { -1, -1 }, 'its children shown, the list open')
+
 -- 24. `<Leader>o$` archives the subtree to the archive file, which is
 -- written as Emacs saves it, and `<Leader>oA` tags a subtree as archived.
 -- `org.archive.done` asks about each subtree without open TODO items.

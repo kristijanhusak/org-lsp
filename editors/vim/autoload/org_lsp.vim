@@ -2201,6 +2201,22 @@ function! org_lsp#cycle() abort
   if getline('.') =~# '^\s*|'
     return org_lsp#run('org.table.next.field')
   endif
+  " What TAB does before it folds (`org.cycle`): a new, empty entry
+  " changes level, the start of the file cycles globally.
+  let integrate = v:false
+  if !empty(org_lsp#adapter()) && org_lsp#ready(bufnr())
+    let [nr, context] = s:cursor_context()
+    let answer = org_lsp#request_sync(nr, 'workspace/executeCommand', {'command': 'org.cycle', 'arguments': [context]}, 1000)
+    let result = get(answer, 'result', v:null)
+    if !empty(get(answer, 'error', {}))
+      return s:warn(get(answer.error, 'message', 'TAB failed'))
+    elseif type(result) == v:t_dict && type(get(result, 'edits', 0)) == v:t_list
+      return s:apply_carried(context.textDocument.uri, result)
+    elseif type(result) == v:t_dict && get(result, 'global', v:false) is v:true
+      return org_lsp#global_cycle()
+    endif
+    let integrate = type(result) == v:t_dict && get(result, 'integrateLists', v:false) is v:true
+  endif
   let all = s:fold_ranges(bufnr())
   let line = line('.')
   let current = []
@@ -2218,6 +2234,10 @@ function! org_lsp#cycle() abort
   let [start, finish] = current
   let inner = filter(copy(all), {_, r -> r[0] > start && r[1] <= finish})
   let children = filter(copy(inner), {_, r -> empty(filter(copy(inner), {_, o -> o != r && o[0] < r[0] && r[1] <= o[1]}))})
+  " Lists stay open but with `org_cycle_include_plain_lists` `integrate`.
+  if !integrate && !s:is_item(start)
+    call filter(children, {_, r -> !s:is_item(r[0])})
+  endif
   if foldclosed(start) != -1
     execute printf('silent! %d,%dfoldopen!', start, finish)
     for child in children
@@ -2234,6 +2254,11 @@ function! org_lsp#cycle() abort
     endif
   endfor
   execute 'silent! ' . start . 'foldclose'
+endfunction
+
+" Whether line `line` starts a list item.
+function! s:is_item(line) abort
+  return getline(a:line) =~# '^\%(\s*\%([-+]\|\d\+[.)]\)\|\s\+\*\)\%(\s\|$\)'
 endfunction
 
 " Cycle the whole file between overview (all folded) and all visible but

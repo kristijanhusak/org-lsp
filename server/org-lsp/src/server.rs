@@ -1051,8 +1051,11 @@ struct Server {
     /// The client's copy of the date prompt document, which it may keep
     /// after a prompt is done.
     prompt_copy: Option<Document>,
-    /// `org-cycle-separator-lines`
-    separator_lines: i64,
+    /// How TAB works (`org-cycle` and its options).
+    cycle: folding::Cycle,
+    /// `org-tab-ind-state`: the cycle of an empty item's indentation that
+    /// TAB started.
+    tab_ind_state: Option<org_core::list::TabIndState>,
     /// How files show when they are opened.
     startup: folding::Startup,
     /// The documents column view shows on, by URI.
@@ -1489,7 +1492,8 @@ pub fn run(connection: Connection) -> Result<()> {
         date_prompt: None,
         question: None,
         prompt_copy: None,
-        separator_lines: options.separator_lines(),
+        cycle: options.cycle(),
+        tab_ind_state: None,
         startup: options.startup(),
         columns: HashMap::new(),
         shrunk: HashMap::new(),
@@ -3194,7 +3198,7 @@ impl Server {
 
     fn folding_ranges(&mut self, params: FoldingRangeParams) -> Option<Vec<lsp_types::FoldingRange>> {
         let document = self.document(&params.text_document.uri)?;
-        Some(folding::folding_ranges(&document.syntax(), &document.text, &document.index, self.separator_lines))
+        Some(folding::folding_ranges(&document.syntax(), &document.text, &document.index, self.cycle.folding))
     }
 
     /// Before a file is saved: with `org-crypt-use-before-save-magic` in
@@ -3243,7 +3247,7 @@ impl Server {
             &document.syntax(),
             &document.text,
             &document.index,
-            self.separator_lines,
+            self.cycle.folding,
             &self.startup,
         );
         Some(json!({ "folds": folds }))
@@ -6024,6 +6028,7 @@ impl Server {
                 Ok(json!({ "save": files }))
             }
             commands::DATE_PREVIEW => self.preview_date(&context.ok_or("This command needs the cursor position")?),
+            commands::CYCLE => self.cycle(&context.ok_or("This command needs the cursor position")?),
             id if id.starts_with("org.agenda.filter") => self.agenda_filter(id, context.as_ref()),
             commands::AGENDA_WRITE => self.agenda_write(context.as_ref()),
             commands::AGENDA_APPT => self.agenda_to_appt(context.as_ref()),
@@ -11408,6 +11413,71 @@ impl Server {
         Ok(result)
     }
 
+    /// What TAB does before it folds (`org-cycle`): on a new, empty
+    /// headline or item its level changes (`org-cycle-level`,
+    /// `org-cycle-item-indentation`, with
+    /// `org_cycle_level_after_item_entry_creation`), carried in the result
+    /// as `org.return`'s edit is; at the start of the file, off a headline,
+    /// `{ "global": true }` with `org_cycle_global_at_bob`; else how the
+    /// editor folds, `{ "integrateLists" }`
+    /// (`org_cycle_include_plain_lists`). A press right after one that
+    /// moved an item, from where it left the cursor, goes on with that
+    /// item's cycle.
+    fn cycle(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        use org_core::{list, structure};
+        let uri = &context.text_document.uri;
+        let key = uri.as_str().to_string();
+        let encoding = self.client.encoding;
+        let document = self.document(uri).ok_or("This file is not open")?;
+        let text = document.text.clone();
+        let offset = document.index.offset(&text, context.position, encoding);
+        let keywords = document.parse.todo_keywords().clone();
+        let repeated = self
+            .last
+            .as_ref()
+            .is_some_and(|last| last.command == commands::CYCLE && last.file == key && last.cursor == Some(offset));
+        let state = if repeated { self.tab_ind_state.take() } else { None };
+        self.tab_ind_state = None;
+        let cycle = self.cycle;
+        let mut moved = None;
+        if cycle.level_after_creation {
+            let tags_column = self.refile.2.tags_column;
+            let settings = structure::Settings { tags_column, indent: self.indent_in(&text) };
+            if let Some(outcome) = structure::cycle_level(&text, offset, &keywords, &settings) {
+                moved = Some(outcome);
+            } else if let Some(cycled) = list::cycle_item_indentation(
+                &text,
+                offset,
+                state.as_ref(),
+                &keywords,
+                tags_column,
+                &self.edit_settings.todo.lists,
+            ) {
+                let cycled = cycled?;
+                self.tab_ind_state = cycled.continues.then_some(cycled.state);
+                moved = Some(org_core::newline::Outcome { text: cycled.text, cursor: cycled.cursor });
+            }
+        }
+        if let Some(outcome) = moved {
+            let cursor = outcome.cursor;
+            let result = self.carried(context, outcome)?;
+            self.last =
+                Some(Last { command: commands::CYCLE.to_string(), file: key, heading: None, cursor: Some(cursor) });
+            return Ok(result);
+        }
+        self.last = None;
+        // `org-cycle-global-at-bob`: not on a headline cycling folds, as
+        // `org-cycle-max-level` limits them.
+        let first_line = text.split('\n').next().unwrap_or("");
+        let stars = first_line.bytes().take_while(|b| *b == b'*').count();
+        let heading =
+            stars > 0 && first_line[stars..].starts_with(' ') && cycle.folding.max_level.is_none_or(|max| stars <= max);
+        if cycle.global_at_bob && offset == 0 && !heading {
+            return Ok(json!({ "global": true }));
+        }
+        Ok(json!({ "integrateLists": cycle.integrate_lists }))
+    }
+
     /// `org-goto` (`C-c C-j`), as with `org-goto-interface` set to
     /// `outline-path-completion`: the file's headings to
     /// `org_goto_max_level`, named by their outline path; the answer moves
@@ -12553,7 +12623,7 @@ impl Server {
         // The folds to open: those around a line to show, not those that
         // start on it (a headline shows, its subtree stays folded).
         let mut unfold: Vec<u32> =
-            folding::folding_ranges(&document.syntax(), text, &document.index, self.separator_lines)
+            folding::folding_ranges(&document.syntax(), text, &document.index, self.cycle.folding)
                 .into_iter()
                 .filter(|range| lines.iter().any(|line| range.start_line < *line && *line <= range.end_line))
                 .map(|range| range.start_line)

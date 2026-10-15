@@ -50,6 +50,9 @@ its sections says what it should look like.
 - [ ] A file with ~#+STARTUP: overview~ opens folded; with ~content~ its headlines show, those without children folded, and its drawers folded
 - [ ] A subtree with ~:VISIBILITY: children~ opens with its children folded, one with ~all~ open
 - [ ] Two blank lines after a subtree stay visible below it when it is folded
+- [ ] Under ~* A~, TAB at the end of a new ~** ~ makes it ~* ~, again ~** ~; on a new ~- ~ item under ~- a~, TAB indents it: ~Tab~
+- [ ] Showing the children of a headline leaves its lists open; with ~org_cycle_include_plain_lists = "integrate"~ they fold to their items
+- [ ] With ~org_cycle_global_at_bob = true~, TAB at the very start of a file whose first line is no headline cycles the whole file
 - [ ] Narrowing to the subtree opens it in a file of its own; saving that file writes it back into the Org file and saves it: ~Ctrl+X n s~
 - [ ] Widening in the narrowed file writes it back and closes it (~C-c '~ there does the same): ~Ctrl+X n w~
 - [ ] Opening the parent of an ~:ARCHIVE:~ subtree leaves that subtree folded

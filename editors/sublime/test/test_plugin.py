@@ -540,9 +540,9 @@ class Tests(unittest.TestCase):
         self.assertIn('org-lsp: No clock', self.sublime.messages)
         self.assertIn('org-lsp: No clock', self.view.popups[-1][0])
 
-    def cycle(self, line, **args):
+    def cycle(self, line, before=None, **args):
         self.view.cursor = self.view.text_point(line, 0)
-        self.Command.current = Session([('result', RANGES)])
+        self.Command.current = Session([('result', before or {'integrateLists': False}), ('result', RANGES)])
         self.plugin.OrgLspCycleCommand(self.view).run(None, **args)
 
     def folded_rows(self):
@@ -561,6 +561,13 @@ class Tests(unittest.TestCase):
         fallback = {'command': 'insert_best_completion', 'args': {'default': '\t', 'exact': False}}
         self.cycle(1, fallback=fallback)
         self.assertEqual(self.view.commands, [('insert_best_completion', fallback['args'])])
+
+    def test_tab_first_asks_the_server_what_it_does(self):
+        # At the start of the file, with `org_cycle_global_at_bob`, as S-TAB.
+        self.cycle(0, before={'global': True})
+        self.assertEqual(self.Command.current.sent[0][0], 'workspace/executeCommand')
+        self.assertEqual(self.Command.current.sent[0][1]['command'], 'org.cycle')
+        self.assertEqual(self.view.commands, [('org_lsp_cycle_global', None)])
 
     def test_cycles_the_file_as_shift_tab_does(self):
         def cycle():

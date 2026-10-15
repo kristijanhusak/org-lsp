@@ -396,6 +396,18 @@ pub struct Options {
     /// keep one of them visible when it is folded.
     #[serde(rename = "org_cycle_separator_lines")]
     pub cycle_separator_lines: Option<i64>,
+    /// `org-cycle-include-plain-lists`: `true`, `false` or `"integrate"`.
+    #[serde(rename = "org_cycle_include_plain_lists")]
+    pub cycle_include_plain_lists: Option<serde_json::Value>,
+    /// `org-cycle-max-level`
+    #[serde(rename = "org_cycle_max_level")]
+    pub cycle_max_level: Option<usize>,
+    /// `org-cycle-global-at-bob`
+    #[serde(rename = "org_cycle_global_at_bob")]
+    pub cycle_global_at_bob: Option<bool>,
+    /// `org-cycle-level-after-item/entry-creation`
+    #[serde(rename = "org_cycle_level_after_item_entry_creation")]
+    pub cycle_level_after_creation: Option<bool>,
     /// `org-startup-shrink-all-tables`
     #[serde(rename = "org_startup_shrink_all_tables")]
     pub startup_shrink_all_tables: Option<bool>,
@@ -1088,6 +1100,22 @@ impl Options {
     /// `org-cycle-separator-lines`
     pub fn separator_lines(&self) -> i64 {
         self.cycle_separator_lines.unwrap_or(crate::folding::SEPARATOR_LINES)
+    }
+
+    /// How TAB works: what folds and what TAB does before folding.
+    pub fn cycle(&self) -> crate::folding::Cycle {
+        use crate::folding::{Cycle, Folding};
+        let lists = self.cycle_include_plain_lists.as_ref();
+        Cycle {
+            folding: Folding {
+                separator_lines: self.separator_lines(),
+                max_level: self.cycle_max_level.filter(|level| *level > 0),
+                plain_lists: lists != Some(&serde_json::Value::Bool(false)),
+            },
+            integrate_lists: lists.and_then(serde_json::Value::as_str) == Some("integrate"),
+            global_at_bob: self.cycle_global_at_bob.unwrap_or(false),
+            level_after_creation: self.cycle_level_after_creation.unwrap_or(true),
+        }
     }
 
     /// How files show when they are opened.

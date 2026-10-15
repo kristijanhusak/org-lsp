@@ -116,7 +116,7 @@ server first, with a tab that says so and closes when the agenda opens.
 | Feature | Parity | Sublime Text | What does not work, and why |
 |---+---+---+---|
 | [[file:parity.org::#highlighting][Highlighting]] | 94% | ❓ | Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Sublime Text cannot hide text in a view. The colors need LSP's ~semantic_highlighting~ on. |
-| [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 90% | ❓ | A closed fold ends in Sublime Text's own marker: a package cannot change it (~org_ellipsis~). |
+| [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 91% | ❓ | A closed fold ends in Sublime Text's own marker: a package cannot change it (~org_ellipsis~). |
 | [[file:parity.org::#headings-and-structure][Headings and structure]] | 93% | ✅ |  |
 | [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 100% | ✅ |  |
 | [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ❓ | Faces of particular keywords and priorities are not shown in the file: Sublime Text colors text by its color scheme only. The list of TODO states shows them in the color of each item's kind, the nearest of those Sublime Text has. |

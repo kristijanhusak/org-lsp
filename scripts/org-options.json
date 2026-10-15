@@ -477,11 +477,11 @@
  },
  "org-cycle.el": {
   "org-cycle-skip-children-state-if-no-children": "emacs-only",
-  "org-cycle-max-level": "missing",
+  "org-cycle-max-level": "setting",
   "org-cycle-hide-block-startup": "setting",
   "org-cycle-hide-drawer-startup": "setting",
-  "org-cycle-global-at-bob": "missing",
-  "org-cycle-level-after-item/entry-creation": "missing",
+  "org-cycle-global-at-bob": "setting",
+  "org-cycle-level-after-item/entry-creation": ["other", "the setting ~org_cycle_level_after_item_entry_creation~, its name without the ~/~"],
   "org-cycle-emulate-tab": "emacs-only",
   "org-cycle-separator-lines": "setting",
   "org-cycle-pre-hook": "lisp",
@@ -591,7 +591,7 @@
   "org-speed-commands": "emacs-only"
  },
  "org-list.el": {
-  "org-cycle-include-plain-lists": "missing",
+  "org-cycle-include-plain-lists": "setting",
   "org-list-demote-modify-bullet": "setting",
   "org-plain-list-ordered-item-terminator": "missing",
   "org-list-allow-alphabetical": "missing",

@@ -10,6 +10,45 @@ use crate::line_index::LineIndex;
 /// `org-cycle-separator-lines`, Org's default.
 pub const SEPARATOR_LINES: i64 = 2;
 
+/// What folds, as Org's options of cycling say.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Folding {
+    /// `org-cycle-separator-lines`
+    pub separator_lines: i64,
+    /// `org-cycle-max-level`: deeper headlines are text of their parent's
+    /// subtree, with no fold of their own.
+    pub max_level: Option<usize>,
+    /// `org-cycle-include-plain-lists` not nil: list items fold.
+    pub plain_lists: bool,
+}
+
+impl Default for Folding {
+    fn default() -> Self {
+        Folding { separator_lines: SEPARATOR_LINES, max_level: None, plain_lists: true }
+    }
+}
+
+/// How TAB works (`org-cycle`): what folds, and what TAB does before it
+/// folds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Cycle {
+    pub folding: Folding,
+    /// `org-cycle-include-plain-lists` `integrate`: showing a headline's
+    /// children folds its lists to their top items.
+    pub integrate_lists: bool,
+    /// `org-cycle-global-at-bob`
+    pub global_at_bob: bool,
+    /// `org-cycle-level-after-item/entry-creation`
+    pub level_after_creation: bool,
+}
+
+impl From<i64> for Folding {
+    /// Org's defaults, with `separator_lines`.
+    fn from(separator_lines: i64) -> Self {
+        Folding { separator_lines, ..Folding::default() }
+    }
+}
+
 /// Every foldable range in the document, as `(first line, last line)`.
 ///
 /// A subtree folds up to the next headline, with the blank lines before
@@ -18,13 +57,23 @@ pub const SEPARATOR_LINES: i64 = 2;
 /// visible (all of them when it is negative); 0 hides them all. Blank
 /// lines at the end of the file always stay visible. Other elements end
 /// at their last line with text.
-pub fn folding_ranges(root: &SyntaxNode, text: &str, index: &LineIndex, separator_lines: i64) -> Vec<FoldingRange> {
-    folds(root, text, index, separator_lines).into_iter().map(|(_, range)| range).collect()
+pub fn folding_ranges(
+    root: &SyntaxNode,
+    text: &str,
+    index: &LineIndex,
+    folding: impl Into<Folding>,
+) -> Vec<FoldingRange> {
+    folds(root, text, index, folding.into()).into_iter().map(|(_, range)| range).collect()
 }
 
 /// The folding ranges of the headlines' subtrees.
-pub fn headline_folds(root: &SyntaxNode, text: &str, index: &LineIndex, separator_lines: i64) -> Vec<FoldingRange> {
-    folds(root, text, index, separator_lines)
+pub fn headline_folds(
+    root: &SyntaxNode,
+    text: &str,
+    index: &LineIndex,
+    folding: impl Into<Folding>,
+) -> Vec<FoldingRange> {
+    folds(root, text, index, folding.into())
         .into_iter()
         .filter(|(node, _)| node.kind() == HEADLINE)
         .map(|(_, range)| range)
@@ -32,13 +81,17 @@ pub fn headline_folds(root: &SyntaxNode, text: &str, index: &LineIndex, separato
 }
 
 /// The folding ranges, each with the element it folds.
-fn folds(root: &SyntaxNode, text: &str, index: &LineIndex, separator_lines: i64) -> Vec<(SyntaxNode, FoldingRange)> {
+fn folds(root: &SyntaxNode, text: &str, index: &LineIndex, folding: Folding) -> Vec<(SyntaxNode, FoldingRange)> {
+    let separator_lines = folding.separator_lines;
     let mut ranges = Vec::new();
     for node in root.descendants() {
-        let foldable = matches!(
-            node.kind(),
-            HEADLINE | DRAWER | PROPERTY_DRAWER | BLOCK | DYNAMIC_BLOCK | LATEX_ENVIRONMENT | LIST_ITEM
-        );
+        let foldable = match node.kind() {
+            HEADLINE => folding
+                .max_level
+                .is_none_or(|max| node.first_token().is_some_and(|stars| stars.text().trim_end().len() <= max)),
+            LIST_ITEM => folding.plain_lists,
+            kind => matches!(kind, DRAWER | PROPERTY_DRAWER | BLOCK | DYNAMIC_BLOCK | LATEX_ENVIRONMENT),
+        };
         if !foldable {
             continue;
         }
@@ -116,7 +169,7 @@ pub fn startup_folds(
     root: &SyntaxNode,
     text: &str,
     index: &LineIndex,
-    separator_lines: i64,
+    folding: impl Into<Folding>,
     options: &Startup,
 ) -> Vec<FoldingRange> {
     let mut startup = options.clone();
@@ -144,7 +197,7 @@ pub fn startup_folds(
         "show5levels" => Some(5),
         _ => None,
     };
-    let folds = folds(root, text, index, separator_lines);
+    let folds = folds(root, text, index, folding.into());
     let mut closed = vec![false; folds.len()];
     let places: HashMap<&SyntaxNode, usize> =
         folds.iter().enumerate().map(|(index, (node, _))| (node, index)).collect();
