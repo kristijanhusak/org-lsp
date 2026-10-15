@@ -265,6 +265,7 @@ its sections says what it should look like.
 - [ ] The sum of the column and the field's references are shown as messages (needs Emacs): the code action /Sum the numbers of the table column/, the code action /Show the references of the table field/
 - [ ] Creating a table asks for its size (~3x2~; empty for Org's default) (needs Emacs): the code action /Insert an empty table/
 - [ ] Sorting the rows by the cursor's column: the code action /Sort the entries, the items or the table rows/
+- [ ] A table under ~#+PLOT: file:"plot.png"~ is plotted to ~plot.png~ (needs Emacs with gnuplot.el, and gnuplot); the bars of a column of numbers go in a column of their own with its ~#+TBLFM:~ (needs Emacs): the code action /Plot the table with gnuplot/, the code action /Draw the column at the cursor as bars/
 - [ ] The ~#+TBLFM:~ line follows a moved column
 
 * Table formulas

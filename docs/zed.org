@@ -110,7 +110,7 @@ and lists the keys.
 | [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ |  |
 | [[file:parity.org::#links][Links]] | 100% | ❓ | A link's target is typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Following works through go to definition, for links inside Org files and to files. |
 | [[file:parity.org::#footnotes][Footnotes]] | 100% | ✅ |  |
-| [[file:parity.org::#tables][Tables]] | 95% | ❓ | Moving between fields with ~TAB~ and copying down (~S-RET~) are left out: those keys stay Zed's own. For a new table's size, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. A shrunk column shows its whole text and ~…~: Zed lets no server hide text. |
+| [[file:parity.org::#tables][Tables]] | 100% | ❓ | Moving between fields with ~TAB~ and copying down (~S-RET~) are left out: those keys stay Zed's own. For a new table's size, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. A shrunk column shows its whole text and ~…~: Zed lets no server hide text. |
 | [[file:parity.org::#table-formulas][Table formulas]] | 100% | ✅ |  |
 | [[file:parity.org::#code-blocks-babel][Code blocks (Babel)]] | 100% | ✅ |  |
 | [[file:parity.org::#export-and-publishing][Export and publishing]] | 100% | ✅ |  |
@@ -123,7 +123,7 @@ and lists the keys.
 | [[file:parity.org::#attachments][Attachments]] | 100% | ❓ | ~attachment:~ links open; the dispatcher's keys come as buttons, and for the file to attach, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. |
 | [[file:parity.org::#encryption][Encryption]] | 100% | ✅ |  |
 | [[file:parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | ❌ | Zed lets no extension show images in a file. |
-| *All of Org* | *96%* |  |  |
+| *All of Org* | *97%* |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what and why),
 ❌ none does, — nothing to support yet. Parity is the share of what

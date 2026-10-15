@@ -106,6 +106,8 @@ in a popup. [[file:../vim.org][vim.org]] says how to install and set up the plug
 | ~<Leader>o+~ | ~org.table.sum~ | Sum the numbers of the table column |
 | ~<Leader>o?~ | ~org.table.field.info~ | Show the references of the table field |
 | ~<Leader>oi<Bar>~ | ~org.table.create~ | Insert an empty table |
+| ~<Leader>opg~ | ~org.plot.gnuplot~ | Plot the table with gnuplot |
+| ~<Leader>opa~ | ~org.table.ascii.plot~ | Draw the column at the cursor as bars |
 | ~<Leader>obn~ | ~org.babel.next~ | Move to the next code block |
 | ~<Leader>obp~ | ~org.babel.previous~ | Move to the previous code block |
 | ~<Leader>obg~ | ~org.babel.goto~ | Go to a named code block |

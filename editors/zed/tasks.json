@@ -910,6 +910,32 @@
     "use_new_terminal": false
   },
   {
+    "label": "Org: Plot the table with gnuplot",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.plot.gnuplot",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Draw the column at the cursor as bars",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.table.ascii.plot",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
     "label": "Org: Move to the next code block",
     "command": "$HOME/.local/state/org-lsp/agenda-command file:org.babel.next",
     "tags": [

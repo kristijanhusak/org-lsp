@@ -289,6 +289,7 @@ its sections says what it should look like.
 - [ ] The sum of the column and the field's references are shown as messages (needs Emacs): ~Ctrl+C +~, ~Ctrl+C ?~
 - [ ] Creating a table asks for its size (~3x2~; empty for Org's default) (needs Emacs): ~Ctrl+C |~
 - [ ] Sorting the rows by the cursor's column: ~Ctrl+C ^~
+- [ ] A table under ~#+PLOT: file:"plot.png"~ is plotted to ~plot.png~ (needs Emacs with gnuplot.el, and gnuplot); the bars of a column of numbers go in a column of their own with its ~#+TBLFM:~ (needs Emacs): ~Ctrl+C " g~, ~Ctrl+C " a~
 - [ ] The ~#+TBLFM:~ line follows a moved column
 
 * Table formulas
