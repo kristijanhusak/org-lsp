@@ -553,6 +553,7 @@ export const AREAS = [
       ['`%c`, `%x` and `%^C` (the editor\'s clipboard)', true],
       ['`%:keyword` (the properties of the link `%a` makes: `:annotation`, `:initial`, and an `id:` link\'s `:link`, `:description`, `:type`)', true],
       ['Template contexts (`org-capture-templates-contexts`)', true],
+      ['Capturing from the agenda with the date of the line (`org-capture-use-agenda-date`)', true],
     ],
     editors: {
       zed: ['part', `For a template's prompts, ${ZED_TEXT}. The capture buffer's tab stays open once the entry is filed: Zed lets no server close a tab.`],

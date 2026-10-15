@@ -413,7 +413,7 @@
   "org-capture-after-finalize-hook": "lisp",
   "org-capture-prepare-finalize-hook": "lisp",
   "org-capture-templates-contexts": "setting",
-  "org-capture-use-agenda-date": "absent"
+  "org-capture-use-agenda-date": "setting"
  },
  "org-clock.el": {
   "org-clock-into-drawer": "setting",

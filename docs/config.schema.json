@@ -1375,6 +1375,11 @@
       "description": "Whether the archive file is saved once a subtree goes there: always (`true`), when archiving from an Org file (`from-org`), from the agenda (`from-agenda`), or never (`false`). Unsaved, it is left with its changes in the editor, as `auto_save` does not save it. (`org-archive-subtree-save-file-p`)",
       "default": "from-org"
     },
+    "org_capture_use_agenda_date": {
+      "type": "boolean",
+      "description": "Capturing from the agenda takes the day of the line the cursor is on, at midnight (or the hour of `org_extend_today_until`), for `%t`, `%U` and the like and for the date of a date tree, which a `time_prompt` template then does not ask for. (`org-capture-use-agenda-date`)",
+      "default": false
+    },
     "org_capture_templates_contexts": {
       "type": "array",
       "items": {

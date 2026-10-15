@@ -2810,6 +2810,24 @@ or never (~false~). Unsaved, it is left with its changes in the editor, as
 org_archive_subtree_save_file_p = "from-org"
 #+end_src
 
+*** org_capture_use_agenda_date
+:PROPERTIES:
+:CUSTOM_ID: org_capture_use_agenda_date
+:END:
+
+Capturing from the agenda takes the day of the line the cursor is on, at
+midnight (or the hour of ~org_extend_today_until~), for ~%t~, ~%U~ and the
+like and for the date of a date tree, which a ~time_prompt~ template then does
+not ask for.
+
+- Org's option :: ~org-capture-use-agenda-date~
+- Type :: boolean
+- Default :: ~false~
+
+#+begin_src toml
+org_capture_use_agenda_date = false
+#+end_src
+
 *** org_capture_templates_contexts
 :PROPERTIES:
 :CUSTOM_ID: org_capture_templates_contexts

@@ -5645,6 +5645,70 @@ fn offers_templates_and_commands_by_context() {
     client.shutdown();
 }
 
+/// `org-capture-use-agenda-date`: capturing from the agenda takes the day
+/// of the line the cursor is on, at midnight, as Emacs does; a template
+/// with `:time-prompt` does not ask for it.
+#[test]
+fn captures_with_the_date_of_the_agenda_line() {
+    let root = workspace("capture-agenda-date");
+    let notes = root.join("notes.org");
+    std::fs::write(&notes, "").unwrap();
+    let diary = root.join("diary.org");
+    std::fs::write(&diary, "").unwrap();
+    let work = root.join("work.org");
+    let text = "* TODO Write\nSCHEDULED: <2026-05-20 Wed>\n";
+    std::fs::write(&work, text).unwrap();
+    let mut options = clock();
+    options["org_agenda_files"] = json!([work.display().to_string()]);
+    options["org_default_notes_file"] = json!(notes.display().to_string());
+    options["org_capture_use_agenda_date"] = json!(true);
+    options["org_capture_templates"] = json!([
+        { "key": "n", "description": "Note", "template": "* Note %t %U" },
+        { "key": "d", "description": "Day", "target": ["file+olp+datetree", diary.display().to_string()],
+          "template": "* Day %t", "time_prompt": true },
+    ]);
+    let mut client = Client::editor(options, None);
+    let uri = format!("file://{}", work.display());
+    client.open(&uri, text);
+    client.command("org.agenda.list", &uri, 0);
+    let view = client.view_text(VIEW);
+    let line = |needle: &str| view.lines().position(|line| line.contains(needle)).unwrap() as u32;
+    let capture = |client: &mut Client, key: &str, line: u32| {
+        let context = json!({
+            "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 }, "keys": "", "input": key,
+        });
+        client.received.clear();
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": "org.capture", "arguments": [context] }));
+        assert_eq!(result, Ok(Value::Null));
+        client.settle();
+        let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("buffer");
+        let buffer = show.params["uri"].as_str().unwrap().strip_prefix("file://").unwrap().to_string();
+        let captured = std::fs::read_to_string(&buffer).unwrap();
+        // Filed, to see where.
+        let buffer = format!("file://{buffer}");
+        client.open(&buffer, &captured);
+        let context = json!({ "textDocument": { "uri": buffer }, "position": { "line": 0, "character": 0 } });
+        client.received.clear();
+        client
+            .request("workspace/executeCommand", json!({ "command": "org.capture.finish", "arguments": [context] }))
+            .unwrap();
+        client.settle();
+        let filed = client.received.iter().find(|request| request.method == "workspace/applyEdit").map(edits_of);
+        (captured, filed.map(|(_, edits)| apply("", &edits)))
+    };
+    assert_eq!(capture(&mut client, "n", line("Write")).0, "* Note <2026-05-20 Wed> [2026-05-20 Wed 00:00]\n");
+    assert_eq!(capture(&mut client, "n", line("Thursday")).0, "* Note <2026-05-21 Thu> [2026-05-21 Thu 00:00]\n");
+    let (captured, filed) = capture(&mut client, "d", line("Write"));
+    assert_eq!(captured, "**** Day <2026-05-20 Wed>\n");
+    // Under the day of the line; an empty file starts with a blank line,
+    // as Emacs leaves it (tests/capture/cases.json).
+    let tree = "\n* 2026\n** 2026-05 May\n*** 2026-05-20 Wednesday\n**** Day <2026-05-20 Wed>\n";
+    assert_eq!(filed.as_deref(), Some(tree));
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
 /// Capturing from where there is no document (no file open): the
 /// template and the answers come without a cursor.
 #[test]
