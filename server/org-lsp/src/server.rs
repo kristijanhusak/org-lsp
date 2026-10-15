@@ -1154,6 +1154,9 @@ struct Server {
     file_apps: org_core::file_apps::FileApps,
     /// `org-allow-promoting-top-level-subtree`
     allow_promoting_top_level: bool,
+    /// `org-odd-levels-only`, unless a document's `#+STARTUP:` says
+    /// otherwise.
+    odd_levels: bool,
     /// `org-yank-adjusted-subtrees`
     yank_adjusted_subtrees: bool,
     /// `org-agenda-skip-unavailable-files`
@@ -1310,6 +1313,8 @@ pub fn run(connection: Connection) -> Result<()> {
     org_syntax::set_user_entities(&options.user_entities());
     // `org-list-allow-alphabetical`, `org-plain-list-ordered-item-terminator`.
     org_syntax::set_list_syntax(options.list_syntax());
+    // `org-odd-levels-only`, for the files without a `#+STARTUP:` word.
+    org_core::structure::set_odd_levels_default(options.odd_levels_only.unwrap_or(false));
     let (port_sender, port_receiver) = crossbeam_channel::unbounded();
 
     let org_client = raw_params.pointer("/capabilities/experimental/orgClient").and_then(Value::as_bool) == Some(true)
@@ -1622,6 +1627,7 @@ pub fn run(connection: Connection) -> Result<()> {
         open_settings: options.open_settings(),
         file_apps: options.file_apps.as_deref().map(org_core::file_apps::FileApps::from_pairs).unwrap_or_default(),
         allow_promoting_top_level: options.allow_promoting_top_level_subtree.unwrap_or(false),
+        odd_levels: options.odd_levels_only.unwrap_or(false),
         yank_adjusted_subtrees: options.yank_adjusted_subtrees.unwrap_or(false),
         skip_unavailable_files: options.agenda_skip_unavailable_files.unwrap_or(false),
         removed_agenda_files: HashSet::new(),
@@ -3234,7 +3240,11 @@ impl Server {
         }
         let document = self.document(uri)?;
         let (conceal, _, _) = self.display_of(&document.text);
-        let tokens = highlight::tokens_with(&document.syntax(), document.parse.todo_keywords(), conceal, self.fontify);
+        let fontify = highlight::Fontify {
+            odd_levels: org_core::structure::odd_levels(&document.text, self.odd_levels),
+            ..self.fontify
+        };
+        let tokens = highlight::tokens_with(&document.syntax(), document.parse.todo_keywords(), conceal, fontify);
         let tokens =
             if self.edit_settings.todo.lists.checkbox_rule { tokens } else { highlight::without_cookies(tokens) };
         let radio: Vec<(usize, usize)> =
@@ -13849,6 +13859,7 @@ impl Server {
             tags_column: self.refile.2.tags_column,
             indent: self.indent_in(text),
             allow_promoting_top_level: self.allow_promoting_top_level,
+            odd_levels: org_core::structure::odd_levels(text, self.odd_levels),
         }
     }
 

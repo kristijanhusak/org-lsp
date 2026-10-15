@@ -436,7 +436,8 @@ pub(crate) fn property_value(index: usize, outline: &Outline, name: &str) -> Opt
     };
     let tag_string = |tags: Vec<&str>| (!tags.is_empty()).then(|| format!(":{}:", tags.join(":")));
     match name {
-        "LEVEL" => Some(entry.level.to_string()),
+        // The element's level: reduced with `org-odd-levels-only`.
+        "LEVEL" => Some(crate::structure::reduced_level(entry.level, outline.odd_levels).to_string()),
         "CATEGORY" => Some(entry.category.clone()),
         "TODO" => entry.todo.clone(),
         // The cookie's text (`org-priority-regexp`), or the default as

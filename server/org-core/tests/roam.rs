@@ -398,6 +398,7 @@ fn run_edit(case: &Value) -> Value {
             tags_column: -77,
             indent: Default::default(),
             allow_promoting_top_level: false,
+            odd_levels: false,
         };
         let edited = if command == "promote" {
             edit::promote_entire_buffer(&text, &todo, &structure, &settings)
@@ -556,6 +557,7 @@ fn run_move(case: &Value) -> Value {
         tags_column: -77,
         indent: Default::default(),
         allow_promoting_top_level: false,
+        odd_levels: false,
     };
     let refile_settings = org_core::refile::Settings::default();
     let arg = case["arg"].as_str().unwrap_or_default();

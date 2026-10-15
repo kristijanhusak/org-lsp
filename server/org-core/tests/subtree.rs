@@ -34,6 +34,7 @@ fn cuts_copies_and_pastes_as_emacs_does() {
             tags_column: -77,
             indent: indent::Settings { adapt, ..indent::Settings::default() },
             allow_promoting_top_level: false,
+            odd_levels: false,
         };
         let count = case["count"].as_u64().unwrap_or(1) as usize;
         let outcome = match op {

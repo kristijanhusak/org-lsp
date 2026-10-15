@@ -25,6 +25,61 @@ pub struct Settings {
     /// `org-allow-promoting-top-level-subtree`: promoting a headline of
     /// level 1 makes it a comment line, `# ` in place of `* `.
     pub allow_promoting_top_level: bool,
+    /// `org-odd-levels-only`: headlines go two stars at a time.
+    pub odd_levels: bool,
+}
+
+/// `org-odd-levels-only` as the options set it, for the server's life.
+static ODD_LEVELS: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Set `org-odd-levels-only` for the process.
+pub fn set_odd_levels_default(odd: bool) {
+    ODD_LEVELS.store(odd, std::sync::atomic::Ordering::Relaxed);
+}
+
+/// `org-odd-levels-only` as the options set it.
+pub fn odd_levels_default() -> bool {
+    ODD_LEVELS.load(std::sync::atomic::Ordering::Relaxed)
+}
+
+/// `org-odd-levels-only` in `text`: its `#+STARTUP:` words `odd` and
+/// `oddeven`, the last one counting, else `default`.
+pub fn odd_levels(text: &str, default: bool) -> bool {
+    let mut odd = default;
+    for word in crate::text::startup_words(text) {
+        match word.to_ascii_lowercase().as_str() {
+            "odd" => odd = true,
+            "oddeven" => odd = false,
+            _ => {}
+        }
+    }
+    odd
+}
+
+/// `org-get-valid-level`: the level `change` levels from `level`, with
+/// `org-odd-levels-only` an odd one, two stars a level.
+pub fn valid_level(level: usize, change: isize, odd: bool) -> usize {
+    let level = level as isize;
+    let valid = if !odd {
+        level + change
+    } else if change == 0 {
+        1 + 2 * (level / 2)
+    } else if change > 0 {
+        1 + 2 * ((level - 1 + 2 * change) / 2)
+    } else {
+        1 + 2 * ((level + 2 * change) / 2)
+    };
+    valid.max(1) as usize
+}
+
+/// `org-reduced-level`: the level of a headline counted as
+/// `org-odd-levels-only` counts it, `***` the second.
+pub fn reduced_level(level: usize, odd: bool) -> usize {
+    if odd {
+        1 + level / 2
+    } else {
+        level
+    }
 }
 
 /// Text and a point, edited as Emacs edits a buffer: the point moves as
@@ -148,7 +203,9 @@ fn change_level(buffer: &mut Buffer, heading: usize, change: isize, settings: &S
     if change < 0 && level == 1 {
         return Err(Refusal::Failed("Cannot promote to level 0.  UNDO to recover if necessary".to_string()));
     }
-    let new = (level as isize + change) as usize;
+    let new = valid_level(level, change, settings.odd_levels);
+    // `org-fixup-indentation` by as many columns as the stars changed.
+    let change = new as isize - level as isize;
     buffer.replace(heading, heading + level + 1, &format!("{} ", "*".repeat(new)));
     align_tags(buffer, heading, settings.tags_column);
     if settings.indent.adapt != indent::Adapt::Off {
@@ -257,19 +314,22 @@ pub fn cycle_level(text: &str, at: usize, keywords: &TodoKeywords, settings: &Se
         tags_column: settings.tags_column,
         indent: indent::Settings { adapt: indent::Adapt::Off, ..settings.indent.clone() },
         allow_promoting_top_level: false,
+        odd_levels: settings.odd_levels,
     };
+    // `org-level-increment`: two stars a level with `org-odd-levels-only`.
+    let increment = if settings.odd_levels { 2 } else { 1 };
     let steps: isize = if previous == 0 {
-        -(current as isize - 1)
+        -((current as isize - 1) / increment)
     } else if previous == current {
         1
     } else if previous == 1 {
-        -(current as isize - 1)
+        -((current as isize - 1) / increment)
     } else if current == 1 {
-        previous as isize - 1
+        (previous as isize - 1) / increment
     } else if current < previous {
         -1
     } else {
-        -(1 + (current - previous) as isize)
+        -(1 + (current - previous) as isize / increment)
     };
     let mut outcome = Outcome { text: text.to_string(), cursor: at };
     for _ in 0..steps.unsigned_abs() {
