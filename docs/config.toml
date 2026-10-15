@@ -1836,6 +1836,11 @@ org_sparse_tree_open_archived_trees = false
 # (org-occur-case-fold-search)
 org_occur_case_fold_search = true
 
+# Highlight the matches of a sparse tree (`C-c /`, and a link's `/regexp/`)
+# until the text changes; with `false`, only their lines show.
+# (org-highlight-sparse-tree-matches)
+org_highlight_sparse_tree_matches = true
+
 # The timestamps the date sparse trees (`C-c /` `b`, `a`, `D`) look at first:
 # `null` for scheduled and deadline dates, or one kind; `c` in the menu turns
 # to the next kind. (org-sparse-tree-default-date-type)
