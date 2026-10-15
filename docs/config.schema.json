@@ -1585,10 +1585,10 @@
       "description": "Leave the code of source blocks as it is indented when re-indenting. (`org-src-preserve-indentation`)",
       "default": false
     },
-    "org_edit_src_content_indentation": {
+    "org_src_content_indentation": {
       "type": "integer",
       "minimum": 0,
-      "description": "How far code is indented past its source block when re-indenting. (`org-edit-src-content-indentation`)",
+      "description": "How far code is indented past its source block: when re-indenting, and when the code of a block edited in a file of its own (`C-c '`) is written back. Formerly `org_edit_src_content_indentation`, which is still read. (`org-src-content-indentation`)",
       "default": 2
     },
     "org_agenda_span": {

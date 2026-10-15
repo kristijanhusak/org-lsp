@@ -10857,6 +10857,19 @@ impl Server {
         Ok(Value::Null)
     }
 
+    /// The indentation of source blocks as the settings have it
+    /// (`org-src-content-indentation`, `org-src-preserve-indentation`), for
+    /// Emacs to edit and write back blocks with.
+    fn src_variables(&self) -> Vec<(String, String)> {
+        vec![
+            ("org-src-content-indentation".to_string(), self.indent.src_content_indentation.to_string()),
+            (
+                "org-src-preserve-indentation".to_string(),
+                if self.indent.src_preserve_indentation { "t" } else { "nil" }.to_string(),
+            ),
+        ]
+    }
+
     /// `org-edit-special` (`C-c '`), through Emacs. What Org edits in a
     /// buffer of its own goes in a file of its own, shown, its text as Org
     /// puts it there (indentation and commas taken away; a table's
@@ -10875,7 +10888,12 @@ impl Server {
         let document = self.document(&uri).ok_or("This file is not open")?;
         let offset = document.index.offset(&document.text, context.position, self.client.encoding);
         let point = document.text[..offset].chars().count() + 1;
-        let params = json!({ "file": path.to_string_lossy(), "text": document.text, "point": point });
+        let params = json!({
+            "file": path.to_string_lossy(),
+            "text": document.text,
+            "point": point,
+            "variables": self.src_variables(),
+        });
         let method = if table_field { "edit-field" } else { "edit-special" };
         let result = self.emacs.call(method, params, std::time::Duration::from_secs(60)).map_err(Refusal::Failed)?;
         if let Some(file) = result.get("visit").and_then(Value::as_str) {
@@ -11122,6 +11140,7 @@ impl Server {
                 SpecialKind::Region => unreachable!("a region goes back without Emacs"),
             },
             "args": [content],
+            "variables": self.src_variables(),
         });
         let edit = &mut self.special_edits[index];
         edit.busy = true;

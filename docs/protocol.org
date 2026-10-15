@@ -408,7 +408,7 @@ Each option with its type, its default and what it means:
 - ~org_bullets_list_bullet~ :: false, or a string, ~"•"~. What ~org_bullets_mode~ shows in place of the ~-~, ~+~ or ~*~ of an item, as org-bullets.nvim does; ~false~ leaves them as they are.
 - ~org_bullets_checkboxes~ :: false, or { todo, half, done }, ~{ "done": "✓", "half": "-", "todo": " " }~. What ~org_bullets_mode~ shows between the brackets of a checkbox, ~[ ]~, ~[-]~ and ~[X]~, as org-bullets.nvim does; ~false~ leaves them as they are. A state left out keeps its default.
 - ~org_src_preserve_indentation~ :: boolean, ~false~. Leave the code of source blocks as it is indented when re-indenting. (~org-src-preserve-indentation~)
-- ~org_edit_src_content_indentation~ :: number, ~2~. How far code is indented past its source block when re-indenting. (~org-edit-src-content-indentation~)
+- ~org_src_content_indentation~ :: number, ~2~. How far code is indented past its source block: when re-indenting, and when the code of a block edited in a file of its own (~C-c '~) is written back. Formerly ~org_edit_src_content_indentation~, which is still read. (~org-src-content-indentation~)
 - ~org_agenda_span~ :: "day", "week", "fortnight", "month", "year", or a number of days, ~"week"~. How much time the agenda shows. (~org-agenda-span~)
 - ~org_agenda_start_on_weekday~ :: 0 to 6 (0 is Sunday), or false, ~1~. The day a week or fortnight starts on; ~false~ starts it today. (~org-agenda-start-on-weekday~)
 - ~org_deadline_warning_days~ :: number, ~14~. How many days before a deadline it shows up. (~org-deadline-warning-days~)

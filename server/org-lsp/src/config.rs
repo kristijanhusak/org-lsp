@@ -370,8 +370,8 @@ pub struct Options {
     #[serde(rename = "org_bullets_checkboxes")]
     pub bullets_checkboxes: Option<serde_json::Value>,
     /// `org-edit-src-content-indentation`
-    #[serde(rename = "org_edit_src_content_indentation")]
-    pub edit_src_content_indentation: Option<i64>,
+    #[serde(rename = "org_src_content_indentation")]
+    pub src_content_indentation: Option<i64>,
     /// `org-cycle-separator-lines`: how many blank lines after a subtree
     /// keep one of them visible when it is folded.
     #[serde(rename = "org_cycle_separator_lines")]
@@ -1576,7 +1576,7 @@ impl Options {
             log_into_drawer: self.todo_settings().log_into_drawer,
             src_preserve_indentation: self.src_preserve_indentation.unwrap_or(defaults.src_preserve_indentation),
             src_content_indentation: self
-                .edit_src_content_indentation
+                .src_content_indentation
                 .and_then(|columns| usize::try_from(columns).ok())
                 .unwrap_or(defaults.src_content_indentation),
             two_spaces: self.list_settings().two_spaces,
@@ -2250,7 +2250,9 @@ const OLD_NAMES: &[(&str, &str)] = &[
     ("startupIndented", "org_startup_indented"),
     ("hideLeadingStars", "org_hide_leading_stars"),
     ("srcPreserveIndentation", "org_src_preserve_indentation"),
-    ("editSrcContentIndentation", "org_edit_src_content_indentation"),
+    ("editSrcContentIndentation", "org_src_content_indentation"),
+    // Org 9.8's name for `org-edit-src-content-indentation`.
+    ("org_edit_src_content_indentation", "org_src_content_indentation"),
     ("virtualDocuments", "virtual_documents"),
     ("showDocument", "show_document"),
     ("messagePrompts", "message_prompts"),

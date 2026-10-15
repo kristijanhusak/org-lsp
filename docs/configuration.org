@@ -1607,9 +1607,11 @@ org_bullets_checkboxes = { done = "✓", half = "-", todo = " " }
 # (org-src-preserve-indentation)
 org_src_preserve_indentation = false
 
-# How far code is indented past its source block when re-indenting.
-# (org-edit-src-content-indentation)
-org_edit_src_content_indentation = 2
+# How far code is indented past its source block: when re-indenting, and when
+# the code of a block edited in a file of its own (`C-c '`) is written back.
+# Formerly `org_edit_src_content_indentation`, which is still read.
+# (org-src-content-indentation)
+org_src_content_indentation = 2
 
 # How much time the agenda shows. (org-agenda-span)
 org_agenda_span = "week"
@@ -3094,9 +3096,11 @@ org_agenda_custom_commands = []
   // (org-src-preserve-indentation)
   "org_src_preserve_indentation": false,
 
-  // How far code is indented past its source block when re-indenting.
-  // (org-edit-src-content-indentation)
-  "org_edit_src_content_indentation": 2,
+  // How far code is indented past its source block: when re-indenting, and
+  // when the code of a block edited in a file of its own (`C-c '`) is written
+  // back. Formerly `org_edit_src_content_indentation`, which is still read.
+  // (org-src-content-indentation)
+  "org_src_content_indentation": 2,
 
   // How much time the agenda shows. (org-agenda-span)
   "org_agenda_span": "week",

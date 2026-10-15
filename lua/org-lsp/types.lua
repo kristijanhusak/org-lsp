@@ -160,7 +160,7 @@
 ---@field org_bullets_list_bullet? false|string What `org_bullets_mode` shows in place of the `-`, `+` or `*` of an item, as org-bullets.nvim does; `false` leaves them as they are.
 ---@field org_bullets_checkboxes? false|table What `org_bullets_mode` shows between the brackets of a checkbox, `[ ]`, `[-]` and `[X]`, as org-bullets.nvim does; `false` leaves them as they are. A state left out keeps its default.
 ---@field org_src_preserve_indentation? boolean Leave the code of source blocks as it is indented when re-indenting. (`org-src-preserve-indentation`)
----@field org_edit_src_content_indentation? integer How far code is indented past its source block when re-indenting. (`org-edit-src-content-indentation`)
+---@field org_src_content_indentation? integer How far code is indented past its source block: when re-indenting, and when the code of a block edited in a file of its own (`C-c '`) is written back. Formerly `org_edit_src_content_indentation`, which is still read. (`org-src-content-indentation`)
 ---@field org_agenda_span? 'day'|'week'|'fortnight'|'month'|'year'|integer How much time the agenda shows. (`org-agenda-span`)
 ---@field org_agenda_start_on_weekday? integer|false The day a week or fortnight starts on; `false` starts it today. (`org-agenda-start-on-weekday`)
 ---@field org_deadline_warning_days? integer How many days before a deadline it shows up. (`org-deadline-warning-days`)
