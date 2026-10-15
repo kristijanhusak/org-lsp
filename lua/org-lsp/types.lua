@@ -201,6 +201,16 @@
 ---@field org_bullets_list_bullet? false|string What `org_bullets_mode` shows in place of the `-`, `+` or `*` of an item, as org-bullets.nvim does; `false` leaves them as they are.
 ---@field org_bullets_checkboxes? false|table What `org_bullets_mode` shows between the brackets of a checkbox, `[ ]`, `[-]` and `[X]`, as org-bullets.nvim does; `false` leaves them as they are. A state left out keeps its default.
 ---@field org_src_preserve_indentation? boolean Leave the code of source blocks as it is indented when re-indenting. (`org-src-preserve-indentation`)
+---@field org_babel_tangle_lang_exts? table By language, the extension of the file `:tangle yes` writes its blocks to, before Org's own (`emacs-lisp` → `el`): `{ "python": "py" }`. A language without one gives its name. (`org-babel-tangle-lang-exts`)
+---@field org_babel_tangle_use_relative_file_links? boolean Whether the link comments of tangled files (`:comments link`) point back to the Org file by a relative path; with `false` by its whole path. (`org-babel-tangle-use-relative-file-links`)
+---@field org_babel_tangle_comment_format_beg? string The comment before a tangled block (`:comments link`): `%link` the link back to it, `%source-name` its name, `%file` the Org file, `%start-line` the line its code starts on. (`org-babel-tangle-comment-format-beg`)
+---@field org_babel_tangle_comment_format_end? string The comment after a tangled block, with the keys of `org_babel_tangle_comment_format_beg`. (`org-babel-tangle-comment-format-end`)
+---@field org_babel_tangle_uncomment_comments? boolean Write the comments of tangled blocks as they are: not commented, and no line break after them. (`org-babel-tangle-uncomment-comments`)
+---@field org_babel_process_comment_text? string The function the Org text of `:comments org` goes through: `org-remove-indentation` takes its common indentation away, `identity` leaves it; Emacs tangles with any other. (`org-babel-process-comment-text`)
+---@field org_babel_tangle_default_file_mode? string In octal, the mode a symbolic `:tangle-mode` (`u+x`) changes. (`org-babel-tangle-default-file-mode`)
+---@field org_babel_tangle_remove_file_before_write? true|false|'auto' Whether a file tangling writes again is deleted first: `true` always (a link to it becomes a file of its own), `false` never (a read-only file refuses), `"auto"` when it is read-only. (`org-babel-tangle-remove-file-before-write`)
+---@field org_babel_noweb_wrap_start? string What opens a Noweb reference in a source block (`<<name>>`). (`org-babel-noweb-wrap-start`)
+---@field org_babel_noweb_wrap_end? string What closes a Noweb reference. (`org-babel-noweb-wrap-end`)
 ---@field org_src_content_indentation? integer How far code is indented past its source block: when re-indenting, and when the code of a block edited in a file of its own (`C-c '`) is written back. Formerly `org_edit_src_content_indentation`, which is still read. (`org-src-content-indentation`)
 ---@field org_agenda_span? 'day'|'week'|'fortnight'|'month'|'year'|integer How much time the agenda shows. (`org-agenda-span`)
 ---@field org_agenda_start_on_weekday? integer|false The day a week or fortnight starts on; `false` starts it today. (`org-agenda-start-on-weekday`)

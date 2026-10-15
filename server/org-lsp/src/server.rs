@@ -1162,6 +1162,10 @@ struct Server {
     sparse_tree_open_archived_trees: bool,
     /// `org-occur-case-fold-search`
     occur_case_fold: org_core::sparse::CaseFold,
+    /// How tangling goes (`org-babel-tangle-*`).
+    tangle_settings: org_core::tangle::Settings,
+    /// `org-babel-tangle-remove-file-before-write`
+    tangle_remove_first: Option<bool>,
     /// `org-sparse-tree-default-date-type`
     sparse_date_type: org_core::sparse::DateType,
     /// `org-clock-default-task`, marked by clocking in with `C-u C-u`.
@@ -1619,6 +1623,8 @@ pub fn run(connection: Connection) -> Result<()> {
         removed_agenda_files: HashSet::new(),
         sparse_tree_open_archived_trees: options.sparse_tree_open_archived_trees.unwrap_or(false),
         occur_case_fold: options.occur_case_fold(),
+        tangle_settings: options.tangle_settings(),
+        tangle_remove_first: options.tangle_remove_file_before_write(),
         sparse_date_type: options.sparse_date_type(),
         clock_default_task: None,
         clock_interrupted: None,
@@ -2518,21 +2524,37 @@ fn written_path(path: &Path) -> PathBuf {
 }
 
 /// Write a tangled file as `org-babel-tangle` writes it: only when its text
-/// changed, its directories made with `:mkdirp`, its mode set.
-fn write_tangled(file: &org_core::tangle::File) -> std::io::Result<()> {
+/// changed, its directories made with `:mkdirp`, its mode set. A file there
+/// already is deleted first as `org-babel-tangle-remove-file-before-write`
+/// says, `remove_first`: always, never, or (`None`) when it is read-only;
+/// else its text is replaced, and a read-only file refuses.
+fn write_tangled(file: &org_core::tangle::File, remove_first: Option<bool>) -> std::result::Result<(), String> {
+    let failed = |error: std::io::Error| format!("{}: {error}", file.path.display());
     if std::fs::read_to_string(&file.path).is_ok_and(|text| text == file.text) {
         return Ok(());
     }
     if file.make_directories {
         if let Some(parent) = file.path.parent() {
-            std::fs::create_dir_all(parent)?;
+            std::fs::create_dir_all(parent).map_err(failed)?;
         }
     }
-    replace_whole(&file.path, file.text.as_bytes())?;
+    if std::fs::symlink_metadata(&file.path).is_ok() {
+        // `file-writable-p`
+        let writable = std::fs::OpenOptions::new().write(true).open(&file.path).is_ok();
+        match remove_first {
+            Some(true) => std::fs::remove_file(&file.path).map_err(failed)?,
+            None if !writable => std::fs::remove_file(&file.path).map_err(failed)?,
+            Some(false) if !writable => {
+                return Err(format!("Opening output file: Permission denied, {}", file.path.display()));
+            }
+            _ => {}
+        }
+    }
+    replace_whole(&file.path, file.text.as_bytes()).map_err(failed)?;
     #[cfg(unix)]
     if let Some(mode) = file.mode {
         use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&file.path, std::fs::Permissions::from_mode(mode))?;
+        std::fs::set_permissions(&file.path, std::fs::Permissions::from_mode(mode)).map_err(failed)?;
     }
     Ok(())
 }
@@ -10405,7 +10427,10 @@ impl Server {
         let uri = &context.text_document.uri;
         let document = self.document(uri).ok_or("This file is not open")?;
         let path = uri::to_path(uri).ok_or("Only a file on disk can be tangled")?;
-        let settings = org_core::tangle::Settings { preserve_indentation: self.refile.2.src_preserve_indentation };
+        let settings = org_core::tangle::Settings {
+            preserve_indentation: self.refile.2.src_preserve_indentation,
+            ..self.tangle_settings.clone()
+        };
         let outcome = match org_core::tangle::tangle(&document.text, &document.parse, &path, &settings) {
             Ok(outcome) => outcome,
             // Emacs Lisp to evaluate, or a block to run: Emacs tangles.
@@ -10415,7 +10440,7 @@ impl Server {
             Err(message) => return Err(message.into()),
         };
         for file in &outcome.files {
-            write_tangled(file).map_err(|error| format!("{}: {error}", file.path.display()))?;
+            write_tangled(file, self.tangle_remove_first)?;
         }
         let name = path.file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default();
         self.message = Some(outcome.message(&name));
@@ -10434,8 +10459,10 @@ impl Server {
         let chosen = match context.input.as_deref().filter(|input| !input.trim().is_empty()) {
             Some(input) => Some(path.parent().map_or_else(|| PathBuf::from(input), |dir| dir.join(input.trim()))),
             None => {
-                let settings =
-                    org_core::tangle::Settings { preserve_indentation: self.refile.2.src_preserve_indentation };
+                let settings = org_core::tangle::Settings {
+                    preserve_indentation: self.refile.2.src_preserve_indentation,
+                    ..self.tangle_settings.clone()
+                };
                 let mut files: Vec<PathBuf> =
                     org_core::tangle::tangle(&document.text, &document.parse, &path, &settings)
                         .map(|outcome| {
@@ -14937,6 +14964,35 @@ mod tests {
         assert_eq!(std::fs::metadata(&name).unwrap().permissions().mode() & 0o777, 0o700);
         assert_eq!(named.made(), Some(name.as_path()));
         std::fs::remove_dir(&name).unwrap();
+    }
+
+    /// `org-babel-tangle-remove-file-before-write`: with `t` a link to the
+    /// file is replaced by a file of its own, else written through.
+    #[cfg(unix)]
+    #[test]
+    fn tangled_files_are_removed_first_as_told() {
+        let directory = std::env::temp_dir().join(format!("org-lsp-tangled-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&directory);
+        std::fs::create_dir_all(&directory).unwrap();
+        let target = directory.join("target.sh");
+        let link = directory.join("out.sh");
+        std::fs::write(&target, "old\n").unwrap();
+        std::os::unix::fs::symlink(&target, &link).unwrap();
+        let tangled = |text: &str| org_core::tangle::File {
+            path: link.clone(),
+            text: text.to_string(),
+            mode: None,
+            make_directories: false,
+        };
+        write_tangled(&tangled("auto\n"), None).unwrap();
+        assert_eq!(std::fs::read_to_string(&target).unwrap(), "auto\n");
+        write_tangled(&tangled("never\n"), Some(false)).unwrap();
+        assert_eq!(std::fs::read_to_string(&target).unwrap(), "never\n");
+        write_tangled(&tangled("always\n"), Some(true)).unwrap();
+        assert_eq!(std::fs::read_to_string(&target).unwrap(), "never\n");
+        assert!(!std::fs::symlink_metadata(&link).unwrap().file_type().is_symlink());
+        assert_eq!(std::fs::read_to_string(&link).unwrap(), "always\n");
+        std::fs::remove_dir_all(&directory).unwrap();
     }
 
     #[test]

@@ -365,6 +365,31 @@ pub struct Options {
     /// `org-src-preserve-indentation`
     #[serde(rename = "org_src_preserve_indentation")]
     pub src_preserve_indentation: Option<bool>,
+    /// `org-babel-tangle-lang-exts`: by language, the extension.
+    #[serde(rename = "org_babel_tangle_lang_exts")]
+    pub babel_tangle_lang_exts: Option<std::collections::BTreeMap<String, String>>,
+    #[serde(rename = "org_babel_tangle_use_relative_file_links")]
+    pub babel_tangle_use_relative_file_links: Option<bool>,
+    #[serde(rename = "org_babel_tangle_comment_format_beg")]
+    pub babel_tangle_comment_format_beg: Option<String>,
+    #[serde(rename = "org_babel_tangle_comment_format_end")]
+    pub babel_tangle_comment_format_end: Option<String>,
+    #[serde(rename = "org_babel_tangle_uncomment_comments")]
+    pub babel_tangle_uncomment_comments: Option<bool>,
+    /// `org-babel-process-comment-text`: the name of a function.
+    #[serde(rename = "org_babel_process_comment_text")]
+    pub babel_process_comment_text: Option<String>,
+    /// `org-babel-tangle-default-file-mode`, in octal: `"644"`.
+    #[serde(rename = "org_babel_tangle_default_file_mode")]
+    pub babel_tangle_default_file_mode: Option<String>,
+    /// `org-babel-tangle-remove-file-before-write`: `true`, `false` or
+    /// `"auto"`.
+    #[serde(rename = "org_babel_tangle_remove_file_before_write")]
+    pub babel_tangle_remove_file_before_write: Option<serde_json::Value>,
+    #[serde(rename = "org_babel_noweb_wrap_start")]
+    pub babel_noweb_wrap_start: Option<String>,
+    #[serde(rename = "org_babel_noweb_wrap_end")]
+    pub babel_noweb_wrap_end: Option<String>,
     /// `org-startup-indented`: show files with `org-indent-mode`.
     /// `org-startup-with-link-previews`: show the previews of the links to
     /// images when a file opens.
@@ -1640,11 +1665,12 @@ impl Options {
         org_syntax::ListSyntax { alphabetical: self.list_allow_alphabetical == Some(true), terminator }
     }
 
-    /// The options Emacs must know before it reads Org, as Emacs Lisp:
-    /// `org-entities-user`, `org-list-allow-alphabetical`,
+    /// The options Emacs must know, as Emacs Lisp: `org-entities-user`, the
+    /// tangling options, `org-list-allow-alphabetical`,
     /// `org-plain-list-ordered-item-terminator`.
     pub fn emacs_lisp(&self) -> Option<String> {
         let mut forms: Vec<String> = self.user_entities_lisp().into_iter().collect();
+        forms.extend(self.tangle_lisp());
         let syntax = self.list_syntax();
         if syntax != org_syntax::ListSyntax::default() {
             let terminator = match syntax.terminator {
@@ -1661,6 +1687,105 @@ impl Options {
             forms.push("(when (featurep 'org-element) (org-element-update-syntax))".to_string());
         }
         (!forms.is_empty()).then(|| forms.join("\n"))
+    }
+
+    /// How tangling goes, but for `org-src-preserve-indentation`.
+    pub fn tangle_settings(&self) -> org_core::tangle::Settings {
+        let defaults = org_core::tangle::Settings::default();
+        org_core::tangle::Settings {
+            preserve_indentation: self.src_preserve_indentation.unwrap_or(false),
+            lang_exts: self
+                .babel_tangle_lang_exts
+                .iter()
+                .flatten()
+                .map(|(lang, extension)| (lang.clone(), extension.clone()))
+                .collect(),
+            relative_links: self.babel_tangle_use_relative_file_links.unwrap_or(true),
+            comment_format: (
+                self.babel_tangle_comment_format_beg.clone().unwrap_or(defaults.comment_format.0),
+                self.babel_tangle_comment_format_end.clone().unwrap_or(defaults.comment_format.1),
+            ),
+            uncomment_comments: self.babel_tangle_uncomment_comments.unwrap_or(false),
+            process_comment_text: self
+                .babel_process_comment_text
+                .clone()
+                .filter(|name| !name.is_empty())
+                .unwrap_or(defaults.process_comment_text),
+            default_file_mode: self
+                .babel_tangle_default_file_mode
+                .as_deref()
+                .and_then(|mode| u32::from_str_radix(mode, 8).ok())
+                .unwrap_or(defaults.default_file_mode),
+            noweb_wrap: (
+                self.babel_noweb_wrap_start.clone().unwrap_or(defaults.noweb_wrap.0),
+                self.babel_noweb_wrap_end.clone().unwrap_or(defaults.noweb_wrap.1),
+            ),
+        }
+    }
+
+    /// `org-babel-tangle-remove-file-before-write`: always (`Some(true)`),
+    /// never (`Some(false)`), or when the file is read-only (`None`).
+    pub fn tangle_remove_file_before_write(&self) -> Option<bool> {
+        match &self.babel_tangle_remove_file_before_write {
+            Some(serde_json::Value::Bool(remove)) => Some(*remove),
+            _ => None,
+        }
+    }
+
+    /// The tangling options the server's Emacs is told, as Emacs Lisp
+    /// (for tangling and detangling it does).
+    fn tangle_lisp(&self) -> Vec<String> {
+        let lisp_string = |text: &str| format!("\"{}\"", text.replace('\\', "\\\\").replace('"', "\\\""));
+        let mut forms = Vec::new();
+        let mut set = |name: &str, value: String| forms.push(format!("(setq {name} {value})"));
+        if let Some(exts) = self.babel_tangle_lang_exts.as_ref().filter(|exts| !exts.is_empty()) {
+            for (lang, extension) in exts {
+                set(
+                    "org-babel-tangle-lang-exts",
+                    format!(
+                        "(cons (cons {} {}) org-babel-tangle-lang-exts)",
+                        lisp_string(lang),
+                        lisp_string(extension)
+                    ),
+                );
+            }
+        }
+        if self.babel_tangle_use_relative_file_links == Some(false) {
+            set("org-babel-tangle-use-relative-file-links", "nil".to_string());
+        }
+        if let Some(format) = &self.babel_tangle_comment_format_beg {
+            set("org-babel-tangle-comment-format-beg", lisp_string(format));
+        }
+        if let Some(format) = &self.babel_tangle_comment_format_end {
+            set("org-babel-tangle-comment-format-end", lisp_string(format));
+        }
+        if self.babel_tangle_uncomment_comments == Some(true) {
+            set("org-babel-tangle-uncomment-comments", "t".to_string());
+        }
+        if let Some(name) = self
+            .babel_process_comment_text
+            .as_ref()
+            .filter(|name| !name.is_empty() && name.chars().all(|c| c.is_alphanumeric() || "-_/:*+<>=!?".contains(c)))
+        {
+            set("org-babel-process-comment-text", format!("'{name}"));
+        }
+        if let Some(mode) =
+            self.babel_tangle_default_file_mode.as_deref().and_then(|mode| u32::from_str_radix(mode, 8).ok())
+        {
+            set("org-babel-tangle-default-file-mode", format!("#o{mode:o}"));
+        }
+        match self.tangle_remove_file_before_write() {
+            Some(true) => set("org-babel-tangle-remove-file-before-write", "t".to_string()),
+            Some(false) => set("org-babel-tangle-remove-file-before-write", "nil".to_string()),
+            None => {}
+        }
+        if let Some(start) = &self.babel_noweb_wrap_start {
+            set("org-babel-noweb-wrap-start", lisp_string(start));
+        }
+        if let Some(end) = &self.babel_noweb_wrap_end {
+            set("org-babel-noweb-wrap-end", lisp_string(end));
+        }
+        forms
     }
 
     /// `org-occur-case-fold-search`
@@ -3863,6 +3988,42 @@ mod tests {
              (when (featurep 'org-element) (org-element-update-syntax))"
         );
         assert_eq!(Options::default().emacs_lisp(), None);
+    }
+
+    /// The tangling options, for org-core and as the server's Emacs is
+    /// told them.
+    #[test]
+    fn tangle_options() {
+        let options: Options = serde_json::from_value(serde_json::json!({
+            "org_babel_tangle_lang_exts": { "python": "py" },
+            "org_babel_tangle_use_relative_file_links": false,
+            "org_babel_tangle_comment_format_end": "end \"%source-name\"",
+            "org_babel_process_comment_text": "identity",
+            "org_babel_tangle_default_file_mode": "600",
+            "org_babel_tangle_remove_file_before_write": true,
+            "org_babel_noweb_wrap_start": "{{"
+        }))
+        .unwrap();
+        let settings = options.tangle_settings();
+        assert_eq!(settings.lang_exts, [("python".to_string(), "py".to_string())]);
+        assert!(!settings.relative_links);
+        assert_eq!(settings.comment_format.0, "[[%link][%source-name]]");
+        assert_eq!(settings.default_file_mode, 0o600);
+        assert_eq!(settings.noweb_wrap, ("{{".to_string(), ">>".to_string()));
+        assert_eq!(options.tangle_remove_file_before_write(), Some(true));
+        assert_eq!(
+            options.emacs_lisp().unwrap(),
+            [
+                r#"(setq org-babel-tangle-lang-exts (cons (cons "python" "py") org-babel-tangle-lang-exts))"#,
+                "(setq org-babel-tangle-use-relative-file-links nil)",
+                r#"(setq org-babel-tangle-comment-format-end "end \"%source-name\"")"#,
+                "(setq org-babel-process-comment-text 'identity)",
+                "(setq org-babel-tangle-default-file-mode #o600)",
+                "(setq org-babel-tangle-remove-file-before-write t)",
+                r#"(setq org-babel-noweb-wrap-start "{{")"#,
+            ]
+            .join("\n")
+        );
     }
 
     #[test]

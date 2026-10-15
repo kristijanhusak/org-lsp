@@ -1712,6 +1712,81 @@ pub const SETTINGS: &[Setting] = &[
         "Leave the code of source blocks as it is indented when re-indenting.",
     ),
     setting(
+        "org_babel_tangle_lang_exts",
+        "object",
+        "{}",
+        "org-babel-tangle-lang-exts",
+        "By language, the extension of the file `:tangle yes` writes its blocks to, before Org's own \
+         (`emacs-lisp` → `el`): `{ \"python\": \"py\" }`. A language without one gives its name.",
+    ),
+    setting(
+        "org_babel_tangle_use_relative_file_links",
+        "boolean",
+        "true",
+        "org-babel-tangle-use-relative-file-links",
+        "Whether the link comments of tangled files (`:comments link`) point back to the Org file by a \
+         relative path; with `false` by its whole path.",
+    ),
+    setting(
+        "org_babel_tangle_comment_format_beg",
+        "string",
+        r#""[[%link][%source-name]]""#,
+        "org-babel-tangle-comment-format-beg",
+        "The comment before a tangled block (`:comments link`): `%link` the link back to it, \
+         `%source-name` its name, `%file` the Org file, `%start-line` the line its code starts on.",
+    ),
+    setting(
+        "org_babel_tangle_comment_format_end",
+        "string",
+        r#""%source-name ends here""#,
+        "org-babel-tangle-comment-format-end",
+        "The comment after a tangled block, with the keys of `org_babel_tangle_comment_format_beg`.",
+    ),
+    setting(
+        "org_babel_tangle_uncomment_comments",
+        "boolean",
+        "false",
+        "org-babel-tangle-uncomment-comments",
+        "Write the comments of tangled blocks as they are: not commented, and no line break after them.",
+    ),
+    setting(
+        "org_babel_process_comment_text",
+        "string",
+        r#""org-remove-indentation""#,
+        "org-babel-process-comment-text",
+        "The function the Org text of `:comments org` goes through: `org-remove-indentation` takes its \
+         common indentation away, `identity` leaves it; Emacs tangles with any other.",
+    ),
+    setting(
+        "org_babel_tangle_default_file_mode",
+        "string",
+        r#""644""#,
+        "org-babel-tangle-default-file-mode",
+        "In octal, the mode a symbolic `:tangle-mode` (`u+x`) changes.",
+    ),
+    setting(
+        "org_babel_tangle_remove_file_before_write",
+        "true, false, \"auto\"",
+        r#""auto""#,
+        "org-babel-tangle-remove-file-before-write",
+        "Whether a file tangling writes again is deleted first: `true` always (a link to it becomes a file \
+         of its own), `false` never (a read-only file refuses), `\"auto\"` when it is read-only.",
+    ),
+    setting(
+        "org_babel_noweb_wrap_start",
+        "string",
+        r#""<<""#,
+        "org-babel-noweb-wrap-start",
+        "What opens a Noweb reference in a source block (`<<name>>`).",
+    ),
+    setting(
+        "org_babel_noweb_wrap_end",
+        "string",
+        r#"">>""#,
+        "org-babel-noweb-wrap-end",
+        "What closes a Noweb reference.",
+    ),
+    setting(
         "org_src_content_indentation",
         "number",
         "2",
@@ -3435,6 +3510,16 @@ const SCHEMAS: &[(&str, &str)] = &[
         r#"{ "anyOf": [{ "const": false }, { "type": "object", "properties": { "todo": { "type": "string" }, "half": { "type": "string" }, "done": { "type": "string" } }, "additionalProperties": false }] }"#,
     ),
     ("org_src_preserve_indentation", BOOLEAN),
+    ("org_babel_tangle_lang_exts", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
+    ("org_babel_tangle_use_relative_file_links", BOOLEAN),
+    ("org_babel_tangle_comment_format_beg", STRING),
+    ("org_babel_tangle_comment_format_end", STRING),
+    ("org_babel_tangle_uncomment_comments", BOOLEAN),
+    ("org_babel_process_comment_text", STRING),
+    ("org_babel_tangle_default_file_mode", r#"{ "type": "string", "pattern": "^[0-7]{3,4}$" }"#),
+    ("org_babel_tangle_remove_file_before_write", r#"{ "enum": [true, false, "auto"] }"#),
+    ("org_babel_noweb_wrap_start", STRING),
+    ("org_babel_noweb_wrap_end", STRING),
     ("org_src_content_indentation", r#"{ "type": "integer", "minimum": 0 }"#),
     (
         "org_agenda_span",
