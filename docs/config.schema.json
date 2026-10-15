@@ -18,7 +18,7 @@
     },
     "org_agenda_file_regexp": {
       "type": "string",
-      "description": "Which files of a directory in `org_agenda_files` are agenda files: an Emacs regular expression their names match (Org's is `\\\\`[^.].*\\\\.org\\\\'`). (`org-agenda-file-regexp`)"
+      "description": "Which files of a directory in `org_agenda_files` are agenda files: an Emacs regular expression their names match, such as `\\\\.txt\\\\'` for the names that end in `.txt`. (`org-agenda-file-regexp`)"
     },
     "org_agenda_skip_unavailable_files": {
       "type": "boolean",
