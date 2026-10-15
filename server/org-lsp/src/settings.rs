@@ -2438,6 +2438,16 @@ pub const SETTINGS: &[Setting] = &[
          (`%d`: the days since).",
     ),
     setting(
+        "org_agenda_deadline_faces",
+        "[part, face][]",
+        r#"[[1.0, "org-imminent-deadline"], [0.5, "org-upcoming-deadline"], [0.0, "org-upcoming-distant-deadline"]]"#,
+        "org-agenda-deadline-faces",
+        "The look of a deadline in the agenda by the part of its warning time that has passed: the first \
+         whose part is no more than that, none past the last. The faces are Org's: `org-imminent-deadline` (or \
+         `org-warning`), `org-upcoming-deadline`, `org-upcoming-distant-deadline`; any other name is the plain \
+         look.",
+    ),
+    setting(
         "org_agenda_timerange_leaders",
         "string[]",
         r#"["", "(%d/%d): "]"#,
@@ -3126,6 +3136,10 @@ const SCHEMAS: &[(&str, &str)] = &[
     (
         "org_agenda_deadline_leaders",
         r#"{ "type": "array", "items": { "type": "string" }, "minItems": 3, "maxItems": 3 }"#,
+    ),
+    (
+        "org_agenda_deadline_faces",
+        r#"{ "type": "array", "items": { "type": "array", "prefixItems": [{ "type": "number" }, { "type": "string" }], "minItems": 2, "maxItems": 2 } }"#,
     ),
     (
         "org_agenda_timerange_leaders",

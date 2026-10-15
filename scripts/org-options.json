@@ -505,7 +505,7 @@
   "org-priority-faces": "setting",
   "org-tag-faces": "setting",
   "org-fontify-quote-and-verse-blocks": "setting",
-  "org-agenda-deadline-faces": "missing",
+  "org-agenda-deadline-faces": "setting",
   "org-n-level-faces": "emacs-only",
   "org-cycle-level-faces": "emacs-only"
  },

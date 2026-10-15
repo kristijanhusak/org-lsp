@@ -2913,6 +2913,9 @@ pub struct AgendaOptions {
     /// `org-agenda-deadline-leaders`
     #[serde(rename = "org_agenda_deadline_leaders")]
     pub deadline_leaders: Option<Vec<String>>,
+    /// `org-agenda-deadline-faces`: `[part, face]` pairs.
+    #[serde(rename = "org_agenda_deadline_faces")]
+    pub deadline_faces: Option<Vec<(f64, String)>>,
     /// `org-agenda-timerange-leaders`
     #[serde(rename = "org_agenda_timerange_leaders")]
     pub timerange_leaders: Option<Vec<String>>,
@@ -3340,6 +3343,24 @@ impl AgendaOptions {
         }
         if let Some(Ok(leaders)) = self.deadline_leaders.clone().map(<[String; 3]>::try_from) {
             config.deadline_leaders = leaders;
+        }
+        // `org-agenda-deadline-faces`: Org's faces by name, `org-warning`
+        // as `org-imminent-deadline`, which inherits it; any other is the
+        // plain look.
+        if let Some(faces) = &self.deadline_faces {
+            use org_core::agenda::Face;
+            config.deadline_faces = faces
+                .iter()
+                .map(|(part, name)| {
+                    let face = match name.as_str() {
+                        "org-imminent-deadline" | "org-warning" => Face::DeadlineWarning,
+                        "org-upcoming-deadline" => Face::DeadlineUpcoming,
+                        "org-upcoming-distant-deadline" => Face::DeadlineDistant,
+                        _ => Face::Default,
+                    };
+                    (*part, face)
+                })
+                .collect();
         }
         if let Some(Ok(leaders)) = self.timerange_leaders.clone().map(<[String; 2]>::try_from) {
             config.timerange_leaders = leaders;
