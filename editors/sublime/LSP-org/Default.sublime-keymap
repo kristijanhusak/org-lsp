@@ -724,6 +724,29 @@
   },
   {
     "keys": [
+      "ctrl+c",
+      "ctrl+x",
+      "t"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.inlinetask.insert"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
       "alt+left"
     ],
     "command": "org_lsp_run",

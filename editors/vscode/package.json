@@ -481,6 +481,16 @@
         "category": "Org"
       },
       {
+        "command": "org.inlinetask.insert",
+        "title": "Insert an inline task",
+        "category": "Org"
+      },
+      {
+        "command": "org.inlinetask.insert.nostate",
+        "title": "Insert an inline task without its default TODO state",
+        "category": "Org"
+      },
+      {
         "command": "org.meta.left",
         "title": "Promote the heading; outdent the item; move the table column left",
         "category": "Org"
@@ -1862,6 +1872,28 @@
               "type": "boolean",
               "markdownDescription": "Only odd levels: `*`, `***`, `*****`, each counted as the next level. Promoting and demoting go two stars at a time, and a headline is colored and matched (`LEVEL`) by the level it counts as. `#+STARTUP: odd` and `oddeven` set it for a file. (`org-odd-levels-only`)",
               "default": false
+            },
+            "org_inlinetask_min_level": {
+              "anyOf": [
+                {
+                  "const": false
+                },
+                {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              ],
+              "markdownDescription": "A headline of at least this many stars (twice as many less one with `org_odd_levels_only`) is an inline task: a task inside the text of its entry, closed by a line of as many stars and `END`. It is no part of the outline: it has no subtree, the outline and the motion between headings pass it, and it folds its text up to its `END` line. `false`: there are no inline tasks, as in Emacs before `org-inlinetask` is loaded. (`org-inlinetask-min-level`)",
+              "default": 15
+            },
+            "org_inlinetask_show_first_star": {
+              "type": "boolean",
+              "markdownDescription": "The stars of an inline task but the last two are hidden, as `org_hide_leading_stars` hides those of a headline; with `true` none are. (`org-inlinetask-show-first-star`)",
+              "default": false
+            },
+            "org_inlinetask_default_state": {
+              "type": "string",
+              "markdownDescription": "The TODO keyword of a new inline task (`org.inlinetask.insert`). (`org-inlinetask-default-state`)"
             },
             "org_treat_S_cursor_todo_selection_as_state_change": {
               "type": "boolean",
@@ -6088,6 +6120,10 @@
       {
         "id": "todo",
         "description": "A headline marked with a TODO keyword not done, past the keyword, with org_fontify_todo_headline"
+      },
+      {
+        "id": "inlinetask",
+        "description": "The stars and title of an inline task"
       }
     ],
     "semanticTokenScopes": [
@@ -6390,6 +6426,10 @@
           ],
           "*.archived": [
             "comment.archived.org",
+            "comment"
+          ],
+          "*.inlinetask": [
+            "comment.inlinetask.org",
             "comment"
           ],
           "calendarHeader": [
@@ -6727,6 +6767,10 @@
             "comment.archived.org",
             "comment"
           ],
+          "*.inlinetask": [
+            "comment.inlinetask.org",
+            "comment"
+          ],
           "calendarHeader": [
             "entity.name.function.month.calendar.org",
             "entity.name.function"
@@ -7062,6 +7106,10 @@
             "comment.archived.org",
             "comment"
           ],
+          "*.inlinetask": [
+            "comment.inlinetask.org",
+            "comment"
+          ],
           "calendarHeader": [
             "entity.name.function.month.calendar.org",
             "entity.name.function"
@@ -7283,6 +7331,11 @@
       {
         "command": "org.insert.todo.heading.after",
         "key": "ctrl+shift+enter",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.inlinetask.insert",
+        "key": "ctrl+c ctrl+x t",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {

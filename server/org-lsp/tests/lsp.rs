@@ -3272,3 +3272,30 @@ fn announces_the_faces_of_tags() {
     assert_eq!(response.response_result.ok().map(|faces| faces["tag"].clone()), Some(expected));
     client.shutdown();
 }
+
+/// `org-inlinetask-insert-task` (`C-c C-x t`): an inline task of
+/// `org_inlinetask_min_level` stars with its `END` line, in
+/// `org_inlinetask_default_state` unless the command says without, as
+/// Emacs writes it (`tests/inlinetask`). The minimum level is the
+/// default: it holds for the process, and the other tests run beside.
+#[test]
+fn inserts_inline_tasks() {
+    let insert = |command: &str, options: Value| -> String {
+        let mut client = Client::start(json!({}), options);
+        let text = "* A\nbody\n";
+        client.open(&uri(), text);
+        let context = json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": 1, "character": 0 } });
+        let result = client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+            .response_result
+            .expect("a result");
+        client.shutdown();
+        let edits: Vec<TextEdit> = serde_json::from_value(result["edits"].clone()).unwrap();
+        apply_text_edits(text, &edits)
+    };
+    let stars = "*".repeat(15);
+    assert_eq!(insert("org.inlinetask.insert", Value::Null), format!("* A\n{stars} \n{stars} END\nbody\n"));
+    let todo = json!({ "org_inlinetask_default_state": "TODO" });
+    assert_eq!(insert("org.inlinetask.insert", todo.clone()), format!("* A\n{stars} TODO \n{stars} END\nbody\n"));
+    assert_eq!(insert("org.inlinetask.insert.nostate", todo), format!("* A\n{stars} \n{stars} END\nbody\n"));
+}

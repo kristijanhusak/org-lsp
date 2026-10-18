@@ -1895,6 +1895,24 @@ org_allow_promoting_top_level_subtree = false
 # set it for a file. (org-odd-levels-only)
 org_odd_levels_only = false
 
+# A headline of at least this many stars (twice as many less one with
+# `org_odd_levels_only`) is an inline task: a task inside the text of its
+# entry, closed by a line of as many stars and `END`. It is no part of the
+# outline: it has no subtree, the outline and the motion between headings pass
+# it, and it folds its text up to its `END` line. `false`: there are no inline
+# tasks, as in Emacs before `org-inlinetask` is loaded.
+# (org-inlinetask-min-level)
+org_inlinetask_min_level = 15
+
+# The stars of an inline task but the last two are hidden, as
+# `org_hide_leading_stars` hides those of a headline; with `true` none are.
+# (org-inlinetask-show-first-star)
+org_inlinetask_show_first_star = false
+
+# The TODO keyword of a new inline task (`org.inlinetask.insert`).
+# (org-inlinetask-default-state)
+# org_inlinetask_default_state = … (unset: no keyword)
+
 # `org.open.line` (C-o) in a table inserts a row above; with `false` it opens
 # a line there too. (org-special-ctrl-o)
 org_special_ctrl_o = true

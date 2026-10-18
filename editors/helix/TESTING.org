@@ -35,6 +35,7 @@ its sections says what it should look like.
 - [ ] Promoting and demoting a heading; its tags stay aligned: the code action /Promote the heading; outdent the item; move the table column left/, the code action /Demote the heading; indent the item, the drawer or the block; move the table column right/
 - [ ] Promoting and demoting a subtree: the code action /Promote the subtree; outdent the item with its children; delete the table column/, the code action /Demote the subtree; indent the item with its children; insert a table column/
 - [ ] Moving a subtree up and down past its siblings: the code action /Move the subtree, the item or the table row up/, the code action /Move the subtree, the item or the table row down/
+- [ ] Inserting an inline task gives 15 stars and an ~END~ line; demoting it changes both; the outline leaves it out, and folding it hides its text and its ~END~ line: the code action /Insert an inline task/, the code action /Demote the heading; indent the item, the drawer or the block; move the table column right/
 - [ ] Cutting a subtree and pasting it under another heading: its level fits there: the code action /Cut the subtree/, the code action /Paste the subtree/
 - [ ] Copying a subtree and pasting it: the code action /Copy the subtree/, the code action /Paste the subtree/
 - [ ] With ~org_allow_promoting_top_level_subtree~ on, promoting ~* A~ makes it ~# A~: the code action /Promote the heading; outdent the item; move the table column left/

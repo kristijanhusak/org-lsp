@@ -225,6 +225,28 @@
       "description": "Only odd levels: `*`, `***`, `*****`, each counted as the next level. Promoting and demoting go two stars at a time, and a headline is colored and matched (`LEVEL`) by the level it counts as. `#+STARTUP: odd` and `oddeven` set it for a file. (`org-odd-levels-only`)",
       "default": false
     },
+    "org_inlinetask_min_level": {
+      "anyOf": [
+        {
+          "const": false
+        },
+        {
+          "type": "integer",
+          "minimum": 1
+        }
+      ],
+      "description": "A headline of at least this many stars (twice as many less one with `org_odd_levels_only`) is an inline task: a task inside the text of its entry, closed by a line of as many stars and `END`. It is no part of the outline: it has no subtree, the outline and the motion between headings pass it, and it folds its text up to its `END` line. `false`: there are no inline tasks, as in Emacs before `org-inlinetask` is loaded. (`org-inlinetask-min-level`)",
+      "default": 15
+    },
+    "org_inlinetask_show_first_star": {
+      "type": "boolean",
+      "description": "The stars of an inline task but the last two are hidden, as `org_hide_leading_stars` hides those of a headline; with `true` none are. (`org-inlinetask-show-first-star`)",
+      "default": false
+    },
+    "org_inlinetask_default_state": {
+      "type": "string",
+      "description": "The TODO keyword of a new inline task (`org.inlinetask.insert`). (`org-inlinetask-default-state`)"
+    },
     "org_treat_S_cursor_todo_selection_as_state_change": {
       "type": "boolean",
       "description": "`S-<left>` and `S-<right>` on a headline change its TODO state as any change does: logged, and blocked by its dependencies. Off, they change it with nothing logged and nothing in the way. (`org-treat-S-cursor-todo-selection-as-state-change`)",

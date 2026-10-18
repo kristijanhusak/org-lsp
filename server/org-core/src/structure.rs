@@ -158,6 +158,22 @@ pub(crate) fn next_heading(text: &str, at: usize) -> usize {
     at
 }
 
+/// The level of the headline that starts at `at` if it is part of the
+/// outline, an inline task not (`org-with-limited-levels`).
+fn outline_level_at(text: &str, at: usize, odd: bool) -> Option<usize> {
+    level_at(text, at).filter(|level| crate::inlinetask::outline_stars(odd).is_none_or(|deepest| *level <= deepest))
+}
+
+/// `outline-next-heading` with `org-with-limited-levels`: inline tasks
+/// passed.
+fn next_outline_heading(text: &str, at: usize, odd: bool) -> usize {
+    let mut at = next_line(text, at);
+    while at < text.len() && outline_level_at(text, at, odd).is_none() {
+        at = next_line(text, at);
+    }
+    at
+}
+
 /// `outline-previous-heading`: the start of the headline before the line
 /// at `at`, if there is one.
 fn previous_heading(text: &str, at: usize) -> Option<usize> {
@@ -199,7 +215,18 @@ fn align_tags(buffer: &mut Buffer, heading: usize, tags_column: i64) {
 /// `org-promote` (`change` -1) or `org-demote` (1) of the headline at
 /// `heading`: its stars, its tags aligned again, and with
 /// `org-adapt-indentation` its text (`org-fixup-indentation`).
-fn change_level(buffer: &mut Buffer, heading: usize, change: isize, settings: &Settings) -> Result<(), Refusal> {
+///
+/// The entry ends at the next headline of the outline, past inline tasks
+/// (`org-fixup-indentation`). With `limited` (`org-promote-subtree` runs
+/// in `org-with-limited-levels`), the lines of inline tasks in it move
+/// with its text, as they do in Emacs.
+fn change_level(
+    buffer: &mut Buffer,
+    heading: usize,
+    change: isize,
+    settings: &Settings,
+    limited: bool,
+) -> Result<(), Refusal> {
     let level = level_at(&buffer.text, heading).ok_or("Not at a headline")?;
     if change < 0 && level == 1 && settings.allow_promoting_top_level {
         buffer.replace(heading, heading + 2, "# ");
@@ -214,9 +241,10 @@ fn change_level(buffer: &mut Buffer, heading: usize, change: isize, settings: &S
     buffer.replace(heading, heading + level + 1, &format!("{} ", "*".repeat(new)));
     align_tags(buffer, heading, settings.tags_column);
     if settings.indent.adapt != indent::Adapt::Off {
-        let end = next_heading(&buffer.text, heading);
+        let end = next_outline_heading(&buffer.text, heading, settings.odd_levels);
         let entry = buffer.text[heading..end].to_string();
-        let fixed = indent::fixup_entry(&entry, change, &settings.indent);
+        let tasks = if limited { crate::inlinetask::min_stars(settings.odd_levels) } else { None };
+        let fixed = indent::fixup_entry_with(&entry, change, &settings.indent, tasks);
         if fixed != entry {
             // The headline stays as it is; only the lines after it change.
             let body = next_line(&entry, 0).min(entry.len());
@@ -269,17 +297,37 @@ pub fn change_levels(
     keywords: &TodoKeywords,
     settings: &Settings,
 ) -> Result<Outcome, Refusal> {
-    let heading = line_start(text, at);
-    let level = level_at(text, heading).ok_or_else(|| Refusal::NotHere("Not at a headline".to_string()))?;
+    let mut heading = line_start(text, at);
+    let mut level = level_at(text, heading).ok_or_else(|| Refusal::NotHere("Not at a headline".to_string()))?;
+    let odd = settings.odd_levels;
+    if outline_level_at(text, heading, odd).is_none() {
+        // An inline task: `org-inlinetask-promote` and
+        // `org-inlinetask-demote`; for a subtree, that of the headline it
+        // is in (`org-map-tree` with `org-with-limited-levels`).
+        if !subtree {
+            return crate::inlinetask::change_level(text, at, change, odd, &settings.indent);
+        }
+        let mut start = heading;
+        loop {
+            if start == 0 {
+                return Err(Refusal::NotHere("Before first headline".to_string()));
+            }
+            start = line_start(text, start - 1);
+            if let Some(found) = outline_level_at(text, start, odd) {
+                (heading, level) = (start, found);
+                break;
+            }
+        }
+    }
     let mut buffer = Buffer { text: text.to_string(), point: at };
-    change_level(&mut buffer, heading, change, settings)?;
+    change_level(&mut buffer, heading, change, settings, subtree)?;
     if subtree {
         // `org-map-tree`: the headlines below, down to one of the old level
-        // or above.
-        let mut next = next_heading(&buffer.text, heading);
+        // or above; inline tasks keep theirs.
+        let mut next = next_outline_heading(&buffer.text, heading, odd);
         while next < buffer.text.len() && level_at(&buffer.text, next).is_some_and(|found| found > level) {
-            change_level(&mut buffer, next, change, settings)?;
-            next = next_heading(&buffer.text, next);
+            change_level(&mut buffer, next, change, settings, true)?;
+            next = next_outline_heading(&buffer.text, next, odd);
         }
     }
     fix_position(&mut buffer, keywords);
@@ -312,7 +360,7 @@ pub fn convert_levels(text: &str, at: usize, odd: bool, settings: &Settings) -> 
         if let Some(stars) = headline(line(&buffer.text, start)) {
             let (steps, change) = if odd { (stars - 1, 1) } else { (stars / 2, -1) };
             for _ in 0..steps {
-                change_level(&mut buffer, start, change, &settings)?;
+                change_level(&mut buffer, start, change, &settings, false)?;
             }
         }
         start = next_line(&buffer.text, start);
@@ -331,15 +379,19 @@ pub fn cycle_level(text: &str, at: usize, keywords: &TodoKeywords, settings: &Se
     if !text[at..end].trim_matches([' ', '\t']).is_empty() || !empty_headline(&text[start..end], keywords) {
         return None;
     }
+    // Not in an inline task (`org-inlinetask-in-task-p`).
+    if crate::inlinetask::in_task(text, at, settings.odd_levels) {
+        return None;
+    }
     let current = text[start..].bytes().take_while(|b| *b == b'*').count();
     // `org-get-previous-line-level`: that of the headline the line before
-    // is in, 0 for none.
+    // is in, 0 for none; inline tasks are passed (`org-current-level`).
     let previous = if start == 0 {
         0
     } else {
         let mut line = line_start(text, start - 1);
         loop {
-            if let Some(level) = level_at(text, line) {
+            if let Some(level) = outline_level_at(text, line, settings.odd_levels) {
                 break level;
             }
             if line == 0 {
@@ -434,7 +486,9 @@ fn to_column(text: &str, start: usize, column: usize) -> usize {
 /// many of its siblings.
 pub fn move_subtree(text: &str, at: usize, count: isize) -> Result<Outcome, Refusal> {
     let beg = line_start(text, at);
-    if level_at(text, beg).is_none() {
+    // On an inline task Org drags the element (`org-drag-element-backward`),
+    // which is not done here.
+    if outline_level_at(text, beg, odd_levels_in(text)).is_none() {
         return Err(Refusal::NotHere("Not at a headline".to_string()));
     }
     let col = column(text, at);
@@ -775,7 +829,7 @@ fn change_level_within(
     settings: &Settings,
 ) -> Result<(), Refusal> {
     let rest = buffer.text.split_off(limit);
-    let result = change_level(buffer, heading, change, settings);
+    let result = change_level(buffer, heading, change, settings, true);
     buffer.text.push_str(&rest);
     result
 }

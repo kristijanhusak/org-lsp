@@ -96,6 +96,7 @@ const MODIFIER_DESCRIPTIONS: &[&str] = &[
     "Agenda: a day of a habit's graph past its due day",
     "Agenda: a day of a habit's graph to come",
     "A headline marked with a TODO keyword not done, past the keyword, with org_fontify_todo_headline",
+    "The stars and title of an inline task",
 ];
 
 /// The default look of the tokens a selector matches.
@@ -326,6 +327,8 @@ pub const LOOKS: &[Look] = &[
     look("agendaDimmed", &["@org.agenda.dimmed", "Comment"], &["comment.dimmed.agenda.org", "comment"]),
     // `org-archived`, which inherits `shadow`.
     look("*.archived", &["@org.archived", "Comment"], &["comment.archived.org", "comment"]),
+    // `org-inlinetask`, which inherits `shadow`.
+    look("*.inlinetask", &["@org.inlinetask", "Comment"], &["comment.inlinetask.org", "comment"]),
     // The date prompt, after Emacs's calendar and minibuffer faces.
     look("calendarHeader", &["Function"], &["entity.name.function.month.calendar.org", "entity.name.function"]),
     look("calendarWeekday", &["Constant"], &["constant.other.weekday.calendar.org", "constant.other"]),

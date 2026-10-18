@@ -83,6 +83,7 @@
     "text.clocking": "markup.inserted markup.highlight.clocking.agenda.org",
     "agendaDimmed": "comment comment.dimmed.agenda.org",
     "text.archived": "comment comment.archived.org",
+    "text.inlinetask": "comment comment.inlinetask.org",
     "calendarHeader": "entity.name.function entity.name.function.month.calendar.org",
     "calendarWeekday": "constant.other constant.other.weekday.calendar.org",
     "calendarWeekday.weekend": "comment comment.weekend.calendar.org",

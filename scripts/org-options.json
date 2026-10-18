@@ -577,9 +577,9 @@
   "org-indent-post-buffer-init-functions": "lisp"
  },
  "org-inlinetask.el": {
-  "org-inlinetask-min-level": "absent",
-  "org-inlinetask-show-first-star": "absent",
-  "org-inlinetask-default-state": "absent"
+  "org-inlinetask-min-level": "setting",
+  "org-inlinetask-show-first-star": "setting",
+  "org-inlinetask-default-state": "setting"
  },
  "org-keys.el": {
   "org-replace-disputed-keys": "emacs-only",

@@ -1925,7 +1925,8 @@ pub fn tags_view(files: &[&Outline], matcher: &Matcher, todo_only: bool, now: No
                 continue;
             }
             passing = None;
-            if outline.entries[index].skipped_by(config) || !matcher.matches(outline, index, todo_only, clock) {
+            let entry = &outline.entries[index];
+            if entry.inlinetask_end || entry.skipped_by(config) || !matcher.matches(outline, index, todo_only, clock) {
                 continue;
             }
             // `org-agenda-tags-todo-honor-ignore-options`

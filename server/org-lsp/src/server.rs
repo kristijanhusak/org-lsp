@@ -1191,6 +1191,8 @@ struct Server {
     /// `org-odd-levels-only`, unless a document's `#+STARTUP:` says
     /// otherwise.
     odd_levels: bool,
+    /// `org-inlinetask-default-state`
+    inlinetask_default_state: Option<String>,
     /// `org-yank-adjusted-subtrees`
     yank_adjusted_subtrees: bool,
     /// `org-agenda-skip-unavailable-files`
@@ -1351,6 +1353,9 @@ pub fn run(connection: Connection) -> Result<()> {
     org_syntax::set_list_syntax(options.list_syntax());
     // `org-odd-levels-only`, for the files without a `#+STARTUP:` word.
     org_core::structure::set_odd_levels_default(options.odd_levels_only.unwrap_or(false));
+    // `org-inlinetask-min-level`: which headlines are inline tasks.
+    org_core::inlinetask::set_min_level(options.inlinetask_min_level());
+    org_core::inlinetask::set_show_first_star(options.inlinetask_show_first_star.unwrap_or(false));
     let (port_sender, port_receiver) = crossbeam_channel::unbounded();
 
     let org_client = raw_params.pointer("/capabilities/experimental/orgClient").and_then(Value::as_bool) == Some(true)
@@ -1679,6 +1684,7 @@ pub fn run(connection: Connection) -> Result<()> {
         open_directory_index: options.open_directory_means_index_dot_org.unwrap_or(false),
         allow_promoting_top_level: options.allow_promoting_top_level_subtree.unwrap_or(false),
         odd_levels: options.odd_levels_only.unwrap_or(false),
+        inlinetask_default_state: options.inlinetask_default_state.clone().filter(|state| !state.is_empty()),
         yank_adjusted_subtrees: options.yank_adjusted_subtrees.unwrap_or(false),
         skip_unavailable_files: options.agenda_skip_unavailable_files.unwrap_or(false),
         removed_agenda_files: HashSet::new(),
@@ -3305,6 +3311,10 @@ impl Server {
         let (conceal, _, _) = self.display_of(&document.text);
         let fontify = highlight::Fontify {
             odd_levels: org_core::structure::odd_levels(&document.text, self.odd_levels),
+            inlinetask: org_core::inlinetask::min_stars(org_core::structure::odd_levels(
+                &document.text,
+                self.odd_levels,
+            )),
             ..self.fontify
         };
         let tokens = highlight::tokens_with(&document.syntax(), document.parse.todo_keywords(), conceal, fontify);
@@ -6541,6 +6551,10 @@ impl Server {
             }
             commands::OPEN_LINE => self.open_line(&context.ok_or("This command needs the cursor position")?),
             commands::OUTLINE_PATH => self.outline_path(&context.ok_or("This command needs the cursor position")?),
+            commands::INLINETASK_INSERT | commands::INLINETASK_INSERT_NO_STATE => self.inlinetask_insert(
+                &context.ok_or("This command needs the cursor position")?,
+                params.command == commands::INLINETASK_INSERT_NO_STATE,
+            ),
             commands::LEVELS_ODD | commands::LEVELS_ODDEVEN => self.convert_levels(
                 params.command == commands::LEVELS_ODD,
                 &context.ok_or("This command needs the cursor position")?,
@@ -12084,8 +12098,9 @@ impl Server {
         // `org-cycle-max-level` limits them.
         let first_line = text.split('\n').next().unwrap_or("");
         let stars = first_line.bytes().take_while(|b| *b == b'*').count();
-        let heading =
-            stars > 0 && first_line[stars..].starts_with(' ') && cycle.folding.max_level.is_none_or(|max| stars <= max);
+        let heading = stars > 0 && first_line[stars..].starts_with(' ') && cycle.folding.max_level.is_none_or(|max| stars <= max)
+                // `org-inlinetask-min-level` limits it too.
+                && org_core::inlinetask::outline_stars_in(&text).is_none_or(|deepest| stars <= deepest);
         if cycle.global_at_bob && offset == 0 && !heading {
             return Ok(json!({ "global": true }));
         }
@@ -12988,6 +13003,19 @@ impl Server {
     /// A command of `org-table.el` on the table at the cursor, carried in
     /// the result as `org.return` is; the row `org-table-kill-row` takes
     /// is in `copy`, for the editor's register or clipboard.
+    /// `org-inlinetask-insert-task` (`C-c C-x t`): an inline task at the
+    /// cursor, around the selection if there is one, in the state
+    /// `org-inlinetask-default-state` unless `no_state`.
+    fn inlinetask_insert(&mut self, context: &Context, no_state: bool) -> std::result::Result<Value, Refusal> {
+        let encoding = self.client.encoding;
+        let region = self.region_of(context);
+        let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
+        let offset = document.index.offset(&document.text, context.position, encoding);
+        let state = if no_state { None } else { self.inlinetask_default_state.as_deref() };
+        let outcome = org_core::inlinetask::insert_task(&document.text, offset, region, state)?;
+        self.carried(context, outcome)
+    }
+
     /// `org-display-outline-path`: the titles of the headlines above the
     /// entry at the cursor, joined by `/`, for the echo area; with a count
     /// (`C-u`, FILE-OR-TITLE) the file's name first. Emacs cuts it to the
@@ -14069,7 +14097,8 @@ impl Server {
         let Some(document) = self.documents.get(key) else { return };
         let text = &document.text;
         let (indent, hide_stars) = (self.display.indented(text), self.display.hides_stars(text));
-        let lines: Vec<[usize; 4]> = if indent || hide_stars {
+        // The stars of inline tasks are hidden whatever the rest says.
+        let lines: Vec<[usize; 4]> = if indent || hide_stars || org_core::inlinetask::hides_stars(text) {
             let adapt = self.display.adapt(text, self.indent.adapt);
             org_core::indent::virtual_indentation(
                 text,

@@ -64,6 +64,7 @@ its sections says what it should look like.
 - [ ] Promoting and demoting a heading; its tags stay aligned: ~<<~, ~>>~
 - [ ] Promoting and demoting a subtree: ~<s~, ~>s~
 - [ ] Moving a subtree up and down past its siblings: ~<Leader>oK~, ~<Leader>oJ~
+- [ ] Inserting an inline task gives 15 stars and an ~END~ line; demoting it changes both; the outline leaves it out, and folding it hides its text and its ~END~ line: ~<Leader>oiI~, ~>>~
 - [ ] Cutting a subtree and pasting it under another heading: its level fits there: ~<Leader>osd~, ~<Leader>osp~
 - [ ] Copying a subtree and pasting it: ~<Leader>osy~, ~<Leader>osp~
 - [ ] With ~org_allow_promoting_top_level_subtree~ on, promoting ~* A~ makes it ~# A~: ~<<~

@@ -1,0 +1,2890 @@
+[
+ {
+  "text": "",
+  "point": 0,
+  "key": "C-c C-x t",
+  "expected": {
+   "text": "*************** \n*************** END\n",
+   "point": 16,
+   "hidden": []
+  }
+ },
+ {
+  "text": "",
+  "point": 0,
+  "key": "C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "*************** TODO \n*************** END\n",
+   "point": 21,
+   "hidden": []
+  }
+ },
+ {
+  "text": "",
+  "point": 0,
+  "key": "C-u C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "*************** \n*************** END\n",
+   "point": 16,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\nbody\n",
+  "point": 0,
+  "key": "C-c C-x t",
+  "expected": {
+   "text": "*************** \n*************** END\n* A\nbody\n",
+   "point": 16,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\nbody\n",
+  "point": 0,
+  "key": "C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "*************** TODO \n*************** END\n* A\nbody\n",
+   "point": 21,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\nbody\n",
+  "point": 0,
+  "key": "C-u C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "*************** \n*************** END\n* A\nbody\n",
+   "point": 16,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\nbody\n",
+  "point": 4,
+  "key": "C-c C-x t",
+  "expected": {
+   "text": "* A\n*************** \n*************** END\nbody\n",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\nbody\n",
+  "point": 4,
+  "key": "C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "* A\n*************** TODO \n*************** END\nbody\n",
+   "point": 25,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\nbody\n",
+  "point": 4,
+  "key": "C-u C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "* A\n*************** \n*************** END\nbody\n",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\nbody\n",
+  "point": 9,
+  "key": "C-c C-x t",
+  "expected": {
+   "text": "* A\nbody\n*************** \n*************** END\n",
+   "point": 25,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\nbody\n",
+  "point": 9,
+  "key": "C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "* A\nbody\n*************** TODO \n*************** END\n",
+   "point": 30,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\nbody\n",
+  "point": 9,
+  "key": "C-u C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "* A\nbody\n*************** \n*************** END\n",
+   "point": 25,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\nbody",
+  "point": 0,
+  "key": "C-c C-x t",
+  "expected": {
+   "text": "*************** \n*************** END\n* A\nbody",
+   "point": 16,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\nbody",
+  "point": 0,
+  "key": "C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "*************** TODO \n*************** END\n* A\nbody",
+   "point": 21,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\nbody",
+  "point": 0,
+  "key": "C-u C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "*************** \n*************** END\n* A\nbody",
+   "point": 16,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\nbody",
+  "point": 4,
+  "key": "C-c C-x t",
+  "expected": {
+   "text": "* A\n*************** \n*************** END\nbody",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\nbody",
+  "point": 4,
+  "key": "C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "* A\n*************** TODO \n*************** END\nbody",
+   "point": 25,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\nbody",
+  "point": 4,
+  "key": "C-u C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "* A\n*************** \n*************** END\nbody",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\nbody",
+  "point": 8,
+  "key": "C-c C-x t",
+  "expected": {
+   "text": "* A\nbody\n*************** \n*************** END\n",
+   "point": 25,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\nbody",
+  "point": 8,
+  "key": "C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "* A\nbody\n*************** TODO \n*************** END\n",
+   "point": 30,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\nbody",
+  "point": 8,
+  "key": "C-u C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "* A\nbody\n*************** \n*************** END\n",
+   "point": 25,
+   "hidden": []
+  }
+ },
+ {
+  "text": "text",
+  "point": 0,
+  "key": "C-c C-x t",
+  "expected": {
+   "text": "*************** \n*************** END\ntext",
+   "point": 16,
+   "hidden": []
+  }
+ },
+ {
+  "text": "text",
+  "point": 0,
+  "key": "C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "*************** TODO \n*************** END\ntext",
+   "point": 21,
+   "hidden": []
+  }
+ },
+ {
+  "text": "text",
+  "point": 0,
+  "key": "C-u C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "*************** \n*************** END\ntext",
+   "point": 16,
+   "hidden": []
+  }
+ },
+ {
+  "text": "text",
+  "point": 2,
+  "key": "C-c C-x t",
+  "expected": {
+   "text": "te\n*************** \n*************** END\nxt",
+   "point": 19,
+   "hidden": []
+  }
+ },
+ {
+  "text": "text",
+  "point": 2,
+  "key": "C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "te\n*************** TODO \n*************** END\nxt",
+   "point": 24,
+   "hidden": []
+  }
+ },
+ {
+  "text": "text",
+  "point": 2,
+  "key": "C-u C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "te\n*************** \n*************** END\nxt",
+   "point": 19,
+   "hidden": []
+  }
+ },
+ {
+  "text": "text",
+  "point": 4,
+  "key": "C-c C-x t",
+  "expected": {
+   "text": "text\n*************** \n*************** END\n",
+   "point": 21,
+   "hidden": []
+  }
+ },
+ {
+  "text": "text",
+  "point": 4,
+  "key": "C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "text\n*************** TODO \n*************** END\n",
+   "point": 26,
+   "hidden": []
+  }
+ },
+ {
+  "text": "text",
+  "point": 4,
+  "key": "C-u C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "text\n*************** \n*************** END\n",
+   "point": 21,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n\n* B\n",
+  "point": 0,
+  "key": "C-c C-x t",
+  "expected": {
+   "text": "*************** \n*************** END\n* A\n\n* B\n",
+   "point": 16,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n\n* B\n",
+  "point": 0,
+  "key": "C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "*************** TODO \n*************** END\n* A\n\n* B\n",
+   "point": 21,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n\n* B\n",
+  "point": 0,
+  "key": "C-u C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "*************** \n*************** END\n* A\n\n* B\n",
+   "point": 16,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n\n* B\n",
+  "point": 4,
+  "key": "C-c C-x t",
+  "expected": {
+   "text": "* A\n*************** \n*************** END\n\n* B\n",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n\n* B\n",
+  "point": 4,
+  "key": "C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "* A\n*************** TODO \n*************** END\n\n* B\n",
+   "point": 25,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n\n* B\n",
+  "point": 4,
+  "key": "C-u C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "* A\n*************** \n*************** END\n\n* B\n",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n\n* B\n",
+  "point": 9,
+  "key": "C-c C-x t",
+  "expected": {
+   "text": "* A\n\n* B\n*************** \n*************** END\n",
+   "point": 25,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n\n* B\n",
+  "point": 9,
+  "key": "C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "* A\n\n* B\n*************** TODO \n*************** END\n",
+   "point": 30,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n\n* B\n",
+  "point": 9,
+  "key": "C-u C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "* A\n\n* B\n*************** \n*************** END\n",
+   "point": 25,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 0,
+  "key": "C-c C-x t",
+  "expected": {
+   "text": "*************** \n*************** END\n* A\n*************** Task\nafter\n* B\n",
+   "point": 16,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 0,
+  "key": "C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "*************** TODO \n*************** END\n* A\n*************** Task\nafter\n* B\n",
+   "point": 21,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 0,
+  "key": "C-u C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "*************** \n*************** END\n* A\n*************** Task\nafter\n* B\n",
+   "point": 16,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 4,
+  "key": "C-c C-x t",
+  "expected": {
+   "text": "* A\n*************** \n*************** END\n*************** Task\nafter\n* B\n",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 4,
+  "key": "C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "* A\n*************** TODO \n*************** END\n*************** Task\nafter\n* B\n",
+   "point": 25,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 4,
+  "key": "C-u C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "* A\n*************** \n*************** END\n*************** Task\nafter\n* B\n",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 17,
+  "key": "C-c C-x t",
+  "expected": {
+   "error": "Cannot nest inline tasks"
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 17,
+  "key": "C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "error": "Cannot nest inline tasks"
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 17,
+  "key": "C-u C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "error": "Cannot nest inline tasks"
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 35,
+  "key": "C-c C-x t",
+  "expected": {
+   "text": "* A\n*************** Task\nafter\n* B\n*************** \n*************** END\n",
+   "point": 51,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 35,
+  "key": "C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "* A\n*************** Task\nafter\n* B\n*************** TODO \n*************** END\n",
+   "point": 56,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 35,
+  "key": "C-u C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "* A\n*************** Task\nafter\n* B\n*************** \n*************** END\n",
+   "point": 51,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 0,
+  "key": "C-c C-x t",
+  "expected": {
+   "text": "*************** \n*************** END\n* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 16,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 0,
+  "key": "C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "*************** TODO \n*************** END\n* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 21,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 0,
+  "key": "C-u C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "*************** \n*************** END\n* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 16,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 4,
+  "key": "C-c C-x t",
+  "expected": {
+   "text": "* A\n*************** \n*************** END\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 4,
+  "key": "C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "* A\n*************** TODO \n*************** END\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 25,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 4,
+  "key": "C-u C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "* A\n*************** \n*************** END\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 32,
+  "key": "C-c C-x t",
+  "expected": {
+   "error": "Cannot nest inline tasks"
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 32,
+  "key": "C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "error": "Cannot nest inline tasks"
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 32,
+  "key": "C-u C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "error": "Cannot nest inline tasks"
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 65,
+  "key": "C-c C-x t",
+  "expected": {
+   "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n*************** \n*************** END\n",
+   "point": 81,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 65,
+  "key": "C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n*************** TODO \n*************** END\n",
+   "point": 86,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 65,
+  "key": "C-u C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n*************** \n*************** END\n",
+   "point": 81,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 38,
+  "key": "C-c C-x t",
+  "expected": {
+   "error": "Cannot nest inline tasks"
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 4,
+  "key": "C-c C-x t",
+  "expected": {
+   "text": "* A\n*************** \n*************** END\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 41,
+  "key": "C-c C-x t",
+  "expected": {
+   "error": "Cannot nest inline tasks"
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 60,
+  "key": "C-c C-x t",
+  "expected": {
+   "error": "Cannot nest inline tasks"
+  }
+ },
+ {
+  "text": "* A\nsome text\nmore\n",
+  "point": 18,
+  "key": "C-c C-x t",
+  "mark": 4,
+  "expected": {
+   "text": "* A\n*************** \nsome text\nmore\n\n*************** END\n\n",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\nsome text\nmore\n",
+  "point": 4,
+  "key": "C-c C-x t",
+  "mark": 18,
+  "expected": {
+   "text": "* A\n*************** \nsome text\nmore\n*************** END\n\n",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\nsome text\nmore\n",
+  "point": 16,
+  "key": "C-c C-x t",
+  "mark": 6,
+  "expected": {
+   "text": "* A\nso\n*************** \nme text\nmo\n\n*************** END\nre\n",
+   "point": 23,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\nsome text\nmore\n",
+  "point": 14,
+  "key": "C-c C-x t",
+  "mark": 4,
+  "emacs": "(org-inlinetask-default-state \"TODO\")",
+  "expected": {
+   "text": "* A\n*************** TODO \nsome text\n\n*************** END\nmore\n",
+   "point": 25,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\nbody\n",
+  "point": 4,
+  "key": "C-c C-x t",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "* A\n***************************** \n***************************** END\nbody\n",
+   "point": 34,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\nbody\n",
+  "point": 4,
+  "key": "C-c C-x t",
+  "emacs": "(org-inlinetask-min-level 5)",
+  "expected": {
+   "text": "* A\n***** \n***** END\nbody\n",
+   "point": 10,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\nbody\n",
+  "point": 4,
+  "key": "C-c C-x t",
+  "emacs": "(org-inlinetask-default-state \"DONE\")",
+  "expected": {
+   "text": "* A\n*************** DONE \n*************** END\nbody\n",
+   "point": 25,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 25,
+  "key": "M-<left>",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 25,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 25,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n**************** TODO Task :tag:\nbody\n**************** END\n* B\n",
+   "point": 26,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 25,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n**************** TODO Task :tag:\n body\n**************** END\n* B\n",
+   "point": 26,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 24,
+  "key": "M-<left>",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 24,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 24,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n**************** TODO Task :tag:\nbody\n**************** END\n* B\n",
+   "point": 25,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 24,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n**************** TODO Task :tag:\n body\n**************** END\n* B\n",
+   "point": 25,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 57,
+  "key": "M-<left>",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 57,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 57,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n**************** TODO Task :tag:\nbody\n**************** END\n* B\n",
+   "point": 59,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 57,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n**************** TODO Task :tag:\n body\n**************** END\n* B\n",
+   "point": 60,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 56,
+  "key": "M-<left>",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 56,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 56,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n**************** TODO Task :tag:\nbody\n**************** END\n* B\n",
+   "point": 58,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 56,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n**************** TODO Task :tag:\n body\n**************** END\n* B\n",
+   "point": 59,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 20,
+  "key": "M-<left>",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 20,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 20,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n**************** Task\nafter\n* B\n",
+   "point": 21,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 20,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n**************** Task\nafter\n* B\n",
+   "point": 21,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 19,
+  "key": "M-<left>",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 19,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 19,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n**************** Task\nafter\n* B\n",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 19,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n**************** Task\nafter\n* B\n",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 21,
+  "key": "M-<left>",
+  "expected": {
+   "text": "* A\n*************** Task\nbody\n*************** END\n",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 21,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n*************** Task\nbody\n*************** END\n",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 21,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n***************** Task\nbody\n***************** END\n",
+   "point": 22,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 21,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n***************** Task\n body\n***************** END\n",
+   "point": 22,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 20,
+  "key": "M-<left>",
+  "expected": {
+   "text": "* A\n*************** Task\nbody\n*************** END\n",
+   "point": 19,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 20,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n*************** Task\nbody\n*************** END\n",
+   "point": 19,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 20,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n***************** Task\nbody\n***************** END\n",
+   "point": 21,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 20,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n***************** Task\n body\n***************** END\n",
+   "point": 21,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 48,
+  "key": "M-<left>",
+  "expected": {
+   "text": "* A\n*************** Task\nbody\n*************** END\n",
+   "point": 46,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 48,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n*************** Task\nbody\n*************** END\n",
+   "point": 46,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 48,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n***************** Task\nbody\n***************** END\n",
+   "point": 50,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 48,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n***************** Task\n body\n***************** END\n",
+   "point": 51,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 47,
+  "key": "M-<left>",
+  "expected": {
+   "text": "* A\n*************** Task\nbody\n*************** END\n",
+   "point": 45,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 47,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n*************** Task\nbody\n*************** END\n",
+   "point": 45,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 47,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n***************** Task\nbody\n***************** END\n",
+   "point": 49,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 47,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n***************** Task\n body\n***************** END\n",
+   "point": 50,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 25,
+  "key": "M-<left>",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 25,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 25,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n** B\n**************** Task\n**************** END\n*** C\n* D\n",
+   "point": 26,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 25,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n** B\n**************** Task\n**************** END\n*** C\n* D\n",
+   "point": 26,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 24,
+  "key": "M-<left>",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 24,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 24,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n** B\n**************** Task\n**************** END\n*** C\n* D\n",
+   "point": 25,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 24,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n** B\n**************** Task\n**************** END\n*** C\n* D\n",
+   "point": 25,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 46,
+  "key": "M-<left>",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 46,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 46,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n** B\n**************** Task\n**************** END\n*** C\n* D\n",
+   "point": 48,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 46,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n** B\n**************** Task\n**************** END\n*** C\n* D\n",
+   "point": 48,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 45,
+  "key": "M-<left>",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 45,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 45,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n** B\n**************** Task\n**************** END\n*** C\n* D\n",
+   "point": 47,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 45,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n** B\n**************** Task\n**************** END\n*** C\n* D\n",
+   "point": 47,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\n                 body\n*************** END\n",
+  "point": 20,
+  "key": "M-<left>",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n*************** Task\n                 body\n*************** END\n",
+  "point": 20,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n*************** Task\n                 body\n*************** END\n",
+  "point": 20,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n**************** Task\n                 body\n**************** END\n",
+   "point": 21,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\n                 body\n*************** END\n",
+  "point": 20,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n**************** Task\n                  body\n**************** END\n",
+   "point": 21,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\n                 body\n*************** END\n",
+  "point": 19,
+  "key": "M-<left>",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n*************** Task\n                 body\n*************** END\n",
+  "point": 19,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n*************** Task\n                 body\n*************** END\n",
+  "point": 19,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n**************** Task\n                 body\n**************** END\n",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\n                 body\n*************** END\n",
+  "point": 19,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n**************** Task\n                  body\n**************** END\n",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\n                 body\n*************** END\n",
+  "point": 63,
+  "key": "M-<left>",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n*************** Task\n                 body\n*************** END\n",
+  "point": 63,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n*************** Task\n                 body\n*************** END\n",
+  "point": 63,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n**************** Task\n                 body\n**************** END\n",
+   "point": 65,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\n                 body\n*************** END\n",
+  "point": 63,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n**************** Task\n                  body\n**************** END\n",
+   "point": 66,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\n                 body\n*************** END\n",
+  "point": 62,
+  "key": "M-<left>",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n*************** Task\n                 body\n*************** END\n",
+  "point": 62,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "error": "Cannot promote an inline task at minimum level"
+  }
+ },
+ {
+  "text": "* A\n*************** Task\n                 body\n*************** END\n",
+  "point": 62,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n**************** Task\n                 body\n**************** END\n",
+   "point": 64,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\n                 body\n*************** END\n",
+  "point": 62,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n**************** Task\n                  body\n**************** END\n",
+   "point": 65,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END",
+  "point": 21,
+  "key": "M-<left>",
+  "expected": {
+   "text": "* A\n*************** Task\nbody\n*************** END",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END",
+  "point": 21,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n*************** Task\nbody\n*************** END",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END",
+  "point": 21,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n***************** Task\nbody\n***************** END",
+   "point": 22,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END",
+  "point": 21,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n***************** Task\n body\n***************** END",
+   "point": 22,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END",
+  "point": 20,
+  "key": "M-<left>",
+  "expected": {
+   "text": "* A\n*************** Task\nbody\n*************** END",
+   "point": 19,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END",
+  "point": 20,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n*************** Task\nbody\n*************** END",
+   "point": 19,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END",
+  "point": 20,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n***************** Task\nbody\n***************** END",
+   "point": 21,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END",
+  "point": 20,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n***************** Task\n body\n***************** END",
+   "point": 21,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END",
+  "point": 48,
+  "key": "M-<left>",
+  "expected": {
+   "text": "* A\n*************** Task\nbody\n*************** END",
+   "point": 46,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END",
+  "point": 48,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n*************** Task\nbody\n*************** END",
+   "point": 46,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END",
+  "point": 48,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n***************** Task\nbody\n***************** END",
+   "point": 50,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END",
+  "point": 48,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n***************** Task\n body\n***************** END",
+   "point": 51,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END",
+  "point": 47,
+  "key": "M-<left>",
+  "expected": {
+   "text": "* A\n*************** Task\nbody\n*************** END",
+   "point": 45,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END",
+  "point": 47,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n*************** Task\nbody\n*************** END",
+   "point": 45,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END",
+  "point": 47,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n***************** Task\nbody\n***************** END",
+   "point": 49,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END",
+  "point": 47,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n***************** Task\n body\n***************** END",
+   "point": 50,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\n**************** END   \nafter\n",
+  "point": 21,
+  "key": "M-<left>",
+  "expected": {
+   "text": "* A\n*************** Task\n*************** END   \nafter\n",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\n**************** END   \nafter\n",
+  "point": 21,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n*************** Task\n*************** END   \nafter\n",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\n**************** END   \nafter\n",
+  "point": 21,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n***************** Task\n***************** END   \nafter\n",
+   "point": 22,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\n**************** END   \nafter\n",
+  "point": 21,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n***************** Task\n***************** END   \nafter\n",
+   "point": 22,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\n**************** END   \nafter\n",
+  "point": 20,
+  "key": "M-<left>",
+  "expected": {
+   "text": "* A\n*************** Task\n*************** END   \nafter\n",
+   "point": 19,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\n**************** END   \nafter\n",
+  "point": 20,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n*************** Task\n*************** END   \nafter\n",
+   "point": 19,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\n**************** END   \nafter\n",
+  "point": 20,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n***************** Task\n***************** END   \nafter\n",
+   "point": 21,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\n**************** END   \nafter\n",
+  "point": 20,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n***************** Task\n***************** END   \nafter\n",
+   "point": 21,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\n**************** END   \nafter\n",
+  "point": 43,
+  "key": "M-<left>",
+  "expected": {
+   "text": "* A\n*************** Task\n*************** END   \nafter\n",
+   "point": 41,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\n**************** END   \nafter\n",
+  "point": 43,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n*************** Task\n*************** END   \nafter\n",
+   "point": 41,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\n**************** END   \nafter\n",
+  "point": 43,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n***************** Task\n***************** END   \nafter\n",
+   "point": 45,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\n**************** END   \nafter\n",
+  "point": 43,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n***************** Task\n***************** END   \nafter\n",
+   "point": 45,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\n**************** END   \nafter\n",
+  "point": 42,
+  "key": "M-<left>",
+  "expected": {
+   "text": "* A\n*************** Task\n*************** END   \nafter\n",
+   "point": 40,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\n**************** END   \nafter\n",
+  "point": 42,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n*************** Task\n*************** END   \nafter\n",
+   "point": 40,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\n**************** END   \nafter\n",
+  "point": 42,
+  "key": "M-<right>",
+  "expected": {
+   "text": "* A\n***************** Task\n***************** END   \nafter\n",
+   "point": 44,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\n**************** END   \nafter\n",
+  "point": 42,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n***************** Task\n***************** END   \nafter\n",
+   "point": 44,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 0,
+  "key": "M-S-<left>",
+  "expected": {
+   "error": "Cannot promote to level 0.  UNDO to recover if necessary"
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 0,
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "** A\n*** B\n*************** Task\n*************** END\n**** C\n* D\n",
+   "point": 0,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 4,
+  "key": "M-S-<left>",
+  "expected": {
+   "text": "* A\n* B\n*************** Task\n*************** END\n** C\n* D\n",
+   "point": 4,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 4,
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "* A\n*** B\n*************** Task\n*************** END\n**** C\n* D\n",
+   "point": 4,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 25,
+  "key": "M-S-<left>",
+  "expected": {
+   "text": "* A\n* B\n*************** Task\n*************** END\n** C\n* D\n",
+   "point": 24,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 25,
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "* A\n*** B\n*************** Task\n*************** END\n**** C\n* D\n",
+   "point": 26,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 0,
+  "key": "M-S-<left>",
+  "expected": {
+   "error": "Cannot promote to level 0.  UNDO to recover if necessary"
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 0,
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "** A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 0,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 4,
+  "key": "M-S-<left>",
+  "expected": {
+   "error": "Cannot promote to level 0.  UNDO to recover if necessary"
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 4,
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "** A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 5,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 25,
+  "key": "M-S-<left>",
+  "expected": {
+   "error": "Cannot promote to level 0.  UNDO to recover if necessary"
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 25,
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "** A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 26,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 0,
+  "key": "M-S-<left>",
+  "expected": {
+   "error": "Cannot promote to level 0.  UNDO to recover if necessary"
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 0,
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "** A\n**************** Task\nbody\n**************** END\n",
+   "point": 0,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 4,
+  "key": "M-S-<left>",
+  "expected": {
+   "error": "Cannot promote to level 0.  UNDO to recover if necessary"
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 4,
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "** A\n**************** Task\nbody\n**************** END\n",
+   "point": 5,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 21,
+  "key": "M-S-<left>",
+  "expected": {
+   "error": "Cannot promote to level 0.  UNDO to recover if necessary"
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 21,
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "** A\n**************** Task\nbody\n**************** END\n",
+   "point": 22,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n text\n*************** Task\n body\n*************** END\n after\n** B\n",
+  "point": 0,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "** A\n  text\n*************** Task\n  body\n*************** END\n  after\n** B\n",
+   "point": 0,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n text\n*************** Task\n body\n*************** END\n after\n** B\n",
+  "point": 65,
+  "key": "M-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n text\n*************** Task\n body\n*************** END\n after\n*** B\n",
+   "point": 64,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n text\n*************** Task\n body\n*************** END\n after\n** B\n",
+  "point": 0,
+  "key": "M-S-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "** A\n  text\n *************** Task\n  body\n *************** END\n  after\n*** B\n",
+   "point": 0,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n text\n*************** Task\n body\n*************** END\n after\n** B\n",
+  "point": 65,
+  "key": "M-S-<right>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n text\n*************** Task\n body\n*************** END\n after\n*** B\n",
+   "point": 64,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n text\n*************** Task\n body\n*************** END\n after\n** B\n",
+  "point": 0,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "error": "Cannot promote to level 0.  UNDO to recover if necessary"
+  }
+ },
+ {
+  "text": "* A\n text\n*************** Task\n body\n*************** END\n after\n** B\n",
+  "point": 65,
+  "key": "M-<left>",
+  "emacs": "(org-adapt-indentation t)",
+  "expected": {
+   "text": "* A\n text\n*************** Task\n body\n*************** END\n after\n* B\n",
+   "point": 64,
+   "hidden": []
+  }
+ },
+ {
+  "text": "#+STARTUP: odd\n* A\n***************************** Task\nbody\n***************************** END\n",
+  "point": 49,
+  "key": "M-<right>",
+  "expected": {
+   "text": "#+STARTUP: odd\n* A\n******************************* Task\nbody\n******************************* END\n",
+   "point": 51,
+   "hidden": []
+  }
+ },
+ {
+  "text": "#+STARTUP: odd\n* A\n***************************** Task\nbody\n***************************** END\n",
+  "point": 49,
+  "key": "M-<left>",
+  "expected": {
+   "text": "#+STARTUP: odd\n* A\n*************************** Task\nbody\n*************************** END\n",
+   "point": 47,
+   "hidden": []
+  }
+ },
+ {
+  "text": "#+STARTUP: odd\n* A\n***************************** Task\nbody\n***************************** END\n",
+  "point": 15,
+  "key": "M-S-<right>",
+  "expected": {
+   "text": "#+STARTUP: odd\n*** A\n***************************** Task\nbody\n***************************** END\n",
+   "point": 15,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 0,
+  "key": "C-c C-n",
+  "expected": {
+   "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 61,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 0,
+  "key": "C-c C-p",
+  "expected": {
+   "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 0,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 0,
+  "key": "C-u 2 C-c C-n",
+  "expected": {
+   "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 65,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 4,
+  "key": "C-c C-n",
+  "expected": {
+   "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 61,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 4,
+  "key": "C-c C-p",
+  "expected": {
+   "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 0,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 4,
+  "key": "C-u 2 C-c C-n",
+  "expected": {
+   "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 65,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 25,
+  "key": "C-c C-n",
+  "expected": {
+   "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 61,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 25,
+  "key": "C-c C-p",
+  "expected": {
+   "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 0,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 25,
+  "key": "C-u 2 C-c C-n",
+  "expected": {
+   "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 65,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 64,
+  "key": "C-c C-n",
+  "expected": {
+   "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 65,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 64,
+  "key": "C-c C-p",
+  "expected": {
+   "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 0,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 64,
+  "key": "C-u 2 C-c C-n",
+  "expected": {
+   "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 65,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 0,
+  "key": "C-c C-n",
+  "expected": {
+   "text": "* A\n*************** Task\nafter\n* B\n",
+   "point": 31,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 0,
+  "key": "C-c C-p",
+  "expected": {
+   "text": "* A\n*************** Task\nafter\n* B\n",
+   "point": 0,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 0,
+  "key": "C-u 2 C-c C-n",
+  "expected": {
+   "text": "* A\n*************** Task\nafter\n* B\n",
+   "point": 35,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 4,
+  "key": "C-c C-n",
+  "expected": {
+   "text": "* A\n*************** Task\nafter\n* B\n",
+   "point": 31,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 4,
+  "key": "C-c C-p",
+  "expected": {
+   "text": "* A\n*************** Task\nafter\n* B\n",
+   "point": 0,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 4,
+  "key": "C-u 2 C-c C-n",
+  "expected": {
+   "text": "* A\n*************** Task\nafter\n* B\n",
+   "point": 35,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 20,
+  "key": "C-c C-n",
+  "expected": {
+   "text": "* A\n*************** Task\nafter\n* B\n",
+   "point": 31,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 20,
+  "key": "C-c C-p",
+  "expected": {
+   "text": "* A\n*************** Task\nafter\n* B\n",
+   "point": 0,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 20,
+  "key": "C-u 2 C-c C-n",
+  "expected": {
+   "text": "* A\n*************** Task\nafter\n* B\n",
+   "point": 35,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 34,
+  "key": "C-c C-n",
+  "expected": {
+   "text": "* A\n*************** Task\nafter\n* B\n",
+   "point": 35,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 34,
+  "key": "C-c C-p",
+  "expected": {
+   "text": "* A\n*************** Task\nafter\n* B\n",
+   "point": 0,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 34,
+  "key": "C-u 2 C-c C-n",
+  "expected": {
+   "text": "* A\n*************** Task\nafter\n* B\n",
+   "point": 35,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 0,
+  "key": "C-c C-n",
+  "expected": {
+   "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+   "point": 4,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 0,
+  "key": "C-c C-p",
+  "expected": {
+   "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+   "point": 0,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 0,
+  "key": "C-u 2 C-c C-n",
+  "expected": {
+   "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+   "point": 50,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 4,
+  "key": "C-c C-n",
+  "expected": {
+   "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+   "point": 50,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 4,
+  "key": "C-c C-p",
+  "expected": {
+   "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+   "point": 0,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 4,
+  "key": "C-u 2 C-c C-n",
+  "expected": {
+   "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+   "point": 56,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 25,
+  "key": "C-c C-n",
+  "expected": {
+   "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+   "point": 50,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 25,
+  "key": "C-c C-p",
+  "expected": {
+   "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+   "point": 4,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 25,
+  "key": "C-u 2 C-c C-n",
+  "expected": {
+   "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+   "point": 56,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 59,
+  "key": "C-c C-n",
+  "expected": {
+   "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+   "point": 60,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 59,
+  "key": "C-c C-p",
+  "expected": {
+   "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+   "point": 50,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 59,
+  "key": "C-u 2 C-c C-n",
+  "expected": {
+   "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+   "point": 60,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 0,
+  "key": "TAB",
+  "expected": {
+   "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 0,
+   "hidden": [
+    [
+     1,
+     3
+    ]
+   ]
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 0,
+  "key": "TAB TAB",
+  "expected": {
+   "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 0,
+   "hidden": [
+    [
+     2,
+     3
+    ]
+   ]
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 4,
+  "key": "TAB",
+  "expected": {
+   "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 4,
+   "hidden": [
+    [
+     2,
+     3
+    ]
+   ]
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 4,
+  "key": "TAB TAB",
+  "expected": {
+   "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 4,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 25,
+  "key": "TAB",
+  "expected": {
+   "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 25,
+   "hidden": [
+    [
+     2,
+     3
+    ]
+   ]
+  }
+ },
+ {
+  "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+  "point": 25,
+  "key": "TAB TAB",
+  "expected": {
+   "text": "* A\n*************** TODO Task :tag:\nbody\n*************** END\n* B\n",
+   "point": 25,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 0,
+  "key": "TAB",
+  "expected": {
+   "text": "* A\n*************** Task\nafter\n* B\n",
+   "point": 0,
+   "hidden": [
+    [
+     1,
+     2
+    ]
+   ]
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 0,
+  "key": "TAB TAB",
+  "expected": {
+   "text": "* A\n*************** Task\nafter\n* B\n",
+   "point": 0,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 4,
+  "key": "TAB",
+  "expected": {
+   "text": "* A\n*************** Task\nafter\n* B\n",
+   "point": 4,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 4,
+  "key": "TAB TAB",
+  "expected": {
+   "text": "* A\n*************** Task\nafter\n* B\n",
+   "point": 4,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 20,
+  "key": "TAB",
+  "expected": {
+   "text": "* A\n*************** Task\nafter\n* B\n",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\nafter\n* B\n",
+  "point": 20,
+  "key": "TAB TAB",
+  "expected": {
+   "text": "* A\n*************** Task\nafter\n* B\n",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 0,
+  "key": "TAB",
+  "expected": {
+   "text": "* A\n**************** Task\nbody\n**************** END\n",
+   "point": 0,
+   "hidden": [
+    [
+     1,
+     3
+    ]
+   ]
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 0,
+  "key": "TAB TAB",
+  "expected": {
+   "text": "* A\n**************** Task\nbody\n**************** END\n",
+   "point": 0,
+   "hidden": [
+    [
+     2,
+     3
+    ]
+   ]
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 4,
+  "key": "TAB",
+  "expected": {
+   "text": "* A\n**************** Task\nbody\n**************** END\n",
+   "point": 4,
+   "hidden": [
+    [
+     2,
+     3
+    ]
+   ]
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 4,
+  "key": "TAB TAB",
+  "expected": {
+   "text": "* A\n**************** Task\nbody\n**************** END\n",
+   "point": 4,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 21,
+  "key": "TAB",
+  "expected": {
+   "text": "* A\n**************** Task\nbody\n**************** END\n",
+   "point": 21,
+   "hidden": [
+    [
+     2,
+     3
+    ]
+   ]
+  }
+ },
+ {
+  "text": "* A\n**************** Task\nbody\n**************** END\n",
+  "point": 21,
+  "key": "TAB TAB",
+  "expected": {
+   "text": "* A\n**************** Task\nbody\n**************** END\n",
+   "point": 21,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 0,
+  "key": "TAB",
+  "expected": {
+   "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+   "point": 0,
+   "hidden": [
+    [
+     1,
+     4
+    ]
+   ]
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 0,
+  "key": "TAB TAB",
+  "expected": {
+   "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+   "point": 0,
+   "hidden": [
+    [
+     2,
+     4
+    ]
+   ]
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 4,
+  "key": "TAB",
+  "expected": {
+   "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+   "point": 4,
+   "hidden": [
+    [
+     2,
+     4
+    ]
+   ]
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 4,
+  "key": "TAB TAB",
+  "expected": {
+   "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+   "point": 4,
+   "hidden": [
+    [
+     3,
+     3
+    ]
+   ]
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 25,
+  "key": "TAB",
+  "expected": {
+   "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+   "point": 25,
+   "hidden": [
+    [
+     3,
+     3
+    ]
+   ]
+  }
+ },
+ {
+  "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+  "point": 25,
+  "key": "TAB TAB",
+  "expected": {
+   "text": "* A\n** B\n*************** Task\n*************** END\n*** C\n* D\n",
+   "point": 25,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\n*************** END\n",
+  "point": 0,
+  "key": "TAB",
+  "expected": {
+   "text": "* A\n*************** Task\n*************** END\n",
+   "point": 0,
+   "hidden": [
+    [
+     1,
+     2
+    ]
+   ]
+  }
+ },
+ {
+  "text": "* A\n*************** Task\n*************** END\n",
+  "point": 0,
+  "key": "TAB TAB",
+  "expected": {
+   "text": "* A\n*************** Task\n*************** END\n",
+   "point": 0,
+   "hidden": [
+    [
+     2,
+     2
+    ]
+   ]
+  }
+ },
+ {
+  "text": "* A\n*************** Task\n*************** END\n",
+  "point": 4,
+  "key": "TAB",
+  "expected": {
+   "text": "* A\n*************** Task\n*************** END\n",
+   "point": 4,
+   "hidden": [
+    [
+     2,
+     2
+    ]
+   ]
+  }
+ },
+ {
+  "text": "* A\n*************** Task\n*************** END\n",
+  "point": 4,
+  "key": "TAB TAB",
+  "expected": {
+   "text": "* A\n*************** Task\n*************** END\n",
+   "point": 4,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** Task\n*************** END\n",
+  "point": 20,
+  "key": "TAB",
+  "expected": {
+   "text": "* A\n*************** Task\n*************** END\n",
+   "point": 20,
+   "hidden": [
+    [
+     2,
+     2
+    ]
+   ]
+  }
+ },
+ {
+  "text": "* A\n*************** Task\n*************** END\n",
+  "point": 20,
+  "key": "TAB TAB",
+  "expected": {
+   "text": "* A\n*************** Task\n*************** END\n",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** T\n*************** U\nx\n*************** END\n",
+  "point": 0,
+  "key": "TAB",
+  "expected": {
+   "text": "* A\n*************** T\n*************** U\nx\n*************** END\n",
+   "point": 0,
+   "hidden": [
+    [
+     1,
+     4
+    ]
+   ]
+  }
+ },
+ {
+  "text": "* A\n*************** T\n*************** U\nx\n*************** END\n",
+  "point": 0,
+  "key": "TAB TAB",
+  "expected": {
+   "text": "* A\n*************** T\n*************** U\nx\n*************** END\n",
+   "point": 0,
+   "hidden": [
+    [
+     3,
+     4
+    ]
+   ]
+  }
+ },
+ {
+  "text": "* A\n*************** T\n*************** U\nx\n*************** END\n",
+  "point": 4,
+  "key": "TAB",
+  "expected": {
+   "text": "* A\n*************** T\n*************** U\nx\n*************** END\n",
+   "point": 4,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** T\n*************** U\nx\n*************** END\n",
+  "point": 4,
+  "key": "TAB TAB",
+  "expected": {
+   "text": "* A\n*************** T\n*************** U\nx\n*************** END\n",
+   "point": 4,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** T\n*************** U\nx\n*************** END\n",
+  "point": 20,
+  "key": "TAB",
+  "expected": {
+   "text": "* A\n*************** T\n*************** U\nx\n*************** END\n",
+   "point": 20,
+   "hidden": []
+  }
+ },
+ {
+  "text": "* A\n*************** T\n*************** U\nx\n*************** END\n",
+  "point": 20,
+  "key": "TAB TAB",
+  "expected": {
+   "text": "* A\n*************** T\n*************** U\nx\n*************** END\n",
+   "point": 20,
+   "hidden": []
+  }
+ }
+]

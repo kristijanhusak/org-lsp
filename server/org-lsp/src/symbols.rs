@@ -12,7 +12,16 @@ const KIND: SymbolKind = SymbolKind::MODULE;
 
 /// The outline as a tree, for clients with hierarchical symbol support.
 pub fn document_symbols(root: &SyntaxNode, text: &str, index: &LineIndex, encoding: Encoding) -> Vec<DocumentSymbol> {
-    ast::headlines(root).map(|headline| symbol(&headline, text, index, encoding)).collect()
+    ast::headlines(root)
+        .filter(|headline| in_outline(headline, text))
+        .map(|headline| symbol(&headline, text, index, encoding))
+        .collect()
+}
+
+/// Whether a headline is part of the outline: inline tasks are not
+/// (`org-imenu-get-tree` searches with `org-get-limited-outline-regexp`).
+fn in_outline(headline: &Headline, text: &str) -> bool {
+    org_core::inlinetask::outline_stars_in(text).is_none_or(|deepest| headline.level() <= deepest)
 }
 
 /// The outline as a flat list, for clients without it.
@@ -40,20 +49,23 @@ pub fn symbol_information(
             location: Location { uri: uri.clone(), range: index.range(text, subtree_range(headline, text), encoding) },
             container_name: parent.map(str::to_string),
         });
-        for child in headline.children() {
+        for child in headline.children().filter(|child| in_outline(child, text)) {
             collect(&child, Some(&name), context, out);
         }
     }
     let mut out = Vec::new();
-    for headline in ast::headlines(root) {
+    for headline in ast::headlines(root).filter(|headline| in_outline(headline, text)) {
         collect(&headline, None, (text, index, encoding, uri), &mut out);
     }
     out
 }
 
 fn symbol(headline: &Headline, text: &str, index: &LineIndex, encoding: Encoding) -> DocumentSymbol {
-    let children: Vec<DocumentSymbol> =
-        headline.children().map(|child| symbol(&child, text, index, encoding)).collect();
+    let children: Vec<DocumentSymbol> = headline
+        .children()
+        .filter(|child| in_outline(child, text))
+        .map(|child| symbol(&child, text, index, encoding))
+        .collect();
     let range = subtree_range(headline, text);
     let selection = headline.title().map_or_else(|| headline.line_range(), |title| title.text_range());
     #[allow(deprecated)]

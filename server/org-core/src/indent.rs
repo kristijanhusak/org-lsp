@@ -1223,6 +1223,16 @@ fn is_footnote_start(line: &str) -> bool {
 /// drawer right below them moves by `diff`, and with `adapt` `t` so does
 /// the rest, unless that would change the document's structure.
 pub fn fixup_entry(entry: &str, diff: isize, settings: &Settings) -> String {
+    fixup_entry_with(entry, diff, settings, None)
+}
+
+/// [`fixup_entry`] where the lines of inline tasks, of at least
+/// `inline_tasks` stars, are no headlines: they move with the text, as
+/// `org-fixup-indentation` moves them under `org-with-limited-levels`.
+pub fn fixup_entry_with(entry: &str, diff: isize, settings: &Settings, inline_tasks: Option<usize>) -> String {
+    let is_heading_line = |line: &str| {
+        is_heading_line(line) && inline_tasks.is_none_or(|min| line.bytes().take_while(|b| *b == b'*').count() < min)
+    };
     let mut text = entry.to_string();
     let starts = |text: &str| -> Vec<usize> {
         std::iter::once(0).chain(text.match_indices('\n').map(|(at, _)| at + 1)).filter(|at| *at < text.len()).collect()
@@ -1529,6 +1539,8 @@ pub fn virtual_indentation(
             snapshot.element_at(at).is_some_and(|index| kinds.contains(&snapshot.elements[index].kind))
         })
     };
+    // The shortest inline task (`org-inlinetask-min-level`).
+    let tasks = crate::inlinetask::min_stars_in(text);
     // The empty line after a final line break is no line.
     let lines: Vec<&str> = text.strip_suffix('\n').unwrap_or(text).split('\n').collect();
     let mut start = 0;
@@ -1537,7 +1549,15 @@ pub fn virtual_indentation(
         start += line.len() + 1;
         let stars = line.bytes().take_while(|b| *b == b'*').count();
         let heading = stars > 0 && line.as_bytes().get(stars) == Some(&b' ');
-        let (prefix, wrap, hidden) = if heading {
+        let (prefix, wrap, hidden) = if heading && tasks.is_some_and(|min| stars >= min) {
+            // An inline task: the text after it stays at its entry's level,
+            // and its stars but the last two are hidden
+            // (`org-inlinetask-fontify`), unless
+            // `org-inlinetask-show-first-star`.
+            let prefix = heading_prefix(stars);
+            let hidden = if crate::inlinetask::show_first_star() { 0 } else { stars - 2 };
+            (prefix, prefix + stars + 1, hidden)
+        } else if heading {
             level = stars;
             let prefix = heading_prefix(stars);
             (prefix, prefix + stars + 1, if hide_stars { stars - 1 } else { 0 })
