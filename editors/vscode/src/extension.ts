@@ -115,6 +115,29 @@ async function applyCarried(running: LanguageClient, result: unknown): Promise<v
   }
 }
 
+/** The server's commands run so far, in turn: what the tests see of the
+ * keys they press. */
+const commandsRun: string[] = [];
+/** How many commands, and documents the server asked to show, are not done yet. */
+let busy = 0;
+
+async function whileBusy<T>(run: () => Promise<T>): Promise<T> {
+  busy += 1;
+  try {
+    return await run();
+  } finally {
+    busy -= 1;
+  }
+}
+
+function counted<T>(name: string, run: () => Promise<T>): Promise<T> {
+  commandsRun.push(name);
+  return whileBusy(run);
+}
+
+/** What the server said column view shows, last (`org-lsp/columns`). */
+let columnsReported: unknown;
+
 /** Done when the date prompt the server asked to show is shown. */
 let datePromptShown: Promise<void> = Promise.resolve();
 
@@ -452,7 +475,7 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
       // The client registers every command of the server with VS Code. Run
       // from a key or the palette, a command has no arguments: add the
       // cursor. The server's reason for refusing a command is shown as is.
-      executeCommand: async (name, args) => {
+      executeCommand: (name, args) => counted(name, async () => {
         const running = client;
         const key = keyArgs(args);
         if (!running) {
@@ -533,11 +556,11 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
           void vscode.window.showWarningMessage(error instanceof Error ? error.message : String(error));
           return undefined;
         }
-      },
+      }),
       window: {
         // The date prompt opens beside the file, as Emacs pops its calendar
         // up in another window, and stays in that editor as it changes.
-        showDocument: async (params, token, next) => {
+        showDocument: (params, token, next) => whileBusy(async () => {
           if (params.external) {
             return next(params, token);
           }
@@ -561,7 +584,7 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
           datePromptShown = showDatePrompt(params);
           await datePromptShown;
           return { success: true };
-        },
+        }),
       },
     },
   };
@@ -891,6 +914,7 @@ function updateColumnsItem(editor: vscode.TextEditor | undefined): void {
 }
 
 function showColumns(params: ColumnsShown): void {
+  columnsReported = params;
   if (params.lines) {
     columnsShown.set(params.uri, params);
     const count = params.columns?.length ?? 1;
@@ -2129,6 +2153,15 @@ export interface Api {
   images(editor: vscode.TextEditor): [string, number, string, number, number][];
   /** The outline path of the agenda line shown last (`org-agenda-show-outline-path`). */
   echoed(): string;
+  /** The server's commands run so far, in turn, and how many commands and
+   * documents to show are not done yet. */
+  commands(): { run: string[]; running: number };
+  /** What the server said column view shows, last (`org-lsp/columns`). */
+  columnsReported(): unknown;
+  /** Done when the server has handled what it was sent before. */
+  sync(): Promise<void>;
+  /** The server's text of one of its documents (the agenda, the date prompt). */
+  content(uri: string): Promise<string | undefined>;
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<Api> {
@@ -2222,6 +2255,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     clock: clockText,
     columns: () => columnsItem?.text ?? '',
     echoed: () => echoed,
+    commands: () => ({ run: [...commandsRun], running: busy }),
+    columnsReported: () => columnsReported,
+    // A request the server does not know is answered all the same, in turn.
+    sync: async () => {
+      await client?.sendRequest('org-lsp/test-sync').catch(() => undefined);
+    },
+    content: async (uri) => {
+      const result = await client?.sendRequest('workspace/textDocumentContent', { uri }).catch(() => undefined);
+      return (result as { text?: string } | undefined)?.text;
+    },
     columnsShown: (editor) => (columnsShown.get(editor.document.uri.toString())?.lines ?? []).map(([line, text]) => [line, text]),
     timer: timerText,
     standIns: (editor) => standInsShown.get(editor) ?? [],

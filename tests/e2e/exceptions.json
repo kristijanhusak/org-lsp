@@ -1,4 +1,47 @@
 {
   "commands": {},
-  "editors": { "nvim": {} }
+  "editors": {
+    "nvim": {},
+    "vscode": {
+      "org.todo.previous": "Emacs has no key of its own for it in an Org file: S-<left> on a headline (org.shift.left) cycles the state backward.",
+      "org.priority.up": "Emacs has no key of its own for it in an Org file: S-<up> on a headline (org.shift.up) raises the priority.",
+      "org.priority.down": "Emacs has no key of its own for it in an Org file: S-<down> on a headline (org.shift.down) lowers the priority.",
+      "org.timestamp.up": "Emacs has no key of its own for it: S-<up> on a timestamp (org.shift.up) changes it.",
+      "org.timestamp.down": "Emacs has no key of its own for it: S-<down> on a timestamp (org.shift.down) changes it.",
+      "org.table.insert.row.below": "Emacs has no key for it: org-table-insert-row inserts below with a prefix argument."
+    },
+    "vscode-vim": {
+      "org.agenda.dispatch": "<Leader>oa in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.archive.subtree": "<Leader>o$ in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.capture": "<Leader>oc in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.capture.abort": "<Leader>ok in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.capture.refile": "<Leader>or in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.clock.in": "<Leader>oxi in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.clock.out": "<Leader>oxo in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.deadline": "<Leader>oid in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.meta.down": "<Leader>oJ in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.meta.left": "<< in Neovim, a key of Vim's normal mode: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.meta.return": "<Leader><CR> in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.meta.right": ">> in Neovim, a key of Vim's normal mode: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.meta.up": "<Leader>oK in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.open": "<Leader>oo in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.priority.down": "cir in Neovim, a key of Vim's normal mode: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.priority.up": "ciR in Neovim, a key of Vim's normal mode: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.property.set": "<Leader>oxp in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.refile": "<Leader>or in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.schedule": "<Leader>ois in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.shiftmeta.left": "<s in Neovim, a key of Vim's normal mode: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.shiftmeta.right": ">s in Neovim, a key of Vim's normal mode: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.table.hline": "<Leader>o- in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.table.insert.row.below": "<Leader>oTo in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.tags.set": "<Leader>ot in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.todo": "cit in Neovim, a key of Vim's normal mode: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.todo.previous": "ciT in Neovim, a key of Vim's normal mode: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org)."
+    }
+  },
+  "snapshots": {
+    "vscode": {
+      "agenda-navigation 18 cursor": "q closes the agenda's tab, not its editor group as Emacs deletes the agenda's window: home.org, opened in that group since, stays in front of work.org."
+    }
+  }
 }

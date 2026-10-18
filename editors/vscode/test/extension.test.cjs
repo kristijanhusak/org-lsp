@@ -1063,7 +1063,10 @@ describe('The agenda', () => {
       await settings.update('messages', undefined, vscode.ConfigurationTarget.Global);
     }
     assert.deepEqual(said, ['Priority of current item set to B']);
-    assert.deepEqual(shown, ['Priority of current item set to A', 'Priority of current item set to B']);
+    // The status bar also shows the line's outline path, when the agenda
+    // hears where the cursor went (`org-agenda-show-outline-path`), at a
+    // time of its own.
+    assert.deepEqual(shown.filter((text) => text !== 'home.org'), ['Priority of current item set to A', 'Priority of current item set to B']);
     await until('the priority in the file', () => home.lineAt(0).text === '* TODO [#B] Water plants');
     await until('the priority in the agenda', () => activeLine()?.endsWith('Scheduled:  TODO [#B] Water plants'));
     // The entry moves to the next day. As in Emacs
