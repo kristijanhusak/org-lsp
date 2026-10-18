@@ -68,6 +68,7 @@ its sections says what it should look like.
 - [ ] Promoting and demoting a heading; its tags stay aligned: ~Alt+Left~, ~Alt+Right~
 - [ ] Promoting and demoting a subtree: ~Alt+Shift+Left~, ~Alt+Shift+Right~
 - [ ] Moving a subtree up and down past its siblings: ~Alt+Up~, ~Alt+Down~
+- [ ] Inserting an inline task gives 15 stars and an ~END~ line; demoting it changes both; the outline leaves it out, and folding it hides its text and its ~END~ line: ~Ctrl+C Ctrl+X t~, ~Alt+Right~
 - [ ] Cutting a subtree and pasting it under another heading: its level fits there: ~Ctrl+C Ctrl+X Ctrl+W~, ~Ctrl+C Ctrl+X Ctrl+Y~
 - [ ] Copying a subtree and pasting it: ~Ctrl+C Ctrl+X Alt+W~, ~Ctrl+C Ctrl+X Ctrl+Y~
 - [ ] With ~org_yank_adjusted_subtrees~ on and Emacs keys, C-y of a copied ~* A~ subtree at the start of the line after a ~** B~ entry pastes it as ~** A~; in the middle of a line C-y pastes as the editor does: ~Ctrl+Y~

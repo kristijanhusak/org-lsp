@@ -84,11 +84,40 @@ pub fn headline_folds(
 fn folds(root: &SyntaxNode, text: &str, index: &LineIndex, folding: Folding) -> Vec<(SyntaxNode, FoldingRange)> {
     let separator_lines = folding.separator_lines;
     let mut ranges = Vec::new();
+    let inline_tasks = org_core::inlinetask::min_stars_in(text);
+    let outline_stars = org_core::inlinetask::outline_stars_in(text);
+    let fold = |node: &SyntaxNode, start_line: usize, end_line: usize| {
+        (
+            node.clone(),
+            FoldingRange {
+                start_line: start_line as u32,
+                start_character: None,
+                end_line: end_line as u32,
+                end_character: None,
+                kind: None,
+                collapsed_text: None,
+            },
+        )
+    };
     for node in root.descendants() {
+        let stars = || node.first_token().map_or(0, |stars| stars.text().trim_end().len());
+        // An inline task has no subtree: it folds its text up to its `END`
+        // line (`org-inlinetask-toggle-visibility`).
+        if node.kind() == HEADLINE && inline_tasks.is_some_and(|min| stars() >= min) {
+            let start = usize::from(node.text_range().start());
+            if let Some((first, end)) = org_core::inlinetask::fold_range(text, start) {
+                let (start_line, end_line) = (index.line_of(first), index.line_of(end));
+                if end_line > start_line {
+                    ranges.push(fold(&node, start_line, end_line));
+                }
+            }
+            continue;
+        }
         let foldable = match node.kind() {
-            HEADLINE => folding
-                .max_level
-                .is_none_or(|max| node.first_token().is_some_and(|stars| stars.text().trim_end().len() <= max)),
+            HEADLINE => {
+                folding.max_level.is_none_or(|max| stars() <= max)
+                    && outline_stars.is_none_or(|deepest| stars() <= deepest)
+            }
             LIST_ITEM => folding.plain_lists,
             kind => matches!(kind, DRAWER | PROPERTY_DRAWER | BLOCK | DYNAMIC_BLOCK | LATEX_ENVIRONMENT),
         };
@@ -120,17 +149,7 @@ fn folds(root: &SyntaxNode, text: &str, index: &LineIndex, folding: Folding) -> 
         };
         let start_line = index.line_of(start);
         if end_line > start_line {
-            ranges.push((
-                node.clone(),
-                FoldingRange {
-                    start_line: start_line as u32,
-                    start_character: None,
-                    end_line: end_line as u32,
-                    end_character: None,
-                    kind: None,
-                    collapsed_text: None,
-                },
-            ));
+            ranges.push(fold(&node, start_line, end_line));
         }
     }
     ranges

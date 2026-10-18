@@ -16,7 +16,7 @@ Org's options, one by one, are under [[#options][Options]].
 |---+---+---|
 | [[#highlighting][Highlighting]] | 95% | 19 of 20 |
 | [[#folding-and-visibility][Folding and visibility]] | 91% | 10 of 11 |
-| [[#headings-and-structure][Headings and structure]] | 100% | 21 of 21 |
+| [[#headings-and-structure][Headings and structure]] | 96% | 22 of 23 |
 | [[#lists-and-checkboxes][Lists and checkboxes]] | 100% | 13 of 13 |
 | [[#todo-keywords][TODO keywords]] | 100% | 14 of 14 |
 | [[#priorities][Priorities]] | 100% | 4 of 4 |
@@ -113,13 +113,15 @@ Where editors fall short:
 :CUSTOM_ID: headings-and-structure
 :END:
 
-100% (21 of 21)
+96% (22 of 23)
 
 - ✅ New headings (~M-RET~, ~M-S-RET~, ~C-RET~, ~C-S-RET~), the line split or not (~org-M-RET-may-split-line~), with empty lines before them as ~org-blank-before-new-entry~ says, after the subtree (~org-insert-heading-respect-content~)
 - ✅ Promoting and demoting a heading or a subtree; a top-level one to a ~#~ line (~org-allow-promoting-top-level-subtree~)
 - ✅ Odd levels only, ~***~ the second (~org-odd-levels-only~, ~#+STARTUP: odd~): promoting, demoting and ~TAB~ on a new headline two stars at a time, the headlines' faces, ~LEVEL~ in matches and ~%l~ in the agenda
 - ✅ Odd levels only where refiling, capturing, archiving and date trees put headlines (~org-get-valid-level~), from the target file's ~#+STARTUP:~
 - ✅ Converting a file to odd levels and back (~org-convert-to-odd-levels~, ~org-convert-to-oddeven-levels~), as the commands ~org.levels.odd~ and ~org.levels.oddeven~
+- ✅ Inline tasks (~org-inlinetask~), headlines of ~org-inlinetask-min-level~ stars or more, 15 by default: inserted with their ~END~ line (~C-c C-x t~, ~org-inlinetask-insert-task~, around the selection, in ~org-inlinetask-default-state~); promoted and demoted with it (~M-<left>~, ~M-<right>~); left out of the outline, of the motion between headings (~C-c C-n~, ~C-c C-p~) and of the subtrees promoted and demoted around them; folded to their ~END~ line; their stars but the last two hidden as leading stars are, the rest in the ~org-inlinetask~ face; listed by the agenda as Emacs lists them
+- ❌ Inline tasks: ~M-<up>~ and ~M-<down>~ on one (Emacs drags the element), its text as the parser's (~inlinetask~ in ~org-element~: here the text after a task without ~END~ line is the task's), the first star in ~org-warning~ with ~org-inlinetask-show-first-star~ (here no star is hidden then), the ~END~ line left behind by archiving and refiling (~org-inlinetask-remove-END-maybe~), and the commands Emacs runs on a selection
 - ✅ Moving a subtree up and down
 - ✅ Cutting, copying and pasting subtrees, their level fitted
 - ✅ Yanking subtrees with ~C-y~ at the level around them (~org-yank-adjusted-subtrees~)
@@ -768,19 +770,19 @@ Where editors fall short:
 :END:
 
 Each of the 1025 options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with
-it. Of the 326 that change what org-lsp does itself, 100% can be set.
+it. Of the 329 that change what org-lsp does itself, 100% can be set.
 [[file:../scripts/org-options.json][scripts/org-options.json]] says it for each; ~scripts/check.sh~ fails when the
 server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,
 when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 312 | A setting of the same name |
+| setting | 315 | A setting of the same name |
 | missing | 1 | org-lsp does what the option is about, but the option cannot be set yet |
 | other | 13 | Done another way, as its note says |
 | emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 47 | Its value is Lisp (a function, a hook), which the server does not run |
-| absent | 67 | Part of something org-lsp does not do |
+| absent | 64 | Part of something org-lsp does not do |
 | emacs-only | 105 | About Emacs itself (windows, faces, menus, the mouse, the mode line): nothing to do in an editor |
 
 ** Done another way

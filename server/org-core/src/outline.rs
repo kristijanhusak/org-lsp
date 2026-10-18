@@ -161,6 +161,13 @@ pub struct Entry {
     pub closed: Option<Planning>,
     /// The entry's own properties, keys in upper case.
     pub properties: Vec<(String, String)>,
+    /// The `END` line of an inline task, which `org-element` makes part of
+    /// the task: no entry of its own for a tags match.
+    pub inlinetask_end: bool,
+    /// An inline task with no `END` line right after it: it has no text,
+    /// so the planning line below it is none of its own and its dates are
+    /// plain timestamps (`org-element-inlinetask-parser`).
+    pub bare_inlinetask: bool,
 }
 
 impl Entry {
@@ -504,7 +511,18 @@ impl Outline {
         let commented = inherited.commented || headline.is_commented();
         let archived = inherited.archived || archived;
 
-        let section = headline.section();
+        // Inline tasks: the `END` line that closes one is part of it; one
+        // that the next headline does not close has no text.
+        let next_heading =
+            text[line_end..].split('\n').skip(1).find(|line| crate::todo::headline_level(line).is_some()).unwrap_or("");
+        let task = crate::inlinetask::is_task_line(text, line);
+        let bare_inlinetask = task && !crate::inlinetask::is_end_line(text, next_heading);
+        let inlinetask_end = crate::inlinetask::is_end_line(text, line)
+            && self
+                .entries
+                .last()
+                .is_some_and(|before| crate::inlinetask::is_task_line(text, &text[before.offset..before.line_end]));
+        let section = headline.section().filter(|_| !bare_inlinetask);
         let planning = section.as_ref().and_then(|section| section.children().find(|child| child.kind() == PLANNING));
         // A property drawer counts right below the headline or its planning
         // line, not after a blank line or anything else.
@@ -532,6 +550,10 @@ impl Outline {
             }
         }
         deduped.reverse();
+        // The `END` line of an inline task is the task's, with its tags.
+        if inlinetask_end {
+            deduped = self.entries.last().map(|task| task.tags.clone()).unwrap_or(deduped);
+        }
 
         let index = self.entries.len();
         self.entries.push(Entry {
@@ -553,6 +575,8 @@ impl Outline {
             deadline: planning.as_ref().and_then(|planning| planning_time(planning, "DEADLINE:")),
             closed: planning.as_ref().and_then(|planning| planning_time(planning, "CLOSED:")),
             properties,
+            inlinetask_end,
+            bare_inlinetask,
         });
 
         let mut child_tags = inherited.tags.clone();
@@ -690,6 +714,9 @@ impl Outline {
         let mut timestamp = false;
         for node in token.parent_ancestors() {
             match node.kind() {
+                // Below an inline task without text, a planning line is
+                // text with timestamps.
+                PLANNING if self.entries[entry].bare_inlinetask => timestamp = true,
                 PLANNING => return None,
                 TIMESTAMP => timestamp = !node.parent().is_some_and(|parent| parent.kind() == CLOCK),
                 NODE_PROPERTY => in_property = true,

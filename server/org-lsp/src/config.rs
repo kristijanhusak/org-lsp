@@ -566,6 +566,14 @@ pub struct Options {
     pub allow_promoting_top_level_subtree: Option<bool>,
     #[serde(rename = "org_odd_levels_only")]
     pub odd_levels_only: Option<bool>,
+    /// `org-inlinetask-min-level`: a number, or `false` for no inline
+    /// tasks.
+    #[serde(rename = "org_inlinetask_min_level")]
+    pub inlinetask_min_level: Option<serde_json::Value>,
+    #[serde(rename = "org_inlinetask_show_first_star")]
+    pub inlinetask_show_first_star: Option<bool>,
+    #[serde(rename = "org_inlinetask_default_state")]
+    pub inlinetask_default_state: Option<String>,
     #[serde(rename = "org_sparse_tree_open_archived_trees")]
     pub sparse_tree_open_archived_trees: Option<bool>,
     /// `org-occur-case-fold-search`: `true`, `false` or `"smart"`.
@@ -1793,6 +1801,15 @@ impl Options {
     /// `org-list-allow-alphabetical` and
     /// `org-plain-list-ordered-item-terminator`: how ordered items are
     /// written.
+    /// `org-inlinetask-min-level`: 15 unless the options say otherwise,
+    /// none with `false`.
+    pub fn inlinetask_min_level(&self) -> Option<usize> {
+        match &self.inlinetask_min_level {
+            None => Some(15),
+            Some(value) => value.as_u64().filter(|level| *level > 0).map(|level| level as usize),
+        }
+    }
+
     pub fn list_syntax(&self) -> org_syntax::ListSyntax {
         let terminator = match self.plain_list_ordered_item_terminator.as_ref().and_then(serde_json::Value::as_str) {
             Some(".") => org_syntax::Terminator::Dot,
@@ -2316,6 +2333,7 @@ impl Options {
             }),
             hide_macro_markers: self.hide_macro_markers.unwrap_or(false),
             odd_levels: self.odd_levels_only.unwrap_or(false),
+            inlinetask: None,
         }
     }
 

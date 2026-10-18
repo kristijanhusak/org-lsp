@@ -54,7 +54,8 @@ Known differences from ~org-element~:
   tree as plain text.
 - Radio links (text that matches a ~<<<radio target>>>~ elsewhere) are not
   recognised by the parser; the server finds them itself.
-- Inline tasks are not recognised; they parse as headlines.
+- Inline tasks are not recognised; they parse as headlines, which the server
+  tells apart by their stars (~org_inlinetask_min_level~).
 - Line breaks (~\\~ at the end of a line) are not a separate node.
 - Citations are a single node: their references are not split out, and
   objects in their prefixes and suffixes are not parsed.

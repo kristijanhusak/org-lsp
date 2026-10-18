@@ -109,6 +109,7 @@ pub mod modifier {
         "overdue",
         "future",
         "todo",
+        "inlinetask",
     ];
 
     /// The bits of `level1` to `level8`.
@@ -148,6 +149,9 @@ pub mod modifier {
     /// A headline marked with a TODO keyword not done, past the keyword
     /// (`org-headline-todo`, with `org-fontify-todo-headline`).
     pub const TODO: u32 = 1 << 30;
+    /// The stars and title of an inline task (`org-inlinetask`, which
+    /// inherits `shadow`).
+    pub const INLINETASK: u32 = 1 << 31;
 
     /// Headline levels repeat after eight, like Org's level faces.
     pub fn level(level: usize) -> u32 {
@@ -223,7 +227,7 @@ pub mod standard {
             return Some(("comment", 0));
         }
         let name = match ty {
-            TokenType::Headline | TokenType::Stars if has(modifier::ARCHIVED) => "comment",
+            TokenType::Headline | TokenType::Stars if has(modifier::ARCHIVED | modifier::INLINETASK) => "comment",
             // `org-headline-done` over a done headline's title and tags; a
             // complete cookie in `org-done`'s color.
             TokenType::Cookie if has(modifier::DONE) => "string",
@@ -418,6 +422,10 @@ pub struct Fontify {
     /// `org-odd-levels-only`: a headline's face is that of its reduced
     /// level (`org-get-level-face`), `***` the second.
     pub odd_levels: bool,
+    /// The stars of the shortest inline task (`org-inlinetask-min-level`),
+    /// if there are inline tasks: their stars and title are
+    /// `org-inlinetask`.
+    pub inlinetask: Option<usize>,
 }
 
 impl Default for Fontify {
@@ -430,6 +438,7 @@ impl Default for Fontify {
             hidden_keywords: 0,
             hide_macro_markers: false,
             odd_levels: false,
+            inlinetask: None,
         }
     }
 }
@@ -827,6 +836,18 @@ impl Walker<'_> {
             for token in &mut self.out[after_stars..] {
                 if token.range.start() < headline_end {
                     token.modifiers |= modifier::ARCHIVED;
+                }
+            }
+        }
+        // `org-inlinetask-fontify`: the stars and the rest of the line of an
+        // inline task are `org-inlinetask`, under the faces of its keyword,
+        // priority and tags.
+        let stars = node.first_token().map_or(0, |stars| stars.text().trim_end().len());
+        if self.fontify.inlinetask.is_some_and(|min| stars >= min) {
+            for token in &mut self.out[after_stars.saturating_sub(1)..] {
+                let own = matches!(token.ty, TokenType::TodoKeyword | TokenType::Priority | TokenType::Tag);
+                if token.range.start() < headline_end && !own {
+                    token.modifiers = (token.modifiers & !modifier::LEVELS) | modifier::INLINETASK;
                 }
             }
         }
@@ -1300,6 +1321,27 @@ mod tests {
                 2:2 "Plain" headline +level1
             "#]],
         );
+    }
+
+    /// `org-inlinetask-fontify`: the stars and the title of an inline task
+    /// are `org-inlinetask`, its keyword and tags keep their faces.
+    #[test]
+    fn inline_tasks() {
+        let text = "* A\n***** TODO Task :t:\n***** END\n**** Deep\n";
+        let fontify = Fontify { inlinetask: Some(5), ..Fontify::default() };
+        expect![[r#"
+            0:0 "*" stars +level1
+            0:2 "A" headline +level1
+            1:0 "*****" stars +inlinetask
+            1:6 "TODO" todoKeyword
+            1:11 "Task" headline +inlinetask
+            1:16 ":t:" tag
+            2:0 "*****" stars +inlinetask
+            2:6 "END" headline +inlinetask
+            3:0 "****" stars +level4
+            3:5 "Deep" headline +level4
+        "#]]
+        .assert_eq(&render_with(text, Encoding::Utf16, Conceal::default(), fontify));
     }
 
     #[test]

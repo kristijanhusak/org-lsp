@@ -581,6 +581,20 @@
     }
   },
   {
+    "caption": "Org: Insert an inline task",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.inlinetask.insert"
+    }
+  },
+  {
+    "caption": "Org: Insert an inline task without its default TODO state",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.inlinetask.insert.nostate"
+    }
+  },
+  {
     "caption": "Org: Promote the heading; outdent the item; move the table column left",
     "command": "org_lsp_run",
     "args": {

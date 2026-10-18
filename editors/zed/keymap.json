@@ -664,6 +664,12 @@
           "task_name": "Org: New TODO heading after the subtree"
         }
       ],
+      "ctrl-c ctrl-x t": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Insert an inline task"
+        }
+      ],
       "ctrl-o": [
         "task::Spawn",
         {

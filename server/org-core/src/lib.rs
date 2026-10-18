@@ -22,6 +22,7 @@ pub mod edit;
 pub mod file_apps;
 pub mod format;
 pub mod indent;
+pub mod inlinetask;
 pub mod journal;
 pub mod line;
 pub mod link;

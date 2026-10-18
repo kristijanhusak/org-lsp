@@ -246,6 +246,36 @@ pub const SETTINGS: &[Setting] = &[
          `#+STARTUP: odd` and `oddeven` set it for a file.",
     ),
     setting(
+        "org_inlinetask_min_level",
+        "number, false",
+        "15",
+        "org-inlinetask-min-level",
+        "A headline of at least this many stars (twice as many less one with `org_odd_levels_only`) is an \
+         inline task: a task inside the text of its entry, closed by a line of as many stars and `END`. It is \
+         no part of the outline: it has no subtree, the outline and the motion between headings pass it, and \
+         it folds its text up to its `END` line. `false`: there are no inline tasks, as in Emacs before \
+         `org-inlinetask` is loaded.",
+    ),
+    setting(
+        "org_inlinetask_show_first_star",
+        "boolean",
+        "false",
+        "org-inlinetask-show-first-star",
+        "The stars of an inline task but the last two are hidden, as `org_hide_leading_stars` hides those of \
+         a headline; with `true` none are.",
+    ),
+    Setting {
+        default: None,
+        unset: "no keyword",
+        ..setting(
+            "org_inlinetask_default_state",
+            "string",
+            "",
+            "org-inlinetask-default-state",
+            "The TODO keyword of a new inline task (`org.inlinetask.insert`).",
+        )
+    },
+    setting(
         "org_treat_S_cursor_todo_selection_as_state_change",
         "boolean",
         "true",
@@ -3462,6 +3492,9 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_yank_adjusted_subtrees", BOOLEAN),
     ("org_allow_promoting_top_level_subtree", BOOLEAN),
     ("org_odd_levels_only", BOOLEAN),
+    ("org_inlinetask_min_level", r#"{ "anyOf": [{ "const": false }, { "type": "integer", "minimum": 1 }] }"#),
+    ("org_inlinetask_show_first_star", BOOLEAN),
+    ("org_inlinetask_default_state", r#"{ "type": "string" }"#),
     ("org_list_allow_alphabetical", BOOLEAN),
     ("org_plain_list_ordered_item_terminator", r#"{ "enum": [true, ".", ")"] }"#),
     ("org_list_two_spaces_after_bullet_regexp", r#"{ "anyOf": [{ "const": false }, { "type": "string" }] }"#),
@@ -4146,7 +4179,7 @@ mod tests {
                 options.capture_templates(),
                 options.org_directory(),
                 options.default_notes_file(),
-                (options.separator_lines(), options.roam()),
+                (options.separator_lines(), options.roam(), options.inlinetask_min_level()),
             )
         )
     }

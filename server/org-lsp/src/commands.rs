@@ -257,6 +257,8 @@ pub const YANK: &str = "org.yank";
 pub const INSERT_TODO_HEADING: &str = "org.insert.todo.heading";
 pub const INSERT_HEADING_AFTER: &str = "org.insert.heading.after";
 pub const INSERT_TODO_HEADING_AFTER: &str = "org.insert.todo.heading.after";
+pub const INLINETASK_INSERT: &str = "org.inlinetask.insert";
+pub const INLINETASK_INSERT_NO_STATE: &str = "org.inlinetask.insert.nostate";
 pub const REFILE: &str = "org.refile";
 pub const REFILE_COPY: &str = "org.refile.copy";
 pub const REFILE_GOTO: &str = "org.refile.goto";
@@ -774,6 +776,16 @@ pub const COMMANDS: &[Command] = &[
         vim: &[append(Org, "<Leader>oit")],
         ..edit(INSERT_TODO_HEADING_AFTER, "New TODO heading after the subtree")
     },
+    // `org-inlinetask-insert-task`: an inline task with its `END` line,
+    // around the region if there is one, with
+    // `org-inlinetask-default-state`; with the prefix argument
+    // (`C-u C-c C-x t`) without it, which is a command of its own.
+    Command {
+        emacs: &[key(Org, "C-c C-x t")],
+        vim: &[key(Org, "<Leader>oiI")],
+        ..edit(INLINETASK_INSERT, "Insert an inline task")
+    },
+    Command { ..edit(INLINETASK_INSERT_NO_STATE, "Insert an inline task without its default TODO state") },
     // Structure editing on Org's meta keys: what they do depends on where
     // the cursor is (a table, a headline or a list item here; elsewhere the
     // key's own meaning).
@@ -1826,6 +1838,9 @@ pub const REGION: &[&str] = &[
     COPY_SUBTREE,
     // The timer values in it shifted.
     TIMER_START,
+    // Wrapped in the inline task.
+    INLINETASK_INSERT,
+    INLINETASK_INSERT_NO_STATE,
 ];
 
 /// `{ "command", "title", "edits", "keys": [{ "key", "in", "preset" }] }`.

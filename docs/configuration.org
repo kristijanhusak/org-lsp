@@ -6816,6 +6816,53 @@ set it for a file.
 org_odd_levels_only = false
 #+end_src
 
+*** org_inlinetask_min_level
+:PROPERTIES:
+:CUSTOM_ID: org_inlinetask_min_level
+:END:
+
+A headline of at least this many stars (twice as many less one with
+~org_odd_levels_only~) is an inline task: a task inside the text of its entry,
+closed by a line of as many stars and ~END~. It is no part of the outline: it
+has no subtree, the outline and the motion between headings pass it, and it
+folds its text up to its ~END~ line. ~false~: there are no inline tasks, as in
+Emacs before ~org-inlinetask~ is loaded.
+
+- Org's option :: ~org-inlinetask-min-level~
+- Type :: number, false
+- Default :: ~15~
+
+#+begin_src toml
+org_inlinetask_min_level = 15
+#+end_src
+
+*** org_inlinetask_show_first_star
+:PROPERTIES:
+:CUSTOM_ID: org_inlinetask_show_first_star
+:END:
+
+The stars of an inline task but the last two are hidden, as
+~org_hide_leading_stars~ hides those of a headline; with ~true~ none are.
+
+- Org's option :: ~org-inlinetask-show-first-star~
+- Type :: boolean
+- Default :: ~false~
+
+#+begin_src toml
+org_inlinetask_show_first_star = false
+#+end_src
+
+*** org_inlinetask_default_state
+:PROPERTIES:
+:CUSTOM_ID: org_inlinetask_default_state
+:END:
+
+The TODO keyword of a new inline task (~org.inlinetask.insert~).
+
+- Org's option :: ~org-inlinetask-default-state~
+- Type :: string
+- Default :: unset: no keyword
+
 *** org_special_ctrl_o
 :PROPERTIES:
 :CUSTOM_ID: org_special_ctrl_o

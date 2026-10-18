@@ -111,8 +111,21 @@ fn match_end(text: &str, start: usize) -> usize {
     start + heading_level(text, start).unwrap_or(0) + 1
 }
 
-/// `org-next-visible-heading`
+/// The starts of the heading lines of the outline, inline tasks left out
+/// (`org-get-limited-outline-regexp`).
+fn outline_headings(text: &str) -> Vec<usize> {
+    let deepest = crate::inlinetask::outline_stars_in(text);
+    headings(text)
+        .into_iter()
+        .filter(|start| deepest.is_none_or(|deepest| heading_level(text, *start).is_some_and(|level| level <= deepest)))
+        .collect()
+}
+
+/// `org-next-visible-heading`: inline tasks are passed.
 fn next_visible_heading(text: &str, offset: usize, count: i64) -> usize {
+    let headings = outline_headings(text);
+    let search_forward = |_: &str, from: usize| headings.iter().copied().find(|&start| start >= from);
+    let search_backward = |_: &str, from: usize| headings.iter().rev().copied().find(|&start| start < from);
     let mut arg = count;
     let mut point = if arg < 0 { line_start(text, offset) } else { line_end(text, offset) };
     while arg < 0 {

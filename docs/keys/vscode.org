@@ -67,6 +67,7 @@ extension.
 | ~Alt+Shift+Enter~ | ~org.insert.todo.heading~ | New TODO heading, or item with a checkbox |
 | ~Ctrl+Enter~ | ~org.insert.heading.after~ | New heading after the subtree |
 | ~Ctrl+Shift+Enter~ | ~org.insert.todo.heading.after~ | New TODO heading after the subtree |
+| ~Ctrl+C Ctrl+X t~ | ~org.inlinetask.insert~ | Insert an inline task |
 | ~Alt+Left~ ¹ | ~org.meta.left~ | Promote the heading; outdent the item; move the table column left |
 | ~Alt+Right~ ¹ | ~org.meta.right~ | Demote the heading; indent the item, the drawer or the block; move the table column right |
 | ~Alt+Shift+Left~ ¹ | ~org.shiftmeta.left~ | Promote the subtree; outdent the item with its children; delete the table column |
@@ -482,6 +483,7 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "i", "T"], "commands": ["org.insert.todo.heading"] },
   { "before": ["<leader>", "o", "i", "h"], "commands": ["org.insert.heading.after"] },
   { "before": ["<leader>", "o", "i", "t"], "commands": ["org.insert.todo.heading.after"] },
+  { "before": ["<leader>", "o", "i", "I"], "commands": ["org.inlinetask.insert"] },
   { "before": ["<leader>", "o", "K"], "commands": ["org.meta.up"] },
   { "before": ["<leader>", "o", "J"], "commands": ["org.meta.down"] },
   { "before": ["<leader>", "o", "T", "d"], "commands": ["org.shiftmeta.up"] },
@@ -659,6 +661,8 @@ every file; outside Org files the commands say they do not apply):
 | ~org.insert.todo.heading~ | Org: New TODO heading, or item with a checkbox |
 | ~org.insert.heading.after~ | Org: New heading after the subtree |
 | ~org.insert.todo.heading.after~ | Org: New TODO heading after the subtree |
+| ~org.inlinetask.insert~ | Org: Insert an inline task |
+| ~org.inlinetask.insert.nostate~ | Org: Insert an inline task without its default TODO state |
 | ~org.meta.left~ | Org: Promote the heading; outdent the item; move the table column left |
 | ~org.meta.right~ | Org: Demote the heading; indent the item, the drawer or the block; move the table column right |
 | ~org.shiftmeta.left~ | Org: Promote the subtree; outdent the item with its children; delete the table column |
