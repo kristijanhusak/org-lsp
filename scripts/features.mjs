@@ -202,6 +202,7 @@ export const AREAS = [
       ['The outline of the file (document symbols)', true],
       ['Moving between headings (`C-c C-n`, `C-c C-p`, `C-c C-f`, `C-c C-b`, `C-c C-u`)', true],
       ['Jumping to a heading (`org-goto`, `C-c C-j`, by outline path)', true],
+      ['The outline path of the entry at the cursor in the echo area, with a count the file\'s name first (`org-display-outline-path`, `org.outline.path`; not cut to the window\'s width)', true],
       ['`C-a`, `C-e` and `C-k` on headlines and items, to the title and the tags (`org-special-ctrl-a/e`, `org-special-ctrl-k`)', true],
       ['`C-o` opening a line, or in a table inserting a row (`org-open-line`, `org-special-ctrl-o`)', true],
       ['Turning lines into headings and back (`C-c *`, through Emacs)', true],

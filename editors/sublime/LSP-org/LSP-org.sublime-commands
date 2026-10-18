@@ -665,6 +665,13 @@
     }
   },
   {
+    "caption": "Org: Show the outline path of the entry at the cursor",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.outline.path"
+    }
+  },
+  {
     "caption": "Org: Go to the next table field, making a row after the last",
     "command": "org_lsp_run",
     "args": {

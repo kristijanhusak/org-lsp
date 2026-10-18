@@ -671,6 +671,7 @@ every file; outside Org files the commands say they do not apply):
 | ~org.shiftmeta.down~ | Org: Insert a table row above |
 | ~org.table.insert.row.below~ | Org: Insert a table row below |
 | ~org.open.line~ | Org: Open a line, or in a table insert a row |
+| ~org.outline.path~ | Org: Show the outline path of the entry at the cursor |
 | ~org.table.next.field~ | Org: Go to the next table field, making a row after the last |
 | ~org.table.previous.field~ | Org: Go to the previous table field |
 | ~org.table.hline~ | Org: Insert a rule below the table row |

@@ -6513,6 +6513,7 @@ impl Server {
                 self.table(command, &context)
             }
             commands::OPEN_LINE => self.open_line(&context.ok_or("This command needs the cursor position")?),
+            commands::OUTLINE_PATH => self.outline_path(&context.ok_or("This command needs the cursor position")?),
             commands::LEVELS_ODD | commands::LEVELS_ODDEVEN => self.convert_levels(
                 params.command == commands::LEVELS_ODD,
                 &context.ok_or("This command needs the cursor position")?,
@@ -12913,6 +12914,26 @@ impl Server {
     /// A command of `org-table.el` on the table at the cursor, carried in
     /// the result as `org.return` is; the row `org-table-kill-row` takes
     /// is in `copy`, for the editor's register or clipboard.
+    /// `org-display-outline-path`: the titles of the headlines above the
+    /// entry at the cursor, joined by `/`, for the echo area; with a count
+    /// (`C-u`, FILE-OR-TITLE) the file's name first. Emacs cuts it to the
+    /// frame's width; the editor shows its messages as it does.
+    fn outline_path(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        let encoding = self.client.encoding;
+        let uri = &context.text_document.uri;
+        let document = self.document(uri).ok_or("This file is not open")?;
+        let offset = document.index.offset(&document.text, context.position, encoding);
+        let keywords = document.parse.todo_keywords();
+        let path = org_core::properties::heading_at(&document.text, offset)
+            .map(|heading| org_core::refile::outline_path(&document.text, heading, keywords))
+            .unwrap_or_default();
+        let parts = path.iter().map(|part| part.trim_end_matches([' ', '\t']).to_string());
+        let prefix = context.count.is_some().then(|| uri::file_name(uri));
+        let message = prefix.into_iter().chain(parts).collect::<Vec<_>>().join("/");
+        // An empty path clears the echo area.
+        Ok(if message.is_empty() { Value::Null } else { json!({ "message": message }) })
+    }
+
     /// `org-convert-to-odd-levels` and, with `odd` false,
     /// `org-convert-to-oddeven-levels`, after `yes-or-no-p`.
     fn convert_levels(&mut self, odd: bool, context: &Context) -> std::result::Result<Value, Refusal> {

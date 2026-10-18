@@ -1097,6 +1097,31 @@ fn opens_lines_and_table_rows() {
     assert_eq!(plain, "* A\nsome text\n| a\n | b |\n");
 }
 
+/// `org-display-outline-path`: the headlines above the entry at the
+/// cursor, with a count the file's name first, as Emacs echoes them.
+#[test]
+fn shows_the_outline_path() {
+    let mut client = Client::start(json!({}), Value::Null);
+    client.open(&uri(), "* TODO [#A] A :t:\n** [[x][Link]] B  \n*** C\ntext\n");
+    let mut path = |line: u32, count: Option<i64>| -> Value {
+        let mut context =
+            json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": line, "character": 0 } });
+        if let Some(count) = count {
+            context["count"] = json!(count);
+        }
+        client
+            .raw_request("workspace/executeCommand", json!({ "command": "org.outline.path", "arguments": [context] }))
+            .response_result
+            .expect("a result")
+    };
+    let name = "test.org";
+    assert_eq!(path(3, None), json!({ "message": "A/Link B" }));
+    assert_eq!(path(3, Some(4)), json!({ "message": format!("{name}/A/Link B") }));
+    assert_eq!(path(0, None), Value::Null);
+    assert_eq!(path(0, Some(4)), json!({ "message": name }));
+    client.shutdown();
+}
+
 /// `org-convert-to-odd-levels` and `org-convert-to-oddeven-levels`: a
 /// question first, then each headline below the top demoted or promoted,
 /// its tags aligned and, with `org-adapt-indentation`, its text indented

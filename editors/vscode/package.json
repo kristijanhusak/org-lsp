@@ -541,6 +541,11 @@
         "category": "Org"
       },
       {
+        "command": "org.outline.path",
+        "title": "Show the outline path of the entry at the cursor",
+        "category": "Org"
+      },
+      {
         "command": "org.table.next.field",
         "title": "Go to the next table field, making a row after the last",
         "category": "Org"
