@@ -28,7 +28,7 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#capture][Capture]] | 100% | 12 of 12 |
 | [[#notes-org-roam][Notes (org-roam)]] | 88% | 14 of 16 |
 | [[#a-journal-org-journal][A journal (org-journal)]] | 79% | 11 of 14 |
-| [[#refile-and-archive][Refile and archive]] | 100% | 12 of 12 |
+| [[#refile-and-archive][Refile and archive]] | 100% | 13 of 13 |
 | [[#links][Links]] | 100% | 17 of 17 |
 | [[#footnotes][Footnotes]] | 100% | 4 of 4 |
 | [[#tables][Tables]] | 100% | 19 of 19 |
@@ -445,7 +445,7 @@ Where editors fall short:
 :CUSTOM_ID: refile-and-archive
 :END:
 
-100% (12 of 12)
+100% (13 of 13)
 
 - ✅ Refiling to a heading, between files too (~org-refile-targets~)
 - ✅ Archiving a subtree to its archive file
@@ -456,6 +456,7 @@ Where editors fall short:
 - ✅ The archive file saved, or left with its changes in the editor, as ~org-archive-subtree-save-file-p~ says (from the agenda it is not, by default)
 - ✅ Logging refiles (~org-log-refile~)
 - ✅ Creating parent nodes as the target (~org-refile-allow-creating-parent-nodes~)
+- ✅ Refiling a selection that is not whole subtrees, its first line made a headline (~org-refile-active-region-within-subtree~, through Emacs)
 - ✅ Refiling a region (a selection of whole subtrees)
 - ✅ Copying (~C-c M-w~), going to a target (~C-u C-c C-w~) and to the last refiled entry (~C-u C-u C-c C-w~)
 - ✅ ~org-refile-target-verify-function~ (the function run by Emacs at each headline)
@@ -767,19 +768,19 @@ Where editors fall short:
 :END:
 
 Each of the 1025 options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with
-it. Of the 325 that change what org-lsp does itself, 100% can be set.
+it. Of the 326 that change what org-lsp does itself, 100% can be set.
 [[file:../scripts/org-options.json][scripts/org-options.json]] says it for each; ~scripts/check.sh~ fails when the
 server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,
 when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 311 | A setting of the same name |
+| setting | 312 | A setting of the same name |
 | missing | 1 | org-lsp does what the option is about, but the option cannot be set yet |
 | other | 13 | Done another way, as its note says |
 | emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 47 | Its value is Lisp (a function, a hook), which the server does not run |
-| absent | 68 | Part of something org-lsp does not do |
+| absent | 67 | Part of something org-lsp does not do |
 | emacs-only | 105 | About Emacs itself (windows, faces, menus, the mouse, the mode line): nothing to do in an editor |
 
 ** Done another way

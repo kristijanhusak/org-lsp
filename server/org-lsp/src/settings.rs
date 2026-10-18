@@ -1200,6 +1200,14 @@ pub const SETTINGS: &[Setting] = &[
          file, and offer the file itself, for its top level.",
     ),
     setting(
+        "org_refile_active_region_within_subtree",
+        "boolean",
+        "false",
+        "org-refile-active-region-within-subtree",
+        "A selection that is not whole subtrees is refiled too: its first line becomes a headline first \
+         (`org-toggle-heading`, run by Emacs), a level below the entry it is in.",
+    ),
+    setting(
         "org_refile_allow_creating_parent_nodes",
         r#"boolean, "confirm""#,
         "false",
@@ -3598,6 +3606,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_id_extra_files", r#"{ "type": "array", "items": { "type": "string" } }"#),
     ("org_id_locations_file", STRING),
     ("org_refile_use_outline_path", r#"{ "enum": [true, false, "file", "full-file-path", "title"] }"#),
+    ("org_refile_active_region_within_subtree", BOOLEAN),
     ("org_refile_allow_creating_parent_nodes", r#"{ "enum": [true, false, "confirm"] }"#),
     ("org_refile_target_verify_function", STRING),
     ("org_reverse_note_order", BOOLEAN),

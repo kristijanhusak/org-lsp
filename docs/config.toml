@@ -588,6 +588,11 @@ org_refile_targets = [{ files = "current", level = 1 }]
 # (org-refile-use-outline-path)
 org_refile_use_outline_path = false
 
+# A selection that is not whole subtrees is refiled too: its first line
+# becomes a headline first (`org-toggle-heading`, run by Emacs), a level below
+# the entry it is in. (org-refile-active-region-within-subtree)
+org_refile_active_region_within_subtree = false
+
 # A target that is not there yet can be named after an existing one,
 # `Projects/New`: it is made, as the last child of `Projects`, and the entry
 # goes under it. `confirm` asks first.

@@ -1291,6 +1291,8 @@ struct Server {
     refile_new_nodes: refile::NewNodes,
     /// `org_refile_target_verify_function`
     refile_verify: Option<String>,
+    /// `org-refile-active-region-within-subtree`
+    refile_region_within_subtree: bool,
     /// What the agenda shows of archives (`v a`, `v A`).
     agenda_archives: ArchivesMode,
     /// `org-agenda-include-inactive-timestamps`, bound while `[` or `v [`
@@ -1726,6 +1728,7 @@ pub fn run(connection: Connection) -> Result<()> {
         refile_current: None,
         refile_new_nodes: options.refile_new_nodes(),
         refile_verify: options.refile_target_verify_function.clone().filter(|name| !name.trim().is_empty()),
+        refile_region_within_subtree: options.refile_active_region_within_subtree.unwrap_or(false),
         agenda_filters: Default::default(),
         documents: HashMap::new(),
         workspace: {
@@ -8088,14 +8091,61 @@ impl Server {
             (uri.clone(), document.index.offset(&document.text, context.position, self.client.encoding))
         };
         // A selection: the region refiled, whole subtrees or none.
+        let mut toggled = None;
         let region = match self.region_of(context).filter(|_| !from_agenda && mode != RefileMode::Goto) {
             Some((start, end)) => {
                 let document = self.document(uri).ok_or("The document is not open")?;
-                Some(refile::region(&document.text, start, end)?)
+                match refile::region(&document.text, start, end) {
+                    Err(_) if self.refile_region_within_subtree => {
+                        let (text, region) = self.region_heading(context, start, end)?;
+                        toggled = Some(text);
+                        Some(region)
+                    }
+                    region => Some(region?),
+                }
             }
             None => None,
         };
-        self.refile_from(file, offset, region, None, from_agenda, refile_answer(context).as_deref(), mode)
+        self.refile_from(file, offset, region, toggled, from_agenda, refile_answer(context).as_deref(), mode)
+    }
+
+    /// `org-refile-active-region-within-subtree`: a region that is not
+    /// whole subtrees has its first line turned into a headline, by
+    /// Emacs's `org-toggle-heading` with the point at the region's start,
+    /// as `org-refile` leaves it. The end of the region moves by as much as
+    /// that line grew. Returns the text and the region in it.
+    fn region_heading(
+        &mut self,
+        context: &Context,
+        start: usize,
+        end: usize,
+    ) -> std::result::Result<(String, (usize, usize)), Refusal> {
+        let uri = &context.text_document.uri;
+        let path = uri::to_path(uri).ok_or("Only a file on disk can run code through Emacs")?;
+        let encoding = self.client.encoding;
+        let document = self.document(uri).ok_or("The document is not open")?;
+        let text = document.text.clone();
+        let start = text[..start].rfind('\n').map_or(0, |at| at + 1);
+        // The mark: the end of the selection the cursor is not at.
+        let range = context.range.ok_or("No region")?;
+        let other = if range.start == context.position { range.end } else { range.start };
+        let mark = document.index.offset(&text, other, encoding);
+        let characters = |at: usize| text[..at].chars().count() + 1;
+        let params = json!({
+            "file": path.to_string_lossy(),
+            "text": text,
+            "point": characters(start),
+            "mark": characters(mark),
+            "command": "org-toggle-heading",
+            "args": [],
+            "variables": [],
+        });
+        let result = self.emacs.call("run", params, std::time::Duration::from_secs(30)).map_err(Refusal::Failed)?;
+        let new = result.get("text").and_then(Value::as_str).ok_or("Emacs did not answer")?.to_string();
+        let line_end = |text: &str| text[start..].find('\n').map_or(text.len(), |at| start + at);
+        let grown = line_end(&new) as isize - line_end(&text) as isize;
+        let end = ((end as isize + grown).max(start as isize) as usize).min(new.len());
+        Ok((new, (start, end)))
     }
 
     /// `org-refile-goto-last-stored` (`C-u C-u C-c C-w`): where the last
