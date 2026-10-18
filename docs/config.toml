@@ -1874,6 +1874,10 @@ org_allow_promoting_top_level_subtree = false
 # set it for a file. (org-odd-levels-only)
 org_odd_levels_only = false
 
+# `org.open.line` (C-o) in a table inserts a row above; with `false` it opens
+# a line there too. (org-special-ctrl-o)
+org_special_ctrl_o = true
+
 # C-k (`org.kill.line`) on a headline kills the text to the tags, and the tags
 # when the cursor is past the title; at the start of the line, the whole line.
 # With `false` the key keeps the editor's own meaning. (org-special-ctrl-k)

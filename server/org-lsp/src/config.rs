@@ -571,6 +571,8 @@ pub struct Options {
     pub yank_adjusted_subtrees: Option<bool>,
     #[serde(rename = "org_file_apps")]
     pub file_apps: Option<Vec<(String, String)>>,
+    #[serde(rename = "org_special_ctrl_o")]
+    pub special_ctrl_o: Option<bool>,
     #[serde(rename = "org_startup_numerated")]
     pub startup_numerated: Option<bool>,
     #[serde(rename = "org_num_max_level")]

@@ -1065,6 +1065,38 @@ fn returns_as_org_does() {
     client.shutdown();
 }
 
+/// `org-open-line` (C-o): a new line after the cursor, which stays; in a
+/// table a row above (`org-special-ctrl-o`), unless that is off.
+#[test]
+fn opens_lines_and_table_rows() {
+    let text = "* A\nsome text\n| a | b |\n";
+    let open_line = |options: Value, line: u32, character: u32, count: Option<i64>| -> (String, Value) {
+        let mut client = Client::start(json!({}), options);
+        client.open(&uri(), text);
+        let mut context =
+            json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": line, "character": character } });
+        if let Some(count) = count {
+            context["count"] = json!(count);
+        }
+        let result = client
+            .raw_request("workspace/executeCommand", json!({ "command": "org.open.line", "arguments": [context] }))
+            .response_result
+            .expect("a result");
+        client.shutdown();
+        let edits: Vec<TextEdit> = serde_json::from_value(result["edits"].clone()).unwrap();
+        (apply_text_edits(text, &edits), result["cursor"].clone())
+    };
+    assert_eq!(
+        open_line(Value::Null, 1, 4, None),
+        ("* A\nsome\n text\n| a | b |\n".to_string(), json!({ "line": 1, "character": 4 }))
+    );
+    assert_eq!(open_line(Value::Null, 1, 4, Some(2)).0, "* A\nsome\n\n text\n| a | b |\n");
+    let (row, _) = open_line(Value::Null, 2, 3, None);
+    assert_eq!(row, "* A\nsome text\n|   |   |\n| a | b |\n");
+    let (plain, _) = open_line(json!({ "org_special_ctrl_o": false }), 2, 3, None);
+    assert_eq!(plain, "* A\nsome text\n| a\n | b |\n");
+}
+
 /// `returnUsesMetaReturn`: RET on the line of an item's bullet makes the
 /// next item, numbered and the rest renumbered as M-RET does, in nested
 /// lists too; elsewhere in the item RET stays Org's.

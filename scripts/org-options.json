@@ -754,7 +754,7 @@
   "org-special-ctrl-a/e": ["other", "the setting ~org_special_ctrl_a_e~, its name without the ~/~"],
   "org-special-ctrl-k": "setting",
   "org-ctrl-k-protect-subtree": "absent",
-  "org-special-ctrl-o": "absent",
+  "org-special-ctrl-o": "setting",
   "org-yank-folded-subtrees": "absent",
   "org-yank-adjusted-subtrees": "setting",
   "org-M-RET-may-split-line": "setting",

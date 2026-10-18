@@ -1166,6 +1166,8 @@ struct Server {
     highlight_sparse_tree_matches: bool,
     /// `org-agenda-view-columns-initially`
     agenda_view_columns_initially: bool,
+    /// `org-special-ctrl-o`
+    special_ctrl_o: bool,
     /// `org-num-mode`'s options.
     num_settings: org_core::num::Settings,
     /// `org-startup-numerated`
@@ -1655,6 +1657,7 @@ pub fn run(connection: Connection) -> Result<()> {
         clock_in_resume: options.clock_in_resume.unwrap_or(false),
         highlight_sparse_tree_matches: options.highlight_sparse_tree_matches.unwrap_or(true),
         agenda_view_columns_initially: options.agenda_view_columns_initially.unwrap_or(false),
+        special_ctrl_o: options.special_ctrl_o.unwrap_or(true),
         num_settings: options.num_settings(),
         startup_numerated: options.startup_numerated.unwrap_or(false),
         num_mode: HashMap::new(),
@@ -6509,6 +6512,7 @@ impl Server {
                 let command = table_command(&params.command).ok_or("Unknown command")?;
                 self.table(command, &context)
             }
+            commands::OPEN_LINE => self.open_line(&context.ok_or("This command needs the cursor position")?),
             commands::SORT => self.sort(&context.ok_or("This command needs the cursor position")?),
             commands::SPARSE_TREE => self.sparse_tree(&context.ok_or("This command needs the cursor position")?),
             commands::REVEAL | commands::REVEAL_SIBLINGS | commands::REVEAL_TREE => {
@@ -12901,6 +12905,23 @@ impl Server {
     /// A command of `org-table.el` on the table at the cursor, carried in
     /// the result as `org.return` is; the row `org-table-kill-row` takes
     /// is in `copy`, for the editor's register or clipboard.
+    /// `org-open-line`: in a table a row above (`org-table-insert-row`),
+    /// unless `org-special-ctrl-o` is off or the table starts the file at the
+    /// cursor; elsewhere `open-line`, as many newlines as the count after
+    /// the cursor, which stays.
+    fn open_line(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        let encoding = self.client.encoding;
+        let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
+        let mut text = document.text.clone();
+        let offset = document.index.offset(&text, context.position, encoding);
+        if self.special_ctrl_o && offset > 0 && at_org_table(&text, &document.parse.syntax(), offset) {
+            return self.table(org_core::table::Command::InsertRow { below: false }, context);
+        }
+        let count = context.count.unwrap_or(1).max(1) as usize;
+        text.insert_str(offset, &"\n".repeat(count));
+        self.carried(context, org_core::newline::Outcome { text, cursor: offset })
+    }
+
     fn table(&mut self, command: org_core::table::Command, context: &Context) -> std::result::Result<Value, Refusal> {
         use org_core::table;
         let encoding = self.client.encoding;

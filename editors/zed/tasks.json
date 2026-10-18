@@ -494,6 +494,19 @@
     "use_new_terminal": false
   },
   {
+    "label": "Org: Open a line, or in a table insert a row",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.open.line",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
     "label": "Org: Insert a rule below the table row",
     "command": "$HOME/.local/state/org-lsp/agenda-command file:org.table.hline",
     "tags": [

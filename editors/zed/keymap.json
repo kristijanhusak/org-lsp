@@ -664,6 +664,12 @@
           "task_name": "Org: New TODO heading after the subtree"
         }
       ],
+      "ctrl-o": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Open a line, or in a table insert a row"
+        }
+      ],
       "ctrl-c -": [
         "task::Spawn",
         {

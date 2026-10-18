@@ -6749,6 +6749,22 @@ set it for a file.
 org_odd_levels_only = false
 #+end_src
 
+*** org_special_ctrl_o
+:PROPERTIES:
+:CUSTOM_ID: org_special_ctrl_o
+:END:
+
+~org.open.line~ (C-o) in a table inserts a row above; with ~false~ it opens a
+line there too.
+
+- Org's option :: ~org-special-ctrl-o~
+- Type :: boolean
+- Default :: ~true~
+
+#+begin_src toml
+org_special_ctrl_o = true
+#+end_src
+
 *** org_special_ctrl_k
 :PROPERTIES:
 :CUSTOM_ID: org_special_ctrl_k

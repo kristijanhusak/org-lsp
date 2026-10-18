@@ -285,6 +285,13 @@ pub const SETTINGS: &[Setting] = &[
          without it: `true` for `ORDERED`, or a tag of your own. Only the property orders the subtasks.",
     ),
     setting(
+        "org_special_ctrl_o",
+        "boolean",
+        "true",
+        "org-special-ctrl-o",
+        "`org.open.line` (C-o) in a table inserts a row above; with `false` it opens a line there too.",
+    ),
+    setting(
         "org_special_ctrl_k",
         "boolean",
         "false",
@@ -3407,6 +3414,7 @@ const SCHEMAS: &[(&str, &str)] = &[
         r#"{ "anyOf": [{ "enum": [true, false, "reversed"] }, { "type": "array", "items": { "enum": [true, false, "reversed"] }, "minItems": 2, "maxItems": 2 }] }"#,
     ),
     ("org_special_ctrl_k", BOOLEAN),
+    ("org_special_ctrl_o", BOOLEAN),
     ("org_treat_S_cursor_todo_selection_as_state_change", BOOLEAN),
     ("org_treat_insert_todo_heading_as_state_change", BOOLEAN),
     ("org_edit_timestamp_down_means_later", BOOLEAN),

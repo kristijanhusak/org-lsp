@@ -224,6 +224,7 @@ its motions.
 | ~alt-shift-enter~ | ~org.insert.todo.heading~ | New TODO heading, or item with a checkbox |
 | ~ctrl-enter~ | ~org.insert.heading.after~ | New heading after the subtree |
 | ~ctrl-shift-enter~ | ~org.insert.todo.heading.after~ | New TODO heading after the subtree |
+| ~ctrl-o~ | ~org.open.line~ | Open a line, or in a table insert a row |
 | ~ctrl-c -~ | ~org.table.hline~ | Insert a rule below the table row |
 | ~ctrl-c enter~ | ~org.table.hline.move~ | Insert a rule below the table row and go below it |
 | ~ctrl-c ^~ | ~org.sort~ | Sort the entries, the items or the table rows |
