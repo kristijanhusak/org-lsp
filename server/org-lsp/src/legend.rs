@@ -57,6 +57,7 @@ fn describe_type(ty: TokenType) -> &'static str {
         TokenType::CalendarSelected => "Date prompt: the selected day",
         TokenType::CalendarPrompt => "Date prompt: the prompt before the answer",
         TokenType::CalendarJournal => "Date prompt: a day with an entry of org-journal; to come with `future`",
+        TokenType::CalendarDailies => "Date prompt: a day with a daily note of org-roam",
         TokenType::Quote => "The text of a quote block, with org_fontify_quote_and_verse_blocks",
         TokenType::Verse => "The text of a verse block, with org_fontify_quote_and_verse_blocks",
     }
@@ -342,6 +343,12 @@ pub const LOOKS: &[Look] = &[
         "calendarJournal.future",
         &["@org.calendar.journal.future", "Comment"],
         &["markup.italic.scheduled.journal.calendar.org", "markup.italic"],
+    ),
+    // `org-roam-dailies-calendar-note`: `org-link` without its underline.
+    look(
+        "calendarDailies",
+        &["@org.calendar.dailies", "@markup.link"],
+        &["string.other.link.dailies.calendar.org", "string.other.link"],
     ),
 ];
 

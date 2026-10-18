@@ -89,6 +89,7 @@
     "calendarSelected": "invalid.illegal markup.inverse.selected.calendar.org",
     "calendarPrompt": "keyword keyword.other.prompt.calendar.org",
     "calendarJournal": "markup.italic markup.italic.journal.calendar.org",
-    "calendarJournal.future": "markup.italic markup.italic.scheduled.journal.calendar.org"
+    "calendarJournal.future": "markup.italic markup.italic.scheduled.journal.calendar.org",
+    "calendarDailies": "string.other.link string.other.link.dailies.calendar.org"
   }
 }

@@ -6933,6 +6933,10 @@ impl Server {
         if !journal.is_empty() {
             open.mark_journal(journal, self.date_time(), &self.read_date);
         }
+        let dailies = self.roam_daily_days();
+        if !dailies.is_empty() {
+            open.mark_dailies(dailies, self.date_time(), &self.read_date);
+        }
         let cursor = open.cursor();
         if self.prompt_copy.is_some() {
             // The client has the document: it shows it again and fetches

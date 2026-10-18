@@ -98,6 +98,9 @@ pub struct DatePrompt {
     /// The days of org-journal's entries, which the calendar marks
     /// (`org-journal-mark-entries`).
     pub journal: Vec<Day>,
+    /// The days with a daily note of org-roam, which the calendar marks
+    /// too (`org-roam-dailies-calendar-mark-entries`).
+    pub dailies: Vec<Day>,
 }
 
 /// The part of a picked time the keys change.
@@ -142,6 +145,7 @@ impl DatePrompt {
             time: None,
             time_field: None,
             journal: Vec::new(),
+            dailies: Vec::new(),
         };
         prompt.render(now, settings);
         prompt
@@ -152,6 +156,13 @@ impl DatePrompt {
     /// (`org-journal-calendar-scheduled-face`).
     pub fn mark_journal(&mut self, days: Vec<Day>, now: DateTime, settings: &Settings) {
         self.journal = days;
+        self.render(now, settings);
+    }
+
+    /// Mark the days with a daily note of org-roam
+    /// (`org-roam-dailies-calendar-note`).
+    pub fn mark_dailies(&mut self, days: Vec<Day>, now: DateTime, settings: &Settings) {
+        self.dailies = days;
         self.render(now, settings);
     }
 
@@ -308,7 +319,8 @@ impl DatePrompt {
             text.push_str(line);
             text.push('\n');
         }
-        // The selected day, and the days with a journal entry around it.
+        // The selected day, and the days with a journal entry or a daily
+        // note around it.
         let mut days: Vec<(usize, TokenType, u32)> = Vec::new();
         let at = |cell: org_core::calendar::Cell, lines: &[String]| -> usize {
             lines[..cell.line].iter().map(|line| line.len() + 1).sum::<usize>() + cell.column
@@ -320,6 +332,13 @@ impl DatePrompt {
             if let Some(cell) = self.calendar.cell(*day) {
                 let future = if *day > now.day { modifier::FUTURE } else { 0 };
                 days.push((at(cell, &self.calendar.lines), TokenType::CalendarJournal, future));
+            }
+        }
+        // A day with a journal entry keeps its look.
+        let dailies = self.dailies.iter().filter(|day| **day != self.selected && !self.journal.contains(day));
+        for day in dailies {
+            if let Some(cell) = self.calendar.cell(*day) {
+                days.push((at(cell, &self.calendar.lines), TokenType::CalendarDailies, 0));
             }
         }
         days.sort_by_key(|(start, _, _)| *start);
@@ -493,6 +512,29 @@ mod tests {
         // In the order of the text, with the selected day.
         let starts: Vec<u32> = prompt.tokens.iter().map(|token| token.range.start().into()).collect();
         assert!(starts.windows(2).all(|pair| pair[0] <= pair[1]), "{starts:?}");
+    }
+
+    #[test]
+    fn marks_the_days_of_daily_notes() {
+        let mut prompt = prompt();
+        let day = |month, day| Date::new(2026, month, day).to_day();
+        prompt.mark_journal(vec![day(10, 2)], now(), &Settings::default());
+        // A journal's day keeps its look, the selected day too.
+        prompt.mark_dailies(vec![day(10, 2), day(10, 3), day(10, 7), day(10, 9)], now(), &Settings::default());
+        let marked: Vec<(String, TokenType)> = prompt
+            .tokens
+            .iter()
+            .filter(|token| matches!(token.ty, TokenType::CalendarJournal | TokenType::CalendarDailies))
+            .map(|token| (prompt.text[token.range].to_string(), token.ty))
+            .collect();
+        assert_eq!(
+            marked,
+            [
+                (" 2".to_string(), TokenType::CalendarJournal),
+                (" 3".to_string(), TokenType::CalendarDailies),
+                (" 9".to_string(), TokenType::CalendarDailies)
+            ]
+        );
     }
 
     #[test]

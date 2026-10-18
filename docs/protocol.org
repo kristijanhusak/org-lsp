@@ -1293,6 +1293,9 @@ increments a number.
   result's date is a ~file:…::LINE~ link to the line found. When the
   journal is on, the date prompt's calendar marks the days with an entry
   with the token ~calendarJournal~, ~future~ for those after today.
+  While org-roam is on, it also marks the days with a daily note (a date
+  in the name of a file under ~org_roam_dailies_directory~) with the token
+  ~calendarDailies~, a journal's day keeping its own.
 - ~org.refile~ :: ~org-refile~ (~org-agenda-refile~ on an agenda line):
   offers the targets (an input of kind ~choice~), named as Emacs names them
   (~Projects~, ~Home (other.org)~, ~Projects/Alpha/~), and moves the subtree

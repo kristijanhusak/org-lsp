@@ -70,6 +70,7 @@ token_types! {
     CalendarSelected => "calendarSelected",
     CalendarPrompt => "calendarPrompt",
     CalendarJournal => "calendarJournal",
+    CalendarDailies => "calendarDailies",
     Quote => "quote",
     Verse => "verse",
 }
@@ -264,7 +265,7 @@ pub mod standard {
             TokenType::AgendaHabit => return None,
             TokenType::CalendarWeekday => "comment",
             TokenType::CalendarSelected | TokenType::CalendarPrompt => "keyword",
-            TokenType::CalendarJournal => "string",
+            TokenType::CalendarJournal | TokenType::CalendarDailies => "string",
             // `org-quote` and `org-verse` are `org-block`, which has no color.
             TokenType::Quote | TokenType::Verse if struck != 0 => "variable",
             TokenType::Quote | TokenType::Verse => return None,
