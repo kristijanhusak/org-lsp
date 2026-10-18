@@ -357,6 +357,9 @@ its sections says what it should look like.
 - [ ] Hovering a key shows its entry; following it opens the bibliography there
 - [ ] An unknown key is reported, with close keys to put instead
 - [ ] Inserting a citation, picking keys; on a citation, adding a key; with the prefix, deleting one: ~<Leader>oic~, ~<Leader>oiC~
+- [ ] A new BibTeX entry asks for its type (completed), title, required fields and key, then is a headline with those properties: ~:Org bibtex create~
+- [ ] The entry at the cursor copied as BibTeX; the file's entries exported to the ~.bib~ file asked for: ~:Org bibtex copy~, ~:Org bibtex export~
+- [ ] A BibTeX entry copied from elsewhere pasted as a headline; a ~.bib~ file imported: ~:Org bibtex yank~, ~:Org bibtex import~
 
 * Diagnostics (org-lint)
 

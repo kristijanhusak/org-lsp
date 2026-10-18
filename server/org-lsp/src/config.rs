@@ -336,6 +336,36 @@ pub struct Options {
     /// `org-cite-insert-processor`: a processor's name, or `false`.
     #[serde(rename = "org_cite_insert_processor")]
     pub cite_insert_processor: Option<serde_json::Value>,
+    /// `org-bibtex-autogen-keys`
+    #[serde(rename = "org_bibtex_autogen_keys")]
+    pub bibtex_autogen_keys: Option<bool>,
+    /// `org-bibtex-prefix`
+    #[serde(rename = "org_bibtex_prefix")]
+    pub bibtex_prefix: Option<String>,
+    /// `org-bibtex-treat-headline-as-title`
+    #[serde(rename = "org_bibtex_treat_headline_as_title")]
+    pub bibtex_treat_headline_as_title: Option<bool>,
+    /// `org-bibtex-export-arbitrary-fields`
+    #[serde(rename = "org_bibtex_export_arbitrary_fields")]
+    pub bibtex_export_arbitrary_fields: Option<bool>,
+    /// `org-bibtex-key-property`
+    #[serde(rename = "org_bibtex_key_property")]
+    pub bibtex_key_property: Option<String>,
+    /// `org-bibtex-tags`
+    #[serde(rename = "org_bibtex_tags")]
+    pub bibtex_tags: Option<Vec<String>>,
+    /// `org-bibtex-tags-are-keywords`
+    #[serde(rename = "org_bibtex_tags_are_keywords")]
+    pub bibtex_tags_are_keywords: Option<bool>,
+    /// `org-bibtex-no-export-tags`
+    #[serde(rename = "org_bibtex_no_export_tags")]
+    pub bibtex_no_export_tags: Option<Vec<String>>,
+    /// `org-bibtex-inherit-tags`
+    #[serde(rename = "org_bibtex_inherit_tags")]
+    pub bibtex_inherit_tags: Option<bool>,
+    /// `org-bibtex-type-property-name`
+    #[serde(rename = "org_bibtex_type_property_name")]
+    pub bibtex_type_property_name: Option<String>,
     /// `org-link-abbrev-alist`: link abbreviations, each with what it
     /// stands for (`%s` the tag, `%h` the tag URL-encoded).
     #[serde(rename = "org_link_abbrev_alist")]
@@ -1966,6 +1996,23 @@ impl Options {
             set("org-babel-noweb-wrap-end", lisp_string(end));
         }
         forms
+    }
+
+    /// The options of `ol-bibtex.el`.
+    pub fn bibtex_settings(&self) -> org_core::bibtex::Settings {
+        let defaults = org_core::bibtex::Settings::default();
+        org_core::bibtex::Settings {
+            autogen_keys: self.bibtex_autogen_keys.unwrap_or(defaults.autogen_keys),
+            prefix: self.bibtex_prefix.clone().or(defaults.prefix),
+            treat_headline_as_title: self.bibtex_treat_headline_as_title.unwrap_or(defaults.treat_headline_as_title),
+            export_arbitrary_fields: self.bibtex_export_arbitrary_fields.unwrap_or(defaults.export_arbitrary_fields),
+            key_property: self.bibtex_key_property.clone().unwrap_or(defaults.key_property),
+            tags: self.bibtex_tags.clone().unwrap_or(defaults.tags),
+            tags_are_keywords: self.bibtex_tags_are_keywords.unwrap_or(defaults.tags_are_keywords),
+            no_export_tags: self.bibtex_no_export_tags.clone().unwrap_or(defaults.no_export_tags),
+            inherit_tags: self.bibtex_inherit_tags.unwrap_or(defaults.inherit_tags),
+            type_property_name: self.bibtex_type_property_name.clone().unwrap_or(defaults.type_property_name),
+        }
     }
 
     /// `org-cite-insert-processor`: none for `false`.

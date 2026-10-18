@@ -313,9 +313,14 @@ its sections says what it should look like.
 
 * Citations
 
+*Partly:* The BibTeX commands' fields are asked for in turn, and the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text.
+
 - [ ] Keys are completed after ~[cite:@~
 - [ ] Hovering a key shows its entry; following it opens the bibliography there
 - [ ] An unknown key is reported, with close keys to put instead
+- [ ] A new BibTeX entry asks for its type (completed), title, required fields and key, then is a headline with those properties: the code action /BibTeX: new entry, its fields asked for/
+- [ ] The entry at the cursor copied as BibTeX; the file's entries exported to the ~.bib~ file asked for: the code action /BibTeX: copy the entry at the cursor as BibTeX/, the code action /BibTeX: export the entries of the file to a .bib file/
+- [ ] A BibTeX entry copied from elsewhere pasted as a headline; a ~.bib~ file imported: the code action /BibTeX: paste a BibTeX entry as a heading/, the code action /BibTeX: import the entries of a BibTeX file as headings/
 
 * Diagnostics (org-lint)
 

@@ -193,17 +193,17 @@
   "org-bbdb-extract-date-fun": "absent"
  },
  "ol-bibtex.el": {
-  "org-bibtex-autogen-keys": "absent",
-  "org-bibtex-prefix": "absent",
-  "org-bibtex-treat-headline-as-title": "absent",
-  "org-bibtex-headline-format-function": "absent",
-  "org-bibtex-export-arbitrary-fields": "absent",
-  "org-bibtex-key-property": "absent",
-  "org-bibtex-tags": "absent",
-  "org-bibtex-tags-are-keywords": "absent",
-  "org-bibtex-no-export-tags": "absent",
-  "org-bibtex-inherit-tags": "absent",
-  "org-bibtex-type-property-name": "absent"
+  "org-bibtex-autogen-keys": "setting",
+  "org-bibtex-prefix": "setting",
+  "org-bibtex-treat-headline-as-title": "setting",
+  "org-bibtex-headline-format-function": "lisp",
+  "org-bibtex-export-arbitrary-fields": "setting",
+  "org-bibtex-key-property": "setting",
+  "org-bibtex-tags": "setting",
+  "org-bibtex-tags-are-keywords": "setting",
+  "org-bibtex-no-export-tags": "setting",
+  "org-bibtex-inherit-tags": "setting",
+  "org-bibtex-type-property-name": "setting"
  },
  "ol-doi.el": {
   "org-link-doi-server-url": "setting"

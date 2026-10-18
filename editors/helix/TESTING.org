@@ -201,7 +201,7 @@ its sections says what it should look like.
 
 * Citations
 
-*Partly:* Inserting citations is not offered as a code action yet. Completion, hover and following work.
+*Partly:* Inserting citations and the BibTeX commands are not offered as code actions yet. Completion, hover and following work.
 
 - [ ] Keys are completed after ~[cite:@~
 - [ ] Hovering a key shows its entry; following it opens the bibliography there

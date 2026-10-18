@@ -2292,6 +2292,164 @@ not run; ~false~ for none.
 org_cite_insert_processor = "basic"
 #+end_src
 
+*** org_bibtex_autogen_keys
+:PROPERTIES:
+:CUSTOM_ID: org_bibtex_autogen_keys
+:END:
+
+Whether ~org.bibtex.create~ and ~org.bibtex.check~ make the key of a new
+BibTeX entry from its author, year and title, as ~bibtex-generate-autokey~
+makes it (through Emacs), instead of asking for it (~id~).
+
+- Org's option :: ~org-bibtex-autogen-keys~
+- Type :: boolean
+- Default :: ~false~
+
+#+begin_src toml
+org_bibtex_autogen_keys = false
+#+end_src
+
+*** org_bibtex_prefix
+:PROPERTIES:
+:CUSTOM_ID: org_bibtex_prefix
+:END:
+
+What the names of the properties the BibTeX commands write start with (~BIB_~
+gives ~BIB_AUTHOR~), but for the key's; they read the names with it and
+without.
+
+- Org's option :: ~org-bibtex-prefix~
+- Type :: string
+- Default :: unset: none
+
+*** org_bibtex_treat_headline_as_title
+:PROPERTIES:
+:CUSTOM_ID: org_bibtex_treat_headline_as_title
+:END:
+
+A headline without a ~TITLE~ property is the title of its BibTeX entry, and
+~org.bibtex.check~ does not ask for one.
+
+- Org's option :: ~org-bibtex-treat-headline-as-title~
+- Type :: boolean
+- Default :: ~true~
+
+#+begin_src toml
+org_bibtex_treat_headline_as_title = true
+#+end_src
+
+*** org_bibtex_export_arbitrary_fields
+:PROPERTIES:
+:CUSTOM_ID: org_bibtex_export_arbitrary_fields
+:END:
+
+With ~org_bibtex_prefix~, every property whose name has the prefix is a field
+of the entry exported (~org.bibtex.export~, ~org.bibtex.copy~), not only those
+of its type.
+
+- Org's option :: ~org-bibtex-export-arbitrary-fields~
+- Type :: boolean
+- Default :: ~false~
+
+#+begin_src toml
+org_bibtex_export_arbitrary_fields = false
+#+end_src
+
+*** org_bibtex_key_property
+:PROPERTIES:
+:CUSTOM_ID: org_bibtex_key_property
+:END:
+
+The property that holds an entry's BibTeX key. ~ID~ makes the key a global ID.
+
+- Org's option :: ~org-bibtex-key-property~
+- Type :: string
+- Default :: ~"CUSTOM_ID"~
+
+#+begin_src toml
+org_bibtex_key_property = "CUSTOM_ID"
+#+end_src
+
+*** org_bibtex_tags
+:PROPERTIES:
+:CUSTOM_ID: org_bibtex_tags
+:END:
+
+Tags given to the entries the BibTeX commands make.
+
+- Org's option :: ~org-bibtex-tags~
+- Type :: string[]
+- Default :: ~[]~
+
+#+begin_src toml
+org_bibtex_tags = []
+#+end_src
+
+*** org_bibtex_tags_are_keywords
+:PROPERTIES:
+:CUSTOM_ID: org_bibtex_tags_are_keywords
+:END:
+
+The ~keywords~ field of an entry read is its tags (spaces as ~_~, other
+characters a tag cannot have left out), and an entry's own tags are its
+~keywords~ when exported, but for those of ~org_bibtex_tags~ and
+~org_bibtex_no_export_tags~.
+
+- Org's option :: ~org-bibtex-tags-are-keywords~
+- Type :: boolean
+- Default :: ~false~
+
+#+begin_src toml
+org_bibtex_tags_are_keywords = false
+#+end_src
+
+*** org_bibtex_no_export_tags
+:PROPERTIES:
+:CUSTOM_ID: org_bibtex_no_export_tags
+:END:
+
+Tags that are not exported as keywords, with ~org_bibtex_tags_are_keywords~.
+
+- Org's option :: ~org-bibtex-no-export-tags~
+- Type :: string[]
+- Default :: ~[]~
+
+#+begin_src toml
+org_bibtex_no_export_tags = []
+#+end_src
+
+*** org_bibtex_inherit_tags
+:PROPERTIES:
+:CUSTOM_ID: org_bibtex_inherit_tags
+:END:
+
+With ~org_bibtex_tags_are_keywords~, the tags an entry inherits are keywords
+too.
+
+- Org's option :: ~org-bibtex-inherit-tags~
+- Type :: boolean
+- Default :: ~false~
+
+#+begin_src toml
+org_bibtex_inherit_tags = false
+#+end_src
+
+*** org_bibtex_type_property_name
+:PROPERTIES:
+:CUSTOM_ID: org_bibtex_type_property_name
+:END:
+
+The property that holds an entry's BibTeX type (~article~); a headline without
+it is no entry.
+
+- Org's option :: ~org-bibtex-type-property-name~
+- Type :: string
+- Default :: ~"btype"~
+
+#+begin_src toml
+org_bibtex_type_property_name = "btype"
+#+end_src
+
 *** org_link_abbrev_alist
 :PROPERTIES:
 :CUSTOM_ID: org_link_abbrev_alist

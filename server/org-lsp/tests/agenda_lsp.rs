@@ -9654,3 +9654,60 @@ fn refiles_a_region_within_a_subtree() {
     client.shutdown();
     let _ = std::fs::remove_dir_all(&root);
 }
+
+/// `org_bibtex_autogen_keys`: the key of a new BibTeX entry is Emacs's
+/// `bibtex-generate-autokey` of the entry, not asked for.
+#[test]
+fn bibtex_keys_come_from_emacs() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("bibtex_keys_come_from_emacs: no Emacs, skipped");
+        return;
+    }
+    let mut options = clock();
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        options["emacs_config"] = json!(format!("(add-to-list 'load-path {dir:?})"));
+    }
+    options["org_bibtex_autogen_keys"] = json!(true);
+    let mut client = Client::editor(options, None);
+    let uri = "file:///org/refs.org";
+    let text = "* a\n";
+    client.open(uri, text);
+    let mut context = json!({ "textDocument": { "uri": uri }, "position": { "line": 1, "character": 0 } });
+    let mut answers = ["article", "My Title", "Smith", "Journal", "2020"].into_iter();
+    let mut asked = Vec::new();
+    let result = loop {
+        let result = client
+            .request("workspace/executeCommand", json!({ "command": "org.bibtex.create", "arguments": [context] }))
+            .unwrap();
+        let Some(input) = result.get("input") else { break result };
+        asked.push(input["prompt"].as_str().unwrap().to_string());
+        context["replies"] = input["context"]["replies"].clone();
+        context["input"] = json!(answers.next().expect("an answer"));
+    };
+    assert_eq!(asked, ["Type", "title", "author", "journal", "year"]);
+    assert_eq!(
+        apply(text, result["edits"].as_array().unwrap()),
+        "* a\n* My Title\n:PROPERTIES:\n:TITLE:    My Title\n:BTYPE:    article\n:AUTHOR:   Smith\n\
+         :JOURNAL:  Journal\n:YEAR:     2020\n:CUSTOM_ID: smith20:_my_title\n:END:\n"
+    );
+    // Without a year, Emacs makes no key.
+    let mut context = json!({ "textDocument": { "uri": uri }, "position": { "line": 1, "character": 0 } });
+    let mut answers = ["misc", "No year"].into_iter();
+    let error = loop {
+        match client
+            .request("workspace/executeCommand", json!({ "command": "org.bibtex.create", "arguments": [context] }))
+        {
+            Ok(result) => {
+                let input = result.get("input").expect("a question");
+                context["replies"] = input["context"]["replies"].clone();
+                context["input"] = json!(answers.next().expect("an answer"));
+            }
+            Err(error) => break error,
+        }
+    };
+    // (Its quotes are curved or not as Emacs's locale has them.)
+    assert!(error.starts_with("Year or date field ") && error.ends_with(" invalid"), "{error}");
+    client.shutdown();
+}

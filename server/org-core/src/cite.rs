@@ -301,6 +301,80 @@ pub fn entry_position(name: &str, text: &str, key: &str) -> Option<usize> {
     }
 }
 
+/// A field of an entry as written: its name and its text, which only
+/// `=key=` may lack.
+pub type RawField = (String, Option<String>);
+
+/// `bibtex-beginning-of-entry` from `at`: the start of the line of the
+/// entry `at` is in, else of the entry before it, else of the text.
+pub fn beginning_of_entry(text: &str, at: usize) -> usize {
+    let bib = Bib { text, types: &BIBTEX_TYPES };
+    let mut line = bib.line_start(at.min(text.len()));
+    loop {
+        if bib.any_head(line) || line == 0 {
+            return line;
+        }
+        line = bib.line_start(line - 1);
+    }
+}
+
+/// `bibtex-parse-entry` at the line starting at `line`, in the `BibTeX`
+/// dialect `bibtex-mode` starts in, missing commas between fields taken
+/// as there (`bibtex-autoadd-commas`): `=type=` and `=key=` (none when
+/// the head has no key), then each field as written, its name without
+/// `OPT` or `ALT`. `None` when no entry of a known type starts there; an
+/// error when a string does not end.
+pub fn parse_entry(text: &str, line: usize) -> Result<Option<Vec<RawField>>, String> {
+    let bib = Bib { text, types: &BIBTEX_TYPES };
+    let Some(head) = bib.head(line) else { return Ok(None) };
+    let mut fields = vec![("=type=".to_string(), Some(head.kind.clone())), ("=key=".to_string(), head.key.clone())];
+    // The end of the match: after the key, or the blanks where it is
+    // missing.
+    let mut at = head.end;
+    loop {
+        // `bibtex-parse-field-name`, which puts in a comma missing before
+        // the name.
+        let field = if text[at..].starts_with(',') {
+            bib.field(at)?
+        } else {
+            let name_start = bib.skip(at, is_blank);
+            let starts_name = text[name_start..].chars().next().is_some_and(|c| is_name_char(c) && !c.is_ascii_digit());
+            let equal = bib.skip(bib.skip(name_start, is_name_char), is_blank);
+            if !starts_name || !text[equal..].starts_with('=') {
+                None
+            } else {
+                // As if the comma were in front of the name.
+                let with_comma = format!(",{}", &text[name_start..]);
+                let shifted = Bib { text: &with_comma, types: &BIBTEX_TYPES };
+                shifted.field(0)?.map(|field| Field {
+                    name: field.name,
+                    text_start: field.text_start - 1 + name_start,
+                    text_end: field.text_end - 1 + name_start,
+                    end: field.end - 1 + name_start,
+                })
+            }
+        };
+        let Some(field) = field else { break };
+        fields
+            .push((without_opt_alt(&field.name).to_string(), Some(text[field.text_start..field.text_end].to_string())));
+        at = field.end;
+    }
+    Ok(Some(fields))
+}
+
+/// `bibtex-name-in-field` taking `OPT` and `ALT` off, matched without
+/// regard to case as in a `bibtex-mode` buffer, but for the names
+/// `bibtex-no-opt-remove-re` keeps (`option`).
+fn without_opt_alt(name: &str) -> &str {
+    let prefixed =
+        name.get(..3).is_some_and(|start| start.eq_ignore_ascii_case("OPT") || start.eq_ignore_ascii_case("ALT"));
+    if prefixed && !name.eq_ignore_ascii_case("option") {
+        &name[3..]
+    } else {
+        name
+    }
+}
+
 // ----- BibTeX
 
 /// The entry types of the `biblatex` dialect (`bibtex-biblatex-entry-alist`).
@@ -479,6 +553,31 @@ impl Bib<'_> {
         })
     }
 
+    /// `bibtex-any-entry-maybe-empty-head` at the line starting at
+    /// `line`: `@`, a name and an opening delimiter, of any type.
+    fn any_head(&self, line: usize) -> bool {
+        let text = self.text;
+        let at = self.skip(line, |c| c == ' ' || c == '\t');
+        if !text[at..].starts_with('@') {
+            return false;
+        }
+        let name = self.skip(at + 1, |c| c == ' ' || c == '\t');
+        if !text[name..].chars().next().is_some_and(|c| is_name_char(c) && !c.is_ascii_digit()) {
+            return false;
+        }
+        let open = self.skip(self.skip(name, is_name_char), |c| c == ' ' || c == '\t');
+        text[open..].starts_with(['{', '('])
+    }
+
+    /// The error of `forward-sexp` over a string that starts at `at` and
+    /// does not end, with Emacs's positions: the string's start and the
+    /// end of the text.
+    fn unbalanced(&self, at: usize) -> String {
+        let start = self.text[..at].chars().count() + 1;
+        let end = self.text.chars().count() + 1;
+        format!("Scan error: \"Unbalanced parentheses\", {start}, {end}")
+    }
+
     /// `bibtex-parse-field-string` at `at`: the end of a string in braces
     /// or quotes; an error when its braces do not balance.
     fn string_end(&self, at: usize) -> Result<Option<usize>, String> {
@@ -495,7 +594,7 @@ impl Bib<'_> {
                         return Ok(Some(at + 1 + index + 1));
                     }
                 }
-                Err("Unbalanced parentheses".to_string())
+                Err(self.unbalanced(at))
             }
             Some('{') => {
                 let mut depth = 0;
@@ -511,7 +610,7 @@ impl Bib<'_> {
                         _ => {}
                     }
                 }
-                Err("Unbalanced parentheses".to_string())
+                Err(self.unbalanced(at))
             }
             _ => Ok(None),
         }

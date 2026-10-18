@@ -1200,5 +1200,75 @@
   "expected": {
    "shell": "date"
   }
+ },
+ {
+  "files": {
+   "a.org": "See [[bibtex:refs.bib::kn¦uth]]\n",
+   "refs.bib": "% refs\n@Book{ Knuth ,\n  title={T}\n}\n\n@misc{other,\n  title = {x}\n}\n"
+  },
+  "note": "bibtex: to the entry of a key, in any case",
+  "expected": {
+   "goto": {
+    "file": "refs.bib",
+    "line": 2,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[bibtex:refs.bib::miss¦ing]]\n",
+   "refs.bib": "% refs\n@Book{ Knuth ,\n  title={T}\n}\n\n@misc{other,\n  title = {x}\n}\n"
+  },
+  "note": "bibtex: to a key that is not there: the start of the file",
+  "expected": {
+   "goto": {
+    "file": "refs.bib",
+    "line": 1,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[file:refs.bib::oth¦er]]\n",
+   "refs.bib": "% refs\n@Book{ Knuth ,\n  title={T}\n}\n\n@misc{other,\n  title = {x}\n}\n"
+  },
+  "note": "file: into a BibTeX file searches for a key too",
+  "expected": {
+   "goto": {
+    "file": "refs.bib",
+    "line": 6,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "See bibtex:refs.bib::oth¦er\n",
+   "refs.bib": "% refs\n@Book{ Knuth ,\n  title={T}\n}\n\n@misc{other,\n  title = {x}\n}\n"
+  },
+  "note": "a plain bibtex: link",
+  "expected": {
+   "goto": {
+    "file": "refs.bib",
+    "line": 6,
+    "column": 0
+   }
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[bibtex:re¦fs.bib]]\n",
+   "refs.bib": "% refs\n@Book{ Knuth ,\n  title={T}\n}\n\n@misc{other,\n  title = {x}\n}\n"
+  },
+  "note": "bibtex: without a key",
+  "expected": {
+   "goto": {
+    "file": "refs.bib",
+    "line": 1,
+    "column": 0
+   }
+  }
  }
 ]
