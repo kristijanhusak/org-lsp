@@ -54,7 +54,8 @@ fn opening_matches_emacs() {
             files.iter().find(|(other, _)| other == wanted).map(|(_, text)| text.clone())
         };
         // `org-link-search-must-match-exact-headline`, yes to making a
-        // missing headline, and `org-link-doi-server-url`.
+        // missing headline (and to running a `shell:` link's command),
+        // `org-link-doi-server-url` and `org-link-shell-skip-confirm-regexp`.
         let exact = match case["exact"].as_str() {
             Some("nil") => ExactHeadline::No,
             Some("t") => ExactHeadline::Yes,
@@ -64,6 +65,9 @@ fn opening_matches_emacs() {
         let mut settings = Settings { exact_headline: exact, ..Settings::default() };
         if let Some(doi) = case["doi"].as_str() {
             settings.doi_server = doi.to_string();
+        }
+        if let Some(skip) = case["skip"].as_str() {
+            settings.shell_skip_confirm_regexp = skip.to_string();
         }
         // The heading made in a file, and where it is.
         let made = |file: &str, target: &str, search: &str| {
@@ -135,6 +139,8 @@ fn opening_matches_emacs() {
             Ok(Open::Citation(keys)) => json!({ "citation": keys }),
             Ok(Open::Create(search)) if create => made(name, &text, &search),
             Ok(Open::Create(search)) => missing(&text, &search),
+            Ok(Open::Shell { command, confirm }) if create || !confirm => json!({ "shell": command }),
+            Ok(Open::Shell { .. }) => json!({ "error": "Abort" }),
             Err(error) => json!({ "error": error }),
         };
         if let Some(offered) = offered {

@@ -13,6 +13,7 @@ A case is a JSON object:
       "create": true                              optional: yes to making a
                                                   missing headline
       "doi": "https://dx.doi.org/"                optional: `org-link-doi-server-url'
+      "skip": "^echo"                             optional: `org-link-shell-skip-confirm-regexp'
     }
 
 `reference(cases)` adds `expected` to each case, one of
@@ -22,6 +23,7 @@ A case is a JSON object:
     {"system": "doc.pdf"}                                  the system's app
     {"agenda": "2026-05-18", "span": 1}                    `org-agenda-list`
     {"tags": "work"}                                       `org-tags-view`
+    {"shell": "echo hi"}                                   `shell-command`
     {"error": "No link found"}                             a refusal
 
 with `"offered": "..."` as well when Emacs listed the entry's links to
@@ -45,7 +47,7 @@ DRIVER = r"""
 (require 'org-id)
 (require 'org-agenda)
 (require 'cl-lib)
-(defun org-lsp-open-case (files cursor-file offset answer out exact create doi)
+(defun org-lsp-open-case (files cursor-file offset answer out exact create doi skip)
   (dolist (buffer (buffer-list))
     (when (buffer-file-name buffer)
       (with-current-buffer buffer (set-buffer-modified-p nil))
@@ -60,6 +62,7 @@ DRIVER = r"""
                      (org-id-track-globally t)
                      (org-link-search-must-match-exact-headline exact)
                      (org-link-doi-server-url doi)
+                     (org-link-shell-skip-confirm-regexp skip)
                      (org-file-apps '((auto-mode . emacs) (directory . emacs)
                                       ("\\.mm\\'" . "SYSTEM %s") ("\\.x?html?\\'" . "SYSTEM %s")
                                       ("\\.pdf\\'" . "SYSTEM %s"))))
@@ -79,6 +82,8 @@ DRIVER = r"""
                              (setq recorded (format "system\0%s" (file-name-nondirectory
                                                                   (replace-regexp-in-string "\\`SYSTEM \\|['\"]" "" command))))
                              nil))
+                          ((symbol-function 'shell-command)
+                           (lambda (command &rest _) (setq recorded (format "shell\0%s" command))))
                           ((symbol-function 'yes-or-no-p) (lambda (&rest _) create))
                           ((symbol-function 'read-char-exclusive)
                            (lambda (&rest _)
@@ -124,7 +129,8 @@ def reference(cases):
                 f"(org-lsp-open-case (list {files}) {lisp_string(cursor[0])} {cursor[1]}"
                 f" {lisp_string(case.get('answer', '1'))} {lisp_string(target)}"
                 f" {exact} {'t' if case.get('create') else 'nil'}"
-                f" {lisp_string(case.get('doi', 'https://doi.org/'))})"
+                f" {lisp_string(case.get('doi', 'https://doi.org/'))}"
+                f" {lisp_string(case.get('skip', ''))})"
             )
         driver = os.path.join(directory, "driver.el")
         with open(driver, "w", encoding="utf-8") as handle:

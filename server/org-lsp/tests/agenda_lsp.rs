@@ -2465,6 +2465,121 @@ fn writes_the_agenda_to_a_file() {
     std::fs::remove_dir_all(root).unwrap();
 }
 
+/// `org-agenda-add-entry-text-maxlines`: an agenda written as plain text
+/// has the text of each entry under its line, as Emacs wrote it with 3
+/// lines (`org-agenda-add-entry-text`): no drawers or planning lines,
+/// the indentation they share taken away, tabs as spaces, links as they
+/// are whatever `org-agenda-add-entry-text-descriptive-links` says. The
+/// view itself shows none of it.
+#[test]
+fn writes_entry_text_under_the_agenda_lines() {
+    let root = workspace("agenda-write-entry-text");
+    let notes = root.join("x.org");
+    std::fs::write(
+        &notes,
+        "* TODO A\nSCHEDULED: <2026-10-18 Sun>\n:PROPERTIES:\n:ID: a\n:END:\n  body a with \
+         [[https://orgmode.org][Org]] and [[file:y.org]]\n    indented\n  third line\n  fourth line\n** Sub a\n\
+         * TODO B :t:\n* TODO C\n\ttabbed [[x][desc]]\n",
+    )
+    .unwrap();
+    for descriptive in [true, false] {
+        let mut options = clock();
+        options["org_agenda_files"] = json!([notes.display().to_string()]);
+        options["org_agenda_add_entry_text_maxlines"] = json!(3);
+        options["org_agenda_add_entry_text_descriptive_links"] = json!(descriptive);
+        let mut client = Client::editor(options, None);
+        client.command("org.agenda.todos", VIEW, 0);
+        let shown = client.view_text(VIEW);
+        assert!(!shown.contains("    > "), "{shown}");
+        let out = root.join("out.txt");
+        let _ = std::fs::remove_file(&out);
+        let context = json!({
+            "textDocument": { "uri": VIEW },
+            "position": { "line": 0, "character": 0 },
+            "input": out.display().to_string(),
+        });
+        let written = client
+            .request("workspace/executeCommand", json!({ "command": "org.agenda.write", "arguments": [context] }));
+        assert_eq!(written, Ok(Value::Null));
+        // The lines Emacs added under those of `A` and `C`.
+        let mut expected = String::new();
+        for line in shown.lines() {
+            expected.push_str(line);
+            expected.push('\n');
+            if line.ends_with("TODO A") {
+                expected.push_str(
+                    "    > body a with [[https://orgmode.org][Org]] and [[file:y.org]]\n    >   indented\n    > \
+                     third line\n",
+                );
+            } else if line.ends_with("TODO C") {
+                expected.push_str("    > tabbed [[x][desc]]\n");
+            }
+        }
+        assert_eq!(std::fs::read_to_string(&out).unwrap(), expected);
+        client.shutdown();
+    }
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// `org-link--open-shell`: following a `shell:` link asks first, runs the
+/// command in the link's directory on yes and says what it wrote, and
+/// says `Abort` on no; one that `org-link-shell-skip-confirm-regexp`
+/// matches runs without asking.
+#[cfg(unix)]
+#[test]
+fn runs_shell_links() {
+    let directory = workspace("shell-links");
+    let file = directory.join("index.org");
+    let text = "[[shell:echo hi; pwd]] [[shell:true]] [[shell:exit 3]]\n";
+    std::fs::write(&file, text).unwrap();
+    let mut options = clock();
+    options["org_link_shell_skip_confirm_regexp"] = json!("^\\(TRUE\\|exit\\)");
+    let mut client = Client::editor(options, None);
+    let uri = format!("file://{}", file.display());
+    client.open(&uri, text);
+    let open = |client: &mut Client, character: u32, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": character } });
+        for (key, value) in extra.as_object().unwrap() {
+            context[key] = value.clone();
+        }
+        client.notifications.clear();
+        client.request("workspace/executeCommand", json!({ "command": "org.open", "arguments": [context] }))
+    };
+    // What the command said once it ended.
+    let said = |client: &mut Client| {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        loop {
+            client.settle();
+            let message = client
+                .notifications
+                .iter()
+                .find(|notification| notification.method == "window/showMessage")
+                .map(|notification| notification.params["message"].as_str().unwrap().to_string());
+            if let Some(message) = message {
+                return message;
+            }
+            assert!(std::time::Instant::now() < deadline, "the command said nothing");
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
+    };
+    let asked = open(&mut client, 3, json!({})).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Execute echo hi; pwd in shell? ");
+    let step = asked["input"]["context"].clone();
+    let refused = open(&mut client, 3, json!({ "input": "n", "step": step["step"], "answers": step["answers"] }));
+    assert_eq!(refused, Err("Abort".to_string()));
+    let ran = open(&mut client, 3, json!({ "input": "y", "step": step["step"], "answers": step["answers"] })).unwrap();
+    assert_eq!(ran["message"], "Executing echo hi; pwd");
+    let canonical = std::fs::canonicalize(&directory).unwrap();
+    assert_eq!(said(&mut client), format!("hi\n{}", canonical.display()));
+    let ran = open(&mut client, 25, json!({})).unwrap();
+    assert_eq!(ran["message"], "Executing true");
+    assert_eq!(said(&mut client), "(Shell command succeeded with no output)");
+    open(&mut client, 41, json!({})).unwrap();
+    assert_eq!(said(&mut client), "(Shell command failed with code 3 and no output)");
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
 /// `org-refile-copy` keeps the entry; `org-refile` with `C-u` goes to the
 /// target, and with `C-u C-u` to where the last refile put its entry.
 #[test]

@@ -1282,6 +1282,9 @@ struct Server {
     agenda_clockreport: bool,
     /// Entry text mode (`E`): the most lines of each entry's text, when on.
     agenda_entry_text: Option<usize>,
+    /// `org-agenda-add-entry-text-maxlines`: the most lines of each
+    /// entry's text written under its line by `org-agenda-write`.
+    agenda_add_entry_text: usize,
     /// Follow mode (`F`): the entry of the cursor's line shows in another
     /// window as the cursor moves.
     agenda_follow: bool,
@@ -1762,6 +1765,7 @@ pub fn run(connection: Connection) -> Result<()> {
         agenda_archives: options.agenda.archives_mode(),
         agenda_inactive: false,
         agenda_entry_text: options.agenda_config().entry_text,
+        agenda_add_entry_text: options.agenda.add_entry_text_maxlines.unwrap_or(0),
         agenda_follow: options.agenda.start_with_follow_mode.unwrap_or(false),
         agenda_outline_path: match &options.agenda.show_outline_path {
             Some(crate::config::OutlinePathOption::Flag(false)) => None,
@@ -4792,8 +4796,10 @@ impl Server {
         let parse = org_syntax::parse(&text, &self.todo);
         // Answering whether to make a missing headline, the link picked
         // among the entry's, if one was, is in `answers`.
+        // So is it when answering whether to run a `shell:` link's command.
         let creating = context.step.as_deref() == Some("create");
-        let answer = if creating { context.answers.as_deref() } else { context.input.as_deref() }
+        let shell = context.step.as_deref() == Some("shell");
+        let answer = if creating || shell { context.answers.as_deref() } else { context.input.as_deref() }
             .and_then(|input| input.chars().next());
         let call = |link: &str, list: &[(String, String)]| self.expand_abbreviation(link, list);
         let mut opened = open::at_point_calling(
@@ -4911,6 +4917,26 @@ impl Server {
                 } }));
             }
             Open::Nothing(message) => self.message = Some(message.clone()),
+            // `org-link--open-shell`: asked first, as
+            // `org-link-shell-confirm-function` (`yes-or-no-p`) asks,
+            // unless `org-link-shell-skip-confirm-regexp` matches.
+            Open::Shell { command, confirm } => {
+                if *confirm && !shell {
+                    return Ok(json!({ "input": {
+                        "kind": "key",
+                        "prompt": format!("Execute {command} in shell? "),
+                        "value": "",
+                        "choices": [{ "key": "y", "label": "yes" }, { "key": "n", "label": "no" }],
+                        "context": { "step": "shell", "answers": answer.map(String::from).unwrap_or_default() },
+                    } }));
+                }
+                if *confirm && !matches!(context.input.as_deref(), Some("y" | "Y" | "yes")) {
+                    return Err("Abort".into());
+                }
+                let directory = uri::to_path(&uri).and_then(|path| path.parent().map(PathBuf::from));
+                self.run_shell_link(command, directory);
+                self.message = Some(format!("Executing {command}"));
+            }
             Open::Create(_) => {}
             Open::Roam(title) => return self.roam_follow(&uri, offset, title),
             Open::Attachment(_) => return Err("No attachment directory for this entry".into()),
@@ -5019,6 +5045,30 @@ impl Server {
         let pending = Pending::EditAndShow { uri: target, position, folds: Value::Null, other_window: false };
         self.apply_edit(lsp_types::ApplyWorkspaceEditParams { label: None, edit }, pending);
         Ok(Value::Null)
+    }
+
+    /// `shell-command` as `org-link--open-shell` runs it: in the directory
+    /// of the file the link is in, its output and errors together, and
+    /// once it ends, the output as a message, or what Emacs says when
+    /// there is none. Emacs shows longer output in a buffer,
+    /// `*Org Shell Output*`; here it is a message all the same. The
+    /// command runs on its own thread so that the server goes on.
+    fn run_shell_link(&self, command: &str, directory: Option<PathBuf>) {
+        let sender = self.sender.clone();
+        let command = command.to_string();
+        std::thread::spawn(move || {
+            let message = match shell_output(&command, directory.as_deref()) {
+                Ok((output, _)) if !output.is_empty() => output.strip_suffix('\n').unwrap_or(&output).to_string(),
+                Ok((_, Some(0))) => "(Shell command succeeded with no output)".to_string(),
+                Ok((_, code)) => {
+                    format!("(Shell command failed with code {} and no output)", code.unwrap_or(-1))
+                }
+                Err(error) => format!("{command}: {error}"),
+            };
+            let params = ShowMessageParams { typ: MessageType::INFO, message };
+            let notification = Notification::new(ShowMessage::METHOD.to_string(), params);
+            let _ = sender.send(Message::Notification(notification));
+        });
     }
 
     /// Ask the client to have the system open `target` (a URL, a PDF).
@@ -7737,7 +7787,20 @@ impl Server {
     /// written.
     fn agenda_text(&mut self, query: Query) -> String {
         let mut files = self.agenda_files();
-        let blocks = self.blocks(&query).unwrap_or_default();
+        let mut blocks = self.blocks(&query).unwrap_or_default();
+        // `org-agenda-add-entry-text`, which `org-agenda-before-write-hook`
+        // runs: at most `org-agenda-add-entry-text-maxlines` lines of each
+        // entry's text under its line, after `    > ` whatever
+        // `org-agenda-entry-text-leaders` says. What entry text mode (`E`)
+        // shows is an overlay in Emacs, which is not written. Links stay
+        // as they are, whatever `org-agenda-add-entry-text-descriptive-links`
+        // says: `org-agenda-get-some-entry-text` takes away the properties
+        // that would show their descriptions right after giving them.
+        let lines = self.agenda_add_entry_text;
+        for block in &mut blocks {
+            block.config.entry_text = (lines > 0).then_some(lines);
+            block.config.entry_text_settings.leaders = "    > ".to_string();
+        }
         let search = if blocks.iter().any(|block| matches!(block.kind, views::BlockKind::Search { .. })) {
             self.search_files(&mut files)
         } else {
@@ -15393,6 +15456,33 @@ fn run_shell(command: &str, directory: Option<&std::path::Path>) -> std::io::Res
     // Reaped when it ends, so that it does not linger.
     std::thread::spawn(move || child.wait());
     Ok(())
+}
+
+/// Run `command` in the shell and wait for it: what it wrote to its
+/// output and its errors, in the order it wrote them, and its exit code.
+fn shell_output(command: &str, directory: Option<&std::path::Path>) -> std::io::Result<(String, Option<i32>)> {
+    use std::io::Read;
+    let mut shell = if cfg!(windows) {
+        let mut shell = std::process::Command::new("cmd");
+        shell.arg("/C").arg(command);
+        shell
+    } else {
+        let mut shell = std::process::Command::new("sh");
+        shell.arg("-c").arg(command);
+        shell
+    };
+    if let Some(directory) = directory {
+        shell.current_dir(directory);
+    }
+    let (mut reader, writer) = std::io::pipe()?;
+    let mut child = shell.stdin(std::process::Stdio::null()).stdout(writer.try_clone()?).stderr(writer).spawn()?;
+    // The pipe's ends the server held are gone with `shell`, so reading
+    // ends when the command does.
+    drop(shell);
+    let mut output = Vec::new();
+    reader.read_to_end(&mut output)?;
+    let status = child.wait()?;
+    Ok((String::from_utf8_lossy(&output).into_owned(), status.code()))
 }
 
 /// `org-format-outline-path` with the width of the frame, `width`

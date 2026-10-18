@@ -47,6 +47,9 @@ pub enum Open {
     /// `org-link-search-must-match-exact-headline` offers to make: the
     /// search, as the link has it.
     Create(String),
+    /// A `shell:` link (`org-link--open-shell`): the command, and whether
+    /// to ask `Execute … in shell? ` before running it.
+    Shell { command: String, confirm: bool },
 }
 
 /// `org-link-search-must-match-exact-headline`: what a search for a
@@ -69,11 +72,18 @@ pub struct Settings {
     pub exact_headline: ExactHeadline,
     /// `org-link-doi-server-url`
     pub doi_server: String,
+    /// `org-link-shell-skip-confirm-regexp`: an Emacs regexp, the
+    /// commands of `shell:` links that run without asking.
+    pub shell_skip_confirm_regexp: String,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings { exact_headline: ExactHeadline::default(), doi_server: "https://doi.org/".to_string() }
+        Settings {
+            exact_headline: ExactHeadline::default(),
+            doi_server: "https://doi.org/".to_string(),
+            shell_skip_confirm_regexp: String::new(),
+        }
     }
 }
 
@@ -481,6 +491,10 @@ fn open_link(node: &SyntaxNode, text: &str, parse: &Parse, abbreviations: &Abbre
             "http" | "https" | "ftp" | "mailto" | "news" => Ok(Open::External(raw.clone())),
             // `org-link-doi-server-url`.
             "doi" => Ok(Open::External(format!("{}{path}", abbreviations.settings.doi_server))),
+            "shell" => Ok(Open::Shell {
+                command: path.to_string(),
+                confirm: !skips_confirm(&abbreviations.settings.shell_skip_confirm_regexp, path),
+            }),
             other => Err(format!("Links of type \"{other}\" are not supported")),
         };
     }
@@ -496,6 +510,15 @@ fn open_link(node: &SyntaxNode, text: &str, parse: &Parse, abbreviations: &Abbre
         Err(_) if exact == ExactHeadline::QueryToCreate && may_create(&raw) => Ok(Open::Create(raw)),
         Err(error) => Err(error),
     }
+}
+
+/// Whether `org-link-shell-skip-confirm-regexp`, `regexp`, lets `command`
+/// run without asking: when it has more than white space
+/// (`org-string-nw-p`) and matches somewhere in the command, without
+/// regard to case as `string-match-p` matches with `case-fold-search`.
+fn skips_confirm(regexp: &str, command: &str) -> bool {
+    !regexp.trim_matches([' ', '\t', '\n', '\r']).is_empty()
+        && crate::agenda::matcher::emacs_regex(regexp).is_some_and(|regex| regex.is_match(command))
 }
 
 /// The regexp of a search `/regexp/`, which `org-link-search` gives to

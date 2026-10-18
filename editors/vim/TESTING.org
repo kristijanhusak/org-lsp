@@ -270,6 +270,7 @@ its sections says what it should look like.
 - [ ] With ~org_return_follows_link~ on, RET on a link follows it and types nothing; after the link, RET breaks the line: ~<CR>~
 - [ ] With ~org_file_apps~ set to ~[["txt", "cp %s copy.txt"]]~, following ~[[file:notes.txt]]~ says ~Running cp …/notes.txt copy.txt...done~ and makes ~copy.txt~; ~C-u C-c C-o~ opens ~notes.txt~ in the editor: ~<Leader>oo~
 - [ ] Following a URL opens the browser; a timestamp opens its day's agenda: ~<Leader>oo~
+- [ ] Following ~[[shell:echo hi]]~ asks ~Execute echo hi in shell?~; yes says ~hi~, no says ~Abort~: ~<Leader>oo~
 - [ ] Go to definition on a link does the same: the client's go to definition
 - [ ] Storing a link to a headline and inserting it elsewhere with a description: ~<Leader>ols~, ~<Leader>oli~
 - [ ] Inserting a link on an existing link edits it: ~<Leader>oli~

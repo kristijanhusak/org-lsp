@@ -432,6 +432,11 @@ org_link_search_must_match_exact_headline = "query-to-create"
 # (org-link-doi-server-url)
 org_link_doi_server_url = "https://doi.org/"
 
+# An Emacs regexp: a `shell:` link whose command it matches runs when followed
+# without asking `Execute … in shell?` first. Empty asks for every command.
+# (org-link-shell-skip-confirm-regexp)
+org_link_shell_skip_confirm_regexp = ""
+
 # Whether `org.link.store` (`C-c l`) links to an entry by its ID: `true` makes
 # one when the entry has none, `"create-if-interactive"` only from the command
 # (not for capture's `%a`), `"create-if-interactive-and-no-custom-id"`
@@ -1194,6 +1199,18 @@ org_agenda_entry_text_leaders = "    > "
 # Emacs regexps whose matches are left out of the entry text `E` shows.
 # (org-agenda-entry-text-exclude-regexps)
 org_agenda_entry_text_exclude_regexps = []
+
+# The most lines of each entry's text written under its line when the agenda
+# is written to a plain text file (`C-x C-w`), each after four spaces and `>`;
+# 0 writes none. The text `E` shows is not written.
+# (org-agenda-add-entry-text-maxlines)
+org_agenda_add_entry_text_maxlines = 0
+
+# Whether links in the text `org_agenda_add_entry_text_maxlines` writes show
+# as their descriptions. In Org 9.8.10 a plain text file has the links as they
+# are either way, and so does org-lsp.
+# (org-agenda-add-entry-text-descriptive-links)
+org_agenda_add_entry_text_descriptive_links = true
 
 # Show column view (through Emacs) each time an agenda view is made, as `C-c
 # C-x C-c` there would. (org-agenda-view-columns-initially)

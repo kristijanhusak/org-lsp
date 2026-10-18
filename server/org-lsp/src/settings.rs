@@ -1026,6 +1026,14 @@ pub const SETTINGS: &[Setting] = &[
         "What a `doi:` link is opened at: this, then the DOI.",
     ),
     setting(
+        "org_link_shell_skip_confirm_regexp",
+        "string",
+        r#""""#,
+        "org-link-shell-skip-confirm-regexp",
+        "An Emacs regexp: a `shell:` link whose command it matches runs when followed without asking `Execute \
+         … in shell?` first. Empty asks for every command.",
+    ),
+    setting(
         "org_id_link_to_org_use_id",
         "boolean, string",
         "false",
@@ -2683,6 +2691,22 @@ pub const SETTINGS: &[Setting] = &[
         "Emacs regexps whose matches are left out of the entry text `E` shows.",
     ),
     setting(
+        "org_agenda_add_entry_text_maxlines",
+        "integer",
+        "0",
+        "org-agenda-add-entry-text-maxlines",
+        "The most lines of each entry's text written under its line when the agenda is written to a plain text \
+         file (`C-x C-w`), each after four spaces and `>`; 0 writes none. The text `E` shows is not written.",
+    ),
+    setting(
+        "org_agenda_add_entry_text_descriptive_links",
+        "boolean",
+        "true",
+        "org-agenda-add-entry-text-descriptive-links",
+        "Whether links in the text `org_agenda_add_entry_text_maxlines` writes show as their descriptions. In \
+         Org 9.8.10 a plain text file has the links as they are either way, and so does org-lsp.",
+    ),
+    setting(
         "org_agenda_view_columns_initially",
         "boolean",
         "false",
@@ -3696,6 +3720,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_id_include_domain", BOOLEAN),
     ("org_link_search_must_match_exact_headline", r#"{ "enum": [true, false, "query-to-create"] }"#),
     ("org_link_doi_server_url", STRING),
+    ("org_link_shell_skip_confirm_regexp", STRING),
     ("org_link_context_for_files", BOOLEAN),
     ("org_lint", BOOLEAN),
     ("org_lint_ignore", r#"{ "type": "array", "items": { "type": "string" } }"#),
@@ -3996,6 +4021,8 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_agenda_entry_text_maxlines", r#"{ "type": "integer", "minimum": 1 }"#),
     ("org_agenda_entry_text_leaders", STRING),
     ("org_agenda_entry_text_exclude_regexps", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("org_agenda_add_entry_text_maxlines", r#"{ "type": "integer", "minimum": 0 }"#),
+    ("org_agenda_add_entry_text_descriptive_links", BOOLEAN),
     ("org_agenda_view_columns_initially", BOOLEAN),
     ("org_agenda_persistent_filter", BOOLEAN),
     ("org_agenda_block_separator", r#"{ "anyOf": [{ "type": "string" }, { "const": false }] }"#),

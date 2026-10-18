@@ -2664,6 +2664,11 @@
               "markdownDescription": "What a `doi:` link is opened at: this, then the DOI. (`org-link-doi-server-url`)",
               "default": "https://doi.org/"
             },
+            "org_link_shell_skip_confirm_regexp": {
+              "type": "string",
+              "markdownDescription": "An Emacs regexp: a `shell:` link whose command it matches runs when followed without asking `Execute … in shell?` first. Empty asks for every command. (`org-link-shell-skip-confirm-regexp`)",
+              "default": ""
+            },
             "org_id_link_to_org_use_id": {
               "enum": [
                 true,
@@ -4891,6 +4896,17 @@
               },
               "markdownDescription": "Emacs regexps whose matches are left out of the entry text `E` shows. (`org-agenda-entry-text-exclude-regexps`)",
               "default": []
+            },
+            "org_agenda_add_entry_text_maxlines": {
+              "type": "integer",
+              "minimum": 0,
+              "markdownDescription": "The most lines of each entry's text written under its line when the agenda is written to a plain text file (`C-x C-w`), each after four spaces and `>`; 0 writes none. The text `E` shows is not written. (`org-agenda-add-entry-text-maxlines`)",
+              "default": 0
+            },
+            "org_agenda_add_entry_text_descriptive_links": {
+              "type": "boolean",
+              "markdownDescription": "Whether links in the text `org_agenda_add_entry_text_maxlines` writes show as their descriptions. In Org 9.8.10 a plain text file has the links as they are either way, and so does org-lsp. (`org-agenda-add-entry-text-descriptive-links`)",
+              "default": true
             },
             "org_agenda_view_columns_initially": {
               "type": "boolean",

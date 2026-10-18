@@ -274,6 +274,7 @@ its sections says what it should look like.
 - [ ] With ~org_return_follows_link~ on, RET on a link follows it and types nothing; after the link, RET breaks the line: ~Enter~
 - [ ] With ~org_file_apps~ set to ~[["txt", "cp %s copy.txt"]]~, following ~[[file:notes.txt]]~ says ~Running cp …/notes.txt copy.txt...done~ and makes ~copy.txt~; ~C-u C-c C-o~ opens ~notes.txt~ in the editor: ~Ctrl+C Ctrl+O~
 - [ ] Following a URL opens the browser; a timestamp opens its day's agenda: ~Ctrl+C Ctrl+O~
+- [ ] Following ~[[shell:echo hi]]~ asks ~Execute echo hi in shell?~; yes says ~hi~, no says ~Abort~: ~Ctrl+C Ctrl+O~
 - [ ] Go to definition on a link does the same: ~F12~
 - [ ] Storing a link to a headline and inserting it elsewhere with a description: ~Ctrl+C l~, ~Ctrl+C Ctrl+L~
 - [ ] Inserting a link on an existing link edits it: ~Ctrl+C Ctrl+L~

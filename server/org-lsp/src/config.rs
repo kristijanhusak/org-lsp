@@ -640,6 +640,8 @@ pub struct Options {
     pub link_search_must_match_exact_headline: Option<LogOption>,
     #[serde(rename = "org_link_doi_server_url")]
     pub link_doi_server_url: Option<String>,
+    #[serde(rename = "org_link_shell_skip_confirm_regexp")]
+    pub link_shell_skip_confirm_regexp: Option<String>,
     #[serde(rename = "org_id_completion_targets")]
     pub id_completion_targets: Option<Vec<RefileTargetOption>>,
     /// `org-id-track-globally`
@@ -2169,7 +2171,7 @@ impl Options {
 
     /// How clocking writes (`org-clock-into-drawer` and its relatives).
     /// How links are followed (`org-link-search-must-match-exact-headline`,
-    /// `org-link-doi-server-url`).
+    /// `org-link-doi-server-url`, `org-link-shell-skip-confirm-regexp`).
     pub fn open_settings(&self) -> org_core::open::Settings {
         use org_core::open::ExactHeadline;
         let defaults = org_core::open::Settings::default();
@@ -2181,6 +2183,10 @@ impl Options {
                 None => defaults.exact_headline,
             },
             doi_server: self.link_doi_server_url.clone().unwrap_or(defaults.doi_server),
+            shell_skip_confirm_regexp: self
+                .link_shell_skip_confirm_regexp
+                .clone()
+                .unwrap_or(defaults.shell_skip_confirm_regexp),
         }
     }
 
@@ -3623,6 +3629,13 @@ pub struct AgendaOptions {
     /// `org-agenda-entry-text-exclude-regexps`
     #[serde(rename = "org_agenda_entry_text_exclude_regexps")]
     pub entry_text_exclude_regexps: Option<Vec<String>>,
+    /// `org-agenda-add-entry-text-maxlines`
+    #[serde(rename = "org_agenda_add_entry_text_maxlines")]
+    pub add_entry_text_maxlines: Option<usize>,
+    /// `org-agenda-add-entry-text-descriptive-links`, which changes
+    /// nothing written in Org 9.8.10.
+    #[serde(rename = "org_agenda_add_entry_text_descriptive_links")]
+    pub add_entry_text_descriptive_links: Option<bool>,
     /// `org-agenda-log-mode-items`: `closed`, `clock` and `state`.
     #[serde(rename = "org_agenda_log_mode_items")]
     pub log_mode_items: Option<Vec<String>>,

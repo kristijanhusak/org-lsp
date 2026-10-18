@@ -232,7 +232,7 @@
   "org-link-search-must-match-exact-headline": "setting",
   "org-link-use-indirect-buffer-for-internals": "emacs-only",
   "org-link-shell-confirm-function": "lisp",
-  "org-link-shell-skip-confirm-regexp": "absent",
+  "org-link-shell-skip-confirm-regexp": "setting",
   "org-link-elisp-confirm-function": "lisp",
   "org-link-elisp-skip-confirm-regexp": "absent",
   "org-link-context-for-files": "setting",
@@ -252,11 +252,8 @@
   "org-agenda-with-colors": "emacs-only",
   "org-agenda-exporter-settings": "emacs-only",
   "org-agenda-before-write-hook": "lisp",
-  "org-agenda-add-entry-text-maxlines": [
-   "other",
-   "entry text mode (`E`) shows `org_agenda_entry_text_maxlines` lines; text added to agenda files written with `C-x C-w` is not"
-  ],
-  "org-agenda-add-entry-text-descriptive-links": "absent",
+  "org-agenda-add-entry-text-maxlines": "setting",
+  "org-agenda-add-entry-text-descriptive-links": "setting",
   "org-agenda-export-html-style": "emacs-only",
   "org-agenda-persistent-filter": "setting",
   "org-agenda-custom-commands": "setting",
