@@ -810,6 +810,24 @@ describe('Org files', () => {
     await vscode.window.showTextDocument(document);
   });
 
+  it('folds a subtree yanked at the start of a line', async () => {
+    const file = vscode.Uri.file(path.join(workspace, 'yank.org'));
+    await vscode.workspace.fs.writeFile(file, Buffer.from('* A\na body\n* B\n'));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    await until('the server', async () => (await tokens(file)) !== undefined);
+    await vscode.env.clipboard.writeText('* N\nnew body\n');
+    moveTo(2, 0);
+    await vscode.commands.executeCommand('org.yank');
+    await until('the subtree yanked', () => editor.document.getText() === '* A\na body\n* N\nnew body\n* B\n');
+    assert.equal(editor.selection.active.line, 4, 'the cursor on the line after it');
+    const visible = (line) => editor.visibleRanges.some((range) => range.start.line <= line && line <= range.end.line);
+    await until('the subtree folded', () => visible(2) && !visible(3) && visible(4));
+    await vscode.commands.executeCommand('editor.unfoldAll');
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.workspace.fs.delete(file);
+    await vscode.window.showTextDocument(document);
+  });
+
   it('makes a sparse tree: everything folded but the matches', async () => {
     const file = vscode.Uri.file(path.join(workspace, 'sparse.org'));
     await vscode.workspace.fs.writeFile(file, Buffer.from('* A\nan apple\n* B\nnothing\n** C\nApple pie\n* D\nnone\n'));

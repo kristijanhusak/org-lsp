@@ -658,7 +658,8 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
     // org-journal's files, Org files whose name need not say so.
     journalDirectory = client.initializeResult?.capabilities.experimental?.orgJournal?.directory;
     vscode.workspace.textDocuments.forEach((document) => void asJournalFile(document));
-    // The headlines of a document org-journal showed, folded as it folds them.
+    // The headlines of a document org-journal showed, folded as it folds
+    // them, or the subtrees a yank or paste folded.
     client.onNotification('org-lsp/folds', (params: JournalFolds) => void journalFolds(params));
     // The previews of the files open.
     const started = client;
@@ -1797,9 +1798,14 @@ interface JournalFolds {
   close?: { startLine: number }[];
 }
 
+/** When each document last changed, for the folds that follow an edit. */
+const lastChanged = new Map<string, number>();
+
 /**
  * The headlines of a document org-journal showed, folded as it folds
- * them, once the editor shows it as an Org file with its folds.
+ * them, or the subtrees a yank or paste folded right after its edit, once
+ * the editor shows it as an Org file with its folds. VS Code's folds
+ * follow an edit a moment later.
  */
 async function journalFolds(params: JournalFolds): Promise<void> {
   let editor: vscode.TextEditor | undefined;
@@ -1813,6 +1819,10 @@ async function journalFolds(params: JournalFolds): Promise<void> {
   }
   if (!editor) {
     return;
+  }
+  const since = Date.now() - (lastChanged.get(editor.document.uri.toString()) ?? 0);
+  if (since < 600) {
+    await new Promise((resolve) => setTimeout(resolve, 600 - since));
   }
   await foldingRanges(editor.document);
   const open = (params.open ?? []).map((range) => range.startLine);
@@ -2168,6 +2178,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     ...Object.values(lineDecorations),
     sparseDecoration,
     vscode.workspace.onDidChangeTextDocument(clearSparse),
+    vscode.workspace.onDidChangeTextDocument((event) => lastChanged.set(event.document.uri.toString(), Date.now())),
+    vscode.workspace.onDidCloseTextDocument((document) => lastChanged.delete(document.uri.toString())),
     vscode.window.onDidChangeVisibleTextEditors((editors) => editors.forEach(highlightLines)),
     vscode.window.onDidChangeVisibleTextEditors((editors) => editors.forEach((editor) => void paintFaces(editor))),
     vscode.workspace.onDidChangeTextDocument(facesChanged),

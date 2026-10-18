@@ -663,6 +663,34 @@ function! s:sparse() abort
 endfunction
 call s:test('makes a sparse tree', function('s:sparse'))
 
+" A subtree yanked at the start of a line is folded once the buffer has
+" it (`org-yank-folded-subtrees`); C-k on its folded headline kills what
+" the fold hides (`kill-line`).
+function! s:yank_folded() abort
+  let file = s:work . '/notes/yank.org'
+  call writefile(['* A', 'a body', '* B'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server and the folds', {-> org_lsp#ready(bufnr()) && foldlevel(2) > 0})
+  call setreg('"', ['* N', 'new body', '** M', 'more'], 'l')
+  " coc.nvim follows a buffer's changes a moment after it opens.
+  sleep 300m
+  call cursor(3, 1)
+  call feedkeys(":call org_lsp#run('org.yank')\<CR>", 'xt')
+  call s:until('the yanked subtree folded', {-> foldclosed(3) == 3 && foldclosedend(3) == 6})
+  call assert_equal(['* A', 'a body', '* N', 'new body', '** M', 'more', '* B'], getline(1, '$'))
+  call assert_equal(7, line('.'))
+  5foldopen
+  call assert_equal([-1, 5], [foldclosed(3), foldclosed(5)])
+  normal! zM
+  call cursor(3, 1)
+  call feedkeys(":call org_lsp#run('org.kill.line')\<CR>", 'xt')
+  call s:until('the folded subtree killed', {-> line('$') == 4})
+  call assert_equal(['* A', 'a body', '', '* B'], getline(1, '$'))
+  call assert_equal("* N\nnew body\n** M\nmore", getreg('"'))
+  silent! write
+endfunction
+call s:test('folds a yanked subtree and kills it folded', function('s:yank_folded'))
+
 " A file opens as its `#+STARTUP:` says: with `content` the headlines
 " show, those without children folded, and drawers folded.
 function! s:startup() abort

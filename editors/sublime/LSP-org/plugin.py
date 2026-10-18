@@ -274,7 +274,8 @@ class OrgLsp(AbstractPlugin):
         sublime.set_timeout(lambda: apply_preview(params))
 
     # The folds org-journal opens and closes in the entry it shows
-    # (`org-journal-hide-entries-p`).
+    # (`org-journal-hide-entries-p`), and those of the subtrees a yank or
+    # paste folded (`org-yank-folded-subtrees`).
     def m_org_lsp_folds(self, params) -> None:
         sublime.set_timeout(lambda: journal_folds(params or {}, JOURNAL_TRIES))
 
@@ -1063,8 +1064,9 @@ def show_journal_file(session, view) -> None:
 
 
 def journal_folds(params, tries: int) -> None:
-    """Open, then close, the folds of the journal file the server just
-    showed, once it has loaded."""
+    """Open, then close, the folds the server asks for: of the journal
+    file it just showed, once it has loaded, or of the subtrees an edit
+    of its just yanked."""
     view = view_for(params.get('uri', ''))
     if not view or view.is_loading():
         if tries > 0:

@@ -1896,6 +1896,13 @@ org_highlight_sparse_tree_matches = true
 # Anything else is the editor's own paste. (org-yank-adjusted-subtrees)
 org_yank_adjusted_subtrees = false
 
+# C-y (`org.yank`, Emacs keys) of one or more subtrees at the start of a line
+# folds them, unless that would hide text after them (*Inserted text not
+# folded because that would swallow text*), and leaves the cursor on the line
+# after them. With `false` (and `org_yank_adjusted_subtrees` off) it is the
+# editor's own paste. (org-yank-folded-subtrees)
+org_yank_folded_subtrees = true
+
 # Promoting a headline of level 1 makes it a comment line: `# ` in place of `*
 # `, its children a level up with a subtree's promotion. With `false` it is an
 # error. (org-allow-promoting-top-level-subtree)
@@ -1931,8 +1938,17 @@ org_special_ctrl_o = true
 
 # C-k (`org.kill.line`) on a headline kills the text to the tags, and the tags
 # when the cursor is past the title; at the start of the line, the whole line.
-# With `false` the key keeps the editor's own meaning. (org-special-ctrl-k)
+# With `false` the key keeps the editor's own meaning, but on a line a closed
+# fold starts on (see `org_ctrl_k_protect_subtree`). (org-special-ctrl-k)
 org_special_ctrl_k = false
+
+# C-k (`org.kill.line`) on a line a closed fold starts on (a headline's only
+# from its start with `org_special_ctrl_k`) kills what the fold hides with the
+# line, as Emacs's `kill-line` does: `true` asks first (*Kill hidden subtree
+# along with headline?*), `"error"` refuses (*‘C-k’ aborted as it would kill a
+# hidden subtree*), `false` kills. Needs an editor that says which folds are
+# closed (not VS Code). (org-ctrl-k-protect-subtree)
+org_ctrl_k_protect_subtree = false
 
 # Org's linter checks the documents and reports what it finds as diagnostics:
 # misplaced headings and planning lines, links to nowhere, duplicate names,

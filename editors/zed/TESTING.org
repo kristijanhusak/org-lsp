@@ -45,7 +45,7 @@ its sections says what it should look like.
 
 * Headings and structure
 
-*Partly:* A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. ~C-a~, ~C-e~, ~C-k~ and ~C-y~ keep Zed's own meaning.
+*Partly:* A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. ~C-a~, ~C-e~, ~C-k~ and ~C-y~ keep Zed's own meaning, and nothing pasted is folded: Zed lets no server fold.
 
 - [ ] On a headline, a new heading of the same level goes below: the code action /New heading, item or table row/
 - [ ] A new TODO heading: the code action /New TODO heading, or item with a checkbox/

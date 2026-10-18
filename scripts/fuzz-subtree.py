@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
-"""Differential fuzzing of cutting, copying and pasting subtrees against
-Emacs (`org-cut-subtree`, `org-copy-subtree`, `org-paste-subtree`).
+"""Differential fuzzing of cutting, copying, pasting and yanking subtrees
+against Emacs (`org-cut-subtree`, `org-copy-subtree`, `org-paste-subtree`,
+`org-yank`).
 
 Random documents of headlines and text from scripts/fuzz-structure.py,
 the cursor anywhere, with counts, levels and `org-adapt-indentation`; for
-a paste, a random tree (or something that is none).
+a paste or a yank, a random tree (or something that is none), a yank
+with or without `org-yank-adjusted-subtrees` and
+`org-yank-folded-subtrees`; a cut or copy, sometimes of a folded subtree,
+sometimes pasted again, and the folds after it.
 
     scripts/fuzz-subtree.py [--count 300] [--seed 1] [--out FILE]
 
@@ -33,11 +37,20 @@ ROOT = os.path.dirname(HERE)
 def case(rng):
     text = fuzz_structure.document(rng)
     point = rng.randint(0, len(text))
-    op = rng.choice(["cut", "copy", "paste", "paste", "paste"])
+    op = rng.choice(["cut", "copy", "paste", "paste", "paste", "yank", "yank"])
+    if op == "yank" and rng.random() < 0.7:
+        # At the start of a line, where a yank of subtrees is Org's.
+        point = text.rfind("\n", 0, point) + 1
     result = {"text": text, "point": point, "op": op}
-    if op != "paste" and rng.random() < 0.3:
+    if op in ("cut", "copy") and rng.random() < 0.3:
         result["count"] = rng.randint(2, 4)
-    if op == "paste":
+    if op in ("cut", "copy") and rng.random() < 0.4:
+        result["fold"] = rng.random() < 0.6
+        result["paste"] = rng.randint(0, len(text))
+    if op == "yank":
+        result["adjusted"] = rng.random() < 0.5
+        result["folded"] = rng.random() < 0.8
+    if op in ("paste", "yank"):
         tree = fuzz_structure.document(rng)
         if rng.random() < 0.8:
             # From its first headline, as a cut leaves it.

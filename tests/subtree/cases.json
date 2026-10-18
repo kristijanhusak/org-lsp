@@ -6672,7 +6672,11 @@
   "expected": {
    "text": "* a\n** x\n** b\n*** c\n",
    "point": 20,
-   "kill": "json-null"
+   "kill": "json-null",
+   "folds": [
+    2
+   ],
+   "message": "Clipboard pasted as level 2 subtree"
   }
  },
  {
@@ -6683,7 +6687,11 @@
   "expected": {
    "text": "* a\n** x\n* b\n** c\n* y\n",
    "point": 18,
-   "kill": "json-null"
+   "kill": "json-null",
+   "folds": [
+    2
+   ],
+   "message": "Clipboard pasted as level 1 subtree"
   }
  },
  {
@@ -6694,7 +6702,11 @@
   "expected": {
    "text": "* a\n** b\nbody\n*** c\n** d\n** x\n* y\n",
    "point": 25,
-   "kill": "json-null"
+   "kill": "json-null",
+   "folds": [
+    1
+   ],
+   "message": "Clipboard pasted as level 2 subtree"
   }
  },
  {
@@ -6705,7 +6717,9 @@
   "expected": {
    "text": "* a\ntext\n* b\nbody\n** c\n* d\n",
    "point": 27,
-   "kill": "json-null"
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 1 subtree"
   }
  },
  {
@@ -6716,7 +6730,9 @@
   "expected": {
    "text": "* a\nt* b\n** c\next\n",
    "point": 14,
-   "kill": "json-null"
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
   }
  },
  {
@@ -6727,7 +6743,9 @@
   "expected": {
    "text": "* a\n* b\n** c\n* y\n",
    "point": 13,
-   "kill": "json-null"
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 1 subtree"
   }
  },
  {
@@ -6738,7 +6756,9 @@
   "expected": {
    "text": "* a\n*** b\n**** c\n* y\n",
    "point": 17,
-   "kill": "json-null"
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 3 subtree"
   }
  },
  {
@@ -6749,7 +6769,9 @@
   "expected": {
    "text": "* a\n*** * b\n** c\n\n* y\n",
    "point": 17,
-   "kill": "json-null"
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
   }
  },
  {
@@ -6760,7 +6782,9 @@
   "expected": {
    "text": "* a\nwo* b\n** c\nrds\n",
    "point": 15,
-   "kill": "json-null"
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
   }
  },
  {
@@ -6771,7 +6795,9 @@
   "expected": {
    "text": "* a\nplain text\n",
    "point": 15,
-   "kill": "json-null"
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
   }
  },
  {
@@ -6782,7 +6808,9 @@
   "expected": {
    "text": "* a\n** b\n* c\n",
    "point": 13,
-   "kill": "json-null"
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
   }
  },
  {
@@ -6793,7 +6821,9 @@
   "expected": {
    "text": "* a\n\n\n* b\n",
    "point": 10,
-   "kill": "json-null"
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 1 subtree"
   }
  },
  {
@@ -6804,7 +6834,9 @@
   "expected": {
    "text": "* a\n* b\n\n\n",
    "point": 10,
-   "kill": "json-null"
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 1 subtree"
   }
  },
  {
@@ -6815,7 +6847,9 @@
   "expected": {
    "text": "* a\n\n\n* b\nbody\n** c\n* d\n* y\n",
    "point": 24,
-   "kill": "json-null"
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 1 subtree"
   }
  },
  {
@@ -6827,7 +6861,9 @@
   "expected": {
    "text": "* a\n  text\n* b\nbody\n** c\n* d\n",
    "point": 29,
-   "kill": "json-null"
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 1 subtree"
   }
  },
  {
@@ -6838,7 +6874,11 @@
   "expected": {
    "text": "* b\nbody\n** c\n* d\n",
    "point": 18,
-   "kill": "json-null"
+   "kill": "json-null",
+   "folds": [
+    0
+   ],
+   "message": "Clipboard pasted as level 1 subtree"
   }
  },
  {
@@ -6849,7 +6889,9 @@
   "expected": {
    "text": "* a* b\n** c\n",
    "point": 12,
-   "kill": "json-null"
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
   }
  },
  {
@@ -6860,7 +6902,11 @@
   "expected": {
    "text": "* a\n** b\n*** c\n** b\n*** c\n",
    "point": 15,
-   "kill": "json-null"
+   "kill": "json-null",
+   "folds": [
+    1
+   ],
+   "message": "Clipboard pasted as level 2 subtree"
   }
  },
  {
@@ -6871,7 +6917,9 @@
   "expected": {
    "text": "* a\n** q\n** b\n\n\n*** c\n",
    "point": 9,
-   "kill": "json-null"
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 2 subtree"
   }
  },
  {
@@ -6882,7 +6930,9 @@
   "expected": {
    "text": "* a\n** q\n** b\n",
    "point": 9,
-   "kill": "json-null"
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 2 subtree"
   }
  },
  {
@@ -6904,7 +6954,9 @@
   "expected": {
    "text": "* a\n* b\n** c\n** y\n",
    "point": 13,
-   "kill": "json-null"
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 1 subtree"
   }
  },
  {
@@ -6944,7 +6996,1243 @@
   "expected": {
    "text": "* a\n* b\n",
    "point": 8,
-   "kill": "json-null"
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 1 subtree"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "* b\n** c\n",
+  "adjusted": false,
+  "folded": true,
+  "expected": {
+   "text": "* a\n** x\n* b\n** c\n* y\n",
+   "point": 18,
+   "kill": "json-null",
+   "folds": [
+    2
+   ],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "** b\n*** c\n** d\nbody\n",
+  "adjusted": false,
+  "folded": true,
+  "expected": {
+   "text": "* a\n** x\n** b\n*** c\n** d\nbody\n* y\n",
+   "point": 30,
+   "kill": "json-null",
+   "folds": [
+    2,
+    4
+   ],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "* b\n** c",
+  "adjusted": false,
+  "folded": true,
+  "expected": {
+   "text": "* a\n** x\n* b\n** c* y\n",
+   "point": 13,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Inserted text not folded because that would swallow text"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "* b\nbody\n",
+  "adjusted": false,
+  "folded": true,
+  "expected": {
+   "text": "* a\n* b\nbody\n** x\n* y\n",
+   "point": 13,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Inserted text not folded because that would swallow text"
+  }
+ },
+ {
+  "text": "* a\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "* b\nbody\n",
+  "adjusted": false,
+  "folded": true,
+  "expected": {
+   "text": "* a\n* b\nbody\n",
+   "point": 13,
+   "kill": "json-null",
+   "folds": [
+    1
+   ],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n** \n",
+  "point": 6,
+  "op": "yank",
+  "kill": "* b\nbody\n",
+  "adjusted": false,
+  "folded": true,
+  "expected": {
+   "text": "* a\n*** b\nbody\n \n",
+   "point": 17,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "* b\nbody\n\n\n",
+  "adjusted": false,
+  "folded": true,
+  "expected": {
+   "text": "* a\n** x\n* b\nbody\n\n\n* y\n",
+   "point": 20,
+   "kill": "json-null",
+   "folds": [
+    2
+   ],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "\n* b\nx\n",
+  "adjusted": false,
+  "folded": true,
+  "expected": {
+   "text": "* a\n** x\n\n* b\nx\n* y\n",
+   "point": 16,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\nbody\n",
+  "point": 2,
+  "op": "yank",
+  "kill": "* b\nx\n",
+  "adjusted": false,
+  "folded": true,
+  "expected": {
+   "text": "* * b\nx\na\nbody\n",
+   "point": 8,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "text\n",
+  "adjusted": false,
+  "folded": true,
+  "expected": {
+   "text": "* a\ntext\n",
+   "point": 9,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n* y\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "* b\n",
+  "adjusted": false,
+  "folded": true,
+  "expected": {
+   "text": "* a\n* b\n* y\n",
+   "point": 8,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n* y\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "* b\nx\n* c\ny\n",
+  "adjusted": false,
+  "folded": true,
+  "expected": {
+   "text": "* a\n* b\nx\n* c\ny\n* y\n",
+   "point": 16,
+   "kill": "json-null",
+   "folds": [
+    1,
+    3
+   ],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\nbody\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "** b\nx\n",
+  "adjusted": false,
+  "folded": true,
+  "expected": {
+   "text": "* a\n** b\nx\nbody\n",
+   "point": 11,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Inserted text not folded because that would swallow text"
+  }
+ },
+ {
+  "text": "* a\n* y\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "* b\n:PROPERTIES:\n:ID: 1\n:END:\n** c\ntext\n",
+  "adjusted": false,
+  "folded": true,
+  "expected": {
+   "text": "* a\n* b\n:PROPERTIES:\n:ID: 1\n:END:\n** c\ntext\n* y\n",
+   "point": 44,
+   "kill": "json-null",
+   "folds": [
+    1
+   ],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "* b\n\n* c\nx\n",
+  "adjusted": false,
+  "folded": true,
+  "expected": {
+   "text": "* a\n** x\n* b\n\n* c\nx\n* y\n",
+   "point": 20,
+   "kill": "json-null",
+   "folds": [
+    2,
+    4
+   ],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n** x\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "* b\nx",
+  "adjusted": false,
+  "folded": true,
+  "expected": {
+   "text": "* a\n** x\n* b\nx",
+   "point": 13,
+   "kill": "json-null",
+   "folds": [
+    2
+   ],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "",
+  "point": 0,
+  "op": "yank",
+  "kill": "* b\nx\n",
+  "adjusted": false,
+  "folded": true,
+  "expected": {
+   "text": "* b\nx\n",
+   "point": 6,
+   "kill": "json-null",
+   "folds": [
+    0
+   ],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "* b\n** c\n",
+  "adjusted": false,
+  "folded": false,
+  "expected": {
+   "text": "* a\n** x\n* b\n** c\n* y\n",
+   "point": 18,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "** b\n*** c\n** d\nbody\n",
+  "adjusted": false,
+  "folded": false,
+  "expected": {
+   "text": "* a\n** x\n** b\n*** c\n** d\nbody\n* y\n",
+   "point": 30,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "* b\n** c",
+  "adjusted": false,
+  "folded": false,
+  "expected": {
+   "text": "* a\n** x\n* b\n** c* y\n",
+   "point": 17,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "* b\nbody\n",
+  "adjusted": false,
+  "folded": false,
+  "expected": {
+   "text": "* a\n* b\nbody\n** x\n* y\n",
+   "point": 13,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "* b\nbody\n",
+  "adjusted": false,
+  "folded": false,
+  "expected": {
+   "text": "* a\n* b\nbody\n",
+   "point": 13,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n** \n",
+  "point": 6,
+  "op": "yank",
+  "kill": "* b\nbody\n",
+  "adjusted": false,
+  "folded": false,
+  "expected": {
+   "text": "* a\n*** b\nbody\n \n",
+   "point": 15,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "* b\nbody\n\n\n",
+  "adjusted": false,
+  "folded": false,
+  "expected": {
+   "text": "* a\n** x\n* b\nbody\n\n\n* y\n",
+   "point": 20,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "\n* b\nx\n",
+  "adjusted": false,
+  "folded": false,
+  "expected": {
+   "text": "* a\n** x\n\n* b\nx\n* y\n",
+   "point": 16,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\nbody\n",
+  "point": 2,
+  "op": "yank",
+  "kill": "* b\nx\n",
+  "adjusted": false,
+  "folded": false,
+  "expected": {
+   "text": "* * b\nx\na\nbody\n",
+   "point": 8,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "text\n",
+  "adjusted": false,
+  "folded": false,
+  "expected": {
+   "text": "* a\ntext\n",
+   "point": 9,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n* y\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "* b\n",
+  "adjusted": false,
+  "folded": false,
+  "expected": {
+   "text": "* a\n* b\n* y\n",
+   "point": 8,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n* y\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "* b\nx\n* c\ny\n",
+  "adjusted": false,
+  "folded": false,
+  "expected": {
+   "text": "* a\n* b\nx\n* c\ny\n* y\n",
+   "point": 16,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\nbody\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "** b\nx\n",
+  "adjusted": false,
+  "folded": false,
+  "expected": {
+   "text": "* a\n** b\nx\nbody\n",
+   "point": 11,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n* y\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "* b\n:PROPERTIES:\n:ID: 1\n:END:\n** c\ntext\n",
+  "adjusted": false,
+  "folded": false,
+  "expected": {
+   "text": "* a\n* b\n:PROPERTIES:\n:ID: 1\n:END:\n** c\ntext\n* y\n",
+   "point": 44,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "* b\n\n* c\nx\n",
+  "adjusted": false,
+  "folded": false,
+  "expected": {
+   "text": "* a\n** x\n* b\n\n* c\nx\n* y\n",
+   "point": 20,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n** x\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "* b\nx",
+  "adjusted": false,
+  "folded": false,
+  "expected": {
+   "text": "* a\n** x\n* b\nx",
+   "point": 14,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "",
+  "point": 0,
+  "op": "yank",
+  "kill": "* b\nx\n",
+  "adjusted": false,
+  "folded": false,
+  "expected": {
+   "text": "* b\nx\n",
+   "point": 6,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "* b\n** c\n",
+  "adjusted": true,
+  "folded": true,
+  "expected": {
+   "text": "* a\n** x\n* b\n** c\n* y\n",
+   "point": 18,
+   "kill": "json-null",
+   "folds": [
+    2
+   ],
+   "message": "Clipboard pasted as level 1 subtree"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "** b\n*** c\n** d\nbody\n",
+  "adjusted": true,
+  "folded": true,
+  "expected": {
+   "text": "* a\n** x\n* b\n** c\n* d\nbody\n* y\n",
+   "point": 27,
+   "kill": "json-null",
+   "folds": [
+    2,
+    4
+   ],
+   "message": "Clipboard pasted as level 1 subtree"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "* b\n** c",
+  "adjusted": true,
+  "folded": true,
+  "expected": {
+   "text": "* a\n** x\n* b\n** c\n* y\n",
+   "point": 18,
+   "kill": "json-null",
+   "folds": [
+    2
+   ],
+   "message": "Clipboard pasted as level 1 subtree"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "* b\nbody\n",
+  "adjusted": true,
+  "folded": true,
+  "expected": {
+   "text": "* a\n** b\nbody\n** x\n* y\n",
+   "point": 14,
+   "kill": "json-null",
+   "folds": [
+    1
+   ],
+   "message": "Clipboard pasted as level 2 subtree"
+  }
+ },
+ {
+  "text": "* a\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "* b\nbody\n",
+  "adjusted": true,
+  "folded": true,
+  "expected": {
+   "text": "* a\n* b\nbody\n",
+   "point": 13,
+   "kill": "json-null",
+   "folds": [
+    1
+   ],
+   "message": "Clipboard pasted as level 1 subtree"
+  }
+ },
+ {
+  "text": "* a\n** \n",
+  "point": 6,
+  "op": "yank",
+  "kill": "* b\nbody\n",
+  "adjusted": true,
+  "folded": true,
+  "expected": {
+   "text": "* a\n** b\nbody\n",
+   "point": 14,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 2 subtree"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "* b\nbody\n\n\n",
+  "adjusted": true,
+  "folded": true,
+  "expected": {
+   "text": "* a\n** x\n* b\nbody\n\n\n* y\n",
+   "point": 20,
+   "kill": "json-null",
+   "folds": [
+    2
+   ],
+   "message": "Clipboard pasted as level 1 subtree"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "\n* b\nx\n",
+  "adjusted": true,
+  "folded": true,
+  "expected": {
+   "text": "* a\n** x\n\n* b\nx\n* y\n",
+   "point": 16,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 1 subtree"
+  }
+ },
+ {
+  "text": "* a\nbody\n",
+  "point": 2,
+  "op": "yank",
+  "kill": "* b\nx\n",
+  "adjusted": true,
+  "folded": true,
+  "expected": {
+   "text": "* * b\nx\na\nbody\n",
+   "point": 8,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "text\n",
+  "adjusted": true,
+  "folded": true,
+  "expected": {
+   "text": "* a\ntext\n",
+   "point": 9,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n* y\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "* b\n",
+  "adjusted": true,
+  "folded": true,
+  "expected": {
+   "text": "* a\n* b\n* y\n",
+   "point": 8,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 1 subtree"
+  }
+ },
+ {
+  "text": "* a\n* y\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "* b\nx\n* c\ny\n",
+  "adjusted": true,
+  "folded": true,
+  "expected": {
+   "text": "* a\n* b\nx\n* c\ny\n* y\n",
+   "point": 16,
+   "kill": "json-null",
+   "folds": [
+    1,
+    3
+   ],
+   "message": "Clipboard pasted as level 1 subtree"
+  }
+ },
+ {
+  "text": "* a\nbody\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "** b\nx\n",
+  "adjusted": true,
+  "folded": true,
+  "expected": {
+   "text": "* a\nbody\n* b\nx\n",
+   "point": 15,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 1 subtree"
+  }
+ },
+ {
+  "text": "* a\n* y\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "* b\n:PROPERTIES:\n:ID: 1\n:END:\n** c\ntext\n",
+  "adjusted": true,
+  "folded": true,
+  "expected": {
+   "text": "* a\n* b\n:PROPERTIES:\n:ID: 1\n:END:\n** c\ntext\n* y\n",
+   "point": 44,
+   "kill": "json-null",
+   "folds": [
+    1
+   ],
+   "message": "Clipboard pasted as level 1 subtree"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "* b\n\n* c\nx\n",
+  "adjusted": true,
+  "folded": true,
+  "expected": {
+   "text": "* a\n** x\n* b\n\n* c\nx\n* y\n",
+   "point": 20,
+   "kill": "json-null",
+   "folds": [
+    2,
+    4
+   ],
+   "message": "Clipboard pasted as level 1 subtree"
+  }
+ },
+ {
+  "text": "* a\n** x\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "* b\nx",
+  "adjusted": true,
+  "folded": true,
+  "expected": {
+   "text": "* a\n** x\n** b\nx\n",
+   "point": 16,
+   "kill": "json-null",
+   "folds": [
+    2
+   ],
+   "message": "Clipboard pasted as level 2 subtree"
+  }
+ },
+ {
+  "text": "",
+  "point": 0,
+  "op": "yank",
+  "kill": "* b\nx\n",
+  "adjusted": true,
+  "folded": true,
+  "expected": {
+   "text": "* b\nx\n",
+   "point": 6,
+   "kill": "json-null",
+   "folds": [
+    0
+   ],
+   "message": "Clipboard pasted as level 1 subtree"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "* b\n** c\n",
+  "adjusted": true,
+  "folded": false,
+  "expected": {
+   "text": "* a\n** x\n* b\n** c\n* y\n",
+   "point": 18,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 1 subtree"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "** b\n*** c\n** d\nbody\n",
+  "adjusted": true,
+  "folded": false,
+  "expected": {
+   "text": "* a\n** x\n* b\n** c\n* d\nbody\n* y\n",
+   "point": 27,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 1 subtree"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "* b\n** c",
+  "adjusted": true,
+  "folded": false,
+  "expected": {
+   "text": "* a\n** x\n* b\n** c\n* y\n",
+   "point": 18,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 1 subtree"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "* b\nbody\n",
+  "adjusted": true,
+  "folded": false,
+  "expected": {
+   "text": "* a\n** b\nbody\n** x\n* y\n",
+   "point": 14,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 2 subtree"
+  }
+ },
+ {
+  "text": "* a\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "* b\nbody\n",
+  "adjusted": true,
+  "folded": false,
+  "expected": {
+   "text": "* a\n* b\nbody\n",
+   "point": 13,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 1 subtree"
+  }
+ },
+ {
+  "text": "* a\n** \n",
+  "point": 6,
+  "op": "yank",
+  "kill": "* b\nbody\n",
+  "adjusted": true,
+  "folded": false,
+  "expected": {
+   "text": "* a\n** b\nbody\n",
+   "point": 14,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 2 subtree"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "* b\nbody\n\n\n",
+  "adjusted": true,
+  "folded": false,
+  "expected": {
+   "text": "* a\n** x\n* b\nbody\n\n\n* y\n",
+   "point": 20,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 1 subtree"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "\n* b\nx\n",
+  "adjusted": true,
+  "folded": false,
+  "expected": {
+   "text": "* a\n** x\n\n* b\nx\n* y\n",
+   "point": 16,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 1 subtree"
+  }
+ },
+ {
+  "text": "* a\nbody\n",
+  "point": 2,
+  "op": "yank",
+  "kill": "* b\nx\n",
+  "adjusted": true,
+  "folded": false,
+  "expected": {
+   "text": "* * b\nx\na\nbody\n",
+   "point": 8,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "text\n",
+  "adjusted": true,
+  "folded": false,
+  "expected": {
+   "text": "* a\ntext\n",
+   "point": 9,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Mark set"
+  }
+ },
+ {
+  "text": "* a\n* y\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "* b\n",
+  "adjusted": true,
+  "folded": false,
+  "expected": {
+   "text": "* a\n* b\n* y\n",
+   "point": 8,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 1 subtree"
+  }
+ },
+ {
+  "text": "* a\n* y\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "* b\nx\n* c\ny\n",
+  "adjusted": true,
+  "folded": false,
+  "expected": {
+   "text": "* a\n* b\nx\n* c\ny\n* y\n",
+   "point": 16,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 1 subtree"
+  }
+ },
+ {
+  "text": "* a\nbody\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "** b\nx\n",
+  "adjusted": true,
+  "folded": false,
+  "expected": {
+   "text": "* a\nbody\n* b\nx\n",
+   "point": 15,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 1 subtree"
+  }
+ },
+ {
+  "text": "* a\n* y\n",
+  "point": 4,
+  "op": "yank",
+  "kill": "* b\n:PROPERTIES:\n:ID: 1\n:END:\n** c\ntext\n",
+  "adjusted": true,
+  "folded": false,
+  "expected": {
+   "text": "* a\n* b\n:PROPERTIES:\n:ID: 1\n:END:\n** c\ntext\n* y\n",
+   "point": 44,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 1 subtree"
+  }
+ },
+ {
+  "text": "* a\n** x\n* y\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "* b\n\n* c\nx\n",
+  "adjusted": true,
+  "folded": false,
+  "expected": {
+   "text": "* a\n** x\n* b\n\n* c\nx\n* y\n",
+   "point": 20,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 1 subtree"
+  }
+ },
+ {
+  "text": "* a\n** x\n",
+  "point": 9,
+  "op": "yank",
+  "kill": "* b\nx",
+  "adjusted": true,
+  "folded": false,
+  "expected": {
+   "text": "* a\n** x\n** b\nx\n",
+   "point": 16,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 2 subtree"
+  }
+ },
+ {
+  "text": "",
+  "point": 0,
+  "op": "yank",
+  "kill": "* b\nx\n",
+  "adjusted": true,
+  "folded": false,
+  "expected": {
+   "text": "* b\nx\n",
+   "point": 6,
+   "kill": "json-null",
+   "folds": [],
+   "message": "Clipboard pasted as level 1 subtree"
+  }
+ },
+ {
+  "text": "* a\nx\n* b\ny\n",
+  "point": 0,
+  "op": "copy",
+  "fold": true,
+  "paste": 0,
+  "expected": {
+   "text": "* a\nx\n* a\nx\n* b\ny\n",
+   "point": 0,
+   "kill": "* a\nx\n",
+   "folds": [
+    0
+   ]
+  }
+ },
+ {
+  "text": "* a\nx\n* b\ny\n",
+  "point": 0,
+  "op": "cut",
+  "fold": true,
+  "paste": 4,
+  "expected": {
+   "text": "* b\ny\n* a\nx\n",
+   "point": 6,
+   "kill": "* a\nx\n",
+   "folds": [
+    2
+   ]
+  }
+ },
+ {
+  "text": "* a\n** b\nx\n*** c\ny\n* d\n",
+  "point": 6,
+  "op": "cut",
+  "fold": true,
+  "paste": 19,
+  "expected": {
+   "text": "* a\n* d\n* b\nx\n** c\ny\n",
+   "point": 8,
+   "kill": "** b\nx\n*** c\ny\n",
+   "folds": [
+    2
+   ]
+  }
+ },
+ {
+  "text": "* a\nx\n* b\ny\n* c\n",
+  "point": 0,
+  "op": "copy",
+  "fold": true,
+  "paste": 15,
+  "count": 2,
+  "expected": {
+   "text": "* a\nx\n* b\ny\n* c\n* a\nx\n* b\ny\n",
+   "point": 16,
+   "kill": "* a\nx\n* b\ny\n",
+   "folds": [
+    5
+   ]
+  }
+ },
+ {
+  "text": "* a\nx\n** b\ny\n",
+  "point": 2,
+  "op": "copy",
+  "fold": true,
+  "paste": 15,
+  "expected": {
+   "text": "* a\nx\n** b\ny\n** a\nx\n*** b\ny\n",
+   "point": 13,
+   "kill": "* a\nx\n** b\ny\n",
+   "folds": [
+    4
+   ]
+  }
+ },
+ {
+  "text": "* a\n* b\n",
+  "point": 0,
+  "op": "copy",
+  "fold": true,
+  "paste": 8,
+  "expected": {
+   "text": "* a\n* b\n* a\n",
+   "point": 8,
+   "kill": "* a\n",
+   "folds": []
+  }
+ },
+ {
+  "text": "* a\nx\n* b\ny\n",
+  "point": 0,
+  "op": "copy",
+  "fold": false,
+  "paste": 0,
+  "expected": {
+   "text": "* a\nx\n* a\nx\n* b\ny\n",
+   "point": 0,
+   "kill": "* a\nx\n",
+   "folds": []
+  }
+ },
+ {
+  "text": "* a\nx\n* b\ny\n",
+  "point": 0,
+  "op": "cut",
+  "fold": false,
+  "paste": 4,
+  "expected": {
+   "text": "* b\ny\n* a\nx\n",
+   "point": 6,
+   "kill": "* a\nx\n",
+   "folds": []
+  }
+ },
+ {
+  "text": "* a\n** b\nx\n*** c\ny\n* d\n",
+  "point": 6,
+  "op": "cut",
+  "fold": false,
+  "paste": 19,
+  "expected": {
+   "text": "* a\n* d\n* b\nx\n** c\ny\n",
+   "point": 8,
+   "kill": "** b\nx\n*** c\ny\n",
+   "folds": []
+  }
+ },
+ {
+  "text": "* a\nx\n* b\ny\n* c\n",
+  "point": 0,
+  "op": "copy",
+  "fold": false,
+  "paste": 15,
+  "count": 2,
+  "expected": {
+   "text": "* a\nx\n* b\ny\n* c\n* a\nx\n* b\ny\n",
+   "point": 16,
+   "kill": "* a\nx\n* b\ny\n",
+   "folds": []
+  }
+ },
+ {
+  "text": "* a\nx\n** b\ny\n",
+  "point": 2,
+  "op": "copy",
+  "fold": false,
+  "paste": 15,
+  "expected": {
+   "text": "* a\nx\n** b\ny\n** a\nx\n*** b\ny\n",
+   "point": 13,
+   "kill": "* a\nx\n** b\ny\n",
+   "folds": []
+  }
+ },
+ {
+  "text": "* a\n* b\n",
+  "point": 0,
+  "op": "copy",
+  "fold": false,
+  "paste": 8,
+  "expected": {
+   "text": "* a\n* b\n* a\n",
+   "point": 8,
+   "kill": "* a\n",
+   "folds": []
   }
  }
 ]

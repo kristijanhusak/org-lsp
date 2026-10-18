@@ -907,7 +907,10 @@ end
 --- Open the folds starting at the lines of `open` and close those of
 --- `close` (0-based `startLine`s, innermost first) in window `win` while
 --- it shows buffer `bufnr`, once it has the server's folds, which come a
---- moment after the buffer.
+--- moment after the buffer, or after an edit of the server's. A fold that
+--- closes other lines than the server's range is not the server's yet: it
+--- is opened again, and tried again a moment later (the last time it stays
+--- closed).
 ---@param win integer
 ---@param bufnr integer
 ---@param open table[]
@@ -933,10 +936,27 @@ local function set_folds(win, bufnr, open, close)
       for _, fold in ipairs(open) do
         vim.cmd(('silent! %dfoldopen'):format(fold.startLine + 1))
       end
+      open = {}
+      local stale = {}
       for _, fold in ipairs(close) do
-        vim.cmd(('silent! %dfoldclose'):format(fold.startLine + 1))
+        local line = fold.startLine + 1
+        -- (A line in a fold closed already stays as it is.)
+        if vim.fn.foldclosed(line) == -1 then
+          vim.cmd(('silent! %dfoldclose'):format(line))
+          local ends = fold.endLine and vim.fn.foldclosedend(line) ~= fold.endLine + 1
+          if tries < 40 and (vim.fn.foldclosed(line) ~= line or ends) then
+            vim.cmd(('silent! %dfoldopen'):format(line))
+            table.insert(stale, fold)
+          end
+        end
       end
+      close = stale
     end)
+    if #close > 0 and tries < 40 then
+      tries = tries + 1
+      first = close[1]
+      vim.defer_fn(apply, 50)
+    end
   end
   apply()
 end
@@ -957,8 +977,9 @@ local function close_startup_folds(win)
   end, bufnr)
 end
 
---- The headlines' folds of a document as org-journal leaves them
---- (`org-lsp/folds`), in the windows that show it.
+--- The headlines' folds the server asks for (`org-lsp/folds`): as
+--- org-journal leaves them, or of the subtrees a yank or paste folds, in
+--- the windows that show the document.
 ---@param params { uri: string, open: table[], close: table[] }
 function M.journal_folds(params)
   local bufnr = require('org-lsp.buffers').of(params.uri)

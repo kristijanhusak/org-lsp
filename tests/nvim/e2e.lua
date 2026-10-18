@@ -1165,6 +1165,36 @@ eq({ vim.fn.foldclosed(5), vim.fn.foldclosed(2), vim.fn.foldclosed(8) }, { -1, 1
   'the entry and its parent shown, the other subtrees still folded')
 vim.cmd('normal! zR')
 
+-- 23i. A subtree yanked at the start of a line is folded once the editor
+-- has it (`org-yank-folded-subtrees`); C-k on its folded headline kills
+-- what the fold hides (`kill-line`).
+local yank_file = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* A', 'a body', '* B' }, yank_file)
+vim.cmd.edit(yank_file)
+wait('the server and folds of the file to yank into', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1 and vim.fn.foldlevel(2) > 0
+end)
+vim.fn.setreg('"', { '* N', 'new body', '** M', 'more' }, 'l')
+vim.api.nvim_win_set_cursor(0, { 3, 0 })
+plugin.run('org.yank')
+wait('the yanked subtree folded', function()
+  return vim.fn.foldclosed(3) == 3 and vim.fn.foldclosedend(3) == 6
+end)
+eq(vim.api.nvim_buf_get_lines(0, 0, -1, false), { '* A', 'a body', '* N', 'new body', '** M', 'more', '* B' },
+  'the subtree yanked as it is')
+eq(vim.api.nvim_win_get_cursor(0), { 7, 0 }, 'the cursor on the line after it')
+vim.cmd('5foldopen')
+eq({ vim.fn.foldclosed(3), vim.fn.foldclosed(5) }, { -1, 5 }, 'its child folded too')
+vim.cmd('normal! zM')
+vim.api.nvim_win_set_cursor(0, { 3, 0 })
+plugin.run('org.kill.line')
+wait('the folded subtree killed', function()
+  return vim.api.nvim_buf_line_count(0) == 4
+end)
+eq(vim.api.nvim_buf_get_lines(0, 0, -1, false), { '* A', 'a body', '', '* B' }, 'C-k kills what the fold hides')
+eq(vim.fn.getreg('"'), '* N\nnew body\n** M\nmore', 'the kill in the register')
+vim.cmd('silent! write')
+
 -- 23c. Archived subtrees stay closed when TAB and S-TAB open what is
 -- around them (`org-cycle-hide-archived-subtrees`).
 local with_archived = vim.fn.tempname() .. '.org'

@@ -593,6 +593,11 @@ pub struct Options {
     pub sparse_tree_default_date_type: Option<String>,
     #[serde(rename = "org_yank_adjusted_subtrees")]
     pub yank_adjusted_subtrees: Option<bool>,
+    #[serde(rename = "org_yank_folded_subtrees")]
+    pub yank_folded_subtrees: Option<bool>,
+    /// `org-ctrl-k-protect-subtree`: `false`, `true` or `"error"`.
+    #[serde(rename = "org_ctrl_k_protect_subtree")]
+    pub ctrl_k_protect_subtree: Option<serde_json::Value>,
     #[serde(rename = "org_file_apps")]
     pub file_apps: Option<Vec<(String, String)>>,
     #[serde(rename = "org_special_ctrl_o")]
@@ -1965,6 +1970,16 @@ impl Options {
             Some(serde_json::Value::Bool(false)) => CaseFold::Never,
             Some(serde_json::Value::String(smart)) if smart == "smart" => CaseFold::Smart,
             _ => CaseFold::Always,
+        }
+    }
+
+    /// `org-ctrl-k-protect-subtree`
+    pub fn ctrl_k_protect(&self) -> org_core::line::Protect {
+        use org_core::line::Protect;
+        match &self.ctrl_k_protect_subtree {
+            Some(serde_json::Value::String(error)) if error == "error" => Protect::Error,
+            Some(serde_json::Value::Bool(true)) => Protect::Ask,
+            _ => Protect::Off,
         }
     }
 

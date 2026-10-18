@@ -65,6 +65,9 @@ its sections says what it should look like.
 - [ ] Cutting a subtree and pasting it under another heading: its level fits there: ~Ctrl+C Ctrl+X Ctrl+W~, ~Ctrl+C Ctrl+X Ctrl+Y~
 - [ ] Copying a subtree and pasting it: ~Ctrl+C Ctrl+X Alt+W~, ~Ctrl+C Ctrl+X Ctrl+Y~
 - [ ] With ~org_yank_adjusted_subtrees~ on and Emacs keys, C-y of a copied ~* A~ subtree at the start of the line after a ~** B~ entry pastes it as ~** A~; in the middle of a line C-y pastes as the editor does: ~Ctrl+Y~
+- [ ] C-y of a copied ~* A~ subtree with text, at the start of a line before another ~* B~, yanks it folded, the cursor on the ~* B~ line; at the start of a ~** C~ line Org says /Inserted text not folded because that would swallow text/: ~Ctrl+Y~
+- [ ] Copying a folded subtree and pasting it: the copy is folded too: ~Ctrl+C Ctrl+X Alt+W~, ~Ctrl+C Ctrl+X Ctrl+Y~
+- [ ] C-k at the start of a folded headline kills it and what the fold hides; with ~org_ctrl_k_protect_subtree = true~ it asks /Kill hidden subtree along with headline?/ first, and ~n~ says /‘C-k’ aborted as it would kill a hidden subtree/; with ~"error"~ it says so at once: ~Ctrl+K~
 - [ ] With ~org_allow_promoting_top_level_subtree~ on, promoting ~* A~ makes it ~# A~: ~Alt+Left~
 - [ ] Sorting the children of a heading alphabetically, then by TODO state: ~Ctrl+C ^~
 - [ ] Moving to the next and previous heading; with a count, that many: ~Ctrl+C Ctrl+N~, ~Ctrl+C Ctrl+P~

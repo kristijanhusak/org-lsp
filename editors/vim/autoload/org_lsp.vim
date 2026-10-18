@@ -732,6 +732,13 @@ endfunction
 " says. Whether the cursor is at the end of its line.
 function! s:apply_carried(uri, result) abort
   call org_lsp#apply_edit({'changes': {a:uri: a:result.edits}})
+  " The server hears of the edit at once, and the folds follow it: those
+  " it asks for once the document has it (`org-lsp/folds`) close then.
+  let nr = bufnr(org_lsp#uri_to_path(a:uri))
+  if !empty(a:result.edits) && nr > 0
+    call s:call('flush', nr)
+    call s:changed(nr)
+  endif
   if type(get(a:result, 'cursor', 0)) != v:t_dict
     return v:false
   endif
@@ -2064,8 +2071,9 @@ function! s:got_folds(nr, error, result) abort
   endif
 endfunction
 
-" The headlines of a document org-journal showed, folded as it folds them
-" (`org-lsp/folds`): once the buffer has its folds.
+" The headlines of a document org-journal showed, folded as it folds them,
+" or the subtrees a yank or paste folded (`org-lsp/folds`): once the
+" buffer has its folds.
 function! s:journal_folds(params) abort
   let nr = bufnr(org_lsp#uri_to_path(a:params.uri))
   if nr < 0
@@ -2078,15 +2086,35 @@ function! s:journal_folds(params) abort
   endif
 endfunction
 
-function! s:set_journal_folds(nr, params) abort
+" A fold that closes other lines than the server's range is not the
+" server's yet (the buffer's folds come a moment after an edit): it is
+" opened again, and tried again a moment later; the last time it stays
+" closed.
+function! s:set_journal_folds(nr, params, ...) abort
+  let tries = get(a:, 1, 0)
+  let stale = []
   for win in win_findbuf(a:nr)
     for fold in get(a:params, 'open', [])
       call win_execute(win, 'silent! ' . (fold.startLine + 1) . 'foldopen')
     endfor
     for fold in get(a:params, 'close', [])
-      call win_execute(win, 'silent! ' . (fold.startLine + 1) . 'foldclose')
+      let line = fold.startLine + 1
+      " (A line in a fold closed already stays as it is.)
+      if win_execute(win, 'echon foldclosed(' . line . ')') !=# '-1'
+        continue
+      endif
+      call win_execute(win, 'silent! ' . line . 'foldclose')
+      let closed = win_execute(win, 'echon foldclosed(' . line . ') . "," . foldclosedend(' . line . ')')
+      if tries < 40 && closed !=# line . ',' . (get(fold, 'endLine', fold.startLine) + 1)
+        call win_execute(win, 'silent! ' . line . 'foldopen')
+        call add(stale, fold)
+      endif
     endfor
   endfor
+  if !empty(stale)
+    let again = {'uri': a:params.uri, 'open': [], 'close': stale}
+    call timer_start(50, {-> s:set_journal_folds(a:nr, again, tries + 1)})
+  endif
 endfunction
 
 " org-journal's files need not have a name that says they are Org files

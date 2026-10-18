@@ -777,7 +777,7 @@ M.handlers = {
   end,
 
   --- The headlines of a document org-journal showed, folded as it folds
-  --- them.
+  --- them, or the subtrees a yank or paste folded.
   ['org-lsp/folds'] = function(_, params)
     require('org-lsp').journal_folds(params)
   end,
