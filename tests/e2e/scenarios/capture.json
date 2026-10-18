@@ -1,0 +1,30 @@
+{
+  "description": "Capturing: picking a template (one key, a group, one that asks), typing the entry, finishing, aborting and refiling from the capture buffer.",
+  "options": {
+    "org_capture_templates": [
+      { "key": "t", "description": "Task", "target": ["file", "$DIR/inbox.org"], "template": "* TODO %?\n%U" },
+      { "key": "w", "description": "Work" },
+      { "key": "wm", "description": "Meeting", "target": ["file+headline", "$DIR/work.org", "Meetings"], "template": "* %^{With whom} about %?" },
+      { "key": "wn", "description": "Note", "target": ["file+headline", "$DIR/work.org", "Notes"], "template": "* %?" }
+    ],
+    "org_refile_targets": [{ "files": "$DIR/work.org", "maxlevel": 1 }]
+  },
+  "files": {
+    "work.org": ["* Meetings", "* Notes", "* Projects"]
+  },
+  "steps": [
+    { "open": "work.org" },
+    { "command": "org.capture", "answers": ["t"], "expect": ["buffer", "cursor"] },
+    { "type": "Call mom" },
+    { "command": "org.capture.finish", "expect": ["cursor", "file:inbox.org", "messages"] },
+    { "command": "org.capture", "answers": ["w", "m", "Ann"], "expect": ["buffer", "cursor"] },
+    { "type": "the budget" },
+    { "command": "org.capture.finish", "expect": ["file:work.org", "messages"] },
+    { "command": "org.capture", "answers": ["w", "n"], "expect": ["buffer"] },
+    { "type": "Not wanted" },
+    { "command": "org.capture.abort", "expect": ["cursor", "file:work.org", "messages"] },
+    { "command": "org.capture", "answers": ["t"] },
+    { "type": "Plan the trip" },
+    { "command": "org.capture.refile", "answers": [{ "choice": "Projects" }], "expect": ["cursor", "file:work.org", "file:inbox.org", "messages"] }
+  ]
+}

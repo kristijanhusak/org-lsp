@@ -1,0 +1,52 @@
+{
+  "description": "A starter set of editing in an Org file: TODO states, priorities, timestamps, headings, structure, lists, checkboxes, tables, links, tags, properties, clocking, refiling and archiving.",
+  "options": {
+    "org_refile_targets": [{ "files": "$DIR/notes.org", "maxlevel": 1 }]
+  },
+  "files": {
+    "notes.org": [
+      "* Projects",
+      "** Garden",
+      "Water on <2026-05-18 Mon>.",
+      "- [ ] seeds",
+      "- [ ] soil",
+      "| a | b |",
+      "|---+---|",
+      "| 1 | 2 |",
+      "* Errands",
+      "See [[*Garden][the garden]].",
+      "* Archive me"
+    ]
+  },
+  "steps": [
+    { "open": "notes.org" },
+    { "at": "Garden", "command": "org.todo", "expect": ["cursor", "messages"] },
+    { "command": "org.todo", "expect": ["cursor"] },
+    { "command": "org.todo.previous", "expect": ["cursor"] },
+    { "command": "org.priority.up", "expect": ["cursor", "messages"] },
+    { "command": "org.priority.down", "count": 2, "expect": ["cursor"] },
+    { "at": "2026-05-18", "column": 9, "command": "org.timestamp.up", "expect": ["cursor"] },
+    { "command": "org.timestamp.down", "count": 3, "expect": ["cursor"] },
+    { "at": "Garden", "command": "org.meta.right", "expect": ["buffer"] },
+    { "command": "org.meta.left", "expect": ["cursor"] },
+    { "at": "Errands", "command": "org.shiftmeta.right", "expect": ["buffer"] },
+    { "command": "org.shiftmeta.left" },
+    { "at": "Errands", "command": "org.meta.up", "expect": ["buffer", "cursor"] },
+    { "command": "org.meta.down", "expect": ["cursor"] },
+    { "at": "Archive me", "command": "org.meta.return", "below": true, "expect": ["cursor"] },
+    { "type": "Shopping" },
+    { "at": "seeds", "command": "org.checkbox.toggle", "expect": ["cursor"] },
+    { "at": "soil", "command": "org.meta.return", "below": true },
+    { "type": "water" },
+    { "at": "water", "command": "org.meta.right", "expect": ["buffer"] },
+    { "at": "| 1 |", "command": "org.table.insert.row.below", "expect": ["buffer"] },
+    { "at": "| 1 |", "command": "org.table.hline", "expect": ["buffer"] },
+    { "at": "the garden", "command": "org.open", "expect": ["cursor"] },
+    { "command": "org.tags.set", "answers": ["outdoor"], "expect": ["cursor"] },
+    { "command": "org.property.set", "answers": ["Owner", "Ann"], "expect": ["buffer"] },
+    { "command": "org.clock.in", "expect": ["messages"] },
+    { "command": "org.clock.out", "expect": ["buffer", "messages"] },
+    { "at": "Shopping", "command": "org.refile", "answers": [{ "choice": "Errands" }], "expect": ["buffer", "messages"] },
+    { "at": "Archive me", "command": "org.archive.subtree", "expect": ["buffer", "file:notes.org_archive", "messages"] }
+  ]
+}

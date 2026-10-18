@@ -1,0 +1,11 @@
+=== 2 agenda
+Global list of TODO items of type: ALL
+  tasks:      TODO Write
+  tasks:      TODO Read
+=== 3 columns
+ITEM                      | TODO | Effort |
+1: Global list of TODO items of type: ALL |  | 1:30
+2: Write | TODO | 1:00
+3: Read | TODO | 0:30
+=== 4 columns
+(column view off)

@@ -507,7 +507,7 @@ export const AREAS = [
       { text: 'Moving the cursor in the agenda shows where its entry is, `work.org/Projects`, in the echo area (the status bar in VS Code and Sublime Text)', in: 'agenda', not: ['zed'] },
       { text: 'Entry text, log mode, the clock report, archives mode', in: 'agenda', cmd: ['org.agenda.entry.text', 'org.agenda.log', 'org.agenda.clockreport', 'org.agenda.archives'] },
       { text: 'In the week view, inactive timestamps show after `[` with *Display now includes inactive timestamps as well*, marked `[`, and are gone again when the agenda is rebuilt', in: 'agenda', cmd: ['org.agenda.query.add', 'org.agenda.inactive', 'org.agenda.redo'] },
-      { text: 'Hovering a line shows its entry', in: 'agenda', keys: { neovim: '`K`', vim: '`K`', vscode: 'the mouse, `Ctrl+K Ctrl+I`', sublime: 'the mouse', zed: 'the mouse' } },
+      { text: 'Hovering a line shows its entry', in: 'agenda', keys: { neovim: '`gK`', vim: '`gK`', vscode: 'the mouse, `Ctrl+K Ctrl+I`', sublime: 'the mouse', zed: 'the mouse' } },
       { text: 'Rebuilding the agenda, saving the changed files, quitting', in: 'agenda', cmd: ['org.agenda.redo', 'org.agenda.save'] },
       { text: 'An entry changed in its file shows in the agenda when it is rebuilt' },
       { text: 'Adding today\'s appointments: an entry timed a few minutes from now is reminded of every three minutes until it is due (needs Emacs)', cmd: 'org.agenda.appt' },

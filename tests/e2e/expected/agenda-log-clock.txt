@@ -1,0 +1,124 @@
+=== 3 agenda
+Week-agenda (W41):
+Monday      5 October 2026 W41
+  home:        7:00-7:20  Clocked:   (0:20) TODO Water plants
+  work:        7:45...... Closed:     DONE [#A] Book the room with the tool :office::
+  work:        8:00-9:15  Clocked:   (1:15) TODO Write the report [1/2] - Drafted the outline :office:
+               8:00...... ----------------
+  work:        9:00...... Scheduled:  TODO Write the report [1/2]       :office:
+  work:        9:30-10:00 Clocked:   (0:30) NEXT Outline the sections  :office::
+              10:00...... ----------------
+  work:       10:10...... Clocked:   (-) Running now
+              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+              12:00...... ----------------
+              14:00...... ----------------
+              16:00...... ----------------
+              18:00...... ----------------
+              20:00...... ----------------
+Tuesday     6 October 2026
+  work:       14:00-15:00 Clocked:   (1:00) Meeting with a rather long title that goes beyond forty characters :meeting:
+  work:       23:30-1:00  Clocked:   (1:30) A third level              :office::
+Wednesday   7 October 2026
+Thursday    8 October 2026
+Friday      9 October 2026
+Saturday   10 October 2026
+Sunday     11 October 2026
+=== 3 messages
+Log mode is on
+=== 4 agenda
+Week-agenda (W41):
+Monday      5 October 2026 W41
+  home:        7:00-7:20  Clocked:   (0:20) TODO Water plants
+  work:        7:45...... Closed:     DONE [#A] Book the room with the tool :office::
+  work:        8:00-9:15  Clocked:   (1:15) TODO Write the report [1/2] - Drafted the outline :office:
+               8:00...... ----------------
+  work:        9:00...... Scheduled:  TODO Write the report [1/2]       :office:
+  work:        9:30-10:00 Clocked:   (0:30) NEXT Outline the sections  :office::
+              10:00...... ----------------
+  work:       10:10...... Clocked:   (-) Running now
+              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+              12:00...... ----------------
+              14:00...... ----------------
+              16:00...... ----------------
+              18:00...... ----------------
+              20:00...... ----------------
+Tuesday     6 October 2026
+  work:       14:00-15:00 Clocked:   (1:00) Meeting with a rather long title that goes beyond forty characters :meeting:
+  work:       23:30-1:00  Clocked:   (1:30) A third level              :office::
+Wednesday   7 October 2026
+Thursday    8 October 2026
+Friday      9 October 2026
+Saturday   10 October 2026
+Sunday     11 October 2026
+| File     | Headline                                 |   Time |      |
+|----------+------------------------------------------+--------+------|
+|          | ALL *Total time*                         | *5:05* |      |
+|----------+------------------------------------------+--------+------|
+| home.org | *File time*                              | *0:20* |      |
+|          | Water plants                             |   0:20 |      |
+|----------+------------------------------------------+--------+------|
+| work.org | *File time*                              | *4:45* |      |
+|          | Write the report                         |   3:15 |      |
+|          | \_  Outline the sections                 |        | 2:00 |
+|          | Meeting with a rather long title that... |   1:00 |      |
+|          | Archived                                 |   0:30 |      |
+=== 4 messages
+Clocktable mode is on
+=== 5 agenda
+Week-agenda (W41):
+Monday      5 October 2026 W41
+               8:00...... ----------------
+  work:        9:00...... Scheduled:  TODO Write the report [1/2]       :office:
+              10:00...... ----------------
+              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+              12:00...... ----------------
+              14:00...... ----------------
+              16:00...... ----------------
+              18:00...... ----------------
+              20:00...... ----------------
+Tuesday     6 October 2026
+Wednesday   7 October 2026
+Thursday    8 October 2026
+Friday      9 October 2026
+Saturday   10 October 2026
+Sunday     11 October 2026
+| File     | Headline                                 |   Time |      |
+|----------+------------------------------------------+--------+------|
+|          | ALL *Total time*                         | *5:05* |      |
+|----------+------------------------------------------+--------+------|
+| home.org | *File time*                              | *0:20* |      |
+|          | Water plants                             |   0:20 |      |
+|----------+------------------------------------------+--------+------|
+| work.org | *File time*                              | *4:45* |      |
+|          | Write the report                         |   3:15 |      |
+|          | \_  Outline the sections                 |        | 2:00 |
+|          | Meeting with a rather long title that... |   1:00 |      |
+|          | Archived                                 |   0:30 |      |
+=== 5 messages
+Log mode is off
+=== 6 agenda
+Day-agenda (W41):
+Monday      5 October 2026 W41
+               8:00...... ----------------
+  work:        9:00...... Scheduled:  TODO Write the report [1/2]       :office:
+              10:00...... ----------------
+              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+              12:00...... ----------------
+              14:00...... ----------------
+              16:00...... ----------------
+              18:00...... ----------------
+              20:00...... ----------------
+| File     | Headline                 | Time   |      |
+|----------+--------------------------+--------+------|
+|          | ALL *Total time*         | *2:35* |      |
+|----------+--------------------------+--------+------|
+| home.org | *File time*              | *0:20* |      |
+|          | Water plants             | 0:20   |      |
+|----------+--------------------------+--------+------|
+| work.org | *File time*              | *2:15* |      |
+|          | Write the report         | 1:45   |      |
+|          | \_  Outline the sections |        | 0:30 |
+|          | Archived                 | 0:30   |      |
+=== 7 messages
+Switched to day view
+Clocktable mode is off

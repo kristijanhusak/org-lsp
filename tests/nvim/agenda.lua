@@ -858,7 +858,7 @@ eq({ vim.bo.filetype, vim.api.nvim_win_get_cursor(0) }, { 'org-agenda', { 2, 0 }
 only_window()
 vim.g.mapleader = nil
 
--- 16. `K` over an entry shows it in a float at the cursor: the headline
+-- 16. `gK` over an entry shows it in a float at the cursor: the headline
 -- and its text, in an Org buffer highlighted by the server. Moving the
 -- cursor closes it.
 choice = 'a'
@@ -866,7 +866,7 @@ press('\\oa')
 wait_for_view('Week-agenda (W21):')
 local before_hover = lines()
 vim.api.nvim_win_set_cursor(0, { 4, 30 })
-press('K')
+press('gK')
 local float
 wait('the entry in a float', function()
   for _, win in ipairs(vim.api.nvim_list_wins()) do

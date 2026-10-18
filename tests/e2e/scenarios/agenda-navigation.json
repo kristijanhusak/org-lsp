@@ -1,0 +1,35 @@
+{
+  "description": "Moving through the agenda in time, changing its span, going to a date and building it again.",
+  "files": {
+    "work.org": [
+      "* TODO [#A] Write report :office:",
+      "SCHEDULED: <2026-05-18 Mon 09:00>",
+      "* TODO Call the client",
+      "DEADLINE: <2026-05-20 Wed>",
+      "* Meeting <2026-05-19 Tue 14:00-15:00>",
+      "* Conference <2026-06-10 Wed>",
+      "* Holiday <2026-12-24 Thu>"
+    ],
+    "home.org": ["* TODO Water plants", "SCHEDULED: <2026-05-16 Sat +1w>", "* DONE Buy milk"]
+  },
+  "steps": [
+    { "open": "work.org" },
+    { "command": "org.agenda.dispatch", "answers": ["a"], "expect": ["agenda", "cursor"] },
+    { "command": "org.agenda.later", "expect": ["cursor"] },
+    { "command": "org.agenda.earlier", "count": 2, "expect": ["cursor"] },
+    { "command": "org.agenda.today", "expect": ["cursor"] },
+    { "at": "Wednesday", "command": "org.agenda.day", "expect": ["agenda", "cursor", "messages"] },
+    { "command": "org.agenda.later", "expect": ["agenda", "cursor"] },
+    { "command": "org.agenda.week", "expect": ["cursor", "messages"] },
+    { "command": "org.agenda.fortnight", "expect": ["agenda", "cursor", "messages"] },
+    { "command": "org.agenda.month", "expect": ["agenda", "cursor", "messages"] },
+    { "command": "org.agenda.year", "expect": ["cursor", "messages"] },
+    { "at": "Holiday", "command": "org.agenda.goto", "expect": ["cursor"] },
+    { "focus": "agenda", "command": "org.agenda.week", "expect": ["cursor"] },
+    { "command": "org.agenda.goto.date", "answers": ["2026-06-10"], "expect": ["agenda", "cursor"] },
+    { "command": "org.agenda.today", "expect": ["cursor"] },
+    { "open": "home.org", "line": 3, "type": "SCHEDULED: <2026-05-19 Tue>\n" },
+    { "focus": "agenda", "command": "org.agenda.redo", "expect": ["agenda"] },
+    { "close": true, "expect": ["cursor"] }
+  ]
+}

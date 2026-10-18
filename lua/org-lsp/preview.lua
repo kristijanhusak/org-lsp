@@ -1,4 +1,4 @@
---- An agenda entry in a float at the cursor (`K`): the server's hover for
+--- An agenda entry in a float at the cursor (`gK`): the server's hover for
 --- the line, in an Org buffer the server highlights as it highlights any
 --- Org file.
 local M = {}

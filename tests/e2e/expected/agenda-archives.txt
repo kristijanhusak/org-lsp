@@ -1,0 +1,74 @@
+=== 2 agenda
+Week-agenda (W41):
+Monday      5 October 2026 W41
+  work:       Scheduled:  TODO Write report
+Tuesday     6 October 2026
+Wednesday   7 October 2026
+  work:       14:00...... Meeting 
+Thursday    8 October 2026
+Friday      9 October 2026
+Saturday   10 October 2026
+Sunday     11 October 2026
+=== 3 agenda
+Week-agenda (W41):
+Monday      5 October 2026 W41
+  home:       Scheduled:  TODO Archived file task                     :ARCHIVE::
+  work:       Scheduled:  TODO Write report
+Tuesday     6 October 2026
+  work:       Scheduled:  TODO Leftover task                          :ARCHIVE::
+Wednesday   7 October 2026
+  work:       14:00...... Meeting 
+Thursday    8 October 2026
+Friday      9 October 2026
+Saturday   10 October 2026
+Sunday     11 October 2026
+=== 3 messages
+Trees with :ARCHIVE: tag are included
+=== 4 messages
+No archives are included
+=== 5 agenda
+Week-agenda (W41):
+Monday      5 October 2026 W41
+  home:       Scheduled:  TODO Archived file task                     :ARCHIVE::
+  work:       Scheduled:  TODO Write report
+Tuesday     6 October 2026
+  work:       Scheduled:  TODO Leftover task                          :ARCHIVE::
+  work:       Scheduled:  TODO Archived task
+Wednesday   7 October 2026
+  work:       14:00...... Meeting 
+Thursday    8 October 2026
+Friday      9 October 2026
+Saturday   10 October 2026
+Sunday     11 October 2026
+=== 5 messages
+Trees with :ARCHIVE: tag and all active archive files are included
+=== 6 agenda
+Week-agenda (W41):
+Monday      5 October 2026 W41
+  work:       Scheduled:  TODO Write report
+Tuesday     6 October 2026
+Wednesday   7 October 2026
+  work:       14:00...... Meeting 
+Thursday    8 October 2026
+Friday      9 October 2026
+Saturday   10 October 2026
+Sunday     11 October 2026
+=== 6 messages
+No archives are included
+=== 7 agenda
+Global list of TODO items of type: ALL
+  work:       TODO Write report
+=== 8 agenda
+Global list of TODO items of type: ALL
+  home:       TODO Archived file task                                 :ARCHIVE::
+  work:       TODO Write report
+  work:       TODO Leftover task                                      :ARCHIVE::
+=== 9 agenda
+Global list of TODO items of type: ALL
+  home:       TODO Archived file task                                 :ARCHIVE::
+  work:       TODO Write report
+  work:       TODO Leftover task                                      :ARCHIVE::
+  work:       TODO Archived task
+=== 9 messages
+Trees with :ARCHIVE: tag are included
+Trees with :ARCHIVE: tag and all active archive files are included

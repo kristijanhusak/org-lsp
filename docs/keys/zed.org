@@ -166,6 +166,7 @@ its motions.
 | ~,~ | ~org.priority~ | Set the priority |
 | ~ctrl-c ctrl-x p~ | ~org.property.set~ | Set a property of the entry |
 | ~e~ | ~org.effort.set~ | Set the effort of the entry |
+| ~:~, ~ctrl-c ctrl-q~ | ~org.tags.set~ | Set the tags of the headline |
 | ~ctrl-c ctrl-w~ | ~org.refile~ | Refile the entry |
 | ~z~ | ~org.add.note~ | Add a note to the entry |
 | ~ctrl-c ctrl-o~ | ~org.open~ | Open the link or thing at the cursor |

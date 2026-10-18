@@ -1,0 +1,12 @@
+{
+  "description": "Entry text mode (E): some text of each entry under its line, against Emacs's views.",
+  "files_from": "agenda/entry-text",
+  "clock": { "today": "2026-10-05", "now": "10:30" },
+  "steps": [
+    { "open": "work.org" },
+    { "command": "org.agenda.dispatch", "answers": ["t"] },
+    { "command": "org.agenda.entry.text", "expect": ["agenda", "messages"], "emacs": "agenda/entry-text/expected-0.txt" },
+    { "command": "org.agenda.entry.text", "expect": ["messages"] },
+    { "command": "org.agenda.entry.text", "count": 2, "expect": ["agenda", "messages"], "emacs": "agenda/entry-text/expected-1.txt" }
+  ]
+}

@@ -4581,7 +4581,10 @@ fn names_the_files_to_save() {
     client.open("file:///org/a.org", "* a\n");
     let result =
         client.request("workspace/executeCommand", json!({ "command": "org.agenda.save", "arguments": [] })).unwrap();
-    assert_eq!(result, json!({ "save": ["file:///org/a.org", "file:///org/b.org"] }));
+    assert_eq!(
+        result,
+        json!({ "save": ["file:///org/a.org", "file:///org/b.org"], "message": "Saving all Org buffers... done" })
+    );
     client.shutdown();
 }
 

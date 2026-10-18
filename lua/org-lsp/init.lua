@@ -77,7 +77,9 @@ local defaults = {
       ['org.journal.new.entry'] = '<Leader>jj',
     },
     org = { cycle = '<Tab>', global_cycle = '<S-Tab>', help = 'g?' },
-    agenda = { quit = 'q', help = 'g?', hover = 'K' },
+    -- `K` in the agenda is Emacs's (`org-agenda.habits`); the hover is
+    -- `gK`, beside Vim's `K`.
+    agenda = { quit = 'q', help = 'g?', hover = 'gK' },
   },
 }
 
@@ -779,9 +781,9 @@ local function keys_in(scope)
       end
     end
   end
-  -- The keys of the mappings, the plugin's own (`K` for `hover`) and the
-  -- user's, are theirs: a command of the server's with the same key
-  -- (`K`, `org.agenda.habits`) goes without it.
+  -- The keys of the mappings, the plugin's own (`q` for `quit`) and the
+  -- user's, are theirs: a command of the server's with the same key goes
+  -- without it.
   local mapped = {}
   for name, key in pairs(M.config.mappings[scope] or {}) do
     keys[name] = type(key) == 'table' and key or key and { key } or {}
@@ -1132,7 +1134,7 @@ local function on_attach(client, bufnr)
   if M.manifest.datePrompt and vim.bo[bufnr].filetype == M.manifest.datePrompt.languageId then
     return set_keys('calendar', bufnr)
   end
-  -- An agenda entry in a float (`K`): highlighted as any Org file, with
+  -- An agenda entry in a float (`gK`): highlighted as any Org file, with
   -- no keys, indenting or folds.
   local preview = vim.b[bufnr].org_lsp_preview
   if not preview then

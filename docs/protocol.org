@@ -977,7 +977,8 @@ increments a number.
   TAB): see ~window/showDocument~ above.
 - ~org.agenda.save~ :: ~org-save-all-org-buffers~: returns
   ~{ "save": [uri…] }~, the Org files the editor has open; the editor saves
-  those with changes.
+  those with changes. Its ~message~ is Emacs's, /Saving all Org buffers...
+  done/.
 - ~org.agenda.log~, ~org.agenda.clockreport~ :: Turn log mode
   (~org-agenda-log-mode~: what was closed and clocked each day) or the clock
   report under the agenda (~org-agenda-clockreport-mode~) on or off.

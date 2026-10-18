@@ -664,6 +664,41 @@ end
 
 local line_highlights = vim.api.nvim_create_namespace('org_lsp_line_highlights')
 
+--- Text put in after the last line of a file (an archived subtree, a
+--- refiled entry at the end) goes in at the end of the last line instead,
+--- its last newline moved before it: the same text. Neovim 0.12.0 adds an
+--- empty line after text put in past the last line.
+---@param uri string?
+---@param edits table[]?
+---@param client_id integer
+local function at_last_line(uri, edits, client_id)
+  local client = vim.lsp.get_client_by_id(client_id)
+  if not uri or not edits or not client then
+    return
+  end
+  local bufnr = vim.uri_to_bufnr(uri)
+  vim.fn.bufload(bufnr)
+  local count = vim.api.nvim_buf_line_count(bufnr)
+  local last = vim.api.nvim_buf_get_lines(bufnr, count - 1, count, false)[1] or ''
+  for _, text_edit in ipairs(edits) do
+    local range = text_edit.range
+    if
+      range.start.line == count
+      and range.start.character == 0
+      and range['end'].line == count
+      and range['end'].character == 0
+      and vim.endswith(text_edit.newText, '\n')
+    then
+      local character = vim.str_utfindex(last, client.offset_encoding)
+      text_edit.range = {
+        start = { line = count - 1, character = character },
+        ['end'] = { line = count - 1, character = character },
+      }
+      text_edit.newText = '\n' .. text_edit.newText:sub(1, -2)
+    end
+  end
+end
+
 M.handlers = {
   --- A message of the server, titled `Org`. Neovim's own handler sends it
   --- without a title, as `LSP[org-lsp] …`.
@@ -682,6 +717,10 @@ M.handlers = {
     local uris = vim.tbl_keys(edit.changes or {})
     for _, change in ipairs(edit.documentChanges or {}) do
       table.insert(uris, change.textDocument and change.textDocument.uri)
+      at_last_line(change.textDocument and change.textDocument.uri, change.edits, ctx.client_id)
+    end
+    for uri, edits in pairs(edit.changes or {}) do
+      at_last_line(uri, edits, ctx.client_id)
     end
     local result = vim.lsp.handlers['workspace/applyEdit'](err, params, ctx)
     local client = vim.lsp.get_client_by_id(ctx.client_id)

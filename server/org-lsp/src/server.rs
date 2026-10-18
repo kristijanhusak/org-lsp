@@ -6553,11 +6553,12 @@ impl Server {
             }
             id if id.starts_with("org.calendar.") => self.calendar_command(id, context.as_ref()),
             // `org-save-all-org-buffers`: the server cannot save; the
-            // editor saves the files it names that have changes.
+            // editor saves the files it names that have changes, and says
+            // what Emacs says when it is done.
             commands::AGENDA_SAVE => {
                 let mut files: Vec<&String> = self.documents.keys().collect();
                 files.sort();
-                Ok(json!({ "save": files }))
+                Ok(json!({ "save": files, "message": "Saving all Org buffers... done" }))
             }
             commands::DATE_PREVIEW => self.preview_date(&context.ok_or("This command needs the cursor position")?),
             commands::CYCLE => self.cycle(&context.ok_or("This command needs the cursor position")?),

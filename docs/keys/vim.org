@@ -229,7 +229,7 @@ in a popup. [[file:../vim.org][vim.org]] says how to install and set up the plug
 | ~,~, ~<Leader>o,~ | ~org.priority~ | Set the priority |
 | ~<C-c><C-x>p~, ~<Leader>oxp~ | ~org.property.set~ | Set a property of the entry |
 | ~e~, ~<Leader>oxe~ | ~org.effort.set~ | Set the effort of the entry |
-| ~<Leader>ot~ | ~org.tags.set~ | Set the tags of the headline |
+| ~<C-c><C-q>~, ~<Leader>ot~ | ~org.tags.set~ | Set the tags of the headline |
 | ~<C-c><C-w>~, ~<Leader>or~ | ~org.refile~ | Refile the entry |
 | ~z~, ~<Leader>ona~ | ~org.add.note~ | Add a note to the entry |
 | ~<C-c><C-o>~, ~<Leader>oo~ | ~org.open~ | Open the link or thing at the cursor |
@@ -396,7 +396,7 @@ The plugin adds keys of its own, which only an editor can carry out:
 | ~<Tab>~   | ~cycle~            | ~org~           | Cycle the visibility of the subtree at the cursor                |
 | ~<S-Tab>~ | ~global_cycle~     | ~org~           | Cycle the visibility of the whole file                           |
 | ~q~       | ~quit~             | ~agenda~        | Close the agenda                                                 |
-| ~K~       | ~hover~            | ~agenda~        | Show the entry of the line in a popup at the cursor, highlighted |
+| ~gK~      | ~hover~            | ~agenda~        | Show the entry of the line in a popup at the cursor, highlighted |
 | ~g?~      | ~help~             | ~org~, ~agenda~ | Show the keys of the buffer in a popup                           |
 
 A capture buffer is an Org file, so it has the keys of Org files as well as

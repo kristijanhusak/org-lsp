@@ -36,7 +36,7 @@ let s:defaults = {
       \     'org.journal.new.entry': '<Leader>jj',
       \   },
       \   'org': {'cycle': '<Tab>', 'global_cycle': '<S-Tab>', 'help': 'g?'},
-      \   'agenda': {'quit': 'q', 'hover': 'K', 'help': 'g?'},
+      \   'agenda': {'quit': 'q', 'hover': 'gK', 'help': 'g?'},
       \ },
       \ }
 
@@ -908,9 +908,9 @@ function! s:keys_in(scope) abort
       endif
     endfor
   endfor
-  " The keys of the mappings, the plugin's own (`K` for `hover`) and the
-  " user's, are theirs: a command of the server's with the same key (`K`,
-  " `org.agenda.habits`) goes without it.
+  " The keys of the mappings, the plugin's own (`q` for `quit`) and the
+  " user's, are theirs: a command of the server's with the same key goes
+  " without it.
   let mapped = {}
   for [name, key] in items(get(mappings, a:scope, {}))
     let keys[name] = type(key) == v:t_list ? key : (type(key) == v:t_string ? [key] : [])
@@ -2394,7 +2394,7 @@ function! org_lsp#define_highlights() abort
   call s:define_faces()
 endfunction
 
-" `K` in the agenda: the entry of the line in a popup at the cursor, its
+" `gK` in the agenda: the entry of the line in a popup at the cursor, its
 " headline and its text with each drawer folded, highlighted as the server
 " highlights Org files. It goes when the cursor moves.
 function! org_lsp#preview() abort
