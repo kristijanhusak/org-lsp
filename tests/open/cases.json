@@ -1131,5 +1131,74 @@
    },
    "text": "#+TITLE: x\n[[*New one :tag:]]\n* New one :tag:\n"
   }
+ },
+ {
+  "files": {
+   "a.org": "Run [[shell:echo¦ hi]]\n"
+  },
+  "note": "a shell: link, answered no",
+  "expected": {
+   "error": "Abort"
+  }
+ },
+ {
+  "files": {
+   "a.org": "Run [[shell:echo¦ hi]]\n"
+  },
+  "create": true,
+  "note": "a shell: link, answered yes",
+  "expected": {
+   "shell": "echo hi"
+  }
+ },
+ {
+  "files": {
+   "a.org": "Run [[shell:echo¦ hi]]\n"
+  },
+  "skip": "^ECHO",
+  "note": "a shell: link the skip regexp matches, without regard to case",
+  "expected": {
+   "shell": "echo hi"
+  }
+ },
+ {
+  "files": {
+   "a.org": "Run [[shell:echo¦ hi]]\n"
+  },
+  "skip": "^ls",
+  "note": "a shell: link the skip regexp does not match",
+  "expected": {
+   "error": "Abort"
+  }
+ },
+ {
+  "files": {
+   "a.org": "Run shell:l¦s now\n"
+  },
+  "skip": "ls\\'",
+  "note": "a plain shell: link, the skip regexp at its end",
+  "expected": {
+   "shell": "ls"
+  }
+ },
+ {
+  "files": {
+   "a.org": "Run [[shell:echo¦ hi]]\n"
+  },
+  "skip": "  ",
+  "note": "a skip regexp of white space asks",
+  "expected": {
+   "error": "Abort"
+  }
+ },
+ {
+  "files": {
+   "a.org": "Run [[shell:date][To¦day]]\n"
+  },
+  "create": true,
+  "note": "a shell: link with a description",
+  "expected": {
+   "shell": "date"
+  }
  }
 ]

@@ -479,7 +479,7 @@ export const AREAS = [
       ['Diary sexps calling other Lisp, evaluated by Emacs (`org-diary-sexp-entry`) for each day of the view', true],
       ['Column view in the agenda (`C-c C-x C-c`, through Emacs): each entry\'s line covered by its columns, the summaries on the date lines and the blocks\' headers; editing, cycling and showing the values of the entries, changed in their files', true],
       ['Column view as soon as the agenda is made (`org-agenda-view-columns-initially`)', true],
-      ['Writing the agenda to a file (`C-x C-w`): `.org` and plain text', true],
+      ['Writing the agenda to a file (`C-x C-w`): `.org` and plain text; in plain text, some lines of each entry\'s text under its line (`org-agenda-add-entry-text-maxlines`)', true],
       ['Appointment reminders (`org-agenda-to-appt`, through Emacs\'s `appt.el`): today\'s entries with a time, checked each minute, the reminders shown as messages', true],
     ],
     editors: {
@@ -722,6 +722,7 @@ export const AREAS = [
       ['Which program opens a linked file (`org-file-apps`): the editor, the system\'s application or a shell command; `C-u` opens it in the editor, `C-u C-u` by the system', true],
       ['Opening a linked file that is not there with its program rather than saying `No such file` (`org-open-non-existing-files`)', true],
       ['A link to a directory opening the `index.org` in it (`org-open-directory-means-index-dot-org`)', true],
+      ['Following a `shell:` link: its command runs once the user says yes to `Execute … in shell?`, or at once when `org-link-shell-skip-confirm-regexp` matches it; what it writes is a message, which Emacs shows in a buffer when long', true],
     ],
     editors: {
       zed: ['part', `A link's target is typed, without completion: ${ZED_TEXT}. Following works through go to definition, for links inside Org files and to files.`],
@@ -735,6 +736,7 @@ export const AREAS = [
       { text: 'With `org_return_follows_link` on, RET on a link follows it and types nothing; after the link, RET breaks the line', cmd: 'org.return', not: ['helix', 'zed'] },
       { text: 'With `org_file_apps` set to `[["txt", "cp %s copy.txt"]]`, following `[[file:notes.txt]]` says `Running cp …/notes.txt copy.txt...done` and makes `copy.txt`; `C-u C-c C-o` opens `notes.txt` in the editor', cmd: 'org.open', not: ['helix', 'zed'] },
       { text: 'Following a URL opens the browser; a timestamp opens its day\'s agenda', cmd: 'org.open', not: ['helix'] },
+      { text: 'Following `[[shell:echo hi]]` asks `Execute echo hi in shell?`; yes says `hi`, no says `Abort`', cmd: 'org.open', not: ['helix'] },
       { text: 'Go to definition on a link does the same', keys: { neovim: '`gd` or `vim.lsp.buf.definition()`', vim: 'the client\'s go to definition', vscode: '`F12`', sublime: '*LSP: Goto Definition*', zed: '`F12`', helix: '`gd`' } },
       { text: 'Storing a link to a headline and inserting it elsewhere with a description', cmd: ['org.link.store', 'org.link.insert'], not: ['helix'] },
       { text: 'Inserting a link on an existing link edits it', cmd: 'org.link.insert', not: ['helix'] },

@@ -29,7 +29,7 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#notes-org-roam][Notes (org-roam)]] | 88% | 14 of 16 |
 | [[#a-journal-org-journal][A journal (org-journal)]] | 79% | 11 of 14 |
 | [[#refile-and-archive][Refile and archive]] | 100% | 13 of 13 |
-| [[#links][Links]] | 100% | 17 of 17 |
+| [[#links][Links]] | 100% | 18 of 18 |
 | [[#footnotes][Footnotes]] | 100% | 4 of 4 |
 | [[#tables][Tables]] | 100% | 19 of 19 |
 | [[#table-formulas][Table formulas]] | 100% | 13 of 13 |
@@ -328,7 +328,7 @@ Where editors fall short:
 - ✅ Diary sexps calling other Lisp, evaluated by Emacs (~org-diary-sexp-entry~) for each day of the view
 - ✅ Column view in the agenda (~C-c C-x C-c~, through Emacs): each entry's line covered by its columns, the summaries on the date lines and the blocks' headers; editing, cycling and showing the values of the entries, changed in their files
 - ✅ Column view as soon as the agenda is made (~org-agenda-view-columns-initially~)
-- ✅ Writing the agenda to a file (~C-x C-w~): ~.org~ and plain text
+- ✅ Writing the agenda to a file (~C-x C-w~): ~.org~ and plain text; in plain text, some lines of each entry's text under its line (~org-agenda-add-entry-text-maxlines~)
 - ✅ Appointment reminders (~org-agenda-to-appt~, through Emacs's ~appt.el~): today's entries with a time, checked each minute, the reminders shown as messages
 
 Where editors fall short:
@@ -476,7 +476,7 @@ Where editors fall short:
 :CUSTOM_ID: links
 :END:
 
-100% (17 of 17)
+100% (18 of 18)
 
 - ✅ Following links: headlines, targets, custom IDs, files with searches, IDs, URLs, timestamps, tags
 - ✅ Storing and inserting links, with descriptions, editing the link at the cursor
@@ -495,6 +495,7 @@ Where editors fall short:
 - ✅ Which program opens a linked file (~org-file-apps~): the editor, the system's application or a shell command; ~C-u~ opens it in the editor, ~C-u C-u~ by the system
 - ✅ Opening a linked file that is not there with its program rather than saying ~No such file~ (~org-open-non-existing-files~)
 - ✅ A link to a directory opening the ~index.org~ in it (~org-open-directory-means-index-dot-org~)
+- ✅ Following a ~shell:~ link: its command runs once the user says yes to ~Execute … in shell?~, or at once when ~org-link-shell-skip-confirm-regexp~ matches it; what it writes is a message, which Emacs shows in a buffer when long
 
 Where editors fall short:
 
@@ -775,24 +776,23 @@ Where editors fall short:
 :END:
 
 Each of the 1025 options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with
-it. Of the 337 that change what org-lsp does itself, 100% can be set.
+it. Of the 339 that change what org-lsp does itself, 100% can be set.
 [[file:../scripts/org-options.json][scripts/org-options.json]] says it for each; ~scripts/check.sh~ fails when the
 server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,
 when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 323 | A setting of the same name |
+| setting | 326 | A setting of the same name |
 | missing | 1 | org-lsp does what the option is about, but the option cannot be set yet |
-| other | 13 | Done another way, as its note says |
+| other | 12 | Done another way, as its note says |
 | emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 47 | Its value is Lisp (a function, a hook), which the server does not run |
-| absent | 56 | Part of something org-lsp does not do |
+| absent | 54 | Part of something org-lsp does not do |
 | emacs-only | 105 | About Emacs itself (windows, faces, menus, the mouse, the mode line): nothing to do in an editor |
 
 ** Done another way
 
-- ~org-agenda-add-entry-text-maxlines~ :: entry text mode (~E~) shows ~org_agenda_entry_text_maxlines~ lines; text added to agenda files written with ~C-x C-w~ is not
 - ~org-agenda-skip-timestamp-if-deadline-is-shown~ :: no effect in Org 9.8.10: ~org-agenda-get-timestamps~ looks the entry up with ~assq~ in a list of positions, which finds none; none here either
 - ~org-archive-stamp-time~ :: no effect in Org 9.8.10, which keeps it for old configurations: ~org_archive_save_context_info~ with ~time~ decides
 - ~org-cycle-level-after-item/entry-creation~ :: the setting ~org_cycle_level_after_item_entry_creation~, its name without the ~/~
