@@ -183,6 +183,7 @@ export const AREAS = [
       { text: 'Widening in the narrowed file writes it back and closes it (`C-c \'` there does the same)', cmd: 'org.narrow.widen' },
       { text: 'Opening the parent of an `:ARCHIVE:` subtree leaves that subtree folded', only: ['neovim', 'vim', 'vscode', 'sublime'] },
       { text: 'A sparse tree of the TODO entries folds everything else and highlights them', cmd: 'org.sparse.tree', only: ['neovim', 'vim', 'vscode', 'sublime'] },
+      { text: 'Typing takes the highlights of a sparse tree of the TODO entries away; with `org_remove_highlights_with_change = false` they stay until `C-c C-c`, which says *Temporary highlights/overlays removed from current buffer*', cmd: 'org.sparse.tree', only: ['neovim', 'vim', 'vscode', 'sublime'] },
       { text: 'With everything folded, showing the context of a line deep in a subtree opens the headlines above it and leaves the other subtrees folded', cmd: 'org.reveal', only: ['neovim', 'vim', 'vscode', 'sublime'] },
       { text: 'Zed\'s own folds open and close on headlines, drawers and blocks', only: ['zed'] },
     ],
@@ -215,6 +216,7 @@ export const AREAS = [
       ['Commands on a region, a selection in the editor: the headlines in it promoted, demoted or moved, lines turned into headings or items, checkboxes toggled, the region wrapped in a block, a drawer or emphasis (through Emacs)', true],
       ['Sparse trees that tell case apart (`org-occur-case-fold-search`), and by a kind of date, cycled with `c` (`org-sparse-tree-default-date-type`)', true],
       ['Sparse trees without their matches highlighted (`org-highlight-sparse-tree-matches`)', true],
+      ['The highlights of a sparse tree and the times of `C-c C-x C-d` gone with the next change, or kept, following the text, until `C-c C-c` (`org-remove-highlights-with-change`); those of a sparse tree by tags or a property kept either way, as `org-scan-tags` keeps them', true],
     ],
     editors: {
       vscode: ['part', 'VS Code does not tell an extension which folds are closed: `C-k` on a folded headline is VS Code\'s own (`org-ctrl-k-protect-subtree`), and a subtree cut or copied folded is not folded again when it is pasted.'],

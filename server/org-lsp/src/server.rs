@@ -1183,6 +1183,13 @@ struct Server {
     clock_used: bool,
     /// `org-highlight-sparse-tree-matches`
     highlight_sparse_tree_matches: bool,
+    /// `org-remove-highlights-with-change`
+    remove_highlights_with_change: bool,
+    /// `org-occur-highlights`: by document, whether the editor shows the
+    /// matches of a sparse tree highlighted, and if so whether they go
+    /// with the next change (`org-remove-occur-highlights` in
+    /// `before-change-functions`).
+    sparse_highlights: HashMap<String, bool>,
     /// `org-agenda-view-columns-initially`
     agenda_view_columns_initially: bool,
     /// `org-special-ctrl-o`
@@ -1304,10 +1311,10 @@ struct Server {
     journal_state: Option<(String, Value)>,
     /// The directory of the journal's search results and schedule.
     journal_views: Private,
-    /// `org-clock-display`: by document, the lines of headlines and the
+    /// `org-clock-display`: by document, where headlines start and the
     /// minutes clocked under them, shown as inlay hints until the
-    /// document changes.
-    clock_display: HashMap<String, Vec<(u32, i64)>>,
+    /// document changes (`org-remove-highlights-with-change`) or `C-c C-c`.
+    clock_display: HashMap<String, Vec<(usize, i64)>>,
     /// `org-clock-display-default-range`
     clock_display_range: String,
     /// The file whose headlines are the refile targets of the current
@@ -1703,6 +1710,8 @@ pub fn run(connection: Connection) -> Result<()> {
         clock_loaded: false,
         clock_used: false,
         highlight_sparse_tree_matches: options.highlight_sparse_tree_matches.unwrap_or(true),
+        remove_highlights_with_change: options.remove_highlights_with_change.unwrap_or(true),
+        sparse_highlights: HashMap::new(),
         agenda_view_columns_initially: options.agenda_view_columns_initially.unwrap_or(false),
         special_ctrl_o: options.special_ctrl_o.unwrap_or(true),
         num_settings: options.num_settings(),
@@ -3237,6 +3246,13 @@ impl Server {
                     }
                     self.agenda_marks.iter_mut().for_each(follow);
                     self.held.iter_mut().for_each(|held| follow(held.entry_mut()));
+                    // The clock's times kept through changes stay on their
+                    // headlines, as Emacs's overlays do.
+                    for (offset, _) in self.clock_display.get_mut(key).into_iter().flatten() {
+                        for change in &changes {
+                            *offset = change.moved(*offset);
+                        }
+                    }
                 }
                 if let Some(old) = shrunk_before {
                     self.shrunk_after_change(key, &old, changed_lines);
@@ -3261,9 +3277,14 @@ impl Server {
                 self.publish_diagnostics(key);
                 self.fold_after_edit(key);
                 // The clock's times go with the next change, as Emacs's
-                // overlays do (`org-remove-highlights-with-change`).
-                if self.clock_display.remove(key).is_some() {
+                // overlays do (`org-remove-highlights-with-change`); the
+                // editor takes the sparse tree's highlights away itself,
+                // when they go.
+                if self.remove_highlights_with_change && self.clock_display.remove(key).is_some() {
                     self.refresh_inlay_hints();
+                }
+                if self.sparse_highlights.get(key) == Some(&true) {
+                    self.sparse_highlights.remove(key);
                 }
                 // An edit the server asked for has arrived: show its effect.
                 // Any other change means the user did something in between.
@@ -3649,16 +3670,17 @@ impl Server {
         }
         // `org-clock-display`: the time after each headline, its line
         // filled with dots up to column 60, as Emacs's overlay shows it.
-        for (line, minutes) in self.clock_display.get(params.text_document.uri.as_str()).into_iter().flatten() {
-            if !(first..=last).contains(&(*line as usize)) {
+        for (offset, minutes) in self.clock_display.get(params.text_document.uri.as_str()).into_iter().flatten() {
+            let line = document.index.position(text, (*offset).min(text.len()), self.client.encoding).line;
+            if !(first..=last).contains(&(line as usize)) {
                 continue;
             }
-            let shown = text.lines().nth(*line as usize).unwrap_or("");
+            let shown = text.lines().nth(line as usize).unwrap_or("");
             let width: usize = shown.chars().map(org_core::text::char_width).sum();
-            let start: usize = text.split_inclusive('\n').take(*line as usize).map(str::len).sum();
+            let start: usize = text.split_inclusive('\n').take(line as usize).map(str::len).sum();
             let end = document.index.position(text, start + shown.len(), self.client.encoding);
             let label = format!("{}{:>10} ", "·".repeat(60usize.saturating_sub(width)), clock::duration(*minutes));
-            hints.push(hint(*line, end.character, label));
+            hints.push(hint(line, end.character, label));
         }
         Some(hints)
     }
@@ -4846,7 +4868,7 @@ impl Server {
             if self.is_view(&context.text_document.uri) {
                 return Err("Searches by regular expression are followed in their file, not in the agenda".into());
             }
-            return self.occur(&text, &regexp);
+            return self.occur(context.text_document.uri.as_str(), &text, &regexp);
         }
         if let Some((target, search)) = self.missing_headline(&uri, &opened) {
             return self.create_link_heading(context, creating, answer, &target, &search);
@@ -6659,17 +6681,25 @@ impl Server {
             }
             commands::CLOCK_DISPLAY => self.clock_display(&context.ok_or("This command needs the cursor position")?),
             commands::NUM_MODE => self.num_mode(&context.ok_or("This command needs the cursor position")?),
-            // `C-c C-c` takes the clock's times away first.
+            // `C-c C-c` takes the clock's times and the highlights of a
+            // sparse tree away first; the editor is given no highlights,
+            // its folds left as they are.
             commands::CHECKBOX_TOGGLE
-                if context
-                    .as_ref()
-                    .is_some_and(|context| self.clock_display.contains_key(context.text_document.uri.as_str())) =>
+                if context.as_ref().is_some_and(|context| {
+                    let key = context.text_document.uri.as_str();
+                    self.clock_display.contains_key(key) || self.sparse_highlights.contains_key(key)
+                }) =>
             {
                 let uri =
                     context.as_ref().map(|context| context.text_document.uri.as_str().to_string()).unwrap_or_default();
-                self.clock_display.remove(&uri);
-                self.refresh_inlay_hints();
-                Ok(json!({ "message": "Temporary highlights/overlays removed from current buffer" }))
+                if self.clock_display.remove(&uri).is_some() {
+                    self.refresh_inlay_hints();
+                }
+                let mut result = json!({ "message": "Temporary highlights/overlays removed from current buffer" });
+                if self.sparse_highlights.remove(&uri).is_some() {
+                    result["sparse"] = json!({ "keep": true, "unfold": [], "highlights": [] });
+                }
+                Ok(result)
             }
             commands::DBLOCK_INSERT => self.dblock_insert(&context.ok_or("This command needs the cursor position")?),
             commands::ATTACH => self.attach(&context.ok_or("This command needs the cursor position")?),
@@ -13373,12 +13403,18 @@ impl Server {
             (other, _) => return Err(Refusal::Failed(format!("No such sparse tree command \"{other}\""))),
         };
         self.message = message;
-        Ok(json!({ "sparse": self.sparse_shown(&text, &found) }))
+        // `org-match-sparse-tree` highlights through `org-scan-tags`,
+        // which does not ask for the highlights to go with the next change
+        // as `org-occur` does.
+        let occur = !matches!(kind.as_str(), "m" | "p" | "P");
+        Ok(json!({ "sparse": self.sparse_shown(uri.as_str(), &text, &found, occur) }))
     }
 
     /// What the editor is told of a sparse tree of `text`: the lines to
-    /// show and the matches to highlight.
-    fn sparse_shown(&self, text: &str, found: &org_core::sparse::Sparse) -> Value {
+    /// show and the matches to highlight, with `keepHighlights` when they
+    /// stay through changes, until `C-c C-c`: always unless `occur`
+    /// (`org-occur`), else with `org_remove_highlights_with_change` off.
+    fn sparse_shown(&mut self, key: &str, text: &str, found: &org_core::sparse::Sparse, occur: bool) -> Value {
         let hidden;
         let found = if self.sparse_tree_open_archived_trees {
             found
@@ -13397,17 +13433,27 @@ impl Server {
                 Range::new(index.position(text, *start, encoding), index.position(text, *end, encoding))
             })
             .collect();
-        json!({ "lines": lines, "highlights": highlights })
+        let goes = occur && self.remove_highlights_with_change;
+        if highlights.is_empty() {
+            self.sparse_highlights.remove(key);
+        } else {
+            self.sparse_highlights.insert(key.to_string(), goes);
+        }
+        let mut shown = json!({ "lines": lines, "highlights": highlights });
+        if !goes {
+            shown["keepHighlights"] = json!(true);
+        }
+        shown
     }
 
     /// `org-occur` for a link's search `/regexp/` in its own file: a
     /// sparse tree of the matches.
-    fn occur(&mut self, text: &str, regexp: &str) -> std::result::Result<Value, Refusal> {
+    fn occur(&mut self, key: &str, text: &str, regexp: &str) -> std::result::Result<Value, Refusal> {
         let regex = org_core::sparse::occur_regex(regexp, self.occur_case_fold)
             .ok_or_else(|| Refusal::Failed(format!("Invalid regexp: {regexp}")))?;
         let found = org_core::sparse::occur(text, &regex, |_| true);
         self.message = Some(format!("{} match(es) for regexp {regexp}", found.count));
-        Ok(json!({ "sparse": self.sparse_shown(text, &found) }))
+        Ok(json!({ "sparse": self.sparse_shown(key, text, &found, true) }))
     }
 
     /// `org-reveal` (`C-c C-r`): the lines to show around the cursor, as
@@ -13438,7 +13484,7 @@ impl Server {
                 .collect();
         unfold.sort_unstable();
         unfold.dedup();
-        Ok(json!({ "sparse": { "lines": lines, "highlights": [], "keep": true, "unfold": unfold } }))
+        Ok(json!({ "sparse": { "lines": lines, "keep": true, "unfold": unfold } }))
     }
 
     /// `org-sort` (`C-c ^`) on entries (`org-sort-entries`): asks for the
@@ -14400,13 +14446,7 @@ impl Server {
         let document = self.document(&uri).ok_or("The document is not open")?;
         let (sums, total) =
             clock::sums(&document.text, span.start.map(clock::minutes_of), Some(clock::minutes_of(span.end)));
-        let lines: Vec<(u32, i64)> = sums
-            .into_iter()
-            .map(|(offset, minutes)| {
-                (document.index.position(&document.text, offset, self.client.encoding).line, minutes)
-            })
-            .collect();
-        self.clock_display.insert(uri.as_str().to_string(), lines);
+        self.clock_display.insert(uri.as_str().to_string(), sums);
         self.refresh_inlay_hints();
         let label = if custom { "Total file time (custom)" } else { "Total file time" };
         Ok(

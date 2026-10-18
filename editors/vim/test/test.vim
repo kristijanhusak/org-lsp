@@ -644,7 +644,7 @@ call s:test('sorts the children of an entry', function('s:sort'))
 " highlighted.
 function! s:sparse() abort
   let file = s:work . '/notes/sparse.org'
-  call writefile(['* A', 'an apple', '* B', 'nothing', '** C', 'Apple pie', '* D', 'none'], file)
+  call writefile(['* A', 'an apple', '* B :work:', 'nothing', '** C', 'Apple pie', '* D', 'none'], file)
   execute 'edit' fnameescape(file)
   call s:until('the server and the folds', {-> org_lsp#ready(bufnr()) && foldlevel(2) > 0})
   let g:answers = ['r', 'apple']
@@ -652,6 +652,22 @@ function! s:sparse() abort
   let Marked = {line -> empty(prop_type_get('org_lsp_sparse')) ? 0 : len(prop_list(line, {'types': ['org_lsp_sparse']}))}
   call s:until('the matches highlighted', {-> Marked(2) == 1 && Marked(6) == 1})
   call assert_equal([-1, -1, 7], [foldclosed(2), foldclosed(6), foldclosed(8)])
+  call setline(8, 'changed')
+  doautocmd TextChanged
+  call s:until('the highlights gone with the change', {-> Marked(2) == 0 && Marked(6) == 0})
+  " A sparse tree by tags keeps its highlights through changes, as
+  " `org-scan-tags` does, until `C-c C-c` takes them away.
+  let g:answers = ['m', 'work']
+  call feedkeys("\\o/", 'xt')
+  call s:until('the tagged headlines highlighted', {-> Marked(3) == 1 && Marked(5) == 1})
+  call setline(8, 'changed again')
+  doautocmd TextChanged
+  sleep 300m
+  call assert_equal([1, 1], [Marked(3), Marked(5)])
+  call feedkeys("\<C-Space>", 'xt')
+  call s:until('the highlights taken away by C-c C-c', {-> Marked(3) == 0 && Marked(5) == 0})
+  call assert_equal('* B :work:', getline(3))
+  normal! zR
   " `\oR` (`org-reveal`): the cursor's context shown, the other folds
   " left as they are.
   normal! zM

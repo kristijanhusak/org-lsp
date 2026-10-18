@@ -830,7 +830,7 @@ describe('Org files', () => {
 
   it('makes a sparse tree: everything folded but the matches', async () => {
     const file = vscode.Uri.file(path.join(workspace, 'sparse.org'));
-    await vscode.workspace.fs.writeFile(file, Buffer.from('* A\nan apple\n* B\nnothing\n** C\nApple pie\n* D\nnone\n'));
+    await vscode.workspace.fs.writeFile(file, Buffer.from('* A\nan apple\n* B :work:\nnothing\n** C\nApple pie\n* D\nnone\n'));
     const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
     await until('the server', async () => (await tokens(file)) !== undefined);
     const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
@@ -848,6 +848,19 @@ describe('Org files', () => {
       await editor.edit((builder) => builder.insert(new vscode.Position(0, 0), ''));
       await editor.edit((builder) => builder.insert(new vscode.Position(7, 0), 'x'));
       await until('the highlights gone with the change', () => api.sparse(editor).length === 0);
+      // A sparse tree by tags keeps its highlights through changes, as
+      // `org-scan-tags` does, until `C-c C-c` takes them away.
+      vscode.window.showQuickPick = async (items) => items.find((item) => item.key === 'm');
+      vscode.window.showInputBox = async () => 'work';
+      moveTo(0, 0);
+      await vscode.commands.executeCommand('org.sparse.tree');
+      await until('the tagged headlines highlighted', () => api.sparse(editor).length === 2);
+      await editor.edit((builder) => builder.insert(new vscode.Position(7, 0), 'y'));
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      assert.deepEqual(api.sparse(editor), ['*', '**'], 'the highlights kept through the change');
+      await vscode.commands.executeCommand('org.checkbox.toggle');
+      await until('the highlights taken away by C-c C-c', () => api.sparse(editor).length === 0);
+      assert.equal(editor.document.lineAt(2).text, '* B :work:');
     } finally {
       vscode.window.showQuickPick = showQuickPick;
       vscode.window.showInputBox = showInputBox;

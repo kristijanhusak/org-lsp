@@ -589,6 +589,9 @@ pub struct Options {
     /// `org-sparse-tree-default-date-type`: `null` or a type's name.
     #[serde(rename = "org_highlight_sparse_tree_matches")]
     pub highlight_sparse_tree_matches: Option<bool>,
+    /// `org-remove-highlights-with-change`
+    #[serde(rename = "org_remove_highlights_with_change")]
+    pub remove_highlights_with_change: Option<bool>,
     #[serde(rename = "org_sparse_tree_default_date_type")]
     pub sparse_tree_default_date_type: Option<String>,
     #[serde(rename = "org_yank_adjusted_subtrees")]

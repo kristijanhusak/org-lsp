@@ -284,6 +284,7 @@ Each option with its type, its default and what it means:
 - ~org_sparse_tree_open_archived_trees~ :: boolean, ~false~. A sparse tree (~C-c /~, and a link's ~/regexp/~) shows its matches in archived subtrees (tagged ~ARCHIVE~); with ~false~ those subtrees stay folded under their headline. (~org-sparse-tree-open-archived-trees~)
 - ~org_occur_case_fold_search~ :: true, false, "smart", ~true~. Whether a sparse tree (~C-c /~, and a link's ~/regexp/~) ignores case; ~"smart"~ ignores it unless what is searched for has an upper-case letter. (~org-occur-case-fold-search~)
 - ~org_highlight_sparse_tree_matches~ :: boolean, ~true~. Highlight the matches of a sparse tree (~C-c /~, and a link's ~/regexp/~) until the text changes; with ~false~, only their lines show. (~org-highlight-sparse-tree-matches~)
+- ~org_remove_highlights_with_change~ :: boolean, ~true~. The highlights of a sparse tree (~C-c /~ by a regexp, TODO keywords or dates, and a link's ~/regexp/~) and the times of ~C-c C-x C-d~ go at the next change of the text; with ~false~ they stay until ~C-c C-c~. Those of a sparse tree by tags or a property always stay, as in Emacs. (~org-remove-highlights-with-change~)
 - ~org_sparse_tree_default_date_type~ :: null, "all", "active", "inactive", "scheduled", "deadline", "closed", ~null~. The timestamps the date sparse trees (~C-c /~ ~b~, ~a~, ~D~) look at first: ~null~ for scheduled and deadline dates, or one kind; ~c~ in the menu turns to the next kind. (~org-sparse-tree-default-date-type~)
 - ~org_yank_adjusted_subtrees~ :: boolean, ~false~. C-y (~org.yank~, Emacs keys) of one or more subtrees at the start of a line, or after the stars of an otherwise empty headline, pastes them as ~org.paste.subtree~ does: at the level of the headlines around them. Anything else is the editor's own paste. (~org-yank-adjusted-subtrees~)
 - ~org_yank_folded_subtrees~ :: boolean, ~true~. C-y (~org.yank~, Emacs keys) of one or more subtrees at the start of a line folds them, unless that would hide text after them (/Inserted text not folded because that would swallow text/), and leaves the cursor on the line after them. With ~false~ (and ~org_yank_adjusted_subtrees~ off) it is the editor's own paste. (~org-yank-folded-subtrees~)
@@ -903,7 +904,14 @@ increments a number.
   a line each). Returns ~{ "sparse": { "lines", "highlights" } }~ and Org's
   message: the editor folds everything, then opens the folds around each
   line, as ~org-occur~ hides everything but the matches and the headlines
-  above them, and highlights the ranges until the text changes. An editor's
+  above them, and highlights the ranges until the text changes; with
+  ~"keepHighlights": true~ (~org_remove_highlights_with_change~ off, or a
+  tags or property match, which ~org-scan-tags~ highlights for good) until
+  other highlights replace them. ~C-c C-c~ (~org.checkbox.toggle~) with
+  highlights shown takes them away instead of what it does, saying
+  ~Temporary highlights/overlays removed from current buffer~, and returns
+  ~{ "sparse": { "keep": true, "unfold": [], "highlights": [] } }~: with
+  ~keep~, ~highlights~, when there, replace those shown. An editor's
   folds show the siblings of the headlines above as closed folds, where Org
   hides them.
 - ~org.insert.todo.heading~ :: ~org-insert-todo-heading~ (M-S-RET): in a
@@ -1109,8 +1117,9 @@ increments a number.
   clocked under each headline, its subtree included, within
   ~org_clock_display_default_range~ (~thisyear~), or with a count within a
   range picked from a list (input kind ~choice~); shown as inlay hints after
-  the headlines (dots to column 60, then the time) until the file changes or
-  ~org.checkbox.toggle~ (~C-c C-c~) takes them away. The result's ~message~
+  the headlines (dots to column 60, then the time) until the file changes
+  (with ~org_remove_highlights_with_change~ off, following their headlines)
+  or ~org.checkbox.toggle~ (~C-c C-c~) takes them away. The result's ~message~
   says the file's total. A client shows them if it shows inlay hints.
 - ~org.clock.report~ :: ~org-clock-report~ (~C-c C-x C-r~): the clock table
   (~#+BEGIN: clocktable~) the cursor is in filled in again, or a new one on
