@@ -6513,6 +6513,10 @@ impl Server {
                 self.table(command, &context)
             }
             commands::OPEN_LINE => self.open_line(&context.ok_or("This command needs the cursor position")?),
+            commands::LEVELS_ODD | commands::LEVELS_ODDEVEN => self.convert_levels(
+                params.command == commands::LEVELS_ODD,
+                &context.ok_or("This command needs the cursor position")?,
+            ),
             commands::SORT => self.sort(&context.ok_or("This command needs the cursor position")?),
             commands::SPARSE_TREE => self.sparse_tree(&context.ok_or("This command needs the cursor position")?),
             commands::REVEAL | commands::REVEAL_SIBLINGS | commands::REVEAL_TREE => {
@@ -12905,6 +12909,34 @@ impl Server {
     /// A command of `org-table.el` on the table at the cursor, carried in
     /// the result as `org.return` is; the row `org-table-kill-row` takes
     /// is in `copy`, for the editor's register or clipboard.
+    /// `org-convert-to-odd-levels` and, with `odd` false,
+    /// `org-convert-to-oddeven-levels`, after `yes-or-no-p`.
+    fn convert_levels(&mut self, odd: bool, context: &Context) -> std::result::Result<Value, Refusal> {
+        let encoding = self.client.encoding;
+        let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
+        let text = document.text.clone();
+        let offset = document.index.offset(&text, context.position, encoding);
+        let settings = self.structure_settings(&text);
+        // The way back checks the file before it asks.
+        let outcome = org_core::structure::convert_levels(&text, offset, odd, &settings)?;
+        match context.input.as_deref() {
+            None => {
+                let prompt = format!(
+                    "Are you sure you want to globally change levels to {}? ",
+                    if odd { "odd" } else { "odd-even" }
+                );
+                Ok(json!({ "input": {
+                    "kind": "key",
+                    "prompt": prompt,
+                    "value": "",
+                    "choices": [{ "key": "y", "label": "yes" }, { "key": "n", "label": "no" }],
+                } }))
+            }
+            Some("y" | "Y" | " ") => self.carried(context, outcome),
+            Some(_) => Ok(Value::Null),
+        }
+    }
+
     /// `org-open-line`: in a table a row above (`org-table-insert-row`),
     /// unless `org-special-ctrl-o` is off or the table starts the file at the
     /// cursor; elsewhere `open-line`, as many newlines as the count after

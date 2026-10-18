@@ -194,7 +194,7 @@ export const AREAS = [
       ['Promoting and demoting a heading or a subtree; a top-level one to a `#` line (`org-allow-promoting-top-level-subtree`)', true],
       ['Odd levels only, `***` the second (`org-odd-levels-only`, `#+STARTUP: odd`): promoting, demoting and `TAB` on a new headline two stars at a time, the headlines\' faces, `LEVEL` in matches and `%l` in the agenda', true],
       ['Odd levels only where refiling, capturing, archiving and date trees put headlines (`org-get-valid-level`), from the target file\'s `#+STARTUP:`', true],
-      ['Converting a file to odd levels and back (`org-convert-to-odd-levels`, `org-convert-to-oddeven-levels`)', false],
+      ['Converting a file to odd levels and back (`org-convert-to-odd-levels`, `org-convert-to-oddeven-levels`), as the commands `org.levels.odd` and `org.levels.oddeven`', true],
       ['Moving a subtree up and down', true],
       ['Cutting, copying and pasting subtrees, their level fitted', true],
       ['Yanking subtrees with `C-y` at the level around them (`org-yank-adjusted-subtrees`)', true],

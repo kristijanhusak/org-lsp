@@ -609,6 +609,20 @@
     }
   },
   {
+    "caption": "Org: Convert the file to odd levels only, once confirmed",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.levels.odd"
+    }
+  },
+  {
+    "caption": "Org: Convert the file from odd levels to odd and even ones, once confirmed",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.levels.oddeven"
+    }
+  },
+  {
     "caption": "Org: Move the subtree, the item or the table row up",
     "command": "org_lsp_run",
     "args": {

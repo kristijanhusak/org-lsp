@@ -230,6 +230,8 @@ pub const META_LEFT: &str = "org.meta.left";
 pub const META_RIGHT: &str = "org.meta.right";
 pub const SHIFT_META_LEFT: &str = "org.shiftmeta.left";
 pub const SHIFT_META_RIGHT: &str = "org.shiftmeta.right";
+pub const LEVELS_ODD: &str = "org.levels.odd";
+pub const LEVELS_ODDEVEN: &str = "org.levels.oddeven";
 pub const META_UP: &str = "org.meta.up";
 pub const META_DOWN: &str = "org.meta.down";
 pub const SHIFT_META_UP: &str = "org.shiftmeta.up";
@@ -794,6 +796,10 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, ">s")],
         ..edit(SHIFT_META_RIGHT, "Demote the subtree; indent the item with its children; insert a table column")
     },
+    // `org-convert-to-odd-levels` and `org-convert-to-oddeven-levels`,
+    // which have no keys in Emacs either.
+    edit(LEVELS_ODD, "Convert the file to odd levels only, once confirmed"),
+    edit(LEVELS_ODDEVEN, "Convert the file from odd levels to odd and even ones, once confirmed"),
     Command {
         emacs: &[native(Org, "M-<up>")],
         vim: &[key(Org, "<Leader>oK")],

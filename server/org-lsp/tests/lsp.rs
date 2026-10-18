@@ -1097,6 +1097,67 @@ fn opens_lines_and_table_rows() {
     assert_eq!(plain, "* A\nsome text\n| a\n | b |\n");
 }
 
+/// `org-convert-to-odd-levels` and `org-convert-to-oddeven-levels`: a
+/// question first, then each headline below the top demoted or promoted,
+/// its tags aligned and, with `org-adapt-indentation`, its text indented
+/// with it, as Emacs does; the way back refuses even levels.
+#[test]
+fn converts_files_to_odd_levels_and_back() {
+    let convert = |command: &str, text: &str, options: Value| -> std::result::Result<String, String> {
+        let mut client = Client::start(json!({}), options);
+        client.open(&uri(), text);
+        let mut context =
+            json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": 0, "character": 0 } });
+        let asked = client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+            .response_result;
+        let asked = match asked {
+            Ok(asked) => asked,
+            Err(error) => {
+                client.shutdown();
+                return Err(error.message);
+            }
+        };
+        assert_eq!(asked["input"]["kind"], "key");
+        context["input"] = json!("y");
+        let result = client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+            .response_result
+            .expect("a result");
+        client.shutdown();
+        let edits: Vec<TextEdit> = serde_json::from_value(result["edits"].clone()).unwrap();
+        Ok(apply_text_edits(text, &edits))
+    };
+    let tags = " ".repeat(67);
+    assert_eq!(
+        convert("org.levels.odd", "* A\n** B   :tag:\ntext\n*** C\n**** D\n  deep\n* E\n** F\n", Value::Null),
+        Ok(format!("* A\n*** B{tags}:tag:\ntext\n***** C\n******* D\n  deep\n* E\n*** F\n"))
+    );
+    assert_eq!(
+        convert(
+            "org.levels.odd",
+            "* A\n** B   :tag:\n   text\n*** C\n**** D\n     deep\n",
+            json!({ "org_adapt_indentation": true })
+        ),
+        // Emacs makes the 8 columns a tab; org-lsp indents with
+        // `indent-tabs-mode` off.
+        Ok(format!("* A\n*** B{tags}:tag:\n    text\n***** C\n******* D\n        deep\n"))
+    );
+    let tags = " ".repeat(68);
+    assert_eq!(
+        convert("org.levels.oddeven", "* A\n*** B :tag:\n***** C\n******* D\n* E\n", Value::Null),
+        Ok(format!("* A\n** B{tags}:tag:\n*** C\n**** D\n* E\n"))
+    );
+    assert_eq!(
+        convert("org.levels.oddeven", "* A\n*** B\n    text\n***** C\n", json!({ "org_adapt_indentation": true })),
+        Ok("* A\n** B\n   text\n*** C\n".to_string())
+    );
+    assert_eq!(
+        convert("org.levels.oddeven", "* A\n** B\n*** C\n", Value::Null),
+        Err("Not all levels are odd in this file.  Conversion not possible".to_string())
+    );
+}
+
 /// `returnUsesMetaReturn`: RET on the line of an item's bullet makes the
 /// next item, numbered and the rest renumbered as M-RET does, in nested
 /// lists too; elsewhere in the item RET stays Org's.

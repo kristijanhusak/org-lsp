@@ -663,6 +663,8 @@ every file; outside Org files the commands say they do not apply):
 | ~org.meta.right~ | Org: Demote the heading; indent the item, the drawer or the block; move the table column right |
 | ~org.shiftmeta.left~ | Org: Promote the subtree; outdent the item with its children; delete the table column |
 | ~org.shiftmeta.right~ | Org: Demote the subtree; indent the item with its children; insert a table column |
+| ~org.levels.odd~ | Org: Convert the file to odd levels only, once confirmed |
+| ~org.levels.oddeven~ | Org: Convert the file from odd levels to odd and even ones, once confirmed |
 | ~org.meta.up~ | Org: Move the subtree, the item or the table row up |
 | ~org.meta.down~ | Org: Move the subtree, the item or the table row down |
 | ~org.shiftmeta.up~ | Org: Delete the table row |
