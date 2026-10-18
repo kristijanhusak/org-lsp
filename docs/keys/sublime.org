@@ -76,6 +76,7 @@ to install and set up the package.
 | ~Alt+Down~ ¹ | ~org.meta.down~ | Move the subtree, the item or the table row down |
 | ~Alt+Shift+Up~ ¹ | ~org.shiftmeta.up~ | Delete the table row |
 | ~Alt+Shift+Down~ ¹ | ~org.shiftmeta.down~ | Insert a table row above |
+| ~Ctrl+O~ | ~org.open.line~ | Open a line, or in a table insert a row |
 | ~Ctrl+C -~ | ~org.table.hline~ | Insert a rule below the table row |
 | ~Ctrl+C Enter~ | ~org.table.hline.move~ | Insert a rule below the table row and go below it |
 | ~Ctrl+C ^~ | ~org.sort~ | Sort the entries, the items or the table rows |

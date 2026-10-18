@@ -644,6 +644,13 @@
     }
   },
   {
+    "caption": "Org: Open a line, or in a table insert a row",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.open.line"
+    }
+  },
+  {
     "caption": "Org: Go to the next table field, making a row after the last",
     "command": "org_lsp_run",
     "args": {

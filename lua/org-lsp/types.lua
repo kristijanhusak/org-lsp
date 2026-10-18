@@ -32,6 +32,7 @@
 ---@field org_edit_timestamp_down_means_later? boolean `S-<down>` makes a timestamp later and `S-<up>` earlier, the other way round from Org's default. (`org-edit-timestamp-down-means-later`)
 ---@field org_priority_enable_commands? boolean Whether the priority commands work. With `false` they refuse (`Priority commands are disabled`), and `S-<up>` and `S-<down>` on a headline do not change its priority. (`org-priority-enable-commands`)
 ---@field org_track_ordered_property_with_tag? boolean|string A tag that `org.ordered.toggle` (`C-c C-x o`) puts on the headline with the `ORDERED` property and takes off without it: `true` for `ORDERED`, or a tag of your own. Only the property orders the subtasks. (`org-track-ordered-property-with-tag`)
+---@field org_special_ctrl_o? boolean `org.open.line` (C-o) in a table inserts a row above; with `false` it opens a line there too. (`org-special-ctrl-o`)
 ---@field org_special_ctrl_k? boolean C-k (`org.kill.line`) on a headline kills the text to the tags, and the tags when the cursor is past the title; at the start of the line, the whole line. With `false` the key keeps the editor's own meaning. (`org-special-ctrl-k`)
 ---@field org_list_allow_alphabetical? boolean Whether a letter may stand for the number of an ordered item (`a.`, `B)`). A list of more than 26 items is numbered. (`org-list-allow-alphabetical`)
 ---@field org_plain_list_ordered_item_terminator? true|'.'|')' What ends the number of an ordered item: `"."`, `")"`, or `true` for either. (`org-plain-list-ordered-item-terminator`)

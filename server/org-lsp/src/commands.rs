@@ -237,6 +237,7 @@ pub const SHIFT_META_DOWN: &str = "org.shiftmeta.down";
 pub const TABLE_NEXT_FIELD: &str = "org.table.next.field";
 pub const TABLE_PREVIOUS_FIELD: &str = "org.table.previous.field";
 pub const TABLE_INSERT_ROW_BELOW: &str = "org.table.insert.row.below";
+pub const OPEN_LINE: &str = "org.open.line";
 pub const TABLE_HLINE: &str = "org.table.hline";
 pub const TABLE_HLINE_ABOVE: &str = "org.table.hline.above";
 pub const TABLE_HLINE_MOVE: &str = "org.table.hline.move";
@@ -819,6 +820,10 @@ pub const COMMANDS: &[Command] = &[
         ..edit(SHIFT_META_DOWN, "Insert a table row above")
     },
     Command { vim: &[key(Org, "<Leader>oTo")], ..edit(TABLE_INSERT_ROW_BELOW, "Insert a table row below") },
+    // `org-open-line` (C-o): in a table a row above (`org-special-ctrl-o`),
+    // elsewhere a new line after the cursor, which stays. Vim's C-o goes
+    // back in the jump list, so there is no Vim key.
+    Command { emacs: &[key(Org, "C-o")], ..edit(OPEN_LINE, "Open a line, or in a table insert a row") },
     edit(TABLE_NEXT_FIELD, "Go to the next table field, making a row after the last"),
     edit(TABLE_PREVIOUS_FIELD, "Go to the previous table field"),
     Command {

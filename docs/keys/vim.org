@@ -300,6 +300,7 @@ in a popup. [[file:../vim.org][vim.org]] says how to install and set up the plug
 | ~org.property.delete~ | Delete a property of the entry |
 | ~org.property.delete.globally~ | Delete a property from every entry of the file |
 | ~org.ordered.toggle~ | Toggle whether subtasks must be done in order (ORDERED) |
+| ~org.open.line~ | Open a line, or in a table insert a row |
 | ~org.table.next.field~ | Go to the next table field, making a row after the last |
 | ~org.table.previous.field~ | Go to the previous table field |
 | ~org.table.hline.above~ | Insert a rule above the table row |
