@@ -491,7 +491,7 @@ const OPTION_GROUPS = [
   ['Tags and properties', /^org_(tag|tags|use_tag|use_property|property|global_properties|group_tags|use_fast_tag|fast_tag|auto_align_tags|complete_tags)/],
   ['Lists', /^org_(list|plain_list|checkbox)/],
   ['Tables', /^org_(table|calc)/],
-  ['Links, IDs and citations', /^org_(link|id|file_apps|cite|return_follows_link)/],
+  ['Links, IDs and citations', /^org_(link|id|file_apps|cite|bibtex|return_follows_link)/],
   ['Dates and times', /^org_(time_stamp|read_date|edit_timestamp|extend_today|use_effective|use_last_clock|duration|display_custom|timestamp_custom)|^calendar_/],
   ['Capture, refile and archive', /^org_(capture|directory|default_notes|refile|reverse_note_order|archive)/],
   ['Clocking', /^org_clock|^org_agenda_clock/],

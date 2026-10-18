@@ -83,6 +83,7 @@ others), as close to Emacs Org mode as it can get.
   | Inline tasks (~org-inlinetask~: ~C-c C-x t~, ~M-<left>~ and ~M-<right>~ on one, the motion and the folds around them)                                    | ~tests/inlinetask/cases.json~      | ~scripts/update-inlinetask-fixtures.py~                                            |                                 |
   | Resolving open clocks (~org-resolve-clocks~, and before ~org-clock-in~): what is asked, and the file                                                     | ~tests/clock/resolve.json~         | ~scripts/clock_resolve_reference.py~                                               |                                 |
   | Downloading remote resources (~org-resource-download-policy~, ~org-safe-remote-resources~, ~org--confirm-resource-safe~): what is asked, the answer      | ~tests/link/remote-resources.json~ | ~scripts/remote_resource_reference.py~                                             |                                 |
+  | BibTeX entries as headlines (~ol-bibtex.el~: ~org-bibtex~, ~org-bibtex-create~, ~org-bibtex-check~, ~org-bibtex-yank~, ~org-bibtex-import-from-file~)    | ~tests/bibtex/cases.json~          | ~scripts/update-bibtex-fixtures.py~                                                | ~scripts/fuzz-bibtex.py~        |
 - Neovim: ~scripts/test-nvim.sh~ (set ~NVIM~ to the binary), on 0.12.0 and
   stable. Tests run headless against the real server.
 - VS Code: in ~editors/vscode~, ~npm run generate -- --check~,

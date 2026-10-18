@@ -504,6 +504,17 @@ the error."
                (lambda (message) (error "%s" message))))
       (org-link-expand-abbrev (alist-get 'link params)))))
 
+(defun org-lsp-bridge-bibtex-autokey (params)
+  "The key `bibtex-generate-autokey' makes of the BibTeX `entry' of
+PARAMS, as `org-bibtex-autokey' asks it: in a buffer of its own, with
+the regexps of the dialect, which only `bibtex-mode' sets otherwise."
+  (require 'bibtex)
+  (unless bibtex-entry-head
+    (bibtex-set-dialect))
+  (with-temp-buffer
+    (insert (alist-get 'entry params))
+    (bibtex-generate-autokey)))
+
 ;;; What the server asks about
 
 (defun org-lsp-bridge-diary-sexp (params)

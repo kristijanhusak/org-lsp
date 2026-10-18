@@ -1087,6 +1087,61 @@
       "description": "The citation processor `org.cite.insert` inserts with: `basic`, as Org's own does; Org's other processors cannot insert, and those of packages (citar) are not run; `false` for none. (`org-cite-insert-processor`)",
       "default": "basic"
     },
+    "org_bibtex_autogen_keys": {
+      "type": "boolean",
+      "description": "Whether `org.bibtex.create` and `org.bibtex.check` make the key of a new BibTeX entry from its author, year and title, as `bibtex-generate-autokey` makes it (through Emacs), instead of asking for it (`id`). (`org-bibtex-autogen-keys`)",
+      "default": false
+    },
+    "org_bibtex_prefix": {
+      "type": "string",
+      "description": "What the names of the properties the BibTeX commands write start with (`BIB_` gives `BIB_AUTHOR`), but for the key's; they read the names with it and without. (`org-bibtex-prefix`)"
+    },
+    "org_bibtex_treat_headline_as_title": {
+      "type": "boolean",
+      "description": "A headline without a `TITLE` property is the title of its BibTeX entry, and `org.bibtex.check` does not ask for one. (`org-bibtex-treat-headline-as-title`)",
+      "default": true
+    },
+    "org_bibtex_export_arbitrary_fields": {
+      "type": "boolean",
+      "description": "With `org_bibtex_prefix`, every property whose name has the prefix is a field of the entry exported (`org.bibtex.export`, `org.bibtex.copy`), not only those of its type. (`org-bibtex-export-arbitrary-fields`)",
+      "default": false
+    },
+    "org_bibtex_key_property": {
+      "type": "string",
+      "description": "The property that holds an entry's BibTeX key. `ID` makes the key a global ID. (`org-bibtex-key-property`)",
+      "default": "CUSTOM_ID"
+    },
+    "org_bibtex_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags given to the entries the BibTeX commands make. (`org-bibtex-tags`)",
+      "default": []
+    },
+    "org_bibtex_tags_are_keywords": {
+      "type": "boolean",
+      "description": "The `keywords` field of an entry read is its tags (spaces as `_`, other characters a tag cannot have left out), and an entry's own tags are its `keywords` when exported, but for those of `org_bibtex_tags` and `org_bibtex_no_export_tags`. (`org-bibtex-tags-are-keywords`)",
+      "default": false
+    },
+    "org_bibtex_no_export_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags that are not exported as keywords, with `org_bibtex_tags_are_keywords`. (`org-bibtex-no-export-tags`)",
+      "default": []
+    },
+    "org_bibtex_inherit_tags": {
+      "type": "boolean",
+      "description": "With `org_bibtex_tags_are_keywords`, the tags an entry inherits are keywords too. (`org-bibtex-inherit-tags`)",
+      "default": false
+    },
+    "org_bibtex_type_property_name": {
+      "type": "string",
+      "description": "The property that holds an entry's BibTeX type (`article`); a headline without it is no entry. (`org-bibtex-type-property-name`)",
+      "default": "btype"
+    },
     "org_link_abbrev_alist": {
       "type": "object",
       "additionalProperties": {

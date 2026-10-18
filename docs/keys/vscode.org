@@ -654,6 +654,14 @@ every file; outside Org files the commands say they do not apply):
 | ~org.ordered.toggle~ | Org: Toggle whether subtasks must be done in order (ORDERED) |
 | ~org.cite.insert~ | Org: Insert a citation, or edit the one at the cursor |
 | ~org.cite.insert.prefix~ | Org: Delete the citation or reference at the cursor, or insert one with a style |
+| ~org.bibtex.export~ | Org: BibTeX: export the entries of the file to a .bib file |
+| ~org.bibtex.copy~ | Org: BibTeX: copy the entry at the cursor as BibTeX |
+| ~org.bibtex.create~ | Org: BibTeX: new entry, its fields asked for |
+| ~org.bibtex.create.here~ | Org: BibTeX: make the entry at the cursor a BibTeX entry |
+| ~org.bibtex.check~ | Org: BibTeX: ask for the fields the entry at the cursor lacks |
+| ~org.bibtex.check.all~ | Org: BibTeX: ask for the fields every entry lacks |
+| ~org.bibtex.yank~ | Org: BibTeX: paste a BibTeX entry as a heading |
+| ~org.bibtex.import~ | Org: BibTeX: import the entries of a BibTeX file as headings |
 | ~org.tags.set~ | Org: Set the tags of the headline |
 | ~org.checkbox.toggle~ | Org: Toggle the checkbox |
 | ~org.return~ | Org: New line, as Org's RET makes it |

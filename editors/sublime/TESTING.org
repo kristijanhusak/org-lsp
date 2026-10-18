@@ -347,6 +347,9 @@ its sections says what it should look like.
 - [ ] Hovering a key shows its entry; following it opens the bibliography there
 - [ ] An unknown key is reported, with close keys to put instead
 - [ ] Inserting a citation, picking keys; on a citation, adding a key; with the prefix, deleting one: ~Ctrl+C Ctrl+X @~, /Org: Delete the citation or reference at the cursor, or insert one with a style/
+- [ ] A new BibTeX entry asks for its type (completed), title, required fields and key, then is a headline with those properties: /Org: BibTeX: new entry, its fields asked for/
+- [ ] The entry at the cursor copied as BibTeX; the file's entries exported to the ~.bib~ file asked for: /Org: BibTeX: copy the entry at the cursor as BibTeX/, /Org: BibTeX: export the entries of the file to a .bib file/
+- [ ] A BibTeX entry copied from elsewhere pasted as a headline; a ~.bib~ file imported: /Org: BibTeX: paste a BibTeX entry as a heading/, /Org: BibTeX: import the entries of a BibTeX file as headings/
 
 * Diagnostics (org-lint)
 

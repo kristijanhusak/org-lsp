@@ -1101,6 +1101,87 @@ pub const SETTINGS: &[Setting] = &[
          processors cannot insert, and those of packages (citar) are not run; `false` for none.",
     ),
     setting(
+        "org_bibtex_autogen_keys",
+        "boolean",
+        "false",
+        "org-bibtex-autogen-keys",
+        "Whether `org.bibtex.create` and `org.bibtex.check` make the key of a new BibTeX entry from its author, \
+         year and title, as `bibtex-generate-autokey` makes it (through Emacs), instead of asking for it \
+         (`id`).",
+    ),
+    Setting {
+        default: None,
+        unset: "none",
+        ..setting(
+            "org_bibtex_prefix",
+            "string",
+            "",
+            "org-bibtex-prefix",
+            "What the names of the properties the BibTeX commands write start with (`BIB_` gives `BIB_AUTHOR`), \
+             but for the key's; they read the names with it and without.",
+        )
+    },
+    setting(
+        "org_bibtex_treat_headline_as_title",
+        "boolean",
+        "true",
+        "org-bibtex-treat-headline-as-title",
+        "A headline without a `TITLE` property is the title of its BibTeX entry, and `org.bibtex.check` does \
+         not ask for one.",
+    ),
+    setting(
+        "org_bibtex_export_arbitrary_fields",
+        "boolean",
+        "false",
+        "org-bibtex-export-arbitrary-fields",
+        "With `org_bibtex_prefix`, every property whose name has the prefix is a field of the entry exported \
+         (`org.bibtex.export`, `org.bibtex.copy`), not only those of its type.",
+    ),
+    setting(
+        "org_bibtex_key_property",
+        "string",
+        r#""CUSTOM_ID""#,
+        "org-bibtex-key-property",
+        "The property that holds an entry's BibTeX key. `ID` makes the key a global ID.",
+    ),
+    setting(
+        "org_bibtex_tags",
+        "string[]",
+        "[]",
+        "org-bibtex-tags",
+        "Tags given to the entries the BibTeX commands make.",
+    ),
+    setting(
+        "org_bibtex_tags_are_keywords",
+        "boolean",
+        "false",
+        "org-bibtex-tags-are-keywords",
+        "The `keywords` field of an entry read is its tags (spaces as `_`, other characters a tag cannot have \
+         left out), and an entry's own tags are its `keywords` when exported, but for those of `org_bibtex_tags` \
+         and `org_bibtex_no_export_tags`.",
+    ),
+    setting(
+        "org_bibtex_no_export_tags",
+        "string[]",
+        "[]",
+        "org-bibtex-no-export-tags",
+        "Tags that are not exported as keywords, with `org_bibtex_tags_are_keywords`.",
+    ),
+    setting(
+        "org_bibtex_inherit_tags",
+        "boolean",
+        "false",
+        "org-bibtex-inherit-tags",
+        "With `org_bibtex_tags_are_keywords`, the tags an entry inherits are keywords too.",
+    ),
+    setting(
+        "org_bibtex_type_property_name",
+        "string",
+        r#""btype""#,
+        "org-bibtex-type-property-name",
+        "The property that holds an entry's BibTeX type (`article`); a headline without it is no entry.",
+    ),
+    setting(
         "org_link_abbrev_alist",
         "{ [abbreviation]: string }",
         "{}",
@@ -3666,6 +3747,16 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_complete_tags_always_offer_all_agenda_tags", BOOLEAN),
     ("org_cite_global_bibliography", r#"{ "type": "array", "items": { "type": "string" } }"#),
     ("org_cite_insert_processor", r#"{ "anyOf": [{ "type": "string" }, { "const": false }] }"#),
+    ("org_bibtex_autogen_keys", BOOLEAN),
+    ("org_bibtex_prefix", STRING),
+    ("org_bibtex_treat_headline_as_title", BOOLEAN),
+    ("org_bibtex_export_arbitrary_fields", BOOLEAN),
+    ("org_bibtex_key_property", STRING),
+    ("org_bibtex_tags", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("org_bibtex_tags_are_keywords", BOOLEAN),
+    ("org_bibtex_no_export_tags", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("org_bibtex_inherit_tags", BOOLEAN),
+    ("org_bibtex_type_property_name", STRING),
     ("org_link_abbrev_alist", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
     (
         "org_file_apps",
@@ -4289,7 +4380,7 @@ mod tests {
                 options.capture_templates(),
                 options.org_directory(),
                 options.default_notes_file(),
-                (options.separator_lines(), options.roam(), options.inlinetask_min_level()),
+                (options.separator_lines(), options.roam(), options.inlinetask_min_level(), options.bibtex_settings()),
             )
         )
     }

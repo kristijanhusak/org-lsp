@@ -525,6 +525,62 @@
     }
   },
   {
+    "caption": "Org: BibTeX: export the entries of the file to a .bib file",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.bibtex.export"
+    }
+  },
+  {
+    "caption": "Org: BibTeX: copy the entry at the cursor as BibTeX",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.bibtex.copy"
+    }
+  },
+  {
+    "caption": "Org: BibTeX: new entry, its fields asked for",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.bibtex.create"
+    }
+  },
+  {
+    "caption": "Org: BibTeX: make the entry at the cursor a BibTeX entry",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.bibtex.create.here"
+    }
+  },
+  {
+    "caption": "Org: BibTeX: ask for the fields the entry at the cursor lacks",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.bibtex.check"
+    }
+  },
+  {
+    "caption": "Org: BibTeX: ask for the fields every entry lacks",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.bibtex.check.all"
+    }
+  },
+  {
+    "caption": "Org: BibTeX: paste a BibTeX entry as a heading",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.bibtex.yank"
+    }
+  },
+  {
+    "caption": "Org: BibTeX: import the entries of a BibTeX file as headings",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.bibtex.import"
+    }
+  },
+  {
     "caption": "Org: Set the tags of the headline",
     "command": "org_lsp_run",
     "args": {

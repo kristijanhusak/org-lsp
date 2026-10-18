@@ -215,6 +215,14 @@ pub const LINK_INSERT_ALL: &str = "org.link.insert.all";
 pub const ID_GET_CREATE: &str = "org.id.create";
 pub const CITE_INSERT: &str = "org.cite.insert";
 pub const CITE_INSERT_PREFIX: &str = "org.cite.insert.prefix";
+pub const BIBTEX_EXPORT: &str = "org.bibtex.export";
+pub const BIBTEX_COPY: &str = "org.bibtex.copy";
+pub const BIBTEX_CREATE: &str = "org.bibtex.create";
+pub const BIBTEX_CREATE_HERE: &str = "org.bibtex.create.here";
+pub const BIBTEX_CHECK: &str = "org.bibtex.check";
+pub const BIBTEX_CHECK_ALL: &str = "org.bibtex.check.all";
+pub const BIBTEX_YANK: &str = "org.bibtex.yank";
+pub const BIBTEX_IMPORT: &str = "org.bibtex.import";
 pub const TODO_NEXT: &str = "org.todo.next";
 pub const TODO_PREVIOUS: &str = "org.todo.previous";
 pub const TODO_NEXT_SET: &str = "org.todo.nextset";
@@ -723,6 +731,30 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, "<Leader>oiC")],
         input: Some(Input { kind: "choice", prompt: "Key" }),
         ..edit(CITE_INSERT_PREFIX, "Delete the citation or reference at the cursor, or insert one with a style")
+    },
+    // `ol-bibtex.el`, whose commands have no keys in Emacs either. With a
+    // count (Emacs's prefix argument) the create and check commands ask
+    // for the optional fields too, and the yank adds to the entry at the
+    // cursor.
+    Command {
+        input: Some(Input { kind: "text", prompt: "BibTeX file" }),
+        ..command(BIBTEX_EXPORT, "BibTeX: export the entries of the file to a .bib file")
+    },
+    command(BIBTEX_COPY, "BibTeX: copy the entry at the cursor as BibTeX"),
+    Command {
+        input: Some(Input { kind: "text", prompt: "Type" }),
+        ..edit(BIBTEX_CREATE, "BibTeX: new entry, its fields asked for")
+    },
+    Command {
+        input: Some(Input { kind: "text", prompt: "Type" }),
+        ..edit(BIBTEX_CREATE_HERE, "BibTeX: make the entry at the cursor a BibTeX entry")
+    },
+    edit(BIBTEX_CHECK, "BibTeX: ask for the fields the entry at the cursor lacks"),
+    edit(BIBTEX_CHECK_ALL, "BibTeX: ask for the fields every entry lacks"),
+    Command { clipboard: true, ..edit(BIBTEX_YANK, "BibTeX: paste a BibTeX entry as a heading") },
+    Command {
+        input: Some(Input { kind: "text", prompt: "File" }),
+        ..edit(BIBTEX_IMPORT, "BibTeX: import the entries of a BibTeX file as headings")
     },
     // `C-c C-c` on an item (`org-ctrl-c-ctrl-c`): its checkbox toggled and
     // the list repaired (indentation, bullets, numbers, checkboxes); at

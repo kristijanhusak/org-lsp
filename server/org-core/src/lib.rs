@@ -6,6 +6,7 @@
 
 pub mod agenda;
 pub mod archive;
+pub mod bibtex;
 pub mod calc;
 pub mod calendar;
 pub mod capture;

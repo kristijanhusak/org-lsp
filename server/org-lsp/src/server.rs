@@ -424,6 +424,9 @@ struct Context {
     answers: Option<String>,
     /// For the property commands: the question `input` answers.
     step: Option<String>,
+    /// For the commands that ask several questions in turn (the BibTeX
+    /// commands): the answers so far; `input` is then the next one.
+    replies: Option<Vec<String>>,
     /// The text of the buffer the command runs in, as the editor has it:
     /// a capture or note buffer whose last changes the server may not have
     /// heard of yet.
@@ -1120,6 +1123,8 @@ struct Server {
     cite_global: Vec<String>,
     /// `org-cite-insert-processor`
     cite_insert_processor: Option<String>,
+    /// The options of `ol-bibtex.el`.
+    bibtex: org_core::bibtex::Settings,
     /// `org-link-abbrev-alist`.
     link_abbreviations: Vec<(String, String)>,
     /// `org-agenda-dim-blocked-tasks`.
@@ -1688,6 +1693,7 @@ pub fn run(connection: Connection) -> Result<()> {
         displayed: HashSet::new(),
         cite_global: options.cite_global_bibliography.clone().unwrap_or_default(),
         cite_insert_processor: options.cite_insert_processor(),
+        bibtex: options.bibtex_settings(),
         dim_blocked: match &options.agenda_dim_blocked_tasks {
             Some(LogOption::Flag(false)) => DimBlocked::No,
             Some(LogOption::Name(name)) if name == "invisible" => DimBlocked::Hide,
@@ -5156,8 +5162,13 @@ impl Server {
                 let (target, text) = self.file_text(&path).ok_or_else(|| format!("Cannot read {}", path.display()))?;
                 let org = path.extension().is_some_and(|extension| extension == "org" || extension == "org_archive");
                 let parse = org.then(|| org_syntax::parse(&text, &self.todo));
-                let offset =
-                    open::search_in_file_with(&text, parse.as_ref(), search, self.open_settings.exact_headline)?;
+                // A BibTeX file is searched for the entry of a key, as
+                // `ol-bibtex.el` searches it.
+                let offset = if path.extension().is_some_and(|extension| extension == "bib") {
+                    open::search_in_bibtex(&text, search)
+                } else {
+                    open::search_in_file_with(&text, parse.as_ref(), search, self.open_settings.exact_headline)?
+                };
                 Ok(Some(at(target, &text, offset)))
             }
             Open::Id(id) => {
@@ -6554,6 +6565,16 @@ impl Server {
                 self.link_insert(&params.command, &context.ok_or("This command needs the cursor position")?)
             }
             commands::ID_GET_CREATE => self.id_get_create(&context.ok_or("This command needs the cursor position")?),
+            commands::BIBTEX_EXPORT
+            | commands::BIBTEX_COPY
+            | commands::BIBTEX_CREATE
+            | commands::BIBTEX_CREATE_HERE
+            | commands::BIBTEX_CHECK
+            | commands::BIBTEX_CHECK_ALL
+            | commands::BIBTEX_YANK
+            | commands::BIBTEX_IMPORT => {
+                self.bibtex(&params.command, &context.ok_or("This command needs the cursor position")?)
+            }
             commands::CITE_INSERT | commands::CITE_INSERT_PREFIX => self.cite_insert(
                 params.command == commands::CITE_INSERT_PREFIX,
                 &context.ok_or("This command needs the cursor position")?,
@@ -13990,6 +14011,141 @@ impl Server {
     /// The entry of `key` in a bibliography, and the file it is in.
     fn cite_entry<'a>(files: &'a [Rc<BibFile>], key: &str) -> Option<(&'a BibFile, &'a org_core::cite::Entry)> {
         files.iter().find_map(|file| file.entries.iter().find(|entry| entry.key == key).map(|entry| (&**file, entry)))
+    }
+
+    /// The commands of `ol-bibtex.el`: `org-bibtex` (`org.bibtex.export`,
+    /// to the file asked for), `org-bibtex-export-to-kill-ring`
+    /// (`org.bibtex.copy`, the entry in `copy`), `org-bibtex-create` and
+    /// `org-bibtex-create-in-current-entry`, `org-bibtex-check` and
+    /// `org-bibtex-check-all`, `org-bibtex-yank` (from the clipboard) and
+    /// `org-bibtex-import-from-file`. Their questions come one at a time,
+    /// with the answers so far in the input's context (`replies`). A key
+    /// `org_bibtex_autogen_keys` makes comes from Emacs's
+    /// `bibtex-generate-autokey`.
+    fn bibtex(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
+        use org_core::bibtex::{self, Env, Stop};
+        let uri = context.text_document.uri.clone();
+        if self.is_view(&uri) {
+            return Err(Refusal::NotHere("This command works in Org files".to_string()));
+        }
+        let encoding = self.client.encoding;
+        let document = self.document(&uri).ok_or("This file is not open")?;
+        let text = document.text.clone();
+        let offset = document.index.offset(&text, context.position, encoding);
+        let path = uri::to_path(&uri);
+        let stem = path.as_ref().and_then(|path| path.file_stem()).map(|stem| stem.to_string_lossy().into_owned());
+        let category = stem.clone().unwrap_or_default();
+        let buffer = path
+            .as_ref()
+            .and_then(|path| path.file_name())
+            .map_or(String::new(), |name| name.to_string_lossy().into_owned());
+        let indent = self.indent_in(&text);
+        let mut edit_settings = self.edit_settings.clone();
+        edit_settings.todo.adapt = indent.adapt;
+        let settings = self.bibtex.clone();
+        let inheritance = self.workspace.inheritance.clone();
+        let env = Env {
+            settings: &settings,
+            edit: &edit_settings,
+            keywords: &self.todo,
+            inheritance: &inheritance,
+            indent: &indent,
+            category: &category,
+            buffer: &buffer,
+        };
+        let mut replies = context.replies.clone().unwrap_or_default();
+        replies.extend(context.input.clone());
+        // Importing asks nothing after the file.
+        let refused = |stop: Stop| {
+            Refusal::Failed(match stop {
+                Stop::Failed(message) => message,
+                Stop::Ask(question) => question.prompt,
+            })
+        };
+        // A file asked for, relative to the Org file's directory.
+        let ask_file =
+            |prompt: &str, value: &str| json!({ "input": { "kind": "text", "prompt": prompt, "value": value } });
+        match id {
+            commands::BIBTEX_EXPORT => {
+                let Some(answer) = context.input.as_deref() else {
+                    let value = stem.map(|stem| format!("{stem}.bib")).unwrap_or_default();
+                    return Ok(ask_file("BibTeX file", &value));
+                };
+                let target = self.link_path(&uri, answer).ok_or("Cannot write the file")?;
+                let (entries, count) = bibtex::export(&text, &env);
+                std::fs::write(&target, entries).map_err(|error| Refusal::Failed(error.to_string()))?;
+                self.message = Some(format!("Successfully exported {count} BibTeX entries to {}", target.display()));
+                return Ok(Value::Null);
+            }
+            commands::BIBTEX_COPY => {
+                // `kill-new` of nothing, without a type.
+                let entry = bibtex::headline(&text, offset, &env)
+                    .ok_or_else(|| Refusal::Failed("Wrong type argument: stringp, nil".to_string()))?;
+                self.kill = Some(entry.clone());
+                return Ok(json!({ "copy": entry }));
+            }
+            commands::BIBTEX_YANK => {
+                let clipboard = context.clipboard.clone().or_else(|| self.kill.clone()).unwrap_or_default();
+                // (The clipboard comes again with each answer.)
+                let outcome = bibtex::yank(&text, offset, &clipboard, context.count.is_some(), &replies, &env);
+                return self.bibtex_outcome(context, outcome, replies);
+            }
+            commands::BIBTEX_IMPORT => {
+                let Some(answer) = context.input.as_deref() else { return Ok(ask_file("File", "")) };
+                let file = self.link_path(&uri, answer).filter(|file| file.is_file()).ok_or("[No match]")?;
+                let bib = String::from_utf8_lossy(&std::fs::read(&file).map_err(|error| error.to_string())?)
+                    .replace("\r\n", "\n");
+                let (outcome, count) = bibtex::import(&text, offset, &bib, &env).map_err(refused)?;
+                self.message = Some(format!("Parsed {count} entries"));
+                return self.carried(context, outcome);
+            }
+            _ => {}
+        }
+        let optional = context.count.is_some();
+        let caller = self.emacs.caller();
+        let autokey = |entry: &str| -> std::result::Result<String, String> {
+            let key = caller.call("bibtex-autokey", json!({ "entry": entry }), std::time::Duration::from_secs(30))?;
+            key.as_str().map(str::to_string).ok_or_else(|| "Emacs made no key".to_string())
+        };
+        let outcome = match id {
+            commands::BIBTEX_CREATE | commands::BIBTEX_CREATE_HERE => {
+                bibtex::create(&text, offset, optional, id == commands::BIBTEX_CREATE_HERE, &replies, &autokey, &env)
+            }
+            commands::BIBTEX_CHECK => bibtex::check(&text, offset, optional, &replies, &autokey, &env),
+            _ => bibtex::check_all(&text, offset, &replies, &autokey, &env),
+        };
+        self.bibtex_outcome(context, outcome, replies)
+    }
+
+    /// What a BibTeX command came to: its edit, its error, or its next
+    /// question, with the answers so far.
+    fn bibtex_outcome(
+        &mut self,
+        context: &Context,
+        outcome: std::result::Result<org_core::newline::Outcome, org_core::bibtex::Stop>,
+        replies: Vec<String>,
+    ) -> std::result::Result<Value, Refusal> {
+        use org_core::bibtex::Stop;
+        match outcome {
+            Ok(outcome) => self.carried(context, outcome),
+            Err(Stop::Failed(message)) => Err(Refusal::Failed(message)),
+            // The prompt as editors show it, without Emacs's `: `.
+            Err(Stop::Ask(question)) => {
+                let mut input = json!({
+                    "kind": "text",
+                    "prompt": question.prompt.trim_end_matches(": "),
+                    "value": question.initial.unwrap_or_default(),
+                    "context": { "replies": replies },
+                });
+                if !question.completions.is_empty() {
+                    input["completions"] = json!(question.completions);
+                }
+                if question.select {
+                    input["select"] = json!(true);
+                }
+                Ok(json!({ "input": input }))
+            }
+        }
     }
 
     /// `org-cite-insert` (`C-c C-x @`), with the prefix argument `arg`

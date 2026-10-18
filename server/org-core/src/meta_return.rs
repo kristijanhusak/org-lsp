@@ -523,6 +523,15 @@ pub fn insert_link_heading(text: &str, search: &str, keywords: &TodoKeywords, se
     Outcome { text: buffer.text, cursor }
 }
 
+/// `org-insert-heading` called from Lisp, as `ol-bibtex.el` calls it: a
+/// heading at the cursor, or after the subtree with
+/// `org-insert-heading-respect-content`; never an item.
+pub fn insert_heading_here(text: &str, at: usize, keywords: &TodoKeywords, settings: &Settings) -> Outcome {
+    let mut buffer = Buffer { text: text.to_string(), point: at };
+    insert_heading(&mut buffer, keywords, settings, settings.respect_content);
+    Outcome { text: buffer.text, cursor: buffer.point }
+}
+
 /// C-RET (`org-insert-heading-respect-content`): a heading after the
 /// subtree.
 pub fn insert_heading_after(text: &str, at: usize, keywords: &TodoKeywords, settings: &Settings) -> Outcome {

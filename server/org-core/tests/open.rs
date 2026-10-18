@@ -5,7 +5,9 @@
 use std::path::{Path, PathBuf};
 
 use org_core::meta_return;
-use org_core::open::{at_point_calling, find_id, may_create, search_in_file_with, ExactHeadline, Open, Settings};
+use org_core::open::{
+    at_point_calling, find_id, may_create, search_in_bibtex, search_in_file_with, ExactHeadline, Open, Settings,
+};
 use org_syntax::{Parse, TodoKeywords};
 use serde_json::{json, Value};
 
@@ -101,6 +103,9 @@ fn opening_matches_emacs() {
                     let target_parse = parse(&target);
                     match search {
                         None => goto(&wanted, &target, 0),
+                        Some(option) if wanted.ends_with(".bib") => {
+                            goto(&wanted, &target, search_in_bibtex(&target, &option))
+                        }
                         Some(option) => {
                             match search_in_file_with(&target, org.then_some(&target_parse), &option, exact) {
                                 Ok(at) => goto(&wanted, &target, at),

@@ -723,6 +723,7 @@ export const AREAS = [
       ['Opening a linked file that is not there with its program rather than saying `No such file` (`org-open-non-existing-files`)', true],
       ['A link to a directory opening the `index.org` in it (`org-open-directory-means-index-dot-org`)', true],
       ['Following a `shell:` link: its command runs once the user says yes to `Execute … in shell?`, or at once when `org-link-shell-skip-confirm-regexp` matches it; what it writes is a message, which Emacs shows in a buffer when long', true],
+      ['Following a `bibtex:` link, or a `file:` link into a `.bib` file, to the entry of the key after `::` (`org-bibtex-open`, `org-execute-file-search-in-bibtex`)', true],
     ],
     editors: {
       zed: ['part', `A link's target is typed, without completion: ${ZED_TEXT}. Following works through go to definition, for links inside Org files and to files.`],
@@ -920,15 +921,23 @@ export const AREAS = [
       ['Inserting, editing and deleting citations (`C-c C-x @`)', true],
       ['No processor to insert citations, or one of Org\'s that cannot (`org-cite-insert-processor`)', true],
       ['A package\'s processor to insert citations, citar\'s (`org-cite-insert-processor`)', false],
+      ['BibTeX entries as headlines (`ol-bibtex.el`): the entries of the file\'s headlines written to a `.bib` file (`org-bibtex`, `org.bibtex.export`), the entry at the cursor copied as BibTeX (`org-bibtex-export-to-kill-ring`, `org.bibtex.copy`), with the prefix, the type and key properties, the keywords as tags and the fields of any property (`org_bibtex_*`)', true],
+      ['A new BibTeX entry, its type and fields asked for in turn (`org-bibtex-create`, `org-bibtex-create-in-current-entry`), and the fields entries lack (`org-bibtex-check`, `org-bibtex-check-all`); with a count the optional fields too; keys made by `bibtex-generate-autokey` through Emacs (`org_bibtex_autogen_keys`)', true],
+      ['A BibTeX entry pasted as a headline (`org-bibtex-yank`, from the clipboard), and the entries of a BibTeX file imported (`org-bibtex-import-from-file`)', true],
+      ['The rest of `ol-bibtex.el`: the help on a field while it is asked for (`*BibTeX Help*`); `org-bibtex-headline-format-function`, a Lisp function (its default, the title, is what a headline gets); searching the agenda files for entries (`org-bibtex-search`); reading an entry in a `.bib` file and storing a link to it (`org-bibtex-read`, `org-bibtex-store-link`): org-lsp serves no BibTeX files', false],
     ],
     editors: {
-      helix: ['part', 'Inserting citations is not offered as a code action yet. Completion, hover and following work.'],
+      zed: ['part', `The BibTeX commands' fields are asked for in turn, and ${ZED_TEXT}.`],
+      helix: ['part', 'Inserting citations and the BibTeX commands are not offered as code actions yet. Completion, hover and following work.'],
     },
     checks: [
       { text: 'Keys are completed after `[cite:@`' },
       { text: 'Hovering a key shows its entry; following it opens the bibliography there' },
       { text: 'An unknown key is reported, with close keys to put instead' },
       { text: 'Inserting a citation, picking keys; on a citation, adding a key; with the prefix, deleting one', cmd: ['org.cite.insert', 'org.cite.insert.prefix'], not: ['zed', 'helix'] },
+      { text: 'A new BibTeX entry asks for its type (completed), title, required fields and key, then is a headline with those properties', cmd: 'org.bibtex.create', not: ['helix'] },
+      { text: 'The entry at the cursor copied as BibTeX; the file\'s entries exported to the `.bib` file asked for', cmd: ['org.bibtex.copy', 'org.bibtex.export'], not: ['helix'] },
+      { text: 'A BibTeX entry copied from elsewhere pasted as a headline; a `.bib` file imported', cmd: ['org.bibtex.yank', 'org.bibtex.import'], not: ['helix'] },
     ],
   },
   {

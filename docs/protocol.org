@@ -391,6 +391,16 @@ Each option with its type, its default and what it means:
 - ~org_complete_tags_always_offer_all_agenda_tags~ :: boolean, ~false~. Completing a tag offers the tags of every agenda file, after those of the file. Off, only the file's own. Setting tags offers them too. (~org-complete-tags-always-offer-all-agenda-tags~)
 - ~org_cite_global_bibliography~ :: string[], ~[]~. Bibliography files for the citations of every document (~[cite:@key]~), after those its ~#+BIBLIOGRAPHY:~ lines name: BibTeX (~.bib~, ~.bibtex~) or CSL-JSON (~.json~). Their entries are completed after ~@~, shown over a key, and where following a key goes; a key none has is marked. (~org-cite-global-bibliography~)
 - ~org_cite_insert_processor~ :: string, false, ~"basic"~. The citation processor ~org.cite.insert~ inserts with: ~basic~, as Org's own does; Org's other processors cannot insert, and those of packages (citar) are not run; ~false~ for none. (~org-cite-insert-processor~)
+- ~org_bibtex_autogen_keys~ :: boolean, ~false~. Whether ~org.bibtex.create~ and ~org.bibtex.check~ make the key of a new BibTeX entry from its author, year and title, as ~bibtex-generate-autokey~ makes it (through Emacs), instead of asking for it (~id~). (~org-bibtex-autogen-keys~)
+- ~org_bibtex_prefix~ :: string, none. What the names of the properties the BibTeX commands write start with (~BIB_~ gives ~BIB_AUTHOR~), but for the key's; they read the names with it and without. (~org-bibtex-prefix~)
+- ~org_bibtex_treat_headline_as_title~ :: boolean, ~true~. A headline without a ~TITLE~ property is the title of its BibTeX entry, and ~org.bibtex.check~ does not ask for one. (~org-bibtex-treat-headline-as-title~)
+- ~org_bibtex_export_arbitrary_fields~ :: boolean, ~false~. With ~org_bibtex_prefix~, every property whose name has the prefix is a field of the entry exported (~org.bibtex.export~, ~org.bibtex.copy~), not only those of its type. (~org-bibtex-export-arbitrary-fields~)
+- ~org_bibtex_key_property~ :: string, ~"CUSTOM_ID"~. The property that holds an entry's BibTeX key. ~ID~ makes the key a global ID. (~org-bibtex-key-property~)
+- ~org_bibtex_tags~ :: string[], ~[]~. Tags given to the entries the BibTeX commands make. (~org-bibtex-tags~)
+- ~org_bibtex_tags_are_keywords~ :: boolean, ~false~. The ~keywords~ field of an entry read is its tags (spaces as ~_~, other characters a tag cannot have left out), and an entry's own tags are its ~keywords~ when exported, but for those of ~org_bibtex_tags~ and ~org_bibtex_no_export_tags~. (~org-bibtex-tags-are-keywords~)
+- ~org_bibtex_no_export_tags~ :: string[], ~[]~. Tags that are not exported as keywords, with ~org_bibtex_tags_are_keywords~. (~org-bibtex-no-export-tags~)
+- ~org_bibtex_inherit_tags~ :: boolean, ~false~. With ~org_bibtex_tags_are_keywords~, the tags an entry inherits are keywords too. (~org-bibtex-inherit-tags~)
+- ~org_bibtex_type_property_name~ :: string, ~"btype"~. The property that holds an entry's BibTeX type (~article~); a headline without it is no entry. (~org-bibtex-type-property-name~)
 - ~org_link_abbrev_alist~ :: { [abbreviation]: string }, ~{}~. Link abbreviations: ~[[gh:org-lsp]]~ with ~{ "gh": "https://github.com/%s" }~ follows ~https://github.com/org-lsp~. ~%s~ stands for what follows the colon, ~%h~ for it URL-encoded; without either it goes at the end. A file's ~#+LINK:~ lines come first. ~%(my-function)~ calls an Emacs function with what follows the colon (through Emacs). (~org-link-abbrev-alist~)
 - ~org_file_apps~ :: [match, command][], ~[["auto-mode", "emacs"], ["directory", "emacs"], ["\\.mm\\'", "default"], ["\\.x?html?\\'", "default"], ["\\.pdf\\'", "default"]]~. What opens a linked file, the first entry that matches: a match is an extension (~txt~), an Emacs regular expression for the file name (~\\.pdf\\'~ in JSON; with groups ~%1~, ~%2~... in the command, it matches the file followed by the link's ~::~ part), ~directory~, ~remote~, ~system~ (what ~C-u C-u C-c C-o~ uses), ~auto-mode~ (every file the editor can show) or ~t~ (any other file). A command is ~emacs~ (the editor), ~default~ (the ~system~ entry, else the editor), ~system~ or ~mailcap~ (the system's application, through the editor), or a shell command where ~%s~ is the file. ~C-u C-c C-o~ opens the file in the editor. A Lisp function is not a command here. (~org-file-apps~)
 - ~org_open_non_existing_files~ :: boolean, ~false~. Open a linked file that is not there with the application ~org_file_apps~ gives it, rather than saying ~No such file~. The editor opens such a file either way. (~org-open-non-existing-files~)
@@ -1506,6 +1516,32 @@ increments a number.
   keyword line, a block other than a verse block, a drawer's lines, a link,
   a timestamp, a headline's stars or tags, …) and without a bibliography
   (~No bibliography set~).
+- ~org.bibtex.export~, ~org.bibtex.copy~ :: ~org-bibtex~ and
+  ~org-bibtex-export-to-kill-ring~: the BibTeX entry of each headline with
+  a type (~org_bibtex_type_property_name~) written to the file asked for
+  (input kind ~text~, prompt ~BibTeX file~, the Org file's name with
+  ~.bib~ as ~value~, relative to its directory), with Emacs's
+  /Successfully exported N BibTeX entries to FILE/; or the entry at the
+  cursor in ~copy~, for the editor's clipboard.
+- ~org.bibtex.create~, ~org.bibtex.create.here~, ~org.bibtex.check~,
+  ~org.bibtex.check.all~ :: ~org-bibtex-create~ (a new heading at the
+  cursor), ~org-bibtex-create-in-current-entry~, ~org-bibtex-check~ and
+  ~org-bibtex-check-all~: their questions one at a time, as Emacs asks them
+  (input kind ~text~): the type (prompt ~Type~, completed from Org's types,
+  ~"select": true~), the title, each field the type requires and the entry
+  lacks (prompt the field's name; an empty answer leaves it out), one of two
+  fields where either will do (prompt ~Field~), the key (prompt ~id~);
+  with a count (Emacs's prefix argument) the optional fields too. The
+  answers so far come back in the input's ~context~ (~replies~, a list).
+  With ~org_bibtex_autogen_keys~ the key is not asked for: Emacs's
+  ~bibtex-generate-autokey~ makes it, through Emacs. Emacs's errors are
+  the refusals (~Type::paper is not known~).
+- ~org.bibtex.yank~ :: ~org-bibtex-yank~ (~"clipboard": true~): the last
+  BibTeX entry of the clipboard as a heading at the cursor, its fields as
+  properties; with a count, added to the entry at the cursor.
+- ~org.bibtex.import~ :: ~org-bibtex-import-from-file~: the entries of the
+  BibTeX file asked for (input kind ~text~, prompt ~File~) as headings
+  after the cursor, with /Parsed N entries/.
 - ~org.heading.next~, ~org.heading.previous~, ~org.heading.forward~,
   ~org.heading.backward~, ~org.heading.up~, ~org.link.next~,
   ~org.link.previous~ :: Org's motion commands: ~org-next-visible-heading~

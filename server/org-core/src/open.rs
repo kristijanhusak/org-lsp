@@ -483,6 +483,8 @@ fn open_link(node: &SyntaxNode, text: &str, parse: &Parse, abbreviations: &Abbre
     if let Some((kind, path)) = link_type(&raw) {
         return match kind.to_lowercase().as_str() {
             "file" => Ok(file(path, None)),
+            // `org-bibtex-open`: the file, at the entry the search names.
+            "bibtex" => Ok(file(path, None)),
             "file+emacs" => Ok(file(path, Some("emacs"))),
             "file+sys" => Ok(file(path, Some("sys"))),
             "attachment" => Ok(Open::Attachment(path.to_string())),
@@ -967,6 +969,14 @@ fn coderef(root: &SyntaxNode, text: &str, name: &str) -> Option<usize> {
             }
             None
         })
+}
+
+/// `org-execute-file-search-in-bibtex`, a file link's search in a
+/// BibTeX file (`bibtex-mode`): the start of the entry whose key is
+/// `key`, matched without regard to case, or else of the file.
+pub fn search_in_bibtex(text: &str, key: &str) -> usize {
+    let pattern = format!(r"(?i)@[a-zA-Z]+[ \t\n]*\{{[ \t\n]*{}[ \t\n]*,", regex::escape(key));
+    regex::Regex::new(&pattern).ok().and_then(|regex| regex.find(text)).map_or(0, |found| found.start())
 }
 
 /// Where a `file:` link's search option leads in its file: a line number,

@@ -133,7 +133,7 @@ command. [[file:keys/vim.org][keys/vim.org]] lists every key and how to change i
 | [[file:parity.org::#table-formulas][Table formulas]] | 100% | ✅ |  |
 | [[file:parity.org::#code-blocks-babel][Code blocks (Babel)]] | 100% | ✅ |  |
 | [[file:parity.org::#export-and-publishing][Export and publishing]] | 100% | ✅ |  |
-| [[file:parity.org::#citations][Citations]] | 86% | ✅ |  |
+| [[file:parity.org::#citations][Citations]] | 82% | ✅ |  |
 | [[file:parity.org::#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% | ✅ |  |
 | [[file:parity.org::#indentation-and-formatting][Indentation and formatting]] | 88% | ❓ | The lines a long line wraps into are not indented. |
 | [[file:parity.org::#notes-and-logging][Notes and logging]] | 100% | ✅ |  |

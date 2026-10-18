@@ -3374,3 +3374,88 @@ fn inserts_inline_tasks() {
     assert_eq!(insert("org.inlinetask.insert", todo.clone()), format!("* A\n{stars} TODO \n{stars} END\nbody\n"));
     assert_eq!(insert("org.inlinetask.insert.nostate", todo), format!("* A\n{stars} \n{stars} END\nbody\n"));
 }
+
+/// The BibTeX commands of `ol-bibtex.el`: a new entry with its questions
+/// asked one at a time (the answers so far coming back in `replies`),
+/// the entry at the cursor copied as BibTeX, the file's entries exported
+/// to a `.bib` file, a BibTeX entry pasted and a file of them imported
+/// as headings.
+#[test]
+fn bibtex_entries_as_headlines() {
+    let directory = std::env::temp_dir().join(format!("org-lsp-bibtex-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let file = directory.join("notes.org");
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let mut client = Client::start(json!({}), Value::Null);
+    // Each question answered in turn: the prompts asked, and the result.
+    let run = |client: &mut Client, command: &str, text: &str, line: u32, answers: &[&str], extra: Value| {
+        client.open(&uri, text);
+        let mut context =
+            json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": line, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        let mut asked = Vec::new();
+        let mut answers = answers.iter();
+        loop {
+            let result = client
+                .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [context.clone()] }))
+                .response_result
+                .map_err(|error| error.message);
+            let Ok(result) = result else { return (asked, Err(result.unwrap_err())) };
+            let Some(input) = result.get("input").filter(|input| !input.is_null()) else {
+                return (asked, Ok(result));
+            };
+            asked.push(input["prompt"].as_str().unwrap().to_string());
+            for (key, value) in input["context"].as_object().into_iter().flatten() {
+                context[key] = value.clone();
+            }
+            context["input"] = json!(answers.next().expect("an answer"));
+        }
+    };
+    let text = "* a\n";
+    let (asked, result) = run(&mut client, "org.bibtex.create", text, 1, &["misc", "Paper", "k1"], Value::Null);
+    assert_eq!(asked, ["Type", "title", "id"]);
+    let edits: Vec<TextEdit> = serde_json::from_value(result.unwrap()["edits"].clone()).unwrap();
+    let created = apply_text_edits(text, &edits);
+    assert_eq!(created, "* a\n* Paper\n:PROPERTIES:\n:TITLE:    Paper\n:BTYPE:    misc\n:CUSTOM_ID: k1\n:END:\n");
+    // The type is completed from Org's.
+    let context = json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 0, "character": 0 } });
+    let first = client
+        .raw_request("workspace/executeCommand", json!({ "command": "org.bibtex.create", "arguments": [context] }))
+        .response_result
+        .unwrap();
+    assert_eq!(first["input"]["completions"][0], "article");
+    assert_eq!(first["input"]["select"], true);
+    let (_, unknown) = run(&mut client, "org.bibtex.create", text, 1, &["paper"], Value::Null);
+    assert_eq!(unknown.unwrap_err(), "Type::paper is not known");
+
+    let (_, copied) = run(&mut client, "org.bibtex.copy", &created, 1, &[], Value::Null);
+    assert_eq!(copied.unwrap()["copy"], "@misc{k1,\n  title={Paper}\n}\n");
+    let (asked, exported) = run(&mut client, "org.bibtex.export", &created, 0, &["refs.bib"], Value::Null);
+    assert_eq!(asked, ["BibTeX file"]);
+    let target = directory.join("refs.bib");
+    assert_eq!(exported.unwrap()["message"], format!("Successfully exported 1 BibTeX entries to {}", target.display()));
+    assert_eq!(std::fs::read_to_string(&target).unwrap(), "@misc{k1,\n  title={Paper}\n}\n");
+
+    let clipboard = "@article{doe,\n  author = {Jane Doe},\n  title = {On {T}hings},\n  year = 2001\n}\n";
+    let (_, yanked) = run(&mut client, "org.bibtex.yank", text, 1, &[], json!({ "clipboard": clipboard }));
+    let edits: Vec<TextEdit> = serde_json::from_value(yanked.unwrap()["edits"].clone()).unwrap();
+    assert_eq!(
+        apply_text_edits(text, &edits),
+        "* a\n* On {T}hings\n:PROPERTIES:\n:TITLE:    On {T}hings\n:BTYPE:    article\n:CUSTOM_ID: doe\n\
+         :AUTHOR:   Jane Doe\n:YEAR:     2001\n:END:\n"
+    );
+    let (asked, imported) = run(&mut client, "org.bibtex.import", text, 1, &["refs.bib"], Value::Null);
+    assert_eq!(asked, ["File"]);
+    let imported = imported.unwrap();
+    assert_eq!(imported["message"], "Parsed 1 entries");
+    let edits: Vec<TextEdit> = serde_json::from_value(imported["edits"].clone()).unwrap();
+    assert_eq!(
+        apply_text_edits(text, &edits),
+        "* a\n* Paper\n:PROPERTIES:\n:TITLE:    Paper\n:BTYPE:    misc\n:CUSTOM_ID: k1\n:END:\n\n"
+    );
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
