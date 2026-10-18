@@ -481,6 +481,16 @@
         "category": "Org"
       },
       {
+        "command": "org.ctags.create",
+        "title": "Ctags: make the TAGS file of the file's directory",
+        "category": "Org"
+      },
+      {
+        "command": "org.ctags.find",
+        "title": "Ctags: go to a topic, or make it",
+        "category": "Org"
+      },
+      {
         "command": "org.tags.set",
         "title": "Set the tags of the headline",
         "category": "Org"
@@ -2709,6 +2719,54 @@
               "markdownDescription": "An Emacs regexp: a `shell:` link whose command it matches runs when followed without asking `Execute … in shell?` first. Empty asks for every command. (`org-link-shell-skip-confirm-regexp`)",
               "default": ""
             },
+            "org_man_command": {
+              "type": "string",
+              "markdownDescription": "The program that writes the man page of a `man:` link, when `ol-man` is in `org_modules`: the page is shown as text, at the line before the first match of what follows `::` (`man:ls::-l`). `\"woman\"`, Emacs's own reader, is `man` too. (`org-man-command`)",
+              "default": "man"
+            },
+            "org_info_other_documents": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "markdownDescription": "The pages on the web of Info manuals: following an `info:` link to one of them, or to one of Emacs's manuals, opens its page at the node. Another manual is shown as text, as the `info` program writes the node. (`org-info-other-documents`)",
+              "default": {
+                "dir": "https://www.gnu.org/manual/manual.html",
+                "libc": "https://www.gnu.org/software/libc/manual/html_mono/libc.html",
+                "make": "https://www.gnu.org/software/make/manual/make.html"
+              }
+            },
+            "org_ctags_path_to_ctags": {
+              "type": "string",
+              "markdownDescription": "The `ctags` program (Exuberant or Universal Ctags) that `org.ctags.create` runs to make the `TAGS` file of a directory, when `org-ctags` is in `org_modules`. (`org-ctags-path-to-ctags`)",
+              "default": "ctags"
+            },
+            "org_ctags_open_link_functions": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "org-ctags-find-tag",
+                  "org-ctags-ask-rebuild-tags-file-then-find-tag",
+                  "org-ctags-rebuild-tags-file-then-find-tag",
+                  "org-ctags-ask-append-topic",
+                  "org-ctags-append-topic",
+                  "org-ctags-ask-visit-buffer-or-file",
+                  "org-ctags-visit-buffer-or-file",
+                  "org-ctags-fail-silently"
+                ]
+              },
+              "markdownDescription": "With `org-ctags` in `org_modules`, what following a link to a headline, a target or a custom ID tries first, in turn, until one is done: `org-ctags-find-tag` (the tag of the `TAGS` file of the file's directory), `org-ctags-ask-rebuild-tags-file-then-find-tag` and `org-ctags-rebuild-tags-file-then-find-tag` (the `TAGS` file made again, then the tag), `org-ctags-ask-append-topic` and `org-ctags-append-topic` (a new topic at the end of the file), `org-ctags-ask-visit-buffer-or-file` and `org-ctags-visit-buffer-or-file` (the Org file of that name in the directory, made when asked), `org-ctags-fail-silently` (nothing more). When none is done, the link is followed as without them. (`org-ctags-open-link-functions`)",
+              "default": [
+                "org-ctags-find-tag",
+                "org-ctags-ask-rebuild-tags-file-then-find-tag",
+                "org-ctags-ask-append-topic"
+              ]
+            },
+            "org_ctags_new_topic_template": {
+              "type": "string",
+              "markdownDescription": "The text of a new topic `org_ctags_open_link_functions` makes, `%t` the link's text capitalized. (`org-ctags-new-topic-template`)",
+              "default": "* <<%t>>\n\n\n\n\n\n"
+            },
             "org_id_link_to_org_use_id": {
               "enum": [
                 true,
@@ -4097,7 +4155,7 @@
               "items": {
                 "type": "string"
               },
-              "markdownDescription": "Org modules to load. `org-habit` turns habits on: entries with the `STYLE` property `habit` and a scheduled date with a repeater (`.+2d`, `.+2d/4d` for a deadline too) show in the agenda with a graph of the days they were done. Others are ignored. (`org-modules`)",
+              "markdownDescription": "Org modules to load. `org-habit` turns habits on: entries with the `STYLE` property `habit` and a scheduled date with a repeater (`.+2d`, `.+2d/4d` for a deadline too) show in the agenda with a graph of the days they were done. `ol-man` makes `[[man:ls]]` a link to a man page (`org_man_command`). `org-ctags` follows links to the tags of a `TAGS` file, as loading it and calling `org-ctags-enable` does (`org_ctags_open_link_functions`). Others are ignored. (`org-modules`)",
               "default": []
             },
             "org_habit_graph_column": {

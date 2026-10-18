@@ -54,6 +54,7 @@ mod bulk;
 mod clock_persist;
 mod clock_resolve;
 mod journal;
+mod manual;
 mod remote_images;
 mod roam;
 use crate::views::{self, EntryRef, Query, View, ViewLine};
@@ -1210,6 +1211,14 @@ struct Server {
     num_mode: HashMap<String, bool>,
     /// `org-open-directory-means-index-dot-org`
     open_directory_index: bool,
+    /// `org-man-command`
+    man_command: String,
+    /// `org-info-other-documents`
+    info_other_documents: Vec<(String, String)>,
+    /// `org-ctags`, when it is one of `org-modules`.
+    ctags: Option<crate::config::Ctags>,
+    /// Where the man pages and Info nodes links lead to are written.
+    manual_directory: Private,
     /// `org-allow-promoting-top-level-subtree`
     allow_promoting_top_level: bool,
     /// `org-odd-levels-only`, unless a document's `#+STARTUP:` says
@@ -1735,6 +1744,10 @@ pub fn run(connection: Connection) -> Result<()> {
         startup_numerated: options.startup_numerated.unwrap_or(false),
         num_mode: HashMap::new(),
         open_directory_index: options.open_directory_means_index_dot_org.unwrap_or(false),
+        man_command: options.man_command(),
+        info_other_documents: options.info_other_documents(),
+        ctags: options.ctags(),
+        manual_directory: Private::new("manual"),
         allow_promoting_top_level: options.allow_promoting_top_level_subtree.unwrap_or(false),
         odd_levels: options.odd_levels_only.unwrap_or(false),
         inlinetask_default_state: options.inlinetask_default_state.clone().filter(|state| !state.is_empty()),
@@ -1909,7 +1922,7 @@ pub fn run(connection: Connection) -> Result<()> {
     let roam = server.roam.as_ref().into_iter().flat_map(|roam| [&roam.buffer_directory, &roam.graph_directory]);
     for directory in [&server.capture_directory, &server.export_directory, &server.special_directory]
         .into_iter()
-        .chain([&server.journal_views, &server.remote.directory])
+        .chain([&server.journal_views, &server.remote.directory, &server.manual_directory])
         .chain(roam)
         .filter_map(Private::made)
     {
@@ -4807,6 +4820,17 @@ impl Server {
         let shell = context.step.as_deref() == Some("shell");
         let answer = if creating || shell { context.answers.as_deref() } else { context.input.as_deref() }
             .and_then(|input| input.chars().next());
+        // `org-ctags`'s functions in `org-open-link-functions`, which Org
+        // runs first for an internal link.
+        if self.ctags.is_some() && !creating && !shell && !self.is_view(&context.text_document.uri) {
+            if let Some(name) =
+                open::internal_path(&text, &parse, offset, &self.link_abbreviations, &self.open_settings)
+            {
+                if let Some(done) = self.ctags_follow(context, &uri, &text, &name)? {
+                    return Ok(done);
+                }
+            }
+        }
         let call = |link: &str, list: &[(String, String)]| self.expand_abbreviation(link, list);
         let mut opened = open::at_point_calling(
             &text,
@@ -4944,6 +4968,8 @@ impl Server {
                 self.message = Some(format!("Executing {command}"));
             }
             Open::Create(_) => {}
+            Open::Man { page, search } => return self.open_man(page, search.as_deref()),
+            Open::Info { file, node } => return self.open_info(file, node),
             Open::Roam(title) => return self.roam_follow(&uri, offset, title),
             Open::Attachment(_) => return Err("No attachment directory for this entry".into()),
             // `org-cite-basic-goto`: the entry of the key, picked among
@@ -6565,6 +6591,8 @@ impl Server {
                 self.link_insert(&params.command, &context.ok_or("This command needs the cursor position")?)
             }
             commands::ID_GET_CREATE => self.id_get_create(&context.ok_or("This command needs the cursor position")?),
+            commands::CTAGS_CREATE => self.ctags_create(&context.ok_or("This command needs the cursor position")?),
+            commands::CTAGS_FIND => self.ctags_find(&context.ok_or("This command needs the cursor position")?),
             commands::BIBTEX_EXPORT
             | commands::BIBTEX_COPY
             | commands::BIBTEX_CREATE

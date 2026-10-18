@@ -1034,6 +1034,53 @@ pub const SETTINGS: &[Setting] = &[
          … in shell?` first. Empty asks for every command.",
     ),
     setting(
+        "org_man_command",
+        "string",
+        r#""man""#,
+        "org-man-command",
+        "The program that writes the man page of a `man:` link, when `ol-man` is in `org_modules`: the page is \
+         shown as text, at the line before the first match of what follows `::` (`man:ls::-l`). `\"woman\"`, \
+         Emacs's own reader, is `man` too.",
+    ),
+    setting(
+        "org_info_other_documents",
+        "{ [manual]: string }",
+        r#"{ "dir": "https://www.gnu.org/manual/manual.html", "libc": "https://www.gnu.org/software/libc/manual/html_mono/libc.html", "make": "https://www.gnu.org/software/make/manual/make.html" }"#,
+        "org-info-other-documents",
+        "The pages on the web of Info manuals: following an `info:` link to one of them, or to one of Emacs's \
+         manuals, opens its page at the node. Another manual is shown as text, as the `info` program writes the \
+         node.",
+    ),
+    setting(
+        "org_ctags_path_to_ctags",
+        "string",
+        r#""ctags""#,
+        "org-ctags-path-to-ctags",
+        "The `ctags` program (Exuberant or Universal Ctags) that `org.ctags.create` runs to make the `TAGS` \
+         file of a directory, when `org-ctags` is in `org_modules`.",
+    ),
+    setting(
+        "org_ctags_open_link_functions",
+        "string[]",
+        r#"["org-ctags-find-tag", "org-ctags-ask-rebuild-tags-file-then-find-tag", "org-ctags-ask-append-topic"]"#,
+        "org-ctags-open-link-functions",
+        "With `org-ctags` in `org_modules`, what following a link to a headline, a target or a custom ID tries \
+         first, in turn, until one is done: `org-ctags-find-tag` (the tag of the `TAGS` file of the file's \
+         directory), `org-ctags-ask-rebuild-tags-file-then-find-tag` and \
+         `org-ctags-rebuild-tags-file-then-find-tag` (the `TAGS` file made again, then the tag), \
+         `org-ctags-ask-append-topic` and `org-ctags-append-topic` (a new topic at the end of the file), \
+         `org-ctags-ask-visit-buffer-or-file` and `org-ctags-visit-buffer-or-file` (the Org file of that name in \
+         the directory, made when asked), `org-ctags-fail-silently` (nothing more). When none is done, the link \
+         is followed as without them.",
+    ),
+    setting(
+        "org_ctags_new_topic_template",
+        "string",
+        r#""* <<%t>>\n\n\n\n\n\n""#,
+        "org-ctags-new-topic-template",
+        "The text of a new topic `org_ctags_open_link_functions` makes, `%t` the link's text capitalized.",
+    ),
+    setting(
         "org_id_link_to_org_use_id",
         "boolean, string",
         "false",
@@ -2191,7 +2238,9 @@ pub const SETTINGS: &[Setting] = &[
         "org-modules",
         "Org modules to load. `org-habit` turns habits on: entries with the `STYLE` property `habit` and a \
          scheduled date with a repeater (`.+2d`, `.+2d/4d` for a deadline too) show in the agenda with a graph \
-         of the days they were done. Others are ignored.",
+         of the days they were done. `ol-man` makes `[[man:ls]]` a link to a man page (`org_man_command`). \
+         `org-ctags` follows links to the tags of a `TAGS` file, as loading it and calling `org-ctags-enable` \
+         does (`org_ctags_open_link_functions`). Others are ignored.",
     ),
     setting(
         "org_habit_graph_column",
@@ -3812,6 +3861,14 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_link_search_must_match_exact_headline", r#"{ "enum": [true, false, "query-to-create"] }"#),
     ("org_link_doi_server_url", STRING),
     ("org_link_shell_skip_confirm_regexp", STRING),
+    ("org_man_command", STRING),
+    ("org_info_other_documents", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
+    ("org_ctags_path_to_ctags", STRING),
+    (
+        "org_ctags_open_link_functions",
+        r#"{ "type": "array", "items": { "enum": ["org-ctags-find-tag", "org-ctags-ask-rebuild-tags-file-then-find-tag", "org-ctags-rebuild-tags-file-then-find-tag", "org-ctags-ask-append-topic", "org-ctags-append-topic", "org-ctags-ask-visit-buffer-or-file", "org-ctags-visit-buffer-or-file", "org-ctags-fail-silently"] } }"#,
+    ),
+    ("org_ctags_new_topic_template", STRING),
     ("org_link_context_for_files", BOOLEAN),
     ("org_lint", BOOLEAN),
     ("org_lint_ignore", r#"{ "type": "array", "items": { "type": "string" } }"#),

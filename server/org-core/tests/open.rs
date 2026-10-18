@@ -4,6 +4,8 @@
 
 use std::path::{Path, PathBuf};
 
+use org_core::ctags::{self, Outcome};
+use org_core::manual;
 use org_core::meta_return;
 use org_core::open::{
     at_point_calling, find_id, may_create, search_in_bibtex, search_in_file_with, ExactHeadline, Open, Settings,
@@ -71,6 +73,14 @@ fn opening_matches_emacs() {
         if let Some(skip) = case["skip"].as_str() {
             settings.shell_skip_confirm_regexp = skip.to_string();
         }
+        // `ol-man` loaded, with the page `man` shows, and
+        // `org-info-other-documents`.
+        let man_page = case["man"].as_str();
+        settings.man = man_page.is_some();
+        let other_documents = match case["info_other"].as_object() {
+            Some(other) => other.iter().map(|(file, url)| (file.clone(), url.as_str().unwrap().to_string())).collect(),
+            None => manual::default_other_documents(),
+        };
         // The heading made in a file, and where it is.
         let made = |file: &str, target: &str, search: &str| {
             let outcome =
@@ -83,6 +93,72 @@ fn opening_matches_emacs() {
             let error = search_in_file_with(target, Some(&parse(target)), search, ExactHeadline::Yes);
             json!({ "error": error.err().unwrap_or_default() })
         };
+        // `org-ctags`: its functions first, for an internal link.
+        let ctags_case = case["ctags"].as_object();
+        let mut asked: Vec<String> = Vec::new();
+        let mut ran = None;
+        let mut followed = None;
+        if let Some(options) = ctags_case {
+            let functions: Vec<ctags::Function> = match options.get("functions").and_then(Value::as_array) {
+                Some(names) => {
+                    names.iter().map(|name| ctags::Function::named(name.as_str().unwrap()).unwrap()).collect()
+                }
+                None => ctags::DEFAULT_FUNCTIONS.to_vec(),
+            };
+            let template = options.get("template").and_then(Value::as_str).unwrap_or(ctags::DEFAULT_TEMPLATE);
+            let given: Vec<bool> =
+                options.get("answers").and_then(Value::as_str).unwrap_or("").chars().map(|c| c == 'y').collect();
+            if let Some(path) = org_core::open::internal_path(&text, &parsed, offset, &[], &settings) {
+                let tags_text = text_of("TAGS");
+                let mut answers: Vec<bool> = Vec::new();
+                let outcome = loop {
+                    let context = ctags::Context {
+                        functions: &functions,
+                        answers: &answers,
+                        directory: Some("DIR/"),
+                        text: &text,
+                        template,
+                    };
+                    let mut tags = |rebuild: bool| {
+                        if rebuild {
+                            ran = Some(ctags::create_command("ctags", "DIR/"));
+                        }
+                        tags_text.as_deref().map(ctags::read_tags).unwrap_or_default()
+                    };
+                    let exists = |file: &str| text_of(file.trim_start_matches("DIR/")).is_some();
+                    match ctags::follow(&path, &context, &mut tags, &exists) {
+                        // `y-or-n-p` says no once the answers are used up.
+                        Outcome::Ask(prompt) => {
+                            asked.push(prompt);
+                            answers.push(given.get(answers.len()).copied().unwrap_or(false));
+                        }
+                        outcome => break outcome,
+                    }
+                };
+                let with_text = |mut place: Value, text: &str| {
+                    place["text"] = json!(text);
+                    place
+                };
+                followed = match outcome {
+                    Outcome::Found(tag) => {
+                        let target = text_of(&tag.file).unwrap_or_default();
+                        let at = target.split_inclusive('\n').take(tag.line - 1).map(str::len).sum();
+                        Some(with_text(goto(&tag.file, &target, at), &target))
+                    }
+                    Outcome::Append(new, point) => Some(with_text(goto(name, &new, point), &new)),
+                    Outcome::Visit(file) => {
+                        let file = file.trim_start_matches("DIR/").to_string();
+                        let target = text_of(&file).unwrap_or_default();
+                        Some(with_text(goto(&file, &target, 0), &target))
+                    }
+                    Outcome::Create(file, new) => {
+                        Some(with_text(goto(file.trim_start_matches("DIR/"), &new, new.len()), &new))
+                    }
+                    Outcome::Done => Some(with_text(goto(name, &text, offset), &text)),
+                    Outcome::Pass | Outcome::Ask(_) => None,
+                };
+            }
+        }
         let mut offered = None;
         let mut result = at_point_calling(&text, &parsed, offset, None, &[], None, &settings);
         if let Ok(Open::Choose(choices)) = &result {
@@ -146,10 +222,34 @@ fn opening_matches_emacs() {
             Ok(Open::Create(search)) => missing(&text, &search),
             Ok(Open::Shell { command, confirm }) if create || !confirm => json!({ "shell": command }),
             Ok(Open::Shell { .. }) => json!({ "error": "Abort" }),
+            // `man` shows `man_page` whatever the page; point goes to the
+            // line before the search's match.
+            Ok(Open::Man { page, search: None }) => json!({ "man": page }),
+            Ok(Open::Man { page, search: Some(search) }) => {
+                match manual::man_search_line(man_page.unwrap_or_default(), &search) {
+                    Ok(line) => json!({ "man": page, "line": line + 1 }),
+                    Err(error) => json!({ "error": error }),
+                }
+            }
+            Ok(Open::Info { file, node }) => {
+                let url = manual::info_url(&file, &node, &other_documents);
+                json!({ "info": [file, node], "url": url })
+            }
             Err(error) => json!({ "error": error }),
         };
         if let Some(offered) = offered {
             actual["offered"] = json!(offered);
+        }
+        if ctags_case.is_some() {
+            if let Some(followed) = followed {
+                actual = followed;
+            } else if let Some(file) = actual["goto"]["file"].as_str() {
+                actual["text"] = json!(text_of(file).unwrap_or_default());
+            }
+            actual["asked"] = json!(asked);
+            if let Some(ran) = ran {
+                actual["ran"] = json!(ran);
+            }
         }
         if actual != case["expected"] {
             failures.push_str(&format!(

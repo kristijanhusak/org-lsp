@@ -213,10 +213,10 @@
   "org-gnus-no-server": "absent"
  },
  "ol-info.el": {
-  "org-info-other-documents": "absent"
+  "org-info-other-documents": "setting"
  },
  "ol-man.el": {
-  "org-man-command": "absent"
+  "org-man-command": "setting"
  },
  "ol-mhe.el": {
   "org-mhe-search-all-folders": "absent"
@@ -471,9 +471,9 @@
   "org-crypt-disable-auto-save": "emacs"
  },
  "org-ctags.el": {
-  "org-ctags-path-to-ctags": "absent",
-  "org-ctags-open-link-functions": "lisp",
-  "org-ctags-new-topic-template": "absent"
+  "org-ctags-path-to-ctags": "setting",
+  "org-ctags-open-link-functions": "setting",
+  "org-ctags-new-topic-template": "setting"
  },
  "org-cycle.el": {
   "org-cycle-skip-children-state-if-no-children": "emacs-only",

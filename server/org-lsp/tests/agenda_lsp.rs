@@ -2580,6 +2580,168 @@ fn runs_shell_links() {
     std::fs::remove_dir_all(directory).unwrap();
 }
 
+/// Runs `org.open` at `character` of the first line of `uri`, with more
+/// of the context in `extra`.
+fn open_at(client: &mut Client, uri: &str, character: u32, extra: Value) -> Result<Value, String> {
+    let mut context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": character } });
+    for (key, value) in extra.as_object().unwrap() {
+        context[key] = value.clone();
+    }
+    client.received.clear();
+    let result = client.request("workspace/executeCommand", json!({ "command": "org.open", "arguments": [context] }));
+    client.settle();
+    result
+}
+
+/// The `window/showDocument` request the server sent last.
+fn shown_document(client: &Client) -> Value {
+    client
+        .received
+        .iter()
+        .rev()
+        .find(|request| request.method == "window/showDocument")
+        .expect("a document shown")
+        .params
+        .clone()
+}
+
+/// `org-man-open` with `ol-man` in `org-modules`: the page
+/// `org_man_command` writes, without its overstrikes, in a file of the
+/// server's, shown at the line before the search's first match;
+/// `Can’t find …` when there is none. Without `ol-man`, `man:` is no link
+/// type.
+#[cfg(unix)]
+#[test]
+fn follows_man_links() {
+    use std::os::unix::fs::PermissionsExt;
+    let directory = workspace("man-links");
+    let program = directory.join("fake-man");
+    std::fs::write(
+        &program,
+        "#!/bin/sh\n[ \"$1\" = nosuch ] && exit 16\necho \"MANWIDTH=$MANWIDTH ARGS=$*\"\nprintf 'N\\bNAME\\n  ls - list\\n\\n  -l  long\\n'\n",
+    )
+    .unwrap();
+    std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let file = directory.join("index.org");
+    let text = "[[man:ls::-L]] [[man:printf(3)]] [[man:nosuch]]\n";
+    std::fs::write(&file, text).unwrap();
+    let uri = format!("file://{}", file.display());
+    let mut options = clock();
+    options["org_modules"] = json!(["ol-man"]);
+    options["org_man_command"] = json!(program.display().to_string());
+    let mut client = Client::editor(options, None);
+    client.open(&uri, text);
+    open_at(&mut client, &uri, 3, json!({})).unwrap();
+    let shown = shown_document(&client);
+    assert_eq!(shown["selection"]["start"]["line"], 3);
+    let page = shown["uri"].as_str().unwrap().strip_prefix("file://").unwrap().to_string();
+    assert!(page.ends_with("Man_ls.txt"), "{page}");
+    assert_eq!(std::fs::read_to_string(&page).unwrap(), "MANWIDTH=80 ARGS=ls\nNAME\n  ls - list\n\n  -l  long\n");
+    // A reference with its section is the section, then the name.
+    open_at(&mut client, &uri, 18, json!({})).unwrap();
+    let page = shown_document(&client)["uri"].as_str().unwrap().strip_prefix("file://").unwrap().to_string();
+    assert!(std::fs::read_to_string(&page).unwrap().starts_with("MANWIDTH=80 ARGS=3 printf\n"));
+    assert_eq!(open_at(&mut client, &uri, 36, json!({})), Err("Can’t find the nosuch manpage".to_string()));
+    client.shutdown();
+    // Without `ol-man`: a headline to make.
+    let mut client = Client::editor(clock(), None);
+    client.open(&uri, text);
+    let asked = open_at(&mut client, &uri, 3, json!({})).unwrap();
+    assert_eq!(asked["input"]["prompt"], "No match - create this as a new heading? ");
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
+/// `org-info-open`: Emacs's manuals and those of
+/// `org_info_other_documents` open on the web at the node's anchor.
+#[test]
+fn follows_info_links_to_the_web() {
+    let mut options = clock();
+    options["org_info_other_documents"] = json!({ "bash": "https://www.gnu.org/software/bash/manual/bash.html" });
+    let mut client = Client::editor(options, None);
+    let uri = "file:///org/a.org";
+    let text = "[[info:elisp#Non-ASCII in Strings]] info:bash#Shell\n";
+    client.open(uri, text);
+    open_at(&mut client, uri, 3, json!({})).unwrap();
+    let shown = shown_document(&client);
+    assert_eq!(shown["external"], true);
+    assert_eq!(shown["uri"], "https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Non_002dASCII-in-Strings");
+    open_at(&mut client, uri, 40, json!({})).unwrap();
+    assert_eq!(shown_document(&client)["uri"], "https://www.gnu.org/software/bash/manual/bash.html#Shell");
+    client.shutdown();
+}
+
+/// `org-ctags` in `org-modules`: a link goes to the tag of the `TAGS` file
+/// of its directory; else, asked, the tags table is made again by
+/// `org_ctags_path_to_ctags` and looked in again, or a topic appended.
+#[cfg(unix)]
+#[test]
+fn follows_links_to_ctags_tags() {
+    use std::os::unix::fs::PermissionsExt;
+    let directory = workspace("ctags-links");
+    let canonical = std::fs::canonicalize(&directory).unwrap();
+    let tags = |names: &[(&str, usize)]| {
+        let body: String = names.iter().map(|(name, line)| format!("<<{name}>>\x7f{name}\x01{line},0\n")).collect();
+        format!("\x0c\nb.org,{}\n{body}", body.len())
+    };
+    std::fs::write(directory.join("TAGS"), tags(&[("foo", 3)])).unwrap();
+    std::fs::write(directory.join("b.org"), "x\n\n<<foo>>\n<<later>>\n").unwrap();
+    // A `ctags` that writes the TAGS file named after `-f`, with `later`.
+    let program = directory.join("fake-ctags");
+    let made = tags(&[("foo", 3), ("later", 4)])
+        .replace('\x0c', "\\f")
+        .replace('\x7f', "\\177")
+        .replace('\x01', "\\001")
+        .replace('\n', "\\n");
+    std::fs::write(
+        &program,
+        format!("#!/bin/sh\nprintf %s \"$*\" > \"$(dirname \"$0\")/ctags.args\"\nwhile [ \"$1\" != -f ]; do shift; done\nprintf '{made}' > \"$2\"\n"),
+    )
+    .unwrap();
+    std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let file = canonical.join("index.org");
+    let text = "[[foo]] [[later]] [[topic]]\n* Head\n";
+    std::fs::write(&file, text).unwrap();
+    let uri = format!("file://{}", file.display());
+    let mut options = clock();
+    options["org_modules"] = json!(["org-ctags"]);
+    options["org_ctags_path_to_ctags"] = json!(program.display().to_string());
+    let mut client = Client::editor(options, None);
+    client.open(&uri, text);
+    let b = format!("file://{}", canonical.join("b.org").display());
+    open_at(&mut client, &uri, 3, json!({})).unwrap();
+    let shown = shown_document(&client);
+    assert_eq!((shown["uri"].as_str().unwrap(), shown["selection"]["start"]["line"].as_u64()), (b.as_str(), Some(2)));
+    // Not in the table: made again, then found.
+    let asked = open_at(&mut client, &uri, 11, json!({})).unwrap();
+    assert_eq!(
+        asked["input"]["prompt"],
+        format!("Tag ‘later’ not found.  Rebuild table ‘{}//TAGS’ and look again?", canonical.display())
+    );
+    let step = asked["input"]["context"].clone();
+    open_at(&mut client, &uri, 11, json!({ "input": "y", "step": step["step"], "answers": step["answers"] })).unwrap();
+    let shown = shown_document(&client);
+    assert_eq!((shown["uri"].as_str().unwrap(), shown["selection"]["start"]["line"].as_u64()), (b.as_str(), Some(3)));
+    let args = std::fs::read_to_string(canonical.join("ctags.args")).unwrap();
+    assert!(
+        args.starts_with("--langdef=orgmode --langmap=orgmode:.org --regex-orgmode=/<<([^<>]+)>>/\\1/d,definition/ -f"),
+        "{args}"
+    );
+    // No to making it again, yes to a new topic.
+    let asked = open_at(&mut client, &uri, 20, json!({})).unwrap();
+    let step = asked["input"]["context"].clone();
+    let asked =
+        open_at(&mut client, &uri, 20, json!({ "input": "n", "step": step["step"], "answers": step["answers"] }))
+            .unwrap();
+    assert_eq!(asked["input"]["prompt"], "Topic ‘topic’ not found; append to end of buffer?");
+    let step = asked["input"]["context"].clone();
+    open_at(&mut client, &uri, 20, json!({ "input": "y", "step": step["step"], "answers": step["answers"] })).unwrap();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the topic");
+    assert_eq!(apply(text, &edits_of(edit).1), format!("{text}\n\n* <<Topic>>\n\n\n\n\n\n"));
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
 /// `org-refile-copy` keeps the entry; `org-refile` with `C-u` goes to the
 /// target, and with `C-u C-u` to where the last refile put its entry.
 #[test]

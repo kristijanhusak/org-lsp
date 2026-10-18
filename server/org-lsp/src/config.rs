@@ -672,6 +672,21 @@ pub struct Options {
     pub link_doi_server_url: Option<String>,
     #[serde(rename = "org_link_shell_skip_confirm_regexp")]
     pub link_shell_skip_confirm_regexp: Option<String>,
+    /// `org-man-command`: the program that writes a man page.
+    #[serde(rename = "org_man_command")]
+    pub man_command: Option<String>,
+    /// `org-info-other-documents`
+    #[serde(rename = "org_info_other_documents")]
+    pub info_other_documents: Option<std::collections::BTreeMap<String, String>>,
+    /// `org-ctags-path-to-ctags`
+    #[serde(rename = "org_ctags_path_to_ctags")]
+    pub ctags_path_to_ctags: Option<String>,
+    /// `org-ctags-open-link-functions`: the names of org-ctags's functions.
+    #[serde(rename = "org_ctags_open_link_functions")]
+    pub ctags_open_link_functions: Option<Vec<String>>,
+    /// `org-ctags-new-topic-template`
+    #[serde(rename = "org_ctags_new_topic_template")]
+    pub ctags_new_topic_template: Option<String>,
     #[serde(rename = "org_id_completion_targets")]
     pub id_completion_targets: Option<Vec<RefileTargetOption>>,
     /// `org-id-track-globally`
@@ -2234,7 +2249,50 @@ impl Options {
                 .link_shell_skip_confirm_regexp
                 .clone()
                 .unwrap_or(defaults.shell_skip_confirm_regexp),
+            man: self.has_module("ol-man"),
         }
+    }
+
+    /// Whether `module` is one of `org-modules`.
+    pub fn has_module(&self, module: &str) -> bool {
+        self.agenda.modules.iter().flatten().any(|name| name == module)
+    }
+
+    /// `org-man-command`: `man`, or the program named; `woman`, Emacs's
+    /// own reader, is `man` too.
+    pub fn man_command(&self) -> String {
+        match self.man_command.as_deref() {
+            None | Some("woman" | "") => "man".to_string(),
+            Some(program) => program.to_string(),
+        }
+    }
+
+    /// `org-info-other-documents`
+    pub fn info_other_documents(&self) -> Vec<(String, String)> {
+        match &self.info_other_documents {
+            Some(documents) => documents.iter().map(|(file, url)| (file.clone(), url.clone())).collect(),
+            None => org_core::manual::default_other_documents(),
+        }
+    }
+
+    /// `org-ctags`, when it is one of `org-modules`: its program, functions
+    /// and template.
+    pub fn ctags(&self) -> Option<Ctags> {
+        if !self.has_module("org-ctags") {
+            return None;
+        }
+        let functions = match &self.ctags_open_link_functions {
+            Some(names) => names.iter().filter_map(|name| org_core::ctags::Function::named(name)).collect(),
+            None => org_core::ctags::DEFAULT_FUNCTIONS.to_vec(),
+        };
+        Some(Ctags {
+            program: self.ctags_path_to_ctags.clone().unwrap_or_else(|| "ctags".to_string()),
+            functions,
+            template: self
+                .ctags_new_topic_template
+                .clone()
+                .unwrap_or_else(|| org_core::ctags::DEFAULT_TEMPLATE.to_string()),
+        })
     }
 
     /// The options of the link commands.
@@ -4239,6 +4297,17 @@ impl AgendaOptions {
         }
         config
     }
+}
+
+/// `org-ctags`'s options.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Ctags {
+    /// `org-ctags-path-to-ctags`
+    pub program: String,
+    /// `org-ctags-open-link-functions`
+    pub functions: Vec<org_core::ctags::Function>,
+    /// `org-ctags-new-topic-template`
+    pub template: String,
 }
 
 #[cfg(test)]

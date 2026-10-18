@@ -216,6 +216,8 @@ pub const ID_GET_CREATE: &str = "org.id.create";
 pub const CITE_INSERT: &str = "org.cite.insert";
 pub const CITE_INSERT_PREFIX: &str = "org.cite.insert.prefix";
 pub const BIBTEX_EXPORT: &str = "org.bibtex.export";
+pub const CTAGS_CREATE: &str = "org.ctags.create";
+pub const CTAGS_FIND: &str = "org.ctags.find";
 pub const BIBTEX_COPY: &str = "org.bibtex.copy";
 pub const BIBTEX_CREATE: &str = "org.bibtex.create";
 pub const BIBTEX_CREATE_HERE: &str = "org.bibtex.create.here";
@@ -755,6 +757,13 @@ pub const COMMANDS: &[Command] = &[
     Command {
         input: Some(Input { kind: "text", prompt: "File" }),
         ..edit(BIBTEX_IMPORT, "BibTeX: import the entries of a BibTeX file as headings")
+    },
+    // `org-ctags.el`, whose commands have no keys in Emacs either: the
+    // `TAGS` file made, and a topic asked for among its tags.
+    command(CTAGS_CREATE, "Ctags: make the TAGS file of the file's directory"),
+    Command {
+        input: Some(Input { kind: "text", prompt: "Topic: " }),
+        ..command(CTAGS_FIND, "Ctags: go to a topic, or make it")
     },
     // `C-c C-c` on an item (`org-ctrl-c-ctrl-c`): its checkbox toggled and
     // the list repaired (indentation, bullets, numbers, checkboxes); at
