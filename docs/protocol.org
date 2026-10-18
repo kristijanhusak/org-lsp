@@ -183,8 +183,14 @@ And these notifications:
 - ~org-lsp/folds~ :: ~{ "uri", "open": [FoldingRange…], "close": [FoldingRange…] }~:
   after a journal command has shown a file (~window/showDocument~), the
   headlines' folds to open, then those to close (innermost first), as
-  org-journal leaves them (~org_journal_hide_entries_p~). Each is one of
-  ~textDocument/foldingRange~'s.
+  org-journal leaves them (~org_journal_hide_entries_p~); and once the
+  editor has applied the edit of ~org.yank~ or ~org.paste.subtree~ (the
+  server sees it in ~textDocument/didChange~), the folds of the subtrees
+  it folds, with those inside them (~org_yank_folded_subtrees~, and a
+  subtree cut or copied folded). Each is one of
+  ~textDocument/foldingRange~'s; the editor's folds may follow an edit a
+  moment later, and a fold that does not cover the range yet is closed
+  once it does.
 - ~org-lsp/viewChanged~ :: With the option ~view_changed~: ~{ "uri" }~, the
   file of the agenda or of the date prompt has been written anew, for the
   client to read it again.
@@ -280,6 +286,7 @@ Each option with its type, its default and what it means:
 - ~org_highlight_sparse_tree_matches~ :: boolean, ~true~. Highlight the matches of a sparse tree (~C-c /~, and a link's ~/regexp/~) until the text changes; with ~false~, only their lines show. (~org-highlight-sparse-tree-matches~)
 - ~org_sparse_tree_default_date_type~ :: null, "all", "active", "inactive", "scheduled", "deadline", "closed", ~null~. The timestamps the date sparse trees (~C-c /~ ~b~, ~a~, ~D~) look at first: ~null~ for scheduled and deadline dates, or one kind; ~c~ in the menu turns to the next kind. (~org-sparse-tree-default-date-type~)
 - ~org_yank_adjusted_subtrees~ :: boolean, ~false~. C-y (~org.yank~, Emacs keys) of one or more subtrees at the start of a line, or after the stars of an otherwise empty headline, pastes them as ~org.paste.subtree~ does: at the level of the headlines around them. Anything else is the editor's own paste. (~org-yank-adjusted-subtrees~)
+- ~org_yank_folded_subtrees~ :: boolean, ~true~. C-y (~org.yank~, Emacs keys) of one or more subtrees at the start of a line folds them, unless that would hide text after them (/Inserted text not folded because that would swallow text/), and leaves the cursor on the line after them. With ~false~ (and ~org_yank_adjusted_subtrees~ off) it is the editor's own paste. (~org-yank-folded-subtrees~)
 - ~org_allow_promoting_top_level_subtree~ :: boolean, ~false~. Promoting a headline of level 1 makes it a comment line: ~# ~ in place of ~* ~, its children a level up with a subtree's promotion. With ~false~ it is an error. (~org-allow-promoting-top-level-subtree~)
 - ~org_odd_levels_only~ :: boolean, ~false~. Only odd levels: ~*~, ~***~, ~*****~, each counted as the next level. Promoting and demoting go two stars at a time, and a headline is colored and matched (~LEVEL~) by the level it counts as. ~#+STARTUP: odd~ and ~oddeven~ set it for a file. (~org-odd-levels-only~)
 - ~org_inlinetask_min_level~ :: number, false, ~15~. A headline of at least this many stars (twice as many less one with ~org_odd_levels_only~) is an inline task: a task inside the text of its entry, closed by a line of as many stars and ~END~. It is no part of the outline: it has no subtree, the outline and the motion between headings pass it, and it folds its text up to its ~END~ line. ~false~: there are no inline tasks, as in Emacs before ~org-inlinetask~ is loaded. (~org-inlinetask-min-level~)
@@ -291,7 +298,8 @@ Each option with its type, its default and what it means:
 - ~org_priority_enable_commands~ :: boolean, ~true~. Whether the priority commands work. With ~false~ they refuse (~Priority commands are disabled~), and ~S-<up>~ and ~S-<down>~ on a headline do not change its priority. (~org-priority-enable-commands~)
 - ~org_track_ordered_property_with_tag~ :: boolean, string, ~false~. A tag that ~org.ordered.toggle~ (~C-c C-x o~) puts on the headline with the ~ORDERED~ property and takes off without it: ~true~ for ~ORDERED~, or a tag of your own. Only the property orders the subtasks. (~org-track-ordered-property-with-tag~)
 - ~org_special_ctrl_o~ :: boolean, ~true~. ~org.open.line~ (C-o) in a table inserts a row above; with ~false~ it opens a line there too. (~org-special-ctrl-o~)
-- ~org_special_ctrl_k~ :: boolean, ~false~. C-k (~org.kill.line~) on a headline kills the text to the tags, and the tags when the cursor is past the title; at the start of the line, the whole line. With ~false~ the key keeps the editor's own meaning. (~org-special-ctrl-k~)
+- ~org_special_ctrl_k~ :: boolean, ~false~. C-k (~org.kill.line~) on a headline kills the text to the tags, and the tags when the cursor is past the title; at the start of the line, the whole line. With ~false~ the key keeps the editor's own meaning, but on a line a closed fold starts on (see ~org_ctrl_k_protect_subtree~). (~org-special-ctrl-k~)
+- ~org_ctrl_k_protect_subtree~ :: false, true, "error", ~false~. C-k (~org.kill.line~) on a line a closed fold starts on (a headline's only from its start with ~org_special_ctrl_k~) kills what the fold hides with the line, as Emacs's ~kill-line~ does: ~true~ asks first (/Kill hidden subtree along with headline?/), ~"error"~ refuses (/‘C-k’ aborted as it would kill a hidden subtree/), ~false~ kills. Needs an editor that says which folds are closed (not VS Code). (~org-ctrl-k-protect-subtree~)
 - ~org_list_allow_alphabetical~ :: boolean, ~false~. Whether a letter may stand for the number of an ordered item (~a.~, ~B)~). A list of more than 26 items is numbered. (~org-list-allow-alphabetical~)
 - ~org_plain_list_ordered_item_terminator~ :: true, ".", ")", ~true~. What ends the number of an ordered item: ~"."~, ~")"~, or ~true~ for either. (~org-plain-list-ordered-item-terminator~)
 - ~org_list_two_spaces_after_bullet_regexp~ :: false, string, ~false~. An Emacs regexp: the bullets it matches get two spaces after them when Org writes them (a new item, a bullet changed, a list repaired). (~org-list-two-spaces-after-bullet-regexp~)
@@ -718,8 +726,11 @@ range is no selection. Code actions requested over a selection carry it in
 their commands, unless it is a single character (Helix's cursor).
 
 ~folded~, for the commands marked ~"folds": true~ in the manifest
-(~org.export.dispatch~, whose ~C-v~ exports only what shows), is the
-editor's closed folds in the window, ~[[first, last]…]~, each the first and
+(~org.export.dispatch~, whose ~C-v~ exports only what shows;
+~org.kill.line~, which kills what a fold hides on its line;
+~org.cut.subtree~ and ~org.copy.subtree~, whose subtree is folded again
+when it is pasted if it was folded), is the editor's closed folds in the
+window, ~[[first, last]…]~, each the first and
 last line of a fold, from 0. ~clipboard~, for those marked
 ~"clipboard": true~, is the text of the editor's clipboard.
 
@@ -845,19 +856,28 @@ increments a number.
   last cut or copy: before the headline at the cursor, else before the next
   one, its levels shifted to the deeper of the headlines around it, or to
   ~count~; "The clipboard is not a (set of) tree(s)" otherwise. Before the
-  first headline cutting and copying are ~notApplicable~. In a table, as
+  first headline cutting and copying are ~notApplicable~. A subtree cut
+  or copied while the editor had it folded (a fold of ~folded~ starting on
+  its headline) is folded again when it is pasted
+  (~org-subtree-clip-folded~): its folds come in ~org-lsp/folds~. In a
+  table, as
   ~org-cut-special~ and its neighbours do, they cut, copy and paste the
   cells of the selection, or the field at the cursor, as a rectangle
   (~org-table-cut-region~, ~org-table-copy-region~,
   ~org-table-paste-rectangle~), in the server's Emacs, whose own clipboard
   keeps them. Code actions too (~commandActions~), with the server's own
   clipboard.
-- ~org.yank~ :: ~org-yank~ (~C-y~) with ~org_yank_adjusted_subtrees~: a
-  ~clipboard~ of one or more subtrees, yanked at the start of a line or
-  right after the stars of an otherwise empty headline, goes in as
-  ~org.paste.subtree~ puts it, the cursor on the line after it. Returns
-  ~{ "edits", "cursor" }~; anything else, and everything with the option
-  off, is ~notApplicable~: the editor pastes as it does.
+- ~org.yank~ :: ~org-yank~ (~C-y~): a ~clipboard~ of one or more
+  subtrees, yanked at the start of a line or right after the stars of an
+  otherwise empty headline, goes in as ~org.paste.subtree~ puts it with
+  ~org_yank_adjusted_subtrees~, else as it is. With
+  ~org_yank_folded_subtrees~ (on by default) the cursor goes to the line
+  after it, and the subtrees yanked at the start of a line are folded,
+  their folds in ~org-lsp/folds~ once the editor has the edit; unless that
+  would hide the text after them (/Inserted text not folded because that
+  would swallow text/). Returns ~{ "edits", "cursor" }~; anything else, and
+  everything with both options off, is ~notApplicable~: the editor pastes
+  as it does.
 - ~org.sort~ :: ~org-sort~ (~C-c ^~) on entries, as ~org-sort-entries~ does:
   the children of the entry at the cursor, or the top-level entries before
   the first headline. Asks for the sorting type (input kind ~key~): ~a~
@@ -1497,7 +1517,15 @@ increments a number.
   special place, and a kill adds to the one before. The motions carry the
   cursor (~{ "edits": [], "cursor" }~); ~org.kill.line~ carries its edit and
   the kill in ~copy~, with ~"copyCharacters": true~ for an editor whose
-  registers are by lines or by characters (Neovim, Vim).
+  registers are by lines or by characters (Neovim, Vim). On a line a closed
+  fold of ~folded~ starts on (the command has ~"folds": true~), where
+  ~org_special_ctrl_k~ does not kill only to the tags, ~C-k~ kills to the
+  end of the fold's last line, what the fold hides with it, as ~kill-line~
+  kills to the end of the visible line, whatever ~org_special_ctrl_k~ is;
+  with ~org_ctrl_k_protect_subtree~ ~true~ it asks first (input kind ~key~,
+  /Kill hidden subtree along with headline? /, the answer in ~input~),
+  and with ~"error"~, or the answer no, it fails with /‘C-k’ aborted as it
+  would kill a hidden subtree/.
 - ~org.goto~ :: ~org-goto~ (~C-c C-j~) with its ~outline-path-completion~
   interface: kind ~choice~, prompt ~Goto~, the file's headings to
   ~org_goto_max_level~ by their outline path (~A/B/~, as ~org-refile~ names

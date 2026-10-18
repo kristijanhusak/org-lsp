@@ -200,6 +200,8 @@ export const AREAS = [
       ['Moving a subtree up and down', true],
       ['Cutting, copying and pasting subtrees, their level fitted', true],
       ['Yanking subtrees with `C-y` at the level around them (`org-yank-adjusted-subtrees`)', true],
+      ['Yanked subtrees folded, unless that would hide the text after them (`org-yank-folded-subtrees`); a subtree cut or copied folded is folded again when it is pasted', true],
+      ['`C-k` on a folded headline killing what the fold hides, asking first or refusing (`org-ctrl-k-protect-subtree`)', true],
       ['Sorting entries (`C-c ^`)', true],
       ['The outline of the file (document symbols)', true],
       ['Moving between headings (`C-c C-n`, `C-c C-p`, `C-c C-f`, `C-c C-b`, `C-c C-u`)', true],
@@ -215,7 +217,8 @@ export const AREAS = [
       ['Sparse trees without their matches highlighted (`org-highlight-sparse-tree-matches`)', true],
     ],
     editors: {
-      zed: ['part', `A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, ${ZED_TEXT}. \`C-a\`, \`C-e\`, \`C-k\` and \`C-y\` keep Zed's own meaning.`],
+      vscode: ['part', 'VS Code does not tell an extension which folds are closed: `C-k` on a folded headline is VS Code\'s own (`org-ctrl-k-protect-subtree`), and a subtree cut or copied folded is not folded again when it is pasted.'],
+      zed: ['part', `A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, ${ZED_TEXT}. \`C-a\`, \`C-e\`, \`C-k\` and \`C-y\` keep Zed's own meaning, and nothing pasted is folded: Zed lets no server fold.`],
       helix: ['part', 'New headings (`M-RET` and its relatives), moving between headings, `org-goto` and Org\'s `C-a`, `C-e`, `C-k` and `C-y` are left out: they carry the cursor for the editor to move, which Helix\'s code actions cannot do; nor are the commands run by Emacs (`C-c *`, `C-c ;`, cloning) among its code actions.'],
     },
     checks: [
@@ -229,6 +232,9 @@ export const AREAS = [
       { text: 'Cutting a subtree and pasting it under another heading: its level fits there', cmd: ['org.cut.subtree', 'org.paste.subtree'] },
       { text: 'Copying a subtree and pasting it', cmd: ['org.copy.subtree', 'org.paste.subtree'] },
       { text: 'With `org_yank_adjusted_subtrees` on and Emacs keys, C-y of a copied `* A` subtree at the start of the line after a `** B` entry pastes it as `** A`; in the middle of a line C-y pastes as the editor does', cmd: 'org.yank', only: ['vscode', 'sublime'] },
+      { text: 'C-y of a copied `* A` subtree with text, at the start of a line before another `* B`, yanks it folded, the cursor on the `* B` line; at the start of a `** C` line Org says *Inserted text not folded because that would swallow text*', cmd: 'org.yank', only: ['neovim', 'vim', 'vscode', 'sublime'] },
+      { text: 'Copying a folded subtree and pasting it: the copy is folded too', cmd: ['org.copy.subtree', 'org.paste.subtree'], only: ['neovim', 'vim', 'sublime'] },
+      { text: 'C-k at the start of a folded headline kills it and what the fold hides; with `org_ctrl_k_protect_subtree = true` it asks *Kill hidden subtree along with headline?* first, and `n` says *‘C-k’ aborted as it would kill a hidden subtree*; with `"error"` it says so at once', cmd: 'org.kill.line', only: ['neovim', 'vim', 'sublime'] },
       { text: 'With `org_allow_promoting_top_level_subtree` on, promoting `* A` makes it `# A`', cmd: 'org.meta.left' },
       { text: 'Sorting the children of a heading alphabetically, then by TODO state', cmd: 'org.sort' },
       { text: 'Moving to the next and previous heading; with a count, that many', cmd: ['org.heading.next', 'org.heading.previous'], not: ['helix'] },

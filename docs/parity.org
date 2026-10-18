@@ -16,7 +16,7 @@ Org's options, one by one, are under [[#options][Options]].
 |---+---+---|
 | [[#highlighting][Highlighting]] | 95% | 19 of 20 |
 | [[#folding-and-visibility][Folding and visibility]] | 91% | 10 of 11 |
-| [[#headings-and-structure][Headings and structure]] | 96% | 22 of 23 |
+| [[#headings-and-structure][Headings and structure]] | 96% | 24 of 25 |
 | [[#lists-and-checkboxes][Lists and checkboxes]] | 100% | 13 of 13 |
 | [[#todo-keywords][TODO keywords]] | 100% | 14 of 14 |
 | [[#priorities][Priorities]] | 100% | 4 of 4 |
@@ -113,7 +113,7 @@ Where editors fall short:
 :CUSTOM_ID: headings-and-structure
 :END:
 
-96% (22 of 23)
+96% (24 of 25)
 
 - ✅ New headings (~M-RET~, ~M-S-RET~, ~C-RET~, ~C-S-RET~), the line split or not (~org-M-RET-may-split-line~), with empty lines before them as ~org-blank-before-new-entry~ says, after the subtree (~org-insert-heading-respect-content~)
 - ✅ Promoting and demoting a heading or a subtree; a top-level one to a ~#~ line (~org-allow-promoting-top-level-subtree~)
@@ -125,6 +125,8 @@ Where editors fall short:
 - ✅ Moving a subtree up and down
 - ✅ Cutting, copying and pasting subtrees, their level fitted
 - ✅ Yanking subtrees with ~C-y~ at the level around them (~org-yank-adjusted-subtrees~)
+- ✅ Yanked subtrees folded, unless that would hide the text after them (~org-yank-folded-subtrees~); a subtree cut or copied folded is folded again when it is pasted
+- ✅ ~C-k~ on a folded headline killing what the fold hides, asking first or refusing (~org-ctrl-k-protect-subtree~)
 - ✅ Sorting entries (~C-c ^~)
 - ✅ The outline of the file (document symbols)
 - ✅ Moving between headings (~C-c C-n~, ~C-c C-p~, ~C-c C-f~, ~C-c C-b~, ~C-c C-u~)
@@ -141,7 +143,8 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❓: A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. ~C-a~, ~C-e~, ~C-k~ and ~C-y~ keep Zed's own meaning.
+- VS Code ❓: VS Code does not tell an extension which folds are closed: ~C-k~ on a folded headline is VS Code's own (~org-ctrl-k-protect-subtree~), and a subtree cut or copied folded is not folded again when it is pasted.
+- Zed ❓: A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. ~C-a~, ~C-e~, ~C-k~ and ~C-y~ keep Zed's own meaning, and nothing pasted is folded: Zed lets no server fold.
 - Helix ❓: New headings (~M-RET~ and its relatives), moving between headings, ~org-goto~ and Org's ~C-a~, ~C-e~, ~C-k~ and ~C-y~ are left out: they carry the cursor for the editor to move, which Helix's code actions cannot do; nor are the commands run by Emacs (~C-c *~, ~C-c ;~, cloning) among its code actions.
 
 * Lists and checkboxes
@@ -770,19 +773,19 @@ Where editors fall short:
 :END:
 
 Each of the 1025 options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with
-it. Of the 331 that change what org-lsp does itself, 100% can be set.
+it. Of the 333 that change what org-lsp does itself, 100% can be set.
 [[file:../scripts/org-options.json][scripts/org-options.json]] says it for each; ~scripts/check.sh~ fails when the
 server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,
 when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 317 | A setting of the same name |
+| setting | 319 | A setting of the same name |
 | missing | 1 | org-lsp does what the option is about, but the option cannot be set yet |
 | other | 13 | Done another way, as its note says |
 | emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 47 | Its value is Lisp (a function, a hook), which the server does not run |
-| absent | 62 | Part of something org-lsp does not do |
+| absent | 60 | Part of something org-lsp does not do |
 | emacs-only | 105 | About Emacs itself (windows, faces, menus, the mouse, the mode line): nothing to do in an editor |
 
 ** Done another way

@@ -912,6 +912,14 @@ struct Server {
     /// The last subtree cut or copied, to paste where the editor does not
     /// say what its clipboard has.
     kill: Option<String>,
+    /// The last subtree cut or copied (`org-subtree-clip`), and whether it
+    /// was folded then (`org-subtree-clip-folded`): pasted again, it is
+    /// folded again.
+    subtree_clip: Option<(String, bool)>,
+    /// Folds a command made for the editor to close once its edit is in
+    /// the document: the document, its text after the edit, the lines of
+    /// the headlines to fold, and how many more changes to wait for it.
+    folds_after_edit: Option<(Uri, String, Vec<u32>, u8)>,
     /// The document the command being run was run in, whose edits are the
     /// user's to save.
     origin: Option<String>,
@@ -1196,6 +1204,10 @@ struct Server {
     inlinetask_default_state: Option<String>,
     /// `org-yank-adjusted-subtrees`
     yank_adjusted_subtrees: bool,
+    /// `org-yank-folded-subtrees`
+    yank_folded_subtrees: bool,
+    /// `org-ctrl-k-protect-subtree`
+    ctrl_k_protect: org_core::line::Protect,
     /// `org-agenda-skip-unavailable-files`
     skip_unavailable_files: bool,
     /// Agenda files that are not there, removed from the list
@@ -1551,6 +1563,8 @@ pub fn run(connection: Connection) -> Result<()> {
         pending: HashMap::new(),
         message: None,
         kill: None,
+        subtree_clip: None,
+        folds_after_edit: None,
         origin: None,
         auto_save: options.auto_save.unwrap_or(true),
         return_uses_meta_return: options.return_uses_meta_return.unwrap_or(false),
@@ -1699,6 +1713,8 @@ pub fn run(connection: Connection) -> Result<()> {
         odd_levels: options.odd_levels_only.unwrap_or(false),
         inlinetask_default_state: options.inlinetask_default_state.clone().filter(|state| !state.is_empty()),
         yank_adjusted_subtrees: options.yank_adjusted_subtrees.unwrap_or(false),
+        yank_folded_subtrees: options.yank_folded_subtrees.unwrap_or(true),
+        ctrl_k_protect: options.ctrl_k_protect(),
         skip_unavailable_files: options.agenda_skip_unavailable_files.unwrap_or(false),
         removed_agenda_files: HashSet::new(),
         sparse_tree_open_archived_trees: options.sparse_tree_open_archived_trees.unwrap_or(false),
@@ -3243,6 +3259,7 @@ impl Server {
                 self.publish_virtual_indent(key);
                 self.publish_display(key);
                 self.publish_diagnostics(key);
+                self.fold_after_edit(key);
                 // The clock's times go with the next change, as Emacs's
                 // overlays do (`org-remove-highlights-with-change`).
                 if self.clock_display.remove(key).is_some() {
@@ -12013,14 +12030,24 @@ impl Server {
             _ if self.edit_settings.special_ctrl_k => Special::On,
             _ => Special::Off,
         };
-        if special == Special::Off {
-            return Err(Refusal::NotHere("The key has its own meaning here".to_string()));
-        }
         let uri = &context.text_document.uri;
         let key = uri.as_str().to_string();
         let encoding = self.client.encoding;
         let document = self.document(uri).ok_or("This file is not open")?;
         let offset = document.index.offset(&document.text, context.position, encoding);
+        // C-k on a line a closed fold of the editor's starts on: the line
+        // the editor shows goes on to the end of the fold's last line.
+        let hidden_end = (id == commands::KILL_LINE)
+            .then(|| {
+                let line = context.position.line;
+                let [_, last] = context.folded.as_ref()?.iter().find(|[first, last]| *first == line && last > first)?;
+                let start = document.index.offset(&document.text, Position::new(*last, 0), encoding);
+                Some(document.text[start..].find('\n').map_or(document.text.len(), |newline| start + newline))
+            })
+            .flatten();
+        if special == Special::Off && hidden_end.is_none() {
+            return Err(Refusal::NotHere("The key has its own meaning here".to_string()));
+        }
         let repeated = self
             .last
             .as_ref()
@@ -12038,11 +12065,23 @@ impl Server {
             return Ok(json!({ "edits": [], "cursor": cursor }));
         }
         let settings = KillSettings {
-            special: true,
+            special: special != Special::Off,
             auto_align_tags: self.edit_settings.tags.auto_align,
             tags_column: self.edit_settings.tags.tags_column,
         };
-        let done = line::kill_line(&document.text, offset, settings).map_err(Refusal::Failed)?;
+        // `org-ctrl-k-protect-subtree`: asked first, or refused.
+        let answer = context.input.as_deref().map(|input| matches!(input, "y" | "Y" | "yes"));
+        let done = line::kill_line_folded(&document.text, offset, settings, hidden_end, self.ctrl_k_protect, answer)
+            .map_err(Refusal::Failed)?;
+        let Some(done) = done else {
+            let input = json!({
+                "kind": "key",
+                "prompt": line::KILL_HIDDEN_QUESTION,
+                "value": "",
+                "choices": [{ "key": "y", "label": "yes" }, { "key": "n", "label": "no" }],
+            });
+            return Ok(json!({ "input": input }));
+        };
         // `kill-append` after a kill right before.
         let killed = match (&self.kill, repeated) {
             (Some(before), true) => format!("{before}{}", done.kill),
@@ -13521,17 +13560,21 @@ impl Server {
         let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
         let text = document.text.clone();
         let offset = document.index.offset(&text, context.position, encoding);
+        let uri = context.text_document.uri.clone();
         if id == commands::YANK {
             let not_here = || Refusal::NotHere("Org yanks this as it is".to_string());
-            if !self.yank_adjusted_subtrees {
+            let (adjusted, folded) = (self.yank_adjusted_subtrees, self.yank_folded_subtrees);
+            if !adjusted && !folded {
                 return Err(not_here());
             }
             let kill = context.clipboard.clone().or_else(|| self.kill.clone()).unwrap_or_default();
             let settings = self.structure_settings(&text);
-            let (outcome, message) =
-                structure::yank_subtree(&text, offset, &kill, &settings).ok_or_else(not_here)??;
-            self.message = Some(message);
-            return self.carried(context, outcome);
+            let yanked =
+                structure::yank_subtree(&text, offset, &kill, &settings, adjusted, folded).ok_or_else(not_here)??;
+            // (Org's `yank` says *Mark set* too: org-lsp has no mark.)
+            self.message = yanked.message;
+            self.fold_when_edited(&uri, &yanked.outcome.text, &yanked.folded);
+            return self.carried(context, yanked.outcome);
         }
         if id == commands::PASTE_SUBTREE {
             let tree = context.clipboard.clone().or_else(|| self.kill.clone()).unwrap_or_default();
@@ -13539,6 +13582,11 @@ impl Server {
             let level = context.count.filter(|count| *count > 0).map(|count| count as usize);
             let (outcome, message) = structure::paste_subtree(&text, offset, &tree, level, &settings)?;
             self.message = Some(message);
+            // What was cut or copied folded is folded again
+            // (`org-subtree-clip-folded`).
+            if self.subtree_clip.as_ref().is_some_and(|(clip, folded)| *folded && *clip == tree) {
+                self.fold_when_edited(&uri, &outcome.text, &[outcome.cursor]);
+            }
             return self.carried(context, outcome);
         }
         let count = context.count.filter(|count| *count > 0).unwrap_or(1) as usize;
@@ -13546,6 +13594,15 @@ impl Server {
         let (outcome, copied, message) = structure::copy_subtree(&text, offset, count, cut)?;
         self.message = Some(message);
         self.kill = Some(copied.clone());
+        // Whether the subtree was folded: a closed fold of the editor's
+        // starts on its headline.
+        let heading = structure::subtree_heading(&text, offset).unwrap_or(0);
+        let line = text[..heading].matches('\n').count() as u32;
+        let folded = context
+            .folded
+            .as_ref()
+            .is_some_and(|folds| folds.iter().any(|[first, last]| *first == line && last > first));
+        self.subtree_clip = Some((copied.clone(), folded));
         let mut result = if cut { self.carried(context, outcome)? } else { json!({}) };
         if let Value::Object(fields) = &mut result {
             fields.insert("copy".to_string(), json!(copied));
@@ -13598,6 +13655,49 @@ impl Server {
             return Ok(Value::Null);
         }
         Ok(json!({ "edits": [edit], "cursor": cursor }))
+    }
+
+    /// Folds to close once the editor has the text `after` in `uri`: those
+    /// of the headlines starting at `headings` there, with the folds of the
+    /// headlines inside them (`org-fold-subtree` hides the whole
+    /// subtree), in `org-lsp/folds`.
+    fn fold_when_edited(&mut self, uri: &Uri, after: &str, headings: &[usize]) {
+        let lines: Vec<u32> = headings.iter().map(|at| after[..*at].matches('\n').count() as u32).collect();
+        self.folds_after_edit = (!lines.is_empty()).then(|| (uri.clone(), after.to_string(), lines, 8));
+    }
+
+    /// A document changed: when it now has the text of a command's edit
+    /// that left folds to close, they are sent to the editor. A few other
+    /// changes first are waited for (an edit may come in several).
+    fn fold_after_edit(&mut self, key: &str) {
+        let Some((uri, after, lines, tries)) = self.folds_after_edit.take() else { return };
+        if uri.as_str() != key {
+            self.folds_after_edit = Some((uri, after, lines, tries));
+            return;
+        }
+        let Some(document) = self.documents.get(key) else { return };
+        if document.text != after {
+            if tries > 0 {
+                self.folds_after_edit = Some((uri, after, lines, tries - 1));
+            }
+            return;
+        }
+        let folds = folding::headline_folds(&document.syntax(), &document.text, &document.index, self.cycle.folding);
+        let outer: Vec<&lsp_types::FoldingRange> =
+            folds.iter().filter(|fold| lines.contains(&fold.start_line)).collect();
+        let mut close: Vec<lsp_types::FoldingRange> = folds
+            .iter()
+            .filter(|fold| outer.iter().any(|top| top.start_line <= fold.start_line && fold.end_line <= top.end_line))
+            .cloned()
+            .collect();
+        if close.is_empty() {
+            return;
+        }
+        // Innermost first, as `org-lsp/startupFolds` gives them.
+        close.sort_by_key(|fold| std::cmp::Reverse(fold.start_line));
+        let params = json!({ "uri": uri.as_str(), "open": [], "close": close });
+        let notification = Notification::new(FOLDS.to_string(), params);
+        let _ = self.sender.send(Message::Notification(notification));
     }
 
     /// The keys of fast TODO selection in the file of `context`: an Org

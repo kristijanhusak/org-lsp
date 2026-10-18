@@ -67,6 +67,9 @@ its sections says what it should look like.
 - [ ] Inserting an inline task gives 15 stars and an ~END~ line; demoting it changes both; the outline leaves it out, and folding it hides its text and its ~END~ line: ~<Leader>oiI~, ~>>~
 - [ ] Cutting a subtree and pasting it under another heading: its level fits there: ~<Leader>osd~, ~<Leader>osp~
 - [ ] Copying a subtree and pasting it: ~<Leader>osy~, ~<Leader>osp~
+- [ ] C-y of a copied ~* A~ subtree with text, at the start of a line before another ~* B~, yanks it folded, the cursor on the ~* B~ line; at the start of a ~** C~ line Org says /Inserted text not folded because that would swallow text/: ~:Org yank~
+- [ ] Copying a folded subtree and pasting it: the copy is folded too: ~<Leader>osy~, ~<Leader>osp~
+- [ ] C-k at the start of a folded headline kills it and what the fold hides; with ~org_ctrl_k_protect_subtree = true~ it asks /Kill hidden subtree along with headline?/ first, and ~n~ says /‘C-k’ aborted as it would kill a hidden subtree/; with ~"error"~ it says so at once: ~:Org kill line~
 - [ ] With ~org_allow_promoting_top_level_subtree~ on, promoting ~* A~ makes it ~# A~: ~<<~
 - [ ] Sorting the children of a heading alphabetically, then by TODO state: ~<Leader>o^~
 - [ ] Moving to the next and previous heading; with a count, that many: ~}~, ~{~

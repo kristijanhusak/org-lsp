@@ -628,13 +628,7 @@ fn forward_same_level(text: &str, heading: usize, count: usize) -> usize {
 /// siblings after it. Returns the text after it, the cursor, and what was
 /// copied; and what Org says.
 pub fn copy_subtree(text: &str, at: usize, count: usize, cut: bool) -> Result<(Outcome, String, String), Refusal> {
-    let mut beg = line_start(text, at.min(text.len()));
-    while level_at(text, beg).is_none() {
-        if beg == 0 {
-            return Err(Refusal::NotHere("Before first heading".to_string()));
-        }
-        beg = line_start(text, beg - 1);
-    }
+    let beg = subtree_heading(text, at).ok_or_else(|| Refusal::NotHere("Before first heading".to_string()))?;
     let last = forward_same_level(text, beg, count.max(1) - 1);
     let end = subtree_end(text, last);
     let copied = text[beg..end].to_string();
@@ -645,6 +639,19 @@ pub fn copy_subtree(text: &str, at: usize, count: usize, cut: bool) -> Result<(O
     let message =
         format!("{}: Subtree(s) with {} characters", if cut { "Cut" } else { "Copied" }, copied.chars().count());
     Ok((Outcome { text: buffer.text, cursor: buffer.point }, copied, message))
+}
+
+/// Where the headline of the subtree `org-copy-subtree` takes at `at`
+/// starts (`org-back-to-heading`); none before the first headline.
+pub fn subtree_heading(text: &str, at: usize) -> Option<usize> {
+    let mut beg = line_start(text, at.min(text.len()));
+    while level_at(text, beg).is_none() {
+        if beg == 0 {
+            return None;
+        }
+        beg = line_start(text, beg - 1);
+    }
+    Some(beg)
 }
 
 /// `org-kill-is-subtree-p`: whether `tree` starts with a headline, after
@@ -684,33 +691,143 @@ pub fn paste_subtree(
     paste(text, at, tree, level, settings).map(|(outcome, message, _)| (outcome, message))
 }
 
-/// `org-yank` (`C-y`) with `org-yank-adjusted-subtrees`: a kill of one
-/// or more subtrees, yanked at the start of a line or right after the
-/// stars of an otherwise empty headline, goes in as `org-paste-subtree`
-/// puts it (`for-yank`), the cursor on the line after it. None where Org
-/// yanks the text as it is.
+/// What `org-yank` did with a kill of subtrees: the text and cursor
+/// after it, what Org says (none for a yank as it is), and the headlines
+/// it folded (`org-yank-folded-subtrees`), where they start.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Yanked {
+    pub outcome: Outcome,
+    pub message: Option<String>,
+    pub folded: Vec<usize>,
+}
+
+/// `org-yank` (`C-y`, `org-yank-generic`): a kill of one or more subtrees,
+/// yanked at the start of a line or right after the stars of an otherwise
+/// empty headline, goes in as `org-paste-subtree` puts it (`for-yank`)
+/// with `adjusted` (`org-yank-adjusted-subtrees`), else as it is. With
+/// `folded` (`org-yank-folded-subtrees`) the subtrees yanked at the start
+/// of a line are folded, unless that would hide text after them, and the
+/// cursor goes to the line after them. None where Org yanks the text as
+/// it is, without folding it.
 pub fn yank_subtree(
     text: &str,
     at: usize,
     kill: &str,
     settings: &Settings,
-) -> Option<Result<(Outcome, String), Refusal>> {
+    adjusted: bool,
+    folded: bool,
+) -> Option<Result<Yanked, Refusal>> {
     let at = at.min(text.len());
     let bol = line_start(text, at);
     let after_stars = !text[bol..at].is_empty()
         && text[bol..at].bytes().all(|b| b == b'*')
         && text[at..line_end(text, at)].bytes().all(|b| b == b' ' || b == b'\t');
-    if !is_subtree(kill) || !(at == bol || after_stars) {
+    if !is_subtree(kill) || !(at == bol || after_stars) || !(adjusted || folded) {
         return None;
     }
-    Some(paste(text, at, kill, None, settings).map(|(mut outcome, message, end)| {
-        // `org-yank` with `org-yank-folded-subtrees`: past the blank text
-        // after it, at the start of that line.
-        let skipped =
-            end + (outcome.text.len() - end - outcome.text[end..].trim_start_matches([' ', '\t', '\n', '\r']).len());
-        outcome.cursor = line_start(&outcome.text, skipped);
-        (outcome, message)
-    }))
+    let (mut outcome, message, end) = if adjusted {
+        match paste(text, at, kill, None, settings) {
+            Ok((outcome, message, end)) => (outcome, Some(message), end),
+            Err(refusal) => return Some(Err(refusal)),
+        }
+    } else {
+        // `yank`: the kill as it is, the cursor after it.
+        let yanked = format!("{}{kill}{}", &text[..at], &text[at..]);
+        (Outcome { text: yanked, cursor: at + kill.len() }, None, at + kill.len())
+    };
+    if !folded {
+        // `org-paste-subtree` with `for-yank` leaves the cursor after what
+        // it pasted.
+        outcome.cursor = end;
+        return Some(Ok(Yanked { outcome, message, folded: Vec::new() }));
+    }
+    let new = &outcome.text;
+    // The point where the yank started, which the paste may have moved
+    // text away from.
+    let beg = at.min(new.len());
+    let mut folds = Vec::new();
+    let mut message = message;
+    if beg == line_start(new, beg) {
+        if would_swallow_text(new, beg, end, settings.odd_levels) {
+            message = Some("Inserted text not folded because that would swallow text".to_string());
+        } else {
+            folds = yanked_headlines(new, beg, end, settings.odd_levels);
+        }
+    }
+    // Past the blank text after it, at the start of that line.
+    let skipped = end + (new.len() - end - new[end..].trim_start_matches([' ', '\t', '\n', '\r']).len());
+    outcome.cursor = line_start(new, skipped);
+    Some(Ok(Yanked { outcome, message, folded: folds }))
+}
+
+/// The first headline from `beg` to `end`, as `org-yank-generic` looks for
+/// it (`org-outline-regexp-bol`, `org-with-limited-levels`): where its
+/// line starts, and where the search leaves the point, at `beg` for a
+/// headline there and after its stars and space otherwise.
+fn first_yanked_headline(text: &str, beg: usize, end: usize, odd: bool) -> Option<(usize, usize)> {
+    if outline_level_at(text, beg, odd).is_some() {
+        return Some((beg, beg));
+    }
+    let mut at = next_line(text, beg);
+    while at < end.min(text.len()) {
+        if let Some(level) = outline_level_at(text, at, odd) {
+            return Some((at, at + level + 1)).filter(|(_, matched)| *matched <= end);
+        }
+        at = next_line(text, at);
+    }
+    None
+}
+
+/// `org-yank-folding-would-swallow-text`: whether folding the subtrees
+/// yanked from `beg` to `end` would hide text after them, which is not a
+/// headline of the first one's level or above.
+fn would_swallow_text(text: &str, beg: usize, end: usize, odd: bool) -> bool {
+    let level = first_yanked_headline(text, beg, end, odd).and_then(|(line, _)| outline_level_at(text, line, odd));
+    let end = end.min(text.len());
+    let after =
+        end + (text.len() - end - text[end..].trim_start_matches([' ', '\t', '\r', '\n', '\x0b', '\x0c']).len());
+    if after >= text.len() {
+        return false;
+    }
+    let at_bol = after == line_start(text, after);
+    !(at_bol && outline_level_at(text, after, odd).is_some_and(|found| level.is_none_or(|level| found <= level)))
+}
+
+/// The headlines `org-yank-generic` folds (`org-fold-subtree`): the first
+/// one yanked and its siblings after it (`outline-forward-same-level`), up
+/// to `end`. The search for the first leaves the point after its stars
+/// unless it starts at `beg`, where it is a headline only when its title
+/// starts with stars and a blank too.
+fn yanked_headlines(text: &str, beg: usize, end: usize, odd: bool) -> Vec<usize> {
+    let mut folded = Vec::new();
+    let Some((first, point)) = first_yanked_headline(text, beg, end, odd) else { return folded };
+    let looking_at = |at: usize| {
+        let stars = text[at..].bytes().take_while(|b| *b == b'*').count();
+        stars > 0 && text.as_bytes().get(at + stars) == Some(&b' ')
+    };
+    if !looking_at(point) {
+        return folded;
+    }
+    let mut heading = first;
+    let Some(level) = outline_level_at(text, heading, odd) else { return folded };
+    while heading < end {
+        folded.push(heading);
+        // `outline-forward-same-level`: the next headline of this level
+        // before one above it, or else the end.
+        let mut next = next_outline_heading(text, heading, odd);
+        loop {
+            match outline_level_at(text, next, odd).filter(|_| next < text.len()) {
+                Some(found) if found > level => next = next_outline_heading(text, next, odd),
+                Some(found) if found == level => break,
+                _ => {
+                    next = end;
+                    break;
+                }
+            }
+        }
+        heading = next;
+    }
+    folded
 }
 
 /// `org-paste-subtree`, and where what it pasted ends.

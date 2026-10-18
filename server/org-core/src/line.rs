@@ -225,6 +225,67 @@ pub fn kill_line(text: &str, at: usize, settings: KillSettings) -> Result<Killed
     Ok(Killed { text: after, cursor, kill })
 }
 
+/// `org-ctrl-k-protect-subtree`: whether `C-k` on a line whose end a
+/// closed fold hides kills what it hides (`Off`), asks first (`Ask`), or
+/// refuses (`Error`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Protect {
+    #[default]
+    Off,
+    Ask,
+    Error,
+}
+
+/// What `org-kill-line` asks before it kills a hidden subtree.
+pub const KILL_HIDDEN_QUESTION: &str = "Kill hidden subtree along with headline? ";
+
+/// What `org-kill-line` says when it kills no hidden subtree.
+pub const KILL_HIDDEN_ABORTED: &str = "‘C-k’ aborted as it would kill a hidden subtree";
+
+/// `org-kill-line` at `at` where a closed fold starts on the cursor's line
+/// and hides the text up to `hidden_end`, the end of its last line: the
+/// line the editor shows goes on to there. `answer` is the answer to the
+/// question of `Protect::Ask`; `Ok(None)` when it is still to be asked.
+/// Without a fold, or where `org-special-ctrl-k` kills only to the tags
+/// or the end of the headline's own line, as `kill_line`.
+pub fn kill_line_folded(
+    text: &str,
+    at: usize,
+    settings: KillSettings,
+    hidden_end: Option<usize>,
+    protect: Protect,
+    answer: Option<bool>,
+) -> Result<Option<Killed>, String> {
+    let bol = line_start(text, at);
+    let on_heading = {
+        let stars = text[bol..].bytes().take_while(|b| *b == b'*').count();
+        stars > 0 && text.as_bytes().get(bol + stars) == Some(&b' ')
+    };
+    let Some(end) = hidden_end.filter(|end| *end > line_end(text, at)) else {
+        return kill_line(text, at, settings).map(Some);
+    };
+    if settings.special && at != bol && on_heading {
+        return kill_line(text, at, settings).map(Some);
+    }
+    match (protect, answer) {
+        (Protect::Off, _) | (Protect::Ask, Some(true)) => {}
+        (Protect::Ask, None) => return Ok(None),
+        _ => return Err(KILL_HIDDEN_ABORTED.to_string()),
+    }
+    // `kill-line`: to the end of the visible line, past what the fold
+    // hides; past its end too when only blanks are left before it.
+    if at == text.len() {
+        return Err("End of buffer".to_string());
+    }
+    let end = end.min(text.len());
+    let blanks = text[at..end].len() - text[at..end].trim_start_matches([' ', '\t']).len();
+    let end = if at + blanks == end { (end + 1).min(text.len()) } else { end };
+    let mut after = text.to_string();
+    let kill = after[at..end].to_string();
+    after.replace_range(at..end, "");
+    Ok(Some(Killed { text: after, cursor: at, kill }))
+}
+
 /// `move-to-column` on the line starting at `bol`.
 fn move_to_column(text: &str, bol: usize, wanted: usize) -> usize {
     let line = &text[bol..line_end(text, bol)];

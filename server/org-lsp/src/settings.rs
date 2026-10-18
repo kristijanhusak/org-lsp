@@ -229,6 +229,16 @@ pub const SETTINGS: &[Setting] = &[
          around them. Anything else is the editor's own paste.",
     ),
     setting(
+        "org_yank_folded_subtrees",
+        "boolean",
+        "true",
+        "org-yank-folded-subtrees",
+        "C-y (`org.yank`, Emacs keys) of one or more subtrees at the start of a line folds them, unless that \
+         would hide text after them (*Inserted text not folded because that would swallow text*), and \
+         leaves the cursor on the line after them. With `false` (and `org_yank_adjusted_subtrees` off) it \
+         is the editor's own paste.",
+    ),
+    setting(
         "org_allow_promoting_top_level_subtree",
         "boolean",
         "false",
@@ -328,7 +338,18 @@ pub const SETTINGS: &[Setting] = &[
         "org-special-ctrl-k",
         "C-k (`org.kill.line`) on a headline kills the text to the tags, and the tags when the cursor is \
          past the title; at the start of the line, the whole line. With `false` the key keeps the editor's \
-         own meaning.",
+         own meaning, but on a line a closed fold starts on (see `org_ctrl_k_protect_subtree`).",
+    ),
+    setting(
+        "org_ctrl_k_protect_subtree",
+        "false, true, \"error\"",
+        "false",
+        "org-ctrl-k-protect-subtree",
+        "C-k (`org.kill.line`) on a line a closed fold starts on (a headline's only from its start with \
+         `org_special_ctrl_k`) kills what the fold hides with the line, as Emacs's `kill-line` does: `true` asks \
+         first (*Kill hidden subtree along with headline?*), `\"error\"` refuses (*‘C-k’ aborted as it \
+         would kill a hidden subtree*), `false` kills. Needs an editor that says which folds are closed \
+         (not VS Code).",
     ),
     setting(
         "org_list_allow_alphabetical",
@@ -3502,12 +3523,14 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_track_ordered_property_with_tag", r#"{ "anyOf": [{ "type": "boolean" }, { "type": "string" }] }"#),
     ("org_sparse_tree_open_archived_trees", BOOLEAN),
     ("org_occur_case_fold_search", r#"{ "enum": [true, false, "smart"] }"#),
+    ("org_ctrl_k_protect_subtree", r#"{ "enum": [false, true, "error"] }"#),
     ("org_highlight_sparse_tree_matches", BOOLEAN),
     (
         "org_sparse_tree_default_date_type",
         r#"{ "enum": [null, "all", "active", "inactive", "scheduled", "deadline", "closed"] }"#,
     ),
     ("org_yank_adjusted_subtrees", BOOLEAN),
+    ("org_yank_folded_subtrees", BOOLEAN),
     ("org_allow_promoting_top_level_subtree", BOOLEAN),
     ("org_odd_levels_only", BOOLEAN),
     ("org_inlinetask_min_level", r#"{ "anyOf": [{ "const": false }, { "type": "integer", "minimum": 1 }] }"#),

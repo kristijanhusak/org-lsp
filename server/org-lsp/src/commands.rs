@@ -905,9 +905,11 @@ pub const COMMANDS: &[Command] = &[
         clipboard: true,
         ..edit(PASTE_SUBTREE, "Paste the subtree")
     },
-    // `org-yank`: with `org_yank_adjusted_subtrees`, a subtree yanked at the
-    // start of a line goes in as `org-paste-subtree` puts it; anything else
-    // is the editor's own paste (`notApplicable`).
+    // `org-yank`: a subtree yanked at the start of a line goes in as
+    // `org-paste-subtree` puts it with `org_yank_adjusted_subtrees`, and is
+    // folded with `org_yank_folded_subtrees` (`org-lsp/folds` once the
+    // editor has the edit); anything else is the editor's own paste
+    // (`notApplicable`).
     Command { emacs: &[native(Org, "C-y")], clipboard: true, ..edit(YANK, "Yank, a subtree at its level") },
     Command {
         emacs: &[key(Org, "C-c C-w"), key(Agenda, "C-c C-w")],
@@ -1018,8 +1020,11 @@ pub const COMMANDS: &[Command] = &[
     },
     // `org-beginning-of-line`, `org-end-of-line` and `org-kill-line`, as
     // `org_special_ctrl_a_e` and `org_special_ctrl_k` make them; with
-    // those off the keys keep the editor's meaning (`notApplicable`).
-    // C-k's kill is in `copy`, by characters.
+    // those off the keys keep the editor's meaning (`notApplicable`), but
+    // for C-k on a line a closed fold starts on, which kills what the
+    // fold hides, as `kill-line` does, or asks or refuses first
+    // (`org_ctrl_k_protect_subtree`). C-k's kill is in `copy`, by
+    // characters.
     Command { emacs: &[native(Org, "C-a")], ..command(BEGINNING_OF_LINE, "Move to the start of the headline's title") },
     Command { emacs: &[native(Org, "C-e")], ..command(END_OF_LINE, "Move to the end of the headline's title") },
     Command { emacs: &[native(Org, "C-k")], ..edit(KILL_LINE, "Kill the headline's text to the tags, or the tags") },
@@ -1803,8 +1808,11 @@ pub fn input(id: &str) -> Option<&'static Input> {
 /// The table as JSON: a list of
 /// The commands that read the editor's closed folds: their context has
 /// them in `folded`, as the first and last line of each. Exporting the
-/// visible part only (`C-v`) leaves them out.
-pub const FOLDS: &[&str] = &[EXPORT];
+/// visible part only (`C-v`) leaves them out; C-k on a folded headline
+/// kills what the fold hides (`org-ctrl-k-protect-subtree`); a subtree
+/// cut or copied folded is folded again when it is pasted
+/// (`org-subtree-clip-folded`).
+pub const FOLDS: &[&str] = &[EXPORT, KILL_LINE, CUT_SUBTREE, COPY_SUBTREE];
 
 /// The commands that work on a selection, Emacs's active region, when
 /// they are run on one: editors with a visual mode give them their keys

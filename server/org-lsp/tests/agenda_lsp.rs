@@ -1741,7 +1741,9 @@ fn yanks_subtrees_at_the_level_around_them() {
     assert_eq!(error.data, Some(json!({ "notApplicable": true })));
     client.shutdown();
 
-    let mut client = Client::editor(clock(), None);
+    let mut options = clock();
+    options["org_yank_folded_subtrees"] = json!(false);
+    let mut client = Client::editor(options, None);
     client.open("file:///org/yank.org", "* a\n");
     let context = json!({
         "textDocument": { "uri": "file:///org/yank.org" },
@@ -1752,6 +1754,137 @@ fn yanks_subtrees_at_the_level_around_them() {
         .request_raw("workspace/executeCommand", json!({ "command": "org.yank", "arguments": [context] }))
         .unwrap_err();
     assert_eq!(error.data, Some(json!({ "notApplicable": true })));
+    client.shutdown();
+}
+
+/// `org-yank` with `org_yank_folded_subtrees` (on by default): subtrees
+/// yanked at the start of a line go in as they are, the cursor after
+/// them, and once the editor has the edit `org-lsp/folds` closes their
+/// folds, the children's first. Where folding would hide the text after
+/// them, Org says so and folds nothing.
+#[test]
+fn yanks_subtrees_folded() {
+    let mut client = Client::editor(clock(), None);
+    let text = "* a\n** x\n* y\n";
+    client.open("file:///org/folded.org", text);
+    let context = json!({
+        "textDocument": { "uri": "file:///org/folded.org" },
+        "position": { "line": 2, "character": 0 },
+        "clipboard": "* b\nbody\n** c\nmore\n* d\n",
+    });
+    let yanked =
+        client.request("workspace/executeCommand", json!({ "command": "org.yank", "arguments": [context] })).unwrap();
+    let after = apply(text, yanked["edits"].as_array().unwrap());
+    assert_eq!(after, "* a\n** x\n* b\nbody\n** c\nmore\n* d\n* y\n");
+    assert_eq!(yanked["cursor"], json!({ "line": 7, "character": 0 }));
+    assert!(yanked.get("message").is_none_or(Value::is_null), "{yanked}");
+    client.settle();
+    let folds = || client.notifications.iter().filter(|notification| notification.method == "org-lsp/folds").count();
+    assert_eq!(folds(), 0, "no folds before the editor has the edit");
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": "file:///org/folded.org", "version": 2 }, "contentChanges": [{ "text": after }] }),
+    );
+    client.settle();
+    let sent = client.notifications.iter().find(|notification| notification.method == "org-lsp/folds").expect("folds");
+    assert_eq!(sent.params["uri"], "file:///org/folded.org");
+    let close: Vec<(u64, u64)> = sent.params["close"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|fold| (fold["startLine"].as_u64().unwrap(), fold["endLine"].as_u64().unwrap()))
+        .collect();
+    // `* d` has nothing to fold.
+    assert_eq!(close, vec![(4, 5), (2, 5)]);
+
+    // Folding `* b` would hide `** x` after it.
+    let context = json!({
+        "textDocument": { "uri": "file:///org/folded.org" },
+        "position": { "line": 1, "character": 0 },
+        "clipboard": "* b\nbody\n",
+    });
+    let yanked =
+        client.request("workspace/executeCommand", json!({ "command": "org.yank", "arguments": [context] })).unwrap();
+    assert_eq!(yanked["message"], "Inserted text not folded because that would swallow text");
+    client.shutdown();
+}
+
+/// `org-copy-subtree` of a subtree the editor has folded, then
+/// `org-paste-subtree` of it: the pasted subtree is folded again
+/// (`org-subtree-clip-folded`).
+#[test]
+fn pastes_a_folded_subtree_folded() {
+    let mut client = Client::editor(clock(), None);
+    let text = "* a\nbody\n* b\n";
+    client.open("file:///org/clip.org", text);
+    let copy = json!({
+        "textDocument": { "uri": "file:///org/clip.org" },
+        "position": { "line": 0, "character": 0 },
+        "folded": [[0, 1]],
+    });
+    client.request("workspace/executeCommand", json!({ "command": "org.copy.subtree", "arguments": [copy] })).unwrap();
+    let paste = json!({
+        "textDocument": { "uri": "file:///org/clip.org" },
+        "position": { "line": 3, "character": 0 },
+        "clipboard": "* a\nbody\n",
+    });
+    let pasted = client
+        .request("workspace/executeCommand", json!({ "command": "org.paste.subtree", "arguments": [paste] }))
+        .unwrap();
+    let after = apply(text, pasted["edits"].as_array().unwrap());
+    assert_eq!(after, "* a\nbody\n* b\n* a\nbody\n");
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": "file:///org/clip.org", "version": 2 }, "contentChanges": [{ "text": after }] }),
+    );
+    client.settle();
+    let sent = client.notifications.iter().find(|notification| notification.method == "org-lsp/folds").expect("folds");
+    assert_eq!(sent.params["close"][0]["startLine"], 3);
+    client.shutdown();
+}
+
+/// `org-kill-line` on a headline the editor has folded: it kills what the
+/// fold hides, as `kill-line` does, with `org_ctrl_k_protect_subtree`
+/// asking first or refusing.
+#[test]
+fn kills_a_folded_subtree_as_protected() {
+    let text = "* a\nbody\n* b\n";
+    let kill = |client: &mut Client, input: Option<&str>| {
+        let mut context = json!({
+            "textDocument": { "uri": "file:///org/kill.org" },
+            "position": { "line": 0, "character": 0 },
+            "folded": [[0, 1]],
+        });
+        if let Some(input) = input {
+            context["input"] = json!(input);
+        }
+        client.request_raw("workspace/executeCommand", json!({ "command": "org.kill.line", "arguments": [context] }))
+    };
+    let mut client = Client::editor(clock(), None);
+    client.open("file:///org/kill.org", text);
+    let killed = kill(&mut client, None).unwrap();
+    assert_eq!(apply(text, killed["edits"].as_array().unwrap()), "\n* b\n");
+    assert_eq!(killed["copy"], "* a\nbody");
+    client.shutdown();
+
+    let mut options = clock();
+    options["org_ctrl_k_protect_subtree"] = json!(true);
+    let mut client = Client::editor(options, None);
+    client.open("file:///org/kill.org", text);
+    let asked = kill(&mut client, None).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Kill hidden subtree along with headline? ");
+    let refused = kill(&mut client, Some("n")).unwrap_err();
+    assert_eq!(refused.message, "‘C-k’ aborted as it would kill a hidden subtree");
+    let killed = kill(&mut client, Some("y")).unwrap();
+    assert_eq!(killed["copy"], "* a\nbody");
+    client.shutdown();
+
+    let mut options = clock();
+    options["org_ctrl_k_protect_subtree"] = json!("error");
+    let mut client = Client::editor(options, None);
+    client.open("file:///org/kill.org", text);
+    let refused = kill(&mut client, None).unwrap_err();
+    assert_eq!(refused.message, "‘C-k’ aborted as it would kill a hidden subtree");
     client.shutdown();
 }
 
