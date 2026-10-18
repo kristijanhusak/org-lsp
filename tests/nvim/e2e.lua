@@ -1126,7 +1126,7 @@ vim.cmd('silent! write')
 -- 23g. `<Leader>o/` makes a sparse tree: everything folded but the
 -- matches, which are highlighted until the text changes.
 local sparse_file = vim.fn.tempname() .. '.org'
-vim.fn.writefile({ '* A', 'an apple', '* B', 'nothing', '** C', 'Apple pie', '* D', 'none' }, sparse_file)
+vim.fn.writefile({ '* A', 'an apple', '* B :work:', 'nothing', '** C', 'Apple pie', '* D', 'none' }, sparse_file)
 vim.cmd.edit(sparse_file)
 wait('the server and folds for the sparse tree', function()
   return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1 and vim.fn.foldlevel(2) > 0
@@ -1150,6 +1150,28 @@ vim.api.nvim_buf_set_lines(0, 7, 8, false, { 'changed' })
 wait('the highlights gone with the change', function()
   return #vim.api.nvim_buf_get_extmarks(0, sparse_ns, 0, -1, {}) == 0
 end)
+-- A sparse tree by tags keeps its highlights through changes, as
+-- `org-scan-tags` does, until `C-c C-c` takes them away.
+plugin.read_key = function()
+  return 'm'
+end
+vim.ui.input = function(_, on_answer)
+  on_answer('work')
+end
+press('<Leader>o/')
+wait('the tagged headlines highlighted', function()
+  return #vim.api.nvim_buf_get_extmarks(0, sparse_ns, 0, -1, {}) == 2
+end)
+plugin.read_key, vim.ui.input = before_sparse, typed
+vim.api.nvim_buf_set_lines(0, 7, 8, false, { 'changed again' })
+vim.wait(300)
+eq(#vim.api.nvim_buf_get_extmarks(0, sparse_ns, 0, -1, {}), 2, 'the highlights kept through the change')
+press('<C-Space>')
+wait('the highlights taken away by C-c C-c', function()
+  return #vim.api.nvim_buf_get_extmarks(0, sparse_ns, 0, -1, {}) == 0
+end)
+eq(vim.api.nvim_buf_get_lines(0, 2, 3, false)[1], '* B :work:', 'C-c C-c changed nothing')
+vim.cmd('normal! zR')
 vim.cmd('silent! write')
 
 -- 23h. `<Leader>oR` (`org-reveal`) shows the cursor's context: the folds

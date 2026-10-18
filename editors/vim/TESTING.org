@@ -54,6 +54,7 @@ its sections says what it should look like.
 - [ ] Widening in the narrowed file writes it back and closes it (~C-c '~ there does the same): ~<Leader>onw~
 - [ ] Opening the parent of an ~:ARCHIVE:~ subtree leaves that subtree folded
 - [ ] A sparse tree of the TODO entries folds everything else and highlights them: ~<Leader>o/~
+- [ ] Typing takes the highlights of a sparse tree of the TODO entries away; with ~org_remove_highlights_with_change = false~ they stay until ~C-c C-c~, which says /Temporary highlights/overlays removed from current buffer/: ~<Leader>o/~
 - [ ] With everything folded, showing the context of a line deep in a subtree opens the headlines above it and leaves the other subtrees folded: ~<Leader>oR~
 
 * Headings and structure

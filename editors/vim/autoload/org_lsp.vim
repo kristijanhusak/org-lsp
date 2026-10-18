@@ -515,11 +515,27 @@ endfunction
 " Show a sparse tree (`org-sparse-tree`) in the current window: all folds
 " closed, then those around each of `sparse.lines` opened, as `org-occur`
 " shows its matches; the matches highlighted (`OrgLspSparseMatch`) until
-" the text changes. The cursor stays. With `keep` (`org-reveal`), only
-" the folds that start on the lines of `unfold` open, outer ones first;
-" the others stay as they are.
+" the text changes, or with `keepHighlights` until they are replaced. The
+" cursor stays. With `keep` (`org-reveal`), only the folds that start on
+" the lines of `unfold` open, outer ones first; the others stay as they
+" are, and `highlights`, when given (`C-c C-c`), replace those shown.
 function! s:show_sparse(nr, sparse) abort
-  if get(a:sparse, 'keep', v:false)
+  highlight default link OrgLspSparseMatch Search
+  if empty(prop_type_get('org_lsp_sparse'))
+    call prop_type_add('org_lsp_sparse', {'highlight': 'OrgLspSparseMatch', 'priority': 200, 'combine': 1})
+  endif
+  let keep = get(a:sparse, 'keep', v:false)
+  if !keep || has_key(a:sparse, 'highlights')
+    call prop_remove({'type': 'org_lsp_sparse', 'bufnr': a:nr, 'all': 1})
+    call setbufvar(a:nr, 'org_lsp_sparse_shown', getbufvar(a:nr, 'org_lsp_sparse_shown', 0) + 1)
+  endif
+  for range in get(a:sparse, 'highlights', [])
+    let start = s:byte(getline(range.start.line + 1), range.start.character)
+    let end = s:byte(getline(range.end.line + 1), range.end.character)
+    call prop_add(range.start.line + 1, start + 1,
+          \ {'end_lnum': range.end.line + 1, 'end_col': end + 1, 'type': 'org_lsp_sparse', 'bufnr': a:nr})
+  endfor
+  if keep
     if &foldenable
       for line in get(a:sparse, 'unfold', [])
         if foldclosed(line + 1) == line + 1
@@ -529,17 +545,6 @@ function! s:show_sparse(nr, sparse) abort
     endif
     return
   endif
-  highlight default link OrgLspSparseMatch Search
-  if empty(prop_type_get('org_lsp_sparse'))
-    call prop_type_add('org_lsp_sparse', {'highlight': 'OrgLspSparseMatch', 'priority': 200, 'combine': 1})
-  endif
-  call prop_remove({'type': 'org_lsp_sparse', 'bufnr': a:nr, 'all': 1})
-  for range in get(a:sparse, 'highlights', [])
-    let start = s:byte(getline(range.start.line + 1), range.start.character)
-    let end = s:byte(getline(range.end.line + 1), range.end.character)
-    call prop_add(range.start.line + 1, start + 1,
-          \ {'end_lnum': range.end.line + 1, 'end_col': end + 1, 'type': 'org_lsp_sparse', 'bufnr': a:nr})
-  endfor
   if &foldenable
     let view = winsaveview()
     normal! zM
@@ -549,9 +554,21 @@ function! s:show_sparse(nr, sparse) abort
     endfor
     call winrestview(view)
   endif
-  " Org takes the highlighting away at the next change.
-  execute 'autocmd TextChanged,TextChangedI <buffer=' . a:nr . '> ++once'
-        \ 'call prop_remove({"type": "org_lsp_sparse", "bufnr": ' . a:nr . ', "all": 1})'
+  " Org takes the highlighting away at the next change, unless the server
+  " says it stays (`org-remove-highlights-with-change`); a change clears
+  " only the highlights it was waiting for.
+  if !get(a:sparse, 'keepHighlights', v:false)
+    execute 'autocmd TextChanged,TextChangedI <buffer=' . a:nr . '> ++once'
+          \ 'call org_lsp#clear_sparse(' . a:nr . ', ' . getbufvar(a:nr, 'org_lsp_sparse_shown') . ')'
+  endif
+endfunction
+
+" The highlights of a sparse tree taken away, if they are still those
+" shown when the change was waited for.
+function! org_lsp#clear_sparse(nr, shown) abort
+  if getbufvar(a:nr, 'org_lsp_sparse_shown', 0) == a:shown
+    call prop_remove({'type': 'org_lsp_sparse', 'bufnr': a:nr, 'all': 1})
+  endif
 endfunction
 
 " Ask what the command asks for, and run it again with the answer.

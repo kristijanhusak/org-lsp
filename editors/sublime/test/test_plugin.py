@@ -399,6 +399,20 @@ class Tests(unittest.TestCase):
         self.plugin.OrgLspListener().on_modified(self.view)
         self.assertNotIn('org-lsp-sparse', self.view.regions)
 
+    def test_keeps_sparse_highlights_until_cleared(self):
+        # `keepHighlights`: the highlights stay through changes, until the
+        # server sends none (`C-c C-c`), the folds left as they are.
+        self.view.text = '* A\nan apple\n* B\nnothing\n'
+        sparse = {'lines': [0], 'highlights': [{'start': {'line': 0, 'character': 0}, 'end': {'line': 0, 'character': 1}}],
+                  'keepHighlights': True}
+        self.run_command([('result', {'sparse': sparse}), ('result', [])], command='org.sparse.tree')
+        self.plugin.OrgLspListener().on_modified(self.view)
+        self.assertIn('org-lsp-sparse', self.view.regions)
+        cleared = {'keep': True, 'unfold': [], 'highlights': []}
+        self.run_command([('result', {'sparse': cleared, 'message': 'Temporary highlights/overlays removed from current buffer'})],
+                         command='org.checkbox.toggle')
+        self.assertNotIn('org-lsp-sparse', self.view.regions)
+
     def test_tells_the_closed_folds(self):
         self.view.text = '* A\nan apple\n* B\nnothing\nmore\n'
         self.view.folds = {self.plugin.fold_region(self.view, {'startLine': 2, 'endLine': 4})}

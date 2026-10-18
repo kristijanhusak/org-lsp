@@ -1884,6 +1884,13 @@ org_occur_case_fold_search = true
 # (org-highlight-sparse-tree-matches)
 org_highlight_sparse_tree_matches = true
 
+# The highlights of a sparse tree (`C-c /` by a regexp, TODO keywords or
+# dates, and a link's `/regexp/`) and the times of `C-c C-x C-d` go at the
+# next change of the text; with `false` they stay until `C-c C-c`. Those of a
+# sparse tree by tags or a property always stay, as in Emacs.
+# (org-remove-highlights-with-change)
+org_remove_highlights_with_change = true
+
 # The timestamps the date sparse trees (`C-c /` `b`, `a`, `D`) look at first:
 # `null` for scheduled and deadline dates, or one kind; `c` in the menu turns
 # to the next kind. (org-sparse-tree-default-date-type)

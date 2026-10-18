@@ -762,7 +762,7 @@
   "org-blank-before-new-entry": "setting",
   "org-insert-heading-hook": "lisp",
   "org-highlight-sparse-tree-matches": "setting",
-  "org-remove-highlights-with-change": "absent",
+  "org-remove-highlights-with-change": "setting",
   "org-occur-case-fold-search": "setting",
   "org-occur-hook": "lisp",
   "org-self-insert-cluster-for-undo": "emacs-only",

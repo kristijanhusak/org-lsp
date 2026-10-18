@@ -396,19 +396,40 @@ function M.closed_folds()
 end
 
 local sparse_namespace = vim.api.nvim_create_namespace('org_lsp_sparse')
+-- By buffer, how many times highlights were shown: a change clears only
+-- those it was waiting for.
+local sparse_shown = {}
 
 --- Show a sparse tree (`org-sparse-tree`) in the windows of `bufnr`: all
 --- folds closed, then those around each of `sparse.lines` opened, as
 --- `org-occur` shows its matches with everything else hidden; the matches
---- highlighted (`OrgLspSparseMatch`) until the text changes. The cursor
---- stays. With `keep` (`org-reveal`), only the folds that start on the
---- lines of `unfold` open, outer ones first; the others stay as they are.
+--- highlighted (`OrgLspSparseMatch`) until the text changes, or with
+--- `keepHighlights` until they are replaced. The cursor stays. With `keep`
+--- (`org-reveal`), only the folds that start on the lines of `unfold` open,
+--- outer ones first; the others stay as they are, and `highlights`, when
+--- given (`C-c C-c`), replace those shown.
 ---@param bufnr integer
----@param sparse { lines: integer[], highlights: table[], keep: boolean?, unfold: integer[]? }
+---@param sparse { lines: integer[], highlights: table[]?, keepHighlights: boolean?, keep: boolean?, unfold: integer[]? }
 ---@param client vim.lsp.Client
 function M.show_sparse(bufnr, sparse, client)
   if not vim.api.nvim_buf_is_valid(bufnr) then
     return
+  end
+  vim.api.nvim_set_hl(0, 'OrgLspSparseMatch', { link = 'Search', default = true })
+  if not sparse.keep or sparse.highlights then
+    vim.api.nvim_buf_clear_namespace(bufnr, sparse_namespace, 0, -1)
+    sparse_shown[bufnr] = (sparse_shown[bufnr] or 0) + 1
+  end
+  local function column(position)
+    local text = vim.api.nvim_buf_get_lines(bufnr, position.line, position.line + 1, false)[1] or ''
+    return vim.str_byteindex(text, client.offset_encoding, position.character, false)
+  end
+  for _, range in ipairs(sparse.highlights or {}) do
+    pcall(vim.api.nvim_buf_set_extmark, bufnr, sparse_namespace, range.start.line, column(range.start), {
+      end_row = range['end'].line,
+      end_col = column(range['end']),
+      hl_group = 'OrgLspSparseMatch',
+    })
   end
   if sparse.keep then
     for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
@@ -424,19 +445,6 @@ function M.show_sparse(bufnr, sparse, client)
     end
     return
   end
-  vim.api.nvim_set_hl(0, 'OrgLspSparseMatch', { link = 'Search', default = true })
-  vim.api.nvim_buf_clear_namespace(bufnr, sparse_namespace, 0, -1)
-  local function column(position)
-    local text = vim.api.nvim_buf_get_lines(bufnr, position.line, position.line + 1, false)[1] or ''
-    return vim.str_byteindex(text, client.offset_encoding, position.character, false)
-  end
-  for _, range in ipairs(sparse.highlights or {}) do
-    pcall(vim.api.nvim_buf_set_extmark, bufnr, sparse_namespace, range.start.line, column(range.start), {
-      end_row = range['end'].line,
-      end_col = column(range['end']),
-      hl_group = 'OrgLspSparseMatch',
-    })
-  end
   for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
     if vim.wo[win].foldenable then
       vim.api.nvim_win_call(win, function()
@@ -450,12 +458,16 @@ function M.show_sparse(bufnr, sparse, client)
       end)
     end
   end
-  -- Org takes the highlighting away at the next change
-  -- (`org-remove-highlights-with-change`).
+  -- Org takes the highlighting away at the next change, unless the server
+  -- says it stays (`org-remove-highlights-with-change`).
+  if sparse.keepHighlights then
+    return
+  end
+  local shown = sparse_shown[bufnr]
   vim.api.nvim_buf_attach(bufnr, false, {
     on_lines = function()
       vim.schedule(function()
-        if vim.api.nvim_buf_is_valid(bufnr) then
+        if vim.api.nvim_buf_is_valid(bufnr) and sparse_shown[bufnr] == shown then
           vim.api.nvim_buf_clear_namespace(bufnr, sparse_namespace, 0, -1)
         end
       end)

@@ -1619,10 +1619,7 @@ fn reveals_the_context() {
             .unwrap()
     };
     let shown = run(&mut client, "org.reveal", 6);
-    assert_eq!(
-        shown["sparse"],
-        json!({ "lines": [0, 2, 3, 6, 7, 8], "highlights": [], "keep": true, "unfold": [0, 2] })
-    );
+    assert_eq!(shown["sparse"], json!({ "lines": [0, 2, 3, 6, 7, 8], "keep": true, "unfold": [0, 2] }));
     assert_eq!(run(&mut client, "org.reveal.siblings", 6)["sparse"]["lines"], json!([0, 1, 2, 3, 6, 7, 8]));
     assert_eq!(run(&mut client, "org.reveal.tree", 9)["sparse"]["lines"], json!([8, 9]));
 }
@@ -1681,6 +1678,84 @@ fn makes_sparse_trees_without_highlights() {
         .unwrap();
     assert_eq!(shown["sparse"], json!({ "lines": [1, 4], "highlights": [] }));
     client.shutdown();
+}
+
+/// `org-remove-highlights-with-change`: the highlights of `org-occur` and
+/// the times of `org-clock-display` go with the next change, and with
+/// `false` stay, following the text, until `C-c C-c` takes them away. Those
+/// of a sparse tree by tags always stay, as `org-scan-tags` leaves them in
+/// Emacs.
+#[test]
+fn removes_highlights_with_change() {
+    for remove in [true, false] {
+        let capabilities = json!({ "textDocument": { "inlayHint": {} } });
+        let options = json!({
+            "org_remove_highlights_with_change": remove,
+            "clock": { "today": "2026-03-02", "now": "12:00" },
+        });
+        let mut client = Client::start(capabilities, options);
+        let text =
+            "* TODO a :work:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 10:00]--[2026-03-01 Sun 11:00] =>  1:00\n:END:\n";
+        client.open(&uri(), text);
+        let run = |client: &mut Client, command: &str, extra: Value| -> Option<Value> {
+            let mut context =
+                json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": 0, "character": 0 } });
+            for (key, value) in extra.as_object().unwrap() {
+                context[key] = value.clone();
+            }
+            client
+                .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+                .response_result
+                .ok()
+        };
+        let hints = |client: &mut Client| -> Vec<u32> {
+            let range = json!({ "start": { "line": 0, "character": 0 }, "end": { "line": 10, "character": 0 } });
+            let params = json!({ "textDocument": { "uri": uri().as_str() }, "range": range });
+            let result = client.raw_request("textDocument/inlayHint", params).response_result.unwrap();
+            result.as_array().unwrap().iter().map(|hint| hint["position"]["line"].as_u64().unwrap() as u32).collect()
+        };
+        let mut version = 1;
+        let mut change = |client: &mut Client| {
+            version += 1;
+            client.notify::<DidChangeTextDocument>(DidChangeTextDocumentParams {
+                text_document: VersionedTextDocumentIdentifier { uri: uri(), version },
+                content_changes: vec![TextDocumentContentChangeEvent {
+                    range: Some(Range::new(Position::new(0, 0), Position::new(0, 0))),
+                    range_length: None,
+                    text: "x\n".to_string(),
+                }],
+            });
+        };
+        let removed = json!("Temporary highlights/overlays removed from current buffer");
+        let shown = run(&mut client, "org.sparse.tree", json!({ "input": "TODO", "answers": "r" })).unwrap();
+        assert_eq!(shown["sparse"].get("keepHighlights").is_some(), !remove, "remove {remove}");
+        run(&mut client, "org.clock.display", json!({})).unwrap();
+        assert_eq!(hints(&mut client), [0]);
+        change(&mut client);
+        let cleared = run(&mut client, "org.checkbox.toggle", json!({ "position": { "line": 1, "character": 0 } }));
+        if remove {
+            assert_eq!(hints(&mut client), Vec::<u32>::new());
+            assert_ne!(cleared.map(|result| result["message"].clone()), Some(removed.clone()));
+        } else {
+            let cleared = cleared.unwrap();
+            assert_eq!(cleared["message"], removed);
+            assert_eq!(cleared["sparse"], json!({ "keep": true, "unfold": [], "highlights": [] }));
+            assert_eq!(hints(&mut client), Vec::<u32>::new());
+        }
+        // A sparse tree by tags: its highlights stay through changes.
+        let tagged = run(&mut client, "org.sparse.tree", json!({ "input": "work", "answers": "m" })).unwrap();
+        assert_eq!(tagged["sparse"]["keepHighlights"], true);
+        change(&mut client);
+        let cleared = run(&mut client, "org.checkbox.toggle", json!({ "position": { "line": 2, "character": 0 } }));
+        assert_eq!(cleared.unwrap()["message"], removed);
+        // With `false`, the times follow their headline.
+        if !remove {
+            run(&mut client, "org.clock.display", json!({ "position": { "line": 2, "character": 0 } })).unwrap();
+            change(&mut client);
+            assert_eq!(hints(&mut client), [3]);
+        }
+        client.shutdown();
+    }
 }
 
 /// `org-num-mode`: `#+STARTUP: num` numbers the headlines as inlay hints

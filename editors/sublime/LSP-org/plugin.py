@@ -1084,26 +1084,35 @@ last_cycle = None
 
 
 SPARSE_KEY = 'org-lsp-sparse'
+# The views whose sparse tree highlights stay through changes
+# (`org-remove-highlights-with-change`).
+sparse_kept = set()
 
 
 def show_sparse(session, view, sparse) -> None:
     """A sparse tree (`org-sparse-tree`): every fold closed but those with
     one of `sparse['lines']` inside, as `org-occur` shows its matches; the
-    matches highlighted until the text changes. With `keep`
-    (`org-reveal`), only the folds that start on the lines of `unfold`
-    open; the others stay as they are."""
+    matches highlighted until the text changes, or with `keepHighlights`
+    until they are replaced. With `keep` (`org-reveal`), only the folds
+    that start on the lines of `unfold` open; the others stay as they are,
+    and `highlights`, when given (`C-c C-c`), replace those shown."""
+    if not sparse.get('keep') or 'highlights' in sparse:
+        regions = [sublime.Region(position_to_offset(r['start'], view), position_to_offset(r['end'], view))
+                   for r in sparse.get('highlights', [])]
+        if regions:
+            view.add_regions(SPARSE_KEY, regions, 'region.yellowish markup.highlight.sparse.org', '',
+                             sublime.DRAW_NO_OUTLINE)
+        else:
+            view.erase_regions(SPARSE_KEY)
+        if sparse.get('keepHighlights'):
+            sparse_kept.add(view.id())
+        else:
+            sparse_kept.discard(view.id())
     if sparse.get('keep'):
         for line in sparse.get('unfold', []):
             start = view.line(view.text_point(line, 0)).b
             view.unfold(sublime.Region(start, start + 1))
         return
-    regions = [sublime.Region(position_to_offset(r['start'], view), position_to_offset(r['end'], view))
-               for r in sparse.get('highlights', [])]
-    if regions:
-        view.add_regions(SPARSE_KEY, regions, 'region.yellowish markup.highlight.sparse.org', '',
-                         sublime.DRAW_NO_OUTLINE)
-    else:
-        view.erase_regions(SPARSE_KEY)
     lines = sparse.get('lines', [])
 
     def fold(ranges) -> None:
@@ -1368,13 +1377,16 @@ class OrgLspListener(sublime_plugin.EventListener):
         return None
 
     # Org takes the highlighting of a sparse tree away at the next change,
+    # unless the server says it stays (`org-remove-highlights-with-change`),
     # and a preview whose text changes.
     def on_modified(self, view) -> None:
-        view.erase_regions(SPARSE_KEY)
+        if view.id() not in sparse_kept:
+            view.erase_regions(SPARSE_KEY)
         if image_previews.get(view.id()):
             draw_images(view)
 
     def on_close(self, view) -> None:
+        sparse_kept.discard(view.id())
         image_previews.pop(view.id(), None)
         image_phantoms.pop(view.id(), None)
 

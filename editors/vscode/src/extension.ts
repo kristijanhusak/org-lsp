@@ -1648,21 +1648,32 @@ const sparseDecoration = vscode.window.createTextEditorDecorationType({
 });
 
 /** The matches of the sparse tree each document shows; for the tests. */
-const sparseShown = new Map<string, vscode.Range[]>();
+const sparseShown = new Map<string, { ranges: vscode.Range[]; keep: boolean }>();
 
 /**
  * A sparse tree (`org-sparse-tree`) in the editor at hand: everything
  * folded, then the regions around each of its lines unfolded, as
  * `org-occur` shows its matches; the matches highlighted until the text
- * changes. With `keep` (`org-reveal`), only the folds that start on the
- * lines of `unfold` open; the others stay as they are.
+ * changes, or with `keepHighlights` until they are replaced. With `keep`
+ * (`org-reveal`), only the folds that start on the lines of `unfold` open;
+ * the others stay as they are, and `highlights`, when given (`C-c C-c`),
+ * replace those shown.
  */
 async function showSparse(running: LanguageClient, result: unknown): Promise<void> {
-  type Sparse = { lines?: number[]; highlights?: unknown[]; keep?: boolean; unfold?: number[] };
+  type Sparse = { lines?: number[]; highlights?: unknown[]; keepHighlights?: boolean; keep?: boolean; unfold?: number[] };
   const sparse = (result as { sparse?: Sparse } | null)?.sparse;
   const editor = vscode.window.activeTextEditor;
   if (!sparse || !editor) {
     return;
+  }
+  if (!sparse.keep || sparse.highlights) {
+    const ranges = (sparse.highlights ?? [])
+      .map((range) =>
+        running.protocol2CodeConverter.asRange(range as Parameters<typeof running.protocol2CodeConverter.asRange>[0]),
+      )
+      .filter((range): range is vscode.Range => range !== undefined);
+    editor.setDecorations(sparseDecoration, ranges);
+    sparseShown.set(editor.document.uri.toString(), { ranges, keep: sparse.keepHighlights === true });
   }
   if (sparse.keep) {
     const unfold = sparse.unfold ?? [];
@@ -1671,13 +1682,6 @@ async function showSparse(running: LanguageClient, result: unknown): Promise<voi
     }
     return;
   }
-  const ranges = (sparse.highlights ?? [])
-    .map((range) =>
-      running.protocol2CodeConverter.asRange(range as Parameters<typeof running.protocol2CodeConverter.asRange>[0]),
-    )
-    .filter((range): range is vscode.Range => range !== undefined);
-  editor.setDecorations(sparseDecoration, ranges);
-  sparseShown.set(editor.document.uri.toString(), ranges);
   await vscode.commands.executeCommand('editor.foldAll');
   const lines = sparse.lines ?? [];
   if (lines.length > 0) {
@@ -1685,10 +1689,14 @@ async function showSparse(running: LanguageClient, result: unknown): Promise<voi
   }
 }
 
-/** Org takes the highlighting away at the next change. */
+/**
+ * Org takes the highlighting away at the next change, unless the server
+ * says it stays (`org-remove-highlights-with-change`).
+ */
 function clearSparse(event: vscode.TextDocumentChangeEvent): void {
   const key = event.document.uri.toString();
-  if (event.contentChanges.length === 0 || !sparseShown.has(key)) {
+  const shown = sparseShown.get(key);
+  if (event.contentChanges.length === 0 || !shown || shown.keep) {
     return;
   }
   sparseShown.delete(key);
@@ -2220,7 +2228,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     virtualIndent: (editor) => virtualIndentShown.get(editor) ?? [],
     lineHighlights: (editor) => lineHighlightsShown.get(editor) ?? [],
     faces: (editor) => facesShown.get(editor) ?? [],
-    sparse: (editor) => (sparseShown.get(editor.document.uri.toString()) ?? []).map((range) => editor.document.getText(range)),
+    sparse: (editor) =>
+      (sparseShown.get(editor.document.uri.toString())?.ranges ?? []).map((range) => editor.document.getText(range)),
     help: (editor) => helpItems(context.extension.packageJSON, editor).map((item) => [item.key, item.title]),
     images: (editor) =>
       (imagesShown.get(editor.document.uri.toString()) ?? []).map((entry) => [

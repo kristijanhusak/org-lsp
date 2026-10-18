@@ -16,7 +16,7 @@ Org's options, one by one, are under [[#options][Options]].
 |---+---+---|
 | [[#highlighting][Highlighting]] | 95% | 19 of 20 |
 | [[#folding-and-visibility][Folding and visibility]] | 91% | 10 of 11 |
-| [[#headings-and-structure][Headings and structure]] | 96% | 24 of 25 |
+| [[#headings-and-structure][Headings and structure]] | 96% | 25 of 26 |
 | [[#lists-and-checkboxes][Lists and checkboxes]] | 100% | 13 of 13 |
 | [[#todo-keywords][TODO keywords]] | 100% | 14 of 14 |
 | [[#priorities][Priorities]] | 100% | 4 of 4 |
@@ -113,7 +113,7 @@ Where editors fall short:
 :CUSTOM_ID: headings-and-structure
 :END:
 
-96% (24 of 25)
+96% (25 of 26)
 
 - ✅ New headings (~M-RET~, ~M-S-RET~, ~C-RET~, ~C-S-RET~), the line split or not (~org-M-RET-may-split-line~), with empty lines before them as ~org-blank-before-new-entry~ says, after the subtree (~org-insert-heading-respect-content~)
 - ✅ Promoting and demoting a heading or a subtree; a top-level one to a ~#~ line (~org-allow-promoting-top-level-subtree~)
@@ -140,6 +140,7 @@ Where editors fall short:
 - ✅ Commands on a region, a selection in the editor: the headlines in it promoted, demoted or moved, lines turned into headings or items, checkboxes toggled, the region wrapped in a block, a drawer or emphasis (through Emacs)
 - ✅ Sparse trees that tell case apart (~org-occur-case-fold-search~), and by a kind of date, cycled with ~c~ (~org-sparse-tree-default-date-type~)
 - ✅ Sparse trees without their matches highlighted (~org-highlight-sparse-tree-matches~)
+- ✅ The highlights of a sparse tree and the times of ~C-c C-x C-d~ gone with the next change, or kept, following the text, until ~C-c C-c~ (~org-remove-highlights-with-change~); those of a sparse tree by tags or a property kept either way, as ~org-scan-tags~ keeps them
 
 Where editors fall short:
 
@@ -773,19 +774,19 @@ Where editors fall short:
 :END:
 
 Each of the 1025 options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with
-it. Of the 333 that change what org-lsp does itself, 100% can be set.
+it. Of the 334 that change what org-lsp does itself, 100% can be set.
 [[file:../scripts/org-options.json][scripts/org-options.json]] says it for each; ~scripts/check.sh~ fails when the
 server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,
 when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 319 | A setting of the same name |
+| setting | 320 | A setting of the same name |
 | missing | 1 | org-lsp does what the option is about, but the option cannot be set yet |
 | other | 13 | Done another way, as its note says |
 | emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 47 | Its value is Lisp (a function, a hook), which the server does not run |
-| absent | 60 | Part of something org-lsp does not do |
+| absent | 59 | Part of something org-lsp does not do |
 | emacs-only | 105 | About Emacs itself (windows, faces, menus, the mouse, the mode line): nothing to do in an editor |
 
 ** Done another way

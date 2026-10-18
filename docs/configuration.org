@@ -6785,6 +6785,24 @@ until the text changes; with ~false~, only their lines show.
 org_highlight_sparse_tree_matches = true
 #+end_src
 
+*** org_remove_highlights_with_change
+:PROPERTIES:
+:CUSTOM_ID: org_remove_highlights_with_change
+:END:
+
+The highlights of a sparse tree (~C-c /~ by a regexp, TODO keywords or dates,
+and a link's ~/regexp/~) and the times of ~C-c C-x C-d~ go at the next change
+of the text; with ~false~ they stay until ~C-c C-c~. Those of a sparse tree by
+tags or a property always stay, as in Emacs.
+
+- Org's option :: ~org-remove-highlights-with-change~
+- Type :: boolean
+- Default :: ~true~
+
+#+begin_src toml
+org_remove_highlights_with_change = true
+#+end_src
+
 *** org_sparse_tree_default_date_type
 :PROPERTIES:
 :CUSTOM_ID: org_sparse_tree_default_date_type

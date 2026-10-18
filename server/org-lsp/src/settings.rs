@@ -212,6 +212,15 @@ pub const SETTINGS: &[Setting] = &[
          with `false`, only their lines show.",
     ),
     setting(
+        "org_remove_highlights_with_change",
+        "boolean",
+        "true",
+        "org-remove-highlights-with-change",
+        "The highlights of a sparse tree (`C-c /` by a regexp, TODO keywords or dates, and a link's \
+         `/regexp/`) and the times of `C-c C-x C-d` go at the next change of the text; with `false` they \
+         stay until `C-c C-c`. Those of a sparse tree by tags or a property always stay, as in Emacs.",
+    ),
+    setting(
         "org_sparse_tree_default_date_type",
         "null, \"all\", \"active\", \"inactive\", \"scheduled\", \"deadline\", \"closed\"",
         "null",
@@ -3525,6 +3534,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_occur_case_fold_search", r#"{ "enum": [true, false, "smart"] }"#),
     ("org_ctrl_k_protect_subtree", r#"{ "enum": [false, true, "error"] }"#),
     ("org_highlight_sparse_tree_matches", BOOLEAN),
+    ("org_remove_highlights_with_change", BOOLEAN),
     (
         "org_sparse_tree_default_date_type",
         r#"{ "enum": [null, "all", "active", "inactive", "scheduled", "deadline", "closed"] }"#,
