@@ -1084,6 +1084,7 @@ fn headlines(text: &str) -> Vec<usize> {
 fn find_path(text: &str, path: &[String], keywords: &TodoKeywords) -> Result<Option<usize>, Refusal> {
     let (mut lmin, mut lmax) = (1, 1);
     let (mut from, mut to) = (0, text.len());
+    let odd = crate::structure::odd_levels_in(text);
     let mut found = None;
     for title in path {
         let matches: Vec<usize> = headlines(text)
@@ -1100,7 +1101,7 @@ fn find_path(text: &str, path: &[String], keywords: &TodoKeywords) -> Result<Opt
                 from = *one;
                 to = subtree_end(text, *one);
                 lmin = level + 1;
-                lmax = lmin;
+                lmax = lmin + usize::from(odd);
             }
             _ => return Err(Refusal::Failed(format!("Heading not unique on level {lmax}: {title}"))),
         }
@@ -1237,6 +1238,7 @@ fn datetree(
     keywords: &TodoKeywords,
 ) -> Result<usize, Refusal> {
     let (mut start, mut end, mut level) = (0, text.len(), 1);
+    let odd = crate::structure::odd_levels_in(text);
     let legacy = if groups == [Group::Year, Group::Month, Group::Day] || groups == [Group::Year, Group::Month] {
         Some("DATE_TREE")
     } else if groups == [Group::Year, Group::Week, Group::Day] {
@@ -1251,8 +1253,12 @@ fn datetree(
     if let Some(root) = root {
         start = root;
         end = narrowed_subtree_end(text, root, text.len());
-        level = headline_level(line_of(text, root)).unwrap_or(0) + 1;
+        level = crate::structure::valid_level(headline_level(line_of(text, root)).unwrap_or(0), 1, odd);
     }
+    // With `org-odd-levels-only`, `level` counts levels and headlines have
+    // two stars a level, as `org-reduced-level` reads them.
+    let stars = |level: usize| if odd { 2 * level - 1 } else { level };
+    let reduced = |line: &str| headline_level(line).map(|level| crate::structure::reduced_level(level, odd));
     let mut found = start;
     for (title, pattern) in datetree_levels(date, groups) {
         let regex = Regex::new(pattern).expect("a valid regex");
@@ -1267,7 +1273,7 @@ fn datetree(
         let sibling = headlines(text)
             .into_iter()
             .filter(|at| (start..end).contains(at))
-            .filter(|at| headline_level(line_of(text, *at)) == Some(level))
+            .filter(|at| reduced(line_of(text, *at)) == Some(level))
             .find(|at| compare(line_of(text, *at)).is_some_and(|order| order != std::cmp::Ordering::Less));
         let mut buffer = Buffer { text: std::mem::take(text), point: 0 };
         if let Some(sibling) = sibling {
@@ -1294,7 +1300,7 @@ fn datetree(
         buffer.point = kept;
         end -= removed;
         let blank = blank_before_heading_in(&buffer.text, buffer.point, start, end);
-        let inserted = format!("{}\n{} {title}\n", if blank { "\n" } else { "" }, "*".repeat(level));
+        let inserted = format!("{}\n{} {title}\n", if blank { "\n" } else { "" }, "*".repeat(stars(level)));
         buffer.insert(&inserted);
         end += inserted.len();
         let heading = buffer.line_start(buffer.point - 1);
@@ -1404,7 +1410,8 @@ fn place_entry(
     let mut level = 1;
     match heading {
         Some(heading) => {
-            level = headline_level(buffer.line(heading)).unwrap_or(0) + 1;
+            let stars = headline_level(buffer.line(heading)).unwrap_or(0);
+            level = crate::structure::valid_level(stars, 1, crate::structure::odd_levels_in(&buffer.text));
             if properties.prepend {
                 buffer.next_heading();
             } else {

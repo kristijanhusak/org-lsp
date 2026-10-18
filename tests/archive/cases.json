@@ -1420,5 +1420,131 @@
    ],
    "point": 5
   }
+ },
+ {
+  "files": {
+   "a.org": "#+STARTUP: odd\n* Projects\n*** DONE Write¦\n***** Sub\n* C\n"
+  },
+  "command": "subtree",
+  "options": {
+   "org_archive_location": "::* Archive"
+  },
+  "expected": {
+   "files": {
+    "a.org": "#+STARTUP: odd\n* Projects\n* C\n\n* Archive\n\n*** DONE Write\n:PROPERTIES:\n:ARCHIVE_TIME: 2026-05-18 Mon 10:30\n:ARCHIVE_FILE: ~/notes/a.org\n:ARCHIVE_OLPATH: Projects\n:ARCHIVE_CATEGORY: a\n:ARCHIVE_TODO: DONE\n:END:\n***** Sub\n"
+   },
+   "message": "Subtree archived under heading: * Archive",
+   "questions": [],
+   "point": 26
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+STARTUP: odd\n* Projects\n*** DONE Write¦\n* C\n",
+   "a.org_archive": "* Old\n"
+  },
+  "command": "subtree",
+  "options": {
+   "org_archive_location": "%s_archive::* Archived Tasks"
+  },
+  "expected": {
+   "files": {
+    "a.org": "#+STARTUP: odd\n* Projects\n* C\n",
+    "a.org_archive": "* Old\n\n* Archived Tasks\n\n** DONE Write\n:PROPERTIES:\n:ARCHIVE_TIME: 2026-05-18 Mon 10:30\n:ARCHIVE_FILE: ~/notes/a.org\n:ARCHIVE_OLPATH: Projects\n:ARCHIVE_CATEGORY: a\n:ARCHIVE_TODO: DONE\n:END:\n"
+   },
+   "message": "Subtree archived in file: ~/notes/a.org_archive",
+   "questions": [],
+   "point": 26
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+STARTUP: odd\n* Projects\n*** DONE Write¦\n* C\n",
+   "a.org_archive": "#+STARTUP: odd\n* Old\n"
+  },
+  "command": "subtree",
+  "options": {
+   "org_archive_location": "%s_archive::* Archived Tasks"
+  },
+  "expected": {
+   "files": {
+    "a.org": "#+STARTUP: odd\n* Projects\n* C\n",
+    "a.org_archive": "#+STARTUP: odd\n* Old\n\n* Archived Tasks\n\n*** DONE Write\n:PROPERTIES:\n:ARCHIVE_TIME: 2026-05-18 Mon 10:30\n:ARCHIVE_FILE: ~/notes/a.org\n:ARCHIVE_OLPATH: Projects\n:ARCHIVE_CATEGORY: a\n:ARCHIVE_TODO: DONE\n:END:\n"
+   },
+   "message": "Subtree archived in file: ~/notes/a.org_archive",
+   "questions": [],
+   "point": 26
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+STARTUP: odd\n* Projects\n*** DONE Write¦\n* C\n"
+  },
+  "command": "subtree",
+  "options": {
+   "org_archive_location": "::datetree/"
+  },
+  "expected": {
+   "files": {
+    "a.org": "#+STARTUP: odd\n* Projects\n* C\n* 2026\n*** 2026-05 May\n***** 2026-05-18 Monday\n******* DONE Write\n:PROPERTIES:\n:ARCHIVE_TIME: 2026-05-18 Mon 10:30\n:ARCHIVE_FILE: ~/notes/a.org\n:ARCHIVE_OLPATH: Projects\n:ARCHIVE_CATEGORY: a\n:ARCHIVE_TODO: DONE\n:END:\n"
+   },
+   "message": "Subtree archived under heading: *****",
+   "questions": [],
+   "point": 26
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+STARTUP: odd\n* Projects\n*** DONE Write¦\n* C\n",
+   "a.org_archive": "#+STARTUP: odd\n"
+  },
+  "command": "subtree",
+  "options": {
+   "org_archive_location": "%s_archive::datetree/* Done"
+  },
+  "expected": {
+   "files": {
+    "a.org": "#+STARTUP: odd\n* Projects\n* C\n",
+    "a.org_archive": "#+STARTUP: odd\n* 2026\n*** 2026-05 May\n***** 2026-05-18 Monday\n******* Done\n********* DONE Write\n:PROPERTIES:\n:ARCHIVE_TIME: 2026-05-18 Mon 10:30\n:ARCHIVE_FILE: ~/notes/a.org\n:ARCHIVE_OLPATH: Projects\n:ARCHIVE_CATEGORY: a\n:ARCHIVE_TODO: DONE\n:END:\n"
+   },
+   "message": "Subtree archived in file: ~/notes/a.org_archive",
+   "questions": [],
+   "point": 26
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+STARTUP: odd\n* Projects\n*** DONE Write¦\n*** B\n* C\n"
+  },
+  "command": "sibling",
+  "expected": {
+   "files": {
+    "a.org": "#+STARTUP: odd\n* Projects\n*** B\n*** Archive                                                         :ARCHIVE:\n***** DONE Write\n:PROPERTIES:\n:ARCHIVE_TIME: 2026-05-18 Mon 10:30\n:END:\n* C\n"
+   },
+   "message": "Cut: Subtree(s) with 15 characters",
+   "questions": [],
+   "point": 26
+  }
+ },
+ {
+  "files": {
+   "a.org": "#+STARTUP: odd\n* Projects¦\n*** DONE Write\n***** DONE Deep\n*** TODO B\n"
+  },
+  "command": "done",
+  "answers": [
+   true,
+   true
+  ],
+  "expected": {
+   "files": {
+    "a.org": "#+STARTUP: odd\n* Projects\n*** TODO B\n",
+    "a.org_archive": "#    -*- mode: org -*-\n\n\nArchived entries from file /home/notes/a.org\n\n\n* DONE Write\n:PROPERTIES:\n:ARCHIVE_TIME: 2026-05-18 Mon 10:30\n:ARCHIVE_FILE: ~/notes/a.org\n:ARCHIVE_OLPATH: Projects\n:ARCHIVE_CATEGORY: a\n:ARCHIVE_TODO: DONE\n:END:\n*** DONE Deep\n"
+   },
+   "message": "1 trees archived",
+   "questions": [
+    "Move subtree to archive? (no open TODO items)"
+   ],
+   "point": 36
+  }
  }
 ]

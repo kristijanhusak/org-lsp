@@ -16,7 +16,7 @@ Org's options, one by one, are under [[#options][Options]].
 |---+---+---|
 | [[#highlighting][Highlighting]] | 95% | 19 of 20 |
 | [[#folding-and-visibility][Folding and visibility]] | 91% | 10 of 11 |
-| [[#headings-and-structure][Headings and structure]] | 95% | 18 of 19 |
+| [[#headings-and-structure][Headings and structure]] | 95% | 19 of 20 |
 | [[#lists-and-checkboxes][Lists and checkboxes]] | 100% | 13 of 13 |
 | [[#todo-keywords][TODO keywords]] | 100% | 14 of 14 |
 | [[#priorities][Priorities]] | 100% | 4 of 4 |
@@ -113,12 +113,13 @@ Where editors fall short:
 :CUSTOM_ID: headings-and-structure
 :END:
 
-95% (18 of 19)
+95% (19 of 20)
 
 - ✅ New headings (~M-RET~, ~M-S-RET~, ~C-RET~, ~C-S-RET~), the line split or not (~org-M-RET-may-split-line~), with empty lines before them as ~org-blank-before-new-entry~ says, after the subtree (~org-insert-heading-respect-content~)
 - ✅ Promoting and demoting a heading or a subtree; a top-level one to a ~#~ line (~org-allow-promoting-top-level-subtree~)
 - ✅ Odd levels only, ~***~ the second (~org-odd-levels-only~, ~#+STARTUP: odd~): promoting, demoting and ~TAB~ on a new headline two stars at a time, the headlines' faces, ~LEVEL~ in matches and ~%l~ in the agenda
-- ❌ Odd levels only where refiling, capturing, archiving and date trees put headlines, and converting a file to odd levels and back (~org-convert-to-odd-levels~)
+- ✅ Odd levels only where refiling, capturing, archiving and date trees put headlines (~org-get-valid-level~), from the target file's ~#+STARTUP:~
+- ❌ Converting a file to odd levels and back (~org-convert-to-odd-levels~, ~org-convert-to-oddeven-levels~)
 - ✅ Moving a subtree up and down
 - ✅ Cutting, copying and pasting subtrees, their level fitted
 - ✅ Yanking subtrees with ~C-y~ at the level around them (~org-yank-adjusted-subtrees~)

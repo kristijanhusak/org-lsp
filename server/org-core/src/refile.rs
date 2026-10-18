@@ -374,7 +374,10 @@ pub fn refile(
     // Where the subtree goes, and at which level.
     let (at, level) = match to {
         Some(to) => {
-            let level = headline_level(line_at(into, to)).unwrap_or(1) + 1;
+            // `org-get-valid-level`, two stars a level with `org-odd-levels-only`
+            // in the target.
+            let stars = headline_level(line_at(into, to)).unwrap_or(1);
+            let level = crate::structure::valid_level(stars, 1, crate::structure::odd_levels_in(into));
             let at = if settings.reverse_note_order {
                 next_heading(into, to).unwrap_or(into.len())
             } else {
@@ -513,7 +516,13 @@ pub fn new_node<'a>(targets: &'a [(usize, Target)], answer: &str) -> Option<(&'a
 pub fn new_child(text: &str, parent: Option<usize>, child: &str) -> (String, usize) {
     let mut text = text.to_string();
     let (end, level) = match parent {
-        Some(heading) => (subtree_end(&text, heading), headline_level(line_at(&text, heading)).unwrap_or(1) + 1),
+        Some(heading) => {
+            let stars = headline_level(line_at(&text, heading)).unwrap_or(1);
+            (
+                subtree_end(&text, heading),
+                crate::structure::valid_level(stars, 1, crate::structure::odd_levels_in(&text)),
+            )
+        }
         None => {
             if !text.is_empty() && !text.ends_with('\n') {
                 text.push('\n');
