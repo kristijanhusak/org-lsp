@@ -51,6 +51,7 @@ use crate::line_index::{Encoding, LineIndex};
 use crate::prompt::{self, DatePrompt, Target, TimeField};
 
 mod bulk;
+mod clock_persist;
 mod journal;
 mod roam;
 use crate::views::{self, EntryRef, Query, View, ViewLine};
@@ -171,6 +172,9 @@ enum Pending {
     /// `window/showMessageRequest` (`message_prompts`); the answer runs it
     /// again.
     Answer { command: String, argument: Value, input: Value },
+    /// `org-clock-persist-query-resume`: the clock the last session kept
+    /// runs again on yes.
+    ResumeClock(RunningClock),
 }
 
 /// A command waiting for text or a date: what `textDocument/rename`
@@ -1162,6 +1166,12 @@ struct Server {
     agenda_persistent_filter: bool,
     /// `org-clock-in-resume`
     clock_in_resume: bool,
+    /// `org-clock-persist` and its file.
+    clock_persist: crate::config::ClockPersist,
+    /// `org-clock-loaded`: the file of `org-clock-persist` was read.
+    clock_loaded: bool,
+    /// `org-clock-has-been-used`
+    clock_used: bool,
     /// `org-highlight-sparse-tree-matches`
     highlight_sparse_tree_matches: bool,
     /// `org-agenda-view-columns-initially`
@@ -1655,6 +1665,9 @@ pub fn run(connection: Connection) -> Result<()> {
         capture_use_agenda_date: options.capture_use_agenda_date.unwrap_or(false),
         agenda_persistent_filter: options.agenda_persistent_filter.unwrap_or(false),
         clock_in_resume: options.clock_in_resume.unwrap_or(false),
+        clock_persist: options.clock_persist(),
+        clock_loaded: false,
+        clock_used: false,
         highlight_sparse_tree_matches: options.highlight_sparse_tree_matches.unwrap_or(true),
         agenda_view_columns_initially: options.agenda_view_columns_initially.unwrap_or(false),
         special_ctrl_o: options.special_ctrl_o.unwrap_or(true),
@@ -1744,6 +1757,8 @@ pub fn run(connection: Connection) -> Result<()> {
     if server.running.is_some() {
         server.publish_clock();
     }
+    // `org-clock-persistence-insinuate`: what the last session kept.
+    server.clock_load();
     // The port answers from the start: its script opens the agenda
     // without one open (`org.agenda.list`).
     server.open_port();
@@ -1810,6 +1825,8 @@ pub fn run(connection: Connection) -> Result<()> {
             recv(special) -> _ => { let _ = guarded(&mut server, "the edit buffers", Server::check_special_edits); }
         }
     }
+    // `org-clock-save`, as Emacs runs it when it is killed.
+    let _ = guarded(&mut server, "the clock's file", Server::clock_save);
     if let Some(port) = &server.port {
         port.close();
     }
@@ -2871,6 +2888,13 @@ impl Server {
                 let picked =
                     response.response_result.ok().and_then(|item| Some(item.get("title")?.as_str()?.to_string()));
                 let _ = answer.send(picked.as_deref() == Some("Yes"));
+            }
+            Some(Pending::ResumeClock(clock)) => {
+                let picked =
+                    response.response_result.ok().and_then(|item| Some(item.get("title")?.as_str()?.to_string()));
+                if picked.as_deref() == Some("Yes") {
+                    self.resume_clock(clock);
+                }
             }
             Some(Pending::Answer { command, argument, input }) => {
                 let picked =
@@ -14963,6 +14987,7 @@ impl Server {
         }
         self.send_texts(changes);
         self.running = Some(RunningClock { uri: file.clone(), start, head: head.clone() });
+        self.clock_used = true;
         self.clock_interrupted = interrupted;
         // `org-clock-history-push`: the entry once, first.
         if let Some(task) = task {

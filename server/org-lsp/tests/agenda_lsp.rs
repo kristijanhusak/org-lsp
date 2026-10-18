@@ -9038,3 +9038,50 @@ fn refiles_a_capture_with_its_clock() {
     assert!(text.starts_with("* Inbox\n* Other\n** Meeting\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--"), "{text}");
     client.shutdown();
 }
+
+/// `org-clock-persist`: the clock Emacs's `org-clock-save.el` kept runs
+/// again once the question is answered, in a file that is not an agenda
+/// file, and the history comes back; when the server stops, the file is
+/// written again in Emacs's form.
+#[test]
+fn keeps_the_clock_between_sessions() {
+    let root = std::env::temp_dir().join(format!("org-lsp-clock-persist-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).unwrap();
+    let work = root.join("work.org");
+    std::fs::write(&work, "* TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* Other\n").unwrap();
+    let save = root.join("org-clock-save.el");
+    let name = work.to_string_lossy().to_string();
+    std::fs::write(
+        &save,
+        format!(
+            ";; org-clock-save.el - box at <2026-05-17 Sun 18:00>  -*- lexical-binding: t; -*-\n\
+             (setq org-clock-stored-resume-clock '({name:?} . 53))\n\
+             (setq org-clock-stored-history '(({name:?} . 1) ({name:?} . 60)))\n"
+        ),
+    )
+    .unwrap();
+    let mut options = clock();
+    options["org_clock_persist"] = json!(true);
+    options["org_clock_persist_file"] = json!(save.to_string_lossy());
+    let mut client = Client::editor(options, None);
+    client.choice = Some("Yes".to_string());
+    client.settle();
+    let asked = client.received.iter().find(|request| request.method == "window/showMessageRequest");
+    assert_eq!(asked.expect("a question").params["message"], "Resume clock (Write)?");
+    let status = client.notifications.iter().rev().find(|notification| notification.method == "org-lsp/clock");
+    assert_eq!(status.expect("the clock runs").params["text"], "[1:30] (Write)");
+    client.shutdown();
+    let written = std::fs::read_to_string(&save).unwrap();
+    let lines: Vec<&str> = written.lines().collect();
+    assert!(lines[0].starts_with(";; org-clock-save.el - "), "{written}");
+    assert!(lines[0].ends_with(" at <2026-05-18 Mon 10:30>  -*- lexical-binding: t; -*-"), "{written}");
+    assert_eq!(
+        &lines[1..],
+        [
+            format!("(setq org-clock-stored-resume-clock '({name:?} . 53))"),
+            format!("(setq org-clock-stored-history '(({name:?} . 1) ({name:?} . 60)))"),
+        ]
+    );
+    let _ = std::fs::remove_dir_all(&root);
+}
