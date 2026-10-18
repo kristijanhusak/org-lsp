@@ -1,0 +1,16 @@
+{
+  "description": "Archived trees and archive files in the agenda (v a, v A), against Emacs's views.",
+  "files_from": "agenda/archives",
+  "clock": { "today": "2026-10-05", "now": "10:30" },
+  "steps": [
+    { "open": "work.org" },
+    { "command": "org.agenda.dispatch", "answers": ["a"], "expect": ["agenda"], "emacs": "agenda/archives/expected-0.txt" },
+    { "command": "org.agenda.archives", "expect": ["agenda", "messages"], "emacs": "agenda/archives/expected-1.txt" },
+    { "command": "org.agenda.archives", "expect": ["messages"] },
+    { "command": "org.agenda.archives.files", "expect": ["agenda", "messages"], "emacs": "agenda/archives/expected-2.txt" },
+    { "command": "org.agenda.archives.files", "expect": ["agenda", "messages"], "emacs": "agenda/archives/expected-0.txt" },
+    { "command": "org.agenda.dispatch", "answers": ["t"], "expect": ["agenda"], "emacs": "agenda/archives/expected-3.txt" },
+    { "command": "org.agenda.archives", "expect": ["agenda"], "emacs": "agenda/archives/expected-4.txt" },
+    { "command": "org.agenda.archives.files", "expect": ["agenda", "messages"], "emacs": "agenda/archives/expected-5.txt" }
+  ]
+}

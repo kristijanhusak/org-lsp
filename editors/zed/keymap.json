@@ -341,6 +341,18 @@
           "task_name": "Org agenda: Set the effort of the entry"
         }
       ],
+      ":": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: Set the tags of the headline"
+        }
+      ],
+      "ctrl-c ctrl-q": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: Set the tags of the headline"
+        }
+      ],
       "ctrl-c ctrl-w": [
         "task::Spawn",
         {

@@ -917,9 +917,9 @@ pub fn search_with(
             return Ok(usize::from(named.text_range().start()));
         }
     }
-    // A headline, without its TODO keyword, priority, COMMENT, cookies and
-    // tags.
-    let headline = org_syntax::ast::headlines(&root).find(|headline| {
+    // A headline at any level, without its TODO keyword, priority,
+    // COMMENT, cookies and tags.
+    let headline = root.descendants().filter_map(org_syntax::ast::Headline::cast).find(|headline| {
         let title = headline.title().map(|title| title.text().to_string()).unwrap_or_default();
         same(&without_cookies(&title))
     });
@@ -1105,6 +1105,14 @@ mod tests {
         let function = vec![("f".to_string(), "%(my-function)".to_string())];
         assert!(expand_abbreviation("f:x", &function).is_err());
         assert_eq!(expand_abbreviation("other:x", &function), Ok("other:x".to_string()));
+    }
+
+    #[test]
+    fn finds_a_headline_at_any_level() {
+        let text = "* Projects\n** TODO [#C] Garden :x:\n* Errands\n[[*Garden]]\n";
+        let parsed = org_syntax::parse(text, &Default::default());
+        assert_eq!(search(text, &parsed, "*Garden"), Ok(text.find("** TODO").unwrap()));
+        assert_eq!(search(text, &parsed, "Garden"), Ok(text.find("** TODO").unwrap()));
     }
 
     #[test]

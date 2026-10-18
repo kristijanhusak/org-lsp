@@ -1,0 +1,36 @@
+{
+  "description": "The date prompt's calendar: every key that moves the day, scrolls, picks a time, types a date, takes the day or gives up.",
+  "files": {
+    "work.org": ["* TODO Write report", "* TODO Call the client", "SCHEDULED: <2026-05-20 Wed 10:00>"]
+  },
+  "steps": [
+    { "open": "work.org" },
+    { "command": "org.schedule", "expect": ["buffer", "cursor"] },
+    { "command": "org.calendar.day.later", "expect": ["cursor"] },
+    { "command": "org.calendar.week.later", "count": 2, "expect": ["cursor"] },
+    { "command": "org.calendar.day.earlier", "expect": ["cursor"] },
+    { "command": "org.calendar.week.earlier", "expect": ["cursor"] },
+    { "command": "org.calendar.month.later", "expect": ["buffer", "cursor"] },
+    { "command": "org.calendar.month.earlier", "expect": ["cursor"] },
+    { "command": "org.calendar.year.later", "expect": ["cursor"] },
+    { "command": "org.calendar.year.earlier", "expect": ["cursor"] },
+    { "command": "org.calendar.scroll.later", "expect": ["buffer"] },
+    { "command": "org.calendar.scroll.earlier", "expect": ["buffer"] },
+    { "command": "org.calendar.today", "expect": ["cursor"] },
+    { "command": "org.calendar.day.later", "count": 3 },
+    { "command": "org.calendar.select", "expect": ["cursor", "file:work.org", "messages"] },
+    { "at": "Call the client", "command": "org.schedule", "expect": ["buffer"] },
+    { "command": "org.calendar.time", "expect": ["buffer"] },
+    { "command": "org.calendar.week.later", "expect": ["buffer"] },
+    { "command": "org.calendar.day.later", "expect": ["buffer"] },
+    { "command": "org.calendar.week.later", "count": 2, "expect": ["buffer"] },
+    { "command": "org.calendar.time" },
+    { "command": "org.calendar.day.later" },
+    { "command": "org.calendar.select", "expect": ["cursor", "file:work.org", "messages"] },
+    { "command": "org.deadline" },
+    { "command": "org.calendar.week.later" },
+    { "command": "org.calendar.cancel", "expect": ["cursor", "file:work.org", "messages"] },
+    { "command": "org.deadline" },
+    { "command": "org.calendar.type", "answers": ["fri"], "expect": ["cursor", "file:work.org", "messages"] }
+  ]
+}

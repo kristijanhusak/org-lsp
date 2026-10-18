@@ -1,0 +1,48 @@
+{
+  "description": "Marking agenda lines and acting on them together (org-agenda-bulk-action).",
+  "options": {
+    "org_refile_targets": [{ "files": "$DIR/work.org", "maxlevel": 1 }]
+  },
+  "files": {
+    "work.org": [
+      "* TODO Write report",
+      "* TODO Call the client",
+      "* TODO Plan the trip",
+      "* TODO Book the hotel",
+      "* Projects"
+    ],
+    "home.org": ["* TODO Water plants", "* TODO Fix the bike"]
+  },
+  "steps": [
+    { "open": "work.org" },
+    { "command": "org.agenda.dispatch", "answers": ["t"], "expect": ["agenda"] },
+    { "at": "Write report", "command": "org.agenda.bulk.mark", "expect": ["agenda", "cursor", "messages"] },
+    { "command": "org.agenda.bulk.mark", "count": 2, "expect": ["agenda", "cursor", "messages"] },
+    { "at": "Call the client", "command": "org.agenda.bulk.unmark", "expect": ["agenda", "messages"] },
+    { "at": "Water plants", "command": "org.agenda.bulk.toggle", "expect": ["agenda", "messages"] },
+    { "command": "org.agenda.bulk.unmark.all", "expect": ["agenda", "messages"] },
+    { "command": "org.agenda.bulk.mark.all", "expect": ["agenda", "messages"] },
+    { "command": "org.agenda.bulk.toggle.all", "expect": ["agenda", "messages"] },
+    { "command": "org.agenda.bulk.mark.regexp", "answers": ["the [bh]"], "expect": ["agenda", "messages"] },
+    { "command": "org.agenda.bulk.action", "answers": ["t", "DONE"], "expect": ["agenda", "file:work.org", "file:home.org", "messages"] },
+    { "command": "org.agenda.redo" },
+    { "at": "Write report", "command": "org.agenda.bulk.mark" },
+    { "command": "org.agenda.bulk.mark" },
+    { "command": "org.agenda.bulk.action", "answers": ["+", "urgent"], "expect": ["agenda", "messages"] },
+    { "command": "org.agenda.bulk.mark.all" },
+    { "command": "org.agenda.bulk.action", "answers": ["s", "2026-05-22"], "expect": ["file:work.org", "file:home.org", "messages"] },
+    { "command": "org.agenda.redo" },
+    { "at": "Write report", "command": "org.agenda.bulk.mark" },
+    { "command": "org.agenda.bulk.action", "answers": ["r", { "choice": "Projects" }], "expect": ["agenda", "file:work.org", "messages"] },
+    { "at": "Call the client", "command": "org.agenda.bulk.mark" },
+    { "command": "org.agenda.bulk.action", "answers": ["-", "urgent"] },
+    { "at": "Call the client", "command": "org.agenda.bulk.mark" },
+    { "command": "org.agenda.bulk.action", "answers": ["d", "2026-05-25"], "expect": ["file:work.org", "messages"] },
+    { "at": "Plan the trip", "command": "org.agenda.bulk.mark" },
+    { "command": "org.agenda.bulk.mark" },
+    { "command": "org.agenda.bulk.action", "answers": ["S", "1"], "expect": ["file:work.org", "messages"] },
+    { "command": "org.agenda.redo" },
+    { "at": "Water plants", "command": "org.agenda.bulk.mark" },
+    { "command": "org.agenda.bulk.action", "answers": ["$"], "expect": ["agenda", "file:home.org", "file:home.org_archive", "messages"] }
+  ]
+}

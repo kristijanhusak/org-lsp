@@ -1,0 +1,113 @@
+=== 3 agenda
+Global list of TODO items of type: ALL
+  work:       TODO Buy milk                                               :home:
+  work:       TODO Fix the bike                                     :home:tools:
+=== 3 messages
+Agenda filters: +home
+=== 4 agenda
+Global list of TODO items of type: ALL
+  side-project:TODO Draft the blog post                                :writing:
+  side-project:TODO Record the video
+  work:       TODO Write report                                           :desk:
+  work:       NEXT Call the client                               :meeting:phone:
+  work:       TODO Plan the offsite                                    :meeting:
+  work:       TODO Buy milk                                               :home:
+  work:       TODO Fix the bike                                     :home:tools:
+  work:       TODO Without tags
+=== 4 messages
+All agenda filters removed
+=== 5 agenda
+Global list of TODO items of type: ALL
+  side-project:TODO Draft the blog post                                :writing:
+  work:       TODO Write report                                           :desk:
+  work:       NEXT Call the client                               :meeting:phone:
+=== 7 agenda
+Global list of TODO items of type: ALL
+  side-project:TODO Draft the blog post                                :writing:
+  side-project:TODO Record the video
+  work:       TODO Write report                                           :desk:
+  work:       NEXT Call the client                               :meeting:phone:
+  work:       TODO Plan the offsite                                    :meeting:
+  work:       TODO Without tags
+=== 9 agenda
+Global list of TODO items of type: ALL
+  work:       TODO Buy milk                                               :home:
+  work:       TODO Fix the bike                                     :home:tools:
+=== 9 messages
+Agenda filters: -home+<1:00
+All agenda filters removed
+Agenda filters: -home
+All agenda filters removed
+Agenda filters: +home
+=== 10 agenda
+Global list of TODO items of type: ALL
+  side-project:TODO Draft the blog post                                :writing:
+  side-project:TODO Record the video
+  work:       TODO Write report                                           :desk:
+  work:       NEXT Call the client                               :meeting:phone:
+  work:       TODO Plan the offsite                                    :meeting:
+  work:       TODO Buy milk                                               :home:
+  work:       TODO Fix the bike                                     :home:tools:
+  work:       TODO Without tags
+=== 10 messages
+No agenda filters
+=== 11 agenda
+Global list of TODO items of type: ALL
+  work:       TODO Write report                                           :desk:
+  work:       NEXT Call the client                               :meeting:phone:
+  work:       TODO Plan the offsite                                    :meeting:
+  work:       TODO Buy milk                                               :home:
+  work:       TODO Fix the bike                                     :home:tools:
+  work:       TODO Without tags
+=== 11 messages
+Agenda filters: [+work]
+=== 12 agenda
+Global list of TODO items of type: ALL
+  side-project:TODO Draft the blog post                                :writing:
+  side-project:TODO Record the video
+  work:       TODO Write report                                           :desk:
+  work:       NEXT Call the client                               :meeting:phone:
+  work:       TODO Plan the offsite                                    :meeting:
+  work:       TODO Buy milk                                               :home:
+  work:       TODO Fix the bike                                     :home:tools:
+  work:       TODO Without tags
+=== 12 messages
+No agenda filters
+=== 13 agenda
+Global list of TODO items of type: ALL
+  side-project:TODO Draft the blog post                                :writing:
+  side-project:TODO Record the video
+  work:       NEXT Call the client                               :meeting:phone:
+  work:       TODO Plan the offsite                                    :meeting:
+  work:       TODO Fix the bike                                     :home:tools:
+=== 13 messages
+Agenda filters: +/the/
+=== 14 messages
+Regexp filter removed
+=== 15 agenda
+Global list of TODO items of type: ALL
+  work:       TODO Write report                                           :desk:
+  work:       TODO Buy milk                                               :home:
+=== 15 messages
+Agenda filters: +<0:30
+=== 16 messages
+Effort filter removed
+=== 17 agenda
+Global list of TODO items of type: ALL
+  work:       TODO Write report                                           :desk:
+  work:       NEXT Call the client                               :meeting:phone:
+  work:       TODO Plan the offsite                                    :meeting:
+=== 17 messages
+Agenda filters: +^Projects
+=== 18 agenda
+Global list of TODO items of type: ALL
+  side-project:TODO Draft the blog post                                :writing:
+  side-project:TODO Record the video
+  work:       TODO Write report                                           :desk:
+  work:       NEXT Call the client                               :meeting:phone:
+  work:       TODO Plan the offsite                                    :meeting:
+  work:       TODO Buy milk                                               :home:
+  work:       TODO Fix the bike                                     :home:tools:
+  work:       TODO Without tags
+=== 18 messages
+No agenda filters

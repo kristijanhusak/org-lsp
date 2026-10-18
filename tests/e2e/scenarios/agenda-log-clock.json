@@ -1,0 +1,14 @@
+{
+  "description": "Log mode (v l) and the clock report (R) in the agenda, against Emacs's views.",
+  "files_from": "agenda/clock",
+  "clock": { "today": "2026-10-05", "now": "10:30" },
+  "steps": [
+    { "open": "work.org" },
+    { "command": "org.agenda.dispatch", "answers": ["a"] },
+    { "command": "org.agenda.log", "expect": ["agenda", "messages"], "emacs": "agenda/clock/expected-1.txt" },
+    { "command": "org.agenda.clockreport", "expect": ["agenda", "messages"], "emacs": "agenda/clock/expected-4.txt" },
+    { "command": "org.agenda.log", "expect": ["agenda", "messages"], "emacs": "agenda/clock/expected-3.txt" },
+    { "command": "org.agenda.day", "expect": ["agenda"], "emacs": "agenda/clock/expected-2.txt" },
+    { "command": "org.agenda.clockreport", "expect": ["messages"] }
+  ]
+}

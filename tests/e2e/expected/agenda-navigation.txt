@@ -1,0 +1,185 @@
+=== 2 agenda
+Week-agenda (W21):
+Monday     18 May 2026 W21
+               8:00...... ----------------
+  work:        9:00...... Scheduled:  TODO [#A] Write report            :office:
+              10:00...... ----------------
+              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+              12:00...... ----------------
+              14:00...... ----------------
+              16:00...... ----------------
+              18:00...... ----------------
+              20:00...... ----------------
+  home:       Sched. 2x:  TODO Water plants
+  work:       In   2 d.:  TODO Call the client
+Tuesday    19 May 2026
+  work:       14:00-15:00 Meeting 
+Wednesday  20 May 2026
+  work:       Deadline:   TODO Call the client
+Thursday   21 May 2026
+Friday     22 May 2026
+Saturday   23 May 2026
+  home:       Scheduled:  TODO Water plants
+Sunday     24 May 2026
+=== 2 cursor
+agenda:2: Monday     18 May 2026 W21
+=== 3 cursor
+agenda:2: Monday     25 May 2026 W22
+=== 4 cursor
+agenda:2: Monday     11 May 2026 W20
+=== 5 cursor
+agenda:2: Monday     18 May 2026 W21
+=== 6 agenda
+Day-agenda (W21):
+Wednesday  20 May 2026
+  work:       Deadline:   TODO Call the client
+=== 6 cursor
+agenda:2: Wednesday  20 May 2026
+=== 6 messages
+Switched to day view
+=== 7 agenda
+Day-agenda (W21):
+Thursday   21 May 2026
+=== 7 cursor
+agenda:2: Thursday   21 May 2026
+=== 8 cursor
+agenda:18: Thursday   21 May 2026
+=== 8 messages
+Switched to week view
+=== 9 agenda
+Fortnight-agenda (W21-W22):
+Monday     18 May 2026 W21
+               8:00...... ----------------
+  work:        9:00...... Scheduled:  TODO [#A] Write report            :office:
+              10:00...... ----------------
+              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+              12:00...... ----------------
+              14:00...... ----------------
+              16:00...... ----------------
+              18:00...... ----------------
+              20:00...... ----------------
+  home:       Sched. 2x:  TODO Water plants
+  work:       In   2 d.:  TODO Call the client
+Tuesday    19 May 2026
+  work:       14:00-15:00 Meeting 
+Wednesday  20 May 2026
+  work:       Deadline:   TODO Call the client
+Thursday   21 May 2026
+Friday     22 May 2026
+Saturday   23 May 2026
+  home:       Scheduled:  TODO Water plants
+Sunday     24 May 2026
+Monday     25 May 2026 W22
+Tuesday    26 May 2026
+Wednesday  27 May 2026
+Thursday   28 May 2026
+Friday     29 May 2026
+Saturday   30 May 2026
+  home:       Scheduled:  TODO Water plants
+Sunday     31 May 2026
+=== 9 cursor
+agenda:18: Thursday   21 May 2026
+=== 9 messages
+Switched to fortnight view
+=== 10 agenda
+Month-agenda (W18-W22):
+Friday      1 May 2026
+Saturday    2 May 2026
+Sunday      3 May 2026
+Monday      4 May 2026 W19
+Tuesday     5 May 2026
+Wednesday   6 May 2026
+Thursday    7 May 2026
+Friday      8 May 2026
+Saturday    9 May 2026
+Sunday     10 May 2026
+Monday     11 May 2026 W20
+Tuesday    12 May 2026
+Wednesday  13 May 2026
+Thursday   14 May 2026
+Friday     15 May 2026
+Saturday   16 May 2026
+  home:       Scheduled:  TODO Water plants
+Sunday     17 May 2026
+Monday     18 May 2026 W21
+               8:00...... ----------------
+  work:        9:00...... Scheduled:  TODO [#A] Write report            :office:
+              10:00...... ----------------
+              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+              12:00...... ----------------
+              14:00...... ----------------
+              16:00...... ----------------
+              18:00...... ----------------
+              20:00...... ----------------
+  home:       Sched. 2x:  TODO Water plants
+  work:       In   2 d.:  TODO Call the client
+Tuesday    19 May 2026
+  work:       14:00-15:00 Meeting 
+Wednesday  20 May 2026
+  work:       Deadline:   TODO Call the client
+Thursday   21 May 2026
+Friday     22 May 2026
+Saturday   23 May 2026
+  home:       Scheduled:  TODO Water plants
+Sunday     24 May 2026
+Monday     25 May 2026 W22
+Tuesday    26 May 2026
+Wednesday  27 May 2026
+Thursday   28 May 2026
+Friday     29 May 2026
+Saturday   30 May 2026
+  home:       Scheduled:  TODO Water plants
+Sunday     31 May 2026
+=== 10 cursor
+agenda:36: Thursday   21 May 2026
+=== 10 messages
+Switched to month view
+=== 11 cursor
+agenda:156: Thursday   21 May 2026
+=== 11 messages
+Switched to year view
+=== 12 cursor
+work.org:7: * Holiday <2026-12-24 Thu>
+=== 13 cursor
+agenda:5: Thursday   24 December 2026
+=== 14 agenda
+Week-agenda (W24):
+Monday      8 June 2026 W24
+Tuesday     9 June 2026
+Wednesday  10 June 2026
+  work:       Conference 
+Thursday   11 June 2026
+Friday     12 June 2026
+Saturday   13 June 2026
+  home:       Scheduled:  TODO Water plants
+Sunday     14 June 2026
+=== 14 cursor
+agenda:4: Wednesday  10 June 2026
+=== 15 cursor
+agenda:2: Monday     18 May 2026 W21
+=== 17 agenda
+Week-agenda (W21):
+Monday     18 May 2026 W21
+               8:00...... ----------------
+  work:        9:00...... Scheduled:  TODO [#A] Write report            :office:
+              10:00...... ----------------
+              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+              12:00...... ----------------
+              14:00...... ----------------
+              16:00...... ----------------
+              18:00...... ----------------
+              20:00...... ----------------
+  home:       Sched. 2x:  TODO Water plants
+  work:       In   2 d.:  TODO Call the client
+Tuesday    19 May 2026
+  work:       14:00-15:00 Meeting 
+  home:       TODO Water plants
+Wednesday  20 May 2026
+  work:       Deadline:   TODO Call the client
+Thursday   21 May 2026
+Friday     22 May 2026
+Saturday   23 May 2026
+  home:       Scheduled:  TODO Water plants
+Sunday     24 May 2026
+=== 18 cursor
+work.org:7: * Holiday <2026-12-24 Thu>

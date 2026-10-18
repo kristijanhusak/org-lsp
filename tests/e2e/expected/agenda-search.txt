@@ -1,0 +1,20 @@
+=== 2 agenda
+Search words: +report
+  work:       TODO Write the report
+  work:       Notes on the report
+=== 3 agenda
+Search words: +report +board
+  work:       TODO Write the report
+  work:       Notes on the report
+=== 4 agenda
+Search words: +report +board -notes
+  work:       TODO Write the report
+=== 5 agenda
+Search words: +report -notes +{draft}
+  work:       TODO Write the report
+=== 6 agenda
+Search words: +board -{draft}
+  work:       Notes on the report
+  work:       TODO Book the hotel
+=== 8 messages
+Cannot manipulate query for todo-type agenda buffers

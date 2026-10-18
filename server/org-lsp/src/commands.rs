@@ -771,9 +771,10 @@ pub const COMMANDS: &[Command] = &[
     // statistics cookie the cookies are counted. On a headline,
     // `org-set-tags-command`: the tags picked by key from the tag table
     // (fast tag selection, each key turning its tag on or off until RET),
-    // or typed; in the agenda for the line's entry.
+    // or typed; in the agenda for the line's entry (`org-agenda-set-tags`,
+    // `:` and `C-c C-q` there).
     Command {
-        emacs: &[key(Org, "C-c C-q")],
+        emacs: &[key(Org, "C-c C-q"), key(Agenda, ":"), key(Agenda, "C-c C-q")],
         vim: &[key(Org, "<Leader>ot")],
         in_agenda: true,
         input: Some(Input { kind: "key", prompt: "Tags" }),
@@ -1904,8 +1905,9 @@ pub const REGION: &[&str] = &[
 /// (see [`REGION`]); one that reads the editor's closed folds,
 /// `"folds": true` (see [`FOLDS`]).
 /// The agenda's Emacs keys the vim preset leaves to Vim: `$` is the
-/// motion to the end of the line there, not `org-agenda-archive`.
-const VIM_AGENDA_MOTIONS: &[&str] = &["$"];
+/// motion to the end of the line there, not `org-agenda-archive`, and `:`
+/// the command line, not `org-agenda-set-tags`.
+const VIM_AGENDA_MOTIONS: &[&str] = &["$", ":"];
 
 pub fn manifest() -> Value {
     let commands: Vec<Value> = COMMANDS

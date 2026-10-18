@@ -1,0 +1,49 @@
+=== 2 buffer
+[CAPTURE-inbox.org]
+* TODO 
+[2026-05-18 Mon 10:30]
+=== 2 cursor
+CAPTURE-inbox.org:1: * TODO 
+=== 4 cursor
+work.org:1: * Meetings
+=== 4 file:inbox.org
+* TODO Call mom
+[2026-05-18 Mon 10:30]
+=== 4 messages
+=== 5 buffer
+[CAPTURE-work.org]
+** Ann about 
+=== 5 cursor
+CAPTURE-work.org:1: ** Ann about 
+=== 7 file:work.org
+* Meetings
+** Ann about the budget
+* Notes
+* Projects
+=== 7 messages
+=== 8 buffer
+[CAPTURE-work.org]
+** 
+=== 10 cursor
+work.org:1: * Meetings
+=== 10 file:work.org
+* Meetings
+** Ann about the budget
+* Notes
+* Projects
+=== 10 messages
+Capture process aborted and target buffer cleaned up
+=== 13 cursor
+work.org:1: * Meetings
+=== 13 file:work.org
+* Meetings
+** Ann about the budget
+* Notes
+* Projects
+** TODO Plan the trip
+[2026-05-18 Mon 10:30]
+=== 13 file:inbox.org
+* TODO Call mom
+[2026-05-18 Mon 10:30]
+=== 13 messages
+Refile to "Projects (work.org)" in file $DIR/work.org: done

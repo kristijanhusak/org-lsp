@@ -1,0 +1,70 @@
+=== 3 agenda
+Global list of TODO items of type: ALL
+  work:       TODO Plain text under it                                    :work:
+    > Some text right under the planning line.
+    >   An indented line.
+  props:      TODO With a property drawer
+    > First line, indented by two.
+    >   Deeper by four.
+    > 
+    > After a blank line.
+  work:       TODO Many lines
+    > one
+    > two
+    > three
+    > four
+    > five
+  work:       NEXT Leading blank lines
+    > 
+    >    
+    > 
+    > Text after blank lines.
+  work:       TODO Only a drawer
+  work:       TODO Tabs and clocks
+    >         Tab-indented line.
+    >           Tab then spaces.
+    > Link: [[https://example.com][the site]] and <2026-10-06 Tue>
+  work:       TODO Unclosed drawer
+    > Text before the drawer.
+  work:       TODO Lowercase drawer end
+    > Shown after a lowercase end.
+  work:       TODO Wide characters
+    > 日本語のテキスト
+    >   続き
+  work:       NEXT A child with text
+    > Child text.
+  work:       TODO Heading at the end
+=== 3 messages
+Entry text mode is on (maximum number of lines is 5)
+=== 4 messages
+Entry text mode is off
+=== 5 agenda
+Global list of TODO items of type: ALL
+  work:       TODO Plain text under it                                    :work:
+    > Some text right under the planning line.
+    >   An indented line.
+  props:      TODO With a property drawer
+    > First line, indented by two.
+    >   Deeper by four.
+  work:       TODO Many lines
+    > one
+    > two
+  work:       NEXT Leading blank lines
+    > 
+    >    
+  work:       TODO Only a drawer
+  work:       TODO Tabs and clocks
+    >         Tab-indented line.
+    >           Tab then spaces.
+  work:       TODO Unclosed drawer
+    > Text before the drawer.
+  work:       TODO Lowercase drawer end
+    > Shown after a lowercase end.
+  work:       TODO Wide characters
+    > 日本語のテキスト
+    >   続き
+  work:       NEXT A child with text
+    > Child text.
+  work:       TODO Heading at the end
+=== 5 messages
+Entry text mode is on (maximum number of lines is 2)

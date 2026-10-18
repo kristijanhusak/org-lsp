@@ -1,0 +1,23 @@
+{
+  "description": "Column view in the agenda (C-c C-x C-c), which Emacs works out.",
+  "emacs": true,
+  "options": { "emacs_config": "(setq org-columns-default-format \"%25ITEM %TODO %Effort{:}\")" },
+  "files": {
+    "tasks.org": [
+      "* TODO Write",
+      ":PROPERTIES:",
+      ":Effort: 1:00",
+      ":END:",
+      "* TODO Read",
+      ":PROPERTIES:",
+      ":Effort: 0:30",
+      ":END:"
+    ]
+  },
+  "steps": [
+    { "open": "tasks.org" },
+    { "command": "org.agenda.dispatch", "answers": ["t"], "expect": ["agenda"] },
+    { "at": "Read", "command": "org.agenda.columns", "wait": "columns", "expect": ["columns"] },
+    { "command": "org.columns.quit", "wait": "columns", "expect": ["columns"] }
+  ]
+}

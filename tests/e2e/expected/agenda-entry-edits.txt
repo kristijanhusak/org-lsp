@@ -1,0 +1,178 @@
+=== 3 agenda
+Week-agenda (W21):
+Monday     18 May 2026 W21
+               8:00...... ----------------
+  work:        9:00...... Scheduled:  TODO [#A] Write report            :office:
+              10:00...... ----------------
+              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+              12:00...... ----------------
+              14:00...... ----------------
+              16:00...... ----------------
+              18:00...... ----------------
+              20:00...... ----------------
+  home:       Sched. 2x:  TODO Water plants
+  work:       In   2 d.:  NEXT Call the client
+Tuesday    19 May 2026
+  work:       Scheduled:  BUG Login fails
+Wednesday  20 May 2026
+  work:       Deadline:   NEXT Call the client
+Thursday   21 May 2026
+Friday     22 May 2026
+Saturday   23 May 2026
+  home:       Scheduled:  TODO Water plants
+Sunday     24 May 2026
+=== 3 messages
+TODO state changed to NEXT
+=== 4 cursor
+agenda:13:   work:       In   2 d.:  DONE Call the client
+=== 4 file:work.org
+* TODO [#A] Write report :office:
+SCHEDULED: <2026-05-18 Mon 09:00>
+* DONE Call the client
+DEADLINE: <2026-05-20 Wed>
+* BUG Login fails
+SCHEDULED: <2026-05-19 Tue>
+=== 4 messages
+TODO state changed to DONE
+=== 6 cursor
+agenda:14:   work:       Scheduled:  TODO Login fails
+=== 6 messages
+Keyword-Set 1/2: TODO NEXT DONE
+=== 7 cursor
+agenda:14:   work:       Scheduled:  BUG Login fails
+=== 7 file:work.org
+* TODO [#A] Write report :office:
+SCHEDULED: <2026-05-18 Mon 09:00>
+* DONE Call the client
+DEADLINE: <2026-05-20 Wed>
+* BUG Login fails
+SCHEDULED: <2026-05-19 Tue>
+=== 8 cursor
+agenda:12:   home:       Sched. 2x:  TODO [#B] Water plants
+=== 8 messages
+Keyword-Set 2/2: BUG FIXED
+Priority of current item set to B
+=== 9 cursor
+agenda:12:   home:       Sched. 2x:  TODO [#A] Water plants
+=== 10 cursor
+agenda:12:   home:       Sched. 2x:  TODO [#B] Water plants
+=== 10 file:home.org
+* TODO [#B] Water plants
+SCHEDULED: <2026-05-16 Sat +1w>
+=== 11 cursor
+agenda:12:   home:       Sched. 2x:  TODO [#C] Water plants
+=== 11 messages
+Priority of current item set to A
+Priority of current item set to B
+Priority of current item set to C
+=== 12 cursor
+agenda:12:   home:       Sched. 2x:  TODO Water plants
+=== 12 messages
+Priority removed
+=== 13 cursor
+agenda:12:   home:       Sched. 2x:  TODO Water plants           => <2026-05-18 Mon +1w> 
+=== 13 file:home.org
+* TODO Water plants
+SCHEDULED: <2026-05-18 Mon +1w>
+=== 14 cursor
+agenda:12:   home:       Sched. 2x:  TODO Water plants           => <2026-05-21 Thu +1w> 
+=== 15 cursor
+agenda:12:   home:       Sched. 2x:  TODO Water plants           => <2026-05-17 Sun +1w> 
+=== 15 file:home.org
+* TODO Water plants
+SCHEDULED: <2026-05-17 Sun +1w>
+=== 15 messages
+=== 16 cursor
+agenda:4:   work:        9:00...... Scheduled: S => Scheduled to <2026-05-20 Wed 11:00> 
+=== 16 file:work.org
+* TODO [#A] Write report :office:
+SCHEDULED: <2026-05-20 Wed 11:00>
+* DONE Call the client
+DEADLINE: <2026-05-20 Wed>
+* BUG Login fails
+SCHEDULED: <2026-05-19 Tue>
+=== 16 messages
+Scheduled to <2026-05-20 Wed 11:00>
+=== 17 cursor
+agenda:4:   work:        9:00...... Scheduled:  TODO  D => Deadline on <2026-05-29 Fri> 
+=== 17 file:work.org
+* TODO [#A] Write report :office:
+DEADLINE: <2026-05-29 Fri> SCHEDULED: <2026-05-20 Wed 11:00>
+* DONE Call the client
+DEADLINE: <2026-05-20 Wed>
+* BUG Login fails
+SCHEDULED: <2026-05-19 Tue>
+=== 17 messages
+Deadline on <2026-05-29 Fri>
+=== 18 file:work.org
+* TODO [#A] Write report :office:
+DEADLINE: <2026-05-29 Fri> SCHEDULED: <2026-05-20 Wed 11:00>
+:PROPERTIES:
+:Effort:   1:30
+:END:
+* DONE Call the client
+DEADLINE: <2026-05-20 Wed>
+* BUG Login fails
+SCHEDULED: <2026-05-19 Tue>
+=== 18 messages
+Effort is now 1:30
+=== 19 file:work.org
+* TODO [#A] Write report :office:
+DEADLINE: <2026-05-29 Fri> SCHEDULED: <2026-05-20 Wed 11:00>
+:PROPERTIES:
+:Effort:   1:30
+:Owner:    Ann
+:END:
+* DONE Call the client
+DEADLINE: <2026-05-20 Wed>
+* BUG Login fails
+SCHEDULED: <2026-05-19 Tue>
+=== 19 messages
+=== 20 cursor
+agenda:4:   work:        9:00...... Scheduled:  TODO [#A] Write report       :office:home:
+=== 20 file:work.org
+* TODO [#A] Write report                                        :office:home:
+DEADLINE: <2026-05-29 Fri> SCHEDULED: <2026-05-20 Wed 11:00>
+:PROPERTIES:
+:Effort:   1:30
+:Owner:    Ann
+:END:
+* DONE Call the client
+DEADLINE: <2026-05-20 Wed>
+* BUG Login fails
+SCHEDULED: <2026-05-19 Tue>
+=== 20 messages
+=== 21 buffer
+[CAPTURE-Note.org]
+# Insert note for this entry.
+=== 23 cursor
+agenda:4:   work:        9:00...... Scheduled:  TODO [#A] Write report       :office:home:
+=== 23 file:work.org
+* TODO [#A] Write report                                        :office:home:
+DEADLINE: <2026-05-29 Fri> SCHEDULED: <2026-05-20 Wed 11:00>
+:PROPERTIES:
+:Effort:   1:30
+:Owner:    Ann
+:END:
+- Note taken on [2026-05-18 Mon 10:30] \\
+  Sent the draft
+* DONE Call the client
+DEADLINE: <2026-05-20 Wed>
+* BUG Login fails
+SCHEDULED: <2026-05-19 Tue>
+=== 23 messages
+=== 24 agenda
+Week-agenda (W21):
+Monday     18 May 2026 W21
+  work:       In  11 d.:  TODO [#A] Write report                   :office:home:
+  home:       Sched. 1x:  TODO Water plants
+Tuesday    19 May 2026
+  work:       Scheduled:  BUG Login fails
+Wednesday  20 May 2026
+  work:       11:00...... Scheduled:  TODO [#A] Write report       :office:home:
+  work:       Deadline:   DONE Call the client
+Thursday   21 May 2026
+Friday     22 May 2026
+Saturday   23 May 2026
+Sunday     24 May 2026
+  home:       Scheduled:  TODO Water plants

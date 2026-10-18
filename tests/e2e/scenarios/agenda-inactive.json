@@ -1,0 +1,12 @@
+{
+  "description": "Inactive timestamps in the agenda once (v [ and [ in an agenda view), against Emacs's views.",
+  "files_from": "agenda/inactive",
+  "steps": [
+    { "open": "inactive.org" },
+    { "command": "org.agenda.dispatch", "answers": ["a"], "expect": ["agenda"], "emacs": "agenda/inactive/expected-0.txt" },
+    { "command": "org.agenda.inactive", "expect": ["agenda", "messages"], "emacs": "agenda/inactive/expected-1.txt" },
+    { "command": "org.agenda.redo", "expect": ["agenda"], "emacs": "agenda/inactive/expected-0.txt" },
+    { "command": "org.agenda.day" },
+    { "command": "org.agenda.query.add", "expect": ["agenda", "messages"], "emacs": "agenda/inactive/expected-2.txt" }
+  ]
+}

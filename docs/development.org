@@ -84,8 +84,13 @@ others), as close to Emacs Org mode as it can get.
   | Resolving open clocks (~org-resolve-clocks~, and before ~org-clock-in~): what is asked, and the file                                                     | ~tests/clock/resolve.json~         | ~scripts/clock_resolve_reference.py~                                               |                                 |
   | Downloading remote resources (~org-resource-download-policy~, ~org-safe-remote-resources~, ~org--confirm-resource-safe~): what is asked, the answer      | ~tests/link/remote-resources.json~ | ~scripts/remote_resource_reference.py~                                             |                                 |
   | BibTeX entries as headlines (~ol-bibtex.el~: ~org-bibtex~, ~org-bibtex-create~, ~org-bibtex-check~, ~org-bibtex-yank~, ~org-bibtex-import-from-file~)    | ~tests/bibtex/cases.json~          | ~scripts/update-bibtex-fixtures.py~                                                | ~scripts/fuzz-bibtex.py~        |
+- The shared end-to-end scenarios ([[#end-to-end-scenarios][below]]): ~cargo test~ runs them
+  against the server and checks that they reach every key of the agenda,
+  the date prompt and capture; each editor's adapter presses its keys for
+  the same steps.
 - Neovim: ~scripts/test-nvim.sh~ (set ~NVIM~ to the binary), on 0.12.0 and
-  stable. Tests run headless against the real server.
+  stable. Tests run headless against the real server; ~tests/nvim/scenarios.lua~
+  is its adapter of the scenarios.
 - VS Code: in ~editors/vscode~, ~npm run generate -- --check~,
   ~npm run check~, ~npm run build~, ~xvfb-run -a npm test~ (VSCodium works locally
   through ~VSCODE_EXECUTABLE~).
@@ -99,6 +104,60 @@ others), as close to Emacs Org mode as it can get.
   grammar with the tree-sitter CLI. Zed itself cannot run in the
   workspace.
 - CI, started by hand, runs seven jobs: server, Neovim 0.12.0, Neovim stable, VS Code, Vim (with each of its four LSP clients), Sublime Text (generated files, the plugin against stand-ins), Zed (the build, generated rules, queries).
+
+* End-to-end scenarios
+:PROPERTIES:
+:CUSTOM_ID: end-to-end-scenarios
+:END:
+
+What a user does in any editor, written once: ~tests/e2e/scenarios/NAME.json~,
+each a few files, the options the server starts with and the steps taken.
+The server's runner (~server/org-lsp/tests/e2e_scenarios.rs~) takes them as
+an editor with org-lsp's plugin would, over LSP, and is the reference: what
+it sees is in ~tests/e2e/expected/NAME.txt~, written again with
+~ORG_LSP_UPDATE_E2E=1~ (~ORG_LSP_E2E=NAME~ runs only the scenarios whose name
+has ~NAME~ in it). Each editor has an adapter that presses that editor's keys
+for the same steps and must see the same; Neovim's is
+~tests/nvim/scenarios.lua~.
+
+A scenario has:
+
+- ~files~ :: file names and their text, a string or a list of lines; or
+  ~files_from~, a directory under ~tests/~ whose ~.org~ and ~.org_archive~
+  files it takes (the recorded agenda cases), and ~files~ on top.
+- ~clock~ :: the server's clock, ~{ "today": "2026-05-18", "now": "10:30" }~
+  unless it says otherwise.
+- ~options~ :: the server's options, over those every scenario has: the
+  clock, ~org_agenda_files~, ~org_directory~ and ~org_default_notes_file~ in
+  the scenario's directory. ~$DIR~ in a string is that directory.
+- ~emacs~ :: ~true~ for a scenario that needs Emacs (column view): it is
+  skipped without it, unless ~ORG_LSP_REQUIRE_EMACS~ is set.
+- ~steps~ :: what is done, in turn. A step may open a file (~"open":
+  "work.org"~), go back to a buffer that is open (~"focus": "agenda"~), close
+  the agenda (~"close": true~), put the cursor on a line (~"line": 3~, from 1)
+  or where some text is (~"at": "Call the client"~, ~"column"~ further on),
+  type text where the cursor is (~"type": "Call mom"~, as in insert mode),
+  and run a command by its name in the manifest (~"command":
+  "org.agenda.later"~), with a ~count~, ~"below": true~ for the keys of
+  modal editors that add below the cursor's line (~<Leader><CR>~), and the
+  ~answers~ to what it asks, in turn: a key, text, ~{ "choice": "Projects" }~
+  for a choice by its label, or a date, typed in the date prompt
+  (~org.calendar.type~). ~"wait": "columns"~ waits for column view, which
+  Emacs works out. The adapter presses the command's key in the editor (the
+  first; it checks that the others are set too), where the cursor is: the
+  agenda, the date prompt, a capture buffer, an Org file.
+- ~expect~ :: after the step, what to look at: ~agenda~ (the agenda's text),
+  ~file:NAME~ (a file, as the editor has it), ~buffer~ (the current
+  buffer's name and text), ~cursor~ (its name, the cursor's line and that
+  line's text), ~messages~ (what was said since they were last looked at),
+  ~columns~ (column view). ~"emacs": "agenda/NAME/expected-N.txt"~ on a
+  step also checks the agenda against that view, recorded from Emacs.
+
+~scenarios_cover_the_agenda_calendar_and_capture~ fails when a command with
+a key in the agenda, the date prompt or a capture buffer is in no scenario,
+unless ~tests/e2e/exceptions.json~ names it under ~commands~ with the reason.
+An adapter fails on a command that has no key in its editor, unless
+~editors.EDITOR~ there says why.
 
 * Setting up the tools
 :PROPERTIES:

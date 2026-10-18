@@ -167,7 +167,7 @@ its sections says what it should look like.
 - [ ] Going to the line's entry in another window, and where the agenda is: ~Tab~, ~Enter~
 - [ ] Changing the line's TODO state and priority; the line follows: ~t~, ~+~ or ~Shift+Up~
 - [ ] Scheduling the line's entry and setting its deadline: ~Ctrl+C Ctrl+S~, ~Ctrl+C Ctrl+D~
-- [ ] Setting the line's tags, adding a note, refiling, archiving: /Org: Set the tags of the headline/, ~z~, ~Ctrl+C Ctrl+W~, ~Ctrl+C Ctrl+X Ctrl+A~
+- [ ] Setting the line's tags, adding a note, refiling, archiving: ~:~ or ~Ctrl+C Ctrl+Q~, ~z~, ~Ctrl+C Ctrl+W~, ~Ctrl+C Ctrl+X Ctrl+A~
 - [ ] Filters by tag, category and effort, and removing them: ~\~, ~<~, ~_~, ~|~
 - [ ] Marking lines and a bulk action on them: ~m~, ~B~
 - [ ] Follow mode shows the cursor's entry as the cursor moves: ~F~
