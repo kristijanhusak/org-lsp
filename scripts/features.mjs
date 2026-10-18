@@ -520,6 +520,7 @@ export const AREAS = [
       ['Durations written as `org-duration-format` says (`1d 2:30`, `26:30`, `1.09d`, `1d2h15min`) and read with the units of `org-duration-units` (days of 8 hours)', true],
       ['Resolving dangling clocks and idle time', true],
       ['Clocking in again on a clock left running (`org-clock-in-resume`)', true],
+      ['The running clock and the clock history kept from one session to the next, in Emacs\'s own `org-clock-save.el` (`org-clock-persist`, `org-clock-persist-query-resume`); a kept clock whose `CLOCK:` line was closed since is not clocked in again, and the server never asks before it saves (`org-clock-persist-query-save`)', true],
       ['Clocking from the agenda, the clocked entry highlighted', true],
       ['A notice when the clock passes the effort (`org-clock-notify-once-if-expired`)', true],
       ['A note when the clock stops (`org-log-note-clock-out`), in a note buffer', true],

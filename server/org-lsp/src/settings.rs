@@ -723,6 +723,30 @@ pub const SETTINGS: &[Setting] = &[
          when it started, rather than starting a new line.",
     ),
     setting(
+        "org_clock_persist",
+        r#"boolean, "clock", "history""#,
+        "false",
+        "org-clock-persist",
+        "Keep the running clock and the clock history when the server stops, and take them back when it \
+         starts: `true` both, `clock` the running clock alone, `history` the history alone (what \
+         `C-u C-c C-x C-i` offers). The running clock runs again if its `CLOCK:` line is still open. They are \
+         kept in Emacs's own file, in its form, so Emacs and org-lsp take the clock from each other.",
+    ),
+    setting(
+        "org_clock_persist_file",
+        "string",
+        r#""~/.emacs.d/org-clock-save.el""#,
+        "org-clock-persist-file",
+        "The file `org_clock_persist` keeps the clock in: Emacs's, `org-clock-save.el` in its directory.",
+    ),
+    setting(
+        "org_clock_persist_query_resume",
+        "boolean",
+        "true",
+        "org-clock-persist-query-resume",
+        "Ask before the clock the last session kept runs again (`Resume clock (…)?`).",
+    ),
+    setting(
         "org_clock_goto_may_find_recent_task",
         "boolean",
         "true",
@@ -3525,6 +3549,9 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_clock_history_length", r#"{ "type": "integer", "minimum": 1 }"#),
     ("org_clock_in_resume", BOOLEAN),
     ("org_clock_goto_may_find_recent_task", BOOLEAN),
+    ("org_clock_persist", r#"{ "enum": [true, false, "clock", "history"] }"#),
+    ("org_clock_persist_file", STRING),
+    ("org_clock_persist_query_resume", BOOLEAN),
     ("org_clock_clocktable_default_properties", STRING),
     ("org_clocktable_defaults", STRING),
     (

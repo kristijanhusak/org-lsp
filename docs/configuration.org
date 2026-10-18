@@ -3022,6 +3022,56 @@ with that clock, from when it started, rather than starting a new line.
 org_clock_in_resume = false
 #+end_src
 
+*** org_clock_persist
+:PROPERTIES:
+:CUSTOM_ID: org_clock_persist
+:END:
+
+Keep the running clock and the clock history when the server stops, and take
+them back when it starts: ~true~ both, ~clock~ the running clock alone,
+~history~ the history alone (what ~C-u C-c C-x C-i~ offers). The running clock
+runs again if its ~CLOCK:~ line is still open. They are kept in Emacs's own
+file, in its form, so Emacs and org-lsp take the clock from each other.
+
+- Org's option :: ~org-clock-persist~
+- Type :: boolean, "clock", "history"
+- Default :: ~false~
+
+#+begin_src toml
+org_clock_persist = false
+#+end_src
+
+*** org_clock_persist_file
+:PROPERTIES:
+:CUSTOM_ID: org_clock_persist_file
+:END:
+
+The file ~org_clock_persist~ keeps the clock in: Emacs's, ~org-clock-save.el~
+in its directory.
+
+- Org's option :: ~org-clock-persist-file~
+- Type :: string
+- Default :: ~"~/.emacs.d/org-clock-save.el"~
+
+#+begin_src toml
+org_clock_persist_file = "~/.emacs.d/org-clock-save.el"
+#+end_src
+
+*** org_clock_persist_query_resume
+:PROPERTIES:
+:CUSTOM_ID: org_clock_persist_query_resume
+:END:
+
+Ask before the clock the last session kept runs again (~Resume clock (…)?~).
+
+- Org's option :: ~org-clock-persist-query-resume~
+- Type :: boolean
+- Default :: ~true~
+
+#+begin_src toml
+org_clock_persist_query_resume = true
+#+end_src
+
 *** org_clock_goto_may_find_recent_task
 :PROPERTIES:
 :CUSTOM_ID: org_clock_goto_may_find_recent_task

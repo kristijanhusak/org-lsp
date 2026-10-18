@@ -244,6 +244,15 @@ pub struct Options {
     /// `org-clock-history-length`
     #[serde(rename = "org_clock_in_resume")]
     pub clock_in_resume: Option<bool>,
+    /// `org-clock-persist`: `true`, `"clock"`, `"history"` or `false`.
+    #[serde(rename = "org_clock_persist")]
+    pub clock_persist: Option<FlagOrName>,
+    /// `org-clock-persist-file`
+    #[serde(rename = "org_clock_persist_file")]
+    pub clock_persist_file: Option<String>,
+    /// `org-clock-persist-query-resume`
+    #[serde(rename = "org_clock_persist_query_resume")]
+    pub clock_persist_query_resume: Option<bool>,
     #[serde(rename = "org_clock_goto_may_find_recent_task")]
     pub clock_goto_may_find_recent_task: Option<bool>,
     #[serde(rename = "org_clock_history_length")]
@@ -1062,6 +1071,27 @@ impl TemplateText {
     }
 }
 
+/// What `org-clock-persist` keeps, and where.
+#[derive(Debug, Clone, Default)]
+pub struct ClockPersist {
+    /// `t` or `clock`: the running clock.
+    pub clock: bool,
+    /// `t` or `history`: the clock history.
+    pub history: bool,
+    /// `org-clock-persist-file`
+    pub file: Option<PathBuf>,
+    /// `org-clock-persist-query-resume`
+    pub query_resume: bool,
+}
+
+/// `true`, `false` or a name.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum FlagOrName {
+    Flag(bool),
+    Name(String),
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum OutlinePathOption {
@@ -1376,21 +1406,32 @@ impl Options {
         read_targets(targets)
     }
 
+    /// `org-clock-persist`: what is kept of the clock, and in which file,
+    /// `org-clock-save.el` in Emacs's directory unless set.
+    pub fn clock_persist(&self) -> ClockPersist {
+        let (clock, history) = match &self.clock_persist {
+            Some(FlagOrName::Flag(true)) => (true, true),
+            Some(FlagOrName::Name(name)) if name == "clock" => (true, false),
+            Some(FlagOrName::Name(name)) if name == "history" => (false, true),
+            _ => (false, false),
+        };
+        let home = std::env::var_os("HOME").map(PathBuf::from);
+        let file = match &self.clock_persist_file {
+            Some(path) => match (path.strip_prefix("~/"), &home) {
+                (Some(rest), Some(home)) => Some(home.join(rest)),
+                _ => Some(PathBuf::from(path)),
+            },
+            None => emacs_directory(home).map(|directory| directory.join("org-clock-save.el")),
+        };
+        ClockPersist { clock, history, file, query_resume: self.clock_persist_query_resume.unwrap_or(true) }
+    }
+
     /// Where IDs are looked for. `org-id-extra-files` is by default
     /// `org-agenda-text-search-extra-files`; `org-id-locations-file`,
     /// `.org-id-locations` in Emacs's directory.
     pub fn id_lookup(&self) -> IdLookup {
         let home = std::env::var_os("HOME").map(PathBuf::from);
-        // `locate-user-emacs-file`: `~/.emacs.d` unless only the XDG one is there.
-        let emacs_directory = || {
-            let home = home.clone()?;
-            let dot = home.join(".emacs.d");
-            let xdg = std::env::var_os("XDG_CONFIG_HOME")
-                .map(PathBuf::from)
-                .unwrap_or_else(|| home.join(".config"))
-                .join("emacs");
-            Some(if !dot.exists() && xdg.exists() { xdg } else { dot })
-        };
+        let emacs_directory = || emacs_directory(home.clone());
         let expand = |path: &str| match (path.strip_prefix("~/"), &home) {
             (Some(rest), Some(home)) => home.join(rest),
             _ => PathBuf::from(path),
@@ -1409,6 +1450,16 @@ impl Options {
             },
         }
     }
+}
+
+/// `locate-user-emacs-file`'s directory: `~/.emacs.d` unless only the XDG
+/// one is there.
+fn emacs_directory(home: Option<PathBuf>) -> Option<PathBuf> {
+    let home = home?;
+    let dot = home.join(".emacs.d");
+    let xdg =
+        std::env::var_os("XDG_CONFIG_HOME").map(PathBuf::from).unwrap_or_else(|| home.join(".config")).join("emacs");
+    Some(if !dot.exists() && xdg.exists() { xdg } else { dot })
 }
 
 /// `org_refile_targets` and its kin, read.

@@ -724,6 +724,22 @@ org_clock_history_length = 5
 # (org-clock-in-resume)
 org_clock_in_resume = false
 
+# Keep the running clock and the clock history when the server stops, and take
+# them back when it starts: `true` both, `clock` the running clock alone,
+# `history` the history alone (what `C-u C-c C-x C-i` offers). The running
+# clock runs again if its `CLOCK:` line is still open. They are kept in
+# Emacs's own file, in its form, so Emacs and org-lsp take the clock from each
+# other. (org-clock-persist)
+org_clock_persist = false
+
+# The file `org_clock_persist` keeps the clock in: Emacs's,
+# `org-clock-save.el` in its directory. (org-clock-persist-file)
+org_clock_persist_file = "~/.emacs.d/org-clock-save.el"
+
+# Ask before the clock the last session kept runs again (`Resume clock (…)?`).
+# (org-clock-persist-query-resume)
+org_clock_persist_query_resume = true
+
 # With no clock running, `org.clock.goto` goes to the entry clocked last. With
 # `false`, it says `No active or recent clock task`.
 # (org-clock-goto-may-find-recent-task)
