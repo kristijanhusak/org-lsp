@@ -1750,6 +1750,33 @@ pub const SETTINGS: &[Setting] = &[
          no limit.",
     ),
     setting(
+        "org_display_remote_inline_images",
+        "\"skip\", \"download\" or \"cache\"",
+        r#""skip""#,
+        "org-display-remote-inline-images",
+        "Whether the images of `http:` and `https:` links show (`C-c C-x C-v`): `\"skip\"` not; `\"download\"` \
+         downloaded each time they show; `\"cache\"` downloaded once and kept for the session. The download \
+         follows `org_resource_download_policy`.",
+    ),
+    setting(
+        "org_resource_download_policy",
+        "true, \"prompt\", \"safe\" or false",
+        r#""prompt""#,
+        "org-resource-download-policy",
+        "Which remote resources are downloaded (the images of links): `true` all of them; `\"prompt\"` those \
+         considered safe, and the others when the answer to Emacs's question says so; `\"safe\"` only those \
+         considered safe; `false` none but those.",
+    ),
+    setting(
+        "org_safe_remote_resources",
+        "string[]",
+        "[]",
+        "org-safe-remote-resources",
+        "The remote resources considered safe: Emacs regexps matched against a resource's URL and against the \
+         `file://` URL of the file asking for it. The answers `!`, `d` and `f` to the download question add one \
+         for the rest of the session.",
+    ),
+    setting(
         "org_startup_with_link_previews",
         "boolean",
         "false",
@@ -3791,6 +3818,9 @@ const SCHEMAS: &[(&str, &str)] = &[
         r#"{ "anyOf": [{ "type": "boolean" }, { "type": "number" }, { "type": "array", "items": { "type": "number" }, "maxItems": 1 }] }"#,
     ),
     ("org_image_max_width", r#"{ "anyOf": [{ "enum": ["fill-column", "window", null] }, { "type": "number" }] }"#),
+    ("org_display_remote_inline_images", r#"{ "enum": ["skip", "download", "cache"] }"#),
+    ("org_resource_download_policy", r#"{ "enum": [true, "prompt", "safe", false] }"#),
+    ("org_safe_remote_resources", r#"{ "type": "array", "items": { "type": "string" } }"#),
     ("org_startup_with_latex_preview", BOOLEAN),
     ("org_startup_indented", BOOLEAN),
     ("org_startup_numerated", BOOLEAN),

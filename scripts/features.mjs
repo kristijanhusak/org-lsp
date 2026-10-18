@@ -1066,6 +1066,7 @@ export const AREAS = [
       ['LaTeX previews (`org-latex-preview`, `C-c C-x C-l`), made by Emacs as Org makes them (`latex`, `dvipng`, into `ltximg/`); `#+STARTUP: latexpreview`', true],
       ['Previews of `attachment:` links (the file found through Emacs, `org-attach-expand`)', true],
       ['The width an image shows at (`org-image-actual-width`, `#+ATTR_ORG: :width`, the `ORG-IMAGE-ACTUAL-WIDTH` property) and the most (`org-image-max-width`)', true],
+      ['The images of `http:` and `https:` links (`org-display-remote-inline-images`: `download` each time they show, or `cache` once for the session), downloaded with `curl` into a private directory as `org-resource-download-policy` and `org-safe-remote-resources` allow, after asking as `org--confirm-resource-safe` does (`y`, `n`, `f`, `d`, `!`), but not when a file opens. Emacs shows remote files (TRAMP) so, which org-lsp has not, and not URLs; the regexps the answers `!`, `d` and `f` add are kept for the session, not saved with Customize', true],
     ],
     editors: {
       neovim: ['part', 'From Neovim 0.13 (`vim.ui.img`), in a terminal with the Kitty graphics protocol: an image shows below its line, not over the link; images other than PNG need ImageMagick.'],
@@ -1082,6 +1083,7 @@ export const AREAS = [
       { text: 'A file with `#+STARTUP: inlineimages` opens with its pictures', only: ['neovim', 'vscode', 'sublime'] },
       { text: 'With `org_image_actual_width = false`, a picture below `#+ATTR_ORG: :width 100` shows 100 pixels wide', cmd: 'org.link.preview', only: ['neovim', 'vscode', 'sublime'] },
       { text: 'Scrolling moves the pictures with their lines; editing a link takes its picture away', only: ['neovim', 'vscode', 'sublime'] },
+      { text: 'With `org_display_remote_inline_images = "download"`, on a line with `[[https://…/pic.png]]`, the key asks whether to download it (`y`, `n`, `f`, `d`, `!`); `y` shows the picture, `n` says it will not be downloaded', cmd: 'org.link.preview', only: ['neovim', 'vscode', 'sublime'] },
       { text: '`$e^{i\\pi} = -1$` shows as its image (needs Emacs, `latex` and `dvipng`)', cmd: 'org.latex.preview', only: ['neovim', 'vscode', 'sublime'] },
       { text: 'A file with `#+STARTUP: latexpreview` opens with its fragments as images (needs Emacs, `latex` and `dvipng`)', only: ['neovim', 'vscode', 'sublime'] },
     ],

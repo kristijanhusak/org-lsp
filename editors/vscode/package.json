@@ -3622,6 +3622,33 @@
               "markdownDescription": "How wide at most an image shown at its own width is: `\"fill-column\"`, 70 columns; `\"window\"`, the window's width; an integer, that many pixels; a float, that part of the window's width; null for no limit. (`org-image-max-width`)",
               "default": "fill-column"
             },
+            "org_display_remote_inline_images": {
+              "enum": [
+                "skip",
+                "download",
+                "cache"
+              ],
+              "markdownDescription": "Whether the images of `http:` and `https:` links show (`C-c C-x C-v`): `\"skip\"` not; `\"download\"` downloaded each time they show; `\"cache\"` downloaded once and kept for the session. The download follows `org_resource_download_policy`. (`org-display-remote-inline-images`)",
+              "default": "skip"
+            },
+            "org_resource_download_policy": {
+              "enum": [
+                true,
+                "prompt",
+                "safe",
+                false
+              ],
+              "markdownDescription": "Which remote resources are downloaded (the images of links): `true` all of them; `\"prompt\"` those considered safe, and the others when the answer to Emacs's question says so; `\"safe\"` only those considered safe; `false` none but those. (`org-resource-download-policy`)",
+              "default": "prompt"
+            },
+            "org_safe_remote_resources": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "The remote resources considered safe: Emacs regexps matched against a resource's URL and against the `file://` URL of the file asking for it. The answers `!`, `d` and `f` to the download question add one for the rest of the session. (`org-safe-remote-resources`)",
+              "default": []
+            },
             "org_startup_with_link_previews": {
               "type": "boolean",
               "markdownDescription": "Show the images of links to image files in place when a file opens, as `C-c C-x C-v` (`org.link.preview`) shows them. `#+STARTUP: inlineimages` (or `linkpreviews`) and `noinlineimages` decide for a file. Editors that can show images: Neovim from 0.13 (`vim.ui.img`), in a terminal with the Kitty graphics protocol. (`org-startup-with-link-previews`)",

@@ -7,20 +7,26 @@
 //! description is itself such a link with an explicit type, and nothing
 //! else. With `include_linked`, links with a description are previewed
 //! too.
+//!
+//! With `remote`, an `http:` or `https:` link naming an image is
+//! previewable as well, its image downloaded first: Org's
+//! `org-display-remote-inline-images` is for remote files (TRAMP), which
+//! org-lsp has not, and its URLs are what stands for them.
 
 use org_syntax::{Parse, SyntaxKind, SyntaxNode};
 
 use crate::open::{self, Open};
 
 /// A link to preview: where it is, and the file it names, as written
-/// (relative to the text's own file) or, for an attachment, its name in
-/// the entry's attachment directory.
+/// (relative to the text's own file), for an attachment its name in the
+/// entry's attachment directory, or for a remote image its URL.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Preview {
     pub start: usize,
     pub end: usize,
     pub path: String,
     pub attachment: bool,
+    pub remote: bool,
 }
 
 /// The extensions of `image-file-name-extensions`.
@@ -36,12 +42,14 @@ pub fn is_image(path: &str) -> bool {
 }
 
 /// The previewable links between bytes `from` and `to` of `text`.
-/// `global` is `org-link-abbrev-alist`.
+/// `global` is `org-link-abbrev-alist`; `remote`, whether the images of
+/// URLs show (`org-display-remote-inline-images` not `skip`).
 pub fn previews(
     text: &str,
     parse: &Parse,
     global: &[(String, String)],
     include_linked: bool,
+    remote: bool,
     from: usize,
     to: usize,
 ) -> Vec<Preview> {
@@ -56,23 +64,30 @@ pub fn previews(
             continue;
         }
         let described = has_description(&node);
-        let (path, attachment) = if !described || include_linked {
+        let (path, attachment, url) = if !described || include_linked {
             let Some(link) = open::link_at(text, parse, start, global, &open::Settings::default()) else { continue };
             match link.open {
-                Ok(Open::File { path, search: None, .. }) => (path, false),
-                Ok(Open::Attachment(path)) if !path.contains("::") => (path, true),
+                Ok(Open::File { path, search: None, .. }) => (path, false, false),
+                Ok(Open::Attachment(path)) if !path.contains("::") => (path, true, false),
+                Ok(Open::External(url)) if remote && is_url(&url) => (url, false, true),
                 _ => continue,
             }
         } else {
             // A description that is a sole link with its type.
-            let Some(inner) = sole_link(&node, text) else { continue };
-            inner
+            let Some((path, attachment)) = sole_link(&node, text) else { continue };
+            (path, attachment, false)
         };
         if is_image(&path) {
-            out.push(Preview { start, end, path, attachment });
+            out.push(Preview { start, end, path, attachment, remote: url });
         }
     }
     out
+}
+
+/// Whether `url` is one of the web, `http:` or `https:`.
+fn is_url(url: &str) -> bool {
+    let lower = url.get(..8).unwrap_or(url).to_ascii_lowercase();
+    lower.starts_with("http://") || lower.starts_with("https://")
 }
 
 /// Whether a bracket link has a description.
@@ -341,7 +356,7 @@ mod tests {
 
     fn found(text: &str, include_linked: bool) -> Vec<(String, bool)> {
         let parse = org_syntax::parse(text, &TodoKeywords::default());
-        previews(text, &parse, &[], include_linked, 0, text.len())
+        previews(text, &parse, &[], include_linked, false, 0, text.len())
             .into_iter()
             .map(|preview| (text[preview.start..preview.end].to_string(), preview.attachment))
             .collect()
@@ -368,5 +383,27 @@ mod tests {
     fn a_description_that_is_a_sole_image_link() {
         let text = "[[https://example.com][file:thumb.png]] [[https://example.com][thumb.png]]\n";
         assert_eq!(found(text, false), [("[[https://example.com][file:thumb.png]]".to_string(), false)]);
+    }
+
+    #[test]
+    fn remote_images_when_they_show() {
+        let text = "[[https://x.org/d.png]] http://x.org/e.GIF <https://x.org/f.svg> [[https://x.org/g.png?s=1]]\n\
+                    [[https://x.org/h.png][H]] [[ftp://x.org/i.png]] [[https://x.org/page]]\n";
+        let parse = org_syntax::parse(text, &TodoKeywords::default());
+        let found = |remote| -> Vec<(String, bool)> {
+            previews(text, &parse, &[], false, remote, 0, text.len())
+                .into_iter()
+                .map(|preview| (preview.path, preview.remote))
+                .collect()
+        };
+        assert_eq!(found(false), []);
+        assert_eq!(
+            found(true),
+            [
+                ("https://x.org/d.png".to_string(), true),
+                ("http://x.org/e.GIF".to_string(), true),
+                ("https://x.org/f.svg".to_string(), true),
+            ]
+        );
     }
 }

@@ -54,6 +54,7 @@ mod bulk;
 mod clock_persist;
 mod clock_resolve;
 mod journal;
+mod remote_images;
 mod roam;
 use crate::views::{self, EntryRef, Query, View, ViewLine};
 use crate::workspace::{Source, Workspace};
@@ -955,6 +956,8 @@ struct Server {
     image_actual_width: org_core::link_preview::ActualWidth,
     /// `org-image-max-width`, as the editors are told it.
     image_max_width: Value,
+    /// The images of URLs (`org-display-remote-inline-images`).
+    remote: remote_images::Remote,
     /// `org-startup-with-latex-preview`
     startup_latex_preview: bool,
     /// `org-table-formula-debug`: recalculating goes through Emacs, which
@@ -1594,6 +1597,11 @@ pub fn run(connection: Connection) -> Result<()> {
         startup_link_previews: options.startup_with_link_previews.unwrap_or(false),
         image_actual_width: options.image_actual_width(),
         image_max_width: options.image_max_width(),
+        remote: remote_images::Remote::new(
+            options.remote_images(),
+            options.download_policy(),
+            options.safe_remote_resources.clone().unwrap_or_default(),
+        ),
         startup_latex_preview: options.startup_with_latex_preview.unwrap_or(false),
         formula_debug: false,
         pretty_scripts: match (
@@ -1891,7 +1899,7 @@ pub fn run(connection: Connection) -> Result<()> {
     let roam = server.roam.as_ref().into_iter().flat_map(|roam| [&roam.buffer_directory, &roam.graph_directory]);
     for directory in [&server.capture_directory, &server.export_directory, &server.special_directory]
         .into_iter()
-        .chain([&server.journal_views])
+        .chain([&server.journal_views, &server.remote.directory])
         .chain(roam)
         .filter_map(Private::made)
     {
@@ -12702,7 +12710,14 @@ impl Server {
             self.emacs.start(tag, "latex-preview", params);
             return Ok(json!({ "message": "Creating LaTeX previews..." }));
         }
-        let found = org_core::link_preview::previews(&text, &parse, &self.link_abbreviations, include_linked, from, to);
+        let remote = self.remote.mode != config::RemoteImages::Skip;
+        let found =
+            org_core::link_preview::previews(&text, &parse, &self.link_abbreviations, include_linked, remote, from, to);
+        // The images of URLs, downloaded first; or what to ask before.
+        let remote_files = match self.remote_images(&uri, &found, context, startup) {
+            Ok(files) => files,
+            Err(question) => return Ok(question),
+        };
         // How wide each shows (`org-display-inline-image--width`), and how
         // wide at most one shown at its own width (`org-image-max-width`).
         let outline = (!found.is_empty()).then(|| org_core::outline::Outline::new(&parse, &text, ""));
@@ -12710,7 +12725,9 @@ impl Server {
         let items: Vec<Value> = found
             .into_iter()
             .filter_map(|found| {
-                let path = if found.attachment {
+                let path = if found.remote {
+                    remote_files.get(&found.start)?.clone()
+                } else if found.attachment {
                     self.attachment_path(&uri, &text, found.start, &found.path)?
                 } else {
                     self.link_path(&uri, &found.path)?
