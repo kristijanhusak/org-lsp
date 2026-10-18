@@ -574,8 +574,12 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, "<Leader>oxx")],
         ..edit(CLOCK_IN_LAST, "Clock in the last clocked task")
     },
-    // `org-resolve-clocks`: a clock left running beside the clock.
-    Command { vim: &[key(Org, "<Leader>oxR")], ..edit(CLOCK_RESOLVE, "Resolve a dangling clock") },
+    // `org-resolve-clocks`: each clock left running, asked about.
+    Command {
+        emacs: &[key(Org, "C-c C-x C-z")],
+        vim: &[key(Org, "<Leader>oxz")],
+        ..edit(CLOCK_RESOLVE, "Resolve open clocks")
+    },
     Command {
         emacs: &[key(Org, "C-c C-x C-o"), key(Agenda, "O")],
         vim: &[key(Org, "<Leader>oxo")],

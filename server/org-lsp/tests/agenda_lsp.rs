@@ -1417,8 +1417,7 @@ fn resumes_a_clock_left_running() {
     options["org_clock_in_resume"] = json!(true);
     let mut client = Client::editor(options, None);
     client.open(URI, &text);
-    let mut version = 1;
-    let mut run = |client: &mut Client, text: &mut String, command: &str| {
+    let run = |client: &mut Client, text: &mut String, command: &str| {
         client.received.clear();
         let at = json!({ "textDocument": { "uri": URI }, "position": { "line": 0, "character": 0 } });
         let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [at] }));
@@ -1426,16 +1425,30 @@ fn resumes_a_clock_left_running() {
         if let Some(edit) = client.received.iter().find(|request| request.method == "workspace/applyEdit") {
             let (_, edits) = edits_of(edit);
             *text = apply(text, &edits);
-            version += 1;
+            client.file_version += 1;
             client.notify(
                 "textDocument/didChange",
-                json!({ "textDocument": { "uri": URI, "version": version }, "contentChanges": [{ "text": text }] }),
+                json!({ "textDocument": { "uri": URI, "version": client.file_version }, "contentChanges": [{ "text": text }] }),
             );
             client.settle();
         }
         result
     };
-    let result = run(&mut client, &mut text, "org.clock.in").unwrap();
+    // No clock runs: the two left running are asked about first
+    // (`org-clock-auto-clock-resolution`), the last one first. `Other`
+    // stops now, `Write` is left to the clock-in.
+    let asked = run_applying(&mut client, URI, &mut text, "org.clock.in", 0, json!({}));
+    assert_eq!(asked["input"]["prompt"], "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ");
+    let step = |input: &str, context: &Value| {
+        let mut next = context.clone();
+        next["input"] = json!(input);
+        next
+    };
+    let asked = run_applying(&mut client, URI, &mut text, "org.clock.in", 0, step("K", &asked["input"]["context"]));
+    assert_eq!(asked["input"]["prompt"], "Keep how many minutes (default 30): ");
+    let asked = run_applying(&mut client, URI, &mut text, "org.clock.in", 0, step("", &asked["input"]["context"]));
+    assert_eq!(asked["input"]["prompt"], "Dangling clock started 90 mins ago [jkKtTgGSscCiq]? ");
+    let result = run_applying(&mut client, URI, &mut text, "org.clock.in", 0, step("i", &asked["input"]["context"]));
     assert_eq!(result["message"], "Clock starts at [2026-05-18 Mon 09:00] - showing entire task time.");
     // `Other` stopped; no new line in `Write`.
     assert!(text.contains("CLOCK: [2026-05-18 Mon 10:00]--[2026-05-18 Mon 10:30] =>  0:30\n"), "{text}");
@@ -7033,46 +7046,134 @@ fn apply_received(client: &mut Client, uri: &str, text: &mut String) {
     }
 }
 
-/// `org-resolve-clocks`: a clock left running beside the clock is asked
-/// about, and kept, stopped, started again or canceled.
+/// `org-resolve-clocks` and the resolution `org-clock-in` makes first
+/// (`org-clock-auto-clock-resolution`), as Emacs asks and leaves the file:
+/// `tests/clock/resolve.json` (`scripts/clock_resolve_reference.py`). Each
+/// question is answered with the next answer Emacs was given.
 #[test]
-fn resolves_dangling_clocks() {
-    let uri = "file:///org/work.org";
-    let start =
-        "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n";
-    let resolve = |answer: Option<&str>| {
-        let mut client = Client::editor(clock(), None);
-        let mut text = start.to_string();
-        client.open(uri, &text);
-        let extra = answer.map_or(json!({}), |answer| json!({ "input": answer }));
-        let result = run_applying(&mut client, uri, &mut text, "org.clock.resolve", 0, extra);
-        let again = run_applying(&mut client, uri, &mut text, "org.clock.resolve", 0, json!({}));
+fn resolving_clocks_matches_emacs() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/clock/resolve.json");
+    let cases: Vec<Value> = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    let mut failures = String::new();
+    for (index, case) in cases.iter().enumerate() {
+        let (today, now) = case["clock"].as_str().unwrap().split_once(' ').unwrap();
+        let mut options = case.get("options").cloned().unwrap_or_else(|| json!({}));
+        options["clock"] = json!({ "today": today, "now": now });
+        let mut client = Client::editor(options, None);
+        const URI: &str = "file:///org/clock.org";
+        let mut text = case["text"].as_str().unwrap().to_string();
+        client.open(URI, &text);
+        let mut answers: Vec<String> =
+            case["answers"].as_array().unwrap().iter().map(|answer| answer.as_str().unwrap().to_string()).collect();
+        answers.reverse();
+        let (mut asked, mut said, mut failed) = (Vec::<String>::new(), String::new(), false);
+        'steps: for step in case["steps"].as_array().unwrap() {
+            let step: Vec<&str> = step.as_array().unwrap().iter().map(|part| part.as_str().unwrap()).collect();
+            let (command, extra) = match step[0] {
+                "resolve" if step.len() > 1 => ("org.clock.resolve", json!({ "count": 4 })),
+                "resolve" => ("org.clock.resolve", json!({})),
+                _ => {
+                    let line = text.lines().position(|line| line.starts_with('*') && line.contains(step[1])).unwrap();
+                    ("org.clock.in", json!({ "line": line }))
+                }
+            };
+            let line = extra.get("line").and_then(Value::as_u64).unwrap_or(0) as u32;
+            let mut extra = extra;
+            extra.as_object_mut().unwrap().remove("line");
+            loop {
+                let result = run_applying(&mut client, URI, &mut text, command, line, extra.clone());
+                if result.get("error").is_some() {
+                    failed = true;
+                    break 'steps;
+                }
+                if let Some(message) = result["message"].as_str().filter(|message| !message.is_empty()) {
+                    said = message.to_string();
+                }
+                let Some(input) = result.get("input") else { break };
+                let prompt = input["prompt"].as_str().unwrap().to_string();
+                asked.push(prompt);
+                let Some(answer) = answers.pop() else { break 'steps };
+                let mut next = json!({ "input": answer });
+                if let Some(count) = extra.get("count") {
+                    next["count"] = count.clone();
+                }
+                for (key, value) in input["context"].as_object().into_iter().flatten() {
+                    next[key] = value.clone();
+                }
+                extra = next;
+            }
+        }
         client.shutdown();
-        (result, text, again)
-    };
-    let (asked, ..) = resolve(None);
-    assert_eq!(asked["input"]["prompt"], "Dangling clock started 90 mins ago");
-    assert_eq!(asked["input"]["choices"][1], json!({ "key": "K", "label": "Keep it and clock out now" }));
-    // Stopped now.
-    let (_, text, again) = resolve(Some("K"));
-    assert!(text.contains("CLOCK: [2026-05-18 Mon 09:00]--[2026-05-18 Mon 10:30] =>  1:30\n"), "{text}");
-    assert_eq!(again["message"], "No dangling clocks");
-    // Canceled.
-    let (_, text, _) = resolve(Some("C"));
-    assert_eq!(text, "* A\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n");
-    // Started again now: the clock on B stops.
-    let (_, text, again) = resolve(Some("s"));
+        let expected = case["expected"].as_str().unwrap();
+        // The date prompt shows its default after the prompt in Emacs.
+        let emacs_asked: Vec<String> = case["asked"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|prompt| {
+                let prompt = prompt.as_str().unwrap();
+                if prompt.starts_with("Date+time [") {
+                    "Date+time".to_string()
+                } else {
+                    prompt.to_string()
+                }
+            })
+            .collect();
+        let same_text = if expected.starts_with("ERROR") { failed } else { !failed && text == expected };
+        if !same_text || asked != emacs_asked || said != case["message"].as_str().unwrap() {
+            failures.push_str(&format!(
+                "\ncase {index}: {:?} {:?}\n--- emacs asked {emacs_asked:?}, said {}\n{expected}\n\
+                 --- org-lsp asked {asked:?}, said {said:?}, failed {failed}\n{text}\n",
+                case["steps"], case["answers"], case["message"]
+            ));
+        }
+    }
+    assert!(failures.is_empty(), "{failures}");
+}
+
+/// Clocking in from an agenda line resolves the open clocks first, as
+/// `org-agenda-clock-in` clocks in through `org-clock-in`; with
+/// `org-clock-resolve-expert`, the question is the prompt alone.
+#[test]
+fn resolves_clocks_before_clocking_in_from_the_agenda() {
+    let uri = "file:///org/work.org";
+    let mut options = clock();
+    options["org_clock_resolve_expert"] = json!(true);
+    let mut client = Client::editor(options, None);
+    let mut text = "* TODO Write\n* TODO Call\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n".to_string();
+    client.open(uri, &text);
+    client.command("org.agenda.todos", uri, 0);
+    let view = client.view_text(VIEW);
+    let line = view.lines().position(|line| line.ends_with("TODO Write")).expect("the entry") as u32;
+    let mut context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } });
+    let mut asked = Vec::new();
+    for answer in ["K", "", ""] {
+        client.received.clear();
+        let result = client
+            .request("workspace/executeCommand", json!({ "command": "org.clock.in", "arguments": [context.clone()] }))
+            .unwrap();
+        client.settle();
+        apply_received(&mut client, uri, &mut text);
+        let Some(input) = result.get("input") else { break };
+        asked.push((input["prompt"].clone(), input["expert"].clone()));
+        for (key, value) in input["context"].as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        context["input"] = json!(answer);
+    }
+    assert_eq!(
+        asked,
+        [
+            (json!("Dangling clock started 30 mins ago [jkKtTgGSscCiq]? "), json!(true)),
+            (json!("Keep how many minutes (default 30): "), Value::Null),
+        ]
+    );
     assert_eq!(
         text,
-        "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n* B\n:LOGBOOK:\n\
-         CLOCK: [2026-05-18 Mon 10:00]--[2026-05-18 Mon 10:30] =>  0:30\n:END:\n"
+        "* TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n\
+         * TODO Call\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]--[2026-05-18 Mon 10:30] =>  0:30\n:END:\n"
     );
-    assert_eq!(again["message"], "No dangling clocks");
-    // Kept: it is the clock now.
-    let (_, text, again) = resolve(Some("k"));
-    assert!(text.contains("CLOCK: [2026-05-18 Mon 09:00]\n"), "{text}");
-    assert!(text.contains("CLOCK: [2026-05-18 Mon 10:00]--[2026-05-18 Mon 10:30] =>  0:30\n"), "{text}");
-    assert_eq!(again["message"], "No dangling clocks");
+    client.shutdown();
 }
 
 /// `org-clock-idle-time`: back after more than that, the editor is asked
@@ -7098,7 +7199,7 @@ fn asks_about_idle_time() {
     client.settle();
     assert!(!client.received.iter().any(|request| request.method == "window/showMessageRequest"));
     client.notify("org-lsp/setClock", json!({ "today": "2026-05-18", "now": "11:15" }));
-    client.choice = Some("Subtract the idle time [s]".to_string());
+    client.choice = Some("Subtract the idle time from the current clock. [s]".to_string());
     client.received.clear();
     client
         .request(
@@ -7108,7 +7209,7 @@ fn asks_about_idle_time() {
         .ok();
     client.settle();
     let asked = client.received.iter().find(|request| request.method == "window/showMessageRequest").expect("asked");
-    assert_eq!(asked.params["message"], "Clocked in & idle for 40.0 mins");
+    assert_eq!(asked.params["message"], "Clocked in & idle for 40.0 mins [jkKtTgGSscCiq]? ");
     apply_received(&mut client, uri, &mut text);
     assert_eq!(
         text,

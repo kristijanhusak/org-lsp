@@ -3007,6 +3007,41 @@ cancel the clock.
 - Type :: integer
 - Default :: unset: none
 
+*** org_clock_auto_clock_resolution
+:PROPERTIES:
+:CUSTOM_ID: org_clock_auto_clock_resolution
+:END:
+
+Clocking in first asks about each clock left running in the open and agenda
+files, as ~org.clock.resolve~ does: ~when-no-clock-is-running~ when no clock
+runs, ~true~ always (the clock that runs too), ~false~ never. A clock found
+running when the server starts, or written by hand, is no clock the server
+ran: it is asked about.
+
+- Org's option :: ~org-clock-auto-clock-resolution~
+- Type :: boolean, "when-no-clock-is-running"
+- Default :: ~"when-no-clock-is-running"~
+
+#+begin_src toml
+org_clock_auto_clock_resolution = "when-no-clock-is-running"
+#+end_src
+
+*** org_clock_resolve_expert
+:PROPERTIES:
+:CUSTOM_ID: org_clock_resolve_expert
+:END:
+
+Ask what to do with a dangling clock or idle time with the keys in the prompt
+alone (~[jkKtTgGSscCiq]?~), without the list of what each one does.
+
+- Org's option :: ~org-clock-resolve-expert~
+- Type :: boolean
+- Default :: ~false~
+
+#+begin_src toml
+org_clock_resolve_expert = false
+#+end_src
+
 *** org_clock_history_length
 :PROPERTIES:
 :CUSTOM_ID: org_clock_history_length

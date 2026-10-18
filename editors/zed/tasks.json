@@ -208,6 +208,19 @@
     "use_new_terminal": false
   },
   {
+    "label": "Org: Resolve open clocks",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.clock.resolve",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
     "label": "Org: Clock out",
     "command": "$HOME/.local/state/org-lsp/agenda-command file:org.clock.out",
     "tags": [

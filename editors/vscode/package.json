@@ -307,7 +307,7 @@
       },
       {
         "command": "org.clock.resolve",
-        "title": "Resolve a dangling clock",
+        "title": "Resolve open clocks",
         "category": "Org"
       },
       {
@@ -2393,6 +2393,20 @@
               "type": "integer",
               "minimum": 1,
               "markdownDescription": "After how many minutes without a message from the editor a clock that runs asks what to do with the idle time: keep it, subtract it (and clock out), or cancel the clock. (`org-clock-idle-time`)"
+            },
+            "org_clock_auto_clock_resolution": {
+              "enum": [
+                true,
+                false,
+                "when-no-clock-is-running"
+              ],
+              "markdownDescription": "Clocking in first asks about each clock left running in the open and agenda files, as `org.clock.resolve` does: `when-no-clock-is-running` when no clock runs, `true` always (the clock that runs too), `false` never. A clock found running when the server starts, or written by hand, is no clock the server ran: it is asked about. (`org-clock-auto-clock-resolution`)",
+              "default": "when-no-clock-is-running"
+            },
+            "org_clock_resolve_expert": {
+              "type": "boolean",
+              "markdownDescription": "Ask what to do with a dangling clock or idle time with the keys in the prompt alone (`[jkKtTgGSscCiq]?`), without the list of what each one does. (`org-clock-resolve-expert`)",
+              "default": false
             },
             "org_clock_history_length": {
               "type": "integer",
@@ -7166,6 +7180,11 @@
       {
         "command": "org.clock.in.last",
         "key": "ctrl+c ctrl+x ctrl+x",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.clock.resolve",
+        "key": "ctrl+c ctrl+x ctrl+z",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {

@@ -347,7 +347,7 @@ Where editors fall short:
 - ✅ The time clocked under each headline (~C-c C-x C-d~)
 - ✅ Clock tables, with every parameter
 - ✅ Durations written as ~org-duration-format~ says (~1d 2:30~, ~26:30~, ~1.09d~, ~1d2h15min~) and read with the units of ~org-duration-units~ (days of 8 hours)
-- ✅ Resolving dangling clocks and idle time
+- ✅ Resolving open clocks and idle time (~C-c C-x C-z~, ~org-resolve-clocks~): each clock left running asked about with Emacs's prompt and keys (~k~, ~K~, ~t~, ~T~, ~g~, ~G~, ~s~, ~S~, ~C~, ~j~, ~J~, ~i~, ~q~), the minutes or the time asked next; ~C-u~ for the dangling ones alone; clocking in, in a file or the agenda, resolves first (~org-clock-auto-clock-resolution~), and a clock cut short is offered as the next one's start; the keys in the prompt alone with ~org-clock-resolve-expert~. A clock found running when the server starts shows as the clock, and ~C-c C-x C-o~ stops it, but for resolving and clocking in it is dangling, as in an Emacs that has just started, until kept (~k~) or resumed (~org-clock-persist~)
 - ✅ Clocking in again on a clock left running (~org-clock-in-resume~)
 - ✅ The running clock and the clock history kept from one session to the next, in Emacs's own ~org-clock-save.el~ (~org-clock-persist~, ~org-clock-persist-query-resume~); a kept clock whose ~CLOCK:~ line was closed since is not clocked in again, and the server never asks before it saves (~org-clock-persist-query-save~)
 - ✅ Clocking from the agenda, the clocked entry highlighted
@@ -770,19 +770,19 @@ Where editors fall short:
 :END:
 
 Each of the 1025 options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with
-it. Of the 329 that change what org-lsp does itself, 100% can be set.
+it. Of the 331 that change what org-lsp does itself, 100% can be set.
 [[file:../scripts/org-options.json][scripts/org-options.json]] says it for each; ~scripts/check.sh~ fails when the
 server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,
 when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 315 | A setting of the same name |
+| setting | 317 | A setting of the same name |
 | missing | 1 | org-lsp does what the option is about, but the option cannot be set yet |
 | other | 13 | Done another way, as its note says |
 | emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 47 | Its value is Lisp (a function, a hook), which the server does not run |
-| absent | 64 | Part of something org-lsp does not do |
+| absent | 62 | Part of something org-lsp does not do |
 | emacs-only | 105 | About Emacs itself (windows, faces, menus, the mouse, the mode line): nothing to do in an editor |
 
 ** Done another way
