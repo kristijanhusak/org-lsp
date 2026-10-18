@@ -336,7 +336,7 @@ export const AREAS = [
       ['Group tags in searches', true],
       ['A sparse tree by tags', true],
       ['Faces of particular tags in headlines (`org-tag-faces`)', true],
-      ['The TODO keywords in the tag selection (`org-fast-tag-selection-include-todo`), and matches without the entries below a match (`org-tags-match-list-sublevels`)', false],
+      ['The TODO keywords in the tag selection (`org-fast-tag-selection-include-todo`, a variable Org calls undocumented)', false],
     ],
     editors: {
       sublime: ['part', 'Faces of particular tags are not shown: Sublime Text colors text by its color scheme only.'],
