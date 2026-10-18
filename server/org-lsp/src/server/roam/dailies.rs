@@ -44,6 +44,19 @@ impl Daily {
 }
 
 impl Server {
+    /// The days with a daily note, which every date prompt marks while
+    /// org-roam is on (`org-roam-dailies-calendar-mark-entries` in
+    /// `calendar-today-visible-hook`): the date in a file's name
+    /// (`org-roam-dailies-calendar--file-to-date`).
+    pub(in crate::server) fn roam_daily_days(&self) -> Vec<org_core::date::Day> {
+        let Some(roam) = self.roam.as_ref() else { return Vec::new() };
+        let directory = roam.directory.join(&roam.settings.dailies_directory);
+        daily_files(&directory, &roam.settings.files.extensions)
+            .iter()
+            .filter_map(|file| file_date(&file.file_stem()?.to_string_lossy()))
+            .collect()
+    }
+
     /// The `org.roam.dailies.*` commands.
     pub(super) fn roam_dailies(&mut self, id: &str, context: &RoamContext) -> Result<Value, Refusal> {
         if matches!(id, commands::ROAM_DAILIES_GOTO_NEXT | commands::ROAM_DAILIES_GOTO_PREVIOUS) {
@@ -181,6 +194,18 @@ impl Server {
     }
 }
 
+/// `org-parse-time-string` of a file's name without its extension: the
+/// first date in it, `org-ts-regexp0`, when it is one.
+fn file_date(name: &str) -> Option<org_core::date::Day> {
+    static DATE: std::sync::LazyLock<regex::Regex> =
+        std::sync::LazyLock::new(|| regex::Regex::new(r"([0-9]{4})-([0-9]{2})-([0-9]{2})").unwrap());
+    let found = DATE.captures(name)?;
+    let (year, month, day) = (found[1].parse().ok()?, found[2].parse().ok()?, found[3].parse().ok()?);
+    let date = Date::new(year, month, day);
+    // A date that is no day (February 30th) is left out.
+    (Date::from_day(date.to_day()) == date).then(|| date.to_day())
+}
+
 /// `org-roam-dailies--list-files`: the files of `directory` and those
 /// below it whose extension is one of org-roam's, as
 /// `directory-files-recursively` lists them (a directory's own files after
@@ -209,4 +234,17 @@ fn daily_files(directory: &Path, extensions: &[String]) -> Vec<PathBuf> {
     }
     found.extend(files);
     found
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_daily_note_is_for_the_date_in_its_name() {
+        assert_eq!(file_date("2026-05-18"), Some(Date::new(2026, 5, 18).to_day()));
+        assert_eq!(file_date("notes-2026-05-18-work"), Some(Date::new(2026, 5, 18).to_day()));
+        assert_eq!(file_date("2026-02-30"), None);
+        assert_eq!(file_date("journal"), None);
+    }
 }

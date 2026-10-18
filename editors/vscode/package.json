@@ -5922,6 +5922,10 @@
         "description": "Date prompt: a day with an entry of org-journal; to come with `future`"
       },
       {
+        "id": "calendarDailies",
+        "description": "Date prompt: a day with a daily note of org-roam"
+      },
+      {
         "id": "quote",
         "description": "The text of a quote block, with org_fontify_quote_and_verse_blocks"
       },
@@ -6385,6 +6389,10 @@
           "calendarJournal.future": [
             "markup.italic.scheduled.journal.calendar.org",
             "markup.italic"
+          ],
+          "calendarDailies": [
+            "string.other.link.dailies.calendar.org",
+            "string.other.link"
           ]
         }
       },
@@ -6716,6 +6724,10 @@
           "calendarJournal.future": [
             "markup.italic.scheduled.journal.calendar.org",
             "markup.italic"
+          ],
+          "calendarDailies": [
+            "string.other.link.dailies.calendar.org",
+            "string.other.link"
           ]
         }
       },
@@ -7047,6 +7059,10 @@
           "calendarJournal.future": [
             "markup.italic.scheduled.journal.calendar.org",
             "markup.italic"
+          ],
+          "calendarDailies": [
+            "string.other.link.dailies.calendar.org",
+            "string.other.link"
           ]
         }
       }
