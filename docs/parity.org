@@ -29,7 +29,7 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#notes-org-roam][Notes (org-roam)]] | 88% | 14 of 16 |
 | [[#a-journal-org-journal][A journal (org-journal)]] | 79% | 11 of 14 |
 | [[#refile-and-archive][Refile and archive]] | 100% | 13 of 13 |
-| [[#links][Links]] | 100% | 19 of 19 |
+| [[#links][Links]] | 100% | 22 of 22 |
 | [[#footnotes][Footnotes]] | 100% | 4 of 4 |
 | [[#tables][Tables]] | 100% | 19 of 19 |
 | [[#table-formulas][Table formulas]] | 100% | 13 of 13 |
@@ -476,7 +476,7 @@ Where editors fall short:
 :CUSTOM_ID: links
 :END:
 
-100% (19 of 19)
+100% (22 of 22)
 
 - ✅ Following links: headlines, targets, custom IDs, files with searches, IDs, URLs, timestamps, tags
 - ✅ Storing and inserting links, with descriptions, editing the link at the cursor
@@ -497,6 +497,9 @@ Where editors fall short:
 - ✅ A link to a directory opening the ~index.org~ in it (~org-open-directory-means-index-dot-org~)
 - ✅ Following a ~shell:~ link: its command runs once the user says yes to ~Execute … in shell?~, or at once when ~org-link-shell-skip-confirm-regexp~ matches it; what it writes is a message, which Emacs shows in a buffer when long
 - ✅ Following a ~bibtex:~ link, or a ~file:~ link into a ~.bib~ file, to the entry of the key after ~::~ (~org-bibtex-open~, ~org-execute-file-search-in-bibtex~)
+- ✅ Following a ~man:~ link with ~ol-man~ in ~org_modules~ (~org-man-open~): the page ~org_man_command~ writes, as text in a file of the server's rather than a ~*Man*~ buffer, at the line before the first match of the search after ~::~; in brackets only, the parser knowing no ~man:~ type (~woman~ is ~man~)
+- ✅ Following an ~info:~ link (~org-info-open~): Emacs's manuals and those of ~org-info-other-documents~ open on the web at the node, as Org's export links them (~org-info-map-html-url~); another manual is the node the ~info~ program writes, as text, rather than Emacs's Info reader
+- ✅ ~org-ctags~ in ~org_modules~: a link to a headline, a target or a custom ID goes first to the tag of the ~TAGS~ file of its directory, or, as ~org-ctags-open-link-functions~ says, makes that file again (~org-ctags-create-tags~), appends a topic (~org-ctags-new-topic-template~) or opens an Org file of that name; ~org.ctags.create~ and ~org.ctags.find~ (~org-ctags-find-tag-interactive~). The ~TAGS~ file is the directory's, never asked for (~visit-tags-table~); of several tags of a name, the first
 
 Where editors fall short:
 
@@ -782,19 +785,19 @@ Where editors fall short:
 :END:
 
 Each of the 1025 options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with
-it. Of the 349 that change what org-lsp does itself, 100% can be set.
+it. Of the 354 that change what org-lsp does itself, 100% can be set.
 [[file:../scripts/org-options.json][scripts/org-options.json]] says it for each; ~scripts/check.sh~ fails when the
 server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,
 when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 336 | A setting of the same name |
+| setting | 341 | A setting of the same name |
 | missing | 1 | org-lsp does what the option is about, but the option cannot be set yet |
 | other | 12 | Done another way, as its note says |
 | emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
-| lisp | 48 | Its value is Lisp (a function, a hook), which the server does not run |
-| absent | 43 | Part of something org-lsp does not do |
+| lisp | 47 | Its value is Lisp (a function, a hook), which the server does not run |
+| absent | 39 | Part of something org-lsp does not do |
 | emacs-only | 105 | About Emacs itself (windows, faces, menus, the mouse, the mode line): nothing to do in an editor |
 
 ** Done another way

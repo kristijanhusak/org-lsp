@@ -3503,7 +3503,10 @@ Text on a line of its own (or lines) before the clock report.
 Org modules to load. ~org-habit~ turns habits on: entries with the ~STYLE~
 property ~habit~ and a scheduled date with a repeater (~.+2d~, ~.+2d/4d~ for a
 deadline too) show in the agenda with a graph of the days they were done.
-Others are ignored.
+~ol-man~ makes ~[[man:ls]]~ a link to a man page (~org_man_command~).
+~org-ctags~ follows links to the tags of a ~TAGS~ file, as loading it and
+calling ~org-ctags-enable~ does (~org_ctags_open_link_functions~). Others are
+ignored.
 
 - Org's option :: ~org-modules~
 - Type :: string[]
@@ -7230,6 +7233,98 @@ The ~org-lint~ checkers to leave out, by name, as a diagnostic's code shows it
 
 #+begin_src toml
 org_lint_ignore = []
+#+end_src
+
+*** org_man_command
+:PROPERTIES:
+:CUSTOM_ID: org_man_command
+:END:
+
+The program that writes the man page of a ~man:~ link, when ~ol-man~ is in
+~org_modules~: the page is shown as text, at the line before the first match
+of what follows ~::~ (~man:ls::-l~). ~"woman"~, Emacs's own reader, is ~man~
+too.
+
+- Org's option :: ~org-man-command~
+- Type :: string
+- Default :: ~"man"~
+
+#+begin_src toml
+org_man_command = "man"
+#+end_src
+
+*** org_info_other_documents
+:PROPERTIES:
+:CUSTOM_ID: org_info_other_documents
+:END:
+
+The pages on the web of Info manuals: following an ~info:~ link to one of
+them, or to one of Emacs's manuals, opens its page at the node. Another manual
+is shown as text, as the ~info~ program writes the node.
+
+- Org's option :: ~org-info-other-documents~
+- Type :: { [manual]: string }
+- Default :: ~{ "dir": "https://www.gnu.org/manual/manual.html", "libc": "https://www.gnu.org/software/libc/manual/html_mono/libc.html", "make": "https://www.gnu.org/software/make/manual/make.html" }~
+
+#+begin_src toml
+org_info_other_documents = { dir = "https://www.gnu.org/manual/manual.html", libc = "https://www.gnu.org/software/libc/manual/html_mono/libc.html", make = "https://www.gnu.org/software/make/manual/make.html" }
+#+end_src
+
+*** org_ctags_path_to_ctags
+:PROPERTIES:
+:CUSTOM_ID: org_ctags_path_to_ctags
+:END:
+
+The ~ctags~ program (Exuberant or Universal Ctags) that ~org.ctags.create~
+runs to make the ~TAGS~ file of a directory, when ~org-ctags~ is in
+~org_modules~.
+
+- Org's option :: ~org-ctags-path-to-ctags~
+- Type :: string
+- Default :: ~"ctags"~
+
+#+begin_src toml
+org_ctags_path_to_ctags = "ctags"
+#+end_src
+
+*** org_ctags_open_link_functions
+:PROPERTIES:
+:CUSTOM_ID: org_ctags_open_link_functions
+:END:
+
+With ~org-ctags~ in ~org_modules~, what following a link to a headline, a
+target or a custom ID tries first, in turn, until one is done:
+~org-ctags-find-tag~ (the tag of the ~TAGS~ file of the file's directory),
+~org-ctags-ask-rebuild-tags-file-then-find-tag~ and
+~org-ctags-rebuild-tags-file-then-find-tag~ (the ~TAGS~ file made again, then
+the tag), ~org-ctags-ask-append-topic~ and ~org-ctags-append-topic~ (a new
+topic at the end of the file), ~org-ctags-ask-visit-buffer-or-file~ and
+~org-ctags-visit-buffer-or-file~ (the Org file of that name in the directory,
+made when asked), ~org-ctags-fail-silently~ (nothing more). When none is done,
+the link is followed as without them.
+
+- Org's option :: ~org-ctags-open-link-functions~
+- Type :: string[]
+- Default :: ~["org-ctags-find-tag", "org-ctags-ask-rebuild-tags-file-then-find-tag", "org-ctags-ask-append-topic"]~
+
+#+begin_src toml
+org_ctags_open_link_functions = ["org-ctags-find-tag", "org-ctags-ask-rebuild-tags-file-then-find-tag", "org-ctags-ask-append-topic"]
+#+end_src
+
+*** org_ctags_new_topic_template
+:PROPERTIES:
+:CUSTOM_ID: org_ctags_new_topic_template
+:END:
+
+The text of a new topic ~org_ctags_open_link_functions~ makes, ~%t~ the link's
+text capitalized.
+
+- Org's option :: ~org-ctags-new-topic-template~
+- Type :: string
+- Default :: ~"* <<%t>>\n\n\n\n\n\n"~
+
+#+begin_src toml
+org_ctags_new_topic_template = "* <<%t>>\n\n\n\n\n\n"
 #+end_src
 
 *** org_open_non_existing_files

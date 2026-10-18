@@ -237,6 +237,7 @@ its sections says what it should look like.
 - [ ] Following ~[[No such heading]]~ asks whether to make it; yes adds ~* No such heading~ at the end of the file and goes there: the code action /Open the link or thing at the cursor/
 - [ ] Following a URL opens the browser; a timestamp opens its day's agenda: the code action /Open the link or thing at the cursor/
 - [ ] Following ~[[shell:echo hi]]~ asks ~Execute echo hi in shell?~; yes says ~hi~, no says ~Abort~: the code action /Open the link or thing at the cursor/
+- [ ] With ~org_modules~ ~["ol-man"]~, following ~[[man:ls::-l]]~ shows the man page of ~ls~ as text, near ~-l~; ~[[info:elisp#Buffers]]~ opens the Elisp manual on the web at ~Buffers~: the code action /Open the link or thing at the cursor/
 - [ ] Go to definition on a link does the same: ~F12~
 - [ ] Storing a link to a headline and inserting it elsewhere with a description: the code action /Store a link to the place at the cursor/, the code action /Insert a link, or edit the one at the cursor/
 - [ ] Inserting a link on an existing link edits it: the code action /Insert a link, or edit the one at the cursor/

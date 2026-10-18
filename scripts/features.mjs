@@ -724,6 +724,9 @@ export const AREAS = [
       ['A link to a directory opening the `index.org` in it (`org-open-directory-means-index-dot-org`)', true],
       ['Following a `shell:` link: its command runs once the user says yes to `Execute … in shell?`, or at once when `org-link-shell-skip-confirm-regexp` matches it; what it writes is a message, which Emacs shows in a buffer when long', true],
       ['Following a `bibtex:` link, or a `file:` link into a `.bib` file, to the entry of the key after `::` (`org-bibtex-open`, `org-execute-file-search-in-bibtex`)', true],
+      ['Following a `man:` link with `ol-man` in `org_modules` (`org-man-open`): the page `org_man_command` writes, as text in a file of the server\'s rather than a `*Man*` buffer, at the line before the first match of the search after `::`; in brackets only, the parser knowing no `man:` type (`woman` is `man`)', true],
+      ['Following an `info:` link (`org-info-open`): Emacs\'s manuals and those of `org-info-other-documents` open on the web at the node, as Org\'s export links them (`org-info-map-html-url`); another manual is the node the `info` program writes, as text, rather than Emacs\'s Info reader', true],
+      ['`org-ctags` in `org_modules`: a link to a headline, a target or a custom ID goes first to the tag of the `TAGS` file of its directory, or, as `org-ctags-open-link-functions` says, makes that file again (`org-ctags-create-tags`), appends a topic (`org-ctags-new-topic-template`) or opens an Org file of that name; `org.ctags.create` and `org.ctags.find` (`org-ctags-find-tag-interactive`). The `TAGS` file is the directory\'s, never asked for (`visit-tags-table`); of several tags of a name, the first', true],
     ],
     editors: {
       zed: ['part', `A link's target is typed, without completion: ${ZED_TEXT}. Following works through go to definition, for links inside Org files and to files.`],
@@ -738,6 +741,8 @@ export const AREAS = [
       { text: 'With `org_file_apps` set to `[["txt", "cp %s copy.txt"]]`, following `[[file:notes.txt]]` says `Running cp …/notes.txt copy.txt...done` and makes `copy.txt`; `C-u C-c C-o` opens `notes.txt` in the editor', cmd: 'org.open', not: ['helix', 'zed'] },
       { text: 'Following a URL opens the browser; a timestamp opens its day\'s agenda', cmd: 'org.open', not: ['helix'] },
       { text: 'Following `[[shell:echo hi]]` asks `Execute echo hi in shell?`; yes says `hi`, no says `Abort`', cmd: 'org.open', not: ['helix'] },
+      { text: 'With `org_modules` `["ol-man"]`, following `[[man:ls::-l]]` shows the man page of `ls` as text, near `-l`; `[[info:elisp#Buffers]]` opens the Elisp manual on the web at `Buffers`', cmd: 'org.open', not: ['helix'] },
+      { text: 'With `org_modules` `["org-ctags"]` and Universal Ctags, `org.ctags.create` makes `TAGS` from the `<<targets>>` of the directory; `[[target]]` in another file of it goes there; `[[nothing]]` asks to rebuild the table, then to append a topic `* <<Nothing>>`', cmd: ['org.open', 'org.ctags.create'], not: ['helix', 'zed'] },
       { text: 'Go to definition on a link does the same', keys: { neovim: '`gd` or `vim.lsp.buf.definition()`', vim: 'the client\'s go to definition', vscode: '`F12`', sublime: '*LSP: Goto Definition*', zed: '`F12`', helix: '`gd`' } },
       { text: 'Storing a link to a headline and inserting it elsewhere with a description', cmd: ['org.link.store', 'org.link.insert'], not: ['helix'] },
       { text: 'Inserting a link on an existing link edits it', cmd: 'org.link.insert', not: ['helix'] },

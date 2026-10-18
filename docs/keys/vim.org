@@ -309,6 +309,8 @@ in a popup. [[file:../vim.org][vim.org]] says how to install and set up the plug
 | ~org.bibtex.check.all~ | BibTeX: ask for the fields every entry lacks |
 | ~org.bibtex.yank~ | BibTeX: paste a BibTeX entry as a heading |
 | ~org.bibtex.import~ | BibTeX: import the entries of a BibTeX file as headings |
+| ~org.ctags.create~ | Ctags: make the TAGS file of the file's directory |
+| ~org.ctags.find~ | Ctags: go to a topic, or make it |
 | ~org.inlinetask.insert.nostate~ | Insert an inline task without its default TODO state |
 | ~org.levels.odd~ | Convert the file to odd levels only, once confirmed |
 | ~org.levels.oddeven~ | Convert the file from odd levels to odd and even ones, once confirmed |

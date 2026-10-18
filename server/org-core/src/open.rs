@@ -50,6 +50,11 @@ pub enum Open {
     /// A `shell:` link (`org-link--open-shell`): the command, and whether
     /// to ask `Execute … in shell? ` before running it.
     Shell { command: String, confirm: bool },
+    /// A `man:` link (`org-man-open`): the page, and the text to look for
+    /// in it after `::`.
+    Man { page: String, search: Option<String> },
+    /// An `info:` link (`org-info-open`): the Info file and node.
+    Info { file: String, node: String },
 }
 
 /// `org-link-search-must-match-exact-headline`: what a search for a
@@ -75,6 +80,9 @@ pub struct Settings {
     /// `org-link-shell-skip-confirm-regexp`: an Emacs regexp, the
     /// commands of `shell:` links that run without asking.
     pub shell_skip_confirm_regexp: String,
+    /// Whether `ol-man` is loaded (in `org-modules`), which makes `man:` a
+    /// link type.
+    pub man: bool,
 }
 
 impl Default for Settings {
@@ -83,6 +91,7 @@ impl Default for Settings {
             exact_headline: ExactHeadline::default(),
             doi_server: "https://doi.org/".to_string(),
             shell_skip_confirm_regexp: String::new(),
+            man: false,
         }
     }
 }
@@ -476,6 +485,12 @@ fn open_link(node: &SyntaxNode, text: &str, parse: &Parse, abbreviations: &Abbre
     if let Some(title) = raw.strip_prefix("roam:").filter(|_| bracket) {
         return Ok(Open::Roam(title.to_string()));
     }
+    // `ol-man`'s link type, which the parser does not know: only in
+    // brackets.
+    if let Some(path) = man_path(&raw, bracket, abbreviations.settings) {
+        let (page, search) = crate::manual::man_link(path);
+        return Ok(Open::Man { page, search });
+    }
     // Only bracket links can be files without a type, or internal.
     if bracket && (raw.starts_with('/') || raw.starts_with('~') || raw.starts_with("./") || raw.starts_with("../")) {
         return Ok(file(&raw, None));
@@ -493,6 +508,14 @@ fn open_link(node: &SyntaxNode, text: &str, parse: &Parse, abbreviations: &Abbre
             "http" | "https" | "ftp" | "mailto" | "news" => Ok(Open::External(raw.clone())),
             // `org-link-doi-server-url`.
             "doi" => Ok(Open::External(format!("{}{path}", abbreviations.settings.doi_server))),
+            "man" => {
+                let (page, search) = crate::manual::man_link(path);
+                Ok(Open::Man { page, search })
+            }
+            "info" => {
+                let (file, node) = crate::manual::info_file_node(path);
+                Ok(Open::Info { file, node })
+            }
             "shell" => Ok(Open::Shell {
                 command: path.to_string(),
                 confirm: !skips_confirm(&abbreviations.settings.shell_skip_confirm_regexp, path),
@@ -511,6 +534,46 @@ fn open_link(node: &SyntaxNode, text: &str, parse: &Parse, abbreviations: &Abbre
         Ok(at) => Ok(Open::Here(at)),
         Err(_) if exact == ExactHeadline::QueryToCreate && may_create(&raw) => Ok(Open::Create(raw)),
         Err(error) => Err(error),
+    }
+}
+
+/// What follows `man:` in a bracket link, when `ol-man` is loaded.
+fn man_path<'a>(raw: &'a str, bracket: bool, settings: &Settings) -> Option<&'a str> {
+    let (head, path) = raw.split_once(':')?;
+    (settings.man && bracket && head == "man").then_some(path)
+}
+
+/// The path `org-link-open` gives `org-open-link-functions` for the
+/// internal link at `offset` (a headline, a target, a custom ID, a
+/// coderef or a radio target's word): what is between the brackets,
+/// without `#` or the parentheses of a coderef. None elsewhere.
+pub fn internal_path(
+    text: &str,
+    parse: &Parse,
+    offset: usize,
+    global: &[(String, String)],
+    settings: &Settings,
+) -> Option<String> {
+    let blanks = |end: usize| end + text[end..].len() - text[end..].trim_start_matches([' ', '\t']).len();
+    if let Some(radio) =
+        crate::radio::links(text, parse).into_iter().find(|link| link.start <= offset && offset < blanks(link.end))
+    {
+        return Some(text[radio.start..radio.end].to_string());
+    }
+    let token = token_at(&parse.syntax(), offset)?;
+    let node = token.parent_ancestors().find(is_link).filter(|node| node.kind() == SyntaxKind::LINK)?;
+    let (raw, _) = raw_link(&node);
+    let raw = expand_abbreviation(&raw, &abbreviations(text, global)).unwrap_or(raw);
+    let typed = link_type(&raw).is_some() || raw.starts_with("roam:") || man_path(&raw, true, settings).is_some();
+    if typed || raw.starts_with('/') || raw.starts_with('~') || raw.starts_with("./") || raw.starts_with("../") {
+        return None;
+    }
+    if let Some(id) = raw.strip_prefix('#') {
+        return Some(id.to_string());
+    }
+    match raw.strip_prefix('(').and_then(|rest| rest.strip_suffix(')')) {
+        Some(name) => Some(name.to_string()),
+        None => Some(raw),
     }
 }
 

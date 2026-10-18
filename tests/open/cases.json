@@ -1270,5 +1270,408 @@
     "column": 0
    }
   }
+ },
+ {
+  "files": {
+   "a.org": "See [[man:l¦s]]\n"
+  },
+  "man": "NAME\n       ls - list directory contents\n\nDESCRIPTION\n       -a, --all\n              do not ignore entries starting with .\n\n       -l     use a long listing format\n",
+  "note": "man: a page",
+  "expected": {
+   "man": "ls"
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[man:ls::-L¦]]\n"
+  },
+  "man": "NAME\n       ls - list directory contents\n\nDESCRIPTION\n       -a, --all\n              do not ignore entries starting with .\n\n       -l     use a long listing format\n",
+  "note": "man: a search, without regard to case: the line before the match",
+  "expected": {
+   "man": "ls",
+   "line": 7
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[man:ls::name¦]]\n"
+  },
+  "man": "NAME\n       ls - list directory contents\n\nDESCRIPTION\n       -a, --all\n              do not ignore entries starting with .\n\n       -l     use a long listing format\n",
+  "note": "man: a match on the first line",
+  "expected": {
+   "man": "ls",
+   "line": 1
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[man:ls::nothing¦]]\n"
+  },
+  "man": "NAME\n       ls - list directory contents\n\nDESCRIPTION\n       -a, --all\n              do not ignore entries starting with .\n\n       -l     use a long listing format\n",
+  "note": "man: a search that fails",
+  "expected": {
+   "error": "Search failed: \"nothing\""
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[man:ls 1::listing¦]]\n"
+  },
+  "man": "NAME\n       ls - list directory contents\n\nDESCRIPTION\n       -a, --all\n              do not ignore entries starting with .\n\n       -l     use a long listing format\n",
+  "note": "man: a page with its section",
+  "expected": {
+   "man": "ls 1",
+   "line": 7
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[info:elisp#Non-ASCII in Str¦ings]]\n"
+  },
+  "note": "info: an Emacs manual and a node",
+  "expected": {
+   "info": [
+    "elisp",
+    "Non-ASCII in Strings"
+   ],
+   "url": "https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Non_002dASCII-in-Strings"
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[info:li¦bc]]\n"
+  },
+  "note": "info: libc, one of org-info-other-documents",
+  "expected": {
+   "info": [
+    "libc",
+    "Top"
+   ],
+   "url": "https://www.gnu.org/software/libc/manual/html_mono/libc.html#Top"
+  }
+ },
+ {
+  "files": {
+   "a.org": "See info:o¦rg\n"
+  },
+  "note": "info: a plain link",
+  "expected": {
+   "info": [
+    "org",
+    "Top"
+   ],
+   "url": "https://www.gnu.org/software/emacs/manual/html_mono/org.html#Top"
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[info:make::Rul¦es]]\n"
+  },
+  "note": "info: a node after ::",
+  "expected": {
+   "info": [
+    "make",
+    "Rules"
+   ],
+   "url": "https://www.gnu.org/software/make/manual/make.html#Rules"
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[info:emacs#1 In¦tro]]\n"
+  },
+  "note": "info: a node starting with a digit",
+  "expected": {
+   "info": [
+    "emacs",
+    "1 Intro"
+   ],
+   "url": "https://www.gnu.org/software/emacs/manual/html_mono/emacs.html#g_t1-Intro"
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[info:foo: Some  node ¦]]\n"
+  },
+  "note": "info: a manual not on the web",
+  "expected": {
+   "info": [
+    "foo",
+    "Some  node"
+   ],
+   "url": "foo.html#Some-node"
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[info:¦]]\n"
+  },
+  "note": "info: the directory",
+  "expected": {
+   "info": [
+    "dir",
+    "Top"
+   ],
+   "url": "https://www.gnu.org/manual/manual.html#Top"
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[info:bash#Shell Par¦ameters]]\n"
+  },
+  "info_other": {
+   "bash": "https://www.gnu.org/software/bash/manual/bash.html"
+  },
+  "note": "info: org-info-other-documents set",
+  "expected": {
+   "info": [
+    "bash",
+    "Shell Parameters"
+   ],
+   "url": "https://www.gnu.org/software/bash/manual/bash.html#Shell-Parameters"
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[fo¦o]]\n* Head\n",
+   "b.org": "x\n\nSome <<foo>> here\n* <<bar>>\n",
+   "TAGS": "\f\nb.org,40\nSome <<foo>>foo\u00013,5\n* <<bar>>bar\u00014,18\n"
+  },
+  "ctags": {},
+  "note": "org-ctags: a tag of the TAGS file",
+  "expected": {
+   "goto": {
+    "file": "b.org",
+    "line": 3,
+    "column": 0
+   },
+   "text": "x\n\nSome <<foo>> here\n* <<bar>>\n",
+   "asked": []
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[FO¦O]]\n* Head\n",
+   "b.org": "x\n\nSome <<foo>> here\n* <<bar>>\n",
+   "TAGS": "\f\nb.org,40\nSome <<foo>>foo\u00013,5\n* <<bar>>bar\u00014,18\n"
+  },
+  "ctags": {},
+  "note": "org-ctags: a tag without regard to case",
+  "expected": {
+   "goto": {
+    "file": "b.org",
+    "line": 3,
+    "column": 0
+   },
+   "text": "x\n\nSome <<foo>> here\n* <<bar>>\n",
+   "asked": []
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[#ba¦r]]\n* Head\n",
+   "b.org": "x\n\nSome <<foo>> here\n* <<bar>>\n",
+   "TAGS": "\f\nb.org,40\nSome <<foo>>foo\u00013,5\n* <<bar>>bar\u00014,18\n"
+  },
+  "ctags": {},
+  "note": "org-ctags: a custom ID as a tag",
+  "expected": {
+   "goto": {
+    "file": "b.org",
+    "line": 4,
+    "column": 0
+   },
+   "text": "x\n\nSome <<foo>> here\n* <<bar>>\n",
+   "asked": []
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[*He¦ad]]\n* Head\n",
+   "b.org": "x\n\nSome <<foo>> here\n* <<bar>>\n",
+   "TAGS": "\f\nb.org,40\nSome <<foo>>foo\u00013,5\n* <<bar>>bar\u00014,18\n"
+  },
+  "ctags": {
+   "answers": "nn"
+  },
+  "note": "org-ctags: no tag, no to both questions",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 2,
+    "column": 0
+   },
+   "text": "See [[*Head]]\n* Head\n",
+   "asked": [
+    "Tag ‘*Head’ not found.  Rebuild table ‘DIR//TAGS’ and look again?",
+    "Topic ‘*Head’ not found; append to end of buffer?"
+   ]
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[He¦ad]]\n* Head\n",
+   "b.org": "x\n\nSome <<foo>> here\n* <<bar>>\n",
+   "TAGS": "\f\nb.org,40\nSome <<foo>>foo\u00013,5\n* <<bar>>bar\u00014,18\n"
+  },
+  "ctags": {
+   "answers": "yn"
+  },
+  "note": "org-ctags: the tags table made again",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 2,
+    "column": 0
+   },
+   "text": "See [[Head]]\n* Head\n",
+   "asked": [
+    "Tag ‘Head’ not found.  Rebuild table ‘DIR//TAGS’ and look again?",
+    "Topic ‘Head’ not found; append to end of buffer?"
+   ],
+   "ran": "ctags --langdef=orgmode --langmap=orgmode:.org --regex-orgmode=/\\<\\<\\(\\[\\^\\<\\>\\]\\+\\)\\>\\>/\\\\1/d\\,definition/ -f DIR/TAGS -e -R DIR/*"
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[new t¦opic]]\n* Head\n",
+   "b.org": "x\n\nSome <<foo>> here\n* <<bar>>\n",
+   "TAGS": "\f\nb.org,40\nSome <<foo>>foo\u00013,5\n* <<bar>>bar\u00014,18\n"
+  },
+  "ctags": {
+   "answers": "ny"
+  },
+  "note": "org-ctags: a topic appended",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 9,
+    "column": 0
+   },
+   "text": "See [[new topic]]\n* Head\n\n\n* <<New Topic>>\n\n\n\n\n\n",
+   "asked": [
+    "Tag ‘new topic’ not found.  Rebuild table ‘DIR//TAGS’ and look again?",
+    "Topic ‘new topic’ not found; append to end of buffer?"
+   ]
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[new t¦opic]]",
+   "b.org": "x\n\nSome <<foo>> here\n* <<bar>>\n",
+   "TAGS": "\f\nb.org,40\nSome <<foo>>foo\u00013,5\n* <<bar>>bar\u00014,18\n"
+  },
+  "ctags": {
+   "functions": [
+    "org-ctags-append-topic"
+   ],
+   "template": "* %t\nBody\n"
+  },
+  "note": "org-ctags: append without asking, another template, no newline at the end",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 5,
+    "column": 0
+   },
+   "text": "See [[new topic]]\n\n* New Topic\nBody\n",
+   "asked": []
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[nothing ¦here]]\n* Head\n",
+   "b.org": "x\n\nSome <<foo>> here\n* <<bar>>\n",
+   "TAGS": "\f\nb.org,40\nSome <<foo>>foo\u00013,5\n* <<bar>>bar\u00014,18\n"
+  },
+  "ctags": {
+   "functions": [
+    "org-ctags-find-tag",
+    "org-ctags-fail-silently"
+   ]
+  },
+  "note": "org-ctags: failing silently",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 1,
+    "column": 14
+   },
+   "text": "See [[nothing here]]\n* Head\n",
+   "asked": []
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[¦c]]\n* Head\n",
+   "c.org": "* C\n",
+   "TAGS": "\f\nb.org,40\nSome <<foo>>foo\u00013,5\n* <<bar>>bar\u00014,18\n",
+   "b.org": "x\n\nSome <<foo>> here\n* <<bar>>\n"
+  },
+  "ctags": {
+   "functions": [
+    "org-ctags-ask-visit-buffer-or-file"
+   ]
+  },
+  "note": "org-ctags: visiting a file that is there",
+  "expected": {
+   "goto": {
+    "file": "c.org",
+    "line": 1,
+    "column": 0
+   },
+   "text": "* C\n",
+   "asked": []
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[¦newfile]]\n* Head\n",
+   "TAGS": "\f\nb.org,40\nSome <<foo>>foo\u00013,5\n* <<bar>>bar\u00014,18\n",
+   "b.org": "x\n\nSome <<foo>> here\n* <<bar>>\n"
+  },
+  "ctags": {
+   "functions": [
+    "org-ctags-ask-visit-buffer-or-file"
+   ],
+   "answers": "y"
+  },
+  "note": "org-ctags: creating a file",
+  "expected": {
+   "goto": {
+    "file": "newfile.org",
+    "line": 7,
+    "column": 0
+   },
+   "text": "* <<Newfile>>\n\n\n\n\n\n",
+   "asked": [
+    "File ‘newfile.org’ not found; create?"
+   ]
+  }
+ },
+ {
+  "files": {
+   "a.org": "See [[¦newfile]]\n* newfile\n",
+   "TAGS": "\f\nb.org,40\nSome <<foo>>foo\u00013,5\n* <<bar>>bar\u00014,18\n",
+   "b.org": "x\n\nSome <<foo>> here\n* <<bar>>\n"
+  },
+  "ctags": {
+   "functions": [
+    "org-ctags-ask-visit-buffer-or-file"
+   ],
+   "answers": "n"
+  },
+  "note": "org-ctags: not creating a file",
+  "expected": {
+   "goto": {
+    "file": "a.org",
+    "line": 2,
+    "column": 0
+   },
+   "text": "See [[newfile]]\n* newfile\n",
+   "asked": [
+    "File ‘newfile.org’ not found; create?"
+   ]
+  }
  }
 ]

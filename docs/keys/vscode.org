@@ -662,6 +662,8 @@ every file; outside Org files the commands say they do not apply):
 | ~org.bibtex.check.all~ | Org: BibTeX: ask for the fields every entry lacks |
 | ~org.bibtex.yank~ | Org: BibTeX: paste a BibTeX entry as a heading |
 | ~org.bibtex.import~ | Org: BibTeX: import the entries of a BibTeX file as headings |
+| ~org.ctags.create~ | Org: Ctags: make the TAGS file of the file's directory |
+| ~org.ctags.find~ | Org: Ctags: go to a topic, or make it |
 | ~org.tags.set~ | Org: Set the tags of the headline |
 | ~org.checkbox.toggle~ | Org: Toggle the checkbox |
 | ~org.return~ | Org: New line, as Org's RET makes it |

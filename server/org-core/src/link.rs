@@ -958,13 +958,8 @@ fn link_description(link: &str, outside: &mut Outside) -> Option<String> {
         "id" => (outside.id_heading)(rest),
         // `org-info-description-as-command`
         "info" => {
-            static FILE_NODE: LazyLock<Regex> =
-                LazyLock::new(|| Regex::new(r"\A([^#:]*)(?:[#:]:?(.*))?\z").expect("a valid regex"));
-            let found = FILE_NODE.captures(rest)?;
-            let trim = |text: &str| text.trim_matches([' ', '\t', '\n', '\r']).to_string();
-            let file = found.get(1).map(|file| trim(file.as_str())).filter(|file| !file.is_empty());
-            let node = found.get(2).map(|node| trim(node.as_str())).filter(|node| !node.is_empty());
-            Some(match (file.as_deref().unwrap_or("dir"), node.as_deref().unwrap_or("Top")) {
+            let (file, node) = crate::manual::info_file_node(rest);
+            Some(match (file.as_str(), node.as_str()) {
                 ("dir", "Top") => "info \"(dir)\"".to_string(),
                 (file, "Top") => format!("info {file}"),
                 (file, node) => format!("info \"({file}) {node}\""),
