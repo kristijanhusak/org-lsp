@@ -56,6 +56,11 @@ pub fn odd_levels(text: &str, default: bool) -> bool {
     odd
 }
 
+/// `org-odd-levels-only` in `text`, else as the options set it.
+pub fn odd_levels_in(text: &str) -> bool {
+    odd_levels(text, odd_levels_default())
+}
+
 /// `org-get-valid-level`: the level `change` levels from `level`, with
 /// `org-odd-levels-only` an odd one, two stars a level.
 pub fn valid_level(level: usize, change: isize, odd: bool) -> usize {

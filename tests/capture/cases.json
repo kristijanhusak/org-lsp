@@ -6302,5 +6302,91 @@
     "journal.org": "#+TITLE: Journal\n* 2026\n** 2026-04 April\n*** 2026-04-30 Thursday\n**** X\n[2026-04-30 Thu 15:00] <2026-04-30 Thu 15:00>\n** 2026-05 May\n*** 2026-05-17 Sunday\nOld.\n"
    }
   }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "#+STARTUP: odd\n* Inbox\n*** Old\n"
+  },
+  "template": {
+   "type": "entry",
+   "target": [
+    "file+headline",
+    "notes.org",
+    "Inbox"
+   ],
+   "template": "* TODO %?\n** Sub"
+  },
+  "typed": "X",
+  "expected": {
+   "buffer": "*** TODO ¦\n**** Sub\n",
+   "files": {
+    "notes.org": "#+STARTUP: odd\n* Inbox\n*** Old\n*** TODO X\n**** Sub\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "notes.org": "#+STARTUP: odd\n* Tasks\n*** Home\n"
+  },
+  "template": {
+   "type": "entry",
+   "target": [
+    "file+olp",
+    "notes.org",
+    "Tasks",
+    "Home"
+   ],
+   "template": "* %?"
+  },
+  "typed": "X",
+  "expected": {
+   "buffer": "***** ¦\n",
+   "files": {
+    "notes.org": "#+STARTUP: odd\n* Tasks\n*** Home\n***** X\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "journal.org": "#+STARTUP: odd\n* 2026\n*** 2026-04 April\n***** 2026-04-30 Thursday\n*** 2026-06 June\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org"
+   ],
+   "template": "* %?"
+  },
+  "typed": "X",
+  "expected": {
+   "buffer": "******* ¦",
+   "files": {
+    "journal.org": "#+STARTUP: odd\n* 2026\n*** 2026-04 April\n***** 2026-04-30 Thursday\n*** 2026-05 May\n***** 2026-05-18 Monday\n******* X\n*** 2026-06 June\n"
+   }
+  }
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "files": {
+   "journal.org": "#+STARTUP: odd\n* Other\n"
+  },
+  "template": {
+   "target": [
+    "file+olp+datetree",
+    "journal.org",
+    "Other"
+   ],
+   "template": "* %?"
+  },
+  "typed": "X",
+  "expected": {
+   "buffer": "*********** ¦\n",
+   "files": {
+    "journal.org": "#+STARTUP: odd\n* Other\n***** 2026\n******* 2026-05 May\n********* 2026-05-18 Monday\n*********** X\n"
+   }
+  }
  }
 ]

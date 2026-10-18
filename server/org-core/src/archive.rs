@@ -742,13 +742,18 @@ fn compare(pattern: &Regex, sibling: &str, new: &str) -> Option<std::cmp::Orderi
 
 /// `org-datetree--find-create-subheading`
 fn find_create(buffer: &mut Buffer, pattern: &Regex, title: &str, level: usize, keywords: &TodoKeywords) {
+    // With `org-odd-levels-only`, `level` counts levels and headlines have
+    // two stars a level, as `org-reduced-level` reads them.
+    let odd = crate::structure::odd_levels_in(&buffer.text);
+    let nstars = if odd { 2 * level - 1 } else { level };
     let mut sibling = None;
     let mut line = buffer.begv;
     while line < buffer.zv {
         let end = buffer.line_end(line);
         let text = &buffer.text[line..end];
-        if headline_level(text) == Some(level) {
-            let raw = complex_heading_title(text, level, keywords).map_or("", |(from, to)| &text[from..to]);
+        let stars = headline_level(text);
+        if let Some(stars) = stars.filter(|stars| crate::structure::reduced_level(*stars, odd) == level) {
+            let raw = complex_heading_title(text, stars, keywords).map_or("", |(from, to)| &text[from..to]);
             if let Some(order) = compare(pattern, raw, title).filter(|order| order.is_ge()) {
                 sibling = Some((line, order));
                 break;
@@ -777,7 +782,7 @@ fn find_create(buffer: &mut Buffer, pattern: &Regex, title: &str, level: usize, 
     if buffer.blank_before_heading() {
         buffer.insert("\n");
     }
-    buffer.insert(&format!("\n{} {}\n", "*".repeat(level), title));
+    buffer.insert(&format!("\n{} {}\n", "*".repeat(nstars), title));
     let heading = buffer.line_start(buffer.point - 1);
     buffer.point = heading;
     buffer.narrow_to_subtree(heading);
@@ -837,7 +842,8 @@ fn datetree(buffer: &mut Buffer, date: Date, keywords: &TodoKeywords) {
     if let Some(tree) = find_property(&buffer.text, buffer.point, "DATE_TREE") {
         buffer.point = tree;
         buffer.narrow_to_subtree(tree);
-        level = buffer.level(tree).unwrap_or(0) + 1;
+        let odd = crate::structure::odd_levels_in(&buffer.text);
+        level = crate::structure::valid_level(buffer.level(tree).unwrap_or(0), 1, odd);
     }
     // A month or day out of range counts on, as Emacs's calendar does
     // (month 13 is January of the next year).
@@ -943,7 +949,9 @@ fn archive_one(
     let mut subheading = false;
     if let Some(rest) = target.strip_prefix("datetree/").map(String::from) {
         let stars = rest.bytes().take_while(|b| *b == b'*').count();
-        target = format!("{}{}", "*".repeat(3 + stars), &rest[stars..]);
+        // `org-odd-levels-only` of the archived file: two stars a level.
+        let (base, increment) = if crate::structure::odd_levels_in(source) { (5, 2) } else { (3, 1) };
+        target = format!("{}{}", "*".repeat(base + increment * stars), &rest[stars..]);
         subheading = stars > 0;
         let parse = org_syntax::parse(source, keywords);
         let outline = Outline::new(&parse, source, "");
@@ -1024,7 +1032,8 @@ fn archive_one(
             }
         }
     }
-    let new_level = if target.is_some() { level + 1 } else { 1 };
+    let odd = crate::structure::odd_levels_in(&buffer.text);
+    let new_level = crate::structure::valid_level(level, isize::from(target.is_some()), odd);
     let pasted = buffer.paste(&tree, new_level, &settings.levels);
     let marker = buffer.markers.first().map(|(at, _)| *at);
     let before = buffer.text.clone();
@@ -1171,7 +1180,8 @@ pub fn to_sibling(
     let cut_end = subtree_end(&buffer.text, at);
     let tree = buffer.text[at..cut_end].to_string();
     buffer.delete(at, cut_end);
-    let pasted = buffer.paste(&tree, level + 1, &settings.levels);
+    let odd = crate::structure::odd_levels_in(&buffer.text);
+    let pasted = buffer.paste(&tree, crate::structure::valid_level(level, 1, odd), &settings.levels);
     let marker = buffer.markers[0].0;
     let stamp = format_timestamp(now, true, true, "");
     let mut editor = Editor::new(&buffer.text, keywords, &settings.todo, now);
@@ -1225,7 +1235,9 @@ pub fn archive_all(
     let not_done: Vec<&str> = keywords.names().filter(|name| !keywords.is_done(name)).collect();
     let start = text[..offset.min(text.len())].rfind('\n').map_or(0, |index| index + 1);
     let (stars, mut begin, mut end) = match headline_level(&text[start..line_end(&text, start)]) {
-        Some(level) => (level + 1, offset, end_of_subtree(&text, start)),
+        Some(level) => {
+            (level + if crate::structure::odd_levels_in(&text) { 2 } else { 1 }, offset, end_of_subtree(&text, start))
+        }
         None => (1, 0, text.len()),
     };
     let question = if tag { "Set ARCHIVE tag? " } else { "Move subtree to archive? " };
