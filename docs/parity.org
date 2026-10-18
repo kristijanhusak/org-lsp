@@ -219,7 +219,7 @@ Where editors fall short:
 - ✅ Group tags in searches
 - ✅ A sparse tree by tags
 - ✅ Faces of particular tags in headlines (~org-tag-faces~)
-- ❌ The TODO keywords in the tag selection (~org-fast-tag-selection-include-todo~), and matches without the entries below a match (~org-tags-match-list-sublevels~)
+- ❌ The TODO keywords in the tag selection (~org-fast-tag-selection-include-todo~, a variable Org calls undocumented)
 
 Where editors fall short:
 
