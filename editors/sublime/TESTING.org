@@ -409,5 +409,6 @@ its sections says what it should look like.
 - [ ] A file with ~#+STARTUP: inlineimages~ opens with its pictures
 - [ ] With ~org_image_actual_width = false~, a picture below ~#+ATTR_ORG: :width 100~ shows 100 pixels wide: ~Ctrl+C Ctrl+X Ctrl+V~
 - [ ] Scrolling moves the pictures with their lines; editing a link takes its picture away
+- [ ] With ~org_display_remote_inline_images = "download"~, on a line with ~[[https://…/pic.png]]~, the key asks whether to download it (~y~, ~n~, ~f~, ~d~, ~!~); ~y~ shows the picture, ~n~ says it will not be downloaded: ~Ctrl+C Ctrl+X Ctrl+V~
 - [ ] ~$e^{i\pi} = -1$~ shows as its image (needs Emacs, ~latex~ and ~dvipng~): ~Ctrl+C Ctrl+X Ctrl+L~
 - [ ] A file with ~#+STARTUP: latexpreview~ opens with its fragments as images (needs Emacs, ~latex~ and ~dvipng~)

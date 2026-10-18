@@ -428,6 +428,15 @@ pub struct Options {
     /// `org-image-max-width`
     #[serde(rename = "org_image_max_width")]
     pub image_max_width: Option<serde_json::Value>,
+    /// `org-display-remote-inline-images`
+    #[serde(rename = "org_display_remote_inline_images")]
+    pub display_remote_inline_images: Option<String>,
+    /// `org-resource-download-policy`
+    #[serde(rename = "org_resource_download_policy")]
+    pub resource_download_policy: Option<serde_json::Value>,
+    /// `org-safe-remote-resources`
+    #[serde(rename = "org_safe_remote_resources")]
+    pub safe_remote_resources: Option<Vec<String>>,
     /// `org-startup-with-latex-preview`: show the LaTeX fragments as images
     /// when a file opens.
     #[serde(rename = "org_startup_with_latex_preview")]
@@ -2281,6 +2290,27 @@ impl Options {
             }
             Some(serde_json::Value::Number(number)) => serde_json::json!({ "pixels": number }),
             _ => serde_json::Value::Null,
+        }
+    }
+
+    /// `org-display-remote-inline-images`: `skip` unless `download` or
+    /// `cache` (or `t`, which Org takes for `cache`).
+    pub fn remote_images(&self) -> RemoteImages {
+        match self.display_remote_inline_images.as_deref() {
+            Some("download") => RemoteImages::Download,
+            Some("cache" | "t") => RemoteImages::Cache,
+            _ => RemoteImages::Skip,
+        }
+    }
+
+    /// `org-resource-download-policy`
+    pub fn download_policy(&self) -> org_core::remote_resource::Policy {
+        use org_core::remote_resource::Policy;
+        match &self.resource_download_policy {
+            Some(serde_json::Value::Bool(true)) => Policy::Always,
+            Some(serde_json::Value::Bool(false) | serde_json::Value::Null) => Policy::Never,
+            Some(serde_json::Value::String(name)) if name == "safe" => Policy::Safe,
+            _ => Policy::Prompt,
         }
     }
 
@@ -4564,6 +4594,17 @@ mod tests {
         assert_eq!(settings.header_separator, org_core::agenda::super_agenda::Separator::Char('='));
         assert_eq!(settings.unmatched_name, "Other items");
     }
+}
+
+/// `org-display-remote-inline-images`
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RemoteImages {
+    /// The images of URLs do not show.
+    Skip,
+    /// Downloaded each time they show.
+    Download,
+    /// Downloaded once and kept, as Emacs keeps a buffer of the file.
+    Cache,
 }
 
 /// `org-use-fast-todo-selection`

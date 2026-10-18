@@ -7168,6 +7168,60 @@ the item the same way.
 org_cycle_level_after_item_entry_creation = true
 #+end_src
 
+*** org_display_remote_inline_images
+:PROPERTIES:
+:CUSTOM_ID: org_display_remote_inline_images
+:END:
+
+Whether the images of ~http:~ and ~https:~ links show (~C-c C-x C-v~):
+~"skip"~ not; ~"download"~ downloaded each time they show; ~"cache"~
+downloaded once and kept for the session. The download follows
+~org_resource_download_policy~.
+
+- Org's option :: ~org-display-remote-inline-images~
+- Type :: "skip", "download" or "cache"
+- Default :: ~"skip"~
+
+#+begin_src toml
+org_display_remote_inline_images = "skip"
+#+end_src
+
+*** org_resource_download_policy
+:PROPERTIES:
+:CUSTOM_ID: org_resource_download_policy
+:END:
+
+Which remote resources are downloaded (the images of links): ~true~ all of
+them; ~"prompt"~ those considered safe, and the others when the answer to
+Emacs's question says so; ~"safe"~ only those considered safe; ~false~ none
+but those.
+
+- Org's option :: ~org-resource-download-policy~
+- Type :: true, "prompt", "safe" or false
+- Default :: ~"prompt"~
+
+#+begin_src toml
+org_resource_download_policy = "prompt"
+#+end_src
+
+*** org_safe_remote_resources
+:PROPERTIES:
+:CUSTOM_ID: org_safe_remote_resources
+:END:
+
+The remote resources considered safe: Emacs regexps matched against a
+resource's URL and against the ~file://~ URL of the file asking for it. The
+answers ~!~, ~d~ and ~f~ to the download question add one for the rest of the
+session.
+
+- Org's option :: ~org-safe-remote-resources~
+- Type :: string[]
+- Default :: ~[]~
+
+#+begin_src toml
+org_safe_remote_resources = []
+#+end_src
+
 *** org_num_max_level
 :PROPERTIES:
 :CUSTOM_ID: org_num_max_level

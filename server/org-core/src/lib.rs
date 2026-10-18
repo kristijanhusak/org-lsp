@@ -45,6 +45,7 @@ pub mod properties;
 pub mod radio;
 pub mod read_date;
 pub mod refile;
+pub mod remote_resource;
 pub mod rename;
 pub mod reveal;
 pub mod roam;

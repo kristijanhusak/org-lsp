@@ -8204,6 +8204,181 @@ fn previews_the_images_of_links() {
     let _ = std::fs::remove_dir_all(&directory);
 }
 
+/// A tiny HTTP server for the remote images: `/a.png` and `/b.png` are
+/// pictures, anything else is not found. It counts the requests it
+/// answered, by path.
+fn image_server() -> (String, std::sync::Arc<std::sync::Mutex<Vec<String>>>) {
+    use std::io::{BufRead, BufReader, Write};
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let base = format!("http://127.0.0.1:{}", listener.local_addr().unwrap().port());
+    let asked = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let counted = asked.clone();
+    std::thread::spawn(move || {
+        for stream in listener.incoming() {
+            let Ok(mut stream) = stream else { continue };
+            let mut reader = BufReader::new(stream.try_clone().unwrap());
+            let mut line = String::new();
+            let _ = reader.read_line(&mut line);
+            let path = line.split_whitespace().nth(1).unwrap_or("").to_string();
+            // The rest of the request's head.
+            loop {
+                let mut header = String::new();
+                if reader.read_line(&mut header).unwrap_or(0) == 0 || header == "\r\n" {
+                    break;
+                }
+            }
+            counted.lock().unwrap().push(path.clone());
+            let response = match path.as_str() {
+                "/a.png" | "/b.png" => {
+                    format!("HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\npng {}", &path[1..2])
+                }
+                _ => "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_string(),
+            };
+            let _ = stream.write_all(response.as_bytes());
+        }
+    });
+    (base, asked)
+}
+
+/// `org-display-remote-inline-images`: the images of URLs are downloaded
+/// (by `curl`) into a directory of the server's and shown as files, once
+/// `org-resource-download-policy` allows it, or the answer to the question
+/// Emacs asks (`org--confirm-resource-safe`); `cache` downloads each once.
+#[test]
+fn previews_remote_images() {
+    if !std::process::Command::new("curl").arg("--version").output().is_ok_and(|out| out.status.success()) {
+        eprintln!("previews_remote_images: no curl, skipped");
+        return;
+    }
+    let (base, asked) = image_server();
+    let directory = std::env::temp_dir().join(format!("org-lsp-remote-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let file = directory.join("notes.org");
+    let uri = format!("file://{}", file.display());
+    let a = format!("{base}/a.png");
+    let text = format!("* Pictures\n[[{a}]]\n{base}/b.png\n[[{base}/missing.png]]\n");
+    let capabilities = json!({ "experimental": { "orgImages": true }, "general": { "positionEncodings": ["utf-8"] } });
+    let run = |client: &mut Client, context: &Value| {
+        client
+            .request("workspace/executeCommand", json!({ "command": "org.link.preview", "arguments": [context] }))
+            .unwrap()
+    };
+    let start = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 0 }, "count": 16 });
+    let paths = |result: &Value| -> Vec<String> {
+        result["preview"]["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| std::fs::read_to_string(item["path"].as_str().unwrap()).unwrap())
+            .collect()
+    };
+    let said = |client: &mut Client| -> Vec<String> {
+        client.settle();
+        client
+            .notifications
+            .drain(..)
+            .filter(|notification| notification.method == "window/showMessage")
+            .map(|notification| notification.params["message"].as_str().unwrap().to_string())
+            .collect()
+    };
+    // `skip`, as by default: no URL is downloaded.
+    let mut client = Client::start(capabilities.clone(), clock(), None);
+    client.open(&uri, &text);
+    assert_eq!(paths(&run(&mut client, &start)), Vec::<String>::new());
+    client.shutdown();
+    assert!(asked.lock().unwrap().is_empty());
+
+    // `download`, asking first: the question about each URL in turn, and
+    // each answer runs the command again with those so far.
+    let mut options = clock();
+    options["org_display_remote_inline_images"] = json!("download");
+    let mut client = Client::start(capabilities.clone(), options.clone(), None);
+    client.open(&uri, &text);
+    let question = run(&mut client, &start);
+    let input = &question["input"];
+    assert_eq!(input["kind"], "key");
+    let truename = std::fs::canonicalize(&directory).unwrap().join("notes.org");
+    assert_eq!(
+        input["prompt"],
+        format!("An org-mode document would like to download {a}, which is not considered safe. Please type y, n, f, d, or !: ")
+    );
+    let keys: Vec<&str> =
+        input["choices"].as_array().unwrap().iter().map(|choice| choice["key"].as_str().unwrap()).collect();
+    assert_eq!(keys, ["!", "d", "f", "y", "n"]);
+    assert_eq!(
+        input["choices"][2]["label"],
+        format!("to download this resource, and permanently mark all resources in {} as safe.", truename.display())
+    );
+    let answer = |client: &mut Client, mut context: Value, result: &Value, key: &str| {
+        for (name, value) in result["input"]["context"].as_object().unwrap() {
+            context[name] = value.clone();
+        }
+        context["input"] = json!(key);
+        (run(client, &context), context)
+    };
+    // `y` for the first, `n` for the second: one image, and what Emacs says
+    // of the other; the missing one is asked about and not found.
+    let (second, context) = answer(&mut client, start.clone(), &question, "y");
+    assert_eq!(second["input"]["context"]["step"], format!("{base}/b.png"));
+    let (third, context) = answer(&mut client, context, &second, "n");
+    assert_eq!(third["input"]["context"]["step"], format!("{base}/missing.png"));
+    let (done, _) = answer(&mut client, context, &third, "y");
+    assert_eq!(paths(&done), ["png a"]);
+    let path = done["preview"]["items"][0]["path"].as_str().unwrap().to_string();
+    assert!(!path.starts_with(&directory.to_string_lossy().to_string()), "{path}");
+    assert_eq!(
+        said(&mut client),
+        [
+            format!("The remote resource \"{base}/b.png\" is considered unsafe, and will not be downloaded."),
+            format!("Unable to fetch file from \"{base}/missing.png\""),
+        ]
+    );
+    // `y` was for this once: asked again. `f` marks what the file asks for
+    // safe for the session (`d` would not do for a URL with a port, as in
+    // Emacs): nothing more is asked, and each shows downloaded anew.
+    let question = run(&mut client, &start);
+    assert_eq!(question["input"]["context"]["step"], a);
+    let (done, _) = answer(&mut client, start.clone(), &question, "f");
+    assert_eq!(paths(&done), ["png a", "png b"]);
+    let before = asked.lock().unwrap().len();
+    assert_eq!(paths(&run(&mut client, &start)), ["png a", "png b"]);
+    assert_eq!(asked.lock().unwrap().len(), before + 3);
+    // When the file opens, nothing is asked.
+    client.shutdown();
+    let mut client = Client::start(capabilities.clone(), options.clone(), None);
+    client.open(&uri, &format!("#+STARTUP: inlineimages\n{text}"));
+    let startup = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 0 }, "startup": true });
+    assert_eq!(paths(&run(&mut client, &startup)), Vec::<String>::new());
+    client.shutdown();
+
+    // `cache`, the URLs safe by `org_safe_remote_resources`: downloaded once.
+    options["org_display_remote_inline_images"] = json!("cache");
+    options["org_safe_remote_resources"] = json!([format!("\\`{}/", base.replace('.', "\\."))]);
+    let mut client = Client::start(capabilities.clone(), options.clone(), None);
+    client.open(&uri, &text);
+    asked.lock().unwrap().clear();
+    assert_eq!(paths(&run(&mut client, &start)), ["png a", "png b"]);
+    assert_eq!(paths(&run(&mut client, &start)), ["png a", "png b"]);
+    assert_eq!(
+        asked.lock().unwrap().iter().filter(|path| path.ends_with(".png") && !path.contains("missing")).count(),
+        2
+    );
+    client.shutdown();
+
+    // `safe` with none safe, or `false`: nothing is downloaded.
+    for policy in [json!("safe"), json!(false)] {
+        options["org_safe_remote_resources"] = json!([]);
+        options["org_resource_download_policy"] = policy;
+        let mut client = Client::start(capabilities.clone(), options.clone(), None);
+        client.open(&uri, &text);
+        asked.lock().unwrap().clear();
+        assert_eq!(paths(&run(&mut client, &start)), Vec::<String>::new());
+        assert!(asked.lock().unwrap().is_empty());
+        client.shutdown();
+    }
+    let _ = std::fs::remove_dir_all(&directory);
+}
+
 /// `org-latex-preview` (`C-c C-x C-l`): Emacs makes the images of the
 /// fragments as Org does (`org--latex-preview-region`), and the server says
 /// where each one goes (`org-lsp/images`). Programs stand in for `latex`
