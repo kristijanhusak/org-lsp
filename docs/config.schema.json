@@ -1305,6 +1305,11 @@
       "description": "Name targets by their outline path (`Projects/Alpha/`). The three names start the path with the file, and offer the file itself, for its top level. (`org-refile-use-outline-path`)",
       "default": false
     },
+    "org_refile_active_region_within_subtree": {
+      "type": "boolean",
+      "description": "A selection that is not whole subtrees is refiled too: its first line becomes a headline first (`org-toggle-heading`, run by Emacs), a level below the entry it is in. (`org-refile-active-region-within-subtree`)",
+      "default": false
+    },
     "org_refile_allow_creating_parent_nodes": {
       "enum": [
         true,

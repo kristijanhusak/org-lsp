@@ -671,6 +671,7 @@ export const AREAS = [
       ['The archive file saved, or left with its changes in the editor, as `org-archive-subtree-save-file-p` says (from the agenda it is not, by default)', true],
       ['Logging refiles (`org-log-refile`)', true],
       ['Creating parent nodes as the target (`org-refile-allow-creating-parent-nodes`)', true],
+      ['Refiling a selection that is not whole subtrees, its first line made a headline (`org-refile-active-region-within-subtree`, through Emacs)', true],
       ['Refiling a region (a selection of whole subtrees)', true],
       ['Copying (`C-c M-w`), going to a target (`C-u C-c C-w`) and to the last refiled entry (`C-u C-u C-c C-w`)', true],
       ['`org-refile-target-verify-function` (the function run by Emacs at each headline)', true],

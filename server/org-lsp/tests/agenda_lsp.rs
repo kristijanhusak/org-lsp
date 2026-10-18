@@ -9085,3 +9085,48 @@ fn keeps_the_clock_between_sessions() {
     );
     let _ = std::fs::remove_dir_all(&root);
 }
+
+/// `org-refile-active-region-within-subtree`: a selection that is not
+/// whole subtrees is refiled too, its first line made a headline by Emacs
+/// first, as Emacs's `org-refile` does it.
+#[test]
+fn refiles_a_region_within_a_subtree() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("refiles_a_region_within_a_subtree: no Emacs, skipped");
+        return;
+    }
+    let root = std::env::temp_dir().join(format!("org-lsp-refile-region-{}", std::process::id()));
+    std::fs::create_dir_all(&root).unwrap();
+    let path = root.join("a.org");
+    let mut options = clock();
+    options["org_refile_targets"] = json!([{ "files": "current", "maxlevel": 2 }]);
+    options["org_refile_active_region_within_subtree"] = json!(true);
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        options["emacs_config"] = json!(format!("(add-to-list 'load-path {dir:?})"));
+    }
+    let mut client = Client::editor(options, None);
+    let file = format!("file://{}", path.display());
+    for (text, expected) in [
+        ("* Target\n* A\nsome text\nmore\n* C\n", "* Target\n** some text\nmore\n* A\n* C\n"),
+        ("* Target\n* A\n- one\n- [X] two\n* C\n", "* Target\n** one\n- [X] two\n* A\n* C\n"),
+    ] {
+        std::fs::write(&path, text).unwrap();
+        client.open(&file, text);
+        let range = json!({ "start": { "line": 2, "character": 0 }, "end": { "line": 4, "character": 0 } });
+        let context = json!({
+            "textDocument": { "uri": file }, "position": { "line": 4, "character": 0 }, "range": range, "input": "Target",
+        });
+        client.received.clear();
+        let done =
+            client.request("workspace/executeCommand", json!({ "command": "org.refile", "arguments": [context] }));
+        client.settle();
+        assert!(done.is_ok(), "{done:?}");
+        let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the refile");
+        assert_eq!(apply(text, &edits_of(edit).1), expected);
+        client.notify("textDocument/didClose", json!({ "textDocument": { "uri": file } }));
+    }
+    client.shutdown();
+    let _ = std::fs::remove_dir_all(&root);
+}

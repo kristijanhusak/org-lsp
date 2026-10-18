@@ -646,6 +646,9 @@ pub struct Options {
     /// `false`.
     #[serde(rename = "org_use_sub_superscripts")]
     pub use_sub_superscripts: Option<LogOption>,
+    /// `org-refile-active-region-within-subtree`
+    #[serde(rename = "org_refile_active_region_within_subtree")]
+    pub refile_active_region_within_subtree: Option<bool>,
     #[serde(rename = "org_refile_allow_creating_parent_nodes")]
     pub refile_allow_creating_parent_nodes: Option<LogOption>,
     /// `org-refile-target-verify-function`: the name of an Emacs Lisp

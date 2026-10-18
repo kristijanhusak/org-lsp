@@ -660,7 +660,7 @@
   "org-refile-use-outline-path": "setting",
   "org-outline-path-complete-in-steps": "emacs-only",
   "org-refile-allow-creating-parent-nodes": "setting",
-  "org-refile-active-region-within-subtree": "absent"
+  "org-refile-active-region-within-subtree": "setting"
  },
  "org-src.el": {
   "org-edit-src-turn-on-auto-save": "emacs",

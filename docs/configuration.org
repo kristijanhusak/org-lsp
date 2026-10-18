@@ -2616,6 +2616,23 @@ the path with the file, and offer the file itself, for its top level.
 org_refile_use_outline_path = false
 #+end_src
 
+*** org_refile_active_region_within_subtree
+:PROPERTIES:
+:CUSTOM_ID: org_refile_active_region_within_subtree
+:END:
+
+A selection that is not whole subtrees is refiled too: its first line becomes
+a headline first (~org-toggle-heading~, run by Emacs), a level below the entry
+it is in.
+
+- Org's option :: ~org-refile-active-region-within-subtree~
+- Type :: boolean
+- Default :: ~false~
+
+#+begin_src toml
+org_refile_active_region_within_subtree = false
+#+end_src
+
 *** org_refile_allow_creating_parent_nodes
 :PROPERTIES:
 :CUSTOM_ID: org_refile_allow_creating_parent_nodes
