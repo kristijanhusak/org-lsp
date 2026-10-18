@@ -501,6 +501,16 @@
         "category": "Org"
       },
       {
+        "command": "org.levels.odd",
+        "title": "Convert the file to odd levels only, once confirmed",
+        "category": "Org"
+      },
+      {
+        "command": "org.levels.oddeven",
+        "title": "Convert the file from odd levels to odd and even ones, once confirmed",
+        "category": "Org"
+      },
+      {
         "command": "org.meta.up",
         "title": "Move the subtree, the item or the table row up",
         "category": "Org"

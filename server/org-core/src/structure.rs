@@ -286,6 +286,40 @@ pub fn change_levels(
     Ok(Outcome { text: buffer.text, cursor: buffer.point })
 }
 
+/// `org-convert-to-odd-levels` and, with `odd` false,
+/// `org-convert-to-oddeven-levels`: each headline below the top level
+/// demoted to `2n-1` stars, or promoted back to `n`, one step at a time as
+/// `org-demote` and `org-promote` go with `org-odd-levels-only` off. The
+/// way back refuses a file with a headline of an even number of stars.
+pub fn convert_levels(text: &str, at: usize, odd: bool, settings: &Settings) -> Result<Outcome, Refusal> {
+    let headline = |line: &str| {
+        let stars = line.bytes().take_while(|b| *b == b'*').count();
+        (stars >= 2 && line[stars..].starts_with(' ')).then_some(stars)
+    };
+    let lines = || text.split_inclusive('\n').map(|line| line.trim_end_matches('\n'));
+    if !odd && lines().filter_map(headline).any(|stars| stars % 2 == 0) {
+        return Err(Refusal::Failed("Not all levels are odd in this file.  Conversion not possible".to_string()));
+    }
+    let settings = Settings {
+        tags_column: settings.tags_column,
+        indent: settings.indent.clone(),
+        allow_promoting_top_level: settings.allow_promoting_top_level,
+        odd_levels: false,
+    };
+    let mut buffer = Buffer { text: text.to_string(), point: at };
+    let mut start = 0;
+    while start < buffer.text.len() {
+        if let Some(stars) = headline(line(&buffer.text, start)) {
+            let (steps, change) = if odd { (stars - 1, 1) } else { (stars / 2, -1) };
+            for _ in 0..steps {
+                change_level(&mut buffer, start, change, &settings)?;
+            }
+        }
+        start = next_line(&buffer.text, start);
+    }
+    Ok(Outcome { text: buffer.text, cursor: buffer.point })
+}
+
 /// `org-cycle-level`: TAB at the end of a new, empty headline (stars, and
 /// perhaps a TODO keyword) makes it a child of the headline before, then
 /// its parent's sibling and further up, then a sibling again. None
