@@ -140,7 +140,9 @@ impl Server {
         }
         let Some((path, at)) = stored.resume.filter(|(path, _)| path.exists()) else { return };
         let Some((clock, title)) = self.stored_clock(&path, at) else { return };
-        if self.running.is_some() {
+        // Another clock found running stays the clock; the same one is
+        // asked about as the clock to resume.
+        if self.running.as_ref().is_some_and(|running| *running != clock) {
             return;
         }
         if !settings.query_resume {
@@ -161,7 +163,11 @@ impl Server {
 
     /// The clock the file kept runs again, as the files say it does.
     pub(super) fn resume_clock(&mut self, clock: RunningClock) {
-        if self.running.is_none() {
+        if self.running.is_none() || self.running.as_ref() == Some(&clock) {
+            // Resumed, it is the clock Emacs runs, no dangling one.
+            if self.found_clock.as_ref() == Some(&clock) {
+                self.found_clock = None;
+            }
             self.running = Some(clock);
             self.publish_clock();
         }

@@ -44,6 +44,7 @@ to install and set up the package.
 |---+---+---|
 | ~Ctrl+C Ctrl+X Ctrl+I~ | ~org.clock.in~ | Clock in |
 | ~Ctrl+C Ctrl+X Ctrl+X~ | ~org.clock.in.last~ | Clock in the last clocked task |
+| ~Ctrl+C Ctrl+X Ctrl+Z~ | ~org.clock.resolve~ | Resolve open clocks |
 | ~Ctrl+C Ctrl+X Ctrl+O~ | ~org.clock.out~ | Clock out |
 | ~Ctrl+C Ctrl+X Ctrl+Q~ | ~org.clock.cancel~ | Cancel the clock |
 | ~Ctrl+C Ctrl+X Ctrl+J~ | ~org.clock.goto~ | Go to the clocked entry |
@@ -390,7 +391,6 @@ line.
 | ~org.agenda.list~ | Org: Agenda for the current week or day |
 | ~org.agenda.todos~ | Org: List of all TODO entries |
 | ~org.agenda.appt~ | Org: Add today's appointments from the agenda files |
-| ~org.clock.resolve~ | Org: Resolve a dangling clock |
 | ~org.num.mode~ | Org: Number the headlines, or stop numbering them |
 | ~org.todo.yesterday~ | Org: Change the TODO state as if it were yesterday |
 | ~org.todo.next~ | Org: Cycle TODO state forward |

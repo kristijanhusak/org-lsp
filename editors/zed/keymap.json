@@ -532,6 +532,12 @@
           "task_name": "Org: Clock in the last clocked task"
         }
       ],
+      "ctrl-c ctrl-x ctrl-z": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Resolve open clocks"
+        }
+      ],
       "ctrl-c ctrl-x ctrl-o": [
         "task::Spawn",
         {

@@ -202,6 +202,7 @@ its motions.
 | ~ctrl-c ctrl-w~ | ~key:C-c C-w~ | Refile the entry |
 | ~ctrl-c ctrl-x ctrl-i~ | ~org.clock.in~ | Clock in |
 | ~ctrl-c ctrl-x ctrl-x~ | ~org.clock.in.last~ | Clock in the last clocked task |
+| ~ctrl-c ctrl-x ctrl-z~ | ~org.clock.resolve~ | Resolve open clocks |
 | ~ctrl-c ctrl-x ctrl-o~ | ~org.clock.out~ | Clock out |
 | ~ctrl-c ctrl-x ctrl-q~ | ~org.clock.cancel~ | Cancel the clock |
 | ~ctrl-c ctrl-x ctrl-j~ | ~org.clock.goto~ | Go to the clocked entry |

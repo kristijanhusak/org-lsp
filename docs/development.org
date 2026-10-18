@@ -80,6 +80,7 @@ others), as close to Emacs Org mode as it can get.
   | ~org-lint~                                                                                                                        | ~tests/lint/cases.json~           | ~scripts/lint_reference.py~ (and ~scripts/update-lint-tables.py~ for Org's tables) | ~scripts/fuzz-lint.py~          |
   | Storing and inserting links (~org-store-link~, ~org-insert-link~ and its relatives, ~org-id-get-create~)                          | ~tests/link/cases.json~           | ~scripts/link_reference.py~                                                        | ~scripts/fuzz-link.py~          |
   | Inline tasks (~org-inlinetask~: ~C-c C-x t~, ~M-<left>~ and ~M-<right>~ on one, the motion and the folds around them)             | ~tests/inlinetask/cases.json~     | ~scripts/update-inlinetask-fixtures.py~                                            |                                 |
+  | Resolving open clocks (~org-resolve-clocks~, and before ~org-clock-in~): what is asked, and the file                              | ~tests/clock/resolve.json~        | ~scripts/clock_resolve_reference.py~                                               |                                 |
 - Neovim: ~scripts/test-nvim.sh~ (set ~NVIM~ to the binary), on 0.12.0 and
   stable. Tests run headless against the real server.
 - VS Code: in ~editors/vscode~, ~npm run generate -- --check~,

@@ -241,6 +241,13 @@ pub struct Options {
     /// `org-clock-idle-time`, in minutes.
     #[serde(rename = "org_clock_idle_time")]
     pub clock_idle_time: Option<i64>,
+    /// `org-clock-auto-clock-resolution`: `true`, `false` or
+    /// `"when-no-clock-is-running"`.
+    #[serde(rename = "org_clock_auto_clock_resolution")]
+    pub clock_auto_clock_resolution: Option<FlagOrName>,
+    /// `org-clock-resolve-expert`
+    #[serde(rename = "org_clock_resolve_expert")]
+    pub clock_resolve_expert: Option<bool>,
     /// `org-clock-history-length`
     #[serde(rename = "org_clock_in_resume")]
     pub clock_in_resume: Option<bool>,

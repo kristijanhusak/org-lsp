@@ -738,6 +738,24 @@ pub const SETTINGS: &[Setting] = &[
         )
     },
     setting(
+        "org_clock_auto_clock_resolution",
+        r#"boolean, "when-no-clock-is-running""#,
+        r#""when-no-clock-is-running""#,
+        "org-clock-auto-clock-resolution",
+        "Clocking in first asks about each clock left running in the open and agenda files, as \
+         `org.clock.resolve` does: `when-no-clock-is-running` when no clock runs, `true` always (the clock \
+         that runs too), `false` never. A clock found running when the server starts, or written by hand, \
+         is no clock the server ran: it is asked about.",
+    ),
+    setting(
+        "org_clock_resolve_expert",
+        "boolean",
+        "false",
+        "org-clock-resolve-expert",
+        "Ask what to do with a dangling clock or idle time with the keys in the prompt alone \
+         (`[jkKtTgGSscCiq]?`), without the list of what each one does.",
+    ),
+    setting(
         "org_clock_history_length",
         "integer",
         "5",
@@ -3587,6 +3605,8 @@ const SCHEMAS: &[(&str, &str)] = &[
         r#"{ "enum": ["today", "yesterday", "thisweek", "lastweek", "thismonth", "lastmonth", "thisyear", "lastyear", "untilnow"] }"#,
     ),
     ("org_clock_idle_time", r#"{ "type": "integer", "minimum": 1 }"#),
+    ("org_clock_auto_clock_resolution", r#"{ "enum": [true, false, "when-no-clock-is-running"] }"#),
+    ("org_clock_resolve_expert", BOOLEAN),
     ("org_clock_history_length", r#"{ "type": "integer", "minimum": 1 }"#),
     ("org_clock_in_resume", BOOLEAN),
     ("org_clock_goto_may_find_recent_task", BOOLEAN),

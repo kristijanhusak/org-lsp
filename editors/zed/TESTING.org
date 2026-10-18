@@ -169,7 +169,8 @@ its sections says what it should look like.
 - [ ] Clocking in the last entry again: the code action /Clock in the last clocked task/
 - [ ] The time clocked under each headline shows next to it: the code action /Show the time clocked under each headline/
 - [ ] A clock table: inserted, then updated; shifting its ~:block~ on the ~#+BEGIN:~ line: the code action /Insert or update a clock table/, the code action /Update the dynamic block/
-- [ ] A clock left running when the editor closed is offered for resolving on the next start: the code action /Resolve a dangling clock/
+- [ ] A clock left running when the editor closed is asked about (~Dangling clock started N mins ago [jkKtTgGSscCiq]? ~); ~K~ and Enter stops it now: the code action /Resolve open clocks/
+- [ ] With a clock left running and none clocked, clocking into another entry asks about it first: the code action /Clock in/
 - [ ] In the agenda, clocking in and out; the clocked line is highlighted from edge to edge: the code action /Clock in/, the code action /Clock out/
 
 * Capture

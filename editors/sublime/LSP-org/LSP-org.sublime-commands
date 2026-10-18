@@ -336,7 +336,7 @@
     }
   },
   {
-    "caption": "Org: Resolve a dangling clock",
+    "caption": "Org: Resolve open clocks",
     "command": "org_lsp_run",
     "args": {
       "command": "org.clock.resolve"

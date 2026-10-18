@@ -185,7 +185,8 @@ its sections says what it should look like.
 - [ ] Clocking in the last entry again: ~Ctrl+C Ctrl+X Ctrl+X~
 - [ ] The time clocked under each headline shows next to it: ~Ctrl+C Ctrl+X Ctrl+D~
 - [ ] A clock table: inserted, then updated; shifting its ~:block~ on the ~#+BEGIN:~ line: ~Ctrl+C Ctrl+X Ctrl+R~, ~Ctrl+C Ctrl+X Ctrl+U~
-- [ ] A clock left running when the editor closed is offered for resolving on the next start: /Org: Resolve a dangling clock/
+- [ ] A clock left running when the editor closed is asked about (~Dangling clock started N mins ago [jkKtTgGSscCiq]? ~); ~K~ and Enter stops it now: ~Ctrl+C Ctrl+X Ctrl+Z~
+- [ ] With a clock left running and none clocked, clocking into another entry asks about it first: ~Ctrl+C Ctrl+X Ctrl+I~
 - [ ] In the agenda, clocking in and out; the clocked line is highlighted from edge to edge: ~I~, ~O~
 - [ ] The clock in the status bar
 
