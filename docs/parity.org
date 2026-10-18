@@ -16,7 +16,7 @@ Org's options, one by one, are under [[#options][Options]].
 |---+---+---|
 | [[#highlighting][Highlighting]] | 95% | 19 of 20 |
 | [[#folding-and-visibility][Folding and visibility]] | 91% | 10 of 11 |
-| [[#headings-and-structure][Headings and structure]] | 100% | 20 of 20 |
+| [[#headings-and-structure][Headings and structure]] | 100% | 21 of 21 |
 | [[#lists-and-checkboxes][Lists and checkboxes]] | 100% | 13 of 13 |
 | [[#todo-keywords][TODO keywords]] | 100% | 14 of 14 |
 | [[#priorities][Priorities]] | 100% | 4 of 4 |
@@ -113,7 +113,7 @@ Where editors fall short:
 :CUSTOM_ID: headings-and-structure
 :END:
 
-100% (20 of 20)
+100% (21 of 21)
 
 - ✅ New headings (~M-RET~, ~M-S-RET~, ~C-RET~, ~C-S-RET~), the line split or not (~org-M-RET-may-split-line~), with empty lines before them as ~org-blank-before-new-entry~ says, after the subtree (~org-insert-heading-respect-content~)
 - ✅ Promoting and demoting a heading or a subtree; a top-level one to a ~#~ line (~org-allow-promoting-top-level-subtree~)
@@ -127,6 +127,7 @@ Where editors fall short:
 - ✅ The outline of the file (document symbols)
 - ✅ Moving between headings (~C-c C-n~, ~C-c C-p~, ~C-c C-f~, ~C-c C-b~, ~C-c C-u~)
 - ✅ Jumping to a heading (~org-goto~, ~C-c C-j~, by outline path)
+- ✅ The outline path of the entry at the cursor in the echo area, with a count the file's name first (~org-display-outline-path~, ~org.outline.path~; not cut to the window's width)
 - ✅ ~C-a~, ~C-e~ and ~C-k~ on headlines and items, to the title and the tags (~org-special-ctrl-a/e~, ~org-special-ctrl-k~)
 - ✅ ~C-o~ opening a line, or in a table inserting a row (~org-open-line~, ~org-special-ctrl-o~)
 - ✅ Turning lines into headings and back (~C-c *~, through Emacs)

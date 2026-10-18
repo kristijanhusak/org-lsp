@@ -400,6 +400,7 @@ line.
 | ~org.levels.odd~ | Org: Convert the file to odd levels only, once confirmed |
 | ~org.levels.oddeven~ | Org: Convert the file from odd levels to odd and even ones, once confirmed |
 | ~org.table.insert.row.below~ | Org: Insert a table row below |
+| ~org.outline.path~ | Org: Show the outline path of the entry at the cursor |
 | ~org.table.next.field~ | Org: Go to the next table field, making a row after the last |
 | ~org.table.previous.field~ | Org: Go to the previous table field |
 | ~org.table.hline.above~ | Org: Insert a rule above the table row |
