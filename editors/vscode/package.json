@@ -3975,6 +3975,23 @@
               "markdownDescription": "Show the lines inside quote and verse blocks in their own look (`org-quote`, `org-verse`: the token types `quote` and `verse`). (`org-fontify-quote-and-verse-blocks`)",
               "default": false
             },
+            "org_n_level_faces": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8,
+              "markdownDescription": "How many looks headlines take by level, from 1 to 8 (the token modifiers `level1` to `level8`, Org's `org-level-1` to `org-level-8`): with 4, a headline of level 5 looks as one of level 1, or as one of level 4 with `org_cycle_level_faces` off. (`org-n-level-faces`)",
+              "default": 8
+            },
+            "org_cycle_level_faces": {
+              "type": "boolean",
+              "markdownDescription": "Past the last look of `org_n_level_faces`, headlines take the looks of the levels from the first again; with `false`, those deeper all keep the last. (`org-cycle-level-faces`)",
+              "default": true
+            },
+            "org_fontify_whole_heading_line": {
+              "type": "boolean",
+              "markdownDescription": "Show the look of a headline's level past the end of its text, to the edge of the window: for looks with a background. Editors that can show it: Neovim, Vim and VS Code (`org-lsp/lineHighlights`, VS Code's colors `org.headlineLevel1Background` and on). (`org-fontify-whole-heading-line`)",
+              "default": false
+            },
             "org_ellipsis": {
               "type": "string",
               "markdownDescription": "What a closed fold shows after its first line, such as `\" ▾\"`, in the highlight group `OrgLspEllipsis` (Neovim). Editors that can show it: Neovim and Vim. (`org-ellipsis`)"
@@ -7635,6 +7652,86 @@
           "light": "#fc9590",
           "highContrast": "#8b0000",
           "highContrastLight": "#fc9590"
+        }
+      },
+      {
+        "id": "org.headlineLevel1Background",
+        "description": "Org: the background of a headline of level 1's line, from edge to edge, with `org_fontify_whole_heading_line` (`org-level-1`); none by default.",
+        "defaults": {
+          "dark": "#00000000",
+          "light": "#00000000",
+          "highContrast": "#00000000",
+          "highContrastLight": "#00000000"
+        }
+      },
+      {
+        "id": "org.headlineLevel2Background",
+        "description": "Org: the background of a headline of level 2's line, from edge to edge, with `org_fontify_whole_heading_line` (`org-level-2`); none by default.",
+        "defaults": {
+          "dark": "#00000000",
+          "light": "#00000000",
+          "highContrast": "#00000000",
+          "highContrastLight": "#00000000"
+        }
+      },
+      {
+        "id": "org.headlineLevel3Background",
+        "description": "Org: the background of a headline of level 3's line, from edge to edge, with `org_fontify_whole_heading_line` (`org-level-3`); none by default.",
+        "defaults": {
+          "dark": "#00000000",
+          "light": "#00000000",
+          "highContrast": "#00000000",
+          "highContrastLight": "#00000000"
+        }
+      },
+      {
+        "id": "org.headlineLevel4Background",
+        "description": "Org: the background of a headline of level 4's line, from edge to edge, with `org_fontify_whole_heading_line` (`org-level-4`); none by default.",
+        "defaults": {
+          "dark": "#00000000",
+          "light": "#00000000",
+          "highContrast": "#00000000",
+          "highContrastLight": "#00000000"
+        }
+      },
+      {
+        "id": "org.headlineLevel5Background",
+        "description": "Org: the background of a headline of level 5's line, from edge to edge, with `org_fontify_whole_heading_line` (`org-level-5`); none by default.",
+        "defaults": {
+          "dark": "#00000000",
+          "light": "#00000000",
+          "highContrast": "#00000000",
+          "highContrastLight": "#00000000"
+        }
+      },
+      {
+        "id": "org.headlineLevel6Background",
+        "description": "Org: the background of a headline of level 6's line, from edge to edge, with `org_fontify_whole_heading_line` (`org-level-6`); none by default.",
+        "defaults": {
+          "dark": "#00000000",
+          "light": "#00000000",
+          "highContrast": "#00000000",
+          "highContrastLight": "#00000000"
+        }
+      },
+      {
+        "id": "org.headlineLevel7Background",
+        "description": "Org: the background of a headline of level 7's line, from edge to edge, with `org_fontify_whole_heading_line` (`org-level-7`); none by default.",
+        "defaults": {
+          "dark": "#00000000",
+          "light": "#00000000",
+          "highContrast": "#00000000",
+          "highContrastLight": "#00000000"
+        }
+      },
+      {
+        "id": "org.headlineLevel8Background",
+        "description": "Org: the background of a headline of level 8's line, from edge to edge, with `org_fontify_whole_heading_line` (`org-level-8`); none by default.",
+        "defaults": {
+          "dark": "#00000000",
+          "light": "#00000000",
+          "highContrast": "#00000000",
+          "highContrastLight": "#00000000"
         }
       }
     ],

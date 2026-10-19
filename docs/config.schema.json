@@ -2272,6 +2272,23 @@
       "description": "Show the lines inside quote and verse blocks in their own look (`org-quote`, `org-verse`: the token types `quote` and `verse`). (`org-fontify-quote-and-verse-blocks`)",
       "default": false
     },
+    "org_n_level_faces": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8,
+      "description": "How many looks headlines take by level, from 1 to 8 (the token modifiers `level1` to `level8`, Org's `org-level-1` to `org-level-8`): with 4, a headline of level 5 looks as one of level 1, or as one of level 4 with `org_cycle_level_faces` off. (`org-n-level-faces`)",
+      "default": 8
+    },
+    "org_cycle_level_faces": {
+      "type": "boolean",
+      "description": "Past the last look of `org_n_level_faces`, headlines take the looks of the levels from the first again; with `false`, those deeper all keep the last. (`org-cycle-level-faces`)",
+      "default": true
+    },
+    "org_fontify_whole_heading_line": {
+      "type": "boolean",
+      "description": "Show the look of a headline's level past the end of its text, to the edge of the window: for looks with a background. Editors that can show it: Neovim, Vim and VS Code (`org-lsp/lineHighlights`, VS Code's colors `org.headlineLevel1Background` and on). (`org-fontify-whole-heading-line`)",
+      "default": false
+    },
     "org_ellipsis": {
       "type": "string",
       "description": "What a closed fold shows after its first line, such as `\" ▾\"`, in the highlight group `OrgLspEllipsis` (Neovim). Editors that can show it: Neovim and Vim. (`org-ellipsis`)"

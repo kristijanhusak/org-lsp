@@ -68,6 +68,7 @@ writeFileSync(
       org_roam_directory: roam,
       org_journal_enabled: true,
       org_journal_dir: journal,
+      org_fontify_whole_heading_line: true,
     },
   }),
 );

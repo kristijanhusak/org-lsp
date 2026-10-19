@@ -14,7 +14,7 @@ Org's options, one by one, are under [[#options][Options]].
 
 | Feature | Parity | Done |
 |---+---+---|
-| [[#highlighting][Highlighting]] | 95% | 20 of 21 |
+| [[#highlighting][Highlighting]] | 100% | 21 of 21 |
 | [[#folding-and-visibility][Folding and visibility]] | 91% | 10 of 11 |
 | [[#headings-and-structure][Headings and structure]] | 96% | 25 of 26 |
 | [[#lists-and-checkboxes][Lists and checkboxes]] | 100% | 13 of 13 |
@@ -50,7 +50,7 @@ Org's options, one by one, are under [[#options][Options]].
 :CUSTOM_ID: highlighting
 :END:
 
-95% (20 of 21)
+100% (21 of 21)
 
 - ✅ Headlines by level, TODO keywords, priorities and tags
 - ✅ Emphasis, verbatim and code
@@ -72,13 +72,13 @@ Org's options, one by one, are under [[#options][Options]].
 - ✅ Done headlines in ~org-headline-done~ past their keyword (~org-fontify-done-headline~ at its default), complete statistics cookies as done, the title and the information of the document (~org-document-title~, ~org-document-info~)
 - ✅ Headlines past a done or TODO keyword, and the lines of quote and verse blocks, in their own look (~org-fontify-done-headline~, ~org-fontify-todo-headline~, ~org-fontify-quote-and-verse-blocks~)
 - ✅ Emphasis in the looks of ~org-emphasis-alist~ (bold, italic, underline, strike-through, code and verbatim, not colors), or none (~org-fontify-emphasized-text~); keywords such as ~#+TITLE:~ and the braces of macros hidden (~org-hidden-keywords~, ~org-hide-macro-markers~)
-- ❌ The other options of how headlines and markup are shown, set away from their defaults (~org-fontify-whole-heading-line~, ~org-cycle-level-faces~, ~org-n-level-faces~)
+- ✅ How many looks headline levels take, and past the last the first again or the last for all (~org-n-level-faces~, ~org-cycle-level-faces~); a headline's look to the edge of the window, for looks with a background (~org-fontify-whole-heading-line~, where the editor can draw it)
 
 Where editors fall short:
 
-- Vim ❓: Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Vim cannot hide text that has text properties.
-- Sublime Text ❓: Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Sublime Text cannot hide text in a view. The colors need LSP's ~semantic_highlighting~ on.
-- Zed ❓: Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Zed lets no server hide text. The colors need ~"semantic_tokens": "combined"~; code blocks take their language's colors, inline code does not.
+- Vim ❓: Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Vim cannot hide text that has text properties. A headline's line colored to the edge (~org_fontify_whole_heading_line~) is a sign without text, which shows the sign column.
+- Sublime Text ❓: Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Sublime Text cannot hide text in a view. The colors need LSP's ~semantic_highlighting~ on. A headline's look does not go on to the edge of the window (~org_fontify_whole_heading_line~): Sublime Text colors a line past its text only with a region filled in one color of the color scheme, as the agenda's clocked line, not in the look semantic tokens give the headline.
+- Zed ❓: Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Zed lets no server hide text. The colors need ~"semantic_tokens": "combined"~; code blocks take their language's colors, inline code does not. A headline's look does not go on to the edge of the window (~org_fontify_whole_heading_line~): Zed lets no server color a line past its text.
 - Helix ❓: Helix has no semantic tokens: Org and the agenda are colored by tree-sitter queries of org-lsp's that ~install.sh~ puts in Helix's runtime, which see the words of the text, not what the server knows. TODO keywords are the usual ones (~TODO~, ~NEXT~, ~WAIT~, ~DONE~, ~CANCELLED~ …), not those of the settings or ~#+TODO:~; the agenda shows neither today nor the clocked line, and its leaders and prefix are the default ones; options of how things look are not followed. Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Helix lets no server hide text; inline code is not in its language's colors.
 
 * Folding and visibility
@@ -786,20 +786,20 @@ Where editors fall short:
 :END:
 
 Each of the 1025 options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with
-it. Of the 354 that change what org-lsp does itself, 100% can be set.
+it. Of the 356 that change what org-lsp does itself, 100% can be set.
 [[file:../scripts/org-options.json][scripts/org-options.json]] says it for each; ~scripts/check.sh~ fails when the
 server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,
 when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 341 | A setting of the same name |
+| setting | 344 | A setting of the same name |
 | missing | 1 | org-lsp does what the option is about, but the option cannot be set yet |
-| other | 12 | Done another way, as its note says |
+| other | 11 | Done another way, as its note says |
 | emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 47 | Its value is Lisp (a function, a hook), which the server does not run |
 | absent | 39 | Part of something org-lsp does not do |
-| emacs-only | 105 | About Emacs itself (windows, faces, menus, the mouse, the mode line): nothing to do in an editor |
+| emacs-only | 103 | About Emacs itself (windows, faces, menus, the mouse, the mode line): nothing to do in an editor |
 
 ** Done another way
 
@@ -813,7 +813,6 @@ when Org has an option it does not list.
 - ~org-startup-truncated~ :: the editor decides how long lines wrap
 - ~org-special-ctrl-a/e~ :: the setting ~org_special_ctrl_a_e~, its name without the ~/~
 - ~org-timestamp-rounding-minutes~ :: the setting ~org_time_stamp_rounding_minutes~, its name before Org 9.6
-- ~org-fontify-whole-heading-line~ :: editors draw a token's look over its text only: past the end of a headline's text the line keeps the editor's background
 - ~org-src-fontify-natively~ :: the editors' option ~src_highlight~ (Neovim, Vim); VS Code and Sublime Text color the code of blocks by their grammars, always
 
 ** Missing

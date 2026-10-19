@@ -99,7 +99,7 @@ calendar, or typed as at Org's prompt (~fri 10:00~, ~+2d~, ~2/15~, ~++1w~).
 
 | Feature | Parity | Neovim | What does not work, and why |
 |---+---+---+---|
-| [[file:parity.org::#highlighting][Highlighting]] | 95% | ✅ |  |
+| [[file:parity.org::#highlighting][Highlighting]] | 100% | ✅ |  |
 | [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 91% | ❓ | Cycling the whole file goes between overview and everything: it has no contents state, which needs folds of a headline's own text that Neovim's fold levels do not make. ~<Tab>~ changes the level of a new entry in Normal mode; in Insert mode it is a tab. |
 | [[file:parity.org::#headings-and-structure][Headings and structure]] | 96% | ✅ |  |
 | [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 100% | ✅ |  |

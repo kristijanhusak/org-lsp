@@ -698,6 +698,44 @@ fn sends_virtual_indentation_of_other_widths() {
     client.shutdown();
 }
 
+/// `org_fontify_whole_heading_line`: the lines of the headlines, for a
+/// client that highlights lines from edge to edge, each in the look of
+/// its level as `org_n_level_faces` and `org_cycle_level_faces` say; again
+/// when they move, and with no lines when there are none.
+#[test]
+fn sends_the_lines_of_headlines_with_whole_heading_lines() {
+    let capabilities = json!({ "experimental": { "orgLineHighlights": true } });
+    let options =
+        json!({ "org_fontify_whole_heading_line": true, "org_n_level_faces": 2, "org_cycle_level_faces": false });
+    let client = Client::start(capabilities, options);
+    client.open(&uri(), "* A\ntext\n** B\n*** C\n");
+    let sent = client.notification("org-lsp/lineHighlights");
+    assert_eq!(sent["uri"], uri().as_str());
+    let lines = json!([
+        { "line": 0, "highlight": "headline.level1" },
+        { "line": 2, "highlight": "headline.level2" },
+        { "line": 3, "highlight": "headline.level2" },
+    ]);
+    assert_eq!(sent["lines"], lines);
+    let change = |version: i32, text: &str| {
+        client.notify::<lsp_types::notification::DidChangeTextDocument>(lsp_types::DidChangeTextDocumentParams {
+            text_document: lsp_types::VersionedTextDocumentIdentifier { uri: uri(), version },
+            content_changes: vec![lsp_types::TextDocumentContentChangeEvent {
+                range: None,
+                range_length: None,
+                text: text.to_string(),
+            }],
+        });
+    };
+    change(2, "text\n* A\n");
+    let sent = client.notification("org-lsp/lineHighlights");
+    assert_eq!(sent["lines"], json!([{ "line": 1, "highlight": "headline.level1" }]));
+    change(3, "text\n");
+    let sent = client.notification("org-lsp/lineHighlights");
+    assert_eq!(sent["lines"], json!([]));
+    client.shutdown();
+}
+
 /// A client that does not show `org-lsp/virtualIndent` (Zed, Helix) gets
 /// `org-indent-mode`'s prefixes as inlay hints of blanks; one that does,
 /// or says so with the `virtualIndent` option, gets none of those.

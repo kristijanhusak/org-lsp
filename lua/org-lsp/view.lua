@@ -842,8 +842,9 @@ M.handlers = {
     require('org-lsp.images').apply(params)
   end,
 
-  --- Lines of the agenda highlighted from edge to edge, as Emacs's
-  --- overlays cover them: the entry the clock runs on.
+  --- Lines highlighted from edge to edge, as Emacs's overlays and faces
+  --- that extend cover them: the agenda's entry the clock runs on, and
+  --- headlines with `org_fontify_whole_heading_line`.
   ['org-lsp/lineHighlights'] = function(_, params)
     for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
       if vim.api.nvim_buf_is_loaded(bufnr) and vim.uri_from_bufnr(bufnr) == params.uri then
@@ -851,8 +852,8 @@ M.handlers = {
         local count = vim.api.nvim_buf_line_count(bufnr)
         for _, line in ipairs(params.lines or {}) do
           if line.line < count then
-            -- The group of the token of the same name.
-            local group = ('@lsp.type.%s.%s'):format(line.highlight, vim.bo[bufnr].filetype)
+            -- The group of the token, or token and modifier, it names.
+            local group = require('org-lsp.highlights').group(line.highlight, vim.bo[bufnr].filetype)
             vim.api.nvim_buf_set_extmark(bufnr, line_highlights, line.line, 0, { line_hl_group = group })
           end
         end

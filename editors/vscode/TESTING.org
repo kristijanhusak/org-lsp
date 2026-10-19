@@ -26,6 +26,8 @@ its sections says what it should look like.
 - [ ] Headlines are colored by level; TODO and DONE keywords, priorities (~[#A]~) and tags have colors of their own
 - [ ] With ~"org-lsp.headlineLevelColors": true~, the stars and title of each level up to eight have a color of their own from the theme (a function's, a variable's, a keyword's, a comment's …), as Emacs's ~outline-N~ faces; a DONE headline is still in the look of done ones past its keyword; turned off, every level has the heading's color again
 - [ ] With ~org_fontify_todo_headline = true~ the text of a TODO headline, and with ~org_fontify_quote_and_verse_blocks = true~ the lines of a quote block, take a look of their own
+- [ ] With ~org_n_level_faces = 2~, a headline of level 3 has the color of level 1; with ~org_cycle_level_faces = false~ too, that of level 2
+- [ ] With ~org_fontify_whole_heading_line = true~ and a background in the look of level 1 (~@lsp.typemod.headline.level1.org~ in Neovim, ~OrgLsp_headline_level1~ in Vim, the color ~org.headlineLevel1Background~ in VS Code), a level 1 headline's line has it to the edge of the window
 - [ ] ~*bold*~, ~/italic/~, ~_underline_~, ~+strike+~, ~=verbatim=~ and =~code~= are colored
 - [ ] A link shows its description alone; its brackets and target show when the cursor is on its line
 - [ ] With ~org_hide_emphasis_markers = true~, the markers of ~*bold*~ are hidden

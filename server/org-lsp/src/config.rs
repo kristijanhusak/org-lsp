@@ -499,6 +499,14 @@ pub struct Options {
     pub fontify_todo_headline: Option<bool>,
     #[serde(rename = "org_fontify_quote_and_verse_blocks")]
     pub fontify_quote_and_verse_blocks: Option<bool>,
+    /// `org-n-level-faces`, `org-cycle-level-faces`,
+    /// `org-fontify-whole-heading-line`
+    #[serde(rename = "org_n_level_faces")]
+    pub n_level_faces: Option<usize>,
+    #[serde(rename = "org_cycle_level_faces")]
+    pub cycle_level_faces: Option<bool>,
+    #[serde(rename = "org_fontify_whole_heading_line")]
+    pub fontify_whole_heading_line: Option<bool>,
     /// `org-duration-format` and `org-duration-units`
     #[serde(rename = "org_duration_format")]
     pub duration_format: Option<serde_json::Value>,
@@ -2505,6 +2513,9 @@ impl Options {
             }),
             hide_macro_markers: self.hide_macro_markers.unwrap_or(false),
             odd_levels: self.odd_levels_only.unwrap_or(false),
+            n_level_faces: self.n_level_faces.unwrap_or(defaults.n_level_faces).clamp(1, 8),
+            cycle_level_faces: self.cycle_level_faces.unwrap_or(defaults.cycle_level_faces),
+            whole_heading_line: self.fontify_whole_heading_line.unwrap_or(defaults.whole_heading_line),
             inlinetask: None,
         }
     }

@@ -586,6 +586,11 @@ vim.api.nvim_set_hl(0, '@lsp.type.todoKeyword.org', { fg = '#ff6c6b', bold = tru
 vim.api.nvim_set_hl(0, '@lsp.typemod.todoKeyword.done.org', { fg = '#98be65', bold = true })
 #+end_src
 
+With ~org_fontify_whole_heading_line~, a headline's whole line, to the
+edge of the window, takes the group of its level,
+~@lsp.typemod.headline.level1.org~ and on: give those a background for it
+to show, as Org's ~org-level-N~ faces need one.
+
 *** Images and LaTeX
 
 Neovim 0.13 draws images in the terminal (~vim.ui.img~, with the Kitty
@@ -667,6 +672,11 @@ set statusline=%f\ %=%{org_lsp#clock_status()}
 Leave the LSP client's own semantic highlighting and folding off for Org
 files (they are off by default in all four clients): the plugin does both.
 
+With ~org_fontify_whole_heading_line~, a headline's whole line takes the
+group of its level (~OrgLsp_headline_level1~ and on), through a sign
+without text, as the agenda's clocked line does: the sign column shows for
+them.
+
 ** VS Code
 :PROPERTIES:
 :CUSTOM_ID: vs-code
@@ -710,6 +720,19 @@ set back for the language as usual:
 {
   "[org]": { "editor.lightbulb.enabled": "on" },
   "[org-agenda]": { "editor.lineNumbers": "on" }
+}
+#+end_src
+
+The extension's colours go in ~workbench.colorCustomizations~:
+~org.agendaClockingBackground~, the agenda's line of the clocked entry, and
+~org.headlineLevel1Background~ to ~org.headlineLevel8Background~, the
+background of a headline's line from edge to edge with
+~org_fontify_whole_heading_line~ (none by default, as Org's ~org-level-N~
+faces have none; a theme's token colours cannot give one):
+
+#+begin_src json
+{
+  "workbench.colorCustomizations": { "org.headlineLevel1Background": "#2a3a4a" }
 }
 #+end_src
 
@@ -5671,6 +5694,24 @@ Show the lines inside quote and verse blocks in their own look (~org-quote~,
 org_fontify_quote_and_verse_blocks = false
 #+end_src
 
+*** org_fontify_whole_heading_line
+:PROPERTIES:
+:CUSTOM_ID: org_fontify_whole_heading_line
+:END:
+
+Show the look of a headline's level past the end of its text, to the edge of
+the window: for looks with a background. Editors that can show it: Neovim, Vim
+and VS Code (~org-lsp/lineHighlights~, VS Code's colors
+~org.headlineLevel1Background~ and on).
+
+- Org's option :: ~org-fontify-whole-heading-line~
+- Type :: boolean
+- Default :: ~false~
+
+#+begin_src toml
+org_fontify_whole_heading_line = false
+#+end_src
+
 *** org_ellipsis
 :PROPERTIES:
 :CUSTOM_ID: org_ellipsis
@@ -7607,6 +7648,40 @@ unnumbered.
 
 #+begin_src toml
 org_num_skip_unnumbered = false
+#+end_src
+
+*** org_n_level_faces
+:PROPERTIES:
+:CUSTOM_ID: org_n_level_faces
+:END:
+
+How many looks headlines take by level, from 1 to 8 (the token modifiers
+~level1~ to ~level8~, Org's ~org-level-1~ to ~org-level-8~): with 4, a
+headline of level 5 looks as one of level 1, or as one of level 4 with
+~org_cycle_level_faces~ off.
+
+- Org's option :: ~org-n-level-faces~
+- Type :: integer
+- Default :: ~8~
+
+#+begin_src toml
+org_n_level_faces = 8
+#+end_src
+
+*** org_cycle_level_faces
+:PROPERTIES:
+:CUSTOM_ID: org_cycle_level_faces
+:END:
+
+Past the last look of ~org_n_level_faces~, headlines take the looks of the
+levels from the first again; with ~false~, those deeper all keep the last.
+
+- Org's option :: ~org-cycle-level-faces~
+- Type :: boolean
+- Default :: ~true~
+
+#+begin_src toml
+org_cycle_level_faces = true
 #+end_src
 
 ** Emacs and the server

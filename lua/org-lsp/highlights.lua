@@ -17,7 +17,7 @@ end
 ---@param selector string
 ---@param filetype string
 ---@return string
-local function group(selector, filetype)
+function M.group(selector, filetype)
   local type, modifier = selector:match('^([^.]+)%.?(.*)$')
   if type == '*' then
     return ('@lsp.mod.%s.%s'):format(modifier, filetype)
@@ -69,10 +69,10 @@ function M.define(manifest)
         end
       end
       if target then
-        vim.api.nvim_set_hl(0, group(look.token, filetype), { link = target, default = true })
+        vim.api.nvim_set_hl(0, M.group(look.token, filetype), { link = target, default = true })
       elseif look.background then
         local background = look.background[vim.o.background] or look.background.dark
-        vim.api.nvim_set_hl(0, group(look.token, filetype), {
+        vim.api.nvim_set_hl(0, M.group(look.token, filetype), {
           bg = background,
           ctermbg = cterm_color(background),
           default = true,
@@ -134,7 +134,7 @@ function M.choice_group(choice)
     define_face(name, choice.face)
     return name
   end
-  return choice.highlight and group(choice.highlight, 'org') or nil
+  return choice.highlight and M.group(choice.highlight, 'org') or nil
 end
 
 --- Give the TODO keywords and priorities of buffer `bufnr` that have a
@@ -204,7 +204,7 @@ function M.attach_looks(bufnr, manifest)
         if token.type == look.type and vim.iter(look.modifiers):all(function(name)
           return token.modifiers[name]
         end) then
-          vim.lsp.semantic_tokens.highlight_token(token, bufnr, args.data.client_id, group(selector, vim.bo[bufnr].filetype), {
+          vim.lsp.semantic_tokens.highlight_token(token, bufnr, args.data.client_id, M.group(selector, vim.bo[bufnr].filetype), {
             priority = priority,
           })
         end

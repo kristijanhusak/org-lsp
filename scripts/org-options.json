@@ -506,8 +506,8 @@
   "org-tag-faces": "setting",
   "org-fontify-quote-and-verse-blocks": "setting",
   "org-agenda-deadline-faces": "setting",
-  "org-n-level-faces": "emacs-only",
-  "org-cycle-level-faces": "emacs-only"
+  "org-n-level-faces": "setting",
+  "org-cycle-level-faces": "setting"
  },
  "org-feed.el": {
   "org-feed-alist": "absent",
@@ -856,7 +856,7 @@
   "org-fontify-todo-headline": "setting",
   "org-fontify-done-headline": "setting",
   "org-fontify-emphasized-text": "setting",
-  "org-fontify-whole-heading-line": ["other", "editors draw a token's look over its text only: past the end of a headline's text the line keeps the editor's background"],
+  "org-fontify-whole-heading-line": "setting",
   "org-fontify-whole-block-delimiter-line": "emacs-only",
   "org-highlight-latex-and-related": "emacs-only",
   "org-hide-emphasis-markers": "setting",
