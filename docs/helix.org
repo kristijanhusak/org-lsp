@@ -274,7 +274,7 @@ What the queries cannot know, they do not show:
 | [[file:parity.org::#attachments][Attachments]] | 100% | ❓ | ~attachment:~ links open; the dispatcher (~C-c C-a~) is left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and it is not among them. |
 | [[file:parity.org::#encryption][Encryption]] | 100% | ✅ |  |
 | [[file:parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | ❌ | Helix cannot show images. |
-| *All of Org* | *97%* |  |  |
+| *All of Org* | *98%* |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what and why),
 ❌ none does, — nothing to support yet. Parity is the share of what

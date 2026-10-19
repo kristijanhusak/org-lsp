@@ -8,7 +8,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in [[file:development.org::#how-the-work-is-checked][development.org]]).
 
-*All of Org: 97%*
+*All of Org: 98%*
 
 Org's options, one by one, are under [[#options][Options]].
 

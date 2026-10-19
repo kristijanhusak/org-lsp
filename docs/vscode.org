@@ -182,7 +182,7 @@ with the cursor on them, until the agenda is built again with ~r~.
 | [[file:parity.org::#attachments][Attachments]] | 100% | ✅ |  |
 | [[file:parity.org::#encryption][Encryption]] | 100% | ✅ |  |
 | [[file:parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | ❓ | VS Code cannot leave lines free for an image: an image takes the place of its link only as high as a line, and shows whole on hover (at the width Org gives it, at most 600 pixels). Counts through a key's ~args~. |
-| *All of Org* | *97%* |  |  |
+| *All of Org* | *98%* |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what and why),
 ❌ none does, — nothing to support yet. Parity is the share of what
