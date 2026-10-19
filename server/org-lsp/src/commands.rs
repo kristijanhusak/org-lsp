@@ -195,6 +195,7 @@ pub const CLOCK_CANCEL: &str = "org.clock.cancel";
 pub const CLOCK_GOTO: &str = "org.clock.goto";
 pub const CLOCK_DISPLAY: &str = "org.clock.display";
 pub const NUM_MODE: &str = "org.num.mode";
+pub const CUSTOM_PROPERTIES_TOGGLE: &str = "org.custom.properties.toggle";
 pub const CLOCK_REPORT: &str = "org.clock.report";
 pub const DBLOCK_UPDATE: &str = "org.dblock.update";
 pub const DBLOCK_INSERT: &str = "org.dblock.insert";
@@ -614,6 +615,8 @@ pub const COMMANDS: &[Command] = &[
     },
     // `org-num-mode`: numbers before the headlines, or none again.
     command(NUM_MODE, "Number the headlines, or stop numbering them"),
+    // `org-toggle-custom-properties-visibility`, which has no key in Emacs.
+    command(CUSTOM_PROPERTIES_TOGGLE, "Hide the properties of org_custom_properties, or show them again"),
     // Clock tables: `org-clock-report` inserts one or fills it in again,
     // the first of the file with a count; `org-dblock-update` fills in the
     // dynamic block the cursor is in, all of the file's with a count.

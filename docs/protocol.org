@@ -169,6 +169,12 @@ And these notifications:
   of the LaTeX fragments ~org.latex.preview~ asked for, once Emacs has made
   them, in the form the preview commands answer with (see
   ~org.link.preview~), ~kind~ ~latex~.
+- ~experimental.orgHiddenLines~ :: A client that announces it (or sets the
+  option ~hidden_lines~) hides the lines a command's result names,
+  ~{ "hiddenLines": { "uri", "lines" } }~, each a line from 0, whole, and
+  shows again those it hid before; the hidden lines go with the text, as
+  Emacs's overlays do. ~org.custom.properties.toggle~ answers so. Without
+  it, that command fails with /This editor cannot hide lines/.
 - ~org-lsp/lineHighlights~ :: For a client that announces
   ~experimental.orgLineHighlights: true~ (or sets the option
   ~line_highlights~): the lines of the agenda or of an Org file to
@@ -507,6 +513,7 @@ Each option with its type, its default and what it means:
 - ~org_fontify_done_headline~ :: boolean, ~true~. Show a headline marked done in the look of done headlines past its keyword (~org-headline-done~). (~org-fontify-done-headline~)
 - ~org_fontify_todo_headline~ :: boolean, ~false~. Show a headline marked with a keyword not done in the look of TODO headlines past its keyword (~org-headline-todo~, the token modifier ~todo~). (~org-fontify-todo-headline~)
 - ~org_fontify_quote_and_verse_blocks~ :: boolean, ~false~. Show the lines inside quote and verse blocks in their own look (~org-quote~, ~org-verse~: the token types ~quote~ and ~verse~). (~org-fontify-quote-and-verse-blocks~)
+- ~org_custom_properties~ :: string[], ~[]~. The properties ~org.custom.properties.toggle~ (~org-toggle-custom-properties-visibility~) hides in the property drawers, and shows again: ~["ID", "CUSTOM_ID"]~. Editors that can hide them: Neovim from 0.11, and Sublime Text, in a fold. (~org-custom-properties~)
 - ~org_n_level_faces~ :: integer, ~8~. How many looks headlines take by level, from 1 to 8 (the token modifiers ~level1~ to ~level8~, Org's ~org-level-1~ to ~org-level-8~): with 4, a headline of level 5 looks as one of level 1, or as one of level 4 with ~org_cycle_level_faces~ off. (~org-n-level-faces~)
 - ~org_cycle_level_faces~ :: boolean, ~true~. Past the last look of ~org_n_level_faces~, headlines take the looks of the levels from the first again; with ~false~, those deeper all keep the last. (~org-cycle-level-faces~)
 - ~org_fontify_whole_heading_line~ :: boolean, ~false~. Show the look of a headline's level past the end of its text, to the edge of the window: for looks with a background. Editors that can show it: Neovim, Vim and VS Code (~org-lsp/lineHighlights~, VS Code's colors ~org.headlineLevel1Background~ and on). (~org-fontify-whole-heading-line~)
@@ -698,6 +705,7 @@ Each option with its type, its default and what it means:
 - ~message_prompts~ :: boolean, true for a client without org-lsp's editor code (~org_client~). Ask what commands ask for with ~window/showMessageRequest~ (a key, one of a list) or, for text and dates, through a rename at the cursor (~textDocument/rename~, whose new name is the answer), and say what they have to say with ~window/showMessage~, for a client that does nothing with a command's result.
 - ~message_requests~ :: boolean, ~true~. Whether the client shows the questions of ~message_prompts~ that have choices (~window/showMessageRequest~). Off, for a client that cannot (Helix), the server says ~PROMPT: pick the answer from the code actions~, and until it is answered the code actions start with the choices; a rename with the choice's key answers too.
 - ~line_highlights~ :: boolean, ~false~. Whether the client highlights lines from edge to edge as the server sends them (~org-lsp/lineHighlights~): the agenda's entry the clock runs on, and headlines with ~org_fontify_whole_heading_line~. As a client announcing ~experimental.orgLineHighlights~ does: for the Vim plugin and the Sublime Text package.
+- ~hidden_lines~ :: boolean, ~false~. Whether the client hides the lines a command's answer names (~hiddenLines~: the custom properties of ~org.custom.properties.toggle~), as a client announcing ~experimental.orgHiddenLines~ does: for the Sublime Text package.
 - ~images~ :: boolean, ~false~. Whether the client shows images in place of links to image files and of LaTeX fragments (~org.link.preview~, ~org.latex.preview~, ~org-lsp/images~). As a client announcing ~experimental.orgImages~ does: for the Sublime Text package.
 - ~view_changed~ :: boolean, ~false~. Whether the server says when it has written the agenda's or the date prompt's file anew (~org-lsp/viewChanged~ ~{ uri }~), for a client that does not see the file change on disk and reads it again when told: the Vim plugin.
 - ~date_prompt~ :: boolean, ~false~. Whether the client shows the date prompt's calendar, for a client that cannot announce ~experimental.orgDatePrompt~: the Vim plugin. Without documents fetched from the server, the calendar is a file the server writes, which the client reads again when told (~view_changed~).
@@ -1181,6 +1189,12 @@ increments a number.
   other blocks (~columnview~, with its summaries, and those of the user's
   ~org-dblock-write:~ functions) by the server's Emacs (see "Emacs" below),
   as is ~C-c C-c~ on their ~#+BEGIN:~ line.
+- ~org.custom.properties.toggle~ :: ~org-toggle-custom-properties-visibility~
+  (no key in Emacs either), for a client that hides lines
+  (~experimental.orgHiddenLines~): the lines of the properties of
+  ~org_custom_properties~ in the property drawers, as Org finds them, in
+  ~{ "hiddenLines": { "uri", "lines" } }~; run again, while they are
+  hidden, no lines, for the client to show them again.
 - ~org.link.preview~ :: ~org-link-preview~ (~C-c C-x C-v~), for a client
   that announces ~experimental.orgImages: true~ (others are told it cannot
   show images): the links to image files whose images show in place of them,

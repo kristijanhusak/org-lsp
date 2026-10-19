@@ -295,6 +295,10 @@ function M.run(name, opts)
       if type(result) == 'table' and type(result.preview) == 'table' then
         require('org-lsp.images').apply(result.preview)
       end
+      -- Lines to hide (the custom properties), those hidden before shown.
+      if type(result) == 'table' and type(result.hiddenLines) == 'table' then
+        require('org-lsp.hidden').apply(result.hiddenLines)
+      end
       -- What the command has to say, as Emacs says it in the echo area.
       if type(result) == 'table' and type(result.message) == 'string' then
         notify(result.message, vim.log.levels.INFO)

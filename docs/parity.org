@@ -21,7 +21,7 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#todo-keywords][TODO keywords]] | 100% | 14 of 14 |
 | [[#priorities][Priorities]] | 100% | 4 of 4 |
 | [[#tags][Tags]] | 88% | 7 of 8 |
-| [[#properties-and-column-view][Properties and column view]] | 90% | 9 of 10 |
+| [[#properties-and-column-view][Properties and column view]] | 100% | 10 of 10 |
 | [[#dates-and-times][Dates and times]] | 100% | 9 of 9 |
 | [[#agenda][Agenda]] | 100% | 38 of 38 |
 | [[#clocking][Clocking]] | 100% | 14 of 14 |
@@ -242,7 +242,7 @@ Where editors fall short:
 :CUSTOM_ID: properties-and-column-view
 :END:
 
-90% (9 of 10)
+100% (10 of 10)
 
 - ✅ Setting and deleting properties, also from the agenda
 - ✅ Allowed values (~NAME_ALL~) cycled with ~S-<left>~ and ~S-<right>~
@@ -251,17 +251,17 @@ Where editors fall short:
 - ✅ Column view (~C-c C-x C-c~, through Emacs): the columns over the headlines, the header, summaries; editing, cycling and the allowed values of a column, moving, narrowing, widening and deleting columns, moving entries
 - ✅ Column view dynamic blocks and summaries (~C-c C-x x~, filled in by Emacs)
 - ✅ Properties written as ~org-property-format~ says, their values joined as ~org-property-separators~ says; efforts in the units of ~org-duration-units~ (once ~org-effort-durations~)
-- ❌ Custom properties hidden and shown (~org-custom-properties~, ~org-toggle-custom-properties-visibility~): editors cannot hide a line on its own
+- ✅ Custom properties hidden and shown (~org-custom-properties~, ~org-toggle-custom-properties-visibility~, ~org.custom.properties.toggle~): their lines hidden whole, where the editor can hide a line
 - ✅ IDs made as ~org-id-method~, ~org-id-prefix~, ~org-id-ts-format~ and ~org-id-include-domain~ say
 - ✅ IDs looked for where ~org-id-track-globally~, ~org-id-search-archives~, ~org-id-extra-files~ and ~org-id-locations-file~ say; ~id:~ links completing to ~org-id-completion-targets~
 
 Where editors fall short:
 
-- Vim ❓: Column view's header is in the window's status line, shown when the window has one (~laststatus~).
-- VS Code ❓: Column view's header is in the status bar, with the column picked in brackets.
-- Sublime Text ❓: A property's name and value are typed in an input panel, without completion. Column view is left out: it draws over the headlines, which Sublime Text cannot.
-- Zed ❓: A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Column view is left out: it draws over the headlines.
-- Helix ❓: A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Column view is left out: it draws over the headlines.
+- Vim ❓: Column view's header is in the window's status line, shown when the window has one (~laststatus~). Custom properties are not hidden (~org.custom.properties.toggle~): Vim cannot hide a line, a closed fold still shows a line of its own, and text with text properties is not concealed.
+- VS Code ❓: Column view's header is in the status bar, with the column picked in brackets. Custom properties are not hidden (~org.custom.properties.toggle~): VS Code hides lines only in a fold of the folding ranges, which keeps its first line showing, and a decoration cannot hide a line.
+- Sublime Text ❓: A property's name and value are typed in an input panel, without completion. Column view is left out: it draws over the headlines, which Sublime Text cannot. A custom property hidden (~org.custom.properties.toggle~) is in a fold from the end of the line before, which shows the fold's marker: Sublime Text hides text only in folds.
+- Zed ❓: A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Column view is left out: it draws over the headlines. Custom properties are not hidden (~org.custom.properties.toggle~): Zed lets no server hide text.
+- Helix ❓: A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Column view is left out: it draws over the headlines. Custom properties are not hidden (~org.custom.properties.toggle~): Helix lets no server hide text.
 
 * Dates and times
 :PROPERTIES:
@@ -795,8 +795,8 @@ when Org has an option it does not list.
 
 | Status | Options | Meaning |
 |---+---+---|
-| setting | 344 | A setting of the same name |
-| missing | 1 | org-lsp does what the option is about, but the option cannot be set yet |
+| setting | 345 | A setting of the same name |
+| missing | 0 | org-lsp does what the option is about, but the option cannot be set yet |
 | other | 11 | Done another way, as its note says |
 | emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 47 | Its value is Lisp (a function, a hook), which the server does not run |
@@ -821,4 +821,3 @@ when Org has an option it does not list.
 
 Options of what org-lsp does that cannot be set yet, by the file of Org they are in.
 
-- org.el (1) :: ~org-custom-properties~

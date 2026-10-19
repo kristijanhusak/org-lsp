@@ -135,7 +135,7 @@ its sections says what it should look like.
 
 * Properties and column view
 
-*Partly:* Column view's header is in the window's status line, shown when the window has one (~laststatus~).
+*Partly:* Column view's header is in the window's status line, shown when the window has one (~laststatus~). Custom properties are not hidden (~org.custom.properties.toggle~): Vim cannot hide a line, a closed fold still shows a line of its own, and text with text properties is not concealed.
 
 - [ ] Column view: the headlines covered by their columns (~#+COLUMNS:~ or the default), the header above, effort sums on parents (needs Emacs): ~<Leader>oxc~
 - [ ] In column view, picking a column, editing its value (~e~), the next and previous allowed value (~n~, ~p~), its value shown (~v~); quitting (~q~)

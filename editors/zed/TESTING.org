@@ -112,7 +112,7 @@ its sections says what it should look like.
 
 * Properties and column view
 
-*Partly:* A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Column view is left out: it draws over the headlines.
+*Partly:* A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Column view is left out: it draws over the headlines. Custom properties are not hidden (~org.custom.properties.toggle~): Zed lets no server hide text.
 
 - [ ] Setting a property: the name and the value are asked for: the code action /Set a property of the entry/
 - [ ] On a property line with ~NAME_ALL~, cycling through its values: the code action /Move the date a day later, or cycle the TODO state or the list's bullets forward/, the code action /Move the date a day earlier, or cycle the TODO state or the list's bullets backward/

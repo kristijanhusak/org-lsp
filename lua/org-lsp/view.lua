@@ -20,6 +20,7 @@ M.capabilities = {
     orgVirtualIndent = true,
     orgLineHighlights = true,
     orgDisplay = true,
+    orgHiddenLines = true,
   },
 }
 

@@ -635,6 +635,7 @@ every file; outside Org files the commands say they do not apply):
 | ~org.clock.goto~ | Org: Go to the clocked entry |
 | ~org.clock.display~ | Org: Show the time clocked under each headline |
 | ~org.num.mode~ | Org: Number the headlines, or stop numbering them |
+| ~org.custom.properties.toggle~ | Org: Hide the properties of org_custom_properties, or show them again |
 | ~org.clock.report~ | Org: Insert or update a clock table |
 | ~org.dblock.update~ | Org: Update the dynamic block |
 | ~org.dblock.insert~ | Org: Insert a dynamic block |

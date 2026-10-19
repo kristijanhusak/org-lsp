@@ -99,7 +99,7 @@ its sections says what it should look like.
 
 * Properties and column view
 
-*Partly:* A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Column view is left out: it draws over the headlines.
+*Partly:* A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Column view is left out: it draws over the headlines. Custom properties are not hidden (~org.custom.properties.toggle~): Helix lets no server hide text.
 
 - [ ] On a property line with ~NAME_ALL~, cycling through its values: the code action /Move the date a day later, or cycle the TODO state or the list's bullets forward/, the code action /Move the date a day earlier, or cycle the TODO state or the list's bullets backward/
 - [ ] Deleting a property from the entry, and from the whole file: the code action /Delete a property of the entry/, the code action /Delete a property from every entry of the file/

@@ -146,6 +146,7 @@ its sections says what it should look like.
 - [ ] Column view: the headlines covered by their columns (~#+COLUMNS:~ or the default), the header above, effort sums on parents (needs Emacs): ~<Leader>oxc~
 - [ ] In column view, picking a column, editing its value (~e~), the next and previous allowed value (~n~, ~p~), its value shown (~v~); quitting (~q~)
 - [ ] In column view, moving a column, making it narrower and wider, deleting it; moving an entry up and down
+- [ ] With ~org_custom_properties = ["ID"]~, the command hides the ~:ID:~ lines of the property drawers, and run again shows them: ~:Org custom properties toggle~
 - [ ] Setting a property: the name and the value are completed, ~NAME_ALL~'s values offered: ~<Leader>oxp~
 - [ ] On a property line with ~NAME_ALL~, cycling through its values: ~<S-Right>~, ~<S-Left>~
 - [ ] Deleting a property from the entry, and from the whole file: ~:Org property delete~, ~:Org property delete globally~

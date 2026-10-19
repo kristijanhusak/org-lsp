@@ -106,6 +106,9 @@ struct Client {
     /// says (`org-lsp/lineHighlights`): `experimental.orgLineHighlights`,
     /// or the option `line_highlights`.
     line_highlights: bool,
+    /// Hides the lines a command's answer names (`hiddenLines`):
+    /// `experimental.orgHiddenLines`, or the option `hidden_lines`.
+    hidden_lines: bool,
     /// Reads the agenda's file again when told (`org-lsp/viewChanged`):
     /// the option `view_changed`.
     view_changed: bool,
@@ -966,6 +969,12 @@ struct Server {
     /// The documents where `org-toggle-timestamp-overlays` turned custom
     /// times the other way.
     custom_times_toggled: HashSet<String>,
+    /// `org-custom-properties`: the properties
+    /// `org-toggle-custom-properties-visibility` hides.
+    custom_properties: Vec<String>,
+    /// The documents whose custom properties the client was last told to
+    /// hide (`org-custom-properties-overlays`).
+    custom_properties_hidden: HashSet<String>,
     /// What org-bullets shows, when it is on.
     bullets: Option<org_core::pretty::Bullets>,
     /// `org-startup-with-link-previews`.
@@ -1498,6 +1507,9 @@ pub fn run(connection: Connection) -> Result<()> {
         line_highlights: raw_params.pointer("/capabilities/experimental/orgLineHighlights").and_then(Value::as_bool)
             == Some(true)
             || options.line_highlights == Some(true),
+        hidden_lines: raw_params.pointer("/capabilities/experimental/orgHiddenLines").and_then(Value::as_bool)
+            == Some(true)
+            || options.hidden_lines == Some(true),
         tokens_refresh: raw_params
             .pointer("/capabilities/workspace/semanticTokens/refreshSupport")
             .and_then(Value::as_bool)
@@ -1650,6 +1662,8 @@ pub fn run(connection: Connection) -> Result<()> {
             }
         },
         custom_times_toggled: HashSet::new(),
+        custom_properties: options.custom_properties.clone().unwrap_or_default(),
+        custom_properties_hidden: HashSet::new(),
         bullets: options.bullets(),
         startup_link_previews: options.startup_with_link_previews.unwrap_or(false),
         image_actual_width: options.image_actual_width(),
@@ -3591,6 +3605,7 @@ impl Server {
                 }
                 self.virtually_indented.remove(params.text_document.uri.as_str());
                 self.heading_lines.remove(params.text_document.uri.as_str());
+                self.custom_properties_hidden.remove(params.text_document.uri.as_str());
                 self.displayed.remove(params.text_document.uri.as_str());
                 if let Some(path) = uri::to_path(&params.text_document.uri) {
                     if let Some(index) = self.widened.iter().position(|widened| *widened == path) {
@@ -3809,6 +3824,29 @@ impl Server {
         self.refresh_inlay_hints();
         self.publish_display(&key);
         Ok(Value::Null)
+    }
+
+    /// `org-toggle-custom-properties-visibility`: the lines of the
+    /// document's custom properties (`org-custom-properties`) for the
+    /// client to hide, `{ "hiddenLines": { uri, lines } }`, or, when it
+    /// hides them, none, for it to show them again. As Emacs's overlays,
+    /// the hidden lines go with the text until they are shown again.
+    fn toggle_custom_properties(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        if !self.client.hidden_lines {
+            return Err("This editor cannot hide lines".into());
+        }
+        let key = context.text_document.uri.as_str().to_string();
+        let text = &self.document(&context.text_document.uri).ok_or("This file is not open")?.text;
+        let lines = if self.custom_properties_hidden.contains(&key) {
+            Vec::new()
+        } else {
+            org_core::properties::custom_property_lines(text, &self.custom_properties)
+        };
+        self.custom_properties_hidden.remove(&key);
+        if !lines.is_empty() {
+            self.custom_properties_hidden.insert(key.clone());
+        }
+        Ok(json!({ "hiddenLines": { "uri": key, "lines": lines } }))
     }
 
     fn semantic_tokens_full(&mut self, params: SemanticTokensParams) -> Option<SemanticTokens> {
@@ -6922,6 +6960,9 @@ impl Server {
             commands::CYCLE => self.cycle(&context.ok_or("This command needs the cursor position")?),
             commands::TIMESTAMP_OVERLAYS_TOGGLE => {
                 self.toggle_custom_times(&context.ok_or("This command needs the cursor position")?)
+            }
+            commands::CUSTOM_PROPERTIES_TOGGLE => {
+                self.toggle_custom_properties(&context.ok_or("This command needs the cursor position")?)
             }
             id if id.starts_with("org.agenda.filter") => self.agenda_filter(id, context.as_ref()),
             commands::AGENDA_WRITE => self.agenda_write(context.as_ref()),
