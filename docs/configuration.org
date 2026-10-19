@@ -6762,6 +6762,22 @@ Fold all but the new entry.
 org_journal_hide_entries_p = true
 #+end_src
 
+*** org_journal_follow_mode
+:PROPERTIES:
+:CUSTOM_ID: org_journal_follow_mode
+:END:
+
+In the calendar (~org.goto.calendar~), the entry of the day ~]~ and ~[~ move
+to shows in another window.
+
+- Org's option :: ~org-journal-follow-mode~
+- Type :: boolean
+- Default :: ~false~
+
+#+begin_src toml
+org_journal_follow_mode = false
+#+end_src
+
 *** org_journal_find_file_fn
 :PROPERTIES:
 :CUSTOM_ID: org_journal_find_file_fn

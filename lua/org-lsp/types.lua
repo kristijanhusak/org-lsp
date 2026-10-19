@@ -395,6 +395,7 @@
 ---@field org_journal_time_format_post_midnight? string The time of an entry made after midnight while it is still yesterday (`org_extend_today_until`); empty for `org_journal_time_format`. (`org-journal-time-format-post-midnight`)
 ---@field org_journal_time_prefix? string What comes before the time of an entry: its stars give its level. (`org-journal-time-prefix`)
 ---@field org_journal_hide_entries_p? boolean Fold all but the new entry. (`org-journal-hide-entries-p`)
+---@field org_journal_follow_mode? boolean In the calendar (`org.goto.calendar`), the entry of the day `]` and `[` move to shows in another window. (`org-journal-follow-mode`)
 ---@field org_journal_find_file_fn? 'find-file-other-window'|'find-file' Where a new entry and today's file (`org.journal.open.current`) show: in another window, or (`"find-file"`) in the window of the command. (`org-journal-find-file-fn`)
 ---@field org_journal_carryover_items? string The items of the entry before that move to today's, with the headlines above them: a match of the tags view (`m`); empty for none. (`org-journal-carryover-items`)
 ---@field org_journal_skip_carryover_drawers? string[] Drawers left out of the items carried over. (`org-journal-skip-carryover-drawers`)

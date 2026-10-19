@@ -167,6 +167,7 @@ extension.
 | ~Ctrl+C .~ | ~org.timestamp.insert~ | Insert or change a timestamp |
 | ~Ctrl+C !~ | ~org.timestamp.insert.inactive~ | Insert or change an inactive timestamp |
 | ~Ctrl+C Ctrl+X Ctrl+T~ | ~org.timestamp.overlays.toggle~ | Show timestamps in the custom formats, or not |
+| ~Ctrl+C >~ | ~org.goto.calendar~ | Show the calendar at the date of the line |
 | ~Tab~ ¹ | ~org-lsp.cycle~ | Cycle the visibility of the subtree, block or drawer at the cursor |
 | ~Shift+Tab~ | ~org-lsp.cycleGlobal~ | Cycle the visibility of the whole file |
 | ~Ctrl+C a~ | ~org.agenda.dispatch~ | Agenda commands |
@@ -300,6 +301,17 @@ extension.
 
 | Keys | Command | What it does |
 |---+---+---|
+| ~j n~ | ~org.journal.new.date.entry~ | Journal: new entry for a date |
+| ~]~ | ~org.journal.next.entry~ | Journal: next entry |
+| ~[~ | ~org.journal.previous.entry~ | Journal: previous entry |
+| ~j s f~ | ~org.journal.search.forever~ | Journal: search every entry |
+| ~j s Shift+F~ | ~org.journal.search.future~ | Journal: search the entries to come |
+| ~j s w~ | ~org.journal.search.calendar.week~ | Journal: search the calendar's week |
+| ~j s m~ | ~org.journal.search.calendar.month~ | Journal: search the calendar's month |
+| ~j s y~ | ~org.journal.search.calendar.year~ | Journal: search the calendar's year |
+| ~j r~ | ~org.journal.read.entry~ | Journal: the entry of the calendar's day |
+| ~j d~ | ~org.journal.display.entry~ | Journal: show the entry of the calendar's day |
+| ~j m~ | ~org.journal.mark.entries~ | Journal: mark the days with an entry in the calendar |
 | ~Shift+Right~ | ~org.calendar.day.later~ | Date prompt: one day later |
 | ~Shift+Left~ | ~org.calendar.day.earlier~ | Date prompt: one day earlier |
 | ~Shift+Down~ | ~org.calendar.week.later~ | Date prompt: one week later |
@@ -436,6 +448,8 @@ extension.
 
 | Keys | Command | What it does |
 |---+---+---|
+| ~]~ | ~org.journal.next.entry~ | Journal: next entry |
+| ~[~ | ~org.journal.previous.entry~ | Journal: previous entry |
 | ~l~, ~Shift+Right~ | ~org.calendar.day.later~ | Date prompt: one day later |
 | ~h~, ~Shift+Left~ | ~org.calendar.day.earlier~ | Date prompt: one day earlier |
 | ~j~, ~Shift+Down~ | ~org.calendar.week.later~ | Date prompt: one week later |
@@ -576,7 +590,8 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "i", "s"], "commands": ["org.schedule"] },
   { "before": ["<leader>", "o", "i", "d"], "commands": ["org.deadline"] },
   { "before": ["<leader>", "o", "i", "."], "commands": ["org.timestamp.insert"] },
-  { "before": ["<leader>", "o", "i", "!"], "commands": ["org.timestamp.insert.inactive"] }
+  { "before": ["<leader>", "o", "i", "!"], "commands": ["org.timestamp.insert.inactive"] },
+  { "before": ["<leader>", "o", ">"], "commands": ["org.goto.calendar"] }
 ]
 #+end_src
 
@@ -848,6 +863,12 @@ every file; outside Org files the commands say they do not apply):
 | ~org.journal.search~ | Org: Journal: search between two dates |
 | ~org.journal.search.forever~ | Org: Journal: search every entry |
 | ~org.journal.search.future~ | Org: Journal: search the entries to come |
+| ~org.journal.search.calendar.week~ | Org: Journal: search the calendar's week |
+| ~org.journal.search.calendar.month~ | Org: Journal: search the calendar's month |
+| ~org.journal.search.calendar.year~ | Org: Journal: search the calendar's year |
+| ~org.journal.read.entry~ | Org: Journal: the entry of the calendar's day |
+| ~org.journal.display.entry~ | Org: Journal: show the entry of the calendar's day |
+| ~org.journal.mark.entries~ | Org: Journal: mark the days with an entry in the calendar |
 | ~org.journal.search.future.scheduled~ | Org: Journal: the TODO entries to come |
 | ~org.journal.schedule.view~ | Org: Journal: the entries to come with a date |
 | ~org.journal.reschedule~ | Org: Journal: move the entry to come to another day |
@@ -875,6 +896,7 @@ every file; outside Org files the commands say they do not apply):
 | ~org.timestamp.insert.inactive~ | Org: Insert or change an inactive timestamp |
 | ~org.timestamp.change~ | Org: Change the timestamp at the cursor |
 | ~org.timestamp.overlays.toggle~ | Org: Show timestamps in the custom formats, or not |
+| ~org.goto.calendar~ | Org: Show the calendar at the date of the line |
 | ~org.calendar.day.later~ | Org: Date prompt: one day later |
 | ~org.calendar.day.earlier~ | Org: Date prompt: one day earlier |
 | ~org.calendar.week.later~ | Org: Date prompt: one week later |

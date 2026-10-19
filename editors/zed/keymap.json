@@ -1222,6 +1222,12 @@
           "task_name": "Org: Show timestamps in the custom formats, or not"
         }
       ],
+      "ctrl-c >": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Show the calendar at the date of the line"
+        }
+      ],
       "ctrl-c a": [
         "task::Spawn",
         {

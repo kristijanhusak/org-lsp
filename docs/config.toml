@@ -1866,6 +1866,10 @@ org_journal_time_prefix = "** "
 # Fold all but the new entry. (org-journal-hide-entries-p)
 org_journal_hide_entries_p = true
 
+# In the calendar (`org.goto.calendar`), the entry of the day `]` and `[` move
+# to shows in another window. (org-journal-follow-mode)
+org_journal_follow_mode = false
+
 # Where a new entry and today's file (`org.journal.open.current`) show: in
 # another window, or (`"find-file"`) in the window of the command.
 # (org-journal-find-file-fn)

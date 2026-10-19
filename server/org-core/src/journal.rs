@@ -554,6 +554,45 @@ pub enum Command {
     /// `org-journal-reschedule-scheduled-entry`, at the point, to the
     /// date read at its prompt.
     Reschedule { date: ReadDate },
+    /// `org-journal-read-entry` (`j r` in `M-x calendar`) and
+    /// `org-journal-display-entry` (`j d`, `display`): the entry of the
+    /// calendar's day, in the window of its file
+    /// (`org-journal-read-or-display-entry`).
+    ReadEntry { day: crate::date::Day, display: bool },
+    /// `org-journal-next-entry` and `org-journal-previous-entry` in the
+    /// calendar (`]`, `[`): its cursor goes from `day` to the next or the
+    /// previous day with an entry, which `org-journal-follow-mode`
+    /// (`follow`) displays.
+    CalendarStep { day: crate::date::Day, previous: bool, follow: bool },
+}
+
+/// The calendar's week, month or year a search looks in
+/// (`org-journal-search-calendar-week` …).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CalendarPeriod {
+    Week,
+    Month,
+    Year,
+}
+
+/// `org-journal--read-period` in the calendar: the first and the last day
+/// of the week, month or year of `day`, weeks starting on `week_start`
+/// (`calendar-week-start-day`, 0 for Sunday). The week ends on the first
+/// day of the next one, as org-journal counts it, and a day before
+/// `week_start` in the week gets the week after it.
+pub fn calendar_period(period: CalendarPeriod, day: crate::date::Day, week_start: i64) -> Period {
+    let date = Date::from_day(day);
+    match period {
+        CalendarPeriod::Year => Period::Between(Date::new(date.year, 1, 1), Date::new(date.year, 12, 31)),
+        CalendarPeriod::Month => {
+            let last = crate::date::days_in_month(date.year, date.month);
+            Period::Between(Date::new(date.year, date.month, 1), Date::new(date.year, date.month, last))
+        }
+        CalendarPeriod::Week => {
+            let zero_based = crate::date::weekday(day) as i64 - week_start;
+            Period::Between(Date::from_day(day - zero_based), Date::from_day(day + (7 - zero_based)))
+        }
+    }
 }
 
 /// What a command runs on.
@@ -608,6 +647,8 @@ pub struct Outcome {
     /// The file the window shows when it is not the current buffer, and
     /// where: the new day of a rescheduled entry.
     pub shown: Option<(String, usize)>,
+    /// The day the calendar's cursor went to.
+    pub calendar: Option<crate::date::Day>,
 }
 
 /// Emacs as org-journal leaves it: its buffers, the current one, the
@@ -628,6 +669,7 @@ struct Emacs<'a> {
     dates: Option<BTreeMap<String, Vec<CalendarDate>>>,
     view: Option<View>,
     shown: Option<(String, usize)>,
+    calendar: Option<crate::date::Day>,
 }
 
 impl<'a> Emacs<'a> {
@@ -645,6 +687,7 @@ impl<'a> Emacs<'a> {
             dates: None,
             view: None,
             shown: None,
+            calendar: None,
         };
         if let Some((file, offset)) = request.from {
             let index = emacs.visit(file);
@@ -863,6 +906,40 @@ impl<'a> Emacs<'a> {
         self.visit(&file);
         self.goto_entry(next)?;
         Ok(true)
+    }
+
+    /// `org-journal-read-or-display-entry` from the calendar: the entry's
+    /// file becomes the current buffer, which stays as it was when there
+    /// is no entry (`find-file-noselect` selects nothing).
+    fn calendar_entry(&mut self, time: DateTime) -> Result<(), Stop> {
+        let before = self.current;
+        if !self.read_entry(time)? {
+            self.current = before;
+        }
+        Ok(())
+    }
+
+    /// `org-journal--next-entry` in the calendar: its cursor to the next
+    /// or previous day with an entry. org-journal says there is none
+    /// after it has moved too, unless `org-journal-follow-mode` displayed
+    /// the entry.
+    fn calendar_step(&mut self, day: crate::date::Day, previous: bool, follow: bool) -> Result<(), Stop> {
+        let cursor = CalendarDate::of(day);
+        let mut dates = self.list_dates()?;
+        if previous {
+            dates.reverse();
+        }
+        let next = dates.into_iter().find(|date| if previous { date.before(cursor) } else { cursor.before(*date) });
+        if let Some(next) = next {
+            let time = next.time();
+            self.calendar = Some(time.day);
+            if follow {
+                return self.calendar_entry(time);
+            }
+        }
+        let which = if previous { "before" } else { "after" };
+        self.messages.push(format!("No journal entry {which} this one"));
+        Ok(())
     }
 
     /// `org-journal--insert-header`
@@ -1149,6 +1226,8 @@ pub fn run(command: &Command, request: &Request, settings: &Settings) -> Result<
             emacs.current = None;
         }
         Command::Reschedule { date } => emacs.reschedule(date)?,
+        Command::ReadEntry { day, .. } => emacs.calendar_entry(DateTime { day: *day, minute: 0 })?,
+        Command::CalendarStep { day, previous, follow } => emacs.calendar_step(*day, *previous, *follow)?,
     }
     Ok(emacs.outcome())
 }
@@ -1187,7 +1266,7 @@ impl Emacs<'_> {
             }
             Visit { file: buffer.file.clone(), offset: buffer.point, hidden, hidden_lines: buffer.hidden_lines() }
         });
-        Outcome { changed, visit, messages: self.messages, view: self.view, shown: self.shown }
+        Outcome { changed, visit, messages: self.messages, view: self.view, shown: self.shown, calendar: self.calendar }
     }
 }
 

@@ -3431,6 +3431,28 @@
   },
   {
     "keys": [
+      "ctrl+c",
+      ">"
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.goto.calendar"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
       "tab"
     ],
     "command": "org_lsp_cycle",

@@ -257,7 +257,7 @@ What the queries cannot know, they do not show:
 | [[file:parity.org::#clocking][Clocking]] | 100% | ❓ | No clock in the status line: Helix has no place there for a server's text. |
 | [[file:parity.org::#capture][Capture]] | 100% | ❓ | Templates are picked from the code actions, where they come first once asked for; for a template's prompts, the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. The capture buffer stays open once the entry is filed: Helix lets no server close a buffer. |
 | [[file:parity.org::#notes-org-roam][Notes (org-roam)]] | 94% | ❌ | The commands are not among Helix's code actions yet. |
-| [[file:parity.org::#a-journal-org-journal][A journal (org-journal)]] | 79% | ❌ | The commands are not among Helix's code actions yet. |
+| [[file:parity.org::#a-journal-org-journal][A journal (org-journal)]] | 93% | ❌ | The commands are not among Helix's code actions yet. |
 | [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ❓ | Copying an entry to a target, going to a target and to the entry refiled last are left out: they are not among Helix's code actions. Refiling picks the target from the code actions, where the targets come first once asked for. |
 | [[file:parity.org::#links][Links]] | 100% | ❓ | Storing and inserting links in an Org file are left out: they are not among Helix's code actions there (the agenda stores a link to its line's entry); moving between links needs a key. Following works through go to definition. |
 | [[file:parity.org::#footnotes][Footnotes]] | 100% | ❓ | Making footnotes and their menu are left out: they are not among Helix's code actions. Following them works. |

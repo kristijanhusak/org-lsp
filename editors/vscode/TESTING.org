@@ -161,6 +161,7 @@ its sections says what it should look like.
 - [ ] While typing the date, the answer shows what it means (~=> <2026-10-09 Fri>~)
 - [ ] In the calendar: moving by day, week and month, scrolling months, today, picking a day: ~Shift+Right~, ~Shift+Down~, ~Alt+Shift+Right~, ~>~, ~.~, ~Enter~
 - [ ] In the calendar: picking a time with the keys, typing the answer instead, cancelling: ~t~, ~i~, ~q~ or ~Ctrl+G~
+- [ ] On a line with a timestamp, the calendar opens on its own on that day, without a prompt under it; ~q~ closes it: ~Ctrl+C >~
 - [ ] Picking a time from 12:44, the minutes go up to 12:45, then 12:50; down to 12:40: ~t~
 - [ ] With ~calendar_week_start_day~ ~1~, the calendar's weeks start on Monday
 - [ ] Switching to a month of six weeks keeps the whole calendar in view, the cursor on the selected day
@@ -259,6 +260,9 @@ its sections says what it should look like.
 - [ ] The schedule lists the entries to come with a timestamp, under their days: /Org: Journal: the entries to come with a date/
 - [ ] Rescheduling an entry to come moves it to the day asked for, with that day's timestamp: /Org: Journal: move the entry to come to another day/
 - [ ] The date prompt's calendar marks the days with a journal entry: /Org: Journal: new entry for a date/
+- [ ] In the calendar, ~]~ and ~[~ go to the next and previous days with an entry; ~j r~ shows the entry of the day and goes there, ~j d~ shows it and stays: ~]~, ~j r~, ~j d~
+- [ ] In the calendar, ~j n~ makes an entry for the day; ~j s w~ asks for a string and searches the week of the day: ~j n~, ~j s w~
+- [ ] With ~org_journal_follow_mode~, ~]~ in the calendar shows the entry of the day it goes to, the cursor staying in the calendar: ~]~
 
 * Refile and archive
 

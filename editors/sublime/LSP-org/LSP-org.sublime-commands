@@ -1848,6 +1848,48 @@
     }
   },
   {
+    "caption": "Org: Journal: search the calendar's week",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.journal.search.calendar.week"
+    }
+  },
+  {
+    "caption": "Org: Journal: search the calendar's month",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.journal.search.calendar.month"
+    }
+  },
+  {
+    "caption": "Org: Journal: search the calendar's year",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.journal.search.calendar.year"
+    }
+  },
+  {
+    "caption": "Org: Journal: the entry of the calendar's day",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.journal.read.entry"
+    }
+  },
+  {
+    "caption": "Org: Journal: show the entry of the calendar's day",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.journal.display.entry"
+    }
+  },
+  {
+    "caption": "Org: Journal: mark the days with an entry in the calendar",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.journal.mark.entries"
+    }
+  },
+  {
     "caption": "Org: Journal: the TODO entries to come",
     "command": "org_lsp_run",
     "args": {
@@ -2034,6 +2076,13 @@
     "command": "org_lsp_run",
     "args": {
       "command": "org.timestamp.overlays.toggle"
+    }
+  },
+  {
+    "caption": "Org: Show the calendar at the date of the line",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.goto.calendar"
     }
   },
   {

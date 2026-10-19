@@ -1386,6 +1386,36 @@
         "category": "Org"
       },
       {
+        "command": "org.journal.search.calendar.week",
+        "title": "Journal: search the calendar's week",
+        "category": "Org"
+      },
+      {
+        "command": "org.journal.search.calendar.month",
+        "title": "Journal: search the calendar's month",
+        "category": "Org"
+      },
+      {
+        "command": "org.journal.search.calendar.year",
+        "title": "Journal: search the calendar's year",
+        "category": "Org"
+      },
+      {
+        "command": "org.journal.read.entry",
+        "title": "Journal: the entry of the calendar's day",
+        "category": "Org"
+      },
+      {
+        "command": "org.journal.display.entry",
+        "title": "Journal: show the entry of the calendar's day",
+        "category": "Org"
+      },
+      {
+        "command": "org.journal.mark.entries",
+        "title": "Journal: mark the days with an entry in the calendar",
+        "category": "Org"
+      },
+      {
         "command": "org.journal.search.future.scheduled",
         "title": "Journal: the TODO entries to come",
         "category": "Org"
@@ -1518,6 +1548,11 @@
       {
         "command": "org.timestamp.overlays.toggle",
         "title": "Show timestamps in the custom formats, or not",
+        "category": "Org"
+      },
+      {
+        "command": "org.goto.calendar",
+        "title": "Show the calendar at the date of the line",
         "category": "Org"
       },
       {
@@ -5651,6 +5686,11 @@
               "markdownDescription": "Fold all but the new entry. (`org-journal-hide-entries-p`)",
               "default": true
             },
+            "org_journal_follow_mode": {
+              "type": "boolean",
+              "markdownDescription": "In the calendar (`org.goto.calendar`), the entry of the day `]` and `[` move to shows in another window. (`org-journal-follow-mode`)",
+              "default": false
+            },
             "org_journal_find_file_fn": {
               "enum": [
                 "find-file-other-window",
@@ -8646,6 +8686,11 @@
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
+        "command": "org.goto.calendar",
+        "key": "ctrl+c shift+.",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
         "command": "org-lsp.cycle",
         "key": "tab",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !suggestWidgetVisible && !inlineSuggestionVisible && !inSnippetMode && !editorHasSelection && !editorTabMovesFocus",
@@ -9579,6 +9624,71 @@
         "command": "org-lsp.agenda.close",
         "key": "q",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.journal.new.date.entry",
+        "key": "j n",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.next.entry",
+        "key": "]",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.next.entry",
+        "key": "]",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.previous.entry",
+        "key": "[",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.previous.entry",
+        "key": "[",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.search.forever",
+        "key": "j s f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.search.future",
+        "key": "j s shift+f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.search.calendar.week",
+        "key": "j s w",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.search.calendar.month",
+        "key": "j s m",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.search.calendar.year",
+        "key": "j s y",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.read.entry",
+        "key": "j r",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.display.entry",
+        "key": "j d",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.mark.entries",
+        "key": "j m",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
       },
       {
         "command": "org.calendar.day.later",

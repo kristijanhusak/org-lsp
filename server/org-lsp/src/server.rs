@@ -6947,6 +6947,7 @@ impl Server {
                     }
                 }
             }
+            commands::GOTO_CALENDAR => self.goto_calendar(context.as_ref()),
             id if id.starts_with("org.calendar.") => self.calendar_command(id, context.as_ref()),
             // `org-save-all-org-buffers`: the server cannot save; the
             // editor saves the files it names that have changes, and says
@@ -7288,6 +7289,7 @@ impl Server {
             Target::Agenda { .. } => Err("The agenda has no file to change".into()),
             Target::Journal { .. } => Err("The journal's commands change their own files".into()),
             Target::Dailies { .. } => Err("The daily notes' commands change their own files".into()),
+            Target::Calendar { .. } => Err(NO_DATE_ASKED.into()),
             Target::Entry { row, .. } => {
                 let reference = row.entry.as_ref().ok_or("No entry on this line")?;
                 self.with_source(&reference.uri, |text, _, _, outline, version| {
@@ -7319,7 +7321,9 @@ impl Server {
 
     /// What the date prompt of `command` at `target` starts from.
     fn date_prompt_start(&mut self, command: PlanningCommand, target: &Target) -> std::result::Result<Prompt, Refusal> {
-        if let Target::Agenda { .. } | Target::Journal { .. } | Target::Dailies { .. } = target {
+        if let Target::Agenda { .. } | Target::Journal { .. } | Target::Dailies { .. } | Target::Calendar { .. } =
+            target
+        {
             // `org-read-date` without a default: today, and nothing typed.
             return Ok(Prompt { default: None, value: String::new() });
         }
@@ -7379,6 +7383,9 @@ impl Server {
         }
         if let Target::Dailies { from, goto } = target {
             return self.roam_dailies_date(id, from, *goto, answer);
+        }
+        if let Target::Calendar { .. } = target {
+            return Err(NO_DATE_ASKED.into());
         }
         let command = self.date_command_at(id, target)?;
         let source = self.date_source(target)?;
@@ -7662,6 +7669,12 @@ impl Server {
         let (now, settings) = (self.date_time(), self.read_date_of(&prompt));
         let step = self.edit_settings.timestamp_rounding_minutes.max(1);
         let open = self.date_prompt.as_mut().ok_or("No date prompt is open")?;
+        // The calendar on its own takes no day and asks for nothing.
+        if matches!(open.target, Target::Calendar { .. })
+            && matches!(id, commands::CALENDAR_SELECT | commands::CALENDAR_TYPE | commands::CALENDAR_TIME)
+        {
+            return Err(NO_DATE_ASKED.into());
+        }
         // Picking the time: the keys that move by day choose the hours or
         // the minutes, and those that move by week change them.
         if open.time_field.is_some() {
@@ -7738,6 +7751,61 @@ impl Server {
             other => return Err(format!("org-lsp has no command `{other}`").into()),
         }
         self.publish_date_prompt();
+        Ok(Value::Null)
+    }
+
+    /// The day under the cursor of the date prompt's calendar, or else
+    /// its selected day, when `context` is in the calendar: the day
+    /// `calendar-cursor-to-date` gives org-journal's keys there.
+    fn calendar_day(&self, uri: &Uri, position: Position) -> Option<Day> {
+        // A client that reads the prompt from its file may name it
+        // otherwise (a link in its path).
+        let file = |path: &Path| std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+        let same = *uri == self.prompt_uri
+            || self
+                .prompt_file
+                .as_deref()
+                .zip(uri::to_path(uri))
+                .is_some_and(|(prompt, path)| file(prompt) == file(&path));
+        let open = self.date_prompt.as_ref().filter(|_| same)?;
+        // Until the cursor is on the day selected last, the one it
+        // reports is an old one.
+        let under = (!open.reveal && !open.moving_cursor).then(|| open.day_at(position)).flatten();
+        Some(under.unwrap_or(open.selected))
+    }
+
+    /// `org-goto-calendar`: the calendar on its own, on the date of the
+    /// timestamp at the cursor, or else of the line's last active one, or
+    /// today; with `C-u` today.
+    fn goto_calendar(&mut self, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
+        if !self.client.date_prompt {
+            return Err("This editor shows no calendar: it has no date prompt".into());
+        }
+        let now = self.date_time();
+        let mut day = now.day;
+        let from = match context {
+            Some(context) => context.text_document.uri.clone(),
+            None => uri::from_path(&std::env::temp_dir()).ok_or("No place to run the command from")?,
+        };
+        let document = context.and_then(|context| {
+            let document = self.document(&context.text_document.uri)?;
+            let offset = document.index.offset(&document.text, context.position, self.client.encoding);
+            Some((document.text.clone(), offset))
+        });
+        let prefix = context.and_then(|context| context.count).is_some_and(|count| count > 1);
+        if let (Some((text, offset)), false) = (document, prefix) {
+            if let Some(date) = line_timestamp_date(&text, offset) {
+                day = date.to_day();
+            }
+        }
+        let settings = self.read_date;
+        let layout = (self.calendar_months, self.calendar_week_start);
+        let command = PlanningCommand::Timestamp { inactive: false };
+        let default = Some(DateTime { day, minute: 0 });
+        let target = Target::Calendar { from };
+        let open =
+            DatePrompt::new(commands::GOTO_CALENDAR, command, target, default, String::new(), now, &settings, layout);
+        self.open_date_prompt(open);
         Ok(Value::Null)
     }
 
@@ -16163,6 +16231,30 @@ fn fit_outline_path(path: &str, width: usize) -> String {
 }
 
 /// `abbreviate-file-name`: the home directory as `~`.
+/// What the calendar on its own says to the keys that answer a date
+/// prompt.
+const NO_DATE_ASKED: &str = "No date is asked for: the calendar is open on its own";
+
+/// The date `org-goto-calendar` goes to from `offset` in `text`: the
+/// timestamp at it, active or not (`org-at-timestamp-p` with `lax`), or
+/// else the last active one of its line (`org-ts-regexp` after `.*`).
+fn line_timestamp_date(text: &str, offset: usize) -> Option<Date> {
+    static ACTIVE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+        regex::Regex::new(r"^.*<([0-9]{4})-([0-9]{2})-([0-9]{2})(?: [^\n]*?)?>").expect("valid")
+    });
+    let date = |year: &str, month: &str, day: &str| {
+        Some(Date::new(year.parse().ok()?, month.parse().ok()?, day.parse().ok()?))
+    };
+    if let Some(stamp) = org_core::stamp::Stamp::around(text, offset) {
+        let inner = text.get(stamp.start + 1..stamp.start + 11)?;
+        return date(&inner[0..4], &inner[5..7], &inner[8..10]);
+    }
+    let start = text[..offset].rfind('\n').map_or(0, |at| at + 1);
+    let end = text[offset..].find('\n').map_or(text.len(), |at| offset + at);
+    let found = ACTIVE.captures(&text[start..end])?;
+    date(&found[1], &found[2], &found[3])
+}
+
 pub(crate) fn abbreviate_path(path: &Path) -> String {
     let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
     match home.as_deref().and_then(|home| path.strip_prefix(home).ok()) {
@@ -16174,6 +16266,17 @@ pub(crate) fn abbreviate_path(path: &Path) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// `org-goto-calendar`'s date: the timestamp at the cursor, active or
+    /// not, else the line's last active one.
+    #[test]
+    fn goes_to_the_calendar_at_the_date_of_the_line() {
+        let text = "* A <2026-05-12 Tue> [2026-05-13 Wed] <2026-05-14 Thu 10:00>\n* B [2026-06-01]\n";
+        assert_eq!(line_timestamp_date(text, 2), Some(Date::new(2026, 5, 14)));
+        assert_eq!(line_timestamp_date(text, 25), Some(Date::new(2026, 5, 13)));
+        assert_eq!(line_timestamp_date(text, 6), Some(Date::new(2026, 5, 12)));
+        assert_eq!(line_timestamp_date(text, 64), None);
+    }
 
     #[cfg(unix)]
     #[test]

@@ -19,6 +19,16 @@
       "org.clock.in": "<Leader>oxi in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
       "org.clock.out": "<Leader>oxo in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
       "org.deadline": "<Leader>oid in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.goto.calendar": "<Leader>o> in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.journal.display.entry": "<Leader>jd in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.journal.mark.entries": "<Leader>jm in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.journal.new.date.entry": "<Leader>jn in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.journal.read.entry": "<Leader>jr in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.journal.search.calendar.month": "<Leader>jsm in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.journal.search.calendar.week": "<Leader>jsw in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.journal.search.calendar.year": "<Leader>jsy in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.journal.search.forever": "<Leader>jsf in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.journal.search.future": "<Leader>jsF in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
       "org.meta.down": "<Leader>oJ in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
       "org.meta.left": "<< in Neovim, a key of Vim's normal mode: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
       "org.meta.return": "<Leader><CR> in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
@@ -65,11 +75,13 @@
   "scenarios": {
     "helix": {
       "agenda-columns": "Helix shows no column view: it would draw over the agenda's lines, and the code actions leave it out (docs/helix.org).",
-      "calendar": "Helix has no date prompt: the calendar is a file the server writes again as the day moves, which Helix does not read again (it reloads no file changed on disk); a date is typed as a rename at the cursor (docs/keys/helix.org), so there are no date prompt keys to press."
+      "calendar": "Helix has no date prompt: the calendar is a file the server writes again as the day moves, which Helix does not read again (it reloads no file changed on disk); a date is typed as a rename at the cursor (docs/keys/helix.org), so there are no date prompt keys to press.",
+      "journal-calendar": "Helix has no date prompt: the calendar is a file the server writes again as the day moves, which Helix does not read again (it reloads no file changed on disk), so there is no calendar for org-journal's keys."
     },
     "zed": {
       "agenda-columns": "Zed shows no column view: it would draw over the agenda's lines (docs/zed.org).",
-      "calendar": "Zed has no date prompt: a date is typed as a rename at the cursor (F2), as Zed has no box of its own for typed text (docs/keys/zed.org), so there are no date prompt keys to press."
+      "calendar": "Zed has no date prompt: a date is typed as a rename at the cursor (F2), as Zed has no box of its own for typed text (docs/keys/zed.org), so there are no date prompt keys to press.",
+      "journal-calendar": "Zed has no date prompt: a date is typed as a rename at the cursor (F2), as Zed has no box of its own for typed text (docs/keys/zed.org), so there is no calendar for org-journal's keys."
     }
   },
   "steps": {

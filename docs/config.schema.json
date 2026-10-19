@@ -3938,6 +3938,11 @@
       "description": "Fold all but the new entry. (`org-journal-hide-entries-p`)",
       "default": true
     },
+    "org_journal_follow_mode": {
+      "type": "boolean",
+      "description": "In the calendar (`org.goto.calendar`), the entry of the day `]` and `[` move to shows in another window. (`org-journal-follow-mode`)",
+      "default": false
+    },
     "org_journal_find_file_fn": {
       "enum": [
         "find-file-other-window",

@@ -382,6 +382,13 @@ pub const JOURNAL_SEARCH_FUTURE: &str = "org.journal.search.future";
 pub const JOURNAL_SEARCH_FUTURE_SCHEDULED: &str = "org.journal.search.future.scheduled";
 pub const JOURNAL_SCHEDULE_VIEW: &str = "org.journal.schedule.view";
 pub const JOURNAL_RESCHEDULE: &str = "org.journal.reschedule";
+pub const JOURNAL_READ_ENTRY: &str = "org.journal.read.entry";
+pub const JOURNAL_DISPLAY_ENTRY: &str = "org.journal.display.entry";
+pub const JOURNAL_MARK_ENTRIES: &str = "org.journal.mark.entries";
+pub const JOURNAL_SEARCH_CALENDAR_WEEK: &str = "org.journal.search.calendar.week";
+pub const JOURNAL_SEARCH_CALENDAR_MONTH: &str = "org.journal.search.calendar.month";
+pub const JOURNAL_SEARCH_CALENDAR_YEAR: &str = "org.journal.search.calendar.year";
+pub const GOTO_CALENDAR: &str = "org.goto.calendar";
 pub const CAPTURE_ABORT: &str = "org.capture.abort";
 pub const CAPTURE_REFILE: &str = "org.capture.refile";
 pub const TIMESTAMP_UP: &str = "org.timestamp.up";
@@ -1629,6 +1636,8 @@ pub const COMMANDS: &[Command] = &[
         ..command(JOURNAL_NEW_ENTRY, "Journal: new entry")
     },
     Command {
+        emacs: &[key(Calendar, "j n")],
+        vim: &[key(Calendar, "<Leader>jn")],
         input: Some(Input { kind: "date", prompt: "Date" }),
         ..command(JOURNAL_NEW_DATE_ENTRY, "Journal: new entry for a date")
     },
@@ -1637,13 +1646,13 @@ pub const COMMANDS: &[Command] = &[
         ..command(JOURNAL_NEW_SCHEDULED_ENTRY, "Journal: new entry for a day to come")
     },
     Command {
-        emacs: &[key(Org, "C-c j f")],
-        vim: &[key(Org, "<Leader>jf")],
+        emacs: &[key(Org, "C-c j f"), key(Calendar, "]")],
+        vim: &[key(Org, "<Leader>jf"), key(Calendar, "]")],
         ..command(JOURNAL_NEXT_ENTRY, "Journal: next entry")
     },
     Command {
-        emacs: &[key(Org, "C-c j b")],
-        vim: &[key(Org, "<Leader>jb")],
+        emacs: &[key(Org, "C-c j b"), key(Calendar, "[")],
+        vim: &[key(Org, "<Leader>jb"), key(Calendar, "[")],
         ..command(JOURNAL_PREVIOUS_ENTRY, "Journal: previous entry")
     },
     command(JOURNAL_OPEN_CURRENT, "Journal: open the current file"),
@@ -1655,12 +1664,51 @@ pub const COMMANDS: &[Command] = &[
         ..command(JOURNAL_SEARCH, "Journal: search between two dates")
     },
     Command {
+        emacs: &[key(Calendar, "j s f")],
+        vim: &[key(Calendar, "<Leader>jsf")],
         input: Some(Input { kind: "text", prompt: "Enter a string to search for" }),
         ..command(JOURNAL_SEARCH_FOREVER, "Journal: search every entry")
     },
     Command {
+        emacs: &[key(Calendar, "j s F")],
+        vim: &[key(Calendar, "<Leader>jsF")],
         input: Some(Input { kind: "text", prompt: "Enter a string to search for" }),
         ..command(JOURNAL_SEARCH_FUTURE, "Journal: search the entries to come")
+    },
+    // The keys org-journal adds to `calendar-mode-map`: here, those of the
+    // date prompt's calendar, which `org.goto.calendar` opens on its own.
+    Command {
+        emacs: &[key(Calendar, "j s w")],
+        vim: &[key(Calendar, "<Leader>jsw")],
+        input: Some(Input { kind: "text", prompt: "Enter a string to search for" }),
+        ..command(JOURNAL_SEARCH_CALENDAR_WEEK, "Journal: search the calendar's week")
+    },
+    Command {
+        emacs: &[key(Calendar, "j s m")],
+        vim: &[key(Calendar, "<Leader>jsm")],
+        input: Some(Input { kind: "text", prompt: "Enter a string to search for" }),
+        ..command(JOURNAL_SEARCH_CALENDAR_MONTH, "Journal: search the calendar's month")
+    },
+    Command {
+        emacs: &[key(Calendar, "j s y")],
+        vim: &[key(Calendar, "<Leader>jsy")],
+        input: Some(Input { kind: "text", prompt: "Enter a string to search for" }),
+        ..command(JOURNAL_SEARCH_CALENDAR_YEAR, "Journal: search the calendar's year")
+    },
+    Command {
+        emacs: &[key(Calendar, "j r")],
+        vim: &[key(Calendar, "<Leader>jr")],
+        ..command(JOURNAL_READ_ENTRY, "Journal: the entry of the calendar's day")
+    },
+    Command {
+        emacs: &[key(Calendar, "j d")],
+        vim: &[key(Calendar, "<Leader>jd")],
+        ..command(JOURNAL_DISPLAY_ENTRY, "Journal: show the entry of the calendar's day")
+    },
+    Command {
+        emacs: &[key(Calendar, "j m")],
+        vim: &[key(Calendar, "<Leader>jm")],
+        ..command(JOURNAL_MARK_ENTRIES, "Journal: mark the days with an entry in the calendar")
     },
     command(JOURNAL_SEARCH_FUTURE_SCHEDULED, "Journal: the TODO entries to come"),
     command(JOURNAL_SCHEDULE_VIEW, "Journal: the entries to come with a date"),
@@ -1761,6 +1809,12 @@ pub const COMMANDS: &[Command] = &[
     Command {
         emacs: &[key(Org, "C-c C-x C-t")],
         ..command(TIMESTAMP_OVERLAYS_TOGGLE, "Show timestamps in the custom formats, or not")
+    },
+    // `org-goto-calendar`: the calendar alone, without a date asked for.
+    Command {
+        emacs: &[key(Org, "C-c >")],
+        vim: &[key(Org, "<Leader>o>")],
+        ..command(GOTO_CALENDAR, "Show the calendar at the date of the line")
     },
     // The date prompt: the keys of `org-read-date-minibuffer-local-map`
     // and of the calendar Emacs shows with it.
