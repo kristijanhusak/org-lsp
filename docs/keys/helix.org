@@ -3,8 +3,9 @@
 
 Helix has no plugins, so org-lsp sets no keys there, and Helix cannot run a
 server's command from a key and tell it where the cursor is. What Helix
-does have is the code action menu, and the server offers its editing
-commands there. [[file:../helix.org][helix.org]] says how to set Helix up.
+does have is the code action menu, and the server offers its commands
+there: in Org files, in the agenda and in capture buffers. [[file:../helix.org][helix.org]] says
+how to set Helix up.
 
 * The code actions
 
@@ -56,9 +57,78 @@ An unknown citation key also offers the keys close to it (/Replace with @key/).
 
 The menu shows only those that would change something. Helix has no
 status line for the clock; ~org-lsp agenda --log~ in a terminal shows what
-was clocked. Helix cannot ask for text on a server's behalf, so a TODO
-state that is set up to take a note (~WAIT(w@)~) gets its note line without
-text, and scheduling, deadlines, refile and capture are not available.
+was clocked.
+
+* What asks for something
+
+With ~show_document~ and ~message_requests~ set as [[file:../helix.org][helix.org]] says, more
+commands are code actions in an Org file, those that ask for something or
+open a document:
+
+| Action                        | What it does                                         |
+|-------------------------------+------------------------------------------------------|
+| ~org.todo~                    | Change the TODO state, picked from a list            |
+| ~org.priority~                | Set the priority, picked from a list                 |
+| ~org.schedule~                | Schedule the entry: the date is typed                |
+| ~org.deadline~                | Set the deadline of the entry: the date is typed     |
+| ~org.tags.set~                | Set the tags of the headline: they are typed         |
+| ~org.property.set~            | Set a property of the entry: it and its value typed  |
+| ~org.effort.set~              | Set the effort of the entry: it is typed             |
+| ~org.refile~                  | Refile the entry, the target picked from a list      |
+| ~org.sort~                    | Sort the entries, the items or the table rows        |
+| ~org.clock.report~            | Insert or update a clock table                       |
+| ~org.clock.goto~              | Go to the clocked entry, while a clock runs          |
+| ~org.clock.in.last~           | Clock in the last clocked task                       |
+| ~org.meta.return~             | A new heading, item or table row                     |
+| ~org.insert.todo.heading~     | A new TODO heading, or item with a checkbox          |
+| ~org.insert.heading.after~    | A new heading after the subtree                      |
+| ~org.cut.subtree~             | Cut the subtree (and ~org.copy.subtree~, paste)      |
+| ~org.agenda.list~             | The agenda for the current week or day               |
+| ~org.agenda.todos~            | The list of all TODO entries                         |
+| ~org.agenda.dispatch~         | /Agenda commands/: the agenda menu, its views picked |
+| ~org.capture~                 | Capture, the template picked from a list             |
+
+What is picked from a list comes first in the code actions once the
+command has asked: ~Space a~ again, and the choices head the menu, each
+with its key in brackets (/Agenda for the current week or day [a]/,
+/Task [t]/). What is typed is a rename at the cursor: ~Space r~, the answer
+as the new name, ~Enter~. The server says which it waits for in the status
+line (/Schedule: answer with a rename at the cursor/).
+
+* In the agenda
+
+The agenda is a file, ~Agenda.org~, and every command its keys have in
+Emacs is a code action there: on an entry's line the entry's first, then
+the view's.
+
+| On an entry's line                         | The view                                   |
+|--------------------------------------------+--------------------------------------------|
+| /Agenda: go to the entry/ (also ~gd~)      | /Agenda: go forward in time/, /backward/   |
+| /Change the TODO state/, the priority      | /Agenda: go to today/, /go to a date/      |
+| /Schedule the entry/, the deadline         | /Agenda: day view/, week, fortnight, month |
+| /Set the tags of the headline/             | /Agenda: rebuild/, /Save all Org files/    |
+| /Clock in/, /Clock out/                    | /Agenda: filter by …/, remove all filters  |
+| /Refile the entry/, /Archive the subtree/  | /Agenda: log mode/, the clock report       |
+| /Add a note to the entry/                  | /Agenda: mark all entries/, a bulk action  |
+| /Agenda: mark the entry for a bulk action/ | /Agenda: write it to a file/               |
+| /Store a link to the place at the cursor/  | /Agenda commands/                          |
+
+Follow mode, going to the entry in another window and column view are
+not among them: they need to know where the cursor goes, or draw over the
+lines. ~Space k~ on a line shows its entry. The buffer picker (~Space b~)
+goes back to the agenda where its cursor was. The server's edits leave the
+buffer changed: ~:buffer-close!~ closes it.
+
+* In a capture buffer
+
+| Action                | What it does                              |
+|-----------------------+-------------------------------------------|
+| ~org.capture.finish~  | /Capture: finish/, filing the entry       |
+| ~org.capture.abort~   | /Capture: abort/, leaving the target      |
+| ~org.capture.refile~  | /Capture: refile the entry/, to a target  |
+
+The buffer stays open once the entry is filed: Helix closes no buffer for
+a server, which shows where capture started instead.
 
 * Changing the key
 

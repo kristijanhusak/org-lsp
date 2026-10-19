@@ -370,7 +370,10 @@ install_helix() {
     !skip
   ' "$file" > "$work/languages.toml"
   local block
-  block=$(printf '%s\n[language-server.org-lsp]\ncommand = "%s"\n\n[[language]]\nname = "org"\nlanguage-servers = ["org-lsp"]\n%s' "$begin" "$dir/$exe" "$end")
+  # What Helix does without telling the server: it shows documents, and
+  # no lists (docs/helix.org). Options of one's own go in the shared
+  # configuration file, as this block is written again.
+  block=$(printf '%s\n[language-server.org-lsp]\ncommand = "%s"\n\n[language-server.org-lsp.config]\nshow_document = true\nmessage_requests = false\n\n[[language]]\nname = "org"\nfile-types = ["org", "org_archive"]\nlanguage-servers = ["org-lsp"]\n%s' "$begin" "$dir/$exe" "$end")
   if grep -Eq '^\[language-server\.org-lsp\]|^name *= *"org"' "$work/languages.toml"; then
     say "$file sets up Org already; leaving it as it is. What it needs:"
     say "$block"

@@ -576,6 +576,9 @@ pub struct Options {
     /// `window/showMessage`: for a client that does nothing with a
     /// command's result (Zed).
     pub message_prompts: Option<bool>,
+    /// Whether the client shows `window/showMessageRequest`; without, a
+    /// question's choices are code actions (Helix).
+    pub message_requests: Option<bool>,
     /// The client has org-lsp's editor code: it knows the server's own
     /// token types, asks what a command's result asks for, binds the keys.
     /// A client that can announce it says `experimental.orgClient`.
@@ -3176,6 +3179,7 @@ const OLD_NAMES: &[(&str, &str)] = &[
     ("virtualDocuments", "virtual_documents"),
     ("showDocument", "show_document"),
     ("messagePrompts", "message_prompts"),
+    ("messageRequests", "message_requests"),
     ("orgClient", "org_client"),
     ("lineHighlights", "line_highlights"),
     ("virtualIndent", "virtual_indent"),

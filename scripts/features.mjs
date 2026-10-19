@@ -80,15 +80,16 @@ export const EDITORS = [
     name: 'Helix',
     dir: 'editors/helix',
     setup: [
-      'Installed with `install.sh helix`: Org is in `~/.config/helix/languages.toml`, and an Org file starts the server',
+      'Installed with `install.sh helix`: Org is in `~/.config/helix/languages.toml` with `show_document = true` and `message_requests = false` in its `config`, and an Org file starts the server',
       'Code actions (`Space a`) list the Org commands where they apply',
+      'A command that asks for a choice says `PROMPT: pick the answer from the code actions`, and the choices come first in the code actions; one that asks for text says `PROMPT: answer with a rename at the cursor`, and `Space r` answers',
       'Inlay hints show with `display-inlay-hints = true`',
     ],
   },
 ];
 
 const ZED_TEXT = 'the answer is typed as a rename at the cursor (`F2`), as Zed has no box of its own for typed text';
-const HELIX_TEXT = 'Helix cannot ask for text on a server\'s behalf';
+const HELIX_TEXT = 'the answer is typed as a rename at the cursor (`Space r`), as Helix has no box of its own for a server to ask for text';
 const NO_KEY_HELIX = 'Helix cannot bind a key to a server\'s command (the commands are code actions, `Space a`)';
 
 export const AREAS = [
@@ -222,12 +223,12 @@ export const AREAS = [
     editors: {
       vscode: ['part', 'VS Code does not tell an extension which folds are closed: `C-k` on a folded headline is VS Code\'s own (`org-ctrl-k-protect-subtree`), and a subtree cut or copied folded is not folded again when it is pasted.'],
       zed: ['part', `A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, ${ZED_TEXT}. \`C-a\`, \`C-e\`, \`C-k\` and \`C-y\` keep Zed's own meaning, and nothing pasted is folded: Zed lets no server fold.`],
-      helix: ['part', 'New headings (`M-RET` and its relatives), moving between headings, `org-goto` and Org\'s `C-a`, `C-e`, `C-k` and `C-y` are left out: they carry the cursor for the editor to move, which Helix\'s code actions cannot do; nor are the commands run by Emacs (`C-c *`, `C-c ;`, cloning) among its code actions.'],
+      helix: ['part', 'Moving between headings, `org-goto` and Org\'s `C-a`, `C-e`, `C-k` and `C-y` are left out: they need keys, and Helix cannot bind a key to a server\'s command; nor are the commands run by Emacs (`C-c *`, `C-c ;`, cloning) among its code actions. New headings are code actions.'],
     },
     checks: [
-      { text: 'On a headline, a new heading of the same level goes below', cmd: 'org.meta.return', not: ['helix'] },
-      { text: 'A new TODO heading', cmd: 'org.insert.todo.heading', not: ['helix'] },
-      { text: 'A new heading after the subtree, and a TODO one', cmd: ['org.insert.heading.after', 'org.insert.todo.heading.after'], not: ['helix'] },
+      { text: 'On a headline, a new heading of the same level goes below', cmd: 'org.meta.return' },
+      { text: 'A new TODO heading', cmd: 'org.insert.todo.heading' },
+      { text: 'A new heading after the subtree, and a TODO one', cmd: ['org.insert.heading.after', 'org.insert.todo.heading.after'] },
       { text: 'Promoting and demoting a heading; its tags stay aligned', cmd: ['org.meta.left', 'org.meta.right'] },
       { text: 'Promoting and demoting a subtree', cmd: ['org.shiftmeta.left', 'org.shiftmeta.right'] },
       { text: 'Moving a subtree up and down past its siblings', cmd: ['org.meta.up', 'org.meta.down'] },
@@ -271,10 +272,10 @@ export const AREAS = [
     ],
     editors: {
       zed: ['part', '`RET` stays Zed\'s own, and so do Shift and Alt with the arrows, which cycle bullets and move items in Org.'],
-      helix: ['part', `\`RET\` stays Helix's own, new items, cycled bullets and lines turned into items are left out: ${NO_KEY_HELIX}, and those are not among them.`],
+      helix: ['part', `\`RET\` stays Helix's own; cycled bullets and lines turned into items are left out: ${NO_KEY_HELIX}, and those are not among them. New items are code actions.`],
     },
     checks: [
-      { text: 'On an item, the next item goes below; in a numbered list the numbers go on, after a checkbox item the new one has `[ ]`', cmd: 'org.meta.return', not: ['helix'] },
+      { text: 'On an item, the next item goes below; in a numbered list the numbers go on, after a checkbox item the new one has `[ ]`', cmd: 'org.meta.return' },
       { text: '`RET` in the middle of an item\'s line keeps the rest of the line in the item', cmd: 'org.return', not: ['zed', 'helix'] },
       { text: 'The next item from the end of an item\'s line', cmd: 'org.return.item', only: ['neovim', 'vim'] },
       { text: 'Indenting and outdenting an item; and with its children', cmd: ['org.meta.right', 'org.meta.left', 'org.shiftmeta.right', 'org.shiftmeta.left'] },
@@ -307,18 +308,18 @@ export const AREAS = [
     editors: {
       sublime: ['part', 'Faces of particular keywords and priorities are not shown in the file: Sublime Text colors text by its color scheme only. The list of TODO states shows them in the color of each item\'s kind, the nearest of those Sublime Text has.'],
       zed: ['part', `States are picked with buttons; for a note for a state change (\`@\`), ${ZED_TEXT}. Faces of particular keywords and priorities are not shown: Zed colors tokens by its theme only.`],
-      helix: ['part', `A note for a state change (\`@\`) cannot be typed: ${HELIX_TEXT}. Faces of particular keywords and priorities are not shown.`],
+      helix: ['part', `States are picked from the code actions, where they come first once asked for; for a note for a state change (\`@\`), ${HELIX_TEXT}. Faces of particular keywords and priorities are not shown.`],
     },
     checks: [
       { text: 'With `org_enforce_todo_dependencies`, a parent with a child not done cannot be done: the change is refused with `blocked (by "TODO Child")`; with `org_enforce_todo_checkbox_dependencies`, an entry with an unchecked box cannot either', cmd: 'org.todo' },
       { text: 'Those tasks are dimmed in the agenda and the TODO list', in: 'agenda' },
       { text: 'Changing the TODO state of a headline (with `org_todo_keywords` keys, picked by key)', cmd: 'org.todo' },
       { text: 'The keywords offered show in their colors, as `org-fast-todo-selection` shows them: a face of their own, or that of a TODO or done keyword', cmd: 'org.todo', only: ['neovim', 'vim', 'vscode', 'sublime'] },
-      { text: 'Cycling to the next and previous state', cmd: ['org.todo.next', 'org.todo.previous'], not: ['helix'] },
+      { text: 'Cycling to the next and previous state', cmd: ['org.todo.next', 'org.todo.previous'] },
       { text: 'With `org_use_fast_todo_selection = "expert"`, the keys are listed in the prompt `[a-z..]:Set [SPC]:clear`, no menu; with `false`, the state goes to the next one', cmd: 'org.todo', only: ['neovim', 'vim'] },
       { text: 'Repeating the change with `.`', only: ['neovim', 'vim'] },
       { text: 'Done with `org_log_done = "time"` writes `CLOSED: [...]` below the headline' , cmd: 'org.todo' },
-      { text: 'A state with `@` (`WAIT(w@)`) asks for a note, written below the headline', cmd: 'org.todo', not: ['helix'] },
+      { text: 'A state with `@` (`WAIT(w@)`) asks for a note, written below the headline', cmd: 'org.todo' },
       { text: 'Done on a repeating entry (`<2026-01-01 Thu +1w>`) moves its date a week on and keeps it TODO', cmd: 'org.todo' },
       { text: 'The parent\'s `[1/2]` cookie is recounted', cmd: 'org.todo' },
       { text: 'A `#+TODO: A B | C` line in the file is used instead of the settings', cmd: 'org.todo' },
@@ -337,7 +338,7 @@ export const AREAS = [
     ],
     checks: [
       { text: 'Raising and lowering the priority of a headline', cmd: ['org.priority.up', 'org.priority.down'] },
-      { text: 'Setting it by key; `SPC` removes it', cmd: 'org.priority', not: ['helix'] },
+      { text: 'Setting it by key; `SPC` removes it', cmd: 'org.priority' },
       { text: '`#+PRIORITIES: 1 5 3` makes the priorities numbers', cmd: 'org.priority.up' },
     ],
   },
@@ -356,12 +357,12 @@ export const AREAS = [
     editors: {
       sublime: ['part', 'Faces of particular tags are not shown: Sublime Text colors text by its color scheme only.'],
       zed: ['part', `Tags are typed, not set with keys pressed in turn: ${ZED_TEXT}. Completion and renaming work. Faces of particular tags are not shown: Zed colors tokens by its theme only.`],
-      helix: ['part', `Setting tags is left out: it needs keys pressed in turn, or typed tags, and ${HELIX_TEXT}. Completion and renaming work. Faces of particular tags are not shown.`],
+      helix: ['part', `Tags are typed, not set with keys pressed in turn: ${HELIX_TEXT}. Completion and renaming work. Faces of particular tags are not shown.`],
     },
     checks: [
       { text: 'Setting tags from `#+TAGS: work(w) home(h)` by key; each key turns its tag on and off', cmd: 'org.tags.set', not: ['zed', 'helix'] },
       { text: 'An exclusive group (`{ @office(o) @home(m) }`) turns the other tag off', cmd: 'org.tags.set', not: ['zed', 'helix'] },
-      { text: 'Typing tags when none have keys; they are sorted and aligned to `org_tags_column`', cmd: 'org.tags.set', not: ['helix'] },
+      { text: 'Typing tags when none have keys; they are sorted and aligned to `org_tags_column`', cmd: 'org.tags.set' },
       { text: 'While typing tags, the file\'s tags are completed, after each `:` too', cmd: 'org.tags.set', only: ['neovim', 'vim', 'vscode'] },
       { text: 'Tags are completed after `:` at the end of a headline' },
       { text: 'With `org_tag_faces = { work = "orange" }`, `work` in a headline\'s `:work:home:` shows in orange, not its colons nor `home`', only: ['neovim', 'vim', 'vscode'] },
@@ -387,7 +388,7 @@ export const AREAS = [
       vscode: ['part', 'Column view\'s header is in the status bar, with the column picked in brackets.'],
       sublime: ['part', 'A property\'s name and value are typed in an input panel, without completion. Column view is left out: it draws over the headlines, which Sublime Text cannot.'],
       zed: ['part', `A property, its value and the effort are typed, without completion: ${ZED_TEXT}. Column view is left out: it draws over the headlines.`],
-      helix: ['part', `Setting a property or the effort is left out: they are typed, and ${HELIX_TEXT}. Column view is left out: it draws over the headlines.`],
+      helix: ['part', `A property, its value and the effort are typed, without completion: ${HELIX_TEXT}. Column view is left out: it draws over the headlines.`],
     },
     checks: [
       { text: 'Column view: the headlines covered by their columns (`#+COLUMNS:` or the default), the header above, effort sums on parents (needs Emacs)', cmd: 'org.columns', only: ['neovim', 'vim', 'vscode'] },
@@ -398,7 +399,7 @@ export const AREAS = [
       { text: 'On a property line with `NAME_ALL`, cycling through its values', cmd: ['org.shift.right', 'org.shift.left'] },
       { text: 'Deleting a property from the entry, and from the whole file', cmd: ['org.property.delete', 'org.property.delete.globally'] },
       { text: '`C-c C-c` in a property drawer asks what to do with the property', cmd: 'org.checkbox.toggle', not: ['zed', 'helix'] },
-      { text: 'Setting the effort', cmd: 'org.effort.set', not: ['helix'] },
+      { text: 'Setting the effort', cmd: 'org.effort.set' },
       { text: 'Toggling `ORDERED`', cmd: 'org.ordered.toggle' },
       { text: 'Property names are completed in a drawer' },
     ],
@@ -419,11 +420,11 @@ export const AREAS = [
     editors: {
       sublime: ['part', 'Dates are typed, without the calendar: the package asks with an input panel.'],
       zed: ['part', `Dates are typed (\`+2d\`, \`fri 10:00\`), with no calendar: ${ZED_TEXT}. Changing a timestamp works.`],
-      helix: ['part', `Scheduling, deadlines and new timestamps are left out: they ask for a date, and ${HELIX_TEXT}. Changing a timestamp works.`],
+      helix: ['part', `Dates are typed (\`+2d\`, \`fri 10:00\`), with no calendar: ${HELIX_TEXT}; Helix reads no file again that the server writes, as the calendar is. New timestamps are left out: they are not among Helix's code actions. Changing a timestamp works.`],
     },
     checks: [
-      { text: 'Scheduling with `+2d`: `SCHEDULED: <…>` goes below the headline', cmd: 'org.schedule', not: ['helix'] },
-      { text: 'A deadline on `fri 10:00`', cmd: 'org.deadline', not: ['helix'] },
+      { text: 'Scheduling with `+2d`: `SCHEDULED: <…>` goes below the headline', cmd: 'org.schedule' },
+      { text: 'A deadline on `fri 10:00`', cmd: 'org.deadline' },
       { text: 'Removing the scheduled date and the deadline', cmd: ['org.schedule.remove', 'org.deadline.remove'] },
       { text: 'Delaying the scheduled date to a day (`-3d`) and setting the deadline\'s warning period', cmd: ['org.schedule.delay', 'org.deadline.warning'], not: ['zed', 'helix'] },
       { text: 'Inserting an active and an inactive timestamp; a second one right after makes a range', cmd: ['org.timestamp.insert', 'org.timestamp.insert.inactive'], not: ['helix'] },
@@ -487,7 +488,7 @@ export const AREAS = [
       sublime: ['part', 'Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot.'],
       vscode: ['part', 'Tags are at column 80, not at the window\'s edge (`org_agenda_tags_column` `"auto"`): VS Code does not tell an extension how many columns an editor shows.'],
       zed: ['part', `The agenda is a file, its commands code actions (or keys through Zed's tasks); for a search and a date, ${ZED_TEXT}. Follow mode and the outline path of the cursor's entry are left out: Zed reports no cursor moves to an extension. Column view in the agenda is left out: it draws over the lines.`],
-      helix: ['no', 'Helix cannot open a document on a server\'s request. `org-lsp agenda FILE...` prints the agenda in a terminal.'],
+      helix: ['part', `The agenda is a file, \`Agenda.org\`, its commands code actions, a view's choices first in them once asked for; for a search and a date, ${HELIX_TEXT}. Follow mode, the outline path of the cursor's entry and the entry in another window are left out: Helix tells a server no cursor moves, and knows no other window of the server's. Column view in the agenda is left out: it draws over the lines. The server's edits leave the agenda's buffer changed: \`:buffer-close!\` closes it.`],
     },
     checks: [
       { text: 'The agenda menu lists the views and the custom commands', cmd: 'org.agenda.dispatch', in: 'global' },
@@ -498,17 +499,18 @@ export const AREAS = [
       { text: 'With `org_super_agenda_mode` on and `org_super_agenda_groups` set (`[{ name = "Today", time-grid = true }, { auto-category = true }]`), each day of the agenda is in groups under their headers, and the TODO list too', cmd: 'org.agenda.list', in: 'global' },
       { text: 'With `org_agenda_prefix_format` `{ todo = " %-12:c%-4(org-entry-get nil \"EFFORT\") " }`, the TODO list shows each entry\'s effort after its category, `nil` without one (needs Emacs)', cmd: 'org.agenda.todos', in: 'global' },
       { text: 'Column view in the agenda covers each entry\'s line with its columns and sums the efforts on the header; `e` on an effort changes it in the entry\'s file; `q` turns it off (needs Emacs)', in: 'agenda', cmd: 'org.agenda.columns', only: ['neovim', 'vim', 'vscode'] },
-      { text: 'Going to the line\'s entry in another window, and where the agenda is', in: 'agenda', cmd: ['org.agenda.goto.other', 'org.agenda.goto'] },
+      { text: 'Going to the line\'s entry in another window, and where the agenda is', in: 'agenda', cmd: ['org.agenda.goto.other', 'org.agenda.goto'], not: ['helix'] },
+      { text: 'Going to the line\'s entry, and back to the agenda where its cursor was (`Space b`)', in: 'agenda', cmd: 'org.agenda.goto', only: ['helix'] },
       { text: 'Changing the line\'s TODO state and priority; the line follows', in: 'agenda', cmd: ['org.todo', 'org.priority.up'] },
       { text: 'Scheduling the line\'s entry and setting its deadline', in: 'agenda', cmd: ['org.schedule', 'org.deadline'] },
       { text: 'Setting the line\'s tags, adding a note, refiling, archiving', in: 'agenda', cmd: ['org.tags.set', 'org.add.note', 'org.refile', 'org.archive.default'], not: ['zed'] },
       { text: 'Filters by tag, category and effort, and removing them', in: 'agenda', cmd: ['org.agenda.filter.tag', 'org.agenda.filter.category', 'org.agenda.filter.effort', 'org.agenda.filter.remove'], not: ['zed'] },
       { text: 'Marking lines and a bulk action on them', in: 'agenda', cmd: ['org.agenda.bulk.mark', 'org.agenda.bulk.action'] },
-      { text: 'Follow mode shows the cursor\'s entry as the cursor moves', in: 'agenda', cmd: 'org.agenda.follow', not: ['zed'] },
-      { text: 'Moving the cursor in the agenda shows where its entry is, `work.org/Projects`, in the echo area (the status bar in VS Code and Sublime Text)', in: 'agenda', not: ['zed'] },
+      { text: 'Follow mode shows the cursor\'s entry as the cursor moves', in: 'agenda', cmd: 'org.agenda.follow', not: ['zed', 'helix'] },
+      { text: 'Moving the cursor in the agenda shows where its entry is, `work.org/Projects`, in the echo area (the status bar in VS Code and Sublime Text)', in: 'agenda', not: ['zed', 'helix'] },
       { text: 'Entry text, log mode, the clock report, archives mode', in: 'agenda', cmd: ['org.agenda.entry.text', 'org.agenda.log', 'org.agenda.clockreport', 'org.agenda.archives'] },
       { text: 'In the week view, inactive timestamps show after `[` with *Display now includes inactive timestamps as well*, marked `[`, and are gone again when the agenda is rebuilt', in: 'agenda', cmd: ['org.agenda.query.add', 'org.agenda.inactive', 'org.agenda.redo'] },
-      { text: 'Hovering a line shows its entry', in: 'agenda', keys: { neovim: '`gK`', vim: '`gK`', vscode: 'the mouse, `Ctrl+K Ctrl+I`', sublime: 'the mouse', zed: 'the mouse' } },
+      { text: 'Hovering a line shows its entry', in: 'agenda', keys: { neovim: '`gK`', vim: '`gK`', vscode: 'the mouse, `Ctrl+K Ctrl+I`', sublime: 'the mouse', zed: 'the mouse', helix: '`Space k`' } },
       { text: 'Rebuilding the agenda, saving the changed files, quitting', in: 'agenda', cmd: ['org.agenda.redo', 'org.agenda.save'] },
       { text: 'An entry changed in its file shows in the agenda when it is rebuilt' },
       { text: 'Adding today\'s appointments: an entry timed a few minutes from now is reminded of every three minutes until it is due (needs Emacs)', cmd: 'org.agenda.appt' },
@@ -578,7 +580,7 @@ export const AREAS = [
     ],
     editors: {
       zed: ['part', `For a template's prompts, ${ZED_TEXT}. The capture buffer's tab stays open once the entry is filed: Zed lets no server close a tab.`],
-      helix: ['no', `Helix cannot open the capture buffer, and ${HELIX_TEXT}.`],
+      helix: ['part', `Templates are picked from the code actions, where they come first once asked for; for a template's prompts, ${HELIX_TEXT}. The capture buffer stays open once the entry is filed: Helix lets no server close a buffer.`],
     },
     checks: [
       { text: 'The menu lists the templates by key', cmd: 'org.capture', in: 'global' },
@@ -616,7 +618,7 @@ export const AREAS = [
     ],
     editors: {
       zed: ['part', `A node's title is typed, without completion: ${ZED_TEXT}. The org-roam buffer does not follow the cursor: Zed reports no cursor moves to an extension.`],
-      helix: ['no', `${HELIX_TEXT}, and the commands ask for a node; nor can Helix open the org-roam buffer on a server's request.`],
+      helix: ['no', 'The commands are not among Helix\'s code actions yet.'],
     },
     checks: [
       { text: 'With `org_roam_enabled` on and `org_roam_directory` set, finding a node offers the titles and aliases of its files and visits the one picked', cmd: 'org.roam.node.find' },
@@ -655,7 +657,7 @@ export const AREAS = [
     ],
     editors: {
       zed: ['part', `For the dates and searches the commands ask for, ${ZED_TEXT}. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with \`file_types\` in Zed's settings.`],
-      helix: ['no', `Helix cannot open the journal file on a server's request, and ${HELIX_TEXT}.`],
+      helix: ['no', 'The commands are not among Helix\'s code actions yet.'],
     },
     checks: [
       { text: 'With `org_journal_enabled` on, a new entry makes today\'s file in `org_journal_dir` (a file without an extension, opened as Org) with today\'s date and an entry with the time, the cursor after it', cmd: 'org.journal.new.entry', in: 'global' },
@@ -690,17 +692,17 @@ export const AREAS = [
       ['`org-refile-target-verify-function` (the function run by Emacs at each headline)', true],
     ],
     editors: {
-      helix: ['part', 'Refiling is left out: it asks for a target from a list, which Helix cannot show for a server. Archiving works as code actions.'],
+      helix: ['part', 'Copying an entry to a target, going to a target and to the entry refiled last are left out: they are not among Helix\'s code actions. Refiling picks the target from the code actions, where the targets come first once asked for.'],
     },
     checks: [
       { text: 'Copying an entry to a target keeps it where it was; going to a target and to the entry refiled last moves the cursor there', cmd: ['org.refile.copy', 'org.refile.goto', 'org.refile.goto.last'], not: ['zed', 'helix'] },
       { text: 'With `org_log_refile` `"time"`, the refiled entry gets `Refiled on […]`; with `"note"` a note buffer opens for it', cmd: 'org.refile', not: ['zed', 'helix'] },
-      { text: 'Refiling a subtree under a heading of the same file, and of another file', cmd: 'org.refile', not: ['helix'] },
+      { text: 'Refiling a subtree under a heading of the same file, and of another file', cmd: 'org.refile' },
       { text: 'Archiving a subtree: it goes to `FILE_archive` with its `ARCHIVE_…` properties', cmd: 'org.archive.subtree' },
       { text: 'Archiving to the archive sibling', cmd: 'org.archive.sibling' },
       { text: 'Toggling the `ARCHIVE` tag', cmd: 'org.archive.tag' },
       { text: 'Archiving every done subtree after confirming each', cmd: 'org.archive.done' },
-      { text: 'In the agenda: archiving the line\'s entry; archives mode shows archived entries', in: 'agenda', cmd: ['org.archive.default', 'org.agenda.archives'], not: ['helix'] },
+      { text: 'In the agenda: archiving the line\'s entry; archives mode shows archived entries', in: 'agenda', cmd: ['org.archive.default', 'org.agenda.archives'] },
     ],
   },
   {
@@ -731,7 +733,7 @@ export const AREAS = [
     ],
     editors: {
       zed: ['part', `A link's target is typed, without completion: ${ZED_TEXT}. Following works through go to definition, for links inside Org files and to files.`],
-      helix: ['part', `Storing and inserting links are left out: they ask for text, and ${HELIX_TEXT}; moving between links needs a key. Following works through go to definition.`],
+      helix: ['part', 'Storing and inserting links in an Org file are left out: they are not among Helix\'s code actions there (the agenda stores a link to its line\'s entry); moving between links needs a key. Following works through go to definition.'],
     },
     checks: [
       { text: 'A `#+LINK: gh https://github.com/%s` line makes `[[gh:org-lsp]]` follow `https://github.com/org-lsp`; `org_link_abbrev_alist` does the same from the settings', cmd: 'org.open' },
@@ -994,13 +996,14 @@ export const AREAS = [
     ],
     editors: {
       zed: ['part', `A note is one line, with no buffer to write it in: ${ZED_TEXT}.`],
-      helix: ['no', `A note is typed text: ${HELIX_TEXT}.`],
+      helix: ['part', `A note is one line, with no buffer to write it in: ${HELIX_TEXT}. Adding a note is a code action in the agenda, not in an Org file.`],
     },
     checks: [
-      { text: 'Adding a note: a note buffer opens, and finishing writes it in the entry\'s log', cmd: 'org.add.note', not: ['zed'] },
+      { text: 'Adding a note: a note buffer opens, and finishing writes it in the entry\'s log', cmd: 'org.add.note', not: ['zed', 'helix'] },
       { text: 'Adding a note: it is asked for, and goes in the entry\'s log', cmd: 'org.add.note', only: ['zed'] },
-      { text: 'With `LOG_INTO_DRAWER`, the note goes in `:LOGBOOK:`', cmd: 'org.add.note' },
-      { text: 'Adding a note from the agenda', in: 'agenda', cmd: 'org.add.note' },
+      { text: 'With `LOG_INTO_DRAWER`, the note goes in `:LOGBOOK:`', cmd: 'org.add.note', not: ['helix'] },
+      { text: 'Adding a note from the agenda: it is asked for, and goes in the entry\'s log', in: 'agenda', cmd: 'org.add.note', only: ['helix'] },
+      { text: 'Adding a note from the agenda', in: 'agenda', cmd: 'org.add.note', not: ['helix'] },
       { text: 'With `org_log_reschedule` `"time"` (or `#+STARTUP: logreschedule`), rescheduling logs `Rescheduled from "[…]" on […]`; with `"note"` a note buffer opens for it', cmd: 'org.schedule', not: ['zed', 'helix'] },
       { text: 'With `org_log_done` `"time"`, `org.todo.yesterday` marks an entry done with `CLOSED:` at 23:59 of yesterday', cmd: 'org.todo.yesterday', not: ['helix'] },
     ],

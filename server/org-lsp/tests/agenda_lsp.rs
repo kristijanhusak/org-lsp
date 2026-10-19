@@ -5742,6 +5742,82 @@ fn a_plain_client_gets_standard_tokens_prompts_and_an_org_agenda() {
     client.shutdown();
 }
 
+/// A plain client that shows no message requests but opens documents
+/// (Helix, with `message_requests` off and `show_document` on): the
+/// agenda menu is a code action, its choices come first in the code
+/// actions until one is picked, and a rename with a choice's key answers
+/// too.
+#[test]
+fn a_client_without_message_requests_answers_from_the_code_actions() {
+    let mut options = clock();
+    options["show_document"] = json!(true);
+    options["message_requests"] = json!(false);
+    let mut client = Client::start(json!({ "experimental": { "orgClient": false } }), options, None);
+    const WORK_URI: &str = "file:///org/work.org";
+    client.open(WORK_URI, WORK);
+    let actions = |client: &mut Client| -> Vec<Value> {
+        let actions = client
+            .request(
+                "textDocument/codeAction",
+                json!({
+                    "textDocument": { "uri": WORK_URI },
+                    "range": { "start": { "line": 1, "character": 0 }, "end": { "line": 1, "character": 0 } },
+                    "context": { "diagnostics": [] }
+                }),
+            )
+            .unwrap();
+        actions.as_array().unwrap().clone()
+    };
+    let kinds = |actions: &[Value]| -> Vec<String> {
+        actions.iter().map(|action| action["kind"].as_str().unwrap().to_string()).collect()
+    };
+    let offered = kinds(&actions(&mut client));
+    for kind in ["org.agenda.dispatch", "org.capture", "org.schedule", "org.tags.set"] {
+        assert!(offered.iter().any(|offered| offered == kind), "{kind} in {offered:?}");
+    }
+
+    let requests = client.command("org.agenda.dispatch", WORK_URI, 1);
+    assert!(!methods(&requests).contains(&"window/showMessageRequest"), "{:?}", methods(&requests));
+    let said: Vec<&str> = client
+        .notifications
+        .iter()
+        .filter(|notification| notification.method == "window/showMessage")
+        .filter_map(|notification| notification.params["message"].as_str())
+        .collect();
+    assert!(said.contains(&"Press key for agenda command: pick the answer from the code actions"), "{said:?}");
+    // The choices first, then what applies at the cursor.
+    let offered = actions(&mut client);
+    assert_eq!(offered[0]["title"], "Agenda for the current week or day [a]");
+    assert_eq!(offered[0]["kind"], "org.answer");
+    assert!(kinds(&offered).iter().any(|kind| kind == "org.todo"), "{:?}", kinds(&offered));
+    let command = offered[0]["command"].clone();
+    client.received.clear();
+    client
+        .request(
+            "workspace/executeCommand",
+            json!({ "command": command["command"], "arguments": command["arguments"] }),
+        )
+        .unwrap();
+    client.settle();
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("agenda shown");
+    let agenda = shown.params["uri"].as_str().unwrap().to_string();
+    assert!(agenda.ends_with("/Agenda.org"), "{agenda}");
+    assert!(std::fs::read_to_string(agenda.trim_start_matches("file://")).unwrap().starts_with("Week-agenda"));
+    // Answered, the choices are gone.
+    assert!(!kinds(&actions(&mut client)).iter().any(|kind| kind == "org.answer"));
+
+    // A rename with the choice's key answers as well.
+    client.command("org.agenda.dispatch", WORK_URI, 1);
+    let rename = json!({
+        "textDocument": { "uri": WORK_URI }, "position": { "line": 1, "character": 0 }, "newName": "t"
+    });
+    client.request("textDocument/rename", rename).unwrap();
+    client.settle();
+    let text = std::fs::read_to_string(agenda.trim_start_matches("file://")).unwrap();
+    assert!(text.starts_with("Global list of TODO items"), "{text}");
+    client.shutdown();
+}
+
 /// `command_actions` left on in a client without org-lsp's editor code:
 /// the agenda is still an Org file in a place of its own, with its
 /// commands as code actions; Zed's way (the keys through the command

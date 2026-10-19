@@ -146,7 +146,7 @@ Where editors fall short:
 
 - VS Code ❓: VS Code does not tell an extension which folds are closed: ~C-k~ on a folded headline is VS Code's own (~org-ctrl-k-protect-subtree~), and a subtree cut or copied folded is not folded again when it is pasted.
 - Zed ❓: A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. ~C-a~, ~C-e~, ~C-k~ and ~C-y~ keep Zed's own meaning, and nothing pasted is folded: Zed lets no server fold.
-- Helix ❓: New headings (~M-RET~ and its relatives), moving between headings, ~org-goto~ and Org's ~C-a~, ~C-e~, ~C-k~ and ~C-y~ are left out: they carry the cursor for the editor to move, which Helix's code actions cannot do; nor are the commands run by Emacs (~C-c *~, ~C-c ;~, cloning) among its code actions.
+- Helix ❓: Moving between headings, ~org-goto~ and Org's ~C-a~, ~C-e~, ~C-k~ and ~C-y~ are left out: they need keys, and Helix cannot bind a key to a server's command; nor are the commands run by Emacs (~C-c *~, ~C-c ;~, cloning) among its code actions. New headings are code actions.
 
 * Lists and checkboxes
 :PROPERTIES:
@@ -172,7 +172,7 @@ Where editors fall short:
 Where editors fall short:
 
 - Zed ❓: ~RET~ stays Zed's own, and so do Shift and Alt with the arrows, which cycle bullets and move items in Org.
-- Helix ❓: ~RET~ stays Helix's own, new items, cycled bullets and lines turned into items are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and those are not among them.
+- Helix ❓: ~RET~ stays Helix's own; cycled bullets and lines turned into items are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and those are not among them. New items are code actions.
 
 * TODO keywords
 :PROPERTIES:
@@ -200,7 +200,7 @@ Where editors fall short:
 
 - Sublime Text ❓: Faces of particular keywords and priorities are not shown in the file: Sublime Text colors text by its color scheme only. The list of TODO states shows them in the color of each item's kind, the nearest of those Sublime Text has.
 - Zed ❓: States are picked with buttons; for a note for a state change (~@~), the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Faces of particular keywords and priorities are not shown: Zed colors tokens by its theme only.
-- Helix ❓: A note for a state change (~@~) cannot be typed: Helix cannot ask for text on a server's behalf. Faces of particular keywords and priorities are not shown.
+- Helix ❓: States are picked from the code actions, where they come first once asked for; for a note for a state change (~@~), the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Faces of particular keywords and priorities are not shown.
 
 * Priorities
 :PROPERTIES:
@@ -234,7 +234,7 @@ Where editors fall short:
 
 - Sublime Text ❓: Faces of particular tags are not shown: Sublime Text colors text by its color scheme only.
 - Zed ❓: Tags are typed, not set with keys pressed in turn: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Completion and renaming work. Faces of particular tags are not shown: Zed colors tokens by its theme only.
-- Helix ❓: Setting tags is left out: it needs keys pressed in turn, or typed tags, and Helix cannot ask for text on a server's behalf. Completion and renaming work. Faces of particular tags are not shown.
+- Helix ❓: Tags are typed, not set with keys pressed in turn: the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Completion and renaming work. Faces of particular tags are not shown.
 
 * Properties and column view
 :PROPERTIES:
@@ -260,7 +260,7 @@ Where editors fall short:
 - VS Code ❓: Column view's header is in the status bar, with the column picked in brackets.
 - Sublime Text ❓: A property's name and value are typed in an input panel, without completion. Column view is left out: it draws over the headlines, which Sublime Text cannot.
 - Zed ❓: A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Column view is left out: it draws over the headlines.
-- Helix ❓: Setting a property or the effort is left out: they are typed, and Helix cannot ask for text on a server's behalf. Column view is left out: it draws over the headlines.
+- Helix ❓: A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Column view is left out: it draws over the headlines.
 
 * Dates and times
 :PROPERTIES:
@@ -283,7 +283,7 @@ Where editors fall short:
 
 - Sublime Text ❓: Dates are typed, without the calendar: the package asks with an input panel.
 - Zed ❓: Dates are typed (~+2d~, ~fri 10:00~), with no calendar: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Changing a timestamp works.
-- Helix ❓: Scheduling, deadlines and new timestamps are left out: they ask for a date, and Helix cannot ask for text on a server's behalf. Changing a timestamp works.
+- Helix ❓: Dates are typed (~+2d~, ~fri 10:00~), with no calendar: the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text; Helix reads no file again that the server writes, as the calendar is. New timestamps are left out: they are not among Helix's code actions. Changing a timestamp works.
 
 * Agenda
 :PROPERTIES:
@@ -336,7 +336,7 @@ Where editors fall short:
 - VS Code ❓: Tags are at column 80, not at the window's edge (~org_agenda_tags_column~ ~"auto"~): VS Code does not tell an extension how many columns an editor shows.
 - Sublime Text ❓: Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot.
 - Zed ❓: The agenda is a file, its commands code actions (or keys through Zed's tasks); for a search and a date, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Follow mode and the outline path of the cursor's entry are left out: Zed reports no cursor moves to an extension. Column view in the agenda is left out: it draws over the lines.
-- Helix ❌: Helix cannot open a document on a server's request. ~org-lsp agenda FILE...~ prints the agenda in a terminal.
+- Helix ❓: The agenda is a file, ~Agenda.org~, its commands code actions, a view's choices first in them once asked for; for a search and a date, the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Follow mode, the outline path of the cursor's entry and the entry in another window are left out: Helix tells a server no cursor moves, and knows no other window of the server's. Column view in the agenda is left out: it draws over the lines. The server's edits leave the agenda's buffer changed: ~:buffer-close!~ closes it.
 
 * Clocking
 :PROPERTIES:
@@ -388,7 +388,7 @@ Where editors fall short:
 Where editors fall short:
 
 - Zed ❓: For a template's prompts, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The capture buffer's tab stays open once the entry is filed: Zed lets no server close a tab.
-- Helix ❌: Helix cannot open the capture buffer, and Helix cannot ask for text on a server's behalf.
+- Helix ❓: Templates are picked from the code actions, where they come first once asked for; for a template's prompts, the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. The capture buffer stays open once the entry is filed: Helix lets no server close a buffer.
 
 * Notes (org-roam)
 :PROPERTIES:
@@ -417,7 +417,7 @@ Where editors fall short:
 Where editors fall short:
 
 - Zed ❓: A node's title is typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The org-roam buffer does not follow the cursor: Zed reports no cursor moves to an extension.
-- Helix ❌: Helix cannot ask for text on a server's behalf, and the commands ask for a node; nor can Helix open the org-roam buffer on a server's request.
+- Helix ❌: The commands are not among Helix's code actions yet.
 
 * A journal (org-journal)
 :PROPERTIES:
@@ -444,7 +444,7 @@ Where editors fall short:
 Where editors fall short:
 
 - Zed ❓: For the dates and searches the commands ask for, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with ~file_types~ in Zed's settings.
-- Helix ❌: Helix cannot open the journal file on a server's request, and Helix cannot ask for text on a server's behalf.
+- Helix ❌: The commands are not among Helix's code actions yet.
 
 * Refile and archive
 :PROPERTIES:
@@ -469,7 +469,7 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Helix ❓: Refiling is left out: it asks for a target from a list, which Helix cannot show for a server. Archiving works as code actions.
+- Helix ❓: Copying an entry to a target, going to a target and to the entry refiled last are left out: they are not among Helix's code actions. Refiling picks the target from the code actions, where the targets come first once asked for.
 
 * Links
 :PROPERTIES:
@@ -504,7 +504,7 @@ Where editors fall short:
 Where editors fall short:
 
 - Zed ❓: A link's target is typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Following works through go to definition, for links inside Org files and to files.
-- Helix ❓: Storing and inserting links are left out: they ask for text, and Helix cannot ask for text on a server's behalf; moving between links needs a key. Following works through go to definition.
+- Helix ❓: Storing and inserting links in an Org file are left out: they are not among Helix's code actions there (the agenda stores a link to its line's entry); moving between links needs a key. Following works through go to definition.
 
 * Footnotes
 :PROPERTIES:
@@ -696,7 +696,7 @@ Where editors fall short:
 Where editors fall short:
 
 - Zed ❓: A note is one line, with no buffer to write it in: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text.
-- Helix ❌: A note is typed text: Helix cannot ask for text on a server's behalf.
+- Helix ❓: A note is one line, with no buffer to write it in: the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Adding a note is a code action in the agenda, not in an Org file.
 
 * Completion and editing helpers
 :PROPERTIES:

@@ -79,5 +79,9 @@ everything the editors' pages list beyond LSP.
 The commands that ask a question (a TODO state, the agenda, capture,
 refiling) come only to an editor that says it shows the server's lists
 (~window.showMessage~ in its capabilities), or with ~message_prompts~ set to
-true; and the agenda and capture only to one that opens a document the
-server asks it to show (~window/showDocument~). [[file:helix.org][Helix]] does neither.
+true, or with ~message_requests~ set to false for an editor that shows no
+list: the choices then come first in the code actions. The agenda and
+capture come only to one that opens a document the server asks it to show
+(~window/showDocument~), or with ~show_document~ set to true. [[file:helix.org][Helix]]
+does that without saying so and shows no list, so its configuration sets
+both.

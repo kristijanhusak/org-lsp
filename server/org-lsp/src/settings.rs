@@ -3578,6 +3578,19 @@ pub const SETTINGS: &[Setting] = &[
     Setting {
         integration: true,
         ..setting(
+            "message_requests",
+            "boolean",
+            "true",
+            "",
+            "Whether the client shows the questions of `message_prompts` that have choices \
+             (`window/showMessageRequest`). Off, for a client that cannot (Helix), the server says \
+             `PROMPT: pick the answer from the code actions`, and until it is answered the code actions start \
+             with the choices; a rename with the choice's key answers too.",
+        )
+    },
+    Setting {
+        integration: true,
+        ..setting(
             "line_highlights",
             "boolean",
             "false",
@@ -4317,6 +4330,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("create_files", BOOLEAN),
     ("org_client", BOOLEAN),
     ("message_prompts", BOOLEAN),
+    ("message_requests", BOOLEAN),
     ("line_highlights", BOOLEAN),
     ("images", BOOLEAN),
     ("view_changed", BOOLEAN),
