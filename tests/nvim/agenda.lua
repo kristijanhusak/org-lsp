@@ -887,7 +887,7 @@ local float_buf = vim.api.nvim_win_get_buf(float)
 wait('the float made an Org buffer', function()
   return vim.bo[float_buf].filetype == 'org'
 end)
-eq(vim.wo[float].spell, false, 'no spelling marked in the float')
+eq(vim.wo[float].spell, false, "Markdown's spelling gone from the float")
 eq(vim.api.nvim_buf_get_lines(float_buf, 0, 2, false), { '* TODO [#A] Write the report :office:', 'SCHEDULED: <2026-05-18 Mon 09:00>' },
   'the headline and its text, as Org')
 -- Not indented as `org-indent-mode` indents: wider than the float.
@@ -911,6 +911,28 @@ vim.api.nvim_exec_autocmds('CursorMoved', { buffer = 0 })
 wait('the float to close', function()
   return not vim.api.nvim_win_is_valid(float)
 end)
+only_window()
+-- Spelling on in Org files instead: the float, an Org file, has it.
+vim.api.nvim_clear_autocmds({ group = spell_group })
+vim.api.nvim_create_autocmd('FileType', { group = spell_group, pattern = 'org', command = 'setlocal spell' })
+choice = 'a'
+press('\\oa')
+wait_for_view('Week-agenda (W21):')
+vim.api.nvim_win_set_cursor(0, { 4, 30 })
+press('K')
+local org_float
+wait('the entry in a float', function()
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if vim.api.nvim_win_get_config(win).relative ~= '' then
+      org_float = win
+      return true
+    end
+  end
+end)
+wait('the float made an Org buffer', function()
+  return vim.bo[vim.api.nvim_win_get_buf(org_float)].filetype == 'org'
+end)
+eq(vim.wo[org_float].spell, true, "Org's spelling in the float")
 only_window()
 vim.cmd('syntax off')
 vim.api.nvim_del_augroup_by_id(spell_group)
