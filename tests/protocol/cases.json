@@ -1,0 +1,3297 @@
+[
+ {
+  "url": "org-protocol://store-link?url=https%3A%2F%2Forgmode.org%2F&title=Org%20mode",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "https://orgmode.org/",
+     "Org mode"
+    ]
+   ],
+   "kill": "https://orgmode.org/",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"https://orgmode.org/\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link?url=https%3A%2F%2Forgmode.org%2F&title=Org+mode+%2B+more",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "https://orgmode.org/",
+     "Org mode + more"
+    ]
+   ],
+   "kill": "https://orgmode.org/",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"https://orgmode.org/\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link?url=https%3A%2F%2Forgmode.org%2F",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "https://orgmode.org/",
+     null
+    ]
+   ],
+   "kill": "https://orgmode.org/",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"https://orgmode.org/\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link?title=No+URL",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": [],
+   "error": "Wrong type argument: stringp, nil"
+  }
+ },
+ {
+  "url": "org-protocol://store-link?url=https://orgmode.org//manual/&title=x",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "https://orgmode.org/manual/",
+     "x"
+    ]
+   ],
+   "kill": "https://orgmode.org/manual/",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"https://orgmode.org/manual/\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link?url=https://orgmode.org/a/../b/./c&title=dots",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "https://orgmode.org/b/c",
+     "dots"
+    ]
+   ],
+   "kill": "https://orgmode.org/b/c",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"https://orgmode.org/b/c\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link?url=https%3A%2F%2Fexample.com%2Fsearch%3Fq%3Da%26b&title=Q%26A",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "https://example.com/search?q=a&b",
+     "Q&A"
+    ]
+   ],
+   "kill": "https://example.com/search?q=a&b",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"https://example.com/search?q=a&b\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link?url=http%3A%2F%2Fx.org%2F%22quoted%22%5C&title=back%5Cslash",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "http://x.org/\"quoted\"\\",
+     "back\\slash"
+    ]
+   ],
+   "kill": "http://x.org/\"quoted\"\\",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"http://x.org/\\\"quoted\\\"\\\\\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link?url=https%3A%2F%2Fexample.com&title=Caf%C3%A9+%E2%82%AC+%F0%9F%98%80",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "https://example.com",
+     "Café € 😀"
+    ]
+   ],
+   "kill": "https://example.com",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"https://example.com\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link?url=https%3A%2F%2Fexample.com&title=Latin%E9%20one",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "https://example.com",
+     "Latiné one"
+    ]
+   ],
+   "kill": "https://example.com",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"https://example.com\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link?url=https%3A%2F%2Fexample.com&title=%C3%A9%E9",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "https://example.com",
+     "Ã©é"
+    ]
+   ],
+   "kill": "https://example.com",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"https://example.com\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link?url=https%3A%2F%2Fexample.com&title=%zz%1z",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "https://example.com",
+     "\u0000\u0001"
+    ]
+   ],
+   "kill": "https://example.com",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"https://example.com\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link?url=https%3A%2F%2Fexample.com&title=a%2",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "https://example.com",
+     "a%2"
+    ]
+   ],
+   "kill": "https://example.com",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"https://example.com\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link?url=x&title=one&title=two",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "x",
+     "one"
+    ]
+   ],
+   "kill": "x",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"x\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link?url=x&title=a=b=c",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "x",
+     "a"
+    ]
+   ],
+   "kill": "x",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"x\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link?url=x&flag",
+  "expected": {
+   "handler": null,
+   "result": null,
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": [],
+   "error": "Wrong type argument: arrayp, nil"
+  }
+ },
+ {
+  "url": "org-protocol://store-link?",
+  "expected": {
+   "handler": null,
+   "result": null,
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": [],
+   "error": "Wrong type argument: arrayp, nil"
+  }
+ },
+ {
+  "url": "org-protocol://store-link?url=",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "",
+     null
+    ]
+   ],
+   "kill": "",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link/?url=https%3A%2F%2Fexample.com",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "https://example.com",
+     null
+    ]
+   ],
+   "kill": "https://example.com",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"https://example.com\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol:/store-link?url=https%3A%2F%2Fexample.com",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "https://example.com",
+     null
+    ]
+   ],
+   "kill": "https://example.com",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"https://example.com\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol:///store-link?url=https%3A%2F%2Fexample.com",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "https://example.com",
+     null
+    ]
+   ],
+   "kill": "https://example.com",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"https://example.com\""
+   ]
+  }
+ },
+ {
+  "url": "ORG-PROTOCOL://Store-Link?url=https%3A%2F%2Fexample.com&title=Case",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "https://example.com",
+     "Case"
+    ]
+   ],
+   "kill": "https://example.com",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"https://example.com\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link?url=https%3A%2F%2Fexample.com&title=Trailing/",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "https://example.com",
+     "Trailing/"
+    ]
+   ],
+   "kill": "https://example.com",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"https://example.com\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link?url=HTTPS:%2F%2FExample.com%2F%2Fx&title=t",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "HTTPS://Example.com/x",
+     "t"
+    ]
+   ],
+   "kill": "HTTPS://Example.com/x",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"HTTPS://Example.com/x\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link?url=mailto%3Ame%40example.com&title=Mail",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "mailto:me@example.com",
+     "Mail"
+    ]
+   ],
+   "kill": "mailto:me@example.com",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"mailto:me@example.com\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link?url=https%3A%2F%2Fexample.com&title=line%0Abreak",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "https://example.com",
+     "line\nbreak"
+    ]
+   ],
+   "kill": "https://example.com",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"https://example.com\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link:/https:%2F%2Forgmode.org%2F/Org%20mode",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "https://orgmode.org/",
+     "Org mode"
+    ]
+   ],
+   "kill": "https://orgmode.org/",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"https://orgmode.org/\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link://https%3A%2F%2Forgmode.org/Org%20mode",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "https://orgmode.org",
+     "Org mode"
+    ]
+   ],
+   "kill": "https://orgmode.org",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"https://orgmode.org\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link:/https:/orgmode.org/manual/Title",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "https:",
+     "orgmode.org"
+    ]
+   ],
+   "kill": "https:",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"https:\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link:/https%3A%2F%2Fexample.com",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "https://example.com",
+     null
+    ]
+   ],
+   "kill": "https://example.com",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"https://example.com\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link:/https%3A%2F%2Fexample.com/Title/key/value/odd",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "https://example.com",
+     "Title"
+    ]
+   ],
+   "kill": "https://example.com",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"https://example.com\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link:/https%3A%2F%2Fexample.com?Title?More",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "https://example.com",
+     "Title"
+    ]
+   ],
+   "kill": "https://example.com",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"https://example.com\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link:/",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "",
+     null
+    ]
+   ],
+   "kill": "",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://capture?template=x&url=https%3A%2F%2Forgmode.org%2F&title=Org+mode&body=Some+text",
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [
+    [
+     "https://orgmode.org/",
+     "Org mode"
+    ]
+   ],
+   "kill": null,
+   "capture": {
+    "template": "x",
+    "plist": [
+     [
+      ":type",
+      "https"
+     ],
+     [
+      ":link",
+      "https://orgmode.org/"
+     ],
+     [
+      ":description",
+      "Org mode"
+     ],
+     [
+      ":annotation",
+      "[[https://orgmode.org/][Org mode]]"
+     ],
+     [
+      ":initial",
+      "Some text"
+     ],
+     [
+      ":query",
+      [
+       [
+        ":template",
+        "x"
+       ],
+       [
+        ":url",
+        "https://orgmode.org/"
+       ],
+       [
+        ":title",
+        "Org mode"
+       ],
+       [
+        ":body",
+        "Some text"
+       ]
+      ]
+     ]
+    ]
+   },
+   "messages": [
+    "Greedy org-protocol handler.  Killing client.",
+    "Item captured."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://capture?url=https%3A%2F%2Forgmode.org%2F&title=Org+mode&body=Some+text",
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [
+    [
+     "https://orgmode.org/",
+     "Org mode"
+    ]
+   ],
+   "kill": null,
+   "capture": {
+    "template": null,
+    "plist": [
+     [
+      ":type",
+      "https"
+     ],
+     [
+      ":link",
+      "https://orgmode.org/"
+     ],
+     [
+      ":description",
+      "Org mode"
+     ],
+     [
+      ":annotation",
+      "[[https://orgmode.org/][Org mode]]"
+     ],
+     [
+      ":initial",
+      "Some text"
+     ],
+     [
+      ":query",
+      [
+       [
+        ":url",
+        "https://orgmode.org/"
+       ],
+       [
+        ":title",
+        "Org mode"
+       ],
+       [
+        ":body",
+        "Some text"
+       ]
+      ]
+     ]
+    ]
+   },
+   "messages": [
+    "Greedy org-protocol handler.  Killing client.",
+    "Item captured."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://capture?url=https%3A%2F%2Forgmode.org%2F&title=Org",
+  "options": {
+   "default_template_key": "w"
+  },
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [
+    [
+     "https://orgmode.org/",
+     "Org"
+    ]
+   ],
+   "kill": null,
+   "capture": {
+    "template": "w",
+    "plist": [
+     [
+      ":type",
+      "https"
+     ],
+     [
+      ":link",
+      "https://orgmode.org/"
+     ],
+     [
+      ":description",
+      "Org"
+     ],
+     [
+      ":annotation",
+      "[[https://orgmode.org/][Org]]"
+     ],
+     [
+      ":initial",
+      ""
+     ],
+     [
+      ":query",
+      [
+       [
+        ":url",
+        "https://orgmode.org/"
+       ],
+       [
+        ":title",
+        "Org"
+       ]
+      ]
+     ]
+    ]
+   },
+   "messages": [
+    "Greedy org-protocol handler.  Killing client.",
+    "Item captured."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://capture?template=b&url=https%3A%2F%2Forgmode.org%2F",
+  "options": {
+   "default_template_key": "w"
+  },
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [
+    [
+     "https://orgmode.org/",
+     ""
+    ]
+   ],
+   "kill": null,
+   "capture": {
+    "template": "b",
+    "plist": [
+     [
+      ":type",
+      "https"
+     ],
+     [
+      ":link",
+      "https://orgmode.org/"
+     ],
+     [
+      ":description",
+      ""
+     ],
+     [
+      ":annotation",
+      "[[https://orgmode.org/][https://orgmode.org/]]"
+     ],
+     [
+      ":initial",
+      ""
+     ],
+     [
+      ":query",
+      [
+       [
+        ":template",
+        "b"
+       ],
+       [
+        ":url",
+        "https://orgmode.org/"
+       ]
+      ]
+     ]
+    ]
+   },
+   "messages": [
+    "Greedy org-protocol handler.  Killing client.",
+    "Item captured."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://capture?template=x&title=Only+a+title&body=Line+one%0ALine+two",
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [],
+   "kill": null,
+   "capture": {
+    "template": "x",
+    "plist": [
+     [
+      ":type",
+      null
+     ],
+     [
+      ":link",
+      null
+     ],
+     [
+      ":description",
+      "Only a title"
+     ],
+     [
+      ":annotation",
+      "Only a title"
+     ],
+     [
+      ":initial",
+      "Line one\nLine two"
+     ],
+     [
+      ":query",
+      [
+       [
+        ":template",
+        "x"
+       ],
+       [
+        ":title",
+        "Only a title"
+       ],
+       [
+        ":body",
+        "Line one\nLine two"
+       ]
+      ]
+     ]
+    ]
+   },
+   "messages": [
+    "Greedy org-protocol handler.  Killing client.",
+    "Item captured."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://capture?template=x&url=https%3A%2F%2Fexample.com&title=%20%20",
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [
+    [
+     "https://example.com",
+     "  "
+    ]
+   ],
+   "kill": null,
+   "capture": {
+    "template": "x",
+    "plist": [
+     [
+      ":type",
+      "https"
+     ],
+     [
+      ":link",
+      "https://example.com"
+     ],
+     [
+      ":description",
+      "  "
+     ],
+     [
+      ":annotation",
+      "[[https://example.com][https://example.com]]"
+     ],
+     [
+      ":initial",
+      ""
+     ],
+     [
+      ":query",
+      [
+       [
+        ":template",
+        "x"
+       ],
+       [
+        ":url",
+        "https://example.com"
+       ],
+       [
+        ":title",
+        "  "
+       ]
+      ]
+     ]
+    ]
+   },
+   "messages": [
+    "Greedy org-protocol handler.  Killing client.",
+    "Item captured."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://capture?template=x&url=https%3A%2F%2Fexample.com&title=%5Bbrackets%5D",
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [
+    [
+     "https://example.com",
+     "[brackets]"
+    ]
+   ],
+   "kill": null,
+   "capture": {
+    "template": "x",
+    "plist": [
+     [
+      ":type",
+      "https"
+     ],
+     [
+      ":link",
+      "https://example.com"
+     ],
+     [
+      ":description",
+      "[brackets]"
+     ],
+     [
+      ":annotation",
+      "[[https://example.com][[brackets]​]]"
+     ],
+     [
+      ":initial",
+      ""
+     ],
+     [
+      ":query",
+      [
+       [
+        ":template",
+        "x"
+       ],
+       [
+        ":url",
+        "https://example.com"
+       ],
+       [
+        ":title",
+        "[brackets]"
+       ]
+      ]
+     ]
+    ]
+   },
+   "messages": [
+    "Greedy org-protocol handler.  Killing client.",
+    "Item captured."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://capture?template=x&url=https%3A%2F%2Fexample.com%2F%5Bx%5D&title=a%5D%5Db",
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [
+    [
+     "https://example.com/[x]",
+     "a]]b"
+    ]
+   ],
+   "kill": null,
+   "capture": {
+    "template": "x",
+    "plist": [
+     [
+      ":type",
+      "https"
+     ],
+     [
+      ":link",
+      "https://example.com/[x]"
+     ],
+     [
+      ":description",
+      "a]]b"
+     ],
+     [
+      ":annotation",
+      "[[https://example.com/\\[x\\]][a]​]b]]"
+     ],
+     [
+      ":initial",
+      ""
+     ],
+     [
+      ":query",
+      [
+       [
+        ":template",
+        "x"
+       ],
+       [
+        ":url",
+        "https://example.com/[x]"
+       ],
+       [
+        ":title",
+        "a]]b"
+       ]
+      ]
+     ]
+    ]
+   },
+   "messages": [
+    "Greedy org-protocol handler.  Killing client.",
+    "Item captured."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://capture?template=x&url=&title=Empty",
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [
+    [
+     "",
+     "Empty"
+    ]
+   ],
+   "kill": null,
+   "capture": {
+    "template": "x",
+    "plist": [
+     [
+      ":type",
+      null
+     ],
+     [
+      ":link",
+      ""
+     ],
+     [
+      ":description",
+      "Empty"
+     ],
+     [
+      ":annotation",
+      "Empty"
+     ],
+     [
+      ":initial",
+      ""
+     ],
+     [
+      ":query",
+      [
+       [
+        ":template",
+        "x"
+       ],
+       [
+        ":url",
+        ""
+       ],
+       [
+        ":title",
+        "Empty"
+       ]
+      ]
+     ]
+    ]
+   },
+   "messages": [
+    "Greedy org-protocol handler.  Killing client.",
+    "Item captured."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://capture?template=x&url=%20&title=",
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": [
+    "Greedy org-protocol handler.  Killing client."
+   ],
+   "error": "Empty link"
+  }
+ },
+ {
+  "url": "org-protocol://capture?template=x&url=file%3A%2Fhome%2Fme%2Fnotes.org&title=Notes",
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [
+    [
+     "file://home/me/notes.org",
+     "Notes"
+    ]
+   ],
+   "kill": null,
+   "capture": {
+    "template": "x",
+    "plist": [
+     [
+      ":type",
+      "file"
+     ],
+     [
+      ":link",
+      "file://home/me/notes.org"
+     ],
+     [
+      ":description",
+      "Notes"
+     ],
+     [
+      ":annotation",
+      "[[file://home/me/notes.org][Notes]]"
+     ],
+     [
+      ":initial",
+      ""
+     ],
+     [
+      ":query",
+      [
+       [
+        ":template",
+        "x"
+       ],
+       [
+        ":url",
+        "file:/home/me/notes.org"
+       ],
+       [
+        ":title",
+        "Notes"
+       ]
+      ]
+     ]
+    ]
+   },
+   "messages": [
+    "Greedy org-protocol handler.  Killing client.",
+    "Item captured."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://capture?template=x&url=no-scheme&title=Plain",
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [
+    [
+     "no-scheme",
+     "Plain"
+    ]
+   ],
+   "kill": null,
+   "capture": {
+    "template": "x",
+    "plist": [
+     [
+      ":type",
+      null
+     ],
+     [
+      ":link",
+      "no-scheme"
+     ],
+     [
+      ":description",
+      "Plain"
+     ],
+     [
+      ":annotation",
+      "[[no-scheme][Plain]]"
+     ],
+     [
+      ":initial",
+      ""
+     ],
+     [
+      ":query",
+      [
+       [
+        ":template",
+        "x"
+       ],
+       [
+        ":url",
+        "no-scheme"
+       ],
+       [
+        ":title",
+        "Plain"
+       ]
+      ]
+     ]
+    ]
+   },
+   "messages": [
+    "Greedy org-protocol handler.  Killing client.",
+    "Item captured."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://capture?template=xy&url=https%3A%2F%2Fexample.com&extra=1",
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [
+    [
+     "https://example.com",
+     ""
+    ]
+   ],
+   "kill": null,
+   "capture": {
+    "template": "xy",
+    "plist": [
+     [
+      ":type",
+      "https"
+     ],
+     [
+      ":link",
+      "https://example.com"
+     ],
+     [
+      ":description",
+      ""
+     ],
+     [
+      ":annotation",
+      "[[https://example.com][https://example.com]]"
+     ],
+     [
+      ":initial",
+      ""
+     ],
+     [
+      ":query",
+      [
+       [
+        ":template",
+        "xy"
+       ],
+       [
+        ":url",
+        "https://example.com"
+       ],
+       [
+        ":extra",
+        "1"
+       ]
+      ]
+     ]
+    ]
+   },
+   "messages": [
+    "Greedy org-protocol handler.  Killing client.",
+    "Item captured."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://capture?body=Only+a+body",
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [],
+   "kill": null,
+   "capture": {
+    "template": null,
+    "plist": [
+     [
+      ":type",
+      null
+     ],
+     [
+      ":link",
+      null
+     ],
+     [
+      ":description",
+      ""
+     ],
+     [
+      ":annotation",
+      ""
+     ],
+     [
+      ":initial",
+      "Only a body"
+     ],
+     [
+      ":query",
+      [
+       [
+        ":body",
+        "Only a body"
+       ]
+      ]
+     ]
+    ]
+   },
+   "messages": [
+    "Greedy org-protocol handler.  Killing client.",
+    "Item captured."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://capture?template=x&url=https%3A%2F%2Fexample.com&title=t&body=org-protocol%3A%2F%2Fcapture%3Fx",
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [
+    [
+     "https://example.com",
+     "t"
+    ]
+   ],
+   "kill": null,
+   "capture": {
+    "template": "x",
+    "plist": [
+     [
+      ":type",
+      "https"
+     ],
+     [
+      ":link",
+      "https://example.com"
+     ],
+     [
+      ":description",
+      "t"
+     ],
+     [
+      ":annotation",
+      "[[https://example.com][t]]"
+     ],
+     [
+      ":initial",
+      "org-protocol://capture?x"
+     ],
+     [
+      ":query",
+      [
+       [
+        ":template",
+        "x"
+       ],
+       [
+        ":url",
+        "https://example.com"
+       ],
+       [
+        ":title",
+        "t"
+       ],
+       [
+        ":body",
+        "org-protocol://capture?x"
+       ]
+      ]
+     ]
+    ]
+   },
+   "messages": [
+    "Greedy org-protocol handler.  Killing client.",
+    "Item captured."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://capture?url=a&title=org-protocol://capture?url=b",
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [
+    [
+     "a",
+     ""
+    ]
+   ],
+   "kill": null,
+   "capture": {
+    "template": null,
+    "plist": [
+     [
+      ":type",
+      null
+     ],
+     [
+      ":link",
+      "a"
+     ],
+     [
+      ":description",
+      ""
+     ],
+     [
+      ":annotation",
+      "[[a][a]]"
+     ],
+     [
+      ":initial",
+      ""
+     ],
+     [
+      ":query",
+      [
+       [
+        ":url",
+        "a"
+       ],
+       [
+        ":title",
+        ""
+       ]
+      ]
+     ]
+    ]
+   },
+   "messages": [
+    "Greedy org-protocol handler.  Killing client.",
+    "Item captured."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://store-link?url=a&title=org-protocol://capture:/x/y",
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [
+    [
+     "y",
+     ""
+    ]
+   ],
+   "kill": null,
+   "capture": {
+    "template": "x",
+    "plist": [
+     [
+      ":type",
+      null
+     ],
+     [
+      ":link",
+      "y"
+     ],
+     [
+      ":description",
+      ""
+     ],
+     [
+      ":annotation",
+      "[[y][y]]"
+     ],
+     [
+      ":initial",
+      ""
+     ],
+     [
+      ":query",
+      [
+       [
+        ":template",
+        "x"
+       ],
+       [
+        ":url",
+        "y"
+       ],
+       [
+        ":title",
+        null
+       ],
+       [
+        ":body",
+        null
+       ]
+      ]
+     ]
+    ]
+   },
+   "messages": [
+    "Greedy org-protocol handler.  Killing client.",
+    "Item captured."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://capture?url=a&x=org-protocol://capture:/b",
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [
+    [
+     "url=a&x=",
+     ""
+    ]
+   ],
+   "kill": null,
+   "capture": {
+    "template": null,
+    "plist": [
+     [
+      ":type",
+      null
+     ],
+     [
+      ":link",
+      "url=a&x="
+     ],
+     [
+      ":description",
+      ""
+     ],
+     [
+      ":annotation",
+      "[[url=a&x=][url=a&x=]]"
+     ],
+     [
+      ":initial",
+      ""
+     ],
+     [
+      ":query",
+      [
+       [
+        ":url",
+        "url=a&x="
+       ],
+       [
+        ":title",
+        null
+       ],
+       [
+        ":body",
+        null
+       ]
+      ]
+     ]
+    ]
+   },
+   "messages": [
+    "Greedy org-protocol handler.  Killing client.",
+    "Item captured."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://capture?url=x/../y",
+  "expected": {
+   "handler": null,
+   "result": "/org-protocol:/y",
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": []
+  }
+ },
+ {
+  "url": "org-protocol://capture?url=x/..",
+  "expected": {
+   "handler": null,
+   "result": "/org-protocol:",
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": []
+  }
+ },
+ {
+  "url": "org-protocol://capture?url=x/../../..",
+  "expected": {
+   "handler": null,
+   "result": "/..",
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": []
+  }
+ },
+ {
+  "url": "org-protocol://capture:/x/https%3A%2F%2Forgmode.org%2F/Org%20mode/Some%20text",
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [
+    [
+     "https://orgmode.org/",
+     "Org mode"
+    ]
+   ],
+   "kill": null,
+   "capture": {
+    "template": "x",
+    "plist": [
+     [
+      ":type",
+      "https"
+     ],
+     [
+      ":link",
+      "https://orgmode.org/"
+     ],
+     [
+      ":description",
+      "Org mode"
+     ],
+     [
+      ":annotation",
+      "[[https://orgmode.org/][Org mode]]"
+     ],
+     [
+      ":initial",
+      "Some text"
+     ],
+     [
+      ":query",
+      [
+       [
+        ":template",
+        "x"
+       ],
+       [
+        ":url",
+        "https://orgmode.org/"
+       ],
+       [
+        ":title",
+        "Org mode"
+       ],
+       [
+        ":body",
+        "Some text"
+       ]
+      ]
+     ]
+    ]
+   },
+   "messages": [
+    "Greedy org-protocol handler.  Killing client.",
+    "Item captured."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://capture:/https%3A%2F%2Forgmode.org%2F/Org%20mode/Some%20text",
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [
+    [
+     "https://orgmode.org/",
+     "Org mode"
+    ]
+   ],
+   "kill": null,
+   "capture": {
+    "template": null,
+    "plist": [
+     [
+      ":type",
+      "https"
+     ],
+     [
+      ":link",
+      "https://orgmode.org/"
+     ],
+     [
+      ":description",
+      "Org mode"
+     ],
+     [
+      ":annotation",
+      "[[https://orgmode.org/][Org mode]]"
+     ],
+     [
+      ":initial",
+      "Some text"
+     ],
+     [
+      ":query",
+      [
+       [
+        ":url",
+        "https://orgmode.org/"
+       ],
+       [
+        ":title",
+        "Org mode"
+       ],
+       [
+        ":body",
+        "Some text"
+       ]
+      ]
+     ]
+    ]
+   },
+   "messages": [
+    "Greedy org-protocol handler.  Killing client.",
+    "Item captured."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://capture://x/https%3A%2F%2Forgmode.org%2F/Org/Body/k/v",
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [
+    [
+     "https://orgmode.org/",
+     "Org"
+    ]
+   ],
+   "kill": null,
+   "capture": {
+    "template": "x",
+    "plist": [
+     [
+      ":type",
+      "https"
+     ],
+     [
+      ":link",
+      "https://orgmode.org/"
+     ],
+     [
+      ":description",
+      "Org"
+     ],
+     [
+      ":annotation",
+      "[[https://orgmode.org/][Org]]"
+     ],
+     [
+      ":initial",
+      "Body"
+     ],
+     [
+      ":query",
+      [
+       [
+        ":template",
+        "x"
+       ],
+       [
+        ":url",
+        "https://orgmode.org/"
+       ],
+       [
+        ":title",
+        "Org"
+       ],
+       [
+        ":body",
+        "Body"
+       ],
+       [
+        ":k",
+        "v"
+       ]
+      ]
+     ]
+    ]
+   },
+   "messages": [
+    "Greedy org-protocol handler.  Killing client.",
+    "Item captured."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://capture:/x/https:/orgmode.org/Org",
+  "options": {
+   "default_template_key": "w"
+  },
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [
+    [
+     "https:",
+     "orgmode.org"
+    ]
+   ],
+   "kill": null,
+   "capture": {
+    "template": "x",
+    "plist": [
+     [
+      ":type",
+      "https"
+     ],
+     [
+      ":link",
+      "https:"
+     ],
+     [
+      ":description",
+      "orgmode.org"
+     ],
+     [
+      ":annotation",
+      "[[https:][orgmode.org]]"
+     ],
+     [
+      ":initial",
+      "Org"
+     ],
+     [
+      ":query",
+      [
+       [
+        ":template",
+        "x"
+       ],
+       [
+        ":url",
+        "https:"
+       ],
+       [
+        ":title",
+        "orgmode.org"
+       ],
+       [
+        ":body",
+        "Org"
+       ]
+      ]
+     ]
+    ]
+   },
+   "messages": [
+    "Greedy org-protocol handler.  Killing client.",
+    "Item captured."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://capture:/x",
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [],
+   "kill": null,
+   "capture": {
+    "template": "x",
+    "plist": [
+     [
+      ":type",
+      null
+     ],
+     [
+      ":link",
+      null
+     ],
+     [
+      ":description",
+      ""
+     ],
+     [
+      ":annotation",
+      ""
+     ],
+     [
+      ":initial",
+      ""
+     ],
+     [
+      ":query",
+      [
+       [
+        ":template",
+        "x"
+       ],
+       [
+        ":url",
+        null
+       ],
+       [
+        ":title",
+        null
+       ],
+       [
+        ":body",
+        null
+       ]
+      ]
+     ]
+    ]
+   },
+   "messages": [
+    "Greedy org-protocol handler.  Killing client.",
+    "Item captured."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://capture:/",
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": [
+    "Greedy org-protocol handler.  Killing client."
+   ],
+   "error": "Empty link"
+  }
+ },
+ {
+  "url": "org-protocol://capture:/x/u/t/b",
+  "options": {
+   "data_separator": "|"
+  },
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [
+    [
+     "x/u/t/b",
+     ""
+    ]
+   ],
+   "kill": null,
+   "capture": {
+    "template": null,
+    "plist": [
+     [
+      ":type",
+      null
+     ],
+     [
+      ":link",
+      "x/u/t/b"
+     ],
+     [
+      ":description",
+      ""
+     ],
+     [
+      ":annotation",
+      "[[x/u/t/b][x/u/t/b]]"
+     ],
+     [
+      ":initial",
+      ""
+     ],
+     [
+      ":query",
+      [
+       [
+        ":url",
+        "x/u/t/b"
+       ],
+       [
+        ":title",
+        null
+       ],
+       [
+        ":body",
+        null
+       ]
+      ]
+     ]
+    ]
+   },
+   "messages": [
+    "Greedy org-protocol handler.  Killing client.",
+    "Item captured."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://capture:/x|u|t|b",
+  "options": {
+   "data_separator": "|"
+  },
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [
+    [
+     "u",
+     "t"
+    ]
+   ],
+   "kill": null,
+   "capture": {
+    "template": "x",
+    "plist": [
+     [
+      ":type",
+      null
+     ],
+     [
+      ":link",
+      "u"
+     ],
+     [
+      ":description",
+      "t"
+     ],
+     [
+      ":annotation",
+      "[[u][t]]"
+     ],
+     [
+      ":initial",
+      "b"
+     ],
+     [
+      ":query",
+      [
+       [
+        ":template",
+        "x"
+       ],
+       [
+        ":url",
+        "u"
+       ],
+       [
+        ":title",
+        "t"
+       ],
+       [
+        ":body",
+        "b"
+       ]
+      ]
+     ]
+    ]
+   },
+   "messages": [
+    "Greedy org-protocol handler.  Killing client.",
+    "Item captured."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://capture:/x;u;;b",
+  "options": {
+   "data_separator": ";"
+  },
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [
+    [
+     "u",
+     ""
+    ]
+   ],
+   "kill": null,
+   "capture": {
+    "template": "x",
+    "plist": [
+     [
+      ":type",
+      null
+     ],
+     [
+      ":link",
+      "u"
+     ],
+     [
+      ":description",
+      ""
+     ],
+     [
+      ":annotation",
+      "[[u][u]]"
+     ],
+     [
+      ":initial",
+      "b"
+     ],
+     [
+      ":query",
+      [
+       [
+        ":template",
+        "x"
+       ],
+       [
+        ":url",
+        "u"
+       ],
+       [
+        ":title",
+        ""
+       ],
+       [
+        ":body",
+        "b"
+       ]
+      ]
+     ]
+    ]
+   },
+   "messages": [
+    "Greedy org-protocol handler.  Killing client.",
+    "Item captured."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://capture:/x/u/t",
+  "options": {
+   "data_separator": "x*"
+  },
+  "expected": {
+   "handler": "capture",
+   "result": null,
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": [
+    "Greedy org-protocol handler.  Killing client."
+   ],
+   "error": "Empty link"
+  }
+ },
+ {
+  "url": "org-protocol://unknown?url=x",
+  "expected": {
+   "handler": null,
+   "result": "/org-protocol:/unknown?url=x",
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": []
+  }
+ },
+ {
+  "url": "org-protocol:capture?url=x",
+  "expected": {
+   "handler": null,
+   "result": "/org-protocol:capture?url=x",
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": []
+  }
+ },
+ {
+  "url": "org-protocol://capturex?url=x",
+  "expected": {
+   "handler": null,
+   "result": "/org-protocol:/capturex?url=x",
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": []
+  }
+ },
+ {
+  "url": "org-protocol://capture",
+  "expected": {
+   "handler": null,
+   "result": "/org-protocol:/capture",
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": []
+  }
+ },
+ {
+  "url": "org-protocol://",
+  "expected": {
+   "handler": null,
+   "result": "/org-protocol:/",
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": []
+  }
+ },
+ {
+  "url": "org-protocol://capture?url=a/../../../org-protocol://store-link?url=b",
+  "expected": {
+   "handler": "store-link",
+   "result": null,
+   "stored": [
+    [
+     "b",
+     null
+    ]
+   ],
+   "kill": "b",
+   "capture": null,
+   "messages": [
+    "‘C-c C-l’ to insert new Org link, ‘C-y’ to insert \"b\""
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://open-source?url=https%3A%2F%2Forgmode.org%2Fworg%2Findex.html",
+  "options": {
+   "projects": [
+    {
+     "name": "Worg",
+     "base_url": "https://orgmode.org/worg/",
+     "working_directory": "$DIR/worg/",
+     "online_suffix": ".html",
+     "working_suffix": ".org"
+    },
+    {
+     "name": "localhost org-notes/",
+     "base_url": "http://localhost/org/",
+     "working_directory": "$DIR/notes/",
+     "online_suffix": ".html",
+     "working_suffix": ".org",
+     "rewrites": [
+      [
+       "\\(org/?\\)$",
+       "index.org"
+      ],
+      [
+       "\\(blog/\\)[0-9]+/",
+       "blog.org"
+      ]
+     ]
+    },
+    {
+     "name": "OpenGrok",
+     "base_url": "https://grok.example.com/xref/emacs/",
+     "working_directory": "$DIR/emacs/"
+    }
+   ]
+  },
+  "files": [
+   "worg/index.org",
+   "worg/org-tutorials/index.org",
+   "worg/a b.org",
+   "notes/index.org",
+   "notes/blog.org",
+   "emacs/lisp/simple.el",
+   "emacs/src/"
+  ],
+  "expected": {
+   "handler": "open-source",
+   "result": "$DIR/worg/index.org",
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": []
+  }
+ },
+ {
+  "url": "org-protocol://open-source?url=https%3A%2F%2Forgmode.org%2Fworg%2Forg-tutorials%2Findex.html%23top",
+  "options": {
+   "projects": [
+    {
+     "name": "Worg",
+     "base_url": "https://orgmode.org/worg/",
+     "working_directory": "$DIR/worg/",
+     "online_suffix": ".html",
+     "working_suffix": ".org"
+    },
+    {
+     "name": "localhost org-notes/",
+     "base_url": "http://localhost/org/",
+     "working_directory": "$DIR/notes/",
+     "online_suffix": ".html",
+     "working_suffix": ".org",
+     "rewrites": [
+      [
+       "\\(org/?\\)$",
+       "index.org"
+      ],
+      [
+       "\\(blog/\\)[0-9]+/",
+       "blog.org"
+      ]
+     ]
+    },
+    {
+     "name": "OpenGrok",
+     "base_url": "https://grok.example.com/xref/emacs/",
+     "working_directory": "$DIR/emacs/"
+    }
+   ]
+  },
+  "files": [
+   "worg/index.org",
+   "worg/org-tutorials/index.org",
+   "worg/a b.org",
+   "notes/index.org",
+   "notes/blog.org",
+   "emacs/lisp/simple.el",
+   "emacs/src/"
+  ],
+  "expected": {
+   "handler": "open-source",
+   "result": "$DIR/worg/org-tutorials/index.org",
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": []
+  }
+ },
+ {
+  "url": "org-protocol://open-source?url=https%3A%2F%2Forgmode.org%2Fworg%2Fmissing.html",
+  "options": {
+   "projects": [
+    {
+     "name": "Worg",
+     "base_url": "https://orgmode.org/worg/",
+     "working_directory": "$DIR/worg/",
+     "online_suffix": ".html",
+     "working_suffix": ".org"
+    },
+    {
+     "name": "localhost org-notes/",
+     "base_url": "http://localhost/org/",
+     "working_directory": "$DIR/notes/",
+     "online_suffix": ".html",
+     "working_suffix": ".org",
+     "rewrites": [
+      [
+       "\\(org/?\\)$",
+       "index.org"
+      ],
+      [
+       "\\(blog/\\)[0-9]+/",
+       "blog.org"
+      ]
+     ]
+    },
+    {
+     "name": "OpenGrok",
+     "base_url": "https://grok.example.com/xref/emacs/",
+     "working_directory": "$DIR/emacs/"
+    }
+   ]
+  },
+  "files": [
+   "worg/index.org",
+   "worg/org-tutorials/index.org",
+   "worg/a b.org",
+   "notes/index.org",
+   "notes/blog.org",
+   "emacs/lisp/simple.el",
+   "emacs/src/"
+  ],
+  "expected": {
+   "handler": "open-source",
+   "result": null,
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": [
+    "File $DIR/worg/missing.org does not exist.\nTesting for rewritten URLs.",
+    "$DIR/worg/missing.org: no such file or directory."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://open-source?url=https%3A%2F%2Forgmode.org%2Fworg%2Fa%20b.html?q=1",
+  "options": {
+   "projects": [
+    {
+     "name": "Worg",
+     "base_url": "https://orgmode.org/worg/",
+     "working_directory": "$DIR/worg/",
+     "online_suffix": ".html",
+     "working_suffix": ".org"
+    },
+    {
+     "name": "localhost org-notes/",
+     "base_url": "http://localhost/org/",
+     "working_directory": "$DIR/notes/",
+     "online_suffix": ".html",
+     "working_suffix": ".org",
+     "rewrites": [
+      [
+       "\\(org/?\\)$",
+       "index.org"
+      ],
+      [
+       "\\(blog/\\)[0-9]+/",
+       "blog.org"
+      ]
+     ]
+    },
+    {
+     "name": "OpenGrok",
+     "base_url": "https://grok.example.com/xref/emacs/",
+     "working_directory": "$DIR/emacs/"
+    }
+   ]
+  },
+  "files": [
+   "worg/index.org",
+   "worg/org-tutorials/index.org",
+   "worg/a b.org",
+   "notes/index.org",
+   "notes/blog.org",
+   "emacs/lisp/simple.el",
+   "emacs/src/"
+  ],
+  "expected": {
+   "handler": "open-source",
+   "result": "$DIR/worg/a b.org",
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": []
+  }
+ },
+ {
+  "url": "org-protocol://open-source?url=HTTPS%3A%2F%2FOrgMode.org%2Fworg%2Findex.html",
+  "options": {
+   "projects": [
+    {
+     "name": "Worg",
+     "base_url": "https://orgmode.org/worg/",
+     "working_directory": "$DIR/worg/",
+     "online_suffix": ".html",
+     "working_suffix": ".org"
+    },
+    {
+     "name": "localhost org-notes/",
+     "base_url": "http://localhost/org/",
+     "working_directory": "$DIR/notes/",
+     "online_suffix": ".html",
+     "working_suffix": ".org",
+     "rewrites": [
+      [
+       "\\(org/?\\)$",
+       "index.org"
+      ],
+      [
+       "\\(blog/\\)[0-9]+/",
+       "blog.org"
+      ]
+     ]
+    },
+    {
+     "name": "OpenGrok",
+     "base_url": "https://grok.example.com/xref/emacs/",
+     "working_directory": "$DIR/emacs/"
+    }
+   ]
+  },
+  "files": [
+   "worg/index.org",
+   "worg/org-tutorials/index.org",
+   "worg/a b.org",
+   "notes/index.org",
+   "notes/blog.org",
+   "emacs/lisp/simple.el",
+   "emacs/src/"
+  ],
+  "expected": {
+   "handler": "open-source",
+   "result": "$DIR/worg/index.org",
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": []
+  }
+ },
+ {
+  "url": "org-protocol://open-source?url=http%3A%2F%2Flocalhost%2Forg%2F",
+  "options": {
+   "projects": [
+    {
+     "name": "Worg",
+     "base_url": "https://orgmode.org/worg/",
+     "working_directory": "$DIR/worg/",
+     "online_suffix": ".html",
+     "working_suffix": ".org"
+    },
+    {
+     "name": "localhost org-notes/",
+     "base_url": "http://localhost/org/",
+     "working_directory": "$DIR/notes/",
+     "online_suffix": ".html",
+     "working_suffix": ".org",
+     "rewrites": [
+      [
+       "\\(org/?\\)$",
+       "index.org"
+      ],
+      [
+       "\\(blog/\\)[0-9]+/",
+       "blog.org"
+      ]
+     ]
+    },
+    {
+     "name": "OpenGrok",
+     "base_url": "https://grok.example.com/xref/emacs/",
+     "working_directory": "$DIR/emacs/"
+    }
+   ]
+  },
+  "files": [
+   "worg/index.org",
+   "worg/org-tutorials/index.org",
+   "worg/a b.org",
+   "notes/index.org",
+   "notes/blog.org",
+   "emacs/lisp/simple.el",
+   "emacs/src/"
+  ],
+  "expected": {
+   "handler": "open-source",
+   "result": "$DIR/notes/http://localhostindex.org",
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": [
+    "File $DIR/notes/.org does not exist.\nTesting for rewritten URLs.",
+    "Rewrites found: ((\"\\\\(org/?\\\\)$\" . \"index.org\") (\"\\\\(blog/\\\\)[0-9]+/\" . \"blog.org\"))"
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://open-source?url=http%3A%2F%2Flocalhost%2Forg%2Findex.html",
+  "options": {
+   "projects": [
+    {
+     "name": "Worg",
+     "base_url": "https://orgmode.org/worg/",
+     "working_directory": "$DIR/worg/",
+     "online_suffix": ".html",
+     "working_suffix": ".org"
+    },
+    {
+     "name": "localhost org-notes/",
+     "base_url": "http://localhost/org/",
+     "working_directory": "$DIR/notes/",
+     "online_suffix": ".html",
+     "working_suffix": ".org",
+     "rewrites": [
+      [
+       "\\(org/?\\)$",
+       "index.org"
+      ],
+      [
+       "\\(blog/\\)[0-9]+/",
+       "blog.org"
+      ]
+     ]
+    },
+    {
+     "name": "OpenGrok",
+     "base_url": "https://grok.example.com/xref/emacs/",
+     "working_directory": "$DIR/emacs/"
+    }
+   ]
+  },
+  "files": [
+   "worg/index.org",
+   "worg/org-tutorials/index.org",
+   "worg/a b.org",
+   "notes/index.org",
+   "notes/blog.org",
+   "emacs/lisp/simple.el",
+   "emacs/src/"
+  ],
+  "expected": {
+   "handler": "open-source",
+   "result": "$DIR/notes/index.org",
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": []
+  }
+ },
+ {
+  "url": "org-protocol://open-source?url=http%3A%2F%2Flocalhost%2Forg%2Fblog%2F2024%2Fpost.html",
+  "options": {
+   "projects": [
+    {
+     "name": "Worg",
+     "base_url": "https://orgmode.org/worg/",
+     "working_directory": "$DIR/worg/",
+     "online_suffix": ".html",
+     "working_suffix": ".org"
+    },
+    {
+     "name": "localhost org-notes/",
+     "base_url": "http://localhost/org/",
+     "working_directory": "$DIR/notes/",
+     "online_suffix": ".html",
+     "working_suffix": ".org",
+     "rewrites": [
+      [
+       "\\(org/?\\)$",
+       "index.org"
+      ],
+      [
+       "\\(blog/\\)[0-9]+/",
+       "blog.org"
+      ]
+     ]
+    },
+    {
+     "name": "OpenGrok",
+     "base_url": "https://grok.example.com/xref/emacs/",
+     "working_directory": "$DIR/emacs/"
+    }
+   ]
+  },
+  "files": [
+   "worg/index.org",
+   "worg/org-tutorials/index.org",
+   "worg/a b.org",
+   "notes/index.org",
+   "notes/blog.org",
+   "emacs/lisp/simple.el",
+   "emacs/src/"
+  ],
+  "expected": {
+   "handler": "open-source",
+   "result": "$DIR/notes/http://localhost/org/2024/post.htmlblog.org",
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": [
+    "File $DIR/notes/blog/2024/post.org does not exist.\nTesting for rewritten URLs.",
+    "Rewrites found: ((\"\\\\(org/?\\\\)$\" . \"index.org\") (\"\\\\(blog/\\\\)[0-9]+/\" . \"blog.org\"))"
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://open-source?url=http%3A%2F%2Flocalhost%2Forg%2Fnothing.html",
+  "options": {
+   "projects": [
+    {
+     "name": "Worg",
+     "base_url": "https://orgmode.org/worg/",
+     "working_directory": "$DIR/worg/",
+     "online_suffix": ".html",
+     "working_suffix": ".org"
+    },
+    {
+     "name": "localhost org-notes/",
+     "base_url": "http://localhost/org/",
+     "working_directory": "$DIR/notes/",
+     "online_suffix": ".html",
+     "working_suffix": ".org",
+     "rewrites": [
+      [
+       "\\(org/?\\)$",
+       "index.org"
+      ],
+      [
+       "\\(blog/\\)[0-9]+/",
+       "blog.org"
+      ]
+     ]
+    },
+    {
+     "name": "OpenGrok",
+     "base_url": "https://grok.example.com/xref/emacs/",
+     "working_directory": "$DIR/emacs/"
+    }
+   ]
+  },
+  "files": [
+   "worg/index.org",
+   "worg/org-tutorials/index.org",
+   "worg/a b.org",
+   "notes/index.org",
+   "notes/blog.org",
+   "emacs/lisp/simple.el",
+   "emacs/src/"
+  ],
+  "expected": {
+   "handler": "open-source",
+   "result": null,
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": [
+    "File $DIR/notes/nothing.org does not exist.\nTesting for rewritten URLs.",
+    "Rewrites found: ((\"\\\\(org/?\\\\)$\" . \"index.org\") (\"\\\\(blog/\\\\)[0-9]+/\" . \"blog.org\"))",
+    "$DIR/notes/nothing.org: no such file or directory."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://open-source?url=https%3A%2F%2Fgrok.example.com%2Fxref%2Femacs%2Flisp%2Fsimple.el",
+  "options": {
+   "projects": [
+    {
+     "name": "Worg",
+     "base_url": "https://orgmode.org/worg/",
+     "working_directory": "$DIR/worg/",
+     "online_suffix": ".html",
+     "working_suffix": ".org"
+    },
+    {
+     "name": "localhost org-notes/",
+     "base_url": "http://localhost/org/",
+     "working_directory": "$DIR/notes/",
+     "online_suffix": ".html",
+     "working_suffix": ".org",
+     "rewrites": [
+      [
+       "\\(org/?\\)$",
+       "index.org"
+      ],
+      [
+       "\\(blog/\\)[0-9]+/",
+       "blog.org"
+      ]
+     ]
+    },
+    {
+     "name": "OpenGrok",
+     "base_url": "https://grok.example.com/xref/emacs/",
+     "working_directory": "$DIR/emacs/"
+    }
+   ]
+  },
+  "files": [
+   "worg/index.org",
+   "worg/org-tutorials/index.org",
+   "worg/a b.org",
+   "notes/index.org",
+   "notes/blog.org",
+   "emacs/lisp/simple.el",
+   "emacs/src/"
+  ],
+  "expected": {
+   "handler": "open-source",
+   "result": "$DIR/emacs/lisp/simple.el",
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": []
+  }
+ },
+ {
+  "url": "org-protocol://open-source?url=https%3A%2F%2Fgrok.example.com%2Fxref%2Femacs%2Fsrc",
+  "options": {
+   "projects": [
+    {
+     "name": "Worg",
+     "base_url": "https://orgmode.org/worg/",
+     "working_directory": "$DIR/worg/",
+     "online_suffix": ".html",
+     "working_suffix": ".org"
+    },
+    {
+     "name": "localhost org-notes/",
+     "base_url": "http://localhost/org/",
+     "working_directory": "$DIR/notes/",
+     "online_suffix": ".html",
+     "working_suffix": ".org",
+     "rewrites": [
+      [
+       "\\(org/?\\)$",
+       "index.org"
+      ],
+      [
+       "\\(blog/\\)[0-9]+/",
+       "blog.org"
+      ]
+     ]
+    },
+    {
+     "name": "OpenGrok",
+     "base_url": "https://grok.example.com/xref/emacs/",
+     "working_directory": "$DIR/emacs/"
+    }
+   ]
+  },
+  "files": [
+   "worg/index.org",
+   "worg/org-tutorials/index.org",
+   "worg/a b.org",
+   "notes/index.org",
+   "notes/blog.org",
+   "emacs/lisp/simple.el",
+   "emacs/src/"
+  ],
+  "expected": {
+   "handler": "open-source",
+   "result": "$DIR/emacs/src",
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": []
+  }
+ },
+ {
+  "url": "org-protocol://open-source?url=https%3A%2F%2Fgrok.example.com%2Fxref%2Femacs%2F",
+  "options": {
+   "projects": [
+    {
+     "name": "Worg",
+     "base_url": "https://orgmode.org/worg/",
+     "working_directory": "$DIR/worg/",
+     "online_suffix": ".html",
+     "working_suffix": ".org"
+    },
+    {
+     "name": "localhost org-notes/",
+     "base_url": "http://localhost/org/",
+     "working_directory": "$DIR/notes/",
+     "online_suffix": ".html",
+     "working_suffix": ".org",
+     "rewrites": [
+      [
+       "\\(org/?\\)$",
+       "index.org"
+      ],
+      [
+       "\\(blog/\\)[0-9]+/",
+       "blog.org"
+      ]
+     ]
+    },
+    {
+     "name": "OpenGrok",
+     "base_url": "https://grok.example.com/xref/emacs/",
+     "working_directory": "$DIR/emacs/"
+    }
+   ]
+  },
+  "files": [
+   "worg/index.org",
+   "worg/org-tutorials/index.org",
+   "worg/a b.org",
+   "notes/index.org",
+   "notes/blog.org",
+   "emacs/lisp/simple.el",
+   "emacs/src/"
+  ],
+  "expected": {
+   "handler": "open-source",
+   "result": "$DIR/emacs/",
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": []
+  }
+ },
+ {
+  "url": "org-protocol://open-source?url=https%3A%2F%2Fnowhere.example.com%2F",
+  "options": {
+   "projects": [
+    {
+     "name": "Worg",
+     "base_url": "https://orgmode.org/worg/",
+     "working_directory": "$DIR/worg/",
+     "online_suffix": ".html",
+     "working_suffix": ".org"
+    },
+    {
+     "name": "localhost org-notes/",
+     "base_url": "http://localhost/org/",
+     "working_directory": "$DIR/notes/",
+     "online_suffix": ".html",
+     "working_suffix": ".org",
+     "rewrites": [
+      [
+       "\\(org/?\\)$",
+       "index.org"
+      ],
+      [
+       "\\(blog/\\)[0-9]+/",
+       "blog.org"
+      ]
+     ]
+    },
+    {
+     "name": "OpenGrok",
+     "base_url": "https://grok.example.com/xref/emacs/",
+     "working_directory": "$DIR/emacs/"
+    }
+   ]
+  },
+  "files": [
+   "worg/index.org",
+   "worg/org-tutorials/index.org",
+   "worg/a b.org",
+   "notes/index.org",
+   "notes/blog.org",
+   "emacs/lisp/simple.el",
+   "emacs/src/"
+  ],
+  "expected": {
+   "handler": "open-source",
+   "result": null,
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": []
+  }
+ },
+ {
+  "url": "org-protocol://open-source:/https%3A%2F%2Forgmode.org%2Fworg%2Findex.html",
+  "options": {
+   "projects": [
+    {
+     "name": "Worg",
+     "base_url": "https://orgmode.org/worg/",
+     "working_directory": "$DIR/worg/",
+     "online_suffix": ".html",
+     "working_suffix": ".org"
+    },
+    {
+     "name": "localhost org-notes/",
+     "base_url": "http://localhost/org/",
+     "working_directory": "$DIR/notes/",
+     "online_suffix": ".html",
+     "working_suffix": ".org",
+     "rewrites": [
+      [
+       "\\(org/?\\)$",
+       "index.org"
+      ],
+      [
+       "\\(blog/\\)[0-9]+/",
+       "blog.org"
+      ]
+     ]
+    },
+    {
+     "name": "OpenGrok",
+     "base_url": "https://grok.example.com/xref/emacs/",
+     "working_directory": "$DIR/emacs/"
+    }
+   ]
+  },
+  "files": [
+   "worg/index.org",
+   "worg/org-tutorials/index.org",
+   "worg/a b.org",
+   "notes/index.org",
+   "notes/blog.org",
+   "emacs/lisp/simple.el",
+   "emacs/src/"
+  ],
+  "expected": {
+   "handler": "open-source",
+   "result": "$DIR/worg/index.org",
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": []
+  }
+ },
+ {
+  "url": "org-protocol://open-source?url=https%3A%2F%2Forgmode.org%2Fworg%2Findex.html",
+  "expected": {
+   "handler": "open-source",
+   "result": null,
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": []
+  }
+ },
+ {
+  "url": "org-protocol://open-source?title=x",
+  "options": {
+   "projects": [
+    {
+     "name": "Worg",
+     "base_url": "https://orgmode.org/worg/",
+     "working_directory": "$DIR/worg/",
+     "online_suffix": ".html",
+     "working_suffix": ".org"
+    },
+    {
+     "name": "localhost org-notes/",
+     "base_url": "http://localhost/org/",
+     "working_directory": "$DIR/notes/",
+     "online_suffix": ".html",
+     "working_suffix": ".org",
+     "rewrites": [
+      [
+       "\\(org/?\\)$",
+       "index.org"
+      ],
+      [
+       "\\(blog/\\)[0-9]+/",
+       "blog.org"
+      ]
+     ]
+    },
+    {
+     "name": "OpenGrok",
+     "base_url": "https://grok.example.com/xref/emacs/",
+     "working_directory": "$DIR/emacs/"
+    }
+   ]
+  },
+  "files": [
+   "worg/index.org",
+   "worg/org-tutorials/index.org",
+   "worg/a b.org",
+   "notes/index.org",
+   "notes/blog.org",
+   "emacs/lisp/simple.el",
+   "emacs/src/"
+  ],
+  "expected": {
+   "handler": "open-source",
+   "result": null,
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": [],
+   "error": "Wrong type argument: stringp, nil"
+  }
+ },
+ {
+  "url": "org-protocol://open-source?url=https%3A%2F%2Forgmode.org%2Fworg%2Fx.html%3Fhttps%3A%2F%2Forgmode.org%2Fworg%2F",
+  "options": {
+   "projects": [
+    {
+     "name": "Worg",
+     "base_url": "https://orgmode.org/worg/",
+     "working_directory": "$DIR/worg/",
+     "online_suffix": ".html",
+     "working_suffix": ".org"
+    },
+    {
+     "name": "localhost org-notes/",
+     "base_url": "http://localhost/org/",
+     "working_directory": "$DIR/notes/",
+     "online_suffix": ".html",
+     "working_suffix": ".org",
+     "rewrites": [
+      [
+       "\\(org/?\\)$",
+       "index.org"
+      ],
+      [
+       "\\(blog/\\)[0-9]+/",
+       "blog.org"
+      ]
+     ]
+    },
+    {
+     "name": "OpenGrok",
+     "base_url": "https://grok.example.com/xref/emacs/",
+     "working_directory": "$DIR/emacs/"
+    }
+   ]
+  },
+  "files": [
+   "worg/index.org",
+   "worg/org-tutorials/index.org",
+   "worg/a b.org",
+   "notes/index.org",
+   "notes/blog.org",
+   "emacs/lisp/simple.el",
+   "emacs/src/"
+  ],
+  "expected": {
+   "handler": "open-source",
+   "result": null,
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": [
+    "File $DIR/worg/x.org does not exist.\nTesting for rewritten URLs.",
+    "$DIR/worg/x.org: no such file or directory."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://open-source?url=https%3A%2F%2Fex.org%2Fdoc%2Fa.html%2Fb.html",
+  "options": {
+   "projects": [
+    {
+     "name": "s",
+     "base_url": "https://ex.org/doc/",
+     "working_directory": "$DIR/",
+     "online_suffix": ".html",
+     "working_suffix": ".org"
+    }
+   ]
+  },
+  "expected": {
+   "handler": "open-source",
+   "result": null,
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": [
+    "File $DIR/a.org does not exist.\nTesting for rewritten URLs.",
+    "$DIR/a.org: no such file or directory."
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://open-source?url=https%3A%2F%2Fex.org%2F.html%2Fdoc%2Fa",
+  "options": {
+   "projects": [
+    {
+     "name": "s",
+     "base_url": "https://ex.org/doc/",
+     "working_directory": "$DIR/",
+     "online_suffix": ".html"
+    }
+   ]
+  },
+  "expected": {
+   "handler": "open-source",
+   "result": null,
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": []
+  }
+ },
+ {
+  "url": "org-protocol://open-source?url=https%3A%2F%2Fex.org%2Fdoc%2Fa",
+  "options": {
+   "projects": [
+    {
+     "name": "s",
+     "base_url": "https://ex.org/doc/",
+     "working_directory": "$DIR/",
+     "rewrites": [
+      [
+       "doc/a",
+       "x.org"
+      ]
+     ]
+    }
+   ]
+  },
+  "expected": {
+   "handler": "open-source",
+   "result": null,
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": [
+    "File $DIR/a does not exist.\nTesting for rewritten URLs.",
+    "Rewrites found: ((\"doc/a\" . \"x.org\"))"
+   ],
+   "error": "replace-match subexpression does not exist: 1"
+  }
+ },
+ {
+  "url": "org-protocol://open-source?url=https%3A%2F%2Fex.org%2Fdoc%2Fa",
+  "options": {
+   "projects": [
+    {
+     "name": "s",
+     "base_url": "https://ex.org/doc/",
+     "working_directory": "$DIR/",
+     "rewrites": [
+      [
+       "\\(z\\)?doc/a",
+       "x.org"
+      ]
+     ]
+    }
+   ]
+  },
+  "expected": {
+   "handler": "open-source",
+   "result": null,
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": [
+    "File $DIR/a does not exist.\nTesting for rewritten URLs.",
+    "Rewrites found: ((\"\\\\(z\\\\)?doc/a\" . \"x.org\"))"
+   ],
+   "error": "replace-match subexpression does not exist: 1"
+  }
+ },
+ {
+  "url": "org-protocol://open-source?url=https%3A%2F%2Fex.org%2Fdoc%2Fa%2F%2F",
+  "options": {
+   "projects": [
+    {
+     "name": "s",
+     "base_url": "https://ex.org/doc/",
+     "working_directory": "$DIR/",
+     "rewrites": [
+      [
+       "\\(a\\)",
+       "/x.org"
+      ],
+      [
+       "never",
+       "y"
+      ]
+     ]
+    }
+   ]
+  },
+  "expected": {
+   "handler": "open-source",
+   "result": "$DIR/https://ex.org/doc/x.org",
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": [
+    "File $DIR/a/ does not exist.\nTesting for rewritten URLs.",
+    "Rewrites found: ((\"\\\\(a\\\\)\" . \"/x.org\") (\"never\" . \"y\"))"
+   ]
+  }
+ },
+ {
+  "url": "org-protocol://open-source?url=https%3A%2F%2Fex.org%2Fdoc%2F%22a%22",
+  "options": {
+   "projects": [
+    {
+     "name": "s",
+     "base_url": "https://ex.org/doc/",
+     "working_directory": "$DIR/",
+     "rewrites": [
+      [
+       "\"q\"\\(\\\\\\)",
+       "x"
+      ]
+     ]
+    }
+   ]
+  },
+  "expected": {
+   "handler": "open-source",
+   "result": null,
+   "stored": [],
+   "kill": null,
+   "capture": null,
+   "messages": [
+    "File $DIR/\"a\" does not exist.\nTesting for rewritten URLs.",
+    "Rewrites found: ((\"\\\"q\\\"\\\\(\\\\\\\\\\\\)\" . \"x\"))",
+    "$DIR/\"a\": no such file or directory."
+   ]
+  }
+ }
+]
