@@ -311,6 +311,7 @@ its motions.
 | ~ctrl-c .~ | ~org.timestamp.insert~ | Insert or change a timestamp |
 | ~ctrl-c !~ | ~org.timestamp.insert.inactive~ | Insert or change an inactive timestamp |
 | ~ctrl-c ctrl-x ctrl-t~ | ~org.timestamp.overlays.toggle~ | Show timestamps in the custom formats, or not |
+| ~ctrl-c >~ | ~org.goto.calendar~ | Show the calendar at the date of the line |
 | ~ctrl-c a~ | ~org.agenda.dispatch~ | Agenda commands |
 | ~ctrl-c c~ | ~org.capture~ | Capture |
 | ~ctrl-c n f~ | ~org.roam.node.find~ | Roam: find a node |

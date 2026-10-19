@@ -1586,6 +1586,19 @@
     "use_new_terminal": false
   },
   {
+    "label": "Org: Show the calendar at the date of the line",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.goto.calendar",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
     "label": "Org: C-c C-c",
     "command": "$HOME/.local/state/org-lsp/agenda-command 'key:C-c C-c'",
     "tags": [

@@ -128,7 +128,7 @@ server first, with a tab that says so and closes when the agenda opens.
 | [[file:parity.org::#clocking][Clocking]] | 100% | ✅ |  |
 | [[file:parity.org::#capture][Capture]] | 100% | ✅ |  |
 | [[file:parity.org::#notes-org-roam][Notes (org-roam)]] | 94% | ✅ |  |
-| [[file:parity.org::#a-journal-org-journal][A journal (org-journal)]] | 79% | ✅ |  |
+| [[file:parity.org::#a-journal-org-journal][A journal (org-journal)]] | 93% | ❓ | The calendar and the keys org-journal adds to it are left out: the package shows no date prompt. |
 | [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ |  |
 | [[file:parity.org::#links][Links]] | 100% | ✅ |  |
 | [[file:parity.org::#footnotes][Footnotes]] | 100% | ✅ |  |

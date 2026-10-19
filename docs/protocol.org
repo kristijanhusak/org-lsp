@@ -666,6 +666,7 @@ Each option with its type, its default and what it means:
 - ~org_journal_time_format_post_midnight~ :: string, ~""~. The time of an entry made after midnight while it is still yesterday (~org_extend_today_until~); empty for ~org_journal_time_format~. (~org-journal-time-format-post-midnight~)
 - ~org_journal_time_prefix~ :: string, ~"** "~. What comes before the time of an entry: its stars give its level. (~org-journal-time-prefix~)
 - ~org_journal_hide_entries_p~ :: boolean, ~true~. Fold all but the new entry. (~org-journal-hide-entries-p~)
+- ~org_journal_follow_mode~ :: boolean, ~false~. In the calendar (~org.goto.calendar~), the entry of the day ~]~ and ~[~ move to shows in another window. (~org-journal-follow-mode~)
 - ~org_journal_find_file_fn~ :: "find-file-other-window", "find-file", ~"find-file-other-window"~. Where a new entry and today's file (~org.journal.open.current~) show: in another window, or (~"find-file"~) in the window of the command. (~org-journal-find-file-fn~)
 - ~org_journal_carryover_items~ :: string, ~"TODO=\"TODO\""~. The items of the entry before that move to today's, with the headlines above them: a match of the tags view (~m~); empty for none. (~org-journal-carryover-items~)
 - ~org_journal_skip_carryover_drawers~ :: string[], ~[]~. Drawers left out of the items carried over. (~org-journal-skip-carryover-drawers~)
@@ -1421,6 +1422,23 @@ increments a number.
   While org-roam is on, it also marks the days with a daily note (a date
   in the name of a file under ~org_roam_dailies_directory~) with the token
   ~calendarDailies~, a journal's day keeping its own.
+- ~org.journal.read.entry~, ~org.journal.display.entry~,
+  ~org.journal.mark.entries~, ~org.journal.search.calendar.week~,
+  ~org.journal.search.calendar.month~, ~org.journal.search.calendar.year~
+  :: The keys org-journal adds to the calendar (~org-journal-read-entry~,
+  ~org-journal-display-entry~, ~org-journal-mark-entries~,
+  ~org-journal-search-calendar-week~ …), keys in the ~calendar~ scope with
+  ~org.journal.next.entry~, ~org.journal.previous.entry~,
+  ~org.journal.new.date.entry~, ~org.journal.search.forever~ and
+  ~org.journal.search.future~. Run from the date prompt's document (its
+  URI, or for a client that reads it from its file, that file's) they act
+  on the day under the cursor: the entry shown with ~window/showDocument~
+  and ~orgOtherWindow~, ~takeFocus: false~ for ~display~ and for follow
+  mode; the selected day moved by next and previous; the days marked
+  again. Elsewhere, ~read~ and ~display~ fail with ~Not on a date!~, and
+  the searches of the calendar with org-journal's message once the string
+  is asked for. A search's question carries the day in its ~context~
+  (~day~, ~YYYY-MM-DD~).
 - ~org.refile~ :: ~org-refile~ (~org-agenda-refile~ on an agenda line):
   offers the targets (an input of kind ~choice~), named as Emacs names them
   (~Projects~, ~Home (other.org)~, ~Projects/Alpha/~), and moves the subtree
@@ -1799,6 +1817,13 @@ increments a number.
   today; take the day at the cursor; type the answer; pick a time, or go
   back to the day; give up. See
   [[#the-date-prompt-document][The date prompt document]].
+- ~org.goto.calendar~ :: ~org-goto-calendar~: the date prompt's document
+  with no date asked for, the calendar alone without its minibuffer lines,
+  on the day of the timestamp at the cursor (active or not) or of the
+  line's last active one, or today (with a ~count~ above 1, today). Its
+  keys move it and ~org.calendar.cancel~ closes it; those that answer a
+  prompt fail. A client without the date prompt is told it has no
+  calendar.
 
 ** How they work
 

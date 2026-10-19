@@ -176,7 +176,7 @@ impl Emacs<'_> {
 
     /// `org-journal-read-or-display-entry`: the entry of `time` in its
     /// file, which becomes the current buffer; false when there is none.
-    fn read_entry(&mut self, time: DateTime) -> Result<bool, Stop> {
+    pub(super) fn read_entry(&mut self, time: DateTime) -> Result<bool, Stop> {
         let file = self.files.entry_path(time);
         if !self.exists(&file) {
             self.messages.push("No journal entry for this date.".to_string());

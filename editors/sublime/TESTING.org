@@ -230,6 +230,8 @@ its sections says what it should look like.
 
 * A journal (org-journal)
 
+*Partly:* The calendar and the keys org-journal adds to it are left out: the package shows no date prompt.
+
 - [ ] With ~org_journal_enabled~ on, a new entry makes today's file in ~org_journal_dir~ (a file without an extension, opened as Org) with today's date and an entry with the time, the cursor after it: ~Ctrl+C j j~
 - [ ] With a journal file of yesterday holding a TODO entry, the first new entry of today moves it to today's file: ~Ctrl+C j j~
 - [ ] The other entries of the file are folded; the new one shows: ~Ctrl+C j j~

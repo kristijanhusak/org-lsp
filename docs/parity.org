@@ -22,12 +22,12 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#priorities][Priorities]] | 100% | 4 of 4 |
 | [[#tags][Tags]] | 88% | 7 of 8 |
 | [[#properties-and-column-view][Properties and column view]] | 100% | 10 of 10 |
-| [[#dates-and-times][Dates and times]] | 100% | 9 of 9 |
+| [[#dates-and-times][Dates and times]] | 100% | 10 of 10 |
 | [[#agenda][Agenda]] | 100% | 38 of 38 |
 | [[#clocking][Clocking]] | 100% | 14 of 14 |
 | [[#capture][Capture]] | 100% | 12 of 12 |
 | [[#notes-org-roam][Notes (org-roam)]] | 94% | 15 of 16 |
-| [[#a-journal-org-journal][A journal (org-journal)]] | 79% | 11 of 14 |
+| [[#a-journal-org-journal][A journal (org-journal)]] | 93% | 14 of 15 |
 | [[#refile-and-archive][Refile and archive]] | 100% | 13 of 13 |
 | [[#links][Links]] | 100% | 22 of 22 |
 | [[#footnotes][Footnotes]] | 100% | 4 of 4 |
@@ -268,12 +268,13 @@ Where editors fall short:
 :CUSTOM_ID: dates-and-times
 :END:
 
-100% (9 of 9)
+100% (10 of 10)
 
 - ✅ Inserting active and inactive timestamps (~C-c .~, ~C-c !~)
 - ✅ Scheduling and deadlines (~C-c C-s~, ~C-c C-d~)
 - ✅ Org's date prompt: ~+2d~, ~fri~, ~2/15~, ~10:00-11:30~ …
 - ✅ The calendar with the prompt
+- ✅ The calendar on its own, at the date of the line's timestamp (~org-goto-calendar~, ~C-c >~)
 - ✅ Changing the part at the cursor (~S-<up>~, ~S-<down>~, the other way with ~org-edit-timestamp-down-means-later~), with ranges, repeaters and warnings
 - ✅ Moving a date by days (~S-<left>~, ~S-<right>~)
 - ✅ Removing a scheduled date or a deadline (~C-u C-c C-s~, ~C-u C-c C-d~)
@@ -425,7 +426,7 @@ Where editors fall short:
 :CUSTOM_ID: a-journal-org-journal
 :END:
 
-79% (11 of 14)
+93% (14 of 15)
 
 - ✅ A file a day, week, month or year in ~org_journal_dir~, an entry for each day and one for each time (~org-journal-new-entry~), today's entry only with ~C-u~
 - ✅ An entry for a date asked for, and a TODO entry for a day to come with its timestamp (~org-journal-new-date-entry~, ~org-journal-new-scheduled-entry~)
@@ -437,14 +438,16 @@ Where editors fall short:
 - ✅ The entries to come with a timestamp, in a schedule of their own (~org-journal-schedule-view~)
 - ✅ Moving an entry to come to another day (~org-journal-reschedule-scheduled-entry~)
 - ✅ The days with an entry marked in the date prompt's calendar (~org-journal-mark-entries~)
-- ❌ The keys org-journal adds to ~M-x calendar~ (~j r~, ~[~, ~]~ …)
+- ✅ The keys org-journal adds to ~M-x calendar~ (~j r~, ~j d~, ~[~, ~]~, ~j n~, ~j m~, ~j s f~ …), in the calendar ~org.goto.calendar~ opens
 - ❌ Files encrypted whole (~org-journal-encrypt-journal~)
 - ✅ The file of a day in another window, or in the window of the command (~org-journal-find-file-fn~)
-- ❌ Following the calendar, and remembering the dates between commands (~org-journal-follow-mode~, ~org-journal-enable-cache~)
+- ✅ Following the calendar: ~]~ and ~[~ show the entry of the day (~org-journal-follow-mode~)
+- ✅ Remembering the dates between commands (~org-journal-enable-cache~) is not needed: it only spares Emacs reading the files again, and the days are the same; the server reads the directory each time
 
 Where editors fall short:
 
-- Zed ❓: For the dates and searches the commands ask for, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with ~file_types~ in Zed's settings.
+- Sublime Text ❓: The calendar and the keys org-journal adds to it are left out: the package shows no date prompt.
+- Zed ❓: For the dates and searches the commands ask for, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with ~file_types~ in Zed's settings. The calendar and the keys org-journal adds to it are left out: Zed shows no date prompt.
 - Helix ❌: The commands are not among Helix's code actions yet.
 
 * Refile and archive

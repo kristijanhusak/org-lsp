@@ -165,6 +165,7 @@ in a popup. [[file:../vim.org][vim.org]] says how to install and set up the plug
 | ~<Leader>oi.~ | ~org.timestamp.insert~ | Insert or change a timestamp |
 | ~<Leader>oi!~ | ~org.timestamp.insert.inactive~ | Insert or change an inactive timestamp |
 | ~cid~ | ~org.timestamp.change~ | Change the timestamp at the cursor |
+| ~<Leader>o>~ | ~org.goto.calendar~ | Show the calendar at the date of the line |
 
 ** In a capture buffer
 
@@ -251,6 +252,17 @@ in a popup. [[file:../vim.org][vim.org]] says how to install and set up the plug
 
 | Keys | Command | What it does |
 |---+---+---|
+| ~<Leader>jn~ | ~org.journal.new.date.entry~ | Journal: new entry for a date |
+| ~]~ | ~org.journal.next.entry~ | Journal: next entry |
+| ~[~ | ~org.journal.previous.entry~ | Journal: previous entry |
+| ~<Leader>jsf~ | ~org.journal.search.forever~ | Journal: search every entry |
+| ~<Leader>jsF~ | ~org.journal.search.future~ | Journal: search the entries to come |
+| ~<Leader>jsw~ | ~org.journal.search.calendar.week~ | Journal: search the calendar's week |
+| ~<Leader>jsm~ | ~org.journal.search.calendar.month~ | Journal: search the calendar's month |
+| ~<Leader>jsy~ | ~org.journal.search.calendar.year~ | Journal: search the calendar's year |
+| ~<Leader>jr~ | ~org.journal.read.entry~ | Journal: the entry of the calendar's day |
+| ~<Leader>jd~ | ~org.journal.display.entry~ | Journal: show the entry of the calendar's day |
+| ~<Leader>jm~ | ~org.journal.mark.entries~ | Journal: mark the days with an entry in the calendar |
 | ~l~, ~<S-Right>~ | ~org.calendar.day.later~ | Date prompt: one day later |
 | ~h~, ~<S-Left>~ | ~org.calendar.day.earlier~ | Date prompt: one day earlier |
 | ~j~, ~<S-Down>~ | ~org.calendar.week.later~ | Date prompt: one week later |
@@ -363,11 +375,8 @@ in a popup. [[file:../vim.org][vim.org]] says how to install and set up the plug
 | ~org.roam.refile~ | Roam: refile to a node |
 | ~org.roam.extract~ | Roam: extract the subtree to a file of its own |
 | ~org.roam.graph~ | Roam: show the graph of the nodes |
-| ~org.journal.new.date.entry~ | Journal: new entry for a date |
 | ~org.journal.new.scheduled.entry~ | Journal: new entry for a day to come |
 | ~org.journal.open.current~ | Journal: open the current file |
-| ~org.journal.search.forever~ | Journal: search every entry |
-| ~org.journal.search.future~ | Journal: search the entries to come |
 | ~org.journal.search.future.scheduled~ | Journal: the TODO entries to come |
 | ~org.journal.schedule.view~ | Journal: the entries to come with a date |
 | ~org.journal.reschedule~ | Journal: move the entry to come to another day |

@@ -9298,6 +9298,131 @@ fn picks_the_day_of_a_daily_note_in_the_calendar() {
     std::fs::remove_dir_all(root).unwrap();
 }
 
+/// The calendar on its own (`org-goto-calendar`, `C-c >`), on the date of
+/// the line's timestamp, and the keys org-journal adds to it: the entry
+/// of the day read or displayed, the next and previous days with an
+/// entry, a new entry for the day, a search of its week; with
+/// `org_journal_follow_mode`, the day moved to shows.
+#[test]
+fn runs_org_journal_keys_in_the_calendar() {
+    const PROMPT: &str = "org-agenda:/Org%20Date";
+    let root = std::env::temp_dir().join(format!("org-lsp-journal-calendar-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    let directory = root.join("journal");
+    std::fs::create_dir_all(&directory).unwrap();
+    std::fs::write(directory.join("20260512"), "* Tuesday, 05/12/26\n** 09:00 a\n").unwrap();
+    std::fs::write(directory.join("20260515"), "* Friday, 05/15/26\n** 10:00 standup\nnotes\n").unwrap();
+    let file_of = |name: &str| format!("file://{}", directory.join(name).display());
+    let mut options = clock();
+    options["org_journal_enabled"] = json!(true);
+    options["org_journal_dir"] = json!(directory.display().to_string());
+    let mut client = Client::with_date_prompt(options);
+    let notes = format!("file://{}", root.join("notes.org").display());
+    client.open(&notes, "* Meeting <2026-05-12 Tue>\n* Other\n");
+    let run = |client: &mut Client, command: &str, argument: Value| {
+        client.received.clear();
+        client.notifications.clear();
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [argument] }));
+        client.settle();
+        result
+    };
+    let shown = |client: &Client| {
+        client
+            .received
+            .iter()
+            .rev()
+            .find(|request| request.method == "window/showDocument")
+            .map(|request| request.params.clone())
+    };
+    let on_prompt = json!({ "textDocument": { "uri": PROMPT }, "position": { "line": 0, "character": 0 } });
+
+    // On the date of the line's timestamp: the calendar alone, no
+    // minibuffer under it, the days with an entry marked.
+    let at_meeting = json!({ "textDocument": { "uri": notes }, "position": { "line": 0, "character": 2 } });
+    assert_eq!(run(&mut client, "org.goto.calendar", at_meeting), Ok(Value::Null));
+    assert_eq!(shown(&client).unwrap()["uri"], PROMPT);
+    let text = client.view_text(PROMPT);
+    assert_eq!(text.lines().next(), Some("          April 2026                May 2026                June 2026"));
+    assert!(!text.contains("Date+time") && !text.contains("=>"), "{text}");
+    // `j r`: the 12th's entry, in another window.
+    run(&mut client, "org.journal.read.entry", on_prompt.clone()).unwrap();
+    let show = shown(&client).expect("the entry");
+    assert_eq!(show["uri"], file_of("20260512"));
+    assert_eq!((show["orgOtherWindow"].clone(), show["takeFocus"].clone()), (json!(true), json!(true)));
+    assert!(client.notifications.iter().any(|notification| notification.method == "org-lsp/folds"));
+    // A key that answers a date prompt has nothing to answer.
+    assert!(run(&mut client, "org.calendar.select", on_prompt.clone())
+        .unwrap_err()
+        .starts_with("No date is asked for"));
+
+    // `]`: the 15th, where org-journal says there is none after; `j d`
+    // shows its entry, the cursor staying in the calendar.
+    let moved = run(&mut client, "org.journal.next.entry", on_prompt.clone()).unwrap();
+    assert_eq!(moved["message"], "No journal entry after this one");
+    run(&mut client, "org.journal.display.entry", on_prompt.clone()).unwrap();
+    let show = shown(&client).expect("the entry");
+    assert_eq!(show["uri"], file_of("20260515"));
+    assert_eq!((show["orgOtherWindow"].clone(), show["takeFocus"].clone()), (json!(true), json!(false)));
+    // `j s w`: the string, then the results of the week of the 15th.
+    let asked = run(&mut client, "org.journal.search.calendar.week", on_prompt.clone()).unwrap();
+    assert_eq!(asked["input"]["context"]["day"], "2026-05-15");
+    let mut answer = on_prompt.clone();
+    answer["step"] = json!("search");
+    answer["day"] = json!("2026-05-15");
+    answer["input"] = json!("standup");
+    run(&mut client, "org.journal.search.calendar.week", answer).unwrap();
+    let results = shown(&client).expect("the results")["uri"].as_str().unwrap().to_string();
+    let text = std::fs::read_to_string(results.strip_prefix("file://").unwrap()).unwrap();
+    assert!(
+        text.starts_with("Search results for \"standup\" between Saturday, 05/09/26 and Sunday, 05/17/26"),
+        "{text}"
+    );
+    // `[` twice: the 12th, then none before it.
+    run(&mut client, "org.journal.previous.entry", on_prompt.clone()).unwrap();
+    let none = run(&mut client, "org.journal.previous.entry", on_prompt.clone()).unwrap();
+    assert_eq!(none["message"], "No journal entry before this one");
+    run(&mut client, "org.journal.read.entry", on_prompt.clone()).unwrap();
+    assert_eq!(shown(&client).unwrap()["uri"], file_of("20260512"));
+
+    // `j n` on a day to come: a TODO entry for it.
+    run(&mut client, "org.calendar.today", on_prompt.clone()).unwrap();
+    run(&mut client, "org.calendar.day.later", on_prompt.clone()).unwrap();
+    run(&mut client, "org.journal.new.date.entry", on_prompt.clone()).unwrap();
+    assert_eq!(
+        std::fs::read_to_string(directory.join("20260519")).unwrap(),
+        "* Tuesday, 05/19/26\n** TODO \n<2026-05-19 Tue>"
+    );
+    assert_eq!(run(&mut client, "org.journal.mark.entries", on_prompt.clone()), Ok(Value::Null));
+    // Off the calendar there is no day.
+    let elsewhere = json!({ "textDocument": { "uri": notes }, "position": { "line": 1, "character": 0 } });
+    assert_eq!(run(&mut client, "org.journal.read.entry", elsewhere.clone()), Err("Not on a date!".to_string()));
+    assert_eq!(run(&mut client, "org.calendar.cancel", on_prompt.clone()), Ok(json!({ "close": PROMPT })));
+
+    // With `C-u`, today; without a timestamp on the line, today too.
+    let today = json!({ "textDocument": { "uri": notes }, "position": { "line": 0, "character": 2 }, "count": 4 });
+    run(&mut client, "org.goto.calendar", today).unwrap();
+    run(&mut client, "org.journal.previous.entry", on_prompt.clone()).unwrap();
+    run(&mut client, "org.journal.read.entry", on_prompt.clone()).unwrap();
+    assert_eq!(shown(&client).unwrap()["uri"], file_of("20260515"));
+    client.shutdown();
+
+    // Follow mode: `]` shows the entry of the day it goes to, and says
+    // nothing.
+    let mut options = clock();
+    options["org_journal_enabled"] = json!(true);
+    options["org_journal_dir"] = json!(directory.display().to_string());
+    options["org_journal_follow_mode"] = json!(true);
+    let mut client = Client::with_date_prompt(options);
+    run(&mut client, "org.goto.calendar", json!({})).unwrap();
+    let moved = run(&mut client, "org.journal.next.entry", on_prompt.clone()).unwrap();
+    assert_eq!(moved, Value::Null);
+    let show = shown(&client).expect("the entry");
+    assert_eq!(show["uri"], file_of("20260519"));
+    assert_eq!(show["takeFocus"], false);
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
 /// org-roam's editing of the node at the cursor, and `roam:` links:
 /// followed, turned into `id:` links on saving, and completed.
 #[test]

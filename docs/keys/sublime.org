@@ -168,6 +168,7 @@ to install and set up the package.
 | ~Ctrl+C .~ | ~org.timestamp.insert~ | Insert or change a timestamp |
 | ~Ctrl+C !~ | ~org.timestamp.insert.inactive~ | Insert or change an inactive timestamp |
 | ~Ctrl+C Ctrl+X Ctrl+T~ | ~org.timestamp.overlays.toggle~ | Show timestamps in the custom formats, or not |
+| ~Ctrl+C >~ | ~org.goto.calendar~ | Show the calendar at the date of the line |
 | ~Tab~ ¹ | ~org_lsp_cycle~ | Cycle the visibility of the subtree, block or drawer at the cursor |
 | ~Shift+Tab~ | ~org_lsp_cycle_global~ | Cycle the visibility of the whole file |
 | ~Ctrl+C a~ | ~org.agenda.dispatch~ | Agenda commands |
@@ -479,6 +480,12 @@ line.
 | ~org.journal.open.current~ | Org: Journal: open the current file |
 | ~org.journal.search.forever~ | Org: Journal: search every entry |
 | ~org.journal.search.future~ | Org: Journal: search the entries to come |
+| ~org.journal.search.calendar.week~ | Org: Journal: search the calendar's week |
+| ~org.journal.search.calendar.month~ | Org: Journal: search the calendar's month |
+| ~org.journal.search.calendar.year~ | Org: Journal: search the calendar's year |
+| ~org.journal.read.entry~ | Org: Journal: the entry of the calendar's day |
+| ~org.journal.display.entry~ | Org: Journal: show the entry of the calendar's day |
+| ~org.journal.mark.entries~ | Org: Journal: mark the days with an entry in the calendar |
 | ~org.journal.search.future.scheduled~ | Org: Journal: the TODO entries to come |
 | ~org.journal.schedule.view~ | Org: Journal: the entries to come with a date |
 | ~org.journal.reschedule~ | Org: Journal: move the entry to come to another day |

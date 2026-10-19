@@ -1,0 +1,36 @@
+{
+  "description": "The calendar on its own (C-c >) and the keys org-journal adds to it: the next and previous days with an entry, an entry read or shown, the days marked, searches of the calendar's week, month and year, and a new entry for its day.",
+  "files": {
+    "notes.org": ["* Meeting <2026-05-12 Tue>", "* Other"],
+    "journal/20260512": ["* Tuesday, 05/12/26", "** 09:00 planning"],
+    "journal/20260515": ["* Friday, 05/15/26", "** 10:00 standup", "notes"]
+  },
+  "options": {
+    "org_journal_enabled": true,
+    "org_journal_dir": "$DIR/journal"
+  },
+  "steps": [
+    { "open": "notes.org" },
+    { "at": "Meeting", "command": "org.goto.calendar", "expect": ["buffer", "cursor"] },
+    { "command": "org.journal.next.entry", "expect": ["cursor", "messages"] },
+    { "command": "org.journal.display.entry", "expect": ["cursor"] },
+    { "command": "org.journal.previous.entry", "expect": ["cursor", "messages"] },
+    { "command": "org.journal.mark.entries", "expect": ["cursor"] },
+    { "command": "org.journal.read.entry", "expect": ["cursor"] },
+    { "focus": "notes.org", "at": "Meeting", "command": "org.goto.calendar" },
+    { "command": "org.journal.search.calendar.week", "answers": ["standup"], "expect": ["buffer"] },
+    { "focus": "notes.org", "at": "Meeting", "command": "org.goto.calendar" },
+    { "command": "org.journal.search.calendar.month", "answers": ["planning"], "expect": ["buffer"] },
+    { "focus": "notes.org", "at": "Meeting", "command": "org.goto.calendar" },
+    { "command": "org.journal.search.calendar.year", "answers": ["friday"], "expect": ["buffer"] },
+    { "focus": "notes.org", "at": "Meeting", "command": "org.goto.calendar" },
+    { "command": "org.journal.search.forever", "answers": ["notes"], "expect": ["buffer"] },
+    { "focus": "notes.org", "at": "Meeting", "command": "org.goto.calendar" },
+    { "command": "org.journal.search.future", "answers": ["standup"], "expect": ["messages"] },
+    { "focus": "notes.org", "at": "Meeting", "command": "org.goto.calendar" },
+    { "command": "org.calendar.week.later" },
+    { "command": "org.journal.new.date.entry", "expect": ["cursor", "file:journal/20260519"] },
+    { "focus": "notes.org", "at": "Other", "command": "org.goto.calendar", "expect": ["cursor"] },
+    { "command": "org.calendar.cancel" }
+  ]
+}

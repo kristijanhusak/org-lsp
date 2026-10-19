@@ -914,6 +914,8 @@ pub struct Options {
     pub journal_enable_encryption: Option<bool>,
     #[serde(rename = "org_journal_enable_agenda_integration")]
     pub journal_enable_agenda_integration: Option<bool>,
+    #[serde(rename = "org_journal_follow_mode")]
+    pub journal_follow_mode: Option<bool>,
     #[serde(rename = "org_journal_search_result_date_format")]
     pub journal_search_result_date_format: Option<String>,
     /// `org-journal-search-results-order-by`: `asc` or `desc`.
@@ -1081,6 +1083,9 @@ pub struct JournalSettings {
     /// `org-journal-find-file-fn` is `find-file-other-window`: the file of
     /// a day shows in another window.
     pub find_file_other_window: bool,
+    /// `org-journal-follow-mode`: in the calendar, `]` and `[` display
+    /// the entry of the day they move to.
+    pub follow_mode: bool,
     pub core: org_core::journal::Settings,
 }
 
@@ -1687,6 +1692,7 @@ impl Options {
             directory: self.journal_dir.clone().unwrap_or_else(|| "~/Documents/journal/".to_string()),
             agenda_integration: self.journal_enable_agenda_integration.unwrap_or(false),
             find_file_other_window: self.journal_find_file_fn.as_deref() != Some("find-file"),
+            follow_mode: self.journal_follow_mode.unwrap_or(false),
             core,
         })
     }

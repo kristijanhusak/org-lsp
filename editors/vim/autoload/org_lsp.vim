@@ -341,6 +341,12 @@ endfunction
 " Where the cursor is, as the server's commands take it.
 function! s:cursor_context() abort
   let nr = s:org_buffer()
+  " In the date prompt's calendar, the day under the cursor: org-journal's
+  " keys there act on it.
+  if s:is_prompt(expand('%:p'))
+    let position = {'line': line('.') - 1, 'character': col('.') - 1}
+    return [nr, {'textDocument': {'uri': org_lsp#uri(bufnr())}, 'position': position}]
+  endif
   if nr == bufnr()
     let position = {'line': line('.') - 1, 'character': s:character(getline('.'), col('.') - 1)}
   else

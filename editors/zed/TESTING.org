@@ -211,7 +211,7 @@ its sections says what it should look like.
 
 * A journal (org-journal)
 
-*Partly:* For the dates and searches the commands ask for, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with ~file_types~ in Zed's settings.
+*Partly:* For the dates and searches the commands ask for, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with ~file_types~ in Zed's settings. The calendar and the keys org-journal adds to it are left out: Zed shows no date prompt.
 
 - [ ] With ~org_journal_enabled~ on, a new entry makes today's file in ~org_journal_dir~ (a file without an extension, opened as Org) with today's date and an entry with the time, the cursor after it: the code action /Journal: new entry/
 - [ ] With a journal file of yesterday holding a TODO entry, the first new entry of today moves it to today's file: the code action /Journal: new entry/

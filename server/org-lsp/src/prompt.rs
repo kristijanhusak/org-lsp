@@ -56,6 +56,10 @@ pub enum Target {
     /// `org-roam-dailies-capture-date`), asked from the document `from`;
     /// `goto` goes to the note without capturing to it.
     Dailies { from: Uri, goto: bool },
+    /// No date asked for: the calendar on its own (`org-goto-calendar`,
+    /// `M-x calendar`), shown from the document `from`, where org-journal's
+    /// keys work.
+    Calendar { from: Uri },
 }
 
 impl Target {
@@ -64,7 +68,7 @@ impl Target {
         match self {
             Target::Place { uri, .. } => uri,
             Target::Entry { view, .. } | Target::Agenda { view, .. } => view,
-            Target::Journal { from } | Target::Dailies { from, .. } => from,
+            Target::Journal { from } | Target::Dailies { from, .. } | Target::Calendar { from } => from,
         }
     }
 }
@@ -362,6 +366,12 @@ impl DatePrompt {
             text.push_str(&line);
             text.push('\n');
         }
+        // The calendar on its own has no minibuffer.
+        if matches!(self.target, Target::Calendar { .. }) {
+            self.text = text;
+            self.tokens = tokens;
+            return;
+        }
         // The minibuffer, after a blank line.
         text.push('\n');
         let start = text.len();
@@ -516,6 +526,30 @@ mod tests {
         // In the order of the text, with the selected day.
         let starts: Vec<u32> = prompt.tokens.iter().map(|token| token.range.start().into()).collect();
         assert!(starts.windows(2).all(|pair| pair[0] <= pair[1]), "{starts:?}");
+    }
+
+    #[test]
+    fn shows_the_calendar_alone_without_a_minibuffer() {
+        let file: Uri = "file:///org/notes.org".parse().unwrap();
+        let target = Target::Calendar { from: file };
+        let default = Some(DateTime::new(Date::new(2026, 10, 7), 0, 0));
+        let mut prompt = DatePrompt::new(
+            "org.goto.calendar",
+            Command::Timestamp { inactive: false },
+            target,
+            default,
+            String::new(),
+            now(),
+            &Settings::default(),
+            (3, 0),
+        );
+        let lines: Vec<&str> = prompt.text.lines().collect();
+        assert_eq!(lines[0], "        September 2026            October 2026            November 2026");
+        assert!(lines.last().unwrap().starts_with("     "), "{}", prompt.text);
+        assert!(prompt.tokens.iter().all(|token| token.ty != TokenType::CalendarPrompt));
+        assert_eq!(prompt.cursor(), Position::new(3, 40));
+        prompt.select(Date::new(2026, 10, 9).to_day(), now(), &Settings::default());
+        assert!(!prompt.text.contains("=>"));
     }
 
     #[test]

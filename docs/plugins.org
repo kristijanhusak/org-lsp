@@ -456,6 +456,40 @@ timestamp from now on are another one, ~org-journal-schedule.org~:
 The date prompt's calendar marks the days with an entry, as
 ~org-journal-mark-entries~ does: before now, and to come.
 
+The calendar also opens on its own, as ~M-x calendar~ shows it: with
+~org.goto.calendar~ (~org-goto-calendar~, ~C-c >~ in the ~emacs~ preset,
+~<Leader>o>~ in the ~vim~ one), on the day of the timestamp at the cursor or
+the line's last active one, or today (with ~C-u~, today). It moves with the
+date prompt's keys and ~q~ closes it. org-journal's keys work in it, on the
+day of its cursor, as in Emacs's calendar (in the ~vim~ preset under
+~<Leader>j~, as ~j~ moves a week down):
+
+- ~j r~, ~j d~ :: ~org-journal-read-entry~ (~org.journal.read.entry~) and
+  ~org-journal-display-entry~ (~org.journal.display.entry~): the entry of
+  the day, in another window; ~j d~ leaves the cursor in the calendar.
+  /No journal entry for this date./ when it has none.
+- ~]~, ~[~ :: ~org-journal-next-entry~ and ~org-journal-previous-entry~:
+  the next or the previous day with an entry. org-journal then says /No
+  journal entry after this one/ (or /before/), even when it went to one,
+  unless ~org_journal_follow_mode~ is on: the entry of that day then shows
+  in another window (~org-journal-follow-mode~), the cursor staying in the
+  calendar.
+- ~j n~ :: ~org-journal-new-date-entry~: an entry for the day, a TODO entry
+  for a day to come.
+- ~j m~ :: ~org-journal-mark-entries~: the days with an entry marked again,
+  after entries were made or removed.
+- ~j s f~, ~j s F~ :: ~org-journal-search-forever~ and
+  ~org-journal-search-future~.
+- ~j s w~, ~j s m~, ~j s y~ :: ~org-journal-search-calendar-week~,
+  ~…-month~ and ~…-year~ (~org.journal.search.calendar.week~ …): a search
+  of the day's week, month or year. org-journal's week runs from its first
+  day to the first day of the next, as ~calendar_week_start_day~ starts
+  them.
+
+#+begin_src toml
+org_journal_follow_mode = true
+#+end_src
+
 [[file:images/journal.gif]]
 
 Each shows the entry it is about, in its file, and with
@@ -501,19 +535,20 @@ before all the others goes first in its file). What differs:
   there: Emacs decrypts such a file in memory, where the editors would
   need it decrypted on disk, or a way of their own to read it.
   ~org_journal_enable_encryption~, with ~org-crypt~, is there.
-- ~org-journal-follow-mode~ and ~org-journal-enable-cache~ are not there:
-  the one shows the entries of the days ~M-x calendar~ moves to, the other
-  keeps that calendar's days in a file between sessions, and the date
-  prompt's calendar reads the directory each time it opens.
+- ~org-journal-enable-cache~ is not needed: it keeps the days with an
+  entry in a file between sessions, so that Emacs reads only the files
+  changed since, and gives the same days; the server reads the directory
+  each time it needs them.
+- The calendar and its keys are in Neovim, Vim and VS Code, which show the
+  date prompt. An entry ~j r~ shows is not read-only, as ~view-mode~ makes
+  it in Emacs, and a search from the calendar does not show its first
+  result beside the results.
 - The search results are an Org file whose dates are links, two blanks
   before the line found where Emacs has a tab, in place of a buffer of
   buttons (~n~, ~p~, ~TAB~ move between them, and the first
   result shows beside them); its matches are not highlighted. An empty
   string finds every entry with a time, which Emacs means to do but hangs
   on.
-- The keys org-journal adds to ~M-x calendar~ (~j r~, ~j d~, ~[~, ~]~,
-  ~j s~ …) are not there: org-lsp has no calendar of its own, only the
-  date prompt's, where Emacs has them neither.
 - Dates are written as in the C locale: ~%x~ is ~05/15/26~ and ~%A~
   ~Friday~ whatever the system's locale is. A journal Emacs kept under
   another locale (~en_US.UTF-8~ writes ~05/15/2026~) has headings org-lsp
