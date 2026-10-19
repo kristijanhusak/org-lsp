@@ -139,3 +139,5 @@ Emacs Org does in that area that org-lsp does; [[file:parity.org][parity.org]] l
 (~languages/org/semantic_token_rules.json~), ~tasks.json~ and ~keymap.json~
 from the server's manifest; ~--check~ fails if they are out of date.
 ~cargo build --target wasm32-wasip2~ in ~editors/zed~ builds the extension.
+~editors/zed/test/run.py~ runs the shared end-to-end scenarios in Zed,
+pressing its keys ([[file:development.org::#end-to-end-scenarios][end-to-end scenarios]]).

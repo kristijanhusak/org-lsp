@@ -220,6 +220,39 @@ HX=~/helix/hx editors/helix/test/run.py
 HX=~/helix/hx ORG_LSP_E2E=org-editing editors/helix/test/run.py
 #+end_src
 
+Zed's adapter is ~editors/zed/test/run.py~, which ~scripts/test-all.sh~
+runs when ~ZED~ names Zed's command line (~bin/zed~):
+
+#+begin_src sh
+ZED=~/zed.app/bin/zed ZED_ORG_GRAMMAR=~/org.wasm editors/zed/test/run.py
+ZED=… ZED_ORG_GRAMMAR=… ORG_LSP_E2E=capture editors/zed/test/run.py   # one scenario
+#+end_src
+
+Each scenario runs in a Zed of its own, on an X display of its own
+(~Xvfb~), with a home directory of its own: the extension installed as
+~scripts/install.sh zed~ installs it, built with ~cargo build --release
+--target wasm32-wasip2~ in ~editors/zed~, the Org grammar Zed would build
+(~ZED_ORG_GRAMMAR~, an ~org.wasm~; or ~ZED_TREE_SITTER_ORG~, a checkout of
+tree-sitter-org, and ~WASI_SDK~ to build it), and the tasks and the keymap
+of [[file:keys/zed.org::#keys-through-tasks][keys through tasks]].
+The adapter presses with ~xdotool~ the key ~keymap.json~ binds to the step's
+command (a task, which reaches the server through its command port); a
+command with no key in Zed (~editors.zed~ in the exceptions) runs from the
+code actions (~ctrl-.~). It clicks the buttons of a question, answers typed
+text with a rename at the cursor (~F2~), goes to a line with ~ctrl-g~ and
+opens a file with Zed's command line. A key that takes a count is pressed
+that many times, as Zed gives a key none. Zed opens a file a server's edit
+changes when no tab shows it, and takes the focus to what it is asked to
+show without it (follow mode): the adapter goes back to where it was, as a
+user does. What Zed has open, the text of its buffers and where its cursor
+is come from what it tells the server, which ~editors/zed/test/proxy.py~
+writes down; the current buffer is the window's title. ~snapshots.zed~ in
+the exceptions names what Zed shows otherwise as ~NAME STEP KIND~, and the
+steps it cannot take as ~NAME STEP~; ~scenarios.zed~ the scenarios it cannot
+take at all (the date prompt, column view). A failure leaves a screenshot
+in ~target/zed-e2e~; ~ORG_LSP_ZED_KEEP=1~ keeps each scenario's directory,
+and ~ORG_LSP_ZED_PAUSE=1~ leaves Zed open at a failure, to look at.
+
 * Setting up the tools
 :PROPERTIES:
 :CUSTOM_ID: setting-up-the-tools

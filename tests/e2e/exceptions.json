@@ -45,6 +45,22 @@
       "org.tags.set": "Not among Helix's code actions: it asks for the tags as text, which Helix cannot ask for on a server's behalf; from the command line, a rename at the cursor answers.",
       "org.property.set": "Not among Helix's code actions: it asks for the property and its value as text, which Helix cannot ask for on a server's behalf; from the command line, a rename at the cursor answers.",
       "org.refile": "Not among Helix's code actions: it asks for the target from a list (window/showMessageRequest), which Helix cannot show."
+    },
+    "zed": {
+      "org.meta.down": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.).",
+      "org.meta.left": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.).",
+      "org.meta.right": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.).",
+      "org.meta.up": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.).",
+      "org.priority.down": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.).",
+      "org.priority.down count": "Zed gives a key no count, and Org changes the priority once whatever the count: the key is pressed once.",
+      "org.priority.up": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.).",
+      "org.priority.up count": "Zed gives a key no count, and Org changes the priority once whatever the count: the key is pressed once.",
+      "org.shiftmeta.left": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.).",
+      "org.shiftmeta.right": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.).",
+      "org.table.insert.row.below": "Emacs has no key for it: it runs from the code actions (ctrl-.).",
+      "org.timestamp.down": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.).",
+      "org.timestamp.up": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.).",
+      "org.todo.previous": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.)."
     }
   },
   "scenarios": {
@@ -63,6 +79,10 @@
       "agenda-search": "The agenda: its menu asks for the view from a list (window/showMessageRequest), which Helix cannot show, and Helix does not say that it opens documents on a server's request (window.showDocument), so the server opens it no view.",
       "calendar": "The date prompt is a document the server opens (window/showDocument), with keys of its own; Helix is asked for a date as text, answered with a rename at the cursor.",
       "capture": "Capture asks for the template from a list (window/showMessageRequest), which Helix cannot show, and is written in a buffer the server opens (window/showDocument), which it does not for Helix."
+    },
+    "zed": {
+      "agenda-columns": "Zed shows no column view: it would draw over the agenda's lines (docs/zed.org).",
+      "calendar": "Zed has no date prompt: a date is typed as a rename at the cursor (F2), as Zed has no box of its own for typed text (docs/keys/zed.org), so there are no date prompt keys to press."
     }
   },
   "steps": {
@@ -77,6 +97,15 @@
     "helix": {
       "org-editing 5 messages": "The code action is an edit that Helix applies itself, without running the command: nothing is said (Emacs says Priority of current item set to B).",
       "org-editing 29 buffer": "Shopping stays at the end of the file: refiling it under Errands (step 28) is skipped."
+    },
+    "zed": {
+      "agenda-entry-edits 21": "Zed has no note buffer: the note is one line, typed as a rename at the cursor (docs/zed.org).",
+      "agenda-entry-edits 22": "Typed in the note buffer of step 21, which Zed does not have.",
+      "agenda-entry-edits 23": "Files the note of step 21, which Zed asks for as a rename.",
+      "agenda-entry-text 5": "Zed gives a key no count, and C-u 2 E (two lines of entry text) is not E pressed twice, which turns entry text mode on and off.",
+      "agenda-filters 7": "Zed gives a key no count, and C-u C-u / is not / pressed four times.",
+      "agenda-filters 9 messages": "Step 7, which Zed cannot take, says Agenda filters: -home.",
+      "agenda-navigation 18 cursor": "q closes the agenda's tab, and Zed shows the tab beside it (home.org), not the buffer the agenda was opened from."
     }
   }
 }

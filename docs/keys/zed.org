@@ -68,10 +68,12 @@ opened, in its folder, with Zed's command line (found beside Zed, or ~zed~
 or ~zeditor~ on PATH; on macOS run /cli: install/ once), which starts one,
 and then runs the command there.
 
-The agenda is a read-only file the server writes,
+The agenda is a file the server writes,
 =~/.local/state/org-lsp/agenda/…/Agenda.org-agenda= (the same one for the
 same project folders), opened as Org; the server writes it again when it
-changes. When Zed starts again with the agenda's tab open, the new server
+changes. It is not read-only, as Zed refuses a rename in a read-only file,
+and a rename answers what the agenda's commands ask; text typed in it by
+mistake keeps Zed from reading it again (undo it). When Zed starts again with the agenda's tab open, the new server
 takes the tab over: it shows the agenda of the current week, and its keys
 work.
 

@@ -207,9 +207,11 @@ const bindAll = (bindings, tasks) => {
   }
   return bindings;
 };
+// Not while a rename is typed (`renaming`), the answer to what a command
+// asks: the agenda's keys are letters, and its editor sits in the agenda's.
 const keymap = [
   {
-    context: 'Editor && extension == org-agenda',
+    context: 'Editor && !renaming && extension == org-agenda',
     bindings: bindAll(
       {
         // Zed's own: close the agenda, and go to a line's entry (the server
@@ -222,7 +224,7 @@ const keymap = [
     ),
   },
   // In Org files and capture buffers: Org's keys.
-  { context: 'Editor && extension == org', bindings: bindAll({}, [...byKey, ...inFiles, ...opening]) },
+  { context: 'Editor && !renaming && extension == org', bindings: bindAll({}, [...byKey, ...inFiles, ...opening]) },
 ];
 const files = {
   [join(here, 'languages', 'org', 'semantic_token_rules.json')]: text,
