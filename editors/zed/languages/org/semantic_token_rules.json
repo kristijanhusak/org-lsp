@@ -1,7 +1,31 @@
 [
   {
     "token_modifiers": [
+      "done"
+    ],
+    "style": [
+      "comment"
+    ]
+  },
+  {
+    "token_modifiers": [
+      "todo"
+    ],
+    "style": [
+      "string"
+    ]
+  },
+  {
+    "token_modifiers": [
       "archived"
+    ],
+    "style": [
+      "comment"
+    ]
+  },
+  {
+    "token_modifiers": [
+      "inlinetask"
     ],
     "style": [
       "comment"
@@ -185,6 +209,33 @@
     ],
     "style": [
       "punctuation.list_marker"
+    ]
+  },
+  {
+    "token_type": "cookie",
+    "token_modifiers": [
+      "done"
+    ],
+    "style": [
+      "comment"
+    ]
+  },
+  {
+    "token_type": "headline",
+    "token_modifiers": [
+      "done"
+    ],
+    "style": [
+      "comment"
+    ]
+  },
+  {
+    "token_type": "headline",
+    "token_modifiers": [
+      "todo"
+    ],
+    "style": [
+      "string"
     ]
   },
   {
@@ -380,6 +431,18 @@
     "token_type": "cookie",
     "style": [
       "number"
+    ]
+  },
+  {
+    "token_type": "documentTitle",
+    "style": [
+      "title"
+    ]
+  },
+  {
+    "token_type": "documentInfo",
+    "style": [
+      "string"
     ]
   },
   {

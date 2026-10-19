@@ -79,6 +79,16 @@ const looks = {
   'agendaTimeGrid.current': ['emphasis.strong'],
   agendaClocking: ['emphasis.strong'],
   '*.archived': ['comment'],
+  // `org-headline-done` and `org-headline-todo` past a keyword, the
+  // statistics cookie of `org-checkbox-statistics-done`, `org-inlinetask`.
+  'headline.done': ['comment'],
+  '*.done': ['comment'],
+  'headline.todo': ['string'],
+  '*.todo': ['string'],
+  'cookie.done': ['comment'],
+  '*.inlinetask': ['comment'],
+  documentTitle: ['title'],
+  documentInfo: ['string'],
 };
 levels.forEach((style, index) => {
   looks[`headline.level${index + 1}`] = [style];
@@ -98,10 +108,12 @@ const selectors = manifest.highlights.map((look) => look.token).filter((token) =
 // thing the one earlier in the file wins (as a user's rules win over an
 // extension's): a type with a modifier first (`todoKeyword.done` over
 // `todoKeyword`), then the plain types, then the modifiers of any type.
-// An archived headline is shadowed over all its colors (`org-archived` is
-// prepended), so that one goes before everything.
+// What Org prepends over a headline's other faces (`org-archived`,
+// `org-headline-done`, `org-headline-todo`, `org-inlinetask`) goes before
+// everything, as a priority or tags in it take that look.
+const over = ['*.archived', '*.done', '*.todo', '*.inlinetask'];
 const rank = (selector) =>
-  selector === '*.archived' ? -1 : selector.startsWith('*.') ? 2 : selector.includes('.') ? 0 : 1;
+  over.includes(selector) ? -1 : selector.startsWith('*.') ? 2 : selector.includes('.') ? 0 : 1;
 const rules = selectors.sort((a, b) => rank(a) - rank(b)).map((selector) => rule(selector, looks[selector]));
 const text = JSON.stringify(rules, null, 2) + '\n';
 
