@@ -178,7 +178,9 @@ unless ~tests/e2e/exceptions.json~ names it under ~commands~ with the reason.
 An adapter fails on a command that has no key in its editor, unless
 ~editors.EDITOR~ there says why; it then runs the command as from the
 editor's command list. ~snapshots.EDITOR~ names, as ~NAME STEP KIND~, what
-an editor shows otherwise on purpose, and why.
+an editor shows otherwise on purpose, and why; ~steps.EDITOR~, as ~NAME
+STEP~, the steps an editor cannot take, and ~scenarios.EDITOR~ the
+scenarios it cannot run at all, each with the reason.
 
 VS Code's adapter is ~editors/vscode/test/scenarios.test.cjs~, run by
 ~npm test~ after the extension's tests (~npm test -- scenarios~ for the
@@ -197,6 +199,26 @@ the cursor at the end of its line first, as ~C-e M-RET~ in Emacs. What is
 asked is answered by stubs of VS Code's quick pick and input box. It needs
 ~xdotool~ and a display of its own, ~xvfb-run -a npm test~: the keys go to
 the window that has the focus.
+
+Helix's adapter is ~editors/helix/test/run.py~: each scenario in a Helix
+of its own in a tmux session, with [[file:../editors/helix/languages.toml][editors/helix/languages.toml]] pointing
+at the debug build and the scenario's options as its ~config~. It does
+what a Helix user does: picks the command's code action in the menu
+(~Space a~, then ~C-n~ and ~RET~), follows a link with ~gd~, answers what
+the server asks for as text with a rename (~Space r~), and runs the
+commands that are not among the code actions (~editors.helix~) with
+~:lsp-workspace-command~ and the cursor's place as their argument, as it
+does a step with a count: a code action takes none. It saves with
+~:write-all~ and reads the files, the cursor from the status line and the
+messages from Helix's log. Most of the scenarios are in the agenda, the
+date prompt or capture, which Helix does not show (~scenarios.helix~).
+~HX~ is the ~hx~ to run (~HELIX_RUNTIME~ its ~runtime~ directory, by default
+the one beside it); ~scripts/test-all.sh~ runs it when ~HX~ is set:
+
+#+begin_src sh
+HX=~/helix/hx editors/helix/test/run.py
+HX=~/helix/hx ORG_LSP_E2E=org-editing editors/helix/test/run.py
+#+end_src
 
 * Setting up the tools
 :PROPERTIES:

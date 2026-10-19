@@ -9,6 +9,8 @@
 #                  without it
 #   VSCODE_EXECUTABLE  the VS Code (or VSCodium) to run; without it the
 #                  test runner downloads VS Code
+#   HX             the Helix to run the end-to-end scenarios in (see
+#                  editors/helix/test/run.py); skipped without it
 #
 # The VS Code tests need a display: they run under xvfb-run when there is
 # none.
@@ -21,6 +23,12 @@ if [ -n "${CLIENTS:-}" ]; then
   editors/vim/test/download.sh
 else
   echo "== vim: skipped (set CLIENTS)"
+fi
+if [ -n "${HX:-}" ]; then
+  echo "== helix: scenarios"
+  editors/helix/test/run.py
+else
+  echo "== helix: skipped (set HX)"
 fi
 cd editors/vscode
 npm run -s build

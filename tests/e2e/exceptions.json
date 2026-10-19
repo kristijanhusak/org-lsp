@@ -37,11 +37,46 @@
       "org.tags.set": "<Leader>ot in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
       "org.todo": "cit in Neovim, a key of Vim's normal mode: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
       "org.todo.previous": "ciT in Neovim, a key of Vim's normal mode: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org)."
+    },
+    "helix": {
+      "org.meta.return": "Not among Helix's code actions: it puts the cursor on the new heading, and a code action's edit cannot move the cursor (docs/keys/helix.org).",
+      "org.meta.up": "Helix's code action moves the subtree and leaves the cursor where it was in the text; Emacs's cursor goes with the subtree, as it does when the command moves it (window/showDocument).",
+      "org.meta.down": "Helix's code action moves the subtree and leaves the cursor where it was in the text; Emacs's cursor goes with the subtree, as it does when the command moves it (window/showDocument).",
+      "org.tags.set": "Not among Helix's code actions: it asks for the tags as text, which Helix cannot ask for on a server's behalf; from the command line, a rename at the cursor answers.",
+      "org.property.set": "Not among Helix's code actions: it asks for the property and its value as text, which Helix cannot ask for on a server's behalf; from the command line, a rename at the cursor answers.",
+      "org.refile": "Not among Helix's code actions: it asks for the target from a list (window/showMessageRequest), which Helix cannot show."
+    }
+  },
+  "scenarios": {
+    "helix": {
+      "agenda-archives": "The agenda: its menu asks for the view from a list (window/showMessageRequest), which Helix cannot show, and Helix does not say that it opens documents on a server's request (window.showDocument), so the server opens it no view.",
+      "agenda-bulk": "The agenda: its menu asks for the view from a list (window/showMessageRequest), which Helix cannot show, and Helix does not say that it opens documents on a server's request (window.showDocument), so the server opens it no view.",
+      "agenda-columns": "The agenda: its menu asks for the view from a list (window/showMessageRequest), which Helix cannot show, and Helix does not say that it opens documents on a server's request (window.showDocument), so the server opens it no view.",
+      "agenda-entries": "The agenda: its menu asks for the view from a list (window/showMessageRequest), which Helix cannot show, and Helix does not say that it opens documents on a server's request (window.showDocument), so the server opens it no view.",
+      "agenda-entry-edits": "The agenda: its menu asks for the view from a list (window/showMessageRequest), which Helix cannot show, and Helix does not say that it opens documents on a server's request (window.showDocument), so the server opens it no view.",
+      "agenda-entry-text": "The agenda: its menu asks for the view from a list (window/showMessageRequest), which Helix cannot show, and Helix does not say that it opens documents on a server's request (window.showDocument), so the server opens it no view.",
+      "agenda-filters": "The agenda: its menu asks for the view from a list (window/showMessageRequest), which Helix cannot show, and Helix does not say that it opens documents on a server's request (window.showDocument), so the server opens it no view.",
+      "agenda-habits": "The agenda: its menu asks for the view from a list (window/showMessageRequest), which Helix cannot show, and Helix does not say that it opens documents on a server's request (window.showDocument), so the server opens it no view.",
+      "agenda-inactive": "The agenda: its menu asks for the view from a list (window/showMessageRequest), which Helix cannot show, and Helix does not say that it opens documents on a server's request (window.showDocument), so the server opens it no view.",
+      "agenda-log-clock": "The agenda: its menu asks for the view from a list (window/showMessageRequest), which Helix cannot show, and Helix does not say that it opens documents on a server's request (window.showDocument), so the server opens it no view.",
+      "agenda-navigation": "The agenda: its menu asks for the view from a list (window/showMessageRequest), which Helix cannot show, and Helix does not say that it opens documents on a server's request (window.showDocument), so the server opens it no view.",
+      "agenda-search": "The agenda: its menu asks for the view from a list (window/showMessageRequest), which Helix cannot show, and Helix does not say that it opens documents on a server's request (window.showDocument), so the server opens it no view.",
+      "calendar": "The date prompt is a document the server opens (window/showDocument), with keys of its own; Helix is asked for a date as text, answered with a rename at the cursor.",
+      "capture": "Capture asks for the template from a list (window/showMessageRequest), which Helix cannot show, and is written in a buffer the server opens (window/showDocument), which it does not for Helix."
+    }
+  },
+  "steps": {
+    "helix": {
+      "org-editing 28": "Refiling asks for the target from a list (window/showMessageRequest), which Helix answers with an error (Method not found)."
     }
   },
   "snapshots": {
     "vscode": {
       "agenda-navigation 18 cursor": "q closes the agenda's tab, not its editor group as Emacs deletes the agenda's window: home.org, opened in that group since, stays in front of work.org."
+    },
+    "helix": {
+      "org-editing 5 messages": "The code action is an edit that Helix applies itself, without running the command: nothing is said (Emacs says Priority of current item set to B).",
+      "org-editing 29 buffer": "Shopping stays at the end of the file: refiling it under Errands (step 28) is skipped."
     }
   }
 }
