@@ -7287,6 +7287,7 @@ impl Server {
             }
             Target::Agenda { .. } => Err("The agenda has no file to change".into()),
             Target::Journal { .. } => Err("The journal's commands change their own files".into()),
+            Target::Dailies { .. } => Err("The daily notes' commands change their own files".into()),
             Target::Entry { row, .. } => {
                 let reference = row.entry.as_ref().ok_or("No entry on this line")?;
                 self.with_source(&reference.uri, |text, _, _, outline, version| {
@@ -7318,7 +7319,7 @@ impl Server {
 
     /// What the date prompt of `command` at `target` starts from.
     fn date_prompt_start(&mut self, command: PlanningCommand, target: &Target) -> std::result::Result<Prompt, Refusal> {
-        if let Target::Agenda { .. } | Target::Journal { .. } = target {
+        if let Target::Agenda { .. } | Target::Journal { .. } | Target::Dailies { .. } = target {
             // `org-read-date` without a default: today, and nothing typed.
             return Ok(Prompt { default: None, value: String::new() });
         }
@@ -7375,6 +7376,9 @@ impl Server {
         }
         if let Target::Journal { from } = target {
             return self.journal_date(id, from, answer);
+        }
+        if let Target::Dailies { from, goto } = target {
+            return self.roam_dailies_date(id, from, *goto, answer);
         }
         let command = self.date_command_at(id, target)?;
         let source = self.date_source(target)?;
@@ -7517,6 +7521,11 @@ impl Server {
     /// How the prompt of the command `id` reads a date: the agenda's `j`
     /// with `org-agenda-jump-prefer-future`.
     fn read_date_of(&self, id: &str) -> ReadDateSettings {
+        // `org-roam-dailies-capture-date` binds `org-read-date-prefer-future`
+        // to nil.
+        if matches!(id, commands::ROAM_DAILIES_GOTO_DATE | commands::ROAM_DAILIES_CAPTURE_DATE) {
+            return ReadDateSettings { prefer_future: org_core::read_date::PreferFuture::No, ..self.read_date };
+        }
         match self.agenda_jump_prefer_future {
             Some(prefer_future) if id == commands::AGENDA_GOTO_DATE => {
                 ReadDateSettings { prefer_future, ..self.read_date }
@@ -16154,7 +16163,7 @@ fn fit_outline_path(path: &str, width: usize) -> String {
 }
 
 /// `abbreviate-file-name`: the home directory as `~`.
-fn abbreviate_path(path: &Path) -> String {
+pub(crate) fn abbreviate_path(path: &Path) -> String {
     let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
     match home.as_deref().and_then(|home| path.strip_prefix(home).ok()) {
         Some(rest) => format!("~/{}", rest.to_string_lossy()),

@@ -52,6 +52,10 @@ pub enum Target {
     /// The day of a journal entry (`org-journal-new-date-entry`), asked
     /// from the document `from`.
     Journal { from: Uri },
+    /// The day of a daily note of org-roam (`org-roam-dailies-goto-date`,
+    /// `org-roam-dailies-capture-date`), asked from the document `from`;
+    /// `goto` goes to the note without capturing to it.
+    Dailies { from: Uri, goto: bool },
 }
 
 impl Target {
@@ -60,7 +64,7 @@ impl Target {
         match self {
             Target::Place { uri, .. } => uri,
             Target::Entry { view, .. } | Target::Agenda { view, .. } => view,
-            Target::Journal { from } => from,
+            Target::Journal { from } | Target::Dailies { from, .. } => from,
         }
     }
 }

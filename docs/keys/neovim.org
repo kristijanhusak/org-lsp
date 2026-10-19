@@ -150,6 +150,7 @@ command. [[file:../neovim.org][neovim.org]] says how to install and set up the p
 | ~<Leader>ndc~ | ~org.roam.dailies.goto.date~ | Roam: go to the daily note of a date |
 | ~<Leader>ndf~ | ~org.roam.dailies.goto.next~ | Roam: go to the next daily note |
 | ~<Leader>ndb~ | ~org.roam.dailies.goto.previous~ | Roam: go to the previous daily note |
+| ~<Leader>nd.~ | ~org.roam.dailies.find.directory~ | Roam: open the directory of the daily notes |
 | ~<Leader>nl~ | ~org.roam.buffer.toggle~ | Roam: show or hide the org-roam buffer |
 | ~<Leader>jf~ | ~org.journal.next.entry~ | Journal: next entry |
 | ~<Leader>jb~ | ~org.journal.previous.entry~ | Journal: previous entry |

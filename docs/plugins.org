@@ -324,11 +324,17 @@ target = ["file+head", "%<%Y-%m-%d>.org", "#+title: %<%Y-%m-%d>\n"]
   (~t~, ~y~) the note a day on or back, or as many days as the count; their
   ~capture~ relatives capture to it.
 - ~org.roam.dailies.capture.date~, ~org.roam.dailies.goto.date~ :: (~v~,
-  ~c~) the note of a date typed as Org's date prompt reads it, a date
-  without a year in the past (/Capture to daily-note/, /Find daily-note/).
+  ~c~) the note of a date picked in the date prompt's calendar, which marks
+  the days with a note, or typed as Org's date prompt reads it, a day
+  without a year in this year even when it has passed (/Capture to
+  daily-note/, /Find daily-note/). With ~C-u~, ~capture.date~ goes to the
+  note.
 - ~org.roam.dailies.goto.next~, ~org.roam.dailies.goto.previous~ :: (~f~,
   ~b~) from a daily note, the next or previous one there is, or as many on
   as the count: /Already at newest note/ at the last.
+- ~org.roam.dailies.find.directory~ :: ~org-roam-dailies-find-directory~
+  (~.~): the notes of the directory, those of the directories in it too, in
+  the order of their names, to pick one and visit it.
 
 The server keeps no database: it reads the files of the directory when a
 command needs them, again when they have changed, in the editor or on
@@ -370,9 +376,12 @@ against Emacs by recorded cases and differential fuzzing. What differs:
   drawers follow ~org_roam_db_extra_links_elements~ and
   ~org_roam_db_extra_links_exclude_keys~.
 - Going to a daily note that is not there writes it, its ~ID~ and head in
-  it; Emacs leaves its buffer unsaved. Its date is typed, without the
-  calendar, which marks no days with a note; the directory of the notes is
-  not opened (~org-roam-dailies-find-directory~).
+  it; Emacs leaves its buffer unsaved. In Sublime Text, Zed and Helix,
+  which show no date prompt, its date is typed.
+- ~org-roam-dailies-find-directory~ opens the directory in Dired, where
+  the editors have no list of a directory's files to show for a server:
+  its notes are offered to pick from instead, as the editor offers any
+  choice.
 
 * A journal (org-journal)
 :PROPERTIES:

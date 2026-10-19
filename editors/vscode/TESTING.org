@@ -242,6 +242,8 @@ its sections says what it should look like.
 - [ ] A dedicated buffer for a node asked for opens in a file of its own and stays on that node: /Org: Roam: show the org-roam buffer of a node/
 - [ ] With ~"unlinked-references"~ in ~org_roam_mode_sections~, a line naming the node's title without a link is listed under /Unlinked References/: /Org: Roam: refresh the org-roam buffer/
 - [ ] Going to today's daily note makes ~daily/YYYY-MM-DD.org~ with its ~ID~ and ~#+title:~; capturing to it adds an entry at its end; the next and previous notes go from one to the other: ~Ctrl+C n d d~, ~Ctrl+C n d n~, ~Ctrl+C n d f~
+- [ ] Going to the daily note of a date opens the date prompt's calendar, whose last line starts with /Find daily-note:/, the days with a note marked; picking a day goes to its note: ~Ctrl+C n d c~
+- [ ] Opening the directory of the daily notes offers its notes; the one picked is visited: ~Ctrl+C n d .~
 
 * A journal (org-journal)
 

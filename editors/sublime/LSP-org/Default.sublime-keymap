@@ -4056,6 +4056,54 @@
     "keys": [
       "ctrl+c",
       "n",
+      "d",
+      "."
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.find.directory"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "n",
+      "d",
+      "."
+    ],
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.find.directory"
+    },
+    "context": [
+      {
+        "key": "org_lsp.keys",
+        "operator": "equal",
+        "operand": "emacs"
+      },
+      {
+        "key": "selector",
+        "operator": "equal",
+        "operand": "text.org-agenda"
+      }
+    ]
+  },
+  {
+    "keys": [
+      "ctrl+c",
+      "n",
       "l"
     ],
     "command": "org_lsp_run",

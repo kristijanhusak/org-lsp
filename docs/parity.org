@@ -26,7 +26,7 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#agenda][Agenda]] | 100% | 38 of 38 |
 | [[#clocking][Clocking]] | 100% | 14 of 14 |
 | [[#capture][Capture]] | 100% | 12 of 12 |
-| [[#notes-org-roam][Notes (org-roam)]] | 88% | 14 of 16 |
+| [[#notes-org-roam][Notes (org-roam)]] | 94% | 15 of 16 |
 | [[#a-journal-org-journal][A journal (org-journal)]] | 79% | 11 of 14 |
 | [[#refile-and-archive][Refile and archive]] | 100% | 13 of 13 |
 | [[#links][Links]] | 100% | 22 of 22 |
@@ -396,7 +396,7 @@ Where editors fall short:
 :CUSTOM_ID: notes-org-roam
 :END:
 
-88% (14 of 16)
+94% (15 of 16)
 
 - ✅ The nodes of ~org_roam_directory~, files and entries with an ~ID~, as ~org-roam-db-sync~ finds them (~org_roam_file_extensions~, ~org_roam_file_exclude_regexp~), read again as they change
 - ✅ Finding a node by its title or an alias (~org-roam-node-find~), offered as ~org_roam_node_display_template~ shows it, the files changed last first; a random node
@@ -409,9 +409,9 @@ Where editors fall short:
 - ✅ The graph of the nodes, all of them or those near the node at the cursor, drawn by Graphviz (~org-roam-graph~)
 - ✅ The org-roam buffer: backlinks, reflinks and unlinked references (~org_roam_mode_sections~), following the cursor, dedicated buffers
 - ✅ Completing node titles as they are typed (~org-roam-completion-everywhere~)
-- ✅ Daily notes: capturing to and going to a day's note, today, tomorrow, yesterday or a date typed, and the next and previous notes (~org-roam-dailies-capture-today~, ~org-roam-dailies-goto-date~ …)
+- ✅ Daily notes: capturing to and going to a day's note, today, tomorrow, yesterday or a date picked in the date prompt's calendar, and the next and previous notes (~org-roam-dailies-capture-today~, ~org-roam-dailies-goto-date~ …)
 - ✅ Daily notes: the days with a note marked in the date prompt's calendar, as in every calendar while org-roam is on (~org-roam-dailies-calendar-mark-entries~, ~org-roam-dailies-calendar-note~)
-- ❌ Daily notes: the directory opened, and the calendar to pick the date of ~org.roam.dailies.goto.date~ and ~org.roam.dailies.capture.date~ (~org-roam-dailies-find-directory~); the date is typed
+- ✅ Daily notes: the directory opened, its notes offered to visit (~org-roam-dailies-find-directory~)
 - ✅ The description of an inserted link by a template (~org-roam-node-formatter~), and which links of keyword lines and property drawers count (~org-roam-db-extra-links-elements~, ~org-roam-db-extra-links-exclude-keys~)
 - ❌ Lisp that formats a link's description or chooses the nodes (~org-roam-node-formatter~ as a function, ~org-roam-db-node-include-function~)
 

@@ -179,6 +179,7 @@ extension.
 | ~Ctrl+C n d y~ | ~org.roam.dailies.goto.yesterday~ | Roam: go to yesterday's daily note |
 | ~Ctrl+C n d v~ | ~org.roam.dailies.capture.date~ | Roam: capture to the daily note of a date |
 | ~Ctrl+C n d c~ | ~org.roam.dailies.goto.date~ | Roam: go to the daily note of a date |
+| ~Ctrl+C n d .~ | ~org.roam.dailies.find.directory~ | Roam: open the directory of the daily notes |
 | ~Ctrl+C n l~ | ~org.roam.buffer.toggle~ | Roam: show or hide the org-roam buffer |
 | ~Ctrl+C j j~ | ~org.journal.new.entry~ | Journal: new entry |
 
@@ -204,6 +205,7 @@ extension.
 | ~Ctrl+C n d y~ | ~org.roam.dailies.goto.yesterday~ | Roam: go to yesterday's daily note |
 | ~Ctrl+C n d v~ | ~org.roam.dailies.capture.date~ | Roam: capture to the daily note of a date |
 | ~Ctrl+C n d c~ | ~org.roam.dailies.goto.date~ | Roam: go to the daily note of a date |
+| ~Ctrl+C n d .~ | ~org.roam.dailies.find.directory~ | Roam: open the directory of the daily notes |
 | ~Ctrl+C n l~ | ~org.roam.buffer.toggle~ | Roam: show or hide the org-roam buffer |
 | ~Ctrl+C j j~ | ~org.journal.new.entry~ | Journal: new entry |
 | ~f~ | ~org.agenda.later~ | Agenda: go forward in time |
@@ -565,6 +567,7 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "n", "d", "c"], "commands": ["org.roam.dailies.goto.date"] },
   { "before": ["<leader>", "n", "d", "f"], "commands": ["org.roam.dailies.goto.next"] },
   { "before": ["<leader>", "n", "d", "b"], "commands": ["org.roam.dailies.goto.previous"] },
+  { "before": ["<leader>", "n", "d", "."], "commands": ["org.roam.dailies.find.directory"] },
   { "before": ["<leader>", "n", "l"], "commands": ["org.roam.buffer.toggle"] },
   { "before": ["<leader>", "j", "j"], "commands": ["org.journal.new.entry"] },
   { "before": ["<leader>", "j", "f"], "commands": ["org.journal.next.entry"] },
@@ -820,6 +823,7 @@ every file; outside Org files the commands say they do not apply):
 | ~org.roam.dailies.goto.date~ | Org: Roam: go to the daily note of a date |
 | ~org.roam.dailies.goto.next~ | Org: Roam: go to the next daily note |
 | ~org.roam.dailies.goto.previous~ | Org: Roam: go to the previous daily note |
+| ~org.roam.dailies.find.directory~ | Org: Roam: open the directory of the daily notes |
 | ~org.roam.buffer.toggle~ | Org: Roam: show or hide the org-roam buffer |
 | ~org.roam.buffer.dedicated~ | Org: Roam: show the org-roam buffer of a node |
 | ~org.roam.buffer.refresh~ | Org: Roam: refresh the org-roam buffer |

@@ -1369,6 +1369,18 @@ increments a number.
   has it open, the server sends the edit with ~workspace/applyEdit~ and
   then ~org-lsp/save~ for it, whatever ~auto_save~ says: the file is the
   server's.
+- ~org.roam.dailies.goto.date~, ~org.roam.dailies.capture.date~ ::
+  ~org-roam-dailies-goto-date~ and ~org-roam-dailies-capture-date~: in a
+  client that shows the date prompt, the prompt opens and returns nothing,
+  its minibuffer line starting with ~Find daily-note:~ or ~Capture to
+  daily-note:~, as ~org-read-date~ puts their prompt before its own; the
+  day picked goes to the note or captures to it. Other clients get an input
+  of kind ~date~ (prompt ~Find daily-note~ or ~Capture to daily-note~,
+  ~context~ ~{ "step": "date", "goto" }~).
+- ~org.roam.dailies.find.directory~ :: ~org-roam-dailies-find-directory~:
+  the notes of ~org_roam_dailies_directory~, an input of kind ~choice~
+  whose keys are their names relative to it (~context~
+  ~{ "step": "file" }~); the one picked is shown with ~window/showDocument~.
 - ~org.journal.new.entry~, ~org.journal.new.date.entry~,
   ~org.journal.new.scheduled.entry~, ~org.journal.next.entry~,
   ~org.journal.previous.entry~, ~org.journal.open.current~,

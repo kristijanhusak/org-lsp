@@ -9222,6 +9222,82 @@ fn keeps_daily_notes_with_org_roam() {
     std::fs::remove_dir_all(root).unwrap();
 }
 
+/// org-roam-dailies in an editor that shows the date prompt: the date of
+/// `org-roam-dailies-goto-date` and `-capture-date` is picked in its
+/// calendar, which marks the days with a note, and its minibuffer line
+/// starts with their prompt; `org-roam-dailies-find-directory` offers the
+/// notes of the directory to visit.
+#[test]
+fn picks_the_day_of_a_daily_note_in_the_calendar() {
+    const PROMPT: &str = "org-agenda:/Org%20Date";
+    let root = std::env::temp_dir().join(format!("org-lsp-roam-dailies-calendar-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(root.join("daily/old")).unwrap();
+    std::fs::write(root.join("daily/2026-05-10.org"), "#+title: 2026-05-10\n").unwrap();
+    std::fs::write(root.join("daily/old/2026-04-30.org"), "#+title: 2026-04-30\n").unwrap();
+    let mut options = clock();
+    options["org_roam_enabled"] = json!(true);
+    options["org_roam_directory"] = json!(root.display().to_string());
+    let mut client = Client::with_date_prompt(options);
+    let run = |client: &mut Client, command: &str, context: &Value| {
+        client.received.clear();
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+    let shown = |client: &Client| {
+        let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("shown");
+        show.params["uri"].as_str().unwrap().to_string()
+    };
+    let none = json!({});
+
+    // The calendar opens on today, past dates preferred, the note of the
+    // 10th marked.
+    assert_eq!(run(&mut client, "org.roam.dailies.goto.date", &none), Ok(Value::Null));
+    assert_eq!(shown(&client), PROMPT);
+    let text = client.view_text(PROMPT);
+    assert_eq!(text.lines().last(), Some("Find daily-note:  Date+time [2026-05-18]:    => <2026-05-18 Mon>"));
+    let tokens =
+        client.request("textDocument/semanticTokens/full", json!({ "textDocument": { "uri": PROMPT } })).unwrap();
+    let legend = client.initialize["capabilities"]["semanticTokensProvider"]["legend"]["tokenTypes"].clone();
+    let dailies = legend.as_array().unwrap().iter().position(|name| name == "calendarDailies").unwrap() as u64;
+    let data = tokens["data"].as_array().unwrap();
+    assert_eq!(data.chunks(5).filter(|token| token[3] == dailies).count(), 2, "{text}");
+    // A day typed that has passed is this year's, not next year's.
+    let typed = json!({ "textDocument": { "uri": PROMPT }, "position": { "line": 0, "character": 0 }, "input": "5-1" });
+    assert_eq!(run(&mut client, "org.calendar.type", &typed), Ok(json!({ "close": PROMPT })));
+    assert!(shown(&client).ends_with("/daily/2026-05-01.org"), "{}", shown(&client));
+    assert!(root.join("daily/2026-05-01.org").exists());
+
+    // Capturing to a day picked in the calendar: a day back from today.
+    assert_eq!(run(&mut client, "org.roam.dailies.capture.date", &none), Ok(Value::Null));
+    let text = client.view_text(PROMPT);
+    assert!(text.lines().last().unwrap().starts_with("Capture to daily-note:  Date+time [2026-05-18]: "), "{text}");
+    let on_prompt = json!({ "textDocument": { "uri": PROMPT }, "position": { "line": 0, "character": 0 } });
+    run(&mut client, "org.calendar.day.earlier", &on_prompt).unwrap();
+    assert_eq!(run(&mut client, "org.calendar.select", &on_prompt), Ok(json!({ "close": PROMPT })));
+    assert!(shown(&client).ends_with("/CAPTURE-2026-05-17.org"), "{}", shown(&client));
+    // With `C-u`, the note itself.
+    run(&mut client, "org.roam.dailies.capture.date", &json!({ "count": 4 })).unwrap();
+    assert!(client.view_text(PROMPT).lines().last().unwrap().starts_with("Find daily-note:  "));
+    run(&mut client, "org.calendar.select", &on_prompt).unwrap();
+    assert!(shown(&client).ends_with("/daily/2026-05-18.org"), "{}", shown(&client));
+
+    // The directory: its notes, in the order of their names, to visit.
+    let asked = run(&mut client, "org.roam.dailies.find.directory", &none).unwrap();
+    let input = &asked["input"];
+    assert_eq!(input["kind"], "choice");
+    let labels: Vec<&str> =
+        input["choices"].as_array().unwrap().iter().map(|choice| choice["label"].as_str().unwrap()).collect();
+    assert_eq!(labels, ["2026-05-01.org", "2026-05-10.org", "2026-05-18.org", "old/2026-04-30.org"]);
+    let mut answer = input["context"].clone();
+    answer["input"] = json!("old/2026-04-30.org");
+    assert_eq!(run(&mut client, "org.roam.dailies.find.directory", &answer), Ok(Value::Null));
+    assert!(shown(&client).ends_with("/daily/old/2026-04-30.org"), "{}", shown(&client));
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
 /// org-roam's editing of the node at the cursor, and `roam:` links:
 /// followed, turned into `id:` links on saving, and completed.
 #[test]
