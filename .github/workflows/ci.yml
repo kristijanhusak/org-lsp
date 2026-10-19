@@ -176,3 +176,42 @@ jobs:
           for query in "$GITHUB_WORKSPACE"/editors/zed/languages/org/*.scm; do
             "$RUNNER_TEMP/tree-sitter" query "$query" "$RUNNER_TEMP/sample.org" > /dev/null
           done
+
+  # org-protocol:// URLs opened through the system reach org-lsp, as
+  # scripts/install.sh registers it on macOS and Windows: a store-link
+  # with no server running lands in the stored links (docs/org-protocol.org).
+  # Linux has server/org-lsp/tests/protocol.rs.
+  protocol:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - name: Install Rust
+        shell: bash
+        run: rustup toolchain install stable --profile minimal && rustup default stable
+      - name: Register org-lsp as the handler
+        shell: bash
+        run: scripts/install.sh --source protocol
+      - name: Store a link through the system (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          open 'org-protocol://store-link?url=https%3A%2F%2Forgmode.org&title=Org%20mode'
+          file=$HOME/.local/state/org-lsp/protocol/stored-links.jsonl
+          for _ in $(seq 60); do [ -s "$file" ] && break; sleep 1; done
+          cat "$file"
+          grep -q 'https://orgmode.org' "$file"
+      - name: Store a link through the system (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Start-Process 'org-protocol://store-link?url=https%3A%2F%2Forgmode.org&title=Org%20mode'
+          $file = Join-Path $env:LOCALAPPDATA 'org-lsp\protocol\stored-links.jsonl'
+          for ($i = 0; $i -lt 60 -and -not (Test-Path $file); $i++) { Start-Sleep -Seconds 1 }
+          Get-Content $file
+          if (-not (Select-String -Path $file -SimpleMatch 'https://orgmode.org' -Quiet)) { exit 1 }
