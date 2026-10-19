@@ -820,7 +820,7 @@ call s:test('a file whose name is not ASCII', function('s:non_ascii_name'))
 
 function! s:virtual_indent() abort
   let file = s:work . '/notes/indented.org'
-  call writefile(['#+STARTUP: indent', '* A', 'text', '** B', '- item'], file)
+  call writefile(['#+STARTUP: indent', '* A', 'text', '** B and a title that wraps', '- item'], file)
   execute 'edit' fnameescape(file)
   call s:until('the server', {-> org_lsp#ready(bufnr())})
   " `org-indent-mode`: text before the lines, the file as it is.
@@ -831,6 +831,19 @@ function! s:virtual_indent() abort
   " The leading star of `** B` hidden.
   call assert_equal(1, prop_list(4, {'types': ['org_lsp_star']})[0].length)
   call assert_true(&breakindent)
+  " A headline that wraps goes on under its title, after its stars and a
+  " space (`wrap-prefix`, without the prefix).
+  vsplit
+  setlocal wrap linebreak
+  let off = getwininfo(win_getid())[0].textoff
+  execute 'vertical resize' 24 + off
+  call cursor(1, 1)
+  redraw
+  let row = screenpos(win_getid(), 4, 1).row
+  let left = win_screenpos(0)[1] + off
+  let Shown = {r -> join(map(range(left, left + 23), {_, c -> screenstring(r, c)}), '')}
+  call assert_equal([' ** B and a title that  ', '   wraps                '], [Shown(row), Shown(row + 1)])
+  close
 endfunction
 call s:test('org-indent-mode shows the file indented, unchanged', function('s:virtual_indent'))
 

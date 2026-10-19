@@ -362,7 +362,7 @@ its sections says what it should look like.
 
 * Indentation and formatting
 
-*Partly:* Virtual indentation shows as phantoms, the leading stars still showing; new lines are not indented as they are typed.
+*Partly:* Virtual indentation shows as phantoms, the leading stars still showing; new lines are not indented as they are typed. The lines a long line wraps into are not indented as Org does: Sublime Text indents them by the line's own leading whitespace (~indent_subsequent_lines~).
 
 - [ ] A file with ~#+STARTUP: indent~ shows its text indented by level, the file unchanged
 - [ ] Re-indenting a selection indents it as Org does: /LSP: Format Selection/

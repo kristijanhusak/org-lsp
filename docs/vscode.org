@@ -175,7 +175,7 @@ with the cursor on them, until the agenda is built again with ~r~.
 | [[file:parity.org::#export-and-publishing][Export and publishing]] | 100% | ❓ | VS Code does not tell an extension which folds are closed: with ~C-v~ everything is exported. |
 | [[file:parity.org::#citations][Citations]] | 82% | ✅ |  |
 | [[file:parity.org::#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% | ✅ |  |
-| [[file:parity.org::#indentation-and-formatting][Indentation and formatting]] | 88% | ✅ |  |
+| [[file:parity.org::#indentation-and-formatting][Indentation and formatting]] | 100% | ❓ | The lines a long line wraps into are not indented as Org does: VS Code indents them by the line's own leading whitespace (~editor.wrappingIndent~), the same way for every line, without the prefix of virtual indentation, a decoration it does not count. |
 | [[file:parity.org::#notes-and-logging][Notes and logging]] | 100% | ✅ |  |
 | [[file:parity.org::#completion-and-editing-helpers][Completion and editing helpers]] | 100% | ✅ |  |
 | [[file:parity.org::#timers][Timers]] | 100% | ✅ |  |

@@ -333,9 +333,10 @@ its sections says what it should look like.
 
 * Indentation and formatting
 
-*Partly:* Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed.
+*Partly:* Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. With soft wrap on, the lines a long line wraps into line up with the prefix and its own indentation, not with a headline's title or an item's text: Zed wraps under a line's leading blanks, inlay hints among them.
 
 - [ ] A file with ~#+STARTUP: indent~ shows its text indented by level, the file unchanged
+- [ ] In a file with ~#+STARTUP: indent~, with soft wrap on, a long line of text goes on under its text
 - [ ] Re-indenting a selection indents it as Org does: format selections
 - [ ] Formatting the file aligns tables and puts tags in their column
 - [ ] A file with ~#+STARTUP: num~ shows ~1~, ~1.1~​… after the stars of its headlines; the command turns them off and on: the code action /Number the headlines, or stop numbering them/

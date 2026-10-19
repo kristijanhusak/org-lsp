@@ -1937,8 +1937,9 @@ pub const SETTINGS: &[Setting] = &[
         "org-startup-indented",
         "Show files indented by level without changing them (`org-indent-mode`): the text under a headline lines up \
          with its title, and leading stars are hidden. `#+STARTUP: indent` and `noindent` decide for a file. It \
-         turns `org_adapt_indentation` off in such files, unless that is `\"headline-data\"`. Editors that can show it: \
-         Neovim, and VS Code (not on wrapped lines).",
+         turns `org_adapt_indentation` off in such files, unless that is `\"headline-data\"`. The lines a long line \
+         wraps into go on under its text, a headline's title or an item's text (`wrap-prefix`) in Neovim and Vim, \
+         without the prefix; under the prefix in Zed and Helix.",
     ),
     setting(
         "org_startup_numerated",

@@ -378,6 +378,8 @@ its sections says what it should look like.
 
 * Indentation and formatting
 
+*Partly:* The lines a long line wraps into are not indented as Org does: VS Code indents them by the line's own leading whitespace (~editor.wrappingIndent~), the same way for every line, without the prefix of virtual indentation, a decoration it does not count.
+
 - [ ] A file with ~#+STARTUP: indent~ shows its text indented by level, the file unchanged
 - [ ] With ~#+STARTUP: hidestars~ only the last star shows
 - [ ] With ~org_adapt_indentation = true~, a new line below a headline is indented
