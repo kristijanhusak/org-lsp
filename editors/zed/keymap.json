@@ -503,6 +503,12 @@
           "task_name": "Org: Roam: go to the daily note of a date"
         }
       ],
+      "ctrl-c n d .": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: open the directory of the daily notes"
+        }
+      ],
       "ctrl-c n l": [
         "task::Spawn",
         {
@@ -1274,6 +1280,12 @@
         "task::Spawn",
         {
           "task_name": "Org: Roam: go to the daily note of a date"
+        }
+      ],
+      "ctrl-c n d .": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: open the directory of the daily notes"
         }
       ],
       "ctrl-c n l": [

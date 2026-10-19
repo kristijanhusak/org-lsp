@@ -15,6 +15,7 @@ use org_core::Refusal;
 use serde_json::{json, Value};
 
 use super::{RoamContext, OFF};
+use crate::prompt::{DatePrompt, Target};
 use crate::server::{Pending, Server};
 use crate::{commands, uri};
 
@@ -62,6 +63,9 @@ impl Server {
         if matches!(id, commands::ROAM_DAILIES_GOTO_NEXT | commands::ROAM_DAILIES_GOTO_PREVIOUS) {
             return self.roam_dailies_step(id, context);
         }
+        if id == commands::ROAM_DAILIES_FIND_DIRECTORY {
+            return self.roam_dailies_find_directory(context);
+        }
         let now = self.date_time();
         let count = context.count;
         let daily = match (&context.day, context.step.as_deref()) {
@@ -92,6 +96,11 @@ impl Server {
                     commands::ROAM_DAILIES_CAPTURE_DATE | commands::ROAM_DAILIES_GOTO_DATE => {
                         let goto = id == commands::ROAM_DAILIES_GOTO_DATE || prefix;
                         let prompt = if goto { "Find daily-note" } else { "Capture to daily-note" };
+                        // `org-read-date` with its calendar, in an editor
+                        // that shows it.
+                        if self.client.date_prompt {
+                            return self.roam_dailies_calendar(id, context, prompt, goto);
+                        }
                         return Ok(json!({ "input": {
                             "kind": "date",
                             "prompt": prompt,
@@ -112,6 +121,102 @@ impl Server {
             context.input = None;
         }
         self.roam_capture(id, &context, &db, "", None, Some(daily))
+    }
+
+    /// The date prompt's calendar for the day of `id`, its minibuffer line
+    /// starting with `prompt` as `org-read-date`'s does (`Find daily-note:
+    /// Date+time [2026-05-18]: `). The days with a note are marked in it.
+    fn roam_dailies_calendar(
+        &mut self,
+        id: &str,
+        context: &RoamContext,
+        prompt: &str,
+        goto: bool,
+    ) -> Result<Value, Refusal> {
+        let from = context
+            .text_document
+            .as_ref()
+            .map(|document| document.uri.clone())
+            .or_else(|| uri::from_path(&std::env::temp_dir()))
+            .ok_or("No place to run the command from")?;
+        let now = self.date_time();
+        let settings = self.read_date_of(id);
+        let layout = (self.calendar_months, self.calendar_week_start);
+        let command = org_core::planning::Command::Timestamp { inactive: false };
+        let target = Target::Dailies { from, goto };
+        let mut open = DatePrompt::new(id, command, target, None, String::new(), now, &settings, layout);
+        // `(concat prompt " ")` before `Date+time [...]: `, and the prompt
+        // ends with `: `.
+        open.label = format!("{prompt}:  {}", open.label);
+        let typed = open.typed.clone();
+        open.set_typed(typed, now, &settings);
+        self.open_date_prompt(open);
+        Ok(Value::Null)
+    }
+
+    /// The answer of the date prompt of `id`, asked from `from`: the note
+    /// of that day, gone to or captured to.
+    pub(in crate::server) fn roam_dailies_date(
+        &mut self,
+        id: &str,
+        from: &lsp_types::Uri,
+        goto: bool,
+        answer: &str,
+    ) -> Result<(), Refusal> {
+        let argument = json!({
+            "textDocument": { "uri": from.as_str() },
+            "step": "date",
+            "input": answer,
+            "goto": goto,
+        });
+        let context: RoamContext = serde_json::from_value(argument.clone()).map_err(|error| error.to_string())?;
+        let value = self.roam_dailies(id, &context)?;
+        // What the capture asks next (the template's key): asked with a
+        // message, as the prompt is gone.
+        if value.get("input").is_some() || value.get("message").is_some() {
+            self.prompt_with_messages(id.to_string(), argument, &value);
+        }
+        Ok(())
+    }
+
+    /// `org-roam-dailies-find-directory`: `find-file` on the directory of
+    /// the notes, whose Dired buffer is a list of its files here, to pick
+    /// one from and visit.
+    fn roam_dailies_find_directory(&mut self, context: &RoamContext) -> Result<Value, Refusal> {
+        let roam = self.roam.as_ref().ok_or(OFF)?;
+        let directory = roam.directory.join(&roam.settings.dailies_directory);
+        let notes = daily_files(&directory, &roam.settings.files.extensions);
+        if let (Some("file"), Some(answer)) = (context.step.as_deref(), context.input.as_deref()) {
+            let note = directory.join(answer);
+            if !notes.contains(&note) {
+                return Err(format!("No daily note {answer}").into());
+            }
+            let uri = self.uri_for_path(&note).ok_or("Cannot name the daily note")?;
+            self.send_request::<ShowDocument>(
+                ShowDocumentParams { uri, external: None, take_focus: Some(true), selection: None },
+                None,
+            );
+            return Ok(Value::Null);
+        }
+        let shown = format!("{}/", crate::server::abbreviate_path(&directory)).replace("//", "/");
+        // In the order of their names, as Dired lists them.
+        let mut names: Vec<String> = notes
+            .iter()
+            .filter_map(|note| note.strip_prefix(&directory).ok())
+            .map(|name| name.to_string_lossy().replace('\\', "/"))
+            .collect();
+        names.sort();
+        if names.is_empty() {
+            return Err(format!("No daily notes in {shown}").into());
+        }
+        let choices: Vec<Value> = names.iter().map(|name| json!({ "key": name, "label": name })).collect();
+        Ok(json!({ "input": {
+            "kind": "choice",
+            "prompt": format!("Find file in {shown}"),
+            "value": "",
+            "choices": choices,
+            "context": { "step": "file" },
+        } }))
     }
 
     /// `org-roam-capture-` with `:goto`: the note's file made if it is

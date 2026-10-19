@@ -1673,6 +1673,13 @@
     }
   },
   {
+    "caption": "Org: Roam: open the directory of the daily notes",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.find.directory"
+    }
+  },
+  {
     "caption": "Org: Roam: show or hide the org-roam buffer",
     "command": "org_lsp_run",
     "args": {

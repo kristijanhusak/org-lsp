@@ -369,6 +369,7 @@ pub const ROAM_DAILIES_CAPTURE_DATE: &str = "org.roam.dailies.capture.date";
 pub const ROAM_DAILIES_GOTO_DATE: &str = "org.roam.dailies.goto.date";
 pub const ROAM_DAILIES_GOTO_NEXT: &str = "org.roam.dailies.goto.next";
 pub const ROAM_DAILIES_GOTO_PREVIOUS: &str = "org.roam.dailies.goto.previous";
+pub const ROAM_DAILIES_FIND_DIRECTORY: &str = "org.roam.dailies.find.directory";
 pub const JOURNAL_NEW_ENTRY: &str = "org.journal.new.entry";
 pub const JOURNAL_NEW_DATE_ENTRY: &str = "org.journal.new.date.entry";
 pub const JOURNAL_NEW_SCHEDULED_ENTRY: &str = "org.journal.new.scheduled.entry";
@@ -1576,6 +1577,11 @@ pub const COMMANDS: &[Command] = &[
         emacs: &[key(Org, "C-c n d b")],
         vim: &[key(Org, "<Leader>ndb")],
         ..command(ROAM_DAILIES_GOTO_PREVIOUS, "Roam: go to the previous daily note")
+    },
+    Command {
+        emacs: &[key(Global, "C-c n d .")],
+        vim: &[key(Org, "<Leader>nd.")],
+        ..command(ROAM_DAILIES_FIND_DIRECTORY, "Roam: open the directory of the daily notes")
     },
     Command {
         emacs: &[key(Global, "C-c n l")],

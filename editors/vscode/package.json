@@ -1261,6 +1261,11 @@
         "category": "Org"
       },
       {
+        "command": "org.roam.dailies.find.directory",
+        "title": "Roam: open the directory of the daily notes",
+        "category": "Org"
+      },
+      {
         "command": "org.roam.buffer.toggle",
         "title": "Roam: show or hide the org-roam buffer",
         "category": "Org"
@@ -8763,6 +8768,16 @@
       {
         "command": "org.roam.dailies.goto.date",
         "key": "ctrl+c n d c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.roam.dailies.find.directory",
+        "key": "ctrl+c n d .",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.dailies.find.directory",
+        "key": "ctrl+c n d .",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
