@@ -280,6 +280,28 @@ describe('Org files', () => {
     await vscode.window.showTextDocument(document);
   });
 
+  it('captures from an org-protocol URL', async () => {
+    // `org-lsp protocol URL`, as the system runs it for a bookmarklet:
+    // the server asks VS Code to start the capture (`org-lsp/runCommand`).
+    const { execFileSync } = require('node:child_process');
+    const fs = require('node:fs');
+    const listening = path.join(process.env.XDG_STATE_HOME, 'org-lsp', 'protocol');
+    await until('the server to listen', () => fs.existsSync(listening) && fs.readdirSync(listening).some((name) => name.endsWith('.json')));
+    await oneGroup();
+    const url = 'org-protocol://capture?template=w&url=https%3A%2F%2Forgmode.org%2F&title=Org+mode&body=Selected';
+    execFileSync(process.env.ORG_LSP_TEST_SERVER, ['protocol', url], { env: process.env });
+    const editor = await until('the capture buffer', () => {
+      const active = vscode.window.activeTextEditor;
+      return active && path.basename(active.document.uri.fsPath) === 'CAPTURE-inbox.org' && active;
+    });
+    assert.equal(editor.document.getText(), '* Org mode\nhttps://orgmode.org/\nSelected\n');
+    await vscode.commands.executeCommand('org.capture.abort');
+    await until('the capture buffer to close', () =>
+      vscode.window.tabGroups.all.flatMap((group) => group.tabs).every((tab) => !tab.label.startsWith('CAPTURE-')),
+    );
+    await vscode.window.showTextDocument(document);
+  });
+
   it('captures with no file open', async () => {
     const showQuickPick = vscode.window.showQuickPick;
     vscode.window.showQuickPick = async (items) => items.find((item) => item.key === 't');

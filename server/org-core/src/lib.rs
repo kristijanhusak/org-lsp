@@ -45,6 +45,7 @@ pub mod pretty;
 pub mod preview;
 pub mod priority;
 pub mod properties;
+pub mod protocol;
 pub mod radio;
 pub mod read_date;
 pub mod refile;

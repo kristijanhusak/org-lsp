@@ -21,6 +21,7 @@ M.capabilities = {
     orgLineHighlights = true,
     orgDisplay = true,
     orgHiddenLines = true,
+    orgRunCommand = true,
   },
 }
 
@@ -814,6 +815,17 @@ M.handlers = {
   --- agenda, a capture or a refile) and `auto_save` is on: write them.
   ['org-lsp/save'] = function(_, params)
     M.save(params and params.uris or {})
+  end,
+
+  --- A command to run as from its key, where the cursor is, with the
+  --- argument's fields the server gives: a capture an org-protocol URL
+  --- started.
+  ['org-lsp/runCommand'] = function(_, params)
+    if params and type(params.command) == 'string' then
+      vim.schedule(function()
+        require('org-lsp').run(params.command, { argument = params.argument })
+      end)
+    end
   end,
 
   --- The headlines of a document org-journal showed, folded as it folds

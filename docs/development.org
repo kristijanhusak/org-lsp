@@ -82,6 +82,7 @@ others), as close to Emacs Org mode as it can get.
   | Archiving                                                                                                                                                | ~tests/archive/cases.json~         | ~scripts/update-archive-fixtures.py~                                               | ~scripts/fuzz-archive.py~       |
   | ~org-lint~                                                                                                                                               | ~tests/lint/cases.json~            | ~scripts/lint_reference.py~ (and ~scripts/update-lint-tables.py~ for Org's tables) | ~scripts/fuzz-lint.py~          |
   | Storing and inserting links (~org-store-link~, ~org-insert-link~ and its relatives, ~org-id-get-create~)                                                 | ~tests/link/cases.json~            | ~scripts/link_reference.py~                                                        | ~scripts/fuzz-link.py~          |
+  | Org-protocol URLs (~org-protocol.el~: ~org-protocol-check-filename-for-protocol~, the ~store-link~, ~capture~ and ~open-source~ handlers)                | ~tests/protocol/cases.json~        | ~scripts/update-protocol-fixtures.py~                                              | ~scripts/fuzz-protocol.py~      |
   | Inline tasks (~org-inlinetask~: ~C-c C-x t~, ~M-<left>~ and ~M-<right>~ on one, the motion and the folds around them)                                    | ~tests/inlinetask/cases.json~      | ~scripts/update-inlinetask-fixtures.py~                                            |                                 |
   | Resolving open clocks (~org-resolve-clocks~, and before ~org-clock-in~): what is asked, and the file                                                     | ~tests/clock/resolve.json~         | ~scripts/clock_resolve_reference.py~                                               |                                 |
   | Downloading remote resources (~org-resource-download-policy~, ~org-safe-remote-resources~, ~org--confirm-resource-safe~): what is asked, the answer      | ~tests/link/remote-resources.json~ | ~scripts/remote_resource_reference.py~                                             |                                 |
@@ -351,3 +352,12 @@ their GitHub releases.
    org-lsp reads the cookie with case, as the agenda, ~org-get-heading~
    and ~org-element-context~ do, and ~scripts/agenda_reference.py~ asks
    Emacs that way before any view, so the recorded cases agree.
+6. /org-protocol./ Decided: every server listens for ~org-protocol~ URLs
+   on a local socket of its own, beside LSP, as the command port does for
+   Zed's keys: a URL comes from outside any editor, and LSP has no way in
+   for it. ~org-lsp protocol URL~ finds the server the user worked in
+   last through the state directory, and a server the editor of
+   ~org_protocol_editor~ starts takes what was left for it
+   ([[file:protocol.org::#org-protocol][protocol.org]]). A Unix socket in a directory only the user may
+   enter (a loopback port with a token on Windows); nothing from a URL is
+   run.

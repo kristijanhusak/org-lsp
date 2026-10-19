@@ -32,7 +32,10 @@ let g:org_lsp = {
       \   'org_roam_directory': $ORG_LSP_TEST_WORK . '/roam',
       \   'org_journal_enabled': v:true,
       \   'org_journal_dir': $ORG_LSP_TEST_WORK . '/journal',
-      \   'org_capture_templates': [{'key': 't', 'description': 'Task', 'target': ['file', $ORG_LSP_TEST_WORK . '/notes/inbox.org'], 'template': '* TODO %?'}],
+      \   'org_capture_templates': [
+      \     {'key': 't', 'description': 'Task', 'target': ['file', $ORG_LSP_TEST_WORK . '/notes/inbox.org'], 'template': '* TODO %?'},
+      \     {'key': 'w', 'description': 'Web', 'target': ['file', $ORG_LSP_TEST_WORK . '/notes/inbox.org'], 'template': ['* %:description', '%:link', '%i%?']},
+      \   ],
       \ },
       \ }
 " highlight.vim: the shared sample of highlighting, copied, and its options

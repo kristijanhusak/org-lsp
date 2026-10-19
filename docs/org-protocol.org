@@ -1,0 +1,276 @@
+#+title: org-protocol
+#+options: ^:{} toc:1
+
+A bookmarklet in the browser stores a link to the page, or captures it
+with the text selected, in the editor where org-lsp runs, as Emacs's
+[[https://orgmode.org/manual/Protocols.html][org-protocol]] does it in Emacs. The browser opens an ~org-protocol://~ URL,
+the system hands it to ~org-lsp protocol URL~, as it hands it to
+~emacsclient~ for Emacs, and that gives it to the org-lsp of the editor you
+work in, which does what Org does with it:
+
+- ~store-link~ :: stores the link, for ~C-c C-l~ (~org.link.insert~) to
+  offer (~org-protocol-store-link~).
+- ~capture~ :: captures with a template, the page's link, title and the
+  text selected in it (~org-protocol-capture~).
+- ~open-source~ :: opens the file a published page was made from
+  (~org-protocol-open-source~).
+
+With no editor open, the editor of ~org_protocol_editor~ is started for the
+URL.
+
+* Setting it up
+:PROPERTIES:
+:CUSTOM_ID: setting-it-up
+:END:
+
+#+begin_src sh
+scripts/install.sh protocol
+# or, without a checkout:
+curl -fsSL https://github.com/kristijanhusak/org-lsp/releases/download/nightly/install.sh | bash -s -- protocol
+#+end_src
+
+This makes ~org-lsp protocol %u~ the system's handler of the ~org-protocol~
+scheme, with the server in =~/.local/bin= (installed there first if it is
+not there; ~ORG_LSP_BIN_DIR~ for another directory). Run it again after
+moving the server. What it does, which can be done by hand as well:
+
+- Linux :: a desktop entry, =~/.local/share/applications/org-lsp-protocol.desktop=,
+  hidden from menus, made the default handler of the scheme with ~xdg-mime~
+  (or, without it, in =~/.config/mimeapps.list=):
+
+  #+begin_src conf
+  [Desktop Entry]
+  Type=Application
+  Name=org-lsp
+  Exec="/home/me/.local/bin/org-lsp" protocol %u
+  MimeType=x-scheme-handler/org-protocol;
+  NoDisplay=true
+  Terminal=false
+  #+end_src
+
+  #+begin_src sh
+  xdg-mime default org-lsp-protocol.desktop x-scheme-handler/org-protocol
+  #+end_src
+- macOS :: a scheme belongs to an application that declares it
+  (~CFBundleURLTypes~ in its ~Info.plist~). The script makes a small one,
+  =~/Applications/org-lsp-protocol.app=, an AppleScript applet built with
+  ~osacompile~ from
+
+  #+begin_src applescript
+  on open location theURL
+    do shell script quoted form of "/Users/me/.local/bin/org-lsp" & " protocol " & quoted form of theURL
+  end open location
+  #+end_src
+
+  declares the scheme and hides it from the Dock (~LSUIElement~) with
+  ~PlistBuddy~, and registers it with ~lsregister~. When another application
+  (Emacs.app) has the scheme too, make this one its handler, with [[https://github.com/moretension/duti][duti]]:
+  ~duti -s org.org-lsp.protocol org-protocol~. The [[file:../.github/workflows/protocol.yml][org-protocol workflow]]
+  registers it on macOS and opens a ~store-link~ URL through the system.
+- Windows :: the scheme in the registry, under
+  ~HKEY_CURRENT_USER\Software\Classes\org-protocol~; the script does it
+  with ~reg~ in Git Bash. By hand, a ~.reg~ file (its backslashes
+  doubled):
+
+  #+begin_src conf
+  Windows Registry Editor Version 5.00
+
+  [HKEY_CURRENT_USER\Software\Classes\org-protocol]
+  @="URL:org-protocol"
+  "URL Protocol"=""
+
+  [HKEY_CURRENT_USER\Software\Classes\org-protocol\shell\open\command]
+  @="\"C:\\Users\\me\\.local\\bin\\org-lsp.exe\" protocol \"%1\""
+  #+end_src
+
+  or in PowerShell:
+
+  #+begin_src powershell
+  $key = 'HKCU:\Software\Classes\org-protocol'
+  New-Item -Force "$key\shell\open\command" | Out-Null
+  Set-ItemProperty $key '(Default)' 'URL:org-protocol'
+  Set-ItemProperty $key 'URL Protocol' ''
+  Set-ItemProperty "$key\shell\open\command" '(Default)' "`"$env:USERPROFILE\.local\bin\org-lsp.exe`" protocol `"%1`""
+  #+end_src
+
+  ~org-lsp.exe~ is a console program: a console window may flash as it
+  runs. The same workflow checks it on Windows.
+
+The browser asks once whether to open ~org-protocol~ links with it.
+
+* Bookmarklets
+:PROPERTIES:
+:CUSTOM_ID: bookmarklets
+:END:
+
+A bookmark whose address is one of these lines, as in Org's manual:
+
+- Store a link ::
+  #+begin_src js
+  javascript:location.href='org-protocol://store-link?'+new URLSearchParams({url:location.href,title:document.title});void(0);
+  #+end_src
+- Capture :: the page and the text selected in it, with the template
+  ~org_protocol_default_template_key~ names, or the menu of templates:
+  #+begin_src js
+  javascript:location.href='org-protocol://capture?'+new URLSearchParams({url:location.href,title:document.title,body:window.getSelection()});void(0);
+  #+end_src
+  ~template:'w'~ among the parameters names a template.
+- Open the source :: of a page ~org_protocol_project_alist~ knows:
+  #+begin_src js
+  javascript:location.href='org-protocol://open-source?'+new URLSearchParams({url:location.href});void(0);
+  #+end_src
+
+Old-style URLs, ~org-protocol://capture:/w/URL/TITLE/BODY~ (each part
+encoded with ~encodeURIComponent~, the parts separated as
+~org_protocol_data_separator~ says), work too, as in Org.
+
+A template for web pages, in the [[file:configuration.org::#the-shared-configuration-file][shared configuration file]]:
+
+#+begin_src toml
+org_protocol_default_template_key = "w"
+
+[[org_capture_templates]]
+key = "w"
+description = "Web page"
+target = ["file+headline", "~/org/notes.org", "Web"]
+template = ["* %:description", "%:link", "%i", "%?"]
+#+end_src
+
+~%:link~ and ~%:description~ are the page's address and title, ~%i~ the
+text selected, ~%a~ the link to the page (~[[URL][TITLE]]~), ~%:type~ the
+scheme (~https~); ~%l~, ~%L~ and ~%A~ are made from ~%a~ as usual.
+
+* What it does
+:PROPERTIES:
+:CUSTOM_ID: what-it-does
+:END:
+
+~org-lsp protocol URL~ reads the URL first, as Org reads it: one Org would
+refuse is refused with Org's error (~Wrong type argument: stringp, nil~ for
+a link without ~url~), and one that names no handler with
+/no org-protocol handler for …/. Then it gives it to the org-lsp the user
+worked in last, which does what Org does, and prints what it says:
+
+- ~store-link~ :: the link goes first among the stored links, and Org's
+  message shows: /‘C-c C-l’ to insert new Org link, ‘C-y’ to insert
+  "https://orgmode.org/"/. Emacs puts the address on the kill ring too: in
+  org-lsp it is the latest kill only for an editor that sends none of its
+  own (~org.yank~ without a clipboard); the editor's clipboard and
+  registers are left alone.
+- ~capture~ :: the link is stored, as for ~store-link~, and the capture
+  starts with the URL's template, ~org_protocol_default_template_key~, or
+  the menu. A template no capture template has the keys of fails with
+  Org's /No capture template referred to by "x" keys/. Neovim, Vim, VS Code
+  and Sublime Text run the capture as from its key (~org-lsp/runCommand~),
+  and ask what it asks as they always do; in Zed and Helix the server
+  starts it, and asks as it asks there. Once the capture buffer shows, Org
+  says /Item captured./ (it is filed when the capture is finished, as in
+  Emacs).
+- ~open-source~ :: the URL is mapped to a file through
+  ~org_protocol_project_alist~ and the editor shows it; when no file is
+  there, Org's last message says so (the file's name, then /: no such file
+  or directory./).
+
+The editor is asked to show the capture buffer or the file and to take the
+focus (~window/showDocument~ with ~takeFocus~). LSP has no way to bring a
+window to the front: whether the window comes forward is the editor's and
+the window manager's doing. Neovim, Vim and Helix in a terminal cannot
+raise the terminal; VS Code, Sublime Text and Zed show the buffer in their
+window, which may stay behind the browser.
+
+* With no editor open
+:PROPERTIES:
+:CUSTOM_ID: with-no-editor-open
+:END:
+
+When no org-lsp runs, ~org-lsp protocol~ reads the [[file:configuration.org::#the-shared-configuration-file][shared configuration file]]
+(no editor gives it options) and:
+
+- ~store-link~ :: keeps the link, which the next org-lsp to start takes
+  among its stored links, and prints Org's message; with
+  ~org_protocol_editor~, it starts that editor on ~org_default_notes_file~
+  too.
+- ~capture~ :: with ~org_protocol_editor~, leaves the URL for the org-lsp
+  that starts in the editor, which it starts on ~org_default_notes_file~;
+  that org-lsp takes it within two minutes, a URL older than that being
+  dropped. Without it, it fails: /No org-lsp is running, and
+  ~org_protocol_editor~ names no editor to start for the capture/.
+- ~open-source~ :: with ~org_protocol_editor~, starts it on the file; without,
+  it fails, naming the file.
+
+~org_protocol_editor~ is a command line, its words split as a shell splits
+them (quotes, no variables); the file is added after them. The editor has
+to start org-lsp on the file, so ~org_default_notes_file~ should be an Org
+file (=~/org/notes.org=, not Org's default =~/.notes=).
+
+- Neovim :: in a terminal of its own: ~kitty nvim~, ~alacritty -e nvim~,
+  ~foot nvim~, ~wezterm start -- nvim~; or ~neovide~.
+- Vim :: ~gvim~, or ~xterm -e vim~.
+- VS Code :: ~code~ (VSCodium: ~codium~): the file opens in the window used
+  last, or a new one.
+- Sublime Text :: ~subl~.
+- Zed :: ~zed~.
+- Helix :: in a terminal of its own: ~kitty hx~, ~foot hx~.
+
+On macOS the handler runs with a short ~PATH~ (=/usr/bin:/bin:/usr/sbin:/sbin=):
+give the editor's whole path, or ~open -a~ (~open -a Zed~,
+~open -a "Visual Studio Code"~, ~open -a Neovide --args~).
+
+#+begin_src toml
+org_default_notes_file = "~/org/notes.org"
+org_protocol_editor = "kitty nvim"
+#+end_src
+
+* How the editor is found
+:PROPERTIES:
+:CUSTOM_ID: how-the-editor-is-found
+:END:
+
+Every org-lsp listens for URLs from the start, on a socket of its own, and
+says so in the state directory (~$XDG_STATE_HOME/org-lsp~, else
+=~/.local/state/org-lsp=; =%LOCALAPPDATA%\org-lsp= on Windows), in
+~protocol/~:
+
+- ~PID-ID.json~ :: an org-lsp that listens, and where. It writes the file
+  again as the user works in its editor; ~org-lsp protocol~ tries the one
+  written last first. One whose org-lsp no longer answers (stopped without
+  removing it) is removed.
+- ~pending-TIME-PID.json~ :: a capture left for the org-lsp of the editor
+  started for it.
+- ~stored-links.jsonl~ :: links stored while no org-lsp ran.
+
+On Linux and macOS the socket is a Unix socket only its owner may use, in
+a directory only its owner may enter: nothing on the network reaches it,
+nor any other user. On Windows it is a port of the loopback address, which
+takes a URL only with a token written in that directory, in the user's own
+=%LOCALAPPDATA%=. org-lsp takes only ~org-protocol:~ URLs there, reads them
+as Org does, and runs nothing from them: it stores a link, starts a
+capture or shows a file.
+
+* Not as in Emacs
+:PROPERTIES:
+:CUSTOM_ID: not-as-in-emacs
+:END:
+
+- Handlers of one's own (~org-protocol-protocol-alist~) are Lisp functions,
+  which org-lsp does not run.
+- A URL is read as Emacs reads what ~emacsclient~ gives it, its runs of
+  slashes made one and ~.~ and ~..~ resolved (~org-protocol-sanitize-uri~
+  doubles the slashes of ~https://~ again), but one that names no handler
+  is refused rather than opened as a file.
+- ~org-protocol-reverse-list-of-files~ has nothing to do: the system gives
+  one URL at a time.
+- Capture's /Greedy org-protocol handler.  Killing client./ is not said:
+  there is no ~emacsclient~ to let go. ~%f~ and ~%F~ are the file the
+  editor's cursor is in where the editor runs the capture (Neovim, Vim, VS
+  Code, Sublime Text), as they are Emacs's current buffer's there; none in
+  Zed and Helix.
+- A template key that names a group of templates fails as one that names
+  none.
+- ~:rewrites~ of ~org_protocol_project_alist~ work as Org 9.8.10 makes them:
+  the file is the working directory followed by the whole URL with the
+  rewrite's first group taken out, then its path; a rewrite without a
+  group (Org's own example, ~("org/?$" . "index.php")~) fails with
+  /replace-match subexpression does not exist: 1/.
+- Of what ~open-source~ says on the way (/File … does not exist./, the
+  rewrites it tries), the editor shows the last message only.

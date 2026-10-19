@@ -1557,6 +1557,52 @@ pub const SETTINGS: &[Setting] = &[
          `org_default_notes_file`. A template with only a key and a description groups the templates whose keys \
          start with its key.",
     ),
+    Setting {
+        default: None,
+        unset: "none: the menu of templates",
+        ..setting(
+            "org_protocol_default_template_key",
+            "string",
+            "",
+            "org-protocol-default-template-key",
+            "The keys of the capture template an `org-protocol://capture` URL uses when it names none \
+             (`template=`).",
+        )
+    },
+    setting(
+        "org_protocol_data_separator",
+        "string",
+        r#""/+\\|\\?""#,
+        "org-protocol-data-separator",
+        "An Emacs regular expression: what separates the parts of an old-style `org-protocol` URL \
+         (`org-protocol://capture:/x/URL/TITLE/BODY`).",
+    ),
+    setting(
+        "org_protocol_project_alist",
+        "object[]",
+        "[]",
+        "org-protocol-project-alist",
+        "Where the files of `org-protocol://open-source` URLs are on this computer. Each has a `name`, the \
+         `base_url` of the pages (with its last slash) and the `working_directory` of their files (with its \
+         last slash, `~/` for the home directory), and may have an `online_suffix` taken off the URL \
+         (`.html`), a `working_suffix` put on in its place (`.org`), and `rewrites`, pairs of an Emacs regular \
+         expression on the URL, whose first group is taken out of it, and what goes after it, for a URL whose \
+         file is not there. The first whose `base_url` the URL has is tried first.",
+    ),
+    Setting {
+        default: None,
+        unset: "none: a capture waits for an editor with org-lsp",
+        ..setting(
+            "org_protocol_editor",
+            "string",
+            "",
+            "",
+            "The editor `org-lsp protocol` starts when no org-lsp runs, as a command line (`code`, `zed`, \
+             `kitty nvim`): it opens `org_default_notes_file` in it, or the file of an `open-source` URL, and \
+             the org-lsp that starts there takes the URL, within two minutes. Read from the shared file only. \
+             Without it, a stored link is kept for the next org-lsp that starts, and a capture fails.",
+        )
+    },
     setting(
         "org_directory",
         "string",
@@ -3648,6 +3694,19 @@ pub const SETTINGS: &[Setting] = &[
     Setting {
         integration: true,
         ..setting(
+            "run_command",
+            "boolean",
+            "false",
+            "",
+            "Whether the client runs a command when the server asks (`org-lsp/runCommand`: a capture an \
+             `org-protocol` URL starts), as one it runs from a key, as a client announcing \
+             `experimental.orgRunCommand` does: for the Vim plugin and the Sublime Text package. Without it, \
+             the server runs the command itself, and asks what it asks with `window/showMessageRequest`.",
+        )
+    },
+    Setting {
+        integration: true,
+        ..setting(
             "hidden_lines",
             "boolean",
             "false",
@@ -4021,6 +4080,10 @@ const SCHEMAS: &[(&str, &str)] = &[
     ),
     ("org_directory", STRING),
     ("org_default_notes_file", STRING),
+    ("org_protocol_default_template_key", STRING),
+    ("org_protocol_data_separator", STRING),
+    ("org_protocol_project_alist", PROTOCOL_PROJECTS),
+    ("org_protocol_editor", STRING),
     ("org_link_descriptive", BOOLEAN),
     ("org_hide_emphasis_markers", BOOLEAN),
     ("org_fontify_emphasized_text", BOOLEAN),
@@ -4394,6 +4457,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("message_prompts", BOOLEAN),
     ("message_requests", BOOLEAN),
     ("line_highlights", BOOLEAN),
+    ("run_command", BOOLEAN),
     ("hidden_lines", BOOLEAN),
     ("images", BOOLEAN),
     ("view_changed", BOOLEAN),
@@ -4446,6 +4510,15 @@ const CONTEXTS: &str = r#"{ "type": "array", "items": { "type": "object", "requi
                 "in_file": { "type": "string" }, "in_mode": { "type": "string" }, "in_buffer": { "type": "string" },
                 "not_in_file": { "type": "string" }, "not_in_mode": { "type": "string" }, "not_in_buffer": { "type": "string" } } },
                 "description": "Rules, each a regexp on the file, the mode or the buffer's name; the context holds where one of them does" } } } }"#;
+/// `org-protocol-project-alist`
+const PROTOCOL_PROJECTS: &str = r#"{ "type": "array", "items": { "type": "object", "required": ["base_url", "working_directory"], "additionalProperties": false, "properties": {
+            "name": { "type": "string", "description": "What the project is called" },
+            "base_url": { "type": "string", "description": "The URL of the published pages, with its last slash" },
+            "working_directory": { "type": "string", "description": "The directory of their files, with its last slash" },
+            "online_suffix": { "type": "string", "description": "Taken off the URL (.html)" },
+            "working_suffix": { "type": "string", "description": "Put on in its place (.org)" },
+            "rewrites": { "type": "array", "items": { "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 2 },
+                "description": "Pairs of an Emacs regexp on the URL and a path, for URLs whose file is not there" } } } }"#;
 const INTEGER: &str = r#"{ "type": "integer" }"#;
 const STRING: &str = r#"{ "type": "string" }"#;
 const STRING_MAP: &str = r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#;

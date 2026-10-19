@@ -43,6 +43,7 @@ impl Client {
     /// Start a server and initialise it with the given client capabilities
     /// and initialization options.
     fn start(capabilities: Value, options: Value) -> Client {
+        private_state();
         // The tests' own options only, whatever configuration file the
         // machine has.
         let mut options = if options.is_null() { json!({}) } else { options };
@@ -482,6 +483,7 @@ fn read_message(reader: &mut impl BufRead) -> Value {
 
 #[test]
 fn binary_speaks_lsp_over_stdio() {
+    private_state();
     let mut child = Command::new(env!("CARGO_BIN_EXE_org-lsp"))
         .arg("--stdio")
         .stdin(Stdio::piped())
@@ -3524,4 +3526,15 @@ fn bibtex_entries_as_headlines() {
     );
     client.shutdown();
     std::fs::remove_dir_all(directory).unwrap();
+}
+
+/// The servers of the tests keep what they leave for others (where they
+/// listen for org-protocol URLs) in a state directory of their own, not
+/// the user's.
+fn private_state() {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| {
+        let state = std::env::temp_dir().join(format!("org-lsp-test-state-{}", std::process::id()));
+        std::env::set_var("XDG_STATE_HOME", state);
+    });
 }

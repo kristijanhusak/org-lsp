@@ -76,6 +76,7 @@ struct Editor {
 
 impl Editor {
     fn start(directory: &Path, options: Value) -> Editor {
+        private_state();
         let (server_side, client_side) = Connection::memory();
         let server = std::thread::spawn(move || org_lsp::run(server_side).expect("server runs"));
         let mut editor = Editor {
@@ -921,4 +922,15 @@ fn scenarios_cover_the_agenda_calendar_and_capture() {
     // An exception for a command a scenario runs is out of date.
     let stale: Vec<&&str> = excepted.iter().filter(|id| used.contains(**id)).collect();
     assert!(stale.is_empty(), "excepted, but run by a scenario: {stale:?}");
+}
+
+/// The servers of the tests keep what they leave for others (where they
+/// listen for org-protocol URLs) in a state directory of their own, not
+/// the user's.
+fn private_state() {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| {
+        let state = std::env::temp_dir().join(format!("org-lsp-test-state-{}", std::process::id()));
+        std::env::set_var("XDG_STATE_HOME", state);
+    });
 }

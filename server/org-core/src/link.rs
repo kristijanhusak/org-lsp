@@ -231,9 +231,10 @@ pub fn unescape(link: &str) -> String {
     out
 }
 
-/// `org-string-nw-p`: some text that is not blank.
+/// `org-string-nw-p`: some text that is not blank (` `, `\r`, `\t`,
+/// `\n`).
 fn not_blank(text: &str) -> bool {
-    text.chars().any(|c| !c.is_whitespace())
+    text.chars().any(|c| !matches!(c, ' ' | '\r' | '\t' | '\n'))
 }
 
 /// `org-link-make-string`: `[[LINK][DESCRIPTION]]`, the link escaped,

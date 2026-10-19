@@ -111,6 +111,7 @@ function! org_lsp#init_options() abort
         \ 'virtual_documents': v:false,
         \ 'virtual_indent': org_lsp#config().virtual_indent && s:has_virtual_text() ? v:true : v:false,
         \ 'line_highlights': v:true,
+        \ 'run_command': v:true,
         \ })
 endfunction
 
@@ -434,6 +435,11 @@ function! org_lsp#run(name, ...) abort
   " Whether the org-roam buffer shows, which the command hides then.
   if a:name ==# 'org.roam.buffer.toggle'
     let context.visible = org_lsp#roam_buffer_shown() ? v:true : v:false
+  endif
+  " What the server asked the command to be run with (a capture an
+  " org-protocol URL started).
+  if type(get(opts, 'argument', 0)) == v:t_dict
+    call extend(context, opts.argument)
   endif
   call s:execute(nr, a:name, context, opts)
 endfunction
@@ -2043,6 +2049,11 @@ function! org_lsp#handle_notification(method, params) abort
     call s:columns_show(a:params)
   elseif a:method ==# 'org-lsp/folds'
     call s:journal_folds(a:params)
+  elseif a:method ==# 'org-lsp/runCommand' && type(a:params) == v:t_dict && type(get(a:params, 'command', 0)) == v:t_string
+    " A command to run as from its key, where the cursor is, outside the
+    " client's callback: a capture an org-protocol URL started.
+    let Run = {-> org_lsp#run(a:params.command, {'argument': get(a:params, 'argument', {})})}
+    call timer_start(0, {-> Run()})
   elseif a:method ==# 'org-lsp/viewChanged'
     " The agenda's file is new: read it again, outside the client's
     " callback.

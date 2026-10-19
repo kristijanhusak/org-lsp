@@ -407,6 +407,20 @@ function! s:capture() abort
 endfunction
 call s:test('captures through a capture buffer', function('s:capture'))
 
+" `org-lsp protocol URL`, as the system runs it for a bookmarklet: the
+" server asks Vim to start the capture (`org-lsp/runCommand`).
+function! s:protocol_capture() abort
+  call s:until('the server to listen', {-> !empty(glob(s:work . '/.local/state/org-lsp/protocol/*.json', 0, 1))})
+  let url = 'org-protocol://capture?template=w&url=https%3A%2F%2Forgmode.org%2F&title=Org+mode&body=Selected'
+  call system(shellescape($ORG_LSP_BIN) . ' protocol ' . shellescape(url))
+  call assert_equal(0, v:shell_error)
+  call s:until('the capture buffer', {-> fnamemodify(bufname(), ':t') =~# '^CAPTURE-'})
+  call assert_equal(['* Org mode', 'https://orgmode.org/', 'Selected'], getline(1, '$'))
+  call org_lsp#run('org.capture.abort')
+  call s:until('the capture buffer closed', {-> fnamemodify(bufname(), ':t') !~# '^CAPTURE-'})
+endfunction
+call s:test('captures from an org-protocol URL', function('s:protocol_capture'))
+
 function! s:clock() abort
   execute 'buffer' s:work_buf
   call cursor(2, 3)

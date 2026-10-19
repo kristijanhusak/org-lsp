@@ -222,6 +222,13 @@ its sections says what it should look like.
 - [ ] ~%[snippet.txt]~ puts in the file's text, relative to the file captured from: ~<Leader>oc~
 - [ ] ~%(upcase "abc")~ puts in ~ABC~, what Emacs makes of it (needs Emacs): ~<Leader>oc~
 
+* org-protocol
+
+- [ ] With ~scripts/install.sh protocol~ run, the store-link bookmarklet of docs/org-protocol.org says ~‘C-c C-l’ to insert new Org link, ‘C-y’ to insert "…"~, and inserting a link offers the page
+- [ ] The capture bookmarklet with some text selected opens the capture buffer with the page's title, link and the text (a template with ~%:description~, ~%:link~, ~%i~)
+- [ ] With ~org_protocol_project_alist~ set, ~org-lsp protocol 'org-protocol://open-source?url=…'~ opens the page's file
+- [ ] With the editor closed and ~org_protocol_editor~ set, the capture bookmarklet starts the editor and the capture buffer opens in it
+
 * Notes (org-roam)
 
 - [ ] With ~org_roam_enabled~ on and ~org_roam_directory~ set, finding a node offers the titles and aliases of its files and visits the one picked: ~<Leader>nf~

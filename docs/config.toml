@@ -748,6 +748,36 @@ org_directory = "~/org"
 org_default_notes_file = "~/.notes"
 
 
+# ----- org-protocol
+
+# The keys of the capture template an `org-protocol://capture` URL uses when
+# it names none (`template=`). (org-protocol-default-template-key)
+# org_protocol_default_template_key = … (unset: none: the menu of templates)
+
+# An Emacs regular expression: what separates the parts of an old-style
+# `org-protocol` URL (`org-protocol://capture:/x/URL/TITLE/BODY`).
+# (org-protocol-data-separator)
+org_protocol_data_separator = "/+\\|\\?"
+
+# Where the files of `org-protocol://open-source` URLs are on this computer.
+# Each has a `name`, the `base_url` of the pages (with its last slash) and the
+# `working_directory` of their files (with its last slash, `~/` for the home
+# directory), and may have an `online_suffix` taken off the URL (`.html`), a
+# `working_suffix` put on in its place (`.org`), and `rewrites`, pairs of an
+# Emacs regular expression on the URL, whose first group is taken out of it,
+# and what goes after it, for a URL whose file is not there. The first whose
+# `base_url` the URL has is tried first. (org-protocol-project-alist)
+org_protocol_project_alist = []
+
+# The editor `org-lsp protocol` starts when no org-lsp runs, as a command line
+# (`code`, `zed`, `kitty nvim`): it opens `org_default_notes_file` in it, or
+# the file of an `open-source` URL, and the org-lsp that starts there takes
+# the URL, within two minutes. Read from the shared file only. Without it, a
+# stored link is kept for the next org-lsp that starts, and a capture fails.
+# org_protocol_editor = … (unset: none: a capture waits for an editor with
+# org-lsp)
+
+
 # ----- Clocking
 
 # Where `CLOCK:` lines go: `true` for the drawer of `org_log_into_drawer`

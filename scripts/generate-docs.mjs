@@ -494,6 +494,7 @@ const OPTION_GROUPS = [
   ['Links, IDs and citations', /^org_(link|id|file_apps|cite|bibtex|return_follows_link)/],
   ['Dates and times', /^org_(time_stamp|read_date|edit_timestamp|extend_today|use_effective|use_last_clock|duration|display_custom|timestamp_custom)|^calendar_/],
   ['Capture, refile and archive', /^org_(capture|directory|default_notes|refile|reverse_note_order|archive)/],
+  ['org-protocol', /^org_protocol_/],
   ['Clocking', /^org_clock|^org_agenda_clock/],
   ['Habits', /^org_habit_|^org_modules$/],
   ['The agenda', /^org_agenda_|^agenda_|^org_(deadline|scheduled)_|^org_stuck_projects$|^org_tags_match_list_sublevels$/],

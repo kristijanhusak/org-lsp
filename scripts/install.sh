@@ -8,6 +8,9 @@
 #   scripts/install.sh zed         Zed: the extension, the server, its tasks and keys
 #   scripts/install.sh helix       Helix: the server, Org in languages.toml, its colors
 #   scripts/install.sh server      the server alone
+#   scripts/install.sh protocol    org-lsp as the handler of org-protocol:// URLs
+#                                  (docs/org-protocol.org), the server too if
+#                                  it is not there
 #
 # Options, before the editor:
 #   --release v0.2.0   a release other than the nightly build
@@ -34,9 +37,9 @@ releases=${ORG_LSP_RELEASES:-https://github.com/$repo/releases/download}
 # to read it from.
 usage() {
   if [ -f "${BASH_SOURCE[0]:-}" ]; then
-    sed -n '2,25s/^# \{0,1\}//p' "${BASH_SOURCE[0]}"
+    sed -n '2,28s/^# \{0,1\}//p' "${BASH_SOURCE[0]}"
   else
-    say "Usage: install.sh [--release TAG] [--source] vscode|sublime|zed|helix|server"
+    say "Usage: install.sh [--release TAG] [--source] vscode|sublime|zed|helix|server|protocol"
     say "See https://github.com/$repo/blob/main/scripts/install.sh for more."
   fi
 }
@@ -141,6 +144,111 @@ install_server_on_path() {
       *) say "$dir is not on your PATH: add it, so that editors find the server." ;;
     esac
   fi
+}
+
+# org-lsp as the system's handler of org-protocol:// URLs: `org-lsp protocol
+# URL` runs for each (docs/org-protocol.org). The server in ~/.local/bin,
+# installed there first unless it is there already.
+install_protocol() {
+  local dir=${ORG_LSP_BIN_DIR:-$HOME/.local/bin} path
+  if $source || [ ! -x "$dir/$exe" ]; then
+    path=$(install_server "$dir")
+  else
+    path=$dir/$exe
+  fi
+  case "$os" in
+    linux) register_protocol_linux "$path" ;;
+    macos) register_protocol_macos "$path" ;;
+    windows) register_protocol_windows "$path" ;;
+    *) fail "org-protocol cannot be registered on $(uname -s) by this script: see docs/org-protocol.org." ;;
+  esac
+}
+
+# Linux: a desktop entry that takes the scheme, hidden from menus, made the
+# default for it (`xdg-mime`).
+register_protocol_linux() {
+  local path=$1
+  local applications=${XDG_DATA_HOME:-$HOME/.local/share}/applications
+  local entry=$applications/org-lsp-protocol.desktop
+  mkdir -p "$applications"
+  # The desktop entry's quoting: the path in double quotes, with `"`, `` ` ``,
+  # `$` and `\` escaped.
+  local quoted
+  quoted=$(printf '%s' "$path" | sed 's/[\\"`$]/\\&/g')
+  cat > "$entry" << EOF
+[Desktop Entry]
+Type=Application
+Name=org-lsp
+Comment=Hands org-protocol:// URLs to org-lsp
+Exec="$quoted" protocol %u
+MimeType=x-scheme-handler/org-protocol;
+NoDisplay=true
+Terminal=false
+EOF
+  say "Wrote $entry"
+  if command -v update-desktop-database > /dev/null; then
+    update-desktop-database "$applications" 2> /dev/null || true
+  fi
+  if command -v xdg-mime > /dev/null; then
+    xdg-mime default org-lsp-protocol.desktop x-scheme-handler/org-protocol
+    say "org-lsp now handles org-protocol:// URLs (xdg-mime default)."
+  else
+    # What xdg-mime writes: the default in mimeapps.list.
+    local list=${XDG_CONFIG_HOME:-$HOME/.config}/mimeapps.list
+    mkdir -p "$(dirname "$list")"
+    touch "$list"
+    grep -v '^x-scheme-handler/org-protocol=' "$list" > "$work/mimeapps.list" || true
+    if grep -q '^\[Default Applications\]' "$work/mimeapps.list"; then
+      awk '{ print } /^\[Default Applications\]/ { print "x-scheme-handler/org-protocol=org-lsp-protocol.desktop" }' \
+        "$work/mimeapps.list" > "$list"
+    else
+      { cat "$work/mimeapps.list"; printf '[Default Applications]\nx-scheme-handler/org-protocol=org-lsp-protocol.desktop\n'; } > "$list"
+    fi
+    say "org-lsp now handles org-protocol:// URLs ($list)."
+  fi
+}
+
+# macOS: a small application that declares the scheme (CFBundleURLTypes): an
+# AppleScript applet whose `open location` runs `org-lsp protocol URL`,
+# registered with Launch Services. .github/workflows/protocol.yml checks it.
+register_protocol_macos() {
+  local path=$1
+  local app=$HOME/Applications/org-lsp-protocol.app
+  mkdir -p "$HOME/Applications"
+  rm -rf "$app"
+  local quoted=${path//\\/\\\\}
+  quoted=${quoted//\"/\\\"}
+  cat > "$work/protocol.applescript" << EOF
+on open location theURL
+	do shell script quoted form of "$quoted" & " protocol " & quoted form of theURL
+end open location
+EOF
+  osacompile -o "$app" "$work/protocol.applescript"
+  local plist=$app/Contents/Info.plist buddy=/usr/libexec/PlistBuddy
+  "$buddy" -c "Set :CFBundleIdentifier org.org-lsp.protocol" "$plist" 2> /dev/null ||
+    "$buddy" -c "Add :CFBundleIdentifier string org.org-lsp.protocol" "$plist"
+  "$buddy" -c "Add :LSUIElement bool true" "$plist"
+  "$buddy" -c "Add :CFBundleURLTypes array" \
+    -c "Add :CFBundleURLTypes:0 dict" \
+    -c "Add :CFBundleURLTypes:0:CFBundleURLName string org-protocol" \
+    -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" \
+    -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string org-protocol" "$plist"
+  /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$app"
+  say "Made $app, which hands org-protocol:// URLs to org-lsp."
+  say "If another application (Emacs) has the scheme too, make this one its handler (with duti: duti -s org.org-lsp.protocol org-protocol)."
+}
+
+# Windows: the scheme under HKEY_CURRENT_USER\Software\Classes, its command
+# `org-lsp.exe protocol "%1"`. .github/workflows/protocol.yml checks it.
+register_protocol_windows() {
+  local path=$1 windows_path
+  windows_path=$(cygpath -w "$path" 2> /dev/null || printf '%s' "$path")
+  local key='HKCU\Software\Classes\org-protocol'
+  # Git Bash leaves the arguments of reg as they are.
+  MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' reg add "$key" /ve /d 'URL:org-protocol' /f > /dev/null
+  MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' reg add "$key" /v 'URL Protocol' /d '' /f > /dev/null
+  MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' reg add "$key\shell\open\command" /ve /d "\"$windows_path\" protocol \"%1\"" /f > /dev/null
+  say "org-lsp now handles org-protocol:// URLs ($key)."
 }
 
 # The entries of the JSON array in `entries` (a file of the release or the
@@ -420,7 +528,7 @@ main() {
         usage
         exit 0
         ;;
-      vscode | sublime | zed | helix | server) editor=$1 ;;
+      vscode | sublime | zed | helix | server | protocol) editor=$1 ;;
       *)
         echo "Unknown argument: $1 (see --help)" >&2
         exit 2
@@ -469,6 +577,7 @@ main() {
     zed) install_zed ;;
     helix) install_helix ;;
     server) install_server_on_path ;;
+    protocol) install_protocol ;;
   esac
 }
 

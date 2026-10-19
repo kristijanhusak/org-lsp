@@ -609,6 +609,10 @@ pub struct Options {
     /// The client shows `org-lsp/lineHighlights`, as one announcing
     /// `experimental.orgLineHighlights` does.
     pub line_highlights: Option<bool>,
+    /// The client runs a command when the server asks
+    /// (`org-lsp/runCommand`), as one announcing
+    /// `experimental.orgRunCommand` does.
+    pub run_command: Option<bool>,
     /// The client hides the lines a command's answer names
     /// (`hiddenLines`), as one announcing `experimental.orgHiddenLines`
     /// does.
@@ -796,6 +800,19 @@ pub struct Options {
     /// `org-capture-templates-contexts`: where templates are offered.
     #[serde(rename = "org_capture_templates_contexts")]
     pub capture_templates_contexts: Option<Vec<ContextOption>>,
+    /// `org-protocol-default-template-key`
+    #[serde(rename = "org_protocol_default_template_key")]
+    pub protocol_default_template_key: Option<String>,
+    /// `org-protocol-data-separator`, an Emacs regexp.
+    #[serde(rename = "org_protocol_data_separator")]
+    pub protocol_data_separator: Option<String>,
+    /// `org-protocol-project-alist`
+    #[serde(rename = "org_protocol_project_alist")]
+    pub protocol_project_alist: Option<Vec<ProtocolProjectOption>>,
+    /// The editor `org-lsp protocol` starts when no server runs, as a
+    /// command line.
+    #[serde(rename = "org_protocol_editor")]
+    pub protocol_editor: Option<String>,
     /// org-roam: off unless switched on.
     #[serde(rename = "org_roam_enabled")]
     pub roam_enabled: Option<bool>,
@@ -2934,6 +2951,41 @@ impl Options {
             *slot = heading.clone();
         }
         settings
+    }
+}
+
+/// An entry of `org_protocol_project_alist` (`org-protocol-project-alist`).
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[serde(default)]
+pub struct ProtocolProjectOption {
+    pub name: String,
+    pub base_url: String,
+    pub working_directory: String,
+    pub online_suffix: Option<String>,
+    pub working_suffix: Option<String>,
+    pub rewrites: Vec<(String, String)>,
+}
+
+impl Options {
+    /// The options of `org-protocol.el`.
+    pub fn protocol_options(&self) -> org_core::protocol::Options {
+        org_core::protocol::Options {
+            default_template_key: self.protocol_default_template_key.clone().filter(|key| !key.is_empty()),
+            data_separator: self.protocol_data_separator.clone(),
+            projects: self
+                .protocol_project_alist
+                .iter()
+                .flatten()
+                .map(|project| org_core::protocol::Project {
+                    name: project.name.clone(),
+                    base_url: project.base_url.clone(),
+                    working_directory: project.working_directory.clone(),
+                    online_suffix: project.online_suffix.clone(),
+                    working_suffix: project.working_suffix.clone(),
+                    rewrites: project.rewrites.clone(),
+                })
+                .collect(),
+        }
     }
 }
 

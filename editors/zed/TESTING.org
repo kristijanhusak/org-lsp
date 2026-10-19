@@ -190,6 +190,15 @@ its sections says what it should look like.
 - [ ] ~%[snippet.txt]~ puts in the file's text, relative to the file captured from: the code action /Capture/
 - [ ] ~%(upcase "abc")~ puts in ~ABC~, what Emacs makes of it (needs Emacs): the code action /Capture/
 
+* org-protocol
+
+*Partly:* The server starts a capture itself: the template is picked from Zed's question, and for its prompts the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text.
+
+- [ ] With ~scripts/install.sh protocol~ run, the store-link bookmarklet of docs/org-protocol.org says ~‘C-c C-l’ to insert new Org link, ‘C-y’ to insert "…"~, and inserting a link offers the page
+- [ ] The capture bookmarklet with some text selected opens the capture buffer with the page's title, link and the text (a template with ~%:description~, ~%:link~, ~%i~)
+- [ ] With ~org_protocol_project_alist~ set, ~org-lsp protocol 'org-protocol://open-source?url=…'~ opens the page's file
+- [ ] With the editor closed and ~org_protocol_editor~ set, the capture bookmarklet starts the editor and the capture buffer opens in it
+
 * Notes (org-roam)
 
 *Partly:* A node's title is typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The org-roam buffer does not follow the cursor: Zed reports no cursor moves to an extension.

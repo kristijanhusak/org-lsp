@@ -49,6 +49,7 @@ struct Client {
 
 impl Client {
     fn start(capabilities: Value, options: Value, root: Option<&str>) -> Client {
+        private_state();
         // The tests' own options only, whatever configuration file the
         // machine has.
         let mut options = if options.is_null() { json!({}) } else { options };
@@ -10303,4 +10304,15 @@ fn bibtex_keys_come_from_emacs() {
     // (Its quotes are curved or not as Emacs's locale has them.)
     assert!(error.starts_with("Year or date field ") && error.ends_with(" invalid"), "{error}");
     client.shutdown();
+}
+
+/// The servers of the tests keep what they leave for others (where they
+/// listen for org-protocol URLs) in a state directory of their own, not
+/// the user's.
+fn private_state() {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| {
+        let state = std::env::temp_dir().join(format!("org-lsp-test-state-{}", std::process::id()));
+        std::env::set_var("XDG_STATE_HOME", state);
+    });
 }

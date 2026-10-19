@@ -187,10 +187,11 @@ end
 --- Run a command: one of the editor's own, or one of the server's, which
 --- is told where the cursor is.
 ---@param name string e.g. 'org.todo.next'
----@param opts? { count?: integer, key?: string, append?: boolean } the
+---@param opts? { count?: integer, key?: string, append?: boolean, argument?: table } the
 --- count typed before the key, the key to give back its own meaning if the
---- command does not apply at the cursor, and whether the command acts below
---- the cursor's line and typing goes on in insert mode
+--- command does not apply at the cursor, whether the command acts below
+--- the cursor's line and typing goes on in insert mode, and fields of the
+--- argument the server gave (`org-lsp/runCommand`)
 function M.run(name, opts)
   if own_commands[name] then
     return own_commands[name][2]()
@@ -252,6 +253,11 @@ function M.run(name, opts)
       -- Below the cursor's line, as nvim-orgmode's `<Leader><CR>` puts it:
       -- never above it, and nothing split.
       context.below = true
+    end
+    -- What the server asked the command to be run with (a capture an
+    -- org-protocol URL started).
+    for key, value in pairs(opts.argument or {}) do
+      context[key] = value
     end
     local command = { title = name, command = name, arguments = { context } }
     local bufnr = vim.api.nvim_get_current_buf()
