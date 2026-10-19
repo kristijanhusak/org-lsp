@@ -65,8 +65,8 @@ moving the server. What it does, which can be done by hand as well:
   declares the scheme and hides it from the Dock (~LSUIElement~) with
   ~PlistBuddy~, and registers it with ~lsregister~. When another application
   (Emacs.app) has the scheme too, make this one its handler, with [[https://github.com/moretension/duti][duti]]:
-  ~duti -s org.org-lsp.protocol org-protocol~. /This is not tested by the
-  project's checks./
+  ~duti -s org.org-lsp.protocol org-protocol~. The [[file:../.github/workflows/protocol.yml][org-protocol workflow]]
+  registers it on macOS and opens a ~store-link~ URL through the system.
 - Windows :: the scheme in the registry, under
   ~HKEY_CURRENT_USER\Software\Classes\org-protocol~; the script does it
   with ~reg~ in Git Bash. By hand, a ~.reg~ file (its backslashes
@@ -94,7 +94,7 @@ moving the server. What it does, which can be done by hand as well:
   #+end_src
 
   ~org-lsp.exe~ is a console program: a console window may flash as it
-  runs. /This is not tested by the project's checks./
+  runs. The same workflow checks it on Windows.
 
 The browser asks once whether to open ~org-protocol~ links with it.
 

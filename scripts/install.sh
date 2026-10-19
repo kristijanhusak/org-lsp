@@ -210,7 +210,7 @@ EOF
 
 # macOS: a small application that declares the scheme (CFBundleURLTypes): an
 # AppleScript applet whose `open location` runs `org-lsp protocol URL`,
-# registered with Launch Services. Not tested by the project's checks.
+# registered with Launch Services. .github/workflows/protocol.yml checks it.
 register_protocol_macos() {
   local path=$1
   local app=$HOME/Applications/org-lsp-protocol.app
@@ -239,7 +239,7 @@ EOF
 }
 
 # Windows: the scheme under HKEY_CURRENT_USER\Software\Classes, its command
-# `org-lsp.exe protocol "%1"`. Not tested by the project's checks.
+# `org-lsp.exe protocol "%1"`. .github/workflows/protocol.yml checks it.
 register_protocol_windows() {
   local path=$1 windows_path
   windows_path=$(cygpath -w "$path" 2> /dev/null || printf '%s' "$path")
