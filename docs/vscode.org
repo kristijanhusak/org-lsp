@@ -80,6 +80,40 @@ The server also reads [[file:configuration.org::#the-shared-configuration-file][
 ~org-lsp.settings~ goes on top of it. [[file:configuration.org][configuration.org]] has everything else:
 [[file:configuration.org::#vs-code][the extension's settings]] and [[file:configuration.org::#every-option-at-its-default][every option of the server]] with its default.
 
+** Headline levels in colors
+:PROPERTIES:
+:CUSTOM_ID: headline-levels-in-colors
+:END:
+
+Color themes give every heading the same color, so by default each level
+of headlines looks alike. With ~"org-lsp.headlineLevelColors": true~ each
+level takes a color of its own from the theme, as Emacs's ~org-level-N~
+faces take theirs from ~outline-1~ to ~outline-8~: the colors of function
+names, variables, keywords, comments, types, constants, built-ins and
+strings, the stars with the title. The text past a done keyword
+(~org_fontify_done_headline~) or a TODO one (~org_fontify_todo_headline~),
+archived headlines and inline tasks keep their own look. The change shows
+at once in the open files.
+
+The headlines then have the token type ~outline~ with the modifiers
+~level1~ to ~level8~, so ~editor.semanticTokenColorCustomizations~ picks
+other colors, for every theme or for one:
+
+#+begin_src json
+{
+  "org-lsp.headlineLevelColors": true,
+  "editor.semanticTokenColorCustomizations": {
+    "rules": {
+      "outline.level1:org": { "foreground": "#4f97d7", "bold": true },
+      "outline.level2:org": "#2d9574"
+    },
+    "[Default Light Modern]": {
+      "rules": { "outline.level1:org": "#3a81c3" }
+    }
+  }
+}
+#+end_src
+
 * Using it
 
 The commands are in the Command Palette under *Org*, and the changes that
@@ -108,9 +142,9 @@ to take the day under the cursor, ~i~ to type the answer, ~q~ or ~Ctrl+G~ to
 give up.
 
 A change made from the agenda edits the entry's file and saves it
-(~auto_save~; off, it is left unsaved, as in Emacs); the agenda follows at
-once, and after a change of priority or date the cursor goes with the
-entry to its new line.
+(~auto_save~; off, it is left unsaved, as in Emacs). As in Emacs, the
+entry's lines stay where they are, showing the new state, priority or date,
+with the cursor on them, until the agenda is built again with ~r~.
 
 * What works
 
@@ -119,36 +153,37 @@ entry to its new line.
 | Feature | Parity | VS Code | What does not work, and why |
 |---+---+---+---|
 | [[file:parity.org::#highlighting][Highlighting]] | 100% | ✅ |  |
-| [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 100% | ✅ |  |
-| [[file:parity.org::#headings-and-structure][Headings and structure]] | 92% | ✅ |  |
+| [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 91% | ❓ | A closed fold ends in VS Code's own ~⋯~: an extension cannot change it (~org_ellipsis~). |
+| [[file:parity.org::#headings-and-structure][Headings and structure]] | 96% | ❓ | VS Code does not tell an extension which folds are closed: ~C-k~ on a folded headline is VS Code's own (~org-ctrl-k-protect-subtree~), and a subtree cut or copied folded is not folded again when it is pasted. |
 | [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 100% | ✅ |  |
 | [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ✅ |  |
-| [[file:parity.org::#priorities][Priorities]] | 75% | ✅ |  |
-| [[file:parity.org::#tags][Tags]] | 86% | ✅ |  |
-| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 75% | ❓ | Column view's header is in the status bar, with the column picked in brackets. |
+| [[file:parity.org::#priorities][Priorities]] | 100% | ✅ |  |
+| [[file:parity.org::#tags][Tags]] | 88% | ✅ |  |
+| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 100% | ❓ | Column view's header is in the status bar, with the column picked in brackets. Custom properties are not hidden (~org.custom.properties.toggle~): VS Code hides lines only in a fold of the folding ranges, which keeps its first line showing, and a decoration cannot hide a line. |
 | [[file:parity.org::#dates-and-times][Dates and times]] | 100% | ✅ |  |
 | [[file:parity.org::#agenda][Agenda]] | 100% | ❓ | Tags are at column 80, not at the window's edge (~org_agenda_tags_column~ ~"auto"~): VS Code does not tell an extension how many columns an editor shows. |
 | [[file:parity.org::#clocking][Clocking]] | 100% | ✅ |  |
 | [[file:parity.org::#capture][Capture]] | 100% | ✅ |  |
-| [[file:parity.org::#notes-org-roam][Notes (org-roam)]] | 67% | ✅ |  |
-| [[file:parity.org::#a-journal-org-journal][A journal (org-journal)]] | 77% | ✅ |  |
+| [[file:parity.org::#org-protocol][org-protocol]] | 86% | ✅ |  |
+| [[file:parity.org::#notes-org-roam][Notes (org-roam)]] | 94% | ✅ |  |
+| [[file:parity.org::#a-journal-org-journal][A journal (org-journal)]] | 93% | ✅ |  |
 | [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ |  |
-| [[file:parity.org::#links][Links]] | 92% | ✅ |  |
+| [[file:parity.org::#links][Links]] | 100% | ✅ |  |
 | [[file:parity.org::#footnotes][Footnotes]] | 100% | ✅ |  |
-| [[file:parity.org::#tables][Tables]] | 94% | ✅ |  |
+| [[file:parity.org::#tables][Tables]] | 100% | ✅ |  |
 | [[file:parity.org::#table-formulas][Table formulas]] | 100% | ✅ |  |
 | [[file:parity.org::#code-blocks-babel][Code blocks (Babel)]] | 100% | ✅ |  |
 | [[file:parity.org::#export-and-publishing][Export and publishing]] | 100% | ❓ | VS Code does not tell an extension which folds are closed: with ~C-v~ everything is exported. |
-| [[file:parity.org::#citations][Citations]] | 83% | ✅ |  |
+| [[file:parity.org::#citations][Citations]] | 82% | ✅ |  |
 | [[file:parity.org::#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% | ✅ |  |
-| [[file:parity.org::#indentation-and-formatting][Indentation and formatting]] | 71% | ✅ |  |
+| [[file:parity.org::#indentation-and-formatting][Indentation and formatting]] | 100% | ❓ | The lines a long line wraps into are not indented as Org does: VS Code indents them by the line's own leading whitespace (~editor.wrappingIndent~), the same way for every line, without the prefix of virtual indentation, a decoration it does not count. |
 | [[file:parity.org::#notes-and-logging][Notes and logging]] | 100% | ✅ |  |
 | [[file:parity.org::#completion-and-editing-helpers][Completion and editing helpers]] | 100% | ✅ |  |
 | [[file:parity.org::#timers][Timers]] | 100% | ✅ |  |
 | [[file:parity.org::#attachments][Attachments]] | 100% | ✅ |  |
 | [[file:parity.org::#encryption][Encryption]] | 100% | ✅ |  |
-| [[file:parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | ❓ | VS Code cannot leave lines free for an image: an image takes the place of its link only as high as a line, and shows whole on hover. Counts through a key's ~args~. |
-| *All of Org* | *94%* |  |  |
+| [[file:parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | ❓ | VS Code cannot leave lines free for an image: an image takes the place of its link only as high as a line, and shows whole on hover (at the width Org gives it, at most 600 pixels). Counts through a key's ~args~. |
+| *All of Org* | *98%* |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what and why),
 ❌ none does, — nothing to support yet. Parity is the share of what

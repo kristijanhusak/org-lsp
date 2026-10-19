@@ -46,6 +46,8 @@ const looks = {
   checkbox: ['punctuation.list_marker'],
   'checkbox.checked': ['comment'],
   'checkbox.partial': ['punctuation.list_marker'],
+  // `org-list-dt`: bold, with no color of its own.
+  descriptionTerm: { font_weight: 'bold' },
   link: ['link_uri'],
   code: ['text.literal'],
   verbatim: ['text.literal'],
@@ -71,37 +73,66 @@ const looks = {
   'agendaDeadline.distant': ['comment'],
   agendaDone: ['comment'],
   agendaDimmed: ['comment'],
-  agendaHabit: ['hint'],
-  'agendaHabit.ready': ['string'],
-  'agendaHabit.alert': ['warning'],
-  'agendaHabit.overdue': ['error'],
   agendaTimeGrid: ['comment'],
   'agendaTimeGrid.current': ['emphasis.strong'],
-  agendaClocking: ['emphasis.strong'],
   '*.archived': ['comment'],
+  // `org-headline-done` and `org-headline-todo` past a keyword, the
+  // statistics cookie of `org-checkbox-statistics-done`, `org-inlinetask`.
+  'headline.done': ['comment'],
+  '*.done': ['comment'],
+  'headline.todo': ['string'],
+  '*.todo': ['string'],
+  'cookie.done': ['comment'],
+  '*.inlinetask': ['comment'],
+  documentTitle: ['title'],
+  documentInfo: ['string'],
 };
 levels.forEach((style, index) => {
   looks[`headline.level${index + 1}`] = [style];
   looks[`stars.level${index + 1}`] = [style];
 });
 
+// The looks of Org's that are a background only (the days of a habit's
+// graph, the entry the clock runs on) are the manifest's. Zed lets no
+// extension highlight a line from edge to edge: the clocked entry's line
+// has its background under its text, which its tokens cover, not past
+// its end. A rule's color is the same with every theme: Org's for a dark
+// background, a little transparent, which shows close to them on a dark
+// theme and as a lighter shade of them on a light one; more transparent
+// under the clocked entry's text, which it must leave readable.
+const backgrounds = Object.fromEntries(
+  manifest.highlights
+    .filter((look) => look.background)
+    .map((look) => [look.token, look.background.dark + (look.token.startsWith('agendaHabit') ? 'b3' : '66')]),
+);
+
 function rule(selector, look) {
-  const [type, modifier] = selector.split('.');
+  const [type, ...modifiers] = selector.split('.');
   const entry = {};
   if (type !== '*') entry.token_type = type;
-  if (modifier) entry.token_modifiers = [modifier];
+  if (modifiers.length > 0) entry.token_modifiers = modifiers;
+  if (backgrounds[selector]) entry.background_color = backgrounds[selector];
+  if (!look) return entry;
   return Array.isArray(look) ? { ...entry, style: look } : { ...entry, ...look };
 }
 
-const selectors = manifest.highlights.map((look) => look.token).filter((token) => looks[token]);
+const selectors = manifest.highlights
+  .map((look) => look.token)
+  .filter((token) => looks[token] || backgrounds[token]);
 // Zed applies every rule that matches, and of two that set the same
 // thing the one earlier in the file wins (as a user's rules win over an
-// extension's): a type with a modifier first (`todoKeyword.done` over
-// `todoKeyword`), then the plain types, then the modifiers of any type.
-// An archived headline is shadowed over all its colors (`org-archived` is
-// prepended), so that one goes before everything.
-const rank = (selector) =>
-  selector === '*.archived' ? -1 : selector.startsWith('*.') ? 2 : selector.includes('.') ? 0 : 1;
+// extension's): a type with several modifiers first
+// (`agendaHabit.ready.future` over `agendaHabit.ready`), then those with
+// one (`todoKeyword.done` over `todoKeyword`), then the plain types, then
+// the modifiers of any type.
+// What Org prepends over a headline's other faces (`org-archived`,
+// `org-headline-done`, `org-headline-todo`, `org-inlinetask`) goes before
+// everything, as a priority or tags in it take that look.
+const over = ['*.archived', '*.done', '*.todo', '*.inlinetask'];
+const rank = (selector) => {
+  const dots = selector.split('.').length - 1;
+  return over.includes(selector) ? -2 : selector.startsWith('*.') ? 2 : dots > 1 ? -1 : dots === 1 ? 0 : 1;
+};
 const rules = selectors.sort((a, b) => rank(a) - rank(b)).map((selector) => rule(selector, looks[selector]));
 const text = JSON.stringify(rules, null, 2) + '\n';
 
@@ -207,9 +238,11 @@ const bindAll = (bindings, tasks) => {
   }
   return bindings;
 };
+// Not while a rename is typed (`renaming`), the answer to what a command
+// asks: the agenda's keys are letters, and its editor sits in the agenda's.
 const keymap = [
   {
-    context: 'Editor && extension == org-agenda',
+    context: 'Editor && !renaming && extension == org-agenda',
     bindings: bindAll(
       {
         // Zed's own: close the agenda, and go to a line's entry (the server
@@ -222,7 +255,7 @@ const keymap = [
     ),
   },
   // In Org files and capture buffers: Org's keys.
-  { context: 'Editor && extension == org', bindings: bindAll({}, [...byKey, ...inFiles, ...opening]) },
+  { context: 'Editor && !renaming && extension == org', bindings: bindAll({}, [...byKey, ...inFiles, ...opening]) },
 ];
 const files = {
   [join(here, 'languages', 'org', 'semantic_token_rules.json')]: text,

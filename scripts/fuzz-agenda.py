@@ -5,11 +5,22 @@ Generates random agenda files, has Emacs print the agenda for them under a
 fixed clock, and runs the agenda test over the same cases. Cases the two
 disagree on stay in the output directory.
 
-    scripts/fuzz-agenda.py [--count 200] [--seed 1] [--out DIR] [--super]
+    scripts/fuzz-agenda.py [--count 200] [--seed 1] [--out DIR] [--super] [--sorting] [--todo-options] [--skip-options] [--display-options]
 
 With --super, each case also turns org-super-agenda on with random groups;
 ORG_LSP_EMACS_PACKAGES must then name the directory of its packages (see
-agenda_reference.py).
+agenda_reference.py). With --sorting, each case sorts and limits its views
+with random strategies (`org-agenda-sorting-strategy`) and limits
+(`org-agenda-max-entries` and its kin). With --todo-options, each case
+sets the options of the TODO list at random (`org-agenda-todo-ignore-*`,
+`org-agenda-todo-list-sublevels`, `org-agenda-skip-comment-trees`,
+`org-agenda-tags-todo-honor-ignore-options`). With --skip-options, the
+options of what the agenda leaves out or where repeats show
+(`org-agenda-skip-scheduled-if-deadline-is-shown` and its kin,
+`org-agenda-skip-additional-timestamps-same-entry`,
+`org-agenda-prefer-last-repeat`, `org-agenda-include-deadlines`). With
+--display-options, those of how lines show their times
+(`org-agenda-time-leading-zero` and its kin).
 
 Requires Emacs, faketime and cargo.
 """
@@ -81,6 +92,144 @@ def super_groups(rng):
             group = {"discard": group}
         groups.append(group)
     return groups
+
+
+STRATEGIES = [
+    "time-up", "time-down", "timestamp-up", "timestamp-down", "scheduled-up", "scheduled-down", "deadline-up",
+    "deadline-down", "tsia-up", "tsia-down", "ts-up", "ts-down", "stats-up", "stats-down", "priority-up",
+    "priority-down", "urgency-up", "urgency-down", "effort-up", "effort-down", "category-up", "category-down",
+    "category-keep", "tag-up", "tag-down", "todo-state-up", "todo-state-down", "habit-up", "habit-down", "alpha-up",
+    "alpha-down",
+]
+
+
+def sorting_options(rng):
+    """Random sorting strategies and limits, for org-lsp and as Emacs Lisp."""
+    def strategies():
+        return rng.sample(STRATEGIES, rng.randint(1, 4))
+
+    options, forms = {}, []
+    if rng.random() < 0.3:
+        flat = strategies()
+        options["org_agenda_sorting_strategy"] = flat
+        forms.append(f"(setq org-agenda-sorting-strategy '({' '.join(flat)}))")
+    else:
+        views = {view: strategies() for view in rng.sample(["agenda", "todo", "tags", "search"], rng.randint(1, 4))}
+        options["org_agenda_sorting_strategy"] = views
+        alist = " ".join(f"({view} {' '.join(names)})" for view, names in views.items())
+        forms.append(f"(setq org-agenda-sorting-strategy '({alist}))")
+    for name in ("sort_notime_is_late", "sort_noeffort_is_high"):
+        if rng.random() < 0.4:
+            value = rng.random() < 0.5
+            options[f"org_agenda_{name}"] = value
+            forms.append(f"(setq org-agenda-{name.replace('_', '-')} {'t' if value else 'nil'})")
+    for name in ("max_entries", "max_todos", "max_tags", "max_effort"):
+        if rng.random() < 0.2:
+            limit = lambda: rng.choice([-3, -1, 1, 2, 5]) * (30 if name == "max_effort" else 1)
+            if rng.random() < 0.5:
+                value = limit()
+                options[f"org_agenda_{name}"] = value
+                forms.append(f"(setq org-agenda-{name.replace('_', '-')} {value})")
+            else:
+                value = {view: limit() for view in rng.sample(["agenda", "todo", "tags", "search"], 2)}
+                options[f"org_agenda_{name}"] = value
+                pairs = " ".join(f"({view} . {limit})" for view, limit in value.items())
+                forms.append(f"(setq org-agenda-{name.replace('_', '-')} '({pairs}))")
+    return options, " ".join(forms)
+
+
+def lisp_value(value):
+    """A JSON option value as Emacs Lisp: t or nil, a symbol, a number."""
+    if value is True:
+        return "t"
+    if value is False:
+        return "nil"
+    if isinstance(value, str):
+        return f"'{value}"
+    return str(value)
+
+
+def todo_options(rng):
+    """Random options of the TODO list, for org-lsp and as Emacs Lisp."""
+    options, forms = {}, []
+
+    def choose(name, values, probability):
+        if rng.random() < probability:
+            value = rng.choice(values)
+            options[f"org_{name}"] = value
+            forms.append(f"(setq org-{name.replace('_', '-')} {lisp_value(value)})")
+
+    choose("agenda_skip_comment_trees", [False], 0.3)
+    choose("agenda_todo_list_sublevels", [False], 0.4)
+    choose("agenda_todo_ignore_with_date", [True], 0.2)
+    dated = [True, "all", "future", "past", 0, 2, 30, -1, -10]
+    choose("agenda_todo_ignore_scheduled", dated, 0.5)
+    choose("agenda_todo_ignore_deadlines", [True, "near", "far", "all", "future", "past", 0, 3, -2], 0.5)
+    choose("agenda_todo_ignore_timestamp", dated, 0.4)
+    choose("agenda_todo_ignore_time_comparison_use_seconds", [True], 0.3)
+    choose("agenda_tags_todo_honor_ignore_options", [True], 0.5)
+    choose("deadline_warning_days", [0, 3, 30], 0.3)
+    return options, " ".join(forms)
+
+
+def skip_options(rng):
+    """Random options of what the day agenda leaves out, for org-lsp and as Emacs Lisp."""
+    options, forms = {}, []
+
+    def choose(name, values, probability, lisp=None):
+        if rng.random() < probability:
+            value = rng.choice(values)
+            options[f"org_{name}"] = value
+            text = lisp(value) if lisp else lisp_value(value)
+            forms.append(f"(setq org-{name.replace('_', '-')} {text})")
+
+    choose("agenda_include_deadlines", [False], 0.15)
+    choose(
+        "agenda_prefer_last_repeat",
+        [True, ["TODO"], ["DONE", "NEXT"]],
+        0.4,
+        lambda value: lisp_value(value) if value is True else "'(" + " ".join(f'"{state}"' for state in value) + ")",
+    )
+    choose("agenda_skip_deadline_prewarning_if_scheduled", [True, "pre-scheduled", 0, 3, 10], 0.5)
+    choose("agenda_skip_scheduled_delay_if_deadline", [True, "post-deadline", 2], 0.4)
+    choose("agenda_skip_scheduled_if_deadline_is_shown", [True, "not-today", "repeated-after-deadline"], 0.5)
+    choose("agenda_skip_scheduled_repeats_after_deadline", [True], 0.3)
+    choose("agenda_skip_scheduled_if_done", [True], 0.2)
+    choose("agenda_skip_deadline_if_done", [True], 0.2)
+    choose("agenda_skip_additional_timestamps_same_entry", [True], 0.5)
+    return options, " ".join(forms)
+
+
+def display_options(rng):
+    """Random options of how the agenda shows times, for org-lsp and as Emacs Lisp."""
+    options, forms = {}, []
+
+    def choose(name, values, probability):
+        if rng.random() < probability:
+            value = rng.choice(values)
+            options[f"org_{name}"] = value
+            text = '"' + value.replace("\\", "\\\\") + '"' if name == "agenda_diary_sexp_prefix" else lisp_value(value)
+            forms.append(f"(setq org-{name.replace('_', '-')} {text})")
+
+    choose("agenda_time_leading_zero", [True], 0.4)
+    choose("agenda_timegrid_use_ampm", [True], 0.4)
+    choose("agenda_search_headline_for_time", [False], 0.3)
+    choose("agenda_remove_times_when_in_prefix", [False, "beg"], 0.4)
+    choose("agenda_default_appointment_duration", [30, 60, 90], 0.4)
+    choose("agenda_remove_timeranges_from_blocks", [True], 0.4)
+    choose("agenda_diary_sexp_prefix", ["^[A-Za-z]+ ", "^X"], 0.3)
+    views = [["todo"], ["agenda"], ["search", "todo"], ["agenda", "search"]]
+    symbols = lambda value: "'(" + " ".join(value) + ")" if isinstance(value, list) else lisp_value(value)
+    for name, values in (("show_inherited_tags", [False, "always", *views]), ("use_tag_inheritance", [True, False, *views])):
+        if rng.random() < 0.3:
+            value = rng.choice(values)
+            options[f"org_agenda_{name}"] = value
+            forms.append(f"(setq org-agenda-{name.replace('_', '-')} {symbols(value)})")
+    if rng.random() < 0.3:
+        value = rng.choice(["^f", "a", "^[xy]", "日本"])
+        options["org_agenda_hide_tags_regexp"] = value
+        forms.append(f'(setq org-agenda-hide-tags-regexp "{value}")')
+    return options, " ".join(forms)
 
 
 def search_string(rng):
@@ -278,6 +427,10 @@ def main():
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--out", default=None)
     parser.add_argument("--super", action="store_true", help="group the views with org-super-agenda")
+    parser.add_argument("--sorting", action="store_true", help="random sorting strategies and limits")
+    parser.add_argument("--todo-options", action="store_true", help="random options of the TODO list")
+    parser.add_argument("--skip-options", action="store_true", help="random options of what the agenda leaves out")
+    parser.add_argument("--display-options", action="store_true", help="random options of how times show")
     args = parser.parse_args()
 
     out = args.out or tempfile.mkdtemp(prefix="org-agenda-fuzz-")
@@ -316,6 +469,24 @@ def main():
                 case["options"]["org_super_agenda_hide_empty_groups"] = True
             if rng.random() < 0.3:
                 case["options"]["org_super_agenda_keep_order"] = True
+        if args.sorting:
+            options, emacs = sorting_options(rng)
+            case.setdefault("options", {}).update(options)
+            case["emacs"] = emacs
+            case["runs"].append({"view": rng.choice(["tags", "tags-todo"]), "match": rng.choice(["LEVEL>0", "a|work", "-home"])})
+        if args.display_options:
+            options, emacs = display_options(rng)
+            case.setdefault("options", {}).update(options)
+            case["emacs"] = " ".join(part for part in (case.get("emacs", ""), emacs) if part)
+        if args.skip_options:
+            options, emacs = skip_options(rng)
+            case.setdefault("options", {}).update(options)
+            case["emacs"] = " ".join(part for part in (case.get("emacs", ""), emacs) if part)
+        if args.todo_options:
+            options, emacs = todo_options(rng)
+            case.setdefault("options", {}).update(options)
+            case["emacs"] = " ".join(part for part in (case.get("emacs", ""), emacs) if part)
+            case["runs"].append({"view": "tags-todo", "match": rng.choice(["LEVEL>0", "a|work", "-home", "/TODO|NEXT"])})
         with open(os.path.join(directory, "case.json"), "w", encoding="utf-8") as handle:
             json.dump(case, handle)
         directories.append(directory)

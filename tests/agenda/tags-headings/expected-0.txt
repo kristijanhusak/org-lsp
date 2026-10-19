@@ -1,0 +1,19 @@
+Headlines with TAGS match: LEVEL>0
+  work:       TODO [#7] :a-b:
+  work:       TODO [#A] capital priority
+  kw:         TODO before the drawer
+  notes:      TODO unset
+  notes:      TODO child of unset
+              TODO empty
+  nil more:   TODO more
+  work:       TODO keyword after a tab
+  work:       DONE done after a tab
+  work:       TODO plain
+  work:       NEXT [#B] spaced  out                                          :t:
+  work:       TODO                                                        :only:
+  work:       TODO under it
+  work:       NEXT below it
+  work:       TODO [#a] small priority
+  work:       [#a] COMMENT a small cookie before it
+  work:       TODO [#b] another small one
+  work:       TODO alpha [#b] COMMENT x

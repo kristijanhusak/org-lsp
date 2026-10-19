@@ -64,6 +64,16 @@ pub enum RepeatTo {
     Previous,
 }
 
+/// `org-ts-regexp`: an active timestamp.
+static ACTIVE_STAMP: std::sync::LazyLock<regex::Regex> =
+    std::sync::LazyLock::new(|| regex::Regex::new(r"<[0-9]{4}-[0-9]{2}-[0-9]{2}[^>\n]*>").expect("a valid regex"));
+/// Runs of spaces, which a heading's pattern takes as ` +`.
+static SPACES: std::sync::LazyLock<regex::Regex> =
+    std::sync::LazyLock::new(|| regex::Regex::new(" +").expect("a valid regex"));
+/// `org-drawer-regexp`
+static DRAWER_LINE: std::sync::LazyLock<regex::Regex> =
+    std::sync::LazyLock::new(|| regex::Regex::new(r"^[ \t]*:(?:\w|[-_])+:[ \t]*$").expect("a valid regex"));
+
 /// Settings, named after Org's variables.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Settings {
@@ -91,6 +101,170 @@ pub struct Settings {
     pub repeat_to_state: RepeatTo,
     /// `org-adapt-indentation`: how the lines Org writes are indented.
     pub adapt: Adapt,
+    /// `org-extend-today-until`: the hour before which `.+` and `++`
+    /// repeaters count from yesterday.
+    pub extend_today_until: i64,
+    /// `org-log-done-with-time`: the `CLOSED:` timestamp has the time.
+    pub log_done_with_time: bool,
+    /// `org-use-effective-time`: before `extend_today_until`, `CLOSED:`,
+    /// `LAST_REPEAT` and notes record 23:59 of the day before.
+    pub use_effective_time: bool,
+    /// `org-use-last-clock-out-time-as-effective-time`: they record the
+    /// end of the subtree's first closed clock instead.
+    pub last_clock_out_as_effective_time: bool,
+    /// `org-log-note-headings`
+    pub note_headings: NoteHeadings,
+    /// `org-log-states-order-reversed`: the latest note first.
+    pub states_order_reversed: bool,
+    /// `org-log-state-notes-insert-after-drawers`
+    pub notes_after_drawers: bool,
+    /// `org-log-note-clock-out`: a note when the clock stops.
+    pub note_clock_out: bool,
+    /// `org-provide-todo-statistics` and `org-hierarchical-todo-statistics`
+    pub statistics: Statistics,
+    /// `org-closed-keep-when-no-todo`
+    pub closed_keep_when_no_todo: bool,
+    /// `org-todo-state-tags-triggers`: for a state (`""` for none, `todo`
+    /// and `done` for any not done or done), the tags set (`true`) or
+    /// removed, in order.
+    pub state_tags_triggers: Vec<(String, Vec<(String, bool)>)>,
+    /// `org-tags-sort-function`, for the tags the triggers change.
+    pub tags_sort: Option<crate::tags::Sort>,
+    /// How lists are edited, and how checkbox cookies count.
+    pub lists: crate::list::Settings,
+    /// `org-property-format`, for the property lines Org writes.
+    pub property_format: String,
+    /// How tables are edited and calculated.
+    pub table: crate::table::Settings,
+}
+
+/// `org-provide-todo-statistics`: which entries the cookies of their
+/// parent count.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub enum ProvideStatistics {
+    /// `nil`: cookies are not updated on state changes.
+    No,
+    /// `t`: the entries with a keyword.
+    #[default]
+    Todo,
+    /// `all-headlines`: every entry, those without a keyword as not done.
+    All,
+    /// These keywords, and the done ones.
+    Keywords(Vec<String>),
+    /// Keywords counted as not done, and done ones counted as done.
+    Split(Vec<String>, Vec<String>),
+}
+
+/// How TODO statistics are counted.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Statistics {
+    /// `org-provide-todo-statistics`
+    pub provide: ProvideStatistics,
+    /// `org-hierarchical-todo-statistics`: children only.
+    pub hierarchical: bool,
+}
+
+impl Default for Statistics {
+    fn default() -> Self {
+        Statistics { provide: ProvideStatistics::Todo, hierarchical: true }
+    }
+}
+
+impl Statistics {
+    /// Whether cookies are updated on changes (`org-provide-todo-statistics`
+    /// non-nil).
+    pub fn provided(&self) -> bool {
+        self.provide != ProvideStatistics::No
+    }
+
+    /// Whether an entry with the keyword `keyword` (none for an entry
+    /// that has none or does not count) counts, and whether as done.
+    fn count(&self, keyword: Option<&str>, keywords: &TodoKeywords) -> (bool, bool) {
+        let done = keyword.is_some_and(|keyword| keywords.is_done(keyword));
+        let listed = |list: &[String]| keyword.is_some_and(|keyword| list.iter().any(|name| name == keyword));
+        match &self.provide {
+            ProvideStatistics::No => (false, false),
+            ProvideStatistics::Todo => (keyword.is_some(), done),
+            ProvideStatistics::All => (true, done),
+            ProvideStatistics::Keywords(list) => (listed(list) || done, done),
+            ProvideStatistics::Split(open, closed) => {
+                (listed(open) || (done && listed(closed)), done && listed(closed))
+            }
+        }
+    }
+}
+
+/// `org-log-note-headings`: the heading of each kind of note, with Org's
+/// `%`-escapes (`%t` the time, `%s` the new state, `%S` the old one…).
+/// An empty heading leaves the note its text only.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NoteHeadings {
+    pub done: String,
+    pub state: String,
+    pub note: String,
+    pub reschedule: String,
+    pub delschedule: String,
+    pub redeadline: String,
+    pub deldeadline: String,
+    pub refile: String,
+    pub clock_out: String,
+}
+
+impl Default for NoteHeadings {
+    fn default() -> Self {
+        NoteHeadings {
+            done: "CLOSING NOTE %t".to_string(),
+            state: "State %-12s from %-12S %t".to_string(),
+            note: "Note taken on %t".to_string(),
+            reschedule: "Rescheduled from %S on %t".to_string(),
+            delschedule: "Not scheduled, was %S on %t".to_string(),
+            redeadline: "New deadline from %S on %t".to_string(),
+            deldeadline: "Removed deadline, was %S on %t".to_string(),
+            refile: "Refiled on %t".to_string(),
+            clock_out: String::new(),
+        }
+    }
+}
+
+impl NoteHeadings {
+    /// The heading for the note of `purpose`.
+    fn of(&self, purpose: Purpose) -> &str {
+        match purpose {
+            Purpose::Done => &self.done,
+            Purpose::State => &self.state,
+            Purpose::Note => &self.note,
+            Purpose::Refile => &self.refile,
+            Purpose::Planning(PlanningChange::Reschedule) => &self.reschedule,
+            Purpose::Planning(PlanningChange::Unschedule) => &self.delschedule,
+            Purpose::Planning(PlanningChange::Redeadline) => &self.redeadline,
+            Purpose::Planning(PlanningChange::Undeadline) => &self.deldeadline,
+            Purpose::ClockOut => &self.clock_out,
+        }
+    }
+}
+
+/// `user-login-name`, from the environment.
+fn login_name() -> String {
+    ["LOGNAME", "USER", "USERNAME"].iter().find_map(|name| std::env::var(name).ok()).unwrap_or_default()
+}
+
+/// `user-full-name`: `NAME`, or the user's name in `/etc/passwd`.
+fn full_name() -> String {
+    if let Ok(name) = std::env::var("NAME") {
+        return name;
+    }
+    let login = login_name();
+    std::fs::read_to_string("/etc/passwd")
+        .ok()
+        .and_then(|passwd| {
+            passwd.lines().find_map(|line| {
+                let fields: Vec<&str> = line.split(':').collect();
+                (fields.first() == Some(&login.as_str()))
+                    .then(|| fields.get(4).map(|gecos| gecos.split(',').next().unwrap_or("").to_string()))
+                    .flatten()
+            })
+        })
+        .unwrap_or_default()
 }
 
 impl Default for Settings {
@@ -107,6 +281,21 @@ impl Default for Settings {
             tags_column: -77,
             repeat_to_state: RepeatTo::Head,
             adapt: Adapt::Off,
+            extend_today_until: 0,
+            log_done_with_time: true,
+            use_effective_time: false,
+            last_clock_out_as_effective_time: false,
+            note_headings: NoteHeadings::default(),
+            states_order_reversed: true,
+            notes_after_drawers: false,
+            note_clock_out: false,
+            statistics: Statistics::default(),
+            closed_keep_when_no_todo: false,
+            state_tags_triggers: Vec::new(),
+            tags_sort: None,
+            lists: crate::list::Settings::default(),
+            property_format: indent::Settings::default().property_format,
+            table: crate::table::Settings::default(),
         }
     }
 }
@@ -157,6 +346,8 @@ enum Purpose {
     Planning(PlanningChange),
     /// `Refiled on`, of `org-log-refile`.
     Refile,
+    /// After a clock line closed (`org-log-note-clock-out`).
+    ClockOut,
 }
 
 /// A change of an entry's `SCHEDULED` or `DEADLINE` date, which
@@ -211,8 +402,17 @@ pub(crate) struct Editor<'a> {
     /// What `org-auto-repeat-maybe` says when it moved the timestamps:
     /// `Entry repeats: SCHEDULED: <…> `.
     repeated: Option<String>,
+    /// The headline as the change made it, before a repeater set the
+    /// state back: what the agenda shows on the entry's line until it is
+    /// rebuilt (`org-agenda-headline-snapshot-before-repeat`).
+    before_repeat: Option<String>,
     /// The logging in force for this command.
     log: Log,
+    /// Where a note on a clock goes: the end of its line.
+    clock_note_at: Option<usize>,
+    /// `org-inhibit-logging` and `org-inhibit-blocking` `t`: the state
+    /// changes with nothing logged and nothing blocking it.
+    quiet: bool,
 }
 
 /// What is logged: `org-log-done`, `org-log-repeat`, `org-log-into-drawer`
@@ -227,6 +427,8 @@ struct Log {
     redeadline: Option<Logging>,
     refile: Option<Logging>,
     into_drawer: Option<String>,
+    /// `org-log-states-order-reversed`, as `#+STARTUP:` may set it.
+    reversed: bool,
     /// The states that log when entered and when left; `None` for those
     /// the keywords say (`WAIT(w@/!)`).
     states: Option<Vec<LogState>>,
@@ -245,21 +447,17 @@ impl Log {
             redeadline: settings.log_redeadline,
             refile: settings.log_refile,
             into_drawer: settings.log_into_drawer.clone(),
+            reversed: settings.states_order_reversed,
             states: None,
         };
-        for line in text.lines() {
-            let line = line.trim_start_matches([' ', '\t']);
-            let Some(words) = line.get(..10).filter(|key| key.eq_ignore_ascii_case("#+startup:")).map(|_| &line[10..])
-            else {
-                continue;
-            };
-            for word in words.split_whitespace() {
-                match word {
-                    "logdrawer" => log.into_drawer = Some("LOGBOOK".to_string()),
-                    "nologdrawer" => log.into_drawer = None,
-                    word => {
-                        log.set(word);
-                    }
+        for word in crate::text::startup_words(text) {
+            match word {
+                "logdrawer" => log.into_drawer = Some("LOGBOOK".to_string()),
+                "nologdrawer" => log.into_drawer = None,
+                "logstatesreversed" => log.reversed = true,
+                "nologstatesreversed" => log.reversed = false,
+                word => {
+                    log.set(word);
                 }
             }
         }
@@ -448,7 +646,53 @@ fn repeater_parts(stamp: &str) -> Option<(Option<char>, i64, char)> {
 impl<'a> Editor<'a> {
     pub(crate) fn new(text: &str, keywords: &'a TodoKeywords, settings: &'a Settings, now: DateTime) -> Editor<'a> {
         let log = Log::new(settings, text);
-        Editor { text: text.to_string(), keywords, settings, now, heading: 0, note: None, repeated: None, log }
+        Editor {
+            text: text.to_string(),
+            keywords,
+            settings,
+            now,
+            heading: 0,
+            note: None,
+            repeated: None,
+            before_repeat: None,
+            log,
+            clock_note_at: None,
+            quiet: false,
+        }
+    }
+
+    /// `org-todo` to `state` on the entry of [`Editor::heading`], as
+    /// `org-insert-todo-heading` calls it with
+    /// `org-treat-insert-todo-heading-as-state-change`: logged and
+    /// triggered as any change. A note it wants is a time only, as no one
+    /// writes it here.
+    pub(crate) fn enter_state(&mut self, state: &str) -> Result<(), String> {
+        self.set_state(&Target::State(Some(state.to_string())), true)?;
+        if let Some(note) = self.note.take() {
+            self.store_note(&note, "");
+        }
+        Ok(())
+    }
+
+    /// `org-current-effective-time`: the time a state change records.
+    fn effective_time(&self) -> DateTime {
+        if self.settings.last_clock_out_as_effective_time {
+            return self.last_clock_out().unwrap_or(self.now);
+        }
+        if self.settings.use_effective_time && self.now.minute / 60 < self.settings.extend_today_until {
+            return DateTime { day: self.now.day - 1, minute: 23 * 60 + 59 };
+        }
+        self.now
+    }
+
+    /// `org-clock-get-last-clock-out-time`: the end of the first closed
+    /// clock in the entry's subtree.
+    fn last_clock_out(&self) -> Option<DateTime> {
+        static CLOCK_OUT: std::sync::LazyLock<regex::Regex> =
+            std::sync::LazyLock::new(|| regex::Regex::new(r"CLOCK:.*\]--(\[[^\]]+\])").unwrap());
+        let end = crate::structure::subtree_end(&self.text, self.heading);
+        let found = CLOCK_OUT.captures(&self.text[self.heading..end])?;
+        time_of(found.get(1)?.as_str()).ok()
     }
 
     pub(crate) fn replace(&mut self, start: usize, end: usize, new: &str) {
@@ -466,6 +710,8 @@ impl<'a> Editor<'a> {
         indent::Settings {
             adapt: self.settings.adapt,
             log_into_drawer: self.settings.log_into_drawer.clone(),
+            two_spaces: self.settings.lists.two_spaces.clone(),
+            property_format: self.settings.property_format.clone(),
             ..indent::Settings::default()
         }
     }
@@ -672,14 +918,15 @@ impl<'a> Editor<'a> {
             }
             owner = self.parent_of(at, at_level);
         }
-        let recursive = has_word(&inherited, "recursive");
+        let recursive = !self.settings.statistics.hierarchical || has_word(&inherited, "recursive");
 
         loop {
             let (parent, parent_level) = ancestor;
             if has_word(&self.cookie_data(parent), "checkbox") {
                 return;
             }
-            // Count the entries below that have a keyword.
+            // Count the entries below, as `org-provide-todo-statistics`
+            // says: their keywords, only the children's unless recursive.
             let (mut all, mut done) = (0, 0);
             let mut line = self.next_heading(parent);
             while line < self.text.len() {
@@ -687,14 +934,10 @@ impl<'a> Editor<'a> {
                 if found <= parent_level {
                     break;
                 }
-                if recursive || found == level {
-                    if let Some(keyword) = self.complex_keyword(line) {
-                        all += 1;
-                        if self.keywords.is_done(&keyword) {
-                            done += 1;
-                        }
-                    }
-                }
+                let keyword = if recursive || found == level { self.complex_keyword(line) } else { None };
+                let (counts, is_done) = self.settings.statistics.count(keyword.as_deref(), self.keywords);
+                all += usize::from(counts);
+                done += usize::from(is_done);
                 let next = self.next_heading(line);
                 if next == line {
                     break;
@@ -723,6 +966,49 @@ impl<'a> Editor<'a> {
                 Some(next) => ancestor = next,
                 None => return,
             }
+        }
+    }
+
+    /// `org-todo-trigger-tag-changes`: the tags `org-todo-state-tags-triggers`
+    /// says the entry gets or loses in `state`, each with `org-toggle-tag`.
+    fn trigger_tag_changes(&mut self, state: &Option<String>) {
+        let triggers = &self.settings.state_tags_triggers;
+        if triggers.is_empty() {
+            return;
+        }
+        let of = |name: &str| triggers.iter().find(|(state, _)| state == name).map(|(_, changes)| changes.clone());
+        let mut changes = Vec::new();
+        match state.as_deref().filter(|state| !state.is_empty()) {
+            None => changes.extend(of("").unwrap_or_default()),
+            Some(state) => {
+                changes.extend(of(state).unwrap_or_default());
+                if self.keywords.contains(state) && !self.keywords.is_done(state) {
+                    changes.extend(of("todo").unwrap_or_default());
+                }
+                if self.keywords.is_done(state) {
+                    changes.extend(of("done").unwrap_or_default());
+                }
+            }
+        }
+        for (tag, on) in changes {
+            let line_end = self.line_end(self.heading);
+            let mut tags = crate::tags::local_tags(&self.text[self.heading..line_end]);
+            let has = tags.contains(&tag);
+            if on && !has {
+                tags.push(tag);
+            } else if !on {
+                tags.retain(|other| *other != tag);
+            }
+            let settings = crate::tags::Settings {
+                sort: self.settings.tags_sort,
+                tags_column: self.settings.tags_column,
+                ..crate::tags::Settings::default()
+            };
+            let text = crate::tags::set_tags(&self.text, self.heading, &tags, &settings);
+            let heading = self.heading;
+            let new_end = text[heading..].find('\n').map_or(text.len(), |index| heading + index);
+            let line = text[heading..new_end].to_string();
+            self.replace(heading, line_end, &line);
         }
     }
 
@@ -797,14 +1083,15 @@ impl<'a> Editor<'a> {
                 let trimmed = self.text[content..line_end].trim_end_matches([' ', '\t']).len();
                 self.replace(content + trimmed, line_end, "");
                 if add {
-                    let stamp = format_timestamp(self.now, true, true, "");
+                    // `org-log-done-with-time`
+                    let stamp = format_timestamp(self.effective_time(), self.settings.log_done_with_time, true, "");
                     let space = if content == self.line_end(line) { "" } else { " " };
                     self.replace(content, content, &format!("CLOSED: {stamp}{space}"));
                 }
             }
             None if add => {
                 let at = self.line_end(self.heading);
-                let stamp = format_timestamp(self.now, true, true, "");
+                let stamp = format_timestamp(self.effective_time(), self.settings.log_done_with_time, true, "");
                 let indentation = self.planning_indentation();
                 self.replace(at, at, &format!("\n{indentation}CLOSED: {stamp}"));
             }
@@ -852,7 +1139,7 @@ impl<'a> Editor<'a> {
 
     /// `org-entry-put` for `LAST_REPEAT`.
     fn put_last_repeat(&mut self) {
-        let value = format_timestamp(self.now, true, true, "");
+        let value = format_timestamp(self.effective_time(), true, true, "");
         self.put_property("LAST_REPEAT", &value);
     }
 
@@ -906,38 +1193,48 @@ impl<'a> Editor<'a> {
     /// `org-store-log-note`: write the note at `org-log-beginning`, with
     /// the text the user wrote for it.
     fn store_note(&mut self, note: &Note, text: &str) {
-        let quoted = |state: &Option<String>| state.as_ref().map(|state| format!("\"{state}\"")).unwrap_or_default();
-        let time = format_timestamp(self.now, true, true, "");
-        let heading = match note.purpose {
-            Purpose::State => format!("State {:<12} from {:<12} {time}", quoted(&note.state), quoted(&note.previous)),
-            Purpose::Done => format!("CLOSING NOTE {time}"),
-            Purpose::Note => format!("Note taken on {time}"),
-            Purpose::Refile => format!("Refiled on {time}"),
-            Purpose::Planning(change) => {
-                // `%S`: a timestamp as an inactive one, in quotes.
-                let old = note.previous.clone().unwrap_or_default();
-                let old = if old.len() > 2 && (old.starts_with('<') || old.starts_with('[')) {
-                    format!("\"[{}]\"", &old[1..old.len() - 1])
-                } else {
-                    format!("\"{old}\"")
-                };
-                match change {
-                    PlanningChange::Reschedule => format!("Rescheduled from {old} on {time}"),
-                    PlanningChange::Unschedule => format!("Not scheduled, was {old} on {time}"),
-                    PlanningChange::Redeadline => format!("New deadline from {old} on {time}"),
-                    PlanningChange::Undeadline => format!("Removed deadline, was {old} on {time}"),
-                }
+        // `%s` and `%S`: a state in quotes, an active timestamp as an
+        // inactive one.
+        let quoted = |state: &Option<String>| match state {
+            None => String::new(),
+            Some(state) if ACTIVE_STAMP.is_match(state) => {
+                let inner: String = state.chars().skip(1).take(state.chars().count().saturating_sub(2)).collect();
+                format!("\"[{inner}]\"")
             }
+            Some(state) => format!("\"{state}\""),
         };
-
-        let mut at = match self.log_into_drawer() {
-            Some(drawer) => self.log_drawer(&drawer),
-            None => {
-                let meta = self.end_of_meta_data();
-                // Past blank lines, to the start of the next line with text.
-                let skipped = self.text[meta..].bytes().take_while(|b| matches!(b, b' ' | b'\t' | b'\n')).count();
-                self.line_start(meta + skipped).max(meta)
+        let now = self.effective_time();
+        let template = self.settings.note_headings.of(note.purpose);
+        let heading = (!template.trim().is_empty()).then(|| {
+            crate::text::replace_escapes(template, |c| {
+                Some(match c {
+                    'u' => login_name(),
+                    'U' => full_name(),
+                    't' => format_timestamp(now, true, true, ""),
+                    'T' => format_timestamp(now, true, false, ""),
+                    'd' => format_timestamp(now, false, true, ""),
+                    'D' => format_timestamp(now, false, false, ""),
+                    's' => quoted(&note.state),
+                    'S' => quoted(&note.previous),
+                    _ => return None,
+                })
+            })
+        });
+        let mut lines: Vec<String> = note_lines(text).into_iter().map(str::to_string).collect();
+        if let Some(mut heading) = heading {
+            if !lines.is_empty() {
+                heading.push_str(" \\\\");
             }
+            lines.insert(0, heading);
+        }
+        if lines.is_empty() {
+            return;
+        }
+
+        // A note on a clock goes right after its line.
+        let mut at = match note.purpose {
+            Purpose::ClockOut => self.clock_note_at.take().unwrap_or(self.heading),
+            _ => self.log_beginning(),
         };
         // The note needs a line of its own.
         if at > 0 && self.text.as_bytes()[at - 1] != b'\n' {
@@ -946,19 +1243,18 @@ impl<'a> Editor<'a> {
         } else if self.line(at).bytes().any(|b| !is_blank(b)) {
             self.replace(at, at, "\n");
         }
+        // In an existing list, the top level of the list; else
         // `org-indent-line` on the note's line.
         let blanks = leading_blanks(self.line(at));
-        let indent = match indent::line_column(&self.text, at, &self.indent_settings()) {
+        let top = crate::list::in_item(&self.text, at)
+            .and_then(|item| crate::list::structure(&self.text, item).first().map(|first| first.ind.max(0) as usize));
+        let indent = match top.or_else(|| indent::line_column(&self.text, at, &self.indent_settings())) {
             Some(column) => " ".repeat(column),
             None => self.line(at)[..blanks].to_string(),
         };
-        let lines = note_lines(text);
-        let mut item = format!("{indent}- {heading}");
-        if !lines.is_empty() {
-            item.push_str(" \\\\");
-        }
+        let mut item = format!("{indent}- {}", lines[0]);
         // The text below the heading, indented to the item's body.
-        for line in lines {
+        for line in &lines[1..] {
             item.push('\n');
             if !line.is_empty() {
                 item.push_str(&indent);
@@ -969,8 +1265,103 @@ impl<'a> Editor<'a> {
         self.replace(at, at + blanks, &item);
     }
 
+    /// `org-log-beginning`: where a note goes, in the log drawer or after
+    /// the entry's meta data; at the top of the notes there, or with
+    /// `org-log-states-order-reversed` off, at their bottom.
+    fn log_beginning(&mut self) -> usize {
+        if let Some(drawer) = self.log_into_drawer() {
+            return self.log_drawer(&drawer);
+        }
+        // `org-end-of-meta-data`, past all drawers with
+        // `org-log-state-notes-insert-after-drawers`.
+        let meta =
+            if self.settings.notes_after_drawers { self.end_of_all_meta_data() } else { self.end_of_meta_data() };
+        // Past blank lines, to the start of the next line with text.
+        let skipped = self.text[meta..].bytes().take_while(|b| matches!(b, b' ' | b'\t' | b'\n')).count();
+        let mut at = self.line_start(meta + skipped);
+        if !self.log.reversed {
+            // `org-skip-over-state-notes`, then back over blank lines.
+            at = self.skip_over_state_notes(at);
+            let back = self.text[..at].bytes().rev().take_while(|b| matches!(b, b' ' | b'\t' | b'\n')).count();
+            at = self.next_line(at - back);
+        }
+        let at = at.max(meta);
+        if at == self.line_start(at) {
+            at
+        } else {
+            self.next_line(at)
+        }
+    }
+
+    /// `org-end-of-meta-data` with `full` `t`: past the planning line,
+    /// the property drawer, and then clock lines, blank lines and drawers.
+    fn end_of_all_meta_data(&self) -> usize {
+        let mut at = self.end_of_meta_data();
+        let end = self.entry_end();
+        if headline_level(self.line(at)).is_some() {
+            return at;
+        }
+        while at < self.text.len() {
+            let line = self.line(at);
+            let trimmed = line.trim_start_matches([' ', '\t']);
+            if trimmed.trim_end_matches([' ', '\t']).is_empty() || trimmed.starts_with("CLOCK:") {
+                at = self.next_line(at);
+                continue;
+            }
+            if !DRAWER_LINE.is_match(line) {
+                break;
+            }
+            // Its `:END:`, before the next headline.
+            let mut close = self.next_line(at);
+            while close < end && !self.line(close).trim_matches([' ', '\t']).eq_ignore_ascii_case(":END:") {
+                close = self.next_line(close);
+            }
+            if close >= end {
+                break;
+            }
+            at = self.next_line(close);
+        }
+        at
+    }
+
+    /// `org-skip-over-state-notes` at `at`: past the items of the list
+    /// there that are state notes (`org-log-note-headings`' `state`).
+    fn skip_over_state_notes(&self, at: usize) -> usize {
+        let Some(item) = crate::list::in_item(&self.text, at) else { return at };
+        let list = crate::list::structure(&self.text, item);
+        // `regexp-quote` of the heading, its escapes as regexps.
+        const PATTERNS: [(char, &str); 8] = [
+            ('d', r"\[([0-9]{4}-[0-9]{2}-[0-9]{2}(?: .*?)?)\]"),
+            ('t', r"\[([0-9]{4}-[0-9]{2}-[0-9]{2}(?: .*?)?)\]"),
+            ('D', r"<([0-9]{4}-[0-9]{2}-[0-9]{2}(?: .*?)?)>"),
+            ('T', r"<([0-9]{4}-[0-9]{2}-[0-9]{2}(?: .*?)?)>"),
+            ('s', r#"(?:"\S+")?"#),
+            ('S', r#"(?:"\S+")?"#),
+            ('u', ".*?"),
+            ('U', ".*?"),
+        ];
+        let marked = crate::text::replace_escapes(&self.settings.note_headings.state, |c| {
+            PATTERNS.iter().position(|(key, _)| *key == c).map(|index| format!("\0{index}\0"))
+        });
+        let mut pattern = regex::escape(&marked);
+        for (index, (_, regexp)) in PATTERNS.iter().enumerate() {
+            pattern = pattern.replace(&format!("\0{index}\0"), regexp);
+        }
+        let pattern = format!("^[ \t]*- +{}", SPACES.replace_all(&pattern, " +"));
+        let Ok(state) = regex::Regex::new(&pattern) else { return at };
+        let mut at = item;
+        while at < self.text.len() && state.is_match(&self.text[at..]) {
+            match crate::list::next_item_or_end(&list, at) {
+                Some(next) if next > at => at = next,
+                _ => break,
+            }
+        }
+        at
+    }
+
     /// `org-log-beginning` with a drawer: the line below the drawer's
-    /// first line. The drawer is created after the entry's planning line
+    /// first line, or with `org-log-states-order-reversed` off, its
+    /// `:END:` line. The drawer is created after the entry's planning line
     /// and property drawer when it does not exist.
     pub(crate) fn log_drawer(&mut self, name: &str) -> usize {
         let meta = self.end_of_meta_data();
@@ -980,6 +1371,13 @@ impl<'a> Editor<'a> {
         while line < end {
             if self.line(line).trim_matches([' ', '\t']).eq_ignore_ascii_case(&opening) && self.drawer_closes(line, end)
             {
+                if !self.log.reversed {
+                    let mut close = self.next_line(line);
+                    while !self.line(close).trim_matches([' ', '\t']).eq_ignore_ascii_case(":END:") {
+                        close = self.next_line(close);
+                    }
+                    return close;
+                }
                 return self.next_line(line);
             }
             let next = self.next_line(line);
@@ -1233,11 +1631,32 @@ impl<'a> Editor<'a> {
         });
         let head = previous.as_deref().and_then(|state| self.keywords.head(state)).map(str::to_string);
         let state = to_state.filter(|state| self.keywords.contains(state)).or(head);
-        self.set_state(&Target::State(state), false)?;
+        let (this, _, _) = self.keyword_match();
+        self.set_state(&Target::State(state.clone()), false)?;
+        // `org-todo` back to that state runs with no logging of its own
+        // (`org-log-done`, `org-todo-log-states` nil) but reads the entry's
+        // `LOGGING` again: the states it names log.
+        if self.log.states.is_some() {
+            let record = state
+                .as_deref()
+                .and_then(|state| self.logs_entering(state))
+                .or_else(|| this.as_deref().and_then(|this| self.logs_leaving(this)));
+            if let (Some(_), Some(record)) = (&state, record) {
+                let text = record == Logging::Note;
+                self.note = Some(Note { purpose: Purpose::State, state: state.clone(), previous: this, text });
+            }
+        }
 
         self.planning_closed(false);
         if self.log.repeat.is_some() || self.has_clock() {
             self.put_last_repeat();
+        }
+        // Already set up for a note, `org-log-repeat` `note` makes it want
+        // text.
+        if self.log.repeat == Some(Logging::Note) {
+            if let Some(note) = &mut self.note {
+                note.text = true;
+            }
         }
         if self.log.repeat.is_some() && self.note.is_none() {
             self.note = Some(Note {
@@ -1264,6 +1683,7 @@ impl<'a> Editor<'a> {
         // the cursor: it starts behind the repeater, and every change is
         // made to the timestamp the cursor is then in.
         let mut message = "Entry repeats: ".to_string();
+        let today = self.now.org_today(self.settings.extend_today_until);
         let mut at = self.heading;
         loop {
             let (parse, _, end) = self.entry_outline();
@@ -1276,23 +1696,26 @@ impl<'a> Editor<'a> {
             let stamp = self.text[start..repeater_end].to_string();
             let Some((kind, count, unit)) = repeater_parts(&stamp) else { continue };
             let (count, unit) = if unit == 'w' { (count.saturating_mul(7), 'd') } else { (count, unit) };
-            // A repeater of 0 leaves its timestamp where it is: shifting by
-            // nothing would never land in the future.
-            if count == 0 {
+            // A `++` repeater of 0 leaves its timestamp where it is:
+            // shifting by nothing would never land in the future. Others
+            // are changed by nothing, which writes the timestamp again
+            // with the right day name.
+            if count == 0 && kind == Some('+') {
                 continue;
             }
             if unit == 'h' && !has_clock_time(&stamp) {
                 return Err(format!("Cannot repeat in {count} hour(s) because no hour has been set"));
             }
             match kind {
-                // `.+`: count from today, or from now when repeating by hours.
+                // `.+`: count from today (`org-today`, which late at night
+                // is yesterday), or from now when repeating by hours.
                 Some('.') => {
                     let time = time_of(&stamp)?;
                     if unit == 'h' {
                         let minutes = (self.now.day - time.day) * 1440 + self.now.minute - time.minute;
                         point = self.shift_timestamp(point, minutes, 'M', false)?.cursor;
                     } else {
-                        point = self.shift_timestamp(point, self.now.day - time.day, 'd', false)?.cursor;
+                        point = self.shift_timestamp(point, today - time.day, 'd', false)?.cursor;
                     }
                 }
                 // `++`: keep the rhythm, but land in the future.
@@ -1303,7 +1726,7 @@ impl<'a> Editor<'a> {
                         let behind = if unit == 'h' {
                             (self.now.day, self.now.minute) >= (time.day, time.minute)
                         } else {
-                            self.now.day >= time.day
+                            today >= time.day
                         };
                         if shifts > 0 && !behind {
                             break;
@@ -1391,7 +1814,7 @@ impl<'a> Editor<'a> {
                 Some(state.clone())
             }
         };
-        if top {
+        if top && !self.quiet {
             if let Some(reason) = self.blocked(&this, &state) {
                 return Err(format!(
                     "TODO state change from {} to {} blocked (by {reason})",
@@ -1411,12 +1834,12 @@ impl<'a> Editor<'a> {
             state.as_deref().is_some_and(|state| self.keywords.contains(state) && !self.keywords.is_done(state))
         };
         let now_done = is_done(&state) && !is_done(&this);
-        if top && (self.logs_any() || self.log.done.is_some()) {
+        if top && !self.quiet && (self.logs_any() || self.log.done.is_some()) {
             let record = state
                 .as_deref()
                 .and_then(|state| self.logs_entering(state))
                 .or_else(|| this.as_deref().and_then(|this| self.logs_leaving(this)));
-            if state.is_none() || (is_open(&state) && !is_open(&this)) {
+            if (state.is_none() && !self.settings.closed_keep_when_no_todo) || (is_open(&state) && !is_open(&this)) {
                 // No longer done: a `CLOSED:` timestamp is out of date.
                 self.planning_closed(false);
             }
@@ -1432,10 +1855,18 @@ impl<'a> Editor<'a> {
                 self.note = Some(Note { purpose: Purpose::State, state: state.clone(), previous: this.clone(), text });
             }
         }
+        // `org-todo-trigger-tag-changes`
+        self.trigger_tag_changes(&state);
         self.align_tags(self.heading);
-        self.update_parent_statistics();
+        if self.settings.statistics.provided() {
+            self.update_parent_statistics();
+        }
         if now_done {
+            let before = self.line(self.line_start(self.heading)).to_string();
             self.auto_repeat(&state, &this)?;
+            if self.repeated.is_some() {
+                self.before_repeat = Some(before);
+            }
         }
         Ok(())
     }
@@ -1608,6 +2039,33 @@ pub fn refile_logging(settings: &Settings, text: &str) -> Option<Logging> {
 
 /// `org-store-log-note` for the entry at byte `offset` just refiled:
 /// `Refiled on [now]`, with the text `note` (empty for a time only).
+/// `org-log-note-clock-out` for the file `text`: `setting`, unless its
+/// `#+STARTUP:` says `lognoteclock-out` or `nolognoteclock-out`.
+pub fn note_clock_out(setting: bool, text: &str) -> bool {
+    crate::text::startup_words(text).into_iter().fold(setting, |on, word| match word {
+        "lognoteclock-out" => true,
+        "nolognoteclock-out" => false,
+        _ => on,
+    })
+}
+
+/// `org-store-log-note` for `org-log-note-clock-out`: the note with the
+/// text `note` right after the clock line that ends at byte `line_end`.
+pub fn log_clock_out(
+    text: &str,
+    keywords: &TodoKeywords,
+    line_end: usize,
+    settings: &Settings,
+    now: DateTime,
+    note: &str,
+) -> Result<String, String> {
+    let mut editor = Editor::new(text, keywords, settings, now);
+    editor.go_to_heading(line_end)?;
+    editor.clock_note_at = Some(line_end);
+    editor.store_note(&Note { purpose: Purpose::ClockOut, state: None, previous: None, text: true }, note);
+    Ok(editor.text)
+}
+
 pub fn log_refile(
     text: &str,
     keywords: &TodoKeywords,
@@ -1638,7 +2096,17 @@ pub fn log_planning_change(
 ) -> Result<String, String> {
     let mut editor = Editor::new(text, keywords, settings, now);
     editor.go_to_heading(offset)?;
-    let wanted = Note { purpose: Purpose::Planning(change), state: None, previous: Some(old.to_string()), text: true };
+    // The new date, for `%s` (`org-last-inserted-timestamp`).
+    let state = match change {
+        PlanningChange::Reschedule | PlanningChange::Redeadline => editor.planning_line().and_then(|line| {
+            let keyword = if change == PlanningChange::Redeadline { "DEADLINE:" } else { "SCHEDULED:" };
+            let text = editor.line(line);
+            let after = text[text.find(keyword)? + keyword.len()..].trim_start_matches(' ');
+            after.starts_with('<').then(|| after[..after.find('>').map_or(after.len(), |end| end + 1)].to_string())
+        }),
+        _ => None,
+    };
+    let wanted = Note { purpose: Purpose::Planning(change), state, previous: Some(old.to_string()), text: true };
     editor.store_note(&wanted, note);
     Ok(editor.text)
 }
@@ -1652,6 +2120,8 @@ pub struct Changed {
     /// The note the change wants, when no text was given for it. The text
     /// is then without the note.
     pub wants_note: Option<WantedNote>,
+    /// The headline line before a repeater set the state back.
+    pub before_repeat: Option<String>,
 }
 
 /// A note a state change wants (`org-add-note`).
@@ -1696,6 +2166,26 @@ pub fn change_state_with_note(
     change_state_noted(text, keywords, offset, target, settings, now, note)
 }
 
+/// [`change_state`] with `org-inhibit-logging` and `org-inhibit-blocking`
+/// `t`, as `S-<left>` and `S-<right>` change it unless
+/// `org-treat-S-cursor-todo-selection-as-state-change`: no `CLOSED:`
+/// stamp added or taken out, no note, and no dependency in the way. A
+/// repeater still repeats, and logs as `org-log-repeat` says.
+pub fn change_state_quietly(
+    text: &str,
+    keywords: &TodoKeywords,
+    offset: usize,
+    target: &Target,
+    settings: &Settings,
+    now: DateTime,
+) -> Result<Changed, String> {
+    let mut editor = Editor::new(text, keywords, settings, now);
+    editor.quiet = true;
+    editor.go_to_heading(offset)?;
+    editor.set_state(target, true)?;
+    Ok(noted(editor, NoteText::Ask))
+}
+
 /// [`change_state_with_note`], where the note may also be cancelled.
 pub fn change_state_noted(
     text: &str,
@@ -1709,6 +2199,12 @@ pub fn change_state_noted(
     let mut editor = Editor::new(text, keywords, settings, now);
     editor.go_to_heading(offset)?;
     editor.set_state(target, true)?;
+    Ok(noted(editor, note))
+}
+
+/// The change `editor` made, with the note it wants written as `note`
+/// says, or asked for.
+fn noted(mut editor: Editor, note: NoteText) -> Changed {
     let wants_note = match (editor.note.take(), note) {
         // `org-store-log-note` with `org-note-abort`: nothing is stored.
         (Some(wanted), NoteText::Skip) if wanted.text => None,
@@ -1737,12 +2233,13 @@ pub fn change_state_noted(
                 Purpose::Note => "this entry".to_string(),
                 Purpose::Planning(change) => change.purpose().to_string(),
                 Purpose::Refile => "refiling".to_string(),
+                Purpose::ClockOut => "stopped clock".to_string(),
             };
             Some(WantedNote { purpose, state: wanted.state })
         }
         (None, _) => None,
     };
-    Ok(Changed { text: editor.text, wants_note, message: editor.repeated })
+    Changed { text: editor.text, wants_note, message: editor.repeated, before_repeat: editor.before_repeat }
 }
 
 /// The line edits that turn `old` into `new`.
@@ -1885,6 +2382,42 @@ mod tests {
             change("* a¦\n", named, &Settings::default()),
             Err("State `NOPE' not valid in this file".to_string())
         );
+    }
+
+    /// Recorded from Emacs: `org-clock-out` with `org-log-note-clock-out`,
+    /// then `org-store-log-note`.
+    #[test]
+    fn notes_on_clocks_follow_their_line() {
+        let now = DateTime::new(Date::new(2026, 5, 18), 10, 30);
+        let line = "CLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00";
+        let note = |text: &str, note: &str, settings: &Settings| {
+            let end = text.find(line).unwrap() + line.len();
+            log_clock_out(text, &TodoKeywords::default(), end, settings, now, note).unwrap()
+        };
+        let settings = Settings::default();
+        let closed = format!("* TODO a\n:LOGBOOK:\n{line}\n:END:\n");
+        assert_eq!(
+            note(&closed, "Done for now", &settings),
+            format!("* TODO a\n:LOGBOOK:\n{line}\n- Done for now\n:END:\n")
+        );
+        assert_eq!(note(&closed, "", &settings), closed);
+        let older = "CLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00";
+        let two = format!("* TODO a\n:LOGBOOK:\n{line}\n{older}\n:END:\nText\n");
+        assert_eq!(
+            note(&two, "two\nlines", &settings),
+            format!("* TODO a\n:LOGBOOK:\n{line}\n- two\n  lines\n{older}\n:END:\nText\n")
+        );
+        let headed = Settings {
+            note_headings: NoteHeadings { clock_out: "Stopped at %t".to_string(), ..NoteHeadings::default() },
+            ..Settings::default()
+        };
+        let item = format!("* TODO a\n:LOGBOOK:\n{line}\n:END:\n- item\n");
+        assert_eq!(
+            note(&item, "x", &headed),
+            format!("* TODO a\n:LOGBOOK:\n{line}\n- Stopped at [2026-05-18 Mon 10:30] \\\\\n  x\n:END:\n- item\n")
+        );
+        assert!(note_clock_out(false, "#+STARTUP: lognoteclock-out\n"));
+        assert!(!note_clock_out(true, "#+STARTUP: nolognoteclock-out\n"));
     }
 
     #[test]

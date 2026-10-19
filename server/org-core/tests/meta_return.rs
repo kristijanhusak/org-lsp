@@ -46,7 +46,27 @@ fn inserts_as_emacs_does() {
         let below = key.starts_with("below:");
         let name = key;
         let key = key.trim_start_matches("below:");
-        let settings = Settings { tags_column: -77, below };
+        // The case's options, as `scripts/fuzz-meta-return.py` gives them.
+        let options = &case["settings"];
+        let flag = |name: &str| options[name].as_bool();
+        let settings = Settings {
+            below,
+            split: meta_return::Split {
+                headline: flag("split_headline").unwrap_or(true),
+                item: flag("split_item").unwrap_or(true),
+                table: flag("split_table").unwrap_or(true),
+            },
+            blank_heading: flag("blank_heading"),
+            blank_item: flag("blank_item"),
+            respect_content: flag("respect_content").unwrap_or(false),
+            lists: org_core::list::Settings {
+                two_spaces: options["two_spaces"].as_str().and_then(org_core::list::BulletRegexp::new),
+                checkbox_rule: flag("checkbox_rule").unwrap_or(true),
+                checkbox_hierarchical: flag("hierarchical").unwrap_or(true),
+                ..Default::default()
+            },
+            ..Settings::default()
+        };
         let line_start = text[..point].rfind('\n').map_or(0, |at| at + 1);
         let line_end = text[point..].find('\n').map_or(text.len(), |at| point + at);
         if below && EMPTY_ITEM.is_match(&text[line_start..line_end]) {

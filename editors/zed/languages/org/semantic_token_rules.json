@@ -1,11 +1,59 @@
 [
   {
     "token_modifiers": [
+      "done"
+    ],
+    "style": [
+      "comment"
+    ]
+  },
+  {
+    "token_modifiers": [
+      "todo"
+    ],
+    "style": [
+      "string"
+    ]
+  },
+  {
+    "token_modifiers": [
       "archived"
     ],
     "style": [
       "comment"
     ]
+  },
+  {
+    "token_modifiers": [
+      "inlinetask"
+    ],
+    "style": [
+      "comment"
+    ]
+  },
+  {
+    "token_type": "agendaHabit",
+    "token_modifiers": [
+      "ready",
+      "future"
+    ],
+    "background_color": "#006400b3"
+  },
+  {
+    "token_type": "agendaHabit",
+    "token_modifiers": [
+      "alert",
+      "future"
+    ],
+    "background_color": "#b8860bb3"
+  },
+  {
+    "token_type": "agendaHabit",
+    "token_modifiers": [
+      "overdue",
+      "future"
+    ],
+    "background_color": "#8b0000b3"
   },
   {
     "token_type": "headline",
@@ -188,6 +236,33 @@
     ]
   },
   {
+    "token_type": "cookie",
+    "token_modifiers": [
+      "done"
+    ],
+    "style": [
+      "comment"
+    ]
+  },
+  {
+    "token_type": "headline",
+    "token_modifiers": [
+      "done"
+    ],
+    "style": [
+      "comment"
+    ]
+  },
+  {
+    "token_type": "headline",
+    "token_modifiers": [
+      "todo"
+    ],
+    "style": [
+      "string"
+    ]
+  },
+  {
     "token_type": "agendaDate",
     "token_modifiers": [
       "today"
@@ -237,27 +312,28 @@
     "token_modifiers": [
       "ready"
     ],
-    "style": [
-      "string"
-    ]
+    "background_color": "#228b22b3"
   },
   {
     "token_type": "agendaHabit",
     "token_modifiers": [
       "alert"
     ],
-    "style": [
-      "warning"
-    ]
+    "background_color": "#ffd700b3"
   },
   {
     "token_type": "agendaHabit",
     "token_modifiers": [
       "overdue"
     ],
-    "style": [
-      "error"
-    ]
+    "background_color": "#b22222b3"
+  },
+  {
+    "token_type": "agendaHabit",
+    "token_modifiers": [
+      "future"
+    ],
+    "background_color": "#191970b3"
   },
   {
     "token_type": "agendaTimeGrid",
@@ -347,6 +423,10 @@
     ]
   },
   {
+    "token_type": "descriptionTerm",
+    "font_weight": "bold"
+  },
+  {
     "token_type": "link",
     "style": [
       "link_uri"
@@ -380,6 +460,18 @@
     "token_type": "cookie",
     "style": [
       "number"
+    ]
+  },
+  {
+    "token_type": "documentTitle",
+    "style": [
+      "title"
+    ]
+  },
+  {
+    "token_type": "documentInfo",
+    "style": [
+      "string"
     ]
   },
   {
@@ -438,9 +530,7 @@
   },
   {
     "token_type": "agendaHabit",
-    "style": [
-      "hint"
-    ]
+    "background_color": "#0000ffb3"
   },
   {
     "token_type": "agendaTimeGrid",
@@ -450,9 +540,7 @@
   },
   {
     "token_type": "agendaClocking",
-    "style": [
-      "emphasis.strong"
-    ]
+    "background_color": "#4a708b66"
   },
   {
     "token_type": "agendaDimmed",
@@ -483,5 +571,11 @@
       "strikethrough"
     ],
     "strikethrough": true
+  },
+  {
+    "token_modifiers": [
+      "clocking"
+    ],
+    "background_color": "#4a708b66"
   }
 ]

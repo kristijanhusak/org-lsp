@@ -35,7 +35,7 @@ command. [[file:../neovim.org][neovim.org]] says how to install and set up the p
 |---+---+---|
 | ~<Leader>oxi~ | ~org.clock.in~ | Clock in |
 | ~<Leader>oxx~ | ~org.clock.in.last~ | Clock in the last clocked task |
-| ~<Leader>oxR~ | ~org.clock.resolve~ | Resolve a dangling clock |
+| ~<Leader>oxz~ | ~org.clock.resolve~ | Resolve open clocks |
 | ~<Leader>oxo~ | ~org.clock.out~ | Clock out |
 | ~<Leader>oxq~ | ~org.clock.cancel~ | Cancel the clock |
 | ~<Leader>oxd~ | ~org.clock.display~ | Show the time clocked under each headline |
@@ -61,6 +61,7 @@ command. [[file:../neovim.org][neovim.org]] says how to install and set up the p
 | ~<Leader>oiT~ | ~org.insert.todo.heading~ | New TODO heading, or item with a checkbox |
 | ~<Leader>oih~ | ~org.insert.heading.after~ | New heading after the subtree |
 | ~<Leader>oit~ | ~org.insert.todo.heading.after~ | New TODO heading after the subtree |
+| ~<Leader>oiI~ | ~org.inlinetask.insert~ | Insert an inline task |
 | ~<<~ ¹ | ~org.meta.left~ | Promote the heading; outdent the item; move the table column left |
 | ~>>~ ¹ | ~org.meta.right~ | Demote the heading; indent the item, the drawer or the block; move the table column right |
 | ~<s~ | ~org.shiftmeta.left~ | Promote the subtree; outdent the item with its children; delete the table column |
@@ -107,6 +108,8 @@ command. [[file:../neovim.org][neovim.org]] says how to install and set up the p
 | ~<Leader>o+~ | ~org.table.sum~ | Sum the numbers of the table column |
 | ~<Leader>o?~ | ~org.table.field.info~ | Show the references of the table field |
 | ~<Leader>oi<Bar>~ | ~org.table.create~ | Insert an empty table |
+| ~<Leader>opg~ | ~org.plot.gnuplot~ | Plot the table with gnuplot |
+| ~<Leader>opa~ | ~org.table.ascii.plot~ | Draw the column at the cursor as bars |
 | ~<Leader>obn~ | ~org.babel.next~ | Move to the next code block |
 | ~<Leader>obp~ | ~org.babel.previous~ | Move to the previous code block |
 | ~<Leader>obg~ | ~org.babel.goto~ | Go to a named code block |
@@ -139,6 +142,15 @@ command. [[file:../neovim.org][neovim.org]] says how to install and set up the p
 | ~<Leader>nf~ | ~org.roam.node.find~ | Roam: find a node |
 | ~<Leader>ni~ | ~org.roam.node.insert~ | Roam: insert a link to a node |
 | ~<Leader>nc~ | ~org.roam.capture~ | Roam: capture to a node |
+| ~<Leader>ndn~ | ~org.roam.dailies.capture.today~ | Roam: capture to today's daily note |
+| ~<Leader>ndd~ | ~org.roam.dailies.goto.today~ | Roam: go to today's daily note |
+| ~<Leader>ndt~ | ~org.roam.dailies.goto.tomorrow~ | Roam: go to tomorrow's daily note |
+| ~<Leader>ndy~ | ~org.roam.dailies.goto.yesterday~ | Roam: go to yesterday's daily note |
+| ~<Leader>ndv~ | ~org.roam.dailies.capture.date~ | Roam: capture to the daily note of a date |
+| ~<Leader>ndc~ | ~org.roam.dailies.goto.date~ | Roam: go to the daily note of a date |
+| ~<Leader>ndf~ | ~org.roam.dailies.goto.next~ | Roam: go to the next daily note |
+| ~<Leader>ndb~ | ~org.roam.dailies.goto.previous~ | Roam: go to the previous daily note |
+| ~<Leader>nd.~ | ~org.roam.dailies.find.directory~ | Roam: open the directory of the daily notes |
 | ~<Leader>nl~ | ~org.roam.buffer.toggle~ | Roam: show or hide the org-roam buffer |
 | ~<Leader>jf~ | ~org.journal.next.entry~ | Journal: next entry |
 | ~<Leader>jb~ | ~org.journal.previous.entry~ | Journal: previous entry |
@@ -154,6 +166,7 @@ command. [[file:../neovim.org][neovim.org]] says how to install and set up the p
 | ~<Leader>oi.~ | ~org.timestamp.insert~ | Insert or change a timestamp |
 | ~<Leader>oi!~ | ~org.timestamp.insert.inactive~ | Insert or change an inactive timestamp |
 | ~cid~ | ~org.timestamp.change~ | Change the timestamp at the cursor |
+| ~<Leader>o>~ | ~org.goto.calendar~ | Show the calendar at the date of the line |
 
 ** In a capture buffer
 
@@ -219,7 +232,7 @@ command. [[file:../neovim.org][neovim.org]] says how to install and set up the p
 | ~,~, ~<Leader>o,~ | ~org.priority~ | Set the priority |
 | ~<C-c><C-x>p~, ~<Leader>oxp~ | ~org.property.set~ | Set a property of the entry |
 | ~e~, ~<Leader>oxe~ | ~org.effort.set~ | Set the effort of the entry |
-| ~<Leader>ot~ | ~org.tags.set~ | Set the tags of the headline |
+| ~<C-c><C-q>~, ~<Leader>ot~ | ~org.tags.set~ | Set the tags of the headline |
 | ~<C-c><C-w>~, ~<Leader>or~ | ~org.refile~ | Refile the entry |
 | ~z~, ~<Leader>ona~ | ~org.add.note~ | Add a note to the entry |
 | ~<C-c><C-o>~, ~<Leader>oo~ | ~org.open~ | Open the link or thing at the cursor |
@@ -240,6 +253,17 @@ command. [[file:../neovim.org][neovim.org]] says how to install and set up the p
 
 | Keys | Command | What it does |
 |---+---+---|
+| ~<Leader>jn~ | ~org.journal.new.date.entry~ | Journal: new entry for a date |
+| ~]~ | ~org.journal.next.entry~ | Journal: next entry |
+| ~[~ | ~org.journal.previous.entry~ | Journal: previous entry |
+| ~<Leader>jsf~ | ~org.journal.search.forever~ | Journal: search every entry |
+| ~<Leader>jsF~ | ~org.journal.search.future~ | Journal: search the entries to come |
+| ~<Leader>jsw~ | ~org.journal.search.calendar.week~ | Journal: search the calendar's week |
+| ~<Leader>jsm~ | ~org.journal.search.calendar.month~ | Journal: search the calendar's month |
+| ~<Leader>jsy~ | ~org.journal.search.calendar.year~ | Journal: search the calendar's year |
+| ~<Leader>jr~ | ~org.journal.read.entry~ | Journal: the entry of the calendar's day |
+| ~<Leader>jd~ | ~org.journal.display.entry~ | Journal: show the entry of the calendar's day |
+| ~<Leader>jm~ | ~org.journal.mark.entries~ | Journal: mark the days with an entry in the calendar |
 | ~l~, ~<S-Right>~ | ~org.calendar.day.later~ | Date prompt: one day later |
 | ~h~, ~<S-Left>~ | ~org.calendar.day.earlier~ | Date prompt: one day earlier |
 | ~j~, ~<S-Down>~ | ~org.calendar.week.later~ | Date prompt: one week later |
@@ -285,17 +309,39 @@ command. [[file:../neovim.org][neovim.org]] says how to install and set up the p
 | ~org.agenda.todos~ | List of all TODO entries |
 | ~org.agenda.habits~ | Agenda: show or hide habits |
 | ~org.agenda.appt~ | Add today's appointments from the agenda files |
+| ~org.num.mode~ | Number the headlines, or stop numbering them |
+| ~org.custom.properties.toggle~ | Hide the properties of org_custom_properties, or show them again |
+| ~org.todo.yesterday~ | Change the TODO state as if it were yesterday |
 | ~org.todo.next~ | Cycle TODO state forward |
 | ~org.property.delete~ | Delete a property of the entry |
 | ~org.property.delete.globally~ | Delete a property from every entry of the file |
 | ~org.ordered.toggle~ | Toggle whether subtasks must be done in order (ORDERED) |
+| ~org.bibtex.export~ | BibTeX: export the entries of the file to a .bib file |
+| ~org.bibtex.copy~ | BibTeX: copy the entry at the cursor as BibTeX |
+| ~org.bibtex.create~ | BibTeX: new entry, its fields asked for |
+| ~org.bibtex.create.here~ | BibTeX: make the entry at the cursor a BibTeX entry |
+| ~org.bibtex.check~ | BibTeX: ask for the fields the entry at the cursor lacks |
+| ~org.bibtex.check.all~ | BibTeX: ask for the fields every entry lacks |
+| ~org.bibtex.yank~ | BibTeX: paste a BibTeX entry as a heading |
+| ~org.bibtex.import~ | BibTeX: import the entries of a BibTeX file as headings |
+| ~org.ctags.create~ | Ctags: make the TAGS file of the file's directory |
+| ~org.ctags.find~ | Ctags: go to a topic, or make it |
+| ~org.inlinetask.insert.nostate~ | Insert an inline task without its default TODO state |
+| ~org.levels.odd~ | Convert the file to odd levels only, once confirmed |
+| ~org.levels.oddeven~ | Convert the file from odd levels to odd and even ones, once confirmed |
+| ~org.open.line~ | Open a line, or in a table insert a row |
+| ~org.outline.path~ | Show the outline path of the entry at the cursor |
 | ~org.table.next.field~ | Go to the next table field, making a row after the last |
 | ~org.table.previous.field~ | Go to the previous table field |
 | ~org.table.hline.above~ | Insert a rule above the table row |
 | ~org.reveal.siblings~ | Show the context of the cursor, each level with its children |
 | ~org.reveal.tree~ | Show the whole tree of the cursor's parent |
+| ~org.yank~ | Yank, a subtree at its level |
 | ~org.refile.goto~ | Go to a refile target |
 | ~org.refile.goto.last~ | Go to where the last refile put its entry |
+| ~org.beginning.of.line~ | Move to the start of the headline's title |
+| ~org.end.of.line~ | Move to the end of the headline's title |
+| ~org.kill.line~ | Kill the headline's text to the tags, or the tags |
 | ~org.toggle.item~ | Turn the line into an item, or the item into a line |
 | ~org.toggle.heading~ | Turn the line into a heading, or the heading into a line |
 | ~org.table.import~ | Import a file as a table |
@@ -314,6 +360,8 @@ command. [[file:../neovim.org][neovim.org]] says how to install and set up the p
 | ~org.archive.done~ | Archive the subtrees without open TODO items |
 | ~org.archive.tag.done~ | Tag the subtrees without open TODO items as archived |
 | ~org.roam.node.random~ | Roam: visit a random node |
+| ~org.roam.dailies.capture.tomorrow~ | Roam: capture to tomorrow's daily note |
+| ~org.roam.dailies.capture.yesterday~ | Roam: capture to yesterday's daily note |
 | ~org.roam.buffer.dedicated~ | Roam: show the org-roam buffer of a node |
 | ~org.roam.buffer.refresh~ | Roam: refresh the org-roam buffer |
 | ~org.roam.alias.add~ | Roam: add an alias |
@@ -322,11 +370,14 @@ command. [[file:../neovim.org][neovim.org]] says how to install and set up the p
 | ~org.roam.tag.remove~ | Roam: remove tags |
 | ~org.roam.ref.add~ | Roam: add a reference |
 | ~org.roam.ref.remove~ | Roam: remove a reference |
-| ~org.journal.new.date.entry~ | Journal: new entry for a date |
+| ~org.roam.ref.find~ | Roam: find a node by a reference |
+| ~org.roam.promote~ | Roam: make the file's one top headline the file's node |
+| ~org.roam.demote~ | Roam: make the file's node a headline of its own |
+| ~org.roam.refile~ | Roam: refile to a node |
+| ~org.roam.extract~ | Roam: extract the subtree to a file of its own |
+| ~org.roam.graph~ | Roam: show the graph of the nodes |
 | ~org.journal.new.scheduled.entry~ | Journal: new entry for a day to come |
 | ~org.journal.open.current~ | Journal: open the current file |
-| ~org.journal.search.forever~ | Journal: search every entry |
-| ~org.journal.search.future~ | Journal: search the entries to come |
 | ~org.journal.search.future.scheduled~ | Journal: the TODO entries to come |
 | ~org.journal.schedule.view~ | Journal: the entries to come with a date |
 | ~org.journal.reschedule~ | Journal: move the entry to come to another day |
@@ -340,6 +391,7 @@ command. [[file:../neovim.org][neovim.org]] says how to install and set up the p
 | ~org.deadline.remove~ | Remove the deadline of the entry |
 | ~org.schedule.delay~ | Delay the scheduled date until a day |
 | ~org.deadline.warning~ | Warn of the deadline from a day |
+| ~org.timestamp.overlays.toggle~ | Show timestamps in the custom formats, or not |
 
 ¹ Where the command does not apply, the key does what it does in any
 buffer: ~<C-a>~ off a timestamp still increments the number under the
@@ -356,8 +408,13 @@ The plugin adds keys of its own, which only an editor can carry out:
 | ~<Tab>~   | ~cycle~            | ~org~           | Cycle the visibility of the subtree at the cursor       |
 | ~<S-Tab>~ | ~global_cycle~     | ~org~           | Cycle the visibility of the whole file                  |
 | ~q~       | ~quit~             | ~agenda~        | Close the agenda                                        |
-| ~K~       | ~hover~            | ~agenda~        | Show the entry of the line in a float, highlighted      |
+| none      | ~hover~            | ~agenda~        | Show the entry of the line in a float, highlighted      |
 | ~g?~      | ~help~             | ~org~, ~agenda~ | Show the keys of the buffer in a window (~q~ closes it) |
+
+In the agenda, Neovim's own ~K~ (~vim.lsp.buf.hover()~) shows the entry
+of the line, highlighted as Org files are: the plugin makes the hover's
+float an Org buffer of the server's. Emacs's ~K~ (~org.agenda.habits~) has
+no key there; ~hover~ maps the plugin's own float to another key.
 
 A capture buffer is an Org file, so it has the keys of Org files as well as
 its own; there ~<Leader>or~ refiles the captured entry rather than the

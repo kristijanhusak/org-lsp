@@ -1,0 +1,15 @@
+{
+  "today": "2026-05-18",
+  "now": "02:30",
+  "runs": [
+    { "view": "agenda", "span": "day" },
+    { "view": "agenda", "span": "week" },
+    { "view": "agenda", "span": "day", "start": "2026-05-18" },
+    { "view": "todo" },
+    { "view": "tags", "match": "work" },
+    { "view": "tags-todo", "match": "SCHEDULED<\"<today>\"" },
+    { "view": "search", "match": "task" }
+  ],
+  "options": { "org_extend_today_until": 4, "org_modules": ["org-habit"] },
+  "emacs": "(require 'org-habit) (setq org-extend-today-until 4)"
+}

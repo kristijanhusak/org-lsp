@@ -1,0 +1,53 @@
+{
+  "description": "Going to entries from the agenda, follow mode, saving and writing the view, links, clocking, refiling and archiving.",
+  "options": {
+    "auto_save": false,
+    "org_refile_targets": [{ "files": "$DIR/work.org", "maxlevel": 1 }]
+  },
+  "files": {
+    "work.org": [
+      "* TODO Write report",
+      "SCHEDULED: <2026-05-18 Mon>",
+      "See [[*Projects][the projects]].",
+      "* TODO Call the client",
+      "SCHEDULED: <2026-05-18 Mon>",
+      "* TODO Plan the trip",
+      "SCHEDULED: <2026-05-19 Tue>",
+      "* TODO Book the hotel",
+      "SCHEDULED: <2026-05-19 Tue>",
+      "* TODO Pack",
+      "SCHEDULED: <2026-05-20 Wed>",
+      "* TODO Sort the mail",
+      "SCHEDULED: <2026-05-20 Wed>",
+      "* TODO Water the garden",
+      "SCHEDULED: <2026-05-21 Thu>",
+      "* Projects",
+      "** Trip"
+    ]
+  },
+  "steps": [
+    { "open": "work.org" },
+    { "command": "org.agenda.dispatch", "answers": ["a"], "expect": ["agenda"] },
+    { "at": "Call the client", "command": "org.agenda.goto", "expect": ["cursor"] },
+    { "focus": "agenda", "at": "Plan the trip", "command": "org.agenda.goto.other", "expect": ["cursor"] },
+    { "focus": "agenda", "at": "Book the hotel", "command": "org.agenda.follow", "expect": ["cursor", "messages"] },
+    { "at": "Pack", "expect": ["cursor"] },
+    { "command": "org.agenda.follow", "expect": ["messages"] },
+    { "at": "Write report", "command": "org.open", "expect": ["cursor"] },
+    { "focus": "agenda", "at": "Write report", "command": "org.link.store", "expect": ["messages"] },
+    { "command": "org.clock.in", "expect": ["file:work.org", "messages"] },
+    { "command": "org.clock.out", "expect": ["file:work.org", "messages"] },
+    { "at": "Call the client", "command": "org.clock.in" },
+    { "command": "org.clock.cancel", "expect": ["file:work.org", "messages"] },
+    { "command": "org.agenda.save", "expect": ["messages"] },
+    { "command": "org.agenda.write", "answers": ["week.txt"], "expect": ["file:week.txt", "messages"] },
+    { "command": "org.agenda.write", "answers": ["week.txt", "y"], "expect": ["messages"] },
+    { "at": "Plan the trip", "command": "org.refile", "answers": [{ "choice": "Projects" }], "expect": ["agenda", "file:work.org", "messages"] },
+    { "at": "Book the hotel", "command": "org.archive.subtree", "expect": ["agenda", "messages"] },
+    { "at": "Pack", "command": "org.archive.sibling", "expect": ["agenda", "messages"] },
+    { "at": "Sort the mail", "command": "org.archive.tag", "expect": ["agenda", "messages"] },
+    { "at": "Water the garden", "command": "org.archive.default", "expect": ["messages"] },
+    { "at": "Write report", "command": "org.archive.confirm", "answers": ["n"], "expect": ["messages"] },
+    { "command": "org.archive.confirm", "answers": ["y"], "expect": ["agenda", "file:work.org", "file:work.org_archive", "messages"] }
+  ]
+}

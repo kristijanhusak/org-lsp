@@ -339,5 +339,70 @@
    "text": "* H\n:PROPERTIES:\n:ID: x\n\n:END:\n",
    "point": 24
   }
+ },
+ {
+  "text": "| a | bbbb |\n| cc | d |\n",
+  "point": 7,
+  "key": "RET",
+  "settings": {
+   "automatic_realign": false
+  },
+  "emacs": "(org-table-automatic-realign nil)",
+  "expected": {
+   "text": "| a | bbbb |\n| cc | d |\n",
+   "point": 20
+  }
+ },
+ {
+  "text": "| a | bbbb |\n| cc | d |\n| x | y |\n",
+  "point": 17,
+  "key": "RET",
+  "settings": {
+   "automatic_realign": false
+  },
+  "emacs": "(org-table-automatic-realign nil)",
+  "expected": {
+   "text": "| a | bbbb |\n| cc | d |\n| x | y |\n",
+   "point": 26
+  }
+ },
+ {
+  "text": "| a | bbbb |\n| cc | d |\n",
+  "point": 20,
+  "key": "RET",
+  "settings": {
+   "automatic_realign": false
+  },
+  "emacs": "(org-table-automatic-realign nil)",
+  "expected": {
+   "text": "| a  | bbbb |\n| cc | d    |\n|    |      |\n",
+   "point": 35
+  }
+ },
+ {
+  "text": "| a | bb |\n|---+---|\n| c | d |\n",
+  "point": 3,
+  "key": "RET",
+  "settings": {
+   "automatic_realign": false
+  },
+  "emacs": "(org-table-automatic-realign nil)",
+  "expected": {
+   "text": "| a | bb |\n|   |    |\n|---+----|\n| c | d  |\n",
+   "point": 13
+  }
+ },
+ {
+  "text": "| a | b |\n| ccc | ddd |\n",
+  "point": 8,
+  "key": "RET",
+  "settings": {
+   "automatic_realign": false
+  },
+  "emacs": "(org-table-automatic-realign nil)",
+  "expected": {
+   "text": "| a | b |\n| ccc | ddd |\n",
+   "point": 18
+  }
  }
 ]

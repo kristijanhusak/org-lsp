@@ -1,0 +1,17 @@
+#+TODO: TODO NEXT | DONE
+* 	TODO keyword after a tab
+* 	DONE done after a tab
+* TODO [#a] small priority
+* TODO [#b] another small one
+* TODO [#A] capital priority
+* TODO plain
+* TODO [#7]  :a-b:
+* NEXT  [#B]  spaced  out   :t:
+* TODO :only:
+* [#a] COMMENT a small cookie before it
+** TODO under it
+   SCHEDULED: <2026-05-18 Mon>
+* TODO COMMENT [#a] a small cookie after it
+  SCHEDULED: <2026-05-18 Mon>
+* TODO alpha [#b] COMMENT x
+** NEXT below it

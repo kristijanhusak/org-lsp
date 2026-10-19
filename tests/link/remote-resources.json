@@ -1,0 +1,374 @@
+[
+ {
+  "uri": "https://example.com/img/a.png",
+  "file": "/notes/a.org",
+  "safe": [],
+  "policy": "prompt",
+  "key": "y",
+  "expected": {
+   "fetch": true,
+   "prompt": "Please type y, n, f, d, or !: ",
+   "text": "An org-mode document would like to download https://example.com/img/a.png, which is not considered safe.\n\nDo you want to download this?  You can type\n ! to download this resource, and permanently mark it as safe.\n d to download this resource, and mark the domain (https://example.com) as safe.\n f to download this resource, and permanently mark all resources in /notes/a.org as safe.\n y to download this resource, just this once.\n n to skip this resource.\n",
+   "saved": null
+  }
+ },
+ {
+  "uri": "https://example.com/img/a.png",
+  "file": "/notes/a.org",
+  "safe": [],
+  "policy": "prompt",
+  "key": "n",
+  "expected": {
+   "fetch": false,
+   "prompt": "Please type y, n, f, d, or !: ",
+   "text": "An org-mode document would like to download https://example.com/img/a.png, which is not considered safe.\n\nDo you want to download this?  You can type\n ! to download this resource, and permanently mark it as safe.\n d to download this resource, and mark the domain (https://example.com) as safe.\n f to download this resource, and permanently mark all resources in /notes/a.org as safe.\n y to download this resource, just this once.\n n to skip this resource.\n",
+   "saved": null
+  }
+ },
+ {
+  "uri": "https://example.com/img/a.png",
+  "file": "/notes/a.org",
+  "safe": [],
+  "policy": "prompt",
+  "key": "!",
+  "expected": {
+   "fetch": true,
+   "prompt": "Please type y, n, f, d, or !: ",
+   "text": "An org-mode document would like to download https://example.com/img/a.png, which is not considered safe.\n\nDo you want to download this?  You can type\n ! to download this resource, and permanently mark it as safe.\n d to download this resource, and mark the domain (https://example.com) as safe.\n f to download this resource, and permanently mark all resources in /notes/a.org as safe.\n y to download this resource, just this once.\n n to skip this resource.\n",
+   "saved": "\\`https://example\\.com/img/a\\.png\\'"
+  }
+ },
+ {
+  "uri": "https://example.com/img/a.png",
+  "file": "/notes/a.org",
+  "safe": [],
+  "policy": "prompt",
+  "key": "d",
+  "expected": {
+   "fetch": true,
+   "prompt": "Please type y, n, f, d, or !: ",
+   "text": "An org-mode document would like to download https://example.com/img/a.png, which is not considered safe.\n\nDo you want to download this?  You can type\n ! to download this resource, and permanently mark it as safe.\n d to download this resource, and mark the domain (https://example.com) as safe.\n f to download this resource, and permanently mark all resources in /notes/a.org as safe.\n y to download this resource, just this once.\n n to skip this resource.\n",
+   "saved": "\\`https://example\\.com\\(?:/\\|\\'\\)"
+  }
+ },
+ {
+  "uri": "https://example.com/img/a.png",
+  "file": "/notes/a.org",
+  "safe": [],
+  "policy": "prompt",
+  "key": "f",
+  "expected": {
+   "fetch": true,
+   "prompt": "Please type y, n, f, d, or !: ",
+   "text": "An org-mode document would like to download https://example.com/img/a.png, which is not considered safe.\n\nDo you want to download this?  You can type\n ! to download this resource, and permanently mark it as safe.\n d to download this resource, and mark the domain (https://example.com) as safe.\n f to download this resource, and permanently mark all resources in /notes/a.org as safe.\n y to download this resource, just this once.\n n to skip this resource.\n",
+   "saved": "\\`file:///notes/a\\.org\\'"
+  }
+ },
+ {
+  "uri": "https://example.com/img/a.png",
+  "file": "/notes/a.org",
+  "safe": [],
+  "policy": "prompt",
+  "key": " ",
+  "expected": {
+   "fetch": true,
+   "prompt": "Please type y, n, f, d, or !: ",
+   "text": "An org-mode document would like to download https://example.com/img/a.png, which is not considered safe.\n\nDo you want to download this?  You can type\n ! to download this resource, and permanently mark it as safe.\n d to download this resource, and mark the domain (https://example.com) as safe.\n f to download this resource, and permanently mark all resources in /notes/a.org as safe.\n y to download this resource, just this once.\n n to skip this resource.\n",
+   "saved": null
+  }
+ },
+ {
+  "uri": "https://example.com/img/a.png",
+  "file": null,
+  "safe": [],
+  "policy": "prompt",
+  "key": "y",
+  "expected": {
+   "fetch": true,
+   "prompt": "Please type y, n, d, or !: ",
+   "text": "An org-mode document would like to download https://example.com/img/a.png, which is not considered safe.\n\nDo you want to download this?  You can type\n ! to download this resource, and permanently mark it as safe.\n d to download this resource, and mark the domain (https://example.com) as safe.\n y to download this resource, just this once.\n n to skip this resource.\n",
+   "saved": null
+  }
+ },
+ {
+  "uri": "https://example.com/img/a.png",
+  "file": null,
+  "safe": [],
+  "policy": "prompt",
+  "key": "!",
+  "expected": {
+   "fetch": true,
+   "prompt": "Please type y, n, d, or !: ",
+   "text": "An org-mode document would like to download https://example.com/img/a.png, which is not considered safe.\n\nDo you want to download this?  You can type\n ! to download this resource, and permanently mark it as safe.\n d to download this resource, and mark the domain (https://example.com) as safe.\n y to download this resource, just this once.\n n to skip this resource.\n",
+   "saved": "\\`https://example\\.com/img/a\\.png\\'"
+  }
+ },
+ {
+  "uri": "https://example.com/img/a.png",
+  "file": null,
+  "safe": [],
+  "policy": "prompt",
+  "key": "d",
+  "expected": {
+   "fetch": true,
+   "prompt": "Please type y, n, d, or !: ",
+   "text": "An org-mode document would like to download https://example.com/img/a.png, which is not considered safe.\n\nDo you want to download this?  You can type\n ! to download this resource, and permanently mark it as safe.\n d to download this resource, and mark the domain (https://example.com) as safe.\n y to download this resource, just this once.\n n to skip this resource.\n",
+   "saved": "\\`https://example\\.com\\(?:/\\|\\'\\)"
+  }
+ },
+ {
+  "uri": "https://example.com/img/a.png",
+  "file": null,
+  "safe": [],
+  "policy": "prompt",
+  "key": "f",
+  "expected": {
+   "fetch": true,
+   "prompt": "Please type y, n, d, or !: ",
+   "text": "An org-mode document would like to download https://example.com/img/a.png, which is not considered safe.\n\nDo you want to download this?  You can type\n ! to download this resource, and permanently mark it as safe.\n d to download this resource, and mark the domain (https://example.com) as safe.\n y to download this resource, just this once.\n n to skip this resource.\n",
+   "saved": "\\`https://example\\.com/img/a\\.png\\'"
+  }
+ },
+ {
+  "uri": "https://www.example.com:8080/a/b.png?x=1",
+  "file": "/notes/a.org",
+  "safe": [],
+  "policy": "prompt",
+  "key": "d",
+  "expected": {
+   "fetch": true,
+   "prompt": "Please type y, n, f, d, or !: ",
+   "text": "An org-mode document would like to download https://www.example.com:8080/a/b.png?x=1, which is not considered safe.\n\nDo you want to download this?  You can type\n ! to download this resource, and permanently mark it as safe.\n d to download this resource, and mark the domain (https://www.example.com) as safe.\n f to download this resource, and permanently mark all resources in /notes/a.org as safe.\n y to download this resource, just this once.\n n to skip this resource.\n",
+   "saved": "\\`https://www\\.example\\.com\\(?:/\\|\\'\\)"
+  }
+ },
+ {
+  "uri": "http://user@example.org/b.png",
+  "file": "/notes/a.org",
+  "safe": [],
+  "policy": "prompt",
+  "key": "d",
+  "expected": {
+   "fetch": true,
+   "prompt": "Please type y, n, f, d, or !: ",
+   "text": "An org-mode document would like to download http://user@example.org/b.png, which is not considered safe.\n\nDo you want to download this?  You can type\n ! to download this resource, and permanently mark it as safe.\n d to download this resource, and mark the domain (http://user@example.org) as safe.\n f to download this resource, and permanently mark all resources in /notes/a.org as safe.\n y to download this resource, just this once.\n n to skip this resource.\n",
+   "saved": "\\`http://user@example\\.org\\(?:/\\|\\'\\)"
+  }
+ },
+ {
+  "uri": "https://user:pw@www.example.org/b+c[1].png",
+  "file": "/notes/a.org",
+  "safe": [],
+  "policy": "prompt",
+  "key": "!",
+  "expected": {
+   "fetch": true,
+   "prompt": "Please type y, n, f, d, or !: ",
+   "text": "An org-mode document would like to download https://user:pw@www.example.org/b+c[1].png, which is not considered safe.\n\nDo you want to download this?  You can type\n ! to download this resource, and permanently mark it as safe.\n d to download this resource, and mark the domain (https://user:pw@www.example.org) as safe.\n f to download this resource, and permanently mark all resources in /notes/a.org as safe.\n y to download this resource, just this once.\n n to skip this resource.\n",
+   "saved": "\\`https://user:pw@www\\.example\\.org/b\\+c\\[1]\\.png\\'"
+  }
+ },
+ {
+  "uri": "https://example.com",
+  "file": "/notes/a.org",
+  "safe": [],
+  "policy": "prompt",
+  "key": "d",
+  "expected": {
+   "fetch": true,
+   "prompt": "Please type y, n, f, d, or !: ",
+   "text": "An org-mode document would like to download https://example.com, which is not considered safe.\n\nDo you want to download this?  You can type\n ! to download this resource, and permanently mark it as safe.\n d to download this resource, and mark the domain (https://example.com) as safe.\n f to download this resource, and permanently mark all resources in /notes/a.org as safe.\n y to download this resource, just this once.\n n to skip this resource.\n",
+   "saved": "\\`https://example\\.com\\(?:/\\|\\'\\)"
+  }
+ },
+ {
+  "uri": "https://example.com/img/a.png",
+  "file": "/notes/a.org",
+  "safe": [],
+  "policy": true,
+  "key": "n",
+  "expected": {
+   "fetch": true,
+   "prompt": null,
+   "text": null,
+   "saved": null
+  }
+ },
+ {
+  "uri": "https://example.com/img/a.png",
+  "file": "/notes/a.org",
+  "safe": [],
+  "policy": false,
+  "key": "n",
+  "expected": {
+   "fetch": false,
+   "prompt": null,
+   "text": null,
+   "saved": null
+  }
+ },
+ {
+  "uri": "https://example.com/img/a.png",
+  "file": "/notes/a.org",
+  "safe": [],
+  "policy": "safe",
+  "key": "n",
+  "expected": {
+   "fetch": false,
+   "prompt": null,
+   "text": null,
+   "saved": null
+  }
+ },
+ {
+  "uri": "https://example.com/img/a.png",
+  "file": "/notes/a.org",
+  "safe": [
+   "\\`https://example\\.com\\(?:/\\|\\'\\)"
+  ],
+  "policy": "safe",
+  "key": "n",
+  "expected": {
+   "fetch": true,
+   "prompt": null,
+   "text": null,
+   "saved": null
+  }
+ },
+ {
+  "uri": "https://example.com/img/a.png",
+  "file": "/notes/a.org",
+  "safe": [
+   "\\`https://example\\.com\\(?:/\\|\\'\\)"
+  ],
+  "policy": false,
+  "key": "n",
+  "expected": {
+   "fetch": true,
+   "prompt": null,
+   "text": null,
+   "saved": null
+  }
+ },
+ {
+  "uri": "https://example.com/img/a.png",
+  "file": "/notes/a.org",
+  "safe": [
+   "\\`https://example\\.com/img/a\\.png\\'"
+  ],
+  "policy": "safe",
+  "key": "n",
+  "expected": {
+   "fetch": true,
+   "prompt": null,
+   "text": null,
+   "saved": null
+  }
+ },
+ {
+  "uri": "https://example.com/img/a.png",
+  "file": "/notes/a.org",
+  "safe": [
+   "\\`file:///notes/a\\.org\\'"
+  ],
+  "policy": "safe",
+  "key": "n",
+  "expected": {
+   "fetch": true,
+   "prompt": null,
+   "text": null,
+   "saved": null
+  }
+ },
+ {
+  "uri": "https://example.com/img/a.png",
+  "file": "/notes/b.org",
+  "safe": [
+   "\\`file:///notes/a\\.org\\'"
+  ],
+  "policy": "safe",
+  "key": "n",
+  "expected": {
+   "fetch": false,
+   "prompt": null,
+   "text": null,
+   "saved": null
+  }
+ },
+ {
+  "uri": "https://example.com/img/a.png",
+  "file": "/notes/a.org",
+  "safe": [
+   "EXAMPLE\\.COM"
+  ],
+  "policy": "safe",
+  "key": "n",
+  "expected": {
+   "fetch": true,
+   "prompt": null,
+   "text": null,
+   "saved": null
+  }
+ },
+ {
+  "uri": "https://example.community/a.png",
+  "file": "/notes/a.org",
+  "safe": [
+   "\\`https://example\\.com\\(?:/\\|\\'\\)"
+  ],
+  "policy": "prompt",
+  "key": "n",
+  "expected": {
+   "fetch": false,
+   "prompt": "Please type y, n, f, d, or !: ",
+   "text": "An org-mode document would like to download https://example.community/a.png, which is not considered safe.\n\nDo you want to download this?  You can type\n ! to download this resource, and permanently mark it as safe.\n d to download this resource, and mark the domain (https://example.community) as safe.\n f to download this resource, and permanently mark all resources in /notes/a.org as safe.\n y to download this resource, just this once.\n n to skip this resource.\n",
+   "saved": null
+  }
+ },
+ {
+  "uri": "https://example.com",
+  "file": "/notes/a.org",
+  "safe": [
+   "\\`https://example\\.com\\(?:/\\|\\'\\)"
+  ],
+  "policy": "safe",
+  "key": "n",
+  "expected": {
+   "fetch": true,
+   "prompt": null,
+   "text": null,
+   "saved": null
+  }
+ },
+ {
+  "uri": "https://example.com/img/a.png",
+  "file": "/notes/a.org",
+  "safe": [
+   "other",
+   "\\.png\\'"
+  ],
+  "policy": "safe",
+  "key": "n",
+  "expected": {
+   "fetch": true,
+   "prompt": null,
+   "text": null,
+   "saved": null
+  }
+ },
+ {
+  "uri": "https://example.com/img/a.png",
+  "file": "/notes/a.org",
+  "safe": [
+   "\\`http://"
+  ],
+  "policy": "prompt",
+  "key": "n",
+  "expected": {
+   "fetch": false,
+   "prompt": "Please type y, n, f, d, or !: ",
+   "text": "An org-mode document would like to download https://example.com/img/a.png, which is not considered safe.\n\nDo you want to download this?  You can type\n ! to download this resource, and permanently mark it as safe.\n d to download this resource, and mark the domain (https://example.com) as safe.\n f to download this resource, and permanently mark all resources in /notes/a.org as safe.\n y to download this resource, just this once.\n n to skip this resource.\n",
+   "saved": null
+  }
+ }
+]

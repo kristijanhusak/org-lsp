@@ -24,7 +24,7 @@ With Vim's own packages, clone the repository and add ~editors/vim~ to
 'runtimepath'.
 
 Opening an Org file the first time downloads the server for your platform
-from the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]] (with ~curl~ and ~tar~), into
+from the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]] (with ~curl~ and ~tar~; on Windows, Windows' own ~tar~, not one Git put first on the ~PATH~), into
 =~/.local/share/vim/org-lsp=, and starts it. ~:OrgLspDownload~ downloads it
 again, to update it, and the ~do~ above does that on each update of the
 plugin; a server that runs already is replaced when Vim starts again.
@@ -100,9 +100,13 @@ command. [[file:keys/vim.org][keys/vim.org]] lists every key and how to change i
   link brackets and emphasis markers show.
 - With coc.nvim, the documents the server asks to show open where coc.nvim
   opens them (~coc.preferences.jumpCommand~), not as ~win_split_mode~ and
-  ~win_split_size~ say; and since coc.nvim passes on only an error's message,
-  a key that keeps its own meaning (~<C-a>~ off a timestamp) falls back to
-  it whenever the server refuses.
+  ~win_split_size~ say, but for the agenda and the date prompt, which the
+  plugin then moves to a window of their own. A file an edit is for that
+  is not loaded opens as ~workspace.openResourceCommand~ says, in a tab of
+  its own unless that is set (~""~ loads it without showing it, as the
+  other clients do). Since coc.nvim passes on only an error's message, a
+  key that keeps its own meaning (~<C-a>~ off a timestamp) falls back to it
+  whenever the server refuses.
 - With ALE, one server serves the session, started for the directory of
   the first Org file.
 
@@ -112,37 +116,38 @@ command. [[file:keys/vim.org][keys/vim.org]] lists every key and how to change i
 
 | Feature | Parity | Vim | What does not work, and why |
 |---+---+---+---|
-| [[file:parity.org::#highlighting][Highlighting]] | 100% | ❓ | Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Vim cannot hide text that has text properties. |
-| [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 100% | ✅ |  |
-| [[file:parity.org::#headings-and-structure][Headings and structure]] | 92% | ✅ |  |
+| [[file:parity.org::#highlighting][Highlighting]] | 100% | ❓ | Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Vim cannot hide text that has text properties. A headline's line colored to the edge (~org_fontify_whole_heading_line~) is a sign without text, which shows the sign column. |
+| [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 91% | ❓ | Cycling the whole file goes between overview and everything: it has no contents state, which needs folds of a headline's own text that Vim's fold levels do not make. A closed fold's line is not highlighted: Vim draws it in one color. ~<Tab>~ changes the level of a new entry in Normal mode; in Insert mode it is a tab. |
+| [[file:parity.org::#headings-and-structure][Headings and structure]] | 96% | ✅ |  |
 | [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 100% | ✅ |  |
 | [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ✅ |  |
-| [[file:parity.org::#priorities][Priorities]] | 75% | ✅ |  |
-| [[file:parity.org::#tags][Tags]] | 86% | ✅ |  |
-| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 75% | ❓ | Column view's header is in the window's status line, shown when the window has one (~laststatus~). |
+| [[file:parity.org::#priorities][Priorities]] | 100% | ✅ |  |
+| [[file:parity.org::#tags][Tags]] | 88% | ✅ |  |
+| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 100% | ❓ | Column view's header is in the window's status line, shown when the window has one (~laststatus~). Custom properties are not hidden (~org.custom.properties.toggle~): Vim cannot hide a line, a closed fold still shows a line of its own, and text with text properties is not concealed. |
 | [[file:parity.org::#dates-and-times][Dates and times]] | 100% | ✅ |  |
 | [[file:parity.org::#agenda][Agenda]] | 100% | ✅ |  |
 | [[file:parity.org::#clocking][Clocking]] | 100% | ✅ |  |
 | [[file:parity.org::#capture][Capture]] | 100% | ✅ |  |
-| [[file:parity.org::#notes-org-roam][Notes (org-roam)]] | 67% | ✅ |  |
-| [[file:parity.org::#a-journal-org-journal][A journal (org-journal)]] | 77% | ✅ |  |
+| [[file:parity.org::#org-protocol][org-protocol]] | 86% | ✅ |  |
+| [[file:parity.org::#notes-org-roam][Notes (org-roam)]] | 94% | ✅ |  |
+| [[file:parity.org::#a-journal-org-journal][A journal (org-journal)]] | 93% | ✅ |  |
 | [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ |  |
-| [[file:parity.org::#links][Links]] | 92% | ✅ |  |
+| [[file:parity.org::#links][Links]] | 100% | ✅ |  |
 | [[file:parity.org::#footnotes][Footnotes]] | 100% | ✅ |  |
-| [[file:parity.org::#tables][Tables]] | 94% | ❓ | A shrunk column shows its whole text and ~…~: Vim cannot hide text that has text properties. |
+| [[file:parity.org::#tables][Tables]] | 100% | ❓ | A shrunk column shows its whole text and ~…~: Vim cannot hide text that has text properties. |
 | [[file:parity.org::#table-formulas][Table formulas]] | 100% | ✅ |  |
 | [[file:parity.org::#code-blocks-babel][Code blocks (Babel)]] | 100% | ✅ |  |
 | [[file:parity.org::#export-and-publishing][Export and publishing]] | 100% | ✅ |  |
-| [[file:parity.org::#citations][Citations]] | 83% | ✅ |  |
+| [[file:parity.org::#citations][Citations]] | 82% | ✅ |  |
 | [[file:parity.org::#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% | ✅ |  |
-| [[file:parity.org::#indentation-and-formatting][Indentation and formatting]] | 71% | ❓ | The lines a long line wraps into are not indented. |
+| [[file:parity.org::#indentation-and-formatting][Indentation and formatting]] | 100% | ❓ | The lines a long line wraps into line up with its own indentation, a headline's title or an item's text ('breakindent'), without the prefix of virtual indentation before them: Vim repeats no virtual text on them, and 'breakindentopt' shifts all the lines of a window alike. |
 | [[file:parity.org::#notes-and-logging][Notes and logging]] | 100% | ✅ |  |
 | [[file:parity.org::#completion-and-editing-helpers][Completion and editing helpers]] | 100% | ✅ |  |
 | [[file:parity.org::#timers][Timers]] | 100% | ✅ |  |
 | [[file:parity.org::#attachments][Attachments]] | 100% | ✅ |  |
 | [[file:parity.org::#encryption][Encryption]] | 100% | ✅ |  |
 | [[file:parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | ❌ | Vim cannot show images. |
-| *All of Org* | *94%* |  |  |
+| *All of Org* | *98%* |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what and why),
 ❌ none does, — nothing to support yet. Parity is the share of what
@@ -162,3 +167,7 @@ checked out (~lsp~, ~vim-lsp~, ~coc.nvim~ from its ~release~ branch, ~ale~):
 CLIENTS=~/vim-clients editors/vim/test/run.sh           # all four
 CLIENTS=~/vim-clients editors/vim/test/run.sh vim_lsp   # one
 #+end_src
+
+After the plugin's own tests it runs the shared end-to-end scenarios,
+pressing the plugin's keys for each step
+([[file:development.org::#end-to-end-scenarios][development.org]]).

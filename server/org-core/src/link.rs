@@ -231,9 +231,10 @@ pub fn unescape(link: &str) -> String {
     out
 }
 
-/// `org-string-nw-p`: some text that is not blank.
+/// `org-string-nw-p`: some text that is not blank (` `, `\r`, `\t`,
+/// `\n`).
 fn not_blank(text: &str) -> bool {
-    text.chars().any(|c| !c.is_whitespace())
+    text.chars().any(|c| !matches!(c, ' ' | '\r' | '\t' | '\n'))
 }
 
 /// `org-link-make-string`: `[[LINK][DESCRIPTION]]`, the link escaped,
@@ -681,6 +682,141 @@ pub fn id_get_create(
     Ok((Some((edited, cursor)), id))
 }
 
+/// How new IDs are made: the options of `org-id-new`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IdSettings {
+    /// `org-id-method`
+    pub method: IdMethod,
+    /// `org-id-prefix`: before the ID and a colon.
+    pub prefix: Option<String>,
+    /// `org-id-ts-format`, for the `ts` method.
+    pub ts_format: String,
+    /// `org-id-include-domain`: `@` and the domain after the ID, with the
+    /// `org` and `ts` methods.
+    pub include_domain: bool,
+}
+
+impl Default for IdSettings {
+    fn default() -> Self {
+        IdSettings {
+            method: IdMethod::Uuid,
+            prefix: None,
+            ts_format: "%Y%m%dT%H%M%S.%6N".to_string(),
+            include_domain: false,
+        }
+    }
+}
+
+/// The values of `org-id-method`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IdMethod {
+    /// `uuid` (and `uuidgen`): a random UUID.
+    Uuid,
+    /// `org`: the time in base 36, reversed.
+    Org,
+    /// `ts`: the time as `org-id-ts-format` writes it.
+    Ts,
+}
+
+/// The time a new ID is made at: the local date and minute, the seconds
+/// and nanoseconds of the minute, and the time since the epoch.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct IdClock {
+    pub local: crate::date::DateTime,
+    pub second: u32,
+    pub nanosecond: u32,
+    pub unix_seconds: u64,
+    pub unix_microseconds: u32,
+}
+
+/// `org-id-new`: a new ID, as `settings` say, `fqdn` the domain
+/// (`message-make-fqdn`).
+pub fn new_id(settings: &IdSettings, clock: &IdClock, fqdn: &str) -> String {
+    let prefix = match settings.prefix.as_deref() {
+        Some(prefix) if !prefix.is_empty() => format!("{prefix}:"),
+        _ => String::new(),
+    };
+    let domain = || if settings.include_domain { format!("@{fqdn}") } else { String::new() };
+    let unique = match settings.method {
+        IdMethod::Uuid => new_uuid(),
+        IdMethod::Org => {
+            // `org-id-time-to-b36`: the high and low parts of the seconds
+            // and the microseconds, four digits each, then reversed.
+            let time = format!(
+                "{}{}{}",
+                to_b36(clock.unix_seconds >> 16, 4),
+                to_b36(clock.unix_seconds & 0xffff, 4),
+                to_b36(u64::from(clock.unix_microseconds), 4)
+            );
+            format!("{}{}", time.chars().rev().collect::<String>(), domain())
+        }
+        IdMethod::Ts => format!("{}{}", format_time_precise(&settings.ts_format, clock), domain()),
+    };
+    format!("{prefix}{unique}")
+}
+
+/// `org-id-int-to-b36`: `number` in base 36, with at least `length` digits.
+fn to_b36(mut number: u64, length: usize) -> String {
+    let mut digits = Vec::new();
+    while number > 0 {
+        digits.push(char::from_digit((number % 36) as u32, 36).unwrap_or('0'));
+        number /= 36;
+    }
+    let mut out: String = digits.iter().rev().collect();
+    while out.len() < length.max(1) {
+        out.insert(0, '0');
+    }
+    out
+}
+
+/// `format-time-string` with the seconds (`%S`), their fraction (`%N`,
+/// `%3N`) and the seconds since the epoch (`%s`) of `clock`.
+fn format_time_precise(format: &str, clock: &IdClock) -> String {
+    let mut out = String::new();
+    let mut chars = format.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c != '%' {
+            out.push(c);
+            continue;
+        }
+        let mut spec = String::new();
+        while let Some(&next) = chars.peek() {
+            if next.is_ascii_digit() || matches!(next, '-' | '_' | '0' | '^' | '#') {
+                spec.push(next);
+                chars.next();
+            } else {
+                break;
+            }
+        }
+        match chars.next() {
+            Some('S') if spec.is_empty() => out.push_str(&format!("{:02}", clock.second)),
+            Some('s') if spec.is_empty() => out.push_str(&clock.unix_seconds.to_string()),
+            Some('N') => {
+                let digits = spec.parse::<usize>().ok().filter(|digits| (1..=9).contains(digits)).unwrap_or(9);
+                out.push_str(&format!("{:09}", clock.nanosecond)[..digits]);
+            }
+            Some(other) => {
+                out.push_str(&crate::capture::format_time(&format!("%{spec}{other}"), clock.local));
+            }
+            None => out.push('%'),
+        }
+    }
+    out
+}
+
+/// `message-make-fqdn` for a system named `system_name`, without a mail
+/// address set: the name when it has a dot and is not `localhost.` or
+/// `.local`, else the name and `.mail-host-address-is-not-set`.
+pub fn fqdn(system_name: &str) -> String {
+    let lower = system_name.to_lowercase();
+    let bogus = lower.starts_with("localhost.") || lower.ends_with(".local");
+    if system_name.contains('.') && !bogus {
+        system_name.to_string()
+    } else {
+        format!("{system_name}.mail-host-address-is-not-set")
+    }
+}
+
 /// A new ID (`org-id-uuid`): a random UUID.
 pub fn new_uuid() -> String {
     use std::collections::hash_map::RandomState;
@@ -731,13 +867,65 @@ pub enum IdEntry {
     There { id: String, heading: String },
 }
 
-/// The entries `org-id-complete` offers (`org-id-completion-targets`):
-/// every headline of `files[0]`, the file the link goes in, then of the
-/// others (`org-id-files`), by their outline paths.
-pub fn id_targets(files: &[crate::refile::File]) -> Vec<(usize, crate::refile::Target)> {
-    use crate::refile::{all_targets, OutlinePath, Select};
-    let selections = vec![(Select::All, vec![0]), (Select::All, (1..files.len()).collect())];
-    all_targets(&selections, files, Some(0), OutlinePath::Yes)
+/// The entries `org-id-complete` offers (`org-id-completion-targets`),
+/// as `org-refile-get-targets` finds them: `files[0]` is the file the
+/// link goes in, `selections` the files and headlines of each target.
+pub fn id_targets(
+    selections: &[(crate::refile::Select, Vec<usize>)],
+    files: &[crate::refile::File],
+    outline_path: crate::refile::OutlinePath,
+) -> Vec<(usize, crate::refile::Target)> {
+    crate::refile::all_targets(selections, files, Some(0), outline_path)
+}
+
+/// The files of an `org-id-locations-file` as `org-id-locations-load`
+/// reads it: the alist `(("FILE" "ID" ...) ...)` that
+/// `org-id-locations-save` prints, the first string of each element.
+/// Names are as written, relative ones relative to the file's directory.
+pub fn id_location_files(text: &str) -> Vec<String> {
+    let mut files = Vec::new();
+    let mut depth = 0;
+    // Whether the next string is the first thing of an element.
+    let mut first = false;
+    let mut chars = text.chars();
+    while let Some(char) = chars.next() {
+        match char {
+            '(' => {
+                depth += 1;
+                first = depth == 2;
+            }
+            ')' => {
+                depth -= 1;
+                first = false;
+                if depth <= 0 {
+                    break;
+                }
+            }
+            '"' => {
+                let mut string = String::new();
+                while let Some(char) = chars.next() {
+                    match char {
+                        '"' => break,
+                        '\\' => match chars.next() {
+                            Some('\n') | None => {}
+                            Some(next) => string.push(next),
+                        },
+                        _ => string.push(char),
+                    }
+                }
+                if first && !files.contains(&string) {
+                    files.push(string);
+                }
+                first = false;
+            }
+            ';' if depth == 0 => {
+                chars.by_ref().find(|char| *char == '\n');
+            }
+            char if char.is_whitespace() => {}
+            _ => first = false,
+        }
+    }
+    files
 }
 
 /// Whether a file has entries with IDs, and so is one of `org-id-files`
@@ -771,13 +959,8 @@ fn link_description(link: &str, outside: &mut Outside) -> Option<String> {
         "id" => (outside.id_heading)(rest),
         // `org-info-description-as-command`
         "info" => {
-            static FILE_NODE: LazyLock<Regex> =
-                LazyLock::new(|| Regex::new(r"\A([^#:]*)(?:[#:]:?(.*))?\z").expect("a valid regex"));
-            let found = FILE_NODE.captures(rest)?;
-            let trim = |text: &str| text.trim_matches([' ', '\t', '\n', '\r']).to_string();
-            let file = found.get(1).map(|file| trim(file.as_str())).filter(|file| !file.is_empty());
-            let node = found.get(2).map(|node| trim(node.as_str())).filter(|node| !node.is_empty());
-            Some(match (file.as_deref().unwrap_or("dir"), node.as_deref().unwrap_or("Top")) {
+            let (file, node) = crate::manual::info_file_node(rest);
+            Some(match (file.as_str(), node.as_str()) {
                 ("dir", "Top") => "info \"(dir)\"".to_string(),
                 (file, "Top") => format!("info {file}"),
                 (file, node) => format!("info \"({file}) {node}\""),
@@ -1108,6 +1291,52 @@ pub fn insert_all(
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn reads_the_files_of_an_id_locations_file() {
+        // As `org-id-locations-save` prints it; Emacs's `read` gives the
+        // same names.
+        let text = "\n((\"~/notes/a.org\" \"id-1\" \"id-2\") (\"rel/b \\\"q\\\" \\\\ c.org\" \"x\") (\"/abs/ü.org\" \"y\") (\"~/notes/a.org\" \"z\"))\n";
+        assert_eq!(id_location_files(text), ["~/notes/a.org", "rel/b \"q\" \\ c.org", "/abs/ü.org"]);
+        assert!(id_location_files("").is_empty());
+        assert!(id_location_files("nil").is_empty());
+    }
+
+    /// `org-id-new` at 2025-10-09 08:53:20.123456789 UTC, as Emacs makes
+    /// it with each method.
+    #[test]
+    fn new_ids_as_emacs_makes_them() {
+        use crate::date::{Date, DateTime};
+        let clock = IdClock {
+            local: DateTime { day: Date::new(2025, 10, 9).to_day(), minute: 8 * 60 + 53 },
+            second: 20,
+            nanosecond: 123_456_789,
+            unix_seconds: 1_760_000_000,
+            unix_microseconds: 123_456,
+        };
+        let id = |method, prefix: Option<&str>, domain, format: &str| {
+            let settings = IdSettings {
+                method,
+                prefix: prefix.map(str::to_string),
+                ts_format: format.to_string(),
+                include_domain: domain,
+            };
+            new_id(&settings, &clock, &fqdn("vm"))
+        };
+        let ts = IdSettings::default().ts_format;
+        assert_eq!(id(IdMethod::Org, None, false, &ts), "c9n2cpn0zpk0");
+        assert_eq!(id(IdMethod::Org, Some("Org"), false, &ts), "Org:c9n2cpn0zpk0");
+        assert_eq!(id(IdMethod::Org, None, true, &ts), "c9n2cpn0zpk0@vm.mail-host-address-is-not-set");
+        assert_eq!(id(IdMethod::Ts, None, false, &ts), "20251009T085320.123456");
+        assert_eq!(
+            id(IdMethod::Ts, None, false, "%Y-%m-%d %H:%M:%S %3N %s %% %N"),
+            "2025-10-09 08:53:20 123 1760000000 % 123456789"
+        );
+        assert_eq!(fqdn("host.example.org"), "host.example.org");
+        assert_eq!(fqdn("box.local"), "box.local.mail-host-address-is-not-set");
+        let uuid = id(IdMethod::Uuid, Some("P"), true, &ts);
+        assert!(uuid.starts_with("P:") && uuid.len() == 38 && !uuid.contains('@'), "{uuid}");
+    }
     use super::*;
 
     #[test]

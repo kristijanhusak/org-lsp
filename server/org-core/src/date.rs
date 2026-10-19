@@ -135,6 +135,23 @@ impl DateTime {
     pub fn hour(self) -> i64 {
         self.minute / 60
     }
+
+    /// `org-today`: the day it still is `extend_today_until` hours past
+    /// midnight (`org-extend-today-until`).
+    pub fn org_today(self, extend_today_until: i64) -> Day {
+        (self.day * 1440 + self.minute - 60 * extend_today_until).div_euclid(1440)
+    }
+
+    /// Before `extend_today_until` o'clock, the last minute of yesterday,
+    /// as `org-read-date` and `org-capture-fill-template` take the time to
+    /// be then; otherwise this time.
+    pub fn late_night(self, extend_today_until: i64) -> DateTime {
+        if self.hour() < extend_today_until {
+            DateTime { day: self.day - 1, minute: 23 * 60 + 59 }
+        } else {
+            self
+        }
+    }
 }
 
 #[cfg(test)]

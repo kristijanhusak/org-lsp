@@ -1727,5 +1727,161 @@
       "org_clock_clocktable_default_properties": ":scope file :maxlevel 3 :block today"
     },
     "expected": "#+BEGIN: clocktable :maxlevel 3\n#+END:\n* Project :work:\n:PROPERTIES:\n:OWNER:    alice\n:CATEGORY: proj\n:END:\n** NEXT Long task\nCLOCK: [2026-05-17 Sun 20:00]--[2026-05-19 Tue 02:30] => 30:30\nCLOCK: [2026-05-20 Wed 10:00]\n** WAIT Short :urgent:\n¦#+BEGIN: clocktable :scope file :maxlevel 3 :block today\n#+CAPTION: Clock summary at [2026-05-20 Wed 10:30], for Wednesday, May 20, 2026.\n| Headline       | Time   |      |\n|----------------+--------+------|\n| *Total time*   | *3:00* |      |\n|----------------+--------+------|\n| Project        | 3:00   |      |\n| \\_  WAIT Short |        | 3:00 |\n#+END:\n\nCLOCK: [2026-05-20 Wed 02:00]--[2026-05-20 Wed 05:00] =>  3:00\n"
+  },
+  {
+    "clock": "2026-05-20 10:30",
+    "text": "#+BEGIN: clocktable¦\n#+END:\n* Task A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:15] =>  1:15\n:END:\n* Task B\n** Sub B\nCLOCK: [2026-05-19 Tue 09:30]--[2026-05-19 Tue 10:00] =>  0:30\n",
+    "steps": [
+      [
+        "update"
+      ]
+    ],
+    "options": {
+      "org_clocktable_defaults": ":maxlevel 1 :lang \"de\" :scope file :narrow 40!"
+    },
+    "note": "org-clocktable-defaults",
+    "expected": "¦#+BEGIN: clocktable\n#+CAPTION: Erstellt am [2026-05-20 Wed 10:30]\n| Kopfzeile     |  Dauer |\n|---------------+--------|\n| *Gesamtdauer* | *1:45* |\n|---------------+--------|\n| Task A        |   1:15 |\n| Task B        |   0:30 |\n#+END:\n* Task A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:15] =>  1:15\n:END:\n* Task B\n** Sub B\nCLOCK: [2026-05-19 Tue 09:30]--[2026-05-19 Tue 10:00] =>  0:30\n"
+  },
+  {
+    "clock": "2026-05-20 10:30",
+    "text": "#+BEGIN: clocktable :maxlevel 3 :lang \"xx\"¦\n#+END:\n* Task A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:15] =>  1:15\n:END:\n* Task B\n** Sub B\nCLOCK: [2026-05-19 Tue 09:30]--[2026-05-19 Tue 10:00] =>  0:30\n",
+    "steps": [
+      [
+        "update"
+      ]
+    ],
+    "options": {
+      "org_clock_clocktable_language_setup": [
+        [
+          "xx",
+          "Fichier",
+          "N",
+          "Moment",
+          "Titre",
+          "Temps",
+          "TOUT",
+          "Temps total",
+          "Temps du fichier",
+          "Fait le"
+        ],
+        [
+          "en",
+          "File",
+          "L"
+        ]
+      ]
+    },
+    "note": "org-clock-clocktable-language-setup",
+    "expected": "¦#+BEGIN: clocktable :maxlevel 3 :lang \"xx\"\n#+CAPTION: Fait le [2026-05-20 Wed 10:30]\n| Titre         |  Temps |      |\n|---------------+--------+------|\n| *Temps total* | *1:45* |      |\n|---------------+--------+------|\n| Task A        |   1:15 |      |\n| Task B        |   0:30 |      |\n| \\_  Sub B     |        | 0:30 |\n#+END:\n* Task A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:15] =>  1:15\n:END:\n* Task B\n** Sub B\nCLOCK: [2026-05-19 Tue 09:30]--[2026-05-19 Tue 10:00] =>  0:30\n"
+  },
+  {
+    "clock": "2026-05-20 10:30",
+    "text": "#+BEGIN: clocktable :lang \"en\" :link t¦\n#+END:\n* Task A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:15] =>  1:15\n:END:\n* Task B\n** Sub B\nCLOCK: [2026-05-19 Tue 09:30]--[2026-05-19 Tue 10:00] =>  0:30\n",
+    "steps": [
+      [
+        "update"
+      ]
+    ],
+    "options": {
+      "org_clock_clocktable_language_setup": [
+        [
+          "en",
+          "File",
+          "L"
+        ]
+      ]
+    },
+    "note": "a language with few words",
+    "expected": "¦#+BEGIN: clocktable :lang \"en\" :link t\n#+CAPTION: Clock summary at [2026-05-20 Wed 10:30]\n| Headline     |   Time |      |\n|--------------+--------+------|\n| *Total time* | *1:45* |      |\n|--------------+--------+------|\n| [[file:/org/main.org::*Task A][Task A]]       |   1:15 |      |\n| [[file:/org/main.org::*Task B][Task B]]       |   0:30 |      |\n| \\_  [[file:/org/main.org::*Sub B][Sub B]]    |        | 0:30 |\n#+END:\n* Task A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:15] =>  1:15\n:END:\n* Task B\n** Sub B\nCLOCK: [2026-05-19 Tue 09:30]--[2026-05-19 Tue 10:00] =>  0:30\n"
+  },
+  {
+    "clock": "2026-05-20 10:30",
+    "text": "#+BEGIN: clocktable :block today¦\n#+END:\n* Task A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:15] =>  1:15\n:END:\n* Task B\n** Sub B\nCLOCK: [2026-05-20 Wed 09:45]\nCLOCK: [2026-05-19 Tue 09:30]--[2026-05-19 Tue 10:00] =>  0:30\n",
+    "steps": [
+      [
+        "update"
+      ]
+    ],
+    "options": {
+      "org_clock_report_include_clocking_task": true
+    },
+    "clocking": [
+      "Sub B",
+      "2026-05-20 09:45"
+    ],
+    "note": "the running clock counted",
+    "expected": "¦#+BEGIN: clocktable :block today\n#+CAPTION: Clock summary at [2026-05-20 Wed 10:30], for Wednesday, May 20, 2026.\n| Headline     | Time   |      |\n|--------------+--------+------|\n| *Total time* | *0:45* |      |\n|--------------+--------+------|\n| Task B       | 0:45   |      |\n| \\_  Sub B    |        | 0:45 |\n#+END:\n* Task A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:15] =>  1:15\n:END:\n* Task B\n** Sub B\nCLOCK: [2026-05-20 Wed 09:45]\nCLOCK: [2026-05-19 Tue 09:30]--[2026-05-19 Tue 10:00] =>  0:30\n"
+  },
+  {
+    "clock": "2026-05-20 10:30",
+    "text": "#+BEGIN: clocktable :block thisweek¦\n#+END:\n* Task A\nCLOCK: [2026-05-20 Wed 10:00]\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:15] =>  1:15\n:END:\n* Task B\n** Sub B\nCLOCK: [2026-05-19 Tue 09:30]--[2026-05-19 Tue 10:00] =>  0:30\n",
+    "steps": [
+      [
+        "update"
+      ]
+    ],
+    "options": {
+      "org_clock_report_include_clocking_task": true
+    },
+    "clocking": [
+      "Task A",
+      "2026-05-20 10:00"
+    ],
+    "note": "the running clock counted this week",
+    "expected": "¦#+BEGIN: clocktable :block thisweek\n#+CAPTION: Clock summary at [2026-05-20 Wed 10:30], for week 2026-W21.\n| Headline     |   Time |      |\n|--------------+--------+------|\n| *Total time* | *2:15* |      |\n|--------------+--------+------|\n| Task A       |   1:45 |      |\n| Task B       |   0:30 |      |\n| \\_  Sub B    |        | 0:30 |\n#+END:\n* Task A\nCLOCK: [2026-05-20 Wed 10:00]\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:15] =>  1:15\n:END:\n* Task B\n** Sub B\nCLOCK: [2026-05-19 Tue 09:30]--[2026-05-19 Tue 10:00] =>  0:30\n"
+  },
+  {
+    "clock": "2026-05-20 10:30",
+    "text": "#+BEGIN: clocktable¦\n#+END:\n* Task A\nCLOCK: [2026-05-20 Wed 10:00]\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:15] =>  1:15\n:END:\n* Task B\n** Sub B\nCLOCK: [2026-05-19 Tue 09:30]--[2026-05-19 Tue 10:00] =>  0:30\n",
+    "steps": [
+      [
+        "update"
+      ]
+    ],
+    "options": {
+      "org_clock_report_include_clocking_task": true
+    },
+    "clocking": [
+      "Task A",
+      "2026-05-20 10:00"
+    ],
+    "note": "no window: not counted",
+    "expected": "¦#+BEGIN: clocktable\n#+CAPTION: Clock summary at [2026-05-20 Wed 10:30]\n| Headline     |   Time |      |\n|--------------+--------+------|\n| *Total time* | *1:45* |      |\n|--------------+--------+------|\n| Task A       |   1:15 |      |\n| Task B       |   0:30 |      |\n| \\_  Sub B    |        | 0:30 |\n#+END:\n* Task A\nCLOCK: [2026-05-20 Wed 10:00]\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:15] =>  1:15\n:END:\n* Task B\n** Sub B\nCLOCK: [2026-05-19 Tue 09:30]--[2026-05-19 Tue 10:00] =>  0:30\n"
+  },
+  {
+    "clock": "2026-05-20 10:30",
+    "text": "#+BEGIN: clocktable :block yesterday¦\n#+END:\n* Task A\nCLOCK: [2026-05-20 Wed 10:00]\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:15] =>  1:15\n:END:\n* Task B\n** Sub B\nCLOCK: [2026-05-19 Tue 09:30]--[2026-05-19 Tue 10:00] =>  0:30\n",
+    "steps": [
+      [
+        "update"
+      ]
+    ],
+    "options": {
+      "org_clock_report_include_clocking_task": true
+    },
+    "clocking": [
+      "Task A",
+      "2026-05-20 10:00"
+    ],
+    "note": "started outside the window",
+    "expected": "¦#+BEGIN: clocktable :block yesterday\n#+CAPTION: Clock summary at [2026-05-20 Wed 10:30], for Tuesday, May 19, 2026.\n| Headline     | Time   |      |\n|--------------+--------+------|\n| *Total time* | *0:30* |      |\n|--------------+--------+------|\n| Task B       | 0:30   |      |\n| \\_  Sub B    |        | 0:30 |\n#+END:\n* Task A\nCLOCK: [2026-05-20 Wed 10:00]\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:15] =>  1:15\n:END:\n* Task B\n** Sub B\nCLOCK: [2026-05-19 Tue 09:30]--[2026-05-19 Tue 10:00] =>  0:30\n"
+  },
+  {
+    "clock": "2026-05-20 10:30",
+    "text": "#+BEGIN: clocktable :block today¦\n#+END:\n* Task A\nCLOCK: [2026-05-20 Wed 10:00]\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:15] =>  1:15\n:END:\n* Task B\n** Sub B\nCLOCK: [2026-05-19 Tue 09:30]--[2026-05-19 Tue 10:00] =>  0:30\n",
+    "steps": [
+      [
+        "update"
+      ]
+    ],
+    "options": {
+      "org_clock_report_include_clocking_task": false
+    },
+    "clocking": [
+      "Task A",
+      "2026-05-20 10:00"
+    ],
+    "note": "option off",
+    "expected": "¦#+BEGIN: clocktable :block today\n#+CAPTION: Clock summary at [2026-05-20 Wed 10:30], for Wednesday, May 20, 2026.\n| Headline     | Time   |\n|--------------+--------|\n| *Total time* | *0:00* |\n#+END:\n* Task A\nCLOCK: [2026-05-20 Wed 10:00]\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:15] =>  1:15\n:END:\n* Task B\n** Sub B\nCLOCK: [2026-05-19 Tue 09:30]--[2026-05-19 Tue 10:00] =>  0:30\n"
   }
 ]

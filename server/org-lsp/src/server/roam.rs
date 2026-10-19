@@ -21,6 +21,9 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 
 pub mod buffer;
+mod dailies;
+mod graph;
+mod move_node;
 mod node_edit;
 
 use super::{template_choices, template_text, Capturing, Pending, Server};
@@ -45,6 +48,8 @@ pub(super) struct Roam {
     pub(super) buffer_directory: super::Private,
     /// The node the persistent buffer shows.
     buffer_node: Option<String>,
+    /// Where `org.roam.graph` writes the graph.
+    pub(super) graph_directory: super::Private,
 }
 
 /// A file as org-roam last read it.
@@ -65,7 +70,8 @@ impl Roam {
     pub fn new(settings: RoamSettings) -> Roam {
         let directory = expand(&settings.directory);
         let buffer_directory = super::Private::new("roam");
-        Roam { settings, directory, files: HashMap::new(), buffer_directory, buffer_node: None }
+        let graph_directory = super::Private::new("roam-graph");
+        Roam { settings, directory, files: HashMap::new(), buffer_directory, buffer_node: None, graph_directory }
     }
 }
 
@@ -119,7 +125,7 @@ fn nanos(time: Option<SystemTime>) -> u64 {
 }
 
 /// What a roam command is run with: where, and the answers so far.
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub(super) struct RoamContext {
     text_document: Option<TextDocumentIdentifier>,
@@ -143,6 +149,10 @@ pub(super) struct RoamContext {
     visible: Option<bool>,
     /// The count typed before the key (`C-u` is 4).
     count: Option<i64>,
+    /// For the daily notes: the day captured to (`YYYY-MM-DD HH:MM`), and
+    /// whether the command only goes to the note.
+    day: Option<String>,
+    goto: Option<bool>,
 }
 
 /// A capture of org-roam's: the node's `ID`, and what is done once it is
@@ -168,6 +178,9 @@ impl Server {
         if self.roam.is_none() {
             return Err(OFF.into());
         }
+        if id.starts_with("org.roam.dailies.") {
+            return self.roam_dailies(id, context);
+        }
         if matches!(id, commands::ROAM_BUFFER_TOGGLE | commands::ROAM_BUFFER_DEDICATED | commands::ROAM_BUFFER_REFRESH)
         {
             return self.roam_buffer_command(id, context);
@@ -182,6 +195,21 @@ impl Server {
                 | commands::ROAM_REF_REMOVE
         ) {
             return self.roam_edit(id, context);
+        }
+        if matches!(id, commands::ROAM_PROMOTE | commands::ROAM_DEMOTE) {
+            return self.roam_whole_file(id, context);
+        }
+        if id == commands::ROAM_REF_FIND {
+            return self.roam_ref_find(context);
+        }
+        if id == commands::ROAM_EXTRACT {
+            return self.roam_extract(context);
+        }
+        if id == commands::ROAM_REFILE {
+            return self.roam_refile(context);
+        }
+        if id == commands::ROAM_GRAPH {
+            return self.roam_graph(context);
         }
         let (db, candidates) = self.roam_nodes()?;
         if id == commands::ROAM_NODE_RANDOM {
@@ -224,20 +252,58 @@ impl Server {
                 match (id, found) {
                     (commands::ROAM_NODE_FIND, Some(candidate)) => self.roam_visit(&db, &candidate.id),
                     (commands::ROAM_NODE_INSERT, Some(candidate)) => {
-                        let description = region.as_ref().map_or(candidate.title.clone(), |(_, _, text)| text.clone());
+                        let description = match &region {
+                            Some((_, _, text)) => text.clone(),
+                            None => self.roam_formatted(&db, &candidate.id, &candidate.title)?,
+                        };
                         self.roam_insert_link(context, &candidate.id, &description)
                     }
                     (_, found) => {
                         let title = found.map_or(answer.clone(), |candidate| candidate.title.clone());
                         let existing = found.map(|candidate| candidate.id.clone());
-                        self.roam_capture(id, context, &db, &title, existing.as_deref())
+                        self.roam_capture(id, context, &db, &title, existing.as_deref(), None)
                     }
                 }
             }
             Some(_) => {
                 let title = context.title.clone().unwrap_or_default();
-                self.roam_capture(id, context, &db, &title, context.id.as_deref())
+                self.roam_capture(id, context, &db, &title, context.id.as_deref(), None)
             }
+        }
+    }
+
+    /// `org-roam-ref-find`: asks for one of the references the nodes have
+    /// (`org-roam-ref-read`, the first node with it), and visits its node.
+    fn roam_ref_find(&mut self, context: &RoamContext) -> Result<Value, Refusal> {
+        let db = self.roam_db()?.0;
+        let Some(answer) = context.input.clone().filter(|_| context.step.as_deref() == Some("ref")) else {
+            let mut refs: Vec<&str> = Vec::new();
+            for found in &db.refs {
+                if !refs.contains(&found.reference.as_str()) {
+                    refs.push(&found.reference);
+                }
+            }
+            return Ok(json!({ "input": {
+                "kind": "text",
+                "prompt": "Ref",
+                "value": "",
+                "completions": refs,
+                "select": true,
+                "context": { "step": "ref" },
+            } }));
+        };
+        let found = db.refs.iter().find(|found| found.reference == answer).ok_or("No match")?;
+        let node = found.node.clone();
+        self.roam_visit(&db, &node)
+    }
+
+    /// `org-roam-node-formatted`: the description of a link to the node
+    /// `id` (none for a node to be made) by `title`, as
+    /// `org-roam-node-formatter` makes it.
+    fn roam_formatted(&self, db: &roam::Db, id: &str, title: &str) -> Result<String, Refusal> {
+        match self.roam.as_ref().and_then(|roam| roam.settings.node_formatter.clone()) {
+            Some(template) => Ok(db.formatted(id, title, &template)?),
+            None => Ok(title.to_string()),
         }
     }
 
@@ -277,6 +343,7 @@ impl Server {
             .filter_map(|key| Some((uri::to_path(&key.parse::<Uri>().ok()?)?, key.clone())))
             .collect();
         let mut db = Db::default();
+        db.directory = format!("{}/", directory.display()).replace("//", "/");
         let mut mtimes: HashMap<String, u64> = HashMap::new();
         let mut seen = Vec::new();
         for name in names {
@@ -303,8 +370,11 @@ impl Server {
                         Err("encrypted".to_string())
                     } else {
                         let uri = key.and_then(|key| key.parse::<Uri>().ok()).or_else(|| uri::from_path(&path));
+                        let extra_links = roam.settings.extra_links.clone();
                         uri.and_then(|uri| {
-                            self.with_source(&uri, |text, _, parse, outline, _| roam::scan(text, parse, outline, &file))
+                            self.with_source(&uri, |text, _, parse, outline, _| {
+                                roam::scan_with(text, parse, outline, &file, &extra_links)
+                            })
                         })
                         .unwrap_or_else(|| Err("unreadable".to_string()))
                     };
@@ -400,12 +470,21 @@ impl Server {
         db: &Db,
         title: &str,
         existing: Option<&str>,
+        daily: Option<dailies::Daily>,
     ) -> Result<Value, Refusal> {
         let roam = self.roam.as_ref().ok_or(OFF)?;
-        let templates = roam.settings.templates.clone();
-        let directory = roam.directory.clone();
+        // org-roam-dailies: its templates, in its directory.
+        let (templates, directory) = match daily {
+            Some(_) => (roam.settings.dailies_templates.clone(), roam.directory.join(&roam.settings.dailies_directory)),
+            None => (roam.settings.templates.clone(), roam.directory.clone()),
+        };
         // What the next question's answer is sent back with.
         let mut state = json!({ "title": title });
+        if let Some(daily) = &daily {
+            for (key, value) in daily.state().as_object().into_iter().flatten() {
+                state[key] = value.clone();
+            }
+        }
         if let Some(id) = existing {
             state["id"] = json!(id);
         }
@@ -443,8 +522,9 @@ impl Server {
         let region = self.roam_region(context);
         let document = context.text_document.as_ref().map(|document| document.uri.clone());
         let clipboard = context.clipboard.clone().unwrap_or_default();
-        let mut fill_context =
-            self.capture_fill_context(document.as_ref(), context.position, self.date_time(), clipboard);
+        // The day of a daily note is the capture's time (`:default-time`).
+        let time = daily.map_or_else(|| self.date_time(), |daily| daily.time);
+        let mut fill_context = self.capture_fill_context(document.as_ref(), context.position, time, clipboard);
         fill_context.initial = region.as_ref().map(|(_, _, text)| text.clone()).unwrap_or_default();
         // The node that exists: its file, which the capture goes to.
         let node_of = |id: &str| db.nodes.iter().find(|(_, node)| node.id == id);
@@ -474,10 +554,10 @@ impl Server {
         };
         let levels = refile::Settings { adapt: self.adapt_in(""), ..self.refile.2 };
         let read_date = self.read_date;
-        let id = link::new_uuid();
+        let id = self.id_maker()();
         // The capture, with the target's text as `changed` has it when
         // stopping the clock changed it.
-        let capture_with = |changed: Option<&(PathBuf, String)>| {
+        let capture_with = |changed: Option<&(PathBuf, String)>, goto: bool| {
             let read = |path: &Path| match changed {
                 Some((file, text)) if file == path => Some(text.clone()),
                 _ => read(path),
@@ -494,11 +574,23 @@ impl Server {
                 read: &read,
                 properties: &properties,
                 levels: &levels,
+                lists: &edit_settings.todo.lists,
                 find_node: &find_node,
             };
-            roam_capture::capture(&request)
+            if goto {
+                return roam_capture::goto(&request).map(|located| match located {
+                    Ok(located) => Run::Goto(located),
+                    Err(question) => Run::Step(roam_capture::Step::Ask(question)),
+                });
+            }
+            roam_capture::capture(&request).map(Run::Step)
         };
-        let mut ready = match capture_with(None)? {
+        let goto = daily.is_some_and(|daily| daily.goto);
+        let step = match capture_with(None, goto)? {
+            Run::Goto(located) => return self.roam_goto(located),
+            Run::Step(step) => step,
+        };
+        let mut ready = match step {
             roam_capture::Step::Ask(question) => {
                 state["step"] = json!("capture");
                 state["keys"] = json!(option.key);
@@ -532,11 +624,9 @@ impl Server {
                         before = snapshot.clone();
                     }
                     let changed = (ready.path.clone(), snapshot.clone());
-                    ready = match capture_with(Some(&changed))? {
-                        roam_capture::Step::Ready(ready) => ready,
-                        roam_capture::Step::Ask(_) => {
-                            return Err("The target file has changed since the capture began".into())
-                        }
+                    ready = match capture_with(Some(&changed), false)? {
+                        Run::Step(roam_capture::Step::Ready(ready)) => ready,
+                        _ => return Err("The target file has changed since the capture began".into()),
                     };
                 } else {
                     self.send_texts(vec![change]);
@@ -566,7 +656,10 @@ impl Server {
                         (at, at)
                     }
                 };
-                let description = region.map_or(title.to_string(), |(_, _, text)| text);
+                let description = match region {
+                    Some((_, _, text)) => text,
+                    None => self.roam_formatted(&roam::Db::default(), "", title)?,
+                };
                 Finalize::InsertLink { uri, text, start, end, description }
             }
             _ => Finalize::Nothing,
@@ -635,6 +728,13 @@ impl Server {
             }
         }
     }
+}
+
+/// What a capture of org-roam comes to: its next step, or for `:goto`
+/// the place its target is.
+enum Run {
+    Step(roam_capture::Step),
+    Goto(roam_capture::Located),
 }
 
 /// Where `offset` of `old` is in `new`, the text changed in one place: a

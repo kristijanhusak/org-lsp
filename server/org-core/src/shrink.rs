@@ -152,25 +152,34 @@ fn alignment(text: &str, table: &Table, column: usize, cookie: Option<char>) -> 
 /// The overlays of the column `column` (from 1) of `table` shrunk to
 /// `width` characters (0: the indicator alone), as
 /// `org-table--shrink-columns` makes them.
-pub fn shrink_column(text: &str, table: &Table, column: usize, width: usize) -> Vec<Overlay> {
+/// `indicator` (`org-table-shrunk-column-indicator`) ends each field.
+pub fn shrink_column(text: &str, table: &Table, column: usize, width: usize, indicator: &str) -> Vec<Overlay> {
     let cookie = cookies(text, table).into_iter().find(|(c, _, _)| *c == column).and_then(|(_, _, align)| align);
     let align = alignment(text, table, column, cookie);
     let mut out = Vec::new();
     for line in &table.lines {
         let (fields, rule) = fields(text, *line);
         if let Some((start, end)) = fields.get(column - 1) {
-            out.extend(shrink_field(text, width, align, *start, *end, rule));
+            out.extend(shrink_field(text, width, align, *start, *end, rule, indicator));
         }
     }
     out
 }
 
 /// `org-table--shrink-field`: what shows of the field `start..end`.
-fn shrink_field(text: &str, width: usize, align: char, start: usize, end: usize, rule: bool) -> Vec<Overlay> {
+fn shrink_field(
+    text: &str,
+    width: usize,
+    align: char,
+    start: usize,
+    end: usize,
+    rule: bool,
+    indicator: &str,
+) -> Vec<Overlay> {
     let overlay = |start: usize, end: usize, display: String, pre: bool| Overlay {
         start,
         end,
-        display: if pre { format!(" {display}") } else { format!("{display}{INDICATOR}") },
+        display: if pre { format!(" {display}") } else { format!("{display}{indicator}") },
     };
     let field = &text[start..end];
     if start == end {
@@ -259,11 +268,12 @@ pub fn shrunk_width(text: &str, table: &Table, column: usize) -> usize {
     cookies(text, table).into_iter().find(|(c, _, _)| *c == column).and_then(|(_, width, _)| width).unwrap_or(0)
 }
 
-/// The overlays of every shrunk column of `table`.
-pub fn overlays(text: &str, table: &Table, columns: &BTreeSet<usize>) -> Vec<Overlay> {
+/// The overlays of every shrunk column of `table`, each field ending with
+/// `indicator`.
+pub fn overlays(text: &str, table: &Table, columns: &BTreeSet<usize>, indicator: &str) -> Vec<Overlay> {
     let mut out: Vec<Overlay> = columns
         .iter()
-        .flat_map(|column| shrink_column(text, table, *column, shrunk_width(text, table, *column)))
+        .flat_map(|column| shrink_column(text, table, *column, shrunk_width(text, table, *column), indicator))
         .collect();
     out.sort_by_key(|overlay| overlay.start);
     out
@@ -276,10 +286,19 @@ mod tests {
     /// The overlays of `columns` of the first table, as `(start, end, display)`.
     fn shown(text: &str, columns: &[usize]) -> Vec<(usize, usize, String)> {
         let table = &tables(text)[0];
-        overlays(text, table, &columns.iter().copied().collect())
+        overlays(text, table, &columns.iter().copied().collect(), INDICATOR)
             .into_iter()
             .map(|overlay| (overlay.start, overlay.end, overlay.display))
             .collect()
+    }
+
+    /// `org-table-shrunk-column-indicator` ends each shrunk field.
+    #[test]
+    fn another_indicator() {
+        let text = "| a | 12 |\n| bb | 3 |\n";
+        let shown: Vec<String> =
+            overlays(text, &tables(text)[0], &[2].into(), ">").into_iter().map(|overlay| overlay.display).collect();
+        assert_eq!(shown, [">", ">"]);
     }
 
     fn expected(list: &[(usize, usize, &str)]) -> Vec<(usize, usize, String)> {

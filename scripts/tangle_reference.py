@@ -43,6 +43,15 @@ DRIVER = r"""
   ;; What a case sets is for that case only.
   (let* ((message-log-max t)
          (org-src-preserve-indentation nil)
+         (org-babel-tangle-use-relative-file-links t)
+         (org-babel-tangle-comment-format-beg "[[%link][%source-name]]")
+         (org-babel-tangle-comment-format-end "%source-name ends here")
+         (org-babel-tangle-uncomment-comments nil)
+         (org-babel-process-comment-text #'org-remove-indentation)
+         (org-babel-tangle-default-file-mode #o644)
+         (org-babel-tangle-remove-file-before-write 'auto)
+         (org-babel-noweb-wrap-start "<<")
+         (org-babel-noweb-wrap-end ">>")
          (org-babel-tangle-lang-exts (default-value 'org-babel-tangle-lang-exts))
          (org-babel-default-header-args (default-value 'org-babel-default-header-args))
          (result
@@ -102,8 +111,13 @@ def reference(cases):
                 continue
             after = snapshot(folder)
             written = {name: entry for name, entry in after.items() if before.get(name) != entry}
+            # Absolute paths (links without `org-babel-tangle-use-relative-file-links`)
+            # as the tests have them: the directory is `/case`.
+            index = runs.index((case, folder, before, out))
+            def placed(text):
+                return text.replace(folder, "/case").replace(f"~/case-{index}", "/case")
             case["expected"] = {
-                "files": {name: text for name, (text, _) in sorted(written.items())},
+                "files": {name: placed(text) for name, (text, _) in sorted(written.items())},
                 "modes": {name: mode for name, (_, mode) in sorted(written.items()) if mode != "644"},
                 "message": value.replace(folder + "/", ""),
             }

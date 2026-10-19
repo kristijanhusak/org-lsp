@@ -1,0 +1,6 @@
+Headlines with TAGS match: SCHEDULED<"<today>"
+  tasks:      TODO Call Ann                                               :work:
+  tasks:      TODO Overdue report                                         :work:
+  tasks:      TODO Water plants
+  tasks:      TODO Stretch
+  tasks:      TODO Shave

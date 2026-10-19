@@ -1,8 +1,8 @@
 //! Org's table commands against Emacs: `tests/table/cases.json` is written
 //! by `scripts/update-table-fixtures.py`: a document with the cursor
 //! (`¦`) in a table and the keys pressed, with the text, the point and
-//! what went to the kill ring after. `ORG_TABLE_CASES` points the test at
-//! another file.
+//! what went to the kill ring after, and at times the options the case
+//! was recorded with. `ORG_TABLE_CASES` points the test at another file.
 
 use std::path::Path;
 
@@ -32,6 +32,20 @@ fn command(key: &str) -> Command {
     }
 }
 
+/// The options of a case: `evaluate_inline`, `line_recalculation`,
+/// `automatic_realign`, `tab_jumps_over_hlines`.
+fn settings(case: &Value) -> table::Settings {
+    let options = &case["settings"];
+    let defaults = table::Settings::default();
+    table::Settings {
+        evaluate_inline: options["evaluate_inline"].as_bool().unwrap_or(defaults.evaluate_inline),
+        line_recalculation: options["line_recalculation"].as_bool().unwrap_or(defaults.line_recalculation),
+        automatic_realign: options["automatic_realign"].as_bool().unwrap_or(defaults.automatic_realign),
+        tab_jumps_over_hlines: options["tab_jumps_over_hlines"].as_bool().unwrap_or(defaults.tab_jumps_over_hlines),
+        ..defaults
+    }
+}
+
 fn run(case: &Value) -> Value {
     let marked = case["text"].as_str().unwrap();
     // `C-c C-c` at the start of a table recalculates it, as `tests/tblfm`
@@ -41,7 +55,7 @@ fn run(case: &Value) -> Value {
     }
     let at = marked.find('¦').unwrap();
     let text = marked.replacen('¦', "", 1);
-    match table::run(&text, at, command(case["key"].as_str().unwrap())) {
+    match table::run_with(&text, at, command(case["key"].as_str().unwrap()), &|_| None, &settings(case)) {
         Ok(done) => json!({
             "text": done.text,
             "point": done.text[..done.cursor].chars().count(),

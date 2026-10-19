@@ -17,6 +17,11 @@ pub struct Settings {
     pub indent: indent::Settings,
     /// `org-tags-column`.
     pub tags_column: i64,
+    /// `org-auto-align-tags`: off, a split headline keeps its tags where
+    /// they were (`org--align-tags-here`).
+    pub auto_align: bool,
+    /// How tables are edited.
+    pub table: crate::table::Settings,
 }
 
 /// The document after the key, and where the cursor is in it.
@@ -124,7 +129,7 @@ pub fn org_return(text: &str, at: usize, keywords: &TodoKeywords, settings: &Set
         if text[at..end].trim_matches([' ', '\t']).is_empty() || before.trim_matches([' ', '\t']).is_empty() {
             return Ok(insert(text, at, "\n", at + 1));
         }
-        return Ok(next_row(text, at));
+        return Ok(next_row(text, at, &settings.table));
     }
 
     if at > start && headline_level(line).is_some() {
@@ -206,8 +211,14 @@ fn split_headline(text: &str, at: usize, keywords: &TodoKeywords, settings: &Set
     let mut headline = line.to_string();
     if let Some(string) = &string {
         headline.replace_range(cursor..cursor + string.len(), "");
-        if tags.is_some() {
+        if let Some((_, tags_start)) = tags {
             if let Some((blanks, tags, padding)) = tags_padding(&headline, settings.tags_column) {
+                let padding = if settings.auto_align {
+                    padding
+                } else {
+                    let column = crate::text::width(&line[..tags_start]);
+                    " ".repeat(column.saturating_sub(crate::text::width(&headline[..blanks])).max(1))
+                };
                 headline = format!("{}{}{}", &headline[..blanks], padding, &headline[tags..]);
             }
         }
@@ -222,8 +233,9 @@ fn split_headline(text: &str, at: usize, keywords: &TodoKeywords, settings: &Set
 
 /// `org-table-next-row` after `org-table-align`: the cursor in the same
 /// column of the next row, in a new row when there is none or the next is
-/// a rule.
-pub(crate) fn next_row(text: &str, at: usize) -> Outcome {
+/// a rule. Without `org-table-automatic-realign` the table is aligned only
+/// for a new row.
+pub(crate) fn next_row(text: &str, at: usize, table: &crate::table::Settings) -> Outcome {
     let start = line_start(text, at);
     // The table: the lines that start with `|` around the cursor.
     let mut first = start;
@@ -245,7 +257,20 @@ pub(crate) fn next_row(text: &str, at: usize) -> Outcome {
     let lines: Vec<&str> = text[first..last_end].split('\n').collect();
     let row = text[first..start].matches('\n').count();
     let column = text[start..at].matches('|').count();
-    let mut aligned = format::align_table(&lines);
+    let next_is_row = lines.get(row + 1).is_some_and(|line| !line.trim_start().starts_with("|-"));
+    if next_is_row && !table.automatic_realign {
+        // `org-table-goto-column`, then just past the bar and a blank.
+        let column = column.max(1);
+        let next = line_end(text, at) + 1;
+        let target = &text[next..line_end(text, next)];
+        let bars: Vec<usize> = target.match_indices('|').map(|(index, _)| index + 1).collect();
+        let mut cursor = bars.get(column - 1).or(bars.last()).copied().unwrap_or(0);
+        if target[cursor..].starts_with(' ') {
+            cursor += 1;
+        }
+        return Outcome { text: text.to_string(), cursor: next + cursor };
+    }
+    let mut aligned = format::align_table(&lines, &table.formulas.alignment);
     let next_is_row = aligned.get(row + 1).is_some_and(|line| !line.trim_start().starts_with("|-"));
     if !next_is_row {
         // `org-table-clean-line`: the row with blanks in place of its

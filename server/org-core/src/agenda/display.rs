@@ -6,7 +6,7 @@
 //! columns line up in any editor.
 
 use super::item::hidden_ranges;
-use super::{Face, ItemKind, Line, LineKind};
+use super::{Face, Line, LineKind};
 use crate::text::tag_group;
 
 /// What a part of a displayed line is.
@@ -23,13 +23,44 @@ pub enum Style {
     Keyword {
         done: bool,
     },
-    Priority,
+    Priority(Rank),
     Tags,
     Link,
     /// A clock report's table.
     Table,
     /// A day of a habit's consistency graph.
     Habit(super::habit::Face),
+}
+
+/// Where a priority stands among those of its file: the highest shows in
+/// bold, the lowest in italic (`org-agenda-fontify-priorities`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Rank {
+    Highest,
+    Lowest,
+    Other,
+}
+
+/// How a line shows its priority cookies (`org-agenda-fontify-priorities`
+/// not `nil`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Fontify {
+    /// `t`: from the cookie to the end of the line; else the cookie alone.
+    pub lines: bool,
+    /// `org-priority-highest` and `org-priority-lowest` of the entry's
+    /// file, which the line carries; as bytes, for no cookie's value is
+    /// more than `z`.
+    pub file: (u8, u8),
+    /// Their global values, for a cookie that ends the line: Emacs reads
+    /// the file's ones after the cookie, where such a line has nothing.
+    pub global: (u8, u8),
+}
+
+impl Fontify {
+    /// A priority as [`Fontify`] keeps it: one no cookie has stays one.
+    pub fn byte(priority: i64) -> u8 {
+        u8::try_from(priority).unwrap_or(u8::MAX)
+    }
 }
 
 /// A styled byte range of a displayed line.
@@ -56,18 +87,34 @@ pub struct Displayed {
     pub links: Vec<Link>,
 }
 
-/// Where a priority cookie starts in `text`, at or after `from`.
-fn priority_cookie(text: &str, from: usize) -> Option<(usize, usize)> {
+/// The priority cookies of `text`, as `org-priority-regexp` finds them in
+/// the agenda, ignoring case: where each starts and ends, where its match
+/// ends (a blank after it included), and its value
+/// (`org-priority-to-value`).
+fn priority_cookies(text: &str) -> Vec<(usize, usize, usize, i64)> {
     let bytes = text.as_bytes();
-    text[from..].match_indices("[#").find_map(|(at, _)| {
-        let at = from + at;
-        let len = match bytes[at + 2..] {
-            [value, b']', ..] if value.is_ascii_uppercase() || value.is_ascii_digit() => 4,
-            [b'1'..=b'5', b'0'..=b'9', b']', ..] | [b'6', b'0'..=b'4', b']', ..] => 5,
-            _ => return None,
+    let mut cookies = Vec::new();
+    let mut from = 0;
+    while let Some(at) = text[from..].find("[#").map(|at| from + at) {
+        let digit = |b: u8| i64::from(b - b'0');
+        let found = match bytes[at + 2..] {
+            [value, b']', ..] if value.is_ascii_alphabetic() => Some((4, i64::from(value))),
+            [value, b']', ..] if value.is_ascii_digit() => Some((4, digit(value))),
+            [tens @ b'1'..=b'5', ones @ b'0'..=b'9', b']', ..] | [tens @ b'6', ones @ b'0'..=b'4', b']', ..] => {
+                Some((5, 10 * digit(tens) + digit(ones)))
+            }
+            _ => None,
         };
-        Some((at, at + len))
-    })
+        let Some((len, value)) = found else {
+            from = at + 2;
+            continue;
+        };
+        let end = at + len;
+        let matched = if bytes.get(end) == Some(&b' ') { end + 1 } else { end };
+        cookies.push((at, end, matched, value));
+        from = matched;
+    }
+    cookies
 }
 
 /// The displayed form of a view line.
@@ -75,6 +122,7 @@ pub fn display(line: &Line) -> Displayed {
     let raw = line.text.as_str();
     let item = match (&line.kind, &line.item) {
         (LineKind::Header | LineKind::Separator, _) => return whole(raw, Style::Structure),
+        (LineKind::Blank, _) => return whole(raw, Style::Structure),
         // org-super-agenda's header face inherits `org-agenda-structure`.
         (LineKind::Group { faced }, _) => {
             let faced = (*faced).min(raw.len());
@@ -104,9 +152,23 @@ pub fn display(line: &Line) -> Displayed {
         let start = heading + dots;
         parts.push(Segment { start, end: start + item.keyword_len, style: Style::Keyword { done: item.keyword_done } });
     }
-    if item.kind != ItemKind::Grid {
-        if let Some((start, end)) = priority_cookie(raw, heading) {
-            parts.push(Segment { start, end, style: Style::Priority });
+    // `org-agenda-fontify-priorities`: each cookie, and with `t` the rest
+    // of the line from the first one, where nothing else has a style.
+    let mut priority_line = None;
+    if let Some(fontify) = item.fontify {
+        for (start, end, matched, value) in priority_cookies(raw) {
+            let (highest, lowest) = if matched < raw.len() { fontify.file } else { fontify.global };
+            let rank = if value == i64::from(lowest) {
+                Rank::Lowest
+            } else if value == i64::from(highest) {
+                Rank::Highest
+            } else {
+                Rank::Other
+            };
+            parts.push(Segment { start, end, style: Style::Priority(rank) });
+            if fontify.lines {
+                priority_line.get_or_insert((start, rank));
+            }
         }
     }
     let hidden = hidden_ranges(raw);
@@ -142,20 +204,35 @@ pub fn display(line: &Line) -> Displayed {
         }
     }
 
-    // Fill the gaps with the face of the line.
+    // Fill the gaps with the face of the line, or after a priority cookie
+    // with `t`, the cookie's.
     let mut segments = Vec::new();
     let mut at = 0;
     let base = (item.face != Face::Default).then_some(Style::Face(item.face));
-    for part in kept {
-        if let Some(style) = base.filter(|_| part.start > at) {
-            segments.push(Segment { start: at, end: part.start, style });
+    let fill = |segments: &mut Vec<Segment>, from: usize, to: usize| {
+        if to <= from {
+            return;
         }
+        match priority_line {
+            Some((start, rank)) if to > start => {
+                if let Some(style) = base.filter(|_| start > from) {
+                    segments.push(Segment { start: from, end: start, style });
+                }
+                segments.push(Segment { start: from.max(start), end: to, style: Style::Priority(rank) });
+            }
+            _ => {
+                if let Some(style) = base {
+                    segments.push(Segment { start: from, end: to, style });
+                }
+            }
+        }
+    };
+    for part in kept {
+        fill(&mut segments, at, part.start);
         at = part.end;
         segments.push(part);
     }
-    if let Some(style) = base.filter(|_| raw.len() > at) {
-        segments.push(Segment { start: at, end: raw.len(), style });
-    }
+    fill(&mut segments, at, raw.len());
 
     // Fold the links: drop the hidden ranges and shift what follows.
     let shift = |offset: usize| -> usize {
@@ -237,7 +314,7 @@ pub fn mark(displayed: &mut Displayed, mark: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::agenda::{Item, Source};
+    use crate::agenda::{Item, ItemKind, Source};
 
     fn item_line(text: &str, heading: usize, keyword_len: usize, face: Face) -> Line {
         Line {
@@ -248,6 +325,7 @@ mod tests {
                 heading,
                 time_of_day: None,
                 priority: 0,
+                base_priority: 0,
                 kind: ItemKind::Scheduled,
                 face,
                 source: Some(Source { file: 0, entry: 0 }),
@@ -258,8 +336,51 @@ mod tests {
                 graph: None,
                 ts_date: None,
                 log: None,
+                ts_type: "",
+                own_tags_only: false,
+                fontify: Some(Fontify { lines: false, file: (65, 67), global: (65, 67) }),
             }),
         }
+    }
+
+    fn fontified(text: &str, fontify: Option<Fontify>) -> Vec<(String, Style)> {
+        let mut line = item_line(text, 2, 0, Face::Default);
+        line.item.as_mut().unwrap().fontify = fontify;
+        let shown = display(&line);
+        describe(&shown).into_iter().map(|(text, style)| (text.to_string(), style)).collect()
+    }
+
+    #[test]
+    fn priorities_fontified_as_org_agenda_fontify_priorities_says() {
+        let cookies = Fontify { lines: false, file: (65, 67), global: (65, 67) };
+        // Every cookie, ignoring case; the highest in bold, the lowest in
+        // italic.
+        assert_eq!(
+            fontified("  [#A] x [#c] y [#C] :t:", Some(cookies)),
+            [
+                ("[#A]".to_string(), Style::Priority(Rank::Highest)),
+                ("[#c]".to_string(), Style::Priority(Rank::Other)),
+                ("[#C]".to_string(), Style::Priority(Rank::Lowest)),
+                (":t:".to_string(), Style::Tags),
+            ]
+        );
+        // `t`: the rest of the line too, where nothing else has a style.
+        let lines = Fontify { lines: true, ..cookies };
+        assert_eq!(
+            fontified("  a [#C] b :t:", Some(lines)),
+            [
+                ("[#C]".to_string(), Style::Priority(Rank::Lowest)),
+                (" b ".to_string(), Style::Priority(Rank::Lowest)),
+                (":t:".to_string(), Style::Tags),
+            ]
+        );
+        assert_eq!(fontified("  a [#A] b", None), []);
+        // The file's priorities (`#+PRIORITIES: 1 5 3`), but for a cookie
+        // that ends the line, the global ones.
+        let own = Fontify { lines: false, file: (1, 5), global: (65, 67) };
+        assert_eq!(fontified("  a [#1] b", Some(own)), [("[#1]".to_string(), Style::Priority(Rank::Highest))]);
+        assert_eq!(fontified("  a [#1]", Some(own)), [("[#1]".to_string(), Style::Priority(Rank::Other))]);
+        assert_eq!(fontified("  a [#A]", Some(own)), [("[#A]".to_string(), Style::Priority(Rank::Highest))]);
     }
 
     fn describe(shown: &Displayed) -> Vec<(&str, Style)> {
@@ -283,7 +404,7 @@ mod tests {
                 ("  work:       Scheduled:  ", face),
                 ("TODO", Style::Keyword { done: false }),
                 (" ", face),
-                ("[#A]", Style::Priority),
+                ("[#A]", Style::Priority(Rank::Highest)),
                 (" Call ", face),
                 ("site", Style::Link),
                 (" now    ", face),

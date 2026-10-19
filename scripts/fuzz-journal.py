@@ -251,6 +251,25 @@ def make_case(rng):
             day = today + datetime.timedelta(days=rng.randint(-1, 8))
             case["date"] = day.isoformat() + rng.choice(["", "", " 10:00", " 9:00-10:30"])
             case.pop("prefix", None)
+    # The keys org-journal adds to `M-x calendar`, its cursor on a day.
+    if rng.random() < 0.25:
+        for key in ("date", "prefix", "from", "point", "search"):
+            case.pop(key, None)
+        day = today + datetime.timedelta(days=rng.randint(-20, 10))
+        case["day"] = day.isoformat()
+        case["command"] = rng.choice(
+            ["calendar-read", "calendar-display", "calendar-next", "calendar-previous", "calendar-next",
+             "calendar-previous", "calendar-new-date-entry", "calendar-search-week", "calendar-search-month",
+             "calendar-search-year"]
+        )
+        if rng.random() < 0.4:
+            options["org_journal_follow_mode"] = True
+        if rng.random() < 0.3:
+            options["calendar_week_start_day"] = rng.choice([1, 3, 6])
+        if case["command"].startswith("calendar-search"):
+            case["search"] = rng.choice(["standup", "TODO", "x", "note", "call"])
+        if case["command"] == "calendar-new-date-entry" and rng.random() < 0.2:
+            case["prefix"] = 1
     if options.get("org_journal_carryover_delete_empty_journal") == "ask":
         case["answers"] = [rng.choice(["y", "n"])]
     if "/" in options.get("org_journal_file_format", ""):

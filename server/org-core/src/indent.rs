@@ -38,6 +38,12 @@ pub struct Settings {
     /// `org-edit-src-content-indentation`: how far code is indented past
     /// its block.
     pub src_content_indentation: usize,
+    /// `org-list-two-spaces-after-bullet-regexp`: the text of an item
+    /// whose bullet it matches starts two columns after the bullet.
+    pub two_spaces: Option<crate::list::BulletRegexp>,
+    /// `org-property-format`: how a node property's key and value are
+    /// written when the line is indented.
+    pub property_format: String,
 }
 
 impl Default for Settings {
@@ -47,6 +53,8 @@ impl Default for Settings {
             log_into_drawer: None,
             src_preserve_indentation: false,
             src_content_indentation: 2,
+            two_spaces: None,
+            property_format: "%-10s %s".to_string(),
         }
     }
 }
@@ -510,12 +518,13 @@ impl Snapshot {
         stars > 0 && line.as_bytes().get(stars) == Some(&b' ')
     }
 
-    /// `org-list-item-body-column`: past the bullet and one space.
+    /// `org-list-item-body-column`: past the bullet and one space, or two
+    /// when `org-list-two-spaces-after-bullet-regexp` matches the bullet.
     fn body_column(&self, item: usize) -> usize {
         let line = self.line(item);
         let blanks = line.bytes().take_while(|b| matches!(b, b' ' | b'\t')).count();
-        let bullet = line[blanks..].chars().take_while(|c| !c.is_whitespace()).count();
-        self.indentation(item) + bullet + 1
+        let bullet: String = line[blanks..].chars().take_while(|c| !c.is_whitespace()).collect();
+        self.indentation(item) + bullet.chars().count() + spaces_after(&bullet, self.settings.two_spaces.as_ref())
     }
 
     // ----- elements
@@ -750,7 +759,8 @@ impl Snapshot {
     }
 
     /// The text of the node property at `line` aligned as
-    /// `org-property-format` (`%-10s %s`) has it, without indentation.
+    /// `org-property-format` (`%-10s %s`) has it, without indentation
+    /// (`org--align-node-property`).
     fn align_property(&self, line: usize) -> Option<String> {
         let text = self.line(line).trim_start_matches([' ', '\t']);
         let rest = text.strip_prefix(':')?;
@@ -766,7 +776,8 @@ impl Snapshot {
         let key_end = key_end?;
         let key = &text[..key_end + 1];
         let value = rest[key_end..].trim_matches([' ', '\t', '\r']);
-        Some(format!("{key:<10} {value}").trim_matches([' ', '\t']).to_string())
+        let formatted = crate::text::format_strings(&self.settings.property_format, &[key, value]);
+        Some(crate::text::trim(&formatted).to_string())
     }
 
     /// The index of the line at `at`.
@@ -1212,6 +1223,16 @@ fn is_footnote_start(line: &str) -> bool {
 /// drawer right below them moves by `diff`, and with `adapt` `t` so does
 /// the rest, unless that would change the document's structure.
 pub fn fixup_entry(entry: &str, diff: isize, settings: &Settings) -> String {
+    fixup_entry_with(entry, diff, settings, None)
+}
+
+/// [`fixup_entry`] where the lines of inline tasks, of at least
+/// `inline_tasks` stars, are no headlines: they move with the text, as
+/// `org-fixup-indentation` moves them under `org-with-limited-levels`.
+pub fn fixup_entry_with(entry: &str, diff: isize, settings: &Settings, inline_tasks: Option<usize>) -> String {
+    let is_heading_line = |line: &str| {
+        is_heading_line(line) && inline_tasks.is_none_or(|min| line.bytes().take_while(|b| *b == b'*').count() < min)
+    };
     let mut text = entry.to_string();
     let starts = |text: &str| -> Vec<usize> {
         std::iter::once(0).chain(text.match_indices('\n').map(|(at, _)| at + 1)).filter(|at| *at < text.len()).collect()
@@ -1370,19 +1391,13 @@ pub struct Startup {
 
 pub fn startup(text: &str) -> Startup {
     let mut out = Startup::default();
-    for line in text.lines() {
-        let line = line.trim_start_matches([' ', '\t']);
-        if !starts_with_ignore_case(line, "#+STARTUP:") {
-            continue;
-        }
-        for word in line["#+STARTUP:".len()..].split_whitespace() {
-            match word.to_ascii_lowercase().as_str() {
-                "indent" => out.indent = Some(true),
-                "noindent" => out.indent = Some(false),
-                "hidestars" => out.hide_stars = Some(true),
-                "showstars" => out.hide_stars = Some(false),
-                _ => {}
-            }
+    for word in crate::text::startup_words(text) {
+        match word.to_ascii_lowercase().as_str() {
+            "indent" => out.indent = Some(true),
+            "noindent" => out.indent = Some(false),
+            "hidestars" => out.hide_stars = Some(true),
+            "showstars" => out.hide_stars = Some(false),
+            _ => {}
         }
     }
     out
@@ -1390,12 +1405,33 @@ pub fn startup(text: &str) -> Startup {
 
 /// How a document shows: `org-indent-mode` and `org-hide-leading-stars`,
 /// from the options and the document's `#+STARTUP:`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Display {
     /// `org-startup-indented`
     pub startup_indented: bool,
     /// `org-hide-leading-stars`
     pub hide_leading_stars: bool,
+    /// org-bullets is on: it hides the leading stars whatever the rest says.
+    pub bullets: bool,
+    /// `org-indent-mode-turns-on-hiding-stars`
+    pub indent_hides_stars: bool,
+    /// `org-indent-mode-turns-off-org-adapt-indentation`
+    pub indent_turns_off_adapt: bool,
+    /// `org-indent-indentation-per-level`
+    pub per_level: usize,
+}
+
+impl Default for Display {
+    fn default() -> Self {
+        Display {
+            startup_indented: false,
+            hide_leading_stars: false,
+            bullets: false,
+            indent_hides_stars: true,
+            indent_turns_off_adapt: true,
+            per_level: 2,
+        }
+    }
 }
 
 impl Display {
@@ -1408,14 +1444,16 @@ impl Display {
     /// `org-indent-mode` hides them (`org-indent-mode-turns-on-hiding-stars`).
     pub fn hides_stars(&self, text: &str) -> bool {
         let startup = startup(text);
-        startup.indent.unwrap_or(self.startup_indented) || startup.hide_stars.unwrap_or(self.hide_leading_stars)
+        self.bullets
+            || (self.indent_hides_stars && startup.indent.unwrap_or(self.startup_indented))
+            || startup.hide_stars.unwrap_or(self.hide_leading_stars)
     }
 
     /// `org-adapt-indentation` in `text`: `org-indent-mode` turns it off,
     /// unless it is `headline-data`
     /// (`org-indent-mode-turns-off-org-adapt-indentation`).
     pub fn adapt(&self, text: &str, adapt: Adapt) -> Adapt {
-        if adapt != Adapt::HeadlineData && self.indented(text) {
+        if self.indent_turns_off_adapt && adapt != Adapt::HeadlineData && self.indented(text) {
             Adapt::Off
         } else {
             adapt
@@ -1435,41 +1473,61 @@ pub struct LinePrefix {
     pub hidden_stars: usize,
 }
 
+/// The spaces `org-list-item-body-column` counts after `bullet`.
+fn spaces_after(bullet: &str, two_spaces: Option<&crate::list::BulletRegexp>) -> usize {
+    if two_spaces.is_some_and(|regexp| regexp.is_match(bullet)) {
+        2
+    } else {
+        1
+    }
+}
+
 /// `org-list-item-body-column` of `line` if it is a list item
 /// (`org-item-re`), else `None`.
-fn item_body_column(line: &str) -> Option<usize> {
+fn item_body_column(line: &str, two_spaces: Option<&crate::list::BulletRegexp>) -> Option<usize> {
     let blanks = line.bytes().take_while(|b| matches!(b, b' ' | b'\t')).count();
     let rest = &line[blanks..];
     let bullet = match rest.bytes().next()? {
         b'-' | b'+' => 1,
         // A star at the start of the line is a headline's.
         b'*' if blanks > 0 => 1,
-        b'0'..=b'9' => {
-            let digits = rest.bytes().take_while(u8::is_ascii_digit).count();
-            if !matches!(rest.as_bytes().get(digits), Some(b'.' | b')')) {
-                return None;
-            }
-            digits + 1
-        }
-        _ => return None,
+        _ => org_syntax::list_syntax().ordered_len(rest.as_bytes())?,
     };
     if !matches!(rest.as_bytes().get(bullet), None | Some(b' ' | b'\t')) {
         return None;
     }
-    Some(width(line) + bullet + 1)
+    Some(width(line) + bullet + spaces_after(&rest[..bullet], two_spaces))
 }
 
 /// `org-indent-add-properties`: how each line of `text` shows with
 /// `org-indent-mode` (`indent`) and with hidden leading stars
 /// (`hide_stars`). `adapt` `headline-data` lines up the planning lines,
 /// drawers and clock lines of an entry with its headline's stars. Lines
-/// shown as they are, are left out.
-pub fn virtual_indentation(text: &str, indent: bool, hide_stars: bool, adapt: Adapt) -> Vec<LinePrefix> {
-    // `org-indent-indentation-per-level` is 2: a headline of level `n`
-    // has `n - 1` columns before its stars, so that its title starts at
-    // `2n`, where the text below it starts too.
-    let heading_prefix = |level: usize| level.saturating_sub(1);
-    let text_prefix = |level: usize| 2 * level;
+/// shown as they are, are left out. `two_spaces` is
+/// `org-list-two-spaces-after-bullet-regexp`, `per_level`
+/// `org-indent-indentation-per-level`.
+pub fn virtual_indentation(
+    text: &str,
+    indent: bool,
+    hide_stars: bool,
+    adapt: Adapt,
+    two_spaces: Option<&crate::list::BulletRegexp>,
+    per_level: usize,
+) -> Vec<LinePrefix> {
+    // `org-indent--compute-prefixes`: a headline of level `n` has
+    // `(per_level - 1) * (n - 1)` columns before its stars, and the text
+    // below it as many plus `n` and the boundary character, so that with
+    // 2 per level its title and its text start at `2n`. With 0 there are
+    // no prefixes.
+    let indentation = |level: usize| if level <= 1 { 0 } else { (per_level.saturating_sub(1)) * (level - 1) };
+    let heading_prefix = |level: usize| if per_level == 0 { 0 } else { indentation(level) };
+    let text_prefix = |level: usize| {
+        if per_level == 0 || level == 0 {
+            0
+        } else {
+            level + indentation(level) + 1
+        }
+    };
     let mut out = Vec::new();
     let mut level = 0;
     // Planning lines (and the blank lines after them, which belong to
@@ -1481,6 +1539,8 @@ pub fn virtual_indentation(text: &str, indent: bool, hide_stars: bool, adapt: Ad
             snapshot.element_at(at).is_some_and(|index| kinds.contains(&snapshot.elements[index].kind))
         })
     };
+    // The shortest inline task (`org-inlinetask-min-level`).
+    let tasks = crate::inlinetask::min_stars_in(text);
     // The empty line after a final line break is no line.
     let lines: Vec<&str> = text.strip_suffix('\n').unwrap_or(text).split('\n').collect();
     let mut start = 0;
@@ -1489,11 +1549,19 @@ pub fn virtual_indentation(text: &str, indent: bool, hide_stars: bool, adapt: Ad
         start += line.len() + 1;
         let stars = line.bytes().take_while(|b| *b == b'*').count();
         let heading = stars > 0 && line.as_bytes().get(stars) == Some(&b' ');
-        let (prefix, wrap, hidden) = if heading {
+        let (prefix, wrap, hidden) = if heading && tasks.is_some_and(|min| stars >= min) {
+            // An inline task: the text after it stays at its entry's level,
+            // and its stars but the last two are hidden
+            // (`org-inlinetask-fontify`), unless
+            // `org-inlinetask-show-first-star`.
+            let prefix = heading_prefix(stars);
+            let hidden = if crate::inlinetask::show_first_star() { 0 } else { stars - 2 };
+            (prefix, prefix + stars + 1, hidden)
+        } else if heading {
             level = stars;
             let prefix = heading_prefix(stars);
             (prefix, prefix + stars + 1, if hide_stars { stars - 1 } else { 0 })
-        } else if let Some(body) = item_body_column(line) {
+        } else if let Some(body) = item_body_column(line, two_spaces) {
             (text_prefix(level), text_prefix(level) + body, 0)
         } else {
             let trimmed = line.trim_start_matches([' ', '\t']);
@@ -1525,6 +1593,68 @@ pub fn virtual_indentation(text: &str, indent: bool, hide_stars: bool, adapt: Ad
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// With `org-list-two-spaces-after-bullet-regexp`, the text of an item
+    /// whose bullet it matches lines up two columns after the bullet, as
+    /// `org-indent-line` puts it in Emacs; so does `org-indent-mode`.
+    #[test]
+    fn items_with_two_spaces_after_the_bullet() {
+        let settings = Settings { two_spaces: crate::list::BulletRegexp::new("[0-9]"), ..Settings::default() };
+        let text = "1. a\n b\n- c\n d\n";
+        let edits = indent_region(text, 0, text.len(), &settings);
+        assert_eq!(apply(text, &edits), "1. a\n    b\n- c\n  d\n");
+        let wraps: Vec<usize> = virtual_indentation(text, true, false, Adapt::Off, settings.two_spaces.as_ref(), 2)
+            .into_iter()
+            .filter(|line| line.line == 0 || line.line == 2)
+            .map(|line| line.wrap)
+            .collect();
+        assert_eq!(wraps, [4, 2]);
+    }
+
+    /// `org-property-format`: a property line indented is written as the
+    /// format makes it, trimmed, as `org-indent-line` writes it in Emacs.
+    #[test]
+    fn writes_properties_as_org_property_format_says() {
+        let cases = [
+            ("%-10s %s", ":FOO:", ":FOO:"),
+            ("%-10s %s", ":FOO: bar", ":FOO:      bar"),
+            ("%-10s %s", ":LONGPROPERTYNAME: x  y ", ":LONGPROPERTYNAME: x  y"),
+            ("%-10s %s", "   :A+:   v", ":A+:       v"),
+            ("%s %s", "   :A+:   v", ":A+: v"),
+            ("%-15s %s", ":FOO: bar", ":FOO:           bar"),
+            ("%15s %s", ":FOO: bar", ":FOO: bar"),
+            ("%s: %s", ":FOO:", ":FOO::"),
+            ("%s: %s", ":FOO: bar", ":FOO:: bar"),
+            ("%.3s %s", ":FOO:", ":FO"),
+            ("%.3s %s", ":LONGPROPERTYNAME: x  y ", ":LO x  y"),
+            ("%-5s|%s", ":FOO:", ":FOO:|"),
+            ("%-5s|%s", "   :A+:   v", ":A+: |v"),
+        ];
+        for (format, line, wanted) in cases {
+            let text = format!("* h\n:PROPERTIES:\n{line}\n:END:\n");
+            let settings = Settings { property_format: format.to_string(), ..Settings::default() };
+            let at = text.find(line).unwrap();
+            let edit = indent_line(&text, at, &settings);
+            let got = apply(&text, &edit.into_iter().collect::<Vec<_>>());
+            assert_eq!(got.split('\n').nth(2).unwrap(), wanted, "{format:?} {line:?}");
+        }
+    }
+
+    /// `org-indent-mode-turns-on-hiding-stars` and
+    /// `org-indent-mode-turns-off-org-adapt-indentation` off: a file shown
+    /// indented keeps its stars and `org-adapt-indentation`.
+    #[test]
+    fn indent_mode_leaves_stars_and_adaptation_when_told() {
+        let indented = "#+STARTUP: indent\n* a\n";
+        let display = Display::default();
+        assert!(display.hides_stars(indented));
+        assert_eq!(display.adapt(indented, Adapt::All), Adapt::Off);
+        let display = Display { indent_hides_stars: false, indent_turns_off_adapt: false, ..Display::default() };
+        assert!(!display.hides_stars(indented));
+        assert_eq!(display.adapt(indented, Adapt::All), Adapt::All);
+        let display = Display { hide_leading_stars: true, ..display };
+        assert!(display.hides_stars(indented));
+    }
 
     /// Parsing each part on its own gives what parsing the whole text
     /// gives, for every Org file of the tests.

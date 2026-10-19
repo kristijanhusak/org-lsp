@@ -6,8 +6,9 @@
 --- Files with `org-indent-mode` (`org_startup_indented`, `#+STARTUP: indent`)
 --- are shown indented without being changed: the server says how far each
 --- line goes (`org-lsp/virtualIndent`), and the prefixes are inline virtual
---- text. Neovim cannot repeat it on the lines a long line wraps into;
---- 'breakindent' lines those up with the line's own text instead.
+--- text. Neovim cannot repeat them on the lines a long line wraps into
+--- (`wrap-prefix`): 'breakindent' lines those up with the line's own text,
+--- as Org does past the prefix, a headline's title, an item's text.
 local M = {}
 
 local namespace = vim.api.nvim_create_namespace('org_lsp_virtual_indent')
@@ -113,16 +114,23 @@ function M.virtual(params)
       })
     end
   end
-  -- A line that wraps goes on at its own indentation, a list item at its
-  -- text (without the prefix, which Neovim does not repeat there).
+  -- A line that wraps goes on as `org-indent-mode`'s `wrap-prefix` has it,
+  -- without the prefix, which Neovim does not repeat there: at its own
+  -- indentation, a headline after its stars and a space, a list item a
+  -- column after its bullet (`org-list-item-body-column`).
   if #params.lines > 0 then
-    vim.bo[bufnr].formatlistpat = [[^\s*\%([-+]\|\s\*\|\d\+[.)]\)\s\+]]
+    vim.bo[bufnr].formatlistpat = M.WRAP_PATTERN
     for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
       vim.wo[win][0].breakindent = true
       vim.wo[win][0].breakindentopt = 'list:-1'
     end
   end
 end
+
+--- What the lines a long line wraps into line up with, past their own
+--- indentation, for 'breakindentopt' `list:-1`: a headline's stars and a
+--- space, a list item's bullet and a space.
+M.WRAP_PATTERN = [[^\*\+ \|^\s*\%([-+]\|\s\*\|\d\+[.)]\)\s]]
 
 --- Indent the Org buffer `bufnr` with the server.
 ---@param bufnr integer

@@ -544,5 +544,321 @@
   "answer": "fri 9:00",
   "preferFuture": "time",
   "expected": "2026-05-22 09:00"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "answer": "",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-17"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "answer": ".",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-18"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "answer": "+0",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-18"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "answer": "+1d",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-19"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "answer": "++1d",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-18"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "answer": "-1",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-17"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "answer": "fri",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-22"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "answer": "mon 10:00",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-25 10:00"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "answer": "15",
+  "extendTodayUntil": 4,
+  "expected": "2026-06-15"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "answer": "3pm",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-17 15:00"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "answer": "2026-05-20",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-20"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "answer": "+1w",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-25"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "answer": "w21",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-18"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "answer": "sun",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-24"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "answer": "17",
+  "extendTodayUntil": 4,
+  "expected": "2026-06-17"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "answer": "18 1am",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-18 01:00"
+ },
+ {
+  "clock": "2026-05-18 05:00",
+  "answer": "",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-18"
+ },
+ {
+  "clock": "2026-05-18 05:00",
+  "answer": ".",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-18"
+ },
+ {
+  "clock": "2026-05-18 05:00",
+  "answer": "+0",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-18"
+ },
+ {
+  "clock": "2026-05-18 05:00",
+  "answer": "+1d",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-19"
+ },
+ {
+  "clock": "2026-05-18 05:00",
+  "answer": "++1d",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-19"
+ },
+ {
+  "clock": "2026-05-18 05:00",
+  "answer": "-1",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-17"
+ },
+ {
+  "clock": "2026-05-18 05:00",
+  "answer": "fri",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-22"
+ },
+ {
+  "clock": "2026-05-18 05:00",
+  "answer": "mon 10:00",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-25 10:00"
+ },
+ {
+  "clock": "2026-05-18 05:00",
+  "answer": "15",
+  "extendTodayUntil": 4,
+  "expected": "2026-06-15"
+ },
+ {
+  "clock": "2026-05-18 05:00",
+  "answer": "3pm",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-18 15:00"
+ },
+ {
+  "clock": "2026-05-18 05:00",
+  "answer": "2026-05-20",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-20"
+ },
+ {
+  "clock": "2026-05-18 05:00",
+  "answer": "+1w",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-25"
+ },
+ {
+  "clock": "2026-05-18 05:00",
+  "answer": "w21",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-18"
+ },
+ {
+  "clock": "2026-05-18 05:00",
+  "answer": "sun",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-24"
+ },
+ {
+  "clock": "2026-05-18 05:00",
+  "answer": "17",
+  "extendTodayUntil": 4,
+  "expected": "2026-06-17"
+ },
+ {
+  "clock": "2026-05-18 05:00",
+  "answer": "18 1am",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-18 01:00"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "answer": "",
+  "extendTodayUntil": 4,
+  "expected": "2026-04-30"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "answer": ".",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-01"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "answer": "+0",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-01"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "answer": "+1d",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-02"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "answer": "++1d",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-01"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "answer": "-1",
+  "extendTodayUntil": 4,
+  "expected": "2026-04-30"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "answer": "fri",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-08"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "answer": "mon 10:00",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-04 10:00"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "answer": "15",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-15"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "answer": "3pm",
+  "extendTodayUntil": 4,
+  "expected": "2026-04-30 15:00"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "answer": "2026-05-20",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-20"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "answer": "+1w",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-08"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "answer": "w21",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-18"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "answer": "sun",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-03"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "answer": "17",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-17"
+ },
+ {
+  "clock": "2026-05-01 00:10",
+  "answer": "18 1am",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-18 01:00"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "answer": "",
+  "default": "2026-05-20 09:00",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-20"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "answer": "+1d",
+  "default": "2026-05-20 09:00",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-19"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "answer": "++1d",
+  "default": "2026-05-20 09:00",
+  "extendTodayUntil": 4,
+  "expected": "2026-05-21"
+ },
+ {
+  "clock": "2026-05-18 02:30",
+  "answer": "fri",
+  "preferFuture": false,
+  "extendTodayUntil": 4,
+  "expected": "2026-05-22"
  }
 ]

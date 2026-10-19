@@ -16,6 +16,10 @@ use crate::timestr::parse_time_string;
 use crate::todo::{self, headline_level, Target};
 use crate::Refusal;
 
+/// What the priority commands say when `org-priority-enable-commands` is
+/// off.
+pub const PRIORITY_DISABLED: &str = "Priority commands are disabled";
+
 /// A shifted cursor key.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
@@ -58,6 +62,9 @@ pub enum Command {
     /// The note `org-log-refile` asked for (`note`), for the entry just
     /// refiled, or nothing when it was cancelled.
     RefileNote,
+    /// The note `org-log-note-clock-out` asked for, after the clock line
+    /// `line` (its text), or nothing when it was cancelled.
+    ClockOutNote { line: String },
     /// `org-table-recalculate` and `org-table-iterate`: the table's
     /// formulas, or those of the `#+TBLFM:` line at the cursor.
     Table(tblfm::Mode),
@@ -93,6 +100,26 @@ pub struct Settings {
     pub global_properties: Vec<(String, String)>,
     /// `org-list-use-circular-motion`
     pub list_circular_motion: bool,
+    /// `org-agenda-move-date-from-past-immediately-to-today`
+    pub move_date_from_past_to_today: bool,
+    /// How M-RET and its kin insert (`org-M-RET-may-split-line`,
+    /// `org-blank-before-new-entry`, `org-insert-heading-respect-content`).
+    pub insert: crate::meta_return::Settings,
+    /// `org-special-ctrl-a/e`, for C-a and for C-e.
+    pub special_ctrl_a_e: (crate::line::Special, crate::line::Special),
+    /// `org-special-ctrl-k`
+    pub special_ctrl_k: bool,
+    /// `org-treat-S-cursor-todo-selection-as-state-change`: `S-<left>` and
+    /// `S-<right>` on a headline log and are blocked as any TODO change.
+    pub shift_todo_is_state_change: bool,
+    /// `org-edit-timestamp-down-means-later`: `S-<down>` makes a
+    /// timestamp later, `S-<up>` earlier.
+    pub timestamp_down_means_later: bool,
+    /// `org-priority-enable-commands`
+    pub priority_commands: bool,
+    /// `org-track-ordered-property-with-tag`: the tag that shows the
+    /// `ORDERED` property.
+    pub ordered_tag: Option<String>,
 }
 
 impl Default for Settings {
@@ -105,6 +132,14 @@ impl Default for Settings {
             tags: crate::tags::Settings::default(),
             global_properties: Vec::new(),
             list_circular_motion: false,
+            move_date_from_past_to_today: true,
+            insert: crate::meta_return::Settings::default(),
+            special_ctrl_a_e: Default::default(),
+            special_ctrl_k: false,
+            shift_todo_is_state_change: true,
+            timestamp_down_means_later: false,
+            priority_commands: true,
+            ordered_tag: None,
         }
     }
 }
@@ -168,6 +203,9 @@ pub struct Outcome {
     pub note: Option<todo::WantedNote>,
     /// What to tell the user.
     pub message: Option<String>,
+    /// The headline as a change to a done state made it, before the
+    /// entry's repeater set it back (`org-agenda-headline-snapshot-before-repeat`).
+    pub before_repeat: Option<String>,
 }
 
 /// Run `command` with the cursor at byte `offset` of `text`, whose parse
@@ -185,12 +223,13 @@ pub fn run(
         offset -= 1;
     }
     let steps = |forward: bool| call.count.unwrap_or(1) * if forward { 1 } else { -1 };
-    let unplaced = |text: String| Outcome { text, cursor: None, note: None, message: None };
+    let unplaced = |text: String| Outcome { text, cursor: None, note: None, message: None, before_repeat: None };
     let placed = |changed: stamp::Changed| Outcome {
         text: changed.text,
         cursor: Some(changed.cursor),
         note: None,
         message: None,
+        before_repeat: None,
     };
     match command {
         Command::Todo(target) => {
@@ -207,6 +246,7 @@ pub fn run(
                     cursor: None,
                     note: changed.wants_note,
                     message: changed.message,
+                    before_repeat: changed.before_repeat,
                 })
                 .map_err(|message| {
                     if message == "Before first headline" {
@@ -217,6 +257,9 @@ pub fn run(
                 })
         }
         Command::Priority(action) => {
+            if !settings.priority_commands {
+                return Err(Refusal::Failed(PRIORITY_DISABLED.to_string()));
+            }
             let priority = priority::Settings {
                 priorities: document_priorities(parse).unwrap_or(settings.priorities),
                 start_cycle_with_default: settings.priority_start_cycle_with_default,
@@ -241,7 +284,13 @@ pub fn run(
                 todo::add_note(text, parse.todo_keywords(), offset, &settings.todo, call.now, "")
                     .map_err(Refusal::NotHere)?;
                 let wanted = todo::WantedNote { purpose: "this entry".to_string(), state: None };
-                Ok(Outcome { text: text.to_string(), cursor: None, note: Some(wanted), message: None })
+                Ok(Outcome {
+                    text: text.to_string(),
+                    cursor: None,
+                    note: Some(wanted),
+                    message: None,
+                    before_repeat: None,
+                })
             }
         },
         Command::PlanningNote { change, old } => match (&call.note, call.skip_note) {
@@ -257,6 +306,17 @@ pub fn run(
             )
             .map(unplaced)
             .map_err(Refusal::Failed),
+            _ => Ok(unplaced(text.to_string())),
+        },
+        Command::ClockOutNote { line } => match (&call.note, call.skip_note) {
+            (Some(note), false) => {
+                // The clock line, wherever it is now.
+                let Some(start) = text.find(line.as_str()) else { return Ok(unplaced(text.to_string())) };
+                let end = start + line.len();
+                todo::log_clock_out(text, parse.todo_keywords(), end, &settings.todo, call.now, note)
+                    .map(unplaced)
+                    .map_err(Refusal::Failed)
+            }
             _ => Ok(unplaced(text.to_string())),
         },
         Command::RefileNote => match (&call.note, call.skip_note) {
@@ -283,12 +343,30 @@ pub fn run(
             let outline = crate::outline::Outline::new(parse, text, "");
             let ordered = outline.entry_property(outline.entry_at(offset), "ORDERED", false);
             let ordered = ordered.is_some_and(|value| value != "nil");
-            crate::checkbox::ctrl_c_ctrl_c(text, parse.todo_keywords(), offset, settings.todo.tags_column, ordered)
-                .map(|(text, cursor, message)| Outcome { text, cursor: Some(cursor), note: None, message })
+            crate::checkbox::ctrl_c_ctrl_c(
+                text,
+                parse.todo_keywords(),
+                offset,
+                settings.todo.tags_column,
+                ordered,
+                &settings.todo.lists,
+            )
+            .map(|(text, cursor, message)| Outcome {
+                text,
+                cursor: Some(cursor),
+                note: None,
+                message,
+                before_repeat: None,
+            })
         }
-        Command::Checkbox => {
-            crate::checkbox::toggle(text, parse.todo_keywords(), offset, settings.todo.tags_column).map(unplaced)
-        }
+        Command::Checkbox => crate::checkbox::toggle(
+            text,
+            parse.todo_keywords(),
+            offset,
+            settings.todo.tags_column,
+            &settings.todo.lists,
+        )
+        .map(unplaced),
         Command::Table(mode) => {
             let outline = crate::outline::Outline::new(parse, text, "");
             let entry = outline.entry_at(offset);
@@ -298,15 +376,19 @@ pub fn run(
             let crlf = crate::text::crlf(text);
             let recalculated = if crlf {
                 let (lf, offset) = crate::text::to_lf(text, offset);
-                tblfm::recalculate(&lf, offset, *mode, &property)
+                tblfm::recalculate(&lf, offset, *mode, &property, &settings.todo.table.formulas)
                     .map(|done| tblfm::Recalculated { text: crate::text::from_lf(&done.text, 0).0, ..done })
             } else {
-                tblfm::recalculate(text, offset, *mode, &property)
+                tblfm::recalculate(text, offset, *mode, &property, &settings.todo.table.formulas)
             };
             match recalculated {
-                Ok(recalculated) => {
-                    Ok(Outcome { text: recalculated.text, cursor: None, note: None, message: recalculated.message })
-                }
+                Ok(recalculated) => Ok(Outcome {
+                    text: recalculated.text,
+                    cursor: None,
+                    note: None,
+                    message: recalculated.message,
+                    before_repeat: None,
+                }),
                 Err(message) if message == "Not at a table" => Err(Refusal::NotHere(message)),
                 Err(message) => Err(Refusal::Failed(message)),
             }
@@ -337,23 +419,45 @@ pub fn run(
         }
         Command::DeleteProperty(name) => {
             let (text, _, _) = properties::delete(text, offset, name);
-            Ok(Outcome { text, cursor: None, note: None, message: Some(format!("Property \"{name}\" deleted")) })
+            Ok(Outcome {
+                text,
+                cursor: None,
+                note: None,
+                message: Some(format!("Property \"{name}\" deleted")),
+                before_repeat: None,
+            })
         }
         Command::DeletePropertyGlobally(name) => {
             let (text, count) = properties::delete_globally(text, name);
             let message = format!("Property \"{name}\" removed from {count} entries");
-            Ok(Outcome { text, cursor: None, note: None, message: Some(message) })
+            Ok(Outcome { text, cursor: None, note: None, message: Some(message), before_repeat: None })
         }
         Command::Effort(value) => {
             let context = property_context(parse, settings, "");
             let (text, message) =
                 properties::set_effort(text, offset, value.as_deref(), &context).map_err(Refusal::Failed)?;
-            Ok(Outcome { text, cursor: None, note: None, message: Some(message) })
+            Ok(Outcome { text, cursor: None, note: None, message: Some(message), before_repeat: None })
         }
         Command::Ordered => {
             let context = property_context(parse, settings, "");
-            let (text, message) = properties::toggle_ordered(text, offset, &context).map_err(Refusal::NotHere)?;
-            Ok(Outcome { text, cursor: None, note: None, message: Some(message) })
+            let (mut changed, message) =
+                properties::toggle_ordered(text, offset, &context).map_err(Refusal::NotHere)?;
+            // `org-track-ordered-property-with-tag`: the tag follows the
+            // property (`org-toggle-tag`), put last when it is not there yet.
+            if let Some(tag) = &settings.ordered_tag {
+                let heading = crate::tags::heading_at(text, offset)?;
+                let line = changed[heading..].lines().next().unwrap_or("");
+                let mut tags = crate::tags::local_tags(line);
+                if message != properties::ORDERED_ON {
+                    tags.retain(|known| known != tag);
+                } else if !tags.contains(tag) {
+                    tags.push(tag.clone());
+                }
+                let tag_settings =
+                    crate::tags::Settings { tags_column: settings.todo.tags_column, ..settings.tags.clone() };
+                changed = crate::tags::set_tags(&changed, heading, &tags, &tag_settings);
+            }
+            Ok(Outcome { text: changed, cursor: None, note: None, message: Some(message), before_repeat: None })
         }
         Command::Tags(tags) => {
             let heading = crate::tags::heading_at(text, offset)?;
@@ -378,7 +482,7 @@ pub fn run(
             if *unit == Unit::Minute {
                 days *= rounding.max(1);
             }
-            if days == 1 && range.is_none() && *unit == Unit::Day {
+            if settings.move_date_from_past_to_today && days == 1 && range.is_none() && *unit == Unit::Day {
                 // `org-agenda-move-date-from-past-immediately-to-today`: one
                 // step forward takes a date that has passed to today.
                 let date = parse_time_string(&text[stamp.start..stamp.end]).map(|parsed| parsed.date.to_day());
@@ -402,12 +506,31 @@ pub fn run(
             let on_headline = on_headline(text, offset);
             let next = match direction {
                 Direction::Up | Direction::Down if at_timestamp => {
-                    Command::Timestamp { forward: *direction == Direction::Up }
+                    Command::Timestamp { forward: (*direction == Direction::Up) != settings.timestamp_down_means_later }
                 }
-                Direction::Up if on_headline => Command::Priority(Action::Up),
-                Direction::Down if on_headline => Command::Priority(Action::Down),
+                Direction::Up if on_headline && settings.priority_commands => Command::Priority(Action::Up),
+                Direction::Down if on_headline && settings.priority_commands => Command::Priority(Action::Down),
                 Direction::Left | Direction::Right if at_timestamp => {
                     Command::Date { forward: *direction == Direction::Right }
+                }
+                Direction::Left | Direction::Right if on_headline && !settings.shift_todo_is_state_change => {
+                    let target = if *direction == Direction::Right { Target::Next } else { Target::Previous };
+                    return todo::change_state_quietly(
+                        text,
+                        parse.todo_keywords(),
+                        offset,
+                        &target,
+                        &settings.todo,
+                        call.now,
+                    )
+                    .map(|changed| Outcome {
+                        text: changed.text,
+                        cursor: None,
+                        note: changed.wants_note,
+                        message: changed.message,
+                        before_repeat: changed.before_repeat,
+                    })
+                    .map_err(Refusal::Failed);
                 }
                 Direction::Right if on_headline => Command::Todo(Target::Next),
                 Direction::Left if on_headline => Command::Todo(Target::Previous),
@@ -415,8 +538,15 @@ pub fn run(
                 // (`org-cycle-list-bullet`), or the cursor to the item
                 // before or after (`org-previous-item`, `org-next-item`).
                 Direction::Left | Direction::Right if crate::list::at_item(text, offset) => {
-                    let edited = crate::list::cycle_bullet(text, offset, *direction == Direction::Left)?;
-                    return Ok(Outcome { text: edited.text, cursor: Some(edited.cursor), note: None, message: None });
+                    let edited =
+                        crate::list::cycle_bullet(text, offset, *direction == Direction::Left, &settings.todo.lists)?;
+                    return Ok(Outcome {
+                        text: edited.text,
+                        cursor: Some(edited.cursor),
+                        note: None,
+                        message: None,
+                        before_repeat: None,
+                    });
                 }
                 Direction::Up | Direction::Down if crate::list::at_item(text, offset) => {
                     let cursor = crate::list::next_item(
@@ -425,7 +555,13 @@ pub fn run(
                         *direction == Direction::Up,
                         settings.list_circular_motion,
                     )?;
-                    return Ok(Outcome { text: text.to_string(), cursor: Some(cursor), note: None, message: None });
+                    return Ok(Outcome {
+                        text: text.to_string(),
+                        cursor: Some(cursor),
+                        note: None,
+                        message: None,
+                        before_repeat: None,
+                    });
                 }
                 // On a property line: its next or previous allowed value
                 // (`org-property-next-allowed-value`).
@@ -434,7 +570,7 @@ pub fn run(
                     let (text, cursor) =
                         properties::next_allowed(text, offset, *direction == Direction::Left, &context)
                             .map_err(Refusal::Failed)?;
-                    return Ok(Outcome { text, cursor: Some(cursor), note: None, message: None });
+                    return Ok(Outcome { text, cursor: Some(cursor), note: None, message: None, before_repeat: None });
                 }
                 _ => return Err(Refusal::NotHere("No timestamp, headline, item or property here".to_string())),
             };

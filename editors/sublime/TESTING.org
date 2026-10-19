@@ -23,10 +23,13 @@ its sections says what it should look like.
 
 * Highlighting
 
-*Partly:* Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Sublime Text cannot hide text in a view. The colors need LSP's ~semantic_highlighting~ on.
+*Partly:* Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Sublime Text cannot hide text in a view. The colors need LSP's ~semantic_highlighting~ on. A headline's look does not go on to the edge of the window (~org_fontify_whole_heading_line~): Sublime Text colors a line past its text only with a region filled in one color of the color scheme, as the agenda's clocked line, not in the look semantic tokens give the headline.
 
 - [ ] Headlines are colored by level; TODO and DONE keywords, priorities (~[#A]~) and tags have colors of their own
+- [ ] With ~org_fontify_todo_headline = true~ the text of a TODO headline, and with ~org_fontify_quote_and_verse_blocks = true~ the lines of a quote block, take a look of their own
+- [ ] With ~org_n_level_faces = 2~, a headline of level 3 has the color of level 1; with ~org_cycle_level_faces = false~ too, that of level 2
 - [ ] ~*bold*~, ~/italic/~, ~_underline_~, ~+strike+~, ~=verbatim=~ and =~code~= are colored
+- [ ] With ~org_emphasis_alist = { "*": ["bold", "italic"] }~, ~*this*~ is bold and italic and ~/that/~ plain; with ~org_fontify_emphasized_text = false~ neither has a look
 - [ ] Timestamps, ~SCHEDULED:~ and ~DEADLINE:~, ~CLOCK:~ lines, drawers, ~#+~ keywords and ~#~ comments are colored
 - [ ] A ~#+begin_src python~ block shows its code in Python's colors
 - [ ] Inline code (~src_python{x = 1}~) is in Python's colors
@@ -35,15 +38,21 @@ its sections says what it should look like.
 
 * Folding and visibility
 
+*Partly:* A closed fold ends in Sublime Text's own marker: a package cannot change it (~org_ellipsis~).
+
 - [ ] On a headline, cycling goes folded → children → subtree: ~Tab~
 - [ ] Cycling the whole file goes overview → contents → everything: ~Shift+Tab~
 - [ ] A file with ~#+STARTUP: overview~ opens folded; with ~content~ its headlines show, those without children folded, and its drawers folded
 - [ ] A subtree with ~:VISIBILITY: children~ opens with its children folded, one with ~all~ open
 - [ ] Two blank lines after a subtree stay visible below it when it is folded
+- [ ] Under ~* A~, TAB at the end of a new ~** ~ makes it ~* ~, again ~** ~; on a new ~- ~ item under ~- a~, TAB indents it: ~Tab~
+- [ ] Showing the children of a headline leaves its lists open; with ~org_cycle_include_plain_lists = "integrate"~ they fold to their items
+- [ ] With ~org_cycle_global_at_bob = true~, TAB at the very start of a file whose first line is no headline cycles the whole file
 - [ ] Narrowing to the subtree opens it in a file of its own; saving that file writes it back into the Org file and saves it: ~Ctrl+X n s~
 - [ ] Widening in the narrowed file writes it back and closes it (~C-c '~ there does the same): ~Ctrl+X n w~
 - [ ] Opening the parent of an ~:ARCHIVE:~ subtree leaves that subtree folded
 - [ ] A sparse tree of the TODO entries folds everything else and highlights them: ~Ctrl+C /~
+- [ ] Typing takes the highlights of a sparse tree of the TODO entries away; with ~org_remove_highlights_with_change = false~ they stay until ~C-c C-c~, which says /Temporary highlights/overlays removed from current buffer/: ~Ctrl+C /~
 - [ ] With everything folded, showing the context of a line deep in a subtree opens the headlines above it and leaves the other subtrees folded: ~Ctrl+C Ctrl+R~
 
 * Headings and structure
@@ -54,13 +63,20 @@ its sections says what it should look like.
 - [ ] Promoting and demoting a heading; its tags stay aligned: ~Alt+Left~, ~Alt+Right~
 - [ ] Promoting and demoting a subtree: ~Alt+Shift+Left~, ~Alt+Shift+Right~
 - [ ] Moving a subtree up and down past its siblings: ~Alt+Up~, ~Alt+Down~
+- [ ] Inserting an inline task gives 15 stars and an ~END~ line; demoting it changes both; the outline leaves it out, and folding it hides its text and its ~END~ line: ~Ctrl+C Ctrl+X t~, ~Alt+Right~
 - [ ] Cutting a subtree and pasting it under another heading: its level fits there: ~Ctrl+C Ctrl+X Ctrl+W~, ~Ctrl+C Ctrl+X Ctrl+Y~
 - [ ] Copying a subtree and pasting it: ~Ctrl+C Ctrl+X Alt+W~, ~Ctrl+C Ctrl+X Ctrl+Y~
+- [ ] With ~org_yank_adjusted_subtrees~ on and Emacs keys, C-y of a copied ~* A~ subtree at the start of the line after a ~** B~ entry pastes it as ~** A~; in the middle of a line C-y pastes as the editor does: ~Ctrl+Y~
+- [ ] C-y of a copied ~* A~ subtree with text, at the start of a line before another ~* B~, yanks it folded, the cursor on the ~* B~ line; at the start of a ~** C~ line Org says /Inserted text not folded because that would swallow text/: ~Ctrl+Y~
+- [ ] Copying a folded subtree and pasting it: the copy is folded too: ~Ctrl+C Ctrl+X Alt+W~, ~Ctrl+C Ctrl+X Ctrl+Y~
+- [ ] C-k at the start of a folded headline kills it and what the fold hides; with ~org_ctrl_k_protect_subtree = true~ it asks /Kill hidden subtree along with headline?/ first, and ~n~ says /‘C-k’ aborted as it would kill a hidden subtree/; with ~"error"~ it says so at once: ~Ctrl+K~
+- [ ] With ~org_allow_promoting_top_level_subtree~ on, promoting ~* A~ makes it ~# A~: ~Alt+Left~
 - [ ] Sorting the children of a heading alphabetically, then by TODO state: ~Ctrl+C ^~
 - [ ] Moving to the next and previous heading; with a count, that many: ~Ctrl+C Ctrl+N~, ~Ctrl+C Ctrl+P~
 - [ ] Moving to the next and previous heading of the same level, stopping at the parent's end: ~Ctrl+C Ctrl+F~, ~Ctrl+C Ctrl+B~
 - [ ] Moving to the parent heading; on a top heading Org says it is at the top level: ~Ctrl+C Ctrl+U~
 - [ ] Going to a heading picked by its outline path (~A/B/~): ~Ctrl+C Ctrl+J~
+- [ ] With ~org_special_ctrl_a_e~ and ~org_special_ctrl_k~ set to ~true~, on ~* TODO Title :tag:~: C-a goes to the start of ~Title~, again to the line's start; C-e to the end of ~Title~, again after the tags; C-k in the title kills to the tags, which stay aligned, and C-k again kills the tags: ~Ctrl+A~, ~Ctrl+E~, ~Ctrl+K~
 - [ ] Off a table, turning a line into a heading and back (needs Emacs): /Org: Turn the line into a heading, or the heading into a line/
 - [ ] Toggling ~COMMENT~ on the heading (needs Emacs): ~Ctrl+C ;~
 - [ ] Cloning the subtree twice a week apart (~+1w~): the copies follow it with their dates moved (needs Emacs): ~Ctrl+C Ctrl+X c~
@@ -104,6 +120,8 @@ its sections says what it should look like.
 
 * Tags
 
+*Partly:* Faces of particular tags are not shown: Sublime Text colors text by its color scheme only.
+
 - [ ] Setting tags from ~#+TAGS: work(w) home(h)~ by key; each key turns its tag on and off: ~Ctrl+C Ctrl+Q~
 - [ ] An exclusive group (~{ @office(o) @home(m) }~) turns the other tag off: ~Ctrl+C Ctrl+Q~
 - [ ] Typing tags when none have keys; they are sorted and aligned to ~org_tags_column~: ~Ctrl+C Ctrl+Q~
@@ -112,8 +130,9 @@ its sections says what it should look like.
 
 * Properties and column view
 
-*Partly:* A property's name and value are typed in an input panel, without completion. Column view is left out: it draws over the headlines, which Sublime Text cannot.
+*Partly:* A property's name and value are typed in an input panel, without completion. Column view is left out: it draws over the headlines, which Sublime Text cannot. A custom property hidden (~org.custom.properties.toggle~) is in a fold from the end of the line before, which shows the fold's marker: Sublime Text hides text only in folds.
 
+- [ ] With ~org_custom_properties = ["ID"]~, the command hides the ~:ID:~ lines of the property drawers, and run again shows them: /Org: Hide the properties of org_custom_properties, or show them again/
 - [ ] Setting a property: the name and the value are asked for: ~Ctrl+C Ctrl+X p~
 - [ ] On a property line with ~NAME_ALL~, cycling through its values: ~Shift+Right~, ~Shift+Left~
 - [ ] Deleting a property from the entry, and from the whole file: /Org: Delete a property of the entry/, /Org: Delete a property from every entry of the file/
@@ -138,7 +157,7 @@ its sections says what it should look like.
 
 * Agenda
 
-*Partly:* Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot.
+*Partly:* Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot. The days of a habit's graph take the colors of text, not Org's backgrounds: Sublime Text colors a token by its color scheme.
 
 - [ ] The agenda menu lists the views and the custom commands: ~Ctrl+C a~
 - [ ] The week view: scheduled entries, deadlines with their warnings, the time grid: /Org: Agenda for the current week or day/
@@ -150,10 +169,11 @@ its sections says what it should look like.
 - [ ] Going to the line's entry in another window, and where the agenda is: ~Tab~, ~Enter~
 - [ ] Changing the line's TODO state and priority; the line follows: ~t~, ~+~ or ~Shift+Up~
 - [ ] Scheduling the line's entry and setting its deadline: ~Ctrl+C Ctrl+S~, ~Ctrl+C Ctrl+D~
-- [ ] Setting the line's tags, adding a note, refiling, archiving: /Org: Set the tags of the headline/, ~z~, ~Ctrl+C Ctrl+W~, ~Ctrl+C Ctrl+X Ctrl+A~
+- [ ] Setting the line's tags, adding a note, refiling, archiving: ~:~ or ~Ctrl+C Ctrl+Q~, ~z~, ~Ctrl+C Ctrl+W~, ~Ctrl+C Ctrl+X Ctrl+A~
 - [ ] Filters by tag, category and effort, and removing them: ~\~, ~<~, ~_~, ~|~
 - [ ] Marking lines and a bulk action on them: ~m~, ~B~
 - [ ] Follow mode shows the cursor's entry as the cursor moves: ~F~
+- [ ] Moving the cursor in the agenda shows where its entry is, ~work.org/Projects~, in the echo area (the status bar in VS Code and Sublime Text)
 - [ ] Entry text, log mode, the clock report, archives mode: ~E~ or ~v E~, ~v l~, ~R~ or ~v R~, ~v a~
 - [ ] In the week view, inactive timestamps show after ~[~ with /Display now includes inactive timestamps as well/, marked ~[~, and are gone again when the agenda is rebuilt: ~[~, ~v [~, ~r~
 - [ ] Hovering a line shows its entry: the mouse
@@ -171,7 +191,8 @@ its sections says what it should look like.
 - [ ] Clocking in the last entry again: ~Ctrl+C Ctrl+X Ctrl+X~
 - [ ] The time clocked under each headline shows next to it: ~Ctrl+C Ctrl+X Ctrl+D~
 - [ ] A clock table: inserted, then updated; shifting its ~:block~ on the ~#+BEGIN:~ line: ~Ctrl+C Ctrl+X Ctrl+R~, ~Ctrl+C Ctrl+X Ctrl+U~
-- [ ] A clock left running when the editor closed is offered for resolving on the next start: /Org: Resolve a dangling clock/
+- [ ] A clock left running when the editor closed is asked about (~Dangling clock started N mins ago [jkKtTgGSscCiq]? ~); ~K~ and Enter stops it now: ~Ctrl+C Ctrl+X Ctrl+Z~
+- [ ] With a clock left running and none clocked, clocking into another entry asks about it first: ~Ctrl+C Ctrl+X Ctrl+I~
 - [ ] In the agenda, clocking in and out; the clocked line is highlighted from edge to edge: ~I~, ~O~
 - [ ] The clock in the status bar
 
@@ -189,6 +210,13 @@ its sections says what it should look like.
 - [ ] ~%[snippet.txt]~ puts in the file's text, relative to the file captured from: ~Ctrl+C c~
 - [ ] ~%(upcase "abc")~ puts in ~ABC~, what Emacs makes of it (needs Emacs): ~Ctrl+C c~
 
+* org-protocol
+
+- [ ] With ~scripts/install.sh protocol~ run, the store-link bookmarklet of docs/org-protocol.org says ~‘C-c C-l’ to insert new Org link, ‘C-y’ to insert "…"~, and inserting a link offers the page
+- [ ] The capture bookmarklet with some text selected opens the capture buffer with the page's title, link and the text (a template with ~%:description~, ~%:link~, ~%i~)
+- [ ] With ~org_protocol_project_alist~ set, ~org-lsp protocol 'org-protocol://open-source?url=…'~ opens the page's file
+- [ ] With the editor closed and ~org_protocol_editor~ set, the capture bookmarklet starts the editor and the capture buffer opens in it
+
 * Notes (org-roam)
 
 - [ ] With ~org_roam_enabled~ on and ~org_roam_directory~ set, finding a node offers the titles and aliases of its files and visits the one picked: ~Ctrl+C n f~
@@ -204,8 +232,12 @@ its sections says what it should look like.
 - [ ] Following an item of the buffer visits the line of the link: ~Ctrl+C Ctrl+O~
 - [ ] A dedicated buffer for a node asked for opens in a file of its own and stays on that node: /Org: Roam: show the org-roam buffer of a node/
 - [ ] With ~"unlinked-references"~ in ~org_roam_mode_sections~, a line naming the node's title without a link is listed under /Unlinked References/: /Org: Roam: refresh the org-roam buffer/
+- [ ] Going to today's daily note makes ~daily/YYYY-MM-DD.org~ with its ~ID~ and ~#+title:~; capturing to it adds an entry at its end; the next and previous notes go from one to the other: ~Ctrl+C n d d~, ~Ctrl+C n d n~, ~Ctrl+C n d f~
+- [ ] Opening the directory of the daily notes offers its notes; the one picked is visited: ~Ctrl+C n d .~
 
 * A journal (org-journal)
+
+*Partly:* The calendar and the keys org-journal adds to it are left out: the package shows no date prompt.
 
 - [ ] With ~org_journal_enabled~ on, a new entry makes today's file in ~org_journal_dir~ (a file without an extension, opened as Org) with today's date and an entry with the time, the cursor after it: ~Ctrl+C j j~
 - [ ] With a journal file of yesterday holding a TODO entry, the first new entry of today moves it to today's file: ~Ctrl+C j j~
@@ -236,7 +268,13 @@ its sections says what it should look like.
 - [ ] A ~#+LINK: gh https://github.com/%s~ line makes ~[[gh:org-lsp]]~ follow ~https://github.com/org-lsp~; ~org_link_abbrev_alist~ does the same from the settings: ~Ctrl+C Ctrl+O~
 - [ ] Following a link to a headline, a custom ID and a ~<<target>>~: ~Ctrl+C Ctrl+O~
 - [ ] Following a ~file:~ link with a search (~file:notes.org::*Heading~) and an ~id:~ link: ~Ctrl+C Ctrl+O~
+- [ ] Following ~[[No such heading]]~ asks whether to make it; yes adds ~* No such heading~ at the end of the file and goes there: ~Ctrl+C Ctrl+O~
+- [ ] With ~org_return_follows_link~ on, RET on a link follows it and types nothing; after the link, RET breaks the line: ~Enter~
+- [ ] With ~org_file_apps~ set to ~[["txt", "cp %s copy.txt"]]~, following ~[[file:notes.txt]]~ says ~Running cp …/notes.txt copy.txt...done~ and makes ~copy.txt~; ~C-u C-c C-o~ opens ~notes.txt~ in the editor: ~Ctrl+C Ctrl+O~
 - [ ] Following a URL opens the browser; a timestamp opens its day's agenda: ~Ctrl+C Ctrl+O~
+- [ ] Following ~[[shell:echo hi]]~ asks ~Execute echo hi in shell?~; yes says ~hi~, no says ~Abort~: ~Ctrl+C Ctrl+O~
+- [ ] With ~org_modules~ ~["ol-man"]~, following ~[[man:ls::-l]]~ shows the man page of ~ls~ as text, near ~-l~; ~[[info:elisp#Buffers]]~ opens the Elisp manual on the web at ~Buffers~: ~Ctrl+C Ctrl+O~
+- [ ] With ~org_modules~ ~["org-ctags"]~ and Universal Ctags, ~org.ctags.create~ makes ~TAGS~ from the ~<<targets>>~ of the directory; ~[[target]]~ in another file of it goes there; ~[[nothing]]~ asks to rebuild the table, then to append a topic ~* <<Nothing>>~: ~Ctrl+C Ctrl+O~, /Org: Ctags: make the TAGS file of the file's directory/
 - [ ] Go to definition on a link does the same: /LSP: Goto Definition/
 - [ ] Storing a link to a headline and inserting it elsewhere with a description: ~Ctrl+C l~, ~Ctrl+C Ctrl+L~
 - [ ] Inserting a link on an existing link edits it: ~Ctrl+C Ctrl+L~
@@ -272,6 +310,7 @@ its sections says what it should look like.
 - [ ] The sum of the column and the field's references are shown as messages (needs Emacs): ~Ctrl+C +~, ~Ctrl+C ?~
 - [ ] Creating a table asks for its size (~3x2~; empty for Org's default) (needs Emacs): ~Ctrl+C |~
 - [ ] Sorting the rows by the cursor's column: ~Ctrl+C ^~
+- [ ] A table under ~#+PLOT: file:"plot.png"~ is plotted to ~plot.png~ (needs Emacs with gnuplot.el, and gnuplot); the bars of a column of numbers go in a column of their own with its ~#+TBLFM:~ (needs Emacs): ~Ctrl+C " g~, ~Ctrl+C " a~
 - [ ] The ~#+TBLFM:~ line follows a moved column
 
 * Table formulas
@@ -322,6 +361,9 @@ its sections says what it should look like.
 - [ ] Hovering a key shows its entry; following it opens the bibliography there
 - [ ] An unknown key is reported, with close keys to put instead
 - [ ] Inserting a citation, picking keys; on a citation, adding a key; with the prefix, deleting one: ~Ctrl+C Ctrl+X @~, /Org: Delete the citation or reference at the cursor, or insert one with a style/
+- [ ] A new BibTeX entry asks for its type (completed), title, required fields and key, then is a headline with those properties: /Org: BibTeX: new entry, its fields asked for/
+- [ ] The entry at the cursor copied as BibTeX; the file's entries exported to the ~.bib~ file asked for: /Org: BibTeX: copy the entry at the cursor as BibTeX/, /Org: BibTeX: export the entries of the file to a .bib file/
+- [ ] A BibTeX entry copied from elsewhere pasted as a headline; a ~.bib~ file imported: /Org: BibTeX: paste a BibTeX entry as a heading/, /Org: BibTeX: import the entries of a BibTeX file as headings/
 
 * Diagnostics (org-lint)
 
@@ -331,11 +373,12 @@ its sections says what it should look like.
 
 * Indentation and formatting
 
-*Partly:* Virtual indentation shows as phantoms, the leading stars still showing; new lines are not indented as they are typed.
+*Partly:* Virtual indentation shows as phantoms, the leading stars still showing; new lines are not indented as they are typed. The lines a long line wraps into are not indented as Org does: Sublime Text indents them by the line's own leading whitespace (~indent_subsequent_lines~).
 
 - [ ] A file with ~#+STARTUP: indent~ shows its text indented by level, the file unchanged
 - [ ] Re-indenting a selection indents it as Org does: /LSP: Format Selection/
 - [ ] Formatting the file aligns tables and puts tags in their column
+- [ ] A file with ~#+STARTUP: num~ shows ~1~, ~1.1~​… after the stars of its headlines; the command turns them off and on: /Org: Number the headlines, or stop numbering them/
 
 * Notes and logging
 
@@ -343,6 +386,7 @@ its sections says what it should look like.
 - [ ] With ~LOG_INTO_DRAWER~, the note goes in ~:LOGBOOK:~: ~Ctrl+C Ctrl+Z~
 - [ ] Adding a note from the agenda: ~z~
 - [ ] With ~org_log_reschedule~ ~"time"~ (or ~#+STARTUP: logreschedule~), rescheduling logs ~Rescheduled from "[…]" on […]~; with ~"note"~ a note buffer opens for it: ~Ctrl+C Ctrl+S~
+- [ ] With ~org_log_done~ ~"time"~, ~org.todo.yesterday~ marks an entry done with ~CLOSED:~ at 23:59 of yesterday: /Org: Change the TODO state as if it were yesterday/
 
 * Completion and editing helpers
 
@@ -381,6 +425,8 @@ its sections says what it should look like.
 - [ ] On a line with ~[[file:pic.png]]~, the key shows the picture below the line, and takes it away again: ~Ctrl+C Ctrl+X Ctrl+V~
 - [ ] Away from a link, the pictures of the section; with a count of 16 those of the whole file; 64 takes them all away: ~Ctrl+C Ctrl+X Ctrl+V~
 - [ ] A file with ~#+STARTUP: inlineimages~ opens with its pictures
+- [ ] With ~org_image_actual_width = false~, a picture below ~#+ATTR_ORG: :width 100~ shows 100 pixels wide: ~Ctrl+C Ctrl+X Ctrl+V~
 - [ ] Scrolling moves the pictures with their lines; editing a link takes its picture away
+- [ ] With ~org_display_remote_inline_images = "download"~, on a line with ~[[https://…/pic.png]]~, the key asks whether to download it (~y~, ~n~, ~f~, ~d~, ~!~); ~y~ shows the picture, ~n~ says it will not be downloaded: ~Ctrl+C Ctrl+X Ctrl+V~
 - [ ] ~$e^{i\pi} = -1$~ shows as its image (needs Emacs, ~latex~ and ~dvipng~): ~Ctrl+C Ctrl+X Ctrl+L~
 - [ ] A file with ~#+STARTUP: latexpreview~ opens with its fragments as images (needs Emacs, ~latex~ and ~dvipng~)

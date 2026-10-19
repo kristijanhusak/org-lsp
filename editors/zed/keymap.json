@@ -1,6 +1,6 @@
 [
   {
-    "context": "Editor && extension == org-agenda",
+    "context": "Editor && !renaming && extension == org-agenda",
     "bindings": {
       "q": "pane::CloseActiveItem",
       "enter": "editor::GoToDefinition",
@@ -341,6 +341,18 @@
           "task_name": "Org agenda: Set the effort of the entry"
         }
       ],
+      ":": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: Set the tags of the headline"
+        }
+      ],
+      "ctrl-c ctrl-q": [
+        "task::Spawn",
+        {
+          "task_name": "Org agenda: Set the tags of the headline"
+        }
+      ],
       "ctrl-c ctrl-w": [
         "task::Spawn",
         {
@@ -455,6 +467,48 @@
           "task_name": "Org: Roam: capture to a node"
         }
       ],
+      "ctrl-c n d n": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: capture to today's daily note"
+        }
+      ],
+      "ctrl-c n d d": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: go to today's daily note"
+        }
+      ],
+      "ctrl-c n d t": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: go to tomorrow's daily note"
+        }
+      ],
+      "ctrl-c n d y": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: go to yesterday's daily note"
+        }
+      ],
+      "ctrl-c n d v": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: capture to the daily note of a date"
+        }
+      ],
+      "ctrl-c n d c": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: go to the daily note of a date"
+        }
+      ],
+      "ctrl-c n d .": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: open the directory of the daily notes"
+        }
+      ],
       "ctrl-c n l": [
         "task::Spawn",
         {
@@ -470,7 +524,7 @@
     }
   },
   {
-    "context": "Editor && extension == org",
+    "context": "Editor && !renaming && extension == org",
     "bindings": {
       "ctrl-c ctrl-c": [
         "task::Spawn",
@@ -494,6 +548,12 @@
         "task::Spawn",
         {
           "task_name": "Org: Clock in the last clocked task"
+        }
+      ],
+      "ctrl-c ctrl-x ctrl-z": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Resolve open clocks"
         }
       ],
       "ctrl-c ctrl-x ctrl-o": [
@@ -626,6 +686,18 @@
         "task::Spawn",
         {
           "task_name": "Org: New TODO heading after the subtree"
+        }
+      ],
+      "ctrl-c ctrl-x t": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Insert an inline task"
+        }
+      ],
+      "ctrl-o": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Open a line, or in a table insert a row"
         }
       ],
       "ctrl-c -": [
@@ -842,6 +914,18 @@
         "task::Spawn",
         {
           "task_name": "Org: Insert an empty table"
+        }
+      ],
+      "ctrl-c \" g": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Plot the table with gnuplot"
+        }
+      ],
+      "ctrl-c \" a": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Draw the column at the cursor as bars"
         }
       ],
       "ctrl-c ctrl-v n": [
@@ -1072,6 +1156,18 @@
           "task_name": "Org: Roam: insert a link to a node"
         }
       ],
+      "ctrl-c n d f": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: go to the next daily note"
+        }
+      ],
+      "ctrl-c n d b": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: go to the previous daily note"
+        }
+      ],
       "ctrl-c j f": [
         "task::Spawn",
         {
@@ -1120,6 +1216,18 @@
           "task_name": "Org: Insert or change an inactive timestamp"
         }
       ],
+      "ctrl-c ctrl-x ctrl-t": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Show timestamps in the custom formats, or not"
+        }
+      ],
+      "ctrl-c >": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Show the calendar at the date of the line"
+        }
+      ],
       "ctrl-c a": [
         "task::Spawn",
         {
@@ -1142,6 +1250,48 @@
         "task::Spawn",
         {
           "task_name": "Org: Roam: capture to a node"
+        }
+      ],
+      "ctrl-c n d n": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: capture to today's daily note"
+        }
+      ],
+      "ctrl-c n d d": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: go to today's daily note"
+        }
+      ],
+      "ctrl-c n d t": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: go to tomorrow's daily note"
+        }
+      ],
+      "ctrl-c n d y": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: go to yesterday's daily note"
+        }
+      ],
+      "ctrl-c n d v": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: capture to the daily note of a date"
+        }
+      ],
+      "ctrl-c n d c": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: go to the daily note of a date"
+        }
+      ],
+      "ctrl-c n d .": [
+        "task::Spawn",
+        {
+          "task_name": "Org: Roam: open the directory of the daily notes"
         }
       ],
       "ctrl-c n l": [

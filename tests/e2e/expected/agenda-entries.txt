@@ -1,0 +1,279 @@
+=== 2 agenda
+Week-agenda (W21):
+Monday     18 May 2026 W21
+  work:       Scheduled:  TODO Write report
+  work:       Scheduled:  TODO Call the client
+Tuesday    19 May 2026
+  work:       Scheduled:  TODO Plan the trip
+  work:       Scheduled:  TODO Book the hotel
+Wednesday  20 May 2026
+  work:       Scheduled:  TODO Pack
+  work:       Scheduled:  TODO Sort the mail
+Thursday   21 May 2026
+  work:       Scheduled:  TODO Water the garden
+Friday     22 May 2026
+Saturday   23 May 2026
+Sunday     24 May 2026
+=== 3 cursor
+work.org:4: * TODO Call the client
+=== 4 cursor
+work.org:6: * TODO Plan the trip
+=== 5 cursor
+agenda:7:   work:       Scheduled:  TODO Book the hotel
+=== 5 messages
+Follow mode is on
+=== 6 cursor
+agenda:9:   work:       Scheduled:  TODO Pack
+=== 7 messages
+Follow mode is off
+=== 8 cursor
+work.org:16: * Projects
+=== 9 messages
+Stored: Write report
+=== 10 file:work.org
+* TODO Write report
+SCHEDULED: <2026-05-18 Mon>
+:LOGBOOK:
+CLOCK: [2026-05-18 Mon 10:30]
+:END:
+See [[*Projects][the projects]].
+* TODO Call the client
+SCHEDULED: <2026-05-18 Mon>
+* TODO Plan the trip
+SCHEDULED: <2026-05-19 Tue>
+* TODO Book the hotel
+SCHEDULED: <2026-05-19 Tue>
+* TODO Pack
+SCHEDULED: <2026-05-20 Wed>
+* TODO Sort the mail
+SCHEDULED: <2026-05-20 Wed>
+* TODO Water the garden
+SCHEDULED: <2026-05-21 Thu>
+* Projects
+** Trip
+=== 10 messages
+Clock starts at [2026-05-18 Mon 10:30] - showing entire task time.
+=== 11 file:work.org
+* TODO Write report
+SCHEDULED: <2026-05-18 Mon>
+:LOGBOOK:
+CLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00
+:END:
+See [[*Projects][the projects]].
+* TODO Call the client
+SCHEDULED: <2026-05-18 Mon>
+* TODO Plan the trip
+SCHEDULED: <2026-05-19 Tue>
+* TODO Book the hotel
+SCHEDULED: <2026-05-19 Tue>
+* TODO Pack
+SCHEDULED: <2026-05-20 Wed>
+* TODO Sort the mail
+SCHEDULED: <2026-05-20 Wed>
+* TODO Water the garden
+SCHEDULED: <2026-05-21 Thu>
+* Projects
+** Trip
+=== 11 messages
+Clock stopped at [2026-05-18 Mon 10:30] after 0:00
+=== 13 file:work.org
+* TODO Write report
+SCHEDULED: <2026-05-18 Mon>
+:LOGBOOK:
+CLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00
+:END:
+See [[*Projects][the projects]].
+* TODO Call the client
+SCHEDULED: <2026-05-18 Mon>
+* TODO Plan the trip
+SCHEDULED: <2026-05-19 Tue>
+* TODO Book the hotel
+SCHEDULED: <2026-05-19 Tue>
+* TODO Pack
+SCHEDULED: <2026-05-20 Wed>
+* TODO Sort the mail
+SCHEDULED: <2026-05-20 Wed>
+* TODO Water the garden
+SCHEDULED: <2026-05-21 Thu>
+* Projects
+** Trip
+=== 13 messages
+Clock starts at [2026-05-18 Mon 10:30] - showing entire task time.
+Clock canceled
+=== 14 messages
+Saving all Org buffers... done
+=== 15 file:week.txt
+Week-agenda (W21):
+Monday     18 May 2026 W21
+  work:       Scheduled:  TODO Write report
+  work:       Scheduled:  TODO Call the client
+Tuesday    19 May 2026
+  work:       Scheduled:  TODO Plan the trip
+  work:       Scheduled:  TODO Book the hotel
+Wednesday  20 May 2026
+  work:       Scheduled:  TODO Pack
+  work:       Scheduled:  TODO Sort the mail
+Thursday   21 May 2026
+  work:       Scheduled:  TODO Water the garden
+Friday     22 May 2026
+Saturday   23 May 2026
+Sunday     24 May 2026
+=== 15 messages
+Plain text written to $DIR/week.txt
+=== 16 messages
+Plain text written to $DIR/week.txt
+=== 17 agenda
+Week-agenda (W21):
+Monday     18 May 2026 W21
+  work:       Scheduled:  TODO Write report
+  work:       Scheduled:  TODO Call the client
+Tuesday    19 May 2026
+  work:       Scheduled:  TODO Book the hotel
+  work:       Scheduled:  TODO Plan the trip
+Wednesday  20 May 2026
+  work:       Scheduled:  TODO Pack
+  work:       Scheduled:  TODO Sort the mail
+Thursday   21 May 2026
+  work:       Scheduled:  TODO Water the garden
+Friday     22 May 2026
+Saturday   23 May 2026
+Sunday     24 May 2026
+=== 17 file:work.org
+* TODO Write report
+SCHEDULED: <2026-05-18 Mon>
+:LOGBOOK:
+CLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00
+:END:
+See [[*Projects][the projects]].
+* TODO Call the client
+SCHEDULED: <2026-05-18 Mon>
+* TODO Book the hotel
+SCHEDULED: <2026-05-19 Tue>
+* TODO Pack
+SCHEDULED: <2026-05-20 Wed>
+* TODO Sort the mail
+SCHEDULED: <2026-05-20 Wed>
+* TODO Water the garden
+SCHEDULED: <2026-05-21 Thu>
+* Projects
+** Trip
+** TODO Plan the trip
+SCHEDULED: <2026-05-19 Tue>
+=== 17 messages
+Refile to "Projects (work.org)" in file $DIR/work.org: done
+=== 18 agenda
+Week-agenda (W21):
+Monday     18 May 2026 W21
+  work:       Scheduled:  TODO Write report
+  work:       Scheduled:  TODO Call the client
+Tuesday    19 May 2026
+  work:       Scheduled:  TODO Plan the trip
+Wednesday  20 May 2026
+  work:       Scheduled:  TODO Pack
+  work:       Scheduled:  TODO Sort the mail
+Thursday   21 May 2026
+  work:       Scheduled:  TODO Water the garden
+Friday     22 May 2026
+Saturday   23 May 2026
+Sunday     24 May 2026
+=== 18 messages
+Subtree archived in file: $DIR/work.org_archive
+=== 19 agenda
+Week-agenda (W21):
+Monday     18 May 2026 W21
+  work:       Scheduled:  TODO Write report
+  work:       Scheduled:  TODO Call the client
+Tuesday    19 May 2026
+  work:       Scheduled:  TODO Plan the trip
+Wednesday  20 May 2026
+  work:       Scheduled:  TODO Sort the mail
+Thursday   21 May 2026
+  work:       Scheduled:  TODO Water the garden
+Friday     22 May 2026
+Saturday   23 May 2026
+Sunday     24 May 2026
+=== 19 messages
+=== 20 agenda
+Week-agenda (W21):
+Monday     18 May 2026 W21
+  work:       Scheduled:  TODO Write report
+  work:       Scheduled:  TODO Call the client
+Tuesday    19 May 2026
+  work:       Scheduled:  TODO Plan the trip
+Wednesday  20 May 2026
+Thursday   21 May 2026
+  work:       Scheduled:  TODO Water the garden
+Friday     22 May 2026
+Saturday   23 May 2026
+Sunday     24 May 2026
+=== 20 messages
+Subtree archived
+=== 21 messages
+Subtree archived in file: $DIR/work.org_archive
+=== 22 messages
+Abort
+=== 23 agenda
+Week-agenda (W21):
+Monday     18 May 2026 W21
+  work:       Scheduled:  TODO Call the client
+Tuesday    19 May 2026
+  work:       Scheduled:  TODO Plan the trip
+Wednesday  20 May 2026
+Thursday   21 May 2026
+Friday     22 May 2026
+Saturday   23 May 2026
+Sunday     24 May 2026
+=== 23 file:work.org
+* TODO Call the client
+SCHEDULED: <2026-05-18 Mon>
+* TODO Sort the mail                                                :ARCHIVE:
+SCHEDULED: <2026-05-20 Wed>
+* Projects
+** Trip
+** TODO Plan the trip
+SCHEDULED: <2026-05-19 Tue>
+* Archive                                                           :ARCHIVE:
+** TODO Pack
+SCHEDULED: <2026-05-20 Wed>
+:PROPERTIES:
+:ARCHIVE_TIME: 2026-05-18 Mon 10:30
+:END:
+=== 23 file:work.org_archive
+#    -*- mode: org -*-
+
+
+Archived entries from file $DIR/work.org
+
+
+* TODO Book the hotel
+SCHEDULED: <2026-05-19 Tue>
+:PROPERTIES:
+:ARCHIVE_TIME: 2026-05-18 Mon 10:30
+:ARCHIVE_FILE: $DIR/work.org
+:ARCHIVE_CATEGORY: work
+:ARCHIVE_TODO: TODO
+:END:
+
+* TODO Water the garden
+SCHEDULED: <2026-05-21 Thu>
+:PROPERTIES:
+:ARCHIVE_TIME: 2026-05-18 Mon 10:30
+:ARCHIVE_FILE: $DIR/work.org
+:ARCHIVE_CATEGORY: work
+:ARCHIVE_TODO: TODO
+:END:
+
+* TODO Write report
+SCHEDULED: <2026-05-18 Mon>
+:PROPERTIES:
+:ARCHIVE_TIME: 2026-05-18 Mon 10:30
+:ARCHIVE_FILE: $DIR/work.org
+:ARCHIVE_CATEGORY: work
+:ARCHIVE_TODO: TODO
+:END:
+:LOGBOOK:
+CLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00
+:END:
+See [[*Projects][the projects]].
+=== 23 messages
+Subtree archived in file: $DIR/work.org_archive

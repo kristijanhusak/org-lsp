@@ -1,0 +1,23 @@
+{
+  "description": "A search view and its query changed from the agenda ([ ] { }).",
+  "files": {
+    "work.org": [
+      "* TODO Write the report",
+      "Draft for the board.",
+      "* Notes on the report",
+      "The board meets in June.",
+      "* TODO Book the hotel",
+      "Near the board room."
+    ]
+  },
+  "steps": [
+    { "open": "work.org" },
+    { "command": "org.agenda.dispatch", "answers": ["s", "+report"], "expect": ["agenda"] },
+    { "command": "org.agenda.query.add", "answers": ["+report +board"], "expect": ["agenda"] },
+    { "command": "org.agenda.query.subtract", "answers": ["+report +board -notes"], "expect": ["agenda"] },
+    { "command": "org.agenda.query.add.regexp", "answers": ["+report -notes +{draft}"], "expect": ["agenda"] },
+    { "command": "org.agenda.query.subtract.regexp", "answers": ["+board -{draft}"], "expect": ["agenda"] },
+    { "command": "org.agenda.dispatch", "answers": ["t"] },
+    { "command": "org.agenda.query.add", "expect": ["messages"] }
+  ]
+}

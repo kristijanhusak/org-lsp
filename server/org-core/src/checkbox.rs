@@ -141,8 +141,16 @@ fn end_of_meta_data(text: &str, heading: usize, limit: usize) -> usize {
 /// `org-toggle-checkbox` at byte `offset`: on a list item, its checkbox;
 /// on a headline, those of all the items below it, as the first one goes.
 /// Parent boxes follow their children, and the cookies of the section are
-/// counted again.
-pub fn toggle(text: &str, keywords: &TodoKeywords, offset: usize, tags_column: i64) -> Result<String, Refusal> {
+/// counted again (with the `checkbox` rule of `org-list-automatic-rules`).
+/// An item whose box changes has its bullet written again, with the
+/// spaces `org-list-bullet-string` puts after it.
+pub fn toggle(
+    text: &str,
+    keywords: &TodoKeywords,
+    offset: usize,
+    tags_column: i64,
+    settings: &crate::list::Settings,
+) -> Result<String, Refusal> {
     let root = parse(text, keywords);
     let lists = Lists::new(text, &root);
     let line = line_start(text, offset);
@@ -194,12 +202,22 @@ pub fn toggle(text: &str, keywords: &TodoKeywords, offset: usize, tags_column: i
         }
     }
     let mut out = text.to_string();
-    for (index, item) in lists.items.iter().enumerate() {
-        if let (Some((at, _)), Some(state)) = (item.checkbox, states[index]) {
-            out.replace_range(at + 1..at + 2, &char::from(state).to_string());
+    for (index, item) in lists.items.iter().enumerate().rev() {
+        let (Some((at, old)), Some(state)) = (item.checkbox, states[index]) else { continue };
+        if old == state {
+            continue;
         }
+        out.replace_range(at + 1..at + 2, &char::from(state).to_string());
+        let bullet = item.begin + item.indent;
+        let bullet_end = bullet + out[bullet..].find([' ', '\t']).unwrap_or(0);
+        let spaces = out[bullet_end..].len() - out[bullet_end..].trim_start_matches([' ', '\t']).len();
+        let new = crate::list::bullet_string(&out[bullet..bullet_end + spaces], settings);
+        out.replace_range(bullet..bullet_end + spaces, &new);
     }
-    Ok(update_counts(&out, keywords, offset, tags_column))
+    if !settings.checkbox_rule {
+        return Ok(out);
+    }
+    Ok(update_counts(&out, keywords, offset, tags_column, settings.checkbox_hierarchical))
 }
 
 /// The start of the next headline after the line at `at`.
@@ -253,6 +271,7 @@ pub fn ctrl_c_ctrl_c(
     offset: usize,
     tags_column: i64,
     ordered: bool,
+    settings: &crate::list::Settings,
 ) -> Result<(String, usize, Option<String>), Refusal> {
     let root = parse(text, keywords);
     // On a statistics cookie, the cookies are counted again
@@ -265,7 +284,8 @@ pub fn ctrl_c_ctrl_c(
     let lists = Lists::new(text, &root);
     let line = line_start(text, offset);
     if on_cookie && lists.items.iter().any(|item| item.begin == line) {
-        let (edited, cursor) = update_counts_keeping(text, keywords, offset, tags_column, offset);
+        let (edited, cursor) =
+            update_counts_keeping(text, keywords, offset, tags_column, offset, settings.checkbox_hierarchical);
         return Ok((edited, cursor, None));
     }
     let item = lists
@@ -277,11 +297,15 @@ pub fn ctrl_c_ctrl_c(
     let limit = lists.limits[item.list];
     // At the start of a list, Org is on the list rather than its first item.
     let (edited, cursor, message) = if item.first && offset == line {
-        crate::list::ctrl_c_ctrl_c_list(text, offset, begin, limit)?
+        crate::list::ctrl_c_ctrl_c_list(text, offset, begin, limit, settings)?
     } else {
-        crate::list::ctrl_c_ctrl_c(text, offset, begin, limit, ordered)?
+        crate::list::ctrl_c_ctrl_c(text, offset, begin, limit, ordered, settings)?
     };
-    let (edited, cursor) = update_counts_keeping(&edited, keywords, cursor, tags_column, cursor);
+    if !settings.checkbox_rule {
+        return Ok((edited, cursor, message));
+    }
+    let (edited, cursor) =
+        update_counts_keeping(&edited, keywords, cursor, tags_column, cursor, settings.checkbox_hierarchical);
     Ok((edited, cursor, message))
 }
 
@@ -290,9 +314,17 @@ pub fn ctrl_c_ctrl_c(
 /// item's children, or the lists of a drawer, a block or the section).
 ///
 /// A cookie on a headline with tags realigns them to `tags_column`, as
-/// `org-fix-tags-on-the-fly` does.
-pub fn update_counts(text: &str, keywords: &TodoKeywords, offset: usize, tags_column: i64) -> String {
-    update_counts_keeping(text, keywords, offset, tags_column, offset).0
+/// `org-fix-tags-on-the-fly` does. Unless `hierarchical`
+/// (`org-checkbox-hierarchical-statistics`), a cookie counts every box
+/// below it, as with `recursive` in `COOKIE_DATA`.
+pub fn update_counts(
+    text: &str,
+    keywords: &TodoKeywords,
+    offset: usize,
+    tags_column: i64,
+    hierarchical: bool,
+) -> String {
+    update_counts_keeping(text, keywords, offset, tags_column, offset, hierarchical).0
 }
 
 /// [`update_counts`], with where `cursor` goes: a cookie is replaced by
@@ -304,6 +336,7 @@ pub fn update_counts_keeping(
     offset: usize,
     tags_column: i64,
     mut cursor: usize,
+    hierarchical: bool,
 ) -> (String, usize) {
     let root = parse(text, keywords);
     let lists = Lists::new(text, &root);
@@ -328,7 +361,7 @@ pub fn update_counts_keeping(
         if has_word(&data, "todo") {
             continue;
         }
-        let recursive = has_word(&data, "recursive");
+        let recursive = !hierarchical || has_word(&data, "recursive");
         let container = cookie.ancestors().find(|node| match node.kind() {
             DRAWER | DYNAMIC_BLOCK | LIST_ITEM => true,
             BLOCK => node
@@ -414,7 +447,7 @@ mod tests {
         // As Emacs's `org-toggle-checkbox` does: an item in the LOGBOOK is
         // neither the box the others follow nor toggled.
         let keywords = TodoKeywords::default();
-        let toggled = |text: &str| toggle(text, &keywords, 1, -77).unwrap();
+        let toggled = |text: &str| toggle(text, &keywords, 1, -77, &Default::default()).unwrap();
         assert_eq!(
             toggled("* H\n:LOGBOOK:\n- [ ] note\n:END:\n- [ ] a\n- [X] b\n"),
             "* H\n:LOGBOOK:\n- [ ] note\n:END:\n- [X] a\n- [X] b\n"

@@ -18,6 +18,7 @@ chrono = { version = "0.4", default-features = false, features = ["clock"] }
 crossbeam-channel = "0.5"
 lsp-server = "0.10"
 lsp-types = "0.97"
+regex = { version = "1.13.1", default-features = false, features = ["std", "unicode-perl", "unicode-case", "unicode-gencat"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 toml = { version = "0.9", features = ["preserve_order"] }

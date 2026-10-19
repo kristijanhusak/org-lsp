@@ -23,7 +23,11 @@ others), as close to Emacs Org mode as it can get.
   logic. A new feature should need no new editor code.
 - /Emacs is the reference./ Org logic is ported from the Emacs sources
   (Org 9.8.10) and compared with Emacs by committed reference cases and
-  by differential fuzzing. A deliberate difference is written down.
+  by differential fuzzing. A deliberate difference is written down. The
+  options are part of it: each of Org's options is in
+  ~scripts/org-options.json~, with what org-lsp does with it (a setting,
+  missing, read by Emacs, and so on), and [[file:parity.org::#options][parity.org]] lists those
+  missing.
 - /One repository/, Neovim files at the root (~plugin/~, ~lua/~), other
   editors under ~editors/~. The repository is private and stays private.
 - /Small changes./ Each is one pull request, with its tests, its docs and
@@ -46,43 +50,60 @@ others), as close to Emacs Org mode as it can get.
 - Against Emacs (needs Emacs, ~faketime~, and ~ORG_LISP_DIR~ pointing at
   the ~lisp~ directory of an Org 9.8.10 checkout):
 
-  | Area                                                                                                                              | Committed reference               | Regenerate                                                                         | Fuzz                            |
-  |-----------------------------------------------------------------------------------------------------------------------------------+-----------------------------------+------------------------------------------------------------------------------------+---------------------------------|
-  | Parser                                                                                                                            | ~tests/fixtures/*.elements~       | ~scripts/update-fixtures.sh~                                                       | ~scripts/fuzz-against-emacs.py~ |
-  | Dates                                                                                                                             | ~tests/vectors/*.tsv~             | ~scripts/gen-vectors.el~                                                           |                                 |
-  | Agenda                                                                                                                            | ~tests/agenda/*/expected-N.txt~   | ~scripts/update-agenda-fixtures.py~                                                | ~scripts/fuzz-agenda.py~        |
-  | Agenda groups (org-super-agenda): with ~ORG_LSP_EMACS_PACKAGES~; fuzzing with ~--super~                                           | ~tests/agenda/super-*/~           | ~scripts/update-agenda-fixtures.py~                                                | ~scripts/fuzz-agenda.py~        |
-  | org-roam's nodes, captures, edits, buffer: with ~ORG_LSP_EMACS_PACKAGES~                                                          | ~tests/roam/*.json~               | ~scripts/update-roam*-fixtures.py~                                                 | ~scripts/fuzz-roam*.py~         |
-  | org-journal's entries, carryover, motion: with ~ORG_LSP_EMACS_PACKAGES~                                                           | ~tests/journal/cases.json~        | ~scripts/update-journal-fixtures.py~                                               | ~scripts/fuzz-journal.py~       |
-  | TODO changes                                                                                                                      | ~tests/todo/cases.json~           | ~scripts/update-todo-fixtures.py~                                                  | ~scripts/fuzz-todo.py~          |
-  | Priorities, timestamps                                                                                                            | ~tests/shift/cases.json~          | ~scripts/update-shift-fixtures.py~                                                 | ~scripts/fuzz-shift.py~         |
-  | Agenda commands                                                                                                                   | ~tests/agenda-actions/cases.json~ | ~scripts/update-agenda-action-fixtures.py~                                         |                                 |
-  | Folding subtrees                                                                                                                  | ~tests/folding/cases.json~        | ~scripts/update-fold-fixtures.py~                                                  | ~scripts/fuzz-fold.py~          |
-  | Date prompt                                                                                                                       | ~tests/read-date/cases.json~      | ~scripts/update-read-date-fixtures.py~                                             | ~scripts/fuzz-read-date.py~     |
-  | Commands that ask for a date                                                                                                      | ~tests/planning/cases.json~       | ~scripts/update-planning-fixtures.py~                                              | ~scripts/fuzz-planning.py~      |
-  | Calendar of the date prompt                                                                                                       | ~tests/calendar/emacs*.txt~       | ~scripts/update-calendar-fixtures.sh~                                              |                                 |
-  | Indentation                                                                                                                       | ~tests/indent/cases.json~         | ~scripts/update-indent-fixtures.py~                                                | ~scripts/fuzz-indent.py~        |
-  | Formatting (tables, tags)                                                                                                         | ~tests/format/cases.json~         | ~scripts/update-format-fixtures.py~                                                | ~scripts/fuzz-format.py~        |
-  | RET (~org-return~)                                                                                                                | ~tests/return/cases.json~         | ~scripts/update-return-fixtures.py~                                                | ~scripts/fuzz-return.py~        |
-  | M-RET, M-S-RET, C-RET, C-S-RET                                                                                                    | ~tests/meta-return/cases.json~    | ~scripts/update-meta-return-fixtures.py~                                           | ~scripts/fuzz-meta-return.py~   |
-  | Promote, demote, move subtrees (~M-<left>~, ~M-S-<right>~, ~M-<up>~, …)                                                           | ~tests/structure/cases.json~      | ~scripts/update-structure-fixtures.py~                                             | ~scripts/fuzz-structure.py~     |
-  | Cut, copy, paste subtrees (~org-cut-subtree~, ~org-copy-subtree~, ~org-paste-subtree~, with the kill ring)                        | ~tests/subtree/cases.json~        | ~scripts/update-subtree-fixtures.py~                                               | ~scripts/fuzz-subtree.py~       |
-  | Sorting entries (~org-sort-entries~, every sorting type, in the C locale at a fixed time)                                         | ~tests/sort/cases.json~           | ~scripts/update-sort-fixtures.py~                                                  | ~scripts/fuzz-sort.py~          |
-  | Moving between headings and links (~C-c C-n~, ~C-c C-p~, ~C-c C-f~, ~C-c C-b~, ~C-c C-u~, ~C-c C-x C-n~, ~C-c C-x C-p~)           | ~tests/motion/cases.json~         | ~scripts/motion_reference.py~                                                      | ~scripts/fuzz-motion.py~        |
-  | Sparse trees (~org-occur~, ~org-show-todo-tree~, ~org-match-sparse-tree~, ~org-check-deadlines~ and the date checks): the matches | ~tests/sparse/cases.json~         | ~scripts/update-sparse-fixtures.py~                                                |                                 |
-  | List items: the meta and shifted keys, ~C-c C-c~ and ~C-c ^~ on an item                                                           | ~tests/lists/cases.json~          | ~scripts/update-lists-fixtures.py~                                                 | ~scripts/fuzz-lists.py~         |
-  | Setting tags (~org-set-tags-command~: fast tag selection by key, the completion prompt's answer)                                  | ~tests/tags/cases.json~           | ~scripts/update-tags-fixtures.py~                                                  | ~scripts/fuzz-tags.py~          |
-  | Archiving                                                                                                                         | ~tests/archive/cases.json~        | ~scripts/update-archive-fixtures.py~                                               | ~scripts/fuzz-archive.py~       |
-  | ~org-lint~                                                                                                                        | ~tests/lint/cases.json~           | ~scripts/lint_reference.py~ (and ~scripts/update-lint-tables.py~ for Org's tables) | ~scripts/fuzz-lint.py~          |
-  | Storing and inserting links (~org-store-link~, ~org-insert-link~ and its relatives, ~org-id-get-create~)                          | ~tests/link/cases.json~           | ~scripts/link_reference.py~                                                        | ~scripts/fuzz-link.py~          |
+  | Area                                                                                                                                                     | Committed reference                | Regenerate                                                                         | Fuzz                            |
+  |----------------------------------------------------------------------------------------------------------------------------------------------------------+------------------------------------+------------------------------------------------------------------------------------+---------------------------------|
+  | Parser                                                                                                                                                   | ~tests/fixtures/*.elements~        | ~scripts/update-fixtures.sh~                                                       | ~scripts/fuzz-against-emacs.py~ |
+  | Dates                                                                                                                                                    | ~tests/vectors/*.tsv~              | ~scripts/gen-vectors.el~                                                           |                                 |
+  | Agenda; with ~--sorting~, ~--todo-options~, ~--skip-options~, ~--display-options~ its options                                                            | ~tests/agenda/*/expected-N.txt~    | ~scripts/update-agenda-fixtures.py~                                                | ~scripts/fuzz-agenda.py~        |
+  | Agenda groups (org-super-agenda): with ~ORG_LSP_EMACS_PACKAGES~; fuzzing with ~--super~                                                                  | ~tests/agenda/super-*/~            | ~scripts/update-agenda-fixtures.py~                                                | ~scripts/fuzz-agenda.py~        |
+  | org-roam's nodes, captures, edits, buffer: with ~ORG_LSP_EMACS_PACKAGES~                                                                                 | ~tests/roam/*.json~                | ~scripts/update-roam*-fixtures.py~                                                 | ~scripts/fuzz-roam*.py~         |
+  | org-journal's entries, carryover, motion, calendar keys: with ~ORG_LSP_EMACS_PACKAGES~                                                                   | ~tests/journal/cases.json~         | ~scripts/update-journal-fixtures.py~                                               | ~scripts/fuzz-journal.py~       |
+  | TODO changes                                                                                                                                             | ~tests/todo/cases.json~            | ~scripts/update-todo-fixtures.py~                                                  | ~scripts/fuzz-todo.py~          |
+  | Priorities, timestamps                                                                                                                                   | ~tests/shift/cases.json~           | ~scripts/update-shift-fixtures.py~                                                 | ~scripts/fuzz-shift.py~         |
+  | Agenda commands                                                                                                                                          | ~tests/agenda-actions/cases.json~  | ~scripts/update-agenda-action-fixtures.py~                                         |                                 |
+  | Folding subtrees                                                                                                                                         | ~tests/folding/cases.json~         | ~scripts/update-fold-fixtures.py~                                                  | ~scripts/fuzz-fold.py~          |
+  | Date prompt                                                                                                                                              | ~tests/read-date/cases.json~       | ~scripts/update-read-date-fixtures.py~                                             | ~scripts/fuzz-read-date.py~     |
+  | Commands that ask for a date                                                                                                                             | ~tests/planning/cases.json~        | ~scripts/update-planning-fixtures.py~                                              | ~scripts/fuzz-planning.py~      |
+  | Calendar of the date prompt                                                                                                                              | ~tests/calendar/emacs*.txt~        | ~scripts/update-calendar-fixtures.sh~                                              |                                 |
+  | Indentation                                                                                                                                              | ~tests/indent/cases.json~          | ~scripts/update-indent-fixtures.py~                                                | ~scripts/fuzz-indent.py~        |
+  | The looks of headline levels (~org-get-level-face~, ~org-n-level-faces~, ~org-cycle-level-faces~), ~org-fontify-whole-heading-line~                      | ~tests/level-faces/cases.json~     | ~scripts/level_faces_reference.py~                                                 |                                 |
+  | The lines ~org-toggle-custom-properties-visibility~ hides (~org-custom-properties~)                                                                      | ~tests/properties/custom.json~     | ~scripts/custom_properties_reference.py~                                           | ~scripts/fuzz-custom-props.py~  |
+  | Formatting (tables, tags)                                                                                                                                | ~tests/format/cases.json~          | ~scripts/update-format-fixtures.py~                                                | ~scripts/fuzz-format.py~        |
+  | RET (~org-return~)                                                                                                                                       | ~tests/return/cases.json~          | ~scripts/update-return-fixtures.py~                                                | ~scripts/fuzz-return.py~        |
+  | M-RET, M-S-RET, C-RET, C-S-RET                                                                                                                           | ~tests/meta-return/cases.json~     | ~scripts/update-meta-return-fixtures.py~                                           | ~scripts/fuzz-meta-return.py~   |
+  | Promote, demote, move subtrees (~M-<left>~, ~M-S-<right>~, ~M-<up>~, …)                                                                                  | ~tests/structure/cases.json~       | ~scripts/update-structure-fixtures.py~                                             | ~scripts/fuzz-structure.py~     |
+  | Cut, copy, paste and yank subtrees (~org-cut-subtree~, ~org-copy-subtree~, ~org-paste-subtree~, ~org-yank~, with the kill ring and the folds after them) | ~tests/subtree/cases.json~         | ~scripts/update-subtree-fixtures.py~                                               | ~scripts/fuzz-subtree.py~       |
+  | The line keys (~org-beginning-of-line~, ~org-end-of-line~, ~org-kill-line~, on folded headlines too)                                                     | ~tests/line/cases.json~            | ~scripts/line_reference.py~                                                        |                                 |
+  | Sorting entries (~org-sort-entries~, every sorting type, in the C locale at a fixed time)                                                                | ~tests/sort/cases.json~            | ~scripts/update-sort-fixtures.py~                                                  | ~scripts/fuzz-sort.py~          |
+  | Moving between headings and links (~C-c C-n~, ~C-c C-p~, ~C-c C-f~, ~C-c C-b~, ~C-c C-u~, ~C-c C-x C-n~, ~C-c C-x C-p~)                                  | ~tests/motion/cases.json~          | ~scripts/motion_reference.py~                                                      | ~scripts/fuzz-motion.py~        |
+  | Sparse trees (~org-occur~, ~org-show-todo-tree~, ~org-match-sparse-tree~, ~org-check-deadlines~ and the date checks): the matches                        | ~tests/sparse/cases.json~          | ~scripts/update-sparse-fixtures.py~                                                |                                 |
+  | List items: the meta and shifted keys, ~C-c C-c~ and ~C-c ^~ on an item                                                                                  | ~tests/lists/cases.json~           | ~scripts/update-lists-fixtures.py~                                                 | ~scripts/fuzz-lists.py~         |
+  | Setting tags (~org-set-tags-command~: fast tag selection by key, the completion prompt's answer)                                                         | ~tests/tags/cases.json~            | ~scripts/update-tags-fixtures.py~                                                  | ~scripts/fuzz-tags.py~          |
+  | Archiving                                                                                                                                                | ~tests/archive/cases.json~         | ~scripts/update-archive-fixtures.py~                                               | ~scripts/fuzz-archive.py~       |
+  | ~org-lint~                                                                                                                                               | ~tests/lint/cases.json~            | ~scripts/lint_reference.py~ (and ~scripts/update-lint-tables.py~ for Org's tables) | ~scripts/fuzz-lint.py~          |
+  | Storing and inserting links (~org-store-link~, ~org-insert-link~ and its relatives, ~org-id-get-create~)                                                 | ~tests/link/cases.json~            | ~scripts/link_reference.py~                                                        | ~scripts/fuzz-link.py~          |
+  | Org-protocol URLs (~org-protocol.el~: ~org-protocol-check-filename-for-protocol~, the ~store-link~, ~capture~ and ~open-source~ handlers)                | ~tests/protocol/cases.json~        | ~scripts/update-protocol-fixtures.py~                                              | ~scripts/fuzz-protocol.py~      |
+  | Inline tasks (~org-inlinetask~: ~C-c C-x t~, ~M-<left>~ and ~M-<right>~ on one, the motion and the folds around them)                                    | ~tests/inlinetask/cases.json~      | ~scripts/update-inlinetask-fixtures.py~                                            |                                 |
+  | Resolving open clocks (~org-resolve-clocks~, and before ~org-clock-in~): what is asked, and the file                                                     | ~tests/clock/resolve.json~         | ~scripts/clock_resolve_reference.py~                                               |                                 |
+  | Downloading remote resources (~org-resource-download-policy~, ~org-safe-remote-resources~, ~org--confirm-resource-safe~): what is asked, the answer      | ~tests/link/remote-resources.json~ | ~scripts/remote_resource_reference.py~                                             |                                 |
+  | BibTeX entries as headlines (~ol-bibtex.el~: ~org-bibtex~, ~org-bibtex-create~, ~org-bibtex-check~, ~org-bibtex-yank~, ~org-bibtex-import-from-file~)    | ~tests/bibtex/cases.json~          | ~scripts/update-bibtex-fixtures.py~                                                | ~scripts/fuzz-bibtex.py~        |
+- The shared end-to-end scenarios ([[#end-to-end-scenarios][below]]): ~cargo test~ runs them
+  against the server and checks that they reach every key of the agenda,
+  the date prompt and capture; each editor's adapter presses its keys for
+  the same steps.
 - Neovim: ~scripts/test-nvim.sh~ (set ~NVIM~ to the binary), on 0.12.0 and
-  stable. Tests run headless against the real server.
+  stable. Tests run headless against the real server; ~tests/nvim/scenarios.lua~
+  is its adapter of the scenarios.
 - VS Code: in ~editors/vscode~, ~npm run generate -- --check~,
   ~npm run check~, ~npm run build~, ~xvfb-run -a npm test~ (VSCodium works locally
-  through ~VSCODE_EXECUTABLE~).
+  through ~VSCODE_EXECUTABLE~, set to its ~codium~ binary, not the
+  launcher in ~bin/~). The tests of the extension run first, then
+  ~editors/vscode/test/scenarios.test.cjs~, its adapter of the scenarios,
+  which presses keys with ~xdotool~.
 - Vim: ~CLIENTS=dir editors/vim/test/run.sh~, with the four clients
   checked out in ~dir~ (~lsp~, ~vim-lsp~, ~coc.nvim~ on its ~release~
-  branch, ~ale~); Vim runs in tmux.
+  branch, ~ale~); Vim runs in tmux. ~editors/vim/test/scenarios.vim~ is its
+  adapter of the scenarios.
 - Sublime Text: ~node editors/sublime/generate.mjs --check~,
   ~python3 editors/sublime/test/test_plugin.py~.
 - Zed: ~node editors/zed/generate.mjs --check~,
@@ -90,6 +111,195 @@ others), as close to Emacs Org mode as it can get.
   grammar with the tree-sitter CLI. Zed itself cannot run in the
   workspace.
 - CI, started by hand, runs seven jobs: server, Neovim 0.12.0, Neovim stable, VS Code, Vim (with each of its four LSP clients), Sublime Text (generated files, the plugin against stand-ins), Zed (the build, generated rules, queries).
+
+* End-to-end scenarios
+:PROPERTIES:
+:CUSTOM_ID: end-to-end-scenarios
+:END:
+
+What a user does in any editor, written once: ~tests/e2e/scenarios/NAME.json~,
+each a few files, the options the server starts with and the steps taken.
+The server's runner (~server/org-lsp/tests/e2e_scenarios.rs~) takes them as
+an editor with org-lsp's plugin would, over LSP, and is the reference: what
+it sees is in ~tests/e2e/expected/NAME.txt~, written again with
+~ORG_LSP_UPDATE_E2E=1~ (~ORG_LSP_E2E=NAME~ runs only the scenarios whose name
+has ~NAME~ in it). Each editor has an adapter that presses that editor's keys
+for the same steps and must see the same; Neovim's is
+~tests/nvim/scenarios.lua~ (~scripts/test-nvim.sh~ runs it), Vim's
+~editors/vim/test/scenarios.vim~, which ~editors/vim/test/run.sh~ runs with
+each LSP client after the plugin's own tests, each scenario in a Vim of its
+own, four at a time:
+
+#+begin_src sh
+CLIENTS=~/vim-clients editors/vim/test/run.sh                  # the tests, then the scenarios
+ORG_LSP_VIM_TESTS=scenarios ORG_LSP_E2E=capture \
+  CLIENTS=~/vim-clients editors/vim/test/run.sh coc            # one scenario, one client
+#+end_src
+
+~ORG_LSP_VIM_TESTS~ is ~cases~ or ~scenarios~ for only those,
+~ORG_LSP_E2E_JOBS~ how many Vims run at once. Each scenario prints one line,
+with the step that failed and what it saw; a step a client cannot take as
+the others do is skipped, with the reason, from ~s:skips~ in
+~scenarios.vim~ (coc.nvim shows the documents the server asks for itself).
+
+A scenario has:
+
+- ~files~ :: file names and their text, a string or a list of lines; or
+  ~files_from~, a directory under ~tests/~ whose ~.org~ and ~.org_archive~
+  files it takes (the recorded agenda cases), and ~files~ on top.
+- ~clock~ :: the server's clock, ~{ "today": "2026-05-18", "now": "10:30" }~
+  unless it says otherwise.
+- ~options~ :: the server's options, over those every scenario has: the
+  clock, ~org_agenda_files~, ~org_directory~ and ~org_default_notes_file~ in
+  the scenario's directory. ~$DIR~ in a string is that directory.
+- ~emacs~ :: ~true~ for a scenario that needs Emacs (column view): it is
+  skipped without it, unless ~ORG_LSP_REQUIRE_EMACS~ is set.
+- ~steps~ :: what is done, in turn. A step may open a file (~"open":
+  "work.org"~), go back to a buffer that is open (~"focus": "agenda"~), close
+  the agenda (~"close": true~), put the cursor on a line (~"line": 3~, from 1)
+  or where some text is (~"at": "Call the client"~, ~"column"~ further on),
+  type text where the cursor is (~"type": "Call mom"~, as in insert mode),
+  and run a command by its name in the manifest (~"command":
+  "org.agenda.later"~), with a ~count~, ~"below": true~ for the keys of
+  modal editors that add below the cursor's line (~<Leader><CR>~), and the
+  ~answers~ to what it asks, in turn: a key, text, ~{ "choice": "Projects" }~
+  for a choice by its label, or a date, typed in the date prompt
+  (~org.calendar.type~). ~"wait": "columns"~ waits for column view, which
+  Emacs works out. The adapter presses the command's key in the editor (the
+  first; it checks that the others are set too), where the cursor is: the
+  agenda, the date prompt, a capture buffer, an Org file.
+- ~expect~ :: after the step, what to look at: ~agenda~ (the agenda's text),
+  ~file:NAME~ (a file, as the editor has it), ~buffer~ (the current
+  buffer's name and text), ~cursor~ (its name, the cursor's line and that
+  line's text), ~messages~ (what was said since they were last looked at),
+  ~columns~ (column view). ~"emacs": "agenda/NAME/expected-N.txt"~ on a
+  step also checks the agenda against that view, recorded from Emacs.
+
+~scenarios_cover_the_agenda_calendar_and_capture~ fails when a command with
+a key in the agenda, the date prompt or a capture buffer is in no scenario,
+unless ~tests/e2e/exceptions.json~ names it under ~commands~ with the reason.
+An adapter fails on a command that has no key in its editor, unless
+~editors.EDITOR~ there says why; it then runs the command as from the
+editor's command list. ~snapshots.EDITOR~ names, as ~NAME STEP KIND~, what
+an editor shows otherwise on purpose, and why; ~steps.EDITOR~, as ~NAME
+STEP~, the steps an editor cannot take, and ~scenarios.EDITOR~ the
+scenarios it cannot run at all, each with the reason.
+
+VS Code's adapter is ~editors/vscode/test/scenarios.test.cjs~, run by
+~npm test~ after the extension's tests (~npm test -- scenarios~ for the
+scenarios only, ~npm test -- scenarios vim~ for one preset;
+~ORG_LSP_E2E=NAME~ as above). Each scenario runs in a VS Code of its own,
+with each preset of ~org-lsp.keys~: ~emacs~ (~editors.vscode~ in the
+exceptions) and ~vim~ (~editors.vscode-vim~, which leaves the keys of Vim's
+normal mode in Org files to VSCodeVim). The adapter finds the key
+~package.json~ binds to the step's command where the cursor is, by its
+~when~ clause, and presses it in VS Code's window with ~xdotool~, so that
+VS Code's own key dispatch runs; it checks that the key ran that command.
+VS Code gives a key no count: for a step with a count, ~test/run.mjs~
+binds a key of the user's with ~"args": { "count": N }~, as
+[[file:keys/vscode.org::#changing-them][a user does]]. A step ~below~ puts
+the cursor at the end of its line first, as ~C-e M-RET~ in Emacs. What is
+asked is answered by stubs of VS Code's quick pick and input box. It needs
+~xdotool~ and a display of its own, ~xvfb-run -a npm test~: the keys go to
+the window that has the focus.
+
+Helix's adapter is ~editors/helix/test/run.py~: each scenario in a Helix
+of its own in a tmux session, with [[file:../editors/helix/languages.toml][editors/helix/languages.toml]] pointing
+at the debug build and the scenario's options as its ~config~. It does
+what a Helix user does: picks the command's code action in the menu
+(~Space a~, then ~C-n~ and ~RET~), in Org files, the agenda and capture
+buffers, follows a link with ~gd~, picks the answer to a choice from the
+code actions, where it comes first, answers what the server asks for as
+text with a rename (~Space r~), goes back to the agenda from the buffer
+picker (~Space b~), and runs the commands that are not among the code
+actions (~editors.helix~) with ~:lsp-workspace-command~ and the cursor's
+place as their argument, as it does a step with a count: a code action
+takes none. It reads the buffers' text from what Helix tells the server
+(~didOpen~ and ~didChange~ in its log), the cursor from the status line and
+the messages from the log too. The date prompt and column view are not
+there (~scenarios.helix~). ~HX~ is the ~hx~ to run (~HELIX_RUNTIME~ its
+~runtime~ directory, by default the one beside it; ~ORG_LSP_HX_KEEP~ keeps
+each scenario's directory and Helix's log); ~scripts/test-all.sh~ runs it
+when ~HX~ is set:
+
+#+begin_src sh
+HX=~/helix/hx editors/helix/test/run.py
+HX=~/helix/hx ORG_LSP_E2E=org-editing editors/helix/test/run.py
+#+end_src
+
+Zed's adapter is ~editors/zed/test/run.py~, which ~scripts/test-all.sh~
+runs when ~ZED~ names Zed's command line (~bin/zed~):
+
+#+begin_src sh
+ZED=~/zed.app/bin/zed ZED_ORG_GRAMMAR=~/org.wasm editors/zed/test/run.py
+ZED=… ZED_ORG_GRAMMAR=… ORG_LSP_E2E=capture editors/zed/test/run.py   # one scenario
+#+end_src
+
+Each scenario runs in a Zed of its own, on an X display of its own
+(~Xvfb~), with a home directory of its own: the extension installed as
+~scripts/install.sh zed~ installs it, built with ~cargo build --release
+--target wasm32-wasip2~ in ~editors/zed~, the Org grammar Zed would build
+(~ZED_ORG_GRAMMAR~, an ~org.wasm~; or ~ZED_TREE_SITTER_ORG~, a checkout of
+tree-sitter-org, and ~WASI_SDK~ to build it), and the tasks and the keymap
+of [[file:keys/zed.org::#keys-through-tasks][keys through tasks]].
+The adapter presses with ~xdotool~ the key ~keymap.json~ binds to the step's
+command (a task, which reaches the server through its command port); a
+command with no key in Zed (~editors.zed~ in the exceptions) runs from the
+code actions (~ctrl-.~). It clicks the buttons of a question, answers typed
+text with a rename at the cursor (~F2~), goes to a line with ~ctrl-g~ and
+opens a file with Zed's command line. A key that takes a count is pressed
+that many times, as Zed gives a key none. Zed opens a file a server's edit
+changes when no tab shows it, and takes the focus to what it is asked to
+show without it (follow mode): the adapter goes back to where it was, as a
+user does. What Zed has open, the text of its buffers and where its cursor
+is come from what it tells the server, which ~editors/zed/test/proxy.py~
+writes down; the current buffer is the window's title. ~snapshots.zed~ in
+the exceptions names what Zed shows otherwise as ~NAME STEP KIND~, and the
+steps it cannot take as ~NAME STEP~; ~scenarios.zed~ the scenarios it cannot
+take at all (the date prompt, column view). Each wait has a bound: a
+request left with no answer fails the step, and a scenario fails when it
+takes more than ~ORG_LSP_ZED_BUDGET~ seconds (600), with the step and what
+it waited for. Stopped (~SIGTERM~, ~SIGINT~), the adapter closes its Zeds
+and their displays. A failure leaves a screenshot
+in ~target/zed-e2e~; ~ORG_LSP_ZED_KEEP=1~ keeps each scenario's directory,
+and ~ORG_LSP_ZED_PAUSE=1~ leaves Zed open at a failure, to look at.
+
+* Highlighting
+:PROPERTIES:
+:CUSTOM_ID: highlighting
+:END:
+
+~tests/e2e/highlight~ is a sample of every construct the server colours:
+~sample.org~, an agenda file (~agenda.org~: scheduled, deadlines near and
+far, an event, a range, a done entry, a blocked one, a running clock, a
+habit), a journal and daily notes for the date prompt, and the options
+they need (~options.json~, ~$DIR~ the directory it is copied to). Each
+check copies it and starts the server with those options.
+
+- ~server/org-lsp/tests/highlight.rs~ (~cargo test~): the tokens of the
+  file, the week's agenda, the TODO list and the date prompt at the places
+  its table ~EXPECTED~ names, which has every token type and modifier of
+  the legend; and a token for each look of the manifest's ~highlights~.
+  ~ORG_LSP_HIGHLIGHT_DUMP=1~ prints every token.
+- Neovim, ~tests/nvim/highlight.lua~ (~scripts/test-nvim.sh~): for each
+  look, the token's group drawn at a token it applies to, linked to the
+  group the manifest names, defined in the default colorscheme, and its
+  colors what shows where no more specific look applies; what Org hides
+  concealed.
+- Vim, ~editors/vim/test/highlight.vim~ (~editors/vim/test/run.sh~, each
+  client; ~ORG_LSP_VIM_TESTS=highlight~ for it alone): a text property of
+  each look's type, its group linked to one the colorscheme defines. Vim
+  conceals nothing.
+- VS Code, ~editors/vscode/test/highlight.test.cjs~ (~npm test -- highlight~):
+  a token for each look of ~semanticTokenScopes~, a color for each from
+  the color theme, probed as VS Code probes the scopes; what Org hides
+  concealed.
+- ~scripts/highlight-screenshots.py [nvim|helix|vscode|zed]~: pictures of
+  the sample in each editor, in ~target/highlight-screenshots~, to look
+  at (Zed and Helix have no other check). It reads ~NVIM~, ~HX~,
+  ~VSCODE_EXECUTABLE~, ~ZED~ and ~ZED_ORG_GRAMMAR~; VS Code's are taken by
+  ~npm test -- screenshots~. Helix has no semantic tokens: it shows its
+  own tree-sitter highlighting.
 
 * Setting up the tools
 :PROPERTIES:
@@ -133,3 +343,21 @@ their GitHub releases.
    (Vim 9's own), vim-lsp, coc.nvim and ALE. Clients without server-owned
    documents get the agenda as a file (the server already writes one) and
    the plain input box instead of the calendar.
+5. /A small priority cookie before ~COMMENT~./ Decided: ~* [#a] COMMENT x~
+   is not a commented headline, in every view. Emacs works out
+   ~:commentedp~ once, when it is first asked, and keeps it: the agenda
+   and the TODO list ask with ~case-fold-search~ nil, where ~[#a]~ is no
+   cookie, a tags match with it on, where it is one and the headline is
+   commented. What a view shows then depends on which view ran first.
+   org-lsp reads the cookie with case, as the agenda, ~org-get-heading~
+   and ~org-element-context~ do, and ~scripts/agenda_reference.py~ asks
+   Emacs that way before any view, so the recorded cases agree.
+6. /org-protocol./ Decided: every server listens for ~org-protocol~ URLs
+   on a local socket of its own, beside LSP, as the command port does for
+   Zed's keys: a URL comes from outside any editor, and LSP has no way in
+   for it. ~org-lsp protocol URL~ finds the server the user worked in
+   last through the state directory, and a server the editor of
+   ~org_protocol_editor~ starts takes what was left for it
+   ([[file:protocol.org::#org-protocol][protocol.org]]). A Unix socket in a directory only the user may
+   enter (a loopback port with a token on Windows); nothing from a URL is
+   run.

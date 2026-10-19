@@ -1,0 +1,29 @@
+#+TODO: TODO NEXT | DONE
+* TODO Pay rent :home:
+  DEADLINE: <2026-05-18 Mon>
+* TODO Call Ann :work:
+  SCHEDULED: <2026-05-17 Sun>
+* TODO Overdue report :work:
+  SCHEDULED: <2026-05-15 Fri>
+* TODO Plan trip
+  DEADLINE: <2026-05-20 Wed -3d>
+* Meeting
+  <2026-05-17 Sun 22:00-23:00>
+* Breakfast
+  <2026-05-18 Mon 08:00>
+* TODO Water plants
+  SCHEDULED: <2026-05-14 Thu +2d>
+* TODO Stretch
+  SCHEDULED: <2026-05-17 Sun 20:00 +5h>
+* TODO Check mail
+  <2026-05-16 Sat 23:00 +3h>
+* NEXT Late night task :work:
+  SCHEDULED: <2026-05-18 Mon 01:00>
+* TODO Shave
+  SCHEDULED: <2026-05-17 Sun .+2d/4d>
+  :PROPERTIES:
+  :STYLE:    habit
+  :LAST_REPEAT: [2026-05-15 Fri 08:00]
+  :END:
+  - State "DONE"       from "TODO"       [2026-05-15 Fri 08:00]
+  - State "DONE"       from "TODO"       [2026-05-12 Tue 08:00]

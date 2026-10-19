@@ -1869,5 +1869,760 @@
     "Mark set"
    ]
   }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+   "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+   "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+  },
+  "command": "calendar-read",
+  "day": "2026-10-09",
+  "expected": {
+   "buffer": "20261009",
+   "point": 0,
+   "hidden": [],
+   "calendar": "2026-10-09",
+   "shown": [
+    "20261009",
+    0,
+    []
+   ],
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+    "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+    "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+   "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+   "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+  },
+  "command": "calendar-read",
+  "day": "2026-10-11",
+  "expected": {
+   "buffer": null,
+   "point": null,
+   "hidden": [],
+   "calendar": "2026-10-11",
+   "shown": null,
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+    "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+    "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+   },
+   "messages": [
+    "No journal entry for this date."
+   ]
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+   "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+   "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+  },
+  "command": "calendar-display",
+  "day": "2026-10-12",
+  "expected": {
+   "buffer": null,
+   "point": null,
+   "hidden": [],
+   "calendar": "2026-10-12",
+   "shown": [
+    "20261012",
+    0,
+    []
+   ],
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+    "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+    "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "#+title: x\n\n* Friday, 10/09/26\n** a\n*** b\n"
+  },
+  "command": "calendar-read",
+  "day": "2026-10-09",
+  "expected": {
+   "buffer": "20261009",
+   "point": 12,
+   "hidden": [],
+   "calendar": "2026-10-09",
+   "shown": [
+    "20261009",
+    12,
+    []
+   ],
+   "files": {
+    "20261009": "#+title: x\n\n* Friday, 10/09/26\n** a\n*** b\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** a\n"
+  },
+  "command": "calendar-read",
+  "day": "2026-10-09",
+  "options": {
+   "org_journal_hide_entries_p": false
+  },
+  "expected": {
+   "buffer": "20261009",
+   "point": 0,
+   "hidden": [],
+   "calendar": "2026-10-09",
+   "shown": [
+    "20261009",
+    0,
+    []
+   ],
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** a\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "#+title: Friday, 10/09/26\n** a\n"
+  },
+  "command": "calendar-read",
+  "day": "2026-10-09",
+  "options": {
+   "org_journal_date_prefix": "#+title: "
+  },
+  "expected": {
+   "buffer": "20261009",
+   "point": 0,
+   "hidden": [],
+   "calendar": "2026-10-09",
+   "shown": [
+    "20261009",
+    0,
+    []
+   ],
+   "files": {
+    "20261009": "#+title: Friday, 10/09/26\n** a\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Another day\n** a\n"
+  },
+  "command": "calendar-read",
+  "day": "2026-10-09",
+  "expected": "ERROR: Search failed: \"* Friday, 10/09/26\""
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261005": "* Monday, 10/05/26\n:PROPERTIES:\n:CREATED:  20261005\n:END:\n** 09:00 a\n** TODO w\n* Wednesday, 10/07/26\n:PROPERTIES:\n:CREATED:  20261007\n:END:\n** TODO carry me\n** 11:00 b\n"
+  },
+  "command": "calendar-read",
+  "day": "2026-10-07",
+  "options": {
+   "org_journal_file_type": "weekly"
+  },
+  "expected": {
+   "buffer": "20261005",
+   "point": 79,
+   "hidden": [
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "calendar": "2026-10-07",
+   "shown": [
+    "20261005",
+    79,
+    [
+     2,
+     3,
+     4,
+     5,
+     6
+    ]
+   ],
+   "files": {
+    "20261005": "* Monday, 10/05/26\n:PROPERTIES:\n:CREATED:  20261005\n:END:\n** 09:00 a\n** TODO w\n* Wednesday, 10/07/26\n:PROPERTIES:\n:CREATED:  20261007\n:END:\n** TODO carry me\n** 11:00 b\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261005": "* Monday, 10/05/26\n:PROPERTIES:\n:CREATED:  20261005\n:END:\n** 09:00 a\n** TODO w\n* Wednesday, 10/07/26\n:PROPERTIES:\n:CREATED:  20261007\n:END:\n** TODO carry me\n** 11:00 b\n"
+  },
+  "command": "calendar-display",
+  "day": "2026-10-06",
+  "options": {
+   "org_journal_file_type": "weekly"
+  },
+  "expected": {
+   "buffer": null,
+   "point": null,
+   "hidden": [],
+   "calendar": "2026-10-06",
+   "shown": null,
+   "files": {
+    "20261005": "* Monday, 10/05/26\n:PROPERTIES:\n:CREATED:  20261005\n:END:\n** 09:00 a\n** TODO w\n* Wednesday, 10/07/26\n:PROPERTIES:\n:CREATED:  20261007\n:END:\n** TODO carry me\n** 11:00 b\n"
+   },
+   "messages": [
+    "No journal entry for this date."
+   ]
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+   "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+   "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+  },
+  "command": "calendar-next",
+  "day": "2026-10-10",
+  "expected": {
+   "buffer": null,
+   "point": null,
+   "hidden": [],
+   "calendar": "2026-10-12",
+   "shown": null,
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+    "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+    "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+   },
+   "messages": [
+    "No journal entry after this one"
+   ]
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+   "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+   "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+  },
+  "command": "calendar-next",
+  "day": "2026-10-12",
+  "expected": {
+   "buffer": null,
+   "point": null,
+   "hidden": [],
+   "calendar": "2026-10-12",
+   "shown": null,
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+    "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+    "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+   },
+   "messages": [
+    "No journal entry after this one"
+   ]
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+   "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+   "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+  },
+  "command": "calendar-previous",
+  "day": "2026-10-10",
+  "expected": {
+   "buffer": null,
+   "point": null,
+   "hidden": [],
+   "calendar": "2026-10-09",
+   "shown": null,
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+    "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+    "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+   },
+   "messages": [
+    "No journal entry before this one"
+   ]
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+   "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+   "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+  },
+  "command": "calendar-previous",
+  "day": "2026-10-09",
+  "expected": {
+   "buffer": null,
+   "point": null,
+   "hidden": [],
+   "calendar": "2026-10-09",
+   "shown": null,
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+    "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+    "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+   },
+   "messages": [
+    "No journal entry before this one"
+   ]
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+   "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+   "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+  },
+  "command": "calendar-next",
+  "day": "2026-10-01",
+  "options": {
+   "org_journal_follow_mode": true
+  },
+  "expected": {
+   "buffer": null,
+   "point": null,
+   "hidden": [],
+   "calendar": "2026-10-09",
+   "shown": [
+    "20261009",
+    0,
+    []
+   ],
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+    "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+    "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+   "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+   "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+  },
+  "command": "calendar-previous",
+  "day": "2026-10-31",
+  "options": {
+   "org_journal_follow_mode": true
+  },
+  "expected": {
+   "buffer": null,
+   "point": null,
+   "hidden": [],
+   "calendar": "2026-10-12",
+   "shown": [
+    "20261012",
+    0,
+    []
+   ],
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+    "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+    "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+   "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+   "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+  },
+  "command": "calendar-next",
+  "day": "2026-10-12",
+  "options": {
+   "org_journal_follow_mode": true
+  },
+  "expected": {
+   "buffer": null,
+   "point": null,
+   "hidden": [],
+   "calendar": "2026-10-12",
+   "shown": null,
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+    "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+    "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+   },
+   "messages": [
+    "No journal entry after this one"
+   ]
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261005": "* Monday, 10/05/26\n:PROPERTIES:\n:CREATED:  20261005\n:END:\n** 09:00 a\n** TODO w\n* Wednesday, 10/07/26\n:PROPERTIES:\n:CREATED:  20261007\n:END:\n** TODO carry me\n** 11:00 b\n",
+   "20261012": "* Monday, 10/12/26\n:PROPERTIES:\n:CREATED:  20261012\n:END:\n** TODO plan\n<2026-10-12 Mon 10:00>\n* Wednesday, 10/14/26\n:PROPERTIES:\n:CREATED:  20261014\n:END:\n** 10:00 review\nSCHEDULED: <2026-10-15 Thu>\n"
+  },
+  "command": "calendar-next",
+  "day": "2026-10-07",
+  "options": {
+   "org_journal_file_type": "weekly",
+   "org_journal_follow_mode": true
+  },
+  "expected": {
+   "buffer": null,
+   "point": null,
+   "hidden": [],
+   "calendar": "2026-10-12",
+   "shown": [
+    "20261012",
+    0,
+    [
+     8,
+     9,
+     10,
+     11,
+     12
+    ]
+   ],
+   "files": {
+    "20261005": "* Monday, 10/05/26\n:PROPERTIES:\n:CREATED:  20261005\n:END:\n** 09:00 a\n** TODO w\n* Wednesday, 10/07/26\n:PROPERTIES:\n:CREATED:  20261007\n:END:\n** TODO carry me\n** 11:00 b\n",
+    "20261012": "* Monday, 10/12/26\n:PROPERTIES:\n:CREATED:  20261012\n:END:\n** TODO plan\n<2026-10-12 Mon 10:00>\n* Wednesday, 10/14/26\n:PROPERTIES:\n:CREATED:  20261014\n:END:\n** 10:00 review\nSCHEDULED: <2026-10-15 Thu>\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+   "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+   "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+  },
+  "command": "calendar-new-date-entry",
+  "day": "2026-10-09",
+  "expected": {
+   "buffer": "20261009",
+   "point": 70,
+   "hidden": [
+    3
+   ],
+   "calendar": "2026-10-09",
+   "shown": [
+    "20261009",
+    70,
+    [
+     3
+    ]
+   ],
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n** \n",
+    "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+    "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "calendar-new-date-entry",
+  "day": "2026-10-13",
+  "expected": {
+   "buffer": "20261013",
+   "point": 28,
+   "hidden": [],
+   "calendar": "2026-10-13",
+   "shown": [
+    "20261013",
+    28,
+    []
+   ],
+   "files": {
+    "20261013": "* Tuesday, 10/13/26\n** TODO \n<2026-10-13 Tue>\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {},
+  "command": "calendar-new-date-entry",
+  "day": "2026-10-13",
+  "prefix": 2,
+  "expected": {
+   "buffer": "20261013",
+   "point": 23,
+   "hidden": [],
+   "calendar": "2026-10-13",
+   "shown": [
+    "20261013",
+    23,
+    []
+   ],
+   "files": {
+    "20261013": "* Tuesday, 10/13/26\n** \n<2026-10-13 Tue>\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+   "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+   "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+  },
+  "command": "calendar-search-week",
+  "day": "2026-10-10",
+  "search": "standup",
+  "expected": {
+   "buffer": null,
+   "point": null,
+   "hidden": [],
+   "view": {
+    "text": "Search results for \"standup\" between Saturday, 10/03/26 and Sunday, 10/11/26: \n\nFriday, 10/09/26\tnotes standup\nFriday, 10/09/26\t** 09:00 standup\nSaturday, 10/10/26\t** 10:00 Standup again\n",
+    "links": [
+     [
+      80,
+      "20261009",
+      42
+     ],
+     [
+      111,
+      "20261009",
+      28
+     ],
+     [
+      145,
+      "20261010",
+      30
+     ]
+    ]
+   },
+   "calendar": "2026-10-10",
+   "shown": [
+    "20261009",
+    42,
+    []
+   ],
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+    "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+    "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+   "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+   "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+  },
+  "command": "calendar-search-week",
+  "day": "2026-10-12",
+  "search": "plan",
+  "options": {
+   "calendar_week_start_day": 1
+  },
+  "expected": {
+   "buffer": null,
+   "point": null,
+   "hidden": [],
+   "view": {
+    "text": "Search results for \"plan\" between Sunday, 10/11/26 and Monday, 10/19/26: \n\nMonday, 10/12/26\t** TODO plan\n",
+    "links": [
+     [
+      75,
+      "20261012",
+      27
+     ]
+    ]
+   },
+   "calendar": "2026-10-12",
+   "shown": [
+    "20261012",
+    27,
+    []
+   ],
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+    "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+    "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+   "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+   "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+  },
+  "command": "calendar-search-week",
+  "day": "2026-10-11",
+  "search": "plan",
+  "options": {
+   "calendar_week_start_day": 1
+  },
+  "expected": {
+   "buffer": null,
+   "point": null,
+   "hidden": [],
+   "view": {
+    "text": "Search results for \"plan\" between Sunday, 10/11/26 and Monday, 10/19/26: \n\nMonday, 10/12/26\t** TODO plan\n",
+    "links": [
+     [
+      75,
+      "20261012",
+      27
+     ]
+    ]
+   },
+   "calendar": "2026-10-11",
+   "shown": [
+    "20261012",
+    27,
+    []
+   ],
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+    "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+    "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+   "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+   "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+  },
+  "command": "calendar-search-month",
+  "day": "2026-10-20",
+  "search": "standup",
+  "expected": {
+   "buffer": null,
+   "point": null,
+   "hidden": [],
+   "view": {
+    "text": "Search results for \"standup\" between Wednesday, 09/30/26 and Saturday, 10/31/26: \n\nFriday, 10/09/26\tnotes standup\nFriday, 10/09/26\t** 09:00 standup\nSaturday, 10/10/26\t** 10:00 Standup again\n",
+    "links": [
+     [
+      83,
+      "20261009",
+      42
+     ],
+     [
+      114,
+      "20261009",
+      28
+     ],
+     [
+      148,
+      "20261010",
+      30
+     ]
+    ]
+   },
+   "calendar": "2026-10-20",
+   "shown": [
+    "20261009",
+    42,
+    []
+   ],
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+    "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+    "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+   },
+   "messages": []
+  }
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+   "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+   "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+  },
+  "command": "calendar-search-month",
+  "day": "2026-09-20",
+  "search": "standup",
+  "expected": "ERROR: No more buttons"
+ },
+ {
+  "clock": "2026-10-10 14:05",
+  "files": {
+   "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+   "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+   "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+  },
+  "command": "calendar-search-year",
+  "day": "2026-02-01",
+  "search": "TODO",
+  "expected": {
+   "buffer": null,
+   "point": null,
+   "hidden": [],
+   "view": {
+    "text": "Search results for \"TODO\" between Wednesday, 12/31/25 and Thursday, 12/31/26: \n\nFriday, 10/09/26\t** TODO call Bob\nMonday, 10/12/26\t** TODO plan\n",
+    "links": [
+     [
+      80,
+      "20261009",
+      53
+     ],
+     [
+      114,
+      "20261012",
+      22
+     ]
+    ]
+   },
+   "calendar": "2026-02-01",
+   "shown": [
+    "20261009",
+    53,
+    []
+   ],
+   "files": {
+    "20261009": "* Friday, 10/09/26\n** 09:00 standup\nnotes standup\n** TODO call Bob\n",
+    "20261010": "* Saturday, 10/10/26\n** 10:00 Standup again\n",
+    "20261012": "* Monday, 10/12/26\n** TODO plan\n<2026-10-12 Mon 10:00>\n** later <2026-10-13 Tue>\n"
+   },
+   "messages": []
+  }
  }
 ]

@@ -1,6 +1,6 @@
-//! Faces for particular TODO keywords and priorities
-//! (`org-todo-keyword-faces`, `org-priority-faces`), for editors to apply
-//! over the server's highlighting.
+//! Faces for particular TODO keywords, priorities and tags
+//! (`org-todo-keyword-faces`, `org-priority-faces`, `org-tag-faces`), for
+//! editors to apply over the server's highlighting.
 //!
 //! A face is written as Org writes it: a color, which is the foreground
 //! (`org-faces-easy-properties`), or a property list such as
@@ -61,13 +61,18 @@ pub fn face(spec: &str) -> Option<Value> {
     (!out.is_empty()).then_some(Value::Object(out))
 }
 
-/// The faces of the TODO keywords and of the priorities, `{ "todo": {
-/// KEYWORD: face }, "priority": { "A": face } }`.
-pub fn faces(todo: &BTreeMap<String, String>, priority: &BTreeMap<String, String>) -> Value {
+/// The faces of the TODO keywords, of the priorities and of the tags,
+/// `{ "todo": { KEYWORD: face }, "priority": { "A": face }, "tag": { TAG:
+/// face } }`.
+pub fn faces(
+    todo: &BTreeMap<String, String>,
+    priority: &BTreeMap<String, String>,
+    tag: &BTreeMap<String, String>,
+) -> Value {
     let read = |faces: &BTreeMap<String, String>| -> Map<String, Value> {
         faces.iter().filter_map(|(name, spec)| Some((name.clone(), face(spec)?))).collect()
     };
-    json!({ "todo": read(todo), "priority": read(priority) })
+    json!({ "todo": read(todo), "priority": read(priority), "tag": read(tag) })
 }
 
 #[cfg(test)]

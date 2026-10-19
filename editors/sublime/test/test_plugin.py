@@ -97,10 +97,12 @@ class View:
         return len(self.text)
 
     def fold(self, region):
-        self.folds.add(region)
+        for one in region if isinstance(region, list) else [region]:
+            self.folds.add(one)
 
     def unfold(self, region):
-        self.folds = {f for f in self.folds if f.end() < region.begin() or f.begin() > region.end()}
+        for one in region if isinstance(region, list) else [region]:
+            self.folds = {f for f in self.folds if f.end() < one.begin() or f.begin() > one.end()}
 
     def folded_regions(self):
         return sorted(self.folds, key=lambda region: region.begin())
@@ -399,6 +401,20 @@ class Tests(unittest.TestCase):
         self.plugin.OrgLspListener().on_modified(self.view)
         self.assertNotIn('org-lsp-sparse', self.view.regions)
 
+    def test_keeps_sparse_highlights_until_cleared(self):
+        # `keepHighlights`: the highlights stay through changes, until the
+        # server sends none (`C-c C-c`), the folds left as they are.
+        self.view.text = '* A\nan apple\n* B\nnothing\n'
+        sparse = {'lines': [0], 'highlights': [{'start': {'line': 0, 'character': 0}, 'end': {'line': 0, 'character': 1}}],
+                  'keepHighlights': True}
+        self.run_command([('result', {'sparse': sparse}), ('result', [])], command='org.sparse.tree')
+        self.plugin.OrgLspListener().on_modified(self.view)
+        self.assertIn('org-lsp-sparse', self.view.regions)
+        cleared = {'keep': True, 'unfold': [], 'highlights': []}
+        self.run_command([('result', {'sparse': cleared, 'message': 'Temporary highlights/overlays removed from current buffer'})],
+                         command='org.checkbox.toggle')
+        self.assertNotIn('org-lsp-sparse', self.view.regions)
+
     def test_tells_the_closed_folds(self):
         self.view.text = '* A\nan apple\n* B\nnothing\nmore\n'
         self.view.folds = {self.plugin.fold_region(self.view, {'startLine': 2, 'endLine': 4})}
@@ -531,6 +547,18 @@ class Tests(unittest.TestCase):
         self.plugin.show_line_highlights({'uri': 'file:///notes/work.org', 'lines': []})
         self.assertNotIn('org-lsp-line-agendaClocking', self.view.regions)
 
+    def test_hides_the_lines_a_result_names_in_folds(self):
+        self.sublime.windows = lambda: [self.window]
+        self.run_command([('result', {'hiddenLines': {'uri': 'file:///notes/work.org', 'lines': [1, 99]}})],
+                         command='org.custom.properties.toggle')
+        start = self.view.text_point(1, 0)
+        hidden = Region(start - 1, self.view.line(start).end())
+        self.assertEqual(self.view.folded_regions(), [hidden], 'the line, from the end of the one before')
+        self.run_command([('result', {'hiddenLines': {'uri': 'file:///notes/work.org', 'lines': []}})],
+                         command='org.custom.properties.toggle')
+        self.assertEqual(self.view.folded_regions(), [], 'shown again')
+        self.assertNotIn('org-lsp-hidden-lines', self.view.regions)
+
     def test_a_key_keeps_its_own_meaning_where_the_command_does_not_apply(self):
         fallback = {'command': 'move', 'args': {'by': 'lines', 'forward': False, 'extend': True}}
         self.run_command([('error', {'code': -32803, 'message': 'Not here', 'data': {'notApplicable': True}})],
@@ -540,9 +568,9 @@ class Tests(unittest.TestCase):
         self.assertIn('org-lsp: No clock', self.sublime.messages)
         self.assertIn('org-lsp: No clock', self.view.popups[-1][0])
 
-    def cycle(self, line, **args):
+    def cycle(self, line, before=None, **args):
         self.view.cursor = self.view.text_point(line, 0)
-        self.Command.current = Session([('result', RANGES)])
+        self.Command.current = Session([('result', before or {'integrateLists': False}), ('result', RANGES)])
         self.plugin.OrgLspCycleCommand(self.view).run(None, **args)
 
     def folded_rows(self):
@@ -561,6 +589,13 @@ class Tests(unittest.TestCase):
         fallback = {'command': 'insert_best_completion', 'args': {'default': '\t', 'exact': False}}
         self.cycle(1, fallback=fallback)
         self.assertEqual(self.view.commands, [('insert_best_completion', fallback['args'])])
+
+    def test_tab_first_asks_the_server_what_it_does(self):
+        # At the start of the file, with `org_cycle_global_at_bob`, as S-TAB.
+        self.cycle(0, before={'global': True})
+        self.assertEqual(self.Command.current.sent[0][0], 'workspace/executeCommand')
+        self.assertEqual(self.Command.current.sent[0][1]['command'], 'org.cycle')
+        self.assertEqual(self.view.commands, [('org_lsp_cycle_global', None)])
 
     def test_cycles_the_file_as_shift_tab_does(self):
         def cycle():
@@ -626,6 +661,28 @@ class Tests(unittest.TestCase):
         journal.loading = False
         later.pop()()
         self.assertEqual([journal.rowcol(f.begin())[0] for f in journal.folds], [1])
+
+    def test_runs_the_command_the_server_asks_for(self):
+        # A capture an org-protocol URL started (`org-lsp/runCommand`): run
+        # where the cursor is, with the server's fields on top.
+        self.view.cursor = self.view.text_point(2, 1)
+        session = Session([('result', None)])
+        self.Command.current = session
+        session.window = self.window
+        self.window.run_command = lambda name, args: self.plugin.OrgLspRunCommand(self.window).run(**args)
+        plugin = self.plugin.OrgLsp(lambda: session)
+        argument = {'keys': 'w', 'orgProtocol': {'props': [[':link', 'https://orgmode.org/']]}}
+        plugin.m_org_lsp_runCommand({'command': 'org.capture', 'argument': argument})
+        method, params = session.sent[0]
+        self.assertEqual((method, params['command']), ('workspace/executeCommand', 'org.capture'))
+        sent = params['arguments'][0]
+        self.assertEqual(sent['position'], {'line': 2, 'character': 1})
+        self.assertEqual((sent['keys'], sent['orgProtocol']), ('w', argument['orgProtocol']))
+        # The package says it runs them.
+        given = {}
+        configuration = types.SimpleNamespace(command=['other'], init_options=types.SimpleNamespace(set=given.__setitem__))
+        self.plugin.OrgLsp.on_pre_start(None, None, [], configuration)
+        self.assertIs(given['run_command'], True)
 
     def test_shows_the_timer_in_the_status_bar(self):
         later = []
@@ -786,6 +843,35 @@ class Tests(unittest.TestCase):
         self.plugin.tell_roam_cursor(buffer)
         self.assertEqual([(note.method, note.params) for note in sent], [('org-lsp/cursor', {
             'textDocument': {'uri': 'file:///roam/a.org'}, 'position': {'line': 2, 'character': 1}})])
+
+    def test_shows_the_outline_path_of_the_agenda_line(self):
+        sent = []
+        answer = {'echo': 'work.org/Projects'}
+        session = types.SimpleNamespace(send_request=lambda request, on_result: (sent.append(request), on_result(answer)))
+        self.plugin.OrgLsp(lambda: session)
+        agenda = View('  work:  TODO Write\n  work:  TODO Draft\n', '/tmp/org-lsp-1/Agenda.org-agenda')
+        agenda.cursor = agenda.text_point(1, 3)
+        del self.sublime.messages[:]
+        self.plugin.tell_agenda_cursor(agenda)
+        # The same line again asks nothing.
+        self.plugin.tell_agenda_cursor(agenda)
+        self.assertEqual([(request.method, request.params['position']) for request in sent],
+                         [('org-lsp/agendaCursor', {'line': 1, 'character': 0})])
+        # `org-agenda-show-outline-path`: in the status bar, no popup.
+        self.assertEqual(self.sublime.messages, ['work.org/Projects'])
+        self.assertEqual(agenda.popups, [])
+
+    def test_images_show_as_wide_as_the_server_says(self):
+        view = types.SimpleNamespace(em_width=lambda: 8.0)
+        entry = {'width': 400, 'height': 100}
+        shown = lambda sizing: self.plugin.image_shown(view, dict(entry, sizing=sizing), 800)
+        self.assertEqual(shown({}), (400, 100))
+        # `org-image-actual-width`: pixels, or a part of the view.
+        self.assertEqual(shown({'width': {'pixels': 200}}), (200, 50))
+        self.assertEqual(shown({'width': {'fraction': 0.75}}), (600, 150))
+        # `org-image-max-width`: 40 columns of 8 pixels, for one at its own width.
+        self.assertEqual(shown({'maxWidth': {'columns': 40}}), (320, 80))
+        self.assertEqual(shown({'maxWidth': {'columns': 70}}), (400, 100))
 
     def test_tells_the_server_how_wide_the_agenda_is(self):
         sent = []

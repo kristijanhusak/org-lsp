@@ -304,3 +304,43 @@ fn todo_keywords_from_document() {
         "##]],
     );
 }
+
+/// `org-list-allow-alphabetical` and
+/// `org-plain-list-ordered-item-terminator` decide what is an ordered item.
+#[test]
+fn ordered_items_as_the_list_syntax_says() {
+    use org_syntax::{with_list_syntax, ListSyntax, SyntaxKind, Terminator};
+    let first = |text: &str, syntax: ListSyntax| {
+        with_list_syntax(syntax, || {
+            parse(text, &TodoKeywords::default()).syntax().first_child().unwrap().first_child().unwrap().kind()
+        })
+    };
+    let default = ListSyntax::default();
+    let alphabetical = ListSyntax { alphabetical: true, ..default };
+    let dot = ListSyntax { terminator: Terminator::Dot, ..default };
+    let paren = ListSyntax { terminator: Terminator::Paren, ..default };
+    assert_eq!(first("1. a\n", default), SyntaxKind::LIST);
+    assert_eq!(first("1) a\n", default), SyntaxKind::LIST);
+    assert_eq!(first("a. x\n", default), SyntaxKind::PARAGRAPH);
+    assert_eq!(first("a. x\n", alphabetical), SyntaxKind::LIST);
+    assert_eq!(first("B) x\n", alphabetical), SyntaxKind::LIST);
+    assert_eq!(first("ab. x\n", alphabetical), SyntaxKind::PARAGRAPH);
+    assert_eq!(first("1. a\n", dot), SyntaxKind::LIST);
+    assert_eq!(first("1) a\n", dot), SyntaxKind::PARAGRAPH);
+    assert_eq!(first("1) a\n", paren), SyntaxKind::LIST);
+    assert_eq!(first("1. a\n", paren), SyntaxKind::PARAGRAPH);
+    // A paragraph ends at an item.
+    let children = |text: &str, syntax: ListSyntax| {
+        with_list_syntax(syntax, || {
+            parse(text, &TodoKeywords::default())
+                .syntax()
+                .first_child()
+                .unwrap()
+                .children()
+                .map(|node| node.kind())
+                .collect::<Vec<_>>()
+        })
+    };
+    assert_eq!(children("text\nb. x\n", alphabetical), [SyntaxKind::PARAGRAPH, SyntaxKind::LIST]);
+    assert_eq!(children("text\nb. x\n", default), [SyntaxKind::PARAGRAPH]);
+}

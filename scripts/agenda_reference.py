@@ -90,6 +90,15 @@ text `E' shows after the lines."
     (when (buffer-file-name buffer) (kill-buffer buffer))))
 """
 
+# Whether each headline of the agenda files is commented, asked as the
+# agenda asks (see `reference`).
+SETTLE_COMMENTED = r"""
+(dolist (file (org-agenda-files nil 'ifmode))
+  (with-current-buffer (org-get-agenda-file-buffer file)
+    (let ((case-fold-search nil))
+      (org-element-cache-map (lambda (headline) (org-element-property :commentedp headline))))))
+"""
+
 # Everything a case may change, back to its default before the next one.
 DEFAULTS = r"""
 (setq org-agenda-entry-text-leaders "    > "
@@ -124,6 +133,46 @@ DEFAULTS = r"""
       org-agenda-deadline-leaders '("Deadline:  " "In %3d d.: " "%2d d. ago: ")
       org-agenda-timerange-leaders '("" "(%d/%d): ")
       org-agenda-remove-tags nil
+      org-agenda-sorting-strategy '((agenda habit-down time-up urgency-down category-keep)
+                                    (todo urgency-down category-keep) (tags urgency-down category-keep)
+                                    (search category-keep))
+      org-agenda-sort-notime-is-late t
+      org-agenda-sort-noeffort-is-high t
+      org-agenda-max-entries nil
+      org-agenda-max-todos nil
+      org-agenda-max-tags nil
+      org-agenda-max-effort nil
+      org-agenda-skip-comment-trees t
+      org-agenda-include-deadlines t
+      org-agenda-skip-additional-timestamps-same-entry nil
+      org-agenda-log-mode-add-notes t
+      org-agenda-clock-report-header nil
+      org-agenda-clockreport-parameter-plist '(:link t :maxlevel 2)
+      org-agenda-fontify-priorities 'cookies
+      org-agenda-move-date-from-past-immediately-to-today t
+      org-agenda-time-leading-zero nil
+      org-agenda-timegrid-use-ampm nil
+      org-agenda-search-headline-for-time t
+      org-agenda-remove-times-when-in-prefix t
+      org-agenda-default-appointment-duration nil
+      org-agenda-remove-timeranges-from-blocks nil
+      org-agenda-diary-sexp-prefix nil
+      org-agenda-show-inherited-tags t
+      org-agenda-use-tag-inheritance '(todo search agenda)
+      org-agenda-hide-tags-regexp nil
+      org-agenda-prefer-last-repeat nil
+      org-agenda-skip-deadline-prewarning-if-scheduled nil
+      org-agenda-skip-scheduled-delay-if-deadline nil
+      org-agenda-skip-scheduled-if-deadline-is-shown nil
+      org-agenda-skip-scheduled-repeats-after-deadline nil
+      org-agenda-skip-timestamp-if-deadline-is-shown nil
+      org-agenda-todo-list-sublevels t
+      org-agenda-todo-ignore-with-date nil
+      org-agenda-todo-ignore-scheduled nil
+      org-agenda-todo-ignore-deadlines nil
+      org-agenda-todo-ignore-timestamp nil
+      org-agenda-todo-ignore-time-comparison-use-seconds nil
+      org-agenda-tags-todo-honor-ignore-options nil
       org-agenda-breadcrumbs-separator "->"
       org-agenda-format-date 'org-agenda-format-date-aligned
       org-use-tag-inheritance t
@@ -134,6 +183,8 @@ DEFAULTS = r"""
       org-habit-show-all-today nil
       org-habit-graph-column 40
       org-habit-preceding-days 21
+      org-log-states-order-reversed t
+      org-log-note-headings (eval (car (get 'org-log-note-headings 'standard-value)))
       org-habit-following-days 7
       org-habit-today-glyph ?!
       org-habit-completed-glyph ?*
@@ -344,6 +395,11 @@ def reference(directories):
             # The group tags of the files, which Emacs reads when it builds
             # an agenda and a match string uses from the one built before.
             forms.append("(org-agenda-prepare-buffers (org-agenda-files nil 'ifmode))")
+            # Whether a headline is commented is worked out once, when first
+            # asked, and kept: the agenda asks with `case-fold-search' nil, a
+            # tags match with it on, where `[#a] COMMENT' counts as commented.
+            # Asking first as the agenda does makes it the same for every run.
+            forms.append(SETTLE_COMMENTED)
             for index, run in enumerate(case["runs"]):
                 out = os.path.join(directory, f"expected-{index}.txt")
                 outputs.append((out, run))

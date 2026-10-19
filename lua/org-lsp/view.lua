@@ -20,6 +20,8 @@ M.capabilities = {
     orgVirtualIndent = true,
     orgLineHighlights = true,
     orgDisplay = true,
+    orgHiddenLines = true,
+    orgRunCommand = true,
   },
 }
 
@@ -479,6 +481,35 @@ local function send_changes(client, bufnr)
   end
 end
 
+--- Change line `row` (from 0) of `bufnr` from `old` to `new`, only the
+--- part between what they start and end with alike.
+---@param bufnr integer
+---@param row integer
+---@param old string
+---@param new string
+local function change_line(bufnr, row, old, new)
+  local function continues(text, at)
+    local byte = text:byte(at)
+    return byte ~= nil and byte >= 0x80 and byte < 0xC0
+  end
+  local start = 0
+  while start < #old and start < #new and old:byte(start + 1) == new:byte(start + 1) do
+    start = start + 1
+  end
+  -- Not within a character.
+  while start > 0 and continues(old, start + 1) do
+    start = start - 1
+  end
+  local tail = 0
+  while tail < #old - start and tail < #new - start and old:byte(#old - tail) == new:byte(#new - tail) do
+    tail = tail + 1
+  end
+  while tail > 0 and continues(old, #old - tail + 1) do
+    tail = tail - 1
+  end
+  vim.api.nvim_buf_set_text(bufnr, row, start, row, #old - tail, { new:sub(start + 1, #new - tail) })
+end
+
 ---@param bufnr integer
 ---@param text string
 local function set_text(bufnr, text)
@@ -491,22 +522,34 @@ local function set_text(bufnr, text)
   for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
     saved[win] = vim.api.nvim_win_call(win, vim.fn.winsaveview)
   end
-  -- Only the lines that changed: the others keep their highlighting
-  -- until the new arrives.
+  -- Only what changed: the other lines keep their highlighting until the
+  -- new arrives, and marks on them, such as where a window opened from
+  -- here puts the cursor back, stay where they are. A line changed where
+  -- it is changes from where it differs, as Emacs changes an agenda line
+  -- (a new date at its end), and the marks before that stay on it.
   local old = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-  local first = 1
-  while first <= #old and first <= #lines and old[first] == lines[first] do
-    first = first + 1
-  end
-  local last_old, last_new = #old, #lines
-  while last_old >= first and last_new >= first and old[last_old] == lines[last_new] do
-    last_old, last_new = last_old - 1, last_new - 1
-  end
   vim.bo[bufnr].modifiable = true
   if #old == 1 and old[1] == '' then
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
-  elseif first <= last_old or first <= last_new then
-    vim.api.nvim_buf_set_lines(bufnr, first - 1, last_old, false, vim.list_slice(lines, first, last_new))
+  else
+    local hunks = (vim.text and vim.text.diff or vim.diff)(
+      table.concat(old, '\n') .. '\n',
+      table.concat(lines, '\n') .. '\n',
+      { result_type = 'indices' }
+    )
+    -- From the last, so that the line numbers of the others still hold.
+    for i = #hunks, 1, -1 do
+      local at, count, from, new_count = unpack(hunks[i])
+      if count == new_count then
+        for k = 0, count - 1 do
+          change_line(bufnr, at + k - 1, old[at + k], lines[from + k])
+        end
+      else
+        -- With no old lines, the new ones go after line `at`.
+        local start = count == 0 and at or at - 1
+        vim.api.nvim_buf_set_lines(bufnr, start, start + count, false, vim.list_slice(lines, from, from + new_count - 1))
+      end
+    end
   end
   vim.bo[bufnr].modifiable = false
   vim.bo[bufnr].modified = false
@@ -519,6 +562,81 @@ local function set_text(bufnr, text)
   -- for before it moves the cursor to a line of the new text; the new
   -- highlighting follows.
   send_changes(vim.lsp.get_clients({ bufnr = bufnr, name = 'org_lsp' })[1], bufnr)
+end
+
+local prompt_highlights = vim.api.nvim_create_namespace('org_lsp_prompt_highlights')
+
+---@param bufnr integer
+---@return boolean
+local function is_prompt(bufnr)
+  return documents.datePrompt ~= nil and vim.uri_from_bufnr(bufnr) == documents.datePrompt.uri
+end
+
+--- Highlight the date prompt with the server's tokens `data`, as Neovim
+--- highlights semantic tokens.
+---@param bufnr integer
+---@param client vim.lsp.Client
+---@param data integer[]
+local function paint(bufnr, client, data)
+  vim.api.nvim_buf_clear_namespace(bufnr, prompt_highlights, 0, -1)
+  local provider = client.server_capabilities.semanticTokensProvider
+  if not provider then
+    return
+  end
+  local types, modifiers = provider.legend.tokenTypes, provider.legend.tokenModifiers
+  local filetype = vim.bo[bufnr].filetype
+  local priority = (vim.hl or vim.highlight).priorities.semantic_tokens
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local line, start = 0, 0
+  local function mark(from, to, group, level)
+    pcall(vim.api.nvim_buf_set_extmark, bufnr, prompt_highlights, line, from, {
+      end_col = to,
+      hl_group = group,
+      priority = level,
+      strict = false,
+    })
+  end
+  for i = 1, #data, 5 do
+    line = line + data[i]
+    start = data[i] == 0 and start + data[i + 1] or data[i + 1]
+    local type = types[data[i + 3] + 1]
+    if type then
+      local text = lines[line + 1] or ''
+      local from = vim.str_byteindex(text, client.offset_encoding, start, false)
+      local to = vim.str_byteindex(text, client.offset_encoding, start + data[i + 2], false)
+      mark(from, to, ('@lsp.type.%s.%s'):format(type, filetype), priority)
+      local bits, index = data[i + 4], 1
+      while bits > 0 do
+        if bits % 2 == 1 and modifiers[index] then
+          mark(from, to, ('@lsp.mod.%s.%s'):format(modifiers[index], filetype), priority + 1)
+          mark(from, to, ('@lsp.typemod.%s.%s.%s'):format(type, modifiers[index], filetype), priority + 2)
+        end
+        bits, index = math.floor(bits / 2), index + 1
+      end
+    end
+  end
+end
+
+--- Show the date prompt's new text, if any, and its highlighting at the
+--- same time. Neovim's own highlighting is off in it: that drops the
+--- highlighting of a line the moment the line changes and draws it again
+--- only once the new tokens arrive, so the calendar flickers at each key
+--- and may keep the old field marked.
+---@param bufnr integer
+---@param client vim.lsp.Client
+---@param text string?
+local function update_prompt(bufnr, client, text)
+  local params = { textDocument = { uri = documents.datePrompt.uri } }
+  client:request('textDocument/semanticTokens/full', params, function(_, result)
+    if not vim.api.nvim_buf_is_loaded(bufnr) then
+      return
+    end
+    if text then
+      set_text(bufnr, text)
+      prompt_window(bufnr)
+    end
+    paint(bufnr, client, result and result.data or {})
+  end, bufnr)
 end
 
 --- Fill a new buffer of the server's scheme and attach the server to it,
@@ -536,10 +654,52 @@ local function load(bufnr, language)
   local response = client:request_sync('workspace/textDocumentContent', params, 2000)
   set_text(bufnr, response and response.result and response.result.text or '')
   vim.bo[bufnr].filetype = language
+  local prompt = is_prompt(bufnr)
+  if prompt then
+    pcall(vim.lsp.semantic_tokens.enable, false, { bufnr = bufnr })
+  end
   vim.lsp.buf_attach_client(bufnr, client.id)
+  if prompt then
+    update_prompt(bufnr, client)
+  end
 end
 
 local line_highlights = vim.api.nvim_create_namespace('org_lsp_line_highlights')
+
+--- Text put in after the last line of a file (an archived subtree, a
+--- refiled entry at the end) goes in at the end of the last line instead,
+--- its last newline moved before it: the same text. Neovim 0.12.0 adds an
+--- empty line after text put in past the last line.
+---@param uri string?
+---@param edits table[]?
+---@param client_id integer
+local function at_last_line(uri, edits, client_id)
+  local client = vim.lsp.get_client_by_id(client_id)
+  if not uri or not edits or not client then
+    return
+  end
+  local bufnr = vim.uri_to_bufnr(uri)
+  vim.fn.bufload(bufnr)
+  local count = vim.api.nvim_buf_line_count(bufnr)
+  local last = vim.api.nvim_buf_get_lines(bufnr, count - 1, count, false)[1] or ''
+  for _, text_edit in ipairs(edits) do
+    local range = text_edit.range
+    if
+      range.start.line == count
+      and range.start.character == 0
+      and range['end'].line == count
+      and range['end'].character == 0
+      and vim.endswith(text_edit.newText, '\n')
+    then
+      local character = vim.str_utfindex(last, client.offset_encoding)
+      text_edit.range = {
+        start = { line = count - 1, character = character },
+        ['end'] = { line = count - 1, character = character },
+      }
+      text_edit.newText = '\n' .. text_edit.newText:sub(1, -2)
+    end
+  end
+end
 
 M.handlers = {
   --- A message of the server, titled `Org`. Neovim's own handler sends it
@@ -559,6 +719,10 @@ M.handlers = {
     local uris = vim.tbl_keys(edit.changes or {})
     for _, change in ipairs(edit.documentChanges or {}) do
       table.insert(uris, change.textDocument and change.textDocument.uri)
+      at_last_line(change.textDocument and change.textDocument.uri, change.edits, ctx.client_id)
+    end
+    for uri, edits in pairs(edit.changes or {}) do
+      at_last_line(uri, edits, ctx.client_id)
     end
     local result = vim.lsp.handlers['workspace/applyEdit'](err, params, ctx)
     local client = vim.lsp.get_client_by_id(ctx.client_id)
@@ -653,8 +817,19 @@ M.handlers = {
     M.save(params and params.uris or {})
   end,
 
+  --- A command to run as from its key, where the cursor is, with the
+  --- argument's fields the server gives: a capture an org-protocol URL
+  --- started.
+  ['org-lsp/runCommand'] = function(_, params)
+    if params and type(params.command) == 'string' then
+      vim.schedule(function()
+        require('org-lsp').run(params.command, { argument = params.argument })
+      end)
+    end
+  end,
+
   --- The headlines of a document org-journal showed, folded as it folds
-  --- them.
+  --- them, or the subtrees a yank or paste folded.
   ['org-lsp/folds'] = function(_, params)
     require('org-lsp').journal_folds(params)
   end,
@@ -680,8 +855,9 @@ M.handlers = {
     require('org-lsp.images').apply(params)
   end,
 
-  --- Lines of the agenda highlighted from edge to edge, as Emacs's
-  --- overlays cover them: the entry the clock runs on.
+  --- Lines highlighted from edge to edge, as Emacs's overlays and faces
+  --- that extend cover them: the agenda's entry the clock runs on, and
+  --- headlines with `org_fontify_whole_heading_line`.
   ['org-lsp/lineHighlights'] = function(_, params)
     for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
       if vim.api.nvim_buf_is_loaded(bufnr) and vim.uri_from_bufnr(bufnr) == params.uri then
@@ -689,8 +865,8 @@ M.handlers = {
         local count = vim.api.nvim_buf_line_count(bufnr)
         for _, line in ipairs(params.lines or {}) do
           if line.line < count then
-            -- The group of the token of the same name.
-            local group = ('@lsp.type.%s.%s'):format(line.highlight, vim.bo[bufnr].filetype)
+            -- The group of the token, or token and modifier, it names.
+            local group = require('org-lsp.highlights').group(line.highlight, vim.bo[bufnr].filetype)
             vim.api.nvim_buf_set_extmark(bufnr, line_highlights, line.line, 0, { line_hl_group = group })
           end
         end
@@ -720,16 +896,30 @@ M.handlers = {
     for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
       if client and vim.api.nvim_buf_is_loaded(bufnr) and vim.uri_from_bufnr(bufnr) == params.uri then
         client:request('workspace/textDocumentContent', { uri = params.uri }, function(_, result)
-          if result and vim.api.nvim_buf_is_loaded(bufnr) then
+          if not (result and vim.api.nvim_buf_is_loaded(bufnr)) then
+            return
+          end
+          if is_prompt(bufnr) then
+            update_prompt(bufnr, client, result.text)
+          else
             set_text(bufnr, result.text)
-            if documents.datePrompt and params.uri == documents.datePrompt.uri then
-              prompt_window(bufnr)
-            end
           end
         end)
       end
     end
     return vim.NIL
+  end,
+
+  --- The server's highlighting has changed: Neovim fetches it again for
+  --- the documents it highlights, and the date prompt is highlighted here.
+  ['workspace/semanticTokens/refresh'] = function(err, result, ctx)
+    local client = vim.lsp.get_client_by_id(ctx.client_id)
+    for bufnr in pairs(client and client.attached_buffers or {}) do
+      if is_prompt(bufnr) and vim.api.nvim_buf_is_loaded(bufnr) then
+        update_prompt(bufnr, client)
+      end
+    end
+    return vim.lsp.handlers['workspace/semanticTokens/refresh'](err, result, ctx)
   end,
 }
 
@@ -785,7 +975,8 @@ function M.setup(manifest)
     end,
   })
   -- The line of the agenda the cursor is on, each time it changes, for
-  -- follow mode (`F`), which the server keeps.
+  -- follow mode (`F`), which the server keeps, and the outline path of
+  -- its entry.
   vim.api.nvim_create_autocmd('CursorMoved', {
     group = 'org_lsp_view',
     pattern = manifest.agenda.scheme .. ':/*',
@@ -800,7 +991,15 @@ function M.setup(manifest)
       vim.b[args.buf].org_lsp_cursor_line = line
       local client = vim.lsp.get_clients({ name = 'org_lsp' })[1]
       if client then
-        client:notify('org-lsp/agendaCursor', vim.lsp.util.make_position_params(0, client.offset_encoding))
+        local params = vim.lsp.util.make_position_params(0, client.offset_encoding)
+        params.width = vim.o.columns
+        -- `org-agenda-show-outline-path`: the entry's outline path, in the
+        -- echo area and not in the message history, as Emacs shows it.
+        client:request('org-lsp/agendaCursor', params, function(_, result)
+          if type(result) == 'table' and type(result.echo) == 'string' then
+            vim.api.nvim_echo({ { result.echo } }, false, {})
+          end
+        end, args.buf)
       end
     end,
   })

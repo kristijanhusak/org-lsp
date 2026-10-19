@@ -140,6 +140,10 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
     if files.is_empty() {
         return Err("no files given".to_string());
     }
+    // `org-inlinetask-min-level`: which headlines are inline tasks.
+    org_core::inlinetask::set_min_level(
+        tag_options.as_ref().map_or(Some(15), crate::config::Options::inlinetask_min_level),
+    );
 
     let mut config = options.to_config();
     if let Some(tag_options) = &tag_options {
@@ -147,6 +151,9 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
         config.tag_alist = tags.alist;
         config.tag_persistent_alist = tags.persistent;
         config.group_tags = tag_options.group_tags.unwrap_or(true);
+        config.extend_today_until = tag_options.extend_today_until.unwrap_or(0);
+        config.sorting.tags_sort = tags.sort;
+        tag_options.habit_notes(&mut config);
     }
     config.show_log |= log;
     config.clockreport |= clockreport;

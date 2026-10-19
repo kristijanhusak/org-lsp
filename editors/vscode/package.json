@@ -307,7 +307,7 @@
       },
       {
         "command": "org.clock.resolve",
-        "title": "Resolve a dangling clock",
+        "title": "Resolve open clocks",
         "category": "Org"
       },
       {
@@ -328,6 +328,16 @@
       {
         "command": "org.clock.display",
         "title": "Show the time clocked under each headline",
+        "category": "Org"
+      },
+      {
+        "command": "org.num.mode",
+        "title": "Number the headlines, or stop numbering them",
+        "category": "Org"
+      },
+      {
+        "command": "org.custom.properties.toggle",
+        "title": "Hide the properties of org_custom_properties, or show them again",
         "category": "Org"
       },
       {
@@ -353,6 +363,11 @@
       {
         "command": "org.todo",
         "title": "Change the TODO state",
+        "category": "Org"
+      },
+      {
+        "command": "org.todo.yesterday",
+        "title": "Change the TODO state as if it were yesterday",
         "category": "Org"
       },
       {
@@ -431,6 +446,56 @@
         "category": "Org"
       },
       {
+        "command": "org.bibtex.export",
+        "title": "BibTeX: export the entries of the file to a .bib file",
+        "category": "Org"
+      },
+      {
+        "command": "org.bibtex.copy",
+        "title": "BibTeX: copy the entry at the cursor as BibTeX",
+        "category": "Org"
+      },
+      {
+        "command": "org.bibtex.create",
+        "title": "BibTeX: new entry, its fields asked for",
+        "category": "Org"
+      },
+      {
+        "command": "org.bibtex.create.here",
+        "title": "BibTeX: make the entry at the cursor a BibTeX entry",
+        "category": "Org"
+      },
+      {
+        "command": "org.bibtex.check",
+        "title": "BibTeX: ask for the fields the entry at the cursor lacks",
+        "category": "Org"
+      },
+      {
+        "command": "org.bibtex.check.all",
+        "title": "BibTeX: ask for the fields every entry lacks",
+        "category": "Org"
+      },
+      {
+        "command": "org.bibtex.yank",
+        "title": "BibTeX: paste a BibTeX entry as a heading",
+        "category": "Org"
+      },
+      {
+        "command": "org.bibtex.import",
+        "title": "BibTeX: import the entries of a BibTeX file as headings",
+        "category": "Org"
+      },
+      {
+        "command": "org.ctags.create",
+        "title": "Ctags: make the TAGS file of the file's directory",
+        "category": "Org"
+      },
+      {
+        "command": "org.ctags.find",
+        "title": "Ctags: go to a topic, or make it",
+        "category": "Org"
+      },
+      {
         "command": "org.tags.set",
         "title": "Set the tags of the headline",
         "category": "Org"
@@ -471,6 +536,16 @@
         "category": "Org"
       },
       {
+        "command": "org.inlinetask.insert",
+        "title": "Insert an inline task",
+        "category": "Org"
+      },
+      {
+        "command": "org.inlinetask.insert.nostate",
+        "title": "Insert an inline task without its default TODO state",
+        "category": "Org"
+      },
+      {
         "command": "org.meta.left",
         "title": "Promote the heading; outdent the item; move the table column left",
         "category": "Org"
@@ -488,6 +563,16 @@
       {
         "command": "org.shiftmeta.right",
         "title": "Demote the subtree; indent the item with its children; insert a table column",
+        "category": "Org"
+      },
+      {
+        "command": "org.levels.odd",
+        "title": "Convert the file to odd levels only, once confirmed",
+        "category": "Org"
+      },
+      {
+        "command": "org.levels.oddeven",
+        "title": "Convert the file from odd levels to odd and even ones, once confirmed",
         "category": "Org"
       },
       {
@@ -513,6 +598,16 @@
       {
         "command": "org.table.insert.row.below",
         "title": "Insert a table row below",
+        "category": "Org"
+      },
+      {
+        "command": "org.open.line",
+        "title": "Open a line, or in a table insert a row",
+        "category": "Org"
+      },
+      {
+        "command": "org.outline.path",
+        "title": "Show the outline path of the entry at the cursor",
         "category": "Org"
       },
       {
@@ -583,6 +678,11 @@
       {
         "command": "org.paste.subtree",
         "title": "Paste the subtree",
+        "category": "Org"
+      },
+      {
+        "command": "org.yank",
+        "title": "Yank, a subtree at its level",
         "category": "Org"
       },
       {
@@ -676,6 +776,21 @@
         "category": "Org"
       },
       {
+        "command": "org.beginning.of.line",
+        "title": "Move to the start of the headline's title",
+        "category": "Org"
+      },
+      {
+        "command": "org.end.of.line",
+        "title": "Move to the end of the headline's title",
+        "category": "Org"
+      },
+      {
+        "command": "org.kill.line",
+        "title": "Kill the headline's text to the tags, or the tags",
+        "category": "Org"
+      },
+      {
         "command": "org.goto",
         "title": "Go to a heading of the file",
         "category": "Org"
@@ -753,6 +868,16 @@
       {
         "command": "org.table.export",
         "title": "Export the table to a file",
+        "category": "Org"
+      },
+      {
+        "command": "org.plot.gnuplot",
+        "title": "Plot the table with gnuplot",
+        "category": "Org"
+      },
+      {
+        "command": "org.table.ascii.plot",
+        "title": "Draw the column at the cursor as bars",
         "category": "Org"
       },
       {
@@ -1086,6 +1211,61 @@
         "category": "Org"
       },
       {
+        "command": "org.roam.dailies.capture.today",
+        "title": "Roam: capture to today's daily note",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.dailies.goto.today",
+        "title": "Roam: go to today's daily note",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.dailies.capture.tomorrow",
+        "title": "Roam: capture to tomorrow's daily note",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.dailies.goto.tomorrow",
+        "title": "Roam: go to tomorrow's daily note",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.dailies.capture.yesterday",
+        "title": "Roam: capture to yesterday's daily note",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.dailies.goto.yesterday",
+        "title": "Roam: go to yesterday's daily note",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.dailies.capture.date",
+        "title": "Roam: capture to the daily note of a date",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.dailies.goto.date",
+        "title": "Roam: go to the daily note of a date",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.dailies.goto.next",
+        "title": "Roam: go to the next daily note",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.dailies.goto.previous",
+        "title": "Roam: go to the previous daily note",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.dailies.find.directory",
+        "title": "Roam: open the directory of the daily notes",
+        "category": "Org"
+      },
+      {
         "command": "org.roam.buffer.toggle",
         "title": "Roam: show or hide the org-roam buffer",
         "category": "Org"
@@ -1131,6 +1311,36 @@
         "category": "Org"
       },
       {
+        "command": "org.roam.ref.find",
+        "title": "Roam: find a node by a reference",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.promote",
+        "title": "Roam: make the file's one top headline the file's node",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.demote",
+        "title": "Roam: make the file's node a headline of its own",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.refile",
+        "title": "Roam: refile to a node",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.extract",
+        "title": "Roam: extract the subtree to a file of its own",
+        "category": "Org"
+      },
+      {
+        "command": "org.roam.graph",
+        "title": "Roam: show the graph of the nodes",
+        "category": "Org"
+      },
+      {
         "command": "org.journal.new.entry",
         "title": "Journal: new entry",
         "category": "Org"
@@ -1173,6 +1383,36 @@
       {
         "command": "org.journal.search.future",
         "title": "Journal: search the entries to come",
+        "category": "Org"
+      },
+      {
+        "command": "org.journal.search.calendar.week",
+        "title": "Journal: search the calendar's week",
+        "category": "Org"
+      },
+      {
+        "command": "org.journal.search.calendar.month",
+        "title": "Journal: search the calendar's month",
+        "category": "Org"
+      },
+      {
+        "command": "org.journal.search.calendar.year",
+        "title": "Journal: search the calendar's year",
+        "category": "Org"
+      },
+      {
+        "command": "org.journal.read.entry",
+        "title": "Journal: the entry of the calendar's day",
+        "category": "Org"
+      },
+      {
+        "command": "org.journal.display.entry",
+        "title": "Journal: show the entry of the calendar's day",
+        "category": "Org"
+      },
+      {
+        "command": "org.journal.mark.entries",
+        "title": "Journal: mark the days with an entry in the calendar",
         "category": "Org"
       },
       {
@@ -1306,6 +1546,16 @@
         "category": "Org"
       },
       {
+        "command": "org.timestamp.overlays.toggle",
+        "title": "Show timestamps in the custom formats, or not",
+        "category": "Org"
+      },
+      {
+        "command": "org.goto.calendar",
+        "title": "Show the calendar at the date of the line",
+        "category": "Org"
+      },
+      {
         "command": "org.calendar.day.later",
         "title": "Date prompt: one day later",
         "category": "Org"
@@ -1435,6 +1685,11 @@
           "default": true,
           "markdownDescription": "Show images in place of links to image files and of LaTeX fragments (`C-c C-x C-v`, `C-c C-x C-l`; `#+STARTUP: inlineimages`, `latexpreview`). VS Code cannot leave lines free for an image: an image takes the height of a line, and shows whole on hover. LaTeX previews need Emacs, `latex` and `dvipng`."
         },
+        "org-lsp.headlineLevelColors": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Color each level of headlines as Emacs does (`outline-1` to `outline-8`), in the theme's colors of function names, variables, keywords, comments, types, constants, built-ins and strings. Off, every level has the theme's heading color. The text past a done or TODO keyword (`org_fontify_done_headline`, `org_fontify_todo_headline`), archived headlines and inline tasks keep their own look."
+        },
         "org-lsp.latexForeground": {
           "type": "string",
           "default": "",
@@ -1509,6 +1764,15 @@
               "markdownDescription": "Files, directories and glob patterns (`*`, `?`, `**`) the agenda is built from. `~/` is the home directory, and a directory stands for the Org files directly in it. When empty, the agenda is built from the Org files under the workspace folders (hidden directories, `node_modules` and `target` left out), or else from the Org files that are open. (`org-agenda-files`)",
               "default": []
             },
+            "org_agenda_file_regexp": {
+              "type": "string",
+              "markdownDescription": "Which files of a directory in `org_agenda_files` are agenda files: an Emacs regular expression their names match, such as `\\\\.txt\\\\'` for the names that end in `.txt`. (`org-agenda-file-regexp`)"
+            },
+            "org_agenda_skip_unavailable_files": {
+              "type": "boolean",
+              "markdownDescription": "Leave out the files of `org_agenda_files` that are not there. With `false`, opening an agenda view asks about each: `r` removes it from the list until the server starts again, anything else aborts. (`org-agenda-skip-unavailable-files`)",
+              "default": false
+            },
             "org_todo_keywords": {
               "anyOf": [
                 {
@@ -1534,6 +1798,14 @@
                 "DONE"
               ]
             },
+            "org_todo_interpretation": {
+              "enum": [
+                "sequence",
+                "type"
+              ],
+              "markdownDescription": "What a list of keywords alone in `org_todo_keywords` is (Org's old syntax): a sequence, or types, each going straight to done. A list that starts with `sequence` or `type` says it itself. (`org-todo-interpretation`)",
+              "default": "sequence"
+            },
             "org_todo_keyword_faces": {
               "type": "object",
               "additionalProperties": {
@@ -1548,6 +1820,14 @@
                 "type": "string"
               },
               "markdownDescription": "Faces for particular priorities, by their letter, written as in `org_todo_keyword_faces`: `{ \"A\": \":foreground red :weight bold\" }`. (`org-priority-faces`)",
+              "default": {}
+            },
+            "org_tag_faces": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "markdownDescription": "Faces for particular tags of headlines, written as in `org_todo_keyword_faces`: `{ \"work\": \"orange\" }`. Shown in Org files (not the agenda, as in Emacs) by Neovim, Vim and VS Code. (`org-tag-faces`)",
               "default": {}
             },
             "org_log_done": {
@@ -1567,6 +1847,396 @@
               ],
               "markdownDescription": "Record when a repeating entry is done and moves to its next date. `#+STARTUP:` `logrepeat`, `lognoterepeat` and `nologrepeat` change it in a file, and the `LOGGING` property in an entry. (`org-log-repeat`)",
               "default": "time"
+            },
+            "org_M_RET_may_split_line": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "headline": {
+                      "type": "boolean"
+                    },
+                    "item": {
+                      "type": "boolean"
+                    },
+                    "table": {
+                      "type": "boolean"
+                    },
+                    "default": {
+                      "type": "boolean"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              ],
+              "markdownDescription": "Inserting a heading, an item or a table row (M-RET) in the middle of a line splits it, the rest going to the new one; `false`: it goes in after the line. One by context: `{ \"headline\": false, \"item\": true, \"table\": true }`, `default` for those not named. (`org-M-RET-may-split-line`)",
+              "default": true
+            },
+            "org_blank_before_new_entry": {
+              "type": "object",
+              "properties": {
+                "heading": {
+                  "enum": [
+                    true,
+                    false,
+                    "auto"
+                  ]
+                },
+                "plain_list_item": {
+                  "enum": [
+                    true,
+                    false,
+                    "auto"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "markdownDescription": "Whether a new heading (`heading`) and a new item (`plain_list_item`) get an empty line before them: `true`, `false`, or `\"auto\"`, as the headings or items around them have. (`org-blank-before-new-entry`)"
+            },
+            "org_insert_heading_respect_content": {
+              "type": "boolean",
+              "markdownDescription": "M-RET and M-S-RET outside lists put the new heading after the subtree, as C-RET does. (`org-insert-heading-respect-content`)",
+              "default": false
+            },
+            "org_special_ctrl_a_e": {
+              "anyOf": [
+                {
+                  "enum": [
+                    true,
+                    false,
+                    "reversed"
+                  ]
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      true,
+                      false,
+                      "reversed"
+                    ]
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                }
+              ],
+              "markdownDescription": "How C-a and C-e (`org.beginning.of.line`, `org.end.of.line`) move on a headline or an item: `true` to the start of the headline's title, after the stars, TODO keyword and priority, or after the item's bullet and check-box, and to the end of the title, before the tags; the same key again to the line's own start or end. `reversed` goes to the line's start or end first, and to those places on the same key right after. A pair, as `[true, false]`, sets C-a and C-e apart. With `false` the key keeps the editor's own meaning. (`org-special-ctrl-a/e`)",
+              "default": false
+            },
+            "org_sparse_tree_open_archived_trees": {
+              "type": "boolean",
+              "markdownDescription": "A sparse tree (`C-c /`, and a link's `/regexp/`) shows its matches in archived subtrees (tagged `ARCHIVE`); with `false` those subtrees stay folded under their headline. (`org-sparse-tree-open-archived-trees`)",
+              "default": false
+            },
+            "org_occur_case_fold_search": {
+              "enum": [
+                true,
+                false,
+                "smart"
+              ],
+              "markdownDescription": "Whether a sparse tree (`C-c /`, and a link's `/regexp/`) ignores case; `\"smart\"` ignores it unless what is searched for has an upper-case letter. (`org-occur-case-fold-search`)",
+              "default": true
+            },
+            "org_highlight_sparse_tree_matches": {
+              "type": "boolean",
+              "markdownDescription": "Highlight the matches of a sparse tree (`C-c /`, and a link's `/regexp/`) until the text changes; with `false`, only their lines show. (`org-highlight-sparse-tree-matches`)",
+              "default": true
+            },
+            "org_remove_highlights_with_change": {
+              "type": "boolean",
+              "markdownDescription": "The highlights of a sparse tree (`C-c /` by a regexp, TODO keywords or dates, and a link's `/regexp/`) and the times of `C-c C-x C-d` go at the next change of the text; with `false` they stay until `C-c C-c`. Those of a sparse tree by tags or a property always stay, as in Emacs. (`org-remove-highlights-with-change`)",
+              "default": true
+            },
+            "org_sparse_tree_default_date_type": {
+              "enum": [
+                null,
+                "all",
+                "active",
+                "inactive",
+                "scheduled",
+                "deadline",
+                "closed"
+              ],
+              "markdownDescription": "The timestamps the date sparse trees (`C-c /` `b`, `a`, `D`) look at first: `null` for scheduled and deadline dates, or one kind; `c` in the menu turns to the next kind. (`org-sparse-tree-default-date-type`)",
+              "default": null
+            },
+            "org_yank_adjusted_subtrees": {
+              "type": "boolean",
+              "markdownDescription": "C-y (`org.yank`, Emacs keys) of one or more subtrees at the start of a line, or after the stars of an otherwise empty headline, pastes them as `org.paste.subtree` does: at the level of the headlines around them. Anything else is the editor's own paste. (`org-yank-adjusted-subtrees`)",
+              "default": false
+            },
+            "org_yank_folded_subtrees": {
+              "type": "boolean",
+              "markdownDescription": "C-y (`org.yank`, Emacs keys) of one or more subtrees at the start of a line folds them, unless that would hide text after them (*Inserted text not folded because that would swallow text*), and leaves the cursor on the line after them. With `false` (and `org_yank_adjusted_subtrees` off) it is the editor's own paste. (`org-yank-folded-subtrees`)",
+              "default": true
+            },
+            "org_allow_promoting_top_level_subtree": {
+              "type": "boolean",
+              "markdownDescription": "Promoting a headline of level 1 makes it a comment line: `# ` in place of `* `, its children a level up with a subtree's promotion. With `false` it is an error. (`org-allow-promoting-top-level-subtree`)",
+              "default": false
+            },
+            "org_odd_levels_only": {
+              "type": "boolean",
+              "markdownDescription": "Only odd levels: `*`, `***`, `*****`, each counted as the next level. Promoting and demoting go two stars at a time, and a headline is colored and matched (`LEVEL`) by the level it counts as. `#+STARTUP: odd` and `oddeven` set it for a file. (`org-odd-levels-only`)",
+              "default": false
+            },
+            "org_inlinetask_min_level": {
+              "anyOf": [
+                {
+                  "const": false
+                },
+                {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              ],
+              "markdownDescription": "A headline of at least this many stars (twice as many less one with `org_odd_levels_only`) is an inline task: a task inside the text of its entry, closed by a line of as many stars and `END`. It is no part of the outline: it has no subtree, the outline and the motion between headings pass it, and it folds its text up to its `END` line. `false`: there are no inline tasks, as in Emacs before `org-inlinetask` is loaded. (`org-inlinetask-min-level`)",
+              "default": 15
+            },
+            "org_inlinetask_show_first_star": {
+              "type": "boolean",
+              "markdownDescription": "The stars of an inline task but the last two are hidden, as `org_hide_leading_stars` hides those of a headline; with `true` none are. (`org-inlinetask-show-first-star`)",
+              "default": false
+            },
+            "org_inlinetask_default_state": {
+              "type": "string",
+              "markdownDescription": "The TODO keyword of a new inline task (`org.inlinetask.insert`). (`org-inlinetask-default-state`)"
+            },
+            "org_treat_S_cursor_todo_selection_as_state_change": {
+              "type": "boolean",
+              "markdownDescription": "`S-<left>` and `S-<right>` on a headline change its TODO state as any change does: logged, and blocked by its dependencies. Off, they change it with nothing logged and nothing in the way. (`org-treat-S-cursor-todo-selection-as-state-change`)",
+              "default": true
+            },
+            "org_treat_insert_todo_heading_as_state_change": {
+              "type": "boolean",
+              "markdownDescription": "The keyword of a heading `org.insert.todo.heading` (M-S-RET) makes is set as a TODO change: logged as the keyword says (a note wanted is a time only), with its tag triggers. (`org-treat-insert-todo-heading-as-state-change`)",
+              "default": false
+            },
+            "org_edit_timestamp_down_means_later": {
+              "type": "boolean",
+              "markdownDescription": "`S-<down>` makes a timestamp later and `S-<up>` earlier, the other way round from Org's default. (`org-edit-timestamp-down-means-later`)",
+              "default": false
+            },
+            "org_priority_enable_commands": {
+              "type": "boolean",
+              "markdownDescription": "Whether the priority commands work. With `false` they refuse (`Priority commands are disabled`), and `S-<up>` and `S-<down>` on a headline do not change its priority. (`org-priority-enable-commands`)",
+              "default": true
+            },
+            "org_track_ordered_property_with_tag": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "markdownDescription": "A tag that `org.ordered.toggle` (`C-c C-x o`) puts on the headline with the `ORDERED` property and takes off without it: `true` for `ORDERED`, or a tag of your own. Only the property orders the subtasks. (`org-track-ordered-property-with-tag`)",
+              "default": false
+            },
+            "org_special_ctrl_o": {
+              "type": "boolean",
+              "markdownDescription": "`org.open.line` (C-o) in a table inserts a row above; with `false` it opens a line there too. (`org-special-ctrl-o`)",
+              "default": true
+            },
+            "org_special_ctrl_k": {
+              "type": "boolean",
+              "markdownDescription": "C-k (`org.kill.line`) on a headline kills the text to the tags, and the tags when the cursor is past the title; at the start of the line, the whole line. With `false` the key keeps the editor's own meaning, but on a line a closed fold starts on (see `org_ctrl_k_protect_subtree`). (`org-special-ctrl-k`)",
+              "default": false
+            },
+            "org_ctrl_k_protect_subtree": {
+              "enum": [
+                false,
+                true,
+                "error"
+              ],
+              "markdownDescription": "C-k (`org.kill.line`) on a line a closed fold starts on (a headline's only from its start with `org_special_ctrl_k`) kills what the fold hides with the line, as Emacs's `kill-line` does: `true` asks first (*Kill hidden subtree along with headline?*), `\"error\"` refuses (*‘C-k’ aborted as it would kill a hidden subtree*), `false` kills. Needs an editor that says which folds are closed (not VS Code). (`org-ctrl-k-protect-subtree`)",
+              "default": false
+            },
+            "org_list_allow_alphabetical": {
+              "type": "boolean",
+              "markdownDescription": "Whether a letter may stand for the number of an ordered item (`a.`, `B)`). A list of more than 26 items is numbered. (`org-list-allow-alphabetical`)",
+              "default": false
+            },
+            "org_plain_list_ordered_item_terminator": {
+              "enum": [
+                true,
+                ".",
+                ")"
+              ],
+              "markdownDescription": "What ends the number of an ordered item: `\".\"`, `\")\"`, or `true` for either. (`org-plain-list-ordered-item-terminator`)",
+              "default": true
+            },
+            "org_list_two_spaces_after_bullet_regexp": {
+              "anyOf": [
+                {
+                  "const": false
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "markdownDescription": "An Emacs regexp: the bullets it matches get two spaces after them when Org writes them (a new item, a bullet changed, a list repaired). (`org-list-two-spaces-after-bullet-regexp`)",
+              "default": false
+            },
+            "org_list_demote_modify_bullet": {
+              "type": "object",
+              "additionalProperties": {
+                "enum": [
+                  "-",
+                  "+",
+                  "*",
+                  "1.",
+                  "1)"
+                ]
+              },
+              "markdownDescription": "By bullet (`-`, `+`, `*`, `1.`, `1)`), the bullet an item gets when it is indented: `{ \"+\": \"-\", \"-\": \"+\" }`. (`org-list-demote-modify-bullet`)",
+              "default": {}
+            },
+            "org_list_indent_offset": {
+              "type": "integer",
+              "minimum": 0,
+              "markdownDescription": "How many more columns sub-items are indented, past their parent's bullet. (`org-list-indent-offset`)",
+              "default": 0
+            },
+            "org_list_automatic_rules": {
+              "type": "object",
+              "properties": {
+                "checkbox": {
+                  "type": "boolean"
+                },
+                "indent": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false,
+              "markdownDescription": "`checkbox`: the statistics cookies are counted again when a box changes, and colored as done or not. `indent`: indenting the first item of a list with its children (M-S-<right>) moves the whole list. A rule left out of the object is off. (`org-list-automatic-rules`)",
+              "default": {
+                "checkbox": true,
+                "indent": true
+              }
+            },
+            "org_checkbox_hierarchical_statistics": {
+              "type": "boolean",
+              "markdownDescription": "A checkbox cookie counts the boxes of the items right below it; `false` counts every box further down too, as `recursive` in a `COOKIE_DATA` property does. (`org-checkbox-hierarchical-statistics`)",
+              "default": true
+            },
+            "org_table_number_regexp": {
+              "type": "string",
+              "markdownDescription": "An Emacs regexp: the fields it matches are numbers, and a column mostly of numbers aligns right. (`org-table-number-regexp`)"
+            },
+            "org_table_number_fraction": {
+              "type": "number",
+              "minimum": 0,
+              "markdownDescription": "How much of a column's filled fields must be numbers for it to align right. (`org-table-number-fraction`)",
+              "default": 0.5
+            },
+            "org_table_automatic_realign": {
+              "type": "boolean",
+              "markdownDescription": "TAB and RET in a table align it before they move; `false`: only C-c C-c and the commands that change rows or columns do. (`org-table-automatic-realign`)",
+              "default": true
+            },
+            "org_table_tab_jumps_over_hlines": {
+              "type": "boolean",
+              "markdownDescription": "TAB at the end of a row before a horizontal line goes to the row after it; `false`: it makes a row before the line. (`org-table-tab-jumps-over-hlines`)",
+              "default": true
+            },
+            "org_table_shrunk_column_indicator": {
+              "type": "string",
+              "markdownDescription": "What shows at the end of each field of a shrunk column. (`org-table-shrunk-column-indicator`)",
+              "default": "…"
+            },
+            "org_table_formula_constants": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number"
+                ]
+              },
+              "markdownDescription": "Constants for the table formulas of every file, by name: `{ \"c\": \"299792458.\" }` gives `$c`. A file's `#+CONSTANTS:` come first. (`org-table-formula-constants`)",
+              "default": {}
+            },
+            "org_table_relative_ref_may_cross_hline": {
+              "enum": [
+                true,
+                false,
+                "error"
+              ],
+              "markdownDescription": "Whether a relative reference in a formula (`@-1`) goes past a horizontal line: `false` stops at the field next to it, `\"error\"` makes the formula fail. (`org-table-relative-ref-may-cross-hline`)",
+              "default": true
+            },
+            "org_table_formula_create_columns": {
+              "type": "boolean",
+              "markdownDescription": "A field formula past the last column adds the columns it needs, rather than failing. (`org-table-formula-create-columns`)",
+              "default": false
+            },
+            "org_table_duration_custom_format": {
+              "enum": [
+                "seconds",
+                "minutes",
+                "hours",
+                "days",
+                "hh:mm"
+              ],
+              "markdownDescription": "How a formula with `;t` writes a duration: a number of seconds, minutes, hours or days, or hours and minutes. (`org-table-duration-custom-format`)",
+              "default": "hours"
+            },
+            "org_table_duration_hour_zero_padding": {
+              "type": "boolean",
+              "markdownDescription": "Durations of formulas (`;T`, `;U`) have their hours on two digits: `08:32:34` rather than `8:32:34`. (`org-table-duration-hour-zero-padding`)",
+              "default": true
+            },
+            "org_calc_default_modes": {
+              "type": "object",
+              "properties": {
+                "float_format": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": [
+                    {
+                      "enum": [
+                        "float",
+                        "fix",
+                        "sci"
+                      ]
+                    },
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  ]
+                },
+                "angle_mode": {
+                  "enum": [
+                    "deg",
+                    "rad"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "markdownDescription": "The modes table formulas start with: `float_format`, `[\"float\", digits]`, `[\"fix\", decimals]` or `[\"sci\", digits]`, and `angle_mode`, `\"deg\"` or `\"rad\"`. A formula's own modes (`;f2`) win; Calc's other modes are not offered. (`org-calc-default-modes`)",
+              "default": {
+                "float_format": [
+                  "float",
+                  8
+                ],
+                "angle_mode": "deg"
+              }
+            },
+            "org_table_formula_evaluate_inline": {
+              "type": "boolean",
+              "markdownDescription": "TAB and RET on a field that is a formula (`=$1*2`, `:=...`) evaluate it, which org-lsp refuses (the formula goes in a `#+TBLFM:` line); `false` leaves the field as text. (`org-table-formula-evaluate-inline`)",
+              "default": true
+            },
+            "org_table_allow_automatic_line_recalculation": {
+              "type": "boolean",
+              "markdownDescription": "TAB, RET and C-c C-c on a line marked `#` recalculate it. (`org-table-allow-automatic-line-recalculation`)",
+              "default": true
             },
             "org_list_use_circular_motion": {
               "type": "boolean",
@@ -1627,6 +2297,110 @@
               "markdownDescription": "Put state changes and notes into a drawer: `true` for `LOGBOOK`, or the name of a drawer. `#+STARTUP:` `logdrawer` and `nologdrawer` change it in a file; an entry's `LOG_INTO_DRAWER` property (inherited) says which drawer for it (`t` for `LOGBOOK`, `nil` for none). (`org-log-into-drawer`)",
               "default": false
             },
+            "org_log_done_with_time": {
+              "type": "boolean",
+              "markdownDescription": "The `CLOSED:` timestamp of an entry done has the time, not only the date. (`org-log-done-with-time`)",
+              "default": true
+            },
+            "org_log_note_headings": {
+              "type": "object",
+              "properties": {
+                "done": {
+                  "type": "string"
+                },
+                "state": {
+                  "type": "string"
+                },
+                "note": {
+                  "type": "string"
+                },
+                "reschedule": {
+                  "type": "string"
+                },
+                "delschedule": {
+                  "type": "string"
+                },
+                "redeadline": {
+                  "type": "string"
+                },
+                "deldeadline": {
+                  "type": "string"
+                },
+                "refile": {
+                  "type": "string"
+                },
+                "clock_out": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false,
+              "markdownDescription": "The heading of each kind of note, by kind: `done` (`CLOSING NOTE %t`), `state` (`State %-12s from %-12S %t`), `note`, `reschedule`, `delschedule`, `redeadline`, `deldeadline`, `refile` and `clock_out`. In a heading `%t` is the time, `%T` the time active, `%d` and `%D` the date, `%s` the new state or date and `%S` the old one, `%u` the login name and `%U` the full name; an empty heading leaves the note its text only. Kinds left out keep Org's headings. Habits take notes with the `done` heading for days done. (`org-log-note-headings`)"
+            },
+            "org_log_states_order_reversed": {
+              "type": "boolean",
+              "markdownDescription": "Put a new state note, note or clock line above the others (`false`: below them). `#+STARTUP:` `logstatesreversed` and `nologstatesreversed` change it in a file. (`org-log-states-order-reversed`)",
+              "default": true
+            },
+            "org_log_state_notes_insert_after_drawers": {
+              "type": "boolean",
+              "markdownDescription": "Without a log drawer, put notes after the drawers right under the headline and planning line, not before them. (`org-log-state-notes-insert-after-drawers`)",
+              "default": false
+            },
+            "org_log_note_clock_out": {
+              "type": "boolean",
+              "markdownDescription": "Ask for a note when the clock stops (`org.clock.out`), which goes right after the clock line. `#+STARTUP:` `lognoteclock-out` and `nolognoteclock-out` change it in a file. (`org-log-note-clock-out`)",
+              "default": false
+            },
+            "org_provide_todo_statistics": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "const": "all-headlines"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "minItems": 2,
+                  "maxItems": 2
+                }
+              ],
+              "markdownDescription": "Update the `[1/3]` and `[33%]` cookies of the parent when a state changes, counting the entries with a keyword (`true`), every entry (`all-headlines`, those without a keyword as not done), those with these keywords and the done ones (a list), or those of the first list as not done and of the second as done (two lists). `false` leaves the cookies. (`org-provide-todo-statistics`)",
+              "default": true
+            },
+            "org_hierarchical_todo_statistics": {
+              "type": "boolean",
+              "markdownDescription": "TODO statistics count the children only; `false`: the whole subtree, and the cookies above too. A `COOKIE_DATA` property with `recursive` does this for a subtree. (`org-hierarchical-todo-statistics`)",
+              "default": true
+            },
+            "org_closed_keep_when_no_todo": {
+              "type": "boolean",
+              "markdownDescription": "Keep the `CLOSED:` timestamp when an entry is left with no keyword. (`org-closed-keep-when-no-todo`)",
+              "default": false
+            },
+            "org_todo_state_tags_triggers": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[+-]"
+                }
+              },
+              "markdownDescription": "Tags that change with the state, by state: a keyword, `\"\"` for none, `todo` for any not done, `done` for any done; each a list of tags to set (`+TAG`) or remove (`-TAG`), in order: `{ \"WAIT\": [\"+waiting\"], \"todo\": [\"-done\"], \"done\": [\"+done\", \"-waiting\"] }`. (`org-todo-state-tags-triggers`)"
+            },
             "org_tags_column": {
               "type": "integer",
               "markdownDescription": "Where tags are aligned after a change to a headline. Negative: they end at that column. (`org-tags-column`)",
@@ -1663,6 +2437,35 @@
               },
               "markdownDescription": "Which properties an entry without them takes from its parents, the file's property drawer and `#+PROPERTY:` lines, in property searches (`OWNER=\"alice\"`): `true` for all, `false` for none, a list of names, or a regexp (Emacs syntax). `CATEGORY` and `ARCHIVE` are always inherited. (`org-use-property-inheritance`)",
               "default": false
+            },
+            "org_property_separators": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": [
+                  {
+                    "type": [
+                      "array",
+                      "string"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
+              },
+              "markdownDescription": "What joins the values of a property with those of its `PROPERTY+` lines, and the inherited ones, instead of a space: `[[\"AUTHOR\", \"COAUTHOR\"], \", \"]` for the properties named, `[\"^TAG\", \";\"]` for those an Emacs regexp matches, without regard to case. The first that fits counts. (`org-property-separators`)",
+              "default": []
+            },
+            "org_property_format": {
+              "type": "string",
+              "markdownDescription": "How a property line is written when it is indented (TAB, `org.indent`) or set: `format`'s `%s` for the key with its colons, then the value, with a width (`%-10s` pads the key to 10 columns). (`org-property-format`)",
+              "default": "%-10s %s"
             },
             "org_global_properties": {
               "type": "object",
@@ -1710,16 +2513,90 @@
               "minimum": 1,
               "markdownDescription": "After how many minutes without a message from the editor a clock that runs asks what to do with the idle time: keep it, subtract it (and clock out), or cancel the clock. (`org-clock-idle-time`)"
             },
+            "org_clock_auto_clock_resolution": {
+              "enum": [
+                true,
+                false,
+                "when-no-clock-is-running"
+              ],
+              "markdownDescription": "Clocking in first asks about each clock left running in the open and agenda files, as `org.clock.resolve` does: `when-no-clock-is-running` when no clock runs, `true` always (the clock that runs too), `false` never. A clock found running when the server starts, or written by hand, is no clock the server ran: it is asked about. (`org-clock-auto-clock-resolution`)",
+              "default": "when-no-clock-is-running"
+            },
+            "org_clock_resolve_expert": {
+              "type": "boolean",
+              "markdownDescription": "Ask what to do with a dangling clock or idle time with the keys in the prompt alone (`[jkKtTgGSscCiq]?`), without the list of what each one does. (`org-clock-resolve-expert`)",
+              "default": false
+            },
             "org_clock_history_length": {
               "type": "integer",
               "minimum": 1,
               "markdownDescription": "How many entries clocked into the clock history keeps, for `org.clock.in` with a count and `org.clock.in.last`. (`org-clock-history-length`)",
               "default": 5
             },
+            "org_clock_in_resume": {
+              "type": "boolean",
+              "markdownDescription": "Clocking into an entry whose `CLOCK:` line was left without an end goes on with that clock, from when it started, rather than starting a new line. (`org-clock-in-resume`)",
+              "default": false
+            },
+            "org_clock_persist": {
+              "enum": [
+                true,
+                false,
+                "clock",
+                "history"
+              ],
+              "markdownDescription": "Keep the running clock and the clock history when the server stops, and take them back when it starts: `true` both, `clock` the running clock alone, `history` the history alone (what `C-u C-c C-x C-i` offers). The running clock runs again if its `CLOCK:` line is still open. They are kept in Emacs's own file, in its form, so Emacs and org-lsp take the clock from each other. (`org-clock-persist`)",
+              "default": false
+            },
+            "org_clock_persist_file": {
+              "type": "string",
+              "markdownDescription": "The file `org_clock_persist` keeps the clock in: Emacs's, `org-clock-save.el` in its directory. (`org-clock-persist-file`)",
+              "default": "~/.emacs.d/org-clock-save.el"
+            },
+            "org_clock_persist_query_resume": {
+              "type": "boolean",
+              "markdownDescription": "Ask before the clock the last session kept runs again (`Resume clock (…)?`). (`org-clock-persist-query-resume`)",
+              "default": true
+            },
+            "org_clock_goto_may_find_recent_task": {
+              "type": "boolean",
+              "markdownDescription": "With no clock running, `org.clock.goto` goes to the entry clocked last. With `false`, it says `No active or recent clock task`. (`org-clock-goto-may-find-recent-task`)",
+              "default": true
+            },
             "org_clock_clocktable_default_properties": {
               "type": "string",
               "markdownDescription": "The parameters a new clock table gets on its `#+BEGIN:` line from `org.clock.report` (`C-c C-x C-r`), after `:scope`, as Emacs Lisp reads them (`:maxlevel 3 :link t`). (`org-clock-clocktable-default-properties`)",
               "default": ":maxlevel 2"
+            },
+            "org_clocktable_defaults": {
+              "type": "string",
+              "markdownDescription": "The parameters every clock table has unless its `#+BEGIN:` line gives them, as Emacs Lisp reads them. Set, it replaces Org's whole list. (`org-clocktable-defaults`)"
+            },
+            "org_clock_clocktable_language_setup": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1
+              },
+              "markdownDescription": "The words of a clock table in each language its `:lang` names: the language, then its words for `File`, `L`, `Timestamp`, `Headline`, `Time`, `ALL`, `Total time`, `File time` and `Clock summary at`. A word left out stays English. Set, it replaces Org's languages. (`org-clock-clocktable-language-setup`)"
+            },
+            "org_clock_report_include_clocking_task": {
+              "type": "boolean",
+              "markdownDescription": "A clock table counts the time of the clock that runs, for its entry, when the table covers a time (`:block`, `:tstart` and `:tend`) and the clock started within it. (`org-clock-report-include-clocking-task`)",
+              "default": false
+            },
+            "org_clock_rounding_minutes": {
+              "type": "integer",
+              "markdownDescription": "Clocking in and out happens at the multiple of this many minutes nearest now; a clock never starts later than now. Below 1, at the minute. (`org-clock-rounding-minutes`)",
+              "default": 0
+            },
+            "org_clock_continuously": {
+              "type": "boolean",
+              "markdownDescription": "A clock starts when the last one stopped, not now. (`org-clock-continuously`)",
+              "default": false
             },
             "org_clock_total_time_cell_format": {
               "type": "string",
@@ -1751,6 +2628,194 @@
               },
               "markdownDescription": "The `org-lint` checkers to leave out, by name, as a diagnostic's code shows it (`\"misplaced-heading\"`). (`org-lint`)",
               "default": []
+            },
+            "org_id_method": {
+              "enum": [
+                "uuid",
+                "uuidgen",
+                "org",
+                "ts"
+              ],
+              "markdownDescription": "How a new `ID` is made (`org.id.create`, a link stored by ID, org-roam): a random UUID, the time in base 36 (`org`), or the time as `org_id_ts_format` writes it (`ts`). (`org-id-method`)",
+              "default": "uuid"
+            },
+            "org_id_prefix": {
+              "anyOf": [
+                {
+                  "const": false
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "markdownDescription": "What a new `ID` starts with, before a colon: `\"Org\"` makes `Org:…`. (`org-id-prefix`)",
+              "default": false
+            },
+            "org_id_ts_format": {
+              "type": "string",
+              "markdownDescription": "How the `ts` method writes the time, as `format-time-string` does. (`org-id-ts-format`)",
+              "default": "%Y%m%dT%H%M%S.%6N"
+            },
+            "org_id_include_domain": {
+              "type": "boolean",
+              "markdownDescription": "The `org` and `ts` methods end a new `ID` with `@` and the machine's domain. (`org-id-include-domain`)",
+              "default": false
+            },
+            "org_id_track_globally": {
+              "type": "boolean",
+              "markdownDescription": "IDs are looked for in other files than the link's own: those of `org_id_search_archives`, `org_id_extra_files` and `org_id_locations_file`, the agenda files, the open ones and org-roam's. Off, an `id:` link leads only within its file. (`org-id-track-globally`)",
+              "default": true
+            },
+            "org_id_search_archives": {
+              "type": "boolean",
+              "markdownDescription": "IDs are looked for in the archive files of the agenda files too. (`org-id-search-archives`)",
+              "default": true
+            },
+            "org_id_extra_files": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "More files to look for IDs in: paths or glob patterns. (`org-id-extra-files`)"
+            },
+            "org_id_locations_file": {
+              "type": "string",
+              "markdownDescription": "The file where Emacs keeps the files it found IDs in: org-lsp looks in them too, and never writes it. Names in it that are not absolute are relative to its directory. (`org-id-locations-file`)",
+              "default": "~/.emacs.d/.org-id-locations"
+            },
+            "org_id_completion_targets": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "files": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "current",
+                          "agenda",
+                          "org-id-files"
+                        ]
+                      },
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "description": "`current` (the entry's own file), `agenda`, `org-id-files` (the files with IDs), a path or a list of paths"
+                  },
+                  "level": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "The headlines of this level"
+                  },
+                  "maxlevel": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "The headlines up to this level"
+                  },
+                  "tag": {
+                    "type": "string",
+                    "description": "The headlines with this tag"
+                  },
+                  "todo": {
+                    "type": "string",
+                    "description": "The headlines with this TODO keyword"
+                  },
+                  "regexp": {
+                    "type": "string",
+                    "description": "The headlines that match this regular expression"
+                  },
+                  "all": {
+                    "type": "boolean",
+                    "description": "Every headline"
+                  }
+                }
+              },
+              "markdownDescription": "The headlines an `id:` link completes to (`org.link.insert`), as `org_refile_targets` names them: by default every headline of the file and of the files with IDs. (`org-id-completion-targets`)",
+              "default": [
+                {
+                  "files": "current",
+                  "all": true
+                },
+                {
+                  "files": "org-id-files",
+                  "all": true
+                }
+              ]
+            },
+            "org_link_search_must_match_exact_headline": {
+              "enum": [
+                true,
+                false,
+                "query-to-create"
+              ],
+              "markdownDescription": "What a link to a headline that is not there does: `\"query-to-create\"` asks whether to make it, at the end of the file, when the link is followed (`org.open`); `true` is an error; `false` looks for its words in the text. (`org-link-search-must-match-exact-headline`)",
+              "default": "query-to-create"
+            },
+            "org_link_doi_server_url": {
+              "type": "string",
+              "markdownDescription": "What a `doi:` link is opened at: this, then the DOI. (`org-link-doi-server-url`)",
+              "default": "https://doi.org/"
+            },
+            "org_link_shell_skip_confirm_regexp": {
+              "type": "string",
+              "markdownDescription": "An Emacs regexp: a `shell:` link whose command it matches runs when followed without asking `Execute … in shell?` first. Empty asks for every command. (`org-link-shell-skip-confirm-regexp`)",
+              "default": ""
+            },
+            "org_man_command": {
+              "type": "string",
+              "markdownDescription": "The program that writes the man page of a `man:` link, when `ol-man` is in `org_modules`: the page is shown as text, at the line before the first match of what follows `::` (`man:ls::-l`). `\"woman\"`, Emacs's own reader, is `man` too. (`org-man-command`)",
+              "default": "man"
+            },
+            "org_info_other_documents": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "markdownDescription": "The pages on the web of Info manuals: following an `info:` link to one of them, or to one of Emacs's manuals, opens its page at the node. Another manual is shown as text, as the `info` program writes the node. (`org-info-other-documents`)",
+              "default": {
+                "dir": "https://www.gnu.org/manual/manual.html",
+                "libc": "https://www.gnu.org/software/libc/manual/html_mono/libc.html",
+                "make": "https://www.gnu.org/software/make/manual/make.html"
+              }
+            },
+            "org_ctags_path_to_ctags": {
+              "type": "string",
+              "markdownDescription": "The `ctags` program (Exuberant or Universal Ctags) that `org.ctags.create` runs to make the `TAGS` file of a directory, when `org-ctags` is in `org_modules`. (`org-ctags-path-to-ctags`)",
+              "default": "ctags"
+            },
+            "org_ctags_open_link_functions": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "org-ctags-find-tag",
+                  "org-ctags-ask-rebuild-tags-file-then-find-tag",
+                  "org-ctags-rebuild-tags-file-then-find-tag",
+                  "org-ctags-ask-append-topic",
+                  "org-ctags-append-topic",
+                  "org-ctags-ask-visit-buffer-or-file",
+                  "org-ctags-visit-buffer-or-file",
+                  "org-ctags-fail-silently"
+                ]
+              },
+              "markdownDescription": "With `org-ctags` in `org_modules`, what following a link to a headline, a target or a custom ID tries first, in turn, until one is done: `org-ctags-find-tag` (the tag of the `TAGS` file of the file's directory), `org-ctags-ask-rebuild-tags-file-then-find-tag` and `org-ctags-rebuild-tags-file-then-find-tag` (the `TAGS` file made again, then the tag), `org-ctags-ask-append-topic` and `org-ctags-append-topic` (a new topic at the end of the file), `org-ctags-ask-visit-buffer-or-file` and `org-ctags-visit-buffer-or-file` (the Org file of that name in the directory, made when asked), `org-ctags-fail-silently` (nothing more). When none is done, the link is followed as without them. (`org-ctags-open-link-functions`)",
+              "default": [
+                "org-ctags-find-tag",
+                "org-ctags-ask-rebuild-tags-file-then-find-tag",
+                "org-ctags-ask-append-topic"
+              ]
+            },
+            "org_ctags_new_topic_template": {
+              "type": "string",
+              "markdownDescription": "The text of a new topic `org_ctags_open_link_functions` makes, `%t` the link's text capitalized. (`org-ctags-new-topic-template`)",
+              "default": "* <<%t>>\n\n\n\n\n\n"
             },
             "org_id_link_to_org_use_id": {
               "enum": [
@@ -1806,6 +2871,73 @@
               "markdownDescription": "Bibliography files for the citations of every document (`[cite:@key]`), after those its `#+BIBLIOGRAPHY:` lines name: BibTeX (`.bib`, `.bibtex`) or CSL-JSON (`.json`). Their entries are completed after `@`, shown over a key, and where following a key goes; a key none has is marked. (`org-cite-global-bibliography`)",
               "default": []
             },
+            "org_cite_insert_processor": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "const": false
+                }
+              ],
+              "markdownDescription": "The citation processor `org.cite.insert` inserts with: `basic`, as Org's own does; Org's other processors cannot insert, and those of packages (citar) are not run; `false` for none. (`org-cite-insert-processor`)",
+              "default": "basic"
+            },
+            "org_bibtex_autogen_keys": {
+              "type": "boolean",
+              "markdownDescription": "Whether `org.bibtex.create` and `org.bibtex.check` make the key of a new BibTeX entry from its author, year and title, as `bibtex-generate-autokey` makes it (through Emacs), instead of asking for it (`id`). (`org-bibtex-autogen-keys`)",
+              "default": false
+            },
+            "org_bibtex_prefix": {
+              "type": "string",
+              "markdownDescription": "What the names of the properties the BibTeX commands write start with (`BIB_` gives `BIB_AUTHOR`), but for the key's; they read the names with it and without. (`org-bibtex-prefix`)"
+            },
+            "org_bibtex_treat_headline_as_title": {
+              "type": "boolean",
+              "markdownDescription": "A headline without a `TITLE` property is the title of its BibTeX entry, and `org.bibtex.check` does not ask for one. (`org-bibtex-treat-headline-as-title`)",
+              "default": true
+            },
+            "org_bibtex_export_arbitrary_fields": {
+              "type": "boolean",
+              "markdownDescription": "With `org_bibtex_prefix`, every property whose name has the prefix is a field of the entry exported (`org.bibtex.export`, `org.bibtex.copy`), not only those of its type. (`org-bibtex-export-arbitrary-fields`)",
+              "default": false
+            },
+            "org_bibtex_key_property": {
+              "type": "string",
+              "markdownDescription": "The property that holds an entry's BibTeX key. `ID` makes the key a global ID. (`org-bibtex-key-property`)",
+              "default": "CUSTOM_ID"
+            },
+            "org_bibtex_tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "Tags given to the entries the BibTeX commands make. (`org-bibtex-tags`)",
+              "default": []
+            },
+            "org_bibtex_tags_are_keywords": {
+              "type": "boolean",
+              "markdownDescription": "The `keywords` field of an entry read is its tags (spaces as `_`, other characters a tag cannot have left out), and an entry's own tags are its `keywords` when exported, but for those of `org_bibtex_tags` and `org_bibtex_no_export_tags`. (`org-bibtex-tags-are-keywords`)",
+              "default": false
+            },
+            "org_bibtex_no_export_tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "Tags that are not exported as keywords, with `org_bibtex_tags_are_keywords`. (`org-bibtex-no-export-tags`)",
+              "default": []
+            },
+            "org_bibtex_inherit_tags": {
+              "type": "boolean",
+              "markdownDescription": "With `org_bibtex_tags_are_keywords`, the tags an entry inherits are keywords too. (`org-bibtex-inherit-tags`)",
+              "default": false
+            },
+            "org_bibtex_type_property_name": {
+              "type": "string",
+              "markdownDescription": "The property that holds an entry's BibTeX type (`article`); a headline without it is no entry. (`org-bibtex-type-property-name`)",
+              "default": "btype"
+            },
             "org_link_abbrev_alist": {
               "type": "object",
               "additionalProperties": {
@@ -1813,6 +2945,50 @@
               },
               "markdownDescription": "Link abbreviations: `[[gh:org-lsp]]` with `{ \"gh\": \"https://github.com/%s\" }` follows `https://github.com/org-lsp`. `%s` stands for what follows the colon, `%h` for it URL-encoded; without either it goes at the end. A file's `#+LINK:` lines come first. `%(my-function)` calls an Emacs function with what follows the colon (through Emacs). (`org-link-abbrev-alist`)",
               "default": {}
+            },
+            "org_file_apps": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "markdownDescription": "What opens a linked file, the first entry that matches: a match is an extension (`txt`), an Emacs regular expression for the file name (`\\\\.pdf\\\\'` in JSON; with groups `%1`, `%2`... in the command, it matches the file followed by the link's `::` part), `directory`, `remote`, `system` (what `C-u C-u C-c C-o` uses), `auto-mode` (every file the editor can show) or `t` (any other file). A command is `emacs` (the editor), `default` (the `system` entry, else the editor), `system` or `mailcap` (the system's application, through the editor), or a shell command where `%s` is the file. `C-u C-c C-o` opens the file in the editor. A Lisp function is not a command here. (`org-file-apps`)",
+              "default": [
+                [
+                  "auto-mode",
+                  "emacs"
+                ],
+                [
+                  "directory",
+                  "emacs"
+                ],
+                [
+                  "\\.mm\\'",
+                  "default"
+                ],
+                [
+                  "\\.x?html?\\'",
+                  "default"
+                ],
+                [
+                  "\\.pdf\\'",
+                  "default"
+                ]
+              ]
+            },
+            "org_open_non_existing_files": {
+              "type": "boolean",
+              "markdownDescription": "Open a linked file that is not there with the application `org_file_apps` gives it, rather than saying `No such file`. The editor opens such a file either way. (`org-open-non-existing-files`)",
+              "default": false
+            },
+            "org_open_directory_means_index_dot_org": {
+              "type": "boolean",
+              "markdownDescription": "Following a link to a directory opens the `index.org` in it, rather than the directory. (`org-open-directory-means-index-dot-org`)",
+              "default": false
             },
             "org_tag_alist": {
               "type": [
@@ -1840,6 +3016,16 @@
               "type": "boolean",
               "markdownDescription": "A group tag (`[ GTD : Control Persp ]`, `{ Context : @home @office }` in `#+TAGS:` or `org_tag_alist`) in the match string of a tags view stands for itself and the tags of its group. (`org-group-tags`)",
               "default": true
+            },
+            "org_use_fast_todo_selection": {
+              "enum": [
+                "auto",
+                "expert",
+                true,
+                false
+              ],
+              "markdownDescription": "How `C-c C-t` (`org.todo`) changes the TODO state where keywords have keys (`TODO(t)`): `auto` picks the state by key from a menu of them; `expert` by key too, the keys listed in the prompt alone (in Neovim and Vim; other editors show their menu); `false` goes to the next state, as where no keyword has a key. `true` is `auto`. (`org-use-fast-todo-selection`)",
+              "default": "auto"
             },
             "org_use_fast_tag_selection": {
               "enum": [
@@ -1943,6 +3129,14 @@
               "markdownDescription": "A date typed without a year or month is the next one to come. With `time`, a time that has passed today is tomorrow's. (`org-read-date-prefer-future`)",
               "default": true
             },
+            "org_agenda_jump_prefer_future": {
+              "enum": [
+                true,
+                false,
+                "time"
+              ],
+              "markdownDescription": "How the agenda's `j` (`org.agenda.goto.date`) reads a date typed without a year or month, as `org_read_date_prefer_future` does for every other prompt. (`org-agenda-jump-prefer-future`)"
+            },
             "org_read_date_force_compatible_dates": {
               "type": "boolean",
               "markdownDescription": "A typed year is kept within 1970 to 2037. (`org-read-date-force-compatible-dates`)",
@@ -1959,7 +3153,8 @@
                       {
                         "enum": [
                           "current",
-                          "agenda"
+                          "agenda",
+                          "org-id-files"
                         ]
                       },
                       {
@@ -1972,7 +3167,7 @@
                         }
                       }
                     ],
-                    "description": "`current` (the entry's own file), `agenda`, a path or a list of paths"
+                    "description": "`current` (the entry's own file), `agenda`, `org-id-files` (the files with IDs), a path or a list of paths"
                   },
                   "level": {
                     "type": "integer",
@@ -2002,7 +3197,7 @@
                   }
                 }
               },
-              "markdownDescription": "Where entries can be refiled to. Each entry has `files`: `current` (the entry's own file), `agenda`, a path or a list of paths; and one of `level`, `maxlevel`, `tag`, `todo`, `regexp` (the Rust `regex` crate's syntax) or `all` (true), which says which headlines there are targets. (`org-refile-targets`)",
+              "markdownDescription": "Where entries can be refiled to. Each entry has `files`: `current` (the entry's own file), `agenda`, `org-id-files` (the files with IDs), a path or a list of paths; and one of `level`, `maxlevel`, `tag`, `todo`, `regexp` (the Rust `regex` crate's syntax) or `all` (true), which says which headlines there are targets. (`org-refile-targets`)",
               "default": [
                 {
                   "files": "current",
@@ -2019,6 +3214,11 @@
                 "title"
               ],
               "markdownDescription": "Name targets by their outline path (`Projects/Alpha/`). The three names start the path with the file, and offer the file itself, for its top level. (`org-refile-use-outline-path`)",
+              "default": false
+            },
+            "org_refile_active_region_within_subtree": {
+              "type": "boolean",
+              "markdownDescription": "A selection that is not whole subtrees is refiled too: its first line becomes a headline first (`org-toggle-heading`, run by Emacs), a level below the entry it is in. (`org-refile-active-region-within-subtree`)",
               "default": false
             },
             "org_refile_allow_creating_parent_nodes": {
@@ -2115,6 +3315,21 @@
               ],
               "markdownDescription": "What `org.archive.default` does: archive the subtree, archive it under its sibling, or tag it. (`org-archive-default-command`)",
               "default": "subtree"
+            },
+            "org_archive_subtree_save_file_p": {
+              "enum": [
+                true,
+                false,
+                "from-org",
+                "from-agenda"
+              ],
+              "markdownDescription": "Whether the archive file is saved once a subtree goes there: always (`true`), when archiving from an Org file (`from-org`), from the agenda (`from-agenda`), or never (`false`). Unsaved, it is left with its changes in the editor, as `auto_save` does not save it. (`org-archive-subtree-save-file-p`)",
+              "default": "from-org"
+            },
+            "org_capture_use_agenda_date": {
+              "type": "boolean",
+              "markdownDescription": "Capturing from the agenda takes the day of the line the cursor is on, at midnight (or the hour of `org_extend_today_until`), for `%t`, `%U` and the like and for the date of a date tree, which a `time_prompt` template then does not ask for. (`org-capture-use-agenda-date`)",
+              "default": false
             },
             "org_capture_templates_contexts": {
               "type": "array",
@@ -2309,6 +3524,66 @@
                 }
               ]
             },
+            "org_protocol_default_template_key": {
+              "type": "string",
+              "markdownDescription": "The keys of the capture template an `org-protocol://capture` URL uses when it names none (`template=`). (`org-protocol-default-template-key`)"
+            },
+            "org_protocol_data_separator": {
+              "type": "string",
+              "markdownDescription": "An Emacs regular expression: what separates the parts of an old-style `org-protocol` URL (`org-protocol://capture:/x/URL/TITLE/BODY`). (`org-protocol-data-separator`)",
+              "default": "/+\\|\\?"
+            },
+            "org_protocol_project_alist": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "base_url",
+                  "working_directory"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "What the project is called"
+                  },
+                  "base_url": {
+                    "type": "string",
+                    "description": "The URL of the published pages, with its last slash"
+                  },
+                  "working_directory": {
+                    "type": "string",
+                    "description": "The directory of their files, with its last slash"
+                  },
+                  "online_suffix": {
+                    "type": "string",
+                    "description": "Taken off the URL (.html)"
+                  },
+                  "working_suffix": {
+                    "type": "string",
+                    "description": "Put on in its place (.org)"
+                  },
+                  "rewrites": {
+                    "type": "array",
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "minItems": 2,
+                      "maxItems": 2
+                    },
+                    "description": "Pairs of an Emacs regexp on the URL and a path, for URLs whose file is not there"
+                  }
+                }
+              },
+              "markdownDescription": "Where the files of `org-protocol://open-source` URLs are on this computer. Each has a `name`, the `base_url` of the pages (with its last slash) and the `working_directory` of their files (with its last slash, `~/` for the home directory), and may have an `online_suffix` taken off the URL (`.html`), a `working_suffix` put on in its place (`.org`), and `rewrites`, pairs of an Emacs regular expression on the URL, whose first group is taken out of it, and what goes after it, for a URL whose file is not there. The first whose `base_url` the URL has is tried first. (`org-protocol-project-alist`)",
+              "default": []
+            },
+            "org_protocol_editor": {
+              "type": "string",
+              "markdownDescription": "The editor `org-lsp protocol` starts when no org-lsp runs, as a command line (`code`, `zed`, `kitty nvim`): it opens `org_default_notes_file` in it, or the file of an `open-source` URL, and the org-lsp that starts there takes the URL, within two minutes. Read from the shared file only. Without it, a stored link is kept for the next org-lsp that starts, and a capture fails."
+            },
             "org_directory": {
               "type": "string",
               "markdownDescription": "Where the relative paths of capture targets are. (`org-directory`)",
@@ -2328,6 +3603,111 @@
               "type": "boolean",
               "markdownDescription": "Hide the markers around `*bold*`, `/italic/`, `_underline_`, `+strike-through+`, `=verbatim=` and `~code~`, as for links. (`org-hide-emphasis-markers`)",
               "default": false
+            },
+            "org_fontify_emphasized_text": {
+              "type": "boolean",
+              "markdownDescription": "Show `*bold*`, `/italic/`, `_underline_`, `+strike-through+`, `=verbatim=` and `~code~` in their looks. With `false` they look as the text around them, their markers shown. (`org-fontify-emphasized-text`)",
+              "default": true
+            },
+            "org_emphasis_alist": {
+              "type": "object",
+              "propertyNames": {
+                "enum": [
+                  "*",
+                  "/",
+                  "_",
+                  "=",
+                  "~",
+                  "+"
+                ]
+              },
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "const": false
+                  },
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                ]
+              },
+              "markdownDescription": "The look of each kind of emphasis, by its marker (`*`, `/`, `_`, `=`, `~`, `+`): a face of Org's, `bold`, `italic`, `bold-italic`, `underline`, `org-code` or `org-verbatim`, attributes as Org writes them (`:weight bold :slant italic :underline t :strike-through t`), or a list of them; `false` for none. As in Emacs, a marker left out has no look. Colors are not shown. (`org-emphasis-alist`)"
+            },
+            "org_hidden_keywords": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "title",
+                  "subtitle",
+                  "author",
+                  "email",
+                  "date"
+                ]
+              },
+              "markdownDescription": "The keywords hidden before their values, such as `#+TITLE:` with `[\"title\"]`, in editors that conceal text. (`org-hidden-keywords`)",
+              "default": []
+            },
+            "org_hide_macro_markers": {
+              "type": "boolean",
+              "markdownDescription": "Hide the braces of macro calls, `{{{` and `}}}`, in editors that conceal text. (`org-hide-macro-markers`)",
+              "default": false
+            },
+            "org_display_custom_times": {
+              "type": "boolean",
+              "markdownDescription": "Show timestamps in `org_timestamp_custom_formats`: the date and time inside the brackets is hidden and the custom form shows in its place, as entities do. `#+STARTUP: customtime` turns it on for a file, and `C-c C-x C-t` (`org.timestamp.overlays.toggle`) on and off. Exports through Emacs use them too; the date prompt shows its answer in Org's own form. (`org-display-custom-times`)",
+              "default": false
+            },
+            "org_timestamp_custom_formats": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 2,
+              "maxItems": 2,
+              "markdownDescription": "The formats of `org_display_custom_times`, as `format-time-string` reads them (`%d.%m.%Y`); brackets around a format are dropped. (`org-timestamp-custom-formats`)",
+              "default": [
+                "%m/%d/%y %a",
+                "%m/%d/%y %a %H:%M"
+              ]
+            },
+            "org_entities_user": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "minItems": 7,
+                "maxItems": 7,
+                "items": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ]
+              },
+              "markdownDescription": "Entities of your own, used as `\\name`: what each is in LaTeX (and whether that needs math mode), HTML, ASCII, Latin-1 and UTF-8, as `[\"myarrow\", \"\\\\to\", true, \"&rarr;\", \"->\", \"->\", \"→\"]`. A name is letters only, and one of Org's own is replaced. The server shows them as `org_pretty_entities` says and completes them; Emacs exports them. (`org-entities-user`)",
+              "default": []
             },
             "org_pretty_entities": {
               "type": "boolean",
@@ -2353,6 +3733,11 @@
               "markdownDescription": "RET on the first line of a list item makes the next item, numbered and with a checkbox as M-RET (`org-meta-return`) makes it, the items after it renumbered, as nvim-orgmode's `org_return_uses_meta_return` does. Off, RET is Org's: a new line in the item. `org.return.item` (`<S-CR>`, Shift+Enter, with the vim keys) always does it.",
               "default": false
             },
+            "org_return_follows_link": {
+              "type": "boolean",
+              "markdownDescription": "RET (`org.return`) on a link, a timestamp or a citation follows it, as `org.open` (`C-c C-o`) does. In a table RET still moves down. (`org-return-follows-link`)",
+              "default": false
+            },
             "org_goto_max_level": {
               "type": "integer",
               "markdownDescription": "The deepest headings `org.goto` (`C-c C-j`) offers. (`org-goto-max-level`)",
@@ -2363,7 +3748,7 @@
                 1,
                 3
               ],
-              "markdownDescription": "How many months the calendar of the date prompt shows: 3 side by side, as Emacs's calendar shows them, the one with the selected day in the middle; or 1, that month alone, for a narrow window.",
+              "markdownDescription": "How many months the calendar of the date prompt shows: 3 side by side, as Emacs's calendar shows them, the one with the selected day in the middle; or 1, that month alone, for a narrow window, with the answer on a line under the prompt.",
               "default": 3
             },
             "calendar_week_start_day": {
@@ -2396,6 +3781,30 @@
               "markdownDescription": "With at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. `0`: none does. (`org-cycle-separator-lines`)",
               "default": 2
             },
+            "org_cycle_include_plain_lists": {
+              "enum": [
+                true,
+                false,
+                "integrate"
+              ],
+              "markdownDescription": "Whether list items fold, as subtrees do. `integrate` makes them part of the outline: TAB showing a headline's children folds its lists to their top items too. `false`: they do not fold. (`org-cycle-include-plain-lists`)",
+              "default": true
+            },
+            "org_cycle_max_level": {
+              "type": "integer",
+              "minimum": 1,
+              "markdownDescription": "The deepest headlines that fold; deeper ones are text of the subtree they are in. (`org-cycle-max-level`)"
+            },
+            "org_cycle_global_at_bob": {
+              "type": "boolean",
+              "markdownDescription": "TAB at the very start of the file, when its first line is no headline, cycles the whole file as S-TAB does. (`org-cycle-global-at-bob`)",
+              "default": false
+            },
+            "org_cycle_level_after_item_entry_creation": {
+              "type": "boolean",
+              "markdownDescription": "TAB on a new, empty headline makes it a child of the headline before, then each level up, then a sibling again; on an empty item, it indents and outdents the item the same way. (`org-cycle-level-after-item/entry-creation`)",
+              "default": true
+            },
             "org_startup_folded": {
               "enum": [
                 "overview",
@@ -2411,6 +3820,11 @@
               ],
               "markdownDescription": "How files show when opened: `\"overview\"` (or `\"fold\"`) only the top headlines, `\"content\"` all the headlines, `\"show2levels\"` to `\"show5levels\"` the headlines down to that level, `\"showeverything\"` (or `\"nofold\"`, `\"showall\"`) everything. `#+STARTUP:` decides for a file. Unless everything shows, a subtree's `VISIBILITY` property (`folded`, `children`, `content`, `all`) decides for it, archived subtrees are folded, and drawers too. Folds hide whole subtrees, so where Org shows a headline's children but not its text, the text shows. (`org-startup-folded`)",
               "default": "showeverything"
+            },
+            "org_startup_align_all_tables": {
+              "type": "boolean",
+              "markdownDescription": "Align every table of a file when it opens (an edit of the file, as in Emacs). `#+STARTUP: align` and `noalign` decide for a file. (`org-startup-align-all-tables`)",
+              "default": false
             },
             "org_startup_shrink_all_tables": {
               "type": "boolean",
@@ -2441,6 +3855,68 @@
               "markdownDescription": "Indent the lines of an entry past its headline's stars: `true` for all of them, `\"headline-data\"` for the planning line, drawers and clock lines right below the headline. Applies to new lines, to re-indenting (range formatting) and to what commands write. (`org-adapt-indentation`)",
               "default": false
             },
+            "org_image_actual_width": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "maxItems": 1
+                }
+              ],
+              "markdownDescription": "How wide the image of a link shows: `true` at its own width; a number, that many pixels; `false` or a list of one number, the `:width` of the paragraph's `#+ATTR_ORG:` or else of another `#+ATTR_…:` (pixels, `50%` or a fraction up to 2 of the text's width, `t` for its own width), else the list's number. An entry's `ORG-IMAGE-ACTUAL-WIDTH` property decides for its own text. (`org-image-actual-width`)",
+              "default": true
+            },
+            "org_image_max_width": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "fill-column",
+                    "window",
+                    null
+                  ]
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "markdownDescription": "How wide at most an image shown at its own width is: `\"fill-column\"`, 70 columns; `\"window\"`, the window's width; an integer, that many pixels; a float, that part of the window's width; null for no limit. (`org-image-max-width`)",
+              "default": "fill-column"
+            },
+            "org_display_remote_inline_images": {
+              "enum": [
+                "skip",
+                "download",
+                "cache"
+              ],
+              "markdownDescription": "Whether the images of `http:` and `https:` links show (`C-c C-x C-v`): `\"skip\"` not; `\"download\"` downloaded each time they show; `\"cache\"` downloaded once and kept for the session. The download follows `org_resource_download_policy`. (`org-display-remote-inline-images`)",
+              "default": "skip"
+            },
+            "org_resource_download_policy": {
+              "enum": [
+                true,
+                "prompt",
+                "safe",
+                false
+              ],
+              "markdownDescription": "Which remote resources are downloaded (the images of links): `true` all of them; `\"prompt\"` those considered safe, and the others when the answer to Emacs's question says so; `\"safe\"` only those considered safe; `false` none but those. (`org-resource-download-policy`)",
+              "default": "prompt"
+            },
+            "org_safe_remote_resources": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "The remote resources considered safe: Emacs regexps matched against a resource's URL and against the `file://` URL of the file asking for it. The answers `!`, `d` and `f` to the download question add one for the rest of the session. (`org-safe-remote-resources`)",
+              "default": []
+            },
             "org_startup_with_link_previews": {
               "type": "boolean",
               "markdownDescription": "Show the images of links to image files in place when a file opens, as `C-c C-x C-v` (`org.link.preview`) shows them. `#+STARTUP: inlineimages` (or `linkpreviews`) and `noinlineimages` decide for a file. Editors that can show images: Neovim from 0.13 (`vim.ui.img`), in a terminal with the Kitty graphics protocol. (`org-startup-with-link-previews`)",
@@ -2453,7 +3929,40 @@
             },
             "org_startup_indented": {
               "type": "boolean",
-              "markdownDescription": "Show files indented by level without changing them (`org-indent-mode`): the text under a headline lines up with its title, and leading stars are hidden. `#+STARTUP: indent` and `noindent` decide for a file. It turns `org_adapt_indentation` off in such files, unless that is `\"headline-data\"`. Editors that can show it: Neovim, and VS Code (not on wrapped lines). (`org-startup-indented`)",
+              "markdownDescription": "Show files indented by level without changing them (`org-indent-mode`): the text under a headline lines up with its title, and leading stars are hidden. `#+STARTUP: indent` and `noindent` decide for a file. It turns `org_adapt_indentation` off in such files, unless that is `\"headline-data\"`. The lines a long line wraps into go on under its text, a headline's title or an item's text (`wrap-prefix`) in Neovim and Vim, without the prefix; under the prefix in Zed and Helix. (`org-startup-indented`)",
+              "default": false
+            },
+            "org_startup_numerated": {
+              "type": "boolean",
+              "markdownDescription": "Number the headlines of files (`org-num-mode`): `1`, `1.1`, `1.2`… after the stars, shown as inlay hints without changing the file. `#+STARTUP: num` and `nonum` decide for a file, and `org.num.mode` turns it on and off. (`org-startup-numerated`)",
+              "default": false
+            },
+            "org_num_max_level": {
+              "type": "integer",
+              "minimum": 1,
+              "markdownDescription": "The deepest level `org-num-mode` numbers. (`org-num-max-level`)"
+            },
+            "org_num_skip_commented": {
+              "type": "boolean",
+              "markdownDescription": "`org-num-mode` leaves `COMMENT` subtrees unnumbered. (`org-num-skip-commented`)",
+              "default": false
+            },
+            "org_num_skip_footnotes": {
+              "type": "boolean",
+              "markdownDescription": "`org-num-mode` leaves the footnotes section (`* Footnotes`) unnumbered. (`org-num-skip-footnotes`)",
+              "default": false
+            },
+            "org_num_skip_tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "`org-num-mode` leaves the subtrees of headlines with one of these tags (their own, not inherited) unnumbered. (`org-num-skip-tags`)",
+              "default": []
+            },
+            "org_num_skip_unnumbered": {
+              "type": "boolean",
+              "markdownDescription": "`org-num-mode` leaves the subtrees of headlines with an `UNNUMBERED` property unnumbered. (`org-num-skip-unnumbered`)",
               "default": false
             },
             "org_hide_leading_stars": {
@@ -2461,15 +3970,271 @@
               "markdownDescription": "Hide all the stars of a headline but the last; they keep their place. `#+STARTUP: hidestars` and `showstars` decide for a file. (`org-hide-leading-stars`)",
               "default": false
             },
+            "org_indent_mode_turns_on_hiding_stars": {
+              "type": "boolean",
+              "markdownDescription": "Where `org_startup_indented` (or `#+STARTUP: indent`) shows a file indented, hide the leading stars too, whatever `org_hide_leading_stars` says. (`org-indent-mode-turns-on-hiding-stars`)",
+              "default": true
+            },
+            "org_indent_mode_turns_off_org_adapt_indentation": {
+              "type": "boolean",
+              "markdownDescription": "Where a file shows indented, `org_adapt_indentation` is off (unless it is `headline-data`): new and moved text is not indented to its headline. (`org-indent-mode-turns-off-org-adapt-indentation`)",
+              "default": true
+            },
+            "org_indent_indentation_per_level": {
+              "type": "integer",
+              "minimum": 0,
+              "markdownDescription": "How many columns a file shown indented moves each level of headlines and their text in; 0 shows them as they are. (`org-indent-indentation-per-level`)",
+              "default": 2
+            },
+            "org_duration_format": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "h:mm",
+                    "h:mm:ss"
+                  ]
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "const": "compact"
+                      },
+                      {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2
+                      }
+                    ]
+                  }
+                }
+              ],
+              "markdownDescription": "How durations are written (clock tables, clock lines, efforts): `\"h:mm\"` or `\"h:mm:ss\"`, or a list of units each with whether it is written when zero (`[\"d\", false]`), with perhaps `[\"special\", \"h:mm\"]` (the hours and minutes as `H:MM` after the larger units), `[\"special\", \"h:mm:ss\"]`, `[\"special\", 2]` (one unit with 2 decimals) and `\"compact\"` (no space between units). The units are those of `org_duration_units`. (`org-duration-format`)",
+              "default": [
+                [
+                  "d",
+                  false
+                ],
+                [
+                  "special",
+                  "h:mm"
+                ]
+              ]
+            },
+            "org_duration_units": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "markdownDescription": "The units of durations and the minutes in each, for reading efforts and writing durations: `[\"d\", 480]` for days of 8 hours. (`org-duration-units`)",
+              "default": [
+                [
+                  "min",
+                  1
+                ],
+                [
+                  "h",
+                  60
+                ],
+                [
+                  "d",
+                  1440
+                ],
+                [
+                  "w",
+                  10080
+                ],
+                [
+                  "m",
+                  43200
+                ],
+                [
+                  "y",
+                  525960
+                ]
+              ]
+            },
+            "org_fontify_done_headline": {
+              "type": "boolean",
+              "markdownDescription": "Show a headline marked done in the look of done headlines past its keyword (`org-headline-done`). (`org-fontify-done-headline`)",
+              "default": true
+            },
+            "org_fontify_todo_headline": {
+              "type": "boolean",
+              "markdownDescription": "Show a headline marked with a keyword not done in the look of TODO headlines past its keyword (`org-headline-todo`, the token modifier `todo`). (`org-fontify-todo-headline`)",
+              "default": false
+            },
+            "org_fontify_quote_and_verse_blocks": {
+              "type": "boolean",
+              "markdownDescription": "Show the lines inside quote and verse blocks in their own look (`org-quote`, `org-verse`: the token types `quote` and `verse`). (`org-fontify-quote-and-verse-blocks`)",
+              "default": false
+            },
+            "org_custom_properties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "The properties `org.custom.properties.toggle` (`org-toggle-custom-properties-visibility`) hides in the property drawers, and shows again: `[\"ID\", \"CUSTOM_ID\"]`. Editors that can hide them: Neovim from 0.11, and Sublime Text, in a fold. (`org-custom-properties`)",
+              "default": []
+            },
+            "org_n_level_faces": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8,
+              "markdownDescription": "How many looks headlines take by level, from 1 to 8 (the token modifiers `level1` to `level8`, Org's `org-level-1` to `org-level-8`): with 4, a headline of level 5 looks as one of level 1, or as one of level 4 with `org_cycle_level_faces` off. (`org-n-level-faces`)",
+              "default": 8
+            },
+            "org_cycle_level_faces": {
+              "type": "boolean",
+              "markdownDescription": "Past the last look of `org_n_level_faces`, headlines take the looks of the levels from the first again; with `false`, those deeper all keep the last. (`org-cycle-level-faces`)",
+              "default": true
+            },
+            "org_fontify_whole_heading_line": {
+              "type": "boolean",
+              "markdownDescription": "Show the look of a headline's level past the end of its text, to the edge of the window: for looks with a background. Editors that can show it: Neovim, Vim and VS Code (`org-lsp/lineHighlights`, VS Code's colors `org.headlineLevel1Background` and on). (`org-fontify-whole-heading-line`)",
+              "default": false
+            },
+            "org_ellipsis": {
+              "type": "string",
+              "markdownDescription": "What a closed fold shows after its first line, such as `\" ▾\"`, in the highlight group `OrgLspEllipsis` (Neovim). Editors that can show it: Neovim and Vim. (`org-ellipsis`)"
+            },
+            "org_bullets_mode": {
+              "type": "boolean",
+              "markdownDescription": "org-bullets: the last star of each headline shows as a bullet, those of `org_bullets_bullet_list` by level, and the stars before it are hidden, as with `org_hide_leading_stars`. (`org-bullets-mode`)",
+              "default": false
+            },
+            "org_bullets_bullet_list": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "markdownDescription": "The bullets of `org_bullets_mode`, one a level, repeating after the last. (`org-bullets-bullet-list`)",
+              "default": [
+                "◉",
+                "○",
+                "✸",
+                "✿"
+              ]
+            },
+            "org_bullets_list_bullet": {
+              "anyOf": [
+                {
+                  "const": false
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "markdownDescription": "What `org_bullets_mode` shows in place of the `-`, `+` or `*` of an item, as org-bullets.nvim does; `false` leaves them as they are.",
+              "default": "•"
+            },
+            "org_bullets_checkboxes": {
+              "anyOf": [
+                {
+                  "const": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "todo": {
+                      "type": "string"
+                    },
+                    "half": {
+                      "type": "string"
+                    },
+                    "done": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              ],
+              "markdownDescription": "What `org_bullets_mode` shows between the brackets of a checkbox, `[ ]`, `[-]` and `[X]`, as org-bullets.nvim does; `false` leaves them as they are. A state left out keeps its default.",
+              "default": {
+                "todo": " ",
+                "half": "-",
+                "done": "✓"
+              }
+            },
             "org_src_preserve_indentation": {
               "type": "boolean",
               "markdownDescription": "Leave the code of source blocks as it is indented when re-indenting. (`org-src-preserve-indentation`)",
               "default": false
             },
-            "org_edit_src_content_indentation": {
+            "org_babel_tangle_lang_exts": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "markdownDescription": "By language, the extension of the file `:tangle yes` writes its blocks to, before Org's own (`emacs-lisp` → `el`): `{ \"python\": \"py\" }`. A language without one gives its name. (`org-babel-tangle-lang-exts`)",
+              "default": {}
+            },
+            "org_babel_tangle_use_relative_file_links": {
+              "type": "boolean",
+              "markdownDescription": "Whether the link comments of tangled files (`:comments link`) point back to the Org file by a relative path; with `false` by its whole path. (`org-babel-tangle-use-relative-file-links`)",
+              "default": true
+            },
+            "org_babel_tangle_comment_format_beg": {
+              "type": "string",
+              "markdownDescription": "The comment before a tangled block (`:comments link`): `%link` the link back to it, `%source-name` its name, `%file` the Org file, `%start-line` the line its code starts on. (`org-babel-tangle-comment-format-beg`)",
+              "default": "[[%link][%source-name]]"
+            },
+            "org_babel_tangle_comment_format_end": {
+              "type": "string",
+              "markdownDescription": "The comment after a tangled block, with the keys of `org_babel_tangle_comment_format_beg`. (`org-babel-tangle-comment-format-end`)",
+              "default": "%source-name ends here"
+            },
+            "org_babel_tangle_uncomment_comments": {
+              "type": "boolean",
+              "markdownDescription": "Write the comments of tangled blocks as they are: not commented, and no line break after them. (`org-babel-tangle-uncomment-comments`)",
+              "default": false
+            },
+            "org_babel_process_comment_text": {
+              "type": "string",
+              "markdownDescription": "The function the Org text of `:comments org` goes through: `org-remove-indentation` takes its common indentation away, `identity` leaves it; Emacs tangles with any other. (`org-babel-process-comment-text`)",
+              "default": "org-remove-indentation"
+            },
+            "org_babel_tangle_default_file_mode": {
+              "type": "string",
+              "pattern": "^[0-7]{3,4}$",
+              "markdownDescription": "In octal, the mode a symbolic `:tangle-mode` (`u+x`) changes. (`org-babel-tangle-default-file-mode`)",
+              "default": "644"
+            },
+            "org_babel_tangle_remove_file_before_write": {
+              "enum": [
+                true,
+                false,
+                "auto"
+              ],
+              "markdownDescription": "Whether a file tangling writes again is deleted first: `true` always (a link to it becomes a file of its own), `false` never (a read-only file refuses), `\"auto\"` when it is read-only. (`org-babel-tangle-remove-file-before-write`)",
+              "default": "auto"
+            },
+            "org_babel_noweb_wrap_start": {
+              "type": "string",
+              "markdownDescription": "What opens a Noweb reference in a source block (`<<name>>`). (`org-babel-noweb-wrap-start`)",
+              "default": "<<"
+            },
+            "org_babel_noweb_wrap_end": {
+              "type": "string",
+              "markdownDescription": "What closes a Noweb reference. (`org-babel-noweb-wrap-end`)",
+              "default": ">>"
+            },
+            "org_src_content_indentation": {
               "type": "integer",
               "minimum": 0,
-              "markdownDescription": "How far code is indented past its source block when re-indenting. (`org-edit-src-content-indentation`)",
+              "markdownDescription": "How far code is indented past its source block: when re-indenting, and when the code of a block edited in a file of its own (`C-c '`) is written back. Formerly `org_edit_src_content_indentation`, which is still read. (`org-src-content-indentation`)",
               "default": 2
             },
             "org_agenda_span": {
@@ -2525,7 +4290,7 @@
               "items": {
                 "type": "string"
               },
-              "markdownDescription": "Org modules to load. `org-habit` turns habits on: entries with the `STYLE` property `habit` and a scheduled date with a repeater (`.+2d`, `.+2d/4d` for a deadline too) show in the agenda with a graph of the days they were done. Others are ignored. (`org-modules`)",
+              "markdownDescription": "Org modules to load. `org-habit` turns habits on: entries with the `STYLE` property `habit` and a scheduled date with a repeater (`.+2d`, `.+2d/4d` for a deadline too) show in the agenda with a graph of the days they were done. `ol-man` makes `[[man:ls]]` a link to a man page (`org_man_command`). `org-ctags` follows links to the tags of a `TAGS` file, as loading it and calling `org-ctags-enable` does (`org_ctags_open_link_functions`). Others are ignored. (`org-modules`)",
               "default": []
             },
             "org_habit_graph_column": {
@@ -2599,6 +4364,624 @@
               "type": "boolean",
               "markdownDescription": "Leave out timestamps of entries that are done. (`org-agenda-skip-timestamp-if-done`)",
               "default": false
+            },
+            "org_agenda_time_leading_zero": {
+              "type": "boolean",
+              "markdownDescription": "Write times with two digits for the hour (`08:00`). (`org-agenda-time-leading-zero`)",
+              "default": false
+            },
+            "org_agenda_timegrid_use_ampm": {
+              "type": "boolean",
+              "markdownDescription": "Write the times of the agenda, the time grid's too, in 12-hour form (`8:00am`). (`org-agenda-timegrid-use-ampm`)",
+              "default": false
+            },
+            "org_agenda_search_headline_for_time": {
+              "type": "boolean",
+              "markdownDescription": "Take a time in a headline (`Call at 15:00`) as the time of its entry. (`org-agenda-search-headline-for-time`)",
+              "default": true
+            },
+            "org_agenda_remove_times_when_in_prefix": {
+              "enum": [
+                true,
+                false,
+                "beg"
+              ],
+              "markdownDescription": "Take a time out of the headline when the prefix shows it; `beg` only one at the start of the headline. (`org-agenda-remove-times-when-in-prefix`)",
+              "default": true
+            },
+            "org_agenda_default_appointment_duration": {
+              "type": "integer",
+              "markdownDescription": "Minutes an entry with a start time and no end time lasts: the agenda shows it as a range. (`org-agenda-default-appointment-duration`)"
+            },
+            "org_agenda_remove_timeranges_from_blocks": {
+              "type": "boolean",
+              "markdownDescription": "Take a date range out of the headline of its lines. (`org-agenda-remove-timeranges-from-blocks`)",
+              "default": false
+            },
+            "org_agenda_diary_sexp_prefix": {
+              "type": "string",
+              "markdownDescription": "A regexp (Emacs's syntax): what it matches of a diary sexp's text goes in front of the line, as a scheduled date's `Scheduled:` does. (`org-agenda-diary-sexp-prefix`)"
+            },
+            "org_agenda_show_inherited_tags": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "enum": [
+                    "always"
+                  ]
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "agenda",
+                      "todo",
+                      "search"
+                    ]
+                  }
+                }
+              ],
+              "markdownDescription": "Show the inherited tags of an entry on its agenda lines: where `org_agenda_use_tag_inheritance` has them (`true`), always, never (`false`), or in these kinds of views (`agenda`, `todo`, `search`). Sorting by tag and `org_agenda_max_tags` go by the tags a line shows. (`org-agenda-show-inherited-tags`)",
+              "default": true
+            },
+            "org_agenda_use_tag_inheritance": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "agenda",
+                      "todo",
+                      "search"
+                    ]
+                  }
+                }
+              ],
+              "markdownDescription": "The kinds of views whose lines have inherited tags (`true`: all). Tags matches always have them. (`org-agenda-use-tag-inheritance`)",
+              "default": [
+                "todo",
+                "search",
+                "agenda"
+              ]
+            },
+            "org_agenda_hide_tags_regexp": {
+              "type": "string",
+              "markdownDescription": "A regexp (Emacs's syntax): the tags it matches are not shown on agenda lines, but filters still see them. (`org-agenda-hide-tags-regexp`)"
+            },
+            "org_agenda_include_deadlines": {
+              "type": "boolean",
+              "markdownDescription": "Show deadlines in the agenda. (`org-agenda-include-deadlines`)",
+              "default": true
+            },
+            "org_agenda_skip_additional_timestamps_same_entry": {
+              "type": "boolean",
+              "markdownDescription": "Once a timestamp of an entry has made a line for a day, leave out its other timestamps on that day. (`org-agenda-skip-additional-timestamps-same-entry`)",
+              "default": false
+            },
+            "org_agenda_fontify_priorities": {
+              "enum": [
+                true,
+                false,
+                "cookies"
+              ],
+              "markdownDescription": "Highlight the priority cookies of agenda lines (`cookies`), or each line from its cookie on (`true`; links and tags keep their own look); the highest priority shows in bold, the lowest in italic. `false` highlights none. Org's list of faces by priority is not read here: `org_priority_faces` gives them. (`org-agenda-fontify-priorities`)",
+              "default": "cookies"
+            },
+            "org_agenda_prefer_last_repeat": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ],
+              "markdownDescription": "Show a repeating scheduled date, deadline or timestamp at its last repeat up to today instead of its base date, for every entry (`true`) or for those with one of these TODO keywords. (`org-agenda-prefer-last-repeat`)",
+              "default": false
+            },
+            "org_agenda_skip_deadline_prewarning_if_scheduled": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "enum": [
+                    "pre-scheduled"
+                  ]
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "markdownDescription": "For a scheduled entry, show its deadline only on its date (`true`), not before its scheduled date (`pre-scheduled`), or from N days before it (a number). (`org-agenda-skip-deadline-prewarning-if-scheduled`)",
+              "default": false
+            },
+            "org_agenda_skip_scheduled_delay_if_deadline": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "enum": [
+                    "post-deadline"
+                  ]
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "markdownDescription": "For an entry with a deadline, drop the delay of its scheduled date (`--2d`) (`true`), or keep it no later than the deadline (`post-deadline`). A number drops it too, as Org's code does. (`org-agenda-skip-scheduled-delay-if-deadline`)",
+              "default": false
+            },
+            "org_agenda_skip_scheduled_if_deadline_is_shown": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "enum": [
+                    "not-today",
+                    "repeated-after-deadline"
+                  ]
+                }
+              ],
+              "markdownDescription": "Leave out a scheduled date on a day its entry's deadline shows (`true`), only when it was scheduled before today (`not-today`); `repeated-after-deadline` is `org_agenda_skip_scheduled_repeats_after_deadline`. Not for habits. (`org-agenda-skip-scheduled-if-deadline-is-shown`)",
+              "default": false
+            },
+            "org_agenda_skip_scheduled_repeats_after_deadline": {
+              "type": "boolean",
+              "markdownDescription": "Leave out the repeats of a scheduled date that come after the entry's deadline. (`org-agenda-skip-scheduled-repeats-after-deadline`)",
+              "default": false
+            },
+            "org_agenda_skip_comment_trees": {
+              "type": "boolean",
+              "markdownDescription": "Leave out of every view the entries of a commented subtree (`COMMENT` after the stars). (`org-agenda-skip-comment-trees`)",
+              "default": true
+            },
+            "org_agenda_skip_archived_trees": {
+              "type": "boolean",
+              "markdownDescription": "Leave out of every view the entries of an archived subtree (tagged `ARCHIVE`), unless archives mode (`v a`) shows them. Org advises leaving it on and using `v a` instead. (`org-agenda-skip-archived-trees`)",
+              "default": true
+            },
+            "org_agenda_todo_list_sublevels": {
+              "type": "boolean",
+              "markdownDescription": "Show in the TODO list the TODO entries below another one. Off, the list skips the subtree of each entry it shows or leaves out for a date. (`org-agenda-todo-list-sublevels`)",
+              "default": true
+            },
+            "org_agenda_todo_ignore_with_date": {
+              "type": "boolean",
+              "markdownDescription": "Leave out of the TODO list the entries with an active timestamp anywhere in their text, scheduled and deadline dates too. (`org-agenda-todo-ignore-with-date`)",
+              "default": false
+            },
+            "org_agenda_todo_ignore_scheduled": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "enum": [
+                    "future",
+                    "past",
+                    "all"
+                  ]
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "markdownDescription": "Leave out of the TODO list the scheduled entries: all of them (`true`, `all`), those scheduled after today (`future`), today or before (`past`), or with a number N, N days from now or later (a negative N: N days ago or before). (`org-agenda-todo-ignore-scheduled`)",
+              "default": false
+            },
+            "org_agenda_todo_ignore_deadlines": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "enum": [
+                    "near",
+                    "far",
+                    "all",
+                    "future",
+                    "past"
+                  ]
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "markdownDescription": "Leave out of the TODO list the entries with a deadline: in its warning period, that is, shown in the agenda (`true`, `near`), not yet in it (`far`), all of them (`all`), after today (`future`), today or before (`past`), or with a number as for `org_agenda_todo_ignore_scheduled`. (`org-agenda-todo-ignore-deadlines`)",
+              "default": false
+            },
+            "org_agenda_todo_ignore_timestamp": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "enum": [
+                    "future",
+                    "past",
+                    "all"
+                  ]
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "markdownDescription": "Leave out of the TODO list the entries with an active timestamp that is no scheduled or deadline date, with the values of `org_agenda_todo_ignore_scheduled`. (`org-agenda-todo-ignore-timestamp`)",
+              "default": false
+            },
+            "org_agenda_todo_ignore_time_comparison_use_seconds": {
+              "type": "boolean",
+              "markdownDescription": "Compare the dates of the `org_agenda_todo_ignore_*` settings with now to the second instead of by day: `future` is then later than now, and a number counts seconds. (`org-agenda-todo-ignore-time-comparison-use-seconds`)",
+              "default": false
+            },
+            "org_tags_match_list_sublevels": {
+              "enum": [
+                true,
+                false,
+                "indented"
+              ],
+              "markdownDescription": "Whether tags matches (agenda, sparse trees) and stuck projects list the entries below one they list: `false` passes over its subtree, `indented` shows them with a dot for each level below the first. (`org-tags-match-list-sublevels`)",
+              "default": true
+            },
+            "org_agenda_tags_todo_honor_ignore_options": {
+              "type": "boolean",
+              "markdownDescription": "Have the `org_agenda_todo_ignore_*` settings leave entries out of `tags-todo` matches as well. (`org-agenda-tags-todo-honor-ignore-options`)",
+              "default": false
+            },
+            "org_agenda_sorting_strategy": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "time-up",
+                      "time-down",
+                      "timestamp-up",
+                      "timestamp-down",
+                      "scheduled-up",
+                      "scheduled-down",
+                      "deadline-up",
+                      "deadline-down",
+                      "tsia-up",
+                      "tsia-down",
+                      "ts-up",
+                      "ts-down",
+                      "stats-up",
+                      "stats-down",
+                      "priority-up",
+                      "priority-down",
+                      "urgency-up",
+                      "urgency-down",
+                      "effort-up",
+                      "effort-down",
+                      "category-up",
+                      "category-down",
+                      "category-keep",
+                      "tag-up",
+                      "tag-down",
+                      "todo-state-up",
+                      "todo-state-down",
+                      "habit-up",
+                      "habit-down",
+                      "alpha-up",
+                      "alpha-down",
+                      "user-defined-up",
+                      "user-defined-down"
+                    ]
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "agenda": {
+                      "type": "array",
+                      "items": {
+                        "enum": [
+                          "time-up",
+                          "time-down",
+                          "timestamp-up",
+                          "timestamp-down",
+                          "scheduled-up",
+                          "scheduled-down",
+                          "deadline-up",
+                          "deadline-down",
+                          "tsia-up",
+                          "tsia-down",
+                          "ts-up",
+                          "ts-down",
+                          "stats-up",
+                          "stats-down",
+                          "priority-up",
+                          "priority-down",
+                          "urgency-up",
+                          "urgency-down",
+                          "effort-up",
+                          "effort-down",
+                          "category-up",
+                          "category-down",
+                          "category-keep",
+                          "tag-up",
+                          "tag-down",
+                          "todo-state-up",
+                          "todo-state-down",
+                          "habit-up",
+                          "habit-down",
+                          "alpha-up",
+                          "alpha-down",
+                          "user-defined-up",
+                          "user-defined-down"
+                        ]
+                      }
+                    },
+                    "todo": {
+                      "type": "array",
+                      "items": {
+                        "enum": [
+                          "time-up",
+                          "time-down",
+                          "timestamp-up",
+                          "timestamp-down",
+                          "scheduled-up",
+                          "scheduled-down",
+                          "deadline-up",
+                          "deadline-down",
+                          "tsia-up",
+                          "tsia-down",
+                          "ts-up",
+                          "ts-down",
+                          "stats-up",
+                          "stats-down",
+                          "priority-up",
+                          "priority-down",
+                          "urgency-up",
+                          "urgency-down",
+                          "effort-up",
+                          "effort-down",
+                          "category-up",
+                          "category-down",
+                          "category-keep",
+                          "tag-up",
+                          "tag-down",
+                          "todo-state-up",
+                          "todo-state-down",
+                          "habit-up",
+                          "habit-down",
+                          "alpha-up",
+                          "alpha-down",
+                          "user-defined-up",
+                          "user-defined-down"
+                        ]
+                      }
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "enum": [
+                          "time-up",
+                          "time-down",
+                          "timestamp-up",
+                          "timestamp-down",
+                          "scheduled-up",
+                          "scheduled-down",
+                          "deadline-up",
+                          "deadline-down",
+                          "tsia-up",
+                          "tsia-down",
+                          "ts-up",
+                          "ts-down",
+                          "stats-up",
+                          "stats-down",
+                          "priority-up",
+                          "priority-down",
+                          "urgency-up",
+                          "urgency-down",
+                          "effort-up",
+                          "effort-down",
+                          "category-up",
+                          "category-down",
+                          "category-keep",
+                          "tag-up",
+                          "tag-down",
+                          "todo-state-up",
+                          "todo-state-down",
+                          "habit-up",
+                          "habit-down",
+                          "alpha-up",
+                          "alpha-down",
+                          "user-defined-up",
+                          "user-defined-down"
+                        ]
+                      }
+                    },
+                    "search": {
+                      "type": "array",
+                      "items": {
+                        "enum": [
+                          "time-up",
+                          "time-down",
+                          "timestamp-up",
+                          "timestamp-down",
+                          "scheduled-up",
+                          "scheduled-down",
+                          "deadline-up",
+                          "deadline-down",
+                          "tsia-up",
+                          "tsia-down",
+                          "ts-up",
+                          "ts-down",
+                          "stats-up",
+                          "stats-down",
+                          "priority-up",
+                          "priority-down",
+                          "urgency-up",
+                          "urgency-down",
+                          "effort-up",
+                          "effort-down",
+                          "category-up",
+                          "category-down",
+                          "category-keep",
+                          "tag-up",
+                          "tag-down",
+                          "todo-state-up",
+                          "todo-state-down",
+                          "habit-up",
+                          "habit-down",
+                          "alpha-up",
+                          "alpha-down",
+                          "user-defined-up",
+                          "user-defined-down"
+                        ]
+                      }
+                    }
+                  }
+                }
+              ],
+              "markdownDescription": "How the lines of a day (`agenda`), the TODO list (`todo`), a tags match (`tags`, `tags-todo` too) and a search (`search`) are ordered: the strategies in turn, each deciding when the ones before do not. A view without a list takes `agenda`'s, and without that `time-up`, `category-keep`, `urgency-down`; one list alone is for every view. `time-up`/`-down` the time of day; `timestamp-`, `scheduled-`, `deadline-`, `ts-` (active) and `tsia-` (inactive) `up`/`down` the date of that kind (in the TODO list and a tags match, the entry's); `priority-` the priority, `urgency-` the priority with how near or overdue the date is; `effort-`, `category-` (and `category-keep`, the order the entries come in), `tag-` (the last tag), `todo-state-` (where the keyword is in the file's list, done ones first), `habit-`, `alpha-` (the headline), `stats-` (the statistics cookie). `user-defined-up` and `-down` call Lisp, which the server does not run. (`org-agenda-sorting-strategy`)",
+              "default": {
+                "agenda": [
+                  "habit-down",
+                  "time-up",
+                  "urgency-down",
+                  "category-keep"
+                ],
+                "todo": [
+                  "urgency-down",
+                  "category-keep"
+                ],
+                "tags": [
+                  "urgency-down",
+                  "category-keep"
+                ],
+                "search": [
+                  "category-keep"
+                ]
+              }
+            },
+            "org_agenda_sort_notime_is_late": {
+              "type": "boolean",
+              "markdownDescription": "Lines without a time (or without the date a strategy sorts by) come after those with one. (`org-agenda-sort-notime-is-late`)",
+              "default": true
+            },
+            "org_agenda_sort_noeffort_is_high": {
+              "type": "boolean",
+              "markdownDescription": "Entries without an effort count as having the highest when sorted, filtered or limited by effort. (`org-agenda-sort-noeffort-is-high`)",
+              "default": true
+            },
+            "org_agenda_max_entries": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "agenda": {
+                      "type": "integer"
+                    },
+                    "todo": {
+                      "type": "integer"
+                    },
+                    "tags": {
+                      "type": "integer"
+                    },
+                    "search": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              ],
+              "markdownDescription": "How many entries a day of the agenda, the TODO list, a tags match or a search shows at most: one number for all, or one for each kind of view. Other lines, such as those of the time grid, go as well; with a negative number they stay. (`org-agenda-max-entries`)"
+            },
+            "org_agenda_max_todos": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "agenda": {
+                      "type": "integer"
+                    },
+                    "todo": {
+                      "type": "integer"
+                    },
+                    "tags": {
+                      "type": "integer"
+                    },
+                    "search": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              ],
+              "markdownDescription": "How many entries with a TODO keyword a view shows at most, the other lines going as well; with a negative number, those stay. (`org-agenda-max-todos`)"
+            },
+            "org_agenda_max_tags": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "agenda": {
+                      "type": "integer"
+                    },
+                    "todo": {
+                      "type": "integer"
+                    },
+                    "tags": {
+                      "type": "integer"
+                    },
+                    "search": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              ],
+              "markdownDescription": "How many entries with tags a view shows at most, the other lines going as well; with a negative number, those stay. (`org-agenda-max-tags`)"
+            },
+            "org_agenda_max_effort": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "agenda": {
+                      "type": "integer"
+                    },
+                    "todo": {
+                      "type": "integer"
+                    },
+                    "tags": {
+                      "type": "integer"
+                    },
+                    "search": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              ],
+              "markdownDescription": "The most minutes of effort the entries of a view add up to: entries show while their efforts, in order, stay within it (an entry without one counts as the highest, or as -1 with `org_agenda_sort_noeffort_is_high` off). (`org-agenda-max-effort`)"
             },
             "org_agenda_show_future_repeats": {
               "enum": [
@@ -2716,6 +5099,15 @@
               "markdownDescription": "Start the agenda with the clock report under it (`R` toggles it). (`org-agenda-start-with-clockreport-mode`)",
               "default": false
             },
+            "org_agenda_clockreport_parameter_plist": {
+              "type": "string",
+              "markdownDescription": "The parameters of the clock report's table, as those of a clock table block (`:maxlevel 3 :tags t`); `:block`, `:tstart`, `:tend` and `:scope` are the agenda's. (`org-agenda-clockreport-parameter-plist`)",
+              "default": ":link t :maxlevel 2"
+            },
+            "org_agenda_clock_report_header": {
+              "type": "string",
+              "markdownDescription": "Text on a line of its own (or lines) before the clock report. (`org-agenda-clock-report-header`)"
+            },
             "org_agenda_start_with_archives_mode": {
               "enum": [
                 "trees",
@@ -2740,10 +5132,29 @@
                 "clock"
               ]
             },
+            "org_agenda_log_mode_add_notes": {
+              "type": "boolean",
+              "markdownDescription": "Show the note of a state change or a clock line after the headline in log mode. (`org-agenda-log-mode-add-notes`)",
+              "default": true
+            },
+            "org_agenda_move_date_from_past_immediately_to_today": {
+              "type": "boolean",
+              "markdownDescription": "Moving a date of the past one day later from the agenda (`S-<right>`) takes it to today. (`org-agenda-move-date-from-past-immediately-to-today`)",
+              "default": true
+            },
             "org_agenda_persistent_marks": {
               "type": "boolean",
               "markdownDescription": "Keep the marks of a bulk action (`B`) after it (`p` in its menu toggles this for one action). (`org-agenda-persistent-marks`)",
               "default": false
+            },
+            "org_agenda_show_outline_path": {
+              "enum": [
+                true,
+                false,
+                "title"
+              ],
+              "markdownDescription": "As the cursor moves in the agenda, show where the entry of its line is: the file's name and the headlines above it (`work.org/Projects/Report`), in the echo area or the status bar. With `title` the file's `#+TITLE:` comes first instead of its name. (`org-agenda-show-outline-path`)",
+              "default": true
             },
             "org_agenda_start_with_follow_mode": {
               "type": "boolean",
@@ -2773,6 +5184,27 @@
               },
               "markdownDescription": "Emacs regexps whose matches are left out of the entry text `E` shows. (`org-agenda-entry-text-exclude-regexps`)",
               "default": []
+            },
+            "org_agenda_add_entry_text_maxlines": {
+              "type": "integer",
+              "minimum": 0,
+              "markdownDescription": "The most lines of each entry's text written under its line when the agenda is written to a plain text file (`C-x C-w`), each after four spaces and `>`; 0 writes none. The text `E` shows is not written. (`org-agenda-add-entry-text-maxlines`)",
+              "default": 0
+            },
+            "org_agenda_add_entry_text_descriptive_links": {
+              "type": "boolean",
+              "markdownDescription": "Whether links in the text `org_agenda_add_entry_text_maxlines` writes show as their descriptions. In Org 9.8.10 a plain text file has the links as they are either way, and so does org-lsp. (`org-agenda-add-entry-text-descriptive-links`)",
+              "default": true
+            },
+            "org_agenda_view_columns_initially": {
+              "type": "boolean",
+              "markdownDescription": "Show column view (through Emacs) each time an agenda view is made, as `C-c C-x C-c` there would. (`org-agenda-view-columns-initially`)",
+              "default": false
+            },
+            "org_agenda_persistent_filter": {
+              "type": "boolean",
+              "markdownDescription": "A new agenda view keeps the filters by tag, category, regexp and effort of the agenda still open, rather than starting without them. (`org-agenda-persistent-filter`)",
+              "default": false
             },
             "org_agenda_block_separator": {
               "anyOf": [
@@ -2908,6 +5340,141 @@
               "markdownDescription": "How a node is offered: `${field}` for its `title`, `tags`, `todo`, `file`, `olp`, `aliases` and the other fields of `org-roam-node`, `${field:N}` in N columns, `${field:*}` in what is left of the window's 79 columns. (`org-roam-node-display-template`)",
               "default": "${title}"
             },
+            "org_roam_node_formatter": {
+              "type": "string",
+              "markdownDescription": "The description of a link `org.roam.node.insert` makes, a template as `org_roam_node_display_template` is (`${title} (${file})`); empty for the node's title. (`org-roam-node-formatter`)",
+              "default": ""
+            },
+            "org_roam_db_extra_links_elements": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "node-property",
+                  "keyword"
+                ]
+              },
+              "markdownDescription": "Where else org-roam finds links than where Org does: in property drawers (`node-property`) and keyword lines (`keyword`). (`org-roam-db-extra-links-elements`)",
+              "default": [
+                "node-property",
+                "keyword"
+              ]
+            },
+            "org_roam_db_extra_links_exclude_keys": {
+              "type": "object",
+              "properties": {
+                "node-property": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "keyword": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "markdownDescription": "By `node-property` and `keyword`, the properties and keywords whose links are not links, in any case. A list given replaces the default one. (`org-roam-db-extra-links-exclude-keys`)",
+              "default": {
+                "node-property": [
+                  "ROAM_REFS"
+                ],
+                "keyword": [
+                  "transclude"
+                ]
+              }
+            },
+            "org_roam_graph_executable": {
+              "type": "string",
+              "markdownDescription": "The Graphviz program that draws `org.roam.graph`'s graph, found on `PATH` or a path. (`org-roam-graph-executable`)",
+              "default": "dot"
+            },
+            "org_roam_graph_viewer": {
+              "type": "string",
+              "markdownDescription": "The program that shows the graph, given its file. (`org-roam-graph-viewer`)"
+            },
+            "org_roam_graph_filetype": {
+              "type": "string",
+              "markdownDescription": "What Graphviz draws the graph as (its `-T`): `svg`, `png`, `pdf`… (`org-roam-graph-filetype`)",
+              "default": "svg"
+            },
+            "org_roam_graph_extra_config": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "markdownDescription": "Graphviz's attributes of the graph, in their order: `{ \"rankdir\": \"LR\" }`. (`org-roam-graph-extra-config`)",
+              "default": {}
+            },
+            "org_roam_graph_edge_extra_config": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "markdownDescription": "Graphviz's attributes of the links: `{ \"dir\": \"back\" }`. (`org-roam-graph-edge-extra-config`)",
+              "default": {}
+            },
+            "org_roam_graph_node_extra_config": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "markdownDescription": "Graphviz's attributes of the nodes, by the type of the link to them: `id` for org-roam's nodes, `https` for the web pages linked to. (`org-roam-graph-node-extra-config`)",
+              "default": {
+                "id": {
+                  "style": "bold,rounded,filled",
+                  "fillcolor": "#EEEEEE",
+                  "color": "#C9C9C9",
+                  "fontcolor": "#111111"
+                },
+                "http": {
+                  "style": "rounded,filled",
+                  "fillcolor": "#EEEEEE",
+                  "color": "#C9C9C9",
+                  "fontcolor": "#0A97A6"
+                },
+                "https": {
+                  "style": "rounded,filled",
+                  "fillcolor": "#EEEEEE",
+                  "color": "#C9C9C9",
+                  "fontcolor": "#0A97A6"
+                }
+              }
+            },
+            "org_roam_graph_link_hidden_types": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "The types of links the graph leaves out. (`org-roam-graph-link-hidden-types`)",
+              "default": [
+                "file"
+              ]
+            },
+            "org_roam_graph_max_title_length": {
+              "type": "integer",
+              "markdownDescription": "The width a title takes in the graph, at most. (`org-roam-graph-max-title-length`)",
+              "default": 100
+            },
+            "org_roam_graph_shorten_titles": {
+              "enum": [
+                "truncate",
+                "wrap",
+                false
+              ],
+              "markdownDescription": "What becomes of a title wider than `org_roam_graph_max_title_length`: cut with `...` (`truncate`), over lines (`wrap`), or nothing (`false`). (`org-roam-graph-shorten-titles`)",
+              "default": "truncate"
+            },
+            "org_roam_extract_new_file_path": {
+              "type": "string",
+              "markdownDescription": "The file `org.roam.extract` offers for a node, relative to `org_roam_directory`: `%<…>` is the time as `format-time-string` writes it, `${title}`, `${slug}` and `${id}` the node's. (`org-roam-extract-new-file-path`)",
+              "default": "%<%Y%m%d%H%M%S>-${slug}.org"
+            },
             "org_roam_link_auto_replace": {
               "type": "boolean",
               "markdownDescription": "Turn the `roam:` links of org-roam's files into `id:` links to their nodes as the files are saved, and as a link is followed. (`org-roam-link-auto-replace`)",
@@ -3023,6 +5590,100 @@
                 }
               ]
             },
+            "org_roam_dailies_directory": {
+              "type": "string",
+              "markdownDescription": "Where the daily notes are, relative to `org_roam_directory`. (`org-roam-dailies-directory`)",
+              "default": "daily/"
+            },
+            "org_roam_dailies_capture_templates": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "key",
+                  "description"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "description": "The keys that pick the template"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "What the menu shows"
+                  },
+                  "type": {
+                    "enum": [
+                      "entry",
+                      "plain",
+                      "item",
+                      "checkitem",
+                      "table-line"
+                    ],
+                    "description": "An Org entry (the default), plain text, a list item, a checkbox item or a table line"
+                  },
+                  "target": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "`file` and a path; `file+head`, a path and the head of a new file; `file+olp`, a path and an outline path; `file+head+olp`, a path, a head and an outline path; or `node` and a node's title, alias or ID"
+                  },
+                  "template": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "description": "The template, or its lines"
+                  },
+                  "prepend": {
+                    "type": "boolean",
+                    "description": "First under the target, not last"
+                  },
+                  "empty_lines": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Blank lines before and after"
+                  },
+                  "empty_lines_before": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Blank lines before"
+                  },
+                  "empty_lines_after": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Blank lines after"
+                  },
+                  "unnarrowed": {
+                    "type": "boolean",
+                    "description": "Show the whole file in the capture buffer"
+                  }
+                }
+              },
+              "markdownDescription": "The templates of the daily notes, as `org_roam_capture_templates` writes them, with paths relative to `org_roam_dailies_directory`; `%<…>` is the note's day. (`org-roam-dailies-capture-templates`)",
+              "default": [
+                {
+                  "key": "d",
+                  "description": "default",
+                  "type": "entry",
+                  "template": "* %?",
+                  "target": [
+                    "file+head",
+                    "%<%Y-%m-%d>.org",
+                    "#+title: %<%Y-%m-%d>\n"
+                  ]
+                }
+              ]
+            },
             "org_journal_enabled": {
               "type": "boolean",
               "markdownDescription": "org-journal: a journal in `org_journal_dir`, a file a day (or week, month, year), written with the `org.journal.*` commands. Off, those commands only say so.",
@@ -3084,6 +5745,19 @@
               "type": "boolean",
               "markdownDescription": "Fold all but the new entry. (`org-journal-hide-entries-p`)",
               "default": true
+            },
+            "org_journal_follow_mode": {
+              "type": "boolean",
+              "markdownDescription": "In the calendar (`org.goto.calendar`), the entry of the day `]` and `[` move to shows in another window. (`org-journal-follow-mode`)",
+              "default": false
+            },
+            "org_journal_find_file_fn": {
+              "enum": [
+                "find-file-other-window",
+                "find-file"
+              ],
+              "markdownDescription": "Where a new entry and today's file (`org.journal.open.current`) show: in another window, or (`\"find-file\"`) in the window of the command. (`org-journal-find-file-fn`)",
+              "default": "find-file-other-window"
             },
             "org_journal_carryover_items": {
               "type": "string",
@@ -3149,8 +5823,18 @@
               "type": "integer",
               "minimum": 0,
               "maximum": 23,
-              "markdownDescription": "The hour before which it is still yesterday, for org-journal's new entries. (`org-extend-today-until`)",
+              "markdownDescription": "The hour before which it is still yesterday: for the agenda's today, the date prompt with nothing to start from, the times capture templates put in and the day of a datetree, `.+` and `++` repeaters, clock report ranges and org-journal's new entries. (`org-extend-today-until`)",
               "default": 0
+            },
+            "org_use_effective_time": {
+              "type": "boolean",
+              "markdownDescription": "Before the hour `org_extend_today_until`, a TODO change records 23:59 of the day before: in `CLOSED:`, `LAST_REPEAT` and the notes' timestamps. `org.todo.yesterday` does so at any hour. (`org-use-effective-time`)",
+              "default": false
+            },
+            "org_use_last_clock_out_time_as_effective_time": {
+              "type": "boolean",
+              "markdownDescription": "A TODO change records the end of the first closed clock of the subtree instead of the time now, when there is one; this comes before `org_use_effective_time`. (`org-use-last-clock-out-time-as-effective-time`)",
+              "default": false
             },
             "org_agenda_search_view_always_boolean": {
               "type": "boolean",
@@ -3231,6 +5915,37 @@
                 "Deadline:  ",
                 "In %3d d.: ",
                 "%2d d. ago: "
+              ]
+            },
+            "org_agenda_deadline_faces": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "markdownDescription": "The look of a deadline in the agenda by the part of its warning time that has passed: the first whose part is no more than that, none past the last. The faces are Org's: `org-imminent-deadline` (or `org-warning`), `org-upcoming-deadline`, `org-upcoming-distant-deadline`; any other name is the plain look. (`org-agenda-deadline-faces`)",
+              "default": [
+                [
+                  1,
+                  "org-imminent-deadline"
+                ],
+                [
+                  0.5,
+                  "org-upcoming-deadline"
+                ],
+                [
+                  0,
+                  "org-upcoming-distant-deadline"
+                ]
               ]
             },
             "org_agenda_timerange_leaders": {
@@ -3570,6 +6285,14 @@
         "description": "An entity such as \\alpha"
       },
       {
+        "id": "documentTitle",
+        "description": "The value of #+TITLE:"
+      },
+      {
+        "id": "documentInfo",
+        "description": "The value of #+SUBTITLE:, #+AUTHOR:, #+EMAIL: or #+DATE:"
+      },
+      {
         "id": "agendaStructure",
         "description": "Agenda: the title line of a view"
       },
@@ -3628,6 +6351,26 @@
       {
         "id": "calendarJournal",
         "description": "Date prompt: a day with an entry of org-journal; to come with `future`"
+      },
+      {
+        "id": "calendarDailies",
+        "description": "Date prompt: a day with a daily note of org-roam"
+      },
+      {
+        "id": "quote",
+        "description": "The text of a quote block, with org_fontify_quote_and_verse_blocks"
+      },
+      {
+        "id": "verse",
+        "description": "The text of a verse block, with org_fontify_quote_and_verse_blocks"
+      },
+      {
+        "id": "outline",
+        "description": "A headline or its stars in the color of its level, as Emacs's outline-N faces; never sent by the server: VS Code's org-lsp.headlineLevelColors turns headline and stars tokens into it"
+      },
+      {
+        "id": "descriptionTerm",
+        "description": "The term of a description list item, with its ::"
       }
     ],
     "semanticTokenModifiers": [
@@ -3665,7 +6408,7 @@
       },
       {
         "id": "done",
-        "description": "A TODO keyword that marks the entry as finished"
+        "description": "A TODO keyword that marks the entry as finished; the rest of its headline; a complete statistics cookie"
       },
       {
         "id": "inactive",
@@ -3725,7 +6468,7 @@
       },
       {
         "id": "hidden",
-        "description": "Text Org hides (link brackets and targets, emphasis markers); editors that can conceal text conceal it"
+        "description": "Text Org hides (link brackets and targets, emphasis markers, hidden keywords, macro braces); editors that can conceal text conceal it"
       },
       {
         "id": "clocking",
@@ -3750,6 +6493,14 @@
       {
         "id": "future",
         "description": "Agenda: a day of a habit's graph to come"
+      },
+      {
+        "id": "todo",
+        "description": "A headline marked with a TODO keyword not done, past the keyword, with org_fontify_todo_headline"
+      },
+      {
+        "id": "inlinetask",
+        "description": "The stars and title of an inline task"
       }
     ],
     "semanticTokenScopes": [
@@ -3793,6 +6544,41 @@
             "markup.heading.8.org",
             "string"
           ],
+          "outline.level1": [
+            "entity.name.function.outline-1.org",
+            "entity.name.function",
+            "entity.name.function.preprocessor"
+          ],
+          "outline.level2": [
+            "variable.parameter.outline-2.org",
+            "variable.parameter",
+            "variable.language"
+          ],
+          "outline.level3": [
+            "keyword.outline-3.org",
+            "keyword"
+          ],
+          "outline.level4": [
+            "comment.outline-4.org",
+            "comment"
+          ],
+          "outline.level5": [
+            "storage.type.outline-5.org",
+            "storage.type"
+          ],
+          "outline.level6": [
+            "constant.language.outline-6.org",
+            "constant.language"
+          ],
+          "outline.level7": [
+            "support.function.outline-7.org",
+            "support.function",
+            "support.type.property-name"
+          ],
+          "outline.level8": [
+            "string.outline-8.org",
+            "string"
+          ],
           "stars": [
             "punctuation.definition.heading.org",
             "markup.heading"
@@ -3846,6 +6632,16 @@
             "punctuation.definition.block.org",
             "comment"
           ],
+          "quote": [
+            "markup.quote.org",
+            "markup.quote",
+            "markup.italic"
+          ],
+          "verse": [
+            "markup.quote.verse.org",
+            "markup.quote",
+            "markup.italic"
+          ],
           "comment": [
             "comment.line.org",
             "comment"
@@ -3863,6 +6659,10 @@
             "markup.list.checked.org",
             "markup.inserted",
             "string"
+          ],
+          "descriptionTerm": [
+            "markup.bold.term.org",
+            "markup.bold"
           ],
           "link": [
             "markup.underline.link.org",
@@ -3893,17 +6693,50 @@
             "constant.numeric.cookie.org",
             "constant.numeric"
           ],
+          "cookie.done": [
+            "constant.numeric.cookie.done.org",
+            "markup.inserted",
+            "string"
+          ],
+          "headline.done": [
+            "markup.heading.done.org",
+            "comment"
+          ],
+          "*.done": [
+            "comment.done.org",
+            "comment"
+          ],
+          "headline.todo": [
+            "markup.heading.todo.org",
+            "string"
+          ],
+          "*.todo": [
+            "string.todo.org",
+            "string"
+          ],
+          "documentTitle": [
+            "markup.heading.title.org",
+            "entity.name.section"
+          ],
+          "documentInfo": [
+            "string.other.info.org",
+            "string"
+          ],
           "target": [
             "entity.name.label.org",
-            "entity.name.label"
+            "entity.name.label",
+            "markup.underline.link",
+            "string.other.link"
           ],
           "latex": [
             "markup.math.org",
-            "support.function"
+            "support.function",
+            "string.other.math"
           ],
           "entity": [
             "constant.character.entity.org",
-            "constant.character.entity"
+            "constant.character.entity",
+            "string.other.math"
           ],
           "macro": [
             "entity.name.function.macro.org",
@@ -3919,7 +6752,8 @@
           ],
           "*.underline": [
             "markup.underline.org",
-            "markup.underline"
+            "markup.underline",
+            "string.other.link"
           ],
           "*.strikethrough": [
             "markup.strikethrough.org",
@@ -3977,11 +6811,13 @@
           ],
           "agendaHabit": [
             "markup.changed.habit.agenda.org",
-            "markup.changed"
+            "markup.changed",
+            "markup.changed.git_gutter"
           ],
           "agendaHabit.ready": [
             "markup.inserted.habit.agenda.org",
-            "markup.inserted"
+            "markup.inserted",
+            "markup.inserted.git_gutter"
           ],
           "agendaHabit.alert": [
             "markup.changed.alert.habit.agenda.org",
@@ -3990,7 +6826,8 @@
           ],
           "agendaHabit.overdue": [
             "markup.deleted.habit.agenda.org",
-            "markup.deleted"
+            "markup.deleted",
+            "markup.deleted.git_gutter"
           ],
           "agendaTimeGrid": [
             "comment.time-grid.agenda.org",
@@ -4003,11 +6840,13 @@
           ],
           "agendaClocking": [
             "markup.highlight.clocking.agenda.org",
-            "markup.inserted"
+            "markup.inserted",
+            "markup.inserted.git_gutter"
           ],
           "*.clocking": [
             "markup.highlight.clocking.agenda.org",
-            "markup.inserted"
+            "markup.inserted",
+            "markup.inserted.git_gutter"
           ],
           "agendaDimmed": [
             "comment.dimmed.agenda.org",
@@ -4017,13 +6856,19 @@
             "comment.archived.org",
             "comment"
           ],
+          "*.inlinetask": [
+            "comment.inlinetask.org",
+            "comment"
+          ],
           "calendarHeader": [
             "entity.name.function.month.calendar.org",
-            "entity.name.function"
+            "entity.name.function",
+            "entity.name.function.preprocessor"
           ],
           "calendarWeekday": [
             "constant.other.weekday.calendar.org",
-            "constant.other"
+            "constant.other",
+            "constant.language"
           ],
           "calendarWeekday.weekend": [
             "comment.weekend.calendar.org",
@@ -4044,6 +6889,10 @@
           "calendarJournal.future": [
             "markup.italic.scheduled.journal.calendar.org",
             "markup.italic"
+          ],
+          "calendarDailies": [
+            "string.other.link.dailies.calendar.org",
+            "string.other.link"
           ]
         }
       },
@@ -4087,6 +6936,41 @@
             "markup.heading.8.org",
             "string"
           ],
+          "outline.level1": [
+            "entity.name.function.outline-1.org",
+            "entity.name.function",
+            "entity.name.function.preprocessor"
+          ],
+          "outline.level2": [
+            "variable.parameter.outline-2.org",
+            "variable.parameter",
+            "variable.language"
+          ],
+          "outline.level3": [
+            "keyword.outline-3.org",
+            "keyword"
+          ],
+          "outline.level4": [
+            "comment.outline-4.org",
+            "comment"
+          ],
+          "outline.level5": [
+            "storage.type.outline-5.org",
+            "storage.type"
+          ],
+          "outline.level6": [
+            "constant.language.outline-6.org",
+            "constant.language"
+          ],
+          "outline.level7": [
+            "support.function.outline-7.org",
+            "support.function",
+            "support.type.property-name"
+          ],
+          "outline.level8": [
+            "string.outline-8.org",
+            "string"
+          ],
           "stars": [
             "punctuation.definition.heading.org",
             "markup.heading"
@@ -4140,6 +7024,16 @@
             "punctuation.definition.block.org",
             "comment"
           ],
+          "quote": [
+            "markup.quote.org",
+            "markup.quote",
+            "markup.italic"
+          ],
+          "verse": [
+            "markup.quote.verse.org",
+            "markup.quote",
+            "markup.italic"
+          ],
           "comment": [
             "comment.line.org",
             "comment"
@@ -4157,6 +7051,10 @@
             "markup.list.checked.org",
             "markup.inserted",
             "string"
+          ],
+          "descriptionTerm": [
+            "markup.bold.term.org",
+            "markup.bold"
           ],
           "link": [
             "markup.underline.link.org",
@@ -4187,17 +7085,50 @@
             "constant.numeric.cookie.org",
             "constant.numeric"
           ],
+          "cookie.done": [
+            "constant.numeric.cookie.done.org",
+            "markup.inserted",
+            "string"
+          ],
+          "headline.done": [
+            "markup.heading.done.org",
+            "comment"
+          ],
+          "*.done": [
+            "comment.done.org",
+            "comment"
+          ],
+          "headline.todo": [
+            "markup.heading.todo.org",
+            "string"
+          ],
+          "*.todo": [
+            "string.todo.org",
+            "string"
+          ],
+          "documentTitle": [
+            "markup.heading.title.org",
+            "entity.name.section"
+          ],
+          "documentInfo": [
+            "string.other.info.org",
+            "string"
+          ],
           "target": [
             "entity.name.label.org",
-            "entity.name.label"
+            "entity.name.label",
+            "markup.underline.link",
+            "string.other.link"
           ],
           "latex": [
             "markup.math.org",
-            "support.function"
+            "support.function",
+            "string.other.math"
           ],
           "entity": [
             "constant.character.entity.org",
-            "constant.character.entity"
+            "constant.character.entity",
+            "string.other.math"
           ],
           "macro": [
             "entity.name.function.macro.org",
@@ -4213,7 +7144,8 @@
           ],
           "*.underline": [
             "markup.underline.org",
-            "markup.underline"
+            "markup.underline",
+            "string.other.link"
           ],
           "*.strikethrough": [
             "markup.strikethrough.org",
@@ -4271,11 +7203,13 @@
           ],
           "agendaHabit": [
             "markup.changed.habit.agenda.org",
-            "markup.changed"
+            "markup.changed",
+            "markup.changed.git_gutter"
           ],
           "agendaHabit.ready": [
             "markup.inserted.habit.agenda.org",
-            "markup.inserted"
+            "markup.inserted",
+            "markup.inserted.git_gutter"
           ],
           "agendaHabit.alert": [
             "markup.changed.alert.habit.agenda.org",
@@ -4284,7 +7218,8 @@
           ],
           "agendaHabit.overdue": [
             "markup.deleted.habit.agenda.org",
-            "markup.deleted"
+            "markup.deleted",
+            "markup.deleted.git_gutter"
           ],
           "agendaTimeGrid": [
             "comment.time-grid.agenda.org",
@@ -4297,11 +7232,13 @@
           ],
           "agendaClocking": [
             "markup.highlight.clocking.agenda.org",
-            "markup.inserted"
+            "markup.inserted",
+            "markup.inserted.git_gutter"
           ],
           "*.clocking": [
             "markup.highlight.clocking.agenda.org",
-            "markup.inserted"
+            "markup.inserted",
+            "markup.inserted.git_gutter"
           ],
           "agendaDimmed": [
             "comment.dimmed.agenda.org",
@@ -4311,13 +7248,19 @@
             "comment.archived.org",
             "comment"
           ],
+          "*.inlinetask": [
+            "comment.inlinetask.org",
+            "comment"
+          ],
           "calendarHeader": [
             "entity.name.function.month.calendar.org",
-            "entity.name.function"
+            "entity.name.function",
+            "entity.name.function.preprocessor"
           ],
           "calendarWeekday": [
             "constant.other.weekday.calendar.org",
-            "constant.other"
+            "constant.other",
+            "constant.language"
           ],
           "calendarWeekday.weekend": [
             "comment.weekend.calendar.org",
@@ -4338,6 +7281,10 @@
           "calendarJournal.future": [
             "markup.italic.scheduled.journal.calendar.org",
             "markup.italic"
+          ],
+          "calendarDailies": [
+            "string.other.link.dailies.calendar.org",
+            "string.other.link"
           ]
         }
       },
@@ -4381,6 +7328,41 @@
             "markup.heading.8.org",
             "string"
           ],
+          "outline.level1": [
+            "entity.name.function.outline-1.org",
+            "entity.name.function",
+            "entity.name.function.preprocessor"
+          ],
+          "outline.level2": [
+            "variable.parameter.outline-2.org",
+            "variable.parameter",
+            "variable.language"
+          ],
+          "outline.level3": [
+            "keyword.outline-3.org",
+            "keyword"
+          ],
+          "outline.level4": [
+            "comment.outline-4.org",
+            "comment"
+          ],
+          "outline.level5": [
+            "storage.type.outline-5.org",
+            "storage.type"
+          ],
+          "outline.level6": [
+            "constant.language.outline-6.org",
+            "constant.language"
+          ],
+          "outline.level7": [
+            "support.function.outline-7.org",
+            "support.function",
+            "support.type.property-name"
+          ],
+          "outline.level8": [
+            "string.outline-8.org",
+            "string"
+          ],
           "stars": [
             "punctuation.definition.heading.org",
             "markup.heading"
@@ -4434,6 +7416,16 @@
             "punctuation.definition.block.org",
             "comment"
           ],
+          "quote": [
+            "markup.quote.org",
+            "markup.quote",
+            "markup.italic"
+          ],
+          "verse": [
+            "markup.quote.verse.org",
+            "markup.quote",
+            "markup.italic"
+          ],
           "comment": [
             "comment.line.org",
             "comment"
@@ -4451,6 +7443,10 @@
             "markup.list.checked.org",
             "markup.inserted",
             "string"
+          ],
+          "descriptionTerm": [
+            "markup.bold.term.org",
+            "markup.bold"
           ],
           "link": [
             "markup.underline.link.org",
@@ -4481,17 +7477,50 @@
             "constant.numeric.cookie.org",
             "constant.numeric"
           ],
+          "cookie.done": [
+            "constant.numeric.cookie.done.org",
+            "markup.inserted",
+            "string"
+          ],
+          "headline.done": [
+            "markup.heading.done.org",
+            "comment"
+          ],
+          "*.done": [
+            "comment.done.org",
+            "comment"
+          ],
+          "headline.todo": [
+            "markup.heading.todo.org",
+            "string"
+          ],
+          "*.todo": [
+            "string.todo.org",
+            "string"
+          ],
+          "documentTitle": [
+            "markup.heading.title.org",
+            "entity.name.section"
+          ],
+          "documentInfo": [
+            "string.other.info.org",
+            "string"
+          ],
           "target": [
             "entity.name.label.org",
-            "entity.name.label"
+            "entity.name.label",
+            "markup.underline.link",
+            "string.other.link"
           ],
           "latex": [
             "markup.math.org",
-            "support.function"
+            "support.function",
+            "string.other.math"
           ],
           "entity": [
             "constant.character.entity.org",
-            "constant.character.entity"
+            "constant.character.entity",
+            "string.other.math"
           ],
           "macro": [
             "entity.name.function.macro.org",
@@ -4507,7 +7536,8 @@
           ],
           "*.underline": [
             "markup.underline.org",
-            "markup.underline"
+            "markup.underline",
+            "string.other.link"
           ],
           "*.strikethrough": [
             "markup.strikethrough.org",
@@ -4565,11 +7595,13 @@
           ],
           "agendaHabit": [
             "markup.changed.habit.agenda.org",
-            "markup.changed"
+            "markup.changed",
+            "markup.changed.git_gutter"
           ],
           "agendaHabit.ready": [
             "markup.inserted.habit.agenda.org",
-            "markup.inserted"
+            "markup.inserted",
+            "markup.inserted.git_gutter"
           ],
           "agendaHabit.alert": [
             "markup.changed.alert.habit.agenda.org",
@@ -4578,7 +7610,8 @@
           ],
           "agendaHabit.overdue": [
             "markup.deleted.habit.agenda.org",
-            "markup.deleted"
+            "markup.deleted",
+            "markup.deleted.git_gutter"
           ],
           "agendaTimeGrid": [
             "comment.time-grid.agenda.org",
@@ -4591,11 +7624,13 @@
           ],
           "agendaClocking": [
             "markup.highlight.clocking.agenda.org",
-            "markup.inserted"
+            "markup.inserted",
+            "markup.inserted.git_gutter"
           ],
           "*.clocking": [
             "markup.highlight.clocking.agenda.org",
-            "markup.inserted"
+            "markup.inserted",
+            "markup.inserted.git_gutter"
           ],
           "agendaDimmed": [
             "comment.dimmed.agenda.org",
@@ -4605,13 +7640,19 @@
             "comment.archived.org",
             "comment"
           ],
+          "*.inlinetask": [
+            "comment.inlinetask.org",
+            "comment"
+          ],
           "calendarHeader": [
             "entity.name.function.month.calendar.org",
-            "entity.name.function"
+            "entity.name.function",
+            "entity.name.function.preprocessor"
           ],
           "calendarWeekday": [
             "constant.other.weekday.calendar.org",
-            "constant.other"
+            "constant.other",
+            "constant.language"
           ],
           "calendarWeekday.weekend": [
             "comment.weekend.calendar.org",
@@ -4632,6 +7673,10 @@
           "calendarJournal.future": [
             "markup.italic.scheduled.journal.calendar.org",
             "markup.italic"
+          ],
+          "calendarDailies": [
+            "string.other.link.dailies.calendar.org",
+            "string.other.link"
           ]
         }
       }
@@ -4646,6 +7691,166 @@
           "highContrast": "editor.selectionHighlightBackground",
           "highContrastLight": "editor.selectionHighlightBackground"
         }
+      },
+      {
+        "id": "org.agendaHabitClearBackground",
+        "description": "Org agenda: the background of a day of a habit's consistency graph before it is due (`org-habit-clear-face`).",
+        "defaults": {
+          "dark": "#0000ff",
+          "light": "#8270f9",
+          "highContrast": "#0000ff",
+          "highContrastLight": "#8270f9"
+        }
+      },
+      {
+        "id": "org.agendaHabitClearFutureBackground",
+        "description": "Org agenda: the background of a day of a habit's consistency graph before it is due, to come (`org-habit-clear-future-face`).",
+        "defaults": {
+          "dark": "#191970",
+          "light": "#d6e4fc",
+          "highContrast": "#191970",
+          "highContrastLight": "#d6e4fc"
+        }
+      },
+      {
+        "id": "org.agendaHabitReadyBackground",
+        "description": "Org agenda: the background of a day of a habit's consistency graph in its time to be done (`org-habit-ready-face`).",
+        "defaults": {
+          "dark": "#228b22",
+          "light": "#4df946",
+          "highContrast": "#228b22",
+          "highContrastLight": "#4df946"
+        }
+      },
+      {
+        "id": "org.agendaHabitReadyFutureBackground",
+        "description": "Org agenda: the background of a day of a habit's consistency graph in its time to be done, to come (`org-habit-ready-future-face`).",
+        "defaults": {
+          "dark": "#006400",
+          "light": "#acfca9",
+          "highContrast": "#006400",
+          "highContrastLight": "#acfca9"
+        }
+      },
+      {
+        "id": "org.agendaHabitAlertBackground",
+        "description": "Org agenda: the background of a day of a habit's consistency graph the day it is due by (`org-habit-alert-face`).",
+        "defaults": {
+          "dark": "#ffd700",
+          "light": "#f5f946",
+          "highContrast": "#ffd700",
+          "highContrastLight": "#f5f946"
+        }
+      },
+      {
+        "id": "org.agendaHabitAlertFutureBackground",
+        "description": "Org agenda: the background of a day of a habit's consistency graph the day it is due by, to come (`org-habit-alert-future-face`).",
+        "defaults": {
+          "dark": "#b8860b",
+          "light": "#fafca9",
+          "highContrast": "#b8860b",
+          "highContrastLight": "#fafca9"
+        }
+      },
+      {
+        "id": "org.agendaHabitOverdueBackground",
+        "description": "Org agenda: the background of a day of a habit's consistency graph past its due day (`org-habit-overdue-face`).",
+        "defaults": {
+          "dark": "#b22222",
+          "light": "#f9372d",
+          "highContrast": "#b22222",
+          "highContrastLight": "#f9372d"
+        }
+      },
+      {
+        "id": "org.agendaHabitOverdueFutureBackground",
+        "description": "Org agenda: the background of a day of a habit's consistency graph past its due day, to come (`org-habit-overdue-future-face`).",
+        "defaults": {
+          "dark": "#8b0000",
+          "light": "#fc9590",
+          "highContrast": "#8b0000",
+          "highContrastLight": "#fc9590"
+        }
+      },
+      {
+        "id": "org.headlineLevel1Background",
+        "description": "Org: the background of a headline of level 1's line, from edge to edge, with `org_fontify_whole_heading_line` (`org-level-1`); none by default.",
+        "defaults": {
+          "dark": "#00000000",
+          "light": "#00000000",
+          "highContrast": "#00000000",
+          "highContrastLight": "#00000000"
+        }
+      },
+      {
+        "id": "org.headlineLevel2Background",
+        "description": "Org: the background of a headline of level 2's line, from edge to edge, with `org_fontify_whole_heading_line` (`org-level-2`); none by default.",
+        "defaults": {
+          "dark": "#00000000",
+          "light": "#00000000",
+          "highContrast": "#00000000",
+          "highContrastLight": "#00000000"
+        }
+      },
+      {
+        "id": "org.headlineLevel3Background",
+        "description": "Org: the background of a headline of level 3's line, from edge to edge, with `org_fontify_whole_heading_line` (`org-level-3`); none by default.",
+        "defaults": {
+          "dark": "#00000000",
+          "light": "#00000000",
+          "highContrast": "#00000000",
+          "highContrastLight": "#00000000"
+        }
+      },
+      {
+        "id": "org.headlineLevel4Background",
+        "description": "Org: the background of a headline of level 4's line, from edge to edge, with `org_fontify_whole_heading_line` (`org-level-4`); none by default.",
+        "defaults": {
+          "dark": "#00000000",
+          "light": "#00000000",
+          "highContrast": "#00000000",
+          "highContrastLight": "#00000000"
+        }
+      },
+      {
+        "id": "org.headlineLevel5Background",
+        "description": "Org: the background of a headline of level 5's line, from edge to edge, with `org_fontify_whole_heading_line` (`org-level-5`); none by default.",
+        "defaults": {
+          "dark": "#00000000",
+          "light": "#00000000",
+          "highContrast": "#00000000",
+          "highContrastLight": "#00000000"
+        }
+      },
+      {
+        "id": "org.headlineLevel6Background",
+        "description": "Org: the background of a headline of level 6's line, from edge to edge, with `org_fontify_whole_heading_line` (`org-level-6`); none by default.",
+        "defaults": {
+          "dark": "#00000000",
+          "light": "#00000000",
+          "highContrast": "#00000000",
+          "highContrastLight": "#00000000"
+        }
+      },
+      {
+        "id": "org.headlineLevel7Background",
+        "description": "Org: the background of a headline of level 7's line, from edge to edge, with `org_fontify_whole_heading_line` (`org-level-7`); none by default.",
+        "defaults": {
+          "dark": "#00000000",
+          "light": "#00000000",
+          "highContrast": "#00000000",
+          "highContrastLight": "#00000000"
+        }
+      },
+      {
+        "id": "org.headlineLevel8Background",
+        "description": "Org: the background of a headline of level 8's line, from edge to edge, with `org_fontify_whole_heading_line` (`org-level-8`); none by default.",
+        "defaults": {
+          "dark": "#00000000",
+          "light": "#00000000",
+          "highContrast": "#00000000",
+          "highContrastLight": "#00000000"
+        }
       }
     ],
     "keybindings": [
@@ -4657,6 +7862,11 @@
       {
         "command": "org.clock.in.last",
         "key": "ctrl+c ctrl+x ctrl+x",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.clock.resolve",
+        "key": "ctrl+c ctrl+x ctrl+z",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
@@ -4825,6 +8035,11 @@
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
+        "command": "org.inlinetask.insert",
+        "key": "ctrl+c ctrl+x t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
         "command": "org.meta.left",
         "key": "alt+left",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
@@ -4921,6 +8136,11 @@
         }
       },
       {
+        "command": "org.open.line",
+        "key": "ctrl+o",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
         "command": "org.table.hline",
         "key": "ctrl+c -",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
@@ -4959,6 +8179,16 @@
         "command": "org.paste.subtree",
         "key": "ctrl+c ctrl+x ctrl+y",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.yank",
+        "key": "ctrl+y",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "args": {
+          "fallback": [
+            "editor.action.clipboardPasteAction"
+          ]
+        }
       },
       {
         "command": "org.refile",
@@ -5056,6 +8286,45 @@
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
+        "command": "org.beginning.of.line",
+        "key": "ctrl+a",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "args": {
+          "fallback": [
+            "extension.vim_ctrl+a",
+            {
+              "command": "cursorLineStart",
+              "platform": "darwin"
+            },
+            "editor.action.selectAll"
+          ]
+        }
+      },
+      {
+        "command": "org.end.of.line",
+        "key": "ctrl+e",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "args": {
+          "fallback": [
+            {
+              "command": "cursorLineEnd",
+              "platform": "darwin"
+            },
+            "workbench.action.quickOpen"
+          ]
+        }
+      },
+      {
+        "command": "org.kill.line",
+        "key": "ctrl+k",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'",
+        "args": {
+          "fallback": [
+            "deleteAllRight"
+          ]
+        }
+      },
+      {
         "command": "org.goto",
         "key": "ctrl+c ctrl+j",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
@@ -5118,6 +8387,16 @@
       {
         "command": "org.table.create",
         "key": "ctrl+c shift+\\",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.plot.gnuplot",
+        "key": "ctrl+c shift+' g",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.table.ascii.plot",
+        "key": "ctrl+c shift+' a",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
@@ -5311,6 +8590,16 @@
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
+        "command": "org.roam.dailies.goto.next",
+        "key": "ctrl+c n d f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.dailies.goto.previous",
+        "key": "ctrl+c n d b",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
         "command": "org.journal.next.entry",
         "key": "ctrl+c j f",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
@@ -5332,6 +8621,10 @@
         "args": {
           "fallback": [
             "extension.vim_ctrl+a",
+            {
+              "command": "cursorLineStart",
+              "platform": "darwin"
+            },
             "editor.action.selectAll"
           ]
         }
@@ -5448,6 +8741,16 @@
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
       },
       {
+        "command": "org.timestamp.overlays.toggle",
+        "key": "ctrl+c ctrl+x ctrl+t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.goto.calendar",
+        "key": "ctrl+c shift+.",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
         "command": "org-lsp.cycle",
         "key": "tab",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org' && !suggestWidgetVisible && !inlineSuggestionVisible && !inSnippetMode && !editorHasSelection && !editorTabMovesFocus",
@@ -5510,6 +8813,76 @@
       {
         "command": "org.roam.capture",
         "key": "ctrl+c n c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.roam.dailies.capture.today",
+        "key": "ctrl+c n d n",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.dailies.capture.today",
+        "key": "ctrl+c n d n",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.roam.dailies.goto.today",
+        "key": "ctrl+c n d d",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.dailies.goto.today",
+        "key": "ctrl+c n d d",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.roam.dailies.goto.tomorrow",
+        "key": "ctrl+c n d t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.dailies.goto.tomorrow",
+        "key": "ctrl+c n d t",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.roam.dailies.goto.yesterday",
+        "key": "ctrl+c n d y",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.dailies.goto.yesterday",
+        "key": "ctrl+c n d y",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.roam.dailies.capture.date",
+        "key": "ctrl+c n d v",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.dailies.capture.date",
+        "key": "ctrl+c n d v",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.roam.dailies.goto.date",
+        "key": "ctrl+c n d c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.dailies.goto.date",
+        "key": "ctrl+c n d c",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.roam.dailies.find.directory",
+        "key": "ctrl+c n d .",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org'"
+      },
+      {
+        "command": "org.roam.dailies.find.directory",
+        "key": "ctrl+c n d .",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
       },
       {
@@ -6133,6 +9506,21 @@
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
       },
       {
+        "command": "org.tags.set",
+        "key": "shift+;",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.tags.set",
+        "key": "ctrl+c ctrl+q",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.tags.set",
+        "key": "ctrl+c ctrl+q",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
         "command": "org.refile",
         "key": "ctrl+c ctrl+w",
         "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-agenda'"
@@ -6296,6 +9684,71 @@
         "command": "org-lsp.agenda.close",
         "key": "q",
         "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-agenda'"
+      },
+      {
+        "command": "org.journal.new.date.entry",
+        "key": "j n",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.next.entry",
+        "key": "]",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.next.entry",
+        "key": "]",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.previous.entry",
+        "key": "[",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.previous.entry",
+        "key": "[",
+        "when": "editorTextFocus && config.org-lsp.keys == 'vim' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.search.forever",
+        "key": "j s f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.search.future",
+        "key": "j s shift+f",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.search.calendar.week",
+        "key": "j s w",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.search.calendar.month",
+        "key": "j s m",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.search.calendar.year",
+        "key": "j s y",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.read.entry",
+        "key": "j r",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.display.entry",
+        "key": "j d",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
+      },
+      {
+        "command": "org.journal.mark.entries",
+        "key": "j m",
+        "when": "editorTextFocus && config.org-lsp.keys == 'emacs' && editorLangId == 'org-date'"
       },
       {
         "command": "org.calendar.day.later",
@@ -6804,10 +10257,16 @@
       "org-date"
     ],
     "clipboardCommands": [
+      "org.bibtex.yank",
       "org.paste.subtree",
+      "org.yank",
       "org.capture",
       "org.roam.node.insert",
-      "org.roam.capture"
+      "org.roam.capture",
+      "org.roam.dailies.capture.today",
+      "org.roam.dailies.capture.tomorrow",
+      "org.roam.dailies.capture.yesterday",
+      "org.roam.dailies.capture.date"
     ]
   }
 }

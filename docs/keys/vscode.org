@@ -43,6 +43,7 @@ extension.
 |---+---+---|
 | ~Ctrl+C Ctrl+X Ctrl+I~ | ~org.clock.in~ | Clock in |
 | ~Ctrl+C Ctrl+X Ctrl+X~ | ~org.clock.in.last~ | Clock in the last clocked task |
+| ~Ctrl+C Ctrl+X Ctrl+Z~ | ~org.clock.resolve~ | Resolve open clocks |
 | ~Ctrl+C Ctrl+X Ctrl+O~ | ~org.clock.out~ | Clock out |
 | ~Ctrl+C Ctrl+X Ctrl+Q~ | ~org.clock.cancel~ | Cancel the clock |
 | ~Ctrl+C Ctrl+X Ctrl+J~ | ~org.clock.goto~ | Go to the clocked entry |
@@ -67,6 +68,7 @@ extension.
 | ~Alt+Shift+Enter~ | ~org.insert.todo.heading~ | New TODO heading, or item with a checkbox |
 | ~Ctrl+Enter~ | ~org.insert.heading.after~ | New heading after the subtree |
 | ~Ctrl+Shift+Enter~ | ~org.insert.todo.heading.after~ | New TODO heading after the subtree |
+| ~Ctrl+C Ctrl+X t~ | ~org.inlinetask.insert~ | Insert an inline task |
 | ~Alt+Left~ ¹ | ~org.meta.left~ | Promote the heading; outdent the item; move the table column left |
 | ~Alt+Right~ ¹ | ~org.meta.right~ | Demote the heading; indent the item, the drawer or the block; move the table column right |
 | ~Alt+Shift+Left~ ¹ | ~org.shiftmeta.left~ | Promote the subtree; outdent the item with its children; delete the table column |
@@ -75,6 +77,7 @@ extension.
 | ~Alt+Down~ ¹ | ~org.meta.down~ | Move the subtree, the item or the table row down |
 | ~Alt+Shift+Up~ ¹ | ~org.shiftmeta.up~ | Delete the table row |
 | ~Alt+Shift+Down~ ¹ | ~org.shiftmeta.down~ | Insert a table row above |
+| ~Ctrl+O~ | ~org.open.line~ | Open a line, or in a table insert a row |
 | ~Ctrl+C -~ | ~org.table.hline~ | Insert a rule below the table row |
 | ~Ctrl+C Enter~ | ~org.table.hline.move~ | Insert a rule below the table row and go below it |
 | ~Ctrl+C Shift+6~ | ~org.sort~ | Sort the entries, the items or the table rows |
@@ -83,6 +86,7 @@ extension.
 | ~Ctrl+C Ctrl+X Ctrl+W~ | ~org.cut.subtree~ | Cut the subtree |
 | ~Ctrl+C Ctrl+X Alt+W~ | ~org.copy.subtree~ | Copy the subtree |
 | ~Ctrl+C Ctrl+X Ctrl+Y~ | ~org.paste.subtree~ | Paste the subtree |
+| ~Ctrl+Y~ ¹ | ~org.yank~ | Yank, a subtree at its level |
 | ~Ctrl+C Ctrl+W~ | ~org.refile~ | Refile the entry |
 | ~Ctrl+C Alt+W~ | ~org.refile.copy~ | Copy the entry to a refile target |
 | ~Ctrl+C Ctrl+Z~ | ~org.add.note~ | Add a note to the entry |
@@ -98,6 +102,9 @@ extension.
 | ~Ctrl+C Ctrl+U~ | ~org.heading.up~ | Move to the parent heading |
 | ~Ctrl+C Ctrl+X Ctrl+N~ | ~org.link.next~ | Move to the next link |
 | ~Ctrl+C Ctrl+X Ctrl+P~ | ~org.link.previous~ | Move to the previous link |
+| ~Ctrl+A~ ¹ | ~org.beginning.of.line~ | Move to the start of the headline's title |
+| ~Ctrl+E~ ¹ | ~org.end.of.line~ | Move to the end of the headline's title |
+| ~Ctrl+K~ ¹ | ~org.kill.line~ | Kill the headline's text to the tags, or the tags |
 | ~Ctrl+C Ctrl+J~ | ~org.goto~ | Go to a heading of the file |
 | ~Ctrl+C Ctrl+X f~ | ~org.footnote.action~ | Make a footnote, or go between a footnote and its definition |
 | ~Ctrl+C ;~ | ~org.toggle.comment~ | Toggle the COMMENT keyword of the heading |
@@ -109,6 +116,8 @@ extension.
 | ~Ctrl+C +~ | ~org.table.sum~ | Sum the numbers of the table column |
 | ~Ctrl+C ?~ | ~org.table.field.info~ | Show the references of the table field |
 | ~Ctrl+C Shift+\~ | ~org.table.create~ | Insert an empty table |
+| ~Ctrl+C " g~ | ~org.plot.gnuplot~ | Plot the table with gnuplot |
+| ~Ctrl+C " a~ | ~org.table.ascii.plot~ | Draw the column at the cursor as bars |
 | ~Ctrl+C Ctrl+V n~, ~Ctrl+C Ctrl+V Ctrl+N~ | ~org.babel.next~ | Move to the next code block |
 | ~Ctrl+C Ctrl+V p~, ~Ctrl+C Ctrl+V Ctrl+P~ | ~org.babel.previous~ | Move to the previous code block |
 | ~Ctrl+C Ctrl+V g~ | ~org.babel.goto~ | Go to a named code block |
@@ -144,6 +153,8 @@ extension.
 | ~Ctrl+C Ctrl+X a~ | ~org.archive.tag~ | Toggle the ARCHIVE tag |
 | ~Ctrl+C Ctrl+X Ctrl+A~ | ~org.archive.default~ | Archive with the default command |
 | ~Ctrl+C n i~ | ~org.roam.node.insert~ | Roam: insert a link to a node |
+| ~Ctrl+C n d f~ | ~org.roam.dailies.goto.next~ | Roam: go to the next daily note |
+| ~Ctrl+C n d b~ | ~org.roam.dailies.goto.previous~ | Roam: go to the previous daily note |
 | ~Ctrl+C j f~ | ~org.journal.next.entry~ | Journal: next entry |
 | ~Ctrl+C j b~ | ~org.journal.previous.entry~ | Journal: previous entry |
 | ~Ctrl+C j s~ | ~org.journal.search~ | Journal: search between two dates |
@@ -155,12 +166,21 @@ extension.
 | ~Ctrl+C Ctrl+D~ | ~org.deadline~ | Set the deadline of the entry |
 | ~Ctrl+C .~ | ~org.timestamp.insert~ | Insert or change a timestamp |
 | ~Ctrl+C !~ | ~org.timestamp.insert.inactive~ | Insert or change an inactive timestamp |
+| ~Ctrl+C Ctrl+X Ctrl+T~ | ~org.timestamp.overlays.toggle~ | Show timestamps in the custom formats, or not |
+| ~Ctrl+C >~ | ~org.goto.calendar~ | Show the calendar at the date of the line |
 | ~Tab~ ¹ | ~org-lsp.cycle~ | Cycle the visibility of the subtree, block or drawer at the cursor |
 | ~Shift+Tab~ | ~org-lsp.cycleGlobal~ | Cycle the visibility of the whole file |
 | ~Ctrl+C a~ | ~org.agenda.dispatch~ | Agenda commands |
 | ~Ctrl+C c~ | ~org.capture~ | Capture |
 | ~Ctrl+C n f~ | ~org.roam.node.find~ | Roam: find a node |
 | ~Ctrl+C n c~ | ~org.roam.capture~ | Roam: capture to a node |
+| ~Ctrl+C n d n~ | ~org.roam.dailies.capture.today~ | Roam: capture to today's daily note |
+| ~Ctrl+C n d d~ | ~org.roam.dailies.goto.today~ | Roam: go to today's daily note |
+| ~Ctrl+C n d t~ | ~org.roam.dailies.goto.tomorrow~ | Roam: go to tomorrow's daily note |
+| ~Ctrl+C n d y~ | ~org.roam.dailies.goto.yesterday~ | Roam: go to yesterday's daily note |
+| ~Ctrl+C n d v~ | ~org.roam.dailies.capture.date~ | Roam: capture to the daily note of a date |
+| ~Ctrl+C n d c~ | ~org.roam.dailies.goto.date~ | Roam: go to the daily note of a date |
+| ~Ctrl+C n d .~ | ~org.roam.dailies.find.directory~ | Roam: open the directory of the daily notes |
 | ~Ctrl+C n l~ | ~org.roam.buffer.toggle~ | Roam: show or hide the org-roam buffer |
 | ~Ctrl+C j j~ | ~org.journal.new.entry~ | Journal: new entry |
 
@@ -180,6 +200,13 @@ extension.
 | ~Ctrl+C c~ | ~org.capture~ | Capture |
 | ~Ctrl+C n f~ | ~org.roam.node.find~ | Roam: find a node |
 | ~Ctrl+C n c~ | ~org.roam.capture~ | Roam: capture to a node |
+| ~Ctrl+C n d n~ | ~org.roam.dailies.capture.today~ | Roam: capture to today's daily note |
+| ~Ctrl+C n d d~ | ~org.roam.dailies.goto.today~ | Roam: go to today's daily note |
+| ~Ctrl+C n d t~ | ~org.roam.dailies.goto.tomorrow~ | Roam: go to tomorrow's daily note |
+| ~Ctrl+C n d y~ | ~org.roam.dailies.goto.yesterday~ | Roam: go to yesterday's daily note |
+| ~Ctrl+C n d v~ | ~org.roam.dailies.capture.date~ | Roam: capture to the daily note of a date |
+| ~Ctrl+C n d c~ | ~org.roam.dailies.goto.date~ | Roam: go to the daily note of a date |
+| ~Ctrl+C n d .~ | ~org.roam.dailies.find.directory~ | Roam: open the directory of the daily notes |
 | ~Ctrl+C n l~ | ~org.roam.buffer.toggle~ | Roam: show or hide the org-roam buffer |
 | ~Ctrl+C j j~ | ~org.journal.new.entry~ | Journal: new entry |
 | ~f~ | ~org.agenda.later~ | Agenda: go forward in time |
@@ -235,6 +262,7 @@ extension.
 | ~,~ | ~org.priority~ | Set the priority |
 | ~Ctrl+C Ctrl+X p~ | ~org.property.set~ | Set a property of the entry |
 | ~e~ | ~org.effort.set~ | Set the effort of the entry |
+| ~:~, ~Ctrl+C Ctrl+Q~ | ~org.tags.set~ | Set the tags of the headline |
 | ~Ctrl+C Ctrl+W~ | ~org.refile~ | Refile the entry |
 | ~z~ | ~org.add.note~ | Add a note to the entry |
 | ~Ctrl+C Ctrl+O~ | ~org.open~ | Open the link or thing at the cursor |
@@ -273,6 +301,17 @@ extension.
 
 | Keys | Command | What it does |
 |---+---+---|
+| ~j n~ | ~org.journal.new.date.entry~ | Journal: new entry for a date |
+| ~]~ | ~org.journal.next.entry~ | Journal: next entry |
+| ~[~ | ~org.journal.previous.entry~ | Journal: previous entry |
+| ~j s f~ | ~org.journal.search.forever~ | Journal: search every entry |
+| ~j s Shift+F~ | ~org.journal.search.future~ | Journal: search the entries to come |
+| ~j s w~ | ~org.journal.search.calendar.week~ | Journal: search the calendar's week |
+| ~j s m~ | ~org.journal.search.calendar.month~ | Journal: search the calendar's month |
+| ~j s y~ | ~org.journal.search.calendar.year~ | Journal: search the calendar's year |
+| ~j r~ | ~org.journal.read.entry~ | Journal: the entry of the calendar's day |
+| ~j d~ | ~org.journal.display.entry~ | Journal: show the entry of the calendar's day |
+| ~j m~ | ~org.journal.mark.entries~ | Journal: mark the days with an entry in the calendar |
 | ~Shift+Right~ | ~org.calendar.day.later~ | Date prompt: one day later |
 | ~Shift+Left~ | ~org.calendar.day.earlier~ | Date prompt: one day earlier |
 | ~Shift+Down~ | ~org.calendar.week.later~ | Date prompt: one week later |
@@ -370,6 +409,7 @@ extension.
 | ~,~ | ~org.priority~ | Set the priority |
 | ~Ctrl+C Ctrl+X p~ | ~org.property.set~ | Set a property of the entry |
 | ~e~ | ~org.effort.set~ | Set the effort of the entry |
+| ~Ctrl+C Ctrl+Q~ | ~org.tags.set~ | Set the tags of the headline |
 | ~Ctrl+C Ctrl+W~ | ~org.refile~ | Refile the entry |
 | ~z~ | ~org.add.note~ | Add a note to the entry |
 | ~Ctrl+C Ctrl+O~ | ~org.open~ | Open the link or thing at the cursor |
@@ -408,6 +448,8 @@ extension.
 
 | Keys | Command | What it does |
 |---+---+---|
+| ~]~ | ~org.journal.next.entry~ | Journal: next entry |
+| ~[~ | ~org.journal.previous.entry~ | Journal: previous entry |
 | ~l~, ~Shift+Right~ | ~org.calendar.day.later~ | Date prompt: one day later |
 | ~h~, ~Shift+Left~ | ~org.calendar.day.earlier~ | Date prompt: one day earlier |
 | ~j~, ~Shift+Down~ | ~org.calendar.week.later~ | Date prompt: one week later |
@@ -440,7 +482,7 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "a"], "commands": ["org.agenda.dispatch"] },
   { "before": ["<leader>", "o", "x", "i"], "commands": ["org.clock.in"] },
   { "before": ["<leader>", "o", "x", "x"], "commands": ["org.clock.in.last"] },
-  { "before": ["<leader>", "o", "x", "R"], "commands": ["org.clock.resolve"] },
+  { "before": ["<leader>", "o", "x", "z"], "commands": ["org.clock.resolve"] },
   { "before": ["<leader>", "o", "x", "o"], "commands": ["org.clock.out"] },
   { "before": ["<leader>", "o", "x", "q"], "commands": ["org.clock.cancel"] },
   { "before": ["<leader>", "o", "x", "j"], "commands": ["org.clock.goto"] },
@@ -460,6 +502,7 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "i", "T"], "commands": ["org.insert.todo.heading"] },
   { "before": ["<leader>", "o", "i", "h"], "commands": ["org.insert.heading.after"] },
   { "before": ["<leader>", "o", "i", "t"], "commands": ["org.insert.todo.heading.after"] },
+  { "before": ["<leader>", "o", "i", "I"], "commands": ["org.inlinetask.insert"] },
   { "before": ["<leader>", "o", "K"], "commands": ["org.meta.up"] },
   { "before": ["<leader>", "o", "J"], "commands": ["org.meta.down"] },
   { "before": ["<leader>", "o", "T", "d"], "commands": ["org.shiftmeta.up"] },
@@ -495,6 +538,8 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "+"], "commands": ["org.table.sum"] },
   { "before": ["<leader>", "o", "?"], "commands": ["org.table.field.info"] },
   { "before": ["<leader>", "o", "i", "<Bar>"], "commands": ["org.table.create"] },
+  { "before": ["<leader>", "o", "p", "g"], "commands": ["org.plot.gnuplot"] },
+  { "before": ["<leader>", "o", "p", "a"], "commands": ["org.table.ascii.plot"] },
   { "before": ["<leader>", "o", "b", "n"], "commands": ["org.babel.next"] },
   { "before": ["<leader>", "o", "b", "p"], "commands": ["org.babel.previous"] },
   { "before": ["<leader>", "o", "b", "g"], "commands": ["org.babel.goto"] },
@@ -528,6 +573,15 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "n", "f"], "commands": ["org.roam.node.find"] },
   { "before": ["<leader>", "n", "i"], "commands": ["org.roam.node.insert"] },
   { "before": ["<leader>", "n", "c"], "commands": ["org.roam.capture"] },
+  { "before": ["<leader>", "n", "d", "n"], "commands": ["org.roam.dailies.capture.today"] },
+  { "before": ["<leader>", "n", "d", "d"], "commands": ["org.roam.dailies.goto.today"] },
+  { "before": ["<leader>", "n", "d", "t"], "commands": ["org.roam.dailies.goto.tomorrow"] },
+  { "before": ["<leader>", "n", "d", "y"], "commands": ["org.roam.dailies.goto.yesterday"] },
+  { "before": ["<leader>", "n", "d", "v"], "commands": ["org.roam.dailies.capture.date"] },
+  { "before": ["<leader>", "n", "d", "c"], "commands": ["org.roam.dailies.goto.date"] },
+  { "before": ["<leader>", "n", "d", "f"], "commands": ["org.roam.dailies.goto.next"] },
+  { "before": ["<leader>", "n", "d", "b"], "commands": ["org.roam.dailies.goto.previous"] },
+  { "before": ["<leader>", "n", "d", "."], "commands": ["org.roam.dailies.find.directory"] },
   { "before": ["<leader>", "n", "l"], "commands": ["org.roam.buffer.toggle"] },
   { "before": ["<leader>", "j", "j"], "commands": ["org.journal.new.entry"] },
   { "before": ["<leader>", "j", "f"], "commands": ["org.journal.next.entry"] },
@@ -536,7 +590,8 @@ every file; outside Org files the commands say they do not apply):
   { "before": ["<leader>", "o", "i", "s"], "commands": ["org.schedule"] },
   { "before": ["<leader>", "o", "i", "d"], "commands": ["org.deadline"] },
   { "before": ["<leader>", "o", "i", "."], "commands": ["org.timestamp.insert"] },
-  { "before": ["<leader>", "o", "i", "!"], "commands": ["org.timestamp.insert.inactive"] }
+  { "before": ["<leader>", "o", "i", "!"], "commands": ["org.timestamp.insert.inactive"] },
+  { "before": ["<leader>", "o", ">"], "commands": ["org.goto.calendar"] }
 ]
 #+end_src
 
@@ -592,16 +647,19 @@ every file; outside Org files the commands say they do not apply):
 | ~org.agenda.archives.files~ | Org: Agenda: include archived trees and archive files |
 | ~org.clock.in~ | Org: Clock in |
 | ~org.clock.in.last~ | Org: Clock in the last clocked task |
-| ~org.clock.resolve~ | Org: Resolve a dangling clock |
+| ~org.clock.resolve~ | Org: Resolve open clocks |
 | ~org.clock.out~ | Org: Clock out |
 | ~org.clock.cancel~ | Org: Cancel the clock |
 | ~org.clock.goto~ | Org: Go to the clocked entry |
 | ~org.clock.display~ | Org: Show the time clocked under each headline |
+| ~org.num.mode~ | Org: Number the headlines, or stop numbering them |
+| ~org.custom.properties.toggle~ | Org: Hide the properties of org_custom_properties, or show them again |
 | ~org.clock.report~ | Org: Insert or update a clock table |
 | ~org.dblock.update~ | Org: Update the dynamic block |
 | ~org.dblock.insert~ | Org: Insert a dynamic block |
 | ~org.attach~ | Org: Attachments of the entry |
 | ~org.todo~ | Org: Change the TODO state |
+| ~org.todo.yesterday~ | Org: Change the TODO state as if it were yesterday |
 | ~org.todo.next~ | Org: Cycle TODO state forward |
 | ~org.todo.previous~ | Org: Cycle TODO state backward |
 | ~org.todo.nextset~ | Org: Switch to the next TODO keyword set |
@@ -617,6 +675,16 @@ every file; outside Org files the commands say they do not apply):
 | ~org.ordered.toggle~ | Org: Toggle whether subtasks must be done in order (ORDERED) |
 | ~org.cite.insert~ | Org: Insert a citation, or edit the one at the cursor |
 | ~org.cite.insert.prefix~ | Org: Delete the citation or reference at the cursor, or insert one with a style |
+| ~org.bibtex.export~ | Org: BibTeX: export the entries of the file to a .bib file |
+| ~org.bibtex.copy~ | Org: BibTeX: copy the entry at the cursor as BibTeX |
+| ~org.bibtex.create~ | Org: BibTeX: new entry, its fields asked for |
+| ~org.bibtex.create.here~ | Org: BibTeX: make the entry at the cursor a BibTeX entry |
+| ~org.bibtex.check~ | Org: BibTeX: ask for the fields the entry at the cursor lacks |
+| ~org.bibtex.check.all~ | Org: BibTeX: ask for the fields every entry lacks |
+| ~org.bibtex.yank~ | Org: BibTeX: paste a BibTeX entry as a heading |
+| ~org.bibtex.import~ | Org: BibTeX: import the entries of a BibTeX file as headings |
+| ~org.ctags.create~ | Org: Ctags: make the TAGS file of the file's directory |
+| ~org.ctags.find~ | Org: Ctags: go to a topic, or make it |
 | ~org.tags.set~ | Org: Set the tags of the headline |
 | ~org.checkbox.toggle~ | Org: Toggle the checkbox |
 | ~org.return~ | Org: New line, as Org's RET makes it |
@@ -625,15 +693,21 @@ every file; outside Org files the commands say they do not apply):
 | ~org.insert.todo.heading~ | Org: New TODO heading, or item with a checkbox |
 | ~org.insert.heading.after~ | Org: New heading after the subtree |
 | ~org.insert.todo.heading.after~ | Org: New TODO heading after the subtree |
+| ~org.inlinetask.insert~ | Org: Insert an inline task |
+| ~org.inlinetask.insert.nostate~ | Org: Insert an inline task without its default TODO state |
 | ~org.meta.left~ | Org: Promote the heading; outdent the item; move the table column left |
 | ~org.meta.right~ | Org: Demote the heading; indent the item, the drawer or the block; move the table column right |
 | ~org.shiftmeta.left~ | Org: Promote the subtree; outdent the item with its children; delete the table column |
 | ~org.shiftmeta.right~ | Org: Demote the subtree; indent the item with its children; insert a table column |
+| ~org.levels.odd~ | Org: Convert the file to odd levels only, once confirmed |
+| ~org.levels.oddeven~ | Org: Convert the file from odd levels to odd and even ones, once confirmed |
 | ~org.meta.up~ | Org: Move the subtree, the item or the table row up |
 | ~org.meta.down~ | Org: Move the subtree, the item or the table row down |
 | ~org.shiftmeta.up~ | Org: Delete the table row |
 | ~org.shiftmeta.down~ | Org: Insert a table row above |
 | ~org.table.insert.row.below~ | Org: Insert a table row below |
+| ~org.open.line~ | Org: Open a line, or in a table insert a row |
+| ~org.outline.path~ | Org: Show the outline path of the entry at the cursor |
 | ~org.table.next.field~ | Org: Go to the next table field, making a row after the last |
 | ~org.table.previous.field~ | Org: Go to the previous table field |
 | ~org.table.hline~ | Org: Insert a rule below the table row |
@@ -648,6 +722,7 @@ every file; outside Org files the commands say they do not apply):
 | ~org.cut.subtree~ | Org: Cut the subtree |
 | ~org.copy.subtree~ | Org: Copy the subtree |
 | ~org.paste.subtree~ | Org: Paste the subtree |
+| ~org.yank~ | Org: Yank, a subtree at its level |
 | ~org.refile~ | Org: Refile the entry |
 | ~org.refile.copy~ | Org: Copy the entry to a refile target |
 | ~org.refile.goto~ | Org: Go to a refile target |
@@ -666,6 +741,9 @@ every file; outside Org files the commands say they do not apply):
 | ~org.heading.up~ | Org: Move to the parent heading |
 | ~org.link.next~ | Org: Move to the next link |
 | ~org.link.previous~ | Org: Move to the previous link |
+| ~org.beginning.of.line~ | Org: Move to the start of the headline's title |
+| ~org.end.of.line~ | Org: Move to the end of the headline's title |
+| ~org.kill.line~ | Org: Kill the headline's text to the tags, or the tags |
 | ~org.goto~ | Org: Go to a heading of the file |
 | ~org.footnote.action~ | Org: Make a footnote, or go between a footnote and its definition |
 | ~org.footnote.menu~ | Org: Sort, renumber, normalize or delete footnotes |
@@ -682,6 +760,8 @@ every file; outside Org files the commands say they do not apply):
 | ~org.table.create~ | Org: Insert an empty table |
 | ~org.table.import~ | Org: Import a file as a table |
 | ~org.table.export~ | Org: Export the table to a file |
+| ~org.plot.gnuplot~ | Org: Plot the table with gnuplot |
+| ~org.table.ascii.plot~ | Org: Draw the column at the cursor as bars |
 | ~org.babel.next~ | Org: Move to the next code block |
 | ~org.babel.previous~ | Org: Move to the previous code block |
 | ~org.babel.goto~ | Org: Go to a named code block |
@@ -748,6 +828,17 @@ every file; outside Org files the commands say they do not apply):
 | ~org.roam.node.insert~ | Org: Roam: insert a link to a node |
 | ~org.roam.capture~ | Org: Roam: capture to a node |
 | ~org.roam.node.random~ | Org: Roam: visit a random node |
+| ~org.roam.dailies.capture.today~ | Org: Roam: capture to today's daily note |
+| ~org.roam.dailies.goto.today~ | Org: Roam: go to today's daily note |
+| ~org.roam.dailies.capture.tomorrow~ | Org: Roam: capture to tomorrow's daily note |
+| ~org.roam.dailies.goto.tomorrow~ | Org: Roam: go to tomorrow's daily note |
+| ~org.roam.dailies.capture.yesterday~ | Org: Roam: capture to yesterday's daily note |
+| ~org.roam.dailies.goto.yesterday~ | Org: Roam: go to yesterday's daily note |
+| ~org.roam.dailies.capture.date~ | Org: Roam: capture to the daily note of a date |
+| ~org.roam.dailies.goto.date~ | Org: Roam: go to the daily note of a date |
+| ~org.roam.dailies.goto.next~ | Org: Roam: go to the next daily note |
+| ~org.roam.dailies.goto.previous~ | Org: Roam: go to the previous daily note |
+| ~org.roam.dailies.find.directory~ | Org: Roam: open the directory of the daily notes |
 | ~org.roam.buffer.toggle~ | Org: Roam: show or hide the org-roam buffer |
 | ~org.roam.buffer.dedicated~ | Org: Roam: show the org-roam buffer of a node |
 | ~org.roam.buffer.refresh~ | Org: Roam: refresh the org-roam buffer |
@@ -757,6 +848,12 @@ every file; outside Org files the commands say they do not apply):
 | ~org.roam.tag.remove~ | Org: Roam: remove tags |
 | ~org.roam.ref.add~ | Org: Roam: add a reference |
 | ~org.roam.ref.remove~ | Org: Roam: remove a reference |
+| ~org.roam.ref.find~ | Org: Roam: find a node by a reference |
+| ~org.roam.promote~ | Org: Roam: make the file's one top headline the file's node |
+| ~org.roam.demote~ | Org: Roam: make the file's node a headline of its own |
+| ~org.roam.refile~ | Org: Roam: refile to a node |
+| ~org.roam.extract~ | Org: Roam: extract the subtree to a file of its own |
+| ~org.roam.graph~ | Org: Roam: show the graph of the nodes |
 | ~org.journal.new.entry~ | Org: Journal: new entry |
 | ~org.journal.new.date.entry~ | Org: Journal: new entry for a date |
 | ~org.journal.new.scheduled.entry~ | Org: Journal: new entry for a day to come |
@@ -766,6 +863,12 @@ every file; outside Org files the commands say they do not apply):
 | ~org.journal.search~ | Org: Journal: search between two dates |
 | ~org.journal.search.forever~ | Org: Journal: search every entry |
 | ~org.journal.search.future~ | Org: Journal: search the entries to come |
+| ~org.journal.search.calendar.week~ | Org: Journal: search the calendar's week |
+| ~org.journal.search.calendar.month~ | Org: Journal: search the calendar's month |
+| ~org.journal.search.calendar.year~ | Org: Journal: search the calendar's year |
+| ~org.journal.read.entry~ | Org: Journal: the entry of the calendar's day |
+| ~org.journal.display.entry~ | Org: Journal: show the entry of the calendar's day |
+| ~org.journal.mark.entries~ | Org: Journal: mark the days with an entry in the calendar |
 | ~org.journal.search.future.scheduled~ | Org: Journal: the TODO entries to come |
 | ~org.journal.schedule.view~ | Org: Journal: the entries to come with a date |
 | ~org.journal.reschedule~ | Org: Journal: move the entry to come to another day |
@@ -792,6 +895,8 @@ every file; outside Org files the commands say they do not apply):
 | ~org.timestamp.insert~ | Org: Insert or change a timestamp |
 | ~org.timestamp.insert.inactive~ | Org: Insert or change an inactive timestamp |
 | ~org.timestamp.change~ | Org: Change the timestamp at the cursor |
+| ~org.timestamp.overlays.toggle~ | Org: Show timestamps in the custom formats, or not |
+| ~org.goto.calendar~ | Org: Show the calendar at the date of the line |
 | ~org.calendar.day.later~ | Org: Date prompt: one day later |
 | ~org.calendar.day.earlier~ | Org: Date prompt: one day earlier |
 | ~org.calendar.week.later~ | Org: Date prompt: one week later |

@@ -1,0 +1,14 @@
+Headlines with TAGS match: LEVEL>0
+  work:       TODO no date
+  work:       TODO scheduled today
+  work:       TODO scheduled later today
+  work:       TODO scheduled tomorrow
+  work:       TODO scheduled last week
+  work:       TODO deadline far
+  work:       TODO a meeting <2026-05-25 Mon>
+  work:       TODO a meeting that was <2026-05-01 Fri>
+  work:       TODO scheduled, then a timestamp
+  work:       TODO below it
+  work:       TODO a parent with a date <2026-06-10 Wed>
+  work:       TODO its child
+  work:       TODO inside it

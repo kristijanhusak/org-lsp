@@ -27,6 +27,14 @@ A case is a JSON object:
       "search": "standup",                    optional: the string searched
       "answers": ["y"]                        optional: answers to the
                                               questions asked (y-or-n-p)
+      "day": "2026-10-10"                     for the commands org-journal
+                                              binds in `M-x calendar`
+                                              (calendar-read, calendar-display,
+                                              calendar-next, calendar-previous,
+                                              calendar-new-date-entry,
+                                              calendar-search-week, -month,
+                                              -year): the day the calendar's
+                                              cursor is on
     }
 
 `reference(cases)` adds `expected`: `{"files", "buffer", "point",
@@ -34,7 +42,9 @@ A case is a JSON object:
 `org-journal--update-org-agenda-files` gives the agenda (`agenda`), and for
 the search and the schedule view the text of their buffer and its buttons,
 each `[place, file, point]` (`view`), for `reschedule` the file the window
-shows and its point (`window`): the files of the directory after the command
+shows and its point (`window`): for the calendar's commands the day its cursor is on after them
+(`calendar`) and the journal file another window shows, with its point and
+hidden lines (`shown`): the files of the directory after the command
 (each buffer saved), the file the command left the cursor in and where
 (characters from its start), the lines of that file its headlines' folds
 left hidden (1-based; drawers fold on their own), and the messages it
@@ -114,7 +124,24 @@ DRIVER = r"""
             (setq button (next-button (button-end button)))))
         (list (cons 'text (buffer-substring-no-properties (point-min) (point-max)))
               (cons 'links (vconcat (nreverse links))))))))
-(defun org-lsp-journal-case (dir out command prefix from point date answers search)
+(defun org-lsp-calendar-day ()
+  "The day the calendar's cursor is on, as YYYY-MM-DD."
+  (when (get-buffer calendar-buffer)
+    (with-current-buffer calendar-buffer
+      (let ((date (calendar-cursor-to-date)))
+        (and date (format "%04d-%02d-%02d" (nth 2 date) (nth 0 date) (nth 1 date)))))))
+(defun org-lsp-shown ()
+  "The journal file a window other than the calendar's shows: its name,
+the window's point and the lines hidden in it."
+  (let ((window (seq-find (lambda (window) (buffer-file-name (window-buffer window)))
+                          (window-list))))
+    (if window
+        (with-current-buffer (window-buffer window)
+          (vector (file-relative-name (buffer-file-name) org-journal-dir)
+                  (1- (window-point window))
+                  (save-excursion (goto-char (window-point window)) (org-lsp-hidden))))
+      :null)))
+(defun org-lsp-journal-case (dir out command prefix from point date answers search &optional day)
   (dolist (buffer (buffer-list))
     (when (buffer-file-name buffer)
       (with-current-buffer buffer (set-buffer-modified-p nil))
@@ -134,6 +161,13 @@ DRIVER = r"""
                 (when from
                   (find-file (expand-file-name from org-journal-dir))
                   (goto-char (1+ point)))
+                (when (get-buffer calendar-buffer) (kill-buffer calendar-buffer))
+                ;; The calendar, its cursor on DAY, alone in the frame as
+                ;; `calendar' shows it in a window below another.
+                (when day
+                  (calendar)
+                  (let ((parts (mapcar #'string-to-number (split-string day "-"))))
+                    (calendar-goto-date (list (nth 1 parts) (nth 2 parts) (nth 0 parts)))))
                 (let ((current-prefix-arg (and (> prefix 0) (list (expt 4 prefix))))
                       (arg (and (> prefix 0) (list (expt 4 prefix)))))
                   (pcase command
@@ -149,6 +183,14 @@ DRIVER = r"""
                     ("search-future" (org-journal-search-future search))
                     ("search-future-scheduled" (org-journal-search-future-scheduled))
                     ("schedule-view" (org-journal-schedule-view))
+                    ("calendar-read" (org-journal-read-entry arg))
+                    ("calendar-display" (org-journal-display-entry arg))
+                    ("calendar-next" (org-journal-next-entry))
+                    ("calendar-previous" (org-journal-previous-entry))
+                    ("calendar-new-date-entry" (org-journal-new-date-entry arg))
+                    ("calendar-search-week" (org-journal-search-calendar-week search))
+                    ("calendar-search-month" (org-journal-search-calendar-month search))
+                    ("calendar-search-year" (org-journal-search-calendar-year search))
                     ("agenda-files"
                      (let ((org-journal-enable-agenda-integration t) (org-agenda-files nil))
                        (org-journal--update-org-agenda-files)))))
@@ -161,8 +203,11 @@ DRIVER = r"""
                    (list (cons 'buffer (or name :null))
                          (cons 'point (if file where :null))
                          (cons 'hidden hidden))
-                   (when (string-prefix-p "search" command)
+                   (when (or (string-prefix-p "search" command) (string-prefix-p "calendar-search" command))
                      (list (cons 'view (org-lsp-view "*Org-journal search*"))))
+                   (when day
+                     (list (cons 'calendar (or (org-lsp-calendar-day) :null))
+                           (cons 'shown (org-lsp-shown))))
                    (when (equal command "reschedule")
                      (let ((window (window-buffer (selected-window))))
                        (list (cons 'window
@@ -214,6 +259,8 @@ OPTIONS = {
     "org_tags_column": str,
     "org_journal_search_result_date_format": STRING,
     "org_journal_search_results_order_by": lambda v: ":" + v,
+    "org_journal_follow_mode": lambda v: "t" if v else "nil",
+    "calendar_week_start_day": str,
     "org_todo_keywords": lambda v: "'((sequence " + " ".join(STRING(x) for x in v) + "))",
 }
 
@@ -263,7 +310,8 @@ def reference(cases):
                     f"(let ({bindings(case.get('options'))})"
                     f" (org-lsp-journal-case {lisp_string(folder)} {lisp_string(target)}"
                     f" {lisp_string(case['command'])} {case.get('prefix', 0)} {source} {case.get('point', 0)}"
-                    f" {date} (list {answers}) {lisp_string(case.get('search', ''))}))"
+                    f" {date} (list {answers}) {lisp_string(case.get('search', ''))}"
+                    f" {lisp_string(case['day']) if 'day' in case else 'nil'}))"
                 )
             driver = os.path.join(directory, f"driver-{number}.el")
             with open(driver, "w", encoding="utf-8") as handle:

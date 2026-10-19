@@ -2,7 +2,8 @@
 --- character (`org-pretty-entities`), a sub- or superscript in Unicode, a
 --- shrunk table field. Each is concealed text with replacement characters,
 --- so it shows as links do: as Org shows it, but as it is on the cursor's
---- line, where it is edited.
+--- line, where it is edited. The bullets of org-bullets take the look of
+--- what they stand for, the token the server names.
 local M = {}
 
 local namespace = vim.api.nvim_create_namespace('org_lsp_display')
@@ -14,11 +15,12 @@ vim.api.nvim_set_hl(0, 'OrgLspDisplay', { default = true })
 ---@param from integer byte column
 ---@param to integer byte column
 ---@param char string
-local function conceal(bufnr, row, from, to, char)
+---@param group string
+local function conceal(bufnr, row, from, to, char, group)
   pcall(vim.api.nvim_buf_set_extmark, bufnr, namespace, row, from, {
     end_col = to,
     conceal = char,
-    hl_group = 'OrgLspDisplay',
+    hl_group = group,
     undo_restore = false,
   })
 end
@@ -34,7 +36,8 @@ end
 ---@param from integer
 ---@param to integer
 ---@param shown string
-local function show(bufnr, row, line, from, to, shown)
+---@param group string
+local function show(bufnr, row, line, from, to, shown, group)
   local starts = {}
   local column = from
   while column < to do
@@ -43,9 +46,9 @@ local function show(bufnr, row, line, from, to, shown)
   end
   local chars = vim.fn.split(shown, [[\zs]])
   if #chars > #starts then
-    conceal(bufnr, row, from, to, '')
+    conceal(bufnr, row, from, to, '', group)
     pcall(vim.api.nvim_buf_set_extmark, bufnr, namespace, row, from, {
-      virt_text = { { shown, 'OrgLspDisplay' } },
+      virt_text = { { shown, group } },
       virt_text_pos = 'inline',
       undo_restore = false,
     })
@@ -54,12 +57,28 @@ local function show(bufnr, row, line, from, to, shown)
   local hidden = #starts - #chars
   for index, start in ipairs(starts) do
     local finish = starts[index + 1] or to
-    conceal(bufnr, row, start, finish, index > hidden and chars[index - hidden] or '')
+    conceal(bufnr, row, start, finish, index > hidden and chars[index - hidden] or '', group)
   end
 end
 
+--- The highlight group of the token `look` (`stars.level1`, `bullet`), as
+--- Neovim names the groups of semantic tokens.
+---@param look string?
+---@param filetype string
+---@return string
+local function group_of(look, filetype)
+  if not look then
+    return 'OrgLspDisplay'
+  end
+  local type, modifier = look:match('^([^.]+)%.?(.*)$')
+  if modifier ~= '' then
+    return ('@lsp.typemod.%s.%s.%s'):format(type, modifier, filetype)
+  end
+  return ('@lsp.type.%s.%s'):format(type, filetype)
+end
+
 --- Show what the server sent for a document: `items` of `[line,
---- character, end line, end character, shown]`, for its `version`.
+--- character, end line, end character, shown, look?]`, for its `version`.
 ---@param client vim.lsp.Client
 ---@param params { uri: string, version: integer, items: any[][] }
 function M.show(client, params)
@@ -78,13 +97,13 @@ function M.show(client, params)
     return lines[row]
   end
   for _, item in ipairs(params.items) do
-    local row, character, end_row, end_character, shown = unpack(item)
+    local row, character, end_row, end_character, shown, look = unpack(item)
     -- Within one line, as all of them are.
     if row == end_row then
       local line = line_of(row)
       local from = vim.str_byteindex(line, client.offset_encoding, character, false)
       local to = vim.str_byteindex(line, client.offset_encoding, end_character, false)
-      show(bufnr, row, line, from, to, shown)
+      show(bufnr, row, line, from, to, shown, group_of(look, vim.bo[bufnr].filetype))
     end
   end
 end

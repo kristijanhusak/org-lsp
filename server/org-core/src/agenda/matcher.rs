@@ -118,8 +118,9 @@ impl Matcher {
     /// `tags-todo`.
     pub fn matches(&self, outline: &Outline, index: usize, todo_only: bool, clock: Clock) -> bool {
         let entry = &outline.entries[index];
-        let todo = entry.todo.as_deref();
-        if (todo_only || self.todo_only) && (todo.is_none() || entry.done) {
+        // `org-scan-tags` takes the keyword of the syntax tree.
+        let todo = entry.element_todo.as_deref();
+        if (todo_only || self.todo_only) && (todo.is_none() || entry.element_done) {
             return false;
         }
         let holds = |term: &Term| term.negated != term.test.holds(index, outline, clock);
@@ -373,8 +374,8 @@ impl Test {
         match self {
             Test::Tag(tag) => entry.tags.iter().any(|candidate| candidate.name == *tag),
             Test::TagRegex(regex) => entry.tags.iter().any(|tag| regex.is_match(&tag.name)),
-            Test::Keyword(keyword) => entry.todo.as_deref() == Some(keyword.as_str()),
-            Test::KeywordRegex(regex) => regex.is_match(entry.todo.as_deref().unwrap_or("")),
+            Test::Keyword(keyword) => entry.element_todo.as_deref() == Some(keyword.as_str()),
+            Test::KeywordRegex(regex) => regex.is_match(entry.element_todo.as_deref().unwrap_or("")),
             Test::Property { name, op, value, present } => {
                 let got = property_value(index, outline, name);
                 if *present && got.is_none() {
@@ -425,7 +426,7 @@ fn compare_text(a: &str, op: Op, b: &str) -> bool {
 
 /// `org-entry-get` for the matcher: the entry's own property, or one of
 /// Org's special properties.
-fn property_value(index: usize, outline: &Outline, name: &str) -> Option<String> {
+pub(crate) fn property_value(index: usize, outline: &Outline, name: &str) -> Option<String> {
     let entry = &outline.entries[index];
     let stamp = |planning: &Option<crate::outline::Planning>| {
         planning.as_ref().map(|planning| {
@@ -435,7 +436,8 @@ fn property_value(index: usize, outline: &Outline, name: &str) -> Option<String>
     };
     let tag_string = |tags: Vec<&str>| (!tags.is_empty()).then(|| format!(":{}:", tags.join(":")));
     match name {
-        "LEVEL" => Some(entry.level.to_string()),
+        // The element's level: reduced with `org-odd-levels-only`.
+        "LEVEL" => Some(crate::structure::reduced_level(entry.level, outline.odd_levels).to_string()),
         "CATEGORY" => Some(entry.category.clone()),
         "TODO" => entry.todo.clone(),
         // The cookie's text (`org-priority-regexp`), or the default as
@@ -587,10 +589,22 @@ pub fn emacs_regex(pattern: &str) -> Option<Regex> {
     RegexBuilder::new(&translate(pattern)).case_insensitive(true).build().ok()
 }
 
+/// An Emacs regexp matched with regard to case, as `directory-files`
+/// matches file names.
+pub fn emacs_regex_with_case(pattern: &str) -> Option<Regex> {
+    Regex::new(&translate(pattern)).ok()
+}
+
 /// [`emacs_regex`] for searching a whole buffer: `^` and `$` match at the
 /// start and end of every line, as in Emacs.
 pub fn emacs_buffer_regex(pattern: &str) -> Option<Regex> {
     RegexBuilder::new(&translate(pattern)).case_insensitive(true).multi_line(true).build().ok()
+}
+
+/// [`emacs_buffer_regex`] ignoring case or not, as `case_fold_search`
+/// says.
+pub fn emacs_buffer_regex_folded(pattern: &str, case_fold_search: bool) -> Option<Regex> {
+    RegexBuilder::new(&translate(pattern)).case_insensitive(case_fold_search).multi_line(true).build().ok()
 }
 
 /// [`emacs_regex`] for matching tags, where `@` and `_` are parts of
@@ -604,8 +618,19 @@ pub(crate) fn translate(pattern: &str) -> String {
     translate_words(pattern, r"\b", r"\b")
 }
 
+/// [`translate`] keeping the groups `\(…\)` as groups that capture, as
+/// `match-string` reads them; shy groups `\(?:…\)` stay shy.
+pub(crate) fn translate_capturing(pattern: &str) -> String {
+    translate_with(pattern, r"\b", r"\b", true)
+}
+
 /// [`translate`] with `\<` and `\>` as `start` and `end`.
 fn translate_words(pattern: &str, start: &str, end: &str) -> String {
+    translate_with(pattern, start, end, false)
+}
+
+/// [`translate_words`], the plain groups capturing with `capture`.
+fn translate_with(pattern: &str, start: &str, end: &str, capture: bool) -> String {
     let mut out = String::new();
     let mut chars = pattern.chars().peekable();
     while let Some(c) = chars.next() {
@@ -620,8 +645,10 @@ fn translate_words(pattern: &str, start: &str, end: &str) -> String {
                                 break;
                             }
                         }
+                        out.push_str("(?:");
+                    } else {
+                        out.push_str(if capture { "(" } else { "(?:" });
                     }
-                    out.push_str("(?:");
                 }
                 Some(')') => out.push(')'),
                 Some('|') => out.push('|'),

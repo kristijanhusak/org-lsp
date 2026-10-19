@@ -75,6 +75,10 @@ vim.g.org_lsp = {
   -- A key of the user's own, for a command the server binds no key to.
   mappings = { global = { ['org.agenda.todos'] = '<F7>' } },
 }
+-- A root for every server, as a configuration may give: the server
+-- started for the agenda, with no file, is the one the Org files use too.
+vim.fn.mkdir(vim.fs.joinpath(directory, '.git'), 'p')
+vim.lsp.config('*', { root_markers = { '.git' } })
 vim.opt.runtimepath:prepend(root)
 vim.cmd('filetype plugin on')
 vim.cmd('runtime plugin/org-lsp.lua')
@@ -278,16 +282,24 @@ press('.')
 wait_for_view('Week-agenda (W21):')
 wait_for_cursor('Monday     18 May 2026 W21')
 
--- 5. Changing an entry from the agenda edits its file and the agenda follows.
+-- 5. Changing an entry from the agenda edits its file. As in Emacs
+-- (`org-agenda-change-all-lines`), every line of the entry shows the new
+-- state where it is, until the agenda is built again.
 vim.api.nvim_win_set_cursor(0, { 13, 0 })
 eq(cursor_line(), '  work:       In   2 d.:  TODO Call the client', 'on an entry')
 press('t')
--- Done, the entry no longer warns of its deadline; it stays on the day itself.
 wait('the agenda to show the new state', function()
+  return line(13) == '  work:       In   2 d.:  DONE Call the client'
+end)
+eq(line(17), '  work:       Deadline:   DONE Call the client', 'the entry is done on its deadline day too')
+eq(vim.api.nvim_win_get_cursor(0)[1], 13, 'the cursor stays where it was')
+-- Done, the entry no longer warns of its deadline once the agenda is
+-- built again; it stays on the day itself.
+press('r')
+wait('the agenda built again', function()
   return line(13) == 'Tuesday    19 May 2026'
 end)
 eq(line(16), '  work:       Deadline:   DONE Call the client', 'the entry is done on its deadline day')
-eq(vim.api.nvim_win_get_cursor(0)[1], 13, 'the cursor stays where it was')
 local work_buf = vim.fn.bufnr(work)
 check(work_buf > 0 and vim.api.nvim_buf_is_loaded(work_buf), 'the file of the entry is loaded')
 eq(vim.api.nvim_buf_get_lines(work_buf, 2, 3, false), { '* DONE Call the client' }, 'the entry changed in its file')
@@ -302,8 +314,9 @@ wait('the file to be saved', function()
   return not vim.bo[work_buf].modified
 end)
 
--- 6. Priority and date change from the agenda, and the cursor goes with
--- the entry when it moves to another line.
+-- 6. Priority and date change from the agenda. The entry's lines stay
+-- where they are, and so does the cursor; a new date shows at their end
+-- (`org-agenda-show-new-time`).
 local home_buf = vim.fn.bufnr(vim.fs.joinpath(directory, 'home.org'))
 local function home_line(number)
   home_buf = home_buf > 0 and home_buf or vim.fn.bufnr(vim.fs.joinpath(directory, 'home.org'))
@@ -317,6 +330,13 @@ local function find(text)
   end
   error('no agenda line `' .. text .. '`')
 end
+-- `text` with `stamp` over its end, as Emacs shows a new date: at the
+-- right edge of the window, but for the column a terminal keeps.
+local function stamped(text, stamp)
+  local info = vim.fn.getwininfo(vim.api.nvim_get_current_win())[1]
+  local keep = info.width - info.textoff - 1 - #stamp - 1
+  return (text .. string.rep(' ', keep)):sub(1, keep) .. stamp
+end
 vim.api.nvim_win_set_cursor(0, { find('  home:       Sched. 2x:  TODO Water plants'), 14 })
 press('+')
 wait('the priority in the file', function()
@@ -326,22 +346,25 @@ wait_for_cursor('  home:       Sched. 2x:  TODO [#B] Water plants')
 press('+')
 wait_for_cursor('  home:       Sched. 2x:  TODO [#A] Water plants')
 -- One step later takes a date that has passed to today, …
+local plants = '  home:       Sched. 2x:  TODO [#A] Water plants'
+local row = vim.api.nvim_win_get_cursor(0)[1]
 press('<S-Right>')
 wait('the date in the file', function()
   return home_line(2) == 'SCHEDULED: <2026-05-18 Mon +1w>'
 end)
-wait_for_cursor('  home:       Scheduled:  TODO [#A] Water plants')
--- … and the next one to tomorrow, where the cursor follows the entry.
+wait_for_cursor(stamped(plants, ' => <2026-05-18 Mon +1w> '))
+-- … and the next one to tomorrow; the line stays where it is.
 press('<S-Right>')
 wait('the next day in the file', function()
   return home_line(2) == 'SCHEDULED: <2026-05-19 Tue +1w>'
 end)
-wait('the cursor to follow the entry to Tuesday', function()
-  local row = vim.api.nvim_win_get_cursor(0)[1]
-  return line(row) == '  home:       Scheduled:  TODO [#A] Water plants' and line(row - 2) == 'Tuesday    19 May 2026'
-end)
-eq(line(vim.api.nvim_win_get_cursor(0)[1] - 1), '  work:       14:00-15:00 Meeting ', 'below what Tuesday already had')
-eq(vim.api.nvim_win_get_cursor(0)[2], 14, 'the cursor keeps its column')
+wait_for_cursor(stamped(plants, ' => <2026-05-19 Tue +1w> '))
+eq(vim.api.nvim_win_get_cursor(0), { row, 14 }, 'the cursor stays, in its column')
+eq(
+  line(find('Saturday   23 May 2026') + 1),
+  stamped('  home:       Scheduled:  TODO [#A] Water plants', ' => <2026-05-19 Tue +1w> '),
+  'the other line of the entry says so too'
+)
 -- Held down, the key repeats faster than Neovim usually reports changes
 -- to the server. No press is lost: each builds on the one before.
 for _ = 1, 5 do
@@ -351,23 +374,20 @@ end
 wait('five more days in the file', function()
   return home_line(2) == 'SCHEDULED: <2026-05-24 Sun +1w>'
 end)
-wait('the cursor to follow the entry to Sunday', function()
-  local row = vim.api.nvim_win_get_cursor(0)[1]
-  return line(row) == '  home:       Scheduled:  TODO [#A] Water plants' and line(row - 1) == 'Sunday     24 May 2026'
-end)
+wait_for_cursor(stamped(plants, ' => <2026-05-24 Sun +1w> '))
 press('5<S-Left>')
 wait('back on Tuesday', function()
-  local row = vim.api.nvim_win_get_cursor(0)[1]
   return home_line(2) == 'SCHEDULED: <2026-05-19 Tue +1w>'
-    and line(row) == '  home:       Scheduled:  TODO [#A] Water plants'
-    and line(row - 2) == 'Tuesday    19 May 2026'
 end)
+wait_for_cursor(stamped(plants, ' => <2026-05-19 Tue +1w> '))
 -- A count is a number of days. Back to how it was.
 press('3<S-Left>')
 wait('the old date in the file', function()
   return home_line(2) == 'SCHEDULED: <2026-05-16 Sat +1w>'
 end)
-wait_for_cursor('  home:       Sched. 2x:  TODO [#A] Water plants')
+wait_for_cursor(stamped(plants, ' => <2026-05-16 Sat +1w> '))
+eq(vim.api.nvim_win_get_cursor(0), { row, 14 }, 'the cursor has not moved')
+-- A new priority writes the line anew, without the date.
 press('-')
 wait_for_cursor('  home:       Sched. 2x:  TODO [#B] Water plants')
 press('-')
@@ -399,7 +419,8 @@ end
 
 -- 6b. Scheduling from the agenda (`org-agenda-schedule`) opens the
 -- calendar on the entry's date; the day taken there goes to its file, and
--- the cursor follows the entry.
+-- the entry's line says so where it is, with the cursor on it.
+local scheduled_from = vim.api.nvim_win_get_cursor(0)
 press('<C-c><C-s>')
 wait('the calendar on the scheduled day', in_calendar_on('16'))
 eq(vim.api.nvim_buf_get_lines(0, -2, -1, false), { 'SCHEDULED Date+time [2026-05-16]:    => <2026-05-16 Sat>' }, 'the minibuffer')
@@ -409,13 +430,12 @@ press('<CR>')
 wait('the new date in the file', function()
   return home_line(2) == 'SCHEDULED: <2026-05-23 Sat +1w>'
 end)
-wait('the calendar to close and the cursor to follow the entry to Saturday', function()
+wait('the calendar to close and the line to show the new date', function()
   vim.api.nvim_feedkeys('', 'x', false)
-  local row = vim.api.nvim_win_get_cursor(0)[1]
   return prompt_window() == nil
-    and line(row) == '  home:       Scheduled:  TODO Water plants'
-    and line(row - 1) == 'Saturday   23 May 2026'
+    and cursor_line() == stamped('  home:       Sched. 2x:  TODO Water plants', ' S => Scheduled to <2026-05-23 Sat +1w> ')
 end)
+eq(vim.api.nvim_win_get_cursor(0), scheduled_from, 'the cursor is back where it was')
 -- Typed in the minibuffer, back to where it was.
 local input = vim.ui.input
 vim.ui.input = function(_, on_confirm)
@@ -427,17 +447,50 @@ press('i')
 wait('the old date in the file again', function()
   return home_line(2) == 'SCHEDULED: <2026-05-16 Sat +1w>'
 end)
--- The entry repeats weekly, so Saturday still shows it: the cursor stays.
-wait('the agenda to show the entry today again', function()
+wait('the calendar to close and the line to show the old date', function()
   vim.api.nvim_feedkeys('', 'x', false)
-  return prompt_window() == nil and vim.tbl_contains(lines(), '  home:       Sched. 2x:  TODO Water plants')
+  return prompt_window() == nil
+    and cursor_line() == stamped('  home:       Sched. 2x:  TODO Water plants', ' S => Scheduled to <2026-05-16 Sat +1w> ')
 end)
-wait('the cursor to stay on the entry on Saturday', function()
-  local row = vim.api.nvim_win_get_cursor(0)[1]
-  return line(row) == '  home:       Scheduled:  TODO Water plants' and line(row - 1) == 'Saturday   23 May 2026'
+eq(vim.api.nvim_win_get_cursor(0), scheduled_from, 'the cursor is back where it was')
+vim.ui.input = input
+-- Cancelled, the calendar leaves the cursor where it was, also when the
+-- agenda changed above and below it in the meantime.
+press('<C-c><C-s>')
+wait('the calendar again', in_calendar_on('16'))
+local function edit_work(from, to)
+  local text = vim.api.nvim_buf_get_lines(work_buf, 0, -1, false)
+  for number, content in ipairs(text) do
+    text[number] = content:gsub(from[1], to[1]):gsub(from[2], to[2])
+  end
+  vim.api.nvim_buf_set_lines(work_buf, 0, -1, false, text)
+  vim.api.nvim_buf_call(work_buf, function()
+    vim.cmd('silent write')
+  end)
+end
+edit_work({ 'Write report', 'Meeting' }, { 'Write a report', 'A meeting' })
+wait('the agenda to change under the calendar', function()
+  return vim.tbl_contains(vim.api.nvim_buf_get_lines(agenda_buf, 0, -1, false), '  work:       14:00-15:00 A meeting ')
+end)
+check(prompt_window() ~= nil, 'the calendar is still open')
+press('q')
+wait('the calendar to close', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return prompt_window() == nil
+end)
+eq(vim.api.nvim_win_get_cursor(0), scheduled_from, 'the cursor is where it was')
+eq(cursor_line(), '  home:       Sched. 2x:  TODO Water plants', 'on the entry, the agenda built anew')
+eq(home_line(2), 'SCHEDULED: <2026-05-16 Sat +1w>', 'the file as it was')
+edit_work({ 'Write a report', 'A meeting' }, { 'Write report', 'Meeting' })
+wait('the agenda as it was', function()
+  return vim.tbl_contains(lines(), '  work:       14:00-15:00 Meeting ')
+end)
+-- Built again, the agenda shows the entries where they now belong.
+press('r')
+wait('the agenda built again', function()
+  return vim.tbl_contains(lines(), '  home:       Sched. 2x:  TODO Water plants')
 end)
 vim.api.nvim_win_set_cursor(0, { find('  home:       Sched. 2x:  TODO Water plants'), 14 })
-vim.ui.input = input
 
 -- 6c. TAB shows the entry in another window: a new one when the agenda
 -- is alone, then the one that shows the file, an empty one, or the
@@ -513,6 +566,21 @@ moved('kk')
 vim.wait(200)
 eq(shown_line(), 3, 'off: the other window stays')
 vim.cmd('only')
+
+-- 6e. The outline path of the line's entry in the echo area, out of the
+-- message history (`org-agenda-show-outline-path`).
+local echo, echoed = vim.api.nvim_echo, {}
+vim.api.nvim_echo = function(chunks, history, opts)
+  table.insert(echoed, { chunks[1][1], history })
+  return echo(chunks, history, opts)
+end
+vim.api.nvim_win_set_cursor(agenda_win, { find('  home:       Sched. 2x:  TODO Water plants'), 0 })
+vim.api.nvim_exec_autocmds('CursorMoved', { buffer = agenda_buf })
+wait('the outline path', function()
+  return #echoed > 0
+end)
+vim.api.nvim_echo = echo
+eq(echoed[#echoed], { 'home.org', false }, 'the file of a top-level entry')
 
 -- 7. Enter goes to the entry.
 vim.api.nvim_win_set_cursor(0, { 16, 0 })
@@ -633,6 +701,10 @@ local function is_float()
   return vim.api.nvim_win_get_config(0).relative ~= ''
 end
 only_window()
+wait('the Org file attached', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+eq(#vim.lsp.get_clients({ name = 'org_lsp' }), 1, 'one server for the agenda and the Org files')
 org_lsp.setup({ win_split_mode = 'vsplit' })
 press('<F7>')
 wait_for_view('Global list of TODO items of type: ALL')
@@ -747,6 +819,8 @@ eq(vim.api.nvim_get_current_win(), agenda_win, '<Esc> closes the help')
 
 -- 14. `<Leader>o$` archives the entry of the line, into the archive file
 -- next to its own, and the entry leaves the agenda. `$` stays Vim's motion.
+-- The archive file is new, and Neovim does not announce `documentChanges`
+-- for an edit to make it: it is written rather than left unsaved.
 eq(vim.fn.maparg('$', 'n'), '', '`$` is not mapped')
 local written = vim.iter(lines()):enumerate():find(function(_, text)
   return text:find('TODO Written elsewhere', 1, true) ~= nil
@@ -784,14 +858,21 @@ eq({ vim.bo.filetype, vim.api.nvim_win_get_cursor(0) }, { 'org-agenda', { 2, 0 }
 only_window()
 vim.g.mapleader = nil
 
--- 16. `K` over an entry shows it in a float at the cursor: the headline
--- and its text, in an Org buffer highlighted by the server. Moving the
--- cursor closes it.
+-- 16. `K`, Neovim's own hover, over an entry shows it in a float at the
+-- cursor: the headline and its text, the float made an Org buffer the
+-- server highlights. Moving the cursor closes it.
 choice = 'a'
 press('\\oa')
 wait_for_view('Week-agenda (W21):')
 local before_hover = lines()
 vim.api.nvim_win_set_cursor(0, { 4, 30 })
+-- With `syntax on`, as most have it, Neovim makes its float Markdown and
+-- starts tree-sitter in it.
+vim.cmd('syntax on')
+-- And with spelling on in Markdown, as many have it: the float is
+-- Markdown at first, and 'spell' is the window's.
+local spell_group = vim.api.nvim_create_augroup('test_markdown_spell', { clear = true })
+vim.api.nvim_create_autocmd('FileType', { group = spell_group, pattern = 'markdown', command = 'setlocal spell' })
 press('K')
 local float
 wait('the entry in a float', function()
@@ -803,14 +884,12 @@ wait('the entry in a float', function()
   end
 end)
 local float_buf = vim.api.nvim_win_get_buf(float)
+wait('the float made an Org buffer', function()
+  return vim.bo[float_buf].filetype == 'org'
+end)
+eq(vim.wo[float].spell, false, "Markdown's spelling gone from the float")
 eq(vim.api.nvim_buf_get_lines(float_buf, 0, 2, false), { '* TODO [#A] Write the report :office:', 'SCHEDULED: <2026-05-18 Mon 09:00>' },
   'the headline and its text, as Org')
-eq(vim.bo[float_buf].filetype, 'org', 'an Org buffer')
-local longest = 0
-for _, text in ipairs(vim.api.nvim_buf_get_lines(float_buf, 0, -1, false)) do
-  longest = math.max(longest, vim.fn.strdisplaywidth(text))
-end
-eq(vim.api.nvim_win_get_width(float), math.max(longest + 4, 50), 'as wide as its longest line with two blanks on each side, 50 at least')
 -- Not indented as `org-indent-mode` indents: wider than the float.
 require('org-lsp.indent').virtual({
   uri = vim.uri_from_bufnr(float_buf),
@@ -833,6 +912,30 @@ wait('the float to close', function()
   return not vim.api.nvim_win_is_valid(float)
 end)
 only_window()
+-- Spelling on in Org files instead: the float, an Org file, has it.
+vim.api.nvim_clear_autocmds({ group = spell_group })
+vim.api.nvim_create_autocmd('FileType', { group = spell_group, pattern = 'org', command = 'setlocal spell' })
+choice = 'a'
+press('\\oa')
+wait_for_view('Week-agenda (W21):')
+vim.api.nvim_win_set_cursor(0, { 4, 30 })
+press('K')
+local org_float
+wait('the entry in a float', function()
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if vim.api.nvim_win_get_config(win).relative ~= '' then
+      org_float = win
+      return true
+    end
+  end
+end)
+wait('the float made an Org buffer', function()
+  return vim.bo[vim.api.nvim_win_get_buf(org_float)].filetype == 'org'
+end)
+eq(vim.wo[org_float].spell, true, "Org's spelling in the float")
+only_window()
+vim.cmd('syntax off')
+vim.api.nvim_del_augroup_by_id(spell_group)
 
 -- 17. `I` clocks in on the entry of the line, which is highlighted from
 -- edge to edge (`org-agenda-clocking`); `O` clocks out and the highlight

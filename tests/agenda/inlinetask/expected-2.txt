@@ -1,0 +1,6 @@
+Headlines with TAGS match: work
+  a:          TODO Project                                                :work:
+  a:          TODO Call Bob                                        :work::phone:
+  a:          NEXT Write report                                          :work::
+  a:          TODO Child                                                 :work::
+  a:          DONE Finished inline                                       :work::

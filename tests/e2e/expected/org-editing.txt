@@ -1,0 +1,228 @@
+=== 2 cursor
+notes.org:2: ** TODO Garden
+=== 2 messages
+=== 3 cursor
+notes.org:2: ** DONE Garden
+=== 4 cursor
+notes.org:2: ** TODO Garden
+=== 5 cursor
+notes.org:2: ** TODO [#B] Garden
+=== 5 messages
+Priority of current item set to B
+=== 6 cursor
+notes.org:2: ** TODO [#C] Garden
+=== 7 cursor
+notes.org:3: Water on <2026-05-19 Tue>.
+=== 8 cursor
+notes.org:3: Water on <2026-05-16 Sat>.
+=== 9 buffer
+[notes.org]
+* Projects
+*** TODO [#C] Garden
+Water on <2026-05-16 Sat>.
+- [ ] seeds
+- [ ] soil
+| a | b |
+|---+---|
+| 1 | 2 |
+* Errands
+See [[*Garden][the garden]].
+* Archive me
+=== 10 cursor
+notes.org:2: ** TODO [#C] Garden
+=== 11 buffer
+[notes.org]
+* Projects
+** TODO [#C] Garden
+Water on <2026-05-16 Sat>.
+- [ ] seeds
+- [ ] soil
+| a | b |
+|---+---|
+| 1 | 2 |
+** Errands
+See [[*Garden][the garden]].
+* Archive me
+=== 13 buffer
+[notes.org]
+* Errands
+See [[*Garden][the garden]].
+* Projects
+** TODO [#C] Garden
+Water on <2026-05-16 Sat>.
+- [ ] seeds
+- [ ] soil
+| a | b |
+|---+---|
+| 1 | 2 |
+* Archive me
+=== 13 cursor
+notes.org:1: * Errands
+=== 14 cursor
+notes.org:9: * Errands
+=== 15 cursor
+notes.org:12: * 
+=== 17 cursor
+notes.org:4: - [X] seeds
+=== 20 buffer
+[notes.org]
+* Projects
+** TODO [#C] Garden
+Water on <2026-05-16 Sat>.
+- [X] seeds
+- [ ] soil
+  - water
+| a | b |
+|---+---|
+| 1 | 2 |
+* Errands
+See [[*Garden][the garden]].
+* Archive me
+* Shopping
+=== 21 buffer
+[notes.org]
+* Projects
+** TODO [#C] Garden
+Water on <2026-05-16 Sat>.
+- [X] seeds
+- [ ] soil
+  - water
+| a | b |
+|---+---|
+| 1 | 2 |
+|   |   |
+* Errands
+See [[*Garden][the garden]].
+* Archive me
+* Shopping
+=== 22 buffer
+[notes.org]
+* Projects
+** TODO [#C] Garden
+Water on <2026-05-16 Sat>.
+- [X] seeds
+- [ ] soil
+  - water
+| a | b |
+|---+---|
+| 1 | 2 |
+|---+---|
+|   |   |
+* Errands
+See [[*Garden][the garden]].
+* Archive me
+* Shopping
+=== 23 cursor
+notes.org:2: ** TODO [#C] Garden
+=== 24 cursor
+notes.org:2: ** TODO [#C] Garden                                                 :outdoor:
+=== 25 buffer
+[notes.org]
+* Projects
+** TODO [#C] Garden                                                 :outdoor:
+:PROPERTIES:
+:Owner:    Ann
+:END:
+Water on <2026-05-16 Sat>.
+- [X] seeds
+- [ ] soil
+  - water
+| a | b |
+|---+---|
+| 1 | 2 |
+|---+---|
+|   |   |
+* Errands
+See [[*Garden][the garden]].
+* Archive me
+* Shopping
+=== 26 messages
+Priority of current item set to C
+Clock starts at [2026-05-18 Mon 10:30] - showing entire task time.
+=== 27 buffer
+[notes.org]
+* Projects
+** TODO [#C] Garden                                                 :outdoor:
+:PROPERTIES:
+:Owner:    Ann
+:END:
+:LOGBOOK:
+CLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00
+:END:
+Water on <2026-05-16 Sat>.
+- [X] seeds
+- [ ] soil
+  - water
+| a | b |
+|---+---|
+| 1 | 2 |
+|---+---|
+|   |   |
+* Errands
+See [[*Garden][the garden]].
+* Archive me
+* Shopping
+=== 27 messages
+Clock stopped at [2026-05-18 Mon 10:30] after 0:00
+=== 28 buffer
+[notes.org]
+* Projects
+** TODO [#C] Garden                                                 :outdoor:
+:PROPERTIES:
+:Owner:    Ann
+:END:
+:LOGBOOK:
+CLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00
+:END:
+Water on <2026-05-16 Sat>.
+- [X] seeds
+- [ ] soil
+  - water
+| a | b |
+|---+---|
+| 1 | 2 |
+|---+---|
+|   |   |
+* Errands
+See [[*Garden][the garden]].
+** Shopping
+* Archive me
+=== 28 messages
+Refile to "Errands" in file $DIR/notes.org: done
+=== 29 buffer
+[notes.org]
+* Projects
+** TODO [#C] Garden                                                 :outdoor:
+:PROPERTIES:
+:Owner:    Ann
+:END:
+:LOGBOOK:
+CLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00
+:END:
+Water on <2026-05-16 Sat>.
+- [X] seeds
+- [ ] soil
+  - water
+| a | b |
+|---+---|
+| 1 | 2 |
+|---+---|
+|   |   |
+* Errands
+See [[*Garden][the garden]].
+** Shopping
+=== 29 file:notes.org_archive
+#    -*- mode: org -*-
+
+
+Archived entries from file $DIR/notes.org
+
+
+* Archive me
+:PROPERTIES:
+:ARCHIVE_TIME: 2026-05-18 Mon 10:30
+:ARCHIVE_FILE: $DIR/notes.org
+:ARCHIVE_CATEGORY: notes
+:END:
+=== 29 messages
+Subtree archived in file: $DIR/notes.org_archive

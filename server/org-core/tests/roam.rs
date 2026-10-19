@@ -34,6 +34,16 @@ fn run(case: &Value) -> Value {
     if let Some(extensions) = options.get("org_roam_file_extensions") {
         settings.extensions = strings(extensions);
     }
+    let mut extra_links = roam::ExtraLinks::default();
+    if let Some(elements) = options.get("org_roam_db_extra_links_elements") {
+        let elements = strings(elements);
+        extra_links.keywords = elements.iter().any(|element| element == "keyword");
+        extra_links.properties = elements.iter().any(|element| element == "node-property");
+    }
+    if let Some(excluded) = options.get("org_roam_db_extra_links_exclude_keys") {
+        extra_links.excluded_keywords = strings(&excluded["keyword"]);
+        extra_links.excluded_properties = strings(&excluded["node-property"]);
+    }
     let mut inheritance = Inheritance::default();
     if let Some(excluded) = options.get("org_tags_exclude_from_inheritance") {
         inheritance.tags_excluded = strings(excluded);
@@ -61,7 +71,11 @@ fn run(case: &Value) -> Value {
         let outline = Outline::with_inheritance(&parse, text, stem, &inheritance);
         // An encrypted file cannot be read without its key.
         let encrypted = name.ends_with(".gpg") || name.ends_with(".age");
-        let data = if encrypted { Err("encrypted".to_string()) } else { roam::scan(text, &parse, &outline, name) };
+        let data = if encrypted {
+            Err("encrypted".to_string())
+        } else {
+            roam::scan_with(text, &parse, &outline, name, &extra_links)
+        };
         db.add(name, data);
         texts.insert(name.to_string(), text.to_string());
     }
@@ -114,7 +128,19 @@ fn run(case: &Value) -> Value {
             Err(error) => json!(error),
         })
         .collect();
+    // `org-roam-node-formatted` for each node a completion offers.
+    let formatted: Vec<Value> = strings(&case["formatters"])
+        .iter()
+        .map(|formatter| match db.candidates("${title}", 79, &mtime) {
+            Ok(lines) => json!(lines
+                .iter()
+                .map(|line| db.formatted(&line.id, &line.title, formatter).unwrap_or_else(|error| error))
+                .collect::<Vec<_>>()),
+            Err(error) => json!(error),
+        })
+        .collect();
     json!({
+        "formatted": formatted,
         "files": files_rows,
         "nodes": node_rows,
         "aliases": aliases.iter().map(|(id, alias)| json!([id, alias])).collect::<Vec<_>>(),
@@ -256,6 +282,7 @@ fn run_capture(case: &Value) -> Value {
             read: &read,
             properties: &properties,
             levels: &levels,
+            lists: &Default::default(),
             find_node: &find_node,
         };
         match roam::capture::capture(&request) {
@@ -366,6 +393,26 @@ fn run_edit(case: &Value) -> Value {
             None => json!({ "text": edited, "message": null }),
         };
     }
+    if command == "promote" || command == "demote" {
+        let structure = org_core::structure::Settings {
+            tags_column: -77,
+            indent: Default::default(),
+            allow_promoting_top_level: false,
+            odd_levels: false,
+        };
+        let edited = if command == "promote" {
+            edit::promote_entire_buffer(&text, &todo, &structure, &settings)
+        } else {
+            edit::demote_entire_buffer(&text, &todo, &structure, &settings)
+        };
+        // A deliberate difference: without a `#+title:`, Emacs fails
+        // having demoted the headlines and put `* ` at the top; org-lsp
+        // fails before changing anything. The error is the same.
+        if let (Err(error), Some(expected)) = (&edited, case["expected"]["error"].as_str()) {
+            return if error == expected { case["expected"].clone() } else { json!({ "error": error }) };
+        }
+        return done(edited.map(|text| (text, None)));
+    }
     let point = match edit::node_at(&text, at, &context) {
         // Where the database has the node: a position of its file, which
         // Emacs takes in this one when the node is in another.
@@ -421,6 +468,166 @@ fn roam_edits_match_emacs() {
             failures.push(format!(
                 "case {index} ({} {}):\n  emacs:   {}\n  org-lsp: {actual}",
                 case["command"], case["arg"], case["expected"]
+            ));
+        }
+    }
+    assert!(failures.is_empty(), "{} differences from Emacs:\n{}", failures.len(), failures.join("\n"));
+}
+
+/// The Graphviz text of org-roam's graph.
+fn run_graph(case: &Value) -> String {
+    use org_core::roam::graph;
+    let mut files: Vec<String> = case["files"].as_object().expect("files").keys().cloned().collect();
+    roam::sync_order(&mut files);
+    let mut db = Db::default();
+    for file in &files {
+        let body = case["files"][file.as_str()].as_str().unwrap_or_default();
+        let todo = org_syntax::TodoKeywords::from_document(body).unwrap_or_default();
+        let parse = org_syntax::parse(body, &todo);
+        let outline = Outline::new(&parse, body, "x");
+        db.add(file, roam::scan(body, &parse, &outline, file));
+    }
+    let mut settings = graph::Settings::default();
+    let options = &case["options"];
+    let pairs = |value: &Value| -> Vec<(String, String)> {
+        value
+            .as_array()
+            .into_iter()
+            .flatten()
+            .map(|pair| (pair[0].as_str().unwrap().into(), pair[1].as_str().unwrap().into()))
+            .collect()
+    };
+    if let Some(shorten) = options.get("org-roam-graph-shorten-titles") {
+        settings.shorten = match shorten.as_str() {
+            Some("truncate") => graph::Shorten::Truncate,
+            Some("wrap") => graph::Shorten::Wrap,
+            _ => graph::Shorten::No,
+        };
+    }
+    if let Some(length) = options["org-roam-graph-max-title-length"].as_u64() {
+        settings.max_title_length = length as usize;
+    }
+    if options.get("org-roam-graph-link-hidden-types").is_some() {
+        settings.hidden = strings(&options["org-roam-graph-link-hidden-types"]);
+    }
+    settings.extra = pairs(&options["org-roam-graph-extra-config"]);
+    settings.edge = pairs(&options["org-roam-graph-edge-extra-config"]);
+    match case["node"].as_str() {
+        Some(node) => {
+            let distance = case["distance"].as_u64().unwrap_or(0) as usize;
+            graph::dot(&db, Some(graph::connected_component(&db, node, distance)), false, &settings)
+        }
+        None => graph::dot(&db, None, true, &settings),
+    }
+}
+
+#[test]
+fn roam_graphs_match_emacs() {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/roam/graph.json");
+    let cases: Vec<Value> = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    let mut failures = Vec::new();
+    for (index, case) in cases.iter().enumerate() {
+        let actual = run_graph(case);
+        if actual != case["expected"] {
+            failures.push(format!("case {index}:\n  emacs:   {}\n  org-lsp: {actual}", case["expected"]));
+        }
+    }
+    assert!(failures.is_empty(), "{} differences from Emacs:\n{}", failures.len(), failures.join("\n"));
+}
+
+/// What `org-roam-refile` and `org-roam-extract-subtree` leave: every
+/// file, and the error.
+fn run_move(case: &Value) -> Value {
+    use org_core::roam::edit;
+    const CURSOR: char = '¦';
+    let mut files: std::collections::BTreeMap<String, String> = case["files"]
+        .as_object()
+        .expect("files")
+        .iter()
+        .map(|(name, text)| (name.clone(), text.as_str().unwrap_or_default().to_string()))
+        .collect();
+    let (name, at) =
+        files.iter().find_map(|(name, text)| text.find(CURSOR).map(|at| (name.clone(), at))).expect("a cursor");
+    let text = files[&name].replace(CURSOR, "");
+    files.insert(name.clone(), text.clone());
+    let todo = org_syntax::TodoKeywords::from_document(&text).unwrap_or_default();
+    let context = org_core::properties::Context { keywords: todo.clone(), ..Default::default() };
+    let tags = org_core::tags::Settings { auto_align: true, tags_column: -77, ..Default::default() };
+    let structure = org_core::structure::Settings {
+        tags_column: -77,
+        indent: Default::default(),
+        allow_promoting_top_level: false,
+        odd_levels: false,
+    };
+    let refile_settings = org_core::refile::Settings::default();
+    let arg = case["arg"].as_str().unwrap_or_default();
+    let result: Result<(), String> = (|| match case["command"].as_str().unwrap_or_default() {
+        "refile" => {
+            if edit::node_at(&text, at, &context).is_ok_and(|node| node.id == arg) {
+                return Err("Target is the same as current node".to_string());
+            }
+            let mut db = Db::default();
+            for (file, body) in &files {
+                let parse = org_syntax::parse(body, &todo);
+                let outline = Outline::new(&parse, body, "x");
+                db.add(file, roam::scan(body, &parse, &outline, file));
+            }
+            let (file, node) = db.nodes.iter().find(|(_, node)| node.id == arg).cloned().ok_or("no such node")?;
+            let to = (node.level > 0).then_some(node.offset);
+            let target = (file != name).then(|| files[&file].clone());
+            let refiled = edit::refile(&text, at, target.as_deref(), to, &todo, &structure, &tags, &refile_settings)
+                .map_err(|refusal| refusal.message().to_string())?;
+            if let Some(changed) = refiled.target {
+                files.insert(file, changed);
+            }
+            if refiled.source.is_empty() {
+                files.remove(&name);
+            } else {
+                files.insert(name.clone(), refiled.source);
+            }
+            Ok(())
+        }
+        "extract" => {
+            let heading = edit::extracted_heading(&text, at).map_err(|refusal| refusal.message().to_string())?;
+            let mut new_id = || "made-id".to_string();
+            let (made, _) = org_core::link::id_get_create(&text, heading, &context, &mut new_id)?;
+            let text = made.map_or(text.clone(), |(text, _)| text);
+            files.insert(name.clone(), text.clone());
+            if files.contains_key(arg) {
+                return Err(format!("{arg} exists. Aborting"));
+            }
+            let (cut, extracted) = edit::extract_subtree(&text, heading, &todo, &structure, &tags)
+                .map_err(|refusal| refusal.message().to_string())?;
+            files.insert(name.clone(), cut);
+            files.insert(arg.to_string(), extracted);
+            Ok(())
+        }
+        other => Err(format!("unknown command {other}")),
+    })();
+    // Emacs saves the files with a newline at the end (`require-final-newline`).
+    for text in files.values_mut() {
+        if !text.is_empty() && !text.ends_with('\n') {
+            text.push('\n');
+        }
+    }
+    json!({ "files": files, "error": result.err() })
+}
+
+#[test]
+fn roam_moves_match_emacs() {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/roam/move.json");
+    let cases: Vec<Value> = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    // The `ID` Emacs makes is random.
+    let uuid = regex::Regex::new(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}").unwrap();
+    let mut failures = Vec::new();
+    for (index, case) in cases.iter().enumerate() {
+        let actual = run_move(case);
+        let expected: Value =
+            serde_json::from_str(&uuid.replace_all(&case["expected"].to_string(), "made-id")).unwrap();
+        if actual != expected {
+            failures.push(format!(
+                "case {index} ({} {}):\n  emacs:   {expected}\n  org-lsp: {actual}",
+                case["command"], case["arg"]
             ));
         }
     }

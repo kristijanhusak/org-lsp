@@ -52,6 +52,14 @@ pub enum Target {
     /// The day of a journal entry (`org-journal-new-date-entry`), asked
     /// from the document `from`.
     Journal { from: Uri },
+    /// The day of a daily note of org-roam (`org-roam-dailies-goto-date`,
+    /// `org-roam-dailies-capture-date`), asked from the document `from`;
+    /// `goto` goes to the note without capturing to it.
+    Dailies { from: Uri, goto: bool },
+    /// No date asked for: the calendar on its own (`org-goto-calendar`,
+    /// `M-x calendar`), shown from the document `from`, where org-journal's
+    /// keys work.
+    Calendar { from: Uri },
 }
 
 impl Target {
@@ -60,7 +68,7 @@ impl Target {
         match self {
             Target::Place { uri, .. } => uri,
             Target::Entry { view, .. } | Target::Agenda { view, .. } => view,
-            Target::Journal { from } => from,
+            Target::Journal { from } | Target::Dailies { from, .. } | Target::Calendar { from } => from,
         }
     }
 }
@@ -98,6 +106,9 @@ pub struct DatePrompt {
     /// The days of org-journal's entries, which the calendar marks
     /// (`org-journal-mark-entries`).
     pub journal: Vec<Day>,
+    /// The days with a daily note of org-roam, which the calendar marks
+    /// too (`org-roam-dailies-calendar-mark-entries`).
+    pub dailies: Vec<Day>,
 }
 
 /// The part of a picked time the keys change.
@@ -121,13 +132,16 @@ impl DatePrompt {
         settings: &Settings,
         (months, week_start): (usize, usize),
     ) -> DatePrompt {
-        let selected = default.unwrap_or(now).day;
+        // Late at night, the prompt with nothing to start from starts
+        // from yesterday (`org-extend-today-until`), as `org-read-date`.
+        let start = default.unwrap_or_else(|| now.late_night(settings.extend_today_until));
+        let selected = start.day;
         let mut prompt = DatePrompt {
             id: id.to_string(),
             command,
             target,
             default,
-            label: planning::label(command, default, now),
+            label: planning::label(command, Some(start), now),
             typed,
             selected,
             moved: false,
@@ -139,6 +153,7 @@ impl DatePrompt {
             time: None,
             time_field: None,
             journal: Vec::new(),
+            dailies: Vec::new(),
         };
         prompt.render(now, settings);
         prompt
@@ -149,6 +164,13 @@ impl DatePrompt {
     /// (`org-journal-calendar-scheduled-face`).
     pub fn mark_journal(&mut self, days: Vec<Day>, now: DateTime, settings: &Settings) {
         self.journal = days;
+        self.render(now, settings);
+    }
+
+    /// Mark the days with a daily note of org-roam
+    /// (`org-roam-dailies-calendar-note`).
+    pub fn mark_dailies(&mut self, days: Vec<Day>, now: DateTime, settings: &Settings) {
+        self.dailies = days;
         self.render(now, settings);
     }
 
@@ -305,7 +327,8 @@ impl DatePrompt {
             text.push_str(line);
             text.push('\n');
         }
-        // The selected day, and the days with a journal entry around it.
+        // The selected day, and the days with a journal entry or a daily
+        // note around it.
         let mut days: Vec<(usize, TokenType, u32)> = Vec::new();
         let at = |cell: org_core::calendar::Cell, lines: &[String]| -> usize {
             lines[..cell.line].iter().map(|line| line.len() + 1).sum::<usize>() + cell.column
@@ -317,6 +340,13 @@ impl DatePrompt {
             if let Some(cell) = self.calendar.cell(*day) {
                 let future = if *day > now.day { modifier::FUTURE } else { 0 };
                 days.push((at(cell, &self.calendar.lines), TokenType::CalendarJournal, future));
+            }
+        }
+        // A day with a journal entry keeps its look.
+        let dailies = self.dailies.iter().filter(|day| **day != self.selected && !self.journal.contains(day));
+        for day in dailies {
+            if let Some(cell) = self.calendar.cell(*day) {
+                days.push((at(cell, &self.calendar.lines), TokenType::CalendarDailies, 0));
             }
         }
         days.sort_by_key(|(start, _, _)| *start);
@@ -336,16 +366,39 @@ impl DatePrompt {
             text.push_str(&line);
             text.push('\n');
         }
+        // The calendar on its own has no minibuffer.
+        if matches!(self.target, Target::Calendar { .. }) {
+            self.text = text;
+            self.tokens = tokens;
+            return;
+        }
         // The minibuffer, after a blank line.
         text.push('\n');
         let start = text.len();
-        token(start, self.label.len(), TokenType::CalendarPrompt, 0);
+        let label = if self.calendar.months == 1 { self.label.trim_end() } else { self.label.as_str() };
+        token(start, label.len(), TokenType::CalendarPrompt, 0);
         // A picked time shows in place of a typed one, as `i` would start.
-        let mut line = format!("{}{}", self.label, self.typed_with_time());
-        // `org-read-date-display` pads the answer with four blanks.
-        while !line.ends_with("    ") {
-            line.push(' ');
-        }
+        let typed = self.typed_with_time();
+        let mut line = if self.calendar.months == 1 {
+            // Under one month, the prompt on a line of its own and the
+            // answer below it, so the window is not wider than the prompt.
+            text.push_str(label);
+            text.push('\n');
+            let typed = typed.trim();
+            if typed.is_empty() {
+                String::new()
+            } else {
+                format!("{typed} ")
+            }
+        } else {
+            // `org-read-date-display` pads the answer with four blanks.
+            let mut line = format!("{}{typed}", self.label);
+            while !line.ends_with("    ") {
+                line.push(' ');
+            }
+            line
+        };
+        let start = text.len();
         let display = planning::display(self.command, &self.answer(), self.default, now, settings);
         if let Some(at) = display.find(['<', '[']) {
             let end = display[at..].find(['>', ']']).map_or(display.len(), |end| at + end + 1);
@@ -409,6 +462,53 @@ mod tests {
         assert!(prompt.tokens.iter().any(|token| token.ty == TokenType::CalendarSelected));
     }
 
+    /// With one month, the prompt and the answer go on lines of their own,
+    /// so the window is about as wide as the month.
+    #[test]
+    fn puts_the_answer_under_the_prompt_with_one_month() {
+        let file: Uri = "file:///org/notes.org".parse().unwrap();
+        let default = Some(DateTime::new(Date::new(2026, 10, 7), 10, 0));
+        let target = Target::Place { uri: file, position: Position::new(0, 0) };
+        let mut prompt = DatePrompt::new(
+            "org.schedule",
+            Command::Schedule,
+            target,
+            default,
+            "10:00".to_string(),
+            now(),
+            &Settings::default(),
+            (1, 0),
+        );
+        let lines: Vec<&str> = prompt.text.lines().collect();
+        assert_eq!(lines[0].trim(), "October 2026");
+        assert_eq!(
+            &lines[lines.len() - 3..],
+            ["", "SCHEDULED Date+time [2026-10-07]:", "10:00 => <2026-10-07 Wed 10:00>"]
+        );
+        let widest = lines.iter().map(|line| line.len()).max().unwrap();
+        assert_eq!(widest, "SCHEDULED Date+time [2026-10-07]:".len());
+        let label = prompt.tokens.iter().find(|token| token.ty == TokenType::CalendarPrompt).unwrap();
+        assert_eq!(&prompt.text[label.range], "SCHEDULED Date+time [2026-10-07]:");
+        let stamp = prompt.tokens.iter().find(|token| token.ty == TokenType::Timestamp).unwrap();
+        assert_eq!(&prompt.text[stamp.range], "<2026-10-07 Wed 10:00>");
+        // Nothing typed: the answer alone.
+        prompt.set_typed(String::new(), now(), &Settings::default());
+        assert_eq!(prompt.text.lines().last(), Some("=> <2026-10-07 Wed>"));
+    }
+
+    #[test]
+    fn starts_from_yesterday_late_at_night() {
+        let file: Uri = "file:///org/notes.org".parse().unwrap();
+        let settings = Settings { extend_today_until: 4, ..Settings::default() };
+        let late = DateTime::new(Date::new(2026, 10, 5), 2, 30);
+        let target = Target::Place { uri: file, position: Position::new(0, 0) };
+        let prompt =
+            DatePrompt::new("org.schedule", Command::Schedule, target, None, String::new(), late, &settings, (1, 0));
+        assert_eq!(Date::from_day(prompt.selected), Date::new(2026, 10, 4));
+        let lines: Vec<&str> = prompt.text.lines().collect();
+        assert_eq!(&lines[lines.len() - 2..], ["SCHEDULED Date+time [2026-10-04]:", "=> <2026-10-04 Sun>"]);
+    }
+
     #[test]
     fn marks_the_days_of_the_journal() {
         let mut prompt = prompt();
@@ -426,6 +526,53 @@ mod tests {
         // In the order of the text, with the selected day.
         let starts: Vec<u32> = prompt.tokens.iter().map(|token| token.range.start().into()).collect();
         assert!(starts.windows(2).all(|pair| pair[0] <= pair[1]), "{starts:?}");
+    }
+
+    #[test]
+    fn shows_the_calendar_alone_without_a_minibuffer() {
+        let file: Uri = "file:///org/notes.org".parse().unwrap();
+        let target = Target::Calendar { from: file };
+        let default = Some(DateTime::new(Date::new(2026, 10, 7), 0, 0));
+        let mut prompt = DatePrompt::new(
+            "org.goto.calendar",
+            Command::Timestamp { inactive: false },
+            target,
+            default,
+            String::new(),
+            now(),
+            &Settings::default(),
+            (3, 0),
+        );
+        let lines: Vec<&str> = prompt.text.lines().collect();
+        assert_eq!(lines[0], "        September 2026            October 2026            November 2026");
+        assert!(lines.last().unwrap().starts_with("     "), "{}", prompt.text);
+        assert!(prompt.tokens.iter().all(|token| token.ty != TokenType::CalendarPrompt));
+        assert_eq!(prompt.cursor(), Position::new(3, 40));
+        prompt.select(Date::new(2026, 10, 9).to_day(), now(), &Settings::default());
+        assert!(!prompt.text.contains("=>"));
+    }
+
+    #[test]
+    fn marks_the_days_of_daily_notes() {
+        let mut prompt = prompt();
+        let day = |month, day| Date::new(2026, month, day).to_day();
+        prompt.mark_journal(vec![day(10, 2)], now(), &Settings::default());
+        // A journal's day keeps its look, the selected day too.
+        prompt.mark_dailies(vec![day(10, 2), day(10, 3), day(10, 7), day(10, 9)], now(), &Settings::default());
+        let marked: Vec<(String, TokenType)> = prompt
+            .tokens
+            .iter()
+            .filter(|token| matches!(token.ty, TokenType::CalendarJournal | TokenType::CalendarDailies))
+            .map(|token| (prompt.text[token.range].to_string(), token.ty))
+            .collect();
+        assert_eq!(
+            marked,
+            [
+                (" 2".to_string(), TokenType::CalendarJournal),
+                (" 3".to_string(), TokenType::CalendarDailies),
+                (" 9".to_string(), TokenType::CalendarDailies)
+            ]
+        );
     }
 
     #[test]

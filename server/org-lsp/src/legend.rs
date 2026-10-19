@@ -40,6 +40,8 @@ fn describe_type(ty: TokenType) -> &'static str {
         TokenType::Latex => "A LaTeX fragment or environment",
         TokenType::Entity => "An entity such as \\alpha",
         TokenType::Macro => "A macro call",
+        TokenType::DocumentTitle => "The value of #+TITLE:",
+        TokenType::DocumentInfo => "The value of #+SUBTITLE:, #+AUTHOR:, #+EMAIL: or #+DATE:",
         TokenType::AgendaStructure => "Agenda: the title line of a view",
         TokenType::AgendaDate => "Agenda: a date line",
         TokenType::AgendaScheduled => "Agenda: a scheduled entry",
@@ -55,6 +57,13 @@ fn describe_type(ty: TokenType) -> &'static str {
         TokenType::CalendarSelected => "Date prompt: the selected day",
         TokenType::CalendarPrompt => "Date prompt: the prompt before the answer",
         TokenType::CalendarJournal => "Date prompt: a day with an entry of org-journal; to come with `future`",
+        TokenType::CalendarDailies => "Date prompt: a day with a daily note of org-roam",
+        TokenType::Quote => "The text of a quote block, with org_fontify_quote_and_verse_blocks",
+        TokenType::Verse => "The text of a verse block, with org_fontify_quote_and_verse_blocks",
+        TokenType::Outline => {
+            "A headline or its stars in the color of its level, as Emacs's outline-N faces; never sent by the server: VS Code's org-lsp.headlineLevelColors turns headline and stars tokens into it"
+        }
+        TokenType::DescriptionTerm => "The term of a description list item, with its ::",
     }
 }
 
@@ -68,7 +77,7 @@ const MODIFIER_DESCRIPTIONS: &[&str] = &[
     "Headline level 6",
     "Headline level 7",
     "Headline level 8",
-    "A TODO keyword that marks the entry as finished",
+    "A TODO keyword that marks the entry as finished; the rest of its headline; a complete statistics cookie",
     "An inactive timestamp",
     "A ticked checkbox",
     "A partially ticked checkbox",
@@ -83,18 +92,21 @@ const MODIFIER_DESCRIPTIONS: &[&str] = &[
     "Agenda: the deadline is far away",
     "Agenda: a day inside a date range",
     "Agenda: the current time",
-    "Text Org hides (link brackets and targets, emphasis markers); editors that can conceal text conceal it",
+    "Text Org hides (link brackets and targets, emphasis markers, hidden keywords, macro braces); editors that can conceal text conceal it",
     "Agenda: part of the line of the entry the clock runs on",
     "A headline with the ARCHIVE tag",
     "Agenda: a day of a habit's graph in its time to be done",
     "Agenda: the day a habit is due by",
     "Agenda: a day of a habit's graph past its due day",
     "Agenda: a day of a habit's graph to come",
+    "A headline marked with a TODO keyword not done, past the keyword, with org_fontify_todo_headline",
+    "The stars and title of an inline task",
 ];
 
 /// The default look of the tokens a selector matches.
 pub struct Look {
-    /// `type`, `type.modifier` or `*.modifier`.
+    /// `type`, `type.modifier` or `*.modifier`; or, for a look with a
+    /// background only, `type.modifier.modifier`: tokens with both.
     pub selector: &'static str,
     /// Vim highlight groups: the first one that is defined is used. The
     /// `@org.*` names are the groups nvim-orgmode colorschemes define.
@@ -102,10 +114,24 @@ pub struct Look {
     /// TextMate scopes, most specific first, as themes for VS Code and
     /// similar editors match them.
     pub textmate: &'static [&'static str],
+    /// For a look that is a background only, the background of Org's
+    /// face on a light and on a dark background: what an editor shows
+    /// when its theme has none of the groups above.
+    pub background: Option<(&'static str, &'static str)>,
 }
 
 const fn look(selector: &'static str, vim: &'static [&'static str], textmate: &'static [&'static str]) -> Look {
-    Look { selector, vim, textmate }
+    Look { selector, vim, textmate, background: None }
+}
+
+/// A look with the background of Org's face, `(light, dark)`.
+const fn look_on(
+    selector: &'static str,
+    vim: &'static [&'static str],
+    textmate: &'static [&'static str],
+    background: (&'static str, &'static str),
+) -> Look {
+    Look { selector, vim, textmate, background: Some(background) }
 }
 
 pub const LOOKS: &[Look] = &[
@@ -118,6 +144,26 @@ pub const LOOKS: &[Look] = &[
     look("headline.level6", &["@org.headline.level6", "Type"], &["markup.heading.6.org", "constant.language"]),
     look("headline.level7", &["@org.headline.level7", "Special"], &["markup.heading.7.org", "support.function"]),
     look("headline.level8", &["@org.headline.level8", "String"], &["markup.heading.8.org", "string"]),
+    // The faces `org-level-N` inherit, `outline-1` to `outline-8`, in the
+    // theme's colors of code, without `markup.heading`, which themes give
+    // every level alike: what VS Code shows with
+    // `org-lsp.headlineLevelColors` (the server never sends `outline`).
+    // Visual Studio Dark and Light color no function names, parameters or
+    // `support.function`, and Solarized no parameters: a macro's name, the
+    // language's own variables and built-in property names stand in.
+    look("outline", &[], &[]),
+    look(
+        "outline.level1",
+        &[],
+        &["entity.name.function.outline-1.org", "entity.name.function", "entity.name.function.preprocessor"],
+    ),
+    look("outline.level2", &[], &["variable.parameter.outline-2.org", "variable.parameter", "variable.language"]),
+    look("outline.level3", &[], &["keyword.outline-3.org", "keyword"]),
+    look("outline.level4", &[], &["comment.outline-4.org", "comment"]),
+    look("outline.level5", &[], &["storage.type.outline-5.org", "storage.type"]),
+    look("outline.level6", &[], &["constant.language.outline-6.org", "constant.language"]),
+    look("outline.level7", &[], &["support.function.outline-7.org", "support.function", "support.type.property-name"]),
+    look("outline.level8", &[], &["string.outline-8.org", "string"]),
     look("stars", &[], &["punctuation.definition.heading.org", "markup.heading"]),
     look("stars.level1", &["@org.headline.level1", "Title"], &[]),
     look("stars.level2", &["@org.headline.level2", "Constant"], &[]),
@@ -162,6 +208,10 @@ pub const LOOKS: &[Look] = &[
         &["meta.preprocessor.keyword.org", "meta.preprocessor", "comment"],
     ),
     look("block", &["@org.block", "@comment"], &["punctuation.definition.block.org", "comment"]),
+    // `org-quote` and `org-verse`, which are `org-block`. Dark+, Light+
+    // and the Modern themes give `markup.quote` no color, but italics.
+    look("quote", &["@org.quote", "@markup.quote"], &["markup.quote.org", "markup.quote", "markup.italic"]),
+    look("verse", &["@org.verse", "@markup.quote"], &["markup.quote.verse.org", "markup.quote", "markup.italic"]),
     look("comment", &["@org.comment", "@comment"], &["comment.line.org", "comment"]),
     look(
         "bullet",
@@ -175,6 +225,8 @@ pub const LOOKS: &[Look] = &[
         &["markup.list.checked.org", "markup.inserted", "string"],
     ),
     look("checkbox.partial", &["@org.checkbox.halfchecked", "@markup.list.unchecked"], &[]),
+    // `org-list-dt`: bold, as bold emphasis is.
+    look("descriptionTerm", &["@org.bold", "@markup.strong"], &["markup.bold.term.org", "markup.bold"]),
     look(
         "link",
         &["@org.hyperlink", "@markup.link"],
@@ -194,9 +246,35 @@ pub const LOOKS: &[Look] = &[
         &["markup.underline.link.footnote.org", "markup.underline.link", "string.other.link"],
     ),
     look("cookie", &["@org.priority.highest", "@number"], &["constant.numeric.cookie.org", "constant.numeric"]),
-    look("target", &["@org.hyperlink.desc", "@markup.link.label"], &["entity.name.label.org", "entity.name.label"]),
-    look("latex", &["@org.latex", "@markup.math"], &["markup.math.org", "support.function"]),
-    look("entity", &["@org.latex", "@markup.math"], &["constant.character.entity.org", "constant.character.entity"]),
+    // `org-checkbox-statistics-done`, which inherits `org-done`.
+    look(
+        "cookie.done",
+        &["@org.keyword.done", "DiagnosticOk"],
+        &["constant.numeric.cookie.done.org", "markup.inserted", "string"],
+    ),
+    // `org-headline-done`: what follows a done keyword on its headline.
+    look("headline.done", &["@org.headline.done", "Comment"], &["markup.heading.done.org", "comment"]),
+    look("*.done", &["@org.headline.done", "Comment"], &["comment.done.org", "comment"]),
+    // `org-headline-todo`, copied from `font-lock-string-face`.
+    look("headline.todo", &["@org.headline.todo", "String"], &["markup.heading.todo.org", "string"]),
+    look("*.todo", &["@org.headline.todo", "String"], &["string.todo.org", "string"]),
+    look("documentTitle", &["@org.document.title", "Title"], &["markup.heading.title.org", "entity.name.section"]),
+    look("documentInfo", &["@org.document.info", "Special"], &["string.other.info.org", "string"]),
+    // `org-target`: underlined. Themes without a color for labels give
+    // it a link's underline or color.
+    look(
+        "target",
+        &["@org.hyperlink.desc", "@markup.link.label"],
+        &["entity.name.label.org", "entity.name.label", "markup.underline.link", "string.other.link"],
+    ),
+    // `org-latex-and-related`, burlywood or saddle brown: TeX's math is
+    // `string.other.math`, a string where a theme has no other color.
+    look("latex", &["@org.latex", "@markup.math"], &["markup.math.org", "support.function", "string.other.math"]),
+    look(
+        "entity",
+        &["@org.latex", "@markup.math"],
+        &["constant.character.entity.org", "constant.character.entity", "string.other.math"],
+    ),
     look(
         "macro",
         &["@org.directive", "@function.macro"],
@@ -204,7 +282,13 @@ pub const LOOKS: &[Look] = &[
     ),
     look("*.bold", &["@org.bold", "@markup.strong"], &["markup.bold.org", "markup.bold"]),
     look("*.italic", &["@org.italic", "@markup.italic"], &["markup.italic.org", "markup.italic"]),
-    look("*.underline", &["@org.underline", "@markup.underline"], &["markup.underline.org", "markup.underline"]),
+    // A theme cannot underline through a fallback scope: without
+    // `markup.underline`, the color of links, the text Emacs underlines.
+    look(
+        "*.underline",
+        &["@org.underline", "@markup.underline"],
+        &["markup.underline.org", "markup.underline", "string.other.link"],
+    ),
     look(
         "*.strikethrough",
         &["@org.strikethrough", "@markup.strikethrough"],
@@ -260,52 +344,82 @@ pub const LOOKS: &[Look] = &[
     look("agendaEvent", &[], &[]),
     look("agendaDone", &["@org.agenda.done", "Comment"], &["comment.done.agenda.org", "comment"]),
     // A habit's graph: Org colors the days' backgrounds, blue before a
-    // habit is due, green while it is, yellow on the day it must be done
-    // by and red after.
-    look(
+    // habit is due (`org-habit-clear-face`), green while it is
+    // (`org-habit-ready-face`), yellow on the day it must be done by
+    // (`org-habit-alert-face`) and red after (`org-habit-overdue-face`).
+    // No standard group has those backgrounds (Neovim's `DiffDelete` has
+    // none at all), so the editors take Org's colors. Tomorrow Night Blue
+    // colors insertions, changes and deletions only in the gutter
+    // (`*.git_gutter`).
+    look_on(
         "agendaHabit",
-        &["@org.agenda.habit.clear", "DiffChange"],
-        &["markup.changed.habit.agenda.org", "markup.changed"],
+        &["@org.agenda.habit.clear"],
+        &["markup.changed.habit.agenda.org", "markup.changed", "markup.changed.git_gutter"],
+        ("#8270f9", "#0000ff"),
     ),
-    look(
+    look_on(
         "agendaHabit.ready",
-        &["@org.agenda.habit.ready", "DiffAdd"],
-        &["markup.inserted.habit.agenda.org", "markup.inserted"],
+        &["@org.agenda.habit.ready"],
+        &["markup.inserted.habit.agenda.org", "markup.inserted", "markup.inserted.git_gutter"],
+        ("#4df946", "#228b22"),
     ),
-    look(
+    look_on(
         "agendaHabit.alert",
-        &["@org.agenda.habit.alert", "DiffText"],
+        &["@org.agenda.habit.alert"],
         &["markup.changed.alert.habit.agenda.org", "markup.changed", "constant.numeric"],
+        ("#f5f946", "#ffd700"),
     ),
-    look(
+    look_on(
         "agendaHabit.overdue",
-        &["@org.agenda.habit.overdue", "DiffDelete"],
-        &["markup.deleted.habit.agenda.org", "markup.deleted"],
+        &["@org.agenda.habit.overdue"],
+        &["markup.deleted.habit.agenda.org", "markup.deleted", "markup.deleted.git_gutter"],
+        ("#f9372d", "#b22222"),
     ),
+    // The `-future` faces, paler: a token has `future` with the others.
+    look_on("agendaHabit.future", &[], &[], ("#d6e4fc", "#191970")),
+    look_on("agendaHabit.ready.future", &[], &[], ("#acfca9", "#006400")),
+    look_on("agendaHabit.alert.future", &[], &[], ("#fafca9", "#b8860b")),
+    look_on("agendaHabit.overdue.future", &[], &[], ("#fc9590", "#8b0000")),
     look("agendaTimeGrid", &["@org.agenda.time_grid", "Comment"], &["comment.time-grid.agenda.org", "comment"]),
     look(
         "agendaTimeGrid.current",
         &["@org.agenda.time_grid.current", "@markup.strong"],
         &["markup.bold.current-time.agenda.org", "markup.bold", "comment"],
     ),
-    // `org-agenda-clocking`: the line of the clocked entry, highlighted.
-    look(
+    // `org-agenda-clocking`: the line of the clocked entry, highlighted,
+    // with the background of `secondary-selection` it inherits for an
+    // editor that has no group or line highlight for it (Zed).
+    look_on(
         "agendaClocking",
         &["@org.agenda.clocking", "Visual"],
-        &["markup.highlight.clocking.agenda.org", "markup.inserted"],
+        &["markup.highlight.clocking.agenda.org", "markup.inserted", "markup.inserted.git_gutter"],
+        ("#ffff00", "#4a708b"),
     ),
-    look(
+    look_on(
         "*.clocking",
         &["@org.agenda.clocking", "Visual"],
-        &["markup.highlight.clocking.agenda.org", "markup.inserted"],
+        &["markup.highlight.clocking.agenda.org", "markup.inserted", "markup.inserted.git_gutter"],
+        ("#ffff00", "#4a708b"),
     ),
     // `org-agenda-dimmed-todo-face`: a task its dependencies block.
     look("agendaDimmed", &["@org.agenda.dimmed", "Comment"], &["comment.dimmed.agenda.org", "comment"]),
     // `org-archived`, which inherits `shadow`.
     look("*.archived", &["@org.archived", "Comment"], &["comment.archived.org", "comment"]),
+    // `org-inlinetask`, which inherits `shadow`.
+    look("*.inlinetask", &["@org.inlinetask", "Comment"], &["comment.inlinetask.org", "comment"]),
     // The date prompt, after Emacs's calendar and minibuffer faces.
-    look("calendarHeader", &["Function"], &["entity.name.function.month.calendar.org", "entity.name.function"]),
-    look("calendarWeekday", &["Constant"], &["constant.other.weekday.calendar.org", "constant.other"]),
+    look(
+        "calendarHeader",
+        &["Function"],
+        &["entity.name.function.month.calendar.org", "entity.name.function", "entity.name.function.preprocessor"],
+    ),
+    // `calendar-weekday-header`, `font-lock-constant-face`: Dark+, Light+
+    // and the Modern themes color `constant.language`, not `constant.other`.
+    look(
+        "calendarWeekday",
+        &["Constant"],
+        &["constant.other.weekday.calendar.org", "constant.other", "constant.language"],
+    ),
     look("calendarWeekday.weekend", &["Comment"], &["comment.weekend.calendar.org", "comment"]),
     look("calendarSelected", &["IncSearch"], &["markup.inverse.selected.calendar.org", "invalid.illegal"]),
     look("calendarPrompt", &["Question"], &["keyword.other.prompt.calendar.org", "keyword"]),
@@ -321,12 +435,19 @@ pub const LOOKS: &[Look] = &[
         &["@org.calendar.journal.future", "Comment"],
         &["markup.italic.scheduled.journal.calendar.org", "markup.italic"],
     ),
+    // `org-roam-dailies-calendar-note`: `org-link` without its underline.
+    look(
+        "calendarDailies",
+        &["@org.calendar.dailies", "@markup.link"],
+        &["string.other.link.dailies.calendar.org", "string.other.link"],
+    ),
 ];
 
 /// The legend with descriptions, and the default looks:
 /// `{ "tokenTypes": [{ "id", "description", "standard" }],
 ///    "tokenModifiers": [{ "id", "description" }],
-///    "highlights": [{ "token", "vim": [...], "textmate": [...] }] }`.
+///    "highlights": [{ "token", "vim": [...], "textmate": [...],
+///                     "background"?: { "light", "dark" } }] }`.
 pub fn manifest() -> Value {
     let types: Vec<Value> = TokenType::ALL
         .iter()
@@ -341,8 +462,14 @@ pub fn manifest() -> Value {
         .collect();
     let highlights: Vec<Value> = LOOKS
         .iter()
-        .filter(|look| !look.vim.is_empty() || !look.textmate.is_empty())
-        .map(|look| json!({ "token": look.selector, "vim": look.vim, "textmate": look.textmate }))
+        .filter(|look| !look.vim.is_empty() || !look.textmate.is_empty() || look.background.is_some())
+        .map(|look| {
+            let mut entry = json!({ "token": look.selector, "vim": look.vim, "textmate": look.textmate });
+            if let Some((light, dark)) = look.background {
+                entry["background"] = json!({ "light": light, "dark": dark });
+            }
+            entry
+        })
         .collect();
     json!({ "tokenTypes": types, "tokenModifiers": modifiers, "highlights": highlights })
 }
@@ -361,14 +488,18 @@ mod tests {
         let types: Vec<&str> = TokenType::ALL.iter().map(|ty| ty.name()).collect();
         let mut seen = Vec::new();
         for look in LOOKS {
-            let (ty, modifier) = match look.selector.split_once('.') {
-                Some((ty, modifier)) => (ty, Some(modifier)),
-                None => (look.selector, None),
-            };
+            let mut parts = look.selector.split('.');
+            let ty = parts.next().unwrap_or_default();
+            let modifiers: Vec<&str> = parts.collect();
             assert!(ty == "*" || types.contains(&ty), "unknown type in `{}`", look.selector);
             assert!(
-                modifier.is_none_or(|name| modifier::NAMES.contains(&name)),
+                modifiers.iter().all(|name| modifier::NAMES.contains(name)),
                 "unknown modifier in `{}`",
+                look.selector
+            );
+            assert!(
+                modifiers.len() < 2 || (ty != "*" && look.vim.is_empty() && look.textmate.is_empty()),
+                "`{}`: only a background can be given to several modifiers",
                 look.selector
             );
             assert!(!seen.contains(&look.selector), "`{}` is listed twice", look.selector);

@@ -1,0 +1,7 @@
+Headlines with TAGS match: LEVEL>0
+  work:       TODO a plain stamp [2026-03-05 Thu]
+  work:       TODO a drawer further down
+  work:       TODO [2/4] scheduled
+  work:       TODO [0/4] deadline
+  work:       TODO a clock that does not read
+  work:       TODO the property drawer

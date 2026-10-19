@@ -115,6 +115,29 @@ async function applyCarried(running: LanguageClient, result: unknown): Promise<v
   }
 }
 
+/** The server's commands run so far, in turn: what the tests see of the
+ * keys they press. */
+const commandsRun: string[] = [];
+/** How many commands, and documents the server asked to show, are not done yet. */
+let busy = 0;
+
+async function whileBusy<T>(run: () => Promise<T>): Promise<T> {
+  busy += 1;
+  try {
+    return await run();
+  } finally {
+    busy -= 1;
+  }
+}
+
+function counted<T>(name: string, run: () => Promise<T>): Promise<T> {
+  commandsRun.push(name);
+  return whileBusy(run);
+}
+
+/** What the server said column view shows, last (`org-lsp/columns`). */
+let columnsReported: unknown;
+
 /** Done when the date prompt the server asked to show is shown. */
 let datePromptShown: Promise<void> = Promise.resolve();
 
@@ -452,7 +475,7 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
       // The client registers every command of the server with VS Code. Run
       // from a key or the palette, a command has no arguments: add the
       // cursor. The server's reason for refusing a command is shown as is.
-      executeCommand: async (name, args) => {
+      executeCommand: (name, args) => counted(name, async () => {
         const running = client;
         const key = keyArgs(args);
         if (!running) {
@@ -533,11 +556,11 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
           void vscode.window.showWarningMessage(error instanceof Error ? error.message : String(error));
           return undefined;
         }
-      },
+      }),
       window: {
         // The date prompt opens beside the file, as Emacs pops its calendar
         // up in another window, and stays in that editor as it changes.
-        showDocument: async (params, token, next) => {
+        showDocument: (params, token, next) => whileBusy(async () => {
           if (params.external) {
             return next(params, token);
           }
@@ -561,8 +584,18 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
           datePromptShown = showDatePrompt(params);
           await datePromptShown;
           return { success: true };
-        },
+        }),
       },
+      // Headlines in the colors of their level, with
+      // `org-lsp.headlineLevelColors`; a habit's days in the agenda, in
+      // their backgrounds. The server sends no deltas.
+      provideDocumentSemanticTokens: async (document, token, next) => {
+        const tokens = await next(document, token);
+        habitsOf(document, tokens);
+        return levelColored(tokens);
+      },
+      provideDocumentRangeSemanticTokens: async (document, range, token, next) =>
+        levelColored(await next(document, range, token)),
     },
   };
   client = new LanguageClient('org-lsp', 'Org Language Server', serverOptions, clientOptions);
@@ -579,6 +612,8 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
         orgDisplay: true,
         orgLineHighlights: true,
         orgImages: imagesEnabled(),
+        // Commands the server asks for (`org-lsp/runCommand`).
+        orgRunCommand: true,
       };
     },
     initialize() {},
@@ -621,10 +656,17 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
         return;
       }
       agendaLines.set(uri.toString(), line);
-      void client.sendNotification('org-lsp/agendaCursor', {
-        textDocument: { uri: uri.toString() },
-        position: { line, character: 0 },
-      });
+      // `org-agenda-show-outline-path`: the entry's outline path, in the
+      // status bar for a while, as Emacs shows it in the echo area.
+      void client
+        .sendRequest('org-lsp/agendaCursor', { textDocument: { uri: uri.toString() }, position: { line, character: 0 } })
+        .then((result) => {
+          const echo = (result as { echo?: unknown } | null)?.echo;
+          if (typeof echo === 'string') {
+            echoed = echo;
+            vscode.window.setStatusBarMessage(echo, 5000);
+          }
+        });
     }),
   );
   try {
@@ -651,8 +693,20 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
     // org-journal's files, Org files whose name need not say so.
     journalDirectory = client.initializeResult?.capabilities.experimental?.orgJournal?.directory;
     vscode.workspace.textDocuments.forEach((document) => void asJournalFile(document));
-    // The headlines of a document org-journal showed, folded as it folds them.
+    // The headlines of a document org-journal showed, folded as it folds
+    // them, or the subtrees a yank or paste folded.
     client.onNotification('org-lsp/folds', (params: JournalFolds) => void journalFolds(params));
+    // A command the server asks to run as from its key, where the cursor
+    // is, with fields of its own: a capture an org-protocol URL started.
+    const running = client;
+    client.onNotification('org-lsp/runCommand', (params: { command?: unknown; argument?: unknown } | null) => {
+      if (typeof params?.command !== 'string') {
+        return;
+      }
+      const here = (cursor(running)[0] ?? {}) as Record<string, unknown>;
+      const given = typeof params.argument === 'object' && params.argument ? params.argument : {};
+      void vscode.commands.executeCommand(params.command, { ...here, ...given });
+    });
     // The previews of the files open.
     const started = client;
     vscode.workspace.textDocuments.forEach((document) => void startupPreviews(started, document));
@@ -761,6 +815,23 @@ async function paintFaces(editor: vscode.TextEditor): Promise<void> {
     line += data[i];
     character = data[i] === 0 ? character + data[i + 1] : data[i + 1];
     const type = legend.tokenTypes[data[i + 3]];
+    // `org-tag-faces`: each tag of a headline in an Org file with a face of
+    // its own, its name without the colons; the agenda shows tags in
+    // `org-tag` alone.
+    if (type === 'tag' && document.languageId === 'org' && line < document.lineCount) {
+      const text = document.lineAt(line).text.slice(character, character + data[i + 2]);
+      const names = /:([^:\s]+)(?=:)/g;
+      for (let found = names.exec(text); found; found = names.exec(text)) {
+        const key = `tag:${found[1]}`;
+        if (faceDecorations.has(key)) {
+          const start = character + found.index + 1;
+          const range = new vscode.Range(line, start, line, start + found[1].length);
+          ranges.set(key, [...(ranges.get(key) ?? []), range]);
+          shown.push([line, found[1]]);
+        }
+      }
+      continue;
+    }
     const kind = type === 'todoKeyword' ? 'todo' : type === 'priority' ? 'priority' : undefined;
     if (!kind || line >= document.lineCount) {
       continue;
@@ -807,6 +878,8 @@ interface ColumnsShown {
 }
 
 const columnsShown = new Map<string, ColumnsShown>();
+/** The outline path the status bar showed last for the agenda's cursor. */
+let echoed = '';
 const columnsPicked = new Map<string, number>();
 /** A headline's own text, under its columns. */
 const columnsHidden = vscode.window.createTextEditorDecorationType({ textDecoration: 'none; display: none;' });
@@ -864,6 +937,7 @@ function updateColumnsItem(editor: vscode.TextEditor | undefined): void {
 }
 
 function showColumns(params: ColumnsShown): void {
+  columnsReported = params;
   if (params.lines) {
     columnsShown.set(params.uri, params);
     const count = params.columns?.length ?? 1;
@@ -1197,19 +1271,37 @@ function indentVirtually(editor: vscode.TextEditor): void {
 
 // ----- line highlights
 
-/** `org-lsp/lineHighlights`: lines highlighted from edge to edge. */
+/**
+ * `org-lsp/lineHighlights`: lines highlighted from edge to edge: the
+ * agenda's clocked entry, and headlines with
+ * `org_fontify_whole_heading_line`.
+ */
 interface LineHighlights {
   uri: string;
   lines: { line: number; highlight: string }[];
 }
 
 const lineHighlights = new Map<string, LineHighlights>();
-/** A theme's token colours have no background: a decoration's has. */
+/**
+ * A theme's token colours have no background: a decoration's has. A
+ * headline's line takes the background of its level's colour
+ * (`org.headlineLevel1Background` …), none unless the user gives one, as
+ * Org's `org-level-N` faces have none.
+ */
 const lineDecorations: Record<string, vscode.TextEditorDecorationType> = {
   agendaClocking: vscode.window.createTextEditorDecorationType({
     isWholeLine: true,
     backgroundColor: new vscode.ThemeColor('org.agendaClockingBackground'),
   }),
+  ...Object.fromEntries(
+    [1, 2, 3, 4, 5, 6, 7, 8].map((level) => [
+      `headline.level${level}`,
+      vscode.window.createTextEditorDecorationType({
+        isWholeLine: true,
+        backgroundColor: new vscode.ThemeColor(`org.headlineLevel${level}Background`),
+      }),
+    ]),
+  ),
 };
 
 /** The lines of each editor highlighted, by highlight; for the tests. */
@@ -1241,6 +1333,71 @@ function highlightLines(editor: vscode.TextEditor): void {
   lineHighlightsShown.set(editor, shown);
 }
 
+// ----- habits
+
+/**
+ * The days of a habit's consistency graph in the agenda, in the
+ * background colors of org-habit's faces (`org-habit-clear-face` …
+ * `org-habit-overdue-future-face`), which a theme's token colors cannot
+ * give: decorations over the server's `agendaHabit` tokens, in the text's
+ * own color as Org shows them.
+ */
+const HABIT_FACES = ['Clear', 'Ready', 'Alert', 'Overdue'].flatMap((kind) => [kind, `${kind}Future`]);
+const habitDecorations: Record<string, vscode.TextEditorDecorationType> = Object.fromEntries(
+  HABIT_FACES.map((face) => [
+    face,
+    vscode.window.createTextEditorDecorationType({
+      backgroundColor: new vscode.ThemeColor(`org.agendaHabit${face}Background`),
+      color: new vscode.ThemeColor('editor.foreground'),
+    }),
+  ]),
+);
+/** The days of each agenda document, `[line, start, end, face]`, from its tokens. */
+const habitDays = new Map<string, [number, number, number, string][]>();
+/** For the tests: the days each editor shows, `[line, character, face]`. */
+const habitDaysShown = new WeakMap<vscode.TextEditor, [number, number, string][]>();
+
+/** Take the habits' days from the tokens of `document` as they pass by. */
+function habitsOf(document: vscode.TextDocument, tokens: vscode.SemanticTokens | null | undefined): void {
+  const legend = client?.initializeResult?.capabilities.semanticTokensProvider?.legend;
+  if (!tokens || !legend || document.languageId !== 'org-agenda') {
+    return;
+  }
+  const habit = legend.tokenTypes.indexOf('agendaHabit');
+  const bit = (name: string) => 1 << legend.tokenModifiers.indexOf(name);
+  const days: [number, number, number, string][] = [];
+  const data = tokens.data;
+  let line = 0;
+  let character = 0;
+  for (let i = 0; i + 4 < data.length; i += 5) {
+    line += data[i];
+    character = data[i] === 0 ? character + data[i + 1] : data[i + 1];
+    if (data[i + 3] !== habit) {
+      continue;
+    }
+    const modifiers = data[i + 4];
+    const kind = ['ready', 'alert', 'overdue'].find((name) => modifiers & bit(name)) ?? 'clear';
+    const face = kind[0].toUpperCase() + kind.slice(1) + (modifiers & bit('future') ? 'Future' : '');
+    days.push([line, character, character + data[i + 2], face]);
+  }
+  habitDays.set(document.uri.toString(), days);
+  vscode.window.visibleTextEditors.filter((editor) => editor.document === document).forEach(showHabits);
+}
+
+function showHabits(editor: vscode.TextEditor): void {
+  const days = habitDays.get(editor.document.uri.toString()) ?? [];
+  for (const face of HABIT_FACES) {
+    editor.setDecorations(
+      habitDecorations[face],
+      days.filter((day) => day[3] === face).map(([line, start, end]) => new vscode.Range(line, start, line, end)),
+    );
+  }
+  habitDaysShown.set(
+    editor,
+    days.map(([line, start, , face]) => [line, start, face]),
+  );
+}
+
 // ----- images
 
 /**
@@ -1256,8 +1413,18 @@ interface Preview {
   range: { start: { line: number; character: number }; end: { line: number; character: number } };
   remove: boolean | null;
   includeLinked?: boolean;
-  items?: { range: Preview['range']; path: string }[];
+  items?: { range: Preview['range']; path: string; width?: ImageSize; maxWidth?: ImageSize }[];
   startup?: boolean;
+}
+
+/**
+ * A width the server gives an image (`org-image-actual-width`,
+ * `org-image-max-width`): pixels, a part of the window's text, or columns.
+ */
+interface ImageSize {
+  pixels?: number;
+  fraction?: number;
+  columns?: number;
 }
 
 /** An image file: as a `data:` URI, its type and its size in pixels. */
@@ -1278,6 +1445,8 @@ interface ImageShown {
   end: number;
   text: string;
   file: ImageFile;
+  /** How wide the server says it shows, or at most. */
+  sizing: { width?: ImageSize; maxWidth?: ImageSize };
   /** The image as the editor draws it: an SVG of the size it takes in the line. */
   icon: vscode.Uri;
   width: number;
@@ -1439,7 +1608,8 @@ async function applyPreview(preview: Preview, quiet = false): Promise<void> {
       const start = offset(item.range.start);
       const end = offset(item.range.end);
       const text = document.getText(new vscode.Range(document.positionAt(start), document.positionAt(end)));
-      kept.push({ kind: preview.kind, path: item.path, start, end, text, file, ...lineImage(file) });
+      const sizing = { width: item.width, maxWidth: item.maxWidth };
+      kept.push({ kind: preview.kind, path: item.path, start, end, text, file, sizing, ...lineImage(file) });
       count += 1;
     });
     kept.sort((a, b) => a.start - b.start);
@@ -1532,6 +1702,22 @@ function imagesChanged(event: vscode.TextDocumentChangeEvent): void {
   }
 }
 
+/**
+ * How wide the image of a preview shows on hover, in pixels: as wide as
+ * the server says (`org-image-actual-width`), else its own width up to the
+ * most it says (`org-image-max-width`), and never more than 600, the
+ * hover's width. Columns are those of the editor's font.
+ */
+function hoverWidth(entry: ImageShown): number {
+  const hover = 600;
+  const column = vscode.workspace.getConfiguration('editor').get<number>('fontSize', 14) * 0.6;
+  const pixels = (size?: ImageSize) =>
+    size?.pixels ?? (size?.fraction !== undefined ? size.fraction * hover : size?.columns !== undefined ? size.columns * column : undefined);
+  const wanted = pixels(entry.sizing.width);
+  const shown = wanted ?? Math.min(entry.file.width, pixels(entry.sizing.maxWidth) ?? entry.file.width);
+  return Math.max(1, Math.round(Math.min(shown, hover)));
+}
+
 /** The image of a preview, whole, on hover over it. */
 const imageHover: vscode.HoverProvider = {
   provideHover(document, position) {
@@ -1540,7 +1726,7 @@ const imageHover: vscode.HoverProvider = {
     if (!entry) {
       return undefined;
     }
-    const width = Math.min(entry.file.width, 600);
+    const width = hoverWidth(entry);
     // The file itself, not its data: VS Code cuts a hover's text short
     // past 100,000 characters.
     const markdown = new vscode.MarkdownString(`![](${vscode.Uri.file(entry.path).toString()}|width=${width})`);
@@ -1585,6 +1771,44 @@ function imagesEnabled(): boolean {
   return vscode.workspace.getConfiguration('org-lsp').get<boolean>('images', true);
 }
 
+// ----- headline levels
+
+/**
+ * `org-lsp.headlineLevelColors`: the title and stars of a headline as a
+ * token of the type `outline`, with its level, which takes the theme's colors
+ * of code as Emacs's `outline-N` faces do (function, variable, keyword,
+ * comment …), in place of the one heading color themes give every level.
+ * Done and TODO headlines past their keyword, archived ones and inline tasks
+ * carry no level and keep their own look. The types and modifiers are the
+ * server's legend.
+ */
+function levelColored(tokens: vscode.SemanticTokens | null | undefined): vscode.SemanticTokens | null | undefined {
+  const legend = client?.initializeResult?.capabilities.semanticTokensProvider?.legend;
+  if (!tokens || !legend || !vscode.workspace.getConfiguration('org-lsp').get<boolean>('headlineLevelColors', false)) {
+    return tokens;
+  }
+  const outline = legend.tokenTypes.indexOf('outline');
+  const headlines = ['headline', 'stars'].map((type) => legend.tokenTypes.indexOf(type)).filter((index) => index >= 0);
+  const levels = legend.tokenModifiers.reduce((bits, name, bit) => (/^level[1-8]$/.test(name) ? bits | (1 << bit) : bits), 0);
+  if (outline < 0 || levels === 0) {
+    return tokens;
+  }
+  const data = new Uint32Array(tokens.data);
+  for (let i = 0; i + 4 < data.length; i += 5) {
+    if (headlines.includes(data[i + 3]) && (data[i + 4] & levels) !== 0) {
+      data[i + 3] = outline;
+    }
+  }
+  return new vscode.SemanticTokens(data, tokens.resultId);
+}
+
+/** Has VS Code ask for the tokens of the open documents again. */
+function refreshTokens(): void {
+  const feature = client?.getFeature('textDocument/semanticTokens');
+  const providers = new Set(vscode.workspace.textDocuments.map((document) => feature?.getProvider(document)));
+  providers.forEach((provider) => provider?.onDidChangeSemanticTokensEmitter.fire());
+}
+
 // ----- sparse trees
 
 const sparseDecoration = vscode.window.createTextEditorDecorationType({
@@ -1592,21 +1816,32 @@ const sparseDecoration = vscode.window.createTextEditorDecorationType({
 });
 
 /** The matches of the sparse tree each document shows; for the tests. */
-const sparseShown = new Map<string, vscode.Range[]>();
+const sparseShown = new Map<string, { ranges: vscode.Range[]; keep: boolean }>();
 
 /**
  * A sparse tree (`org-sparse-tree`) in the editor at hand: everything
  * folded, then the regions around each of its lines unfolded, as
  * `org-occur` shows its matches; the matches highlighted until the text
- * changes. With `keep` (`org-reveal`), only the folds that start on the
- * lines of `unfold` open; the others stay as they are.
+ * changes, or with `keepHighlights` until they are replaced. With `keep`
+ * (`org-reveal`), only the folds that start on the lines of `unfold` open;
+ * the others stay as they are, and `highlights`, when given (`C-c C-c`),
+ * replace those shown.
  */
 async function showSparse(running: LanguageClient, result: unknown): Promise<void> {
-  type Sparse = { lines?: number[]; highlights?: unknown[]; keep?: boolean; unfold?: number[] };
+  type Sparse = { lines?: number[]; highlights?: unknown[]; keepHighlights?: boolean; keep?: boolean; unfold?: number[] };
   const sparse = (result as { sparse?: Sparse } | null)?.sparse;
   const editor = vscode.window.activeTextEditor;
   if (!sparse || !editor) {
     return;
+  }
+  if (!sparse.keep || sparse.highlights) {
+    const ranges = (sparse.highlights ?? [])
+      .map((range) =>
+        running.protocol2CodeConverter.asRange(range as Parameters<typeof running.protocol2CodeConverter.asRange>[0]),
+      )
+      .filter((range): range is vscode.Range => range !== undefined);
+    editor.setDecorations(sparseDecoration, ranges);
+    sparseShown.set(editor.document.uri.toString(), { ranges, keep: sparse.keepHighlights === true });
   }
   if (sparse.keep) {
     const unfold = sparse.unfold ?? [];
@@ -1615,13 +1850,6 @@ async function showSparse(running: LanguageClient, result: unknown): Promise<voi
     }
     return;
   }
-  const ranges = (sparse.highlights ?? [])
-    .map((range) =>
-      running.protocol2CodeConverter.asRange(range as Parameters<typeof running.protocol2CodeConverter.asRange>[0]),
-    )
-    .filter((range): range is vscode.Range => range !== undefined);
-  editor.setDecorations(sparseDecoration, ranges);
-  sparseShown.set(editor.document.uri.toString(), ranges);
   await vscode.commands.executeCommand('editor.foldAll');
   const lines = sparse.lines ?? [];
   if (lines.length > 0) {
@@ -1629,10 +1857,14 @@ async function showSparse(running: LanguageClient, result: unknown): Promise<voi
   }
 }
 
-/** Org takes the highlighting away at the next change. */
+/**
+ * Org takes the highlighting away at the next change, unless the server
+ * says it stays (`org-remove-highlights-with-change`).
+ */
 function clearSparse(event: vscode.TextDocumentChangeEvent): void {
   const key = event.document.uri.toString();
-  if (event.contentChanges.length === 0 || !sparseShown.has(key)) {
+  const shown = sparseShown.get(key);
+  if (event.contentChanges.length === 0 || !shown || shown.keep) {
     return;
   }
   sparseShown.delete(key);
@@ -1742,9 +1974,14 @@ interface JournalFolds {
   close?: { startLine: number }[];
 }
 
+/** When each document last changed, for the folds that follow an edit. */
+const lastChanged = new Map<string, number>();
+
 /**
  * The headlines of a document org-journal showed, folded as it folds
- * them, once the editor shows it as an Org file with its folds.
+ * them, or the subtrees a yank or paste folded right after its edit, once
+ * the editor shows it as an Org file with its folds. VS Code's folds
+ * follow an edit a moment later.
  */
 async function journalFolds(params: JournalFolds): Promise<void> {
   let editor: vscode.TextEditor | undefined;
@@ -1758,6 +1995,10 @@ async function journalFolds(params: JournalFolds): Promise<void> {
   }
   if (!editor) {
     return;
+  }
+  const since = Date.now() - (lastChanged.get(editor.document.uri.toString()) ?? 0);
+  if (since < 600) {
+    await new Promise((resolve) => setTimeout(resolve, 600 - since));
   }
   await foldingRanges(editor.document);
   const open = (params.open ?? []).map((range) => range.startLine);
@@ -1849,6 +2090,29 @@ async function cycle(args?: Partial<KeyArgs>): Promise<void> {
     await vscode.commands.executeCommand('org.table.next.field');
     return;
   }
+  // What TAB does before it folds (`org.cycle`): a new, empty entry
+  // changes level, the start of the file cycles globally.
+  let integrateLists = false;
+  const running = client;
+  if (running) {
+    type Before = { edits?: unknown[]; global?: boolean; integrateLists?: boolean } | null;
+    let before: Before;
+    try {
+      before = (await running.sendRequest('workspace/executeCommand', { command: 'org.cycle', arguments: cursor(running) })) as Before;
+    } catch (error) {
+      void vscode.window.showErrorMessage(error instanceof Error ? error.message : String(error));
+      return;
+    }
+    if (Array.isArray(before?.edits)) {
+      await applyCarried(running, before);
+      return;
+    }
+    if (before?.global) {
+      await cycleGlobal();
+      return;
+    }
+    integrateLists = before?.integrateLists === true;
+  }
   const ranges = await foldingRanges(editor.document);
   const line = editor.selection.active.line;
   let current = ranges.find((range) => range.start === line);
@@ -1868,7 +2132,10 @@ async function cycle(args?: Partial<KeyArgs>): Promise<void> {
   const archived = archivedAt(editor, start);
   if (await closed(editor, start)) {
     await unfoldAll(start);
-    const children = [...new Set(childrenOf(current, ranges).map((range) => range.start))];
+    // Lists stay open but with `org_cycle_include_plain_lists` `integrate`.
+    const folded = (range: vscode.FoldingRange) =>
+      integrateLists || !isItem(editor, range.start) || isItem(editor, start);
+    const children = [...new Set(childrenOf(current, ranges).filter(folded).map((range) => range.start))];
     await fold(children);
     // An archived subtree stays closed (`org-cycle-hide-archived-subtrees`).
     if (archived) {
@@ -1888,6 +2155,11 @@ async function cycle(args?: Partial<KeyArgs>): Promise<void> {
     await fold([start]);
     remember(editor, start, 'folded');
   }
+}
+
+/** Whether line `line` starts a list item. */
+function isItem(editor: vscode.TextEditor, line: number): boolean {
+  return /^(\s*([-+]|\d+[.)])|\s+\*)(\s|$)/.test(editor.document.lineAt(line).text);
 }
 
 /** Whether the cursor is on a line of a table. */
@@ -2015,6 +2287,8 @@ export interface Api {
   virtualIndent(editor: vscode.TextEditor): number[][];
   /** The lines of `editor` highlighted from edge to edge: `[line, highlight]`. */
   lineHighlights(editor: vscode.TextEditor): [number, string][];
+  /** The days of habits' graphs in `editor`, `[line, character, face]`: `Clear`, `OverdueFuture`… */
+  habitDays(editor: vscode.TextEditor): [number, number, string][];
   /** The keywords and priorities shown in a face of their own, `[line, text]`. */
   faces(editor: vscode.TextEditor): [number, string][];
   /** The text of the matches of the sparse tree `editor` shows. */
@@ -2023,6 +2297,17 @@ export interface Api {
   help(editor: vscode.TextEditor): string[][];
   /** The previews of `editor`: `[kind, line, file name, width, height]` each. */
   images(editor: vscode.TextEditor): [string, number, string, number, number][];
+  /** The outline path of the agenda line shown last (`org-agenda-show-outline-path`). */
+  echoed(): string;
+  /** The server's commands run so far, in turn, and how many commands and
+   * documents to show are not done yet. */
+  commands(): { run: string[]; running: number };
+  /** What the server said column view shows, last (`org-lsp/columns`). */
+  columnsReported(): unknown;
+  /** Done when the server has handled what it was sent before. */
+  sync(): Promise<void>;
+  /** The server's text of one of its documents (the agenda, the date prompt). */
+  content(uri: string): Promise<string | undefined>;
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<Api> {
@@ -2080,7 +2365,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     ...Object.values(lineDecorations),
     sparseDecoration,
     vscode.workspace.onDidChangeTextDocument(clearSparse),
+    vscode.workspace.onDidChangeTextDocument((event) => lastChanged.set(event.document.uri.toString(), Date.now())),
+    vscode.workspace.onDidCloseTextDocument((document) => lastChanged.delete(document.uri.toString())),
     vscode.window.onDidChangeVisibleTextEditors((editors) => editors.forEach(highlightLines)),
+    ...Object.values(habitDecorations),
+    vscode.window.onDidChangeVisibleTextEditors((editors) => editors.forEach(showHabits)),
     vscode.window.onDidChangeVisibleTextEditors((editors) => editors.forEach((editor) => void paintFaces(editor))),
     vscode.workspace.onDidChangeTextDocument(facesChanged),
     { dispose: () => faceDecorations.forEach((decoration) => decoration.dispose()) },
@@ -2099,6 +2388,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
         setTimeout(() => void startupPreviews(running, document), 50);
       }
     }),
+    // Headlines in the colors of their level, or all in the heading's.
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration('org-lsp.headlineLevelColors')) {
+        refreshTokens();
+      }
+    }),
     // Images as high as a line.
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration('editor.lineHeight') || event.affectsConfiguration('editor.fontSize')) {
@@ -2113,13 +2408,26 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     concealed: (editor) => concealedText.get(editor) ?? [],
     clock: clockText,
     columns: () => columnsItem?.text ?? '',
+    echoed: () => echoed,
+    commands: () => ({ run: [...commandsRun], running: busy }),
+    columnsReported: () => columnsReported,
+    // A request the server does not know is answered all the same, in turn.
+    sync: async () => {
+      await client?.sendRequest('org-lsp/test-sync').catch(() => undefined);
+    },
+    content: async (uri) => {
+      const result = await client?.sendRequest('workspace/textDocumentContent', { uri }).catch(() => undefined);
+      return (result as { text?: string } | undefined)?.text;
+    },
     columnsShown: (editor) => (columnsShown.get(editor.document.uri.toString())?.lines ?? []).map(([line, text]) => [line, text]),
     timer: timerText,
     standIns: (editor) => standInsShown.get(editor) ?? [],
     virtualIndent: (editor) => virtualIndentShown.get(editor) ?? [],
     lineHighlights: (editor) => lineHighlightsShown.get(editor) ?? [],
+    habitDays: (editor) => habitDaysShown.get(editor) ?? [],
     faces: (editor) => facesShown.get(editor) ?? [],
-    sparse: (editor) => (sparseShown.get(editor.document.uri.toString()) ?? []).map((range) => editor.document.getText(range)),
+    sparse: (editor) =>
+      (sparseShown.get(editor.document.uri.toString())?.ranges ?? []).map((range) => editor.document.getText(range)),
     help: (editor) => helpItems(context.extension.packageJSON, editor).map((item) => [item.key, item.title]),
     images: (editor) =>
       (imagesShown.get(editor.document.uri.toString()) ?? []).map((entry) => [

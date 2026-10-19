@@ -23,10 +23,13 @@ its sections says what it should look like.
 
 * Highlighting
 
-*Partly:* Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Zed lets no server hide text. The colors need ~"semantic_tokens": "combined"~; code blocks take their language's colors, inline code does not.
+*Partly:* Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Zed lets no server hide text. The colors need ~"semantic_tokens": "combined"~; code blocks take their language's colors, inline code does not. A headline's look does not go on to the edge of the window (~org_fontify_whole_heading_line~): Zed lets no server color a line past its text.
 
 - [ ] Headlines are colored by level; TODO and DONE keywords, priorities (~[#A]~) and tags have colors of their own
+- [ ] With ~org_fontify_todo_headline = true~ the text of a TODO headline, and with ~org_fontify_quote_and_verse_blocks = true~ the lines of a quote block, take a look of their own
+- [ ] With ~org_n_level_faces = 2~, a headline of level 3 has the color of level 1; with ~org_cycle_level_faces = false~ too, that of level 2
 - [ ] ~*bold*~, ~/italic/~, ~_underline_~, ~+strike+~, ~=verbatim=~ and =~code~= are colored
+- [ ] With ~org_emphasis_alist = { "*": ["bold", "italic"] }~, ~*this*~ is bold and italic and ~/that/~ plain; with ~org_fontify_emphasized_text = false~ neither has a look
 - [ ] Timestamps, ~SCHEDULED:~ and ~DEADLINE:~, ~CLOCK:~ lines, drawers, ~#+~ keywords and ~#~ comments are colored
 - [ ] A ~#+begin_src python~ block shows its code in Python's colors
 - [ ] Table rules and bars, footnotes (~[fn:1]~), ~<<targets>>~, macros (~{{{x}}}~) and entities (~\alpha~) are colored
@@ -37,14 +40,13 @@ its sections says what it should look like.
 *Partly:* Zed folds with its own folding: Org's cycling and sparse trees need folds an extension can set, which Zed does not offer.
 
 - [ ] On a headline, cycling goes folded → children → subtree
-- [ ] Cycling the whole file goes overview → contents → everything
 - [ ] Narrowing to the subtree opens it in a file of its own; saving that file writes it back into the Org file and saves it: the code action /Narrow to the subtree: it in a file of its own/
 - [ ] Widening in the narrowed file writes it back and closes it (~C-c '~ there does the same): the code action /Widen: the narrowed file written back and closed/
 - [ ] Zed's own folds open and close on headlines, drawers and blocks
 
 * Headings and structure
 
-*Partly:* A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text.
+*Partly:* A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. ~C-a~, ~C-e~, ~C-k~ and ~C-y~ keep Zed's own meaning, and nothing pasted is folded: Zed lets no server fold.
 
 - [ ] On a headline, a new heading of the same level goes below: the code action /New heading, item or table row/
 - [ ] A new TODO heading: the code action /New TODO heading, or item with a checkbox/
@@ -52,8 +54,10 @@ its sections says what it should look like.
 - [ ] Promoting and demoting a heading; its tags stay aligned: the code action /Promote the heading; outdent the item; move the table column left/, the code action /Demote the heading; indent the item, the drawer or the block; move the table column right/
 - [ ] Promoting and demoting a subtree: the code action /Promote the subtree; outdent the item with its children; delete the table column/, the code action /Demote the subtree; indent the item with its children; insert a table column/
 - [ ] Moving a subtree up and down past its siblings: the code action /Move the subtree, the item or the table row up/, the code action /Move the subtree, the item or the table row down/
+- [ ] Inserting an inline task gives 15 stars and an ~END~ line; demoting it changes both; the outline leaves it out, and folding it hides its text and its ~END~ line: the code action /Insert an inline task/, the code action /Demote the heading; indent the item, the drawer or the block; move the table column right/
 - [ ] Cutting a subtree and pasting it under another heading: its level fits there: the code action /Cut the subtree/, the code action /Paste the subtree/
 - [ ] Copying a subtree and pasting it: the code action /Copy the subtree/, the code action /Paste the subtree/
+- [ ] With ~org_allow_promoting_top_level_subtree~ on, promoting ~* A~ makes it ~# A~: the code action /Promote the heading; outdent the item; move the table column left/
 - [ ] Sorting the children of a heading alphabetically, then by TODO state: the code action /Sort the entries, the items or the table rows/
 - [ ] Moving to the next and previous heading; with a count, that many: the code action /Move to the next heading/, the code action /Move to the previous heading/
 - [ ] Moving to the next and previous heading of the same level, stopping at the parent's end: the code action /Move to the next heading of the same level/, the code action /Move to the previous heading of the same level/
@@ -100,7 +104,7 @@ its sections says what it should look like.
 
 * Tags
 
-*Partly:* Tags are typed, not set with keys pressed in turn: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Completion and renaming work.
+*Partly:* Tags are typed, not set with keys pressed in turn: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Completion and renaming work. Faces of particular tags are not shown: Zed colors tokens by its theme only.
 
 - [ ] Typing tags when none have keys; they are sorted and aligned to ~org_tags_column~: the code action /Set the tags of the headline/
 - [ ] Tags are completed after ~:~ at the end of a headline
@@ -108,7 +112,7 @@ its sections says what it should look like.
 
 * Properties and column view
 
-*Partly:* A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Column view is left out: it draws over the headlines.
+*Partly:* A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Column view is left out: it draws over the headlines. Custom properties are not hidden (~org.custom.properties.toggle~): Zed lets no server hide text.
 
 - [ ] Setting a property: the name and the value are asked for: the code action /Set a property of the entry/
 - [ ] On a property line with ~NAME_ALL~, cycling through its values: the code action /Move the date a day later, or cycle the TODO state or the list's bullets forward/, the code action /Move the date a day earlier, or cycle the TODO state or the list's bullets backward/
@@ -131,11 +135,12 @@ its sections says what it should look like.
 
 * Agenda
 
-*Partly:* The agenda is a file, its commands code actions (or keys through Zed's tasks); for a search and a date, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Follow mode is left out: Zed reports no cursor moves to an extension. Column view in the agenda is left out: it draws over the lines.
+*Partly:* The agenda is a file, its commands code actions (or keys through Zed's tasks); for a search and a date, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Follow mode and the outline path of the cursor's entry are left out: Zed reports no cursor moves to an extension. Column view in the agenda is left out: it draws over the lines. The days of a habit's graph have Org's backgrounds for a dark background, a little transparent, with any theme: an extension's colors for tokens are the same with every theme.
 
 - [ ] The agenda menu lists the views and the custom commands: the code action /Agenda commands/
 - [ ] The week view: scheduled entries, deadlines with their warnings, the time grid: the code action /Agenda for the current week or day/
 - [ ] Later, earlier, today; day, week, month views; going to a date: the code action /Agenda: go forward in time/, the code action /Agenda: go backward in time/, the code action /Agenda: go to today/, the code action /Agenda: day view/, the code action /Agenda: week view/, the code action /Agenda: month view/, the code action /Agenda: go to a date/
+- [ ] With ~org_modules = ["org-habit"]~, a habit's consistency graph shows its days on the backgrounds of ~org-habit~'s faces: blue before it is due, green in its time to be done, yellow on the day it is due by, red past it, paler for the days the ~-future~ faces are for: the code action /Agenda for the current week or day/
 - [ ] The TODO list, a tag search (~work+urgent~), a word search: the code action /Agenda commands/
 - [ ] With ~org_super_agenda_mode~ on and ~org_super_agenda_groups~ set (~[{ name = "Today", time-grid = true }, { auto-category = true }]~), each day of the agenda is in groups under their headers, and the TODO list too: the code action /Agenda for the current week or day/
 - [ ] With ~org_agenda_prefix_format~ ~{ todo = " %-12:c%-4(org-entry-get nil "EFFORT") " }~, the TODO list shows each entry's effort after its category, ~nil~ without one (needs Emacs): the code action /List of all TODO entries/
@@ -156,7 +161,7 @@ its sections says what it should look like.
 
 * Clocking
 
-*Partly:* No clock in the status line: Zed has no place there for an extension's text.
+*Partly:* No clock in the status line: Zed has no place there for an extension's text. In the agenda, the clocked entry's line has the background of ~org-agenda-clocking~ under its text, not to the window's edge: Zed lets no extension highlight a line, only give its tokens a background, and the tokens end with the text.
 
 - [ ] Clocking into an entry whose effort its time passes shows ~Task ‘…’ should be finished by now. (0:30)~, once: the code action /Clock in/
 - [ ] Clocking in: ~:LOGBOOK:~ gets a ~CLOCK:~ line and the clock shows (~[0:01] (Task)~): the code action /Clock in/
@@ -166,8 +171,9 @@ its sections says what it should look like.
 - [ ] Clocking in the last entry again: the code action /Clock in the last clocked task/
 - [ ] The time clocked under each headline shows next to it: the code action /Show the time clocked under each headline/
 - [ ] A clock table: inserted, then updated; shifting its ~:block~ on the ~#+BEGIN:~ line: the code action /Insert or update a clock table/, the code action /Update the dynamic block/
-- [ ] A clock left running when the editor closed is offered for resolving on the next start: the code action /Resolve a dangling clock/
-- [ ] In the agenda, clocking in and out; the clocked line is highlighted from edge to edge: the code action /Clock in/, the code action /Clock out/
+- [ ] A clock left running when the editor closed is asked about (~Dangling clock started N mins ago [jkKtTgGSscCiq]? ~); ~K~ and Enter stops it now: the code action /Resolve open clocks/
+- [ ] With a clock left running and none clocked, clocking into another entry asks about it first: the code action /Clock in/
+- [ ] In the agenda, clocking in and out; the clocked line's text is highlighted: the code action /Clock in/, the code action /Clock out/
 
 * Capture
 
@@ -183,6 +189,15 @@ its sections says what it should look like.
 - [ ] ~%c~ puts in what was copied last (in Neovim and Vim, the register the key was typed with): the code action /Capture/
 - [ ] ~%[snippet.txt]~ puts in the file's text, relative to the file captured from: the code action /Capture/
 - [ ] ~%(upcase "abc")~ puts in ~ABC~, what Emacs makes of it (needs Emacs): the code action /Capture/
+
+* org-protocol
+
+*Partly:* The server starts a capture itself: the template is picked from Zed's question, and for its prompts the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text.
+
+- [ ] With ~scripts/install.sh protocol~ run, the store-link bookmarklet of docs/org-protocol.org says ~‘C-c C-l’ to insert new Org link, ‘C-y’ to insert "…"~, and inserting a link offers the page
+- [ ] The capture bookmarklet with some text selected opens the capture buffer with the page's title, link and the text (a template with ~%:description~, ~%:link~, ~%i~)
+- [ ] With ~org_protocol_project_alist~ set, ~org-lsp protocol 'org-protocol://open-source?url=…'~ opens the page's file
+- [ ] With the editor closed and ~org_protocol_editor~ set, the capture bookmarklet starts the editor and the capture buffer opens in it
 
 * Notes (org-roam)
 
@@ -200,10 +215,12 @@ its sections says what it should look like.
 - [ ] Following an item of the buffer visits the line of the link: the code action /Open the link or thing at the cursor/
 - [ ] A dedicated buffer for a node asked for opens in a file of its own and stays on that node: the code action /Roam: show the org-roam buffer of a node/
 - [ ] With ~"unlinked-references"~ in ~org_roam_mode_sections~, a line naming the node's title without a link is listed under /Unlinked References/: the code action /Roam: refresh the org-roam buffer/
+- [ ] Going to today's daily note makes ~daily/YYYY-MM-DD.org~ with its ~ID~ and ~#+title:~; capturing to it adds an entry at its end; the next and previous notes go from one to the other: the code action /Roam: go to today's daily note/, the code action /Roam: capture to today's daily note/, the code action /Roam: go to the next daily note/
+- [ ] Opening the directory of the daily notes offers its notes; the one picked is visited: the code action /Roam: open the directory of the daily notes/
 
 * A journal (org-journal)
 
-*Partly:* For the dates and searches the commands ask for, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with ~file_types~ in Zed's settings.
+*Partly:* For the dates and searches the commands ask for, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with ~file_types~ in Zed's settings. The calendar and the keys org-journal adds to it are left out: Zed shows no date prompt.
 
 - [ ] With ~org_journal_enabled~ on, a new entry makes today's file in ~org_journal_dir~ (a file without an extension, opened as Org) with today's date and an entry with the time, the cursor after it: the code action /Journal: new entry/
 - [ ] With a journal file of yesterday holding a TODO entry, the first new entry of today moves it to today's file: the code action /Journal: new entry/
@@ -229,7 +246,10 @@ its sections says what it should look like.
 - [ ] A ~#+LINK: gh https://github.com/%s~ line makes ~[[gh:org-lsp]]~ follow ~https://github.com/org-lsp~; ~org_link_abbrev_alist~ does the same from the settings: the code action /Open the link or thing at the cursor/
 - [ ] Following a link to a headline, a custom ID and a ~<<target>>~: the code action /Open the link or thing at the cursor/
 - [ ] Following a ~file:~ link with a search (~file:notes.org::*Heading~) and an ~id:~ link: the code action /Open the link or thing at the cursor/
+- [ ] Following ~[[No such heading]]~ asks whether to make it; yes adds ~* No such heading~ at the end of the file and goes there: the code action /Open the link or thing at the cursor/
 - [ ] Following a URL opens the browser; a timestamp opens its day's agenda: the code action /Open the link or thing at the cursor/
+- [ ] Following ~[[shell:echo hi]]~ asks ~Execute echo hi in shell?~; yes says ~hi~, no says ~Abort~: the code action /Open the link or thing at the cursor/
+- [ ] With ~org_modules~ ~["ol-man"]~, following ~[[man:ls::-l]]~ shows the man page of ~ls~ as text, near ~-l~; ~[[info:elisp#Buffers]]~ opens the Elisp manual on the web at ~Buffers~: the code action /Open the link or thing at the cursor/
 - [ ] Go to definition on a link does the same: ~F12~
 - [ ] Storing a link to a headline and inserting it elsewhere with a description: the code action /Store a link to the place at the cursor/, the code action /Insert a link, or edit the one at the cursor/
 - [ ] Inserting a link on an existing link edits it: the code action /Insert a link, or edit the one at the cursor/
@@ -261,6 +281,7 @@ its sections says what it should look like.
 - [ ] The sum of the column and the field's references are shown as messages (needs Emacs): the code action /Sum the numbers of the table column/, the code action /Show the references of the table field/
 - [ ] Creating a table asks for its size (~3x2~; empty for Org's default) (needs Emacs): the code action /Insert an empty table/
 - [ ] Sorting the rows by the cursor's column: the code action /Sort the entries, the items or the table rows/
+- [ ] A table under ~#+PLOT: file:"plot.png"~ is plotted to ~plot.png~ (needs Emacs with gnuplot.el, and gnuplot); the bars of a column of numbers go in a column of their own with its ~#+TBLFM:~ (needs Emacs): the code action /Plot the table with gnuplot/, the code action /Draw the column at the cursor as bars/
 - [ ] The ~#+TBLFM:~ line follows a moved column
 
 * Table formulas
@@ -305,9 +326,14 @@ its sections says what it should look like.
 
 * Citations
 
+*Partly:* The BibTeX commands' fields are asked for in turn, and the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text.
+
 - [ ] Keys are completed after ~[cite:@~
 - [ ] Hovering a key shows its entry; following it opens the bibliography there
 - [ ] An unknown key is reported, with close keys to put instead
+- [ ] A new BibTeX entry asks for its type (completed), title, required fields and key, then is a headline with those properties: the code action /BibTeX: new entry, its fields asked for/
+- [ ] The entry at the cursor copied as BibTeX; the file's entries exported to the ~.bib~ file asked for: the code action /BibTeX: copy the entry at the cursor as BibTeX/, the code action /BibTeX: export the entries of the file to a .bib file/
+- [ ] A BibTeX entry copied from elsewhere pasted as a headline; a ~.bib~ file imported: the code action /BibTeX: paste a BibTeX entry as a heading/, the code action /BibTeX: import the entries of a BibTeX file as headings/
 
 * Diagnostics (org-lint)
 
@@ -317,11 +343,13 @@ its sections says what it should look like.
 
 * Indentation and formatting
 
-*Partly:* Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed.
+*Partly:* Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. With soft wrap on, the lines a long line wraps into line up with the prefix and its own indentation, not with a headline's title or an item's text: Zed wraps under a line's leading blanks, inlay hints among them.
 
 - [ ] A file with ~#+STARTUP: indent~ shows its text indented by level, the file unchanged
+- [ ] In a file with ~#+STARTUP: indent~, with soft wrap on, a long line of text goes on under its text
 - [ ] Re-indenting a selection indents it as Org does: format selections
 - [ ] Formatting the file aligns tables and puts tags in their column
+- [ ] A file with ~#+STARTUP: num~ shows ~1~, ~1.1~​… after the stars of its headlines; the command turns them off and on: the code action /Number the headlines, or stop numbering them/
 
 * Notes and logging
 
@@ -330,6 +358,7 @@ its sections says what it should look like.
 - [ ] Adding a note: it is asked for, and goes in the entry's log: the code action /Add a note to the entry/
 - [ ] With ~LOG_INTO_DRAWER~, the note goes in ~:LOGBOOK:~: the code action /Add a note to the entry/
 - [ ] Adding a note from the agenda: the code action /Add a note to the entry/
+- [ ] With ~org_log_done~ ~"time"~, ~org.todo.yesterday~ marks an entry done with ~CLOSED:~ at 23:59 of yesterday: the code action /Change the TODO state as if it were yesterday/
 
 * Completion and editing helpers
 

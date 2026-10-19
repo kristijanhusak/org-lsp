@@ -1,0 +1,23 @@
+* TODO no date
+* TODO scheduled today
+  SCHEDULED: <2026-05-18 Mon>
+* TODO scheduled later today
+  SCHEDULED: <2026-05-18 Mon 15:00>
+* TODO scheduled tomorrow
+  SCHEDULED: <2026-05-19 Tue>
+* TODO scheduled last week
+  SCHEDULED: <2026-05-11 Mon>
+* TODO deadline soon
+  DEADLINE: <2026-05-22 Fri>
+* TODO deadline far
+  DEADLINE: <2026-07-01 Wed>
+* TODO deadline far, warned early
+  DEADLINE: <2026-07-01 Wed -60d>
+* TODO a meeting <2026-05-25 Mon>
+* TODO a meeting that was <2026-05-01 Fri>
+* TODO scheduled, then a timestamp
+  SCHEDULED: <2026-05-10 Sun>
+  <2026-05-30 Sat>
+** TODO below it
+* TODO a parent with a date <2026-06-10 Wed>
+** TODO its child

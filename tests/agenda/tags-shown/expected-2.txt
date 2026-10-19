@@ -1,0 +1,6 @@
+Search words: o
+  work:       Project                                               :file::proj:
+  work:       TODO plain one                                        :file:proj::
+  work:       TODO call Bob                                   :file:proj::phone:
+  work:       TODO top level                                        :file::keep:
+  work:       TODO write the plan                               :file:proj::doc:

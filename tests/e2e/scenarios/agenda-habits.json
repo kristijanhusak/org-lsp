@@ -1,0 +1,12 @@
+{
+  "description": "Habits in the agenda, hidden and shown again (K), against Emacs's views.",
+  "files_from": "agenda/habits",
+  "clock": { "today": "2026-05-18", "now": "08:20" },
+  "options": { "org_modules": ["org-habit"] },
+  "steps": [
+    { "open": "habits.org" },
+    { "command": "org.agenda.dispatch", "answers": ["a"], "expect": ["agenda"], "emacs": "agenda/habits/expected-1.txt" },
+    { "command": "org.agenda.habits", "expect": ["agenda", "messages"] },
+    { "command": "org.agenda.habits", "expect": ["agenda", "messages"], "emacs": "agenda/habits/expected-1.txt" }
+  ]
+}

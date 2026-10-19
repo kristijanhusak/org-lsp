@@ -1,0 +1,44 @@
+{
+  "description": "Changing entries from the agenda: TODO states and sets, priorities, dates, effort, properties, tags and notes.",
+  "options": {
+    "org_todo_keywords": [["TODO", "NEXT", "|", "DONE"], ["BUG", "|", "FIXED"]],
+    "org_tag_alist": "office(o) home(h)"
+  },
+  "files": {
+    "work.org": [
+      "* TODO [#A] Write report :office:",
+      "SCHEDULED: <2026-05-18 Mon 09:00>",
+      "* TODO Call the client",
+      "DEADLINE: <2026-05-20 Wed>",
+      "* BUG Login fails",
+      "SCHEDULED: <2026-05-19 Tue>"
+    ],
+    "home.org": ["* TODO Water plants", "SCHEDULED: <2026-05-16 Sat +1w>"]
+  },
+  "steps": [
+    { "open": "work.org" },
+    { "command": "org.agenda.dispatch", "answers": ["a"] },
+    { "at": "In   2 d.:  TODO Call", "command": "org.todo", "expect": ["agenda", "messages"] },
+    { "command": "org.todo", "expect": ["cursor", "file:work.org", "messages"] },
+    { "command": "org.agenda.redo" },
+    { "at": "BUG Login", "command": "org.todo.nextset", "expect": ["cursor", "messages"] },
+    { "command": "org.todo.previousset", "expect": ["cursor", "file:work.org"] },
+    { "at": "Water plants", "command": "org.priority.up", "expect": ["cursor", "messages"] },
+    { "command": "org.priority.up", "expect": ["cursor"] },
+    { "command": "org.priority.down", "count": 2, "expect": ["cursor", "file:home.org"] },
+    { "command": "org.priority", "answers": ["c"], "expect": ["cursor", "messages"] },
+    { "command": "org.priority", "answers": [" "], "expect": ["cursor", "messages"] },
+    { "command": "org.date.later", "expect": ["cursor", "file:home.org"] },
+    { "command": "org.date.later", "count": 3, "expect": ["cursor"] },
+    { "command": "org.date.earlier", "count": 4, "expect": ["cursor", "file:home.org", "messages"] },
+    { "at": "Write report", "command": "org.schedule", "answers": ["wed 11:00"], "expect": ["cursor", "file:work.org", "messages"] },
+    { "command": "org.deadline", "answers": ["2026-05-29"], "expect": ["cursor", "file:work.org", "messages"] },
+    { "command": "org.effort.set", "answers": ["1:30"], "expect": ["file:work.org", "messages"] },
+    { "command": "org.property.set", "answers": ["Owner", "Ann"], "expect": ["file:work.org", "messages"] },
+    { "command": "org.tags.set", "answers": ["h", "\r"], "expect": ["cursor", "file:work.org", "messages"] },
+    { "command": "org.add.note", "expect": ["buffer"] },
+    { "type": "Sent the draft" },
+    { "command": "org.capture.finish", "expect": ["cursor", "file:work.org", "messages"] },
+    { "command": "org.agenda.redo", "expect": ["agenda"] }
+  ]
+}

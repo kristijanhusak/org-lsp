@@ -91,6 +91,14 @@ const fallbacks = {
   'alt+shift+down': { command: 'select_lines', args: { forward: true } },
   'alt+up': { command: 'swap_line_up' },
   'alt+down': { command: 'swap_line_down' },
+  // The line keys of the Emacs preset (`org.beginning.of.line` and its
+  // kin): Sublime Text's own on Linux and Windows; C-k, which starts its
+  // chords there, deletes to the line's end as on macOS.
+  'emacs:ctrl+a': { command: 'select_all' },
+  'emacs:ctrl+e': { command: 'slurp_find_string' },
+  'emacs:ctrl+k': { command: 'run_macro_file', args: { file: 'res://Packages/Default/Delete to Hard EOL.sublime-macro' } },
+  // C-y: Emacs's yank, the editor's paste.
+  'emacs:ctrl+y': { command: 'paste' },
 };
 
 /** The package's own commands, with their keys. */
@@ -167,7 +175,7 @@ const bindings = [...manifest.commands, ...own, ...keysOnly]
         ? { keys, command: binding.command, args: {} }
         : { keys, command: 'org_lsp_run', args: { command: binding.command } };
       if (binding.native) {
-        const fallback = fallbacks[keys[0]];
+        const fallback = fallbacks[`${binding.preset}:${keys[0]}`] ?? fallbacks[keys[0]];
         if (!fallback) throw new Error(`No fallback for the key ${keys.join(' ')} of ${binding.command}`);
         entry.args.fallback = fallback;
       }

@@ -68,10 +68,12 @@ opened, in its folder, with Zed's command line (found beside Zed, or ~zed~
 or ~zeditor~ on PATH; on macOS run /cli: install/ once), which starts one,
 and then runs the command there.
 
-The agenda is a read-only file the server writes,
+The agenda is a file the server writes,
 =~/.local/state/org-lsp/agenda/…/Agenda.org-agenda= (the same one for the
 same project folders), opened as Org; the server writes it again when it
-changes. When Zed starts again with the agenda's tab open, the new server
+changes. It is not read-only, as Zed refuses a rename in a read-only file,
+and a rename answers what the agenda's commands ask; text typed in it by
+mistake keeps Zed from reading it again (undo it). When Zed starts again with the agenda's tab open, the new server
 takes the tab over: it shows the agenda of the current week, and its keys
 work.
 
@@ -166,6 +168,7 @@ its motions.
 | ~,~ | ~org.priority~ | Set the priority |
 | ~ctrl-c ctrl-x p~ | ~org.property.set~ | Set a property of the entry |
 | ~e~ | ~org.effort.set~ | Set the effort of the entry |
+| ~:~, ~ctrl-c ctrl-q~ | ~org.tags.set~ | Set the tags of the headline |
 | ~ctrl-c ctrl-w~ | ~org.refile~ | Refile the entry |
 | ~z~ | ~org.add.note~ | Add a note to the entry |
 | ~ctrl-c ctrl-o~ | ~org.open~ | Open the link or thing at the cursor |
@@ -183,6 +186,13 @@ its motions.
 | ~ctrl-c c~ | ~org.capture~ | Capture |
 | ~ctrl-c n f~ | ~org.roam.node.find~ | Roam: find a node |
 | ~ctrl-c n c~ | ~org.roam.capture~ | Roam: capture to a node |
+| ~ctrl-c n d n~ | ~org.roam.dailies.capture.today~ | Roam: capture to today's daily note |
+| ~ctrl-c n d d~ | ~org.roam.dailies.goto.today~ | Roam: go to today's daily note |
+| ~ctrl-c n d t~ | ~org.roam.dailies.goto.tomorrow~ | Roam: go to tomorrow's daily note |
+| ~ctrl-c n d y~ | ~org.roam.dailies.goto.yesterday~ | Roam: go to yesterday's daily note |
+| ~ctrl-c n d v~ | ~org.roam.dailies.capture.date~ | Roam: capture to the daily note of a date |
+| ~ctrl-c n d c~ | ~org.roam.dailies.goto.date~ | Roam: go to the daily note of a date |
+| ~ctrl-c n d .~ | ~org.roam.dailies.find.directory~ | Roam: open the directory of the daily notes |
 | ~ctrl-c n l~ | ~org.roam.buffer.toggle~ | Roam: show or hide the org-roam buffer |
 | ~ctrl-c j j~ | ~org.journal.new.entry~ | Journal: new entry |
 
@@ -196,6 +206,7 @@ its motions.
 | ~ctrl-c ctrl-w~ | ~key:C-c C-w~ | Refile the entry |
 | ~ctrl-c ctrl-x ctrl-i~ | ~org.clock.in~ | Clock in |
 | ~ctrl-c ctrl-x ctrl-x~ | ~org.clock.in.last~ | Clock in the last clocked task |
+| ~ctrl-c ctrl-x ctrl-z~ | ~org.clock.resolve~ | Resolve open clocks |
 | ~ctrl-c ctrl-x ctrl-o~ | ~org.clock.out~ | Clock out |
 | ~ctrl-c ctrl-x ctrl-q~ | ~org.clock.cancel~ | Cancel the clock |
 | ~ctrl-c ctrl-x ctrl-j~ | ~org.clock.goto~ | Go to the clocked entry |
@@ -218,6 +229,8 @@ its motions.
 | ~alt-shift-enter~ | ~org.insert.todo.heading~ | New TODO heading, or item with a checkbox |
 | ~ctrl-enter~ | ~org.insert.heading.after~ | New heading after the subtree |
 | ~ctrl-shift-enter~ | ~org.insert.todo.heading.after~ | New TODO heading after the subtree |
+| ~ctrl-c ctrl-x t~ | ~org.inlinetask.insert~ | Insert an inline task |
+| ~ctrl-o~ | ~org.open.line~ | Open a line, or in a table insert a row |
 | ~ctrl-c -~ | ~org.table.hline~ | Insert a rule below the table row |
 | ~ctrl-c enter~ | ~org.table.hline.move~ | Insert a rule below the table row and go below it |
 | ~ctrl-c ^~ | ~org.sort~ | Sort the entries, the items or the table rows |
@@ -250,6 +263,8 @@ its motions.
 | ~ctrl-c +~ | ~org.table.sum~ | Sum the numbers of the table column |
 | ~ctrl-c ?~ | ~org.table.field.info~ | Show the references of the table field |
 | ~ctrl-c ¦~ | ~org.table.create~ | Insert an empty table |
+| ~ctrl-c " g~ | ~org.plot.gnuplot~ | Plot the table with gnuplot |
+| ~ctrl-c " a~ | ~org.table.ascii.plot~ | Draw the column at the cursor as bars |
 | ~ctrl-c ctrl-v n~, ~ctrl-c ctrl-v ctrl-n~ | ~org.babel.next~ | Move to the next code block |
 | ~ctrl-c ctrl-v p~, ~ctrl-c ctrl-v ctrl-p~ | ~org.babel.previous~ | Move to the previous code block |
 | ~ctrl-c ctrl-v g~ | ~org.babel.goto~ | Go to a named code block |
@@ -285,6 +300,8 @@ its motions.
 | ~ctrl-c ctrl-x a~ | ~org.archive.tag~ | Toggle the ARCHIVE tag |
 | ~ctrl-c ctrl-x ctrl-a~ | ~org.archive.default~ | Archive with the default command |
 | ~ctrl-c n i~ | ~org.roam.node.insert~ | Roam: insert a link to a node |
+| ~ctrl-c n d f~ | ~org.roam.dailies.goto.next~ | Roam: go to the next daily note |
+| ~ctrl-c n d b~ | ~org.roam.dailies.goto.previous~ | Roam: go to the previous daily note |
 | ~ctrl-c j f~ | ~org.journal.next.entry~ | Journal: next entry |
 | ~ctrl-c j b~ | ~org.journal.previous.entry~ | Journal: previous entry |
 | ~ctrl-c j s~ | ~org.journal.search~ | Journal: search between two dates |
@@ -293,10 +310,19 @@ its motions.
 | ~ctrl-c ctrl-d~ | ~org.deadline~ | Set the deadline of the entry |
 | ~ctrl-c .~ | ~org.timestamp.insert~ | Insert or change a timestamp |
 | ~ctrl-c !~ | ~org.timestamp.insert.inactive~ | Insert or change an inactive timestamp |
+| ~ctrl-c ctrl-x ctrl-t~ | ~org.timestamp.overlays.toggle~ | Show timestamps in the custom formats, or not |
+| ~ctrl-c >~ | ~org.goto.calendar~ | Show the calendar at the date of the line |
 | ~ctrl-c a~ | ~org.agenda.dispatch~ | Agenda commands |
 | ~ctrl-c c~ | ~org.capture~ | Capture |
 | ~ctrl-c n f~ | ~org.roam.node.find~ | Roam: find a node |
 | ~ctrl-c n c~ | ~org.roam.capture~ | Roam: capture to a node |
+| ~ctrl-c n d n~ | ~org.roam.dailies.capture.today~ | Roam: capture to today's daily note |
+| ~ctrl-c n d d~ | ~org.roam.dailies.goto.today~ | Roam: go to today's daily note |
+| ~ctrl-c n d t~ | ~org.roam.dailies.goto.tomorrow~ | Roam: go to tomorrow's daily note |
+| ~ctrl-c n d y~ | ~org.roam.dailies.goto.yesterday~ | Roam: go to yesterday's daily note |
+| ~ctrl-c n d v~ | ~org.roam.dailies.capture.date~ | Roam: capture to the daily note of a date |
+| ~ctrl-c n d c~ | ~org.roam.dailies.goto.date~ | Roam: go to the daily note of a date |
+| ~ctrl-c n d .~ | ~org.roam.dailies.find.directory~ | Roam: open the directory of the daily notes |
 | ~ctrl-c n l~ | ~org.roam.buffer.toggle~ | Roam: show or hide the org-roam buffer |
 | ~ctrl-c j j~ | ~org.journal.new.entry~ | Journal: new entry |
 

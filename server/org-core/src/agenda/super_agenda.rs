@@ -193,10 +193,9 @@ pub struct Grouper<'a> {
     settings: &'a Settings,
     config: &'a Config,
     today: Day,
-    /// How the view sorts (`org-entries-lessp`): by time first in the
-    /// agenda, by priority in the other lists, not at all in a search,
-    /// whose only strategy, `category-keep`, keeps the order.
-    sorting: Option<bool>,
+    /// The kind of view, whose strategies sort the lines of a group
+    /// (`org-entries-lessp`).
+    view: super::sorting::ViewType,
 }
 
 impl<'a> Grouper<'a> {
@@ -205,9 +204,9 @@ impl<'a> Grouper<'a> {
         config: &'a Config,
         settings: &'a Settings,
         today: Day,
-        sorting: Option<bool>,
+        view: super::sorting::ViewType,
     ) -> Self {
-        Grouper { files, paths: &config.file_paths, settings, config, today, sorting }
+        Grouper { files, paths: &config.file_paths, settings, config, today, view }
     }
 
     fn facts<'b>(&'b self, items: &'b [Item], index: usize) -> Facts<'b> {
@@ -312,8 +311,8 @@ impl<'a> Grouper<'a> {
     /// the view sorts them in (`org-entries-lessp`).
     fn keep_order(&self, items: &[Item], members: &mut [usize]) {
         if self.settings.keep_order {
-            if let Some(by_time) = self.sorting {
-                members.sort_by(|a, b| super::compare(&items[*a], &items[*b], by_time));
+            if let Ok(strategies) = self.config.sorting.selected(self.view) {
+                super::sorting::sort_members(items, members, self.files, &strategies, &self.config.sorting);
             }
         }
     }
@@ -1010,9 +1009,12 @@ fn item_tags(facts: &Facts) -> Vec<String> {
 fn todo_state<'a>(facts: &Facts<'a>) -> Option<&'a str> {
     match facts.item.kind {
         ItemKind::Grid | ItemKind::Log | ItemKind::Search => None,
-        // `org-agenda-get-deadlines` and `-scheduled` read the element,
-        // the others `org-get-todo-state`: tabs around the keyword differ.
-        ItemKind::Deadline | ItemKind::Scheduled => facts.entry.and_then(|(_, entry)| entry.element_todo.as_deref()),
+        // `org-agenda-get-deadlines`, `-scheduled` and `org-scan-tags`
+        // read the element, the others `org-get-todo-state`: tabs around
+        // the keyword differ.
+        ItemKind::Deadline | ItemKind::Scheduled | ItemKind::Tags => {
+            facts.entry.and_then(|(_, entry)| entry.element_todo.as_deref())
+        }
         _ => facts.entry.and_then(|(_, entry)| entry.todo.as_deref()),
     }
 }

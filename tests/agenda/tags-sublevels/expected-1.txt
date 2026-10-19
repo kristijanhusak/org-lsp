@@ -1,0 +1,4 @@
+Headlines with TAGS match: work
+  notes:      TODO Child task                                        :work::sub:
+  notes:      TODO Solo                                                   :work:
+  notes:      TODO Deep work                                              :work:

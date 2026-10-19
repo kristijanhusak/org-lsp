@@ -13,11 +13,45 @@ use crate::todo::{headline_level, tags_padding};
 pub struct Settings {
     /// `org-tags-column`.
     pub tags_column: i64,
+    /// How the columns of tables align.
+    pub alignment: Alignment,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings { tags_column: -77 }
+        Settings { tags_column: -77, alignment: Alignment::default() }
+    }
+}
+
+/// When a column of a table aligns right: when at least `fraction`
+/// (`org-table-number-fraction`) of its fields are numbers, as `number`
+/// (`org-table-number-regexp`, Org's when `None`) has them.
+#[derive(Debug, Clone)]
+pub struct Alignment {
+    pub number: Option<crate::text::EmacsRegexp>,
+    pub fraction: f64,
+}
+
+impl Default for Alignment {
+    fn default() -> Self {
+        Alignment { number: None, fraction: 0.5 }
+    }
+}
+
+impl PartialEq for Alignment {
+    fn eq(&self, other: &Self) -> bool {
+        self.number == other.number && self.fraction.to_bits() == other.fraction.to_bits()
+    }
+}
+
+impl Eq for Alignment {}
+
+impl Alignment {
+    fn is_number(&self, field: &str) -> bool {
+        match &self.number {
+            Some(regexp) => regexp.is_match(field),
+            None => NUMBER.is_match(field),
+        }
     }
 }
 
@@ -36,6 +70,34 @@ pub fn format_lines(
     lines_asked: std::ops::RangeInclusive<usize>,
 ) -> Vec<(usize, String)> {
     let lines: Vec<&str> = text.split('\n').collect();
+    let mut changed = table_lines(text, keywords, &settings.alignment, &lines_asked);
+    for (number, line) in lines.iter().enumerate() {
+        if lines_asked.contains(&number) && headline_level(line).is_some() {
+            if let Some((blanks, tags, padding)) = tags_padding(line, settings.tags_column) {
+                changed.push((number, format!("{}{}{}", &line[..blanks], padding, &line[tags..])));
+            }
+        }
+    }
+    changed.sort_by_key(|(number, _)| *number);
+    changed
+}
+
+/// `org-startup-align-all-tables`: every Org table of `text` aligned
+/// (`org-table-map-tables` with `org-table-align`), tables in blocks and
+/// table.el tables left as they are.
+pub fn align_tables(text: &str, keywords: &TodoKeywords, alignment: &Alignment) -> String {
+    apply(text, &table_lines(text, keywords, alignment, &(0..=usize::MAX)))
+}
+
+/// The lines of the tables with a line among `lines_asked` that aligning
+/// them changes.
+fn table_lines(
+    text: &str,
+    keywords: &TodoKeywords,
+    alignment: &Alignment,
+    lines_asked: &std::ops::RangeInclusive<usize>,
+) -> Vec<(usize, String)> {
+    let lines: Vec<&str> = text.split('\n').collect();
     let mut changed: Vec<(usize, String)> = Vec::new();
     let root = org_syntax::parse(text, keywords).syntax();
     let starts = line_starts(text);
@@ -44,7 +106,12 @@ pub fn format_lines(
     // (in and after a list) is aligned as one.
     let mut done = 0;
     for table in root.descendants().filter(|node| node.kind() == TABLE) {
-        let first = line_of(&starts, usize::from(table.text_range().start()));
+        let mut first = line_of(&starts, usize::from(table.text_range().start()));
+        // Past the affiliated keywords (`#+NAME:`, `#+CAPTION:`) the table
+        // starts with.
+        while first + 1 < lines.len() && lines[first].trim_start_matches([' ', '\t']).starts_with("#+") {
+            first += 1;
+        }
         // A table.el table is left as it is.
         if first < done || !lines[first].trim_start_matches([' ', '\t']).starts_with('|') {
             continue;
@@ -57,20 +124,12 @@ pub fn format_lines(
         if last < *lines_asked.start() || first > *lines_asked.end() {
             continue;
         }
-        for (offset, new) in align_table(&lines[first..=last]).into_iter().enumerate() {
+        for (offset, new) in align_table(&lines[first..=last], alignment).into_iter().enumerate() {
             if new != lines[first + offset] {
                 changed.push((first + offset, new));
             }
         }
     }
-    for (number, line) in lines.iter().enumerate() {
-        if lines_asked.contains(&number) && headline_level(line).is_some() {
-            if let Some((blanks, tags, padding)) = tags_padding(line, settings.tags_column) {
-                changed.push((number, format!("{}{}{}", &line[..blanks], padding, &line[tags..])));
-            }
-        }
-    }
-    changed.sort_by_key(|(number, _)| *number);
     changed
 }
 
@@ -149,7 +208,7 @@ fn align_field(field: &str, width: usize, align: char) -> String {
 }
 
 /// `org-table-align`: the lines of a table, aligned.
-pub(crate) fn align_table(lines: &[&str]) -> Vec<String> {
+pub(crate) fn align_table(lines: &[&str], alignment: &Alignment) -> Vec<String> {
     let table: Vec<Row> = lines.iter().map(|line| row(line)).collect();
     let rows: Vec<&Vec<String>> = table
         .iter()
@@ -181,14 +240,14 @@ pub(crate) fn align_table(lines: &[&str]) -> Vec<String> {
                     fixed = cookie[1].chars().next();
                 } else {
                     non_empty += 1;
-                    if NUMBER.is_match(cell) {
+                    if alignment.is_number(cell) {
                         numbers += 1;
                     }
                 }
             }
             widths.push(max_width);
-            // `org-table-number-fraction` is 0.5.
-            alignments.push(fixed.unwrap_or(if 2 * numbers >= non_empty { 'r' } else { 'l' }));
+            let right = numbers as f64 >= alignment.fraction * non_empty as f64;
+            alignments.push(fixed.unwrap_or(if right { 'r' } else { 'l' }));
         }
         (widths, alignments)
     };

@@ -5,6 +5,8 @@
 //! default two blanks, the category padded to twelve columns, the time
 //! when there is one, and a leader such as `Scheduled:`.
 
+use regex::Regex;
+
 use crate::outline::Tag;
 use crate::priority::Priorities;
 use crate::text::{pad_left, pad_right, tag_group, trim, width};
@@ -46,6 +48,9 @@ pub enum ItemKind {
     Block,
     Timestamp,
     Todo,
+    /// A line of a tags match or of stuck projects (`org-scan-tags`),
+    /// whose `todo-state` is the keyword of the syntax tree.
+    Tags,
     Grid,
     /// A line of log mode: closed, clocked, or a state change.
     Log,
@@ -72,7 +77,11 @@ pub struct Item {
     pub heading: usize,
     /// Military time for sorting, when the line carries a time of day.
     pub time_of_day: Option<i64>,
+    /// Org's `urgency`: the priority, adjusted for how near a deadline is,
+    /// how long ago a date was, or a habit's need.
     pub priority: i64,
+    /// Org's `priority`: the priority of the headline (`org-get-priority`).
+    pub base_priority: i64,
     pub kind: ItemKind,
     pub face: Face,
     pub source: Option<Source>,
@@ -94,6 +103,17 @@ pub struct Item {
     /// What a line of log mode logs (Org's `type`): `closed`, `clock` or
     /// `state`.
     pub log: Option<&'static str>,
+    /// What the `type` of a line of the TODO list or of a tags match ends
+    /// with: the kind of timestamp `ts_date` is, as the sorting strategy
+    /// asks (`org-agenda-entry-get-agenda-timestamp`).
+    pub ts_type: &'static str,
+    /// The line carries the entry's own tags only, not inherited ones
+    /// (`org-agenda-show-inherited-tags`): sorting by tag and
+    /// `org-agenda-max-tags` read those.
+    pub own_tags_only: bool,
+    /// How the line shows its priority cookies, if it does
+    /// (`org-agenda-fontify-priorities`).
+    pub fontify: Option<super::display::Fontify>,
 }
 
 /// What a specifier of `org-agenda-prefix-format` stands for.
@@ -487,6 +507,32 @@ pub enum Dotime<'a> {
     Text(&'a str),
 }
 
+/// `org-agenda-remove-times-when-in-prefix`
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum RemoveTimes {
+    #[default]
+    Yes,
+    /// `beg`: only a time at the start of the headline.
+    Beginning,
+    No,
+}
+
+/// How times of day are found and shown.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct TimeSettings {
+    /// `org-agenda-time-leading-zero`
+    pub leading_zero: bool,
+    /// `org-agenda-timegrid-use-ampm`
+    pub ampm: bool,
+    /// `org-agenda-search-headline-for-time` is off.
+    pub headline_has_none: bool,
+    /// `org-agenda-remove-times-when-in-prefix`
+    pub remove_in_prefix: RemoveTimes,
+    /// `org-agenda-default-appointment-duration`: minutes an entry with a
+    /// start time lasts.
+    pub appointment_duration: Option<i64>,
+}
+
 pub struct FormatInput<'a> {
     pub format: &'a PrefixFormat,
     /// The leader, such as `Scheduled: `; may be empty.
@@ -513,6 +559,15 @@ pub struct FormatInput<'a> {
     pub entry: Option<(&'a str, usize)>,
     /// What evaluates `%(…)`.
     pub evaluator: &'a Evaluator,
+    pub times: &'a TimeSettings,
+    /// Text taken out of the headline wherever it is (a date range,
+    /// `org-agenda-remove-timeranges-from-blocks`).
+    pub remove: Option<&'a str>,
+    /// `org-agenda-show-inherited-tags` is on: the headline's tags are
+    /// replaced by `tags`, inherited ones too.
+    pub add_inherited: bool,
+    /// `org-agenda-hide-tags-regexp`
+    pub hide_tags: Option<&'a Regex>,
 }
 
 pub struct Formatted {
@@ -527,7 +582,20 @@ pub struct Formatted {
 /// Org marks a tag as inherited with a text property, which an empty tag
 /// (`:a::b:`) cannot carry. So an empty tag always looks like the entry's
 /// own, and the separator lands in front of it.
-fn fix_displayed_tags(text: &str, tags: &[Tag]) -> String {
+///
+/// Org does it only when it shows inherited tags (`add_inherited`) or
+/// hides some (`hide`, `org-agenda-hide-tags-regexp`); else the headline
+/// keeps its tags as written.
+fn fix_displayed_tags(text: &str, tags: &[Tag], add_inherited: bool, hide: Option<&Regex>) -> String {
+    if !add_inherited && hide.is_none() {
+        return text.to_string();
+    }
+    let tags: Vec<Tag> = tags
+        .iter()
+        .filter(|tag| !hide.is_some_and(|hide| hide.is_match(&tag.name)) && (add_inherited || !tag.inherited))
+        .cloned()
+        .collect();
+    let tags = tags.as_slice();
     let mut out = match tag_group(text) {
         Some((blanks, _)) => text[..blanks].to_string(),
         None => text.to_string(),
@@ -552,18 +620,36 @@ fn fix_displayed_tags(text: &str, tags: &[Tag]) -> String {
     out
 }
 
-/// `org-get-time-of-day` with a string result: `H:MM` in 24-hour form.
-fn clock_text(time: TimeOfDay) -> String {
-    format!("{}:{:02}", time.hours, time.minutes)
-}
-
-/// The `overtime` form: times past midnight become `+H:MM`.
-fn overtime_text(time: TimeOfDay) -> String {
+/// `org-get-time-of-day` in its `overtime` form: times past midnight
+/// become `+H:MM`, others `H:MM` (`HH:MM` with
+/// `org-agenda-time-leading-zero`).
+fn overtime_text(time: TimeOfDay, leading_zero: bool) -> String {
     if time.hours > 24 || (time.hours == 24 && time.minutes > 0) {
         format!("+{}:{:02}", time.hours - 24, time.minutes)
+    } else if leading_zero {
+        format!("{:02}:{:02}", time.hours, time.minutes)
     } else {
-        clock_text(time)
+        format!("{}:{:02}", time.hours, time.minutes)
     }
+}
+
+/// `org-agenda-time-of-day-to-ampm`: a time such as ` 8:00` or `13:45`
+/// as `8:00am`, ` 1:45pm`.
+fn ampm_text(time: &str, leading_zero: bool) -> String {
+    let split = time.len().saturating_sub(3);
+    let (hour, minute) = (&time[..split], &time[time.len().saturating_sub(2)..]);
+    // `string-to-number`: the leading number, blanks and a sign allowed.
+    let digits: String = hour.trim_start().trim_start_matches('+').chars().take_while(char::is_ascii_digit).collect();
+    let mut hour: i64 = digits.parse().unwrap_or(0);
+    let mut ampm = "am";
+    if hour == 12 {
+        ampm = "pm";
+    } else if hour > 12 {
+        ampm = "pm";
+        hour -= 12;
+    }
+    let hour = if leading_zero { format!("{hour:02}") } else { format!("{hour:>2}") };
+    format!("{hour}:{minute}{ampm}")
 }
 
 /// Remove every timestamp, active or not (`org-ts-regexp-both`), from `text`.
@@ -604,14 +690,16 @@ fn remove_active_timestamps(text: &str) -> String {
 
 /// `org-agenda-format-item`.
 pub fn format_item(input: &FormatInput<'_>) -> Formatted {
-    let mut txt = fix_displayed_tags(trim(input.head), input.tags);
+    let mut txt = fix_displayed_tags(trim(input.head), input.tags, input.add_inherited, input.hide_tags);
 
     // The text searched for a time: the given one, then the headline
-    // without its timestamps.
+    // without its timestamps (`org-agenda-search-headline-for-time`).
+    let times = input.times;
+    let headline = || if times.headline_has_none { String::new() } else { remove_timestamps(&txt) };
     let searched = match input.dotime {
         Dotime::No => None,
-        Dotime::Headline => Some(remove_timestamps(&txt)),
-        Dotime::Text(text) => Some(format!("{text}{}", remove_timestamps(&txt))),
+        Dotime::Headline => Some(headline()),
+        Dotime::Text(text) => Some(format!("{text}{}", headline())),
     };
     let found = searched.as_deref().and_then(|ts| time_of_day(ts).map(|time| (ts, time)));
     let mut time = String::new();
@@ -634,19 +722,41 @@ pub fn format_item(input: &FormatInput<'_>) -> Formatted {
             },
         };
         // The time moves to the prefix, so take it out of the headline,
-        // unless what follows it is a closing bracket.
-        if input.format.has_time && !matched.is_empty() {
+        // unless what follows it is a closing bracket
+        // (`org-agenda-remove-times-when-in-prefix`).
+        if input.format.has_time && !matched.is_empty() && times.remove_in_prefix != RemoveTimes::No {
             if let Some(at) = txt.find(matched) {
                 let after = at + matched.len();
                 let spaces = txt[after..].bytes().take_while(|b| *b == b' ').count();
-                if !txt[after + spaces..].starts_with(']') {
+                let wanted = times.remove_in_prefix == RemoveTimes::Yes || at == 0;
+                if !txt[after + spaces..].starts_with(']') && wanted {
                     txt.replace_range(at..after + spaces, "");
                 }
             }
         }
+        // `org-agenda-default-appointment-duration` gives a start time an
+        // end. `org-duration-from-minutes` writes a day apart (`1d 2:00`),
+        // and the time read back is that of the day.
+        let end = end.or_else(|| {
+            let start = start?;
+            let total = (start.hours * 60 + start.minutes + times.appointment_duration?).rem_euclid(1440);
+            Some(TimeOfDay { hours: total / 60, minutes: total % 60, start: 0, end: 0 })
+        });
+        let shown = |time: TimeOfDay, width: usize| {
+            let text = pad_left(&overtime_text(time, times.leading_zero), width);
+            if times.ampm {
+                ampm_text(&text, times.leading_zero)
+            } else {
+                text
+            }
+        };
         time = match (start, end) {
-            (Some(start), Some(end)) => format!("{}-{}", pad_left(&overtime_text(start), 5), overtime_text(end)),
-            (Some(start), None) => format!("{}{}", pad_left(&overtime_text(start), 5), input.time_trailer),
+            (Some(start), Some(end)) => {
+                format!("{}-{}{}", shown(start, 5), shown(end, 0), if times.ampm { " " } else { "" })
+            }
+            (Some(start), None) => {
+                format!("{}{}{}", shown(start, 5), input.time_trailer, if times.ampm { " " } else { "" })
+            }
             _ => String::new(),
         };
     }
@@ -669,6 +779,10 @@ pub fn format_item(input: &FormatInput<'_>) -> Formatted {
             txt.push_str(&" ".repeat(padding));
             txt.push_str(&group);
         }
+    }
+
+    if let Some(remove) = input.remove.filter(|remove| !remove.is_empty()) {
+        txt = txt.replace(remove, "");
     }
 
     if input.remove_stamps {
@@ -736,12 +850,15 @@ pub fn format_item(input: &FormatInput<'_>) -> Formatted {
 /// `org-get-priority`: the value of the first priority cookie in `text`,
 /// or the default priority. Higher is more urgent.
 ///
-/// A cookie holds one capital letter or a number from 0 to 64.
-pub fn priority(text: &str, priorities: &Priorities) -> i64 {
+/// A cookie holds one capital letter or a number from 0 to 64; any
+/// letter with `case_fold` (`case-fold-search`).
+pub fn priority(text: &str, priorities: &Priorities, case_fold: bool) -> i64 {
     let bytes = text.as_bytes();
     let digit = |b: u8| i64::from(b - b'0');
     let value = text.match_indices("[#").find_map(|(at, _)| match bytes[at + 2..] {
-        [letter, b']', ..] if letter.is_ascii_uppercase() => Some(i64::from(letter)),
+        [letter, b']', ..] if letter.is_ascii_uppercase() || (case_fold && letter.is_ascii_lowercase()) => {
+            Some(i64::from(letter))
+        }
         [ones, b']', ..] if ones.is_ascii_digit() => Some(digit(ones)),
         [tens @ b'1'..=b'5', ones @ b'0'..=b'9', b']', ..] | [tens @ b'6', ones @ b'0'..=b'4', b']', ..] => {
             Some(10 * digit(tens) + digit(ones))
@@ -879,6 +996,10 @@ mod tests {
             remove_tags: RemoveTags::No,
             entry: None,
             evaluator: &Evaluator::default(),
+            times: &TimeSettings::default(),
+            remove: None,
+            add_inherited: true,
+            hide_tags: None,
         })
         .text
     }
@@ -913,6 +1034,10 @@ mod tests {
             remove_tags: RemoveTags::No,
             entry: Some(("/org/a.org", 42)),
             evaluator: &evaluator,
+            times: &TimeSettings::default(),
+            remove: None,
+            add_inherited: true,
+            hide_tags: None,
         })
         .text;
         assert_eq!(text, "x   |   |x|work Task                                          :z:");
@@ -979,15 +1104,15 @@ mod tests {
     #[test]
     fn displayed_tags() {
         let both = [tag("file", true), tag("p", true), tag("own", false)];
-        assert_eq!(fix_displayed_tags("Title :own:", &both), "Title :file:p::own:");
-        assert_eq!(fix_displayed_tags("Title", &both[..2]), "Title :file:p::");
-        assert_eq!(fix_displayed_tags("Title :own:", &both[2..]), "Title :own:");
-        assert_eq!(fix_displayed_tags("Title :gone:", &[]), "Title");
+        assert_eq!(fix_displayed_tags("Title :own:", &both, true, None), "Title :file:p::own:");
+        assert_eq!(fix_displayed_tags("Title", &both[..2], true, None), "Title :file:p::");
+        assert_eq!(fix_displayed_tags("Title :own:", &both[2..], true, None), "Title :own:");
+        assert_eq!(fix_displayed_tags("Title :gone:", &[], true, None), "Title");
         // An empty tag never looks inherited.
         let with_empty = [tag("a", true), tag("", true), tag("b", true), tag("own", false)];
-        assert_eq!(fix_displayed_tags("Title", &with_empty[..3]), "Title :a:::b:");
-        assert_eq!(fix_displayed_tags("Title", &with_empty), "Title :a:::b:own:");
-        assert_eq!(fix_displayed_tags("Title", &with_empty[1..3]), "Title ::b:");
+        assert_eq!(fix_displayed_tags("Title", &with_empty[..3], true, None), "Title :a:::b:");
+        assert_eq!(fix_displayed_tags("Title", &with_empty, true, None), "Title :a:::b:own:");
+        assert_eq!(fix_displayed_tags("Title", &with_empty[1..3], true, None), "Title ::b:");
     }
 
     #[test]
@@ -1014,19 +1139,21 @@ mod tests {
 
     #[test]
     fn priorities() {
-        let priority_of = |text: &str| priority(text, &Priorities::default());
+        let priority_of = |text: &str| priority(text, &Priorities::default(), false);
         assert_eq!(priority_of("TODO Task"), 1000);
         assert_eq!(priority_of("TODO [#A] Task"), 2000);
         assert_eq!(priority_of("TODO [#C] Task"), 0);
         assert_eq!(priority_of("x [#a] y"), 1000);
+        // With case folding, as in a tags match, `a` is 97.
+        assert_eq!(priority("x [#a] y", &Priorities::default(), true), -30000);
         assert_eq!(priority_of("x [#Z] y"), -23000);
         assert_eq!(priority_of("x [#5] y"), 62000);
         assert_eq!(priority_of("x [#64] y"), 3000);
         assert_eq!(priority_of("x [#65] [#05] y"), 1000);
         assert_eq!(priority_of("[#] [#B]"), 1000);
         let wide = Priorities { highest: 65, lowest: 69, default: 67 };
-        assert_eq!(priority("TODO Task", &wide), 2000);
-        assert_eq!(priority("[#A]", &wide), 4000);
+        assert_eq!(priority("TODO Task", &wide, false), 2000);
+        assert_eq!(priority("[#A]", &wide, false), 4000);
     }
 
     #[test]

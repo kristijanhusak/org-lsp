@@ -1,0 +1,2643 @@
+[
+ {
+  "command": "create",
+  "text": "* a\n",
+  "point": 3,
+  "answers": [
+   "article",
+   "My Title",
+   "Smith",
+   "Journal",
+   "2020",
+   "key1"
+  ],
+  "expected": {
+   "text": "* a\n* My Title\n:PROPERTIES:\n:TITLE:    My Title\n:BTYPE:    article\n:AUTHOR:   Smith\n:JOURNAL:  Journal\n:YEAR:     2020\n:CUSTOM_ID: key1\n:END:\n",
+   "point": 14,
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": null,
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    },
+    {
+     "prompt": "title: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "author: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "journal: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "year: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "id: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "create",
+  "text": "* a\n",
+  "point": 0,
+  "answers": [
+   "article",
+   "My Title",
+   "Smith",
+   "Journal",
+   "2020",
+   "key1"
+  ],
+  "expected": {
+   "text": "* My Title\n:PROPERTIES:\n:TITLE:    My Title\n:BTYPE:    article\n:AUTHOR:   Smith\n:JOURNAL:  Journal\n:YEAR:     2020\n:CUSTOM_ID: key1\n:END:\n* a\n",
+   "point": 10,
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": null,
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    },
+    {
+     "prompt": "title: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "author: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "journal: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "year: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "id: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "create",
+  "text": "",
+  "point": 0,
+  "answers": [
+   "article",
+   "My Title",
+   "Smith",
+   "Journal",
+   "2020",
+   "key1"
+  ],
+  "expected": {
+   "text": "* My Title\n:PROPERTIES:\n:TITLE:    My Title\n:BTYPE:    article\n:AUTHOR:   Smith\n:JOURNAL:  Journal\n:YEAR:     2020\n:CUSTOM_ID: key1\n:END:\n",
+   "point": 10,
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": null,
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    },
+    {
+     "prompt": "title: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "author: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "journal: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "year: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "id: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "create",
+  "text": "* a\nbody\n** b\n",
+  "point": 6,
+  "answers": [
+   "article",
+   "My Title",
+   "Smith",
+   "Journal",
+   "2020",
+   "key1"
+  ],
+  "expected": {
+   "text": "* a\nbo\n* My Titledy\n:PROPERTIES:\n:TITLE:    My Title\n:BTYPE:    article\n:AUTHOR:   Smith\n:JOURNAL:  Journal\n:YEAR:     2020\n:CUSTOM_ID: key1\n:END:\n** b\n",
+   "point": 17,
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": null,
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    },
+    {
+     "prompt": "title: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "author: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "journal: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "year: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "id: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "create",
+  "text": "* a\n",
+  "point": 4,
+  "answers": [
+   "book",
+   "T",
+   "author",
+   "Ann",
+   "Pub",
+   "",
+   "k"
+  ],
+  "expected": {
+   "text": "* a\n* T\n:PROPERTIES:\n:TITLE:    T\n:BTYPE:    book\n:AUTHOR:   Ann\n:PUBLISHER: Pub\n:CUSTOM_ID: k\n:END:\n",
+   "point": 7,
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": null,
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    },
+    {
+     "prompt": "title: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "Field: ",
+     "initial": null,
+     "completions": [
+      "editor",
+      "author"
+     ]
+    },
+    {
+     "prompt": "author: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "publisher: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "year: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "id: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "create",
+  "text": "* a\n",
+  "point": 4,
+  "answers": [
+   "book",
+   "T",
+   "",
+   "x"
+  ],
+  "expected": {
+   "error": "Field:: is not known",
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": null,
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    },
+    {
+     "prompt": "title: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "Field: ",
+     "initial": null,
+     "completions": [
+      "editor",
+      "author"
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "command": "create",
+  "text": "* a\n",
+  "point": 4,
+  "answers": [
+   "book",
+   "T",
+   "Editor",
+   "Ed",
+   "P",
+   "1990",
+   "k"
+  ],
+  "expected": {
+   "text": "* a\n* T\n:PROPERTIES:\n:TITLE:    T\n:BTYPE:    book\n:EDITOR:   Ed\n:PUBLISHER: P\n:YEAR:     1990\n:CUSTOM_ID: k\n:END:\n",
+   "point": 7,
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": null,
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    },
+    {
+     "prompt": "title: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "Field: ",
+     "initial": null,
+     "completions": [
+      "editor",
+      "author"
+     ]
+    },
+    {
+     "prompt": "editor: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "publisher: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "year: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "id: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "create",
+  "text": "* a\n",
+  "point": 4,
+  "optional": true,
+  "answers": [
+   "article",
+   "T",
+   "A",
+   "J",
+   "2001",
+   "1",
+   "",
+   "3-4",
+   "",
+   "",
+   "10.1/x",
+   "kk"
+  ],
+  "expected": {
+   "text": "* a\n* T\n:PROPERTIES:\n:TITLE:    T\n:BTYPE:    article\n:AUTHOR:   A\n:JOURNAL:  J\n:YEAR:     2001\n:VOLUME:   1\n:PAGES:    3-4\n:DOI:      10.1/x\n:CUSTOM_ID: kk\n:END:\n",
+   "point": 7,
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": null,
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    },
+    {
+     "prompt": "title: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "author: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "journal: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "year: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "volume: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "number: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "pages: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "month: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "note: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "doi: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "id: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "create",
+  "text": "* a\n",
+  "point": 4,
+  "answers": [
+   "misc",
+   "Misc title",
+   " spaced "
+  ],
+  "expected": {
+   "text": "* a\n* Misc title\n:PROPERTIES:\n:TITLE:    Misc title\n:BTYPE:    misc\n:CUSTOM_ID: spaced\n:END:\n",
+   "point": 16,
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": null,
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    },
+    {
+     "prompt": "title: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "id: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "create",
+  "text": "* a\n",
+  "point": 4,
+  "answers": [
+   "misc",
+   "",
+   "x"
+  ],
+  "expected": {
+   "error": "Wrong type argument: char-or-string-p, nil",
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": null,
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    },
+    {
+     "prompt": "title: ",
+     "initial": null,
+     "completions": null
+    }
+   ]
+  }
+ },
+ {
+  "command": "create",
+  "text": "* a\n",
+  "point": 4,
+  "answers": [
+   "foo"
+  ],
+  "expected": {
+   "error": "Type::foo is not known",
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": null,
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "command": "create",
+  "text": "* a\n",
+  "point": 4,
+  "answers": [
+   ""
+  ],
+  "expected": {
+   "error": "Type:: is not known",
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": null,
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "command": "create",
+  "text": "* a\n",
+  "point": 4,
+  "answers": [
+   "Article"
+  ],
+  "expected": {
+   "error": "Type::Article is not known",
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": null,
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "command": "create",
+  "text": "* a\n",
+  "point": 4,
+  "answers": [
+   "misc",
+   "Tagged",
+   "k"
+  ],
+  "options": {
+   "org-bibtex-tags": "'(\"bib\" \"ref\")"
+  },
+  "expected": {
+   "text": "* a\n* Tagged                                                            :bib:ref:\n:PROPERTIES:\n:TITLE:    Tagged\n:BTYPE:    misc\n:CUSTOM_ID: k\n:END:\n",
+   "point": 12,
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": null,
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    },
+    {
+     "prompt": "title: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "id: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "create",
+  "text": "* a\n",
+  "point": 4,
+  "answers": [
+   "misc",
+   "Prefixed",
+   "k"
+  ],
+  "options": {
+   "org-bibtex-prefix": "\"BIB_\""
+  },
+  "expected": {
+   "text": "* a\n* Prefixed\n:PROPERTIES:\n:BIB_TITLE: Prefixed\n:BIB_BTYPE: misc\n:CUSTOM_ID: k\n:END:\n",
+   "point": 14,
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": null,
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    },
+    {
+     "prompt": "title: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "id: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "create",
+  "text": "* a\n",
+  "point": 4,
+  "answers": [
+   "misc",
+   "Typed",
+   "k"
+  ],
+  "options": {
+   "org-bibtex-type-property-name": "\"kind\"",
+   "org-bibtex-key-property": "\"ID\""
+  },
+  "expected": {
+   "text": "* a\n* Typed\n:PROPERTIES:\n:TITLE:    Typed\n:KIND:     misc\n:ID:       k\n:END:\n",
+   "point": 11,
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": null,
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    },
+    {
+     "prompt": "title: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "id: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "create",
+  "text": "* a\n",
+  "point": 4,
+  "answers": [
+   "misc",
+   "Treat",
+   "k"
+  ],
+  "options": {
+   "org-bibtex-treat-headline-as-title": "nil",
+   "org-bibtex-autogen-keys": "nil"
+  },
+  "expected": {
+   "text": "* a\n* Treat\n:PROPERTIES:\n:TITLE:    Treat\n:BTYPE:    misc\n:CUSTOM_ID: k\n:END:\n",
+   "point": 11,
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": null,
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    },
+    {
+     "prompt": "title: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "id: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "create",
+  "text": "* a\n",
+  "point": 3,
+  "answers": [
+   "article",
+   "My Title",
+   "Smith",
+   "Journal",
+   "2020"
+  ],
+  "options": {
+   "org-bibtex-autogen-keys": "t"
+  },
+  "expected": {
+   "text": "* a\n* My Title\n:PROPERTIES:\n:TITLE:    My Title\n:BTYPE:    article\n:AUTHOR:   Smith\n:JOURNAL:  Journal\n:YEAR:     2020\n:CUSTOM_ID: smith20:_my_title\n:END:\n",
+   "point": 14,
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": null,
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    },
+    {
+     "prompt": "title: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "author: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "journal: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "year: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": "@article{nil,\n  author={Smith},\n  title={My Title},\n  journal={Journal},\n  year={2020}\n}\n"
+  }
+ },
+ {
+  "command": "create",
+  "text": "* a\n",
+  "point": 3,
+  "answers": [
+   "misc",
+   "No year"
+  ],
+  "options": {
+   "org-bibtex-autogen-keys": "t"
+  },
+  "expected": {
+   "error": "Year or date field ‘’ invalid",
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": null,
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    },
+    {
+     "prompt": "title: ",
+     "initial": null,
+     "completions": null
+    }
+   ]
+  }
+ },
+ {
+  "command": "create",
+  "text": "* a\n",
+  "point": 3,
+  "answers": [
+   "misc",
+   "Plain",
+   "k"
+  ],
+  "options": {
+   "org-adapt-indentation": "t"
+  },
+  "expected": {
+   "text": "* a\n* Plain\n  :PROPERTIES:\n  :TITLE:    Plain\n  :BTYPE:    misc\n  :CUSTOM_ID: k\n  :END:\n",
+   "point": 11,
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": null,
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    },
+    {
+     "prompt": "title: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "id: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "create-here",
+  "text": "* TODO Some heading :x:\ntext\n",
+  "point": 10,
+  "answers": [
+   "misc",
+   "k"
+  ],
+  "expected": {
+   "text": "* TODO Some heading :x:\n:PROPERTIES:\n:BTYPE:    misc\n:CUSTOM_ID: k\n:END:\ntext\n",
+   "point": 0,
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": null,
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    },
+    {
+     "prompt": "id: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "create-here",
+  "text": "* Heading\n",
+  "point": 3,
+  "answers": [
+   "misc",
+   "Title",
+   "k"
+  ],
+  "options": {
+   "org-bibtex-treat-headline-as-title": "nil"
+  },
+  "expected": {
+   "text": "* Heading\n:PROPERTIES:\n:BTYPE:    misc\n:CUSTOM_ID: Title\n:END:\n",
+   "point": 0,
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": null,
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    },
+    {
+     "prompt": "id: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "create-here",
+  "text": "* H\n:PROPERTIES:\n:BTYPE: book\n:END:\n",
+  "point": 3,
+  "answers": [
+   "article",
+   "T",
+   "A",
+   "J",
+   "2000",
+   "k"
+  ],
+  "expected": {
+   "text": "* H\n:PROPERTIES:\n:BTYPE:    article\n:AUTHOR:   T\n:TITLE:    A\n:JOURNAL:  J\n:YEAR:     2000\n:CUSTOM_ID: k\n:END:\n",
+   "point": 0,
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": "book",
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    },
+    {
+     "prompt": "author: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "title: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "journal: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "year: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "id: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "create-here",
+  "text": "* H\n:PROPERTIES:\n:BTYPE: misc\n:CUSTOM_ID: done\n:END:\n",
+  "point": 20,
+  "answers": [
+   "misc",
+   "A",
+   "T",
+   "",
+   "",
+   "",
+   "",
+   "",
+   ""
+  ],
+  "optional": true,
+  "expected": {
+   "text": "* H\n:PROPERTIES:\n:BTYPE: misc\n:CUSTOM_ID: done\n:AUTHOR:   A\n:TITLE:    T\n:END:\n",
+   "point": 0,
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": "misc",
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    },
+    {
+     "prompt": "author: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "title: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "howpublished: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "month: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "year: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "note: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "doi: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "url: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "create-here",
+  "text": "* H\n",
+  "point": 0,
+  "answers": [
+   "misc",
+   "T",
+   "k"
+  ],
+  "options": {
+   "org-bibtex-tags": "'(\"bib\")"
+  },
+  "expected": {
+   "text": "* H                                                                     :bib:\n:PROPERTIES:\n:BTYPE:    misc\n:CUSTOM_ID: T\n:END:\n",
+   "point": 0,
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": null,
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    },
+    {
+     "prompt": "id: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "check",
+  "text": "* H\n:PROPERTIES:\n:BTYPE: article\n:AUTHOR: me\n:END:\n",
+  "point": 0,
+  "answers": [
+   "J",
+   "2001",
+   "kk"
+  ],
+  "expected": {
+   "text": "* H\n:PROPERTIES:\n:BTYPE: article\n:AUTHOR: me\n:JOURNAL:  J\n:YEAR:     2001\n:CUSTOM_ID: kk\n:END:\n",
+   "point": 0,
+   "prompts": [
+    {
+     "prompt": "journal: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "year: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "id: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "check",
+  "text": "* H\n:PROPERTIES:\n:BTYPE: article\n:AUTHOR: me\n:END:\n",
+  "point": 0,
+  "answers": [
+   "T",
+   "J",
+   "2001",
+   "kk"
+  ],
+  "options": {
+   "org-bibtex-treat-headline-as-title": "nil"
+  },
+  "expected": {
+   "text": "* H\n:PROPERTIES:\n:BTYPE: article\n:AUTHOR: me\n:TITLE:    T\n:JOURNAL:  J\n:YEAR:     2001\n:CUSTOM_ID: kk\n:END:\n",
+   "point": 0,
+   "prompts": [
+    {
+     "prompt": "title: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "journal: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "year: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "id: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "check",
+  "text": "* H\n:PROPERTIES:\n:BTYPE: misc\n:CUSTOM_ID: x\n:END:\n",
+  "point": 2,
+  "optional": true,
+  "answers": [
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   ""
+  ],
+  "expected": {
+   "text": "* H\n:PROPERTIES:\n:BTYPE: misc\n:CUSTOM_ID: x\n:END:\n",
+   "point": 2,
+   "prompts": [
+    {
+     "prompt": "author: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "title: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "howpublished: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "month: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "year: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "note: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "doi: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "url: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "check",
+  "text": "* H\n:PROPERTIES:\n:BTYPE: inbook\n:CUSTOM_ID: x\n:EDITOR: E\n:END:\n",
+  "point": 2,
+  "answers": [
+   "pages",
+   "1-2",
+   "P",
+   "1999"
+  ],
+  "expected": {
+   "text": "* H\n:PROPERTIES:\n:BTYPE: inbook\n:CUSTOM_ID: x\n:EDITOR: E\n:PAGES:    1-2\n:PUBLISHER: P\n:YEAR:     1999\n:END:\n",
+   "point": 2,
+   "prompts": [
+    {
+     "prompt": "Field: ",
+     "initial": null,
+     "completions": [
+      "chapter",
+      "pages"
+     ]
+    },
+    {
+     "prompt": "pages: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "publisher: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "year: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "check",
+  "text": "* H\n:PROPERTIES:\n:BTYPE: Misc\n:END:\n",
+  "point": 0,
+  "answers": [],
+  "expected": {
+   "text": "* H\n:PROPERTIES:\n:BTYPE: Misc\n:END:\n",
+   "point": 0,
+   "prompts": [],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "check",
+  "text": "* H\nno type\n",
+  "point": 4,
+  "answers": [],
+  "expected": {
+   "text": "* H\nno type\n",
+   "point": 4,
+   "prompts": [],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "check",
+  "text": "* H\n:PROPERTIES:\n:BTYPE: unknown\n:END:\n",
+  "point": 0,
+  "answers": [],
+  "expected": {
+   "text": "* H\n:PROPERTIES:\n:BTYPE: unknown\n:END:\n",
+   "point": 0,
+   "prompts": [],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "check",
+  "text": "* H\n:PROPERTIES:\n:BIB_BTYPE: misc\n:END:\n",
+  "point": 0,
+  "answers": [
+   "k"
+  ],
+  "options": {
+   "org-bibtex-prefix": "\"BIB_\""
+  },
+  "expected": {
+   "text": "* H\n:PROPERTIES:\n:BIB_BTYPE: misc\n:CUSTOM_ID: k\n:END:\n",
+   "point": 0,
+   "prompts": [
+    {
+     "prompt": "id: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "check-all",
+  "text": "#+TITLE: refs\n* A\n:PROPERTIES:\n:BTYPE: misc\n:END:\n* B\nno type\n** C\n:PROPERTIES:\n:BTYPE: book\n:CUSTOM_ID: c\n:AUTHOR: Ann\n:PUBLISHER: P\n:YEAR: 1999\n:END:\n* TODO [#A] D :x:\n:PROPERTIES:\n:BTYPE: Article\n:END:\n",
+  "point": 0,
+  "answers": [
+   "kA",
+   "Bob",
+   "kD"
+  ],
+  "expected": {
+   "text": "#+TITLE: refs\n* A\n:PROPERTIES:\n:BTYPE: misc\n:CUSTOM_ID: kA\n:END:\n* B\nno type\n** C\n:PROPERTIES:\n:BTYPE: book\n:CUSTOM_ID: c\n:AUTHOR: Ann\n:PUBLISHER: P\n:YEAR: 1999\n:END:\n* TODO [#A] D :x:\n:PROPERTIES:\n:BTYPE: Article\n:END:\n",
+   "point": 0,
+   "prompts": [
+    {
+     "prompt": "id: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "check-all",
+  "text": "* A\n:PROPERTIES:\n:BTYPE: article\n:END:\n* B\n:PROPERTIES:\n:BTYPE: misc\n:END:\n",
+  "point": 40,
+  "answers": [
+   "au",
+   "jo",
+   "1",
+   "ka",
+   "kb"
+  ],
+  "expected": {
+   "text": "* A\n:PROPERTIES:\n:BTYPE: article\n:AUTHOR:   au\n:JOURNAL:  jo\n:YEAR:     1\n:CUSTOM_ID: ka\n:END:\n* B\n:PROPERTIES:\n:BTYPE: misc\n:CUSTOM_ID: kb\n:END:\n",
+   "point": 96,
+   "prompts": [
+    {
+     "prompt": "author: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "journal: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "year: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "id: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "id: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "yank",
+  "text": "* a\n",
+  "point": 4,
+  "clipboard": "@article{smith2020,\n  author = {John Smith and Jane Doe},\n  title = \"The {Great} Title\",\n  journal = {J. Things},\n  year = 2020,\n  keywords = {alpha beta, gamma}\n}\n",
+  "expected": {
+   "text": "* a\n* The {Great} Title\n:PROPERTIES:\n:TITLE:    The {Great} Title\n:BTYPE:    article\n:CUSTOM_ID: smith2020\n:AUTHOR:   John Smith and Jane Doe\n:JOURNAL:  J. Things\n:YEAR:     2020\n:KEYWORDS: alpha beta, gamma\n:END:\n",
+   "point": 214,
+   "prompts": [],
+   "message": "Mark set",
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "yank",
+  "text": "* a\n",
+  "point": 1,
+  "clipboard": "@article{smith2020,\n  author = {John Smith and Jane Doe},\n  title = \"The {Great} Title\",\n  journal = {J. Things},\n  year = 2020,\n  keywords = {alpha beta, gamma}\n}\n",
+  "expected": {
+   "text": "* a\n* The {Great} Title\n:PROPERTIES:\n:TITLE:    The {Great} Title\n:BTYPE:    article\n:CUSTOM_ID: smith2020\n:AUTHOR:   John Smith and Jane Doe\n:JOURNAL:  J. Things\n:YEAR:     2020\n:KEYWORDS: alpha beta, gamma\n:END:\n\n",
+   "point": 214,
+   "prompts": [],
+   "message": "Mark set",
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "yank",
+  "text": "* a\nbody",
+  "point": 6,
+  "clipboard": "@article{smith2020,\n  author = {John Smith and Jane Doe},\n  title = \"The {Great} Title\",\n  journal = {J. Things},\n  year = 2020,\n  keywords = {alpha beta, gamma}\n}\n",
+  "expected": {
+   "text": "* a\nbo\n* The {Great} Title\n:PROPERTIES:\n:TITLE:    The {Great} Title\n:BTYPE:    article\n:CUSTOM_ID: smith2020\n:AUTHOR:   John Smith and Jane Doe\n:JOURNAL:  J. Things\n:YEAR:     2020\n:KEYWORDS: alpha beta, gamma\n:END:\ndy",
+   "point": 217,
+   "prompts": [],
+   "message": "Mark set",
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "yank",
+  "text": "",
+  "point": 0,
+  "clipboard": "@article{smith2020,\n  author = {John Smith and Jane Doe},\n  title = \"The {Great} Title\",\n  journal = {J. Things},\n  year = 2020,\n  keywords = {alpha beta, gamma}\n}",
+  "expected": {
+   "text": "* The {Great} Title\n:PROPERTIES:\n:TITLE:    The {Great} Title\n:BTYPE:    article\n:CUSTOM_ID: smith2020\n:AUTHOR:   John Smith and Jane Doe\n:JOURNAL:  J. Things\n:YEAR:     2020\n:KEYWORDS: alpha beta, gamma\n:END:\n",
+   "point": 210,
+   "prompts": [],
+   "message": "Mark set",
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "yank",
+  "text": "* a\n",
+  "point": 4,
+  "clipboard": "@article{smith2020,\n  author = {John Smith and Jane Doe},\n  title = \"The {Great} Title\",\n  journal = {J. Things},\n  year = 2020,\n  keywords = {alpha beta, gamma}\n}\n",
+  "options": {
+   "org-bibtex-tags-are-keywords": "t",
+   "org-bibtex-tags": "'(\"bib\")"
+  },
+  "expected": {
+   "text": "* a\n* The {Great} Title                                    :alpha_beta:gamma:bib:\n:PROPERTIES:\n:TITLE:    The {Great} Title\n:BTYPE:    article\n:CUSTOM_ID: smith2020\n:AUTHOR:   John Smith and Jane Doe\n:JOURNAL:  J. Things\n:YEAR:     2020\n:END:\n",
+   "point": 243,
+   "prompts": [],
+   "message": "Mark set",
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "yank",
+  "text": "* a\n",
+  "point": 4,
+  "clipboard": "@article{smith2020,\n  author = {John Smith and Jane Doe},\n  title = \"The {Great} Title\",\n  journal = {J. Things},\n  year = 2020,\n  keywords = {alpha beta, gamma}\n}\n",
+  "options": {
+   "org-bibtex-prefix": "\"BIB_\"",
+   "org-bibtex-key-property": "\"ID\""
+  },
+  "expected": {
+   "text": "* a\n* The {Great} Title\n:PROPERTIES:\n:BIB_TITLE: The {Great} Title\n:BIB_BTYPE: article\n:ID:       smith2020\n:BIB_AUTHOR: John Smith and Jane Doe\n:BIB_JOURNAL: J. Things\n:BIB_YEAR: 2020\n:BIB_KEYWORDS: alpha beta, gamma\n:END:\n",
+   "point": 224,
+   "prompts": [],
+   "message": "Mark set",
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "yank",
+  "text": "* a\n",
+  "point": 4,
+  "clipboard": "Some text before.\n@Book{knuth,\n  author = \"Donald  E.\n   Knuth\",\n  title={{The Art} of Programming},\n  OPTpublisher = {AW},\n  ALTyear = 1968,\n  option = {kept},\n  note = \"a\" # jan # {b}\n  month = jan\n}\n",
+  "expected": {
+   "text": "* a\n* {The Art} of Programming\n:PROPERTIES:\n:TITLE:    {The Art} of Programming\n:BTYPE:    book\n:CUSTOM_ID: knuth\n:AUTHOR:   Donald E. Knuth\n:PUBLISHER: AW\n:YEAR:     1968\n:OPTION:   kept\n:NOTE:     \"a\" # jan # {b}\n:MONTH:    jan\n:END:\n",
+   "point": 236,
+   "prompts": [],
+   "message": "Mark set",
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "yank",
+  "text": "* a\n",
+  "point": 4,
+  "clipboard": "@misc{a, title={First}}\n@misc{b, title={Second}}\n",
+  "expected": {
+   "text": "* a\n* Second\n:PROPERTIES:\n:TITLE:    Second\n:BTYPE:    misc\n:CUSTOM_ID: b\n:END:\n",
+   "point": 80,
+   "prompts": [],
+   "message": "Mark set",
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "yank",
+  "text": "* a\n",
+  "point": 4,
+  "clipboard": "@misc{c\n  title = {No comma}\n  year = 1\n}\n",
+  "expected": {
+   "text": "* a\n* No comma\n:PROPERTIES:\n:TITLE:    No comma\n:BTYPE:    misc\n:CUSTOM_ID: c\n:YEAR:     1\n:END:\n",
+   "point": 97,
+   "prompts": [],
+   "message": "Mark set",
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "yank",
+  "text": "* a\n",
+  "point": 4,
+  "clipboard": "@misc{,\n  title = {No key}\n}\n",
+  "expected": {
+   "error": "Wrong type argument: arrayp, nil",
+   "prompts": []
+  }
+ },
+ {
+  "command": "yank",
+  "text": "* a\n",
+  "point": 4,
+  "clipboard": "@online{web,\n  title = {Online}\n}\n",
+  "expected": {
+   "error": "Yanked text does not appear to contain a BibTeX entry",
+   "prompts": []
+  }
+ },
+ {
+  "command": "yank",
+  "text": "* a\n",
+  "point": 4,
+  "clipboard": "no entry at all\n",
+  "expected": {
+   "error": "Yanked text does not appear to contain a BibTeX entry",
+   "prompts": []
+  }
+ },
+ {
+  "command": "yank",
+  "text": "* a\n",
+  "point": 4,
+  "clipboard": "@misc{k, year = 2000}\n",
+  "expected": {
+   "error": "Wrong type argument: char-or-string-p, nil",
+   "prompts": []
+  }
+ },
+ {
+  "command": "yank",
+  "text": "* a\n",
+  "point": 4,
+  "clipboard": "@misc{open,\n  title = {Unclosed\n",
+  "expected": {
+   "error": "Scan error: \"Unbalanced parentheses\", 23, 33",
+   "prompts": []
+  }
+ },
+ {
+  "command": "yank",
+  "text": "* a\n",
+  "point": 4,
+  "clipboard": "@misc{q,\n  title = \"Unclosed\n}\n",
+  "expected": {
+   "error": "Scan error: \"Unbalanced parentheses\", 20, 32",
+   "prompts": []
+  }
+ },
+ {
+  "command": "import",
+  "text": "* a\n",
+  "point": 4,
+  "bib": "@misc{ok, title={OK}}\n@misc{open,\n  title = {Unclosed\n",
+  "expected": {
+   "error": "Scan error: \"Unbalanced parentheses\", 45, 55",
+   "prompts": []
+  }
+ },
+ {
+  "command": "yank",
+  "text": "* a\n",
+  "point": 4,
+  "clipboard": "@misc{k, title={T}, keywords={a b, , c-d!}}\n",
+  "options": {
+   "org-bibtex-tags-are-keywords": "t"
+  },
+  "expected": {
+   "text": "* a\n* T                                                                 :a_b::cd:\n:PROPERTIES:\n:TITLE:    T\n:BTYPE:    misc\n:CUSTOM_ID: k\n:END:\n",
+   "point": 144,
+   "prompts": [],
+   "message": "Mark set",
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "yank",
+  "text": "* H\n:PROPERTIES:\n:OLD: 1\n:END:\n",
+  "point": 2,
+  "optional": true,
+  "clipboard": "@article{smith2020,\n  author = {John Smith and Jane Doe},\n  title = \"The {Great} Title\",\n  journal = {J. Things},\n  year = 2020,\n  keywords = {alpha beta, gamma}\n}\n",
+  "expected": {
+   "text": "* H\n:PROPERTIES:\n:OLD: 1\n:TITLE:    The {Great} Title\n:BTYPE:    article\n:CUSTOM_ID: smith2020\n:AUTHOR:   John Smith and Jane Doe\n:JOURNAL:  J. Things\n:YEAR:     2020\n:KEYWORDS: alpha beta, gamma\n:END:\n",
+   "point": 2,
+   "prompts": [],
+   "message": "Mark set",
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "yank",
+  "text": "* H :x:\nbody\n",
+  "point": 9,
+  "optional": true,
+  "clipboard": "@article{smith2020,\n  author = {John Smith and Jane Doe},\n  title = \"The {Great} Title\",\n  journal = {J. Things},\n  year = 2020,\n  keywords = {alpha beta, gamma}\n}\n",
+  "options": {
+   "org-bibtex-tags-are-keywords": "t"
+  },
+  "expected": {
+   "text": "* H                                                      :x:alpha_beta:gamma:\n:PROPERTIES:\n:TITLE:    The {Great} Title\n:BTYPE:    article\n:CUSTOM_ID: smith2020\n:AUTHOR:   John Smith and Jane Doe\n:JOURNAL:  J. Things\n:YEAR:     2020\n:END:\nbody\n",
+   "point": 240,
+   "prompts": [],
+   "message": "Mark set",
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "yank",
+  "text": "* a\n",
+  "point": 4,
+  "clipboard": "@article{smith2020,\n  author = {John Smith and Jane Doe},\n  title = \"The {Great} Title\",\n  journal = {J. Things},\n  year = 2020,\n  keywords = {alpha beta, gamma}\n}\n",
+  "options": {
+   "org-adapt-indentation": "t"
+  },
+  "expected": {
+   "text": "* a\n* The {Great} Title\n  :PROPERTIES:\n  :TITLE:    The {Great} Title\n  :BTYPE:    article\n  :CUSTOM_ID: smith2020\n  :AUTHOR:   John Smith and Jane Doe\n  :JOURNAL:  J. Things\n  :YEAR:     2020\n  :KEYWORDS: alpha beta, gamma\n  :END:\n",
+   "point": 232,
+   "prompts": [],
+   "message": "Mark set",
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "yank",
+  "text": "intro\n",
+  "point": 0,
+  "optional": true,
+  "clipboard": "@article{smith2020,\n  author = {John Smith and Jane Doe},\n  title = \"The {Great} Title\",\n  journal = {J. Things},\n  year = 2020,\n  keywords = {alpha beta, gamma}\n}\n",
+  "expected": {
+   "error": "Before first headline at position 1 in buffer  *temp*",
+   "prompts": []
+  }
+ },
+ {
+  "command": "create-here",
+  "text": "intro\n",
+  "point": 3,
+  "answers": [
+   "misc"
+  ],
+  "expected": {
+   "error": "Before first headline at position 1 in buffer  *temp*",
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": null,
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    }
+   ]
+  }
+ },
+ {
+  "command": "check",
+  "text": "\n",
+  "point": 1,
+  "answers": [],
+  "expected": {
+   "error": "Before first heading",
+   "prompts": []
+  }
+ },
+ {
+  "command": "create",
+  "text": "* a\n",
+  "point": 4,
+  "answers": [
+   "misc",
+   " pad ",
+   "k"
+  ],
+  "options": {
+   "org-bibtex-tags": "'(\"bib\")"
+  },
+  "expected": {
+   "text": "* a\n*  pad                                                                  :bib:\n:PROPERTIES:\n:TITLE:    pad\n:BTYPE:    misc\n:CUSTOM_ID: k\n:END:\n",
+   "point": 10,
+   "prompts": [
+    {
+     "prompt": "Type: ",
+     "initial": null,
+     "completions": [
+      "article",
+      "book",
+      "booklet",
+      "conference",
+      "inbook",
+      "incollection",
+      "inproceedings",
+      "manual",
+      "mastersthesis",
+      "misc",
+      "phdthesis",
+      "proceedings",
+      "techreport",
+      "unpublished"
+     ]
+    },
+    {
+     "prompt": "title: ",
+     "initial": null,
+     "completions": null
+    },
+    {
+     "prompt": "id: ",
+     "initial": null,
+     "completions": null
+    }
+   ],
+   "message": null,
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "yank",
+  "text": "* H\n:PROPERTIES:\n:A: 1\n:YEAR: x\n:END:\n",
+  "point": 22,
+  "optional": true,
+  "clipboard": "@misc{k, title={T}, note={N}}\n",
+  "options": {
+   "org-adapt-indentation": "t"
+  },
+  "expected": {
+   "text": "* H\n  :PROPERTIES:\n:A:        1\n:YEAR: x\n:TITLE:    T\n:BTYPE:    misc\n:CUSTOM_ID: k\n:NOTE:     N\n:END:\n",
+   "point": 19,
+   "prompts": [],
+   "message": "Mark set",
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "yank",
+  "text": "* H\n:PROPERTIES:\n:TITLE: old\n:END:\n* I\n",
+  "point": 36,
+  "optional": true,
+  "clipboard": "@misc{k, year={2000}}\n",
+  "answers": [
+   ""
+  ],
+  "expected": {
+   "text": "* H\n:PROPERTIES:\n:TITLE: old\n:END:\n* I\n:PROPERTIES:\n:TITLE:\n:BTYPE:    misc\n:CUSTOM_ID: k\n:YEAR:     2000\n:END:\n",
+   "point": 36,
+   "prompts": [
+    {
+     "prompt": "TITLE value: ",
+     "initial": null,
+     "completions": [
+      "old"
+     ]
+    }
+   ],
+   "message": "Mark set",
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "import",
+  "text": "* H\n:PROPERTIES:\n:FOO: some value\n:END:\n",
+  "point": 22,
+  "bib": "nothing\n",
+  "expected": {
+   "text": "* H\n:PROPERTIES:\n:FOO:      some value\n:END:\n",
+   "point": 17,
+   "prompts": [],
+   "message": "Parsed 0 entries",
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "import",
+  "text": "* a\n",
+  "point": 4,
+  "bib": "@article{smith2020,\n  author = {John Smith and Jane Doe},\n  title = \"The {Great} Title\",\n  journal = {J. Things},\n  year = 2020,\n  keywords = {alpha beta, gamma}\n}\n\n@misc{k2, title={Other}}\n",
+  "expected": {
+   "text": "* a\n* The {Great} Title\n:PROPERTIES:\n:TITLE:    The {Great} Title\n:BTYPE:    article\n:CUSTOM_ID: smith2020\n:AUTHOR:   John Smith and Jane Doe\n:JOURNAL:  J. Things\n:YEAR:     2020\n:KEYWORDS: alpha beta, gamma\n:END:\n* Other\n:PROPERTIES:\n:TITLE:    Other\n:BTYPE:    misc\n:CUSTOM_ID: k2\n:END:\n\n\n",
+   "point": 289,
+   "prompts": [],
+   "message": "Parsed 2 entries",
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "import",
+  "text": "* a\n* b\n",
+  "point": 4,
+  "bib": "@string{foo = \"Foo\"}\n@comment{nothing}\n@article{smith2020,\n  author = {John Smith and Jane Doe},\n  title = \"The {Great} Title\",\n  journal = {J. Things},\n  year = 2020,\n  keywords = {alpha beta, gamma}\n}\n\n@misc(paren, title = {Paren})\n",
+  "expected": {
+   "text": "* a\n* The {Great} Title\n:PROPERTIES:\n:TITLE:    The {Great} Title\n:BTYPE:    article\n:CUSTOM_ID: smith2020\n:AUTHOR:   John Smith and Jane Doe\n:JOURNAL:  J. Things\n:YEAR:     2020\n:KEYWORDS: alpha beta, gamma\n:END:\n* Paren\n:PROPERTIES:\n:TITLE:    Paren\n:BTYPE:    misc\n:CUSTOM_ID: paren\n:END:\n\n\n\n* b\n",
+   "point": 292,
+   "prompts": [],
+   "message": "Parsed 2 entries",
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "import",
+  "text": "",
+  "point": 0,
+  "bib": "Some text before.\n@Book{knuth,\n  author = \"Donald  E.\n   Knuth\",\n  title={{The Art} of Programming},\n  OPTpublisher = {AW},\n  ALTyear = 1968,\n  option = {kept},\n  note = \"a\" # jan # {b}\n  month = jan\n}\n",
+  "expected": {
+   "text": "* {The Art} of Programming\n:PROPERTIES:\n:TITLE:    {The Art} of Programming\n:BTYPE:    book\n:CUSTOM_ID: knuth\n:AUTHOR:   Donald E. Knuth\n:PUBLISHER: AW\n:YEAR:     1968\n:OPTION:   kept\n:NOTE:     \"a\" # jan # {b}\n:MONTH:    jan\n:END:\n\n",
+   "point": 232,
+   "prompts": [],
+   "message": "Parsed 1 entries",
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "import",
+  "text": "* a\n",
+  "point": 4,
+  "bib": "nothing here\n",
+  "expected": {
+   "text": "* a\n",
+   "point": 4,
+   "prompts": [],
+   "message": "Parsed 0 entries",
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "import",
+  "text": "* a\n",
+  "point": 4,
+  "bib": "@misc{a, title={A}}\n@misc{b, title={B}}",
+  "options": {
+   "org-bibtex-tags": "'(\"bib\")"
+  },
+  "expected": {
+   "text": "* a\n* A                                                                     :bib:\n:PROPERTIES:\n:TITLE:    A\n:BTYPE:    misc\n:CUSTOM_ID: a\n:END:\n* B                                                                     :bib:\n:PROPERTIES:\n:TITLE:    B\n:BTYPE:    misc\n:CUSTOM_ID: b\n:END:\n\n\n",
+   "point": 284,
+   "prompts": [],
+   "message": "Parsed 2 entries",
+   "result": null,
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "copy",
+  "text": "* The heading :t1:t2:\n:PROPERTIES:\n:BTYPE: article\n:CUSTOM_ID: k\n:AUTHOR: A\n:YEAR: 2000\n:END:\n",
+  "point": 0,
+  "expected": {
+   "text": "* The heading :t1:t2:\n:PROPERTIES:\n:BTYPE: article\n:CUSTOM_ID: k\n:AUTHOR: A\n:YEAR: 2000\n:END:\n",
+   "point": 0,
+   "prompts": [],
+   "message": null,
+   "result": "@article{k,\n  author={A},\n  title={The heading},\n  year={2000}\n}\n",
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "copy",
+  "text": "* The heading :t1:t2:\n:PROPERTIES:\n:BTYPE: article\n:CUSTOM_ID: k\n:AUTHOR: A\n:YEAR: 2000\n:END:\n",
+  "point": 30,
+  "expected": {
+   "text": "* The heading :t1:t2:\n:PROPERTIES:\n:BTYPE: article\n:CUSTOM_ID: k\n:AUTHOR: A\n:YEAR: 2000\n:END:\n",
+   "point": 30,
+   "prompts": [],
+   "message": null,
+   "result": "@article{k,\n  author={A},\n  title={The heading},\n  year={2000}\n}\n",
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "copy",
+  "text": "* COMMENT TODO [#B] Commented :t:\n:PROPERTIES:\n:BTYPE: misc\n:END:\n",
+  "point": 0,
+  "expected": {
+   "text": "* COMMENT TODO [#B] Commented :t:\n:PROPERTIES:\n:BTYPE: misc\n:END:\n",
+   "point": 0,
+   "prompts": [],
+   "message": null,
+   "result": "@misc{nil,\n  title={COMMENT TODO [#B] Commented}\n}\n",
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "copy",
+  "text": "* TODO [#B] Title  here   :t:\n:PROPERTIES:\n:BTYPE: misc\n:END:\n",
+  "point": 0,
+  "expected": {
+   "text": "* TODO [#B] Title  here   :t:\n:PROPERTIES:\n:BTYPE: misc\n:END:\n",
+   "point": 0,
+   "prompts": [],
+   "message": null,
+   "result": "@misc{nil,\n  title={Title  here}\n}\n",
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "copy",
+  "text": "* :tag:\n:PROPERTIES:\n:BTYPE: misc\n:END:\n",
+  "point": 0,
+  "expected": {
+   "text": "* :tag:\n:PROPERTIES:\n:BTYPE: misc\n:END:\n",
+   "point": 0,
+   "prompts": [],
+   "message": null,
+   "result": "@misc{nil,\n\n}\n",
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "copy",
+  "text": "* Title\n:PROPERTIES:\n:BTYPE: misc\n:TITLE:  Own title  \n:END:\n",
+  "point": 0,
+  "expected": {
+   "text": "* Title\n:PROPERTIES:\n:BTYPE: misc\n:TITLE:  Own title  \n:END:\n",
+   "point": 0,
+   "prompts": [],
+   "message": null,
+   "result": "@misc{nil,\n  title={Own title}\n}\n",
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "copy",
+  "text": "* No type\n",
+  "point": 0,
+  "expected": {
+   "error": "Wrong type argument: stringp, nil",
+   "prompts": []
+  }
+ },
+ {
+  "command": "copy",
+  "text": "* T\n:PROPERTIES:\n:BTYPE: Article\n:CUSTOM_ID: x\n:END:\n",
+  "point": 0,
+  "expected": {
+   "text": "* T\n:PROPERTIES:\n:BTYPE: Article\n:CUSTOM_ID: x\n:END:\n",
+   "point": 0,
+   "prompts": [],
+   "message": null,
+   "result": "@Article{x,\n\n}\n",
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "copy",
+  "text": "* T\n:PROPERTIES:\n:BTYPE: book\n:EDITOR: E\n:AUTHOR: A\n:VOLUME: 2\n:END:\n",
+  "point": 0,
+  "expected": {
+   "text": "* T\n:PROPERTIES:\n:BTYPE: book\n:EDITOR: E\n:AUTHOR: A\n:VOLUME: 2\n:END:\n",
+   "point": 0,
+   "prompts": [],
+   "message": null,
+   "result": "@book{nil,\n  editor={E},\n  author={A},\n  title={T},\n  volume={2}\n}\n",
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "copy",
+  "text": "* The heading :t1:t2:\n:PROPERTIES:\n:BTYPE: article\n:CUSTOM_ID: k\n:AUTHOR: A\n:YEAR: 2000\n:END:\n",
+  "point": 0,
+  "options": {
+   "org-bibtex-tags-are-keywords": "t"
+  },
+  "expected": {
+   "text": "* The heading :t1:t2:\n:PROPERTIES:\n:BTYPE: article\n:CUSTOM_ID: k\n:AUTHOR: A\n:YEAR: 2000\n:END:\n",
+   "point": 0,
+   "prompts": [],
+   "message": null,
+   "result": "@article{k,\n  keywords={t1, t2},\n  author={A},\n  title={The heading},\n  year={2000}\n}\n",
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "copy",
+  "text": "* The heading :t1:t2:\n:PROPERTIES:\n:BTYPE: article\n:CUSTOM_ID: k\n:AUTHOR: A\n:YEAR: 2000\n:KEYWORDS: x, y\n:END:\n",
+  "point": 0,
+  "options": {
+   "org-bibtex-tags-are-keywords": "t"
+  },
+  "expected": {
+   "text": "* The heading :t1:t2:\n:PROPERTIES:\n:BTYPE: article\n:CUSTOM_ID: k\n:AUTHOR: A\n:YEAR: 2000\n:KEYWORDS: x, y\n:END:\n",
+   "point": 0,
+   "prompts": [],
+   "message": null,
+   "result": "@article{k,\n  keywords={t1, t2},\n  author={A},\n  title={The heading},\n  year={2000}\n}\n",
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "copy",
+  "text": "* T :a:\n:PROPERTIES:\n:BTYPE: misc\n:KEYWORDS: x\n:END:\n",
+  "point": 0,
+  "options": {
+   "org-bibtex-tags-are-keywords": "t",
+   "org-bibtex-export-arbitrary-fields": "t",
+   "org-bibtex-prefix": "\"\""
+  },
+  "expected": {
+   "text": "* T :a:\n:PROPERTIES:\n:BTYPE: misc\n:KEYWORDS: x\n:END:\n",
+   "point": 0,
+   "prompts": [],
+   "message": null,
+   "result": "@misc{nil,\n  category={???},\n  keywords={x, a}\n}\n",
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "copy",
+  "text": "#+FILETAGS: file\n* Parent :p:\n** Child :c:bib:skip:\n:PROPERTIES:\n:BTYPE: misc\n:CUSTOM_ID: ch\n:END:\n",
+  "point": 30,
+  "options": {
+   "org-bibtex-tags-are-keywords": "t"
+  },
+  "expected": {
+   "text": "#+FILETAGS: file\n* Parent :p:\n** Child :c:bib:skip:\n:PROPERTIES:\n:BTYPE: misc\n:CUSTOM_ID: ch\n:END:\n",
+   "point": 30,
+   "prompts": [],
+   "message": null,
+   "result": "@misc{ch,\n  keywords={c, bib, skip},\n  title={Child}\n}\n",
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "copy",
+  "text": "#+FILETAGS: file\n* Parent :p:\n** Child :c:bib:skip:\n:PROPERTIES:\n:BTYPE: misc\n:CUSTOM_ID: ch\n:END:\n",
+  "point": 30,
+  "options": {
+   "org-bibtex-tags-are-keywords": "t",
+   "org-bibtex-inherit-tags": "t",
+   "org-bibtex-tags": "'(\"bib\")",
+   "org-bibtex-no-export-tags": "'(\"skip\")"
+  },
+  "expected": {
+   "text": "#+FILETAGS: file\n* Parent :p:\n** Child :c:bib:skip:\n:PROPERTIES:\n:BTYPE: misc\n:CUSTOM_ID: ch\n:END:\n",
+   "point": 30,
+   "prompts": [],
+   "message": null,
+   "result": "@misc{ch,\n  keywords={file, p, c},\n  title={Child}\n}\n",
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "copy",
+  "text": "* Pre\n:PROPERTIES:\n:BIB_BTYPE: book\n:BIB_TITLE: T\n:BIB_FOO: x\n:BIB_FOO+: y\n:bib_bar: z\n:CUSTOM_ID: k\n:OTHER: o\n:END:\n",
+  "point": 0,
+  "options": {
+   "org-bibtex-prefix": "\"BIB_\""
+  },
+  "expected": {
+   "text": "* Pre\n:PROPERTIES:\n:BIB_BTYPE: book\n:BIB_TITLE: T\n:BIB_FOO: x\n:BIB_FOO+: y\n:bib_bar: z\n:CUSTOM_ID: k\n:OTHER: o\n:END:\n",
+   "point": 0,
+   "prompts": [],
+   "message": null,
+   "result": "@book{k,\n  title={T}\n}\n",
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "copy",
+  "text": "* Pre\n:PROPERTIES:\n:BIB_BTYPE: book\n:BIB_TITLE: T\n:BIB_FOO: x\n:BIB_FOO+: y\n:bib_bar: z\n:CUSTOM_ID: k\n:OTHER: o\n:END:\n",
+  "point": 0,
+  "options": {
+   "org-bibtex-prefix": "\"BIB_\"",
+   "org-bibtex-export-arbitrary-fields": "t"
+  },
+  "expected": {
+   "text": "* Pre\n:PROPERTIES:\n:BIB_BTYPE: book\n:BIB_TITLE: T\n:BIB_FOO: x\n:BIB_FOO+: y\n:bib_bar: z\n:CUSTOM_ID: k\n:OTHER: o\n:END:\n",
+   "point": 0,
+   "prompts": [],
+   "message": null,
+   "result": "@book{k,\n  bar={z},\n  foo={x y},\n  title={T}\n}\n",
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "copy",
+  "text": "* Pre\n:PROPERTIES:\n:BIB_BTYPE: book\n:BIB_TITLE: T\n:BIB_FOO: x\n:BIB_FOO+: y\n:bib_bar: z\n:CUSTOM_ID: k\n:OTHER: o\n:END:\n:PROPERTIES:\n",
+  "point": 0,
+  "options": {
+   "org-bibtex-prefix": "\"BIB_\"",
+   "org-bibtex-export-arbitrary-fields": "t"
+  },
+  "expected": {
+   "text": "* Pre\n:PROPERTIES:\n:BIB_BTYPE: book\n:BIB_TITLE: T\n:BIB_FOO: x\n:BIB_FOO+: y\n:bib_bar: z\n:CUSTOM_ID: k\n:OTHER: o\n:END:\n:PROPERTIES:\n",
+   "point": 0,
+   "prompts": [],
+   "message": null,
+   "result": "@book{k,\n  bar={z},\n  foo={x y},\n  title={T}\n}\n",
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "copy",
+  "text": "* T\n:PROPERTIES:\n:BTYPE: misc\n:END:\n",
+  "point": 0,
+  "options": {
+   "org-bibtex-export-arbitrary-fields": "t"
+  },
+  "expected": {
+   "text": "* T\n:PROPERTIES:\n:BTYPE: misc\n:END:\n",
+   "point": 0,
+   "prompts": [],
+   "message": null,
+   "result": "@misc{nil,\n  title={T}\n}\n",
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "copy",
+  "text": "* T\n:PROPERTIES:\n:KIND: misc\n:ID: the-id\n:END:\n",
+  "point": 0,
+  "options": {
+   "org-bibtex-type-property-name": "\"kind\"",
+   "org-bibtex-key-property": "\"ID\""
+  },
+  "expected": {
+   "text": "* T\n:PROPERTIES:\n:KIND: misc\n:ID: the-id\n:END:\n",
+   "point": 0,
+   "prompts": [],
+   "message": null,
+   "result": "@misc{the-id,\n  title={T}\n}\n",
+   "file": null,
+   "autokey": null
+  }
+ },
+ {
+  "command": "export",
+  "text": "#+TITLE: refs\n* A\n:PROPERTIES:\n:BTYPE: misc\n:END:\n* B\nno type\n** C\n:PROPERTIES:\n:BTYPE: book\n:CUSTOM_ID: c\n:AUTHOR: Ann\n:PUBLISHER: P\n:YEAR: 1999\n:END:\n* TODO [#A] D :x:\n:PROPERTIES:\n:BTYPE: Article\n:END:\n",
+  "point": 0,
+  "expected": {
+   "text": "#+TITLE: refs\n* A\n:PROPERTIES:\n:BTYPE: misc\n:END:\n* B\nno type\n** C\n:PROPERTIES:\n:BTYPE: book\n:CUSTOM_ID: c\n:AUTHOR: Ann\n:PUBLISHER: P\n:YEAR: 1999\n:END:\n* TODO [#A] D :x:\n:PROPERTIES:\n:BTYPE: Article\n:END:\n",
+   "point": 0,
+   "prompts": [],
+   "message": "Successfully exported 3 BibTeX entries to FILE",
+   "result": null,
+   "file": "@misc{nil,\n  title={A}\n}\n\n@book{c,\n  author={Ann},\n  title={C},\n  publisher={P},\n  year={1999}\n}\n\n@Article{nil,\n\n}\n",
+   "autokey": null
+  }
+ },
+ {
+  "command": "export",
+  "text": "* none\n",
+  "point": 0,
+  "expected": {
+   "text": "* none\n",
+   "point": 0,
+   "prompts": [],
+   "message": "Successfully exported 0 BibTeX entries to FILE",
+   "result": null,
+   "file": "",
+   "autokey": null
+  }
+ },
+ {
+  "command": "export",
+  "text": "",
+  "point": 0,
+  "expected": {
+   "text": "",
+   "point": 0,
+   "prompts": [],
+   "message": "Successfully exported 0 BibTeX entries to FILE",
+   "result": null,
+   "file": "",
+   "autokey": null
+  }
+ }
+]

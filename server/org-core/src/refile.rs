@@ -226,7 +226,7 @@ pub fn find<'a>(targets: &'a [(usize, Target)], answer: &str) -> Option<&'a (usi
 
 /// `org-get-outline-path`: the titles of the headlines above the one at
 /// `offset`, outermost first.
-pub(crate) fn outline_path(text: &str, offset: usize, keywords: &TodoKeywords) -> Vec<String> {
+pub fn outline_path(text: &str, offset: usize, keywords: &TodoKeywords) -> Vec<String> {
     let file = File { text, keywords, name: "", path: "", title: None };
     ancestors(text, offset).into_iter().map(|at| path_part(text, at, &file)).collect()
 }
@@ -374,7 +374,10 @@ pub fn refile(
     // Where the subtree goes, and at which level.
     let (at, level) = match to {
         Some(to) => {
-            let level = headline_level(line_at(into, to)).unwrap_or(1) + 1;
+            // `org-get-valid-level`, two stars a level with `org-odd-levels-only`
+            // in the target.
+            let stars = headline_level(line_at(into, to)).unwrap_or(1);
+            let level = crate::structure::valid_level(stars, 1, crate::structure::odd_levels_in(into));
             let at = if settings.reverse_note_order {
                 next_heading(into, to).unwrap_or(into.len())
             } else {
@@ -513,7 +516,13 @@ pub fn new_node<'a>(targets: &'a [(usize, Target)], answer: &str) -> Option<(&'a
 pub fn new_child(text: &str, parent: Option<usize>, child: &str) -> (String, usize) {
     let mut text = text.to_string();
     let (end, level) = match parent {
-        Some(heading) => (subtree_end(&text, heading), headline_level(line_at(&text, heading)).unwrap_or(1) + 1),
+        Some(heading) => {
+            let stars = headline_level(line_at(&text, heading)).unwrap_or(1);
+            (
+                subtree_end(&text, heading),
+                crate::structure::valid_level(stars, 1, crate::structure::odd_levels_in(&text)),
+            )
+        }
         None => {
             if !text.is_empty() && !text.ends_with('\n') {
                 text.push('\n');

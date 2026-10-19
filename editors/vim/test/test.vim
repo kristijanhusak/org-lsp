@@ -36,7 +36,7 @@ call org_lsp#config()
 function! org_lsp#prompt(input) abort
   return empty(g:answers) ? v:null : remove(g:answers, 0)
 endfunction
-function! org_lsp#read_key(prompt, choices) abort
+function! org_lsp#read_key(prompt, choices, ...) abort
   return empty(g:answers) ? v:null : remove(g:answers, 0)
 endfunction
 
@@ -60,11 +60,25 @@ function! s:starts() abort
 endfunction
 call s:test('starts the server and highlights with its tokens', function('s:starts'))
 
+" `org_fontify_whole_heading_line`: each headline's line coloured from
+" edge to edge in the look of its level, with a sign without text.
+function! s:whole_heading_lines() abort
+  let Placed = {-> map(sign_getplaced(s:work_buf, {'group': 'org_lsp_lines'})[0].signs, '[v:val.lnum, v:val.name]')}
+  call s:until('the headlines coloured', {-> len(Placed()) == 3})
+  call assert_equal([[2, 'org_lsp_line_headline.level1'], [5, 'org_lsp_line_headline.level2'], [6, 'org_lsp_line_headline.level1']], Placed())
+  call assert_equal('OrgLsp_headline_level1', sign_getdefined('org_lsp_line_headline.level1')[0].linehl)
+endfunction
+call s:test('colours the lines of headlines from edge to edge', function('s:whole_heading_lines'))
+
 " A keyword with a face of its own (`org_todo_keyword_faces`) shows in it.
 function! s:keyword_faces() abort
   call s:until('the face on TODO', {-> index(s:types(2), 'org_lsp_face_todo_TODO') >= 0})
   call assert_equal('#ff8800', synIDattr(hlID('OrgLspTodoFace_TODO'), 'fg#', 'gui'))
   call assert_equal('1', synIDattr(hlID('OrgLspTodoFace_TODO'), 'bold', 'gui'))
+  " A tag with a face of its own (`org_tag_faces`): its name, not the colons.
+  let tag = filter(prop_list(2), 'v:val.type ==# "org_lsp_face_tag_office"')
+  call assert_equal([[27, 6]], map(tag, '[v:val.col, v:val.length]'))
+  call assert_equal('#0088ff', synIDattr(hlID('OrgLspTagFace_office'), 'fg#', 'gui'))
 endfunction
 call s:test('gives keywords their faces', function('s:keyword_faces'))
 
@@ -87,6 +101,9 @@ function! s:folds() abort
   call cursor(2, 1)
   call org_lsp#cycle()
   call assert_equal(2, foldclosed(2))
+  " The closed fold shows its headline, then `org-ellipsis`.
+  call assert_equal('org_lsp#foldtext()', &l:foldtext)
+  call s:until('the ellipsis', {-> foldtextresult(2) ==# getline(2) . '...'})
   call org_lsp#cycle()
   call assert_equal(-1, foldclosed(2))
   call assert_equal(-1, foldclosed(3))
@@ -170,9 +187,11 @@ function! s:deadline() abort
 endfunction
 call s:test('picks a date in the calendar and sets the deadline', function('s:deadline'))
 
+" The window the plugin opened for the agenda: coc.nvim shows the agenda
+" in the current window first, which the plugin then puts back.
 function! s:agenda_window() abort
   for win in range(1, winnr('$'))
-    if getbufvar(winbufnr(win), '&filetype') ==# 'org-agenda'
+    if getbufvar(winbufnr(win), '&filetype') ==# 'org-agenda' && !empty(getwinvar(win, 'org_lsp_opened', ''))
       return win_getid(win)
     endif
   endfor
@@ -258,8 +277,13 @@ function! s:agenda_hover() abort
   call win_gotoid(s:agenda_window())
   call s:until('its text', {-> search('Write report', 'n') > 0})
   " The agenda shows today first, which moves the cursor there, and again
-  " once it knows the window's width: the cursor goes to the entry once
-  " that is done.
+  " once it knows the window's width, its tags then at the window's edge:
+  " read again, it moves the cursor, which would close the popups. The
+  " cursor goes to the entry once that is done.
+  let agenda = win_getid()
+  let Report = {-> getbufline(winbufnr(agenda), search('Write report', 'n'))[0]}
+  let Width = {-> getwininfo(agenda)[0].width - getwininfo(agenda)[0].textoff}
+  call s:until('the agenda as wide as its window', {-> Report() =~# ':office:$' && strchars(Report()) == Width()})
   call s:until('the cursor to stay on the entry', function('s:stays_on', ['Write report']))
   let client = $ORG_LSP_TEST_CLIENT
   if client ==# 'coc'
@@ -340,6 +364,8 @@ function! s:agenda_follow() abort
   call cursor(search('Call', 'n'), 1)
   call org_lsp#tell_agenda_cursor()
   call s:until('the next entry', {-> getbufline(s:work_buf, line('.', Shown()[0]))[0] =~# 'Call'})
+  " The outline path of its entry, echoed (`org-agenda-show-outline-path`).
+  call s:until('the outline path', {-> org_lsp#echoed() ==# 'work.org'})
   call assert_equal(agenda, win_getid(), 'still in the agenda')
   " Off: the other window stays where it was.
   call feedkeys('F', 'x')
@@ -380,6 +406,20 @@ function! s:capture() abort
   call s:until('the capture buffer closed', {-> fnamemodify(bufname(), ':t') !~# '^CAPTURE-'})
 endfunction
 call s:test('captures through a capture buffer', function('s:capture'))
+
+" `org-lsp protocol URL`, as the system runs it for a bookmarklet: the
+" server asks Vim to start the capture (`org-lsp/runCommand`).
+function! s:protocol_capture() abort
+  call s:until('the server to listen', {-> !empty(glob(s:work . '/.local/state/org-lsp/protocol/*.json', 0, 1))})
+  let url = 'org-protocol://capture?template=w&url=https%3A%2F%2Forgmode.org%2F&title=Org+mode&body=Selected'
+  call system(shellescape($ORG_LSP_BIN) . ' protocol ' . shellescape(url))
+  call assert_equal(0, v:shell_error)
+  call s:until('the capture buffer', {-> fnamemodify(bufname(), ':t') =~# '^CAPTURE-'})
+  call assert_equal(['* Org mode', 'https://orgmode.org/', 'Selected'], getline(1, '$'))
+  call org_lsp#run('org.capture.abort')
+  call s:until('the capture buffer closed', {-> fnamemodify(bufname(), ':t') !~# '^CAPTURE-'})
+endfunction
+call s:test('captures from an org-protocol URL', function('s:protocol_capture'))
 
 function! s:clock() abort
   execute 'buffer' s:work_buf
@@ -635,7 +675,7 @@ call s:test('sorts the children of an entry', function('s:sort'))
 " highlighted.
 function! s:sparse() abort
   let file = s:work . '/notes/sparse.org'
-  call writefile(['* A', 'an apple', '* B', 'nothing', '** C', 'Apple pie', '* D', 'none'], file)
+  call writefile(['* A', 'an apple', '* B :work:', 'nothing', '** C', 'Apple pie', '* D', 'none'], file)
   execute 'edit' fnameescape(file)
   call s:until('the server and the folds', {-> org_lsp#ready(bufnr()) && foldlevel(2) > 0})
   let g:answers = ['r', 'apple']
@@ -643,6 +683,22 @@ function! s:sparse() abort
   let Marked = {line -> empty(prop_type_get('org_lsp_sparse')) ? 0 : len(prop_list(line, {'types': ['org_lsp_sparse']}))}
   call s:until('the matches highlighted', {-> Marked(2) == 1 && Marked(6) == 1})
   call assert_equal([-1, -1, 7], [foldclosed(2), foldclosed(6), foldclosed(8)])
+  call setline(8, 'changed')
+  doautocmd TextChanged
+  call s:until('the highlights gone with the change', {-> Marked(2) == 0 && Marked(6) == 0})
+  " A sparse tree by tags keeps its highlights through changes, as
+  " `org-scan-tags` does, until `C-c C-c` takes them away.
+  let g:answers = ['m', 'work']
+  call feedkeys("\\o/", 'xt')
+  call s:until('the tagged headlines highlighted', {-> Marked(3) == 1 && Marked(5) == 1})
+  call setline(8, 'changed again')
+  doautocmd TextChanged
+  sleep 300m
+  call assert_equal([1, 1], [Marked(3), Marked(5)])
+  call feedkeys("\<C-Space>", 'xt')
+  call s:until('the highlights taken away by C-c C-c', {-> Marked(3) == 0 && Marked(5) == 0})
+  call assert_equal('* B :work:', getline(3))
+  normal! zR
   " `\oR` (`org-reveal`): the cursor's context shown, the other folds
   " left as they are.
   normal! zM
@@ -653,6 +709,34 @@ function! s:sparse() abort
   normal! zR
 endfunction
 call s:test('makes a sparse tree', function('s:sparse'))
+
+" A subtree yanked at the start of a line is folded once the buffer has
+" it (`org-yank-folded-subtrees`); C-k on its folded headline kills what
+" the fold hides (`kill-line`).
+function! s:yank_folded() abort
+  let file = s:work . '/notes/yank.org'
+  call writefile(['* A', 'a body', '* B'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server and the folds', {-> org_lsp#ready(bufnr()) && foldlevel(2) > 0})
+  call setreg('"', ['* N', 'new body', '** M', 'more'], 'l')
+  " coc.nvim follows a buffer's changes a moment after it opens.
+  sleep 300m
+  call cursor(3, 1)
+  call feedkeys(":call org_lsp#run('org.yank')\<CR>", 'xt')
+  call s:until('the yanked subtree folded', {-> foldclosed(3) == 3 && foldclosedend(3) == 6})
+  call assert_equal(['* A', 'a body', '* N', 'new body', '** M', 'more', '* B'], getline(1, '$'))
+  call assert_equal(7, line('.'))
+  5foldopen
+  call assert_equal([-1, 5], [foldclosed(3), foldclosed(5)])
+  normal! zM
+  call cursor(3, 1)
+  call feedkeys(":call org_lsp#run('org.kill.line')\<CR>", 'xt')
+  call s:until('the folded subtree killed', {-> line('$') == 4})
+  call assert_equal(['* A', 'a body', '', '* B'], getline(1, '$'))
+  call assert_equal("* N\nnew body\n** M\nmore", getreg('"'))
+  silent! write
+endfunction
+call s:test('folds a yanked subtree and kills it folded', function('s:yank_folded'))
 
 " A file opens as its `#+STARTUP:` says: with `content` the headlines
 " show, those without children folded, and drawers folded.
@@ -750,7 +834,7 @@ call s:test('a file whose name is not ASCII', function('s:non_ascii_name'))
 
 function! s:virtual_indent() abort
   let file = s:work . '/notes/indented.org'
-  call writefile(['#+STARTUP: indent', '* A', 'text', '** B', '- item'], file)
+  call writefile(['#+STARTUP: indent', '* A', 'text', '** B and a title that wraps', '- item'], file)
   execute 'edit' fnameescape(file)
   call s:until('the server', {-> org_lsp#ready(bufnr())})
   " `org-indent-mode`: text before the lines, the file as it is.
@@ -761,6 +845,19 @@ function! s:virtual_indent() abort
   " The leading star of `** B` hidden.
   call assert_equal(1, prop_list(4, {'types': ['org_lsp_star']})[0].length)
   call assert_true(&breakindent)
+  " A headline that wraps goes on under its title, after its stars and a
+  " space (`wrap-prefix`, without the prefix).
+  vsplit
+  setlocal wrap linebreak
+  let off = getwininfo(win_getid())[0].textoff
+  execute 'vertical resize' 24 + off
+  call cursor(1, 1)
+  redraw
+  let row = screenpos(win_getid(), 4, 1).row
+  let left = win_screenpos(0)[1] + off
+  let Shown = {r -> join(map(range(left, left + 23), {_, c -> screenstring(r, c)}), '')}
+  call assert_equal([' ** B and a title that  ', '   wraps                '], [Shown(row), Shown(row + 1)])
+  close
 endfunction
 call s:test('org-indent-mode shows the file indented, unchanged', function('s:virtual_indent'))
 

@@ -1,0 +1,36 @@
+Week-agenda (W21):
+Monday     18 May 2026 W21
+  alpha:      10:00...... Deadline:   NEXT buy seeds                    :house::
+  home:       18:00...... Scheduled:  TODO [#C] water plants            :house::
+  home:       In   5 d.:  TODO Bake bread                       :house::kitchen:
+  alpha:      Scheduled:  TODO [#A] mow lawn                    :house::outside:
+  home:       Scheduled:  DONE laundry                                  :house::
+  work:       14:00...... Scheduled:  TODO [#B] Write report            :office:
+  work:       11:00-12:00 Meeting 
+  work:        9:00...... Deadline:   WAIT Banana bread [1/3]
+  work:        8:30...... Scheduled:  TODO Call Bob                      :phone:
+  work:       In   2 d.:  TODO step two                                 :urgent:
+  work:       Scheduled:  NEXT apple pie                          :home:kitchen:
+  work:       In   4 d.:  TODO [#A] Zebra crossing                      :office:
+  travel:     In   1 d.:  TODO Plan trip [50%]
+  work:       Scheduled:  TODO [#A] Zebra crossing                      :office:
+  travel:      7:00...... Scheduled:  TODO [#B] book flights            :travel:
+              20:00...... ----------------
+              18:00...... ----------------
+              16:00...... ----------------
+              14:00...... ----------------
+              12:00...... ----------------
+              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+              10:00...... ----------------
+               8:00...... ----------------
+Tuesday    19 May 2026
+  travel:     Deadline:   TODO Plan trip [50%]
+  work:       10:00...... TODO [#A] Zebra crossing                      :office:
+Wednesday  20 May 2026
+  work:       Deadline:   TODO step two                                 :urgent:
+Thursday   21 May 2026
+Friday     22 May 2026
+  work:       Deadline:   TODO [#A] Zebra crossing                      :office:
+Saturday   23 May 2026
+  home:       Deadline:   TODO Bake bread                       :house::kitchen:
+Sunday     24 May 2026

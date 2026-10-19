@@ -65,6 +65,9 @@ fn refiling_matches_emacs() {
                 let indexes = match target.files {
                     RefileFiles::Current => vec![current],
                     RefileFiles::Agenda => (0..files.len()).collect(),
+                    RefileFiles::IdFiles => {
+                        (0..files.len()).filter(|index| org_core::link::has_ids(&texts[*index])).collect()
+                    }
                     RefileFiles::Paths(paths) => {
                         paths.iter().filter_map(|path| named.iter().position(|(name, _)| *name == path)).collect()
                     }

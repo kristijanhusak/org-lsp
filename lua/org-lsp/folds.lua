@@ -5,6 +5,12 @@
 local M = {}
 local notify = require('org-lsp.notify')
 
+--- What a closed fold shows after its first line (`org-ellipsis`), as the
+--- server announced it.
+M.ellipsis = '...'
+
+vim.api.nvim_set_hl(0, 'OrgLspEllipsis', { link = 'Comment', default = true })
+
 --- The folding ranges of the current buffer, as { start, finish } pairs of
 --- 1-based line numbers, or nil when the server cannot be asked.
 local function ranges(bufnr)
@@ -22,6 +28,49 @@ local function ranges(bufnr)
     table.insert(out, { range.startLine + 1, range.endLine + 1 })
   end
   return out
+end
+
+--- Whether line `line` starts a list item, which folds with its
+--- headline's children only with `org_cycle_include_plain_lists`
+--- `integrate`.
+---@param bufnr integer
+---@param line integer 1-based
+---@return boolean
+local function item(bufnr, line)
+  local text = vim.api.nvim_buf_get_lines(bufnr, line - 1, line, false)[1] or ''
+  return text:match('^%s*[-+]%s') ~= nil
+    or text:match('^%s*[-+]$') ~= nil
+    or text:match('^%s*%d+[.)]%s') ~= nil
+    or text:match('^%s*%d+[.)]$') ~= nil
+    or text:match('^%s+%*%s') ~= nil
+end
+
+--- What TAB does before it folds (`org.cycle`): an edit of a new entry,
+--- which is made, or global cycling, or how to fold. Nil when TAB is
+--- done; else whether lists fold with a headline's children.
+---@param bufnr integer
+---@return { global: boolean?, integrateLists: boolean? }?
+local function before_folding(bufnr)
+  local client = vim.lsp.get_clients({ bufnr = bufnr, name = 'org_lsp' })[1]
+  if not client then
+    return {}
+  end
+  local context = vim.lsp.util.make_position_params(0, client.offset_encoding)
+  local params = { command = 'org.cycle', arguments = { context } }
+  local response = client:request_sync('workspace/executeCommand', params, 1000, bufnr)
+  if not response then
+    return {}
+  end
+  if response.err then
+    notify(response.err.message, vim.log.levels.ERROR)
+    return nil
+  end
+  local result = response.result or {}
+  if type(result.edits) == 'table' then
+    require('org-lsp').apply_carried(result, bufnr, client)
+    return nil
+  end
+  return result
 end
 
 --- Whether line `line` is a headline with the ARCHIVE tag of its own.
@@ -52,12 +101,21 @@ end
 --- Cycle the subtree (or block, drawer, list item) at the cursor:
 --- folded -> children visible -> everything visible -> folded. Archived
 --- subtrees stay closed, as `org-cycle-hide-archived-subtrees` keeps them.
+--- First the server says what TAB does there before it folds: a new,
+--- empty entry changes level, the start of the file cycles globally.
 function M.cycle()
   -- In a table, TAB goes to the next field (`org-table-next-field`).
   if vim.api.nvim_get_current_line():match('^%s*|') then
     return require('org-lsp').run('org.table.next.field')
   end
   local bufnr = vim.api.nvim_get_current_buf()
+  -- A new entry's level, or global cycling at the start of the file.
+  local before = before_folding(bufnr)
+  if not before then
+    return
+  elseif before.global then
+    return M.global_cycle()
+  end
   local all = ranges(bufnr)
   if not all then
     return
@@ -92,7 +150,8 @@ function M.cycle()
         break
       end
     end
-    if not nested then
+    -- Lists stay open but with `org_cycle_include_plain_lists` `integrate`.
+    if not nested and (before.integrateLists or not item(bufnr, range[1]) or item(bufnr, start)) then
       table.insert(children, range)
     end
   end
@@ -140,6 +199,84 @@ function M.global_cycle()
   else
     vim.cmd('normal! zM')
   end
+end
+
+--- The highlight groups of the semantic tokens at `col` of `row`, as
+--- Neovim names them, in the order it applies them.
+---@param bufnr integer
+---@param row integer
+---@param col integer
+---@return string[]
+local function token_groups(bufnr, row, col)
+  local groups = {}
+  local filetype = vim.bo[bufnr].filetype
+  for _, token in ipairs(vim.lsp.semantic_tokens.get_at_pos(bufnr, row, col) or {}) do
+    table.insert(groups, ('@lsp.type.%s.%s'):format(token.type, filetype))
+    for modifier, on in pairs(token.modifiers) do
+      if on then
+        table.insert(groups, ('@lsp.mod.%s.%s'):format(modifier, filetype))
+        table.insert(groups, ('@lsp.typemod.%s.%s.%s'):format(token.type, modifier, filetype))
+      end
+    end
+  end
+  return groups
+end
+
+--- 'foldtext' of Org windows: a closed fold shows its first line as it
+--- shows open, highlighted, its hidden text hidden and what stands in for
+--- it shown, then `org-ellipsis`, as Emacs shows a folded heading.
+---@return [string, string|string[]][]
+function M.foldtext()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local row = vim.v.foldstart - 1
+  local line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, false)[1] or ''
+  local concealed, inline = {}, {}
+  local marks = vim.api.nvim_buf_get_extmarks(bufnr, -1, { row, 0 }, { row, -1 }, { details = true })
+  for _, mark in ipairs(marks) do
+    local col, details = mark[3], mark[4]
+    if details.conceal and details.end_col and (details.end_row or row) == row and vim.wo.conceallevel > 0 then
+      table.insert(concealed, { col, details.end_col, details.conceal, details.hl_group or 'Conceal' })
+    elseif details.virt_text_pos == 'inline' and details.virt_text then
+      inline[col] = vim.list_extend(inline[col] or {}, details.virt_text)
+    end
+  end
+  local chunks = {}
+  local function add(text, group)
+    local last = chunks[#chunks]
+    if last and vim.deep_equal(last[2], group) then
+      last[1] = last[1] .. text
+    else
+      table.insert(chunks, { text, group })
+    end
+  end
+  local col = 0
+  while col <= #line do
+    for _, chunk in ipairs(inline[col] or {}) do
+      add(chunk[1], chunk[2] or {})
+    end
+    if col == #line then
+      break
+    end
+    local after = col + vim.str_utf_end(line, col + 1) + 1
+    local hidden
+    for _, range in ipairs(concealed) do
+      if range[1] <= col and col < range[2] then
+        hidden = range
+        break
+      end
+    end
+    if hidden then
+      if hidden[1] == col and hidden[3] ~= '' then
+        add(hidden[3], hidden[4])
+      end
+    else
+      local text = line:sub(col + 1, after)
+      add(text == '\t' and (' '):rep(vim.bo[bufnr].tabstop) or text, token_groups(bufnr, row, col))
+    end
+    col = after
+  end
+  add(M.ellipsis, 'OrgLspEllipsis')
+  return chunks
 end
 
 return M

@@ -3,7 +3,12 @@
 //! (`org_agenda_files`; `org-agenda-files` is read too); those of the
 //! server's own, without `org_`.
 
-use org_core::agenda::{Config as AgendaConfig, FutureRepeats, RemoveTags, Span, TagsColumn, TimeGrid};
+use org_core::agenda::sorting::{Limit, Sorting, Strategies};
+use org_core::agenda::todo_ignore::When;
+use org_core::agenda::{
+    Config as AgendaConfig, FontifyPriorities, FutureRepeats, PreferLastRepeat, RemoveTags, RemoveTimes,
+    ShowInheritedTags, SkipByOtherDate, SkipScheduledIfDeadline, Span, TagsColumn, TimeGrid, UseTagInheritance,
+};
 use org_core::archive::{ContextInfo, InheritedTags, MarkDone, Settings as ArchiveSettings};
 use org_core::edit::Settings as EditSettings;
 use org_core::outline::{Inherit, Inheritance};
@@ -23,6 +28,10 @@ pub struct Options {
     /// starting with `sequence` or `type`. Documents can override them.
     #[serde(rename = "org_todo_keywords")]
     pub todo_keywords: Option<TodoKeywordsOption>,
+    /// `org-todo-interpretation`: `"sequence"` or `"type"`, for a list of
+    /// keywords alone (Org's old syntax).
+    #[serde(rename = "org_todo_interpretation")]
+    pub todo_interpretation: Option<String>,
     /// `org-todo-keyword-faces`: a face for a keyword, a color or a
     /// property list (`:foreground blue :weight bold`).
     #[serde(rename = "org_todo_keyword_faces")]
@@ -30,9 +39,16 @@ pub struct Options {
     /// `org-priority-faces`: a face for a priority, by its letter.
     #[serde(rename = "org_priority_faces")]
     pub priority_faces: std::collections::BTreeMap<String, String>,
+    /// `org-tag-faces`: a face for a tag.
+    #[serde(rename = "org_tag_faces")]
+    pub tag_faces: std::collections::BTreeMap<String, String>,
     /// Files, directories and glob patterns the agenda is built from.
     #[serde(rename = "org_agenda_files")]
     pub agenda_files: Vec<String>,
+    #[serde(rename = "org_agenda_file_regexp")]
+    pub agenda_file_regexp: Option<String>,
+    #[serde(rename = "org_agenda_skip_unavailable_files")]
+    pub agenda_skip_unavailable_files: Option<bool>,
     #[serde(flatten)]
     pub agenda: AgendaOptions,
     /// `org-log-done`: `false`, `"time"` or `"note"`.
@@ -44,6 +60,9 @@ pub struct Options {
     /// `org-list-use-circular-motion`
     #[serde(rename = "org_list_use_circular_motion")]
     pub list_use_circular_motion: Option<bool>,
+    /// `org-agenda-move-date-from-past-immediately-to-today`
+    #[serde(rename = "org_agenda_move_date_from_past_immediately_to_today")]
+    pub agenda_move_date_from_past_immediately_to_today: Option<bool>,
     /// `org-agenda-dim-blocked-tasks`
     #[serde(rename = "org_agenda_dim_blocked_tasks")]
     pub agenda_dim_blocked_tasks: Option<LogOption>,
@@ -65,6 +84,123 @@ pub struct Options {
     /// `org-log-into-drawer`: `true` for `LOGBOOK`, or a drawer name.
     #[serde(rename = "org_log_into_drawer")]
     pub log_into_drawer: Option<DrawerOption>,
+    /// `org-log-done-with-time`
+    #[serde(rename = "org_log_done_with_time")]
+    pub log_done_with_time: Option<bool>,
+    /// `org-log-note-headings`: headings by kind of note (`done`, `state`,
+    /// `note`, `reschedule`, `delschedule`, `redeadline`, `deldeadline`,
+    /// `refile`, `clock_out`).
+    #[serde(rename = "org_log_note_headings")]
+    pub log_note_headings: Option<std::collections::BTreeMap<String, String>>,
+    /// `org-log-states-order-reversed`
+    #[serde(rename = "org_log_states_order_reversed")]
+    pub log_states_order_reversed: Option<bool>,
+    /// `org-log-state-notes-insert-after-drawers`
+    #[serde(rename = "org_log_state_notes_insert_after_drawers")]
+    pub log_state_notes_insert_after_drawers: Option<bool>,
+    /// `org-log-note-clock-out`
+    #[serde(rename = "org_log_note_clock_out")]
+    pub log_note_clock_out: Option<bool>,
+    /// `org-provide-todo-statistics`: `true`, `false`, `"all-headlines"`, a
+    /// list of keywords, or a list of two lists (not done, done).
+    #[serde(rename = "org_provide_todo_statistics")]
+    pub provide_todo_statistics: Option<serde_json::Value>,
+    /// `org-hierarchical-todo-statistics`
+    #[serde(rename = "org_hierarchical_todo_statistics")]
+    pub hierarchical_todo_statistics: Option<bool>,
+    /// `org-closed-keep-when-no-todo`
+    #[serde(rename = "org_closed_keep_when_no_todo")]
+    pub closed_keep_when_no_todo: Option<bool>,
+    /// `org-M-RET-may-split-line`: a boolean, or one by context
+    /// (`headline`, `item`, `table`, `default`).
+    #[serde(rename = "org_M_RET_may_split_line")]
+    pub m_ret_may_split_line: Option<serde_json::Value>,
+    /// `org-blank-before-new-entry`: `heading` and `plain_list_item`, each
+    /// `true`, `false` or `"auto"`.
+    #[serde(rename = "org_blank_before_new_entry")]
+    pub blank_before_new_entry: Option<serde_json::Map<String, serde_json::Value>>,
+    /// `org-insert-heading-respect-content`
+    #[serde(rename = "org_insert_heading_respect_content")]
+    pub insert_heading_respect_content: Option<bool>,
+    /// `org-special-ctrl-a/e`: `true`, `false`, `"reversed"`, or a pair
+    /// of them for C-a and C-e.
+    #[serde(rename = "org_special_ctrl_a_e")]
+    pub special_ctrl_a_e: Option<serde_json::Value>,
+    /// `org-special-ctrl-k`
+    #[serde(rename = "org_special_ctrl_k")]
+    pub special_ctrl_k: Option<bool>,
+    #[serde(rename = "org_treat_S_cursor_todo_selection_as_state_change")]
+    pub treat_s_cursor_todo_selection_as_state_change: Option<bool>,
+    #[serde(rename = "org_treat_insert_todo_heading_as_state_change")]
+    pub treat_insert_todo_heading_as_state_change: Option<bool>,
+    #[serde(rename = "org_edit_timestamp_down_means_later")]
+    pub edit_timestamp_down_means_later: Option<bool>,
+    #[serde(rename = "org_priority_enable_commands")]
+    pub priority_enable_commands: Option<bool>,
+    /// `org-track-ordered-property-with-tag`: `true` (the tag `ORDERED`),
+    /// `false`, or a tag.
+    #[serde(rename = "org_track_ordered_property_with_tag")]
+    pub track_ordered_property_with_tag: Option<serde_json::Value>,
+    /// `org-list-two-spaces-after-bullet-regexp`: a regexp, or `false`.
+    #[serde(rename = "org_list_two_spaces_after_bullet_regexp")]
+    pub list_two_spaces_after_bullet_regexp: Option<serde_json::Value>,
+    /// `org-list-demote-modify-bullet`: by bullet, the bullet it becomes.
+    #[serde(rename = "org_list_demote_modify_bullet")]
+    pub list_demote_modify_bullet: Option<std::collections::BTreeMap<String, String>>,
+    /// `org-list-indent-offset`
+    #[serde(rename = "org_list_indent_offset")]
+    pub list_indent_offset: Option<usize>,
+    /// `org-list-automatic-rules`: `checkbox` and `indent`, each a boolean.
+    #[serde(rename = "org_list_automatic_rules")]
+    pub list_automatic_rules: Option<serde_json::Map<String, serde_json::Value>>,
+    /// `org-checkbox-hierarchical-statistics`
+    #[serde(rename = "org_checkbox_hierarchical_statistics")]
+    pub checkbox_hierarchical_statistics: Option<bool>,
+    /// `org-table-formula-constants`: by name, the value.
+    #[serde(rename = "org_table_formula_constants")]
+    pub table_formula_constants: Option<std::collections::BTreeMap<String, serde_json::Value>>,
+    /// `org-table-relative-ref-may-cross-hline`: a boolean or `"error"`.
+    #[serde(rename = "org_table_relative_ref_may_cross_hline")]
+    pub table_relative_ref_may_cross_hline: Option<serde_json::Value>,
+    /// `org-table-formula-create-columns`
+    #[serde(rename = "org_table_formula_create_columns")]
+    pub table_formula_create_columns: Option<bool>,
+    /// `org-table-duration-custom-format`: `seconds`, `minutes`, `hours`,
+    /// `days` or `hh:mm`.
+    #[serde(rename = "org_table_duration_custom_format")]
+    pub table_duration_custom_format: Option<String>,
+    /// `org-table-duration-hour-zero-padding`
+    #[serde(rename = "org_table_duration_hour_zero_padding")]
+    pub table_duration_hour_zero_padding: Option<bool>,
+    /// `org-calc-default-modes`: `float_format` (`["fix", 2]`) and
+    /// `angle_mode` (`"deg"` or `"rad"`).
+    #[serde(rename = "org_calc_default_modes")]
+    pub calc_default_modes: Option<serde_json::Map<String, serde_json::Value>>,
+    /// `org-table-formula-evaluate-inline`
+    #[serde(rename = "org_table_formula_evaluate_inline")]
+    pub table_formula_evaluate_inline: Option<bool>,
+    /// `org-table-allow-automatic-line-recalculation`
+    #[serde(rename = "org_table_allow_automatic_line_recalculation")]
+    pub table_allow_automatic_line_recalculation: Option<bool>,
+    /// `org-table-number-regexp`
+    #[serde(rename = "org_table_number_regexp")]
+    pub table_number_regexp: Option<String>,
+    /// `org-table-number-fraction`
+    #[serde(rename = "org_table_number_fraction")]
+    pub table_number_fraction: Option<f64>,
+    /// `org-table-automatic-realign`
+    #[serde(rename = "org_table_automatic_realign")]
+    pub table_automatic_realign: Option<bool>,
+    /// `org-table-tab-jumps-over-hlines`
+    #[serde(rename = "org_table_tab_jumps_over_hlines")]
+    pub table_tab_jumps_over_hlines: Option<bool>,
+    /// `org-table-shrunk-column-indicator`
+    #[serde(rename = "org_table_shrunk_column_indicator")]
+    pub table_shrunk_column_indicator: Option<String>,
+    /// `org-todo-state-tags-triggers`: by state (`""` for none, `todo`,
+    /// `done`), the tags to set (`+TAG`) or remove (`-TAG`).
+    #[serde(rename = "org_todo_state_tags_triggers")]
+    pub todo_state_tags_triggers: Option<std::collections::BTreeMap<String, Vec<String>>>,
     /// `org-tags-column`
     #[serde(rename = "org_tags_column")]
     pub tags_column: Option<i64>,
@@ -79,6 +215,12 @@ pub struct Options {
     /// properties or a regexp.
     #[serde(rename = "org_use_property_inheritance")]
     pub use_property_inheritance: Option<InheritOption>,
+    /// `org-property-separators`: `[names or a regexp, separator]` pairs.
+    #[serde(rename = "org_property_separators")]
+    pub property_separators: Option<Vec<(InheritOption, String)>>,
+    /// `org-property-format`
+    #[serde(rename = "org_property_format")]
+    pub property_format: Option<String>,
     /// `org-global-properties`: properties every entry inherits, such as
     /// the allowed values of one (`Effort_ALL`).
     #[serde(rename = "org_global_properties")]
@@ -99,10 +241,40 @@ pub struct Options {
     /// `org-clock-idle-time`, in minutes.
     #[serde(rename = "org_clock_idle_time")]
     pub clock_idle_time: Option<i64>,
+    /// `org-clock-auto-clock-resolution`: `true`, `false` or
+    /// `"when-no-clock-is-running"`.
+    #[serde(rename = "org_clock_auto_clock_resolution")]
+    pub clock_auto_clock_resolution: Option<FlagOrName>,
+    /// `org-clock-resolve-expert`
+    #[serde(rename = "org_clock_resolve_expert")]
+    pub clock_resolve_expert: Option<bool>,
     /// `org-clock-history-length`
+    #[serde(rename = "org_clock_in_resume")]
+    pub clock_in_resume: Option<bool>,
+    /// `org-clock-persist`: `true`, `"clock"`, `"history"` or `false`.
+    #[serde(rename = "org_clock_persist")]
+    pub clock_persist: Option<FlagOrName>,
+    /// `org-clock-persist-file`
+    #[serde(rename = "org_clock_persist_file")]
+    pub clock_persist_file: Option<String>,
+    /// `org-clock-persist-query-resume`
+    #[serde(rename = "org_clock_persist_query_resume")]
+    pub clock_persist_query_resume: Option<bool>,
+    #[serde(rename = "org_clock_goto_may_find_recent_task")]
+    pub clock_goto_may_find_recent_task: Option<bool>,
     #[serde(rename = "org_clock_history_length")]
     pub clock_history_length: Option<usize>,
     /// `org-clock-clocktable-default-properties`, as the text of a plist.
+    #[serde(rename = "org_clock_rounding_minutes")]
+    pub clock_rounding_minutes: Option<i64>,
+    #[serde(rename = "org_clock_continuously")]
+    pub clock_continuously: Option<bool>,
+    #[serde(rename = "org_clock_report_include_clocking_task")]
+    pub clock_report_include_clocking_task: Option<bool>,
+    #[serde(rename = "org_clocktable_defaults")]
+    pub clocktable_defaults: Option<String>,
+    #[serde(rename = "org_clock_clocktable_language_setup")]
+    pub clock_clocktable_language_setup: Option<Vec<Vec<String>>>,
     #[serde(rename = "org_clock_clocktable_default_properties")]
     pub clock_clocktable_default_properties: Option<String>,
     /// `org-clock-total-time-cell-format`
@@ -111,6 +283,18 @@ pub struct Options {
     /// `org-clock-file-time-cell-format`
     #[serde(rename = "org_clock_file_time_cell_format")]
     pub clock_file_time_cell_format: Option<String>,
+    /// `org-id-method`: `uuid` (or `uuidgen`), `org` or `ts`.
+    #[serde(rename = "org_id_method")]
+    pub id_method: Option<String>,
+    /// `org-id-prefix`
+    #[serde(rename = "org_id_prefix")]
+    pub id_prefix: Option<serde_json::Value>,
+    /// `org-id-ts-format`
+    #[serde(rename = "org_id_ts_format")]
+    pub id_ts_format: Option<String>,
+    /// `org-id-include-domain`
+    #[serde(rename = "org_id_include_domain")]
+    pub id_include_domain: Option<bool>,
     /// `org-id-link-to-org-use-id`: a boolean or the name of a choice.
     #[serde(rename = "org_id_link_to_org_use_id")]
     pub id_link_to_org_use_id: Option<serde_json::Value>,
@@ -149,6 +333,39 @@ pub struct Options {
     /// document, after those of its `#+BIBLIOGRAPHY:` lines.
     #[serde(rename = "org_cite_global_bibliography")]
     pub cite_global_bibliography: Option<Vec<String>>,
+    /// `org-cite-insert-processor`: a processor's name, or `false`.
+    #[serde(rename = "org_cite_insert_processor")]
+    pub cite_insert_processor: Option<serde_json::Value>,
+    /// `org-bibtex-autogen-keys`
+    #[serde(rename = "org_bibtex_autogen_keys")]
+    pub bibtex_autogen_keys: Option<bool>,
+    /// `org-bibtex-prefix`
+    #[serde(rename = "org_bibtex_prefix")]
+    pub bibtex_prefix: Option<String>,
+    /// `org-bibtex-treat-headline-as-title`
+    #[serde(rename = "org_bibtex_treat_headline_as_title")]
+    pub bibtex_treat_headline_as_title: Option<bool>,
+    /// `org-bibtex-export-arbitrary-fields`
+    #[serde(rename = "org_bibtex_export_arbitrary_fields")]
+    pub bibtex_export_arbitrary_fields: Option<bool>,
+    /// `org-bibtex-key-property`
+    #[serde(rename = "org_bibtex_key_property")]
+    pub bibtex_key_property: Option<String>,
+    /// `org-bibtex-tags`
+    #[serde(rename = "org_bibtex_tags")]
+    pub bibtex_tags: Option<Vec<String>>,
+    /// `org-bibtex-tags-are-keywords`
+    #[serde(rename = "org_bibtex_tags_are_keywords")]
+    pub bibtex_tags_are_keywords: Option<bool>,
+    /// `org-bibtex-no-export-tags`
+    #[serde(rename = "org_bibtex_no_export_tags")]
+    pub bibtex_no_export_tags: Option<Vec<String>>,
+    /// `org-bibtex-inherit-tags`
+    #[serde(rename = "org_bibtex_inherit_tags")]
+    pub bibtex_inherit_tags: Option<bool>,
+    /// `org-bibtex-type-property-name`
+    #[serde(rename = "org_bibtex_type_property_name")]
+    pub bibtex_type_property_name: Option<String>,
     /// `org-link-abbrev-alist`: link abbreviations, each with what it
     /// stands for (`%s` the tag, `%h` the tag URL-encoded).
     #[serde(rename = "org_link_abbrev_alist")]
@@ -164,6 +381,9 @@ pub struct Options {
     /// `org-group-tags`
     #[serde(rename = "org_group_tags")]
     pub group_tags: Option<bool>,
+    /// `org-use-fast-todo-selection`: `"auto"`, `"expert"` or `false`.
+    #[serde(rename = "org_use_fast_todo_selection")]
+    pub use_fast_todo_selection: Option<serde_json::Value>,
     /// `org-use-fast-tag-selection`: `true`, `false` or `"auto"`.
     #[serde(rename = "org_use_fast_tag_selection")]
     pub use_fast_tag_selection: Option<serde_json::Value>,
@@ -202,11 +422,51 @@ pub struct Options {
     /// `org-src-preserve-indentation`
     #[serde(rename = "org_src_preserve_indentation")]
     pub src_preserve_indentation: Option<bool>,
+    /// `org-babel-tangle-lang-exts`: by language, the extension.
+    #[serde(rename = "org_babel_tangle_lang_exts")]
+    pub babel_tangle_lang_exts: Option<std::collections::BTreeMap<String, String>>,
+    #[serde(rename = "org_babel_tangle_use_relative_file_links")]
+    pub babel_tangle_use_relative_file_links: Option<bool>,
+    #[serde(rename = "org_babel_tangle_comment_format_beg")]
+    pub babel_tangle_comment_format_beg: Option<String>,
+    #[serde(rename = "org_babel_tangle_comment_format_end")]
+    pub babel_tangle_comment_format_end: Option<String>,
+    #[serde(rename = "org_babel_tangle_uncomment_comments")]
+    pub babel_tangle_uncomment_comments: Option<bool>,
+    /// `org-babel-process-comment-text`: the name of a function.
+    #[serde(rename = "org_babel_process_comment_text")]
+    pub babel_process_comment_text: Option<String>,
+    /// `org-babel-tangle-default-file-mode`, in octal: `"644"`.
+    #[serde(rename = "org_babel_tangle_default_file_mode")]
+    pub babel_tangle_default_file_mode: Option<String>,
+    /// `org-babel-tangle-remove-file-before-write`: `true`, `false` or
+    /// `"auto"`.
+    #[serde(rename = "org_babel_tangle_remove_file_before_write")]
+    pub babel_tangle_remove_file_before_write: Option<serde_json::Value>,
+    #[serde(rename = "org_babel_noweb_wrap_start")]
+    pub babel_noweb_wrap_start: Option<String>,
+    #[serde(rename = "org_babel_noweb_wrap_end")]
+    pub babel_noweb_wrap_end: Option<String>,
     /// `org-startup-indented`: show files with `org-indent-mode`.
     /// `org-startup-with-link-previews`: show the previews of the links to
     /// images when a file opens.
     #[serde(rename = "org_startup_with_link_previews")]
     pub startup_with_link_previews: Option<bool>,
+    /// `org-image-actual-width`
+    #[serde(rename = "org_image_actual_width")]
+    pub image_actual_width: Option<serde_json::Value>,
+    /// `org-image-max-width`
+    #[serde(rename = "org_image_max_width")]
+    pub image_max_width: Option<serde_json::Value>,
+    /// `org-display-remote-inline-images`
+    #[serde(rename = "org_display_remote_inline_images")]
+    pub display_remote_inline_images: Option<String>,
+    /// `org-resource-download-policy`
+    #[serde(rename = "org_resource_download_policy")]
+    pub resource_download_policy: Option<serde_json::Value>,
+    /// `org-safe-remote-resources`
+    #[serde(rename = "org_safe_remote_resources")]
+    pub safe_remote_resources: Option<Vec<String>>,
     /// `org-startup-with-latex-preview`: show the LaTeX fragments as images
     /// when a file opens.
     #[serde(rename = "org_startup_with_latex_preview")]
@@ -216,14 +476,80 @@ pub struct Options {
     /// `org-hide-leading-stars`
     #[serde(rename = "org_hide_leading_stars")]
     pub hide_leading_stars: Option<bool>,
+    /// `org-entities-user`: `[name, LaTeX, math?, HTML, ASCII, Latin-1,
+    /// UTF-8]` for each entity of the user's.
+    #[serde(rename = "org_entities_user")]
+    pub entities_user: Option<Vec<Vec<serde_json::Value>>>,
+    #[serde(rename = "org_list_allow_alphabetical")]
+    pub list_allow_alphabetical: Option<bool>,
+    /// `org-plain-list-ordered-item-terminator`: `true`, `"."` or `")"`.
+    #[serde(rename = "org_plain_list_ordered_item_terminator")]
+    pub plain_list_ordered_item_terminator: Option<serde_json::Value>,
+    #[serde(rename = "org_indent_mode_turns_on_hiding_stars")]
+    pub indent_mode_turns_on_hiding_stars: Option<bool>,
+    #[serde(rename = "org_indent_mode_turns_off_org_adapt_indentation")]
+    pub indent_mode_turns_off_org_adapt_indentation: Option<bool>,
+    #[serde(rename = "org_indent_indentation_per_level")]
+    pub indent_indentation_per_level: Option<usize>,
+    /// `org-fontify-done-headline`, `org-fontify-todo-headline`,
+    /// `org-fontify-quote-and-verse-blocks`
+    #[serde(rename = "org_fontify_done_headline")]
+    pub fontify_done_headline: Option<bool>,
+    #[serde(rename = "org_fontify_todo_headline")]
+    pub fontify_todo_headline: Option<bool>,
+    #[serde(rename = "org_fontify_quote_and_verse_blocks")]
+    pub fontify_quote_and_verse_blocks: Option<bool>,
+    /// `org-custom-properties`
+    #[serde(rename = "org_custom_properties")]
+    pub custom_properties: Option<Vec<String>>,
+    /// `org-n-level-faces`, `org-cycle-level-faces`,
+    /// `org-fontify-whole-heading-line`
+    #[serde(rename = "org_n_level_faces")]
+    pub n_level_faces: Option<usize>,
+    #[serde(rename = "org_cycle_level_faces")]
+    pub cycle_level_faces: Option<bool>,
+    #[serde(rename = "org_fontify_whole_heading_line")]
+    pub fontify_whole_heading_line: Option<bool>,
+    /// `org-duration-format` and `org-duration-units`
+    #[serde(rename = "org_duration_format")]
+    pub duration_format: Option<serde_json::Value>,
+    #[serde(rename = "org_duration_units")]
+    pub duration_units: Option<serde_json::Value>,
+    /// `org-ellipsis`
+    #[serde(rename = "org_ellipsis")]
+    pub ellipsis: Option<String>,
+    /// org-bullets: `org-bullets-mode` and `org-bullets-bullet-list`.
+    #[serde(rename = "org_bullets_mode")]
+    pub bullets_mode: Option<bool>,
+    #[serde(rename = "org_bullets_bullet_list")]
+    pub bullets_bullet_list: Option<Vec<String>>,
+    /// org-bullets.nvim's bullets of lists and marks of checkboxes.
+    #[serde(rename = "org_bullets_list_bullet")]
+    pub bullets_list_bullet: Option<serde_json::Value>,
+    #[serde(rename = "org_bullets_checkboxes")]
+    pub bullets_checkboxes: Option<serde_json::Value>,
     /// `org-edit-src-content-indentation`
-    #[serde(rename = "org_edit_src_content_indentation")]
-    pub edit_src_content_indentation: Option<i64>,
+    #[serde(rename = "org_src_content_indentation")]
+    pub src_content_indentation: Option<i64>,
     /// `org-cycle-separator-lines`: how many blank lines after a subtree
     /// keep one of them visible when it is folded.
     #[serde(rename = "org_cycle_separator_lines")]
     pub cycle_separator_lines: Option<i64>,
+    /// `org-cycle-include-plain-lists`: `true`, `false` or `"integrate"`.
+    #[serde(rename = "org_cycle_include_plain_lists")]
+    pub cycle_include_plain_lists: Option<serde_json::Value>,
+    /// `org-cycle-max-level`
+    #[serde(rename = "org_cycle_max_level")]
+    pub cycle_max_level: Option<usize>,
+    /// `org-cycle-global-at-bob`
+    #[serde(rename = "org_cycle_global_at_bob")]
+    pub cycle_global_at_bob: Option<bool>,
+    /// `org-cycle-level-after-item/entry-creation`
+    #[serde(rename = "org_cycle_level_after_item_entry_creation")]
+    pub cycle_level_after_creation: Option<bool>,
     /// `org-startup-shrink-all-tables`
+    #[serde(rename = "org_startup_align_all_tables")]
+    pub startup_align_all_tables: Option<bool>,
     #[serde(rename = "org_startup_shrink_all_tables")]
     pub startup_shrink_all_tables: Option<bool>,
     /// `org-startup-folded`
@@ -241,6 +567,8 @@ pub struct Options {
     /// `org-read-date-prefer-future`: `true`, `false` or `"time"`.
     #[serde(rename = "org_read_date_prefer_future")]
     pub read_date_prefer_future: Option<PreferFutureOption>,
+    #[serde(rename = "org_agenda_jump_prefer_future")]
+    pub agenda_jump_prefer_future: Option<PreferFutureOption>,
     /// `org-read-date-force-compatible-dates`
     #[serde(rename = "org_read_date_force_compatible_dates")]
     pub read_date_force_compatible_dates: Option<bool>,
@@ -251,11 +579,17 @@ pub struct Options {
     /// Whether the client shows documents on `window/showDocument`.
     /// Clients that announce the capability need not say so.
     pub show_document: Option<bool>,
+    /// Whether a workspace edit may make files (a `create` resource
+    /// operation), whatever the client announces.
+    pub create_files: Option<bool>,
     /// Ask what commands ask for (a key, one of a list) with
     /// `window/showMessageRequest`, and say their messages with
     /// `window/showMessage`: for a client that does nothing with a
     /// command's result (Zed).
     pub message_prompts: Option<bool>,
+    /// Whether the client shows `window/showMessageRequest`; without, a
+    /// question's choices are code actions (Helix).
+    pub message_requests: Option<bool>,
     /// The client has org-lsp's editor code: it knows the server's own
     /// token types, asks what a command's result asks for, binds the keys.
     /// A client that can announce it says `experimental.orgClient`.
@@ -275,6 +609,14 @@ pub struct Options {
     /// The client shows `org-lsp/lineHighlights`, as one announcing
     /// `experimental.orgLineHighlights` does.
     pub line_highlights: Option<bool>,
+    /// The client runs a command when the server asks
+    /// (`org-lsp/runCommand`), as one announcing
+    /// `experimental.orgRunCommand` does.
+    pub run_command: Option<bool>,
+    /// The client hides the lines a command's answer names
+    /// (`hiddenLines`), as one announcing `experimental.orgHiddenLines`
+    /// does.
+    pub hidden_lines: Option<bool>,
     /// The client shows images in place of text (`org.link.preview`,
     /// `org.latex.preview`), as one announcing `experimental.orgImages` does.
     pub images: Option<bool>,
@@ -290,6 +632,100 @@ pub struct Options {
     /// the top-level headlines of the entry's own file.
     #[serde(rename = "org_refile_targets")]
     pub refile_targets: Option<Vec<RefileTargetOption>>,
+    /// `org-id-completion-targets`, as `org_refile_targets` is written.
+    #[serde(rename = "org_allow_promoting_top_level_subtree")]
+    pub allow_promoting_top_level_subtree: Option<bool>,
+    #[serde(rename = "org_odd_levels_only")]
+    pub odd_levels_only: Option<bool>,
+    /// `org-inlinetask-min-level`: a number, or `false` for no inline
+    /// tasks.
+    #[serde(rename = "org_inlinetask_min_level")]
+    pub inlinetask_min_level: Option<serde_json::Value>,
+    #[serde(rename = "org_inlinetask_show_first_star")]
+    pub inlinetask_show_first_star: Option<bool>,
+    #[serde(rename = "org_inlinetask_default_state")]
+    pub inlinetask_default_state: Option<String>,
+    #[serde(rename = "org_sparse_tree_open_archived_trees")]
+    pub sparse_tree_open_archived_trees: Option<bool>,
+    /// `org-occur-case-fold-search`: `true`, `false` or `"smart"`.
+    #[serde(rename = "org_occur_case_fold_search")]
+    pub occur_case_fold_search: Option<serde_json::Value>,
+    /// `org-sparse-tree-default-date-type`: `null` or a type's name.
+    #[serde(rename = "org_highlight_sparse_tree_matches")]
+    pub highlight_sparse_tree_matches: Option<bool>,
+    /// `org-remove-highlights-with-change`
+    #[serde(rename = "org_remove_highlights_with_change")]
+    pub remove_highlights_with_change: Option<bool>,
+    #[serde(rename = "org_sparse_tree_default_date_type")]
+    pub sparse_tree_default_date_type: Option<String>,
+    #[serde(rename = "org_yank_adjusted_subtrees")]
+    pub yank_adjusted_subtrees: Option<bool>,
+    #[serde(rename = "org_yank_folded_subtrees")]
+    pub yank_folded_subtrees: Option<bool>,
+    /// `org-ctrl-k-protect-subtree`: `false`, `true` or `"error"`.
+    #[serde(rename = "org_ctrl_k_protect_subtree")]
+    pub ctrl_k_protect_subtree: Option<serde_json::Value>,
+    #[serde(rename = "org_file_apps")]
+    pub file_apps: Option<Vec<(String, String)>>,
+    #[serde(rename = "org_special_ctrl_o")]
+    pub special_ctrl_o: Option<bool>,
+    #[serde(rename = "org_startup_numerated")]
+    pub startup_numerated: Option<bool>,
+    #[serde(rename = "org_num_max_level")]
+    pub num_max_level: Option<usize>,
+    #[serde(rename = "org_num_skip_commented")]
+    pub num_skip_commented: Option<bool>,
+    #[serde(rename = "org_num_skip_footnotes")]
+    pub num_skip_footnotes: Option<bool>,
+    #[serde(rename = "org_num_skip_tags")]
+    pub num_skip_tags: Option<Vec<String>>,
+    #[serde(rename = "org_num_skip_unnumbered")]
+    pub num_skip_unnumbered: Option<bool>,
+    #[serde(rename = "org_agenda_view_columns_initially")]
+    pub agenda_view_columns_initially: Option<bool>,
+    #[serde(rename = "org_agenda_persistent_filter")]
+    pub agenda_persistent_filter: Option<bool>,
+    #[serde(rename = "org_capture_use_agenda_date")]
+    pub capture_use_agenda_date: Option<bool>,
+    #[serde(rename = "org_open_non_existing_files")]
+    pub open_non_existing_files: Option<bool>,
+    #[serde(rename = "org_open_directory_means_index_dot_org")]
+    pub open_directory_means_index_dot_org: Option<bool>,
+    #[serde(rename = "org_link_search_must_match_exact_headline")]
+    pub link_search_must_match_exact_headline: Option<LogOption>,
+    #[serde(rename = "org_link_doi_server_url")]
+    pub link_doi_server_url: Option<String>,
+    #[serde(rename = "org_link_shell_skip_confirm_regexp")]
+    pub link_shell_skip_confirm_regexp: Option<String>,
+    /// `org-man-command`: the program that writes a man page.
+    #[serde(rename = "org_man_command")]
+    pub man_command: Option<String>,
+    /// `org-info-other-documents`
+    #[serde(rename = "org_info_other_documents")]
+    pub info_other_documents: Option<std::collections::BTreeMap<String, String>>,
+    /// `org-ctags-path-to-ctags`
+    #[serde(rename = "org_ctags_path_to_ctags")]
+    pub ctags_path_to_ctags: Option<String>,
+    /// `org-ctags-open-link-functions`: the names of org-ctags's functions.
+    #[serde(rename = "org_ctags_open_link_functions")]
+    pub ctags_open_link_functions: Option<Vec<String>>,
+    /// `org-ctags-new-topic-template`
+    #[serde(rename = "org_ctags_new_topic_template")]
+    pub ctags_new_topic_template: Option<String>,
+    #[serde(rename = "org_id_completion_targets")]
+    pub id_completion_targets: Option<Vec<RefileTargetOption>>,
+    /// `org-id-track-globally`
+    #[serde(rename = "org_id_track_globally")]
+    pub id_track_globally: Option<bool>,
+    /// `org-id-search-archives`
+    #[serde(rename = "org_id_search_archives")]
+    pub id_search_archives: Option<bool>,
+    /// `org-id-extra-files`: files or patterns.
+    #[serde(rename = "org_id_extra_files")]
+    pub id_extra_files: Option<Vec<String>>,
+    /// `org-id-locations-file`
+    #[serde(rename = "org_id_locations_file")]
+    pub id_locations_file: Option<String>,
     /// `org-refile-use-outline-path`: `false`, `true`, `"file"`,
     /// `"full-file-path"` or `"title"`.
     #[serde(rename = "org_refile_use_outline_path")]
@@ -300,6 +736,12 @@ pub struct Options {
     /// character.
     #[serde(rename = "org_pretty_entities")]
     pub pretty_entities: Option<bool>,
+    /// `org-display-custom-times`
+    #[serde(rename = "org_display_custom_times")]
+    pub display_custom_times: Option<bool>,
+    /// `org-timestamp-custom-formats`: the date, and the date with a time.
+    #[serde(rename = "org_timestamp_custom_formats")]
+    pub timestamp_custom_formats: Option<Vec<String>>,
     /// `org-pretty-entities-include-sub-superscripts`: with
     /// `org_pretty_entities`, sub- and superscripts shown too.
     #[serde(rename = "org_pretty_entities_include_sub_superscripts")]
@@ -308,6 +750,9 @@ pub struct Options {
     /// `false`.
     #[serde(rename = "org_use_sub_superscripts")]
     pub use_sub_superscripts: Option<LogOption>,
+    /// `org-refile-active-region-within-subtree`
+    #[serde(rename = "org_refile_active_region_within_subtree")]
+    pub refile_active_region_within_subtree: Option<bool>,
     #[serde(rename = "org_refile_allow_creating_parent_nodes")]
     pub refile_allow_creating_parent_nodes: Option<LogOption>,
     /// `org-refile-target-verify-function`: the name of an Emacs Lisp
@@ -344,6 +789,10 @@ pub struct Options {
     /// `org-archive-default-command`: `"subtree"`, `"sibling"` or `"tag"`.
     #[serde(rename = "org_archive_default_command")]
     pub archive_default_command: Option<String>,
+    /// `org-archive-subtree-save-file-p`: `true`, `false`, `"from-org"`
+    /// or `"from-agenda"`.
+    #[serde(rename = "org_archive_subtree_save_file_p")]
+    pub archive_subtree_save_file_p: Option<serde_json::Value>,
     /// `org-capture-templates`. Without it, Org's default: a TODO under
     /// "Tasks" in `org_default_notes_file`.
     #[serde(rename = "org_capture_templates")]
@@ -351,6 +800,19 @@ pub struct Options {
     /// `org-capture-templates-contexts`: where templates are offered.
     #[serde(rename = "org_capture_templates_contexts")]
     pub capture_templates_contexts: Option<Vec<ContextOption>>,
+    /// `org-protocol-default-template-key`
+    #[serde(rename = "org_protocol_default_template_key")]
+    pub protocol_default_template_key: Option<String>,
+    /// `org-protocol-data-separator`, an Emacs regexp.
+    #[serde(rename = "org_protocol_data_separator")]
+    pub protocol_data_separator: Option<String>,
+    /// `org-protocol-project-alist`
+    #[serde(rename = "org_protocol_project_alist")]
+    pub protocol_project_alist: Option<Vec<ProtocolProjectOption>>,
+    /// The editor `org-lsp protocol` starts when no server runs, as a
+    /// command line.
+    #[serde(rename = "org_protocol_editor")]
+    pub protocol_editor: Option<String>,
     /// org-roam: off unless switched on.
     #[serde(rename = "org_roam_enabled")]
     pub roam_enabled: Option<bool>,
@@ -366,6 +828,46 @@ pub struct Options {
     /// `org-roam-node-display-template`
     #[serde(rename = "org_roam_node_display_template")]
     pub roam_node_display_template: Option<String>,
+    /// `org-roam-node-formatter`: a template.
+    #[serde(rename = "org_roam_node_formatter")]
+    pub roam_node_formatter: Option<String>,
+    /// `org-roam-db-extra-links-elements`: `"keyword"`, `"node-property"`.
+    #[serde(rename = "org_roam_db_extra_links_elements")]
+    pub roam_db_extra_links_elements: Option<Vec<String>>,
+    /// `org-roam-db-extra-links-exclude-keys`: by `"keyword"` and
+    /// `"node-property"`, the keys whose links are not recorded.
+    #[serde(rename = "org_roam_db_extra_links_exclude_keys")]
+    pub roam_db_extra_links_exclude_keys: Option<std::collections::BTreeMap<String, Vec<String>>>,
+    /// `org-roam-graph-executable`
+    #[serde(rename = "org_roam_graph_executable")]
+    pub roam_graph_executable: Option<String>,
+    /// `org-roam-graph-viewer`
+    #[serde(rename = "org_roam_graph_viewer")]
+    pub roam_graph_viewer: Option<String>,
+    /// `org-roam-graph-filetype`
+    #[serde(rename = "org_roam_graph_filetype")]
+    pub roam_graph_filetype: Option<String>,
+    /// `org-roam-graph-extra-config`, `org-roam-graph-edge-extra-config`
+    /// and `org-roam-graph-node-extra-config`: Graphviz's attributes, in
+    /// their order.
+    #[serde(rename = "org_roam_graph_extra_config")]
+    pub roam_graph_extra_config: Option<serde_json::Map<String, serde_json::Value>>,
+    #[serde(rename = "org_roam_graph_edge_extra_config")]
+    pub roam_graph_edge_extra_config: Option<serde_json::Map<String, serde_json::Value>>,
+    #[serde(rename = "org_roam_graph_node_extra_config")]
+    pub roam_graph_node_extra_config: Option<serde_json::Map<String, serde_json::Value>>,
+    /// `org-roam-graph-link-hidden-types`
+    #[serde(rename = "org_roam_graph_link_hidden_types")]
+    pub roam_graph_link_hidden_types: Option<Vec<String>>,
+    /// `org-roam-graph-max-title-length`
+    #[serde(rename = "org_roam_graph_max_title_length")]
+    pub roam_graph_max_title_length: Option<usize>,
+    /// `org-roam-graph-shorten-titles`: `truncate`, `wrap`, or `false`.
+    #[serde(rename = "org_roam_graph_shorten_titles")]
+    pub roam_graph_shorten_titles: Option<serde_json::Value>,
+    /// `org-roam-extract-new-file-path`
+    #[serde(rename = "org_roam_extract_new_file_path")]
+    pub roam_extract_new_file_path: Option<String>,
     /// `org-roam-link-auto-replace`
     #[serde(rename = "org_roam_link_auto_replace")]
     pub roam_link_auto_replace: Option<bool>,
@@ -377,6 +879,10 @@ pub struct Options {
     #[serde(rename = "org_roam_mode_sections")]
     pub roam_mode_sections: Option<Vec<String>>,
     /// `org-roam-capture-templates`, written as `org_capture_templates`.
+    #[serde(rename = "org_roam_dailies_directory")]
+    pub roam_dailies_directory: Option<String>,
+    #[serde(rename = "org_roam_dailies_capture_templates")]
+    pub roam_dailies_capture_templates: Option<Vec<CaptureTemplateOption>>,
     #[serde(rename = "org_roam_capture_templates")]
     pub roam_capture_templates: Option<Vec<CaptureTemplateOption>>,
     /// org-journal: off unless switched on.
@@ -403,6 +909,10 @@ pub struct Options {
     pub journal_time_prefix: Option<String>,
     #[serde(rename = "org_journal_hide_entries_p")]
     pub journal_hide_entries: Option<bool>,
+    /// `org-journal-find-file-fn`: `"find-file-other-window"` or
+    /// `"find-file"`.
+    #[serde(rename = "org_journal_find_file_fn")]
+    pub journal_find_file_fn: Option<String>,
     #[serde(rename = "org_journal_carryover_items")]
     pub journal_carryover_items: Option<String>,
     #[serde(rename = "org_journal_skip_carryover_drawers")]
@@ -421,6 +931,8 @@ pub struct Options {
     pub journal_enable_encryption: Option<bool>,
     #[serde(rename = "org_journal_enable_agenda_integration")]
     pub journal_enable_agenda_integration: Option<bool>,
+    #[serde(rename = "org_journal_follow_mode")]
+    pub journal_follow_mode: Option<bool>,
     #[serde(rename = "org_journal_search_result_date_format")]
     pub journal_search_result_date_format: Option<String>,
     /// `org-journal-search-results-order-by`: `asc` or `desc`.
@@ -429,6 +941,10 @@ pub struct Options {
     /// `org-extend-today-until`: the hour before which it is yesterday.
     #[serde(rename = "org_extend_today_until")]
     pub extend_today_until: Option<i64>,
+    #[serde(rename = "org_use_effective_time")]
+    pub use_effective_time: Option<bool>,
+    #[serde(rename = "org_use_last_clock_out_time_as_effective_time")]
+    pub use_last_clock_out_time_as_effective_time: Option<bool>,
     /// `org-directory`: where relative capture targets are. `~/org`.
     pub org_directory: Option<String>,
     /// `org-default-notes-file`: the target of a template whose file is
@@ -444,10 +960,25 @@ pub struct Options {
     /// `org-hide-emphasis-markers`
     #[serde(rename = "org_hide_emphasis_markers")]
     pub hide_emphasis_markers: Option<bool>,
+    /// `org-fontify-emphasized-text`
+    #[serde(rename = "org_fontify_emphasized_text")]
+    pub fontify_emphasized_text: Option<bool>,
+    /// `org-emphasis-alist`: a face by marker.
+    #[serde(rename = "org_emphasis_alist")]
+    pub emphasis_alist: Option<std::collections::BTreeMap<String, serde_json::Value>>,
+    /// `org-hidden-keywords`
+    #[serde(rename = "org_hidden_keywords")]
+    pub hidden_keywords: Option<Vec<String>>,
+    /// `org-hide-macro-markers`
+    #[serde(rename = "org_hide_macro_markers")]
+    pub hide_macro_markers: Option<bool>,
     /// Save the files a command changes other than the one it was run in.
     pub auto_save: Option<bool>,
     /// RET on the first line of a list item makes the next item, as M-RET.
     pub return_uses_meta_return: Option<bool>,
+    /// `org-return-follows-link`
+    #[serde(rename = "org_return_follows_link")]
+    pub return_follows_link: Option<bool>,
     /// `org-goto-max-level`
     #[serde(rename = "org_goto_max_level")]
     pub goto_max_level: Option<usize>,
@@ -498,7 +1029,24 @@ pub enum RefileFiles {
     Current,
     /// The agenda files.
     Agenda,
+    /// The files known to have IDs (`org-id-files`).
+    IdFiles,
     Paths(Vec<String>),
+}
+
+/// Where IDs are looked for: the options of `org-id.el`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct IdLookup {
+    /// `org-id-track-globally`: off, an ID is looked for in its own file
+    /// only.
+    pub track_globally: bool,
+    /// `org-id-search-archives`: the archives of the agenda files too.
+    pub search_archives: bool,
+    /// `org-id-extra-files`: more files or patterns, and the archives of
+    /// the agenda files when one is `agenda-archives`.
+    pub extra_files: Vec<String>,
+    /// `org-id-locations-file`: Emacs's list of the files with IDs, read.
+    pub locations_file: Option<PathBuf>,
 }
 
 /// An entry of `org-refile-targets`, read.
@@ -515,7 +1063,25 @@ pub struct RoamSettings {
     pub directory: String,
     pub files: org_core::roam::Settings,
     pub display_template: String,
+    /// `org-roam-node-formatter`: the template of an inserted link's
+    /// description.
+    pub node_formatter: Option<String>,
+    /// `org-roam-db-extra-links-elements`, `org-roam-db-extra-links-exclude-keys`
+    pub extra_links: org_core::roam::ExtraLinks,
+    /// `org-roam-extract-new-file-path`, relative to the directory.
+    pub extract_new_file_path: String,
+    /// `org-roam-graph`'s options, and `org-roam-graph-executable`,
+    /// `org-roam-graph-viewer` (none: the editor's) and
+    /// `org-roam-graph-filetype`.
+    pub graph: org_core::roam::graph::Settings,
+    pub graph_executable: String,
+    pub graph_viewer: Option<String>,
+    pub graph_filetype: String,
     pub templates: Vec<CaptureTemplateOption>,
+    /// `org-roam-dailies-directory`, relative to the directory, and
+    /// `org-roam-dailies-capture-templates`.
+    pub dailies_directory: String,
+    pub dailies_templates: Vec<CaptureTemplateOption>,
     /// `org-roam-link-auto-replace`
     pub link_auto_replace: bool,
     /// `org-roam-completion-everywhere`
@@ -531,6 +1097,12 @@ pub struct JournalSettings {
     pub directory: String,
     /// `org-journal-enable-agenda-integration`
     pub agenda_integration: bool,
+    /// `org-journal-find-file-fn` is `find-file-other-window`: the file of
+    /// a day shows in another window.
+    pub find_file_other_window: bool,
+    /// `org-journal-follow-mode`: in the calendar, `]` and `[` display
+    /// the entry of the day they move to.
+    pub follow_mode: bool,
     pub core: org_core::journal::Settings,
 }
 
@@ -624,6 +1196,27 @@ impl TemplateText {
     }
 }
 
+/// What `org-clock-persist` keeps, and where.
+#[derive(Debug, Clone, Default)]
+pub struct ClockPersist {
+    /// `t` or `clock`: the running clock.
+    pub clock: bool,
+    /// `t` or `history`: the clock history.
+    pub history: bool,
+    /// `org-clock-persist-file`
+    pub file: Option<PathBuf>,
+    /// `org-clock-persist-query-resume`
+    pub query_resume: bool,
+}
+
+/// `true`, `false` or a name.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum FlagOrName {
+    Flag(bool),
+    Name(String),
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum OutlinePathOption {
@@ -662,6 +1255,8 @@ pub struct InheritanceOptions {
     pub tags_exclude_from_inheritance: Option<Vec<String>>,
     #[serde(rename = "org_use_property_inheritance")]
     pub use_property_inheritance: Option<InheritOption>,
+    #[serde(rename = "org_property_separators")]
+    pub property_separators: Option<Vec<(InheritOption, String)>>,
 }
 
 impl InheritanceOptions {
@@ -671,6 +1266,19 @@ impl InheritanceOptions {
             tags: self.use_tag_inheritance.as_ref().map_or(default.tags, InheritOption::to_inherit),
             tags_excluded: self.tags_exclude_from_inheritance.clone().unwrap_or_default(),
             properties: self.use_property_inheritance.as_ref().map_or(default.properties, InheritOption::to_inherit),
+            separators: self
+                .property_separators
+                .iter()
+                .flatten()
+                .filter_map(|(which, separator)| {
+                    let which = match which {
+                        InheritOption::Names(names) => org_core::outline::Separated::Names(names.clone()),
+                        InheritOption::Matching(pattern) => org_core::outline::Separated::Matching(pattern.clone()),
+                        InheritOption::Flag(_) => return None,
+                    };
+                    Some((which, separator.clone()))
+                })
+                .collect(),
         }
     }
 }
@@ -766,6 +1374,15 @@ pub enum PreferFutureOption {
     Name(String),
 }
 
+/// `org-read-date-prefer-future` and its kin: `true`, `false` or `"time"`.
+fn prefer_future(option: &Option<PreferFutureOption>) -> Option<PreferFuture> {
+    match option.as_ref()? {
+        PreferFutureOption::Flag(false) => Some(PreferFuture::No),
+        PreferFutureOption::Name(name) if name == "time" => Some(PreferFuture::Time),
+        _ => Some(PreferFuture::Yes),
+    }
+}
+
 /// A priority: `"A"` or `1`.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
@@ -793,13 +1410,15 @@ pub enum TodoKeywordsOption {
 }
 
 impl TodoKeywordsOption {
-    pub fn keywords(&self) -> TodoKeywords {
+    /// The keywords, a sequence without `sequence` or `type` first read as
+    /// `interpretation` says (`org-todo-interpretation`).
+    pub fn keywords_with(&self, interpretation: org_syntax::Interpretation) -> TodoKeywords {
         use org_syntax::Interpretation;
         // `sequence` or `type` first, as in `(sequence "TODO" "|" "DONE")`.
         let read = |words: &[String]| match words.first().map(String::as_str) {
             Some("type") => (Interpretation::Type, words[1..].to_vec()),
             Some("sequence") => (Interpretation::Sequence, words[1..].to_vec()),
-            _ => (Interpretation::Sequence, words.to_vec()),
+            _ => (interpretation, words.to_vec()),
         };
         match self {
             TodoKeywordsOption::One(words) => TodoKeywords::from_sequences([read(words)]),
@@ -831,14 +1450,19 @@ impl Options {
             use_tag_inheritance: self.use_tag_inheritance.clone(),
             tags_exclude_from_inheritance: self.tags_exclude_from_inheritance.clone(),
             use_property_inheritance: self.use_property_inheritance.clone(),
+            property_separators: self.property_separators.clone(),
         }
         .inheritance()
     }
 
     pub fn todo_keywords(&self) -> TodoKeywords {
+        let interpretation = match self.todo_interpretation.as_deref() {
+            Some("type") => org_syntax::Interpretation::Type,
+            _ => org_syntax::Interpretation::Sequence,
+        };
         self.todo_keywords
             .as_ref()
-            .map(TodoKeywordsOption::keywords)
+            .map(|keywords| keywords.keywords_with(interpretation))
             .filter(|keywords| !keywords.is_empty())
             .unwrap_or_default()
     }
@@ -856,6 +1480,22 @@ impl Options {
     /// `org-cycle-separator-lines`
     pub fn separator_lines(&self) -> i64 {
         self.cycle_separator_lines.unwrap_or(crate::folding::SEPARATOR_LINES)
+    }
+
+    /// How TAB works: what folds and what TAB does before folding.
+    pub fn cycle(&self) -> crate::folding::Cycle {
+        use crate::folding::{Cycle, Folding};
+        let lists = self.cycle_include_plain_lists.as_ref();
+        Cycle {
+            folding: Folding {
+                separator_lines: self.separator_lines(),
+                max_level: self.cycle_max_level.filter(|level| *level > 0),
+                plain_lists: lists != Some(&serde_json::Value::Bool(false)),
+            },
+            integrate_lists: lists.and_then(serde_json::Value::as_str) == Some("integrate"),
+            global_at_bob: self.cycle_global_at_bob.unwrap_or(false),
+            level_after_creation: self.cycle_level_after_creation.unwrap_or(true),
+        }
     }
 
     /// How files show when they are opened.
@@ -876,34 +1516,109 @@ impl Options {
         let Some(targets) = &self.refile_targets else {
             return vec![RefileTarget { files: RefileFiles::Current, select: Select::Level(1) }];
         };
-        targets
-            .iter()
-            .filter_map(|target| {
-                let files = match &target.files {
-                    None => RefileFiles::Current,
-                    Some(RefileFilesOption::One(name)) if name == "current" => RefileFiles::Current,
-                    Some(RefileFilesOption::One(name)) if name == "agenda" => RefileFiles::Agenda,
-                    Some(RefileFilesOption::One(path)) => RefileFiles::Paths(vec![path.clone()]),
-                    Some(RefileFilesOption::Many(paths)) => RefileFiles::Paths(paths.clone()),
-                };
-                let select = if target.all == Some(true) {
-                    Select::All
-                } else if let Some(level) = target.level {
-                    Select::Level(level)
-                } else if let Some(level) = target.max_level {
-                    Select::MaxLevel(level)
-                } else if let Some(tag) = &target.tag {
-                    Select::Tag(tag.clone())
-                } else if let Some(keyword) = &target.todo {
-                    Select::Todo(keyword.clone())
-                } else {
-                    Select::regexp(target.regexp.as_deref()?)?
-                };
-                Some(RefileTarget { files, select })
-            })
-            .collect()
+        read_targets(targets)
     }
 
+    /// `org-id-completion-targets`: by default every headline of the
+    /// current file and of the files with IDs.
+    pub fn id_completion_targets(&self) -> Vec<RefileTarget> {
+        let Some(targets) = &self.id_completion_targets else {
+            return vec![
+                RefileTarget { files: RefileFiles::Current, select: Select::All },
+                RefileTarget { files: RefileFiles::IdFiles, select: Select::All },
+            ];
+        };
+        read_targets(targets)
+    }
+
+    /// `org-clock-persist`: what is kept of the clock, and in which file,
+    /// `org-clock-save.el` in Emacs's directory unless set.
+    pub fn clock_persist(&self) -> ClockPersist {
+        let (clock, history) = match &self.clock_persist {
+            Some(FlagOrName::Flag(true)) => (true, true),
+            Some(FlagOrName::Name(name)) if name == "clock" => (true, false),
+            Some(FlagOrName::Name(name)) if name == "history" => (false, true),
+            _ => (false, false),
+        };
+        let home = std::env::var_os("HOME").map(PathBuf::from);
+        let file = match &self.clock_persist_file {
+            Some(path) => match (path.strip_prefix("~/"), &home) {
+                (Some(rest), Some(home)) => Some(home.join(rest)),
+                _ => Some(PathBuf::from(path)),
+            },
+            None => emacs_directory(home).map(|directory| directory.join("org-clock-save.el")),
+        };
+        ClockPersist { clock, history, file, query_resume: self.clock_persist_query_resume.unwrap_or(true) }
+    }
+
+    /// Where IDs are looked for. `org-id-extra-files` is by default
+    /// `org-agenda-text-search-extra-files`; `org-id-locations-file`,
+    /// `.org-id-locations` in Emacs's directory.
+    pub fn id_lookup(&self) -> IdLookup {
+        let home = std::env::var_os("HOME").map(PathBuf::from);
+        let emacs_directory = || emacs_directory(home.clone());
+        let expand = |path: &str| match (path.strip_prefix("~/"), &home) {
+            (Some(rest), Some(home)) => home.join(rest),
+            _ => PathBuf::from(path),
+        };
+        IdLookup {
+            track_globally: self.id_track_globally.unwrap_or(true),
+            search_archives: self.id_search_archives.unwrap_or(true),
+            extra_files: self
+                .id_extra_files
+                .clone()
+                .or_else(|| self.agenda.text_search_extra_files.clone())
+                .unwrap_or_default(),
+            locations_file: match &self.id_locations_file {
+                Some(path) => Some(expand(path)),
+                None => emacs_directory().map(|directory| directory.join(".org-id-locations")),
+            },
+        }
+    }
+}
+
+/// `locate-user-emacs-file`'s directory: `~/.emacs.d` unless only the XDG
+/// one is there.
+fn emacs_directory(home: Option<PathBuf>) -> Option<PathBuf> {
+    let home = home?;
+    let dot = home.join(".emacs.d");
+    let xdg =
+        std::env::var_os("XDG_CONFIG_HOME").map(PathBuf::from).unwrap_or_else(|| home.join(".config")).join("emacs");
+    Some(if !dot.exists() && xdg.exists() { xdg } else { dot })
+}
+
+/// `org_refile_targets` and its kin, read.
+fn read_targets(targets: &[RefileTargetOption]) -> Vec<RefileTarget> {
+    targets
+        .iter()
+        .filter_map(|target| {
+            let files = match &target.files {
+                None => RefileFiles::Current,
+                Some(RefileFilesOption::One(name)) if name == "current" => RefileFiles::Current,
+                Some(RefileFilesOption::One(name)) if name == "agenda" => RefileFiles::Agenda,
+                Some(RefileFilesOption::One(name)) if name == "org-id-files" => RefileFiles::IdFiles,
+                Some(RefileFilesOption::One(path)) => RefileFiles::Paths(vec![path.clone()]),
+                Some(RefileFilesOption::Many(paths)) => RefileFiles::Paths(paths.clone()),
+            };
+            let select = if target.all == Some(true) {
+                Select::All
+            } else if let Some(level) = target.level {
+                Select::Level(level)
+            } else if let Some(level) = target.max_level {
+                Select::MaxLevel(level)
+            } else if let Some(tag) = &target.tag {
+                Select::Tag(tag.clone())
+            } else if let Some(keyword) = &target.todo {
+                Select::Todo(keyword.clone())
+            } else {
+                Select::regexp(target.regexp.as_deref()?)?
+            };
+            Some(RefileTarget { files, select })
+        })
+        .collect()
+}
+
+impl Options {
     /// `org-refile-use-outline-path`
     pub fn refile_new_nodes(&self) -> org_core::refile::NewNodes {
         use org_core::refile::NewNodes;
@@ -993,8 +1708,40 @@ impl Options {
         Some(JournalSettings {
             directory: self.journal_dir.clone().unwrap_or_else(|| "~/Documents/journal/".to_string()),
             agenda_integration: self.journal_enable_agenda_integration.unwrap_or(false),
+            find_file_other_window: self.journal_find_file_fn.as_deref() != Some("find-file"),
+            follow_mode: self.journal_follow_mode.unwrap_or(false),
             core,
         })
+    }
+
+    /// `org-roam-graph`'s options, the defaults for those not given.
+    fn roam_graph_settings(&self) -> org_core::roam::graph::Settings {
+        use org_core::roam::graph::{Settings, Shorten};
+        let defaults = Settings::default();
+        let pairs = |map: &serde_json::Map<String, serde_json::Value>| -> Vec<(String, String)> {
+            map.iter()
+                .map(|(key, value)| (key.clone(), value.as_str().map_or_else(|| value.to_string(), str::to_string)))
+                .collect()
+        };
+        Settings {
+            extra: self.roam_graph_extra_config.as_ref().map_or(defaults.extra, pairs),
+            edge: self.roam_graph_edge_extra_config.as_ref().map_or(defaults.edge, pairs),
+            node: self.roam_graph_node_extra_config.as_ref().map_or(defaults.node, |map| {
+                map.iter()
+                    .map(|(kind, value)| (kind.clone(), value.as_object().map(pairs).unwrap_or_default()))
+                    .collect()
+            }),
+            hidden: self.roam_graph_link_hidden_types.clone().unwrap_or(defaults.hidden),
+            max_title_length: self.roam_graph_max_title_length.unwrap_or(defaults.max_title_length),
+            shorten: match &self.roam_graph_shorten_titles {
+                None => defaults.shorten,
+                Some(value) => match value.as_str() {
+                    Some("truncate") => Shorten::Truncate,
+                    Some("wrap") => Shorten::Wrap,
+                    _ => Shorten::No,
+                },
+            },
+        }
     }
 
     pub fn roam(&self) -> Option<RoamSettings> {
@@ -1013,6 +1760,44 @@ impl Options {
                 },
             },
             display_template: self.roam_node_display_template.clone().unwrap_or_else(|| "${title}".to_string()),
+            node_formatter: self.roam_node_formatter.clone().filter(|template| !template.is_empty()),
+            extra_links: {
+                let mut links = org_core::roam::ExtraLinks::default();
+                if let Some(elements) = &self.roam_db_extra_links_elements {
+                    links.keywords = elements.iter().any(|element| element == "keyword");
+                    links.properties = elements.iter().any(|element| element == "node-property");
+                }
+                // A list given replaces the default one whole, as Emacs's
+                // alist does.
+                if let Some(excluded) = &self.roam_db_extra_links_exclude_keys {
+                    links.excluded_keywords = excluded.get("keyword").cloned().unwrap_or_default();
+                    links.excluded_properties = excluded.get("node-property").cloned().unwrap_or_default();
+                }
+                links
+            },
+            graph: self.roam_graph_settings(),
+            graph_executable: self.roam_graph_executable.clone().unwrap_or_else(|| "dot".to_string()),
+            graph_viewer: self.roam_graph_viewer.clone().filter(|viewer| !viewer.is_empty()),
+            graph_filetype: self.roam_graph_filetype.clone().unwrap_or_else(|| "svg".to_string()),
+            extract_new_file_path: self
+                .roam_extract_new_file_path
+                .clone()
+                .unwrap_or_else(|| "%<%Y%m%d%H%M%S>-${slug}.org".to_string()),
+            dailies_directory: self.roam_dailies_directory.clone().unwrap_or_else(|| "daily/".to_string()),
+            dailies_templates: self.roam_dailies_capture_templates.clone().unwrap_or_else(|| {
+                vec![CaptureTemplateOption {
+                    key: "d".to_string(),
+                    description: "default".to_string(),
+                    kind: Some("entry".to_string()),
+                    target: vec![
+                        "file+head".to_string(),
+                        "%<%Y-%m-%d>.org".to_string(),
+                        "#+title: %<%Y-%m-%d>\n".to_string(),
+                    ],
+                    template: Some(TemplateText::Text("* %?".to_string())),
+                    ..CaptureTemplateOption::default()
+                }]
+            }),
             link_auto_replace: self.roam_link_auto_replace.unwrap_or(true),
             completion_everywhere: self.roam_completion_everywhere.unwrap_or(false),
             sections: self
@@ -1093,6 +1878,250 @@ impl Options {
         }
     }
 
+    /// `org-entities-user`: each entity's name and what it is in UTF-8.
+    pub fn user_entities(&self) -> Vec<(String, String)> {
+        self.entities_user
+            .iter()
+            .flatten()
+            .filter_map(|entity| {
+                let name = entity.first()?.as_str()?;
+                let utf8 = entity.get(6)?.as_str()?;
+                Some((name.to_string(), utf8.to_string()))
+            })
+            .collect()
+    }
+
+    /// `org-entities-user` as Emacs Lisp, for the server's Emacs to export
+    /// with.
+    pub fn user_entities_lisp(&self) -> Option<String> {
+        let entities = self.entities_user.as_ref().filter(|entities| !entities.is_empty())?;
+        let lisp_string = |text: &str| format!("\"{}\"", text.replace('\\', "\\\\").replace('"', "\\\""));
+        let entries: Vec<String> = entities
+            .iter()
+            .map(|entity| {
+                let fields: Vec<String> = entity
+                    .iter()
+                    .map(|field| match field {
+                        serde_json::Value::String(text) => lisp_string(text),
+                        serde_json::Value::Bool(true) => "t".to_string(),
+                        _ => "nil".to_string(),
+                    })
+                    .collect();
+                format!("({})", fields.join(" "))
+            })
+            .collect();
+        Some(format!("(setq org-entities-user '({}))", entries.join(" ")))
+    }
+
+    /// `org-list-allow-alphabetical` and
+    /// `org-plain-list-ordered-item-terminator`: how ordered items are
+    /// written.
+    /// `org-inlinetask-min-level`: 15 unless the options say otherwise,
+    /// none with `false`.
+    pub fn inlinetask_min_level(&self) -> Option<usize> {
+        match &self.inlinetask_min_level {
+            None => Some(15),
+            Some(value) => value.as_u64().filter(|level| *level > 0).map(|level| level as usize),
+        }
+    }
+
+    pub fn list_syntax(&self) -> org_syntax::ListSyntax {
+        let terminator = match self.plain_list_ordered_item_terminator.as_ref().and_then(serde_json::Value::as_str) {
+            Some(".") => org_syntax::Terminator::Dot,
+            Some(")") => org_syntax::Terminator::Paren,
+            _ => org_syntax::Terminator::Both,
+        };
+        org_syntax::ListSyntax { alphabetical: self.list_allow_alphabetical == Some(true), terminator }
+    }
+
+    /// The options Emacs must know, as Emacs Lisp: `org-entities-user`, the
+    /// tangling options, `org-list-allow-alphabetical`,
+    /// `org-plain-list-ordered-item-terminator`.
+    pub fn emacs_lisp(&self) -> Option<String> {
+        let mut forms: Vec<String> = self.user_entities_lisp().into_iter().collect();
+        forms.extend(self.tangle_lisp());
+        let syntax = self.list_syntax();
+        if syntax != org_syntax::ListSyntax::default() {
+            let terminator = match syntax.terminator {
+                org_syntax::Terminator::Both => "t",
+                org_syntax::Terminator::Dot => "?.",
+                org_syntax::Terminator::Paren => "?\\)",
+            };
+            forms.push(format!(
+                "(setq org-list-allow-alphabetical {} org-plain-list-ordered-item-terminator {terminator})",
+                if syntax.alphabetical { "t" } else { "nil" }
+            ));
+            // When the configuration file has loaded Org already, its
+            // parser reads them again.
+            forms.push("(when (featurep 'org-element) (org-element-update-syntax))".to_string());
+        }
+        (!forms.is_empty()).then(|| forms.join("\n"))
+    }
+
+    /// How tangling goes, but for `org-src-preserve-indentation`.
+    pub fn tangle_settings(&self) -> org_core::tangle::Settings {
+        let defaults = org_core::tangle::Settings::default();
+        org_core::tangle::Settings {
+            preserve_indentation: self.src_preserve_indentation.unwrap_or(false),
+            lang_exts: self
+                .babel_tangle_lang_exts
+                .iter()
+                .flatten()
+                .map(|(lang, extension)| (lang.clone(), extension.clone()))
+                .collect(),
+            relative_links: self.babel_tangle_use_relative_file_links.unwrap_or(true),
+            comment_format: (
+                self.babel_tangle_comment_format_beg.clone().unwrap_or(defaults.comment_format.0),
+                self.babel_tangle_comment_format_end.clone().unwrap_or(defaults.comment_format.1),
+            ),
+            uncomment_comments: self.babel_tangle_uncomment_comments.unwrap_or(false),
+            process_comment_text: self
+                .babel_process_comment_text
+                .clone()
+                .filter(|name| !name.is_empty())
+                .unwrap_or(defaults.process_comment_text),
+            default_file_mode: self
+                .babel_tangle_default_file_mode
+                .as_deref()
+                .and_then(|mode| u32::from_str_radix(mode, 8).ok())
+                .unwrap_or(defaults.default_file_mode),
+            noweb_wrap: (
+                self.babel_noweb_wrap_start.clone().unwrap_or(defaults.noweb_wrap.0),
+                self.babel_noweb_wrap_end.clone().unwrap_or(defaults.noweb_wrap.1),
+            ),
+        }
+    }
+
+    /// `org-babel-tangle-remove-file-before-write`: always (`Some(true)`),
+    /// never (`Some(false)`), or when the file is read-only (`None`).
+    pub fn tangle_remove_file_before_write(&self) -> Option<bool> {
+        match &self.babel_tangle_remove_file_before_write {
+            Some(serde_json::Value::Bool(remove)) => Some(*remove),
+            _ => None,
+        }
+    }
+
+    /// The tangling options the server's Emacs is told, as Emacs Lisp
+    /// (for tangling and detangling it does).
+    fn tangle_lisp(&self) -> Vec<String> {
+        let lisp_string = |text: &str| format!("\"{}\"", text.replace('\\', "\\\\").replace('"', "\\\""));
+        let mut forms = Vec::new();
+        let mut set = |name: &str, value: String| forms.push(format!("(setq {name} {value})"));
+        if let Some(exts) = self.babel_tangle_lang_exts.as_ref().filter(|exts| !exts.is_empty()) {
+            for (lang, extension) in exts {
+                set(
+                    "org-babel-tangle-lang-exts",
+                    format!(
+                        "(cons (cons {} {}) org-babel-tangle-lang-exts)",
+                        lisp_string(lang),
+                        lisp_string(extension)
+                    ),
+                );
+            }
+        }
+        if self.babel_tangle_use_relative_file_links == Some(false) {
+            set("org-babel-tangle-use-relative-file-links", "nil".to_string());
+        }
+        if let Some(format) = &self.babel_tangle_comment_format_beg {
+            set("org-babel-tangle-comment-format-beg", lisp_string(format));
+        }
+        if let Some(format) = &self.babel_tangle_comment_format_end {
+            set("org-babel-tangle-comment-format-end", lisp_string(format));
+        }
+        if self.babel_tangle_uncomment_comments == Some(true) {
+            set("org-babel-tangle-uncomment-comments", "t".to_string());
+        }
+        if let Some(name) = self
+            .babel_process_comment_text
+            .as_ref()
+            .filter(|name| !name.is_empty() && name.chars().all(|c| c.is_alphanumeric() || "-_/:*+<>=!?".contains(c)))
+        {
+            set("org-babel-process-comment-text", format!("'{name}"));
+        }
+        if let Some(mode) =
+            self.babel_tangle_default_file_mode.as_deref().and_then(|mode| u32::from_str_radix(mode, 8).ok())
+        {
+            set("org-babel-tangle-default-file-mode", format!("#o{mode:o}"));
+        }
+        match self.tangle_remove_file_before_write() {
+            Some(true) => set("org-babel-tangle-remove-file-before-write", "t".to_string()),
+            Some(false) => set("org-babel-tangle-remove-file-before-write", "nil".to_string()),
+            None => {}
+        }
+        if let Some(start) = &self.babel_noweb_wrap_start {
+            set("org-babel-noweb-wrap-start", lisp_string(start));
+        }
+        if let Some(end) = &self.babel_noweb_wrap_end {
+            set("org-babel-noweb-wrap-end", lisp_string(end));
+        }
+        forms
+    }
+
+    /// The options of `ol-bibtex.el`.
+    pub fn bibtex_settings(&self) -> org_core::bibtex::Settings {
+        let defaults = org_core::bibtex::Settings::default();
+        org_core::bibtex::Settings {
+            autogen_keys: self.bibtex_autogen_keys.unwrap_or(defaults.autogen_keys),
+            prefix: self.bibtex_prefix.clone().or(defaults.prefix),
+            treat_headline_as_title: self.bibtex_treat_headline_as_title.unwrap_or(defaults.treat_headline_as_title),
+            export_arbitrary_fields: self.bibtex_export_arbitrary_fields.unwrap_or(defaults.export_arbitrary_fields),
+            key_property: self.bibtex_key_property.clone().unwrap_or(defaults.key_property),
+            tags: self.bibtex_tags.clone().unwrap_or(defaults.tags),
+            tags_are_keywords: self.bibtex_tags_are_keywords.unwrap_or(defaults.tags_are_keywords),
+            no_export_tags: self.bibtex_no_export_tags.clone().unwrap_or(defaults.no_export_tags),
+            inherit_tags: self.bibtex_inherit_tags.unwrap_or(defaults.inherit_tags),
+            type_property_name: self.bibtex_type_property_name.clone().unwrap_or(defaults.type_property_name),
+        }
+    }
+
+    /// `org-cite-insert-processor`: none for `false`.
+    pub fn cite_insert_processor(&self) -> Option<String> {
+        match &self.cite_insert_processor {
+            None => Some("basic".to_string()),
+            Some(serde_json::Value::String(name)) if !name.is_empty() => Some(name.clone()),
+            Some(_) => None,
+        }
+    }
+
+    /// `org-occur-case-fold-search`
+    pub fn occur_case_fold(&self) -> org_core::sparse::CaseFold {
+        use org_core::sparse::CaseFold;
+        match &self.occur_case_fold_search {
+            Some(serde_json::Value::Bool(false)) => CaseFold::Never,
+            Some(serde_json::Value::String(smart)) if smart == "smart" => CaseFold::Smart,
+            _ => CaseFold::Always,
+        }
+    }
+
+    /// `org-ctrl-k-protect-subtree`
+    pub fn ctrl_k_protect(&self) -> org_core::line::Protect {
+        use org_core::line::Protect;
+        match &self.ctrl_k_protect_subtree {
+            Some(serde_json::Value::String(error)) if error == "error" => Protect::Error,
+            Some(serde_json::Value::Bool(true)) => Protect::Ask,
+            _ => Protect::Off,
+        }
+    }
+
+    /// `org-sparse-tree-default-date-type`
+    pub fn sparse_date_type(&self) -> org_core::sparse::DateType {
+        self.sparse_tree_default_date_type
+            .as_deref()
+            .and_then(org_core::sparse::DateType::from_name)
+            .unwrap_or_default()
+    }
+
+    /// `org-archive-subtree-save-file-p`: whether the archive file is
+    /// saved, archiving from an Org file (`.0`) and from the agenda (`.1`).
+    pub fn archive_save(&self) -> (bool, bool) {
+        match &self.archive_subtree_save_file_p {
+            Some(serde_json::Value::Bool(true)) => (true, true),
+            Some(serde_json::Value::Bool(false)) => (false, false),
+            Some(serde_json::Value::String(when)) if when == "from-agenda" => (false, true),
+            _ => (true, false),
+        }
+    }
+
     /// The priorities in use: Org's `A` to `C` unless set otherwise.
     pub fn priorities(&self) -> Priorities {
         let mut priorities = Priorities::default();
@@ -1109,33 +2138,207 @@ impl Options {
         priorities
     }
 
+    /// How M-RET and its kin insert: `org-M-RET-may-split-line`,
+    /// `org-blank-before-new-entry`, `org-insert-heading-respect-content`.
+    pub fn insert_settings(&self) -> org_core::meta_return::Settings {
+        // `org-get-alist-option`: the context's value, else `default`.
+        let split = |context: &str| match &self.m_ret_may_split_line {
+            None => true,
+            Some(serde_json::Value::Object(contexts)) => contexts
+                .get(context)
+                .or_else(|| contexts.get("default"))
+                .is_some_and(|value| value.as_bool().unwrap_or(false)),
+            Some(value) => value.as_bool().unwrap_or(false),
+        };
+        // `auto` is none.
+        let blank = |names: &[&str]| {
+            let entries = self.blank_before_new_entry.as_ref()?;
+            match names.iter().find_map(|name| entries.get(*name)) {
+                None => Some(false),
+                Some(serde_json::Value::Bool(on)) => Some(*on),
+                Some(_) => None,
+            }
+        };
+        org_core::meta_return::Settings {
+            split: org_core::meta_return::Split {
+                headline: split("headline"),
+                item: split("item"),
+                table: split("table"),
+            },
+            blank_heading: blank(&["heading"]),
+            blank_item: blank(&["plain_list_item", "plain-list-item"]),
+            respect_content: self.insert_heading_respect_content.unwrap_or(false),
+            statistics: self.todo_statistics(),
+            lists: self.list_settings(),
+            table: self.table_settings(),
+            ..org_core::meta_return::Settings::default()
+        }
+    }
+
+    /// How lists are edited: the options of `org-list.el`.
+    pub fn list_settings(&self) -> org_core::list::Settings {
+        let defaults = org_core::list::Settings::default();
+        // `(cdr (assq RULE org-list-automatic-rules))`: a rule left out
+        // of the option is off.
+        let rule = |name: &str, default: bool| match &self.list_automatic_rules {
+            None => default,
+            Some(rules) => rules.get(name).and_then(serde_json::Value::as_bool).unwrap_or(false),
+        };
+        org_core::list::Settings {
+            two_spaces: self
+                .list_two_spaces_after_bullet_regexp
+                .as_ref()
+                .and_then(serde_json::Value::as_str)
+                .and_then(org_core::list::BulletRegexp::new),
+            demote_bullets: self.list_demote_modify_bullet.clone().unwrap_or_default().into_iter().collect(),
+            indent_offset: self.list_indent_offset.unwrap_or(defaults.indent_offset),
+            checkbox_rule: rule("checkbox", defaults.checkbox_rule),
+            indent_rule: rule("indent", defaults.indent_rule),
+            checkbox_hierarchical: self.checkbox_hierarchical_statistics.unwrap_or(defaults.checkbox_hierarchical),
+        }
+    }
+
+    /// `org-provide-todo-statistics` and `org-hierarchical-todo-statistics`.
+    pub fn todo_statistics(&self) -> org_core::todo::Statistics {
+        use org_core::todo::ProvideStatistics;
+        let strings = |value: &serde_json::Value| -> Vec<String> {
+            value.as_array().into_iter().flatten().filter_map(|item| item.as_str().map(str::to_string)).collect()
+        };
+        let provide = match &self.provide_todo_statistics {
+            None | Some(serde_json::Value::Bool(true)) => ProvideStatistics::Todo,
+            Some(serde_json::Value::String(symbol)) if symbol == "all-headlines" => ProvideStatistics::All,
+            Some(serde_json::Value::Array(items)) if items.first().is_some_and(serde_json::Value::is_array) => {
+                ProvideStatistics::Split(strings(&items[0]), items.get(1).map(strings).unwrap_or_default())
+            }
+            Some(value @ serde_json::Value::Array(_)) => ProvideStatistics::Keywords(strings(value)),
+            Some(_) => ProvideStatistics::No,
+        };
+        org_core::todo::Statistics { provide, hierarchical: self.hierarchical_todo_statistics.unwrap_or(true) }
+    }
+
+    /// Habits read their notes as notes are written
+    /// (`org-log-note-headings`, `org-log-states-order-reversed`).
+    pub fn habit_notes(&self, agenda: &mut AgendaConfig) {
+        if let Some(habits) = &mut agenda.habits {
+            let todo = self.todo_settings();
+            habits.done_heading = todo.note_headings.done;
+            habits.states_order_reversed = todo.states_order_reversed;
+        }
+    }
+
     /// The agenda settings, with the priorities the agenda sorts by.
     pub fn agenda_config(&self) -> AgendaConfig {
         let tags = self.tag_settings();
+        let mut agenda = self.agenda.to_config();
+        self.habit_notes(&mut agenda);
         AgendaConfig {
+            sorting: Sorting { tags_sort: tags.sort, ..agenda.sorting },
             priorities: self.priorities(),
             tag_alist: tags.alist,
             tag_persistent_alist: tags.persistent,
             group_tags: self.group_tags.unwrap_or(true),
-            ..self.agenda.to_config()
+            extend_today_until: self.extend_today_until.unwrap_or(0),
+            clocktable: org_core::clocktable::Settings {
+                extend_today_until: self.extend_today_until.unwrap_or(0),
+                keywords: self.todo_keywords(),
+                inheritance: self.inheritance(),
+                ..self.clocktable_settings()
+            },
+            ..agenda
         }
     }
 
     /// How answers to the date prompt are read.
-    pub fn read_date_settings(&self) -> ReadDateSettings {
-        let defaults = ReadDateSettings::default();
-        ReadDateSettings {
-            prefer_future: match &self.read_date_prefer_future {
-                Some(PreferFutureOption::Flag(false)) => PreferFuture::No,
-                Some(PreferFutureOption::Name(name)) if name == "time" => PreferFuture::Time,
-                Some(_) => PreferFuture::Yes,
-                None => defaults.prefer_future,
-            },
-            force_compatible_dates: self.read_date_force_compatible_dates.unwrap_or(defaults.force_compatible_dates),
+    /// `org-num-mode`'s options.
+    pub fn num_settings(&self) -> org_core::num::Settings {
+        org_core::num::Settings {
+            max_level: self.num_max_level,
+            skip_commented: self.num_skip_commented.unwrap_or(false),
+            skip_footnotes: self.num_skip_footnotes.unwrap_or(false),
+            skip_tags: self.num_skip_tags.clone().unwrap_or_default(),
+            skip_unnumbered: self.num_skip_unnumbered.unwrap_or(false),
         }
     }
 
+    pub fn read_date_settings(&self) -> ReadDateSettings {
+        let defaults = ReadDateSettings::default();
+        ReadDateSettings {
+            prefer_future: prefer_future(&self.read_date_prefer_future).unwrap_or(defaults.prefer_future),
+            force_compatible_dates: self.read_date_force_compatible_dates.unwrap_or(defaults.force_compatible_dates),
+            extend_today_until: self.extend_today_until.unwrap_or(0),
+        }
+    }
+
+    /// `org-agenda-jump-prefer-future`: how the agenda's `j` reads a date,
+    /// when not as every other prompt does.
+    pub fn agenda_jump_prefer_future(&self) -> Option<PreferFuture> {
+        prefer_future(&self.agenda_jump_prefer_future)
+    }
+
     /// How clocking writes (`org-clock-into-drawer` and its relatives).
+    /// How links are followed (`org-link-search-must-match-exact-headline`,
+    /// `org-link-doi-server-url`, `org-link-shell-skip-confirm-regexp`).
+    pub fn open_settings(&self) -> org_core::open::Settings {
+        use org_core::open::ExactHeadline;
+        let defaults = org_core::open::Settings::default();
+        org_core::open::Settings {
+            exact_headline: match &self.link_search_must_match_exact_headline {
+                Some(LogOption::Flag(false)) => ExactHeadline::No,
+                Some(LogOption::Name(name)) if name == "query-to-create" => ExactHeadline::QueryToCreate,
+                Some(_) => ExactHeadline::Yes,
+                None => defaults.exact_headline,
+            },
+            doi_server: self.link_doi_server_url.clone().unwrap_or(defaults.doi_server),
+            shell_skip_confirm_regexp: self
+                .link_shell_skip_confirm_regexp
+                .clone()
+                .unwrap_or(defaults.shell_skip_confirm_regexp),
+            man: self.has_module("ol-man"),
+        }
+    }
+
+    /// Whether `module` is one of `org-modules`.
+    pub fn has_module(&self, module: &str) -> bool {
+        self.agenda.modules.iter().flatten().any(|name| name == module)
+    }
+
+    /// `org-man-command`: `man`, or the program named; `woman`, Emacs's
+    /// own reader, is `man` too.
+    pub fn man_command(&self) -> String {
+        match self.man_command.as_deref() {
+            None | Some("woman" | "") => "man".to_string(),
+            Some(program) => program.to_string(),
+        }
+    }
+
+    /// `org-info-other-documents`
+    pub fn info_other_documents(&self) -> Vec<(String, String)> {
+        match &self.info_other_documents {
+            Some(documents) => documents.iter().map(|(file, url)| (file.clone(), url.clone())).collect(),
+            None => org_core::manual::default_other_documents(),
+        }
+    }
+
+    /// `org-ctags`, when it is one of `org-modules`: its program, functions
+    /// and template.
+    pub fn ctags(&self) -> Option<Ctags> {
+        if !self.has_module("org-ctags") {
+            return None;
+        }
+        let functions = match &self.ctags_open_link_functions {
+            Some(names) => names.iter().filter_map(|name| org_core::ctags::Function::named(name)).collect(),
+            None => org_core::ctags::DEFAULT_FUNCTIONS.to_vec(),
+        };
+        Some(Ctags {
+            program: self.ctags_path_to_ctags.clone().unwrap_or_else(|| "ctags".to_string()),
+            functions,
+            template: self
+                .ctags_new_topic_template
+                .clone()
+                .unwrap_or_else(|| org_core::ctags::DEFAULT_TEMPLATE.to_string()),
+        })
+    }
+
     /// The options of the link commands.
     pub fn link_settings(&self) -> org_core::link::Settings {
         use org_core::link::{PathType, UseId};
@@ -1179,6 +2382,7 @@ impl Options {
             remove_zero: self.clock_out_remove_zero_time_clocks.unwrap_or(false),
             adapt: self.adapt(),
             log_into_drawer: self.todo_settings().log_into_drawer,
+            states_order_reversed: self.log_states_order_reversed.unwrap_or(true),
         }
     }
 
@@ -1191,9 +2395,11 @@ impl Options {
             log_into_drawer: self.todo_settings().log_into_drawer,
             src_preserve_indentation: self.src_preserve_indentation.unwrap_or(defaults.src_preserve_indentation),
             src_content_indentation: self
-                .edit_src_content_indentation
+                .src_content_indentation
                 .and_then(|columns| usize::try_from(columns).ok())
                 .unwrap_or(defaults.src_content_indentation),
+            two_spaces: self.list_settings().two_spaces,
+            property_format: self.property_format.clone().unwrap_or(defaults.property_format),
         }
     }
 
@@ -1202,7 +2408,203 @@ impl Options {
         org_core::indent::Display {
             startup_indented: self.startup_indented.unwrap_or(false),
             hide_leading_stars: self.hide_leading_stars.unwrap_or(false),
+            bullets: self.bullets().is_some(),
+            indent_hides_stars: self.indent_mode_turns_on_hiding_stars.unwrap_or(true),
+            indent_turns_off_adapt: self.indent_mode_turns_off_org_adapt_indentation.unwrap_or(true),
+            per_level: self.indent_indentation_per_level.unwrap_or(2),
         }
+    }
+
+    /// `org-image-actual-width`: `true` (the default), `false`, a number, or
+    /// a list of one number.
+    pub fn image_actual_width(&self) -> org_core::link_preview::ActualWidth {
+        use org_core::link_preview::{ActualWidth, Number};
+        let number = |value: &serde_json::Value| match value.as_i64() {
+            Some(integer) => Some(Number::Integer(integer)),
+            None => value.as_f64().map(Number::Float),
+        };
+        match &self.image_actual_width {
+            None | Some(serde_json::Value::Bool(true)) => ActualWidth::Actual,
+            Some(serde_json::Value::Bool(false)) | Some(serde_json::Value::Null) => ActualWidth::Attributes(None),
+            Some(serde_json::Value::Array(items)) => ActualWidth::Attributes(items.first().and_then(number)),
+            Some(value) => number(value).map_or(ActualWidth::Actual, ActualWidth::Fixed),
+        }
+    }
+
+    /// `org-image-max-width`, as the editors are told it: `{ "columns" }`
+    /// for `fill-column` (the default, Emacs's 70), `{ "fraction" }` of the
+    /// window for `window` (all of it) or a float, `{ "pixels" }` for an
+    /// integer; null for none.
+    pub fn image_max_width(&self) -> serde_json::Value {
+        match &self.image_max_width {
+            None => serde_json::json!({ "columns": 70 }),
+            Some(serde_json::Value::String(name)) if name == "fill-column" => serde_json::json!({ "columns": 70 }),
+            Some(serde_json::Value::String(name)) if name == "window" => serde_json::json!({ "fraction": 1.0 }),
+            Some(serde_json::Value::Number(number)) if number.is_f64() => {
+                serde_json::json!({ "fraction": number.as_f64() })
+            }
+            Some(serde_json::Value::Number(number)) => serde_json::json!({ "pixels": number }),
+            _ => serde_json::Value::Null,
+        }
+    }
+
+    /// `org-display-remote-inline-images`: `skip` unless `download` or
+    /// `cache` (or `t`, which Org takes for `cache`).
+    pub fn remote_images(&self) -> RemoteImages {
+        match self.display_remote_inline_images.as_deref() {
+            Some("download") => RemoteImages::Download,
+            Some("cache" | "t") => RemoteImages::Cache,
+            _ => RemoteImages::Skip,
+        }
+    }
+
+    /// `org-resource-download-policy`
+    pub fn download_policy(&self) -> org_core::remote_resource::Policy {
+        use org_core::remote_resource::Policy;
+        match &self.resource_download_policy {
+            Some(serde_json::Value::Bool(true)) => Policy::Always,
+            Some(serde_json::Value::Bool(false) | serde_json::Value::Null) => Policy::Never,
+            Some(serde_json::Value::String(name)) if name == "safe" => Policy::Safe,
+            _ => Policy::Prompt,
+        }
+    }
+
+    /// `org-use-fast-todo-selection`: whether `org-todo` picks the state by
+    /// key, and whether it lists the keys in its prompt alone (`expert`).
+    /// `true` is `auto`, as Org's `:set` makes it.
+    pub fn fast_todo_selection(&self) -> FastTodo {
+        match &self.use_fast_todo_selection {
+            Some(serde_json::Value::Bool(false)) | Some(serde_json::Value::Null) => FastTodo::Never,
+            Some(serde_json::Value::String(name)) if name == "expert" => FastTodo::Expert,
+            _ => FastTodo::Auto,
+        }
+    }
+
+    /// How durations are written and read (`org-duration-format`,
+    /// `org-duration-units`): Org's defaults for what is not set, or does
+    /// not hold together (a unit of the format that the units do not have).
+    pub fn durations(&self) -> org_core::duration::Durations {
+        use org_core::duration::{Durations, Format, Special, Unit};
+        let defaults = Durations::default();
+        let units = match &self.duration_units {
+            Some(serde_json::Value::Array(pairs)) => pairs
+                .iter()
+                .filter_map(|pair| {
+                    let name = pair.get(0)?.as_str()?;
+                    let minutes = pair.get(1)?;
+                    Some(Unit { name: name.to_string(), minutes: minutes.as_f64()?, float: minutes.is_f64() })
+                })
+                .collect(),
+            _ => defaults.units.clone(),
+        };
+        let format = match &self.duration_format {
+            Some(serde_json::Value::String(name)) if name == "h:mm" => Format::HMm,
+            Some(serde_json::Value::String(name)) if name == "h:mm:ss" => Format::HMmSs,
+            Some(serde_json::Value::Array(items)) => {
+                let (mut list, mut special, mut compact) = (Vec::new(), None, false);
+                for item in items {
+                    match (item.as_str(), item.get(0).and_then(serde_json::Value::as_str), item.get(1)) {
+                        (Some("compact"), _, _) => compact = true,
+                        (_, Some("special"), Some(value)) => {
+                            special = match value.as_str() {
+                                Some("h:mm") => Some(Special::HMm),
+                                Some("h:mm:ss") => Some(Special::HMmSs),
+                                _ => value.as_u64().map(|digits| Special::Precision(digits as usize)),
+                            }
+                        }
+                        (_, Some(unit), required) => list
+                            .push((unit.to_string(), required.and_then(serde_json::Value::as_bool).unwrap_or(false))),
+                        _ => {}
+                    }
+                }
+                Format::Units { units: list, special, compact }
+            }
+            _ => defaults.format.clone(),
+        };
+        let durations = Durations { format, units };
+        if durations.is_valid() {
+            durations
+        } else {
+            defaults
+        }
+    }
+
+    /// How headlines and blocks are shown (`org-fontify-…`).
+    pub fn fontify(&self) -> crate::highlight::Fontify {
+        let defaults = crate::highlight::Fontify::default();
+        crate::highlight::Fontify {
+            done_headline: self.fontify_done_headline.unwrap_or(defaults.done_headline),
+            todo_headline: self.fontify_todo_headline.unwrap_or(defaults.todo_headline),
+            quote_and_verse: self.fontify_quote_and_verse_blocks.unwrap_or(defaults.quote_and_verse),
+            emphasis: self.emphasis_looks(),
+            hidden_keywords: self.hidden_keywords.iter().flatten().fold(0, |bits, name| {
+                let bit = crate::highlight::HIDDEN_KEYWORDS.iter().position(|hidden| *hidden == name.as_str());
+                bit.map_or(bits, |bit| bits | (1 << bit))
+            }),
+            hide_macro_markers: self.hide_macro_markers.unwrap_or(false),
+            odd_levels: self.odd_levels_only.unwrap_or(false),
+            n_level_faces: self.n_level_faces.unwrap_or(defaults.n_level_faces).clamp(1, 8),
+            cycle_level_faces: self.cycle_level_faces.unwrap_or(defaults.cycle_level_faces),
+            whole_heading_line: self.fontify_whole_heading_line.unwrap_or(defaults.whole_heading_line),
+            inlinetask: None,
+        }
+    }
+
+    /// The looks of emphasis (`org-emphasis-alist`), none with
+    /// `org-fontify-emphasized-text` off.
+    fn emphasis_looks(&self) -> Option<[crate::highlight::Emphasis; 6]> {
+        use crate::highlight::Emphasis;
+        if self.fontify_emphasized_text == Some(false) {
+            return None;
+        }
+        let Some(alist) = &self.emphasis_alist else {
+            return Some(Emphasis::DEFAULTS);
+        };
+        Some(Emphasis::MARKERS.map(|marker| alist.get(marker).map_or(Emphasis::NONE, emphasis_face)))
+    }
+
+    /// Whether the markers of emphasis are hidden: with
+    /// `org-hide-emphasis-markers`, where emphasis is shown at all.
+    pub fn conceal_emphasis(&self) -> bool {
+        self.hide_emphasis_markers.unwrap_or(false) && self.fontify_emphasized_text != Some(false)
+    }
+
+    /// What a folded heading shows after its text (`org-ellipsis`): the
+    /// string when it is one and not empty, else the standard three dots.
+    pub fn ellipsis(&self) -> String {
+        self.ellipsis.clone().filter(|ellipsis| !ellipsis.is_empty()).unwrap_or_else(|| "...".to_string())
+    }
+
+    /// What org-bullets shows, when it is on: the bullets of headlines,
+    /// and, unless `false`, those of list items and the marks of
+    /// checkboxes.
+    pub fn bullets(&self) -> Option<org_core::pretty::Bullets> {
+        if self.bullets_mode != Some(true) {
+            return None;
+        }
+        let headlines = || ["◉", "○", "✸", "✿"].iter().map(|bullet| bullet.to_string()).collect();
+        let list = match &self.bullets_list_bullet {
+            Some(serde_json::Value::String(bullet)) => Some(bullet.clone()),
+            Some(serde_json::Value::Bool(false)) => None,
+            _ => Some("•".to_string()),
+        };
+        let mark = |name: &str, default: &str| {
+            let given = self.bullets_checkboxes.as_ref().and_then(|marks| marks.get(name));
+            given.and_then(serde_json::Value::as_str).unwrap_or(default).to_string()
+        };
+        let checkboxes = match &self.bullets_checkboxes {
+            Some(serde_json::Value::Bool(false)) => None,
+            _ => Some(org_core::pretty::Checkboxes {
+                todo: mark("todo", " "),
+                half: mark("half", "-"),
+                done: mark("done", "✓"),
+            }),
+        };
+        Some(org_core::pretty::Bullets {
+            headlines: self.bullets_bullet_list.clone().unwrap_or_else(headlines),
+            list,
+            checkboxes,
+        })
     }
 
     /// `org-adapt-indentation`
@@ -1232,7 +2634,165 @@ impl Options {
                 .clock_file_time_cell_format
                 .clone()
                 .unwrap_or(defaults.file_time_cell_format.clone()),
+            formulas: self.table_settings().formulas,
+            defaults: self.clocktable_defaults.clone().unwrap_or(defaults.defaults.clone()),
+            // Each a language, then its words.
+            languages: match &self.clock_clocktable_language_setup {
+                Some(languages) => {
+                    languages.iter().filter_map(|entry| Some((entry.first()?.clone(), entry[1..].to_vec()))).collect()
+                }
+                None => defaults.languages.clone(),
+            },
             ..defaults
+        }
+    }
+
+    /// How tables are edited and calculated: the options of
+    /// `org-table.el`.
+    pub fn table_settings(&self) -> org_core::table::Settings {
+        use org_core::tblfm::{CrossHline, DurationFormat};
+        let defaults = org_core::table::Settings::default();
+        let mut calc = defaults.formulas.calc;
+        if let Some(modes) = &self.calc_default_modes {
+            if let Some([kind, digits]) =
+                modes.get("float_format").and_then(|value| value.as_array()).map(Vec::as_slice)
+            {
+                let digits = digits.as_u64().unwrap_or(0).min(1000) as usize;
+                calc.float_format = match kind.as_str() {
+                    Some("fix") => org_core::calc::FloatFormat::Fix(digits),
+                    Some("sci") => org_core::calc::FloatFormat::Sci(digits),
+                    _ => org_core::calc::FloatFormat::Float(digits),
+                };
+            }
+            if let Some(angle) = modes.get("angle_mode").and_then(serde_json::Value::as_str) {
+                calc.radians = angle == "rad";
+            }
+        }
+        let formulas = org_core::tblfm::Settings {
+            constants: self
+                .table_formula_constants
+                .iter()
+                .flatten()
+                .map(|(name, value)| {
+                    let value = match value {
+                        serde_json::Value::String(text) => text.clone(),
+                        other => other.to_string(),
+                    };
+                    (name.clone(), value)
+                })
+                .collect(),
+            cross_hline: match &self.table_relative_ref_may_cross_hline {
+                Some(serde_json::Value::Bool(false)) => CrossHline::Stop,
+                Some(serde_json::Value::String(word)) if word == "error" => CrossHline::Error,
+                _ => CrossHline::Cross,
+            },
+            create_columns: self.table_formula_create_columns.unwrap_or(defaults.formulas.create_columns),
+            duration_format: match self.table_duration_custom_format.as_deref() {
+                Some("seconds") => DurationFormat::Seconds,
+                Some("minutes") => DurationFormat::Minutes,
+                Some("days") => DurationFormat::Days,
+                Some("hh:mm") => DurationFormat::HoursMinutes,
+                _ => DurationFormat::Hours,
+            },
+            hour_zero_padding: self.table_duration_hour_zero_padding.unwrap_or(defaults.formulas.hour_zero_padding),
+            calc,
+            alignment: self.table_alignment(),
+        };
+        org_core::table::Settings {
+            formulas,
+            evaluate_inline: self.table_formula_evaluate_inline.unwrap_or(defaults.evaluate_inline),
+            line_recalculation: self.table_allow_automatic_line_recalculation.unwrap_or(defaults.line_recalculation),
+            automatic_realign: self.table_automatic_realign.unwrap_or(defaults.automatic_realign),
+            tab_jumps_over_hlines: self.table_tab_jumps_over_hlines.unwrap_or(defaults.tab_jumps_over_hlines),
+            shrunk_column_indicator: self
+                .table_shrunk_column_indicator
+                .clone()
+                .unwrap_or(defaults.shrunk_column_indicator),
+        }
+    }
+
+    /// When a column of a table aligns right: `org-table-number-regexp`
+    /// and `org-table-number-fraction`.
+    pub fn table_alignment(&self) -> org_core::format::Alignment {
+        let defaults = org_core::format::Alignment::default();
+        org_core::format::Alignment {
+            number: self.table_number_regexp.as_deref().and_then(org_core::text::EmacsRegexp::new),
+            fraction: self.table_number_fraction.filter(|fraction| fraction.is_finite()).unwrap_or(defaults.fraction),
+        }
+    }
+
+    /// The table options set, as Emacs variables and their values in Lisp,
+    /// for the formulas Emacs computes in org-lsp's place.
+    pub fn table_emacs_variables(&self) -> Vec<(String, String)> {
+        let lisp_string = |text: &str| format!("\"{}\"", text.replace('\\', "\\\\").replace('"', "\\\""));
+        let flag = |on: bool| if on { "t" } else { "nil" }.to_string();
+        let settings = self.table_settings();
+        let formulas = &settings.formulas;
+        let mut out = Vec::new();
+        if self.table_formula_constants.is_some() {
+            let pairs: Vec<String> = formulas
+                .constants
+                .iter()
+                .map(|(name, value)| format!("({} . {})", lisp_string(name), lisp_string(value)))
+                .collect();
+            out.push(("org-table-formula-constants".to_string(), format!("'({})", pairs.join(" "))));
+        }
+        if self.table_relative_ref_may_cross_hline.is_some() {
+            let value = match formulas.cross_hline {
+                org_core::tblfm::CrossHline::Cross => "t",
+                org_core::tblfm::CrossHline::Stop => "nil",
+                org_core::tblfm::CrossHline::Error => "'error",
+            };
+            out.push(("org-table-relative-ref-may-cross-hline".to_string(), value.to_string()));
+        }
+        if let Some(on) = self.table_formula_create_columns {
+            out.push(("org-table-formula-create-columns".to_string(), flag(on)));
+        }
+        if let Some(format) = &self.table_duration_custom_format {
+            if ["seconds", "minutes", "hours", "days", "hh:mm"].contains(&format.as_str()) {
+                out.push(("org-table-duration-custom-format".to_string(), format!("'{format}")));
+            }
+        }
+        if let Some(regexp) = &self.table_number_regexp {
+            out.push(("org-table-number-regexp".to_string(), lisp_string(regexp)));
+        }
+        if let Some(fraction) = self.table_number_fraction.filter(|fraction| fraction.is_finite()) {
+            out.push(("org-table-number-fraction".to_string(), format!("{fraction:?}")));
+        }
+        if let Some(on) = self.table_duration_hour_zero_padding {
+            out.push(("org-table-duration-hour-zero-padding".to_string(), flag(on)));
+        }
+        if self.calc_default_modes.is_some() {
+            let float = match formulas.calc.float_format {
+                org_core::calc::FloatFormat::Float(digits) => format!("(float {digits})"),
+                org_core::calc::FloatFormat::Fix(digits) => format!("(fix {digits})"),
+                org_core::calc::FloatFormat::Sci(digits) => format!("(sci {digits})"),
+            };
+            let angle = if formulas.calc.radians { "rad" } else { "deg" };
+            out.push((
+                "org-calc-default-modes".to_string(),
+                format!(
+                    "(plist-put (plist-put (copy-sequence (default-value 'org-calc-default-modes)) \
+                     'calc-float-format '{float}) 'calc-angle-mode '{angle})"
+                ),
+            ));
+        }
+        out
+    }
+
+    /// How new IDs are made (`org-id-new`).
+    pub fn id_settings(&self) -> org_core::link::IdSettings {
+        use org_core::link::{IdMethod, IdSettings};
+        let defaults = IdSettings::default();
+        IdSettings {
+            method: match self.id_method.as_deref() {
+                Some("org") => IdMethod::Org,
+                Some("ts") => IdMethod::Ts,
+                _ => IdMethod::Uuid,
+            },
+            prefix: self.id_prefix.as_ref().and_then(serde_json::Value::as_str).map(str::to_string),
+            ts_format: self.id_ts_format.clone().unwrap_or(defaults.ts_format),
+            include_domain: self.id_include_domain.unwrap_or(defaults.include_domain),
         }
     }
 
@@ -1251,6 +2811,36 @@ impl Options {
             tags: self.tag_settings(),
             global_properties: self.global_properties.clone().unwrap_or_default().into_iter().collect(),
             list_circular_motion: self.list_use_circular_motion.unwrap_or(false),
+            move_date_from_past_to_today: self
+                .agenda_move_date_from_past_immediately_to_today
+                .unwrap_or(defaults.move_date_from_past_to_today),
+            insert: self.insert_settings(),
+            special_ctrl_a_e: self.special_ctrl_a_e(),
+            special_ctrl_k: self.special_ctrl_k.unwrap_or(false),
+            shift_todo_is_state_change: self.treat_s_cursor_todo_selection_as_state_change.unwrap_or(true),
+            timestamp_down_means_later: self.edit_timestamp_down_means_later.unwrap_or(false),
+            priority_commands: self.priority_enable_commands.unwrap_or(true),
+            ordered_tag: match &self.track_ordered_property_with_tag {
+                Some(serde_json::Value::Bool(true)) => Some("ORDERED".to_string()),
+                Some(serde_json::Value::String(tag)) if !tag.is_empty() => Some(tag.clone()),
+                _ => None,
+            },
+        }
+    }
+
+    /// `org-special-ctrl-a/e` for C-a and for C-e: one value for both, or
+    /// a pair.
+    pub fn special_ctrl_a_e(&self) -> (org_core::line::Special, org_core::line::Special) {
+        use org_core::line::Special;
+        let one = |value: &serde_json::Value| match value {
+            serde_json::Value::Bool(true) => Special::On,
+            serde_json::Value::String(name) if name == "reversed" => Special::Reversed,
+            _ => Special::Off,
+        };
+        match &self.special_ctrl_a_e {
+            Some(serde_json::Value::Array(pair)) if pair.len() == 2 => (one(&pair[0]), one(&pair[1])),
+            Some(value) => (one(value), one(value)),
+            None => (Special::Off, Special::Off),
         }
     }
 
@@ -1307,13 +2897,95 @@ impl Options {
         if let Some(column) = self.tags_column {
             settings.tags_column = column;
         }
+        settings.extend_today_until = self.extend_today_until.unwrap_or(0);
+        settings.use_effective_time = self.use_effective_time.unwrap_or(false);
+        settings.last_clock_out_as_effective_time = self.use_last_clock_out_time_as_effective_time.unwrap_or(false);
         settings.repeat_to_state = match &self.todo_repeat_to_state {
             Some(RepeatToOption::Flag(true)) => RepeatTo::Previous,
             Some(RepeatToOption::State(state)) => RepeatTo::State(state.clone()),
             _ => RepeatTo::Head,
         };
         settings.adapt = self.adapt();
+        if let Some(format) = &self.property_format {
+            settings.property_format = format.clone();
+        }
+        settings.log_done_with_time = self.log_done_with_time.unwrap_or(true);
+        settings.states_order_reversed = self.log_states_order_reversed.unwrap_or(true);
+        settings.notes_after_drawers = self.log_state_notes_insert_after_drawers.unwrap_or(false);
+        settings.note_clock_out = self.log_note_clock_out.unwrap_or(false);
+        settings.statistics = self.todo_statistics();
+        settings.closed_keep_when_no_todo = self.closed_keep_when_no_todo.unwrap_or(false);
+        settings.state_tags_triggers = self
+            .todo_state_tags_triggers
+            .iter()
+            .flatten()
+            .map(|(state, changes)| {
+                let changes = changes
+                    .iter()
+                    .filter_map(|change| match change.split_at_checked(1) {
+                        Some(("+", tag)) if !tag.is_empty() => Some((tag.to_string(), true)),
+                        Some(("-", tag)) if !tag.is_empty() => Some((tag.to_string(), false)),
+                        _ => None,
+                    })
+                    .collect();
+                (state.clone(), changes)
+            })
+            .collect();
+        settings.tags_sort = self.tag_settings().sort;
+        settings.lists = self.list_settings();
+        settings.table = self.table_settings();
+        for (kind, heading) in self.log_note_headings.iter().flatten() {
+            let headings = &mut settings.note_headings;
+            let slot = match kind.as_str() {
+                "done" => &mut headings.done,
+                "state" => &mut headings.state,
+                "note" => &mut headings.note,
+                "reschedule" => &mut headings.reschedule,
+                "delschedule" => &mut headings.delschedule,
+                "redeadline" => &mut headings.redeadline,
+                "deldeadline" => &mut headings.deldeadline,
+                "refile" => &mut headings.refile,
+                "clock_out" | "clock-out" => &mut headings.clock_out,
+                _ => continue,
+            };
+            *slot = heading.clone();
+        }
         settings
+    }
+}
+
+/// An entry of `org_protocol_project_alist` (`org-protocol-project-alist`).
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[serde(default)]
+pub struct ProtocolProjectOption {
+    pub name: String,
+    pub base_url: String,
+    pub working_directory: String,
+    pub online_suffix: Option<String>,
+    pub working_suffix: Option<String>,
+    pub rewrites: Vec<(String, String)>,
+}
+
+impl Options {
+    /// The options of `org-protocol.el`.
+    pub fn protocol_options(&self) -> org_core::protocol::Options {
+        org_core::protocol::Options {
+            default_template_key: self.protocol_default_template_key.clone().filter(|key| !key.is_empty()),
+            data_separator: self.protocol_data_separator.clone(),
+            projects: self
+                .protocol_project_alist
+                .iter()
+                .flatten()
+                .map(|project| org_core::protocol::Project {
+                    name: project.name.clone(),
+                    base_url: project.base_url.clone(),
+                    working_directory: project.working_directory.clone(),
+                    online_suffix: project.online_suffix.clone(),
+                    working_suffix: project.working_suffix.clone(),
+                    rewrites: project.rewrites.clone(),
+                })
+                .collect(),
+        }
     }
 }
 
@@ -1577,10 +3249,13 @@ const OLD_NAMES: &[(&str, &str)] = &[
     ("startupIndented", "org_startup_indented"),
     ("hideLeadingStars", "org_hide_leading_stars"),
     ("srcPreserveIndentation", "org_src_preserve_indentation"),
-    ("editSrcContentIndentation", "org_edit_src_content_indentation"),
+    ("editSrcContentIndentation", "org_src_content_indentation"),
+    // Org 9.8's name for `org-edit-src-content-indentation`.
+    ("org_edit_src_content_indentation", "org_src_content_indentation"),
     ("virtualDocuments", "virtual_documents"),
     ("showDocument", "show_document"),
     ("messagePrompts", "message_prompts"),
+    ("messageRequests", "message_requests"),
     ("orgClient", "org_client"),
     ("lineHighlights", "line_highlights"),
     ("virtualIndent", "virtual_indent"),
@@ -1659,7 +3334,10 @@ pub fn current_names(value: serde_json::Value, renamed: &mut Vec<String>) -> ser
             None => key,
         };
         match name.as_str() {
-            "org_capture_templates" | "org_roam_capture_templates" | "org_refile_targets" => {
+            "org_capture_templates"
+            | "org_roam_capture_templates"
+            | "org_roam_dailies_capture_templates"
+            | "org_refile_targets" => {
                 for item in field.as_array_mut().into_iter().flatten() {
                     underscored(item);
                     if let Some(fields) = item.as_object_mut() {
@@ -1726,6 +3404,48 @@ fn current_settings(holder: &mut serde_json::Value, renamed: &mut Vec<String>) {
 /// An option of `agenda` as it was named before, under its name now.
 /// `org_agenda_time_grid` was an object; `org_agenda_time_grid` is Org's list, and
 /// its `now` is `org_agenda_current_time_string`.
+/// A face of `org-emphasis-alist` as a look: Org's faces of emphasis by
+/// name, the attributes editors can show of a property list, or a list of
+/// them. Colors and other faces add nothing.
+fn emphasis_face(face: &serde_json::Value) -> crate::highlight::Emphasis {
+    use crate::highlight::{modifier, Emphasis, TokenType};
+    let mut look = Emphasis::NONE;
+    let mut add = |name: &str| {
+        let name = name.trim();
+        if name.starts_with(':') {
+            let words: Vec<&str> = name.split_whitespace().collect();
+            for pair in words.chunks(2) {
+                let on = pair.get(1).is_some_and(|value| !matches!(*value, "nil" | "normal"));
+                look.modifiers |= match (pair[0], pair.get(1).copied()) {
+                    (":weight", Some("bold" | "extra-bold" | "ultra-bold" | "semi-bold" | "heavy" | "black")) => {
+                        modifier::BOLD
+                    }
+                    (":slant", Some("italic" | "oblique")) => modifier::ITALIC,
+                    (":underline", _) if on => modifier::UNDERLINE,
+                    (":strike-through", _) if on => modifier::STRIKETHROUGH,
+                    _ => 0,
+                };
+            }
+            return;
+        }
+        match name {
+            "bold" => look.modifiers |= modifier::BOLD,
+            "italic" => look.modifiers |= modifier::ITALIC,
+            "bold-italic" => look.modifiers |= modifier::BOLD | modifier::ITALIC,
+            "underline" => look.modifiers |= modifier::UNDERLINE,
+            "org-code" => look.ty = look.ty.or(Some(TokenType::Code)),
+            "org-verbatim" => look.ty = look.ty.or(Some(TokenType::Verbatim)),
+            _ => {}
+        }
+    };
+    match face {
+        serde_json::Value::String(name) => add(name),
+        serde_json::Value::Array(names) => names.iter().filter_map(serde_json::Value::as_str).for_each(&mut add),
+        _ => {}
+    }
+    look
+}
+
 fn old_agenda_option(key: &str, field: serde_json::Value) -> Option<(String, serde_json::Value)> {
     if key == "timeGrid" {
         let grid = TimeGrid::default();
@@ -1958,6 +3678,98 @@ pub struct AgendaOptions {
     pub skip_deadline_if_done: Option<bool>,
     #[serde(rename = "org_agenda_skip_timestamp_if_done")]
     pub skip_timestamp_if_done: Option<bool>,
+    #[serde(rename = "org_agenda_skip_comment_trees")]
+    pub skip_comment_trees: Option<bool>,
+    #[serde(rename = "org_agenda_skip_archived_trees")]
+    pub skip_archived_trees: Option<bool>,
+    #[serde(rename = "org_agenda_include_deadlines")]
+    pub include_deadlines: Option<bool>,
+    #[serde(rename = "org_agenda_skip_additional_timestamps_same_entry")]
+    pub skip_additional_timestamps_same_entry: Option<bool>,
+    /// `true`, `false` or `"cookies"`.
+    #[serde(rename = "org_agenda_fontify_priorities")]
+    pub fontify_priorities: Option<serde_json::Value>,
+    #[serde(rename = "org_agenda_log_mode_add_notes")]
+    pub log_mode_add_notes: Option<bool>,
+    #[serde(rename = "org_agenda_clock_report_header")]
+    pub clock_report_header: Option<String>,
+    /// The text of a plist (`:link t :maxlevel 2`).
+    #[serde(rename = "org_agenda_clockreport_parameter_plist")]
+    pub clockreport_parameter_plist: Option<String>,
+    #[serde(rename = "org_agenda_time_leading_zero")]
+    pub time_leading_zero: Option<bool>,
+    #[serde(rename = "org_agenda_timegrid_use_ampm")]
+    pub timegrid_use_ampm: Option<bool>,
+    #[serde(rename = "org_agenda_search_headline_for_time")]
+    pub search_headline_for_time: Option<bool>,
+    /// `true`, `false` or `"beg"`.
+    #[serde(rename = "org_agenda_remove_times_when_in_prefix")]
+    pub remove_times_when_in_prefix: Option<serde_json::Value>,
+    #[serde(rename = "org_agenda_default_appointment_duration")]
+    pub default_appointment_duration: Option<i64>,
+    #[serde(rename = "org_agenda_remove_timeranges_from_blocks")]
+    pub remove_timeranges_from_blocks: Option<bool>,
+    #[serde(rename = "org_agenda_diary_sexp_prefix")]
+    pub diary_sexp_prefix: Option<String>,
+    /// `true`, `"always"`, `false` or a list of kinds of views.
+    #[serde(rename = "org_agenda_show_inherited_tags")]
+    pub show_inherited_tags: Option<serde_json::Value>,
+    /// `true` or a list of kinds of views.
+    #[serde(rename = "org_agenda_use_tag_inheritance")]
+    pub use_tag_inheritance: Option<serde_json::Value>,
+    #[serde(rename = "org_agenda_hide_tags_regexp")]
+    pub hide_tags_regexp: Option<String>,
+    /// `org-agenda-prefer-last-repeat`: `true`, or a list of TODO keywords.
+    #[serde(rename = "org_agenda_prefer_last_repeat")]
+    pub prefer_last_repeat: Option<serde_json::Value>,
+    /// `true`, `"pre-scheduled"` or a number of days.
+    #[serde(rename = "org_agenda_skip_deadline_prewarning_if_scheduled")]
+    pub skip_deadline_prewarning_if_scheduled: Option<serde_json::Value>,
+    /// `true`, `"post-deadline"` or a number of days.
+    #[serde(rename = "org_agenda_skip_scheduled_delay_if_deadline")]
+    pub skip_scheduled_delay_if_deadline: Option<serde_json::Value>,
+    /// `true`, `"not-today"` or `"repeated-after-deadline"`.
+    #[serde(rename = "org_agenda_skip_scheduled_if_deadline_is_shown")]
+    pub skip_scheduled_if_deadline_is_shown: Option<serde_json::Value>,
+    #[serde(rename = "org_agenda_skip_scheduled_repeats_after_deadline")]
+    pub skip_scheduled_repeats_after_deadline: Option<bool>,
+    #[serde(rename = "org_agenda_todo_list_sublevels")]
+    pub todo_list_sublevels: Option<bool>,
+    #[serde(rename = "org_agenda_todo_ignore_with_date")]
+    pub todo_ignore_with_date: Option<bool>,
+    /// `org-agenda-todo-ignore-scheduled` and the two after it: `true`, a
+    /// name or a number of days.
+    #[serde(rename = "org_agenda_todo_ignore_scheduled")]
+    pub todo_ignore_scheduled: Option<serde_json::Value>,
+    #[serde(rename = "org_agenda_todo_ignore_deadlines")]
+    pub todo_ignore_deadlines: Option<serde_json::Value>,
+    #[serde(rename = "org_agenda_todo_ignore_timestamp")]
+    pub todo_ignore_timestamp: Option<serde_json::Value>,
+    #[serde(rename = "org_agenda_todo_ignore_time_comparison_use_seconds")]
+    pub todo_ignore_time_comparison_use_seconds: Option<bool>,
+    #[serde(rename = "org_agenda_tags_todo_honor_ignore_options")]
+    pub tags_todo_honor_ignore_options: Option<bool>,
+    /// `org-tags-match-list-sublevels`: `true`, `false` or `"indented"`.
+    #[serde(rename = "org_tags_match_list_sublevels")]
+    pub tags_match_list_sublevels: Option<serde_json::Value>,
+    /// `org-agenda-sorting-strategy`: a list of strategies for each kind
+    /// of view (`agenda`, `todo`, `tags`, `search`), or one list for all.
+    #[serde(rename = "org_agenda_sorting_strategy")]
+    pub sorting_strategy: Option<serde_json::Value>,
+    #[serde(rename = "org_agenda_sort_notime_is_late")]
+    pub sort_notime_is_late: Option<bool>,
+    #[serde(rename = "org_agenda_sort_noeffort_is_high")]
+    pub sort_noeffort_is_high: Option<bool>,
+    /// `org-agenda-max-entries` and its kin: a number for every kind of
+    /// view, or one for each kind.
+    #[serde(rename = "org_agenda_max_entries")]
+    pub max_entries: Option<serde_json::Value>,
+    #[serde(rename = "org_agenda_max_todos")]
+    pub max_todos: Option<serde_json::Value>,
+    #[serde(rename = "org_agenda_max_tags")]
+    pub max_tags: Option<serde_json::Value>,
+    #[serde(rename = "org_agenda_max_effort")]
+    pub max_effort: Option<serde_json::Value>,
     #[serde(rename = "org_agenda_show_future_repeats")]
     pub show_future_repeats: Option<FutureRepeatsOption>,
     #[serde(rename = "org_agenda_show_all_dates")]
@@ -1991,6 +3803,8 @@ pub struct AgendaOptions {
     /// `org-agenda-start-with-follow-mode`
     #[serde(rename = "org_agenda_start_with_follow_mode")]
     pub start_with_follow_mode: Option<bool>,
+    #[serde(rename = "org_agenda_show_outline_path")]
+    pub show_outline_path: Option<OutlinePathOption>,
     /// `org-agenda-start-with-entry-text-mode`
     #[serde(rename = "org_agenda_start_with_entry_text_mode")]
     pub start_with_entry_text_mode: Option<bool>,
@@ -2003,6 +3817,13 @@ pub struct AgendaOptions {
     /// `org-agenda-entry-text-exclude-regexps`
     #[serde(rename = "org_agenda_entry_text_exclude_regexps")]
     pub entry_text_exclude_regexps: Option<Vec<String>>,
+    /// `org-agenda-add-entry-text-maxlines`
+    #[serde(rename = "org_agenda_add_entry_text_maxlines")]
+    pub add_entry_text_maxlines: Option<usize>,
+    /// `org-agenda-add-entry-text-descriptive-links`, which changes
+    /// nothing written in Org 9.8.10.
+    #[serde(rename = "org_agenda_add_entry_text_descriptive_links")]
+    pub add_entry_text_descriptive_links: Option<bool>,
     /// `org-agenda-log-mode-items`: `closed`, `clock` and `state`.
     #[serde(rename = "org_agenda_log_mode_items")]
     pub log_mode_items: Option<Vec<String>>,
@@ -2076,6 +3897,9 @@ pub struct AgendaOptions {
     /// `org-agenda-deadline-leaders`
     #[serde(rename = "org_agenda_deadline_leaders")]
     pub deadline_leaders: Option<Vec<String>>,
+    /// `org-agenda-deadline-faces`: `[part, face]` pairs.
+    #[serde(rename = "org_agenda_deadline_faces")]
+    pub deadline_faces: Option<Vec<(f64, String)>>,
     /// `org-agenda-timerange-leaders`
     #[serde(rename = "org_agenda_timerange_leaders")]
     pub timerange_leaders: Option<Vec<String>>,
@@ -2182,14 +4006,169 @@ impl AgendaOptions {
             skip_deadline_if_done,
             skip_timestamp_if_done,
             show_all_dates,
+            skip_comment_trees,
+            skip_archived_trees,
+            include_deadlines,
+            skip_additional_timestamps_same_entry,
+            log_mode_add_notes,
+            remove_timeranges_from_blocks,
+            skip_scheduled_repeats_after_deadline,
+            todo_list_sublevels,
             use_time_grid,
             show_current_time_in_grid,
             compact_blocks,
             hide_empty_blocks
         );
+        if let Some(on) = self.time_leading_zero {
+            config.times.leading_zero = on;
+        }
+        if let Some(on) = self.timegrid_use_ampm {
+            config.times.ampm = on;
+        }
+        if let Some(on) = self.search_headline_for_time {
+            config.times.headline_has_none = !on;
+        }
+        if let Some(value) = &self.remove_times_when_in_prefix {
+            config.times.remove_in_prefix = match value {
+                serde_json::Value::Bool(false) | serde_json::Value::Null => RemoveTimes::No,
+                serde_json::Value::String(symbol) if symbol == "beg" => RemoveTimes::Beginning,
+                _ => RemoveTimes::Yes,
+            };
+        }
+        if self.default_appointment_duration.is_some() {
+            config.times.appointment_duration = self.default_appointment_duration;
+        }
+        // A list of kinds of views (`agenda`, `todo`, `search`).
+        let views = |value: &serde_json::Value| -> Vec<String> {
+            value.as_array().into_iter().flatten().filter_map(|view| view.as_str().map(str::to_string)).collect()
+        };
+        if let Some(value) = &self.show_inherited_tags {
+            config.show_inherited_tags = match value {
+                serde_json::Value::Bool(true) => ShowInheritedTags::Yes,
+                serde_json::Value::String(symbol) if symbol == "always" => ShowInheritedTags::Always,
+                serde_json::Value::Array(_) => ShowInheritedTags::Views(views(value)),
+                _ => ShowInheritedTags::No,
+            };
+        }
+        if let Some(value) = &self.use_tag_inheritance {
+            config.use_tag_inheritance = match value {
+                serde_json::Value::Bool(true) => UseTagInheritance::All,
+                _ => UseTagInheritance::Views(views(value)),
+            };
+        }
+        if let Some(value) = &self.fontify_priorities {
+            config.fontify_priorities = match value {
+                serde_json::Value::Bool(false) | serde_json::Value::Null => FontifyPriorities::No,
+                serde_json::Value::String(symbol) if symbol == "cookies" => FontifyPriorities::Cookies,
+                _ => FontifyPriorities::Lines,
+            };
+        }
+        if let Some(plist) = &self.clockreport_parameter_plist {
+            config.clockreport_parameters = plist.clone();
+        }
+        if self.clock_report_header.is_some() {
+            config.clock_report_header = self.clock_report_header.clone();
+        }
+        if self.hide_tags_regexp.is_some() {
+            config.hide_tags_regexp = self.hide_tags_regexp.clone().filter(|regexp| !regexp.is_empty());
+        }
+        if self.diary_sexp_prefix.is_some() {
+            config.diary_sexp_prefix = self.diary_sexp_prefix.clone().filter(|prefix| !prefix.is_empty());
+        }
+        if let Some(value) = &self.prefer_last_repeat {
+            config.prefer_last_repeat = match value {
+                serde_json::Value::Bool(true) => PreferLastRepeat::All,
+                serde_json::Value::Array(states) => PreferLastRepeat::States(
+                    states.iter().filter_map(|state| state.as_str().map(str::to_string)).collect(),
+                ),
+                _ => PreferLastRepeat::None,
+            };
+        }
+        // `t`, the symbol of the other date, or a number of days.
+        let by_other_date = |value: &serde_json::Value, name: &str| match value {
+            serde_json::Value::Bool(true) => Some(SkipByOtherDate::All),
+            serde_json::Value::String(symbol) if symbol == name => Some(SkipByOtherDate::ByOtherDate),
+            serde_json::Value::String(_) => Some(SkipByOtherDate::All),
+            serde_json::Value::Number(number) => number.as_i64().map(SkipByOtherDate::Days),
+            _ => None,
+        };
+        if let Some(value) = &self.skip_deadline_prewarning_if_scheduled {
+            config.skip_deadline_prewarning_if_scheduled = by_other_date(value, "pre-scheduled");
+        }
+        if let Some(value) = &self.skip_scheduled_delay_if_deadline {
+            config.skip_scheduled_delay_if_deadline = by_other_date(value, "post-deadline");
+        }
+        if let Some(value) = &self.skip_scheduled_if_deadline_is_shown {
+            config.skip_scheduled_if_deadline_is_shown = match value.as_str() {
+                _ if value == &serde_json::Value::Bool(true) => SkipScheduledIfDeadline::Yes,
+                Some("not-today") => SkipScheduledIfDeadline::NotToday,
+                Some("repeated-after-deadline") => SkipScheduledIfDeadline::RepeatedAfterDeadline,
+                _ => SkipScheduledIfDeadline::No,
+            };
+        }
+        // `org-agenda-todo-ignore-*`: `false` is nil, as unset.
+        let when = |value: &Option<serde_json::Value>| value.as_ref().and_then(When::parse);
+        if let Some(on) = self.todo_ignore_with_date {
+            config.todo_ignore.with_date = on;
+        }
+        if self.todo_ignore_scheduled.is_some() {
+            config.todo_ignore.scheduled = when(&self.todo_ignore_scheduled);
+        }
+        if self.todo_ignore_deadlines.is_some() {
+            config.todo_ignore.deadlines = when(&self.todo_ignore_deadlines);
+        }
+        if self.todo_ignore_timestamp.is_some() {
+            config.todo_ignore.timestamp = when(&self.todo_ignore_timestamp);
+        }
+        if let Some(on) = self.todo_ignore_time_comparison_use_seconds {
+            config.todo_ignore.use_seconds = on;
+        }
+        config.tags_match_list_sublevels = match &self.tags_match_list_sublevels {
+            Some(serde_json::Value::Bool(false)) => org_core::agenda::Sublevels::Skipped,
+            Some(serde_json::Value::String(name)) if name == "indented" => org_core::agenda::Sublevels::Indented,
+            _ => org_core::agenda::Sublevels::Listed,
+        };
+        if let Some(on) = self.tags_todo_honor_ignore_options {
+            config.tags_todo_honor_ignore = on;
+        }
         if let Some(on) = self.search_view_always_boolean {
             config.search.always_boolean = on;
         }
+        // `org-agenda-sorting-strategy`: a list for each kind of view, or
+        // one list for all of them.
+        let names = |value: &serde_json::Value| -> Option<Vec<String>> {
+            value.as_array()?.iter().map(|name| name.as_str().map(str::to_string)).collect()
+        };
+        match &self.sorting_strategy {
+            Some(serde_json::Value::Object(views)) => {
+                let lists = views.iter().filter_map(|(view, list)| Some((view.clone(), names(list)?))).collect();
+                config.sorting.strategies = Strategies::ByView(lists);
+            }
+            Some(list) => {
+                if let Some(list) = names(list) {
+                    config.sorting.strategies = Strategies::All(list);
+                }
+            }
+            None => {}
+        }
+        if let Some(on) = self.sort_notime_is_late {
+            config.sorting.notime_is_late = on;
+        }
+        if let Some(on) = self.sort_noeffort_is_high {
+            config.sorting.noeffort_is_high = on;
+        }
+        // A number for every kind of view, or one for each kind.
+        let limit = |value: &Option<serde_json::Value>| match value {
+            Some(serde_json::Value::Number(number)) => number.as_i64().map(Limit::All),
+            Some(serde_json::Value::Object(views)) => Some(Limit::ByView(
+                views.iter().filter_map(|(view, limit)| Some((view.clone(), limit.as_i64()?))).collect(),
+            )),
+            _ => None,
+        };
+        config.sorting.max_entries = limit(&self.max_entries);
+        config.sorting.max_todos = limit(&self.max_todos);
+        config.sorting.max_tags = limit(&self.max_tags);
+        config.sorting.max_effort = limit(&self.max_effort);
         // `org-habit`, when it is one of `org-modules`.
         if self.modules.iter().flatten().any(|module| module == "org-habit") {
             let mut habits = org_core::agenda::habit::Settings::default();
@@ -2355,6 +4334,24 @@ impl AgendaOptions {
         if let Some(Ok(leaders)) = self.deadline_leaders.clone().map(<[String; 3]>::try_from) {
             config.deadline_leaders = leaders;
         }
+        // `org-agenda-deadline-faces`: Org's faces by name, `org-warning`
+        // as `org-imminent-deadline`, which inherits it; any other is the
+        // plain look.
+        if let Some(faces) = &self.deadline_faces {
+            use org_core::agenda::Face;
+            config.deadline_faces = faces
+                .iter()
+                .map(|(part, name)| {
+                    let face = match name.as_str() {
+                        "org-imminent-deadline" | "org-warning" => Face::DeadlineWarning,
+                        "org-upcoming-deadline" => Face::DeadlineUpcoming,
+                        "org-upcoming-distant-deadline" => Face::DeadlineDistant,
+                        _ => Face::Default,
+                    };
+                    (*part, face)
+                })
+                .collect();
+        }
         if let Some(Ok(leaders)) = self.timerange_leaders.clone().map(<[String; 2]>::try_from) {
             config.timerange_leaders = leaders;
         }
@@ -2385,9 +4382,144 @@ impl AgendaOptions {
     }
 }
 
+/// `org-ctags`'s options.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Ctags {
+    /// `org-ctags-path-to-ctags`
+    pub program: String,
+    /// `org-ctags-open-link-functions`
+    pub functions: Vec<org_core::ctags::Function>,
+    /// `org-ctags-new-topic-template`
+    pub template: String,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// `org-entities-user` as the server's Emacs is told it.
+    #[test]
+    fn user_entities_for_emacs() {
+        let options: Options = serde_json::from_value(serde_json::json!({
+            "org_entities_user": [["myarrow", "\\to", true, "&rarr;", "->", "\"q\"", "→"]]
+        }))
+        .unwrap();
+        assert_eq!(options.user_entities(), [("myarrow".to_string(), "→".to_string())]);
+        assert_eq!(
+            options.user_entities_lisp().unwrap(),
+            r#"(setq org-entities-user '(("myarrow" "\\to" t "&rarr;" "->" "\"q\"" "→")))"#
+        );
+    }
+
+    /// `org-list-allow-alphabetical` and
+    /// `org-plain-list-ordered-item-terminator`, for the parser and the
+    /// server's Emacs.
+    #[test]
+    fn list_syntax_from_the_options() {
+        let options: Options = serde_json::from_value(serde_json::json!({
+            "org_list_allow_alphabetical": true,
+            "org_plain_list_ordered_item_terminator": ")"
+        }))
+        .unwrap();
+        assert_eq!(
+            options.list_syntax(),
+            org_syntax::ListSyntax { alphabetical: true, terminator: org_syntax::Terminator::Paren }
+        );
+        assert_eq!(
+            options.emacs_lisp().unwrap(),
+            "(setq org-list-allow-alphabetical t org-plain-list-ordered-item-terminator ?\\))\n\
+             (when (featurep 'org-element) (org-element-update-syntax))"
+        );
+        assert_eq!(Options::default().emacs_lisp(), None);
+    }
+
+    /// The tangling options, for org-core and as the server's Emacs is
+    /// told them.
+    #[test]
+    fn tangle_options() {
+        let options: Options = serde_json::from_value(serde_json::json!({
+            "org_babel_tangle_lang_exts": { "python": "py" },
+            "org_babel_tangle_use_relative_file_links": false,
+            "org_babel_tangle_comment_format_end": "end \"%source-name\"",
+            "org_babel_process_comment_text": "identity",
+            "org_babel_tangle_default_file_mode": "600",
+            "org_babel_tangle_remove_file_before_write": true,
+            "org_babel_noweb_wrap_start": "{{"
+        }))
+        .unwrap();
+        let settings = options.tangle_settings();
+        assert_eq!(settings.lang_exts, [("python".to_string(), "py".to_string())]);
+        assert!(!settings.relative_links);
+        assert_eq!(settings.comment_format.0, "[[%link][%source-name]]");
+        assert_eq!(settings.default_file_mode, 0o600);
+        assert_eq!(settings.noweb_wrap, ("{{".to_string(), ">>".to_string()));
+        assert_eq!(options.tangle_remove_file_before_write(), Some(true));
+        assert_eq!(
+            options.emacs_lisp().unwrap(),
+            [
+                r#"(setq org-babel-tangle-lang-exts (cons (cons "python" "py") org-babel-tangle-lang-exts))"#,
+                "(setq org-babel-tangle-use-relative-file-links nil)",
+                r#"(setq org-babel-tangle-comment-format-end "end \"%source-name\"")"#,
+                "(setq org-babel-process-comment-text 'identity)",
+                "(setq org-babel-tangle-default-file-mode #o600)",
+                "(setq org-babel-tangle-remove-file-before-write t)",
+                r#"(setq org-babel-noweb-wrap-start "{{")"#,
+            ]
+            .join("\n")
+        );
+    }
+
+    /// `org-todo-interpretation`: a list of keywords alone is a sequence,
+    /// or with `type` one of types, each going straight to done.
+    #[test]
+    fn keywords_alone_are_read_as_org_todo_interpretation_says() {
+        let options = |interpretation: Option<&str>| -> Options {
+            let mut value = serde_json::json!({ "org_todo_keywords": ["Fred", "Sara", "|", "DONE"] });
+            if let Some(interpretation) = interpretation {
+                value["org_todo_interpretation"] = serde_json::json!(interpretation);
+            }
+            serde_json::from_value(value).unwrap()
+        };
+        assert_eq!(options(None).todo_keywords().cycle(Some("Fred"), None, false), Some("Sara"));
+        assert_eq!(options(Some("type")).todo_keywords().cycle(Some("Fred"), None, false), Some("DONE"));
+        // A sequence that says what it is keeps it.
+        let typed: Options = serde_json::from_value(serde_json::json!({
+            "org_todo_keywords": ["sequence", "Fred", "Sara", "|", "DONE"],
+            "org_todo_interpretation": "type"
+        }))
+        .unwrap();
+        assert_eq!(typed.todo_keywords().cycle(Some("Fred"), None, false), Some("Sara"));
+    }
+
+    #[test]
+    fn emphasis_looks_as_org_emphasis_alist_gives_them() {
+        use crate::highlight::{modifier, Emphasis, TokenType};
+        let options: Options = serde_json::from_value(serde_json::json!({
+            "org_emphasis_alist": {
+                "*": ["bold", "italic"],
+                "/": ":slant italic :foreground red",
+                "~": "org-verbatim",
+                "+": false
+            }
+        }))
+        .unwrap();
+        let looks = options.fontify().emphasis.unwrap();
+        assert_eq!(looks[0], Emphasis { ty: None, modifiers: modifier::BOLD | modifier::ITALIC });
+        assert_eq!(looks[1], Emphasis { ty: None, modifiers: modifier::ITALIC });
+        // Left out: no look, as in Emacs.
+        assert_eq!(looks[2], Emphasis::NONE);
+        assert_eq!(looks[4], Emphasis { ty: Some(TokenType::Verbatim), modifiers: 0 });
+        assert_eq!(looks[5], Emphasis::NONE);
+        let off: Options = serde_json::from_value(
+            serde_json::json!({ "org_fontify_emphasized_text": false, "org_hide_emphasis_markers": true }),
+        )
+        .unwrap();
+        assert_eq!(off.fontify().emphasis, None);
+        assert!(!off.conceal_emphasis());
+        let hidden: Options =
+            serde_json::from_value(serde_json::json!({ "org_hidden_keywords": ["author", "title"] })).unwrap();
+        assert_eq!(hidden.fontify().hidden_keywords, 0b101);
+    }
 
     #[test]
     fn defaults_are_orgs() {
@@ -2674,4 +4806,26 @@ mod tests {
         assert_eq!(settings.header_separator, org_core::agenda::super_agenda::Separator::Char('='));
         assert_eq!(settings.unmatched_name, "Other items");
     }
+}
+
+/// `org-display-remote-inline-images`
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RemoteImages {
+    /// The images of URLs do not show.
+    Skip,
+    /// Downloaded each time they show.
+    Download,
+    /// Downloaded once and kept, as Emacs keeps a buffer of the file.
+    Cache,
+}
+
+/// `org-use-fast-todo-selection`
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FastTodo {
+    /// `nil`: the next state, always.
+    Never,
+    /// `auto`: by key where keywords have keys.
+    Auto,
+    /// `expert`: by key, the keys in the prompt alone.
+    Expert,
 }

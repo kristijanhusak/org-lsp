@@ -19,8 +19,10 @@ pub enum Open {
     Here(usize),
     /// A file, at the place `search` names (`file:notes.org::*Heading`).
     /// The path is as written: relative to the text's own file.
-    /// `system`: the system's application opens it, not the editor.
-    File { path: String, search: Option<String>, system: bool },
+    /// `system`: the system's application opens it, not the editor, as
+    /// Org's default `org-file-apps` has it; `forced`: the link says who
+    /// (`file+sys:`, `file+emacs:`), whatever `org-file-apps` says.
+    File { path: String, search: Option<String>, system: bool, forced: bool },
     /// The entry with this `ID` property, in some Org file.
     Id(String),
     /// A URL, for the system to open.
@@ -41,6 +43,57 @@ pub enum Open {
     /// An `attachment:` link: a file of the entry's attachment directory,
     /// which Emacs knows (`org-attach-expand`), and a search after `::`.
     Attachment(String),
+    /// A link to a headline of this text that is not there, which
+    /// `org-link-search-must-match-exact-headline` offers to make: the
+    /// search, as the link has it.
+    Create(String),
+    /// A `shell:` link (`org-link--open-shell`): the command, and whether
+    /// to ask `Execute … in shell? ` before running it.
+    Shell { command: String, confirm: bool },
+    /// A `man:` link (`org-man-open`): the page, and the text to look for
+    /// in it after `::`.
+    Man { page: String, search: Option<String> },
+    /// An `info:` link (`org-info-open`): the Info file and node.
+    Info { file: String, node: String },
+}
+
+/// `org-link-search-must-match-exact-headline`: what a search for a
+/// headline that is not there does.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ExactHeadline {
+    /// `nil`: the words are looked for in the text.
+    No,
+    /// `t`: an error.
+    Yes,
+    /// `query-to-create`: the headline is offered to be made.
+    #[default]
+    QueryToCreate,
+}
+
+/// How links are followed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Settings {
+    /// `org-link-search-must-match-exact-headline`
+    pub exact_headline: ExactHeadline,
+    /// `org-link-doi-server-url`
+    pub doi_server: String,
+    /// `org-link-shell-skip-confirm-regexp`: an Emacs regexp, the
+    /// commands of `shell:` links that run without asking.
+    pub shell_skip_confirm_regexp: String,
+    /// Whether `ol-man` is loaded (in `org-modules`), which makes `man:` a
+    /// link type.
+    pub man: bool,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Settings {
+            exact_headline: ExactHeadline::default(),
+            doi_server: "https://doi.org/".to_string(),
+            shell_skip_confirm_regexp: String::new(),
+            man: false,
+        }
+    }
 }
 
 /// A link offered by `org-offer-links-in-entry`.
@@ -55,11 +108,12 @@ pub struct Choice {
 /// abbreviations in force, the file's first, the link it stands for.
 pub type CallAbbreviation<'a> = &'a dyn Fn(&str, &[(String, String)]) -> Result<String, String>;
 
-/// The link abbreviations in force, and what expands those that call a
-/// function, if anything.
+/// The link abbreviations in force, what expands those that call a
+/// function, if anything, and how links are followed.
 struct Abbreviations<'a> {
     list: Vec<(String, String)>,
     call: Option<CallAbbreviation<'a>>,
+    settings: &'a Settings,
 }
 
 /// `org-open-at-point` at `offset`. `answer` is the key picked when the
@@ -71,7 +125,7 @@ pub fn at_point(
     answer: Option<char>,
     global: &[(String, String)],
 ) -> Result<Open, String> {
-    at_point_calling(text, parse, offset, answer, global, None)
+    at_point_calling(text, parse, offset, answer, global, None, &Settings::default())
 }
 
 /// `at_point`, with `call` for the abbreviations that call a function.
@@ -82,8 +136,9 @@ pub fn at_point_calling(
     answer: Option<char>,
     global: &[(String, String)],
     call: Option<CallAbbreviation>,
+    settings: &Settings,
 ) -> Result<Open, String> {
-    let abbreviations = Abbreviations { list: abbreviations(text, global), call };
+    let abbreviations = Abbreviations { list: abbreviations(text, global), call, settings };
     // A word a radio target makes a link: to the target, when it is there
     // as written.
     // The link takes the blanks after it in.
@@ -135,7 +190,7 @@ pub fn at_point_calling(
                 Some("src") => return Err("Source block results are not supported".to_string()),
                 _ => {}
             },
-            SyntaxKind::HEADLINE => return headline(&node, text, parse, offset, answer, global, call),
+            SyntaxKind::HEADLINE => return headline(&node, text, parse, offset, answer, global, call, settings),
             _ => {}
         }
     }
@@ -143,6 +198,62 @@ pub fn at_point_calling(
 }
 
 const NO_LINK: &str = "No link found";
+
+/// Whether RET follows a link at `offset` with `org-return-follows-link`
+/// set (`org-return`): on a link or a citation, not on the blanks after
+/// it, or within what reads as a timestamp or a link on the line, as
+/// `org-in-regexp` finds them. Not in a table, where RET moves down.
+pub fn return_follows(text: &str, parse: &Parse, offset: usize) -> bool {
+    static TIMESTAMP: LazyLock<Regex> = LazyLock::new(|| {
+        let one = r"[\[<][[:digit:]]{4}-[[:digit:]]{2}-[[:digit:]]{2}(?: .*?)?[\]>]";
+        Regex::new(&format!("{one}(?:--?-?{one})?")).expect("a valid regex")
+    });
+    static BRACKET: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r"\[\[(?:[^\]\[\\]|\\(?:\\\\)*[\]\[]|\\+[^\]\[])+\](?:\[.+?\])?\]").expect("a valid regex")
+    });
+    let root = parse.syntax();
+    let Some(token) = token_at(&root, offset) else { return false };
+    let start = text[..offset].rfind('\n').map_or(0, |at| at + 1);
+    let end = text[offset..].find('\n').map_or(text.len(), |at| offset + at);
+    let line = &text[start..end];
+    if line.trim_start().starts_with('|') && token.parent_ancestors().any(|node| node.kind() == SyntaxKind::TABLE) {
+        return false;
+    }
+    let on_object = token.parent_ancestors().find(|node| {
+        matches!(node.kind(), SyntaxKind::LINK | SyntaxKind::PLAIN_LINK | SyntaxKind::ANGLE_LINK | SyntaxKind::CITATION)
+    });
+    if let Some(node) = on_object {
+        let node_start = usize::from(node.text_range().start());
+        let node_text = node.text().to_string();
+        // `org-element-context` on a citation's closing bracket finds no
+        // citation.
+        let closing = usize::from(node.kind() == SyntaxKind::CITATION);
+        if offset + closing < node_start + node_text.trim_end_matches([' ', '\t']).len() {
+            return true;
+        }
+    }
+    // `org-in-regexp` with VISUALLY: a match on the line that starts at
+    // or before the point and ends after it.
+    let at = offset - start;
+    let within =
+        |regex: &Regex| regex.find_iter(line).take_while(|found| found.start() <= at).any(|found| found.end() > at);
+    if within(&TIMESTAMP) || within(&BRACKET) {
+        return true;
+    }
+    let angle = line.match_indices('<').take_while(|(from, _)| *from <= at).any(|(from, _)| {
+        let Some(close) = line[from..].find('>') else { return false };
+        let inner = &line[from + 1..from + close];
+        from + close + 1 > at && inner.split_once(':').is_some_and(|(kind, _)| org_syntax::link_types().contains(&kind))
+    });
+    if angle {
+        return true;
+    }
+    // A plain link: a link type at the start of a word.
+    line.char_indices().take_while(|(from, _)| *from <= at).any(|(from, _)| {
+        let word_start = line[..from].chars().next_back().is_none_or(|before| !before.is_alphanumeric());
+        word_start && org_syntax::plain_link_end(line, from).is_some_and(|link_end| link_end > at)
+    })
+}
 
 /// A link of a text.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -184,8 +295,8 @@ fn is_link(node: &SyntaxNode) -> bool {
 
 /// The links of a text: bracket, angle and plain links, in order.
 /// `global` is `org-link-abbrev-alist`.
-pub fn links(text: &str, parse: &Parse, global: &[(String, String)]) -> Vec<Link> {
-    let abbreviations = Abbreviations { list: abbreviations(text, global), call: None };
+pub fn links(text: &str, parse: &Parse, global: &[(String, String)], settings: &Settings) -> Vec<Link> {
+    let abbreviations = Abbreviations { list: abbreviations(text, global), call: None, settings };
     let mut links: Vec<Link> =
         parse.syntax().descendants().filter(is_link).map(|node| link_of(&node, text, parse, &abbreviations)).collect();
     // And the words radio targets make links.
@@ -202,10 +313,16 @@ pub fn links(text: &str, parse: &Parse, global: &[(String, String)]) -> Vec<Link
 }
 
 /// The link the character at `offset` is in.
-pub fn link_at(text: &str, parse: &Parse, offset: usize, global: &[(String, String)]) -> Option<Link> {
+pub fn link_at(
+    text: &str,
+    parse: &Parse,
+    offset: usize,
+    global: &[(String, String)],
+    settings: &Settings,
+) -> Option<Link> {
     let token = token_at(&parse.syntax(), offset)?;
     let node = token.parent_ancestors().find(is_link)?;
-    Some(link_of(&node, text, parse, &Abbreviations { list: abbreviations(text, global), call: None }))
+    Some(link_of(&node, text, parse, &Abbreviations { list: abbreviations(text, global), call: None, settings }))
 }
 
 /// The link abbreviations of `text`: its `#+LINK:` lines, the last first
@@ -262,7 +379,7 @@ fn abbreviation_of<'a>(raw: &'a str, abbreviations: &'a [(String, String)]) -> O
 }
 
 /// `url-hexify-string`: all but the unreserved characters percent-encoded.
-fn hexify(text: &str) -> String {
+pub(crate) fn hexify(text: &str) -> String {
     let mut out = String::new();
     for byte in text.bytes() {
         if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'~') {
@@ -368,6 +485,12 @@ fn open_link(node: &SyntaxNode, text: &str, parse: &Parse, abbreviations: &Abbre
     if let Some(title) = raw.strip_prefix("roam:").filter(|_| bracket) {
         return Ok(Open::Roam(title.to_string()));
     }
+    // `ol-man`'s link type, which the parser does not know: only in
+    // brackets.
+    if let Some(path) = man_path(&raw, bracket, abbreviations.settings) {
+        let (page, search) = crate::manual::man_link(path);
+        return Ok(Open::Man { page, search });
+    }
     // Only bracket links can be files without a type, or internal.
     if bracket && (raw.starts_with('/') || raw.starts_with('~') || raw.starts_with("./") || raw.starts_with("../")) {
         return Ok(file(&raw, None));
@@ -375,6 +498,8 @@ fn open_link(node: &SyntaxNode, text: &str, parse: &Parse, abbreviations: &Abbre
     if let Some((kind, path)) = link_type(&raw) {
         return match kind.to_lowercase().as_str() {
             "file" => Ok(file(path, None)),
+            // `org-bibtex-open`: the file, at the entry the search names.
+            "bibtex" => Ok(file(path, None)),
             "file+emacs" => Ok(file(path, Some("emacs"))),
             "file+sys" => Ok(file(path, Some("sys"))),
             "attachment" => Ok(Open::Attachment(path.to_string())),
@@ -382,15 +507,83 @@ fn open_link(node: &SyntaxNode, text: &str, parse: &Parse, abbreviations: &Abbre
             "id" => Ok(Open::Id(path.split("::").next().unwrap_or(path).to_string())),
             "http" | "https" | "ftp" | "mailto" | "news" => Ok(Open::External(raw.clone())),
             // `org-link-doi-server-url`.
-            "doi" => Ok(Open::External(format!("https://doi.org/{path}"))),
+            "doi" => Ok(Open::External(format!("{}{path}", abbreviations.settings.doi_server))),
+            "man" => {
+                let (page, search) = crate::manual::man_link(path);
+                Ok(Open::Man { page, search })
+            }
+            "info" => {
+                let (file, node) = crate::manual::info_file_node(path);
+                Ok(Open::Info { file, node })
+            }
+            "shell" => Ok(Open::Shell {
+                command: path.to_string(),
+                confirm: !skips_confirm(&abbreviations.settings.shell_skip_confirm_regexp, path),
+            }),
             other => Err(format!("Links of type \"{other}\" are not supported")),
         };
     }
     if !bracket {
         return Err(NO_LINK.to_string());
     }
-    // Internal: a coderef `(name)`, a custom ID `#id`, or fuzzy.
-    search(text, parse, &raw).map(Open::Here)
+    // Internal: a coderef `(name)`, a custom ID `#id`, or fuzzy, which
+    // does not find itself.
+    let exact = abbreviations.settings.exact_headline;
+    let avoid = usize::from(node.text_range().start()) + 2;
+    match search_with(text, parse, &raw, Some(avoid), exact) {
+        Ok(at) => Ok(Open::Here(at)),
+        Err(_) if exact == ExactHeadline::QueryToCreate && may_create(&raw) => Ok(Open::Create(raw)),
+        Err(error) => Err(error),
+    }
+}
+
+/// What follows `man:` in a bracket link, when `ol-man` is loaded.
+fn man_path<'a>(raw: &'a str, bracket: bool, settings: &Settings) -> Option<&'a str> {
+    let (head, path) = raw.split_once(':')?;
+    (settings.man && bracket && head == "man").then_some(path)
+}
+
+/// The path `org-link-open` gives `org-open-link-functions` for the
+/// internal link at `offset` (a headline, a target, a custom ID, a
+/// coderef or a radio target's word): what is between the brackets,
+/// without `#` or the parentheses of a coderef. None elsewhere.
+pub fn internal_path(
+    text: &str,
+    parse: &Parse,
+    offset: usize,
+    global: &[(String, String)],
+    settings: &Settings,
+) -> Option<String> {
+    let blanks = |end: usize| end + text[end..].len() - text[end..].trim_start_matches([' ', '\t']).len();
+    if let Some(radio) =
+        crate::radio::links(text, parse).into_iter().find(|link| link.start <= offset && offset < blanks(link.end))
+    {
+        return Some(text[radio.start..radio.end].to_string());
+    }
+    let token = token_at(&parse.syntax(), offset)?;
+    let node = token.parent_ancestors().find(is_link).filter(|node| node.kind() == SyntaxKind::LINK)?;
+    let (raw, _) = raw_link(&node);
+    let raw = expand_abbreviation(&raw, &abbreviations(text, global)).unwrap_or(raw);
+    let typed = link_type(&raw).is_some() || raw.starts_with("roam:") || man_path(&raw, true, settings).is_some();
+    if typed || raw.starts_with('/') || raw.starts_with('~') || raw.starts_with("./") || raw.starts_with("../") {
+        return None;
+    }
+    if let Some(id) = raw.strip_prefix('#') {
+        return Some(id.to_string());
+    }
+    match raw.strip_prefix('(').and_then(|rest| rest.strip_suffix(')')) {
+        Some(name) => Some(name.to_string()),
+        None => Some(raw),
+    }
+}
+
+/// Whether `org-link-shell-skip-confirm-regexp`, `regexp`, lets `command`
+/// run without asking: when it has more than white space
+/// (`org-string-nw-p`) and matches somewhere in the command, without
+/// regard to case as `string-match-p` matches with `case-fold-search`.
+fn skips_confirm(regexp: &str, command: &str) -> bool {
+    !regexp.trim_matches([' ', '\t', '\n', '\r']).is_empty()
+        && crate::agenda::matcher::emacs_regex(regexp).is_some_and(|regex| regex.is_match(command))
 }
 
 /// The regexp of a search `/regexp/`, which `org-link-search` gives to
@@ -423,7 +616,7 @@ fn file(path: &str, application: Option<&str>) -> Open {
         Some("emacs") => false,
         _ => system_type,
     };
-    Open::File { path, search, system }
+    Open::File { path, search, system, forced: application.is_some() }
 }
 
 /// `org-follow-timestamp-link`: the agenda of the day of a timestamp, or
@@ -533,6 +726,7 @@ fn open_in_line(text: &str, offset: usize, abbreviations: &Abbreviations) -> Res
 
 /// On a headline: its tag under the cursor (`org-tags-view`), else the
 /// links of the entry (`org-offer-links-in-entry`).
+#[allow(clippy::too_many_arguments)]
 fn headline(
     node: &SyntaxNode,
     text: &str,
@@ -541,6 +735,7 @@ fn headline(
     answer: Option<char>,
     global: &[(String, String)],
     call: Option<CallAbbreviation>,
+    settings: &Settings,
 ) -> Result<Open, String> {
     let line_end = text[usize::from(node.text_range().start())..]
         .find('\n')
@@ -576,7 +771,7 @@ fn headline(
             Some(key) => (0..links.len()).find(|index| offered_key(*index) == key).ok_or("Abort")?,
         },
     };
-    at_point_calling(text, parse, links[chosen].2, None, global, call)
+    at_point_calling(text, parse, links[chosen].2, None, global, call, settings)
 }
 
 /// The key of the link at `index` among those offered: `1`, `2`…
@@ -652,8 +847,34 @@ fn normalized(search: &str) -> String {
 
 /// `org-link-search` in an Org text: where `search` leads. `#id` is a
 /// custom ID, `(name)` a coderef, `*words` a headline, other words a
-/// target, then a `#+NAME:`, then a headline.
+/// target, then a `#+NAME:`, then a headline. A headline must be there,
+/// as with `org-link-search-must-match-exact-headline` set.
 pub fn search(text: &str, parse: &Parse, search: &str) -> Result<usize, String> {
+    search_with(text, parse, search, None, ExactHeadline::Yes)
+}
+
+/// Whether a search that found nothing is one `org-link-search` offers
+/// to make a headline for: one that is not a custom ID, a coderef or a
+/// regular expression.
+pub fn may_create(search: &str) -> bool {
+    let normalized = normalized(search);
+    !(search.trim().is_empty()
+        || normalized.starts_with('#')
+        || (normalized.len() > 1 && normalized.starts_with('(') && normalized.ends_with(')'))
+        || (normalized.len() > 1 && normalized.starts_with('/') && normalized.ends_with('/')))
+}
+
+/// `org-link-search`, with `org-link-search-must-match-exact-headline`
+/// as `exact` says: without it, words that are no headline are looked
+/// for in the text, leaving out a match over `avoid` (the link itself).
+/// A headline to make is an error here, which the caller may offer.
+pub fn search_with(
+    text: &str,
+    parse: &Parse,
+    search: &str,
+    avoid: Option<usize>,
+    exact: ExactHeadline,
+) -> Result<usize, String> {
     if search.trim().is_empty() {
         return Err(format!("Invalid search string \"{search}\""));
     }
@@ -696,16 +917,37 @@ pub fn search(text: &str, parse: &Parse, search: &str) -> Result<usize, String> 
             return Ok(usize::from(named.text_range().start()));
         }
     }
-    // A headline, without its TODO keyword, priority, COMMENT, cookies and
-    // tags.
-    let headline = org_syntax::ast::headlines(&root).find(|headline| {
+    // A headline at any level, without its TODO keyword, priority,
+    // COMMENT, cookies and tags.
+    let headline = root.descendants().filter_map(org_syntax::ast::Headline::cast).find(|headline| {
         let title = headline.title().map(|title| title.text().to_string()).unwrap_or_default();
         same(&without_cookies(&title))
     });
     if let Some(headline) = headline {
         return Ok(usize::from(headline.syntax().text_range().start()));
     }
+    if exact == ExactHeadline::No && !starred {
+        if let Some(at) = words_in_text(text, search, avoid) {
+            return Ok(at);
+        }
+    }
     Err(format!("No match for fuzzy expression: {normalized}"))
+}
+
+/// The regular text search of `org-link-search`: the first place of the
+/// words of `search`, in any case, with any blanks and newlines between
+/// them, that does not hold `avoid`.
+fn words_in_text(text: &str, search: &str, avoid: Option<usize>) -> Option<usize> {
+    let words: Vec<String> = search.split_whitespace().map(regex::escape).collect();
+    if words.is_empty() {
+        return None;
+    }
+    let pattern = regex::RegexBuilder::new(&words.join("[ \\t\\n]+")).case_insensitive(true).build().ok()?;
+    let found = pattern
+        .find_iter(text)
+        .find(|found| !avoid.is_some_and(|avoid| found.start() <= avoid && avoid < found.end()))
+        .map(|found| found.start());
+    found
 }
 
 /// The text of a node's token of `kind`.
@@ -792,15 +1034,34 @@ fn coderef(root: &SyntaxNode, text: &str, name: &str) -> Option<usize> {
         })
 }
 
+/// `org-execute-file-search-in-bibtex`, a file link's search in a
+/// BibTeX file (`bibtex-mode`): the start of the entry whose key is
+/// `key`, matched without regard to case, or else of the file.
+pub fn search_in_bibtex(text: &str, key: &str) -> usize {
+    let pattern = format!(r"(?i)@[a-zA-Z]+[ \t\n]*\{{[ \t\n]*{}[ \t\n]*,", regex::escape(key));
+    regex::Regex::new(&pattern).ok().and_then(|regex| regex.find(text)).map_or(0, |found| found.start())
+}
+
 /// Where a `file:` link's search option leads in its file: a line number,
 /// `org-link-search` in an Org file (`parse`), else the words in the text.
 pub fn search_in_file(text: &str, parse: Option<&Parse>, option: &str) -> Result<usize, String> {
+    search_in_file_with(text, parse, option, ExactHeadline::Yes)
+}
+
+/// `search_in_file`, with `org-link-search-must-match-exact-headline` as
+/// `exact` says.
+pub fn search_in_file_with(
+    text: &str,
+    parse: Option<&Parse>,
+    option: &str,
+    exact: ExactHeadline,
+) -> Result<usize, String> {
     if !option.is_empty() && option.chars().all(|c| c.is_ascii_digit()) {
         let line: usize = option.parse().unwrap_or(1);
         return Ok(text.split_inclusive('\n').take(line.saturating_sub(1)).map(str::len).sum());
     }
     if let Some(parse) = parse {
-        return search(text, parse, option);
+        return search_with(text, parse, option, None, exact);
     }
     let words: Vec<String> = normalized(option).split_whitespace().map(str::to_lowercase).collect();
     let lower = text.to_lowercase();
@@ -837,12 +1098,21 @@ mod tests {
             vec![("gh".to_string(), "https://global/%s".to_string()), ("w".to_string(), "https://w/".to_string())];
         let text = "#+LINK: gh https://local/%s\n[[gh:x]] [[w:Page]] [[fn:f]]\n";
         let parsed = org_syntax::parse(text, &Default::default());
-        let opened: Vec<_> = links(text, &parsed, &global).into_iter().map(|link| link.open).collect();
+        let opened: Vec<_> =
+            links(text, &parsed, &global, &Settings::default()).into_iter().map(|link| link.open).collect();
         assert_eq!(opened[0], Ok(Open::External("https://local/x".to_string())));
         assert_eq!(opened[1], Ok(Open::External("https://w/Page".to_string())));
         let function = vec![("f".to_string(), "%(my-function)".to_string())];
         assert!(expand_abbreviation("f:x", &function).is_err());
         assert_eq!(expand_abbreviation("other:x", &function), Ok("other:x".to_string()));
+    }
+
+    #[test]
+    fn finds_a_headline_at_any_level() {
+        let text = "* Projects\n** TODO [#C] Garden :x:\n* Errands\n[[*Garden]]\n";
+        let parsed = org_syntax::parse(text, &Default::default());
+        assert_eq!(search(text, &parsed, "*Garden"), Ok(text.find("** TODO").unwrap()));
+        assert_eq!(search(text, &parsed, "Garden"), Ok(text.find("** TODO").unwrap()));
     }
 
     #[test]

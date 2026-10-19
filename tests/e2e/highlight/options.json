@@ -1,0 +1,13 @@
+{
+  "clock": { "today": "2026-05-18", "now": "10:30" },
+  "org_agenda_files": ["$DIR/agenda.org"],
+  "org_hide_emphasis_markers": true,
+  "org_fontify_todo_headline": true,
+  "org_fontify_quote_and_verse_blocks": true,
+  "org_enforce_todo_dependencies": true,
+  "org_modules": ["org-habit"],
+  "org_journal_enabled": true,
+  "org_journal_dir": "$DIR/journal",
+  "org_roam_enabled": true,
+  "org_roam_directory": "$DIR/roam"
+}

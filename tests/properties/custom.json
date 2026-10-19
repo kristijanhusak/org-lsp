@@ -1,0 +1,410 @@
+[
+ {
+  "text": "* A\n:PROPERTIES:\n:ID: 1\n:CATEGORY: work\n:CUSTOM_ID: a\n:END:\ntext\n* B\nSCHEDULED: <2026-10-05 Mon>\n:PROPERTIES:\n:CUSTOM_ID: b\n:ID: 2\n:END:\n",
+  "names": [
+   "ID"
+  ],
+  "expected": [
+   2,
+   11
+  ]
+ },
+ {
+  "text": "* A\n  :properties:\n  :ID:\n  :id: 3\n  :Other: x\n  :end:\n* B\n:PROPERTIES:\n:ID: 4\n:END:",
+  "names": [
+   "ID"
+  ],
+  "expected": [
+   2,
+   3,
+   8
+  ]
+ },
+ {
+  "text": "#+TITLE: x\n:ID: 0\n* A\n:ID: 1\n:PROPERTIES:\n:ID: 2\n:END:\n* B\n:LOGBOOK:\n:ID: 3\n:END:\n* C\n:PROPERTIES:\n:X: 1\n:END:\n:ID: 4\n",
+  "names": [
+   "ID"
+  ],
+  "expected": []
+ },
+ {
+  "text": "# comment\n#\n:PROPERTIES:\n:ID: top\n:END:\n* A\n:PROPERTIES:\n:ID: a\n:END:\n",
+  "names": [
+   "ID"
+  ],
+  "expected": [
+   3,
+   7
+  ]
+ },
+ {
+  "text": "#+TITLE: x\n:PROPERTIES:\n:ID: top\n:END:\n* A\n",
+  "names": [
+   "ID"
+  ],
+  "expected": []
+ },
+ {
+  "text": "* A\n:PROPERTIES:\n:ID: 1\nnot a property\n:END:\n* B\n:PROPERTIES:\n:ID+: 2\n:IDX: 3\n:ID:x\n:ID:\t4\n:END:\n",
+  "names": [
+   "ID"
+  ],
+  "expected": []
+ },
+ {
+  "text": "* A\n:PROPERTIES:\n:ID+: 2\n:IDX: 3\n:ID:\t4\n:ID:  \n:END:\n",
+  "names": [
+   "ID"
+  ],
+  "expected": [
+   4,
+   5
+  ]
+ },
+ {
+  "text": "* A\n:PROPERTIES:\n:ID: 1\n:ID: 2\n:END:\n** B\n:PROPERTIES:\n:CATEGORY: c\n:END:\n*** C\n:PROPERTIES:\n:ID: 3\n:END:\n",
+  "names": [
+   "ID"
+  ],
+  "expected": [
+   2,
+   3,
+   11
+  ]
+ },
+ {
+  "text": "",
+  "names": [
+   "ID"
+  ],
+  "expected": []
+ },
+ {
+  "text": "* A\n",
+  "names": [
+   "ID"
+  ],
+  "expected": []
+ },
+ {
+  "text": "* A\n:PROPERTIES:\n:ID: 1\n:CATEGORY: work\n:CUSTOM_ID: a\n:END:\ntext\n* B\nSCHEDULED: <2026-10-05 Mon>\n:PROPERTIES:\n:CUSTOM_ID: b\n:ID: 2\n:END:\n",
+  "names": [
+   "ID",
+   "CATEGORY"
+  ],
+  "expected": [
+   2,
+   3,
+   11
+  ]
+ },
+ {
+  "text": "* A\n  :properties:\n  :ID:\n  :id: 3\n  :Other: x\n  :end:\n* B\n:PROPERTIES:\n:ID: 4\n:END:",
+  "names": [
+   "ID",
+   "CATEGORY"
+  ],
+  "expected": [
+   2,
+   3,
+   8
+  ]
+ },
+ {
+  "text": "#+TITLE: x\n:ID: 0\n* A\n:ID: 1\n:PROPERTIES:\n:ID: 2\n:END:\n* B\n:LOGBOOK:\n:ID: 3\n:END:\n* C\n:PROPERTIES:\n:X: 1\n:END:\n:ID: 4\n",
+  "names": [
+   "ID",
+   "CATEGORY"
+  ],
+  "expected": []
+ },
+ {
+  "text": "# comment\n#\n:PROPERTIES:\n:ID: top\n:END:\n* A\n:PROPERTIES:\n:ID: a\n:END:\n",
+  "names": [
+   "ID",
+   "CATEGORY"
+  ],
+  "expected": [
+   3,
+   7
+  ]
+ },
+ {
+  "text": "#+TITLE: x\n:PROPERTIES:\n:ID: top\n:END:\n* A\n",
+  "names": [
+   "ID",
+   "CATEGORY"
+  ],
+  "expected": []
+ },
+ {
+  "text": "* A\n:PROPERTIES:\n:ID: 1\nnot a property\n:END:\n* B\n:PROPERTIES:\n:ID+: 2\n:IDX: 3\n:ID:x\n:ID:\t4\n:END:\n",
+  "names": [
+   "ID",
+   "CATEGORY"
+  ],
+  "expected": []
+ },
+ {
+  "text": "* A\n:PROPERTIES:\n:ID+: 2\n:IDX: 3\n:ID:\t4\n:ID:  \n:END:\n",
+  "names": [
+   "ID",
+   "CATEGORY"
+  ],
+  "expected": [
+   4,
+   5
+  ]
+ },
+ {
+  "text": "* A\n:PROPERTIES:\n:ID: 1\n:ID: 2\n:END:\n** B\n:PROPERTIES:\n:CATEGORY: c\n:END:\n*** C\n:PROPERTIES:\n:ID: 3\n:END:\n",
+  "names": [
+   "ID",
+   "CATEGORY"
+  ],
+  "expected": [
+   2,
+   3,
+   7,
+   11
+  ]
+ },
+ {
+  "text": "",
+  "names": [
+   "ID",
+   "CATEGORY"
+  ],
+  "expected": []
+ },
+ {
+  "text": "* A\n",
+  "names": [
+   "ID",
+   "CATEGORY"
+  ],
+  "expected": []
+ },
+ {
+  "text": "* A\n:PROPERTIES:\n:ID: 1\n:CATEGORY: work\n:CUSTOM_ID: a\n:END:\ntext\n* B\nSCHEDULED: <2026-10-05 Mon>\n:PROPERTIES:\n:CUSTOM_ID: b\n:ID: 2\n:END:\n",
+  "names": [],
+  "expected": []
+ },
+ {
+  "text": "* A\n  :properties:\n  :ID:\n  :id: 3\n  :Other: x\n  :end:\n* B\n:PROPERTIES:\n:ID: 4\n:END:",
+  "names": [],
+  "expected": []
+ },
+ {
+  "text": "#+TITLE: x\n:ID: 0\n* A\n:ID: 1\n:PROPERTIES:\n:ID: 2\n:END:\n* B\n:LOGBOOK:\n:ID: 3\n:END:\n* C\n:PROPERTIES:\n:X: 1\n:END:\n:ID: 4\n",
+  "names": [],
+  "expected": []
+ },
+ {
+  "text": "# comment\n#\n:PROPERTIES:\n:ID: top\n:END:\n* A\n:PROPERTIES:\n:ID: a\n:END:\n",
+  "names": [],
+  "expected": []
+ },
+ {
+  "text": "#+TITLE: x\n:PROPERTIES:\n:ID: top\n:END:\n* A\n",
+  "names": [],
+  "expected": []
+ },
+ {
+  "text": "* A\n:PROPERTIES:\n:ID: 1\nnot a property\n:END:\n* B\n:PROPERTIES:\n:ID+: 2\n:IDX: 3\n:ID:x\n:ID:\t4\n:END:\n",
+  "names": [],
+  "expected": []
+ },
+ {
+  "text": "* A\n:PROPERTIES:\n:ID+: 2\n:IDX: 3\n:ID:\t4\n:ID:  \n:END:\n",
+  "names": [],
+  "expected": []
+ },
+ {
+  "text": "* A\n:PROPERTIES:\n:ID: 1\n:ID: 2\n:END:\n** B\n:PROPERTIES:\n:CATEGORY: c\n:END:\n*** C\n:PROPERTIES:\n:ID: 3\n:END:\n",
+  "names": [],
+  "expected": []
+ },
+ {
+  "text": "",
+  "names": [],
+  "expected": []
+ },
+ {
+  "text": "* A\n",
+  "names": [],
+  "expected": []
+ },
+ {
+  "text": "* A\n:PROPERTIES:\n:ID: 1\n:CATEGORY: work\n:CUSTOM_ID: a\n:END:\ntext\n* B\nSCHEDULED: <2026-10-05 Mon>\n:PROPERTIES:\n:CUSTOM_ID: b\n:ID: 2\n:END:\n",
+  "names": [
+   "CUSTOM_ID",
+   "X"
+  ],
+  "expected": [
+   4,
+   10
+  ]
+ },
+ {
+  "text": "* A\n  :properties:\n  :ID:\n  :id: 3\n  :Other: x\n  :end:\n* B\n:PROPERTIES:\n:ID: 4\n:END:",
+  "names": [
+   "CUSTOM_ID",
+   "X"
+  ],
+  "expected": []
+ },
+ {
+  "text": "#+TITLE: x\n:ID: 0\n* A\n:ID: 1\n:PROPERTIES:\n:ID: 2\n:END:\n* B\n:LOGBOOK:\n:ID: 3\n:END:\n* C\n:PROPERTIES:\n:X: 1\n:END:\n:ID: 4\n",
+  "names": [
+   "CUSTOM_ID",
+   "X"
+  ],
+  "expected": [
+   13
+  ]
+ },
+ {
+  "text": "# comment\n#\n:PROPERTIES:\n:ID: top\n:END:\n* A\n:PROPERTIES:\n:ID: a\n:END:\n",
+  "names": [
+   "CUSTOM_ID",
+   "X"
+  ],
+  "expected": []
+ },
+ {
+  "text": "#+TITLE: x\n:PROPERTIES:\n:ID: top\n:END:\n* A\n",
+  "names": [
+   "CUSTOM_ID",
+   "X"
+  ],
+  "expected": []
+ },
+ {
+  "text": "* A\n:PROPERTIES:\n:ID: 1\nnot a property\n:END:\n* B\n:PROPERTIES:\n:ID+: 2\n:IDX: 3\n:ID:x\n:ID:\t4\n:END:\n",
+  "names": [
+   "CUSTOM_ID",
+   "X"
+  ],
+  "expected": []
+ },
+ {
+  "text": "* A\n:PROPERTIES:\n:ID+: 2\n:IDX: 3\n:ID:\t4\n:ID:  \n:END:\n",
+  "names": [
+   "CUSTOM_ID",
+   "X"
+  ],
+  "expected": []
+ },
+ {
+  "text": "* A\n:PROPERTIES:\n:ID: 1\n:ID: 2\n:END:\n** B\n:PROPERTIES:\n:CATEGORY: c\n:END:\n*** C\n:PROPERTIES:\n:ID: 3\n:END:\n",
+  "names": [
+   "CUSTOM_ID",
+   "X"
+  ],
+  "expected": []
+ },
+ {
+  "text": "",
+  "names": [
+   "CUSTOM_ID",
+   "X"
+  ],
+  "expected": []
+ },
+ {
+  "text": "* A\n",
+  "names": [
+   "CUSTOM_ID",
+   "X"
+  ],
+  "expected": []
+ },
+ {
+  "text": "* A\n:PROPERTIES:\n:ID: 1\n:CATEGORY: work\n:CUSTOM_ID: a\n:END:\ntext\n* B\nSCHEDULED: <2026-10-05 Mon>\n:PROPERTIES:\n:CUSTOM_ID: b\n:ID: 2\n:END:\n",
+  "names": [
+   "id"
+  ],
+  "expected": [
+   2,
+   11
+  ]
+ },
+ {
+  "text": "* A\n  :properties:\n  :ID:\n  :id: 3\n  :Other: x\n  :end:\n* B\n:PROPERTIES:\n:ID: 4\n:END:",
+  "names": [
+   "id"
+  ],
+  "expected": [
+   2,
+   3,
+   8
+  ]
+ },
+ {
+  "text": "#+TITLE: x\n:ID: 0\n* A\n:ID: 1\n:PROPERTIES:\n:ID: 2\n:END:\n* B\n:LOGBOOK:\n:ID: 3\n:END:\n* C\n:PROPERTIES:\n:X: 1\n:END:\n:ID: 4\n",
+  "names": [
+   "id"
+  ],
+  "expected": []
+ },
+ {
+  "text": "# comment\n#\n:PROPERTIES:\n:ID: top\n:END:\n* A\n:PROPERTIES:\n:ID: a\n:END:\n",
+  "names": [
+   "id"
+  ],
+  "expected": [
+   3,
+   7
+  ]
+ },
+ {
+  "text": "#+TITLE: x\n:PROPERTIES:\n:ID: top\n:END:\n* A\n",
+  "names": [
+   "id"
+  ],
+  "expected": []
+ },
+ {
+  "text": "* A\n:PROPERTIES:\n:ID: 1\nnot a property\n:END:\n* B\n:PROPERTIES:\n:ID+: 2\n:IDX: 3\n:ID:x\n:ID:\t4\n:END:\n",
+  "names": [
+   "id"
+  ],
+  "expected": []
+ },
+ {
+  "text": "* A\n:PROPERTIES:\n:ID+: 2\n:IDX: 3\n:ID:\t4\n:ID:  \n:END:\n",
+  "names": [
+   "id"
+  ],
+  "expected": [
+   4,
+   5
+  ]
+ },
+ {
+  "text": "* A\n:PROPERTIES:\n:ID: 1\n:ID: 2\n:END:\n** B\n:PROPERTIES:\n:CATEGORY: c\n:END:\n*** C\n:PROPERTIES:\n:ID: 3\n:END:\n",
+  "names": [
+   "id"
+  ],
+  "expected": [
+   2,
+   3,
+   11
+  ]
+ },
+ {
+  "text": "",
+  "names": [
+   "id"
+  ],
+  "expected": []
+ },
+ {
+  "text": "* A\n",
+  "names": [
+   "id"
+  ],
+  "expected": []
+ }
+]

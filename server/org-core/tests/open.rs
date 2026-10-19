@@ -4,7 +4,12 @@
 
 use std::path::{Path, PathBuf};
 
-use org_core::open::{at_point, find_id, search_in_file, Open};
+use org_core::ctags::{self, Outcome};
+use org_core::manual;
+use org_core::meta_return;
+use org_core::open::{
+    at_point_calling, find_id, may_create, search_in_bibtex, search_in_file_with, ExactHeadline, Open, Settings,
+};
 use org_syntax::{Parse, TodoKeywords};
 use serde_json::{json, Value};
 
@@ -52,16 +57,118 @@ fn opening_matches_emacs() {
             }
             files.iter().find(|(other, _)| other == wanted).map(|(_, text)| text.clone())
         };
+        // `org-link-search-must-match-exact-headline`, yes to making a
+        // missing headline (and to running a `shell:` link's command),
+        // `org-link-doi-server-url` and `org-link-shell-skip-confirm-regexp`.
+        let exact = match case["exact"].as_str() {
+            Some("nil") => ExactHeadline::No,
+            Some("t") => ExactHeadline::Yes,
+            _ => ExactHeadline::QueryToCreate,
+        };
+        let create = case["create"] == json!(true);
+        let mut settings = Settings { exact_headline: exact, ..Settings::default() };
+        if let Some(doi) = case["doi"].as_str() {
+            settings.doi_server = doi.to_string();
+        }
+        if let Some(skip) = case["skip"].as_str() {
+            settings.shell_skip_confirm_regexp = skip.to_string();
+        }
+        // `ol-man` loaded, with the page `man` shows, and
+        // `org-info-other-documents`.
+        let man_page = case["man"].as_str();
+        settings.man = man_page.is_some();
+        let other_documents = match case["info_other"].as_object() {
+            Some(other) => other.iter().map(|(file, url)| (file.clone(), url.as_str().unwrap().to_string())).collect(),
+            None => manual::default_other_documents(),
+        };
+        // The heading made in a file, and where it is.
+        let made = |file: &str, target: &str, search: &str| {
+            let outcome =
+                meta_return::insert_link_heading(target, search, &TodoKeywords::default(), &Default::default());
+            let mut place = goto(file, &outcome.text, outcome.cursor);
+            place["text"] = json!(outcome.text);
+            place
+        };
+        let missing = |target: &str, search: &str| {
+            let error = search_in_file_with(target, Some(&parse(target)), search, ExactHeadline::Yes);
+            json!({ "error": error.err().unwrap_or_default() })
+        };
+        // `org-ctags`: its functions first, for an internal link.
+        let ctags_case = case["ctags"].as_object();
+        let mut asked: Vec<String> = Vec::new();
+        let mut ran = None;
+        let mut followed = None;
+        if let Some(options) = ctags_case {
+            let functions: Vec<ctags::Function> = match options.get("functions").and_then(Value::as_array) {
+                Some(names) => {
+                    names.iter().map(|name| ctags::Function::named(name.as_str().unwrap()).unwrap()).collect()
+                }
+                None => ctags::DEFAULT_FUNCTIONS.to_vec(),
+            };
+            let template = options.get("template").and_then(Value::as_str).unwrap_or(ctags::DEFAULT_TEMPLATE);
+            let given: Vec<bool> =
+                options.get("answers").and_then(Value::as_str).unwrap_or("").chars().map(|c| c == 'y').collect();
+            if let Some(path) = org_core::open::internal_path(&text, &parsed, offset, &[], &settings) {
+                let tags_text = text_of("TAGS");
+                let mut answers: Vec<bool> = Vec::new();
+                let outcome = loop {
+                    let context = ctags::Context {
+                        functions: &functions,
+                        answers: &answers,
+                        directory: Some("DIR/"),
+                        text: &text,
+                        template,
+                    };
+                    let mut tags = |rebuild: bool| {
+                        if rebuild {
+                            ran = Some(ctags::create_command("ctags", "DIR/"));
+                        }
+                        tags_text.as_deref().map(ctags::read_tags).unwrap_or_default()
+                    };
+                    let exists = |file: &str| text_of(file.trim_start_matches("DIR/")).is_some();
+                    match ctags::follow(&path, &context, &mut tags, &exists) {
+                        // `y-or-n-p` says no once the answers are used up.
+                        Outcome::Ask(prompt) => {
+                            asked.push(prompt);
+                            answers.push(given.get(answers.len()).copied().unwrap_or(false));
+                        }
+                        outcome => break outcome,
+                    }
+                };
+                let with_text = |mut place: Value, text: &str| {
+                    place["text"] = json!(text);
+                    place
+                };
+                followed = match outcome {
+                    Outcome::Found(tag) => {
+                        let target = text_of(&tag.file).unwrap_or_default();
+                        let at = target.split_inclusive('\n').take(tag.line - 1).map(str::len).sum();
+                        Some(with_text(goto(&tag.file, &target, at), &target))
+                    }
+                    Outcome::Append(new, point) => Some(with_text(goto(name, &new, point), &new)),
+                    Outcome::Visit(file) => {
+                        let file = file.trim_start_matches("DIR/").to_string();
+                        let target = text_of(&file).unwrap_or_default();
+                        Some(with_text(goto(&file, &target, 0), &target))
+                    }
+                    Outcome::Create(file, new) => {
+                        Some(with_text(goto(file.trim_start_matches("DIR/"), &new, new.len()), &new))
+                    }
+                    Outcome::Done => Some(with_text(goto(name, &text, offset), &text)),
+                    Outcome::Pass | Outcome::Ask(_) => None,
+                };
+            }
+        }
         let mut offered = None;
-        let mut result = at_point(&text, &parsed, offset, None, &[]);
+        let mut result = at_point_calling(&text, &parsed, offset, None, &[], None, &settings);
         if let Ok(Open::Choose(choices)) = &result {
             offered =
                 Some(choices.iter().map(|choice| format!("[{}]  {}\n", choice.key, choice.label)).collect::<String>());
-            result = at_point(&text, &parsed, offset, answer, &[]);
+            result = at_point_calling(&text, &parsed, offset, answer, &[], None, &settings);
         }
         let mut actual = match result {
             Ok(Open::Here(at)) => goto(name, &text, at),
-            Ok(Open::File { path, search, system }) => {
+            Ok(Open::File { path, search, system, .. }) => {
                 let base = Path::new(name).parent().unwrap_or(Path::new(""));
                 let wanted = base.join(path.trim_start_matches("./")).to_string_lossy().to_string();
                 if system {
@@ -72,10 +179,23 @@ fn opening_matches_emacs() {
                     let target_parse = parse(&target);
                     match search {
                         None => goto(&wanted, &target, 0),
-                        Some(option) => match search_in_file(&target, org.then_some(&target_parse), &option) {
-                            Ok(at) => goto(&wanted, &target, at),
-                            Err(error) => json!({ "error": error }),
-                        },
+                        Some(option) if wanted.ends_with(".bib") => {
+                            goto(&wanted, &target, search_in_bibtex(&target, &option))
+                        }
+                        Some(option) => {
+                            match search_in_file_with(&target, org.then_some(&target_parse), &option, exact) {
+                                Ok(at) => goto(&wanted, &target, at),
+                                Err(_)
+                                    if org
+                                        && create
+                                        && exact == ExactHeadline::QueryToCreate
+                                        && may_create(&option) =>
+                                {
+                                    made(&wanted, &target, &option)
+                                }
+                                Err(error) => json!({ "error": error }),
+                            }
+                        }
                     }
                 }
             }
@@ -98,10 +218,38 @@ fn opening_matches_emacs() {
             Ok(Open::Nothing(_)) => goto(name, &text, offset),
             Ok(Open::Choose(_)) => json!({ "error": "asked twice" }),
             Ok(Open::Citation(keys)) => json!({ "citation": keys }),
+            Ok(Open::Create(search)) if create => made(name, &text, &search),
+            Ok(Open::Create(search)) => missing(&text, &search),
+            Ok(Open::Shell { command, confirm }) if create || !confirm => json!({ "shell": command }),
+            Ok(Open::Shell { .. }) => json!({ "error": "Abort" }),
+            // `man` shows `man_page` whatever the page; point goes to the
+            // line before the search's match.
+            Ok(Open::Man { page, search: None }) => json!({ "man": page }),
+            Ok(Open::Man { page, search: Some(search) }) => {
+                match manual::man_search_line(man_page.unwrap_or_default(), &search) {
+                    Ok(line) => json!({ "man": page, "line": line + 1 }),
+                    Err(error) => json!({ "error": error }),
+                }
+            }
+            Ok(Open::Info { file, node }) => {
+                let url = manual::info_url(&file, &node, &other_documents);
+                json!({ "info": [file, node], "url": url })
+            }
             Err(error) => json!({ "error": error }),
         };
         if let Some(offered) = offered {
             actual["offered"] = json!(offered);
+        }
+        if ctags_case.is_some() {
+            if let Some(followed) = followed {
+                actual = followed;
+            } else if let Some(file) = actual["goto"]["file"].as_str() {
+                actual["text"] = json!(text_of(file).unwrap_or_default());
+            }
+            actual["asked"] = json!(asked);
+            if let Some(ran) = ran {
+                actual["ran"] = json!(ran);
+            }
         }
         if actual != case["expected"] {
             failures.push_str(&format!(
@@ -110,6 +258,33 @@ fn opening_matches_emacs() {
                 case["expected"],
                 actual
             ));
+        }
+    }
+    assert!(failures.is_empty(), "{failures}");
+}
+
+/// `org-return` with `org-return-follows-link`: where RET follows a link,
+/// at every place of each text of `tests/open/return-follows.json`, as
+/// `scripts/return_follows_reference.py` recorded it in Emacs.
+#[test]
+fn return_follows_links_where_emacs_does() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/open/return-follows.json");
+    let cases: Vec<Value> = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let mut failures = String::new();
+    for case in &cases {
+        let text = case["text"].as_str().unwrap();
+        let parsed = parse(text);
+        let expected: Vec<u64> = case["follows"].as_array().unwrap().iter().map(|at| at.as_u64().unwrap()).collect();
+        let actual: Vec<u64> = text
+            .char_indices()
+            .map(|(at, _)| at)
+            .chain([text.len()])
+            .enumerate()
+            .filter(|(_, at)| org_core::open::return_follows(text, &parsed, *at))
+            .map(|(index, _)| index as u64)
+            .collect();
+        if actual != expected {
+            failures.push_str(&format!("{text:?}: expected {expected:?}, got {actual:?}\n"));
         }
     }
     assert!(failures.is_empty(), "{failures}");

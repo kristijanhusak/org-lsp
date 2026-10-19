@@ -62,6 +62,26 @@ pub const SETTINGS: &[Setting] = &[
          from the Org files under the workspace folders (hidden directories, `node_modules` and `target` left \
          out), or else from the Org files that are open.",
     ),
+    Setting {
+        default: None,
+        unset: "the `.org` files whose names do not start with a dot",
+        ..setting(
+            "org_agenda_file_regexp",
+            "string",
+            "",
+            "org-agenda-file-regexp",
+            "Which files of a directory in `org_agenda_files` are agenda files: an Emacs regular expression \
+             their names match, such as `\\\\.txt\\\\'` for the names that end in `.txt`.",
+        )
+    },
+    setting(
+        "org_agenda_skip_unavailable_files",
+        "boolean",
+        "false",
+        "org-agenda-skip-unavailable-files",
+        "Leave out the files of `org_agenda_files` that are not there. With `false`, opening an agenda view \
+         asks about each: `r` removes it from the list until the server starts again, anything else aborts.",
+    ),
     setting(
         "org_todo_keywords",
         "string[] | string[][]",
@@ -74,6 +94,14 @@ pub const SETTINGS: &[Setting] = &[
          cycling stays in the sequence of the entry, and `C-S-<right>` switches to the next. A list that starts \
          with `type` is a type sequence (`#+TYP_TODO:`): each of its keywords goes straight to done. A file's \
          own `#+TODO:` lines take precedence.",
+    ),
+    setting(
+        "org_todo_interpretation",
+        "\"sequence\", \"type\"",
+        r#""sequence""#,
+        "org-todo-interpretation",
+        "What a list of keywords alone in `org_todo_keywords` is (Org's old syntax): a sequence, or types, \
+         each going straight to done. A list that starts with `sequence` or `type` says it itself.",
     ),
     setting(
         "org_todo_keyword_faces",
@@ -94,6 +122,14 @@ pub const SETTINGS: &[Setting] = &[
          `{ \"A\": \":foreground red :weight bold\" }`.",
     ),
     setting(
+        "org_tag_faces",
+        "{ [tag]: string }",
+        "{}",
+        "org-tag-faces",
+        "Faces for particular tags of headlines, written as in `org_todo_keyword_faces`: \
+         `{ \"work\": \"orange\" }`. Shown in Org files (not the agenda, as in Emacs) by Neovim, Vim and VS Code.",
+    ),
+    setting(
         "org_log_done",
         r#"false, "time", "note""#,
         "false",
@@ -110,6 +146,377 @@ pub const SETTINGS: &[Setting] = &[
         "org-log-repeat",
         "Record when a repeating entry is done and moves to its next date. `#+STARTUP:` `logrepeat`, \
          `lognoterepeat` and `nologrepeat` change it in a file, and the `LOGGING` property in an entry.",
+    ),
+    setting(
+        "org_M_RET_may_split_line",
+        "boolean, object",
+        "true",
+        "org-M-RET-may-split-line",
+        "Inserting a heading, an item or a table row (M-RET) in the middle of a line splits it, the rest going \
+         to the new one; `false`: it goes in after the line. One by context: `{ \"headline\": false, \"item\": \
+         true, \"table\": true }`, `default` for those not named.",
+    ),
+    Setting {
+        default: None,
+        unset: "`auto` for both",
+        ..setting(
+            "org_blank_before_new_entry",
+            "object",
+            "",
+            "org-blank-before-new-entry",
+            "Whether a new heading (`heading`) and a new item (`plain_list_item`) get an empty line before them: \
+             `true`, `false`, or `\"auto\"`, as the headings or items around them have.",
+        )
+    },
+    setting(
+        "org_insert_heading_respect_content",
+        "boolean",
+        "false",
+        "org-insert-heading-respect-content",
+        "M-RET and M-S-RET outside lists put the new heading after the subtree, as C-RET does.",
+    ),
+    setting(
+        "org_special_ctrl_a_e",
+        r#"false, true, "reversed", [C-a, C-e]"#,
+        "false",
+        "org-special-ctrl-a/e",
+        "How C-a and C-e (`org.beginning.of.line`, `org.end.of.line`) move on a headline or an item: `true` \
+         to the start of the headline's title, after the stars, TODO keyword and priority, or after the \
+         item's bullet and check-box, and to the end of the title, before the tags; the same key again to \
+         the line's own start or end. `reversed` goes to the line's start or end first, and to those \
+         places on the same key right after. A pair, as `[true, false]`, sets C-a and C-e apart. With \
+         `false` the key keeps the editor's own meaning.",
+    ),
+    setting(
+        "org_sparse_tree_open_archived_trees",
+        "boolean",
+        "false",
+        "org-sparse-tree-open-archived-trees",
+        "A sparse tree (`C-c /`, and a link's `/regexp/`) shows its matches in archived subtrees (tagged \
+         `ARCHIVE`); with `false` those subtrees stay folded under their headline.",
+    ),
+    setting(
+        "org_occur_case_fold_search",
+        "true, false, \"smart\"",
+        "true",
+        "org-occur-case-fold-search",
+        "Whether a sparse tree (`C-c /`, and a link's `/regexp/`) ignores case; `\"smart\"` ignores it unless \
+         what is searched for has an upper-case letter.",
+    ),
+    setting(
+        "org_highlight_sparse_tree_matches",
+        "boolean",
+        "true",
+        "org-highlight-sparse-tree-matches",
+        "Highlight the matches of a sparse tree (`C-c /`, and a link's `/regexp/`) until the text changes; \
+         with `false`, only their lines show.",
+    ),
+    setting(
+        "org_remove_highlights_with_change",
+        "boolean",
+        "true",
+        "org-remove-highlights-with-change",
+        "The highlights of a sparse tree (`C-c /` by a regexp, TODO keywords or dates, and a link's \
+         `/regexp/`) and the times of `C-c C-x C-d` go at the next change of the text; with `false` they \
+         stay until `C-c C-c`. Those of a sparse tree by tags or a property always stay, as in Emacs.",
+    ),
+    setting(
+        "org_sparse_tree_default_date_type",
+        "null, \"all\", \"active\", \"inactive\", \"scheduled\", \"deadline\", \"closed\"",
+        "null",
+        "org-sparse-tree-default-date-type",
+        "The timestamps the date sparse trees (`C-c /` `b`, `a`, `D`) look at first: `null` for scheduled \
+         and deadline dates, or one kind; `c` in the menu turns to the next kind.",
+    ),
+    setting(
+        "org_yank_adjusted_subtrees",
+        "boolean",
+        "false",
+        "org-yank-adjusted-subtrees",
+        "C-y (`org.yank`, Emacs keys) of one or more subtrees at the start of a line, or after the stars of \
+         an otherwise empty headline, pastes them as `org.paste.subtree` does: at the level of the headlines \
+         around them. Anything else is the editor's own paste.",
+    ),
+    setting(
+        "org_yank_folded_subtrees",
+        "boolean",
+        "true",
+        "org-yank-folded-subtrees",
+        "C-y (`org.yank`, Emacs keys) of one or more subtrees at the start of a line folds them, unless that \
+         would hide text after them (*Inserted text not folded because that would swallow text*), and \
+         leaves the cursor on the line after them. With `false` (and `org_yank_adjusted_subtrees` off) it \
+         is the editor's own paste.",
+    ),
+    setting(
+        "org_allow_promoting_top_level_subtree",
+        "boolean",
+        "false",
+        "org-allow-promoting-top-level-subtree",
+        "Promoting a headline of level 1 makes it a comment line: `# ` in place of `* `, its children a level \
+         up with a subtree's promotion. With `false` it is an error.",
+    ),
+    setting(
+        "org_odd_levels_only",
+        "boolean",
+        "false",
+        "org-odd-levels-only",
+        "Only odd levels: `*`, `***`, `*****`, each counted as the next level. Promoting and demoting go two \
+         stars at a time, and a headline is colored and matched (`LEVEL`) by the level it counts as. \
+         `#+STARTUP: odd` and `oddeven` set it for a file.",
+    ),
+    setting(
+        "org_inlinetask_min_level",
+        "number, false",
+        "15",
+        "org-inlinetask-min-level",
+        "A headline of at least this many stars (twice as many less one with `org_odd_levels_only`) is an \
+         inline task: a task inside the text of its entry, closed by a line of as many stars and `END`. It is \
+         no part of the outline: it has no subtree, the outline and the motion between headings pass it, and \
+         it folds its text up to its `END` line. `false`: there are no inline tasks, as in Emacs before \
+         `org-inlinetask` is loaded.",
+    ),
+    setting(
+        "org_inlinetask_show_first_star",
+        "boolean",
+        "false",
+        "org-inlinetask-show-first-star",
+        "The stars of an inline task but the last two are hidden, as `org_hide_leading_stars` hides those of \
+         a headline; with `true` none are.",
+    ),
+    Setting {
+        default: None,
+        unset: "no keyword",
+        ..setting(
+            "org_inlinetask_default_state",
+            "string",
+            "",
+            "org-inlinetask-default-state",
+            "The TODO keyword of a new inline task (`org.inlinetask.insert`).",
+        )
+    },
+    setting(
+        "org_treat_S_cursor_todo_selection_as_state_change",
+        "boolean",
+        "true",
+        "org-treat-S-cursor-todo-selection-as-state-change",
+        "`S-<left>` and `S-<right>` on a headline change its TODO state as any change does: logged, and blocked \
+         by its dependencies. Off, they change it with nothing logged and nothing in the way.",
+    ),
+    setting(
+        "org_treat_insert_todo_heading_as_state_change",
+        "boolean",
+        "false",
+        "org-treat-insert-todo-heading-as-state-change",
+        "The keyword of a heading `org.insert.todo.heading` (M-S-RET) makes is set as a TODO change: logged \
+         as the keyword says (a note wanted is a time only), with its tag triggers.",
+    ),
+    setting(
+        "org_edit_timestamp_down_means_later",
+        "boolean",
+        "false",
+        "org-edit-timestamp-down-means-later",
+        "`S-<down>` makes a timestamp later and `S-<up>` earlier, the other way round from Org's default.",
+    ),
+    setting(
+        "org_priority_enable_commands",
+        "boolean",
+        "true",
+        "org-priority-enable-commands",
+        "Whether the priority commands work. With `false` they refuse (`Priority commands are disabled`), and \
+         `S-<up>` and `S-<down>` on a headline do not change its priority.",
+    ),
+    setting(
+        "org_track_ordered_property_with_tag",
+        "boolean, string",
+        "false",
+        "org-track-ordered-property-with-tag",
+        "A tag that `org.ordered.toggle` (`C-c C-x o`) puts on the headline with the `ORDERED` property and takes off \
+         without it: `true` for `ORDERED`, or a tag of your own. Only the property orders the subtasks.",
+    ),
+    setting(
+        "org_special_ctrl_o",
+        "boolean",
+        "true",
+        "org-special-ctrl-o",
+        "`org.open.line` (C-o) in a table inserts a row above; with `false` it opens a line there too.",
+    ),
+    setting(
+        "org_special_ctrl_k",
+        "boolean",
+        "false",
+        "org-special-ctrl-k",
+        "C-k (`org.kill.line`) on a headline kills the text to the tags, and the tags when the cursor is \
+         past the title; at the start of the line, the whole line. With `false` the key keeps the editor's \
+         own meaning, but on a line a closed fold starts on (see `org_ctrl_k_protect_subtree`).",
+    ),
+    setting(
+        "org_ctrl_k_protect_subtree",
+        "false, true, \"error\"",
+        "false",
+        "org-ctrl-k-protect-subtree",
+        "C-k (`org.kill.line`) on a line a closed fold starts on (a headline's only from its start with \
+         `org_special_ctrl_k`) kills what the fold hides with the line, as Emacs's `kill-line` does: `true` asks \
+         first (*Kill hidden subtree along with headline?*), `\"error\"` refuses (*‘C-k’ aborted as it \
+         would kill a hidden subtree*), `false` kills. Needs an editor that says which folds are closed \
+         (not VS Code).",
+    ),
+    setting(
+        "org_list_allow_alphabetical",
+        "boolean",
+        "false",
+        "org-list-allow-alphabetical",
+        "Whether a letter may stand for the number of an ordered item (`a.`, `B)`). A list of more than 26 \
+         items is numbered.",
+    ),
+    setting(
+        "org_plain_list_ordered_item_terminator",
+        "true, \".\", \")\"",
+        "true",
+        "org-plain-list-ordered-item-terminator",
+        "What ends the number of an ordered item: `\".\"`, `\")\"`, or `true` for either.",
+    ),
+    setting(
+        "org_list_two_spaces_after_bullet_regexp",
+        "false, string",
+        "false",
+        "org-list-two-spaces-after-bullet-regexp",
+        "An Emacs regexp: the bullets it matches get two spaces after them when Org writes them (a new item, \
+         a bullet changed, a list repaired).",
+    ),
+    setting(
+        "org_list_demote_modify_bullet",
+        "object",
+        "{}",
+        "org-list-demote-modify-bullet",
+        "By bullet (`-`, `+`, `*`, `1.`, `1)`), the bullet an item gets when it is indented: \
+         `{ \"+\": \"-\", \"-\": \"+\" }`.",
+    ),
+    setting(
+        "org_list_indent_offset",
+        "integer",
+        "0",
+        "org-list-indent-offset",
+        "How many more columns sub-items are indented, past their parent's bullet.",
+    ),
+    setting(
+        "org_list_automatic_rules",
+        "object",
+        r#"{ "checkbox": true, "indent": true }"#,
+        "org-list-automatic-rules",
+        "`checkbox`: the statistics cookies are counted again when a box changes, and colored as done or \
+         not. `indent`: indenting the first item of a list with its children (M-S-<right>) moves the whole \
+         list. A rule left out of the object is off.",
+    ),
+    setting(
+        "org_checkbox_hierarchical_statistics",
+        "boolean",
+        "true",
+        "org-checkbox-hierarchical-statistics",
+        "A checkbox cookie counts the boxes of the items right below it; `false` counts every box further \
+         down too, as `recursive` in a `COOKIE_DATA` property does.",
+    ),
+    Setting {
+        default: None,
+        unset: "Org's: integers, decimals, `2.4e-08`, `0x1F`, `nan`, `inf` and their relatives",
+        ..setting(
+            "org_table_number_regexp",
+            "string",
+            "",
+            "org-table-number-regexp",
+            "An Emacs regexp: the fields it matches are numbers, and a column mostly of numbers aligns right.",
+        )
+    },
+    setting(
+        "org_table_number_fraction",
+        "number",
+        "0.5",
+        "org-table-number-fraction",
+        "How much of a column's filled fields must be numbers for it to align right.",
+    ),
+    setting(
+        "org_table_automatic_realign",
+        "boolean",
+        "true",
+        "org-table-automatic-realign",
+        "TAB and RET in a table align it before they move; `false`: only C-c C-c and the commands that change \
+         rows or columns do.",
+    ),
+    setting(
+        "org_table_tab_jumps_over_hlines",
+        "boolean",
+        "true",
+        "org-table-tab-jumps-over-hlines",
+        "TAB at the end of a row before a horizontal line goes to the row after it; `false`: it makes a row \
+         before the line.",
+    ),
+    setting(
+        "org_table_shrunk_column_indicator",
+        "string",
+        r#""…""#,
+        "org-table-shrunk-column-indicator",
+        "What shows at the end of each field of a shrunk column.",
+    ),
+    setting(
+        "org_table_formula_constants",
+        "object",
+        "{}",
+        "org-table-formula-constants",
+        "Constants for the table formulas of every file, by name: `{ \"c\": \"299792458.\" }` gives `$c`. A \
+         file's `#+CONSTANTS:` come first.",
+    ),
+    setting(
+        "org_table_relative_ref_may_cross_hline",
+        r#"true, false, "error""#,
+        "true",
+        "org-table-relative-ref-may-cross-hline",
+        "Whether a relative reference in a formula (`@-1`) goes past a horizontal line: `false` stops at the \
+         field next to it, `\"error\"` makes the formula fail.",
+    ),
+    setting(
+        "org_table_formula_create_columns",
+        "boolean",
+        "false",
+        "org-table-formula-create-columns",
+        "A field formula past the last column adds the columns it needs, rather than failing.",
+    ),
+    setting(
+        "org_table_duration_custom_format",
+        r#""seconds", "minutes", "hours", "days", "hh:mm""#,
+        r#""hours""#,
+        "org-table-duration-custom-format",
+        "How a formula with `;t` writes a duration: a number of seconds, minutes, hours or days, or hours and \
+         minutes.",
+    ),
+    setting(
+        "org_table_duration_hour_zero_padding",
+        "boolean",
+        "true",
+        "org-table-duration-hour-zero-padding",
+        "Durations of formulas (`;T`, `;U`) have their hours on two digits: `08:32:34` rather than `8:32:34`.",
+    ),
+    setting(
+        "org_calc_default_modes",
+        "object",
+        r#"{ "float_format": ["float", 8], "angle_mode": "deg" }"#,
+        "org-calc-default-modes",
+        "The modes table formulas start with: `float_format`, `[\"float\", digits]`, `[\"fix\", decimals]` or \
+         `[\"sci\", digits]`, and `angle_mode`, `\"deg\"` or `\"rad\"`. A formula's own modes (`;f2`) win; \
+         Calc's other modes are not offered.",
+    ),
+    setting(
+        "org_table_formula_evaluate_inline",
+        "boolean",
+        "true",
+        "org-table-formula-evaluate-inline",
+        "TAB and RET on a field that is a formula (`=$1*2`, `:=...`) evaluate it, which org-lsp refuses (the \
+         formula goes in a `#+TBLFM:` line); `false` leaves the field as text.",
+    ),
+    setting(
+        "org_table_allow_automatic_line_recalculation",
+        "boolean",
+        "true",
+        "org-table-allow-automatic-line-recalculation",
+        "TAB, RET and C-c C-c on a line marked `#` recalculate it.",
     ),
     setting(
         "org_list_use_circular_motion",
@@ -178,6 +585,91 @@ pub const SETTINGS: &[Setting] = &[
          property (inherited) says which drawer for it (`t` for `LOGBOOK`, `nil` for none).",
     ),
     setting(
+        "org_log_done_with_time",
+        "boolean",
+        "true",
+        "org-log-done-with-time",
+        "The `CLOSED:` timestamp of an entry done has the time, not only the date.",
+    ),
+    Setting {
+        default: None,
+        unset: "Org's headings",
+        ..setting(
+            "org_log_note_headings",
+            "object",
+            "",
+            "org-log-note-headings",
+            "The heading of each kind of note, by kind: `done` (`CLOSING NOTE %t`), `state` (`State %-12s from \
+             %-12S %t`), `note`, `reschedule`, `delschedule`, `redeadline`, `deldeadline`, `refile` and \
+             `clock_out`. In a heading `%t` is the time, `%T` the time active, `%d` and `%D` the date, `%s` \
+             the new state or date and `%S` the old one, `%u` the login name and `%U` the full name; an empty \
+             heading leaves the note its text only. Kinds left out keep Org's headings. Habits take notes \
+             with the `done` heading for days done.",
+        )
+    },
+    setting(
+        "org_log_states_order_reversed",
+        "boolean",
+        "true",
+        "org-log-states-order-reversed",
+        "Put a new state note, note or clock line above the others (`false`: below them). `#+STARTUP:` \
+         `logstatesreversed` and `nologstatesreversed` change it in a file.",
+    ),
+    setting(
+        "org_log_state_notes_insert_after_drawers",
+        "boolean",
+        "false",
+        "org-log-state-notes-insert-after-drawers",
+        "Without a log drawer, put notes after the drawers right under the headline and planning line, not \
+         before them.",
+    ),
+    setting(
+        "org_log_note_clock_out",
+        "boolean",
+        "false",
+        "org-log-note-clock-out",
+        "Ask for a note when the clock stops (`org.clock.out`), which goes right after the clock line. \
+         `#+STARTUP:` `lognoteclock-out` and `nolognoteclock-out` change it in a file.",
+    ),
+    setting(
+        "org_provide_todo_statistics",
+        r#"boolean, "all-headlines", string[], [string[], string[]]"#,
+        "true",
+        "org-provide-todo-statistics",
+        "Update the `[1/3]` and `[33%]` cookies of the parent when a state changes, counting the entries \
+         with a keyword (`true`), every entry (`all-headlines`, those without a keyword as not done), those \
+         with these keywords and the done ones (a list), or those of the first list as not done and of the \
+         second as done (two lists). `false` leaves the cookies.",
+    ),
+    setting(
+        "org_hierarchical_todo_statistics",
+        "boolean",
+        "true",
+        "org-hierarchical-todo-statistics",
+        "TODO statistics count the children only; `false`: the whole subtree, and the cookies above too. A \
+         `COOKIE_DATA` property with `recursive` does this for a subtree.",
+    ),
+    setting(
+        "org_closed_keep_when_no_todo",
+        "boolean",
+        "false",
+        "org-closed-keep-when-no-todo",
+        "Keep the `CLOSED:` timestamp when an entry is left with no keyword.",
+    ),
+    Setting {
+        default: None,
+        unset: "none",
+        ..setting(
+            "org_todo_state_tags_triggers",
+            "object",
+            "",
+            "org-todo-state-tags-triggers",
+            "Tags that change with the state, by state: a keyword, `\"\"` for none, `todo` for any not done, \
+             `done` for any done; each a list of tags to set (`+TAG`) or remove (`-TAG`), in order: \
+             `{ \"WAIT\": [\"+waiting\"], \"todo\": [\"-done\"], \"done\": [\"+done\", \"-waiting\"] }`.",
+        )
+    },
+    setting(
         "org_tags_column",
         "number",
         "-77",
@@ -208,6 +700,23 @@ pub const SETTINGS: &[Setting] = &[
         "Which properties an entry without them takes from its parents, the file's property drawer and \
          `#+PROPERTY:` lines, in property searches (`OWNER=\"alice\"`): `true` for all, `false` for none, a list \
          of names, or a regexp (Emacs syntax). `CATEGORY` and `ARCHIVE` are always inherited.",
+    ),
+    setting(
+        "org_property_separators",
+        "[names or regexp, separator][]",
+        "[]",
+        "org-property-separators",
+        "What joins the values of a property with those of its `PROPERTY+` lines, and the inherited ones, \
+         instead of a space: `[[\"AUTHOR\", \"COAUTHOR\"], \", \"]` for the properties named, `[\"^TAG\", \";\"]` for \
+         those an Emacs regexp matches, without regard to case. The first that fits counts.",
+    ),
+    setting(
+        "org_property_format",
+        "string",
+        r#""%-10s %s""#,
+        "org-property-format",
+        "How a property line is written when it is indented (TAB, `org.indent`) or set: `format`'s `%s` for \
+         the key with its colons, then the value, with a width (`%-10s` pads the key to 10 columns).",
     ),
     setting(
         "org_global_properties",
@@ -259,6 +768,24 @@ pub const SETTINGS: &[Setting] = &[
         )
     },
     setting(
+        "org_clock_auto_clock_resolution",
+        r#"boolean, "when-no-clock-is-running""#,
+        r#""when-no-clock-is-running""#,
+        "org-clock-auto-clock-resolution",
+        "Clocking in first asks about each clock left running in the open and agenda files, as \
+         `org.clock.resolve` does: `when-no-clock-is-running` when no clock runs, `true` always (the clock \
+         that runs too), `false` never. A clock found running when the server starts, or written by hand, \
+         is no clock the server ran: it is asked about.",
+    ),
+    setting(
+        "org_clock_resolve_expert",
+        "boolean",
+        "false",
+        "org-clock-resolve-expert",
+        "Ask what to do with a dangling clock or idle time with the keys in the prompt alone \
+         (`[jkKtTgGSscCiq]?`), without the list of what each one does.",
+    ),
+    setting(
         "org_clock_history_length",
         "integer",
         "5",
@@ -266,11 +793,99 @@ pub const SETTINGS: &[Setting] = &[
         "How many entries clocked into the clock history keeps, for `org.clock.in` with a count and `org.clock.in.last`.",
     ),
     setting(
+        "org_clock_in_resume",
+        "boolean",
+        "false",
+        "org-clock-in-resume",
+        "Clocking into an entry whose `CLOCK:` line was left without an end goes on with that clock, from \
+         when it started, rather than starting a new line.",
+    ),
+    setting(
+        "org_clock_persist",
+        r#"boolean, "clock", "history""#,
+        "false",
+        "org-clock-persist",
+        "Keep the running clock and the clock history when the server stops, and take them back when it \
+         starts: `true` both, `clock` the running clock alone, `history` the history alone (what \
+         `C-u C-c C-x C-i` offers). The running clock runs again if its `CLOCK:` line is still open. They are \
+         kept in Emacs's own file, in its form, so Emacs and org-lsp take the clock from each other.",
+    ),
+    setting(
+        "org_clock_persist_file",
+        "string",
+        r#""~/.emacs.d/org-clock-save.el""#,
+        "org-clock-persist-file",
+        "The file `org_clock_persist` keeps the clock in: Emacs's, `org-clock-save.el` in its directory.",
+    ),
+    setting(
+        "org_clock_persist_query_resume",
+        "boolean",
+        "true",
+        "org-clock-persist-query-resume",
+        "Ask before the clock the last session kept runs again (`Resume clock (…)?`).",
+    ),
+    setting(
+        "org_clock_goto_may_find_recent_task",
+        "boolean",
+        "true",
+        "org-clock-goto-may-find-recent-task",
+        "With no clock running, `org.clock.goto` goes to the entry clocked last. With `false`, it says \
+         `No active or recent clock task`.",
+    ),
+    setting(
         "org_clock_clocktable_default_properties",
         "string",
         "\":maxlevel 2\"",
         "org-clock-clocktable-default-properties",
         "The parameters a new clock table gets on its `#+BEGIN:` line from `org.clock.report` (`C-c C-x C-r`), after `:scope`, as Emacs Lisp reads them (`:maxlevel 3 :link t`).",
+    ),
+    Setting {
+        default: None,
+        unset: "Org's: `:maxlevel 2 :lang \"en\" :scope file :narrow 40! :indent t`, the others `nil`",
+        ..setting(
+            "org_clocktable_defaults",
+            "string",
+            "",
+            "org-clocktable-defaults",
+            "The parameters every clock table has unless its `#+BEGIN:` line gives them, as Emacs Lisp reads \
+             them. Set, it replaces Org's whole list.",
+        )
+    },
+    Setting {
+        default: None,
+        unset: "Org's: `en`, `de`, `es`, `fr`, `nl`, `nn`, `pl`, `pt-BR` and `sk`",
+        ..setting(
+            "org_clock_clocktable_language_setup",
+            "string[][]",
+            "",
+            "org-clock-clocktable-language-setup",
+            "The words of a clock table in each language its `:lang` names: the language, then its words for \
+             `File`, `L`, `Timestamp`, `Headline`, `Time`, `ALL`, `Total time`, `File time` and `Clock summary \
+             at`. A word left out stays English. Set, it replaces Org's languages.",
+        )
+    },
+    setting(
+        "org_clock_report_include_clocking_task",
+        "boolean",
+        "false",
+        "org-clock-report-include-clocking-task",
+        "A clock table counts the time of the clock that runs, for its entry, when the table covers a time \
+         (`:block`, `:tstart` and `:tend`) and the clock started within it.",
+    ),
+    setting(
+        "org_clock_rounding_minutes",
+        "number",
+        "0",
+        "org-clock-rounding-minutes",
+        "Clocking in and out happens at the multiple of this many minutes nearest now; a clock never starts \
+         later than now. Below 1, at the minute.",
+    ),
+    setting(
+        "org_clock_continuously",
+        "boolean",
+        "false",
+        "org-clock-continuously",
+        "A clock starts when the last one stopped, not now.",
     ),
     setting(
         "org_clock_total_time_cell_format",
@@ -321,6 +936,149 @@ pub const SETTINGS: &[Setting] = &[
         "[]",
         "org-lint",
         "The `org-lint` checkers to leave out, by name, as a diagnostic's code shows it (`\"misplaced-heading\"`).",
+    ),
+    setting(
+        "org_id_method",
+        r#""uuid", "org", "ts""#,
+        r#""uuid""#,
+        "org-id-method",
+        "How a new `ID` is made (`org.id.create`, a link stored by ID, org-roam): a random UUID, the \
+         time in base 36 (`org`), or the time as `org_id_ts_format` writes it (`ts`).",
+    ),
+    setting(
+        "org_id_prefix",
+        "false, string",
+        "false",
+        "org-id-prefix",
+        "What a new `ID` starts with, before a colon: `\"Org\"` makes `Org:…`.",
+    ),
+    setting(
+        "org_id_ts_format",
+        "string",
+        r#""%Y%m%dT%H%M%S.%6N""#,
+        "org-id-ts-format",
+        "How the `ts` method writes the time, as `format-time-string` does.",
+    ),
+    setting(
+        "org_id_include_domain",
+        "boolean",
+        "false",
+        "org-id-include-domain",
+        "The `org` and `ts` methods end a new `ID` with `@` and the machine's domain.",
+    ),
+    setting(
+        "org_id_track_globally",
+        "boolean",
+        "true",
+        "org-id-track-globally",
+        "IDs are looked for in other files than the link's own: those of `org_id_search_archives`, \
+         `org_id_extra_files` and `org_id_locations_file`, the agenda files, the open ones and org-roam's. Off, \
+         an `id:` link leads only within its file.",
+    ),
+    setting(
+        "org_id_search_archives",
+        "boolean",
+        "true",
+        "org-id-search-archives",
+        "IDs are looked for in the archive files of the agenda files too.",
+    ),
+    Setting {
+        default: None,
+        unset: "`org_agenda_text_search_extra_files`",
+        ..setting(
+            "org_id_extra_files",
+            "string[]",
+            "",
+            "org-id-extra-files",
+            "More files to look for IDs in: paths or glob patterns.",
+        )
+    },
+    setting(
+        "org_id_locations_file",
+        "string",
+        r#""~/.emacs.d/.org-id-locations""#,
+        "org-id-locations-file",
+        "The file where Emacs keeps the files it found IDs in: org-lsp looks in them too, and never writes it. \
+         Names in it that are not absolute are relative to its directory.",
+    ),
+    setting(
+        "org_id_completion_targets",
+        "object[]",
+        r#"[{ "files": "current", "all": true }, { "files": "org-id-files", "all": true }]"#,
+        "org-id-completion-targets",
+        "The headlines an `id:` link completes to (`org.link.insert`), as `org_refile_targets` names them: by \
+         default every headline of the file and of the files with IDs.",
+    ),
+    setting(
+        "org_link_search_must_match_exact_headline",
+        r#"boolean, "query-to-create""#,
+        r#""query-to-create""#,
+        "org-link-search-must-match-exact-headline",
+        "What a link to a headline that is not there does: `\"query-to-create\"` asks whether to make it, at \
+         the end of the file, when the link is followed (`org.open`); `true` is an error; `false` looks for its \
+         words in the text.",
+    ),
+    setting(
+        "org_link_doi_server_url",
+        "string",
+        r#""https://doi.org/""#,
+        "org-link-doi-server-url",
+        "What a `doi:` link is opened at: this, then the DOI.",
+    ),
+    setting(
+        "org_link_shell_skip_confirm_regexp",
+        "string",
+        r#""""#,
+        "org-link-shell-skip-confirm-regexp",
+        "An Emacs regexp: a `shell:` link whose command it matches runs when followed without asking `Execute \
+         … in shell?` first. Empty asks for every command.",
+    ),
+    setting(
+        "org_man_command",
+        "string",
+        r#""man""#,
+        "org-man-command",
+        "The program that writes the man page of a `man:` link, when `ol-man` is in `org_modules`: the page is \
+         shown as text, at the line before the first match of what follows `::` (`man:ls::-l`). `\"woman\"`, \
+         Emacs's own reader, is `man` too.",
+    ),
+    setting(
+        "org_info_other_documents",
+        "{ [manual]: string }",
+        r#"{ "dir": "https://www.gnu.org/manual/manual.html", "libc": "https://www.gnu.org/software/libc/manual/html_mono/libc.html", "make": "https://www.gnu.org/software/make/manual/make.html" }"#,
+        "org-info-other-documents",
+        "The pages on the web of Info manuals: following an `info:` link to one of them, or to one of Emacs's \
+         manuals, opens its page at the node. Another manual is shown as text, as the `info` program writes the \
+         node.",
+    ),
+    setting(
+        "org_ctags_path_to_ctags",
+        "string",
+        r#""ctags""#,
+        "org-ctags-path-to-ctags",
+        "The `ctags` program (Exuberant or Universal Ctags) that `org.ctags.create` runs to make the `TAGS` \
+         file of a directory, when `org-ctags` is in `org_modules`.",
+    ),
+    setting(
+        "org_ctags_open_link_functions",
+        "string[]",
+        r#"["org-ctags-find-tag", "org-ctags-ask-rebuild-tags-file-then-find-tag", "org-ctags-ask-append-topic"]"#,
+        "org-ctags-open-link-functions",
+        "With `org-ctags` in `org_modules`, what following a link to a headline, a target or a custom ID tries \
+         first, in turn, until one is done: `org-ctags-find-tag` (the tag of the `TAGS` file of the file's \
+         directory), `org-ctags-ask-rebuild-tags-file-then-find-tag` and \
+         `org-ctags-rebuild-tags-file-then-find-tag` (the `TAGS` file made again, then the tag), \
+         `org-ctags-ask-append-topic` and `org-ctags-append-topic` (a new topic at the end of the file), \
+         `org-ctags-ask-visit-buffer-or-file` and `org-ctags-visit-buffer-or-file` (the Org file of that name in \
+         the directory, made when asked), `org-ctags-fail-silently` (nothing more). When none is done, the link \
+         is followed as without them.",
+    ),
+    setting(
+        "org_ctags_new_topic_template",
+        "string",
+        r#""* <<%t>>\n\n\n\n\n\n""#,
+        "org-ctags-new-topic-template",
+        "The text of a new topic `org_ctags_open_link_functions` makes, `%t` the link's text capitalized.",
     ),
     setting(
         "org_id_link_to_org_use_id",
@@ -382,6 +1140,95 @@ pub const SETTINGS: &[Setting] = &[
          completed after `@`, shown over a key, and where following a key goes; a key none has is marked.",
     ),
     setting(
+        "org_cite_insert_processor",
+        "string, false",
+        r#""basic""#,
+        "org-cite-insert-processor",
+        "The citation processor `org.cite.insert` inserts with: `basic`, as Org's own does; Org's other \
+         processors cannot insert, and those of packages (citar) are not run; `false` for none.",
+    ),
+    setting(
+        "org_bibtex_autogen_keys",
+        "boolean",
+        "false",
+        "org-bibtex-autogen-keys",
+        "Whether `org.bibtex.create` and `org.bibtex.check` make the key of a new BibTeX entry from its author, \
+         year and title, as `bibtex-generate-autokey` makes it (through Emacs), instead of asking for it \
+         (`id`).",
+    ),
+    Setting {
+        default: None,
+        unset: "none",
+        ..setting(
+            "org_bibtex_prefix",
+            "string",
+            "",
+            "org-bibtex-prefix",
+            "What the names of the properties the BibTeX commands write start with (`BIB_` gives `BIB_AUTHOR`), \
+             but for the key's; they read the names with it and without.",
+        )
+    },
+    setting(
+        "org_bibtex_treat_headline_as_title",
+        "boolean",
+        "true",
+        "org-bibtex-treat-headline-as-title",
+        "A headline without a `TITLE` property is the title of its BibTeX entry, and `org.bibtex.check` does \
+         not ask for one.",
+    ),
+    setting(
+        "org_bibtex_export_arbitrary_fields",
+        "boolean",
+        "false",
+        "org-bibtex-export-arbitrary-fields",
+        "With `org_bibtex_prefix`, every property whose name has the prefix is a field of the entry exported \
+         (`org.bibtex.export`, `org.bibtex.copy`), not only those of its type.",
+    ),
+    setting(
+        "org_bibtex_key_property",
+        "string",
+        r#""CUSTOM_ID""#,
+        "org-bibtex-key-property",
+        "The property that holds an entry's BibTeX key. `ID` makes the key a global ID.",
+    ),
+    setting(
+        "org_bibtex_tags",
+        "string[]",
+        "[]",
+        "org-bibtex-tags",
+        "Tags given to the entries the BibTeX commands make.",
+    ),
+    setting(
+        "org_bibtex_tags_are_keywords",
+        "boolean",
+        "false",
+        "org-bibtex-tags-are-keywords",
+        "The `keywords` field of an entry read is its tags (spaces as `_`, other characters a tag cannot have \
+         left out), and an entry's own tags are its `keywords` when exported, but for those of `org_bibtex_tags` \
+         and `org_bibtex_no_export_tags`.",
+    ),
+    setting(
+        "org_bibtex_no_export_tags",
+        "string[]",
+        "[]",
+        "org-bibtex-no-export-tags",
+        "Tags that are not exported as keywords, with `org_bibtex_tags_are_keywords`.",
+    ),
+    setting(
+        "org_bibtex_inherit_tags",
+        "boolean",
+        "false",
+        "org-bibtex-inherit-tags",
+        "With `org_bibtex_tags_are_keywords`, the tags an entry inherits are keywords too.",
+    ),
+    setting(
+        "org_bibtex_type_property_name",
+        "string",
+        r#""btype""#,
+        "org-bibtex-type-property-name",
+        "The property that holds an entry's BibTeX type (`article`); a headline without it is no entry.",
+    ),
+    setting(
         "org_link_abbrev_alist",
         "{ [abbreviation]: string }",
         "{}",
@@ -389,6 +1236,34 @@ pub const SETTINGS: &[Setting] = &[
         "Link abbreviations: `[[gh:org-lsp]]` with `{ \"gh\": \"https://github.com/%s\" }` follows \
          `https://github.com/org-lsp`. `%s` stands for what follows the colon, `%h` for it URL-encoded; without \
          either it goes at the end. A file's `#+LINK:` lines come first. `%(my-function)` calls an Emacs function with what follows the colon (through Emacs).",
+    ),
+    setting(
+        "org_file_apps",
+        "[match, command][]",
+        r#"[["auto-mode", "emacs"], ["directory", "emacs"], ["\\.mm\\'", "default"], ["\\.x?html?\\'", "default"], ["\\.pdf\\'", "default"]]"#,
+        "org-file-apps",
+        "What opens a linked file, the first entry that matches: a match is an extension (`txt`), an Emacs \
+         regular expression for the file name (`\\\\.pdf\\\\'` in JSON; with groups `%1`, `%2`... in the command, it \
+         matches the file followed by the link's `::` part), `directory`, `remote`, `system` (what `C-u C-u C-c C-o` uses), \
+         `auto-mode` (every file the editor can show) or `t` (any other file). A command is `emacs` (the \
+         editor), `default` (the `system` entry, else the editor), `system` or `mailcap` (the system's \
+         application, through the editor), or a shell command where `%s` is the file. `C-u C-c C-o` opens \
+         the file in the editor. A Lisp function is not a command here.",
+    ),
+    setting(
+        "org_open_non_existing_files",
+        "boolean",
+        "false",
+        "org-open-non-existing-files",
+        "Open a linked file that is not there with the application `org_file_apps` gives it, rather than \
+         saying `No such file`. The editor opens such a file either way.",
+    ),
+    setting(
+        "org_open_directory_means_index_dot_org",
+        "boolean",
+        "false",
+        "org-open-directory-means-index-dot-org",
+        "Following a link to a directory opens the `index.org` in it, rather than the directory.",
     ),
     setting(
         "org_tag_alist",
@@ -414,6 +1289,16 @@ pub const SETTINGS: &[Setting] = &[
         "org-group-tags",
         "A group tag (`[ GTD : Control Persp ]`, `{ Context : @home @office }` in `#+TAGS:` or `org_tag_alist`) \
          in the match string of a tags view stands for itself and the tags of its group.",
+    ),
+    setting(
+        "org_use_fast_todo_selection",
+        r#""auto", "expert", false"#,
+        r#""auto""#,
+        "org-use-fast-todo-selection",
+        "How `C-c C-t` (`org.todo`) changes the TODO state where keywords have keys (`TODO(t)`): `auto` picks \
+         the state by key from a menu of them; `expert` by key too, the keys listed in the prompt alone (in \
+         Neovim and Vim; other editors show their menu); `false` goes to the next state, as where no keyword \
+         has a key. `true` is `auto`.",
     ),
     setting(
         "org_use_fast_tag_selection",
@@ -492,6 +1377,18 @@ pub const SETTINGS: &[Setting] = &[
         "A date typed without a year or month is the next one to come. With `time`, a time that has passed \
          today is tomorrow's.",
     ),
+    Setting {
+        default: None,
+        unset: "as `org_read_date_prefer_future`",
+        ..setting(
+            "org_agenda_jump_prefer_future",
+            r#"boolean, "time""#,
+            "",
+            "org-agenda-jump-prefer-future",
+            "How the agenda's `j` (`org.agenda.goto.date`) reads a date typed without a year or month, as \
+             `org_read_date_prefer_future` does for every other prompt.",
+        )
+    },
     setting(
         "org_read_date_force_compatible_dates",
         "boolean",
@@ -505,7 +1402,7 @@ pub const SETTINGS: &[Setting] = &[
         r#"[{ "files": "current", "level": 1 }]"#,
         "org-refile-targets",
         "Where entries can be refiled to. Each entry has `files`: `current` (the entry's own file), `agenda`, \
-         a path or a list of paths; and one of `level`, `maxlevel`, `tag`, `todo`, `regexp` (the Rust `regex` \
+         `org-id-files` (the files with IDs), a path or a list of paths; and one of `level`, `maxlevel`, `tag`, `todo`, `regexp` (the Rust `regex` \
          crate's syntax) or `all` (true), which says which headlines there are targets.",
     ),
     setting(
@@ -515,6 +1412,14 @@ pub const SETTINGS: &[Setting] = &[
         "org-refile-use-outline-path",
         "Name targets by their outline path (`Projects/Alpha/`). The three names start the path with the \
          file, and offer the file itself, for its top level.",
+    ),
+    setting(
+        "org_refile_active_region_within_subtree",
+        "boolean",
+        "false",
+        "org-refile-active-region-within-subtree",
+        "A selection that is not whole subtrees is refiled too: its first line becomes a headline first \
+         (`org-toggle-heading`, run by Emacs), a level below the entry it is in.",
     ),
     setting(
         "org_refile_allow_creating_parent_nodes",
@@ -605,6 +1510,24 @@ pub const SETTINGS: &[Setting] = &[
         "What `org.archive.default` does: archive the subtree, archive it under its sibling, or tag it.",
     ),
     setting(
+        "org_archive_subtree_save_file_p",
+        r#"boolean, "from-org", "from-agenda""#,
+        r#""from-org""#,
+        "org-archive-subtree-save-file-p",
+        "Whether the archive file is saved once a subtree goes there: always (`true`), when archiving from an \
+         Org file (`from-org`), from the agenda (`from-agenda`), or never (`false`). Unsaved, it is left with \
+         its changes in the editor, as `auto_save` does not save it.",
+    ),
+    setting(
+        "org_capture_use_agenda_date",
+        "boolean",
+        "false",
+        "org-capture-use-agenda-date",
+        "Capturing from the agenda takes the day of the line the cursor is on, at midnight (or the hour of \
+         `org_extend_today_until`), for `%t`, `%U` and the like and for the date of a date tree, which a \
+         `time_prompt` template then does not ask for.",
+    ),
+    setting(
         "org_capture_templates_contexts",
         "object[]",
         "[]",
@@ -634,6 +1557,52 @@ pub const SETTINGS: &[Setting] = &[
          `org_default_notes_file`. A template with only a key and a description groups the templates whose keys \
          start with its key.",
     ),
+    Setting {
+        default: None,
+        unset: "none: the menu of templates",
+        ..setting(
+            "org_protocol_default_template_key",
+            "string",
+            "",
+            "org-protocol-default-template-key",
+            "The keys of the capture template an `org-protocol://capture` URL uses when it names none \
+             (`template=`).",
+        )
+    },
+    setting(
+        "org_protocol_data_separator",
+        "string",
+        r#""/+\\|\\?""#,
+        "org-protocol-data-separator",
+        "An Emacs regular expression: what separates the parts of an old-style `org-protocol` URL \
+         (`org-protocol://capture:/x/URL/TITLE/BODY`).",
+    ),
+    setting(
+        "org_protocol_project_alist",
+        "object[]",
+        "[]",
+        "org-protocol-project-alist",
+        "Where the files of `org-protocol://open-source` URLs are on this computer. Each has a `name`, the \
+         `base_url` of the pages (with its last slash) and the `working_directory` of their files (with its \
+         last slash, `~/` for the home directory), and may have an `online_suffix` taken off the URL \
+         (`.html`), a `working_suffix` put on in its place (`.org`), and `rewrites`, pairs of an Emacs regular \
+         expression on the URL, whose first group is taken out of it, and what goes after it, for a URL whose \
+         file is not there. The first whose `base_url` the URL has is tried first.",
+    ),
+    Setting {
+        default: None,
+        unset: "none: a capture waits for an editor with org-lsp",
+        ..setting(
+            "org_protocol_editor",
+            "string",
+            "",
+            "",
+            "The editor `org-lsp protocol` starts when no org-lsp runs, as a command line (`code`, `zed`, \
+             `kitty nvim`): it opens `org_default_notes_file` in it, or the file of an `open-source` URL, and \
+             the org-lsp that starts there takes the URL, within two minutes. Read from the shared file only. \
+             Without it, a stored link is kept for the next org-lsp that starts, and a capture fails.",
+        )
+    },
     setting(
         "org_directory",
         "string",
@@ -664,6 +1633,71 @@ pub const SETTINGS: &[Setting] = &[
         "org-hide-emphasis-markers",
         "Hide the markers around `*bold*`, `/italic/`, `_underline_`, `+strike-through+`, `=verbatim=` \
          and `~code~`, as for links.",
+    ),
+    setting(
+        "org_fontify_emphasized_text",
+        "boolean",
+        "true",
+        "org-fontify-emphasized-text",
+        "Show `*bold*`, `/italic/`, `_underline_`, `+strike-through+`, `=verbatim=` and `~code~` in their \
+         looks. With `false` they look as the text around them, their markers shown.",
+    ),
+    Setting {
+        default: None,
+        unset: "Org's: `bold`, `italic`, `underline`, `org-verbatim`, `org-code` and `:strike-through t`",
+        ..setting(
+            "org_emphasis_alist",
+            "{ [marker]: face | face[] | false }",
+            "",
+            "org-emphasis-alist",
+            "The look of each kind of emphasis, by its marker (`*`, `/`, `_`, `=`, `~`, `+`): a face of Org's, \
+             `bold`, `italic`, `bold-italic`, `underline`, `org-code` or `org-verbatim`, attributes as Org \
+             writes them (`:weight bold :slant italic :underline t :strike-through t`), or a list of them; \
+             `false` for none. As in Emacs, a marker left out has no look. Colors are not shown.",
+        )
+    },
+    setting(
+        "org_hidden_keywords",
+        r#"("title" | "subtitle" | "author" | "email" | "date")[]"#,
+        "[]",
+        "org-hidden-keywords",
+        "The keywords hidden before their values, such as `#+TITLE:` with `[\"title\"]`, in editors that \
+         conceal text.",
+    ),
+    setting(
+        "org_hide_macro_markers",
+        "boolean",
+        "false",
+        "org-hide-macro-markers",
+        "Hide the braces of macro calls, `{{{` and `}}}`, in editors that conceal text.",
+    ),
+    setting(
+        "org_display_custom_times",
+        "boolean",
+        "false",
+        "org-display-custom-times",
+        "Show timestamps in `org_timestamp_custom_formats`: the date and time inside the brackets is hidden \
+         and the custom form shows in its place, as entities do. `#+STARTUP: customtime` turns it on for a \
+         file, and `C-c C-x C-t` (`org.timestamp.overlays.toggle`) on and off. Exports through Emacs use \
+         them too; the date prompt shows its answer in Org's own form.",
+    ),
+    setting(
+        "org_timestamp_custom_formats",
+        "[date, date with time]",
+        r#"["%m/%d/%y %a", "%m/%d/%y %a %H:%M"]"#,
+        "org-timestamp-custom-formats",
+        "The formats of `org_display_custom_times`, as `format-time-string` reads them (`%d.%m.%Y`); \
+         brackets around a format are dropped.",
+    ),
+    setting(
+        "org_entities_user",
+        "[name, LaTeX, math?, HTML, ASCII, Latin-1, UTF-8][]",
+        "[]",
+        "org-entities-user",
+        "Entities of your own, used as `\\name`: what each is in LaTeX (and whether that needs math mode), \
+         HTML, ASCII, Latin-1 and UTF-8, as `[\"myarrow\", \"\\\\to\", true, \"&rarr;\", \"->\", \"->\", \"→\"]`. A name \
+         is letters only, and one of Org's own is replaced. The server shows them as `org_pretty_entities` \
+         says and completes them; Emacs exports them.",
     ),
     setting(
         "org_pretty_entities",
@@ -701,6 +1735,14 @@ pub const SETTINGS: &[Setting] = &[
          `org.return.item` (`<S-CR>`, Shift+Enter, with the vim keys) always does it.",
     ),
     setting(
+        "org_return_follows_link",
+        "boolean",
+        "false",
+        "org-return-follows-link",
+        "RET (`org.return`) on a link, a timestamp or a citation follows it, as `org.open` (`C-c C-o`) does. \
+         In a table RET still moves down.",
+    ),
+    setting(
         "org_goto_max_level",
         "number",
         "5",
@@ -713,7 +1755,8 @@ pub const SETTINGS: &[Setting] = &[
         "3",
         "",
         "How many months the calendar of the date prompt shows: 3 side by side, as Emacs's calendar shows them, \
-         the one with the selected day in the middle; or 1, that month alone, for a narrow window.",
+         the one with the selected day in the middle; or 1, that month alone, for a narrow window, with the \
+         answer on a line under the prompt.",
     ),
     setting(
         "calendar_week_start_day",
@@ -776,6 +1819,41 @@ pub const SETTINGS: &[Setting] = &[
          all of them stay outside. `0`: none does.",
     ),
     setting(
+        "org_cycle_include_plain_lists",
+        r#"true, false, "integrate""#,
+        "true",
+        "org-cycle-include-plain-lists",
+        "Whether list items fold, as subtrees do. `integrate` makes them part of the outline: TAB showing \
+         a headline's children folds its lists to their top items too. `false`: they do not fold.",
+    ),
+    Setting {
+        default: None,
+        unset: "every level",
+        ..setting(
+            "org_cycle_max_level",
+            "number",
+            "",
+            "org-cycle-max-level",
+            "The deepest headlines that fold; deeper ones are text of the subtree they are in.",
+        )
+    },
+    setting(
+        "org_cycle_global_at_bob",
+        "boolean",
+        "false",
+        "org-cycle-global-at-bob",
+        "TAB at the very start of the file, when its first line is no headline, cycles the whole file as \
+         S-TAB does.",
+    ),
+    setting(
+        "org_cycle_level_after_item_entry_creation",
+        "boolean",
+        "true",
+        "org-cycle-level-after-item/entry-creation",
+        "TAB on a new, empty headline makes it a child of the headline before, then each level up, then a \
+         sibling again; on an empty item, it indents and outdents the item the same way.",
+    ),
+    setting(
         "org_startup_folded",
         "string",
         "\"showeverything\"",
@@ -786,6 +1864,14 @@ pub const SETTINGS: &[Setting] = &[
          Unless everything shows, a subtree's `VISIBILITY` property (`folded`, `children`, `content`, `all`) \
          decides for it, archived subtrees are folded, and drawers too. Folds hide whole subtrees, so where \
          Org shows a headline's children but not its text, the text shows.",
+    ),
+    setting(
+        "org_startup_align_all_tables",
+        "boolean",
+        "false",
+        "org-startup-align-all-tables",
+        "Align every table of a file when it opens (an edit of the file, as in Emacs). `#+STARTUP: align` and \
+         `noalign` decide for a file.",
     ),
     setting(
         "org_startup_shrink_all_tables",
@@ -827,6 +1913,52 @@ pub const SETTINGS: &[Setting] = &[
          re-indenting (range formatting) and to what commands write.",
     ),
     setting(
+        "org_image_actual_width",
+        "boolean, number, or [number]",
+        "true",
+        "org-image-actual-width",
+        "How wide the image of a link shows: `true` at its own width; a number, that many pixels; `false` or a \
+         list of one number, the `:width` of the paragraph's `#+ATTR_ORG:` or else of another `#+ATTR_…:` \
+         (pixels, `50%` or a fraction up to 2 of the text's width, `t` for its own width), else the list's \
+         number. An entry's `ORG-IMAGE-ACTUAL-WIDTH` property decides for its own text.",
+    ),
+    setting(
+        "org_image_max_width",
+        "\"fill-column\", \"window\", number, or null",
+        r#""fill-column""#,
+        "org-image-max-width",
+        "How wide at most an image shown at its own width is: `\"fill-column\"`, 70 columns; `\"window\"`, \
+         the window's width; an integer, that many pixels; a float, that part of the window's width; null for \
+         no limit.",
+    ),
+    setting(
+        "org_display_remote_inline_images",
+        "\"skip\", \"download\" or \"cache\"",
+        r#""skip""#,
+        "org-display-remote-inline-images",
+        "Whether the images of `http:` and `https:` links show (`C-c C-x C-v`): `\"skip\"` not; `\"download\"` \
+         downloaded each time they show; `\"cache\"` downloaded once and kept for the session. The download \
+         follows `org_resource_download_policy`.",
+    ),
+    setting(
+        "org_resource_download_policy",
+        "true, \"prompt\", \"safe\" or false",
+        r#""prompt""#,
+        "org-resource-download-policy",
+        "Which remote resources are downloaded (the images of links): `true` all of them; `\"prompt\"` those \
+         considered safe, and the others when the answer to Emacs's question says so; `\"safe\"` only those \
+         considered safe; `false` none but those.",
+    ),
+    setting(
+        "org_safe_remote_resources",
+        "string[]",
+        "[]",
+        "org-safe-remote-resources",
+        "The remote resources considered safe: Emacs regexps matched against a resource's URL and against the \
+         `file://` URL of the file asking for it. The answers `!`, `d` and `f` to the download question add one \
+         for the rest of the session.",
+    ),
+    setting(
         "org_startup_with_link_previews",
         "boolean",
         "false",
@@ -851,8 +1983,57 @@ pub const SETTINGS: &[Setting] = &[
         "org-startup-indented",
         "Show files indented by level without changing them (`org-indent-mode`): the text under a headline lines up \
          with its title, and leading stars are hidden. `#+STARTUP: indent` and `noindent` decide for a file. It \
-         turns `org_adapt_indentation` off in such files, unless that is `\"headline-data\"`. Editors that can show it: \
-         Neovim, and VS Code (not on wrapped lines).",
+         turns `org_adapt_indentation` off in such files, unless that is `\"headline-data\"`. The lines a long line \
+         wraps into go on under its text, a headline's title or an item's text (`wrap-prefix`) in Neovim and Vim, \
+         without the prefix; under the prefix in Zed and Helix.",
+    ),
+    setting(
+        "org_startup_numerated",
+        "boolean",
+        "false",
+        "org-startup-numerated",
+        "Number the headlines of files (`org-num-mode`): `1`, `1.1`, `1.2`… after the stars, shown as inlay \
+         hints without changing the file. `#+STARTUP: num` and `nonum` decide for a file, and `org.num.mode` turns \
+         it on and off.",
+    ),
+    Setting {
+        default: None,
+        unset: "every level",
+        ..setting(
+            "org_num_max_level",
+            "integer",
+            "",
+            "org-num-max-level",
+            "The deepest level `org-num-mode` numbers.",
+        )
+    },
+    setting(
+        "org_num_skip_commented",
+        "boolean",
+        "false",
+        "org-num-skip-commented",
+        "`org-num-mode` leaves `COMMENT` subtrees unnumbered.",
+    ),
+    setting(
+        "org_num_skip_footnotes",
+        "boolean",
+        "false",
+        "org-num-skip-footnotes",
+        "`org-num-mode` leaves the footnotes section (`* Footnotes`) unnumbered.",
+    ),
+    setting(
+        "org_num_skip_tags",
+        "string[]",
+        "[]",
+        "org-num-skip-tags",
+        "`org-num-mode` leaves the subtrees of headlines with one of these tags (their own, not inherited) unnumbered.",
+    ),
+    setting(
+        "org_num_skip_unnumbered",
+        "boolean",
+        "false",
+        "org-num-skip-unnumbered",
+        "`org-num-mode` leaves the subtrees of headlines with an `UNNUMBERED` property unnumbered.",
     ),
     setting(
         "org_hide_leading_stars",
@@ -863,6 +2044,150 @@ pub const SETTINGS: &[Setting] = &[
          `showstars` decide for a file.",
     ),
     setting(
+        "org_indent_mode_turns_on_hiding_stars",
+        "boolean",
+        "true",
+        "org-indent-mode-turns-on-hiding-stars",
+        "Where `org_startup_indented` (or `#+STARTUP: indent`) shows a file indented, hide the leading stars \
+         too, whatever `org_hide_leading_stars` says.",
+    ),
+    setting(
+        "org_indent_mode_turns_off_org_adapt_indentation",
+        "boolean",
+        "true",
+        "org-indent-mode-turns-off-org-adapt-indentation",
+        "Where a file shows indented, `org_adapt_indentation` is off (unless it is `headline-data`): new and \
+         moved text is not indented to its headline.",
+    ),
+    setting(
+        "org_indent_indentation_per_level",
+        "integer",
+        "2",
+        "org-indent-indentation-per-level",
+        "How many columns a file shown indented moves each level of headlines and their text in; 0 shows \
+         them as they are.",
+    ),
+    setting(
+        "org_duration_format",
+        r#""h:mm", "h:mm:ss", or a list"#,
+        r#"[["d", false], ["special", "h:mm"]]"#,
+        "org-duration-format",
+        "How durations are written (clock tables, clock lines, efforts): `\"h:mm\"` or `\"h:mm:ss\"`, or a list \
+         of units each with whether it is written when zero (`[\"d\", false]`), with perhaps `[\"special\", \
+         \"h:mm\"]` (the hours and minutes as `H:MM` after the larger units), `[\"special\", \"h:mm:ss\"]`, \
+         `[\"special\", 2]` (one unit with 2 decimals) and `\"compact\"` (no space between units). The units \
+         are those of `org_duration_units`.",
+    ),
+    setting(
+        "org_duration_units",
+        "[unit, minutes][]",
+        r#"[["min", 1], ["h", 60], ["d", 1440], ["w", 10080], ["m", 43200], ["y", 525960.0]]"#,
+        "org-duration-units",
+        "The units of durations and the minutes in each, for reading efforts and writing durations: \
+         `[\"d\", 480]` for days of 8 hours.",
+    ),
+    setting(
+        "org_fontify_done_headline",
+        "boolean",
+        "true",
+        "org-fontify-done-headline",
+        "Show a headline marked done in the look of done headlines past its keyword (`org-headline-done`).",
+    ),
+    setting(
+        "org_fontify_todo_headline",
+        "boolean",
+        "false",
+        "org-fontify-todo-headline",
+        "Show a headline marked with a keyword not done in the look of TODO headlines past its keyword \
+         (`org-headline-todo`, the token modifier `todo`).",
+    ),
+    setting(
+        "org_fontify_quote_and_verse_blocks",
+        "boolean",
+        "false",
+        "org-fontify-quote-and-verse-blocks",
+        "Show the lines inside quote and verse blocks in their own look (`org-quote`, `org-verse`: the token \
+         types `quote` and `verse`).",
+    ),
+    setting(
+        "org_custom_properties",
+        "string[]",
+        "[]",
+        "org-custom-properties",
+        "The properties `org.custom.properties.toggle` (`org-toggle-custom-properties-visibility`) hides in the \
+         property drawers, and shows again: `[\"ID\", \"CUSTOM_ID\"]`. Editors that can hide them: Neovim from \
+         0.11, and Sublime Text, in a fold.",
+    ),
+    setting(
+        "org_n_level_faces",
+        "integer",
+        "8",
+        "org-n-level-faces",
+        "How many looks headlines take by level, from 1 to 8 (the token modifiers `level1` to `level8`, Org's \
+         `org-level-1` to `org-level-8`): with 4, a headline of level 5 looks as one of level 1, or as one of \
+         level 4 with `org_cycle_level_faces` off.",
+    ),
+    setting(
+        "org_cycle_level_faces",
+        "boolean",
+        "true",
+        "org-cycle-level-faces",
+        "Past the last look of `org_n_level_faces`, headlines take the looks of the levels from the first \
+         again; with `false`, those deeper all keep the last.",
+    ),
+    setting(
+        "org_fontify_whole_heading_line",
+        "boolean",
+        "false",
+        "org-fontify-whole-heading-line",
+        "Show the look of a headline's level past the end of its text, to the edge of the window: for looks \
+         with a background. Editors that can show it: Neovim, Vim and VS Code (`org-lsp/lineHighlights`, \
+         VS Code's colors `org.headlineLevel1Background` and on).",
+    ),
+    Setting {
+        default: None,
+        unset: "the standard three dots, `...`",
+        ..setting(
+            "org_ellipsis",
+            "string",
+            "",
+            "org-ellipsis",
+            "What a closed fold shows after its first line, such as `\" ▾\"`, in the highlight group \
+             `OrgLspEllipsis` (Neovim). Editors that can show it: Neovim and Vim.",
+        )
+    },
+    setting(
+        "org_bullets_mode",
+        "boolean",
+        "false",
+        "org-bullets-mode",
+        "org-bullets: the last star of each headline shows as a bullet, those of `org_bullets_bullet_list` by \
+         level, and the stars before it are hidden, as with `org_hide_leading_stars`.",
+    ),
+    setting(
+        "org_bullets_bullet_list",
+        "string[]",
+        r#"["◉", "○", "✸", "✿"]"#,
+        "org-bullets-bullet-list",
+        "The bullets of `org_bullets_mode`, one a level, repeating after the last.",
+    ),
+    setting(
+        "org_bullets_list_bullet",
+        "false, or a string",
+        r#""•""#,
+        "",
+        "What `org_bullets_mode` shows in place of the `-`, `+` or `*` of an item, as org-bullets.nvim does; \
+         `false` leaves them as they are.",
+    ),
+    setting(
+        "org_bullets_checkboxes",
+        "false, or { todo, half, done }",
+        r#"{ "todo": " ", "half": "-", "done": "✓" }"#,
+        "",
+        "What `org_bullets_mode` shows between the brackets of a checkbox, `[ ]`, `[-]` and `[X]`, as \
+         org-bullets.nvim does; `false` leaves them as they are. A state left out keeps its default.",
+    ),
+    setting(
         "org_src_preserve_indentation",
         "boolean",
         "false",
@@ -870,11 +2195,88 @@ pub const SETTINGS: &[Setting] = &[
         "Leave the code of source blocks as it is indented when re-indenting.",
     ),
     setting(
-        "org_edit_src_content_indentation",
+        "org_babel_tangle_lang_exts",
+        "object",
+        "{}",
+        "org-babel-tangle-lang-exts",
+        "By language, the extension of the file `:tangle yes` writes its blocks to, before Org's own \
+         (`emacs-lisp` → `el`): `{ \"python\": \"py\" }`. A language without one gives its name.",
+    ),
+    setting(
+        "org_babel_tangle_use_relative_file_links",
+        "boolean",
+        "true",
+        "org-babel-tangle-use-relative-file-links",
+        "Whether the link comments of tangled files (`:comments link`) point back to the Org file by a \
+         relative path; with `false` by its whole path.",
+    ),
+    setting(
+        "org_babel_tangle_comment_format_beg",
+        "string",
+        r#""[[%link][%source-name]]""#,
+        "org-babel-tangle-comment-format-beg",
+        "The comment before a tangled block (`:comments link`): `%link` the link back to it, \
+         `%source-name` its name, `%file` the Org file, `%start-line` the line its code starts on.",
+    ),
+    setting(
+        "org_babel_tangle_comment_format_end",
+        "string",
+        r#""%source-name ends here""#,
+        "org-babel-tangle-comment-format-end",
+        "The comment after a tangled block, with the keys of `org_babel_tangle_comment_format_beg`.",
+    ),
+    setting(
+        "org_babel_tangle_uncomment_comments",
+        "boolean",
+        "false",
+        "org-babel-tangle-uncomment-comments",
+        "Write the comments of tangled blocks as they are: not commented, and no line break after them.",
+    ),
+    setting(
+        "org_babel_process_comment_text",
+        "string",
+        r#""org-remove-indentation""#,
+        "org-babel-process-comment-text",
+        "The function the Org text of `:comments org` goes through: `org-remove-indentation` takes its \
+         common indentation away, `identity` leaves it; Emacs tangles with any other.",
+    ),
+    setting(
+        "org_babel_tangle_default_file_mode",
+        "string",
+        r#""644""#,
+        "org-babel-tangle-default-file-mode",
+        "In octal, the mode a symbolic `:tangle-mode` (`u+x`) changes.",
+    ),
+    setting(
+        "org_babel_tangle_remove_file_before_write",
+        "true, false, \"auto\"",
+        r#""auto""#,
+        "org-babel-tangle-remove-file-before-write",
+        "Whether a file tangling writes again is deleted first: `true` always (a link to it becomes a file \
+         of its own), `false` never (a read-only file refuses), `\"auto\"` when it is read-only.",
+    ),
+    setting(
+        "org_babel_noweb_wrap_start",
+        "string",
+        r#""<<""#,
+        "org-babel-noweb-wrap-start",
+        "What opens a Noweb reference in a source block (`<<name>>`).",
+    ),
+    setting(
+        "org_babel_noweb_wrap_end",
+        "string",
+        r#"">>""#,
+        "org-babel-noweb-wrap-end",
+        "What closes a Noweb reference.",
+    ),
+    setting(
+        "org_src_content_indentation",
         "number",
         "2",
-        "org-edit-src-content-indentation",
-        "How far code is indented past its source block when re-indenting.",
+        "org-src-content-indentation",
+        "How far code is indented past its source block: when re-indenting, and when the code of a block \
+         edited in a file of its own (`C-c '`) is written back. Formerly `org_edit_src_content_indentation`, \
+         which is still read.",
     ),
     setting(
         "org_agenda_span",
@@ -918,7 +2320,9 @@ pub const SETTINGS: &[Setting] = &[
         "org-modules",
         "Org modules to load. `org-habit` turns habits on: entries with the `STYLE` property `habit` and a \
          scheduled date with a repeater (`.+2d`, `.+2d/4d` for a deadline too) show in the agenda with a graph \
-         of the days they were done. Others are ignored.",
+         of the days they were done. `ol-man` makes `[[man:ls]]` a link to a man page (`org_man_command`). \
+         `org-ctags` follows links to the tags of a `TAGS` file, as loading it and calling `org-ctags-enable` \
+         does (`org_ctags_open_link_functions`). Others are ignored.",
     ),
     setting(
         "org_habit_graph_column",
@@ -1023,6 +2427,318 @@ pub const SETTINGS: &[Setting] = &[
         "Leave out timestamps of entries that are done.",
     ),
     setting(
+        "org_agenda_time_leading_zero",
+        "boolean",
+        "false",
+        "org-agenda-time-leading-zero",
+        "Write times with two digits for the hour (`08:00`).",
+    ),
+    setting(
+        "org_agenda_timegrid_use_ampm",
+        "boolean",
+        "false",
+        "org-agenda-timegrid-use-ampm",
+        "Write the times of the agenda, the time grid's too, in 12-hour form (`8:00am`).",
+    ),
+    setting(
+        "org_agenda_search_headline_for_time",
+        "boolean",
+        "true",
+        "org-agenda-search-headline-for-time",
+        "Take a time in a headline (`Call at 15:00`) as the time of its entry.",
+    ),
+    setting(
+        "org_agenda_remove_times_when_in_prefix",
+        r#"boolean, "beg""#,
+        "true",
+        "org-agenda-remove-times-when-in-prefix",
+        "Take a time out of the headline when the prefix shows it; `beg` only one at the start of the \
+         headline.",
+    ),
+    Setting {
+        default: None,
+        unset: "none",
+        ..setting(
+            "org_agenda_default_appointment_duration",
+            "integer",
+            "",
+            "org-agenda-default-appointment-duration",
+            "Minutes an entry with a start time and no end time lasts: the agenda shows it as a range.",
+        )
+    },
+    setting(
+        "org_agenda_remove_timeranges_from_blocks",
+        "boolean",
+        "false",
+        "org-agenda-remove-timeranges-from-blocks",
+        "Take a date range out of the headline of its lines.",
+    ),
+    Setting {
+        default: None,
+        unset: "none",
+        ..setting(
+            "org_agenda_diary_sexp_prefix",
+            "string",
+            "",
+            "org-agenda-diary-sexp-prefix",
+            "A regexp (Emacs's syntax): what it matches of a diary sexp's text goes in front of the line, as \
+             a scheduled date's `Scheduled:` does.",
+        )
+    },
+    setting(
+        "org_agenda_show_inherited_tags",
+        r#"boolean, "always", string[]"#,
+        "true",
+        "org-agenda-show-inherited-tags",
+        "Show the inherited tags of an entry on its agenda lines: where `org_agenda_use_tag_inheritance` has \
+         them (`true`), always, never (`false`), or in these kinds of views (`agenda`, `todo`, `search`). \
+         Sorting by tag and `org_agenda_max_tags` go by the tags a line shows.",
+    ),
+    setting(
+        "org_agenda_use_tag_inheritance",
+        "boolean, string[]",
+        r#"["todo", "search", "agenda"]"#,
+        "org-agenda-use-tag-inheritance",
+        "The kinds of views whose lines have inherited tags (`true`: all). Tags matches always have them.",
+    ),
+    Setting {
+        default: None,
+        unset: "none",
+        ..setting(
+            "org_agenda_hide_tags_regexp",
+            "string",
+            "",
+            "org-agenda-hide-tags-regexp",
+            "A regexp (Emacs's syntax): the tags it matches are not shown on agenda lines, but filters still \
+             see them.",
+        )
+    },
+    setting(
+        "org_agenda_include_deadlines",
+        "boolean",
+        "true",
+        "org-agenda-include-deadlines",
+        "Show deadlines in the agenda.",
+    ),
+    setting(
+        "org_agenda_skip_additional_timestamps_same_entry",
+        "boolean",
+        "false",
+        "org-agenda-skip-additional-timestamps-same-entry",
+        "Once a timestamp of an entry has made a line for a day, leave out its other timestamps on that day.",
+    ),
+    setting(
+        "org_agenda_fontify_priorities",
+        r#"boolean, "cookies""#,
+        r#""cookies""#,
+        "org-agenda-fontify-priorities",
+        "Highlight the priority cookies of agenda lines (`cookies`), or each line from its cookie on \
+         (`true`; links and tags keep their own look); the highest priority shows in bold, the lowest in \
+         italic. `false` highlights none. Org's list of faces by priority is not read here: \
+         `org_priority_faces` gives them.",
+    ),
+    setting(
+        "org_agenda_prefer_last_repeat",
+        "boolean, string[]",
+        "false",
+        "org-agenda-prefer-last-repeat",
+        "Show a repeating scheduled date, deadline or timestamp at its last repeat up to today instead of its \
+         base date, for every entry (`true`) or for those with one of these TODO keywords.",
+    ),
+    setting(
+        "org_agenda_skip_deadline_prewarning_if_scheduled",
+        r#"boolean, "pre-scheduled", number"#,
+        "false",
+        "org-agenda-skip-deadline-prewarning-if-scheduled",
+        "For a scheduled entry, show its deadline only on its date (`true`), not before its scheduled date \
+         (`pre-scheduled`), or from N days before it (a number).",
+    ),
+    setting(
+        "org_agenda_skip_scheduled_delay_if_deadline",
+        r#"boolean, "post-deadline", number"#,
+        "false",
+        "org-agenda-skip-scheduled-delay-if-deadline",
+        "For an entry with a deadline, drop the delay of its scheduled date (`--2d`) (`true`), or keep it no \
+         later than the deadline (`post-deadline`). A number drops it too, as Org's code does.",
+    ),
+    setting(
+        "org_agenda_skip_scheduled_if_deadline_is_shown",
+        r#"boolean, "not-today", "repeated-after-deadline""#,
+        "false",
+        "org-agenda-skip-scheduled-if-deadline-is-shown",
+        "Leave out a scheduled date on a day its entry's deadline shows (`true`), only when it was scheduled \
+         before today (`not-today`); `repeated-after-deadline` is \
+         `org_agenda_skip_scheduled_repeats_after_deadline`. Not for habits.",
+    ),
+    setting(
+        "org_agenda_skip_scheduled_repeats_after_deadline",
+        "boolean",
+        "false",
+        "org-agenda-skip-scheduled-repeats-after-deadline",
+        "Leave out the repeats of a scheduled date that come after the entry's deadline.",
+    ),
+    setting(
+        "org_agenda_skip_comment_trees",
+        "boolean",
+        "true",
+        "org-agenda-skip-comment-trees",
+        "Leave out of every view the entries of a commented subtree (`COMMENT` after the stars).",
+    ),
+    setting(
+        "org_agenda_skip_archived_trees",
+        "boolean",
+        "true",
+        "org-agenda-skip-archived-trees",
+        "Leave out of every view the entries of an archived subtree (tagged `ARCHIVE`), unless archives \
+         mode (`v a`) shows them. Org advises leaving it on and using `v a` instead.",
+    ),
+    setting(
+        "org_agenda_todo_list_sublevels",
+        "boolean",
+        "true",
+        "org-agenda-todo-list-sublevels",
+        "Show in the TODO list the TODO entries below another one. Off, the list skips the subtree of \
+         each entry it shows or leaves out for a date.",
+    ),
+    setting(
+        "org_agenda_todo_ignore_with_date",
+        "boolean",
+        "false",
+        "org-agenda-todo-ignore-with-date",
+        "Leave out of the TODO list the entries with an active timestamp anywhere in their text, \
+         scheduled and deadline dates too.",
+    ),
+    setting(
+        "org_agenda_todo_ignore_scheduled",
+        r#"boolean, "future", "past", "all", number"#,
+        "false",
+        "org-agenda-todo-ignore-scheduled",
+        "Leave out of the TODO list the scheduled entries: all of them (`true`, `all`), those scheduled \
+         after today (`future`), today or before (`past`), or with a number N, N days from now or later \
+         (a negative N: N days ago or before).",
+    ),
+    setting(
+        "org_agenda_todo_ignore_deadlines",
+        r#"boolean, "near", "far", "all", "future", "past", number"#,
+        "false",
+        "org-agenda-todo-ignore-deadlines",
+        "Leave out of the TODO list the entries with a deadline: in its warning period, that is, shown in \
+         the agenda (`true`, `near`), not yet in it (`far`), all of them (`all`), after today (`future`), \
+         today or before (`past`), or with a number as for `org_agenda_todo_ignore_scheduled`.",
+    ),
+    setting(
+        "org_agenda_todo_ignore_timestamp",
+        r#"boolean, "future", "past", "all", number"#,
+        "false",
+        "org-agenda-todo-ignore-timestamp",
+        "Leave out of the TODO list the entries with an active timestamp that is no scheduled or \
+         deadline date, with the values of `org_agenda_todo_ignore_scheduled`.",
+    ),
+    setting(
+        "org_agenda_todo_ignore_time_comparison_use_seconds",
+        "boolean",
+        "false",
+        "org-agenda-todo-ignore-time-comparison-use-seconds",
+        "Compare the dates of the `org_agenda_todo_ignore_*` settings with now to the second instead of \
+         by day: `future` is then later than now, and a number counts seconds.",
+    ),
+    setting(
+        "org_tags_match_list_sublevels",
+        r#"true, false, "indented""#,
+        "true",
+        "org-tags-match-list-sublevels",
+        "Whether tags matches (agenda, sparse trees) and stuck projects list the entries below one they \
+         list: `false` passes over its subtree, `indented` shows them with a dot for each level below the \
+         first.",
+    ),
+    setting(
+        "org_agenda_tags_todo_honor_ignore_options",
+        "boolean",
+        "false",
+        "org-agenda-tags-todo-honor-ignore-options",
+        "Have the `org_agenda_todo_ignore_*` settings leave entries out of `tags-todo` matches as well.",
+    ),
+    setting(
+        "org_agenda_sorting_strategy",
+        "{ agenda?, todo?, tags?, search? } of string[], or string[]",
+        r#"{ "agenda": ["habit-down", "time-up", "urgency-down", "category-keep"], "todo": ["urgency-down", "category-keep"], "tags": ["urgency-down", "category-keep"], "search": ["category-keep"] }"#,
+        "org-agenda-sorting-strategy",
+        "How the lines of a day (`agenda`), the TODO list (`todo`), a tags match (`tags`, `tags-todo` too) \
+         and a search (`search`) are ordered: the strategies in turn, each deciding when the ones before do \
+         not. A view without a list takes `agenda`'s, and without that `time-up`, `category-keep`, \
+         `urgency-down`; one list alone is for every view. `time-up`/`-down` the time of day; \
+         `timestamp-`, `scheduled-`, `deadline-`, `ts-` (active) and `tsia-` (inactive) `up`/`down` the date \
+         of that kind (in the TODO list and a tags match, the entry's); `priority-` the priority, \
+         `urgency-` the priority with how near or overdue the date is; `effort-`, `category-` (and \
+         `category-keep`, the order the entries come in), `tag-` (the last tag), `todo-state-` (where the \
+         keyword is in the file's list, done ones first), `habit-`, `alpha-` (the headline), `stats-` (the \
+         statistics cookie). `user-defined-up` and `-down` call Lisp, which the server does not run.",
+    ),
+    setting(
+        "org_agenda_sort_notime_is_late",
+        "boolean",
+        "true",
+        "org-agenda-sort-notime-is-late",
+        "Lines without a time (or without the date a strategy sorts by) come after those with one.",
+    ),
+    setting(
+        "org_agenda_sort_noeffort_is_high",
+        "boolean",
+        "true",
+        "org-agenda-sort-noeffort-is-high",
+        "Entries without an effort count as having the highest when sorted, filtered or limited by effort.",
+    ),
+    Setting {
+        default: None,
+        unset: "no limit",
+        ..setting(
+            "org_agenda_max_entries",
+            "integer, or { agenda?, todo?, tags?, search? } of integers",
+            "",
+            "org-agenda-max-entries",
+            "How many entries a day of the agenda, the TODO list, a tags match or a search shows at most: one \
+             number for all, or one for each kind of view. Other lines, such as those of the time grid, go \
+             as well; with a negative number they stay.",
+        )
+    },
+    Setting {
+        default: None,
+        unset: "no limit",
+        ..setting(
+            "org_agenda_max_todos",
+            "integer, or { agenda?, todo?, tags?, search? } of integers",
+            "",
+            "org-agenda-max-todos",
+            "How many entries with a TODO keyword a view shows at most, the other lines going as well; with a \
+             negative number, those stay.",
+        )
+    },
+    Setting {
+        default: None,
+        unset: "no limit",
+        ..setting(
+            "org_agenda_max_tags",
+            "integer, or { agenda?, todo?, tags?, search? } of integers",
+            "",
+            "org-agenda-max-tags",
+            "How many entries with tags a view shows at most, the other lines going as well; with a negative \
+             number, those stay.",
+        )
+    },
+    Setting {
+        default: None,
+        unset: "no limit",
+        ..setting(
+            "org_agenda_max_effort",
+            "integer, or { agenda?, todo?, tags?, search? } of integers",
+            "",
+            "org-agenda-max-effort",
+            "The most minutes of effort the entries of a view add up to: entries show while their efforts, \
+             in order, stay within it (an entry without one counts as the highest, or as -1 with \
+             `org_agenda_sort_noeffort_is_high` off).",
+        )
+    },
+    setting(
         "org_agenda_show_future_repeats",
         r#"boolean, "next""#,
         "true",
@@ -1087,6 +2803,25 @@ pub const SETTINGS: &[Setting] = &[
         "Start the agenda with the clock report under it (`R` toggles it).",
     ),
     setting(
+        "org_agenda_clockreport_parameter_plist",
+        "string",
+        r#"":link t :maxlevel 2""#,
+        "org-agenda-clockreport-parameter-plist",
+        "The parameters of the clock report's table, as those of a clock table block (`:maxlevel 3 :tags t`); \
+         `:block`, `:tstart`, `:tend` and `:scope` are the agenda's.",
+    ),
+    Setting {
+        default: None,
+        unset: "none",
+        ..setting(
+            "org_agenda_clock_report_header",
+            "string",
+            "",
+            "org-agenda-clock-report-header",
+            "Text on a line of its own (or lines) before the clock report.",
+        )
+    },
+    setting(
         "org_agenda_start_with_archives_mode",
         "\"trees\" | \"files\" | false",
         "false",
@@ -1102,11 +2837,34 @@ pub const SETTINGS: &[Setting] = &[
         "What log mode shows: `closed` entries, `clock` lines and `state` changes.",
     ),
     setting(
+        "org_agenda_log_mode_add_notes",
+        "boolean",
+        "true",
+        "org-agenda-log-mode-add-notes",
+        "Show the note of a state change or a clock line after the headline in log mode.",
+    ),
+    setting(
+        "org_agenda_move_date_from_past_immediately_to_today",
+        "boolean",
+        "true",
+        "org-agenda-move-date-from-past-immediately-to-today",
+        "Moving a date of the past one day later from the agenda (`S-<right>`) takes it to today.",
+    ),
+    setting(
         "org_agenda_persistent_marks",
         "boolean",
         "false",
         "org-agenda-persistent-marks",
         "Keep the marks of a bulk action (`B`) after it (`p` in its menu toggles this for one action).",
+    ),
+    setting(
+        "org_agenda_show_outline_path",
+        r#"boolean, "title""#,
+        "true",
+        "org-agenda-show-outline-path",
+        "As the cursor moves in the agenda, show where the entry of its line is: the file's name and the \
+         headlines above it (`work.org/Projects/Report`), in the echo area or the status bar. With `title` \
+         the file's `#+TITLE:` comes first instead of its name.",
     ),
     setting(
         "org_agenda_start_with_follow_mode",
@@ -1143,6 +2901,37 @@ pub const SETTINGS: &[Setting] = &[
         "[]",
         "org-agenda-entry-text-exclude-regexps",
         "Emacs regexps whose matches are left out of the entry text `E` shows.",
+    ),
+    setting(
+        "org_agenda_add_entry_text_maxlines",
+        "integer",
+        "0",
+        "org-agenda-add-entry-text-maxlines",
+        "The most lines of each entry's text written under its line when the agenda is written to a plain text \
+         file (`C-x C-w`), each after four spaces and `>`; 0 writes none. The text `E` shows is not written.",
+    ),
+    setting(
+        "org_agenda_add_entry_text_descriptive_links",
+        "boolean",
+        "true",
+        "org-agenda-add-entry-text-descriptive-links",
+        "Whether links in the text `org_agenda_add_entry_text_maxlines` writes show as their descriptions. In \
+         Org 9.8.10 a plain text file has the links as they are either way, and so does org-lsp.",
+    ),
+    setting(
+        "org_agenda_view_columns_initially",
+        "boolean",
+        "false",
+        "org-agenda-view-columns-initially",
+        "Show column view (through Emacs) each time an agenda view is made, as `C-c C-x C-c` there would.",
+    ),
+    setting(
+        "org_agenda_persistent_filter",
+        "boolean",
+        "false",
+        "org-agenda-persistent-filter",
+        "A new agenda view keeps the filters by tag, category, regexp and effort of the agenda still open, \
+         rather than starting without them.",
     ),
     setting(
         "org_agenda_block_separator",
@@ -1298,6 +3087,107 @@ pub const SETTINGS: &[Setting] = &[
          window's 79 columns.",
     ),
     setting(
+        "org_roam_node_formatter",
+        "string",
+        r#""""#,
+        "org-roam-node-formatter",
+        "The description of a link `org.roam.node.insert` makes, a template as \
+         `org_roam_node_display_template` is (`${title} (${file})`); empty for the node's title.",
+    ),
+    setting(
+        "org_roam_db_extra_links_elements",
+        "array",
+        r#"["node-property", "keyword"]"#,
+        "org-roam-db-extra-links-elements",
+        "Where else org-roam finds links than where Org does: in property drawers (`node-property`) and \
+         keyword lines (`keyword`).",
+    ),
+    setting(
+        "org_roam_db_extra_links_exclude_keys",
+        "object",
+        r#"{ "node-property": ["ROAM_REFS"], "keyword": ["transclude"] }"#,
+        "org-roam-db-extra-links-exclude-keys",
+        "By `node-property` and `keyword`, the properties and keywords whose links are not links, in any \
+         case. A list given replaces the default one.",
+    ),
+    setting(
+        "org_roam_graph_executable",
+        "string",
+        r#""dot""#,
+        "org-roam-graph-executable",
+        "The Graphviz program that draws `org.roam.graph`'s graph, found on `PATH` or a path.",
+    ),
+    Setting {
+        default: None,
+        unset: "the editor's: it opens the file as the system does",
+        ..setting(
+            "org_roam_graph_viewer",
+            "string",
+            "",
+            "org-roam-graph-viewer",
+            "The program that shows the graph, given its file.",
+        )
+    },
+    setting(
+        "org_roam_graph_filetype",
+        "string",
+        r#""svg""#,
+        "org-roam-graph-filetype",
+        "What Graphviz draws the graph as (its `-T`): `svg`, `png`, `pdf`…",
+    ),
+    setting(
+        "org_roam_graph_extra_config",
+        "object",
+        "{}",
+        "org-roam-graph-extra-config",
+        "Graphviz's attributes of the graph, in their order: `{ \"rankdir\": \"LR\" }`.",
+    ),
+    setting(
+        "org_roam_graph_edge_extra_config",
+        "object",
+        "{}",
+        "org-roam-graph-edge-extra-config",
+        "Graphviz's attributes of the links: `{ \"dir\": \"back\" }`.",
+    ),
+    setting(
+        "org_roam_graph_node_extra_config",
+        "object",
+        r##"{ "id": { "style": "bold,rounded,filled", "fillcolor": "#EEEEEE", "color": "#C9C9C9", "fontcolor": "#111111" }, "http": { "style": "rounded,filled", "fillcolor": "#EEEEEE", "color": "#C9C9C9", "fontcolor": "#0A97A6" }, "https": { "style": "rounded,filled", "fillcolor": "#EEEEEE", "color": "#C9C9C9", "fontcolor": "#0A97A6" } }"##,
+        "org-roam-graph-node-extra-config",
+        "Graphviz's attributes of the nodes, by the type of the link to them: `id` for org-roam's nodes, \
+         `https` for the web pages linked to.",
+    ),
+    setting(
+        "org_roam_graph_link_hidden_types",
+        "string[]",
+        r#"["file"]"#,
+        "org-roam-graph-link-hidden-types",
+        "The types of links the graph leaves out.",
+    ),
+    setting(
+        "org_roam_graph_max_title_length",
+        "integer",
+        "100",
+        "org-roam-graph-max-title-length",
+        "The width a title takes in the graph, at most.",
+    ),
+    setting(
+        "org_roam_graph_shorten_titles",
+        "\"truncate\", \"wrap\", false",
+        r#""truncate""#,
+        "org-roam-graph-shorten-titles",
+        "What becomes of a title wider than `org_roam_graph_max_title_length`: cut with `...` (`truncate`), \
+         over lines (`wrap`), or nothing (`false`).",
+    ),
+    setting(
+        "org_roam_extract_new_file_path",
+        "string",
+        r#""%<%Y%m%d%H%M%S>-${slug}.org""#,
+        "org-roam-extract-new-file-path",
+        "The file `org.roam.extract` offers for a node, relative to `org_roam_directory`: `%<…>` is the time \
+         as `format-time-string` writes it, `${title}`, `${slug}` and `${id}` the node's.",
+    ),
+    setting(
         "org_roam_link_auto_replace",
         "boolean",
         "true",
@@ -1333,6 +3223,21 @@ pub const SETTINGS: &[Setting] = &[
          The path, relative to `org_roam_directory`, and the texts may have `${title}`, `${slug}`, `${id}` and \
          `${name}`, which asks for `name` (`${name=default}` starts the answer with `default`), besides the \
          escapes of `org_capture_templates`. `unnarrowed` shows the whole file in the capture buffer.",
+    ),
+    setting(
+        "org_roam_dailies_directory",
+        "string",
+        r#""daily/""#,
+        "org-roam-dailies-directory",
+        "Where the daily notes are, relative to `org_roam_directory`.",
+    ),
+    setting(
+        "org_roam_dailies_capture_templates",
+        "object[]",
+        r##"[{ "key": "d", "description": "default", "type": "entry", "template": "* %?", "target": ["file+head", "%<%Y-%m-%d>.org", "#+title: %<%Y-%m-%d>\n"] }]"##,
+        "org-roam-dailies-capture-templates",
+        "The templates of the daily notes, as `org_roam_capture_templates` writes them, with paths relative to \
+         `org_roam_dailies_directory`; `%<…>` is the note's day.",
     ),
     setting(
         "org_journal_enabled",
@@ -1418,6 +3323,22 @@ pub const SETTINGS: &[Setting] = &[
         "Fold all but the new entry.",
     ),
     setting(
+        "org_journal_follow_mode",
+        "boolean",
+        "false",
+        "org-journal-follow-mode",
+        "In the calendar (`org.goto.calendar`), the entry of the day `]` and `[` move to shows in another \
+         window.",
+    ),
+    setting(
+        "org_journal_find_file_fn",
+        "\"find-file-other-window\", \"find-file\"",
+        r#""find-file-other-window""#,
+        "org-journal-find-file-fn",
+        "Where a new entry and today's file (`org.journal.open.current`) show: in another window, or \
+         (`\"find-file\"`) in the window of the command.",
+    ),
+    setting(
         "org_journal_carryover_items",
         "string",
         r#""TODO=\"TODO\"""#,
@@ -1494,7 +3415,25 @@ pub const SETTINGS: &[Setting] = &[
         "number",
         "0",
         "org-extend-today-until",
-        "The hour before which it is still yesterday, for org-journal's new entries.",
+        "The hour before which it is still yesterday: for the agenda's today, the date prompt with nothing to \
+         start from, the times capture templates put in and the day of a datetree, `.+` and `++` repeaters, \
+         clock report ranges and org-journal's new entries.",
+    ),
+    setting(
+        "org_use_effective_time",
+        "boolean",
+        "false",
+        "org-use-effective-time",
+        "Before the hour `org_extend_today_until`, a TODO change records 23:59 of the day before: in \
+         `CLOSED:`, `LAST_REPEAT` and the notes' timestamps. `org.todo.yesterday` does so at any hour.",
+    ),
+    setting(
+        "org_use_last_clock_out_time_as_effective_time",
+        "boolean",
+        "false",
+        "org-use-last-clock-out-time-as-effective-time",
+        "A TODO change records the end of the first closed clock of the subtree instead of the time now, \
+         when there is one; this comes before `org_use_effective_time`.",
     ),
     setting(
         "org_agenda_search_view_always_boolean",
@@ -1566,6 +3505,16 @@ pub const SETTINGS: &[Setting] = &[
         "org-agenda-deadline-leaders",
         "The leader of a deadline on its day, on today before it (`%d`: the days left), and on today after it \
          (`%d`: the days since).",
+    ),
+    setting(
+        "org_agenda_deadline_faces",
+        "[part, face][]",
+        r#"[[1.0, "org-imminent-deadline"], [0.5, "org-upcoming-deadline"], [0.0, "org-upcoming-distant-deadline"]]"#,
+        "org-agenda-deadline-faces",
+        "The look of a deadline in the agenda by the part of its warning time that has passed: the first \
+         whose part is no more than that, none past the last. The faces are Org's: `org-imminent-deadline` (or \
+         `org-warning`), `org-upcoming-deadline`, `org-upcoming-distant-deadline`; any other name is the plain \
+         look.",
     ),
     setting(
         "org_agenda_timerange_leaders",
@@ -1674,6 +3623,20 @@ pub const SETTINGS: &[Setting] = &[
         )
     },
     Setting {
+        default: None,
+        unset: "from the client's capabilities",
+        integration: true,
+        ..setting(
+            "create_files",
+            "boolean",
+            "",
+            "",
+            "Whether an edit may make the files it is for (a `create` resource operation), as a new archive \
+             file from the agenda; else the server writes them itself. The Vim plugin turns it off: coc.nvim \
+             has the empty file it makes as one empty line, which the edit's text would then end with.",
+        )
+    },
+    Setting {
         integration: true,
         ..setting(
             "org_client",
@@ -1705,13 +3668,52 @@ pub const SETTINGS: &[Setting] = &[
     Setting {
         integration: true,
         ..setting(
+            "message_requests",
+            "boolean",
+            "true",
+            "",
+            "Whether the client shows the questions of `message_prompts` that have choices \
+             (`window/showMessageRequest`). Off, for a client that cannot (Helix), the server says \
+             `PROMPT: pick the answer from the code actions`, and until it is answered the code actions start \
+             with the choices; a rename with the choice's key answers too.",
+        )
+    },
+    Setting {
+        integration: true,
+        ..setting(
             "line_highlights",
             "boolean",
             "false",
             "",
-            "Whether the client highlights lines of the agenda from edge to edge as the server sends them \
-             (`org-lsp/lineHighlights`): the entry the clock runs on. As a client announcing \
+            "Whether the client highlights lines from edge to edge as the server sends them \
+             (`org-lsp/lineHighlights`): the agenda's entry the clock runs on, and headlines with \
+             `org_fontify_whole_heading_line`. As a client announcing \
              `experimental.orgLineHighlights` does: for the Vim plugin and the Sublime Text package.",
+        )
+    },
+    Setting {
+        integration: true,
+        ..setting(
+            "run_command",
+            "boolean",
+            "false",
+            "",
+            "Whether the client runs a command when the server asks (`org-lsp/runCommand`: a capture an \
+             `org-protocol` URL starts), as one it runs from a key, as a client announcing \
+             `experimental.orgRunCommand` does: for the Vim plugin and the Sublime Text package. Without it, \
+             the server runs the command itself, and asks what it asks with `window/showMessageRequest`.",
+        )
+    },
+    Setting {
+        integration: true,
+        ..setting(
+            "hidden_lines",
+            "boolean",
+            "false",
+            "",
+            "Whether the client hides the lines a command's answer names (`hiddenLines`: the custom properties of \
+             `org.custom.properties.toggle`), as a client announcing `experimental.orgHiddenLines` does: for the \
+             Sublime Text package.",
         )
     },
     Setting {
@@ -1797,6 +3799,17 @@ pub const SETTINGS: &[Setting] = &[
     },
 ];
 
+/// The strategies of `org-agenda-sorting-strategy`.
+macro_rules! strategy {
+    () => {
+        r#"{ "enum": ["time-up", "time-down", "timestamp-up", "timestamp-down", "scheduled-up", "scheduled-down",
+            "deadline-up", "deadline-down", "tsia-up", "tsia-down", "ts-up", "ts-down", "stats-up", "stats-down",
+            "priority-up", "priority-down", "urgency-up", "urgency-down", "effort-up", "effort-down", "category-up",
+            "category-down", "category-keep", "tag-up", "tag-down", "todo-state-up", "todo-state-down", "habit-up",
+            "habit-down", "alpha-up", "alpha-down", "user-defined-up", "user-defined-down"] }"#
+    };
+}
+
 /// The values each option takes, as JSON Schema: what editors complete and
 /// check the options against (VS Code's settings, the schema of the shared
 /// file, Neovim's type annotations). An object that is a type of its own
@@ -1804,6 +3817,8 @@ pub const SETTINGS: &[Setting] = &[
 const SCHEMAS: &[(&str, &str)] = &[
     ("config_file", r#"{ "anyOf": [{ "const": false }, { "type": "string" }] }"#),
     ("org_agenda_files", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("org_agenda_file_regexp", STRING),
+    ("org_agenda_skip_unavailable_files", BOOLEAN),
     (
         "org_todo_keywords",
         r#"{ "anyOf": [
@@ -1811,29 +3826,140 @@ const SCHEMAS: &[(&str, &str)] = &[
             { "type": "array", "items": { "type": "array", "items": { "type": "string" } } }
         ] }"#,
     ),
+    ("org_todo_interpretation", r#"{ "enum": ["sequence", "type"] }"#),
     ("org_todo_keyword_faces", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
     ("org_priority_faces", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
+    ("org_tag_faces", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
     ("org_log_done", r#"{ "enum": [false, "time", "note"] }"#),
     ("org_log_repeat", r#"{ "enum": [false, "time", "note"] }"#),
     ("org_agenda_dim_blocked_tasks", r#"{ "enum": [true, false, "invisible"] }"#),
     ("org_list_use_circular_motion", BOOLEAN),
+    (
+        "org_M_RET_may_split_line",
+        r#"{ "anyOf": [{ "type": "boolean" }, { "type": "object", "properties": { "headline": { "type": "boolean" }, "item": { "type": "boolean" }, "table": { "type": "boolean" }, "default": { "type": "boolean" } }, "additionalProperties": false }] }"#,
+    ),
+    (
+        "org_blank_before_new_entry",
+        r#"{ "type": "object", "properties": { "heading": { "enum": [true, false, "auto"] }, "plain_list_item": { "enum": [true, false, "auto"] } }, "additionalProperties": false }"#,
+    ),
+    ("org_insert_heading_respect_content", BOOLEAN),
+    (
+        "org_special_ctrl_a_e",
+        r#"{ "anyOf": [{ "enum": [true, false, "reversed"] }, { "type": "array", "items": { "enum": [true, false, "reversed"] }, "minItems": 2, "maxItems": 2 }] }"#,
+    ),
+    ("org_special_ctrl_k", BOOLEAN),
+    ("org_special_ctrl_o", BOOLEAN),
+    ("org_treat_S_cursor_todo_selection_as_state_change", BOOLEAN),
+    ("org_treat_insert_todo_heading_as_state_change", BOOLEAN),
+    ("org_edit_timestamp_down_means_later", BOOLEAN),
+    ("org_priority_enable_commands", BOOLEAN),
+    ("org_track_ordered_property_with_tag", r#"{ "anyOf": [{ "type": "boolean" }, { "type": "string" }] }"#),
+    ("org_sparse_tree_open_archived_trees", BOOLEAN),
+    ("org_occur_case_fold_search", r#"{ "enum": [true, false, "smart"] }"#),
+    ("org_ctrl_k_protect_subtree", r#"{ "enum": [false, true, "error"] }"#),
+    ("org_highlight_sparse_tree_matches", BOOLEAN),
+    ("org_remove_highlights_with_change", BOOLEAN),
+    (
+        "org_sparse_tree_default_date_type",
+        r#"{ "enum": [null, "all", "active", "inactive", "scheduled", "deadline", "closed"] }"#,
+    ),
+    ("org_yank_adjusted_subtrees", BOOLEAN),
+    ("org_yank_folded_subtrees", BOOLEAN),
+    ("org_allow_promoting_top_level_subtree", BOOLEAN),
+    ("org_odd_levels_only", BOOLEAN),
+    ("org_inlinetask_min_level", r#"{ "anyOf": [{ "const": false }, { "type": "integer", "minimum": 1 }] }"#),
+    ("org_inlinetask_show_first_star", BOOLEAN),
+    ("org_inlinetask_default_state", r#"{ "type": "string" }"#),
+    ("org_list_allow_alphabetical", BOOLEAN),
+    ("org_plain_list_ordered_item_terminator", r#"{ "enum": [true, ".", ")"] }"#),
+    ("org_list_two_spaces_after_bullet_regexp", r#"{ "anyOf": [{ "const": false }, { "type": "string" }] }"#),
+    (
+        "org_list_demote_modify_bullet",
+        r#"{ "type": "object", "additionalProperties": { "enum": ["-", "+", "*", "1.", "1)"] } }"#,
+    ),
+    ("org_list_indent_offset", r#"{ "type": "integer", "minimum": 0 }"#),
+    (
+        "org_list_automatic_rules",
+        r#"{ "type": "object", "properties": { "checkbox": { "type": "boolean" }, "indent": { "type": "boolean" } }, "additionalProperties": false }"#,
+    ),
+    ("org_checkbox_hierarchical_statistics", BOOLEAN),
+    (
+        "org_table_formula_constants",
+        r#"{ "type": "object", "additionalProperties": { "type": ["string", "number"] } }"#,
+    ),
+    ("org_table_relative_ref_may_cross_hline", r#"{ "enum": [true, false, "error"] }"#),
+    ("org_table_formula_create_columns", BOOLEAN),
+    ("org_table_duration_custom_format", r#"{ "enum": ["seconds", "minutes", "hours", "days", "hh:mm"] }"#),
+    ("org_table_duration_hour_zero_padding", BOOLEAN),
+    (
+        "org_calc_default_modes",
+        r#"{ "type": "object", "properties": { "float_format": { "type": "array", "minItems": 2, "maxItems": 2, "items": [{ "enum": ["float", "fix", "sci"] }, { "type": "integer", "minimum": 0 }] }, "angle_mode": { "enum": ["deg", "rad"] } }, "additionalProperties": false }"#,
+    ),
+    ("org_table_formula_evaluate_inline", BOOLEAN),
+    ("org_table_allow_automatic_line_recalculation", BOOLEAN),
+    ("org_table_number_regexp", STRING),
+    ("org_table_number_fraction", r#"{ "type": "number", "minimum": 0 }"#),
+    ("org_table_automatic_realign", BOOLEAN),
+    ("org_table_tab_jumps_over_hlines", BOOLEAN),
+    ("org_table_shrunk_column_indicator", STRING),
     ("org_enforce_todo_dependencies", BOOLEAN),
     ("org_enforce_todo_checkbox_dependencies", BOOLEAN),
     ("org_log_refile", r#"{ "enum": [false, "time", "note"] }"#),
     ("org_log_reschedule", r#"{ "enum": [false, "time", "note"] }"#),
     ("org_log_redeadline", r#"{ "enum": [false, "time", "note"] }"#),
     ("org_log_into_drawer", r#"{ "type": ["boolean", "string"] }"#),
+    ("org_log_done_with_time", BOOLEAN),
+    (
+        "org_log_note_headings",
+        r#"{ "type": "object", "properties": { "done": { "type": "string" }, "state": { "type": "string" }, "note": { "type": "string" }, "reschedule": { "type": "string" }, "delschedule": { "type": "string" }, "redeadline": { "type": "string" }, "deldeadline": { "type": "string" }, "refile": { "type": "string" }, "clock_out": { "type": "string" } }, "additionalProperties": false }"#,
+    ),
+    ("org_log_states_order_reversed", BOOLEAN),
+    ("org_log_note_clock_out", BOOLEAN),
+    (
+        "org_provide_todo_statistics",
+        r#"{ "anyOf": [{ "type": "boolean" }, { "const": "all-headlines" }, { "type": "array", "items": { "type": "string" } }, { "type": "array", "items": { "type": "array", "items": { "type": "string" } }, "minItems": 2, "maxItems": 2 }] }"#,
+    ),
+    ("org_hierarchical_todo_statistics", BOOLEAN),
+    ("org_closed_keep_when_no_todo", BOOLEAN),
+    (
+        "org_todo_state_tags_triggers",
+        r#"{ "type": "object", "additionalProperties": { "type": "array", "items": { "type": "string", "pattern": "^[+-]" } } }"#,
+    ),
+    ("org_log_state_notes_insert_after_drawers", BOOLEAN),
     ("org_tags_column", r#"{ "type": "integer" }"#),
     ("org_use_tag_inheritance", r#"{ "type": ["boolean", "array", "string"], "items": { "type": "string" } }"#),
     ("org_tags_exclude_from_inheritance", r#"{ "type": "array", "items": { "type": "string" } }"#),
     ("org_use_property_inheritance", r#"{ "type": ["boolean", "array", "string"], "items": { "type": "string" } }"#),
+    (
+        "org_property_separators",
+        r#"{ "type": "array", "items": { "type": "array", "minItems": 2, "maxItems": 2, "items": [{ "type": ["array", "string"], "items": { "type": "string" } }, { "type": "string" }] } }"#,
+    ),
+    ("org_property_format", STRING),
     ("org_global_properties", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
     ("org_complete_tags_always_offer_all_agenda_tags", BOOLEAN),
     ("org_cite_global_bibliography", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("org_cite_insert_processor", r#"{ "anyOf": [{ "type": "string" }, { "const": false }] }"#),
+    ("org_bibtex_autogen_keys", BOOLEAN),
+    ("org_bibtex_prefix", STRING),
+    ("org_bibtex_treat_headline_as_title", BOOLEAN),
+    ("org_bibtex_export_arbitrary_fields", BOOLEAN),
+    ("org_bibtex_key_property", STRING),
+    ("org_bibtex_tags", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("org_bibtex_tags_are_keywords", BOOLEAN),
+    ("org_bibtex_no_export_tags", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("org_bibtex_inherit_tags", BOOLEAN),
+    ("org_bibtex_type_property_name", STRING),
     ("org_link_abbrev_alist", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
+    (
+        "org_file_apps",
+        r#"{ "type": "array", "items": { "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 2 } }"#,
+    ),
+    ("org_open_non_existing_files", BOOLEAN),
+    ("org_open_directory_means_index_dot_org", BOOLEAN),
     ("org_tag_alist", r#"{ "type": ["string", "array"], "items": { "type": "string" } }"#),
     ("org_tag_persistent_alist", r#"{ "type": ["string", "array"], "items": { "type": "string" } }"#),
     ("org_group_tags", BOOLEAN),
+    ("org_use_fast_todo_selection", r#"{ "enum": ["auto", "expert", true, false] }"#),
     ("org_use_fast_tag_selection", r#"{ "enum": [true, false, "auto"] }"#),
     ("org_fast_tag_selection_single_key", BOOLEAN),
     ("org_tags_sort_function", r#"{ "enum": ["string<", "string>"] }"#),
@@ -1846,8 +3972,23 @@ const SCHEMAS: &[(&str, &str)] = &[
         r#"{ "enum": ["today", "yesterday", "thisweek", "lastweek", "thismonth", "lastmonth", "thisyear", "lastyear", "untilnow"] }"#,
     ),
     ("org_clock_idle_time", r#"{ "type": "integer", "minimum": 1 }"#),
+    ("org_clock_auto_clock_resolution", r#"{ "enum": [true, false, "when-no-clock-is-running"] }"#),
+    ("org_clock_resolve_expert", BOOLEAN),
     ("org_clock_history_length", r#"{ "type": "integer", "minimum": 1 }"#),
+    ("org_clock_in_resume", BOOLEAN),
+    ("org_clock_goto_may_find_recent_task", BOOLEAN),
+    ("org_clock_persist", r#"{ "enum": [true, false, "clock", "history"] }"#),
+    ("org_clock_persist_file", STRING),
+    ("org_clock_persist_query_resume", BOOLEAN),
     ("org_clock_clocktable_default_properties", STRING),
+    ("org_clocktable_defaults", STRING),
+    (
+        "org_clock_clocktable_language_setup",
+        r#"{ "type": "array", "items": { "type": "array", "items": { "type": "string" }, "minItems": 1 } }"#,
+    ),
+    ("org_clock_report_include_clocking_task", BOOLEAN),
+    ("org_clock_rounding_minutes", r#"{ "type": "integer" }"#),
+    ("org_clock_continuously", BOOLEAN),
     ("org_clock_total_time_cell_format", STRING),
     ("org_clock_file_time_cell_format", STRING),
     ("org_clock_in_switch_to_state", STRING),
@@ -1856,6 +3997,21 @@ const SCHEMAS: &[(&str, &str)] = &[
         "org_id_link_to_org_use_id",
         r#"{ "enum": [true, false, "create-if-interactive", "create-if-interactive-and-no-custom-id", "use-existing"] }"#,
     ),
+    ("org_id_method", r#"{ "enum": ["uuid", "uuidgen", "org", "ts"] }"#),
+    ("org_id_prefix", r#"{ "anyOf": [{ "const": false }, { "type": "string" }] }"#),
+    ("org_id_ts_format", STRING),
+    ("org_id_include_domain", BOOLEAN),
+    ("org_link_search_must_match_exact_headline", r#"{ "enum": [true, false, "query-to-create"] }"#),
+    ("org_link_doi_server_url", STRING),
+    ("org_link_shell_skip_confirm_regexp", STRING),
+    ("org_man_command", STRING),
+    ("org_info_other_documents", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
+    ("org_ctags_path_to_ctags", STRING),
+    (
+        "org_ctags_open_link_functions",
+        r#"{ "type": "array", "items": { "enum": ["org-ctags-find-tag", "org-ctags-ask-rebuild-tags-file-then-find-tag", "org-ctags-rebuild-tags-file-then-find-tag", "org-ctags-ask-append-topic", "org-ctags-append-topic", "org-ctags-ask-visit-buffer-or-file", "org-ctags-visit-buffer-or-file", "org-ctags-fail-silently"] } }"#,
+    ),
+    ("org_ctags_new_topic_template", STRING),
     ("org_link_context_for_files", BOOLEAN),
     ("org_lint", BOOLEAN),
     ("org_lint_ignore", r#"{ "type": "array", "items": { "type": "string" } }"#),
@@ -1870,21 +4026,16 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_priority_start_cycle_with_default", BOOLEAN),
     ("org_time_stamp_rounding_minutes", r#"{ "type": "integer", "minimum": 0 }"#),
     ("org_read_date_prefer_future", r#"{ "enum": [true, false, "time"] }"#),
+    ("org_agenda_jump_prefer_future", r#"{ "enum": [true, false, "time"] }"#),
     ("org_read_date_force_compatible_dates", BOOLEAN),
-    (
-        "org_refile_targets",
-        r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.RefileTarget", "additionalProperties": false, "properties": {
-            "files": { "anyOf": [{ "enum": ["current", "agenda"] }, { "type": "string" }, { "type": "array", "items": { "type": "string" } }],
-                "description": "`current` (the entry's own file), `agenda`, a path or a list of paths" },
-            "level": { "type": "integer", "minimum": 1, "description": "The headlines of this level" },
-            "maxlevel": { "type": "integer", "minimum": 1, "description": "The headlines up to this level" },
-            "tag": { "type": "string", "description": "The headlines with this tag" },
-            "todo": { "type": "string", "description": "The headlines with this TODO keyword" },
-            "regexp": { "type": "string", "description": "The headlines that match this regular expression" },
-            "all": { "type": "boolean", "description": "Every headline" }
-        } } }"#,
-    ),
+    ("org_refile_targets", REFILE_TARGETS),
+    ("org_id_completion_targets", REFILE_TARGETS),
+    ("org_id_track_globally", BOOLEAN),
+    ("org_id_search_archives", BOOLEAN),
+    ("org_id_extra_files", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("org_id_locations_file", STRING),
     ("org_refile_use_outline_path", r#"{ "enum": [true, false, "file", "full-file-path", "title"] }"#),
+    ("org_refile_active_region_within_subtree", BOOLEAN),
     ("org_refile_allow_creating_parent_nodes", r#"{ "enum": [true, false, "confirm"] }"#),
     ("org_refile_target_verify_function", STRING),
     ("org_reverse_note_order", BOOLEAN),
@@ -1899,6 +4050,8 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_archive_sibling_heading", STRING),
     ("org_archive_file_header_format", r#"{ "anyOf": [{ "type": "string" }, { "const": false }] }"#),
     ("org_archive_default_command", r#"{ "enum": ["subtree", "sibling", "tag"] }"#),
+    ("org_archive_subtree_save_file_p", r#"{ "enum": [true, false, "from-org", "from-agenda"] }"#),
+    ("org_capture_use_agenda_date", BOOLEAN),
     ("org_capture_templates_contexts", CONTEXTS),
     ("org_agenda_custom_commands_contexts", CONTEXTS),
     (
@@ -1927,12 +4080,36 @@ const SCHEMAS: &[(&str, &str)] = &[
     ),
     ("org_directory", STRING),
     ("org_default_notes_file", STRING),
+    ("org_protocol_default_template_key", STRING),
+    ("org_protocol_data_separator", STRING),
+    ("org_protocol_project_alist", PROTOCOL_PROJECTS),
+    ("org_protocol_editor", STRING),
     ("org_link_descriptive", BOOLEAN),
     ("org_hide_emphasis_markers", BOOLEAN),
+    ("org_fontify_emphasized_text", BOOLEAN),
+    (
+        "org_emphasis_alist",
+        r#"{ "type": "object", "propertyNames": { "enum": ["*", "/", "_", "=", "~", "+"] }, "additionalProperties": { "anyOf": [{ "const": false }, { "type": "string" }, { "type": "array", "items": { "type": "string" } }] } }"#,
+    ),
+    (
+        "org_hidden_keywords",
+        r#"{ "type": "array", "items": { "enum": ["title", "subtitle", "author", "email", "date"] } }"#,
+    ),
+    ("org_hide_macro_markers", BOOLEAN),
+    ("org_display_custom_times", BOOLEAN),
+    (
+        "org_timestamp_custom_formats",
+        r#"{ "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 2 }"#,
+    ),
     ("org_pretty_entities", BOOLEAN),
+    (
+        "org_entities_user",
+        r#"{ "type": "array", "items": { "type": "array", "minItems": 7, "maxItems": 7, "items": [{ "type": "string" }, { "type": "string" }, { "type": "boolean" }, { "type": "string" }, { "type": "string" }, { "type": "string" }, { "type": "string" }] } }"#,
+    ),
     ("org_pretty_entities_include_sub_superscripts", BOOLEAN),
     ("org_use_sub_superscripts", r#"{ "enum": [true, false, "{}"] }"#),
     ("return_uses_meta_return", BOOLEAN),
+    ("org_return_follows_link", BOOLEAN),
     ("org_goto_max_level", INTEGER),
     ("calendar_months", r#"{ "enum": [1, 3] }"#),
     ("calendar_week_start_day", r#"{ "type": "integer", "minimum": 0, "maximum": 6 }"#),
@@ -1941,21 +4118,76 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("emacs_config", STRING),
     ("auto_save", BOOLEAN),
     ("org_cycle_separator_lines", r#"{ "type": "integer" }"#),
+    ("org_cycle_include_plain_lists", r#"{ "enum": [true, false, "integrate"] }"#),
+    ("org_cycle_max_level", r#"{ "type": "integer", "minimum": 1 }"#),
+    ("org_cycle_global_at_bob", BOOLEAN),
+    ("org_cycle_level_after_item_entry_creation", BOOLEAN),
     (
         "org_startup_folded",
         r#"{ "enum": ["overview", "fold", "content", "show2levels", "show3levels", "show4levels", "show5levels", "showeverything", "nofold", "showall"] }"#,
     ),
+    ("org_startup_align_all_tables", BOOLEAN),
     ("org_startup_shrink_all_tables", BOOLEAN),
     ("org_cycle_hide_block_startup", BOOLEAN),
     ("org_cycle_hide_drawer_startup", BOOLEAN),
     ("org_cycle_open_archived_trees", BOOLEAN),
     ("org_adapt_indentation", r#"{ "enum": [true, false, "headline-data"] }"#),
     ("org_startup_with_link_previews", BOOLEAN),
+    (
+        "org_image_actual_width",
+        r#"{ "anyOf": [{ "type": "boolean" }, { "type": "number" }, { "type": "array", "items": { "type": "number" }, "maxItems": 1 }] }"#,
+    ),
+    ("org_image_max_width", r#"{ "anyOf": [{ "enum": ["fill-column", "window", null] }, { "type": "number" }] }"#),
+    ("org_display_remote_inline_images", r#"{ "enum": ["skip", "download", "cache"] }"#),
+    ("org_resource_download_policy", r#"{ "enum": [true, "prompt", "safe", false] }"#),
+    ("org_safe_remote_resources", r#"{ "type": "array", "items": { "type": "string" } }"#),
     ("org_startup_with_latex_preview", BOOLEAN),
     ("org_startup_indented", BOOLEAN),
+    ("org_startup_numerated", BOOLEAN),
+    ("org_num_max_level", r#"{ "type": "integer", "minimum": 1 }"#),
+    ("org_num_skip_commented", BOOLEAN),
+    ("org_num_skip_footnotes", BOOLEAN),
+    ("org_num_skip_tags", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("org_num_skip_unnumbered", BOOLEAN),
     ("org_hide_leading_stars", BOOLEAN),
+    ("org_indent_mode_turns_on_hiding_stars", BOOLEAN),
+    ("org_indent_mode_turns_off_org_adapt_indentation", BOOLEAN),
+    ("org_indent_indentation_per_level", r#"{ "type": "integer", "minimum": 0 }"#),
+    (
+        "org_duration_format",
+        r#"{ "anyOf": [{ "enum": ["h:mm", "h:mm:ss"] }, { "type": "array", "items": { "anyOf": [{ "const": "compact" }, { "type": "array", "minItems": 2, "maxItems": 2 }] } }] }"#,
+    ),
+    (
+        "org_duration_units",
+        r#"{ "type": "array", "items": { "type": "array", "prefixItems": [{ "type": "string" }, { "type": "number" }], "minItems": 2, "maxItems": 2 } }"#,
+    ),
+    ("org_fontify_done_headline", BOOLEAN),
+    ("org_fontify_todo_headline", BOOLEAN),
+    ("org_fontify_quote_and_verse_blocks", BOOLEAN),
+    ("org_custom_properties", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("org_n_level_faces", r#"{ "type": "integer", "minimum": 1, "maximum": 8 }"#),
+    ("org_cycle_level_faces", BOOLEAN),
+    ("org_fontify_whole_heading_line", BOOLEAN),
+    ("org_ellipsis", STRING),
+    ("org_bullets_mode", BOOLEAN),
+    ("org_bullets_bullet_list", r#"{ "type": "array", "items": { "type": "string" }, "minItems": 1 }"#),
+    ("org_bullets_list_bullet", r#"{ "anyOf": [{ "const": false }, { "type": "string" }] }"#),
+    (
+        "org_bullets_checkboxes",
+        r#"{ "anyOf": [{ "const": false }, { "type": "object", "properties": { "todo": { "type": "string" }, "half": { "type": "string" }, "done": { "type": "string" } }, "additionalProperties": false }] }"#,
+    ),
     ("org_src_preserve_indentation", BOOLEAN),
-    ("org_edit_src_content_indentation", r#"{ "type": "integer", "minimum": 0 }"#),
+    ("org_babel_tangle_lang_exts", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
+    ("org_babel_tangle_use_relative_file_links", BOOLEAN),
+    ("org_babel_tangle_comment_format_beg", STRING),
+    ("org_babel_tangle_comment_format_end", STRING),
+    ("org_babel_tangle_uncomment_comments", BOOLEAN),
+    ("org_babel_process_comment_text", STRING),
+    ("org_babel_tangle_default_file_mode", r#"{ "type": "string", "pattern": "^[0-7]{3,4}$" }"#),
+    ("org_babel_tangle_remove_file_before_write", r#"{ "enum": [true, false, "auto"] }"#),
+    ("org_babel_noweb_wrap_start", STRING),
+    ("org_babel_noweb_wrap_end", STRING),
+    ("org_src_content_indentation", r#"{ "type": "integer", "minimum": 0 }"#),
     (
         "org_agenda_span",
         r#"{ "anyOf": [{ "enum": ["day", "week", "fortnight", "month", "year"] }, { "type": "integer", "minimum": 1 }] }"#,
@@ -1982,6 +4214,74 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_agenda_skip_scheduled_if_done", BOOLEAN),
     ("org_agenda_skip_deadline_if_done", BOOLEAN),
     ("org_agenda_skip_timestamp_if_done", BOOLEAN),
+    ("org_agenda_time_leading_zero", BOOLEAN),
+    ("org_agenda_timegrid_use_ampm", BOOLEAN),
+    ("org_agenda_search_headline_for_time", BOOLEAN),
+    ("org_agenda_remove_times_when_in_prefix", r#"{ "enum": [true, false, "beg"] }"#),
+    ("org_agenda_default_appointment_duration", INTEGER),
+    ("org_agenda_remove_timeranges_from_blocks", BOOLEAN),
+    ("org_agenda_diary_sexp_prefix", STRING),
+    (
+        "org_agenda_show_inherited_tags",
+        r#"{ "anyOf": [{ "type": "boolean" }, { "enum": ["always"] }, { "type": "array", "items": { "enum": ["agenda", "todo", "search"] } }] }"#,
+    ),
+    (
+        "org_agenda_use_tag_inheritance",
+        r#"{ "anyOf": [{ "type": "boolean" }, { "type": "array", "items": { "enum": ["agenda", "todo", "search"] } }] }"#,
+    ),
+    ("org_agenda_hide_tags_regexp", STRING),
+    ("org_agenda_include_deadlines", BOOLEAN),
+    ("org_agenda_skip_additional_timestamps_same_entry", BOOLEAN),
+    ("org_agenda_fontify_priorities", r#"{ "enum": [true, false, "cookies"] }"#),
+    (
+        "org_agenda_prefer_last_repeat",
+        r#"{ "anyOf": [{ "type": "boolean" }, { "type": "array", "items": { "type": "string" } }] }"#,
+    ),
+    (
+        "org_agenda_skip_deadline_prewarning_if_scheduled",
+        r#"{ "anyOf": [{ "type": "boolean" }, { "enum": ["pre-scheduled"] }, { "type": "integer" }] }"#,
+    ),
+    (
+        "org_agenda_skip_scheduled_delay_if_deadline",
+        r#"{ "anyOf": [{ "type": "boolean" }, { "enum": ["post-deadline"] }, { "type": "integer" }] }"#,
+    ),
+    (
+        "org_agenda_skip_scheduled_if_deadline_is_shown",
+        r#"{ "anyOf": [{ "type": "boolean" }, { "enum": ["not-today", "repeated-after-deadline"] }] }"#,
+    ),
+    ("org_agenda_skip_scheduled_repeats_after_deadline", BOOLEAN),
+    ("org_agenda_skip_comment_trees", BOOLEAN),
+    ("org_agenda_skip_archived_trees", BOOLEAN),
+    ("org_agenda_todo_list_sublevels", BOOLEAN),
+    ("org_agenda_todo_ignore_with_date", BOOLEAN),
+    ("org_agenda_todo_ignore_scheduled", TODO_IGNORE),
+    ("org_agenda_todo_ignore_deadlines", TODO_IGNORE_DEADLINES),
+    ("org_agenda_todo_ignore_timestamp", TODO_IGNORE),
+    ("org_agenda_todo_ignore_time_comparison_use_seconds", BOOLEAN),
+    ("org_tags_match_list_sublevels", r#"{ "enum": [true, false, "indented"] }"#),
+    ("org_agenda_tags_todo_honor_ignore_options", BOOLEAN),
+    (
+        "org_agenda_sorting_strategy",
+        concat!(
+            r#"{ "anyOf": [{ "type": "array", "items": "#,
+            strategy!(),
+            r#" }, { "type": "object", "additionalProperties": false, "properties": { "agenda": { "type": "array", "items": "#,
+            strategy!(),
+            r#" }, "todo": { "type": "array", "items": "#,
+            strategy!(),
+            r#" }, "tags": { "type": "array", "items": "#,
+            strategy!(),
+            r#" }, "search": { "type": "array", "items": "#,
+            strategy!(),
+            r#" } } }] }"#
+        ),
+    ),
+    ("org_agenda_sort_notime_is_late", BOOLEAN),
+    ("org_agenda_sort_noeffort_is_high", BOOLEAN),
+    ("org_agenda_max_entries", AGENDA_LIMIT),
+    ("org_agenda_max_todos", AGENDA_LIMIT),
+    ("org_agenda_max_tags", AGENDA_LIMIT),
+    ("org_agenda_max_effort", AGENDA_LIMIT),
     ("org_agenda_show_future_repeats", r#"{ "enum": [true, false, "next"] }"#),
     ("org_agenda_show_all_dates", BOOLEAN),
     ("org_agenda_tags_column", r#"{ "anyOf": [{ "type": "integer" }, { "const": "auto" }] }"#),
@@ -2007,14 +4307,23 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_agenda_start_day", STRING),
     ("org_agenda_start_with_log_mode", BOOLEAN),
     ("org_agenda_start_with_clockreport_mode", BOOLEAN),
+    ("org_agenda_clockreport_parameter_plist", STRING),
+    ("org_agenda_clock_report_header", STRING),
     ("org_agenda_start_with_archives_mode", r#"{ "enum": ["trees", "files", false] }"#),
     ("org_agenda_log_mode_items", r#"{ "type": "array", "items": { "enum": ["closed", "clock", "state"] } }"#),
+    ("org_agenda_log_mode_add_notes", BOOLEAN),
+    ("org_agenda_move_date_from_past_immediately_to_today", BOOLEAN),
     ("org_agenda_persistent_marks", BOOLEAN),
     ("org_agenda_start_with_follow_mode", BOOLEAN),
+    ("org_agenda_show_outline_path", r#"{ "enum": [true, false, "title"] }"#),
     ("org_agenda_start_with_entry_text_mode", BOOLEAN),
     ("org_agenda_entry_text_maxlines", r#"{ "type": "integer", "minimum": 1 }"#),
     ("org_agenda_entry_text_leaders", STRING),
     ("org_agenda_entry_text_exclude_regexps", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("org_agenda_add_entry_text_maxlines", r#"{ "type": "integer", "minimum": 0 }"#),
+    ("org_agenda_add_entry_text_descriptive_links", BOOLEAN),
+    ("org_agenda_view_columns_initially", BOOLEAN),
+    ("org_agenda_persistent_filter", BOOLEAN),
     ("org_agenda_block_separator", r#"{ "anyOf": [{ "type": "string" }, { "const": false }] }"#),
     ("org_agenda_compact_blocks", BOOLEAN),
     ("agenda_hide_empty_blocks", BOOLEAN),
@@ -2041,6 +4350,25 @@ const SCHEMAS: &[(&str, &str)] = &[
         r#"{ "anyOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }] }"#,
     ),
     ("org_roam_node_display_template", STRING),
+    ("org_roam_node_formatter", STRING),
+    ("org_roam_db_extra_links_elements", r#"{ "type": "array", "items": { "enum": ["node-property", "keyword"] } }"#),
+    (
+        "org_roam_db_extra_links_exclude_keys",
+        r#"{ "type": "object", "properties": { "node-property": { "type": "array", "items": { "type": "string" } }, "keyword": { "type": "array", "items": { "type": "string" } } }, "additionalProperties": false }"#,
+    ),
+    ("org_roam_extract_new_file_path", STRING),
+    ("org_roam_graph_executable", STRING),
+    ("org_roam_graph_viewer", STRING),
+    ("org_roam_graph_filetype", STRING),
+    ("org_roam_graph_extra_config", STRING_MAP),
+    ("org_roam_graph_edge_extra_config", STRING_MAP),
+    (
+        "org_roam_graph_node_extra_config",
+        r#"{ "type": "object", "additionalProperties": { "type": "object", "additionalProperties": { "type": "string" } } }"#,
+    ),
+    ("org_roam_graph_link_hidden_types", r#"{ "type": "array", "items": { "type": "string" } }"#),
+    ("org_roam_graph_max_title_length", INTEGER),
+    ("org_roam_graph_shorten_titles", r#"{ "enum": ["truncate", "wrap", false] }"#),
     ("org_roam_link_auto_replace", BOOLEAN),
     ("org_roam_completion_everywhere", BOOLEAN),
     ("org_journal_enabled", BOOLEAN),
@@ -2054,6 +4382,8 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_journal_time_format_post_midnight", STRING),
     ("org_journal_time_prefix", STRING),
     ("org_journal_hide_entries_p", BOOLEAN),
+    ("org_journal_follow_mode", BOOLEAN),
+    ("org_journal_find_file_fn", r#"{ "enum": ["find-file-other-window", "find-file"] }"#),
     ("org_journal_carryover_items", STRING),
     ("org_journal_skip_carryover_drawers", r#"{ "type": "array", "items": { "type": "string" } }"#),
     ("org_journal_carryover_delete_empty_journal", r#"{ "enum": ["never", "always", "ask"] }"#),
@@ -2069,22 +4399,11 @@ const SCHEMAS: &[(&str, &str)] = &[
         "org_roam_mode_sections",
         r#"{ "type": "array", "items": { "enum": ["backlinks", "reflinks", "unlinked-references"] } }"#,
     ),
-    (
-        "org_roam_capture_templates",
-        r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.RoamCaptureTemplate", "required": ["key", "description"], "additionalProperties": false, "properties": {
-            "key": { "type": "string", "description": "The keys that pick the template" },
-            "description": { "type": "string", "description": "What the menu shows" },
-            "type": { "enum": ["entry", "plain", "item", "checkitem", "table-line"], "description": "An Org entry (the default), plain text, a list item, a checkbox item or a table line" },
-            "target": { "type": "array", "items": { "type": "string" },
-                "description": "`file` and a path; `file+head`, a path and the head of a new file; `file+olp`, a path and an outline path; `file+head+olp`, a path, a head and an outline path; or `node` and a node's title, alias or ID" },
-            "template": { "anyOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }], "description": "The template, or its lines" },
-            "prepend": { "type": "boolean", "description": "First under the target, not last" },
-            "empty_lines": { "type": "integer", "minimum": 0, "description": "Blank lines before and after" },
-            "empty_lines_before": { "type": "integer", "minimum": 0, "description": "Blank lines before" },
-            "empty_lines_after": { "type": "integer", "minimum": 0, "description": "Blank lines after" },
-            "unnarrowed": { "type": "boolean", "description": "Show the whole file in the capture buffer" }
-        } } }"#,
-    ),
+    ("org_roam_capture_templates", ROAM_TEMPLATES),
+    ("org_roam_dailies_capture_templates", ROAM_TEMPLATES),
+    ("org_roam_dailies_directory", STRING),
+    ("org_use_effective_time", BOOLEAN),
+    ("org_use_last_clock_out_time_as_effective_time", BOOLEAN),
     ("org_agenda_search_view_always_boolean", BOOLEAN),
     ("org_agenda_search_view_force_full_words", BOOLEAN),
     ("org_agenda_search_view_max_outline_level", r#"{ "type": "integer", "minimum": 0 }"#),
@@ -2097,6 +4416,10 @@ const SCHEMAS: &[(&str, &str)] = &[
     (
         "org_agenda_deadline_leaders",
         r#"{ "type": "array", "items": { "type": "string" }, "minItems": 3, "maxItems": 3 }"#,
+    ),
+    (
+        "org_agenda_deadline_faces",
+        r#"{ "type": "array", "items": { "type": "array", "prefixItems": [{ "type": "number" }, { "type": "string" }], "minItems": 2, "maxItems": 2 } }"#,
     ),
     (
         "org_agenda_timerange_leaders",
@@ -2129,9 +4452,13 @@ const SCHEMAS: &[(&str, &str)] = &[
     ),
     ("virtual_documents", BOOLEAN),
     ("show_document", BOOLEAN),
+    ("create_files", BOOLEAN),
     ("org_client", BOOLEAN),
     ("message_prompts", BOOLEAN),
+    ("message_requests", BOOLEAN),
     ("line_highlights", BOOLEAN),
+    ("run_command", BOOLEAN),
+    ("hidden_lines", BOOLEAN),
     ("images", BOOLEAN),
     ("view_changed", BOOLEAN),
     ("date_prompt", BOOLEAN),
@@ -2140,7 +4467,41 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("command_script", STRING),
 ];
 
+/// `org_refile_targets` and `org_id_completion_targets`.
+const REFILE_TARGETS: &str = r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.RefileTarget", "additionalProperties": false, "properties": {
+    "files": { "anyOf": [{ "enum": ["current", "agenda", "org-id-files"] }, { "type": "string" }, { "type": "array", "items": { "type": "string" } }],
+        "description": "`current` (the entry's own file), `agenda`, `org-id-files` (the files with IDs), a path or a list of paths" },
+    "level": { "type": "integer", "minimum": 1, "description": "The headlines of this level" },
+    "maxlevel": { "type": "integer", "minimum": 1, "description": "The headlines up to this level" },
+    "tag": { "type": "string", "description": "The headlines with this tag" },
+    "todo": { "type": "string", "description": "The headlines with this TODO keyword" },
+    "regexp": { "type": "string", "description": "The headlines that match this regular expression" },
+    "all": { "type": "boolean", "description": "Every headline" }
+} } }"#;
+
+/// `org_roam_capture_templates` and `org_roam_dailies_capture_templates`.
+const ROAM_TEMPLATES: &str = r#"{ "type": "array", "items": { "type": "object", "x-lua-class": "org_lsp.RoamCaptureTemplate", "required": ["key", "description"], "additionalProperties": false, "properties": {
+    "key": { "type": "string", "description": "The keys that pick the template" },
+    "description": { "type": "string", "description": "What the menu shows" },
+    "type": { "enum": ["entry", "plain", "item", "checkitem", "table-line"], "description": "An Org entry (the default), plain text, a list item, a checkbox item or a table line" },
+    "target": { "type": "array", "items": { "type": "string" },
+        "description": "`file` and a path; `file+head`, a path and the head of a new file; `file+olp`, a path and an outline path; `file+head+olp`, a path, a head and an outline path; or `node` and a node's title, alias or ID" },
+    "template": { "anyOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }], "description": "The template, or its lines" },
+    "prepend": { "type": "boolean", "description": "First under the target, not last" },
+    "empty_lines": { "type": "integer", "minimum": 0, "description": "Blank lines before and after" },
+    "empty_lines_before": { "type": "integer", "minimum": 0, "description": "Blank lines before" },
+    "empty_lines_after": { "type": "integer", "minimum": 0, "description": "Blank lines after" },
+    "unnarrowed": { "type": "boolean", "description": "Show the whole file in the capture buffer" }
+} } }"#;
+
 const BOOLEAN: &str = r#"{ "type": "boolean" }"#;
+/// A limit of `org-agenda-max-…`: one for all views, or one for each kind.
+const TODO_IGNORE: &str =
+    r#"{ "anyOf": [{ "type": "boolean" }, { "enum": ["future", "past", "all"] }, { "type": "integer" }] }"#;
+const TODO_IGNORE_DEADLINES: &str = r#"{ "anyOf": [{ "type": "boolean" }, { "enum": ["near", "far", "all", "future", "past"] }, { "type": "integer" }] }"#;
+const AGENDA_LIMIT: &str = r#"{ "anyOf": [{ "type": "integer" }, { "type": "object", "additionalProperties": false, "properties": {
+    "agenda": { "type": "integer" }, "todo": { "type": "integer" }, "tags": { "type": "integer" }, "search": { "type": "integer" }
+} }] }"#;
 /// `org-capture-templates-contexts`, `org-agenda-custom-commands-contexts`
 const CONTEXTS: &str = r#"{ "type": "array", "items": { "type": "object", "required": ["key", "contexts"], "additionalProperties": false, "properties": {
             "key": { "type": "string", "description": "The keys the context is about" },
@@ -2149,8 +4510,18 @@ const CONTEXTS: &str = r#"{ "type": "array", "items": { "type": "object", "requi
                 "in_file": { "type": "string" }, "in_mode": { "type": "string" }, "in_buffer": { "type": "string" },
                 "not_in_file": { "type": "string" }, "not_in_mode": { "type": "string" }, "not_in_buffer": { "type": "string" } } },
                 "description": "Rules, each a regexp on the file, the mode or the buffer's name; the context holds where one of them does" } } } }"#;
+/// `org-protocol-project-alist`
+const PROTOCOL_PROJECTS: &str = r#"{ "type": "array", "items": { "type": "object", "required": ["base_url", "working_directory"], "additionalProperties": false, "properties": {
+            "name": { "type": "string", "description": "What the project is called" },
+            "base_url": { "type": "string", "description": "The URL of the published pages, with its last slash" },
+            "working_directory": { "type": "string", "description": "The directory of their files, with its last slash" },
+            "online_suffix": { "type": "string", "description": "Taken off the URL (.html)" },
+            "working_suffix": { "type": "string", "description": "Put on in its place (.org)" },
+            "rewrites": { "type": "array", "items": { "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 2 },
+                "description": "Pairs of an Emacs regexp on the URL and a path, for URLs whose file is not there" } } } }"#;
 const INTEGER: &str = r#"{ "type": "integer" }"#;
 const STRING: &str = r#"{ "type": "string" }"#;
+const STRING_MAP: &str = r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#;
 const PRIORITY: &str = r#"{ "anyOf": [{ "type": "string", "pattern": "^[A-Za-z]$" }, { "type": "integer", "minimum": 0, "maximum": 64 }] }"#;
 
 /// The schema of the option `name`.
@@ -2231,7 +4602,7 @@ mod tests {
                 options.capture_templates(),
                 options.org_directory(),
                 options.default_notes_file(),
-                (options.separator_lines(), options.roam()),
+                (options.separator_lines(), options.roam(), options.inlinetask_min_level(), options.bibtex_settings()),
             )
         )
     }
@@ -2241,6 +4612,17 @@ mod tests {
         let none: Options = serde_json::from_str("{}").unwrap();
         let written: Options = serde_json::from_value(defaults()).unwrap();
         assert_eq!(resolved(&written), resolved(&none));
+    }
+
+    #[test]
+    fn docs_config_toml_is_read_as_the_defaults() {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/config.toml");
+        let var = |name: &str| (name == "ORG_LSP_CONFIG").then(|| path.to_string());
+        let loaded = crate::config::load(None, &var);
+        assert!(loaded.read);
+        assert_eq!(loaded.problems, Vec::<String>::new());
+        let none: Options = serde_json::from_str("{}").unwrap();
+        assert_eq!(resolved(&loaded.options), resolved(&none));
     }
 
     #[test]
@@ -2286,6 +4668,7 @@ mod tests {
             "boolean" => value.is_boolean(),
             "string" => value.is_string(),
             "integer" => value.is_i64() || value.is_u64(),
+            "number" => value.is_number(),
             "array" => value.as_array().is_some_and(|items| match schema.get("items") {
                 // A list of schemas: one for each item in turn.
                 Some(Value::Array(schemas)) => {
@@ -2295,8 +4678,12 @@ mod tests {
                 None => true,
             }),
             "object" => value.as_object().is_some_and(|fields| {
-                fields.iter().all(|(key, field)| {
-                    schema.pointer(&format!("/properties/{key}")).is_some_and(|property| allows(property, field))
+                fields.iter().all(|(key, field)| match schema.pointer(&format!("/properties/{key}")) {
+                    Some(property) => allows(property, field),
+                    // A schema for the fields not named.
+                    None => schema
+                        .get("additionalProperties")
+                        .is_some_and(|other| other.is_object() && allows(other, field)),
                 })
             }),
             _ => false,

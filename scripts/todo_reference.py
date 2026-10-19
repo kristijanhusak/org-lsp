@@ -6,6 +6,8 @@ A case is a JSON object:
       "clock": "2026-05-18 10:30",     the pretended current time
       "text": "* TODO a¦\\n",          an Org document; ¦ marks the cursor
       "command": "next",               "next", "previous", {"state": "DONE"},
+                                       "yesterday": `org-todo-yesterday` to
+                                       the next state,
                                        or {"key": "d"}: `org-todo` with its
                                        fast selection answered with that key;
                                        "checkbox": `org-toggle-checkbox`;
@@ -33,6 +35,7 @@ CURSOR = "¦"
 
 DRIVER = r"""
 (require 'org)
+(require 'org-clock)
 (require 'cl-lib)
 ;; The blockers of `org-enforce-todo-dependencies' and its checkbox
 ;; sibling, in the order Org installs them when it loads with both set (the
@@ -78,6 +81,7 @@ DRIVER = r"""
                  (let ((org-lsp-note-text (or note "")))
                    (cond ((eq arg 'checkbox) (org-toggle-checkbox))
                          ((eq arg 'note) (org-add-note))
+                         ((eq arg 'yesterday) (org-todo-yesterday 'right))
                          ;; Cycling, pressed once: a `type' keyword goes
                          ;; to done (`this-command' is not `last-command').
                          ((eq arg 'cycle)
@@ -105,6 +109,20 @@ def lisp_value(value):
     if isinstance(value, int):
         return str(value)
     return lisp_string(value)
+
+
+# `org-log-note-headings` as Org has it.
+NOTE_HEADINGS = {
+    "done": "CLOSING NOTE %t",
+    "state": "State %-12s from %-12S %t",
+    "note": "Note taken on %t",
+    "reschedule": "Rescheduled from %S on %t",
+    "delschedule": "Not scheduled, was %S on %t",
+    "redeadline": "New deadline from %S on %t",
+    "deldeadline": "Removed deadline, was %S on %t",
+    "refile": "Refiled on %t",
+    "clock_out": "",
+}
 
 
 def bindings(options):
@@ -137,6 +155,49 @@ def bindings(options):
             out["org-log-into-drawer"] = lisp_value(value)
         elif key == "org_tags_column":
             out["org-tags-column"] = str(value)
+        elif key in ("org_log_states_order_reversed", "org_log_state_notes_insert_after_drawers", "org_log_done_with_time"):
+            out[key.replace("_", "-")] = lisp_value(value)
+        elif key in ("org_hierarchical_todo_statistics", "org_closed_keep_when_no_todo"):
+            out[key.replace("_", "-")] = lisp_value(value)
+        elif key == "org_checkbox_hierarchical_statistics":
+            out["org-checkbox-hierarchical-statistics"] = lisp_value(value)
+        elif key == "org_list_automatic_rules":
+            rules = " ".join(f"({rule} . {lisp_value(on)})" for rule, on in value.items())
+            out["org-list-automatic-rules"] = f"'({rules})"
+        elif key == "org_list_two_spaces_after_bullet_regexp":
+            out["org-list-two-spaces-after-bullet-regexp"] = lisp_string(value) if value else "nil"
+        elif key == "org_provide_todo_statistics":
+            if value == "all-headlines":
+                out["org-provide-todo-statistics"] = "'all-headlines"
+            elif isinstance(value, list) and value and isinstance(value[0], list):
+                lists = " ".join("(" + " ".join(lisp_string(word) for word in part) + ")" for part in value)
+                out["org-provide-todo-statistics"] = "'(" + lists + ")"
+            elif isinstance(value, list):
+                out["org-provide-todo-statistics"] = "'(" + " ".join(lisp_string(word) for word in value) + ")"
+            else:
+                out["org-provide-todo-statistics"] = lisp_value(value)
+        elif key == "org_todo_state_tags_triggers":
+            entries = []
+            for state, changes in value.items():
+                head = state if state in ("todo", "done") else lisp_string(state)
+                tags = " ".join(
+                    f"({lisp_string(change[1:])} . t)" if change.startswith("+") else f"({lisp_string(change[1:])})"
+                    for change in changes
+                )
+                entries.append(f"({head} {tags})")
+            out["org-todo-state-tags-triggers"] = "'(" + " ".join(entries) + ")"
+        elif key == "org_log_note_headings":
+            # Org's headings, with those the option gives in their place.
+            headings = dict(NOTE_HEADINGS, **value)
+            out["org-log-note-headings"] = "'(" + " ".join(
+                f"({name.replace('_', '-')} . {lisp_string(text)})" for name, text in headings.items()
+            ) + ")"
+        elif key == "org_agenda_move_date_from_past_immediately_to_today":
+            out["org-agenda-move-date-from-past-immediately-to-today"] = lisp_value(value)
+        elif key in ("org_use_effective_time", "org_use_last_clock_out_time_as_effective_time"):
+            out[key.replace("_", "-")] = lisp_value(value)
+        elif key == "org_extend_today_until":
+            out["org-extend-today-until"] = str(value)
         elif key == "org_todo_repeat_to_state":
             out["org-todo-repeat-to-state"] = lisp_value(value)
         elif key == "org_adapt_indentation":
@@ -160,6 +221,8 @@ def command_argument(command):
         return "'checkbox"
     if command == "note":
         return "'note"
+    if command == "yesterday":
+        return "'yesterday"
     if command == "cycle":
         return "'cycle"
     if command in ("nextset", "previousset"):

@@ -173,6 +173,46 @@ CASES = [
     case("reschedule", {"20261012": "* Monday, 10/12/26\n** 10:00 call\nnotes\n"}, date="2026-10-14 11:00",
          options={"org_journal_scheduled_string": "SCHEDULED:"}, **{"from": "20261012", "point": 25}),
     case("reschedule", {"20261012": WEEK2}, date="2026-10-16", options=WEEKLY, **{"from": "20261012", "point": 70}),
+    # The keys org-journal adds to `M-x calendar`, its cursor on a day.
+    # `j r` and `j d`: the entry of the day, in its window, or none.
+    case("calendar-read", DAYS, day="2026-10-09"),
+    case("calendar-read", DAYS, day="2026-10-11"),
+    case("calendar-display", DAYS, day="2026-10-12"),
+    case("calendar-read", {"20261009": "#+title: x\n\n* Friday, 10/09/26\n** a\n*** b\n"}, day="2026-10-09"),
+    case("calendar-read", {"20261009": "* Friday, 10/09/26\n** a\n"}, day="2026-10-09",
+         options={"org_journal_hide_entries_p": False}),
+    case("calendar-read", {"20261009": "#+title: Friday, 10/09/26\n** a\n"}, day="2026-10-09",
+         options={"org_journal_date_prefix": "#+title: "}),
+    case("calendar-read", {"20261009": "* Another day\n** a\n"}, day="2026-10-09"),
+    case("calendar-read", {"20261005": WEEK}, day="2026-10-07", options=WEEKLY),
+    case("calendar-display", {"20261005": WEEK}, day="2026-10-06", options=WEEKLY),
+    # `]` and `[`: the next and the previous day with an entry, which
+    # follow mode displays. Without it org-journal says there is none,
+    # moved or not.
+    case("calendar-next", DAYS, day="2026-10-10"),
+    case("calendar-next", DAYS, day="2026-10-12"),
+    case("calendar-previous", DAYS, day="2026-10-10"),
+    case("calendar-previous", DAYS, day="2026-10-09"),
+    case("calendar-next", DAYS, day="2026-10-01", options={"org_journal_follow_mode": True}),
+    case("calendar-previous", DAYS, day="2026-10-31", options={"org_journal_follow_mode": True}),
+    case("calendar-next", DAYS, day="2026-10-12", options={"org_journal_follow_mode": True}),
+    case("calendar-next", {"20261005": WEEK, "20261012": WEEK2}, day="2026-10-07",
+         options={**WEEKLY, "org_journal_follow_mode": True}),
+    # `j n`: an entry for the day, before today or to come.
+    case("calendar-new-date-entry", DAYS, day="2026-10-09"),
+    case("calendar-new-date-entry", {}, day="2026-10-13"),
+    case("calendar-new-date-entry", {}, day="2026-10-13", prefix=2),
+    # `j s w`, `j s m`, `j s y`: searching the calendar's week, month and
+    # year; a week from Sunday to the next Sunday, or as
+    # `calendar-week-start-day` starts it.
+    case("calendar-search-week", DAYS, day="2026-10-10", search="standup"),
+    case("calendar-search-week", DAYS, day="2026-10-12", search="plan",
+         options={"calendar_week_start_day": 1}),
+    case("calendar-search-week", DAYS, day="2026-10-11", search="plan",
+         options={"calendar_week_start_day": 1}),
+    case("calendar-search-month", DAYS, day="2026-10-20", search="standup"),
+    case("calendar-search-month", DAYS, day="2026-09-20", search="standup"),
+    case("calendar-search-year", DAYS, day="2026-02-01", search="TODO"),
 ]
 
 if __name__ == "__main__":

@@ -30,6 +30,7 @@ use org_core::capture;
 use org_core::clock;
 use org_core::date::{Date, DateTime, Day};
 use org_core::edit::{self, Call, Command as EditCommand, Settings as EditSettings};
+use org_core::file_apps;
 use org_core::link;
 use org_core::open::{self, Open};
 use org_core::outline::Outline;
@@ -50,7 +51,11 @@ use crate::line_index::{Encoding, LineIndex};
 use crate::prompt::{self, DatePrompt, Target, TimeField};
 
 mod bulk;
+mod clock_persist;
+mod clock_resolve;
 mod journal;
+mod manual;
+mod remote_images;
 mod roam;
 use crate::views::{self, EntryRef, Query, View, ViewLine};
 use crate::workspace::{Source, Workspace};
@@ -78,6 +83,10 @@ struct Client {
     encoding: Encoding,
     hierarchical_symbols: bool,
     document_changes: bool,
+    /// A workspace edit may delete files (`resourceOperations`).
+    delete_files: bool,
+    /// A workspace edit may create files.
+    create_files: bool,
     /// The client fetches documents of the agenda scheme from the server.
     virtual_documents: bool,
     show_document: bool,
@@ -97,6 +106,9 @@ struct Client {
     /// says (`org-lsp/lineHighlights`): `experimental.orgLineHighlights`,
     /// or the option `line_highlights`.
     line_highlights: bool,
+    /// Hides the lines a command's answer names (`hiddenLines`):
+    /// `experimental.orgHiddenLines`, or the option `hidden_lines`.
+    hidden_lines: bool,
     /// Reads the agenda's file again when told (`org-lsp/viewChanged`):
     /// the option `view_changed`.
     view_changed: bool,
@@ -110,6 +122,9 @@ struct Client {
     inlay_refresh: bool,
     /// Ask with `window/showMessageRequest` (`message_prompts`).
     message_prompts: bool,
+    /// The client shows `window/showMessageRequest`; without
+    /// (`message_requests`), a question's choices are code actions.
+    message_requests: bool,
     /// The standard token types of LSP rather than Org's own: a client
     /// without org-lsp's editor code (`org_client`).
     standard_tokens: bool,
@@ -131,6 +146,9 @@ struct Client {
     org_client: bool,
     /// Where the command port's script goes (`command_script`).
     command_script: Option<PathBuf>,
+    /// The client runs a command the server asks it to
+    /// (`org-lsp/runCommand`): `experimental.orgRunCommand`, or `run_command`.
+    run_command: bool,
 }
 
 impl Client {
@@ -152,6 +170,9 @@ enum Pending {
     EditAndMove { uri: Uri, position: Position },
     /// The cursor of the agenda is being moved to follow an entry.
     Reveal,
+    /// The agenda's new text, as an edit of the client's file
+    /// (`edit_view`).
+    ViewEdit,
     /// The cursor of the date prompt is being moved to the selected day.
     PromptCursor,
     /// A yes-or-no question of Emacs's, whose answer it waits for.
@@ -159,16 +180,22 @@ enum Pending {
     /// The document org-journal leaves the cursor in is shown: its
     /// headlines are folded as org-journal folds them (`org-lsp/folds`).
     Folds { uri: Uri, folds: Value },
-    /// An edit after which `uri` is shown at `position` and folded so.
-    EditAndShow { uri: Uri, position: Position, folds: Value },
+    /// An edit after which `uri` is shown at `position` and folded so, in
+    /// another window with `other_window` (`orgOtherWindow`).
+    EditAndShow { uri: Uri, position: Position, folds: Value, other_window: bool },
     /// A question of `command`, run with `argument`, asked with
     /// `window/showMessageRequest` (`message_prompts`); the answer runs it
     /// again.
     Answer { command: String, argument: Value, input: Value },
+    /// `org-clock-persist-query-resume`: the clock the last session kept
+    /// runs again on yes.
+    ResumeClock(RunningClock),
 }
 
 /// A command waiting for text or a date: what `textDocument/rename`
-/// answers for a client without a way to ask (`message_prompts`).
+/// answers for a client without a way to ask (`message_prompts`); or one
+/// of its choices, which the code actions offer to a client that shows no
+/// message requests (`message_requests`).
 struct Question {
     command: String,
     argument: Value,
@@ -327,7 +354,8 @@ struct OpenView {
     /// lines its requests name are lines of this view.
     shown: Option<View>,
     /// The client closed its file. It goes unless the next message opens
-    /// it again, as coc.nvim does when it reads the file anew.
+    /// it again, as coc.nvim does when it reads the file anew; messages
+    /// about other documents may come in between.
     closing: bool,
     /// The lines last highlighted from edge to edge in the client's copy
     /// (`org-lsp/lineHighlights`).
@@ -412,6 +440,9 @@ struct Context {
     answers: Option<String>,
     /// For the property commands: the question `input` answers.
     step: Option<String>,
+    /// For the commands that ask several questions in turn (the BibTeX
+    /// commands): the answers so far; `input` is then the next one.
+    replies: Option<Vec<String>>,
     /// The text of the buffer the command runs in, as the editor has it:
     /// a capture or note buffer whose last changes the server may not have
     /// heard of yet.
@@ -481,6 +512,22 @@ struct CaptureContext {
     answers: Option<Vec<String>>,
     /// What the editor would paste (`%c`, `%x`, `%^C`).
     clipboard: Option<String>,
+    /// A capture an `org-protocol://capture` URL started
+    /// (`org-protocol-capture`): the link's properties it stored.
+    org_protocol: Option<ProtocolCapture>,
+}
+
+/// What `org-protocol-capture` stores with `org-link-store-props`, for
+/// `%:keyword`, `%a` and `%i`: the keys with their colon, in order.
+#[derive(Debug, Clone, Default, Deserialize, serde::Serialize)]
+struct ProtocolCapture {
+    props: Vec<(String, Option<String>)>,
+}
+
+impl ProtocolCapture {
+    fn get(&self, key: &str) -> Option<&str> {
+        self.props.iter().find(|(name, _)| name == key).and_then(|(_, value)| value.as_deref())
+    }
 }
 
 /// The editing command that ran last, and the entry it ran on. Some
@@ -491,16 +538,20 @@ struct Last {
     file: String,
     /// Byte offset of the entry's headline.
     heading: Option<usize>,
+    /// Where the command left the cursor, for the line commands: the
+    /// same key again from there repeats it.
+    cursor: Option<usize>,
 }
 
-/// Where the agenda's cursor goes once the view shows the effect of an
-/// edit: to the line of the entry that was changed.
-struct Follow {
-    /// The view as it will read then.
-    text: String,
-    /// The line the cursor is on now.
-    from: u32,
-    position: Position,
+/// What an edit made of the headline and the timestamp of an entry, for
+/// the agenda to show on the entry's lines.
+struct EditShown {
+    /// The headline's TODO keyword now, and whether it is a done one.
+    state: (Option<String>, bool),
+    /// The keyword and whether it is done before a repeater set it back.
+    before_repeat: Option<(Option<String>, bool)>,
+    /// The timestamp the command changed, as it reads now.
+    stamp: Option<String>,
 }
 
 /// A capture going on (`org-capture`): the buffer the editor shows, and
@@ -623,6 +674,8 @@ enum NoteLog {
     Planning(org_core::todo::PlanningChange, String),
     /// The entry refiled (`org-log-refile`).
     Refile,
+    /// The clock stopped (`org-log-note-clock-out`): the text of its line.
+    ClockOut(String),
 }
 
 /// The relative timer or the countdown of Org in Emacs, for the editor's
@@ -631,6 +684,11 @@ enum NoteLog {
 pub const TIMER: &str = "org-lsp/timer";
 /// The notification that asks the editor to save files, `{ "uris": [...] }`.
 pub const SAVE: &str = "org-lsp/save";
+/// The notification that asks the editor to run a command as from its
+/// key, `{ "command", "argument" }`, the argument's fields on top of
+/// those it sends where the cursor is: a capture an org-protocol URL
+/// started, for a client that announces `experimental.orgRunCommand`.
+pub const RUN_COMMAND: &str = "org-lsp/runCommand";
 /// The headlines' folds to open and close in a document org-journal shows.
 pub const FOLDS: &str = "org-lsp/folds";
 /// From the client: how many columns of text the window that shows the
@@ -641,15 +699,18 @@ pub const PREVIEW: &str = "org-lsp/preview";
 /// The agenda's file has been written anew, `{ "uri" }`: for a client
 /// with the option `view_changed`, which reads it again.
 pub const VIEW_CHANGED: &str = "org-lsp/viewChanged";
-/// The faces of particular TODO keywords and priorities
-/// (`org_todo_keyword_faces`, `org_priority_faces`), for the editor to
-/// apply over the highlighting: `{ "todo": { KEYWORD: face }, "priority":
-/// { LETTER: face } }`, each face `{ "foreground", "background", "bold",
+/// The faces of particular TODO keywords, priorities and tags
+/// (`org_todo_keyword_faces`, `org_priority_faces`, `org_tag_faces`), for
+/// the editor to apply over the highlighting: `{ "todo": { KEYWORD: face
+/// }, "priority": { LETTER: face }, "tag": { TAG: face } }`, each face `{ "foreground", "background", "bold",
 /// "italic", "underline", "strikethrough" }` as set.
 pub const FACES: &str = "org-lsp/faces";
 /// The journal's directory, as `capabilities.experimental.orgJournal` has
 /// it, for clients that cannot read the `initialize` result.
 pub const JOURNAL: &str = "org-lsp/journal";
+/// What a closed fold shows after its first line (`org-ellipsis`), as
+/// `capabilities.experimental.orgEllipsis` has it.
+pub const ELLIPSIS: &str = "org-lsp/ellipsis";
 /// Images to show in place of text, or to take away: what
 /// `org.latex.preview` made, once Emacs has made it. `{ "kind": "latex",
 /// "uri", "scope", "range", "remove", "items": [{ "range", "path" }] }`, as
@@ -793,8 +854,6 @@ struct DateSource {
     offset: usize,
     /// The version of the editor's copy, when the file is open there.
     version: Option<i32>,
-    /// The headline of the entry, for a command run from the agenda.
-    heading: Option<usize>,
 }
 
 /// Where the agenda's cursor goes once the client shows the current view.
@@ -879,6 +938,13 @@ struct Server {
     /// How the port's script starts a server when none answers: the Org
     /// file last opened, with the editor's command line.
     port_start: port::Start,
+    /// Where `org-lsp protocol` hands this server org-protocol URLs (see
+    /// `protocol`), and when the user was last seen working here: the
+    /// next URL goes to the server where that was last.
+    protocol: Option<crate::protocol::Listener>,
+    protocol_touched: Option<std::time::Instant>,
+    /// The options of `org-protocol.el`.
+    protocol_options: org_core::protocol::Options,
     /// Where the cursor was last seen in the agenda, for the port's
     /// commands that do not say: from the requests the client makes as
     /// the cursor moves, and from where the server put it.
@@ -886,6 +952,11 @@ struct Server {
     /// Where the cursor was last seen in an Org file or a capture buffer,
     /// for the port's commands of Org files (`file:`, `key:`).
     file_cursor: Option<(Uri, Position)>,
+    /// Where the cursor was last seen, and where it was before it went to
+    /// that document: what to show when a buffer closes in a client that
+    /// closes none for the server (Zed), as Emacs goes back there.
+    cursor_seen: Option<(Uri, Position)>,
+    cursor_before: Option<(Uri, Position)>,
     next_request: i32,
     pending: HashMap<RequestId, Pending>,
     /// What the command being run has to say, as Emacs says it in the echo
@@ -894,14 +965,27 @@ struct Server {
     /// The last subtree cut or copied, to paste where the editor does not
     /// say what its clipboard has.
     kill: Option<String>,
+    /// The last subtree cut or copied (`org-subtree-clip`), and whether it
+    /// was folded then (`org-subtree-clip-folded`): pasted again, it is
+    /// folded again.
+    subtree_clip: Option<(String, bool)>,
+    /// Folds a command made for the editor to close once its edit is in
+    /// the document: the document, its text after the edit, the lines of
+    /// the headlines to fold, and how many more changes to wait for it.
+    folds_after_edit: Option<(Uri, String, Vec<u32>, u8)>,
     /// The document the command being run was run in, whose edits are the
     /// user's to save.
     origin: Option<String>,
     /// `auto_save`: save the files a command changes elsewhere.
     /// `return_uses_meta_return`: RET on a list item makes the next item.
     return_uses_meta_return: bool,
+    /// `org-return-follows-link`: RET on a link, a timestamp or a
+    /// citation follows it.
+    return_follows_link: bool,
     /// How many months the date prompt's calendar shows (`calendar_months`).
     calendar_months: usize,
+    /// `org-use-fast-todo-selection`
+    fast_todo: crate::config::FastTodo,
     /// The day the calendar's weeks start on (`calendar_week_start_day`).
     calendar_week_start: usize,
     auto_save: bool,
@@ -909,8 +993,29 @@ struct Server {
     conceal: highlight::Conceal,
     /// `org-pretty-entities`
     pretty_entities: bool,
+    /// `org-display-custom-times`
+    custom_times: bool,
+    /// `org-timestamp-custom-formats`
+    custom_formats: (String, String),
+    /// The documents where `org-toggle-timestamp-overlays` turned custom
+    /// times the other way.
+    custom_times_toggled: HashSet<String>,
+    /// `org-custom-properties`: the properties
+    /// `org-toggle-custom-properties-visibility` hides.
+    custom_properties: Vec<String>,
+    /// The documents whose custom properties the client was last told to
+    /// hide (`org-custom-properties-overlays`).
+    custom_properties_hidden: HashSet<String>,
+    /// What org-bullets shows, when it is on.
+    bullets: Option<org_core::pretty::Bullets>,
     /// `org-startup-with-link-previews`.
     startup_link_previews: bool,
+    /// `org-image-actual-width`
+    image_actual_width: org_core::link_preview::ActualWidth,
+    /// `org-image-max-width`, as the editors are told it.
+    image_max_width: Value,
+    /// The images of URLs (`org-display-remote-inline-images`).
+    remote: remote_images::Remote,
     /// `org-startup-with-latex-preview`
     startup_latex_preview: bool,
     /// `org-table-formula-debug`: recalculating goes through Emacs, which
@@ -927,6 +1032,9 @@ struct Server {
     /// The documents each `workspace/applyEdit` changes, by request: if
     /// the editor does not apply it, the server forgets the change.
     applying: HashMap<RequestId, (Vec<String>, Option<ClockState>)>,
+    /// The text each document has once the editor has applied the last
+    /// edit asked of it, while the editor has not answered.
+    edit_results: HashMap<String, String>,
     /// The clock as the command being run found it.
     clock_before: Option<ClockState>,
     /// The paths of files through their symbolic links, as known: the
@@ -942,12 +1050,28 @@ struct Server {
     /// The `agenda` options as given, for the custom commands' own.
     agenda_options: crate::config::AgendaOptions,
     edit_settings: EditSettings,
+    /// The table options set, as Emacs variables, for the formulas Emacs
+    /// computes.
+    table_variables: Vec<(String, String)>,
+    /// How new IDs are made (`org-id-new`), and the domain they may end
+    /// with (`message-make-fqdn`).
+    ids: (link::IdSettings, String),
     read_date: ReadDateSettings,
+    /// `org-agenda-jump-prefer-future`, when it is not the prompt's.
+    agenda_jump_prefer_future: Option<org_core::read_date::PreferFuture>,
     /// `org-refile-targets`, `org-refile-use-outline-path` and how a
     /// subtree is filed.
     refile: (Vec<RefileTarget>, OutlinePath, RefileSettings),
+    /// Where IDs are looked for, and what `id:` links complete to
+    /// (`org-id-completion-targets`).
+    id_lookup: (crate::config::IdLookup, Vec<RefileTarget>),
     /// How archiving goes, and `org-archive-default-command`.
     archive: (ArchiveSettings, String),
+    /// `org-archive-subtree-save-file-p`: the archive file saved when
+    /// archiving from an Org file, and from the agenda.
+    archive_save: (bool, bool),
+    /// `org-treat-insert-todo-heading-as-state-change`
+    treat_insert_todo_as_state_change: bool,
     /// `org-capture-templates`, `org-directory` and
     /// `org-default-notes-file`.
     capture_templates: Vec<CaptureTemplateOption>,
@@ -1021,11 +1145,21 @@ struct Server {
     /// cannot ask for text (`message_prompts`): the next rename answers
     /// it, its new name being the answer.
     question: Option<Question>,
+    /// An edit of the agenda's file is with the client (`edit_view`),
+    /// made against this version of its copy: the next waits until the
+    /// client has applied it and said so with `didChange`, since an edit
+    /// of the version before would be refused.
+    view_edit_waiting: Option<i32>,
+    /// The agenda changed while an edit was with the client.
+    view_edit_due: bool,
     /// The client's copy of the date prompt document, which it may keep
     /// after a prompt is done.
     prompt_copy: Option<Document>,
-    /// `org-cycle-separator-lines`
-    separator_lines: i64,
+    /// How TAB works (`org-cycle` and its options).
+    cycle: folding::Cycle,
+    /// `org-tab-ind-state`: the cycle of an empty item's indentation that
+    /// TAB started.
+    tab_ind_state: Option<org_core::list::TabIndState>,
     /// How files show when they are opened.
     startup: folding::Startup,
     /// The documents column view shows on, by URI.
@@ -1035,6 +1169,10 @@ struct Server {
     shrunk: HashMap<String, Vec<std::collections::BTreeSet<usize>>>,
     /// `org-startup-shrink-all-tables`
     startup_shrink: bool,
+    /// `org-startup-align-all-tables`
+    startup_align: bool,
+    /// The text files opened are to have once their tables are aligned.
+    startup_aligned: HashMap<String, String>,
     /// Whether Emacs encrypts entries before a file is saved
     /// (`org-crypt-use-before-save-magic`), once it said.
     crypt_before_save: Option<bool>,
@@ -1044,10 +1182,18 @@ struct Server {
     display: org_core::indent::Display,
     /// The documents the client was last told to show with prefixes.
     virtually_indented: HashSet<String>,
+    /// The headlines of each document last sent highlighted to the edge
+    /// of the window (`org-fontify-whole-heading-line`): line and level
+    /// face.
+    heading_lines: HashMap<String, Vec<(usize, usize)>>,
     /// The documents last sent with something in `org-lsp/display`.
     displayed: HashSet<String>,
     /// `org-cite-global-bibliography`
     cite_global: Vec<String>,
+    /// `org-cite-insert-processor`
+    cite_insert_processor: Option<String>,
+    /// The options of `ol-bibtex.el`.
+    bibtex: org_core::bibtex::Settings,
     /// `org-link-abbrev-alist`.
     link_abbreviations: Vec<(String, String)>,
     /// `org-agenda-dim-blocked-tasks`.
@@ -1083,6 +1229,8 @@ struct Server {
     /// The entry clocked last: its file and headline, for
     /// `org.clock.goto` when no clock runs.
     last_clocked: Option<(Uri, String)>,
+    /// `org-clock-goto-may-find-recent-task`
+    clock_goto_recent: bool,
     /// `org-clock-history`: the entries clocked into, the last first, by
     /// file and title; at most `org-clock-history-length`.
     clock_history: Vec<ClockTask>,
@@ -1092,6 +1240,81 @@ struct Server {
     stored_links: org_core::link::Stored,
     /// The options of the link commands.
     link_settings: org_core::link::Settings,
+    /// How links are followed.
+    open_settings: open::Settings,
+    /// `org-file-apps`.
+    file_apps: org_core::file_apps::FileApps,
+    /// `org-open-non-existing-files`
+    open_non_existing_files: bool,
+    /// `org-capture-use-agenda-date`
+    capture_use_agenda_date: bool,
+    /// `org-agenda-persistent-filter`
+    agenda_persistent_filter: bool,
+    /// `org-clock-in-resume`
+    clock_in_resume: bool,
+    /// `org-clock-persist` and its file.
+    clock_persist: crate::config::ClockPersist,
+    /// `org-clock-loaded`: the file of `org-clock-persist` was read.
+    clock_loaded: bool,
+    /// `org-clock-has-been-used`
+    clock_used: bool,
+    /// `org-highlight-sparse-tree-matches`
+    highlight_sparse_tree_matches: bool,
+    /// `org-remove-highlights-with-change`
+    remove_highlights_with_change: bool,
+    /// `org-occur-highlights`: by document, whether the editor shows the
+    /// matches of a sparse tree highlighted, and if so whether they go
+    /// with the next change (`org-remove-occur-highlights` in
+    /// `before-change-functions`).
+    sparse_highlights: HashMap<String, bool>,
+    /// `org-agenda-view-columns-initially`
+    agenda_view_columns_initially: bool,
+    /// `org-special-ctrl-o`
+    special_ctrl_o: bool,
+    /// `org-num-mode`'s options.
+    num_settings: org_core::num::Settings,
+    /// `org-startup-numerated`
+    startup_numerated: bool,
+    /// `org-num-mode` as `org.num.mode` turned it, by document.
+    num_mode: HashMap<String, bool>,
+    /// `org-open-directory-means-index-dot-org`
+    open_directory_index: bool,
+    /// `org-man-command`
+    man_command: String,
+    /// `org-info-other-documents`
+    info_other_documents: Vec<(String, String)>,
+    /// `org-ctags`, when it is one of `org-modules`.
+    ctags: Option<crate::config::Ctags>,
+    /// Where the man pages and Info nodes links lead to are written.
+    manual_directory: Private,
+    /// `org-allow-promoting-top-level-subtree`
+    allow_promoting_top_level: bool,
+    /// `org-odd-levels-only`, unless a document's `#+STARTUP:` says
+    /// otherwise.
+    odd_levels: bool,
+    /// `org-inlinetask-default-state`
+    inlinetask_default_state: Option<String>,
+    /// `org-yank-adjusted-subtrees`
+    yank_adjusted_subtrees: bool,
+    /// `org-yank-folded-subtrees`
+    yank_folded_subtrees: bool,
+    /// `org-ctrl-k-protect-subtree`
+    ctrl_k_protect: org_core::line::Protect,
+    /// `org-agenda-skip-unavailable-files`
+    skip_unavailable_files: bool,
+    /// Agenda files that are not there, removed from the list
+    /// (`org-remove-file`) until the server starts again.
+    removed_agenda_files: HashSet<PathBuf>,
+    /// `org-sparse-tree-open-archived-trees`
+    sparse_tree_open_archived_trees: bool,
+    /// `org-occur-case-fold-search`
+    occur_case_fold: org_core::sparse::CaseFold,
+    /// How tangling goes (`org-babel-tangle-*`).
+    tangle_settings: org_core::tangle::Settings,
+    /// `org-babel-tangle-remove-file-before-write`
+    tangle_remove_first: Option<bool>,
+    /// `org-sparse-tree-default-date-type`
+    sparse_date_type: org_core::sparse::DateType,
     /// `org-clock-default-task`, marked by clocking in with `C-u C-u`.
     clock_default_task: Option<ClockTask>,
     /// `org-clock-interrupted-task`: the entry whose clock the last
@@ -1102,10 +1325,28 @@ struct Server {
     /// `org-clock-idle-time`: after how many minutes without a message
     /// from the editor a clock that runs is a question.
     clock_idle_time: Option<i64>,
+    /// `org-clock-rounding-minutes`
+    clock_rounding: i64,
+    /// `org-clock-continuously`: a clock starts when the last one stopped.
+    clock_continuously: bool,
+    /// `org-clock-report-include-clocking-task`
+    clock_report_running: bool,
     /// When the editor last sent something, in minutes.
     last_activity: Option<i64>,
-    /// When the idle time asked about began.
-    idle_since: Option<i64>,
+    /// `org-resolve-clocks` under way: the clocks still to ask about.
+    resolving: Option<clock_resolve::Resolving>,
+    /// The clock found running in the files rather than clocked into:
+    /// Emacs would have no clock (`org-clock-is-active`), and for clocking
+    /// in and resolving it is a dangling clock. It is still the clock the
+    /// editor shows, and the one `org.clock.out` stops.
+    found_clock: Option<RunningClock>,
+    /// `org-clock-leftover-time`: when a clock resolved with its time cut
+    /// short stopped, for the next clock-in to start from.
+    clock_leftover: Option<DateTime>,
+    /// `org-clock-auto-clock-resolution`
+    clock_auto_resolution: clock_resolve::AutoResolution,
+    /// `org-clock-resolve-expert`
+    clock_resolve_expert: bool,
     /// `org-clock-into-drawer` and its relatives.
     clock_settings: org_core::clock::Settings,
     /// `org-clock-out-when-done`
@@ -1123,9 +1364,15 @@ struct Server {
     agenda_clockreport: bool,
     /// Entry text mode (`E`): the most lines of each entry's text, when on.
     agenda_entry_text: Option<usize>,
+    /// `org-agenda-add-entry-text-maxlines`: the most lines of each
+    /// entry's text written under its line by `org-agenda-write`.
+    agenda_add_entry_text: usize,
     /// Follow mode (`F`): the entry of the cursor's line shows in another
     /// window as the cursor moves.
     agenda_follow: bool,
+    /// `org-agenda-show-outline-path`: `None` for `nil`, else whether the
+    /// file's title (`title`) comes before the path instead of its name.
+    agenda_outline_path: Option<bool>,
     /// The unit the last command moved an agenda timestamp by, when it was
     /// hours or minutes: the next `S-<right>` goes on by it (Emacs's
     /// `last-command`). `date_unit_before` is the one of the command
@@ -1143,15 +1390,19 @@ struct Server {
     roam: Option<roam::Roam>,
     /// org-journal, when it is on.
     journal: Option<crate::config::JournalSettings>,
+    /// `org-ellipsis`
+    ellipsis: String,
+    /// How headlines and blocks are shown (`org-fontify-…`).
+    fontify: highlight::Fontify,
     /// What a journal command that asked for a date in the calendar goes
     /// on with: its id and its context so far.
     journal_state: Option<(String, Value)>,
     /// The directory of the journal's search results and schedule.
     journal_views: Private,
-    /// `org-clock-display`: by document, the lines of headlines and the
+    /// `org-clock-display`: by document, where headlines start and the
     /// minutes clocked under them, shown as inlay hints until the
-    /// document changes.
-    clock_display: HashMap<String, Vec<(u32, i64)>>,
+    /// document changes (`org-remove-highlights-with-change`) or `C-c C-c`.
+    clock_display: HashMap<String, Vec<(usize, i64)>>,
     /// `org-clock-display-default-range`
     clock_display_range: String,
     /// The file whose headlines are the refile targets of the current
@@ -1162,6 +1413,8 @@ struct Server {
     refile_new_nodes: refile::NewNodes,
     /// `org_refile_target_verify_function`
     refile_verify: Option<String>,
+    /// `org-refile-active-region-within-subtree`
+    refile_region_within_subtree: bool,
     /// What the agenda shows of archives (`v a`, `v A`).
     agenda_archives: ArchivesMode,
     /// `org-agenda-include-inactive-timestamps`, bound while `[` or `v [`
@@ -1173,15 +1426,23 @@ struct Server {
     documents: HashMap<String, Document>,
     workspace: Workspace,
     view: Option<OpenView>,
+    /// The client's copy of the agenda document while no agenda is open:
+    /// a client may keep it after its editor closed, and open it to a
+    /// server that starts again (VS Code), so that it does not open it once
+    /// more when the agenda shows.
+    view_copy: Option<Document>,
     /// Files the server asked the client to edit and has not seen change yet.
     edited: HashSet<String>,
     /// Where to put the cursor once the client shows the current view.
     reveal: Option<Reveal>,
-    follow: Option<Follow>,
-    /// The cursor of the agenda is on its way from a line of the current
-    /// view to another: the client was asked to move it and has not
-    /// answered yet. A command from the old line is meant for the new one.
-    moving: Option<(u32, u32)>,
+    /// Changes made from the agenda that its lines are yet to show where
+    /// they are, as Emacs's agenda shows them until it is built again
+    /// (`org-agenda-change-all-lines`, `org-agenda-show-new-time`): each
+    /// waits for the edit of its file, and is then part of the view. While
+    /// the view holds changes, how many entries each agenda file had when
+    /// the first was made, which its lines count on.
+    held: Vec<views::Held>,
+    held_counts: Option<Vec<usize>>,
     last: Option<Last>,
     /// The sequence an entry was in when its keyword was cleared, by file
     /// and headline offset: where cycling starts again (the
@@ -1211,7 +1472,17 @@ pub fn run(connection: Connection) -> Result<()> {
         eprintln!("org-lsp: {problem}");
     }
     let options = loaded.options;
+    // `org-entities-user`: the parser knows them from here on.
+    org_syntax::set_user_entities(&options.user_entities());
+    // `org-list-allow-alphabetical`, `org-plain-list-ordered-item-terminator`.
+    org_syntax::set_list_syntax(options.list_syntax());
+    // `org-odd-levels-only`, for the files without a `#+STARTUP:` word.
+    org_core::structure::set_odd_levels_default(options.odd_levels_only.unwrap_or(false));
+    // `org-inlinetask-min-level`: which headlines are inline tasks.
+    org_core::inlinetask::set_min_level(options.inlinetask_min_level());
+    org_core::inlinetask::set_show_first_star(options.inlinetask_show_first_star.unwrap_or(false));
     let (port_sender, port_receiver) = crossbeam_channel::unbounded();
+    let (protocol_sender, protocol_receiver) = crossbeam_channel::unbounded::<crate::protocol::Sent>();
 
     let org_client = raw_params.pointer("/capabilities/experimental/orgClient").and_then(Value::as_bool) == Some(true)
         || options.org_client == Some(true);
@@ -1231,6 +1502,24 @@ pub fn run(connection: Connection) -> Result<()> {
             .and_then(|workspace| workspace.workspace_edit.as_ref())
             .and_then(|edit| edit.document_changes)
             .unwrap_or(false),
+        delete_files: params
+            .capabilities
+            .workspace
+            .as_ref()
+            .and_then(|workspace| workspace.workspace_edit.as_ref())
+            .filter(|edit| edit.document_changes == Some(true))
+            .and_then(|edit| edit.resource_operations.as_ref())
+            .is_some_and(|operations| operations.contains(&lsp_types::ResourceOperationKind::Delete)),
+        create_files: options.create_files.unwrap_or_else(|| {
+            params
+                .capabilities
+                .workspace
+                .as_ref()
+                .and_then(|workspace| workspace.workspace_edit.as_ref())
+                .filter(|edit| edit.document_changes == Some(true))
+                .and_then(|edit| edit.resource_operations.as_ref())
+                .is_some_and(|operations| operations.contains(&lsp_types::ResourceOperationKind::Create))
+        }),
         virtual_documents: options.virtual_documents.unwrap_or_else(|| {
             raw_params.pointer("/capabilities/workspace/textDocumentContent").is_some_and(|value| !value.is_null())
         }),
@@ -1250,6 +1539,9 @@ pub fn run(connection: Connection) -> Result<()> {
         line_highlights: raw_params.pointer("/capabilities/experimental/orgLineHighlights").and_then(Value::as_bool)
             == Some(true)
             || options.line_highlights == Some(true),
+        hidden_lines: raw_params.pointer("/capabilities/experimental/orgHiddenLines").and_then(Value::as_bool)
+            == Some(true)
+            || options.hidden_lines == Some(true),
         tokens_refresh: raw_params
             .pointer("/capabilities/workspace/semanticTokens/refreshSupport")
             .and_then(Value::as_bool)
@@ -1259,15 +1551,18 @@ pub fn run(connection: Connection) -> Result<()> {
             .and_then(Value::as_bool)
             .unwrap_or(false),
         message_prompts: options.message_prompts.unwrap_or(!org_client),
+        message_requests: options.message_requests.unwrap_or(true),
         standard_tokens: !org_client,
         view_file_name: if org_client { views::FILE_NAME } else { views::PLAIN_FILE_NAME },
         edit_view: !org_client,
         // Not for a client that cannot ask the questions they bring
-        // (`window/showMessageRequest`), such as Helix, unless told it can.
+        // (`window/showMessageRequest`), unless told it can, or that the
+        // code actions answer them (Helix).
         more_actions: options.command_actions.unwrap_or(false)
             || (!org_client
                 && (window.and_then(|window| window.show_message.as_ref()).is_some()
-                    || options.message_prompts == Some(true))),
+                    || options.message_prompts == Some(true)
+                    || options.message_requests == Some(false))),
         command_actions: options.command_actions.unwrap_or(false),
         org_client,
         command_script: options
@@ -1275,6 +1570,9 @@ pub fn run(connection: Connection) -> Result<()> {
             .as_deref()
             .map(|path| config::expand_home(path, &|name| std::env::var(name).ok()))
             .or_else(port::script_path),
+        run_command: raw_params.pointer("/capabilities/experimental/orgRunCommand").and_then(Value::as_bool)
+            == Some(true)
+            || options.run_command == Some(true),
     };
     // The prompt is a document the client fetches, or a file it reads
     // again when told.
@@ -1282,7 +1580,7 @@ pub fn run(connection: Connection) -> Result<()> {
     let client = Client { date_prompt: client.date_prompt && shown && client.show_document, ..client };
 
     let todo = options.todo_keywords();
-    let faces = faces::faces(&options.todo_keyword_faces, &options.priority_faces);
+    let faces = faces::faces(&options.todo_keyword_faces, &options.priority_faces, &options.tag_faces);
 
     #[allow(deprecated)]
     let folders: Vec<PathBuf> = match &params.workspace_folders {
@@ -1303,6 +1601,9 @@ pub fn run(connection: Connection) -> Result<()> {
     let prompt_uri =
         prompt_file.as_deref().and_then(uri::from_path).unwrap_or_else(|| prompt::URI.parse().expect("valid URI"));
 
+    // `org-duration-format`, `org-duration-units`: for all the server
+    // writes and reads, as Emacs's variables are.
+    org_core::duration::set(options.durations());
     let result = InitializeResult {
         capabilities: capabilities(
             client.encoding,
@@ -1311,6 +1612,7 @@ pub fn run(connection: Connection) -> Result<()> {
             client.standard_tokens,
             &faces,
             options.journal().as_ref(),
+            &options.ellipsis(),
         ),
         server_info: Some(ServerInfo {
             name: "org-lsp".to_string(),
@@ -1325,7 +1627,15 @@ pub fn run(connection: Connection) -> Result<()> {
     let emacs = crate::emacs::Emacs::new(crate::emacs::Settings {
         program: options.emacs.clone().unwrap_or_default(),
         config_file: options.emacs_config_file.clone().filter(|file| !file.is_empty()),
-        config: options.emacs_config.clone().filter(|config| !config.trim().is_empty()),
+        config: {
+            // The user's entities and list syntax, which Emacs exports
+            // with as the settings say, before the user's own Lisp.
+            let config = options.emacs_config.clone().filter(|config| !config.trim().is_empty());
+            match (options.emacs_lisp(), config) {
+                (Some(entities), Some(config)) => Some(format!("{entities}\n{config}")),
+                (entities, config) => entities.or(config),
+            }
+        },
     });
     let mut agenda = options.agenda_config();
     // The diary sexps the agenda cannot read, read by Emacs
@@ -1359,20 +1669,48 @@ pub fn run(connection: Connection) -> Result<()> {
         port_sender,
         port: None,
         port_start: port::Start::default(),
+        protocol: None,
+        protocol_touched: None,
+        protocol_options: options.protocol_options(),
         agenda_cursor: None,
         file_cursor: None,
+        cursor_seen: None,
+        cursor_before: None,
         next_request: 0,
         pending: HashMap::new(),
         message: None,
         kill: None,
+        subtree_clip: None,
+        folds_after_edit: None,
         origin: None,
         auto_save: options.auto_save.unwrap_or(true),
         return_uses_meta_return: options.return_uses_meta_return.unwrap_or(false),
+        return_follows_link: options.return_follows_link.unwrap_or(false),
         calendar_months: options.calendar_months.unwrap_or(3),
+        fast_todo: options.fast_todo_selection(),
         calendar_week_start: options.calendar_week_start_day.unwrap_or(0) % 7,
         all_agenda_tags: options.complete_tags_always_offer_all_agenda_tags.unwrap_or(false),
         pretty_entities: options.pretty_entities.unwrap_or(false),
+        custom_times: options.display_custom_times.unwrap_or(false),
+        custom_formats: match options.timestamp_custom_formats.as_deref() {
+            Some([date, time]) => (date.clone(), time.clone()),
+            _ => {
+                let (date, time) = org_core::custom_time::DEFAULT_FORMATS;
+                (date.to_string(), time.to_string())
+            }
+        },
+        custom_times_toggled: HashSet::new(),
+        custom_properties: options.custom_properties.clone().unwrap_or_default(),
+        custom_properties_hidden: HashSet::new(),
+        bullets: options.bullets(),
         startup_link_previews: options.startup_with_link_previews.unwrap_or(false),
+        image_actual_width: options.image_actual_width(),
+        image_max_width: options.image_max_width(),
+        remote: remote_images::Remote::new(
+            options.remote_images(),
+            options.download_policy(),
+            options.safe_remote_resources.clone().unwrap_or_default(),
+        ),
         startup_latex_preview: options.startup_with_latex_preview.unwrap_or(false),
         formula_debug: false,
         pretty_scripts: match (
@@ -1385,10 +1723,11 @@ pub fn run(connection: Connection) -> Result<()> {
         },
         conceal: highlight::Conceal {
             links: options.link_descriptive.unwrap_or(true),
-            emphasis: options.hide_emphasis_markers.unwrap_or(false),
+            emphasis: options.conceal_emphasis(),
         },
         saving: HashMap::new(),
         applying: HashMap::new(),
+        edit_results: HashMap::new(),
         clock_before: None,
         canonical: std::cell::RefCell::new(HashMap::new()),
         todo,
@@ -1397,9 +1736,15 @@ pub fn run(connection: Connection) -> Result<()> {
         prefix_failed: None,
         agenda_options: options.agenda.clone(),
         edit_settings: options.edit_settings(),
+        table_variables: options.table_emacs_variables(),
+        ids: (options.id_settings(), link::fqdn(&system_name())),
         read_date: options.read_date_settings(),
+        agenda_jump_prefer_future: options.agenda_jump_prefer_future(),
         refile: (options.refile_targets(), options.refile_outline_path(), options.refile_settings()),
+        id_lookup: (options.id_lookup(), options.id_completion_targets()),
         archive: (options.archive_settings(), options.archive_default_command().to_string()),
+        archive_save: options.archive_save(),
+        treat_insert_todo_as_state_change: options.treat_insert_todo_heading_as_state_change.unwrap_or(false),
         capture_templates: options.capture_templates(),
         capture_contexts: config::contexts(options.capture_templates_contexts.as_deref()),
         org_directory: options.org_directory(),
@@ -1434,18 +1779,26 @@ pub fn run(connection: Connection) -> Result<()> {
         prompt_file,
         date_prompt: None,
         question: None,
+        view_edit_waiting: None,
+        view_edit_due: false,
         prompt_copy: None,
-        separator_lines: options.separator_lines(),
+        cycle: options.cycle(),
+        tab_ind_state: None,
         startup: options.startup(),
         columns: HashMap::new(),
         shrunk: HashMap::new(),
         startup_shrink: options.startup_shrink_all_tables.unwrap_or(false),
+        startup_align: options.startup_align_all_tables.unwrap_or(false),
+        startup_aligned: HashMap::new(),
         crypt_before_save: None,
         indent: options.indent_settings(),
         display: options.display(),
         virtually_indented: HashSet::new(),
+        heading_lines: HashMap::new(),
         displayed: HashSet::new(),
         cite_global: options.cite_global_bibliography.clone().unwrap_or_default(),
+        cite_insert_processor: options.cite_insert_processor(),
+        bibtex: options.bibtex_settings(),
         dim_blocked: match &options.agenda_dim_blocked_tasks {
             Some(LogOption::Flag(false)) => DimBlocked::No,
             Some(LogOption::Name(name)) if name == "invisible" => DimBlocked::Hide,
@@ -1464,16 +1817,59 @@ pub fn run(connection: Connection) -> Result<()> {
         running: None,
         clock_pending: false,
         last_clocked: None,
+        clock_goto_recent: options.clock_goto_may_find_recent_task.unwrap_or(true),
         clock_history: Vec::new(),
         clock_history_length: options.clock_history_length.unwrap_or(5).max(1),
         stored_links: Vec::new(),
         link_settings: options.link_settings(),
+        open_settings: options.open_settings(),
+        file_apps: options.file_apps.as_deref().map(org_core::file_apps::FileApps::from_pairs).unwrap_or_default(),
+        open_non_existing_files: options.open_non_existing_files.unwrap_or(false),
+        capture_use_agenda_date: options.capture_use_agenda_date.unwrap_or(false),
+        agenda_persistent_filter: options.agenda_persistent_filter.unwrap_or(false),
+        clock_in_resume: options.clock_in_resume.unwrap_or(false),
+        clock_persist: options.clock_persist(),
+        clock_loaded: false,
+        clock_used: false,
+        highlight_sparse_tree_matches: options.highlight_sparse_tree_matches.unwrap_or(true),
+        remove_highlights_with_change: options.remove_highlights_with_change.unwrap_or(true),
+        sparse_highlights: HashMap::new(),
+        agenda_view_columns_initially: options.agenda_view_columns_initially.unwrap_or(false),
+        special_ctrl_o: options.special_ctrl_o.unwrap_or(true),
+        num_settings: options.num_settings(),
+        startup_numerated: options.startup_numerated.unwrap_or(false),
+        num_mode: HashMap::new(),
+        open_directory_index: options.open_directory_means_index_dot_org.unwrap_or(false),
+        man_command: options.man_command(),
+        info_other_documents: options.info_other_documents(),
+        ctags: options.ctags(),
+        manual_directory: Private::new("manual"),
+        allow_promoting_top_level: options.allow_promoting_top_level_subtree.unwrap_or(false),
+        odd_levels: options.odd_levels_only.unwrap_or(false),
+        inlinetask_default_state: options.inlinetask_default_state.clone().filter(|state| !state.is_empty()),
+        yank_adjusted_subtrees: options.yank_adjusted_subtrees.unwrap_or(false),
+        yank_folded_subtrees: options.yank_folded_subtrees.unwrap_or(true),
+        ctrl_k_protect: options.ctrl_k_protect(),
+        skip_unavailable_files: options.agenda_skip_unavailable_files.unwrap_or(false),
+        removed_agenda_files: HashSet::new(),
+        sparse_tree_open_archived_trees: options.sparse_tree_open_archived_trees.unwrap_or(false),
+        occur_case_fold: options.occur_case_fold(),
+        tangle_settings: options.tangle_settings(),
+        tangle_remove_first: options.tangle_remove_file_before_write(),
+        sparse_date_type: options.sparse_date_type(),
         clock_default_task: None,
         clock_interrupted: None,
         clock_out_time: None,
         clock_idle_time: options.clock_idle_time.filter(|minutes| *minutes > 0),
+        clock_rounding: options.clock_rounding_minutes.unwrap_or(0),
+        clock_continuously: options.clock_continuously.unwrap_or(false),
+        clock_report_running: options.clock_report_include_clocking_task.unwrap_or(false),
         last_activity: None,
-        idle_since: None,
+        resolving: None,
+        found_clock: None,
+        clock_leftover: None,
+        clock_auto_resolution: clock_resolve::AutoResolution::of(options.clock_auto_clock_resolution.as_ref()),
+        clock_resolve_expert: options.clock_resolve_expert.unwrap_or(false),
         clock_settings: options.clock_settings(),
         clock_out_when_done: options.clock_out_when_done.unwrap_or(true),
         clock_in_switch: options.clock_in_switch_to_state.clone(),
@@ -1484,7 +1880,13 @@ pub fn run(connection: Connection) -> Result<()> {
         agenda_archives: options.agenda.archives_mode(),
         agenda_inactive: false,
         agenda_entry_text: options.agenda_config().entry_text,
+        agenda_add_entry_text: options.agenda.add_entry_text_maxlines.unwrap_or(0),
         agenda_follow: options.agenda.start_with_follow_mode.unwrap_or(false),
+        agenda_outline_path: match &options.agenda.show_outline_path {
+            Some(crate::config::OutlinePathOption::Flag(false)) => None,
+            Some(crate::config::OutlinePathOption::Name(name)) => Some(name == "title"),
+            _ => Some(false),
+        },
         date_unit: None,
         date_unit_before: None,
         agenda_marks: Vec::new(),
@@ -1492,6 +1894,8 @@ pub fn run(connection: Connection) -> Result<()> {
         staging: None,
         roam: options.roam().map(roam::Roam::new),
         journal: options.journal(),
+        ellipsis: options.ellipsis(),
+        fontify: options.fontify(),
         journal_state: None,
         journal_views: Private::new("journal"),
         clock_display: HashMap::new(),
@@ -1499,19 +1903,23 @@ pub fn run(connection: Connection) -> Result<()> {
         refile_current: None,
         refile_new_nodes: options.refile_new_nodes(),
         refile_verify: options.refile_target_verify_function.clone().filter(|name| !name.trim().is_empty()),
+        refile_region_within_subtree: options.refile_active_region_within_subtree.unwrap_or(false),
         agenda_filters: Default::default(),
         documents: HashMap::new(),
         workspace: {
             let inheritance = options.inheritance();
-            let mut workspace = Workspace::new(options.agenda_files, folders);
+            let mut workspace = Workspace::new(options.agenda_files.clone(), folders);
             workspace.inheritance = inheritance;
+            workspace.file_regexp =
+                options.agenda_file_regexp.as_deref().and_then(org_core::agenda::matcher::emacs_regex_with_case);
             workspace
         },
         view: None,
+        view_copy: None,
         edited: HashSet::new(),
         reveal: None,
-        follow: None,
-        moving: None,
+        held: Vec::new(),
+        held_counts: None,
         last: None,
         todo_heads: HashMap::new(),
         faces,
@@ -1525,12 +1933,19 @@ pub fn run(connection: Connection) -> Result<()> {
     }
     // A clock left running in the files runs on.
     server.running = server.find_running();
+    server.found_clock = server.running.clone();
     if server.running.is_some() {
         server.publish_clock();
     }
+    // `org-clock-persistence-insinuate`: what the last session kept.
+    server.clock_load();
     // The port answers from the start: its script opens the agenda
     // without one open (`org.agenda.list`).
     server.open_port();
+    // org-protocol URLs: from the start, for any client; those left for
+    // a server that starts a moment later, once the editor is ready.
+    server.protocol_listen(protocol_sender);
+    let mut protocol_pending = crossbeam_channel::after(std::time::Duration::from_secs(1));
     let emacs_events = server.emacs.events().clone();
     // After `shutdown`, requests are refused and notifications dropped
     // until `exit`, which ends the server; an `exit` before it ends it as
@@ -1546,6 +1961,7 @@ pub fn run(connection: Connection) -> Result<()> {
         crossbeam_channel::select! {
             recv(connection.receiver) -> message => match message {
                 Ok(Message::Request(request)) => {
+                    server.protocol_touch();
                     if shut_down || request.method == lsp_types::request::Shutdown::METHOD {
                         let response = if shut_down {
                             let message = "The server is shutting down".to_string();
@@ -1563,6 +1979,7 @@ pub fn run(connection: Connection) -> Result<()> {
                     connection.sender.send(Message::Response(response))?;
                 }
                 Ok(Message::Notification(notification)) => {
+                    server.protocol_touch();
                     if notification.method == lsp_types::notification::Exit::METHOD {
                         exited = true;
                         break;
@@ -1578,6 +1995,17 @@ pub fn run(connection: Connection) -> Result<()> {
                 }
                 Err(_) => break,
             },
+            recv(protocol_receiver) -> sent => {
+                if let Ok(sent) = sent {
+                    let answer = guarded(&mut server, "org-protocol", |server| server.protocol_url(&sent.url))
+                        .unwrap_or_else(Err);
+                    let _ = sent.answer.send(answer);
+                }
+            }
+            recv(protocol_pending) -> _ => {
+                protocol_pending = crossbeam_channel::never();
+                let _ = guarded(&mut server, "org-protocol", Server::protocol_pending);
+            }
             recv(port_receiver) -> command => {
                 if let Ok(command) = command {
                     let _ = guarded(&mut server, &command.command.clone(), |server| server.run_from_port(command));
@@ -1594,8 +2022,13 @@ pub fn run(connection: Connection) -> Result<()> {
             recv(special) -> _ => { let _ = guarded(&mut server, "the edit buffers", Server::check_special_edits); }
         }
     }
+    // `org-clock-save`, as Emacs runs it when it is killed.
+    let _ = guarded(&mut server, "the clock's file", Server::clock_save);
     if let Some(port) = &server.port {
         port.close();
+    }
+    if let Some(protocol) = &server.protocol {
+        protocol.close();
     }
     // Zed opens the agenda's tab again when it starts; the file stays for
     // it, and the next server takes it over.
@@ -1603,16 +2036,21 @@ pub fn run(connection: Connection) -> Result<()> {
         server.remove_view_file();
     }
     // The server's temporary directories that were made.
-    let roam = server.roam.as_ref().map(|roam| &roam.buffer_directory);
+    let roam = server.roam.as_ref().into_iter().flat_map(|roam| [&roam.buffer_directory, &roam.graph_directory]);
     for directory in [&server.capture_directory, &server.export_directory, &server.special_directory]
         .into_iter()
-        .chain([&server.journal_views])
+        .chain([&server.journal_views, &server.remote.directory, &server.manual_directory])
         .chain(roam)
         .filter_map(Private::made)
     {
         let _ = std::fs::remove_dir_all(directory);
     }
     if let Some(directory) = server.view_directory.made().filter(|_| !server.client.zed_agenda()) {
+        // The date prompt's file, read-only, goes first.
+        if let Some(file) = &server.prompt_file {
+            let _ = set_writable(file);
+            let _ = std::fs::remove_file(file);
+        }
         let _ = std::fs::remove_dir(directory);
     }
     if exited && !shut_down {
@@ -1683,6 +2121,20 @@ fn property_names(text: &str) -> Vec<String> {
     names
 }
 
+/// The argument of a command run again with `key` as the answer to what
+/// it asked, `input`.
+fn answered(argument: Value, input: &Value, key: &Value) -> Value {
+    let mut argument = match argument {
+        Value::Object(fields) => fields,
+        _ => serde_json::Map::new(),
+    };
+    if let Some(Value::Object(context)) = input.get("context") {
+        argument.extend(context.clone());
+    }
+    argument.insert("input".to_string(), key.clone());
+    Value::Object(argument)
+}
+
 /// A command's result with what it has to say: `{ "message": … }` on top
 /// of whatever else the result holds.
 /// A choice of a question as a button: its label, and its key when it is
@@ -1703,13 +2155,7 @@ fn prompt_label(choice: &Value) -> String {
 
 /// The words of a file's `#+STARTUP:` lines, lowercased, in order.
 fn startup_words(text: &str) -> Vec<String> {
-    text.lines()
-        .filter_map(|line| {
-            let line = line.trim_start_matches([' ', '\t']);
-            line.get(..10).filter(|key| key.eq_ignore_ascii_case("#+startup:")).map(|_| &line[10..])
-        })
-        .flat_map(|words| words.split_whitespace().map(str::to_ascii_lowercase))
-        .collect()
+    org_core::text::startup_words(text).into_iter().map(str::to_ascii_lowercase).collect()
 }
 
 /// What a column view command asks, Org's question with its default, as
@@ -2041,8 +2487,8 @@ fn property_ids(text: &str) -> Vec<String> {
 }
 
 /// Write the agenda's file and leave it read-only: the agenda is to read,
-/// and editors that go by a file's permissions (Zed, Vim) then do not let
-/// it be edited.
+/// and editors that go by a file's permissions (Vim) then do not let it
+/// be edited.
 fn write_read_only(file: &Path, text: &str) -> std::io::Result<()> {
     // In place, the same file each time: Zed follows a file outside the
     // project by the file itself, and loses one that another is renamed
@@ -2115,6 +2561,7 @@ fn capabilities(
     standard_tokens: bool,
     faces: &Value,
     journal: Option<&crate::config::JournalSettings>,
+    ellipsis: &str,
 ) -> ServerCapabilities {
     // `orgJournal`: the journal's directory, whose files are Org files
     // without the name saying so (`org-journal-is-journal`).
@@ -2179,8 +2626,14 @@ fn capabilities(
         inlay_hint_provider: inlay_hints.then_some(OneOf::Left(true)),
         document_highlight_provider: cursor.then_some(OneOf::Left(true)),
         // `orgFaces`: the faces of particular keywords and priorities
-        // (see `org-lsp/faces`).
-        experimental: Some(json!({ "org": manifest::manifest(), "orgFaces": faces, "orgJournal": journal })),
+        // (see `org-lsp/faces`); `orgEllipsis`, what closed folds show
+        // after their first line (see `org-lsp/ellipsis`).
+        experimental: Some(json!({
+            "org": manifest::manifest(),
+            "orgFaces": faces,
+            "orgJournal": journal,
+            "orgEllipsis": ellipsis,
+        })),
         ..Default::default()
     }
 }
@@ -2310,6 +2763,9 @@ fn replace_whole(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     if std::fs::metadata(path).is_ok_and(|metadata| std::os::unix::fs::MetadataExt::nlink(&metadata) > 1) {
         use std::io::Write;
         write_new(&temporary)?;
+        if let Some(permissions) = permissions.clone() {
+            std::fs::set_permissions(&temporary, permissions)?;
+        }
         let mut file = std::fs::OpenOptions::new().write(true).truncate(true).open(path)?;
         file.write_all(bytes)?;
         file.sync_all()?;
@@ -2345,21 +2801,37 @@ fn written_path(path: &Path) -> PathBuf {
 }
 
 /// Write a tangled file as `org-babel-tangle` writes it: only when its text
-/// changed, its directories made with `:mkdirp`, its mode set.
-fn write_tangled(file: &org_core::tangle::File) -> std::io::Result<()> {
+/// changed, its directories made with `:mkdirp`, its mode set. A file there
+/// already is deleted first as `org-babel-tangle-remove-file-before-write`
+/// says, `remove_first`: always, never, or (`None`) when it is read-only;
+/// else its text is replaced, and a read-only file refuses.
+fn write_tangled(file: &org_core::tangle::File, remove_first: Option<bool>) -> std::result::Result<(), String> {
+    let failed = |error: std::io::Error| format!("{}: {error}", file.path.display());
     if std::fs::read_to_string(&file.path).is_ok_and(|text| text == file.text) {
         return Ok(());
     }
     if file.make_directories {
         if let Some(parent) = file.path.parent() {
-            std::fs::create_dir_all(parent)?;
+            std::fs::create_dir_all(parent).map_err(failed)?;
         }
     }
-    replace_whole(&file.path, file.text.as_bytes())?;
+    if std::fs::symlink_metadata(&file.path).is_ok() {
+        // `file-writable-p`
+        let writable = std::fs::OpenOptions::new().write(true).open(&file.path).is_ok();
+        match remove_first {
+            Some(true) => std::fs::remove_file(&file.path).map_err(failed)?,
+            None if !writable => std::fs::remove_file(&file.path).map_err(failed)?,
+            Some(false) if !writable => {
+                return Err(format!("Opening output file: Permission denied, {}", file.path.display()));
+            }
+            _ => {}
+        }
+    }
+    replace_whole(&file.path, file.text.as_bytes()).map_err(failed)?;
     #[cfg(unix)]
     if let Some(mode) = file.mode {
         use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&file.path, std::fs::Permissions::from_mode(mode))?;
+        std::fs::set_permissions(&file.path, std::fs::Permissions::from_mode(mode)).map_err(failed)?;
     }
     Ok(())
 }
@@ -2442,14 +2914,9 @@ impl Server {
     }
 
     /// The line of the agenda that a request at `line` of `uri` is about,
-    /// with its number. That is the line the client shows there, or the
-    /// line the cursor is being moved to from there.
+    /// with its number: the line the client shows there.
     fn view_line(&self, uri: &Uri, line: u32) -> Option<(u32, &ViewLine)> {
         let open = self.view.as_ref().filter(|open| open.uri == *uri)?;
-        let line = match self.moving {
-            Some((from, to)) if from == line && open.is_current() => to,
-            _ => line,
-        };
         Some((line, open.on_screen().line(line)?))
     }
 
@@ -2459,6 +2926,25 @@ impl Server {
 
     fn now(&self) -> Now {
         self.clock.unwrap_or_else(cli::now)
+    }
+
+    /// `org-id-new` as the settings have it: what makes new IDs, keeping
+    /// nothing of the server.
+    fn id_maker(&self) -> impl FnMut() -> String + 'static {
+        let ((settings, fqdn), fixed) = (self.ids.clone(), self.clock);
+        move || {
+            use chrono::Timelike;
+            let now = chrono::Local::now();
+            let fixed = fixed.unwrap_or_else(cli::now);
+            let clock = link::IdClock {
+                local: DateTime { day: fixed.today, minute: fixed.minute },
+                second: now.second(),
+                nanosecond: now.nanosecond() % 1_000_000_000,
+                unix_seconds: u64::try_from(now.timestamp()).unwrap_or(0),
+                unix_microseconds: now.timestamp_subsec_micros() % 1_000_000,
+            };
+            link::new_id(&settings, &clock, &fqdn)
+        }
     }
 
     /// The current local time, for timestamps the server writes.
@@ -2478,9 +2964,19 @@ impl Server {
     /// changed from the agenda, the target of a capture or a refile) are
     /// saved once the editor has applied the edit.
     fn apply_edit(&mut self, params: lsp_types::ApplyWorkspaceEditParams, pending: Pending) {
+        self.apply_edit_request(params, pending);
+    }
+
+    /// [`Server::apply_edit`], and the request that asks for it, unless the
+    /// edit is held for later.
+    fn apply_edit_request(
+        &mut self,
+        params: lsp_types::ApplyWorkspaceEditParams,
+        pending: Pending,
+    ) -> Option<RequestId> {
         if self.staging.is_some() {
             self.stage(&params.edit);
-            return;
+            return None;
         }
         let mut files: Vec<Uri> = match (&params.edit.document_changes, &params.edit.changes) {
             (Some(lsp_types::DocumentChanges::Edits(edits)), _) => {
@@ -2490,6 +2986,9 @@ impl Server {
             _ => Vec::new(),
         };
         let changed: Vec<String> = files.iter().map(|uri| uri.as_str().to_string()).collect();
+        let mut params = params;
+        self.insert_before_last_newline(&mut params.edit);
+        self.remember_edit_results(&params.edit);
         files.retain(|uri| Some(uri.as_str()) != self.origin.as_deref() && !is_view_uri(uri));
         let request = self.new_request(
             ApplyWorkspaceEdit::METHOD,
@@ -2500,7 +2999,99 @@ impl Server {
         if self.auto_save && !files.is_empty() {
             self.saving.insert(request.id.clone(), files);
         }
+        let id = request.id.clone();
         let _ = self.sender.send(Message::Request(request));
+        Some(id)
+    }
+
+    /// Lines added after the last newline of a document, said as
+    /// added before it, from the end of the last line: yegappan/lsp cannot
+    /// insert on the line after the last one. Not while another edit of
+    /// the document is on its way, which this one may not count on.
+    fn insert_before_last_newline(&self, edit: &mut lsp_types::WorkspaceEdit) {
+        let mut changes: Vec<(&Uri, Vec<&mut TextEdit>)> = Vec::new();
+        if let Some(lsp_types::DocumentChanges::Edits(edits)) = &mut edit.document_changes {
+            for edit in edits {
+                let text_edits = edit.edits.iter_mut().map(|edit| match edit {
+                    lsp_types::OneOf::Left(edit) => edit,
+                    lsp_types::OneOf::Right(annotated) => &mut annotated.text_edit,
+                });
+                changes.push((&edit.text_document.uri, text_edits.collect()));
+            }
+        }
+        for (uri, edits) in edit.changes.iter_mut().flatten() {
+            changes.push((uri, edits.iter_mut().collect()));
+        }
+        for (uri, edits) in changes {
+            // The editor's text, or the file's for one it has not opened.
+            let text = match self.documents.get(uri.as_str()) {
+                Some(document) => document.text.clone(),
+                None => match uri::to_path(uri).and_then(|path| std::fs::read_to_string(path).ok()) {
+                    Some(text) => text,
+                    None => continue,
+                },
+            };
+            let pending = self.applying.values().any(|(files, _)| files.iter().any(|file| file == uri.as_str()));
+            if pending || !text.ends_with('\n') {
+                continue;
+            }
+            let lines = text.matches('\n').count() as u32;
+            let last = text[..text.len() - 1].rsplit('\n').next().unwrap_or("");
+            let end = Position::new(lines, 0);
+            for edit in edits {
+                if edit.range.start == end && edit.range.end == end && edit.new_text.ends_with('\n') {
+                    let at = Position::new(lines - 1, self.client.encoding.len(last));
+                    edit.range = Range::new(at, at);
+                    edit.new_text = format!("\n{}", &edit.new_text[..edit.new_text.len() - 1]);
+                }
+            }
+        }
+    }
+
+    /// The text of each open document `edit` changes, once it is applied.
+    fn remember_edit_results(&mut self, edit: &lsp_types::WorkspaceEdit) {
+        let mut changes: Vec<(&Uri, Vec<&TextEdit>)> = Vec::new();
+        if let Some(lsp_types::DocumentChanges::Edits(edits)) = &edit.document_changes {
+            for edit in edits {
+                let text_edits = edit.edits.iter().map(|edit| match edit {
+                    lsp_types::OneOf::Left(edit) => edit,
+                    lsp_types::OneOf::Right(annotated) => &annotated.text_edit,
+                });
+                changes.push((&edit.text_document.uri, text_edits.collect()));
+            }
+        }
+        for (uri, edits) in edit.changes.iter().flatten() {
+            changes.push((uri, edits.iter().collect()));
+        }
+        for (uri, edits) in changes {
+            let Some(document) = self.documents.get(uri.as_str()) else { continue };
+            let text = &document.text;
+            let index = LineIndex::new(text);
+            let mut ranges: Vec<(usize, usize, &str)> = edits
+                .iter()
+                .map(|edit| {
+                    let start = index.offset(text, edit.range.start, self.client.encoding);
+                    let end = index.offset(text, edit.range.end, self.client.encoding);
+                    (start, end.max(start), edit.new_text.as_str())
+                })
+                .collect();
+            ranges.sort_by_key(|(start, end, _)| std::cmp::Reverse((*start, *end)));
+            // Edits made for another text than the server's (that of an
+            // edit still on its way) say nothing of it.
+            let mut result = Some(text.clone());
+            for (start, end, new_text) in ranges {
+                result = result.filter(|result| result.is_char_boundary(start) && result.is_char_boundary(end)).map(
+                    |mut result| {
+                        result.replace_range(start..end, new_text);
+                        result
+                    },
+                );
+            }
+            match result {
+                Some(result) => self.edit_results.insert(uri.as_str().to_string(), result),
+                None => self.edit_results.remove(uri.as_str()),
+            };
+        }
     }
 
     fn send_raw_request(&mut self, method: &str, params: Value, pending: Option<Pending>) {
@@ -2579,17 +3170,36 @@ impl Server {
                 let notification = Notification::new(FOLDS.to_string(), params);
                 let _ = self.sender.send(Message::Notification(notification));
             }
-            Some(Pending::EditAndShow { uri, position, folds }) => {
+            Some(Pending::EditAndShow { uri, position, folds, other_window }) => {
                 self.refresh_view();
                 let applied = response.response_result.ok().and_then(|result| result.get("applied")?.as_bool());
                 if applied == Some(true) {
                     let selection = Some(Range::new(position, position));
                     let params =
                         ShowDocumentParams { uri: uri.clone(), external: None, take_focus: Some(true), selection };
-                    self.send_request::<ShowDocument>(params, Some(Pending::Folds { uri, folds }));
+                    let mut params = serde_json::to_value(params).unwrap_or_default();
+                    if other_window {
+                        params["orgOtherWindow"] = json!(true);
+                    }
+                    let then = (!folds.is_null()).then_some(Pending::Folds { uri, folds });
+                    self.send_raw_request(ShowDocument::METHOD, params, then);
                 }
             }
-            Some(Pending::Reveal) => self.moving = None,
+            Some(Pending::Reveal) => {}
+            Some(Pending::ViewEdit) => {
+                let sent = self.view_edit_waiting.take();
+                let applied = response.response_result.ok().and_then(|result| result.get("applied")?.as_bool());
+                let reported =
+                    self.view.as_ref().and_then(|open| open.client.as_ref()).map(|copy| copy.version) != sent;
+                if applied != Some(true) {
+                    self.view_edit_due = false;
+                } else if reported {
+                    // The client has said what the edit changed (Helix
+                    // does before it answers): the next edit can go.
+                    self.view_edit_catch_up();
+                }
+                // Else it goes once the client says (`didChange`).
+            }
             Some(Pending::PromptCursor) => {
                 if let Some(open) = self.date_prompt.as_mut() {
                     open.moving_cursor = false;
@@ -2599,6 +3209,13 @@ impl Server {
                 let picked =
                     response.response_result.ok().and_then(|item| Some(item.get("title")?.as_str()?.to_string()));
                 let _ = answer.send(picked.as_deref() == Some("Yes"));
+            }
+            Some(Pending::ResumeClock(clock)) => {
+                let picked =
+                    response.response_result.ok().and_then(|item| Some(item.get("title")?.as_str()?.to_string()));
+                if picked.as_deref() == Some("Yes") {
+                    self.resume_clock(clock);
+                }
             }
             Some(Pending::Answer { command, argument, input }) => {
                 let picked =
@@ -2614,7 +3231,12 @@ impl Server {
     // ----- requests
 
     fn request(&mut self, request: Request) -> Response {
-        self.drop_closed_view();
+        // Only for one about the agenda: coc.nvim, as it reads the agenda
+        // anew, may be asked others in between (about the file an edit was
+        // for, or none).
+        if self.about_the_agenda(&request.params) {
+            self.drop_closed_view();
+        }
         self.notice_activity();
         macro_rules! dispatch {
             ($($request:ty => $handler:ident,)*) => {
@@ -2628,8 +3250,16 @@ impl Server {
                             let (command, argument) = (params.command.clone(), params.arguments.first().cloned());
                             match self.run_command(params) {
                                 Ok(value) => {
+                                    // A code action of Zed's (`apply` in its
+                                    // context): what the command does is
+                                    // applied here, the cursor moved where it
+                                    // says, as from the command port.
+                                    let argument = argument.unwrap_or(Value::Null);
+                                    if argument.get("apply").and_then(Value::as_bool) == Some(true) {
+                                        self.apply_result(&argument, &value);
+                                    }
                                     if self.client.message_prompts {
-                                        self.prompt_with_messages(command, argument.unwrap_or(Value::Null), &value);
+                                        self.prompt_with_messages(command, argument, &value);
                                     }
                                     respond(id, value)
                                 }
@@ -2656,8 +3286,8 @@ impl Server {
                     },
                     AGENDA_CURSOR => match parameters::<Value>(request) {
                         Ok((id, params)) => {
-                            self.agenda_cursor(params);
-                            Response::new_ok(id, Value::Null)
+                            let answer = self.agenda_cursor(params);
+                            Response::new_ok(id, answer)
                         }
                         Err(response) => *response,
                     },
@@ -2667,6 +3297,7 @@ impl Server {
                     },
                     FACES => Response::new_ok(request.id, self.faces.clone()),
                     JOURNAL => Response::new_ok(request.id, journal_directory(self.journal.as_ref())),
+                    ELLIPSIS => Response::new_ok(request.id, &self.ellipsis),
                     PREVIEW => match parameters::<Value>(request) {
                         Ok((id, params)) => respond(id, self.preview(&params)),
                         Err(response) => *response,
@@ -2717,12 +3348,37 @@ impl Server {
     }
 
     /// The cursor is on another line of the agenda: in follow mode, its
-    /// entry shows in another window.
-    fn agenda_cursor(&mut self, params: Value) {
+    /// entry shows in another window, and with
+    /// `org-agenda-show-outline-path` the answer has its outline path for
+    /// the echo area, `{ "echo": "work.org/Projects" }`
+    /// (`org-agenda-do-context-action`).
+    fn agenda_cursor(&mut self, params: Value) -> Value {
+        let width = params.get("width").and_then(Value::as_u64).map(|width| width as usize);
+        let context = serde_json::from_value::<Context>(params).ok();
         if self.agenda_follow {
-            let context = serde_json::from_value::<Context>(params).ok();
             self.show_entry(context.as_ref());
         }
+        match self.agenda_outline_path(context.as_ref()) {
+            Some(path) => json!({ "echo": width.map_or(path.clone(), |width| fit_outline_path(&path, width)) }),
+            None => Value::Null,
+        }
+    }
+
+    /// `org-display-outline-path` at the entry of the agenda line: the
+    /// file's name, or its title, and the titles of the headlines above
+    /// the entry, joined by `/`.
+    fn agenda_outline_path(&mut self, context: Option<&Context>) -> Option<String> {
+        let title = self.agenda_outline_path?;
+        let reference = self.entry_at(context)?;
+        let name = uri::file_name(&reference.uri);
+        self.with_source(&reference.uri, |text, _, parse, outline, _| {
+            let entry = &outline.entries[views::resolve(&reference, outline)?];
+            let path = org_core::refile::outline_path(text, entry.offset, parse.todo_keywords());
+            let prefix = title.then(|| org_core::refile::file_title(parse)).flatten().unwrap_or(name);
+            let parts = path.iter().map(|part| part.trim_end_matches([' ', '\t']));
+            Some(std::iter::once(prefix.as_str()).chain(parts).collect::<Vec<_>>().join("/"))
+        })
+        .flatten()
     }
 
     fn notification(&mut self, notification: Notification) {
@@ -2744,11 +3400,22 @@ impl Server {
             && self.view.as_ref().is_some_and(|open| {
                 notification.params.pointer("/textDocument/uri").and_then(Value::as_str) == Some(open.uri.as_str())
             });
+        // A message about another document in between is not the next
+        // message either way: coc.nvim reads the agenda anew while it
+        // closes the date prompt, or while it opens, edits and saves the
+        // file an edit made from the agenda is for.
+        let other_document = matches!(
+            notification.method.as_str(),
+            DidOpenTextDocument::METHOD
+                | DidChangeTextDocument::METHOD
+                | DidSaveTextDocument::METHOD
+                | DidCloseTextDocument::METHOD
+        ) && self.about_another_document(&notification.params);
         if reopened {
             if let Some(open) = &mut self.view {
                 open.closing = false;
             }
-        } else {
+        } else if !other_document {
             self.drop_closed_view();
         }
         if matches!(
@@ -2760,7 +3427,9 @@ impl Server {
         }
         match notification.method.as_str() {
             AGENDA_WIDTH => self.agenda_width(&notification.params),
-            AGENDA_CURSOR => self.agenda_cursor(notification.params),
+            AGENDA_CURSOR => {
+                self.agenda_cursor(notification.params);
+            }
             CURSOR => self.roam_cursor(notification.params),
             DidOpenTextDocument::METHOD => {
                 let Some(params) = parse::<lsp_types::DidOpenTextDocumentParams>(notification) else { return };
@@ -2790,9 +3459,13 @@ impl Server {
                         open.client = Some(Document::new(document.text, document.version, &self.todo));
                         open.highlighted = None;
                         open.forget_shown();
+                    } else if self.view.is_none() && document.uri.as_str() == views::VIRTUAL_URI {
+                        self.view_copy = Some(Document::new(document.text, document.version, &self.todo));
                     }
                     // An older text than the agenda's, read from the file.
                     if self.client.edit_view {
+                        self.view_edit_waiting = None;
+                        self.view_edit_due = false;
                         self.edit_view_in_client();
                     }
                     self.reveal_when_current();
@@ -2801,11 +3474,29 @@ impl Server {
                 let key = document.uri.as_str().to_string();
                 self.remember_start_file(&document.uri);
                 self.shrink_at_startup(&key, &document.text);
+                let aligned = self.align_at_startup(&document.text);
+                let (uri, version, opened) = (document.uri.clone(), document.version, document.text.clone());
                 self.documents.insert(key.clone(), Document::new(document.text, document.version, &self.todo));
+                if let Some(aligned) = aligned {
+                    self.startup_aligned.insert(key.clone(), aligned.clone());
+                    let edits = self.text_edits(&opened, &aligned);
+                    let edit = self.workspace_edit(&uri, Some(version), edits);
+                    self.apply_edit(lsp_types::ApplyWorkspaceEditParams { label: None, edit }, Pending::Edit);
+                }
                 self.sync_clock(&key);
                 self.publish_virtual_indent(&key);
+                self.publish_heading_lines(&key);
                 self.publish_display(&key);
                 self.publish_diagnostics(&key);
+                // An edit the server asked for, of a file no buffer had:
+                // Zed opens the file with the edit in it, and tells of no
+                // change. Its effect shows now, as after a change.
+                let on_disk = self.edited.contains(&key).then(|| uri::to_path(&uri)).flatten();
+                if on_disk.is_some_and(|path| std::fs::read_to_string(path).is_ok_and(|text| text != opened)) {
+                    self.edited.remove(&key);
+                    self.edit_results.remove(&key);
+                    self.refresh_view();
+                }
             }
             DidChangeTextDocument::METHOD => {
                 let Some(params) = parse::<lsp_types::DidChangeTextDocumentParams>(notification) else { return };
@@ -2819,6 +3510,12 @@ impl Server {
                 }
                 // The client's copy of the agenda follows the server's.
                 let (encoding, todo) = (self.client.encoding, &self.todo);
+                if let Some(copy) =
+                    self.view_copy.as_mut().filter(|_| params.text_document.uri.as_str() == views::VIRTUAL_URI)
+                {
+                    copy.apply(params.content_changes, params.text_document.version, encoding, todo);
+                    return;
+                }
                 let view = self.view.as_mut().filter(|open| open.uri == params.text_document.uri);
                 if let Some(open) = view.filter(|open| open.client.is_some()) {
                     if let Some(copy) = open.client.as_mut() {
@@ -2827,6 +3524,7 @@ impl Server {
                     // New lines: highlighted anew, whatever was before.
                     open.highlighted = None;
                     open.forget_shown();
+                    self.view_edit_catch_up();
                     self.reveal_when_current();
                     return;
                 }
@@ -2837,6 +3535,8 @@ impl Server {
                     .then(|| self.documents.get(key).map(|document| document.text.clone()))
                     .flatten();
                 let changed_lines = changed_lines(&params.content_changes);
+                // The same text again (ALE sends it as a new version).
+                let mut same_text = false;
                 if let Some(document) = self.documents.get_mut(key) {
                     let changes = document.apply(
                         params.content_changes,
@@ -2844,6 +3544,7 @@ impl Server {
                         self.client.encoding,
                         &self.todo,
                     );
+                    same_text = changes.iter().all(|change| change.start == change.end && change.length == 0);
                     // The agenda's entries in this file follow the text,
                     // until the agenda is built again: a command on one of
                     // its lines finds its timestamp where it is now.
@@ -2861,9 +3562,25 @@ impl Server {
                         }
                     }
                     self.agenda_marks.iter_mut().for_each(follow);
+                    self.held.iter_mut().for_each(|held| follow(held.entry_mut()));
+                    // The clock's times kept through changes stay on their
+                    // headlines, as Emacs's overlays do.
+                    for (offset, _) in self.clock_display.get_mut(key).into_iter().flatten() {
+                        for change in &changes {
+                            *offset = change.moved(*offset);
+                        }
+                    }
                 }
                 if let Some(old) = shrunk_before {
                     self.shrunk_after_change(key, &old, changed_lines);
+                }
+                // The tables aligned as the file opened: shrunk after that,
+                // as `org-mode` aligns them first.
+                let aligned = self.documents.get(key).map(|document| &document.text);
+                if aligned.is_some() && self.startup_aligned.get(key) == aligned {
+                    self.startup_aligned.remove(key);
+                    let text = aligned.cloned().unwrap_or_default();
+                    self.shrink_at_startup(key, &text);
                 }
                 self.sync_clock(key);
                 // Column view follows the text.
@@ -2873,19 +3590,41 @@ impl Server {
                     }
                 }
                 self.publish_virtual_indent(key);
+                self.publish_heading_lines(key);
                 self.publish_display(key);
                 self.publish_diagnostics(key);
+                self.fold_after_edit(key);
                 // The clock's times go with the next change, as Emacs's
-                // overlays do (`org-remove-highlights-with-change`).
-                if self.clock_display.remove(key).is_some() {
+                // overlays do (`org-remove-highlights-with-change`); the
+                // editor takes the sparse tree's highlights away itself,
+                // when they go.
+                if self.remove_highlights_with_change && self.clock_display.remove(key).is_some() {
                     self.refresh_inlay_hints();
+                }
+                if self.sparse_highlights.get(key) == Some(&true) {
+                    self.sparse_highlights.remove(key);
                 }
                 // An edit the server asked for has arrived: show its effect.
                 // Any other change means the user did something in between.
-                if self.edited.remove(key) {
+                // Before the editor answers, a text other than the edit's
+                // is a part of it (yegappan/lsp applies an edit a piece at a
+                // time, and Vim tells of the pieces).
+                let answered = !self.applying.values().any(|(files, _)| files.iter().any(|file| file == key));
+                let result = self.edit_results.get(key);
+                let partly = !answered
+                    && self.edited.contains(key)
+                    && result
+                        .is_some_and(|result| self.documents.get(key).is_some_and(|document| document.text != *result));
+                if partly || same_text {
+                    // The rest of the edit is to come, or nothing changed.
+                } else if self.edited.remove(key) {
+                    self.edit_results.remove(key);
                     self.refresh_view();
                 } else {
                     self.last = None;
+                    // The user changed a file: the agenda shows it as it
+                    // is once it is built again.
+                    self.release_held();
                 }
             }
             DidSaveTextDocument::METHOD => {
@@ -2902,6 +3641,9 @@ impl Server {
                 if params.text_document.uri == self.prompt_uri {
                     self.prompt_copy = None;
                     return;
+                }
+                if params.text_document.uri.as_str() == views::VIRTUAL_URI {
+                    self.view_copy = None;
                 }
                 self.documents.remove(params.text_document.uri.as_str());
                 // What was said of the file goes with it: the problems an
@@ -2920,6 +3662,8 @@ impl Server {
                     let _ = self.sender.send(Message::Notification(notification));
                 }
                 self.virtually_indented.remove(params.text_document.uri.as_str());
+                self.heading_lines.remove(params.text_document.uri.as_str());
+                self.custom_properties_hidden.remove(params.text_document.uri.as_str());
                 self.displayed.remove(params.text_document.uri.as_str());
                 if let Some(path) = uri::to_path(&params.text_document.uri) {
                     if let Some(index) = self.widened.iter().position(|widened| *widened == path) {
@@ -2956,7 +3700,10 @@ impl Server {
         }
         let document = self.document(uri)?;
         let (conceal, _, _) = self.display_of(&document.text);
-        let tokens = highlight::tokens(&document.syntax(), document.parse.todo_keywords(), conceal);
+        let fontify = self.fontify_of(&document.text);
+        let tokens = highlight::tokens_with(&document.syntax(), document.parse.todo_keywords(), conceal, fontify);
+        let tokens =
+            if self.edit_settings.todo.lists.checkbox_rule { tokens } else { highlight::without_cookies(tokens) };
         let radio: Vec<(usize, usize)> =
             org_core::radio::links(&document.text, &document.parse).iter().map(|link| (link.start, link.end)).collect();
         let tokens = highlight::with_radio_links(tokens, &radio);
@@ -2968,7 +3715,7 @@ impl Server {
         } else {
             self.stand_ins(uri.as_str(), &document.text, &document.syntax())
                 .into_iter()
-                .map(|(start, end, _)| (start, end))
+                .map(|(start, end, _, _)| (start, end))
                 .collect()
         };
         hidden.sort_unstable();
@@ -2976,6 +3723,13 @@ impl Server {
         let only = range.map(|range| document.index.text_range(&document.text, range, encoding));
         let data = highlight::encode(&tokens, &document.text, &document.index, encoding, only);
         Some(self.client_tokens(data))
+    }
+
+    /// How the headlines and blocks of a document with `text` show: the
+    /// options, with its `#+STARTUP: odd` and its inline tasks.
+    fn fontify_of(&self, text: &str) -> highlight::Fontify {
+        let odd_levels = org_core::structure::odd_levels(text, self.odd_levels);
+        highlight::Fontify { odd_levels, inlinetask: org_core::inlinetask::min_stars(odd_levels), ..self.fontify }
     }
 
     /// Tokens as the client reads them: Org's own, or the standard ones
@@ -2986,32 +3740,71 @@ impl Server {
     }
 
     /// What stands in for hidden text of the document `key`, as
-    /// `(start, end, shown)`, in order: each entity's character
-    /// (`org-pretty-entities`), sub- and superscripts in Unicode, and what
-    /// shrunk table fields show.
-    fn stand_ins(&self, key: &str, text: &str, root: &org_syntax::SyntaxNode) -> Vec<(usize, usize, String)> {
+    /// `(start, end, shown, look)`, in order: each entity's character
+    /// (`org-pretty-entities`), sub- and superscripts in Unicode, the
+    /// bullets of org-bullets, and what shrunk table fields show. `look`
+    /// is the token whose look it takes (`stars.level1`), if any: the
+    /// bullets look like what they stand for, as in Emacs, where the
+    /// composed character keeps the face of the star.
+    fn stand_ins(
+        &self,
+        key: &str,
+        text: &str,
+        root: &org_syntax::SyntaxNode,
+    ) -> Vec<(usize, usize, String, Option<String>)> {
         let (_, pretty, scripts) = self.display_of(text);
-        let mut out: Vec<(usize, usize, String)> = Vec::new();
+        let mut out: Vec<(usize, usize, String, Option<String>)> = Vec::new();
+        if self.custom_times_in(key, text) {
+            let formats = (self.custom_formats.0.as_str(), self.custom_formats.1.as_str());
+            out.extend(
+                org_core::custom_time::displays(text, formats)
+                    .into_iter()
+                    .map(|(start, end, shown)| (start, end, shown, None)),
+            );
+        }
         if pretty {
             out.extend(
-                org_core::pretty::entities(text).into_iter().map(|(start, end, utf8)| (start, end, utf8.to_string())),
+                org_core::pretty::entities(text)
+                    .into_iter()
+                    .map(|(start, end, utf8)| (start, end, utf8.to_string(), None)),
             );
         }
         if let Some(braces) = scripts {
-            out.extend(org_core::pretty::scripts(root, text, braces));
+            out.extend(
+                org_core::pretty::scripts(root, text, braces)
+                    .into_iter()
+                    .map(|(start, end, shown)| (start, end, shown, None)),
+            );
+        }
+        if let Some(bullets) = &self.bullets {
+            let fontify = self.fontify_of(text);
+            out.extend(org_core::pretty::bullets(root, text, bullets).into_iter().map(|(start, end, shown, what)| {
+                let look = match what {
+                    // The look of the stars, as their tokens have it.
+                    org_core::pretty::Bulleted::Headline(stars) => format!("stars.level{}", fontify.level_face(stars)),
+                    org_core::pretty::Bulleted::Item => "bullet".to_string(),
+                    org_core::pretty::Bulleted::Checkbox('X') => "checkbox.checked".to_string(),
+                    org_core::pretty::Bulleted::Checkbox('-') => "checkbox.partial".to_string(),
+                    org_core::pretty::Bulleted::Checkbox(_) => "checkbox".to_string(),
+                };
+                (start, end, shown, Some(look))
+            }));
         }
         out.extend(
-            self.shrunk_overlays(key, text).into_iter().map(|overlay| (overlay.start, overlay.end, overlay.display)),
+            self.shrunk_overlays(key, text)
+                .into_iter()
+                .map(|overlay| (overlay.start, overlay.end, overlay.display, None)),
         );
-        out.sort_by_key(|(start, end, _)| (*start, *end));
+        out.sort_by_key(|(start, end, _, _)| (*start, *end));
         out
     }
 
     /// What stands in for hidden text of the document `key` (see
     /// [`Self::stand_ins`]), for a client that shows it itself, as
     /// `org-lsp/display` `{ uri, version, items }`, each item `[line,
-    /// character, end line, end character, shown]`. Sent after every
-    /// change while there is some, and once more when there is none.
+    /// character, end line, end character, shown]`, and the token whose
+    /// look it takes after them when it has one. Sent after every change
+    /// while there is some, and once more when there is none.
     fn publish_display(&mut self, key: &str) {
         if !self.client.display {
             return;
@@ -3022,10 +3815,13 @@ impl Server {
         let items: Vec<Value> = self
             .stand_ins(key, text, &document.syntax())
             .into_iter()
-            .map(|(start, end, shown)| {
+            .map(|(start, end, shown, look)| {
                 let (from, to) =
                     (document.index.position(text, start, encoding), document.index.position(text, end, encoding));
-                json!([from.line, from.character, to.line, to.character, shown])
+                match look {
+                    Some(look) => json!([from.line, from.character, to.line, to.character, shown, look]),
+                    None => json!([from.line, from.character, to.line, to.character, shown]),
+                }
             })
             .collect();
         if items.is_empty() && !self.displayed.remove(key) {
@@ -3060,6 +3856,57 @@ impl Server {
         (conceal, pretty, self.pretty_scripts.filter(|_| pretty))
     }
 
+    /// Whether the timestamps of the document `key` show in the custom
+    /// formats: `org_display_custom_times` or `#+STARTUP: customtime`,
+    /// turned the other way by `org-toggle-timestamp-overlays`.
+    fn custom_times_in(&self, key: &str, text: &str) -> bool {
+        let on = self.custom_times || startup_words(text).iter().any(|word| word == "customtime");
+        on != self.custom_times_toggled.contains(key)
+    }
+
+    /// `org-toggle-timestamp-overlays` (`C-c C-x C-t`) on the document.
+    fn toggle_custom_times(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        let key = context.text_document.uri.as_str().to_string();
+        let text = self.document(&context.text_document.uri).ok_or("This file is not open")?.text.clone();
+        if !self.custom_times_toggled.remove(&key) {
+            self.custom_times_toggled.insert(key.clone());
+        }
+        self.message = Some(if self.custom_times_in(&key, &text) {
+            "Time stamps are overlaid with custom format".to_string()
+        } else {
+            "Time stamp overlays removed".to_string()
+        });
+        if self.client.tokens_refresh {
+            self.send_raw_request("workspace/semanticTokens/refresh", Value::Null, None);
+        }
+        self.refresh_inlay_hints();
+        self.publish_display(&key);
+        Ok(Value::Null)
+    }
+
+    /// `org-toggle-custom-properties-visibility`: the lines of the
+    /// document's custom properties (`org-custom-properties`) for the
+    /// client to hide, `{ "hiddenLines": { uri, lines } }`, or, when it
+    /// hides them, none, for it to show them again. As Emacs's overlays,
+    /// the hidden lines go with the text until they are shown again.
+    fn toggle_custom_properties(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        if !self.client.hidden_lines {
+            return Err("This editor cannot hide lines".into());
+        }
+        let key = context.text_document.uri.as_str().to_string();
+        let text = &self.document(&context.text_document.uri).ok_or("This file is not open")?.text;
+        let lines = if self.custom_properties_hidden.contains(&key) {
+            Vec::new()
+        } else {
+            org_core::properties::custom_property_lines(text, &self.custom_properties)
+        };
+        self.custom_properties_hidden.remove(&key);
+        if !lines.is_empty() {
+            self.custom_properties_hidden.insert(key.clone());
+        }
+        Ok(json!({ "hiddenLines": { "uri": key, "lines": lines } }))
+    }
+
     fn semantic_tokens_full(&mut self, params: SemanticTokensParams) -> Option<SemanticTokens> {
         self.semantic_tokens(&params.text_document.uri, None)
     }
@@ -3070,7 +3917,7 @@ impl Server {
 
     fn folding_ranges(&mut self, params: FoldingRangeParams) -> Option<Vec<lsp_types::FoldingRange>> {
         let document = self.document(&params.text_document.uri)?;
-        Some(folding::folding_ranges(&document.syntax(), &document.text, &document.index, self.separator_lines))
+        Some(folding::folding_ranges(&document.syntax(), &document.text, &document.index, self.cycle.folding))
     }
 
     /// Before a file is saved: with `org-crypt-use-before-save-magic` in
@@ -3119,7 +3966,7 @@ impl Server {
             &document.syntax(),
             &document.text,
             &document.index,
-            self.separator_lines,
+            self.cycle.folding,
             &self.startup,
         );
         Some(json!({ "folds": folds }))
@@ -3129,6 +3976,7 @@ impl Server {
     /// lines, for a client that does not show `org-lsp/virtualIndent`.
     /// Hidden stars and the prefixes of wrapped lines cannot be shown so.
     fn inlay_hints(&mut self, params: lsp_types::InlayHintParams) -> Option<Vec<lsp_types::InlayHint>> {
+        let numbers = self.num_hints(&params.text_document.uri);
         let document = self.document(&params.text_document.uri)?;
         let text = &document.text;
         let (first, last) = (params.range.start.line as usize, params.range.end.line as usize);
@@ -3148,35 +3996,50 @@ impl Server {
         if !self.client.virtual_indent && self.display.indented(text) {
             let adapt = self.display.adapt(text, self.indent.adapt);
             hints.extend(
-                org_core::indent::virtual_indentation(text, true, false, adapt)
-                    .into_iter()
-                    .filter(|line| line.prefix > 0 && (first..=last).contains(&line.line))
-                    .map(|line| hint(line.line as u32, 0, " ".repeat(line.prefix))),
+                org_core::indent::virtual_indentation(
+                    text,
+                    true,
+                    false,
+                    adapt,
+                    self.indent.two_spaces.as_ref(),
+                    self.display.per_level,
+                )
+                .into_iter()
+                .filter(|line| line.prefix > 0 && (first..=last).contains(&line.line))
+                .map(|line| hint(line.line as u32, 0, " ".repeat(line.prefix))),
             );
         }
         // `org-pretty-entities`: the character of each entity, whose text
         // the tokens hide; so with sub- and superscripts, in Unicode where
         // they can be, and shrunk table fields, what Org's overlays show.
         if !self.client.display {
-            for (start, _, shown) in self.stand_ins(params.text_document.uri.as_str(), text, &document.syntax()) {
+            for (start, _, shown, _) in self.stand_ins(params.text_document.uri.as_str(), text, &document.syntax()) {
                 let at = document.index.position(text, start, self.client.encoding);
                 if (first..=last).contains(&(at.line as usize)) && !shown.is_empty() {
                     hints.push(hint(at.line, at.character, shown));
                 }
             }
         }
+        // `org-num-mode`: the number of each headline after its stars, where
+        // Emacs's overlay puts it.
+        for (line, character, label) in numbers {
+            if (first..=last).contains(&(line as usize)) {
+                hints.push(hint(line, character, label));
+            }
+        }
         // `org-clock-display`: the time after each headline, its line
         // filled with dots up to column 60, as Emacs's overlay shows it.
-        for (line, minutes) in self.clock_display.get(params.text_document.uri.as_str()).into_iter().flatten() {
-            if !(first..=last).contains(&(*line as usize)) {
+        for (offset, minutes) in self.clock_display.get(params.text_document.uri.as_str()).into_iter().flatten() {
+            let line = document.index.position(text, (*offset).min(text.len()), self.client.encoding).line;
+            if !(first..=last).contains(&(line as usize)) {
                 continue;
             }
-            let shown = text.lines().nth(*line as usize).unwrap_or("");
+            let shown = text.lines().nth(line as usize).unwrap_or("");
             let width: usize = shown.chars().map(org_core::text::char_width).sum();
-            let start: usize = text.split_inclusive('\n').take(*line as usize).map(str::len).sum();
+            let start: usize = text.split_inclusive('\n').take(line as usize).map(str::len).sum();
             let end = document.index.position(text, start + shown.len(), self.client.encoding);
             let label = format!("{}{:>10} ", "·".repeat(60usize.saturating_sub(width)), clock::duration(*minutes));
-            hints.push(hint(*line, end.character, label));
+            hints.push(hint(line, end.character, label));
         }
         Some(hints)
     }
@@ -3246,6 +4109,11 @@ impl Server {
         } else {
             return;
         }
+        match self.cursor_seen.take() {
+            Some((seen, _)) if seen == *uri => {}
+            other => self.cursor_before = other,
+        }
+        self.cursor_seen = Some((uri.clone(), position));
         // The keys go to the server whose file the cursor is in.
         self.claim_script();
     }
@@ -3283,9 +4151,45 @@ impl Server {
         }
     }
 
+    /// The code actions; first, while a question waits for one of its
+    /// choices (`message_requests`), the choices, which run its command
+    /// again with the answer.
     fn code_actions(&mut self, params: CodeActionParams) -> Option<Vec<CodeActionOrCommand>> {
+        let choices: Vec<CodeActionOrCommand> = match &self.question {
+            Some(Question { command, argument, input }) => input
+                .get("choices")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter_map(|choice| {
+                    let title = prompt_label(choice);
+                    let argument = answered(argument.clone(), input, choice.get("key")?);
+                    Some(CodeActionOrCommand::CodeAction(CodeAction {
+                        title: title.clone(),
+                        kind: Some(CodeActionKind::new("org.answer")),
+                        command: Some(lsp_types::Command {
+                            title,
+                            command: command.clone(),
+                            arguments: Some(vec![argument]),
+                        }),
+                        ..Default::default()
+                    }))
+                })
+                .collect(),
+            None => Vec::new(),
+        };
+        let actions = self.code_actions_at(params);
+        if choices.is_empty() {
+            return actions;
+        }
+        Some(choices.into_iter().chain(actions.into_iter().flatten()).collect())
+    }
+
+    fn code_actions_at(&mut self, params: CodeActionParams) -> Option<Vec<CodeActionOrCommand>> {
         let uri = &params.text_document.uri;
-        if self.client.command_actions {
+        // A client that runs the commands from its code actions asks for
+        // them where its cursor is (Helix asks only then).
+        if self.client.more_actions {
             self.saw_cursor(uri, params.range.start);
         }
         let only = params.context.only.as_deref();
@@ -3312,8 +4216,8 @@ impl Server {
         // What an editor runs from keys, for one that has none.
         let more = self.client.more_actions;
         if self.is_view(uri) && self.client.zed_agenda() {
-            // The agenda's file is read-only, where Zed runs no code
-            // action; its keys go through the command port instead.
+            // The agenda's keys go through the command port in Zed, not
+            // code actions.
             return Some(Vec::new());
         }
         if self.is_view(uri) {
@@ -3420,8 +4324,7 @@ impl Server {
             use org_core::structure;
             let text = &document.text;
             let keywords = document.parse.todo_keywords();
-            let structure_settings =
-                structure::Settings { tags_column: self.refile.2.tags_column, indent: self.indent_in(text) };
+            let structure_settings = self.structure_settings(text);
             let tried = [
                 (commands::META_LEFT, structure::change_levels(text, offset, -1, false, keywords, &structure_settings)),
                 (commands::META_RIGHT, structure::change_levels(text, offset, 1, false, keywords, &structure_settings)),
@@ -3479,6 +4382,7 @@ impl Server {
                     keywords,
                     self.refile.2.tags_column,
                     self.edit_settings.list_circular_motion,
+                    &self.edit_settings.todo.lists,
                 ) else {
                     continue;
                 };
@@ -3520,7 +4424,8 @@ impl Server {
             ];
             for id in ids {
                 let Some(command) = table_command(id).filter(|_| actions::requested(id, only)) else { continue };
-                let Ok(done) = org_core::table::run(text, offset, command) else { continue };
+                let settings = &self.edit_settings.todo.table;
+                let Ok(done) = org_core::table::run_with(text, offset, command, &|_| None, settings) else { continue };
                 if done.text == *text {
                     continue;
                 }
@@ -3546,7 +4451,7 @@ impl Server {
         let in_code = in_src_block(&document.parse.syntax(), offset);
         let in_table = at_org_table(&document.text, &document.parse.syntax(), offset);
         // The agenda and capture open a document, which the client must
-        // be able to show (Helix cannot).
+        // be able to show.
         let shows = self.client.show_document;
         for (id, offered) in [
             (commands::TANGLE, in_code),
@@ -3562,6 +4467,12 @@ impl Server {
             (commands::TODO, more && in_entry),
             (commands::PRIORITY, more && in_entry),
             (commands::REFILE, more && in_entry),
+            // What is typed: a rename at the cursor answers.
+            (commands::SCHEDULE, more && in_entry),
+            (commands::DEADLINE, more && in_entry),
+            (commands::SET_TAGS, more && in_entry),
+            (commands::SET_PROPERTY, more && in_entry),
+            (commands::SET_EFFORT, more && in_entry),
             (commands::SORT, more),
             (commands::CLOCK_GOTO, more && running),
             (commands::CLOCK_IN_LAST, more && !self.clock_history.is_empty()),
@@ -3606,6 +4517,25 @@ impl Server {
                 }
             }
         }
+        // Zed puts the cursor at the end of an action's edit: the command
+        // the action stands for runs instead, which leaves the cursor
+        // where Org leaves point, and says what Org says.
+        if self.client.command_actions {
+            let mut run_here = context.clone();
+            run_here["apply"] = json!(true);
+            for entry in &mut result {
+                let CodeActionOrCommand::CodeAction(action) = entry else { continue };
+                let Some(id) = action.kind.as_ref().map(|kind| kind.as_str().to_string()) else { continue };
+                if action.edit.is_some() && !commands::title(&id).is_empty() {
+                    action.edit = None;
+                    action.command = Some(lsp_types::Command {
+                        title: action.title.clone(),
+                        command: id,
+                        arguments: Some(vec![run_here.clone()]),
+                    });
+                }
+            }
+        }
         Some(result)
     }
 
@@ -3627,7 +4557,10 @@ impl Server {
     /// headlines put in their column.
     fn range_formatting(&mut self, params: lsp_types::DocumentRangeFormattingParams) -> Option<Vec<TextEdit>> {
         let encoding = self.client.encoding;
-        let settings = org_core::format::Settings { tags_column: self.refile.2.tags_column };
+        let settings = org_core::format::Settings {
+            tags_column: self.refile.2.tags_column,
+            alignment: self.edit_settings.todo.table.formulas.alignment.clone(),
+        };
         let indent = self.indent_in(&self.document(&params.text_document.uri)?.text.clone());
         let document = self.document(&params.text_document.uri)?;
         let (original, index) = (&document.text, &document.index);
@@ -3662,7 +4595,10 @@ impl Server {
     /// in their column (`org-align-tags`).
     fn formatting(&mut self, params: lsp_types::DocumentFormattingParams) -> Option<Vec<TextEdit>> {
         let encoding = self.client.encoding;
-        let settings = org_core::format::Settings { tags_column: self.refile.2.tags_column };
+        let settings = org_core::format::Settings {
+            tags_column: self.refile.2.tags_column,
+            alignment: self.edit_settings.todo.table.formulas.alignment.clone(),
+        };
         let document = self.document(&params.text_document.uri)?;
         let (original, index) = (&document.text, &document.index);
         // A Windows file's lines, without their `\r`s and with them again.
@@ -3796,8 +4732,16 @@ impl Server {
         let text = document.text.clone();
         let offset = document.index.offset(&text, position.position, self.client.encoding);
         let call = |link: &str, list: &[(String, String)]| self.expand_abbreviation(link, list);
-        let opened =
-            open::at_point_calling(&text, &document.parse, offset, None, &self.link_abbreviations, Some(&call)).ok()?;
+        let opened = open::at_point_calling(
+            &text,
+            &document.parse,
+            offset,
+            None,
+            &self.link_abbreviations,
+            Some(&call),
+            &self.open_settings,
+        )
+        .ok()?;
         // A citation: the entries of its keys.
         if let Open::Citation(keys) = &opened {
             let files = self.bibliography(uri, &text);
@@ -3844,7 +4788,7 @@ impl Server {
         let document = self.document(&uri)?;
         let (text, parse, index) = (document.text.clone(), document.parse.clone(), document.index.clone());
         let mut out = Vec::new();
-        for link in open::links(&text, &parse, &self.link_abbreviations) {
+        for link in open::links(&text, &parse, &self.link_abbreviations, &self.open_settings) {
             let (target, data) = match &link.open {
                 Ok(Open::External(url)) => (uri::from_url(url), None),
                 Ok(Open::File { path, search: None, .. }) => {
@@ -3873,7 +4817,8 @@ impl Server {
         let (Some(uri), Some(offset)) = (uri, offset) else { return link };
         let Some(document) = self.document(&uri) else { return link };
         let (text, parse) = (document.text.clone(), document.parse.clone());
-        let Some(Ok(opened)) = open::link_at(&text, &parse, offset, &self.link_abbreviations).map(|found| found.open)
+        let Some(Ok(opened)) =
+            open::link_at(&text, &parse, offset, &self.link_abbreviations, &self.open_settings).map(|found| found.open)
         else {
             return link;
         };
@@ -3891,7 +4836,7 @@ impl Server {
         let document = self.document(uri)?;
         let (text, parse, index) = (document.text.clone(), document.parse.clone(), document.index.clone());
         let offset = index.offset(&text, position, encoding);
-        let link = open::link_at(&text, &parse, offset, &self.link_abbreviations)?;
+        let link = open::link_at(&text, &parse, offset, &self.link_abbreviations, &self.open_settings)?;
         let entry = link.open.as_ref().ok().and_then(|opened| self.link_entry(uri, &text, opened));
         let line = format!("LINK: {}", link.raw);
         let value = match entry {
@@ -3960,20 +4905,21 @@ impl Server {
         let document = self.document(&uri)?;
         let (text, parse) = (document.text.clone(), document.parse.clone());
         let offset = document.index.offset(&text, place.position, encoding);
-        let (target, target_text, heading) = match open::link_at(&text, &parse, offset, &self.link_abbreviations) {
-            Some(link) => {
-                let opened = link.open.ok()?;
-                let location = self.open_location(&uri, &text, &opened).ok()??;
-                let (_, target_text) = self.file_text(&uri::to_path(&location.uri)?)?;
-                let at = LineIndex::new(&target_text).offset(&target_text, location.range.start, encoding);
-                let heading = org_core::properties::heading_at(&target_text, at)?;
-                (location.uri, target_text, heading)
-            }
-            None => {
-                let heading = org_core::properties::heading_at(&text, offset)?;
-                (uri.clone(), text.clone(), heading)
-            }
-        };
+        let (target, target_text, heading) =
+            match open::link_at(&text, &parse, offset, &self.link_abbreviations, &self.open_settings) {
+                Some(link) => {
+                    let opened = link.open.ok()?;
+                    let location = self.open_location(&uri, &text, &opened).ok()??;
+                    let (_, target_text) = self.file_text(&uri::to_path(&location.uri)?)?;
+                    let at = LineIndex::new(&target_text).offset(&target_text, location.range.start, encoding);
+                    let heading = org_core::properties::heading_at(&target_text, at)?;
+                    (location.uri, target_text, heading)
+                }
+                None => {
+                    let heading = org_core::properties::heading_at(&text, offset)?;
+                    (uri.clone(), text.clone(), heading)
+                }
+            };
         let mut out = Vec::new();
         if params.context.include_declaration {
             let position = LineIndex::new(&target_text).position(&target_text, heading, encoding);
@@ -4007,13 +4953,20 @@ impl Server {
         let mut out = Vec::new();
         for (file, file_text, file_parse) in self.known_parses() {
             let Some(file_path) = uri::to_path(&file) else { continue };
-            for link in open::links(&file_text, &file_parse, &self.link_abbreviations) {
+            for link in open::links(&file_text, &file_parse, &self.link_abbreviations, &self.open_settings) {
                 let leads = match &link.open {
                     Ok(Open::Here(at)) => same(&file_path) && *at == heading,
                     Ok(Open::Id(found)) => id.as_deref() == Some(found.as_str()),
-                    Ok(Open::File { path, search: Some(search), system: false }) => {
+                    Ok(Open::File { path, search: Some(search), system: false, .. }) => {
                         self.link_path(&file, path).is_some_and(|path| same(&path))
-                            && open::search_in_file(target_text, Some(&target_parse), search).ok() == Some(heading)
+                            && open::search_in_file_with(
+                                target_text,
+                                Some(&target_parse),
+                                search,
+                                self.open_settings.exact_headline,
+                            )
+                            .ok()
+                                == Some(heading)
                     }
                     _ => false,
                 };
@@ -4178,17 +5131,18 @@ impl Server {
         let (target, offset) = match opened {
             Open::Here(offset) => (text.to_string(), *offset),
             Open::Id(id) => {
-                let (file, offset) = self.find_id(id)?;
+                let (file, offset) = self.find_id(id, Some(uri))?;
                 (self.file_text(&uri::to_path(&file)?)?.1, offset)
             }
-            Open::File { path, search: Some(search), system: false } => {
+            Open::File { path, search: Some(search), system: false, .. } => {
                 let path = self.link_path(uri, path)?;
                 if !path.extension().is_some_and(|extension| extension == "org" || extension == "org_archive") {
                     return None;
                 }
                 let (_, target) = self.file_text(&path)?;
                 let parse = org_syntax::parse(&target, &self.todo);
-                let offset = open::search_in_file(&target, Some(&parse), search).ok()?;
+                let offset =
+                    open::search_in_file_with(&target, Some(&parse), search, self.open_settings.exact_headline).ok()?;
                 (target, offset)
             }
             _ => return None,
@@ -4222,7 +5176,9 @@ impl Server {
             return Value::Null;
         };
         let parse = org_syntax::parse(&text, &self.todo);
-        let tokens = highlight::tokens(&parse.syntax(), parse.todo_keywords(), self.conceal);
+        let tokens = highlight::tokens_with(&parse.syntax(), parse.todo_keywords(), self.conceal, self.fontify);
+        let tokens =
+            if self.edit_settings.todo.lists.checkbox_rule { tokens } else { highlight::without_cookies(tokens) };
         let radio: Vec<(usize, usize)> =
             org_core::radio::links(&text, &parse).iter().map(|link| (link.start, link.end)).collect();
         let tokens = highlight::with_radio_links(tokens, &radio);
@@ -4251,9 +5207,34 @@ impl Server {
             (uri.clone(), document.text.clone(), offset)
         };
         let parse = org_syntax::parse(&text, &self.todo);
-        let answer = context.input.as_deref().and_then(|input| input.chars().next());
+        // Answering whether to make a missing headline, the link picked
+        // among the entry's, if one was, is in `answers`.
+        // So is it when answering whether to run a `shell:` link's command.
+        let creating = context.step.as_deref() == Some("create");
+        let shell = context.step.as_deref() == Some("shell");
+        let answer = if creating || shell { context.answers.as_deref() } else { context.input.as_deref() }
+            .and_then(|input| input.chars().next());
+        // `org-ctags`'s functions in `org-open-link-functions`, which Org
+        // runs first for an internal link.
+        if self.ctags.is_some() && !creating && !shell && !self.is_view(&context.text_document.uri) {
+            if let Some(name) =
+                open::internal_path(&text, &parse, offset, &self.link_abbreviations, &self.open_settings)
+            {
+                if let Some(done) = self.ctags_follow(context, &uri, &text, &name)? {
+                    return Ok(done);
+                }
+            }
+        }
         let call = |link: &str, list: &[(String, String)]| self.expand_abbreviation(link, list);
-        let mut opened = open::at_point_calling(&text, &parse, offset, answer, &self.link_abbreviations, Some(&call))?;
+        let mut opened = open::at_point_calling(
+            &text,
+            &parse,
+            offset,
+            answer,
+            &self.link_abbreviations,
+            Some(&call),
+            &self.open_settings,
+        )?;
         // `org-attach-follow`: the file in the entry's attachment
         // directory, as Emacs finds it.
         if let Open::Attachment(link) = &opened {
@@ -4271,10 +5252,49 @@ impl Server {
             let full = found.as_str().ok_or("No attachment directory for this entry")?;
             opened = open::file_link(&format!("{full}{}", search.unwrap_or("")));
         }
+        // `org-open-file`: `org-file-apps` picks what opens the file, unless
+        // the link says (`file+sys:`, `file+emacs:`).
+        // `org-open-directory-means-index-dot-org`: a directory is its
+        // `index.org`, which `org-file-apps` takes as a directory still.
+        let mut directory = false;
+        if let Open::File { path, .. } = &mut opened {
+            let full = self.link_path(&uri, path).ok_or("Cannot open the file")?;
+            directory = full.is_dir();
+            if directory && self.open_directory_index {
+                *path = full.join("index.org").to_string_lossy().into_owned();
+            }
+        }
+        if let Open::File { path, search, system, forced: false } = &mut opened {
+            let full = self.link_path(&uri, path).ok_or("Cannot open the file")?;
+            let target = file_apps::Target {
+                file: &full.to_string_lossy(),
+                search: search.as_deref(),
+                exists: full.exists(),
+                directory,
+            };
+            let prefix = match context.count {
+                Some(16) => file_apps::Prefix::System,
+                Some(4) => file_apps::Prefix::Editor,
+                _ => file_apps::Prefix::None,
+            };
+            match file_apps::open(&self.file_apps, &target, prefix, self.open_non_existing_files)
+                .map_err(Refusal::Failed)?
+            {
+                file_apps::Opener::Editor => *system = false,
+                file_apps::Opener::System => *system = true,
+                file_apps::Opener::Command(command) => {
+                    let directory = uri::to_path(&uri).and_then(|path| path.parent().map(PathBuf::from));
+                    run_shell(&command, directory.as_deref())
+                        .map_err(|error| Refusal::Failed(format!("{command}: {error}")))?;
+                    self.message = Some(format!("Running {command}...done"));
+                    return Ok(Value::Null);
+                }
+            }
+        }
         // `/regexp/`: a sparse tree of its matches, which the editor shows
         // in the file the link is in.
         let occur = match &opened {
-            Open::File { path, search: Some(search), system: false } => open::occur_regexp(search)
+            Open::File { path, search: Some(search), system: false, .. } => open::occur_regexp(search)
                 .filter(|_| {
                     let here = uri::to_path(&uri).map(|path| self.canonical(&path));
                     self.link_path(&uri, path).is_some_and(|path| Some(self.canonical(&path)) == here)
@@ -4286,7 +5306,10 @@ impl Server {
             if self.is_view(&context.text_document.uri) {
                 return Err("Searches by regular expression are followed in their file, not in the agenda".into());
             }
-            return self.occur(&text, &regexp);
+            return self.occur(context.text_document.uri.as_str(), &text, &regexp);
+        }
+        if let Some((target, search)) = self.missing_headline(&uri, &opened) {
+            return self.create_link_heading(context, creating, answer, &target, &search);
         }
         match &opened {
             Open::External(url) => {
@@ -4318,6 +5341,29 @@ impl Server {
                 } }));
             }
             Open::Nothing(message) => self.message = Some(message.clone()),
+            // `org-link--open-shell`: asked first, as
+            // `org-link-shell-confirm-function` (`yes-or-no-p`) asks,
+            // unless `org-link-shell-skip-confirm-regexp` matches.
+            Open::Shell { command, confirm } => {
+                if *confirm && !shell {
+                    return Ok(json!({ "input": {
+                        "kind": "key",
+                        "prompt": format!("Execute {command} in shell? "),
+                        "value": "",
+                        "choices": [{ "key": "y", "label": "yes" }, { "key": "n", "label": "no" }],
+                        "context": { "step": "shell", "answers": answer.map(String::from).unwrap_or_default() },
+                    } }));
+                }
+                if *confirm && !matches!(context.input.as_deref(), Some("y" | "Y" | "yes")) {
+                    return Err("Abort".into());
+                }
+                let directory = uri::to_path(&uri).and_then(|path| path.parent().map(PathBuf::from));
+                self.run_shell_link(command, directory);
+                self.message = Some(format!("Executing {command}"));
+            }
+            Open::Create(_) => {}
+            Open::Man { page, search } => return self.open_man(page, search.as_deref()),
+            Open::Info { file, node } => return self.open_info(file, node),
             Open::Roam(title) => return self.roam_follow(&uri, offset, title),
             Open::Attachment(_) => return Err("No attachment directory for this entry".into()),
             // `org-cite-basic-goto`: the entry of the key, picked among
@@ -4359,6 +5405,96 @@ impl Server {
             }
         }
         Ok(Value::Null)
+    }
+
+    /// The Org file and the search of a link to a headline that is not
+    /// there, which `org-link-search-must-match-exact-headline` offers to
+    /// make: in this file, or in the Org file a `file:` link names.
+    fn missing_headline(&self, uri: &Uri, opened: &Open) -> Option<(std::path::PathBuf, String)> {
+        match opened {
+            Open::Create(search) => Some((uri::to_path(uri)?, search.clone())),
+            Open::File { path, search: Some(search), system: false, .. }
+                if self.open_settings.exact_headline == open::ExactHeadline::QueryToCreate
+                    && open::may_create(search) =>
+            {
+                let path = self.link_path(uri, path)?;
+                if !path.extension().is_some_and(|extension| extension == "org" || extension == "org_archive") {
+                    return None;
+                }
+                let (_, text) = self.file_text(&path)?;
+                let parse = org_syntax::parse(&text, &self.todo);
+                let exact = open::ExactHeadline::QueryToCreate;
+                open::search_in_file_with(&text, Some(&parse), search, exact).is_err().then(|| (path, search.clone()))
+            }
+            _ => None,
+        }
+    }
+
+    /// `org-link-search` with `org-link-search-must-match-exact-headline`
+    /// set to `query-to-create`: asked whether to, a heading of level 1
+    /// with the link's words is made at the end of `path`, and shown;
+    /// else Emacs's error.
+    fn create_link_heading(
+        &mut self,
+        context: &Context,
+        answered: bool,
+        picked: Option<char>,
+        path: &Path,
+        search: &str,
+    ) -> std::result::Result<Value, Refusal> {
+        if !answered {
+            let mut input = json!({
+                "kind": "key",
+                "prompt": "No match - create this as a new heading? ",
+                "value": "",
+                "choices": [{ "key": "y", "label": "yes" }, { "key": "n", "label": "no" }],
+            });
+            input["context"] = json!({ "step": "create", "answers": picked.map(String::from).unwrap_or_default() });
+            return Ok(json!({ "input": input }));
+        }
+        let (target, text) = self.file_text(path).ok_or("Cannot read the file")?;
+        let parse = org_syntax::parse(&text, &self.todo);
+        if !matches!(context.input.as_deref(), Some("y" | "Y" | "yes")) {
+            let missing = open::search_in_file_with(&text, Some(&parse), search, open::ExactHeadline::Yes);
+            return Err(missing.err().unwrap_or_else(|| "Abort".to_string()).into());
+        }
+        let settings = org_core::meta_return::Settings {
+            tags_column: self.refile.2.tags_column,
+            statistics: self.edit_settings.todo.statistics.clone(),
+            ..self.edit_settings.insert.clone()
+        };
+        let outcome = org_core::meta_return::insert_link_heading(&text, search, parse.todo_keywords(), &settings);
+        let version = self.document(&target).map(|document| document.version);
+        let position = LineIndex::new(&outcome.text).position(&outcome.text, outcome.cursor, self.client.encoding);
+        let edits = self.text_edits(&text, &outcome.text);
+        let edit = self.workspace_edit(&target, version, edits);
+        let pending = Pending::EditAndShow { uri: target, position, folds: Value::Null, other_window: false };
+        self.apply_edit(lsp_types::ApplyWorkspaceEditParams { label: None, edit }, pending);
+        Ok(Value::Null)
+    }
+
+    /// `shell-command` as `org-link--open-shell` runs it: in the directory
+    /// of the file the link is in, its output and errors together, and
+    /// once it ends, the output as a message, or what Emacs says when
+    /// there is none. Emacs shows longer output in a buffer,
+    /// `*Org Shell Output*`; here it is a message all the same. The
+    /// command runs on its own thread so that the server goes on.
+    fn run_shell_link(&self, command: &str, directory: Option<PathBuf>) {
+        let sender = self.sender.clone();
+        let command = command.to_string();
+        std::thread::spawn(move || {
+            let message = match shell_output(&command, directory.as_deref()) {
+                Ok((output, _)) if !output.is_empty() => output.strip_suffix('\n').unwrap_or(&output).to_string(),
+                Ok((_, Some(0))) => "(Shell command succeeded with no output)".to_string(),
+                Ok((_, code)) => {
+                    format!("(Shell command failed with code {} and no output)", code.unwrap_or(-1))
+                }
+                Err(error) => format!("{command}: {error}"),
+            };
+            let params = ShowMessageParams { typ: MessageType::INFO, message };
+            let notification = Notification::new(ShowMessage::METHOD.to_string(), params);
+            let _ = sender.send(Message::Notification(notification));
+        });
     }
 
     /// Ask the client to have the system open `target` (a URL, a PDF).
@@ -4437,7 +5573,7 @@ impl Server {
         };
         match opened {
             Open::Here(offset) => Ok(Some(at(uri.clone(), text, *offset))),
-            Open::File { path, search, system: false } => {
+            Open::File { path, search, system: false, .. } => {
                 let path = self.link_path(uri, path).ok_or("Cannot open the file")?;
                 let Some(search) = search else {
                     let target = uri::from_path(&path).ok_or("Cannot open the file")?;
@@ -4446,11 +5582,19 @@ impl Server {
                 let (target, text) = self.file_text(&path).ok_or_else(|| format!("Cannot read {}", path.display()))?;
                 let org = path.extension().is_some_and(|extension| extension == "org" || extension == "org_archive");
                 let parse = org.then(|| org_syntax::parse(&text, &self.todo));
-                let offset = open::search_in_file(&text, parse.as_ref(), search)?;
+                // A BibTeX file is searched for the entry of a key, as
+                // `ol-bibtex.el` searches it.
+                let offset = if path.extension().is_some_and(|extension| extension == "bib") {
+                    open::search_in_bibtex(&text, search)
+                } else {
+                    open::search_in_file_with(&text, parse.as_ref(), search, self.open_settings.exact_headline)?
+                };
                 Ok(Some(at(target, &text, offset)))
             }
             Open::Id(id) => {
-                let (target, offset) = self.find_id(id).ok_or_else(|| format!("Cannot find entry with ID \"{id}\""))?;
+                let (target, offset) = self
+                    .find_id(id, Some(uri))
+                    .ok_or_else(|| self.id_missing(format!("Cannot find entry with ID \"{id}\"")))?;
                 let (_, text) = self
                     .file_text(&uri::to_path(&target).ok_or("Cannot read the file")?)
                     .ok_or("Cannot read the file")?;
@@ -4472,17 +5616,45 @@ impl Server {
         expanded.as_str().map(str::to_string).ok_or_else(|| format!("Cannot expand the link {link}"))
     }
 
-    /// The files whose IDs Org knows: those open in the editor, then the
-    /// agenda files, then org-roam's files, which `org-roam-db-sync` puts
-    /// in `org-id-locations`.
+    /// The files whose IDs Org knows (`org-id-update-id-locations`): those
+    /// open in the editor, the agenda files and their archives
+    /// (`org-id-search-archives`), `org-id-extra-files`, the files of
+    /// Emacs's `org-id-locations-file`, then org-roam's files, which
+    /// `org-roam-db-sync` puts in `org-id-locations`. None without
+    /// `org-id-track-globally`.
     fn id_paths(&mut self) -> Vec<PathBuf> {
+        let lookup = self.id_lookup.0.clone();
+        if !lookup.track_globally {
+            return Vec::new();
+        }
         let mut paths: Vec<PathBuf> =
             self.documents.keys().filter_map(|key| uri::to_path(&key.parse().ok()?)).collect();
         paths.sort();
         // A file is the same reached through a link.
         let mut seen: HashSet<PathBuf> = paths.iter().map(|path| self.canonical(path)).collect();
-        let agenda = self.agenda_files().into_iter().filter_map(|(file, _)| uri::to_path(&file));
-        for path in agenda.chain(self.roam_paths()) {
+        let agenda: Vec<PathBuf> =
+            self.agenda_files().into_iter().filter_map(|(file, _)| uri::to_path(&file)).collect();
+        let open: HashMap<PathBuf, String> = self
+            .documents
+            .keys()
+            .filter_map(|key| Some((uri::to_path(&key.parse::<Uri>().ok()?)?, key.clone())))
+            .collect();
+        let mut more = agenda.clone();
+        // `agenda-archives' in `org-id-extra-files' is not a file name:
+        // Emacs drops it, and only `org-id-search-archives' adds archives.
+        if lookup.search_archives {
+            for path in &agenda {
+                more.extend(self.archives_of(path, &open));
+            }
+        }
+        for pattern in lookup.extra_files.iter().filter(|extra| *extra != "agenda-archives") {
+            more.extend(self.workspace.org_files(pattern));
+        }
+        if let Some(file) = &lookup.locations_file {
+            more.extend(id_location_files(file));
+        }
+        more.extend(self.roam_paths());
+        for path in more {
             if seen.insert(self.canonical(&path)) {
                 paths.push(path);
             }
@@ -4540,15 +5712,27 @@ impl Server {
     }
 
     /// `org-id-find`: the file and the headline of the entry with this
-    /// `ID`, in the files open in the editor, then in the agenda files.
-    fn find_id(&mut self, id: &str) -> Option<(Uri, usize)> {
-        for path in self.id_paths() {
+    /// `ID`, in `from` (the file of the link), then in the files IDs are
+    /// looked for in.
+    fn find_id(&mut self, id: &str, from: Option<&Uri>) -> Option<(Uri, usize)> {
+        let own = from.and_then(uri::to_path);
+        for path in own.into_iter().chain(self.id_paths()) {
             let Some((target, text)) = self.file_text(&path) else { continue };
             if let Some(offset) = open::find_id(&org_syntax::parse(&text, &self.todo), id) {
                 return Some((target, offset));
             }
         }
         None
+    }
+
+    /// The error when an `ID` is not found: without `org-id-track-globally`
+    /// Emacs refuses to look further than the file itself.
+    fn id_missing(&self, message: String) -> String {
+        if self.id_lookup.0.track_globally {
+            message
+        } else {
+            "Please turn on `org-id-track-globally' if you want to track IDs".to_string()
+        }
     }
 
     fn text_document_content(&mut self, params: &Value) -> Value {
@@ -4829,15 +6013,7 @@ impl Server {
         }
         let outlines: Vec<(Uri, &Outline)> = files.iter().map(|(uri, held)| (uri.clone(), held.outline())).collect();
         // The entry the clock runs on, highlighted.
-        let clocked = self.running.as_ref().and_then(|running| {
-            let (uri, outline) = outlines.iter().find(|(uri, _)| *uri == running.uri)?;
-            let line = outline.clocks.iter().find(|line| {
-                line.clock.is_running()
-                    && line.clock.start == Some(running.start)
-                    && line.entry.is_some_and(|entry| outline.entries[entry].head == running.head)
-            })?;
-            Some((uri, outline.entries[line.entry?].offset))
-        });
+        let clocked = self.clocked_in(&outlines);
         let now = self.now();
         let (mut view, wanted) = self.with_prefix_answers(|| {
             views::render(
@@ -5137,14 +6313,20 @@ impl Server {
     fn set_view(&mut self, query: Query) {
         let view = self.render(query);
         match &mut self.view {
-            Some(open) => open.replace(view),
+            // A closed agenda shown again, as the editor will open it.
+            Some(open) => {
+                open.replace(view);
+                open.closing = false;
+            }
             None if self.client.virtual_documents => {
                 if let Ok(uri) = views::VIRTUAL_URI.parse() {
                     self.view = Some(OpenView {
                         uri,
                         file: None,
                         view,
-                        client: None,
+                        // A copy the client kept: it shows that text until
+                        // it fetches the new one.
+                        client: self.view_copy.take(),
                         shown: None,
                         closing: false,
                         highlighted: None,
@@ -5175,6 +6357,122 @@ impl Server {
         }
     }
 
+    /// Listen for org-protocol URLs (see `protocol`), and take the links
+    /// stored while no server ran.
+    fn protocol_listen(&mut self, sender: crossbeam_channel::Sender<crate::protocol::Sent>) {
+        let Some(directory) = crate::protocol::directory(&|name| std::env::var(name).ok()) else { return };
+        match crate::protocol::Listener::open(&directory, sender) {
+            Ok(listener) => self.protocol = Some(listener),
+            Err(error) => eprintln!("org-lsp: cannot listen for org-protocol URLs in {}: {error}", directory.display()),
+        }
+        self.protocol_touched = Some(std::time::Instant::now());
+        for link in crate::protocol::take_stored_links(&directory) {
+            self.stored_links.insert(0, link);
+        }
+    }
+
+    /// The user works in this editor: the next org-protocol URL is for
+    /// this server. Said at most every few seconds.
+    fn protocol_touch(&mut self) {
+        let Some(protocol) = &self.protocol else { return };
+        let now = std::time::Instant::now();
+        if self.protocol_touched.is_some_and(|touched| now.duration_since(touched).as_secs() < 3) {
+            return;
+        }
+        self.protocol_touched = Some(now);
+        protocol.touch();
+    }
+
+    /// The URLs `org-lsp protocol` left for a server that starts.
+    fn protocol_pending(&mut self) {
+        let Some(directory) = crate::protocol::directory(&|name| std::env::var(name).ok()) else { return };
+        for url in crate::protocol::take_pending(&directory) {
+            if let Err(error) = self.protocol_url(&url) {
+                self.show_message(MessageType::INFO, error);
+            }
+        }
+    }
+
+    /// What Org does with an org-protocol URL: what it says, or why it
+    /// does nothing.
+    fn protocol_url(&mut self, url: &str) -> std::result::Result<String, String> {
+        use org_core::protocol::Request as Asked;
+        let request = match org_core::protocol::parse(url, &self.protocol_options) {
+            Ok(Some(request)) => request,
+            Ok(None) => return Err(format!("no org-protocol handler for {url}")),
+            Err(refused) => {
+                self.show_message(MessageType::INFO, refused.error.clone());
+                return Err(refused.error);
+            }
+        };
+        match request {
+            // `org-protocol-store-link`: on the stored links, and as the
+            // latest kill for a client that sends none of its own.
+            Asked::StoreLink { url, title } => {
+                self.stored_links.insert(0, (url.clone(), title));
+                let message = org_core::protocol::store_link_message(&url);
+                self.kill = Some(url);
+                self.show_message(MessageType::INFO, message.clone());
+                Ok(message)
+            }
+            // `org-protocol-capture`: the link stored, and `org-capture`
+            // with the URL's template, run by the client as from its key,
+            // or else here.
+            Asked::Capture(capture) => {
+                if let Some((url, title)) = &capture.stored {
+                    self.stored_links.insert(0, (url.clone(), Some(title.clone())));
+                }
+                let mut argument = json!({ "orgProtocol": ProtocolCapture { props: capture.props } });
+                if let Some(template) = capture.template {
+                    argument["keys"] = json!(template);
+                }
+                if self.client.run_command {
+                    let params = json!({ "command": commands::CAPTURE, "argument": argument });
+                    let notification = Notification::new(RUN_COMMAND.to_string(), params);
+                    let _ = self.sender.send(Message::Notification(notification));
+                    return Ok(String::new());
+                }
+                let params = ExecuteCommandParams {
+                    command: commands::CAPTURE.to_string(),
+                    arguments: vec![argument.clone()],
+                    work_done_progress_params: Default::default(),
+                };
+                match self.run_command(params) {
+                    Ok(value) => {
+                        self.prompt_with_messages(commands::CAPTURE.to_string(), argument, &value);
+                        Ok(String::new())
+                    }
+                    Err(refusal) => {
+                        self.show_message(MessageType::INFO, refusal.message().to_string());
+                        Err(refusal.message().to_string())
+                    }
+                }
+            }
+            // `org-protocol-open-source`: the file the URL maps to, shown.
+            Asked::OpenSource { url } => {
+                let home = |name: &str| config::expand_home(name, &|name| std::env::var(name).ok());
+                let opened = org_core::protocol::open_source(&url, &self.protocol_options.projects, &|name| {
+                    crate::protocol::file_state(&home(name))
+                });
+                let said = opened.error.clone().or_else(|| opened.messages.last().cloned());
+                let Some(file) = opened.file else {
+                    if let Some(said) = &said {
+                        self.show_message(MessageType::INFO, said.clone());
+                    }
+                    return Err(
+                        said.unwrap_or_else(|| format!("No project of `org_protocol_project_alist` maps {url}"))
+                    );
+                };
+                let path = home(&file);
+                let path = std::path::absolute(&path).unwrap_or(path);
+                let uri = uri::from_path(&path).ok_or_else(|| format!("Cannot name {}", path.display()))?;
+                let params = ShowDocumentParams { uri, external: None, take_focus: Some(true), selection: None };
+                self.send_request::<ShowDocument>(params, None);
+                Ok(String::new())
+            }
+        }
+    }
+
     /// Open the command port, for a client that cannot run a command
     /// from a key (`command_actions`), and make its script this server's,
     /// unless another server answers there: that one keeps it until this
@@ -5197,9 +6495,22 @@ impl Server {
         }
     }
 
-    /// Run a command the port was sent, where it says in the agenda or
-    /// else where the cursor was last seen there, as
-    /// `workspace/executeCommand` runs it.
+    /// Whether `params` are about a document other than the agenda, while
+    /// there is one.
+    fn about_another_document(&self, params: &Value) -> bool {
+        let Some(open) = &self.view else { return false };
+        params.pointer("/textDocument/uri").and_then(Value::as_str).is_some_and(|uri| uri != open.uri.as_str())
+    }
+
+    /// Whether request `params` are about the agenda: its document, or a
+    /// command run there.
+    fn about_the_agenda(&self, params: &Value) -> bool {
+        let Some(open) = &self.view else { return false };
+        ["/textDocument/uri", "/arguments/0/textDocument/uri"]
+            .iter()
+            .any(|pointer| params.pointer(pointer).and_then(Value::as_str) == Some(open.uri.as_str()))
+    }
+
     /// Stop rebuilding the agenda the client closed, and remove its file.
     fn drop_closed_view(&mut self) {
         if self.view.as_ref().is_some_and(|open| open.closing) {
@@ -5209,11 +6520,13 @@ impl Server {
             self.remove_view_file();
             self.view = None;
             self.reveal = None;
-            self.follow = None;
-            self.moving = None;
+            self.release_held();
         }
     }
 
+    /// Run a command the port was sent, where it says in the agenda or
+    /// else where the cursor was last seen there, as
+    /// `workspace/executeCommand` runs it.
     fn run_from_port(&mut self, sent: port::Command) {
         self.drop_closed_view();
         let view = self.view.as_ref().map(|open| open.uri.clone());
@@ -5318,7 +6631,9 @@ impl Server {
                 let edited = self.client.edit_view && open.client.is_some();
                 let written = if edited {
                     Ok(())
-                } else if self.client.edit_view {
+                } else if self.client.edit_view || self.client.zed_agenda() {
+                    // Zed refuses a rename in a read-only file, and a
+                    // rename at the cursor answers what a command asks.
                     set_writable_if_present(file).and_then(|()| std::fs::write(file, &open.view.text))
                 } else {
                     write_read_only(file, &open.view.text)
@@ -5347,6 +6662,10 @@ impl Server {
     /// The agenda's new text as an edit of the file the client has open
     /// (`edit_view`): the lines that changed, so that the cursor stays.
     fn edit_view_in_client(&mut self) {
+        if self.view_edit_waiting.is_some() {
+            self.view_edit_due = true;
+            return;
+        }
         let Some(open) = &self.view else { return };
         let Some(copy) = &open.client else { return };
         if copy.text == open.view.text {
@@ -5366,7 +6685,17 @@ impl Server {
         let range = copy.index.range(old, range, self.client.encoding);
         let edit = self.workspace_edit(&open.uri, Some(copy.version), vec![TextEdit { range, new_text }]);
         let params = lsp_types::ApplyWorkspaceEditParams { label: Some("Org Agenda".to_string()), edit };
-        self.send_request::<lsp_types::request::ApplyWorkspaceEdit>(params, None);
+        self.view_edit_waiting = Some(copy.version);
+        self.send_request::<lsp_types::request::ApplyWorkspaceEdit>(params, Some(Pending::ViewEdit));
+    }
+
+    /// The agenda's text that changed while an edit was with the client,
+    /// once that edit is applied.
+    fn view_edit_catch_up(&mut self) {
+        if self.view_edit_due && self.view_edit_waiting.is_none() {
+            self.view_edit_due = false;
+            self.edit_view_in_client();
+        }
     }
 
     /// Ask the client to show the view with the cursor at `position`.
@@ -5426,14 +6755,23 @@ impl Server {
         if !self.client.show_document {
             return Err("This editor cannot open documents on the server's request".to_string());
         }
+        self.release_held();
         self.set_view(query);
-        self.follow = None;
-        self.moving = None;
+        let Some(open) = &self.view else { return Err("Cannot create the agenda".to_string()) };
+        // `org-agenda-view-columns-initially`: column view on, as
+        // `org-agenda-finalize` turns it on each time the agenda is made.
+        if self.agenda_view_columns_initially && !self.columns.contains_key(open.uri.as_str()) {
+            let on = ColumnsOn { start: 0, global: false, view: Value::Null };
+            self.columns.insert(open.uri.as_str().to_string(), on);
+        }
         let Some(open) = &self.view else { return Err("Cannot create the agenda".to_string()) };
         let line = reveal.position(&open.view);
         match &open.client {
             // The client shows this very text already.
-            Some(copy) if copy.text == open.view.text => self.show_view(line),
+            Some(copy) if copy.text == open.view.text => {
+                self.show_view(line);
+                self.agenda_columns_view();
+            }
             // The client shows the old text. A cursor position sent now
             // would be applied to those lines, so it waits until the client
             // has replaced them; see `reveal_when_current`.
@@ -5451,24 +6789,91 @@ impl Server {
         Ok(())
     }
 
+    /// Show `change` on the agenda's lines where they are, until the
+    /// agenda is built again; the cursor stays on its line.
+    fn hold(&mut self, change: views::Held) {
+        if self.held_counts.is_none() {
+            self.held_counts = Some(self.agenda_files().iter().map(|(_, held)| held.outline().entries.len()).collect());
+        }
+        self.held.push(change);
+    }
+
+    /// Build the agenda anew from now on, without the changes it held.
+    fn release_held(&mut self) {
+        self.held.clear();
+        self.held_counts = None;
+    }
+
+    /// The view with the changes it holds shown on its lines, unless its
+    /// lines no longer stand for the entries they did: a file gained or
+    /// lost entries since.
+    fn held_view(&mut self) -> Option<View> {
+        let query = self.view.as_ref()?.view.query.clone();
+        let fresh = self.render(query.clone());
+        let mut files = self.agenda_files();
+        let blocks = self.blocks(&query).unwrap_or_default();
+        if blocks.iter().any(|block| matches!(block.kind, views::BlockKind::Search { .. })) {
+            self.search_files(&mut files);
+        }
+        let counts = files.iter().map(|(_, held)| held.outline().entries.len());
+        let then = self.held_counts.as_ref()?;
+        if files.len() < then.len() || counts.zip(then).any(|(now, then)| now != *then) {
+            return None;
+        }
+        let outlines: Vec<(Uri, &Outline)> = files.iter().map(|(uri, held)| (uri.clone(), held.outline())).collect();
+        let clocked = self.clocked_in(&outlines);
+        let open = self.view.as_ref()?;
+        // `window-max-chars-per-line` of a window in a terminal, which
+        // keeps its last column for the continuation glyph.
+        let width = self.agenda.window_width.unwrap_or(80).saturating_sub(1);
+        let mut view =
+            views::hold(&open.view, &fresh, &self.held, &outlines, self.now(), clocked, &self.agenda_marks, width);
+        drop(outlines);
+        drop(files);
+        self.dim_blocked(&mut view);
+        Some(view)
+    }
+
+    /// The entry the clock runs on, as the agenda highlights it.
+    fn clocked_in<'a>(&self, outlines: &'a [(Uri, &Outline)]) -> Option<(&'a Uri, usize)> {
+        let running = self.running.as_ref()?;
+        let (uri, outline) = outlines.iter().find(|(uri, _)| *uri == running.uri)?;
+        let line = outline.clocks.iter().find(|line| {
+            line.clock.is_running()
+                && line.clock.start == Some(running.start)
+                && line.entry.is_some_and(|entry| outline.entries[entry].head == running.head)
+        })?;
+        Some((uri, outline.entries[line.entry?].offset))
+    }
+
     /// Rebuild the view after its files changed. The cursor stays, unless
     /// the change is the edit of a command that takes the cursor along.
+    /// Changes made from the agenda stay on their lines.
     fn refresh_view(&mut self) {
         let Some(query) = self.view.as_ref().map(|open| open.view.query.clone()) else { return };
-        let view = self.render(query);
+        let held = if self.held_counts.is_none() { None } else { self.held_view() };
+        // A change is shown once its edit has arrived; the view keeps it
+        // from then on, as later changes build on it.
+        if held.is_some() {
+            let edited = &self.edited;
+            self.held.retain(|change| edited.contains(change.entry().uri.as_str()));
+        }
+        let view = match held {
+            Some(view) => view,
+            None => {
+                self.release_held();
+                self.render(query)
+            }
+        };
         let Some(open) = &mut self.view else { return };
         let changed = view.text != open.view.text;
         // The same text highlighted anew: the entry the clock runs on.
         let recoloured = !changed && view.tokens != open.view.tokens;
         // The same text may still stand for entries that moved.
         open.replace(view);
-        if let Some(follow) = self.follow.take_if(|follow| follow.text == open.view.text) {
-            self.reveal = Some(Reveal::At(follow.position));
-            self.moving = Some((follow.from, follow.position.line));
-        } else if changed {
+        if changed {
             // Line numbers of the old text: the cursor stays where it is.
             self.reveal = self.reveal.take().filter(|reveal| !matches!(reveal, Reveal::At(_)));
-            self.moving = None;
         }
         if changed {
             self.publish_view();
@@ -5528,6 +6933,9 @@ impl Server {
         if let Some(message) = result.get("message").and_then(Value::as_str) {
             self.show_message(MessageType::INFO, message);
         }
+        if let Some(close) = result.get("close").and_then(Value::as_str) {
+            self.show_where_before(close);
+        }
         let Some(input) = result.get("input") else { return };
         let prompt = input.get("prompt").and_then(Value::as_str).unwrap_or("").to_string();
         let choices = input.get("choices").and_then(Value::as_array).cloned().unwrap_or_default();
@@ -5535,6 +6943,14 @@ impl Server {
             // LSP has no request for text: a rename's new name answers.
             let prompt = prompt.trim_end().trim_end_matches(':');
             self.show_message(MessageType::INFO, format!("{prompt}: answer with a rename at the cursor"));
+            self.question = Some(Question { command, argument, input: input.clone() });
+            return;
+        }
+        if !self.client.message_requests {
+            // The choices come first in the code actions until one is
+            // picked.
+            let prompt = prompt.trim_end().trim_end_matches(':');
+            self.show_message(MessageType::INFO, format!("{prompt}: pick the answer from the code actions"));
             self.question = Some(Question { command, argument, input: input.clone() });
             return;
         }
@@ -5548,6 +6964,22 @@ impl Server {
         self.send_request::<lsp_types::request::ShowMessageRequest>(params, Some(pending));
     }
 
+    /// A buffer the cursor is in closed (a capture buffer filed): the
+    /// client closes no tab for the server, so the place the cursor was
+    /// in before is shown, as Emacs goes back to it.
+    fn show_where_before(&mut self, closed: &str) {
+        if self.cursor_seen.as_ref().is_none_or(|(uri, _)| uri.as_str() != closed) {
+            return;
+        }
+        let Some((uri, position)) = self.cursor_before.clone() else { return };
+        if !self.is_view(&uri) && !self.documents.contains_key(uri.as_str()) {
+            return;
+        }
+        let selection = Some(Range::new(position, position));
+        let params = ShowDocumentParams { uri, external: None, take_focus: Some(true), selection };
+        self.send_request::<ShowDocument>(params, None);
+    }
+
     /// The answer to a question asked by [`Server::prompt_with_messages`]:
     /// run the command again with it, as an editor does.
     fn answer_prompt(&mut self, command: String, argument: Value, input: &Value, picked: &str) {
@@ -5556,20 +6988,15 @@ impl Server {
         let key = if choices.is_empty() {
             &typed
         } else {
-            match choices.iter().find(|choice| prompt_label(choice) == picked).and_then(|choice| choice.get("key")) {
+            // A button's label, or the key typed as a rename.
+            let by_label = choices.iter().find(|choice| prompt_label(choice) == picked);
+            let by_key = || choices.iter().find(|choice| choice.get("key").and_then(Value::as_str) == Some(picked));
+            match by_label.or_else(by_key).and_then(|choice| choice.get("key")) {
                 Some(key) => key,
                 None => return,
             }
         };
-        let mut argument = match argument {
-            Value::Object(fields) => fields,
-            _ => serde_json::Map::new(),
-        };
-        if let Some(Value::Object(context)) = input.get("context") {
-            argument.extend(context.clone());
-        }
-        argument.insert("input".to_string(), key.clone());
-        let argument = Value::Object(argument);
+        let argument = answered(argument, input, key);
         let params = ExecuteCommandParams {
             command: command.clone(),
             arguments: vec![argument.clone()],
@@ -5590,13 +7017,39 @@ impl Server {
 
     fn execute_command(&mut self, params: ExecuteCommandParams) -> std::result::Result<Value, Refusal> {
         let argument = params.arguments.into_iter().next();
+        // `org-check-agenda-file`: before a view is built, each agenda
+        // file that is not there is removed from the list or aborts.
+        let argument = if matches!(
+            params.command.as_str(),
+            commands::AGENDA_DISPATCH | commands::AGENDA_LIST | commands::AGENDA_TODOS
+        ) {
+            match self.check_agenda_files(argument)? {
+                Ok(argument) => argument,
+                Err(asked) => return Ok(asked),
+            }
+        } else {
+            argument
+        };
         // Capturing and the agenda menu need no document.
         if params.command == commands::AGENDA_DISPATCH {
             return self.dispatch(argument.as_ref());
         }
         if params.command == commands::CAPTURE {
-            let context = argument.and_then(|value| serde_json::from_value(value).ok()).unwrap_or_default();
-            return self.capture(&context);
+            let context: CaptureContext =
+                argument.and_then(|value| serde_json::from_value(value).ok()).unwrap_or_default();
+            let mut result = self.capture(&context)?;
+            // From an org-protocol URL: what was stored goes along with
+            // each question, and once the capture is under way, Org says
+            // so (`org-protocol-capture`).
+            if let Some(protocol) = &context.org_protocol {
+                match result.pointer_mut("/input/context") {
+                    Some(Value::Object(asked)) => {
+                        asked.insert("orgProtocol".to_string(), json!(protocol));
+                    }
+                    _ => self.message = Some(org_core::protocol::CAPTURED.to_string()),
+                }
+            }
+            return Ok(result);
         }
         if params.command.starts_with("org.journal.") {
             return self.journal_command(&params.command, &argument.unwrap_or_else(|| json!({})));
@@ -5681,15 +7134,24 @@ impl Server {
                     }
                 }
             }
+            commands::GOTO_CALENDAR => self.goto_calendar(context.as_ref()),
             id if id.starts_with("org.calendar.") => self.calendar_command(id, context.as_ref()),
             // `org-save-all-org-buffers`: the server cannot save; the
-            // editor saves the files it names that have changes.
+            // editor saves the files it names that have changes, and says
+            // what Emacs says when it is done.
             commands::AGENDA_SAVE => {
                 let mut files: Vec<&String> = self.documents.keys().collect();
                 files.sort();
-                Ok(json!({ "save": files }))
+                Ok(json!({ "save": files, "message": "Saving all Org buffers... done" }))
             }
             commands::DATE_PREVIEW => self.preview_date(&context.ok_or("This command needs the cursor position")?),
+            commands::CYCLE => self.cycle(&context.ok_or("This command needs the cursor position")?),
+            commands::TIMESTAMP_OVERLAYS_TOGGLE => {
+                self.toggle_custom_times(&context.ok_or("This command needs the cursor position")?)
+            }
+            commands::CUSTOM_PROPERTIES_TOGGLE => {
+                self.toggle_custom_properties(&context.ok_or("This command needs the cursor position")?)
+            }
             id if id.starts_with("org.agenda.filter") => self.agenda_filter(id, context.as_ref()),
             commands::AGENDA_WRITE => self.agenda_write(context.as_ref()),
             commands::AGENDA_APPT => self.agenda_to_appt(context.as_ref()),
@@ -5717,6 +7179,18 @@ impl Server {
                 self.link_insert(&params.command, &context.ok_or("This command needs the cursor position")?)
             }
             commands::ID_GET_CREATE => self.id_get_create(&context.ok_or("This command needs the cursor position")?),
+            commands::CTAGS_CREATE => self.ctags_create(&context.ok_or("This command needs the cursor position")?),
+            commands::CTAGS_FIND => self.ctags_find(&context.ok_or("This command needs the cursor position")?),
+            commands::BIBTEX_EXPORT
+            | commands::BIBTEX_COPY
+            | commands::BIBTEX_CREATE
+            | commands::BIBTEX_CREATE_HERE
+            | commands::BIBTEX_CHECK
+            | commands::BIBTEX_CHECK_ALL
+            | commands::BIBTEX_YANK
+            | commands::BIBTEX_IMPORT => {
+                self.bibtex(&params.command, &context.ok_or("This command needs the cursor position")?)
+            }
             commands::CITE_INSERT | commands::CITE_INSERT_PREFIX => self.cite_insert(
                 params.command == commands::CITE_INSERT_PREFIX,
                 &context.ok_or("This command needs the cursor position")?,
@@ -5740,6 +7214,9 @@ impl Server {
                 self.motion(&params.command, &context.ok_or("This command needs the cursor position")?)
             }
             commands::GOTO => self.goto(&context.ok_or("This command needs the cursor position")?),
+            commands::BEGINNING_OF_LINE | commands::END_OF_LINE | commands::KILL_LINE => {
+                self.line_command(&params.command, &context.ok_or("This command needs the cursor position")?)
+            }
             commands::FOOTNOTE_ACTION
             | commands::FOOTNOTE_MENU
             | commands::TOGGLE_ITEM
@@ -5755,6 +7232,8 @@ impl Server {
             | commands::TABLE_CREATE
             | commands::TABLE_IMPORT
             | commands::TABLE_EXPORT
+            | commands::PLOT_GNUPLOT
+            | commands::TABLE_ASCII_PLOT
             | commands::BABEL_NEXT
             | commands::BABEL_PREVIOUS
             | commands::BABEL_GOTO
@@ -5822,6 +7301,16 @@ impl Server {
                 let command = table_command(&params.command).ok_or("Unknown command")?;
                 self.table(command, &context)
             }
+            commands::OPEN_LINE => self.open_line(&context.ok_or("This command needs the cursor position")?),
+            commands::OUTLINE_PATH => self.outline_path(&context.ok_or("This command needs the cursor position")?),
+            commands::INLINETASK_INSERT | commands::INLINETASK_INSERT_NO_STATE => self.inlinetask_insert(
+                &context.ok_or("This command needs the cursor position")?,
+                params.command == commands::INLINETASK_INSERT_NO_STATE,
+            ),
+            commands::LEVELS_ODD | commands::LEVELS_ODDEVEN => self.convert_levels(
+                params.command == commands::LEVELS_ODD,
+                &context.ok_or("This command needs the cursor position")?,
+            ),
             commands::SORT => self.sort(&context.ok_or("This command needs the cursor position")?),
             commands::SPARSE_TREE => self.sparse_tree(&context.ok_or("This command needs the cursor position")?),
             commands::REVEAL | commands::REVEAL_SIBLINGS | commands::REVEAL_TREE => {
@@ -5840,7 +7329,7 @@ impl Server {
                 };
                 self.emacs_run(command, &context.expect("a context"))
             }
-            commands::CUT_SUBTREE | commands::COPY_SUBTREE | commands::PASTE_SUBTREE => {
+            commands::CUT_SUBTREE | commands::COPY_SUBTREE | commands::PASTE_SUBTREE | commands::YANK => {
                 self.subtree_clipboard(&params.command, &context.ok_or("This command needs the cursor position")?)
             }
             commands::META_RETURN
@@ -5886,17 +7375,26 @@ impl Server {
                 self.refile_capture(context.as_ref().and_then(refile_answer).as_deref(), text)
             }
             commands::CLOCK_DISPLAY => self.clock_display(&context.ok_or("This command needs the cursor position")?),
-            // `C-c C-c` takes the clock's times away first.
+            commands::NUM_MODE => self.num_mode(&context.ok_or("This command needs the cursor position")?),
+            // `C-c C-c` takes the clock's times and the highlights of a
+            // sparse tree away first; the editor is given no highlights,
+            // its folds left as they are.
             commands::CHECKBOX_TOGGLE
-                if context
-                    .as_ref()
-                    .is_some_and(|context| self.clock_display.contains_key(context.text_document.uri.as_str())) =>
+                if context.as_ref().is_some_and(|context| {
+                    let key = context.text_document.uri.as_str();
+                    self.clock_display.contains_key(key) || self.sparse_highlights.contains_key(key)
+                }) =>
             {
                 let uri =
                     context.as_ref().map(|context| context.text_document.uri.as_str().to_string()).unwrap_or_default();
-                self.clock_display.remove(&uri);
-                self.refresh_inlay_hints();
-                Ok(json!({ "message": "Temporary highlights/overlays removed from current buffer" }))
+                if self.clock_display.remove(&uri).is_some() {
+                    self.refresh_inlay_hints();
+                }
+                let mut result = json!({ "message": "Temporary highlights/overlays removed from current buffer" });
+                if self.sparse_highlights.remove(&uri).is_some() {
+                    result["sparse"] = json!({ "keep": true, "unfold": [], "highlights": [] });
+                }
+                Ok(result)
             }
             commands::DBLOCK_INSERT => self.dblock_insert(&context.ok_or("This command needs the cursor position")?),
             commands::ATTACH => self.attach(&context.ok_or("This command needs the cursor position")?),
@@ -5904,6 +7402,7 @@ impl Server {
                 self.clocktable(id, &context.ok_or("This command needs the cursor position")?)
             }
             id if id.starts_with("org.clock.") => self.clock_command(id, context.as_ref()),
+            commands::TODO_YESTERDAY => self.todo_yesterday(context),
             id if id == commands::TODO
                 || commands::AGENDA_DATE_COMMANDS.contains(&id)
                 || id == commands::SET_TAGS
@@ -5972,11 +7471,12 @@ impl Server {
                     text: document.text.clone(),
                     offset: document.index.offset(&document.text, *position, self.client.encoding),
                     version: Some(document.version),
-                    heading: None,
                 })
             }
             Target::Agenda { .. } => Err("The agenda has no file to change".into()),
             Target::Journal { .. } => Err("The journal's commands change their own files".into()),
+            Target::Dailies { .. } => Err("The daily notes' commands change their own files".into()),
+            Target::Calendar { .. } => Err(NO_DATE_ASKED.into()),
             Target::Entry { row, .. } => {
                 let reference = row.entry.as_ref().ok_or("No entry on this line")?;
                 self.with_source(&reference.uri, |text, _, _, outline, version| {
@@ -5986,13 +7486,7 @@ impl Server {
                     // stands for, seen from the headline, or the headline.
                     let offset =
                         reference.marker.map_or(heading, |marker| heading + marker.saturating_sub(reference.offset));
-                    Ok(DateSource {
-                        file: reference.uri.clone(),
-                        text: text.to_string(),
-                        offset,
-                        version,
-                        heading: Some(heading),
-                    })
+                    Ok(DateSource { file: reference.uri.clone(), text: text.to_string(), offset, version })
                 })
                 .ok_or("Cannot read the file of this entry")?
             }
@@ -6014,7 +7508,9 @@ impl Server {
 
     /// What the date prompt of `command` at `target` starts from.
     fn date_prompt_start(&mut self, command: PlanningCommand, target: &Target) -> std::result::Result<Prompt, Refusal> {
-        if let Target::Agenda { .. } | Target::Journal { .. } = target {
+        if let Target::Agenda { .. } | Target::Journal { .. } | Target::Dailies { .. } | Target::Calendar { .. } =
+            target
+        {
             // `org-read-date` without a default: today, and nothing typed.
             return Ok(Prompt { default: None, value: String::new() });
         }
@@ -6036,7 +7532,8 @@ impl Server {
             if self.client.date_prompt {
                 let now = self.date_time();
                 let (value, layout) = (prompt.value.clone(), (self.calendar_months, self.calendar_week_start));
-                let open = DatePrompt::new(id, command, target, prompt.default, value, now, &self.read_date, layout);
+                let settings = self.read_date_of(id);
+                let open = DatePrompt::new(id, command, target, prompt.default, value, now, &settings, layout);
                 self.open_date_prompt(open);
                 return Ok(Value::Null);
             }
@@ -6071,6 +7568,12 @@ impl Server {
         if let Target::Journal { from } = target {
             return self.journal_date(id, from, answer);
         }
+        if let Target::Dailies { from, goto } = target {
+            return self.roam_dailies_date(id, from, *goto, answer);
+        }
+        if let Target::Calendar { .. } = target {
+            return Err(NO_DATE_ASKED.into());
+        }
         let command = self.date_command_at(id, target)?;
         let source = self.date_source(target)?;
         let key = source.file.as_str().to_string();
@@ -6079,7 +7582,7 @@ impl Server {
             last.file == key
                 && matches!(last.command.as_str(), commands::TIMESTAMP_INSERT | commands::TIMESTAMP_INSERT_INACTIVE)
         });
-        self.last = Some(Last { command: id.to_string(), file: key.clone(), heading: None });
+        self.last = Some(Last { command: id.to_string(), file: key.clone(), heading: None, cursor: None });
         let now = self.date_time();
         let text = &source.text;
         let outcome =
@@ -6136,12 +7639,19 @@ impl Server {
             _ => outcome.cursor,
         };
         let pending = match (target, cursor) {
-            // From the agenda, its cursor follows the entry, as after the
-            // agenda's other commands.
-            (Target::Entry { line, character, row, .. }, _) => {
-                let from = (Position::new(*line, *character), row);
-                self.follow =
-                    source.heading.and_then(|heading| self.followed(&source.file, &outcome.text, heading, from));
+            // From the agenda, the entry's lines for the timestamp show
+            // what the command says at their end, where they are, until the
+            // agenda is built again (`org-agenda-show-new-time`); the cursor
+            // stays.
+            (Target::Entry { row, .. }, _) => {
+                let prefix = match id {
+                    commands::SCHEDULE | commands::SCHEDULE_REMOVE | commands::SCHEDULE_DELAY => " S",
+                    _ => " D",
+                };
+                let said = outcome.message.clone().unwrap_or_default();
+                if let Some(entry) = row.entry.clone() {
+                    self.hold(views::Held::Stamp { entry, text: format!("{prefix} => {said} ") });
+                }
                 Pending::Edit
             }
             (_, Some(cursor)) => {
@@ -6164,7 +7674,7 @@ impl Server {
             }))
             .map_err(|error| error.to_string())?;
             let wanted = org_core::todo::WantedNote { purpose: changed.change.purpose().to_string(), state: None };
-            self.open_note(&context, id, wanted)?;
+            self.open_note(&context, id, wanted, "")?;
             if let Some(note) = &mut self.note {
                 note.log = Some(NoteLog::Planning(changed.change, changed.old));
             }
@@ -6202,12 +7712,29 @@ impl Server {
         None
     }
 
+    /// How the prompt of the command `id` reads a date: the agenda's `j`
+    /// with `org-agenda-jump-prefer-future`.
+    fn read_date_of(&self, id: &str) -> ReadDateSettings {
+        // `org-roam-dailies-capture-date` binds `org-read-date-prefer-future`
+        // to nil.
+        if matches!(id, commands::ROAM_DAILIES_GOTO_DATE | commands::ROAM_DAILIES_CAPTURE_DATE) {
+            return ReadDateSettings { prefer_future: org_core::read_date::PreferFuture::No, ..self.read_date };
+        }
+        match self.agenda_jump_prefer_future {
+            Some(prefer_future) if id == commands::AGENDA_GOTO_DATE => {
+                ReadDateSettings { prefer_future, ..self.read_date }
+            }
+            _ => self.read_date,
+        }
+    }
+
     /// `org-agenda-goto-date`: the agenda from the day `answer` names,
     /// over as many days as its span has from there, with the cursor on
     /// that day. A week or a fortnight still starts on the first day of
     /// the week (`org-agenda-start-on-weekday`).
     fn goto_date(&mut self, answer: &str, line: u32) -> std::result::Result<(), Refusal> {
-        let read = org_core::read_date::read_date(answer, None, self.date_time(), &self.read_date)?;
+        let settings = self.read_date_of(commands::AGENDA_GOTO_DATE);
+        let read = org_core::read_date::read_date(answer, None, self.date_time(), &settings)?;
         let day = read.date.to_day();
         let (block, _, span) = self.agenda_block(Some(line))?;
         let span = Span::from_days(span.days(day));
@@ -6222,6 +7749,10 @@ impl Server {
         let journal = self.journal_days();
         if !journal.is_empty() {
             open.mark_journal(journal, self.date_time(), &self.read_date);
+        }
+        let dailies = self.roam_daily_days();
+        if !dailies.is_empty() {
+            open.mark_dailies(dailies, self.date_time(), &self.read_date);
         }
         let cursor = open.cursor();
         if self.prompt_copy.is_some() {
@@ -6321,9 +7852,16 @@ impl Server {
     /// A key of the date prompt. The day it starts from is the one under
     /// the cursor, as in Emacs's calendar, or else the selected one.
     fn calendar_command(&mut self, id: &str, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
-        let (now, settings) = (self.date_time(), self.read_date);
+        let prompt = self.date_prompt.as_ref().map(|open| open.id.clone()).unwrap_or_default();
+        let (now, settings) = (self.date_time(), self.read_date_of(&prompt));
         let step = self.edit_settings.timestamp_rounding_minutes.max(1);
         let open = self.date_prompt.as_mut().ok_or("No date prompt is open")?;
+        // The calendar on its own takes no day and asks for nothing.
+        if matches!(open.target, Target::Calendar { .. })
+            && matches!(id, commands::CALENDAR_SELECT | commands::CALENDAR_TYPE | commands::CALENDAR_TIME)
+        {
+            return Err(NO_DATE_ASKED.into());
+        }
         // Picking the time: the keys that move by day choose the hours or
         // the minutes, and those that move by week change them.
         if open.time_field.is_some() {
@@ -6403,6 +7941,61 @@ impl Server {
         Ok(Value::Null)
     }
 
+    /// The day under the cursor of the date prompt's calendar, or else
+    /// its selected day, when `context` is in the calendar: the day
+    /// `calendar-cursor-to-date` gives org-journal's keys there.
+    fn calendar_day(&self, uri: &Uri, position: Position) -> Option<Day> {
+        // A client that reads the prompt from its file may name it
+        // otherwise (a link in its path).
+        let file = |path: &Path| std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+        let same = *uri == self.prompt_uri
+            || self
+                .prompt_file
+                .as_deref()
+                .zip(uri::to_path(uri))
+                .is_some_and(|(prompt, path)| file(prompt) == file(&path));
+        let open = self.date_prompt.as_ref().filter(|_| same)?;
+        // Until the cursor is on the day selected last, the one it
+        // reports is an old one.
+        let under = (!open.reveal && !open.moving_cursor).then(|| open.day_at(position)).flatten();
+        Some(under.unwrap_or(open.selected))
+    }
+
+    /// `org-goto-calendar`: the calendar on its own, on the date of the
+    /// timestamp at the cursor, or else of the line's last active one, or
+    /// today; with `C-u` today.
+    fn goto_calendar(&mut self, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
+        if !self.client.date_prompt {
+            return Err("This editor shows no calendar: it has no date prompt".into());
+        }
+        let now = self.date_time();
+        let mut day = now.day;
+        let from = match context {
+            Some(context) => context.text_document.uri.clone(),
+            None => uri::from_path(&std::env::temp_dir()).ok_or("No place to run the command from")?,
+        };
+        let document = context.and_then(|context| {
+            let document = self.document(&context.text_document.uri)?;
+            let offset = document.index.offset(&document.text, context.position, self.client.encoding);
+            Some((document.text.clone(), offset))
+        });
+        let prefix = context.and_then(|context| context.count).is_some_and(|count| count > 1);
+        if let (Some((text, offset)), false) = (document, prefix) {
+            if let Some(date) = line_timestamp_date(&text, offset) {
+                day = date.to_day();
+            }
+        }
+        let settings = self.read_date;
+        let layout = (self.calendar_months, self.calendar_week_start);
+        let command = PlanningCommand::Timestamp { inactive: false };
+        let default = Some(DateTime { day, minute: 0 });
+        let target = Target::Calendar { from };
+        let open =
+            DatePrompt::new(commands::GOTO_CALENDAR, command, target, default, String::new(), now, &settings, layout);
+        self.open_date_prompt(open);
+        Ok(Value::Null)
+    }
+
     /// Run the command the date prompt answers, and close the prompt.
     fn finish_date_prompt(&mut self, answer: &str) -> std::result::Result<Value, Refusal> {
         let open = self.date_prompt.take().ok_or("No date prompt is open")?;
@@ -6429,7 +8022,8 @@ impl Server {
     fn preview_date(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
         let id = context.command.as_deref().ok_or("Which command's prompt?")?;
         let answer = context.input.as_deref().unwrap_or("");
-        let (now, settings) = (self.date_time(), self.read_date);
+        let prompt = self.date_prompt.as_ref().filter(|_| id == commands::CALENDAR_TYPE).map(|open| open.id.clone());
+        let (now, settings) = (self.date_time(), self.read_date_of(prompt.as_deref().unwrap_or(id)));
         // With the date prompt open, what is typed shows in its minibuffer
         // too, and the answer ends with the day moved to there.
         if let Some(open) = self.date_prompt.as_mut().filter(|open| open.id == id || id == commands::CALENDAR_TYPE) {
@@ -6448,6 +8042,45 @@ impl Server {
         Ok(json!({ "timestamp": stamp }))
     }
 
+    /// `org-check-agenda-file` for each file of `org_agenda_files` that is
+    /// not there, unless `org-agenda-skip-unavailable-files`: the answer
+    /// to the question about the first (`unavailable` in the context)
+    /// removes it, or aborts. `Ok(argument)` when none is left to ask
+    /// about, with the command's own context; `Err` with the question.
+    fn check_agenda_files(
+        &mut self,
+        argument: Option<Value>,
+    ) -> std::result::Result<std::result::Result<Option<Value>, Value>, Refusal> {
+        let mut argument = argument;
+        let asked = argument.as_mut().and_then(|value| value.as_object_mut()).and_then(|fields| {
+            let path = fields.remove("unavailable")?;
+            Some((path, fields.remove("input")))
+        });
+        if let Some((path, answer)) = asked {
+            if answer.as_ref().and_then(Value::as_str).map(str::to_lowercase).as_deref() != Some("r") {
+                return Err(Refusal::Failed("Abort".to_string()));
+            }
+            let path = PathBuf::from(path.as_str().unwrap_or_default());
+            self.message = Some(format!("Removed from Org Agenda list: {}", abbreviate_path(&path)));
+            self.removed_agenda_files.insert(path);
+        }
+        if self.skip_unavailable_files {
+            return Ok(Ok(argument));
+        }
+        let missing = self.workspace.missing().into_iter().find(|path| !self.removed_agenda_files.contains(path));
+        let Some(path) = missing else { return Ok(Ok(argument)) };
+        let mut context = argument.filter(Value::is_object).unwrap_or_else(|| json!({}));
+        context["unavailable"] = json!(path.to_string_lossy());
+        let prompt = format!("Non-existent agenda file {}.  [R]emove from list or [A]bort?", abbreviate_path(&path));
+        Ok(Err(json!({ "input": {
+            "kind": "key",
+            "prompt": prompt,
+            "value": "",
+            "choices": [{ "key": "r", "label": "Remove from list" }, { "key": "a", "label": "Abort" }],
+            "context": context,
+        } })))
+    }
+
     fn execute(&mut self, command: &str, context: Option<Context>) -> std::result::Result<(), Refusal> {
         if actions::command(command).is_none() {
             // Whatever was being repeated has come to an end.
@@ -6455,17 +8088,18 @@ impl Server {
         }
         match command {
             commands::AGENDA_LIST => {
-                self.agenda_filters = Default::default();
+                self.agenda_filters = self.new_view_filters();
                 self.agenda_marks.clear();
                 Ok(self.open_view(Query::Agenda { start: self.start_day(), span: self.agenda.span })?)
             }
             commands::AGENDA_TODOS => {
-                self.agenda_filters = Default::default();
+                self.agenda_filters = self.new_view_filters();
                 self.agenda_marks.clear();
                 Ok(self.open_view(Query::Todo)?)
             }
             commands::AGENDA_REDO => {
                 self.view.as_ref().ok_or("No agenda is open")?;
+                self.release_held();
                 self.refresh_view();
                 Ok(())
             }
@@ -6664,7 +8298,7 @@ impl Server {
         let input = get("input");
         if get("ask").as_deref() == Some("match") {
             let matching = input.unwrap_or_default();
-            self.agenda_filters = Default::default();
+            self.agenda_filters = self.new_view_filters();
             self.agenda_marks.clear();
             self.open_view(Query::Tags { matching, todo_only: prefix == "M" })?;
             return Ok(Value::Null);
@@ -6703,7 +8337,7 @@ impl Server {
             let used = keyed.iter().find(|(key, _)| *key == keys).map_or(keys.clone(), |(_, used)| used.clone());
             let query = Query::Custom { keys: used, moved: None };
             self.blocks(&query)?;
-            self.agenda_filters = Default::default();
+            self.agenda_filters = self.new_view_filters();
             self.agenda_marks.clear();
             self.open_view(query)?;
             return Ok(Value::Null);
@@ -6749,7 +8383,7 @@ impl Server {
             }
             "s" | "S" => return Ok(self.search_input(&keys, "")),
             "#" => {
-                self.agenda_filters = Default::default();
+                self.agenda_filters = self.new_view_filters();
                 self.agenda_marks.clear();
                 self.open_view(Query::Stuck)?
             }
@@ -6858,15 +8492,27 @@ impl Server {
         }
         replace_whole(&path, text.as_bytes())
             .map_err(|error| format!("Cannot write agenda to file {}: {error}", path.display()))?;
-        self.show_message(MessageType::INFO, format!("{done} {}", path.display()));
-        Ok(Value::Null)
+        Ok(json!({ "message": format!("{done} {}", path.display()) }))
     }
 
     /// The agenda of `query` as Org prints it (`org-batch-agenda`), links as
     /// written.
     fn agenda_text(&mut self, query: Query) -> String {
         let mut files = self.agenda_files();
-        let blocks = self.blocks(&query).unwrap_or_default();
+        let mut blocks = self.blocks(&query).unwrap_or_default();
+        // `org-agenda-add-entry-text`, which `org-agenda-before-write-hook`
+        // runs: at most `org-agenda-add-entry-text-maxlines` lines of each
+        // entry's text under its line, after `    > ` whatever
+        // `org-agenda-entry-text-leaders` says. What entry text mode (`E`)
+        // shows is an overlay in Emacs, which is not written. Links stay
+        // as they are, whatever `org-agenda-add-entry-text-descriptive-links`
+        // says: `org-agenda-get-some-entry-text` takes away the properties
+        // that would show their descriptions right after giving them.
+        let lines = self.agenda_add_entry_text;
+        for block in &mut blocks {
+            block.config.entry_text = (lines > 0).then_some(lines);
+            block.config.entry_text_settings.leaders = "    > ".to_string();
+        }
         let search = if blocks.iter().any(|block| matches!(block.kind, views::BlockKind::Search { .. })) {
             self.search_files(&mut files)
         } else {
@@ -7208,12 +8854,23 @@ impl Server {
     }
 
     /// `org-search-view` for `string`, which Org must be able to read.
+    /// The filters of a new agenda view: none, or with
+    /// `org-agenda-persistent-filter` those of the view still open by tag,
+    /// category, regexp and effort (not its top headline). A closed agenda
+    /// takes its filters with it, as its buffer goes in Emacs.
+    fn new_view_filters(&self) -> org_core::agenda::filter::Filters {
+        if !self.agenda_persistent_filter || self.view.is_none() {
+            return Default::default();
+        }
+        org_core::agenda::filter::Filters { top_headline: None, ..self.agenda_filters.clone() }
+    }
+
     fn search(&mut self, string: String, todo_only: bool) -> std::result::Result<Value, Refusal> {
         if !string.chars().any(|c| !c.is_whitespace()) {
             return Ok(Value::Null);
         }
         org_core::agenda::search::parse(&string, todo_only, &self.agenda.search).map_err(Refusal::Failed)?;
-        self.agenda_filters = Default::default();
+        self.agenda_filters = self.new_view_filters();
         self.agenda_marks.clear();
         self.open_view(Query::Search { string, todo_only })?;
         Ok(Value::Null)
@@ -7296,14 +8953,61 @@ impl Server {
             (uri.clone(), document.index.offset(&document.text, context.position, self.client.encoding))
         };
         // A selection: the region refiled, whole subtrees or none.
+        let mut toggled = None;
         let region = match self.region_of(context).filter(|_| !from_agenda && mode != RefileMode::Goto) {
             Some((start, end)) => {
                 let document = self.document(uri).ok_or("The document is not open")?;
-                Some(refile::region(&document.text, start, end)?)
+                match refile::region(&document.text, start, end) {
+                    Err(_) if self.refile_region_within_subtree => {
+                        let (text, region) = self.region_heading(context, start, end)?;
+                        toggled = Some(text);
+                        Some(region)
+                    }
+                    region => Some(region?),
+                }
             }
             None => None,
         };
-        self.refile_from(file, offset, region, None, from_agenda, refile_answer(context).as_deref(), mode)
+        self.refile_from(file, offset, region, toggled, from_agenda, refile_answer(context).as_deref(), mode)
+    }
+
+    /// `org-refile-active-region-within-subtree`: a region that is not
+    /// whole subtrees has its first line turned into a headline, by
+    /// Emacs's `org-toggle-heading` with the point at the region's start,
+    /// as `org-refile` leaves it. The end of the region moves by as much as
+    /// that line grew. Returns the text and the region in it.
+    fn region_heading(
+        &mut self,
+        context: &Context,
+        start: usize,
+        end: usize,
+    ) -> std::result::Result<(String, (usize, usize)), Refusal> {
+        let uri = &context.text_document.uri;
+        let path = uri::to_path(uri).ok_or("Only a file on disk can run code through Emacs")?;
+        let encoding = self.client.encoding;
+        let document = self.document(uri).ok_or("The document is not open")?;
+        let text = document.text.clone();
+        let start = text[..start].rfind('\n').map_or(0, |at| at + 1);
+        // The mark: the end of the selection the cursor is not at.
+        let range = context.range.ok_or("No region")?;
+        let other = if range.start == context.position { range.end } else { range.start };
+        let mark = document.index.offset(&text, other, encoding);
+        let characters = |at: usize| text[..at].chars().count() + 1;
+        let params = json!({
+            "file": path.to_string_lossy(),
+            "text": text,
+            "point": characters(start),
+            "mark": characters(mark),
+            "command": "org-toggle-heading",
+            "args": [],
+            "variables": [],
+        });
+        let result = self.emacs.call("run", params, std::time::Duration::from_secs(30)).map_err(Refusal::Failed)?;
+        let new = result.get("text").and_then(Value::as_str).ok_or("Emacs did not answer")?.to_string();
+        let line_end = |text: &str| text[start..].find('\n').map_or(text.len(), |at| start + at);
+        let grown = line_end(&new) as isize - line_end(&text) as isize;
+        let end = ((end as isize + grown).max(start as isize) as usize).min(new.len());
+        Ok((new, (start, end)))
     }
 
     /// `org-refile-goto-last-stored` (`C-u C-u C-c C-w`): where the last
@@ -7432,8 +9136,14 @@ impl Server {
             _ => return Err(format!("Unknown command {id}").into()),
         };
         // The entry's file, and the archive files open in an editor, get
-        // edits; the others are written.
+        // edits. The others are written when `org-archive-subtree-save-file-p`
+        // says the archive is saved, and else get edits too, which the
+        // editor keeps unsaved as Emacs keeps the archive's buffer.
+        let (save_from_org, save_from_agenda) = self.archive_save;
+        let save = if self.is_view(uri) { save_from_agenda } else { save_from_org };
         let mut documents = vec![(file.clone(), version, self.text_edits(&text, &archived.source))];
+        let mut created: Vec<(Uri, String)> = Vec::new();
+        let mut archives: Vec<Uri> = Vec::new();
         for written in &archived.files {
             let open = uri::from_path(&written.path).and_then(|found| {
                 let key = self
@@ -7449,25 +9159,71 @@ impl Server {
                     self.open_text(&key).unwrap_or_default(),
                 ))
             });
-            match open {
-                Some((uri, version, now)) => documents.push((uri, Some(version), self.text_edits(&now, &written.text))),
-                None => write_whole(&written.path, &written.text)?,
+            match (open, uri::from_path(&written.path)) {
+                (Some((uri, version, now)), _) => {
+                    documents.push((uri.clone(), Some(version), self.text_edits(&now, &written.text)));
+                    archives.push(uri);
+                }
+                (None, Some(uri)) if !save => match std::fs::read_to_string(&written.path) {
+                    Ok(now) => {
+                        documents.push((uri.clone(), None, self.text_edits(&now, &written.text)));
+                        archives.push(uri);
+                    }
+                    // A new file is made by the edit, when the editor can.
+                    Err(_) if self.client.create_files => {
+                        created.push((uri.clone(), written.text.clone()));
+                        archives.push(uri);
+                    }
+                    Err(_) => write_whole(&written.path, &written.text)?,
+                },
+                _ => write_whole(&written.path, &written.text)?,
             }
         }
         documents.retain(|(_, _, edits)| !edits.is_empty());
         if !archived.message.is_empty() {
             self.message = Some(archived.message);
         }
-        if documents.is_empty() {
+        if documents.is_empty() && created.is_empty() {
             self.refresh_view();
             return Ok(Value::Null);
         }
-        for (uri, _, _) in &documents {
+        for uri in documents.iter().map(|(uri, _, _)| uri).chain(created.iter().map(|(uri, _)| uri)) {
             self.edited.insert(uri.as_str().to_string());
         }
-        let edit = self.workspace_edits(documents);
+        let edit = if created.is_empty() {
+            self.workspace_edits(documents)
+        } else {
+            let mut operations: Vec<lsp_types::DocumentChangeOperation> = Vec::new();
+            for (uri, text) in created {
+                operations.push(lsp_types::DocumentChangeOperation::Op(lsp_types::ResourceOp::Create(
+                    lsp_types::CreateFile { uri: uri.clone(), options: None, annotation_id: None },
+                )));
+                documents.push((uri, None, vec![TextEdit { range: Range::default(), new_text: text }]));
+            }
+            operations.extend(documents.into_iter().map(|(uri, version, edits)| {
+                lsp_types::DocumentChangeOperation::Edit(TextDocumentEdit {
+                    text_document: OptionalVersionedTextDocumentIdentifier { uri, version },
+                    edits: edits.into_iter().map(OneOf::Left).collect(),
+                })
+            }));
+            WorkspaceEdit {
+                document_changes: Some(lsp_types::DocumentChanges::Operations(operations)),
+                ..Default::default()
+            }
+        };
         let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
-        self.apply_edit(params, Pending::Edit);
+        // The archive files are saved as `org-archive-subtree-save-file-p`
+        // says, whatever `auto_save` says.
+        if let Some(id) = self.apply_edit_request(params, Pending::Edit) {
+            let saved = self.saving.entry(id.clone()).or_default();
+            saved.retain(|uri| !archives.contains(uri));
+            if save {
+                saved.extend(archives);
+            }
+            if saved.is_empty() {
+                self.saving.remove(&id);
+            }
+        }
         Ok(Value::Null)
     }
 
@@ -7509,6 +9265,12 @@ impl Server {
                 RefileFiles::Paths(patterns) => patterns
                     .iter()
                     .flat_map(|pattern| self.workspace.org_files(pattern))
+                    .filter_map(|path| uri::from_path(&path))
+                    .collect(),
+                RefileFiles::IdFiles => self
+                    .id_paths()
+                    .into_iter()
+                    .filter(|path| self.file_text(path).is_some_and(|(_, text)| link::has_ids(&text)))
                     .filter_map(|path| uri::from_path(&path))
                     .collect(),
             };
@@ -7793,7 +9555,7 @@ impl Server {
                 serde_json::from_value(json!({ "textDocument": { "uri": uri.as_str() }, "position": position }))
                     .map_err(|error| error.to_string())?;
             let wanted = org_core::todo::WantedNote { purpose: "refiling".to_string(), state: None };
-            self.open_note(&context, commands::REFILE, wanted)?;
+            self.open_note(&context, commands::REFILE, wanted, "")?;
             if let Some(note) = &mut self.note {
                 note.log = Some(NoteLog::Refile);
             }
@@ -7824,6 +9586,20 @@ impl Server {
     /// and show the capture buffer, a file of its own with the template
     /// as it will stand in its target. Each step asks with an `input`
     /// whose `context` the editor sends back.
+    /// `org-get-cursor-date` in the agenda, for `org-capture-use-agenda-date`:
+    /// the day of the line the capture starts from, at the hour
+    /// `org-extend-today-until`.
+    fn capture_agenda_date(&self, context: &CaptureContext) -> Option<DateTime> {
+        if !self.capture_use_agenda_date {
+            return None;
+        }
+        let open = self.view.as_ref()?;
+        context.text_document.as_ref().filter(|document| document.uri == open.uri)?;
+        let line = context.position?.line;
+        let day = open.on_screen().line(line)?.day?;
+        Some(DateTime { day, minute: self.agenda.extend_today_until * 60 })
+    }
+
     fn capture(&mut self, context: &CaptureContext) -> std::result::Result<Value, Refusal> {
         // The templates offered where the capture starts.
         let (file, mode, buffer) = self.here(context.text_document.as_ref().map(|document| &document.uri));
@@ -7841,6 +9617,12 @@ impl Server {
             keys.push_str(context.input.as_deref().unwrap_or(""));
         }
         let chosen = templates.iter().find(|template| template.key == keys && !template.is_group());
+        // A URL's template is taken as it is (`org-capture-select-template`
+        // with keys): there is no menu to go on in.
+        let from_url = context.org_protocol.is_some() && answering.is_none() && context.input.is_none();
+        if chosen.is_none() && from_url && !keys.is_empty() {
+            return Err(format!("No capture template referred to by \"{keys}\" keys").into());
+        }
         let Some(template) = chosen.cloned() else {
             let next = template_choices(&templates, &keys);
             if next.is_empty() {
@@ -7864,11 +9646,18 @@ impl Server {
         let from = context.text_document.as_ref().map(|document| &document.uri).filter(|uri| !self.is_view(uri));
         // `:time-prompt`: the date of the tree entry is asked first, and
         // stands for the time of the capture.
-        let now = self.date_time();
+        // `org-capture-use-agenda-date`: from the agenda, the day at the
+        // cursor (`org-get-cursor-date`) is the time of the capture and the
+        // date of a tree entry, which is then not asked.
+        let agenda_date = self.capture_agenda_date(context);
+        let now = agenda_date.unwrap_or_else(|| self.date_time());
         let mut default_time = now;
-        let mut tree_date = now.date();
+        let mut tree_date = match agenda_date {
+            Some(date) => org_core::date::Date::from_day(date.day),
+            None => capture::tree_date(now, &self.read_date),
+        };
         let mut asked = answers.as_slice();
-        if template.time_prompt == Some(true) {
+        if template.time_prompt == Some(true) && agenda_date.is_none() {
             let Some((answer, rest)) = answers.split_first() else {
                 let context = json!({ "keys": keys, "answers": answers });
                 return Ok(json!({ "input": {
@@ -7878,19 +9667,21 @@ impl Server {
                     "context": context,
                 } }));
             };
-            let read = org_core::read_date::read_date(answer, None, now, &self.read_date)?;
-            tree_date = read.date;
-            let (hour, minute) = match read.time {
-                Some(time) => time,
-                None if read.date == now.date() => (now.minute / 60, now.minute % 60),
-                None => (0, 0),
-            };
-            default_time = DateTime::new(read.date, hour, minute);
+            default_time = capture::prompted_time(answer, now, &self.read_date)?;
+            tree_date = default_time.date();
             asked = rest;
         }
         let document = context.text_document.as_ref().map(|document| document.uri.clone());
         let clipboard = context.clipboard.clone().unwrap_or_default();
-        let fill_context = self.capture_fill_context(document.as_ref(), context.position, default_time, clipboard);
+        let mut fill_context = self.capture_fill_context(document.as_ref(), context.position, default_time, clipboard);
+        // From an org-protocol URL: `org-store-link-plist` as the URL left
+        // it, with `org-capture-link-is-already-stored`.
+        if let Some(protocol) = &context.org_protocol {
+            fill_context.annotation = protocol.get(":annotation").unwrap_or("").to_string();
+            fill_context.initial = protocol.get(":initial").unwrap_or("").to_string();
+            fill_context.link_props =
+                protocol.props.iter().filter_map(|(key, value)| Some((key.clone(), value.clone()?))).collect();
+        }
         let text = template_text(&template);
         // `%[file]`: relative to the directory of the file captured from.
         let directory = from.and_then(uri::to_path).and_then(|path| path.parent().map(Path::to_path_buf));
@@ -7995,7 +9786,9 @@ impl Server {
                 (running.uri, capture::Target::Heading(heading))
             }
             TargetSpec::Id(id) => {
-                let (uri, heading) = self.find_id(&id).ok_or_else(|| format!("Cannot find target ID \"{id}\""))?;
+                let (uri, heading) = self
+                    .find_id(&id, None)
+                    .ok_or_else(|| self.id_missing(format!("Cannot find target ID \"{id}\"")))?;
                 (uri, capture::Target::Heading(heading))
             }
             TargetSpec::Function { file, name } => {
@@ -8059,7 +9852,16 @@ impl Server {
             table_line_pos: template.table_line_pos.clone(),
         };
         let levels = refile::Settings { adapt: self.adapt_in(&snapshot), ..self.refile.2 };
-        let mut placed = capture::place(&snapshot, &keywords, &target, kind, &filled, &properties, &levels)?;
+        let mut placed = capture::place(
+            &snapshot,
+            &keywords,
+            &target,
+            kind,
+            &filled,
+            &properties,
+            &levels,
+            &self.edit_settings.todo.lists,
+        )?;
         let jump = template.jump_to_captured == Some(true);
         if template.immediate_finish == Some(true) {
             let done = placed.finalize(placed.shown(), &keywords, &self.edit_settings.todo, self.date_time());
@@ -8190,6 +9992,7 @@ impl Server {
         context: &Context,
         id: &str,
         wanted: org_core::todo::WantedNote,
+        extra: &str,
     ) -> std::result::Result<Value, Refusal> {
         self.captures += 1;
         let directory = self.capture_directory.path().join(self.captures.to_string());
@@ -8197,7 +10000,8 @@ impl Server {
         let buffer = directory.join(format!("{CAPTURE_PREFIX}Note.org"));
         // The note goes on the third line, as in Emacs; an editor that takes
         // the last newline for the end of the file still has that line.
-        let text = format!("# Insert note for {}.\n\n\n", wanted.purpose);
+        // `org-log-note-extra` after the first lines.
+        let text = format!("# Insert note for {}.\n\n{extra}\n", wanted.purpose);
         std::fs::write(&buffer, &text).map_err(|error| error.to_string())?;
         let uri = uri::from_path(&buffer).ok_or("Cannot name the note buffer")?;
         self.note = Some(Noting {
@@ -8207,7 +10011,7 @@ impl Server {
             state: wanted.state.unwrap_or_default(),
             log: None,
         });
-        let end = Position::new(2, 0);
+        let end = Position::new(2 + extra.matches('\n').count() as u32, 0);
         let params =
             ShowDocumentParams { uri, external: None, take_focus: Some(true), selection: Some(Range::new(end, end)) };
         self.send_request::<ShowDocument>(params, None);
@@ -8241,6 +10045,7 @@ impl Server {
                 EditCommand::PlanningNote { change: *change, old: old.clone() }
             }
             (_, Some(NoteLog::Refile)) => EditCommand::RefileNote,
+            (_, Some(NoteLog::ClockOut(line))) => EditCommand::ClockOutNote { line: line.clone() },
             (commands::ADD_NOTE, _) => EditCommand::Note,
             _ => EditCommand::Todo(TodoTarget::State((!note.state.is_empty()).then(|| note.state.clone()))),
         };
@@ -8263,11 +10068,12 @@ impl Server {
         let Some((path, home)) = Self::link_file(uri) else { return (String::new(), Vec::new()) };
         let (settings, edit_settings, category) =
             (self.link_settings.clone(), self.edit_settings.clone(), uri::file_stem(uri));
+        let mut new_id = self.id_maker();
         let made = self.with_source(uri, |text, index, parse, _, version| {
             let offset = index.offset(text, position, encoding);
             let property_context = edit::property_context(parse, &edit_settings, &category);
             let file = link::File { path: &path, home: home.as_deref() };
-            link::store(text, offset, None, &file, &settings, false, false, &property_context, &mut link::new_uuid)
+            link::store(text, offset, None, &file, &settings, false, false, &property_context, &mut new_id)
                 .map(|made| (made, text.to_string(), version))
         });
         let Some(Ok((made, text, version))) = made else { return (String::new(), Vec::new()) };
@@ -8295,31 +10101,23 @@ impl Server {
         let region = self.region_of(context).filter(|_| !self.is_view(&context.text_document.uri));
         let (settings, edit_settings, category) =
             (self.link_settings.clone(), self.edit_settings.clone(), uri::file_stem(&uri));
+        let mut new_id = self.id_maker();
         let (made, text, version) = self
             .with_source(&uri, |text, _, parse, _, version| {
                 let property_context = edit::property_context(parse, &edit_settings, &category);
                 let file = link::File { path: &path, home: home.as_deref() };
-                link::store(
-                    text,
-                    offset,
-                    region,
-                    &file,
-                    &settings,
-                    true,
-                    negate,
-                    &property_context,
-                    &mut link::new_uuid,
-                )
-                .map(|made| (made, text.to_string(), version))
+                link::store(text, offset, region, &file, &settings, true, negate, &property_context, &mut new_id)
+                    .map(|made| (made, text.to_string(), version))
             })
             .ok_or("Cannot read the file")?
             .map_err(Refusal::Failed)?;
         if let Some((edited, _)) = &made.edited {
             self.send_texts(vec![(uri.clone(), version, text, edited.clone())]);
         }
+        // Said as a command's message, which editors show as Emacs's echo
+        // area (some Vim clients leave out the server's own messages).
         let message = link::remember(&mut self.stored_links, &made);
-        self.show_message(MessageType::INFO, message);
-        Ok(Value::Null)
+        Ok(json!({ "message": message }))
     }
 
     /// `org-insert-link` (`C-c C-l`), `org-insert-last-stored-link` (`C-c
@@ -8361,21 +10159,65 @@ impl Server {
             // `id:` link is being inserted.
             let wants_ids = answers.iter().any(|answer| answer == "id" || answer.starts_with("id:"))
                 || self.stored_links.first().is_some_and(|(link, _)| link.starts_with("id:"));
+            // The files of `org-id-completion-targets`, and those with IDs
+            // that descriptions are looked for in, by their index in
+            // `refile_files` (this file first).
             let mut others: Vec<(Uri, Option<i32>, String, org_syntax::Parse)> = Vec::new();
+            let mut selections: Vec<(refile::Select, Vec<usize>)> = Vec::new();
             if wants_ids {
-                let own = uri::to_path(&uri);
-                for path in self.id_paths() {
-                    if Some(&path) == own.as_ref() {
-                        continue;
+                let own = uri::to_path(&uri).map(|path| self.canonical(&path));
+                let mut index_of: HashMap<PathBuf, usize> = HashMap::new();
+                let mut load = |this: &mut Self, path: &Path, others: &mut Vec<_>, ids_only: bool| -> Option<usize> {
+                    let canonical = this.canonical(path);
+                    if own.as_ref() == Some(&canonical) {
+                        return Some(0);
                     }
-                    let Some((other, text)) = self.file_text(&path) else { continue };
-                    if link::has_ids(&text) {
-                        let version = self.document(&other).map(|document| document.version);
-                        let parse = org_syntax::parse(&text, &self.todo);
-                        others.push((other, version, text, parse));
+                    if let Some(index) = index_of.get(&canonical) {
+                        return Some(*index);
                     }
+                    let (other, text) = this.file_text(path)?;
+                    if ids_only && !link::has_ids(&text) {
+                        return None;
+                    }
+                    let version = this.document(&other).map(|document| document.version);
+                    let parse = org_syntax::parse(&text, &this.todo);
+                    others.push((other, version, text, parse));
+                    index_of.insert(canonical, others.len());
+                    Some(others.len())
+                };
+                let id_files: Vec<usize> = self
+                    .id_paths()
+                    .iter()
+                    .filter_map(|path| load(self, path, &mut others, true))
+                    .filter(|index| *index != 0)
+                    .collect();
+                for target in self.id_lookup.1.clone() {
+                    let indexes: Vec<usize> = match &target.files {
+                        RefileFiles::Current => vec![0],
+                        RefileFiles::IdFiles => id_files.clone(),
+                        RefileFiles::Agenda => self
+                            .agenda_files()
+                            .into_iter()
+                            .filter_map(|(file, _)| uri::to_path(&file))
+                            .filter_map(|path| load(self, &path, &mut others, false))
+                            .collect(),
+                        RefileFiles::Paths(patterns) => patterns
+                            .iter()
+                            .flat_map(|pattern| self.workspace.org_files(pattern))
+                            .collect::<Vec<_>>()
+                            .iter()
+                            .filter_map(|path| load(self, path, &mut others, false))
+                            .collect(),
+                    };
+                    selections.push((target.select.clone(), indexes));
                 }
             }
+            // `org-id-get-with-outline-path-completion`: the file's name
+            // first unless the first targets are the file itself.
+            let outline_path = match self.id_lookup.1.first() {
+                Some(RefileTarget { files: RefileFiles::Current, .. }) | None => OutlinePath::Yes,
+                Some(_) => OutlinePath::File,
+            };
             let parse = org_syntax::parse(&text, &self.todo);
             let keywords = parse.todo_keywords().clone();
             let names: Vec<String> =
@@ -8396,11 +10238,13 @@ impl Server {
                     title: None,
                 })
                 .collect();
-            let targets = if wants_ids { link::id_targets(&refile_files) } else { Vec::new() };
+            let targets =
+                if wants_ids { link::id_targets(&selections, &refile_files, outline_path) } else { Vec::new() };
             let entries = refile::names(&targets);
             let (edit_settings, category) = (self.edit_settings.clone(), uri::file_stem(&uri));
             let context = edit::property_context(&parse, &edit_settings, &category);
             let mut made_there = None;
+            let (mut new_id, mut new_id_there) = (self.id_maker(), self.id_maker());
             let mut id_entry = |answer: &str| {
                 let (index, target) = refile::find(&targets, answer)?;
                 let offset = target.offset?;
@@ -8409,7 +10253,7 @@ impl Server {
                 }
                 let (other, version, other_text, other_parse) = &others[index - 1];
                 let other_context = edit::property_context(other_parse, &edit_settings, &uri::file_stem(other));
-                let (edited, id) = link::id_get_create(other_text, offset, &other_context, &mut link::new_uuid).ok()?;
+                let (edited, id) = link::id_get_create(other_text, offset, &other_context, &mut new_id_there).ok()?;
                 made_there = edited.map(|(edited, _)| (other.clone(), *version, other_text.clone(), edited));
                 let heading = link::entry_heading(other_text, offset, &other_keywords[index - 1]);
                 Some(link::IdEntry::There { id, heading })
@@ -8433,7 +10277,7 @@ impl Server {
                 id_entry: &mut id_entry,
                 id_heading: &mut id_heading,
                 context: &context,
-                new_id: &mut link::new_uuid,
+                new_id: &mut new_id,
             };
             let step = link::insert(
                 &text,
@@ -8495,10 +10339,11 @@ impl Server {
     fn id_get_create(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
         let (uri, offset) = self.command_place(context)?;
         let (edit_settings, category) = (self.edit_settings.clone(), uri::file_stem(&uri));
+        let mut new_id = self.id_maker();
         let (made, text, version) = self
             .with_source(&uri, |text, _, parse, _, version| {
                 let property_context = edit::property_context(parse, &edit_settings, &category);
-                link::id_get_create(text, offset, &property_context, &mut link::new_uuid)
+                link::id_get_create(text, offset, &property_context, &mut new_id)
                     .map(|made| (made, text.to_string(), version))
             })
             .ok_or("Cannot read the file")?
@@ -8553,7 +10398,7 @@ impl Server {
         } else {
             let (target, kind, properties) = &capture.spec;
             let levels = refile::Settings { adapt: self.adapt_in(&now), ..self.refile.2 };
-            let placed = capture::place(&now, &keywords, target, *kind, &edited, properties, &levels)?;
+            let placed = capture::place(&now, &keywords, target, *kind, &edited, properties, &levels, &todo.lists)?;
             (placed.finalize(placed.shown(), &keywords, todo, time), placed.begin)
         };
         Ok((now, version, done, begin))
@@ -8623,7 +10468,7 @@ impl Server {
         let (text, version, line) = self.clock_line(&running)?;
         let heading = Self::heading_above(&text, line)?;
         let task = self.clock_task(&running.uri, heading)?;
-        let now = self.date_time();
+        let now = self.clock_time(false);
         let out = clock::clock_out(&text, line, now, &self.clock_settings).ok()?;
         self.clock_out_time = Some(now);
         self.running = None;
@@ -8808,6 +10653,9 @@ impl Server {
     /// "priority", "prompt", "value" } }`; with `input` it sets the
     /// priority the answer names, or removes it for a space.
     fn ask_priority(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        if !self.edit_settings.priority_commands {
+            return Err(Refusal::Failed(edit::PRIORITY_DISABLED.to_string()));
+        }
         let uri = &context.text_document.uri;
         let settings = self.edit_settings.priorities;
         // The priorities of the file the entry is in.
@@ -8934,7 +10782,7 @@ impl Server {
                     (offset, outline.entry_at(offset).map(|entry| outline.entries[entry].offset))
                 }
             };
-            let last = Last { command: id.to_string(), file: key.clone(), heading };
+            let last = Last { command: id.to_string(), file: key.clone(), heading, cursor: None };
             // The state the key selects; a key that selects none quits.
             let command = match &extra.key {
                 Some(answer) => {
@@ -9011,7 +10859,24 @@ impl Server {
                         )
                     })
                 });
-                (edits, version, outcome.text, outcome.note, message, forget)
+                // What the agenda's lines of the entry show of the change.
+                let shown = heading.map(|heading| {
+                    let state = |text: &str, at: usize| {
+                        let keyword = headline_keyword(text, at, keywords);
+                        let done = keyword.as_deref().is_some_and(|keyword| keywords.is_done(keyword));
+                        (keyword, done)
+                    };
+                    let stamp = matches!(command, EditCommand::AgendaDate { .. })
+                        .then(|| org_core::stamp::Stamp::around(&outcome.text, offset))
+                        .flatten()
+                        .map(|stamp| outcome.text[stamp.start..stamp.end].to_string());
+                    EditShown {
+                        state: state(&outcome.text, heading),
+                        before_repeat: outcome.before_repeat.as_deref().map(|line| state(line, 0)),
+                        stamp,
+                    }
+                });
+                (edits, version, outcome.text, outcome.note, message, forget, shown)
             });
             Ok::<_, Refusal>((last, Some(outcome)))
         });
@@ -9020,7 +10885,7 @@ impl Server {
         let heading = last.heading;
         self.last = Some(last);
         let Some(outcome) = outcome else { return Ok(Value::Null) };
-        let (edits, version, new_text, wanted, message, forget) = outcome?;
+        let (edits, version, new_text, wanted, message, forget, shown) = outcome?;
         if let Some((heading, head)) = forget {
             let heads = self.todo_heads.entry(file.as_str().to_string()).or_default();
             match head {
@@ -9033,7 +10898,7 @@ impl Server {
         // project shows a note buffer, as Emacs does (`*Org Note*`).
         if let Some(wanted) = wanted {
             if self.client.date_prompt && self.client.show_document {
-                return self.open_note(context, id, wanted);
+                return self.open_note(context, id, wanted, "");
             }
             return Ok(json!({ "input": {
                 "kind": "note",
@@ -9043,37 +10908,94 @@ impl Server {
             } }));
         }
         self.message = message;
-        let (edits, new_text) = match heading {
-            Some(heading) => self.clock_out_if_done(&file, heading, edits, new_text),
-            None => (edits, new_text),
+        let edits = match heading {
+            Some(heading) => self.clock_out_if_done(&file, heading, edits, new_text).0,
+            None => edits,
         };
         if edits.is_empty() {
             return Ok(Value::Null);
         }
-        // A change to priority or date can move the entry to another line
-        // of the agenda. The cursor goes with it, so that the next press
-        // of the key reaches the same entry.
-        self.follow = match (&line, heading) {
-            (Some((number, line)), Some(heading))
-                if !matches!(
-                    id,
-                    commands::TODO
-                        | commands::TODO_NEXT
-                        | commands::TODO_PREVIOUS
-                        | commands::TODO_NEXT_SET
-                        | commands::TODO_PREVIOUS_SET
-                ) =>
-            {
-                self.followed(&file, &new_text, heading, (Position::new(*number, position.character), line))
-            }
+        // From the agenda, the entry's lines show the change where they
+        // are, as Emacs's do until the agenda is built again: the new
+        // headline (`org-agenda-change-all-lines`), or the new date at
+        // their end (`org-agenda-show-new-time`). The cursor stays.
+        let today = self.view.as_ref().map(|open| open.view.today);
+        let held = match (&line, &shown) {
+            (Some((number, row)), Some(shown)) => row.entry.clone().and_then(|entry| {
+                if matches!(command, EditCommand::AgendaDate { .. }) {
+                    let text = format!(" => {} ", shown.stamp.as_deref()?);
+                    return Some(views::Held::Stamp { entry, text });
+                }
+                // A repeater set the state back: today's line shows the
+                // state it had reached (`org-agenda-todo`).
+                Some(match &shown.before_repeat {
+                    Some((keyword, done)) if row.day.is_some() && row.day == today => views::Held::Headline {
+                        entry,
+                        keyword: keyword.clone(),
+                        done: *done,
+                        only: Some(*number as usize),
+                    },
+                    _ => {
+                        views::Held::Headline { entry, keyword: shown.state.0.clone(), done: shown.state.1, only: None }
+                    }
+                })
+            }),
             _ => None,
         };
+        if let Some(held) = held {
+            self.hold(held);
+        }
+        // Run from Zed (`apply`) in the file the cursor is in: Zed puts
+        // the cursor after an edit that starts where it is (a timestamp
+        // changed under it), so it is moved where Org leaves point.
+        let stay = (context.apply && self.client.command_actions && !on_view && file == context.text_document.uri)
+            .then(|| self.cursor_after(&file, position, &edits))
+            .flatten();
         let edit = self.workspace_edit(&file, version, edits);
         self.edited.insert(key);
         // No label: some editors print it every time an edit is applied.
         let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
-        self.apply_edit(params, Pending::Edit);
+        match stay {
+            Some(position) => self.apply_edit(params, Pending::EditAndMove { uri: file, position }),
+            None => self.apply_edit(params, Pending::Edit),
+        }
         Ok(Value::Null)
+    }
+
+    /// Where the cursor at `position` of `uri` is once `edits` are made,
+    /// as point moves in Emacs: with the text before it, and before what
+    /// is put where it is.
+    fn cursor_after(&self, uri: &Uri, position: Position, edits: &[TextEdit]) -> Option<Position> {
+        let encoding = self.client.encoding;
+        let document = self.document(uri)?;
+        let old = &document.text;
+        let mut ranges: Vec<(usize, usize, &str)> = edits
+            .iter()
+            .map(|edit| {
+                let start = document.index.offset(old, edit.range.start, encoding);
+                let end = document.index.offset(old, edit.range.end, encoding).max(start);
+                (start, end, edit.new_text.as_str())
+            })
+            .collect();
+        ranges.sort_by_key(|(start, end, _)| (*start, *end));
+        let point = document.index.offset(old, position, encoding);
+        let (mut new, mut at, mut moved) = (String::new(), 0, point);
+        for (start, end, text) in &ranges {
+            if *start < at || !old.is_char_boundary(*start) || !old.is_char_boundary(*end) {
+                return None;
+            }
+            new.push_str(&old[at..*start]);
+            new.push_str(text);
+            at = *end;
+            if *end <= point && *start < point {
+                moved = moved + text.len() - (end - start);
+            } else if *start < point {
+                // Point inside what is replaced: at the end of what replaces it, at most.
+                moved = moved - (point - start) + (point - start).min(text.len());
+            }
+        }
+        new.push_str(&old[at..]);
+        Some(LineIndex::new(&new).position(&new, moved.min(new.len()), encoding))
     }
 
     /// `org-set-tags-command` (`C-c C-q`; in the agenda for the line's
@@ -9463,6 +11385,18 @@ impl Server {
     /// (`state` in the context); `org.todo` asks for the key of the new
     /// state when the keywords have keys (`org-todo` with fast selection),
     /// and cycles when they have none.
+    /// `org-todo-yesterday`: `org-todo` with `org-use-effective-time` on
+    /// and `org-extend-today-until` past the hour now, so that the change
+    /// records 23:59 of yesterday and repeaters count from yesterday.
+    fn todo_yesterday(&mut self, context: Option<Context>) -> std::result::Result<Value, Refusal> {
+        let saved = self.edit_settings.todo.clone();
+        self.edit_settings.todo.use_effective_time = true;
+        self.edit_settings.todo.extend_today_until = self.date_time().minute / 60 + 1;
+        let result = self.run_edit(commands::TODO, context);
+        self.edit_settings.todo = saved;
+        result
+    }
+
     fn run_edit(&mut self, id: &str, context: Option<Context>) -> std::result::Result<Value, Refusal> {
         let context = context.ok_or("This command needs the cursor position")?;
         // `org-add-note`: asks for the note, then writes the one given.
@@ -9517,7 +11451,9 @@ impl Server {
         if id != commands::TODO {
             return self.edit_or_recalculate(&context, id);
         }
-        let keys = self.fast_keys(&context)?;
+        // `org-use-fast-todo-selection` nil: the next state, keys or not.
+        let keys =
+            if self.fast_todo == crate::config::FastTodo::Never { Vec::new() } else { self.fast_keys(&context)? };
         if keys.is_empty() {
             let cycle = TodoTarget::Cycle { head: None, repeated: false };
             return self.edit_with(&context, id, Some(EditCommand::Todo(cycle)), &Extra::default());
@@ -9529,7 +11465,7 @@ impl Server {
             // keyword, as the highlight of the token.
             let choices: Vec<Value> = keys
                 .iter()
-                .map(|(name, key, done)| {
+                .map(|(name, key, done, _)| {
                     let mut choice = json!({
                         "key": key.to_string(),
                         "label": name,
@@ -9542,6 +11478,28 @@ impl Server {
                 })
                 .chain([json!({ "key": " ", "label": "clear" })])
                 .collect();
+            if self.fast_todo == crate::config::FastTodo::Expert {
+                // No menu, the keys in the prompt, as Emacs puts them in
+                // its message: each sequence in braces.
+                let mut prompt = String::from("[a-z..]:Set [SPC]:clear\n");
+                for (index, (name, key, _, head)) in keys.iter().enumerate() {
+                    if *head {
+                        if index > 0 {
+                            prompt.push('}');
+                        }
+                        prompt.push('{');
+                    }
+                    prompt.push_str(&format!("[{key}] {name} "));
+                }
+                prompt.push('}');
+                return Ok(json!({ "input": {
+                    "kind": "key",
+                    "prompt": prompt,
+                    "value": "",
+                    "choices": choices,
+                    "expert": true,
+                } }));
+            }
             return Ok(json!({ "input": {
                 "kind": "key",
                 "prompt": "Select a TODO state",
@@ -9560,10 +11518,25 @@ impl Server {
         let encoding = self.client.encoding;
         let uri = &context.text_document.uri;
         let text = self.document(uri).ok_or("This file is not open")?.text.clone();
-        let settings =
-            org_core::newline::Settings { indent: self.indent_in(&text), tags_column: self.refile.2.tags_column };
+        let settings = org_core::newline::Settings {
+            indent: self.indent_in(&text),
+            tags_column: self.refile.2.tags_column,
+            auto_align: self.edit_settings.tags.auto_align,
+            table: self.edit_settings.todo.table.clone(),
+        };
         let document = self.document(uri).ok_or("This file is not open")?;
         let offset = document.index.offset(&document.text, context.position, encoding);
+        // `org-return-follows-link`: the link followed, with nothing typed.
+        // What following it asks is asked with `window/showMessageRequest`,
+        // as the key's result has no room for a question.
+        if self.return_follows_link && open::return_follows(&document.text, &document.parse, offset) {
+            let result = self.open_at_point(context)?;
+            if result.get("input").is_some() {
+                let argument = json!({ "textDocument": { "uri": uri.as_str() }, "position": context.position });
+                self.prompt_with_messages(commands::OPEN.to_string(), argument, &result);
+            }
+            return Ok(json!({ "edits": [] }));
+        }
         // `return_uses_meta_return`, and `org.return.item` always: on the first
         // line of a list item, the next item, numbered as M-RET numbers it.
         if (items || self.return_uses_meta_return) && on_item_line(&document.parse.syntax(), &document.text, offset) {
@@ -9579,7 +11552,10 @@ impl Server {
         let uri = &context.text_document.uri;
         let document = self.document(uri).ok_or("This file is not open")?;
         let path = uri::to_path(uri).ok_or("Only a file on disk can be tangled")?;
-        let settings = org_core::tangle::Settings { preserve_indentation: self.refile.2.src_preserve_indentation };
+        let settings = org_core::tangle::Settings {
+            preserve_indentation: self.refile.2.src_preserve_indentation,
+            ..self.tangle_settings.clone()
+        };
         let outcome = match org_core::tangle::tangle(&document.text, &document.parse, &path, &settings) {
             Ok(outcome) => outcome,
             // Emacs Lisp to evaluate, or a block to run: Emacs tangles.
@@ -9589,7 +11565,7 @@ impl Server {
             Err(message) => return Err(message.into()),
         };
         for file in &outcome.files {
-            write_tangled(file).map_err(|error| format!("{}: {error}", file.path.display()))?;
+            write_tangled(file, self.tangle_remove_first)?;
         }
         let name = path.file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default();
         self.message = Some(outcome.message(&name));
@@ -9608,8 +11584,10 @@ impl Server {
         let chosen = match context.input.as_deref().filter(|input| !input.trim().is_empty()) {
             Some(input) => Some(path.parent().map_or_else(|| PathBuf::from(input), |dir| dir.join(input.trim()))),
             None => {
-                let settings =
-                    org_core::tangle::Settings { preserve_indentation: self.refile.2.src_preserve_indentation };
+                let settings = org_core::tangle::Settings {
+                    preserve_indentation: self.refile.2.src_preserve_indentation,
+                    ..self.tangle_settings.clone()
+                };
                 let mut files: Vec<PathBuf> =
                     org_core::tangle::tangle(&document.text, &document.parse, &path, &settings)
                         .map(|outcome| {
@@ -9846,6 +11824,7 @@ impl Server {
             .collect();
         let agenda_files: Vec<String> =
             self.workspace.files().iter().map(|file| file.to_string_lossy().into_owned()).collect();
+        let custom_times = self.custom_times_in(context.text_document.uri.as_str(), &document.text);
         let params = json!({
             "file": path.to_string_lossy(),
             "text": document.text,
@@ -9857,6 +11836,8 @@ impl Server {
             "agenda_files": agenda_files,
             // What `C-v` (visible only) leaves out: the editor's closed folds.
             "folded": context.folded.clone().unwrap_or_default(),
+            // `org-display-custom-times`, as the file shows: the formats.
+            "custom_times": custom_times.then(|| json!([self.custom_formats.0, self.custom_formats.1])),
         });
         self.next_export += 1;
         let tag = self.next_export;
@@ -10007,21 +11988,34 @@ impl Server {
         }
     }
 
+    /// `org-startup-align-all-tables` (`#+STARTUP: align`): the text of a
+    /// file opened with its tables aligned, when that changes it.
+    fn align_at_startup(&self, text: &str) -> Option<String> {
+        let mut align = self.startup_align;
+        for word in startup_words(text) {
+            match word.as_str() {
+                "align" => align = true,
+                "noalign" => align = false,
+                _ => {}
+            }
+        }
+        if !align {
+            return None;
+        }
+        let keywords = TodoKeywords::from_document(text).unwrap_or_else(|| self.todo.clone());
+        let alignment = &self.edit_settings.todo.table.formulas.alignment;
+        Some(org_core::format::align_tables(text, &keywords, alignment)).filter(|aligned| aligned != text)
+    }
+
     /// `org-startup-shrink-all-tables` (`#+STARTUP: shrink`): the columns
     /// with a width cookie shrunk when a file opens.
     fn shrink_at_startup(&mut self, key: &str, text: &str) {
         let mut shrink = self.startup_shrink;
-        for line in text.lines() {
-            let line = line.trim_start();
-            if !line.get(..10).is_some_and(|start| start.eq_ignore_ascii_case("#+startup:")) {
-                continue;
-            }
-            for word in line[10..].split_whitespace() {
-                match word.to_ascii_lowercase().as_str() {
-                    "shrink" => shrink = true,
-                    "noshrink" => shrink = false,
-                    _ => {}
-                }
+        for word in startup_words(text) {
+            match word.as_str() {
+                "shrink" => shrink = true,
+                "noshrink" => shrink = false,
+                _ => {}
             }
         }
         if !shrink {
@@ -10040,7 +12034,9 @@ impl Server {
         let mut out: Vec<org_core::shrink::Overlay> = tables
             .iter()
             .zip(sets)
-            .flat_map(|(table, columns)| org_core::shrink::overlays(text, table, columns))
+            .flat_map(|(table, columns)| {
+                org_core::shrink::overlays(text, table, columns, &self.edit_settings.todo.table.shrunk_column_indicator)
+            })
             .collect();
         out.sort_by_key(|overlay| overlay.start);
         out
@@ -10414,6 +12410,19 @@ impl Server {
         Ok(Value::Null)
     }
 
+    /// The indentation of source blocks as the settings have it
+    /// (`org-src-content-indentation`, `org-src-preserve-indentation`), for
+    /// Emacs to edit and write back blocks with.
+    fn src_variables(&self) -> Vec<(String, String)> {
+        vec![
+            ("org-src-content-indentation".to_string(), self.indent.src_content_indentation.to_string()),
+            (
+                "org-src-preserve-indentation".to_string(),
+                if self.indent.src_preserve_indentation { "t" } else { "nil" }.to_string(),
+            ),
+        ]
+    }
+
     /// `org-edit-special` (`C-c '`), through Emacs. What Org edits in a
     /// buffer of its own goes in a file of its own, shown, its text as Org
     /// puts it there (indentation and commas taken away; a table's
@@ -10432,7 +12441,12 @@ impl Server {
         let document = self.document(&uri).ok_or("This file is not open")?;
         let offset = document.index.offset(&document.text, context.position, self.client.encoding);
         let point = document.text[..offset].chars().count() + 1;
-        let params = json!({ "file": path.to_string_lossy(), "text": document.text, "point": point });
+        let params = json!({
+            "file": path.to_string_lossy(),
+            "text": document.text,
+            "point": point,
+            "variables": self.src_variables(),
+        });
         let method = if table_field { "edit-field" } else { "edit-special" };
         let result = self.emacs.call(method, params, std::time::Duration::from_secs(60)).map_err(Refusal::Failed)?;
         if let Some(file) = result.get("visit").and_then(Value::as_str) {
@@ -10679,6 +12693,7 @@ impl Server {
                 SpecialKind::Region => unreachable!("a region goes back without Emacs"),
             },
             "args": [content],
+            "variables": self.src_variables(),
         });
         let edit = &mut self.special_edits[index];
         edit.busy = true;
@@ -10868,9 +12883,158 @@ impl Server {
             .map_err(Refusal::Failed)?;
         let cursor = document.index.position(&document.text, moved.offset, encoding);
         self.link_search_failed = moved.failed;
-        self.last = Some(Last { command: id.to_string(), file: key, heading: None });
+        self.last = Some(Last { command: id.to_string(), file: key, heading: None, cursor: None });
         self.message = moved.message;
         Ok(json!({ "edits": [], "cursor": cursor }))
+    }
+
+    /// `org-beginning-of-line` (C-a), `org-end-of-line` (C-e) and
+    /// `org-kill-line` (C-k), where `org_special_ctrl_a_e` and
+    /// `org_special_ctrl_k` make them Org's; elsewhere the keys keep the
+    /// editor's meaning. The same key again from where the last one left
+    /// the cursor is a repeat (`last-command`): `reversed` goes on to the
+    /// special place, and kills add to the last kill.
+    fn line_command(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
+        use org_core::line::{self, KillSettings, Special};
+        let (special_a, special_e) = self.edit_settings.special_ctrl_a_e;
+        let special = match id {
+            commands::BEGINNING_OF_LINE => special_a,
+            commands::END_OF_LINE => special_e,
+            _ if self.edit_settings.special_ctrl_k => Special::On,
+            _ => Special::Off,
+        };
+        let uri = &context.text_document.uri;
+        let key = uri.as_str().to_string();
+        let encoding = self.client.encoding;
+        let document = self.document(uri).ok_or("This file is not open")?;
+        let offset = document.index.offset(&document.text, context.position, encoding);
+        // C-k on a line a closed fold of the editor's starts on: the line
+        // the editor shows goes on to the end of the fold's last line.
+        let hidden_end = (id == commands::KILL_LINE)
+            .then(|| {
+                let line = context.position.line;
+                let [_, last] = context.folded.as_ref()?.iter().find(|[first, last]| *first == line && last > first)?;
+                let start = document.index.offset(&document.text, Position::new(*last, 0), encoding);
+                Some(document.text[start..].find('\n').map_or(document.text.len(), |newline| start + newline))
+            })
+            .flatten();
+        if special == Special::Off && hidden_end.is_none() {
+            return Err(Refusal::NotHere("The key has its own meaning here".to_string()));
+        }
+        let repeated = self
+            .last
+            .as_ref()
+            .is_some_and(|last| last.command == id && last.file == key && last.cursor == Some(offset));
+        let count = context.count.unwrap_or(1);
+        let keywords = document.parse.todo_keywords().clone();
+        if id != commands::KILL_LINE {
+            let moved = if id == commands::BEGINNING_OF_LINE {
+                line::beginning_of_line(&document.text, offset, count, special, repeated, &keywords)
+            } else {
+                line::end_of_line(&document.text, offset, count, special, repeated, &keywords)
+            };
+            let cursor = document.index.position(&document.text, moved, encoding);
+            self.last = Some(Last { command: id.to_string(), file: key, heading: None, cursor: Some(moved) });
+            return Ok(json!({ "edits": [], "cursor": cursor }));
+        }
+        let settings = KillSettings {
+            special: special != Special::Off,
+            auto_align_tags: self.edit_settings.tags.auto_align,
+            tags_column: self.edit_settings.tags.tags_column,
+        };
+        // `org-ctrl-k-protect-subtree`: asked first, or refused.
+        let answer = context.input.as_deref().map(|input| matches!(input, "y" | "Y" | "yes"));
+        let done = line::kill_line_folded(&document.text, offset, settings, hidden_end, self.ctrl_k_protect, answer)
+            .map_err(Refusal::Failed)?;
+        let Some(done) = done else {
+            let input = json!({
+                "kind": "key",
+                "prompt": line::KILL_HIDDEN_QUESTION,
+                "value": "",
+                "choices": [{ "key": "y", "label": "yes" }, { "key": "n", "label": "no" }],
+            });
+            return Ok(json!({ "input": input }));
+        };
+        // `kill-append` after a kill right before.
+        let killed = match (&self.kill, repeated) {
+            (Some(before), true) => format!("{before}{}", done.kill),
+            _ => done.kill,
+        };
+        self.kill = Some(killed.clone());
+        let cursor = done.cursor;
+        let mut result = self.carried(context, org_core::newline::Outcome { text: done.text, cursor })?;
+        if let Some(fields) = result.as_object_mut() {
+            fields.insert("copy".to_string(), json!(killed));
+            fields.insert("copyCharacters".to_string(), json!(true));
+        }
+        self.last = Some(Last { command: id.to_string(), file: key, heading: None, cursor: Some(cursor) });
+        Ok(result)
+    }
+
+    /// What TAB does before it folds (`org-cycle`): on a new, empty
+    /// headline or item its level changes (`org-cycle-level`,
+    /// `org-cycle-item-indentation`, with
+    /// `org_cycle_level_after_item_entry_creation`), carried in the result
+    /// as `org.return`'s edit is; at the start of the file, off a headline,
+    /// `{ "global": true }` with `org_cycle_global_at_bob`; else how the
+    /// editor folds, `{ "integrateLists" }`
+    /// (`org_cycle_include_plain_lists`). A press right after one that
+    /// moved an item, from where it left the cursor, goes on with that
+    /// item's cycle.
+    fn cycle(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        use org_core::{list, structure};
+        let uri = &context.text_document.uri;
+        let key = uri.as_str().to_string();
+        let encoding = self.client.encoding;
+        let document = self.document(uri).ok_or("This file is not open")?;
+        let text = document.text.clone();
+        let offset = document.index.offset(&text, context.position, encoding);
+        let keywords = document.parse.todo_keywords().clone();
+        let repeated = self
+            .last
+            .as_ref()
+            .is_some_and(|last| last.command == commands::CYCLE && last.file == key && last.cursor == Some(offset));
+        let state = if repeated { self.tab_ind_state.take() } else { None };
+        self.tab_ind_state = None;
+        let cycle = self.cycle;
+        let mut moved = None;
+        if cycle.level_after_creation {
+            let tags_column = self.refile.2.tags_column;
+            let settings = self.structure_settings(&text);
+            if let Some(outcome) = structure::cycle_level(&text, offset, &keywords, &settings) {
+                moved = Some(outcome);
+            } else if let Some(cycled) = list::cycle_item_indentation(
+                &text,
+                offset,
+                state.as_ref(),
+                &keywords,
+                tags_column,
+                &self.edit_settings.todo.lists,
+            ) {
+                let cycled = cycled?;
+                self.tab_ind_state = cycled.continues.then_some(cycled.state);
+                moved = Some(org_core::newline::Outcome { text: cycled.text, cursor: cycled.cursor });
+            }
+        }
+        if let Some(outcome) = moved {
+            let cursor = outcome.cursor;
+            let result = self.carried(context, outcome)?;
+            self.last =
+                Some(Last { command: commands::CYCLE.to_string(), file: key, heading: None, cursor: Some(cursor) });
+            return Ok(result);
+        }
+        self.last = None;
+        // `org-cycle-global-at-bob`: not on a headline cycling folds, as
+        // `org-cycle-max-level` limits them.
+        let first_line = text.split('\n').next().unwrap_or("");
+        let stars = first_line.bytes().take_while(|b| *b == b'*').count();
+        let heading = stars > 0 && first_line[stars..].starts_with(' ') && cycle.folding.max_level.is_none_or(|max| stars <= max)
+                // `org-inlinetask-min-level` limits it too.
+                && org_core::inlinetask::outline_stars_in(&text).is_none_or(|deepest| stars <= deepest);
+        if cycle.global_at_bob && offset == 0 && !heading {
+            return Ok(json!({ "global": true }));
+        }
+        Ok(json!({ "integrateLists": cycle.integrate_lists }))
     }
 
     /// `org-goto` (`C-c C-j`), as with `org-goto-interface` set to
@@ -10988,6 +13152,10 @@ impl Server {
             }
             commands::TABLE_SUM => self.emacs_run("org-lsp-bridge-table-sum", context),
             commands::TABLE_FIELD_INFO => self.emacs_run("org-table-field-info", context),
+            // gnuplot.el sends the script to gnuplot, which writes the
+            // `file:` of the `#+PLOT:` line or shows the plot itself.
+            commands::PLOT_GNUPLOT => self.emacs_run("org-plot/gnuplot", context),
+            commands::TABLE_ASCII_PLOT => self.emacs_run("orgtbl-ascii-plot", context),
             commands::TABLE_CREATE => {
                 let Some(answer) = answer else {
                     return Ok(json!({ "input": {
@@ -11318,7 +13486,8 @@ impl Server {
                 })
                 .map(|node| (usize::from(node.text_range().start()), usize::from(node.text_range().end())))
         } else {
-            open::link_at(&text, &parse, offset, &self.link_abbreviations).map(|link| (link.start, link.end))
+            open::link_at(&text, &parse, offset, &self.link_abbreviations, &self.open_settings)
+                .map(|link| (link.start, link.end))
         };
         let whole = (0, text.len());
         let section = section_bounds(&text, offset);
@@ -11376,21 +13545,48 @@ impl Server {
             self.emacs.start(tag, "latex-preview", params);
             return Ok(json!({ "message": "Creating LaTeX previews..." }));
         }
-        let items: Vec<Value> =
-            org_core::link_preview::previews(&text, &parse, &self.link_abbreviations, include_linked, from, to)
-                .into_iter()
-                .filter_map(|found| {
-                    let path = if found.attachment {
-                        self.attachment_path(&uri, &text, found.start, &found.path)?
-                    } else {
-                        self.link_path(&uri, &found.path)?
-                    };
-                    // `a/./b.png` as `a/b.png`.
-                    let path: PathBuf = path.components().collect();
-                    let path = Some(path).filter(|path| path.is_file())?;
-                    Some(json!({ "range": range(found.start, found.end), "path": path.to_string_lossy() }))
-                })
-                .collect();
+        let remote = self.remote.mode != config::RemoteImages::Skip;
+        let found =
+            org_core::link_preview::previews(&text, &parse, &self.link_abbreviations, include_linked, remote, from, to);
+        // The images of URLs, downloaded first; or what to ask before.
+        let remote_files = match self.remote_images(&uri, &found, context, startup) {
+            Ok(files) => files,
+            Err(question) => return Ok(question),
+        };
+        // How wide each shows (`org-display-inline-image--width`), and how
+        // wide at most one shown at its own width (`org-image-max-width`).
+        let outline = (!found.is_empty()).then(|| org_core::outline::Outline::new(&parse, &text, ""));
+        let (actual_width, max_width) = (self.image_actual_width, self.image_max_width.clone());
+        let items: Vec<Value> = found
+            .into_iter()
+            .filter_map(|found| {
+                let path = if found.remote {
+                    remote_files.get(&found.start)?.clone()
+                } else if found.attachment {
+                    self.attachment_path(&uri, &text, found.start, &found.path)?
+                } else {
+                    self.link_path(&uri, &found.path)?
+                };
+                // `a/./b.png` as `a/b.png`.
+                let path: PathBuf = path.components().collect();
+                let path = Some(path).filter(|path| path.is_file())?;
+                let mut item = json!({ "range": range(found.start, found.end), "path": path.to_string_lossy() });
+                let width = outline.as_ref().and_then(|outline| {
+                    org_core::link_preview::image_width_in(outline, &parse, found.start, actual_width)
+                });
+                match width {
+                    Some(org_core::link_preview::ImageWidth::Pixels(pixels)) => {
+                        item["width"] = json!({ "pixels": pixels })
+                    }
+                    Some(org_core::link_preview::ImageWidth::Fraction(part)) => {
+                        item["width"] = json!({ "fraction": part })
+                    }
+                    None if !max_width.is_null() => item["maxWidth"] = max_width.clone(),
+                    None => {}
+                }
+                Some(item)
+            })
+            .collect();
         preview["items"] = json!(items);
         Ok(json!({ "preview": preview }))
     }
@@ -11486,16 +13682,13 @@ impl Server {
                 _ => ("org-table-recalculate", vec![]),
             }
         };
+        let variables = self.table_variables.clone();
         if self.formula_debug {
             let mut wrapped = vec![json!(command)];
             wrapped.extend(args);
-            return self.emacs_run_with("org-lsp-bridge-debug-formulas", wrapped, context);
+            return self.emacs_run_binding("org-lsp-bridge-debug-formulas", wrapped, &variables, context);
         }
-        if args.is_empty() {
-            self.emacs_run(command, context)
-        } else {
-            self.emacs_run_with(command, args, context)
-        }
+        self.emacs_run_binding(command, args, &variables, context)
     }
 
     /// Whether the command was run on a selection (`org-region-active-p`).
@@ -11521,6 +13714,19 @@ impl Server {
         args: Vec<Value>,
         context: &Context,
     ) -> std::result::Result<Value, Refusal> {
+        self.emacs_run_binding(command, args, &[], context)
+    }
+
+    /// [`Self::emacs_run_with`], the document's buffer giving `variables`
+    /// (Emacs variables and their values in Lisp) the values org-lsp's
+    /// settings give them.
+    fn emacs_run_binding(
+        &mut self,
+        command: &str,
+        args: Vec<Value>,
+        variables: &[(String, String)],
+        context: &Context,
+    ) -> std::result::Result<Value, Refusal> {
         let uri = context.text_document.uri.clone();
         let path = uri::to_path(&uri).ok_or("Only a file on disk can run code through Emacs")?;
         let encoding = self.client.encoding;
@@ -11533,6 +13739,7 @@ impl Server {
             "point": point,
             "command": command,
             "args": args,
+            "variables": variables,
         });
         // The region: the mark at the end of the selection the cursor is
         // not at.
@@ -11654,7 +13861,15 @@ impl Server {
         let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
         let offset = document.index.offset(&document.text, context.position, encoding);
         let keywords = document.parse.todo_keywords();
-        let settings = meta_return::Settings { tags_column: self.refile.2.tags_column, below: context.below };
+        let settings = meta_return::Settings {
+            tags_column: self.refile.2.tags_column,
+            below: context.below,
+            statistics: self.edit_settings.todo.statistics.clone(),
+            todo_state_change: self
+                .treat_insert_todo_as_state_change
+                .then(|| (self.edit_settings.todo.clone(), self.date_time())),
+            ..self.edit_settings.insert.clone()
+        };
         let text = &document.text;
         let outcome = match id {
             commands::META_RETURN => meta_return::meta_return(text, offset, keywords, &settings)?,
@@ -11696,15 +13911,22 @@ impl Server {
         }
         let tags_column = self.refile.2.tags_column;
         if !structure::at_heading(&text, offset) && org_core::list::at_item(&text, offset) {
-            let edited =
-                item_structure(id, &text, offset, &keywords, tags_column, self.edit_settings.list_circular_motion)?;
+            let edited = item_structure(
+                id,
+                &text,
+                offset,
+                &keywords,
+                tags_column,
+                self.edit_settings.list_circular_motion,
+                &self.edit_settings.todo.lists,
+            )?;
             let outcome = org_core::newline::Outcome { text: edited.text, cursor: edited.cursor };
             return self.carried(context, outcome);
         }
         if !structure::at_heading(&text, offset) {
             return Err(Refusal::NotHere("Not at a headline".to_string()));
         }
-        let settings = structure::Settings { tags_column, indent: self.indent_in(&text) };
+        let settings = self.structure_settings(&text);
         let count = context.count.filter(|count| *count > 0).unwrap_or(1) as isize;
         let outcome = match id {
             commands::META_LEFT => structure::change_levels(&text, offset, -1, false, &keywords, &settings)?,
@@ -11720,6 +13942,84 @@ impl Server {
     /// A command of `org-table.el` on the table at the cursor, carried in
     /// the result as `org.return` is; the row `org-table-kill-row` takes
     /// is in `copy`, for the editor's register or clipboard.
+    /// `org-inlinetask-insert-task` (`C-c C-x t`): an inline task at the
+    /// cursor, around the selection if there is one, in the state
+    /// `org-inlinetask-default-state` unless `no_state`.
+    fn inlinetask_insert(&mut self, context: &Context, no_state: bool) -> std::result::Result<Value, Refusal> {
+        let encoding = self.client.encoding;
+        let region = self.region_of(context);
+        let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
+        let offset = document.index.offset(&document.text, context.position, encoding);
+        let state = if no_state { None } else { self.inlinetask_default_state.as_deref() };
+        let outcome = org_core::inlinetask::insert_task(&document.text, offset, region, state)?;
+        self.carried(context, outcome)
+    }
+
+    /// `org-display-outline-path`: the titles of the headlines above the
+    /// entry at the cursor, joined by `/`, for the echo area; with a count
+    /// (`C-u`, FILE-OR-TITLE) the file's name first. Emacs cuts it to the
+    /// frame's width; the editor shows its messages as it does.
+    fn outline_path(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        let encoding = self.client.encoding;
+        let uri = &context.text_document.uri;
+        let document = self.document(uri).ok_or("This file is not open")?;
+        let offset = document.index.offset(&document.text, context.position, encoding);
+        let keywords = document.parse.todo_keywords();
+        let path = org_core::properties::heading_at(&document.text, offset)
+            .map(|heading| org_core::refile::outline_path(&document.text, heading, keywords))
+            .unwrap_or_default();
+        let parts = path.iter().map(|part| part.trim_end_matches([' ', '\t']).to_string());
+        let prefix = context.count.is_some().then(|| uri::file_name(uri));
+        let message = prefix.into_iter().chain(parts).collect::<Vec<_>>().join("/");
+        // An empty path clears the echo area.
+        Ok(if message.is_empty() { Value::Null } else { json!({ "message": message }) })
+    }
+
+    /// `org-convert-to-odd-levels` and, with `odd` false,
+    /// `org-convert-to-oddeven-levels`, after `yes-or-no-p`.
+    fn convert_levels(&mut self, odd: bool, context: &Context) -> std::result::Result<Value, Refusal> {
+        let encoding = self.client.encoding;
+        let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
+        let text = document.text.clone();
+        let offset = document.index.offset(&text, context.position, encoding);
+        let settings = self.structure_settings(&text);
+        // The way back checks the file before it asks.
+        let outcome = org_core::structure::convert_levels(&text, offset, odd, &settings)?;
+        match context.input.as_deref() {
+            None => {
+                let prompt = format!(
+                    "Are you sure you want to globally change levels to {}? ",
+                    if odd { "odd" } else { "odd-even" }
+                );
+                Ok(json!({ "input": {
+                    "kind": "key",
+                    "prompt": prompt,
+                    "value": "",
+                    "choices": [{ "key": "y", "label": "yes" }, { "key": "n", "label": "no" }],
+                } }))
+            }
+            Some("y" | "Y" | " ") => self.carried(context, outcome),
+            Some(_) => Ok(Value::Null),
+        }
+    }
+
+    /// `org-open-line`: in a table a row above (`org-table-insert-row`),
+    /// unless `org-special-ctrl-o` is off or the table starts the file at the
+    /// cursor; elsewhere `open-line`, as many newlines as the count after
+    /// the cursor, which stays.
+    fn open_line(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        let encoding = self.client.encoding;
+        let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
+        let mut text = document.text.clone();
+        let offset = document.index.offset(&text, context.position, encoding);
+        if self.special_ctrl_o && offset > 0 && at_org_table(&text, &document.parse.syntax(), offset) {
+            return self.table(org_core::table::Command::InsertRow { below: false }, context);
+        }
+        let count = context.count.unwrap_or(1).max(1) as usize;
+        text.insert_str(offset, &"\n".repeat(count));
+        self.carried(context, org_core::newline::Outcome { text, cursor: offset })
+    }
+
     fn table(&mut self, command: org_core::table::Command, context: &Context) -> std::result::Result<Value, Refusal> {
         use org_core::table;
         let encoding = self.client.encoding;
@@ -11734,7 +14034,7 @@ impl Server {
         let outline = Outline::new(&document.parse, &text, "");
         let entry = outline.entry_at(offset);
         let property = |name: &str| outline.entry_property(entry, name, true);
-        let done = match table::run_with(&text, offset, command, &property) {
+        let done = match table::run_with(&text, offset, command, &property, &self.edit_settings.todo.table) {
             Ok(done) => done,
             // `C-c C-c` at the start of the table.
             Err(error) if error == table::RECALCULATE => {
@@ -11767,7 +14067,7 @@ impl Server {
         }
         let outcome = match id {
             commands::SHIFT_LEFT | commands::SHIFT_RIGHT => {
-                org_core::list::cycle_bullet(&text, offset, id == commands::SHIFT_LEFT)
+                org_core::list::cycle_bullet(&text, offset, id == commands::SHIFT_LEFT, &self.edit_settings.todo.lists)
                     .map(|edited| org_core::newline::Outcome { text: edited.text, cursor: edited.cursor })
             }
             _ => org_core::list::next_item(
@@ -11800,7 +14100,17 @@ impl Server {
             .as_deref()
             .map(|answers| answers.split('\n').map(str::to_string).collect())
             .unwrap_or_default();
-        let Some(input) = context.input.clone() else {
+        // The date type, `c` turning it to the next one; it comes first in
+        // the answers, as `type=NAME`.
+        let date_type = match answers.first().and_then(|first| first.strip_prefix("type=")) {
+            Some(name) => {
+                let date_type = sparse::DateType::from_name(name).unwrap_or_default();
+                answers.remove(0);
+                date_type
+            }
+            None => self.sparse_date_type,
+        };
+        let menu = |date_type: sparse::DateType| {
             let choices = json!([
                 { "key": "r", "label": "regexp" },
                 { "key": "t", "label": "todo" },
@@ -11811,13 +14121,27 @@ impl Server {
                 { "key": "b", "label": "before date" },
                 { "key": "a", "label": "after date" },
                 { "key": "D", "label": "dates range" },
+                { "key": "c", "label": format!("cycle through date types: {}", date_type.describe()) },
             ]);
-            return Ok(json!({ "input": { "kind": "key", "prompt": "Sparse tree", "value": "", "choices": choices } }));
+            let mut input = json!({ "kind": "key", "prompt": "Sparse tree", "value": "", "choices": choices });
+            if date_type != sparse::DateType::Planned {
+                input["context"] = json!({ "answers": format!("type={}", date_type.name()) });
+            }
+            Ok(json!({ "input": input }))
         };
+        let Some(input) = context.input.clone() else { return menu(date_type) };
+        if answers.is_empty() && input == "c" {
+            return menu(date_type.next());
+        }
         answers.push(input);
         let kind = answers[0].clone();
         let args = &answers[1..];
+        let case = self.occur_case_fold;
         let ask = |kind: &str, prompt: &str, choices: Option<Vec<String>>, answers: &[String]| {
+            let mut answers = answers.to_vec();
+            if date_type != sparse::DateType::Planned {
+                answers.insert(0, format!("type={}", date_type.name()));
+            }
             let mut input =
                 json!({ "kind": kind, "prompt": prompt, "value": "", "context": { "answers": answers.join("\n") } });
             if let Some(choices) = choices {
@@ -11840,14 +14164,14 @@ impl Server {
                 if args[0].is_empty() {
                     return Err(Refusal::Failed("Regexp cannot be empty".to_string()));
                 }
-                let regex = org_core::agenda::matcher::emacs_buffer_regex(&args[0])
+                let regex = sparse::occur_regex(&args[0], case)
                     .ok_or_else(|| Refusal::Failed(format!("Invalid regexp: {}", args[0])))?;
                 let found = sparse::occur(&text, &regex, |_| true);
                 let message = format!("{} match(es) for regexp {}", found.count, args[0]);
                 (found, Some(message))
             }
             ("t", _) => {
-                let found = sparse::todo_tree(&text, &keywords, None);
+                let found = sparse::todo_tree(&text, &keywords, None, case);
                 let message = format!("{} TODO entries found", found.count);
                 (found, Some(message))
             }
@@ -11857,7 +14181,7 @@ impl Server {
             }
             ("T", _) => {
                 let wanted: Vec<String> = args[0].split('|').map(str::to_string).collect();
-                let found = sparse::todo_tree(&text, &keywords, Some(&wanted));
+                let found = sparse::todo_tree(&text, &keywords, Some(&wanted), case);
                 let message = format!("{} TODO entries found", found.count);
                 (found, Some(message))
             }
@@ -11894,24 +14218,28 @@ impl Server {
                 let outline = org_core::outline::Outline::new(&parse, &text, uri.as_str());
                 let now = self.now();
                 let clock = org_core::agenda::matcher::Clock { today: now.today, minute: now.minute };
-                (sparse::tags_match(&text, &outline, &org_core::agenda::Matcher::new(&matching), clock), None)
+                let sublevels = self.agenda.tags_match_list_sublevels != org_core::agenda::Sublevels::Skipped;
+                (
+                    sparse::tags_match(&text, &outline, &org_core::agenda::Matcher::new(&matching), clock, sublevels),
+                    None,
+                )
             }
             ("d", _) => {
                 let days = self.agenda.deadline_warning_days.abs();
-                let found = sparse::deadlines(&text, &keywords, self.now().today, days);
+                let found = sparse::deadlines(&text, &keywords, self.now().today, days, case);
                 let message = format!("{} deadlines past-due or due within {days} days", found.count);
                 (found, Some(message))
             }
             ("b" | "a", 0) => return ask("date", "Date", None, &answers),
             ("b", _) => {
                 let (date, shown) = read_date(&args[0])?;
-                let found = sparse::dates(&text, None, Some(date));
+                let found = sparse::dates(&text, &parse, None, Some(date), date_type, case);
                 let message = format!("{} entries before {shown}", found.count);
                 (found, Some(message))
             }
             ("a", _) => {
                 let (date, shown) = read_date(&args[0])?;
-                let found = sparse::dates(&text, Some(date), None);
+                let found = sparse::dates(&text, &parse, Some(date), None, date_type, case);
                 let message = format!("{} entries after {shown}", found.count);
                 (found, Some(message))
             }
@@ -11920,39 +14248,64 @@ impl Server {
             ("D", _) => {
                 let (start, start_shown) = read_date(&args[0])?;
                 let (end, end_shown) = read_date(&args[1])?;
-                let found = sparse::dates(&text, Some(start), Some(end));
+                let found = sparse::dates(&text, &parse, Some(start), Some(end), date_type, case);
                 let message = format!("{} entries between {start_shown} and {end_shown}", found.count);
                 (found, Some(message))
             }
             (other, _) => return Err(Refusal::Failed(format!("No such sparse tree command \"{other}\""))),
         };
         self.message = message;
-        Ok(json!({ "sparse": self.sparse_shown(&text, &found) }))
+        // `org-match-sparse-tree` highlights through `org-scan-tags`,
+        // which does not ask for the highlights to go with the next change
+        // as `org-occur` does.
+        let occur = !matches!(kind.as_str(), "m" | "p" | "P");
+        Ok(json!({ "sparse": self.sparse_shown(uri.as_str(), &text, &found, occur) }))
     }
 
     /// What the editor is told of a sparse tree of `text`: the lines to
-    /// show and the matches to highlight.
-    fn sparse_shown(&self, text: &str, found: &org_core::sparse::Sparse) -> Value {
+    /// show and the matches to highlight, with `keepHighlights` when they
+    /// stay through changes, until `C-c C-c`: always unless `occur`
+    /// (`org-occur`), else with `org_remove_highlights_with_change` off.
+    fn sparse_shown(&mut self, key: &str, text: &str, found: &org_core::sparse::Sparse, occur: bool) -> Value {
+        let hidden;
+        let found = if self.sparse_tree_open_archived_trees {
+            found
+        } else {
+            hidden = org_core::sparse::hide_archived(text, found);
+            &hidden
+        };
         let (index, encoding) = (LineIndex::new(text), self.client.encoding);
         let lines: Vec<u32> = found.lines.iter().map(|at| index.position(text, *at, encoding).line).collect();
-        let highlights: Vec<Range> = found
-            .highlights
+        // `org-highlight-sparse-tree-matches`: the matches highlighted, or
+        // only their lines shown.
+        let matches = if self.highlight_sparse_tree_matches { found.highlights.as_slice() } else { &[] };
+        let highlights: Vec<Range> = matches
             .iter()
             .map(|(start, end)| {
                 Range::new(index.position(text, *start, encoding), index.position(text, *end, encoding))
             })
             .collect();
-        json!({ "lines": lines, "highlights": highlights })
+        let goes = occur && self.remove_highlights_with_change;
+        if highlights.is_empty() {
+            self.sparse_highlights.remove(key);
+        } else {
+            self.sparse_highlights.insert(key.to_string(), goes);
+        }
+        let mut shown = json!({ "lines": lines, "highlights": highlights });
+        if !goes {
+            shown["keepHighlights"] = json!(true);
+        }
+        shown
     }
 
     /// `org-occur` for a link's search `/regexp/` in its own file: a
     /// sparse tree of the matches.
-    fn occur(&mut self, text: &str, regexp: &str) -> std::result::Result<Value, Refusal> {
-        let regex = org_core::agenda::matcher::emacs_buffer_regex(regexp)
+    fn occur(&mut self, key: &str, text: &str, regexp: &str) -> std::result::Result<Value, Refusal> {
+        let regex = org_core::sparse::occur_regex(regexp, self.occur_case_fold)
             .ok_or_else(|| Refusal::Failed(format!("Invalid regexp: {regexp}")))?;
         let found = org_core::sparse::occur(text, &regex, |_| true);
         self.message = Some(format!("{} match(es) for regexp {regexp}", found.count));
-        Ok(json!({ "sparse": self.sparse_shown(text, &found) }))
+        Ok(json!({ "sparse": self.sparse_shown(key, text, &found, true) }))
     }
 
     /// `org-reveal` (`C-c C-r`): the lines to show around the cursor, as
@@ -11976,14 +14329,14 @@ impl Server {
         // The folds to open: those around a line to show, not those that
         // start on it (a headline shows, its subtree stays folded).
         let mut unfold: Vec<u32> =
-            folding::folding_ranges(&document.syntax(), text, &document.index, self.separator_lines)
+            folding::folding_ranges(&document.syntax(), text, &document.index, self.cycle.folding)
                 .into_iter()
                 .filter(|range| lines.iter().any(|line| range.start_line < *line && *line <= range.end_line))
                 .map(|range| range.start_line)
                 .collect();
         unfold.sort_unstable();
         unfold.dedup();
-        Ok(json!({ "sparse": { "lines": lines, "highlights": [], "keep": true, "unfold": unfold } }))
+        Ok(json!({ "sparse": { "lines": lines, "keep": true, "unfold": unfold } }))
     }
 
     /// `org-sort` (`C-c ^`) on entries (`org-sort-entries`): asks for the
@@ -12053,7 +14406,7 @@ impl Server {
                 return Ok(json!({ "input": input }));
             };
             let kind = answer.chars().next().ok_or("Abort")?;
-            let outcome = sort::sort_list(&text, offset, kind, self.date_time())?;
+            let outcome = sort::sort_list(&text, offset, kind, self.date_time(), &self.edit_settings.todo.lists)?;
             self.message = Some("Sorting items...done".to_string());
             return self.carried(context, outcome);
         }
@@ -12094,7 +14447,8 @@ impl Server {
         self.carried(context, outcome)
     }
 
-    /// `org-cut-subtree`, `org-copy-subtree` and `org-paste-subtree`. What
+    /// `org-cut-subtree`, `org-copy-subtree`, `org-paste-subtree` and
+    /// `org-yank`. What
     /// is cut or copied goes back in `copy`, for the editor's clipboard,
     /// and stays with the server; pasting takes the editor's clipboard, or
     /// else that.
@@ -12104,13 +14458,33 @@ impl Server {
         let document = self.document(&context.text_document.uri).ok_or("This file is not open")?;
         let text = document.text.clone();
         let offset = document.index.offset(&text, context.position, encoding);
+        let uri = context.text_document.uri.clone();
+        if id == commands::YANK {
+            let not_here = || Refusal::NotHere("Org yanks this as it is".to_string());
+            let (adjusted, folded) = (self.yank_adjusted_subtrees, self.yank_folded_subtrees);
+            if !adjusted && !folded {
+                return Err(not_here());
+            }
+            let kill = context.clipboard.clone().or_else(|| self.kill.clone()).unwrap_or_default();
+            let settings = self.structure_settings(&text);
+            let yanked =
+                structure::yank_subtree(&text, offset, &kill, &settings, adjusted, folded).ok_or_else(not_here)??;
+            // (Org's `yank` says *Mark set* too: org-lsp has no mark.)
+            self.message = yanked.message;
+            self.fold_when_edited(&uri, &yanked.outcome.text, &yanked.folded);
+            return self.carried(context, yanked.outcome);
+        }
         if id == commands::PASTE_SUBTREE {
             let tree = context.clipboard.clone().or_else(|| self.kill.clone()).unwrap_or_default();
-            let settings =
-                structure::Settings { tags_column: self.refile.2.tags_column, indent: self.indent_in(&text) };
+            let settings = self.structure_settings(&text);
             let level = context.count.filter(|count| *count > 0).map(|count| count as usize);
             let (outcome, message) = structure::paste_subtree(&text, offset, &tree, level, &settings)?;
             self.message = Some(message);
+            // What was cut or copied folded is folded again
+            // (`org-subtree-clip-folded`).
+            if self.subtree_clip.as_ref().is_some_and(|(clip, folded)| *folded && *clip == tree) {
+                self.fold_when_edited(&uri, &outcome.text, &[outcome.cursor]);
+            }
             return self.carried(context, outcome);
         }
         let count = context.count.filter(|count| *count > 0).unwrap_or(1) as usize;
@@ -12118,6 +14492,15 @@ impl Server {
         let (outcome, copied, message) = structure::copy_subtree(&text, offset, count, cut)?;
         self.message = Some(message);
         self.kill = Some(copied.clone());
+        // Whether the subtree was folded: a closed fold of the editor's
+        // starts on its headline.
+        let heading = structure::subtree_heading(&text, offset).unwrap_or(0);
+        let line = text[..heading].matches('\n').count() as u32;
+        let folded = context
+            .folded
+            .as_ref()
+            .is_some_and(|folds| folds.iter().any(|[first, last]| *first == line && last > first));
+        self.subtree_clip = Some((copied.clone(), folded));
         let mut result = if cut { self.carried(context, outcome)? } else { json!({}) };
         if let Value::Object(fields) = &mut result {
             fields.insert("copy".to_string(), json!(copied));
@@ -12172,10 +14555,54 @@ impl Server {
         Ok(json!({ "edits": [edit], "cursor": cursor }))
     }
 
+    /// Folds to close once the editor has the text `after` in `uri`: those
+    /// of the headlines starting at `headings` there, with the folds of the
+    /// headlines inside them (`org-fold-subtree` hides the whole
+    /// subtree), in `org-lsp/folds`.
+    fn fold_when_edited(&mut self, uri: &Uri, after: &str, headings: &[usize]) {
+        let lines: Vec<u32> = headings.iter().map(|at| after[..*at].matches('\n').count() as u32).collect();
+        self.folds_after_edit = (!lines.is_empty()).then(|| (uri.clone(), after.to_string(), lines, 8));
+    }
+
+    /// A document changed: when it now has the text of a command's edit
+    /// that left folds to close, they are sent to the editor. A few other
+    /// changes first are waited for (an edit may come in several).
+    fn fold_after_edit(&mut self, key: &str) {
+        let Some((uri, after, lines, tries)) = self.folds_after_edit.take() else { return };
+        if uri.as_str() != key {
+            self.folds_after_edit = Some((uri, after, lines, tries));
+            return;
+        }
+        let Some(document) = self.documents.get(key) else { return };
+        if document.text != after {
+            if tries > 0 {
+                self.folds_after_edit = Some((uri, after, lines, tries - 1));
+            }
+            return;
+        }
+        let folds = folding::headline_folds(&document.syntax(), &document.text, &document.index, self.cycle.folding);
+        let outer: Vec<&lsp_types::FoldingRange> =
+            folds.iter().filter(|fold| lines.contains(&fold.start_line)).collect();
+        let mut close: Vec<lsp_types::FoldingRange> = folds
+            .iter()
+            .filter(|fold| outer.iter().any(|top| top.start_line <= fold.start_line && fold.end_line <= top.end_line))
+            .cloned()
+            .collect();
+        if close.is_empty() {
+            return;
+        }
+        // Innermost first, as `org-lsp/startupFolds` gives them.
+        close.sort_by_key(|fold| std::cmp::Reverse(fold.start_line));
+        let params = json!({ "uri": uri.as_str(), "open": [], "close": close });
+        let notification = Notification::new(FOLDS.to_string(), params);
+        let _ = self.sender.send(Message::Notification(notification));
+    }
+
     /// The keys of fast TODO selection in the file of `context`: an Org
     /// file, or the file of the entry of an agenda line. Each keyword with
-    /// its key and whether it is a done state.
-    fn fast_keys(&mut self, context: &Context) -> std::result::Result<Vec<(String, char, bool)>, Refusal> {
+    /// its key, whether it is a done state, and whether it starts its
+    /// sequence.
+    fn fast_keys(&mut self, context: &Context) -> std::result::Result<Vec<(String, char, bool, bool)>, Refusal> {
         let uri = &context.text_document.uri;
         let file = if self.is_view(uri) {
             self.entry_at(Some(context)).ok_or("No entry on this line")?.uri
@@ -12184,10 +14611,11 @@ impl Server {
         };
         let keys = self.with_source(&file, |_, _, parse, _, _| {
             let keywords = parse.todo_keywords();
+            let heads = keywords.heads();
             keywords
                 .fast_keys()
                 .into_iter()
-                .map(|(name, key)| (name.to_string(), key, keywords.is_done(name)))
+                .map(|(name, key)| (name.to_string(), key, keywords.is_done(name), heads.contains(&name)))
                 .collect()
         });
         Ok(keys.ok_or("Cannot read the file of this entry")?)
@@ -12244,6 +14672,7 @@ impl Server {
                 Some((_, start, head)) => {
                     let Ok(uri) = key.parse::<Uri>() else { return };
                     self.running = Some(RunningClock { uri, start, head });
+                    self.found_clock = self.running.clone();
                     true
                 }
                 None => false,
@@ -12335,6 +14764,141 @@ impl Server {
         files.iter().find_map(|file| file.entries.iter().find(|entry| entry.key == key).map(|entry| (&**file, entry)))
     }
 
+    /// The commands of `ol-bibtex.el`: `org-bibtex` (`org.bibtex.export`,
+    /// to the file asked for), `org-bibtex-export-to-kill-ring`
+    /// (`org.bibtex.copy`, the entry in `copy`), `org-bibtex-create` and
+    /// `org-bibtex-create-in-current-entry`, `org-bibtex-check` and
+    /// `org-bibtex-check-all`, `org-bibtex-yank` (from the clipboard) and
+    /// `org-bibtex-import-from-file`. Their questions come one at a time,
+    /// with the answers so far in the input's context (`replies`). A key
+    /// `org_bibtex_autogen_keys` makes comes from Emacs's
+    /// `bibtex-generate-autokey`.
+    fn bibtex(&mut self, id: &str, context: &Context) -> std::result::Result<Value, Refusal> {
+        use org_core::bibtex::{self, Env, Stop};
+        let uri = context.text_document.uri.clone();
+        if self.is_view(&uri) {
+            return Err(Refusal::NotHere("This command works in Org files".to_string()));
+        }
+        let encoding = self.client.encoding;
+        let document = self.document(&uri).ok_or("This file is not open")?;
+        let text = document.text.clone();
+        let offset = document.index.offset(&text, context.position, encoding);
+        let path = uri::to_path(&uri);
+        let stem = path.as_ref().and_then(|path| path.file_stem()).map(|stem| stem.to_string_lossy().into_owned());
+        let category = stem.clone().unwrap_or_default();
+        let buffer = path
+            .as_ref()
+            .and_then(|path| path.file_name())
+            .map_or(String::new(), |name| name.to_string_lossy().into_owned());
+        let indent = self.indent_in(&text);
+        let mut edit_settings = self.edit_settings.clone();
+        edit_settings.todo.adapt = indent.adapt;
+        let settings = self.bibtex.clone();
+        let inheritance = self.workspace.inheritance.clone();
+        let env = Env {
+            settings: &settings,
+            edit: &edit_settings,
+            keywords: &self.todo,
+            inheritance: &inheritance,
+            indent: &indent,
+            category: &category,
+            buffer: &buffer,
+        };
+        let mut replies = context.replies.clone().unwrap_or_default();
+        replies.extend(context.input.clone());
+        // Importing asks nothing after the file.
+        let refused = |stop: Stop| {
+            Refusal::Failed(match stop {
+                Stop::Failed(message) => message,
+                Stop::Ask(question) => question.prompt,
+            })
+        };
+        // A file asked for, relative to the Org file's directory.
+        let ask_file =
+            |prompt: &str, value: &str| json!({ "input": { "kind": "text", "prompt": prompt, "value": value } });
+        match id {
+            commands::BIBTEX_EXPORT => {
+                let Some(answer) = context.input.as_deref() else {
+                    let value = stem.map(|stem| format!("{stem}.bib")).unwrap_or_default();
+                    return Ok(ask_file("BibTeX file", &value));
+                };
+                let target = self.link_path(&uri, answer).ok_or("Cannot write the file")?;
+                let (entries, count) = bibtex::export(&text, &env);
+                std::fs::write(&target, entries).map_err(|error| Refusal::Failed(error.to_string()))?;
+                self.message = Some(format!("Successfully exported {count} BibTeX entries to {}", target.display()));
+                return Ok(Value::Null);
+            }
+            commands::BIBTEX_COPY => {
+                // `kill-new` of nothing, without a type.
+                let entry = bibtex::headline(&text, offset, &env)
+                    .ok_or_else(|| Refusal::Failed("Wrong type argument: stringp, nil".to_string()))?;
+                self.kill = Some(entry.clone());
+                return Ok(json!({ "copy": entry }));
+            }
+            commands::BIBTEX_YANK => {
+                let clipboard = context.clipboard.clone().or_else(|| self.kill.clone()).unwrap_or_default();
+                // (The clipboard comes again with each answer.)
+                let outcome = bibtex::yank(&text, offset, &clipboard, context.count.is_some(), &replies, &env);
+                return self.bibtex_outcome(context, outcome, replies);
+            }
+            commands::BIBTEX_IMPORT => {
+                let Some(answer) = context.input.as_deref() else { return Ok(ask_file("File", "")) };
+                let file = self.link_path(&uri, answer).filter(|file| file.is_file()).ok_or("[No match]")?;
+                let bib = String::from_utf8_lossy(&std::fs::read(&file).map_err(|error| error.to_string())?)
+                    .replace("\r\n", "\n");
+                let (outcome, count) = bibtex::import(&text, offset, &bib, &env).map_err(refused)?;
+                self.message = Some(format!("Parsed {count} entries"));
+                return self.carried(context, outcome);
+            }
+            _ => {}
+        }
+        let optional = context.count.is_some();
+        let caller = self.emacs.caller();
+        let autokey = |entry: &str| -> std::result::Result<String, String> {
+            let key = caller.call("bibtex-autokey", json!({ "entry": entry }), std::time::Duration::from_secs(30))?;
+            key.as_str().map(str::to_string).ok_or_else(|| "Emacs made no key".to_string())
+        };
+        let outcome = match id {
+            commands::BIBTEX_CREATE | commands::BIBTEX_CREATE_HERE => {
+                bibtex::create(&text, offset, optional, id == commands::BIBTEX_CREATE_HERE, &replies, &autokey, &env)
+            }
+            commands::BIBTEX_CHECK => bibtex::check(&text, offset, optional, &replies, &autokey, &env),
+            _ => bibtex::check_all(&text, offset, &replies, &autokey, &env),
+        };
+        self.bibtex_outcome(context, outcome, replies)
+    }
+
+    /// What a BibTeX command came to: its edit, its error, or its next
+    /// question, with the answers so far.
+    fn bibtex_outcome(
+        &mut self,
+        context: &Context,
+        outcome: std::result::Result<org_core::newline::Outcome, org_core::bibtex::Stop>,
+        replies: Vec<String>,
+    ) -> std::result::Result<Value, Refusal> {
+        use org_core::bibtex::Stop;
+        match outcome {
+            Ok(outcome) => self.carried(context, outcome),
+            Err(Stop::Failed(message)) => Err(Refusal::Failed(message)),
+            // The prompt as editors show it, without Emacs's `: `.
+            Err(Stop::Ask(question)) => {
+                let mut input = json!({
+                    "kind": "text",
+                    "prompt": question.prompt.trim_end_matches(": "),
+                    "value": question.initial.unwrap_or_default(),
+                    "context": { "replies": replies },
+                });
+                if !question.completions.is_empty() {
+                    input["completions"] = json!(question.completions);
+                }
+                if question.select {
+                    input["select"] = json!(true);
+                }
+                Ok(json!({ "input": input }))
+            }
+        }
+    }
+
     /// `org-cite-insert` (`C-c C-x @`), with the prefix argument `arg`
     /// (`C-u`), and the `basic` processor's questions: keys one at a time
     /// (step `keys`, those picked so far in `answers` separated by `;`)
@@ -12344,6 +14908,17 @@ impl Server {
     /// `arg` on a citation, it goes, or the reference at the cursor.
     fn cite_insert(&mut self, arg: bool, context: &Context) -> std::result::Result<Value, Refusal> {
         use org_core::cite::{self, Insert};
+        // `org-cite-insert-processor`: org-lsp inserts as `basic` does;
+        // Org's other processors cannot insert, and one of a package
+        // (citar) asks in Emacs's minibuffer.
+        match self.cite_insert_processor.as_deref() {
+            None => return Err(Refusal::Failed("No processor set to insert citations".to_string())),
+            Some("basic") => {}
+            Some(name @ ("biblatex" | "bibtex" | "csl" | "natbib")) => {
+                return Err(Refusal::Failed(format!("Processor {name} cannot insert citations")));
+            }
+            Some(name) => return Err(Refusal::Failed(format!("Unknown processor {name}"))),
+        }
         let uri = context.text_document.uri.clone();
         if self.is_view(&uri) {
             return Err(Refusal::NotHere("This command works in Org files".to_string()));
@@ -12674,12 +15249,20 @@ impl Server {
         let Some(document) = self.documents.get(key) else { return };
         let text = &document.text;
         let (indent, hide_stars) = (self.display.indented(text), self.display.hides_stars(text));
-        let lines: Vec<[usize; 4]> = if indent || hide_stars {
+        // The stars of inline tasks are hidden whatever the rest says.
+        let lines: Vec<[usize; 4]> = if indent || hide_stars || org_core::inlinetask::hides_stars(text) {
             let adapt = self.display.adapt(text, self.indent.adapt);
-            org_core::indent::virtual_indentation(text, indent, hide_stars, adapt)
-                .into_iter()
-                .map(|line| [line.line, line.prefix, line.wrap, line.hidden_stars])
-                .collect()
+            org_core::indent::virtual_indentation(
+                text,
+                indent,
+                hide_stars,
+                adapt,
+                self.indent.two_spaces.as_ref(),
+                self.display.per_level,
+            )
+            .into_iter()
+            .map(|line| [line.line, line.prefix, line.wrap, line.hidden_stars])
+            .collect()
         } else {
             Vec::new()
         };
@@ -12694,6 +15277,31 @@ impl Server {
         let _ = self.sender.send(Message::Notification(notification));
     }
 
+    /// `org-fontify-whole-heading-line`: the lines of the headlines of the
+    /// document `key` highlighted from edge to edge in the look of their
+    /// level, as `org-lsp/lineHighlights` `{ uri, lines }`, each line
+    /// `{ line, highlight: "headline.levelN" }`. Sent after every change
+    /// that moves them, and once with no lines when there are none.
+    fn publish_heading_lines(&mut self, key: &str) {
+        if !self.client.line_highlights {
+            return;
+        }
+        let Some(document) = self.documents.get(key) else { return };
+        let fontify = self.fontify_of(&document.text);
+        let lines = highlight::heading_lines(&document.syntax(), &document.text, &fontify);
+        if self.heading_lines.get(key).map_or(lines.is_empty(), |sent| *sent == lines) {
+            return;
+        }
+        let json_lines: Vec<Value> = lines
+            .iter()
+            .map(|(line, face)| json!({ "line": line, "highlight": format!("headline.level{face}") }))
+            .collect();
+        let params = json!({ "uri": key, "lines": json_lines });
+        self.heading_lines.insert(key.to_string(), lines);
+        let notification = lsp_server::Notification::new(LINE_HIGHLIGHTS.to_string(), params);
+        let _ = self.sender.send(Message::Notification(notification));
+    }
+
     /// `org-adapt-indentation` in a document: off where it shows with
     /// `org-indent-mode`, unless it is `headline-data`.
     fn adapt_in(&self, text: &str) -> org_core::indent::Adapt {
@@ -12701,6 +15309,16 @@ impl Server {
     }
 
     /// The indentation settings for a document.
+    /// How headlines change level in `text`.
+    fn structure_settings(&self, text: &str) -> org_core::structure::Settings {
+        org_core::structure::Settings {
+            tags_column: self.refile.2.tags_column,
+            indent: self.indent_in(text),
+            allow_promoting_top_level: self.allow_promoting_top_level,
+            odd_levels: org_core::structure::odd_levels(text, self.odd_levels),
+        }
+    }
+
     fn indent_in(&self, text: &str) -> org_core::indent::Settings {
         org_core::indent::Settings { adapt: self.adapt_in(text), ..self.indent.clone() }
     }
@@ -12761,6 +15379,50 @@ impl Server {
         }
     }
 
+    /// Whether `org-num-mode` is on in the document `uri` of `text`: as
+    /// `org.num.mode` last turned it, else as `#+STARTUP: num` or `nonum`
+    /// say (the last wins), else `org-startup-numerated`.
+    fn numerated(&self, uri: &Uri, text: &str) -> bool {
+        self.num_mode.get(uri.as_str()).copied().unwrap_or_else(|| {
+            org_core::text::startup_words(text).into_iter().fold(self.startup_numerated, |on, word| match word {
+                "num" => true,
+                "nonum" => false,
+                _ => on,
+            })
+        })
+    }
+
+    /// The numbers `org-num-mode` shows in the document `uri`, where they
+    /// go: line, character and text.
+    fn num_hints(&mut self, uri: &Uri) -> Vec<(u32, u32, String)> {
+        let Some(text) = self.document(uri).map(|document| document.text.clone()) else { return Vec::new() };
+        if !self.numerated(uri, &text) {
+            return Vec::new();
+        }
+        let (settings, encoding) = (self.num_settings.clone(), self.client.encoding);
+        self.with_source(uri, |text, index, parse, outline, _| {
+            org_core::num::numbers(text, outline, parse.todo_keywords(), &settings)
+                .into_iter()
+                .filter_map(|number| {
+                    let at = index.position(text, number.at, encoding);
+                    Some((at.line, at.character, number.shown?))
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+    }
+
+    /// `org-num-mode`: numbers before the headlines of the file, or none.
+    fn num_mode(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        let uri = context.text_document.uri.clone();
+        let text = self.document(&uri).map(|document| document.text.clone()).ok_or("This file is not open")?;
+        let on = !self.numerated(&uri, &text);
+        self.num_mode.insert(uri.as_str().to_string(), on);
+        self.refresh_inlay_hints();
+        let state = if on { "enabled" } else { "disabled" };
+        Ok(json!({ "message": format!("Org-Num mode {state} in current buffer") }))
+    }
+
     /// Ask the client for inlay hints again, if it can be asked.
     fn refresh_inlay_hints(&mut self) {
         if self.client.inlay_refresh {
@@ -12796,13 +15458,7 @@ impl Server {
         let document = self.document(&uri).ok_or("The document is not open")?;
         let (sums, total) =
             clock::sums(&document.text, span.start.map(clock::minutes_of), Some(clock::minutes_of(span.end)));
-        let lines: Vec<(u32, i64)> = sums
-            .into_iter()
-            .map(|(offset, minutes)| {
-                (document.index.position(&document.text, offset, self.client.encoding).line, minutes)
-            })
-            .collect();
-        self.clock_display.insert(uri.as_str().to_string(), lines);
+        self.clock_display.insert(uri.as_str().to_string(), sums);
         self.refresh_inlay_hints();
         let label = if custom { "Total file time (custom)" } else { "Total file time" };
         Ok(
@@ -12832,10 +15488,16 @@ impl Server {
         let offset = document.index.offset(&text, context.position, encoding);
         let path = uri::to_path(&uri).map(|path| path.to_string_lossy().into_owned());
         let files = self.clocktable_files(path.as_deref());
+        // `org-clock-report-include-clocking-task`: the clock that runs.
+        let clocking = self.running.clone().filter(|_| self.clock_report_running).and_then(|running| {
+            let path = uri::to_path(&running.uri)?.to_string_lossy().into_owned();
+            Some(clocktable::Clocking { path, start: running.start })
+        });
         let settings = clocktable::Settings {
             now: self.date_time(),
             keywords: self.todo.clone(),
             inheritance: self.workspace.inheritance.clone(),
+            clocking,
             ..self.clocktable.clone()
         };
         let table = clocktable::Context { path: path.as_deref(), settings: &settings, files: &files };
@@ -13048,7 +15710,7 @@ impl Server {
         match id {
             commands::CLOCK_IN => self.clock_in(context.ok_or("This command needs the cursor position")?),
             commands::CLOCK_IN_LAST => self.clock_in_last(context.ok_or("This command needs the cursor position")?),
-            commands::CLOCK_RESOLVE => self.resolve_dangling(context),
+            commands::CLOCK_RESOLVE => self.resolve_clocks(context),
             commands::CLOCK_RESOLVE_IDLE => self.resolve_idle(context),
             commands::CLOCK_OUT | commands::CLOCK_CANCEL => {
                 let running = self.running.clone().ok_or("No active clock")?;
@@ -13057,9 +15719,17 @@ impl Server {
                     self.publish_clock();
                     return Err("Clock start time is gone".into());
                 };
+                let mut clock_note = None;
                 let (new_text, message) = if id == commands::CLOCK_OUT {
-                    let out = clock::clock_out(&text, line, self.date_time(), &self.clock_settings)?;
-                    self.clock_out_time = Some(self.date_time());
+                    let now = self.clock_time(false);
+                    let out = clock::clock_out(&text, line, now, &self.clock_settings)?;
+                    self.clock_out_time = Some(now);
+                    // `org-log-note-clock-out`, unless the line went.
+                    let closed = out.text[line..].lines().next().unwrap_or("").to_string();
+                    let note = org_core::todo::note_clock_out(self.edit_settings.todo.note_clock_out, &text);
+                    if note && closed.trim_start().starts_with("CLOCK:") && closed.contains("=>") {
+                        clock_note = Some(closed);
+                    }
                     let switched = match Self::heading_above(&text, line) {
                         Some(heading) => self.switch_state(&out.text, heading, self.clock_out_switch.as_deref())?,
                         None => out.text,
@@ -13073,9 +15743,36 @@ impl Server {
                     self.last_clocked = Some((running.uri.clone(), head));
                 }
                 self.running = None;
-                self.send_texts(vec![(running.uri, version, text, new_text)]);
+                // The note goes after the clock line, which the note buffer
+                // names its entry for (`# Task:`).
+                let note_at = clock_note.as_ref().and_then(|closed| {
+                    let at = new_text.find(closed.as_str())?;
+                    let heading = Self::heading_above(&new_text, at)?;
+                    let head = new_text[heading..].lines().next().unwrap_or("");
+                    let level = head.bytes().take_while(|b| *b == b'*').count();
+                    let keywords = org_syntax::parse(&new_text, &self.todo).todo_keywords().clone();
+                    Some((at, org_core::outline::get_heading_without_tags(head, level, &keywords)))
+                });
+                let uri = running.uri.clone();
+                self.send_texts(vec![(running.uri, version, text, new_text.clone())]);
                 self.message = Some(message);
                 self.publish_clock();
+                if let (Some(closed), Some((at, title))) = (clock_note, note_at) {
+                    if self.client.date_prompt && self.client.show_document {
+                        let encoding = self.client.encoding;
+                        let index = LineIndex::new(&new_text);
+                        let position = index.position(&new_text, at, encoding);
+                        let context: Context = serde_json::from_value(
+                            json!({ "textDocument": { "uri": uri.as_str() }, "position": position }),
+                        )
+                        .map_err(|error| error.to_string())?;
+                        let wanted = org_core::todo::WantedNote { purpose: "stopped clock".to_string(), state: None };
+                        self.open_note(&context, commands::CLOCK_OUT, wanted, &format!("# Task: {title}\n\n"))?;
+                        if let Some(note) = &mut self.note {
+                            note.log = Some(NoteLog::ClockOut(closed));
+                        }
+                    }
+                }
                 Ok(Value::Null)
             }
             commands::CLOCK_GOTO => {
@@ -13084,8 +15781,14 @@ impl Server {
                         let (text, _, line) = self.clock_line(&running).ok_or("Clock start time is gone")?;
                         (running.uri, Self::heading_above(&text, line).ok_or("Clock start time is gone")?, false)
                     }
+                    // The last entry clocked, unless `org-clock-goto-may-find-recent-task`
+                    // is off.
                     None => {
-                        let (uri, head) = self.last_clocked.clone().ok_or("No active or recent clock task")?;
+                        let (uri, head) = self
+                            .last_clocked
+                            .clone()
+                            .filter(|_| self.clock_goto_recent)
+                            .ok_or("No active or recent clock task")?;
                         let offset = self
                             .with_source(&uri, |_, _, _, outline, _| {
                                 outline.entries.iter().find(|entry| entry.head == head).map(|entry| entry.offset)
@@ -13118,6 +15821,30 @@ impl Server {
     /// `org-clock-in` on the entry at the cursor, or on the entry of an
     /// agenda line. A clock that runs elsewhere stops first.
     fn clock_in(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        // The answer to the question about the time a resolved clock left
+        // over (`org-clock-leftover-time`): its minutes in `answers`.
+        let answered_leftover = (context.step.as_deref() == Some("leftover"))
+            .then(|| context.answers.as_deref().and_then(|minutes| minutes.parse::<i64>().ok()))
+            .flatten();
+        let resolving = context.step.as_deref().is_some_and(|step| step.starts_with("resolve"));
+        // The task picked after `C-u` comes once the clocks were resolved.
+        let picked = context.input.is_some() && context.step.is_none();
+        let leftover = match answered_leftover {
+            Some(_) => None,
+            None if picked => None,
+            None => match self.resolve_before_clock_in(context)? {
+                Ok(leftover) => leftover,
+                Err(question) => return Ok(question),
+            },
+        };
+        let answer = context.input.clone();
+        let cleared;
+        let context = if resolving || answered_leftover.is_some() {
+            cleared = Context { input: None, step: None, answers: None, ..context.clone() };
+            &cleared
+        } else {
+            context
+        };
         let count = context.count.unwrap_or(0);
         // `C-u`: an entry of the history.
         if count == 4 {
@@ -13129,8 +15856,33 @@ impl Server {
             self.clock_default_task = self.clock_task(&file, heading);
         }
         // `C-u C-u C-u`: from when the last clock stopped.
-        let now = self.date_time();
+        let now = self.clock_time(true);
+        if let Some(minutes) = answered_leftover {
+            let start = match answer.as_deref() {
+                Some("y") => DateTime { day: minutes.div_euclid(1440), minute: minutes.rem_euclid(1440) },
+                _ => now,
+            };
+            self.forget_found_clock();
+            return self.clock_in_at(file, heading, start);
+        }
+        // A clock resolved with its time cut short stopped then: the new
+        // one may start from there, unless it goes on from an open line.
+        let resumes = self.clock_in_resume
+            && self.with_source(&file, |text, _, _, _, _| clock::unclosed(text, heading)).flatten().is_some();
+        if let Some(left) = leftover.filter(|_| count != 64 && !self.clock_continuously && !resumes) {
+            let left = clock::minutes_of(left);
+            let ago = clock::minutes_of(now) - left;
+            let choices = [json!({ "key": "y", "label": "Yes" }), json!({ "key": "n", "label": "No" })];
+            return Ok(json!({ "input": {
+                "kind": "key",
+                "prompt": format!("You stopped another clock {ago} mins ago; start this one from then? "),
+                "value": "",
+                "choices": choices,
+                "context": { "step": "leftover", "answers": left.to_string() },
+            } }));
+        }
         let start = if count == 64 { self.clock_out_time.unwrap_or(now) } else { now };
+        self.forget_found_clock();
         self.clock_in_at(file, heading, start)
     }
 
@@ -13153,148 +15905,6 @@ impl Server {
     /// Where the entry of `task` starts now in its file.
     fn find_task(&mut self, task: &ClockTask) -> Option<usize> {
         self.with_source(&task.uri, |_, _, _, outline, _| task_in(outline, task.offset, &task.title)).flatten()
-    }
-
-    /// Note a message from the editor: one after `org-clock-idle-time`
-    /// without any while a clock runs asks what to do with the idle time
-    /// (`org-resolve-clocks-if-idle`).
-    fn notice_activity(&mut self) {
-        let now = clock::minutes_of(self.date_time());
-        if let (Some(idle), Some(last)) = (self.clock_idle_time, self.last_activity) {
-            if self.running.is_some() && self.idle_since.is_none() && now - last > idle {
-                self.idle_since = Some(last);
-                let question = self.idle_question(last, now);
-                let uri = self.running.as_ref().map(|running| running.uri.as_str().to_string()).unwrap_or_default();
-                let argument = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 0 } });
-                self.prompt_with_messages(commands::CLOCK_RESOLVE_IDLE.to_string(), argument, &question);
-            }
-        }
-        self.last_activity = Some(now);
-    }
-
-    /// What `org-clock-resolve` asks after idle time.
-    fn idle_question(&self, since: i64, now: i64) -> Value {
-        let choices = [
-            ("k", "Keep the idle time"),
-            ("s", "Subtract the idle time"),
-            ("S", "Subtract the idle time and clock out"),
-            ("C", "Cancel the clock"),
-            ("i", "Ignore"),
-        ];
-        let choices: Vec<Value> = choices.iter().map(|(key, label)| json!({ "key": key, "label": label })).collect();
-        json!({ "input": {
-            "kind": "choice",
-            "prompt": format!("Clocked in & idle for {:.1} mins", (now - since) as f64),
-            "value": "",
-            "choices": choices,
-        } })
-    }
-
-    /// The answer to the idle question: the time kept (`k`), the clock
-    /// stopped when the idle time began and started again now (`s`) or
-    /// not (`S`), the clock canceled (`C`). A clock that ran less than a
-    /// minute before is canceled instead of stopped.
-    fn resolve_idle(&mut self, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
-        let since = self.idle_since.take().ok_or("No idle time to resolve")?;
-        let answer = context.and_then(|context| context.input.clone()).unwrap_or_default();
-        let running = self.running.clone().ok_or("No active clock")?;
-        let start = clock::minutes_of(running.start);
-        let barely_started = since - start < 1;
-        let stop = DateTime { day: since.div_euclid(1440), minute: since.rem_euclid(1440) };
-        match answer.as_str() {
-            "s" | "S" | "C" => {
-                let (text, version, line) = self.clock_line(&running).ok_or("Clock start time is gone")?;
-                let heading = Self::heading_above(&text, line);
-                let new_text = if answer == "C" || barely_started {
-                    clock::cancel(&text, line, &self.clock_settings)?
-                } else {
-                    self.clock_out_time = Some(stop);
-                    clock::clock_out(&text, line, stop, &self.clock_settings)?.text
-                };
-                self.running = None;
-                let change = (running.uri.clone(), version, text, new_text);
-                if let (true, Some(heading)) = (answer == "s", heading) {
-                    // The clock line is under its headline, which stays.
-                    let now = self.date_time();
-                    return self.clock_in_after(running.uri, heading, now, vec![change]);
-                }
-                self.send_texts(vec![change]);
-                self.publish_clock();
-                Ok(Value::Null)
-            }
-            _ => Ok(Value::Null),
-        }
-    }
-
-    /// `org-resolve-clocks`: the first clock that runs in the files beside
-    /// the clocked one (a dangling clock), with what to do with it: run on
-    /// as the clock (`k`), stopped now (`K`), started again now (`s`),
-    /// canceled (`S`, `C`), left as it is (`i`).
-    fn resolve_dangling(&mut self, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
-        let current = self.running.clone();
-        let dangling: Vec<RunningClock> = self
-            .open_clocks()
-            .into_iter()
-            .filter(|clock| {
-                current.as_ref().is_none_or(|running| {
-                    !(running.uri == clock.uri && running.start == clock.start && running.head == clock.head)
-                })
-            })
-            .collect();
-        let Some(clock) = dangling.first().cloned() else {
-            return Ok(json!({ "message": "No dangling clocks" }));
-        };
-        let now = self.date_time();
-        let Some(answer) = context.and_then(|context| context.input.clone()) else {
-            let minutes = clock::minutes_of(now) - clock::minutes_of(clock.start);
-            let choices = [
-                ("k", "Keep it: the clock runs on it"),
-                ("K", "Keep it and clock out now"),
-                ("s", "Subtract it: the clock starts again now"),
-                ("S", "Subtract it and clock out"),
-                ("C", "Cancel it"),
-                ("i", "Ignore"),
-            ];
-            let choices: Vec<Value> =
-                choices.iter().map(|(key, label)| json!({ "key": key, "label": label })).collect();
-            return Ok(json!({ "input": {
-                "kind": "choice",
-                "prompt": format!("Dangling clock started {minutes} mins ago"),
-                "value": "",
-                "choices": choices,
-            } }));
-        };
-        let (text, version, line) = self.clock_line(&clock).ok_or("Clock start time is gone")?;
-        let heading = Self::heading_above(&text, line).ok_or("Clock start time is gone")?;
-        match answer.as_str() {
-            // The dangling clock becomes the clock; the one that ran stops.
-            "k" => {
-                if let Some(running) = current {
-                    if let Some((other, other_version, other_line)) = self.clock_line(&running) {
-                        let out = clock::clock_out(&other, other_line, now, &self.clock_settings)?;
-                        self.clock_out_time = Some(now);
-                        self.send_texts(vec![(running.uri, other_version, other, out.text)]);
-                    }
-                }
-                self.running = Some(clock);
-                self.publish_clock();
-            }
-            "K" => {
-                let out = clock::clock_out(&text, line, now, &self.clock_settings)?;
-                self.clock_out_time = Some(now);
-                self.send_texts(vec![(clock.uri, version, text, out.text)]);
-            }
-            "s" | "S" | "C" => {
-                let canceled = clock::cancel(&text, line, &self.clock_settings)?;
-                let change = (clock.uri.clone(), version, text, canceled);
-                if answer == "s" {
-                    return self.clock_in_after(clock.uri, heading, now, vec![change]);
-                }
-                self.send_texts(vec![change]);
-            }
-            _ => {}
-        }
-        Ok(Value::Null)
     }
 
     /// `org-clock-select-task`: the default task (`d`), the interrupted
@@ -13376,6 +15986,20 @@ impl Server {
     /// clocked last; with `C-u`, one picked from the history, and with
     /// `C-u C-u` from when the last clock stopped.
     fn clock_in_last(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        // `org-clock-in` resolves the open clocks first.
+        let resolving = context.step.as_deref().is_some_and(|step| step.starts_with("resolve"));
+        if context.input.is_none() || resolving {
+            if let Err(question) = self.resolve_before_clock_in(context)? {
+                return Ok(question);
+            }
+        }
+        let cleared;
+        let context = if resolving {
+            cleared = Context { input: None, step: None, answers: None, ..context.clone() };
+            &cleared
+        } else {
+            context
+        };
         let count = context.count.unwrap_or(0);
         if count == 4 {
             return self.clock_in_selected(context);
@@ -13386,9 +16010,11 @@ impl Server {
         };
         let heading = self.find_task(&task).ok_or("The entry clocked last is gone")?;
         let ClockTask { uri, title, .. } = task;
-        let now = self.date_time();
-        let start = if count == 16 { self.clock_out_time.unwrap_or(now) } else { now };
+        let now = self.clock_time(true);
+        let continuing = count == 16 || self.clock_continuously;
+        let start = if continuing { self.clock_out_time.unwrap_or(now) } else { now };
         let already = self.running.is_some();
+        self.forget_found_clock();
         let result = self.clock_in_at(uri.clone(), heading, start)?;
         if !already {
             let file = uri::to_path(&uri)
@@ -13424,6 +16050,12 @@ impl Server {
 
     /// The clock started on the entry at `heading` of `file` at `start`;
     /// one that runs elsewhere stops now.
+    /// `org-current-time` with `org-clock-rounding-minutes`; with `past`,
+    /// not later than now.
+    fn clock_time(&self, past: bool) -> DateTime {
+        clock::round_time(self.date_time(), self.clock_rounding, past)
+    }
+
     fn clock_in_at(&mut self, file: Uri, heading: usize, start: DateTime) -> std::result::Result<Value, Refusal> {
         self.clock_in_after(file, heading, start, Vec::new())
     }
@@ -13437,7 +16069,8 @@ impl Server {
         start: DateTime,
         changes: Vec<(Uri, Option<i32>, String, String)>,
     ) -> std::result::Result<Value, Refusal> {
-        let now = self.date_time();
+        // The clock that runs stops as `org-clock-out` stops it.
+        let now = self.clock_time(false);
         let mut changes = changes;
         let mut heading = heading;
         let task = self.clock_task(&file, heading);
@@ -13487,11 +16120,17 @@ impl Server {
                 }
             }
         }
+        // `org-clock-continuously`: from when the last clock stopped.
+        let start = match self.clock_out_time {
+            Some(stopped) if self.clock_continuously => stopped,
+            _ => start,
+        };
         let mut settings = self.clock_settings.clone();
         let (display, adapt) = (self.display, self.indent.adapt);
         let base = changes.iter().find(|(uri, ..)| *uri == file).map(|(_, _, _, new)| new.clone());
         let switch = self.clock_in_switch.clone().filter(|state| !state.is_empty());
-        let (todo, now_time) = (self.edit_settings.todo.clone(), now);
+        let (todo, now_time, resume) = (self.edit_settings.todo.clone(), now, self.clock_in_resume);
+        let mut resumed = None;
         let found = self.with_source(&file, |text, _, parse, outline, version| {
             let base = base.clone().unwrap_or_else(|| text.to_string());
             let base = match &switch {
@@ -13499,7 +16138,13 @@ impl Server {
                 None => base,
             };
             settings.adapt = display.adapt(&base, adapt);
-            let clocked = clock::clock_in(&base, parse.todo_keywords(), heading, &settings, start)?;
+            // `org-clock-in-resume`: a clock of the entry left running goes
+            // on from when it started, its line as it is.
+            resumed = resume.then(|| clock::unclosed(&base, heading)).flatten();
+            let clocked = match resumed {
+                Some(_) => (base.clone(), heading),
+                None => clock::clock_in(&base, parse.todo_keywords(), heading, &settings, start)?,
+            };
             let entry = &outline.entries[outline.entry_at(heading).ok_or("Before first headline")?];
             let repeat = entry.properties.iter().any(|(key, _)| key == "LAST_REPEAT");
             // The headline as the clock leaves it, its state switched.
@@ -13507,12 +16152,18 @@ impl Server {
             Ok::<_, String>((text.to_string(), version, clocked.0, head, repeat))
         });
         let (old, version, new_text, head, repeat) = found.ok_or("Cannot read the file of this entry")??;
+        let start = resumed.unwrap_or(start);
         match changes.iter_mut().find(|(uri, ..)| *uri == file) {
             Some(change) => change.3 = new_text,
             None => changes.push((file.clone(), version, old, new_text)),
         }
         self.send_texts(changes);
         self.running = Some(RunningClock { uri: file.clone(), start, head: head.clone() });
+        // Clocked into, it is no longer a clock found running.
+        if self.found_clock == self.running {
+            self.found_clock = None;
+        }
+        self.clock_used = true;
         self.clock_interrupted = interrupted;
         // `org-clock-history-push`: the entry once, first.
         if let Some(task) = task {
@@ -13617,23 +16268,6 @@ impl Server {
         let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
         self.apply_edit(params, Pending::Edit);
     }
-
-    /// Where the entry at `heading` of `file` will stand in the agenda
-    /// once `file` reads `text`, if that is on another line than the one
-    /// the cursor is on.
-    fn followed(&mut self, file: &Uri, text: &str, heading: usize, from: (Position, &ViewLine)) -> Option<Follow> {
-        let query = self.view.as_ref()?.view.query.clone();
-        let parse = org_syntax::parse(text, &self.todo);
-        let outline = Outline::with_inheritance(&parse, text, &uri::file_stem(file), &self.workspace.inheritance);
-        let view = self.render_with(query, Some((file, outline, text)));
-        let (position, line) = from;
-        let target = view.line_of(file, heading, (position.line, line))?;
-        (target != position.line).then(|| Follow {
-            text: view.text,
-            from: position.line,
-            position: Position::new(target, position.character),
-        })
-    }
 }
 
 /// Org's meta keys on a list item: `M-<left>` and `M-<right>` outdent and
@@ -13646,15 +16280,16 @@ fn item_structure(
     keywords: &org_syntax::TodoKeywords,
     tags_column: i64,
     circular: bool,
+    settings: &org_core::list::Settings,
 ) -> std::result::Result<org_core::list::Edited, Refusal> {
     use org_core::list;
     match id {
-        commands::META_LEFT => list::indent_item(text, offset, -1, false, keywords, tags_column),
-        commands::META_RIGHT => list::indent_item(text, offset, 1, false, keywords, tags_column),
-        commands::SHIFT_META_LEFT => list::indent_item(text, offset, -1, true, keywords, tags_column),
-        commands::SHIFT_META_RIGHT => list::indent_item(text, offset, 1, true, keywords, tags_column),
-        commands::META_UP => list::move_item(text, offset, false, circular),
-        _ => list::move_item(text, offset, true, circular),
+        commands::META_LEFT => list::indent_item(text, offset, -1, false, keywords, tags_column, settings),
+        commands::META_RIGHT => list::indent_item(text, offset, 1, false, keywords, tags_column, settings),
+        commands::SHIFT_META_LEFT => list::indent_item(text, offset, -1, true, keywords, tags_column, settings),
+        commands::SHIFT_META_RIGHT => list::indent_item(text, offset, 1, true, keywords, tags_column, settings),
+        commands::META_UP => list::move_item(text, offset, false, circular, settings),
+        _ => list::move_item(text, offset, true, circular, settings),
     }
 }
 
@@ -13701,9 +16336,148 @@ fn column_ranges(input: &str, count: usize) -> std::collections::BTreeSet<usize>
     out
 }
 
+/// The files Emacs's `org-id-locations-file` lists (`org-id-locations-load`):
+/// names relative to its directory, `~` the home directory.
+fn id_location_files(file: &Path) -> Vec<PathBuf> {
+    let Ok(text) = std::fs::read_to_string(file) else { return Vec::new() };
+    let directory = file.parent().unwrap_or(Path::new("."));
+    let home = std::env::var_os("HOME").map(PathBuf::from);
+    org_core::link::id_location_files(&text)
+        .into_iter()
+        .map(|name| match (name.strip_prefix("~/"), &home) {
+            (Some(rest), Some(home)) => home.join(rest),
+            _ => directory.join(name),
+        })
+        .collect()
+}
+
+/// The name of this machine (`system-name`).
+fn system_name() -> String {
+    let read = |path: &str| std::fs::read_to_string(path).ok().map(|name| name.trim().to_string());
+    read("/proc/sys/kernel/hostname")
+        .or_else(|| read("/etc/hostname"))
+        .or_else(|| std::env::var("HOSTNAME").ok())
+        .or_else(|| {
+            let out = std::process::Command::new("hostname").output().ok()?;
+            Some(String::from_utf8_lossy(&out.stdout).trim().to_string())
+        })
+        .filter(|name| !name.is_empty())
+        .unwrap_or_else(|| "localhost".to_string())
+}
+
+/// `start-process-shell-command`: run `command` in the background from
+/// `directory`, as Emacs does from the buffer's `default-directory`.
+fn run_shell(command: &str, directory: Option<&std::path::Path>) -> std::io::Result<()> {
+    let mut shell = if cfg!(windows) {
+        let mut shell = std::process::Command::new("cmd");
+        shell.arg("/C").arg(command);
+        shell
+    } else {
+        let mut shell = std::process::Command::new("sh");
+        shell.arg("-c").arg(command);
+        shell
+    };
+    if let Some(directory) = directory {
+        shell.current_dir(directory);
+    }
+    let mut child = shell
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()?;
+    // Reaped when it ends, so that it does not linger.
+    std::thread::spawn(move || child.wait());
+    Ok(())
+}
+
+/// Run `command` in the shell and wait for it: what it wrote to its
+/// output and its errors, in the order it wrote them, and its exit code.
+fn shell_output(command: &str, directory: Option<&std::path::Path>) -> std::io::Result<(String, Option<i32>)> {
+    use std::io::Read;
+    let mut shell = if cfg!(windows) {
+        let mut shell = std::process::Command::new("cmd");
+        shell.arg("/C").arg(command);
+        shell
+    } else {
+        let mut shell = std::process::Command::new("sh");
+        shell.arg("-c").arg(command);
+        shell
+    };
+    if let Some(directory) = directory {
+        shell.current_dir(directory);
+    }
+    let (mut reader, writer) = std::io::pipe()?;
+    let mut child = shell.stdin(std::process::Stdio::null()).stdout(writer.try_clone()?).stderr(writer).spawn()?;
+    // The pipe's ends the server held are gone with `shell`, so reading
+    // ends when the command does.
+    drop(shell);
+    let mut output = Vec::new();
+    reader.read_to_end(&mut output)?;
+    let status = child.wait()?;
+    Ok((String::from_utf8_lossy(&output).into_owned(), status.code()))
+}
+
+/// `org-format-outline-path` with the width of the frame, `width`
+/// columns: one less than that at most, cut with `..` at the end.
+fn fit_outline_path(path: &str, width: usize) -> String {
+    let width = width.saturating_sub(1).max(1);
+    let length = path.chars().count();
+    if length <= width {
+        return path.to_string();
+    }
+    if width < 7 {
+        return path.chars().take(width).collect();
+    }
+    path.chars().take(width - 2).chain("..".chars()).collect()
+}
+
+/// `abbreviate-file-name`: the home directory as `~`.
+/// What the calendar on its own says to the keys that answer a date
+/// prompt.
+const NO_DATE_ASKED: &str = "No date is asked for: the calendar is open on its own";
+
+/// The date `org-goto-calendar` goes to from `offset` in `text`: the
+/// timestamp at it, active or not (`org-at-timestamp-p` with `lax`), or
+/// else the last active one of its line (`org-ts-regexp` after `.*`).
+fn line_timestamp_date(text: &str, offset: usize) -> Option<Date> {
+    static ACTIVE: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+        regex::Regex::new(r"^.*<([0-9]{4})-([0-9]{2})-([0-9]{2})(?: [^\n]*?)?>").expect("valid")
+    });
+    let date = |year: &str, month: &str, day: &str| {
+        Some(Date::new(year.parse().ok()?, month.parse().ok()?, day.parse().ok()?))
+    };
+    if let Some(stamp) = org_core::stamp::Stamp::around(text, offset) {
+        let inner = text.get(stamp.start + 1..stamp.start + 11)?;
+        return date(&inner[0..4], &inner[5..7], &inner[8..10]);
+    }
+    let start = text[..offset].rfind('\n').map_or(0, |at| at + 1);
+    let end = text[offset..].find('\n').map_or(text.len(), |at| offset + at);
+    let found = ACTIVE.captures(&text[start..end])?;
+    date(&found[1], &found[2], &found[3])
+}
+
+pub(crate) fn abbreviate_path(path: &Path) -> String {
+    let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
+    match home.as_deref().and_then(|home| path.strip_prefix(home).ok()) {
+        Some(rest) => format!("~/{}", rest.to_string_lossy()),
+        None => path.to_string_lossy().into_owned(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// `org-goto-calendar`'s date: the timestamp at the cursor, active or
+    /// not, else the line's last active one.
+    #[test]
+    fn goes_to_the_calendar_at_the_date_of_the_line() {
+        let text = "* A <2026-05-12 Tue> [2026-05-13 Wed] <2026-05-14 Thu 10:00>\n* B [2026-06-01]\n";
+        assert_eq!(line_timestamp_date(text, 2), Some(Date::new(2026, 5, 14)));
+        assert_eq!(line_timestamp_date(text, 25), Some(Date::new(2026, 5, 13)));
+        assert_eq!(line_timestamp_date(text, 6), Some(Date::new(2026, 5, 12)));
+        assert_eq!(line_timestamp_date(text, 64), None);
+    }
 
     #[cfg(unix)]
     #[test]
@@ -13723,6 +16497,35 @@ mod tests {
         assert_eq!(std::fs::metadata(&name).unwrap().permissions().mode() & 0o777, 0o700);
         assert_eq!(named.made(), Some(name.as_path()));
         std::fs::remove_dir(&name).unwrap();
+    }
+
+    /// `org-babel-tangle-remove-file-before-write`: with `t` a link to the
+    /// file is replaced by a file of its own, else written through.
+    #[cfg(unix)]
+    #[test]
+    fn tangled_files_are_removed_first_as_told() {
+        let directory = std::env::temp_dir().join(format!("org-lsp-tangled-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&directory);
+        std::fs::create_dir_all(&directory).unwrap();
+        let target = directory.join("target.sh");
+        let link = directory.join("out.sh");
+        std::fs::write(&target, "old\n").unwrap();
+        std::os::unix::fs::symlink(&target, &link).unwrap();
+        let tangled = |text: &str| org_core::tangle::File {
+            path: link.clone(),
+            text: text.to_string(),
+            mode: None,
+            make_directories: false,
+        };
+        write_tangled(&tangled("auto\n"), None).unwrap();
+        assert_eq!(std::fs::read_to_string(&target).unwrap(), "auto\n");
+        write_tangled(&tangled("never\n"), Some(false)).unwrap();
+        assert_eq!(std::fs::read_to_string(&target).unwrap(), "never\n");
+        write_tangled(&tangled("always\n"), Some(true)).unwrap();
+        assert_eq!(std::fs::read_to_string(&target).unwrap(), "never\n");
+        assert!(!std::fs::symlink_metadata(&link).unwrap().file_type().is_symlink());
+        assert_eq!(std::fs::read_to_string(&link).unwrap(), "always\n");
+        std::fs::remove_dir_all(&directory).unwrap();
     }
 
     #[test]

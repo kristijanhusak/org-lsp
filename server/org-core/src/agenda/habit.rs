@@ -32,6 +32,11 @@ pub struct Settings {
     pub show_done_always_green: bool,
     /// `org-habit-scheduled-past-days`: none for `org-scheduled-past-days`.
     pub scheduled_past_days: Option<i64>,
+    /// The `done` heading of `org-log-note-headings`, whose notes say a
+    /// habit was done as `State "DONE"` notes do.
+    pub done_heading: String,
+    /// `org-log-states-order-reversed`: the latest note first.
+    pub states_order_reversed: bool,
 }
 
 impl Default for Settings {
@@ -47,6 +52,8 @@ impl Default for Settings {
             completed_glyph: '*',
             show_done_always_green: false,
             scheduled_past_days: None,
+            done_heading: "CLOSING NOTE %t".to_string(),
+            states_order_reversed: true,
         }
     }
 }
@@ -105,16 +112,26 @@ fn repeater(stamp: &str) -> Option<&str> {
     REPEAT.captures(stamp).map(|found| found.get(1).expect("a group").as_str())
 }
 
+/// How the notes of a habit are read: the `done` heading of
+/// `org-log-note-headings`, and whether the latest note is first
+/// (`org-log-states-order-reversed`).
+#[derive(Debug, Clone, Copy)]
+pub struct Notes<'a> {
+    pub done_heading: &'a str,
+    pub reversed: bool,
+}
+
 /// `org-habit-parse-todo` of the entry whose text is `entry` (its headline
 /// `head`), scheduled at `scheduled` (as written), the days it was done
 /// read from its log notes: the first `limit` found from the headline
-/// down (`org-log-states-order-reversed`).
+/// down, or with `notes.reversed` off, from its end up.
 pub fn parse(
     scheduled: &str,
     head: &str,
     entry: &str,
     done_keywords: &[String],
     limit: usize,
+    notes: Notes,
 ) -> Result<Habit, String> {
     let stamp = if scheduled.starts_with('<') { scheduled.to_string() } else { format!("<{scheduled}>") };
     let day = time_string_to_day(&stamp).ok_or_else(|| format!("Habit {head} has no scheduled date"))?;
@@ -143,7 +160,12 @@ pub fn parse(
         }
         None => (None, None),
     };
-    let mut done: Vec<Day> = done_days(entry, done_keywords).into_iter().take(limit).collect();
+    let found = done_days(entry, done_keywords, notes.done_heading);
+    let mut done: Vec<Day> = if notes.reversed {
+        found.into_iter().take(limit).collect()
+    } else {
+        found.into_iter().rev().take(limit).collect()
+    };
     done.sort_unstable();
     Ok(Habit {
         scheduled: day,
@@ -156,18 +178,40 @@ pub fn parse(
 }
 
 /// The days of the notes of `entry` that say it was done, in its order:
-/// `State "DONE" … [date]` and `CLOSING NOTE [date]` items.
-fn done_days(entry: &str, done_keywords: &[String]) -> Vec<Day> {
+/// `State "DONE" … [date]` items, and those with the `done` heading
+/// (`CLOSING NOTE [date]`), its escapes as patterns.
+fn done_days(entry: &str, done_keywords: &[String], done_heading: &str) -> Vec<Day> {
     if done_keywords.is_empty() {
         return Vec::new();
     }
     let keywords = done_keywords.iter().map(|keyword| regex::escape(keyword)).collect::<Vec<_>>().join("|");
     let stamp = r"\[([0-9]{4}-[0-9]{2}-[0-9]{2}(?: [^\n]*?)?)\]";
-    let pattern = format!(r#"(?m)^[ \t]*-[ \t]+(?:State "(?:{keywords})".*{stamp}|CLOSING NOTE {stamp})"#);
+    // `org-replace-escapes` on the quoted heading; Org takes an empty one
+    // for a pattern that matches any item, which this leaves out.
+    const PATTERNS: [(char, &str); 8] = [
+        ('d', r"\[([0-9]{4}-[0-9]{2}-[0-9]{2}(?: .*?)?)\]"),
+        ('t', r"\[([0-9]{4}-[0-9]{2}-[0-9]{2}(?: .*?)?)\]"),
+        ('D', r"<([0-9]{4}-[0-9]{2}-[0-9]{2}(?: .*?)?)>"),
+        ('T', r"<([0-9]{4}-[0-9]{2}-[0-9]{2}(?: .*?)?)>"),
+        ('s', r#""\S+""#),
+        ('S', r#""\S+""#),
+        ('u', ".*?"),
+        ('U', ".*?"),
+    ];
+    let marked = crate::text::replace_escapes(done_heading, |c| {
+        PATTERNS.iter().position(|(key, _)| *key == c).map(|index| format!("\0{index}\0"))
+    });
+    let mut done = regex::escape(&marked);
+    for (index, (_, regexp)) in PATTERNS.iter().enumerate() {
+        done = done.replace(&format!("\0{index}\0"), regexp);
+    }
+    let alternative = if done_heading.is_empty() { String::new() } else { format!("|{done}") };
+    let pattern = format!(r#"(?m)^[ \t]*-[ \t]+(?:State "(?:{keywords})".*{stamp}{alternative})"#);
     let Ok(note) = Regex::new(&pattern) else { return Vec::new() };
     note.captures_iter(entry)
         .filter_map(|found| {
-            let text = found.get(1).or_else(|| found.get(2))?.as_str();
+            // The first date the match has.
+            let text = found.iter().skip(1).flatten().next()?.as_str();
             time_string_to_day(&format!("<{text}>"))
         })
         .collect()
@@ -306,6 +350,8 @@ impl Habit {
 mod tests {
     use super::*;
 
+    const NOTES: Notes = Notes { done_heading: "CLOSING NOTE %t", reversed: true };
+
     /// The faces of each day of the graphs of `tests/agenda/habits`, on
     /// 2026-05-18, as `org-habit-build-graph` gives them (`c` clear, `r`
     /// ready, `a` alert, `o` overdue; capitals for the future faces).
@@ -331,7 +377,7 @@ mod tests {
             let entry = &outline.entries[index];
             let end = outline.entries.get(index + 1).map_or(text.len(), |next| next.offset);
             let scheduled = entry.scheduled.as_ref().unwrap().raw.as_str();
-            let habit = parse(scheduled, head, &text[entry.offset..end], &done, 28).unwrap();
+            let habit = parse(scheduled, head, &text[entry.offset..end], &done, 28, NOTES).unwrap();
             let graph = habit.graph(today - 21, today, today + 7, &settings);
             let drawn: String = graph.iter().map(|(glyph, _)| *glyph).collect();
             let named: String = graph
@@ -369,11 +415,21 @@ mod tests {
                      - State \"DONE\"       from \"TODO\"       [2026-05-14 Thu]\n\
                      - State \"TODO\"       from \"DONE\"       [2026-05-13 Wed]\n\
                      - CLOSING NOTE [2026-05-10 Sun 09:00] \\\\\n  done\n:END:\n";
-        let habit = parse("<2026-05-18 Mon .+2d>", "Shave", entry, &["DONE".to_string()], 28).unwrap();
+        let habit = parse("<2026-05-18 Mon .+2d>", "Shave", entry, &["DONE".to_string()], 28, NOTES).unwrap();
         let day = |text: &str| time_string_to_day(&format!("<{text}>")).unwrap();
         assert_eq!(habit.done, [day("2026-05-10"), day("2026-05-14"), day("2026-05-16")]);
         assert_eq!(habit.repeat_type, ".+");
-        assert!(parse("<2026-05-18 Mon>", "Shave", entry, &[], 28).is_err());
-        assert!(parse("<2026-05-18 Mon .+2d/1d>", "Shave", entry, &[], 28).is_err());
+        assert!(parse("<2026-05-18 Mon>", "Shave", entry, &[], 28, NOTES).is_err());
+        // Other headings for closing notes, and the latest notes last.
+        let notes = "* TODO Shave\n- Closed <2026-05-10 Sun> by me\n- Closed <2026-05-12 Tue> by me\n\
+                     - Closed <2026-05-14 Thu> by me\n";
+        let custom = Notes { done_heading: "Closed %D by %u", reversed: false };
+        let habit = parse("<2026-05-18 Mon .+2d>", "Shave", notes, &["DONE".to_string()], 2, custom).unwrap();
+        let day = |d| crate::date::Date::new(2026, 5, d).to_day();
+        assert_eq!(habit.done, [day(12), day(14)]);
+        let first = Notes { reversed: true, ..custom };
+        let habit = parse("<2026-05-18 Mon .+2d>", "Shave", notes, &["DONE".to_string()], 2, first).unwrap();
+        assert_eq!(habit.done, [day(10), day(12)]);
+        assert!(parse("<2026-05-18 Mon .+2d/1d>", "Shave", entry, &[], 28, NOTES).is_err());
     }
 }

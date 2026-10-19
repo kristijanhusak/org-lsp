@@ -225,9 +225,14 @@ class OrgLsp(AbstractPlugin):
         # Lines of the agenda highlighted from edge to edge, as regions
         # (`org-lsp/lineHighlights`).
         options.set('line_highlights', True)
+        # Lines hidden (the custom properties of
+        # `org.custom.properties.toggle`), each in a fold of its own.
+        options.set('hidden_lines', True)
         # Images in place of links and of LaTeX fragments, as phantoms
         # below their lines (`org.link.preview`, `org-lsp/images`).
         options.set('images', settings().get('org_images', True) is not False)
+        # Commands the server asks to run (`org-lsp/runCommand`).
+        options.set('run_command', True)
         return None
 
     # A file opens: the folds the server says it opens with closed
@@ -269,12 +274,23 @@ class OrgLsp(AbstractPlugin):
     def m_org_lsp_lineHighlights(self, params) -> None:
         sublime.set_timeout(lambda: show_line_highlights(params))
 
+    # A command to run as from its key, where the cursor is, with fields
+    # of the server's: a capture an org-protocol URL started.
+    def m_org_lsp_runCommand(self, params) -> None:
+        if not isinstance(params, dict) or not isinstance(params.get('command'), str):
+            return
+        session = self.weaksession()
+        window = getattr(session, 'window', None) or sublime.active_window()
+        args = {'command': params['command'], 'argument': params.get('argument') or {}}
+        sublime.set_timeout(lambda: window.run_command('org_lsp_run', args))
+
     # Images in place of LaTeX fragments, made by Emacs.
     def m_org_lsp_images(self, params) -> None:
         sublime.set_timeout(lambda: apply_preview(params))
 
     # The folds org-journal opens and closes in the entry it shows
-    # (`org-journal-hide-entries-p`).
+    # (`org-journal-hide-entries-p`), and those of the subtrees a yank or
+    # paste folded (`org-yank-folded-subtrees`).
     def m_org_lsp_folds(self, params) -> None:
         sublime.set_timeout(lambda: journal_folds(params or {}, JOURNAL_TRIES))
 
@@ -469,8 +485,9 @@ IMAGE_MAX_WIDTH = 800
 IMAGE_MAX_HEIGHT = 400
 
 # The previews each view shows, by view id, as Emacs keeps its overlays:
-# `{key, kind, path, text, width, height}`, where `key` names a region
-# that follows the edits around its text.
+# `{key, kind, path, text, width, height, sizing}`, where `key` names a
+# region that follows the edits around its text and `sizing` is how wide
+# the server says it shows (`width`) or at most (`maxWidth`).
 image_previews = {}
 image_phantoms = {}
 image_keys = [0]
@@ -585,7 +602,8 @@ def apply_preview(preview, quiet=False) -> None:
             key = 'org-lsp-image-{}'.format(image_keys[0])
             view.add_regions(key, [region], '', '', sublime.HIDDEN)
             entries.append({'key': key, 'kind': preview['kind'], 'path': item['path'], 'text': view.substr(region),
-                            'width': size[0], 'height': size[1]})
+                            'width': size[0], 'height': size[1],
+                            'sizing': {'width': item.get('width'), 'maxWidth': item.get('maxWidth')}})
             count += 1
         if link:
             if count:
@@ -597,6 +615,35 @@ def apply_preview(preview, quiet=False) -> None:
                 tell("[{}] No images to display inline.  Use `C-u C-u' or 11 argument to preview the whole "
                      'buffer'.format(scope))
     draw_images(view)
+
+
+def image_shown(view, entry, most):
+    """The width and height in pixels the image of `entry` shows at, in a
+    view at most `most` wide: as wide as the server says
+    (`org-image-actual-width`), else its own width up to the most it says
+    (`org-image-max-width`), never wider than `most` nor higher than
+    `IMAGE_MAX_HEIGHT`, keeping its proportions."""
+    sizing = entry.get('sizing') or {}
+
+    def pixels(size):
+        if not isinstance(size, dict):
+            return None
+        if size.get('pixels') is not None:
+            return size['pixels']
+        if size.get('fraction') is not None:
+            return size['fraction'] * most
+        if size.get('columns') is not None:
+            return size['columns'] * view.em_width()
+        return None
+
+    wanted = pixels(sizing.get('width'))
+    if wanted:
+        scale = wanted / entry['width']
+    else:
+        limit = pixels(sizing.get('maxWidth'))
+        scale = min(1.0, limit / entry['width']) if limit else 1.0
+    scale = min(scale, most / entry['width'], IMAGE_MAX_HEIGHT / entry['height'])
+    return max(1, round(entry['width'] * scale)), max(1, round(entry['height'] * scale))
 
 
 def draw_images(view) -> None:
@@ -613,8 +660,7 @@ def draw_images(view) -> None:
             view.erase_regions(entry['key'])
             entries.remove(entry)
             continue
-        scale = min(1.0, most / entry['width'], IMAGE_MAX_HEIGHT / entry['height'])
-        width, height = max(1, round(entry['width'] * scale)), max(1, round(entry['height'] * scale))
+        width, height = image_shown(view, entry, most)
         content = '<body style="margin: 0.2rem 0; padding: 0"><img src="{}" width="{}" height="{}"></body>'.format(
             html.escape(file_url(entry['path'])), width, height)
         phantoms.append(sublime.Phantom(sublime.Region(regions[0].end()), content, sublime.LAYOUT_BELOW))
@@ -752,9 +798,12 @@ class OrgLspRunCommand(LspWindowCommand):
     # file open; it closes once the command is done.
     starter = None
 
-    def run(self, command: str, fallback=None, count=None) -> None:
+    def run(self, command: str, fallback=None, count=None, argument=None) -> None:
         session = self.session_by_name(SESSION)
         view = self.window.active_view()
+        # What the server asked the command to be run with
+        # (`org-lsp/runCommand`).
+        given = argument if isinstance(argument, dict) else {}
         if not session:
             # A key keeps its own meaning without a server (Enter types).
             if fallback and view:
@@ -763,7 +812,7 @@ class OrgLspRunCommand(LspWindowCommand):
                 sublime.status_message('org-lsp: the server is starting')
             else:
                 # The agenda, a capture: no Org file needs to be open.
-                self.start(lambda session: self.execute(session, view, command, {}, None))
+                self.start(lambda session: self.execute(session, view, command, dict(given), None))
             return
         if is_org(view):
             selection = view.sel()[0]
@@ -791,6 +840,7 @@ class OrgLspRunCommand(LspWindowCommand):
         # The org-roam buffer is hidden when it shows.
         if command == 'org.roam.buffer.toggle':
             context['visible'] = roam_buffer_shown(session, self.window)
+        context.update(given)
         self.execute(session, view, command, context, fallback)
 
     def start(self, then) -> None:
@@ -847,14 +897,7 @@ class OrgLspRunCommand(LspWindowCommand):
         result = result if isinstance(result, dict) else {}
         # The edit and the cursor, carried in the result (`org.return`).
         if isinstance(result.get('edits'), list):
-            cursor = result.get('cursor')
-
-            def place(_) -> None:
-                if cursor:
-                    point = position_to_offset(cursor, view)
-                    view.sel().clear()
-                    view.sel().add(sublime.Region(point))
-            apply_text_edits(view, result['edits']).then(lambda done: sublime.set_timeout(lambda: place(done)))
+            apply_carried(view, result)
         # What was cut or copied goes to the clipboard.
         if isinstance(result.get('copy'), str):
             sublime.set_clipboard(result['copy'])
@@ -870,6 +913,9 @@ class OrgLspRunCommand(LspWindowCommand):
             apply_preview(result['preview'])
         if isinstance(result.get('close'), str):
             close(result['close'])
+        # Lines to hide, those hidden before shown again.
+        if isinstance(result.get('hiddenLines'), dict):
+            hide_lines(result['hiddenLines'])
         request = result.get('input')
         if isinstance(request, dict):
             ask(self.window, request,
@@ -1040,8 +1086,9 @@ def show_journal_file(session, view) -> None:
 
 
 def journal_folds(params, tries: int) -> None:
-    """Open, then close, the folds of the journal file the server just
-    showed, once it has loaded."""
+    """Open, then close, the folds the server asks for: of the journal
+    file it just showed, once it has loaded, or of the subtrees an edit
+    of its just yanked."""
     view = view_for(params.get('uri', ''))
     if not view or view.is_loading():
         if tries > 0:
@@ -1059,26 +1106,64 @@ last_cycle = None
 
 
 SPARSE_KEY = 'org-lsp-sparse'
+# The views whose sparse tree highlights stay through changes
+# (`org-remove-highlights-with-change`).
+sparse_kept = set()
+
+
+HIDDEN_LINES_KEY = 'org-lsp-hidden-lines'
+
+
+def hide_lines(params) -> None:
+    """Hide the lines the server names (`hiddenLines`: the custom properties
+    `org-toggle-custom-properties-visibility` hides), those hidden before
+    shown again. Sublime Text hides text only in a fold: each line in one
+    from the end of the line before, which shows its marker there. The
+    folds are kept as regions too, which go with the text, to open them
+    again as Emacs deletes its overlays."""
+    view = view_for((params or {}).get('uri', ''))
+    if not view:
+        return
+    view.unfold(view.get_regions(HIDDEN_LINES_KEY))
+    rows = view.rowcol(view.size())[0] + 1
+    regions = []
+    for line in params.get('lines', []):
+        if 0 < line < rows:
+            start = view.text_point(line, 0)
+            regions.append(sublime.Region(start - 1, view.line(start).end()))
+        elif line == 0 and rows > 1:
+            regions.append(sublime.Region(0, view.text_point(1, 0)))
+    if regions:
+        view.fold(regions)
+        view.add_regions(HIDDEN_LINES_KEY, regions, '', '', sublime.HIDDEN)
+    else:
+        view.erase_regions(HIDDEN_LINES_KEY)
 
 
 def show_sparse(session, view, sparse) -> None:
     """A sparse tree (`org-sparse-tree`): every fold closed but those with
     one of `sparse['lines']` inside, as `org-occur` shows its matches; the
-    matches highlighted until the text changes. With `keep`
-    (`org-reveal`), only the folds that start on the lines of `unfold`
-    open; the others stay as they are."""
+    matches highlighted until the text changes, or with `keepHighlights`
+    until they are replaced. With `keep` (`org-reveal`), only the folds
+    that start on the lines of `unfold` open; the others stay as they are,
+    and `highlights`, when given (`C-c C-c`), replace those shown."""
+    if not sparse.get('keep') or 'highlights' in sparse:
+        regions = [sublime.Region(position_to_offset(r['start'], view), position_to_offset(r['end'], view))
+                   for r in sparse.get('highlights', [])]
+        if regions:
+            view.add_regions(SPARSE_KEY, regions, 'region.yellowish markup.highlight.sparse.org', '',
+                             sublime.DRAW_NO_OUTLINE)
+        else:
+            view.erase_regions(SPARSE_KEY)
+        if sparse.get('keepHighlights'):
+            sparse_kept.add(view.id())
+        else:
+            sparse_kept.discard(view.id())
     if sparse.get('keep'):
         for line in sparse.get('unfold', []):
             start = view.line(view.text_point(line, 0)).b
             view.unfold(sublime.Region(start, start + 1))
         return
-    regions = [sublime.Region(position_to_offset(r['start'], view), position_to_offset(r['end'], view))
-               for r in sparse.get('highlights', [])]
-    if regions:
-        view.add_regions(SPARSE_KEY, regions, 'region.yellowish markup.highlight.sparse.org', '',
-                         sublime.DRAW_NO_OUTLINE)
-    else:
-        view.erase_regions(SPARSE_KEY)
     lines = sparse.get('lines', [])
 
     def fold(ranges) -> None:
@@ -1122,6 +1207,27 @@ def last_state(view, line: int):
     return None
 
 
+def apply_carried(view, result) -> None:
+    """Apply the edits a command's result carries, and put the cursor
+    where it says."""
+    cursor = result.get('cursor')
+
+    def place(_) -> None:
+        if cursor:
+            point = position_to_offset(cursor, view)
+            view.sel().clear()
+            view.sel().add(sublime.Region(point))
+    apply_text_edits(view, result['edits']).then(lambda done: sublime.set_timeout(lambda: place(done)))
+
+
+ITEM = re.compile(r'^(\s*([-+]|\d+[.)])|\s+\*)(\s|$)')
+
+
+def is_item(view, line) -> bool:
+    """Whether line `line` starts a list item."""
+    return ITEM.match(view.substr(view.line(view.text_point(line, 0)))) is not None
+
+
 def children_of(outer, ranges):
     inside = [r for r in ranges if r['startLine'] > outer['startLine'] and r['endLine'] <= outer['endLine']]
     return [r for r in inside if not any(
@@ -1149,12 +1255,33 @@ class OrgLspCycleCommand(LspTextCommand):
         if at_table(self.view):
             self.view.window().run_command('org_lsp_run', {'command': 'org.table.next.field'})
             return
+        # What TAB does before it folds (`org.cycle`): a new, empty entry
+        # changes level, the start of the file cycles globally.
+        context = text_document_position_params(self.view, self.view.sel()[0].b)
+
+        def failed(error) -> None:
+            message = error.get('message', error) if isinstance(error, dict) else error
+            say('org-lsp: {}'.format(message), self.view, error=True)
+        session.send_request(
+            Request('workspace/executeCommand', {'command': 'org.cycle', 'arguments': [context]}),
+            lambda result: sublime.set_timeout(lambda: self.before(session, result, fallback)),
+            lambda error: sublime.set_timeout(lambda: failed(error)))
+
+    def before(self, session, result, fallback) -> None:
+        result = result if isinstance(result, dict) else {}
+        if isinstance(result.get('edits'), list):
+            apply_carried(self.view, result)
+            return
+        if result.get('global') is True:
+            self.view.run_command('org_lsp_cycle_global')
+            return
+        integrate = result.get('integrateLists') is True
         params = {'textDocument': text_document_identifier(self.view)}
         session.send_request(
             Request('textDocument/foldingRange', params),
-            lambda ranges: sublime.set_timeout(lambda: self.cycle(ranges or [], fallback)))
+            lambda ranges: sublime.set_timeout(lambda: self.cycle(ranges or [], fallback, integrate)))
 
-    def cycle(self, ranges, fallback) -> None:
+    def cycle(self, ranges, fallback, integrate=False) -> None:
         view = self.view
         ranges = [r for r in ranges if r['endLine'] > r['startLine']]
         line = view.rowcol(view.sel()[0].b)[0]
@@ -1172,6 +1299,9 @@ class OrgLspCycleCommand(LspTextCommand):
         if view.is_folded(region):
             view.unfold(region)
             children = children_of(current, ranges)
+            # Lists stay open but with `org_cycle_include_plain_lists` `integrate`.
+            if not integrate and not is_item(view, start):
+                children = [child for child in children if not is_item(view, child['startLine'])]
             for child in children:
                 view.fold(fold_region(view, child))
             remember(view, start, 'children' if children else 'subtree')
@@ -1260,7 +1390,9 @@ agenda_lines = {}
 
 def tell_agenda_cursor(view) -> None:
     """Tell the server the line of the agenda the cursor is on, each time it
-    changes, for follow mode (`F`), which the server keeps."""
+    changes, for follow mode (`F`), which the server keeps; the outline
+    path of its entry it answers with goes in the status bar
+    (`org-agenda-show-outline-path`)."""
     plugin = OrgLsp.current
     session = plugin.weaksession() if plugin else None
     if not session or len(view.sel()) == 0:
@@ -1270,7 +1402,12 @@ def tell_agenda_cursor(view) -> None:
         return
     agenda_lines[view.id()] = line
     params = text_document_position_params(view, view.text_point(line, 0))
-    session.send_notification(Notification('org-lsp/agendaCursor', params))
+    session.send_request(Request('org-lsp/agendaCursor', params), echo_outline_path)
+
+
+def echo_outline_path(result) -> None:
+    if isinstance(result, dict) and isinstance(result.get('echo'), str):
+        sublime.status_message(result['echo'])
 
 
 class OrgLspListener(sublime_plugin.EventListener):
@@ -1291,13 +1428,16 @@ class OrgLspListener(sublime_plugin.EventListener):
         return None
 
     # Org takes the highlighting of a sparse tree away at the next change,
+    # unless the server says it stays (`org-remove-highlights-with-change`),
     # and a preview whose text changes.
     def on_modified(self, view) -> None:
-        view.erase_regions(SPARSE_KEY)
+        if view.id() not in sparse_kept:
+            view.erase_regions(SPARSE_KEY)
         if image_previews.get(view.id()):
             draw_images(view)
 
     def on_close(self, view) -> None:
+        sparse_kept.discard(view.id())
         image_previews.pop(view.id(), None)
         image_phantoms.pop(view.id(), None)
 

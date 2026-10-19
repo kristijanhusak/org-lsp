@@ -31,6 +31,8 @@ const init = await connection.sendRequest('initialize', {
     general: { positionEncodings: ['utf-16'] },
     workspace: { workspaceEdit: { documentChanges: true } },
     textDocument: { documentSymbol: { hierarchicalDocumentSymbolSupport: true } },
+    // The extension takes the server's own token types.
+    experimental: { orgClient: true },
   },
   initializationOptions: { org_todo_keywords: ['TODO', '|', 'DONE'] },
 });
@@ -54,6 +56,7 @@ for (let i = 0; i < tokens.data.length; i += 5) {
 }
 assert.deepEqual(decoded, [
   ['#+TITLE:', 'keyword'],
+  ['Smoke', 'documentTitle'],
   ['*', 'stars'],
   ['TODO', 'todoKeyword'],
   ['Ünï 😀 ', 'headline'],

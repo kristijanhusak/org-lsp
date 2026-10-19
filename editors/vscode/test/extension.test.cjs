@@ -103,8 +103,9 @@ describe('Org files', () => {
 
   it('highlights with the server\'s tokens', async () => {
     const found = await tokens(workUri);
-    assert.deepEqual(found.slice(0, 6), [
+    assert.deepEqual(found.slice(0, 7), [
       [0, '#+TITLE:', 'keyword', []],
+      [0, 'Work', 'documentTitle', []],
       [1, '*', 'stars', ['level1']],
       [1, 'TODO', 'todoKeyword', []],
       [1, '[#A]', 'priority', []],
@@ -114,14 +115,14 @@ describe('Org files', () => {
     assert.ok(found.some(([, text, type, modifiers]) => text === '*bold*' && type === 'text' && modifiers.includes('bold')));
   });
 
-  it('gives keywords and priorities their faces', async () => {
+  it('gives keywords, priorities and tags their faces', async () => {
     const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
     const editor = await vscode.window.showTextDocument(document);
     const shown = await until('the faces', () => {
       const found = api.faces(editor);
-      return found.length >= 3 && found;
+      return found.length >= 4 && found;
     });
-    assert.deepEqual(shown, [[1, 'TODO'], [1, '[#A]'], [5, 'TODO']]);
+    assert.deepEqual(shown, [[1, 'TODO'], [1, '[#A]'], [1, 'office'], [5, 'TODO']]);
   });
 
   it('folds and outlines', async () => {
@@ -276,6 +277,28 @@ describe('Org files', () => {
     } finally {
       vscode.window.showQuickPick = showQuickPick;
     }
+    await vscode.window.showTextDocument(document);
+  });
+
+  it('captures from an org-protocol URL', async () => {
+    // `org-lsp protocol URL`, as the system runs it for a bookmarklet:
+    // the server asks VS Code to start the capture (`org-lsp/runCommand`).
+    const { execFileSync } = require('node:child_process');
+    const fs = require('node:fs');
+    const listening = path.join(process.env.XDG_STATE_HOME, 'org-lsp', 'protocol');
+    await until('the server to listen', () => fs.existsSync(listening) && fs.readdirSync(listening).some((name) => name.endsWith('.json')));
+    await oneGroup();
+    const url = 'org-protocol://capture?template=w&url=https%3A%2F%2Forgmode.org%2F&title=Org+mode&body=Selected';
+    execFileSync(process.env.ORG_LSP_TEST_SERVER, ['protocol', url], { env: process.env });
+    const editor = await until('the capture buffer', () => {
+      const active = vscode.window.activeTextEditor;
+      return active && path.basename(active.document.uri.fsPath) === 'CAPTURE-inbox.org' && active;
+    });
+    assert.equal(editor.document.getText(), '* Org mode\nhttps://orgmode.org/\nSelected\n');
+    await vscode.commands.executeCommand('org.capture.abort');
+    await until('the capture buffer to close', () =>
+      vscode.window.tabGroups.all.flatMap((group) => group.tabs).every((tab) => !tab.label.startsWith('CAPTURE-')),
+    );
     await vscode.window.showTextDocument(document);
   });
 
@@ -453,6 +476,19 @@ describe('Org files', () => {
       JSON.stringify(api.virtualIndent(editor)) === JSON.stringify([[2, 2, 0], [3, 1, 1]]),
     );
     assert.equal(editor.document.lineAt(2).text, 'text', 'the file is not changed');
+    await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+    await vscode.workspace.fs.delete(file);
+  });
+
+  it('colours the lines of headlines from edge to edge with org_fontify_whole_heading_line', async () => {
+    const file = vscode.Uri.file(path.join(workspace, 'whole.org'));
+    await vscode.workspace.fs.writeFile(file, Buffer.from('* A\ntext\n** B\n'));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    await until('the headlines highlighted', () => api.lineHighlights(editor).length === 2);
+    assert.deepEqual(api.lineHighlights(editor), [[0, 'headline.level1'], [2, 'headline.level2']]);
+    const colors = vscode.extensions.getExtension('org-lsp.org-lsp').packageJSON.contributes.colors.map((color) => color.id);
+    assert.ok(colors.includes('org.headlineLevel8Background'), 'a colour for each level');
     await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
     await vscode.workspace.fs.delete(file);
   });
@@ -809,9 +845,27 @@ describe('Org files', () => {
     await vscode.window.showTextDocument(document);
   });
 
+  it('folds a subtree yanked at the start of a line', async () => {
+    const file = vscode.Uri.file(path.join(workspace, 'yank.org'));
+    await vscode.workspace.fs.writeFile(file, Buffer.from('* A\na body\n* B\n'));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    await until('the server', async () => (await tokens(file)) !== undefined);
+    await vscode.env.clipboard.writeText('* N\nnew body\n');
+    moveTo(2, 0);
+    await vscode.commands.executeCommand('org.yank');
+    await until('the subtree yanked', () => editor.document.getText() === '* A\na body\n* N\nnew body\n* B\n');
+    assert.equal(editor.selection.active.line, 4, 'the cursor on the line after it');
+    const visible = (line) => editor.visibleRanges.some((range) => range.start.line <= line && line <= range.end.line);
+    await until('the subtree folded', () => visible(2) && !visible(3) && visible(4));
+    await vscode.commands.executeCommand('editor.unfoldAll');
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.workspace.fs.delete(file);
+    await vscode.window.showTextDocument(document);
+  });
+
   it('makes a sparse tree: everything folded but the matches', async () => {
     const file = vscode.Uri.file(path.join(workspace, 'sparse.org'));
-    await vscode.workspace.fs.writeFile(file, Buffer.from('* A\nan apple\n* B\nnothing\n** C\nApple pie\n* D\nnone\n'));
+    await vscode.workspace.fs.writeFile(file, Buffer.from('* A\nan apple\n* B :work:\nnothing\n** C\nApple pie\n* D\nnone\n'));
     const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
     await until('the server', async () => (await tokens(file)) !== undefined);
     const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
@@ -829,6 +883,19 @@ describe('Org files', () => {
       await editor.edit((builder) => builder.insert(new vscode.Position(0, 0), ''));
       await editor.edit((builder) => builder.insert(new vscode.Position(7, 0), 'x'));
       await until('the highlights gone with the change', () => api.sparse(editor).length === 0);
+      // A sparse tree by tags keeps its highlights through changes, as
+      // `org-scan-tags` does, until `C-c C-c` takes them away.
+      vscode.window.showQuickPick = async (items) => items.find((item) => item.key === 'm');
+      vscode.window.showInputBox = async () => 'work';
+      moveTo(0, 0);
+      await vscode.commands.executeCommand('org.sparse.tree');
+      await until('the tagged headlines highlighted', () => api.sparse(editor).length === 2);
+      await editor.edit((builder) => builder.insert(new vscode.Position(7, 0), 'y'));
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      assert.deepEqual(api.sparse(editor), ['*', '**'], 'the highlights kept through the change');
+      await vscode.commands.executeCommand('org.checkbox.toggle');
+      await until('the highlights taken away by C-c C-c', () => api.sparse(editor).length === 0);
+      assert.equal(editor.document.lineAt(2).text, '* B :work:');
     } finally {
       vscode.window.showQuickPick = showQuickPick;
       vscode.window.showInputBox = showInputBox;
@@ -998,10 +1065,11 @@ describe('The agenda', () => {
     await until('the agenda to drop the old date', () => !activeText().includes('Sched. 2x:'));
   });
 
-  it('changes priority and date from a line, and the cursor goes with the entry', async () => {
+  it('changes priority and date from a line, which stays where it is with the cursor', async () => {
     const home = await vscode.workspace.openTextDocument(vscode.Uri.file(path.join(workspace, 'home.org')));
     const lines = activeText().split('\n');
-    moveTo(lines.findIndex((line) => line.endsWith('Scheduled:  TODO Water plants')), 14);
+    const row = lines.findIndex((line) => line.endsWith('Scheduled:  TODO Water plants'));
+    moveTo(row, 14);
     // What Emacs says comes as a notification, or with
     // `org-lsp.messages` set to `statusBar` in the status bar.
     const said = [];
@@ -1030,26 +1098,27 @@ describe('The agenda', () => {
       await settings.update('messages', undefined, vscode.ConfigurationTarget.Global);
     }
     assert.deepEqual(said, ['Priority of current item set to B']);
-    assert.deepEqual(shown, ['Priority of current item set to A', 'Priority of current item set to B']);
+    // The status bar also shows the line's outline path, when the agenda
+    // hears where the cursor went (`org-agenda-show-outline-path`), at a
+    // time of its own.
+    assert.deepEqual(shown.filter((text) => text !== 'home.org'), ['Priority of current item set to A', 'Priority of current item set to B']);
     await until('the priority in the file', () => home.lineAt(0).text === '* TODO [#B] Water plants');
     await until('the priority in the agenda', () => activeLine()?.endsWith('Scheduled:  TODO [#B] Water plants'));
-    // The entry moves to the next day, and the cursor with it.
+    // The entry moves to the next day. As in Emacs
+    // (`org-agenda-show-new-time`), its line stays with the new date at its
+    // end, and so does the cursor.
+    const cursor = () => vscode.window.activeTextEditor.selection.active;
     await vscode.commands.executeCommand('org.date.later');
     await until('the date in the file', () => home.lineAt(1).text === 'SCHEDULED: <2026-05-24 Sun +1w>');
-    await until('the cursor on Sunday', () => {
-      const editor = vscode.window.activeTextEditor;
-      const line = editor.selection.active.line;
-      return (
-        line > 0 &&
-        editor.document.lineAt(line).text.endsWith('TODO [#B] Water plants') &&
-        editor.document.lineAt(line - 1).text === 'Sunday     24 May 2026'
-      );
-    });
-    assert.equal(vscode.window.activeTextEditor.selection.active.character, 14, 'the cursor keeps its column');
+    await until('the new date on the line', () => activeLine()?.endsWith(' => <2026-05-24 Sun +1w> '));
+    assert.ok(activeLine().includes('Scheduled:  TODO [#B] Water'), activeLine());
+    assert.deepEqual([cursor().line, cursor().character], [row, 14], 'the cursor stays');
     // Back as it was.
     await vscode.commands.executeCommand('org.date.earlier');
     await until('the old date', () => home.lineAt(1).text === 'SCHEDULED: <2026-05-23 Sat +1w>');
-    await until('the cursor on Saturday', () => activeLine()?.endsWith('TODO [#B] Water plants') && activeText().includes('Saturday   23 May 2026\n  home:'));
+    await until('the old date on the line', () => activeLine()?.endsWith(' => <2026-05-23 Sat +1w> '));
+    assert.equal(cursor().line, row, 'the cursor stays');
+    // A new priority writes the line anew, without the date.
     await vscode.commands.executeCommand('org.priority.down');
     await until('a lower priority', () => home.lineAt(0).text === '* TODO [#C] Water plants');
     await until('the lower priority in the agenda', () => activeLine()?.endsWith('TODO [#C] Water plants'));
@@ -1084,19 +1153,25 @@ describe('The agenda', () => {
       await until('the date in the file', () => home.lineAt(1).text === 'SCHEDULED: <2026-05-16 Sat +1w>');
       await until('the calendar to close', () => !calendar());
       await agenda('Week-agenda (W21):');
-      await until('the agenda to show it today', () => activeText().includes('Sched. 2x:  TODO Water plants'));
+      // The line stays, saying what was done, with the cursor on it.
+      await until('the new date on the line', () => activeLine()?.endsWith(' S => Scheduled to <2026-05-16 Sat +1w> '));
+      assert.equal(vscode.window.activeTextEditor.selection.active.line, entry - 1, 'the cursor stays');
       // Typed in the minibuffer, back to Saturday.
-      moveTo(activeText().split('\n').findIndex((text) => text.endsWith('Sched. 2x:  TODO Water plants')));
       await vscode.commands.executeCommand('org.schedule');
       await until('the calendar again', () => vscode.window.activeTextEditor?.document.languageId === 'org-date');
       await vscode.commands.executeCommand('org.calendar.type');
       await until('the old date in the file', () => home.lineAt(1).text === 'SCHEDULED: <2026-05-23 Sat +1w>');
       await until('the calendar to close again', () => !calendar());
+      await agenda('Week-agenda (W21):');
+      await until('the old date on the line', () => activeLine()?.endsWith(' S => Scheduled to <2026-05-23 Sat +1w> '));
+      assert.equal(vscode.window.activeTextEditor.selection.active.line, entry - 1, 'the cursor stays');
     } finally {
       vscode.window.showInputBox = showInputBox;
     }
-    await agenda('Week-agenda (W21):');
-    await until('the agenda without the old date', () => !activeText().includes('Sched. 2x:'));
+    // Built again, the agenda shows the entry where it belongs.
+    await vscode.commands.executeCommand('org.agenda.redo');
+    await until('the agenda built again', () => !activeText().includes(' => '));
+    assert.ok(activeText().includes('Scheduled:  TODO Water plants'), activeText());
   });
 
   it('goes to the entry of a line', async () => {
@@ -1148,6 +1223,9 @@ describe('The agenda', () => {
     moveTo(lines.findIndex((line) => line.includes('Call the client')));
     await until('the entry of the new line', () => shownLine() === call);
     assert.equal(vscode.window.activeTextEditor, agendaEditor, 'still in the agenda');
+    // The outline path of its entry in the status bar (`org-agenda-show-outline-path`).
+    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    await until('the outline path', () => api.echoed() === 'work.org');
     await vscode.commands.executeCommand('org.agenda.follow');
   });
 
@@ -1243,11 +1321,15 @@ describe('The agenda', () => {
     const journal = process.env.ORG_LSP_TEST_JOURNAL;
     await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(path.join(workspace, 'work.org')));
     await vscode.commands.executeCommand('org.journal.new.entry');
-    // An Org file, though its name does not say so.
+    // An Org file, though its name does not say so. Shown, once the
+    // extension is done showing it: VS Code makes the editor active at the
+    // top of the file, and gives it the selection asked for a moment later,
+    // before `showTextDocument` returns.
+    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
     const today = await until("today's file", () => {
       const editor = vscode.window.activeTextEditor;
       const shown = editor?.document.uri.fsPath === path.join(journal, '20260518');
-      return shown && editor.document.languageId === 'org' && editor;
+      return shown && editor.document.languageId === 'org' && api.commands().running === 0 && editor;
     });
     assert.equal(today.document.getText(), '* Monday, 05/18/26\n** TODO carried\na note\n** 10:30 ');
     assert.deepEqual([today.selection.active.line, today.selection.active.character], [3, 9]);

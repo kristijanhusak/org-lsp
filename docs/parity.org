@@ -8,47 +8,50 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in [[file:development.org::#how-the-work-is-checked][development.org]]).
 
-*All of Org: 94%*
+*All of Org: 98%*
+
+Org's options, one by one, are under [[#options][Options]].
 
 | Feature | Parity | Done |
 |---+---+---|
-| [[#highlighting][Highlighting]] | 100% | 13 of 13 |
-| [[#folding-and-visibility][Folding and visibility]] | 100% | 8 of 8 |
-| [[#headings-and-structure][Headings and structure]] | 92% | 12 of 13 |
-| [[#lists-and-checkboxes][Lists and checkboxes]] | 100% | 10 of 10 |
-| [[#todo-keywords][TODO keywords]] | 100% | 10 of 10 |
-| [[#priorities][Priorities]] | 75% | 3 of 4 |
-| [[#tags][Tags]] | 86% | 6 of 7 |
-| [[#properties-and-column-view][Properties and column view]] | 75% | 6 of 8 |
-| [[#dates-and-times][Dates and times]] | 100% | 8 of 8 |
-| [[#agenda][Agenda]] | 100% | 23 of 23 |
-| [[#clocking][Clocking]] | 100% | 8 of 8 |
-| [[#capture][Capture]] | 100% | 11 of 11 |
-| [[#notes-org-roam][Notes (org-roam)]] | 67% | 8 of 12 |
-| [[#a-journal-org-journal][A journal (org-journal)]] | 77% | 10 of 13 |
-| [[#refile-and-archive][Refile and archive]] | 100% | 11 of 11 |
-| [[#links][Links]] | 92% | 12 of 13 |
+| [[#highlighting][Highlighting]] | 100% | 21 of 21 |
+| [[#folding-and-visibility][Folding and visibility]] | 91% | 10 of 11 |
+| [[#headings-and-structure][Headings and structure]] | 96% | 25 of 26 |
+| [[#lists-and-checkboxes][Lists and checkboxes]] | 100% | 13 of 13 |
+| [[#todo-keywords][TODO keywords]] | 100% | 14 of 14 |
+| [[#priorities][Priorities]] | 100% | 4 of 4 |
+| [[#tags][Tags]] | 88% | 7 of 8 |
+| [[#properties-and-column-view][Properties and column view]] | 100% | 10 of 10 |
+| [[#dates-and-times][Dates and times]] | 100% | 10 of 10 |
+| [[#agenda][Agenda]] | 100% | 38 of 38 |
+| [[#clocking][Clocking]] | 100% | 14 of 14 |
+| [[#capture][Capture]] | 100% | 12 of 12 |
+| [[#org-protocol][org-protocol]] | 86% | 6 of 7 |
+| [[#notes-org-roam][Notes (org-roam)]] | 94% | 15 of 16 |
+| [[#a-journal-org-journal][A journal (org-journal)]] | 93% | 14 of 15 |
+| [[#refile-and-archive][Refile and archive]] | 100% | 13 of 13 |
+| [[#links][Links]] | 100% | 22 of 22 |
 | [[#footnotes][Footnotes]] | 100% | 4 of 4 |
-| [[#tables][Tables]] | 94% | 16 of 17 |
-| [[#table-formulas][Table formulas]] | 100% | 12 of 12 |
-| [[#code-blocks-babel][Code blocks (Babel)]] | 100% | 11 of 11 |
+| [[#tables][Tables]] | 100% | 19 of 19 |
+| [[#table-formulas][Table formulas]] | 100% | 13 of 13 |
+| [[#code-blocks-babel][Code blocks (Babel)]] | 100% | 12 of 12 |
 | [[#export-and-publishing][Export and publishing]] | 100% | 9 of 9 |
-| [[#citations][Citations]] | 83% | 5 of 6 |
+| [[#citations][Citations]] | 82% | 9 of 11 |
 | [[#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% | 61 of 61 |
-| [[#indentation-and-formatting][Indentation and formatting]] | 71% | 5 of 7 |
-| [[#notes-and-logging][Notes and logging]] | 100% | 4 of 4 |
+| [[#indentation-and-formatting][Indentation and formatting]] | 100% | 8 of 8 |
+| [[#notes-and-logging][Notes and logging]] | 100% | 6 of 6 |
 | [[#completion-and-editing-helpers][Completion and editing helpers]] | 100% | 4 of 4 |
 | [[#timers][Timers]] | 100% | 5 of 5 |
 | [[#attachments][Attachments]] | 100% | 2 of 2 |
 | [[#encryption][Encryption]] | 100% | 2 of 2 |
-| [[#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | 3 of 3 |
+| [[#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | 5 of 5 |
 
 * Highlighting
 :PROPERTIES:
 :CUSTOM_ID: highlighting
 :END:
 
-100% (13 of 13)
+100% (21 of 21)
 
 - ✅ Headlines by level, TODO keywords, priorities and tags
 - ✅ Emphasis, verbatim and code
@@ -58,37 +61,52 @@ decides the outcome (see "How the work is checked" in [[file:development.org::#h
 - ✅ Blocks, keywords, drawers, properties and comments
 - ✅ Code in its language (~org-src-fontify-natively~)
 - ✅ Tables
+- ✅ Lists: bullets, checkboxes, and the terms of description lists in bold (~org-list-dt~)
 - ✅ Footnotes, targets, macros, entities and LaTeX fragments
 - ✅ Archived subtrees shaded (~org-archived~)
 - ✅ Radio targets turning their words into links: highlighted, followed, document links
 - ✅ Entities shown as their characters (~org-pretty-entities~, ~#+STARTUP: entitiespretty~ or ~entitiesplain~): hidden, the character in their place (drawn by the editor where it can, else an inlay hint)
+- ✅ Entities of one's own (~org-entities-user~): parsed, shown, completed and exported as Org's
+- ✅ Timestamps in formats of one's own (~org-display-custom-times~, ~org-timestamp-custom-formats~, ~#+STARTUP: customtime~, ~C-c C-x C-t~): the date and time hidden, the custom form in their place as for entities; in exports through Emacs too
+- ✅ Headline stars as bullets in the colors of their level, the leading ones hidden (org-bullets: ~org_bullets_mode~, ~org_bullets_bullet_list~); bullets of lists and marks of checkboxes as org-bullets.nvim shows them (~org_bullets_list_bullet~, ~org_bullets_checkboxes~)
 - ✅ Sub- and superscripts raised and lowered (~org-pretty-entities-include-sub-superscripts~, ~org-use-sub-superscripts~): where Org raises them, shown in Unicode (~x²~, ~H₂O~) in place of the hidden text (drawn by the editor where it can, else an inlay hint) where every character has a raised or lowered form; the others left as they are, as an editor cannot raise text
+- ✅ Done headlines in ~org-headline-done~ past their keyword (~org-fontify-done-headline~ at its default), complete statistics cookies as done, the title and the information of the document (~org-document-title~, ~org-document-info~)
+- ✅ Headlines past a done or TODO keyword, and the lines of quote and verse blocks, in their own look (~org-fontify-done-headline~, ~org-fontify-todo-headline~, ~org-fontify-quote-and-verse-blocks~)
+- ✅ Emphasis in the looks of ~org-emphasis-alist~ (bold, italic, underline, strike-through, code and verbatim, not colors), or none (~org-fontify-emphasized-text~); keywords such as ~#+TITLE:~ and the braces of macros hidden (~org-hidden-keywords~, ~org-hide-macro-markers~)
+- ✅ How many looks headline levels take, and past the last the first again or the last for all (~org-n-level-faces~, ~org-cycle-level-faces~); a headline's look to the edge of the window, for looks with a background (~org-fontify-whole-heading-line~, where the editor can draw it)
 
 Where editors fall short:
 
-- Vim ❓: Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Vim cannot hide text that has text properties.
-- Sublime Text ❓: Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Sublime Text cannot hide text in a view. The colors need LSP's ~semantic_highlighting~ on.
-- Zed ❓: Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Zed lets no server hide text. The colors need ~"semantic_tokens": "combined"~; code blocks take their language's colors, inline code does not.
-- Helix ❌: Helix does not use semantic tokens: it colors Org with its own tree-sitter grammar.
+- Vim ❓: Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Vim cannot hide text that has text properties. A headline's line colored to the edge (~org_fontify_whole_heading_line~) is a sign without text, which shows the sign column.
+- Sublime Text ❓: Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Sublime Text cannot hide text in a view. The colors need LSP's ~semantic_highlighting~ on. A headline's look does not go on to the edge of the window (~org_fontify_whole_heading_line~): Sublime Text colors a line past its text only with a region filled in one color of the color scheme, as the agenda's clocked line, not in the look semantic tokens give the headline.
+- Zed ❓: Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Zed lets no server hide text. The colors need ~"semantic_tokens": "combined"~; code blocks take their language's colors, inline code does not. A headline's look does not go on to the edge of the window (~org_fontify_whole_heading_line~): Zed lets no server color a line past its text.
+- Helix ❓: Helix has no semantic tokens: Org and the agenda are colored by tree-sitter queries of org-lsp's that ~install.sh~ puts in Helix's runtime, which see the words of the text, not what the server knows. TODO keywords are the usual ones (~TODO~, ~NEXT~, ~WAIT~, ~DONE~, ~CANCELLED~ …), not those of the settings or ~#+TODO:~; the agenda shows neither today nor the clocked line, and its leaders and prefix are the default ones; options of how things look are not followed. Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Helix lets no server hide text; inline code is not in its language's colors.
 
 * Folding and visibility
 :PROPERTIES:
 :CUSTOM_ID: folding-and-visibility
 :END:
 
-100% (8 of 8)
+91% (10 of 11)
 
 - ✅ Cycling a subtree (~TAB~): folded, children, subtree
 - ✅ Cycling the file (~S-TAB~): overview, contents, everything
 - ✅ Startup visibility (~org_startup_folded~, ~#+STARTUP:~ ~overview~, ~content~, ~show2levels~ …, ~showall~, ~showeverything~), the ~VISIBILITY~ property, archived subtrees and drawers folded, ~hideblocks~; where Org shows a headline's children but not its text, the text shows
 - ✅ Blank lines after a subtree kept outside its fold (~org-cycle-separator-lines~)
 - ✅ Archived subtrees left folded (~org-cycle-hide-archived-subtrees~)
-- ✅ Sparse trees (~C-c /~)
+- ✅ A closed fold shows its first line, then the ellipsis (~org-ellipsis~, ~org_ellipsis~)
+- ✅ Sparse trees (~C-c /~), their matches in archived subtrees left folded unless ~org-sparse-tree-open-archived-trees~
 - ✅ Narrowing to a subtree or block (~C-x n s~, ~C-x n b~) and the subtree in an indirect buffer (~C-c C-x b~): it in a file of its own, all there is to see there, written back each time it is saved
 - ✅ Showing the context of the cursor (~org-reveal~, ~C-c C-r~): its entry, the next headline, its siblings and its ancestors, the other folds left as they are; ~org.reveal.siblings~ (~C-u~) each level with its children, ~org.reveal.tree~ (~C-u C-u~) the parent's whole tree
+- ✅ ~TAB~ on a new, empty headline or item changing its level (~org-cycle-level-after-item/entry-creation~), and at the start of the file cycling the file (~org-cycle-global-at-bob~); list items folding, as part of the outline or not at all (~org-cycle-include-plain-lists~); headlines folding to a level (~org-cycle-max-level~)
+- ❌ The other options of cycling (~org-cycle-emulate-tab~, ~org-show-context-detail~, ~org-fold-catch-invisible-edits~)
 
 Where editors fall short:
 
+- Neovim ❓: Cycling the whole file goes between overview and everything: it has no contents state, which needs folds of a headline's own text that Neovim's fold levels do not make. ~<Tab>~ changes the level of a new entry in Normal mode; in Insert mode it is a tab.
+- Vim ❓: Cycling the whole file goes between overview and everything: it has no contents state, which needs folds of a headline's own text that Vim's fold levels do not make. A closed fold's line is not highlighted: Vim draws it in one color. ~<Tab>~ changes the level of a new entry in Normal mode; in Insert mode it is a tab.
+- VS Code ❓: A closed fold ends in VS Code's own ~⋯~: an extension cannot change it (~org_ellipsis~).
+- Sublime Text ❓: A closed fold ends in Sublime Text's own marker: a package cannot change it (~org_ellipsis~).
 - Zed ❓: Zed folds with its own folding: Org's cycling and sparse trees need folds an extension can set, which Zed does not offer.
 - Helix ❌: Helix has no folding.
 
@@ -97,33 +115,47 @@ Where editors fall short:
 :CUSTOM_ID: headings-and-structure
 :END:
 
-92% (12 of 13)
+96% (25 of 26)
 
-- ✅ New headings (~M-RET~, ~M-S-RET~, ~C-RET~, ~C-S-RET~)
-- ✅ Promoting and demoting a heading or a subtree
+- ✅ New headings (~M-RET~, ~M-S-RET~, ~C-RET~, ~C-S-RET~), the line split or not (~org-M-RET-may-split-line~), with empty lines before them as ~org-blank-before-new-entry~ says, after the subtree (~org-insert-heading-respect-content~)
+- ✅ Promoting and demoting a heading or a subtree; a top-level one to a ~#~ line (~org-allow-promoting-top-level-subtree~)
+- ✅ Odd levels only, ~***~ the second (~org-odd-levels-only~, ~#+STARTUP: odd~): promoting, demoting and ~TAB~ on a new headline two stars at a time, the headlines' faces, ~LEVEL~ in matches and ~%l~ in the agenda
+- ✅ Odd levels only where refiling, capturing, archiving and date trees put headlines (~org-get-valid-level~), from the target file's ~#+STARTUP:~
+- ✅ Converting a file to odd levels and back (~org-convert-to-odd-levels~, ~org-convert-to-oddeven-levels~), as the commands ~org.levels.odd~ and ~org.levels.oddeven~
+- ✅ Inline tasks (~org-inlinetask~), headlines of ~org-inlinetask-min-level~ stars or more, 15 by default: inserted with their ~END~ line (~C-c C-x t~, ~org-inlinetask-insert-task~, around the selection, in ~org-inlinetask-default-state~); promoted and demoted with it (~M-<left>~, ~M-<right>~); left out of the outline, of the motion between headings (~C-c C-n~, ~C-c C-p~) and of the subtrees promoted and demoted around them; folded to their ~END~ line; their stars but the last two hidden as leading stars are, the rest in the ~org-inlinetask~ face; listed by the agenda as Emacs lists them
+- ❌ Inline tasks: ~M-<up>~ and ~M-<down>~ on one (Emacs drags the element), its text as the parser's (~inlinetask~ in ~org-element~: here the text after a task without ~END~ line is the task's), the first star in ~org-warning~ with ~org-inlinetask-show-first-star~ (here no star is hidden then), the ~END~ line left behind by archiving and refiling (~org-inlinetask-remove-END-maybe~), and the commands Emacs runs on a selection
 - ✅ Moving a subtree up and down
 - ✅ Cutting, copying and pasting subtrees, their level fitted
+- ✅ Yanking subtrees with ~C-y~ at the level around them (~org-yank-adjusted-subtrees~)
+- ✅ Yanked subtrees folded, unless that would hide the text after them (~org-yank-folded-subtrees~); a subtree cut or copied folded is folded again when it is pasted
+- ✅ ~C-k~ on a folded headline killing what the fold hides, asking first or refusing (~org-ctrl-k-protect-subtree~)
 - ✅ Sorting entries (~C-c ^~)
 - ✅ The outline of the file (document symbols)
 - ✅ Moving between headings (~C-c C-n~, ~C-c C-p~, ~C-c C-f~, ~C-c C-b~, ~C-c C-u~)
 - ✅ Jumping to a heading (~org-goto~, ~C-c C-j~, by outline path)
+- ✅ The outline path of the entry at the cursor in the echo area, with a count the file's name first (~org-display-outline-path~, ~org.outline.path~; not cut to the window's width)
+- ✅ ~C-a~, ~C-e~ and ~C-k~ on headlines and items, to the title and the tags (~org-special-ctrl-a/e~, ~org-special-ctrl-k~)
+- ✅ ~C-o~ opening a line, or in a table inserting a row (~org-open-line~, ~org-special-ctrl-o~)
 - ✅ Turning lines into headings and back (~C-c *~, through Emacs)
 - ✅ Toggling ~COMMENT~ (~C-c ;~, through Emacs)
 - ✅ Cloning a subtree with its dates shifted (~C-c C-x c~, through Emacs)
 - ✅ Commands on a region, a selection in the editor: the headlines in it promoted, demoted or moved, lines turned into headings or items, checkboxes toggled, the region wrapped in a block, a drawer or emphasis (through Emacs)
-- ❌ Sparse trees that tell case apart (~org-occur-case-fold-search~), or by a kind of date asked for (~org-sparse-tree-default-date-type~)
+- ✅ Sparse trees that tell case apart (~org-occur-case-fold-search~), and by a kind of date, cycled with ~c~ (~org-sparse-tree-default-date-type~)
+- ✅ Sparse trees without their matches highlighted (~org-highlight-sparse-tree-matches~)
+- ✅ The highlights of a sparse tree and the times of ~C-c C-x C-d~ gone with the next change, or kept, following the text, until ~C-c C-c~ (~org-remove-highlights-with-change~); those of a sparse tree by tags or a property kept either way, as ~org-scan-tags~ keeps them
 
 Where editors fall short:
 
-- Zed ❓: A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text.
-- Helix ❓: New headings (~M-RET~ and its relatives), moving between headings and ~org-goto~ are left out: they carry the cursor for the editor to move, which Helix's code actions cannot do; nor are the commands run by Emacs (~C-c *~, ~C-c ;~, cloning) among its code actions.
+- VS Code ❓: VS Code does not tell an extension which folds are closed: ~C-k~ on a folded headline is VS Code's own (~org-ctrl-k-protect-subtree~), and a subtree cut or copied folded is not folded again when it is pasted.
+- Zed ❓: A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. ~C-a~, ~C-e~, ~C-k~ and ~C-y~ keep Zed's own meaning, and nothing pasted is folded: Zed lets no server fold.
+- Helix ❓: Moving between headings, ~org-goto~ and Org's ~C-a~, ~C-e~, ~C-k~ and ~C-y~ are left out: they need keys, and Helix cannot bind a key to a server's command; nor are the commands run by Emacs (~C-c *~, ~C-c ;~, cloning) among its code actions. New headings are code actions.
 
 * Lists and checkboxes
 :PROPERTIES:
 :CUSTOM_ID: lists-and-checkboxes
 :END:
 
-100% (10 of 10)
+100% (13 of 13)
 
 - ✅ New items, numbered and with checkboxes (~M-RET~, ~M-S-RET~)
 - ✅ ~RET~ in an item (~org-return~)
@@ -135,27 +167,34 @@ Where editors fall short:
 - ✅ Moving to the next and previous item
 - ✅ Turning lines into items and back (~C-c -~, through Emacs)
 - ✅ Circular motion between items (~org-list-use-circular-motion~)
+- ✅ Two spaces after chosen bullets, a bullet of their own for indented items, a wider indent for sub-items (~org-list-two-spaces-after-bullet-regexp~, ~org-list-demote-modify-bullet~, ~org-list-indent-offset~)
+- ✅ Turning off the automatic rules, and cookies counting every box below them (~org-list-automatic-rules~, ~org-checkbox-hierarchical-statistics~)
+- ✅ Lettered items (~a.~, ~B)~) and one terminator for numbers (~org-list-allow-alphabetical~, ~org-plain-list-ordered-item-terminator~)
 
 Where editors fall short:
 
 - Zed ❓: ~RET~ stays Zed's own, and so do Shift and Alt with the arrows, which cycle bullets and move items in Org.
-- Helix ❓: ~RET~ stays Helix's own, new items, cycled bullets and lines turned into items are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and those are not among them.
+- Helix ❓: ~RET~ stays Helix's own; cycled bullets and lines turned into items are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and those are not among them. New items are code actions.
 
 * TODO keywords
 :PROPERTIES:
 :CUSTOM_ID: todo-keywords
 :END:
 
-100% (10 of 10)
+100% (14 of 14)
 
-- ✅ Cycling states, and fast selection by key (~TODO(t)~)
+- ✅ Cycling states, and fast selection by key (~TODO(t)~), from a menu or the keys in the prompt alone, or never (~org-use-fast-todo-selection~)
 - ✅ Sequences and types from ~#+TODO:~ and ~org_todo_keywords~
 - ✅ Several sequences: cycling stays in the entry's sequence, and ~C-S-<right>~, ~C-S-<left>~ switch sets
+- ✅ Keywords given alone read as a sequence or as types (~org-todo-interpretation~)
 - ✅ Faces of particular keywords and priorities (~org-todo-keyword-faces~, ~org-priority-faces~)
 - ✅ Logging: ~CLOSED:~, the time or a note on a state change (~!~, ~@~), ~LOG_INTO_DRAWER~
+- ✅ TODO statistics of the parent, counting what ~org-provide-todo-statistics~ says, children only or the subtree (~org-hierarchical-todo-statistics~); tags set and removed with the state (~org-todo-state-tags-triggers~); ~CLOSED:~ kept without a keyword (~org-closed-keep-when-no-todo~)
 - ✅ Repeating entries moving to their next date
 - ✅ The parent's statistics cookies recounted
 - ✅ Blocking a state change by children, ~ORDERED~ siblings and checkboxes (~org-enforce-todo-dependencies~)
+- ✅ A tag that shows the ~ORDERED~ property (~org-track-ordered-property-with-tag~)
+- ✅ ~S-<left>~, ~S-<right>~ changing the state without logging or blocking (~org-treat-S-cursor-todo-selection-as-state-change~), a new TODO heading logged as a state change (~org-treat-insert-todo-heading-as-state-change~)
 - ✅ Dimming blocked tasks in the agenda (~org-agenda-dim-blocked-tasks~)
 - ✅ Hiding blocked tasks in the agenda (~org-agenda-dim-blocked-tasks~ ~invisible~)
 
@@ -163,26 +202,26 @@ Where editors fall short:
 
 - Sublime Text ❓: Faces of particular keywords and priorities are not shown in the file: Sublime Text colors text by its color scheme only. The list of TODO states shows them in the color of each item's kind, the nearest of those Sublime Text has.
 - Zed ❓: States are picked with buttons; for a note for a state change (~@~), the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Faces of particular keywords and priorities are not shown: Zed colors tokens by its theme only.
-- Helix ❓: A note for a state change (~@~) cannot be typed: Helix cannot ask for text on a server's behalf. Faces of particular keywords and priorities are not shown.
+- Helix ❓: States are picked from the code actions, where they come first once asked for; for a note for a state change (~@~), the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Faces of particular keywords and priorities are not shown.
 
 * Priorities
 :PROPERTIES:
 :CUSTOM_ID: priorities
 :END:
 
-75% (3 of 4)
+100% (4 of 4)
 
 - ✅ Raising, lowering, setting and removing
 - ✅ ~#+PRIORITIES:~ and number priorities
 - ✅ From the agenda
-- ❌ Turning the priority commands off (~org-priority-enable-commands~)
+- ✅ Turning the priority commands off (~org-priority-enable-commands~)
 
 * Tags
 :PROPERTIES:
 :CUSTOM_ID: tags
 :END:
 
-86% (6 of 7)
+88% (7 of 8)
 
 - ✅ Setting tags: fast selection by key, exclusive groups, typed
 - ✅ Aligning tags (~org_tags_column~)
@@ -190,19 +229,21 @@ Where editors fall short:
 - ✅ Completion
 - ✅ Group tags in searches
 - ✅ A sparse tree by tags
-- ❌ The TODO keywords in the tag selection (~org-fast-tag-selection-include-todo~), and matches without the entries below a match (~org-tags-match-list-sublevels~)
+- ✅ Faces of particular tags in headlines (~org-tag-faces~)
+- ❌ The TODO keywords in the tag selection (~org-fast-tag-selection-include-todo~, a variable Org calls undocumented)
 
 Where editors fall short:
 
-- Zed ❓: Tags are typed, not set with keys pressed in turn: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Completion and renaming work.
-- Helix ❓: Setting tags is left out: it needs keys pressed in turn, or typed tags, and Helix cannot ask for text on a server's behalf. Completion and renaming work.
+- Sublime Text ❓: Faces of particular tags are not shown: Sublime Text colors text by its color scheme only.
+- Zed ❓: Tags are typed, not set with keys pressed in turn: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Completion and renaming work. Faces of particular tags are not shown: Zed colors tokens by its theme only.
+- Helix ❓: Tags are typed, not set with keys pressed in turn: the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Completion and renaming work. Faces of particular tags are not shown.
 
 * Properties and column view
 :PROPERTIES:
 :CUSTOM_ID: properties-and-column-view
 :END:
 
-75% (6 of 8)
+100% (10 of 10)
 
 - ✅ Setting and deleting properties, also from the agenda
 - ✅ Allowed values (~NAME_ALL~) cycled with ~S-<left>~ and ~S-<right>~
@@ -210,60 +251,78 @@ Where editors fall short:
 - ✅ Inheritance, special properties and property searches
 - ✅ Column view (~C-c C-x C-c~, through Emacs): the columns over the headlines, the header, summaries; editing, cycling and the allowed values of a column, moving, narrowing, widening and deleting columns, moving entries
 - ✅ Column view dynamic blocks and summaries (~C-c C-x x~, filled in by Emacs)
-- ❌ Properties written as ~org-property-format~ says, efforts in units of ~org-effort-durations~
-- ❌ IDs made as ~org-id-method~, ~org-id-prefix~ and ~org-id-ts-format~ say (they are always UUIDs)
+- ✅ Properties written as ~org-property-format~ says, their values joined as ~org-property-separators~ says; efforts in the units of ~org-duration-units~ (once ~org-effort-durations~)
+- ✅ Custom properties hidden and shown (~org-custom-properties~, ~org-toggle-custom-properties-visibility~, ~org.custom.properties.toggle~): their lines hidden whole, where the editor can hide a line
+- ✅ IDs made as ~org-id-method~, ~org-id-prefix~, ~org-id-ts-format~ and ~org-id-include-domain~ say
+- ✅ IDs looked for where ~org-id-track-globally~, ~org-id-search-archives~, ~org-id-extra-files~ and ~org-id-locations-file~ say; ~id:~ links completing to ~org-id-completion-targets~
 
 Where editors fall short:
 
-- Vim ❓: Column view's header is in the window's status line, shown when the window has one (~laststatus~).
-- VS Code ❓: Column view's header is in the status bar, with the column picked in brackets.
-- Sublime Text ❓: A property's name and value are typed in an input panel, without completion. Column view is left out: it draws over the headlines, which Sublime Text cannot.
-- Zed ❓: A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Column view is left out: it draws over the headlines.
-- Helix ❓: Setting a property or the effort is left out: they are typed, and Helix cannot ask for text on a server's behalf. Column view is left out: it draws over the headlines.
+- Vim ❓: Column view's header is in the window's status line, shown when the window has one (~laststatus~). Custom properties are not hidden (~org.custom.properties.toggle~): Vim cannot hide a line, a closed fold still shows a line of its own, and text with text properties is not concealed.
+- VS Code ❓: Column view's header is in the status bar, with the column picked in brackets. Custom properties are not hidden (~org.custom.properties.toggle~): VS Code hides lines only in a fold of the folding ranges, which keeps its first line showing, and a decoration cannot hide a line.
+- Sublime Text ❓: A property's name and value are typed in an input panel, without completion. Column view is left out: it draws over the headlines, which Sublime Text cannot. A custom property hidden (~org.custom.properties.toggle~) is in a fold from the end of the line before, which shows the fold's marker: Sublime Text hides text only in folds.
+- Zed ❓: A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Column view is left out: it draws over the headlines. Custom properties are not hidden (~org.custom.properties.toggle~): Zed lets no server hide text.
+- Helix ❓: A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Column view is left out: it draws over the headlines. Custom properties are not hidden (~org.custom.properties.toggle~): Helix lets no server hide text.
 
 * Dates and times
 :PROPERTIES:
 :CUSTOM_ID: dates-and-times
 :END:
 
-100% (8 of 8)
+100% (10 of 10)
 
 - ✅ Inserting active and inactive timestamps (~C-c .~, ~C-c !~)
 - ✅ Scheduling and deadlines (~C-c C-s~, ~C-c C-d~)
 - ✅ Org's date prompt: ~+2d~, ~fri~, ~2/15~, ~10:00-11:30~ …
 - ✅ The calendar with the prompt
-- ✅ Changing the part at the cursor (~S-<up>~, ~S-<down>~), with ranges, repeaters and warnings
+- ✅ The calendar on its own, at the date of the line's timestamp (~org-goto-calendar~, ~C-c >~)
+- ✅ Changing the part at the cursor (~S-<up>~, ~S-<down>~, the other way with ~org-edit-timestamp-down-means-later~), with ranges, repeaters and warnings
 - ✅ Moving a date by days (~S-<left>~, ~S-<right>~)
 - ✅ Removing a scheduled date or a deadline (~C-u C-c C-s~, ~C-u C-c C-d~)
 - ✅ Setting a delay or a warning period (~C-u C-u C-c C-s~, ~C-u C-u C-c C-d~)
+- ✅ A day that ends after midnight (~org-extend-today-until~): the agenda's today, the date prompt, the times capture puts in and its datetree, ~.+~ and ~++~ repeaters
 
 Where editors fall short:
 
 - Sublime Text ❓: Dates are typed, without the calendar: the package asks with an input panel.
 - Zed ❓: Dates are typed (~+2d~, ~fri 10:00~), with no calendar: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Changing a timestamp works.
-- Helix ❓: Scheduling, deadlines and new timestamps are left out: they ask for a date, and Helix cannot ask for text on a server's behalf. Changing a timestamp works.
+- Helix ❓: Dates are typed (~+2d~, ~fri 10:00~), with no calendar: the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text; Helix reads no file again that the server writes, as the calendar is. New timestamps are left out: they are not among Helix's code actions. Changing a timestamp works.
 
 * Agenda
 :PROPERTIES:
 :CUSTOM_ID: agenda
 :END:
 
-100% (23 of 23)
+100% (38 of 38)
 
 - ✅ Day, week, fortnight, month and year views, going to a date
 - ✅ The list of TODO entries
+- ✅ Directories of agenda files read by a regexp (~org-agenda-file-regexp~); a listed file that is not there asked about, removed or aborting, or left out (~org-agenda-skip-unavailable-files~)
 - ✅ Tag, property and group tag searches
 - ✅ Searches for words, phrases and regexps
 - ✅ Stuck projects
+- ✅ Tag matches and stuck projects without the entries below one they list, or with them shown indented by dots (~org-tags-match-list-sublevels~), in sparse trees too
 - ✅ Custom commands and block agendas (~org-agenda-custom-commands~)
+- ✅ Sorting by any of Org's strategies, for each kind of view (~org-agenda-sorting-strategy~), and limits on how many entries show (~org-agenda-max-entries~, ~-todos~, ~-tags~, ~-effort~)
+- ✅ Inherited tags on agenda lines or not, by kind of view (~org-agenda-show-inherited-tags~, ~org-agenda-use-tag-inheritance~), and tags hidden by a regexp (~org-agenda-hide-tags-regexp~)
+- ✅ How times show: two-digit hours (~org-agenda-time-leading-zero~), 12-hour form (~org-agenda-timegrid-use-ampm~), a default duration (~org-agenda-default-appointment-duration~), taken from headlines or not (~org-agenda-search-headline-for-time~, ~-remove-times-when-in-prefix~); date ranges out of headlines (~org-agenda-remove-timeranges-from-blocks~); diary sexp leaders (~org-agenda-diary-sexp-prefix~)
+- ✅ The look of a deadline by the part of its warning time that has passed (~org-agenda-deadline-faces~, with Org's three deadline faces)
+- ✅ For an entry with both a scheduled date and a deadline, one of them left out or held back (~org-agenda-skip-scheduled-if-deadline-is-shown~, ~-deadline-prewarning-if-scheduled~, ~-scheduled-delay-if-deadline~, ~-scheduled-repeats-after-deadline~); repeats at their last date (~org-agenda-prefer-last-repeat~); no deadlines (~org-agenda-include-deadlines~); one timestamp line a day for an entry (~org-agenda-skip-additional-timestamps-same-entry~)
+- ✅ The TODO list leaving out entries for a date of their own (~org-agenda-todo-ignore-scheduled~, ~-deadlines~, ~-timestamp~, ~-with-date~), in ~tags-todo~ too (~org-agenda-tags-todo-honor-ignore-options~), and without sublevels (~org-agenda-todo-list-sublevels~); commented subtrees shown (~org-agenda-skip-comment-trees~)
 - ✅ Commands offered by context (~org-agenda-custom-commands-contexts~)
 - ✅ Filters by tag, category, effort, regexp and top headline
+- ✅ Filters kept from one view to the next (~org-agenda-persistent-filter~)
 - ✅ Bulk marks and actions
 - ✅ Follow mode and entry text
-- ✅ Log mode and the clock report
-- ✅ Archives mode
+- ✅ The outline path of the cursor's entry as it moves (~org-agenda-show-outline-path~)
+- ✅ Log mode, with or without notes (~org-agenda-log-mode-add-notes~), and the clock report, with a header (~org-agenda-clock-report-header~) and any clock table parameters (~org-agenda-clockreport-parameter-plist~)
+- ✅ Priority cookies highlighted, or the rest of their lines, the highest in bold and the lowest in italic (~org-agenda-fontify-priorities~)
+- ✅ Archives mode; archived trees in every view without it (~org-agenda-skip-archived-trees~)
+- ✅ Going to a date (~j~) with its own reading of a date to come (~org-agenda-jump-prefer-future~)
 - ✅ Inactive timestamps in the agenda once (~[~, ~v [~: ~org-agenda-include-inactive-timestamps~)
 - ✅ Changing an entry from the agenda: state, priority, tags, dates, notes, refile, archive, clock
+- ✅ A date of the past moved one day later goes to today (~org-agenda-move-date-from-past-immediately-to-today~)
+- ✅ Changed lines kept where they are until the agenda is rebuilt, the new date at their end (~org-agenda-change-all-lines~, ~org-agenda-show-new-time~)
 - ✅ Lines formatted as Org formats them (~org-agenda-prefix-format~ and the rest); ~%(…)~ in the format run by Emacs on each entry (through Emacs)
 - ✅ The time grid
 - ✅ Habits (~org-habit~): the consistency graph, ~K~
@@ -271,35 +330,42 @@ Where editors fall short:
 - ✅ Diary sexps (~%%(diary-…)~ lines, ~<%%(…)>~ timestamps): the date functions of ~diary-lib~ and Org (~diary-anniversary~, ~-block~, ~-cyclic~, ~-date~, ~-float~, ~org-class~ …) with ~and~, ~or~, ~not~ and comparisons
 - ✅ Diary sexps calling other Lisp, evaluated by Emacs (~org-diary-sexp-entry~) for each day of the view
 - ✅ Column view in the agenda (~C-c C-x C-c~, through Emacs): each entry's line covered by its columns, the summaries on the date lines and the blocks' headers; editing, cycling and showing the values of the entries, changed in their files
-- ✅ Writing the agenda to a file (~C-x C-w~): ~.org~ and plain text
+- ✅ Column view as soon as the agenda is made (~org-agenda-view-columns-initially~)
+- ✅ Writing the agenda to a file (~C-x C-w~): ~.org~ and plain text; in plain text, some lines of each entry's text under its line (~org-agenda-add-entry-text-maxlines~)
 - ✅ Appointment reminders (~org-agenda-to-appt~, through Emacs's ~appt.el~): today's entries with a time, checked each minute, the reminders shown as messages
 
 Where editors fall short:
 
 - VS Code ❓: Tags are at column 80, not at the window's edge (~org_agenda_tags_column~ ~"auto"~): VS Code does not tell an extension how many columns an editor shows.
-- Sublime Text ❓: Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot.
-- Zed ❓: The agenda is a file, its commands code actions (or keys through Zed's tasks); for a search and a date, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Follow mode is left out: Zed reports no cursor moves to an extension. Column view in the agenda is left out: it draws over the lines.
-- Helix ❌: Helix cannot open a document on a server's request. ~org-lsp agenda FILE...~ prints the agenda in a terminal.
+- Sublime Text ❓: Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot. The days of a habit's graph take the colors of text, not Org's backgrounds: Sublime Text colors a token by its color scheme.
+- Zed ❓: The agenda is a file, its commands code actions (or keys through Zed's tasks); for a search and a date, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Follow mode and the outline path of the cursor's entry are left out: Zed reports no cursor moves to an extension. Column view in the agenda is left out: it draws over the lines. The days of a habit's graph have Org's backgrounds for a dark background, a little transparent, with any theme: an extension's colors for tokens are the same with every theme.
+- Helix ❓: The agenda is a file, ~Agenda.org~, its commands code actions, a view's choices first in them once asked for; for a search and a date, the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Follow mode, the outline path of the cursor's entry and the entry in another window are left out: Helix tells a server no cursor moves, and knows no other window of the server's. Column view in the agenda is left out: it draws over the lines. The server's edits leave the agenda's buffer changed: ~:buffer-close!~ closes it.
 
 * Clocking
 :PROPERTIES:
 :CUSTOM_ID: clocking
 :END:
 
-100% (8 of 8)
+100% (14 of 14)
 
-- ✅ Clocking in and out, cancelling, going to the clocked entry
+- ✅ Clocking in and out, cancelling, going to the clocked entry, or with none the entry clocked last (~org-clock-goto-may-find-recent-task~)
 - ✅ The clock history and clocking in the last entry
 - ✅ The clock in the mode line
 - ✅ The time clocked under each headline (~C-c C-x C-d~)
 - ✅ Clock tables, with every parameter
-- ✅ Resolving dangling clocks and idle time
+- ✅ Durations written as ~org-duration-format~ says (~1d 2:30~, ~26:30~, ~1.09d~, ~1d2h15min~) and read with the units of ~org-duration-units~ (days of 8 hours)
+- ✅ Resolving open clocks and idle time (~C-c C-x C-z~, ~org-resolve-clocks~): each clock left running asked about with Emacs's prompt and keys (~k~, ~K~, ~t~, ~T~, ~g~, ~G~, ~s~, ~S~, ~C~, ~j~, ~J~, ~i~, ~q~), the minutes or the time asked next; ~C-u~ for the dangling ones alone; clocking in, in a file or the agenda, resolves first (~org-clock-auto-clock-resolution~), and a clock cut short is offered as the next one's start; the keys in the prompt alone with ~org-clock-resolve-expert~. A clock found running when the server starts shows as the clock, and ~C-c C-x C-o~ stops it, but for resolving and clocking in it is dangling, as in an Emacs that has just started, until kept (~k~) or resumed (~org-clock-persist~)
+- ✅ Clocking in again on a clock left running (~org-clock-in-resume~)
+- ✅ The running clock and the clock history kept from one session to the next, in Emacs's own ~org-clock-save.el~ (~org-clock-persist~, ~org-clock-persist-query-resume~); a kept clock whose ~CLOCK:~ line was closed since is not clocked in again, and the server never asks before it saves (~org-clock-persist-query-save~)
 - ✅ Clocking from the agenda, the clocked entry highlighted
 - ✅ A notice when the clock passes the effort (~org-clock-notify-once-if-expired~)
+- ✅ A note when the clock stops (~org-log-note-clock-out~), in a note buffer
+- ✅ Clock times rounded (~org-clock-rounding-minutes~), clocks started when the last stopped (~org-clock-continuously~)
+- ✅ Clock tables with ~org-clocktable-defaults~, words in other languages (~org-clock-clocktable-language-setup~) and the running clock counted (~org-clock-report-include-clocking-task~)
 
 Where editors fall short:
 
-- Zed ❓: No clock in the status line: Zed has no place there for an extension's text.
+- Zed ❓: No clock in the status line: Zed has no place there for an extension's text. In the agenda, the clocked entry's line has the background of ~org-agenda-clocking~ under its text, not to the window's edge: Zed lets no extension highlight a line, only give its tokens a background, and the tokens end with the text.
 - Helix ❓: No clock in the status line: Helix has no place there for a server's text.
 
 * Capture
@@ -307,7 +373,7 @@ Where editors fall short:
 :CUSTOM_ID: capture
 :END:
 
-100% (11 of 11)
+100% (12 of 12)
 
 - ✅ Templates of every type: entries, items, checkboxes, table lines, plain text
 - ✅ Targets: files, headlines, outline paths, regexps, date trees, IDs, the clock
@@ -320,18 +386,39 @@ Where editors fall short:
 - ✅ ~%c~, ~%x~ and ~%^C~ (the editor's clipboard)
 - ✅ ~%:keyword~ (the properties of the link ~%a~ makes: ~:annotation~, ~:initial~, and an ~id:~ link's ~:link~, ~:description~, ~:type~)
 - ✅ Template contexts (~org-capture-templates-contexts~)
+- ✅ Capturing from the agenda with the date of the line (~org-capture-use-agenda-date~)
 
 Where editors fall short:
 
 - Zed ❓: For a template's prompts, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The capture buffer's tab stays open once the entry is filed: Zed lets no server close a tab.
-- Helix ❌: Helix cannot open the capture buffer, and Helix cannot ask for text on a server's behalf.
+- Helix ❓: Templates are picked from the code actions, where they come first once asked for; for a template's prompts, the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. The capture buffer stays open once the entry is filed: Helix lets no server close a buffer.
+
+* org-protocol
+:PROPERTIES:
+:CUSTOM_ID: org-protocol
+:END:
+
+86% (6 of 7)
+
+- ✅ ~org-protocol://~ URLs from bookmarklets and other programs, handed to the editor with org-lsp by ~org-lsp protocol URL~, which ~scripts/install.sh protocol~ makes the system's handler of the scheme
+- ✅ New-style (~?url=…&title=…~) and old-style (~:/URL/TITLE~) URLs, read as ~org-protocol.el~ reads them (~org-protocol-data-separator~)
+- ✅ ~store-link~: the link stored for ~C-c C-l~, with Emacs's message (~org-protocol-store-link~)
+- ✅ ~capture~: a capture with the URL's template or ~org-protocol-default-template-key~, its ~%:link~, ~%:description~, ~%i~ and ~%a~ from the page (~org-protocol-capture~)
+- ✅ ~open-source~: the file of a published page, through ~org-protocol-project-alist~ and its rewrites (~org-protocol-open-source~)
+- ✅ With no org-lsp running, the editor of ~org_protocol_editor~ started for the URL; a link stored meanwhile kept for the next org-lsp
+- ❌ Handlers of one's own (~org-protocol-protocol-alist~), which are Lisp functions
+
+Where editors fall short:
+
+- Zed ❓: The server starts a capture itself: the template is picked from Zed's question, and for its prompts the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text.
+- Helix ❓: The server starts a capture itself: the template is picked from the code actions, and for its prompts the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text.
 
 * Notes (org-roam)
 :PROPERTIES:
 :CUSTOM_ID: notes-org-roam
 :END:
 
-67% (8 of 12)
+94% (15 of 16)
 
 - ✅ The nodes of ~org_roam_directory~, files and entries with an ~ID~, as ~org-roam-db-sync~ finds them (~org_roam_file_extensions~, ~org_roam_file_exclude_regexp~), read again as they change
 - ✅ Finding a node by its title or an alias (~org-roam-node-find~), offered as ~org_roam_node_display_template~ shows it, the files changed last first; a random node
@@ -339,24 +426,28 @@ Where editors fall short:
 - ✅ New nodes from ~org_roam_capture_templates~: ~${title}~, ~${slug}~, ~${…}~ asked for; ~file~, ~file+head~, ~file+olp~, ~file+head+olp~ and ~node~ targets; capturing to a node (~org-roam-capture~)
 - ✅ ~roam:~ links: following them, completing them, replacing them with ~id:~ links as files are saved
 - ✅ Aliases, tags and references added and removed (~org-roam-alias-add~ …)
+- ✅ A node found by a reference (~org-roam-ref-find~); a file's one headline made the file's node and back (~org-roam-promote-entire-buffer~, ~org-roam-demote-entire-buffer~)
+- ✅ A subtree refiled to a node, or extracted to a file of its own as a node (~org-roam-refile~, ~org-roam-extract-subtree~)
+- ✅ The graph of the nodes, all of them or those near the node at the cursor, drawn by Graphviz (~org-roam-graph~)
 - ✅ The org-roam buffer: backlinks, reflinks and unlinked references (~org_roam_mode_sections~), following the cursor, dedicated buffers
 - ✅ Completing node titles as they are typed (~org-roam-completion-everywhere~)
-- ❌ Daily notes (~org-roam-dailies-capture-today~, ~org-roam-dailies-goto-date~ …)
-- ❌ Extracting a subtree to a node of its own, refiling to a node, promoting and demoting a whole file (~org-roam-extract-subtree~, ~org-roam-refile~, ~org-roam-promote-entire-buffer~)
-- ❌ Finding a node by a reference (~org-roam-ref-find~), and the graph (~org-roam-graph~)
-- ❌ Lisp that chooses the nodes and how they show (~org-roam-node-formatter~, ~org-roam-db-node-include-function~), and which links count (~org-roam-db-extra-links-elements~, ~org-roam-db-extra-links-exclude-keys~)
+- ✅ Daily notes: capturing to and going to a day's note, today, tomorrow, yesterday or a date picked in the date prompt's calendar, and the next and previous notes (~org-roam-dailies-capture-today~, ~org-roam-dailies-goto-date~ …)
+- ✅ Daily notes: the days with a note marked in the date prompt's calendar, as in every calendar while org-roam is on (~org-roam-dailies-calendar-mark-entries~, ~org-roam-dailies-calendar-note~)
+- ✅ Daily notes: the directory opened, its notes offered to visit (~org-roam-dailies-find-directory~)
+- ✅ The description of an inserted link by a template (~org-roam-node-formatter~), and which links of keyword lines and property drawers count (~org-roam-db-extra-links-elements~, ~org-roam-db-extra-links-exclude-keys~)
+- ❌ Lisp that formats a link's description or chooses the nodes (~org-roam-node-formatter~ as a function, ~org-roam-db-node-include-function~)
 
 Where editors fall short:
 
 - Zed ❓: A node's title is typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The org-roam buffer does not follow the cursor: Zed reports no cursor moves to an extension.
-- Helix ❌: Helix cannot ask for text on a server's behalf, and the commands ask for a node; nor can Helix open the org-roam buffer on a server's request.
+- Helix ❌: The commands are not among Helix's code actions yet.
 
 * A journal (org-journal)
 :PROPERTIES:
 :CUSTOM_ID: a-journal-org-journal
 :END:
 
-77% (10 of 13)
+93% (14 of 15)
 
 - ✅ A file a day, week, month or year in ~org_journal_dir~, an entry for each day and one for each time (~org-journal-new-entry~), today's entry only with ~C-u~
 - ✅ An entry for a date asked for, and a TODO entry for a day to come with its timestamp (~org-journal-new-date-entry~, ~org-journal-new-scheduled-entry~)
@@ -368,21 +459,24 @@ Where editors fall short:
 - ✅ The entries to come with a timestamp, in a schedule of their own (~org-journal-schedule-view~)
 - ✅ Moving an entry to come to another day (~org-journal-reschedule-scheduled-entry~)
 - ✅ The days with an entry marked in the date prompt's calendar (~org-journal-mark-entries~)
-- ❌ The keys org-journal adds to ~M-x calendar~ (~j r~, ~[~, ~]~ …)
+- ✅ The keys org-journal adds to ~M-x calendar~ (~j r~, ~j d~, ~[~, ~]~, ~j n~, ~j m~, ~j s f~ …), in the calendar ~org.goto.calendar~ opens
 - ❌ Files encrypted whole (~org-journal-encrypt-journal~)
-- ❌ Visiting the file of a day another way, following the calendar, and remembering the dates between commands (~org-journal-find-file-fn~, ~org-journal-follow-mode~, ~org-journal-enable-cache~)
+- ✅ The file of a day in another window, or in the window of the command (~org-journal-find-file-fn~)
+- ✅ Following the calendar: ~]~ and ~[~ show the entry of the day (~org-journal-follow-mode~)
+- ✅ Remembering the dates between commands (~org-journal-enable-cache~) is not needed: it only spares Emacs reading the files again, and the days are the same; the server reads the directory each time
 
 Where editors fall short:
 
-- Zed ❓: For the dates and searches the commands ask for, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with ~file_types~ in Zed's settings.
-- Helix ❌: Helix cannot open the journal file on a server's request, and Helix cannot ask for text on a server's behalf.
+- Sublime Text ❓: The calendar and the keys org-journal adds to it are left out: the package shows no date prompt.
+- Zed ❓: For the dates and searches the commands ask for, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with ~file_types~ in Zed's settings. The calendar and the keys org-journal adds to it are left out: Zed shows no date prompt.
+- Helix ❌: The commands are not among Helix's code actions yet.
 
 * Refile and archive
 :PROPERTIES:
 :CUSTOM_ID: refile-and-archive
 :END:
 
-100% (11 of 11)
+100% (13 of 13)
 
 - ✅ Refiling to a heading, between files too (~org-refile-targets~)
 - ✅ Archiving a subtree to its archive file
@@ -390,22 +484,24 @@ Where editors fall short:
 - ✅ Toggling the ~ARCHIVE~ tag
 - ✅ Archive locations, ~ARCHIVE~ properties, date trees, ~ARCHIVE_…~ context
 - ✅ Archiving all done subtrees
+- ✅ The archive file saved, or left with its changes in the editor, as ~org-archive-subtree-save-file-p~ says (from the agenda it is not, by default)
 - ✅ Logging refiles (~org-log-refile~)
 - ✅ Creating parent nodes as the target (~org-refile-allow-creating-parent-nodes~)
+- ✅ Refiling a selection that is not whole subtrees, its first line made a headline (~org-refile-active-region-within-subtree~, through Emacs)
 - ✅ Refiling a region (a selection of whole subtrees)
 - ✅ Copying (~C-c M-w~), going to a target (~C-u C-c C-w~) and to the last refiled entry (~C-u C-u C-c C-w~)
 - ✅ ~org-refile-target-verify-function~ (the function run by Emacs at each headline)
 
 Where editors fall short:
 
-- Helix ❓: Refiling is left out: it asks for a target from a list, which Helix cannot show for a server. Archiving works as code actions.
+- Helix ❓: Copying an entry to a target, going to a target and to the entry refiled last are left out: they are not among Helix's code actions. Refiling picks the target from the code actions, where the targets come first once asked for.
 
 * Links
 :PROPERTIES:
 :CUSTOM_ID: links
 :END:
 
-92% (12 of 13)
+100% (22 of 22)
 
 - ✅ Following links: headlines, targets, custom IDs, files with searches, IDs, URLs, timestamps, tags
 - ✅ Storing and inserting links, with descriptions, editing the link at the cursor
@@ -419,12 +515,21 @@ Where editors fall short:
 - ✅ Default descriptions from the link type: an ~id:~ link's headline, an ~info:~ link's command
 - ✅ Moving to the next and previous link (~C-c C-x C-n~, ~C-c C-x C-p~)
 - ✅ A search by regular expression (~file:x.org::/regexp/~): a sparse tree of its matches (~org-occur~), in the file the link is in
-- ❌ Making a missing headline a link searches for (~org-link-search-must-match-exact-headline~)
+- ✅ Making a missing headline a link searches for, or looking for its words in the text (~org-link-search-must-match-exact-headline~); ~doi:~ links at ~org-link-doi-server-url~
+- ✅ Following a link, a timestamp or a citation with ~RET~ (~org-return-follows-link~)
+- ✅ Which program opens a linked file (~org-file-apps~): the editor, the system's application or a shell command; ~C-u~ opens it in the editor, ~C-u C-u~ by the system
+- ✅ Opening a linked file that is not there with its program rather than saying ~No such file~ (~org-open-non-existing-files~)
+- ✅ A link to a directory opening the ~index.org~ in it (~org-open-directory-means-index-dot-org~)
+- ✅ Following a ~shell:~ link: its command runs once the user says yes to ~Execute … in shell?~, or at once when ~org-link-shell-skip-confirm-regexp~ matches it; what it writes is a message, which Emacs shows in a buffer when long
+- ✅ Following a ~bibtex:~ link, or a ~file:~ link into a ~.bib~ file, to the entry of the key after ~::~ (~org-bibtex-open~, ~org-execute-file-search-in-bibtex~)
+- ✅ Following a ~man:~ link with ~ol-man~ in ~org_modules~ (~org-man-open~): the page ~org_man_command~ writes, as text in a file of the server's rather than a ~*Man*~ buffer, at the line before the first match of the search after ~::~; in brackets only, the parser knowing no ~man:~ type (~woman~ is ~man~)
+- ✅ Following an ~info:~ link (~org-info-open~): Emacs's manuals and those of ~org-info-other-documents~ open on the web at the node, as Org's export links them (~org-info-map-html-url~); another manual is the node the ~info~ program writes, as text, rather than Emacs's Info reader
+- ✅ ~org-ctags~ in ~org_modules~: a link to a headline, a target or a custom ID goes first to the tag of the ~TAGS~ file of its directory, or, as ~org-ctags-open-link-functions~ says, makes that file again (~org-ctags-create-tags~), appends a topic (~org-ctags-new-topic-template~) or opens an Org file of that name; ~org.ctags.create~ and ~org.ctags.find~ (~org-ctags-find-tag-interactive~). The ~TAGS~ file is the directory's, never asked for (~visit-tags-table~); of several tags of a name, the first
 
 Where editors fall short:
 
 - Zed ❓: A link's target is typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Following works through go to definition, for links inside Org files and to files.
-- Helix ❓: Storing and inserting links are left out: they ask for text, and Helix cannot ask for text on a server's behalf; moving between links needs a key. Following works through go to definition.
+- Helix ❓: Storing and inserting links in an Org file are left out: they are not among Helix's code actions there (the agenda stores a link to its line's entry); moving between links needs a key. Following works through go to definition.
 
 * Footnotes
 :PROPERTIES:
@@ -447,10 +552,11 @@ Where editors fall short:
 :CUSTOM_ID: tables
 :END:
 
-94% (16 of 17)
+100% (19 of 19)
 
 - ✅ Aligning (~C-c C-c~, formatting)
 - ✅ Moving between fields (~TAB~, ~S-TAB~), a row made past the last
+- ✅ Their options: what counts as a number for right alignment, aligning only on ~C-c C-c~, a row before a rule rather than past it, the shrunk columns' indicator (~org-table-number-regexp~, ~org-table-automatic-realign~, ~org-table-tab-jumps-over-hlines~, ~org-table-shrunk-column-indicator~)
 - ✅ Moving, inserting and deleting rows and columns
 - ✅ Rules (~C-c -~, ~C-c RET~)
 - ✅ Blanking a field
@@ -460,12 +566,13 @@ Where editors fall short:
 - ✅ Copying down (~S-RET~, through Emacs)
 - ✅ Editing a field in a file of its own (~org-table-edit-field~, through Emacs): put back, the table realigned, each time it is saved
 - ✅ Shrunk columns (~<5>~): ~C-c TAB~, ~org-startup-shrink-all-tables~ and ~#+STARTUP: shrink~; the hidden text concealed where the editor can hide it, ~…~ drawn in its place or an inlay hint
+- ✅ Every table aligned when a file opens (~org-startup-align-all-tables~, ~#+STARTUP: align~, ~noalign~)
 - ✅ Creating an empty table (~C-c |~, through Emacs)
 - ✅ Making a table from a region (~C-c |~ on a selection, through Emacs)
 - ✅ Summing (~C-c +~) and field information (~C-c ?~), through Emacs
 - ✅ Moving the field with the shifted cursor keys (through Emacs)
 - ✅ Importing and exporting tables (~org-table-import~, ~org-table-export~, through Emacs)
-- ❌ Plotting (~org-plot~)
+- ✅ Plotting with gnuplot as the ~#+PLOT:~ lines say (~org-plot/gnuplot~, ~C-c " g~, through Emacs with gnuplot.el and gnuplot), and a column of bars in the table (~orgtbl-ascii-plot~, ~C-c " a~, through Emacs)
 
 Where editors fall short:
 
@@ -479,7 +586,7 @@ Where editors fall short:
 :CUSTOM_ID: table-formulas
 :END:
 
-100% (12 of 12)
+100% (13 of 13)
 
 - ✅ Column, field and range formulas
 - ✅ References by row, column, hline and name
@@ -487,6 +594,7 @@ Where editors fall short:
 - ✅ Calc's arithmetic, vectors, dates and durations
 - ✅ Modes and formats (~;%.2f~, ~;N~, ~;T~)
 - ✅ Recalculating the line, the table, until stable
+- ✅ Their options: constants for every file, references stopping at rules, columns made past the last, durations' format, Calc's default modes, formulas in fields left as text, no recalculation of ~#~ lines (~org-table-formula-constants~ and the rest, set for Emacs too where it computes)
 - ✅ Formulas in Emacs Lisp (through Emacs)
 - ✅ Remote references (through Emacs)
 - ✅ Units (through Emacs)
@@ -499,9 +607,10 @@ Where editors fall short:
 :CUSTOM_ID: code-blocks-babel
 :END:
 
-100% (11 of 11)
+100% (12 of 12)
 
 - ✅ Tangling, with Noweb references, comments and header arguments from properties
+- ✅ Tangling's options: extensions by language, the link comments' format and paths, comments left uncommented, the Org text of comments as it is, the default file mode, deleting files before writing them, Noweb references between other strings (~org-babel-tangle-lang-exts~, ~org-babel-tangle-comment-format-beg~, ~org-babel-noweb-wrap-start~ and the others)
 - ✅ Evaluating a block, a ~#+CALL:~ line and inline code (through Emacs)
 - ✅ Evaluating the file's and the subtree's blocks
 - ✅ Removing results
@@ -544,18 +653,24 @@ Where editors fall short:
 :CUSTOM_ID: citations
 :END:
 
-83% (5 of 6)
+82% (9 of 11)
 
 - ✅ Bibliographies from ~#+BIBLIOGRAPHY:~ and ~org_cite_global_bibliography~ (BibTeX, CSL-JSON)
 - ✅ Keys completed
 - ✅ A key's entry on hover, following a key
 - ✅ Unknown keys reported
 - ✅ Inserting, editing and deleting citations (~C-c C-x @~)
-- ❌ Another processor to insert citations (~org-cite-insert-processor~)
+- ✅ No processor to insert citations, or one of Org's that cannot (~org-cite-insert-processor~)
+- ❌ A package's processor to insert citations, citar's (~org-cite-insert-processor~)
+- ✅ BibTeX entries as headlines (~ol-bibtex.el~): the entries of the file's headlines written to a ~.bib~ file (~org-bibtex~, ~org.bibtex.export~), the entry at the cursor copied as BibTeX (~org-bibtex-export-to-kill-ring~, ~org.bibtex.copy~), with the prefix, the type and key properties, the keywords as tags and the fields of any property (~org_bibtex_*~)
+- ✅ A new BibTeX entry, its type and fields asked for in turn (~org-bibtex-create~, ~org-bibtex-create-in-current-entry~), and the fields entries lack (~org-bibtex-check~, ~org-bibtex-check-all~); with a count the optional fields too; keys made by ~bibtex-generate-autokey~ through Emacs (~org_bibtex_autogen_keys~)
+- ✅ A BibTeX entry pasted as a headline (~org-bibtex-yank~, from the clipboard), and the entries of a BibTeX file imported (~org-bibtex-import-from-file~)
+- ❌ The rest of ~ol-bibtex.el~: the help on a field while it is asked for (~*BibTeX Help*~); ~org-bibtex-headline-format-function~, a Lisp function (its default, the title, is what a headline gets); searching the agenda files for entries (~org-bibtex-search~); reading an entry in a ~.bib~ file and storing a link to it (~org-bibtex-read~, ~org-bibtex-store-link~): org-lsp serves no BibTeX files
 
 Where editors fall short:
 
-- Helix ❓: Inserting citations is not offered as a code action yet. Completion, hover and following work.
+- Zed ❓: The BibTeX commands' fields are asked for in turn, and the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text.
+- Helix ❓: Inserting citations and the BibTeX commands are not offered as code actions yet. Completion, hover and following work.
 
 * Diagnostics (org-lint)
 :PROPERTIES:
@@ -571,39 +686,44 @@ Where editors fall short:
 :CUSTOM_ID: indentation-and-formatting
 :END:
 
-71% (5 of 7)
+100% (8 of 8)
 
 - ✅ Virtual indentation (~org-indent-mode~, ~#+STARTUP: indent~)
 - ✅ Hidden leading stars (~org-hide-leading-stars~)
 - ✅ Hard indentation (~org-adapt-indentation~)
 - ✅ Indenting lines and regions (~org-indent-line~, ~org-indent-region~)
 - ✅ Aligning tables and tags
-- ❌ Lines a long line wraps into indented (~wrap-prefix~)
-- ❌ Other widths of virtual indentation (~org-indent-indentation-per-level~, ~org-description-max-indent~)
+- ✅ Lines a long line wraps into indented (~wrap-prefix~): under the line's own indentation, a headline's title, an item's text (~org-list-item-body-column~), past the prefix of virtual indentation where the editor can repeat it
+- ✅ Other widths of virtual indentation, stars left showing and ~org-adapt-indentation~ left on with it (~org-indent-indentation-per-level~, ~org-indent-mode-turns-on-hiding-stars~, ~org-indent-mode-turns-off-org-adapt-indentation~)
+- ✅ Numbered headlines (~org-num-mode~, ~#+STARTUP: num~), as inlay hints, with its options (~org-num-max-level~, ~org-num-skip-commented~, ~org-num-skip-footnotes~, ~org-num-skip-tags~, ~org-num-skip-unnumbered~)
 
 Where editors fall short:
 
-- Vim ❓: The lines a long line wraps into are not indented.
-- Sublime Text ❓: Virtual indentation shows as phantoms, the leading stars still showing; new lines are not indented as they are typed.
-- Zed ❓: Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed.
-- Helix ❓: Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed.
+- Neovim ❓: The lines a long line wraps into line up with its own indentation, a headline's title or an item's text ('breakindent'), without the prefix of virtual indentation before them: Neovim repeats no inline virtual text on them, and 'breakindentopt' shifts all the lines of a window alike.
+- Vim ❓: The lines a long line wraps into line up with its own indentation, a headline's title or an item's text ('breakindent'), without the prefix of virtual indentation before them: Vim repeats no virtual text on them, and 'breakindentopt' shifts all the lines of a window alike.
+- VS Code ❓: The lines a long line wraps into are not indented as Org does: VS Code indents them by the line's own leading whitespace (~editor.wrappingIndent~), the same way for every line, without the prefix of virtual indentation, a decoration it does not count.
+- Sublime Text ❓: Virtual indentation shows as phantoms, the leading stars still showing; new lines are not indented as they are typed. The lines a long line wraps into are not indented as Org does: Sublime Text indents them by the line's own leading whitespace (~indent_subsequent_lines~).
+- Zed ❓: Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. With soft wrap on, the lines a long line wraps into line up with the prefix and its own indentation, not with a headline's title or an item's text: Zed wraps under a line's leading blanks, inlay hints among them.
+- Helix ❓: Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. With soft wrap on (~soft-wrap.enable~), the lines a long line wraps into line up with the prefix and its own indentation, not with a headline's title or an item's text: Helix wraps under a line's leading blanks, inlay hints among them.
 
 * Notes and logging
 :PROPERTIES:
 :CUSTOM_ID: notes-and-logging
 :END:
 
-100% (4 of 4)
+100% (6 of 6)
 
 - ✅ Notes (~org-add-note~), in the log or the ~LOGBOOK~ drawer
 - ✅ Notes and times on state changes
 - ✅ ~LOG_INTO_DRAWER~ and the ~LOGGING~ property
 - ✅ Logging rescheduled dates and deadlines (~org-log-reschedule~, ~org-log-redeadline~)
+- ✅ The headings of notes (~org-log-note-headings~), the latest note first or last (~org-log-states-order-reversed~, for clock lines too), notes after drawers (~org-log-state-notes-insert-after-drawers~), ~CLOSED:~ without the time (~org-log-done-with-time~)
+- ✅ Late-night changes counted on the day before (~org-use-effective-time~, ~org-todo-yesterday~, ~org-agenda-todo-yesterday~), or at the last clock-out (~org-use-last-clock-out-time-as-effective-time~)
 
 Where editors fall short:
 
 - Zed ❓: A note is one line, with no buffer to write it in: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text.
-- Helix ❌: A note is typed text: Helix cannot ask for text on a server's behalf.
+- Helix ❓: A note is one line, with no buffer to write it in: the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Adding a note is a code action in the agenda, not in an Org file.
 
 * Completion and editing helpers
 :PROPERTIES:
@@ -669,17 +789,60 @@ Where editors fall short:
 :CUSTOM_ID: inline-images-and-latex-previews
 :END:
 
-100% (3 of 3)
+100% (5 of 5)
 
 - ✅ Previews of links to images (~org-link-preview~, ~C-c C-x C-v~): the link at the cursor, the section, the file, with links with a description (counts 1, 11), cleared (4, 64); ~#+STARTUP: inlineimages~
 - ✅ LaTeX previews (~org-latex-preview~, ~C-c C-x C-l~), made by Emacs as Org makes them (~latex~, ~dvipng~, into ~ltximg/~); ~#+STARTUP: latexpreview~
 - ✅ Previews of ~attachment:~ links (the file found through Emacs, ~org-attach-expand~)
+- ✅ The width an image shows at (~org-image-actual-width~, ~#+ATTR_ORG: :width~, the ~ORG-IMAGE-ACTUAL-WIDTH~ property) and the most (~org-image-max-width~)
+- ✅ The images of ~http:~ and ~https:~ links (~org-display-remote-inline-images~: ~download~ each time they show, or ~cache~ once for the session), downloaded with ~curl~ into a private directory as ~org-resource-download-policy~ and ~org-safe-remote-resources~ allow, after asking as ~org--confirm-resource-safe~ does (~y~, ~n~, ~f~, ~d~, ~!~), but not when a file opens. Emacs shows remote files (TRAMP) so, which org-lsp has not, and not URLs; the regexps the answers ~!~, ~d~ and ~f~ add are kept for the session, not saved with Customize
 
 Where editors fall short:
 
 - Neovim ❓: From Neovim 0.13 (~vim.ui.img~), in a terminal with the Kitty graphics protocol: an image shows below its line, not over the link; images other than PNG need ImageMagick.
 - Vim ❌: Vim cannot show images.
-- VS Code ❓: VS Code cannot leave lines free for an image: an image takes the place of its link only as high as a line, and shows whole on hover. Counts through a key's ~args~.
+- VS Code ❓: VS Code cannot leave lines free for an image: an image takes the place of its link only as high as a line, and shows whole on hover (at the width Org gives it, at most 600 pixels). Counts through a key's ~args~.
 - Sublime Text ❓: An image shows below its line (a phantom), not over the link; PNG, JPEG and GIF only. Counts through a key's ~args~.
 - Zed ❌: Zed lets no extension show images in a file.
 - Helix ❌: Helix cannot show images.
+
+* Options
+:PROPERTIES:
+:CUSTOM_ID: options
+:END:
+
+Each of the 1025 options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with
+it. Of the 360 that change what org-lsp does itself, 100% can be set.
+[[file:../scripts/org-options.json][scripts/org-options.json]] says it for each; ~scripts/check.sh~ fails when the
+server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,
+when Org has an option it does not list.
+
+| Status | Options | Meaning |
+|---+---+---|
+| setting | 348 | A setting of the same name |
+| missing | 0 | org-lsp does what the option is about, but the option cannot be set yet |
+| other | 12 | Done another way, as its note says |
+| emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
+| lisp | 48 | Its value is Lisp (a function, a hook), which the server does not run |
+| absent | 34 | Part of something org-lsp does not do |
+| emacs-only | 103 | About Emacs itself (windows, faces, menus, the mouse, the mode line): nothing to do in an editor |
+
+** Done another way
+
+- ~org-agenda-skip-timestamp-if-deadline-is-shown~ :: no effect in Org 9.8.10: ~org-agenda-get-timestamps~ looks the entry up with ~assq~ in a list of positions, which finds none; none here either
+- ~org-archive-stamp-time~ :: no effect in Org 9.8.10, which keeps it for old configurations: ~org_archive_save_context_info~ with ~time~ decides
+- ~org-cycle-level-after-item/entry-creation~ :: the setting ~org_cycle_level_after_item_entry_creation~, its name without the ~/~
+- ~org-id-locations-file-relative~ :: org-lsp reads the locations file and never writes it; names in it that are not absolute are relative to its directory, as Emacs reads them
+- ~org-tab-follows-link~ :: TAB is the editor's key for folding and tables; a link is followed with org.open (C-c C-o), go to definition, or RET with org_return_follows_link
+- ~org-protocol-reverse-list-of-files~ :: ~org-lsp protocol~ takes one URL at a time, as the system gives it: there is no list of file names from ~emacsclient~ to put back in order
+- ~org-table-auto-blank-field~ :: the editor types into a field as into any text: TAB leaves the cursor at the start of the field's text, as in Emacs, and the first character typed does not blank it
+- ~org-table-formula-use-constants~ :: only for a formula evaluated on its own (~C-c =~, a field starting with ~=~), which org-lsp does not do; the formulas of ~#+TBLFM:~ lines always use the constants, in Emacs too
+- ~org-startup-truncated~ :: the editor decides how long lines wrap
+- ~org-special-ctrl-a/e~ :: the setting ~org_special_ctrl_a_e~, its name without the ~/~
+- ~org-timestamp-rounding-minutes~ :: the setting ~org_time_stamp_rounding_minutes~, its name before Org 9.6
+- ~org-src-fontify-natively~ :: the editors' option ~src_highlight~ (Neovim, Vim); VS Code and Sublime Text color the code of blocks by their grammars, always
+
+** Missing
+
+Options of what org-lsp does that cannot be set yet, by the file of Org they are in.
+

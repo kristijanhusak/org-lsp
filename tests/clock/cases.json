@@ -1,505 +1,1076 @@
 [
-  {
-    "clock": "2026-05-18 10:30",
-    "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
-    "steps": [
-      [
-        "in",
-        "Task a"
-      ]
-    ],
-    "options": {
-      "org_todo_keywords": [
-        "TODO",
-        "NEXT",
-        "WAIT",
-        "|",
-        "DONE"
-      ]
-    },
-    "expected": "* TODO Task a\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n"
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
+  "steps": [
+   [
+    "in",
+    "Task a"
+   ]
+  ],
+  "options": {
+   "org_todo_keywords": [
+    "TODO",
+    "NEXT",
+    "WAIT",
+    "|",
+    "DONE"
+   ]
   },
-  {
-    "clock": "2026-05-18 10:30",
-    "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
-    "steps": [
-      [
-        "in",
-        "Task a"
-      ],
-      [
-        "out"
-      ]
-    ],
-    "options": {
-      "org_todo_keywords": [
-        "TODO",
-        "NEXT",
-        "WAIT",
-        "|",
-        "DONE"
-      ]
-    },
-    "expected": "* TODO Task a\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00\n:END:\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n"
+  "expected": "* TODO Task a\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
+  "steps": [
+   [
+    "in",
+    "Task a"
+   ],
+   [
+    "out"
+   ]
+  ],
+  "options": {
+   "org_todo_keywords": [
+    "TODO",
+    "NEXT",
+    "WAIT",
+    "|",
+    "DONE"
+   ]
   },
-  {
-    "clock": "2026-05-18 10:30",
-    "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
-    "steps": [
-      [
-        "in",
-        "Task a"
-      ]
-    ],
-    "options": {
-      "org_todo_keywords": [
-        "TODO",
-        "NEXT",
-        "WAIT",
-        "|",
-        "DONE"
-      ],
-      "org_clock_in_switch_to_state": "NEXT"
-    },
-    "expected": "* NEXT Task a\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n"
+  "expected": "* TODO Task a\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00\n:END:\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
+  "steps": [
+   [
+    "in",
+    "Task a"
+   ]
+  ],
+  "options": {
+   "org_todo_keywords": [
+    "TODO",
+    "NEXT",
+    "WAIT",
+    "|",
+    "DONE"
+   ],
+   "org_clock_in_switch_to_state": "NEXT"
   },
-  {
-    "clock": "2026-05-18 10:30",
-    "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
-    "steps": [
-      [
-        "in",
-        "Task b"
-      ]
-    ],
-    "options": {
-      "org_todo_keywords": [
-        "TODO",
-        "NEXT",
-        "WAIT",
-        "|",
-        "DONE"
-      ],
-      "org_clock_in_switch_to_state": "NEXT"
-    },
-    "expected": "* TODO Task a\n* NEXT Task b\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n** TODO Task c\n* Task d\n* DONE Task e\n"
+  "expected": "* NEXT Task a\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
+  "steps": [
+   [
+    "in",
+    "Task b"
+   ]
+  ],
+  "options": {
+   "org_todo_keywords": [
+    "TODO",
+    "NEXT",
+    "WAIT",
+    "|",
+    "DONE"
+   ],
+   "org_clock_in_switch_to_state": "NEXT"
   },
-  {
-    "clock": "2026-05-18 10:30",
-    "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
-    "steps": [
-      [
-        "in",
-        "Task d"
-      ]
-    ],
-    "options": {
-      "org_todo_keywords": [
-        "TODO",
-        "NEXT",
-        "WAIT",
-        "|",
-        "DONE"
-      ],
-      "org_clock_in_switch_to_state": "NEXT"
-    },
-    "expected": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* NEXT Task d\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n* DONE Task e\n"
+  "expected": "* TODO Task a\n* NEXT Task b\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n** TODO Task c\n* Task d\n* DONE Task e\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
+  "steps": [
+   [
+    "in",
+    "Task d"
+   ]
+  ],
+  "options": {
+   "org_todo_keywords": [
+    "TODO",
+    "NEXT",
+    "WAIT",
+    "|",
+    "DONE"
+   ],
+   "org_clock_in_switch_to_state": "NEXT"
   },
-  {
-    "clock": "2026-05-18 10:30",
-    "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
-    "steps": [
-      [
-        "in",
-        "Task a"
-      ],
-      [
-        "out"
-      ]
-    ],
-    "options": {
-      "org_todo_keywords": [
-        "TODO",
-        "NEXT",
-        "WAIT",
-        "|",
-        "DONE"
-      ],
-      "org_clock_out_switch_to_state": "WAIT"
-    },
-    "expected": "* WAIT Task a\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00\n:END:\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n"
+  "expected": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* NEXT Task d\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n* DONE Task e\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
+  "steps": [
+   [
+    "in",
+    "Task a"
+   ],
+   [
+    "out"
+   ]
+  ],
+  "options": {
+   "org_todo_keywords": [
+    "TODO",
+    "NEXT",
+    "WAIT",
+    "|",
+    "DONE"
+   ],
+   "org_clock_out_switch_to_state": "WAIT"
   },
-  {
-    "clock": "2026-05-18 10:30",
-    "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
-    "steps": [
-      [
-        "in",
-        "Task a"
-      ],
-      [
-        "in",
-        "Task c"
-      ]
-    ],
-    "options": {
-      "org_todo_keywords": [
-        "TODO",
-        "NEXT",
-        "WAIT",
-        "|",
-        "DONE"
-      ],
-      "org_clock_in_switch_to_state": "NEXT",
-      "org_clock_out_switch_to_state": "WAIT"
-    },
-    "expected": "* WAIT Task a\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00\n:END:\n* NEXT Task b\n** NEXT Task c\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n* Task d\n* DONE Task e\n"
+  "expected": "* WAIT Task a\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00\n:END:\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
+  "steps": [
+   [
+    "in",
+    "Task a"
+   ],
+   [
+    "in",
+    "Task c"
+   ]
+  ],
+  "options": {
+   "org_todo_keywords": [
+    "TODO",
+    "NEXT",
+    "WAIT",
+    "|",
+    "DONE"
+   ],
+   "org_clock_in_switch_to_state": "NEXT",
+   "org_clock_out_switch_to_state": "WAIT"
   },
-  {
-    "clock": "2026-05-18 10:30",
-    "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
-    "steps": [
-      [
-        "in",
-        "Task c"
-      ],
-      [
-        "in",
-        "Task a"
-      ],
-      [
-        "out"
-      ]
-    ],
-    "options": {
-      "org_todo_keywords": [
-        "TODO",
-        "NEXT",
-        "WAIT",
-        "|",
-        "DONE"
-      ],
-      "org_clock_out_switch_to_state": "DONE",
-      "org_log_done": "time"
-    },
-    "expected": "* DONE Task a\nCLOSED: [2026-05-18 Mon 10:30]\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00\n:END:\n* NEXT Task b\n** DONE Task c\nCLOSED: [2026-05-18 Mon 10:30]\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00\n:END:\n* Task d\n* DONE Task e\n"
+  "expected": "* WAIT Task a\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00\n:END:\n* NEXT Task b\n** NEXT Task c\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n* Task d\n* DONE Task e\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
+  "steps": [
+   [
+    "in",
+    "Task c"
+   ],
+   [
+    "in",
+    "Task a"
+   ],
+   [
+    "out"
+   ]
+  ],
+  "options": {
+   "org_todo_keywords": [
+    "TODO",
+    "NEXT",
+    "WAIT",
+    "|",
+    "DONE"
+   ],
+   "org_clock_out_switch_to_state": "DONE",
+   "org_log_done": "time"
   },
-  {
-    "clock": "2026-05-18 10:30",
-    "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
-    "steps": [
-      [
-        "in",
-        "Task a"
-      ],
-      [
-        "cancel"
-      ]
-    ],
-    "options": {
-      "org_todo_keywords": [
-        "TODO",
-        "NEXT",
-        "WAIT",
-        "|",
-        "DONE"
-      ],
-      "org_clock_in_switch_to_state": "NEXT",
-      "org_clock_out_switch_to_state": "WAIT"
-    },
-    "expected": "* NEXT Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n"
+  "expected": "* DONE Task a\nCLOSED: [2026-05-18 Mon 10:30]\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00\n:END:\n* NEXT Task b\n** DONE Task c\nCLOSED: [2026-05-18 Mon 10:30]\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00\n:END:\n* Task d\n* DONE Task e\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
+  "steps": [
+   [
+    "in",
+    "Task a"
+   ],
+   [
+    "cancel"
+   ]
+  ],
+  "options": {
+   "org_todo_keywords": [
+    "TODO",
+    "NEXT",
+    "WAIT",
+    "|",
+    "DONE"
+   ],
+   "org_clock_in_switch_to_state": "NEXT",
+   "org_clock_out_switch_to_state": "WAIT"
   },
-  {
-    "clock": "2026-05-18 10:30",
-    "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
-    "steps": [
-      [
-        "in",
-        "Task e"
-      ]
-    ],
-    "options": {
-      "org_todo_keywords": [
-        "TODO",
-        "NEXT",
-        "WAIT",
-        "|",
-        "DONE"
-      ],
-      "org_clock_in_switch_to_state": "NEXT"
-    },
-    "expected": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* NEXT Task e\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n"
+  "expected": "* NEXT Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
+  "steps": [
+   [
+    "in",
+    "Task e"
+   ]
+  ],
+  "options": {
+   "org_todo_keywords": [
+    "TODO",
+    "NEXT",
+    "WAIT",
+    "|",
+    "DONE"
+   ],
+   "org_clock_in_switch_to_state": "NEXT"
   },
-  {
-    "clock": "2026-05-18 10:30",
-    "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
-    "steps": [
-      [
-        "in",
-        "Task a"
-      ]
-    ],
-    "options": {
-      "org_todo_keywords": [
-        "TODO",
-        "NEXT",
-        "WAIT",
-        "|",
-        "DONE"
-      ],
-      "org_clock_in_switch_to_state": "NEXT",
-      "org_log_into_drawer": true
-    },
-    "expected": "* NEXT Task a\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n"
+  "expected": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* NEXT Task e\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
+  "steps": [
+   [
+    "in",
+    "Task a"
+   ]
+  ],
+  "options": {
+   "org_todo_keywords": [
+    "TODO",
+    "NEXT",
+    "WAIT",
+    "|",
+    "DONE"
+   ],
+   "org_clock_in_switch_to_state": "NEXT",
+   "org_log_into_drawer": true
   },
-  {
-    "clock": "2026-05-18 10:30",
-    "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
-    "steps": [
-      [
-        "in",
-        "Task a"
-      ]
-    ],
-    "options": {
-      "org_todo_keywords": [
-        "TODO",
-        "NEXT",
-        "WAIT",
-        "|",
-        "DONE"
-      ],
-      "org_clock_in_switch_to_state": "next"
-    },
-    "expected": "ERROR: (user-error \"State ‘next’ not valid in this file\")"
+  "expected": "* NEXT Task a\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO Task a\n* NEXT Task b\n** TODO Task c\n* Task d\n* DONE Task e\n",
+  "steps": [
+   [
+    "in",
+    "Task a"
+   ]
+  ],
+  "options": {
+   "org_todo_keywords": [
+    "TODO",
+    "NEXT",
+    "WAIT",
+    "|",
+    "DONE"
+   ],
+   "org_clock_in_switch_to_state": "next"
   },
-  {
-    "clock": "2026-05-18 10:30",
-    "text": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
-    "steps": [
-      [
-        "display"
-      ]
-    ],
-    "options": {
-      "org_todo_keywords": [
-        "TODO",
-        "|",
-        "DONE"
-      ]
-    },
-    "expected": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
-    "display": [
-      [
-        0,
-        "2:15"
-      ],
-      [
-        1,
-        "2:15"
-      ],
-      [
-        8,
-        "1d 2:15"
-      ],
-      [
-        13,
-        "1:00"
-      ]
-    ],
-    "message": "Total file time: 1d 5:30 (29 hours and 30 minutes)"
+  "expected": "ERROR: (user-error \"State ‘next’ not valid in this file\")"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
+  "steps": [
+   [
+    "display"
+   ]
+  ],
+  "options": {
+   "org_todo_keywords": [
+    "TODO",
+    "|",
+    "DONE"
+   ]
   },
-  {
-    "clock": "2026-05-18 10:30",
-    "text": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
-    "steps": [
-      [
-        "display",
-        "today"
-      ]
-    ],
-    "options": {
-      "org_todo_keywords": [
-        "TODO",
-        "|",
-        "DONE"
-      ]
-    },
-    "expected": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
-    "display": [
-      [
-        0,
-        "1:30"
-      ],
-      [
-        1,
-        "1:30"
-      ],
-      [
-        13,
-        "0:30"
-      ]
-    ],
-    "message": "Total file time (custom): 2:00 (2 hours and 0 minutes)"
+  "expected": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
+  "display": [
+   [
+    0,
+    "2:15"
+   ],
+   [
+    1,
+    "2:15"
+   ],
+   [
+    8,
+    "1d 2:15"
+   ],
+   [
+    13,
+    "1:00"
+   ]
+  ],
+  "message": "Total file time: 1d 5:30 (29 hours and 30 minutes)"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
+  "steps": [
+   [
+    "display",
+    "today"
+   ]
+  ],
+  "options": {
+   "org_todo_keywords": [
+    "TODO",
+    "|",
+    "DONE"
+   ]
   },
-  {
-    "clock": "2026-05-18 10:30",
-    "text": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
-    "steps": [
-      [
-        "display",
-        "thisweek"
-      ]
-    ],
-    "options": {
-      "org_todo_keywords": [
-        "TODO",
-        "|",
-        "DONE"
-      ]
-    },
-    "expected": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
-    "display": [
-      [
-        0,
-        "1:30"
-      ],
-      [
-        1,
-        "1:30"
-      ],
-      [
-        13,
-        "0:30"
-      ]
-    ],
-    "message": "Total file time (custom): 2:00 (2 hours and 0 minutes)"
+  "expected": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
+  "display": [
+   [
+    0,
+    "1:30"
+   ],
+   [
+    1,
+    "1:30"
+   ],
+   [
+    13,
+    "0:30"
+   ]
+  ],
+  "message": "Total file time (custom): 2:00 (2 hours and 0 minutes)"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
+  "steps": [
+   [
+    "display",
+    "thisweek"
+   ]
+  ],
+  "options": {
+   "org_todo_keywords": [
+    "TODO",
+    "|",
+    "DONE"
+   ]
   },
-  {
-    "clock": "2026-05-18 10:30",
-    "text": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
-    "steps": [
-      [
-        "display",
-        "lastyear"
-      ]
-    ],
-    "options": {
-      "org_todo_keywords": [
-        "TODO",
-        "|",
-        "DONE"
-      ]
-    },
-    "expected": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
-    "display": [
-      [
-        0,
-        "1d 2:00"
-      ],
-      [
-        6,
-        "1d 2:00"
-      ]
-    ],
-    "message": "Total file time (custom): 1d 2:00 (26 hours and 0 minutes)"
+  "expected": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
+  "display": [
+   [
+    0,
+    "1:30"
+   ],
+   [
+    1,
+    "1:30"
+   ],
+   [
+    13,
+    "0:30"
+   ]
+  ],
+  "message": "Total file time (custom): 2:00 (2 hours and 0 minutes)"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
+  "steps": [
+   [
+    "display",
+    "lastyear"
+   ]
+  ],
+  "options": {
+   "org_todo_keywords": [
+    "TODO",
+    "|",
+    "DONE"
+   ]
   },
-  {
-    "clock": "2026-05-18 10:30",
-    "text": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
-    "steps": [
-      [
-        "display",
-        "yesterday"
-      ]
-    ],
-    "options": {
-      "org_todo_keywords": [
-        "TODO",
-        "|",
-        "DONE"
-      ]
-    },
-    "expected": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
-    "display": [
-      [
-        13,
-        "0:30"
-      ]
-    ],
-    "message": "Total file time (custom): 0:30 (0 hours and 30 minutes)"
+  "expected": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
+  "display": [
+   [
+    0,
+    "1d 2:00"
+   ],
+   [
+    6,
+    "1d 2:00"
+   ]
+  ],
+  "message": "Total file time (custom): 1d 2:00 (26 hours and 0 minutes)"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
+  "steps": [
+   [
+    "display",
+    "yesterday"
+   ]
+  ],
+  "options": {
+   "org_todo_keywords": [
+    "TODO",
+    "|",
+    "DONE"
+   ]
   },
-  {
-    "clock": "2026-05-18 10:30",
-    "text": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
-    "steps": [
-      [
-        "display",
-        "thismonth"
-      ]
-    ],
-    "options": {
-      "org_todo_keywords": [
-        "TODO",
-        "|",
-        "DONE"
-      ]
-    },
-    "expected": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
-    "display": [
-      [
-        0,
-        "2:15"
-      ],
-      [
-        1,
-        "2:15"
-      ],
-      [
-        13,
-        "1:00"
-      ]
-    ],
-    "message": "Total file time (custom): 3:15 (3 hours and 15 minutes)"
+  "expected": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
+  "display": [
+   [
+    13,
+    "0:30"
+   ]
+  ],
+  "message": "Total file time (custom): 0:30 (0 hours and 30 minutes)"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
+  "steps": [
+   [
+    "display",
+    "thismonth"
+   ]
+  ],
+  "options": {
+   "org_todo_keywords": [
+    "TODO",
+    "|",
+    "DONE"
+   ]
   },
-  {
-    "clock": "2026-05-18 10:30",
-    "text": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
-    "steps": [
-      [
-        "in",
-        "Nothing"
-      ],
-      [
-        "display"
-      ]
+  "expected": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
+  "display": [
+   [
+    0,
+    "2:15"
+   ],
+   [
+    1,
+    "2:15"
+   ],
+   [
+    13,
+    "1:00"
+   ]
+  ],
+  "message": "Total file time (custom): 3:15 (3 hours and 15 minutes)"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
+  "steps": [
+   [
+    "in",
+    "Nothing"
+   ],
+   [
+    "display"
+   ]
+  ],
+  "options": {
+   "org_todo_keywords": [
+    "TODO",
+    "|",
+    "DONE"
+   ]
+  },
+  "expected": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
+  "display": [
+   [
+    0,
+    "2:15"
+   ],
+   [
+    1,
+    "2:15"
+   ],
+   [
+    8,
+    "1d 2:15"
+   ],
+   [
+    16,
+    "1:00"
+   ]
+  ],
+  "message": "Total file time: 1d 5:30 (29 hours and 30 minutes)"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\n:LOGBOOK:\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\n:END:\n",
+  "steps": [
+   [
+    "in",
+    "a"
+   ]
+  ],
+  "options": {
+   "org_log_states_order_reversed": true,
+   "org_clock_into_drawer": true
+  },
+  "expected": "* TODO a\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\n:END:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\n:LOGBOOK:\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\n:END:\n",
+  "steps": [
+   [
+    "in",
+    "a"
+   ]
+  ],
+  "options": {
+   "org_log_states_order_reversed": true,
+   "org_clock_into_drawer": false
+  },
+  "expected": "* TODO a\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\n:END:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\n:LOGBOOK:\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\n:END:\n",
+  "steps": [
+   [
+    "in",
+    "a"
+   ]
+  ],
+  "options": {
+   "org_log_states_order_reversed": false,
+   "org_clock_into_drawer": true
+  },
+  "expected": "* TODO a\n:LOGBOOK:\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\n:LOGBOOK:\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\n:END:\n",
+  "steps": [
+   [
+    "in",
+    "a"
+   ]
+  ],
+  "options": {
+   "org_log_states_order_reversed": false,
+   "org_clock_into_drawer": false
+  },
+  "expected": "* TODO a\n:LOGBOOK:\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nCLOCK: [2026-05-18 Mon 10:30]\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\n:END:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\nText\n",
+  "steps": [
+   [
+    "in",
+    "a"
+   ]
+  ],
+  "options": {
+   "org_log_states_order_reversed": true,
+   "org_clock_into_drawer": true
+  },
+  "expected": "* TODO a\n:LOGBOOK:\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\nCLOCK: [2026-05-18 Mon 10:30]\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\n:END:\nText\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\nText\n",
+  "steps": [
+   [
+    "in",
+    "a"
+   ]
+  ],
+  "options": {
+   "org_log_states_order_reversed": true,
+   "org_clock_into_drawer": false
+  },
+  "expected": "* TODO a\nCLOCK: [2026-05-18 Mon 10:30]\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\nText\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\nText\n",
+  "steps": [
+   [
+    "in",
+    "a"
+   ]
+  ],
+  "options": {
+   "org_log_states_order_reversed": false,
+   "org_clock_into_drawer": true
+  },
+  "expected": "* TODO a\n:LOGBOOK:\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\nCLOCK: [2026-05-18 Mon 10:30]\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\n:END:\nText\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\nText\n",
+  "steps": [
+   [
+    "in",
+    "a"
+   ]
+  ],
+  "options": {
+   "org_log_states_order_reversed": false,
+   "org_clock_into_drawer": false
+  },
+  "expected": "* TODO a\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nCLOCK: [2026-05-18 Mon 10:30]\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\nText\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nText\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\n",
+  "steps": [
+   [
+    "in",
+    "a"
+   ]
+  ],
+  "options": {
+   "org_log_states_order_reversed": true,
+   "org_clock_into_drawer": true
+  },
+  "expected": "* TODO a\n:LOGBOOK:\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\nCLOCK: [2026-05-18 Mon 10:30]\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\n:END:\nText\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nText\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\n",
+  "steps": [
+   [
+    "in",
+    "a"
+   ]
+  ],
+  "options": {
+   "org_log_states_order_reversed": true,
+   "org_clock_into_drawer": false
+  },
+  "expected": "* TODO a\nCLOCK: [2026-05-18 Mon 10:30]\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nText\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nText\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\n",
+  "steps": [
+   [
+    "in",
+    "a"
+   ]
+  ],
+  "options": {
+   "org_log_states_order_reversed": false,
+   "org_clock_into_drawer": true
+  },
+  "expected": "* TODO a\n:LOGBOOK:\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\nCLOCK: [2026-05-18 Mon 10:30]\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\n:END:\nText\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nText\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\n",
+  "steps": [
+   [
+    "in",
+    "a"
+   ]
+  ],
+  "options": {
+   "org_log_states_order_reversed": false,
+   "org_clock_into_drawer": false
+  },
+  "expected": "* TODO a\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nText\nCLOCK: [2026-05-18 Mon 10:30]\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nText\n",
+  "steps": [
+   [
+    "in",
+    "a"
+   ]
+  ],
+  "options": {
+   "org_log_states_order_reversed": true,
+   "org_clock_into_drawer": true
+  },
+  "expected": "* TODO a\n:LOGBOOK:\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\nText\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nText\n",
+  "steps": [
+   [
+    "in",
+    "a"
+   ]
+  ],
+  "options": {
+   "org_log_states_order_reversed": true,
+   "org_clock_into_drawer": false
+  },
+  "expected": "* TODO a\nCLOCK: [2026-05-18 Mon 10:30]\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nText\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nText\n",
+  "steps": [
+   [
+    "in",
+    "a"
+   ]
+  ],
+  "options": {
+   "org_log_states_order_reversed": false,
+   "org_clock_into_drawer": true
+  },
+  "expected": "* TODO a\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\n:END:\nText\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nText\n",
+  "steps": [
+   [
+    "in",
+    "a"
+   ]
+  ],
+  "options": {
+   "org_log_states_order_reversed": false,
+   "org_clock_into_drawer": false
+  },
+  "expected": "* TODO a\nCLOCK: [2026-05-18 Mon 10:30]\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nText\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\nSCHEDULED: <2026-05-18 Mon>\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\nCLOCK: [2026-05-15 Fri 09:00]--[2026-05-15 Fri 10:00] =>  1:00\n",
+  "steps": [
+   [
+    "in",
+    "a"
+   ]
+  ],
+  "options": {
+   "org_log_states_order_reversed": true,
+   "org_clock_into_drawer": true
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-18 Mon>\n:LOGBOOK:\nCLOCK: [2026-05-15 Fri 09:00]--[2026-05-15 Fri 10:00] =>  1:00\nCLOCK: [2026-05-18 Mon 10:30]\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\n:END:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\nSCHEDULED: <2026-05-18 Mon>\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\nCLOCK: [2026-05-15 Fri 09:00]--[2026-05-15 Fri 10:00] =>  1:00\n",
+  "steps": [
+   [
+    "in",
+    "a"
+   ]
+  ],
+  "options": {
+   "org_log_states_order_reversed": true,
+   "org_clock_into_drawer": false
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-18 Mon>\nCLOCK: [2026-05-18 Mon 10:30]\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\nCLOCK: [2026-05-15 Fri 09:00]--[2026-05-15 Fri 10:00] =>  1:00\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\nSCHEDULED: <2026-05-18 Mon>\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\nCLOCK: [2026-05-15 Fri 09:00]--[2026-05-15 Fri 10:00] =>  1:00\n",
+  "steps": [
+   [
+    "in",
+    "a"
+   ]
+  ],
+  "options": {
+   "org_log_states_order_reversed": false,
+   "org_clock_into_drawer": true
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-18 Mon>\n:LOGBOOK:\nCLOCK: [2026-05-15 Fri 09:00]--[2026-05-15 Fri 10:00] =>  1:00\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\nCLOCK: [2026-05-18 Mon 10:30]\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\n:END:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\nSCHEDULED: <2026-05-18 Mon>\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\nCLOCK: [2026-05-15 Fri 09:00]--[2026-05-15 Fri 10:00] =>  1:00\n",
+  "steps": [
+   [
+    "in",
+    "a"
+   ]
+  ],
+  "options": {
+   "org_log_states_order_reversed": false,
+   "org_clock_into_drawer": false
+  },
+  "expected": "* TODO a\nSCHEDULED: <2026-05-18 Mon>\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nCLOCK: [2026-05-16 Sat 09:00]--[2026-05-16 Sat 10:00] =>  1:00\nCLOCK: [2026-05-18 Mon 10:30]\nCLOCK: [2026-05-15 Fri 09:00]--[2026-05-15 Fri 10:00] =>  1:00\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\n:LOGBOOK:\n:END:\n",
+  "steps": [
+   [
+    "in",
+    "a"
+   ]
+  ],
+  "options": {
+   "org_log_states_order_reversed": true,
+   "org_clock_into_drawer": true
+  },
+  "expected": "* TODO a\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\n:LOGBOOK:\n:END:\n",
+  "steps": [
+   [
+    "in",
+    "a"
+   ]
+  ],
+  "options": {
+   "org_log_states_order_reversed": true,
+   "org_clock_into_drawer": false
+  },
+  "expected": "* TODO a\nCLOCK: [2026-05-18 Mon 10:30]\n:LOGBOOK:\n:END:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\n:LOGBOOK:\n:END:\n",
+  "steps": [
+   [
+    "in",
+    "a"
+   ]
+  ],
+  "options": {
+   "org_log_states_order_reversed": false,
+   "org_clock_into_drawer": true
+  },
+  "expected": "* TODO a\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* TODO a\n:LOGBOOK:\n:END:\n",
+  "steps": [
+   [
+    "in",
+    "a"
+   ]
+  ],
+  "options": {
+   "org_log_states_order_reversed": false,
+   "org_clock_into_drawer": false
+  },
+  "expected": "* TODO a\nCLOCK: [2026-05-18 Mon 10:30]\n:LOGBOOK:\n:END:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "#+STARTUP: nologstatesreversed\n* TODO a\n:LOGBOOK:\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\n:END:\n",
+  "steps": [
+   [
+    "in",
+    "a"
+   ]
+  ],
+  "expected": "#+STARTUP: nologstatesreversed\n* TODO a\n:LOGBOOK:\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
+  "steps": [
+   [
+    "display"
+   ]
+  ],
+  "options": {
+   "org_todo_keywords": [
+    "TODO",
+    "|",
+    "DONE"
+   ],
+   "org_duration_format": "h:mm"
+  },
+  "expected": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
+  "display": [
+   [
+    0,
+    "2:15"
+   ],
+   [
+    1,
+    "2:15"
+   ],
+   [
+    8,
+    "26:15"
+   ],
+   [
+    13,
+    "1:00"
+   ]
+  ],
+  "message": "Total file time: 29:30 (29 hours and 30 minutes)"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
+  "steps": [
+   [
+    "display"
+   ]
+  ],
+  "options": {
+   "org_todo_keywords": [
+    "TODO",
+    "|",
+    "DONE"
+   ],
+   "org_duration_format": [
+    [
+     "d",
+     false
     ],
-    "options": {
-      "org_todo_keywords": [
-        "TODO",
-        "|",
-        "DONE"
-      ]
-    },
-    "expected": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
-    "display": [
-      [
-        0,
-        "2:15"
-      ],
-      [
-        1,
-        "2:15"
-      ],
-      [
-        8,
-        "1d 2:15"
-      ],
-      [
-        16,
-        "1:00"
-      ]
+    [
+     "h",
+     false
     ],
-    "message": "Total file time: 1d 5:30 (29 hours and 30 minutes)"
-  }
+    [
+     "special",
+     2
+    ]
+   ]
+  },
+  "expected": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
+  "display": [
+   [
+    0,
+    "2.25h"
+   ],
+   [
+    1,
+    "2.25h"
+   ],
+   [
+    8,
+    "1.09d"
+   ],
+   [
+    13,
+    "1.00h"
+   ]
+  ],
+  "message": "Total file time: 1.23d (29 hours and 30 minutes)"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
+  "steps": [
+   [
+    "display"
+   ]
+  ],
+  "options": {
+   "org_todo_keywords": [
+    "TODO",
+    "|",
+    "DONE"
+   ],
+   "org_duration_format": [
+    [
+     "d",
+     false
+    ],
+    [
+     "h",
+     true
+    ],
+    [
+     "min",
+     true
+    ],
+    "compact"
+   ]
+  },
+  "expected": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
+  "display": [
+   [
+    0,
+    "2h15min"
+   ],
+   [
+    1,
+    "2h15min"
+   ],
+   [
+    8,
+    "1d2h15min"
+   ],
+   [
+    13,
+    "1h0min"
+   ]
+  ],
+  "message": "Total file time: 1d5h30min (29 hours and 30 minutes)"
+ },
+ {
+  "clock": "2026-05-18 10:30",
+  "text": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
+  "steps": [
+   [
+    "display"
+   ]
+  ],
+  "options": {
+   "org_todo_keywords": [
+    "TODO",
+    "|",
+    "DONE"
+   ],
+   "org_duration_units": [
+    [
+     "min",
+     1
+    ],
+    [
+     "h",
+     60
+    ],
+    [
+     "d",
+     480
+    ],
+    [
+     "w",
+     2400
+    ],
+    [
+     "m",
+     9600
+    ],
+    [
+     "y",
+     96000
+    ]
+   ]
+  },
+  "expected": "* Project\n** TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 08:00]--[2026-05-18 Mon 09:30] =>  1:30\nCLOCK: [2026-05-12 Tue 10:00]--[2026-05-12 Tue 10:45] =>  0:45\n:END:\n** Review\nCLOCK: [2025-12-30 Tue 09:00]--[2025-12-31 Wed 11:00] => 26:00\n* Long one                                                            :tag:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 08:00]--[2026-03-02 Mon 10:15] => 26:15\n:END:\n* Nothing\n* Yesterday\nCLOCK: [2026-05-17 Sun 23:30]--[2026-05-18 Mon 00:30] =>  1:00\n",
+  "display": [
+   [
+    0,
+    "2:15"
+   ],
+   [
+    1,
+    "2:15"
+   ],
+   [
+    8,
+    "3d 2:15"
+   ],
+   [
+    13,
+    "1:00"
+   ]
+  ],
+  "message": "Total file time: 3d 5:30 (29 hours and 30 minutes)"
+ }
 ]

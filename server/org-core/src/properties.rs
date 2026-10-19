@@ -445,6 +445,58 @@ fn after_removal(mut at: usize, removed: &[(usize, usize)]) -> usize {
     at
 }
 
+/// What `org-toggle-custom-properties-visibility` hides: the lines, from
+/// 0, of the properties named in `names` (`org-custom-properties`, case
+/// folded) in the property drawer of each entry, and of the file's own
+/// before the first headline. As Org looks for them: the first such line
+/// after the last entry looked at, if it is in its entry's drawer then
+/// the others of that drawer, and on from the next headline.
+pub fn custom_property_lines(text: &str, names: &[String]) -> Vec<usize> {
+    if names.is_empty() {
+        return Vec::new();
+    }
+    // `(org-re-property (regexp-opt org-custom-properties) t t)`
+    let names: Vec<String> = names.iter().map(|name| regex::escape(name)).collect();
+    let regex = RegexBuilder::new(&format!(r"^[ \t]*:(?:{}):(?:[ \t]+.*?)?[ \t]*$", names.join("|")))
+        .case_insensitive(true)
+        .multi_line(true)
+        .build()
+        .expect("a valid regex");
+    let line_of = |offset: usize| text[..offset].matches('\n').count();
+    let mut lines = Vec::new();
+    let mut from = 0;
+    while let Some(found) = regex.find_at(text, from) {
+        let mut point = found.end();
+        if let Some((_, end)) = block(text, found.start()).filter(|(_, end)| point < *end) {
+            // The first custom property of the drawer, then the others.
+            lines.push(line_of(found.start()));
+            while let Some(next) = regex.find_at(text, point).filter(|next| next.end() <= end) {
+                lines.push(line_of(next.start()));
+                point = next.end();
+            }
+        }
+        // `outline-next-heading`: each entry has one property drawer.
+        let Some(next) = next_heading(text, point) else { break };
+        from = next;
+    }
+    lines
+}
+
+/// `outline-next-heading` from `offset`, not at the start of a line: the
+/// start of the next line that is a headline (`\*+ `).
+fn next_heading(text: &str, offset: usize) -> Option<usize> {
+    let mut line = next_line(text, offset);
+    while line < text.len() {
+        let content = &text[line..line_end(text, line)];
+        let after = content.trim_start_matches('*');
+        if after.len() < content.len() && after.starts_with(' ') {
+            return Some(line);
+        }
+        line = next_line(text, line);
+    }
+    None
+}
+
 /// `org-delete-property-globally`: `name` taken out of every entry; the
 /// new text and how many entries had it.
 pub fn delete_globally(text: &str, name: &str) -> (String, usize) {
@@ -938,6 +990,9 @@ pub fn set_effort(
     Ok((text, format!("{EFFORT} is now {value}")))
 }
 
+/// What `org-toggle-ordered-property` says when it sets `ORDERED`.
+pub const ORDERED_ON: &str = "Subtasks must be completed in sequence";
+
 /// `org-toggle-ordered-property`: `ORDERED` set to `t`, or taken out when
 /// the entry has it; the new text and Org's message.
 pub fn toggle_ordered(text: &str, offset: usize, context: &Context) -> Result<(String, String), String> {
@@ -946,7 +1001,7 @@ pub fn toggle_ordered(text: &str, offset: usize, context: &Context) -> Result<(S
         let (text, _, _) = delete(text, heading, "ORDERED");
         Ok((text, "Subtasks can be completed in arbitrary order".to_string()))
     } else {
-        Ok((put(text, heading, "ORDERED", "t", context)?, "Subtasks must be completed in sequence".to_string()))
+        Ok((put(text, heading, "ORDERED", "t", context)?, ORDERED_ON.to_string()))
     }
 }
 

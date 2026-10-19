@@ -6,12 +6,17 @@
 //                                    keymap, Zed's from keymap.json and
 //                                    tasks.json, which their own generators
 //                                    write from the server's manifest)
-//   docs/configuration.org           every option at its default
+//   docs/configuration.org           a heading for each option, with its
+//                                    default
 //   docs/protocol.org                the table of options
 //   docs/<editor>.org, README.org    what works, from scripts/features.mjs
-//   docs/parity.org                  the same area by area (whole)
+//   docs/parity.org                  the same area by area (whole), and
+//                                    each of Org's options and what
+//                                    org-lsp does with it, from
+//                                    scripts/org-options.json
 //   editors/<editor>/TESTING.org     what to try by hand (whole)
 //   docs/config.schema.json          the JSON Schema of the shared file
+//   docs/config.toml                 the shared file, every option at its default
 //   lua/org-lsp/types.lua            the options' types, for lua-language-server
 //
 // In a page written by hand, only the lines between `# BEGIN generated:
@@ -20,7 +25,7 @@
 //   node scripts/generate-docs.mjs [path/to/org-lsp]   rewrite the pages
 //   node scripts/generate-docs.mjs --check             fail if out of date
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, schemaProperties } from './settings-schema.mjs';
@@ -41,6 +46,55 @@ const run = (command) => JSON.parse(execFileSync(resolve(binary), [command], { e
 const manifest = run('manifest');
 const settings = run('settings');
 const vscode = JSON.parse(readFileSync(join(root, 'editors', 'vscode', 'package.json'), 'utf8'));
+
+// ----- Org's options (scripts/org-options.json)
+
+/** Every option of Org 9.8.10 (`defcustom`), by the file it is in, and what
+ * org-lsp does with it. */
+const OPTIONS = JSON.parse(readFileSync(join(root, 'scripts', 'org-options.json'), 'utf8'));
+/** What an option's status means. */
+const STATUSES = {
+  setting: 'A setting of the same name',
+  missing: 'org-lsp does what the option is about, but the option cannot be set yet',
+  other: 'Done another way, as its note says',
+  emacs: 'Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~',
+  lisp: 'Its value is Lisp (a function, a hook), which the server does not run',
+  absent: 'Part of something org-lsp does not do',
+  'emacs-only': 'About Emacs itself (windows, faces, menus, the mouse, the mode line): nothing to do in an editor',
+};
+const statusOf = (value) => (Array.isArray(value) ? value[0] : value);
+
+/** What is wrong with scripts/org-options.json: an option marked as a
+ * setting that the server does not have, or the other way round, a status
+ * it does not know, and, with `ORG_LISP_DIR`, an option of Org it does not
+ * list or one Org no longer has. */
+function optionProblems() {
+  const problems = [];
+  const names = new Set(settings.map((setting) => setting.name));
+  const listed = new Set();
+  for (const [file, options] of Object.entries(OPTIONS)) {
+    for (const [name, value] of Object.entries(options)) {
+      listed.add(name);
+      const status = statusOf(value);
+      const setting = names.has(name.replaceAll('-', '_'));
+      if (!(status in STATUSES)) problems.push(`${name} (${file}): no such status \`${status}\``);
+      else if (setting && status !== 'setting') problems.push(`${name} is a setting now: mark it \`setting\``);
+      else if (!setting && status === 'setting') problems.push(`${name} is marked \`setting\`, but the server has no ${name.replaceAll('-', '_')}`);
+    }
+  }
+  const lisp = process.env.ORG_LISP_DIR;
+  if (lisp && existsSync(lisp)) {
+    const found = new Set();
+    for (const file of readdirSync(lisp).filter((name) => name.endsWith('.el'))) {
+      for (const match of readFileSync(join(lisp, file), 'utf8').matchAll(/^\(defcustom\s+([^\s()]+)/gm)) {
+        found.add(match[1]);
+        if (!listed.has(match[1])) problems.push(`${match[1]} (${file}) is not in scripts/org-options.json`);
+      }
+    }
+    for (const name of listed) if (!found.has(name)) problems.push(`${name} is no longer an option of Org`);
+  }
+  return problems;
+}
 
 const SCOPES = [
   ['global', 'Anywhere'],
@@ -393,12 +447,87 @@ function optionTree({ editor = true } = {}) {
   return top;
 }
 
+// These keys read better first, in this order; the others keep the
+// server's order (`org_agenda_sorting_strategy` lists the views as Org does).
+const FIRST = ['key', 'description', 'type', 'target', 'template', 'files'];
+const entries = (object) =>
+  Object.entries(object).sort(([a], [b]) => {
+    const rank = (key) => (FIRST.includes(key) ? FIRST.indexOf(key) : FIRST.length);
+    return rank(a) - rank(b);
+  });
+
+function json(value) {
+  if (Array.isArray(value)) return value.length === 0 ? '[]' : `[${value.map(json).join(', ')}]`;
+  if (value && typeof value === 'object') {
+    const fields = entries(value);
+    return fields.length === 0 ? '{}' : `{ ${fields.map(([key, item]) => `${JSON.stringify(key)}: ${json(item)}`).join(', ')} }`;
+  }
+  return JSON.stringify(value);
+}
+
+/** `value` in TOML, or nothing for `null`, which TOML has no word for. */
+function toml(value) {
+  if (value === null) return undefined;
+  if (Array.isArray(value)) {
+    const items = value.map(toml);
+    return items.includes(undefined) ? undefined : `[${items.join(', ')}]`;
+  }
+  if (value && typeof value === 'object') {
+    const fields = entries(value).map(([key, item]) => [/^[A-Za-z0-9_-]+$/.test(key) ? key : JSON.stringify(key), toml(item)]);
+    if (fields.some(([, item]) => item === undefined)) return undefined;
+    return fields.length === 0 ? '{}' : `{ ${fields.map(([key, item]) => `${key} = ${item}`).join(', ')} }`;
+  }
+  return JSON.stringify(value);
+}
+
+/**
+ * The groups of the options on docs/configuration.org, in the page's order:
+ * an option goes in the first whose pattern its name matches, and in the
+ * first of the last two, which take the rest, when none does.
+ */
+const OPTION_GROUPS = [
+  ['TODO keywords and logging', /^org_(todo|log|enforce_todo|treat_|closed_keep|provide_todo|hierarchical_todo|use_fast_todo|track_ordered)/],
+  ['Priorities', /^org_priority/],
+  ['Tags and properties', /^org_(tag|tags|use_tag|use_property|property|global_properties|group_tags|use_fast_tag|fast_tag|auto_align_tags|complete_tags)/],
+  ['Lists', /^org_(list|plain_list|checkbox)/],
+  ['Tables', /^org_(table|calc)/],
+  ['Links, IDs and citations', /^org_(link|id|file_apps|cite|bibtex|return_follows_link)/],
+  ['Dates and times', /^org_(time_stamp|read_date|edit_timestamp|extend_today|use_effective|use_last_clock|duration|display_custom|timestamp_custom)|^calendar_/],
+  ['Capture, refile and archive', /^org_(capture|directory|default_notes|refile|reverse_note_order|archive)/],
+  ['org-protocol', /^org_protocol_/],
+  ['Clocking', /^org_clock|^org_agenda_clock/],
+  ['Habits', /^org_habit_|^org_modules$/],
+  ['The agenda', /^org_agenda_|^agenda_|^org_(deadline|scheduled)_|^org_stuck_projects$|^org_tags_match_list_sublevels$/],
+  [
+    'Display',
+    /^org_(hide|fontify|emphasis|hidden_keywords|entities|pretty|use_sub|image|startup|adapt_indentation|indent|ellipsis|bullets|cycle_hide|cycle_open)/,
+  ],
+  ['Source blocks and tangling', /^org_(src|babel)/],
+  ['org-super-agenda', /^org_super_agenda_/],
+  ['org-roam', /^org_roam_/],
+  ['org-journal', /^org_journal_/],
+  ['Editing and motion', /^org_|^return_uses/],
+  ['Emacs and the server', /./],
+];
+const FALLBACK = OPTION_GROUPS.slice(-2);
+
+/** The options of the shared file by group, in the page's order. */
+function optionGroups() {
+  const groups = new Map(OPTION_GROUPS.map(([name]) => [name, []]));
+  for (const setting of settings.filter((setting) => !setting.integration && !setting.editorOnly)) {
+    const matches = ([, pattern]) => pattern.test(setting.name);
+    const [name] = OPTION_GROUPS.slice(0, -2).find(matches) ?? FALLBACK.find(matches);
+    groups.get(name).push(setting);
+  }
+  return groups;
+}
+
 /** `text` as comment lines of at most 78 columns. */
-function comment(text, indent, marker) {
+function comment(text) {
   const lines = [];
   let line = '';
-  for (const word of text.split(/\s+/)) {
-    if (line && indent.length + marker.length + 1 + line.length + 1 + word.length > 78) {
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    if (line && 2 + line.length + 1 + word.length > 78) {
       lines.push(line);
       line = word;
     } else {
@@ -406,94 +535,80 @@ function comment(text, indent, marker) {
     }
   }
   if (line) lines.push(line);
-  return lines.map((text) => `${indent}${marker} ${text}`);
+  return lines.map((text) => `# ${text}`);
 }
 
-/** What a comment says about an option: its meaning and Org's name for it. */
-function about(setting) {
-  const org = setting.org ? ` (${setting.org})` : '';
-  return `${setting.doc}${org}`;
-}
-
-// The server's JSON has its keys in alphabetical order; these read better
-// first, in this order.
-const FIRST = ['key', 'description', 'type', 'target', 'template', 'files'];
-const entries = (object) =>
-  Object.entries(object).sort(([a], [b]) => {
-    const rank = (key) => (FIRST.includes(key) ? FIRST.indexOf(key) : FIRST.length);
-    return rank(a) - rank(b) || a.localeCompare(b);
-  });
-
-function json(value) {
-  if (Array.isArray(value)) return value.length === 0 ? '[]' : `[${value.map(json).join(', ')}]`;
-  if (value && typeof value === 'object') {
-    return `{ ${entries(value).map(([key, item]) => `${JSON.stringify(key)}: ${json(item)}`).join(', ')} }`;
+/** docs/config.toml: the shared file with every option at its default,
+ * each with what it means, in the groups of docs/configuration.org. */
+function configToml() {
+  const lines = [
+    '#:schema https://raw.githubusercontent.com/kristijanhusak/org-lsp/main/docs/config.schema.json',
+    '',
+    ...comment(
+      "The shared configuration file of org-lsp with every option at its default. Written by scripts/generate-docs.mjs from `org-lsp settings`: edit server/org-lsp/src/settings.rs, not this file.",
+    ),
+    '#',
+    ...comment(
+      'Copy it to ~/.config/org-lsp/config.toml and change what you want different; the options left as they are can as well go. An option that has no default here (it depends on something else) is a comment. docs/configuration.org says more about each.',
+    ),
+  ];
+  for (const [name, group] of optionGroups()) {
+    if (group.length === 0) continue;
+    lines.push('', '', `# ----- ${name}`);
+    for (const setting of group) {
+      lines.push('', ...comment(setting.org ? `${setting.doc} (${setting.org})` : setting.doc));
+      const value = setting.default === undefined ? undefined : toml(setting.default);
+      if (value !== undefined) lines.push(`${setting.name} = ${value}`);
+      else if (setting.default === undefined) lines.push(...comment(`${setting.name} = …  (unset: ${setting.unset})`));
+      else lines.push(...comment(`${setting.name}: ${json(setting.default)} by default, which TOML has no word for`));
+    }
   }
-  return JSON.stringify(value);
+  return lines.join('\n') + '\n';
 }
 
-function toml(value) {
-  if (Array.isArray(value)) return `[${value.map(toml).join(', ')}]`;
-  if (value && typeof value === 'object') {
-    return `{ ${entries(value).map(([key, item]) => `${key} = ${toml(item)}`).join(', ')} }`;
-  }
-  return JSON.stringify(value);
-}
-
-/** The options with their defaults in JSON with comments, for a `config.json`. */
-function jsonOptions(node, indent) {
+/** `text` (the server's, with code in backticks) as Org lines of at most 78
+ * columns, a code span never broken over two. */
+function filled(text, indent = '') {
+  const kept = text.replace(/`[^`]+`/g, (span) => span.replaceAll(' ', '\u0001'));
   const lines = [];
-  const children = node.children;
-  for (const [index, child] of children.entries()) {
-    const comma = index < children.length - 1 ? ',' : '';
-    if (index > 0) lines.push('');
-    if (child.setting) {
-      const setting = child.setting;
-      lines.push(...comment(about(setting), indent, '//'));
-      lines.push(
-        setting.default === undefined
-          ? `${indent}// ${JSON.stringify(child.name)}: unset: ${setting.unset}`
-          : `${indent}${JSON.stringify(child.name)}: ${json(setting.default)}${comma}`,
-      );
+  let line = '';
+  for (const word of org(kept).split(/\s+/).filter(Boolean)) {
+    if (line && indent.length + line.length + 1 + word.length > 78) {
+      lines.push(line);
+      line = word;
     } else {
-      lines.push(`${indent}${JSON.stringify(child.name)}: {`, ...jsonOptions(child, indent + '  '), `${indent}}${comma}`);
+      line = line ? `${line} ${word}` : word;
     }
   }
-  return lines;
+  if (line) lines.push(line);
+  return lines.map((line, index) => (index > 0 ? indent : '') + line.replaceAll('\u0001', ' ')).join('\n');
 }
 
-/** The same in TOML, as the shared file takes it. */
-function tomlOptions(node, table) {
-  const lines = table ? [`[${table}]`] : [];
-  const tables = [];
-  for (const child of node.children) {
-    if (!child.setting) {
-      tables.push(child);
-      continue;
-    }
-    const setting = child.setting;
-    lines.push(...comment(about(setting), '', '#'));
-    lines.push(
-      setting.default === undefined
-        ? `# ${child.name} = …  (unset: ${setting.unset})`
-        : `${child.name} = ${toml(setting.default)}`,
-      '',
-    );
-  }
-  for (const child of tables) lines.push(...tomlOptions(child, table ? `${table}.${child.name}` : child.name));
-  return lines;
-}
-
-/** The shared configuration file with every option at its default. */
+/** The options on docs/configuration.org: a heading for each, under the
+ * heading of its group, with what it means, its type and its default. */
 function fileOptions() {
-  const lines = tomlOptions(optionTree({ editor: false }), '');
+  const groups = optionGroups();
+  const lines = [];
+  for (const [name, group] of groups) {
+    if (group.length === 0) continue;
+    lines.push(heading(2, name), ':PROPERTIES:', `:CUSTOM_ID: ${slug(name)}`, ':END:', '');
+    for (const setting of group) {
+      // GitHub's anchor of the heading, which keeps `_`.
+      lines.push(heading(3, setting.name), ':PROPERTIES:', `:CUSTOM_ID: ${setting.name.toLowerCase()}`, ':END:', '');
+      lines.push(filled(setting.doc), '');
+      if (setting.org) lines.push(`- Org's option :: ${code(setting.org)}`);
+      lines.push(`- Type :: ${org(setting.type)}`);
+      if (setting.default === undefined) {
+        lines.push(filled(`- Default :: unset: ${setting.unset}`, '  '), '');
+      } else {
+        lines.push(`- Default :: ${code(json(setting.default))}`, '');
+        const value = toml(setting.default);
+        if (value !== undefined) lines.push(block('toml', [`${setting.name} = ${value}`]), '');
+      }
+    }
+  }
   while (lines[lines.length - 1] === '') lines.pop();
-  return block('toml', lines);
-}
-
-/** The same as JSON with comments, for a `config.json`. */
-function fileOptionsJson() {
-  return block('json', ['{', ...jsonOptions(optionTree({ editor: false }), '  '), '}']);
+  return lines.join('\n');
 }
 
 /** The options in docs/protocol.org: a description list, each option with
@@ -728,6 +843,8 @@ function parityPage() {
     '',
     `*All of Org: ${overall()}%*`,
     '',
+    `Org's options, one by one, are under ${link('#options', 'Options')}.`,
+    '',
     table(
       ['Feature', 'Parity', 'Done'],
       AREAS.map((area) => {
@@ -749,6 +866,44 @@ function parityPage() {
       lines.push('', 'Where editors fall short:', '');
       for (const [editor, status, why] of short) lines.push(`- ${editor.name} ${MARK[status]}: ${org(why)}`);
     }
+  }
+  return lines.join('\n') + '\n' + optionsSection();
+}
+
+/** Every option of Org and what org-lsp does with it: how many there are
+ * of each status, and those that are missing, file by file. */
+function optionsSection() {
+  const all = Object.entries(OPTIONS).flatMap(([file, options]) => Object.entries(options).map(([name, value]) => ({ file, name, value })));
+  const count = (status) => all.filter((option) => statusOf(option.value) === status).length;
+  const settable = count('setting') + count('missing') + count('other');
+  const lines = [
+    '',
+    heading(1, 'Options'),
+    ':PROPERTIES:',
+    ':CUSTOM_ID: options',
+    ':END:',
+    '',
+    `Each of the ${all.length} options of Org 9.8.10 (its ~defcustom~ forms), and what org-lsp does with`,
+    `it. Of the ${settable} that change what org-lsp does itself, ${Math.round((100 * (count('setting') + count('other'))) / settable)}% can be set.`,
+    `${link('file:../scripts/org-options.json', 'scripts/org-options.json')} says it for each; ~scripts/check.sh~ fails when the`,
+    'server has a setting that file does not know of, or, with ~ORG_LISP_DIR~,',
+    'when Org has an option it does not list.',
+    '',
+    table(
+      ['Status', 'Options', 'Meaning'],
+      Object.entries(STATUSES).map(([status, meaning]) => [status, String(count(status)), meaning]),
+    ),
+  ];
+  const other = all.filter((option) => statusOf(option.value) === 'other');
+  if (other.length > 0) {
+    lines.push('', heading(2, 'Done another way'), '');
+    for (const option of other) lines.push(`- ~${option.name}~ :: ${org(option.value[1])}`);
+  }
+  lines.push('', heading(2, 'Missing'), '', 'Options of what org-lsp does that cannot be set yet, by the file of Org they are in.', '');
+  const files = [...new Set(all.filter((option) => statusOf(option.value) === 'missing').map((option) => option.file))];
+  for (const file of files) {
+    const names = all.filter((option) => option.file === file && statusOf(option.value) === 'missing').map((option) => `~${option.name}~`);
+    lines.push(`- ${file} (${names.length}) :: ${names.join(', ')}`);
   }
   return lines.join('\n') + '\n';
 }
@@ -814,7 +969,7 @@ const PAGES = {
   'docs/keys/sublime.org': { keys: sublimeKeys },
   'docs/keys/zed.org': { keys: zedKeys },
   'docs/protocol.org': { options: protocolOptions },
-  'docs/configuration.org': { options: fileOptions, 'options-json': fileOptionsJson },
+  'docs/configuration.org': { options: fileOptions },
   'README.org': { features: featureTable },
   ...Object.fromEntries(EDITORS.map((editor) => [`docs/${editor.id}.org`, { features: () => editorFeatureTable(editor.id) }])),
 };
@@ -824,10 +979,17 @@ const END = '# END generated';
 const FILES = {
   'lua/org-lsp/types.lua': luaTypes,
   'docs/config.schema.json': configSchema,
+  'docs/config.toml': configToml,
   'docs/parity.org': parityPage,
 };
 /** Files written whole that keep what a person ticked. */
 const TESTS = Object.fromEntries(EDITORS.map((editor) => [`${editor.dir}/TESTING.org`, editor.id]));
+
+const problems = optionProblems();
+if (problems.length > 0) {
+  console.error(`scripts/org-options.json does not match:\n  ${problems.join('\n  ')}`);
+  process.exit(1);
+}
 
 let stale = false;
 for (const [file, render] of Object.entries(FILES)) {

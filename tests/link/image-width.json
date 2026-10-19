@@ -1,0 +1,1416 @@
+[
+ {
+  "text": "[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   400
+  ]
+ },
+ {
+  "text": "[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   500
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 300\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 300\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 300\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 300\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 300\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 300px\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 300px\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 300px\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 300px\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 300px\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+attr_org: :width 50%\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+attr_org: :width 50%\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   500
+  ]
+ },
+ {
+  "text": "#+attr_org: :width 50%\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+attr_org: :width 50%\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   500
+  ]
+ },
+ {
+  "text": "#+attr_org: :width 50%\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   500
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width +50%\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width +50%\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   500
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width +50%\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width +50%\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   500
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width +50%\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   500
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 0.5\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 0.5\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   500
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 0.5\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 0.5\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   500
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 0.5\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   500
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width .25\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width .25\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   250
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width .25\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width .25\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   250
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width .25\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   250
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 1.5\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 1.5\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   1500
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 1.5\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 1.5\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   1500
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 1.5\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   1500
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 2.5\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 2.5\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 2.5\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 2.5\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   400
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 2.5\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   500
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 150%\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 150%\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   1500
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 150%\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 150%\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   1500
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 150%\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   1500
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 250%\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 250%\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   2.5
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 250%\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 250%\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   2.5
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 250%\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   2.5
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width t\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width t\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width t\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width t\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width t\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width nil\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width nil\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width nil\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width nil\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   400
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width nil\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   500
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   400
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   500
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 4in\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 4in\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 4in\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 4in\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   400
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 4in\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   500
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :height 100 :width 200 :align center\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :height 100 :width 200 :align center\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   200
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :height 100 :width 200 :align center\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :height 100 :width 200 :align center\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   200
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :height 100 :width 200 :align center\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   200
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :align center\n#+ATTR_ORG: :width 220\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :align center\n#+ATTR_ORG: :width 220\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   220
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :align center\n#+ATTR_ORG: :width 220\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :align center\n#+ATTR_ORG: :width 220\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   220
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :align center\n#+ATTR_ORG: :width 220\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   220
+  ]
+ },
+ {
+  "text": "#+ATTR_HTML: :width 400px\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_HTML: :width 400px\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   400
+  ]
+ },
+ {
+  "text": "#+ATTR_HTML: :width 400px\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_HTML: :width 400px\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   400
+  ]
+ },
+ {
+  "text": "#+ATTR_HTML: :width 400px\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   400
+  ]
+ },
+ {
+  "text": "#+ATTR_LATEX: :width 0.7\\linewidth\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_LATEX: :width 0.7\\linewidth\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   700
+  ]
+ },
+ {
+  "text": "#+ATTR_LATEX: :width 0.7\\linewidth\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_LATEX: :width 0.7\\linewidth\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   700
+  ]
+ },
+ {
+  "text": "#+ATTR_LATEX: :width 0.7\\linewidth\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   700
+  ]
+ },
+ {
+  "text": "#+ATTR_HTML: :width 400px\n#+ATTR_ORG: :width 100\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_HTML: :width 400px\n#+ATTR_ORG: :width 100\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   100
+  ]
+ },
+ {
+  "text": "#+ATTR_HTML: :width 400px\n#+ATTR_ORG: :width 100\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_HTML: :width 400px\n#+ATTR_ORG: :width 100\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   100
+  ]
+ },
+ {
+  "text": "#+ATTR_HTML: :width 400px\n#+ATTR_ORG: :width 100\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   100
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 4in\n#+ATTR_HTML: :width 500\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 4in\n#+ATTR_HTML: :width 500\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   500
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 4in\n#+ATTR_HTML: :width 500\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 4in\n#+ATTR_HTML: :width 500\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   500
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 4in\n#+ATTR_HTML: :width 500\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   500
+  ]
+ },
+ {
+  "text": "#+ATTR_HTML: :width big\n#+ATTR_LATEX: :width 0.3\\textwidth\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_HTML: :width big\n#+ATTR_LATEX: :width 0.3\\textwidth\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_HTML: :width big\n#+ATTR_LATEX: :width 0.3\\textwidth\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_HTML: :width big\n#+ATTR_LATEX: :width 0.3\\textwidth\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_HTML: :width big\n#+ATTR_LATEX: :width 0.3\\textwidth\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_LATEX: :width 0.3\\textwidth\n#+ATTR_HTML: :width 600\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_LATEX: :width 0.3\\textwidth\n#+ATTR_HTML: :width 600\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_LATEX: :width 0.3\\textwidth\n#+ATTR_HTML: :width 600\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_LATEX: :width 0.3\\textwidth\n#+ATTR_HTML: :width 600\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_LATEX: :width 0.3\\textwidth\n#+ATTR_HTML: :width 600\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+CAPTION: A picture\n#+ATTR_ORG: :width 120\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+CAPTION: A picture\n#+ATTR_ORG: :width 120\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   120
+  ]
+ },
+ {
+  "text": "#+CAPTION: A picture\n#+ATTR_ORG: :width 120\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+CAPTION: A picture\n#+ATTR_ORG: :width 120\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   120
+  ]
+ },
+ {
+  "text": "#+CAPTION: A picture\n#+ATTR_ORG: :width 120\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   120
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 120\n\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 120\n\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 120\n\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 120\n\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   400
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 120\n\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   500
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 120\n- [[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 120\n- [[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 120\n- [[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 120\n- [[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   400
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 120\n- [[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   500
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 120\nText [[file:a.png]] and [[file:b.png]]\n",
+  "setting": true,
+  "widths": [
+   null,
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 120\nText [[file:a.png]] and [[file:b.png]]\n",
+  "setting": false,
+  "widths": [
+   120,
+   120
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 120\nText [[file:a.png]] and [[file:b.png]]\n",
+  "setting": 300,
+  "widths": [
+   300,
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 120\nText [[file:a.png]] and [[file:b.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   120,
+   120
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 120\nText [[file:a.png]] and [[file:b.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   120,
+   120
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width \"\"\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width \"\"\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width \"\"\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width \"\"\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   400
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width \"\"\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   500
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 10.%\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 10.%\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   100
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 10.%\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 10.%\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   100
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 10.%\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   100
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 30 :width 40\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 30 :width 40\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   30
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 30 :width 40\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 30 :width 40\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   30
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: :width 30 :width 40\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   30
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: x :width 70\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: x :width 70\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   70
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: x :width 70\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: x :width 70\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   70
+  ]
+ },
+ {
+  "text": "#+ATTR_ORG: x :width 70\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   70
+  ]
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ORG-IMAGE-ACTUAL-WIDTH: 333\n:END:\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   333
+  ]
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ORG-IMAGE-ACTUAL-WIDTH: 333\n:END:\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   333
+  ]
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ORG-IMAGE-ACTUAL-WIDTH: 333\n:END:\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   333
+  ]
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ORG-IMAGE-ACTUAL-WIDTH: 333\n:END:\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   333
+  ]
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ORG-IMAGE-ACTUAL-WIDTH: 333\n:END:\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   333
+  ]
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ORG-IMAGE-ACTUAL-WIDTH: t\n:END:\n#+ATTR_ORG: :width 100\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ORG-IMAGE-ACTUAL-WIDTH: t\n:END:\n#+ATTR_ORG: :width 100\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ORG-IMAGE-ACTUAL-WIDTH: t\n:END:\n#+ATTR_ORG: :width 100\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ORG-IMAGE-ACTUAL-WIDTH: t\n:END:\n#+ATTR_ORG: :width 100\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ORG-IMAGE-ACTUAL-WIDTH: t\n:END:\n#+ATTR_ORG: :width 100\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ORG-IMAGE-ACTUAL-WIDTH: (250)\n:END:\n[[file:a.png]]\n#+ATTR_ORG: :width 0.5\n[[file:b.png]]\n",
+  "setting": true,
+  "widths": [
+   250,
+   500
+  ]
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ORG-IMAGE-ACTUAL-WIDTH: (250)\n:END:\n[[file:a.png]]\n#+ATTR_ORG: :width 0.5\n[[file:b.png]]\n",
+  "setting": false,
+  "widths": [
+   250,
+   500
+  ]
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ORG-IMAGE-ACTUAL-WIDTH: (250)\n:END:\n[[file:a.png]]\n#+ATTR_ORG: :width 0.5\n[[file:b.png]]\n",
+  "setting": 300,
+  "widths": [
+   250,
+   500
+  ]
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ORG-IMAGE-ACTUAL-WIDTH: (250)\n:END:\n[[file:a.png]]\n#+ATTR_ORG: :width 0.5\n[[file:b.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   250,
+   500
+  ]
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ORG-IMAGE-ACTUAL-WIDTH: (250)\n:END:\n[[file:a.png]]\n#+ATTR_ORG: :width 0.5\n[[file:b.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   250,
+   500
+  ]
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ORG-IMAGE-ACTUAL-WIDTH: nil\n:END:\n#+ATTR_ORG: :width 90\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ORG-IMAGE-ACTUAL-WIDTH: nil\n:END:\n#+ATTR_ORG: :width 90\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   90
+  ]
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ORG-IMAGE-ACTUAL-WIDTH: nil\n:END:\n#+ATTR_ORG: :width 90\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ORG-IMAGE-ACTUAL-WIDTH: nil\n:END:\n#+ATTR_ORG: :width 90\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   90
+  ]
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ORG-IMAGE-ACTUAL-WIDTH: nil\n:END:\n#+ATTR_ORG: :width 90\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   90
+  ]
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ORG-IMAGE-ACTUAL-WIDTH: 500\n:END:\n** Child\n[[file:a.png]]\n",
+  "setting": true,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ORG-IMAGE-ACTUAL-WIDTH: 500\n:END:\n** Child\n[[file:a.png]]\n",
+  "setting": false,
+  "widths": [
+   null
+  ]
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ORG-IMAGE-ACTUAL-WIDTH: 500\n:END:\n** Child\n[[file:a.png]]\n",
+  "setting": 300,
+  "widths": [
+   300
+  ]
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ORG-IMAGE-ACTUAL-WIDTH: 500\n:END:\n** Child\n[[file:a.png]]\n",
+  "setting": [
+   400
+  ],
+  "widths": [
+   400
+  ]
+ },
+ {
+  "text": "* H\n:PROPERTIES:\n:ORG-IMAGE-ACTUAL-WIDTH: 500\n:END:\n** Child\n[[file:a.png]]\n",
+  "setting": [
+   0.5
+  ],
+  "widths": [
+   500
+  ]
+ }
+]

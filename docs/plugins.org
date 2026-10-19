@@ -11,6 +11,7 @@ are; [[file:configuration.org::#every-option-at-its-default][configuration.org]]
 - [[#agenda-groups-org-super-agenda][org-super-agenda]] :: the agenda in groups (~org_super_agenda_mode~).
 - [[#notes-org-roam][org-roam]] :: a network of notes (~org_roam_enabled~).
 - [[#a-journal-org-journal][org-journal]] :: a journal, a file a day (~org_journal_enabled~).
+- [[#bullets-org-bullets][org-bullets]] :: headline stars shown as bullets (~org_bullets_mode~).
 
 * Agenda groups (org-super-agenda)
 :PROPERTIES:
@@ -186,9 +187,12 @@ The commands are org-roam's:
   first, as ~org_roam_node_display_template~ shows them) and visits it; a
   title no node has makes a new node, with a capture.
 - ~org.roam.node.insert~ :: ~org-roam-node-insert~: the same question, then
-  a link to the node, ~[[id:…][title]]~, at the cursor. On a selection, the
-  selection is what is typed first and the link's description, and the link
-  takes its place. A new node is linked to once its capture is filed.
+  a link to the node, ~[[id:…][title]]~, at the cursor; with
+  ~org_roam_node_formatter~, a template as
+  ~org_roam_node_display_template~ is, the description is the node as it
+  formats it (~"${title} (${file})"~). On a selection, the selection is
+  what is typed first and the link's description, and the link takes its
+  place. A new node is linked to once its capture is filed.
 - ~org.roam.capture~ :: ~org-roam-capture~: the same question, then a
   capture to the node: to its file for a node that exists.
 - ~org.roam.node.random~ :: ~org-roam-node-random~: visits a node picked at
@@ -199,6 +203,36 @@ The commands are org-roam's:
   (/Alias/), or one picked among them taken out (/Remove/).
 - ~org.roam.ref.add~, ~org.roam.ref.remove~ :: ~org-roam-ref-add~ and
   ~org-roam-ref-remove~: the same for its ~ROAM_REFS~ (/Ref/, /Remove/).
+- ~org.roam.ref.find~ :: ~org-roam-ref-find~: visits the node of a reference
+  picked among the nodes' references (/Ref/), as org-roam keeps them: a
+  URL without its scheme (~//example.com~), a citation key without ~@~.
+  When nodes share a reference, the first one's is visited.
+- ~org.roam.promote~, ~org.roam.demote~ :: ~org-roam-promote-entire-buffer~
+  and ~org-roam-demote-entire-buffer~: a file of one top-level headline made
+  the file's node (its title in ~#+title:~, its tags in ~#+filetags:~, the
+  other headlines a level up), or back. Without a ~#+title:~, demoting
+  fails as in Emacs, but leaves the file as it was.
+- ~org.roam.refile~ :: ~org-roam-refile~: the subtree at the cursor moved
+  under a node picked (/Node/), a level below it, after its subtree; to a
+  file's node, at the end of the file. Before the first headline the whole
+  file goes, its node made a headline first, and the file is deleted when
+  the editor can delete files (else it is left empty). The selection is not
+  refiled instead of the subtree, as it is in Emacs.
+- ~org.roam.graph~ :: ~org-roam-graph~: the nodes and the links between
+  them drawn by Graphviz (~org_roam_graph_executable~, ~dot~), then shown by
+  ~org_roam_graph_viewer~, or opened as the system opens the file. With a
+  count, only the nodes connected to the one at the cursor: ~C-u~ (4) any
+  number of steps away, another count that many nodes along the way
+  (~1~ the node and its own links). Where Emacs says nothing when Graphviz
+  fails, org-lsp shows what it wrote; ~org-roam-graph-link-builder~ is
+  always org-roam's (an ~org-protocol://roam-node~ link).
+- ~org.roam.extract~ :: ~org-roam-extract-subtree~: the subtree at the
+  cursor, given an ~ID~ unless it has one, moved to a new file (/Extract
+  node to:/, relative to ~org_roam_directory~, offered as
+  ~org_roam_extract_new_file_path~ names it) where its headline is the
+  file's node. In the name offered, ~${title}~, ~${slug}~ and ~${id}~ are
+  the node's, and other ~${…}~ are left for you to replace rather than
+  asked for.
 - ~org.roam.tag.add~, ~org.roam.tag.remove~ :: ~org-roam-tag-add~ and
   ~org-roam-tag-remove~: tags, separated by colons, added to the node or
   taken out (/Tag/): on its headline, or in ~#+filetags:~ for the file's
@@ -265,6 +299,43 @@ what goes into the target: with ~unnarrowed~, the whole file, its ~ID~ and
 head too. The node's file is written when the capture is filed
 (~org.capture.finish~), and the link of ~org.roam.node.insert~ goes in then.
 
+Daily notes are org-roam-dailies': a file a day in ~org_roam_dailies_directory~
+(~daily/~ under ~org_roam_directory~), made with
+~org_roam_dailies_capture_templates~, whose default is an entry in a file
+named after the day:
+
+#+begin_src toml
+[[org_roam_dailies_capture_templates]]
+key = "d"
+description = "default"
+type = "entry"
+template = "* %?"
+target = ["file+head", "%<%Y-%m-%d>.org", "#+title: %<%Y-%m-%d>\n"]
+#+end_src
+
+~%<…>~ and the other escapes of time are the note's day. The commands, under
+~C-c n d~ as org-roam's manual binds them:
+
+- ~org.roam.dailies.capture.today~ :: ~org-roam-dailies-capture-today~ (~n~):
+  a capture to today's note; with ~C-u~, the note itself.
+- ~org.roam.dailies.goto.today~ :: ~org-roam-dailies-goto-today~ (~d~): the
+  note of today, made with its ~ID~ and head if it is not there.
+- ~org.roam.dailies.goto.tomorrow~, ~org.roam.dailies.goto.yesterday~ ::
+  (~t~, ~y~) the note a day on or back, or as many days as the count; their
+  ~capture~ relatives capture to it.
+- ~org.roam.dailies.capture.date~, ~org.roam.dailies.goto.date~ :: (~v~,
+  ~c~) the note of a date picked in the date prompt's calendar, which marks
+  the days with a note, or typed as Org's date prompt reads it, a day
+  without a year in this year even when it has passed (/Capture to
+  daily-note/, /Find daily-note/). With ~C-u~, ~capture.date~ goes to the
+  note.
+- ~org.roam.dailies.goto.next~, ~org.roam.dailies.goto.previous~ :: (~f~,
+  ~b~) from a daily note, the next or previous one there is, or as many on
+  as the count: /Already at newest note/ at the last.
+- ~org.roam.dailies.find.directory~ :: ~org-roam-dailies-find-directory~
+  (~.~): the notes of the directory, those of the directories in it too, in
+  the order of their names, to pick one and visit it.
+
 The server keeps no database: it reads the files of the directory when a
 command needs them, again when they have changed, in the editor or on
 disk, and they are what ~org-roam-db-sync~ would make of them, checked
@@ -296,9 +367,21 @@ against Emacs by recorded cases and differential fuzzing. What differs:
 - Unlinked references are found by the server itself, as ripgrep finds
   them for org-roam (its PCRE pattern, word boundaries, any case), so no
   ~rg~ is needed; encrypted files are not searched.
-- ~org-id-locations-file~ is neither read nor written: an ~id:~ link is
-  followed to the files open in the editor, the agenda files and
-  org-roam's files.
+- ~org-id-locations-file~ is read, never written: an ~id:~ link is
+  followed to the files open in the editor, the agenda files, the files
+  Emacs listed there and org-roam's files.
+- What only Lisp can say is not there: ~org-roam-node-formatter~ as a
+  function, and ~org-roam-db-node-include-function~, which decides
+  whether each node is one. The links of keyword lines and property
+  drawers follow ~org_roam_db_extra_links_elements~ and
+  ~org_roam_db_extra_links_exclude_keys~.
+- Going to a daily note that is not there writes it, its ~ID~ and head in
+  it; Emacs leaves its buffer unsaved. In Sublime Text, Zed and Helix,
+  which show no date prompt, its date is typed.
+- ~org-roam-dailies-find-directory~ opens the directory in Dired, where
+  the editors have no list of a directory's files to show for a server:
+  its notes are offered to pick from instead, as the editor offers any
+  choice.
 
 * A journal (org-journal)
 :PROPERTIES:
@@ -373,11 +456,49 @@ timestamp from now on are another one, ~org-journal-schedule.org~:
 The date prompt's calendar marks the days with an entry, as
 ~org-journal-mark-entries~ does: before now, and to come.
 
+The calendar also opens on its own, as ~M-x calendar~ shows it: with
+~org.goto.calendar~ (~org-goto-calendar~, ~C-c >~ in the ~emacs~ preset,
+~<Leader>o>~ in the ~vim~ one), on the day of the timestamp at the cursor or
+the line's last active one, or today (with ~C-u~, today). It moves with the
+date prompt's keys and ~q~ closes it. org-journal's keys work in it, on the
+day of its cursor, as in Emacs's calendar (in the ~vim~ preset under
+~<Leader>j~, as ~j~ moves a week down):
+
+- ~j r~, ~j d~ :: ~org-journal-read-entry~ (~org.journal.read.entry~) and
+  ~org-journal-display-entry~ (~org.journal.display.entry~): the entry of
+  the day, in another window; ~j d~ leaves the cursor in the calendar.
+  /No journal entry for this date./ when it has none.
+- ~]~, ~[~ :: ~org-journal-next-entry~ and ~org-journal-previous-entry~:
+  the next or the previous day with an entry. org-journal then says /No
+  journal entry after this one/ (or /before/), even when it went to one,
+  unless ~org_journal_follow_mode~ is on: the entry of that day then shows
+  in another window (~org-journal-follow-mode~), the cursor staying in the
+  calendar.
+- ~j n~ :: ~org-journal-new-date-entry~: an entry for the day, a TODO entry
+  for a day to come.
+- ~j m~ :: ~org-journal-mark-entries~: the days with an entry marked again,
+  after entries were made or removed.
+- ~j s f~, ~j s F~ :: ~org-journal-search-forever~ and
+  ~org-journal-search-future~.
+- ~j s w~, ~j s m~, ~j s y~ :: ~org-journal-search-calendar-week~,
+  ~…-month~ and ~…-year~ (~org.journal.search.calendar.week~ …): a search
+  of the day's week, month or year. org-journal's week runs from its first
+  day to the first day of the next, as ~calendar_week_start_day~ starts
+  them.
+
+#+begin_src toml
+org_journal_follow_mode = true
+#+end_src
+
 [[file:images/journal.gif]]
 
 Each shows the entry it is about, in its file, and with
 ~org_journal_hide_entries_p~ (on by default) the other entries folded, as
-org-journal leaves them. A journal file that is not open is written to
+org-journal leaves them. A new entry made from another file, and today's
+file, show in another window, as ~org-journal-find-file-fn~
+(~find-file-other-window~) shows them; with
+~org_journal_find_file_fn = "find-file"~ they show where the command was
+run. Zed and Helix show them where they show any file. A journal file that is not open is written to
 disk; one that is open is changed in the editor, for it to save.
 ~org_journal_enable_agenda_integration~ puts the files from yesterday on
 in ~org_agenda_files~, as ~org-journal-enable-agenda-integration~ does.
@@ -411,18 +532,64 @@ before all the others goes first in its file). What differs:
 - Folds open and close only in Neovim, Vim, VS Code and Sublime Text; in
   Zed and Helix the file shows as it does.
 - ~org-journal-encrypt-journal~ (files encrypted whole, ~.gpg~) is not
-  there: ~org_journal_enable_encryption~, with ~org-crypt~, is.
+  there: Emacs decrypts such a file in memory, where the editors would
+  need it decrypted on disk, or a way of their own to read it.
+  ~org_journal_enable_encryption~, with ~org-crypt~, is there.
+- ~org-journal-enable-cache~ is not needed: it keeps the days with an
+  entry in a file between sessions, so that Emacs reads only the files
+  changed since, and gives the same days; the server reads the directory
+  each time it needs them.
+- The calendar and its keys are in Neovim, Vim and VS Code, which show the
+  date prompt. An entry ~j r~ shows is not read-only, as ~view-mode~ makes
+  it in Emacs, and a search from the calendar does not show its first
+  result beside the results.
 - The search results are an Org file whose dates are links, two blanks
   before the line found where Emacs has a tab, in place of a buffer of
   buttons (~n~, ~p~, ~TAB~ move between them, and the first
   result shows beside them); its matches are not highlighted. An empty
   string finds every entry with a time, which Emacs means to do but hangs
   on.
-- The keys org-journal adds to ~M-x calendar~ (~j r~, ~j d~, ~[~, ~]~,
-  ~j s~ …) are not there: org-lsp has no calendar of its own, only the
-  date prompt's, where Emacs has them neither.
 - Dates are written as in the C locale: ~%x~ is ~05/15/26~ and ~%A~
   ~Friday~ whatever the system's locale is. A journal Emacs kept under
   another locale (~en_US.UTF-8~ writes ~05/15/2026~) has headings org-lsp
   does not find; set ~org_journal_date_format~ to a format without ~%x~,
   such as ~"%A, %m/%d/%Y"~, to match them.
+
+* Bullets (org-bullets)
+:PROPERTIES:
+:CUSTOM_ID: bullets-org-bullets
+:END:
+
+Headlines can show as [[https://github.com/sabof/org-bullets][org-bullets]] shows them: the last star of each is
+drawn as a bullet, the one of its level in ~org_bullets_bullet_list~ (~◉~,
+~○~, ~✸~, ~✿~, then again from the first), and the stars before it are
+hidden in their place, as ~org_hide_leading_stars~ hides them. It is off
+until ~org_bullets_mode~ is ~true~:
+
+#+begin_src toml
+org_bullets_mode = true
+org_bullets_bullet_list = ["●", "○", "◆", "◇"]
+#+end_src
+
+As [[https://github.com/nvim-orgmode/org-bullets.nvim][org-bullets.nvim]] does, the ~-~, ~+~ and ~*~ of list items show as
+~org_bullets_list_bullet~ (~•~), and the mark between the brackets of a
+checkbox as the one ~org_bullets_checkboxes~ gives its state: ~[ ]~ and
+~[-]~ as they are, ~[✓]~ for ~[X]~ (org-bullets.nvim shows ~[˟]~ for
+~[ ]~). ~false~ turns either off:
+
+#+begin_src toml
+org_bullets_list_bullet = "–"
+org_bullets_checkboxes = { todo = "˟", done = "✔" }
+#+end_src
+
+The text does not change: the bullet is drawn in place of the star, as
+pretty entities are, by the editor where it can (Neovim), else as an inlay
+hint (VS Code, Zed, Helix); the leading stars are hidden where virtual
+indentation can hide them (Neovim, VS Code). A bullet takes the colors of
+what it stands for, as the composed character keeps the face of the star
+in Emacs: the headline's level, the list's bullet, the checkbox's state.
+That is in Neovim only: VS Code cannot give a decoration or an inlay hint
+the colors of a token. As in Emacs, every line that starts with stars and
+a space gets its bullet. What differs: ~org-bullets-face-name~ is not read
+(the bullet keeps the headline's colors), clicking a bullet does not cycle
+the headline, and inline tasks have no second bullet.

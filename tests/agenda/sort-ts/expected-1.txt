@@ -1,0 +1,15 @@
+Global list of TODO items of type: ALL
+  work:       TODO [#A] Zebra crossing                                  :office:
+  work:       TODO no date at all
+  home:       TODO [#C] water plants                                    :house::
+  alpha:      TODO Garden [2/2]                                         :house::
+  alpha:      TODO [#A] mow lawn                                :house::outside:
+  home:       TODO Bake bread                                   :house::kitchen:
+  work:       TODO [#B] Write report                                    :office:
+  work:       NEXT apple pie                                      :home:kitchen:
+  work:       WAIT Banana bread [1/3]
+  work:       TODO step two                                             :urgent:
+  work:       TODO [#C] step three
+  work:       TODO Call Bob                                              :phone:
+  travel:     TODO Plan trip [50%]
+  travel:     TODO [#B] book flights                                    :travel:

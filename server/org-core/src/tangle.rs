@@ -23,10 +23,43 @@ use org_syntax::{Parse, SyntaxKind};
 use crate::outline::Outline;
 
 /// What tangling takes from the configuration.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Settings {
     /// `org-src-preserve-indentation`
     pub preserve_indentation: bool,
+    /// `org-babel-tangle-lang-exts`: the user's extensions by language,
+    /// before Org's own.
+    pub lang_exts: Vec<(String, String)>,
+    /// `org-babel-tangle-use-relative-file-links`
+    pub relative_links: bool,
+    /// `org-babel-tangle-comment-format-beg` and `-end`
+    pub comment_format: (String, String),
+    /// `org-babel-tangle-uncomment-comments`: comments written as they
+    /// are, not commented.
+    pub uncomment_comments: bool,
+    /// `org-babel-process-comment-text`: the function the Org text of
+    /// `:comments org` goes through.
+    pub process_comment_text: String,
+    /// `org-babel-tangle-default-file-mode`: what a symbolic `:tangle-mode`
+    /// starts from.
+    pub default_file_mode: u32,
+    /// `org-babel-noweb-wrap-start` and `-end`
+    pub noweb_wrap: (String, String),
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Settings {
+            preserve_indentation: false,
+            lang_exts: Vec::new(),
+            relative_links: true,
+            comment_format: ("[[%link][%source-name]]".to_string(), "%source-name ends here".to_string()),
+            uncomment_comments: false,
+            process_comment_text: "org-remove-indentation".to_string(),
+            default_file_mode: 0o644,
+            noweb_wrap: ("<<".to_string(), ">>".to_string()),
+        }
+    }
 }
 
 /// A file tangling writes.
@@ -131,7 +164,7 @@ pub fn tangle(text: &str, parse: &Parse, path: &Path, settings: &Settings) -> Re
         if tangle == "no" || (block.lang.is_none() && tangle == "yes") {
             continue;
         }
-        let Some(file) = tangled_file(path, directory, block.lang.as_deref(), tangle) else { continue };
+        let Some(file) = tangled_file(path, directory, block.lang.as_deref(), tangle, settings) else { continue };
         let spec = single_block(text, &outline, &blocks, index, counter, path, &file, settings)?;
         tangled += 1;
         match by_file.iter_mut().find(|(known, _)| *known == file) {
@@ -150,7 +183,7 @@ pub fn tangle(text: &str, parse: &Parse, path: &Path, settings: &Settings) -> Re
             let params = &blocks[index].params;
             let she_bang = param(params, ":shebang").filter(|value| !value.is_empty());
             let mut tangle_mode = match params.get(":tangle-mode") {
-                Some(value) => Some(file_mode(value)?),
+                Some(value) => Some(file_mode(value, settings.default_file_mode)?),
                 None => None,
             };
             if she_bang.is_some() && tangle_mode.is_none() {
@@ -179,11 +212,23 @@ pub fn tangle(text: &str, parse: &Parse, path: &Path, settings: &Settings) -> Re
 }
 
 /// `org-babel-effective-tangled-filename`
-fn tangled_file(path: &Path, directory: &Path, lang: Option<&str>, tangle: &str) -> Option<PathBuf> {
+fn tangled_file(
+    path: &Path,
+    directory: &Path,
+    lang: Option<&str>,
+    tangle: &str,
+    settings: &Settings,
+) -> Option<PathBuf> {
     match tangle {
         "yes" => {
             let lang = lang?;
-            let extension = EXTENSIONS.iter().find(|(name, _)| *name == lang).map_or(lang, |(_, extension)| extension);
+            let extension = settings
+                .lang_exts
+                .iter()
+                .find(|(name, _)| name == lang)
+                .map(|(_, extension)| extension.as_str())
+                .or_else(|| EXTENSIONS.iter().find(|(name, _)| *name == lang).map(|(_, extension)| *extension))
+                .unwrap_or(lang);
             let stem = path.with_extension("");
             Some(PathBuf::from(format!("{}.{extension}", stem.display())))
         }
@@ -220,8 +265,9 @@ fn same_file(a: &Path, b: &Path) -> bool {
     absolute(a) == absolute(b)
 }
 
-/// `org-babel-interpret-file-mode`
-fn file_mode(value: &Value) -> Result<u32, String> {
+/// `org-babel-interpret-file-mode`, symbolic modes starting from `base`
+/// (`org-babel-tangle-default-file-mode`).
+fn file_mode(value: &Value, base: u32) -> Result<u32, String> {
     let invalid = || format!("File mode {} not recognized as a valid format", show(value));
     match value {
         Value::Number(number) => {
@@ -254,16 +300,15 @@ fn file_mode(value: &Value) -> Result<u32, String> {
                     return Ok(mode);
                 }
             }
-            symbolic_mode(text).ok_or_else(invalid)
+            symbolic_mode(text, base).ok_or_else(invalid)
         }
         Value::None => Err(invalid()),
     }
 }
 
-/// `file-modes-symbolic-to-number` on `org-babel-tangle-default-file-mode`
-/// (`644`): `u+x`, `a=rw,u+x`.
-fn symbolic_mode(text: &str) -> Option<u32> {
-    let mut mode = 0o644;
+/// `file-modes-symbolic-to-number` from `base`: `u+x`, `a=rw,u+x`.
+fn symbolic_mode(text: &str, base: u32) -> Option<u32> {
+    let mut mode = base;
     for clause in text.split(',') {
         let at = clause.find(['+', '-', '='])?;
         let (who, mut rest) = clause.split_at(at);
@@ -763,9 +808,10 @@ fn single_block(
     let noweb = param(params, ":noweb").unwrap_or("no");
     let mut body = if noweb_p(params, Context::Tangle) {
         if noweb.split_whitespace().any(|value| value == "strip-tangle") {
-            strip_references(&block.body)
+            strip_references(&block.body, &settings.noweb_wrap)
         } else {
-            let mut expander = Expander { text, outline, blocks, path, file, by_ref: None, expanding: Vec::new() };
+            let mut expander =
+                Expander { text, outline, blocks, path, file, settings, by_ref: None, expanding: Vec::new() };
             expander.expand(index, Context::Tangle)?
         }
     } else {
@@ -784,18 +830,29 @@ fn single_block(
     let syntax = comment_syntax(block.lang.as_deref());
     let mut out = String::new();
     // The text commented, then `end-of-line` and a newline: after a text
-    // that ends with one, an empty line.
+    // that ends with one, an empty line. With
+    // `org-babel-tangle-uncomment-comments`, the text alone.
     let comment = |out: &mut String, text: &str| {
         if comments != "no" && !text.trim().is_empty() {
-            out.push_str(&comment_region(text, syntax));
-            out.push('\n');
+            if settings.uncomment_comments {
+                out.push_str(text);
+            } else {
+                out.push_str(&comment_region(text, syntax));
+                out.push('\n');
+            }
         }
     };
     if matches!(comments, "both" | "org") {
-        comment(&mut out, &remove_indentation(&org_comment(text, outline, block)));
+        let org = org_comment(text, outline, block);
+        let org = match settings.process_comment_text.as_str() {
+            "org-remove-indentation" => remove_indentation(&org),
+            "identity" => org,
+            other => return Err(format!("Cannot evaluate the function {other} without Emacs")),
+        };
+        comment(&mut out, &org);
     }
     let link = matches!(comments, "both" | "link" | "yes" | "noweb");
-    let (begin, end) = link_comments(text, outline, blocks, index, counter, path, file);
+    let (begin, end) = link_comments(text, outline, blocks, index, counter, path, file, settings, true);
     if link {
         comment(&mut out, &begin);
     }
@@ -886,40 +943,45 @@ fn noweb_p(params: &Params, context: Context) -> bool {
     param(params, ":noweb").unwrap_or("").split_whitespace().any(|value| allowed.contains(&value))
 }
 
-/// A Noweb reference: `<<name>>`, with no blank at either end inside.
-fn references(body: &str) -> Vec<(usize, usize, &str)> {
+/// A Noweb reference (`org-babel-noweb-wrap`): `<<name>>`, between
+/// `org-babel-noweb-wrap-start` and `-end`, with no blank at either end
+/// inside.
+fn references<'a>(body: &'a str, (open, close): &(String, String)) -> Vec<(usize, usize, &'a str)> {
     let mut found = Vec::new();
+    if open.is_empty() || close.is_empty() {
+        return found;
+    }
     let mut from = 0;
-    while let Some(start) = body[from..].find("<<").map(|at| from + at) {
-        let inside = start + 2;
+    while let Some(start) = body[from..].find(open.as_str()).map(|at| from + at) {
+        let inside = start + open.len();
         let line_end = body[inside..].find('\n').map_or(body.len(), |at| inside + at);
-        // The shortest name up to `>>` on the line.
+        // The shortest name up to the closing string on the line.
         let mut found_one = None;
         let mut search = inside;
-        while let Some(close) = body[search..line_end].find(">>").map(|at| search + at) {
-            let name = &body[inside..close];
+        while let Some(end) = body[search..line_end].find(close.as_str()).map(|at| search + at) {
+            let name = &body[inside..end];
             if !name.is_empty() && !name.starts_with([' ', '\t']) && !name.ends_with([' ', '\t']) {
-                found_one = Some((start, close + 2, name));
+                found_one = Some((start, end + close.len(), name));
                 break;
             }
-            search = close + 1;
+            search = end + body[end..].chars().next().map_or(1, char::len_utf8);
         }
         match found_one {
             Some((start, end, name)) => {
                 found.push((start, end, name));
                 from = end;
             }
-            None => from = start + 1,
+            None => from = start + body[start..].chars().next().map_or(1, char::len_utf8),
         }
     }
     found
 }
 
 /// `:noweb strip-tangle`: the references go.
-fn strip_references(body: &str) -> String {
+fn strip_references(body: &str, wrap: &(String, String)) -> String {
     let mut out = String::new();
     let mut last = 0;
-    for (start, end, _) in references(body) {
+    for (start, end, _) in references(body, wrap) {
         out.push_str(&body[last..start]);
         last = end;
     }
@@ -933,6 +995,7 @@ struct Expander<'a> {
     blocks: &'a [Block],
     path: &'a Path,
     file: &'a Path,
+    settings: &'a Settings,
     /// The blocks by `:noweb-ref`, once looked for.
     by_ref: Option<HashMap<String, Vec<usize>>>,
     /// The blocks being expanded, outermost first: a block met again
@@ -964,7 +1027,7 @@ impl Expander<'_> {
         let body = block.body.clone();
         let mut out = String::new();
         let mut last = 0;
-        for (start, end, id) in references(&body) {
+        for (start, end, id) in references(&body, &self.settings.noweb_wrap) {
             let line_start = body[..start].rfind('\n').map_or(0, |at| at + 1).max(last);
             let prefix = &body[line_start..start];
             out.push_str(&body[last..start]);
@@ -1037,12 +1100,27 @@ impl Expander<'_> {
         }
         let syntax = comment_syntax(self.blocks[index].lang.as_deref());
         let counter = self.blocks[..=index].iter().filter(|block| block.entry == self.blocks[index].entry).count();
-        let (begin, end) = link_comments(self.text, self.outline, self.blocks, index, counter, self.path, self.file);
-        Ok(format!(
-            "{}\n{body}\n{}\n",
-            trim(&comment_region(&begin, syntax), false),
-            trim(&comment_region(&end, syntax), false)
-        ))
+        let (begin, end) = link_comments(
+            self.text,
+            self.outline,
+            self.blocks,
+            index,
+            counter,
+            self.path,
+            self.file,
+            self.settings,
+            false,
+        );
+        // Not commented with `org-babel-tangle-uncomment-comments`: no
+        // comments at all.
+        let wrap = |comment: &str| {
+            if self.settings.uncomment_comments {
+                String::new()
+            } else {
+                trim(&comment_region(comment, syntax), false)
+            }
+        };
+        Ok(format!("{}\n{body}\n{}\n", wrap(&begin), wrap(&end)))
     }
 
     /// `org-babel-ref-goto-headline-id` and `org-babel-ref-headline-body`:
@@ -1140,7 +1218,11 @@ fn comment_region(text: &str, syntax: CommentSyntax) -> String {
 
 /// The link comments around a block (`org-babel-tangle-comment-format-beg`
 /// and `-end`): `[[file:notes.org::*Heading][Heading:1]]` and
-/// `Heading:1 ends here`.
+/// `Heading:1 ends here`. A block tangled itself (`single`) names its
+/// file as `org-babel-tangle-use-relative-file-links` says, one a Noweb
+/// reference brings in by its whole name
+/// (`org-babel-tangle-comment-links`).
+#[allow(clippy::too_many_arguments)]
 fn link_comments(
     text: &str,
     outline: &Outline,
@@ -1149,6 +1231,8 @@ fn link_comments(
     counter: usize,
     path: &Path,
     file: &Path,
+    settings: &Settings,
+    single: bool,
 ) -> (String, String) {
     let block = &blocks[index];
     let heading = block.entry.map(|entry| &outline.entries[entry]);
@@ -1169,9 +1253,44 @@ fn link_comments(
             crate::link::normalize_string(&text[block.begin..line_end], true)
         }
     };
-    let relative = relative_path(path, file.parent().unwrap_or(Path::new("")));
-    let link = format!("file:{relative}::{search}");
-    (format!("[[{link}][{source_name}]]"), format!("{source_name} ends here"))
+    let link = if settings.relative_links {
+        format!("file:{}::{search}", relative_path(path, file.parent().unwrap_or(Path::new(""))))
+    } else {
+        format!("file:{}::{search}", abbreviate(path))
+    };
+    let absolute = std::path::absolute(path).map(|path| normalize(&path)).unwrap_or(path.to_path_buf());
+    let file_name = if single && settings.relative_links {
+        relative_path(path, path.parent().unwrap_or(Path::new("")))
+    } else {
+        absolute.display().to_string()
+    };
+    let line = text[..block.begin].matches('\n').count() + 1;
+    let start_line = if single { line + 1 } else { line };
+    let data = [
+        ("source-name", source_name.as_str()),
+        ("start-line", &start_line.to_string()),
+        ("link", link.as_str()),
+        ("file", file_name.as_str()),
+    ];
+    (fill_template(&settings.comment_format.0, &data), fill_template(&settings.comment_format.1, &data))
+}
+
+/// `org-fill-template`: each `%key` replaced, the longer keys first.
+fn fill_template(template: &str, data: &[(&str, &str)]) -> String {
+    let mut data = data.to_vec();
+    data.sort_by_key(|(key, _)| std::cmp::Reverse(key.len()));
+    data.iter().fold(template.to_string(), |text, (key, value)| text.replace(&format!("%{key}"), value))
+}
+
+/// `abbreviate-file-name`: the absolute path, the home directory as `~`.
+fn abbreviate(path: &Path) -> String {
+    let absolute = std::path::absolute(path).map(|path| normalize(&path)).unwrap_or(path.to_path_buf());
+    if let Some(home) = std::env::var_os("HOME").map(PathBuf::from).filter(|home| home.is_absolute()) {
+        if let Ok(rest) = absolute.strip_prefix(&home) {
+            return format!("~/{}", rest.display());
+        }
+    }
+    absolute.display().to_string()
 }
 
 /// The path of `path` from `directory`, as `file-relative-name` gives it.
@@ -1281,10 +1400,10 @@ mod tests {
 
     #[test]
     fn file_modes() {
-        assert_eq!(file_mode(&Value::Text("o600".to_string())), Ok(0o600));
-        assert_eq!(file_mode(&Value::Text("rwxr-x---".to_string())), Ok(0o750));
-        assert_eq!(file_mode(&Value::Text("u+x".to_string())), Ok(0o744));
-        assert_eq!(file_mode(&Value::Text("a=r,u+w".to_string())), Ok(0o644));
-        assert_eq!(file_mode(&Value::Number(0o755)), Ok(0o755));
+        assert_eq!(file_mode(&Value::Text("o600".to_string()), 0o644), Ok(0o600));
+        assert_eq!(file_mode(&Value::Text("rwxr-x---".to_string()), 0o644), Ok(0o750));
+        assert_eq!(file_mode(&Value::Text("u+x".to_string()), 0o644), Ok(0o744));
+        assert_eq!(file_mode(&Value::Text("a=r,u+w".to_string()), 0o644), Ok(0o644));
+        assert_eq!(file_mode(&Value::Number(0o755), 0o644), Ok(0o755));
     }
 }

@@ -55,7 +55,6 @@ function M.open(client, lines)
   vim.bo[buf].bufhidden = 'wipe'
   -- Highlighting and concealing only: no keys, folds or indenting.
   vim.b[buf].org_lsp_preview = true
-  vim.bo[buf].filetype = 'org'
   local width = width_of(lines)
   local win = vim.api.nvim_open_win(buf, false, {
     relative = 'cursor',
@@ -66,6 +65,9 @@ function M.open(client, lines)
     style = 'minimal',
     border = vim.fn.exists('&winborder') == 1 and vim.o.winborder ~= '' and vim.o.winborder or 'rounded',
   })
+  -- An Org file shown in the float once it shows: what the user's setup
+  -- does to an Org file's window does to it, as to Neovim's hover float.
+  vim.bo[buf].filetype = 'org'
   vim.wo[win].wrap = true
   vim.wo[win].linebreak = true
   vim.wo[win].foldenable = false
@@ -139,6 +141,108 @@ function M.show()
       callback = close,
     })
   end, agenda)
+end
+
+--- The window options Neovim sets on its hover float after showing it,
+--- which it keeps; the others go back to what the float had then.
+local FLOAT_OPTIONS = {
+  wrap = true,
+  linebreak = true,
+  breakindent = true,
+  smoothscroll = true,
+  foldenable = true,
+  conceallevel = true,
+  concealcursor = true,
+  scroll = true,
+}
+
+--- The local options of each float of Neovim's hover as it was shown,
+--- before Markdown's settings (a user's `FileType markdown`) touched it.
+---@type table<integer, table<string, any>>
+local shown_with = {}
+
+---@param win integer
+---@return table<string, any>
+local function window_options(win)
+  local options = {}
+  for name, info in pairs(vim.api.nvim_get_all_options_info()) do
+    if info.scope == 'win' then
+      options[name] = vim.api.nvim_get_option_value(name, { win = win })
+    end
+  end
+  return options
+end
+
+--- Neovim's own hover (`K`, `vim.lsp.buf.hover()`) shows the entry of an
+--- agenda line as Markdown, an Org block it colors only with a tree-sitter
+--- parser for Org. Once Neovim has shown the float and set it up, the
+--- float is made an Org buffer of the server's as `M.open` makes one, so
+--- the server highlights it: the fence goes, and the float fits the rest.
+---@param buf integer
+local function to_org(buf)
+  if not vim.api.nvim_buf_is_valid(buf) then
+    return
+  end
+  local win = vim.fn.bufwinid(buf)
+  if win == -1 or vim.api.nvim_win_get_config(win).relative == '' then
+    return
+  end
+  -- Neovim's hover float: the buffer it was asked from, by org-lsp.
+  local source = vim.w[win].lsp_floating_bufnr
+  if not source or vim.w[win]['textDocument/hover'] == nil then
+    return
+  end
+  local client = vim.lsp.get_clients({ bufnr = source, name = 'org_lsp' })[1]
+  local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  local fence = #lines >= 2 and lines[1]:match('^(```+)org$')
+  if not client or not fence or lines[#lines] ~= fence then
+    return
+  end
+  pcall(vim.treesitter.stop, buf)
+  -- Markdown's window settings go, Org's come with the filetype: the
+  -- float is as Neovim showed it, but for what it set on it since.
+  local options = shown_with[win] or {}
+  shown_with[win] = nil
+  for name, value in pairs(options) do
+    if not FLOAT_OPTIONS[name] and not vim.deep_equal(vim.api.nvim_get_option_value(name, { win = win }), value) then
+      pcall(vim.api.nvim_set_option_value, name, value, { win = win })
+    end
+  end
+  vim.bo[buf].modifiable = true
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.list_slice(lines, 2, #lines - 1))
+  vim.bo[buf].modifiable = false
+  count = count + 1
+  vim.api.nvim_buf_set_name(buf, ('org-preview:/%d'):format(count))
+  vim.b[buf].org_lsp_preview = true
+  vim.bo[buf].syntax = ''
+  vim.bo[buf].filetype = 'org'
+  vim.api.nvim_win_set_height(win, math.max(1, vim.api.nvim_win_text_height(win, {}).all))
+  vim.lsp.buf_attach_client(buf, client.id)
+end
+
+--- Watch for Neovim's hover floats: `to_org` once Neovim is done with one.
+function M.watch()
+  local group = vim.api.nvim_create_augroup('org_lsp_hover', { clear = true })
+  vim.api.nvim_create_autocmd('BufWinEnter', {
+    group = group,
+    callback = function(args)
+      -- The options of a float as it is shown, before anything else.
+      local shown = {}
+      for _, win in ipairs(vim.fn.win_findbuf(args.buf)) do
+        if vim.api.nvim_win_get_config(win).relative ~= '' and not shown_with[win] then
+          shown_with[win] = window_options(win)
+          table.insert(shown, win)
+        end
+      end
+      vim.schedule(function()
+        to_org(args.buf)
+        -- Those of other floats are not needed.
+        for _, win in ipairs(shown) do
+          shown_with[win] = nil
+        end
+      end)
+    end,
+  })
 end
 
 return M

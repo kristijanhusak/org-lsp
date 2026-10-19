@@ -20,6 +20,7 @@ use crate::text::tag_group;
 use crate::todo::{self, headline_level, tags_padding, Editor};
 use crate::Refusal;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Settings {
     /// `org-tags-column`.
     pub tags_column: i64,
@@ -30,6 +31,57 @@ pub struct Settings {
     /// the item even where its bullet has nothing after it. Nothing is
     /// split, and nothing goes above.
     pub below: bool,
+    /// `org-provide-todo-statistics` and `org-hierarchical-todo-statistics`
+    pub statistics: crate::todo::Statistics,
+    /// `org-M-RET-may-split-line`, for headlines (and text), items and
+    /// tables.
+    pub split: Split,
+    /// `org-blank-before-new-entry`: an empty line before a new heading
+    /// and before a new item, or none for `auto`.
+    pub blank_heading: Option<bool>,
+    pub blank_item: Option<bool>,
+    /// `org-insert-heading-respect-content`: a new heading goes after the
+    /// subtree.
+    pub respect_content: bool,
+    /// How lists are edited.
+    pub lists: list::Settings,
+    /// How tables are edited.
+    pub table: crate::table::Settings,
+    /// `org-treat-insert-todo-heading-as-state-change`: the keyword of a
+    /// new TODO heading set as `org-todo` sets it, logged and triggered,
+    /// with these settings at this time.
+    pub todo_state_change: Option<(crate::todo::Settings, DateTime)>,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Settings {
+            tags_column: -77,
+            below: false,
+            statistics: crate::todo::Statistics::default(),
+            split: Split::default(),
+            blank_heading: None,
+            blank_item: None,
+            respect_content: false,
+            lists: list::Settings::default(),
+            table: crate::table::Settings::default(),
+            todo_state_change: None,
+        }
+    }
+}
+
+/// `org-M-RET-may-split-line`, by context.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Split {
+    pub headline: bool,
+    pub item: bool,
+    pub table: bool,
+}
+
+impl Default for Split {
+    fn default() -> Self {
+        Split { headline: true, item: true, table: true }
+    }
 }
 
 /// Text and a point, edited as Emacs edits a buffer.
@@ -197,10 +249,22 @@ fn title_range(line: &str, keywords: &TodoKeywords) -> Option<(usize, usize)> {
 /// `org-insert-heading`, without the `C-u C-u` form. `respect_content`
 /// puts the heading after the subtree.
 fn insert_heading(buffer: &mut Buffer, keywords: &TodoKeywords, settings: &Settings, respect_content: bool) {
-    let blank = blank_before_heading(&buffer.text, buffer.point);
+    insert_heading_at(buffer, keywords, settings, respect_content, None);
+}
+
+/// `org-insert-heading` with its `level` argument, which gives the new
+/// heading that many stars.
+fn insert_heading_at(
+    buffer: &mut Buffer,
+    keywords: &TodoKeywords,
+    settings: &Settings,
+    respect_content: bool,
+    new_level: Option<usize>,
+) {
+    let blank = settings.blank_heading.unwrap_or_else(|| blank_before_heading(&buffer.text, buffer.point));
     let current_heading = heading_at_or_above(&buffer.text, buffer.point);
     let level = current_heading.and_then(|heading| headline_level(line(&buffer.text, heading)));
-    let stars = "*".repeat(level.unwrap_or(1));
+    let stars = "*".repeat(new_level.or(level).unwrap_or(1));
     if respect_content {
         buffer.point = match current_heading {
             None => next_heading(&buffer.text, buffer.point).unwrap_or(buffer.text.len()),
@@ -240,7 +304,8 @@ fn insert_heading(buffer: &mut Buffer, keywords: &TodoKeywords, settings: &Setti
             buffer.point = buffer.eol();
             return;
         }
-        let title = title_range(line(&buffer.text, bol), keywords).filter(|_| !settings.below);
+        let title =
+            title_range(line(&buffer.text, bol), keywords).filter(|_| !settings.below && settings.split.headline);
         if let Some((_, end)) = title.filter(|(start, end)| (bol + start..=bol + end).contains(&buffer.point)) {
             let split = buffer.text[buffer.point..bol + end].to_string();
             buffer.text.replace_range(buffer.point..bol + end, "");
@@ -272,6 +337,9 @@ fn insert_heading(buffer: &mut Buffer, keywords: &TodoKeywords, settings: &Setti
     if buffer.point == buffer.bol() {
         buffer.insert(&format!("{stars} "));
     } else {
+        if !settings.split.headline {
+            buffer.point = buffer.eol();
+        }
         buffer.insert(&format!("\n{stars} "));
     }
     if !(blank && previous_line_empty(&buffer.text, buffer.point)) {
@@ -334,11 +402,29 @@ fn mark_todo(buffer: &mut Buffer, keywords: &TodoKeywords, settings: &Settings) 
     let Some(mark) = new_mark(&buffer.text, heading, keywords) else { return };
     let Some(stars) = headline_level(line(&buffer.text, heading)) else { return };
     buffer.point = heading + stars + 1;
+    if let Some((todo_settings, now)) = &settings.todo_state_change {
+        // `org-todo` with the keyword, from no keyword.
+        let mut editor = Editor::new(&buffer.text, keywords, todo_settings, *now);
+        editor.heading = heading;
+        if editor.enter_state(mark).is_ok() {
+            let point = follow(&buffer.text, &editor.text, buffer.point);
+            buffer.text = editor.text;
+            // After the keyword and its space, as `org-todo` leaves it.
+            buffer.point = point + mark.len() + 1;
+        }
+        return;
+    }
     buffer.insert(&format!("{mark} "));
-    let todo_settings = todo::Settings { tags_column: settings.tags_column, ..todo::Settings::default() };
+    let todo_settings = todo::Settings {
+        tags_column: settings.tags_column,
+        statistics: settings.statistics.clone(),
+        ..todo::Settings::default()
+    };
     let mut editor = Editor::new(&buffer.text, keywords, &todo_settings, DateTime::new(Date::new(1970, 1, 1), 0, 0));
     editor.heading = heading;
-    editor.update_parent_statistics();
+    if settings.statistics.provided() {
+        editor.update_parent_statistics();
+    }
     let point = follow(&buffer.text, &editor.text, buffer.point);
     buffer.text = editor.text;
     buffer.point = point;
@@ -380,13 +466,20 @@ pub fn meta_return(text: &str, at: usize, keywords: &TodoKeywords, settings: &Se
     let at = place(text, at, settings);
     // From the end of the line, the table is the line's.
     if at_table(text, if settings.below { line_start(text, at) } else { at }, keywords) {
-        return if settings.below { Ok(insert_row_below(text, at)) } else { wrap_field(text, at) };
+        return if settings.below {
+            Ok(insert_row_below(text, at, &settings.table))
+        } else {
+            wrap_field(text, at, settings.split.table, &settings.table)
+        };
     }
-    if let Some(inserted) = list::insert_item(text, at, false, settings.below, keywords, settings.tags_column)? {
+    let options = list::ItemOptions { split: settings.split.item, blank: settings.blank_item };
+    if let Some(inserted) =
+        list::insert_item(text, at, false, settings.below, keywords, settings.tags_column, options, &settings.lists)?
+    {
         return Ok(Outcome { text: inserted.text, cursor: inserted.cursor });
     }
     let mut buffer = Buffer { text: text.to_string(), point: at };
-    insert_heading(&mut buffer, keywords, settings, false);
+    insert_heading(&mut buffer, keywords, settings, settings.respect_content);
     Ok(Outcome { text: buffer.text, cursor: buffer.point })
 }
 
@@ -402,14 +495,41 @@ pub fn insert_todo_heading(
 ) -> Result<Outcome, Refusal> {
     let at = place(text, at, settings);
     if !respect_content {
-        if let Some(inserted) = list::insert_item(text, at, true, settings.below, keywords, settings.tags_column)? {
+        let options = list::ItemOptions { split: settings.split.item, blank: settings.blank_item };
+        if let Some(inserted) =
+            list::insert_item(text, at, true, settings.below, keywords, settings.tags_column, options, &settings.lists)?
+        {
             return Ok(Outcome { text: inserted.text, cursor: inserted.cursor });
         }
     }
     let mut buffer = Buffer { text: text.to_string(), point: at };
-    insert_heading(&mut buffer, keywords, settings, respect_content);
+    insert_heading(&mut buffer, keywords, settings, respect_content || settings.respect_content);
     mark_todo(&mut buffer, keywords, settings);
     Ok(Outcome { text: buffer.text, cursor: buffer.point })
+}
+
+/// The heading `org-link-search` makes when a link's headline is not
+/// there and `org-link-search-must-match-exact-headline` says to: at the
+/// end of the text, of level 1, with the words of `search` (a `*` in
+/// front taken off). The cursor is at the start of its line.
+pub fn insert_link_heading(text: &str, search: &str, keywords: &TodoKeywords, settings: &Settings) -> Outcome {
+    let mut buffer = Buffer { text: text.to_string(), point: text.len() };
+    if buffer.point != buffer.bol() {
+        buffer.insert("\n");
+    }
+    insert_heading_at(&mut buffer, keywords, settings, false, Some(1));
+    buffer.insert(&format!("{}\n", search.strip_prefix('*').unwrap_or(search)));
+    let cursor = line_start(&buffer.text, buffer.point - 1);
+    Outcome { text: buffer.text, cursor }
+}
+
+/// `org-insert-heading` called from Lisp, as `ol-bibtex.el` calls it: a
+/// heading at the cursor, or after the subtree with
+/// `org-insert-heading-respect-content`; never an item.
+pub fn insert_heading_here(text: &str, at: usize, keywords: &TodoKeywords, settings: &Settings) -> Outcome {
+    let mut buffer = Buffer { text: text.to_string(), point: at };
+    insert_heading(&mut buffer, keywords, settings, settings.respect_content);
+    Outcome { text: buffer.text, cursor: buffer.point }
 }
 
 /// C-RET (`org-insert-heading-respect-content`): a heading after the
@@ -422,18 +542,26 @@ pub fn insert_heading_after(text: &str, at: usize, keywords: &TodoKeywords, sett
 
 /// `org-table-wrap-region` without a region: the field split at the
 /// cursor, what follows it put in front of the field one row down.
-fn wrap_field(text: &str, at: usize) -> Result<Outcome, Refusal> {
+fn wrap_field(text: &str, at: usize, split: bool, table: &crate::table::Settings) -> Result<Outcome, Refusal> {
     let start = line_start(text, at);
     let end = line_end(text, at);
     let current = &text[start..end];
     if is_blank(&text[start..at]) || current.trim_start().starts_with("|-") || is_blank(&text[at..end]) {
         return Err(Refusal::Failed("Not in table data field".to_string()));
     }
+    // Without `org-M-RET-may-split-line` for tables, from the end of the
+    // field.
+    let at = if split { at } else { text[at..end].find(['|', '\r']).map_or(end, |bar| at + bar) };
     let Some(bar) = text[at..].find('|').filter(|bar| *bar > 0) else {
-        // `org-table-next-row` aligns the table first: its last row ends
-        // with a newline then.
-        let mut outcome = next_row(text, at);
-        if !outcome.text.ends_with('\n')
+        // `org-table-align` writes again, with a newline, the rows that
+        // change: a last row without one gets it when it changes, or when
+        // `org-table-next-row` adds a row after it.
+        let mut outcome = next_row(text, at, table);
+        let last = |text: &str| line(text, line_start(text, text.len())).to_string();
+        let rewritten =
+            outcome.text.matches('\n').count() > text.matches('\n').count() || last(&outcome.text) != last(text);
+        if rewritten
+            && !outcome.text.ends_with('\n')
             && is_table_line(line(&outcome.text, line_start(&outcome.text, outcome.text.len())))
         {
             outcome.text.push('\n');
@@ -442,17 +570,17 @@ fn wrap_field(text: &str, at: usize) -> Result<Outcome, Refusal> {
     };
     let field = text[at..at + bar].trim_matches([' ', '\t', '\n', '\r']).to_string();
     let cut = format!("{} |{}", &text[..at], &text[at + bar + 1..]);
-    let moved = next_row(&cut, at);
+    let moved = next_row(&cut, at, table);
     let mut out = moved.text;
     out.insert_str(moved.cursor, &format!("{field} "));
-    Ok(align(&out, moved.cursor))
+    Ok(align(&out, moved.cursor, &table.formulas.alignment))
 }
 
 /// `org-table-insert-row` with its argument, from the end of the row at
 /// `at`: a row of blanks like it below it, the cursor in its first field,
 /// and the formulas after the table that name the rows after it by number
 /// (`@3`) moved along with them (`org-table-fix-formulas`).
-fn insert_row_below(text: &str, at: usize) -> Outcome {
+fn insert_row_below(text: &str, at: usize, table: &crate::table::Settings) -> Outcome {
     static END_BAR: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\|[ \t]*$").expect("valid"));
     static MARKER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[ \t]*\| *[#*$] *\|").expect("valid"));
     let mut text = text.to_string();
@@ -461,7 +589,7 @@ fn insert_row_below(text: &str, at: usize) -> Outcome {
         text.push('\n');
     }
     if !END_BAR.is_match(line(&text, line_start(&text, at))) {
-        let aligned = align(&text, at);
+        let aligned = align(&text, at, &table.formulas.alignment);
         text = aligned.text;
         at = aligned.cursor;
     }
@@ -490,7 +618,9 @@ fn insert_row_below(text: &str, at: usize) -> Outcome {
     }
     let dline = text[first..row].split_terminator('\n').filter(|line| is_data_line(line)).count() + 1;
     let text = fix_formulas(&text, row, dline - 1);
-    Outcome { text, cursor }
+    // `org-table-align`, as a table that was edited may need it
+    // (`org-table-may-need-update`).
+    align(&text, cursor, &table.formulas.alignment)
 }
 
 /// `org-table-dataline-regexp`
@@ -550,7 +680,7 @@ fn fix_formulas(text: &str, row: usize, limit: usize) -> String {
 
 /// `org-table-align` on the table at `at`, the cursor at the start of its
 /// field after (`org-table-save-field`).
-fn align(text: &str, at: usize) -> Outcome {
+fn align(text: &str, at: usize, alignment: &format::Alignment) -> Outcome {
     let start = line_start(text, at);
     let mut first = start;
     while first > 0 {
@@ -571,7 +701,7 @@ fn align(text: &str, at: usize) -> Outcome {
     let lines: Vec<&str> = text[first..last_end].split('\n').collect();
     let row = text[first..start].matches('\n').count();
     let column = text[start..at].matches('|').count();
-    let aligned = format::align_table(&lines);
+    let aligned = format::align_table(&lines, alignment);
     let row_start = first + aligned[..row].iter().map(|line| line.len() + 1).sum::<usize>();
     let target = &aligned[row];
     let bars: Vec<usize> = target.match_indices('|').map(|(bar, _)| bar + 1).collect();
@@ -596,7 +726,7 @@ mod tests {
     #[test]
     fn below_an_empty_item() {
         let keywords = TodoKeywords::default();
-        let settings = Settings { tags_column: -77, below: true };
+        let settings = Settings { below: true, ..Settings::default() };
         for (text, at, expected, cursor) in
             [("1. \n2. two\n", 0, "1. \n2. \n3. two\n", 7), ("- [ ] \n", 2, "- [ ] \n- [ ] \n", 13)]
         {

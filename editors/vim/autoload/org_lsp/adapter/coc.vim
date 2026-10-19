@@ -11,7 +11,7 @@ function! org_lsp#adapter#coc#register(cmd, options, filetypes) abort
         \ 'filetypes': a:filetypes,
         \ 'initializationOptions': a:options,
         \ })
-  for method in ['org-lsp/save', 'org-lsp/clock', 'org-lsp/timer', 'org-lsp/virtualIndent', 'org-lsp/lineHighlights', 'org-lsp/viewChanged', 'org-lsp/columns', 'org-lsp/folds']
+  for method in ['org-lsp/save', 'org-lsp/clock', 'org-lsp/timer', 'org-lsp/virtualIndent', 'org-lsp/lineHighlights', 'org-lsp/viewChanged', 'org-lsp/columns', 'org-lsp/folds', 'org-lsp/runCommand']
     call CocRegisterNotification(s:name, method, function('org_lsp#handle_notification', [method]))
   endfor
 endfunction
@@ -76,6 +76,14 @@ function! org_lsp#adapter#coc#request(bufnr, method, params, Callback) abort
     return s:send(a:method, a:params, a:Callback)
   endif
   call timer_start(wait, {-> s:send(a:method, a:params, a:Callback)})
+endfunction
+
+" A file no window shows, written: coc.nvim loads the files it edits for
+" the server without opening them to it, and the server reads them again.
+function! org_lsp#adapter#coc#saved(bufnr) abort
+  if coc#rpc#ready()
+    call CocNotify(s:name, 'textDocument/didSave', {'textDocument': {'uri': org_lsp#uri(a:bufnr)}})
+  endif
 endfunction
 
 " Tell the server of the changes to buffer `bufnr` not sent yet: coc.nvim

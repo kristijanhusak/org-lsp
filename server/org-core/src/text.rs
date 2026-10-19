@@ -15,6 +15,50 @@ pub fn width(text: &str) -> usize {
     text.chars().map(char_width).sum()
 }
 
+/// `format` with strings only: each `%s`, with a `-` flag, a width and
+/// a precision (`%-10s`, `%.3s`), takes the next of `args`; `%%` is `%`.
+/// Anything else stays as it is.
+pub fn format_strings(format: &str, args: &[&str]) -> String {
+    let mut out = String::new();
+    let mut args = args.iter();
+    let mut rest = format;
+    while let Some(at) = rest.find('%') {
+        out.push_str(&rest[..at]);
+        let spec = &rest[at + 1..];
+        if let Some(after) = spec.strip_prefix('%') {
+            out.push('%');
+            rest = after;
+            continue;
+        }
+        let left = spec.starts_with('-');
+        let digits = |text: &str| text.bytes().take_while(u8::is_ascii_digit).count();
+        let after_flag = &spec[usize::from(left)..];
+        let width_len = digits(after_flag);
+        let after_width = &after_flag[width_len..];
+        let (precision, after_precision) = match after_width.strip_prefix('.') {
+            Some(after_dot) => {
+                let length = digits(after_dot);
+                (Some(after_dot[..length].parse::<usize>().unwrap_or(0)), &after_dot[length..])
+            }
+            None => (None, after_width),
+        };
+        let Some(after) = after_precision.strip_prefix('s') else {
+            out.push('%');
+            rest = spec;
+            continue;
+        };
+        let mut value = args.next().copied().unwrap_or_default().to_string();
+        if let Some(precision) = precision {
+            value = value.chars().take(precision).collect();
+        }
+        let min = after_flag[..width_len].parse::<usize>().unwrap_or(0);
+        out.push_str(&if left { pad_right(&value, min) } else { pad_left(&value, min) });
+        rest = after;
+    }
+    out.push_str(rest);
+    out
+}
+
 /// `format "%-Ns"`: pad on the right to `min` columns.
 pub fn pad_right(text: &str, min: usize) -> String {
     let mut out = text.to_string();
@@ -168,3 +212,107 @@ mod line_end_tests {
         assert_eq!(from_lf(&lf, at), ("ab\r\ncd\r\n".to_string(), 5));
     }
 }
+
+/// The words of the file's `#+STARTUP:` lines, as `org-collect-keywords`
+/// finds them: keywords, so not lines inside a block whose contents Org
+/// does not parse (source, example, export, comment and verse blocks).
+pub fn startup_words(text: &str) -> Vec<&str> {
+    let mut words = Vec::new();
+    let mut inside: Option<String> = None;
+    for line in text.lines() {
+        let line = line.trim_start_matches([' ', '\t']);
+        let lower = line.get(..8).map(str::to_ascii_lowercase);
+        match &inside {
+            Some(name) => {
+                let end = format!("#+end_{name}");
+                if line.get(..end.len()).is_some_and(|start| start.eq_ignore_ascii_case(&end)) {
+                    inside = None;
+                }
+            }
+            None if lower.as_deref() == Some("#+begin_") => {
+                let name: String =
+                    line[8..].chars().take_while(|c| !c.is_whitespace()).collect::<String>().to_ascii_lowercase();
+                if matches!(name.as_str(), "src" | "example" | "export" | "comment" | "verse") {
+                    inside = Some(name);
+                }
+            }
+            None => {
+                if let Some(rest) =
+                    line.get(..10).filter(|key| key.eq_ignore_ascii_case("#+startup:")).map(|_| &line[10..])
+                {
+                    words.extend(rest.split_whitespace());
+                }
+            }
+        }
+    }
+    words
+}
+
+#[cfg(test)]
+mod startup_tests {
+    #[test]
+    fn startup_words_are_keywords_only() {
+        let text = "#+STARTUP: overview indent\n#+begin_example\n#+STARTUP: showall\n#+end_example\n\
+                    #+BEGIN_SRC org\n#+startup: noindent\n#+END_SRC\n#+begin_quote\n#+STARTUP: hidestars\n#+end_quote\n";
+        assert_eq!(super::startup_words(text), ["overview", "indent", "hidestars"]);
+    }
+}
+
+/// `org-replace-escapes`: each `%c` of `template` whose `c` `value` knows
+/// replaced by its value, as `format` writes it with the field width and
+/// precision written between (`%-12s`): padded to the width in columns,
+/// on the left unless the width has a `-`.
+pub fn replace_escapes(template: &str, value: impl Fn(char) -> Option<String>) -> String {
+    let mut out = String::with_capacity(template.len());
+    let mut rest = template;
+    while let Some(at) = rest.find('%') {
+        out.push_str(&rest[..at]);
+        let after = &rest[at + 1..];
+        let left = after.starts_with('-');
+        let spec = &after[usize::from(left)..];
+        let digits = spec.bytes().take_while(|b| b.is_ascii_digit() || *b == b'.').count();
+        let replaced = spec[digits..].chars().next().and_then(|c| Some((c, value(c)?)));
+        let Some((c, mut text)) = replaced else {
+            out.push('%');
+            rest = after;
+            continue;
+        };
+        let (width, precision) = match spec[..digits].split_once('.') {
+            Some((width, precision)) => (width, precision.parse::<usize>().ok()),
+            None => (&spec[..digits], None),
+        };
+        if let Some(precision) = precision {
+            text = text.chars().take(precision).collect();
+        }
+        let width = width.parse::<usize>().unwrap_or(0);
+        out.push_str(&if left { pad_right(&text, width) } else { pad_left(&text, width) });
+        rest = &spec[digits + c.len_utf8()..];
+    }
+    out.push_str(rest);
+    out
+}
+
+/// A regexp written as Emacs writes it, matched as `string-match` does,
+/// ignoring case (`case-fold-search`).
+#[derive(Debug, Clone)]
+pub struct EmacsRegexp(regex::Regex);
+
+impl EmacsRegexp {
+    /// `None` when it is not a regexp.
+    pub fn new(emacs: &str) -> Option<EmacsRegexp> {
+        let translated = crate::agenda::matcher::translate(emacs);
+        regex::RegexBuilder::new(&translated).case_insensitive(true).build().ok().map(EmacsRegexp)
+    }
+
+    pub fn is_match(&self, text: &str) -> bool {
+        self.0.is_match(text)
+    }
+}
+
+impl PartialEq for EmacsRegexp {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.as_str() == other.0.as_str()
+    }
+}
+
+impl Eq for EmacsRegexp {}

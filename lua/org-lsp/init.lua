@@ -37,7 +37,7 @@ local SERVER = 'org_lsp'
 ---@field win_split_size? number The size of the window `win_split_mode` opens: lines for a split, columns for a vertical one, or with a number below 1 that part of the editor ('float' takes the part for both sides, 0.8 when unset). Unset, a split takes half of the window it splits.
 ---@field calendar_win_mode? 'bottom'|'float'|'cursor'|string|fun(bufnr: integer): integer? Where the date prompt's calendar opens: 'bottom' in a split along the bottom, as Emacs shows it; 'float' in a floating window in the middle; 'cursor' in a floating window below the cursor (above it when there is no room); another Ex command that opens a window ('topleft split'); or a function that opens a window for the buffer and returns it.
 ---@field calendar_border? string|string[] The border of the calendar's floating window ('float', 'cursor'), as `nvim_open_win()` takes it; 'rounded' when unset, 'none' for none.
----@field images? { max_width?: integer, max_height?: integer, cell?: { width: number, height: number } }|false Previews of links to images and of LaTeX fragments (`<Leader>oxv`, `<Leader>oxl`), drawn with `vim.ui.img` (Neovim 0.13 and later, in a terminal with the Kitty graphics protocol): the most columns and lines an image takes (80 and 20), the size of a cell in pixels where the terminal does not say it (for the lines an image takes; 10 by 20 then), or `false` for no previews.
+---@field images? { max_width?: integer, max_height?: integer, cell?: { width: number, height: number } }|false Previews of links to images and of LaTeX fragments (`<Leader>oxv`, `<Leader>oxl`), drawn with `vim.ui.img` (Neovim 0.13 and later, in a terminal with the Kitty graphics protocol): the most columns and lines an image takes (the window's width, `org_image_max_width` for one at its own width, and 20), the size of a cell in pixels where the terminal does not say it (for the lines an image takes; 10 by 20 then), or `false` for no previews.
 ---@field mappings? org_lsp.Mappings|false Keys by scope; `false` sets no keys at all. See docs/keys/neovim.org.
 
 --- Keys by scope. In a scope, a command (`org.todo`, or one of the plugin's
@@ -67,7 +67,7 @@ local defaults = {
   calendar_win_mode = 'bottom',
   -- Previews of images and LaTeX (`vim.ui.img`, Neovim 0.13): the most
   -- cells an image takes, or false for none.
-  images = { max_width = 80, max_height = 20 },
+  images = { max_height = 20 },
   mappings = {
     -- The keys that must work before the server has said anything.
     global = {
@@ -77,7 +77,7 @@ local defaults = {
       ['org.journal.new.entry'] = '<Leader>jj',
     },
     org = { cycle = '<Tab>', global_cycle = '<S-Tab>', help = 'g?' },
-    agenda = { quit = 'q', help = 'g?', hover = 'K' },
+    agenda = { quit = 'q', help = 'g?' },
   },
 }
 
@@ -145,9 +145,10 @@ local function warn_missing_server()
   )
 end
 
+--- The server: the one of the current buffer, else the one that runs.
 ---@return vim.lsp.Client|nil
 local function running_client()
-  return vim.lsp.get_clients({ name = SERVER })[1]
+  return vim.lsp.get_clients({ bufnr = 0, name = SERVER })[1] or vim.lsp.get_clients({ name = SERVER })[1]
 end
 
 -- ----- commands
@@ -186,10 +187,11 @@ end
 --- Run a command: one of the editor's own, or one of the server's, which
 --- is told where the cursor is.
 ---@param name string e.g. 'org.todo.next'
----@param opts? { count?: integer, key?: string, append?: boolean } the
+---@param opts? { count?: integer, key?: string, append?: boolean, argument?: table } the
 --- count typed before the key, the key to give back its own meaning if the
---- command does not apply at the cursor, and whether the command acts below
---- the cursor's line and typing goes on in insert mode
+--- command does not apply at the cursor, whether the command acts below
+--- the cursor's line and typing goes on in insert mode, and fields of the
+--- argument the server gave (`org-lsp/runCommand`)
 function M.run(name, opts)
   if own_commands[name] then
     return own_commands[name][2]()
@@ -252,6 +254,11 @@ function M.run(name, opts)
       -- never above it, and nothing split.
       context.below = true
     end
+    -- What the server asked the command to be run with (a capture an
+    -- org-protocol URL started).
+    for key, value in pairs(opts.argument or {}) do
+      context[key] = value
+    end
     local command = { title = name, command = name, arguments = { context } }
     local bufnr = vim.api.nvim_get_current_buf()
     local function handle(err, result)
@@ -274,9 +281,10 @@ function M.run(name, opts)
           vim.cmd(at_end and 'startinsert!' or 'startinsert')
         end
       end
-      -- What was cut or copied goes to the register, by lines.
+      -- What was cut or copied goes to the register, by lines, or by
+      -- characters for a kill of part of a line (`org.kill.line`).
       if type(result) == 'table' and type(result.copy) == 'string' then
-        vim.fn.setreg(register, result.copy, 'l')
+        vim.fn.setreg(register, result.copy, result.copyCharacters and 'c' or 'l')
       end
       -- A sparse tree: everything folded but the lines shown, and the
       -- matches highlighted.
@@ -290,6 +298,10 @@ function M.run(name, opts)
       -- Images to show in place of links or LaTeX, or to take away.
       if type(result) == 'table' and type(result.preview) == 'table' then
         require('org-lsp.images').apply(result.preview)
+      end
+      -- Lines to hide (the custom properties), those hidden before shown.
+      if type(result) == 'table' and type(result.hiddenLines) == 'table' then
+        require('org-lsp.hidden').apply(result.hiddenLines)
       end
       -- What the command has to say, as Emacs says it in the echo area.
       if type(result) == 'table' and type(result.message) == 'string' then
@@ -315,7 +327,7 @@ function M.run(name, opts)
           end
         end
         if input.kind == 'key' then
-          return answered(M.read_key(input.prompt, input.choices))
+          return answered(M.read_key(input.prompt, input.choices, input.expert))
         end
         if input.choices then
           -- One of a list, such as the targets of a refile.
@@ -394,19 +406,40 @@ function M.closed_folds()
 end
 
 local sparse_namespace = vim.api.nvim_create_namespace('org_lsp_sparse')
+-- By buffer, how many times highlights were shown: a change clears only
+-- those it was waiting for.
+local sparse_shown = {}
 
 --- Show a sparse tree (`org-sparse-tree`) in the windows of `bufnr`: all
 --- folds closed, then those around each of `sparse.lines` opened, as
 --- `org-occur` shows its matches with everything else hidden; the matches
---- highlighted (`OrgLspSparseMatch`) until the text changes. The cursor
---- stays. With `keep` (`org-reveal`), only the folds that start on the
---- lines of `unfold` open, outer ones first; the others stay as they are.
+--- highlighted (`OrgLspSparseMatch`) until the text changes, or with
+--- `keepHighlights` until they are replaced. The cursor stays. With `keep`
+--- (`org-reveal`), only the folds that start on the lines of `unfold` open,
+--- outer ones first; the others stay as they are, and `highlights`, when
+--- given (`C-c C-c`), replace those shown.
 ---@param bufnr integer
----@param sparse { lines: integer[], highlights: table[], keep: boolean?, unfold: integer[]? }
+---@param sparse { lines: integer[], highlights: table[]?, keepHighlights: boolean?, keep: boolean?, unfold: integer[]? }
 ---@param client vim.lsp.Client
 function M.show_sparse(bufnr, sparse, client)
   if not vim.api.nvim_buf_is_valid(bufnr) then
     return
+  end
+  vim.api.nvim_set_hl(0, 'OrgLspSparseMatch', { link = 'Search', default = true })
+  if not sparse.keep or sparse.highlights then
+    vim.api.nvim_buf_clear_namespace(bufnr, sparse_namespace, 0, -1)
+    sparse_shown[bufnr] = (sparse_shown[bufnr] or 0) + 1
+  end
+  local function column(position)
+    local text = vim.api.nvim_buf_get_lines(bufnr, position.line, position.line + 1, false)[1] or ''
+    return vim.str_byteindex(text, client.offset_encoding, position.character, false)
+  end
+  for _, range in ipairs(sparse.highlights or {}) do
+    pcall(vim.api.nvim_buf_set_extmark, bufnr, sparse_namespace, range.start.line, column(range.start), {
+      end_row = range['end'].line,
+      end_col = column(range['end']),
+      hl_group = 'OrgLspSparseMatch',
+    })
   end
   if sparse.keep then
     for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
@@ -422,19 +455,6 @@ function M.show_sparse(bufnr, sparse, client)
     end
     return
   end
-  vim.api.nvim_set_hl(0, 'OrgLspSparseMatch', { link = 'Search', default = true })
-  vim.api.nvim_buf_clear_namespace(bufnr, sparse_namespace, 0, -1)
-  local function column(position)
-    local text = vim.api.nvim_buf_get_lines(bufnr, position.line, position.line + 1, false)[1] or ''
-    return vim.str_byteindex(text, client.offset_encoding, position.character, false)
-  end
-  for _, range in ipairs(sparse.highlights or {}) do
-    pcall(vim.api.nvim_buf_set_extmark, bufnr, sparse_namespace, range.start.line, column(range.start), {
-      end_row = range['end'].line,
-      end_col = column(range['end']),
-      hl_group = 'OrgLspSparseMatch',
-    })
-  end
   for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
     if vim.wo[win].foldenable then
       vim.api.nvim_win_call(win, function()
@@ -448,12 +468,16 @@ function M.show_sparse(bufnr, sparse, client)
       end)
     end
   end
-  -- Org takes the highlighting away at the next change
-  -- (`org-remove-highlights-with-change`).
+  -- Org takes the highlighting away at the next change, unless the server
+  -- says it stays (`org-remove-highlights-with-change`).
+  if sparse.keepHighlights then
+    return
+  end
+  local shown = sparse_shown[bufnr]
   vim.api.nvim_buf_attach(bufnr, false, {
     on_lines = function()
       vim.schedule(function()
-        if vim.api.nvim_buf_is_valid(bufnr) then
+        if vim.api.nvim_buf_is_valid(bufnr) and sparse_shown[bufnr] == shown then
           vim.api.nvim_buf_clear_namespace(bufnr, sparse_namespace, 0, -1)
         end
       end)
@@ -521,10 +545,13 @@ end
 --- cancels.
 ---@param prompt string
 ---@param choices? { key: string, label: string }[]
+---@param expert? boolean the keys in the prompt alone, no window
 ---@return string?
-function M.read_key(prompt, choices)
-  local win = choices and #choices > 0 and show_choices(prompt, choices) or nil
-  vim.api.nvim_echo({ { prompt .. ': ' } }, false, {})
+function M.read_key(prompt, choices, expert)
+  -- `expert` (`org-use-fast-todo-selection`): the keys are in the prompt,
+  -- which shows alone, as Emacs's message does.
+  local win = not expert and choices and #choices > 0 and show_choices(prompt, choices) or nil
+  vim.api.nvim_echo({ { expert and prompt or prompt .. ': ' } }, false, {})
   vim.cmd.redraw()
   local ok, key = pcall(vim.fn.getcharstr)
   vim.api.nvim_echo({ { '' } }, false, {})
@@ -762,10 +789,11 @@ local function keys_in(scope)
       end
     end
   end
-  -- The keys of the mappings, the plugin's own (`K` for `hover`) and the
-  -- user's, are theirs: a command of the server's with the same key
-  -- (`K`, `org.agenda.habits`) goes without it.
-  local mapped = {}
+  -- The keys of the mappings, the plugin's own (`q` for `quit`) and the
+  -- user's, are theirs: a command of the server's with the same key goes
+  -- without it. `K` in the agenda stays Neovim's hover, which shows the
+  -- line's entry (Emacs's `K`, `org.agenda.habits`, goes without a key).
+  local mapped = scope == 'agenda' and { [vim.keycode('K')] = 'hover' } or {}
   for name, key in pairs(M.config.mappings[scope] or {}) do
     keys[name] = type(key) == 'table' and key or key and { key } or {}
     for _, lhs in ipairs(keys[name]) do
@@ -902,7 +930,10 @@ end
 --- Open the folds starting at the lines of `open` and close those of
 --- `close` (0-based `startLine`s, innermost first) in window `win` while
 --- it shows buffer `bufnr`, once it has the server's folds, which come a
---- moment after the buffer.
+--- moment after the buffer, or after an edit of the server's. A fold that
+--- closes other lines than the server's range is not the server's yet: it
+--- is opened again, and tried again a moment later (the last time it stays
+--- closed).
 ---@param win integer
 ---@param bufnr integer
 ---@param open table[]
@@ -928,10 +959,27 @@ local function set_folds(win, bufnr, open, close)
       for _, fold in ipairs(open) do
         vim.cmd(('silent! %dfoldopen'):format(fold.startLine + 1))
       end
+      open = {}
+      local stale = {}
       for _, fold in ipairs(close) do
-        vim.cmd(('silent! %dfoldclose'):format(fold.startLine + 1))
+        local line = fold.startLine + 1
+        -- (A line in a fold closed already stays as it is.)
+        if vim.fn.foldclosed(line) == -1 then
+          vim.cmd(('silent! %dfoldclose'):format(line))
+          local ends = fold.endLine and vim.fn.foldclosedend(line) ~= fold.endLine + 1
+          if tries < 40 and (vim.fn.foldclosed(line) ~= line or ends) then
+            vim.cmd(('silent! %dfoldopen'):format(line))
+            table.insert(stale, fold)
+          end
+        end
       end
+      close = stale
     end)
+    if #close > 0 and tries < 40 then
+      tries = tries + 1
+      first = close[1]
+      vim.defer_fn(apply, 50)
+    end
   end
   apply()
 end
@@ -952,8 +1000,9 @@ local function close_startup_folds(win)
   end, bufnr)
 end
 
---- The headlines' folds of a document as org-journal leaves them
---- (`org-lsp/folds`), in the windows that show it.
+--- The headlines' folds the server asks for (`org-lsp/folds`): as
+--- org-journal leaves them, or of the subtrees a yank or paste folds, in
+--- the windows that show the document.
 ---@param params { uri: string, open: table[], close: table[] }
 function M.journal_folds(params)
   local bufnr = require('org-lsp.buffers').of(params.uri)
@@ -996,6 +1045,12 @@ local function set_window_folds(win)
   vim.w[win][key] = true
   vim.wo[win][0].foldmethod = 'expr'
   vim.wo[win][0].foldexpr = 'v:lua.vim.lsp.foldexpr()'
+  -- A closed fold shows its first line and `org-ellipsis`, nothing after.
+  vim.wo[win][0].foldtext = "v:lua.require'org-lsp.folds'.foldtext()"
+  local fillchars = vim.api.nvim_get_option_value('fillchars', { win = win })
+  if not fillchars:find('fold:') then
+    vim.wo[win][0].fillchars = fillchars .. (fillchars == '' and '' or ',') .. 'fold: '
+  end
   -- Everything open, then closed as the server says the file opens
   -- (`#+STARTUP:`, `VISIBILITY`, the settings): the user's 'foldlevel'
   -- does not decide for an Org file.
@@ -1065,6 +1120,7 @@ local function on_init(client)
   end
   require('org-lsp.highlights').define(M.manifest)
   require('org-lsp.highlights').define_faces((client.server_capabilities.experimental or {}).orgFaces)
+  require('org-lsp.folds').ellipsis = (client.server_capabilities.experimental or {}).orgEllipsis or '...'
   require('org-lsp.view').setup(M.manifest)
   set_keys('global')
   for _, fn in ipairs(waiting) do
@@ -1075,11 +1131,20 @@ end
 
 ---@param client vim.lsp.Client
 ---@param bufnr integer
+--- Whether Neovim's hover floats are watched for Org text (`preview.watch`).
+local hover_watched = false
+
 local function on_attach(client, bufnr)
+  -- Neovim's own hover shows an agenda entry highlighted, as Org files are.
+  if not hover_watched then
+    hover_watched = true
+    require('org-lsp.preview').watch()
+  end
   if not M.manifest then
     return
   end
   require('org-lsp.highlights').attach_faces(bufnr)
+  require('org-lsp.highlights').attach_looks(bufnr, M.manifest)
   journal_files(client)
   if vim.bo[bufnr].filetype == M.manifest.agenda.languageId then
     return set_keys('agenda', bufnr)
@@ -1179,6 +1244,12 @@ local function enable()
     }),
     handlers = view.handlers,
     on_init = on_init,
+    -- One server for every Org file, whatever its root, and the one
+    -- started for the agenda with no file open: the server reads the
+    -- agenda files from its settings, not from a workspace.
+    reuse_client = function(client, config)
+      return client.name == config.name and not client:is_stopped()
+    end,
   })
   vim.lsp.enable(SERVER)
   return true

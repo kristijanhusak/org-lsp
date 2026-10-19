@@ -5,8 +5,10 @@ A case is a JSON object:
     {
       "text": "* a\\nbody\\n",      an Org document, or
       "file": "tests/fixtures/x.org",   one, relative to the repository
-      "adapt": "t"                     org-adapt-indentation: nil, t or
+      "adapt": "t",                    org-adapt-indentation: nil, t or
                                        headline-data
+      "per_level": 4                   optional: org-indent-indentation-
+                                       per-level, for `virtual`
     }
 
 `reference(cases)` adds `expected` to each case:
@@ -47,7 +49,7 @@ DRIVER = r"""
       (setq-local indent-tabs-mode nil)
       (goto-char (point-min)))
     buffer))
-(defun org-lsp-indent-case (in out adapt)
+(defun org-lsp-indent-case (in out adapt per-level)
   (let* ((org-adapt-indentation adapt)
          (text (with-temp-buffer (insert-file-contents in) (buffer-string)))
          (count (with-temp-buffer (insert text) (count-lines (point-min) (point-max))))
@@ -71,7 +73,8 @@ DRIVER = r"""
     (let* ((virtual
             (let ((buffer (org-lsp-indent-buffer text)) (out '()))
               (with-current-buffer buffer
-                (org-indent-mode 1)
+                (let ((org-indent-indentation-per-level per-level))
+                  (org-indent-mode 1))
                 (org-indent-add-properties (point-min) (point-max))
                 (dotimes (line count)
                   (goto-char (point-min))
@@ -130,9 +133,10 @@ def reference(cases):
             outputs.append((case, target))
             adapt = case.get("adapt", "nil")
             adapt = adapt if adapt in ("nil", "t") else "'" + adapt
+            per_level = case.get("per_level", 2)
             # A document Org itself fails on is recorded as such.
             forms.append(
-                f"(condition-case err (org-lsp-indent-case {lisp_string(source)} {lisp_string(target)} {adapt})"
+                f"(condition-case err (org-lsp-indent-case {lisp_string(source)} {lisp_string(target)} {adapt} {per_level})"
                 f" (error (with-temp-file {lisp_string(target)}"
                 f" (insert (json-encode (list (cons 'error (error-message-string err))))))))"
             )

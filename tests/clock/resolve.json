@@ -1,0 +1,561 @@
+[
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "steps": [
+      [
+        "resolve"
+      ]
+    ],
+    "answers": [
+      "K",
+      "",
+      "i"
+    ],
+    "expected": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]--[2026-05-18 Mon 10:30] =>  0:30\n:END:\n* C\n",
+    "asked": [
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "Keep how many minutes (default 30): ",
+      "Dangling clock started 90 mins ago [jkKtTgGSscCiq]? "
+    ],
+    "message": "Clock stopped at [2026-05-18 Mon 10:30] after 0:30"
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "steps": [
+      [
+        "resolve"
+      ]
+    ],
+    "answers": [
+      "K",
+      "45",
+      "q"
+    ],
+    "expected": "ERROR: (error \"RESOLVE-TO must refer to a time in the past\")",
+    "asked": [
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "Keep how many minutes (default 30): "
+    ],
+    "message": ""
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "steps": [
+      [
+        "resolve"
+      ]
+    ],
+    "answers": [
+      "k",
+      "30",
+      "q"
+    ],
+    "expected": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "asked": [
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "Keep how many minutes (default 30): ",
+      "Dangling clock started 90 mins ago [jkKtTgGSscCiq]? "
+    ],
+    "message": "Clock starts at [2026-05-18 Mon 10:00] - showing entire task time."
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "steps": [
+      [
+        "resolve"
+      ]
+    ],
+    "answers": [
+      "k",
+      "",
+      "k",
+      ""
+    ],
+    "expected": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]--[2026-05-18 Mon 10:30] =>  0:30\n:END:\n* C\n",
+    "asked": [
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "Keep how many minutes (default 30): ",
+      "Dangling clock started 90 mins ago [jkKtTgGSscCiq]? ",
+      "Keep how many minutes (default 90): "
+    ],
+    "message": "Clock starts at [2026-05-18 Mon 09:00] - showing entire task time."
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "steps": [
+      [
+        "resolve"
+      ]
+    ],
+    "answers": [
+      "k",
+      "10",
+      "i"
+    ],
+    "expected": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\nCLOCK: [2026-05-18 Mon 10:00]--[2026-05-18 Mon 10:10] =>  0:10\n:END:\n* C\n",
+    "asked": [
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "Keep how many minutes (default 30): ",
+      "Dangling clock started 90 mins ago [jkKtTgGSscCiq]? "
+    ],
+    "message": "Clock starts at [2026-05-18 Mon 10:30] - showing entire task time."
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "steps": [
+      [
+        "resolve"
+      ]
+    ],
+    "answers": [
+      "s",
+      "S"
+    ],
+    "expected": "* A\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n* C\n",
+    "asked": [
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "Dangling clock started 90 mins ago [jkKtTgGSscCiq]? "
+    ],
+    "message": "Clock canceled"
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "steps": [
+      [
+        "resolve"
+      ]
+    ],
+    "answers": [
+      "C",
+      "C"
+    ],
+    "expected": "* A\n* B\n* C\n",
+    "asked": [
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "Dangling clock started 90 mins ago [jkKtTgGSscCiq]? "
+    ],
+    "message": "Clock canceled"
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "steps": [
+      [
+        "resolve"
+      ]
+    ],
+    "answers": [
+      "g",
+      "10",
+      "G",
+      "20"
+    ],
+    "expected": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]--[2026-05-18 Mon 09:00] =>  0:00\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:20]\nCLOCK: [2026-05-18 Mon 10:00]--[2026-05-18 Mon 10:00] =>  0:00\n:END:\n* C\n",
+    "asked": [
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "Got back how many minutes ago (default 30): ",
+      "Dangling clock started 90 mins ago [jkKtTgGSscCiq]? ",
+      "Got back how many minutes ago (default 90): "
+    ],
+    "message": "Clock stopped at [2026-05-18 Mon 09:00] after 0:00"
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "steps": [
+      [
+        "resolve"
+      ]
+    ],
+    "answers": [
+      "g",
+      "",
+      "G",
+      ""
+    ],
+    "expected": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]--[2026-05-18 Mon 10:30] =>  1:30\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "asked": [
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "Got back how many minutes ago (default 30): ",
+      "Dangling clock started 90 mins ago [jkKtTgGSscCiq]? ",
+      "Got back how many minutes ago (default 90): "
+    ],
+    "message": "Clock stopped at [2026-05-18 Mon 10:30] after 1:30"
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "steps": [
+      [
+        "resolve"
+      ]
+    ],
+    "answers": [
+      "t",
+      "10:15",
+      "T",
+      "9:20"
+    ],
+    "expected": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]--[2026-05-18 Mon 09:20] =>  0:20\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\nCLOCK: [2026-05-18 Mon 10:00]--[2026-05-18 Mon 10:15] =>  0:15\n:END:\n* C\n",
+    "asked": [
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "Date+time [2026-05-18 10:30]: ",
+      "Dangling clock started 90 mins ago [jkKtTgGSscCiq]? ",
+      "Date+time [2026-05-18 10:30]: "
+    ],
+    "message": "Clock stopped at [2026-05-18 Mon 09:20] after 0:20"
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "steps": [
+      [
+        "resolve"
+      ]
+    ],
+    "answers": [
+      "J",
+      "j"
+    ],
+    "expected": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]--[2026-05-18 Mon 10:30] =>  0:30\n:END:\n* C\n",
+    "asked": [
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "Dangling clock started 90 mins ago [jkKtTgGSscCiq]? "
+    ],
+    "message": "Clock stopped at [2026-05-18 Mon 10:30] after 0:30"
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "steps": [
+      [
+        "resolve"
+      ]
+    ],
+    "answers": [
+      "x",
+      "k",
+      "",
+      "i"
+    ],
+    "expected": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "asked": [
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "Keep how many minutes (default 30): ",
+      "Dangling clock started 90 mins ago [jkKtTgGSscCiq]? "
+    ],
+    "message": "Clock starts at [2026-05-18 Mon 10:00] - showing entire task time."
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "steps": [
+      [
+        "resolve",
+        "4"
+      ]
+    ],
+    "answers": [
+      "K",
+      "",
+      "S"
+    ],
+    "expected": "* A\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]--[2026-05-18 Mon 10:30] =>  0:30\n:END:\n* C\n",
+    "asked": [
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "Keep how many minutes (default 30): ",
+      "Dangling clock started 90 mins ago [jkKtTgGSscCiq]? "
+    ],
+    "message": "Clock canceled"
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "steps": [
+      [
+        "resolve"
+      ]
+    ],
+    "answers": [
+      "i",
+      "i"
+    ],
+    "expected": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "asked": [
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "Dangling clock started 90 mins ago [jkKtTgGSscCiq]? "
+    ],
+    "message": ""
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* A\n* B\n",
+    "steps": [
+      [
+        "resolve"
+      ]
+    ],
+    "answers": [],
+    "expected": "* A\n* B\n",
+    "asked": [],
+    "message": ""
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "steps": [
+      [
+        "in",
+        "C"
+      ]
+    ],
+    "answers": [
+      "K",
+      "",
+      "K",
+      "45"
+    ],
+    "expected": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]--[2026-05-18 Mon 09:45] =>  0:45\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]--[2026-05-18 Mon 10:30] =>  0:30\n:END:\n* C\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n",
+    "asked": [
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "Keep how many minutes (default 30): ",
+      "Dangling clock started 90 mins ago [jkKtTgGSscCiq]? ",
+      "Keep how many minutes (default 90): "
+    ],
+    "message": "Clock starts at [2026-05-18 Mon 10:30] - showing entire task time."
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "steps": [
+      [
+        "in",
+        "C"
+      ]
+    ],
+    "answers": [
+      "k",
+      "",
+      "s"
+    ],
+    "expected": "* A\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]--[2026-05-18 Mon 10:30] =>  0:30\n:END:\n* C\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n",
+    "asked": [
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "Keep how many minutes (default 30): ",
+      "Dangling clock started 90 mins ago [jkKtTgGSscCiq]? "
+    ],
+    "message": "Clock starts at [2026-05-18 Mon 10:30] - showing entire task time."
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "steps": [
+      [
+        "in",
+        "C"
+      ]
+    ],
+    "answers": [
+      "i",
+      "C"
+    ],
+    "expected": "* A\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n",
+    "asked": [
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "Dangling clock started 90 mins ago [jkKtTgGSscCiq]? "
+    ],
+    "message": "Clock starts at [2026-05-18 Mon 10:30] - showing entire task time."
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* A\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "steps": [
+      [
+        "in",
+        "A"
+      ],
+      [
+        "in",
+        "C"
+      ]
+    ],
+    "answers": [
+      "k",
+      ""
+    ],
+    "expected": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]--[2026-05-18 Mon 10:30] =>  0:30\n:END:\n* C\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n",
+    "asked": [
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "Keep how many minutes (default 30): "
+    ],
+    "message": "Clock starts at [2026-05-18 Mon 10:30] - showing entire task time."
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* A\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "steps": [
+      [
+        "in",
+        "A"
+      ],
+      [
+        "in",
+        "C"
+      ]
+    ],
+    "answers": [
+      "K",
+      "",
+      "k",
+      ""
+    ],
+    "options": {
+      "org_clock_auto_clock_resolution": true
+    },
+    "expected": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]--[2026-05-18 Mon 10:30] =>  0:30\n:END:\n* C\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n",
+    "asked": [
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "Keep how many minutes (default 30): ",
+      "Dangling clock started 0 mins ago [jkKtTgGSscCiq]? ",
+      "Keep how many minutes (default 0): "
+    ],
+    "message": "Clock starts at [2026-05-18 Mon 10:30] - showing entire task time."
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "steps": [
+      [
+        "in",
+        "C"
+      ]
+    ],
+    "answers": [],
+    "options": {
+      "org_clock_auto_clock_resolution": false
+    },
+    "expected": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n",
+    "asked": [],
+    "message": "Clock starts at [2026-05-18 Mon 10:30] - showing entire task time."
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "steps": [
+      [
+        "resolve"
+      ],
+      [
+        "in",
+        "C"
+      ]
+    ],
+    "answers": [
+      "i",
+      "K",
+      "45",
+      "i",
+      "y"
+    ],
+    "expected": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]--[2026-05-18 Mon 09:45] =>  0:45\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:45]\n:END:\n",
+    "asked": [
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "Dangling clock started 90 mins ago [jkKtTgGSscCiq]? ",
+      "Keep how many minutes (default 90): ",
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "You stopped another clock 45 mins ago; start this one from then? "
+    ],
+    "message": "Clock starts at [2026-05-18 Mon 09:45] - showing entire task time."
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "steps": [
+      [
+        "resolve"
+      ],
+      [
+        "in",
+        "C"
+      ]
+    ],
+    "answers": [
+      "i",
+      "K",
+      "45",
+      "i",
+      "n"
+    ],
+    "expected": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]--[2026-05-18 Mon 09:45] =>  0:45\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n",
+    "asked": [
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "Dangling clock started 90 mins ago [jkKtTgGSscCiq]? ",
+      "Keep how many minutes (default 90): ",
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "You stopped another clock 45 mins ago; start this one from then? "
+    ],
+    "message": "Clock starts at [2026-05-18 Mon 10:30] - showing entire task time."
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "steps": [
+      [
+        "resolve"
+      ],
+      [
+        "in",
+        "C"
+      ]
+    ],
+    "answers": [
+      "i",
+      "K",
+      "45",
+      "y"
+    ],
+    "options": {
+      "org_clock_auto_clock_resolution": false
+    },
+    "expected": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]--[2026-05-18 Mon 09:45] =>  0:45\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:45]\n:END:\n",
+    "asked": [
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "Dangling clock started 90 mins ago [jkKtTgGSscCiq]? ",
+      "Keep how many minutes (default 90): ",
+      "You stopped another clock 45 mins ago; start this one from then? "
+    ],
+    "message": "Clock starts at [2026-05-18 Mon 09:45] - showing entire task time."
+  },
+  {
+    "clock": "2026-05-18 10:30",
+    "text": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n* C\n",
+    "steps": [
+      [
+        "resolve"
+      ]
+    ],
+    "answers": [
+      "K",
+      "",
+      "i"
+    ],
+    "options": {
+      "org_clock_resolve_expert": true
+    },
+    "expected": "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]--[2026-05-18 Mon 10:30] =>  0:30\n:END:\n* C\n",
+    "asked": [
+      "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ",
+      "Keep how many minutes (default 30): ",
+      "Dangling clock started 90 mins ago [jkKtTgGSscCiq]? "
+    ],
+    "message": "Clock stopped at [2026-05-18 Mon 10:30] after 0:30"
+  }
+]

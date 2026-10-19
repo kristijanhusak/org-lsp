@@ -194,7 +194,13 @@ pub const LIST_TYPES: &[(char, &str)] = &[('a', "alpha"), ('n', "numeric"), ('t'
 /// item: the items of its list sorted by their first line (sub-lists go
 /// with their items and are not sorted), then the list put right
 /// (`org-list-repair`). The cursor goes to the start of the list.
-pub fn sort_list(text: &str, at: usize, kind: char, now: DateTime) -> Result<Outcome, Refusal> {
+pub fn sort_list(
+    text: &str,
+    at: usize,
+    kind: char,
+    now: DateTime,
+    settings: &crate::list::Settings,
+) -> Result<Outcome, Refusal> {
     let lower = kind.to_ascii_lowercase();
     if lower == 'f' {
         return Err(Refusal::Failed("Sorting by a function of your own is not supported".to_string()));
@@ -245,7 +251,7 @@ pub fn sort_list(text: &str, at: usize, kind: char, now: DateTime) -> Result<Out
         last = old.2;
     }
     out.push_str(&region[last..]);
-    let repaired = crate::list::repair(&out, 0)?;
+    let repaired = crate::list::repair(&out, 0, settings)?;
     let mut text_out = String::with_capacity(text.len());
     text_out.push_str(&text[..start]);
     text_out.push_str(&repaired.text);
@@ -267,10 +273,9 @@ fn list_key(region: &str, at: usize, kind: char, now: DateTime) -> Option<Key> {
         'x' => Key::Text(found.get(1).map_or(String::new(), |checkbox| checkbox.as_str().to_string())),
         _ => {
             // A timer list sorts by its timers.
-            static BULLET: LazyLock<Regex> = LazyLock::new(|| {
-                Regex::new(r"\A[ \t]*(?:[-+]|[0-9]+[.)]|[ \t]+\*)(?:[ \t]+|$)(?:\[@(?:start:)?[0-9]+\][ \t]*)?")
-                    .unwrap()
-            });
+            let bullet = crate::list::item_regex(
+                r"\A[ \t]*(?:[-+]|{ordered}|[ \t]+\*)(?:[ \t]+|$)(?:\[@(?:start:)?(?:[0-9]+|[A-Za-z])\][ \t]*)?",
+            );
             static TIMER: LazyLock<Regex> =
                 LazyLock::new(|| Regex::new(r"\A([0-9]+:[0-9]+:[0-9]+)[ \t]+::[ \t]+").unwrap());
             static HMS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"([-+]?[0-9]+):([0-9]{2}):([0-9]{2})").unwrap());
@@ -278,7 +283,7 @@ fn list_key(region: &str, at: usize, kind: char, now: DateTime) -> Option<Key> {
                 LazyLock::new(|| Regex::new(r"<(\d{4}-\d{2}-\d{2}(?: [^\n]*?)?)>").unwrap());
             static BOTH: LazyLock<Regex> =
                 LazyLock::new(|| Regex::new(r"[\[<](\d{4}-\d{2}-\d{2}(?: [^\n]*?)?)[\]>]").unwrap());
-            let after_bullet = BULLET.find(line).map(|bullet| &line[bullet.end()..]);
+            let after_bullet = bullet.find(line).map(|found| &line[found.end()..]);
             if let Some(timer) = after_bullet.and_then(|after| TIMER.captures(after)) {
                 let hms = HMS.captures(&timer[1]).expect("a timer");
                 let number = |index: usize| hms[index].parse::<i64>().unwrap_or(0);

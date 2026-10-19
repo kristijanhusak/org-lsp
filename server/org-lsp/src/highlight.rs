@@ -53,6 +53,8 @@ token_types! {
     Latex => "latex",
     Entity => "entity",
     Macro => "macro",
+    DocumentTitle => "documentTitle",
+    DocumentInfo => "documentInfo",
     AgendaStructure => "agendaStructure",
     AgendaDate => "agendaDate",
     AgendaScheduled => "agendaScheduled",
@@ -68,6 +70,14 @@ token_types! {
     CalendarSelected => "calendarSelected",
     CalendarPrompt => "calendarPrompt",
     CalendarJournal => "calendarJournal",
+    CalendarDailies => "calendarDailies",
+    Quote => "quote",
+    Verse => "verse",
+    // Never sent: VS Code makes it of headline and stars tokens, with their
+    // level, for `org-lsp.headlineLevelColors`. A type and not a modifier,
+    // as the modifiers fill the 32 bits LSP has for them.
+    Outline => "outline",
+    DescriptionTerm => "descriptionTerm",
 }
 
 /// Token modifiers, in legend order; each is one bit.
@@ -103,8 +113,12 @@ pub mod modifier {
         "alert",
         "overdue",
         "future",
+        "todo",
+        "inlinetask",
     ];
 
+    /// The bits of `level1` to `level8`.
+    pub const LEVELS: u32 = 0xff;
     pub const DONE: u32 = 1 << 8;
     pub const INACTIVE: u32 = 1 << 9;
     pub const CHECKED: u32 = 1 << 10;
@@ -137,6 +151,12 @@ pub mod modifier {
     pub const OVERDUE: u32 = 1 << 28;
     /// A day of the graph to come (the `-future` faces).
     pub const FUTURE: u32 = 1 << 29;
+    /// A headline marked with a TODO keyword not done, past the keyword
+    /// (`org-headline-todo`, with `org-fontify-todo-headline`).
+    pub const TODO: u32 = 1 << 30;
+    /// The stars and title of an inline task (`org-inlinetask`, which
+    /// inherits `shadow`).
+    pub const INLINETASK: u32 = 1 << 31;
 
     /// Headline levels repeat after eight, like Org's level faces.
     pub fn level(level: usize) -> u32 {
@@ -212,8 +232,14 @@ pub mod standard {
             return Some(("comment", 0));
         }
         let name = match ty {
-            TokenType::Headline | TokenType::Stars if has(modifier::ARCHIVED) => "comment",
-            TokenType::Headline | TokenType::Stars => level(modifiers),
+            TokenType::Headline | TokenType::Stars if has(modifier::ARCHIVED | modifier::INLINETASK) => "comment",
+            // `org-headline-done` over a done headline's title and tags; a
+            // complete cookie in `org-done`'s color.
+            TokenType::Cookie if has(modifier::DONE) => "string",
+            TokenType::Headline | TokenType::Priority | TokenType::Tag if has(modifier::DONE) => "comment",
+            // `org-headline-todo`, copied from the string face.
+            TokenType::Headline | TokenType::Priority | TokenType::Tag if has(modifier::TODO) => "string",
+            TokenType::Headline | TokenType::Stars | TokenType::Outline => level(modifiers),
             TokenType::TodoKeyword if has(modifier::DONE) => "string",
             TokenType::TodoKeyword | TokenType::Planning => "keyword",
             TokenType::Priority | TokenType::Cookie => "number",
@@ -228,6 +254,8 @@ pub mod standard {
             TokenType::Link | TokenType::Target => "namespace",
             TokenType::Code | TokenType::Verbatim => "string",
             TokenType::Footnote => "parameter",
+            TokenType::DocumentTitle => "type",
+            TokenType::DocumentInfo => "variable",
             // Bold, italic and underline have no standard kind.
             TokenType::Text if struck != 0 => "variable",
             TokenType::Text => return None,
@@ -246,7 +274,13 @@ pub mod standard {
             TokenType::AgendaHabit => return None,
             TokenType::CalendarWeekday => "comment",
             TokenType::CalendarSelected | TokenType::CalendarPrompt => "keyword",
-            TokenType::CalendarJournal => "string",
+            TokenType::CalendarJournal | TokenType::CalendarDailies => "string",
+            // `org-quote` and `org-verse` are `org-block`, which has no color.
+            TokenType::Quote | TokenType::Verse if struck != 0 => "variable",
+            TokenType::Quote | TokenType::Verse => return None,
+            // `org-list-dt` is bold, with no color.
+            TokenType::DescriptionTerm if struck != 0 => "variable",
+            TokenType::DescriptionTerm => return None,
         };
         Some((name, struck))
     }
@@ -371,15 +405,160 @@ pub struct Conceal {
     pub emphasis: bool,
 }
 
+/// How headlines and blocks are shown, as Org's options say.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Fontify {
+    /// `org-fontify-done-headline`: past a done keyword, the headline is
+    /// `org-headline-done`.
+    pub done_headline: bool,
+    /// `org-fontify-todo-headline`: past a keyword not done, the headline
+    /// is `org-headline-todo`.
+    pub todo_headline: bool,
+    /// `org-fontify-quote-and-verse-blocks`: the lines of quote and verse
+    /// blocks are `org-quote` and `org-verse`.
+    pub quote_and_verse: bool,
+    /// The looks of `*bold*`, `/italic/`, `_underline_`, `=verbatim=`,
+    /// `~code~` and `+strike-through+`, in that order
+    /// (`org-emphasis-alist`); none with `org-fontify-emphasized-text`
+    /// off.
+    pub emphasis: Option<[Emphasis; 6]>,
+    /// `org-hidden-keywords`: which of the keywords of [`HIDDEN_KEYWORDS`]
+    /// are hidden, a bit for each in its order.
+    pub hidden_keywords: u8,
+    /// `org-hide-macro-markers`: the braces of `{{{macro}}}` are hidden.
+    pub hide_macro_markers: bool,
+    /// `org-odd-levels-only`: a headline's face is that of its reduced
+    /// level (`org-get-level-face`), `***` the second.
+    pub odd_levels: bool,
+    /// `org-n-level-faces`: how many of the eight level faces headlines
+    /// take, from 1 to 8.
+    pub n_level_faces: usize,
+    /// `org-cycle-level-faces`: past the last of those faces, the levels
+    /// start again from the first; off, they all keep the last.
+    pub cycle_level_faces: bool,
+    /// `org-fontify-whole-heading-line`: a headline's face goes on past
+    /// its text to the edge of the window ([`heading_lines`]).
+    pub whole_heading_line: bool,
+    /// The stars of the shortest inline task (`org-inlinetask-min-level`),
+    /// if there are inline tasks: their stars and title are
+    /// `org-inlinetask`.
+    pub inlinetask: Option<usize>,
+}
+
+impl Default for Fontify {
+    fn default() -> Self {
+        Fontify {
+            done_headline: true,
+            todo_headline: false,
+            quote_and_verse: false,
+            emphasis: Some(Emphasis::DEFAULTS),
+            hidden_keywords: 0,
+            hide_macro_markers: false,
+            odd_levels: false,
+            n_level_faces: 8,
+            cycle_level_faces: true,
+            whole_heading_line: false,
+            inlinetask: None,
+        }
+    }
+}
+
+impl Fontify {
+    /// Which of the level faces, from 1 to 8, a headline of `stars` stars
+    /// takes (`org-get-level-face`): that of its level, reduced with
+    /// `org-odd-levels-only`, past `org-n-level-faces` the first again
+    /// (`org-cycle-level-faces`) or the last.
+    pub fn level_face(&self, stars: usize) -> usize {
+        let level = org_core::structure::reduced_level(stars, self.odd_levels).max(1);
+        let faces = self.n_level_faces.clamp(1, 8);
+        if self.cycle_level_faces {
+            (level - 1) % faces + 1
+        } else {
+            level.min(faces)
+        }
+    }
+}
+
+/// The headlines whose face goes on past their text, to the edge of the
+/// window, with `org-fontify-whole-heading-line`: each headline's line
+/// and the level face it takes, from 1 to 8 (`org-level-N`, which Org
+/// makes `:extend`). Emacs's face covers the newline: a headline on the
+/// last line, without one, has none.
+pub fn heading_lines(root: &SyntaxNode, text: &str, fontify: &Fontify) -> Vec<(usize, usize)> {
+    if !fontify.whole_heading_line {
+        return Vec::new();
+    }
+    let mut out = Vec::new();
+    let mut line = 0;
+    let mut counted = 0;
+    for node in root.descendants().filter(|node| node.kind() == HEADLINE) {
+        let start = usize::from(node.text_range().start());
+        let Some(stars) = node.first_token().filter(|token| token.kind() == STARS) else { continue };
+        let stars = stars.text().trim_end().len();
+        // Org's face is that of `^\**\* `: a star and a space.
+        if !text[start..].trim_start_matches('*').starts_with(' ') {
+            continue;
+        }
+        line += text[counted..start].matches('\n').count();
+        counted = start;
+        if text[start..].contains('\n') {
+            out.push((line, fontify.level_face(stars)));
+        }
+    }
+    out
+}
+
+/// The keywords `org-hidden-keywords` can hide, before their values.
+pub const HIDDEN_KEYWORDS: [&str; 5] = ["title", "subtitle", "author", "email", "date"];
+
+/// The look of a kind of emphasis: a token type of its own (`org-code`,
+/// `org-verbatim`), or the text around it with modifiers (`bold`,
+/// `italic`, `underline`, `:strike-through t`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Emphasis {
+    pub ty: Option<TokenType>,
+    pub modifiers: u32,
+}
+
+impl Emphasis {
+    /// The markers, in the order of [`Fontify::emphasis`].
+    pub const MARKERS: [&'static str; 6] = ["*", "/", "_", "=", "~", "+"];
+
+    /// The default of `org-emphasis-alist`.
+    pub const DEFAULTS: [Emphasis; 6] = [
+        Emphasis { ty: None, modifiers: modifier::BOLD },
+        Emphasis { ty: None, modifiers: modifier::ITALIC },
+        Emphasis { ty: None, modifiers: modifier::UNDERLINE },
+        Emphasis { ty: Some(TokenType::Verbatim), modifiers: 0 },
+        Emphasis { ty: Some(TokenType::Code), modifiers: 0 },
+        Emphasis { ty: None, modifiers: modifier::STRIKETHROUGH },
+    ];
+
+    /// No face: the text looks as the text around it.
+    pub const NONE: Emphasis = Emphasis { ty: None, modifiers: 0 };
+}
+
 /// All tokens of a document, in order.
 pub fn tokens(root: &SyntaxNode, todo: &TodoKeywords, conceal: Conceal) -> Vec<Token> {
-    let mut walker = Walker { todo, conceal, out: Vec::new() };
+    tokens_with(root, todo, conceal, Fontify::default())
+}
+
+/// [`tokens`], headlines and blocks shown as `fontify` says.
+pub fn tokens_with(root: &SyntaxNode, todo: &TodoKeywords, conceal: Conceal, fontify: Fontify) -> Vec<Token> {
+    let mut walker = Walker { todo, conceal, fontify, out: Vec::new() };
     walker.children(root, Style::PLAIN);
     walker.out
 }
 
 /// `tokens` with the words radio targets make links (`ranges`, byte
 /// offsets) as links, over what was there; emphasis stays.
+/// The tokens without the statistics cookies: Org colors them only with
+/// the `checkbox` rule of `org-list-automatic-rules`.
+pub fn without_cookies(mut tokens: Vec<Token>) -> Vec<Token> {
+    tokens.retain(|token| token.ty != TokenType::Cookie);
+    tokens
+}
+
 pub fn with_radio_links(tokens: Vec<Token>, ranges: &[(usize, usize)]) -> Vec<Token> {
     if ranges.is_empty() {
         return tokens;
@@ -475,6 +654,7 @@ pub fn with_hidden(tokens: Vec<Token>, ranges: &[(usize, usize)]) -> Vec<Token> 
 struct Walker<'a> {
     todo: &'a TodoKeywords,
     conceal: Conceal,
+    fontify: Fontify,
     out: Vec<Token>,
 }
 
@@ -554,12 +734,7 @@ impl Walker<'_> {
                 if self.conceal.emphasis
                     && matches!(parent, BOLD | ITALIC | UNDERLINE | STRIKE_THROUGH | CODE | VERBATIM) =>
             {
-                let ty = match parent {
-                    CODE => TokenType::Code,
-                    VERBATIM => TokenType::Verbatim,
-                    _ => style.text.unwrap_or(TokenType::Text),
-                };
-                Some((ty, style.modifiers | modifier::HIDDEN))
+                Some((style.text.unwrap_or(TokenType::Text), style.modifiers | modifier::HIDDEN))
             }
             // Text and emphasis markers take the style of their context.
             TEXT | MARKER if style.text.is_some() || style.modifiers != 0 => {
@@ -597,19 +772,12 @@ impl Walker<'_> {
 
     fn node(&mut self, node: &SyntaxNode, style: Style) {
         let range = node.text_range();
-        let emphasis =
-            |modifier| Style { text: style.text.or(Some(TokenType::Text)), modifiers: style.modifiers | modifier };
         match node.kind() {
             HEADLINE => self.headline(node),
             // Tags, links and the like are single tokens whatever they contain.
             TAGS => self.push(range, TokenType::Tag, 0),
             LINK if self.conceal.links => self.link(node),
             LINK | PLAIN_LINK | ANGLE_LINK | CITATION => self.push(range, TokenType::Link, 0),
-            // With their markers apart, to hide them.
-            CODE | VERBATIM if self.conceal.emphasis => {
-                let ty = if node.kind() == CODE { TokenType::Code } else { TokenType::Verbatim };
-                self.children(node, Style { text: Some(ty), modifiers: 0 });
-            }
             // The code of `src_LANG{CODE}` is the editor's to color in its
             // language, as Emacs does with `org-src-fontify-natively`.
             INLINE_SRC_BLOCK => match inline_src_body(&node.text().to_string()) {
@@ -620,14 +788,19 @@ impl Walker<'_> {
                 }
                 None => self.push(range, TokenType::Code, 0),
             },
-            CODE | INLINE_BABEL_CALL => self.push(range, TokenType::Code, 0),
-            VERBATIM => self.push(range, TokenType::Verbatim, 0),
+            BOLD | ITALIC | UNDERLINE | VERBATIM | CODE | STRIKE_THROUGH => self.emphasis(node, style),
+            INLINE_BABEL_CALL => self.push(range, TokenType::Code, 0),
             TIMESTAMP => {
                 let inactive = node.first_token().is_some_and(|token| token.text().starts_with('['));
                 self.push(range, TokenType::Timestamp, if inactive { modifier::INACTIVE } else { 0 });
             }
             FOOTNOTE_REFERENCE => self.push(range, TokenType::Footnote, 0),
-            STATISTICS_COOKIE => self.push(range, TokenType::Cookie, 0),
+            // `org-get-checkbox-statistics-face`: a complete cookie is done.
+            STATISTICS_COOKIE => {
+                let done = cookie_complete(&node.text().to_string());
+                self.push(range, TokenType::Cookie, if done { modifier::DONE } else { 0 })
+            }
+            KEYWORD => self.keyword(node),
             TARGET | RADIO_TARGET => self.push(range, TokenType::Target, 0),
             LATEX_FRAGMENT => self.push(range, TokenType::Latex, 0),
             LATEX_ENVIRONMENT => {
@@ -639,23 +812,121 @@ impl Walker<'_> {
                 }
             }
             ENTITY => self.push(range, TokenType::Entity, 0),
-            MACRO => self.push(range, TokenType::Macro, 0),
-            BOLD => self.children(node, emphasis(modifier::BOLD)),
-            ITALIC => self.children(node, emphasis(modifier::ITALIC)),
-            UNDERLINE => self.children(node, emphasis(modifier::UNDERLINE)),
-            STRIKE_THROUGH => self.children(node, emphasis(modifier::STRIKETHROUGH)),
+            MACRO => self.macro_call(node),
             BLOCK | DYNAMIC_BLOCK => self.block(node),
+            LIST_ITEM => self.list_item(node, style),
             _ => self.children(node, style),
         }
     }
 
+    /// Emphasis in the look `org-emphasis-alist` gives its marker; the
+    /// text as around it with `org-fontify-emphasized-text` off.
+    fn emphasis(&mut self, node: &SyntaxNode, style: Style) {
+        let kind = node.kind();
+        let Some(looks) = self.fontify.emphasis else {
+            return self.children(node, style);
+        };
+        let index = [BOLD, ITALIC, UNDERLINE, VERBATIM, CODE, STRIKE_THROUGH]
+            .iter()
+            .position(|other| *other == kind)
+            .unwrap_or(0);
+        let look = looks[index];
+        let style = match look.ty {
+            Some(ty) => Style { text: Some(ty), modifiers: look.modifiers },
+            None => Style { text: style.text.or(Some(TokenType::Text)), modifiers: style.modifiers | look.modifiers },
+        };
+        match kind {
+            // Code and verbatim text hold no other objects: one token, or
+            // with their markers apart to hide them.
+            CODE | VERBATIM if !self.conceal.emphasis => {
+                self.push(node.text_range(), style.text.unwrap_or(TokenType::Text), style.modifiers)
+            }
+            _ => self.children(node, style),
+        }
+    }
+
+    /// A list item; the term of a description item in `org-list-dt`, over
+    /// what Org's font-lock rule for it covers: from past the bullet (and
+    /// the checkbox, which keeps its own token) to the first `::` with a
+    /// blank before it and a blank or the end of the line after, the `::`
+    /// included. The parser ends the term at the last such `::`, as
+    /// `org-list-full-item-re` does; past the first one, the term's text
+    /// is plain again.
+    fn list_item(&mut self, node: &SyntaxNode, style: Style) {
+        let term = Style { text: Some(TokenType::DescriptionTerm), modifiers: style.modifiers };
+        let (mut start, mut end) = (None, None);
+        for child in node.children_with_tokens() {
+            let range = child.text_range();
+            match child.kind() {
+                ITEM_TAG => {
+                    start = Some(range.start());
+                    self.children(&child.into_node().expect("ITEM_TAG is a node"), term);
+                }
+                WHITESPACE if child.next_sibling_or_token().is_some_and(|next| next.kind() == TAG_SEPARATOR) => {
+                    start.get_or_insert(range.start());
+                    self.push(range, TokenType::DescriptionTerm, style.modifiers);
+                }
+                TAG_SEPARATOR => {
+                    self.push(range, TokenType::DescriptionTerm, style.modifiers);
+                    end = Some(range.end());
+                }
+                _ => self.element(node, child, style),
+            }
+        }
+        let (Some(start), Some(end)) = (start, end) else { return };
+        let offset = node.text_range().start();
+        let term_text = node.text().slice(start - offset..end - offset).to_string();
+        let Some(first) = first_tag_separator(&term_text) else { return };
+        let first = start + TextSize::from(first as u32 + 2);
+        if first == end {
+            return;
+        }
+        for token in std::mem::take(&mut self.out) {
+            let inside = token.range.end() > first && token.range.start() < end;
+            if !inside || token.ty != TokenType::DescriptionTerm {
+                self.out.push(token);
+                continue;
+            }
+            if token.range.start() < first {
+                self.out.push(Token { range: TextRange::new(token.range.start(), first), ..token });
+            }
+            // What is left takes the style around the item, if it has one.
+            if token.modifiers != 0 || style.text.is_some() {
+                let range = TextRange::new(token.range.start().max(first), token.range.end());
+                self.out.push(Token { range, ty: style.text.unwrap_or(TokenType::Text), ..token });
+            }
+        }
+    }
+
+    /// `{{{name(args)}}}`, its braces hidden with `org-hide-macro-markers`.
+    fn macro_call(&mut self, node: &SyntaxNode) {
+        let range = node.text_range();
+        let text = node.text().to_string();
+        if !self.fontify.hide_macro_markers || !text.starts_with("{{{") || !text.ends_with("}}}") || text.len() < 6 {
+            return self.push(range, TokenType::Macro, 0);
+        }
+        let three = TextSize::from(3);
+        self.push(TextRange::new(range.start(), range.start() + three), TokenType::Macro, modifier::HIDDEN);
+        self.push(TextRange::new(range.start() + three, range.end() - three), TokenType::Macro, 0);
+        self.push(TextRange::new(range.end() - three, range.end()), TokenType::Macro, modifier::HIDDEN);
+    }
+
     fn headline(&mut self, node: &SyntaxNode) {
         let level = node.first_token().map_or(1, |stars| stars.text().len());
-        let level = modifier::level(level);
+        let level = modifier::level(self.fontify.level_face(level));
         // `org-archived`: what follows the stars of a headline with
         // `:ARCHIVE:` in it.
         let line = node.text().to_string();
         let archived = line.split('\n').next().is_some_and(|line| line.contains(":ARCHIVE:"));
+        // `org-fontify-done-headline`: after a done keyword, the rest of
+        // the headline is `org-headline-done`; `org-fontify-todo-headline`:
+        // after one not done, `org-headline-todo`.
+        let keyword = node.children_with_tokens().find(|child| child.kind() == TODO_KEYWORD);
+        let state = keyword.map(|keyword| match self.todo.is_done(&keyword.to_string()) {
+            true if self.fontify.done_headline => modifier::DONE,
+            false if self.fontify.todo_headline => modifier::TODO,
+            _ => 0,
+        });
         let mut after_stars = self.out.len();
         for child in node.children_with_tokens() {
             if child.kind() == STARS {
@@ -671,12 +942,62 @@ impl Walker<'_> {
                 _ => self.element(node, child, Style::PLAIN),
             }
         }
+        let headline_end = node.text_range().start() + TextSize::from(line.find('\n').unwrap_or(line.len()) as u32);
+        if let Some(state) = state.filter(|state| *state != 0) {
+            for token in &mut self.out[after_stars..] {
+                if token.range.start() < headline_end && token.ty != TokenType::TodoKeyword {
+                    // In place of the level, which would color it as well.
+                    token.modifiers = (token.modifiers & !modifier::LEVELS) | state;
+                }
+            }
+        }
         if archived {
-            let headline_end = node.text_range().start() + TextSize::from(line.find('\n').unwrap_or(line.len()) as u32);
             for token in &mut self.out[after_stars..] {
                 if token.range.start() < headline_end {
-                    token.modifiers |= modifier::ARCHIVED;
+                    // In place of the level, as `org-archived` is
+                    // prepended over the level's face: an editor that
+                    // colors a type with a modifier (`headline.level1`)
+                    // over a modifier alone (`*.archived`) would show the
+                    // level.
+                    token.modifiers = (token.modifiers & !modifier::LEVELS) | modifier::ARCHIVED;
                 }
+            }
+        }
+        // `org-inlinetask-fontify`: the stars and the rest of the line of an
+        // inline task are `org-inlinetask`, under the faces of its keyword,
+        // priority and tags.
+        let stars = node.first_token().map_or(0, |stars| stars.text().trim_end().len());
+        if self.fontify.inlinetask.is_some_and(|min| stars >= min) {
+            for token in &mut self.out[after_stars.saturating_sub(1)..] {
+                let own = matches!(token.ty, TokenType::TodoKeyword | TokenType::Priority | TokenType::Tag);
+                if token.range.start() < headline_end && !own {
+                    token.modifiers = (token.modifiers & !modifier::LEVELS) | modifier::INLINETASK;
+                }
+            }
+        }
+    }
+
+    /// A keyword line; the values of `#+TITLE:`, and of `#+SUBTITLE:`,
+    /// `#+AUTHOR:`, `#+EMAIL:` and `#+DATE:`, in `org-document-title` and
+    /// `org-document-info`.
+    fn keyword(&mut self, node: &SyntaxNode) {
+        let key = node.children_with_tokens().find(|child| child.kind() == KEYWORD_KEY).map(|key| key.to_string());
+        let value = match key.as_ref().map(|key| key.to_ascii_lowercase()).as_deref() {
+            Some("#+title:") => Some(TokenType::DocumentTitle),
+            Some("#+subtitle:" | "#+author:" | "#+email:" | "#+date:") => Some(TokenType::DocumentInfo),
+            _ => None,
+        };
+        let hidden = key.as_deref().is_some_and(|key| {
+            let name = key.trim().trim_start_matches("#+").trim_end_matches(':').to_ascii_lowercase();
+            let bit = HIDDEN_KEYWORDS.iter().position(|hidden| *hidden == name);
+            value.is_some() && bit.is_some_and(|bit| self.fontify.hidden_keywords & (1 << bit) != 0)
+        });
+        for child in node.children_with_tokens() {
+            match (child.kind(), value) {
+                (KEYWORD_VALUE, Some(ty)) => self.push(child.text_range(), ty, 0),
+                // `org-hidden-keywords`: `#+TITLE:` hidden, its value shown.
+                (KEYWORD_KEY, _) if hidden => self.push(child.text_range(), TokenType::Keyword, modifier::HIDDEN),
+                _ => self.element(node, child, Style::PLAIN),
             }
         }
     }
@@ -687,6 +1008,18 @@ impl Walker<'_> {
             .as_ref()
             .and_then(|begin| begin.as_token())
             .is_some_and(|begin| begin.text().eq_ignore_ascii_case("#+begin_comment"));
+        // `org-fontify-quote-and-verse-blocks`: the lines inside quote and
+        // verse blocks, under what they contain.
+        let quoted = begin
+            .as_ref()
+            .and_then(|begin| begin.as_token())
+            .and_then(|begin| match begin.text().to_ascii_lowercase().as_str() {
+                "#+begin_quote" => Some(TokenType::Quote),
+                "#+begin_verse" => Some(TokenType::Verse),
+                _ => None,
+            })
+            .filter(|_| self.fontify.quote_and_verse);
+        let inside = Style { text: quoted, modifiers: 0 };
         for child in node.children_with_tokens() {
             match child.kind() {
                 // The whole opening line, parameters included, is one token.
@@ -699,11 +1032,34 @@ impl Walker<'_> {
                     }
                 }
                 TEXT if is_comment => self.push(child.text_range(), TokenType::Comment, 0),
+                TEXT if quoted.is_some() => self.push(child.text_range(), quoted.expect("quoted"), 0),
                 // Raw contents (source code, examples) are left to the editor.
                 TEXT => {}
-                _ => self.element(node, child, Style::PLAIN),
+                _ => self.element(node, child, inside),
             }
         }
+    }
+}
+
+/// Where the first `::` of a description item's term is in `text`, which
+/// starts with the term: as `.*?[ \t]+::\([ \t]+\|$\)` finds it in Org's
+/// font-lock rule, with a blank before it and a blank or nothing after.
+fn first_tag_separator(text: &str) -> Option<usize> {
+    let bytes = text.as_bytes();
+    text.match_indices("::").map(|(index, _)| index).find(|index| {
+        *index > 0
+            && matches!(bytes[index - 1], b' ' | b'\t')
+            && bytes.get(index + 2).is_none_or(|b| matches!(b, b' ' | b'\t'))
+    })
+}
+
+/// Whether a statistics cookie is complete: `[100%]`, or `[n/n]` with both
+/// numbers the same (`[0/0]` too).
+fn cookie_complete(cookie: &str) -> bool {
+    let inner = cookie.trim_start_matches('[').trim_end_matches(']');
+    match inner.split_once('/') {
+        Some((done, all)) => !done.is_empty() && done == all,
+        None => inner == "100%",
     }
 }
 
@@ -851,9 +1207,13 @@ mod tests {
     }
 
     fn render_concealed(text: &str, encoding: Encoding, conceal: Conceal) -> String {
+        render_with(text, encoding, conceal, Fontify::default())
+    }
+
+    fn render_with(text: &str, encoding: Encoding, conceal: Conceal, fontify: Fontify) -> String {
         let parse = org_syntax::parse(text, &TodoKeywords::default());
         let index = LineIndex::new(text);
-        let tokens = tokens(&parse.syntax(), parse.todo_keywords(), conceal);
+        let tokens = tokens_with(&parse.syntax(), parse.todo_keywords(), conceal, fontify);
         let mut out = String::new();
         let (mut line, mut column) = (0, 0);
         for token in encode(&tokens, text, &index, encoding, None) {
@@ -888,6 +1248,66 @@ mod tests {
 
     fn check(text: &str, expected: Expect) {
         expected.assert_eq(&render(text, Encoding::Utf16));
+    }
+
+    #[test]
+    fn markup_options() {
+        // `org-emphasis-alist` with bold italic and code as verbatim, no
+        // look for underline (left out); `org-hidden-keywords` hiding the
+        // title's keyword, `org-hide-macro-markers` the braces.
+        let mut emphasis = [Emphasis::NONE; 6];
+        emphasis[0] = Emphasis { ty: None, modifiers: modifier::BOLD | modifier::ITALIC };
+        emphasis[4] = Emphasis { ty: Some(TokenType::Verbatim), modifiers: 0 };
+        let fontify =
+            Fontify { emphasis: Some(emphasis), hidden_keywords: 1, hide_macro_markers: true, ..Fontify::default() };
+        let text = "#+TITLE: Doc\n#+AUTHOR: Me\n*b* _u_ ~c~ {{{m(1)}}}\n";
+        expect![[r##"
+            0:0 "#+TITLE:" keyword +hidden
+            0:9 "Doc" documentTitle
+            1:0 "#+AUTHOR:" keyword
+            1:10 "Me" documentInfo
+            2:0 "*b*" text +bold +italic
+            2:4 "_u_" text
+            2:8 "~c~" verbatim
+            2:12 "{{{" macro +hidden
+            2:15 "m(1)" macro
+            2:19 "}}}" macro +hidden
+        "##]]
+        .assert_eq(&render_with(text, Encoding::Utf16, Conceal::default(), fontify));
+        // `org-fontify-emphasized-text` off: no looks.
+        let plain = Fontify { emphasis: None, ..Fontify::default() };
+        expect![[""]].assert_eq(&render_with("*b* ~c~\n", Encoding::Utf16, Conceal::default(), plain));
+    }
+
+    #[test]
+    fn fontify_options() {
+        // `org-fontify-todo-headline` on, `org-fontify-done-headline` off,
+        // `org-fontify-quote-and-verse-blocks` on: the text of quote and
+        // verse blocks, under the emphasis it carries.
+        let fontify =
+            Fontify { done_headline: false, todo_headline: true, quote_and_verse: true, ..Fontify::default() };
+        let text = "* TODO [#A] Call :x:\n* DONE Done\n#+begin_quote\nSaid *this*\n#+end_quote\n\
+                    #+begin_verse\nA line\n#+end_verse\n#+begin_example\nraw\n#+end_example\n";
+        expect![[r##"
+            0:0 "*" stars +level1
+            0:2 "TODO" todoKeyword
+            0:7 "[#A]" priority +todo
+            0:12 "Call" headline +todo
+            0:17 ":x:" tag +todo
+            1:0 "*" stars +level1
+            1:2 "DONE" todoKeyword +done
+            1:7 "Done" headline +level1
+            2:0 "#+begin_quote" block
+            3:0 "Said " quote
+            3:5 "*this*" quote +bold
+            4:0 "#+end_quote" block
+            5:0 "#+begin_verse" block
+            6:0 "A line" verse
+            7:0 "#+end_verse" block
+            8:0 "#+begin_example" block
+            10:0 "#+end_example" block
+        "##]]
+        .assert_eq(&render_with(text, Encoding::Utf16, Conceal::default(), fontify));
     }
 
     #[test]
@@ -989,8 +1409,38 @@ mod tests {
                 0:39 ":work:rust:" tag
                 1:0 "***" stars +level3
                 1:4 "DONE" todoKeyword +done
-                1:9 "x" headline +level3
+                1:9 "x" headline +done
             "#]],
+        );
+    }
+
+    #[test]
+    fn done_headlines_cookies_and_document_keywords() {
+        // `org-fontify-done-headline`, `org-checkbox-statistics-done` for a
+        // complete cookie only, `org-document-title` and `-info`.
+        check(
+            "#+TITLE: Notes\n#+AUTHOR: Me\n#+OPTIONS: toc:nil\n* DONE [#B] Task [2/2] :a:\n* TODO Other [1/2] [100%] [0/0]\n",
+            expect![[r##"
+                0:0 "#+TITLE:" keyword
+                0:9 "Notes" documentTitle
+                1:0 "#+AUTHOR:" keyword
+                1:10 "Me" documentInfo
+                2:0 "#+OPTIONS:" keyword
+                3:0 "*" stars +level1
+                3:2 "DONE" todoKeyword +done
+                3:7 "[#B]" priority +done
+                3:12 "Task " headline +done
+                3:17 "[2/2]" cookie +done
+                3:23 ":a:" tag +done
+                4:0 "*" stars +level1
+                4:2 "TODO" todoKeyword
+                4:7 "Other " headline +level1
+                4:13 "[1/2]" cookie
+                4:18 " " headline +level1
+                4:19 "[100%]" cookie +done
+                4:25 " " headline +level1
+                4:26 "[0/0]" cookie +done
+            "##]],
         );
     }
 
@@ -1001,12 +1451,33 @@ mod tests {
             expect![[r#"
                 0:0 "*" stars +level1
                 0:2 "TODO" todoKeyword +archived
-                0:7 "Old" headline +level1 +archived
+                0:7 "Old" headline +archived
                 0:11 ":x:ARCHIVE:" tag +archived
                 2:0 "*" stars +level1
                 2:2 "Plain" headline +level1
             "#]],
         );
+    }
+
+    /// `org-inlinetask-fontify`: the stars and the title of an inline task
+    /// are `org-inlinetask`, its keyword and tags keep their faces.
+    #[test]
+    fn inline_tasks() {
+        let text = "* A\n***** TODO Task :t:\n***** END\n**** Deep\n";
+        let fontify = Fontify { inlinetask: Some(5), ..Fontify::default() };
+        expect![[r#"
+            0:0 "*" stars +level1
+            0:2 "A" headline +level1
+            1:0 "*****" stars +inlinetask
+            1:6 "TODO" todoKeyword
+            1:11 "Task" headline +inlinetask
+            1:16 ":t:" tag
+            2:0 "*****" stars +inlinetask
+            2:6 "END" headline +inlinetask
+            3:0 "****" stars +level4
+            3:5 "Deep" headline +level4
+        "#]]
+        .assert_eq(&render_with(text, Encoding::Utf16, Conceal::default(), fontify));
     }
 
     #[test]
@@ -1046,12 +1517,14 @@ mod tests {
                 3:0 ":ID:" property
                 4:0 ":END:" drawer
                 5:0 "#+TITLE:" keyword
+                5:9 "t" documentTitle
                 6:0 "# comment" comment
                 7:0 ": fixed" verbatim
                 8:0 "-" bullet
                 8:2 "[X]" checkbox +checked
                 9:0 "-" bullet
                 9:2 "[-]" checkbox +partial
+                9:6 "b ::" descriptionTerm
                 10:0 "1." bullet
                 10:3 "[ ]" checkbox
                 11:0 "|" tableDelimiter
@@ -1069,6 +1542,29 @@ mod tests {
                 14:36 "$x$" latex
                 14:40 "{{{m}}}" macro
             "##]],
+        );
+    }
+
+    #[test]
+    fn description_terms() {
+        // `org-list-dt`: unordered items only, to the first `::`, past a
+        // checkbox; emphasis in a term keeps its modifiers.
+        check(
+            "- term :: its description\n+ *b* t :: d\n- [ ] boxed ::\n- a :: b :: c\n- a::b\n1. n :: d\n",
+            expect![[r#"
+                0:0 "-" bullet
+                0:2 "term ::" descriptionTerm
+                1:0 "+" bullet
+                1:2 "*b*" descriptionTerm +bold
+                1:5 " t ::" descriptionTerm
+                2:0 "-" bullet
+                2:2 "[ ]" checkbox
+                2:6 "boxed ::" descriptionTerm
+                3:0 "-" bullet
+                3:2 "a ::" descriptionTerm
+                4:0 "-" bullet
+                5:0 "1." bullet
+            "#]],
         );
     }
 

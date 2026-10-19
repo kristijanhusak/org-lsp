@@ -26,11 +26,20 @@ pub struct Settings {
     /// `org-log-into-drawer`, which says whether a drawer is headline data
     /// to indentation.
     pub log_into_drawer: Option<String>,
+    /// `org-log-states-order-reversed`: a new clock line goes above the
+    /// others.
+    pub states_order_reversed: bool,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings { drawer: Some("LOGBOOK".to_string()), remove_zero: false, adapt: Adapt::Off, log_into_drawer: None }
+        Settings {
+            drawer: Some("LOGBOOK".to_string()),
+            remove_zero: false,
+            adapt: Adapt::Off,
+            log_into_drawer: None,
+            states_order_reversed: true,
+        }
     }
 }
 
@@ -53,6 +62,28 @@ impl Clock {
 /// The minute a date and time stand for, counted from day 0.
 pub fn minutes_of(time: DateTime) -> i64 {
     time.day * 1440 + time.minute
+}
+
+/// `org-current-time` with `org-clock-rounding-minutes`: `now` at the
+/// nearest multiple of `rounding` minutes within its hour (a half to the
+/// even multiple, as `round` does); with `past`, never later than `now`.
+/// Below 1, `now` as it is.
+pub fn round_time(now: DateTime, rounding: i64, past: bool) -> DateTime {
+    if rounding < 1 {
+        return now;
+    }
+    let minute = now.minute.rem_euclid(60);
+    let (quotient, remainder) = (minute / rounding, minute % rounding);
+    let nearest = match (2 * remainder).cmp(&rounding) {
+        std::cmp::Ordering::Greater => quotient + 1,
+        std::cmp::Ordering::Equal => quotient + quotient % 2,
+        std::cmp::Ordering::Less => quotient,
+    };
+    let mut rounded = minutes_of(now) - minute + nearest * rounding;
+    if past && rounded > minutes_of(now) {
+        rounded -= rounding;
+    }
+    DateTime { day: rounded.div_euclid(1440), minute: rounded.rem_euclid(1440) }
 }
 
 /// `[2026-10-05 Mon 10:30]`: the date and time of an inactive timestamp
@@ -117,63 +148,21 @@ pub fn running(text: &str) -> Vec<(usize, DateTime)> {
         .collect()
 }
 
-/// `org-duration-from-minutes` with Org's default format
-/// (`org-duration-format`): `h:mm`, after the days when there are any
-/// (`1d 2:30`).
+/// `org-duration-from-minutes`, as `org-duration-format` says (`1d 2:30`
+/// by default); see [`crate::duration`].
 pub fn duration(minutes: i64) -> String {
-    let sign = if minutes < 0 { "-" } else { "" };
-    let minutes = minutes.abs();
-    let days = minutes / 1440;
-    let rest = minutes % 1440;
-    let time = format!("{}:{:02}", rest / 60, rest % 60);
-    if days > 0 {
-        format!("{sign}{days}d {time}")
-    } else {
-        format!("{sign}{time}")
-    }
+    crate::duration::from_minutes(minutes as f64)
 }
 
 /// `org-duration-to-minutes`: `1:30`, `1:30:00`, `90` (minutes), `2h`,
-/// `1h 30min`, `1d 2h`, `1.5h`.
+/// `1h 30min`, `1d 2h`, `1.5h`, the units of `org-duration-units`; none
+/// for the empty text and what is no duration.
 pub fn duration_to_minutes(text: &str) -> Option<f64> {
     let text = text.trim();
     if text.is_empty() {
         return None;
     }
-    if let Ok(minutes) = text.parse::<f64>() {
-        return Some(minutes);
-    }
-    // `h:mm` or `h:mm:ss`.
-    let parts: Vec<&str> = text.split(':').collect();
-    if parts.len() >= 2 && parts.iter().all(|part| !part.is_empty() && part.chars().all(|c| c.is_ascii_digit())) {
-        let numbers: Vec<f64> = parts.iter().filter_map(|part| part.parse().ok()).collect();
-        let seconds = numbers.get(2).copied().unwrap_or(0.0);
-        return Some(numbers[0] * 60.0 + numbers[1] + seconds / 60.0);
-    }
-    // Units: `min`, `h`, `d`, `w`, `m` (months), `y`.
-    let mut total = 0.0;
-    let mut rest = text;
-    let mut any = false;
-    while !rest.is_empty() {
-        rest = rest.trim_start();
-        let number_end = rest.find(|c: char| !(c.is_ascii_digit() || c == '.')).unwrap_or(rest.len());
-        let number: f64 = rest[..number_end].parse().ok()?;
-        rest = &rest[number_end..];
-        let unit_end = rest.find(|c: char| !c.is_ascii_alphabetic()).unwrap_or(rest.len());
-        let factor = match &rest[..unit_end] {
-            "min" => 1.0,
-            "h" => 60.0,
-            "d" => 1440.0,
-            "w" => 10080.0,
-            "m" => 43200.0,
-            "y" => 525_960.0,
-            _ => return None,
-        };
-        total += number * factor;
-        any = true;
-        rest = &rest[unit_end..];
-    }
-    any.then_some(total)
+    crate::duration::to_minutes(text)
 }
 
 /// The text of the inactive timestamp `org-clock-in` writes.
@@ -184,6 +173,20 @@ fn clock_stamp(time: DateTime) -> String {
 /// Whether `line` opens the drawer `name`.
 fn opens(line: &str, name: &str) -> bool {
     line.trim_matches([' ', '\t']).eq_ignore_ascii_case(&format!(":{name}:"))
+}
+
+/// `org-clock-find-position` with `find-unclosed` (`org-clock-in-resume`):
+/// when the clock started on a `CLOCK:` line of the entry at byte
+/// `heading` that has no end, up to the next headline.
+pub fn unclosed(text: &str, heading: usize) -> Option<DateTime> {
+    let body = heading + text[heading..].find('\n').map_or(text.len() - heading, |end| end + 1);
+    let end = lines(&text[body..])
+        .find(|(_, line)| {
+            let stars = line.len() - line.trim_start_matches('*').len();
+            stars > 0 && line[stars..].starts_with([' ', '\t'])
+        })
+        .map_or(text.len(), |(start, _)| body + start);
+    running(text).into_iter().find(|(start, _)| (body..end).contains(start)).map(|(_, time)| time)
 }
 
 /// `org-clock-in` on the entry at byte `offset`: a `CLOCK:` line where
@@ -213,12 +216,27 @@ pub fn clock_in(
         at
     };
 
-    // An existing drawer: at its top.
+    // `org-log-states-order-reversed`, as `#+STARTUP:` may set it.
+    let mut reversed = settings.states_order_reversed;
+    for word in crate::text::startup_words(text) {
+        match word {
+            "logstatesreversed" => reversed = true,
+            "nologstatesreversed" => reversed = false,
+            _ => {}
+        }
+    }
+
+    // An existing drawer: at its top, or at its bottom.
     if let Some(drawer) = settings.drawer.as_deref() {
         let mut line = editor.next_line(editor.heading);
         while line < end && line > editor.heading {
             if opens(editor.line(line), drawer) && editor.drawer_closes(line, end) {
-                let at = editor.next_line(line);
+                let mut at = editor.next_line(line);
+                if !reversed {
+                    while !editor.line(at).trim_matches([' ', '\t']).eq_ignore_ascii_case(":END:") {
+                        at = editor.next_line(at);
+                    }
+                }
                 let at = insert(&mut editor, at);
                 return Ok((editor.text, at));
             }
@@ -245,9 +263,12 @@ pub fn clock_in(
     }
     let meta = editor.end_of_meta_data();
     match (settings.drawer.as_deref(), clocks.first()) {
-        // No drawer: before the first clock line, or after the meta data.
+        // No drawer: before the first clock line (with
+        // `org-log-states-order-reversed` off, the last), or after the
+        // meta data.
         (None, first) => {
-            let at = first.copied().unwrap_or(meta);
+            let last = if reversed { first } else { clocks.last() };
+            let at = last.copied().unwrap_or(meta);
             let (at, prefix) = line_start_for(&editor.text, at);
             editor.replace(at, at, prefix);
             let at = insert(&mut editor, at + prefix.len());
@@ -265,9 +286,10 @@ pub fn clock_in(
             let at = insert(&mut editor, at);
             Ok((editor.text, at))
         }
-        // A new drawer, with the clock lines of the entry moved into it.
+        // A new drawer, with the clock lines of the entry moved into it,
+        // the last first, as Emacs collects them.
         (Some(drawer), Some(_)) => {
-            let moved: Vec<String> = clocks.iter().map(|line| editor.line(*line).trim().to_string()).collect();
+            let moved: Vec<String> = clocks.iter().rev().map(|line| editor.line(*line).trim().to_string()).collect();
             for line in clocks.iter().rev() {
                 let next = editor.next_line(*line);
                 editor.replace(*line, next, "");
@@ -290,9 +312,10 @@ pub fn clock_in(
             // line: the marker of the point it saved moved past it.
             let first = editor.next_line(start);
             editor.indent_region(first, editor.next_line(end_line));
-            // Emacs puts the new line after the ones it moved.
-            let mut line = start;
-            for _ in 0..=moved.len() {
+            // Emacs puts the new line below the first line it moved, or
+            // with `org-log-states-order-reversed` off, above the last.
+            let mut line = editor.next_line(start);
+            for _ in 0..if reversed { 1 } else { moved.len() - 1 } {
                 line = editor.next_line(line);
             }
             let at = insert(&mut editor, line);
@@ -490,6 +513,36 @@ pub fn subtree_minutes(text: &str, heading: usize, since: Option<i64>) -> i64 {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn finds_the_clock_an_entry_left_running() {
+        let text = "* A\n:LOGBOOK:\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\n:END:\n\
+                    * B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n";
+        assert_eq!(unclosed(text, 0), None);
+        let b = text.find("* B").unwrap();
+        let start = unclosed(text, b).unwrap();
+        assert_eq!((start.minute, crate::date::Date::from_day(start.day).day), (9 * 60, 18));
+    }
+
+    /// `org-current-time` at 23:MM:30 on 2025-12-31 for every minute,
+    /// each rounding, without and with PAST, as Emacs gives it
+    /// (`tests/clock/rounding.txt`: rounding, past, then `DD HH:MM` each).
+    #[test]
+    fn rounds_times_as_emacs_does() {
+        let recorded = include_str!("../../../tests/clock/rounding.txt");
+        for line in recorded.lines() {
+            let mut parts = line.splitn(3, ' ');
+            let rounding: i64 = parts.next().unwrap().parse().unwrap();
+            let past = parts.next() == Some("t");
+            let day = Date::new(2025, 12, 31).to_day();
+            for (minute, expected) in parts.next().unwrap().split(',').enumerate() {
+                let now = DateTime { day, minute: 23 * 60 + minute as i64 };
+                let got = round_time(now, rounding, past);
+                let shown = format!("{:02} {:02}:{:02}", Date::from_day(got.day).day, got.minute / 60, got.minute % 60);
+                assert_eq!(shown, expected, "rounding {rounding}, past {past}, minute {minute}");
+            }
+        }
+    }
+
     use super::*;
     use crate::date::Date;
 

@@ -99,16 +99,19 @@ endfunction
 
 " The options the server starts with: the user's, and that this plugin
 " shows the documents the server asks for, the agenda as the file the
-" server writes, whatever the client says.
+" server writes, whatever the client says; and that the server writes the
+" files it makes, which coc.nvim would have as an empty line.
 function! org_lsp#init_options() abort
   return extend(deepcopy(org_lsp#config().settings), {
         \ 'org_client': v:true,
         \ 'show_document': v:true,
+        \ 'create_files': v:false,
         \ 'view_changed': v:true,
         \ 'date_prompt': org_lsp#config().calendar ? v:true : v:false,
         \ 'virtual_documents': v:false,
         \ 'virtual_indent': org_lsp#config().virtual_indent && s:has_virtual_text() ? v:true : v:false,
         \ 'line_highlights': v:true,
+        \ 'run_command': v:true,
         \ })
 endfunction
 
@@ -339,6 +342,12 @@ endfunction
 " Where the cursor is, as the server's commands take it.
 function! s:cursor_context() abort
   let nr = s:org_buffer()
+  " In the date prompt's calendar, the day under the cursor: org-journal's
+  " keys there act on it.
+  if s:is_prompt(expand('%:p'))
+    let position = {'line': line('.') - 1, 'character': col('.') - 1}
+    return [nr, {'textDocument': {'uri': org_lsp#uri(bufnr())}, 'position': position}]
+  endif
   if nr == bufnr()
     let position = {'line': line('.') - 1, 'character': s:character(getline('.'), col('.') - 1)}
   else
@@ -417,13 +426,20 @@ function! org_lsp#run(name, ...) abort
     let context.below = v:true
   endif
   " Filing a capture or a note takes the buffer's text as it is here: some
-  " clients tell the server of the last changes only a while later.
+  " clients tell the server of the last changes only a while later. A
+  " newline ends it when the file has one ('eol'): the server writes the
+  " buffer without, and one more would be a blank line after the entry.
   if index(['org.capture.finish', 'org.capture.refile'], a:name) >= 0
-    let context.text = join(getline(1, '$'), "\n") . (&eol || &fixeol ? "\n" : '')
+    let context.text = join(getline(1, '$'), "\n") . (&eol ? "\n" : '')
   endif
   " Whether the org-roam buffer shows, which the command hides then.
   if a:name ==# 'org.roam.buffer.toggle'
     let context.visible = org_lsp#roam_buffer_shown() ? v:true : v:false
+  endif
+  " What the server asked the command to be run with (a capture an
+  " org-protocol URL started).
+  if type(get(opts, 'argument', 0)) == v:t_dict
+    call extend(context, opts.argument)
   endif
   call s:execute(nr, a:name, context, opts)
 endfunction
@@ -463,16 +479,18 @@ function! s:executed(bufnr, name, context, opts, error, result) abort
   let result = type(a:result) == v:t_dict ? a:result : {}
   " The edit and the cursor, carried in the result (`org.meta.return`);
   " from its key, typing goes on there, in insert mode, as with
-  " nvim-orgmode.
+  " nvim-orgmode: by keys ahead of those typed since, as `:startinsert`
+  " in a callback waits for the next command.
   if type(get(result, 'edits', 0)) == v:t_list && bufnr() == a:bufnr
     let at_end = s:apply_carried(a:context.textDocument.uri, result)
     if get(a:opts, 'append', 0)
-      execute at_end ? 'startinsert!' : 'startinsert'
+      call feedkeys(at_end ? 'A' : 'i', 'ni')
     endif
   endif
-  " What was cut or copied goes to the register, by lines.
+  " What was cut or copied goes to the register, by lines, or by
+  " characters for a kill of part of a line (`org.kill.line`).
   if type(get(result, 'copy', 0)) == v:t_string
-    call setreg(get(a:opts, 'register', '"'), result.copy, 'l')
+    call setreg(get(a:opts, 'register', '"'), result.copy, get(result, 'copyCharacters', v:false) is v:true ? 'c' : 'l')
   endif
   " A sparse tree: everything folded but the lines shown.
   if type(get(result, 'sparse', 0)) == v:t_dict && bufnr() == a:bufnr
@@ -514,11 +532,27 @@ endfunction
 " Show a sparse tree (`org-sparse-tree`) in the current window: all folds
 " closed, then those around each of `sparse.lines` opened, as `org-occur`
 " shows its matches; the matches highlighted (`OrgLspSparseMatch`) until
-" the text changes. The cursor stays. With `keep` (`org-reveal`), only
-" the folds that start on the lines of `unfold` open, outer ones first;
-" the others stay as they are.
+" the text changes, or with `keepHighlights` until they are replaced. The
+" cursor stays. With `keep` (`org-reveal`), only the folds that start on
+" the lines of `unfold` open, outer ones first; the others stay as they
+" are, and `highlights`, when given (`C-c C-c`), replace those shown.
 function! s:show_sparse(nr, sparse) abort
-  if get(a:sparse, 'keep', v:false)
+  highlight default link OrgLspSparseMatch Search
+  if empty(prop_type_get('org_lsp_sparse'))
+    call prop_type_add('org_lsp_sparse', {'highlight': 'OrgLspSparseMatch', 'priority': 200, 'combine': 1})
+  endif
+  let keep = get(a:sparse, 'keep', v:false)
+  if !keep || has_key(a:sparse, 'highlights')
+    call prop_remove({'type': 'org_lsp_sparse', 'bufnr': a:nr, 'all': 1})
+    call setbufvar(a:nr, 'org_lsp_sparse_shown', getbufvar(a:nr, 'org_lsp_sparse_shown', 0) + 1)
+  endif
+  for range in get(a:sparse, 'highlights', [])
+    let start = s:byte(getline(range.start.line + 1), range.start.character)
+    let end = s:byte(getline(range.end.line + 1), range.end.character)
+    call prop_add(range.start.line + 1, start + 1,
+          \ {'end_lnum': range.end.line + 1, 'end_col': end + 1, 'type': 'org_lsp_sparse', 'bufnr': a:nr})
+  endfor
+  if keep
     if &foldenable
       for line in get(a:sparse, 'unfold', [])
         if foldclosed(line + 1) == line + 1
@@ -528,17 +562,6 @@ function! s:show_sparse(nr, sparse) abort
     endif
     return
   endif
-  highlight default link OrgLspSparseMatch Search
-  if empty(prop_type_get('org_lsp_sparse'))
-    call prop_type_add('org_lsp_sparse', {'highlight': 'OrgLspSparseMatch', 'priority': 200, 'combine': 1})
-  endif
-  call prop_remove({'type': 'org_lsp_sparse', 'bufnr': a:nr, 'all': 1})
-  for range in get(a:sparse, 'highlights', [])
-    let start = s:byte(getline(range.start.line + 1), range.start.character)
-    let end = s:byte(getline(range.end.line + 1), range.end.character)
-    call prop_add(range.start.line + 1, start + 1,
-          \ {'end_lnum': range.end.line + 1, 'end_col': end + 1, 'type': 'org_lsp_sparse', 'bufnr': a:nr})
-  endfor
   if &foldenable
     let view = winsaveview()
     normal! zM
@@ -548,9 +571,21 @@ function! s:show_sparse(nr, sparse) abort
     endfor
     call winrestview(view)
   endif
-  " Org takes the highlighting away at the next change.
-  execute 'autocmd TextChanged,TextChangedI <buffer=' . a:nr . '> ++once'
-        \ 'call prop_remove({"type": "org_lsp_sparse", "bufnr": ' . a:nr . ', "all": 1})'
+  " Org takes the highlighting away at the next change, unless the server
+  " says it stays (`org-remove-highlights-with-change`); a change clears
+  " only the highlights it was waiting for.
+  if !get(a:sparse, 'keepHighlights', v:false)
+    execute 'autocmd TextChanged,TextChangedI <buffer=' . a:nr . '> ++once'
+          \ 'call org_lsp#clear_sparse(' . a:nr . ', ' . getbufvar(a:nr, 'org_lsp_sparse_shown') . ')'
+  endif
+endfunction
+
+" The highlights of a sparse tree taken away, if they are still those
+" shown when the change was waited for.
+function! org_lsp#clear_sparse(nr, shown) abort
+  if getbufvar(a:nr, 'org_lsp_sparse_shown', 0) == a:shown
+    call prop_remove({'type': 'org_lsp_sparse', 'bufnr': a:nr, 'all': 1})
+  endif
 endfunction
 
 " Ask what the command asks for, and run it again with the answer.
@@ -569,6 +604,11 @@ endfunction
 " a key, one of a list, or typed text; v:null when cancelled.
 function! org_lsp#prompt(input) abort
   if a:input.kind ==# 'key'
+    " `expert` (`org-use-fast-todo-selection`): the keys are in the prompt,
+    " which shows alone, as Emacs's message does.
+    if get(a:input, 'expert', v:false)
+      return org_lsp#read_key(a:input.prompt, [], 1)
+    endif
     return org_lsp#read_key(a:input.prompt, get(a:input, 'choices', []))
   elseif has_key(a:input, 'choices')
     let lines = [a:input.prompt . ':']
@@ -641,7 +681,7 @@ function! org_lsp#choice_line(choice) abort
   return line
 endfunction
 
-function! org_lsp#read_key(prompt, choices) abort
+function! org_lsp#read_key(prompt, choices, ...) abort
   let popup = 0
   if !empty(a:choices) && exists('*popup_create')
     let lines = map(copy(a:choices), {_, c -> org_lsp#choice_line(c)})
@@ -650,7 +690,8 @@ function! org_lsp#read_key(prompt, choices) abort
           \ 'border': [], 'title': ' ' . a:prompt . ' ', 'zindex': 300,
           \ })
   endif
-  echo a:prompt . ': '
+  " With a third argument, the prompt as it is.
+  echo a:0 > 0 && a:1 ? a:prompt : a:prompt . ': '
   redraw
   try
     let key = getcharstr()
@@ -725,6 +766,13 @@ endfunction
 " says. Whether the cursor is at the end of its line.
 function! s:apply_carried(uri, result) abort
   call org_lsp#apply_edit({'changes': {a:uri: a:result.edits}})
+  " The server hears of the edit at once, and the folds follow it: those
+  " it asks for once the document has it (`org-lsp/folds`) close then.
+  let nr = bufnr(org_lsp#uri_to_path(a:uri))
+  if !empty(a:result.edits) && nr > 0
+    call s:call('flush', nr)
+    call s:changed(nr)
+  endif
   if type(get(a:result, 'cursor', 0)) != v:t_dict
     return v:false
   endif
@@ -877,9 +925,9 @@ function! s:keys_in(scope) abort
       endif
     endfor
   endfor
-  " The keys of the mappings, the plugin's own (`K` for `hover`) and the
-  " user's, are theirs: a command of the server's with the same key (`K`,
-  " `org.agenda.habits`) goes without it.
+  " The keys of the mappings, the plugin's own (`q` for `quit`) and the
+  " user's, are theirs: a command of the server's with the same key goes
+  " without it.
   let mapped = {}
   for [name, key] in items(get(mappings, a:scope, {}))
     let keys[name] = type(key) == v:t_list ? key : (type(key) == v:t_string ? [key] : [])
@@ -1027,7 +1075,8 @@ endfunction
 " its line that follows it, the header in the window's status line, and the
 " column picked highlighted on the cursor's line. Emacs's cursor moves from
 " column to column there; `h` and `l` do here. By buffer: `{header,
-" columns, rows: {line: text}, popups: {line: id}, last}`.
+" columns, lines (the server's), rows: {line: text}, popups: {line: id},
+" last}`.
 let s:columns = {}
 
 highlight default link OrgLspColumn CursorColumn
@@ -1057,6 +1106,7 @@ function! s:columns_show(params) abort
   let view = first ? {'popups': {}, 'last': -1} : s:columns[nr]
   let view.header = a:params.header
   let view.columns = a:params.columns
+  let view.lines = a:params.lines
   let view.rows = {}
   for [line, text, _] in a:params.lines
     let view.rows[line] = text
@@ -1245,6 +1295,13 @@ function! org_lsp#columns_on(nr) abort
   return has_key(s:columns, a:nr)
 endfunction
 
+" What column view shows in buffer `nr`, as the server said it: `{header,
+" lines: [[line, text, values]]}`, or {} when it is off.
+function! org_lsp#columns_view(nr) abort
+  let view = get(s:columns, a:nr, {})
+  return empty(view) ? {} : {'header': view.header, 'lines': view.lines}
+endfunction
+
 function! org_lsp#columns_shown(nr, row) abort
   let id = get(get(get(s:columns, a:nr, {}), 'popups', {}), a:row, 0)
   return id ? get(getbufline(winbufnr(id), 1), 0, '') : ''
@@ -1254,7 +1311,7 @@ endfunction
 
 let s:scope_titles = {'org': 'Org file', 'capture': 'Capture buffer', 'agenda': 'Agenda', 'calendar': 'Date prompt', 'columns': 'Column view', 'global': 'Anywhere'}
 
-" The keys of `scope` as they are set: `[{keys, title}]`, in the order of
+" The keys of `scope` as they are set: `[{keys, title, command}]`, in the order of
 " the server's commands, then the plugin's own.
 function! org_lsp#keys(scope) abort
   let bound = s:keys_in(a:scope)[0]
@@ -1264,7 +1321,7 @@ function! org_lsp#keys(scope) abort
     if !empty(get(bound, name, []))
       let command = s:command(name)
       let title = has_key(s:own, name) ? s:own[name].title : get(command, 'title', name)
-      call add(out, {'keys': remove(bound, name), 'title': title})
+      call add(out, {'keys': remove(bound, name), 'title': title, 'command': name})
     endif
   endfor
   return out
@@ -1272,6 +1329,20 @@ endfunction
 
 " The lines of the help for `scopes`: a heading for each, then its keys
 " and what they do.
+" The command key `lhs` runs in Normal mode in the current buffer, one of
+" the server's or the plugin's own; '' when it runs none: for the tests.
+function! org_lsp#mapped_command(lhs) abort
+  let map = maparg(s:map_lhs(a:lhs), 'n', 0, 1)
+  if !get(map, 'buffer', 0)
+    return ''
+  endif
+  let index = matchstr(map.rhs, 'org_lsp#\%(key\|repeatable\)(\zs\d\+')
+  if !empty(index)
+    return s:mapped[str2nr(index)].name
+  endif
+  return matchstr(map.rhs, "org_lsp#run('\\zs[^']\\+")
+endfunction
+
 function! org_lsp#help_lines(scopes) abort
   let sections = filter(map(copy(a:scopes), {_, scope -> [scope, org_lsp#keys(scope)]}), '!empty(v:val[1])')
   let width = 0
@@ -1333,11 +1404,13 @@ function! s:open_apart(path) abort
   if mode !=# 'current'
     let from = win_getid()
     execute mode
-    let w:org_lsp_opened = 1
     let w:org_lsp_from = from
     call s:resize_apart(mode, org_lsp#config().win_split_size)
   endif
   execute 'edit' fnameescape(a:path)
+  if mode !=# 'current'
+    let w:org_lsp_opened = expand('%:p')
+  endif
 endfunction
 
 " The date prompt, at the bottom (`calendar_win_mode`), as Emacs shows
@@ -1349,9 +1422,9 @@ function! s:open_prompt(path, win) abort
   else
     let from = win_getid()
     execute org_lsp#config().calendar_win_mode
-    let w:org_lsp_opened = 1
     let w:org_lsp_from = from
     execute 'edit' fnameescape(a:path)
+    let w:org_lsp_opened = expand('%:p')
   endif
   if org_lsp#config().calendar_win_mode !~# 'v'
     execute 'resize' line('$')
@@ -1359,11 +1432,12 @@ function! s:open_prompt(path, win) abort
   call winrestview({'topline': 1, 'leftcol': 0})
 endfunction
 
-" The date prompt in a window the plugin did not open: put it at the
+" The date prompt in a window the plugin did not open for it (coc.nvim
+" shows it in the current one, which may be the agenda's): put it at the
 " bottom, and the window back to the buffer it showed.
 function! s:place_prompt(nr) abort
   let win = bufwinid(a:nr)
-  if win == -1 || getwinvar(win, 'org_lsp_opened', 0)
+  if win == -1 || s:opened_for(win, a:nr)
     return
   endif
   let cursor = getcurpos(win)
@@ -1371,7 +1445,7 @@ function! s:place_prompt(nr) abort
   let back = bufnr('#')
   execute org_lsp#config().calendar_win_mode
   let prompt = win_getid()
-  let w:org_lsp_opened = 1
+  let w:org_lsp_opened = s:path_of(a:nr)
   let w:org_lsp_from = win
   execute 'buffer' a:nr
   call win_execute(win, back > 0 && back != a:nr ? 'buffer ' . back : 'close')
@@ -1380,6 +1454,35 @@ function! s:place_prompt(nr) abort
     execute 'resize' line('$')
   endif
   call winrestview({'topline': 1, 'leftcol': 0})
+  call setpos('.', cursor[0:3])
+endfunction
+
+" The agenda in a window the plugin did not open (coc.nvim shows it in the
+" current one): in the window that shows it already, else in one apart as
+" `win_split_mode` says, and the window back to the buffer it showed, as
+" Emacs keeps the window the agenda was called from.
+function! s:place_agenda(nr) abort
+  let win = bufwinid(a:nr)
+  let mode = org_lsp#config().win_split_mode
+  if win == -1 || s:opened_for(win, a:nr) || mode ==# 'current'
+    return
+  endif
+  let cursor = getcurpos(win)
+  call win_gotoid(win)
+  let back = bufnr('#')
+  let shown = filter(win_findbuf(a:nr), {_, other -> other != win && s:opened_for(other, a:nr)})
+  if !empty(shown)
+    call win_gotoid(shown[0])
+  else
+    execute mode
+    let w:org_lsp_opened = s:path_of(a:nr)
+    let w:org_lsp_from = win
+    call s:resize_apart(mode, org_lsp#config().win_split_size)
+    execute 'buffer' a:nr
+  endif
+  let agenda = win_getid()
+  call win_execute(win, back > 0 && back != a:nr ? 'buffer ' . back : 'close')
+  call win_gotoid(agenda)
   call setpos('.', cursor[0:3])
 endfunction
 
@@ -1419,15 +1522,33 @@ function! org_lsp#tell_agenda_width() abort
 endfunction
 
 " The line of the agenda the cursor is on, each time it changes, for
-" follow mode (`F`), which the server keeps.
+" follow mode (`F`), which the server keeps, and the outline path of its
+" entry (`org-agenda-show-outline-path`), echoed and not kept in the
+" message history, as Emacs shows it.
 function! org_lsp#tell_agenda_cursor() abort
-  if &filetype !=# 'org-agenda' || get(b:, 'org_lsp_cursor_line', 0) == line('.')
+  " Not on the first line of the agenda read empty while the server wrote
+  " it: the line it was on is where it goes back to.
+  if &filetype !=# 'org-agenda' || get(b:, 'org_lsp_cursor_line', 0) == line('.') || (line('$') == 1 && getline(1) ==# '')
     return
   endif
   let b:org_lsp_cursor_line = line('.')
   let params = {'textDocument': {'uri': org_lsp#uri(bufnr())},
-        \ 'position': {'line': line('.') - 1, 'character': 0}}
-  call org_lsp#request(bufnr(), 'org-lsp/agendaCursor', params, {_error, _result -> 0})
+        \ 'position': {'line': line('.') - 1, 'character': 0}, 'width': &columns}
+  call org_lsp#request(bufnr(), 'org-lsp/agendaCursor', params, {_error, result -> s:echo_path(result)})
+endfunction
+
+let s:echoed = ''
+
+function! s:echo_path(result) abort
+  if type(a:result) == v:t_dict && type(get(a:result, 'echo', 0)) == v:t_string
+    let s:echoed = a:result.echo
+    echo a:result.echo
+  endif
+endfunction
+
+" The outline path echoed last, for tests.
+function! org_lsp#echoed() abort
+  return s:echoed
 endfunction
 
 " The cursor on another line of an Org file while the org-roam buffer
@@ -1489,8 +1610,32 @@ function! s:reload_views() abort
   for info in getbufinfo({'bufloaded': 1})
     if s:is_agenda(info.name) || s:is_prompt(info.name)
       let old = getbufline(info.bufnr, 1, '$')
-      execute 'checktime' info.bufnr
+      let views = s:window_views(info.bufnr)
+      " Read empty already, by Vim on its own while the server wrote it and
+      " with no autocommands (`org_lsp#save` coming back to it): its windows
+      " went to the first line. They go back where they were, as a read
+      " waiting to be done again has them, else to the line last told to the
+      " server.
+      let lost = old ==# ['']
+      if lost
+        let pending = getbufvar(info.bufnr, 'org_lsp_reread', v:null)
+        let line = getbufvar(info.bufnr, 'org_lsp_cursor_line', 1)
+        let views = type(pending) == v:t_dict ? pending : map(views, {_, _view -> {'lnum': line}})
+      endif
+      " Without the file's name and size, which would take the place of
+      " what the command said.
+      silent execute 'checktime' info.bufnr
+      " Read while the server wrote it (in place): never empty otherwise.
+      if getbufline(info.bufnr, 1, '$') ==# ['']
+        call s:read_empty_view(info.bufnr, views)
+        continue
+      endif
       call s:give_view(info.bufnr)
+      if lost
+        for [win, view] in items(views)
+          call win_execute(str2nr(win), 'call winrestview(' . string(view) . ')')
+        endfor
+      endif
       call s:repaint_kept(info.bufnr, old)
       call s:columns_draw(info.bufnr)
       " The calendar stays as high as its text: a month of six weeks.
@@ -1501,6 +1646,54 @@ function! s:reload_views() abort
       endif
     endif
   endfor
+endfunction
+
+" The view of each window that shows buffer `nr`, by window.
+function! s:window_views(nr) abort
+  let views = {}
+  for win in win_findbuf(a:nr)
+    call win_execute(win, 'let s:view = winsaveview()')
+    let views[win] = s:view
+  endfor
+  return views
+endfunction
+
+" The agenda (or date prompt) read empty, while the server wrote it in
+" place: read again in a moment, its windows then as `views` has them
+" (by window), else on the line last told to the server.
+function! s:read_empty_view(nr, views) abort
+  let pending = getbufvar(a:nr, 'org_lsp_reread', v:null)
+  if !empty(a:views) || type(pending) == v:t_none
+    let views = a:views
+    if empty(views)
+      for win in win_findbuf(a:nr)
+        let views[win] = {'lnum': getbufvar(a:nr, 'org_lsp_cursor_line', 1)}
+      endfor
+    endif
+    call setbufvar(a:nr, 'org_lsp_reread', views)
+  endif
+  if type(pending) == v:t_none
+    call timer_start(20, function('s:read_view_again', [a:nr, 0]))
+  endif
+endfunction
+
+function! s:read_view_again(nr, tries, ...) abort
+  let win = get(win_findbuf(a:nr), 0, -1)
+  if !bufloaded(a:nr) || win == -1
+    call setbufvar(a:nr, 'org_lsp_reread', v:null)
+    return
+  endif
+  call win_execute(win, 'silent edit!')
+  if getbufline(a:nr, 1, '$') ==# [''] && a:tries < 10
+    call timer_start(20, function('s:read_view_again', [a:nr, a:tries + 1]))
+    return
+  endif
+  let views = getbufvar(a:nr, 'org_lsp_reread', {})
+  call setbufvar(a:nr, 'org_lsp_reread', v:null)
+  for [view_win, view] in items(type(views) == v:t_dict ? views : {})
+    call win_execute(str2nr(view_win), 'call winrestview(' . string(view) . ')')
+  endfor
+  call s:reload_views()
 endfunction
 
 " Have the client send the whole agenda (or date prompt) again when Vim
@@ -1514,6 +1707,9 @@ endfunction
 " sends as the whole text.
 function! s:give_view(nr) abort
   let lines = getbufline(a:nr, 1, '$')
+  if lines ==# ['']
+    return s:read_empty_view(a:nr, {})
+  endif
   if lines ==# getbufvar(a:nr, 'org_lsp_given', lines)
     return
   endif
@@ -1525,6 +1721,12 @@ function! s:give_view(nr) abort
   call setbufvar(a:nr, '&readonly', 0)
   call setbufvar(a:nr, '&modifiable', 1)
   call setbufvar(a:nr, '&undolevels', -1)
+  " The windows that show it keep their cursor, which emptying the buffer
+  " would put on the first line.
+  let windows = win_findbuf(a:nr)
+  for win in windows
+    call win_execute(win, 'let w:org_lsp_view = winsaveview()')
+  endfor
   try
     silent call deletebufline(a:nr, 1, '$')
     call setbufline(a:nr, 1, lines)
@@ -1532,6 +1734,9 @@ function! s:give_view(nr) abort
     call setbufvar(a:nr, '&modified', 0)
     for [name, value] in items(saved)
       call setbufvar(a:nr, '&' . name, value)
+    endfor
+    for win in windows
+      call win_execute(win, 'call winrestview(w:org_lsp_view) | unlet w:org_lsp_view')
     endfor
   endtry
   call s:call('flush', a:nr)
@@ -1584,9 +1789,9 @@ function! org_lsp#show_document(params) abort
     " its own; gone with its window, which tells the server.
     if win == -1
       botright vsplit
-      let w:org_lsp_opened = 1
       let w:org_lsp_from = from
       execute 'edit' fnameescape(path)
+      let w:org_lsp_opened = expand('%:p')
       setlocal bufhidden=wipe
     endif
     if get(a:params, 'takeFocus', v:true) is v:false
@@ -1686,22 +1891,48 @@ function! org_lsp#save(uris) abort
         call win_execute(win, 'silent update')
       else
         let current = bufnr()
+        let view = winsaveview()
         let hidden = &hidden
         set hidden
         execute 'silent keepalt keepjumps noautocmd buffer' nr
         silent update
         execute 'silent keepalt keepjumps noautocmd buffer' current
+        " Coming back reads the buffer again when its file changed
+        " ('autoread'), with no autocommands: the agenda, read empty while
+        " the server wrote it, is read again in a moment, its window then
+        " where it was.
+        if s:is_view_type(&filetype) && getline(1, '$') ==# ['']
+          call s:read_empty_view(current, {win_getid(): view})
+        else
+          call winrestview(view)
+        endif
         let &hidden = hidden
+        " A client that did not tell the server of the file (coc.nvim
+        " loads the files it edits for it) tells it of the file written.
+        if exists('*org_lsp#adapter#' . org_lsp#adapter() . '#saved')
+          call s:call('saved', nr)
+        endif
       endif
     endif
   endfor
+endfunction
+
+" The file of buffer `nr`, by which the windows opened for it know it:
+" the agenda's or the date prompt's buffer may be another once read again.
+function! s:path_of(nr) abort
+  return fnamemodify(bufname(a:nr), ':p')
+endfunction
+
+" Whether the plugin opened window `win` for buffer `nr`.
+function! s:opened_for(win, nr) abort
+  return getwinvar(a:win, 'org_lsp_opened', '') ==# s:path_of(a:nr)
 endfunction
 
 " Close buffer `nr` and the windows the plugin opened for it; a window that
 " was there before goes back to the buffer it showed.
 function! org_lsp#close_buffer(nr) abort
   for win in win_findbuf(a:nr)
-    if getwinvar(win, 'org_lsp_opened', 0) && winnr('$') > 1
+    if s:opened_for(win, a:nr) && winnr('$') > 1
       " Back to the window it was opened from, not the one that takes its
       " place on the screen.
       let from = getwinvar(win, 'org_lsp_from', 0)
@@ -1767,6 +1998,10 @@ function! s:apply_text_edit(nr, edit) abort
   let lines = split(before . a:edit.newText . after, "\n", 1)
   let removed = min([end.line, lines_count - 1]) - start.line + 1
   if start.line >= lines_count
+    " Text that ends with a newline ends with the buffer's last line.
+    if len(lines) > 1 && lines[-1] ==# ''
+      call remove(lines, -1)
+    endif
     call appendbufline(a:nr, lines_count, lines)
     return
   endif
@@ -1775,10 +2010,14 @@ function! s:apply_text_edit(nr, edit) abort
   if end.line >= lines_count && len(lines) > 1 && lines[-1] ==# ''
     call remove(lines, -1)
   endif
-  call deletebufline(a:nr, start.line + 1, start.line + removed)
-  call appendbufline(a:nr, start.line, lines)
-  if lines_count == removed && len(getbufline(a:nr, 1, '$')) > len(lines)
-    call deletebufline(a:nr, '$')
+  " The lines replaced in place, then those more added or those fewer
+  " deleted: the cursor stays on its line, as an edit leaves it.
+  let kept = min([removed, len(lines)])
+  call setbufline(a:nr, start.line + 1, lines[: kept - 1])
+  if len(lines) > removed
+    call appendbufline(a:nr, start.line + removed, lines[removed :])
+  elseif removed > len(lines)
+    call deletebufline(a:nr, start.line + kept + 1, start.line + removed)
   endif
 endfunction
 
@@ -1810,6 +2049,11 @@ function! org_lsp#handle_notification(method, params) abort
     call s:columns_show(a:params)
   elseif a:method ==# 'org-lsp/folds'
     call s:journal_folds(a:params)
+  elseif a:method ==# 'org-lsp/runCommand' && type(a:params) == v:t_dict && type(get(a:params, 'command', 0)) == v:t_string
+    " A command to run as from its key, where the cursor is, outside the
+    " client's callback: a capture an org-protocol URL started.
+    let Run = {-> org_lsp#run(a:params.command, {'argument': get(a:params, 'argument', {})})}
+    call timer_start(0, {-> Run()})
   elseif a:method ==# 'org-lsp/viewChanged'
     " The agenda's file is new: read it again, outside the client's
     " callback.
@@ -1872,8 +2116,10 @@ endfunction
 " Show the prefixes the server sent for a file (`org-lsp/virtualIndent`):
 " `lines` of `[line, prefix, wrap, hidden stars]`. The prefixes are text of
 " their own before the lines; Vim cannot repeat them on the lines a long
-" line wraps into, where 'breakindent' lines those up with the line's own
-" text instead.
+" line wraps into (`wrap-prefix`), where 'breakindent' lines those up with
+" the line's own text, as Org does past the prefix: its indentation, a
+" headline's title, a list item a column after its bullet
+" (`org-list-item-body-column`).
 function! s:virtual_indent(params) abort
   let nr = bufnr(org_lsp#uri_to_path(a:params.uri))
   if nr < 0 || !bufloaded(nr) || !s:has_virtual_text()
@@ -1900,7 +2146,7 @@ function! s:virtual_indent(params) abort
       call setwinvar(win, '&breakindent', 1)
       call setwinvar(win, '&breakindentopt', 'list:-1')
     endfor
-    call setbufvar(nr, '&formatlistpat', '^\s*\%([-+]\|\s\*\|\d\+[.)]\)\s\+')
+    call setbufvar(nr, '&formatlistpat', '^\*\+ \|^\s*\%([-+]\|\s\*\|\d\+[.)]\)\s')
   endif
 endfunction
 
@@ -1975,6 +2221,21 @@ endfunction
 
 " ----- folds
 
+" 'foldtext' of Org buffers: the fold's first line, then what the server
+" says closed folds show after it (`org-ellipsis`), as Emacs shows a folded
+" heading.
+function! org_lsp#foldtext() abort
+  let text = substitute(getline(v:foldstart), '\t', repeat(' ', &tabstop), 'g')
+  return text . get(s:, 'ellipsis', '...')
+endfunction
+
+function! s:got_ellipsis(error, result) abort
+  if empty(a:error) && type(a:result) == v:t_string
+    let s:ellipsis = a:result
+    redraw!
+  endif
+endfunction
+
 " 'foldexpr' of Org buffers: the levels of the server's folding ranges,
 " fetched after each change.
 function! org_lsp#foldexpr(lnum) abort
@@ -1989,6 +2250,12 @@ endfunction
 function! s:update_folds(nr) abort
   let params = {'textDocument': {'uri': org_lsp#uri(a:nr)}}
   call org_lsp#request(a:nr, 'textDocument/foldingRange', params, function('s:got_folds', [a:nr]))
+endfunction
+
+function! s:refold_windows(nr) abort
+  for win in win_findbuf(a:nr)
+    call win_execute(win, 'call org_lsp#refold()')
+  endfor
 endfunction
 
 function! s:got_folds(nr, error, result) abort
@@ -2015,9 +2282,13 @@ function! s:got_folds(nr, error, result) abort
     return
   endif
   call setbufvar(a:nr, 'org_lsp_folds', levels)
-  for win in win_findbuf(a:nr)
-    call win_execute(win, 'call org_lsp#refold()')
-  endfor
+  " Not while typing (a heading `<Leader><CR>` made): `:normal` would put
+  " the cursor back from the end of the line. Once insert mode ends.
+  if mode() =~# '^[iR]'
+    execute 'autocmd InsertLeave * ++once call s:refold_windows(' . a:nr . ')'
+  else
+    call s:refold_windows(a:nr)
+  endif
   " Folds org-journal asked for before the buffer had any.
   let pending = getbufvar(a:nr, 'org_lsp_journal_folds', {})
   if !empty(pending)
@@ -2026,8 +2297,9 @@ function! s:got_folds(nr, error, result) abort
   endif
 endfunction
 
-" The headlines of a document org-journal showed, folded as it folds them
-" (`org-lsp/folds`): once the buffer has its folds.
+" The headlines of a document org-journal showed, folded as it folds them,
+" or the subtrees a yank or paste folded (`org-lsp/folds`): once the
+" buffer has its folds.
 function! s:journal_folds(params) abort
   let nr = bufnr(org_lsp#uri_to_path(a:params.uri))
   if nr < 0
@@ -2040,15 +2312,35 @@ function! s:journal_folds(params) abort
   endif
 endfunction
 
-function! s:set_journal_folds(nr, params) abort
+" A fold that closes other lines than the server's range is not the
+" server's yet (the buffer's folds come a moment after an edit): it is
+" opened again, and tried again a moment later; the last time it stays
+" closed.
+function! s:set_journal_folds(nr, params, ...) abort
+  let tries = get(a:, 1, 0)
+  let stale = []
   for win in win_findbuf(a:nr)
     for fold in get(a:params, 'open', [])
       call win_execute(win, 'silent! ' . (fold.startLine + 1) . 'foldopen')
     endfor
     for fold in get(a:params, 'close', [])
-      call win_execute(win, 'silent! ' . (fold.startLine + 1) . 'foldclose')
+      let line = fold.startLine + 1
+      " (A line in a fold closed already stays as it is.)
+      if win_execute(win, 'echon foldclosed(' . line . ')') !=# '-1'
+        continue
+      endif
+      call win_execute(win, 'silent! ' . line . 'foldclose')
+      let closed = win_execute(win, 'echon foldclosed(' . line . ') . "," . foldclosedend(' . line . ')')
+      if tries < 40 && closed !=# line . ',' . (get(fold, 'endLine', fold.startLine) + 1)
+        call win_execute(win, 'silent! ' . line . 'foldopen')
+        call add(stale, fold)
+      endif
     endfor
   endfor
+  if !empty(stale)
+    let again = {'uri': a:params.uri, 'open': [], 'close': stale}
+    call timer_start(50, {-> s:set_journal_folds(a:nr, again, tries + 1)})
+  endif
 endfunction
 
 " org-journal's files need not have a name that says they are Org files
@@ -2116,6 +2408,15 @@ function! org_lsp#refold() abort
   setlocal foldmethod=manual
   setlocal foldexpr=org_lsp#foldexpr(v:lnum) foldmethod=expr
   if first
+    " A closed fold shows its first line and `org-ellipsis`, nothing after.
+    setlocal foldtext=org_lsp#foldtext()
+    if &l:fillchars !~# 'fold:' && &fillchars !~# 'fold:'
+      let &l:fillchars = &fillchars . (empty(&fillchars) ? '' : ',') . 'fold: '
+    endif
+    if !exists('s:ellipsis')
+      let s:ellipsis = '...'
+      call org_lsp#request(bufnr(), 'org-lsp/ellipsis', v:null, function('s:got_ellipsis'))
+    endif
     let &l:foldlevel = org_lsp#config().startup_folded ==# 'overview' ? 0 : 99
     if empty(org_lsp#config().startup_folded)
       let params = {'textDocument': {'uri': org_lsp#uri(bufnr())}}
@@ -2170,6 +2471,22 @@ function! org_lsp#cycle() abort
   if getline('.') =~# '^\s*|'
     return org_lsp#run('org.table.next.field')
   endif
+  " What TAB does before it folds (`org.cycle`): a new, empty entry
+  " changes level, the start of the file cycles globally.
+  let integrate = v:false
+  if !empty(org_lsp#adapter()) && org_lsp#ready(bufnr())
+    let [nr, context] = s:cursor_context()
+    let answer = org_lsp#request_sync(nr, 'workspace/executeCommand', {'command': 'org.cycle', 'arguments': [context]}, 1000)
+    let result = get(answer, 'result', v:null)
+    if !empty(get(answer, 'error', {}))
+      return s:warn(get(answer.error, 'message', 'TAB failed'))
+    elseif type(result) == v:t_dict && type(get(result, 'edits', 0)) == v:t_list
+      return s:apply_carried(context.textDocument.uri, result)
+    elseif type(result) == v:t_dict && get(result, 'global', v:false) is v:true
+      return org_lsp#global_cycle()
+    endif
+    let integrate = type(result) == v:t_dict && get(result, 'integrateLists', v:false) is v:true
+  endif
   let all = s:fold_ranges(bufnr())
   let line = line('.')
   let current = []
@@ -2187,6 +2504,10 @@ function! org_lsp#cycle() abort
   let [start, finish] = current
   let inner = filter(copy(all), {_, r -> r[0] > start && r[1] <= finish})
   let children = filter(copy(inner), {_, r -> empty(filter(copy(inner), {_, o -> o != r && o[0] < r[0] && r[1] <= o[1]}))})
+  " Lists stay open but with `org_cycle_include_plain_lists` `integrate`.
+  if !integrate && !s:is_item(start)
+    call filter(children, {_, r -> !s:is_item(r[0])})
+  endif
   if foldclosed(start) != -1
     execute printf('silent! %d,%dfoldopen!', start, finish)
     for child in children
@@ -2203,6 +2524,11 @@ function! org_lsp#cycle() abort
     endif
   endfor
   execute 'silent! ' . start . 'foldclose'
+endfunction
+
+" Whether line `line` starts a list item.
+function! s:is_item(line) abort
+  return getline(a:line) =~# '^\%(\s*\%([-+]\|\d\+[.)]\)\|\s\+\*\)\%(\s\|$\)'
 endfunction
 
 " Cycle the whole file between overview (all folded) and all visible but
@@ -2255,26 +2581,47 @@ function! org_lsp#define_highlights() abort
   for look in get(org_lsp#manifest(), 'highlights', [])
     let candidates = map(copy(look.vim), {_, g -> get(s:vim_groups, g, g)})
     call filter(candidates, {_, g -> g =~# '^\w\+$'})
-    if empty(candidates)
+    let group = s:group_name(look.token)
+    if !empty(candidates)
+      let target = candidates[-1]
+      for candidate in candidates
+        if hlexists(candidate)
+          let target = candidate
+          break
+        endif
+      endfor
+      execute 'highlight default link' group target
+    elseif has_key(look, 'background')
+      " Org's background, which no standard group has: a habit's days.
+      let color = get(look.background, &background, look.background.dark)
+      execute 'highlight default' group 'guibg=' . color 'ctermbg=' . s:cterm_color(color)
+    else
       continue
     endif
-    let target = candidates[-1]
-    for candidate in candidates
-      if hlexists(candidate)
-        let target = candidate
-        break
-      endif
-    endfor
-    let group = s:group_name(look.token)
-    execute 'highlight default link' group target
     let type = 'org_lsp_' . look.token
-    let priority = look.token =~# '^\*\.' ? 101 : look.token =~# '\.' ? 102 : 100
+    " A type with several modifiers over one with one, over a modifier
+    " alone, over a type.
+    let dots = len(substitute(look.token, '[^.]', '', 'g'))
+    let priority = look.token =~# '^\*\.' ? 101 : dots > 1 ? 103 : dots ? 102 : 100
     if empty(prop_type_get(type))
       call prop_type_add(type, {'highlight': group, 'combine': 1, 'priority': priority})
     endif
     let s:selectors[look.token] = type
   endfor
   call s:define_faces()
+endfunction
+
+" The color of a 256-color terminal's 6x6x6 cube nearest to `#rrggbb`, for
+" a terminal without 'termguicolors'.
+function! s:cterm_color(hex) abort
+  let steps = [0, 95, 135, 175, 215, 255]
+  let index = 16
+  for [at, weight] in [[1, 36], [3, 6], [5, 1]]
+    let value = str2nr(a:hex[at : at + 1], 16)
+    let distances = map(copy(steps), {_, step -> abs(step - value)})
+    let index += weight * index(distances, min(distances))
+  endfor
+  return index
 endfunction
 
 " `K` in the agenda: the entry of the line in a popup at the cursor, its
@@ -2342,7 +2689,8 @@ function! s:got_faces(nr, error, result) abort
 endfunction
 
 function! s:face_group(kind, name) abort
-  return 'OrgLsp' . (a:kind ==# 'todo' ? 'Todo' : 'Priority') . 'Face_' . substitute(a:name, '\W', '_', 'g')
+  let prefix = get({'todo': 'Todo', 'priority': 'Priority', 'tag': 'Tag'}, a:kind, 'Priority')
+  return 'OrgLsp' . prefix . 'Face_' . substitute(a:name, '\W', '_', 'g')
 endfunction
 
 function! s:define_faces() abort
@@ -2416,7 +2764,14 @@ function! s:paint_absolute(nr, lines, tokens) abort
   let modifiers = map(copy(manifest.tokenModifiers), 'v:val.id')
   let props = {}
   let lines = a:lines
+  let is_org = getbufvar(a:nr, '&filetype') ==# 'org'
+  " Not past the buffer's lines, which it may have fewer of by now (the
+  " agenda read again).
+  let line_count = len(getbufline(a:nr, 1, '$'))
   for [line, character, length, type_index, modifier_bits] in a:tokens
+    if line >= line_count
+      continue
+    endif
     let type = get(types, type_index, '')
     let text = get(lines, line, '')
     let start = s:byte(text, character)
@@ -2425,12 +2780,18 @@ function! s:paint_absolute(nr, lines, tokens) abort
       continue
     endif
     let selectors = [type]
+    let names = []
     for bit in range(len(modifiers))
       if and(modifier_bits, 1 << bit)
         call add(selectors, '*.' . modifiers[bit])
         call add(selectors, type . '.' . modifiers[bit])
+        call add(names, modifiers[bit])
       endif
     endfor
+    " A look of the type with all of them (`agendaHabit.ready.future`).
+    if len(names) > 1
+      call add(selectors, type . '.' . join(names, '.'))
+    endif
     " A keyword or a priority with a face of its own.
     if type ==# 'todoKeyword' || type ==# 'priority'
       let name = text[start : end - 1]
@@ -2438,6 +2799,23 @@ function! s:paint_absolute(nr, lines, tokens) abort
         let name = substitute(name, '^\[#\(.\{-}\)\]$', '\1', '')
       endif
       call add(selectors, 'face:' . (type ==# 'todoKeyword' ? 'todo' : 'priority') . ':' . name)
+    endif
+    " `org-tag-faces`: each tag of a headline in an Org file that has a face
+    " of its own, its name without the colons.
+    if type ==# 'tag' && is_org
+      let at = start
+      while 1
+        let found = matchstrpos(text, ':\zs[^: \t]\+\ze:', at)
+        if found[1] < 0 || found[1] >= end
+          break
+        endif
+        let selector = 'face:tag:' . found[0]
+        if has_key(s:selectors, selector)
+          call add(get(extend(props, {selector: []}, 'keep'), selector), [line + 1, found[1] + 1, line + 1, found[2] + 1])
+        endif
+        " The colon after a tag starts the next.
+        let at = found[2]
+      endwhile
     endif
     for selector in selectors
       if has_key(s:selectors, selector)
@@ -2523,6 +2901,10 @@ function! org_lsp#attach() abort
       " coc.nvim shows documents itself, in the window it jumps from: the
       " calendar moves to the bottom.
       execute 'autocmd BufWinEnter <buffer=' . nr . '> call timer_start(0, {-> s:place_prompt(' . nr . ')})'
+    endif
+    if s:is_agenda(bufname(nr)) && org_lsp#adapter() ==# 'coc'
+      " coc.nvim shows the agenda itself, in the current window.
+      execute 'autocmd BufWinEnter <buffer=' . nr . '> call timer_start(0, {-> s:place_agenda(' . nr . ')})'
     endif
     if s:is_view_type(&filetype)
       let b:org_lsp_given = getline(1, '$')

@@ -5,11 +5,15 @@ A case is a JSON object:
     {
       "text": "* a\\n",   an Org document
       "type": "r",       r (`org-occur`), t (`org-show-todo-tree`), T
-                         (keywords), m (`org-match-sparse-tree`), d
+                         (keywords), m (`org-match-sparse-tree`), M (the
+                         same with `org-tags-match-list-sublevels` nil), d
                          (`org-check-deadlines`), b, a (before, after a
                          date), D (between two dates)
       "args": ["x"]      what is asked: the regexp, the keywords, the
                          match, the date(s)
+      "case": "smart"    `org-occur-case-fold-search` (optional: t, nil,
+                         smart)
+      "date_type": "all" `org-ts-type` for b, a and D (optional)
     }
 
 `reference(cases)` adds `expected`: `{"highlights": [[start, end]…]
@@ -29,7 +33,10 @@ DRIVER = r"""
 (advice-add 'current-time :override (lambda () org-lsp-now))
 (defvar org-lsp-message nil)
 (advice-add 'message :around (lambda (f &rest args) (when (car args) (setq org-lsp-message (apply #'format-message args))) nil))
-(defun org-lsp-sparse-case (in out type args)
+(defun org-lsp-sparse-case (in out type args case-fold date-type)
+  (let ((org-occur-case-fold-search case-fold) (org-ts-type date-type))
+  (org-lsp-sparse-case-1 in out type args)))
+(defun org-lsp-sparse-case-1 (in out type args)
   (with-temp-buffer
     (insert-file-contents in)
     (org-mode)
@@ -40,6 +47,7 @@ DRIVER = r"""
       ("t" (org-show-todo-tree nil))
       ("T" (cl-letf (((symbol-function 'completing-read) (lambda (&rest _) (car args)))) (org-show-todo-tree '(4))))
       ("m" (org-match-sparse-tree nil (car args)))
+      ("M" (let ((org-tags-match-list-sublevels nil)) (org-match-sparse-tree nil (car args))))
       ("d" (org-check-deadlines nil))
       ("b" (org-check-before-date (car args)))
       ("a" (org-check-after-date (car args)))
@@ -81,7 +89,7 @@ def reference(cases, timeout=1200):
             args = "(list " + " ".join(lisp_string(arg) for arg in case.get("args", [])) + ")"
             forms.append(
                 f"(condition-case err (org-lsp-sparse-case {lisp_string(source)} {lisp_string(target)}"
-                f" {lisp_string(case['type'])} {args})"
+                f" {lisp_string(case['type'])} {args} '{case.get('case', 't')} '{case.get('date_type', 'nil')})"
                 f" (error (with-temp-file {lisp_string(target)}"
                 f" (insert (json-encode (list (cons 'error (error-message-string err))))))))"
             )

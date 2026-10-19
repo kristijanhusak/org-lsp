@@ -1,0 +1,8 @@
+#+FILETAGS: :file:
+* Project :proj:
+** TODO write the plan :doc:
+   SCHEDULED: <2026-05-18 Mon>
+** TODO call Bob :phone:
+** TODO plain one
+   SCHEDULED: <2026-05-18 Mon>
+* TODO top level :xhide:keep:

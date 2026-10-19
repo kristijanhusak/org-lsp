@@ -1,0 +1,117 @@
+{
+  "commands": {},
+  "editors": {
+    "nvim": {
+      "org.agenda.habits": "K in the agenda is the plugin's hover, as K is in Vim; the command runs from its menu (g?) or a mapping of the user's."
+    },
+    "vscode": {
+      "org.todo.previous": "Emacs has no key of its own for it in an Org file: S-<left> on a headline (org.shift.left) cycles the state backward.",
+      "org.priority.up": "Emacs has no key of its own for it in an Org file: S-<up> on a headline (org.shift.up) raises the priority.",
+      "org.priority.down": "Emacs has no key of its own for it in an Org file: S-<down> on a headline (org.shift.down) lowers the priority.",
+      "org.timestamp.up": "Emacs has no key of its own for it: S-<up> on a timestamp (org.shift.up) changes it.",
+      "org.timestamp.down": "Emacs has no key of its own for it: S-<down> on a timestamp (org.shift.down) changes it.",
+      "org.table.insert.row.below": "Emacs has no key for it: org-table-insert-row inserts below with a prefix argument."
+    },
+    "vscode-vim": {
+      "org.agenda.dispatch": "<Leader>oa in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.archive.subtree": "<Leader>o$ in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.capture": "<Leader>oc in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.capture.abort": "<Leader>ok in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.capture.refile": "<Leader>or in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.clock.in": "<Leader>oxi in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.clock.out": "<Leader>oxo in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.deadline": "<Leader>oid in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.goto.calendar": "<Leader>o> in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.journal.display.entry": "<Leader>jd in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.journal.mark.entries": "<Leader>jm in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.journal.new.date.entry": "<Leader>jn in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.journal.read.entry": "<Leader>jr in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.journal.search.calendar.month": "<Leader>jsm in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.journal.search.calendar.week": "<Leader>jsw in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.journal.search.calendar.year": "<Leader>jsy in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.journal.search.forever": "<Leader>jsf in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.journal.search.future": "<Leader>jsF in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.meta.down": "<Leader>oJ in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.meta.left": "<< in Neovim, a key of Vim's normal mode: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.meta.return": "<Leader><CR> in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.meta.right": ">> in Neovim, a key of Vim's normal mode: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.meta.up": "<Leader>oK in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.open": "<Leader>oo in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.priority.down": "cir in Neovim, a key of Vim's normal mode: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.priority.up": "ciR in Neovim, a key of Vim's normal mode: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.property.set": "<Leader>oxp in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.refile": "<Leader>or in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.schedule": "<Leader>ois in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.shiftmeta.left": "<s in Neovim, a key of Vim's normal mode: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.shiftmeta.right": ">s in Neovim, a key of Vim's normal mode: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.table.hline": "<Leader>o- in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.table.insert.row.below": "<Leader>oTo in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.tags.set": "<Leader>ot in Neovim, a leader key: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.todo": "cit in Neovim, a key of Vim's normal mode: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org).",
+      "org.todo.previous": "ciT in Neovim, a key of Vim's normal mode: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org)."
+    },
+    "helix": {
+      "org.meta.up": "Helix's code action moves the subtree and leaves the cursor where it was in the text; Emacs's cursor goes with the subtree, as it does when the command moves it (window/showDocument).",
+      "org.meta.down": "Helix's code action moves the subtree and leaves the cursor where it was in the text; Emacs's cursor goes with the subtree, as it does when the command moves it (window/showDocument).",
+      "org.agenda.goto.other": "Not among Helix's code actions: the other window is the editor's to pick (orgOtherWindow), which Helix does not know of; from the command line, the entry shows in the agenda's window, as with org.agenda.goto.",
+      "org.agenda.follow": "Not among Helix's code actions: follow mode shows the entry of the line the cursor goes to, and Helix tells a server no cursor moves; from the command line it turns on, and the entry shows in a split, which takes the focus.",
+      "org.meta.return": "The step adds below the cursor's line, as the keys of modal editors do (below); the code action adds where the cursor is, as M-RET does: from the command line, with below in its argument."
+    },
+    "zed": {
+      "org.meta.down": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.).",
+      "org.meta.left": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.).",
+      "org.meta.right": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.).",
+      "org.meta.up": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.).",
+      "org.priority.down": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.).",
+      "org.priority.down count": "Zed gives a key no count, and Org changes the priority once whatever the count: the key is pressed once.",
+      "org.priority.up": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.).",
+      "org.priority.up count": "Zed gives a key no count, and Org changes the priority once whatever the count: the key is pressed once.",
+      "org.shiftmeta.left": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.).",
+      "org.shiftmeta.right": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.).",
+      "org.table.insert.row.below": "Emacs has no key for it: it runs from the code actions (ctrl-.).",
+      "org.timestamp.down": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.).",
+      "org.timestamp.up": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.).",
+      "org.todo.previous": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.)."
+    },
+    "vim": {
+      "org.agenda.habits": "K in the agenda is the plugin's hover, as K is in Vim; the command runs from its menu (g?) or a mapping of the user's."
+    }
+  },
+  "scenarios": {
+    "helix": {
+      "agenda-columns": "Helix shows no column view: it would draw over the agenda's lines, and the code actions leave it out (docs/helix.org).",
+      "calendar": "Helix has no date prompt: the calendar is a file the server writes again as the day moves, which Helix does not read again (it reloads no file changed on disk); a date is typed as a rename at the cursor (docs/keys/helix.org), so there are no date prompt keys to press.",
+      "journal-calendar": "Helix has no date prompt: the calendar is a file the server writes again as the day moves, which Helix does not read again (it reloads no file changed on disk), so there is no calendar for org-journal's keys."
+    },
+    "zed": {
+      "agenda-columns": "Zed shows no column view: it would draw over the agenda's lines (docs/zed.org).",
+      "calendar": "Zed has no date prompt: a date is typed as a rename at the cursor (F2), as Zed has no box of its own for typed text (docs/keys/zed.org), so there are no date prompt keys to press.",
+      "journal-calendar": "Zed has no date prompt: a date is typed as a rename at the cursor (F2), as Zed has no box of its own for typed text (docs/keys/zed.org), so there is no calendar for org-journal's keys."
+    }
+  },
+  "steps": {
+    "helix": {
+      "agenda-entry-edits 21": "Helix has no note buffer: the note is one line, typed as a rename at the cursor (docs/helix.org).",
+      "agenda-entry-edits 22": "Typed in the note buffer of step 21, which Helix does not have.",
+      "agenda-entry-edits 23": "Files the note of step 21, which Helix asks for as a rename."
+    }
+  },
+  "snapshots": {
+    "vscode": {
+      "agenda-navigation 18 cursor": "q closes the agenda's tab, not its editor group as Emacs deletes the agenda's window: home.org, opened in that group since, stays in front of work.org."
+    },
+    "helix": {
+      "org-editing 5 messages": "The code action is an edit that Helix applies itself, without running the command: nothing is said (Emacs says Priority of current item set to B).",
+      "agenda-navigation 18 cursor": "The agenda's buffer is closed (:buffer-close!, as the server's edits leave it changed), and Helix shows the buffer opened last, home.org, not the one the agenda was opened from: Helix has no window of the agenda's to delete."
+    },
+    "zed": {
+      "agenda-entry-edits 21": "Zed has no note buffer: the note is one line, typed as a rename at the cursor (docs/zed.org).",
+      "agenda-entry-edits 22": "Typed in the note buffer of step 21, which Zed does not have.",
+      "agenda-entry-edits 23": "Files the note of step 21, which Zed asks for as a rename.",
+      "agenda-entry-text 5": "Zed gives a key no count, and C-u 2 E (two lines of entry text) is not E pressed twice, which turns entry text mode on and off.",
+      "agenda-filters 7": "Zed gives a key no count, and C-u C-u / is not / pressed four times.",
+      "agenda-filters 9 messages": "Step 7, which Zed cannot take, says Agenda filters: -home.",
+      "agenda-navigation 18 cursor": "q closes the agenda's tab, and Zed shows the tab beside it (home.org), not the buffer the agenda was opened from."
+    }
+  }
+}

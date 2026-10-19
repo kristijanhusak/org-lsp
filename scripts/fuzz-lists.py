@@ -7,7 +7,10 @@ Emacs (`org-indent-item`, `org-outdent-item` and their `-tree` forms,
 Random lists: bullets of every kind, nesting, checkboxes, counters,
 description tags, continuation lines, blank lines, a headline above with
 a statistics cookie at times, text after the list. The cursor on an
-item's line, any of the keys.
+item's line, any of the keys. At times the list options too:
+`org-list-two-spaces-after-bullet-regexp`, `org-list-demote-modify-bullet`,
+`org-list-indent-offset`, `org-list-automatic-rules` and
+`org-checkbox-hierarchical-statistics`.
 
     scripts/fuzz-lists.py [--count 300] [--seed 1] [--out FILE]
 
@@ -23,7 +26,7 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from return_reference import reference, save  # noqa: E402
+from return_reference import lisp_string, reference, save  # noqa: E402
 
 ROOT = os.path.dirname(HERE)
 KEYS = ["M-<left>", "M-<right>", "M-S-<left>", "M-S-<right>", "M-<up>", "M-<down>", "S-<left>", "S-<right>",
@@ -79,6 +82,36 @@ def document(rng):
     return text if rng.random() < 0.15 else text + "\n"
 
 
+BULLETS = ["-", "+", "*", "1.", "1)"]
+
+
+def options(rng):
+    """Random list options: the settings of the test, and the same as Lisp
+    bindings."""
+    settings, lisp = {}, []
+    if rng.random() < 0.2:
+        regexp = rng.choice([r"[0-9]", r"[.)]", r"-", r"[+*]\|1)", r"^[0-9]+\."])
+        settings["two_spaces"] = regexp
+        lisp.append(f"(org-list-two-spaces-after-bullet-regexp {lisp_string(regexp)})")
+    if rng.random() < 0.25:
+        demote = {old: rng.choice(BULLETS) for old in rng.sample(BULLETS, rng.randint(1, 4))}
+        settings["demote"] = demote
+        pairs = " ".join(f"({lisp_string(old)} . {lisp_string(new)})" for old, new in demote.items())
+        lisp.append(f"(org-list-demote-modify-bullet '({pairs}))")
+    if rng.random() < 0.2:
+        settings["indent_offset"] = rng.choice([1, 2, 3])
+        lisp.append(f"(org-list-indent-offset {settings['indent_offset']})")
+    if rng.random() < 0.2:
+        checkbox, indent = rng.random() < 0.5, rng.random() < 0.5
+        settings["checkbox_rule"], settings["indent_rule"] = checkbox, indent
+        rules = f"((checkbox . {'t' if checkbox else 'nil'}) (indent . {'t' if indent else 'nil'}))"
+        lisp.append(f"(org-list-automatic-rules '{rules})")
+    if rng.random() < 0.2:
+        settings["hierarchical"] = False
+        lisp.append("(org-checkbox-hierarchical-statistics nil)")
+    return settings, " ".join(lisp)
+
+
 def case(rng):
     text = document(rng)
     starts = [0] + [index + 1 for index, c in enumerate(text) if c == "\n" and index + 1 < len(text)]
@@ -87,7 +120,11 @@ def case(rng):
     start = rng.choice(rows or starts)
     line = text[start:].split("\n", 1)[0]
     point = start + rng.randint(0, len(line))
-    return {"text": text, "point": point, "key": rng.choice(KEYS)}
+    out = {"text": text, "point": point, "key": rng.choice(KEYS)}
+    settings, lisp = options(rng)
+    if settings:
+        out["settings"], out["emacs"] = settings, lisp
+    return out
 
 
 def main():

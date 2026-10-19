@@ -160,6 +160,29 @@ impl Server {
         })
     }
 
+    /// `org-roam-promote-entire-buffer` and `org-roam-demote-entire-buffer`
+    /// on the file at the cursor.
+    pub(super) fn roam_whole_file(&mut self, id: &str, context: &RoamContext) -> Result<Value, Refusal> {
+        let not_here = || Refusal::NotHere("This command works in Org files".to_string());
+        let uri = context.text_document.as_ref().ok_or_else(not_here)?.uri.clone();
+        if self.is_view(&uri) {
+            return Err(not_here());
+        }
+        let document = self.document(&uri).ok_or_else(not_here)?;
+        let (text, version) = (document.text.clone(), document.version);
+        let keywords = document.parse.todo_keywords().clone();
+        let structure = self.structure_settings(&text);
+        let edited = if id == commands::ROAM_PROMOTE {
+            edit::promote_entire_buffer(&text, &keywords, &structure, &self.edit_settings.tags)?
+        } else {
+            edit::demote_entire_buffer(&text, &keywords, &structure, &self.edit_settings.tags)?
+        };
+        if edited != text {
+            self.send_texts(vec![(uri, Some(version), text, edited)]);
+        }
+        Ok(Value::Null)
+    }
+
     /// `org-roam-link-follow-link`: the node with the title or alias of a
     /// `roam:` link visited, the link first turned into an `id:` link
     /// (`org_roam_link_auto_replace`); a node made for a title no node
@@ -173,7 +196,7 @@ impl Server {
         let Some(id) = node_named(&db, title)? else {
             // Its questions come back to `org.open` with the title.
             let context = RoamContext { title: Some(title.to_string()), ..Default::default() };
-            return self.roam_capture(commands::ROAM_NODE_FIND, &context, &db, title, None);
+            return self.roam_capture(commands::ROAM_NODE_FIND, &context, &db, title, None, None);
         };
         if self.roam.as_ref().is_some_and(|roam| roam.settings.link_auto_replace) {
             if let Some(document) = self.document(uri) {

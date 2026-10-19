@@ -194,11 +194,14 @@ pub const CLOCK_OUT: &str = "org.clock.out";
 pub const CLOCK_CANCEL: &str = "org.clock.cancel";
 pub const CLOCK_GOTO: &str = "org.clock.goto";
 pub const CLOCK_DISPLAY: &str = "org.clock.display";
+pub const NUM_MODE: &str = "org.num.mode";
+pub const CUSTOM_PROPERTIES_TOGGLE: &str = "org.custom.properties.toggle";
 pub const CLOCK_REPORT: &str = "org.clock.report";
 pub const DBLOCK_UPDATE: &str = "org.dblock.update";
 pub const DBLOCK_INSERT: &str = "org.dblock.insert";
 pub const ATTACH: &str = "org.attach";
 pub const TODO: &str = "org.todo";
+pub const TODO_YESTERDAY: &str = "org.todo.yesterday";
 pub const SET_TAGS: &str = "org.tags.set";
 pub const SET_PROPERTY: &str = "org.property.set";
 pub const DELETE_PROPERTY: &str = "org.property.delete";
@@ -213,6 +216,16 @@ pub const LINK_INSERT_ALL: &str = "org.link.insert.all";
 pub const ID_GET_CREATE: &str = "org.id.create";
 pub const CITE_INSERT: &str = "org.cite.insert";
 pub const CITE_INSERT_PREFIX: &str = "org.cite.insert.prefix";
+pub const BIBTEX_EXPORT: &str = "org.bibtex.export";
+pub const CTAGS_CREATE: &str = "org.ctags.create";
+pub const CTAGS_FIND: &str = "org.ctags.find";
+pub const BIBTEX_COPY: &str = "org.bibtex.copy";
+pub const BIBTEX_CREATE: &str = "org.bibtex.create";
+pub const BIBTEX_CREATE_HERE: &str = "org.bibtex.create.here";
+pub const BIBTEX_CHECK: &str = "org.bibtex.check";
+pub const BIBTEX_CHECK_ALL: &str = "org.bibtex.check.all";
+pub const BIBTEX_YANK: &str = "org.bibtex.yank";
+pub const BIBTEX_IMPORT: &str = "org.bibtex.import";
 pub const TODO_NEXT: &str = "org.todo.next";
 pub const TODO_PREVIOUS: &str = "org.todo.previous";
 pub const TODO_NEXT_SET: &str = "org.todo.nextset";
@@ -228,6 +241,8 @@ pub const META_LEFT: &str = "org.meta.left";
 pub const META_RIGHT: &str = "org.meta.right";
 pub const SHIFT_META_LEFT: &str = "org.shiftmeta.left";
 pub const SHIFT_META_RIGHT: &str = "org.shiftmeta.right";
+pub const LEVELS_ODD: &str = "org.levels.odd";
+pub const LEVELS_ODDEVEN: &str = "org.levels.oddeven";
 pub const META_UP: &str = "org.meta.up";
 pub const META_DOWN: &str = "org.meta.down";
 pub const SHIFT_META_UP: &str = "org.shiftmeta.up";
@@ -235,6 +250,8 @@ pub const SHIFT_META_DOWN: &str = "org.shiftmeta.down";
 pub const TABLE_NEXT_FIELD: &str = "org.table.next.field";
 pub const TABLE_PREVIOUS_FIELD: &str = "org.table.previous.field";
 pub const TABLE_INSERT_ROW_BELOW: &str = "org.table.insert.row.below";
+pub const OPEN_LINE: &str = "org.open.line";
+pub const OUTLINE_PATH: &str = "org.outline.path";
 pub const TABLE_HLINE: &str = "org.table.hline";
 pub const TABLE_HLINE_ABOVE: &str = "org.table.hline.above";
 pub const TABLE_HLINE_MOVE: &str = "org.table.hline.move";
@@ -247,9 +264,12 @@ pub const REVEAL_TREE: &str = "org.reveal.tree";
 pub const CUT_SUBTREE: &str = "org.cut.subtree";
 pub const COPY_SUBTREE: &str = "org.copy.subtree";
 pub const PASTE_SUBTREE: &str = "org.paste.subtree";
+pub const YANK: &str = "org.yank";
 pub const INSERT_TODO_HEADING: &str = "org.insert.todo.heading";
 pub const INSERT_HEADING_AFTER: &str = "org.insert.heading.after";
 pub const INSERT_TODO_HEADING_AFTER: &str = "org.insert.todo.heading.after";
+pub const INLINETASK_INSERT: &str = "org.inlinetask.insert";
+pub const INLINETASK_INSERT_NO_STATE: &str = "org.inlinetask.insert.nostate";
 pub const REFILE: &str = "org.refile";
 pub const REFILE_COPY: &str = "org.refile.copy";
 pub const REFILE_GOTO: &str = "org.refile.goto";
@@ -267,6 +287,9 @@ pub const HEADING_UP: &str = "org.heading.up";
 pub const LINK_NEXT: &str = "org.link.next";
 pub const LINK_PREVIOUS: &str = "org.link.previous";
 pub const GOTO: &str = "org.goto";
+pub const BEGINNING_OF_LINE: &str = "org.beginning.of.line";
+pub const END_OF_LINE: &str = "org.end.of.line";
+pub const KILL_LINE: &str = "org.kill.line";
 pub const FOOTNOTE_ACTION: &str = "org.footnote.action";
 pub const FOOTNOTE_MENU: &str = "org.footnote.menu";
 pub const TOGGLE_ITEM: &str = "org.toggle.item";
@@ -282,6 +305,8 @@ pub const TABLE_FIELD_INFO: &str = "org.table.field.info";
 pub const TABLE_CREATE: &str = "org.table.create";
 pub const TABLE_IMPORT: &str = "org.table.import";
 pub const TABLE_EXPORT: &str = "org.table.export";
+pub const PLOT_GNUPLOT: &str = "org.plot.gnuplot";
+pub const TABLE_ASCII_PLOT: &str = "org.table.ascii.plot";
 pub const BABEL_NEXT: &str = "org.babel.next";
 pub const BABEL_PREVIOUS: &str = "org.babel.previous";
 pub const BABEL_GOTO: &str = "org.babel.goto";
@@ -328,6 +353,23 @@ pub const ROAM_TAG_ADD: &str = "org.roam.tag.add";
 pub const ROAM_TAG_REMOVE: &str = "org.roam.tag.remove";
 pub const ROAM_REF_ADD: &str = "org.roam.ref.add";
 pub const ROAM_REF_REMOVE: &str = "org.roam.ref.remove";
+pub const ROAM_REF_FIND: &str = "org.roam.ref.find";
+pub const ROAM_PROMOTE: &str = "org.roam.promote";
+pub const ROAM_DEMOTE: &str = "org.roam.demote";
+pub const ROAM_REFILE: &str = "org.roam.refile";
+pub const ROAM_EXTRACT: &str = "org.roam.extract";
+pub const ROAM_GRAPH: &str = "org.roam.graph";
+pub const ROAM_DAILIES_CAPTURE_TODAY: &str = "org.roam.dailies.capture.today";
+pub const ROAM_DAILIES_GOTO_TODAY: &str = "org.roam.dailies.goto.today";
+pub const ROAM_DAILIES_CAPTURE_TOMORROW: &str = "org.roam.dailies.capture.tomorrow";
+pub const ROAM_DAILIES_GOTO_TOMORROW: &str = "org.roam.dailies.goto.tomorrow";
+pub const ROAM_DAILIES_CAPTURE_YESTERDAY: &str = "org.roam.dailies.capture.yesterday";
+pub const ROAM_DAILIES_GOTO_YESTERDAY: &str = "org.roam.dailies.goto.yesterday";
+pub const ROAM_DAILIES_CAPTURE_DATE: &str = "org.roam.dailies.capture.date";
+pub const ROAM_DAILIES_GOTO_DATE: &str = "org.roam.dailies.goto.date";
+pub const ROAM_DAILIES_GOTO_NEXT: &str = "org.roam.dailies.goto.next";
+pub const ROAM_DAILIES_GOTO_PREVIOUS: &str = "org.roam.dailies.goto.previous";
+pub const ROAM_DAILIES_FIND_DIRECTORY: &str = "org.roam.dailies.find.directory";
 pub const JOURNAL_NEW_ENTRY: &str = "org.journal.new.entry";
 pub const JOURNAL_NEW_DATE_ENTRY: &str = "org.journal.new.date.entry";
 pub const JOURNAL_NEW_SCHEDULED_ENTRY: &str = "org.journal.new.scheduled.entry";
@@ -340,6 +382,13 @@ pub const JOURNAL_SEARCH_FUTURE: &str = "org.journal.search.future";
 pub const JOURNAL_SEARCH_FUTURE_SCHEDULED: &str = "org.journal.search.future.scheduled";
 pub const JOURNAL_SCHEDULE_VIEW: &str = "org.journal.schedule.view";
 pub const JOURNAL_RESCHEDULE: &str = "org.journal.reschedule";
+pub const JOURNAL_READ_ENTRY: &str = "org.journal.read.entry";
+pub const JOURNAL_DISPLAY_ENTRY: &str = "org.journal.display.entry";
+pub const JOURNAL_MARK_ENTRIES: &str = "org.journal.mark.entries";
+pub const JOURNAL_SEARCH_CALENDAR_WEEK: &str = "org.journal.search.calendar.week";
+pub const JOURNAL_SEARCH_CALENDAR_MONTH: &str = "org.journal.search.calendar.month";
+pub const JOURNAL_SEARCH_CALENDAR_YEAR: &str = "org.journal.search.calendar.year";
+pub const GOTO_CALENDAR: &str = "org.goto.calendar";
 pub const CAPTURE_ABORT: &str = "org.capture.abort";
 pub const CAPTURE_REFILE: &str = "org.capture.refile";
 pub const TIMESTAMP_UP: &str = "org.timestamp.up";
@@ -366,9 +415,13 @@ pub const DEADLINE_WARNING: &str = "org.deadline.warning";
 pub const TIMESTAMP_INSERT: &str = "org.timestamp.insert";
 pub const TIMESTAMP_INSERT_INACTIVE: &str = "org.timestamp.insert.inactive";
 pub const TIMESTAMP_CHANGE: &str = "org.timestamp.change";
+pub const TIMESTAMP_OVERLAYS_TOGGLE: &str = "org.timestamp.overlays.toggle";
 /// What an answer to a date prompt means, for an editor that shows it
 /// while the answer is typed. Not a command of its own for users.
 pub const DATE_PREVIEW: &str = "org.date.preview";
+/// What TAB does in an Org file before it folds, for an editor's own TAB
+/// (`org-cycle`). Not a command of its own for users.
+pub const CYCLE: &str = "org.cycle";
 pub const CALENDAR_DAY_LATER: &str = "org.calendar.day.later";
 pub const CALENDAR_DAY_EARLIER: &str = "org.calendar.day.earlier";
 pub const CALENDAR_WEEK_LATER: &str = "org.calendar.week.later";
@@ -540,8 +593,12 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, "<Leader>oxx")],
         ..edit(CLOCK_IN_LAST, "Clock in the last clocked task")
     },
-    // `org-resolve-clocks`: a clock left running beside the clock.
-    Command { vim: &[key(Org, "<Leader>oxR")], ..edit(CLOCK_RESOLVE, "Resolve a dangling clock") },
+    // `org-resolve-clocks`: each clock left running, asked about.
+    Command {
+        emacs: &[key(Org, "C-c C-x C-z")],
+        vim: &[key(Org, "<Leader>oxz")],
+        ..edit(CLOCK_RESOLVE, "Resolve open clocks")
+    },
     Command {
         emacs: &[key(Org, "C-c C-x C-o"), key(Agenda, "O")],
         vim: &[key(Org, "<Leader>oxo")],
@@ -564,6 +621,10 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, "<Leader>oxd")],
         ..command(CLOCK_DISPLAY, "Show the time clocked under each headline")
     },
+    // `org-num-mode`: numbers before the headlines, or none again.
+    command(NUM_MODE, "Number the headlines, or stop numbering them"),
+    // `org-toggle-custom-properties-visibility`, which has no key in Emacs.
+    command(CUSTOM_PROPERTIES_TOGGLE, "Hide the properties of org_custom_properties, or show them again"),
     // Clock tables: `org-clock-report` inserts one or fills it in again,
     // the first of the file with a count; `org-dblock-update` fills in the
     // dynamic block the cursor is in, all of the file's with a count.
@@ -600,6 +661,9 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, "cit")],
         ..edit(TODO, "Change the TODO state")
     },
+    // `org-todo-yesterday` and `org-agenda-todo-yesterday`: `org-todo` as
+    // if it were 23:59 of yesterday.
+    Command { in_agenda: true, ..edit(TODO_YESTERDAY, "Change the TODO state as if it were yesterday") },
     Command { ..edit(TODO_NEXT, "Cycle TODO state forward") },
     Command { vim: &[key(Org, "ciT")], ..edit(TODO_PREVIOUS, "Cycle TODO state backward") },
     // `org-shiftcontrolright` and `org-shiftcontrolleft` on a headline:
@@ -681,15 +745,47 @@ pub const COMMANDS: &[Command] = &[
         input: Some(Input { kind: "choice", prompt: "Key" }),
         ..edit(CITE_INSERT_PREFIX, "Delete the citation or reference at the cursor, or insert one with a style")
     },
+    // `ol-bibtex.el`, whose commands have no keys in Emacs either. With a
+    // count (Emacs's prefix argument) the create and check commands ask
+    // for the optional fields too, and the yank adds to the entry at the
+    // cursor.
+    Command {
+        input: Some(Input { kind: "text", prompt: "BibTeX file" }),
+        ..command(BIBTEX_EXPORT, "BibTeX: export the entries of the file to a .bib file")
+    },
+    command(BIBTEX_COPY, "BibTeX: copy the entry at the cursor as BibTeX"),
+    Command {
+        input: Some(Input { kind: "text", prompt: "Type" }),
+        ..edit(BIBTEX_CREATE, "BibTeX: new entry, its fields asked for")
+    },
+    Command {
+        input: Some(Input { kind: "text", prompt: "Type" }),
+        ..edit(BIBTEX_CREATE_HERE, "BibTeX: make the entry at the cursor a BibTeX entry")
+    },
+    edit(BIBTEX_CHECK, "BibTeX: ask for the fields the entry at the cursor lacks"),
+    edit(BIBTEX_CHECK_ALL, "BibTeX: ask for the fields every entry lacks"),
+    Command { clipboard: true, ..edit(BIBTEX_YANK, "BibTeX: paste a BibTeX entry as a heading") },
+    Command {
+        input: Some(Input { kind: "text", prompt: "File" }),
+        ..edit(BIBTEX_IMPORT, "BibTeX: import the entries of a BibTeX file as headings")
+    },
+    // `org-ctags.el`, whose commands have no keys in Emacs either: the
+    // `TAGS` file made, and a topic asked for among its tags.
+    command(CTAGS_CREATE, "Ctags: make the TAGS file of the file's directory"),
+    Command {
+        input: Some(Input { kind: "text", prompt: "Topic: " }),
+        ..command(CTAGS_FIND, "Ctags: go to a topic, or make it")
+    },
     // `C-c C-c` on an item (`org-ctrl-c-ctrl-c`): its checkbox toggled and
     // the list repaired (indentation, bullets, numbers, checkboxes); at
     // the start of a list only its first item's box is toggled, and on a
     // statistics cookie the cookies are counted. On a headline,
     // `org-set-tags-command`: the tags picked by key from the tag table
     // (fast tag selection, each key turning its tag on or off until RET),
-    // or typed; in the agenda for the line's entry.
+    // or typed; in the agenda for the line's entry (`org-agenda-set-tags`,
+    // `:` and `C-c C-q` there).
     Command {
-        emacs: &[key(Org, "C-c C-q")],
+        emacs: &[key(Org, "C-c C-q"), key(Agenda, ":"), key(Agenda, "C-c C-q")],
         vim: &[key(Org, "<Leader>ot")],
         in_agenda: true,
         input: Some(Input { kind: "key", prompt: "Tags" }),
@@ -737,6 +833,16 @@ pub const COMMANDS: &[Command] = &[
         vim: &[append(Org, "<Leader>oit")],
         ..edit(INSERT_TODO_HEADING_AFTER, "New TODO heading after the subtree")
     },
+    // `org-inlinetask-insert-task`: an inline task with its `END` line,
+    // around the region if there is one, with
+    // `org-inlinetask-default-state`; with the prefix argument
+    // (`C-u C-c C-x t`) without it, which is a command of its own.
+    Command {
+        emacs: &[key(Org, "C-c C-x t")],
+        vim: &[key(Org, "<Leader>oiI")],
+        ..edit(INLINETASK_INSERT, "Insert an inline task")
+    },
+    Command { ..edit(INLINETASK_INSERT_NO_STATE, "Insert an inline task without its default TODO state") },
     // Structure editing on Org's meta keys: what they do depends on where
     // the cursor is (a table, a headline or a list item here; elsewhere the
     // key's own meaning).
@@ -760,6 +866,10 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, ">s")],
         ..edit(SHIFT_META_RIGHT, "Demote the subtree; indent the item with its children; insert a table column")
     },
+    // `org-convert-to-odd-levels` and `org-convert-to-oddeven-levels`,
+    // which have no keys in Emacs either.
+    edit(LEVELS_ODD, "Convert the file to odd levels only, once confirmed"),
+    edit(LEVELS_ODDEVEN, "Convert the file from odd levels to odd and even ones, once confirmed"),
     Command {
         emacs: &[native(Org, "M-<up>")],
         vim: &[key(Org, "<Leader>oK")],
@@ -786,6 +896,13 @@ pub const COMMANDS: &[Command] = &[
         ..edit(SHIFT_META_DOWN, "Insert a table row above")
     },
     Command { vim: &[key(Org, "<Leader>oTo")], ..edit(TABLE_INSERT_ROW_BELOW, "Insert a table row below") },
+    // `org-open-line` (C-o): in a table a row above (`org-special-ctrl-o`),
+    // elsewhere a new line after the cursor, which stays. Vim's C-o goes
+    // back in the jump list, so there is no Vim key.
+    Command { emacs: &[key(Org, "C-o")], ..edit(OPEN_LINE, "Open a line, or in a table insert a row") },
+    // `org-display-outline-path`, which has no key in Emacs either; with
+    // a count (`C-u`) the file's name first.
+    command(OUTLINE_PATH, "Show the outline path of the entry at the cursor"),
     edit(TABLE_NEXT_FIELD, "Go to the next table field, making a row after the last"),
     edit(TABLE_PREVIOUS_FIELD, "Go to the previous table field"),
     Command {
@@ -841,6 +958,12 @@ pub const COMMANDS: &[Command] = &[
         clipboard: true,
         ..edit(PASTE_SUBTREE, "Paste the subtree")
     },
+    // `org-yank`: a subtree yanked at the start of a line goes in as
+    // `org-paste-subtree` puts it with `org_yank_adjusted_subtrees`, and is
+    // folded with `org_yank_folded_subtrees` (`org-lsp/folds` once the
+    // editor has the edit); anything else is the editor's own paste
+    // (`notApplicable`).
+    Command { emacs: &[native(Org, "C-y")], clipboard: true, ..edit(YANK, "Yank, a subtree at its level") },
     Command {
         emacs: &[key(Org, "C-c C-w"), key(Agenda, "C-c C-w")],
         vim: &[key(Org, "<Leader>or")],
@@ -948,6 +1071,16 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, "[l")],
         ..command(LINK_PREVIOUS, "Move to the previous link")
     },
+    // `org-beginning-of-line`, `org-end-of-line` and `org-kill-line`, as
+    // `org_special_ctrl_a_e` and `org_special_ctrl_k` make them; with
+    // those off the keys keep the editor's meaning (`notApplicable`), but
+    // for C-k on a line a closed fold starts on, which kills what the
+    // fold hides, as `kill-line` does, or asks or refuses first
+    // (`org_ctrl_k_protect_subtree`). C-k's kill is in `copy`, by
+    // characters.
+    Command { emacs: &[native(Org, "C-a")], ..command(BEGINNING_OF_LINE, "Move to the start of the headline's title") },
+    Command { emacs: &[native(Org, "C-e")], ..command(END_OF_LINE, "Move to the end of the headline's title") },
+    Command { emacs: &[native(Org, "C-k")], ..edit(KILL_LINE, "Kill the headline's text to the tags, or the tags") },
     // `org-goto` with its `outline-path-completion` interface: the file's
     // headings by their outline path, to `org_goto_max_level`.
     Command {
@@ -1039,6 +1172,19 @@ pub const COMMANDS: &[Command] = &[
     Command {
         input: Some(Input { kind: "text", prompt: "Export table to" }),
         ..command(TABLE_EXPORT, "Export the table to a file")
+    },
+    // `org-plot/gnuplot` and `orgtbl-ascii-plot`, in Emacs: the table
+    // plotted by gnuplot as its `#+PLOT:` lines say, and a column of bars
+    // drawn in the table for the column at the cursor.
+    Command {
+        emacs: &[key(Org, "C-c \" g")],
+        vim: &[key(Org, "<Leader>opg")],
+        ..command(PLOT_GNUPLOT, "Plot the table with gnuplot")
+    },
+    Command {
+        emacs: &[key(Org, "C-c \" a")],
+        vim: &[key(Org, "<Leader>opa")],
+        ..edit(TABLE_ASCII_PLOT, "Draw the column at the cursor as bars")
     },
     // Moving between blocks, by Org in Emacs: source blocks
     // (`org-babel-next-src-block`, `-previous-`, `org-babel-goto-named-src-block`)
@@ -1394,6 +1540,56 @@ pub const COMMANDS: &[Command] = &[
         ..command(ROAM_CAPTURE, "Roam: capture to a node")
     },
     command(ROAM_NODE_RANDOM, "Roam: visit a random node"),
+    // `org-roam-dailies-map`, under `C-c n d` as org-roam's manual binds it.
+    Command {
+        emacs: &[key(Global, "C-c n d n")],
+        vim: &[key(Org, "<Leader>ndn")],
+        clipboard: true,
+        ..command(ROAM_DAILIES_CAPTURE_TODAY, "Roam: capture to today's daily note")
+    },
+    Command {
+        emacs: &[key(Global, "C-c n d d")],
+        vim: &[key(Org, "<Leader>ndd")],
+        ..command(ROAM_DAILIES_GOTO_TODAY, "Roam: go to today's daily note")
+    },
+    Command { clipboard: true, ..command(ROAM_DAILIES_CAPTURE_TOMORROW, "Roam: capture to tomorrow's daily note") },
+    Command {
+        emacs: &[key(Global, "C-c n d t")],
+        vim: &[key(Org, "<Leader>ndt")],
+        ..command(ROAM_DAILIES_GOTO_TOMORROW, "Roam: go to tomorrow's daily note")
+    },
+    Command { clipboard: true, ..command(ROAM_DAILIES_CAPTURE_YESTERDAY, "Roam: capture to yesterday's daily note") },
+    Command {
+        emacs: &[key(Global, "C-c n d y")],
+        vim: &[key(Org, "<Leader>ndy")],
+        ..command(ROAM_DAILIES_GOTO_YESTERDAY, "Roam: go to yesterday's daily note")
+    },
+    Command {
+        emacs: &[key(Global, "C-c n d v")],
+        vim: &[key(Org, "<Leader>ndv")],
+        clipboard: true,
+        ..command(ROAM_DAILIES_CAPTURE_DATE, "Roam: capture to the daily note of a date")
+    },
+    Command {
+        emacs: &[key(Global, "C-c n d c")],
+        vim: &[key(Org, "<Leader>ndc")],
+        ..command(ROAM_DAILIES_GOTO_DATE, "Roam: go to the daily note of a date")
+    },
+    Command {
+        emacs: &[key(Org, "C-c n d f")],
+        vim: &[key(Org, "<Leader>ndf")],
+        ..command(ROAM_DAILIES_GOTO_NEXT, "Roam: go to the next daily note")
+    },
+    Command {
+        emacs: &[key(Org, "C-c n d b")],
+        vim: &[key(Org, "<Leader>ndb")],
+        ..command(ROAM_DAILIES_GOTO_PREVIOUS, "Roam: go to the previous daily note")
+    },
+    Command {
+        emacs: &[key(Global, "C-c n d .")],
+        vim: &[key(Org, "<Leader>nd.")],
+        ..command(ROAM_DAILIES_FIND_DIRECTORY, "Roam: open the directory of the daily notes")
+    },
     Command {
         emacs: &[key(Global, "C-c n l")],
         vim: &[key(Org, "<Leader>nl")],
@@ -1416,6 +1612,22 @@ pub const COMMANDS: &[Command] = &[
         input: Some(Input { kind: "text", prompt: "Remove" }),
         ..edit(ROAM_REF_REMOVE, "Roam: remove a reference")
     },
+    // `org-roam-ref-find`: a node by one of its references.
+    Command {
+        input: Some(Input { kind: "text", prompt: "Ref" }),
+        ..command(ROAM_REF_FIND, "Roam: find a node by a reference")
+    },
+    // `org-roam-promote-entire-buffer` and `org-roam-demote-entire-buffer`.
+    edit(ROAM_PROMOTE, "Roam: make the file's one top headline the file's node"),
+    edit(ROAM_DEMOTE, "Roam: make the file's node a headline of its own"),
+    // `org-roam-refile` and `org-roam-extract-subtree`.
+    Command { input: Some(Input { kind: "text", prompt: "Node" }), ..edit(ROAM_REFILE, "Roam: refile to a node") },
+    Command {
+        input: Some(Input { kind: "text", prompt: "Extract node to: " }),
+        ..edit(ROAM_EXTRACT, "Roam: extract the subtree to a file of its own")
+    },
+    // `org-roam-graph`
+    command(ROAM_GRAPH, "Roam: show the graph of the nodes"),
     // org-journal's keys, under the prefix its README suggests (`C-c j `)
     // rather than its default (`C-c C-`), whose keys are Org's.
     Command {
@@ -1424,6 +1636,8 @@ pub const COMMANDS: &[Command] = &[
         ..command(JOURNAL_NEW_ENTRY, "Journal: new entry")
     },
     Command {
+        emacs: &[key(Calendar, "j n")],
+        vim: &[key(Calendar, "<Leader>jn")],
         input: Some(Input { kind: "date", prompt: "Date" }),
         ..command(JOURNAL_NEW_DATE_ENTRY, "Journal: new entry for a date")
     },
@@ -1432,13 +1646,13 @@ pub const COMMANDS: &[Command] = &[
         ..command(JOURNAL_NEW_SCHEDULED_ENTRY, "Journal: new entry for a day to come")
     },
     Command {
-        emacs: &[key(Org, "C-c j f")],
-        vim: &[key(Org, "<Leader>jf")],
+        emacs: &[key(Org, "C-c j f"), key(Calendar, "]")],
+        vim: &[key(Org, "<Leader>jf"), key(Calendar, "]")],
         ..command(JOURNAL_NEXT_ENTRY, "Journal: next entry")
     },
     Command {
-        emacs: &[key(Org, "C-c j b")],
-        vim: &[key(Org, "<Leader>jb")],
+        emacs: &[key(Org, "C-c j b"), key(Calendar, "[")],
+        vim: &[key(Org, "<Leader>jb"), key(Calendar, "[")],
         ..command(JOURNAL_PREVIOUS_ENTRY, "Journal: previous entry")
     },
     command(JOURNAL_OPEN_CURRENT, "Journal: open the current file"),
@@ -1450,12 +1664,51 @@ pub const COMMANDS: &[Command] = &[
         ..command(JOURNAL_SEARCH, "Journal: search between two dates")
     },
     Command {
+        emacs: &[key(Calendar, "j s f")],
+        vim: &[key(Calendar, "<Leader>jsf")],
         input: Some(Input { kind: "text", prompt: "Enter a string to search for" }),
         ..command(JOURNAL_SEARCH_FOREVER, "Journal: search every entry")
     },
     Command {
+        emacs: &[key(Calendar, "j s F")],
+        vim: &[key(Calendar, "<Leader>jsF")],
         input: Some(Input { kind: "text", prompt: "Enter a string to search for" }),
         ..command(JOURNAL_SEARCH_FUTURE, "Journal: search the entries to come")
+    },
+    // The keys org-journal adds to `calendar-mode-map`: here, those of the
+    // date prompt's calendar, which `org.goto.calendar` opens on its own.
+    Command {
+        emacs: &[key(Calendar, "j s w")],
+        vim: &[key(Calendar, "<Leader>jsw")],
+        input: Some(Input { kind: "text", prompt: "Enter a string to search for" }),
+        ..command(JOURNAL_SEARCH_CALENDAR_WEEK, "Journal: search the calendar's week")
+    },
+    Command {
+        emacs: &[key(Calendar, "j s m")],
+        vim: &[key(Calendar, "<Leader>jsm")],
+        input: Some(Input { kind: "text", prompt: "Enter a string to search for" }),
+        ..command(JOURNAL_SEARCH_CALENDAR_MONTH, "Journal: search the calendar's month")
+    },
+    Command {
+        emacs: &[key(Calendar, "j s y")],
+        vim: &[key(Calendar, "<Leader>jsy")],
+        input: Some(Input { kind: "text", prompt: "Enter a string to search for" }),
+        ..command(JOURNAL_SEARCH_CALENDAR_YEAR, "Journal: search the calendar's year")
+    },
+    Command {
+        emacs: &[key(Calendar, "j r")],
+        vim: &[key(Calendar, "<Leader>jr")],
+        ..command(JOURNAL_READ_ENTRY, "Journal: the entry of the calendar's day")
+    },
+    Command {
+        emacs: &[key(Calendar, "j d")],
+        vim: &[key(Calendar, "<Leader>jd")],
+        ..command(JOURNAL_DISPLAY_ENTRY, "Journal: show the entry of the calendar's day")
+    },
+    Command {
+        emacs: &[key(Calendar, "j m")],
+        vim: &[key(Calendar, "<Leader>jm")],
+        ..command(JOURNAL_MARK_ENTRIES, "Journal: mark the days with an entry in the calendar")
     },
     command(JOURNAL_SEARCH_FUTURE_SCHEDULED, "Journal: the TODO entries to come"),
     command(JOURNAL_SCHEDULE_VIEW, "Journal: the entries to come with a date"),
@@ -1551,6 +1804,18 @@ pub const COMMANDS: &[Command] = &[
         vim: &[key(Org, "cid")],
         ..ask_date(TIMESTAMP_CHANGE, "Change the timestamp at the cursor", "Timestamp")
     },
+    // `org-toggle-timestamp-overlays`: timestamps in
+    // `org_timestamp_custom_formats` in this file, or not.
+    Command {
+        emacs: &[key(Org, "C-c C-x C-t")],
+        ..command(TIMESTAMP_OVERLAYS_TOGGLE, "Show timestamps in the custom formats, or not")
+    },
+    // `org-goto-calendar`: the calendar alone, without a date asked for.
+    Command {
+        emacs: &[key(Org, "C-c >")],
+        vim: &[key(Org, "<Leader>o>")],
+        ..command(GOTO_CALENDAR, "Show the calendar at the date of the line")
+    },
     // The date prompt: the keys of `org-read-date-minibuffer-local-map`
     // and of the calendar Emacs shows with it.
     Command {
@@ -1637,7 +1902,7 @@ pub const COMMANDS: &[Command] = &[
 /// Every command the server runs: the table's, and those editors call
 /// on their own.
 pub fn ids() -> Vec<String> {
-    COMMANDS.iter().map(|command| command.id).chain([DATE_PREVIEW]).map(str::to_string).collect()
+    COMMANDS.iter().map(|command| command.id).chain([DATE_PREVIEW, CYCLE]).map(str::to_string).collect()
 }
 
 /// The input the command `id` asks for, if any.
@@ -1648,8 +1913,11 @@ pub fn input(id: &str) -> Option<&'static Input> {
 /// The table as JSON: a list of
 /// The commands that read the editor's closed folds: their context has
 /// them in `folded`, as the first and last line of each. Exporting the
-/// visible part only (`C-v`) leaves them out.
-pub const FOLDS: &[&str] = &[EXPORT];
+/// visible part only (`C-v`) leaves them out; C-k on a folded headline
+/// kills what the fold hides (`org-ctrl-k-protect-subtree`); a subtree
+/// cut or copied folded is folded again when it is pasted
+/// (`org-subtree-clip-folded`).
+pub const FOLDS: &[&str] = &[EXPORT, KILL_LINE, CUT_SUBTREE, COPY_SUBTREE];
 
 /// The commands that work on a selection, Emacs's active region, when
 /// they are run on one: editors with a visual mode give them their keys
@@ -1687,6 +1955,9 @@ pub const REGION: &[&str] = &[
     COPY_SUBTREE,
     // The timer values in it shifted.
     TIMER_START,
+    // Wrapped in the inline task.
+    INLINETASK_INSERT,
+    INLINETASK_INSERT_NO_STATE,
 ];
 
 /// `{ "command", "title", "edits", "keys": [{ "key", "in", "preset" }] }`.
@@ -1697,8 +1968,9 @@ pub const REGION: &[&str] = &[
 /// (see [`REGION`]); one that reads the editor's closed folds,
 /// `"folds": true` (see [`FOLDS`]).
 /// The agenda's Emacs keys the vim preset leaves to Vim: `$` is the
-/// motion to the end of the line there, not `org-agenda-archive`.
-const VIM_AGENDA_MOTIONS: &[&str] = &["$"];
+/// motion to the end of the line there, not `org-agenda-archive`, and `:`
+/// the command line, not `org-agenda-set-tags`.
+const VIM_AGENDA_MOTIONS: &[&str] = &["$", ":"];
 
 pub fn manifest() -> Value {
     let commands: Vec<Value> = COMMANDS
@@ -1837,7 +2109,7 @@ mod tests {
         let mut ids = ids();
         ids.sort();
         ids.dedup();
-        assert_eq!(ids.len(), COMMANDS.len() + 1);
+        assert_eq!(ids.len(), COMMANDS.len() + 2);
         for preset in [|command: &Command| command.emacs, |command: &Command| command.vim] {
             let mut keys: Vec<(&str, &str)> = COMMANDS
                 .iter()

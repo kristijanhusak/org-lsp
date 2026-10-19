@@ -88,7 +88,7 @@ pub enum FloatFormat {
 }
 
 /// The modes a formula can set after its `;`.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Modes {
     pub float_format: FloatFormat,
     pub radians: bool,

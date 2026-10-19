@@ -102,5 +102,45 @@
  {
   "text": "- item\n  |  bb\n|  1/2|long cell text|  *bold* |\n||\n",
   "expected": "- item\n  | bb  |                |        |\n  | 1/2 | long cell text | *bold* |\n  |     |                |        |\n"
+ },
+ {
+  "text": "| a | 1 |\n| b | 22 |\n| c | x |\n| 4 | 3.5e2 |\n",
+  "numberFraction": 0.8,
+  "expected": "| a | 1     |\n| b | 22    |\n| c | x     |\n| 4 | 3.5e2 |\n"
+ },
+ {
+  "text": "| a | 1 |\n| b | 22 |\n| c | x |\n| 4 | 3.5e2 |\n",
+  "numberFraction": 0.0,
+  "expected": "| a |     1 |\n| b |    22 |\n| c |     x |\n| 4 | 3.5e2 |\n"
+ },
+ {
+  "text": "| a | 1 |\n| b | 22 |\n| c | x |\n| 4 | 3.5e2 |\n",
+  "numberFraction": 0.25,
+  "expected": "| a |     1 |\n| b |    22 |\n| c |     x |\n| 4 | 3.5e2 |\n"
+ },
+ {
+  "text": "| a | 1 |\n| b | 22 |\n| c | x |\n| 4 | 3.5e2 |\n",
+  "numberRegexp": "^[a-c]$",
+  "expected": "| a | 1     |\n| b | 22    |\n| c | x     |\n| 4 | 3.5e2 |\n"
+ },
+ {
+  "text": "| a | 1 |\n| b | 22 |\n| c | x |\n| 4 | 3.5e2 |\n",
+  "numberRegexp": "^[0-9]+$",
+  "expected": "| a |     1 |\n| b |    22 |\n| c |     x |\n| 4 | 3.5e2 |\n"
+ },
+ {
+  "text": "| A | 1 |\n| b | 22 |\n",
+  "numberRegexp": "^[a-c]$",
+  "expected": "| A | 1  |\n| b | 22 |\n"
+ },
+ {
+  "text": "| x | 1/2 |\n| y | 1,5 |\n",
+  "numberRegexp": "^[0-9]+\\([/,][0-9]+\\)?$",
+  "expected": "| x | 1/2 |\n| y | 1,5 |\n"
+ },
+ {
+  "text": "| 1 |  |\n|  | 2 |\n| x | y |\n",
+  "numberFraction": 0.5,
+  "expected": "| 1 |   |\n|   | 2 |\n| x | y |\n"
  }
 ]

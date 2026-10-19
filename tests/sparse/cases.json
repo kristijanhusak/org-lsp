@@ -226,6 +226,73 @@
  },
  {
   "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "M",
+  "args": [
+   "work"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     57,
+     58
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "M",
+  "args": [
+   "urgent|work"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     57,
+     58
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "M",
+  "args": [
+   "LEVEL>0"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     0,
+     1
+    ],
+    [
+     57,
+     58
+    ],
+    [
+     128,
+     129
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "M",
+  "args": [
+   "food|home"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
   "type": "d",
   "args": [],
   "expected": {
@@ -651,6 +718,76 @@
  },
  {
   "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "M",
+  "args": [
+   "work"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "M",
+  "args": [
+   "urgent|work"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "M",
+  "args": [
+   "LEVEL>0"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     30,
+     31
+    ],
+    [
+     179,
+     180
+    ],
+    [
+     242,
+     243
+    ],
+    [
+     255,
+     256
+    ],
+    [
+     262,
+     263
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "M",
+  "args": [
+   "food|home"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     30,
+     31
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
   "type": "d",
   "args": [],
   "expected": {
@@ -1015,6 +1152,69 @@
  },
  {
   "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "M",
+  "args": [
+   "work"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     55,
+     56
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "M",
+  "args": [
+   "urgent|work"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     55,
+     56
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "M",
+  "args": [
+   "LEVEL>0"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     0,
+     1
+    ],
+    [
+     55,
+     56
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "M",
+  "args": [
+   "food|home"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
   "type": "d",
   "args": [],
   "expected": {
@@ -1307,6 +1507,50 @@
  },
  {
   "text": "no headlines, apple\n",
+  "type": "M",
+  "args": [
+   "work"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "no headlines, apple\n",
+  "type": "M",
+  "args": [
+   "urgent|work"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "no headlines, apple\n",
+  "type": "M",
+  "args": [
+   "LEVEL>0"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "no headlines, apple\n",
+  "type": "M",
+  "args": [
+   "food|home"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "no headlines, apple\n",
   "type": "d",
   "args": [],
   "expected": {
@@ -1380,6 +1624,3114 @@
   "expected": {
    "highlights": [],
    "message": "0 entries between 2026-04-01 and 2026-12-31 23:59"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "r",
+  "args": [
+   "apple"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "r",
+  "args": [
+   "Ap+le"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "r",
+  "args": [
+   "^\\*+ "
+  ],
+  "expected": {
+   "highlights": [
+    [
+     0,
+     2
+    ],
+    [
+     17,
+     20
+    ],
+    [
+     26,
+     30
+    ],
+    [
+     50,
+     52
+    ],
+    [
+     58,
+     61
+    ],
+    [
+     73,
+     77
+    ],
+    [
+     83,
+     85
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "r",
+  "args": [
+   "\\(ap\\|ba\\)ke"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "t",
+  "args": [],
+  "expected": {
+   "highlights": [],
+   "message": "0 TODO entries found"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "T",
+  "args": [
+   "NEXT|WAIT"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "0 TODO entries found"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "T",
+  "args": [
+   "DONE"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "0 TODO entries found"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "T",
+  "args": [
+   "TODO"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "0 TODO entries found"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "m",
+  "args": [
+   "work"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     0,
+     1
+    ],
+    [
+     17,
+     19
+    ],
+    [
+     26,
+     29
+    ],
+    [
+     58,
+     60
+    ],
+    [
+     73,
+     76
+    ],
+    [
+     83,
+     84
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "m",
+  "args": [
+   "urgent-work"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "m",
+  "args": [
+   "food|home"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "m",
+  "args": [
+   "WHO=\"alice\""
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "m",
+  "args": [
+   "TODO=\"NEXT\""
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "m",
+  "args": [
+   "LEVEL>1"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     17,
+     19
+    ],
+    [
+     26,
+     29
+    ],
+    [
+     58,
+     60
+    ],
+    [
+     73,
+     76
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "m",
+  "args": [
+   "/!"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "M",
+  "args": [
+   "work"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     0,
+     1
+    ],
+    [
+     58,
+     60
+    ],
+    [
+     83,
+     84
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "M",
+  "args": [
+   "urgent|work"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     0,
+     1
+    ],
+    [
+     58,
+     60
+    ],
+    [
+     83,
+     84
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "M",
+  "args": [
+   "LEVEL>0"
+  ],
+  "expected": {
+   "highlights": [
+    [
+     0,
+     1
+    ],
+    [
+     50,
+     51
+    ],
+    [
+     83,
+     84
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "M",
+  "args": [
+   "food|home"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "d",
+  "args": [],
+  "expected": {
+   "highlights": [],
+   "message": "0 deadlines past-due or due within 14 days"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "0 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "b",
+  "args": [
+   "2026-05-18 10:00"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "0 entries before 2026-05-18 10:00"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "a",
+  "args": [
+   "2026-05-19"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "0 entries after 2026-05-19"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "a",
+  "args": [
+   "2026-01-01"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "0 entries after 2026-01-01"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-05-20"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "0 entries between 2026-05-01 and 2026-05-20"
+  }
+ },
+ {
+  "text": "* Project :work:\n** Child\n*** Grandchild :urgent:\n* Plain\n** Deep :work:\n*** Below\n* Other :work:\n",
+  "type": "D",
+  "args": [
+   "2026-04-01",
+   "2026-12-31 23:59"
+  ],
+  "expected": {
+   "highlights": [],
+   "message": "0 entries between 2026-04-01 and 2026-12-31 23:59"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "r",
+  "args": [
+   "apple"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     14,
+     19
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "r",
+  "args": [
+   "Apple"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "r",
+  "args": [
+   "\\Wapple"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     13,
+     19
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "r",
+  "args": [
+   "[[:upper:]]pple"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "t",
+  "args": [],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     0,
+     7
+    ]
+   ],
+   "message": "1 TODO entries found"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "T",
+  "args": [
+   "todo"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [],
+   "message": "0 TODO entries found"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "T",
+  "args": [
+   "TODO"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     0,
+     7
+    ]
+   ],
+   "message": "1 TODO entries found"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "d",
+  "args": [],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     73,
+     99
+    ]
+   ],
+   "message": "1 deadlines past-due or due within 14 days"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "a",
+  "args": [
+   "2026-05-01"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     30,
+     56
+    ],
+    [
+     73,
+     99
+    ],
+    [
+     132,
+     165
+    ]
+   ],
+   "message": "3 entries after 2026-05-01"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     30,
+     56
+    ],
+    [
+     73,
+     99
+    ],
+    [
+     132,
+     165
+    ]
+   ],
+   "message": "3 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "r",
+  "args": [
+   "apple"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "r",
+  "args": [
+   "Apple"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     37,
+     42
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "r",
+  "args": [
+   "\\Wapple"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "r",
+  "args": [
+   "[[:upper:]]pple"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     37,
+     42
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "t",
+  "args": [],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     30,
+     37
+    ],
+    [
+     85,
+     93
+    ],
+    [
+     159,
+     167
+    ],
+    [
+     255,
+     262
+    ]
+   ],
+   "message": "4 TODO entries found"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "T",
+  "args": [
+   "todo"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     242,
+     249
+    ]
+   ],
+   "message": "1 TODO entries found"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "T",
+  "args": [
+   "TODO"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     30,
+     37
+    ],
+    [
+     255,
+     261
+    ]
+   ],
+   "message": "2 TODO entries found"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "d",
+  "args": [],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     132,
+     158
+    ]
+   ],
+   "message": "1 deadlines past-due or due within 14 days"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     98,
+     131
+    ],
+    [
+     132,
+     158
+    ],
+    [
+     215,
+     241
+    ]
+   ],
+   "message": "3 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "a",
+  "args": [
+   "2026-05-01"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     98,
+     131
+    ],
+    [
+     132,
+     158
+    ],
+    [
+     215,
+     241
+    ]
+   ],
+   "message": "3 entries after 2026-05-01"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     98,
+     131
+    ],
+    [
+     132,
+     158
+    ],
+    [
+     215,
+     241
+    ]
+   ],
+   "message": "3 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "r",
+  "args": [
+   "apple"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     14,
+     19
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "r",
+  "args": [
+   "Apple"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     8,
+     13
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "r",
+  "args": [
+   "\\Wapple"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     13,
+     19
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "r",
+  "args": [
+   "[[:upper:]]pple"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     8,
+     13
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "t",
+  "args": [],
+  "case": "nil",
+  "expected": {
+   "highlights": [],
+   "message": "0 TODO entries found"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "T",
+  "args": [
+   "todo"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [],
+   "message": "0 TODO entries found"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "T",
+  "args": [
+   "TODO"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [],
+   "message": "0 TODO entries found"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "d",
+  "args": [],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     122,
+     148
+    ]
+   ],
+   "message": "1 deadlines past-due or due within 14 days"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     122,
+     148
+    ]
+   ],
+   "message": "1 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "a",
+  "args": [
+   "2026-05-01"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     78,
+     105
+    ]
+   ],
+   "message": "1 entries after 2026-05-01"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "r",
+  "args": [
+   "apple"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "r",
+  "args": [
+   "Apple"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "r",
+  "args": [
+   "\\Wapple"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "r",
+  "args": [
+   "[[:upper:]]pple"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "t",
+  "args": [],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     0,
+     7
+    ]
+   ],
+   "message": "1 TODO entries found"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "T",
+  "args": [
+   "todo"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [],
+   "message": "0 TODO entries found"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "T",
+  "args": [
+   "TODO"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     0,
+     7
+    ]
+   ],
+   "message": "1 TODO entries found"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "d",
+  "args": [],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     45,
+     71
+    ]
+   ],
+   "message": "1 deadlines past-due or due within 14 days"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     17,
+     44
+    ]
+   ],
+   "message": "1 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "a",
+  "args": [
+   "2026-05-01"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     17,
+     44
+    ],
+    [
+     45,
+     71
+    ]
+   ],
+   "message": "2 entries after 2026-05-01"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "case": "nil",
+  "expected": {
+   "highlights": [
+    [
+     17,
+     44
+    ],
+    [
+     45,
+     71
+    ]
+   ],
+   "message": "2 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "r",
+  "args": [
+   "apple"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     14,
+     19
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "r",
+  "args": [
+   "Apple"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "r",
+  "args": [
+   "\\Wapple"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     13,
+     19
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "r",
+  "args": [
+   "[[:upper:]]pple"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "t",
+  "args": [],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     0,
+     7
+    ]
+   ],
+   "message": "1 TODO entries found"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "T",
+  "args": [
+   "todo"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     0,
+     7
+    ]
+   ],
+   "message": "1 TODO entries found"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "T",
+  "args": [
+   "TODO"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     0,
+     7
+    ]
+   ],
+   "message": "1 TODO entries found"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "d",
+  "args": [],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     73,
+     99
+    ]
+   ],
+   "message": "1 deadlines past-due or due within 14 days"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "a",
+  "args": [
+   "2026-05-01"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     30,
+     56
+    ],
+    [
+     73,
+     99
+    ],
+    [
+     132,
+     165
+    ]
+   ],
+   "message": "3 entries after 2026-05-01"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     30,
+     56
+    ],
+    [
+     73,
+     99
+    ],
+    [
+     132,
+     165
+    ]
+   ],
+   "message": "3 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "r",
+  "args": [
+   "apple"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     37,
+     42
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "r",
+  "args": [
+   "Apple"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     37,
+     42
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "r",
+  "args": [
+   "\\Wapple"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     36,
+     42
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "r",
+  "args": [
+   "[[:upper:]]pple"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     37,
+     42
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "t",
+  "args": [],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     30,
+     37
+    ],
+    [
+     85,
+     93
+    ],
+    [
+     159,
+     167
+    ],
+    [
+     255,
+     262
+    ]
+   ],
+   "message": "4 TODO entries found"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "T",
+  "args": [
+   "todo"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     30,
+     37
+    ],
+    [
+     242,
+     249
+    ],
+    [
+     255,
+     261
+    ]
+   ],
+   "message": "3 TODO entries found"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "T",
+  "args": [
+   "TODO"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     30,
+     37
+    ],
+    [
+     255,
+     261
+    ]
+   ],
+   "message": "2 TODO entries found"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "d",
+  "args": [],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     132,
+     158
+    ]
+   ],
+   "message": "1 deadlines past-due or due within 14 days"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     98,
+     131
+    ],
+    [
+     132,
+     158
+    ],
+    [
+     215,
+     241
+    ]
+   ],
+   "message": "3 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "a",
+  "args": [
+   "2026-05-01"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     98,
+     131
+    ],
+    [
+     132,
+     158
+    ],
+    [
+     215,
+     241
+    ]
+   ],
+   "message": "3 entries after 2026-05-01"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     98,
+     131
+    ],
+    [
+     132,
+     158
+    ],
+    [
+     215,
+     241
+    ]
+   ],
+   "message": "3 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "r",
+  "args": [
+   "apple"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     8,
+     13
+    ],
+    [
+     14,
+     19
+    ],
+    [
+     20,
+     25
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "r",
+  "args": [
+   "Apple"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     8,
+     13
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "r",
+  "args": [
+   "\\Wapple"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     7,
+     13
+    ],
+    [
+     13,
+     19
+    ],
+    [
+     19,
+     25
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "r",
+  "args": [
+   "[[:upper:]]pple"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     8,
+     13
+    ]
+   ],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "t",
+  "args": [],
+  "case": "smart",
+  "expected": {
+   "highlights": [],
+   "message": "0 TODO entries found"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "T",
+  "args": [
+   "todo"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [],
+   "message": "0 TODO entries found"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "T",
+  "args": [
+   "TODO"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [],
+   "message": "0 TODO entries found"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "d",
+  "args": [],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     122,
+     148
+    ]
+   ],
+   "message": "1 deadlines past-due or due within 14 days"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     122,
+     148
+    ]
+   ],
+   "message": "1 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "a",
+  "args": [
+   "2026-05-01"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     78,
+     105
+    ]
+   ],
+   "message": "1 entries after 2026-05-01"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "r",
+  "args": [
+   "apple"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "r",
+  "args": [
+   "Apple"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "r",
+  "args": [
+   "\\Wapple"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "r",
+  "args": [
+   "[[:upper:]]pple"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [],
+   "message": "json-null"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "t",
+  "args": [],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     0,
+     7
+    ]
+   ],
+   "message": "1 TODO entries found"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "T",
+  "args": [
+   "todo"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     0,
+     7
+    ]
+   ],
+   "message": "1 TODO entries found"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "T",
+  "args": [
+   "TODO"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     0,
+     7
+    ]
+   ],
+   "message": "1 TODO entries found"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "d",
+  "args": [],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     45,
+     71
+    ]
+   ],
+   "message": "1 deadlines past-due or due within 14 days"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     17,
+     44
+    ]
+   ],
+   "message": "1 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "a",
+  "args": [
+   "2026-05-01"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     17,
+     44
+    ],
+    [
+     45,
+     71
+    ]
+   ],
+   "message": "2 entries after 2026-05-01"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "case": "smart",
+  "expected": {
+   "highlights": [
+    [
+     17,
+     44
+    ],
+    [
+     45,
+     71
+    ]
+   ],
+   "message": "2 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "date_type": "all",
+  "expected": {
+   "highlights": [
+    [
+     111,
+     127
+    ]
+   ],
+   "message": "1 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "a",
+  "args": [
+   "2026-05-10"
+  ],
+  "date_type": "all",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries after 2026-05-10"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "date_type": "all",
+  "expected": {
+   "highlights": [
+    [
+     111,
+     127
+    ]
+   ],
+   "message": "1 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "date_type": "all",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "a",
+  "args": [
+   "2026-05-10"
+  ],
+  "date_type": "all",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries after 2026-05-10"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "date_type": "all",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "date_type": "all",
+  "expected": {
+   "highlights": [
+    [
+     38,
+     54
+    ]
+   ],
+   "message": "1 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "a",
+  "args": [
+   "2026-05-10"
+  ],
+  "date_type": "all",
+  "expected": {
+   "highlights": [
+    [
+     38,
+     54
+    ]
+   ],
+   "message": "1 entries after 2026-05-10"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "date_type": "all",
+  "expected": {
+   "highlights": [
+    [
+     38,
+     54
+    ]
+   ],
+   "message": "1 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "date_type": "all",
+  "expected": {
+   "highlights": [
+    [
+     80,
+     96
+    ],
+    [
+     102,
+     124
+    ],
+    [
+     242,
+     258
+    ]
+   ],
+   "message": "3 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "a",
+  "args": [
+   "2026-05-10"
+  ],
+  "date_type": "all",
+  "expected": {
+   "highlights": [
+    [
+     80,
+     96
+    ],
+    [
+     129,
+     145
+    ],
+    [
+     150,
+     166
+    ],
+    [
+     167,
+     183
+    ],
+    [
+     396,
+     412
+    ],
+    [
+     415,
+     431
+    ],
+    [
+     436,
+     452
+    ]
+   ],
+   "message": "7 entries after 2026-05-10"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "date_type": "all",
+  "expected": {
+   "highlights": [
+    [
+     80,
+     96
+    ],
+    [
+     102,
+     124
+    ],
+    [
+     129,
+     145
+    ],
+    [
+     150,
+     166
+    ],
+    [
+     167,
+     183
+    ],
+    [
+     242,
+     258
+    ],
+    [
+     396,
+     412
+    ],
+    [
+     415,
+     431
+    ],
+    [
+     436,
+     452
+    ]
+   ],
+   "message": "9 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "date_type": "active",
+  "expected": {
+   "highlights": [
+    [
+     111,
+     127
+    ]
+   ],
+   "message": "1 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "a",
+  "args": [
+   "2026-05-10"
+  ],
+  "date_type": "active",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries after 2026-05-10"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "date_type": "active",
+  "expected": {
+   "highlights": [
+    [
+     111,
+     127
+    ]
+   ],
+   "message": "1 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "date_type": "active",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "a",
+  "args": [
+   "2026-05-10"
+  ],
+  "date_type": "active",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries after 2026-05-10"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "date_type": "active",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "date_type": "active",
+  "expected": {
+   "highlights": [
+    [
+     38,
+     54
+    ]
+   ],
+   "message": "1 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "a",
+  "args": [
+   "2026-05-10"
+  ],
+  "date_type": "active",
+  "expected": {
+   "highlights": [
+    [
+     38,
+     54
+    ]
+   ],
+   "message": "1 entries after 2026-05-10"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "date_type": "active",
+  "expected": {
+   "highlights": [
+    [
+     38,
+     54
+    ]
+   ],
+   "message": "1 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "date_type": "active",
+  "expected": {
+   "highlights": [
+    [
+     102,
+     124
+    ],
+    [
+     242,
+     258
+    ]
+   ],
+   "message": "2 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "a",
+  "args": [
+   "2026-05-10"
+  ],
+  "date_type": "active",
+  "expected": {
+   "highlights": [
+    [
+     150,
+     166
+    ],
+    [
+     167,
+     183
+    ],
+    [
+     396,
+     412
+    ],
+    [
+     415,
+     431
+    ],
+    [
+     436,
+     452
+    ]
+   ],
+   "message": "5 entries after 2026-05-10"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "date_type": "active",
+  "expected": {
+   "highlights": [
+    [
+     102,
+     124
+    ],
+    [
+     150,
+     166
+    ],
+    [
+     167,
+     183
+    ],
+    [
+     242,
+     258
+    ],
+    [
+     396,
+     412
+    ],
+    [
+     415,
+     431
+    ],
+    [
+     436,
+     452
+    ]
+   ],
+   "message": "7 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "date_type": "inactive",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "a",
+  "args": [
+   "2026-05-10"
+  ],
+  "date_type": "inactive",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries after 2026-05-10"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "date_type": "inactive",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "date_type": "inactive",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "a",
+  "args": [
+   "2026-05-10"
+  ],
+  "date_type": "inactive",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries after 2026-05-10"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "date_type": "inactive",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "date_type": "inactive",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "a",
+  "args": [
+   "2026-05-10"
+  ],
+  "date_type": "inactive",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries after 2026-05-10"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "date_type": "inactive",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "date_type": "inactive",
+  "expected": {
+   "highlights": [
+    [
+     80,
+     96
+    ]
+   ],
+   "message": "1 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "a",
+  "args": [
+   "2026-05-10"
+  ],
+  "date_type": "inactive",
+  "expected": {
+   "highlights": [
+    [
+     80,
+     96
+    ],
+    [
+     129,
+     145
+    ]
+   ],
+   "message": "2 entries after 2026-05-10"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "date_type": "inactive",
+  "expected": {
+   "highlights": [
+    [
+     80,
+     96
+    ],
+    [
+     129,
+     145
+    ]
+   ],
+   "message": "2 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "date_type": "scheduled",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "a",
+  "args": [
+   "2026-05-10"
+  ],
+  "date_type": "scheduled",
+  "expected": {
+   "highlights": [
+    [
+     132,
+     165
+    ]
+   ],
+   "message": "1 entries after 2026-05-10"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "date_type": "scheduled",
+  "expected": {
+   "highlights": [
+    [
+     132,
+     165
+    ]
+   ],
+   "message": "1 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "date_type": "scheduled",
+  "expected": {
+   "highlights": [
+    [
+     98,
+     131
+    ]
+   ],
+   "message": "1 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "a",
+  "args": [
+   "2026-05-10"
+  ],
+  "date_type": "scheduled",
+  "expected": {
+   "highlights": [
+    [
+     98,
+     131
+    ]
+   ],
+   "message": "1 entries after 2026-05-10"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "date_type": "scheduled",
+  "expected": {
+   "highlights": [
+    [
+     98,
+     131
+    ]
+   ],
+   "message": "1 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "date_type": "scheduled",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "a",
+  "args": [
+   "2026-05-10"
+  ],
+  "date_type": "scheduled",
+  "expected": {
+   "highlights": [
+    [
+     78,
+     105
+    ]
+   ],
+   "message": "1 entries after 2026-05-10"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "date_type": "scheduled",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "date_type": "scheduled",
+  "expected": {
+   "highlights": [
+    [
+     17,
+     44
+    ]
+   ],
+   "message": "1 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "a",
+  "args": [
+   "2026-05-10"
+  ],
+  "date_type": "scheduled",
+  "expected": {
+   "highlights": [
+    [
+     17,
+     44
+    ]
+   ],
+   "message": "1 entries after 2026-05-10"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "date_type": "scheduled",
+  "expected": {
+   "highlights": [
+    [
+     17,
+     44
+    ]
+   ],
+   "message": "1 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "date_type": "deadline",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "a",
+  "args": [
+   "2026-05-10"
+  ],
+  "date_type": "deadline",
+  "expected": {
+   "highlights": [
+    [
+     30,
+     56
+    ],
+    [
+     73,
+     99
+    ]
+   ],
+   "message": "2 entries after 2026-05-10"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "date_type": "deadline",
+  "expected": {
+   "highlights": [
+    [
+     30,
+     56
+    ],
+    [
+     73,
+     99
+    ]
+   ],
+   "message": "2 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "date_type": "deadline",
+  "expected": {
+   "highlights": [
+    [
+     132,
+     158
+    ],
+    [
+     215,
+     241
+    ]
+   ],
+   "message": "2 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "a",
+  "args": [
+   "2026-05-10"
+  ],
+  "date_type": "deadline",
+  "expected": {
+   "highlights": [
+    [
+     132,
+     158
+    ]
+   ],
+   "message": "1 entries after 2026-05-10"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "date_type": "deadline",
+  "expected": {
+   "highlights": [
+    [
+     132,
+     158
+    ],
+    [
+     215,
+     241
+    ]
+   ],
+   "message": "2 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "date_type": "deadline",
+  "expected": {
+   "highlights": [
+    [
+     122,
+     148
+    ]
+   ],
+   "message": "1 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "a",
+  "args": [
+   "2026-05-10"
+  ],
+  "date_type": "deadline",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries after 2026-05-10"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "date_type": "deadline",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "date_type": "deadline",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "a",
+  "args": [
+   "2026-05-10"
+  ],
+  "date_type": "deadline",
+  "expected": {
+   "highlights": [
+    [
+     45,
+     71
+    ]
+   ],
+   "message": "1 entries after 2026-05-10"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "date_type": "deadline",
+  "expected": {
+   "highlights": [
+    [
+     45,
+     71
+    ]
+   ],
+   "message": "1 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "date_type": "closed",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "a",
+  "args": [
+   "2026-05-10"
+  ],
+  "date_type": "closed",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries after 2026-05-10"
+  }
+ },
+ {
+  "text": "* TODO a\nbody apple\n** DONE b\nDEADLINE: <2026-05-20 Wed>\n* NEXT c :work:\nDEADLINE: <2026-05-25 Mon>\nSCHEDULED: <2026-05-01 Fri>\n* x\nSCHEDULED: <2026-06-01 Mon 10:00>\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "date_type": "closed",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "date_type": "closed",
+  "expected": {
+   "highlights": [
+    [
+     190,
+     214
+    ]
+   ],
+   "message": "1 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "a",
+  "args": [
+   "2026-05-10"
+  ],
+  "date_type": "closed",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries after 2026-05-10"
+  }
+ },
+ {
+  "text": "#+TODO: TODO NEXT WAIT | DONE\n* TODO Apple pie :food:\n:PROPERTIES:\n:WHO: alice\n:END:\n** NEXT bake\nSCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-19 Tue>\n** WAIT oven :home:\n* DONE old\nCLOSED: [2026-05-01 Fri] DEADLINE: <2026-05-02 Sat>\n* todo lower\n* TODO\n* TODOx\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "date_type": "closed",
+  "expected": {
+   "highlights": [
+    [
+     190,
+     214
+    ]
+   ],
+   "message": "1 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "date_type": "closed",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "a",
+  "args": [
+   "2026-05-10"
+  ],
+  "date_type": "closed",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries after 2026-05-10"
+  }
+ },
+ {
+  "text": "* Notes\nApple apple APPLE\n  deadline: <2026-05-10 Sun>\n* Plan :work:urgent:\n  SCHEDULED: <2026-07-01 Wed>\n** Sub :urgent:\nDEADLINE: <2026-04-01 Wed> <2026-05-01 Fri>\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "date_type": "closed",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries between 2026-05-01 and 2026-06-30"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "b",
+  "args": [
+   "2026-05-20"
+  ],
+  "date_type": "closed",
+  "expected": {
+   "highlights": [],
+   "message": "0 entries before 2026-05-20"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "a",
+  "args": [
+   "2026-05-10"
+  ],
+  "date_type": "closed",
+  "expected": {
+   "highlights": [
+    [
+     358,
+     388
+    ]
+   ],
+   "message": "1 entries after 2026-05-10"
+  }
+ },
+ {
+  "text": "* TODO dates :x:\nSCHEDULED: <2026-05-10 Sun> DEADLINE: <2026-05-30 Sat>\nCLOSED: [2026-05-12 Tue]\nBody <2026-05-05 Tue 09:00> and [2026-05-25 Mon] and <2026-06-10 Wed>-<2026-06-12 Fri>\n=<2026-05-06 Wed>= ~[2026-05-07 Thu]~\n:PROPERTIES:\n:WHEN: <2026-05-08 Fri>\n:END:\n#+begin_src org\n<2026-05-09 Sat>\n#+end_src\n[[https://x.org][<2026-05-11 Mon>]]\n* DONE closed\nCLOSED: [2026-05-20 Wed 10:00]\n- item <2026-05-21 Thu>\n| <2026-05-22 Fri> |\n* <2026-05-23 Sat> in a headline\n",
+  "type": "D",
+  "args": [
+   "2026-05-01",
+   "2026-06-30"
+  ],
+  "date_type": "closed",
+  "expected": {
+   "highlights": [
+    [
+     358,
+     388
+    ]
+   ],
+   "message": "1 entries between 2026-05-01 and 2026-06-30"
   }
  }
 ]

@@ -23,7 +23,7 @@ use crate::timestr::parse_time_string;
 use crate::todo::headline_level;
 
 /// What the clock tables need to know beyond the file.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Settings {
     pub now: DateTime,
     /// `org-extend-today-until`
@@ -37,6 +37,38 @@ pub struct Settings {
     pub file_time_cell_format: String,
     pub keywords: TodoKeywords,
     pub inheritance: Inheritance,
+    /// What the table's formulas do.
+    pub formulas: crate::tblfm::Settings,
+    /// `org-clocktable-defaults`, as the text of a plist.
+    pub defaults: String,
+    /// `org-clock-clocktable-language-setup`: by language, its words for
+    /// "File", "L", "Timestamp", "Headline", "Time", "ALL", "Total time",
+    /// "File time" and "Clock summary at".
+    pub languages: Vec<(String, Vec<String>)>,
+    /// The clock that runs, when `org-clock-report-include-clocking-task`
+    /// counts it.
+    pub clocking: Option<Clocking>,
+}
+
+/// The clock that runs: its file, and when it started, which its open
+/// `CLOCK:` line in that file says.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Clocking {
+    pub path: String,
+    pub start: DateTime,
+}
+
+/// `org-clocktable-defaults`
+pub const DEFAULTS: &str = ":maxlevel 2 :lang \"en\" :scope file :block nil :wstart 1 :mstart 1 :tstart nil :tend nil \
+     :step nil :stepskip0 nil :fileskip0 nil :tags nil :match nil :emphasize nil :link nil :narrow 40! :indent t \
+     :filetitle nil :hidefiles nil :formula nil :timestamp nil :level nil :tcolumns nil :formatter nil";
+
+/// `org-clock-clocktable-language-setup`
+pub fn default_languages() -> Vec<(String, Vec<String>)> {
+    LANGUAGES
+        .iter()
+        .map(|(name, terms)| (name.to_string(), terms.iter().map(|term| term.to_string()).collect()))
+        .collect()
 }
 
 impl Default for Settings {
@@ -49,6 +81,10 @@ impl Default for Settings {
             file_time_cell_format: "*%s*".to_string(),
             keywords: TodoKeywords::default(),
             inheritance: Inheritance::default(),
+            formulas: crate::tblfm::Settings::default(),
+            defaults: DEFAULTS.to_string(),
+            languages: default_languages(),
+            clocking: None,
         }
     }
 }
@@ -393,6 +429,18 @@ impl Plist {
         self.put(Lisp::Symbol(format!(":{key}")), value);
     }
 
+    /// `org-plist-delete`
+    fn delete(&mut self, key: &str) {
+        let key = format!(":{key}");
+        self.0.retain(|(other, _)| other.symbol() != Some(&key));
+    }
+
+    /// `plist-member`
+    fn member(&self, key: &str) -> bool {
+        let key = format!(":{key}");
+        self.0.iter().any(|(other, _)| other.symbol() == Some(&key))
+    }
+
     fn combine(&self, other: &Plist) -> Plist {
         let mut out = self.clone();
         for (key, value) in &other.0 {
@@ -438,13 +486,9 @@ impl Plist {
 }
 
 /// `org-clocktable-defaults`
+#[cfg(test)]
 fn defaults() -> Plist {
-    Plist::read(
-        ":maxlevel 2 :lang \"en\" :scope file :block nil :wstart 1 :mstart 1 :tstart nil :tend nil :step nil \
-         :stepskip0 nil :fileskip0 nil :tags nil :match nil :emphasize nil :link nil :narrow 40! :indent t \
-         :filetitle nil :hidefiles nil :formula nil :timestamp nil :level nil :tcolumns nil :formatter nil",
-    )
-    .expect("valid defaults")
+    Plist::read(DEFAULTS).expect("valid defaults")
 }
 
 // ----- the text as a buffer
@@ -727,6 +771,30 @@ fn create_block(text: &str, point: usize, plist: &Plist) -> (String, usize) {
     (text, begin)
 }
 
+/// The clock report of the agenda (`org-agenda-clockreport-mode`): the
+/// table `org-clock-get-clocktable` makes of `parameters`
+/// (`org-agenda-clockreport-parameter-plist`, as text) for the agenda
+/// files and the days `[start, end)`, without its first line.
+pub fn agenda_report(parameters: &str, start: Day, end: Day, context: &Context) -> Result<String, String> {
+    let mut plist = Plist::read(parameters)?;
+    plist.delete("block");
+    plist.set("tstart", Lisp::Int(start));
+    plist.set("tend", Lisp::Int(end));
+    plist.set("scope", Lisp::Symbol("agenda".to_string()));
+    if !plist.member("maxlevel") {
+        plist.set("maxlevel", Lisp::Int(2));
+    }
+    let (text, begin) = create_block("", 0, &plist);
+    let text = update_block(&text, begin, context)?;
+    // After the `#+BEGIN:` line and the one after it, up to `#+END:`.
+    let from = next_line(&text, next_line(&text, begin));
+    let mut to = from;
+    while to < text.len() && !END.is_match(&text[to..line_end(&text, to)]) {
+        to = next_line(&text, to);
+    }
+    Ok(text[from.min(to)..to].to_string())
+}
+
 // ----- shifting the block
 
 /// `org-clocktable-shift`: the `:block` of the clock table whose
@@ -909,6 +977,7 @@ fn clock_sum(
     (start, end): (usize, usize),
     (from, to): (Option<i64>, Option<i64>),
     include: Option<&dyn Fn(usize) -> bool>,
+    running: Option<(DateTime, i64)>,
 ) -> (Vec<(usize, i64)>, i64) {
     let mut lines = Vec::new();
     let mut at = start;
@@ -956,6 +1025,11 @@ fn clock_sum(
             }
         } else if let Some(clock) = parse_line(line) {
             pending += clock_minutes(&clock, from, to);
+            // The time of the clock that runs, for its headline.
+            if let Some((_, minutes)) = running.filter(|(start, _)| clock.start == Some(*start) && clock.end.is_none())
+            {
+                pending += minutes;
+            }
         }
     }
     found.reverse();
@@ -965,21 +1039,30 @@ fn clock_sum(
 /// The first timestamp in `text` that is active (`<…>`) or inactive, with
 /// the other half of a range.
 fn first_stamp(text: &str, active: bool) -> Option<String> {
+    // A range is of the kind of its first timestamp, whatever the
+    // brackets of the second: `<a>--[b]` is active.
     static ACTIVE: LazyLock<Regex> = LazyLock::new(|| {
-        Regex::new(r"<[0-9]{4}-[0-9]{2}-[0-9]{2}[^>\n]*>(?:--<[0-9]{4}-[0-9]{2}-[0-9]{2}[^>\n]*>)?")
+        Regex::new(r"<[0-9]{4}-[0-9]{2}-[0-9]{2}[^>\n]*>(?:--(?:<[0-9]{4}-[0-9]{2}-[0-9]{2}[^>\n]*>|\[[0-9]{4}-[0-9]{2}-[0-9]{2}[^\]\n]*\]))?")
             .expect("a valid regex")
     });
     static INACTIVE: LazyLock<Regex> = LazyLock::new(|| {
-        Regex::new(r"\[[0-9]{4}-[0-9]{2}-[0-9]{2}[^\]\n]*\](?:--\[[0-9]{4}-[0-9]{2}-[0-9]{2}[^\]\n]*\])?")
+        Regex::new(r"\[[0-9]{4}-[0-9]{2}-[0-9]{2}[^\]\n]*\](?:--(?:\[[0-9]{4}-[0-9]{2}-[0-9]{2}[^\]\n]*\]|<[0-9]{4}-[0-9]{2}-[0-9]{2}[^>\n]*>))?")
             .expect("a valid regex")
     });
-    let regex = if active { &ACTIVE } else { &INACTIVE };
-    regex.find(text).map(|found| found.as_str().to_string())
+    let (regex, other_end) = if active { (&ACTIVE, "]--") } else { (&INACTIVE, ">--") };
+    // Not the second timestamp of a range of the other kind.
+    regex
+        .find_iter(text)
+        .find(|found| !text[..found.start()].ends_with(other_end))
+        .map(|found| found.as_str().to_string())
 }
 
 /// `org-entry-get` of `TIMESTAMP` (`active`) or `TIMESTAMP_IA`: the first
 /// such timestamp in the headline, then in the section after the planning
-/// line, clocks and properties aside.
+/// line. Only a timestamp of the syntax tree counts: not one in a clock
+/// line, a property, a comment, a keyword, a fixed-width line, or a block
+/// whose contents Org does not parse (`src`, `example`, `export`,
+/// `comment`).
 pub(crate) fn entry_stamp(text: &str, outline: &Outline, index: usize, active: bool) -> Option<String> {
     static PLANNING: LazyLock<Regex> = LazyLock::new(|| {
         RegexBuilder::new(r"^[ \t]*(?:CLOSED|DEADLINE|SCHEDULED):")
@@ -993,18 +1076,47 @@ pub(crate) fn entry_stamp(text: &str, outline: &Outline, index: usize, active: b
     }
     let end = outline.entries.get(index + 1).map_or(text.len(), |next| next.offset);
     let mut at = next_line(text, entry.line_end);
-    if at < end && PLANNING.is_match(&text[at..line_end(text, at)]) {
+    let planning = at < end && PLANNING.is_match(&text[at..line_end(text, at)]);
+    if planning {
         at = next_line(text, at);
     }
+    static BLOCK: LazyLock<Regex> = LazyLock::new(|| {
+        RegexBuilder::new(r"^#\+begin_(src|example|export|comment)(?:[ \t]|$)")
+            .case_insensitive(true)
+            .build()
+            .expect("a valid regex")
+    });
     let mut in_properties = false;
+    // The property drawer comes first, or after the planning line and
+    // blank lines; a drawer named so further down holds plain text.
+    let mut drawer_allowed = true;
+    // The end line of the block whose lines are raw text.
+    let mut raw_block: Option<String> = None;
     while at < end {
         let line = &text[at..line_end(text, at).min(end)];
         let trimmed = line.trim_matches([' ', '\t']);
-        if trimmed.eq_ignore_ascii_case(":PROPERTIES:") {
+        let first = drawer_allowed;
+        drawer_allowed = first && planning && trimmed.is_empty();
+        if let Some(close) = &raw_block {
+            if trimmed.eq_ignore_ascii_case(close) {
+                raw_block = None;
+            }
+        } else if let Some(found) = BLOCK.captures(trimmed) {
+            raw_block = Some(format!("#+end_{}", &found[1]));
+        } else if first && trimmed.eq_ignore_ascii_case(":PROPERTIES:") {
             in_properties = true;
         } else if in_properties {
             in_properties = !trimmed.eq_ignore_ascii_case(":END:");
-        } else if parse_line(line).is_none() {
+        } else if trimmed == "#"
+            || trimmed.starts_with("# ")
+            || trimmed.starts_with("#+")
+            || trimmed.starts_with(": ")
+            || trimmed == ":"
+        {
+            // A comment, a keyword or a fixed-width line.
+        } else if !trimmed.get(..6).is_some_and(|start| start.eq_ignore_ascii_case("CLOCK:")) {
+            // A clock line (`org-clock-line-re`), even one whose times
+            // do not read, holds no timestamp objects.
             if let Some(found) = first_stamp(line, active) {
                 return Some(found);
             }
@@ -1091,7 +1203,16 @@ fn table_data(
         (Some(matcher), Some(index)) => matcher.matches(&outline, index, false, clock),
         _ => true,
     };
-    let (times, total) = clock_sum(text, region, window, matcher.as_ref().map(|_| &include as &dyn Fn(usize) -> bool));
+    // `org-clock-report-include-clocking-task`: the clock that runs in
+    // this file, when it started within the table's window.
+    let running = settings.clocking.as_ref().and_then(|clocking| {
+        let start = crate::clock::minutes_of(clocking.start);
+        let (from, to) = (window.0?, window.1?);
+        (Some(clocking.path.as_str()) == path && from <= start && start <= to)
+            .then(|| (clocking.start, crate::clock::minutes_of(settings.now) - start))
+    });
+    let include = matcher.as_ref().map(|_| &include as &dyn Fn(usize) -> bool);
+    let (times, total) = clock_sum(text, region, window, include, running);
     let link = params.flag("link");
     let properties: Vec<String> = match params.get("properties") {
         Some(Lisp::List(items)) => items
@@ -1263,10 +1384,15 @@ const LANGUAGES: &[(&str, [&str; 9])] = &[
     ),
 ];
 
-/// `org-clock--translate`
-fn translate(term: &'static str, language: &str) -> &'static str {
+/// `org-clock--translate`: `term`, one of the English words, in
+/// `language`, as `languages` has it; else as it is.
+fn translate<'a>(term: &'a str, language: &str, languages: &'a [(String, Vec<String>)]) -> &'a str {
     let index = LANGUAGES[0].1.iter().position(|english| *english == term).expect("a known term");
-    LANGUAGES.iter().find(|(name, _)| name.eq_ignore_ascii_case(language)).map_or(term, |(_, terms)| terms[index])
+    languages
+        .iter()
+        .find(|(name, _)| name.eq_ignore_ascii_case(language))
+        .and_then(|(_, terms)| terms.get(index))
+        .map_or(term, String::as_str)
 }
 
 /// `format` with one `%s`.
@@ -1278,7 +1404,7 @@ fn format_cell(format: &str, value: &str) -> String {
 /// time, or nothing for tables in steps.
 fn write_clocktable(buffer: &mut Buffer, params: &Plist, context: &Context) -> Result<Option<i64>, String> {
     let settings = context.settings;
-    let params = defaults().combine(params);
+    let params = Plist::read(&settings.defaults)?.combine(params);
     let scope = params.get("scope").cloned();
     enum Files {
         Current,
@@ -1458,7 +1584,7 @@ fn write_default(
             };
             out.push_str(&format!(
                 "#+CAPTION: {} {}{range}\n",
-                translate("Clock summary at", lang),
+                translate("Clock summary at", lang, &settings.languages),
                 format_timestamp(settings.now, true, true, "")
             ));
         }
@@ -1483,13 +1609,13 @@ fn write_default(
     // The header line.
     out.push('|');
     if multifile {
-        out.push_str(&format!("{}|", translate("File", lang)));
+        out.push_str(&format!("{}|", translate("File", lang, &settings.languages)));
     }
     if level_column {
-        out.push_str(&format!("{}|", translate("L", lang)));
+        out.push_str(&format!("{}|", translate("L", lang, &settings.languages)));
     }
     if timestamp {
-        out.push_str(&format!("{}|", translate("Timestamp", lang)));
+        out.push_str(&format!("{}|", translate("Timestamp", lang, &settings.languages)));
     }
     if tags {
         out.push_str("Tags |");
@@ -1497,14 +1623,14 @@ fn write_default(
     if !properties.is_empty() {
         out.push_str(&format!("{}|", properties.join("|")));
     }
-    out.push_str(&format!("{}|", translate("Headline", lang)));
-    out.push_str(&format!("{}|", translate("Time", lang)));
+    out.push_str(&format!("{}|", translate("Headline", lang, &settings.languages)));
+    out.push_str(&format!("{}|", translate("Time", lang, &settings.languages)));
     out.push_str(&"|".repeat(time_columns.saturating_sub(1)));
     out.push_str(if percent { "%|\n" } else { "\n" });
     // The total.
     out.push_str("|-\n|");
     if multifile {
-        out.push_str(&format!("| {} ", translate("ALL", lang)));
+        out.push_str(&format!("| {} ", translate("ALL", lang, &settings.languages)));
     }
     if level_column {
         out.push('|');
@@ -1516,7 +1642,7 @@ fn write_default(
         out.push('|');
     }
     out.push_str(&"|".repeat(properties.len()));
-    out.push_str(&format_cell(&settings.total_time_cell_format, translate("Total time", lang)));
+    out.push_str(&format_cell(&settings.total_time_cell_format, translate("Total time", lang, &settings.languages)));
     out.push_str("| ");
     out.push_str(&format_cell(&settings.total_time_cell_format, &duration(total)));
     out.push('|');
@@ -1544,7 +1670,7 @@ fn write_default(
                     if timestamp { "| " } else { "" },
                     if tags { "| " } else { "" },
                     "|".repeat(properties.len()),
-                    format_cell(&settings.file_time_cell_format, translate("File time", lang)),
+                    format_cell(&settings.file_time_cell_format, translate("File time", lang, &settings.languages)),
                     duration(table.time),
                     "|".repeat(time_columns.saturating_sub(1)),
                     if percent { format!(" {} |", share(table.time)) } else { String::new() },
@@ -1653,7 +1779,7 @@ fn write_default(
     }
     let block = buffer.text[table_start..table_end].to_string();
     let lines: Vec<&str> = block.lines().collect();
-    let aligned = align_table(&lines);
+    let aligned = align_table(&lines, &settings.formulas.alignment);
     let mut replaced: String = aligned.join("\n");
     if block.ends_with('\n') {
         replaced.push('\n');
@@ -1704,7 +1830,8 @@ fn write_default(
         }
     }
     if recalculate {
-        let done = crate::tblfm::recalculate(&buffer.text, bar, crate::tblfm::Mode::All, &|_| None)?;
+        let done =
+            crate::tblfm::recalculate(&buffer.text, bar, crate::tblfm::Mode::All, &|_| None, &settings.formulas)?;
         buffer.text = done.text;
     }
     buffer.point = bar;

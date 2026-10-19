@@ -47,7 +47,8 @@ fn todo_changes_match_emacs() {
         let keywords = TodoKeywords::from_document(&text).unwrap_or(default);
         // `org-toggle-checkbox`, on an item or a headline.
         if case["command"] == "checkbox" {
-            let actual = org_core::checkbox::toggle(&text, &keywords, offset, options.todo_settings().tags_column)
+            let settings = options.todo_settings();
+            let actual = org_core::checkbox::toggle(&text, &keywords, offset, settings.tags_column, &settings.lists)
                 .unwrap_or_else(|refusal| format!("ERROR: {}", refusal.message()));
             compared += 1;
             if actual != expected {
@@ -73,7 +74,7 @@ fn todo_changes_match_emacs() {
             continue;
         }
         let target = match &case["command"] {
-            Value::String(name) if name == "next" => Some(Target::Next),
+            Value::String(name) if name == "next" || name == "yesterday" => Some(Target::Next),
             Value::String(name) if name == "previous" => Some(Target::Previous),
             // `org-todo` with no fast selection keys, and switching sets.
             Value::String(name) if name == "cycle" => Some(Target::Cycle { head: None, repeated: false }),
@@ -94,20 +95,18 @@ fn todo_changes_match_emacs() {
             other => Some(Target::State(other["state"].as_str().map(str::to_string))),
         };
         let now = clock(case["clock"].as_str().unwrap());
+        let mut settings = options.todo_settings();
+        // `org-todo-yesterday`: as the server's `org.todo.yesterday` runs it.
+        if case["command"] == "yesterday" {
+            settings.use_effective_time = true;
+            settings.extend_today_until = now.minute / 60 + 1;
+        }
         // The note is written with the text the case gives, or none.
         let note = case.get("note").and_then(Value::as_str).unwrap_or("");
         let actual = match target {
             None => "QUIT".to_string(),
             Some(target) => {
-                match change_state_with_note(
-                    &text,
-                    &keywords,
-                    offset,
-                    &target,
-                    &options.todo_settings(),
-                    now,
-                    Some(note),
-                ) {
+                match change_state_with_note(&text, &keywords, offset, &target, &settings, now, Some(note)) {
                     Ok(changed) => changed.text,
                     // A change Org blocked leaves the text, saying why.
                     Err(error) if case.get("blocked").and_then(Value::as_str) == Some(error.as_str()) => text.clone(),

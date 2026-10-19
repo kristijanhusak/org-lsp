@@ -7894,5 +7894,839 @@
    "text": "* A\n:notadrawer:\ntext\n  #+begin_example\nx\n  #+end_example\n",
    "point": 57
   }
+ },
+ {
+  "text": "* a\n",
+  "point": 2,
+  "key": "M-<left>",
+  "emacs": "(org-allow-promoting-top-level-subtree t)",
+  "expected": {
+   "text": "# a\n",
+   "point": 2
+  }
+ },
+ {
+  "text": "* a\n",
+  "point": 0,
+  "key": "M-<left>",
+  "emacs": "(org-allow-promoting-top-level-subtree t)",
+  "expected": {
+   "text": "# a\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "* TODO a                                                             :tag:\nbody\n",
+  "point": 4,
+  "key": "M-<left>",
+  "emacs": "(org-allow-promoting-top-level-subtree t)",
+  "expected": {
+   "text": "# TODO a                                                             :tag:\nbody\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "* a\n  body\n** b\n   more\n*** c\n* d\n",
+  "point": 2,
+  "key": "M-S-<left>",
+  "emacs": "(org-allow-promoting-top-level-subtree t)",
+  "adapt": "t",
+  "expected": {
+   "text": "# a\n  body\n* b\n  more\n** c\n* d\n",
+   "point": 2
+  }
+ },
+ {
+  "text": "* a\n** b\n*** c\n* d\n",
+  "point": 3,
+  "key": "M-S-<left>",
+  "emacs": "(org-allow-promoting-top-level-subtree t)",
+  "expected": {
+   "text": "# a\n* b\n** c\n* d\n",
+   "point": 3
+  }
+ },
+ {
+  "text": "* a\n** b\n",
+  "point": 6,
+  "key": "M-<left>",
+  "emacs": "(org-allow-promoting-top-level-subtree t)",
+  "expected": {
+   "text": "* a\n* b\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "*  a\n",
+  "point": 3,
+  "key": "M-<left>",
+  "emacs": "(org-allow-promoting-top-level-subtree t)",
+  "expected": {
+   "text": "#  a\n",
+   "point": 3
+  }
+ },
+ {
+  "text": "* a :x:\n",
+  "point": 7,
+  "key": "M-<left>",
+  "emacs": "(org-allow-promoting-top-level-subtree t)",
+  "adapt": "headline-data",
+  "expected": {
+   "text": "# a :x:\n",
+   "point": 7
+  }
+ },
+ {
+  "text": "* a\n** b\n",
+  "point": 2,
+  "key": "M-<left>",
+  "expected": {
+   "error": "Cannot promote to level 0.  UNDO to recover if necessary"
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 2,
+  "key": "M-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "error": "Cannot promote to level 0.  UNDO to recover if necessary"
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 2,
+  "key": "M-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "error": "Cannot promote to level 0.  UNDO to recover if necessary"
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 2,
+  "key": "M-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "*** A\n*** B :tag:\ntext\n***** C\n* D\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 2,
+  "key": "M-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "*** A\n*** B :tag:\ntext\n***** C\n* D\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 2,
+  "key": "M-S-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "error": "Cannot promote to level 0.  UNDO to recover if necessary"
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 2,
+  "key": "M-S-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "error": "Cannot promote to level 0.  UNDO to recover if necessary"
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 2,
+  "key": "M-S-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "*** A\n***** B                                                                 :tag:\ntext\n******* C\n* D\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 2,
+  "key": "M-S-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "*** A\n***** B                                                                 :tag:\n  text\n******* C\n* D\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 6,
+  "key": "M-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "* A\n* B                                                                     :tag:\ntext\n***** C\n* D\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 6,
+  "key": "M-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n* B                                                                     :tag:\ntext\n***** C\n* D\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 6,
+  "key": "M-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "* A\n***** B                                                                 :tag:\ntext\n***** C\n* D\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 6,
+  "key": "M-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n***** B                                                                 :tag:\n  text\n***** C\n* D\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 6,
+  "key": "M-S-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "* A\n* B                                                                     :tag:\ntext\n*** C\n* D\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 6,
+  "key": "M-S-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n* B                                                                     :tag:\ntext\n*** C\n* D\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 6,
+  "key": "M-S-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "* A\n***** B                                                                 :tag:\ntext\n******* C\n* D\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 6,
+  "key": "M-S-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n***** B                                                                 :tag:\n  text\n******* C\n* D\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 23,
+  "key": "M-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "* A\n*** B :tag:\ntext\n*** C\n* D\n",
+   "point": 21
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 23,
+  "key": "M-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n*** B :tag:\ntext\n*** C\n* D\n",
+   "point": 21
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 23,
+  "key": "M-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "* A\n*** B :tag:\ntext\n******* C\n* D\n",
+   "point": 21
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 23,
+  "key": "M-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n*** B :tag:\ntext\n******* C\n* D\n",
+   "point": 21
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 23,
+  "key": "M-S-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "* A\n*** B :tag:\ntext\n*** C\n* D\n",
+   "point": 21
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 23,
+  "key": "M-S-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n*** B :tag:\ntext\n*** C\n* D\n",
+   "point": 21
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 23,
+  "key": "M-S-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "* A\n*** B :tag:\ntext\n******* C\n* D\n",
+   "point": 21
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 23,
+  "key": "M-S-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n*** B :tag:\ntext\n******* C\n* D\n",
+   "point": 21
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 31,
+  "key": "M-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "error": "Cannot promote to level 0.  UNDO to recover if necessary"
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 31,
+  "key": "M-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "error": "Cannot promote to level 0.  UNDO to recover if necessary"
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 31,
+  "key": "M-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "* A\n*** B :tag:\ntext\n***** C\n*** D\n",
+   "point": 33
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 31,
+  "key": "M-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n*** B :tag:\ntext\n***** C\n*** D\n",
+   "point": 33
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 31,
+  "key": "M-S-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "error": "Cannot promote to level 0.  UNDO to recover if necessary"
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 31,
+  "key": "M-S-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "error": "Cannot promote to level 0.  UNDO to recover if necessary"
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 31,
+  "key": "M-S-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "* A\n*** B :tag:\ntext\n***** C\n*** D\n",
+   "point": 33
+  }
+ },
+ {
+  "text": "* A\n*** B :tag:\ntext\n***** C\n* D\n",
+  "point": 31,
+  "key": "M-S-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\n*** B :tag:\ntext\n***** C\n*** D\n",
+   "point": 33
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 2,
+  "key": "M-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "* A\n  body\n***** B\n** even\n****** six\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 2,
+  "key": "M-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\nbody\n***** B\n** even\n****** six\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 2,
+  "key": "M-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "***** A\n  body\n***** B\n** even\n****** six\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 2,
+  "key": "M-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "***** A\n    body\n***** B\n** even\n****** six\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 2,
+  "key": "M-S-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "* A\n  body\n*** B\n** even\n****** six\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 2,
+  "key": "M-S-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "* A\nbody\n*** B\n** even\n****** six\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 2,
+  "key": "M-S-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "***** A\n  body\n******* B\n** even\n****** six\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 2,
+  "key": "M-S-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "***** A\n    body\n******* B\n** even\n****** six\n",
+   "point": 0
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 15,
+  "key": "M-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "*** A\n  body\n*** B\n** even\n****** six\n",
+   "point": 13
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 15,
+  "key": "M-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "*** A\n  body\n*** B\n** even\n****** six\n",
+   "point": 13
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 15,
+  "key": "M-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "*** A\n  body\n******* B\n** even\n****** six\n",
+   "point": 13
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 15,
+  "key": "M-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "*** A\n  body\n******* B\n** even\n****** six\n",
+   "point": 13
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 15,
+  "key": "M-S-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "*** A\n  body\n*** B\n** even\n****** six\n",
+   "point": 13
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 15,
+  "key": "M-S-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "*** A\n  body\n*** B\n** even\n****** six\n",
+   "point": 13
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 15,
+  "key": "M-S-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "*** A\n  body\n******* B\n** even\n****** six\n",
+   "point": 13
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 15,
+  "key": "M-S-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "*** A\n  body\n******* B\n** even\n****** six\n",
+   "point": 13
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 23,
+  "key": "M-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "*** A\n  body\n***** B\n* even\n****** six\n",
+   "point": 21
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 23,
+  "key": "M-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "*** A\n  body\n***** B\n* even\n****** six\n",
+   "point": 21
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 23,
+  "key": "M-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "*** A\n  body\n***** B\n*** even\n****** six\n",
+   "point": 21
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 23,
+  "key": "M-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "*** A\n  body\n***** B\n*** even\n****** six\n",
+   "point": 21
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 23,
+  "key": "M-S-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "*** A\n  body\n***** B\n* even\n***** six\n",
+   "point": 21
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 23,
+  "key": "M-S-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "*** A\n  body\n***** B\n* even\n***** six\n",
+   "point": 21
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 23,
+  "key": "M-S-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "*** A\n  body\n***** B\n*** even\n******* six\n",
+   "point": 21
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 23,
+  "key": "M-S-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "*** A\n  body\n***** B\n*** even\n******* six\n",
+   "point": 21
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 31,
+  "key": "M-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "*** A\n  body\n***** B\n** even\n***** six\n",
+   "point": 29
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 31,
+  "key": "M-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "*** A\n  body\n***** B\n** even\n***** six\n",
+   "point": 29
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 31,
+  "key": "M-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "*** A\n  body\n***** B\n** even\n******* six\n",
+   "point": 29
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 31,
+  "key": "M-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "*** A\n  body\n***** B\n** even\n******* six\n",
+   "point": 29
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 31,
+  "key": "M-S-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "*** A\n  body\n***** B\n** even\n***** six\n",
+   "point": 29
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 31,
+  "key": "M-S-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "*** A\n  body\n***** B\n** even\n***** six\n",
+   "point": 29
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 31,
+  "key": "M-S-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "*** A\n  body\n***** B\n** even\n******* six\n",
+   "point": 29
+  }
+ },
+ {
+  "text": "*** A\n  body\n***** B\n** even\n****** six\n",
+  "point": 31,
+  "key": "M-S-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "*** A\n  body\n***** B\n** even\n******* six\n",
+   "point": 29
+  }
+ },
+ {
+  "text": "* A\n",
+  "point": 2,
+  "key": "M-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "error": "Cannot promote to level 0.  UNDO to recover if necessary"
+  }
+ },
+ {
+  "text": "* A\n",
+  "point": 2,
+  "key": "M-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "error": "Cannot promote to level 0.  UNDO to recover if necessary"
+  }
+ },
+ {
+  "text": "* A\n",
+  "point": 2,
+  "key": "M-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "*** A\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "* A\n",
+  "point": 2,
+  "key": "M-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "*** A\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "* A\n",
+  "point": 2,
+  "key": "M-S-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "error": "Cannot promote to level 0.  UNDO to recover if necessary"
+  }
+ },
+ {
+  "text": "* A\n",
+  "point": 2,
+  "key": "M-S-<left>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "error": "Cannot promote to level 0.  UNDO to recover if necessary"
+  }
+ },
+ {
+  "text": "* A\n",
+  "point": 2,
+  "key": "M-S-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "expected": {
+   "text": "*** A\n",
+   "point": 4
+  }
+ },
+ {
+  "text": "* A\n",
+  "point": 2,
+  "key": "M-S-<right>",
+  "emacs": "(org-odd-levels-only t)",
+  "adapt": "t",
+  "expected": {
+   "text": "*** A\n",
+   "point": 4
+  }
  }
 ]

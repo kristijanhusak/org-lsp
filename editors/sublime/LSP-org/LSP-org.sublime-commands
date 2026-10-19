@@ -336,7 +336,7 @@
     }
   },
   {
-    "caption": "Org: Resolve a dangling clock",
+    "caption": "Org: Resolve open clocks",
     "command": "org_lsp_run",
     "args": {
       "command": "org.clock.resolve"
@@ -368,6 +368,20 @@
     "command": "org_lsp_run",
     "args": {
       "command": "org.clock.display"
+    }
+  },
+  {
+    "caption": "Org: Number the headlines, or stop numbering them",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.num.mode"
+    }
+  },
+  {
+    "caption": "Org: Hide the properties of org_custom_properties, or show them again",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.custom.properties.toggle"
     }
   },
   {
@@ -403,6 +417,13 @@
     "command": "org_lsp_run",
     "args": {
       "command": "org.todo"
+    }
+  },
+  {
+    "caption": "Org: Change the TODO state as if it were yesterday",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.todo.yesterday"
     }
   },
   {
@@ -511,6 +532,76 @@
     }
   },
   {
+    "caption": "Org: BibTeX: export the entries of the file to a .bib file",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.bibtex.export"
+    }
+  },
+  {
+    "caption": "Org: BibTeX: copy the entry at the cursor as BibTeX",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.bibtex.copy"
+    }
+  },
+  {
+    "caption": "Org: BibTeX: new entry, its fields asked for",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.bibtex.create"
+    }
+  },
+  {
+    "caption": "Org: BibTeX: make the entry at the cursor a BibTeX entry",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.bibtex.create.here"
+    }
+  },
+  {
+    "caption": "Org: BibTeX: ask for the fields the entry at the cursor lacks",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.bibtex.check"
+    }
+  },
+  {
+    "caption": "Org: BibTeX: ask for the fields every entry lacks",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.bibtex.check.all"
+    }
+  },
+  {
+    "caption": "Org: BibTeX: paste a BibTeX entry as a heading",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.bibtex.yank"
+    }
+  },
+  {
+    "caption": "Org: BibTeX: import the entries of a BibTeX file as headings",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.bibtex.import"
+    }
+  },
+  {
+    "caption": "Org: Ctags: make the TAGS file of the file's directory",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.ctags.create"
+    }
+  },
+  {
+    "caption": "Org: Ctags: go to a topic, or make it",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.ctags.find"
+    }
+  },
+  {
     "caption": "Org: Set the tags of the headline",
     "command": "org_lsp_run",
     "args": {
@@ -567,6 +658,20 @@
     }
   },
   {
+    "caption": "Org: Insert an inline task",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.inlinetask.insert"
+    }
+  },
+  {
+    "caption": "Org: Insert an inline task without its default TODO state",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.inlinetask.insert.nostate"
+    }
+  },
+  {
     "caption": "Org: Promote the heading; outdent the item; move the table column left",
     "command": "org_lsp_run",
     "args": {
@@ -592,6 +697,20 @@
     "command": "org_lsp_run",
     "args": {
       "command": "org.shiftmeta.right"
+    }
+  },
+  {
+    "caption": "Org: Convert the file to odd levels only, once confirmed",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.levels.odd"
+    }
+  },
+  {
+    "caption": "Org: Convert the file from odd levels to odd and even ones, once confirmed",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.levels.oddeven"
     }
   },
   {
@@ -627,6 +746,20 @@
     "command": "org_lsp_run",
     "args": {
       "command": "org.table.insert.row.below"
+    }
+  },
+  {
+    "caption": "Org: Open a line, or in a table insert a row",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.open.line"
+    }
+  },
+  {
+    "caption": "Org: Show the outline path of the entry at the cursor",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.outline.path"
     }
   },
   {
@@ -725,6 +858,13 @@
     "command": "org_lsp_run",
     "args": {
       "command": "org.paste.subtree"
+    }
+  },
+  {
+    "caption": "Org: Yank, a subtree at its level",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.yank"
     }
   },
   {
@@ -854,6 +994,27 @@
     }
   },
   {
+    "caption": "Org: Move to the start of the headline's title",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.beginning.of.line"
+    }
+  },
+  {
+    "caption": "Org: Move to the end of the headline's title",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.end.of.line"
+    }
+  },
+  {
+    "caption": "Org: Kill the headline's text to the tags, or the tags",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.kill.line"
+    }
+  },
+  {
     "caption": "Org: Go to a heading of the file",
     "command": "org_lsp_run",
     "args": {
@@ -963,6 +1124,20 @@
     "command": "org_lsp_run",
     "args": {
       "command": "org.table.export"
+    }
+  },
+  {
+    "caption": "Org: Plot the table with gnuplot",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.plot.gnuplot"
+    }
+  },
+  {
+    "caption": "Org: Draw the column at the cursor as bars",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.table.ascii.plot"
     }
   },
   {
@@ -1428,6 +1603,83 @@
     }
   },
   {
+    "caption": "Org: Roam: capture to today's daily note",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.capture.today"
+    }
+  },
+  {
+    "caption": "Org: Roam: go to today's daily note",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.goto.today"
+    }
+  },
+  {
+    "caption": "Org: Roam: capture to tomorrow's daily note",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.capture.tomorrow"
+    }
+  },
+  {
+    "caption": "Org: Roam: go to tomorrow's daily note",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.goto.tomorrow"
+    }
+  },
+  {
+    "caption": "Org: Roam: capture to yesterday's daily note",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.capture.yesterday"
+    }
+  },
+  {
+    "caption": "Org: Roam: go to yesterday's daily note",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.goto.yesterday"
+    }
+  },
+  {
+    "caption": "Org: Roam: capture to the daily note of a date",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.capture.date"
+    }
+  },
+  {
+    "caption": "Org: Roam: go to the daily note of a date",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.goto.date"
+    }
+  },
+  {
+    "caption": "Org: Roam: go to the next daily note",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.goto.next"
+    }
+  },
+  {
+    "caption": "Org: Roam: go to the previous daily note",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.goto.previous"
+    }
+  },
+  {
+    "caption": "Org: Roam: open the directory of the daily notes",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.dailies.find.directory"
+    }
+  },
+  {
     "caption": "Org: Roam: show or hide the org-roam buffer",
     "command": "org_lsp_run",
     "args": {
@@ -1491,6 +1743,48 @@
     }
   },
   {
+    "caption": "Org: Roam: find a node by a reference",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.ref.find"
+    }
+  },
+  {
+    "caption": "Org: Roam: make the file's one top headline the file's node",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.promote"
+    }
+  },
+  {
+    "caption": "Org: Roam: make the file's node a headline of its own",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.demote"
+    }
+  },
+  {
+    "caption": "Org: Roam: refile to a node",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.refile"
+    }
+  },
+  {
+    "caption": "Org: Roam: extract the subtree to a file of its own",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.extract"
+    }
+  },
+  {
+    "caption": "Org: Roam: show the graph of the nodes",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.roam.graph"
+    }
+  },
+  {
     "caption": "Org: Journal: new entry",
     "command": "org_lsp_run",
     "args": {
@@ -1551,6 +1845,48 @@
     "command": "org_lsp_run",
     "args": {
       "command": "org.journal.search.future"
+    }
+  },
+  {
+    "caption": "Org: Journal: search the calendar's week",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.journal.search.calendar.week"
+    }
+  },
+  {
+    "caption": "Org: Journal: search the calendar's month",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.journal.search.calendar.month"
+    }
+  },
+  {
+    "caption": "Org: Journal: search the calendar's year",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.journal.search.calendar.year"
+    }
+  },
+  {
+    "caption": "Org: Journal: the entry of the calendar's day",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.journal.read.entry"
+    }
+  },
+  {
+    "caption": "Org: Journal: show the entry of the calendar's day",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.journal.display.entry"
+    }
+  },
+  {
+    "caption": "Org: Journal: mark the days with an entry in the calendar",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.journal.mark.entries"
     }
   },
   {
@@ -1733,6 +2069,20 @@
     "command": "org_lsp_run",
     "args": {
       "command": "org.timestamp.change"
+    }
+  },
+  {
+    "caption": "Org: Show timestamps in the custom formats, or not",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.timestamp.overlays.toggle"
+    }
+  },
+  {
+    "caption": "Org: Show the calendar at the date of the line",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.goto.calendar"
     }
   },
   {

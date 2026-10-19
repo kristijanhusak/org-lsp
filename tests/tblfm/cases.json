@@ -667,5 +667,714 @@
   "expected": {
    "text": "| <2024-01-01 Mon> | <2024-01-05 Fri> | [2024-01-05 Fri] |\n#+TBLFM: $3=vmax($1..$2)\n"
   }
+ },
+ {
+  "name": "org-table-relative-ref-may-cross-hline nil: a reference stops at the line",
+  "text": "| a | b |\n|---+---|\n| 1 |   |\n|---+---|\n| 2 |   |\n| 3 |   |\n#+TBLFM: $2=@-1$1\n",
+  "settings": {
+   "cross_hline": false
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline nil)",
+  "expected": {
+   "text": "| a | b |\n|---+---|\n| 1 | 1 |\n|---+---|\n| 2 | 2 |\n| 3 | 2 |\n#+TBLFM: $2=@-1$1\n"
+  }
+ },
+ {
+  "name": "org-table-relative-ref-may-cross-hline error",
+  "text": "| a | b |\n|---+---|\n| 1 |   |\n|---+---|\n| 2 |   |\n| 3 |   |\n#+TBLFM: $2=@-1$1\n",
+  "settings": {
+   "cross_hline": "error"
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline 'error)",
+  "expected": {
+   "error": "Row descriptor -1 crosses hline"
+  }
+ },
+ {
+  "name": "org-table-relative-ref-may-cross-hline nil, going down",
+  "text": "| a | b |\n|---+---|\n| 1 |   |\n| 2 |   |\n|---+---|\n| 3 |   |\n#+TBLFM: @2$2..@3$2=@+1$1\n",
+  "settings": {
+   "cross_hline": false
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline nil)",
+  "expected": {
+   "text": "| a | b |\n|---+---|\n| 1 | 2 |\n| 2 | 2 |\n|---+---|\n| 3 |   |\n#+TBLFM: @2$2..@3$2=@+1$1\n"
+  }
+ },
+ {
+  "name": "org-table-relative-ref-may-cross-hline nil, two steps",
+  "text": "| a | b |\n|---+---|\n| 1 |   |\n|---+---|\n| 2 |   |\n| 3 |   |\n#+TBLFM: $2=@-2$1\n",
+  "settings": {
+   "cross_hline": false
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline nil)",
+  "expected": {
+   "text": "| a | b |\n|---+---|\n| 1 | 1 |\n|---+---|\n| 2 | 2 |\n| 3 | 2 |\n#+TBLFM: $2=@-2$1\n"
+  }
+ },
+ {
+  "name": "org-table-formula-create-columns t",
+  "text": "| 1 | 2 |\n| 3 | 4 |\n#+TBLFM: @1$4=$1+$2\n",
+  "settings": {
+   "create_columns": true
+  },
+  "emacs": "(org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 1 | 2 |   | 3 |\n| 3 | 4 |   |   |\n#+TBLFM: @1$4=$1+$2\n"
+  }
+ },
+ {
+  "name": "org-table-formula-create-columns nil",
+  "text": "| 1 | 2 |\n| 3 | 4 |\n#+TBLFM: @1$4=$1+$2\n",
+  "expected": {
+   "error": "Missing columns in the table.  Aborting"
+  }
+ },
+ {
+  "name": "org-table-formula-create-columns t, a range",
+  "text": "| 1 | 2 |\n| 3 | 4 |\n#+TBLFM: @1$3..@2$3=$1*10\n",
+  "settings": {
+   "create_columns": true
+  },
+  "emacs": "(org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 1 | 2 | 10 |\n| 3 | 4 |    |\n#+TBLFM: @1$3..@2$3=$1*10\n"
+  }
+ },
+ {
+  "name": "org-table-formula-constants",
+  "text": "| 2 |   |\n#+TBLFM: $2=$1*$c\n",
+  "settings": {
+   "constants": {
+    "c": "3"
+   }
+  },
+  "emacs": "(org-table-formula-constants '((\"c\" . \"3\")))",
+  "expected": {
+   "text": "| 2 | 6 |\n#+TBLFM: $2=$1*$c\n"
+  }
+ },
+ {
+  "name": "#+CONSTANTS: before org-table-formula-constants",
+  "text": "#+CONSTANTS: c=10\n| 2 |   |\n#+TBLFM: $2=$1*$c\n",
+  "settings": {
+   "constants": {
+    "c": "3"
+   }
+  },
+  "emacs": "(org-table-formula-constants '((\"c\" . \"3\")))",
+  "expected": {
+   "text": "#+CONSTANTS: c=10\n| 2 | 20 |\n#+TBLFM: $2=$1*$c\n"
+  }
+ },
+ {
+  "name": "org-table-duration-custom-format seconds",
+  "text": "| 1:30:25 | 2:45:50 |   |\n#+TBLFM: $3=$1+$2;t\n",
+  "settings": {
+   "duration_format": "seconds"
+  },
+  "emacs": "(org-table-duration-custom-format 'seconds)",
+  "expected": {
+   "text": "| 1:30:25 | 2:45:50 | 15375 |\n#+TBLFM: $3=$1+$2;t\n"
+  }
+ },
+ {
+  "name": "org-table-duration-custom-format minutes",
+  "text": "| 1:30:25 | 2:45:50 |   |\n#+TBLFM: $3=$1+$2;t\n",
+  "settings": {
+   "duration_format": "minutes"
+  },
+  "emacs": "(org-table-duration-custom-format 'minutes)",
+  "expected": {
+   "text": "| 1:30:25 | 2:45:50 | 256.2 |\n#+TBLFM: $3=$1+$2;t\n"
+  }
+ },
+ {
+  "name": "org-table-duration-custom-format hours",
+  "text": "| 1:30:25 | 2:45:50 |   |\n#+TBLFM: $3=$1+$2;t\n",
+  "settings": {
+   "duration_format": "hours"
+  },
+  "emacs": "(org-table-duration-custom-format 'hours)",
+  "expected": {
+   "text": "| 1:30:25 | 2:45:50 | 4.27 |\n#+TBLFM: $3=$1+$2;t\n"
+  }
+ },
+ {
+  "name": "org-table-duration-custom-format days",
+  "text": "| 1:30:25 | 2:45:50 |   |\n#+TBLFM: $3=$1+$2;t\n",
+  "settings": {
+   "duration_format": "days"
+  },
+  "emacs": "(org-table-duration-custom-format 'days)",
+  "expected": {
+   "text": "| 1:30:25 | 2:45:50 | 0.178 |\n#+TBLFM: $3=$1+$2;t\n"
+  }
+ },
+ {
+  "name": "org-table-duration-custom-format hh:mm",
+  "text": "| 1:30:25 | 2:45:50 |   |\n#+TBLFM: $3=$1+$2;t\n",
+  "settings": {
+   "duration_format": "hh:mm"
+  },
+  "emacs": "(org-table-duration-custom-format 'hh:mm)",
+  "expected": {
+   "text": "| 1:30:25 | 2:45:50 | 04:16 |\n#+TBLFM: $3=$1+$2;t\n"
+  }
+ },
+ {
+  "name": "org-table-duration-hour-zero-padding nil, ;T",
+  "text": "| 1:30:25 | 2:45:50 |   |\n#+TBLFM: $3=$1+$2;T\n",
+  "settings": {
+   "padding": false
+  },
+  "emacs": "(org-table-duration-hour-zero-padding nil)",
+  "expected": {
+   "text": "| 1:30:25 | 2:45:50 | 4:16:15 |\n#+TBLFM: $3=$1+$2;T\n"
+  }
+ },
+ {
+  "name": "org-table-duration-hour-zero-padding nil, ;U",
+  "text": "| 1:30:25 | 2:45:50 |   |\n#+TBLFM: $3=$1+$2;U\n",
+  "settings": {
+   "padding": false
+  },
+  "emacs": "(org-table-duration-hour-zero-padding nil)",
+  "expected": {
+   "text": "| 1:30:25 | 2:45:50 | 4:16 |\n#+TBLFM: $3=$1+$2;U\n"
+  }
+ },
+ {
+  "name": "org-table-duration-custom-format seconds, a fraction",
+  "text": "| 1:30:25 |   |\n#+TBLFM: $2=$1/7;t\n",
+  "settings": {
+   "duration_format": "seconds"
+  },
+  "emacs": "(org-table-duration-custom-format 'seconds)",
+  "expected": {
+   "text": "| 1:30:25 | 775 |\n#+TBLFM: $2=$1/7;t\n"
+  }
+ },
+ {
+  "name": "org-calc-default-modes: fix 2",
+  "text": "| 1 |   |\n| 2 |   |\n#+TBLFM: $2=$1/3\n",
+  "settings": {
+   "float_format": [
+    "fix",
+    2
+   ]
+  },
+  "emacs": "(org-calc-default-modes (plist-put (copy-sequence org-calc-default-modes) 'calc-float-format '(fix 2)))",
+  "expected": {
+   "text": "| 1 | 0.33 |\n| 2 | 0.67 |\n#+TBLFM: $2=$1/3\n"
+  }
+ },
+ {
+  "name": "org-calc-default-modes: sci 3, a mode on the formula wins",
+  "text": "| 1 |   |   |\n#+TBLFM: $2=$1/3::$3=$1/3;f1\n",
+  "settings": {
+   "float_format": [
+    "sci",
+    3
+   ]
+  },
+  "emacs": "(org-calc-default-modes (plist-put (copy-sequence org-calc-default-modes) 'calc-float-format '(sci 3)))",
+  "expected": {
+   "text": "| 1 | 3.33e-1 | 0.3 |\n#+TBLFM: $2=$1/3::$3=$1/3;f1\n"
+  }
+ },
+ {
+  "name": "org-calc-default-modes: radians",
+  "text": "| 1 |   |\n#+TBLFM: $2=sin($1)\n",
+  "settings": {
+   "angle_mode": "rad"
+  },
+  "emacs": "(org-calc-default-modes (plist-put (copy-sequence org-calc-default-modes) 'calc-angle-mode 'rad))",
+  "expected": {
+   "text": "| 1 | 0.84147098 |\n#+TBLFM: $2=sin($1)\n"
+  }
+ },
+ {
+  "name": "org-calc-default-modes: radians, ;D for degrees",
+  "text": "| 90 |   |\n#+TBLFM: $2=sin($1);D\n",
+  "settings": {
+   "angle_mode": "rad"
+  },
+  "emacs": "(org-calc-default-modes (plist-put (copy-sequence org-calc-default-modes) 'calc-angle-mode 'rad))",
+  "expected": {
+   "text": "| 90 | 1 |\n#+TBLFM: $2=sin($1);D\n"
+  }
+ },
+ {
+  "name": "org-table-formula-create-columns: a field past its own line, within the point's, is not set",
+  "text": "| 1 | 2 |\n| 3 | 4 | 5 |\n#+TBLFM: @1$3=99\n",
+  "expected": {
+   "text": "| 1 | 2 |   |\n| 3 | 4 | 5 |\n#+TBLFM: @1$3=99\n"
+  }
+ },
+ {
+  "name": "org-table-formula-create-columns t: columns counted on the last field's line",
+  "text": "| 1 | 2 |\n| 3 | 4 |\n#+TBLFM: @2$3=1::@1$4=2\n",
+  "settings": {
+   "create_columns": true
+  },
+  "emacs": "(org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 1 | 2 |   | 2 |\n| 3 | 4 |   |   |\n#+TBLFM: @2$3=1::@1$4=2\n"
+  }
+ },
+ {
+  "name": "org-table-formula-create-columns t: two fields, two columns",
+  "text": "| 1 | 2 |\n| 3 | 4 |\n#+TBLFM: @1$3=1::@2$4=2\n",
+  "settings": {
+   "create_columns": true
+  },
+  "emacs": "(org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 1 | 2 | 1 |   |\n| 3 | 4 |   | 2 |\n#+TBLFM: @1$3=1::@2$4=2\n"
+  }
+ },
+ {
+  "name": "a row past the last data line",
+  "text": "| 0 | 6 | 9 |\n| 8 | 3 | 0 |\n#+TBLFM: @3$3=@-1$1\n",
+  "expected": {
+   "error": "Args out of range: [nil 0 1], 3"
+  }
+ },
+ {
+  "name": "random formulas with options (1)",
+  "text": "| 1 | 9 |\n|---+---|\n| 3 | 3 |\n| 8 | 7 |\n| 2 | 8 |\n| 1 | 2 |\n#+TBLFM: @1$3..@2$4=$1*2\n",
+  "settings": {
+   "cross_hline": "error",
+   "create_columns": true
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline 'error) (org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 1 | 9 | 2 | 2 |\n|---+---+---+---|\n| 3 | 3 |   | 6 |\n| 8 | 7 |   |   |\n| 2 | 8 |   |   |\n| 1 | 2 |   |   |\n#+TBLFM: @1$3..@2$4=$1*2\n"
+  }
+ },
+ {
+  "name": "random formulas with options (2)",
+  "text": "| 9 | 8 | 4 |\n| 3 | 4 | 6 |\n| 8 | 5 | 0 |\n| 0 | 6 | 9 |\n| 5 | 7 | 5 |\n| 4 | 7 | 0 |\n#+TBLFM: @1$3..@2$4=$1*2\n",
+  "settings": {
+   "cross_hline": "error",
+   "create_columns": true
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline 'error) (org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 9 | 8 | 18 | 18 |\n| 3 | 4 |  6 |  6 |\n| 8 | 5 |  0 |    |\n| 0 | 6 |  9 |    |\n| 5 | 7 |  5 |    |\n| 4 | 7 |  0 |    |\n#+TBLFM: @1$3..@2$4=$1*2\n"
+  }
+ },
+ {
+  "name": "random formulas with options (3)",
+  "text": "| 4 | 9 |\n| 2 | 5 |\n| 4 | 6 | 1 |\n| 9 | 2 |\n#+TBLFM: @3$3=@-1$1\n",
+  "settings": {
+   "cross_hline": "error",
+   "create_columns": true
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline 'error) (org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 4 | 9 |   |\n| 2 | 5 |   |\n| 4 | 6 | 2 |\n| 9 | 2 |   |\n#+TBLFM: @3$3=@-1$1\n"
+  }
+ },
+ {
+  "name": "random formulas with options (4)",
+  "text": "| 3 |\n| 4 | 5 |\n| 9 |\n#+TBLFM: @1$4=$1\n",
+  "settings": {
+   "cross_hline": "error",
+   "create_columns": true
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline 'error) (org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 3 |   |   | 3 |\n| 4 | 5 |   |   |\n| 9 |   |   |   |\n#+TBLFM: @1$4=$1\n"
+  }
+ },
+ {
+  "name": "random formulas with options (5)",
+  "text": "| 6 | 4 |\n| 6 | 2 |\n|---+---|\n| 8 | 3 | 0 | 7 |\n| 8 | 4 |\n| 9 |\n#+TBLFM: @3$3=@-1$1\n",
+  "settings": {
+   "create_columns": true
+  },
+  "emacs": "(org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 6 | 4 |   |   |\n| 6 | 2 |   |   |\n|---+---+---+---|\n| 8 | 3 | 6 | 7 |\n| 8 | 4 |   |   |\n| 9 |   |   |   |\n#+TBLFM: @3$3=@-1$1\n"
+  }
+ },
+ {
+  "name": "random formulas with options (6)",
+  "text": "| 4 |\n|---+---+---|\n| 0 | 7 | 5 |\n| 0 | 2 | 0 |\n|---+---+---|\n| 8 |\n| 5 | 1 | 5 |\n#+TBLFM: @2$5=@-1$1\n",
+  "settings": {
+   "create_columns": true
+  },
+  "emacs": "(org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 4 |   |   |   |   |\n|---+---+---+---+---|\n| 0 | 7 | 5 |   | 4 |\n| 0 | 2 | 0 |   |   |\n|---+---+---+---+---|\n| 8 |   |   |   |   |\n| 5 | 1 | 5 |   |   |\n#+TBLFM: @2$5=@-1$1\n"
+  }
+ },
+ {
+  "name": "random formulas with options (7)",
+  "text": "| 3 | 1 | 8 |\n| 8 |\n| 1 | 3 | 2 |\n| 6 | 4 | 5 |\n| 1 | 6 | 8 | 3 |\n| 2 | 6 | 9 |\n#+TBLFM: @1$3..@2$4=$1*2\n",
+  "settings": {
+   "create_columns": true
+  },
+  "emacs": "(org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 3 | 1 | 6 |  6 |\n| 8 |   |   | 16 |\n| 1 | 3 | 2 |    |\n| 6 | 4 | 5 |    |\n| 1 | 6 | 8 |  3 |\n| 2 | 6 | 9 |    |\n#+TBLFM: @1$3..@2$4=$1*2\n"
+  }
+ },
+ {
+  "name": "random formulas with options (8)",
+  "text": "| 0 | 5 | 7 |\n| 0 | 0 |\n#+TBLFM: @1$4=$1\n",
+  "settings": {
+   "create_columns": true
+  },
+  "emacs": "(org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 0 | 5 | 7 | 0 |\n| 0 | 0 |   |   |\n#+TBLFM: @1$4=$1\n"
+  }
+ },
+ {
+  "name": "random formulas with options (9)",
+  "text": "| 7 | 6 | 2 |\n| 4 | 1 | 6 |\n|---+---+---|\n#+TBLFM: @>$2=@<$1\n",
+  "settings": {
+   "cross_hline": false,
+   "create_columns": true
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline nil) (org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 7 | 6 | 2 |\n| 4 | 7 | 6 |\n|---+---+---|\n#+TBLFM: @>$2=@<$1\n"
+  }
+ },
+ {
+  "name": "random formulas with options (10)",
+  "text": "| 5 | 7 |\n|---+---|\n| 4 | 1 |\n| 7 |\n| 4 | 9 |\n| 2 | 2 |\n| 1 | 1 | 8 | 2 |\n#+TBLFM: @1$4=$1\n",
+  "settings": {
+   "create_columns": true
+  },
+  "emacs": "(org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 5 | 7 |   |   |\n|---+---+---+---|\n| 4 | 1 |   |   |\n| 7 |   |   |   |\n| 4 | 9 |   |   |\n| 2 | 2 |   |   |\n| 1 | 1 | 8 | 2 |\n#+TBLFM: @1$4=$1\n"
+  }
+ },
+ {
+  "name": "random formulas with options (11)",
+  "text": "| 5 | 9 |\n|---+---|\n| 4 | 4 |\n| 7 | 3 | 8 |\n|---+---|\n#+TBLFM: @1$4=$1\n",
+  "settings": {
+   "cross_hline": true,
+   "create_columns": true
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline t) (org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 5 | 9 |   | 5 |\n|---+---+---+---|\n| 4 | 4 |   |   |\n| 7 | 3 | 8 |   |\n|---+---+---+---|\n#+TBLFM: @1$4=$1\n"
+  }
+ },
+ {
+  "name": "random formulas with options (12)",
+  "text": "| 7 | 5 | 6 |\n| 1 | 4 | 9 |\n| 1 | 8 | 0 |\n| 1 | 5 | 5 |\n|---+---+---|\n| 6 | 1 | 9 |\n| 0 | 5 | 3 |\n#+TBLFM: @2$5=@-1$1\n",
+  "settings": {
+   "cross_hline": false,
+   "create_columns": true
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline nil) (org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 7 | 5 | 6 |   |   |\n| 1 | 4 | 9 |   | 7 |\n| 1 | 8 | 0 |   |   |\n| 1 | 5 | 5 |   |   |\n|---+---+---+---+---|\n| 6 | 1 | 9 |   |   |\n| 0 | 5 | 3 |   |   |\n#+TBLFM: @2$5=@-1$1\n"
+  }
+ },
+ {
+  "name": "random formulas with options (13)",
+  "text": "| 0 | 7 |\n|---+---|\n| 6 | 0 |\n#+TBLFM: @1$4=$1\n",
+  "settings": {
+   "cross_hline": true,
+   "create_columns": true
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline t) (org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 0 | 7 |   | 0 |\n|---+---+---+---|\n| 6 | 0 |   |   |\n#+TBLFM: @1$4=$1\n"
+  }
+ },
+ {
+  "name": "random formulas with options (14)",
+  "text": "| 4 |\n| 3 |\n|---|\n| 6 |\n#+TBLFM: $2=@-1$1::@1$4=7\n",
+  "settings": {
+   "create_columns": true
+  },
+  "emacs": "(org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 4 |   |   | 7 |\n| 3 |   |   |   |\n|---+---+---+---|\n| 6 | 3 |   |   |\n#+TBLFM: $2=@-1$1::@1$4=7\n"
+  }
+ },
+ {
+  "name": "random formulas with options (15)",
+  "text": "| 8 | 3 |\n| 0 | 7 | 5 |\n| 3 | 8 | 0 |\n|---+---|\n| 0 | 2 |\n#+TBLFM: $2=@-1$1\n",
+  "settings": {
+   "cross_hline": true,
+   "create_columns": true
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline t) (org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 8 | 3 |   |\n| 0 | 7 | 5 |\n| 3 | 8 | 0 |\n|---+---+---|\n| 0 | 3 |   |\n#+TBLFM: $2=@-1$1\n"
+  }
+ },
+ {
+  "name": "random formulas with options (16)",
+  "text": "| 2 | 3 | 0 |\n|---+---+---|\n| 7 |\n| 7 | 6 | 4 |\n#+TBLFM: @1$4=$1\n",
+  "settings": {
+   "cross_hline": false,
+   "create_columns": true
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline nil) (org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 2 | 3 | 0 | 2 |\n|---+---+---+---|\n| 7 |   |   |   |\n| 7 | 6 | 4 |   |\n#+TBLFM: @1$4=$1\n"
+  }
+ },
+ {
+  "name": "random formulas with options (17)",
+  "text": "| 2 | 6 |\n| 4 | 0 |\n|---|\n| 7 |\n| 9 |\n| 2 |\n|---|\n#+TBLFM: $2=@+1$1\n",
+  "settings": {
+   "cross_hline": false,
+   "create_columns": true
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline nil) (org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 2 | 6 |\n| 4 | 0 |\n|---+---|\n| 7 | 9 |\n| 9 | 2 |\n| 2 | 2 |\n|---+---|\n#+TBLFM: $2=@+1$1\n"
+  }
+ },
+ {
+  "name": "random formulas with options (18)",
+  "text": "| 4 | 1 | 6 |\n| 8 | 7 | 7 |\n|---+---+---|\n| 6 | 6 | 5 |\n#+TBLFM: $2=@-1$1\n",
+  "settings": {
+   "create_columns": true
+  },
+  "emacs": "(org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 4 | 1 | 6 |\n| 8 | 7 | 7 |\n|---+---+---|\n| 6 | 8 | 5 |\n#+TBLFM: $2=@-1$1\n"
+  }
+ },
+ {
+  "name": "random formulas with options (19)",
+  "text": "| 5 |\n| 1 | 5 |\n| 5 |\n| 8 |\n| 9 |\n| 4 |\n#+TBLFM: $3=@+2$1\n",
+  "settings": {
+   "cross_hline": false,
+   "create_columns": true
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline nil) (org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 5 |   | 5 |\n| 1 | 5 | 8 |\n| 5 |   | 9 |\n| 8 |   | 4 |\n| 9 |   | 4 |\n| 4 |   | 4 |\n#+TBLFM: $3=@+2$1\n"
+  }
+ },
+ {
+  "name": "random formulas with options (20)",
+  "text": "| 4 | 1 | 7 |\n| 2 | 9 | 9 |\n|---+---+---|\n| 5 | 9 | 5 |\n| 5 | 5 | 4 |\n| 2 | 1 | 9 |\n#+TBLFM: @>$2=@<$1\n",
+  "settings": {
+   "cross_hline": true
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline t)",
+  "expected": {
+   "text": "| 4 | 1 | 7 |\n| 2 | 9 | 9 |\n|---+---+---|\n| 5 | 9 | 5 |\n| 5 | 5 | 4 |\n| 2 | 4 | 9 |\n#+TBLFM: @>$2=@<$1\n"
+  }
+ },
+ {
+  "name": "random formulas with options (21)",
+  "text": "| 4 | 7 |\n|---+---|\n| 2 | 9 |\n#+TBLFM: @>$2=@<$1\n",
+  "settings": {
+   "cross_hline": false
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline nil)",
+  "expected": {
+   "text": "| 4 | 7 |\n|---+---|\n| 2 | 4 |\n#+TBLFM: @>$2=@<$1\n"
+  }
+ },
+ {
+  "name": "random formulas with options (22)",
+  "text": "| 0 | 8 |\n| 6 | 8 |\n#+TBLFM: @1$4=$1\n",
+  "settings": {
+   "create_columns": true
+  },
+  "emacs": "(org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 0 | 8 |   | 0 |\n| 6 | 8 |   |   |\n#+TBLFM: @1$4=$1\n"
+  }
+ },
+ {
+  "name": "random formulas with options (23)",
+  "text": "| 1 | 9 |\n| 0 | 5 |\n|---+---|\n| 5 | 6 |\n|---+---|\n#+TBLFM: $2=@-1$1\n",
+  "settings": {
+   "cross_hline": false
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline nil)",
+  "expected": {
+   "text": "| 1 | 9 |\n| 0 | 5 |\n|---+---|\n| 5 | 5 |\n|---+---|\n#+TBLFM: $2=@-1$1\n"
+  }
+ },
+ {
+  "name": "random formulas with options (24)",
+  "text": "| 8 |\n| 4 |\n| 1 |\n|---|\n#+TBLFM: @1$4=$1\n",
+  "settings": {
+   "create_columns": true
+  },
+  "emacs": "(org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 8 |   |   | 8 |\n| 4 |   |   |   |\n| 1 |   |   |   |\n|---+---+---+---|\n#+TBLFM: @1$4=$1\n"
+  }
+ },
+ {
+  "name": "random formulas with options (25)",
+  "text": "| 6 | 9 | 3 |\n| 6 | 1 | 0 |\n| 8 | 8 | 3 |\n| 3 | 7 | 8 |\n| 7 | 8 | 3 |\n#+TBLFM: @2$2..@4$2=@-1$1\n",
+  "settings": {
+   "cross_hline": true,
+   "create_columns": true
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline t) (org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 6 | 9 | 3 |\n| 6 | 6 | 0 |\n| 8 | 6 | 3 |\n| 3 | 8 | 8 |\n| 7 | 8 | 3 |\n#+TBLFM: @2$2..@4$2=@-1$1\n"
+  }
+ },
+ {
+  "name": "random formulas with options (26)",
+  "text": "| 2 | 0 | 5 |\n| 0 | 3 |\n| 2 | 4 |\n|---+---|\n| 5 | 1 |\n|---+---|\n#+TBLFM: @3$3=@-1$1\n",
+  "settings": {
+   "create_columns": true
+  },
+  "emacs": "(org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 2 | 0 | 5 |\n| 0 | 3 |   |\n| 2 | 4 | 0 |\n|---+---+---|\n| 5 | 1 |   |\n|---+---+---|\n#+TBLFM: @3$3=@-1$1\n"
+  }
+ },
+ {
+  "name": "random formulas with options (27)",
+  "text": "| 2 | 4 |\n| 4 | 9 |\n#+TBLFM: @>$2=@<$1\n",
+  "settings": {
+   "create_columns": true
+  },
+  "emacs": "(org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 2 | 4 |\n| 4 | 2 |\n#+TBLFM: @>$2=@<$1\n"
+  }
+ },
+ {
+  "name": "random formulas with options (28)",
+  "text": "| 7 |\n|---|\n| 7 |\n#+TBLFM: @2$5=@-1$1\n",
+  "settings": {
+   "create_columns": true
+  },
+  "emacs": "(org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 7 |   |   |   |   |\n|---+---+---+---+---|\n| 7 |   |   |   | 7 |\n#+TBLFM: @2$5=@-1$1\n"
+  }
+ },
+ {
+  "name": "random formulas with options (29)",
+  "text": "| 9 |\n|---|\n| 9 |\n| 9 |\n| 9 |\n| 8 | 9 |\n#+TBLFM: @2$5=@-1$1\n",
+  "settings": {
+   "cross_hline": false,
+   "create_columns": true
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline nil) (org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 9 |   |   |   |   |\n|---+---+---+---+---|\n| 9 |   |   |   | 9 |\n| 9 |   |   |   |   |\n| 9 |   |   |   |   |\n| 8 | 9 |   |   |   |\n#+TBLFM: @2$5=@-1$1\n"
+  }
+ },
+ {
+  "name": "random formulas with options (30)",
+  "text": "| 3 |\n| 0 |\n|---|\n| 8 |\n| 5 |\n#+TBLFM: $2=@-1$1::@1$4=7\n",
+  "settings": {
+   "cross_hline": false,
+   "create_columns": true
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline nil) (org-table-formula-create-columns t)",
+  "expected": {
+   "text": "| 3 |   |   | 7 |\n| 0 |   |   |   |\n|---+---+---+---|\n| 8 | 8 |   |   |\n| 5 | 8 |   |   |\n#+TBLFM: $2=@-1$1::@1$4=7\n"
+  }
+ },
+ {
+  "name": "random formulas with options (31)",
+  "text": "| 6 | 6 |\n| 2 | 5 | 1 | 0 |\n|---+---|\n| 4 | 6 | 8 | 6 |\n#+TBLFM: @1$3..@2$4=$1*2\n",
+  "settings": {
+   "cross_hline": true
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline t)",
+  "expected": {
+   "error": "Missing columns in the table.  Aborting"
+  }
+ },
+ {
+  "name": "random formulas with options (32)",
+  "text": "| 0 | 4 |\n| 2 | 5 |\n| 3 |\n#+TBLFM: $2=@-1$1::@1$4=7\n",
+  "settings": {
+   "cross_hline": "error",
+   "create_columns": true
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline 'error) (org-table-formula-create-columns t)",
+  "expected": {
+   "error": "Row descriptor -1 leads outside table"
+  }
+ },
+ {
+  "name": "random formulas with options (33)",
+  "text": "| 9 | 4 | 2 |\n| 5 | 5 | 2 |\n#+TBLFM: @2$5=@-1$1\n",
+  "settings": {
+   "cross_hline": true
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline t)",
+  "expected": {
+   "error": "Missing columns in the table.  Aborting"
+  }
+ },
+ {
+  "name": "random formulas with options (34)",
+  "text": "| 9 | 0 | 0 | 7 |\n| 4 | 3 | 0 |\n| 9 | 1 | 5 |\n|---+---+---|\n| 0 | 5 | 3 |\n|---+---+---|\n| 3 | 4 |\n#+TBLFM: $2=@-2$1+@+1$1\n",
+  "settings": {
+   "cross_hline": true,
+   "create_columns": true
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline t) (org-table-formula-create-columns t)",
+  "expected": {
+   "error": "Row descriptor +1 leads outside table"
+  }
+ },
+ {
+  "name": "random formulas with options (35)",
+  "text": "| 5 |\n| 5 | 6 | 6 |\n#+TBLFM: $3=@+2$1\n",
+  "settings": {
+   "create_columns": true
+  },
+  "emacs": "(org-table-formula-create-columns t)",
+  "expected": {
+   "error": "Row descriptor +2 leads outside table"
+  }
+ },
+ {
+  "name": "random formulas with options (36)",
+  "text": "| 6 | 3 | 6 |\n|---+---+---|\n| 8 | 4 | 1 |\n| 8 | 6 | 1 |\n| 1 | 9 | 0 |\n| 6 | 0 | 8 |\n|---+---+---|\n#+TBLFM: $2=@+1$1\n",
+  "settings": {
+   "cross_hline": true
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline t)",
+  "expected": {
+   "error": "Row descriptor +1 leads outside table"
+  }
+ },
+ {
+  "name": "random formulas with options (37)",
+  "text": "| 0 |\n| 4 | 9 |\n#+TBLFM: @3$3=@-1$1\n",
+  "settings": {
+   "create_columns": true
+  },
+  "emacs": "(org-table-formula-create-columns t)",
+  "expected": {
+   "error": "Args out of range: [nil 0 1], 3"
+  }
+ },
+ {
+  "name": "random formulas with options (38)",
+  "text": "| 4 | 6 | 9 |\n| 4 | 3 | 4 |\n|---+---+---|\n#+TBLFM: $3=@+2$1\n",
+  "settings": {
+   "cross_hline": "error",
+   "create_columns": true
+  },
+  "emacs": "(org-table-relative-ref-may-cross-hline 'error) (org-table-formula-create-columns t)",
+  "expected": {
+   "error": "Row descriptor +2 crosses hline"
+  }
  }
 ]

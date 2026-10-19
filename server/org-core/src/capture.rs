@@ -104,6 +104,15 @@ fn replace_unescaped(
     regexp: &Regex,
     mut replacement: impl FnMut(&regex::Captures) -> Result<Option<String>, Refusal>,
 ) -> Result<String, Refusal> {
+    replace_unescaped_after(text, regexp, |captures, _| replacement(captures))
+}
+
+/// [`replace_unescaped`], `replacement` also given the text made so far.
+fn replace_unescaped_after(
+    text: &str,
+    regexp: &Regex,
+    mut replacement: impl FnMut(&regex::Captures, &str) -> Result<Option<String>, Refusal>,
+) -> Result<String, Refusal> {
     let mut out = String::with_capacity(text.len());
     let mut last = 0;
     for captures in regexp.captures_iter(text) {
@@ -113,7 +122,7 @@ fn replace_unescaped(
         if is_escaped {
             out.push_str(found.as_str());
         } else {
-            match replacement(&captures)? {
+            match replacement(&captures, &out)? {
                 Some(value) => out.push_str(&value),
                 None => out.push_str(found.as_str()),
             }
@@ -413,6 +422,30 @@ pub fn fill(
     fill_with(template, context, answers, settings, None)
 }
 
+/// The day of a datetree's entry with no `:time-prompt`: `org-today`,
+/// which late at night is still yesterday.
+pub fn tree_date(now: DateTime, settings: &ReadDateSettings) -> crate::date::Date {
+    crate::date::Date::from_day(now.org_today(settings.extend_today_until))
+}
+
+/// `:time-prompt`: the date the answer gives the tree entry, and the time
+/// it stands for in the template. That is the typed time; on today's date
+/// the prompt's default (late at night, 23:59 yesterday); else the start
+/// of the day, which Org puts at `org-extend-today-until` o'clock.
+pub fn prompted_time(answer: &str, now: DateTime, settings: &ReadDateSettings) -> Result<DateTime, String> {
+    let read = read_date(answer, None, now, settings)?;
+    let extend = settings.extend_today_until;
+    let (hour, minute) = match read.time {
+        Some(time) => time,
+        None if read.date.to_day() == now.org_today(extend) => {
+            let default = now.late_night(extend);
+            (default.minute / 60, default.minute % 60)
+        }
+        None => (extend, 0),
+    };
+    Ok(DateTime::new(read.date, hour, minute))
+}
+
 /// [`fill`], with `%[file]` and `%(sexp)` expanded by `outside`: the files
 /// first, their text expanded as the template's; then the sexps marked,
 /// the escapes inside them expanded with `\` and `"` escaped; then the
@@ -443,6 +476,9 @@ pub fn fill_counting(
     };
     let template = template.as_str();
     let time = context.now;
+    // The time `%t`, `%U` and `%<…>` show: late at night, the last minute
+    // of yesterday (`org-extend-today-until`).
+    let stamped = time.late_night(settings.extend_today_until);
     let annotation = if context.annotation == "[[]]" { "" } else { context.annotation.as_str() };
     let link = |with: &str| -> String {
         match LINK.captures(annotation) {
@@ -460,14 +496,13 @@ pub fn fill_counting(
     };
     let (file, full) = context.file.clone().unwrap_or_default();
     // The non-interactive escapes.
-    let text = replace_unescaped(template, &NON_INTERACTIVE, |captures| {
+    let text = replace_unescaped_after(template, &NON_INTERACTIVE, |captures, made| {
         let value = &captures[1];
         let start = captures.get(0).expect("whole match").start();
-        let line_start = template[..start].rfind('\n').map_or(0, |at| at + 1);
         let before = &template[..start];
         let inside = before.matches(SEXP_START).count() > before.matches(SEXP_END).count();
         let value = match value.as_bytes()[0] {
-            b'<' => format_time(&captures[2], time),
+            b'<' => format_time(&captures[2], stamped),
             b':' => match value {
                 ":annotation" => annotation.to_string(),
                 ":initial" => context.initial.clone(),
@@ -480,8 +515,9 @@ pub fn fill_counting(
             },
             b'i' if inside => context.initial.clone(),
             b'i' => {
-                // Lines after the first repeat what stands before `%i`.
-                let lead = &template[line_start..start];
+                // Lines after the first repeat what stands before `%i` on
+                // its line as it is filled so far.
+                let lead = &made[made.rfind('\n').map_or(0, |at| at + 1)..];
                 context.initial.replace('\n', &format!("\n{lead}"))
             }
             b'a' => annotation.to_string(),
@@ -494,10 +530,10 @@ pub fn fill_counting(
             b'f' => file.clone(),
             b'F' => full.clone(),
             b'n' => context.user_name.clone(),
-            b't' => format_timestamp(time, false, false, ""),
-            b'T' => format_timestamp(time, true, false, ""),
-            b'u' => format_timestamp(time, false, true, ""),
-            b'U' => format_timestamp(time, true, true, ""),
+            b't' => format_timestamp(stamped, false, false, ""),
+            b'T' => format_timestamp(stamped, true, false, ""),
+            b'u' => format_timestamp(stamped, false, true, ""),
+            b'U' => format_timestamp(stamped, true, true, ""),
             _ => return Ok(None),
         };
         // In Lisp, the value is a string's content.
@@ -592,10 +628,12 @@ pub fn fill_counting(
             }
             Question::Date { with_time, inactive, .. } => {
                 let mut read = read_date(answer, None, time, settings)?;
-                // `%^T` and `%^U` have a time, the current one when none
-                // was typed.
+                // `%^T` and `%^U` have a time, the prompt's default when
+                // none was typed: the current one, or late at night the
+                // last minute of yesterday.
                 if with_time && read.time.is_none() {
-                    read.time = Some((time.minute / 60, time.minute % 60));
+                    let default = time.late_night(settings.extend_today_until);
+                    read.time = Some((default.minute / 60, default.minute % 60));
                 }
                 let stamp = crate::planning::timestamp_for(&read, inactive);
                 strings_all.push(stamp.clone());
@@ -809,6 +847,11 @@ impl Placed {
     /// (`org-capture-finalize`), and saved as Org mode saves it, with a
     /// newline at the end (`require-final-newline`).
     pub fn finish(&self, edited: &str) -> String {
+        self.finish_with(edited, &crate::tblfm::Settings::default())
+    }
+
+    /// [`Placed::finish`], a table recalculated with `formulas`.
+    fn finish_with(&self, edited: &str, formulas: &crate::tblfm::Settings) -> String {
         let mut text = format!("{}{edited}{}", &self.text[..self.start], &self.text[self.end..]);
         // A table line: the table aligned, when the capture is a table line.
         if self.align_table {
@@ -830,13 +873,13 @@ impl Placed {
                 // With formulas, the table is calculated again, which
                 // aligns it (`org-table-fix-formulas` is not ported).
                 let recalculated = crate::tblfm::has_formulas(&text, start)
-                    .then(|| crate::tblfm::recalculate(&text, start, crate::tblfm::Mode::All, &|_| None).ok())
+                    .then(|| crate::tblfm::recalculate(&text, start, crate::tblfm::Mode::All, &|_| None, formulas).ok())
                     .flatten();
                 match recalculated {
                     Some(done) => text = done.text,
                     None => {
                         let lines: Vec<&str> = text[first..end].lines().collect();
-                        let mut aligned = crate::format::align_table(&lines).join("\n");
+                        let mut aligned = crate::format::align_table(&lines, &formulas.alignment).join("\n");
                         if text[first..end].ends_with('\n') {
                             aligned.push('\n');
                         }
@@ -864,14 +907,20 @@ impl Placed {
         settings: &crate::todo::Settings,
         now: DateTime,
     ) -> String {
-        let text = self.finish(edited);
+        let text = self.finish_with(edited, &settings.table.formulas);
         let Some(heading) = heading_at(&text, self.begin.min(text.len())) else { return text };
         let mut editor = crate::todo::Editor::new(&text, keywords, settings, now);
         editor.heading = heading;
         editor.update_parent_statistics();
         let text = editor.text;
         let heading = heading_at(&text, self.begin.min(text.len())).unwrap_or(heading);
-        crate::checkbox::update_counts(&text, keywords, heading, settings.tags_column)
+        crate::checkbox::update_counts(
+            &text,
+            keywords,
+            heading,
+            settings.tags_column,
+            settings.lists.checkbox_hierarchical,
+        )
     }
 }
 
@@ -1035,6 +1084,7 @@ fn headlines(text: &str) -> Vec<usize> {
 fn find_path(text: &str, path: &[String], keywords: &TodoKeywords) -> Result<Option<usize>, Refusal> {
     let (mut lmin, mut lmax) = (1, 1);
     let (mut from, mut to) = (0, text.len());
+    let odd = crate::structure::odd_levels_in(text);
     let mut found = None;
     for title in path {
         let matches: Vec<usize> = headlines(text)
@@ -1051,7 +1101,7 @@ fn find_path(text: &str, path: &[String], keywords: &TodoKeywords) -> Result<Opt
                 from = *one;
                 to = subtree_end(text, *one);
                 lmin = level + 1;
-                lmax = lmin;
+                lmax = lmin + usize::from(odd);
             }
             _ => return Err(Refusal::Failed(format!("Heading not unique on level {lmax}: {title}"))),
         }
@@ -1188,6 +1238,7 @@ fn datetree(
     keywords: &TodoKeywords,
 ) -> Result<usize, Refusal> {
     let (mut start, mut end, mut level) = (0, text.len(), 1);
+    let odd = crate::structure::odd_levels_in(text);
     let legacy = if groups == [Group::Year, Group::Month, Group::Day] || groups == [Group::Year, Group::Month] {
         Some("DATE_TREE")
     } else if groups == [Group::Year, Group::Week, Group::Day] {
@@ -1202,8 +1253,12 @@ fn datetree(
     if let Some(root) = root {
         start = root;
         end = narrowed_subtree_end(text, root, text.len());
-        level = headline_level(line_of(text, root)).unwrap_or(0) + 1;
+        level = crate::structure::valid_level(headline_level(line_of(text, root)).unwrap_or(0), 1, odd);
     }
+    // With `org-odd-levels-only`, `level` counts levels and headlines have
+    // two stars a level, as `org-reduced-level` reads them.
+    let stars = |level: usize| if odd { 2 * level - 1 } else { level };
+    let reduced = |line: &str| headline_level(line).map(|level| crate::structure::reduced_level(level, odd));
     let mut found = start;
     for (title, pattern) in datetree_levels(date, groups) {
         let regex = Regex::new(pattern).expect("a valid regex");
@@ -1218,7 +1273,7 @@ fn datetree(
         let sibling = headlines(text)
             .into_iter()
             .filter(|at| (start..end).contains(at))
-            .filter(|at| headline_level(line_of(text, *at)) == Some(level))
+            .filter(|at| reduced(line_of(text, *at)) == Some(level))
             .find(|at| compare(line_of(text, *at)).is_some_and(|order| order != std::cmp::Ordering::Less));
         let mut buffer = Buffer { text: std::mem::take(text), point: 0 };
         if let Some(sibling) = sibling {
@@ -1245,7 +1300,7 @@ fn datetree(
         buffer.point = kept;
         end -= removed;
         let blank = blank_before_heading_in(&buffer.text, buffer.point, start, end);
-        let inserted = format!("{}\n{} {title}\n", if blank { "\n" } else { "" }, "*".repeat(level));
+        let inserted = format!("{}\n{} {title}\n", if blank { "\n" } else { "" }, "*".repeat(stars(level)));
         buffer.insert(&inserted);
         end += inserted.len();
         let heading = buffer.line_start(buffer.point - 1);
@@ -1306,6 +1361,7 @@ fn property_heading(text: &str, name: &str) -> Option<usize> {
 }
 
 /// Put the expanded `template` into `text` as `kind` at `target`.
+#[allow(clippy::too_many_arguments)]
 pub fn place(
     text: &str,
     keywords: &TodoKeywords,
@@ -1314,6 +1370,7 @@ pub fn place(
     template: &str,
     properties: &Properties,
     levels: &LevelSettings,
+    lists: &crate::list::Settings,
 ) -> Result<Placed, Refusal> {
     let mut text = text.to_string();
     let location = find_target(&mut text, target, keywords, properties.prepend)?;
@@ -1322,7 +1379,7 @@ pub fn place(
     let (start, end) = match kind {
         Kind::Entry => place_entry(&mut buffer, location.heading, template, properties, levels)?,
         Kind::Plain => place_plain(&mut buffer, location, template, properties),
-        Kind::Item | Kind::CheckItem => place_item(&mut buffer, location, template, properties)?,
+        Kind::Item | Kind::CheckItem => place_item(&mut buffer, location, template, properties, lists)?,
         Kind::TableLine => place_table_line(&mut buffer, location, template, properties)?,
     };
     // `org-capture--position-cursor`: at the first `%?`, which goes.
@@ -1353,7 +1410,8 @@ fn place_entry(
     let mut level = 1;
     match heading {
         Some(heading) => {
-            level = headline_level(buffer.line(heading)).unwrap_or(0) + 1;
+            let stars = headline_level(buffer.line(heading)).unwrap_or(0);
+            level = crate::structure::valid_level(stars, 1, crate::structure::odd_levels_in(&buffer.text));
             if properties.prepend {
                 buffer.next_heading();
             } else {
@@ -1448,8 +1506,9 @@ fn remove_indentation(text: &str) -> String {
 }
 
 /// `org-item-beginning-re`
-static ITEM_START: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?m)^[ \t]*(?:[-+*]|[0-9]+[.)])(?:[ \t]+|$)").unwrap());
+fn item_start() -> Regex {
+    crate::list::item_regex(r"(?m)^[ \t]*(?:[-+*]|{ordered})(?:[ \t]+|$)")
+}
 
 /// `org-capture-place-item`
 fn place_item(
@@ -1457,13 +1516,13 @@ fn place_item(
     location: Location,
     template: &str,
     properties: &Properties,
+    lists: &crate::list::Settings,
 ) -> Result<(usize, usize), Refusal> {
-    static ITEM_RE: LazyLock<Regex> =
-        LazyLock::new(|| Regex::new(r"\A[ \t]*(?:[-+*]|[0-9]+[.)])(?:[ \t]+|$)").unwrap());
+    let item_re = crate::list::item_regex(r"\A[ \t]*(?:[-+*]|{ordered})(?:[ \t]+|$)");
     static ORDERED: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\A[A-Za-z0-9][.)]").unwrap());
     let prepend = properties.prepend;
     let mut template = remove_indentation(template);
-    if !ITEM_RE.is_match(&template) {
+    if !item_re.is_match(&template) {
         template = format!("- {}", template.split('\n').collect::<Vec<_>>().join("\n  "));
     }
     // Where to look for a list.
@@ -1477,7 +1536,7 @@ fn place_item(
     };
     // The first plain list there.
     let mut list: Option<crate::list::Struct> = None;
-    for found in ITEM_START.find_iter(&buffer.text[beg..end.max(beg)]) {
+    for found in item_start().find_iter(&buffer.text[beg..end.max(beg)]) {
         let at = beg + found.start();
         if headline_level(line_of(&buffer.text, at)).is_some() || !crate::list::at_item(&buffer.text, at) {
             continue;
@@ -1552,12 +1611,12 @@ fn place_item(
             let ordered = items[0].bullet.trim().starts_with(|c: char| c.is_ascii_digit());
             if ordered != ORDERED.is_match(&template) {
                 let (text, marker) =
-                    crate::list::set_bullet(&buffer.text, start, if ordered { "1." } else { "-" }, end)?;
+                    crate::list::set_bullet(&buffer.text, start, if ordered { "1." } else { "-" }, end, lists)?;
                 buffer.text = text;
                 end = marker;
             }
         }
-        let (text, marker) = crate::list::repair_with_marker(&buffer.text, start, end)?;
+        let (text, marker) = crate::list::repair_with_marker(&buffer.text, start, end, lists)?;
         buffer.text = text;
         end = marker;
     }
@@ -1761,6 +1820,37 @@ mod tests {
         let settings = ReadDateSettings::default();
         let filled = fill("%:type %:link %:annotation %:initial [%:description] [%:Type]", &context, &[], &settings);
         assert_eq!(filled.unwrap(), Filled::Text("id id:1 [[id:1][Head]] start [] []\n".into()));
+    }
+
+    #[test]
+    fn repeats_the_filled_lead_of_initial_text() {
+        let context = Context {
+            now: now(),
+            file: None,
+            initial: "first line\nsecond line\nthird".into(),
+            annotation: String::new(),
+            link_props: Vec::new(),
+            user_name: String::new(),
+            clock_heading: String::new(),
+            clock_link: String::new(),
+            tags_column: -77,
+            clipboard: String::new(),
+        };
+        let settings = ReadDateSettings::default();
+        // As `org-capture-fill-template` gives them, the escapes before
+        // `%i` on its line already expanded.
+        assert_eq!(
+            fill("- %t %i", &context, &[], &settings).unwrap(),
+            Filled::Text(
+                "- <2026-05-18 Mon> first line\n- <2026-05-18 Mon> second line\n- <2026-05-18 Mon> third\n".into()
+            )
+        );
+        assert_eq!(
+            fill("- %i %i", &context, &[], &settings).unwrap(),
+            Filled::Text(
+                "- first line\n- second line\n- third first line\n- third second line\n- third third\n".into()
+            )
+        );
     }
 
     #[test]

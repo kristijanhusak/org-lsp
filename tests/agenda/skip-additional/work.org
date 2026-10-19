@@ -1,0 +1,8 @@
+* Meeting <2026-05-18 Mon 09:00> and again <2026-05-18 Mon 15:00>
+Notes <2026-05-18 Mon 11:00>
+** Follow-up <2026-05-18 Mon 16:00>
+<2026-05-19 Tue 10:00>
+* TODO Done one way
+SCHEDULED: <2026-05-18 Mon>
+Then <2026-05-18 Mon 13:00> and <2026-05-20 Wed>
+* Repeating <2026-05-11 Mon 8:00 +1w> <2026-05-18 Mon 17:00>

@@ -48,10 +48,17 @@ vim.g.org_lsp = {
   cmd = { server },
   settings = {
     org_todo_keyword_faces = { TODO = ':foreground #ff8800 :weight bold' },
+    org_tag_faces = { tag = '#0088ff' },
     org_roam_enabled = true,
     org_roam_directory = roam_dir,
     org_journal_enabled = true,
     org_journal_dir = journal_dir,
+    -- Two looks of levels, the deeper ones in the second, and headlines
+    -- highlighted to the edge of the window.
+    org_n_level_faces = 2,
+    org_cycle_level_faces = false,
+    org_fontify_whole_heading_line = true,
+    org_custom_properties = { 'ID' },
   },
 }
 vim.opt.runtimepath:prepend(root)
@@ -115,6 +122,17 @@ wait('the face on the TODO keyword', function()
   end
   return false
 end)
+-- A tag with a face of its own (`org_tag_faces`): its name, not the colons.
+wait('the face on the tag', function()
+  local marks = vim.api.nvim_buf_get_extmarks(bufnr, -1, { 1, 0 }, { 1, -1 }, { details = true })
+  for _, mark in ipairs(marks) do
+    if mark[4].hl_group == 'OrgLspTagFace_tag' then
+      return mark[3] == 21 and mark[4].end_col == 24
+    end
+  end
+  return false
+end)
+eq(vim.api.nvim_get_hl(0, { name = 'OrgLspTagFace_tag' }).fg, 0x0088ff, 'the face of the tag')
 wait('regex syntax to be replaced', function()
   return vim.bo.syntax == ''
 end)
@@ -128,6 +146,19 @@ eq(vim.fn.foldclosed(2), -1, 'file starts with everything visible')
 vim.api.nvim_win_set_cursor(0, { 2, 0 })
 press('<Tab>')
 eq({ vim.fn.foldclosed(2), vim.fn.foldclosedend(2) }, { 2, 7 }, 'TAB folds the subtree')
+-- The closed fold shows its headline as it shows open, then
+-- `org-ellipsis` (`...`), as Emacs shows a folded heading.
+local folded = vim.api.nvim_win_call(0, function()
+  vim.v.foldstart = 2
+  return require('org-lsp.folds').foldtext()
+end)
+eq(folded[#folded], { '...', 'OrgLspEllipsis' }, 'the ellipsis after the headline')
+local shown = vim.iter(folded):map(function(chunk)
+  return chunk[1]
+end):join('')
+eq(shown, '* TODO First *bold* :tag:...', 'the headline as it shows open')
+check(vim.tbl_contains(folded[1][2], '@lsp.typemod.stars.level1.org'), 'the stars in the color of their level')
+eq(vim.wo.foldtext, "v:lua.require'org-lsp.folds'.foldtext()", 'foldtext')
 press('<Tab>')
 eq(vim.fn.foldclosed(2), -1, 'TAB again opens it')
 eq({ vim.fn.foldclosed(5), vim.fn.foldclosedend(5) }, { 5, 7 }, '...with the child still folded')
@@ -447,6 +478,41 @@ press('<Leader>ois')
 wait('the calendar once more', function()
   return prompt_window() ~= nil
 end)
+-- The plugin highlights the calendar itself, in the same moment as its
+-- text changes: the field of the time being picked stays marked.
+local function marked(pattern)
+  local bufnr = vim.api.nvim_win_get_buf(prompt_window())
+  local namespace = vim.api.nvim_create_namespace('org_lsp_prompt_highlights')
+  for row, text in ipairs(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)) do
+    local start, _, at = text:find(pattern)
+    local col = at or start
+    if col then
+      local marks = vim.api.nvim_buf_get_extmarks(bufnr, namespace, { row - 1, col - 1 }, { row - 1, col - 1 }, {
+        details = true,
+        overlap = true,
+      })
+      return vim.tbl_contains(marks, function(mark)
+        return mark[4].hl_group == '@lsp.type.calendarSelected.org-date'
+      end, { predicate = true })
+    end
+  end
+  return false
+end
+press('t')
+wait('the hour picked', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return marked('Time: ()09') and not marked('Time: %d%d:()')
+end)
+press('k')
+wait('an hour later', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return marked('Time: ()10')
+end)
+press('l')
+wait('the minute picked', function()
+  vim.api.nvim_feedkeys('', 'x', false)
+  return marked('Time: %d%d:()') and not marked('Time: ()10')
+end)
 press('q')
 wait('the calendar to close when cancelled', function()
   return prompt_window() == nil
@@ -520,6 +586,12 @@ press('gt')
 vim.wait(200)
 eq(line(2), '* WAIT Call them', 'an unknown key quits')
 plugin.read_key = read_key
+-- `org-use-fast-todo-selection` `expert`: the keys in the prompt, which
+-- shows alone, no window listing them.
+local windows = #vim.api.nvim_list_wins()
+vim.api.nvim_feedkeys('t', 'n', false)
+eq(plugin.read_key('[a-z..]:Set [SPC]:clear\n{[t] TODO }', { { key = 't', label = 'TODO' } }, true), 't', 'the key read')
+eq(#vim.api.nvim_list_wins(), windows, 'no window for the choices')
 
 -- 14b. `<Leader>ot` sets tags a key at a time, each turning its tag on or
 -- off, until RET; the tags go to their column.
@@ -689,7 +761,7 @@ end)
 -- changing it: the text under a headline lines up with its title, and the
 -- leading stars are hidden.
 local virtual = vim.fn.tempname() .. '.org'
-vim.fn.writefile({ '#+STARTUP: indent', '* A', 'text', '** B' }, virtual)
+vim.fn.writefile({ '#+STARTUP: indent', '* A', 'text', '** B and a title that wraps' }, virtual)
 vim.cmd.edit(virtual)
 local virtual_ns = vim.api.nvim_create_namespace('org_lsp_virtual_indent')
 local function prefixes()
@@ -709,6 +781,83 @@ wait('the lines indented', function()
 end)
 eq(prefixes(), { { 2, 2 }, { 3, 1 }, { 3, 'star', 0 } }, 'the text below A at 2, B after 1 column, one star hidden')
 eq(line(3), 'text', 'the file is not changed')
+-- A headline that wraps goes on under its title (`wrap-prefix`, without
+-- the prefix): in a window of 24 columns, `** B and a title that` then
+-- `wraps` after its two stars and a space.
+vim.cmd('vsplit')
+vim.cmd('vertical resize 24')
+vim.wo.wrap = true
+vim.wo.linebreak = true
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+vim.cmd('redraw')
+local function screen_line(row)
+  local text = ''
+  for col = 1, 24 do
+    text = text .. vim.fn.screenstring(row, col)
+  end
+  return text
+end
+local headline_row = vim.fn.screenpos(0, 4, 1).row
+eq({ screen_line(headline_row), screen_line(headline_row + 1) }, {
+  '  * B and a title that  ',
+  '   wraps                ',
+}, 'the wrapped part of the headline under its title')
+vim.cmd('close')
+
+-- 21b. `org_fontify_whole_heading_line`: each headline's line is in the
+-- look of its level to the edge of the window; past `org_n_level_faces`
+-- (2) a headline keeps the last look, without `org_cycle_level_faces`.
+local whole = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* A', 'text', '** B', '*** C' }, whole)
+vim.cmd.edit(whole)
+local whole_buf = vim.api.nvim_get_current_buf()
+local line_ns = vim.api.nvim_create_namespace('org_lsp_line_highlights')
+local function whole_lines()
+  local found = {}
+  for _, mark in ipairs(vim.api.nvim_buf_get_extmarks(0, line_ns, 0, -1, { details = true })) do
+    table.insert(found, { mark[2], mark[4].line_hl_group })
+  end
+  return found
+end
+wait('the headlines highlighted to the edge', function()
+  return #whole_lines() == 3
+end)
+eq(whole_lines(), {
+  { 0, '@lsp.typemod.headline.level1.org' },
+  { 2, '@lsp.typemod.headline.level2.org' },
+  { 3, '@lsp.typemod.headline.level2.org' },
+}, 'each headline line in the look of its level')
+wait('the tokens of the level faces', function()
+  local tokens = vim.lsp.semantic_tokens.get_at_pos(whole_buf, 3, 0) or {}
+  return tokens[1] ~= nil and tokens[1].modifiers.level2 == true
+end)
+
+-- 21c. `org-toggle-custom-properties-visibility`: the properties of
+-- `org_custom_properties` hidden, whole lines, and shown again; the hidden
+-- lines go with the text.
+local custom = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* A', ':PROPERTIES:', ':ID: 1', ':CATEGORY: x', ':END:', 'text' }, custom)
+vim.cmd.edit(custom)
+local custom_buf = vim.api.nvim_get_current_buf()
+wait('the server on the file', function()
+  return #vim.lsp.get_clients({ bufnr = custom_buf, name = 'org_lsp' }) == 1
+end)
+vim.api.nvim_win_set_cursor(0, { 6, 0 })
+require('org-lsp').run('org.custom.properties.toggle')
+wait('the ID hidden', function()
+  return #require('org-lsp.hidden').lines(custom_buf) == 1
+end)
+eq(require('org-lsp.hidden').lines(custom_buf), { 2 }, 'the line of the ID hidden')
+vim.cmd('redraw')
+eq(vim.fn.screenstring(vim.fn.screenpos(0, 4, 1).row - 1, 1), ':', 'the line above it is the drawer\'s first')
+eq(vim.api.nvim_win_text_height(0, { start_row = 2, end_row = 2 }).all, 0, 'the line takes no room')
+vim.api.nvim_buf_set_lines(custom_buf, 0, 0, false, { 'new' })
+eq(require('org-lsp.hidden').lines(custom_buf), { 3 }, 'the hidden line goes with the text')
+require('org-lsp').run('org.custom.properties.toggle')
+wait('the ID shown again', function()
+  return #require('org-lsp.hidden').lines(custom_buf) == 0
+end)
+vim.cmd('silent! undo')
 
 -- An entity shows as its character off the cursor's line, as links do:
 -- its text concealed, its last character replaced. Gone with the entity.
@@ -738,6 +887,20 @@ vim.api.nvim_buf_set_lines(0, 2, 3, false, { 'x alpha y' })
 wait('nothing shown once the entity is gone', function()
   return #displayed() == 0
 end)
+-- A bullet of org-bullets takes the look of the token the server names:
+-- its replacing character is in the token's highlight group.
+local display_client = vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' })[1]
+require('org-lsp.display').show(display_client, {
+  uri = vim.uri_from_bufnr(0),
+  version = vim.lsp.util.buf_versions[vim.api.nvim_get_current_buf()],
+  items = { { 1, 0, 1, 1, '◉', 'stars.level1' }, { 2, 0, 2, 1, 'χ' } },
+})
+local looks = {}
+for _, mark in ipairs(vim.api.nvim_buf_get_extmarks(0, display_ns, 0, -1, { details = true })) do
+  table.insert(looks, { mark[2], mark[4].conceal, mark[4].hl_group })
+end
+eq(looks, { { 1, '◉', '@lsp.typemod.stars.level1.org' }, { 2, 'χ', 'OrgLspDisplay' } },
+  'the bullet in the group of its level, the rest in OrgLspDisplay')
 
 -- 22. `g?` lists the keys of the buffer, the user's own among them, in a
 -- window that `q` closes.
@@ -1046,7 +1209,7 @@ vim.cmd('silent! write')
 -- 23g. `<Leader>o/` makes a sparse tree: everything folded but the
 -- matches, which are highlighted until the text changes.
 local sparse_file = vim.fn.tempname() .. '.org'
-vim.fn.writefile({ '* A', 'an apple', '* B', 'nothing', '** C', 'Apple pie', '* D', 'none' }, sparse_file)
+vim.fn.writefile({ '* A', 'an apple', '* B :work:', 'nothing', '** C', 'Apple pie', '* D', 'none' }, sparse_file)
 vim.cmd.edit(sparse_file)
 wait('the server and folds for the sparse tree', function()
   return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1 and vim.fn.foldlevel(2) > 0
@@ -1070,6 +1233,28 @@ vim.api.nvim_buf_set_lines(0, 7, 8, false, { 'changed' })
 wait('the highlights gone with the change', function()
   return #vim.api.nvim_buf_get_extmarks(0, sparse_ns, 0, -1, {}) == 0
 end)
+-- A sparse tree by tags keeps its highlights through changes, as
+-- `org-scan-tags` does, until `C-c C-c` takes them away.
+plugin.read_key = function()
+  return 'm'
+end
+vim.ui.input = function(_, on_answer)
+  on_answer('work')
+end
+press('<Leader>o/')
+wait('the tagged headlines highlighted', function()
+  return #vim.api.nvim_buf_get_extmarks(0, sparse_ns, 0, -1, {}) == 2
+end)
+plugin.read_key, vim.ui.input = before_sparse, typed
+vim.api.nvim_buf_set_lines(0, 7, 8, false, { 'changed again' })
+vim.wait(300)
+eq(#vim.api.nvim_buf_get_extmarks(0, sparse_ns, 0, -1, {}), 2, 'the highlights kept through the change')
+press('<C-Space>')
+wait('the highlights taken away by C-c C-c', function()
+  return #vim.api.nvim_buf_get_extmarks(0, sparse_ns, 0, -1, {}) == 0
+end)
+eq(vim.api.nvim_buf_get_lines(0, 2, 3, false)[1], '* B :work:', 'C-c C-c changed nothing')
+vim.cmd('normal! zR')
 vim.cmd('silent! write')
 
 -- 23h. `<Leader>oR` (`org-reveal`) shows the cursor's context: the folds
@@ -1084,6 +1269,36 @@ end)
 eq({ vim.fn.foldclosed(5), vim.fn.foldclosed(2), vim.fn.foldclosed(8) }, { -1, 1, 7 },
   'the entry and its parent shown, the other subtrees still folded')
 vim.cmd('normal! zR')
+
+-- 23i. A subtree yanked at the start of a line is folded once the editor
+-- has it (`org-yank-folded-subtrees`); C-k on its folded headline kills
+-- what the fold hides (`kill-line`).
+local yank_file = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* A', 'a body', '* B' }, yank_file)
+vim.cmd.edit(yank_file)
+wait('the server and folds of the file to yank into', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1 and vim.fn.foldlevel(2) > 0
+end)
+vim.fn.setreg('"', { '* N', 'new body', '** M', 'more' }, 'l')
+vim.api.nvim_win_set_cursor(0, { 3, 0 })
+plugin.run('org.yank')
+wait('the yanked subtree folded', function()
+  return vim.fn.foldclosed(3) == 3 and vim.fn.foldclosedend(3) == 6
+end)
+eq(vim.api.nvim_buf_get_lines(0, 0, -1, false), { '* A', 'a body', '* N', 'new body', '** M', 'more', '* B' },
+  'the subtree yanked as it is')
+eq(vim.api.nvim_win_get_cursor(0), { 7, 0 }, 'the cursor on the line after it')
+vim.cmd('5foldopen')
+eq({ vim.fn.foldclosed(3), vim.fn.foldclosed(5) }, { -1, 5 }, 'its child folded too')
+vim.cmd('normal! zM')
+vim.api.nvim_win_set_cursor(0, { 3, 0 })
+plugin.run('org.kill.line')
+wait('the folded subtree killed', function()
+  return vim.api.nvim_buf_line_count(0) == 4
+end)
+eq(vim.api.nvim_buf_get_lines(0, 0, -1, false), { '* A', 'a body', '', '* B' }, 'C-k kills what the fold hides')
+eq(vim.fn.getreg('"'), '* N\nnew body\n** M\nmore', 'the kill in the register')
+vim.cmd('silent! write')
 
 -- 23c. Archived subtrees stay closed when TAB and S-TAB open what is
 -- around them (`org-cycle-hide-archived-subtrees`).
@@ -1102,6 +1317,26 @@ eq({ vim.fn.foldclosed(3), vim.fn.foldclosed(5) }, { 3, -1 }, 'all of it shown b
 press('<S-Tab>')
 press('<S-Tab>')
 eq({ vim.fn.foldclosed(1), vim.fn.foldclosed(3), vim.fn.foldclosed(5) }, { -1, 3, -1 }, 'S-TAB shows all but it too')
+
+-- 23d. TAB on a new, empty headline changes its level
+-- (`org-cycle-level-after-item/entry-creation`); showing a headline's
+-- children leaves its lists open (`org-cycle-include-plain-lists`).
+local fresh = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* A', '** ', '* L', '- a', '  more', '- b' }, fresh)
+vim.cmd.edit(fresh)
+wait('folds of the file with a new headline', function()
+  return vim.fn.foldlevel(4) > 1
+end)
+vim.api.nvim_win_set_cursor(0, { 2, 2 })
+press('<Tab>')
+wait('the new headline promoted', function()
+  return line(2) == '* '
+end)
+vim.api.nvim_win_set_cursor(0, { 3, 0 })
+press('<Tab>')
+eq(vim.fn.foldclosed(3), 3, 'TAB folds the headline with the list')
+press('<Tab>')
+eq({ vim.fn.foldclosed(3), vim.fn.foldclosed(4) }, { -1, -1 }, 'its children shown, the list open')
 
 -- 24. `<Leader>o$` archives the subtree to the archive file, which is
 -- written as Emacs saves it, and `<Leader>oA` tags a subtree as archived.

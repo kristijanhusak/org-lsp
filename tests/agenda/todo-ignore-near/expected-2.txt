@@ -1,0 +1,17 @@
+Day-agenda (W21):
+Monday     18 May 2026 W21
+               8:00...... ----------------
+              10:00...... ----------------
+              10:30...... now - - - - - - - - - - - - - - - - - - - - - - - - -
+              12:00...... ----------------
+              14:00...... ----------------
+  work:       15:00...... Scheduled:  TODO scheduled later today
+              16:00...... ----------------
+              18:00...... ----------------
+              20:00...... ----------------
+  work:       Sched. 8x:  TODO scheduled, then a timestamp
+  work:       Sched. 7x:  TODO scheduled last week
+  work:       Scheduled:  TODO scheduled today
+  work:       Scheduled:  TODO inside it
+  work:       In   4 d.:  TODO deadline soon
+  work:       In  44 d.:  TODO deadline far, warned early

@@ -188,6 +188,12 @@ was to be opened, or the text of an export to a buffer."
     (unless (or action (eq first ?P))
       (error "No export command under %s %s" (string first) (if second (string second) "")))
     (org-lsp-bridge--in-document params
+      ;; Timestamps in custom formats, as the file shows them
+      ;; (`org-display-custom-times').
+      (let ((formats (alist-get 'custom_times params)))
+        (when formats
+          (setq-local org-display-custom-times t
+                      org-timestamp-custom-formats (cons (aref formats 0) (aref formats 1)))))
       ;; Visible only: what the editor has folded, folded here too.
       (when visible
         (dolist (fold (append (alist-get 'folded params) nil))
@@ -252,7 +258,8 @@ was to be opened, or the text of an export to a buffer."
     org-update-all-dblocks org-lsp-bridge-columns-insert-dblock org-lsp-bridge-attach
     org-lsp-bridge-edit-special-save org-lsp-bridge-formulas-save
     org-lsp-bridge-field-save org-encrypt-entry org-decrypt-entry org-encrypt-entries
-    org-decrypt-entries org-lsp-bridge-columns-command)
+    org-decrypt-entries org-lsp-bridge-columns-command org-plot/gnuplot
+    orgtbl-ascii-plot)
   "The commands the server may run on a document.")
 
 (defvar org-lsp-bridge--extra nil
@@ -266,6 +273,20 @@ was to be opened, or the text of an export to a buffer."
     (when (and format said (not (string-empty-p said)))
       (setq org-lsp-bridge--message said))
     said))
+
+;; `org-table-formula-constants' and its relatives, as org-lsp's settings
+;; have them: the formulas org-lsp leaves to Emacs follow them too.
+(defun org-lsp-bridge--bind (variables)
+  "Give Org's table options and the indentation of source blocks
+\(`org-src-content-indentation', `org-src-preserve-indentation') among
+VARIABLES, pairs of a name and a value in Lisp, those values in the
+current buffer."
+  (dolist (pair (append variables nil))
+    (let ((name (elt pair 0)))
+      (when (string-match-p
+             "\\`org-\\(?:table-\\|calc-default-modes\\'\\|src-\\(?:content\\|preserve\\)-indentation\\'\\)" name)
+        (set (make-local-variable (intern name))
+             (eval (car (read-from-string (elt pair 1))) t))))))
 
 (defun org-lsp-bridge-run (params)
   "Run the command PARAMS names in its document, at its point: the text it
@@ -281,6 +302,7 @@ wants one), else interactively."
           org-lsp-bridge--visited nil
           org-lsp-bridge--extra nil)
     (org-lsp-bridge--in-document params
+      (org-lsp-bridge--bind (alist-get 'variables params))
       ;; The selection, as the active region.
       (when-let* ((mark (alist-get 'mark params)))
         (transient-mark-mode 1)
@@ -481,6 +503,17 @@ the error."
     (cl-letf (((symbol-function 'org-display-warning)
                (lambda (message) (error "%s" message))))
       (org-link-expand-abbrev (alist-get 'link params)))))
+
+(defun org-lsp-bridge-bibtex-autokey (params)
+  "The key `bibtex-generate-autokey' makes of the BibTeX `entry' of
+PARAMS, as `org-bibtex-autokey' asks it: in a buffer of its own, with
+the regexps of the dialect, which only `bibtex-mode' sets otherwise."
+  (require 'bibtex)
+  (unless bibtex-entry-head
+    (bibtex-set-dialect))
+  (with-temp-buffer
+    (insert (alist-get 'entry params))
+    (bibtex-generate-autokey)))
 
 ;;; What the server asks about
 
@@ -692,6 +725,7 @@ extension for its file, and the part of the document it edits, from
 what the element is, for the server to do as Org does there."
   (require 'org-src)
   (org-lsp-bridge--in-document params
+    (org-lsp-bridge--bind (alist-get 'variables params))
     (let* ((element (org-element-at-point))
            (context (org-element-context element)))
       (pcase (org-element-type element)

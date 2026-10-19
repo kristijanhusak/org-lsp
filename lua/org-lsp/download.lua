@@ -1,7 +1,8 @@
 --- Downloading the server: the build of a GitHub release for this
 --- platform, unpacked into Neovim's data directory
 --- (`stdpath('data')/org-lsp/org-lsp`). It needs `curl` and `tar` (Windows
---- 10 and newer have both). A release curl cannot fetch, as one of a
+--- 10 and newer have both; on Windows its own `tar` is used, else
+--- PowerShell). A release curl cannot fetch, as one of a
 --- private repository, is fetched with the GitHub CLI (`gh`) when it is
 --- installed and logged in.
 local M = {}
@@ -58,6 +59,34 @@ function M.version()
   return ok and lines[1] or nil
 end
 
+--- The command that unpacks the archive `file` into the directory `dir`.
+--- On Windows it is Windows' own `tar` (bsdtar, which reads zip files):
+--- the `tar` found first may be Git's GNU tar, which takes `C:` in a path
+--- for a remote host and cannot read zip files. Without it, PowerShell's
+--- `Expand-Archive`.
+---@param file string
+---@param dir string
+---@return string[]
+function M.unpack_command(file, dir)
+  if not windows() then
+    return { 'tar', '-xf', file, '-C', dir }
+  end
+  local system_tar = vim.fs.joinpath(os.getenv('SystemRoot') or 'C:\\Windows', 'System32', 'tar.exe')
+  if vim.fn.executable(system_tar) == 1 then
+    return { system_tar, '-xf', file, '-C', dir }
+  end
+  local quote = function(text)
+    return "'" .. text:gsub("'", "''") .. "'"
+  end
+  return {
+    'powershell.exe',
+    '-NoProfile',
+    '-NonInteractive',
+    '-Command',
+    ('Expand-Archive -Force -LiteralPath %s -DestinationPath %s'):format(quote(file), quote(dir)),
+  }
+end
+
 ---@param cmd string[]
 ---@param callback fun(err: string|nil)
 local function run(cmd, callback)
@@ -87,7 +116,8 @@ function M.download(release, callback)
     local uname = vim.uv.os_uname()
     return done(('there is no build for %s %s; build it with :OrgLspBuild'):format(uname.sysname, uname.machine))
   end
-  for _, tool in ipairs({ 'curl', 'tar' }) do
+  -- Windows has its own way to unpack, see `unpack_command`.
+  for _, tool in ipairs(windows() and { 'curl' } or { 'curl', 'tar' }) do
     if vim.fn.executable(tool) == 0 then
       return done(tool .. ' is not installed')
     end
@@ -103,7 +133,7 @@ function M.download(release, callback)
     if err then
       return done(('could not download %s: %s'):format(url, err))
     end
-    run({ 'tar', '-xf', file, '-C', staging }, function(unpack_err)
+    run(M.unpack_command(file, staging), function(unpack_err)
       if unpack_err then
         return done(unpack_err)
       end

@@ -2100,5 +2100,92 @@
         "a.org": "\n* B\n* Target\n** A\n"
       }
     }
+  },
+  {
+    "files": {
+      "a.org": "#+STARTUP: odd\n* Inbox\n*** TODO Call¦ Bob\n***** Sub\n* Projects\n*** Alpha\n"
+    },
+    "answer": "Projects",
+    "expected": {
+      "offered": [
+        "Inbox",
+        "Projects"
+      ],
+      "files": {
+        "a.org": "#+STARTUP: odd\n* Inbox\n* Projects\n*** Alpha\n*** TODO Call Bob\n***** Sub\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "#+STARTUP: odd\n* Inbox\n*** TODO Call¦ Bob\n* Projects\n*** Alpha\n"
+    },
+    "answer": "Projects/Alpha",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 3
+        }
+      ],
+      "org_refile_use_outline_path": true
+    },
+    "expected": {
+      "offered": [
+        "Inbox/",
+        "Inbox/Call Bob/",
+        "Projects/",
+        "Projects/Alpha/"
+      ],
+      "files": {
+        "a.org": "#+STARTUP: odd\n* Inbox\n* Projects\n*** Alpha\n***** TODO Call Bob\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "* Inbox\n** TODO Call¦ Bob\n",
+      "b.org": "#+STARTUP: odd\n* Projects\n*** Alpha\n"
+    },
+    "answer": "Projects",
+    "options": {
+      "org_refile_targets": [
+        {
+          "files": "agenda",
+          "maxlevel": 3
+        }
+      ]
+    },
+    "expected": {
+      "offered": [
+        "Inbox",
+        "Call Bob",
+        "Projects (b.org)",
+        "Alpha (b.org)"
+      ],
+      "files": {
+        "a.org": "* Inbox\n",
+        "b.org": "#+STARTUP: odd\n* Projects\n*** Alpha\n*** TODO Call Bob\n"
+      }
+    }
+  },
+  {
+    "files": {
+      "a.org": "#+STARTUP: odd\n* Inbox\n*** TODO Call¦ Bob\n* Projects\n"
+    },
+    "answer": "Projects/New",
+    "options": {
+      "org_refile_use_outline_path": true,
+      "org_refile_allow_creating_parent_nodes": true
+    },
+    "expected": {
+      "offered": [
+        "Inbox/",
+        "Projects/"
+      ],
+      "files": {
+        "a.org": "#+STARTUP: odd\n* Inbox\n* Projects\n\n*** New\n***** TODO Call Bob\n"
+      }
+    }
   }
 ]

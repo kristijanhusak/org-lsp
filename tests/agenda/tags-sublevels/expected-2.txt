@@ -1,0 +1,5 @@
+Headlines with TAGS match: LEVEL>0
+  notes:      Project                                                     :work:
+  notes:      TODO Solo                                                   :work:
+  notes:      Plain
+  notes:      Stuck project                                               :proj:

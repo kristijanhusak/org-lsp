@@ -1,5 +1,6 @@
 " The configuration the tests run Vim with: the plugin, one LSP client
-" ($ORG_LSP_TEST_CLIENT) and the tests.
+" ($ORG_LSP_TEST_CLIENT) and the tests, or one of the shared scenarios
+" ($ORG_LSP_TEST_SCENARIO).
 set nocompatible
 " As in a UTF-8 locale, which the terminal the tests run in may not have.
 set encoding=utf-8
@@ -12,20 +13,39 @@ let &runtimepath = s:plugin . ',' . s:clients . '/' . s:dirs[s:client] . ',' . &
 let g:coc_data_home = $ORG_LSP_TEST_WORK . '/coc'
 let g:coc_config_home = $ORG_LSP_TEST_WORK . '/coc'
 let g:ale_lint_on_text_changed = 'never'
+" ALE tells of its server started, and Vim says nobody listens.
+autocmd User ALELSPStarted :
 let g:lsp_diagnostics_enabled = 0
+" vim-lsp's sign for code actions shows the sign column a moment after the
+" cursor stops, which narrows the agenda's window: the agenda is built
+" again for it, under a test that waits for something else.
+let g:lsp_document_code_action_signs_enabled = 0
 let g:org_lsp = {
       \ 'cmd': [$ORG_LSP_BIN],
       \ 'settings': {
       \   'clock': {'today': '2026-05-18', 'now': '10:30'},
       \   'org_todo_keyword_faces': {'TODO': ':foreground #ff8800 :weight bold'},
+      \   'org_tag_faces': {'office': '#0088ff'},
+      \   'org_fontify_whole_heading_line': v:true,
       \   'org_agenda_files': [$ORG_LSP_TEST_WORK . '/notes'],
       \   'org_roam_enabled': v:true,
       \   'org_roam_directory': $ORG_LSP_TEST_WORK . '/roam',
       \   'org_journal_enabled': v:true,
       \   'org_journal_dir': $ORG_LSP_TEST_WORK . '/journal',
-      \   'org_capture_templates': [{'key': 't', 'description': 'Task', 'target': ['file', $ORG_LSP_TEST_WORK . '/notes/inbox.org'], 'template': '* TODO %?'}],
+      \   'org_capture_templates': [
+      \     {'key': 't', 'description': 'Task', 'target': ['file', $ORG_LSP_TEST_WORK . '/notes/inbox.org'], 'template': '* TODO %?'},
+      \     {'key': 'w', 'description': 'Web', 'target': ['file', $ORG_LSP_TEST_WORK . '/notes/inbox.org'], 'template': ['* %:description', '%:link', '%i%?']},
+      \   ],
       \ },
       \ }
+" highlight.vim: the shared sample of highlighting, copied, and its options
+" (`$DIR` its directory) in place of these, as the server starts with them.
+if fnamemodify($ORG_LSP_TEST_FILE, ':t') ==# 'highlight.vim'
+  let s:sample = $ORG_LSP_TEST_WORK . '/highlight'
+  call system('cp -r ' . shellescape(s:here . '/../../../tests/e2e/highlight') . ' ' . shellescape(s:sample))
+  let s:options = join(readfile(s:sample . '/options.json'), "\n")
+  let g:org_lsp.settings = json_decode(substitute(s:options, '\$DIR', escape(s:sample, '\&'), 'g'))
+endif
 " download.sh: no server, but a release to download it from.
 if !empty($ORG_LSP_TEST_RELEASES)
   call remove(g:org_lsp, 'cmd')
@@ -34,4 +54,10 @@ endif
 set hidden
 filetype plugin indent on
 syntax on
-autocmd VimEnter * ++once call timer_start(100, {-> execute('source ' . (empty($ORG_LSP_TEST_FILE) ? s:here . '/test.vim' : $ORG_LSP_TEST_FILE))})
+if !empty($ORG_LSP_TEST_SCENARIO)
+  " One of the shared scenarios, with its files and options, which the
+  " server starts with.
+  execute 'source' fnameescape(s:here . '/scenarios.vim')
+else
+  autocmd VimEnter * ++once call timer_start(100, {-> execute('source ' . (empty($ORG_LSP_TEST_FILE) ? s:here . '/test.vim' : $ORG_LSP_TEST_FILE))})
+endif

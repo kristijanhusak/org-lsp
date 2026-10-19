@@ -62,6 +62,54 @@ for text in ["- a\n- b\n  - c\n  - d\n- e\n", "1. one\n2. two\n3. three\nafter\n
             for key in ["S-<up>", "S-<down>", "M-<up>", "M-<down>"]:
                 CASES.append({"text": text, "point": start + column, "key": key, "circular": True})
 
+# The list options: two spaces after some bullets, the bullets of demoted
+# items, a wider indent for sub-items, the automatic rules off, cookies
+# counting every box below them. Each on a few lists, from the end of each
+# item's line.
+OPTIONS = [
+    ({"two_spaces": "[0-9]"}, '(org-list-two-spaces-after-bullet-regexp "[0-9]")'),
+    ({"demote": {"-": "+", "+": "1.", "1.": "-"}},
+     """(org-list-demote-modify-bullet '(("-" . "+") ("+" . "1.") ("1." . "-")))"""),
+    ({"indent_offset": 2}, "(org-list-indent-offset 2)"),
+    ({"checkbox_rule": False, "indent_rule": False}, "(org-list-automatic-rules '((checkbox) (indent)))"),
+    ({"hierarchical": False}, "(org-checkbox-hierarchical-statistics nil)"),
+]
+for settings, lisp in OPTIONS:
+    for text in TEXTS[:4]:
+        starts = [0] + [index + 1 for index, c in enumerate(text) if c == "\n" and index + 1 < len(text)]
+        for start in starts:
+            line = text[start:].split("\n", 1)[0]
+            if line.startswith("* "):
+                continue
+            for key in KEYS[:8] + ["C-c C-c"]:
+                CASES.append({"text": text, "point": start + len(line), "key": key, "settings": settings,
+                              "emacs": lisp})
+
+# How ordered items are written: letters (`org-list-allow-alphabetical`),
+# and one terminator only (`org-plain-list-ordered-item-terminator`). Org
+# reads them into its syntax, so each case sets them and puts them back.
+# (A number with the other terminator is no item then, as the parser's
+# tests check.)
+SYNTAX = [
+    ({"alphabetical": True}, "(setq org-list-allow-alphabetical t)", "(setq org-list-allow-alphabetical nil)",
+     ["a. one\nb. two\n   A) sub\n   B) sub2\nc. three\n", "- a\n- b\n- c\n", "1. a\n2. b\n",
+      "a. one\nb. [@e] two\nc. three\n", "A. term :: desc\nB. other :: thing\n",
+      "a. x\n" * 27, "1. one\n2. two\n   b) sub\n   x) sub2\n"]),
+    ({"terminator": "."}, "(setq org-plain-list-ordered-item-terminator ?.)",
+     "(setq org-plain-list-ordered-item-terminator t)", ["1. a\n2. b\n", "- a\n- b\n"]),
+    ({"terminator": ")"}, "(setq org-plain-list-ordered-item-terminator ?\\))",
+     "(setq org-plain-list-ordered-item-terminator t)", ["1) a\n2) b\n", "- a\n- b\n"]),
+]
+for settings, before, after, texts in SYNTAX:
+    for text in texts:
+        starts = [0] + [index + 1 for index, c in enumerate(text) if c == "\n" and index + 1 < len(text)]
+        for start in starts[:4]:
+            line = text[start:].split("\n", 1)[0]
+            for key in KEYS[:8] + ["C-c C-c", "M-RET"]:
+                CASES.append({"text": text, "point": start + len(line), "key": key, "settings": settings,
+                              "before": before + " (org-element-update-syntax)",
+                              "after": after + " (org-element-update-syntax)"})
+
 if __name__ == "__main__":
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "tests", "lists", "cases.json")
     os.makedirs(os.path.dirname(path), exist_ok=True)

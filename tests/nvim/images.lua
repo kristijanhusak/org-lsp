@@ -162,6 +162,22 @@ wait('no picture again', function()
   return #previews.list(bufnr) == 0
 end)
 
+-- 6b. As wide as the entry's `ORG-IMAGE-ACTUAL-WIDTH` says: 100 pixels,
+-- ten cells of 10, the height to match.
+vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, { '* Sized', ':PROPERTIES:', ':ORG-IMAGE-ACTUAL-WIDTH: 100', ':END:', '[[file:pic.png]]' })
+vim.api.nvim_win_set_cursor(0, { vim.api.nvim_buf_line_count(bufnr), 3 })
+require('org-lsp').run('org.link.preview')
+wait('the sized picture', function()
+  return #previews.list(bufnr) == 1
+end)
+local sized = previews.list(bufnr)[1]
+eq({ sized.width, sized.height }, { 10, 3 }, 'ten cells wide, as high as that makes it')
+eq(sized.scale, { width = 10 }, 'the terminal told its width')
+require('org-lsp').run('org.link.preview', { count = 64 })
+wait('no sized picture', function()
+  return #previews.list(bufnr) == 0
+end)
+
 -- 7. Below its line where the line's text starts: after the virtual
 -- indentation of `org-indent-mode` and the line's own blanks.
 vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, { '* Indented', '   [[file:pic.png]]' })

@@ -49,6 +49,7 @@ struct Client {
 
 impl Client {
     fn start(capabilities: Value, options: Value, root: Option<&str>) -> Client {
+        private_state();
         // The tests' own options only, whatever configuration file the
         // machine has.
         let mut options = if options.is_null() { json!({}) } else { options };
@@ -316,10 +317,10 @@ fn announces_the_agenda() {
     // The manifest: what editors build their keys and highlighting from.
     let manifest = &capabilities["experimental"]["org"];
     let table = manifest["commands"].as_array().unwrap();
-    // Every command but the one editors call on their own while a date is
-    // typed.
-    assert_eq!(table.len() + 1, commands.len());
-    assert!(commands.contains(&"org.date.preview"));
+    // Every command but those editors call on their own: while a date is
+    // typed, and before TAB folds.
+    assert_eq!(table.len() + 2, commands.len());
+    assert!(commands.contains(&"org.date.preview") && commands.contains(&"org.cycle"));
     let find = |id: &str| table.iter().find(|command| command["command"] == id).unwrap();
     assert_eq!(
         find("org.agenda.goto")["keys"],
@@ -371,6 +372,59 @@ fn closing_the_agenda_stops_rebuilding_it() {
     assert_eq!(error, "No agenda is open");
     // Fetching it again builds a fresh one.
     assert!(client.view_text(VIEW).starts_with("Week-agenda (W21):"));
+    client.shutdown();
+}
+
+/// coc.nvim reads the agenda's file anew by closing it and opening it
+/// again, and an edit made from the agenda can come in between: the file
+/// it is for opened, changed, saved and asked about. The agenda stays the
+/// one shown.
+#[test]
+fn keeps_the_agenda_the_client_opens_again_after_another_file() {
+    let capabilities = json!({ "window": { "showDocument": { "support": true } } });
+    let mut client = Client::start(capabilities, clock(), None);
+    client.open("file:///org/work.org", WORK);
+    let requests = client.command("org.agenda.todos", "file:///org/work.org", 0);
+    let shown = requests.iter().find(|request| request.method == "window/showDocument").expect("the agenda shown");
+    let agenda = shown.params["uri"].as_str().unwrap().to_string();
+    let path = std::path::PathBuf::from(agenda.trim_start_matches("file://"));
+    let text = std::fs::read_to_string(&path).unwrap();
+    assert!(text.starts_with("Global list of TODO items"), "{text}");
+    client.open(&agenda, &text);
+    client.notify("textDocument/didClose", json!({ "textDocument": { "uri": agenda } }));
+    client.open("file:///org/home.org", HOME);
+    client.notify("textDocument/didSave", json!({ "textDocument": { "uri": "file:///org/home.org" } }));
+    client.request("textDocument/foldingRange", json!({ "textDocument": { "uri": "file:///org/home.org" } })).unwrap();
+    client.open(&agenda, &text);
+    client.settle();
+    let now = std::fs::read_to_string(&path).unwrap();
+    assert!(now.starts_with("Global list of TODO items"), "{now}");
+    assert!(now.contains("Water plants"), "{now}");
+    client.shutdown();
+}
+
+/// VS Code keeps the agenda document a while after its editor closed, and
+/// opens it to a server that starts again before it has an agenda. The
+/// agenda shown later is that document, which VS Code does not open once
+/// more: the server knows its text, and moves the cursor once it is current.
+#[test]
+fn takes_the_agenda_document_the_client_kept() {
+    let mut client = Client::editor(clock(), None);
+    client.open("file:///org/work.org", WORK);
+    client.open_as(VIEW, "org-agenda", "The agenda of an earlier server\n");
+    client.view_version = 1;
+    client.command("org.agenda.todos", "file:///org/work.org", 0);
+    let text = client.refetch_view();
+    client.settle();
+    let line_of = |needle: &str| text.lines().position(|line| line.contains(needle)).unwrap();
+    // `m` marks the line, and the cursor goes to the next entry.
+    let (requests, marked) = client.view_command("org.agenda.bulk.mark", line_of("Write report") as u32);
+    assert!(marked.lines().nth(line_of("Write report")).unwrap().starts_with("> "), "{marked}");
+    let shown = requests.iter().rev().find(|request| request.method == "window/showDocument");
+    assert_eq!(
+        shown.map(|request| request.params["selection"]["start"]["line"].clone()),
+        Some(json!(line_of("TODO Call")))
+    );
     client.shutdown();
 }
 
@@ -483,6 +537,28 @@ fn opens_the_agenda_from_open_documents() {
 }
 
 #[test]
+fn late_at_night_the_agenda_is_still_yesterday() {
+    // `org-extend-today-until`: at 02:30 with the day ending at 04:00,
+    // today is Sunday, and Wednesday's deadline is three days away.
+    let options = json!({
+        "clock": { "today": "2026-05-18", "now": "02:30" },
+        "org_extend_today_until": 4,
+        "org_agenda_span": "day",
+    });
+    let mut client = Client::editor(options, None);
+    client.open("file:///org/work.org", WORK);
+    let requests = client.command("org.agenda.list", "file:///org/work.org", 0);
+    assert_eq!(requests[1].params["selection"]["start"], json!({ "line": 1, "character": 0 }));
+    let text = client.view_text(VIEW);
+    let lines: Vec<&str> = text.lines().take(3).collect();
+    assert_eq!(
+        lines,
+        ["Day-agenda (W20):", "Sunday     17 May 2026", "  work:       In   3 d.:  TODO Call the client"]
+    );
+    client.shutdown();
+}
+
+#[test]
 fn moves_through_time_and_changes_span() {
     let mut client = Client::editor(clock(), None);
     client.open("file:///org/work.org", WORK);
@@ -590,7 +666,9 @@ fn changes_an_entry_from_the_agenda() {
         ]
     );
 
-    // The editor applies the edit; the agenda follows.
+    // The editor applies the edit; the entry's line shows the new state
+    // where it is until the agenda is built again
+    // (`org-agenda-change-all-lines`).
     client.received.clear();
     let changed = apply(WORK, &edits);
     client.notify(
@@ -602,6 +680,7 @@ fn changes_an_entry_from_the_agenda() {
     expect![[r#"
         Global list of TODO items of type: ALL
           work:       TODO [#A] Write report                                    :office:
+          work:       DONE Call the client
     "#]]
     .assert_eq(&client.view_text(VIEW));
 
@@ -779,6 +858,38 @@ fn filters_the_agenda() {
     // A new view starts without filters.
     run(&mut client, "org.agenda.dispatch", 0, json!({ "input": "t" })).unwrap();
     assert_eq!(client.view_text(VIEW), all);
+    client.shutdown();
+}
+
+/// `org-agenda-persistent-filter`: a new view keeps the filters of the
+/// last one.
+#[test]
+fn keeps_filters_from_view_to_view() {
+    let mut options = clock();
+    options["org_agenda_persistent_filter"] = json!(true);
+    let mut client = Client::editor(options, None);
+    client.open("file:///org/work.org", WORK);
+    client.open("file:///org/home.org", HOME);
+    let run = |client: &mut Client, command: &str, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 0, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+    run(&mut client, "org.agenda.dispatch", json!({ "input": "t" })).unwrap();
+    run(&mut client, "org.agenda.filter", json!({ "input": "+office" })).unwrap();
+    run(&mut client, "org.agenda.dispatch", json!({ "input": "t" })).unwrap();
+    let text = client.view_text(VIEW);
+    assert!(text.contains("Write report") && !text.contains("Water plants"), "{text}");
+    // And the agenda of days, another view, too.
+    run(&mut client, "org.agenda.dispatch", json!({ "input": "a" })).unwrap();
+    let text = client.view_text(VIEW);
+    assert!(!text.contains("Water plants"), "{text}");
+    let done = run(&mut client, "org.agenda.filter.remove", json!({})).unwrap();
+    assert_eq!(done["message"], "All agenda filters removed");
     client.shutdown();
 }
 
@@ -1209,6 +1320,55 @@ fn says_when_the_clock_passes_the_effort() {
     client.shutdown();
 }
 
+/// `org-clock-rounding-minutes`: a clock starts at the multiple of five
+/// minutes nearest now, not after it, and stops at the nearest one;
+/// `org-clock-continuously`: the next clock starts when the last stopped.
+#[test]
+fn rounds_clock_times_and_clocks_continuously() {
+    const URI: &str = "file:///org/round.org";
+    let ran = |continuously: bool| {
+        let mut options = json!({ "clock": { "today": "2026-05-18", "now": "10:33" } });
+        options["org_clock_rounding_minutes"] = json!(5);
+        options["org_clock_continuously"] = json!(continuously);
+        let mut client = Client::editor(options, None);
+        let mut text = "* Write
+* Other
+"
+        .to_string();
+        client.open(URI, &text);
+        let mut version = 1;
+        for heading in ["* Write", "* Other"] {
+            let line = text.lines().position(|line| line == heading).unwrap();
+            let at = json!({ "textDocument": { "uri": URI }, "position": { "line": line, "character": 0 } });
+            client.received.clear();
+            client
+                .request("workspace/executeCommand", json!({ "command": "org.clock.in", "arguments": [at] }))
+                .unwrap();
+            client.settle();
+            let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").unwrap();
+            text = apply(&text, &edits_of(edit).1);
+            version += 1;
+            client.notify(
+                "textDocument/didChange",
+                json!({ "textDocument": { "uri": URI, "version": version }, "contentChanges": [{ "text": text }] }),
+            );
+            client.settle();
+        }
+        client.shutdown();
+        text
+    };
+    assert_eq!(
+        ran(false),
+        "* Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:35] =>  0:05\n:END:\n\
+         * Other\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n"
+    );
+    assert_eq!(
+        ran(true),
+        "* Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:35] =>  0:05\n:END:\n\
+         * Other\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:35]\n:END:\n"
+    );
+}
+
 /// `org-clock-in` and its relatives: the `CLOCK:` line in its drawer, the
 /// clock's status for the editor (`org-lsp/clock`), switching to another
 /// entry, clocking out, cancelling, and a done state stopping the clock.
@@ -1296,6 +1456,95 @@ fn clocks_in_and_out() {
     assert!(!text.contains("CLOCK: [2026-05-18 Mon 10:30]\n"), "{text}");
     let (result, _) = run(&mut client, &mut text, "org.clock.goto", 3);
     assert_eq!(result.unwrap()["message"], "No running clock, this is the most recently clocked task");
+    client.shutdown();
+}
+
+/// `org-clock-in-resume`: clocking into an entry whose clock was left
+/// running goes on from when it started, as Emacs does, its line as it
+/// is; clocking out closes that line.
+#[test]
+fn resumes_a_clock_left_running() {
+    const URI: &str = "file:///org/resume.org";
+    // The clock of `Other` runs; the one of `Write` was left behind.
+    let mut text = "* TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\nCLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00\n:END:\n* Other\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n".to_string();
+    let mut options = clock();
+    options["org_clock_in_resume"] = json!(true);
+    let mut client = Client::editor(options, None);
+    client.open(URI, &text);
+    let run = |client: &mut Client, text: &mut String, command: &str| {
+        client.received.clear();
+        let at = json!({ "textDocument": { "uri": URI }, "position": { "line": 0, "character": 0 } });
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [at] }));
+        client.settle();
+        if let Some(edit) = client.received.iter().find(|request| request.method == "workspace/applyEdit") {
+            let (_, edits) = edits_of(edit);
+            *text = apply(text, &edits);
+            client.file_version += 1;
+            client.notify(
+                "textDocument/didChange",
+                json!({ "textDocument": { "uri": URI, "version": client.file_version }, "contentChanges": [{ "text": text }] }),
+            );
+            client.settle();
+        }
+        result
+    };
+    // No clock runs: the two left running are asked about first
+    // (`org-clock-auto-clock-resolution`), the last one first. `Other`
+    // stops now, `Write` is left to the clock-in.
+    let asked = run_applying(&mut client, URI, &mut text, "org.clock.in", 0, json!({}));
+    assert_eq!(asked["input"]["prompt"], "Dangling clock started 30 mins ago [jkKtTgGSscCiq]? ");
+    let step = |input: &str, context: &Value| {
+        let mut next = context.clone();
+        next["input"] = json!(input);
+        next
+    };
+    let asked = run_applying(&mut client, URI, &mut text, "org.clock.in", 0, step("K", &asked["input"]["context"]));
+    assert_eq!(asked["input"]["prompt"], "Keep how many minutes (default 30): ");
+    let asked = run_applying(&mut client, URI, &mut text, "org.clock.in", 0, step("", &asked["input"]["context"]));
+    assert_eq!(asked["input"]["prompt"], "Dangling clock started 90 mins ago [jkKtTgGSscCiq]? ");
+    let result = run_applying(&mut client, URI, &mut text, "org.clock.in", 0, step("i", &asked["input"]["context"]));
+    assert_eq!(result["message"], "Clock starts at [2026-05-18 Mon 09:00] - showing entire task time.");
+    // `Other` stopped; no new line in `Write`.
+    assert!(text.contains("CLOCK: [2026-05-18 Mon 10:00]--[2026-05-18 Mon 10:30] =>  0:30\n"), "{text}");
+    assert_eq!(text.matches("CLOCK:").count(), 3, "{text}");
+    run(&mut client, &mut text, "org.clock.out").unwrap();
+    assert!(text.contains("CLOCK: [2026-05-18 Mon 09:00]--[2026-05-18 Mon 10:30] =>  1:30\n"), "{text}");
+    assert_eq!(text.matches("CLOCK:").count(), 3, "{text}");
+    client.shutdown();
+}
+
+/// `org-clock-goto-may-find-recent-task` off: with no clock running,
+/// `org-clock-goto` finds no entry.
+#[test]
+fn goes_to_no_recent_task_when_told_not_to() {
+    const URI: &str = "file:///org/clock.org";
+    let mut text = "* TODO Write\n".to_string();
+    let mut options = clock();
+    options["org_clock_goto_may_find_recent_task"] = json!(false);
+    let mut client = Client::editor(options, None);
+    client.open(URI, &text);
+    let mut version = 1;
+    let mut run = |client: &mut Client, text: &mut String, command: &str| {
+        client.received.clear();
+        let at = json!({ "textDocument": { "uri": URI }, "position": { "line": 0, "character": 0 } });
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [at] }));
+        client.settle();
+        if let Some(edit) = client.received.iter().find(|request| request.method == "workspace/applyEdit") {
+            let (_, edits) = edits_of(edit);
+            *text = apply(text, &edits);
+            version += 1;
+            client.notify(
+                "textDocument/didChange",
+                json!({ "textDocument": { "uri": URI, "version": version }, "contentChanges": [{ "text": text }] }),
+            );
+            client.settle();
+        }
+        result
+    };
+    run(&mut client, &mut text, "org.clock.in").unwrap();
+    run(&mut client, &mut text, "org.clock.goto").unwrap();
+    run(&mut client, &mut text, "org.clock.out").unwrap();
+    assert_eq!(run(&mut client, &mut text, "org.clock.goto").unwrap_err(), "No active or recent clock task");
     client.shutdown();
 }
 
@@ -1514,6 +1763,208 @@ fn run_saving(client: &mut Client, command: &str, uri: &str, at: (u32, u32), ext
     (result, saved)
 }
 
+/// `org-yank` with `org_yank_adjusted_subtrees`: a subtree yanked at the
+/// start of a line takes the level there; anything else is the editor's
+/// own paste (`notApplicable`), as it is with the option off.
+#[test]
+fn yanks_subtrees_at_the_level_around_them() {
+    let mut options = clock();
+    options["org_yank_adjusted_subtrees"] = json!(true);
+    let mut client = Client::editor(options, None);
+    client.open("file:///org/yank.org", "* a\n** x\nwords\n");
+    // The edit and the cursor come back in the result, as `org.paste.subtree`'s.
+    let context = json!({
+        "textDocument": { "uri": "file:///org/yank.org" },
+        "position": { "line": 3, "character": 0 },
+        "clipboard": "* b\n** c\n",
+    });
+    let yanked =
+        client.request("workspace/executeCommand", json!({ "command": "org.yank", "arguments": [context] })).unwrap();
+    let edits = yanked["edits"].as_array().unwrap();
+    assert_eq!(apply("* a\n** x\nwords\n", edits), "* a\n** x\nwords\n** b\n*** c\n");
+    assert_eq!(yanked["cursor"], json!({ "line": 5, "character": 0 }));
+    assert_eq!(yanked["message"], "Clipboard pasted as level 2 subtree");
+    let context = json!({
+        "textDocument": { "uri": "file:///org/yank.org" },
+        "position": { "line": 2, "character": 2 },
+        "clipboard": "* b\n",
+    });
+    let error = client
+        .request_raw("workspace/executeCommand", json!({ "command": "org.yank", "arguments": [context] }))
+        .unwrap_err();
+    assert_eq!(error.data, Some(json!({ "notApplicable": true })));
+    client.shutdown();
+
+    let mut options = clock();
+    options["org_yank_folded_subtrees"] = json!(false);
+    let mut client = Client::editor(options, None);
+    client.open("file:///org/yank.org", "* a\n");
+    let context = json!({
+        "textDocument": { "uri": "file:///org/yank.org" },
+        "position": { "line": 1, "character": 0 },
+        "clipboard": "* b\n",
+    });
+    let error = client
+        .request_raw("workspace/executeCommand", json!({ "command": "org.yank", "arguments": [context] }))
+        .unwrap_err();
+    assert_eq!(error.data, Some(json!({ "notApplicable": true })));
+    client.shutdown();
+}
+
+/// `org-yank` with `org_yank_folded_subtrees` (on by default): subtrees
+/// yanked at the start of a line go in as they are, the cursor after
+/// them, and once the editor has the edit `org-lsp/folds` closes their
+/// folds, the children's first. Where folding would hide the text after
+/// them, Org says so and folds nothing.
+#[test]
+fn yanks_subtrees_folded() {
+    let mut client = Client::editor(clock(), None);
+    let text = "* a\n** x\n* y\n";
+    client.open("file:///org/folded.org", text);
+    let context = json!({
+        "textDocument": { "uri": "file:///org/folded.org" },
+        "position": { "line": 2, "character": 0 },
+        "clipboard": "* b\nbody\n** c\nmore\n* d\n",
+    });
+    let yanked =
+        client.request("workspace/executeCommand", json!({ "command": "org.yank", "arguments": [context] })).unwrap();
+    let after = apply(text, yanked["edits"].as_array().unwrap());
+    assert_eq!(after, "* a\n** x\n* b\nbody\n** c\nmore\n* d\n* y\n");
+    assert_eq!(yanked["cursor"], json!({ "line": 7, "character": 0 }));
+    assert!(yanked.get("message").is_none_or(Value::is_null), "{yanked}");
+    client.settle();
+    let folds = || client.notifications.iter().filter(|notification| notification.method == "org-lsp/folds").count();
+    assert_eq!(folds(), 0, "no folds before the editor has the edit");
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": "file:///org/folded.org", "version": 2 }, "contentChanges": [{ "text": after }] }),
+    );
+    client.settle();
+    let sent = client.notifications.iter().find(|notification| notification.method == "org-lsp/folds").expect("folds");
+    assert_eq!(sent.params["uri"], "file:///org/folded.org");
+    let close: Vec<(u64, u64)> = sent.params["close"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|fold| (fold["startLine"].as_u64().unwrap(), fold["endLine"].as_u64().unwrap()))
+        .collect();
+    // `* d` has nothing to fold.
+    assert_eq!(close, vec![(4, 5), (2, 5)]);
+
+    // Folding `* b` would hide `** x` after it.
+    let context = json!({
+        "textDocument": { "uri": "file:///org/folded.org" },
+        "position": { "line": 1, "character": 0 },
+        "clipboard": "* b\nbody\n",
+    });
+    let yanked =
+        client.request("workspace/executeCommand", json!({ "command": "org.yank", "arguments": [context] })).unwrap();
+    assert_eq!(yanked["message"], "Inserted text not folded because that would swallow text");
+    client.shutdown();
+}
+
+/// `org-copy-subtree` of a subtree the editor has folded, then
+/// `org-paste-subtree` of it: the pasted subtree is folded again
+/// (`org-subtree-clip-folded`).
+#[test]
+fn pastes_a_folded_subtree_folded() {
+    let mut client = Client::editor(clock(), None);
+    let text = "* a\nbody\n* b\n";
+    client.open("file:///org/clip.org", text);
+    let copy = json!({
+        "textDocument": { "uri": "file:///org/clip.org" },
+        "position": { "line": 0, "character": 0 },
+        "folded": [[0, 1]],
+    });
+    client.request("workspace/executeCommand", json!({ "command": "org.copy.subtree", "arguments": [copy] })).unwrap();
+    let paste = json!({
+        "textDocument": { "uri": "file:///org/clip.org" },
+        "position": { "line": 3, "character": 0 },
+        "clipboard": "* a\nbody\n",
+    });
+    let pasted = client
+        .request("workspace/executeCommand", json!({ "command": "org.paste.subtree", "arguments": [paste] }))
+        .unwrap();
+    let after = apply(text, pasted["edits"].as_array().unwrap());
+    assert_eq!(after, "* a\nbody\n* b\n* a\nbody\n");
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": "file:///org/clip.org", "version": 2 }, "contentChanges": [{ "text": after }] }),
+    );
+    client.settle();
+    let sent = client.notifications.iter().find(|notification| notification.method == "org-lsp/folds").expect("folds");
+    assert_eq!(sent.params["close"][0]["startLine"], 3);
+    client.shutdown();
+}
+
+/// `org-kill-line` on a headline the editor has folded: it kills what the
+/// fold hides, as `kill-line` does, with `org_ctrl_k_protect_subtree`
+/// asking first or refusing.
+#[test]
+fn kills_a_folded_subtree_as_protected() {
+    let text = "* a\nbody\n* b\n";
+    let kill = |client: &mut Client, input: Option<&str>| {
+        let mut context = json!({
+            "textDocument": { "uri": "file:///org/kill.org" },
+            "position": { "line": 0, "character": 0 },
+            "folded": [[0, 1]],
+        });
+        if let Some(input) = input {
+            context["input"] = json!(input);
+        }
+        client.request_raw("workspace/executeCommand", json!({ "command": "org.kill.line", "arguments": [context] }))
+    };
+    let mut client = Client::editor(clock(), None);
+    client.open("file:///org/kill.org", text);
+    let killed = kill(&mut client, None).unwrap();
+    assert_eq!(apply(text, killed["edits"].as_array().unwrap()), "\n* b\n");
+    assert_eq!(killed["copy"], "* a\nbody");
+    client.shutdown();
+
+    let mut options = clock();
+    options["org_ctrl_k_protect_subtree"] = json!(true);
+    let mut client = Client::editor(options, None);
+    client.open("file:///org/kill.org", text);
+    let asked = kill(&mut client, None).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Kill hidden subtree along with headline? ");
+    let refused = kill(&mut client, Some("n")).unwrap_err();
+    assert_eq!(refused.message, "‘C-k’ aborted as it would kill a hidden subtree");
+    let killed = kill(&mut client, Some("y")).unwrap();
+    assert_eq!(killed["copy"], "* a\nbody");
+    client.shutdown();
+
+    let mut options = clock();
+    options["org_ctrl_k_protect_subtree"] = json!("error");
+    let mut client = Client::editor(options, None);
+    client.open("file:///org/kill.org", text);
+    let refused = kill(&mut client, None).unwrap_err();
+    assert_eq!(refused.message, "‘C-k’ aborted as it would kill a hidden subtree");
+    client.shutdown();
+}
+
+/// `org-todo-yesterday`: the change records 23:59 of yesterday, and a
+/// `.+` repeater counts from yesterday; `org.todo` afterwards records now.
+#[test]
+fn changes_todo_states_as_if_it_were_yesterday() {
+    let mut options = clock();
+    options["org_todo_keywords"] = json!(["TODO(t)", "|", "DONE(d)"]);
+    options["org_log_done"] = json!("time");
+    let mut client = Client::editor(options, None);
+    let mut text = "* TODO Water\nSCHEDULED: <2026-05-16 Sat .+1d>\n".to_string();
+    client.open("file:///org/yesterday.org", &text);
+    client.edit("org.todo.yesterday", "file:///org/yesterday.org", (0, 0), json!({ "input": "d" }), &mut text);
+    assert_eq!(
+        text,
+        "* TODO Water\nSCHEDULED: <2026-05-18 Mon .+1d>\n:PROPERTIES:\n:LAST_REPEAT: [2026-05-17 Sun 23:59]\n:END:\n\
+         - State \"DONE\"       from \"TODO\"       [2026-05-17 Sun 23:59]"
+    );
+    let mut text = "* TODO Read\n".to_string();
+    client.open("file:///org/today.org", &text);
+    client.edit("org.todo", "file:///org/today.org", (0, 0), json!({ "input": "d" }), &mut text);
+    assert_eq!(text, "* DONE Read\nCLOSED: [2026-05-18 Mon 10:30]\n");
+    client.shutdown();
+}
+
 /// Commands say what they did, as Emacs says it in the echo area, and the
 /// files they change from elsewhere are saved.
 #[test]
@@ -1707,6 +2158,57 @@ fn writes_a_state_note_in_a_buffer_of_its_own() {
 
     let buffer = note_for(&mut client, "file:///org/b.org");
     assert_eq!(finish(&mut client, "org.capture.abort", &buffer), "* WAIT Call\n");
+    client.shutdown();
+}
+
+/// `org_log_note_clock_out`: clocking out asks for a note in its buffer,
+/// which names the task, and the note goes right after the clock line.
+#[test]
+fn asks_for_a_note_on_clocking_out() {
+    let mut options = clock();
+    options["org_log_note_clock_out"] = json!(true);
+    let mut client = Client::with_date_prompt(options);
+    let file = "file:///org/a.org";
+    let text = "* TODO Call  :work:\n";
+    client.open(file, text);
+    let context = json!({ "textDocument": { "uri": file }, "position": { "line": 0, "character": 0 } });
+    client.received.clear();
+    client.request("workspace/executeCommand", json!({ "command": "org.clock.in", "arguments": [context] })).unwrap();
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the clock");
+    let clocked = apply(text, &edits_of(edit).1);
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": file, "version": 2 }, "contentChanges": [{ "text": clocked }] }),
+    );
+    client.received.clear();
+    client.request("workspace/executeCommand", json!({ "command": "org.clock.out", "arguments": [context] })).unwrap();
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the clock out");
+    let out = apply(&clocked, &edits_of(edit).1);
+    let line = "CLOCK: [2026-05-18 Mon 10:30]--[2026-05-18 Mon 10:30] =>  0:00";
+    assert_eq!(out, format!("* TODO Call  :work:\n:LOGBOOK:\n{line}\n:END:\n"));
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the note buffer");
+    let buffer = show.params["uri"].as_str().unwrap().to_string();
+    assert_eq!(show.params["selection"]["start"]["line"], 4);
+    let note = std::fs::read_to_string(buffer.strip_prefix("file://").unwrap()).unwrap();
+    assert_eq!(note, "# Insert note for stopped clock.\n\n# Task: TODO Call\n\n\n");
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": file, "version": 3 }, "contentChanges": [{ "text": out }] }),
+    );
+    client.open(&buffer, "# Insert note for stopped clock.\n\n# Task: TODO Call\n\nCalled, no answer\n");
+    client.received.clear();
+    let context = json!({ "textDocument": { "uri": buffer }, "position": { "line": 0, "character": 0 } });
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.capture.finish", "arguments": [context] }))
+        .unwrap();
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the note");
+    assert_eq!(
+        apply(&out, &edits_of(edit).1),
+        format!("* TODO Call  :work:\n:LOGBOOK:\n{line}\n- Called, no answer\n:END:\n")
+    );
     client.shutdown();
 }
 
@@ -2003,7 +2505,9 @@ fn writes_the_agenda_to_a_file() {
     let asked = write(&mut client, json!({})).unwrap();
     assert_eq!(asked["input"]["prompt"], "Write agenda to file");
     let org = root.join("out.org");
-    assert_eq!(write(&mut client, json!({ "input": org.display().to_string() })), Ok(Value::Null));
+    // Emacs's message, in the result.
+    let written = write(&mut client, json!({ "input": org.display().to_string() })).unwrap();
+    assert_eq!(written["message"], format!("Org file written to {}", org.display()));
     assert_eq!(std::fs::read_to_string(&org).unwrap(), "* TODO A\nbody a\n* TODO B :t:\n* TODO C deep\ntext c\n");
     // Again: asked first.
     let asked = write(&mut client, json!({ "input": org.display().to_string() })).unwrap();
@@ -2011,10 +2515,288 @@ fn writes_the_agenda_to_a_file() {
     let refused = write(&mut client, json!({ "input": "n", "answers": asked["input"]["context"]["answers"] }));
     assert!(refused.unwrap_err().starts_with("Cannot write agenda to file"));
     let text = root.join("out.txt");
-    assert_eq!(write(&mut client, json!({ "input": text.display().to_string() })), Ok(Value::Null));
+    let written = write(&mut client, json!({ "input": text.display().to_string() })).unwrap();
+    assert_eq!(written["message"], format!("Plain text written to {}", text.display()));
     assert_eq!(std::fs::read_to_string(&text).unwrap(), shown);
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
+}
+
+/// `org-agenda-add-entry-text-maxlines`: an agenda written as plain text
+/// has the text of each entry under its line, as Emacs wrote it with 3
+/// lines (`org-agenda-add-entry-text`): no drawers or planning lines,
+/// the indentation they share taken away, tabs as spaces, links as they
+/// are whatever `org-agenda-add-entry-text-descriptive-links` says. The
+/// view itself shows none of it.
+#[test]
+fn writes_entry_text_under_the_agenda_lines() {
+    let root = workspace("agenda-write-entry-text");
+    let notes = root.join("x.org");
+    std::fs::write(
+        &notes,
+        "* TODO A\nSCHEDULED: <2026-10-18 Sun>\n:PROPERTIES:\n:ID: a\n:END:\n  body a with \
+         [[https://orgmode.org][Org]] and [[file:y.org]]\n    indented\n  third line\n  fourth line\n** Sub a\n\
+         * TODO B :t:\n* TODO C\n\ttabbed [[x][desc]]\n",
+    )
+    .unwrap();
+    for descriptive in [true, false] {
+        let mut options = clock();
+        options["org_agenda_files"] = json!([notes.display().to_string()]);
+        options["org_agenda_add_entry_text_maxlines"] = json!(3);
+        options["org_agenda_add_entry_text_descriptive_links"] = json!(descriptive);
+        let mut client = Client::editor(options, None);
+        client.command("org.agenda.todos", VIEW, 0);
+        let shown = client.view_text(VIEW);
+        assert!(!shown.contains("    > "), "{shown}");
+        let out = root.join("out.txt");
+        let _ = std::fs::remove_file(&out);
+        let context = json!({
+            "textDocument": { "uri": VIEW },
+            "position": { "line": 0, "character": 0 },
+            "input": out.display().to_string(),
+        });
+        let written = client
+            .request("workspace/executeCommand", json!({ "command": "org.agenda.write", "arguments": [context] }));
+        assert_eq!(written.unwrap()["message"], format!("Plain text written to {}", out.display()));
+        // The lines Emacs added under those of `A` and `C`.
+        let mut expected = String::new();
+        for line in shown.lines() {
+            expected.push_str(line);
+            expected.push('\n');
+            if line.ends_with("TODO A") {
+                expected.push_str(
+                    "    > body a with [[https://orgmode.org][Org]] and [[file:y.org]]\n    >   indented\n    > \
+                     third line\n",
+                );
+            } else if line.ends_with("TODO C") {
+                expected.push_str("    > tabbed [[x][desc]]\n");
+            }
+        }
+        assert_eq!(std::fs::read_to_string(&out).unwrap(), expected);
+        client.shutdown();
+    }
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// `org-link--open-shell`: following a `shell:` link asks first, runs the
+/// command in the link's directory on yes and says what it wrote, and
+/// says `Abort` on no; one that `org-link-shell-skip-confirm-regexp`
+/// matches runs without asking.
+#[cfg(unix)]
+#[test]
+fn runs_shell_links() {
+    let directory = workspace("shell-links");
+    let file = directory.join("index.org");
+    let text = "[[shell:echo hi; pwd]] [[shell:true]] [[shell:exit 3]]\n";
+    std::fs::write(&file, text).unwrap();
+    let mut options = clock();
+    options["org_link_shell_skip_confirm_regexp"] = json!("^\\(TRUE\\|exit\\)");
+    let mut client = Client::editor(options, None);
+    let uri = format!("file://{}", file.display());
+    client.open(&uri, text);
+    let open = |client: &mut Client, character: u32, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": character } });
+        for (key, value) in extra.as_object().unwrap() {
+            context[key] = value.clone();
+        }
+        client.notifications.clear();
+        client.request("workspace/executeCommand", json!({ "command": "org.open", "arguments": [context] }))
+    };
+    // What the command said once it ended.
+    let said = |client: &mut Client| {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        loop {
+            client.settle();
+            let message = client
+                .notifications
+                .iter()
+                .find(|notification| notification.method == "window/showMessage")
+                .map(|notification| notification.params["message"].as_str().unwrap().to_string());
+            if let Some(message) = message {
+                return message;
+            }
+            assert!(std::time::Instant::now() < deadline, "the command said nothing");
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
+    };
+    let asked = open(&mut client, 3, json!({})).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Execute echo hi; pwd in shell? ");
+    let step = asked["input"]["context"].clone();
+    let refused = open(&mut client, 3, json!({ "input": "n", "step": step["step"], "answers": step["answers"] }));
+    assert_eq!(refused, Err("Abort".to_string()));
+    let ran = open(&mut client, 3, json!({ "input": "y", "step": step["step"], "answers": step["answers"] })).unwrap();
+    assert_eq!(ran["message"], "Executing echo hi; pwd");
+    let canonical = std::fs::canonicalize(&directory).unwrap();
+    assert_eq!(said(&mut client), format!("hi\n{}", canonical.display()));
+    let ran = open(&mut client, 25, json!({})).unwrap();
+    assert_eq!(ran["message"], "Executing true");
+    assert_eq!(said(&mut client), "(Shell command succeeded with no output)");
+    open(&mut client, 41, json!({})).unwrap();
+    assert_eq!(said(&mut client), "(Shell command failed with code 3 and no output)");
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
+/// Runs `org.open` at `character` of the first line of `uri`, with more
+/// of the context in `extra`.
+fn open_at(client: &mut Client, uri: &str, character: u32, extra: Value) -> Result<Value, String> {
+    let mut context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": character } });
+    for (key, value) in extra.as_object().unwrap() {
+        context[key] = value.clone();
+    }
+    client.received.clear();
+    let result = client.request("workspace/executeCommand", json!({ "command": "org.open", "arguments": [context] }));
+    client.settle();
+    result
+}
+
+/// The `window/showDocument` request the server sent last.
+fn shown_document(client: &Client) -> Value {
+    client
+        .received
+        .iter()
+        .rev()
+        .find(|request| request.method == "window/showDocument")
+        .expect("a document shown")
+        .params
+        .clone()
+}
+
+/// `org-man-open` with `ol-man` in `org-modules`: the page
+/// `org_man_command` writes, without its overstrikes, in a file of the
+/// server's, shown at the line before the search's first match;
+/// `Can’t find …` when there is none. Without `ol-man`, `man:` is no link
+/// type.
+#[cfg(unix)]
+#[test]
+fn follows_man_links() {
+    use std::os::unix::fs::PermissionsExt;
+    let directory = workspace("man-links");
+    let program = directory.join("fake-man");
+    std::fs::write(
+        &program,
+        "#!/bin/sh\n[ \"$1\" = nosuch ] && exit 16\necho \"MANWIDTH=$MANWIDTH ARGS=$*\"\nprintf 'N\\bNAME\\n  ls - list\\n\\n  -l  long\\n'\n",
+    )
+    .unwrap();
+    std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let file = directory.join("index.org");
+    let text = "[[man:ls::-L]] [[man:printf(3)]] [[man:nosuch]]\n";
+    std::fs::write(&file, text).unwrap();
+    let uri = format!("file://{}", file.display());
+    let mut options = clock();
+    options["org_modules"] = json!(["ol-man"]);
+    options["org_man_command"] = json!(program.display().to_string());
+    let mut client = Client::editor(options, None);
+    client.open(&uri, text);
+    open_at(&mut client, &uri, 3, json!({})).unwrap();
+    let shown = shown_document(&client);
+    assert_eq!(shown["selection"]["start"]["line"], 3);
+    let page = shown["uri"].as_str().unwrap().strip_prefix("file://").unwrap().to_string();
+    assert!(page.ends_with("Man_ls.txt"), "{page}");
+    assert_eq!(std::fs::read_to_string(&page).unwrap(), "MANWIDTH=80 ARGS=ls\nNAME\n  ls - list\n\n  -l  long\n");
+    // A reference with its section is the section, then the name.
+    open_at(&mut client, &uri, 18, json!({})).unwrap();
+    let page = shown_document(&client)["uri"].as_str().unwrap().strip_prefix("file://").unwrap().to_string();
+    assert!(std::fs::read_to_string(&page).unwrap().starts_with("MANWIDTH=80 ARGS=3 printf\n"));
+    assert_eq!(open_at(&mut client, &uri, 36, json!({})), Err("Can’t find the nosuch manpage".to_string()));
+    client.shutdown();
+    // Without `ol-man`: a headline to make.
+    let mut client = Client::editor(clock(), None);
+    client.open(&uri, text);
+    let asked = open_at(&mut client, &uri, 3, json!({})).unwrap();
+    assert_eq!(asked["input"]["prompt"], "No match - create this as a new heading? ");
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
+/// `org-info-open`: Emacs's manuals and those of
+/// `org_info_other_documents` open on the web at the node's anchor.
+#[test]
+fn follows_info_links_to_the_web() {
+    let mut options = clock();
+    options["org_info_other_documents"] = json!({ "bash": "https://www.gnu.org/software/bash/manual/bash.html" });
+    let mut client = Client::editor(options, None);
+    let uri = "file:///org/a.org";
+    let text = "[[info:elisp#Non-ASCII in Strings]] info:bash#Shell\n";
+    client.open(uri, text);
+    open_at(&mut client, uri, 3, json!({})).unwrap();
+    let shown = shown_document(&client);
+    assert_eq!(shown["external"], true);
+    assert_eq!(shown["uri"], "https://www.gnu.org/software/emacs/manual/html_mono/elisp.html#Non_002dASCII-in-Strings");
+    open_at(&mut client, uri, 40, json!({})).unwrap();
+    assert_eq!(shown_document(&client)["uri"], "https://www.gnu.org/software/bash/manual/bash.html#Shell");
+    client.shutdown();
+}
+
+/// `org-ctags` in `org-modules`: a link goes to the tag of the `TAGS` file
+/// of its directory; else, asked, the tags table is made again by
+/// `org_ctags_path_to_ctags` and looked in again, or a topic appended.
+#[cfg(unix)]
+#[test]
+fn follows_links_to_ctags_tags() {
+    use std::os::unix::fs::PermissionsExt;
+    let directory = workspace("ctags-links");
+    let canonical = std::fs::canonicalize(&directory).unwrap();
+    let tags = |names: &[(&str, usize)]| {
+        let body: String = names.iter().map(|(name, line)| format!("<<{name}>>\x7f{name}\x01{line},0\n")).collect();
+        format!("\x0c\nb.org,{}\n{body}", body.len())
+    };
+    std::fs::write(directory.join("TAGS"), tags(&[("foo", 3)])).unwrap();
+    std::fs::write(directory.join("b.org"), "x\n\n<<foo>>\n<<later>>\n").unwrap();
+    // A `ctags` that writes the TAGS file named after `-f`, with `later`.
+    let program = directory.join("fake-ctags");
+    let made = tags(&[("foo", 3), ("later", 4)])
+        .replace('\x0c', "\\f")
+        .replace('\x7f', "\\177")
+        .replace('\x01', "\\001")
+        .replace('\n', "\\n");
+    std::fs::write(
+        &program,
+        format!("#!/bin/sh\nprintf %s \"$*\" > \"$(dirname \"$0\")/ctags.args\"\nwhile [ \"$1\" != -f ]; do shift; done\nprintf '{made}' > \"$2\"\n"),
+    )
+    .unwrap();
+    std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let file = canonical.join("index.org");
+    let text = "[[foo]] [[later]] [[topic]]\n* Head\n";
+    std::fs::write(&file, text).unwrap();
+    let uri = format!("file://{}", file.display());
+    let mut options = clock();
+    options["org_modules"] = json!(["org-ctags"]);
+    options["org_ctags_path_to_ctags"] = json!(program.display().to_string());
+    let mut client = Client::editor(options, None);
+    client.open(&uri, text);
+    let b = format!("file://{}", canonical.join("b.org").display());
+    open_at(&mut client, &uri, 3, json!({})).unwrap();
+    let shown = shown_document(&client);
+    assert_eq!((shown["uri"].as_str().unwrap(), shown["selection"]["start"]["line"].as_u64()), (b.as_str(), Some(2)));
+    // Not in the table: made again, then found.
+    let asked = open_at(&mut client, &uri, 11, json!({})).unwrap();
+    assert_eq!(
+        asked["input"]["prompt"],
+        format!("Tag ‘later’ not found.  Rebuild table ‘{}//TAGS’ and look again?", canonical.display())
+    );
+    let step = asked["input"]["context"].clone();
+    open_at(&mut client, &uri, 11, json!({ "input": "y", "step": step["step"], "answers": step["answers"] })).unwrap();
+    let shown = shown_document(&client);
+    assert_eq!((shown["uri"].as_str().unwrap(), shown["selection"]["start"]["line"].as_u64()), (b.as_str(), Some(3)));
+    let args = std::fs::read_to_string(canonical.join("ctags.args")).unwrap();
+    assert!(
+        args.starts_with("--langdef=orgmode --langmap=orgmode:.org --regex-orgmode=/<<([^<>]+)>>/\\1/d,definition/ -f"),
+        "{args}"
+    );
+    // No to making it again, yes to a new topic.
+    let asked = open_at(&mut client, &uri, 20, json!({})).unwrap();
+    let step = asked["input"]["context"].clone();
+    let asked =
+        open_at(&mut client, &uri, 20, json!({ "input": "n", "step": step["step"], "answers": step["answers"] }))
+            .unwrap();
+    assert_eq!(asked["input"]["prompt"], "Topic ‘topic’ not found; append to end of buffer?");
+    let step = asked["input"]["context"].clone();
+    open_at(&mut client, &uri, 20, json!({ "input": "y", "step": step["step"], "answers": step["answers"] })).unwrap();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the topic");
+    assert_eq!(apply(text, &edits_of(edit).1), format!("{text}\n\n* <<Topic>>\n\n\n\n\n\n"));
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
 }
 
 /// `org-refile-copy` keeps the entry; `org-refile` with `C-u` goes to the
@@ -2437,6 +3219,106 @@ fn follows_attachment_links() {
     client.shutdown();
 }
 
+/// `org-file-apps`: a command of its runs with the file in place of `%s`
+/// (`Running ...done`), `C-u` opens the file in the editor anyway, and a
+/// PDF goes to the system's application.
+#[test]
+fn opens_files_as_org_file_apps_says() {
+    let directory = workspace("file-apps");
+    std::fs::write(directory.join("notes.txt"), "notes\n").unwrap();
+    std::fs::write(directory.join("paper.pdf"), "%PDF\n").unwrap();
+    let file = directory.join("index.org");
+    let text = "[[file:notes.txt]] [[./paper.pdf]] [[file:missing.txt]]\n";
+    std::fs::write(&file, text).unwrap();
+    let mut options = clock();
+    options["org_file_apps"] = json!([["txt", "cp %s copied.txt"], ["\\.pdf\\'", "default"]]);
+    let mut client = Client::editor(options, None);
+    let uri = format!("file://{}", file.display());
+    client.open(&uri, text);
+    let open = |client: &mut Client, character: u32, count: Option<i64>| {
+        let mut context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": character } });
+        if let Some(count) = count {
+            context["count"] = json!(count);
+        }
+        client.received.clear();
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": "org.open", "arguments": [context] }));
+        client.settle();
+        result
+    };
+
+    let notes = directory.join("notes.txt");
+    let result = open(&mut client, 3, None).unwrap();
+    // The path as `shell-quote-argument` quotes it: no character of it needs it.
+    assert_eq!(result["message"], format!("Running cp {} copied.txt...done", notes.display()));
+    assert!(!client.received.iter().any(|request| request.method == "window/showDocument"));
+    let copied = directory.join("copied.txt");
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    while !copied.exists() && std::time::Instant::now() < deadline {
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+    assert_eq!(std::fs::read_to_string(&copied).unwrap(), "notes\n");
+
+    open(&mut client, 3, Some(4)).unwrap();
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("shown");
+    assert_eq!(shown.params["uri"], format!("file://{}", notes.display()));
+    assert!(shown.params["external"].as_bool() != Some(true), "{shown:?}");
+
+    open(&mut client, 22, None).unwrap();
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("shown");
+    assert_eq!(shown.params["uri"], format!("file://{}", directory.join("paper.pdf").display()));
+    assert_eq!(shown.params["external"], true);
+
+    let missing = open(&mut client, 40, None).unwrap_err();
+    assert_eq!(missing, format!("No such file: {}", directory.join("missing.txt").display()));
+    client.shutdown();
+}
+
+/// `org-open-non-existing-files`: a file that is not there is given to
+/// its program all the same.
+#[test]
+fn opens_files_that_are_not_there_when_told_to() {
+    let directory = workspace("file-apps-missing");
+    let file = directory.join("index.org");
+    let text = "[[file:missing.txt]]\n";
+    std::fs::write(&file, text).unwrap();
+    let mut options = clock();
+    options["org_file_apps"] = json!([["txt", "true %s"]]);
+    options["org_open_non_existing_files"] = json!(true);
+    let mut client = Client::editor(options, None);
+    let uri = format!("file://{}", file.display());
+    client.open(&uri, text);
+    let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 3 } });
+    let result =
+        client.request("workspace/executeCommand", json!({ "command": "org.open", "arguments": [context] })).unwrap();
+    assert_eq!(result["message"], format!("Running true {}...done", directory.join("missing.txt").display()));
+    client.shutdown();
+}
+
+/// `org-open-directory-means-index-dot-org`: a link to a directory shows
+/// its `index.org`.
+#[test]
+fn opens_the_index_of_a_directory_when_told_to() {
+    let directory = workspace("file-apps-index");
+    std::fs::create_dir_all(directory.join("wiki")).unwrap();
+    std::fs::write(directory.join("wiki/index.org"), "* Wiki\n").unwrap();
+    let file = directory.join("notes.org");
+    let text = "[[file:wiki]]\n";
+    std::fs::write(&file, text).unwrap();
+    let mut options = clock();
+    options["org_open_directory_means_index_dot_org"] = json!(true);
+    let mut client = Client::editor(options, None);
+    let uri = format!("file://{}", file.display());
+    client.open(&uri, text);
+    let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 3 } });
+    client.received.clear();
+    client.request("workspace/executeCommand", json!({ "command": "org.open", "arguments": [context] })).unwrap();
+    client.settle();
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("shown");
+    assert_eq!(shown.params["uri"], format!("file://{}", directory.join("wiki/index.org").display()));
+    client.shutdown();
+}
+
 /// `org-edit-special` (`C-c '`): a code block in a file of its own, its
 /// text as Org's edit buffer has it; each save of the file writes it back
 /// as Org does (`org-edit-src-save`), and the Org file is saved. At
@@ -2506,6 +3388,41 @@ fn edits_blocks_in_files_of_their_own() {
     // The same block again: the same file.
     assert_eq!(run(&mut client, 2), format!("file://{}", edited.display()));
     assert_eq!(run(&mut client, 4), format!("file://{}", directory.join("work.org").display()));
+    client.shutdown();
+
+    // `org-src-content-indentation` 0 (here by its old name,
+    // `org_edit_src_content_indentation`): the code is written back at the
+    // block's own column.
+    let flush = directory.join("flush.org");
+    let mut text = "* Code\n  #+begin_src python\n    x = 1\n  #+end_src\n".to_string();
+    std::fs::write(&flush, &text).unwrap();
+    let mut options = clock();
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        options["emacs_config"] = json!(format!("(add-to-list 'load-path {dir:?})"));
+    }
+    options["org_edit_src_content_indentation"] = json!(0);
+    let mut client = Client::editor(options, None);
+    let uri = format!("file://{}", flush.display());
+    client.open(&uri, &text);
+    let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 2, "character": 4 } });
+    client.received.clear();
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.edit.special", "arguments": [context] }))
+        .unwrap();
+    client.settle();
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("a file shown");
+    let edited = PathBuf::from(shown.params["uri"].as_str().unwrap().strip_prefix("file://").unwrap());
+    client.received.clear();
+    std::fs::write(&edited, "y = 2\n").unwrap();
+    let start = std::time::Instant::now();
+    while !client.received.iter().any(|request| request.method == "workspace/applyEdit")
+        && start.elapsed() < std::time::Duration::from_secs(10)
+    {
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        client.settle();
+    }
+    apply_received(&mut client, &uri, &mut text);
+    assert_eq!(text, "* Code\n  #+begin_src python\n  y = 2\n  #+end_src\n");
     client.shutdown();
 }
 
@@ -3003,7 +3920,7 @@ fn lines_between(text: &str, from: &str, until: &str) -> String {
 }
 
 #[test]
-fn changes_priority_from_the_agenda_and_the_cursor_follows() {
+fn changes_priority_from_the_agenda_on_its_line() {
     let mut client = Client::editor(clock(), None);
     let mut work = WORK.to_string();
     client.open("file:///org/work.org", WORK);
@@ -3033,15 +3950,22 @@ fn changes_priority_from_the_agenda_and_the_cursor_follows() {
     assert_eq!(methods(&client.received), [] as [&str; 0]);
     assert_eq!(text.lines().nth(call as usize).unwrap(), "  work:       In   2 d.:  TODO [#B] Call the client");
 
-    // Up again: A, which sorts the entry above the other one. The cursor
-    // goes with it, in its column, once the editor shows the new text.
+    // Up again: A, which would sort the entry above the other one. As in
+    // Emacs, its line stays where it is until the agenda is built again
+    // (`org-agenda-change-all-lines`), and so does the cursor.
     let requests = client.edit("org.priority.up", VIEW, (call, 14), json!({}), &mut work);
     assert_eq!(methods(&requests), ["workspace/applyEdit", "workspace/textDocumentContent/refresh"]);
     client.received.clear();
     let text = client.refetch_view();
     client.settle();
-    assert_eq!(methods(&client.received), ["window/showDocument"]);
-    assert_eq!(client.received[0].params["selection"]["start"], json!({ "line": call - 1, "character": 14 }));
+    assert_eq!(methods(&client.received), [] as [&str; 0]);
+    assert_eq!(
+        lines_between(&text, "  home:       Sched", "Tuesday"),
+        "  home:       Sched. 2x:  TODO Water plants\n  work:       In   2 d.:  TODO [#A] Call the client\n"
+    );
+    // Built again, it sorts above.
+    client.command("org.agenda.redo", VIEW, 0);
+    let text = client.refetch_view();
     assert_eq!(
         lines_between(&text, "  work:       In", "Tuesday"),
         "  work:       In   2 d.:  TODO [#A] Call the client\n  home:       Sched. 2x:  TODO Water plants\n"
@@ -3060,6 +3984,7 @@ fn changes_priority_from_the_agenda_and_the_cursor_follows() {
     client.edit("org.priority.down", "file:///org/work.org", (4, 3), json!({}), &mut work);
     assert_eq!(work.lines().nth(3).unwrap(), "* TODO Call [[https://example.com][the client]]");
     // Something else happened in between: the cycle starts over.
+    work.push_str("Some text.\n");
     client.notify(
         "textDocument/didChange",
         json!({ "textDocument": { "uri": "file:///org/work.org", "version": 50 }, "contentChanges": [{ "text": work }] }),
@@ -3127,21 +4052,21 @@ fn changes_dates_from_the_agenda() {
             json!({ "range": { "start": { "line": 2, "character": 21 }, "end": { "line": 2, "character": 26 } }, "newText": "8 Mon" })
         ]
     );
+    // The line stays where it is, the new date at its end, as Emacs shows
+    // it until the agenda is built again (`org-agenda-show-new-time`).
     let text = client.refetch_view();
-    assert_eq!(text.lines().nth(plants as usize).unwrap(), "  home:       Scheduled:  TODO Water plants");
+    let shown = |date: &str| format!("  home:       Sched. 2x:  TODO Water plants           => <{date} +1w> ");
+    assert_eq!(text.lines().nth(plants as usize).unwrap(), shown("2026-05-18 Mon"));
 
-    // From there, day by day. The entry leaves today's list, and the
-    // cursor goes with it.
+    // From there, day by day: the line and the cursor stay.
     client.received.clear();
     client.edit("org.date.later", VIEW, (plants, 0), json!({}), &mut home);
     assert_eq!(home.lines().nth(2).unwrap(), "SCHEDULED: <2026-05-19 Tue +1w>");
     client.received.clear();
     let text = client.refetch_view();
     client.settle();
-    assert_eq!(methods(&client.received), ["window/showDocument"]);
-    let plants = line_of(&text, "Water plants");
-    assert_eq!(client.received[0].params["selection"]["start"]["line"], plants);
-    assert_eq!(text.lines().nth(plants as usize - 1).unwrap(), "Tuesday    19 May 2026");
+    assert_eq!(methods(&client.received), [] as [&str; 0]);
+    assert_eq!(text.lines().nth(plants as usize).unwrap(), shown("2026-05-19 Tue"));
 
     // A count is a number of days.
     client.edit("org.date.earlier", VIEW, (plants, 0), json!({ "count": 3 }), &mut home);
@@ -3372,19 +4297,40 @@ fn agenda_actions_match_emacs() {
         };
         // The files as they read once the editor has applied the edit.
         let mut after: serde_json::Map<String, Value> = files.clone();
+        // An archive file left unsaved, as Emacs leaves it, is no file of
+        // the case.
         for request in client.received.iter().filter(|request| request.method == "workspace/applyEdit") {
-            let (uri, edits) = edits_of(request);
-            let name = uri.rsplit('/').next().unwrap().to_string();
-            let changed = apply(after[&name].as_str().unwrap(), &edits);
-            after.insert(name, Value::String(changed));
+            for change in request.params["edit"]["documentChanges"].as_array().unwrap() {
+                let uri = change["textDocument"]["uri"].as_str().unwrap();
+                let name = uri.rsplit('/').next().unwrap().to_string();
+                let Some(now) = after.get(&name).and_then(Value::as_str) else { continue };
+                let changed = apply(now, change["edits"].as_array().unwrap());
+                after.insert(name, Value::String(changed));
+            }
         }
         changed += usize::from(after != *files);
         // A command that changes the view: the new text, and where the
         // cursor goes in it.
         if let (Some(agenda), Ok(_)) = (case.get("agenda"), &result) {
+            // The editor applies the edits, as the server then learns.
+            for (name, text) in &after {
+                if files.get(name) != Some(text) {
+                    client.notify(
+                        "textDocument/didChange",
+                        json!({
+                            "textDocument": { "uri": format!("file:///org/{name}"), "version": 100 },
+                            "contentChanges": [{ "text": text }],
+                        }),
+                    );
+                }
+            }
+            client.settle();
             let shown = client.view_text(VIEW);
             let reveal = client.received.iter().rev().find(|request| request.method == "window/showDocument");
-            let cursor = reveal.map(|request| request.params["selection"]["start"]["line"].clone());
+            // Without being moved, the cursor stays on the line it was on.
+            let cursor = reveal
+                .map(|request| request.params["selection"]["start"]["line"].clone())
+                .or_else(|| Some(context["position"]["line"].clone()));
             if shown != agenda.as_str().unwrap() || cursor.as_ref() != Some(&case["cursor"]) {
                 failures.push_str(&format!(
                     "\ncase {index}: {command} `{}`\n--- emacs (cursor {})\n{}\n--- org-lsp (cursor {cursor:?})\n{shown}\n",
@@ -3416,9 +4362,9 @@ fn agenda_actions_match_emacs() {
 }
 
 /// Keys can come faster than the agenda is redrawn. A line number then
-/// names a line of the text the editor still shows, or the line the
-/// cursor is about to leave. The command must reach the entry the user
-/// sees under the cursor, never the one that has since taken its place.
+/// names a line of the text the editor still shows. The command must reach
+/// the entry the user sees there, never the one that has since taken its
+/// place.
 #[test]
 fn a_command_from_a_stale_agenda_reaches_its_entry() {
     const NOTES: &str = "* TODO First\nSCHEDULED: <2026-05-18 Mon>\n* TODO Second\nSCHEDULED: <2026-05-18 Mon>\n";
@@ -3432,14 +4378,32 @@ fn a_command_from_a_stale_agenda_reaches_its_entry() {
     let first = line_of(&text, "TODO First");
     assert_eq!(line_of(&text, "TODO Second"), first + 1);
 
-    // "First" moves to Tuesday. Its line now shows "Second", but the
-    // editor has not fetched the new text.
+    // "First" moves to Tuesday. As in Emacs, its line stays until the
+    // agenda is redone, with the new date at its end; the same key again
+    // moves it once more.
     client.edit("org.date.later", VIEW, (first, 0), json!({}), &mut notes);
     assert_eq!(notes, "* TODO First\nSCHEDULED: <2026-05-19 Tue>\n* TODO Second\nSCHEDULED: <2026-05-18 Mon>\n");
-    assert_eq!(client.view_text(VIEW).lines().nth(first as usize).unwrap(), "  notes:      Scheduled:  TODO Second");
-    // The same key again, from the same line of the old text.
+    let shown = client.view_text(VIEW);
+    assert!(shown.lines().nth(first as usize).unwrap().ends_with(" => <2026-05-19 Tue> "), "{shown}");
     client.edit("org.date.later", VIEW, (first, 0), json!({}), &mut notes);
     assert_eq!(notes, "* TODO First\nSCHEDULED: <2026-05-20 Wed>\n* TODO Second\nSCHEDULED: <2026-05-18 Mon>\n");
+    client.refetch_view();
+    client.settle();
+
+    // A change typed in the file and saved redoes the agenda: "Second" now
+    // has the line of "First". The editor has not fetched the new text yet.
+    notes = notes.replace("* TODO Second", "* TODO Second :x:");
+    client.file_version += 1;
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": URI, "version": client.file_version }, "contentChanges": [{ "text": notes }] }),
+    );
+    client.notify("textDocument/didSave", json!({ "textDocument": { "uri": URI } }));
+    client.settle();
+    let text = client.view_text(VIEW);
+    assert!(text.lines().nth(first as usize).unwrap().contains("TODO Second"), "{text}");
+    client.edit("org.date.later", VIEW, (first, 0), json!({}), &mut notes);
+    assert!(notes.starts_with("* TODO First\nSCHEDULED: <2026-05-21 Thu>\n"), "{notes}");
     // What the editor asks about its old text is answered from that text.
     let definition = client
         .request(
@@ -3449,59 +4413,70 @@ fn a_command_from_a_stale_agenda_reaches_its_entry() {
         .unwrap();
     assert_eq!(definition["range"]["start"]["line"], 0);
 
-    // Now the editor shows the new text. The server asks it to move the
-    // cursor to the entry; until the editor has done that, the cursor is
-    // still reported on the old line, and still means "First".
-    client.hold_show = true;
-    client.received.clear();
-    let text = client.refetch_view();
-    client.settle();
-    assert_eq!(client.held.len(), 1);
-    let target = client.held[0].params["selection"]["start"]["line"].as_u64().unwrap() as u32;
-    assert_eq!(target, line_of(&text, "TODO First"));
-    assert_eq!(text.lines().nth(first as usize).unwrap(), "  notes:      Scheduled:  TODO Second");
-    client.edit("org.date.later", VIEW, (first, 0), json!({}), &mut notes);
-    assert_eq!(notes, "* TODO First\nSCHEDULED: <2026-05-21 Thu>\n* TODO Second\nSCHEDULED: <2026-05-18 Mon>\n");
-
-    // Once the cursor has moved, a line means what it shows.
-    client.hold_show = false;
-    for request in std::mem::take(&mut client.held) {
-        client.answer(request);
-    }
+    // Once the editor shows the new text, a line means what it shows.
     client.refetch_view();
     client.settle();
     client.edit("org.date.later", VIEW, (first, 0), json!({}), &mut notes);
-    assert_eq!(notes, "* TODO First\nSCHEDULED: <2026-05-21 Thu>\n* TODO Second\nSCHEDULED: <2026-05-19 Tue>\n");
+    assert!(notes.ends_with("* TODO Second :x:\nSCHEDULED: <2026-05-19 Tue>\n"), "{notes}");
     client.shutdown();
 }
 
+/// Two repeating entries one after the other. Done, the first is logged
+/// (`org-log-repeat`), which pushes the second down its file while the
+/// agenda keeps its lines: commands on the second's line still reach it.
 #[test]
-fn a_cursor_move_for_an_older_view_is_dropped() {
-    const HOME: &str = "* TODO Water plants\nSCHEDULED: <2026-05-24 Sun +1w>\n* Meeting <2026-05-19 Tue 14:00>\n";
-    const URI: &str = "file:///org/home.org";
+fn held_lines_follow_entries_pushed_down_their_file() {
+    const NOTES: &str =
+        "* TODO First\nSCHEDULED: <2026-05-18 Mon +1d>\n* TODO Second\nSCHEDULED: <2026-05-18 Mon +1d>\n";
+    const URI: &str = "file:///org/notes.org";
     let mut client = Client::editor(clock(), None);
-    let mut home = HOME.to_string();
-    client.open(URI, HOME);
+    let mut notes = NOTES.to_string();
+    client.open(URI, NOTES);
     client.command("org.agenda.list", VIEW, 0);
     let text = client.show_view();
-    let plants = text.lines().position(|line| line.contains("Water plants")).unwrap() as u32;
+    let line_of = |text: &str, needle: &str| text.lines().position(|line| line.contains(needle)).unwrap() as u32;
+    let first = line_of(&text, "TODO First");
+    let second = first + 1;
+    assert!(text.lines().nth(second as usize).unwrap().contains("TODO Second"));
 
-    // The entry moves to Tuesday, and the cursor is to go with it once the
-    // editor shows the new text. Before it does, the same line moves the
-    // entry back to Saturday, where its repeat stands on that very line.
-    client.edit("org.date.earlier", VIEW, (plants, 0), json!({ "count": 5 }), &mut home);
-    assert_eq!(home.lines().nth(1).unwrap(), "SCHEDULED: <2026-05-19 Tue +1w>");
-    client.edit("org.date.earlier", VIEW, (plants, 0), json!({ "count": 3 }), &mut home);
-    assert_eq!(home.lines().nth(1).unwrap(), "SCHEDULED: <2026-05-16 Sat +1w>");
-
-    // The cursor stays: the line it would have gone to belongs to a view
-    // the editor never showed, and now shows the meeting.
-    client.received.clear();
-    let text = client.refetch_view();
+    client.edit("org.todo.next", VIEW, (first, 0), json!({}), &mut notes);
+    assert!(notes.starts_with("* TODO First\nSCHEDULED: <2026-05-19 Tue +1d>\n"), "{notes}");
+    let pushed = notes.lines().position(|line| line == "* TODO Second").unwrap();
+    assert!(pushed > 2, "{notes}");
+    let shown = client.refetch_view();
     client.settle();
-    assert_eq!(methods(&client.received), Vec::<&str>::new());
-    assert_eq!(text.lines().nth(plants as usize).unwrap(), "  home:       Scheduled:  TODO Water plants");
-    assert_eq!(text.lines().nth(plants as usize - 1).unwrap(), "Saturday   23 May 2026");
+    assert_eq!(shown.lines().nth(first as usize).unwrap(), "  notes:      Scheduled:  DONE First");
+    assert_eq!(shown.lines().nth(second as usize).unwrap(), "  notes:      Scheduled:  TODO Second");
+
+    // Going to the second entry finds it where it is now.
+    let requests = client.command("org.agenda.goto", VIEW, second);
+    let reveal = requests.iter().find(|request| request.method == "window/showDocument").expect("a reveal");
+    assert_eq!(reveal.params["selection"]["start"]["line"], pushed as u64);
+    // Its state and its date change, and nothing else does.
+    client.edit("org.todo.next", VIEW, (second, 0), json!({}), &mut notes);
+    assert_eq!(notes.matches("SCHEDULED: <2026-05-19 Tue +1d>").count(), 2, "{notes}");
+    assert_eq!(notes.matches("LAST_REPEAT").count(), 2, "{notes}");
+    client.edit("org.date.later", VIEW, (second, 0), json!({}), &mut notes);
+    assert_eq!(notes.matches("SCHEDULED: <2026-05-19 Tue +1d>").count(), 1, "{notes}");
+    assert_eq!(notes.matches("SCHEDULED: <2026-05-20 Wed +1d>").count(), 1, "{notes}");
+    let second_at = notes.find("* TODO Second").unwrap();
+    assert!(notes[second_at..].contains("<2026-05-20 Wed +1d>"), "{notes}");
+    let shown = client.refetch_view();
+    client.settle();
+    assert_eq!(shown.lines().nth(first as usize).unwrap(), "  notes:      Scheduled:  DONE First");
+    let line = shown.lines().nth(second as usize).unwrap();
+    assert!(
+        line.starts_with("  notes:      Scheduled:  DONE Second") && line.ends_with(" => <2026-05-20 Wed +1d> "),
+        "{shown}"
+    );
+
+    // A priority after the date: the line is written anew, the new date
+    // no longer at its end (`org-agenda-change-all-lines`).
+    client.edit("org.priority.up", VIEW, (second, 0), json!({}), &mut notes);
+    assert!(notes.contains("* TODO [#B] Second"), "{notes}");
+    let shown = client.refetch_view();
+    client.settle();
+    assert_eq!(shown.lines().nth(second as usize).unwrap(), "  notes:      Scheduled:  TODO [#B] Second");
     client.shutdown();
 }
 
@@ -3664,7 +4639,10 @@ fn names_the_files_to_save() {
     client.open("file:///org/a.org", "* a\n");
     let result =
         client.request("workspace/executeCommand", json!({ "command": "org.agenda.save", "arguments": [] })).unwrap();
-    assert_eq!(result, json!({ "save": ["file:///org/a.org", "file:///org/b.org"] }));
+    assert_eq!(
+        result,
+        json!({ "save": ["file:///org/a.org", "file:///org/b.org"], "message": "Saving all Org buffers... done" })
+    );
     client.shutdown();
 }
 
@@ -3754,8 +4732,7 @@ fn completes_tags_of_the_agenda_files() {
 
 /// `C-c C-s` on an agenda line (`org-agenda-schedule`): the calendar
 /// opens on the entry's date, and the day picked there goes to the
-/// entry's file, which need not be open in the editor. The agenda's
-/// cursor then follows the entry.
+/// entry's file, which need not be open in the editor.
 #[test]
 fn schedules_from_the_agenda() {
     const PROMPT: &str = "org-agenda:/Org%20Date";
@@ -3801,8 +4778,9 @@ fn schedules_from_the_agenda() {
     let scheduled = apply(HOME, &edits);
     assert_eq!(scheduled, "* TODO Water plants\nSCHEDULED: <2026-05-23 Sat +1w>\n* DONE Buy milk\n");
 
-    // The editor opens the file to apply the edit, and then changes it;
-    // the agenda shows the entry on Saturday, and its cursor goes there.
+    // The editor opens the file to apply the edit, and then changes it.
+    // As in Emacs (`org-agenda-show-new-time`), the line stays where it
+    // was, with the new date at its end, and so does the cursor.
     client.open(&uri, HOME);
     client.notify(
         "textDocument/didChange",
@@ -3812,10 +4790,11 @@ fn schedules_from_the_agenda() {
     client.received.clear();
     let view = client.refetch_view();
     client.settle();
-    let saturday = view.lines().position(|line| line.contains("Scheduled:  TODO Water plants")).unwrap();
-    assert!(view.lines().nth(saturday - 1).unwrap().starts_with("Saturday   23 May 2026"), "{view}");
-    let reveal = client.received.iter().find(|request| request.method == "window/showDocument").expect("a reveal");
-    assert_eq!(reveal.params["selection"]["start"]["line"], saturday as u64);
+    let stamped = "  home:       Sched. 2x:  TODO Water p S => Scheduled to <2026-05-23 Sat +1w> ";
+    assert_eq!(view.lines().nth(line as usize).unwrap(), stamped);
+    // Every line of the entry says so, its Saturday too.
+    assert_eq!(view.lines().filter(|shown| shown.contains("S => Scheduled to")).count(), 2, "{view}");
+    assert!(client.received.iter().all(|request| request.method != "window/showDocument"));
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
 }
@@ -3867,6 +4846,374 @@ fn goes_to_a_date_in_the_agenda() {
         .request_raw("workspace/executeCommand", json!({ "command": "org.agenda.goto.date", "arguments": [context] }));
     assert!(refused.is_err());
     client.shutdown();
+}
+
+/// `org-agenda-jump-prefer-future`: `j` reads a day of the month as the
+/// option says, apart from the prompts of `org-read-date-prefer-future`.
+#[test]
+fn goes_to_dates_as_org_agenda_jump_prefer_future_says() {
+    for (jump, week) in [(None, "Week-agenda (W23):"), (Some(false), "Week-agenda (W18):")] {
+        let mut options = clock();
+        if let Some(jump) = jump {
+            options["org_agenda_jump_prefer_future"] = json!(jump);
+        }
+        let mut client = Client::editor(options, None);
+        client.open("file:///org/work.org", WORK);
+        client.command("org.agenda.list", VIEW, 0);
+        client.show_view();
+        let context =
+            json!({ "textDocument": { "uri": VIEW }, "position": { "line": 1, "character": 0 }, "input": "1" });
+        client
+            .request("workspace/executeCommand", json!({ "command": "org.agenda.goto.date", "arguments": [context] }))
+            .unwrap();
+        client.settle();
+        let view = client.refetch_view();
+        assert!(view.starts_with(week), "{jump:?}: {view}");
+        client.shutdown();
+    }
+}
+
+/// `org-agenda-show-outline-path`: answering where the cursor is in the
+/// agenda, the server gives the entry's outline path for the echo area,
+/// as Emacs shows it: after the file's name, or with `title` its title,
+/// the headlines above it without keyword, priority, tags or link
+/// brackets.
+#[test]
+fn shows_the_outline_path_of_the_agenda_line() {
+    const NOTES: &str = "#+TITLE: Work notes\n* Projects\n** TODO [#A] Write [[https://x.org][the report]]   :tag:\n\
+                         *** TODO Draft section\n* TODO Top level task\n";
+    for (option, expected) in [
+        (None, ["work.org/Projects", "work.org/Projects/Write the report", "work.org"]),
+        (Some("title"), ["Work notes/Projects", "Work notes/Projects/Write the report", "Work notes"]),
+    ] {
+        let mut options = clock();
+        if let Some(option) = option {
+            options["org_agenda_show_outline_path"] = json!(option);
+        }
+        let mut client = Client::editor(options, None);
+        client.open("file:///org/work.org", NOTES);
+        client.command("org.agenda.todos", VIEW, 0);
+        let text = client.show_view();
+        let echo = |client: &mut Client, needle: &str| {
+            let line = text.lines().position(|line| line.contains(needle)).unwrap();
+            let context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } });
+            client.request("org-lsp/agendaCursor", context).unwrap()
+        };
+        assert_eq!(echo(&mut client, "Write"), json!({ "echo": expected[0] }));
+        assert_eq!(echo(&mut client, "Draft"), json!({ "echo": expected[1] }));
+        assert_eq!(echo(&mut client, "Top level"), json!({ "echo": expected[2] }));
+        assert_eq!(echo(&mut client, "Global list"), Value::Null);
+        client.shutdown();
+    }
+    // Wider than the echo area the editor says it has (`width`, the
+    // frame's), it is cut as `org-format-outline-path` cuts it.
+    let mut client = Client::editor(clock(), None);
+    client.open("file:///org/work.org", NOTES);
+    client.command("org.agenda.todos", VIEW, 0);
+    let text = client.show_view();
+    let line = text.lines().position(|line| line.contains("Draft")).unwrap();
+    let context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 }, "width": 21 });
+    assert_eq!(client.request("org-lsp/agendaCursor", context).unwrap(), json!({ "echo": "work.org/Projects/.." }));
+    client.shutdown();
+    let mut options = clock();
+    options["org_agenda_show_outline_path"] = json!(false);
+    let mut client = Client::editor(options, None);
+    client.open("file:///org/work.org", NOTES);
+    client.command("org.agenda.todos", VIEW, 0);
+    let text = client.show_view();
+    let line = text.lines().position(|line| line.contains("Draft")).unwrap();
+    let context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } });
+    assert_eq!(client.request("org-lsp/agendaCursor", context).unwrap(), Value::Null);
+    client.shutdown();
+}
+
+/// `org-check-agenda-file`: an agenda file that is not there is asked
+/// about before a view is built; `r` removes it from the list for the
+/// session, anything else aborts. With
+/// `org_agenda_skip_unavailable_files` it is left out without a word.
+#[test]
+fn asks_about_agenda_files_that_are_not_there() {
+    let directory = workspace("unavailable");
+    let gone = directory.join("gone.org");
+    let mut options = clock();
+    options["org_agenda_files"] = json!([directory.join("work.org"), gone]);
+    let mut client = Client::editor(options.clone(), None);
+    let list = |client: &mut Client, extra: Value| {
+        let mut context = json!({});
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client.request("workspace/executeCommand", json!({ "command": "org.agenda.list", "arguments": [context] }))
+    };
+    let asked = list(&mut client, json!({})).unwrap();
+    let shown = gone.display().to_string();
+    assert_eq!(asked["input"]["prompt"], format!("Non-existent agenda file {shown}.  [R]emove from list or [A]bort?"));
+    assert_eq!(asked["input"]["context"]["unavailable"], shown);
+    let mut answer = asked["input"]["context"].clone();
+    answer["input"] = json!("a");
+    assert_eq!(list(&mut client, answer.clone()), Err("Abort".to_string()));
+    answer["input"] = json!("r");
+    let removed = list(&mut client, answer).unwrap();
+    assert_eq!(removed["message"], format!("Removed from Org Agenda list: {shown}"));
+    client.settle();
+    assert!(client.show_view().starts_with("Week-agenda"));
+    // Not asked again.
+    assert_eq!(list(&mut client, json!({})).unwrap(), Value::Null);
+    client.shutdown();
+
+    options["org_agenda_skip_unavailable_files"] = json!(true);
+    let mut client = Client::editor(options, None);
+    assert_eq!(list(&mut client, json!({})).unwrap(), Value::Null);
+    client.shutdown();
+}
+
+/// `org-startup-align-all-tables`: a file opened has its tables aligned,
+/// an edit the server asks the editor for; `#+STARTUP: noalign` keeps
+/// them as they are, `align` aligns them without the option.
+#[test]
+fn aligns_tables_when_a_file_opens() {
+    let mut options = clock();
+    options["org_startup_align_all_tables"] = json!(true);
+    let mut client = Client::editor(options, None);
+    client.received.clear();
+    client.open("file:///org/tables.org", "* Data\n| a |bb|\n|ccc|d|\n");
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let (_, edits) = edits_of(edit);
+    assert_eq!(apply("* Data\n| a |bb|\n|ccc|d|\n", &edits), "* Data\n| a   | bb |\n| ccc | d  |\n");
+    client.received.clear();
+    client.open("file:///org/kept.org", "#+STARTUP: noalign\n| a |bb|\n");
+    client.settle();
+    assert!(!client.received.iter().any(|request| request.method == "workspace/applyEdit"));
+    client.shutdown();
+
+    let mut client = Client::editor(clock(), None);
+    client.received.clear();
+    client.open("file:///org/plain.org", "| a |bb|\n");
+    client.open("file:///org/asked.org", "#+STARTUP: align\n| a |bb|\n");
+    client.settle();
+    let edits: Vec<&Request> =
+        client.received.iter().filter(|request| request.method == "workspace/applyEdit").collect();
+    assert_eq!(edits.len(), 1);
+    assert_eq!(edits_of(edits[0]).0, "file:///org/asked.org");
+    client.shutdown();
+}
+
+/// `org-roam-ref-find`: the references of the nodes offered as org-roam
+/// keeps them (a URL without its scheme), in its order; the answer visits
+/// the first node with it. `org-roam-promote-entire-buffer` and
+/// `org-roam-demote-entire-buffer` change the file at the cursor.
+#[test]
+fn finds_roam_nodes_by_reference_and_promotes_whole_files() {
+    let root = std::env::temp_dir().join(format!("org-lsp-roam-refs-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).unwrap();
+    let a = ":PROPERTIES:\n:ID: a1\n:ROAM_REFS: https://example.com/x @key2023\n:END:\n#+title: A\n";
+    let b = "* B node\n:PROPERTIES:\n:ID: b1\n:ROAM_REFS: https://example.com/x [cite:@other] http://y.org\n:END:\n";
+    std::fs::write(root.join("a.org"), a).unwrap();
+    std::fs::write(root.join("b.org"), b).unwrap();
+    let mut options = clock();
+    options["org_roam_enabled"] = json!(true);
+    options["org_roam_directory"] = json!(root.display().to_string());
+    let mut client = Client::editor(options, None);
+    let b_uri = format!("file://{}", root.join("b.org").display());
+    client.open(&b_uri, b);
+    let at = json!({ "textDocument": { "uri": b_uri }, "position": { "line": 0, "character": 0 } });
+    let run = |client: &mut Client, command: &str, context: &Value| {
+        client.received.clear();
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+    let asked = run(&mut client, "org.roam.ref.find", &at).unwrap();
+    // As `org-roam-ref-read--completions` lists them in Emacs, each once.
+    assert_eq!(asked["input"]["completions"], json!(["key2023", "//example.com/x", "//y.org", "other"]));
+    let mut answer = asked["input"]["context"].clone();
+    answer["input"] = json!("//y.org");
+    run(&mut client, "org.roam.ref.find", &answer).unwrap();
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the node");
+    assert_eq!(show.params["uri"], b_uri);
+    answer["input"] = json!("//example.com/x");
+    run(&mut client, "org.roam.ref.find", &answer).unwrap();
+    let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the node");
+    assert_eq!(show.params["uri"], format!("file://{}", root.join("a.org").display()));
+
+    run(&mut client, "org.roam.promote", &at).unwrap();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    assert_eq!(
+        apply(b, &edits_of(edit).1),
+        ":PROPERTIES:\n:ID: b1\n:ROAM_REFS: https://example.com/x [cite:@other] http://y.org\n:END:\n#+title: B node\n"
+    );
+    let refused = run(&mut client, "org.roam.demote", &at);
+    assert_eq!(refused, Err("Wrong type argument: char-or-string-p, nil".to_string()));
+    client.shutdown();
+}
+
+/// `org-roam-refile`: the subtree at the cursor goes under the node
+/// picked, after its subtree, and a file refiled whole is deleted.
+/// `org-roam-extract-subtree`: the subtree gets an `ID` and goes to a file
+/// of its own, offered as `org_roam_extract_new_file_path` names it.
+#[test]
+fn refiles_and_extracts_roam_subtrees() {
+    let root = std::env::temp_dir().join(format!("org-lsp-roam-move-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).unwrap();
+    let a = ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\n* First\n:PROPERTIES:\n:ID: f1\n:END:\ntext\n* Second\nmore\n";
+    let b = ":PROPERTIES:\n:ID: b1\n:END:\n#+title: B\n* B one\n:PROPERTIES:\n:ID: b2\n:END:\n** B child\n* B two\n";
+    let c = ":PROPERTIES:\n:ID: c0\n:END:\n#+title: C\nIntro\n";
+    for (name, text) in [("a.org", a), ("b.org", b), ("c.org", c)] {
+        std::fs::write(root.join(name), text).unwrap();
+    }
+    let mut options = clock();
+    options["org_roam_enabled"] = json!(true);
+    options["org_roam_directory"] = json!(root.display().to_string());
+    let capabilities = json!({
+        "workspace": { "workspaceEdit": { "documentChanges": true, "resourceOperations": ["create", "rename", "delete"] } },
+        "window": { "showDocument": { "support": true } },
+        "general": { "positionEncodings": ["utf-8"] }
+    });
+    let mut client = Client::start(capabilities, options, None);
+    let uri = |name: &str| format!("file://{}", root.join(name).display());
+    client.open(&uri("a.org"), a);
+    client.open(&uri("c.org"), c);
+    let at = |name: &str, line: u32| json!({ "textDocument": { "uri": uri(name) }, "position": { "line": line, "character": 2 } });
+    let run = |client: &mut Client, command: &str, context: &Value| {
+        client.received.clear();
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+    let answered = |asked: &Value, context: &Value, answer: &str| {
+        let mut context = context.clone();
+        for (key, value) in asked["input"]["context"].as_object().unwrap() {
+            context[key] = value.clone();
+        }
+        context["input"] = json!(answer);
+        context
+    };
+
+    let asked = run(&mut client, "org.roam.refile", &at("a.org", 4)).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Node");
+    assert!(asked["input"]["completions"].as_array().unwrap().contains(&json!("B one")));
+    let refused = run(&mut client, "org.roam.refile", &answered(&asked, &at("a.org", 4), "First"));
+    assert_eq!(refused, Err("Target is the same as current node".to_string()));
+    run(&mut client, "org.roam.refile", &answered(&asked, &at("a.org", 4), "B one")).unwrap();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let changes = edit.params["edit"]["documentChanges"].as_array().unwrap();
+    let edited = |name: &str, text: &str| {
+        let change = changes.iter().find(|change| change["textDocument"]["uri"] == uri(name)).expect("the file");
+        apply(text, change["edits"].as_array().unwrap())
+    };
+    assert_eq!(
+        edited("b.org", b),
+        ":PROPERTIES:\n:ID: b1\n:END:\n#+title: B\n* B one\n:PROPERTIES:\n:ID: b2\n:END:\n** B child\n\
+         ** First\n:PROPERTIES:\n:ID: f1\n:END:\ntext\n* B two\n"
+    );
+    assert_eq!(edited("a.org", a), ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\n* Second\nmore\n");
+
+    // Before the first headline, the whole file, and the file goes.
+    run(&mut client, "org.roam.refile", &answered(&asked, &at("c.org", 4), "B one")).unwrap();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    let changes = edit.params["edit"]["documentChanges"].as_array().unwrap();
+    assert_eq!(changes.len(), 2);
+    assert_eq!(
+        apply(b, changes[0]["edits"].as_array().unwrap()),
+        ":PROPERTIES:\n:ID: b1\n:END:\n#+title: B\n* B one\n:PROPERTIES:\n:ID: b2\n:END:\n** B child\n\
+         ** C\n:PROPERTIES:\n:ID: c0\n:END:\nIntro\n* B two\n"
+    );
+    assert_eq!(changes[1], json!({ "kind": "delete", "uri": uri("c.org") }));
+
+    let asked = run(&mut client, "org.roam.extract", &at("a.org", 9)).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Extract node to: ");
+    assert_eq!(asked["input"]["value"], "20260518103000-second.org");
+    let refused = run(&mut client, "org.roam.extract", &answered(&asked, &at("a.org", 9), "b.org"));
+    assert_eq!(refused, Err(format!("{} exists. Aborting", root.join("b.org").display())));
+    let refused = run(&mut client, "org.roam.extract", &at("a.org", 0));
+    assert_eq!(refused, Err("Already a top-level node".to_string()));
+    run(&mut client, "org.roam.extract", &answered(&asked, &at("a.org", 9), "second.org")).unwrap();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    assert_eq!(
+        apply(a, &edits_of(edit).1),
+        ":PROPERTIES:\n:ID: a0\n:END:\n#+title: A\n* First\n:PROPERTIES:\n:ID: f1\n:END:\ntext\n"
+    );
+    let extracted = std::fs::read_to_string(root.join("second.org")).unwrap();
+    assert!(extracted.starts_with(":PROPERTIES:\n:ID:       "), "{extracted}");
+    assert!(extracted.ends_with(":END:\n#+title: Second\nmore\n"), "{extracted}");
+    client.shutdown();
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// `org-roam-graph`: the Graphviz text of the nodes and links goes to
+/// `org_roam_graph_executable`, and the editor shows what it draws; with
+/// a count, only the nodes connected to the one at the cursor.
+#[cfg(unix)]
+#[test]
+fn draws_the_roam_graph() {
+    use std::os::unix::fs::PermissionsExt;
+    let root = std::env::temp_dir().join(format!("org-lsp-roam-graph-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(root.join("notes")).unwrap();
+    // A stand-in for `dot`: the picture is the text it was given.
+    let dot = root.join("dot");
+    std::fs::write(&dot, "#!/bin/sh\ncp \"$1\" \"$5\"\n").unwrap();
+    std::fs::set_permissions(&dot, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let a = ":PROPERTIES:\n:ID: a1\n:END:\n#+title: A\nTo [[id:b1][B]].\n";
+    let b = ":PROPERTIES:\n:ID: b1\n:END:\n#+title: B\n";
+    let c = ":PROPERTIES:\n:ID: c1\n:END:\n#+title: C\nTo [[id:d1][D]].\n";
+    let d = ":PROPERTIES:\n:ID: d1\n:END:\n#+title: D\n";
+    for (name, text) in [("a.org", a), ("b.org", b), ("c.org", c), ("d.org", d)] {
+        std::fs::write(root.join("notes").join(name), text).unwrap();
+    }
+    let mut options = clock();
+    options["org_roam_enabled"] = json!(true);
+    options["org_roam_directory"] = json!(root.join("notes").display().to_string());
+    options["org_roam_graph_executable"] = json!(dot.display().to_string());
+    options["org_roam_graph_extra_config"] = json!({ "rankdir": "LR" });
+    let mut client = Client::editor(options, None);
+    let a_uri = format!("file://{}", root.join("notes").join("a.org").display());
+    client.open(&a_uri, a);
+    let run = |client: &mut Client, context: Value| {
+        client.received.clear();
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": "org.roam.graph", "arguments": [context] }));
+        client.settle();
+        result
+    };
+    let picture = |client: &Client| {
+        let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("the graph");
+        assert_eq!(show.params["external"], true);
+        let uri = show.params["uri"].as_str().unwrap();
+        assert!(uri.ends_with("/graph.svg"), "{uri}");
+        std::fs::read_to_string(uri.strip_prefix("file://").unwrap()).unwrap()
+    };
+    let said = run(&mut client, json!({ "textDocument": { "uri": a_uri }, "position": { "line": 4, "character": 0 } }));
+    assert_eq!(said, Ok(json!({ "message": "(org-roam) building graph" })));
+    let all = picture(&client);
+    assert!(all.starts_with("digraph \"org-roam\" {\nrankdir=LR;\n edge [];\n"), "{all}");
+    assert!(all.contains("  \"a1\" -> \"b1\";\n") && all.contains("  \"c1\" -> \"d1\";\n"), "{all}");
+
+    // `C-u`: the nodes connected to the one at the cursor.
+    run(
+        &mut client,
+        json!({ "textDocument": { "uri": a_uri }, "position": { "line": 4, "character": 0 }, "count": 4 }),
+    )
+    .unwrap();
+    let connected = picture(&client);
+    assert!(connected.contains("  \"a1\" -> \"b1\";\n") && !connected.contains("c1"), "{connected}");
+    client.shutdown();
+
+    let mut options = clock();
+    options["org_roam_enabled"] = json!(true);
+    options["org_roam_directory"] = json!(root.join("notes").display().to_string());
+    options["org_roam_graph_executable"] = json!("no-such-dot-program");
+    let mut client = Client::editor(options, None);
+    let refused = run(&mut client, json!({}));
+    assert_eq!(
+        refused,
+        Err("Cannot find executable \"no-such-dot-program\" to generate the graph.  Please adjust ‘org-roam-graph-executable’".to_string())
+    );
+    client.shutdown();
+    let _ = std::fs::remove_dir_all(&root);
 }
 
 /// A keyword with a face of its own (`org_todo_keyword_faces`) is offered
@@ -3954,6 +5301,39 @@ fn selects_todo_states_by_key_and_asks_for_notes() {
     let requests = client.edit("org.todo", REPEAT, (0, 0), json!({}), &mut repeat);
     assert!(methods(&requests).contains(&"workspace/applyEdit"), "changed at once");
     assert!(repeat.contains("SCHEDULED: <2026-05-23 Sat +1w>"), "{repeat}");
+    client.shutdown();
+}
+
+/// `org-use-fast-todo-selection`: `expert` asks for the key with the keys
+/// in the prompt, as Emacs's message has them, each sequence in braces;
+/// `false` goes to the next state, keys or not.
+#[test]
+fn fast_todo_selection_as_set() {
+    const URI: &str = "file:///org/fast.org";
+    const TEXT: &str = "#+TODO: TODO(t) | DONE(d)\n#+TODO: REPORT(r) BUG(b) | FIXED(f)\n* TODO Call\n";
+    let at = json!({ "textDocument": { "uri": URI }, "position": { "line": 2, "character": 3 } });
+    let mut options = clock();
+    options["org_use_fast_todo_selection"] = json!("expert");
+    let mut client = Client::editor(options, None);
+    client.open(URI, TEXT);
+    let asked = client
+        .request("workspace/executeCommand", json!({ "command": "org.todo", "arguments": [at.clone()] }))
+        .unwrap();
+    assert_eq!(asked["input"]["kind"], "key");
+    assert_eq!(asked["input"]["expert"], true);
+    assert_eq!(
+        asked["input"]["prompt"],
+        "[a-z..]:Set [SPC]:clear\n{[t] TODO [d] DONE }{[r] REPORT [b] BUG [f] FIXED }"
+    );
+    client.shutdown();
+
+    let mut options = clock();
+    options["org_use_fast_todo_selection"] = json!(false);
+    let mut client = Client::editor(options, None);
+    let mut text = TEXT.to_string();
+    client.open(URI, TEXT);
+    client.edit("org.todo", URI, (2, 3), json!({}), &mut text);
+    assert!(text.contains("* DONE Call"), "{text}");
     client.shutdown();
 }
 
@@ -4056,8 +5436,10 @@ fn run_edit(client: &mut Client, command: &str, uri: &str, at: (u32, u32), extra
 
 /// `C-c C-x C-s` (`org-archive-subtree`): the subtree goes to the archive
 /// file, which is written when no editor has it open, and `$` does the
-/// same from the agenda. `C-c C-x a` tags a subtree as archived, and
-/// `C-u C-c C-x C-s` asks about each subtree without open TODO items.
+/// same from the agenda, where the archive file is an edit left unsaved
+/// (`org-archive-subtree-save-file-p` is `from-org`). `C-c C-x a` tags a
+/// subtree as archived, and `C-u C-c C-x C-s` asks about each subtree
+/// without open TODO items.
 #[test]
 fn archives_subtrees() {
     let root = workspace("archive");
@@ -4091,9 +5473,19 @@ fn archives_subtrees() {
     client.command("org.agenda.todos", VIEW, 0);
     let view = client.show_view();
     let line = view.lines().position(|line| line.contains("Write report")).unwrap() as u32;
+    let before = std::fs::read_to_string(&archive).unwrap();
     run_edit(&mut client, "org.archive.subtree", VIEW, (line, 0), json!({}), &mut text);
     assert_eq!(text, "#+CATEGORY: work\n* Meeting <2026-05-19 Tue 14:00-15:00>\n");
-    assert!(std::fs::read_to_string(&archive).unwrap().contains("\n* TODO [#A] Write report :office:\n"));
+    assert_eq!(std::fs::read_to_string(&archive).unwrap(), before, "not saved from the agenda");
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").unwrap();
+    let changes = edit.params["edit"]["documentChanges"].as_array().unwrap();
+    let to_archive = changes
+        .iter()
+        .find(|change| change["textDocument"]["uri"] == format!("file://{}", archive.display()))
+        .expect("an edit of the archive");
+    assert_eq!(to_archive["textDocument"]["version"], Value::Null);
+    let archived = apply(&before, to_archive["edits"].as_array().unwrap());
+    assert!(archived.contains("\n* TODO [#A] Write report :office:\n"), "{archived}");
     assert!(!client.refetch_view().contains("Write report"));
 
     // The tag, on and off.
@@ -4118,6 +5510,153 @@ fn archives_subtrees() {
     assert_eq!(result, json!({ "message": "1 trees archived" }));
     assert_eq!(text, "Intro\n* DONE A\n* TODO B\n");
     assert!(std::fs::read_to_string(root.join("done.org_archive")).unwrap().contains("* DONE C\n"));
+    // `true`: saved from the agenda too, the archive written.
+    client.shutdown();
+    let mut options = clock();
+    options["org_agenda_files"] = json!([root.display().to_string()]);
+    options["org_archive_subtree_save_file_p"] = json!(true);
+    let mut client = Client::editor(options, None);
+    let mut text = "* TODO Again\n* Meeting <2026-05-19 Tue 14:00-15:00>\n".to_string();
+    client.open(&work, &text);
+    client.command("org.agenda.todos", VIEW, 0);
+    let view = client.show_view();
+    let line = view.lines().position(|line| line.contains("Again")).unwrap() as u32;
+    run_edit(&mut client, "org.archive.subtree", VIEW, (line, 0), json!({}), &mut text);
+    assert_eq!(text, "* Meeting <2026-05-19 Tue 14:00-15:00>\n");
+    assert!(std::fs::read_to_string(&archive).unwrap().contains("\n* TODO Again\n"));
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// From the agenda, a new archive file is made by the edit (a `create`
+/// resource operation) and left unsaved, when the client can make files.
+#[test]
+fn archives_from_the_agenda_to_a_new_file_left_unsaved() {
+    let root = workspace("archive-new");
+    let mut options = clock();
+    options["org_agenda_files"] = json!([root.display().to_string()]);
+    let capabilities = json!({
+        "workspace": {
+            "textDocumentContent": { "dynamicRegistration": true },
+            "workspaceEdit": { "documentChanges": true, "resourceOperations": ["create"] }
+        },
+        "window": { "showDocument": { "support": true } },
+        "general": { "positionEncodings": ["utf-8"] }
+    });
+    let mut client = Client::start(capabilities, options, None);
+    let work = format!("file://{}/work.org", root.display());
+    client.open(&work, "* TODO Old\n");
+    client.command("org.agenda.todos", VIEW, 0);
+    let view = client.show_view();
+    let line = view.lines().position(|line| line.contains("Old")).unwrap() as u32;
+    client.received.clear();
+    let context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } });
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.archive.subtree", "arguments": [context] }))
+        .unwrap();
+    client.settle();
+    let archive = root.join("work.org_archive");
+    assert!(!archive.exists(), "not written");
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").unwrap();
+    let changes = edit.params["edit"]["documentChanges"].as_array().unwrap();
+    let archive_uri = format!("file://{}", archive.display());
+    assert_eq!(changes[0], json!({ "kind": "create", "uri": archive_uri }));
+    let made = changes.iter().find(|change| change["textDocument"]["uri"] == archive_uri).unwrap();
+    assert!(made["edits"][0]["newText"].as_str().unwrap().contains("* TODO Old\n"));
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// A client told not to make files (`create_files`, as the Vim plugin
+/// says for coc.nvim) has the new archive file written for it.
+#[test]
+fn archives_to_a_new_file_written_when_told_not_to_make_files() {
+    let root = workspace("archive-new-written");
+    let mut options = clock();
+    options["org_agenda_files"] = json!([root.display().to_string()]);
+    options["create_files"] = json!(false);
+    let capabilities = json!({
+        "workspace": {
+            "textDocumentContent": { "dynamicRegistration": true },
+            "workspaceEdit": { "documentChanges": true, "resourceOperations": ["create"] }
+        },
+        "window": { "showDocument": { "support": true } },
+        "general": { "positionEncodings": ["utf-8"] }
+    });
+    let mut client = Client::start(capabilities, options, None);
+    let work = format!("file://{}/work.org", root.display());
+    client.open(&work, "* TODO Old\n");
+    client.command("org.agenda.todos", VIEW, 0);
+    let view = client.show_view();
+    let line = view.lines().position(|line| line.contains("Old")).unwrap() as u32;
+    client.received.clear();
+    let context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } });
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.archive.subtree", "arguments": [context] }))
+        .unwrap();
+    client.settle();
+    let archive = std::fs::read_to_string(root.join("work.org_archive")).unwrap();
+    assert!(archive.ends_with(":END:\n") && archive.contains("* TODO Old\n"), "{archive}");
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").unwrap();
+    assert!(!edit.params.to_string().contains("\"create\""), "{:?}", edit.params);
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// The bulk action `$` makes the new archive file too: its staged edits
+/// keep the `create` they were made with.
+#[test]
+fn bulk_archives_to_a_new_file() {
+    let root = workspace("bulk-archive-new");
+    let mut options = clock();
+    options["org_agenda_files"] = json!([root.display().to_string()]);
+    let capabilities = json!({
+        "workspace": {
+            "textDocumentContent": { "dynamicRegistration": true },
+            "workspaceEdit": { "documentChanges": true, "resourceOperations": ["create"] }
+        },
+        "window": { "showDocument": { "support": true } },
+        "general": { "positionEncodings": ["utf-8"] }
+    });
+    let mut client = Client::start(capabilities, options, None);
+    let work = format!("file://{}/work.org", root.display());
+    client.open(&work, "* TODO Old\n* TODO New\n");
+    client.command("org.agenda.todos", VIEW, 0);
+    let view = client.show_view();
+    let line = view.lines().position(|line| line.contains("Old")).unwrap() as u32;
+    client.command("org.agenda.bulk.mark", VIEW, line);
+    let run = |client: &mut Client, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client.received.clear();
+        let result = client.request(
+            "workspace/executeCommand",
+            json!({ "command": "org.agenda.bulk.action", "arguments": [context] }),
+        );
+        client.settle();
+        result.unwrap()
+    };
+    let asked = run(&mut client, json!({}));
+    let done =
+        run(&mut client, json!({ "step": "action", "input": "$", "answers": asked["input"]["context"]["answers"] }));
+    assert_eq!(done["message"], "Acted on 1 entries");
+    let archive_uri = format!("file://{}", root.join("work.org_archive").display());
+    let edits: Vec<&Request> =
+        client.received.iter().filter(|request| request.method == "workspace/applyEdit").collect();
+    let made = edits
+        .iter()
+        .find_map(|edit| {
+            let changes = edit.params["edit"]["documentChanges"].as_array()?;
+            (changes[0] == json!({ "kind": "create", "uri": archive_uri })).then(|| changes[1].clone())
+        })
+        .unwrap_or_else(|| panic!("no edit makes the archive: {edits:?}"));
+    assert_eq!(made["textDocument"]["uri"], archive_uri);
+    assert!(made["edits"][0]["newText"].as_str().unwrap().contains("* TODO Old\n"));
+    let source = edits.iter().find(|edit| edit.params["edit"].to_string().contains(&format!("\"{work}\""))).unwrap();
+    let (_, changes) = edits_of(source);
+    assert_eq!(apply("* TODO Old\n* TODO New\n", &changes), "* TODO New\n");
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
 }
@@ -4201,6 +5740,82 @@ fn a_plain_client_gets_standard_tokens_prompts_and_an_org_agenda() {
     let on_header = kinds(&mut client, 0);
     assert!(on_header.iter().any(|offered| offered == "org.agenda.later"), "{on_header:?}");
     assert!(!on_header.iter().any(|offered| offered == "org.todo"), "{on_header:?}");
+    client.shutdown();
+}
+
+/// A plain client that shows no message requests but opens documents
+/// (Helix, with `message_requests` off and `show_document` on): the
+/// agenda menu is a code action, its choices come first in the code
+/// actions until one is picked, and a rename with a choice's key answers
+/// too.
+#[test]
+fn a_client_without_message_requests_answers_from_the_code_actions() {
+    let mut options = clock();
+    options["show_document"] = json!(true);
+    options["message_requests"] = json!(false);
+    let mut client = Client::start(json!({ "experimental": { "orgClient": false } }), options, None);
+    const WORK_URI: &str = "file:///org/work.org";
+    client.open(WORK_URI, WORK);
+    let actions = |client: &mut Client| -> Vec<Value> {
+        let actions = client
+            .request(
+                "textDocument/codeAction",
+                json!({
+                    "textDocument": { "uri": WORK_URI },
+                    "range": { "start": { "line": 1, "character": 0 }, "end": { "line": 1, "character": 0 } },
+                    "context": { "diagnostics": [] }
+                }),
+            )
+            .unwrap();
+        actions.as_array().unwrap().clone()
+    };
+    let kinds = |actions: &[Value]| -> Vec<String> {
+        actions.iter().map(|action| action["kind"].as_str().unwrap().to_string()).collect()
+    };
+    let offered = kinds(&actions(&mut client));
+    for kind in ["org.agenda.dispatch", "org.capture", "org.schedule", "org.tags.set"] {
+        assert!(offered.iter().any(|offered| offered == kind), "{kind} in {offered:?}");
+    }
+
+    let requests = client.command("org.agenda.dispatch", WORK_URI, 1);
+    assert!(!methods(&requests).contains(&"window/showMessageRequest"), "{:?}", methods(&requests));
+    let said: Vec<&str> = client
+        .notifications
+        .iter()
+        .filter(|notification| notification.method == "window/showMessage")
+        .filter_map(|notification| notification.params["message"].as_str())
+        .collect();
+    assert!(said.contains(&"Press key for agenda command: pick the answer from the code actions"), "{said:?}");
+    // The choices first, then what applies at the cursor.
+    let offered = actions(&mut client);
+    assert_eq!(offered[0]["title"], "Agenda for the current week or day [a]");
+    assert_eq!(offered[0]["kind"], "org.answer");
+    assert!(kinds(&offered).iter().any(|kind| kind == "org.todo"), "{:?}", kinds(&offered));
+    let command = offered[0]["command"].clone();
+    client.received.clear();
+    client
+        .request(
+            "workspace/executeCommand",
+            json!({ "command": command["command"], "arguments": command["arguments"] }),
+        )
+        .unwrap();
+    client.settle();
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("agenda shown");
+    let agenda = shown.params["uri"].as_str().unwrap().to_string();
+    assert!(agenda.ends_with("/Agenda.org"), "{agenda}");
+    assert!(std::fs::read_to_string(agenda.trim_start_matches("file://")).unwrap().starts_with("Week-agenda"));
+    // Answered, the choices are gone.
+    assert!(!kinds(&actions(&mut client)).iter().any(|kind| kind == "org.answer"));
+
+    // A rename with the choice's key answers as well.
+    client.command("org.agenda.dispatch", WORK_URI, 1);
+    let rename = json!({
+        "textDocument": { "uri": WORK_URI }, "position": { "line": 1, "character": 0 }, "newName": "t"
+    });
+    client.request("textDocument/rename", rename).unwrap();
+    client.settle();
+    let text = std::fs::read_to_string(agenda.trim_start_matches("file://")).unwrap();
+    assert!(text.starts_with("Global list of TODO items"), "{text}");
     client.shutdown();
 }
 
@@ -4326,11 +5941,11 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
     assert!(agenda.ends_with("Agenda.org-agenda"), "{agenda}");
     let agenda_text = std::fs::read_to_string(agenda.trim_start_matches("file://")).unwrap();
     client.open(&agenda, &agenda_text);
-    // The agenda's file is read-only, where Zed runs no code action: its
-    // commands come through the command port, whose script is at a place
-    // the keys can name.
+    // The agenda's commands come through the command port, whose script is
+    // at a place the keys can name, not code actions. Its file is not
+    // read-only: Zed refuses a rename there, which answers what they ask.
     let agenda_path = std::path::PathBuf::from(agenda.trim_start_matches("file://"));
-    assert!(std::fs::metadata(&agenda_path).unwrap().permissions().readonly());
+    assert!(!std::fs::metadata(&agenda_path).unwrap().permissions().readonly());
     // Rewritten in place: Zed follows a file outside the project by the
     // file itself, and loses one that another is renamed over.
     #[cfg(unix)]
@@ -4438,7 +6053,7 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
     assert!(later.starts_with("Week-agenda (W22):"), "{later}");
     #[cfg(unix)]
     assert_eq!(std::os::unix::fs::MetadataExt::ino(&std::fs::metadata(&agenda_path).unwrap()), inode);
-    assert!(std::fs::metadata(&agenda_path).unwrap().permissions().readonly());
+    assert!(!std::fs::metadata(&agenda_path).unwrap().permissions().readonly());
 
     // A question that wants typed text is answered with a rename: its new
     // name is the date, and the command goes on with it.
@@ -4513,7 +6128,8 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
         for _ in 0..2000 {
             client.settle();
             let now = std::fs::read_to_string(&agenda_path).unwrap_or_default();
-            if now != before {
+            // Empty while the server writes it.
+            if !now.is_empty() && now != before {
                 return now;
             }
             std::thread::sleep(std::time::Duration::from_millis(5));
@@ -4754,6 +6370,70 @@ fn offers_templates_and_commands_by_context() {
     assert_eq!(commands(menu(&mut client, "org.agenda.dispatch", "file:///org/work.org")), ["h:Home", "o:Office"]);
     assert_eq!(commands(menu(&mut client, "org.agenda.dispatch", "file:///org/home.org")), ["h:Home"]);
     client.shutdown();
+}
+
+/// `org-capture-use-agenda-date`: capturing from the agenda takes the day
+/// of the line the cursor is on, at midnight, as Emacs does; a template
+/// with `:time-prompt` does not ask for it.
+#[test]
+fn captures_with_the_date_of_the_agenda_line() {
+    let root = workspace("capture-agenda-date");
+    let notes = root.join("notes.org");
+    std::fs::write(&notes, "").unwrap();
+    let diary = root.join("diary.org");
+    std::fs::write(&diary, "").unwrap();
+    let work = root.join("work.org");
+    let text = "* TODO Write\nSCHEDULED: <2026-05-20 Wed>\n";
+    std::fs::write(&work, text).unwrap();
+    let mut options = clock();
+    options["org_agenda_files"] = json!([work.display().to_string()]);
+    options["org_default_notes_file"] = json!(notes.display().to_string());
+    options["org_capture_use_agenda_date"] = json!(true);
+    options["org_capture_templates"] = json!([
+        { "key": "n", "description": "Note", "template": "* Note %t %U" },
+        { "key": "d", "description": "Day", "target": ["file+olp+datetree", diary.display().to_string()],
+          "template": "* Day %t", "time_prompt": true },
+    ]);
+    let mut client = Client::editor(options, None);
+    let uri = format!("file://{}", work.display());
+    client.open(&uri, text);
+    client.command("org.agenda.list", &uri, 0);
+    let view = client.view_text(VIEW);
+    let line = |needle: &str| view.lines().position(|line| line.contains(needle)).unwrap() as u32;
+    let capture = |client: &mut Client, key: &str, line: u32| {
+        let context = json!({
+            "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 }, "keys": "", "input": key,
+        });
+        client.received.clear();
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": "org.capture", "arguments": [context] }));
+        assert_eq!(result, Ok(Value::Null));
+        client.settle();
+        let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("buffer");
+        let buffer = show.params["uri"].as_str().unwrap().strip_prefix("file://").unwrap().to_string();
+        let captured = std::fs::read_to_string(&buffer).unwrap();
+        // Filed, to see where.
+        let buffer = format!("file://{buffer}");
+        client.open(&buffer, &captured);
+        let context = json!({ "textDocument": { "uri": buffer }, "position": { "line": 0, "character": 0 } });
+        client.received.clear();
+        client
+            .request("workspace/executeCommand", json!({ "command": "org.capture.finish", "arguments": [context] }))
+            .unwrap();
+        client.settle();
+        let filed = client.received.iter().find(|request| request.method == "workspace/applyEdit").map(edits_of);
+        (captured, filed.map(|(_, edits)| apply("", &edits)))
+    };
+    assert_eq!(capture(&mut client, "n", line("Write")).0, "* Note <2026-05-20 Wed> [2026-05-20 Wed 00:00]\n");
+    assert_eq!(capture(&mut client, "n", line("Thursday")).0, "* Note <2026-05-21 Thu> [2026-05-21 Thu 00:00]\n");
+    let (captured, filed) = capture(&mut client, "d", line("Write"));
+    assert_eq!(captured, "**** Day <2026-05-20 Wed>\n");
+    // Under the day of the line; an empty file starts with a blank line,
+    // as Emacs leaves it (tests/capture/cases.json).
+    let tree = "\n* 2026\n** 2026-05 May\n*** 2026-05-20 Wednesday\n**** Day <2026-05-20 Wed>\n";
+    assert_eq!(filed.as_deref(), Some(tree));
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
 }
 
 /// Capturing from where there is no document (no file open): the
@@ -5538,6 +7218,26 @@ fn edits_tables() {
     client.shutdown();
 }
 
+/// `org-cite-insert-processor`: none, one of Org's that cannot insert,
+/// and one org-lsp does not have, refused with Org's messages.
+#[test]
+fn refuses_citation_processors_other_than_basic() {
+    let uri = "file:///tmp/org-lsp-cite-processor/notes.org";
+    for (processor, refused) in [
+        (json!(false), "No processor set to insert citations"),
+        (json!("csl"), "Processor csl cannot insert citations"),
+        (json!("citar"), "Unknown processor citar"),
+    ] {
+        let mut client = Client::editor(json!({ "org_cite_insert_processor": processor }), None);
+        client.open(uri, "See here.\n");
+        let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 4 } });
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": "org.cite.insert", "arguments": [context] }));
+        assert_eq!(result, Err(refused.to_string()));
+        client.shutdown();
+    }
+}
+
 /// `org-cite-insert` (`C-c C-x @`): keys one at a time from the
 /// bibliography until done, a style with the prefix argument; on a
 /// citation a key added after the others; with the prefix argument on a
@@ -5616,6 +7316,26 @@ fn inserts_and_deletes_citations() {
     assert_eq!(error, "No bibliography set");
     client.shutdown();
     std::fs::remove_dir_all(directory).unwrap();
+}
+
+/// `org_property_format`: a property set is written as the format says.
+#[test]
+fn writes_properties_with_org_property_format() {
+    let mut options = clock();
+    options["org_property_format"] = json!("%-6s| %s");
+    let mut client = Client::editor(options, None);
+    let uri = "file:///org/format.org";
+    let mut text = "* Task\n".to_string();
+    client.open(uri, &text);
+    client.edit(
+        "org.property.set",
+        uri,
+        (0, 0),
+        json!({ "step": "value", "answers": "Color", "input": "red" }),
+        &mut text,
+    );
+    assert_eq!(text, "* Task\n:PROPERTIES:\n:Color:| red\n:END:\n");
+    client.shutdown();
 }
 
 /// `org-set-property` asks for a name, then a value: one of the allowed
@@ -5967,46 +7687,134 @@ fn apply_received(client: &mut Client, uri: &str, text: &mut String) {
     }
 }
 
-/// `org-resolve-clocks`: a clock left running beside the clock is asked
-/// about, and kept, stopped, started again or canceled.
+/// `org-resolve-clocks` and the resolution `org-clock-in` makes first
+/// (`org-clock-auto-clock-resolution`), as Emacs asks and leaves the file:
+/// `tests/clock/resolve.json` (`scripts/clock_resolve_reference.py`). Each
+/// question is answered with the next answer Emacs was given.
 #[test]
-fn resolves_dangling_clocks() {
-    let uri = "file:///org/work.org";
-    let start =
-        "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n";
-    let resolve = |answer: Option<&str>| {
-        let mut client = Client::editor(clock(), None);
-        let mut text = start.to_string();
-        client.open(uri, &text);
-        let extra = answer.map_or(json!({}), |answer| json!({ "input": answer }));
-        let result = run_applying(&mut client, uri, &mut text, "org.clock.resolve", 0, extra);
-        let again = run_applying(&mut client, uri, &mut text, "org.clock.resolve", 0, json!({}));
+fn resolving_clocks_matches_emacs() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/clock/resolve.json");
+    let cases: Vec<Value> = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+    let mut failures = String::new();
+    for (index, case) in cases.iter().enumerate() {
+        let (today, now) = case["clock"].as_str().unwrap().split_once(' ').unwrap();
+        let mut options = case.get("options").cloned().unwrap_or_else(|| json!({}));
+        options["clock"] = json!({ "today": today, "now": now });
+        let mut client = Client::editor(options, None);
+        const URI: &str = "file:///org/clock.org";
+        let mut text = case["text"].as_str().unwrap().to_string();
+        client.open(URI, &text);
+        let mut answers: Vec<String> =
+            case["answers"].as_array().unwrap().iter().map(|answer| answer.as_str().unwrap().to_string()).collect();
+        answers.reverse();
+        let (mut asked, mut said, mut failed) = (Vec::<String>::new(), String::new(), false);
+        'steps: for step in case["steps"].as_array().unwrap() {
+            let step: Vec<&str> = step.as_array().unwrap().iter().map(|part| part.as_str().unwrap()).collect();
+            let (command, extra) = match step[0] {
+                "resolve" if step.len() > 1 => ("org.clock.resolve", json!({ "count": 4 })),
+                "resolve" => ("org.clock.resolve", json!({})),
+                _ => {
+                    let line = text.lines().position(|line| line.starts_with('*') && line.contains(step[1])).unwrap();
+                    ("org.clock.in", json!({ "line": line }))
+                }
+            };
+            let line = extra.get("line").and_then(Value::as_u64).unwrap_or(0) as u32;
+            let mut extra = extra;
+            extra.as_object_mut().unwrap().remove("line");
+            loop {
+                let result = run_applying(&mut client, URI, &mut text, command, line, extra.clone());
+                if result.get("error").is_some() {
+                    failed = true;
+                    break 'steps;
+                }
+                if let Some(message) = result["message"].as_str().filter(|message| !message.is_empty()) {
+                    said = message.to_string();
+                }
+                let Some(input) = result.get("input") else { break };
+                let prompt = input["prompt"].as_str().unwrap().to_string();
+                asked.push(prompt);
+                let Some(answer) = answers.pop() else { break 'steps };
+                let mut next = json!({ "input": answer });
+                if let Some(count) = extra.get("count") {
+                    next["count"] = count.clone();
+                }
+                for (key, value) in input["context"].as_object().into_iter().flatten() {
+                    next[key] = value.clone();
+                }
+                extra = next;
+            }
+        }
         client.shutdown();
-        (result, text, again)
-    };
-    let (asked, ..) = resolve(None);
-    assert_eq!(asked["input"]["prompt"], "Dangling clock started 90 mins ago");
-    assert_eq!(asked["input"]["choices"][1], json!({ "key": "K", "label": "Keep it and clock out now" }));
-    // Stopped now.
-    let (_, text, again) = resolve(Some("K"));
-    assert!(text.contains("CLOCK: [2026-05-18 Mon 09:00]--[2026-05-18 Mon 10:30] =>  1:30\n"), "{text}");
-    assert_eq!(again["message"], "No dangling clocks");
-    // Canceled.
-    let (_, text, _) = resolve(Some("C"));
-    assert_eq!(text, "* A\n* B\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n");
-    // Started again now: the clock on B stops.
-    let (_, text, again) = resolve(Some("s"));
+        let expected = case["expected"].as_str().unwrap();
+        // The date prompt shows its default after the prompt in Emacs.
+        let emacs_asked: Vec<String> = case["asked"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|prompt| {
+                let prompt = prompt.as_str().unwrap();
+                if prompt.starts_with("Date+time [") {
+                    "Date+time".to_string()
+                } else {
+                    prompt.to_string()
+                }
+            })
+            .collect();
+        let same_text = if expected.starts_with("ERROR") { failed } else { !failed && text == expected };
+        if !same_text || asked != emacs_asked || said != case["message"].as_str().unwrap() {
+            failures.push_str(&format!(
+                "\ncase {index}: {:?} {:?}\n--- emacs asked {emacs_asked:?}, said {}\n{expected}\n\
+                 --- org-lsp asked {asked:?}, said {said:?}, failed {failed}\n{text}\n",
+                case["steps"], case["answers"], case["message"]
+            ));
+        }
+    }
+    assert!(failures.is_empty(), "{failures}");
+}
+
+/// Clocking in from an agenda line resolves the open clocks first, as
+/// `org-agenda-clock-in` clocks in through `org-clock-in`; with
+/// `org-clock-resolve-expert`, the question is the prompt alone.
+#[test]
+fn resolves_clocks_before_clocking_in_from_the_agenda() {
+    let uri = "file:///org/work.org";
+    let mut options = clock();
+    options["org_clock_resolve_expert"] = json!(true);
+    let mut client = Client::editor(options, None);
+    let mut text = "* TODO Write\n* TODO Call\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]\n:END:\n".to_string();
+    client.open(uri, &text);
+    client.command("org.agenda.todos", uri, 0);
+    let view = client.view_text(VIEW);
+    let line = view.lines().position(|line| line.ends_with("TODO Write")).expect("the entry") as u32;
+    let mut context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } });
+    let mut asked = Vec::new();
+    for answer in ["K", "", ""] {
+        client.received.clear();
+        let result = client
+            .request("workspace/executeCommand", json!({ "command": "org.clock.in", "arguments": [context.clone()] }))
+            .unwrap();
+        client.settle();
+        apply_received(&mut client, uri, &mut text);
+        let Some(input) = result.get("input") else { break };
+        asked.push((input["prompt"].clone(), input["expert"].clone()));
+        for (key, value) in input["context"].as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        context["input"] = json!(answer);
+    }
+    assert_eq!(
+        asked,
+        [
+            (json!("Dangling clock started 30 mins ago [jkKtTgGSscCiq]? "), json!(true)),
+            (json!("Keep how many minutes (default 30): "), Value::Null),
+        ]
+    );
     assert_eq!(
         text,
-        "* A\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n* B\n:LOGBOOK:\n\
-         CLOCK: [2026-05-18 Mon 10:00]--[2026-05-18 Mon 10:30] =>  0:30\n:END:\n"
+        "* TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n\
+         * TODO Call\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:00]--[2026-05-18 Mon 10:30] =>  0:30\n:END:\n"
     );
-    assert_eq!(again["message"], "No dangling clocks");
-    // Kept: it is the clock now.
-    let (_, text, again) = resolve(Some("k"));
-    assert!(text.contains("CLOCK: [2026-05-18 Mon 09:00]\n"), "{text}");
-    assert!(text.contains("CLOCK: [2026-05-18 Mon 10:00]--[2026-05-18 Mon 10:30] =>  0:30\n"), "{text}");
-    assert_eq!(again["message"], "No dangling clocks");
+    client.shutdown();
 }
 
 /// `org-clock-idle-time`: back after more than that, the editor is asked
@@ -6032,7 +7840,7 @@ fn asks_about_idle_time() {
     client.settle();
     assert!(!client.received.iter().any(|request| request.method == "window/showMessageRequest"));
     client.notify("org-lsp/setClock", json!({ "today": "2026-05-18", "now": "11:15" }));
-    client.choice = Some("Subtract the idle time [s]".to_string());
+    client.choice = Some("Subtract the idle time from the current clock. [s]".to_string());
     client.received.clear();
     client
         .request(
@@ -6042,7 +7850,7 @@ fn asks_about_idle_time() {
         .ok();
     client.settle();
     let asked = client.received.iter().find(|request| request.method == "window/showMessageRequest").expect("asked");
-    assert_eq!(asked.params["message"], "Clocked in & idle for 40.0 mins");
+    assert_eq!(asked.params["message"], "Clocked in & idle for 40.0 mins [jkKtTgGSscCiq]? ");
     apply_received(&mut client, uri, &mut text);
     assert_eq!(
         text,
@@ -6253,6 +8061,17 @@ fn stores_and_inserts_links() {
     assert_eq!(id.len(), 36, "{text}");
     run_applying(&mut client, uri, &mut text, "org.link.insert.last", 4, json!({}));
     assert!(text.ends_with(&format!(":END:\n[[id:{id}][Tasks]]\n")), "{text}");
+    // `org-id-method` and `org-id-prefix`: the time, as `org-id-ts-format`
+    // writes it, after `Org:`.
+    let mut options = clock();
+    options["org_id_method"] = json!("ts");
+    options["org_id_prefix"] = json!("Org");
+    let mut client = Client::editor(options.clone(), None);
+    let mut text = "* Tasks\n".to_string();
+    client.open(uri, &text);
+    run_applying(&mut client, uri, &mut text, "org.id.create", 0, json!({}));
+    let id = text.lines().find_map(|line| line.strip_prefix(":ID:")).map(str::trim).unwrap_or_default().to_string();
+    assert!(id.starts_with("Org:20260518T1030") && id.len() == "Org:20260518T103000.000000".len(), "{id}");
 }
 
 /// `org-id-complete`: `id:` at the link prompt asks for an entry, of
@@ -6312,6 +8131,156 @@ fn completes_id_links_to_entries() {
     answer(&mut client, &mut text, &asked, "");
     let id = text.lines().find_map(|line| line.strip_prefix(":ID:")).map(str::trim).unwrap().to_string();
     assert_eq!(text, format!("* Here\n:PROPERTIES:\n:ID:       {id}\n:END:\n[[id:{id}]]x\n"));
+}
+
+/// `org-id-find`: an ID is looked for in the link's file, then in the
+/// files `org-id-locations-file` lists (names relative to it), the
+/// agenda files and their archives; without `org-id-track-globally`
+/// only in the link's file. `org-id-completion-targets` says what an
+/// `id:` link completes to.
+#[test]
+fn looks_for_ids_where_the_id_options_say() {
+    let root = std::env::temp_dir().join(format!("org-lsp-id-lookup-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(root.join("far")).unwrap();
+    std::fs::write(root.join("far/kept.org"), "* Kept\n:PROPERTIES:\n:ID: kept-id\n:END:\n").unwrap();
+    std::fs::write(root.join(".org-id-locations"), "\n((\"far/kept.org\" \"kept-id\"))\n").unwrap();
+    std::fs::write(root.join("agenda.org"), "* Top\n** Sub\n").unwrap();
+    std::fs::write(root.join("agenda.org_archive"), "* Old\n:PROPERTIES:\n:ID: old-id\n:END:\n").unwrap();
+    let uri = format!("file://{}/notes.org", root.display());
+    let text = "* Here\n:PROPERTIES:\n:ID: here-id\n:END:\n[[id:kept-id]] [[id:old-id]] [[id:here-id]]\n";
+    let open = |client: &mut Client, character: u32| {
+        let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 4, "character": character } });
+        client.received.clear();
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": "org.open", "arguments": [context] }));
+        client.settle();
+        result.map(|_| {
+            let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("shown");
+            shown.params["uri"].as_str().unwrap().rsplit('/').next().unwrap().to_string()
+        })
+    };
+    let mut options = clock();
+    options["org_agenda_files"] = json!([root.join("agenda.org").display().to_string()]);
+    options["org_id_locations_file"] = json!(root.join(".org-id-locations").display().to_string());
+    let mut client = Client::editor(options.clone(), None);
+    client.open(&uri, text);
+    assert_eq!(open(&mut client, 3).as_deref(), Ok("kept.org"));
+    assert_eq!(open(&mut client, 20).as_deref(), Ok("agenda.org_archive"));
+    client.shutdown();
+
+    // `org-id-search-archives` off: not in the archives.
+    options["org_id_search_archives"] = json!(false);
+    let mut client = Client::editor(options.clone(), None);
+    client.open(&uri, text);
+    assert_eq!(open(&mut client, 20), Err("Cannot find entry with ID \"old-id\"".to_string()));
+    client.shutdown();
+
+    // `org-id-track-globally` off: only in this file.
+    options["org_id_track_globally"] = json!(false);
+    let mut client = Client::editor(options.clone(), None);
+    client.open(&uri, text);
+    assert_eq!(open(&mut client, 35).as_deref(), Ok("notes.org"));
+    assert_eq!(
+        open(&mut client, 3),
+        Err("Please turn on `org-id-track-globally' if you want to track IDs".to_string())
+    );
+    client.shutdown();
+
+    // `org-id-completion-targets`: the agenda files' top headlines, by
+    // the file's name first as the first targets are not this file.
+    options["org_id_track_globally"] = json!(true);
+    options["org_id_completion_targets"] = json!([{ "files": "agenda", "level": 1 }]);
+    let mut client = Client::editor(options, None);
+    let mut text = text.to_string();
+    client.open(&uri, &text);
+    let asked = run_applying(&mut client, &uri, &mut text, "org.link.insert", 5, json!({}));
+    let context = asked["input"]["context"].clone();
+    let extra = json!({ "input": "id:", "step": context["step"], "answers": context["answers"] });
+    let asked = run_applying(&mut client, &uri, &mut text, "org.link.insert", 5, extra);
+    assert_eq!(asked["input"]["completions"], json!(["agenda.org/", "agenda.org/Top/"]), "{asked}");
+    client.shutdown();
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// `org-link-search-must-match-exact-headline`: following a link to a
+/// headline that is not there asks whether to make it (`query-to-create`),
+/// at the end of the file, and shows it; no is Emacs's error. With the
+/// option off, the words are looked for in the text.
+#[test]
+fn offers_to_make_a_missing_headline() {
+    let uri = "file:///org/make.org";
+    let text = "See [[Missing one]].\n* A\nmissing  one here\n";
+    let open = |client: &mut Client, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 8 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client.received.clear();
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": "org.open", "arguments": [context] }));
+        client.settle();
+        result
+    };
+    let mut client = Client::editor(clock(), None);
+    client.open(uri, text);
+    let asked = open(&mut client, json!({})).unwrap();
+    assert_eq!(asked["input"]["prompt"], "No match - create this as a new heading? ", "{asked}");
+    let context = asked["input"]["context"].clone();
+    let refused = open(&mut client, json!({ "input": "n", "step": context["step"], "answers": context["answers"] }));
+    assert_eq!(refused, Err("No match for fuzzy expression: Missing one".to_string()));
+    let mut edited = text.to_string();
+    open(&mut client, json!({ "input": "y", "step": context["step"], "answers": context["answers"] })).unwrap();
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("shown");
+    assert_eq!(shown.params["selection"]["start"], json!({ "line": 3, "character": 0 }));
+    apply_received(&mut client, uri, &mut edited);
+    assert_eq!(edited, format!("{text}* Missing one\n"));
+    client.shutdown();
+
+    let mut options = clock();
+    options["org_link_search_must_match_exact_headline"] = json!(false);
+    let mut client = Client::editor(options, None);
+    client.open(uri, text);
+    assert_eq!(open(&mut client, json!({})), Ok(Value::Null));
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("shown");
+    assert_eq!(shown.params["selection"]["start"], json!({ "line": 2, "character": 0 }));
+    client.shutdown();
+}
+
+/// `org-return-follows-link`: RET on a link follows it and types nothing;
+/// a question following asks goes by `window/showMessageRequest`. Off,
+/// RET breaks the line.
+#[test]
+fn return_follows_links_when_asked() {
+    let uri = "file:///org/ret.org";
+    let text = "See [[*Target]] and [[Nowhere]] x\n* Target\n";
+    let ret = |client: &mut Client, character: u32| {
+        let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": character } });
+        client.received.clear();
+        let result =
+            client.request("workspace/executeCommand", json!({ "command": "org.return", "arguments": [context] }));
+        client.settle();
+        result.unwrap()
+    };
+    let mut options = clock();
+    options["org_return_follows_link"] = json!(true);
+    let mut client = Client::editor(options, None);
+    client.open(uri, text);
+    assert_eq!(ret(&mut client, 6)["edits"], json!([]));
+    let shown = client.received.iter().find(|request| request.method == "window/showDocument").expect("shown");
+    assert_eq!(shown.params["selection"]["start"], json!({ "line": 1, "character": 0 }));
+    assert_eq!(ret(&mut client, 22)["edits"], json!([]));
+    let asked = client.received.iter().find(|request| request.method == "window/showMessageRequest").expect("asked");
+    assert_eq!(asked.params["message"], "No match - create this as a new heading? ");
+    // After the link, a new line.
+    assert_ne!(ret(&mut client, 33)["edits"], json!([]));
+    client.shutdown();
+
+    let mut client = Client::editor(clock(), None);
+    client.open(uri, text);
+    assert_ne!(ret(&mut client, 6)["edits"], json!([]));
+    assert!(!client.received.iter().any(|request| request.method == "window/showDocument"));
+    client.shutdown();
 }
 
 /// `textDocument/documentLink`: URLs and files at once, places in files
@@ -6565,6 +8534,50 @@ fn agenda_column_view_goes_to_emacs() {
     client.shutdown();
 }
 
+/// `org-agenda-view-columns-initially`: a new agenda shows column view
+/// at once (through Emacs).
+#[test]
+fn agenda_opens_in_column_view() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("agenda_opens_in_column_view: no Emacs, skipped");
+        return;
+    }
+    let mut options = clock();
+    let mut config = "(setq org-columns-default-format \"%25ITEM %TODO %Effort{:}\")".to_string();
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        config = format!("(add-to-list 'load-path {dir:?}) {config}");
+    }
+    options["emacs_config"] = json!(config);
+    options["org_agenda_view_columns_initially"] = json!(true);
+    let file = workspace("columns-initially").join("tasks.org");
+    let text = "* TODO Write\n:PROPERTIES:\n:Effort: 1:00\n:END:\n";
+    std::fs::write(&file, text).unwrap();
+    let uri = format!("file://{}", file.display());
+    let mut client = Client::editor(options, None);
+    client.open(&uri, text);
+    let context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 0, "character": 0 }, "input": "t" });
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.agenda.dispatch", "arguments": [context] }))
+        .unwrap();
+    let start = std::time::Instant::now();
+    let columns = loop {
+        client.settle();
+        if let Some(found) = client.notifications.iter().rev().find(|note| note.method == "org-lsp/columns") {
+            break found.params.clone();
+        }
+        assert!(start.elapsed() < std::time::Duration::from_secs(20), "column view shows");
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    };
+    assert_eq!(columns["uri"], VIEW);
+    assert_eq!(
+        columns["header"].as_str().unwrap().split('|').map(str::trim).collect::<Vec<_>>(),
+        ["ITEM", "TODO", "Effort", ""]
+    );
+    client.shutdown();
+}
+
 /// Several TODO sequences: `org.todo` cycles within the entry's sequence
 /// and, from no keyword, back into the one it was last in; `C-S-<right>`
 /// switches to the next sequence and says which it is.
@@ -6624,7 +8637,7 @@ fn previews_the_images_of_links() {
     let text =
         "#+STARTUP: inlineimages\n* One\n[[file:img/a.png]] [[./missing.png]] [[file:b.png][B]]\n* Two\n[[./b.png]]\n";
     let capabilities = json!({ "experimental": { "orgImages": true }, "general": { "positionEncodings": ["utf-8"] } });
-    let mut client = Client::start(capabilities, clock(), None);
+    let mut client = Client::start(capabilities.clone(), clock(), None);
     client.open(&uri, text);
     let preview = |client: &mut Client, line: u32, character: u32, extra: Value| {
         let mut context =
@@ -6663,6 +8676,30 @@ fn previews_the_images_of_links() {
     assert_eq!((startup["scope"].as_str(), paths(&startup).len()), (Some("buffer"), 2));
     client.shutdown();
 
+    // How wide each shows: at its own width, `org-image-max-width` at most
+    // (`fill-column`, 70 columns); with `org-image-actual-width` nil, the
+    // `:width` of `#+ATTR_ORG:` or a part of the window.
+    let sized = "#+ATTR_ORG: :width 100\n[[file:b.png]]\n\n#+ATTR_HTML: :width 50%\n[[file:b.png]]\n";
+    let mut options = clock();
+    options["org_image_actual_width"] = json!(false);
+    let mut client = Client::start(capabilities.clone(), options, None);
+    client.open(&uri, sized);
+    let whole = preview(&mut client, 0, 0, json!({ "count": 16 }));
+    let widths: Vec<(Value, Value)> = whole["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|item| (item["width"].clone(), item["maxWidth"].clone()))
+        .collect();
+    assert_eq!(widths, [(json!({ "pixels": 100.0 }), Value::Null), (json!({ "fraction": 0.5 }), Value::Null)]);
+    client.shutdown();
+    let mut client = Client::start(capabilities, clock(), None);
+    client.open(&uri, sized);
+    let whole = preview(&mut client, 0, 0, json!({ "count": 16 }));
+    assert_eq!(whole["items"][0]["maxWidth"], json!({ "columns": 70 }));
+    assert!(whole["items"][0].get("width").is_none());
+    client.shutdown();
+
     // An editor that cannot show images is told so.
     let mut client = Client::start(json!({}), clock(), None);
     client.open(&uri, text);
@@ -6672,6 +8709,181 @@ fn previews_the_images_of_links() {
         .unwrap();
     assert_eq!(result["message"], "This editor cannot show images");
     client.shutdown();
+    let _ = std::fs::remove_dir_all(&directory);
+}
+
+/// A tiny HTTP server for the remote images: `/a.png` and `/b.png` are
+/// pictures, anything else is not found. It counts the requests it
+/// answered, by path.
+fn image_server() -> (String, std::sync::Arc<std::sync::Mutex<Vec<String>>>) {
+    use std::io::{BufRead, BufReader, Write};
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let base = format!("http://127.0.0.1:{}", listener.local_addr().unwrap().port());
+    let asked = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let counted = asked.clone();
+    std::thread::spawn(move || {
+        for stream in listener.incoming() {
+            let Ok(mut stream) = stream else { continue };
+            let mut reader = BufReader::new(stream.try_clone().unwrap());
+            let mut line = String::new();
+            let _ = reader.read_line(&mut line);
+            let path = line.split_whitespace().nth(1).unwrap_or("").to_string();
+            // The rest of the request's head.
+            loop {
+                let mut header = String::new();
+                if reader.read_line(&mut header).unwrap_or(0) == 0 || header == "\r\n" {
+                    break;
+                }
+            }
+            counted.lock().unwrap().push(path.clone());
+            let response = match path.as_str() {
+                "/a.png" | "/b.png" => {
+                    format!("HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\npng {}", &path[1..2])
+                }
+                _ => "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_string(),
+            };
+            let _ = stream.write_all(response.as_bytes());
+        }
+    });
+    (base, asked)
+}
+
+/// `org-display-remote-inline-images`: the images of URLs are downloaded
+/// (by `curl`) into a directory of the server's and shown as files, once
+/// `org-resource-download-policy` allows it, or the answer to the question
+/// Emacs asks (`org--confirm-resource-safe`); `cache` downloads each once.
+#[test]
+fn previews_remote_images() {
+    if !std::process::Command::new("curl").arg("--version").output().is_ok_and(|out| out.status.success()) {
+        eprintln!("previews_remote_images: no curl, skipped");
+        return;
+    }
+    let (base, asked) = image_server();
+    let directory = std::env::temp_dir().join(format!("org-lsp-remote-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let file = directory.join("notes.org");
+    let uri = format!("file://{}", file.display());
+    let a = format!("{base}/a.png");
+    let text = format!("* Pictures\n[[{a}]]\n{base}/b.png\n[[{base}/missing.png]]\n");
+    let capabilities = json!({ "experimental": { "orgImages": true }, "general": { "positionEncodings": ["utf-8"] } });
+    let run = |client: &mut Client, context: &Value| {
+        client
+            .request("workspace/executeCommand", json!({ "command": "org.link.preview", "arguments": [context] }))
+            .unwrap()
+    };
+    let start = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 0 }, "count": 16 });
+    let paths = |result: &Value| -> Vec<String> {
+        result["preview"]["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| std::fs::read_to_string(item["path"].as_str().unwrap()).unwrap())
+            .collect()
+    };
+    let said = |client: &mut Client| -> Vec<String> {
+        client.settle();
+        client
+            .notifications
+            .drain(..)
+            .filter(|notification| notification.method == "window/showMessage")
+            .map(|notification| notification.params["message"].as_str().unwrap().to_string())
+            .collect()
+    };
+    // `skip`, as by default: no URL is downloaded.
+    let mut client = Client::start(capabilities.clone(), clock(), None);
+    client.open(&uri, &text);
+    assert_eq!(paths(&run(&mut client, &start)), Vec::<String>::new());
+    client.shutdown();
+    assert!(asked.lock().unwrap().is_empty());
+
+    // `download`, asking first: the question about each URL in turn, and
+    // each answer runs the command again with those so far.
+    let mut options = clock();
+    options["org_display_remote_inline_images"] = json!("download");
+    let mut client = Client::start(capabilities.clone(), options.clone(), None);
+    client.open(&uri, &text);
+    let question = run(&mut client, &start);
+    let input = &question["input"];
+    assert_eq!(input["kind"], "key");
+    let truename = std::fs::canonicalize(&directory).unwrap().join("notes.org");
+    assert_eq!(
+        input["prompt"],
+        format!("An org-mode document would like to download {a}, which is not considered safe. Please type y, n, f, d, or !: ")
+    );
+    let keys: Vec<&str> =
+        input["choices"].as_array().unwrap().iter().map(|choice| choice["key"].as_str().unwrap()).collect();
+    assert_eq!(keys, ["!", "d", "f", "y", "n"]);
+    assert_eq!(
+        input["choices"][2]["label"],
+        format!("to download this resource, and permanently mark all resources in {} as safe.", truename.display())
+    );
+    let answer = |client: &mut Client, mut context: Value, result: &Value, key: &str| {
+        for (name, value) in result["input"]["context"].as_object().unwrap() {
+            context[name] = value.clone();
+        }
+        context["input"] = json!(key);
+        (run(client, &context), context)
+    };
+    // `y` for the first, `n` for the second: one image, and what Emacs says
+    // of the other; the missing one is asked about and not found.
+    let (second, context) = answer(&mut client, start.clone(), &question, "y");
+    assert_eq!(second["input"]["context"]["step"], format!("{base}/b.png"));
+    let (third, context) = answer(&mut client, context, &second, "n");
+    assert_eq!(third["input"]["context"]["step"], format!("{base}/missing.png"));
+    let (done, _) = answer(&mut client, context, &third, "y");
+    assert_eq!(paths(&done), ["png a"]);
+    let path = done["preview"]["items"][0]["path"].as_str().unwrap().to_string();
+    assert!(!path.starts_with(&directory.to_string_lossy().to_string()), "{path}");
+    assert_eq!(
+        said(&mut client),
+        [
+            format!("The remote resource \"{base}/b.png\" is considered unsafe, and will not be downloaded."),
+            format!("Unable to fetch file from \"{base}/missing.png\""),
+        ]
+    );
+    // `y` was for this once: asked again. `f` marks what the file asks for
+    // safe for the session (`d` would not do for a URL with a port, as in
+    // Emacs): nothing more is asked, and each shows downloaded anew.
+    let question = run(&mut client, &start);
+    assert_eq!(question["input"]["context"]["step"], a);
+    let (done, _) = answer(&mut client, start.clone(), &question, "f");
+    assert_eq!(paths(&done), ["png a", "png b"]);
+    let before = asked.lock().unwrap().len();
+    assert_eq!(paths(&run(&mut client, &start)), ["png a", "png b"]);
+    assert_eq!(asked.lock().unwrap().len(), before + 3);
+    // When the file opens, nothing is asked.
+    client.shutdown();
+    let mut client = Client::start(capabilities.clone(), options.clone(), None);
+    client.open(&uri, &format!("#+STARTUP: inlineimages\n{text}"));
+    let startup = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 0 }, "startup": true });
+    assert_eq!(paths(&run(&mut client, &startup)), Vec::<String>::new());
+    client.shutdown();
+
+    // `cache`, the URLs safe by `org_safe_remote_resources`: downloaded once.
+    options["org_display_remote_inline_images"] = json!("cache");
+    options["org_safe_remote_resources"] = json!([format!("\\`{}/", base.replace('.', "\\."))]);
+    let mut client = Client::start(capabilities.clone(), options.clone(), None);
+    client.open(&uri, &text);
+    asked.lock().unwrap().clear();
+    assert_eq!(paths(&run(&mut client, &start)), ["png a", "png b"]);
+    assert_eq!(paths(&run(&mut client, &start)), ["png a", "png b"]);
+    assert_eq!(
+        asked.lock().unwrap().iter().filter(|path| path.ends_with(".png") && !path.contains("missing")).count(),
+        2
+    );
+    client.shutdown();
+
+    // `safe` with none safe, or `false`: nothing is downloaded.
+    for policy in [json!("safe"), json!(false)] {
+        options["org_safe_remote_resources"] = json!([]);
+        options["org_resource_download_policy"] = policy;
+        let mut client = Client::start(capabilities.clone(), options.clone(), None);
+        client.open(&uri, &text);
+        asked.lock().unwrap().clear();
+        assert_eq!(paths(&run(&mut client, &start)), Vec::<String>::new());
+        assert!(asked.lock().unwrap().is_empty());
+        client.shutdown();
+    }
     let _ = std::fs::remove_dir_all(&directory);
 }
 
@@ -6752,6 +8964,35 @@ fn previews_latex_through_emacs() {
 /// org-roam, switched on: the nodes of its directory are offered by their
 /// titles and aliases, visited, linked to, and a title no node has makes
 /// a node in a new file, linked to where the capture started.
+/// `org-roam-node-formatter`: the description of an inserted link.
+#[test]
+fn formats_inserted_roam_links() {
+    let root = std::env::temp_dir().join(format!("org-lsp-roam-formatter-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).unwrap();
+    let a = ":PROPERTIES:\n:ID:       a-id\n:ROAM_ALIASES: Alpha\n:END:\n#+title: A note\n#+filetags: :one:\n\nText.\n";
+    std::fs::write(root.join("a.org"), a).unwrap();
+    let a_uri = format!("file://{}", root.join("a.org").display());
+    let mut options = clock();
+    options["org_roam_enabled"] = json!(true);
+    options["org_roam_directory"] = json!(root.display().to_string());
+    options["org_roam_node_formatter"] = json!("${title} (${file}) ${tags}");
+    let mut client = Client::editor(options, None);
+    client.open(&a_uri, a);
+    let answer = json!({
+        "textDocument": { "uri": a_uri }, "position": { "line": 7, "character": 0 },
+        "step": "node", "input": "Alpha",
+    });
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.roam.node.insert", "arguments": [answer] }))
+        .unwrap();
+    client.settle();
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+    assert_eq!(apply(a, &edits_of(edit).1), a.replace("Text.", "[[id:a-id][Alpha (a.org) #one]]Text."));
+    client.shutdown();
+    let _ = std::fs::remove_dir_all(&root);
+}
+
 #[test]
 fn finds_links_and_captures_roam_nodes() {
     let root = std::env::temp_dir().join(format!("org-lsp-roam-{}", std::process::id()));
@@ -6907,6 +9148,278 @@ fn finds_links_and_captures_roam_nodes() {
         .map(|request| request.params["uri"].as_str().unwrap())
         .collect();
     assert_eq!(shown, [format!("file://{}", root.join("quick_one.org").display())]);
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// org-roam-dailies: going to the day's note makes it, with its `ID`
+/// and title, as Emacs does; capturing to it adds an entry; another day
+/// by its count or a typed date; the next and previous notes.
+#[test]
+fn keeps_daily_notes_with_org_roam() {
+    let root = std::env::temp_dir().join(format!("org-lsp-roam-dailies-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(root.join("daily")).unwrap();
+    std::fs::write(root.join("daily/2026-05-10.org"), "#+title: 2026-05-10\n").unwrap();
+    let mut options = clock();
+    options["org_roam_enabled"] = json!(true);
+    options["org_roam_directory"] = json!(root.display().to_string());
+    let mut client = Client::editor(options, None);
+    let run = |client: &mut Client, command: &str, context: &Value| {
+        client.received.clear();
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+    let shown = |client: &Client| {
+        let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("shown");
+        show.params["uri"].as_str().unwrap().to_string()
+    };
+    let today = root.join("daily/2026-05-18.org");
+    let none = json!({});
+    run(&mut client, "org.roam.dailies.goto.today", &none).unwrap();
+    assert_eq!(shown(&client), format!("file://{}", today.display()));
+    let written = std::fs::read_to_string(&today).unwrap();
+    let id = written.lines().nth(1).unwrap().strip_prefix(":ID:       ").unwrap().to_string();
+    assert_eq!(written, format!(":PROPERTIES:\n:ID:       {id}\n:END:\n#+title: 2026-05-18\n"));
+
+    // A capture to it: an entry at its end.
+    run(&mut client, "org.roam.dailies.capture.today", &none).unwrap();
+    let buffer = shown(&client);
+    assert!(buffer.ends_with("/CAPTURE-2026-05-18.org"), "{buffer}");
+    assert_eq!(std::fs::read_to_string(buffer.strip_prefix("file://").unwrap()).unwrap(), "* \n");
+    client.open(&buffer, "* Did a thing\n");
+    let finish = json!({ "textDocument": { "uri": buffer }, "position": { "line": 0, "character": 0 } });
+    assert_eq!(run(&mut client, "org.capture.finish", &finish), Ok(json!({ "close": buffer })));
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the entry");
+    assert_eq!(
+        apply(&written, &edits_of(edit).1),
+        format!(":PROPERTIES:\n:ID:       {id}\n:END:\n#+title: 2026-05-18\n* Did a thing\n")
+    );
+
+    // Two days back, and a typed date.
+    run(&mut client, "org.roam.dailies.goto.yesterday", &json!({ "count": 2 })).unwrap();
+    assert!(shown(&client).ends_with("/daily/2026-05-16.org"));
+    let asked = run(&mut client, "org.roam.dailies.goto.date", &none).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Find daily-note");
+    let mut answer = asked["input"]["context"].clone();
+    answer["input"] = json!("2026-05-01");
+    run(&mut client, "org.roam.dailies.goto.date", &answer).unwrap();
+    assert!(shown(&client).ends_with("/daily/2026-05-01.org"));
+
+    // The notes in order: 05-01, 05-10, 05-16, 05-18.
+    let at = |name: &str| json!({ "textDocument": { "uri": format!("file://{}", root.join("daily").join(name).display()) } });
+    run(&mut client, "org.roam.dailies.goto.next", &at("2026-05-10.org")).unwrap();
+    assert!(shown(&client).ends_with("/daily/2026-05-16.org"));
+    run(&mut client, "org.roam.dailies.goto.previous", &at("2026-05-10.org")).unwrap();
+    assert!(shown(&client).ends_with("/daily/2026-05-01.org"));
+    assert_eq!(
+        run(&mut client, "org.roam.dailies.goto.next", &at("2026-05-18.org")),
+        Err("Already at newest note".to_string())
+    );
+    let elsewhere = json!({ "textDocument": { "uri": format!("file://{}", root.join("x.org").display()) } });
+    assert_eq!(run(&mut client, "org.roam.dailies.goto.next", &elsewhere), Err("Not in a daily-note".to_string()));
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// org-roam-dailies in an editor that shows the date prompt: the date of
+/// `org-roam-dailies-goto-date` and `-capture-date` is picked in its
+/// calendar, which marks the days with a note, and its minibuffer line
+/// starts with their prompt; `org-roam-dailies-find-directory` offers the
+/// notes of the directory to visit.
+#[test]
+fn picks_the_day_of_a_daily_note_in_the_calendar() {
+    const PROMPT: &str = "org-agenda:/Org%20Date";
+    let root = std::env::temp_dir().join(format!("org-lsp-roam-dailies-calendar-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(root.join("daily/old")).unwrap();
+    std::fs::write(root.join("daily/2026-05-10.org"), "#+title: 2026-05-10\n").unwrap();
+    std::fs::write(root.join("daily/old/2026-04-30.org"), "#+title: 2026-04-30\n").unwrap();
+    let mut options = clock();
+    options["org_roam_enabled"] = json!(true);
+    options["org_roam_directory"] = json!(root.display().to_string());
+    let mut client = Client::with_date_prompt(options);
+    let run = |client: &mut Client, command: &str, context: &Value| {
+        client.received.clear();
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+    let shown = |client: &Client| {
+        let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("shown");
+        show.params["uri"].as_str().unwrap().to_string()
+    };
+    let none = json!({});
+
+    // The calendar opens on today, past dates preferred, the note of the
+    // 10th marked.
+    assert_eq!(run(&mut client, "org.roam.dailies.goto.date", &none), Ok(Value::Null));
+    assert_eq!(shown(&client), PROMPT);
+    let text = client.view_text(PROMPT);
+    assert_eq!(text.lines().last(), Some("Find daily-note:  Date+time [2026-05-18]:    => <2026-05-18 Mon>"));
+    let tokens =
+        client.request("textDocument/semanticTokens/full", json!({ "textDocument": { "uri": PROMPT } })).unwrap();
+    let legend = client.initialize["capabilities"]["semanticTokensProvider"]["legend"]["tokenTypes"].clone();
+    let dailies = legend.as_array().unwrap().iter().position(|name| name == "calendarDailies").unwrap() as u64;
+    let data = tokens["data"].as_array().unwrap();
+    assert_eq!(data.chunks(5).filter(|token| token[3] == dailies).count(), 2, "{text}");
+    // A day typed that has passed is this year's, not next year's.
+    let typed = json!({ "textDocument": { "uri": PROMPT }, "position": { "line": 0, "character": 0 }, "input": "5-1" });
+    assert_eq!(run(&mut client, "org.calendar.type", &typed), Ok(json!({ "close": PROMPT })));
+    assert!(shown(&client).ends_with("/daily/2026-05-01.org"), "{}", shown(&client));
+    assert!(root.join("daily/2026-05-01.org").exists());
+
+    // Capturing to a day picked in the calendar: a day back from today.
+    assert_eq!(run(&mut client, "org.roam.dailies.capture.date", &none), Ok(Value::Null));
+    let text = client.view_text(PROMPT);
+    assert!(text.lines().last().unwrap().starts_with("Capture to daily-note:  Date+time [2026-05-18]: "), "{text}");
+    let on_prompt = json!({ "textDocument": { "uri": PROMPT }, "position": { "line": 0, "character": 0 } });
+    run(&mut client, "org.calendar.day.earlier", &on_prompt).unwrap();
+    assert_eq!(run(&mut client, "org.calendar.select", &on_prompt), Ok(json!({ "close": PROMPT })));
+    assert!(shown(&client).ends_with("/CAPTURE-2026-05-17.org"), "{}", shown(&client));
+    // With `C-u`, the note itself.
+    run(&mut client, "org.roam.dailies.capture.date", &json!({ "count": 4 })).unwrap();
+    assert!(client.view_text(PROMPT).lines().last().unwrap().starts_with("Find daily-note:  "));
+    run(&mut client, "org.calendar.select", &on_prompt).unwrap();
+    assert!(shown(&client).ends_with("/daily/2026-05-18.org"), "{}", shown(&client));
+
+    // The directory: its notes, in the order of their names, to visit.
+    let asked = run(&mut client, "org.roam.dailies.find.directory", &none).unwrap();
+    let input = &asked["input"];
+    assert_eq!(input["kind"], "choice");
+    let labels: Vec<&str> =
+        input["choices"].as_array().unwrap().iter().map(|choice| choice["label"].as_str().unwrap()).collect();
+    assert_eq!(labels, ["2026-05-01.org", "2026-05-10.org", "2026-05-18.org", "old/2026-04-30.org"]);
+    let mut answer = input["context"].clone();
+    answer["input"] = json!("old/2026-04-30.org");
+    assert_eq!(run(&mut client, "org.roam.dailies.find.directory", &answer), Ok(Value::Null));
+    assert!(shown(&client).ends_with("/daily/old/2026-04-30.org"), "{}", shown(&client));
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// The calendar on its own (`org-goto-calendar`, `C-c >`), on the date of
+/// the line's timestamp, and the keys org-journal adds to it: the entry
+/// of the day read or displayed, the next and previous days with an
+/// entry, a new entry for the day, a search of its week; with
+/// `org_journal_follow_mode`, the day moved to shows.
+#[test]
+fn runs_org_journal_keys_in_the_calendar() {
+    const PROMPT: &str = "org-agenda:/Org%20Date";
+    let root = std::env::temp_dir().join(format!("org-lsp-journal-calendar-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    let directory = root.join("journal");
+    std::fs::create_dir_all(&directory).unwrap();
+    std::fs::write(directory.join("20260512"), "* Tuesday, 05/12/26\n** 09:00 a\n").unwrap();
+    std::fs::write(directory.join("20260515"), "* Friday, 05/15/26\n** 10:00 standup\nnotes\n").unwrap();
+    let file_of = |name: &str| format!("file://{}", directory.join(name).display());
+    let mut options = clock();
+    options["org_journal_enabled"] = json!(true);
+    options["org_journal_dir"] = json!(directory.display().to_string());
+    let mut client = Client::with_date_prompt(options);
+    let notes = format!("file://{}", root.join("notes.org").display());
+    client.open(&notes, "* Meeting <2026-05-12 Tue>\n* Other\n");
+    let run = |client: &mut Client, command: &str, argument: Value| {
+        client.received.clear();
+        client.notifications.clear();
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [argument] }));
+        client.settle();
+        result
+    };
+    let shown = |client: &Client| {
+        client
+            .received
+            .iter()
+            .rev()
+            .find(|request| request.method == "window/showDocument")
+            .map(|request| request.params.clone())
+    };
+    let on_prompt = json!({ "textDocument": { "uri": PROMPT }, "position": { "line": 0, "character": 0 } });
+
+    // On the date of the line's timestamp: the calendar alone, no
+    // minibuffer under it, the days with an entry marked.
+    let at_meeting = json!({ "textDocument": { "uri": notes }, "position": { "line": 0, "character": 2 } });
+    assert_eq!(run(&mut client, "org.goto.calendar", at_meeting), Ok(Value::Null));
+    assert_eq!(shown(&client).unwrap()["uri"], PROMPT);
+    let text = client.view_text(PROMPT);
+    assert_eq!(text.lines().next(), Some("          April 2026                May 2026                June 2026"));
+    assert!(!text.contains("Date+time") && !text.contains("=>"), "{text}");
+    // `j r`: the 12th's entry, in another window.
+    run(&mut client, "org.journal.read.entry", on_prompt.clone()).unwrap();
+    let show = shown(&client).expect("the entry");
+    assert_eq!(show["uri"], file_of("20260512"));
+    assert_eq!((show["orgOtherWindow"].clone(), show["takeFocus"].clone()), (json!(true), json!(true)));
+    assert!(client.notifications.iter().any(|notification| notification.method == "org-lsp/folds"));
+    // A key that answers a date prompt has nothing to answer.
+    assert!(run(&mut client, "org.calendar.select", on_prompt.clone())
+        .unwrap_err()
+        .starts_with("No date is asked for"));
+
+    // `]`: the 15th, where org-journal says there is none after; `j d`
+    // shows its entry, the cursor staying in the calendar.
+    let moved = run(&mut client, "org.journal.next.entry", on_prompt.clone()).unwrap();
+    assert_eq!(moved["message"], "No journal entry after this one");
+    run(&mut client, "org.journal.display.entry", on_prompt.clone()).unwrap();
+    let show = shown(&client).expect("the entry");
+    assert_eq!(show["uri"], file_of("20260515"));
+    assert_eq!((show["orgOtherWindow"].clone(), show["takeFocus"].clone()), (json!(true), json!(false)));
+    // `j s w`: the string, then the results of the week of the 15th.
+    let asked = run(&mut client, "org.journal.search.calendar.week", on_prompt.clone()).unwrap();
+    assert_eq!(asked["input"]["context"]["day"], "2026-05-15");
+    let mut answer = on_prompt.clone();
+    answer["step"] = json!("search");
+    answer["day"] = json!("2026-05-15");
+    answer["input"] = json!("standup");
+    run(&mut client, "org.journal.search.calendar.week", answer).unwrap();
+    let results = shown(&client).expect("the results")["uri"].as_str().unwrap().to_string();
+    let text = std::fs::read_to_string(results.strip_prefix("file://").unwrap()).unwrap();
+    assert!(
+        text.starts_with("Search results for \"standup\" between Saturday, 05/09/26 and Sunday, 05/17/26"),
+        "{text}"
+    );
+    // `[` twice: the 12th, then none before it.
+    run(&mut client, "org.journal.previous.entry", on_prompt.clone()).unwrap();
+    let none = run(&mut client, "org.journal.previous.entry", on_prompt.clone()).unwrap();
+    assert_eq!(none["message"], "No journal entry before this one");
+    run(&mut client, "org.journal.read.entry", on_prompt.clone()).unwrap();
+    assert_eq!(shown(&client).unwrap()["uri"], file_of("20260512"));
+
+    // `j n` on a day to come: a TODO entry for it.
+    run(&mut client, "org.calendar.today", on_prompt.clone()).unwrap();
+    run(&mut client, "org.calendar.day.later", on_prompt.clone()).unwrap();
+    run(&mut client, "org.journal.new.date.entry", on_prompt.clone()).unwrap();
+    assert_eq!(
+        std::fs::read_to_string(directory.join("20260519")).unwrap(),
+        "* Tuesday, 05/19/26\n** TODO \n<2026-05-19 Tue>"
+    );
+    assert_eq!(run(&mut client, "org.journal.mark.entries", on_prompt.clone()), Ok(Value::Null));
+    // Off the calendar there is no day.
+    let elsewhere = json!({ "textDocument": { "uri": notes }, "position": { "line": 1, "character": 0 } });
+    assert_eq!(run(&mut client, "org.journal.read.entry", elsewhere.clone()), Err("Not on a date!".to_string()));
+    assert_eq!(run(&mut client, "org.calendar.cancel", on_prompt.clone()), Ok(json!({ "close": PROMPT })));
+
+    // With `C-u`, today; without a timestamp on the line, today too.
+    let today = json!({ "textDocument": { "uri": notes }, "position": { "line": 0, "character": 2 }, "count": 4 });
+    run(&mut client, "org.goto.calendar", today).unwrap();
+    run(&mut client, "org.journal.previous.entry", on_prompt.clone()).unwrap();
+    run(&mut client, "org.journal.read.entry", on_prompt.clone()).unwrap();
+    assert_eq!(shown(&client).unwrap()["uri"], file_of("20260515"));
+    client.shutdown();
+
+    // Follow mode: `]` shows the entry of the day it goes to, and says
+    // nothing.
+    let mut options = clock();
+    options["org_journal_enabled"] = json!(true);
+    options["org_journal_dir"] = json!(directory.display().to_string());
+    options["org_journal_follow_mode"] = json!(true);
+    let mut client = Client::with_date_prompt(options);
+    run(&mut client, "org.goto.calendar", json!({})).unwrap();
+    let moved = run(&mut client, "org.journal.next.entry", on_prompt.clone()).unwrap();
+    assert_eq!(moved, Value::Null);
+    let show = shown(&client).expect("the entry");
+    assert_eq!(show["uri"], file_of("20260519"));
+    assert_eq!(show["takeFocus"], false);
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
 }
@@ -7223,6 +9736,8 @@ fn writes_journal_entries() {
     let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("today's file");
     assert_eq!(show.params["uri"], today_uri);
     assert_eq!(show.params["selection"]["start"], json!({ "line": 2, "character": 9 }));
+    // In another window, as `org-journal-find-file-fn` shows it.
+    assert_eq!(show.params["orgOtherWindow"], true);
     let folds = client.notifications.iter().find(|notification| notification.method == "org-lsp/folds").expect("folds");
     assert_eq!(folds.params["uri"], today_uri);
     assert_eq!(folds.params["close"], json!([]));
@@ -7239,6 +9754,8 @@ fn writes_journal_entries() {
     run(&mut client, "org.journal.previous.entry", at_today.clone()).unwrap();
     let show = client.received.iter().find(|request| request.method == "window/showDocument").expect("Friday");
     assert_eq!(show.params["uri"], friday_uri);
+    // `org-journal--open-entry` visits the file in the same window.
+    assert_eq!(show.params.get("orgOtherWindow"), None);
     assert_eq!(show.params["selection"]["start"], json!({ "line": 0, "character": 0 }));
     let folds = client.notifications.iter().find(|notification| notification.method == "org-lsp/folds").expect("folds");
     assert_eq!(folds.params["close"], json!([]));
@@ -7638,4 +10155,164 @@ fn refiles_a_capture_with_its_clock() {
     );
     assert!(text.starts_with("* Inbox\n* Other\n** Meeting\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]--"), "{text}");
     client.shutdown();
+}
+
+/// `org-clock-persist`: the clock Emacs's `org-clock-save.el` kept runs
+/// again once the question is answered, in a file that is not an agenda
+/// file, and the history comes back; when the server stops, the file is
+/// written again in Emacs's form.
+#[test]
+fn keeps_the_clock_between_sessions() {
+    let root = std::env::temp_dir().join(format!("org-lsp-clock-persist-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).unwrap();
+    let work = root.join("work.org");
+    std::fs::write(&work, "* TODO Write\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* Other\n").unwrap();
+    let save = root.join("org-clock-save.el");
+    let name = work.to_string_lossy().to_string();
+    std::fs::write(
+        &save,
+        format!(
+            ";; org-clock-save.el - box at <2026-05-17 Sun 18:00>  -*- lexical-binding: t; -*-\n\
+             (setq org-clock-stored-resume-clock '({name:?} . 53))\n\
+             (setq org-clock-stored-history '(({name:?} . 1) ({name:?} . 60)))\n"
+        ),
+    )
+    .unwrap();
+    let mut options = clock();
+    options["org_clock_persist"] = json!(true);
+    options["org_clock_persist_file"] = json!(save.to_string_lossy());
+    let mut client = Client::editor(options, None);
+    client.choice = Some("Yes".to_string());
+    client.settle();
+    let asked = client.received.iter().find(|request| request.method == "window/showMessageRequest");
+    assert_eq!(asked.expect("a question").params["message"], "Resume clock (Write)?");
+    let status = client.notifications.iter().rev().find(|notification| notification.method == "org-lsp/clock");
+    assert_eq!(status.expect("the clock runs").params["text"], "[1:30] (Write)");
+    client.shutdown();
+    let written = std::fs::read_to_string(&save).unwrap();
+    let lines: Vec<&str> = written.lines().collect();
+    assert!(lines[0].starts_with(";; org-clock-save.el - "), "{written}");
+    assert!(lines[0].ends_with(" at <2026-05-18 Mon 10:30>  -*- lexical-binding: t; -*-"), "{written}");
+    assert_eq!(
+        &lines[1..],
+        [
+            format!("(setq org-clock-stored-resume-clock '({name:?} . 53))"),
+            format!("(setq org-clock-stored-history '(({name:?} . 1) ({name:?} . 60)))"),
+        ]
+    );
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// `org-refile-active-region-within-subtree`: a selection that is not
+/// whole subtrees is refiled too, its first line made a headline by Emacs
+/// first, as Emacs's `org-refile` does it.
+#[test]
+fn refiles_a_region_within_a_subtree() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("refiles_a_region_within_a_subtree: no Emacs, skipped");
+        return;
+    }
+    let root = std::env::temp_dir().join(format!("org-lsp-refile-region-{}", std::process::id()));
+    std::fs::create_dir_all(&root).unwrap();
+    let path = root.join("a.org");
+    let mut options = clock();
+    options["org_refile_targets"] = json!([{ "files": "current", "maxlevel": 2 }]);
+    options["org_refile_active_region_within_subtree"] = json!(true);
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        options["emacs_config"] = json!(format!("(add-to-list 'load-path {dir:?})"));
+    }
+    let mut client = Client::editor(options, None);
+    let file = format!("file://{}", path.display());
+    for (text, expected) in [
+        ("* Target\n* A\nsome text\nmore\n* C\n", "* Target\n** some text\nmore\n* A\n* C\n"),
+        ("* Target\n* A\n- one\n- [X] two\n* C\n", "* Target\n** one\n- [X] two\n* A\n* C\n"),
+    ] {
+        std::fs::write(&path, text).unwrap();
+        client.open(&file, text);
+        let range = json!({ "start": { "line": 2, "character": 0 }, "end": { "line": 4, "character": 0 } });
+        let context = json!({
+            "textDocument": { "uri": file }, "position": { "line": 4, "character": 0 }, "range": range, "input": "Target",
+        });
+        client.received.clear();
+        let done =
+            client.request("workspace/executeCommand", json!({ "command": "org.refile", "arguments": [context] }));
+        client.settle();
+        assert!(done.is_ok(), "{done:?}");
+        let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the refile");
+        assert_eq!(apply(text, &edits_of(edit).1), expected);
+        client.notify("textDocument/didClose", json!({ "textDocument": { "uri": file } }));
+    }
+    client.shutdown();
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// `org_bibtex_autogen_keys`: the key of a new BibTeX entry is Emacs's
+/// `bibtex-generate-autokey` of the entry, not asked for.
+#[test]
+fn bibtex_keys_come_from_emacs() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("bibtex_keys_come_from_emacs: no Emacs, skipped");
+        return;
+    }
+    let mut options = clock();
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        options["emacs_config"] = json!(format!("(add-to-list 'load-path {dir:?})"));
+    }
+    options["org_bibtex_autogen_keys"] = json!(true);
+    let mut client = Client::editor(options, None);
+    let uri = "file:///org/refs.org";
+    let text = "* a\n";
+    client.open(uri, text);
+    let mut context = json!({ "textDocument": { "uri": uri }, "position": { "line": 1, "character": 0 } });
+    let mut answers = ["article", "My Title", "Smith", "Journal", "2020"].into_iter();
+    let mut asked = Vec::new();
+    let result = loop {
+        let result = client
+            .request("workspace/executeCommand", json!({ "command": "org.bibtex.create", "arguments": [context] }))
+            .unwrap();
+        let Some(input) = result.get("input") else { break result };
+        asked.push(input["prompt"].as_str().unwrap().to_string());
+        context["replies"] = input["context"]["replies"].clone();
+        context["input"] = json!(answers.next().expect("an answer"));
+    };
+    assert_eq!(asked, ["Type", "title", "author", "journal", "year"]);
+    assert_eq!(
+        apply(text, result["edits"].as_array().unwrap()),
+        "* a\n* My Title\n:PROPERTIES:\n:TITLE:    My Title\n:BTYPE:    article\n:AUTHOR:   Smith\n\
+         :JOURNAL:  Journal\n:YEAR:     2020\n:CUSTOM_ID: smith20:_my_title\n:END:\n"
+    );
+    // Without a year, Emacs makes no key.
+    let mut context = json!({ "textDocument": { "uri": uri }, "position": { "line": 1, "character": 0 } });
+    let mut answers = ["misc", "No year"].into_iter();
+    let error = loop {
+        match client
+            .request("workspace/executeCommand", json!({ "command": "org.bibtex.create", "arguments": [context] }))
+        {
+            Ok(result) => {
+                let input = result.get("input").expect("a question");
+                context["replies"] = input["context"]["replies"].clone();
+                context["input"] = json!(answers.next().expect("an answer"));
+            }
+            Err(error) => break error,
+        }
+    };
+    // (Its quotes are curved or not as Emacs's locale has them.)
+    assert!(error.starts_with("Year or date field ") && error.ends_with(" invalid"), "{error}");
+    client.shutdown();
+}
+
+/// The servers of the tests keep what they leave for others (where they
+/// listen for org-protocol URLs) in a state directory of their own, not
+/// the user's.
+fn private_state() {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| {
+        let state = std::env::temp_dir().join(format!("org-lsp-test-state-{}", std::process::id()));
+        std::env::set_var("XDG_STATE_HOME", state);
+    });
 }

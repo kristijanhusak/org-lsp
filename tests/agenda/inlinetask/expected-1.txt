@@ -1,0 +1,6 @@
+Global list of TODO items of type: ALL
+  a:          TODO Project                                                :work:
+  a:          TODO Call Bob                                        :work::phone:
+  a:          TODO Child                                                 :work::
+  a:          TODO Lone inline task
+  a:          TODO Task with a date

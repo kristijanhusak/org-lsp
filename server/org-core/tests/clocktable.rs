@@ -49,6 +49,27 @@ fn settings(case: &Value) -> Settings {
     if let Some(hour) = options.get("org_extend_today_until").and_then(Value::as_i64) {
         settings.extend_today_until = hour;
     }
+    if let Some(defaults) = options.get("org_clocktable_defaults").and_then(Value::as_str) {
+        settings.defaults = defaults.to_string();
+    }
+    if let Some(languages) = options.get("org_clock_clocktable_language_setup").and_then(Value::as_array) {
+        settings.languages = languages
+            .iter()
+            .map(|entry| {
+                let words: Vec<String> =
+                    entry.as_array().unwrap().iter().map(|word| word.as_str().unwrap().to_string()).collect();
+                (words[0].clone(), words[1..].to_vec())
+            })
+            .collect();
+    }
+    // `org-clock-report-include-clocking-task`, with the clock that runs
+    // started then.
+    if options.get("org_clock_report_include_clocking_task") == Some(&Value::Bool(true)) {
+        if let Some(clocking) = case.get("clocking").and_then(Value::as_array) {
+            let start = clock(clocking[1].as_str().unwrap());
+            settings.clocking = Some(clocktable::Clocking { path: "/org/main.org".to_string(), start });
+        }
+    }
     settings
 }
 

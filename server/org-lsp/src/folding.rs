@@ -10,6 +10,45 @@ use crate::line_index::LineIndex;
 /// `org-cycle-separator-lines`, Org's default.
 pub const SEPARATOR_LINES: i64 = 2;
 
+/// What folds, as Org's options of cycling say.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Folding {
+    /// `org-cycle-separator-lines`
+    pub separator_lines: i64,
+    /// `org-cycle-max-level`: deeper headlines are text of their parent's
+    /// subtree, with no fold of their own.
+    pub max_level: Option<usize>,
+    /// `org-cycle-include-plain-lists` not nil: list items fold.
+    pub plain_lists: bool,
+}
+
+impl Default for Folding {
+    fn default() -> Self {
+        Folding { separator_lines: SEPARATOR_LINES, max_level: None, plain_lists: true }
+    }
+}
+
+/// How TAB works (`org-cycle`): what folds, and what TAB does before it
+/// folds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Cycle {
+    pub folding: Folding,
+    /// `org-cycle-include-plain-lists` `integrate`: showing a headline's
+    /// children folds its lists to their top items.
+    pub integrate_lists: bool,
+    /// `org-cycle-global-at-bob`
+    pub global_at_bob: bool,
+    /// `org-cycle-level-after-item/entry-creation`
+    pub level_after_creation: bool,
+}
+
+impl From<i64> for Folding {
+    /// Org's defaults, with `separator_lines`.
+    fn from(separator_lines: i64) -> Self {
+        Folding { separator_lines, ..Folding::default() }
+    }
+}
+
 /// Every foldable range in the document, as `(first line, last line)`.
 ///
 /// A subtree folds up to the next headline, with the blank lines before
@@ -18,13 +57,23 @@ pub const SEPARATOR_LINES: i64 = 2;
 /// visible (all of them when it is negative); 0 hides them all. Blank
 /// lines at the end of the file always stay visible. Other elements end
 /// at their last line with text.
-pub fn folding_ranges(root: &SyntaxNode, text: &str, index: &LineIndex, separator_lines: i64) -> Vec<FoldingRange> {
-    folds(root, text, index, separator_lines).into_iter().map(|(_, range)| range).collect()
+pub fn folding_ranges(
+    root: &SyntaxNode,
+    text: &str,
+    index: &LineIndex,
+    folding: impl Into<Folding>,
+) -> Vec<FoldingRange> {
+    folds(root, text, index, folding.into()).into_iter().map(|(_, range)| range).collect()
 }
 
 /// The folding ranges of the headlines' subtrees.
-pub fn headline_folds(root: &SyntaxNode, text: &str, index: &LineIndex, separator_lines: i64) -> Vec<FoldingRange> {
-    folds(root, text, index, separator_lines)
+pub fn headline_folds(
+    root: &SyntaxNode,
+    text: &str,
+    index: &LineIndex,
+    folding: impl Into<Folding>,
+) -> Vec<FoldingRange> {
+    folds(root, text, index, folding.into())
         .into_iter()
         .filter(|(node, _)| node.kind() == HEADLINE)
         .map(|(_, range)| range)
@@ -32,13 +81,46 @@ pub fn headline_folds(root: &SyntaxNode, text: &str, index: &LineIndex, separato
 }
 
 /// The folding ranges, each with the element it folds.
-fn folds(root: &SyntaxNode, text: &str, index: &LineIndex, separator_lines: i64) -> Vec<(SyntaxNode, FoldingRange)> {
+fn folds(root: &SyntaxNode, text: &str, index: &LineIndex, folding: Folding) -> Vec<(SyntaxNode, FoldingRange)> {
+    let separator_lines = folding.separator_lines;
     let mut ranges = Vec::new();
+    let inline_tasks = org_core::inlinetask::min_stars_in(text);
+    let outline_stars = org_core::inlinetask::outline_stars_in(text);
+    let fold = |node: &SyntaxNode, start_line: usize, end_line: usize| {
+        (
+            node.clone(),
+            FoldingRange {
+                start_line: start_line as u32,
+                start_character: None,
+                end_line: end_line as u32,
+                end_character: None,
+                kind: None,
+                collapsed_text: None,
+            },
+        )
+    };
     for node in root.descendants() {
-        let foldable = matches!(
-            node.kind(),
-            HEADLINE | DRAWER | PROPERTY_DRAWER | BLOCK | DYNAMIC_BLOCK | LATEX_ENVIRONMENT | LIST_ITEM
-        );
+        let stars = || node.first_token().map_or(0, |stars| stars.text().trim_end().len());
+        // An inline task has no subtree: it folds its text up to its `END`
+        // line (`org-inlinetask-toggle-visibility`).
+        if node.kind() == HEADLINE && inline_tasks.is_some_and(|min| stars() >= min) {
+            let start = usize::from(node.text_range().start());
+            if let Some((first, end)) = org_core::inlinetask::fold_range(text, start) {
+                let (start_line, end_line) = (index.line_of(first), index.line_of(end));
+                if end_line > start_line {
+                    ranges.push(fold(&node, start_line, end_line));
+                }
+            }
+            continue;
+        }
+        let foldable = match node.kind() {
+            HEADLINE => {
+                folding.max_level.is_none_or(|max| stars() <= max)
+                    && outline_stars.is_none_or(|deepest| stars() <= deepest)
+            }
+            LIST_ITEM => folding.plain_lists,
+            kind => matches!(kind, DRAWER | PROPERTY_DRAWER | BLOCK | DYNAMIC_BLOCK | LATEX_ENVIRONMENT),
+        };
         if !foldable {
             continue;
         }
@@ -67,17 +149,7 @@ fn folds(root: &SyntaxNode, text: &str, index: &LineIndex, separator_lines: i64)
         };
         let start_line = index.line_of(start);
         if end_line > start_line {
-            ranges.push((
-                node.clone(),
-                FoldingRange {
-                    start_line: start_line as u32,
-                    start_character: None,
-                    end_line: end_line as u32,
-                    end_character: None,
-                    kind: None,
-                    collapsed_text: None,
-                },
-            ));
+            ranges.push(fold(&node, start_line, end_line));
         }
     }
     ranges
@@ -116,24 +188,17 @@ pub fn startup_folds(
     root: &SyntaxNode,
     text: &str,
     index: &LineIndex,
-    separator_lines: i64,
+    folding: impl Into<Folding>,
     options: &Startup,
 ) -> Vec<FoldingRange> {
     let mut startup = options.clone();
-    for line in text.lines() {
-        let line = line.trim_start_matches([' ', '\t']);
-        let Some(words) = line.get(..10).filter(|key| key.eq_ignore_ascii_case("#+startup:")).map(|_| &line[10..])
-        else {
-            continue;
-        };
-        for word in words.split_whitespace() {
-            match word.to_ascii_lowercase().as_str() {
-                folded @ ("overview" | "fold" | "content" | "show2levels" | "show3levels" | "show4levels"
-                | "show5levels" | "showall" | "nofold" | "showeverything") => startup.folded = folded.to_string(),
-                "hideblocks" => startup.hide_blocks = true,
-                "nohideblocks" | "showblocks" => startup.hide_blocks = false,
-                _ => {}
-            }
+    for word in org_core::text::startup_words(text) {
+        match word.to_ascii_lowercase().as_str() {
+            folded @ ("overview" | "fold" | "content" | "show2levels" | "show3levels" | "show4levels"
+            | "show5levels" | "showall" | "nofold" | "showeverything") => startup.folded = folded.to_string(),
+            "hideblocks" => startup.hide_blocks = true,
+            "nohideblocks" | "showblocks" => startup.hide_blocks = false,
+            _ => {}
         }
     }
     // `showeverything` leaves drawers, blocks and archived subtrees open
@@ -151,7 +216,7 @@ pub fn startup_folds(
         "show5levels" => Some(5),
         _ => None,
     };
-    let folds = folds(root, text, index, separator_lines);
+    let folds = folds(root, text, index, folding.into());
     let mut closed = vec![false; folds.len()];
     let places: HashMap<&SyntaxNode, usize> =
         folds.iter().enumerate().map(|(index, (node, _))| (node, index)).collect();

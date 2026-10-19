@@ -43,6 +43,7 @@ impl Client {
     /// Start a server and initialise it with the given client capabilities
     /// and initialization options.
     fn start(capabilities: Value, options: Value) -> Client {
+        private_state();
         // The tests' own options only, whatever configuration file the
         // machine has.
         let mut options = if options.is_null() { json!({}) } else { options };
@@ -221,6 +222,8 @@ fn negotiates_position_encoding() {
 #[test]
 fn semantic_tokens_full_and_range() {
     let mut client = Client::start(json!({}), Value::Null);
+    let legend =
+        serde_json::to_value(&client.initialize.capabilities.semantic_tokens_provider).unwrap()["legend"].clone();
     client.open(&uri(), DOCUMENT);
     let full = client.request::<SemanticTokensFullRequest>(SemanticTokensParams {
         text_document: identifier(),
@@ -231,11 +234,15 @@ fn semantic_tokens_full_and_range() {
     // `#+TITLE:` is the first token: line 0, column 0, eight characters, type `keyword`.
     let keyword = &full.data[0];
     assert_eq!((keyword.delta_line, keyword.delta_start, keyword.length, keyword.token_type), (0, 0, 8, 9));
+    // Its value, `org-document-title`.
+    let title = &full.data[1];
+    assert_eq!((title.delta_line, title.delta_start, title.length), (0, 9, 4));
+    assert_eq!(legend["tokenTypes"][title.token_type as usize], "documentTitle");
     // Stars of the first headline: next line, level-1 modifier.
-    let stars = &full.data[1];
+    let stars = &full.data[2];
     assert_eq!((stars.delta_line, stars.delta_start, stars.length, stars.token_type), (1, 0, 1, 1));
     assert_eq!(stars.token_modifiers_bitset, 1);
-    assert_eq!(full.data.len(), 11);
+    assert_eq!(full.data.len(), 12);
 
     let range = client.request::<SemanticTokensRangeRequest>(SemanticTokensRangeParams {
         text_document: identifier(),
@@ -476,6 +483,7 @@ fn read_message(reader: &mut impl BufRead) -> Value {
 
 #[test]
 fn binary_speaks_lsp_over_stdio() {
+    private_state();
     let mut child = Command::new(env!("CARGO_BIN_EXE_org-lsp"))
         .arg("--stdio")
         .stdin(Stdio::piped())
@@ -678,6 +686,58 @@ fn sends_virtual_indentation() {
     client.shutdown();
 }
 
+/// `org_indent_indentation_per_level` widens the prefixes, and with
+/// `org_indent_mode_turns_on_hiding_stars` off the stars stay.
+#[test]
+fn sends_virtual_indentation_of_other_widths() {
+    let capabilities = json!({ "experimental": { "orgVirtualIndent": true } });
+    let options = json!({ "org_indent_indentation_per_level": 4, "org_indent_mode_turns_on_hiding_stars": false });
+    let client = Client::start(capabilities, options);
+    client.open(&uri(), "#+STARTUP: indent\n* A\ntext\n** B\n- item\n");
+    let sent = client.notification("org-lsp/virtualIndent");
+    // As `org-indent-mode` shows it in Emacs with 4 per level.
+    assert_eq!(sent["lines"], json!([[1, 0, 2, 0], [2, 2, 2, 0], [3, 3, 6, 0], [4, 6, 8, 0]]));
+    client.shutdown();
+}
+
+/// `org_fontify_whole_heading_line`: the lines of the headlines, for a
+/// client that highlights lines from edge to edge, each in the look of
+/// its level as `org_n_level_faces` and `org_cycle_level_faces` say; again
+/// when they move, and with no lines when there are none.
+#[test]
+fn sends_the_lines_of_headlines_with_whole_heading_lines() {
+    let capabilities = json!({ "experimental": { "orgLineHighlights": true } });
+    let options =
+        json!({ "org_fontify_whole_heading_line": true, "org_n_level_faces": 2, "org_cycle_level_faces": false });
+    let client = Client::start(capabilities, options);
+    client.open(&uri(), "* A\ntext\n** B\n*** C\n");
+    let sent = client.notification("org-lsp/lineHighlights");
+    assert_eq!(sent["uri"], uri().as_str());
+    let lines = json!([
+        { "line": 0, "highlight": "headline.level1" },
+        { "line": 2, "highlight": "headline.level2" },
+        { "line": 3, "highlight": "headline.level2" },
+    ]);
+    assert_eq!(sent["lines"], lines);
+    let change = |version: i32, text: &str| {
+        client.notify::<lsp_types::notification::DidChangeTextDocument>(lsp_types::DidChangeTextDocumentParams {
+            text_document: lsp_types::VersionedTextDocumentIdentifier { uri: uri(), version },
+            content_changes: vec![lsp_types::TextDocumentContentChangeEvent {
+                range: None,
+                range_length: None,
+                text: text.to_string(),
+            }],
+        });
+    };
+    change(2, "text\n* A\n");
+    let sent = client.notification("org-lsp/lineHighlights");
+    assert_eq!(sent["lines"], json!([{ "line": 1, "highlight": "headline.level1" }]));
+    change(3, "text\n");
+    let sent = client.notification("org-lsp/lineHighlights");
+    assert_eq!(sent["lines"], json!([]));
+    client.shutdown();
+}
+
 /// A client that does not show `org-lsp/virtualIndent` (Zed, Helix) gets
 /// `org-indent-mode`'s prefixes as inlay hints of blanks; one that does,
 /// or says so with the `virtualIndent` option, gets none of those.
@@ -812,6 +872,103 @@ fn sends_what_stands_in_for_hidden_text() {
     client.shutdown();
 }
 
+/// `org_display_custom_times`: each timestamp's date and time shown in the
+/// custom formats, a repeater left as it is; `#+STARTUP: customtime` turns
+/// it on for a file, and `org.timestamp.overlays.toggle` off and on.
+#[test]
+fn shows_timestamps_in_custom_formats() {
+    let capabilities = json!({ "experimental": { "orgDisplay": true } });
+    let settings =
+        json!({ "org_display_custom_times": true, "org_timestamp_custom_formats": ["%d.%m.%Y", "%d.%m.%Y %H:%M"] });
+    let client = Client::start(capabilities.clone(), settings.clone());
+    client.open(&uri(), "<2026-10-05 Mon 10:00 +1w> and [2026-10-06 Tue]\n");
+    let sent = client.notification("org-lsp/display");
+    assert_eq!(sent["items"], json!([[0, 1, 0, 21, "05.10.2026 10:00"], [0, 32, 0, 46, "06.10.2026"]]));
+    client.shutdown();
+
+    // For a client that does not show them itself, inlay hints; the
+    // command turns them off and on again.
+    let capabilities_hints = json!({ "textDocument": { "inlayHint": {} } });
+    let mut client = Client::start(capabilities_hints, settings);
+    client.open(&uri(), "<2026-10-05 Mon 10:00 +1w> and [2026-10-06 Tue]\n");
+    let hints = |client: &mut Client| -> Vec<String> {
+        let params = json!({ "textDocument": { "uri": uri().as_str() }, "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 1, "character": 0 } } });
+        let result = client.raw_request("textDocument/inlayHint", params).response_result.unwrap();
+        result.as_array().unwrap().iter().map(|hint| hint["label"].as_str().unwrap_or_default().to_string()).collect()
+    };
+    assert_eq!(hints(&mut client), ["05.10.2026 10:00", "06.10.2026"]);
+    let toggle = |client: &mut Client| {
+        let argument = json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": 0, "character": 0 } });
+        let result = client
+            .raw_request(
+                "workspace/executeCommand",
+                json!({ "command": "org.timestamp.overlays.toggle", "arguments": [argument] }),
+            )
+            .response_result
+            .unwrap();
+        result["message"].clone()
+    };
+    assert_eq!(toggle(&mut client), "Time stamp overlays removed");
+    assert!(hints(&mut client).is_empty());
+    assert_eq!(toggle(&mut client), "Time stamps are overlaid with custom format");
+    assert_eq!(hints(&mut client).len(), 2);
+    client.shutdown();
+
+    // Org's formats, for the file that asks for them.
+    let client = Client::start(capabilities, Value::Null);
+    client.open(&uri(), "#+STARTUP: customtime\n<2026-10-05 Mon>\n");
+    let sent = client.notification("org-lsp/display");
+    assert_eq!(sent["items"], json!([[1, 1, 1, 15, "10/05/26 Mon"]]));
+    client.shutdown();
+}
+
+/// org-bullets (`org_bullets_mode`): each headline's last star shows as
+/// the bullet of its level, the list repeating, and the stars before it are
+/// hidden as `org-hide-leading-stars` hides them; the bullets of lists and
+/// the marks of checkboxes as org-bullets.nvim shows them. Each takes the
+/// look of the token it stands for.
+#[test]
+fn shows_headline_stars_as_bullets() {
+    let capabilities = json!({ "experimental": { "orgDisplay": true, "orgVirtualIndent": true } });
+    let settings = json!({
+        "org_bullets_mode": true,
+        "org_bullets_bullet_list": ["●", "○"],
+        "org_bullets_checkboxes": { "half": "~" },
+    });
+    let client = Client::start(capabilities, settings);
+    client.open(&uri(), "* One\n** Two\n*** Three\n- [X] a\n  + [-] b\n1. [ ] c\n");
+    let indent = client.notification("org-lsp/virtualIndent");
+    let hidden: Vec<(u64, u64)> = indent["lines"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|line| (line[0].as_u64().unwrap(), line[3].as_u64().unwrap()))
+        .collect();
+    assert_eq!(hidden, [(1, 1), (2, 2)]);
+    let sent = client.notification("org-lsp/display");
+    assert_eq!(
+        sent["items"],
+        json!([
+            [0, 0, 0, 1, "●", "stars.level1"],
+            [1, 1, 1, 2, "○", "stars.level2"],
+            [2, 2, 2, 3, "●", "stars.level3"],
+            [3, 0, 3, 1, "•", "bullet"],
+            [3, 3, 3, 4, "✓", "checkbox.checked"],
+            [4, 2, 4, 3, "•", "bullet"],
+            [4, 5, 4, 6, "~", "checkbox.partial"]
+        ])
+    );
+    client.shutdown();
+    // Off, lists and checkboxes are left as they are.
+    let settings =
+        json!({ "org_bullets_mode": true, "org_bullets_list_bullet": false, "org_bullets_checkboxes": false });
+    let client = Client::start(json!({ "experimental": { "orgDisplay": true } }), settings);
+    client.open(&uri(), "* One\n- [X] a\n");
+    let sent = client.notification("org-lsp/display");
+    assert_eq!(sent["items"], json!([[0, 0, 0, 1, "◉", "stars.level1"]]));
+    client.shutdown();
+}
+
 /// `#+STARTUP:` decides for its file: `entitiespretty` shows entities as
 /// their characters with the setting off, `literallinks` leaves links as
 /// they are with `org_link_descriptive` on; `entitiesplain` and
@@ -922,6 +1079,34 @@ fn shows_sub_and_superscripts() {
     assert_eq!(hints, [(0, 23, "α".to_string())]);
 }
 
+/// `org-toggle-custom-properties-visibility`: the lines of the properties
+/// of `org_custom_properties` for a client that hides lines, then none,
+/// for it to show them again; a client that cannot is told so.
+#[test]
+fn hides_custom_properties_and_shows_them_again() {
+    let toggle = |client: &mut Client| {
+        let context = json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": 0, "character": 0 } });
+        client.raw_request(
+            "workspace/executeCommand",
+            json!({ "command": "org.custom.properties.toggle", "arguments": [context] }),
+        )
+    };
+    let text = "* A\n:PROPERTIES:\n:ID: 1\n:CATEGORY: x\n:END:\n* B\n:PROPERTIES:\n:id: 2\n:END:\n";
+    let options = json!({ "org_custom_properties": ["ID"] });
+    let mut client = Client::start(json!({ "experimental": { "orgHiddenLines": true } }), options.clone());
+    client.open(&uri(), text);
+    let hidden = toggle(&mut client).response_result.expect("a result");
+    assert_eq!(hidden, json!({ "hiddenLines": { "uri": uri().as_str(), "lines": [2, 7] } }));
+    let shown = toggle(&mut client).response_result.expect("a result");
+    assert_eq!(shown, json!({ "hiddenLines": { "uri": uri().as_str(), "lines": [] } }));
+    client.shutdown();
+    let mut client = Client::start(json!({}), options);
+    client.open(&uri(), text);
+    let refused = toggle(&mut client).response_result.expect_err("an error");
+    assert_eq!(refused.message, "This editor cannot hide lines");
+    client.shutdown();
+}
+
 /// RET (`org-return`): the result carries the edit and where the cursor
 /// goes, for the editor to apply as the key is typed; in a source block's
 /// code the command does not apply, and the editor's own RET does.
@@ -946,6 +1131,124 @@ fn returns_as_org_does() {
     let refused = run(&mut client, 2, 2).response_result.expect_err("a refusal");
     assert_eq!(refused.data, Some(json!({ "notApplicable": true })));
     client.shutdown();
+}
+
+/// `org-open-line` (C-o): a new line after the cursor, which stays; in a
+/// table a row above (`org-special-ctrl-o`), unless that is off.
+#[test]
+fn opens_lines_and_table_rows() {
+    let text = "* A\nsome text\n| a | b |\n";
+    let open_line = |options: Value, line: u32, character: u32, count: Option<i64>| -> (String, Value) {
+        let mut client = Client::start(json!({}), options);
+        client.open(&uri(), text);
+        let mut context =
+            json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": line, "character": character } });
+        if let Some(count) = count {
+            context["count"] = json!(count);
+        }
+        let result = client
+            .raw_request("workspace/executeCommand", json!({ "command": "org.open.line", "arguments": [context] }))
+            .response_result
+            .expect("a result");
+        client.shutdown();
+        let edits: Vec<TextEdit> = serde_json::from_value(result["edits"].clone()).unwrap();
+        (apply_text_edits(text, &edits), result["cursor"].clone())
+    };
+    assert_eq!(
+        open_line(Value::Null, 1, 4, None),
+        ("* A\nsome\n text\n| a | b |\n".to_string(), json!({ "line": 1, "character": 4 }))
+    );
+    assert_eq!(open_line(Value::Null, 1, 4, Some(2)).0, "* A\nsome\n\n text\n| a | b |\n");
+    let (row, _) = open_line(Value::Null, 2, 3, None);
+    assert_eq!(row, "* A\nsome text\n|   |   |\n| a | b |\n");
+    let (plain, _) = open_line(json!({ "org_special_ctrl_o": false }), 2, 3, None);
+    assert_eq!(plain, "* A\nsome text\n| a\n | b |\n");
+}
+
+/// `org-display-outline-path`: the headlines above the entry at the
+/// cursor, with a count the file's name first, as Emacs echoes them.
+#[test]
+fn shows_the_outline_path() {
+    let mut client = Client::start(json!({}), Value::Null);
+    client.open(&uri(), "* TODO [#A] A :t:\n** [[x][Link]] B  \n*** C\ntext\n");
+    let mut path = |line: u32, count: Option<i64>| -> Value {
+        let mut context =
+            json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": line, "character": 0 } });
+        if let Some(count) = count {
+            context["count"] = json!(count);
+        }
+        client
+            .raw_request("workspace/executeCommand", json!({ "command": "org.outline.path", "arguments": [context] }))
+            .response_result
+            .expect("a result")
+    };
+    let name = "test.org";
+    assert_eq!(path(3, None), json!({ "message": "A/Link B" }));
+    assert_eq!(path(3, Some(4)), json!({ "message": format!("{name}/A/Link B") }));
+    assert_eq!(path(0, None), Value::Null);
+    assert_eq!(path(0, Some(4)), json!({ "message": name }));
+    client.shutdown();
+}
+
+/// `org-convert-to-odd-levels` and `org-convert-to-oddeven-levels`: a
+/// question first, then each headline below the top demoted or promoted,
+/// its tags aligned and, with `org-adapt-indentation`, its text indented
+/// with it, as Emacs does; the way back refuses even levels.
+#[test]
+fn converts_files_to_odd_levels_and_back() {
+    let convert = |command: &str, text: &str, options: Value| -> std::result::Result<String, String> {
+        let mut client = Client::start(json!({}), options);
+        client.open(&uri(), text);
+        let mut context =
+            json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": 0, "character": 0 } });
+        let asked = client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+            .response_result;
+        let asked = match asked {
+            Ok(asked) => asked,
+            Err(error) => {
+                client.shutdown();
+                return Err(error.message);
+            }
+        };
+        assert_eq!(asked["input"]["kind"], "key");
+        context["input"] = json!("y");
+        let result = client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+            .response_result
+            .expect("a result");
+        client.shutdown();
+        let edits: Vec<TextEdit> = serde_json::from_value(result["edits"].clone()).unwrap();
+        Ok(apply_text_edits(text, &edits))
+    };
+    let tags = " ".repeat(67);
+    assert_eq!(
+        convert("org.levels.odd", "* A\n** B   :tag:\ntext\n*** C\n**** D\n  deep\n* E\n** F\n", Value::Null),
+        Ok(format!("* A\n*** B{tags}:tag:\ntext\n***** C\n******* D\n  deep\n* E\n*** F\n"))
+    );
+    assert_eq!(
+        convert(
+            "org.levels.odd",
+            "* A\n** B   :tag:\n   text\n*** C\n**** D\n     deep\n",
+            json!({ "org_adapt_indentation": true })
+        ),
+        // Emacs makes the 8 columns a tab; org-lsp indents with
+        // `indent-tabs-mode` off.
+        Ok(format!("* A\n*** B{tags}:tag:\n    text\n***** C\n******* D\n        deep\n"))
+    );
+    let tags = " ".repeat(68);
+    assert_eq!(
+        convert("org.levels.oddeven", "* A\n*** B :tag:\n***** C\n******* D\n* E\n", Value::Null),
+        Ok(format!("* A\n** B{tags}:tag:\n*** C\n**** D\n* E\n"))
+    );
+    assert_eq!(
+        convert("org.levels.oddeven", "* A\n*** B\n    text\n***** C\n", json!({ "org_adapt_indentation": true })),
+        Ok("* A\n** B\n   text\n*** C\n".to_string())
+    );
+    assert_eq!(
+        convert("org.levels.oddeven", "* A\n** B\n*** C\n", Value::Null),
+        Err("Not all levels are odd in this file.  Conversion not possible".to_string())
+    );
 }
 
 /// `returnUsesMetaReturn`: RET on the line of an item's bullet makes the
@@ -1384,10 +1687,7 @@ fn reveals_the_context() {
             .unwrap()
     };
     let shown = run(&mut client, "org.reveal", 6);
-    assert_eq!(
-        shown["sparse"],
-        json!({ "lines": [0, 2, 3, 6, 7, 8], "highlights": [], "keep": true, "unfold": [0, 2] })
-    );
+    assert_eq!(shown["sparse"], json!({ "lines": [0, 2, 3, 6, 7, 8], "keep": true, "unfold": [0, 2] }));
     assert_eq!(run(&mut client, "org.reveal.siblings", 6)["sparse"]["lines"], json!([0, 1, 2, 3, 6, 7, 8]));
     assert_eq!(run(&mut client, "org.reveal.tree", 9)["sparse"]["lines"], json!([8, 9]));
 }
@@ -1427,6 +1727,133 @@ fn makes_sparse_trees() {
     assert_eq!((todo["sparse"]["lines"].clone(), todo["message"].clone()), (json!([0]), json!("1 TODO entries found")));
     let tagged = run(&mut client, json!({ "input": "work", "answers": "m" }));
     assert_eq!(tagged["sparse"]["lines"], json!([2, 3]), "c inherits the tag");
+    client.shutdown();
+}
+
+/// `org-highlight-sparse-tree-matches` off: the lines of the matches show,
+/// with nothing highlighted.
+#[test]
+fn makes_sparse_trees_without_highlights() {
+    let mut client = Client::start(json!({}), json!({ "org_highlight_sparse_tree_matches": false }));
+    client.open(&uri(), "* TODO a\nan apple\n* b :work:\n** c\nApple pie\n");
+    let context = json!({
+        "textDocument": { "uri": uri().as_str() }, "position": { "line": 0, "character": 0 },
+        "input": "apple", "answers": "r",
+    });
+    let shown = client
+        .raw_request("workspace/executeCommand", json!({ "command": "org.sparse.tree", "arguments": [context] }))
+        .response_result
+        .unwrap();
+    assert_eq!(shown["sparse"], json!({ "lines": [1, 4], "highlights": [] }));
+    client.shutdown();
+}
+
+/// `org-remove-highlights-with-change`: the highlights of `org-occur` and
+/// the times of `org-clock-display` go with the next change, and with
+/// `false` stay, following the text, until `C-c C-c` takes them away. Those
+/// of a sparse tree by tags always stay, as `org-scan-tags` leaves them in
+/// Emacs.
+#[test]
+fn removes_highlights_with_change() {
+    for remove in [true, false] {
+        let capabilities = json!({ "textDocument": { "inlayHint": {} } });
+        let options = json!({
+            "org_remove_highlights_with_change": remove,
+            "clock": { "today": "2026-03-02", "now": "12:00" },
+        });
+        let mut client = Client::start(capabilities, options);
+        let text =
+            "* TODO a :work:\n:LOGBOOK:\nCLOCK: [2026-03-01 Sun 10:00]--[2026-03-01 Sun 11:00] =>  1:00\n:END:\n";
+        client.open(&uri(), text);
+        let run = |client: &mut Client, command: &str, extra: Value| -> Option<Value> {
+            let mut context =
+                json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": 0, "character": 0 } });
+            for (key, value) in extra.as_object().unwrap() {
+                context[key] = value.clone();
+            }
+            client
+                .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+                .response_result
+                .ok()
+        };
+        let hints = |client: &mut Client| -> Vec<u32> {
+            let range = json!({ "start": { "line": 0, "character": 0 }, "end": { "line": 10, "character": 0 } });
+            let params = json!({ "textDocument": { "uri": uri().as_str() }, "range": range });
+            let result = client.raw_request("textDocument/inlayHint", params).response_result.unwrap();
+            result.as_array().unwrap().iter().map(|hint| hint["position"]["line"].as_u64().unwrap() as u32).collect()
+        };
+        let mut version = 1;
+        let mut change = |client: &mut Client| {
+            version += 1;
+            client.notify::<DidChangeTextDocument>(DidChangeTextDocumentParams {
+                text_document: VersionedTextDocumentIdentifier { uri: uri(), version },
+                content_changes: vec![TextDocumentContentChangeEvent {
+                    range: Some(Range::new(Position::new(0, 0), Position::new(0, 0))),
+                    range_length: None,
+                    text: "x\n".to_string(),
+                }],
+            });
+        };
+        let removed = json!("Temporary highlights/overlays removed from current buffer");
+        let shown = run(&mut client, "org.sparse.tree", json!({ "input": "TODO", "answers": "r" })).unwrap();
+        assert_eq!(shown["sparse"].get("keepHighlights").is_some(), !remove, "remove {remove}");
+        run(&mut client, "org.clock.display", json!({})).unwrap();
+        assert_eq!(hints(&mut client), [0]);
+        change(&mut client);
+        let cleared = run(&mut client, "org.checkbox.toggle", json!({ "position": { "line": 1, "character": 0 } }));
+        if remove {
+            assert_eq!(hints(&mut client), Vec::<u32>::new());
+            assert_ne!(cleared.map(|result| result["message"].clone()), Some(removed.clone()));
+        } else {
+            let cleared = cleared.unwrap();
+            assert_eq!(cleared["message"], removed);
+            assert_eq!(cleared["sparse"], json!({ "keep": true, "unfold": [], "highlights": [] }));
+            assert_eq!(hints(&mut client), Vec::<u32>::new());
+        }
+        // A sparse tree by tags: its highlights stay through changes.
+        let tagged = run(&mut client, "org.sparse.tree", json!({ "input": "work", "answers": "m" })).unwrap();
+        assert_eq!(tagged["sparse"]["keepHighlights"], true);
+        change(&mut client);
+        let cleared = run(&mut client, "org.checkbox.toggle", json!({ "position": { "line": 2, "character": 0 } }));
+        assert_eq!(cleared.unwrap()["message"], removed);
+        // With `false`, the times follow their headline.
+        if !remove {
+            run(&mut client, "org.clock.display", json!({ "position": { "line": 2, "character": 0 } })).unwrap();
+            change(&mut client);
+            assert_eq!(hints(&mut client), [3]);
+        }
+        client.shutdown();
+    }
+}
+
+/// `org-num-mode`: `#+STARTUP: num` numbers the headlines as inlay hints
+/// after their stars; `org.num.mode` turns it off and on, saying so as
+/// Emacs does.
+#[test]
+fn numbers_headlines() {
+    let capabilities = json!({ "textDocument": { "inlayHint": {} } });
+    let mut client = Client::start(capabilities, json!({ "org_num_skip_tags": ["noexport"] }));
+    client.open(&uri(), "#+STARTUP: num\n* A\n** B\n** C :noexport:\n*** D\n* E\n");
+    let hints = |client: &mut Client| -> Vec<Value> {
+        let range = json!({ "start": { "line": 0, "character": 0 }, "end": { "line": 6, "character": 0 } });
+        let params = json!({ "textDocument": { "uri": uri().as_str() }, "range": range });
+        let result = client.raw_request("textDocument/inlayHint", params).response_result.unwrap();
+        result.as_array().unwrap().iter().map(|hint| json!([hint["position"], hint["label"]])).collect()
+    };
+    let at = |line: u32, character: u32, label: &str| json!([{ "line": line, "character": character }, label]);
+    assert_eq!(hints(&mut client), [at(1, 2, "1 "), at(2, 3, "1.1 "), at(5, 2, "2 ")]);
+    let toggle = |client: &mut Client| {
+        let argument = json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": 0, "character": 0 } });
+        client
+            .raw_request("workspace/executeCommand", json!({ "command": "org.num.mode", "arguments": [argument] }))
+            .response_result
+            .unwrap()["message"]
+            .clone()
+    };
+    assert_eq!(toggle(&mut client), "Org-Num mode disabled in current buffer");
+    assert_eq!(hints(&mut client), Vec::<Value>::new());
+    assert_eq!(toggle(&mut client), "Org-Num mode enabled in current buffer");
+    assert_eq!(hints(&mut client).len(), 3);
     client.shutdown();
 }
 
@@ -1973,6 +2400,113 @@ fn moves_about_as_org_does() {
     client.shutdown();
 }
 
+#[test]
+fn line_keys_as_org_special_ctrl_a_e_and_k_make_them() {
+    let run = |client: &mut Client, command: &str, line: u32, character: u32| {
+        let argument =
+            json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": line, "character": character } });
+        client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [argument] }))
+            .response_result
+    };
+    let cursor = |result: &Result<Value, lsp_server::ResponseError>| {
+        let value = result.as_ref().expect("a result");
+        (value["cursor"]["line"].as_u64().unwrap(), value["cursor"]["character"].as_u64().unwrap())
+    };
+    let text = "* TODO Title :tag:\n- [ ] item\n";
+    // Off: the keys keep the editor's meaning.
+    let mut client = Client::start(json!({}), Value::Null);
+    client.open(&uri(), text);
+    for command in ["org.beginning.of.line", "org.end.of.line", "org.kill.line"] {
+        let refused = run(&mut client, command, 0, 9).unwrap_err();
+        assert_eq!(refused.data, Some(json!({ "notApplicable": true })), "{command}");
+    }
+    client.shutdown();
+
+    let mut client =
+        Client::start(json!({}), json!({ "org_special_ctrl_a_e": "reversed", "org_special_ctrl_k": true }));
+    client.open(&uri(), text);
+    // `reversed`: the line's start first, the title's on the key right after.
+    assert_eq!(cursor(&run(&mut client, "org.beginning.of.line", 0, 9)), (0, 0));
+    assert_eq!(cursor(&run(&mut client, "org.beginning.of.line", 0, 0)), (0, 7));
+    assert_eq!(cursor(&run(&mut client, "org.end.of.line", 1, 0)), (1, 10));
+    assert_eq!(cursor(&run(&mut client, "org.beginning.of.line", 1, 8)), (1, 0));
+    assert_eq!(cursor(&run(&mut client, "org.beginning.of.line", 1, 0)), (1, 6));
+    // C-k in the title: to the tags, the kill by characters.
+    let killed = run(&mut client, "org.kill.line", 0, 9).unwrap();
+    assert_eq!(killed["copy"], "tle");
+    assert_eq!(killed["copyCharacters"], true);
+    client.shutdown();
+
+    let mut client = Client::start(json!({}), json!({ "org_special_ctrl_a_e": [true, false] }));
+    client.open(&uri(), text);
+    assert_eq!(cursor(&run(&mut client, "org.beginning.of.line", 0, 9)), (0, 7));
+    assert!(run(&mut client, "org.end.of.line", 0, 9).is_err());
+    client.shutdown();
+}
+
+#[test]
+fn tab_before_folding_as_org_cycle_does() {
+    let run = |client: &mut Client, line: u32, character: u32| {
+        let argument =
+            json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": line, "character": character } });
+        client
+            .raw_request("workspace/executeCommand", json!({ "command": "org.cycle", "arguments": [argument] }))
+            .response_result
+    };
+    let text = "Intro\n* A\n** \n- a\n- \n";
+    let mut client = Client::start(json!({}), json!({ "org_cycle_global_at_bob": true }));
+    client.open(&uri(), text);
+    // A new, empty headline: a sibling of its parent, the stars after it.
+    let promoted = run(&mut client, 2, 3).unwrap();
+    let edits: Vec<TextEdit> = serde_json::from_value(promoted["edits"].clone()).unwrap();
+    assert_eq!(apply_text_edits(text, &edits), "Intro\n* A\n* \n- a\n- \n");
+    assert_eq!(promoted["cursor"], json!({ "line": 2, "character": 2 }));
+    // A new, empty item: in under the one before.
+    let indented = run(&mut client, 4, 2).unwrap();
+    let edits: Vec<TextEdit> = serde_json::from_value(indented["edits"].clone()).unwrap();
+    assert_eq!(apply_text_edits(text, &edits), "Intro\n* A\n** \n- a\n  - \n");
+    // At the start of the file, off a headline: global cycling.
+    assert_eq!(run(&mut client, 0, 0).unwrap(), json!({ "global": true }));
+    // Elsewhere the editor folds.
+    assert_eq!(run(&mut client, 1, 0).unwrap(), json!({ "integrateLists": false }));
+    client.shutdown();
+
+    let mut client = Client::start(
+        json!({}),
+        json!({ "org_cycle_level_after_item_entry_creation": false, "org_cycle_include_plain_lists": "integrate" }),
+    );
+    client.open(&uri(), text);
+    assert_eq!(run(&mut client, 2, 3).unwrap(), json!({ "integrateLists": true }));
+    assert_eq!(run(&mut client, 0, 0).unwrap(), json!({ "integrateLists": true }));
+    client.shutdown();
+}
+
+#[test]
+fn folds_as_org_cycle_max_level_and_plain_lists_say() {
+    let text = "* A\n** B\ntext\n*** C\nmore\n- item\n  more\n";
+    let folds = |options: Value| {
+        let mut client = Client::start(json!({}), options);
+        client.open(&uri(), text);
+        let result = client
+            .raw_request("textDocument/foldingRange", json!({ "textDocument": { "uri": uri().as_str() } }))
+            .response_result
+            .unwrap();
+        client.shutdown();
+        let mut ranges: Vec<(u64, u64)> = result
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|range| (range["startLine"].as_u64().unwrap(), range["endLine"].as_u64().unwrap()))
+            .collect();
+        ranges.sort();
+        ranges
+    };
+    assert_eq!(folds(Value::Null), [(0, 6), (1, 6), (3, 6), (5, 6)]);
+    assert_eq!(folds(json!({ "org_cycle_max_level": 2 })), [(0, 6), (1, 6), (5, 6)]);
+    assert_eq!(folds(json!({ "org_cycle_include_plain_lists": false })), [(0, 6), (1, 6), (3, 6)]);
+}
+
 /// `text` with `edits` applied (positions in characters; ASCII text).
 fn apply_text_edits(text: &str, edits: &[TextEdit]) -> String {
     let offset = |position: Position| -> usize {
@@ -2343,6 +2877,74 @@ fn detangles_through_emacs() {
     let _ = std::fs::remove_dir_all(&directory);
 }
 
+/// `org-plot/gnuplot` (`C-c " g`) and `orgtbl-ascii-plot` (`C-c " a`)
+/// through Emacs: gnuplot.el, here a stand-in that keeps what it is sent,
+/// gets the script org-plot writes from the `#+PLOT:` line; the bars are
+/// drawn in a new column.
+#[test]
+fn plots_tables_through_emacs() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("plots_tables_through_emacs: no Emacs, skipped");
+        return;
+    }
+    let directory = std::env::temp_dir().join(format!("org-lsp-plot-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let script = directory.join("sent.gp");
+    let file = directory.join("plot.org");
+    let text = "#+PLOT: title:\"Sales\" ind:1 deps:(2) type:2d with:lines file:\"sales.png\"\n\
+                | Month | Sales |\n|-------+-------|\n|     1 |    10 |\n|     2 |    30 |\n";
+    std::fs::write(&file, text).unwrap();
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let load = std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
+    let config = format!(
+        "{load}\n(defun gnuplot-mode () nil)\n\
+         (defun gnuplot-send-buffer-to-gnuplot () (write-region nil nil {:?}))\n(provide 'gnuplot)",
+        script.display().to_string()
+    );
+    let mut client = Client::start(json!({}), json!({ "emacs_config": config }));
+    client.open(&uri, text);
+    let at = |line: u32, character: u32| json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": line, "character": character } });
+    let result = client
+        .raw_request("workspace/executeCommand", json!({ "command": "org.plot.gnuplot", "arguments": [at(3, 2)] }))
+        .response_result
+        .expect("a result");
+    assert_eq!(result, Value::Null);
+    // Emacs plots after the command is answered.
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
+    while !script.exists() && std::time::Instant::now() < deadline {
+        if let Ok(Message::Notification(note)) =
+            client.connection.receiver.recv_timeout(std::time::Duration::from_millis(100))
+        {
+            assert_ne!(note.method, "window/showMessage", "Emacs said {}", note.params);
+        }
+    }
+    let sent = std::fs::read_to_string(&script).expect("the script gnuplot gets");
+    assert!(sent.contains("set title 'Sales'"), "{sent}");
+    // The plot's file is in the Org file's directory.
+    assert!(sent.contains(&format!("set output '{}'", directory.join("sales.png").display())), "{sent}");
+    assert!(sent.contains("with lines"), "{sent}");
+    // The bars of the column at the cursor, in a column of their own.
+    let result = client
+        .raw_request("workspace/executeCommand", json!({ "command": "org.table.ascii.plot", "arguments": [at(3, 12)] }))
+        .response_result
+        .expect("a result");
+    assert_eq!(result, Value::Null);
+    let message = next_from_server(&client, |message| {
+        matches!(message, Message::Request(request) if request.method == "workspace/applyEdit")
+            || matches!(message, Message::Notification(note) if note.method == "window/showMessage")
+    });
+    let Message::Request(edit) = message else { panic!("Emacs said {message:?}") };
+    let edits: Vec<TextEdit> = serde_json::from_value(edit.params["edit"]["changes"][uri.as_str()].clone()).unwrap();
+    let plotted = apply_text_edits(text, &edits);
+    assert!(plotted.contains("#+TBLFM: $3='(orgtbl-ascii-draw $2 10 30 12)"), "{plotted}");
+    client.connection.sender.send(Message::Response(Response::new_ok(edit.id, json!({ "applied": true })))).unwrap();
+    client.shutdown();
+    let _ = std::fs::remove_dir_all(&directory);
+}
+
 /// The formula debugger (`C-c {`): while it is on, recalculating goes
 /// through Emacs, which asks after each formula whether to go on, its
 /// substitution history with the question.
@@ -2422,7 +3024,8 @@ fn edits_through_emacs() {
     let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
     let config =
         std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
-    let mut client = Client::start(json!({}), json!({ "emacs_config": config }));
+    let options = json!({ "emacs_config": config, "org_table_formula_constants": { "k": "10" } });
+    let mut client = Client::start(json!({}), options);
     let mut version = 1;
     let mut text = "* Head\nSome text here.\nline\n".to_string();
     client.open(&uri, &text);
@@ -2562,6 +3165,11 @@ fn edits_through_emacs() {
     replace(&mut client, &mut text, &mut version, changed);
     run(&mut client, &mut text, &mut version, "org.checkbox.toggle", (3, 0), json!({}));
     assert_eq!(text, "* Sums\n| 1 | 2 |  2 |\n| 3 | 4 | 12 |\n#+TBLFM: $3='(* $1 $2);N\n");
+    // Emacs has the constants of the settings (`org-table-formula-constants`).
+    let changed = text.replace("(* $1 $2)", "(* $1 $k)");
+    replace(&mut client, &mut text, &mut version, changed);
+    run(&mut client, &mut text, &mut version, "org.table.recalculate", (1, 2), json!({}));
+    assert_eq!(text, "* Sums\n| 1 | 2 | 10 |\n| 3 | 4 | 30 |\n#+TBLFM: $3='(* $1 $k);N\n");
     // Tangling to a file named by Emacs Lisp: Emacs tangles.
     let source = "#+begin_src emacs-lisp :tangle (concat \"out\" \".el\")\n(message \"hi\")\n#+end_src\n";
     replace(&mut client, &mut text, &mut version, source.to_string());
@@ -2777,4 +3385,156 @@ fn refuses_requests_after_shutdown() {
     });
     client.notify::<lsp_types::notification::Exit>(());
     client.server.take().unwrap().join().expect("the server ends cleanly");
+}
+
+/// `org-ellipsis`: what closed folds show after their first line, in the
+/// initialize result and on request; the standard three dots unless it is
+/// a string that is not empty.
+#[test]
+fn announces_the_ellipsis() {
+    for (setting, shown) in [(json!(null), "..."), (json!(""), "..."), (json!(" ▾"), " ▾")] {
+        let mut client = Client::start(json!({}), json!({ "org_ellipsis": setting }));
+        let experimental = client.initialize.capabilities.experimental.clone().unwrap();
+        assert_eq!(experimental["orgEllipsis"], json!(shown));
+        let response = client.raw_request("org-lsp/ellipsis", Value::Null);
+        assert_eq!(response.response_result.ok(), Some(json!(shown)));
+        client.shutdown();
+    }
+}
+
+/// `org-tag-faces`, with the faces of keywords and priorities: announced
+/// in the initialize result and on request, a color as the foreground.
+#[test]
+fn announces_the_faces_of_tags() {
+    let settings = json!({ "org_tag_faces": { "work": "orange", "home": ":weight bold" } });
+    let mut client = Client::start(json!({}), settings);
+    let faces = client.initialize.capabilities.experimental.clone().unwrap()["orgFaces"].clone();
+    let expected = json!({ "work": { "foreground": "orange" }, "home": { "bold": true } });
+    assert_eq!(faces["tag"], expected);
+    let response = client.raw_request("org-lsp/faces", Value::Null);
+    assert_eq!(response.response_result.ok().map(|faces| faces["tag"].clone()), Some(expected));
+    client.shutdown();
+}
+
+/// `org-inlinetask-insert-task` (`C-c C-x t`): an inline task of
+/// `org_inlinetask_min_level` stars with its `END` line, in
+/// `org_inlinetask_default_state` unless the command says without, as
+/// Emacs writes it (`tests/inlinetask`). The minimum level is the
+/// default: it holds for the process, and the other tests run beside.
+#[test]
+fn inserts_inline_tasks() {
+    let insert = |command: &str, options: Value| -> String {
+        let mut client = Client::start(json!({}), options);
+        let text = "* A\nbody\n";
+        client.open(&uri(), text);
+        let context = json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": 1, "character": 0 } });
+        let result = client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+            .response_result
+            .expect("a result");
+        client.shutdown();
+        let edits: Vec<TextEdit> = serde_json::from_value(result["edits"].clone()).unwrap();
+        apply_text_edits(text, &edits)
+    };
+    let stars = "*".repeat(15);
+    assert_eq!(insert("org.inlinetask.insert", Value::Null), format!("* A\n{stars} \n{stars} END\nbody\n"));
+    let todo = json!({ "org_inlinetask_default_state": "TODO" });
+    assert_eq!(insert("org.inlinetask.insert", todo.clone()), format!("* A\n{stars} TODO \n{stars} END\nbody\n"));
+    assert_eq!(insert("org.inlinetask.insert.nostate", todo), format!("* A\n{stars} \n{stars} END\nbody\n"));
+}
+
+/// The BibTeX commands of `ol-bibtex.el`: a new entry with its questions
+/// asked one at a time (the answers so far coming back in `replies`),
+/// the entry at the cursor copied as BibTeX, the file's entries exported
+/// to a `.bib` file, a BibTeX entry pasted and a file of them imported
+/// as headings.
+#[test]
+fn bibtex_entries_as_headlines() {
+    let directory = std::env::temp_dir().join(format!("org-lsp-bibtex-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let file = directory.join("notes.org");
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let mut client = Client::start(json!({}), Value::Null);
+    // Each question answered in turn: the prompts asked, and the result.
+    let run = |client: &mut Client, command: &str, text: &str, line: u32, answers: &[&str], extra: Value| {
+        client.open(&uri, text);
+        let mut context =
+            json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": line, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        let mut asked = Vec::new();
+        let mut answers = answers.iter();
+        loop {
+            let result = client
+                .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [context.clone()] }))
+                .response_result
+                .map_err(|error| error.message);
+            let Ok(result) = result else { return (asked, Err(result.unwrap_err())) };
+            let Some(input) = result.get("input").filter(|input| !input.is_null()) else {
+                return (asked, Ok(result));
+            };
+            asked.push(input["prompt"].as_str().unwrap().to_string());
+            for (key, value) in input["context"].as_object().into_iter().flatten() {
+                context[key] = value.clone();
+            }
+            context["input"] = json!(answers.next().expect("an answer"));
+        }
+    };
+    let text = "* a\n";
+    let (asked, result) = run(&mut client, "org.bibtex.create", text, 1, &["misc", "Paper", "k1"], Value::Null);
+    assert_eq!(asked, ["Type", "title", "id"]);
+    let edits: Vec<TextEdit> = serde_json::from_value(result.unwrap()["edits"].clone()).unwrap();
+    let created = apply_text_edits(text, &edits);
+    assert_eq!(created, "* a\n* Paper\n:PROPERTIES:\n:TITLE:    Paper\n:BTYPE:    misc\n:CUSTOM_ID: k1\n:END:\n");
+    // The type is completed from Org's.
+    let context = json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 0, "character": 0 } });
+    let first = client
+        .raw_request("workspace/executeCommand", json!({ "command": "org.bibtex.create", "arguments": [context] }))
+        .response_result
+        .unwrap();
+    assert_eq!(first["input"]["completions"][0], "article");
+    assert_eq!(first["input"]["select"], true);
+    let (_, unknown) = run(&mut client, "org.bibtex.create", text, 1, &["paper"], Value::Null);
+    assert_eq!(unknown.unwrap_err(), "Type::paper is not known");
+
+    let (_, copied) = run(&mut client, "org.bibtex.copy", &created, 1, &[], Value::Null);
+    assert_eq!(copied.unwrap()["copy"], "@misc{k1,\n  title={Paper}\n}\n");
+    let (asked, exported) = run(&mut client, "org.bibtex.export", &created, 0, &["refs.bib"], Value::Null);
+    assert_eq!(asked, ["BibTeX file"]);
+    let target = directory.join("refs.bib");
+    assert_eq!(exported.unwrap()["message"], format!("Successfully exported 1 BibTeX entries to {}", target.display()));
+    assert_eq!(std::fs::read_to_string(&target).unwrap(), "@misc{k1,\n  title={Paper}\n}\n");
+
+    let clipboard = "@article{doe,\n  author = {Jane Doe},\n  title = {On {T}hings},\n  year = 2001\n}\n";
+    let (_, yanked) = run(&mut client, "org.bibtex.yank", text, 1, &[], json!({ "clipboard": clipboard }));
+    let edits: Vec<TextEdit> = serde_json::from_value(yanked.unwrap()["edits"].clone()).unwrap();
+    assert_eq!(
+        apply_text_edits(text, &edits),
+        "* a\n* On {T}hings\n:PROPERTIES:\n:TITLE:    On {T}hings\n:BTYPE:    article\n:CUSTOM_ID: doe\n\
+         :AUTHOR:   Jane Doe\n:YEAR:     2001\n:END:\n"
+    );
+    let (asked, imported) = run(&mut client, "org.bibtex.import", text, 1, &["refs.bib"], Value::Null);
+    assert_eq!(asked, ["File"]);
+    let imported = imported.unwrap();
+    assert_eq!(imported["message"], "Parsed 1 entries");
+    let edits: Vec<TextEdit> = serde_json::from_value(imported["edits"].clone()).unwrap();
+    assert_eq!(
+        apply_text_edits(text, &edits),
+        "* a\n* Paper\n:PROPERTIES:\n:TITLE:    Paper\n:BTYPE:    misc\n:CUSTOM_ID: k1\n:END:\n\n"
+    );
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
+/// The servers of the tests keep what they leave for others (where they
+/// listen for org-protocol URLs) in a state directory of their own, not
+/// the user's.
+fn private_state() {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| {
+        let state = std::env::temp_dir().join(format!("org-lsp-test-state-{}", std::process::id()));
+        std::env::set_var("XDG_STATE_HOME", state);
+    });
 }

@@ -1,0 +1,204 @@
+=== 2 agenda
+Global list of TODO items of type: ALL
+  home:       TODO Water plants
+  home:       TODO Fix the bike
+  work:       TODO Write report
+  work:       TODO Call the client
+  work:       TODO Plan the trip
+  work:       TODO Book the hotel
+=== 3 agenda
+Global list of TODO items of type: ALL
+  home:       TODO Water plants
+  home:       TODO Fix the bike
+> work:       TODO Write report
+  work:       TODO Call the client
+  work:       TODO Plan the trip
+  work:       TODO Book the hotel
+=== 3 cursor
+agenda:5:   work:       TODO Call the client
+=== 3 messages
+1 entries marked for bulk action
+=== 4 agenda
+Global list of TODO items of type: ALL
+  home:       TODO Water plants
+  home:       TODO Fix the bike
+> work:       TODO Write report
+> work:       TODO Call the client
+> work:       TODO Plan the trip
+  work:       TODO Book the hotel
+=== 4 cursor
+agenda:7:   work:       TODO Book the hotel
+=== 4 messages
+3 entries marked for bulk action
+=== 5 agenda
+Global list of TODO items of type: ALL
+  home:       TODO Water plants
+  home:       TODO Fix the bike
+> work:       TODO Write report
+  work:       TODO Call the client
+> work:       TODO Plan the trip
+  work:       TODO Book the hotel
+=== 5 messages
+2 entries left marked for bulk action
+=== 6 agenda
+Global list of TODO items of type: ALL
+> home:       TODO Water plants
+  home:       TODO Fix the bike
+> work:       TODO Write report
+  work:       TODO Call the client
+> work:       TODO Plan the trip
+  work:       TODO Book the hotel
+=== 6 messages
+3 entries marked for bulk action
+=== 7 agenda
+Global list of TODO items of type: ALL
+  home:       TODO Water plants
+  home:       TODO Fix the bike
+  work:       TODO Write report
+  work:       TODO Call the client
+  work:       TODO Plan the trip
+  work:       TODO Book the hotel
+=== 7 messages
+=== 8 agenda
+Global list of TODO items of type: ALL
+> home:       TODO Water plants
+> home:       TODO Fix the bike
+> work:       TODO Write report
+> work:       TODO Call the client
+> work:       TODO Plan the trip
+> work:       TODO Book the hotel
+=== 8 messages
+6 entries marked for bulk action
+=== 9 agenda
+Global list of TODO items of type: ALL
+  home:       TODO Water plants
+  home:       TODO Fix the bike
+  work:       TODO Write report
+  work:       TODO Call the client
+  work:       TODO Plan the trip
+  work:       TODO Book the hotel
+=== 9 messages
+0 entries marked for bulk action
+=== 10 agenda
+Global list of TODO items of type: ALL
+  home:       TODO Water plants
+> home:       TODO Fix the bike
+  work:       TODO Write report
+  work:       TODO Call the client
+  work:       TODO Plan the trip
+> work:       TODO Book the hotel
+=== 10 messages
+2 entries marked for bulk action
+=== 11 agenda
+Global list of TODO items of type: ALL
+  home:       TODO Water plants
+  work:       TODO Write report
+  work:       TODO Call the client
+  work:       TODO Plan the trip
+=== 11 file:work.org
+* TODO Write report
+* TODO Call the client
+* TODO Plan the trip
+* DONE Book the hotel
+* Projects
+=== 11 file:home.org
+* TODO Water plants
+* DONE Fix the bike
+=== 11 messages
+Acted on 2 entries
+=== 15 agenda
+Global list of TODO items of type: ALL
+  home:       TODO Water plants
+  work:       TODO Write report                                         :urgent:
+  work:       TODO Call the client                                      :urgent:
+  work:       TODO Plan the trip
+=== 15 messages
+1 entries marked for bulk action
+2 entries marked for bulk action
+Acted on 2 entries
+=== 17 file:work.org
+* TODO Write report                                                  :urgent:
+SCHEDULED: <2026-05-22 Fri>
+* TODO Call the client                                               :urgent:
+SCHEDULED: <2026-05-22 Fri>
+* TODO Plan the trip
+SCHEDULED: <2026-05-22 Fri>
+* DONE Book the hotel
+* Projects
+=== 17 file:home.org
+* TODO Water plants
+SCHEDULED: <2026-05-22 Fri>
+* DONE Fix the bike
+=== 17 messages
+4 entries marked for bulk action
+Acted on 4 entries
+=== 20 agenda
+Global list of TODO items of type: ALL
+  home:       TODO Water plants
+  work:       TODO Call the client                                      :urgent:
+  work:       TODO Plan the trip
+  work:       TODO Write report                                         :urgent:
+=== 20 file:work.org
+* TODO Call the client                                               :urgent:
+SCHEDULED: <2026-05-22 Fri>
+* TODO Plan the trip
+SCHEDULED: <2026-05-22 Fri>
+* DONE Book the hotel
+* Projects
+** TODO Write report                                                 :urgent:
+SCHEDULED: <2026-05-22 Fri>
+=== 20 messages
+1 entries marked for bulk action
+Acted on 1 entries
+=== 24 file:work.org
+* TODO Call the client
+DEADLINE: <2026-05-25 Mon> SCHEDULED: <2026-05-22 Fri>
+* TODO Plan the trip
+SCHEDULED: <2026-05-22 Fri>
+* DONE Book the hotel
+* Projects
+** TODO Write report                                                 :urgent:
+SCHEDULED: <2026-05-22 Fri>
+=== 24 messages
+1 entries marked for bulk action
+Acted on 1 entries
+1 entries marked for bulk action
+Acted on 1 entries
+=== 27 file:work.org
+* TODO Call the client
+DEADLINE: <2026-05-25 Mon> SCHEDULED: <2026-05-22 Fri>
+* TODO Plan the trip
+SCHEDULED: <2026-05-19 Tue>
+* DONE Book the hotel
+* Projects
+** TODO Write report                                                 :urgent:
+SCHEDULED: <2026-05-19 Tue>
+=== 27 messages
+1 entries marked for bulk action
+2 entries marked for bulk action
+Acted on 2 entries
+=== 30 agenda
+Global list of TODO items of type: ALL
+  work:       TODO Call the client
+  work:       TODO Plan the trip
+  work:       TODO Write report                                         :urgent:
+=== 30 file:home.org
+* DONE Fix the bike
+=== 30 file:home.org_archive
+#    -*- mode: org -*-
+
+
+Archived entries from file $DIR/home.org
+
+
+* TODO Water plants
+SCHEDULED: <2026-05-22 Fri>
+:PROPERTIES:
+:ARCHIVE_TIME: 2026-05-18 Mon 10:30
+:ARCHIVE_FILE: $DIR/home.org
+:ARCHIVE_CATEGORY: home
+:ARCHIVE_TODO: TODO
+:END:
+=== 30 messages
+1 entries marked for bulk action
+Acted on 1 entries

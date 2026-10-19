@@ -1,0 +1,17 @@
+#+TODO: TODO NEXT | DONE
+* TODO scheduled before its deadline
+  DEADLINE: <2026-05-25 Mon> SCHEDULED: <2026-05-15 Fri>
+* TODO scheduled today, due soon
+  DEADLINE: <2026-05-20 Wed> SCHEDULED: <2026-05-18 Mon>
+* TODO scheduled after its deadline
+  DEADLINE: <2026-05-19 Tue> SCHEDULED: <2026-05-21 Thu>
+* TODO delayed, due soon
+  DEADLINE: <2026-05-22 Fri> SCHEDULED: <2026-05-17 Sun -3d>
+* TODO a daily repeat
+  SCHEDULED: <2026-05-10 Sun +1d>
+* NEXT a weekly repeat
+  SCHEDULED: <2026-05-04 Mon +1w>
+* TODO a repeat that stops at its deadline
+  DEADLINE: <2026-05-20 Wed> SCHEDULED: <2026-05-16 Sat +1d>
+* TODO a repeating deadline
+  DEADLINE: <2026-05-11 Mon +1w>

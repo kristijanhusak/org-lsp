@@ -40,15 +40,43 @@ pub struct Inheritance {
     pub tags_excluded: Vec<String>,
     /// `org-use-property-inheritance`
     pub properties: Inherit,
+    /// `org-property-separators`: what joins the values of a property
+    /// and its `PROPERTY+` lines, for the properties named or matched.
+    pub separators: Vec<(Separated, String)>,
+}
+
+/// The properties an entry of `org-property-separators` is for: a list
+/// of names, matched with regard to case, or an Emacs regexp, without.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Separated {
+    Names(Vec<String>),
+    Matching(String),
 }
 
 impl Default for Inheritance {
     fn default() -> Self {
-        Inheritance { tags: Inherit::All, tags_excluded: Vec::new(), properties: Inherit::Nothing }
+        Inheritance {
+            tags: Inherit::All,
+            tags_excluded: Vec::new(),
+            properties: Inherit::Nothing,
+            separators: Vec::new(),
+        }
     }
 }
 
 impl Inheritance {
+    /// `org--property-get-separator`: what joins the values of `property`,
+    /// a space unless `org-property-separators` says otherwise.
+    pub fn separator(&self, property: &str) -> &str {
+        self.separators
+            .iter()
+            .find(|(separated, _)| match separated {
+                Separated::Names(names) => names.iter().any(|name| name == property),
+                Separated::Matching(pattern) => matches(pattern, property),
+            })
+            .map_or(" ", |(_, separator)| separator.as_str())
+    }
+
     /// `org-remove-uninherited-tags`, for one tag: whether entries below
     /// get it. The excluded tags count with `t` and a regexp, not with a
     /// list.
@@ -118,6 +146,9 @@ pub struct Entry {
     /// appears more than once is kept at its most local position.
     pub tags: Vec<Tag>,
     pub category: String,
+    /// No category applies: the value is `nil`. The agenda shows `???`
+    /// (`org-get-category`), a tags match the file name.
+    pub no_category: bool,
     /// The entry or one of its parents is commented. The agenda leaves
     /// such entries out.
     pub commented: bool,
@@ -130,6 +161,13 @@ pub struct Entry {
     pub closed: Option<Planning>,
     /// The entry's own properties, keys in upper case.
     pub properties: Vec<(String, String)>,
+    /// The `END` line of an inline task, which `org-element` makes part of
+    /// the task: no entry of its own for a tags match.
+    pub inlinetask_end: bool,
+    /// An inline task with no `END` line right after it: it has no text,
+    /// so the planning line below it is none of its own and its dates are
+    /// plain timestamps (`org-element-inlinetask-parser`).
+    pub bare_inlinetask: bool,
 }
 
 impl Entry {
@@ -246,6 +284,8 @@ pub struct ClockLine {
 pub struct Outline {
     /// The category entries get when no property sets one.
     pub category: String,
+    /// The file name without directory and extension.
+    pub name: String,
     pub file_tags: Vec<String>,
     pub todo: TodoKeywords,
     /// The priorities the file sets with `#+PRIORITIES:`.
@@ -270,6 +310,9 @@ pub struct Outline {
     pub inheritance: Inheritance,
     /// The text the outline was made from, for the search view.
     pub text: String,
+    /// `org-odd-levels-only` in the file: levels are counted two stars a
+    /// level (`org-reduced-level`).
+    pub odd_levels: bool,
 }
 
 const ARCHIVE_TAG: &str = "ARCHIVE";
@@ -296,8 +339,10 @@ impl Outline {
         let category = category_values(&top_properties, &from_file);
 
         let mut outline = Outline {
+            odd_levels: crate::structure::odd_levels(text, crate::structure::odd_levels_default()),
             text: text.to_string(),
             category: shown_category(&category),
+            name: name.to_string(),
             file_tags,
             todo,
             // Only the first such line counts.
@@ -386,7 +431,7 @@ impl Outline {
             let (base, extra) = local(own(entry));
             // `org--property-local-values` drops a base value of `nil`.
             let parts: Vec<String> = base.and_then(not_nil).into_iter().chain(extra).collect();
-            return (!parts.is_empty()).then(|| parts.join(" ")).and_then(not_nil);
+            return (!parts.is_empty()).then(|| parts.join(self.inheritance.separator(name))).and_then(not_nil);
         }
         // `org-entry-get-with-inheritance`: up the lineage, the file last.
         let mut values: Vec<String> = Vec::new();
@@ -418,7 +463,7 @@ impl Outline {
                 values.insert(0, global.clone());
             }
         }
-        let joined = (!values.is_empty()).then(|| values.join(" "));
+        let joined = (!values.is_empty()).then(|| values.join(self.inheritance.separator(name)));
         if literal_nil {
             joined
         } else {
@@ -466,7 +511,18 @@ impl Outline {
         let commented = inherited.commented || headline.is_commented();
         let archived = inherited.archived || archived;
 
-        let section = headline.section();
+        // Inline tasks: the `END` line that closes one is part of it; one
+        // that the next headline does not close has no text.
+        let next_heading =
+            text[line_end..].split('\n').skip(1).find(|line| crate::todo::headline_level(line).is_some()).unwrap_or("");
+        let task = crate::inlinetask::is_task_line(text, line);
+        let bare_inlinetask = task && !crate::inlinetask::is_end_line(text, next_heading);
+        let inlinetask_end = crate::inlinetask::is_end_line(text, line)
+            && self
+                .entries
+                .last()
+                .is_some_and(|before| crate::inlinetask::is_task_line(text, &text[before.offset..before.line_end]));
+        let section = headline.section().filter(|_| !bare_inlinetask);
         let planning = section.as_ref().and_then(|section| section.children().find(|child| child.kind() == PLANNING));
         // A property drawer counts right below the headline or its planning
         // line, not after a blank line or anything else.
@@ -494,6 +550,10 @@ impl Outline {
             }
         }
         deduped.reverse();
+        // The `END` line of an inline task is the task's, with its tags.
+        if inlinetask_end {
+            deduped = self.entries.last().map(|task| task.tags.clone()).unwrap_or(deduped);
+        }
 
         let index = self.entries.len();
         self.entries.push(Entry {
@@ -508,12 +568,15 @@ impl Outline {
             element_todo,
             tags: deduped,
             category: shown_category(&category),
+            no_category: category == "nil",
             commented,
             archived,
             scheduled: planning.as_ref().and_then(|planning| planning_time(planning, "SCHEDULED:")),
             deadline: planning.as_ref().and_then(|planning| planning_time(planning, "DEADLINE:")),
             closed: planning.as_ref().and_then(|planning| planning_time(planning, "CLOSED:")),
             properties,
+            inlinetask_end,
+            bare_inlinetask,
         });
 
         let mut child_tags = inherited.tags.clone();
@@ -636,14 +699,14 @@ impl Outline {
     /// The entry a timestamp counts for when the scan stops at `point`, or
     /// `None` when Org skips it there: in a date range, on a planning
     /// line, before the first headline, where the text is not a timestamp
-    /// to Org, or in a commented subtree. (Archived subtrees are left out
-    /// by the agenda, unless it is asked for them.)
+    /// to Org. (Archived and commented subtrees are left out by the
+    /// agenda, as `org-agenda-skip` does.)
     ///
     /// `inside` is a byte of the timestamp, used to look at its context;
     /// `end` is where the timestamp text ends.
     fn stamp_entry(&self, root: &SyntaxNode, text: &str, point: usize, inside: usize, end: usize) -> Option<usize> {
         let entry = self.entry_at(point)?;
-        if self.entries[entry].commented || at_date_range(text, point) {
+        if at_date_range(text, point) {
             return None;
         }
         let token = token_at(root, inside)?;
@@ -651,6 +714,9 @@ impl Outline {
         let mut timestamp = false;
         for node in token.parent_ancestors() {
             match node.kind() {
+                // Below an inline task without text, a planning line is
+                // text with timestamps.
+                PLANNING if self.entries[entry].bare_inlinetask => timestamp = true,
                 PLANNING => return None,
                 TIMESTAMP => timestamp = !node.parent().is_some_and(|parent| parent.kind() == CLOCK),
                 NODE_PROPERTY => in_property = true,
@@ -693,9 +759,9 @@ impl Outline {
     }
 
     /// Date ranges, found the way `org-agenda-get-blocks` finds them: by
-    /// scanning the text, wherever they are, except in comments, source
-    /// blocks and commented subtrees. With `inactive`, inactive ranges as
-    /// well (`org-tr-regexp-both`).
+    /// scanning the text, wherever they are, except in comments and source
+    /// blocks. With `inactive`, inactive ranges as well
+    /// (`org-tr-regexp-both`).
     fn collect_blocks(&self, root: &SyntaxNode, text: &str, inactive: bool) -> Vec<Block> {
         let mut blocks = Vec::new();
         let mut at = 0;
@@ -707,7 +773,7 @@ impl Outline {
                 continue;
             }
             let Some(entry) = self.entry_at(range.end) else { continue };
-            if self.entries[entry].commented || in_source_block(root, range.end - 1) {
+            if in_source_block(root, range.end - 1) {
                 continue;
             }
             blocks.push(Block {
@@ -760,6 +826,8 @@ pub(crate) struct HeadingParts {
     pub priority: Span,
     /// The title (the fourth).
     pub title: Span,
+    /// The tags, `:a:b:` (the fifth).
+    pub tags: Span,
 }
 
 /// The keyword, priority cookie and title of a headline line as
@@ -800,15 +868,39 @@ pub(crate) fn complex_heading_parts(line: &str, level: usize, todo: &TodoKeyword
             }
         }
     }
+    let tags_end = line.trim_end_matches([' ', '\t']).len();
     if is_tail(&line[pos..]) {
-        return HeadingParts { keyword, priority, title: None };
+        let tags = crate::text::tag_group(&line[pos..]).map(|(_, tags)| (pos + tags, tags_end));
+        return HeadingParts { keyword, priority, title: None, tags };
     }
     let start = pos + spaces(pos);
-    let end = match crate::text::tag_group(&line[start..]) {
-        Some((blanks, _)) => start + blanks,
-        None => line.trim_end_matches([' ', '\t']).len(),
+    let (end, tags) = match crate::text::tag_group(&line[start..]) {
+        Some((blanks, tags)) => (start + blanks, Some((start + tags, tags_end))),
+        None => (tags_end, None),
     };
-    HeadingParts { keyword, priority, title: (end > start).then_some((start, end)) }
+    HeadingParts { keyword, priority, title: (end > start).then_some((start, end)), tags }
+}
+
+/// `org-get-heading` of a headline line: the keyword, the priority, the
+/// title (empty when there is none) and the tags, a space apart.
+pub(crate) fn get_heading(line: &str, level: usize, todo: &TodoKeywords) -> String {
+    heading_parts_joined(line, level, todo, true)
+}
+
+/// `org-get-heading t`: [`get_heading`] without the tags.
+pub fn get_heading_without_tags(line: &str, level: usize, todo: &TodoKeywords) -> String {
+    heading_parts_joined(line, level, todo, false)
+}
+
+fn heading_parts_joined(line: &str, level: usize, todo: &TodoKeywords, tags: bool) -> String {
+    let parts = complex_heading_parts(line, level, todo);
+    let text = |span: Span| span.map(|(start, end)| &line[start..end]);
+    let tags = if tags { text(parts.tags) } else { None };
+    [text(parts.keyword), text(parts.priority), Some(text(parts.title).unwrap_or("")), tags]
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 /// The properties of a drawer, keys without colons and in upper case.
@@ -1256,6 +1348,31 @@ mod tests {
         entry.tags.iter().map(|tag| format!("{}{}", if tag.inherited { "^" } else { "" }, tag.name)).collect()
     }
 
+    /// `org-property-separators`: the values of `X` and `X+` joined with
+    /// `, ` for the names listed (with regard to case), with `|` for those
+    /// a regexp matches (without), as `org-entry-get` gives them in Emacs.
+    #[test]
+    fn joins_property_values_with_their_separators() {
+        let text = "* h\n:PROPERTIES:\n:X: 1\n:X+: 2\n:Y: a\n:Y+: b\n:Z: q\n:Z+: r\n:END:\n\
+                    ** c\n:PROPERTIES:\n:X+: 3\n:END:\n";
+        let parse = org_syntax::parse(text, &TodoKeywords::default());
+        let inheritance = Inheritance {
+            properties: Inherit::All,
+            separators: vec![
+                (Separated::Names(vec!["X".to_string()]), ", ".to_string()),
+                (Separated::Matching("^[YZ]$".to_string()), "|".to_string()),
+            ],
+            ..Inheritance::default()
+        };
+        let outline = Outline::with_inheritance(&parse, text, "notes", &inheritance);
+        let get = |entry, name: &str, inherit| outline.property_lookup(Some(entry), name, inherit, &[], false);
+        assert_eq!(get(0, "X", false).as_deref(), Some("1, 2"));
+        assert_eq!(get(0, "y", false).as_deref(), Some("a|b"));
+        assert_eq!(get(0, "Z", false).as_deref(), Some("q|r"));
+        assert_eq!(get(1, "X", true).as_deref(), Some("1, 2, 3"));
+        assert_eq!(get(1, "x", true).as_deref(), Some("1 2 3"));
+    }
+
     #[test]
     fn entries_and_inheritance() {
         let text = "\
@@ -1302,6 +1419,21 @@ mod tests {
         let nil = outline("#+CATEGORY: kw\n* a\n:PROPERTIES:\n:CATEGORY: nil\n:END:\n** b\n* c\n:PROPERTIES:\n:CATEGORY+: more\n:END:\n");
         let categories: Vec<&str> = nil.entries.iter().map(|entry| entry.category.as_str()).collect();
         assert_eq!(categories, ["???", "???", "kw more"]);
+        let unset: Vec<bool> = nil.entries.iter().map(|entry| entry.no_category).collect();
+        assert_eq!(unset, [true, true, false]);
+    }
+
+    #[test]
+    fn get_heading_puts_the_parts_a_space_apart() {
+        let todo = TodoKeywords::default();
+        let heading = |line: &str| get_heading(line, 1, &todo);
+        assert_eq!(heading("* TODO [#7]  :a-b:"), "TODO [#7] :a-b:");
+        assert_eq!(heading("* TODO  [#A]  x  :t:"), "TODO [#A] x :t:");
+        assert_eq!(heading("*  TODO x\t:a:b:"), "TODO x :a:b:");
+        assert_eq!(heading("* TODO [#a]  x"), "TODO [#a]  x");
+        assert_eq!(heading("* \tTODO two"), "\tTODO two");
+        assert_eq!(heading("* TODO :t:"), "TODO  :t:");
+        assert_eq!(heading("* TODO   "), "TODO ");
     }
 
     #[test]

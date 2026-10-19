@@ -17,22 +17,25 @@ mod item;
 pub mod matcher;
 pub mod report;
 pub mod search;
+pub mod sorting;
 pub mod super_agenda;
+pub mod todo_ignore;
 
 pub use search::SearchSettings;
 
 pub use crate::text::tag_group;
-pub use display::{display, mark, Displayed, Link, Segment, Style};
+pub use display::{display, mark, Displayed, Fontify, Link, Rank, Segment, Style};
 pub use item::{align_tags, display_column, hidden_ranges, Face, Item, ItemKind, Source};
 pub use matcher::Matcher;
 
 use item::{format_item, normalise_keyword, priority, Dotime, FormatInput};
-pub use item::{format_numbers, format_with, Eval, Evaluator, PrefixFormat, RemoveTags};
+pub use item::{format_numbers, format_with, Eval, Evaluator, PrefixFormat, RemoveTags, RemoveTimes, TimeSettings};
+use sorting::ViewType;
 
 use crate::date::{days_in_month, is_leap_year, iso_week, weekday, Date, Day, MONTH_NAMES, WEEKDAY_NAMES};
 use crate::outline::{Entry, LogKind, Outline};
 use crate::priority::Priorities;
-use crate::timestr::{closest_date, time_string_to_day, warning_days, Prefer};
+use crate::timestr::{closest_date_until, time_string_to_day, warning_days, Prefer};
 
 /// The most days an agenda of days covers, about ten years: each day is
 /// a block, and a span of centuries would hold the server for minutes.
@@ -113,6 +116,88 @@ pub enum FutureRepeats {
     None,
 }
 
+/// `org-agenda-fontify-priorities`: how lines show their priority cookies.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum FontifyPriorities {
+    /// `nil`: as the rest of the line.
+    No,
+    /// `cookies`: the cookies alone.
+    #[default]
+    Cookies,
+    /// `t`: from the cookie to the end of the line.
+    Lines,
+}
+
+/// `org-agenda-show-inherited-tags`
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub enum ShowInheritedTags {
+    /// `t`: where `org-agenda-use-tag-inheritance` has them.
+    #[default]
+    Yes,
+    Always,
+    No,
+    /// In these kinds of views (`agenda`, `todo`, `search`).
+    Views(Vec<String>),
+}
+
+/// `org-agenda-use-tag-inheritance`
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UseTagInheritance {
+    All,
+    /// In these kinds of views; by default `todo`, `search` and `agenda`.
+    Views(Vec<String>),
+}
+
+impl Default for UseTagInheritance {
+    fn default() -> Self {
+        UseTagInheritance::Views(["todo", "search", "agenda"].map(str::to_string).to_vec())
+    }
+}
+
+/// `org-agenda-prefer-last-repeat`: which repeating entries show their
+/// last repeat up to today instead of their base date.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub enum PreferLastRepeat {
+    #[default]
+    None,
+    All,
+    /// Only entries with one of these TODO keywords.
+    States(Vec<String>),
+}
+
+impl PreferLastRepeat {
+    fn applies(&self, keyword: Option<&str>) -> bool {
+        match self {
+            PreferLastRepeat::None => false,
+            PreferLastRepeat::All => true,
+            PreferLastRepeat::States(states) => keyword.is_some_and(|keyword| states.iter().any(|s| s == keyword)),
+        }
+    }
+}
+
+/// `org-agenda-skip-deadline-prewarning-if-scheduled` and
+/// `org-agenda-skip-scheduled-delay-if-deadline`: for an entry with both
+/// dates, the warning (or delay) is dropped (`t`), limited by the other
+/// date (`pre-scheduled`, `post-deadline`), or set to a number of days.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SkipByOtherDate {
+    All,
+    ByOtherDate,
+    Days(i64),
+}
+
+/// `org-agenda-skip-scheduled-if-deadline-is-shown`
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum SkipScheduledIfDeadline {
+    #[default]
+    No,
+    Yes,
+    /// Only when scheduled before today.
+    NotToday,
+    /// `repeated-after-deadline`, as `org-agenda-skip-scheduled-repeats-after-deadline`.
+    RepeatedAfterDeadline,
+}
+
 /// When and how the time grid is drawn.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TimeGrid {
@@ -183,7 +268,7 @@ pub enum TagsColumn {
 }
 
 /// Agenda settings. The names and defaults are Org's.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Config {
     /// `org-agenda-span`
     pub span: Span,
@@ -206,6 +291,9 @@ pub struct Config {
     pub skip_timestamp_if_done: bool,
     /// `org-agenda-show-future-repeats`
     pub show_future_repeats: FutureRepeats,
+    /// `org-extend-today-until`: the hour before which the agenda's today
+    /// (`org-today`) is still yesterday.
+    pub extend_today_until: i64,
     /// `org-agenda-show-all-dates`
     pub show_all_dates: bool,
     /// `org-agenda-tags-column`
@@ -235,6 +323,12 @@ pub struct Config {
     pub log_items: LogItems,
     /// `org-agenda-clockreport-mode`: the clock report, `R`.
     pub clockreport: bool,
+    /// `org-agenda-clock-report-header`: text before the clock report.
+    pub clock_report_header: Option<String>,
+    /// `org-agenda-clockreport-parameter-plist`, as the text of a plist.
+    pub clockreport_parameters: String,
+    /// How the clock report is written (the time comes from the view).
+    pub clocktable: crate::clocktable::Settings,
     /// `org-agenda-block-separator`: the lines between this block and
     /// the one before it, in a block agenda; none with `None`.
     pub block_separator: Option<String>,
@@ -247,6 +341,53 @@ pub struct Config {
     /// `org-agenda-archives-mode`: entries in archived trees are shown
     /// (`v a`). Archive files are the caller's to add (`v A`).
     pub archives: bool,
+    /// `org-agenda-skip-comment-trees`
+    pub skip_comment_trees: bool,
+    /// `org-agenda-skip-archived-trees`: entries in archived trees are
+    /// left out unless `archives` shows them.
+    pub skip_archived_trees: bool,
+    /// How times of day are found and shown (`org-agenda-time-leading-zero`
+    /// and its kin).
+    pub times: TimeSettings,
+    /// `org-agenda-remove-timeranges-from-blocks`
+    pub remove_timeranges_from_blocks: bool,
+    /// `org-agenda-show-inherited-tags`
+    pub show_inherited_tags: ShowInheritedTags,
+    /// `org-agenda-use-tag-inheritance`
+    pub use_tag_inheritance: UseTagInheritance,
+    /// `org-agenda-hide-tags-regexp`, in Emacs's syntax.
+    pub hide_tags_regexp: Option<String>,
+    /// `org-agenda-diary-sexp-prefix`: a regexp (Emacs's syntax) for what
+    /// of a diary sexp's text goes in front, as the line's leader.
+    pub diary_sexp_prefix: Option<String>,
+    /// `org-agenda-include-deadlines`
+    pub include_deadlines: bool,
+    /// `org-agenda-skip-additional-timestamps-same-entry`
+    pub skip_additional_timestamps_same_entry: bool,
+    /// `org-agenda-fontify-priorities`
+    pub fontify_priorities: FontifyPriorities,
+    /// `org-agenda-log-mode-add-notes`
+    pub log_mode_add_notes: bool,
+    /// `org-agenda-prefer-last-repeat`
+    pub prefer_last_repeat: PreferLastRepeat,
+    /// `org-agenda-skip-deadline-prewarning-if-scheduled`
+    pub skip_deadline_prewarning_if_scheduled: Option<SkipByOtherDate>,
+    /// `org-agenda-skip-scheduled-delay-if-deadline`
+    pub skip_scheduled_delay_if_deadline: Option<SkipByOtherDate>,
+    /// `org-agenda-skip-scheduled-if-deadline-is-shown`
+    pub skip_scheduled_if_deadline_is_shown: SkipScheduledIfDeadline,
+    /// `org-agenda-skip-scheduled-repeats-after-deadline`
+    pub skip_scheduled_repeats_after_deadline: bool,
+    /// `org-agenda-todo-list-sublevels`: the TODO list shows the TODO
+    /// entries below another one.
+    pub todo_list_sublevels: bool,
+    /// `org-tags-match-list-sublevels`: whether tags matches and stuck
+    /// projects list the entries below one they list.
+    pub tags_match_list_sublevels: Sublevels,
+    /// `org-agenda-todo-ignore-with-date` and its kin.
+    pub todo_ignore: todo_ignore::TodoIgnore,
+    /// `org-agenda-tags-todo-honor-ignore-options`
+    pub tags_todo_honor_ignore: bool,
     /// `org-agenda-prefix-format`
     pub prefix_format: PrefixFormats,
     /// The `org-habit-…` options, when `org-habit` is loaded (it is one of
@@ -266,6 +407,10 @@ pub struct Config {
     /// `org-agenda-deadline-leaders`: on its day, before it (`%d` the days
     /// left) and after it (the days since).
     pub deadline_leaders: [String; 3],
+    /// `org-agenda-deadline-faces`: the face of a deadline by the part of
+    /// its warning time that has passed, the first whose part is no more
+    /// than that; none past the last.
+    pub deadline_faces: Vec<(f64, Face)>,
     /// `org-agenda-timerange-leaders`: a range within a day, and one over
     /// days (`%d` the day of the range, `%d` its length).
     pub timerange_leaders: [String; 2],
@@ -294,6 +439,9 @@ pub struct Config {
     /// under each entry's line, when on.
     pub entry_text: Option<usize>,
     pub entry_text_settings: entry_text::Settings,
+    /// `org-agenda-sorting-strategy` and the options that go with it, and
+    /// the limits of `org-agenda-max-entries` and its kin.
+    pub sorting: sorting::Sorting,
 }
 
 /// `org-tag-groups-alist-for-agenda`: the group tags of the files, those
@@ -389,6 +537,7 @@ impl Default for Config {
             skip_deadline_if_done: false,
             skip_timestamp_if_done: false,
             show_future_repeats: FutureRepeats::All,
+            extend_today_until: 0,
             show_all_dates: true,
             tags_column: TagsColumn::Auto,
             window_width: None,
@@ -402,10 +551,34 @@ impl Default for Config {
             show_log: false,
             log_items: LogItems::default(),
             clockreport: false,
+            clock_report_header: None,
+            clockreport_parameters: ":link t :maxlevel 2".to_string(),
+            clocktable: crate::clocktable::Settings::default(),
             block_separator: Some(default_separator()),
             compact_blocks: false,
             hide_empty_blocks: false,
             archives: false,
+            skip_comment_trees: true,
+            skip_archived_trees: true,
+            times: TimeSettings::default(),
+            remove_timeranges_from_blocks: false,
+            diary_sexp_prefix: None,
+            show_inherited_tags: ShowInheritedTags::Yes,
+            use_tag_inheritance: UseTagInheritance::default(),
+            hide_tags_regexp: None,
+            include_deadlines: true,
+            skip_additional_timestamps_same_entry: false,
+            fontify_priorities: FontifyPriorities::Cookies,
+            log_mode_add_notes: true,
+            prefer_last_repeat: PreferLastRepeat::None,
+            skip_deadline_prewarning_if_scheduled: None,
+            skip_scheduled_delay_if_deadline: None,
+            skip_scheduled_if_deadline_is_shown: SkipScheduledIfDeadline::No,
+            skip_scheduled_repeats_after_deadline: false,
+            todo_list_sublevels: true,
+            tags_match_list_sublevels: Sublevels::Listed,
+            todo_ignore: todo_ignore::TodoIgnore::default(),
+            tags_todo_honor_ignore: false,
             prefix_format: PrefixFormats::default(),
             habits: None,
             diary: diary::Outside::default(),
@@ -414,6 +587,11 @@ impl Default for Config {
             todo_keyword_format: "%-1s".to_string(),
             scheduled_leaders: ["Scheduled: ".to_string(), "Sched.%2dx: ".to_string()],
             deadline_leaders: ["Deadline:  ".to_string(), "In %3d d.: ".to_string(), "%2d d. ago: ".to_string()],
+            deadline_faces: vec![
+                (1.0, Face::DeadlineWarning),
+                (0.5, Face::DeadlineUpcoming),
+                (0.0, Face::DeadlineDistant),
+            ],
             timerange_leaders: [String::new(), "(%d/%d): ".to_string()],
             inactive_leader: "[".to_string(),
             include_inactive: false,
@@ -425,6 +603,7 @@ impl Default for Config {
             group_tags: true,
             entry_text: None,
             entry_text_settings: entry_text::Settings::default(),
+            sorting: sorting::Sorting::default(),
             format_date: None,
         }
     }
@@ -438,6 +617,14 @@ pub struct Now {
     pub minute: i64,
 }
 
+impl Now {
+    /// `org-today`: the day it still is `extend_today_until` hours past
+    /// midnight.
+    pub fn org_today(self, extend_today_until: i64) -> Day {
+        crate::date::DateTime { day: self.today, minute: self.minute }.org_today(extend_today_until)
+    }
+}
+
 struct Builder<'a> {
     files: &'a [&'a Outline],
     config: &'a Config,
@@ -446,6 +633,9 @@ struct Builder<'a> {
     format: PrefixFormat,
     /// The first habit Org could not read: the view fails with it.
     error: std::cell::RefCell<Option<String>>,
+    /// `org-agenda-hide-tags-regexp`, matched with case (as in the TODO
+    /// list, where Org binds `case-fold-search` to nil) and without.
+    hide_tags: Option<(regex::Regex, regex::Regex)>,
 }
 
 /// Which of `org-agenda-prefix-format`'s formats a view uses.
@@ -466,7 +656,13 @@ impl<'a> Builder<'a> {
             ViewKind::Tags => &formats.tags,
             ViewKind::Search => &formats.search,
         };
-        Builder { files, config, today, format: PrefixFormat::new(format), error: Default::default() }
+        let hide_tags = config.hide_tags_regexp.as_deref().filter(|text| !text.is_empty()).and_then(|text| {
+            let pattern = matcher::translate(text);
+            let with_case = regex::Regex::new(&pattern).ok()?;
+            let without = regex::RegexBuilder::new(&pattern).case_insensitive(true).build().ok()?;
+            Some((with_case, without))
+        });
+        Builder { files, config, today, format: PrefixFormat::new(format), error: Default::default(), hide_tags }
     }
 
     /// `%b`: the titles above the entry, each followed by the separator
@@ -510,7 +706,17 @@ impl Builder<'_> {
             FutureRepeats::Next => self.today + 1,
             FutureRepeats::All => current,
         };
-        closest_date(raw, from, Prefer::Future).unwrap_or(base)
+        closest_date_until(raw, from, Prefer::Future, self.config.extend_today_until).unwrap_or(base)
+    }
+
+    /// `org-agenda-prefer-last-repeat`: the last repeat of `raw` up to
+    /// today for an entry it applies to (its keyword `keyword`), else the
+    /// base date `base`.
+    fn last_repeat(&self, raw: &str, base: Day, keyword: Option<&str>) -> Day {
+        if !self.config.prefer_last_repeat.applies(keyword) {
+            return base;
+        }
+        closest_date_until(raw, self.today, Prefer::Past, self.config.extend_today_until).unwrap_or(base)
     }
 
     fn item(
@@ -523,11 +729,27 @@ impl Builder<'_> {
         dotime: Dotime<'_>,
     ) -> Item {
         let head = self.files[file].entries[entry_index].head.clone();
-        self.line_item(file, entry_index, &head, kind, face, extra, dotime)
+        self.line_item(file, entry_index, &head, kind, face, extra, dotime, None)
+    }
+
+    /// A line of `org-scan-tags` for the entry `entry_index`: its
+    /// `org-get-heading`, without a time (`dotime`).
+    fn scanned(&self, file: usize, entry_index: usize) -> Item {
+        let outline = self.files[file];
+        let entry = &outline.entries[entry_index];
+        let line = &outline.text[entry.offset..entry.line_end];
+        let heading = crate::outline::get_heading(line, entry.level, &outline.todo);
+        // `indented`: a dot for each level below the first.
+        let dots = match self.config.tags_match_list_sublevels {
+            Sublevels::Indented => ".".repeat(entry.level.saturating_sub(1)),
+            _ => String::new(),
+        };
+        let head = format!("{dots}{}", heading.trim_start());
+        self.line_item(file, entry_index, &head, ItemKind::Tags, Face::Default, "", Dotime::No, None)
     }
 
     /// An item of `head` (the headline, or what a diary sexp gives) for the
-    /// entry `entry_index`.
+    /// entry `entry_index`; `remove` is text taken out of it.
     #[allow(clippy::too_many_arguments)]
     fn line_item(
         &self,
@@ -538,28 +760,56 @@ impl Builder<'_> {
         face: Face,
         extra: &str,
         dotime: Dotime<'_>,
+        remove: Option<&str>,
     ) -> Item {
         let outline = self.files[file];
         let entry = &outline.entries[entry_index];
         let breadcrumbs = self.breadcrumbs(file, entry_index);
+        // `org-scan-tags` passes no category for `nil`, and
+        // `org-agenda-format-item` takes the file name instead.
+        let category = if kind == ItemKind::Tags && entry.no_category { &outline.name } else { &entry.category };
+        // The entry's own tags only, or inherited ones too.
+        let inherited = self.config.inherited_tags(kind);
+        let own: Vec<crate::outline::Tag>;
+        let tags = if inherited {
+            entry.tags.as_slice()
+        } else {
+            own = entry.tags.iter().filter(|tag| !tag.inherited).cloned().collect();
+            own.as_slice()
+        };
+        let hide = self
+            .hide_tags
+            .as_ref()
+            .map(|(with_case, without)| if kind == ItemKind::Todo { with_case } else { without });
+        // A date range has no default duration (`org-agenda-get-blocks`).
+        let times = TimeSettings {
+            appointment_duration: self.config.times.appointment_duration.filter(|_| kind != ItemKind::Block),
+            ..self.config.times.clone()
+        };
         let formatted = format_item(&FormatInput {
             format: &self.format,
             extra,
             head,
-            category: &entry.category,
-            tags: &entry.tags,
+            category,
+            tags,
             dotime,
             remove_stamps: kind == ItemKind::Timestamp,
             time_trailer: &self.config.time_grid.trailer,
-            level: entry.level,
+            level: crate::structure::reduced_level(entry.level, outline.odd_levels),
             effort: effort(entry),
             breadcrumbs: &breadcrumbs,
             remove_tags: self.config.remove_tags,
             entry: self.config.file_paths.get(file).map(|path| (path.as_str(), entry.offset)),
             evaluator: &self.config.prefix_evaluator,
+            times: &times,
+            remove,
+            add_inherited: self.config.show_inherited_tags != ShowInheritedTags::No,
+            hide_tags: hide,
         });
         let mut text = formatted.text;
-        let priority = priority(&text, outline.priorities.as_ref().unwrap_or(&self.config.priorities));
+        // `org-scan-tags` reads the cookie ignoring case (`[#a]`).
+        let priorities = outline.priorities.as_ref().unwrap_or(&self.config.priorities);
+        let priority = priority(&text, priorities, kind == ItemKind::Tags);
         let keyword_len =
             normalise_keyword(&mut text, formatted.heading, outline.todo.names(), &self.config.todo_keyword_format)
                 .unwrap_or(0);
@@ -569,6 +819,7 @@ impl Builder<'_> {
             heading: formatted.heading,
             time_of_day: formatted.time_of_day,
             priority,
+            base_priority: priority,
             kind,
             face,
             source: Some(Source { file, entry: entry_index }),
@@ -579,7 +830,27 @@ impl Builder<'_> {
             graph: None,
             ts_date: None,
             log: None,
+            ts_type: "",
+            own_tags_only: !inherited,
+            fontify: self.fontify(file),
         }
+    }
+
+    /// How the lines of the file `file` show their priority cookies.
+    fn fontify(&self, file: usize) -> Option<display::Fontify> {
+        let own = self.files[file].priorities.as_ref().unwrap_or(&self.config.priorities);
+        let global = &self.config.priorities;
+        let lines = match self.config.fontify_priorities {
+            FontifyPriorities::No => return None,
+            FontifyPriorities::Cookies => false,
+            FontifyPriorities::Lines => true,
+        };
+        let byte = display::Fontify::byte;
+        Some(display::Fontify {
+            lines,
+            file: (byte(own.highest), byte(own.lowest)),
+            global: (byte(global.highest), byte(global.lowest)),
+        })
     }
 
     /// `org-agenda-get-sexps`: the lines the diary sexps of the file give
@@ -596,17 +867,37 @@ impl Builder<'_> {
                 self.error.borrow_mut().get_or_insert(error);
                 continue;
             };
-            if outline.entries[entry].skipped(self.config.archives) {
+            if outline.entries[entry].skipped_by(self.config) {
                 continue;
             }
-            for result in results {
+            // `org-agenda-diary-sexp-prefix`: the leader, which a result
+            // without one keeps from the one before.
+            let prefix = self
+                .config
+                .diary_sexp_prefix
+                .as_deref()
+                .and_then(|prefix| regex::Regex::new(&matcher::translate(prefix)).ok());
+            let mut extra = String::new();
+            for mut result in results {
+                if let Some(found) = prefix.as_ref().and_then(|prefix| prefix.find(&result)) {
+                    extra = found.as_str().to_string();
+                    result.replace_range(found.range(), "");
+                }
                 let text = if result.chars().any(|c| !c.is_whitespace()) {
                     result
                 } else {
                     "SEXP entry returned empty string".to_string()
                 };
-                let mut item =
-                    self.line_item(file, entry, &text, ItemKind::Sexp, Face::CalendarSexp, "", Dotime::Headline);
+                let mut item = self.line_item(
+                    file,
+                    entry,
+                    &text,
+                    ItemKind::Sexp,
+                    Face::CalendarSexp,
+                    &extra,
+                    Dotime::Headline,
+                    None,
+                );
                 item.marker = Some(line.offset);
                 item.priority = 0;
                 out.push(item);
@@ -619,14 +910,25 @@ impl Builder<'_> {
         let is_today = current == self.today;
         for (index, entry) in self.files[file].entries.iter().enumerate() {
             let found = entry.deadline.as_ref().filter(|planning| planning.active && planning.searchable);
-            let Some(planning) = found.filter(|_| !entry.skipped(self.config.archives)) else {
+            let Some(planning) = found.filter(|_| !entry.skipped_by(self.config)) else {
                 continue;
             };
             let raw = planning.raw.as_str();
-            let Some(deadline) = time_string_to_day(raw) else { continue };
+            let Some(base) = time_string_to_day(raw) else { continue };
+            // The base date, or the last repeat up to today.
+            let deadline = self.last_repeat(raw, base, entry.element_todo.as_deref());
             let repeat = self.future_repeat(raw, deadline, current);
             let diff = deadline - current;
-            let wdays = warning_days(raw, self.config.deadline_warning_days, false, false);
+            // No earlier warning than the scheduled date allows.
+            let scheduled = self.config.skip_deadline_prewarning_if_scheduled.zip(entry.scheduled.as_ref());
+            let max_warning = match scheduled {
+                None => i64::MAX,
+                Some((SkipByOtherDate::Days(days), _)) => days,
+                Some((SkipByOtherDate::ByOtherDate, scheduled)) => time_string_to_day(&scheduled.raw)
+                    .map_or(i64::MAX, |day| (deadline - day).min(self.config.deadline_warning_days)),
+                Some((SkipByOtherDate::All, _)) => 0,
+            };
+            let wdays = max_warning.min(warning_days(raw, self.config.deadline_warning_days, false, false));
             // A deadline shows on its date, on later repeats, and today
             // while it is within its warning period or overdue.
             let shown = current == deadline
@@ -645,15 +947,8 @@ impl Builder<'_> {
                 now.clone()
             };
             let fraction = 1.0 - diff as f64 / wdays.max(1) as f64;
-            let face = if entry.element_done {
-                Face::Done
-            } else if fraction >= 1.0 {
-                Face::DeadlineWarning
-            } else if fraction >= 0.5 {
-                Face::DeadlineUpcoming
-            } else {
-                Face::DeadlineDistant
-            };
+            let face =
+                if entry.element_done { Face::Done } else { deadline_face(&self.config.deadline_faces, fraction) };
             let time = planning_time(raw, current != deadline && current != repeat);
             let mut item = self.item(file, index, ItemKind::Deadline, face, &extra, time.as_dotime());
             item.marker = Some(planning.offset);
@@ -686,7 +981,20 @@ impl Builder<'_> {
         let done: Vec<String> =
             outline.todo.names().filter(|name| outline.todo.is_done(name)).map(str::to_string).collect();
         let parsed = match scheduled {
-            Some(scheduled) => habit::parse(scheduled, &found.head, text, &done, limit),
+            Some(scheduled) => {
+                // `org-log-states-order-reversed`, as the file's
+                // `#+STARTUP:` may set it.
+                let mut reversed = settings.states_order_reversed;
+                for word in crate::text::startup_words(&outline.text) {
+                    match word {
+                        "logstatesreversed" => reversed = true,
+                        "nologstatesreversed" => reversed = false,
+                        _ => {}
+                    }
+                }
+                let notes = habit::Notes { done_heading: &settings.done_heading, reversed };
+                habit::parse(scheduled, &found.head, text, &done, limit, notes)
+            }
             None => Err(format!("Habit {} has no scheduled date", found.head)),
         };
         match parsed {
@@ -699,22 +1007,40 @@ impl Builder<'_> {
     }
 
     /// `org-agenda-get-scheduled`
-    fn scheduled(&self, file: usize, current: Day, out: &mut Vec<Item>) {
+    fn scheduled(&self, file: usize, current: Day, deadlines: &[usize], out: &mut Vec<Item>) {
         let is_today = current == self.today;
         for (index, entry) in self.files[file].entries.iter().enumerate() {
             let found = entry.scheduled.as_ref().filter(|planning| planning.active && planning.searchable);
-            let Some(planning) = found.filter(|_| !entry.skipped(self.config.archives)) else {
+            let Some(planning) = found.filter(|_| !entry.skipped_by(self.config)) else {
                 continue;
             };
             let raw = planning.raw.as_str();
-            let Some(schedule) = time_string_to_day(raw) else { continue };
+            let Some(base) = time_string_to_day(raw) else { continue };
+            // The base date, or the last repeat up to today.
+            let schedule = self.last_repeat(raw, base, entry.element_todo.as_deref());
             let repeat = self.future_repeat(raw, schedule, current);
             let diff = current - schedule;
             let past = schedule < self.today;
             let future = schedule > self.today;
             let habits = self.config.habits.as_ref();
             let is_habit = self.is_habit(file, index);
-            let delay = warning_days(raw, self.config.scheduled_delay_days, true, false);
+            // No longer a delay than the deadline allows.
+            let deadline = self.config.skip_scheduled_delay_if_deadline.zip(entry.deadline.as_ref());
+            let max_delay = match deadline {
+                None => i64::MAX,
+                Some((SkipByOtherDate::Days(days), _)) => -days,
+                Some((SkipByOtherDate::ByOtherDate, deadline)) => time_string_to_day(&deadline.raw)
+                    .map_or(i64::MAX, |day| (schedule - day).min(self.config.scheduled_delay_days)),
+                Some((SkipByOtherDate::All, _)) => 0,
+            };
+            // A `--Xd` delay is gone once a repeat has come.
+            static ONCE: std::sync::LazyLock<regex::Regex> =
+                std::sync::LazyLock::new(|| regex::Regex::new(r"--[0-9]+[hdwmy]").expect("a valid regex"));
+            let delay = if ONCE.is_match(raw) && schedule > base {
+                0
+            } else {
+                max_delay.min(warning_days(raw, self.config.scheduled_delay_days, true, false))
+            };
             // A scheduled entry shows on its date, today once that date has
             // passed, and on later repeats; a delay holds it back. With
             // `org-habit-show-all-today`, a habit shows today in any case.
@@ -730,6 +1056,28 @@ impl Builder<'_> {
                     || (current != schedule && !is_today && current != repeat));
             if hidden || (entry.element_done && (self.config.skip_scheduled_if_done || schedule != current)) {
                 continue;
+            }
+            // `org-agenda-skip-scheduled-repeats-after-deadline`: no repeat
+            // after the deadline (today's date without one).
+            if self.config.skip_scheduled_repeats_after_deadline
+                || self.config.skip_scheduled_if_deadline_is_shown == SkipScheduledIfDeadline::RepeatedAfterDeadline
+            {
+                let deadline = entry
+                    .deadline
+                    .as_ref()
+                    .and_then(|deadline| time_string_to_day(&deadline.raw))
+                    .unwrap_or(self.today);
+                if (base <= deadline || schedule != current) && current > deadline {
+                    continue;
+                }
+            }
+            // `org-agenda-skip-scheduled-if-deadline-is-shown`, not for habits.
+            if deadlines.contains(&index) && !is_habit {
+                match self.config.skip_scheduled_if_deadline_is_shown {
+                    SkipScheduledIfDeadline::Yes => continue,
+                    SkipScheduledIfDeadline::NotToday if past => continue,
+                    _ => {}
+                }
             }
             // Habits not shown, or only today, and never once done.
             if is_habit
@@ -785,7 +1133,7 @@ impl Builder<'_> {
             if current < first
                 || current > last
                 || (entry.done && self.config.skip_timestamp_if_done)
-                || entry.skipped(self.config.archives)
+                || entry.skipped_by(self.config)
             {
                 continue;
             }
@@ -803,7 +1151,13 @@ impl Builder<'_> {
                 (false, false) => None,
             };
             let dotime = dotime.as_deref().map_or(Dotime::No, Dotime::Text);
-            let mut item = self.item(file, block.entry, ItemKind::Block, face, &extra, dotime);
+            // `org-agenda-remove-timeranges-from-blocks`: the range out of
+            // the headline.
+            let range =
+                self.config.remove_timeranges_from_blocks.then(|| format!("<{}>--<{}>", block.first, block.second));
+            let head = entry.head.clone();
+            let mut item =
+                self.line_item(file, block.entry, &head, ItemKind::Block, face, &extra, dotime, range.as_deref());
             item.marker = Some(block.offset);
             out.push(item);
         }
@@ -816,6 +1170,14 @@ impl Builder<'_> {
         // Org scans the text once per day and stops where today's date
         // or a repeater stands; the next stop comes after the last one.
         let mut scanned_to = 0;
+        // With `org-agenda-skip-additional-timestamps-same-entry`, a line
+        // made sends the scan on to the next headline.
+        let next_heading = |entry: usize| -> usize {
+            if !self.config.skip_additional_timestamps_same_entry {
+                return 0;
+            }
+            outline.entries.get(entry + 1).map_or(outline.text.len(), |next| next.offset)
+        };
         for stamp in &outline.stamps {
             if stamp.offset < scanned_to || (stamp.inactive && !self.config.include_inactive) {
                 continue;
@@ -825,7 +1187,7 @@ impl Builder<'_> {
                 let Some((sexp, shown)) = &stamp.diary else { continue };
                 scanned_to = stamp.offset + shown.text.len();
                 let entry = &outline.entries[shown.entry];
-                if entry.skipped(self.config.archives)
+                if entry.skipped_by(self.config)
                     || (entry.done && self.config.skip_timestamp_if_done)
                     || diary::entries_with(sexp, "", current, &self.config.diary).is_none()
                 {
@@ -842,6 +1204,7 @@ impl Builder<'_> {
                 item.marker = Some(stamp.offset);
                 item.ts_date = Some(current);
                 out.push(item);
+                scanned_to = scanned_to.max(next_heading(shown.entry));
                 continue;
             }
             let (shown, repeats) = if stamp.date == Some(current_date) {
@@ -855,16 +1218,22 @@ impl Builder<'_> {
             };
             let Some(shown) = shown else { continue };
             // In an archived tree (`org-agenda-skip`).
-            if outline.entries[shown.entry].skipped(self.config.archives) {
+            if outline.entries[shown.entry].skipped_by(self.config) {
                 continue;
             }
             if outline.entries[shown.entry].done && self.config.skip_timestamp_if_done {
                 continue;
             }
             if repeats {
-                // Past occurrences show up to today, future ones after it.
-                let base = if current > self.today { self.today } else { current };
-                let Some(past) = closest_date(&shown.text, base, Prefer::Past) else { continue };
+                // Past occurrences show up to today, future ones after it;
+                // with `org-agenda-prefer-last-repeat`, only the last one.
+                let keyword = outline.entries[shown.entry].todo.as_deref();
+                let last = self.config.prefer_last_repeat.applies(keyword);
+                let base = if current > self.today || last { self.today } else { current };
+                let Some(past) = closest_date_until(&shown.text, base, Prefer::Past, self.config.extend_today_until)
+                else {
+                    continue;
+                };
                 let future = self.future_repeat(&shown.text, past, current);
                 if current != past && current != future {
                     continue;
@@ -893,6 +1262,7 @@ impl Builder<'_> {
                 }
             }
             out.push(item);
+            scanned_to = scanned_to.max(next_heading(shown.entry));
         }
     }
 
@@ -906,7 +1276,7 @@ impl Builder<'_> {
                 LogKind::Clock(_) => items.clock,
                 LogKind::State(_) => items.state,
             };
-            if !wanted || log.date.to_day() != current || outline.entries[log.entry].skipped(self.config.archives) {
+            if !wanted || log.date.to_day() != current || outline.entries[log.entry].skipped_by(self.config) {
                 continue;
             }
             let extra = match &log.kind {
@@ -916,8 +1286,10 @@ impl Builder<'_> {
             };
             let entry = &outline.entries[log.entry];
             let breadcrumbs = self.breadcrumbs(file, log.entry);
-            // The note goes before the tags.
-            let head = match &log.note {
+            // The note goes before the tags, with
+            // `org-agenda-log-mode-add-notes`.
+            let note = log.note.as_ref().filter(|_| self.config.log_mode_add_notes);
+            let head = match note {
                 None => entry.head.clone(),
                 Some(note) => match crate::text::tag_group(&entry.head) {
                     Some((blanks, tags)) => {
@@ -926,21 +1298,27 @@ impl Builder<'_> {
                     None => format!("{} - {note}", entry.head),
                 },
             };
+            let inherited = self.config.inherited_tags(ItemKind::Log);
+            let own: Vec<crate::outline::Tag> = entry.tags.iter().filter(|tag| !tag.inherited).cloned().collect();
             let formatted = format_item(&FormatInput {
                 format: &self.format,
                 extra: &extra,
                 head: &head,
                 category: &entry.category,
-                tags: &entry.tags,
+                tags: if inherited { &entry.tags } else { &own },
                 dotime: Dotime::Text(&log.time),
                 remove_stamps: false,
                 time_trailer: &self.config.time_grid.trailer,
-                level: entry.level,
+                level: crate::structure::reduced_level(entry.level, outline.odd_levels),
                 effort: effort(entry),
                 breadcrumbs: &breadcrumbs,
                 remove_tags: self.config.remove_tags,
                 entry: self.config.file_paths.get(file).map(|path| (path.as_str(), entry.offset)),
                 evaluator: &self.config.prefix_evaluator,
+                times: &self.config.times,
+                remove: None,
+                add_inherited: self.config.show_inherited_tags != ShowInheritedTags::No,
+                hide_tags: self.hide_tags.as_ref().map(|(_, without)| without),
             });
             let mut text = formatted.text;
             let keyword_len =
@@ -952,6 +1330,7 @@ impl Builder<'_> {
                 heading: formatted.heading,
                 time_of_day: formatted.time_of_day,
                 priority: 100_000,
+                base_priority: 100_000,
                 kind: ItemKind::Log,
                 face: Face::Done,
                 source: Some(Source { file, entry: log.entry }),
@@ -966,17 +1345,28 @@ impl Builder<'_> {
                     LogKind::Clock(_) => "clock",
                     LogKind::State(_) => "state",
                 }),
+                ts_type: "",
+                own_tags_only: !inherited,
+                fontify: self.fontify(file),
             });
         }
     }
 
     /// `org-agenda-get-day-entries` for one file, in Org's order.
     fn day(&self, file: usize, current: Day, out: &mut Vec<Item>) {
-        self.deadlines(file, current, out);
+        // The entries whose deadline shows, for their scheduled dates.
+        // (`org-agenda-get-timestamps` has them too, but looks them up
+        // with `assq` in a list of positions, which finds none.)
+        let start = out.len();
+        if self.config.include_deadlines {
+            self.deadlines(file, current, out);
+        }
+        let deadlines: Vec<usize> =
+            out[start..].iter().filter_map(|item| item.source.map(|source| source.entry)).collect();
         if self.config.show_log {
             self.progress(file, current, out);
         }
-        self.scheduled(file, current, out);
+        self.scheduled(file, current, &deadlines, out);
         self.blocks(file, current, out);
         self.timestamps(file, current, out);
         self.sexps(file, current, out);
@@ -991,6 +1381,7 @@ impl Builder<'_> {
         if !wanted || (grid.require_timed && have.is_empty()) {
             return;
         }
+        let grid_times = TimeSettings { appointment_duration: None, ..self.config.times.clone() };
         let line = |text: &str, time: &str, face: Face| {
             let formatted = format_item(&FormatInput {
                 format: &self.format,
@@ -1008,12 +1399,18 @@ impl Builder<'_> {
                 // Org formats grid lines in the agenda's buffer, no entry's.
                 entry: None,
                 evaluator: &self.config.prefix_evaluator,
+                // And with no default duration.
+                times: &grid_times,
+                remove: None,
+                add_inherited: false,
+                hide_tags: None,
             });
             Item {
                 text: formatted.text,
                 heading: formatted.heading,
                 time_of_day: formatted.time_of_day,
                 priority: 0,
+                base_priority: 0,
                 kind: ItemKind::Grid,
                 face,
                 source: None,
@@ -1024,6 +1421,9 @@ impl Builder<'_> {
                 graph: None,
                 ts_date: None,
                 log: None,
+                ts_type: "",
+                own_tags_only: false,
+                fontify: None,
             }
         };
         // Org builds this list back to front, and the order decides ties.
@@ -1039,8 +1439,19 @@ impl Builder<'_> {
             let time = format!("{:02}:{:02}", time / 100, time % 100);
             lines.push(line(&grid.line, &time, Face::TimeGrid));
         }
-        lines.append(items);
-        *items = lines;
+        // Before the entries when they are sorted by time, else after:
+        // the order of lines that compare equal.
+        let time_up = self
+            .config
+            .sorting
+            .selected(ViewType::Agenda)
+            .is_ok_and(|strategies| strategies.contains(&sorting::Strategy::TimeUp));
+        if time_up {
+            lines.append(items);
+            *items = lines;
+        } else {
+            items.append(&mut lines);
+        }
     }
 }
 
@@ -1089,22 +1500,29 @@ fn planning_time(raw: &str, reminder: bool) -> PlanningTime {
     }
 }
 
-/// `org-entries-lessp` with the default strategies: in the agenda, habits
-/// last (`habit-down`), then by time (lines without one last); then by
-/// urgency, highest first.
-fn sort(items: &mut [Item], by_time: bool) {
-    items.sort_by(|a, b| compare(a, b, by_time));
+/// `(sort items #'org-entries-lessp)`, with the strategies of a view of
+/// `view` (`org-set-sorting-strategy`). A strategy Org does not know
+/// stops the view, as it does Emacs's once two lines are compared.
+fn sort(items: &mut Vec<Item>, files: &[&Outline], config: &Config, view: ViewType) -> Result<(), String> {
+    if items.len() < 2 {
+        return Ok(());
+    }
+    let strategies = config.sorting.selected(view)?;
+    sorting::sort(items, files, &strategies, &config.sorting);
+    Ok(())
 }
 
-/// `org-entries-lessp`, as [`sort`] uses it.
-fn compare(a: &Item, b: &Item, by_time: bool) -> std::cmp::Ordering {
-    let time = |item: &Item| item.time_of_day.unwrap_or(9901);
-    let by_time = if by_time {
-        a.habit.is_some().cmp(&b.habit.is_some()).then(time(a).cmp(&time(b)))
-    } else {
-        std::cmp::Ordering::Equal
-    };
-    by_time.then(b.priority.cmp(&a.priority))
+/// The date a line of the TODO list or of a tags match is sorted by, and
+/// what its `type` ends with: from the property the strategies of `view`
+/// ask for (`org-agenda-entry-get-agenda-timestamp`).
+fn sort_date(item: &mut Item, outline: &Outline, index: usize, config: &Config, view: ViewType) {
+    let strategies = config.sorting.selected(view).unwrap_or_default();
+    let (properties, kind) = sorting::Sorting::timestamp_property(&strategies);
+    item.ts_type = kind;
+    item.ts_date = properties
+        .iter()
+        .find_map(|name| matcher::property_value(index, outline, name))
+        .and_then(|stamp| crate::timestr::time_string_to_day(&stamp));
 }
 
 /// `org-agenda-finalize-entries`: the lines of sorted `items`, in the
@@ -1116,13 +1534,14 @@ fn finalize(
     files: &[&Outline],
     config: &Config,
     (today, graph_today): (Day, Day),
-    sorting: Option<bool>,
+    view: ViewType,
 ) -> Result<Vec<Line>, String> {
+    let items = sorting::limit(items, files, view, &config.sorting);
     let line = |item: Item| item_line(item, config, graph_today);
     let Some(settings) = &config.super_agenda else {
         return Ok(items.into_iter().map(line).collect());
     };
-    let grouper = super_agenda::Grouper::new(files, config, settings, today, sorting);
+    let grouper = super_agenda::Grouper::new(files, config, settings, today, view);
     let mut lines: Vec<Line> = Vec::new();
     for grouped in grouper.group(items)? {
         match grouped {
@@ -1142,31 +1561,94 @@ pub fn day_items(files: &[&Outline], current: Day, today: Day, config: &Config) 
     for file in 0..files.len() {
         builder.day(file, current, &mut items);
     }
-    sort(&mut items, true);
+    // A strategy Org does not know leaves them as found.
+    let _ = sort(&mut items, files, config, ViewType::Agenda);
     items
 }
 
 /// `org-agenda-get-todos` over all files: every entry in a not-done state,
 /// or with one of `keywords` (`org-todo-list` with an argument).
-pub fn todo_items(files: &[&Outline], keywords: Option<&[String]>, config: &Config) -> Vec<Item> {
+pub fn todo_items(files: &[&Outline], keywords: Option<&[String]>, now: Now, config: &Config) -> Vec<Item> {
     let builder = Builder::new(files, config, 0, ViewKind::Todo);
     let mut items = Vec::new();
     for (file, outline) in files.iter().enumerate() {
+        // The level of the entry whose subtree is passed over, when the
+        // TODO list leaves it out or shows it without its sublevels.
+        let mut passing: Option<usize> = None;
         for (index, entry) in outline.entries.iter().enumerate() {
+            if passing.is_some_and(|level| entry.level > level) {
+                continue;
+            }
+            passing = None;
             let wanted = match keywords {
                 Some(keywords) => entry.todo.as_ref().is_some_and(|todo| keywords.contains(todo)),
                 None => entry.is_open_todo(),
             };
-            if entry.skipped(config.archives) || !wanted {
+            if !wanted {
+                continue;
+            }
+            // `org-agenda-skip` passes over the whole subtree.
+            if entry.skipped_by(config) {
+                passing = Some(entry.level);
+                continue;
+            }
+            let ignored = ignored_for_date(outline, index, now, config);
+            if !config.todo_list_sublevels {
+                passing = Some(entry.level);
+            }
+            if ignored {
                 continue;
             }
             let mut item = builder.item(file, index, ItemKind::Todo, Face::Default, "", Dotime::Headline);
             item.priority += 1;
+            sort_date(&mut item, outline, index, config, ViewType::Todo);
             items.push(item);
         }
     }
-    sort(&mut items, false);
     items
+}
+
+/// Whether the TODO entry `index` is left out for a date of its own
+/// (`org-agenda-check-for-timestamp-as-reason-to-ignore-todo-item`): the
+/// text from its headline to the next one is searched.
+fn ignored_for_date(outline: &Outline, index: usize, now: Now, config: &Config) -> bool {
+    let entry = &outline.entries[index];
+    let end = outline.entries.get(index + 1).map_or(outline.text.len(), |next| next.offset);
+    let text = &outline.text[entry.offset..end];
+    todo_ignore::ignored(text, entry.done, &config.todo_ignore, now, config.deadline_warning_days)
+}
+
+impl Config {
+    /// Whether a line of `kind` shows the inherited tags of its entry
+    /// (`org-agenda-show-inherited-tags`, `org-agenda-use-tag-inheritance`).
+    /// A TODO entry, a search result and a log line count as `todo`, the
+    /// lines of a day as `agenda`; a tags match always has them.
+    fn inherited_tags(&self, kind: ItemKind) -> bool {
+        let view = match kind {
+            ItemKind::Tags => return true,
+            ItemKind::Todo | ItemKind::Search | ItemKind::Log => "todo",
+            _ => "agenda",
+        };
+        match &self.show_inherited_tags {
+            ShowInheritedTags::Always => true,
+            ShowInheritedTags::No => false,
+            ShowInheritedTags::Views(views) => views.iter().any(|name| name == view),
+            ShowInheritedTags::Yes => match &self.use_tag_inheritance {
+                UseTagInheritance::All => true,
+                UseTagInheritance::Views(views) => views.iter().any(|name| name == view),
+            },
+        }
+    }
+}
+
+impl crate::outline::Entry {
+    /// Whether `org-agenda-skip` passes over the entry: in a commented
+    /// subtree (`org-agenda-skip-comment-trees`), or an archived one
+    /// unless archived trees are shown (`org-agenda-skip-archived-trees`).
+    fn skipped_by(&self, config: &Config) -> bool {
+        (self.commented && config.skip_comment_trees)
+            || (self.archived && config.skip_archived_trees && !config.archives)
+    }
 }
 
 /// What a line of a view is.
@@ -1187,6 +1669,10 @@ pub enum LineKind {
     /// A line of the header of a group of org-super-agenda, in the
     /// header's face from `faced` on.
     Group { faced: usize },
+    /// The empty line of a day whose entries the limits all left out
+    /// (`org-agenda-max-entries` and its kin): Org inserts what remains of
+    /// them, nothing, and a newline.
+    Blank,
 }
 
 /// One line of a rendered view.
@@ -1316,6 +1802,9 @@ fn date_heading(day: Day, config: &Config) -> String {
 /// `org-agenda-list`: the day or week agenda. `start_day` is the day the
 /// view should include; `None` means today.
 pub fn view(files: &[&Outline], now: Now, start_day: Option<Day>, span: Span, config: &Config) -> View {
+    // `org-today`: late at night, the agenda's today is still yesterday,
+    // with the time of the grid's now as it is.
+    let now = Now { today: now.org_today(config.extend_today_until), minute: now.minute };
     let builder = Builder::new(files, config, now.today, ViewKind::Agenda);
     let start = span_start(start_day.unwrap_or(now.today), span, config);
     let ndays = span.days(start_day.unwrap_or(now.today));
@@ -1349,8 +1838,14 @@ pub fn view(files: &[&Outline], now: Now, start_day: Option<Day>, span: Span, co
             item: None,
         });
         builder.add_time_grid(&mut items, ndays, is_today, now.minute);
-        sort(&mut items, true);
-        match finalize(items, files, config, (now.today, now.today), Some(true)) {
+        if let Err(error) = sort(&mut items, files, config, ViewType::Agenda) {
+            builder.error.borrow_mut().get_or_insert(error);
+        }
+        let had_items = !items.is_empty();
+        match finalize(items, files, config, (now.today, now.today), ViewType::Agenda) {
+            Ok(finalized) if finalized.is_empty() && had_items => {
+                lines.push(Line { text: String::new(), kind: LineKind::Blank, item: None })
+            }
             Ok(finalized) => lines.extend(finalized),
             Err(error) => {
                 builder.error.borrow_mut().get_or_insert(error);
@@ -1366,16 +1861,19 @@ pub fn view(files: &[&Outline], now: Now, start_day: Option<Day>, span: Span, co
 }
 
 /// The lines of a view that is no agenda: `lines` (its header), then those
-/// of its sorted `items`; or only what stops it, a group org-super-agenda
-/// cannot make.
+/// of its `items`, sorted for a view of `view`; or only what stops it, a
+/// strategy Org does not know or a group org-super-agenda cannot make.
 fn listed(
     mut lines: Vec<Line>,
-    items: Vec<Item>,
+    mut items: Vec<Item>,
     files: &[&Outline],
     config: &Config,
-    (today, sorting): (Day, Option<bool>),
+    (today, view): (Day, ViewType),
 ) -> Vec<Line> {
-    match finalize(items, files, config, (today, 0), sorting) {
+    if let Err(error) = sort(&mut items, files, config, view) {
+        return vec![Line { text: error, kind: LineKind::Header, item: None }];
+    }
+    match finalize(items, files, config, (today, 0), view) {
         Ok(finalized) => {
             lines.extend(finalized);
             lines
@@ -1392,8 +1890,23 @@ pub fn todo_view(files: &[&Outline], keywords: Option<&str>, now: Now, config: &
     let shown = wanted.as_ref().map_or("ALL".to_string(), |keywords| keywords.join("|"));
     let header = format!("Global list of TODO items of type: {shown}");
     let lines = vec![Line { text: header, kind: LineKind::Header, item: None }];
-    let lines = listed(lines, todo_items(files, wanted.as_deref(), config), files, config, (now.today, Some(false)));
+    let lines =
+        listed(lines, todo_items(files, wanted.as_deref(), now, config), files, config, (now.today, ViewType::Todo));
     View { lines, start: 0, end: 0 }
+}
+
+/// `org-tags-match-list-sublevels`: what a tags match does with the
+/// entries below one it lists.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Sublevels {
+    /// Listed as well.
+    #[default]
+    Listed,
+    /// Passed over (`nil`).
+    Skipped,
+    /// Listed, with a dot before each for each level below the first
+    /// (`indented`).
+    Indented,
 }
 
 /// `org-tags-view`: the entries `matcher` matches, only open TODO
@@ -1404,17 +1917,36 @@ pub fn tags_view(files: &[&Outline], matcher: &Matcher, todo_only: bool, now: No
     let clock = matcher::Clock { today: now.today, minute: now.minute };
     let mut items = Vec::new();
     for (file, outline) in files.iter().enumerate() {
+        // The level of an entry listed whose subtree is passed over.
+        let mut passing: Option<usize> = None;
         for index in 0..outline.entries.len() {
-            if outline.entries[index].skipped(config.archives) || !matcher.matches(outline, index, todo_only, clock) {
+            let level = outline.entries[index].level;
+            if passing.is_some_and(|above| level > above) {
                 continue;
             }
-            items.push(builder.item(file, index, ItemKind::Todo, Face::Default, "", Dotime::Headline));
+            passing = None;
+            let entry = &outline.entries[index];
+            if entry.inlinetask_end || entry.skipped_by(config) || !matcher.matches(outline, index, todo_only, clock) {
+                continue;
+            }
+            // `org-agenda-tags-todo-honor-ignore-options`
+            if (todo_only || matcher.todo_only)
+                && config.tags_todo_honor_ignore
+                && ignored_for_date(outline, index, now, config)
+            {
+                continue;
+            }
+            let mut item = builder.scanned(file, index);
+            sort_date(&mut item, outline, index, config, ViewType::Tags);
+            items.push(item);
+            if config.tags_match_list_sublevels == Sublevels::Skipped {
+                passing = Some(level);
+            }
         }
     }
-    sort(&mut items, false);
     let header = format!("Headlines with TAGS match: {}", matcher.text);
     let lines = vec![Line { text: header, kind: LineKind::Header, item: None }];
-    let lines = listed(lines, items, files, config, (now.today, Some(false)));
+    let lines = listed(lines, items, files, config, (now.today, ViewType::Tags));
     View { lines, start: 0, end: 0 }
 }
 
@@ -1466,9 +1998,15 @@ pub fn stuck_view(files: &[&Outline], now: Now, config: &Config) -> Result<View,
     let clock = matcher::Clock { today: now.today, minute: now.minute };
     let mut items = Vec::new();
     for (file, outline) in files.iter().enumerate() {
+        // The level of a project listed whose subtree is passed over.
+        let mut passing: Option<usize> = None;
         for index in 0..outline.entries.len() {
             let entry = &outline.entries[index];
-            if entry.skipped(config.archives) || !matcher.matches(outline, index, false, clock) {
+            if passing.is_some_and(|above| entry.level > above) {
+                continue;
+            }
+            passing = None;
+            if entry.skipped_by(config) || !matcher.matches(outline, index, false, clock) {
                 continue;
             }
             // `org-end-of-subtree`: before the next headline as high, and
@@ -1487,12 +2025,16 @@ pub fn stuck_view(files: &[&Outline], now: Now, config: &Config) -> Result<View,
             if skip.iter().any(|pattern| pattern.is_match(subtree)) {
                 continue;
             }
-            items.push(builder.item(file, index, ItemKind::Todo, Face::Default, "", Dotime::Headline));
+            let mut item = builder.scanned(file, index);
+            sort_date(&mut item, outline, index, config, ViewType::Tags);
+            items.push(item);
+            if config.tags_match_list_sublevels == Sublevels::Skipped {
+                passing = Some(entry.level);
+            }
         }
     }
-    sort(&mut items, false);
     let lines = vec![Line { text: "List of stuck projects: ".to_string(), kind: LineKind::Header, item: None }];
-    let lines = listed(lines, items, files, config, (now.today, Some(false)));
+    let lines = listed(lines, items, files, config, (now.today, ViewType::Tags));
     Ok(View { lines, start: 0, end: 0 })
 }
 
@@ -1537,12 +2079,20 @@ pub fn search_view(
             let before_end = floor_char(text, end.saturating_sub(1));
             let line_end = text[begin..].find('\n').map_or(text.len(), |at| begin + at);
             let seen = &text[begin..if search.headline_only { line_end } else { end }];
-            let wanted = !outline.entries[entry].skipped(config.archives)
+            let wanted = !outline.entries[entry].skipped_by(config)
                 && !search.minus.iter().any(|pattern| pattern.is_match(seen))
                 && (!search.todo_only || todo.is_match(seen))
                 && search.plus.iter().all(|pattern| pattern.is_match(seen));
             let resume = if wanted {
-                items.push(builder.item(file, entry, ItemKind::Search, Face::Default, "", Dotime::Headline));
+                // `(skip-chars-forward "* ")`: a title's own leading stars go too.
+                let line = &text[outline.entries[entry].offset..outline.entries[entry].line_end];
+                let head = crate::text::trim(line.trim_start_matches(['*', ' ']));
+                let mut item =
+                    builder.line_item(file, entry, head, ItemKind::Search, Face::Default, "", Dotime::Headline, None);
+                // `priority` and `urgency` are 1000 for every line.
+                item.priority = 1000;
+                item.base_priority = 1000;
+                items.push(item);
                 before_end.max(last_end)
             } else {
                 before_end
@@ -1554,11 +2104,9 @@ pub fn search_view(
             }
         }
     }
-    // Every line has the same priority (1000), and `category-keep` keeps
-    // the order: as found.
     let header = format!("Search words: {string}");
     let lines = vec![Line { text: header, kind: LineKind::Header, item: None }];
-    let lines = listed(lines, items, files, config, (now.today, None));
+    let lines = listed(lines, items, files, config, (now.today, ViewType::Search));
     Ok(View { lines, start: 0, end: 0 })
 }
 
@@ -1623,5 +2171,49 @@ mod tests {
             let _ = span.shift(today, -100_000);
         }
         assert_eq!(Span::from_days(i64::MAX), Span::Days(DAYS_MAX));
+    }
+}
+
+/// `org-agenda-deadline-face`: the face of `faces`
+/// (`org-agenda-deadline-faces`) whose part of the warning time is the
+/// first no more than `fraction`, the part that has passed; none past the
+/// last.
+pub fn deadline_face(faces: &[(f64, Face)], fraction: f64) -> Face {
+    faces.iter().find(|(part, _)| *part <= fraction).map_or(Face::Default, |(_, face)| *face)
+}
+
+#[cfg(test)]
+mod deadline_face_tests {
+    use super::{deadline_face, Face};
+
+    /// As Emacs answers for these lists and fractions.
+    #[test]
+    fn the_first_part_no_more_than_the_fraction() {
+        let fractions = [1.5, 1.0, 0.95, 0.9, 0.6, 0.5, 0.4, 0.3, 0.1, 0.0, -0.5];
+        let faces = |list: &[(f64, Face)]| -> Vec<Face> {
+            fractions.iter().map(|fraction| deadline_face(list, *fraction)).collect()
+        };
+        let (w, u, d, n) = (Face::DeadlineWarning, Face::DeadlineUpcoming, Face::DeadlineDistant, Face::Default);
+        assert_eq!(faces(&[(1.0, w), (0.5, u), (0.0, d)]), [w, w, u, u, u, u, d, d, d, d, n]);
+        assert_eq!(faces(&[(0.9, w), (0.3, u)]), [w, w, w, w, u, u, u, u, n, n, n]);
+        assert_eq!(faces(&[(1.0, w)]), [w, w, n, n, n, n, n, n, n, n, n]);
+    }
+
+    /// A deadline in 3 days of a 14-day warning time: upcoming by Org's
+    /// faces, imminent from a part of 0.5 on.
+    #[test]
+    fn deadlines_of_the_agenda_take_their_face() {
+        use crate::date::Date;
+        let text = "* TODO Pay\nDEADLINE: <2026-10-15 Thu>\n";
+        let parse = org_syntax::parse(text, &Default::default());
+        let outline = crate::outline::Outline::new(&parse, text, "a.org");
+        let today = Date::new(2026, 10, 12).to_day();
+        let face = |config: &super::Config| super::day_items(&[&outline], today, today, config)[0].face;
+        let mut config = super::Config::default();
+        assert_eq!(face(&config), Face::DeadlineUpcoming);
+        config.deadline_faces = vec![(0.5, Face::DeadlineWarning)];
+        assert_eq!(face(&config), Face::DeadlineWarning);
+        config.deadline_faces = vec![(0.9, Face::DeadlineWarning)];
+        assert_eq!(face(&config), Face::Default);
     }
 }

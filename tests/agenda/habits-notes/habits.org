@@ -1,0 +1,22 @@
+* TODO Shave
+  SCHEDULED: <2026-05-17 Sun .+2d/4d>
+  :PROPERTIES:
+  :STYLE:    habit
+  :END:
+  :LOGBOOK:
+  - Closed <2026-05-03 Sun> by me
+  - State "DONE"       from "TODO"       [2026-05-06 Wed 08:00]
+  - Closed <2026-05-10 Sun> by me
+  - CLOSING NOTE [2026-05-11 Mon 07:00]
+  - State "DONE"       from "TODO"       [2026-05-13 Wed 08:00]
+  - Closed <2026-05-15 Fri> by me
+  :END:
+* TODO Exercise
+  SCHEDULED: <2026-05-18 Mon 07:00 ++1d>
+  :PROPERTIES:
+  :STYLE:    habit
+  :END:
+  - Closed <2026-05-12 Tue> by me
+  - Closed <2026-05-14 Thu> by me
+  - Closed <2026-05-16 Sat> by me
+  - Closed <2026-05-17 Sun> by me

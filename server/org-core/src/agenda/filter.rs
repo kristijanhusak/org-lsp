@@ -68,8 +68,15 @@ struct LineFacts<'a> {
 }
 
 /// Hide the lines of `view` that the filters keep out. `files` are those
-/// the view was built from; `groups` the group tags of the agenda files.
-pub fn apply(view: &mut View, files: &[&Outline], filters: &Filters, groups: &[(String, Vec<String>)]) {
+/// the view was built from; `groups` the group tags of the agenda files;
+/// `noeffort_is_high` is `org-agenda-sort-noeffort-is-high`.
+pub fn apply(
+    view: &mut View,
+    files: &[&Outline],
+    filters: &Filters,
+    groups: &[(String, Vec<String>)],
+    noeffort_is_high: bool,
+) {
     if filters.is_empty() {
         return;
     }
@@ -107,10 +114,11 @@ pub fn apply(view: &mut View, files: &[&Outline], filters: &Filters, groups: &[(
                 return false;
             }
         }
-        // Efforts: none counts as the highest (`org-agenda-sort-noeffort-is-high`).
-        // Org's form leaves the sign out: `-<1:00` keeps what `+<1:00` does.
+        // Efforts (`org-agenda-compare-effort`): none counts as the highest
+        // with `org-agenda-sort-noeffort-is-high`, else as -1. Org's form
+        // leaves the sign out: `-<1:00` keeps what `+<1:00` does.
         for (op, value) in &efforts {
-            let effort = facts.effort.unwrap_or(f64::from(i32::MAX));
+            let effort = facts.effort.unwrap_or(if noeffort_is_high { f64::from(i32::MAX) } else { -1.0 });
             let holds = match op {
                 '<' => effort <= *value,
                 '>' => effort >= *value,
@@ -137,15 +145,18 @@ fn facts<'a>(line: &'a Line, files: &[&'a Outline]) -> Option<LineFacts<'a>> {
     let source = item.source?;
     let outline = files.get(source.file)?;
     let entry = outline.entries.get(source.entry)?;
+    let txt = &item.text[item.heading..];
+    // On the headline's text (`txt`): an empty one has no effort.
     let effort = entry
         .properties
         .iter()
         .find(|(name, _)| name == "EFFORT")
-        .and_then(|(_, value)| crate::clock::duration_to_minutes(value));
+        .and_then(|(_, value)| crate::clock::duration_to_minutes(value))
+        .filter(|_| !txt.is_empty());
     Some(LineFacts {
         tags: entry.tags.iter().map(|tag| tag.name.as_str()).collect(),
         category: &entry.category,
-        txt: &item.text[item.heading..],
+        txt,
         effort,
         top: top_headline(outline, source.entry),
     })

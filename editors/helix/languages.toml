@@ -1,11 +1,33 @@
 # Add this to ~/.config/helix/languages.toml. Helix already knows the `org`
-# language; this only attaches the server to it. `org-lsp` must be on PATH.
+# language; this attaches the server to it. `org-lsp` must be on PATH.
 
 [language-server.org-lsp]
 command = "org-lsp"
+
+# The server's options, which Helix passes to it as they are.
+[language-server.org-lsp.config]
+# Helix opens the documents the server asks it to show (the agenda, a
+# capture buffer) without saying that it does.
+show_document = true
+# Helix cannot show a list from a server: a question's choices come first
+# in the code actions (Space a).
+message_requests = false
 # Optional: the default TODO sequence.
-# config = { org_todo_keywords = ["TODO", "NEXT", "|", "DONE"] }
+# org_todo_keywords = ["TODO", "NEXT", "|", "DONE"]
 
 [[language]]
 name = "org"
+# Archive files are Org files too, as in Emacs.
+file-types = ["org", "org_archive"]
+language-servers = ["org-lsp"]
+
+# The agenda, which the server writes to Agenda.org in a directory of its
+# own: Org, with the agenda's colors (runtime/queries/org-agenda, which
+# install.sh puts in ~/.config/helix/runtime).
+[[language]]
+name = "org-agenda"
+scope = "source.org-agenda"
+grammar = "org"
+language-id = "org"
+file-types = [{ glob = "org-lsp-view-*/Agenda.org" }]
 language-servers = ["org-lsp"]

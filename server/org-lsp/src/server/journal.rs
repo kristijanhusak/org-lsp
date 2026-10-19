@@ -8,9 +8,9 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use lsp_types::request::ShowDocument;
+use lsp_types::request::{Request as _, ShowDocument};
 use lsp_types::{FoldingRange, Position, Range, ShowDocumentParams, TextDocumentIdentifier, Uri};
-use org_core::journal::{self, Command, Outcome, Period, Request, Stop, View};
+use org_core::journal::{self, CalendarPeriod, Command, Outcome, Period, Request, Stop, View};
 use org_core::Refusal;
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -48,6 +48,16 @@ pub(super) struct JournalContext {
     search: Option<String>,
     start: Option<String>,
     end: Option<String>,
+    /// The day the cursor of the date prompt's calendar is on, for the
+    /// keys org-journal adds to the calendar (`YYYY-MM-DD`).
+    day: Option<String>,
+}
+
+/// The day of `org-journal--calendar-date->time`, as `YYYY-MM-DD`.
+fn day_of(text: &str) -> Option<org_core::date::Day> {
+    let mut parts = text.split('-').map(|part| part.parse::<i64>().ok());
+    let (year, month, day) = (parts.next()??, parts.next()??, parts.next()??);
+    Some(org_core::date::Date::new(year, month, day).to_day())
 }
 
 /// A question to type the answer of: `kind` `text` or `date`.
@@ -74,7 +84,7 @@ impl Server {
     /// An `org.journal.*` command, run with `argument`.
     pub(super) fn journal_command(&mut self, id: &str, argument: &Value) -> Result<Value, Refusal> {
         let journal = self.journal.clone().ok_or(OFF)?;
-        let context: JournalContext = serde_json::from_value(argument.clone()).unwrap_or_default();
+        let mut context: JournalContext = serde_json::from_value(argument.clone()).unwrap_or_default();
         let directory = expand(&journal.directory);
         // `org-journal--create-journal-dir`
         if !directory.is_dir() {
@@ -90,6 +100,21 @@ impl Server {
                 }
             }
         }
+        // Run in the calendar: the day of its cursor.
+        if context.day.is_none() {
+            if let Some(document) = &context.text_document {
+                let day = self.calendar_day(&document.uri, context.position.unwrap_or_default());
+                context.day = day.map(|day| org_core::date::Date::from_day(day).to_string());
+            }
+        }
+        if id == commands::JOURNAL_MARK_ENTRIES {
+            self.journal_mark();
+            return Ok(Value::Null);
+        }
+        if matches!(id, commands::JOURNAL_READ_ENTRY | commands::JOURNAL_DISPLAY_ENTRY) && context.day.is_none() {
+            // `calendar-cursor-to-date` off the calendar.
+            return Err("Not on a date!".into());
+        }
         if let Some(asked) = self.journal_search_input(id, &context)? {
             return Ok(asked);
         }
@@ -100,6 +125,9 @@ impl Server {
         let date = match (&context.date, context.step.as_deref(), &context.input) {
             (Some(date), _, _) => Some(date.clone()),
             (None, None, Some(input)) if dated => Some(input.clone()),
+            // In the calendar, `org-journal-new-date-entry` takes the day
+            // of its cursor.
+            _ if id == commands::JOURNAL_NEW_DATE_ENTRY => context.day.clone(),
             _ => None,
         };
         if dated && date.is_some() {
@@ -119,8 +147,15 @@ impl Server {
     /// last day (`org-journal--read-period`), each answer carried in the
     /// context of the next question.
     fn journal_search_input(&mut self, id: &str, context: &JournalContext) -> Result<Option<Value>, Refusal> {
-        if !matches!(id, commands::JOURNAL_SEARCH | commands::JOURNAL_SEARCH_FOREVER | commands::JOURNAL_SEARCH_FUTURE)
-        {
+        if !matches!(
+            id,
+            commands::JOURNAL_SEARCH
+                | commands::JOURNAL_SEARCH_FOREVER
+                | commands::JOURNAL_SEARCH_FUTURE
+                | commands::JOURNAL_SEARCH_CALENDAR_WEEK
+                | commands::JOURNAL_SEARCH_CALENDAR_MONTH
+                | commands::JOURNAL_SEARCH_CALENDAR_YEAR
+        ) {
             return Ok(None);
         }
         let answer = |step: Option<&str>| match (context.step.as_deref(), &context.input) {
@@ -129,7 +164,8 @@ impl Server {
         };
         let Some(search) = context.search.clone().or_else(|| answer(None)).or_else(|| answer(Some("search"))) else {
             let prompt = "Enter a string to search for";
-            return Ok(Some(ask_input("text", prompt, json!({ "step": "search", "count": context.count }))));
+            let asked = json!({ "step": "search", "count": context.count, "day": context.day });
+            return Ok(Some(ask_input("text", prompt, asked)));
         };
         if id != commands::JOURNAL_SEARCH || context.count.is_some_and(|count| count > 1) {
             return Ok(None);
@@ -218,7 +254,33 @@ impl Server {
             None => None,
         };
         let prefix = context.count.is_some_and(|count| count > 1);
+        let calendar_day = context.day.as_deref().and_then(day_of);
+        let in_calendar = |period| -> Result<Period, Refusal> {
+            let day = calendar_day.ok_or("Wrong period-name given or not in the calendar mode")?;
+            Ok(journal::calendar_period(period, day, self.calendar_week_start as i64))
+        };
+        let search = || context.search.clone().or_else(|| context.input.clone()).unwrap_or_default();
         let command = match id {
+            commands::JOURNAL_READ_ENTRY | commands::JOURNAL_DISPLAY_ENTRY => Command::ReadEntry {
+                day: calendar_day.ok_or("Not on a date!")?,
+                display: id == commands::JOURNAL_DISPLAY_ENTRY,
+            },
+            commands::JOURNAL_NEXT_ENTRY | commands::JOURNAL_PREVIOUS_ENTRY if calendar_day.is_some() => {
+                Command::CalendarStep {
+                    day: calendar_day.unwrap_or_default(),
+                    previous: id == commands::JOURNAL_PREVIOUS_ENTRY,
+                    follow: journal.follow_mode,
+                }
+            }
+            commands::JOURNAL_SEARCH_CALENDAR_WEEK => {
+                Command::Search { string: search(), period: in_calendar(CalendarPeriod::Week)? }
+            }
+            commands::JOURNAL_SEARCH_CALENDAR_MONTH => {
+                Command::Search { string: search(), period: in_calendar(CalendarPeriod::Month)? }
+            }
+            commands::JOURNAL_SEARCH_CALENDAR_YEAR => {
+                Command::Search { string: search(), period: in_calendar(CalendarPeriod::Year)? }
+            }
             commands::JOURNAL_NEW_ENTRY => Command::NewEntry { prefix },
             commands::JOURNAL_NEW_DATE_ENTRY => {
                 Command::NewDateEntry { prefix, date: read.clone().ok_or("No date was read")? }
@@ -300,8 +362,40 @@ impl Server {
             from: from_offset.as_ref().map(|(file, offset)| (file.as_str(), *offset)),
             answers: &answers,
         };
+        // `org-journal-find-file-fn`, which the commands that visit a day's
+        // file call: `org-journal-new-entry` when the file is not the one
+        // it is run in, `org-journal-open-current-journal-file` always.
+        let finds_file = matches!(
+            command,
+            Command::NewEntry { .. }
+                | Command::NewDateEntry { .. }
+                | Command::NewScheduledEntry { .. }
+                | Command::OpenCurrent
+        );
+        // From the calendar, which keeps its window, a day's file shows in
+        // another; displayed (`j d`, follow mode), the cursor stays.
+        let from_calendar = matches!(command, Command::ReadEntry { .. } | Command::CalendarStep { .. });
+        let focus = !matches!(command, Command::ReadEntry { display: true, .. } | Command::CalendarStep { .. });
+        let other_window = (journal.find_file_other_window && finds_file) || from_calendar;
+        let from_file = from.as_ref().map(|(_, relative)| relative.clone());
         match journal::run(&command, &request, &settings) {
-            Ok(outcome) => self.journal_apply(id, directory, &files, outcome, journal.core.hide_entries),
+            Ok(outcome) => {
+                // `calendar-goto-date`
+                if let Some(day) = outcome.calendar {
+                    let (now, settings) = (self.date_time(), self.read_date);
+                    if let Some(open) = self.date_prompt.as_mut() {
+                        if open.selected != day {
+                            open.select(day, now, &settings);
+                        }
+                    }
+                    self.publish_date_prompt();
+                }
+                let other_window = other_window
+                    && (matches!(command, Command::OpenCurrent)
+                        || outcome.visit.as_ref().is_some_and(|visit| Some(&visit.file) != from_file.as_ref()));
+                let shown = (journal.core.hide_entries, other_window, focus);
+                self.journal_apply(id, directory, &files, outcome, shown)
+            }
             Err(Stop::Ask(question)) => {
                 let mut sent = json!({ "step": "question", "answers": answered });
                 if let Some(date) = date {
@@ -310,6 +404,17 @@ impl Server {
                 Ok(ask(&question, sent))
             }
             Err(Stop::Error(message)) => Err(message.into()),
+        }
+    }
+
+    /// `org-journal-mark-entries` (`j m` in the calendar): its days with
+    /// an entry marked again, as the journal now has them.
+    fn journal_mark(&mut self) {
+        let days = self.journal_days();
+        let (now, settings) = (self.date_time(), self.read_date);
+        if let Some(open) = self.date_prompt.as_mut() {
+            open.mark_journal(days, now, &settings);
+            self.publish_date_prompt();
         }
     }
 
@@ -359,7 +464,7 @@ impl Server {
         directory: &Path,
         files: &BTreeMap<String, String>,
         outcome: Outcome,
-        hide_entries: bool,
+        (hide_entries, other_window, focus): (bool, bool, bool),
     ) -> Result<Value, Refusal> {
         let mut documents = Vec::new();
         let mut texts: BTreeMap<String, String> = files.clone();
@@ -429,12 +534,16 @@ impl Server {
         }
         if documents.is_empty() {
             let selection = Some(Range::new(position, position));
-            let params = ShowDocumentParams { uri: uri.clone(), external: None, take_focus: Some(true), selection };
-            self.send_request::<ShowDocument>(params, Some(Pending::Folds { uri, folds }));
+            let params = ShowDocumentParams { uri: uri.clone(), external: None, take_focus: Some(focus), selection };
+            let mut params = serde_json::to_value(params).unwrap_or_default();
+            if other_window {
+                params["orgOtherWindow"] = json!(true);
+            }
+            self.send_raw_request(ShowDocument::METHOD, params, Some(Pending::Folds { uri, folds }));
         } else {
             let edit = self.workspace_edits(documents);
             let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
-            self.apply_edit(params, Pending::EditAndShow { uri, position, folds });
+            self.apply_edit(params, Pending::EditAndShow { uri, position, folds, other_window });
         }
         Ok(Value::Null)
     }
@@ -481,7 +590,7 @@ impl Server {
         hide_entries: bool,
     ) -> Value {
         let parse = org_syntax::parse(text, &self.todo);
-        let folds = folding::headline_folds(&parse.syntax(), text, index, self.separator_lines);
+        let folds = folding::headline_folds(&parse.syntax(), text, index, self.cycle.folding);
         let hidden = |line: u32| hidden_lines.contains(&(line as usize + 1));
         let (mut close, mut open): (Vec<FoldingRange>, Vec<FoldingRange>) = (Vec::new(), Vec::new());
         if hide_entries {

@@ -1,0 +1,10 @@
+* TODO 9:30 standup
+  SCHEDULED: <2026-05-18 Mon>
+* TODO Call Bob at 15:00 about the plan
+  SCHEDULED: <2026-05-18 Mon>
+* Lunch
+  <2026-05-18 Mon 12:00>
+* Workshop <2026-05-18 Mon 14:00-16:30>
+* Conference <2026-05-17 Sun>--<2026-05-19 Tue>
+* TODO Late night
+  SCHEDULED: <2026-05-18 Mon 23:30>

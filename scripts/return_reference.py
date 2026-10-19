@@ -12,6 +12,12 @@ A case is a JSON object:
                           nil, in a table `org-table-insert-row` with its
                           argument
       "adapt": "nil"      org-adapt-indentation: nil, t or headline-data
+      "emacs": "(org-insert-heading-respect-content t)"
+                          optional: more bindings for the case, as Lisp
+      "before": "(setq …)", "after": "(setq …)"
+                          optional: Lisp run before and after the case,
+                          for what a binding cannot change (the syntax
+                          of lists, `org-element-update-syntax`)
     }
 
 `reference(cases)` adds `expected`: `{"text", "point"}` after the key, or
@@ -89,13 +95,15 @@ def reference(cases, timeout=None, preamble=""):
             adapt = case.get("adapt", "nil")
             adapt = adapt if adapt in ("nil", "t") else "'" + adapt
             circular = "t" if case.get("circular") else "nil"
+            forms.append(case.get("before", ""))
             forms.append(
-                f"(let ((org-list-use-circular-motion {circular}))"
+                f"(let ((org-list-use-circular-motion {circular}) {case.get('emacs', '')})"
                 f" (condition-case err (org-lsp-return-case {lisp_string(source)} {lisp_string(target)}"
                 f" {case['point']} {lisp_string(case.get('key', 'RET'))} {adapt})"
                 f" (error (with-temp-file {lisp_string(target)}"
                 f" (insert (json-encode (list (cons 'error (error-message-string err)))))))))"
             )
+            forms.append(case.get("after", ""))
         driver = os.path.join(directory, "driver.el")
         with open(driver, "w", encoding="utf-8") as handle:
             handle.write("\n".join(forms))

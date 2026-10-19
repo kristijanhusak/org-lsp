@@ -1,0 +1,73 @@
+#+TITLE: Highlighting sample
+#+SUBTITLE: Every construct the server colours
+#+AUTHOR: Org LSP
+#+MACRO: greet Hello, $1!
+
+* Headline level one
+** Headline level two
+*** Headline level three
+**** Headline level four
+***** Headline level five
+****** Headline level six
+******* Headline level seven
+******** Headline level eight
+* TODO [#A] A task to do :work:urgent:
+SCHEDULED: <2026-05-18 Mon> DEADLINE: <2026-05-20 Wed>
+* DONE [#B] A finished task :home:
+CLOSED: [2026-05-17 Sun 09:00]
+* TODO [#C] A task of low priority
+* COMMENT A commented headline
+* An archived headline :ARCHIVE:
+* Drawers and properties
+:PROPERTIES:
+:CUSTOM_ID: drawers
+:CREATED:  [2026-05-01 Fri]
+:END:
+:LOGBOOK:
+CLOCK: [2026-05-17 Sun 09:00]--[2026-05-17 Sun 10:00] =>  1:00
+:END:
+* Lists [1/3]
+- [X] A ticked item
+- [-] A partly ticked item
+  - [X] One
+  - [ ] Two
+- [ ] An item not ticked
+A numbered list and a description list:
+1. A numbered item
+2. Another
+Then:
+- term :: its description
+* Complete lists [2/2]
+- [X] One
+- [X] Two
+* Emphasis and objects
+Text in *bold*, /italic/, _underline_, +strike-through+, =verbatim= and ~code~.
+Nested: *bold with /italic/ inside*.
+A [[https://orgmode.org][described link]], a bare one [[https://example.com]] and https://example.org.
+A <<target>>, a footnote[fn:1] and a macro {{{greet(world)}}}.
+Entities \alpha and \rightarrow, LaTeX $x^2$ and \(a + b\).
+Inline src_python{print(1)}, timestamps <2026-05-19 Tue> and [2026-05-19 Tue].
+# A comment line
+#+begin_src python :results output
+print("source code")
+#+end_src
+#+begin_quote
+Quoted text.
+#+end_quote
+#+begin_verse
+Verse text.
+#+end_verse
+#+begin_comment
+Commented out.
+#+end_comment
+\begin{equation}
+E = mc^2
+\end{equation}
+| Name | Value |
+|------+-------|
+| a    |     1 |
+: Fixed-width text
+*************** TODO An inline task
+*************** END
+
+[fn:1] The footnote's text.

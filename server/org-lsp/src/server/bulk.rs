@@ -25,6 +25,8 @@ pub(super) struct Staged {
     pub original: String,
     pub text: String,
     pub version: Option<i32>,
+    /// A file the action makes (an archive file): the edit creates it.
+    pub created: bool,
 }
 
 pub(super) type Staging = HashMap<String, Staged>;
@@ -83,18 +85,35 @@ impl Server {
     /// its files instead of the editor.
     pub(super) fn stage(&mut self, edit: &WorkspaceEdit) {
         let mut documents: Vec<(Uri, Vec<TextEdit>)> = Vec::new();
+        let mut created: Vec<Uri> = Vec::new();
+        let text_edits = |change: &lsp_types::TextDocumentEdit| -> Vec<TextEdit> {
+            change
+                .edits
+                .iter()
+                .map(|edit| match edit {
+                    lsp_types::OneOf::Left(edit) => edit.clone(),
+                    lsp_types::OneOf::Right(annotated) => annotated.text_edit.clone(),
+                })
+                .collect()
+        };
         match (&edit.document_changes, &edit.changes) {
             (Some(lsp_types::DocumentChanges::Edits(edits)), _) => {
                 for change in edits {
-                    let edits = change
-                        .edits
-                        .iter()
-                        .map(|edit| match edit {
-                            lsp_types::OneOf::Left(edit) => edit.clone(),
-                            lsp_types::OneOf::Right(annotated) => annotated.text_edit.clone(),
-                        })
-                        .collect();
-                    documents.push((change.text_document.uri.clone(), edits));
+                    documents.push((change.text_document.uri.clone(), text_edits(change)));
+                }
+            }
+            // Files made, then edits (archiving to a new file).
+            (Some(lsp_types::DocumentChanges::Operations(operations)), _) => {
+                for operation in operations {
+                    match operation {
+                        lsp_types::DocumentChangeOperation::Op(lsp_types::ResourceOp::Create(create)) => {
+                            created.push(create.uri.clone());
+                        }
+                        lsp_types::DocumentChangeOperation::Edit(change) => {
+                            documents.push((change.text_document.uri.clone(), text_edits(change)));
+                        }
+                        lsp_types::DocumentChangeOperation::Op(_) => {}
+                    }
                 }
             }
             (_, Some(changes)) => {
@@ -119,11 +138,13 @@ impl Server {
             };
             let text = apply(&base, &edits, encoding);
             let Some(staging) = self.staging.as_mut() else { return };
+            let made = created.contains(&uri);
             staging.entry(key).and_modify(|staged| staged.text = text.clone()).or_insert(Staged {
                 uri,
                 original: base,
                 text,
                 version,
+                created: made,
             });
         }
     }
@@ -153,7 +174,25 @@ impl Server {
                 continue;
             }
             self.edited.insert(file.uri.as_str().to_string());
-            let edit = self.workspace_edit(&file.uri, file.version, edits);
+            let edit = if file.created {
+                let edit = lsp_types::TextDocumentEdit {
+                    text_document: lsp_types::OptionalVersionedTextDocumentIdentifier {
+                        uri: file.uri.clone(),
+                        version: None,
+                    },
+                    edits: edits.into_iter().map(lsp_types::OneOf::Left).collect(),
+                };
+                let create = lsp_types::CreateFile { uri: file.uri.clone(), options: None, annotation_id: None };
+                WorkspaceEdit {
+                    document_changes: Some(lsp_types::DocumentChanges::Operations(vec![
+                        lsp_types::DocumentChangeOperation::Op(lsp_types::ResourceOp::Create(create)),
+                        lsp_types::DocumentChangeOperation::Edit(edit),
+                    ])),
+                    ..Default::default()
+                }
+            } else {
+                self.workspace_edit(&file.uri, file.version, edits)
+            };
             self.apply_edit(ApplyWorkspaceEditParams { label: None, edit }, Pending::Edit);
         }
     }
@@ -603,7 +642,7 @@ impl Server {
         self.refile_current = None;
         self.finish_staging();
         self.agenda_marks = kept;
-        self.follow = None;
+        self.release_held();
         self.refresh_view();
         if let Some(failure) = failure {
             return Err(failure);
