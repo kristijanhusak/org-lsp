@@ -68,6 +68,8 @@ function M.open(client, lines)
   })
   vim.wo[win].wrap = true
   vim.wo[win].linebreak = true
+  -- The entry is shown, not written: no spelling marked in it.
+  vim.wo[win][0].spell = false
   vim.wo[win].foldenable = false
   -- The blanks on the left; those on the right are in the width.
   vim.wo[win].foldcolumn = tostring(PADDING)
@@ -175,6 +177,9 @@ local function to_org(buf)
   vim.b[buf].org_lsp_preview = true
   vim.bo[buf].syntax = ''
   vim.bo[buf].filetype = 'org'
+  -- The entry is shown, not written: no spelling marked in it, whatever
+  -- Org files set.
+  vim.wo[win][0].spell = false
   vim.api.nvim_win_set_height(win, math.max(1, vim.api.nvim_win_text_height(win, {}).all))
   vim.lsp.buf_attach_client(buf, client.id)
 end
