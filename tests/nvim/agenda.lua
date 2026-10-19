@@ -869,9 +869,10 @@ vim.api.nvim_win_set_cursor(0, { 4, 30 })
 -- With `syntax on`, as most have it, Neovim makes its float Markdown and
 -- starts tree-sitter in it.
 vim.cmd('syntax on')
--- And with spelling on in Org files, as some have it.
-local spell_group = vim.api.nvim_create_augroup('test_org_spell', { clear = true })
-vim.api.nvim_create_autocmd('FileType', { group = spell_group, pattern = 'org', command = 'setlocal spell' })
+-- And with spelling on in Markdown, as many have it: the float is
+-- Markdown at first, and 'spell' is the window's.
+local spell_group = vim.api.nvim_create_augroup('test_markdown_spell', { clear = true })
+vim.api.nvim_create_autocmd('FileType', { group = spell_group, pattern = 'markdown', command = 'setlocal spell' })
 press('K')
 local float
 wait('the entry in a float', function()
