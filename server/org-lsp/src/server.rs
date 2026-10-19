@@ -1142,6 +1142,10 @@ struct Server {
     display: org_core::indent::Display,
     /// The documents the client was last told to show with prefixes.
     virtually_indented: HashSet<String>,
+    /// The headlines of each document last sent highlighted to the edge
+    /// of the window (`org-fontify-whole-heading-line`): line and level
+    /// face.
+    heading_lines: HashMap<String, Vec<(usize, usize)>>,
     /// The documents last sent with something in `org-lsp/display`.
     displayed: HashSet<String>,
     /// `org-cite-global-bibliography`
@@ -1738,6 +1742,7 @@ pub fn run(connection: Connection) -> Result<()> {
         indent: options.indent_settings(),
         display: options.display(),
         virtually_indented: HashSet::new(),
+        heading_lines: HashMap::new(),
         displayed: HashSet::new(),
         cite_global: options.cite_global_bibliography.clone().unwrap_or_default(),
         cite_insert_processor: options.cite_insert_processor(),
@@ -3408,6 +3413,7 @@ impl Server {
                 }
                 self.sync_clock(&key);
                 self.publish_virtual_indent(&key);
+                self.publish_heading_lines(&key);
                 self.publish_display(&key);
                 self.publish_diagnostics(&key);
                 // An edit the server asked for, of a file no buffer had:
@@ -3512,6 +3518,7 @@ impl Server {
                     }
                 }
                 self.publish_virtual_indent(key);
+                self.publish_heading_lines(key);
                 self.publish_display(key);
                 self.publish_diagnostics(key);
                 self.fold_after_edit(key);
@@ -3583,6 +3590,7 @@ impl Server {
                     let _ = self.sender.send(Message::Notification(notification));
                 }
                 self.virtually_indented.remove(params.text_document.uri.as_str());
+                self.heading_lines.remove(params.text_document.uri.as_str());
                 self.displayed.remove(params.text_document.uri.as_str());
                 if let Some(path) = uri::to_path(&params.text_document.uri) {
                     if let Some(index) = self.widened.iter().position(|widened| *widened == path) {
@@ -3619,14 +3627,7 @@ impl Server {
         }
         let document = self.document(uri)?;
         let (conceal, _, _) = self.display_of(&document.text);
-        let fontify = highlight::Fontify {
-            odd_levels: org_core::structure::odd_levels(&document.text, self.odd_levels),
-            inlinetask: org_core::inlinetask::min_stars(org_core::structure::odd_levels(
-                &document.text,
-                self.odd_levels,
-            )),
-            ..self.fontify
-        };
+        let fontify = self.fontify_of(&document.text);
         let tokens = highlight::tokens_with(&document.syntax(), document.parse.todo_keywords(), conceal, fontify);
         let tokens =
             if self.edit_settings.todo.lists.checkbox_rule { tokens } else { highlight::without_cookies(tokens) };
@@ -3649,6 +3650,13 @@ impl Server {
         let only = range.map(|range| document.index.text_range(&document.text, range, encoding));
         let data = highlight::encode(&tokens, &document.text, &document.index, encoding, only);
         Some(self.client_tokens(data))
+    }
+
+    /// How the headlines and blocks of a document with `text` show: the
+    /// options, with its `#+STARTUP: odd` and its inline tasks.
+    fn fontify_of(&self, text: &str) -> highlight::Fontify {
+        let odd_levels = org_core::structure::odd_levels(text, self.odd_levels);
+        highlight::Fontify { odd_levels, inlinetask: org_core::inlinetask::min_stars(odd_levels), ..self.fontify }
     }
 
     /// Tokens as the client reads them: Org's own, or the standard ones
@@ -3696,10 +3704,11 @@ impl Server {
             );
         }
         if let Some(bullets) = &self.bullets {
+            let fontify = self.fontify_of(text);
             out.extend(org_core::pretty::bullets(root, text, bullets).into_iter().map(|(start, end, shown, what)| {
                 let look = match what {
-                    // Levels repeat after eight, as their tokens do.
-                    org_core::pretty::Bulleted::Headline(level) => format!("stars.level{}", (level - 1) % 8 + 1),
+                    // The look of the stars, as their tokens have it.
+                    org_core::pretty::Bulleted::Headline(stars) => format!("stars.level{}", fontify.level_face(stars)),
                     org_core::pretty::Bulleted::Item => "bullet".to_string(),
                     org_core::pretty::Bulleted::Checkbox('X') => "checkbox.checked".to_string(),
                     org_core::pretty::Bulleted::Checkbox('-') => "checkbox.partial".to_string(),
@@ -14946,6 +14955,31 @@ impl Server {
         }
         let params = json!({ "uri": key, "version": document.version, "lines": lines });
         let notification = lsp_server::Notification::new("org-lsp/virtualIndent".to_string(), params);
+        let _ = self.sender.send(Message::Notification(notification));
+    }
+
+    /// `org-fontify-whole-heading-line`: the lines of the headlines of the
+    /// document `key` highlighted from edge to edge in the look of their
+    /// level, as `org-lsp/lineHighlights` `{ uri, lines }`, each line
+    /// `{ line, highlight: "headline.levelN" }`. Sent after every change
+    /// that moves them, and once with no lines when there are none.
+    fn publish_heading_lines(&mut self, key: &str) {
+        if !self.client.line_highlights {
+            return;
+        }
+        let Some(document) = self.documents.get(key) else { return };
+        let fontify = self.fontify_of(&document.text);
+        let lines = highlight::heading_lines(&document.syntax(), &document.text, &fontify);
+        if self.heading_lines.get(key).map_or(lines.is_empty(), |sent| *sent == lines) {
+            return;
+        }
+        let json_lines: Vec<Value> = lines
+            .iter()
+            .map(|(line, face)| json!({ "line": line, "highlight": format!("headline.level{face}") }))
+            .collect();
+        let params = json!({ "uri": key, "lines": json_lines });
+        self.heading_lines.insert(key.to_string(), lines);
+        let notification = lsp_server::Notification::new(LINE_HIGHLIGHTS.to_string(), params);
         let _ = self.sender.send(Message::Notification(notification));
     }
 

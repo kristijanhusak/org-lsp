@@ -60,6 +60,16 @@ function! s:starts() abort
 endfunction
 call s:test('starts the server and highlights with its tokens', function('s:starts'))
 
+" `org_fontify_whole_heading_line`: each headline's line coloured from
+" edge to edge in the look of its level, with a sign without text.
+function! s:whole_heading_lines() abort
+  let Placed = {-> map(sign_getplaced(s:work_buf, {'group': 'org_lsp_lines'})[0].signs, '[v:val.lnum, v:val.name]')}
+  call s:until('the headlines coloured', {-> len(Placed()) == 3})
+  call assert_equal([[2, 'org_lsp_line_headline.level1'], [5, 'org_lsp_line_headline.level2'], [6, 'org_lsp_line_headline.level1']], Placed())
+  call assert_equal('OrgLsp_headline_level1', sign_getdefined('org_lsp_line_headline.level1')[0].linehl)
+endfunction
+call s:test('colours the lines of headlines from edge to edge', function('s:whole_heading_lines'))
+
 " A keyword with a face of its own (`org_todo_keyword_faces`) shows in it.
 function! s:keyword_faces() abort
   call s:until('the face on TODO', {-> index(s:types(2), 'org_lsp_face_todo_TODO') >= 0})

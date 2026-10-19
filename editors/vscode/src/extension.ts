@@ -1258,19 +1258,37 @@ function indentVirtually(editor: vscode.TextEditor): void {
 
 // ----- line highlights
 
-/** `org-lsp/lineHighlights`: lines highlighted from edge to edge. */
+/**
+ * `org-lsp/lineHighlights`: lines highlighted from edge to edge: the
+ * agenda's clocked entry, and headlines with
+ * `org_fontify_whole_heading_line`.
+ */
 interface LineHighlights {
   uri: string;
   lines: { line: number; highlight: string }[];
 }
 
 const lineHighlights = new Map<string, LineHighlights>();
-/** A theme's token colours have no background: a decoration's has. */
+/**
+ * A theme's token colours have no background: a decoration's has. A
+ * headline's line takes the background of its level's colour
+ * (`org.headlineLevel1Background` …), none unless the user gives one, as
+ * Org's `org-level-N` faces have none.
+ */
 const lineDecorations: Record<string, vscode.TextEditorDecorationType> = {
   agendaClocking: vscode.window.createTextEditorDecorationType({
     isWholeLine: true,
     backgroundColor: new vscode.ThemeColor('org.agendaClockingBackground'),
   }),
+  ...Object.fromEntries(
+    [1, 2, 3, 4, 5, 6, 7, 8].map((level) => [
+      `headline.level${level}`,
+      vscode.window.createTextEditorDecorationType({
+        isWholeLine: true,
+        backgroundColor: new vscode.ThemeColor(`org.headlineLevel${level}Background`),
+      }),
+    ]),
+  ),
 };
 
 /** The lines of each editor highlighted, by highlight; for the tests. */

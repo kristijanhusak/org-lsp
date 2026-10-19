@@ -152,7 +152,7 @@ with the cursor on them, until the agenda is built again with ~r~.
 
 | Feature | Parity | VS Code | What does not work, and why |
 |---+---+---+---|
-| [[file:parity.org::#highlighting][Highlighting]] | 95% | ✅ |  |
+| [[file:parity.org::#highlighting][Highlighting]] | 100% | ✅ |  |
 | [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 91% | ❓ | A closed fold ends in VS Code's own ~⋯~: an extension cannot change it (~org_ellipsis~). |
 | [[file:parity.org::#headings-and-structure][Headings and structure]] | 96% | ❓ | VS Code does not tell an extension which folds are closed: ~C-k~ on a folded headline is VS Code's own (~org-ctrl-k-protect-subtree~), and a subtree cut or copied folded is not folded again when it is pasted. |
 | [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 100% | ✅ |  |

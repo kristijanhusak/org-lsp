@@ -23,10 +23,11 @@ its sections says what it should look like.
 
 * Highlighting
 
-*Partly:* Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Sublime Text cannot hide text in a view. The colors need LSP's ~semantic_highlighting~ on.
+*Partly:* Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Sublime Text cannot hide text in a view. The colors need LSP's ~semantic_highlighting~ on. A headline's look does not go on to the edge of the window (~org_fontify_whole_heading_line~): Sublime Text colors a line past its text only with a region filled in one color of the color scheme, as the agenda's clocked line, not in the look semantic tokens give the headline.
 
 - [ ] Headlines are colored by level; TODO and DONE keywords, priorities (~[#A]~) and tags have colors of their own
 - [ ] With ~org_fontify_todo_headline = true~ the text of a TODO headline, and with ~org_fontify_quote_and_verse_blocks = true~ the lines of a quote block, take a look of their own
+- [ ] With ~org_n_level_faces = 2~, a headline of level 3 has the color of level 1; with ~org_cycle_level_faces = false~ too, that of level 2
 - [ ] ~*bold*~, ~/italic/~, ~_underline_~, ~+strike+~, ~=verbatim=~ and =~code~= are colored
 - [ ] With ~org_emphasis_alist = { "*": ["bold", "italic"] }~, ~*this*~ is bold and italic and ~/that/~ plain; with ~org_fontify_emphasized_text = false~ neither has a look
 - [ ] Timestamps, ~SCHEDULED:~ and ~DEADLINE:~, ~CLOCK:~ lines, drawers, ~#+~ keywords and ~#~ comments are colored

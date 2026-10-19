@@ -458,6 +458,19 @@ describe('Org files', () => {
     await vscode.workspace.fs.delete(file);
   });
 
+  it('colours the lines of headlines from edge to edge with org_fontify_whole_heading_line', async () => {
+    const file = vscode.Uri.file(path.join(workspace, 'whole.org'));
+    await vscode.workspace.fs.writeFile(file, Buffer.from('* A\ntext\n** B\n'));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    await until('the headlines highlighted', () => api.lineHighlights(editor).length === 2);
+    assert.deepEqual(api.lineHighlights(editor), [[0, 'headline.level1'], [2, 'headline.level2']]);
+    const colors = vscode.extensions.getExtension('org-lsp.org-lsp').packageJSON.contributes.colors.map((color) => color.id);
+    assert.ok(colors.includes('org.headlineLevel8Background'), 'a colour for each level');
+    await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+    await vscode.workspace.fs.delete(file);
+  });
+
   it('shows images in place of links to them, and the image whole on hover', async () => {
     // A red picture four pixels wide and two high.
     const png = 'iVBORw0KGgoAAAANSUhEUgAAAAQAAAACCAIAAADwyuo0AAAAEElEQVR4nGP4z8AARwzIHABvqgf5gNwAKAAAAABJRU5ErkJggg==';

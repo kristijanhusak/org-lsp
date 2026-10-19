@@ -53,6 +53,11 @@ vim.g.org_lsp = {
     org_roam_directory = roam_dir,
     org_journal_enabled = true,
     org_journal_dir = journal_dir,
+    -- Two looks of levels, the deeper ones in the second, and headlines
+    -- highlighted to the edge of the window.
+    org_n_level_faces = 2,
+    org_cycle_level_faces = false,
+    org_fontify_whole_heading_line = true,
   },
 }
 vim.opt.runtimepath:prepend(root)
@@ -775,6 +780,34 @@ wait('the lines indented', function()
 end)
 eq(prefixes(), { { 2, 2 }, { 3, 1 }, { 3, 'star', 0 } }, 'the text below A at 2, B after 1 column, one star hidden')
 eq(line(3), 'text', 'the file is not changed')
+
+-- 21b. `org_fontify_whole_heading_line`: each headline's line is in the
+-- look of its level to the edge of the window; past `org_n_level_faces`
+-- (2) a headline keeps the last look, without `org_cycle_level_faces`.
+local whole = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* A', 'text', '** B', '*** C' }, whole)
+vim.cmd.edit(whole)
+local whole_buf = vim.api.nvim_get_current_buf()
+local line_ns = vim.api.nvim_create_namespace('org_lsp_line_highlights')
+local function whole_lines()
+  local found = {}
+  for _, mark in ipairs(vim.api.nvim_buf_get_extmarks(0, line_ns, 0, -1, { details = true })) do
+    table.insert(found, { mark[2], mark[4].line_hl_group })
+  end
+  return found
+end
+wait('the headlines highlighted to the edge', function()
+  return #whole_lines() == 3
+end)
+eq(whole_lines(), {
+  { 0, '@lsp.typemod.headline.level1.org' },
+  { 2, '@lsp.typemod.headline.level2.org' },
+  { 3, '@lsp.typemod.headline.level2.org' },
+}, 'each headline line in the look of its level')
+wait('the tokens of the level faces', function()
+  local tokens = vim.lsp.semantic_tokens.get_at_pos(whole_buf, 3, 0) or {}
+  return tokens[1] ~= nil and tokens[1].modifiers.level2 == true
+end)
 
 -- An entity shows as its character off the cursor's line, as links do:
 -- its text concealed, its last character replaced. Gone with the entity.

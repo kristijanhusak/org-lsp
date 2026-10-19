@@ -430,6 +430,15 @@ pub struct Fontify {
     /// `org-odd-levels-only`: a headline's face is that of its reduced
     /// level (`org-get-level-face`), `***` the second.
     pub odd_levels: bool,
+    /// `org-n-level-faces`: how many of the eight level faces headlines
+    /// take, from 1 to 8.
+    pub n_level_faces: usize,
+    /// `org-cycle-level-faces`: past the last of those faces, the levels
+    /// start again from the first; off, they all keep the last.
+    pub cycle_level_faces: bool,
+    /// `org-fontify-whole-heading-line`: a headline's face goes on past
+    /// its text to the edge of the window ([`heading_lines`]).
+    pub whole_heading_line: bool,
     /// The stars of the shortest inline task (`org-inlinetask-min-level`),
     /// if there are inline tasks: their stars and title are
     /// `org-inlinetask`.
@@ -446,9 +455,57 @@ impl Default for Fontify {
             hidden_keywords: 0,
             hide_macro_markers: false,
             odd_levels: false,
+            n_level_faces: 8,
+            cycle_level_faces: true,
+            whole_heading_line: false,
             inlinetask: None,
         }
     }
+}
+
+impl Fontify {
+    /// Which of the level faces, from 1 to 8, a headline of `stars` stars
+    /// takes (`org-get-level-face`): that of its level, reduced with
+    /// `org-odd-levels-only`, past `org-n-level-faces` the first again
+    /// (`org-cycle-level-faces`) or the last.
+    pub fn level_face(&self, stars: usize) -> usize {
+        let level = org_core::structure::reduced_level(stars, self.odd_levels).max(1);
+        let faces = self.n_level_faces.clamp(1, 8);
+        if self.cycle_level_faces {
+            (level - 1) % faces + 1
+        } else {
+            level.min(faces)
+        }
+    }
+}
+
+/// The headlines whose face goes on past their text, to the edge of the
+/// window, with `org-fontify-whole-heading-line`: each headline's line
+/// and the level face it takes, from 1 to 8 (`org-level-N`, which Org
+/// makes `:extend`). Emacs's face covers the newline: a headline on the
+/// last line, without one, has none.
+pub fn heading_lines(root: &SyntaxNode, text: &str, fontify: &Fontify) -> Vec<(usize, usize)> {
+    if !fontify.whole_heading_line {
+        return Vec::new();
+    }
+    let mut out = Vec::new();
+    let mut line = 0;
+    let mut counted = 0;
+    for node in root.descendants().filter(|node| node.kind() == HEADLINE) {
+        let start = usize::from(node.text_range().start());
+        let Some(stars) = node.first_token().filter(|token| token.kind() == STARS) else { continue };
+        let stars = stars.text().trim_end().len();
+        // Org's face is that of `^\**\* `: a star and a space.
+        if !text[start..].trim_start_matches('*').starts_with(' ') {
+            continue;
+        }
+        line += text[counted..start].matches('\n').count();
+        counted = start;
+        if text[start..].contains('\n') {
+            out.push((line, fontify.level_face(stars)));
+        }
+    }
+    out
 }
 
 /// The keywords `org-hidden-keywords` can hide, before their values.
@@ -856,7 +913,7 @@ impl Walker<'_> {
 
     fn headline(&mut self, node: &SyntaxNode) {
         let level = node.first_token().map_or(1, |stars| stars.text().len());
-        let level = modifier::level(org_core::structure::reduced_level(level, self.fontify.odd_levels));
+        let level = modifier::level(self.fontify.level_face(level));
         // `org-archived`: what follows the stars of a headline with
         // `:ARCHIVE:` in it.
         let line = node.text().to_string();

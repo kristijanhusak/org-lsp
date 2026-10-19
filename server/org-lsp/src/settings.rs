@@ -2062,6 +2062,32 @@ pub const SETTINGS: &[Setting] = &[
         "Show the lines inside quote and verse blocks in their own look (`org-quote`, `org-verse`: the token \
          types `quote` and `verse`).",
     ),
+    setting(
+        "org_n_level_faces",
+        "integer",
+        "8",
+        "org-n-level-faces",
+        "How many looks headlines take by level, from 1 to 8 (the token modifiers `level1` to `level8`, Org's \
+         `org-level-1` to `org-level-8`): with 4, a headline of level 5 looks as one of level 1, or as one of \
+         level 4 with `org_cycle_level_faces` off.",
+    ),
+    setting(
+        "org_cycle_level_faces",
+        "boolean",
+        "true",
+        "org-cycle-level-faces",
+        "Past the last look of `org_n_level_faces`, headlines take the looks of the levels from the first \
+         again; with `false`, those deeper all keep the last.",
+    ),
+    setting(
+        "org_fontify_whole_heading_line",
+        "boolean",
+        "false",
+        "org-fontify-whole-heading-line",
+        "Show the look of a headline's level past the end of its text, to the edge of the window: for looks \
+         with a background. Editors that can show it: Neovim, Vim and VS Code (`org-lsp/lineHighlights`, \
+         VS Code's colors `org.headlineLevel1Background` and on).",
+    ),
     Setting {
         default: None,
         unset: "the standard three dots, `...`",
@@ -3595,8 +3621,9 @@ pub const SETTINGS: &[Setting] = &[
             "boolean",
             "false",
             "",
-            "Whether the client highlights lines of the agenda from edge to edge as the server sends them \
-             (`org-lsp/lineHighlights`): the entry the clock runs on. As a client announcing \
+            "Whether the client highlights lines from edge to edge as the server sends them \
+             (`org-lsp/lineHighlights`): the agenda's entry the clock runs on, and headlines with \
+             `org_fontify_whole_heading_line`. As a client announcing \
              `experimental.orgLineHighlights` does: for the Vim plugin and the Sublime Text package.",
         )
     },
@@ -4044,6 +4071,9 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_fontify_done_headline", BOOLEAN),
     ("org_fontify_todo_headline", BOOLEAN),
     ("org_fontify_quote_and_verse_blocks", BOOLEAN),
+    ("org_n_level_faces", r#"{ "type": "integer", "minimum": 1, "maximum": 8 }"#),
+    ("org_cycle_level_faces", BOOLEAN),
+    ("org_fontify_whole_heading_line", BOOLEAN),
     ("org_ellipsis", STRING),
     ("org_bullets_mode", BOOLEAN),
     ("org_bullets_bullet_list", r#"{ "type": "array", "items": { "type": "string" }, "minItems": 1 }"#),
