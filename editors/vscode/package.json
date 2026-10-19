@@ -6496,11 +6496,13 @@
           ],
           "quote": [
             "markup.quote.org",
-            "markup.quote"
+            "markup.quote",
+            "markup.italic"
           ],
           "verse": [
             "markup.quote.verse.org",
-            "markup.quote"
+            "markup.quote",
+            "markup.italic"
           ],
           "comment": [
             "comment.line.org",
@@ -6716,7 +6718,8 @@
           ],
           "calendarWeekday": [
             "constant.other.weekday.calendar.org",
-            "constant.other"
+            "constant.other",
+            "constant.language"
           ],
           "calendarWeekday.weekend": [
             "comment.weekend.calendar.org",
@@ -6871,11 +6874,13 @@
           ],
           "quote": [
             "markup.quote.org",
-            "markup.quote"
+            "markup.quote",
+            "markup.italic"
           ],
           "verse": [
             "markup.quote.verse.org",
-            "markup.quote"
+            "markup.quote",
+            "markup.italic"
           ],
           "comment": [
             "comment.line.org",
@@ -7091,7 +7096,8 @@
           ],
           "calendarWeekday": [
             "constant.other.weekday.calendar.org",
-            "constant.other"
+            "constant.other",
+            "constant.language"
           ],
           "calendarWeekday.weekend": [
             "comment.weekend.calendar.org",
@@ -7246,11 +7252,13 @@
           ],
           "quote": [
             "markup.quote.org",
-            "markup.quote"
+            "markup.quote",
+            "markup.italic"
           ],
           "verse": [
             "markup.quote.verse.org",
-            "markup.quote"
+            "markup.quote",
+            "markup.italic"
           ],
           "comment": [
             "comment.line.org",
@@ -7466,7 +7474,8 @@
           ],
           "calendarWeekday": [
             "constant.other.weekday.calendar.org",
-            "constant.other"
+            "constant.other",
+            "constant.language"
           ],
           "calendarWeekday.weekend": [
             "comment.weekend.calendar.org",
