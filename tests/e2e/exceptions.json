@@ -39,12 +39,11 @@
       "org.todo.previous": "ciT in Neovim, a key of Vim's normal mode: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org)."
     },
     "helix": {
-      "org.meta.return": "Not among Helix's code actions: it puts the cursor on the new heading, and a code action's edit cannot move the cursor (docs/keys/helix.org).",
       "org.meta.up": "Helix's code action moves the subtree and leaves the cursor where it was in the text; Emacs's cursor goes with the subtree, as it does when the command moves it (window/showDocument).",
       "org.meta.down": "Helix's code action moves the subtree and leaves the cursor where it was in the text; Emacs's cursor goes with the subtree, as it does when the command moves it (window/showDocument).",
-      "org.tags.set": "Not among Helix's code actions: it asks for the tags as text, which Helix cannot ask for on a server's behalf; from the command line, a rename at the cursor answers.",
-      "org.property.set": "Not among Helix's code actions: it asks for the property and its value as text, which Helix cannot ask for on a server's behalf; from the command line, a rename at the cursor answers.",
-      "org.refile": "Not among Helix's code actions: it asks for the target from a list (window/showMessageRequest), which Helix cannot show."
+      "org.agenda.goto.other": "Not among Helix's code actions: the other window is the editor's to pick (orgOtherWindow), which Helix does not know of; from the command line, the entry shows in the agenda's window, as with org.agenda.goto.",
+      "org.agenda.follow": "Not among Helix's code actions: follow mode shows the entry of the line the cursor goes to, and Helix tells a server no cursor moves; from the command line it turns on, and the entry shows in a split, which takes the focus.",
+      "org.meta.return": "The step adds below the cursor's line, as the keys of modal editors do (below); the code action adds where the cursor is, as M-RET does: from the command line, with below in its argument."
     },
     "zed": {
       "org.meta.down": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.).",
@@ -65,20 +64,8 @@
   },
   "scenarios": {
     "helix": {
-      "agenda-archives": "The agenda: its menu asks for the view from a list (window/showMessageRequest), which Helix cannot show, and Helix does not say that it opens documents on a server's request (window.showDocument), so the server opens it no view.",
-      "agenda-bulk": "The agenda: its menu asks for the view from a list (window/showMessageRequest), which Helix cannot show, and Helix does not say that it opens documents on a server's request (window.showDocument), so the server opens it no view.",
-      "agenda-columns": "The agenda: its menu asks for the view from a list (window/showMessageRequest), which Helix cannot show, and Helix does not say that it opens documents on a server's request (window.showDocument), so the server opens it no view.",
-      "agenda-entries": "The agenda: its menu asks for the view from a list (window/showMessageRequest), which Helix cannot show, and Helix does not say that it opens documents on a server's request (window.showDocument), so the server opens it no view.",
-      "agenda-entry-edits": "The agenda: its menu asks for the view from a list (window/showMessageRequest), which Helix cannot show, and Helix does not say that it opens documents on a server's request (window.showDocument), so the server opens it no view.",
-      "agenda-entry-text": "The agenda: its menu asks for the view from a list (window/showMessageRequest), which Helix cannot show, and Helix does not say that it opens documents on a server's request (window.showDocument), so the server opens it no view.",
-      "agenda-filters": "The agenda: its menu asks for the view from a list (window/showMessageRequest), which Helix cannot show, and Helix does not say that it opens documents on a server's request (window.showDocument), so the server opens it no view.",
-      "agenda-habits": "The agenda: its menu asks for the view from a list (window/showMessageRequest), which Helix cannot show, and Helix does not say that it opens documents on a server's request (window.showDocument), so the server opens it no view.",
-      "agenda-inactive": "The agenda: its menu asks for the view from a list (window/showMessageRequest), which Helix cannot show, and Helix does not say that it opens documents on a server's request (window.showDocument), so the server opens it no view.",
-      "agenda-log-clock": "The agenda: its menu asks for the view from a list (window/showMessageRequest), which Helix cannot show, and Helix does not say that it opens documents on a server's request (window.showDocument), so the server opens it no view.",
-      "agenda-navigation": "The agenda: its menu asks for the view from a list (window/showMessageRequest), which Helix cannot show, and Helix does not say that it opens documents on a server's request (window.showDocument), so the server opens it no view.",
-      "agenda-search": "The agenda: its menu asks for the view from a list (window/showMessageRequest), which Helix cannot show, and Helix does not say that it opens documents on a server's request (window.showDocument), so the server opens it no view.",
-      "calendar": "The date prompt is a document the server opens (window/showDocument), with keys of its own; Helix is asked for a date as text, answered with a rename at the cursor.",
-      "capture": "Capture asks for the template from a list (window/showMessageRequest), which Helix cannot show, and is written in a buffer the server opens (window/showDocument), which it does not for Helix."
+      "agenda-columns": "Helix shows no column view: it would draw over the agenda's lines, and the code actions leave it out (docs/helix.org).",
+      "calendar": "Helix has no date prompt: the calendar is a file the server writes again as the day moves, which Helix does not read again (it reloads no file changed on disk); a date is typed as a rename at the cursor (docs/keys/helix.org), so there are no date prompt keys to press."
     },
     "zed": {
       "agenda-columns": "Zed shows no column view: it would draw over the agenda's lines (docs/zed.org).",
@@ -87,7 +74,9 @@
   },
   "steps": {
     "helix": {
-      "org-editing 28": "Refiling asks for the target from a list (window/showMessageRequest), which Helix answers with an error (Method not found)."
+      "agenda-entry-edits 21": "Helix has no note buffer: the note is one line, typed as a rename at the cursor (docs/helix.org).",
+      "agenda-entry-edits 22": "Typed in the note buffer of step 21, which Helix does not have.",
+      "agenda-entry-edits 23": "Files the note of step 21, which Helix asks for as a rename."
     }
   },
   "snapshots": {
@@ -96,7 +85,7 @@
     },
     "helix": {
       "org-editing 5 messages": "The code action is an edit that Helix applies itself, without running the command: nothing is said (Emacs says Priority of current item set to B).",
-      "org-editing 29 buffer": "Shopping stays at the end of the file: refiling it under Errands (step 28) is skipped."
+      "agenda-navigation 18 cursor": "The agenda's buffer is closed (:buffer-close!, as the server's edits leave it changed), and Helix shows the buffer opened last, home.org, not the one the agenda was opened from: Helix has no window of the agenda's to delete."
     },
     "zed": {
       "agenda-entry-edits 21": "Zed has no note buffer: the note is one line, typed as a rename at the cursor (docs/zed.org).",

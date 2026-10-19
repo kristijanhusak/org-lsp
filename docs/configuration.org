@@ -781,8 +781,18 @@ The settings go in Zed's settings (*zed: open settings*):
 :END:
 
 Helix passes the ~config~ table under the server in ~languages.toml~ to it
-as it is, as the server's options. Inlay hints show the indentation of
-~org-indent-mode~, the time clocked and the ~…~ of shrunk columns:
+as it is, as the server's options. Two of them tell the server what Helix
+does without announcing it, as [[file:../editors/helix/languages.toml][editors/helix/languages.toml]] sets them:
+
+- ~show_document = true~: Helix opens the documents the server asks it to
+  show (~window/showDocument~): the agenda, a capture buffer, an entry's
+  file.
+- ~message_requests = false~: Helix shows no list for a server
+  (~window/showMessageRequest~), so a question's choices come first in the
+  code actions (~Space a~).
+
+Inlay hints show the indentation of ~org-indent-mode~, the time clocked and
+the ~…~ of shrunk columns:
 
 #+begin_src toml
 [editor.lsp]

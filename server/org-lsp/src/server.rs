@@ -119,6 +119,9 @@ struct Client {
     inlay_refresh: bool,
     /// Ask with `window/showMessageRequest` (`message_prompts`).
     message_prompts: bool,
+    /// The client shows `window/showMessageRequest`; without
+    /// (`message_requests`), a question's choices are code actions.
+    message_requests: bool,
     /// The standard token types of LSP rather than Org's own: a client
     /// without org-lsp's editor code (`org_client`).
     standard_tokens: bool,
@@ -161,6 +164,9 @@ enum Pending {
     EditAndMove { uri: Uri, position: Position },
     /// The cursor of the agenda is being moved to follow an entry.
     Reveal,
+    /// The agenda's new text, as an edit of the client's file
+    /// (`edit_view`).
+    ViewEdit,
     /// The cursor of the date prompt is being moved to the selected day.
     PromptCursor,
     /// A yes-or-no question of Emacs's, whose answer it waits for.
@@ -181,7 +187,9 @@ enum Pending {
 }
 
 /// A command waiting for text or a date: what `textDocument/rename`
-/// answers for a client without a way to ask (`message_prompts`).
+/// answers for a client without a way to ask (`message_prompts`); or one
+/// of its choices, which the code actions offer to a client that shows no
+/// message requests (`message_requests`).
 struct Question {
     command: String,
     argument: Value,
@@ -1097,6 +1105,13 @@ struct Server {
     /// cannot ask for text (`message_prompts`): the next rename answers
     /// it, its new name being the answer.
     question: Option<Question>,
+    /// An edit of the agenda's file is with the client (`edit_view`),
+    /// made against this version of its copy: the next waits until the
+    /// client has applied it and said so with `didChange`, since an edit
+    /// of the version before would be refused.
+    view_edit_waiting: Option<i32>,
+    /// The agenda changed while an edit was with the client.
+    view_edit_due: bool,
     /// The client's copy of the date prompt document, which it may keep
     /// after a prompt is done.
     prompt_copy: Option<Document>,
@@ -1488,15 +1503,18 @@ pub fn run(connection: Connection) -> Result<()> {
             .and_then(Value::as_bool)
             .unwrap_or(false),
         message_prompts: options.message_prompts.unwrap_or(!org_client),
+        message_requests: options.message_requests.unwrap_or(true),
         standard_tokens: !org_client,
         view_file_name: if org_client { views::FILE_NAME } else { views::PLAIN_FILE_NAME },
         edit_view: !org_client,
         // Not for a client that cannot ask the questions they bring
-        // (`window/showMessageRequest`), such as Helix, unless told it can.
+        // (`window/showMessageRequest`), unless told it can, or that the
+        // code actions answer them (Helix).
         more_actions: options.command_actions.unwrap_or(false)
             || (!org_client
                 && (window.and_then(|window| window.show_message.as_ref()).is_some()
-                    || options.message_prompts == Some(true))),
+                    || options.message_prompts == Some(true)
+                    || options.message_requests == Some(false))),
         command_actions: options.command_actions.unwrap_or(false),
         org_client,
         command_script: options
@@ -1705,6 +1723,8 @@ pub fn run(connection: Connection) -> Result<()> {
         prompt_file,
         date_prompt: None,
         question: None,
+        view_edit_waiting: None,
+        view_edit_due: false,
         prompt_copy: None,
         cycle: options.cycle(),
         tab_ind_state: None,
@@ -2022,6 +2042,20 @@ fn property_names(text: &str) -> Vec<String> {
         }
     }
     names
+}
+
+/// The argument of a command run again with `key` as the answer to what
+/// it asked, `input`.
+fn answered(argument: Value, input: &Value, key: &Value) -> Value {
+    let mut argument = match argument {
+        Value::Object(fields) => fields,
+        _ => serde_json::Map::new(),
+    };
+    if let Some(Value::Object(context)) = input.get("context") {
+        argument.extend(context.clone());
+    }
+    argument.insert("input".to_string(), key.clone());
+    Value::Object(argument)
 }
 
 /// A command's result with what it has to say: `{ "message": … }` on top
@@ -3075,6 +3109,20 @@ impl Server {
                 }
             }
             Some(Pending::Reveal) => {}
+            Some(Pending::ViewEdit) => {
+                let sent = self.view_edit_waiting.take();
+                let applied = response.response_result.ok().and_then(|result| result.get("applied")?.as_bool());
+                let reported =
+                    self.view.as_ref().and_then(|open| open.client.as_ref()).map(|copy| copy.version) != sent;
+                if applied != Some(true) {
+                    self.view_edit_due = false;
+                } else if reported {
+                    // The client has said what the edit changed (Helix
+                    // does before it answers): the next edit can go.
+                    self.view_edit_catch_up();
+                }
+                // Else it goes once the client says (`didChange`).
+            }
             Some(Pending::PromptCursor) => {
                 if let Some(open) = self.date_prompt.as_mut() {
                     open.moving_cursor = false;
@@ -3339,6 +3387,8 @@ impl Server {
                     }
                     // An older text than the agenda's, read from the file.
                     if self.client.edit_view {
+                        self.view_edit_waiting = None;
+                        self.view_edit_due = false;
                         self.edit_view_in_client();
                     }
                     self.reveal_when_current();
@@ -3396,6 +3446,7 @@ impl Server {
                     // New lines: highlighted anew, whatever was before.
                     open.highlighted = None;
                     open.forget_shown();
+                    self.view_edit_catch_up();
                     self.reveal_when_current();
                     return;
                 }
@@ -3995,9 +4046,45 @@ impl Server {
         }
     }
 
+    /// The code actions; first, while a question waits for one of its
+    /// choices (`message_requests`), the choices, which run its command
+    /// again with the answer.
     fn code_actions(&mut self, params: CodeActionParams) -> Option<Vec<CodeActionOrCommand>> {
+        let choices: Vec<CodeActionOrCommand> = match &self.question {
+            Some(Question { command, argument, input }) => input
+                .get("choices")
+                .and_then(Value::as_array)
+                .into_iter()
+                .flatten()
+                .filter_map(|choice| {
+                    let title = prompt_label(choice);
+                    let argument = answered(argument.clone(), input, choice.get("key")?);
+                    Some(CodeActionOrCommand::CodeAction(CodeAction {
+                        title: title.clone(),
+                        kind: Some(CodeActionKind::new("org.answer")),
+                        command: Some(lsp_types::Command {
+                            title,
+                            command: command.clone(),
+                            arguments: Some(vec![argument]),
+                        }),
+                        ..Default::default()
+                    }))
+                })
+                .collect(),
+            None => Vec::new(),
+        };
+        let actions = self.code_actions_at(params);
+        if choices.is_empty() {
+            return actions;
+        }
+        Some(choices.into_iter().chain(actions.into_iter().flatten()).collect())
+    }
+
+    fn code_actions_at(&mut self, params: CodeActionParams) -> Option<Vec<CodeActionOrCommand>> {
         let uri = &params.text_document.uri;
-        if self.client.command_actions {
+        // A client that runs the commands from its code actions asks for
+        // them where its cursor is (Helix asks only then).
+        if self.client.more_actions {
             self.saw_cursor(uri, params.range.start);
         }
         let only = params.context.only.as_deref();
@@ -4259,7 +4346,7 @@ impl Server {
         let in_code = in_src_block(&document.parse.syntax(), offset);
         let in_table = at_org_table(&document.text, &document.parse.syntax(), offset);
         // The agenda and capture open a document, which the client must
-        // be able to show (Helix cannot).
+        // be able to show.
         let shows = self.client.show_document;
         for (id, offered) in [
             (commands::TANGLE, in_code),
@@ -4275,6 +4362,12 @@ impl Server {
             (commands::TODO, more && in_entry),
             (commands::PRIORITY, more && in_entry),
             (commands::REFILE, more && in_entry),
+            // What is typed: a rename at the cursor answers.
+            (commands::SCHEDULE, more && in_entry),
+            (commands::DEADLINE, more && in_entry),
+            (commands::SET_TAGS, more && in_entry),
+            (commands::SET_PROPERTY, more && in_entry),
+            (commands::SET_EFFORT, more && in_entry),
             (commands::SORT, more),
             (commands::CLOCK_GOTO, more && running),
             (commands::CLOCK_IN_LAST, more && !self.clock_history.is_empty()),
@@ -6348,6 +6441,10 @@ impl Server {
     /// The agenda's new text as an edit of the file the client has open
     /// (`edit_view`): the lines that changed, so that the cursor stays.
     fn edit_view_in_client(&mut self) {
+        if self.view_edit_waiting.is_some() {
+            self.view_edit_due = true;
+            return;
+        }
         let Some(open) = &self.view else { return };
         let Some(copy) = &open.client else { return };
         if copy.text == open.view.text {
@@ -6367,7 +6464,17 @@ impl Server {
         let range = copy.index.range(old, range, self.client.encoding);
         let edit = self.workspace_edit(&open.uri, Some(copy.version), vec![TextEdit { range, new_text }]);
         let params = lsp_types::ApplyWorkspaceEditParams { label: Some("Org Agenda".to_string()), edit };
-        self.send_request::<lsp_types::request::ApplyWorkspaceEdit>(params, None);
+        self.view_edit_waiting = Some(copy.version);
+        self.send_request::<lsp_types::request::ApplyWorkspaceEdit>(params, Some(Pending::ViewEdit));
+    }
+
+    /// The agenda's text that changed while an edit was with the client,
+    /// once that edit is applied.
+    fn view_edit_catch_up(&mut self) {
+        if self.view_edit_due && self.view_edit_waiting.is_none() {
+            self.view_edit_due = false;
+            self.edit_view_in_client();
+        }
     }
 
     /// Ask the client to show the view with the cursor at `position`.
@@ -6618,6 +6725,14 @@ impl Server {
             self.question = Some(Question { command, argument, input: input.clone() });
             return;
         }
+        if !self.client.message_requests {
+            // The choices come first in the code actions until one is
+            // picked.
+            let prompt = prompt.trim_end().trim_end_matches(':');
+            self.show_message(MessageType::INFO, format!("{prompt}: pick the answer from the code actions"));
+            self.question = Some(Question { command, argument, input: input.clone() });
+            return;
+        }
         let actions = choices
             .iter()
             .map(|choice| lsp_types::MessageActionItem { title: prompt_label(choice), properties: HashMap::new() })
@@ -6652,20 +6767,15 @@ impl Server {
         let key = if choices.is_empty() {
             &typed
         } else {
-            match choices.iter().find(|choice| prompt_label(choice) == picked).and_then(|choice| choice.get("key")) {
+            // A button's label, or the key typed as a rename.
+            let by_label = choices.iter().find(|choice| prompt_label(choice) == picked);
+            let by_key = || choices.iter().find(|choice| choice.get("key").and_then(Value::as_str) == Some(picked));
+            match by_label.or_else(by_key).and_then(|choice| choice.get("key")) {
                 Some(key) => key,
                 None => return,
             }
         };
-        let mut argument = match argument {
-            Value::Object(fields) => fields,
-            _ => serde_json::Map::new(),
-        };
-        if let Some(Value::Object(context)) = input.get("context") {
-            argument.extend(context.clone());
-        }
-        argument.insert("input".to_string(), key.clone());
-        let argument = Value::Object(argument);
+        let argument = answered(argument, input, key);
         let params = ExecuteCommandParams {
             command: command.clone(),
             arguments: vec![argument.clone()],

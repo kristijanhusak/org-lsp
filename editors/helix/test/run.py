@@ -3,21 +3,25 @@
 
 Each scenario runs in a Helix of its own, in a tmux session, with the
 repository's languages.toml (editors/helix/languages.toml) pointing at the
-server and the scenario's options as its `config`, which Helix passes as
-the initialization options. The steps are what a Helix user does: the
-code action menu (`Space a`, then the action picked with `C-n` and Enter)
-for the commands the server offers there, `gd` for following a link, and
-for the others, which tests/e2e/exceptions.json names under
-`editors.helix` with the reason, `:lsp-workspace-command` with the
-cursor's place as its argument. What the server asks for as text is
-answered with a rename at the cursor (`Space r`), as docs/any-editor.org
-says. Helix gives a code action no count: a step with one runs its
-command with `:lsp-workspace-command` too, the count in its argument.
+server and the scenario's options added to its `config`, which Helix
+passes as the initialization options. The steps are what a Helix user
+does: the code action menu (`Space a`, then the action picked with `C-n`
+and Enter) for the commands the server offers there, in Org files, the
+agenda and capture buffers, `gd` for following a link, and for the
+others, which tests/e2e/exceptions.json names under `editors.helix` with
+the reason, `:lsp-workspace-command` with the cursor's place as its
+argument. What the server asks for is answered as docs/helix.org says: a
+choice from the code action menu, which starts with the choices while
+the question waits (`message_requests` off), and text with a rename at
+the cursor (`Space r`). Helix gives a code action no count: a step with
+one runs its command with `:lsp-workspace-command` too, the count in its
+argument.
 
-What is looked at: files as Helix writes them (`:write-all`), the cursor
-from the status line, and the messages Helix was sent
-(`window/showMessage`, from its log), which it shows in the status line in
-turn. What a scenario expects is what the server's own runner saw
+What is looked at: the buffers as Helix has them (the text it told the
+server of, `didOpen` and `didChange`, from its log), files on disk that
+Helix has not opened, the cursor from the status line, and the messages
+Helix was sent (`window/showMessage`), which it shows in the status line
+in turn. What a scenario expects is what the server's own runner saw
 (server/org-lsp/tests/e2e_scenarios.rs, tests/e2e/expected/NAME.txt).
 In the exceptions, `scenarios.helix` names the scenarios Helix cannot
 run, `steps.helix` the steps it cannot take (`NAME STEP`), and
@@ -28,7 +32,8 @@ each with the reason.
 
 ORG_LSP_BIN is the server (default: the debug build); ORG_LSP_E2E=NAME
 runs only the scenarios whose name has NAME in it. HELIX_RUNTIME defaults
-to the `runtime` directory beside `hx` when there is one.
+to the `runtime` directory beside `hx` when there is one. ORG_LSP_HX_KEEP
+keeps each scenario's directory, Helix's log among its files.
 """
 
 import json
@@ -39,6 +44,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.parse
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
@@ -48,27 +54,21 @@ SERVER = os.environ.get("ORG_LSP_BIN", os.path.join(ROOT, "target", "debug", "or
 ONLY = os.environ.get("ORG_LSP_E2E", "")
 WIDTH, HEIGHT = 200, 50
 
-# The commands Helix offers as code actions, by the action's kind; the
-# scenario's command when it has no other name there. `org.todo` without
-# keys cycles the state, as the action does.
+# The kind of the code action that runs a scenario's command where no
+# action has the command's own: `org.todo` without keys cycles the state
+# in an Org file, as the action does.
 ACTIONS = {
     "org.todo": "org.todo.next",
 }
-OFFERED = {
-    "org.todo.next", "org.todo.previous", "org.priority.up", "org.priority.down",
-    "org.timestamp.up", "org.timestamp.down", "org.date.later", "org.date.earlier",
-    "org.clock.in", "org.clock.out", "org.clock.cancel", "org.checkbox.toggle",
-    "org.table.recalculate", "org.meta.left", "org.meta.right", "org.shiftmeta.left",
-    "org.shiftmeta.right", "org.meta.up", "org.meta.down", "org.shiftmeta.up",
-    "org.shiftmeta.down", "org.table.insert.row.below", "org.table.hline",
-    "org.table.hline.above", "org.table.blank.field", "org.table.toggle.column.width",
-    "org.babel.tangle", "org.babel.execute", "org.edit.special", "org.archive.subtree",
-    "org.archive.sibling", "org.archive.tag",
-}
-# Helix's own keys that run a command: go to definition follows a link.
+# Helix's own keys that run a command: go to definition follows a link
+# (in an Org file; in the agenda it goes to the line's entry).
 KEYS = {"org.open": ["g", "d"]}
 
-PROMPT = ": answer with a rename at the cursor"
+# What the server says when it waits for an answer.
+RENAME = ": answer with a rename at the cursor"
+CHOICE = ": pick the answer from the code actions"
+# The kind of the code actions that answer a question.
+ANSWER = "org.answer"
 
 
 def load(path):
@@ -148,13 +148,17 @@ def options_of(spec, directory):
 
 def languages_toml(options):
     """editors/helix/languages.toml, with the server's whole path and the
-    scenario's options as its `config`, as docs/helix.org sets it up."""
+    scenario's options added to its `config`, as docs/helix.org sets it
+    up."""
     with open(os.path.join(ROOT, "editors", "helix", "languages.toml"), encoding="utf-8") as file:
         text = file.read()
-    line = 'command = "org-lsp"'
-    if line not in text:
-        raise Failure("editors/helix/languages.toml has no `command = \"org-lsp\"`")
-    return text.replace(line, f"command = {json.dumps(SERVER)}\nconfig = {toml_value(options)}", 1)
+    for line in ('command = "org-lsp"', "[language-server.org-lsp.config]"):
+        if line not in text:
+            raise Failure(f"editors/helix/languages.toml has no `{line}`")
+    text = text.replace('command = "org-lsp"', f"command = {json.dumps(SERVER)}", 1)
+    table = "[language-server.org-lsp.config]"
+    lines = "".join(f"\n{toml_key(key)} = {toml_value(value)}" for key, value in options.items())
+    return text.replace(table, table + lines, 1)
 
 
 def expected_snapshots(name):
@@ -172,8 +176,31 @@ def expected_snapshots(name):
     return snapshots
 
 
+def path_of(uri):
+    return urllib.parse.unquote(urllib.parse.urlparse(uri).path)
+
+
+def offset(text, position, encoding):
+    """The index in `text` of an LSP position, its character counted in
+    `encoding`."""
+    lines = text.split("\n")
+    line = position["line"]
+    start = sum(len(each) + 1 for each in lines[:line])
+    if line >= len(lines):
+        return len(text)
+    rest, count, at = lines[line], position["character"], 0
+    for char in rest:
+        if count <= 0:
+            break
+        count -= len(char.encode("utf-8")) if encoding == "utf-8" else \
+            (2 if ord(char) > 0xFFFF else 1) if encoding == "utf-16" else 1
+        at += 1
+    return start + at
+
+
 class Log:
-    """Helix's log (`-v`): what it sent the server and what it was sent."""
+    """Helix's log (`-v`): what it sent the server and what it was sent,
+    and the text of each document it has open."""
 
     def __init__(self, path):
         self.path = path
@@ -182,6 +209,8 @@ class Log:
         self.sent = []  # (index, message) Helix -> server
         self.received = []  # (index, message) server -> Helix
         self.count = 0
+        self.documents = {}  # path -> text
+        self.encoding = "utf-16"
 
     def read(self):
         try:
@@ -202,7 +231,38 @@ class Log:
             except json.JSONDecodeError:
                 continue
             self.count += 1
-            (self.sent if match.group(1) == "->" else self.received).append((self.count, message))
+            if match.group(1) == "->":
+                self.sent.append((self.count, message))
+                self.track(message)
+            else:
+                self.received.append((self.count, message))
+                encoding = (message.get("result") or {}).get("capabilities", {}).get("positionEncoding") \
+                    if isinstance(message.get("result"), dict) else None
+                if encoding:
+                    self.encoding = encoding
+
+    def track(self, message):
+        """The documents' text, as Helix tells the server of it."""
+        method, params = message.get("method"), message.get("params") or {}
+        if method == "textDocument/didOpen":
+            self.documents[path_of(params["textDocument"]["uri"])] = params["textDocument"]["text"]
+        elif method == "textDocument/didChange":
+            path = path_of(params["textDocument"]["uri"])
+            text = self.documents.get(path, "")
+            for change in params["contentChanges"]:
+                if "range" not in change:
+                    text = change["text"]
+                    continue
+                start = offset(text, change["range"]["start"], self.encoding)
+                end = offset(text, change["range"]["end"], self.encoding)
+                text = text[:start] + change["text"] + text[end:]
+            self.documents[path] = text
+        elif method == "textDocument/didClose":
+            self.documents.pop(path_of(params["textDocument"]["uri"]), None)
+
+    def shown(self):
+        """The documents the server asked Helix to show, in turn."""
+        return [path_of(m["params"]["uri"]) for _, m in self.received if m.get("method") == "window/showDocument"]
 
     def pending(self):
         """Whether a request either side sent has no answer yet."""
@@ -277,8 +337,18 @@ class Helix:
 
     def stop(self):
         if self.started:
+            # Helix quits, and the server with it, which removes the
+            # agenda's file.
+            self.keys("Escape")
+            self.keys(":")
+            self.type("quit-all!")
+            self.keys("Enter")
+            end = time.monotonic() + 5
+            while time.monotonic() < end and self.session in tmux("list-sessions", "-F", "#S", check=False).split():
+                time.sleep(0.1)
             tmux("kill-session", "-t", self.session, check=False)
-        shutil.rmtree(self.work, ignore_errors=True)
+        if not os.environ.get("ORG_LSP_HX_KEEP"):
+            shutil.rmtree(self.work, ignore_errors=True)
 
     # The screen.
 
@@ -289,13 +359,35 @@ class Helix:
         return tmux(*args).split("\n")
 
     def status(self):
-        """The mode, the buffer's name and the cursor's line and column
+        """The mode, the buffer's path and the cursor's line and column
         (from 1) in the status line."""
         for row in reversed(self.screen()):
-            match = re.match(r"\s*(NOR|INS|SEL)\s+(\S+)(?:\s+\[\+\])?.*?\s(\d+):(\d+)\s*$", row)
+            # Side by side, a window's status line ends at `│`; only the
+            # focused window's shows the mode.
+            for part in row.split("│"):
+                match = re.match(r"\s*(NOR|INS|SEL)\s+(\S+)(?:\s+\[\+\])?.*?\s(\d+):(\d+)\s*$", part)
+                if match:
+                    break
             if match:
-                return match.group(1), match.group(2), int(match.group(3)), int(match.group(4))
+                name = os.path.join(self.directory, os.path.expanduser(match.group(2)))
+                return match.group(1), name, int(match.group(3)), int(match.group(4))
         raise Failure("no status line on the screen:\n" + "\n".join(self.screen()))
+
+    def name_of(self, path):
+        """A buffer's name as the scenarios write it: the agenda's as
+        `agenda`, a file's from the scenario's directory."""
+        if path.startswith(self.directory + "/"):
+            return path[len(self.directory) + 1:]
+        if os.path.basename(path) == "Agenda.org":
+            return "agenda"
+        return os.path.basename(path)
+
+    def agenda(self):
+        """The agenda's file, while Helix has it open."""
+        for path in reversed(self.log.shown()):
+            if os.path.basename(path) == "Agenda.org" and not path.startswith(self.directory + "/"):
+                return path if path in self.log.documents else None
+        return None
 
     def keys(self, *keys):
         tmux("send-keys", "-t", self.session, *keys)
@@ -307,7 +399,7 @@ class Helix:
         self.settle()
 
     def type(self, text):
-        tmux("send-keys", "-t", self.session, "-l", text)
+        tmux("send-keys", "-t", self.session, "-l", "--", text)
 
     def wait(self, done, what, timeout=15, read=False):
         start = time.monotonic()
@@ -343,7 +435,35 @@ class Helix:
         self.keys("Enter")
         self.settle()
 
+    def text(self, path):
+        """A file as Helix has it, or else as it is on disk."""
+        if path in self.log.documents:
+            return self.log.documents[path]
+        try:
+            with open(path, encoding="utf-8") as file:
+                return file.read()
+        except FileNotFoundError:
+            return None
+
     # What a user does.
+
+    def open(self, path):
+        """`:open` a file, or go to its buffer if it has one."""
+        self.command_line(f"open {shell_quote(path)}")
+
+    def go_to_buffer(self, path):
+        """Go back to a buffer from the buffer picker (`Space b`), where
+        its cursor was: `:open` would put it at the start."""
+        self.escape()
+        self.keys("Space", "b")
+        self.wait(lambda: any(os.path.basename(path) in row for row in self.screen()), "the buffer picker")
+        self.type(os.path.basename(path))
+        time.sleep(0.3)
+        self.settle()
+        self.keys("Enter")
+        self.settle()
+        if self.status()[1] != path:
+            raise Failure(f"the buffer picker went to {self.status()[1]}, not {path}")
 
     def place(self, step):
         column = step.get("column", 0)
@@ -358,11 +478,10 @@ class Helix:
             self.type(re.escape(step["at"]))
             self.keys("Enter")
             self.settle()
-            _, _, line, end = self.status()
+            _, path, line, end = self.status()
             # The search selects the match, the cursor on its last character.
             start = end - len(step["at"])
-            self.write_all()
-            lines = (self.read(self.status()[1]) or "").split("\n")
+            lines = (self.text(path) or "").split("\n")
             first = next((number for number, text in enumerate(lines, start=1) if step["at"] in text), None)
             if first is None:
                 raise Failure(f"`{step['at']}` is not in the buffer")
@@ -411,32 +530,39 @@ class Helix:
             rows.append((text, reverse))
         return rows
 
-    def code_action(self, kind):
-        """Pick the code action of `kind` in the menu (`Space a`)."""
+    def code_actions(self):
+        """Open the code action menu (`Space a`): the actions it shows."""
         self.escape()
         after = self.log.count
         self.keys("Space", "a")
         self.wait(lambda: self.log.response_to("textDocument/codeAction", after) is not None,
                   "the code actions", read=True)
-        actions = self.log.response_to("textDocument/codeAction", after).get("result") or []
+        return self.log.response_to("textDocument/codeAction", after).get("result") or []
+
+    def pick_action(self, actions, index):
+        """Pick the action at `index` in the open code action menu."""
         titles = [action["title"] for action in actions]
-        wanted = [action["title"] for action in actions if action.get("kind") == kind]
-        if not wanted:
-            self.keys("Escape")
-            raise Failure(f"no code action {kind} here; Helix offers: {titles}")
-        title = wanted[0]
+        title = titles[index]
+        # The longest first: a title may start with another.
+        by_length = sorted(set(titles), key=len, reverse=True)
 
         def selected():
+            # The whole title in reverse video: the cursor is one
+            # character of it.
             for text, reverse in self.menu_rows():
-                for each in titles:
+                for each in by_length:
                     at = text.find(f" {each} ")
-                    if at >= 0 and reverse[at + 1]:
-                        return each
+                    if at >= 0:
+                        if all(reverse[at + 1:at + 1 + len(each)]):
+                            return each
+                        break
             return None
 
         def shown():
             return any(each in text for text, _ in self.menu_rows() for each in titles)
 
+        if titles.count(title) > 1:
+            raise Failure(f"two code actions are titled `{title}`")
         # The menu may open with no action selected: `C-n` goes down it.
         self.wait(shown, "the code action menu")
         for _ in range(len(titles) + 2):
@@ -450,12 +576,27 @@ class Helix:
         self.keys("Enter")
         self.settle()
 
+    def code_action(self, command):
+        """Run `command` from the code action menu, by its action's kind or
+        command."""
+        actions = self.code_actions()
+
+        def find(kind):
+            return next((at for at, action in enumerate(actions)
+                         if action.get("kind") == kind or (action.get("command") or {}).get("command") == kind), None)
+        kind = command if find(command) is not None else ACTIONS.get(command, command)
+        index = find(kind)
+        if index is None:
+            self.keys("Escape")
+            raise Failure(f"no code action {kind} here; Helix offers: {[action['title'] for action in actions]}")
+        self.pick_action(actions, index)
+
     def workspace_command(self, command, step):
         """`:lsp-workspace-command`, with the cursor's place as its argument
         and the server applying the edit itself (`apply`)."""
-        _, _, line, column = self.status()
+        _, path, line, column = self.status()
         context = {
-            "textDocument": {"uri": f"file://{self.directory}/{self.status()[1]}"},
+            "textDocument": {"uri": "file://" + urllib.parse.quote(path)},
             "position": {"line": line - 1, "character": column - 1},
             "apply": True,
         }
@@ -465,16 +606,38 @@ class Helix:
             context["below"] = True
         self.command_line(f"lsp-workspace-command {command} {json.dumps(context, separators=(',', ':'))}")
 
+    def question(self):
+        """What the server asked since the last answer: `choice`, `text`
+        or None."""
+        for index, message in reversed(self.log.received):
+            if index <= self.asked_from:
+                break
+            if message.get("method") == "window/showMessage":
+                text = message.get("params", {}).get("message", "")
+                if text.endswith(CHOICE):
+                    return "choice"
+                if text.endswith(RENAME):
+                    return "text"
+        return None
+
     def answer(self, answer, command):
-        """Answer the server's question with a rename at the cursor."""
-        def asked():
-            return any(PROMPT in m.get("params", {}).get("message", "") for i, m in self.log.received
-                       if i > self.asked_from and m.get("method") == "window/showMessage")
-        if not asked():
-            raise Failure(f"{command} did not ask for {answer!r} with a rename")
-        if not isinstance(answer, str):
-            raise Failure(f"{command} asks for {answer!r}, which is no text: Helix has no list for a server")
+        """Answer the server's question: a choice from the code actions,
+        text with a rename at the cursor."""
+        asked = self.question()
+        if asked is None:
+            raise Failure(f"{command} did not ask for {answer!r}")
         self.asked_from = self.log.count
+        if asked == "choice":
+            actions = self.code_actions()
+            choices = [action for action in actions if action.get("kind") == ANSWER]
+            index = pick([action["title"] for action in choices], answer)
+            if index is None:
+                self.keys("Escape")
+                raise Failure(f"no choice {json.dumps(answer)} in {[action['title'] for action in choices]}")
+            self.pick_action(actions, actions.index(choices[index]))
+            return
+        if not isinstance(answer, str):
+            raise Failure(f"{command} asks for text, not {json.dumps(answer)}")
         self.keys("Space", "r")
         self.wait(lambda: any("rename-to:" in row for row in self.screen()), "the rename prompt")
         self.keys("C-u")
@@ -484,48 +647,46 @@ class Helix:
 
     def run(self, step, excepted):
         command = step["command"]
-        kind = ACTIONS.get(command, command)
         self.asked_from = self.log.count
+        started = self.log.count
         answers = list(step.get("answers", []))
         if command in excepted:
             self.workspace_command(command, step)
-        elif command in KEYS:
+        elif command in KEYS and self.name_of(self.status()[1]) != "agenda":
             self.escape()
             self.keys(*KEYS[command])
             self.settle()
-        elif kind in OFFERED and "count" in step:
+        elif "count" in step:
             # A code action takes no count: the command as from Helix's
             # command line, with the count in its argument.
             self.workspace_command(command, step)
-        elif kind in OFFERED:
-            self.code_action(kind)
         else:
-            raise Failure(f"{command} has no key nor code action in Helix, and editors.helix does not say why")
+            self.code_action(command)
         for answer in answers:
             self.answer(answer, command)
+        # Helix shows a document the server shows without the focus (an
+        # entry in follow mode) in a split to the right, and focuses it:
+        # the user goes back to the window on the left.
+        unfocused = [m for index, m in self.log.received if index > started
+                     and m.get("method") == "window/showDocument" and not m["params"].get("takeFocus")]
+        if unfocused:
+            self.escape()
+            self.keys("C-w", "h")
+            self.settle()
 
     # What is looked at.
 
-    def write_all(self):
-        self.command_line("write-all")
-
-    def read(self, name):
-        try:
-            with open(os.path.join(self.directory, name), encoding="utf-8") as file:
-                return file.read()
-        except FileNotFoundError:
-            return None
-
     def messages(self):
         """What the server said since the messages were last looked at,
-        without its questions (a rename answers them)."""
+        without its questions (the code actions and a rename answer
+        them)."""
         said = []
         for index, message in self.log.received:
             if index <= self.messages_from:
                 continue
             if message.get("method") == "window/showMessage":
                 text = message["params"]["message"]
-                if PROMPT not in text:
+                if not text.endswith(RENAME) and not text.endswith(CHOICE):
                     said.append(text)
             elif "error" in message and "method" not in message:
                 said.append(message["error"].get("message", ""))
@@ -534,23 +695,48 @@ class Helix:
 
     def snapshot(self, kind):
         ended = lambda text: text.rstrip("\n") + "\n"
-        if kind in ("buffer", "cursor") or kind.startswith("file:"):
-            self.write_all()
-        _, name, line, _ = self.status()
+        self.log.read()
+        _, path, line, _ = self.status()
         if kind == "buffer":
-            return f"[{name}]\n" + ended(self.read(name) or "")
+            return f"[{self.name_of(path)}]\n" + ended(self.text(path) or "")
         if kind == "cursor":
-            lines = (self.read(name) or "").split("\n")
-            return f"{name}:{line}: {lines[line - 1] if line - 1 < len(lines) else ''}\n"
+            lines = (self.text(path) or "").split("\n")
+            return f"{self.name_of(path)}:{line}: {lines[line - 1] if line - 1 < len(lines) else ''}\n"
         if kind == "messages":
-            self.log.read()
             return self.messages()
         if kind.startswith("file:"):
-            text = self.read(kind[len("file:"):])
+            text = self.text(os.path.join(self.directory, kind[len("file:"):]))
             return "(no file)\n" if text is None else ended(text)
         if kind == "agenda":
-            return "(no agenda)\n"
+            agenda = self.agenda()
+            return ended(self.log.documents[agenda]) if agenda else "(no agenda)\n"
         raise Failure(f"Helix cannot show {kind}")
+
+
+def pick(titles, answer):
+    """The choice an answer picks: a key (`[t]` at the end of its title),
+    or `{"choice": label}`."""
+    if isinstance(answer, str):
+        names = {" ": "SPC", "\r": "RET", "\t": "TAB"}
+        key = names.get(answer, answer)
+        for index, title in enumerate(titles):
+            if title.endswith(f" [{key}]") or title == answer:
+                return index
+        # A key whose label is itself, in the other case (`C` for `c`), as
+        # Org reads it.
+        for index, title in enumerate(titles):
+            if len(answer) == 1 and title.lower() == answer.lower():
+                return index
+        return None
+    label = answer.get("choice")
+    bare = [re.sub(r" \[[^\]]*\]$", "", title) for title in titles]
+    for index, title in enumerate(bare):
+        if title == label:
+            return index
+    for index, title in enumerate(bare):
+        if label in title:
+            return index
+    return None
 
 
 def shell_quote(text):
@@ -576,9 +762,17 @@ def run_scenario(name, spec, exceptions):
                 continue
             try:
                 if "open" in step and number > 1:
-                    helix.command_line(f"open {step['open']}")
-                if "focus" in step or "close" in step:
-                    raise Failure("Helix has no agenda to go to or close")
+                    helix.open(step["open"])
+                if step.get("focus") == "agenda":
+                    agenda = helix.agenda()
+                    if not agenda:
+                        raise Failure("no agenda to go to")
+                    helix.go_to_buffer(agenda)
+                elif "focus" in step:
+                    helix.open(step["focus"])
+                if step.get("close"):
+                    # The agenda's buffer, changed by the server's edits.
+                    helix.command_line("buffer-close!")
                 helix.place(step)
                 if "type" in step:
                     helix.type_text(step["type"])
@@ -586,10 +780,10 @@ def run_scenario(name, spec, exceptions):
                     helix.run(step, excepted)
                 for kind in step.get("expect", []):
                     key = f"{number} {kind}"
-                    actual = helix.snapshot(kind).replace(helix.directory, "$DIR")
                     want = expected.get(key)
                     if want is None:
                         raise Failure(f"no expected snapshot `{key}`")
+                    actual = helix.snapshot(kind).replace(helix.directory, "$DIR")
                     if f"{name} {key}" in differences:
                         # An exception for what is the same is out of date.
                         if actual == want:
