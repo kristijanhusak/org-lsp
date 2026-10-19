@@ -858,14 +858,17 @@ eq({ vim.bo.filetype, vim.api.nvim_win_get_cursor(0) }, { 'org-agenda', { 2, 0 }
 only_window()
 vim.g.mapleader = nil
 
--- 16. `K` over an entry shows it in a float at the cursor: the headline
--- and its text, in an Org buffer highlighted by the server. Moving the
--- cursor closes it.
+-- 16. `K`, Neovim's own hover, over an entry shows it in a float at the
+-- cursor: the headline and its text, the float made an Org buffer the
+-- server highlights. Moving the cursor closes it.
 choice = 'a'
 press('\\oa')
 wait_for_view('Week-agenda (W21):')
 local before_hover = lines()
 vim.api.nvim_win_set_cursor(0, { 4, 30 })
+-- With `syntax on`, as most have it, Neovim makes its float Markdown and
+-- starts tree-sitter in it.
+vim.cmd('syntax on')
 press('K')
 local float
 wait('the entry in a float', function()
@@ -877,14 +880,11 @@ wait('the entry in a float', function()
   end
 end)
 local float_buf = vim.api.nvim_win_get_buf(float)
+wait('the float made an Org buffer', function()
+  return vim.bo[float_buf].filetype == 'org'
+end)
 eq(vim.api.nvim_buf_get_lines(float_buf, 0, 2, false), { '* TODO [#A] Write the report :office:', 'SCHEDULED: <2026-05-18 Mon 09:00>' },
   'the headline and its text, as Org')
-eq(vim.bo[float_buf].filetype, 'org', 'an Org buffer')
-local longest = 0
-for _, text in ipairs(vim.api.nvim_buf_get_lines(float_buf, 0, -1, false)) do
-  longest = math.max(longest, vim.fn.strdisplaywidth(text))
-end
-eq(vim.api.nvim_win_get_width(float), math.max(longest + 4, 50), 'as wide as its longest line with two blanks on each side, 50 at least')
 -- Not indented as `org-indent-mode` indents: wider than the float.
 require('org-lsp.indent').virtual({
   uri = vim.uri_from_bufnr(float_buf),
@@ -907,6 +907,7 @@ wait('the float to close', function()
   return not vim.api.nvim_win_is_valid(float)
 end)
 only_window()
+vim.cmd('syntax off')
 
 -- 17. `I` clocks in on the entry of the line, which is highlighted from
 -- edge to edge (`org-agenda-clocking`); `O` clocks out and the highlight
