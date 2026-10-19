@@ -32,6 +32,30 @@
     ]
   },
   {
+    "token_type": "agendaHabit",
+    "token_modifiers": [
+      "ready",
+      "future"
+    ],
+    "background_color": "#006400b3"
+  },
+  {
+    "token_type": "agendaHabit",
+    "token_modifiers": [
+      "alert",
+      "future"
+    ],
+    "background_color": "#b8860bb3"
+  },
+  {
+    "token_type": "agendaHabit",
+    "token_modifiers": [
+      "overdue",
+      "future"
+    ],
+    "background_color": "#8b0000b3"
+  },
+  {
     "token_type": "headline",
     "token_modifiers": [
       "level1"
@@ -288,27 +312,28 @@
     "token_modifiers": [
       "ready"
     ],
-    "style": [
-      "string"
-    ]
+    "background_color": "#228b22b3"
   },
   {
     "token_type": "agendaHabit",
     "token_modifiers": [
       "alert"
     ],
-    "style": [
-      "warning"
-    ]
+    "background_color": "#ffd700b3"
   },
   {
     "token_type": "agendaHabit",
     "token_modifiers": [
       "overdue"
     ],
-    "style": [
-      "error"
-    ]
+    "background_color": "#b22222b3"
+  },
+  {
+    "token_type": "agendaHabit",
+    "token_modifiers": [
+      "future"
+    ],
+    "background_color": "#191970b3"
   },
   {
     "token_type": "agendaTimeGrid",
@@ -505,9 +530,7 @@
   },
   {
     "token_type": "agendaHabit",
-    "style": [
-      "hint"
-    ]
+    "background_color": "#0000ffb3"
   },
   {
     "token_type": "agendaTimeGrid",

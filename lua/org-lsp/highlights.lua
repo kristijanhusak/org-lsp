@@ -27,6 +27,26 @@ local function group(selector, filetype)
   return ('@lsp.type.%s.%s'):format(type, filetype)
 end
 
+--- The color of a 256-color terminal's 6×6×6 cube nearest to `#rrggbb`,
+--- for a terminal without 'termguicolors'.
+---@param hex string
+---@return integer
+local function cterm_color(hex)
+  local steps = { 0, 95, 135, 175, 215, 255 }
+  local index = 16
+  for i, weight in ipairs({ 36, 6, 1 }) do
+    local value = tonumber(hex:sub(2 * i, 2 * i + 1), 16)
+    local best = 1
+    for step = 2, #steps do
+      if math.abs(steps[step] - value) < math.abs(steps[best] - value) then
+        best = step
+      end
+    end
+    index = index + weight * (best - 1)
+  end
+  return index
+end
+
 --- (Re)define the default links. Runs when the server starts and after a
 --- colorscheme change.
 ---@param manifest table what the server announced
@@ -38,8 +58,10 @@ function M.define(manifest)
   end
   for _, filetype in ipairs(filetypes) do
     for _, look in ipairs(manifest.highlights) do
-      -- The first group that exists, or else the last one, the fallback.
-      local target = look.vim[#look.vim]
+      -- The first group that exists, or else Org's background (a habit's
+      -- days, which no standard group has), or else the last group, the
+      -- fallback.
+      local target = not look.background and look.vim[#look.vim] or nil
       for _, candidate in ipairs(look.vim) do
         if is_defined(candidate) then
           target = candidate
@@ -48,6 +70,13 @@ function M.define(manifest)
       end
       if target then
         vim.api.nvim_set_hl(0, group(look.token, filetype), { link = target, default = true })
+      elseif look.background then
+        local background = look.background[vim.o.background] or look.background.dark
+        vim.api.nvim_set_hl(0, group(look.token, filetype), {
+          bg = background,
+          ctermbg = cterm_color(background),
+          default = true,
+        })
       end
     end
   end
@@ -143,6 +172,45 @@ local function tag_faces(bufnr, token, client_id, priority)
     -- The colon after a tag starts the next.
     at = finish
   end
+end
+
+--- Looks of a type with several modifiers (`agendaHabit.ready.future`),
+--- for which Neovim has no group: `{ type, modifiers }` by selector.
+local several = {}
+
+--- Give the tokens of buffer `bufnr` that a look of several modifiers
+--- applies to its group, over the groups of each modifier alone (which
+--- Neovim applies in no particular order).
+---@param bufnr integer
+---@param manifest table
+function M.attach_looks(bufnr, manifest)
+  several = {}
+  for _, look in ipairs(manifest.highlights) do
+    local parts = vim.split(look.token, '.', { plain = true })
+    if #parts > 2 then
+      several[look.token] = { type = parts[1], modifiers = vim.list_slice(parts, 2) }
+    end
+  end
+  if vim.tbl_isempty(several) then
+    return
+  end
+  local priority = (vim.hl or vim.highlight).priorities.semantic_tokens + 3
+  vim.api.nvim_create_autocmd('LspTokenUpdate', {
+    buffer = bufnr,
+    group = vim.api.nvim_create_augroup('org_lsp_looks_' .. bufnr, { clear = true }),
+    callback = function(args)
+      local token = args.data.token
+      for selector, look in pairs(several) do
+        if token.type == look.type and vim.iter(look.modifiers):all(function(name)
+          return token.modifiers[name]
+        end) then
+          vim.lsp.semantic_tokens.highlight_token(token, bufnr, args.data.client_id, group(selector, vim.bo[bufnr].filetype), {
+            priority = priority,
+          })
+        end
+      end
+    end,
+  })
 end
 
 function M.attach_faces(bufnr)

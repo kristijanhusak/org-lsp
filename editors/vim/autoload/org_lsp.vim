@@ -2562,26 +2562,47 @@ function! org_lsp#define_highlights() abort
   for look in get(org_lsp#manifest(), 'highlights', [])
     let candidates = map(copy(look.vim), {_, g -> get(s:vim_groups, g, g)})
     call filter(candidates, {_, g -> g =~# '^\w\+$'})
-    if empty(candidates)
+    let group = s:group_name(look.token)
+    if !empty(candidates)
+      let target = candidates[-1]
+      for candidate in candidates
+        if hlexists(candidate)
+          let target = candidate
+          break
+        endif
+      endfor
+      execute 'highlight default link' group target
+    elseif has_key(look, 'background')
+      " Org's background, which no standard group has: a habit's days.
+      let color = get(look.background, &background, look.background.dark)
+      execute 'highlight default' group 'guibg=' . color 'ctermbg=' . s:cterm_color(color)
+    else
       continue
     endif
-    let target = candidates[-1]
-    for candidate in candidates
-      if hlexists(candidate)
-        let target = candidate
-        break
-      endif
-    endfor
-    let group = s:group_name(look.token)
-    execute 'highlight default link' group target
     let type = 'org_lsp_' . look.token
-    let priority = look.token =~# '^\*\.' ? 101 : look.token =~# '\.' ? 102 : 100
+    " A type with several modifiers over one with one, over a modifier
+    " alone, over a type.
+    let dots = len(substitute(look.token, '[^.]', '', 'g'))
+    let priority = look.token =~# '^\*\.' ? 101 : dots > 1 ? 103 : dots ? 102 : 100
     if empty(prop_type_get(type))
       call prop_type_add(type, {'highlight': group, 'combine': 1, 'priority': priority})
     endif
     let s:selectors[look.token] = type
   endfor
   call s:define_faces()
+endfunction
+
+" The color of a 256-color terminal's 6x6x6 cube nearest to `#rrggbb`, for
+" a terminal without 'termguicolors'.
+function! s:cterm_color(hex) abort
+  let steps = [0, 95, 135, 175, 215, 255]
+  let index = 16
+  for [at, weight] in [[1, 36], [3, 6], [5, 1]]
+    let value = str2nr(a:hex[at : at + 1], 16)
+    let distances = map(copy(steps), {_, step -> abs(step - value)})
+    let index += weight * index(distances, min(distances))
+  endfor
+  return index
 endfunction
 
 " `gK` in the agenda: the entry of the line in a popup at the cursor, its
@@ -2740,12 +2761,18 @@ function! s:paint_absolute(nr, lines, tokens) abort
       continue
     endif
     let selectors = [type]
+    let names = []
     for bit in range(len(modifiers))
       if and(modifier_bits, 1 << bit)
         call add(selectors, '*.' . modifiers[bit])
         call add(selectors, type . '.' . modifiers[bit])
+        call add(names, modifiers[bit])
       endif
     endfor
+    " A look of the type with all of them (`agendaHabit.ready.future`).
+    if len(names) > 1
+      call add(selectors, type . '.' . join(names, '.'))
+    endif
     " A keyword or a priority with a face of its own.
     if type ==# 'todoKeyword' || type ==# 'priority'
       let name = text[start : end - 1]

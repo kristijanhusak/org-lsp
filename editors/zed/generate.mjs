@@ -73,10 +73,6 @@ const looks = {
   'agendaDeadline.distant': ['comment'],
   agendaDone: ['comment'],
   agendaDimmed: ['comment'],
-  agendaHabit: ['hint'],
-  'agendaHabit.ready': ['string'],
-  'agendaHabit.alert': ['warning'],
-  'agendaHabit.overdue': ['error'],
   agendaTimeGrid: ['comment'],
   'agendaTimeGrid.current': ['emphasis.strong'],
   agendaClocking: ['emphasis.strong'],
@@ -97,25 +93,41 @@ levels.forEach((style, index) => {
   looks[`stars.level${index + 1}`] = [style];
 });
 
+// The looks of Org's that are a background only (the days of a habit's
+// graph) are the manifest's. A rule's color is the same with every theme:
+// Org's for a dark background, a little transparent, which shows close to
+// them on a dark theme and as a lighter shade of them on a light one.
+const backgrounds = Object.fromEntries(
+  manifest.highlights.filter((look) => look.background).map((look) => [look.token, `${look.background.dark}b3`]),
+);
+
 function rule(selector, look) {
-  const [type, modifier] = selector.split('.');
+  const [type, ...modifiers] = selector.split('.');
   const entry = {};
   if (type !== '*') entry.token_type = type;
-  if (modifier) entry.token_modifiers = [modifier];
+  if (modifiers.length > 0) entry.token_modifiers = modifiers;
+  if (backgrounds[selector]) entry.background_color = backgrounds[selector];
+  if (!look) return entry;
   return Array.isArray(look) ? { ...entry, style: look } : { ...entry, ...look };
 }
 
-const selectors = manifest.highlights.map((look) => look.token).filter((token) => looks[token]);
+const selectors = manifest.highlights
+  .map((look) => look.token)
+  .filter((token) => looks[token] || backgrounds[token]);
 // Zed applies every rule that matches, and of two that set the same
 // thing the one earlier in the file wins (as a user's rules win over an
-// extension's): a type with a modifier first (`todoKeyword.done` over
-// `todoKeyword`), then the plain types, then the modifiers of any type.
+// extension's): a type with several modifiers first
+// (`agendaHabit.ready.future` over `agendaHabit.ready`), then those with
+// one (`todoKeyword.done` over `todoKeyword`), then the plain types, then
+// the modifiers of any type.
 // What Org prepends over a headline's other faces (`org-archived`,
 // `org-headline-done`, `org-headline-todo`, `org-inlinetask`) goes before
 // everything, as a priority or tags in it take that look.
 const over = ['*.archived', '*.done', '*.todo', '*.inlinetask'];
-const rank = (selector) =>
-  over.includes(selector) ? -1 : selector.startsWith('*.') ? 2 : selector.includes('.') ? 0 : 1;
+const rank = (selector) => {
+  const dots = selector.split('.').length - 1;
+  return over.includes(selector) ? -2 : selector.startsWith('*.') ? 2 : dots > 1 ? -1 : dots === 1 ? 0 : 1;
+};
 const rules = selectors.sort((a, b) => rank(a) - rank(b)).map((selector) => rule(selector, looks[selector]));
 const text = JSON.stringify(rules, null, 2) + '\n';
 

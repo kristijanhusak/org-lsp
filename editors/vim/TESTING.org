@@ -169,6 +169,7 @@ its sections says what it should look like.
 - [ ] The week view: scheduled entries, deadlines with their warnings, the time grid: ~:Org agenda list~
 - [ ] Later, earlier, today; day, week, month views; going to a date: ~f~, ~b~, ~.~, ~vd~, ~vw~, ~vm~, ~J~
 - [ ] Tags at the right edge of the window, following it as it is resized
+- [ ] With ~org_modules = ["org-habit"]~, a habit's consistency graph shows its days on the backgrounds of ~org-habit~'s faces: blue before it is due, green in its time to be done, yellow on the day it is due by, red past it, paler for the days the ~-future~ faces are for: ~:Org agenda list~
 - [ ] The TODO list, a tag search (~work+urgent~), a word search: ~<Leader>oa~
 - [ ] With ~org_super_agenda_mode~ on and ~org_super_agenda_groups~ set (~[{ name = "Today", time-grid = true }, { auto-category = true }]~), each day of the agenda is in groups under their headers, and the TODO list too: ~:Org agenda list~
 - [ ] With ~org_agenda_prefix_format~ ~{ todo = " %-12:c%-4(org-entry-get nil "EFFORT") " }~, the TODO list shows each entry's effort after its category, ~nil~ without one (needs Emacs): ~:Org agenda todos~

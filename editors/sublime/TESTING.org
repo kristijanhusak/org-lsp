@@ -155,7 +155,7 @@ its sections says what it should look like.
 
 * Agenda
 
-*Partly:* Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot.
+*Partly:* Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot. The days of a habit's graph take the colors of text, not Org's backgrounds: Sublime Text colors a token by its color scheme.
 
 - [ ] The agenda menu lists the views and the custom commands: ~Ctrl+C a~
 - [ ] The week view: scheduled entries, deadlines with their warnings, the time grid: /Org: Agenda for the current week or day/

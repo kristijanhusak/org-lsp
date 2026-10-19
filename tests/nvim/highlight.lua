@@ -3,7 +3,9 @@
 -- the week's agenda, the TODO list and the date prompt) with a token it
 -- applies to, where Neovim must show the token's group, linked to the
 -- group the manifest names (the first one defined), which must have a
--- definition with the default colorscheme. Then what Org hides is
+-- definition with the default colorscheme; or, where the look has Org's
+-- background and no group is defined (a habit's days), with that
+-- background. Then what Org hides is
 -- concealed: link brackets and targets, emphasis markers.
 --
 --   cargo build -p org-lsp && nvim --headless -u NONE -l tests/nvim/highlight.lua
@@ -58,19 +60,25 @@ local function group_of(selector, filetype)
 end
 
 --- The group the manifest names for a look: the first one defined, else
---- the last.
+--- none where the look has Org's background (a habit's days), else the
+--- last.
 local function target_of(look)
   for _, candidate in ipairs(look.vim) do
     if not vim.tbl_isempty(vim.api.nvim_get_hl(0, { name = candidate })) then
       return candidate
     end
   end
-  return look.vim[#look.vim]
+  return not look.background and look.vim[#look.vim] or nil
 end
 
 local function matches(selector, token)
-  local type, modifier = selector:match('^([^.]+)%.?(.*)$')
-  return (type == '*' or type == token.type) and (modifier == '' or token.modifiers[modifier])
+  local parts = vim.split(selector, '.', { plain = true })
+  for i = 2, #parts do
+    if not token.modifiers[parts[i]] then
+      return false
+    end
+  end
+  return parts[1] == '*' or parts[1] == token.type
 end
 
 --- The server's tokens of buffer `bufnr`, as `{ line, from, to, type, modifiers }` (bytes).
@@ -122,19 +130,21 @@ local function groups_at(bufnr, row, col)
 end
 
 --- How specific a selector is: a type, a modifier, a type with a
---- modifier; Neovim gives the groups of each a higher priority.
+--- modifier, a type with several (`highlights.lua` puts those over the
+--- others); Neovim gives the groups of each a higher priority.
 local function class(selector)
   if vim.startswith(selector, '*.') then
     return 2
   end
-  return selector:find('.', 1, true) and 3 or 1
+  local _, dots = selector:gsub('%.', '')
+  return math.min(dots, 2) + (dots > 0 and 2 or 1)
 end
 
 --- Whether no more specific look applies to `token` than `look`: there
 --- the look's colors must be what shows.
 local function shows_alone(look, token)
   for _, other in ipairs(manifest.highlights) do
-    if #other.vim > 0 and class(other.token) > class(look.token) and matches(other.token, token) then
+    if (#other.vim > 0 or other.background) and class(other.token) > class(look.token) and matches(other.token, token) then
       return false
     end
   end
@@ -207,7 +217,17 @@ local function check_looks(bufnr, client, where)
       end
       local target = target_of(look)
       local link = vim.api.nvim_get_hl(0, { name = group }).link
-      if link ~= target then
+      if not target then
+        -- Org's background, as Emacs shows it on this 'background'.
+        local wanted = tonumber(look.background[vim.o.background]:sub(2), 16)
+        local defined = vim.api.nvim_get_hl(0, { name = group, link = false })
+        local got = shown and effective(bufnr, token.line, token.from) or {}
+        if link or defined.bg ~= wanted then
+          table.insert(failures, ('%s: %s has not the background of Org, %s, at %s'):format(look.token, group, look.background[vim.o.background], place))
+        elseif alone and got.bg ~= wanted then
+          table.insert(failures, ('%s: %s shows bg %s, not %s, at %s'):format(look.token, group, tostring(got.bg), wanted, place))
+        end
+      elseif link ~= target then
         table.insert(failures, ('%s: %s links to %s, not %s'):format(look.token, group, tostring(link), target))
       elseif vim.tbl_isempty(vim.api.nvim_get_hl(0, { name = group, link = false })) then
         table.insert(failures, ('%s: %s (%s) has no definition, at %s'):format(look.token, group, target, place))
@@ -235,7 +255,7 @@ wait('the server', function()
 end)
 manifest = client.server_capabilities.experimental.org
 for _, look in ipairs(manifest.highlights) do
-  if #look.vim > 0 then
+  if #look.vim > 0 or look.background then
     table.insert(remaining, look)
   end
 end

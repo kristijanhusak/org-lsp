@@ -29,3 +29,15 @@ SCHEDULED: <2026-05-17 Sun .+2d/4d>
 :STYLE: habit
 :END:
 - State "DONE"       from "TODO"       [2026-05-15 Fri 08:00]
+* TODO Water the plants
+SCHEDULED: <2026-05-12 Tue .+1d>
+:PROPERTIES:
+:STYLE: habit
+:END:
+- State "DONE"       from "TODO"       [2026-05-11 Mon 08:00]
+* TODO Stretch
+SCHEDULED: <2026-05-18 Mon .+1d>
+:PROPERTIES:
+:STYLE: habit
+:END:
+- State "DONE"       from "TODO"       [2026-05-17 Sun 08:00]

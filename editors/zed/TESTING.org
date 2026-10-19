@@ -134,11 +134,12 @@ its sections says what it should look like.
 
 * Agenda
 
-*Partly:* The agenda is a file, its commands code actions (or keys through Zed's tasks); for a search and a date, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Follow mode and the outline path of the cursor's entry are left out: Zed reports no cursor moves to an extension. Column view in the agenda is left out: it draws over the lines.
+*Partly:* The agenda is a file, its commands code actions (or keys through Zed's tasks); for a search and a date, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Follow mode and the outline path of the cursor's entry are left out: Zed reports no cursor moves to an extension. Column view in the agenda is left out: it draws over the lines. The days of a habit's graph have Org's backgrounds for a dark background, a little transparent, with any theme: an extension's colors for tokens are the same with every theme.
 
 - [ ] The agenda menu lists the views and the custom commands: the code action /Agenda commands/
 - [ ] The week view: scheduled entries, deadlines with their warnings, the time grid: the code action /Agenda for the current week or day/
 - [ ] Later, earlier, today; day, week, month views; going to a date: the code action /Agenda: go forward in time/, the code action /Agenda: go backward in time/, the code action /Agenda: go to today/, the code action /Agenda: day view/, the code action /Agenda: week view/, the code action /Agenda: month view/, the code action /Agenda: go to a date/
+- [ ] With ~org_modules = ["org-habit"]~, a habit's consistency graph shows its days on the backgrounds of ~org-habit~'s faces: blue before it is due, green in its time to be done, yellow on the day it is due by, red past it, paler for the days the ~-future~ faces are for: the code action /Agenda for the current week or day/
 - [ ] The TODO list, a tag search (~work+urgent~), a word search: the code action /Agenda commands/
 - [ ] With ~org_super_agenda_mode~ on and ~org_super_agenda_groups~ set (~[{ name = "Today", time-grid = true }, { auto-category = true }]~), each day of the agenda is in groups under their headers, and the TODO list too: the code action /Agenda for the current week or day/
 - [ ] With ~org_agenda_prefix_format~ ~{ todo = " %-12:c%-4(org-entry-get nil "EFFORT") " }~, the TODO list shows each entry's effort after its category, ~nil~ without one (needs Emacs): the code action /List of all TODO entries/

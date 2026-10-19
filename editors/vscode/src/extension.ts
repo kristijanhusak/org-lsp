@@ -587,8 +587,13 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
         }),
       },
       // Headlines in the colors of their level, with
-      // `org-lsp.headlineLevelColors`. The server sends no deltas.
-      provideDocumentSemanticTokens: async (document, token, next) => levelColored(await next(document, token)),
+      // `org-lsp.headlineLevelColors`; a habit's days in the agenda, in
+      // their backgrounds. The server sends no deltas.
+      provideDocumentSemanticTokens: async (document, token, next) => {
+        const tokens = await next(document, token);
+        habitsOf(document, tokens);
+        return levelColored(tokens);
+      },
       provideDocumentRangeSemanticTokens: async (document, range, token, next) =>
         levelColored(await next(document, range, token)),
     },
@@ -1295,6 +1300,71 @@ function highlightLines(editor: vscode.TextEditor): void {
     shown.push(...lines.map((line): [number, string] => [line.line, highlight]));
   }
   lineHighlightsShown.set(editor, shown);
+}
+
+// ----- habits
+
+/**
+ * The days of a habit's consistency graph in the agenda, in the
+ * background colors of org-habit's faces (`org-habit-clear-face` …
+ * `org-habit-overdue-future-face`), which a theme's token colors cannot
+ * give: decorations over the server's `agendaHabit` tokens, in the text's
+ * own color as Org shows them.
+ */
+const HABIT_FACES = ['Clear', 'Ready', 'Alert', 'Overdue'].flatMap((kind) => [kind, `${kind}Future`]);
+const habitDecorations: Record<string, vscode.TextEditorDecorationType> = Object.fromEntries(
+  HABIT_FACES.map((face) => [
+    face,
+    vscode.window.createTextEditorDecorationType({
+      backgroundColor: new vscode.ThemeColor(`org.agendaHabit${face}Background`),
+      color: new vscode.ThemeColor('editor.foreground'),
+    }),
+  ]),
+);
+/** The days of each agenda document, `[line, start, end, face]`, from its tokens. */
+const habitDays = new Map<string, [number, number, number, string][]>();
+/** For the tests: the days each editor shows, `[line, character, face]`. */
+const habitDaysShown = new WeakMap<vscode.TextEditor, [number, number, string][]>();
+
+/** Take the habits' days from the tokens of `document` as they pass by. */
+function habitsOf(document: vscode.TextDocument, tokens: vscode.SemanticTokens | null | undefined): void {
+  const legend = client?.initializeResult?.capabilities.semanticTokensProvider?.legend;
+  if (!tokens || !legend || document.languageId !== 'org-agenda') {
+    return;
+  }
+  const habit = legend.tokenTypes.indexOf('agendaHabit');
+  const bit = (name: string) => 1 << legend.tokenModifiers.indexOf(name);
+  const days: [number, number, number, string][] = [];
+  const data = tokens.data;
+  let line = 0;
+  let character = 0;
+  for (let i = 0; i + 4 < data.length; i += 5) {
+    line += data[i];
+    character = data[i] === 0 ? character + data[i + 1] : data[i + 1];
+    if (data[i + 3] !== habit) {
+      continue;
+    }
+    const modifiers = data[i + 4];
+    const kind = ['ready', 'alert', 'overdue'].find((name) => modifiers & bit(name)) ?? 'clear';
+    const face = kind[0].toUpperCase() + kind.slice(1) + (modifiers & bit('future') ? 'Future' : '');
+    days.push([line, character, character + data[i + 2], face]);
+  }
+  habitDays.set(document.uri.toString(), days);
+  vscode.window.visibleTextEditors.filter((editor) => editor.document === document).forEach(showHabits);
+}
+
+function showHabits(editor: vscode.TextEditor): void {
+  const days = habitDays.get(editor.document.uri.toString()) ?? [];
+  for (const face of HABIT_FACES) {
+    editor.setDecorations(
+      habitDecorations[face],
+      days.filter((day) => day[3] === face).map(([line, start, end]) => new vscode.Range(line, start, line, end)),
+    );
+  }
+  habitDaysShown.set(
+    editor,
+    days.map(([line, start, , face]) => [line, start, face]),
+  );
 }
 
 // ----- images
@@ -2186,6 +2256,8 @@ export interface Api {
   virtualIndent(editor: vscode.TextEditor): number[][];
   /** The lines of `editor` highlighted from edge to edge: `[line, highlight]`. */
   lineHighlights(editor: vscode.TextEditor): [number, string][];
+  /** The days of habits' graphs in `editor`, `[line, character, face]`: `Clear`, `OverdueFuture`… */
+  habitDays(editor: vscode.TextEditor): [number, number, string][];
   /** The keywords and priorities shown in a face of their own, `[line, text]`. */
   faces(editor: vscode.TextEditor): [number, string][];
   /** The text of the matches of the sparse tree `editor` shows. */
@@ -2265,6 +2337,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     vscode.workspace.onDidChangeTextDocument((event) => lastChanged.set(event.document.uri.toString(), Date.now())),
     vscode.workspace.onDidCloseTextDocument((document) => lastChanged.delete(document.uri.toString())),
     vscode.window.onDidChangeVisibleTextEditors((editors) => editors.forEach(highlightLines)),
+    ...Object.values(habitDecorations),
+    vscode.window.onDidChangeVisibleTextEditors((editors) => editors.forEach(showHabits)),
     vscode.window.onDidChangeVisibleTextEditors((editors) => editors.forEach((editor) => void paintFaces(editor))),
     vscode.workspace.onDidChangeTextDocument(facesChanged),
     { dispose: () => faceDecorations.forEach((decoration) => decoration.dispose()) },
@@ -2319,6 +2393,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     standIns: (editor) => standInsShown.get(editor) ?? [],
     virtualIndent: (editor) => virtualIndentShown.get(editor) ?? [],
     lineHighlights: (editor) => lineHighlightsShown.get(editor) ?? [],
+    habitDays: (editor) => habitDaysShown.get(editor) ?? [],
     faces: (editor) => facesShown.get(editor) ?? [],
     sparse: (editor) =>
       (sparseShown.get(editor.document.uri.toString())?.ranges ?? []).map((range) => editor.document.getText(range)),

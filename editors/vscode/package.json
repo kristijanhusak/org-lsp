@@ -7514,6 +7514,86 @@
           "highContrast": "editor.selectionHighlightBackground",
           "highContrastLight": "editor.selectionHighlightBackground"
         }
+      },
+      {
+        "id": "org.agendaHabitClearBackground",
+        "description": "Org agenda: the background of a day of a habit's consistency graph before it is due (`org-habit-clear-face`).",
+        "defaults": {
+          "dark": "#0000ff",
+          "light": "#8270f9",
+          "highContrast": "#0000ff",
+          "highContrastLight": "#8270f9"
+        }
+      },
+      {
+        "id": "org.agendaHabitClearFutureBackground",
+        "description": "Org agenda: the background of a day of a habit's consistency graph before it is due, to come (`org-habit-clear-future-face`).",
+        "defaults": {
+          "dark": "#191970",
+          "light": "#d6e4fc",
+          "highContrast": "#191970",
+          "highContrastLight": "#d6e4fc"
+        }
+      },
+      {
+        "id": "org.agendaHabitReadyBackground",
+        "description": "Org agenda: the background of a day of a habit's consistency graph in its time to be done (`org-habit-ready-face`).",
+        "defaults": {
+          "dark": "#228b22",
+          "light": "#4df946",
+          "highContrast": "#228b22",
+          "highContrastLight": "#4df946"
+        }
+      },
+      {
+        "id": "org.agendaHabitReadyFutureBackground",
+        "description": "Org agenda: the background of a day of a habit's consistency graph in its time to be done, to come (`org-habit-ready-future-face`).",
+        "defaults": {
+          "dark": "#006400",
+          "light": "#acfca9",
+          "highContrast": "#006400",
+          "highContrastLight": "#acfca9"
+        }
+      },
+      {
+        "id": "org.agendaHabitAlertBackground",
+        "description": "Org agenda: the background of a day of a habit's consistency graph the day it is due by (`org-habit-alert-face`).",
+        "defaults": {
+          "dark": "#ffd700",
+          "light": "#f5f946",
+          "highContrast": "#ffd700",
+          "highContrastLight": "#f5f946"
+        }
+      },
+      {
+        "id": "org.agendaHabitAlertFutureBackground",
+        "description": "Org agenda: the background of a day of a habit's consistency graph the day it is due by, to come (`org-habit-alert-future-face`).",
+        "defaults": {
+          "dark": "#b8860b",
+          "light": "#fafca9",
+          "highContrast": "#b8860b",
+          "highContrastLight": "#fafca9"
+        }
+      },
+      {
+        "id": "org.agendaHabitOverdueBackground",
+        "description": "Org agenda: the background of a day of a habit's consistency graph past its due day (`org-habit-overdue-face`).",
+        "defaults": {
+          "dark": "#b22222",
+          "light": "#f9372d",
+          "highContrast": "#b22222",
+          "highContrastLight": "#f9372d"
+        }
+      },
+      {
+        "id": "org.agendaHabitOverdueFutureBackground",
+        "description": "Org agenda: the background of a day of a habit's consistency graph past its due day, to come (`org-habit-overdue-future-face`).",
+        "defaults": {
+          "dark": "#8b0000",
+          "light": "#fc9590",
+          "highContrast": "#8b0000",
+          "highContrastLight": "#fc9590"
+        }
       }
     ],
     "keybindings": [
