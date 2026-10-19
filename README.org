@@ -108,6 +108,7 @@ does not work there and why.
 | [[file:docs/parity.org::#agenda][Agenda]] | 100% | ✅ / ✅ / ❓ / ❓ / ❓ / ❓ |
 | [[file:docs/parity.org::#clocking][Clocking]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#capture][Capture]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
+| [[file:docs/parity.org::#org-protocol][org-protocol]] | 86% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#notes-org-roam][Notes (org-roam)]] | 94% | ✅ / ✅ / ✅ / ✅ / ❓ / ❌ |
 | [[file:docs/parity.org::#a-journal-org-journal][A journal (org-journal)]] | 93% | ✅ / ✅ / ✅ / ❓ / ❓ / ❌ |
 | [[file:docs/parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ❓ |
@@ -144,6 +145,10 @@ org-lsp agenda ~/org/*.org              # this week
 org-lsp agenda --span day --view todo ~/org/*.org
 org-lsp agenda --help
 #+end_src
+
+Bookmarklets that store a link to a web page or capture it, as Emacs's
+org-protocol does, reach the editor with org-lsp through
+~org-lsp protocol URL~: see [[file:docs/org-protocol.org][docs/org-protocol.org]].
 
 * Layout
 

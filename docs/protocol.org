@@ -204,6 +204,17 @@ And these notifications:
 - ~org-lsp/viewChanged~ :: With the option ~view_changed~: ~{ "uri" }~, the
   file of the agenda or of the date prompt has been written anew, for the
   client to read it again.
+- ~org-lsp/runCommand~ :: For a client that announces
+  ~experimental.orgRunCommand: true~ (or sets the option ~run_command~):
+  ~{ "command", "argument" }~, a command to run as from its key, where the
+  cursor is, the argument's fields on top of those the client sends there,
+  and its result handled as a command's always is (what it asks asked). A
+  capture an ~org-protocol~ URL started comes so: ~org.capture~ with the
+  URL's template as ~keys~ and ~orgProtocol~, what Org stored of the link
+  (~{ "props": [[":link", "https://…"], …] }~), which each question's
+  ~context~ carries on. Without it, the server runs the command itself and
+  asks as for a client without org-lsp's code (~window/showMessageRequest~,
+  a rename).
 - ~org-lsp/clock~ :: The clock that runs, for a status line: ~null~ when
   none does, or ~{ "heading", "minutes", "effort", "text", "uri", "line" }~,
   the entry's headline, the minutes clocked on it so far (since
@@ -1965,6 +1976,38 @@ about. A key held down sends the next command before an editor that
 batches its ~didChange~ notifications (Neovim waits 150 ms) has reported the
 previous edit, and that press is lost. An integration should send the
 change as soon as it has applied a ~workspace/applyEdit~.
+
+* org-protocol
+:PROPERTIES:
+:CUSTOM_ID: org-protocol
+:END:
+
+~org-lsp protocol URL~ is what the system runs for an ~org-protocol://~ URL
+([[file:org-protocol.org][org-protocol.org]]). Every server listens for such URLs from the start, for
+any client, in ~protocol/~ of the state directory (~$XDG_STATE_HOME/org-lsp~,
+=~/.local/state/org-lsp=, =%LOCALAPPDATA%\org-lsp= on Windows; the
+directory only its owner may enter):
+
+- ~PID-ID.json~ :: ~{ "pid", "socket" }~: the Unix socket it listens on
+  (mode ~0600~); on Windows ~{ "pid", "address", "token" }~, a loopback
+  port and the token it asks for. Written again, at most every three
+  seconds, when the client sends anything: the subcommand tries the entry
+  written last first, and removes one whose server does not answer.
+  Removed when the server stops.
+- ~pending-TIME-PID.json~ :: ~{ "url", "time" }~: a URL left by the
+  subcommand for the server of the editor it started
+  (~org_protocol_editor~). A server takes those of the last two minutes a
+  second after it starts, renaming each first so that one server alone
+  takes it, and removes the others.
+- ~stored-links.jsonl~ :: a line ~["URL", "TITLE" or null]~ for each link
+  stored while no server ran; the next server to start takes them all
+  among its stored links.
+
+The subcommand writes one line of JSON, ~{ "url" }~ (with ~"token"~ on
+Windows), and the server answers with one: ~{ "message" }~, what Org said,
+which the subcommand prints, or ~{ "error" }~, which makes it fail. Only
+URLs of the ~org-protocol:~ scheme are taken, of at most 256 KiB, sent
+within two seconds.
 
 * Emacs
 :PROPERTIES:

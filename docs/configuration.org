@@ -294,6 +294,33 @@ org-super-agenda, org-roam and org-journal, Emacs packages built on Org,
 are there too, off until turned on: [[file:plugins.org][plugins.org]] says how they work
 and what they differ in.
 
+** org-protocol URLs
+:PROPERTIES:
+:CUSTOM_ID: org-protocol-urls
+:END:
+
+Bookmarklets that store a link to a page or capture it, and links that
+open a page's source, reach org-lsp through ~org-lsp protocol URL~:
+[[file:org-protocol.org][org-protocol.org]] says how to set it up. Its options are Org's
+([[#org-protocol][below]]): ~org_protocol_default_template_key~, the template of a capture
+whose URL names none; ~org_protocol_data_separator~, for old-style URLs;
+~org_protocol_project_alist~, where the files of published pages are, for
+~open-source~; and org-lsp's own ~org_protocol_editor~, the editor to start
+when none runs, which only the shared file can give, as no editor runs
+then:
+
+#+begin_src toml
+org_protocol_default_template_key = "w"
+org_protocol_editor = "code"
+
+[[org_protocol_project_alist]]
+name = "Worg"
+base_url = "https://orgmode.org/worg/"
+working_directory = "~/org/worg/"
+online_suffix = ".html"
+working_suffix = ".org"
+#+end_src
+
 ** Export, Babel and other work in Emacs
 :PROPERTIES:
 :CUSTOM_ID: export-babel-and-other-work-in-emacs

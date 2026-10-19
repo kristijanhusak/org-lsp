@@ -608,6 +608,28 @@ export const AREAS = [
     ],
   },
   {
+    name: 'org-protocol',
+    emacs: [
+      ['`org-protocol://` URLs from bookmarklets and other programs, handed to the editor with org-lsp by `org-lsp protocol URL`, which `scripts/install.sh protocol` makes the system\'s handler of the scheme', true],
+      ['New-style (`?url=…&title=…`) and old-style (`:/URL/TITLE`) URLs, read as `org-protocol.el` reads them (`org-protocol-data-separator`)', true],
+      ['`store-link`: the link stored for `C-c C-l`, with Emacs\'s message (`org-protocol-store-link`)', true],
+      ['`capture`: a capture with the URL\'s template or `org-protocol-default-template-key`, its `%:link`, `%:description`, `%i` and `%a` from the page (`org-protocol-capture`)', true],
+      ['`open-source`: the file of a published page, through `org-protocol-project-alist` and its rewrites (`org-protocol-open-source`)', true],
+      ['With no org-lsp running, the editor of `org_protocol_editor` started for the URL; a link stored meanwhile kept for the next org-lsp', true],
+      ['Handlers of one\'s own (`org-protocol-protocol-alist`), which are Lisp functions', false],
+    ],
+    editors: {
+      zed: ['part', `The server starts a capture itself: the template is picked from Zed's question, and for its prompts ${ZED_TEXT}.`],
+      helix: ['part', `The server starts a capture itself: the template is picked from the code actions, and for its prompts ${HELIX_TEXT}.`],
+    },
+    checks: [
+      { text: 'With `scripts/install.sh protocol` run, the store-link bookmarklet of docs/org-protocol.org says `‘C-c C-l’ to insert new Org link, ‘C-y’ to insert "…"`, and inserting a link offers the page' },
+      { text: 'The capture bookmarklet with some text selected opens the capture buffer with the page\'s title, link and the text (a template with `%:description`, `%:link`, `%i`)' },
+      { text: 'With `org_protocol_project_alist` set, `org-lsp protocol \'org-protocol://open-source?url=…\'` opens the page\'s file' },
+      { text: 'With the editor closed and `org_protocol_editor` set, the capture bookmarklet starts the editor and the capture buffer opens in it' },
+    ],
+  },
+  {
     name: 'Notes (org-roam)',
     emacs: [
       ['The nodes of `org_roam_directory`, files and entries with an `ID`, as `org-roam-db-sync` finds them (`org_roam_file_extensions`, `org_roam_file_exclude_regexp`), read again as they change', true],

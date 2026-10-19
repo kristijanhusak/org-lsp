@@ -26,6 +26,7 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#agenda][Agenda]] | 100% | 38 of 38 |
 | [[#clocking][Clocking]] | 100% | 14 of 14 |
 | [[#capture][Capture]] | 100% | 12 of 12 |
+| [[#org-protocol][org-protocol]] | 86% | 6 of 7 |
 | [[#notes-org-roam][Notes (org-roam)]] | 94% | 15 of 16 |
 | [[#a-journal-org-journal][A journal (org-journal)]] | 93% | 14 of 15 |
 | [[#refile-and-archive][Refile and archive]] | 100% | 13 of 13 |
@@ -391,6 +392,26 @@ Where editors fall short:
 
 - Zed ❓: For a template's prompts, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The capture buffer's tab stays open once the entry is filed: Zed lets no server close a tab.
 - Helix ❓: Templates are picked from the code actions, where they come first once asked for; for a template's prompts, the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. The capture buffer stays open once the entry is filed: Helix lets no server close a buffer.
+
+* org-protocol
+:PROPERTIES:
+:CUSTOM_ID: org-protocol
+:END:
+
+86% (6 of 7)
+
+- ✅ ~org-protocol://~ URLs from bookmarklets and other programs, handed to the editor with org-lsp by ~org-lsp protocol URL~, which ~scripts/install.sh protocol~ makes the system's handler of the scheme
+- ✅ New-style (~?url=…&title=…~) and old-style (~:/URL/TITLE~) URLs, read as ~org-protocol.el~ reads them (~org-protocol-data-separator~)
+- ✅ ~store-link~: the link stored for ~C-c C-l~, with Emacs's message (~org-protocol-store-link~)
+- ✅ ~capture~: a capture with the URL's template or ~org-protocol-default-template-key~, its ~%:link~, ~%:description~, ~%i~ and ~%a~ from the page (~org-protocol-capture~)
+- ✅ ~open-source~: the file of a published page, through ~org-protocol-project-alist~ and its rewrites (~org-protocol-open-source~)
+- ✅ With no org-lsp running, the editor of ~org_protocol_editor~ started for the URL; a link stored meanwhile kept for the next org-lsp
+- ❌ Handlers of one's own (~org-protocol-protocol-alist~), which are Lisp functions
+
+Where editors fall short:
+
+- Zed ❓: The server starts a capture itself: the template is picked from Zed's question, and for its prompts the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text.
+- Helix ❓: The server starts a capture itself: the template is picked from the code actions, and for its prompts the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text.
 
 * Notes (org-roam)
 :PROPERTIES:

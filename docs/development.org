@@ -352,3 +352,12 @@ their GitHub releases.
    org-lsp reads the cookie with case, as the agenda, ~org-get-heading~
    and ~org-element-context~ do, and ~scripts/agenda_reference.py~ asks
    Emacs that way before any view, so the recorded cases agree.
+6. /org-protocol./ Decided: every server listens for ~org-protocol~ URLs
+   on a local socket of its own, beside LSP, as the command port does for
+   Zed's keys: a URL comes from outside any editor, and LSP has no way in
+   for it. ~org-lsp protocol URL~ finds the server the user worked in
+   last through the state directory, and a server the editor of
+   ~org_protocol_editor~ starts takes what was left for it
+   ([[file:protocol.org::#org-protocol][protocol.org]]). A Unix socket in a directory only the user may
+   enter (a loopback port with a token on Windows); nothing from a URL is
+   run.
