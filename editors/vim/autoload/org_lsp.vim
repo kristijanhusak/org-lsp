@@ -1514,7 +1514,9 @@ endfunction
 " entry (`org-agenda-show-outline-path`), echoed and not kept in the
 " message history, as Emacs shows it.
 function! org_lsp#tell_agenda_cursor() abort
-  if &filetype !=# 'org-agenda' || get(b:, 'org_lsp_cursor_line', 0) == line('.')
+  " Not on the first line of the agenda read empty while the server wrote
+  " it: the line it was on is where it goes back to.
+  if &filetype !=# 'org-agenda' || get(b:, 'org_lsp_cursor_line', 0) == line('.') || (line('$') == 1 && getline(1) ==# '')
     return
   endif
   let b:org_lsp_cursor_line = line('.')
@@ -1597,6 +1599,17 @@ function! s:reload_views() abort
     if s:is_agenda(info.name) || s:is_prompt(info.name)
       let old = getbufline(info.bufnr, 1, '$')
       let views = s:window_views(info.bufnr)
+      " Read empty already, by Vim on its own while the server wrote it and
+      " with no autocommands (`org_lsp#save` coming back to it): its windows
+      " went to the first line. They go back where they were, as a read
+      " waiting to be done again has them, else to the line last told to the
+      " server.
+      let lost = old ==# ['']
+      if lost
+        let pending = getbufvar(info.bufnr, 'org_lsp_reread', v:null)
+        let line = getbufvar(info.bufnr, 'org_lsp_cursor_line', 1)
+        let views = type(pending) == v:t_dict ? pending : map(views, {_, _view -> {'lnum': line}})
+      endif
       " Without the file's name and size, which would take the place of
       " what the command said.
       silent execute 'checktime' info.bufnr
@@ -1606,6 +1619,11 @@ function! s:reload_views() abort
         continue
       endif
       call s:give_view(info.bufnr)
+      if lost
+        for [win, view] in items(views)
+          call win_execute(str2nr(win), 'call winrestview(' . string(view) . ')')
+        endfor
+      endif
       call s:repaint_kept(info.bufnr, old)
       call s:columns_draw(info.bufnr)
       " The calendar stays as high as its text: a month of six weeks.
@@ -1861,11 +1879,21 @@ function! org_lsp#save(uris) abort
         call win_execute(win, 'silent update')
       else
         let current = bufnr()
+        let view = winsaveview()
         let hidden = &hidden
         set hidden
         execute 'silent keepalt keepjumps noautocmd buffer' nr
         silent update
         execute 'silent keepalt keepjumps noautocmd buffer' current
+        " Coming back reads the buffer again when its file changed
+        " ('autoread'), with no autocommands: the agenda, read empty while
+        " the server wrote it, is read again in a moment, its window then
+        " where it was.
+        if s:is_view_type(&filetype) && getline(1, '$') ==# ['']
+          call s:read_empty_view(current, {win_getid(): view})
+        else
+          call winrestview(view)
+        endif
         let &hidden = hidden
         " A client that did not tell the server of the file (coc.nvim
         " loads the files it edits for it) tells it of the file written.
