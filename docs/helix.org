@@ -5,7 +5,9 @@ Helix knows the ~org~ language already; it only needs to be told to use the
 server. Helix has no plugins, so what org-lsp does comes as standard LSP:
 the commands are code actions (~Space a~), the agenda is a file Helix
 opens when the server asks, what a command asks for is picked from the
-code actions or typed as a rename, and there is no calendar.
+code actions or typed as a rename, and there is no calendar. Helix has no
+semantic tokens either: the colors come from tree-sitter queries of
+org-lsp's, for Org files and for the agenda ([[*Colors][Colors]]).
 
 * Installing
 
@@ -19,8 +21,9 @@ the checkout). The script puts the server from the [[https://github.com/kristija
 =~/.local/bin= (~ORG_LSP_BIN_DIR~ names another directory) and adds Org to
 =~/.config/helix/languages.toml=, with the server's whole path, between two
 ~# BEGIN org-lsp~ and ~# END org-lsp~ comments that it replaces when run
-again; a file that sets up Org already is left as it is. Run it again to
-update. While the repository is private, its files need a GitHub login:
+again; a file that sets up Org already is left as it is. It puts Org's
+colors in =~/.config/helix/runtime/queries/org= and =org-agenda=, in place
+of what is there. Run it again to update. While the repository is private, its files need a GitHub login:
 the script downloads them with the GitHub CLI (~gh~) when it is installed
 and logged in, and the ~curl~ line above does not work.
 
@@ -40,6 +43,22 @@ message_requests = false
 name = "org"
 file-types = ["org", "org_archive"]
 language-servers = ["org-lsp"]
+
+[[language]]
+name = "org-agenda"
+scope = "source.org-agenda"
+grammar = "org"
+language-id = "org"
+file-types = [{ glob = "org-lsp-view-*/Agenda.org" }]
+language-servers = ["org-lsp"]
+#+end_src
+
+and copy the queries of =editors/helix/runtime/queries= to
+=~/.config/helix/runtime/queries=:
+
+#+begin_src sh
+mkdir -p ~/.config/helix/runtime/queries
+cp -R editors/helix/runtime/queries/org editors/helix/runtime/queries/org-agenda ~/.config/helix/runtime/queries/
 #+end_src
 
 The two options say what Helix does without telling the server: it opens
@@ -47,7 +66,10 @@ the documents the server asks it to show (the agenda, a capture buffer, an
 entry's file), and it shows no list for a server, so the choices of a
 question come in the code actions instead. Without them there is no
 agenda and no capture. ~file-types~ opens archive files as Org too, with
-the server, as Emacs does.
+the server, as Emacs does. The second language is the agenda, which the
+server writes to =Agenda.org= in a directory of its own (=org-lsp-view-…=
+in the temporary directory): Org to the server (~language-id~) and to the
+grammar, with colors of its own.
 
 * Setting it up
 
@@ -127,13 +149,100 @@ no buffer for a server). Helix reads no file again that changes on disk,
 so the date prompt's calendar, which the server writes as the day moves,
 is not shown: dates are typed.
 
+* Colors
+
+Helix 25.07.1, its latest release, has no semantic tokens, nor has its
+development branch (September 2026): the capabilities it sends a server
+have no ~textDocument.semanticTokens~, and no setting turns them on. So
+the colors the server sends the other editors do not reach it. In their
+place, the queries of org-lsp in [[file:../editors/helix/runtime/queries/org/highlights.scm][queries/org/highlights.scm]] (with
+[[file:../editors/helix/runtime/queries/org/injections.scm][injections.scm]] for the code of source blocks) and
+[[file:../editors/helix/runtime/queries/org-agenda/highlights.scm][queries/org-agenda/highlights.scm]] color Org files and the agenda from
+their text, with the grammar Helix has for Org
+([[https://github.com/milisims/tree-sitter-org][milisims/tree-sitter-org]]). Helix reads them in
+=~/.config/helix/runtime= before its own, which colors little more than
+headlines, blocks and drawers.
+
+They give what the server colors elsewhere a scope of Helix's themes.
+Each scope is named after what it colors, and a theme that has only the
+start of it colors it with that: ~diff.minus.todo~ as ~diff.minus~, red in
+most themes, as a TODO keyword is in Emacs.
+
+- Headlines :: ~markup.heading.1~ to ~markup.heading.8~ by level, which
+  themes that color only ~markup.heading~ show alike; the text of a done
+  headline ~comment.done~, a subtree tagged =ARCHIVE= ~comment.archived~,
+  an inline task ~comment.inlinetask~
+- Keywords, priorities, tags :: ~diff.minus.todo~ and ~diff.plus.done~,
+  ~constant.numeric.priority~, ~tag~; statistics cookies
+  ~constant.numeric.cookie~, ~diff.plus.cookie~ when complete
+- Planning and timestamps :: ~keyword.planning~ (=SCHEDULED:=, =CLOCK:=
+  …), ~constant.numeric.timestamp~ for active timestamps,
+  ~comment.timestamp~ for inactive ones
+- Drawers and keywords :: ~function.drawer~,
+  ~variable.other.member.property~; =#+KEYWORD:= ~comment.keyword~, the
+  title ~markup.heading.title~, the author, date and subtitle
+  ~string.info~
+- Blocks :: their lines ~comment.block~, quote and verse blocks
+  ~markup.quote~, comment blocks ~comment~, example blocks and LaTeX
+  environments ~markup.raw.block~; the code of source blocks in its
+  language's colors
+- Lists and tables :: ~markup.list~, ~markup.list.unchecked~ and
+  ~markup.list.checked~, the term of a description ~markup.bold.term~;
+  table bars and rules ~punctuation.special.table~
+- Text :: ~markup.bold~, ~markup.italic~, ~markup.underline~,
+  ~markup.strikethrough~, ~markup.raw.inline.verbatim~,
+  ~markup.raw.inline.code~, fixed-width lines ~markup.raw.inline.fixed~;
+  links ~markup.link.url~, footnotes ~markup.link.url.footnote~, targets
+  ~label.target~, macros ~function.macro~, entities
+  ~constant.character.escape.entity~, LaTeX ~markup.raw.inline.latex~;
+  ~comment~ for comments
+- The agenda :: its title ~markup.heading.agenda~, the days
+  ~markup.heading.date~, the weekend's ~markup.italic.weekend~; the time
+  grid ~comment.timegrid~ and the current time ~markup.bold.now~; entries
+  scheduled ~diff.plus.scheduled~, scheduled earlier
+  ~diff.delta.scheduled~, with a deadline to come ~diff.delta.deadline~,
+  due or past ~diff.minus.deadline~, done ~comment.done~; keywords,
+  priorities and tags as in Org files
+
+A theme of one's own changes them, on top of another one:
+
+#+begin_src toml
+# ~/.config/helix/themes/my-org.toml, with theme = "my-org" in config.toml
+inherits = "onedark"
+"markup.heading.1" = { fg = "#61afef", modifiers = ["bold"] }
+"markup.heading.2" = "#e5c07b"
+"diff.minus.todo" = { fg = "#e06c75", modifiers = ["bold"] }
+"markup.italic.weekend" = { fg = "#61afef", modifiers = ["bold"] }
+#+end_src
+
+What the queries cannot know, they do not show:
+
+- The grammar sees the words of a paragraph, not Org's objects: links,
+  emphasis and timestamps are found from the word that opens them to the
+  one that closes them, on one line, with their spaces left plain, and
+  inline code (~src_python{…}~) is not in its language's colors.
+- TODO keywords are the usual ones (=TODO=, =NEXT=, =STARTED=, =WAIT=,
+  =WAITING=, =HOLD=, =PROJ=, =SOMEDAY=, =INPROGRESS=, and done =DONE=,
+  =CANCELLED=, =CANCELED=, =CANCEL=, =KILL=, =FIXED=), not those of
+  ~org_todo_keywords~ or ~#+TODO:~: others go in the ~#any-of?~ lists of
+  the queries. The faces of particular keywords, priorities and tags, and
+  the options of how Org looks (~org_fontify_done_headline~,
+  ~org_emphasis_alist~ …), are not followed.
+- In the agenda, a line is told by its words, with the default leaders
+  (=Scheduled:=, =Sched. 2x:=, =Deadline:=, =In 3 d.:=, =2 d. ago:=) and
+  the category first: other leaders and prefix formats are not colored.
+  Today's date, the clocked entry's line and how near a deadline is beyond
+  its leader are not in the text, and are not shown.
+- Nothing is hidden (link brackets, emphasis markers, entities): Helix
+  lets no server hide text.
+
 * What works
 
 # BEGIN generated: features
 
 | Feature | Parity | Helix | What does not work, and why |
 |---+---+---+---|
-| [[file:parity.org::#highlighting][Highlighting]] | 95% | ❌ | Helix does not use semantic tokens: it colors Org with its own tree-sitter grammar. |
+| [[file:parity.org::#highlighting][Highlighting]] | 95% | ❓ | Helix has no semantic tokens: Org and the agenda are colored by tree-sitter queries of org-lsp's that ~install.sh~ puts in Helix's runtime, which see the words of the text, not what the server knows. TODO keywords are the usual ones (~TODO~, ~NEXT~, ~WAIT~, ~DONE~, ~CANCELLED~ …), not those of the settings or ~#+TODO:~; the agenda shows neither today nor the clocked line, and its leaders and prefix are the default ones; options of how things look are not followed. Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Helix lets no server hide text; inline code is not in its language's colors. |
 | [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 91% | ❌ | Helix has no folding. |
 | [[file:parity.org::#headings-and-structure][Headings and structure]] | 96% | ❓ | Moving between headings, ~org-goto~ and Org's ~C-a~, ~C-e~, ~C-k~ and ~C-y~ are left out: they need keys, and Helix cannot bind a key to a server's command; nor are the commands run by Emacs (~C-c *~, ~C-c ;~, cloning) among its code actions. New headings are code actions. |
 | [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 100% | ❓ | ~RET~ stays Helix's own; cycled bullets and lines turned into items are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and those are not among them. New items are code actions. |

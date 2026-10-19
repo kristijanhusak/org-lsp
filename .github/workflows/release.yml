@@ -155,9 +155,10 @@ jobs:
         with:
           path: dist
           merge-multiple: true
-      - name: Package the Sublime Text package and the install script
+      - name: Package the Sublime Text package, Helix's queries and the install script
         run: |
           (cd editors/sublime && zip -qr "$GITHUB_WORKSPACE/dist/org-lsp-sublime.zip" LSP-org -x '*__pycache__*')
+          tar -czf dist/org-lsp-helix.tar.gz -C editors/helix/runtime queries
           cp scripts/install.sh dist/install.sh
           (cd dist && sha256sum -- * > SHA256SUMS)
       - name: Publish

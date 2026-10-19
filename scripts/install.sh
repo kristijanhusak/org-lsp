@@ -6,7 +6,7 @@
 #   scripts/install.sh vscode      VS Code, the server inside the extension
 #   scripts/install.sh sublime     Sublime Text: LSP-org, LSP, the server
 #   scripts/install.sh zed         Zed: the extension, the server, its tasks and keys
-#   scripts/install.sh helix       Helix: the server, and Org in languages.toml
+#   scripts/install.sh helix       Helix: the server, Org in languages.toml, its colors
 #   scripts/install.sh server      the server alone
 #
 # Options, before the editor:
@@ -353,7 +353,8 @@ install_zed() {
   say "Restart Zed, then open an .org file."
 }
 
-# Install the server, and Org in Helix's languages.toml.
+# Install the server, Org in Helix's languages.toml, and Org's colors in
+# Helix's runtime.
 install_helix() {
   install_server_on_path
   local dir=${ORG_LSP_BIN_DIR:-$HOME/.local/bin}
@@ -372,15 +373,35 @@ install_helix() {
   local block
   # What Helix does without telling the server: it shows documents, and
   # no lists (docs/helix.org). Options of one's own go in the shared
-  # configuration file, as this block is written again.
-  block=$(printf '%s\n[language-server.org-lsp]\ncommand = "%s"\n\n[language-server.org-lsp.config]\nshow_document = true\nmessage_requests = false\n\n[[language]]\nname = "org"\nfile-types = ["org", "org_archive"]\nlanguage-servers = ["org-lsp"]\n%s' "$begin" "$dir/$exe" "$end")
+  # configuration file, as this block is written again. The agenda is a
+  # language of its own, `org-agenda`, for its colors.
+  block=$(printf '%s\n[language-server.org-lsp]\ncommand = "%s"\n\n[language-server.org-lsp.config]\nshow_document = true\nmessage_requests = false\n\n[[language]]\nname = "org"\nfile-types = ["org", "org_archive"]\nlanguage-servers = ["org-lsp"]\n\n[[language]]\nname = "org-agenda"\nscope = "source.org-agenda"\ngrammar = "org"\nlanguage-id = "org"\nfile-types = [{ glob = "org-lsp-view-*/Agenda.org" }]\nlanguage-servers = ["org-lsp"]\n%s' "$begin" "$dir/$exe" "$end")
   if grep -Eq '^\[language-server\.org-lsp\]|^name *= *"org"' "$work/languages.toml"; then
     say "$file sets up Org already; leaving it as it is. What it needs:"
     say "$block"
+  else
+    { cat "$work/languages.toml"; [ -s "$work/languages.toml" ] && echo; printf '%s\n' "$block"; } > "$file"
+    say "Added Org to $file"
+  fi
+
+  # Org's colors: the queries of editors/helix/runtime, which Helix reads
+  # in its configuration's runtime directory before its own. They replace
+  # those of an earlier install.
+  if $source; then
+    cp -R "$root/editors/helix/runtime" "$work/helix"
+  elif (fetch org-lsp-helix.tar.gz "$work/org-lsp-helix.tar.gz"); then
+    unpack "$work/org-lsp-helix.tar.gz" "$work/helix"
+  else
+    say "The $release release has no colors for Helix; none were installed."
     return
   fi
-  { cat "$work/languages.toml"; [ -s "$work/languages.toml" ] && echo; printf '%s\n' "$block"; } > "$file"
-  say "Added Org to $file"
+  local language
+  mkdir -p "$config/runtime/queries"
+  for language in org org-agenda; do
+    rm -rf "${config:?}/runtime/queries/$language"
+    cp -R "$work/helix/queries/$language" "$config/runtime/queries/$language"
+  done
+  say "Added Org's colors to $config/runtime/queries"
 }
 
 main() {
