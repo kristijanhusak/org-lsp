@@ -25,16 +25,20 @@ let s:excepted = get(get(s:json(s:e2e . '/exceptions.json'), 'editors', {}), 'vi
 
 " Steps a client cannot take as the others do, by client, scenario and
 " step (from 1), with the reason: the scenario stops before them.
-let s:unopened = 'coc.nvim edits files no window shows in buffers it does not open to the server,'
-      \ . ' which reads them from disk, behind those buffers until they are written'
 let s:skips = {
       \ 'coc': {
-      \   'capture': {'3': 'coc.nvim shows the capture buffer itself, in Normal mode on the last character, not where `%?` was'},
-      \   'agenda-navigation': {'18': 'coc.nvim shows the agenda itself, in the current window, which goes back to the buffer before it (`:buffer #`)'},
-      \   'agenda-bulk': {'11': s:unopened},
-      \   'agenda-entries': {'23': s:unopened},
+      \   'capture': {'3': 'coc.nvim shows the capture buffer itself, in Normal mode with the cursor on the line''s last character, not after it where `%?` was'},
+      \   'agenda-navigation': {'18': 'coc.nvim shows the entry''s file itself, in the current window (`coc.preferences.jumpCommand`), the agenda''s, not in the window that shows the file, which stays on the line it was'},
       \ },
       \ }
+
+" coc.nvim opens the files it edits that are not loaded
+" (`workspace.openResourceCommand`), and Vim tells of each: with the
+" command's own message, more than the command line holds, which waits for
+" a key.
+if s:client ==# 'coc'
+  set shortmess+=F
+endif
 
 " The scenario's files, in a directory of their own.
 let s:dir = resolve($ORG_LSP_TEST_WORK) . '/files'

@@ -374,6 +374,34 @@ fn closing_the_agenda_stops_rebuilding_it() {
     client.shutdown();
 }
 
+/// coc.nvim reads the agenda's file anew by closing it and opening it
+/// again, and an edit made from the agenda can come in between: the file
+/// it is for opened, changed, saved and asked about. The agenda stays the
+/// one shown.
+#[test]
+fn keeps_the_agenda_the_client_opens_again_after_another_file() {
+    let capabilities = json!({ "window": { "showDocument": { "support": true } } });
+    let mut client = Client::start(capabilities, clock(), None);
+    client.open("file:///org/work.org", WORK);
+    let requests = client.command("org.agenda.todos", "file:///org/work.org", 0);
+    let shown = requests.iter().find(|request| request.method == "window/showDocument").expect("the agenda shown");
+    let agenda = shown.params["uri"].as_str().unwrap().to_string();
+    let path = std::path::PathBuf::from(agenda.trim_start_matches("file://"));
+    let text = std::fs::read_to_string(&path).unwrap();
+    assert!(text.starts_with("Global list of TODO items"), "{text}");
+    client.open(&agenda, &text);
+    client.notify("textDocument/didClose", json!({ "textDocument": { "uri": agenda } }));
+    client.open("file:///org/home.org", HOME);
+    client.notify("textDocument/didSave", json!({ "textDocument": { "uri": "file:///org/home.org" } }));
+    client.request("textDocument/foldingRange", json!({ "textDocument": { "uri": "file:///org/home.org" } })).unwrap();
+    client.open(&agenda, &text);
+    client.settle();
+    let now = std::fs::read_to_string(&path).unwrap();
+    assert!(now.starts_with("Global list of TODO items"), "{now}");
+    assert!(now.contains("Water plants"), "{now}");
+    client.shutdown();
+}
+
 /// VS Code keeps the agenda document a while after its editor closed, and
 /// opens it to a server that starts again before it has an agenda. The
 /// agenda shown later is that document, which VS Code does not open once
@@ -5534,6 +5562,42 @@ fn archives_from_the_agenda_to_a_new_file_left_unsaved() {
     assert_eq!(changes[0], json!({ "kind": "create", "uri": archive_uri }));
     let made = changes.iter().find(|change| change["textDocument"]["uri"] == archive_uri).unwrap();
     assert!(made["edits"][0]["newText"].as_str().unwrap().contains("* TODO Old\n"));
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// A client told not to make files (`create_files`, as the Vim plugin
+/// says for coc.nvim) has the new archive file written for it.
+#[test]
+fn archives_to_a_new_file_written_when_told_not_to_make_files() {
+    let root = workspace("archive-new-written");
+    let mut options = clock();
+    options["org_agenda_files"] = json!([root.display().to_string()]);
+    options["create_files"] = json!(false);
+    let capabilities = json!({
+        "workspace": {
+            "textDocumentContent": { "dynamicRegistration": true },
+            "workspaceEdit": { "documentChanges": true, "resourceOperations": ["create"] }
+        },
+        "window": { "showDocument": { "support": true } },
+        "general": { "positionEncodings": ["utf-8"] }
+    });
+    let mut client = Client::start(capabilities, options, None);
+    let work = format!("file://{}/work.org", root.display());
+    client.open(&work, "* TODO Old\n");
+    client.command("org.agenda.todos", VIEW, 0);
+    let view = client.show_view();
+    let line = view.lines().position(|line| line.contains("Old")).unwrap() as u32;
+    client.received.clear();
+    let context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } });
+    client
+        .request("workspace/executeCommand", json!({ "command": "org.archive.subtree", "arguments": [context] }))
+        .unwrap();
+    client.settle();
+    let archive = std::fs::read_to_string(root.join("work.org_archive")).unwrap();
+    assert!(archive.ends_with(":END:\n") && archive.contains("* TODO Old\n"), "{archive}");
+    let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").unwrap();
+    assert!(!edit.params.to_string().contains("\"create\""), "{:?}", edit.params);
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
 }

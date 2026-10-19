@@ -177,9 +177,11 @@ function! s:deadline() abort
 endfunction
 call s:test('picks a date in the calendar and sets the deadline', function('s:deadline'))
 
+" The window the plugin opened for the agenda: coc.nvim shows the agenda
+" in the current window first, which the plugin then puts back.
 function! s:agenda_window() abort
   for win in range(1, winnr('$'))
-    if getbufvar(winbufnr(win), '&filetype') ==# 'org-agenda'
+    if getbufvar(winbufnr(win), '&filetype') ==# 'org-agenda' && !empty(getwinvar(win, 'org_lsp_opened', ''))
       return win_getid(win)
     endif
   endfor

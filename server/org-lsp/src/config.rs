@@ -568,6 +568,9 @@ pub struct Options {
     /// Whether the client shows documents on `window/showDocument`.
     /// Clients that announce the capability need not say so.
     pub show_document: Option<bool>,
+    /// Whether a workspace edit may make files (a `create` resource
+    /// operation), whatever the client announces.
+    pub create_files: Option<bool>,
     /// Ask what commands ask for (a key, one of a list) with
     /// `window/showMessageRequest`, and say their messages with
     /// `window/showMessage`: for a client that does nothing with a

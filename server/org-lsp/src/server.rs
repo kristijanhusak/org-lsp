@@ -340,7 +340,8 @@ struct OpenView {
     /// lines its requests name are lines of this view.
     shown: Option<View>,
     /// The client closed its file. It goes unless the next message opens
-    /// it again, as coc.nvim does when it reads the file anew.
+    /// it again, as coc.nvim does when it reads the file anew; messages
+    /// about other documents may come in between.
     closing: bool,
     /// The lines last highlighted from edge to edge in the client's copy
     /// (`org-lsp/lineHighlights`).
@@ -1449,14 +1450,16 @@ pub fn run(connection: Connection) -> Result<()> {
             .filter(|edit| edit.document_changes == Some(true))
             .and_then(|edit| edit.resource_operations.as_ref())
             .is_some_and(|operations| operations.contains(&lsp_types::ResourceOperationKind::Delete)),
-        create_files: params
-            .capabilities
-            .workspace
-            .as_ref()
-            .and_then(|workspace| workspace.workspace_edit.as_ref())
-            .filter(|edit| edit.document_changes == Some(true))
-            .and_then(|edit| edit.resource_operations.as_ref())
-            .is_some_and(|operations| operations.contains(&lsp_types::ResourceOperationKind::Create)),
+        create_files: options.create_files.unwrap_or_else(|| {
+            params
+                .capabilities
+                .workspace
+                .as_ref()
+                .and_then(|workspace| workspace.workspace_edit.as_ref())
+                .filter(|edit| edit.document_changes == Some(true))
+                .and_then(|edit| edit.resource_operations.as_ref())
+                .is_some_and(|operations| operations.contains(&lsp_types::ResourceOperationKind::Create))
+        }),
         virtual_documents: options.virtual_documents.unwrap_or_else(|| {
             raw_params.pointer("/capabilities/workspace/textDocumentContent").is_some_and(|value| !value.is_null())
         }),
@@ -3103,7 +3106,12 @@ impl Server {
     // ----- requests
 
     fn request(&mut self, request: Request) -> Response {
-        self.drop_closed_view();
+        // Only for one about the agenda: coc.nvim, as it reads the agenda
+        // anew, may be asked others in between (about the file an edit was
+        // for, or none).
+        if self.about_the_agenda(&request.params) {
+            self.drop_closed_view();
+        }
         self.notice_activity();
         macro_rules! dispatch {
             ($($request:ty => $handler:ident,)*) => {
@@ -3267,17 +3275,22 @@ impl Server {
             && self.view.as_ref().is_some_and(|open| {
                 notification.params.pointer("/textDocument/uri").and_then(Value::as_str) == Some(open.uri.as_str())
             });
-        // Another document closed in between (the date prompt, as coc.nvim
-        // reads the agenda anew) is not the next message either way.
-        let other_closed = notification.method == DidCloseTextDocument::METHOD
-            && self.view.as_ref().is_some_and(|open| {
-                notification.params.pointer("/textDocument/uri").and_then(Value::as_str) != Some(open.uri.as_str())
-            });
+        // A message about another document in between is not the next
+        // message either way: coc.nvim reads the agenda anew while it
+        // closes the date prompt, or while it opens, edits and saves the
+        // file an edit made from the agenda is for.
+        let other_document = matches!(
+            notification.method.as_str(),
+            DidOpenTextDocument::METHOD
+                | DidChangeTextDocument::METHOD
+                | DidSaveTextDocument::METHOD
+                | DidCloseTextDocument::METHOD
+        ) && self.about_another_document(&notification.params);
         if reopened {
             if let Some(open) = &mut self.view {
                 open.closing = false;
             }
-        } else if !other_closed {
+        } else if !other_document {
             self.drop_closed_view();
         }
         if matches!(
@@ -6102,7 +6115,11 @@ impl Server {
     fn set_view(&mut self, query: Query) {
         let view = self.render(query);
         match &mut self.view {
-            Some(open) => open.replace(view),
+            // A closed agenda shown again, as the editor will open it.
+            Some(open) => {
+                open.replace(view);
+                open.closing = false;
+            }
             None if self.client.virtual_documents => {
                 if let Ok(uri) = views::VIRTUAL_URI.parse() {
                     self.view = Some(OpenView {
@@ -6164,9 +6181,22 @@ impl Server {
         }
     }
 
-    /// Run a command the port was sent, where it says in the agenda or
-    /// else where the cursor was last seen there, as
-    /// `workspace/executeCommand` runs it.
+    /// Whether `params` are about a document other than the agenda, while
+    /// there is one.
+    fn about_another_document(&self, params: &Value) -> bool {
+        let Some(open) = &self.view else { return false };
+        params.pointer("/textDocument/uri").and_then(Value::as_str).is_some_and(|uri| uri != open.uri.as_str())
+    }
+
+    /// Whether request `params` are about the agenda: its document, or a
+    /// command run there.
+    fn about_the_agenda(&self, params: &Value) -> bool {
+        let Some(open) = &self.view else { return false };
+        ["/textDocument/uri", "/arguments/0/textDocument/uri"]
+            .iter()
+            .any(|pointer| params.pointer(pointer).and_then(Value::as_str) == Some(open.uri.as_str()))
+    }
+
     /// Stop rebuilding the agenda the client closed, and remove its file.
     fn drop_closed_view(&mut self) {
         if self.view.as_ref().is_some_and(|open| open.closing) {
@@ -6180,6 +6210,9 @@ impl Server {
         }
     }
 
+    /// Run a command the port was sent, where it says in the agenda or
+    /// else where the cursor was last seen there, as
+    /// `workspace/executeCommand` runs it.
     fn run_from_port(&mut self, sent: port::Command) {
         self.drop_closed_view();
         let view = self.view.as_ref().map(|open| open.uri.clone());

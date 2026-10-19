@@ -99,11 +99,13 @@ endfunction
 
 " The options the server starts with: the user's, and that this plugin
 " shows the documents the server asks for, the agenda as the file the
-" server writes, whatever the client says.
+" server writes, whatever the client says; and that the server writes the
+" files it makes, which coc.nvim would have as an empty line.
 function! org_lsp#init_options() abort
   return extend(deepcopy(org_lsp#config().settings), {
         \ 'org_client': v:true,
         \ 'show_document': v:true,
+        \ 'create_files': v:false,
         \ 'view_changed': v:true,
         \ 'date_prompt': org_lsp#config().calendar ? v:true : v:false,
         \ 'virtual_documents': v:false,
@@ -1390,11 +1392,13 @@ function! s:open_apart(path) abort
   if mode !=# 'current'
     let from = win_getid()
     execute mode
-    let w:org_lsp_opened = 1
     let w:org_lsp_from = from
     call s:resize_apart(mode, org_lsp#config().win_split_size)
   endif
   execute 'edit' fnameescape(a:path)
+  if mode !=# 'current'
+    let w:org_lsp_opened = expand('%:p')
+  endif
 endfunction
 
 " The date prompt, at the bottom (`calendar_win_mode`), as Emacs shows
@@ -1406,9 +1410,9 @@ function! s:open_prompt(path, win) abort
   else
     let from = win_getid()
     execute org_lsp#config().calendar_win_mode
-    let w:org_lsp_opened = 1
     let w:org_lsp_from = from
     execute 'edit' fnameescape(a:path)
+    let w:org_lsp_opened = expand('%:p')
   endif
   if org_lsp#config().calendar_win_mode !~# 'v'
     execute 'resize' line('$')
@@ -1416,11 +1420,12 @@ function! s:open_prompt(path, win) abort
   call winrestview({'topline': 1, 'leftcol': 0})
 endfunction
 
-" The date prompt in a window the plugin did not open: put it at the
+" The date prompt in a window the plugin did not open for it (coc.nvim
+" shows it in the current one, which may be the agenda's): put it at the
 " bottom, and the window back to the buffer it showed.
 function! s:place_prompt(nr) abort
   let win = bufwinid(a:nr)
-  if win == -1 || getwinvar(win, 'org_lsp_opened', 0)
+  if win == -1 || s:opened_for(win, a:nr)
     return
   endif
   let cursor = getcurpos(win)
@@ -1428,7 +1433,7 @@ function! s:place_prompt(nr) abort
   let back = bufnr('#')
   execute org_lsp#config().calendar_win_mode
   let prompt = win_getid()
-  let w:org_lsp_opened = 1
+  let w:org_lsp_opened = s:path_of(a:nr)
   let w:org_lsp_from = win
   execute 'buffer' a:nr
   call win_execute(win, back > 0 && back != a:nr ? 'buffer ' . back : 'close')
@@ -1437,6 +1442,35 @@ function! s:place_prompt(nr) abort
     execute 'resize' line('$')
   endif
   call winrestview({'topline': 1, 'leftcol': 0})
+  call setpos('.', cursor[0:3])
+endfunction
+
+" The agenda in a window the plugin did not open (coc.nvim shows it in the
+" current one): in the window that shows it already, else in one apart as
+" `win_split_mode` says, and the window back to the buffer it showed, as
+" Emacs keeps the window the agenda was called from.
+function! s:place_agenda(nr) abort
+  let win = bufwinid(a:nr)
+  let mode = org_lsp#config().win_split_mode
+  if win == -1 || s:opened_for(win, a:nr) || mode ==# 'current'
+    return
+  endif
+  let cursor = getcurpos(win)
+  call win_gotoid(win)
+  let back = bufnr('#')
+  let shown = filter(win_findbuf(a:nr), {_, other -> other != win && s:opened_for(other, a:nr)})
+  if !empty(shown)
+    call win_gotoid(shown[0])
+  else
+    execute mode
+    let w:org_lsp_opened = s:path_of(a:nr)
+    let w:org_lsp_from = win
+    call s:resize_apart(mode, org_lsp#config().win_split_size)
+    execute 'buffer' a:nr
+  endif
+  let agenda = win_getid()
+  call win_execute(win, back > 0 && back != a:nr ? 'buffer ' . back : 'close')
+  call win_gotoid(agenda)
   call setpos('.', cursor[0:3])
 endfunction
 
@@ -1725,9 +1759,9 @@ function! org_lsp#show_document(params) abort
     " its own; gone with its window, which tells the server.
     if win == -1
       botright vsplit
-      let w:org_lsp_opened = 1
       let w:org_lsp_from = from
       execute 'edit' fnameescape(path)
+      let w:org_lsp_opened = expand('%:p')
       setlocal bufhidden=wipe
     endif
     if get(a:params, 'takeFocus', v:true) is v:false
@@ -1843,11 +1877,22 @@ function! org_lsp#save(uris) abort
   endfor
 endfunction
 
+" The file of buffer `nr`, by which the windows opened for it know it:
+" the agenda's or the date prompt's buffer may be another once read again.
+function! s:path_of(nr) abort
+  return fnamemodify(bufname(a:nr), ':p')
+endfunction
+
+" Whether the plugin opened window `win` for buffer `nr`.
+function! s:opened_for(win, nr) abort
+  return getwinvar(a:win, 'org_lsp_opened', '') ==# s:path_of(a:nr)
+endfunction
+
 " Close buffer `nr` and the windows the plugin opened for it; a window that
 " was there before goes back to the buffer it showed.
 function! org_lsp#close_buffer(nr) abort
   for win in win_findbuf(a:nr)
-    if getwinvar(win, 'org_lsp_opened', 0) && winnr('$') > 1
+    if s:opened_for(win, a:nr) && winnr('$') > 1
       " Back to the window it was opened from, not the one that takes its
       " place on the screen.
       let from = getwinvar(win, 'org_lsp_from', 0)
@@ -2782,6 +2827,10 @@ function! org_lsp#attach() abort
       " coc.nvim shows documents itself, in the window it jumps from: the
       " calendar moves to the bottom.
       execute 'autocmd BufWinEnter <buffer=' . nr . '> call timer_start(0, {-> s:place_prompt(' . nr . ')})'
+    endif
+    if s:is_agenda(bufname(nr)) && org_lsp#adapter() ==# 'coc'
+      " coc.nvim shows the agenda itself, in the current window.
+      execute 'autocmd BufWinEnter <buffer=' . nr . '> call timer_start(0, {-> s:place_agenda(' . nr . ')})'
     endif
     if s:is_view_type(&filetype)
       let b:org_lsp_given = getline(1, '$')
