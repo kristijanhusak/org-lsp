@@ -909,6 +909,11 @@ struct Server {
     /// Where the cursor was last seen in an Org file or a capture buffer,
     /// for the port's commands of Org files (`file:`, `key:`).
     file_cursor: Option<(Uri, Position)>,
+    /// Where the cursor was last seen, and where it was before it went to
+    /// that document: what to show when a buffer closes in a client that
+    /// closes none for the server (Zed), as Emacs goes back there.
+    cursor_seen: Option<(Uri, Position)>,
+    cursor_before: Option<(Uri, Position)>,
     next_request: i32,
     pending: HashMap<RequestId, Pending>,
     /// What the command being run has to say, as Emacs says it in the echo
@@ -1594,6 +1599,8 @@ pub fn run(connection: Connection) -> Result<()> {
         port_start: port::Start::default(),
         agenda_cursor: None,
         file_cursor: None,
+        cursor_seen: None,
+        cursor_before: None,
         next_request: 0,
         pending: HashMap::new(),
         message: None,
@@ -2366,8 +2373,8 @@ fn property_ids(text: &str) -> Vec<String> {
 }
 
 /// Write the agenda's file and leave it read-only: the agenda is to read,
-/// and editors that go by a file's permissions (Zed, Vim) then do not let
-/// it be edited.
+/// and editors that go by a file's permissions (Vim) then do not let it
+/// be edited.
 fn write_read_only(file: &Path, text: &str) -> std::io::Result<()> {
     // In place, the same file each time: Zed follows a file outside the
     // project by the file itself, and loses one that another is renamed
@@ -3110,8 +3117,16 @@ impl Server {
                             let (command, argument) = (params.command.clone(), params.arguments.first().cloned());
                             match self.run_command(params) {
                                 Ok(value) => {
+                                    // A code action of Zed's (`apply` in its
+                                    // context): what the command does is
+                                    // applied here, the cursor moved where it
+                                    // says, as from the command port.
+                                    let argument = argument.unwrap_or(Value::Null);
+                                    if argument.get("apply").and_then(Value::as_bool) == Some(true) {
+                                        self.apply_result(&argument, &value);
+                                    }
                                     if self.client.message_prompts {
-                                        self.prompt_with_messages(command, argument.unwrap_or(Value::Null), &value);
+                                        self.prompt_with_messages(command, argument, &value);
                                     }
                                     respond(id, value)
                                 }
@@ -3332,6 +3347,15 @@ impl Server {
                 self.publish_virtual_indent(&key);
                 self.publish_display(&key);
                 self.publish_diagnostics(&key);
+                // An edit the server asked for, of a file no buffer had:
+                // Zed opens the file with the edit in it, and tells of no
+                // change. Its effect shows now, as after a change.
+                let on_disk = self.edited.contains(&key).then(|| uri::to_path(&uri)).flatten();
+                if on_disk.is_some_and(|path| std::fs::read_to_string(path).is_ok_and(|text| text != opened)) {
+                    self.edited.remove(&key);
+                    self.edit_results.remove(&key);
+                    self.refresh_view();
+                }
             }
             DidChangeTextDocument::METHOD => {
                 let Some(params) = parse::<lsp_types::DidChangeTextDocumentParams>(notification) else { return };
@@ -3916,6 +3940,11 @@ impl Server {
         } else {
             return;
         }
+        match self.cursor_seen.take() {
+            Some((seen, _)) if seen == *uri => {}
+            other => self.cursor_before = other,
+        }
+        self.cursor_seen = Some((uri.clone(), position));
         // The keys go to the server whose file the cursor is in.
         self.claim_script();
     }
@@ -3982,8 +4011,8 @@ impl Server {
         // What an editor runs from keys, for one that has none.
         let more = self.client.more_actions;
         if self.is_view(uri) && self.client.zed_agenda() {
-            // The agenda's file is read-only, where Zed runs no code
-            // action; its keys go through the command port instead.
+            // The agenda's keys go through the command port in Zed, not
+            // code actions.
             return Some(Vec::new());
         }
         if self.is_view(uri) {
@@ -4274,6 +4303,25 @@ impl Server {
                         }),
                         ..Default::default()
                     }));
+                }
+            }
+        }
+        // Zed puts the cursor at the end of an action's edit: the command
+        // the action stands for runs instead, which leaves the cursor
+        // where Org leaves point, and says what Org says.
+        if self.client.command_actions {
+            let mut run_here = context.clone();
+            run_here["apply"] = json!(true);
+            for entry in &mut result {
+                let CodeActionOrCommand::CodeAction(action) = entry else { continue };
+                let Some(id) = action.kind.as_ref().map(|kind| kind.as_str().to_string()) else { continue };
+                if action.edit.is_some() && !commands::title(&id).is_empty() {
+                    action.edit = None;
+                    action.command = Some(lsp_types::Command {
+                        title: action.title.clone(),
+                        command: id,
+                        arguments: Some(vec![run_here.clone()]),
+                    });
                 }
             }
         }
@@ -6236,7 +6284,9 @@ impl Server {
                 let edited = self.client.edit_view && open.client.is_some();
                 let written = if edited {
                     Ok(())
-                } else if self.client.edit_view {
+                } else if self.client.edit_view || self.client.zed_agenda() {
+                    // Zed refuses a rename in a read-only file, and a
+                    // rename at the cursor answers what a command asks.
                     set_writable_if_present(file).and_then(|()| std::fs::write(file, &open.view.text))
                 } else {
                     write_read_only(file, &open.view.text)
@@ -6522,6 +6572,9 @@ impl Server {
         if let Some(message) = result.get("message").and_then(Value::as_str) {
             self.show_message(MessageType::INFO, message);
         }
+        if let Some(close) = result.get("close").and_then(Value::as_str) {
+            self.show_where_before(close);
+        }
         let Some(input) = result.get("input") else { return };
         let prompt = input.get("prompt").and_then(Value::as_str).unwrap_or("").to_string();
         let choices = input.get("choices").and_then(Value::as_array).cloned().unwrap_or_default();
@@ -6540,6 +6593,22 @@ impl Server {
             lsp_types::ShowMessageRequestParams { typ: MessageType::INFO, message: prompt, actions: Some(actions) };
         let pending = Pending::Answer { command, argument, input: input.clone() };
         self.send_request::<lsp_types::request::ShowMessageRequest>(params, Some(pending));
+    }
+
+    /// A buffer the cursor is in closed (a capture buffer filed): the
+    /// client closes no tab for the server, so the place the cursor was
+    /// in before is shown, as Emacs goes back to it.
+    fn show_where_before(&mut self, closed: &str) {
+        if self.cursor_seen.as_ref().is_none_or(|(uri, _)| uri.as_str() != closed) {
+            return;
+        }
+        let Some((uri, position)) = self.cursor_before.clone() else { return };
+        if !self.is_view(&uri) && !self.documents.contains_key(uri.as_str()) {
+            return;
+        }
+        let selection = Some(Range::new(position, position));
+        let params = ShowDocumentParams { uri, external: None, take_focus: Some(true), selection };
+        self.send_request::<ShowDocument>(params, None);
     }
 
     /// The answer to a question asked by [`Server::prompt_with_messages`]:
@@ -10405,12 +10474,57 @@ impl Server {
         if let Some(held) = held {
             self.hold(held);
         }
+        // Run from Zed (`apply`) in the file the cursor is in: Zed puts
+        // the cursor after an edit that starts where it is (a timestamp
+        // changed under it), so it is moved where Org leaves point.
+        let stay = (context.apply && self.client.command_actions && !on_view && file == context.text_document.uri)
+            .then(|| self.cursor_after(&file, position, &edits))
+            .flatten();
         let edit = self.workspace_edit(&file, version, edits);
         self.edited.insert(key);
         // No label: some editors print it every time an edit is applied.
         let params = lsp_types::ApplyWorkspaceEditParams { label: None, edit };
-        self.apply_edit(params, Pending::Edit);
+        match stay {
+            Some(position) => self.apply_edit(params, Pending::EditAndMove { uri: file, position }),
+            None => self.apply_edit(params, Pending::Edit),
+        }
         Ok(Value::Null)
+    }
+
+    /// Where the cursor at `position` of `uri` is once `edits` are made,
+    /// as point moves in Emacs: with the text before it, and before what
+    /// is put where it is.
+    fn cursor_after(&self, uri: &Uri, position: Position, edits: &[TextEdit]) -> Option<Position> {
+        let encoding = self.client.encoding;
+        let document = self.document(uri)?;
+        let old = &document.text;
+        let mut ranges: Vec<(usize, usize, &str)> = edits
+            .iter()
+            .map(|edit| {
+                let start = document.index.offset(old, edit.range.start, encoding);
+                let end = document.index.offset(old, edit.range.end, encoding).max(start);
+                (start, end, edit.new_text.as_str())
+            })
+            .collect();
+        ranges.sort_by_key(|(start, end, _)| (*start, *end));
+        let point = document.index.offset(old, position, encoding);
+        let (mut new, mut at, mut moved) = (String::new(), 0, point);
+        for (start, end, text) in &ranges {
+            if *start < at || !old.is_char_boundary(*start) || !old.is_char_boundary(*end) {
+                return None;
+            }
+            new.push_str(&old[at..*start]);
+            new.push_str(text);
+            at = *end;
+            if *end <= point && *start < point {
+                moved = moved + text.len() - (end - start);
+            } else if *start < point {
+                // Point inside what is replaced: at the end of what replaces it, at most.
+                moved = moved - (point - start) + (point - start).min(text.len());
+            }
+        }
+        new.push_str(&old[at..]);
+        Some(LineIndex::new(&new).position(&new, moved.min(new.len()), encoding))
     }
 
     /// `org-set-tags-command` (`C-c C-q`; in the agenda for the line's

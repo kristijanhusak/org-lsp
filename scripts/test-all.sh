@@ -11,6 +11,9 @@
 #                  test runner downloads VS Code
 #   HX             the Helix to run the end-to-end scenarios in (see
 #                  editors/helix/test/run.py); skipped without it
+#   ZED            Zed's command line (bin/zed); the Zed scenarios are
+#                  skipped without it. ZED_ORG_GRAMMAR is the Org grammar
+#                  it needs (see editors/zed/test/run.py)
 #
 # The VS Code tests need a display: they run under xvfb-run when there is
 # none.
@@ -29,6 +32,12 @@ if [ -n "${HX:-}" ]; then
   editors/helix/test/run.py
 else
   echo "== helix: skipped (set HX)"
+fi
+if [ -n "${ZED:-}" ]; then
+  echo "== zed: scenarios"
+  editors/zed/test/run.py
+else
+  echo "== zed: skipped (set ZED)"
 fi
 cd editors/vscode
 npm run -s build

@@ -773,7 +773,11 @@ server, and a cursor moved after it, would race with what is typed next.)
 ~org.meta.return~ and its neighbours answer the same way. With
 ~"apply": true~ in the context the server applies the edit itself and moves
 the cursor with ~window/showDocument~; the code actions of ~command_actions~
-run them so. With ~"below": true~, ~org.meta.return~ and its neighbours put
+run them so. With ~command_actions~ every code action that stands for a
+command (a TODO state, a priority, a timestamp, a heading moved) runs that
+command with ~"apply": true~ instead of carrying its edit: Zed puts the
+cursor at the end of an edit that starts where it is, and the server puts
+it back where Org leaves point, and says what Org says. With ~"below": true~, ~org.meta.return~ and its neighbours put
 the new heading, item or table row below the cursor's line, as
 nvim-orgmode's ~<Leader><CR>~ does: never above it and splitting nothing, as
 Emacs does from the end of the line with ~org-M-RET-may-split-line~ nil (in

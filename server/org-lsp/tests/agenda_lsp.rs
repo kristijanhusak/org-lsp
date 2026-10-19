@@ -5800,11 +5800,11 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
     assert!(agenda.ends_with("Agenda.org-agenda"), "{agenda}");
     let agenda_text = std::fs::read_to_string(agenda.trim_start_matches("file://")).unwrap();
     client.open(&agenda, &agenda_text);
-    // The agenda's file is read-only, where Zed runs no code action: its
-    // commands come through the command port, whose script is at a place
-    // the keys can name.
+    // The agenda's commands come through the command port, whose script is
+    // at a place the keys can name, not code actions. Its file is not
+    // read-only: Zed refuses a rename there, which answers what they ask.
     let agenda_path = std::path::PathBuf::from(agenda.trim_start_matches("file://"));
-    assert!(std::fs::metadata(&agenda_path).unwrap().permissions().readonly());
+    assert!(!std::fs::metadata(&agenda_path).unwrap().permissions().readonly());
     // Rewritten in place: Zed follows a file outside the project by the
     // file itself, and loses one that another is renamed over.
     #[cfg(unix)]
@@ -5912,7 +5912,7 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
     assert!(later.starts_with("Week-agenda (W22):"), "{later}");
     #[cfg(unix)]
     assert_eq!(std::os::unix::fs::MetadataExt::ino(&std::fs::metadata(&agenda_path).unwrap()), inode);
-    assert!(std::fs::metadata(&agenda_path).unwrap().permissions().readonly());
+    assert!(!std::fs::metadata(&agenda_path).unwrap().permissions().readonly());
 
     // A question that wants typed text is answered with a rename: its new
     // name is the date, and the command goes on with it.

@@ -1,6 +1,6 @@
 [
   {
-    "context": "Editor && extension == org-agenda",
+    "context": "Editor && !renaming && extension == org-agenda",
     "bindings": {
       "q": "pane::CloseActiveItem",
       "enter": "editor::GoToDefinition",
@@ -518,7 +518,7 @@
     }
   },
   {
-    "context": "Editor && extension == org",
+    "context": "Editor && !renaming && extension == org",
     "bindings": {
       "ctrl-c ctrl-c": [
         "task::Spawn",
