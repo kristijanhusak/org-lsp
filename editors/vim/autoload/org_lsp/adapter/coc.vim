@@ -78,6 +78,14 @@ function! org_lsp#adapter#coc#request(bufnr, method, params, Callback) abort
   call timer_start(wait, {-> s:send(a:method, a:params, a:Callback)})
 endfunction
 
+" A file no window shows, written: coc.nvim loads the files it edits for
+" the server without opening them to it, and the server reads them again.
+function! org_lsp#adapter#coc#saved(bufnr) abort
+  if coc#rpc#ready()
+    call CocNotify(s:name, 'textDocument/didSave', {'textDocument': {'uri': org_lsp#uri(a:bufnr)}})
+  endif
+endfunction
+
 " Tell the server of the changes to buffer `bufnr` not sent yet: coc.nvim
 " syncs a buffer when told it changed, which Vim says of the current one.
 function! org_lsp#adapter#coc#flush(bufnr) abort

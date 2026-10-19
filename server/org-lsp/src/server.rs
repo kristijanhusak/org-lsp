@@ -978,6 +978,9 @@ struct Server {
     /// The documents each `workspace/applyEdit` changes, by request: if
     /// the editor does not apply it, the server forgets the change.
     applying: HashMap<RequestId, (Vec<String>, Option<ClockState>)>,
+    /// The text each document has once the editor has applied the last
+    /// edit asked of it, while the editor has not answered.
+    edit_results: HashMap<String, String>,
     /// The clock as the command being run found it.
     clock_before: Option<ClockState>,
     /// The paths of files through their symbolic links, as known: the
@@ -1635,6 +1638,7 @@ pub fn run(connection: Connection) -> Result<()> {
         },
         saving: HashMap::new(),
         applying: HashMap::new(),
+        edit_results: HashMap::new(),
         clock_before: None,
         canonical: std::cell::RefCell::new(HashMap::new()),
         todo,
@@ -2855,6 +2859,9 @@ impl Server {
             _ => Vec::new(),
         };
         let changed: Vec<String> = files.iter().map(|uri| uri.as_str().to_string()).collect();
+        let mut params = params;
+        self.insert_before_last_newline(&mut params.edit);
+        self.remember_edit_results(&params.edit);
         files.retain(|uri| Some(uri.as_str()) != self.origin.as_deref() && !is_view_uri(uri));
         let request = self.new_request(
             ApplyWorkspaceEdit::METHOD,
@@ -2868,6 +2875,96 @@ impl Server {
         let id = request.id.clone();
         let _ = self.sender.send(Message::Request(request));
         Some(id)
+    }
+
+    /// Lines added after the last newline of a document, said as
+    /// added before it, from the end of the last line: yegappan/lsp cannot
+    /// insert on the line after the last one. Not while another edit of
+    /// the document is on its way, which this one may not count on.
+    fn insert_before_last_newline(&self, edit: &mut lsp_types::WorkspaceEdit) {
+        let mut changes: Vec<(&Uri, Vec<&mut TextEdit>)> = Vec::new();
+        if let Some(lsp_types::DocumentChanges::Edits(edits)) = &mut edit.document_changes {
+            for edit in edits {
+                let text_edits = edit.edits.iter_mut().map(|edit| match edit {
+                    lsp_types::OneOf::Left(edit) => edit,
+                    lsp_types::OneOf::Right(annotated) => &mut annotated.text_edit,
+                });
+                changes.push((&edit.text_document.uri, text_edits.collect()));
+            }
+        }
+        for (uri, edits) in edit.changes.iter_mut().flatten() {
+            changes.push((uri, edits.iter_mut().collect()));
+        }
+        for (uri, edits) in changes {
+            // The editor's text, or the file's for one it has not opened.
+            let text = match self.documents.get(uri.as_str()) {
+                Some(document) => document.text.clone(),
+                None => match uri::to_path(uri).and_then(|path| std::fs::read_to_string(path).ok()) {
+                    Some(text) => text,
+                    None => continue,
+                },
+            };
+            let pending = self.applying.values().any(|(files, _)| files.iter().any(|file| file == uri.as_str()));
+            if pending || !text.ends_with('\n') {
+                continue;
+            }
+            let lines = text.matches('\n').count() as u32;
+            let last = text[..text.len() - 1].rsplit('\n').next().unwrap_or("");
+            let end = Position::new(lines, 0);
+            for edit in edits {
+                if edit.range.start == end && edit.range.end == end && edit.new_text.ends_with('\n') {
+                    let at = Position::new(lines - 1, self.client.encoding.len(last));
+                    edit.range = Range::new(at, at);
+                    edit.new_text = format!("\n{}", &edit.new_text[..edit.new_text.len() - 1]);
+                }
+            }
+        }
+    }
+
+    /// The text of each open document `edit` changes, once it is applied.
+    fn remember_edit_results(&mut self, edit: &lsp_types::WorkspaceEdit) {
+        let mut changes: Vec<(&Uri, Vec<&TextEdit>)> = Vec::new();
+        if let Some(lsp_types::DocumentChanges::Edits(edits)) = &edit.document_changes {
+            for edit in edits {
+                let text_edits = edit.edits.iter().map(|edit| match edit {
+                    lsp_types::OneOf::Left(edit) => edit,
+                    lsp_types::OneOf::Right(annotated) => &annotated.text_edit,
+                });
+                changes.push((&edit.text_document.uri, text_edits.collect()));
+            }
+        }
+        for (uri, edits) in edit.changes.iter().flatten() {
+            changes.push((uri, edits.iter().collect()));
+        }
+        for (uri, edits) in changes {
+            let Some(document) = self.documents.get(uri.as_str()) else { continue };
+            let text = &document.text;
+            let index = LineIndex::new(text);
+            let mut ranges: Vec<(usize, usize, &str)> = edits
+                .iter()
+                .map(|edit| {
+                    let start = index.offset(text, edit.range.start, self.client.encoding);
+                    let end = index.offset(text, edit.range.end, self.client.encoding);
+                    (start, end.max(start), edit.new_text.as_str())
+                })
+                .collect();
+            ranges.sort_by_key(|(start, end, _)| std::cmp::Reverse((*start, *end)));
+            // Edits made for another text than the server's (that of an
+            // edit still on its way) say nothing of it.
+            let mut result = Some(text.clone());
+            for (start, end, new_text) in ranges {
+                result = result.filter(|result| result.is_char_boundary(start) && result.is_char_boundary(end)).map(
+                    |mut result| {
+                        result.replace_range(start..end, new_text);
+                        result
+                    },
+                );
+            }
+            match result {
+                Some(result) => self.edit_results.insert(uri.as_str().to_string(), result),
+                None => self.edit_results.remove(uri.as_str()),
+            };
+        }
     }
 
     fn send_raw_request(&mut self, method: &str, params: Value, pending: Option<Pending>) {
@@ -3149,11 +3246,17 @@ impl Server {
             && self.view.as_ref().is_some_and(|open| {
                 notification.params.pointer("/textDocument/uri").and_then(Value::as_str) == Some(open.uri.as_str())
             });
+        // Another document closed in between (the date prompt, as coc.nvim
+        // reads the agenda anew) is not the next message either way.
+        let other_closed = notification.method == DidCloseTextDocument::METHOD
+            && self.view.as_ref().is_some_and(|open| {
+                notification.params.pointer("/textDocument/uri").and_then(Value::as_str) != Some(open.uri.as_str())
+            });
         if reopened {
             if let Some(open) = &mut self.view {
                 open.closing = false;
             }
-        } else {
+        } else if !other_closed {
             self.drop_closed_view();
         }
         if matches!(
@@ -3252,6 +3355,8 @@ impl Server {
                     .then(|| self.documents.get(key).map(|document| document.text.clone()))
                     .flatten();
                 let changed_lines = changed_lines(&params.content_changes);
+                // The same text again (ALE sends it as a new version).
+                let mut same_text = false;
                 if let Some(document) = self.documents.get_mut(key) {
                     let changes = document.apply(
                         params.content_changes,
@@ -3259,6 +3364,7 @@ impl Server {
                         self.client.encoding,
                         &self.todo,
                     );
+                    same_text = changes.iter().all(|change| change.start == change.end && change.length == 0);
                     // The agenda's entries in this file follow the text,
                     // until the agenda is built again: a command on one of
                     // its lines finds its timestamp where it is now.
@@ -3319,7 +3425,19 @@ impl Server {
                 }
                 // An edit the server asked for has arrived: show its effect.
                 // Any other change means the user did something in between.
-                if self.edited.remove(key) {
+                // Before the editor answers, a text other than the edit's
+                // is a part of it (yegappan/lsp applies an edit a piece at a
+                // time, and Vim tells of the pieces).
+                let answered = !self.applying.values().any(|(files, _)| files.iter().any(|file| file == key));
+                let result = self.edit_results.get(key);
+                let partly = !answered
+                    && self.edited.contains(key)
+                    && result
+                        .is_some_and(|result| self.documents.get(key).is_some_and(|document| document.text != *result));
+                if partly || same_text {
+                    // The rest of the edit is to come, or nothing changed.
+                } else if self.edited.remove(key) {
+                    self.edit_results.remove(key);
                     self.refresh_view();
                 } else {
                     self.last = None;
@@ -7829,8 +7947,7 @@ impl Server {
         }
         replace_whole(&path, text.as_bytes())
             .map_err(|error| format!("Cannot write agenda to file {}: {error}", path.display()))?;
-        self.show_message(MessageType::INFO, format!("{done} {}", path.display()));
-        Ok(Value::Null)
+        Ok(json!({ "message": format!("{done} {}", path.display()) }))
     }
 
     /// The agenda of `query` as Org prints it (`org-batch-agenda`), links as
@@ -9438,9 +9555,10 @@ impl Server {
         if let Some((edited, _)) = &made.edited {
             self.send_texts(vec![(uri.clone(), version, text, edited.clone())]);
         }
+        // Said as a command's message, which editors show as Emacs's echo
+        // area (some Vim clients leave out the server's own messages).
         let message = link::remember(&mut self.stored_links, &made);
-        self.show_message(MessageType::INFO, message);
-        Ok(Value::Null)
+        Ok(json!({ "message": message }))
     }
 
     /// `org-insert-link` (`C-c C-l`), `org-insert-last-stored-link` (`C-c

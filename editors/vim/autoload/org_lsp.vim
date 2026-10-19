@@ -417,9 +417,11 @@ function! org_lsp#run(name, ...) abort
     let context.below = v:true
   endif
   " Filing a capture or a note takes the buffer's text as it is here: some
-  " clients tell the server of the last changes only a while later.
+  " clients tell the server of the last changes only a while later. A
+  " newline ends it when the file has one ('eol'): the server writes the
+  " buffer without, and one more would be a blank line after the entry.
   if index(['org.capture.finish', 'org.capture.refile'], a:name) >= 0
-    let context.text = join(getline(1, '$'), "\n") . (&eol || &fixeol ? "\n" : '')
+    let context.text = join(getline(1, '$'), "\n") . (&eol ? "\n" : '')
   endif
   " Whether the org-roam buffer shows, which the command hides then.
   if a:name ==# 'org.roam.buffer.toggle'
@@ -463,11 +465,12 @@ function! s:executed(bufnr, name, context, opts, error, result) abort
   let result = type(a:result) == v:t_dict ? a:result : {}
   " The edit and the cursor, carried in the result (`org.meta.return`);
   " from its key, typing goes on there, in insert mode, as with
-  " nvim-orgmode.
+  " nvim-orgmode: by keys ahead of those typed since, as `:startinsert`
+  " in a callback waits for the next command.
   if type(get(result, 'edits', 0)) == v:t_list && bufnr() == a:bufnr
     let at_end = s:apply_carried(a:context.textDocument.uri, result)
     if get(a:opts, 'append', 0)
-      execute at_end ? 'startinsert!' : 'startinsert'
+      call feedkeys(at_end ? 'A' : 'i', 'ni')
     endif
   endif
   " What was cut or copied goes to the register, by lines, or by
@@ -1058,7 +1061,8 @@ endfunction
 " its line that follows it, the header in the window's status line, and the
 " column picked highlighted on the cursor's line. Emacs's cursor moves from
 " column to column there; `h` and `l` do here. By buffer: `{header,
-" columns, rows: {line: text}, popups: {line: id}, last}`.
+" columns, lines (the server's), rows: {line: text}, popups: {line: id},
+" last}`.
 let s:columns = {}
 
 highlight default link OrgLspColumn CursorColumn
@@ -1088,6 +1092,7 @@ function! s:columns_show(params) abort
   let view = first ? {'popups': {}, 'last': -1} : s:columns[nr]
   let view.header = a:params.header
   let view.columns = a:params.columns
+  let view.lines = a:params.lines
   let view.rows = {}
   for [line, text, _] in a:params.lines
     let view.rows[line] = text
@@ -1276,6 +1281,13 @@ function! org_lsp#columns_on(nr) abort
   return has_key(s:columns, a:nr)
 endfunction
 
+" What column view shows in buffer `nr`, as the server said it: `{header,
+" lines: [[line, text, values]]}`, or {} when it is off.
+function! org_lsp#columns_view(nr) abort
+  let view = get(s:columns, a:nr, {})
+  return empty(view) ? {} : {'header': view.header, 'lines': view.lines}
+endfunction
+
 function! org_lsp#columns_shown(nr, row) abort
   let id = get(get(get(s:columns, a:nr, {}), 'popups', {}), a:row, 0)
   return id ? get(getbufline(winbufnr(id), 1), 0, '') : ''
@@ -1285,7 +1297,7 @@ endfunction
 
 let s:scope_titles = {'org': 'Org file', 'capture': 'Capture buffer', 'agenda': 'Agenda', 'calendar': 'Date prompt', 'columns': 'Column view', 'global': 'Anywhere'}
 
-" The keys of `scope` as they are set: `[{keys, title}]`, in the order of
+" The keys of `scope` as they are set: `[{keys, title, command}]`, in the order of
 " the server's commands, then the plugin's own.
 function! org_lsp#keys(scope) abort
   let bound = s:keys_in(a:scope)[0]
@@ -1295,7 +1307,7 @@ function! org_lsp#keys(scope) abort
     if !empty(get(bound, name, []))
       let command = s:command(name)
       let title = has_key(s:own, name) ? s:own[name].title : get(command, 'title', name)
-      call add(out, {'keys': remove(bound, name), 'title': title})
+      call add(out, {'keys': remove(bound, name), 'title': title, 'command': name})
     endif
   endfor
   return out
@@ -1303,6 +1315,20 @@ endfunction
 
 " The lines of the help for `scopes`: a heading for each, then its keys
 " and what they do.
+" The command key `lhs` runs in Normal mode in the current buffer, one of
+" the server's or the plugin's own; '' when it runs none: for the tests.
+function! org_lsp#mapped_command(lhs) abort
+  let map = maparg(s:map_lhs(a:lhs), 'n', 0, 1)
+  if !get(map, 'buffer', 0)
+    return ''
+  endif
+  let index = matchstr(map.rhs, 'org_lsp#\%(key\|repeatable\)(\zs\d\+')
+  if !empty(index)
+    return s:mapped[str2nr(index)].name
+  endif
+  return matchstr(map.rhs, "org_lsp#run('\\zs[^']\\+")
+endfunction
+
 function! org_lsp#help_lines(scopes) abort
   let sections = filter(map(copy(a:scopes), {_, scope -> [scope, org_lsp#keys(scope)]}), '!empty(v:val[1])')
   let width = 0
@@ -1536,7 +1562,15 @@ function! s:reload_views() abort
   for info in getbufinfo({'bufloaded': 1})
     if s:is_agenda(info.name) || s:is_prompt(info.name)
       let old = getbufline(info.bufnr, 1, '$')
-      execute 'checktime' info.bufnr
+      let views = s:window_views(info.bufnr)
+      " Without the file's name and size, which would take the place of
+      " what the command said.
+      silent execute 'checktime' info.bufnr
+      " Read while the server wrote it (in place): never empty otherwise.
+      if getbufline(info.bufnr, 1, '$') ==# ['']
+        call s:read_empty_view(info.bufnr, views)
+        continue
+      endif
       call s:give_view(info.bufnr)
       call s:repaint_kept(info.bufnr, old)
       call s:columns_draw(info.bufnr)
@@ -1550,6 +1584,54 @@ function! s:reload_views() abort
   endfor
 endfunction
 
+" The view of each window that shows buffer `nr`, by window.
+function! s:window_views(nr) abort
+  let views = {}
+  for win in win_findbuf(a:nr)
+    call win_execute(win, 'let s:view = winsaveview()')
+    let views[win] = s:view
+  endfor
+  return views
+endfunction
+
+" The agenda (or date prompt) read empty, while the server wrote it in
+" place: read again in a moment, its windows then as `views` has them
+" (by window), else on the line last told to the server.
+function! s:read_empty_view(nr, views) abort
+  let pending = getbufvar(a:nr, 'org_lsp_reread', v:null)
+  if !empty(a:views) || type(pending) == v:t_none
+    let views = a:views
+    if empty(views)
+      for win in win_findbuf(a:nr)
+        let views[win] = {'lnum': getbufvar(a:nr, 'org_lsp_cursor_line', 1)}
+      endfor
+    endif
+    call setbufvar(a:nr, 'org_lsp_reread', views)
+  endif
+  if type(pending) == v:t_none
+    call timer_start(20, function('s:read_view_again', [a:nr, 0]))
+  endif
+endfunction
+
+function! s:read_view_again(nr, tries, ...) abort
+  let win = get(win_findbuf(a:nr), 0, -1)
+  if !bufloaded(a:nr) || win == -1
+    call setbufvar(a:nr, 'org_lsp_reread', v:null)
+    return
+  endif
+  call win_execute(win, 'silent edit!')
+  if getbufline(a:nr, 1, '$') ==# [''] && a:tries < 10
+    call timer_start(20, function('s:read_view_again', [a:nr, a:tries + 1]))
+    return
+  endif
+  let views = getbufvar(a:nr, 'org_lsp_reread', {})
+  call setbufvar(a:nr, 'org_lsp_reread', v:null)
+  for [view_win, view] in items(type(views) == v:t_dict ? views : {})
+    call win_execute(str2nr(view_win), 'call winrestview(' . string(view) . ')')
+  endfor
+  call s:reload_views()
+endfunction
+
 " Have the client send the whole agenda (or date prompt) again when Vim
 " read it anew. A buffer read again is not a change Vim tells listeners
 " of, and the clients that learn of changes from them (vim-lsp, coc.nvim)
@@ -1561,6 +1643,9 @@ endfunction
 " sends as the whole text.
 function! s:give_view(nr) abort
   let lines = getbufline(a:nr, 1, '$')
+  if lines ==# ['']
+    return s:read_empty_view(a:nr, {})
+  endif
   if lines ==# getbufvar(a:nr, 'org_lsp_given', lines)
     return
   endif
@@ -1572,6 +1657,12 @@ function! s:give_view(nr) abort
   call setbufvar(a:nr, '&readonly', 0)
   call setbufvar(a:nr, '&modifiable', 1)
   call setbufvar(a:nr, '&undolevels', -1)
+  " The windows that show it keep their cursor, which emptying the buffer
+  " would put on the first line.
+  let windows = win_findbuf(a:nr)
+  for win in windows
+    call win_execute(win, 'let w:org_lsp_view = winsaveview()')
+  endfor
   try
     silent call deletebufline(a:nr, 1, '$')
     call setbufline(a:nr, 1, lines)
@@ -1579,6 +1670,9 @@ function! s:give_view(nr) abort
     call setbufvar(a:nr, '&modified', 0)
     for [name, value] in items(saved)
       call setbufvar(a:nr, '&' . name, value)
+    endfor
+    for win in windows
+      call win_execute(win, 'call winrestview(w:org_lsp_view) | unlet w:org_lsp_view')
     endfor
   endtry
   call s:call('flush', a:nr)
@@ -1739,6 +1833,11 @@ function! org_lsp#save(uris) abort
         silent update
         execute 'silent keepalt keepjumps noautocmd buffer' current
         let &hidden = hidden
+        " A client that did not tell the server of the file (coc.nvim
+        " loads the files it edits for it) tells it of the file written.
+        if exists('*org_lsp#adapter#' . org_lsp#adapter() . '#saved')
+          call s:call('saved', nr)
+        endif
       endif
     endif
   endfor
@@ -1814,6 +1913,10 @@ function! s:apply_text_edit(nr, edit) abort
   let lines = split(before . a:edit.newText . after, "\n", 1)
   let removed = min([end.line, lines_count - 1]) - start.line + 1
   if start.line >= lines_count
+    " Text that ends with a newline ends with the buffer's last line.
+    if len(lines) > 1 && lines[-1] ==# ''
+      call remove(lines, -1)
+    endif
     call appendbufline(a:nr, lines_count, lines)
     return
   endif
@@ -1822,10 +1925,14 @@ function! s:apply_text_edit(nr, edit) abort
   if end.line >= lines_count && len(lines) > 1 && lines[-1] ==# ''
     call remove(lines, -1)
   endif
-  call deletebufline(a:nr, start.line + 1, start.line + removed)
-  call appendbufline(a:nr, start.line, lines)
-  if lines_count == removed && len(getbufline(a:nr, 1, '$')) > len(lines)
-    call deletebufline(a:nr, '$')
+  " The lines replaced in place, then those more added or those fewer
+  " deleted: the cursor stays on its line, as an edit leaves it.
+  let kept = min([removed, len(lines)])
+  call setbufline(a:nr, start.line + 1, lines[: kept - 1])
+  if len(lines) > removed
+    call appendbufline(a:nr, start.line + removed, lines[removed :])
+  elseif removed > len(lines)
+    call deletebufline(a:nr, start.line + kept + 1, start.line + removed)
   endif
 endfunction
 
@@ -2053,6 +2160,12 @@ function! s:update_folds(nr) abort
   call org_lsp#request(a:nr, 'textDocument/foldingRange', params, function('s:got_folds', [a:nr]))
 endfunction
 
+function! s:refold_windows(nr) abort
+  for win in win_findbuf(a:nr)
+    call win_execute(win, 'call org_lsp#refold()')
+  endfor
+endfunction
+
 function! s:got_folds(nr, error, result) abort
   if !empty(a:error) || type(a:result) != v:t_list || !bufexists(a:nr)
     return
@@ -2077,9 +2190,13 @@ function! s:got_folds(nr, error, result) abort
     return
   endif
   call setbufvar(a:nr, 'org_lsp_folds', levels)
-  for win in win_findbuf(a:nr)
-    call win_execute(win, 'call org_lsp#refold()')
-  endfor
+  " Not while typing (a heading `<Leader><CR>` made): `:normal` would put
+  " the cursor back from the end of the line. Once insert mode ends.
+  if mode() =~# '^[iR]'
+    execute 'autocmd InsertLeave * ++once call s:refold_windows(' . a:nr . ')'
+  else
+    call s:refold_windows(a:nr)
+  endif
   " Folds org-journal asked for before the buffer had any.
   let pending = getbufvar(a:nr, 'org_lsp_journal_folds', {})
   if !empty(pending)
@@ -2535,7 +2652,13 @@ function! s:paint_absolute(nr, lines, tokens) abort
   let props = {}
   let lines = a:lines
   let is_org = getbufvar(a:nr, '&filetype') ==# 'org'
+  " Not past the buffer's lines, which it may have fewer of by now (the
+  " agenda read again).
+  let line_count = len(getbufline(a:nr, 1, '$'))
   for [line, character, length, type_index, modifier_bits] in a:tokens
+    if line >= line_count
+      continue
+    endif
     let type = get(types, type_index, '')
     let text = get(lines, line, '')
     let start = s:byte(text, character)

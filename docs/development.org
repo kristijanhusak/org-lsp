@@ -96,7 +96,8 @@ others), as close to Emacs Org mode as it can get.
   through ~VSCODE_EXECUTABLE~).
 - Vim: ~CLIENTS=dir editors/vim/test/run.sh~, with the four clients
   checked out in ~dir~ (~lsp~, ~vim-lsp~, ~coc.nvim~ on its ~release~
-  branch, ~ale~); Vim runs in tmux.
+  branch, ~ale~); Vim runs in tmux. ~editors/vim/test/scenarios.vim~ is its
+  adapter of the scenarios.
 - Sublime Text: ~node editors/sublime/generate.mjs --check~,
   ~python3 editors/sublime/test/test_plugin.py~.
 - Zed: ~node editors/zed/generate.mjs --check~,
@@ -118,7 +119,22 @@ it sees is in ~tests/e2e/expected/NAME.txt~, written again with
 ~ORG_LSP_UPDATE_E2E=1~ (~ORG_LSP_E2E=NAME~ runs only the scenarios whose name
 has ~NAME~ in it). Each editor has an adapter that presses that editor's keys
 for the same steps and must see the same; Neovim's is
-~tests/nvim/scenarios.lua~.
+~tests/nvim/scenarios.lua~ (~scripts/test-nvim.sh~ runs it), Vim's
+~editors/vim/test/scenarios.vim~, which ~editors/vim/test/run.sh~ runs with
+each LSP client after the plugin's own tests, each scenario in a Vim of its
+own, four at a time:
+
+#+begin_src sh
+CLIENTS=~/vim-clients editors/vim/test/run.sh                  # the tests, then the scenarios
+ORG_LSP_VIM_TESTS=scenarios ORG_LSP_E2E=capture \
+  CLIENTS=~/vim-clients editors/vim/test/run.sh coc            # one scenario, one client
+#+end_src
+
+~ORG_LSP_VIM_TESTS~ is ~cases~ or ~scenarios~ for only those,
+~ORG_LSP_E2E_JOBS~ how many Vims run at once. Each scenario prints one line,
+with the step that failed and what it saw; a step a client cannot take as
+the others do is skipped, with the reason, from ~s:skips~ in
+~scenarios.vim~ (coc.nvim shows the documents the server asks for itself).
 
 A scenario has:
 
