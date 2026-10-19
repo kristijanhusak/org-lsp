@@ -869,6 +869,9 @@ vim.api.nvim_win_set_cursor(0, { 4, 30 })
 -- With `syntax on`, as most have it, Neovim makes its float Markdown and
 -- starts tree-sitter in it.
 vim.cmd('syntax on')
+-- And with spelling on in Org files, as some have it.
+local spell_group = vim.api.nvim_create_augroup('test_org_spell', { clear = true })
+vim.api.nvim_create_autocmd('FileType', { group = spell_group, pattern = 'org', command = 'setlocal spell' })
 press('K')
 local float
 wait('the entry in a float', function()
@@ -883,6 +886,7 @@ local float_buf = vim.api.nvim_win_get_buf(float)
 wait('the float made an Org buffer', function()
   return vim.bo[float_buf].filetype == 'org'
 end)
+eq(vim.wo[float].spell, false, 'no spelling marked in the float')
 eq(vim.api.nvim_buf_get_lines(float_buf, 0, 2, false), { '* TODO [#A] Write the report :office:', 'SCHEDULED: <2026-05-18 Mon 09:00>' },
   'the headline and its text, as Org')
 -- Not indented as `org-indent-mode` indents: wider than the float.
@@ -908,6 +912,7 @@ wait('the float to close', function()
 end)
 only_window()
 vim.cmd('syntax off')
+vim.api.nvim_del_augroup_by_id(spell_group)
 
 -- 17. `I` clocks in on the entry of the line, which is highlighted from
 -- edge to edge (`org-agenda-clocking`); `O` clocks out and the highlight
