@@ -20,3 +20,14 @@ name = "org"
 # Archive files are Org files too, as in Emacs.
 file-types = ["org", "org_archive"]
 language-servers = ["org-lsp"]
+
+# The agenda, which the server writes to Agenda.org in a directory of its
+# own: Org, with the agenda's colors (runtime/queries/org-agenda, which
+# install.sh puts in ~/.config/helix/runtime).
+[[language]]
+name = "org-agenda"
+scope = "source.org-agenda"
+grammar = "org"
+language-id = "org"
+file-types = [{ glob = "org-lsp-view-*/Agenda.org" }]
+language-servers = ["org-lsp"]

@@ -28,6 +28,11 @@ run, `steps.helix` the steps it cannot take (`NAME STEP`), and
 `snapshots.helix` what it shows otherwise on purpose (`NAME STEP KIND`),
 each with the reason.
 
+Each Helix has Org's colors (editors/helix/runtime) in its configuration's
+runtime, as install.sh puts them. One more check, `highlight`, looks at
+them: tests/e2e/highlight/sample.org and an agenda the server shows, in a
+theme with a color for each scope of the queries.
+
   HX=/path/to/hx editors/helix/test/run.py
 
 ORG_LSP_BIN is the server (default: the debug build); ORG_LSP_E2E=NAME
@@ -49,6 +54,7 @@ import urllib.parse
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
 E2E = os.path.join(ROOT, "tests", "e2e")
+RUNTIME = os.path.join(ROOT, "editors", "helix", "runtime")
 HX = os.environ.get("HX", "")
 SERVER = os.environ.get("ORG_LSP_BIN", os.path.join(ROOT, "target", "debug", "org-lsp"))
 ONLY = os.environ.get("ORG_LSP_E2E", "")
@@ -303,9 +309,14 @@ class Helix:
         os.makedirs(config)
         with open(os.path.join(config, "languages.toml"), "w", encoding="utf-8") as out:
             out.write(languages_toml(options_of(spec, self.directory)))
+        # Org's colors, where install.sh puts them.
+        shutil.copytree(RUNTIME, os.path.join(config, "runtime"))
         # A search finds the text as it is written, as the scenarios' `at`.
         with open(os.path.join(config, "config.toml"), "w", encoding="utf-8") as out:
             out.write("[editor.search]\nsmart-case = false\n")
+        self.config = config
+        # More of Helix's environment.
+        self.environment = {}
         self.log = Log(os.path.join(self.work, "helix.log"))
         self.session = f"org-lsp-hx-{name}-{os.getpid()}"
         self.messages_from = 0
@@ -323,6 +334,7 @@ class Helix:
             "XDG_DATA_HOME": os.path.join(self.work, "data"),
             "ORG_LSP_CONFIG": "/nonexistent/config.toml",
             "TERM": "xterm-256color",
+            **self.environment,
         }
         if os.path.isdir(runtime):
             environment["HELIX_RUNTIME"] = runtime
@@ -528,6 +540,31 @@ class Helix:
                 text += part
                 reverse += [on] * len(part)
             rows.append((text, reverse))
+        return rows
+
+    def colored_rows(self):
+        """The rows of the screen, each as its text and the color of each
+        of its characters (`(r, g, b)`, or None)."""
+        rows = []
+        for row in self.screen(escapes=True):
+            text, colors, color = "", [], None
+            for part in re.split(r"(\x1b\[[0-9;?]*[A-Za-z])", row):
+                if part.startswith("\x1b["):
+                    if part.endswith("m"):
+                        codes = (part[2:-1] or "0").split(";")
+                        while codes:
+                            code = codes.pop(0)
+                            if code == "38" and codes and codes[0] == "2":
+                                color = tuple(int(each) for each in codes[1:4])
+                                del codes[:4]
+                            elif code in ("48", "58"):
+                                del codes[:1 if not codes else (2 if codes[0] == "5" else 4)]
+                            elif code in ("0", "", "39"):
+                                color = None
+                    continue
+                text += part
+                colors += [color] * len(part)
+            rows.append((text, colors))
         return rows
 
     def code_actions(self):
@@ -800,6 +837,188 @@ def run_scenario(name, spec, exceptions):
         raise Failure("\n".join(differ))
 
 
+# The colors of Org's queries (editors/helix/runtime): on the screen, in a
+# theme with a color of its own for each scope, the words of a row (found
+# by a part of it) in the scope they should have. Spaces are left out, as
+# Helix colors no space between two words.
+SAMPLE_COLORS = [
+    ("#+TITLE:", "Highlighting sample", "markup.heading.title"),
+    ("#+SUBTITLE:", "#+SUBTITLE:", "comment.keyword"),
+    ("#+SUBTITLE:", "Every construct the server colours", "string.info"),
+    ("level one", "* Headline level one", "markup.heading.1"),
+    ("level two", "** Headline level two", "markup.heading.2"),
+    ("level three", "*** Headline level three", "markup.heading.3"),
+    ("level six", "****** Headline level six", "markup.heading.6"),
+    ("level eight", "******** Headline level eight", "markup.heading.8"),
+    ("A task to do", "TODO", "diff.minus.todo"),
+    ("A task to do", "[#A]", "constant.numeric.priority"),
+    ("A task to do", "A task to do", "markup.heading.1"),
+    ("A task to do", ":work:urgent:", "tag"),
+    ("SCHEDULED:", "SCHEDULED:", "keyword.planning"),
+    ("SCHEDULED:", "<2026-05-20 Wed>", "constant.numeric.timestamp"),
+    ("A finished task", "DONE", "diff.plus.done"),
+    ("A finished task", "A finished task", "comment.done"),
+    ("CLOSED:", "[2026-05-17 Sun 09:00]", "comment.timestamp"),
+    ("An archived headline", "An archived headline", "comment.archived"),
+    (":PROPERTIES:", ":PROPERTIES:", "function.drawer"),
+    (":CUSTOM_ID:", ":CUSTOM_ID:", "variable.other.member.property"),
+    (":LOGBOOK:", ":LOGBOOK:", "function.drawer"),
+    ("CLOCK:", "CLOCK:", "keyword.planning"),
+    ("CLOCK:", "[2026-05-17 Sun 10:00]", "comment.timestamp"),
+    ("* Lists", "[1/3]", "constant.numeric.cookie"),
+    ("Complete lists", "[2/2]", "diff.plus.cookie"),
+    ("A ticked item", "-", "markup.list"),
+    ("A ticked item", "[X]", "markup.list.checked"),
+    ("A partly ticked item", "[-]", "markup.list.unchecked"),
+    ("its description", "term", "markup.bold.term"),
+    ("Text in", "*bold*", "markup.bold"),
+    ("Text in", "/italic/", "markup.italic"),
+    ("Text in", "_underline_", "markup.underline"),
+    ("Text in", "+strike-through+", "markup.strikethrough"),
+    ("Text in", "=verbatim=", "markup.raw.inline.verbatim"),
+    ("Text in", "~code~", "markup.raw.inline.code"),
+    ("Nested:", "*bold with", "markup.bold"),
+    ("Nested:", "/italic/", "markup.italic"),
+    ("Nested:", "inside*", "markup.bold"),
+    ("described link", "[[https://orgmode.org][described link]]", "markup.link.url"),
+    ("described link", "https://example.org", "markup.link.url"),
+    ("<<target>>", "<<target>>", "label.target"),
+    ("<<target>>", "[fn:1]", "markup.link.url.footnote"),
+    ("<<target>>", "{{{greet(world)}}}", "function.macro"),
+    ("Entities", "\\alpha", "constant.character.escape.entity"),
+    ("Entities", "$x^2$", "markup.raw.inline.latex"),
+    ("Inline src", "<2026-05-19 Tue>", "constant.numeric.timestamp"),
+    ("Inline src", "[2026-05-19 Tue]", "comment.timestamp"),
+    ("# A comment line", "# A comment line", "comment"),
+    ("#+begin_src", "#+begin_src python :results output", "comment.block"),
+    # The code of the block in Python's colors.
+    ('"source code"', '"source code"', "string"),
+    ("Quoted text.", "Quoted text.", "markup.quote"),
+    ("Commented out.", "Commented out.", "comment"),
+    ("\\begin{equation}", "\\begin{equation}", "markup.raw.block"),
+    ("|------+-------|", "|------+-------|", "punctuation.special.table"),
+    (": Fixed-width text", ": Fixed-width text", "markup.raw.inline.fixed"),
+    ("An inline task", "An inline task", "comment.inlinetask"),
+    ("The footnote's text.", "[fn:1]", "markup.link.url.footnote"),
+]
+
+# The agenda of HIGHLIGHT_AGENDA on 2026-05-18 at 10:30, in the language
+# `org-agenda` that editors/helix/languages.toml gives the agenda's file.
+HIGHLIGHT_AGENDA = [
+    "* TODO Today",
+    "SCHEDULED: <2026-05-18 Mon>",
+    "* TODO [#A] Earlier :work:",
+    "SCHEDULED: <2026-05-15 Fri>",
+    "* TODO Soon",
+    "DEADLINE: <2026-05-21 Thu>",
+    "* TODO Late",
+    "DEADLINE: <2026-05-16 Sat>",
+    "* DONE Finished",
+    "SCHEDULED: <2026-05-18 Mon>",
+    "* TODO Timed",
+    "SCHEDULED: <2026-05-18 Mon 11:00>",
+]
+AGENDA_COLORS = [
+    ("Week-agenda", "Week-agenda (W21):", "markup.heading.agenda"),
+    ("Monday", "Monday 18 May 2026 W21", "markup.heading.date"),
+    ("Tuesday", "Tuesday 19 May 2026", "markup.heading.date"),
+    ("Saturday", "Saturday 23 May 2026", "markup.italic.weekend"),
+    (" 8:00......", "8:00...... ----------------", "comment.timegrid"),
+    ("now - -", "10:30...... now - -", "markup.bold.now"),
+    ("Timed", "agenda: 11:00...... Scheduled:", "diff.plus.scheduled"),
+    ("Today", "agenda: Scheduled:", "diff.plus.scheduled"),
+    ("Today", "TODO", "diff.minus.todo"),
+    ("Today", "Today", "diff.plus.scheduled"),
+    ("Earlier", "Sched. 3x:", "diff.delta.scheduled"),
+    ("Earlier", "[#A]", "constant.numeric.priority"),
+    ("Earlier", ":work:", "tag"),
+    ("In   3 d.:", "agenda: In 3 d.:", "diff.delta.deadline"),
+    ("Late", "2 d. ago:", "diff.minus.deadline"),
+    ("Finished", "agenda: Scheduled:", "comment.done"),
+    ("Finished", "DONE", "diff.plus.done"),
+]
+
+
+def scope_colors(config):
+    """A theme with a color for each scope of the queries (and Python's
+    strings), set as Helix's theme: the colors by scope."""
+    names = {"string"}
+    for directory, _, files in os.walk(RUNTIME):
+        for file in files:
+            with open(os.path.join(directory, file), encoding="utf-8") as text:
+                names |= {name for name in re.findall(r"@([a-z][a-z0-9_.]*)", text.read())
+                          if not name.startswith("injection")}
+    colors = {name: (1, 2 + index // 200, 1 + index % 200) for index, name in enumerate(sorted(names))}
+    os.makedirs(os.path.join(config, "themes"))
+    with open(os.path.join(config, "themes", "org-lsp-scopes.toml"), "w", encoding="utf-8") as out:
+        out.write('"ui.background" = { bg = "#000000" }\n"ui.text" = "#fefefe"\n')
+        out.write('"ui.selection" = { bg = "#202020" }\n"ui.cursor" = { bg = "#303030" }\n')
+        # The code action menu shows its selection in reverse video.
+        out.write('"ui.menu.selected" = { modifiers = ["reversed"] }\n')
+        for name, color in colors.items():
+            out.write(f'"{name}" = "#{color[0]:02x}{color[1]:02x}{color[2]:02x}"\n')
+    with open(os.path.join(config, "config.toml"), "a", encoding="utf-8") as out:
+        out.write('theme = "org-lsp-scopes"\n')
+    # `theme` goes before the tables of config.toml.
+    with open(os.path.join(config, "config.toml"), encoding="utf-8") as file:
+        lines = file.read().splitlines()
+    with open(os.path.join(config, "config.toml"), "w", encoding="utf-8") as out:
+        out.write("\n".join([lines[-1], *lines[:-1]]) + "\n")
+    return {color: name for name, color in colors.items()}
+
+
+def check_colors(helix, scopes, expected):
+    """What of `expected` the screen does not show."""
+    rows = helix.colored_rows()
+    wrong = []
+    for part, words, scope in expected:
+        found = [(text, colors) for text, colors in rows if part in text]
+        if len(found) != 1:
+            wrong.append(f"{len(found)} rows with `{part}` on the screen")
+            continue
+        text, colors = found[0]
+        # The words, however many spaces apart.
+        match = re.search(r"\s+".join(re.escape(word) for word in words.split()), text)
+        if not match:
+            wrong.append(f"no `{words}` in `{text.strip()}`")
+            continue
+        shown = {scopes.get(colors[at]) for at in range(match.start(), match.end()) if not text[at].isspace()}
+        if shown != {scope}:
+            wrong.append(f"`{words}` is {', '.join(sorted(str(each) for each in shown))}, not {scope}")
+    return wrong
+
+
+def run_highlight():
+    """Org's colors in an Org file and in the agenda."""
+    with open(os.path.join(E2E, "highlight", "sample.org"), encoding="utf-8") as file:
+        sample = file.read()
+    helix = Helix("highlight", {"files": {"sample.org": sample, "agenda.org": HIGHLIGHT_AGENDA}})
+    scopes = scope_colors(helix.config)
+    # The theme's colors as they are.
+    helix.environment["COLORTERM"] = "truecolor"
+    wrong = []
+    try:
+        helix.start("sample.org")
+        # The file's start, then its end.
+        pending = list(SAMPLE_COLORS)
+        for line in (None, len(sample.splitlines())):
+            if line:
+                helix.command_line(f"goto {line}")
+            rows = helix.colored_rows()
+            here = [each for each in pending if any(each[0] in text for text, _ in rows)]
+            wrong += check_colors(helix, scopes, here)
+            pending = [each for each in pending if each not in here]
+        wrong += [f"`{part}` was not on the screen" for part, _, _ in pending]
+        helix.run({"command": "org.agenda.dispatch", "answers": ["a"]}, {})
+        if not helix.agenda():
+            raise Failure("no agenda")
+        wrong += check_colors(helix, scopes, AGENDA_COLORS)
+    finally:
+        helix.stop()
+    if wrong:
+        raise Failure("\n".join(wrong))
+
+
 def main():
     if not HX:
         sys.exit("set HX to the hx to run")
@@ -825,6 +1044,14 @@ def main():
             failed += 1
             print(f"not ok - {name}: {failure}")
         sys.stdout.flush()
+    if ONLY in "highlight":
+        start = time.monotonic()
+        try:
+            run_highlight()
+            print(f"ok - highlight ({time.monotonic() - start:.0f}s)")
+        except Failure as failure:
+            failed += 1
+            print(f"not ok - highlight: {failure}")
     print(f"helix: {failed} failed, in {time.monotonic() - began:.0f}s")
     sys.exit(1 if failed else 0)
 

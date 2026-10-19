@@ -17,13 +17,23 @@ its sections says what it should look like.
 * Setup
 
 - [ ] Installed with ~install.sh helix~: Org is in =~/.config/helix/languages.toml= with ~show_document = true~ and ~message_requests = false~ in its ~config~, and an Org file starts the server
+- [ ] ~install.sh helix~ also put Org's colors in =~/.config/helix/runtime/queries/org= and ~org-agenda~, and ~hx --health org-agenda~ shows the server and highlight queries
 - [ ] Code actions (~Space a~) list the Org commands where they apply
 - [ ] A command that asks for a choice says ~PROMPT: pick the answer from the code actions~, and the choices come first in the code actions; one that asks for text says ~PROMPT: answer with a rename at the cursor~, and ~Space r~ answers
 - [ ] Inlay hints show with ~display-inlay-hints = true~
 
 * Highlighting
 
-*Not in Helix:* Helix does not use semantic tokens: it colors Org with its own tree-sitter grammar.
+*Partly:* Helix has no semantic tokens: Org and the agenda are colored by tree-sitter queries of org-lsp's that ~install.sh~ puts in Helix's runtime, which see the words of the text, not what the server knows. TODO keywords are the usual ones (~TODO~, ~NEXT~, ~WAIT~, ~DONE~, ~CANCELLED~ …), not those of the settings or ~#+TODO:~; the agenda shows neither today nor the clocked line, and its leaders and prefix are the default ones; options of how things look are not followed. Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Helix lets no server hide text; inline code is not in its language's colors.
+
+- [ ] Headlines are colored by level; TODO and DONE keywords, priorities (~[#A]~) and tags have colors of their own
+- [ ] ~*bold*~, ~/italic/~, ~_underline_~, ~+strike+~, ~=verbatim=~ and =~code~= are colored
+- [ ] Timestamps, ~SCHEDULED:~ and ~DEADLINE:~, ~CLOCK:~ lines, drawers, ~#+~ keywords and ~#~ comments are colored
+- [ ] A ~#+begin_src python~ block shows its code in Python's colors
+- [ ] Table rules and bars, footnotes (~[fn:1]~), ~<<targets>>~, macros (~{{{x}}}~) and entities (~\alpha~) are colored
+- [ ] A subtree tagged ~:ARCHIVE:~ is shaded
+- [ ] With a theme that colors ~markup.heading.1~ to ~.6~ (~catppuccin_mocha~, ~kanagawa~, ~emacs~ …), each level has its own color; another theme colors every level as ~markup.heading~
+- [ ] The agenda (~Agenda.org~) shows its title and days as headings, the weekend's days apart, the time grid shaded, entries scheduled today, scheduled earlier and with deadlines in colors of their own, and done entries shaded
 
 * Folding and visibility
 
