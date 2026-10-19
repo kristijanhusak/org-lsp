@@ -37,7 +37,7 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#export-and-publishing][Export and publishing]] | 100% | 9 of 9 |
 | [[#citations][Citations]] | 82% | 9 of 11 |
 | [[#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% | 61 of 61 |
-| [[#indentation-and-formatting][Indentation and formatting]] | 88% | 7 of 8 |
+| [[#indentation-and-formatting][Indentation and formatting]] | 100% | 8 of 8 |
 | [[#notes-and-logging][Notes and logging]] | 100% | 6 of 6 |
 | [[#completion-and-editing-helpers][Completion and editing helpers]] | 100% | 4 of 4 |
 | [[#timers][Timers]] | 100% | 5 of 5 |
@@ -662,23 +662,25 @@ Where editors fall short:
 :CUSTOM_ID: indentation-and-formatting
 :END:
 
-88% (7 of 8)
+100% (8 of 8)
 
 - ✅ Virtual indentation (~org-indent-mode~, ~#+STARTUP: indent~)
 - ✅ Hidden leading stars (~org-hide-leading-stars~)
 - ✅ Hard indentation (~org-adapt-indentation~)
 - ✅ Indenting lines and regions (~org-indent-line~, ~org-indent-region~)
 - ✅ Aligning tables and tags
-- ❌ Lines a long line wraps into indented (~wrap-prefix~)
+- ✅ Lines a long line wraps into indented (~wrap-prefix~): under the line's own indentation, a headline's title, an item's text (~org-list-item-body-column~), past the prefix of virtual indentation where the editor can repeat it
 - ✅ Other widths of virtual indentation, stars left showing and ~org-adapt-indentation~ left on with it (~org-indent-indentation-per-level~, ~org-indent-mode-turns-on-hiding-stars~, ~org-indent-mode-turns-off-org-adapt-indentation~)
 - ✅ Numbered headlines (~org-num-mode~, ~#+STARTUP: num~), as inlay hints, with its options (~org-num-max-level~, ~org-num-skip-commented~, ~org-num-skip-footnotes~, ~org-num-skip-tags~, ~org-num-skip-unnumbered~)
 
 Where editors fall short:
 
-- Vim ❓: The lines a long line wraps into are not indented.
-- Sublime Text ❓: Virtual indentation shows as phantoms, the leading stars still showing; new lines are not indented as they are typed.
-- Zed ❓: Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed.
-- Helix ❓: Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed.
+- Neovim ❓: The lines a long line wraps into line up with its own indentation, a headline's title or an item's text ('breakindent'), without the prefix of virtual indentation before them: Neovim repeats no inline virtual text on them, and 'breakindentopt' shifts all the lines of a window alike.
+- Vim ❓: The lines a long line wraps into line up with its own indentation, a headline's title or an item's text ('breakindent'), without the prefix of virtual indentation before them: Vim repeats no virtual text on them, and 'breakindentopt' shifts all the lines of a window alike.
+- VS Code ❓: The lines a long line wraps into are not indented as Org does: VS Code indents them by the line's own leading whitespace (~editor.wrappingIndent~), the same way for every line, without the prefix of virtual indentation, a decoration it does not count.
+- Sublime Text ❓: Virtual indentation shows as phantoms, the leading stars still showing; new lines are not indented as they are typed. The lines a long line wraps into are not indented as Org does: Sublime Text indents them by the line's own leading whitespace (~indent_subsequent_lines~).
+- Zed ❓: Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. With soft wrap on, the lines a long line wraps into line up with the prefix and its own indentation, not with a headline's title or an item's text: Zed wraps under a line's leading blanks, inlay hints among them.
+- Helix ❓: Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. With soft wrap on (~soft-wrap.enable~), the lines a long line wraps into line up with the prefix and its own indentation, not with a headline's title or an item's text: Helix wraps under a line's leading blanks, inlay hints among them.
 
 * Notes and logging
 :PROPERTIES:

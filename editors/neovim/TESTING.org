@@ -381,8 +381,11 @@ its sections says what it should look like.
 
 * Indentation and formatting
 
+*Partly:* The lines a long line wraps into line up with its own indentation, a headline's title or an item's text ('breakindent'), without the prefix of virtual indentation before them: Neovim repeats no inline virtual text on them, and 'breakindentopt' shifts all the lines of a window alike.
+
 - [ ] A file with ~#+STARTUP: indent~ shows its text indented by level, the file unchanged
 - [ ] With ~#+STARTUP: hidestars~ only the last star shows
+- [ ] In a file with ~#+STARTUP: indent~, in a narrow window that wraps lines, a long headline goes on under its title and a long item under its text
 - [ ] With ~org_adapt_indentation = true~, a new line below a headline is indented
 - [ ] Re-indenting a selection indents it as Org does: ~=~
 - [ ] Formatting the file aligns tables and puts tags in their column

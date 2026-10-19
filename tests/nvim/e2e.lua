@@ -760,7 +760,7 @@ end)
 -- changing it: the text under a headline lines up with its title, and the
 -- leading stars are hidden.
 local virtual = vim.fn.tempname() .. '.org'
-vim.fn.writefile({ '#+STARTUP: indent', '* A', 'text', '** B' }, virtual)
+vim.fn.writefile({ '#+STARTUP: indent', '* A', 'text', '** B and a title that wraps' }, virtual)
 vim.cmd.edit(virtual)
 local virtual_ns = vim.api.nvim_create_namespace('org_lsp_virtual_indent')
 local function prefixes()
@@ -780,6 +780,28 @@ wait('the lines indented', function()
 end)
 eq(prefixes(), { { 2, 2 }, { 3, 1 }, { 3, 'star', 0 } }, 'the text below A at 2, B after 1 column, one star hidden')
 eq(line(3), 'text', 'the file is not changed')
+-- A headline that wraps goes on under its title (`wrap-prefix`, without
+-- the prefix): in a window of 24 columns, `** B and a title that` then
+-- `wraps` after its two stars and a space.
+vim.cmd('vsplit')
+vim.cmd('vertical resize 24')
+vim.wo.wrap = true
+vim.wo.linebreak = true
+vim.api.nvim_win_set_cursor(0, { 1, 0 })
+vim.cmd('redraw')
+local function screen_line(row)
+  local text = ''
+  for col = 1, 24 do
+    text = text .. vim.fn.screenstring(row, col)
+  end
+  return text
+end
+local headline_row = vim.fn.screenpos(0, 4, 1).row
+eq({ screen_line(headline_row), screen_line(headline_row + 1) }, {
+  '  * B and a title that  ',
+  '   wraps                ',
+}, 'the wrapped part of the headline under its title')
+vim.cmd('close')
 
 -- 21b. `org_fontify_whole_heading_line`: each headline's line is in the
 -- look of its level to the edge of the window; past `org_n_level_faces`

@@ -116,7 +116,7 @@ and lists the keys.
 | [[file:parity.org::#export-and-publishing][Export and publishing]] | 100% | ✅ |  |
 | [[file:parity.org::#citations][Citations]] | 82% | ❓ | The BibTeX commands' fields are asked for in turn, and the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. |
 | [[file:parity.org::#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% | ✅ |  |
-| [[file:parity.org::#indentation-and-formatting][Indentation and formatting]] | 88% | ❓ | Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. |
+| [[file:parity.org::#indentation-and-formatting][Indentation and formatting]] | 100% | ❓ | Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. With soft wrap on, the lines a long line wraps into line up with the prefix and its own indentation, not with a headline's title or an item's text: Zed wraps under a line's leading blanks, inlay hints among them. |
 | [[file:parity.org::#notes-and-logging][Notes and logging]] | 100% | ❓ | A note is one line, with no buffer to write it in: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. |
 | [[file:parity.org::#completion-and-editing-helpers][Completion and editing helpers]] | 100% | ✅ |  |
 | [[file:parity.org::#timers][Timers]] | 100% | ❓ | For a countdown's length, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. No timer in the status line: Zed has no place there for an extension's text. |

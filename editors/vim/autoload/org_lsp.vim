@@ -2099,8 +2099,10 @@ endfunction
 " Show the prefixes the server sent for a file (`org-lsp/virtualIndent`):
 " `lines` of `[line, prefix, wrap, hidden stars]`. The prefixes are text of
 " their own before the lines; Vim cannot repeat them on the lines a long
-" line wraps into, where 'breakindent' lines those up with the line's own
-" text instead.
+" line wraps into (`wrap-prefix`), where 'breakindent' lines those up with
+" the line's own text, as Org does past the prefix: its indentation, a
+" headline's title, a list item a column after its bullet
+" (`org-list-item-body-column`).
 function! s:virtual_indent(params) abort
   let nr = bufnr(org_lsp#uri_to_path(a:params.uri))
   if nr < 0 || !bufloaded(nr) || !s:has_virtual_text()
@@ -2127,7 +2129,7 @@ function! s:virtual_indent(params) abort
       call setwinvar(win, '&breakindent', 1)
       call setwinvar(win, '&breakindentopt', 'list:-1')
     endfor
-    call setbufvar(nr, '&formatlistpat', '^\s*\%([-+]\|\s\*\|\d\+[.)]\)\s\+')
+    call setbufvar(nr, '&formatlistpat', '^\*\+ \|^\s*\%([-+]\|\s\*\|\d\+[.)]\)\s')
   endif
 endfunction
 

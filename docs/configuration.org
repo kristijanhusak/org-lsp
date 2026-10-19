@@ -410,8 +410,9 @@ require('org-lsp').setup({
   -- Show files with `org-indent-mode` (`org_startup_indented`, `#+STARTUP:
   -- indent`) indented by level, without changing them, and hide leading
   -- stars (`org_hide_leading_stars`, `#+STARTUP: hidestars`; needs
-  -- `conceal`). Lines that wrap are not indented by level: Neovim cannot
-  -- repeat the prefix there.
+  -- `conceal`). A line that wraps goes on under its own text, a
+  -- headline's title, an item's text ('breakindent'), as Org's
+  -- `wrap-prefix`, but without the prefix: Neovim cannot repeat it there.
   virtual_indent = true,
 
   -- How the agenda and capture buffers open, and how big; see below.
@@ -660,6 +661,11 @@ what you set is merged into the defaults.
 | ~calendar_win_mode~ | ~'botright split'~ | The Ex command that opens the calendar's window (~'topleft split'~, ~'botright vsplit'~). A split is as high as the calendar.                                                                                                                       |
 | ~mappings~          | the server's       | Keys by scope (~global~, ~org~, ~agenda~, ~capture~, ~calendar~, ~columns~); see [[file:keys/vim.org][keys/vim.org]].                                                                                                                               |
 
+In a file shown indented (~virtual_indent~), a line that wraps goes on
+under its own text, a headline's title, an item's text ('breakindent', as
+Org's ~wrap-prefix~), but without the prefix before it: Vim cannot repeat
+virtual text there.
+
 For the clock in the statusline, and the relative timer or the countdown
 while one is on (~[0:25] (Write the report) <0:05:23>~):
 
@@ -790,7 +796,9 @@ The settings go in Zed's settings (*zed: open settings*):
 - ~inlay_hints~: files with ~org-indent-mode~ (~org_startup_indented~,
   ~#+STARTUP: indent~) show indented by level, without being changed,
   through inlay hints of blanks before their lines. The leading stars still
-  show; Zed cannot hide them. Pretty entities (~\alpha~ as ~α~) and the
+  show; Zed cannot hide them. With ~soft_wrap~, a line that wraps goes on
+  under those blanks and its own indentation, not under a headline's title
+  or an item's text as in Org. Pretty entities (~\alpha~ as ~α~) and the
   clock's times are inlay hints too.
 - ~lsp.org-lsp.binary.path~: a server binary of your own. Without it, the
   extension starts the one ~install.sh~ put beside it, ~org-lsp~ from PATH,
@@ -5555,7 +5563,9 @@ Show files indented by level without changing them (~org-indent-mode~): the
 text under a headline lines up with its title, and leading stars are hidden.
 ~#+STARTUP: indent~ and ~noindent~ decide for a file. It turns
 ~org_adapt_indentation~ off in such files, unless that is ~"headline-data"~.
-Editors that can show it: Neovim, and VS Code (not on wrapped lines).
+The lines a long line wraps into go on under its text, a headline's title or
+an item's text (~wrap-prefix~) in Neovim and Vim, without the prefix; under
+the prefix in Zed and Helix.
 
 - Org's option :: ~org-startup-indented~
 - Type :: boolean
