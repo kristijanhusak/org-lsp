@@ -63,7 +63,10 @@ writeFileSync(
       org_todo_keyword_faces: { TODO: ':foreground #ff8800 :weight bold' },
       org_priority_faces: { A: 'red' },
       org_tag_faces: { office: '#0088ff' },
-      org_capture_templates: [{ key: 't', description: 'Task', target: ['file', captured], template: '* TODO %?' }],
+      org_capture_templates: [
+        { key: 't', description: 'Task', target: ['file', captured], template: '* TODO %?' },
+        { key: 'w', description: 'Web', target: ['file', captured], template: ['* %:description', '%:link', '%i%?'] },
+      ],
       org_roam_enabled: true,
       org_roam_directory: roam,
       org_journal_enabled: true,
@@ -141,7 +144,16 @@ function countKeys(preset) {
 
 try {
   if (wanted('extension')) {
-    const env = { ORG_LSP_TEST_WORKSPACE: workspace, ORG_LSP_TEST_CAPTURED: captured, ORG_LSP_TEST_JOURNAL: journal };
+    // A state directory of its own, where the server says it listens for
+    // org-protocol URLs.
+    const state = mkdtempSync(join(tmpdir(), 'org-lsp-vscode-state-'));
+    const env = {
+      ORG_LSP_TEST_WORKSPACE: workspace,
+      ORG_LSP_TEST_CAPTURED: captured,
+      ORG_LSP_TEST_JOURNAL: journal,
+      ORG_LSP_TEST_SERVER: server,
+      XDG_STATE_HOME: state,
+    };
     await run('extension', workspace, env, userData());
   }
   if (wanted('highlight')) {

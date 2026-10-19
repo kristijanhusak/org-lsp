@@ -1776,6 +1776,66 @@
         }
       ]
     },
+    "org_protocol_default_template_key": {
+      "type": "string",
+      "description": "The keys of the capture template an `org-protocol://capture` URL uses when it names none (`template=`). (`org-protocol-default-template-key`)"
+    },
+    "org_protocol_data_separator": {
+      "type": "string",
+      "description": "An Emacs regular expression: what separates the parts of an old-style `org-protocol` URL (`org-protocol://capture:/x/URL/TITLE/BODY`). (`org-protocol-data-separator`)",
+      "default": "/+\\|\\?"
+    },
+    "org_protocol_project_alist": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "base_url",
+          "working_directory"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "What the project is called"
+          },
+          "base_url": {
+            "type": "string",
+            "description": "The URL of the published pages, with its last slash"
+          },
+          "working_directory": {
+            "type": "string",
+            "description": "The directory of their files, with its last slash"
+          },
+          "online_suffix": {
+            "type": "string",
+            "description": "Taken off the URL (.html)"
+          },
+          "working_suffix": {
+            "type": "string",
+            "description": "Put on in its place (.org)"
+          },
+          "rewrites": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "description": "Pairs of an Emacs regexp on the URL and a path, for URLs whose file is not there"
+          }
+        }
+      },
+      "description": "Where the files of `org-protocol://open-source` URLs are on this computer. Each has a `name`, the `base_url` of the pages (with its last slash) and the `working_directory` of their files (with its last slash, `~/` for the home directory), and may have an `online_suffix` taken off the URL (`.html`), a `working_suffix` put on in its place (`.org`), and `rewrites`, pairs of an Emacs regular expression on the URL, whose first group is taken out of it, and what goes after it, for a URL whose file is not there. The first whose `base_url` the URL has is tried first. (`org-protocol-project-alist`)",
+      "default": []
+    },
+    "org_protocol_editor": {
+      "type": "string",
+      "description": "The editor `org-lsp protocol` starts when no org-lsp runs, as a command line (`code`, `zed`, `kitty nvim`): it opens `org_default_notes_file` in it, or the file of an `open-source` URL, and the org-lsp that starts there takes the URL, within two minutes. Read from the shared file only. Without it, a stored link is kept for the next org-lsp that starts, and a capture fails."
+    },
     "org_directory": {
       "type": "string",
       "description": "Where the relative paths of capture targets are. (`org-directory`)",

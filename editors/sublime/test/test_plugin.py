@@ -662,6 +662,28 @@ class Tests(unittest.TestCase):
         later.pop()()
         self.assertEqual([journal.rowcol(f.begin())[0] for f in journal.folds], [1])
 
+    def test_runs_the_command_the_server_asks_for(self):
+        # A capture an org-protocol URL started (`org-lsp/runCommand`): run
+        # where the cursor is, with the server's fields on top.
+        self.view.cursor = self.view.text_point(2, 1)
+        session = Session([('result', None)])
+        self.Command.current = session
+        session.window = self.window
+        self.window.run_command = lambda name, args: self.plugin.OrgLspRunCommand(self.window).run(**args)
+        plugin = self.plugin.OrgLsp(lambda: session)
+        argument = {'keys': 'w', 'orgProtocol': {'props': [[':link', 'https://orgmode.org/']]}}
+        plugin.m_org_lsp_runCommand({'command': 'org.capture', 'argument': argument})
+        method, params = session.sent[0]
+        self.assertEqual((method, params['command']), ('workspace/executeCommand', 'org.capture'))
+        sent = params['arguments'][0]
+        self.assertEqual(sent['position'], {'line': 2, 'character': 1})
+        self.assertEqual((sent['keys'], sent['orgProtocol']), ('w', argument['orgProtocol']))
+        # The package says it runs them.
+        given = {}
+        configuration = types.SimpleNamespace(command=['other'], init_options=types.SimpleNamespace(set=given.__setitem__))
+        self.plugin.OrgLsp.on_pre_start(None, None, [], configuration)
+        self.assertIs(given['run_command'], True)
+
     def test_shows_the_timer_in_the_status_bar(self):
         later = []
         self.sublime.set_timeout = lambda f, delay=0: f() if delay == 0 else later.append(f)

@@ -231,6 +231,8 @@ class OrgLsp(AbstractPlugin):
         # Images in place of links and of LaTeX fragments, as phantoms
         # below their lines (`org.link.preview`, `org-lsp/images`).
         options.set('images', settings().get('org_images', True) is not False)
+        # Commands the server asks to run (`org-lsp/runCommand`).
+        options.set('run_command', True)
         return None
 
     # A file opens: the folds the server says it opens with closed
@@ -271,6 +273,16 @@ class OrgLsp(AbstractPlugin):
     # The lines of the agenda highlighted from edge to edge: the clocked entry.
     def m_org_lsp_lineHighlights(self, params) -> None:
         sublime.set_timeout(lambda: show_line_highlights(params))
+
+    # A command to run as from its key, where the cursor is, with fields
+    # of the server's: a capture an org-protocol URL started.
+    def m_org_lsp_runCommand(self, params) -> None:
+        if not isinstance(params, dict) or not isinstance(params.get('command'), str):
+            return
+        session = self.weaksession()
+        window = getattr(session, 'window', None) or sublime.active_window()
+        args = {'command': params['command'], 'argument': params.get('argument') or {}}
+        sublime.set_timeout(lambda: window.run_command('org_lsp_run', args))
 
     # Images in place of LaTeX fragments, made by Emacs.
     def m_org_lsp_images(self, params) -> None:
@@ -786,9 +798,12 @@ class OrgLspRunCommand(LspWindowCommand):
     # file open; it closes once the command is done.
     starter = None
 
-    def run(self, command: str, fallback=None, count=None) -> None:
+    def run(self, command: str, fallback=None, count=None, argument=None) -> None:
         session = self.session_by_name(SESSION)
         view = self.window.active_view()
+        # What the server asked the command to be run with
+        # (`org-lsp/runCommand`).
+        given = argument if isinstance(argument, dict) else {}
         if not session:
             # A key keeps its own meaning without a server (Enter types).
             if fallback and view:
@@ -797,7 +812,7 @@ class OrgLspRunCommand(LspWindowCommand):
                 sublime.status_message('org-lsp: the server is starting')
             else:
                 # The agenda, a capture: no Org file needs to be open.
-                self.start(lambda session: self.execute(session, view, command, {}, None))
+                self.start(lambda session: self.execute(session, view, command, dict(given), None))
             return
         if is_org(view):
             selection = view.sel()[0]
@@ -825,6 +840,7 @@ class OrgLspRunCommand(LspWindowCommand):
         # The org-roam buffer is hidden when it shows.
         if command == 'org.roam.buffer.toggle':
             context['visible'] = roam_buffer_shown(session, self.window)
+        context.update(given)
         self.execute(session, view, command, context, fallback)
 
     def start(self, then) -> None:

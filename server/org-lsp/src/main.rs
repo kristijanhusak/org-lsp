@@ -10,6 +10,7 @@ Usage: org-lsp [--stdio]
        org-lsp manifest
        org-lsp settings
        org-lsp command ADDRESS TOKEN COMMAND ROW COLUMN
+       org-lsp protocol URL
        org-lsp --version
 
 The server communicates over standard input and output.";
@@ -62,6 +63,25 @@ fn main() -> ExitCode {
             Ok(()) => ExitCode::SUCCESS,
             Err(error) => {
                 eprintln!("org-lsp command: {error}");
+                ExitCode::FAILURE
+            }
+        };
+    }
+    if arguments.first().is_some_and(|argument| argument == "protocol") {
+        // What the system runs for an `org-protocol://` URL.
+        if arguments[1..].iter().any(|argument| argument == "--help" || argument == "-h") {
+            print(&format!("{}\n", org_lsp::protocol::USAGE));
+            return ExitCode::SUCCESS;
+        }
+        return match org_lsp::protocol::run(&arguments[1..], &|name| std::env::var(name).ok()) {
+            Ok(message) => {
+                if !message.is_empty() {
+                    print(&format!("{message}\n"));
+                }
+                ExitCode::SUCCESS
+            }
+            Err(error) => {
+                eprintln!("org-lsp protocol: {error}");
                 ExitCode::FAILURE
             }
         };

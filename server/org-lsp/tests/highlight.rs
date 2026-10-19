@@ -181,6 +181,7 @@ struct Client {
 
 impl Client {
     fn start(options: Value) -> Client {
+        private_state();
         let (server_side, client_side) = Connection::memory();
         let server = std::thread::spawn(move || org_lsp::run(server_side).expect("server runs"));
         let mut client = Client { connection: client_side, server: Some(server), next_id: 0, initialize: Value::Null };
@@ -440,4 +441,15 @@ fn every_look_has_a_token_to_show_on() {
         }
     }
     assert!(missing.is_empty(), "no token for {missing:?}");
+}
+
+/// The servers of the tests keep what they leave for others (where they
+/// listen for org-protocol URLs) in a state directory of their own, not
+/// the user's.
+fn private_state() {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| {
+        let state = std::env::temp_dir().join(format!("org-lsp-test-state-{}", std::process::id()));
+        std::env::set_var("XDG_STATE_HOME", state);
+    });
 }

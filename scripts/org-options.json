@@ -643,11 +643,11 @@
   "org-plot/gnuplot-term-extra": "emacs"
  },
  "org-protocol.el": {
-  "org-protocol-reverse-list-of-files": "absent",
-  "org-protocol-project-alist": "absent",
-  "org-protocol-protocol-alist": "absent",
-  "org-protocol-default-template-key": "absent",
-  "org-protocol-data-separator": "absent"
+  "org-protocol-reverse-list-of-files": ["other", "~org-lsp protocol~ takes one URL at a time, as the system gives it: there is no list of file names from ~emacsclient~ to put back in order"],
+  "org-protocol-project-alist": "setting",
+  "org-protocol-protocol-alist": "lisp",
+  "org-protocol-default-template-key": "setting",
+  "org-protocol-data-separator": "setting"
  },
  "org-refile.el": {
   "org-log-refile": "setting",

@@ -612,6 +612,8 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
         orgDisplay: true,
         orgLineHighlights: true,
         orgImages: imagesEnabled(),
+        // Commands the server asks for (`org-lsp/runCommand`).
+        orgRunCommand: true,
       };
     },
     initialize() {},
@@ -694,6 +696,17 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
     // The headlines of a document org-journal showed, folded as it folds
     // them, or the subtrees a yank or paste folded.
     client.onNotification('org-lsp/folds', (params: JournalFolds) => void journalFolds(params));
+    // A command the server asks to run as from its key, where the cursor
+    // is, with fields of its own: a capture an org-protocol URL started.
+    const running = client;
+    client.onNotification('org-lsp/runCommand', (params: { command?: unknown; argument?: unknown } | null) => {
+      if (typeof params?.command !== 'string') {
+        return;
+      }
+      const here = (cursor(running)[0] ?? {}) as Record<string, unknown>;
+      const given = typeof params.argument === 'object' && params.argument ? params.argument : {};
+      void vscode.commands.executeCommand(params.command, { ...here, ...given });
+    });
     // The previews of the files open.
     const started = client;
     vscode.workspace.textDocuments.forEach((document) => void startupPreviews(started, document));

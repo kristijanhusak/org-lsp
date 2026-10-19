@@ -146,6 +146,9 @@ struct Client {
     org_client: bool,
     /// Where the command port's script goes (`command_script`).
     command_script: Option<PathBuf>,
+    /// The client runs a command the server asks it to
+    /// (`org-lsp/runCommand`): `experimental.orgRunCommand`, or `run_command`.
+    run_command: bool,
 }
 
 impl Client {
@@ -509,6 +512,22 @@ struct CaptureContext {
     answers: Option<Vec<String>>,
     /// What the editor would paste (`%c`, `%x`, `%^C`).
     clipboard: Option<String>,
+    /// A capture an `org-protocol://capture` URL started
+    /// (`org-protocol-capture`): the link's properties it stored.
+    org_protocol: Option<ProtocolCapture>,
+}
+
+/// What `org-protocol-capture` stores with `org-link-store-props`, for
+/// `%:keyword`, `%a` and `%i`: the keys with their colon, in order.
+#[derive(Debug, Clone, Default, Deserialize, serde::Serialize)]
+struct ProtocolCapture {
+    props: Vec<(String, Option<String>)>,
+}
+
+impl ProtocolCapture {
+    fn get(&self, key: &str) -> Option<&str> {
+        self.props.iter().find(|(name, _)| name == key).and_then(|(_, value)| value.as_deref())
+    }
 }
 
 /// The editing command that ran last, and the entry it ran on. Some
@@ -665,6 +684,11 @@ enum NoteLog {
 pub const TIMER: &str = "org-lsp/timer";
 /// The notification that asks the editor to save files, `{ "uris": [...] }`.
 pub const SAVE: &str = "org-lsp/save";
+/// The notification that asks the editor to run a command as from its
+/// key, `{ "command", "argument" }`, the argument's fields on top of
+/// those it sends where the cursor is: a capture an org-protocol URL
+/// started, for a client that announces `experimental.orgRunCommand`.
+pub const RUN_COMMAND: &str = "org-lsp/runCommand";
 /// The headlines' folds to open and close in a document org-journal shows.
 pub const FOLDS: &str = "org-lsp/folds";
 /// From the client: how many columns of text the window that shows the
@@ -914,6 +938,13 @@ struct Server {
     /// How the port's script starts a server when none answers: the Org
     /// file last opened, with the editor's command line.
     port_start: port::Start,
+    /// Where `org-lsp protocol` hands this server org-protocol URLs (see
+    /// `protocol`), and when the user was last seen working here: the
+    /// next URL goes to the server where that was last.
+    protocol: Option<crate::protocol::Listener>,
+    protocol_touched: Option<std::time::Instant>,
+    /// The options of `org-protocol.el`.
+    protocol_options: org_core::protocol::Options,
     /// Where the cursor was last seen in the agenda, for the port's
     /// commands that do not say: from the requests the client makes as
     /// the cursor moves, and from where the server put it.
@@ -1451,6 +1482,7 @@ pub fn run(connection: Connection) -> Result<()> {
     org_core::inlinetask::set_min_level(options.inlinetask_min_level());
     org_core::inlinetask::set_show_first_star(options.inlinetask_show_first_star.unwrap_or(false));
     let (port_sender, port_receiver) = crossbeam_channel::unbounded();
+    let (protocol_sender, protocol_receiver) = crossbeam_channel::unbounded::<crate::protocol::Sent>();
 
     let org_client = raw_params.pointer("/capabilities/experimental/orgClient").and_then(Value::as_bool) == Some(true)
         || options.org_client == Some(true);
@@ -1538,6 +1570,9 @@ pub fn run(connection: Connection) -> Result<()> {
             .as_deref()
             .map(|path| config::expand_home(path, &|name| std::env::var(name).ok()))
             .or_else(port::script_path),
+        run_command: raw_params.pointer("/capabilities/experimental/orgRunCommand").and_then(Value::as_bool)
+            == Some(true)
+            || options.run_command == Some(true),
     };
     // The prompt is a document the client fetches, or a file it reads
     // again when told.
@@ -1634,6 +1669,9 @@ pub fn run(connection: Connection) -> Result<()> {
         port_sender,
         port: None,
         port_start: port::Start::default(),
+        protocol: None,
+        protocol_touched: None,
+        protocol_options: options.protocol_options(),
         agenda_cursor: None,
         file_cursor: None,
         cursor_seen: None,
@@ -1904,6 +1942,10 @@ pub fn run(connection: Connection) -> Result<()> {
     // The port answers from the start: its script opens the agenda
     // without one open (`org.agenda.list`).
     server.open_port();
+    // org-protocol URLs: from the start, for any client; those left for
+    // a server that starts a moment later, once the editor is ready.
+    server.protocol_listen(protocol_sender);
+    let mut protocol_pending = crossbeam_channel::after(std::time::Duration::from_secs(1));
     let emacs_events = server.emacs.events().clone();
     // After `shutdown`, requests are refused and notifications dropped
     // until `exit`, which ends the server; an `exit` before it ends it as
@@ -1919,6 +1961,7 @@ pub fn run(connection: Connection) -> Result<()> {
         crossbeam_channel::select! {
             recv(connection.receiver) -> message => match message {
                 Ok(Message::Request(request)) => {
+                    server.protocol_touch();
                     if shut_down || request.method == lsp_types::request::Shutdown::METHOD {
                         let response = if shut_down {
                             let message = "The server is shutting down".to_string();
@@ -1936,6 +1979,7 @@ pub fn run(connection: Connection) -> Result<()> {
                     connection.sender.send(Message::Response(response))?;
                 }
                 Ok(Message::Notification(notification)) => {
+                    server.protocol_touch();
                     if notification.method == lsp_types::notification::Exit::METHOD {
                         exited = true;
                         break;
@@ -1951,6 +1995,17 @@ pub fn run(connection: Connection) -> Result<()> {
                 }
                 Err(_) => break,
             },
+            recv(protocol_receiver) -> sent => {
+                if let Ok(sent) = sent {
+                    let answer = guarded(&mut server, "org-protocol", |server| server.protocol_url(&sent.url))
+                        .unwrap_or_else(Err);
+                    let _ = sent.answer.send(answer);
+                }
+            }
+            recv(protocol_pending) -> _ => {
+                protocol_pending = crossbeam_channel::never();
+                let _ = guarded(&mut server, "org-protocol", Server::protocol_pending);
+            }
             recv(port_receiver) -> command => {
                 if let Ok(command) = command {
                     let _ = guarded(&mut server, &command.command.clone(), |server| server.run_from_port(command));
@@ -1971,6 +2026,9 @@ pub fn run(connection: Connection) -> Result<()> {
     let _ = guarded(&mut server, "the clock's file", Server::clock_save);
     if let Some(port) = &server.port {
         port.close();
+    }
+    if let Some(protocol) = &server.protocol {
+        protocol.close();
     }
     // Zed opens the agenda's tab again when it starts; the file stays for
     // it, and the next server takes it over.
@@ -6299,6 +6357,122 @@ impl Server {
         }
     }
 
+    /// Listen for org-protocol URLs (see `protocol`), and take the links
+    /// stored while no server ran.
+    fn protocol_listen(&mut self, sender: crossbeam_channel::Sender<crate::protocol::Sent>) {
+        let Some(directory) = crate::protocol::directory(&|name| std::env::var(name).ok()) else { return };
+        match crate::protocol::Listener::open(&directory, sender) {
+            Ok(listener) => self.protocol = Some(listener),
+            Err(error) => eprintln!("org-lsp: cannot listen for org-protocol URLs in {}: {error}", directory.display()),
+        }
+        self.protocol_touched = Some(std::time::Instant::now());
+        for link in crate::protocol::take_stored_links(&directory) {
+            self.stored_links.insert(0, link);
+        }
+    }
+
+    /// The user works in this editor: the next org-protocol URL is for
+    /// this server. Said at most every few seconds.
+    fn protocol_touch(&mut self) {
+        let Some(protocol) = &self.protocol else { return };
+        let now = std::time::Instant::now();
+        if self.protocol_touched.is_some_and(|touched| now.duration_since(touched).as_secs() < 3) {
+            return;
+        }
+        self.protocol_touched = Some(now);
+        protocol.touch();
+    }
+
+    /// The URLs `org-lsp protocol` left for a server that starts.
+    fn protocol_pending(&mut self) {
+        let Some(directory) = crate::protocol::directory(&|name| std::env::var(name).ok()) else { return };
+        for url in crate::protocol::take_pending(&directory) {
+            if let Err(error) = self.protocol_url(&url) {
+                self.show_message(MessageType::INFO, error);
+            }
+        }
+    }
+
+    /// What Org does with an org-protocol URL: what it says, or why it
+    /// does nothing.
+    fn protocol_url(&mut self, url: &str) -> std::result::Result<String, String> {
+        use org_core::protocol::Request as Asked;
+        let request = match org_core::protocol::parse(url, &self.protocol_options) {
+            Ok(Some(request)) => request,
+            Ok(None) => return Err(format!("no org-protocol handler for {url}")),
+            Err(refused) => {
+                self.show_message(MessageType::INFO, refused.error.clone());
+                return Err(refused.error);
+            }
+        };
+        match request {
+            // `org-protocol-store-link`: on the stored links, and as the
+            // latest kill for a client that sends none of its own.
+            Asked::StoreLink { url, title } => {
+                self.stored_links.insert(0, (url.clone(), title));
+                let message = org_core::protocol::store_link_message(&url);
+                self.kill = Some(url);
+                self.show_message(MessageType::INFO, message.clone());
+                Ok(message)
+            }
+            // `org-protocol-capture`: the link stored, and `org-capture`
+            // with the URL's template, run by the client as from its key,
+            // or else here.
+            Asked::Capture(capture) => {
+                if let Some((url, title)) = &capture.stored {
+                    self.stored_links.insert(0, (url.clone(), Some(title.clone())));
+                }
+                let mut argument = json!({ "orgProtocol": ProtocolCapture { props: capture.props } });
+                if let Some(template) = capture.template {
+                    argument["keys"] = json!(template);
+                }
+                if self.client.run_command {
+                    let params = json!({ "command": commands::CAPTURE, "argument": argument });
+                    let notification = Notification::new(RUN_COMMAND.to_string(), params);
+                    let _ = self.sender.send(Message::Notification(notification));
+                    return Ok(String::new());
+                }
+                let params = ExecuteCommandParams {
+                    command: commands::CAPTURE.to_string(),
+                    arguments: vec![argument.clone()],
+                    work_done_progress_params: Default::default(),
+                };
+                match self.run_command(params) {
+                    Ok(value) => {
+                        self.prompt_with_messages(commands::CAPTURE.to_string(), argument, &value);
+                        Ok(String::new())
+                    }
+                    Err(refusal) => {
+                        self.show_message(MessageType::INFO, refusal.message().to_string());
+                        Err(refusal.message().to_string())
+                    }
+                }
+            }
+            // `org-protocol-open-source`: the file the URL maps to, shown.
+            Asked::OpenSource { url } => {
+                let home = |name: &str| config::expand_home(name, &|name| std::env::var(name).ok());
+                let opened = org_core::protocol::open_source(&url, &self.protocol_options.projects, &|name| {
+                    crate::protocol::file_state(&home(name))
+                });
+                let said = opened.error.clone().or_else(|| opened.messages.last().cloned());
+                let Some(file) = opened.file else {
+                    if let Some(said) = &said {
+                        self.show_message(MessageType::INFO, said.clone());
+                    }
+                    return Err(
+                        said.unwrap_or_else(|| format!("No project of `org_protocol_project_alist` maps {url}"))
+                    );
+                };
+                let path = home(&file);
+                let path = std::path::absolute(&path).unwrap_or(path);
+                let uri = uri::from_path(&path).ok_or_else(|| format!("Cannot name {}", path.display()))?;
+                let params = ShowDocumentParams { uri, external: None, take_focus: Some(true), selection: None };
+                self.send_request::<ShowDocument>(params, None);
+                Ok(String::new())
+            }
+        }
+    }
+
     /// Open the command port, for a client that cannot run a command
     /// from a key (`command_actions`), and make its script this server's,
     /// unless another server answers there: that one keeps it until this
@@ -6861,8 +7035,21 @@ impl Server {
             return self.dispatch(argument.as_ref());
         }
         if params.command == commands::CAPTURE {
-            let context = argument.and_then(|value| serde_json::from_value(value).ok()).unwrap_or_default();
-            return self.capture(&context);
+            let context: CaptureContext =
+                argument.and_then(|value| serde_json::from_value(value).ok()).unwrap_or_default();
+            let mut result = self.capture(&context)?;
+            // From an org-protocol URL: what was stored goes along with
+            // each question, and once the capture is under way, Org says
+            // so (`org-protocol-capture`).
+            if let Some(protocol) = &context.org_protocol {
+                match result.pointer_mut("/input/context") {
+                    Some(Value::Object(asked)) => {
+                        asked.insert("orgProtocol".to_string(), json!(protocol));
+                    }
+                    _ => self.message = Some(org_core::protocol::CAPTURED.to_string()),
+                }
+            }
+            return Ok(result);
         }
         if params.command.starts_with("org.journal.") {
             return self.journal_command(&params.command, &argument.unwrap_or_else(|| json!({})));
@@ -9430,6 +9617,12 @@ impl Server {
             keys.push_str(context.input.as_deref().unwrap_or(""));
         }
         let chosen = templates.iter().find(|template| template.key == keys && !template.is_group());
+        // A URL's template is taken as it is (`org-capture-select-template`
+        // with keys): there is no menu to go on in.
+        let from_url = context.org_protocol.is_some() && answering.is_none() && context.input.is_none();
+        if chosen.is_none() && from_url && !keys.is_empty() {
+            return Err(format!("No capture template referred to by \"{keys}\" keys").into());
+        }
         let Some(template) = chosen.cloned() else {
             let next = template_choices(&templates, &keys);
             if next.is_empty() {
@@ -9480,7 +9673,15 @@ impl Server {
         }
         let document = context.text_document.as_ref().map(|document| document.uri.clone());
         let clipboard = context.clipboard.clone().unwrap_or_default();
-        let fill_context = self.capture_fill_context(document.as_ref(), context.position, default_time, clipboard);
+        let mut fill_context = self.capture_fill_context(document.as_ref(), context.position, default_time, clipboard);
+        // From an org-protocol URL: `org-store-link-plist` as the URL left
+        // it, with `org-capture-link-is-already-stored`.
+        if let Some(protocol) = &context.org_protocol {
+            fill_context.annotation = protocol.get(":annotation").unwrap_or("").to_string();
+            fill_context.initial = protocol.get(":initial").unwrap_or("").to_string();
+            fill_context.link_props =
+                protocol.props.iter().filter_map(|(key, value)| Some((key.clone(), value.clone()?))).collect();
+        }
         let text = template_text(&template);
         // `%[file]`: relative to the directory of the file captured from.
         let directory = from.and_then(uri::to_path).and_then(|path| path.parent().map(Path::to_path_buf));
