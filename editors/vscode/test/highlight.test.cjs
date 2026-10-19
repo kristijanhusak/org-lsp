@@ -2,7 +2,8 @@
 // server's tokens reach VS Code for every look the extension contributes
 // (`semanticTokenScopes`), in the Org file, the week's agenda, the TODO
 // list and the date prompt; every look's scopes get a color or a font style
-// from the color theme, as VS Code probes them; what Org hides is
+// from the color theme, and from the defaults of older versions, as VS Code
+// probes them; what Org hides is
 // concealed; and `org-lsp.headlineLevelColors` colors headlines by level.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -74,9 +75,14 @@ function themeRules(file) {
   return included.concat(colors);
 }
 
-/** The file of the color theme VS Code shows. */
-function activeTheme() {
-  const name = vscode.workspace.getConfiguration('workbench').get('colorTheme');
+/**
+ * The defaults of older versions of VS Code, which users keep: Dark+ and
+ * Light+ before 1.78, Dark Modern and Light Modern after.
+ */
+const OLDER_DEFAULTS = ['Dark+', 'Light+', 'Dark Modern', 'Light Modern'];
+
+/** The file of the color theme VS Code shows, or of the theme `name`. */
+function theme(name = vscode.workspace.getConfiguration('workbench').get('colorTheme')) {
   for (const candidate of vscode.extensions.all) {
     const nls = path.join(candidate.extensionPath, 'package.nls.json');
     const labels = fs.existsSync(nls) ? JSON.parse(fs.readFileSync(nls, 'utf8')) : {};
@@ -182,16 +188,18 @@ describe('Highlighting', () => {
   });
 
   it('gives every look a color or a font style from the color theme', () => {
-    const theme = activeTheme();
-    const rules = themeRules(theme.file);
-    assert.ok(rules.length > 0, `the token colors of ${theme.name}`);
-    const plain = [];
-    for (const [selector, scopes] of Object.entries(contributed().org)) {
-      if (!probe(rules, scopes)) {
-        plain.push(`${selector} (${scopes.join(', ')})`);
+    const shown = theme();
+    const plain = {};
+    for (const { name, file } of [shown, ...OLDER_DEFAULTS.filter((name) => name !== shown.name).map(theme)]) {
+      const rules = themeRules(file);
+      assert.ok(rules.length > 0, `the token colors of ${name}`);
+      for (const [selector, scopes] of Object.entries(contributed().org)) {
+        if (!probe(rules, scopes)) {
+          (plain[name] ??= []).push(`${selector} (${scopes.join(', ')})`);
+        }
       }
     }
-    assert.deepEqual(plain, [], `looks ${theme.name} gives no color`);
+    assert.deepEqual(plain, {}, 'looks color themes give no color');
   });
 
   it('colors headlines by level with org-lsp.headlineLevelColors', () => {

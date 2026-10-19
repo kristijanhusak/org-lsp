@@ -186,9 +186,10 @@ pub const LOOKS: &[Look] = &[
         &["meta.preprocessor.keyword.org", "meta.preprocessor", "comment"],
     ),
     look("block", &["@org.block", "@comment"], &["punctuation.definition.block.org", "comment"]),
-    // `org-quote` and `org-verse`, which are `org-block`.
-    look("quote", &["@org.quote", "@markup.quote"], &["markup.quote.org", "markup.quote"]),
-    look("verse", &["@org.verse", "@markup.quote"], &["markup.quote.verse.org", "markup.quote"]),
+    // `org-quote` and `org-verse`, which are `org-block`. Dark+, Light+
+    // and the Modern themes give `markup.quote` no color, but italics.
+    look("quote", &["@org.quote", "@markup.quote"], &["markup.quote.org", "markup.quote", "markup.italic"]),
+    look("verse", &["@org.verse", "@markup.quote"], &["markup.quote.verse.org", "markup.quote", "markup.italic"]),
     look("comment", &["@org.comment", "@comment"], &["comment.line.org", "comment"]),
     look(
         "bullet",
@@ -350,7 +351,13 @@ pub const LOOKS: &[Look] = &[
     look("*.inlinetask", &["@org.inlinetask", "Comment"], &["comment.inlinetask.org", "comment"]),
     // The date prompt, after Emacs's calendar and minibuffer faces.
     look("calendarHeader", &["Function"], &["entity.name.function.month.calendar.org", "entity.name.function"]),
-    look("calendarWeekday", &["Constant"], &["constant.other.weekday.calendar.org", "constant.other"]),
+    // `calendar-weekday-header`, `font-lock-constant-face`: Dark+, Light+
+    // and the Modern themes color `constant.language`, not `constant.other`.
+    look(
+        "calendarWeekday",
+        &["Constant"],
+        &["constant.other.weekday.calendar.org", "constant.other", "constant.language"],
+    ),
     look("calendarWeekday.weekend", &["Comment"], &["comment.weekend.calendar.org", "comment"]),
     look("calendarSelected", &["IncSearch"], &["markup.inverse.selected.calendar.org", "invalid.illegal"]),
     look("calendarPrompt", &["Question"], &["keyword.other.prompt.calendar.org", "keyword"]),
