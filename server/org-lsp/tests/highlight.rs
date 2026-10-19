@@ -63,6 +63,7 @@ const EXPECTED: &[(&str, &str, &str, &str)] = &[
     ("sample", "- [-] A partly ticked item", "[-]", "checkbox.partial"),
     ("sample", "- [ ] An item not ticked", "[ ]", "checkbox"),
     ("sample", "1. A numbered item", "1.", "bullet"),
+    ("sample", "- term :: its description", "term ::", "descriptionTerm"),
     ("sample", "* Complete lists [2/2]", "[2/2]", "cookie.done"),
     ("sample", "Text in *bold*", "bold", "text.bold"),
     ("sample", "Text in *bold*", "italic", "text.italic"),

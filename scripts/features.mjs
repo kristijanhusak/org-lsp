@@ -104,6 +104,7 @@ export const AREAS = [
       ['Blocks, keywords, drawers, properties and comments', true],
       ['Code in its language (`org-src-fontify-natively`)', true],
       ['Tables', true],
+      ['Lists: bullets, checkboxes, and the terms of description lists in bold (`org-list-dt`)', true],
       ['Footnotes, targets, macros, entities and LaTeX fragments', true],
       ['Archived subtrees shaded (`org-archived`)', true],
       ['Radio targets turning their words into links: highlighted, followed, document links', true],

@@ -63,6 +63,7 @@ fn describe_type(ty: TokenType) -> &'static str {
         TokenType::Outline => {
             "A headline or its stars in the color of its level, as Emacs's outline-N faces; never sent by the server: VS Code's org-lsp.headlineLevelColors turns headline and stars tokens into it"
         }
+        TokenType::DescriptionTerm => "The term of a description list item, with its ::",
     }
 }
 
@@ -201,6 +202,8 @@ pub const LOOKS: &[Look] = &[
         &["markup.list.checked.org", "markup.inserted", "string"],
     ),
     look("checkbox.partial", &["@org.checkbox.halfchecked", "@markup.list.unchecked"], &[]),
+    // `org-list-dt`: bold, as bold emphasis is.
+    look("descriptionTerm", &["@org.bold", "@markup.strong"], &["markup.bold.term.org", "markup.bold"]),
     look(
         "link",
         &["@org.hyperlink", "@markup.link"],

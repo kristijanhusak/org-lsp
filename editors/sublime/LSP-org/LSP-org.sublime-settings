@@ -50,6 +50,7 @@
     "bullet": "keyword.operator punctuation.definition.list.begin.markdown punctuation.definition.list.begin.org",
     "checkbox": "keyword.operator markup.list.unchecked.org",
     "checkbox.checked": "string markup.inserted markup.list.checked.org",
+    "descriptionTerm": "markup.bold markup.bold.term.org",
     "link": "string.other.link markup.underline.link markup.underline.link.org",
     "code": "string markup.inline.raw markup.inline.raw.org",
     "verbatim": "string markup.inline.raw markup.inline.raw.org",

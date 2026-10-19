@@ -398,6 +398,10 @@
     ]
   },
   {
+    "token_type": "descriptionTerm",
+    "font_weight": "bold"
+  },
+  {
     "token_type": "link",
     "style": [
       "link_uri"

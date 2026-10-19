@@ -14,7 +14,7 @@ Org's options, one by one, are under [[#options][Options]].
 
 | Feature | Parity | Done |
 |---+---+---|
-| [[#highlighting][Highlighting]] | 95% | 19 of 20 |
+| [[#highlighting][Highlighting]] | 95% | 20 of 21 |
 | [[#folding-and-visibility][Folding and visibility]] | 91% | 10 of 11 |
 | [[#headings-and-structure][Headings and structure]] | 96% | 25 of 26 |
 | [[#lists-and-checkboxes][Lists and checkboxes]] | 100% | 13 of 13 |
@@ -50,7 +50,7 @@ Org's options, one by one, are under [[#options][Options]].
 :CUSTOM_ID: highlighting
 :END:
 
-95% (19 of 20)
+95% (20 of 21)
 
 - ✅ Headlines by level, TODO keywords, priorities and tags
 - ✅ Emphasis, verbatim and code
@@ -60,6 +60,7 @@ Org's options, one by one, are under [[#options][Options]].
 - ✅ Blocks, keywords, drawers, properties and comments
 - ✅ Code in its language (~org-src-fontify-natively~)
 - ✅ Tables
+- ✅ Lists: bullets, checkboxes, and the terms of description lists in bold (~org-list-dt~)
 - ✅ Footnotes, targets, macros, entities and LaTeX fragments
 - ✅ Archived subtrees shaded (~org-archived~)
 - ✅ Radio targets turning their words into links: highlighted, followed, document links
