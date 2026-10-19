@@ -253,6 +253,43 @@ take at all (the date prompt, column view). A failure leaves a screenshot
 in ~target/zed-e2e~; ~ORG_LSP_ZED_KEEP=1~ keeps each scenario's directory,
 and ~ORG_LSP_ZED_PAUSE=1~ leaves Zed open at a failure, to look at.
 
+* Highlighting
+:PROPERTIES:
+:CUSTOM_ID: highlighting
+:END:
+
+~tests/e2e/highlight~ is a sample of every construct the server colours:
+~sample.org~, an agenda file (~agenda.org~: scheduled, deadlines near and
+far, an event, a range, a done entry, a blocked one, a running clock, a
+habit), a journal and daily notes for the date prompt, and the options
+they need (~options.json~, ~$DIR~ the directory it is copied to). Each
+check copies it and starts the server with those options.
+
+- ~server/org-lsp/tests/highlight.rs~ (~cargo test~): the tokens of the
+  file, the week's agenda, the TODO list and the date prompt at the places
+  its table ~EXPECTED~ names, which has every token type and modifier of
+  the legend; and a token for each look of the manifest's ~highlights~.
+  ~ORG_LSP_HIGHLIGHT_DUMP=1~ prints every token.
+- Neovim, ~tests/nvim/highlight.lua~ (~scripts/test-nvim.sh~): for each
+  look, the token's group drawn at a token it applies to, linked to the
+  group the manifest names, defined in the default colorscheme, and its
+  colors what shows where no more specific look applies; what Org hides
+  concealed.
+- Vim, ~editors/vim/test/highlight.vim~ (~editors/vim/test/run.sh~, each
+  client; ~ORG_LSP_VIM_TESTS=highlight~ for it alone): a text property of
+  each look's type, its group linked to one the colorscheme defines. Vim
+  conceals nothing.
+- VS Code, ~editors/vscode/test/highlight.test.cjs~ (~npm test -- highlight~):
+  a token for each look of ~semanticTokenScopes~, a color for each from
+  the color theme, probed as VS Code probes the scopes; what Org hides
+  concealed.
+- ~scripts/highlight-screenshots.py [nvim|helix|vscode|zed]~: pictures of
+  the sample in each editor, in ~target/highlight-screenshots~, to look
+  at (Zed and Helix have no other check). It reads ~NVIM~, ~HX~,
+  ~VSCODE_EXECUTABLE~, ~ZED~ and ~ZED_ORG_GRAMMAR~; VS Code's are taken by
+  ~npm test -- screenshots~. Helix has no semantic tokens: it shows its
+  own tree-sitter highlighting.
+
 * Setting up the tools
 :PROPERTIES:
 :CUSTOM_ID: setting-up-the-tools

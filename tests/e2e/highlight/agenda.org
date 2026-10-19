@@ -1,0 +1,31 @@
+#+CATEGORY: tasks
+* TODO [#A] Scheduled today :office:
+SCHEDULED: <2026-05-18 Mon 09:00>
+* TODO Scheduled before today
+SCHEDULED: <2026-05-15 Fri>
+* TODO Scheduled later
+SCHEDULED: <2026-05-21 Thu>
+* TODO Deadline today
+DEADLINE: <2026-05-18 Mon>
+* TODO [#C] Deadline in two days
+DEADLINE: <2026-05-20 Wed>
+* TODO Deadline far away
+DEADLINE: <2026-05-30 Sat>
+* Meeting <2026-05-19 Tue 14:00-15:00>
+* Conference <2026-05-20 Wed>--<2026-05-22 Fri>
+* DONE Done today
+CLOSED: [2026-05-18 Mon 08:00] SCHEDULED: <2026-05-18 Mon>
+* TODO Blocked by its child
+SCHEDULED: <2026-05-19 Tue>
+** TODO The child that blocks it
+* TODO Clocked in :office:
+SCHEDULED: <2026-05-18 Mon>
+:LOGBOOK:
+CLOCK: [2026-05-18 Mon 10:00]
+:END:
+* TODO Shave
+SCHEDULED: <2026-05-17 Sun .+2d/4d>
+:PROPERTIES:
+:STYLE: habit
+:END:
+- State "DONE"       from "TODO"       [2026-05-15 Fri 08:00]

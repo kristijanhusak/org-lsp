@@ -34,6 +34,14 @@ let g:org_lsp = {
       \   'org_capture_templates': [{'key': 't', 'description': 'Task', 'target': ['file', $ORG_LSP_TEST_WORK . '/notes/inbox.org'], 'template': '* TODO %?'}],
       \ },
       \ }
+" highlight.vim: the shared sample of highlighting, copied, and its options
+" (`$DIR` its directory) in place of these, as the server starts with them.
+if fnamemodify($ORG_LSP_TEST_FILE, ':t') ==# 'highlight.vim'
+  let s:sample = $ORG_LSP_TEST_WORK . '/highlight'
+  call system('cp -r ' . shellescape(s:here . '/../../../tests/e2e/highlight') . ' ' . shellescape(s:sample))
+  let s:options = join(readfile(s:sample . '/options.json'), "\n")
+  let g:org_lsp.settings = json_decode(substitute(s:options, '\$DIR', escape(s:sample, '\&'), 'g'))
+endif
 " download.sh: no server, but a release to download it from.
 if !empty($ORG_LSP_TEST_RELEASES)
   call remove(g:org_lsp, 'cmd')

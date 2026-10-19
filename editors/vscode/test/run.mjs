@@ -1,15 +1,18 @@
-// Run the extension's tests inside VS Code, then the shared end-to-end
-// scenarios (tests/e2e/scenarios) with the keys of each preset.
+// Run the extension's tests inside VS Code, the highlighting of the shared
+// sample, then the shared end-to-end scenarios (tests/e2e/scenarios) with
+// the keys of each preset.
 //
-//   npm test                 both
+//   npm test                 all three
 //   npm test -- extension    the extension's tests
+//   npm test -- highlight    the highlighting of the shared sample (tests/e2e/highlight)
+//   npm test -- screenshots  pictures of it, into ORG_LSP_TEST_SHOTS (only when named)
 //   npm test -- scenarios    the scenarios (ORG_LSP_E2E=NAME: those with NAME in their name)
 //   npm test -- scenarios vim    with the keys of one preset only
 //
 // Downloads VS Code unless VSCODE_EXECUTABLE names one. Needs a display;
 // on a headless machine run it under `xvfb-run -a`. The scenarios press
 // keys with `xdotool`, in the display VS Code is in.
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { runTests } from '@vscode/test-electron';
@@ -140,12 +143,43 @@ try {
     const env = { ORG_LSP_TEST_WORKSPACE: workspace, ORG_LSP_TEST_CAPTURED: captured, ORG_LSP_TEST_JOURNAL: journal };
     await run('extension', workspace, env, userData());
   }
+  if (wanted('highlight')) {
+    await runHighlight('highlight');
+  }
+  // Only when asked for: pictures, no checks.
+  if (parts.includes('screenshots')) {
+    await runHighlight('screenshots', {
+      'window.newWindowDimensions': 'maximized',
+      'workbench.startupEditor': 'none',
+      'editor.minimap.enabled': false,
+      'workbench.tips.enabled': false,
+    });
+  }
   if (wanted('scenarios')) {
     await runScenarios();
   }
 } catch (error) {
   console.error(error);
   process.exit(1);
+}
+
+/**
+ * The highlighting of the shared sample (tests/e2e/highlight), copied to a
+ * folder of its own, with its options (`$DIR` that folder): its checks
+ * (`highlight`), or its pictures (`screenshots`, into
+ * `ORG_LSP_TEST_SHOTS`), with VS Code's `settings`.
+ */
+async function runHighlight(suite, settings = {}) {
+  const folder = mkdtempSync(join(tmpdir(), 'org-lsp-vscode-highlight-'));
+  cpSync(join('..', '..', 'tests', 'e2e', 'highlight'), folder, { recursive: true });
+  const options = readFileSync(join(folder, 'options.json'), 'utf8').replaceAll('$DIR', folder);
+  mkdirSync(join(folder, '.vscode'));
+  writeFileSync(
+    join(folder, '.vscode', 'settings.json'),
+    JSON.stringify({ 'org-lsp.server.path': server, 'org-lsp.settings': JSON.parse(options) }),
+  );
+  const env = { ORG_LSP_TEST_HIGHLIGHT: folder, ORG_LSP_TEST_SHOTS: process.env.ORG_LSP_TEST_SHOTS ?? folder };
+  await run(suite, folder, env, userData(settings));
 }
 
 /**
