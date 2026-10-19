@@ -3533,6 +3533,20 @@ pub const SETTINGS: &[Setting] = &[
         )
     },
     Setting {
+        default: None,
+        unset: "from the client's capabilities",
+        integration: true,
+        ..setting(
+            "create_files",
+            "boolean",
+            "",
+            "",
+            "Whether an edit may make the files it is for (a `create` resource operation), as a new archive \
+             file from the agenda; else the server writes them itself. The Vim plugin turns it off: coc.nvim \
+             has the empty file it makes as one empty line, which the edit's text would then end with.",
+        )
+    },
+    Setting {
         integration: true,
         ..setting(
             "org_client",
@@ -4300,6 +4314,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ),
     ("virtual_documents", BOOLEAN),
     ("show_document", BOOLEAN),
+    ("create_files", BOOLEAN),
     ("org_client", BOOLEAN),
     ("message_prompts", BOOLEAN),
     ("line_highlights", BOOLEAN),

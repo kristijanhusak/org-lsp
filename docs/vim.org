@@ -100,9 +100,13 @@ command. [[file:keys/vim.org][keys/vim.org]] lists every key and how to change i
   link brackets and emphasis markers show.
 - With coc.nvim, the documents the server asks to show open where coc.nvim
   opens them (~coc.preferences.jumpCommand~), not as ~win_split_mode~ and
-  ~win_split_size~ say; and since coc.nvim passes on only an error's message,
-  a key that keeps its own meaning (~<C-a>~ off a timestamp) falls back to
-  it whenever the server refuses.
+  ~win_split_size~ say, but for the agenda and the date prompt, which the
+  plugin then moves to a window of their own. A file an edit is for that
+  is not loaded opens as ~workspace.openResourceCommand~ says, in a tab of
+  its own unless that is set (~""~ loads it without showing it, as the
+  other clients do). Since coc.nvim passes on only an error's message, a
+  key that keeps its own meaning (~<C-a>~ off a timestamp) falls back to it
+  whenever the server refuses.
 - With ALE, one server serves the session, started for the directory of
   the first Org file.
 
