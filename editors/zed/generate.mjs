@@ -75,7 +75,6 @@ const looks = {
   agendaDimmed: ['comment'],
   agendaTimeGrid: ['comment'],
   'agendaTimeGrid.current': ['emphasis.strong'],
-  agendaClocking: ['emphasis.strong'],
   '*.archived': ['comment'],
   // `org-headline-done` and `org-headline-todo` past a keyword, the
   // statistics cookie of `org-checkbox-statistics-done`, `org-inlinetask`.
@@ -94,11 +93,17 @@ levels.forEach((style, index) => {
 });
 
 // The looks of Org's that are a background only (the days of a habit's
-// graph) are the manifest's. A rule's color is the same with every theme:
-// Org's for a dark background, a little transparent, which shows close to
-// them on a dark theme and as a lighter shade of them on a light one.
+// graph, the entry the clock runs on) are the manifest's. Zed lets no
+// extension highlight a line from edge to edge: the clocked entry's line
+// has its background under its text, which its tokens cover, not past
+// its end. A rule's color is the same with every theme: Org's for a dark
+// background, a little transparent, which shows close to them on a dark
+// theme and as a lighter shade of them on a light one; more transparent
+// under the clocked entry's text, which it must leave readable.
 const backgrounds = Object.fromEntries(
-  manifest.highlights.filter((look) => look.background).map((look) => [look.token, `${look.background.dark}b3`]),
+  manifest.highlights
+    .filter((look) => look.background)
+    .map((look) => [look.token, look.background.dark + (look.token.startsWith('agendaHabit') ? 'b3' : '66')]),
 );
 
 function rule(selector, look) {

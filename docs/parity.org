@@ -363,7 +363,7 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❓: No clock in the status line: Zed has no place there for an extension's text.
+- Zed ❓: No clock in the status line: Zed has no place there for an extension's text. In the agenda, the clocked entry's line has the background of ~org-agenda-clocking~ under its text, not to the window's edge: Zed lets no extension highlight a line, only give its tokens a background, and the tokens end with the text.
 - Helix ❓: No clock in the status line: Helix has no place there for a server's text.
 
 * Capture

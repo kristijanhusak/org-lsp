@@ -160,7 +160,7 @@ its sections says what it should look like.
 
 * Clocking
 
-*Partly:* No clock in the status line: Zed has no place there for an extension's text.
+*Partly:* No clock in the status line: Zed has no place there for an extension's text. In the agenda, the clocked entry's line has the background of ~org-agenda-clocking~ under its text, not to the window's edge: Zed lets no extension highlight a line, only give its tokens a background, and the tokens end with the text.
 
 - [ ] Clocking into an entry whose effort its time passes shows ~Task ‘…’ should be finished by now. (0:30)~, once: the code action /Clock in/
 - [ ] Clocking in: ~:LOGBOOK:~ gets a ~CLOCK:~ line and the clock shows (~[0:01] (Task)~): the code action /Clock in/
@@ -172,7 +172,7 @@ its sections says what it should look like.
 - [ ] A clock table: inserted, then updated; shifting its ~:block~ on the ~#+BEGIN:~ line: the code action /Insert or update a clock table/, the code action /Update the dynamic block/
 - [ ] A clock left running when the editor closed is asked about (~Dangling clock started N mins ago [jkKtTgGSscCiq]? ~); ~K~ and Enter stops it now: the code action /Resolve open clocks/
 - [ ] With a clock left running and none clocked, clocking into another entry asks about it first: the code action /Clock in/
-- [ ] In the agenda, clocking in and out; the clocked line is highlighted from edge to edge: the code action /Clock in/, the code action /Clock out/
+- [ ] In the agenda, clocking in and out; the clocked line's text is highlighted: the code action /Clock in/, the code action /Clock out/
 
 * Capture
 

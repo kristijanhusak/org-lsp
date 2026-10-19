@@ -359,16 +359,20 @@ pub const LOOKS: &[Look] = &[
         &["@org.agenda.time_grid.current", "@markup.strong"],
         &["markup.bold.current-time.agenda.org", "markup.bold", "comment"],
     ),
-    // `org-agenda-clocking`: the line of the clocked entry, highlighted.
-    look(
+    // `org-agenda-clocking`: the line of the clocked entry, highlighted,
+    // with the background of `secondary-selection` it inherits for an
+    // editor that has no group or line highlight for it (Zed).
+    look_on(
         "agendaClocking",
         &["@org.agenda.clocking", "Visual"],
         &["markup.highlight.clocking.agenda.org", "markup.inserted"],
+        ("#ffff00", "#4a708b"),
     ),
-    look(
+    look_on(
         "*.clocking",
         &["@org.agenda.clocking", "Visual"],
         &["markup.highlight.clocking.agenda.org", "markup.inserted"],
+        ("#ffff00", "#4a708b"),
     ),
     // `org-agenda-dimmed-todo-face`: a task its dependencies block.
     look("agendaDimmed", &["@org.agenda.dimmed", "Comment"], &["comment.dimmed.agenda.org", "comment"]),

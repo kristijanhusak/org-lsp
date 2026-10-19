@@ -18,7 +18,8 @@ editor that is there is taken. The server is built first.
   editors/zed/test/run.py sets it up, the extension built with
   `cargo build --release --target wasm32-wasip2` in editors/zed. Zed has
   no highlighting test of its own: here it fails when a background its
-  rules give (a habit's days) shows nowhere in the agenda.
+  rules give (a habit's days, the clocked entry's line) shows nowhere in
+  the agenda.
 
 Helix has no semantic tokens: what it shows is its own tree-sitter
 highlighting, the server's tokens left aside.
@@ -191,11 +192,12 @@ def zed():
         script = os.path.join(editor.home, ".local", "state", "org-lsp", "agenda-command")
         with open(os.path.join(ROOT, "editors", "zed", "languages", "org", "semantic_token_rules.json")) as file:
             rules = json.load(file)
-        # The backgrounds the rules give: the days of a habit's graph.
+        # The backgrounds the rules give: the days of a habit's graph, and
+        # the line of the entry the clock runs on.
         backgrounds = {
-            ".".join([rule["token_type"], *rule.get("token_modifiers", [])]): rule["background_color"]
+            ".".join([rule.get("token_type", "*"), *rule.get("token_modifiers", [])]): rule["background_color"]
             for rule in rules
-            if "background_color" in rule and rule.get("token_type") == "agendaHabit"
+            if "background_color" in rule
         }
         missing = []
         for command, view in (("org.agenda.list", "agenda"), ("org.agenda.todos", "todo")):

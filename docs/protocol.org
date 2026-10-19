@@ -2045,7 +2045,8 @@ time.
   themes match scopes, most specific first. A look that is a background in
   Org has ~background~, ~{ "light", "dark" }~: the colors of Org's face on a
   light and a dark background (~#rrggbb~), for an editor whose theme has
-  none of its groups; the days of a habit's graph (~org-habit-clear-face~ …
+  none of its groups, or that takes no groups (Zed): the line of the
+  entry the clock runs on (~org-agenda-clocking~); the days of a habit's graph (~org-habit-clear-face~ …
   ~org-habit-overdue-future-face~) have no other. Only such a look can be a
   type with several modifiers (~agendaHabit.ready.future~), for the tokens
   that have all of them, over the looks of each modifier alone.
