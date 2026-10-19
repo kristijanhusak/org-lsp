@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Run the Vim plugin's tests against the real server, once per LSP client:
-# the plugin's own cases (test.vim), then the shared end-to-end scenarios
-# (tests/e2e/scenarios, by scenarios.vim), each scenario in a Vim of its
-# own, a few at a time.
+# the plugin's own cases (test.vim), the highlighting of the shared sample
+# (tests/e2e/highlight, by highlight.vim), then the shared end-to-end
+# scenarios (tests/e2e/scenarios, by scenarios.vim), each scenario in a Vim
+# of its own, a few at a time.
 #
 #   editors/vim/test/run.sh [lsp|vim_lsp|coc|ale ...]
 #
@@ -10,7 +11,8 @@
 # (yegappan/lsp), vim-lsp, coc.nvim (its release branch) and ale. VIM is
 # the Vim to use (9.1 or newer); ORG_LSP_BIN the server (default: the debug
 # build). Vim runs in a tmux session, as it needs a terminal.
-# ORG_LSP_VIM_TESTS is `cases` or `scenarios` for only those;
+# ORG_LSP_VIM_TESTS is `cases` (with the highlighting), `highlight` or
+# `scenarios` for only those;
 # ORG_LSP_E2E=NAME runs only the scenarios whose name has NAME in it, and
 # ORG_LSP_E2E_JOBS of them at a time (4). ORG_LSP_TEST_FILE,
 # ORG_LSP_TEST_PLUGIN and ORG_LSP_TEST_RELEASES are passed on (download.sh
@@ -52,7 +54,7 @@ finish() {
 
 for client in "$@"; do
   output="$(mktemp)"
-  if [ "$only" != scenarios ]; then
+  if [ "$only" != scenarios ] && [ "$only" != highlight ]; then
     work="$(mktemp -d)"
     session="org-lsp-vim-$client-$$"
     start "$client" "$session" 200x50 "$work" \
@@ -65,7 +67,20 @@ for client in "$@"; do
     echo "== $client"
     finish "$session" "$work" tests | tee -a "$output"
   fi
-  if [ "$only" != cases ] && [ -z "${ORG_LSP_TEST_FILE:-}" ]; then
+  # The highlighting of the shared sample (tests/e2e/highlight), in a Vim
+  # of its own: it starts the server with the sample's options.
+  if { [ -z "$only" ] || [ "$only" = cases ] || [ "$only" = highlight ]; } && [ -z "${ORG_LSP_TEST_FILE:-}" ]; then
+    work="$(mktemp -d)"
+    session="org-lsp-vim-$client-highlight-$$"
+    start "$client" "$session" 200x50 "$work" "ORG_LSP_TEST_FILE=$here/highlight.vim"
+    for _ in $(seq 1 1200); do
+      [ -f "$work/result.txt" ] && break
+      sleep 0.1
+    done
+    echo "== $client: highlighting"
+    finish "$session" "$work" highlighting | tee -a "$output"
+  fi
+  if [ "$only" != cases ] && [ "$only" != highlight ] && [ -z "${ORG_LSP_TEST_FILE:-}" ]; then
     echo "== $client: scenarios"
     names=()
     for file in "$root"/tests/e2e/scenarios/*.json; do

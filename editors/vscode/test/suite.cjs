@@ -1,5 +1,5 @@
 // Entry point VS Code loads in its extension host: runs the tests with Mocha,
-// those of `ORG_LSP_TEST_SUITE` (`extension`, `scenarios`).
+// those of `ORG_LSP_TEST_SUITE` (`extension`, `highlight`, `scenarios`).
 const path = require('node:path');
 const Mocha = require('mocha');
 

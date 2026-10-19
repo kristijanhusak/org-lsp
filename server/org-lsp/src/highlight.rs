@@ -835,7 +835,12 @@ impl Walker<'_> {
         if archived {
             for token in &mut self.out[after_stars..] {
                 if token.range.start() < headline_end {
-                    token.modifiers |= modifier::ARCHIVED;
+                    // In place of the level, as `org-archived` is
+                    // prepended over the level's face: an editor that
+                    // colors a type with a modifier (`headline.level1`)
+                    // over a modifier alone (`*.archived`) would show the
+                    // level.
+                    token.modifiers = (token.modifiers & !modifier::LEVELS) | modifier::ARCHIVED;
                 }
             }
         }
@@ -1315,7 +1320,7 @@ mod tests {
             expect![[r#"
                 0:0 "*" stars +level1
                 0:2 "TODO" todoKeyword +archived
-                0:7 "Old" headline +level1 +archived
+                0:7 "Old" headline +archived
                 0:11 ":x:ARCHIVE:" tag +archived
                 2:0 "*" stars +level1
                 2:2 "Plain" headline +level1
