@@ -267,8 +267,13 @@ function! s:agenda_hover() abort
   call win_gotoid(s:agenda_window())
   call s:until('its text', {-> search('Write report', 'n') > 0})
   " The agenda shows today first, which moves the cursor there, and again
-  " once it knows the window's width: the cursor goes to the entry once
-  " that is done.
+  " once it knows the window's width, its tags then at the window's edge:
+  " read again, it moves the cursor, which would close the popups. The
+  " cursor goes to the entry once that is done.
+  let agenda = win_getid()
+  let Report = {-> getbufline(winbufnr(agenda), search('Write report', 'n'))[0]}
+  let Width = {-> getwininfo(agenda)[0].width - getwininfo(agenda)[0].textoff}
+  call s:until('the agenda as wide as its window', {-> Report() =~# ':office:$' && strchars(Report()) == Width()})
   call s:until('the cursor to stay on the entry', function('s:stays_on', ['Write report']))
   let client = $ORG_LSP_TEST_CLIENT
   if client ==# 'coc'

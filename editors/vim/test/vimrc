@@ -16,6 +16,10 @@ let g:ale_lint_on_text_changed = 'never'
 " ALE tells of its server started, and Vim says nobody listens.
 autocmd User ALELSPStarted :
 let g:lsp_diagnostics_enabled = 0
+" vim-lsp's sign for code actions shows the sign column a moment after the
+" cursor stops, which narrows the agenda's window: the agenda is built
+" again for it, under a test that waits for something else.
+let g:lsp_document_code_action_signs_enabled = 0
 let g:org_lsp = {
       \ 'cmd': [$ORG_LSP_BIN],
       \ 'settings': {
