@@ -547,7 +547,7 @@ export const AREAS = [
       ['Clock tables with `org-clocktable-defaults`, words in other languages (`org-clock-clocktable-language-setup`) and the running clock counted (`org-clock-report-include-clocking-task`)', true],
     ],
     editors: {
-      zed: ['part', 'No clock in the status line: Zed has no place there for an extension\'s text.'],
+      zed: ['part', 'No clock in the status line: Zed has no place there for an extension\'s text. In the agenda, the clocked entry\'s line has the background of `org-agenda-clocking` under its text, not to the window\'s edge: Zed lets no extension highlight a line, only give its tokens a background, and the tokens end with the text.'],
       helix: ['part', 'No clock in the status line: Helix has no place there for a server\'s text.'],
     },
     checks: [
@@ -561,7 +561,8 @@ export const AREAS = [
       { text: 'A clock table: inserted, then updated; shifting its `:block` on the `#+BEGIN:` line', cmd: ['org.clock.report', 'org.dblock.update'] },
       { text: 'A clock left running when the editor closed is asked about (`Dangling clock started N mins ago [jkKtTgGSscCiq]? `); `K` and Enter stops it now', cmd: 'org.clock.resolve' },
       { text: 'With a clock left running and none clocked, clocking into another entry asks about it first', cmd: 'org.clock.in' },
-      { text: 'In the agenda, clocking in and out; the clocked line is highlighted from edge to edge', in: 'agenda', cmd: ['org.clock.in', 'org.clock.out'] },
+      { text: 'In the agenda, clocking in and out; the clocked line is highlighted from edge to edge', in: 'agenda', cmd: ['org.clock.in', 'org.clock.out'], not: ['zed'] },
+      { text: 'In the agenda, clocking in and out; the clocked line\'s text is highlighted', in: 'agenda', cmd: ['org.clock.in', 'org.clock.out'], only: ['zed'] },
       { text: 'The clock in the statusline (`clock_status()`)', only: ['neovim'] },
       { text: 'The clock in the statusline (`org_lsp#clock_status()`)', only: ['vim'] },
       { text: 'The clock in the status bar', only: ['vscode', 'sublime'] },

@@ -540,9 +540,7 @@
   },
   {
     "token_type": "agendaClocking",
-    "style": [
-      "emphasis.strong"
-    ]
+    "background_color": "#4a708b66"
   },
   {
     "token_type": "agendaDimmed",
@@ -573,5 +571,11 @@
       "strikethrough"
     ],
     "strikethrough": true
+  },
+  {
+    "token_modifiers": [
+      "clocking"
+    ],
+    "background_color": "#4a708b66"
   }
 ]
