@@ -77,9 +77,9 @@ local defaults = {
       ['org.journal.new.entry'] = '<Leader>jj',
     },
     org = { cycle = '<Tab>', global_cycle = '<S-Tab>', help = 'g?' },
-    -- `K` in the agenda is Emacs's (`org-agenda.habits`); the hover is
-    -- `gK`, beside Vim's `K`.
-    agenda = { quit = 'q', help = 'g?', hover = 'gK' },
+    -- `K` in the agenda is the hover, as `K` is in Vim; Emacs's `K`
+    -- (`org.agenda.habits`) goes without a key.
+    agenda = { quit = 'q', help = 'g?', hover = 'K' },
   },
 }
 
@@ -1139,7 +1139,7 @@ local function on_attach(client, bufnr)
   if M.manifest.datePrompt and vim.bo[bufnr].filetype == M.manifest.datePrompt.languageId then
     return set_keys('calendar', bufnr)
   end
-  -- An agenda entry in a float (`gK`): highlighted as any Org file, with
+  -- An agenda entry in a float (`K`): highlighted as any Org file, with
   -- no keys, indenting or folds.
   local preview = vim.b[bufnr].org_lsp_preview
   if not preview then

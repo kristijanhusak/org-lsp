@@ -187,7 +187,7 @@ its sections says what it should look like.
 - [ ] Moving the cursor in the agenda shows where its entry is, ~work.org/Projects~, in the echo area (the status bar in VS Code and Sublime Text)
 - [ ] Entry text, log mode, the clock report, archives mode: ~E~ or ~vE~, ~vl~, ~R~ or ~vR~, ~va~
 - [ ] In the week view, inactive timestamps show after ~[~ with /Display now includes inactive timestamps as well/, marked ~[~, and are gone again when the agenda is rebuilt: ~[~, ~v[~, ~r~
-- [ ] Hovering a line shows its entry: ~gK~
+- [ ] Hovering a line shows its entry: ~K~
 - [ ] Rebuilding the agenda, saving the changed files, quitting: ~r~, ~s~ or ~<C-x><C-s>~
 - [ ] An entry changed in its file shows in the agenda when it is rebuilt
 - [ ] Adding today's appointments: an entry timed a few minutes from now is reminded of every three minutes until it is due (needs Emacs): ~:Org agenda appt~

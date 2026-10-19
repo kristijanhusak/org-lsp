@@ -36,7 +36,7 @@ let s:defaults = {
       \     'org.journal.new.entry': '<Leader>jj',
       \   },
       \   'org': {'cycle': '<Tab>', 'global_cycle': '<S-Tab>', 'help': 'g?'},
-      \   'agenda': {'quit': 'q', 'hover': 'gK', 'help': 'g?'},
+      \   'agenda': {'quit': 'q', 'hover': 'K', 'help': 'g?'},
       \ },
       \ }
 
@@ -2613,7 +2613,7 @@ function! s:cterm_color(hex) abort
   return index
 endfunction
 
-" `gK` in the agenda: the entry of the line in a popup at the cursor, its
+" `K` in the agenda: the entry of the line in a popup at the cursor, its
 " headline and its text with each drawer folded, highlighted as the server
 " highlights Org files. It goes when the cursor moves.
 function! org_lsp#preview() abort

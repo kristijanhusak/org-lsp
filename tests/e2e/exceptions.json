@@ -1,7 +1,9 @@
 {
   "commands": {},
   "editors": {
-    "nvim": {},
+    "nvim": {
+      "org.agenda.habits": "K in the agenda is the plugin's hover, as K is in Vim; the command runs from its menu (g?) or a mapping of the user's."
+    },
     "vscode": {
       "org.todo.previous": "Emacs has no key of its own for it in an Org file: S-<left> on a headline (org.shift.left) cycles the state backward.",
       "org.priority.up": "Emacs has no key of its own for it in an Org file: S-<up> on a headline (org.shift.up) raises the priority.",
@@ -70,6 +72,9 @@
       "org.timestamp.down": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.).",
       "org.timestamp.up": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.).",
       "org.todo.previous": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.)."
+    },
+    "vim": {
+      "org.agenda.habits": "K in the agenda is the plugin's hover, as K is in Vim; the command runs from its menu (g?) or a mapping of the user's."
     }
   },
   "scenarios": {

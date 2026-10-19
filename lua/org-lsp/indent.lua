@@ -89,7 +89,7 @@ function M.virtual(params)
   if not bufnr or vim.lsp.util.buf_versions[bufnr] ~= params.version then
     return
   end
-  -- An entry in a float (`gK` in the agenda) is shown as it is: indented,
+  -- An entry in a float (`K` in the agenda) is shown as it is: indented,
   -- its lines would be wider than the float made for them.
   if vim.b[bufnr].org_lsp_preview then
     return

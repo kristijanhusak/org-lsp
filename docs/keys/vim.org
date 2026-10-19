@@ -407,7 +407,7 @@ The plugin adds keys of its own, which only an editor can carry out:
 | ~<Tab>~   | ~cycle~            | ~org~           | Cycle the visibility of the subtree at the cursor                |
 | ~<S-Tab>~ | ~global_cycle~     | ~org~           | Cycle the visibility of the whole file                           |
 | ~q~       | ~quit~             | ~agenda~        | Close the agenda                                                 |
-| ~gK~      | ~hover~            | ~agenda~        | Show the entry of the line in a popup at the cursor, highlighted |
+| ~K~       | ~hover~            | ~agenda~        | Show the entry of the line in a popup at the cursor, highlighted |
 | ~g?~      | ~help~             | ~org~, ~agenda~ | Show the keys of the buffer in a popup                           |
 
 A capture buffer is an Org file, so it has the keys of Org files as well as
