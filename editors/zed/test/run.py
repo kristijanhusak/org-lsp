@@ -34,9 +34,12 @@ and as `COMMAND count` those whose key is pressed once for a count;
 `snapshots.zed` what it shows otherwise, as `NAME STEP KIND`, and the
 steps it cannot take, as `NAME STEP`; and
 `scenarios.zed` the scenarios it cannot take at all. A failure leaves a
-screenshot in target/zed-e2e.
+screenshot in target/zed-e2e. A scenario fails when it takes more than
+`ORG_LSP_ZED_BUDGET` seconds (600); run.py stopped by a signal closes its
+Zeds and their displays.
 """
 
+import atexit
 import collections
 import concurrent.futures
 import json
@@ -74,6 +77,20 @@ class Failure(Exception):
     pass
 
 
+# How long a scenario may take in all (`ORG_LSP_ZED_BUDGET`, in seconds):
+# each wait has a bound of its own, and this one ends a scenario whose
+# waits all run long, with the step and what it waited for.
+BUDGET = float(os.environ.get("ORG_LSP_ZED_BUDGET", "600"))
+# The end of the budget of the scenario this thread runs.
+deadline = threading.local()
+
+
+def over_budget(what):
+    end = getattr(deadline, "at", None)
+    if end is not None and time.monotonic() > end:
+        raise Failure(f"the scenario took more than its {BUDGET:.0f}s, waiting for {what}")
+
+
 def until(what, probe, timeout=10.0, interval=0.05):
     """Wait until `probe` returns something truthy, and return it."""
     start = time.monotonic()
@@ -83,6 +100,7 @@ def until(what, probe, timeout=10.0, interval=0.05):
             return value
         if time.monotonic() - start > timeout:
             raise Failure(f"timed out waiting for {what}")
+        over_budget(what)
         time.sleep(interval)
 
 
@@ -135,6 +153,10 @@ class Log:
         # Every message shown, prompts too, in turn.
         self.shown = []
         self.waiting = {}
+        # When each request waiting was read, and the answers read before
+        # their request.
+        self.asked_at = {}
+        self.early = {}
         self.prompts = []
         # What the server asked Zed to show, and whether to focus it.
         self.shows = []
@@ -170,13 +192,23 @@ class Log:
         params = message.get("params") or {}
         key = (who, json.dumps(message.get("id")))
         if method and "id" in message:
-            self.waiting[key] = message
+            # proxy.py writes a request down before its answer; an answer
+            # met first (a log of an older proxy.py) answers it still.
+            early = self.early.pop(key, None)
+            if early is None:
+                self.waiting[key] = message
+                self.asked_at[key] = time.monotonic()
+            else:
+                self.answered(message, early)
         elif "id" in message:
             # An answer, to a request of the other side's.
             other = "server" if who == "zed" else "zed"
             request = self.waiting.pop((other, json.dumps(message.get("id"))), None)
+            self.asked_at.pop((other, json.dumps(message.get("id"))), None)
             if request:
                 self.answered(request, message)
+            else:
+                self.early[(other, json.dumps(message.get("id")))] = message
         if who == "zed":
             if method == "textDocument/didOpen":
                 document = params["textDocument"]
@@ -228,7 +260,19 @@ class Log:
         slow = {"textDocument/inlayHint", "textDocument/semanticTokens/full", "textDocument/documentLink",
                 "textDocument/codeLens", "textDocument/foldingRange", "workspace/diagnostic",
                 "textDocument/diagnostic", "window/showMessageRequest"}
-        return any(request.get("method") not in slow for request in self.waiting.values())
+        return [
+            (key, request) for key, request in self.waiting.items() if request.get("method") not in slow
+        ]
+
+    def unanswered(self, longer_than):
+        """The requests of `busy` that have waited more than `longer_than`
+        seconds for their answer, as `METHOD (id ID, from WHO)`."""
+        now = time.monotonic()
+        return [
+            f"{request.get('method')} (id {key[1]}, from {key[0]})"
+            for key, request in self.busy()
+            if now - self.asked_at.get(key, now) > longer_than
+        ]
 
 
 # ----- keys
@@ -359,6 +403,26 @@ def ended(text):
 
 
 DISPLAYS = threading.Lock()
+# The Zeds running, each with its display: what goes when run.py is
+# stopped, as Xvfb and Zed run in sessions of their own and would stay.
+RUNNING = set()
+RUNNING_LOCK = threading.Lock()
+
+
+def stop_all():
+    with RUNNING_LOCK:
+        running = list(RUNNING)
+    for zed in running:
+        zed.stop()
+
+
+def on_signal(number, _frame):
+    """Stopped (`timeout`'s SIGTERM, Ctrl-C): the Zeds and their displays
+    go too, and run.py ends as the signal would end it."""
+    signal.signal(number, signal.SIG_IGN)
+    print(f"stopped by signal {number}: closing {len(RUNNING)} Zed(s)", file=sys.stderr, flush=True)
+    stop_all()
+    os._exit(128 + number)
 
 
 def free_display():
@@ -386,6 +450,11 @@ class Zed:
         self.xvfb = None
         self.zed = None
         self.window = None
+        # Reentrant: a signal may come while this thread stops it.
+        self.stopping = threading.RLock()
+        self.stopped = False
+        with RUNNING_LOCK:
+            RUNNING.add(self)
 
     # --- setting up
 
@@ -489,26 +558,43 @@ class Zed:
         self.x(["xdotool", "windowmove", self.window, "0", "0"])
 
     def stop(self):
-        for process in (self.zed, self.xvfb):
-            if process and process.poll() is None:
-                try:
-                    os.killpg(process.pid, signal.SIGTERM)
-                except ProcessLookupError:
-                    pass
-        for process in (self.zed, self.xvfb):
-            if process:
-                try:
-                    process.wait(10)
-                except subprocess.TimeoutExpired:
-                    os.killpg(process.pid, signal.SIGKILL)
-        # Zed's processes and the server, whatever is left.
-        subprocess.run(["pkill", "-f", self.base], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        if not os.environ.get("ORG_LSP_ZED_KEEP"):
-            shutil.rmtree(self.base, ignore_errors=True)
+        """Zed, its server and the display go, once: at the scenario's
+        end, or when run.py is stopped (`stop_all`)."""
+        with self.stopping:
+            if self.stopped:
+                return
+            self.stopped = True
+            for process in (self.zed, self.xvfb):
+                if process and process.poll() is None:
+                    try:
+                        os.killpg(process.pid, signal.SIGTERM)
+                    except ProcessLookupError:
+                        pass
+            for process in (self.zed, self.xvfb):
+                if process:
+                    try:
+                        process.wait(5)
+                    except subprocess.TimeoutExpired:
+                        try:
+                            os.killpg(process.pid, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                        process.wait()
+            # Zed's processes, the proxy and the server are in Zed's process
+            # group; whatever has left it (its command line names the
+            # scenario's directory) goes too.
+            subprocess.run(["pkill", "-KILL", "-f", self.base], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if not os.environ.get("ORG_LSP_ZED_KEEP"):
+                shutil.rmtree(self.base, ignore_errors=True)
+        with RUNNING_LOCK:
+            RUNNING.discard(self)
 
-    def x(self, command):
+    def x(self, command, timeout=30):
         env = dict(os.environ, DISPLAY=f":{self.display}")
-        return subprocess.run(command, env=env, capture_output=True, text=True).stdout
+        try:
+            return subprocess.run(command, env=env, capture_output=True, text=True, timeout=timeout).stdout
+        except subprocess.TimeoutExpired:
+            raise Failure(f"`{' '.join(command[:2])}` took more than {timeout}s") from None
 
     def screenshot(self, path):
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -537,7 +623,9 @@ class Zed:
     def settle(self, quiet=0.5, timeout=20.0):
         """Wait until Zed and the server have done what they do: nothing
         is said for a while, nothing waits for an answer, and the title
-        stays."""
+        stays. Zed may go on talking for longer than `timeout` (the
+        moment then passed); a request with no answer for that long is a
+        failure."""
         start = time.monotonic()
         title = self.title()
         while True:
@@ -549,7 +637,11 @@ class Zed:
             if time.monotonic() - self.log.last_change > quiet and not self.log.busy():
                 return
             if time.monotonic() - start > timeout:
+                unanswered = self.log.unanswered(timeout)
+                if unanswered:
+                    raise Failure(f"no answer in {timeout:.0f}s to {', '.join(unanswered)}")
                 return
+            over_budget("Zed and the server to settle")
             time.sleep(0.05)
 
     def tasks_done(self):
@@ -598,8 +690,11 @@ class Zed:
     def pixels(self):
         """The screen, as rows of (r, g, b)."""
         env = dict(os.environ, DISPLAY=f":{self.display}")
-        data = subprocess.run(["import", "-window", "root", "-depth", "8", "rgb:-"], env=env,
-                              capture_output=True).stdout
+        try:
+            data = subprocess.run(["import", "-window", "root", "-depth", "8", "rgb:-"], env=env,
+                                  capture_output=True, timeout=30).stdout
+        except subprocess.TimeoutExpired:
+            raise Failure("the screen could not be read in 30s") from None
         return data
 
     def button_rows(self, count):
@@ -740,17 +835,22 @@ class Scenario:
             with open(path, "w", encoding="utf-8") as file:
                 file.write(text)
         self.zed.install(self.options())
-        self.zed.start()
+        deadline.at = time.monotonic() + BUDGET
         try:
+            self.zed.start()
             for index, step in enumerate(self.spec["steps"], 1):
                 try:
                     began = time.monotonic()
+                    over_budget(f"step {index} to begin")
                     self.step(index, step)
                     if os.environ.get("ORG_LSP_ZED_VERBOSE"):
                         print(f"{self.name} {index}: {time.monotonic() - began:.1f}s", flush=True)
                 except Failure as error:
                     shot = os.path.join(SHOTS, f"{self.name}-{index}.png")
-                    self.zed.screenshot(shot)
+                    try:
+                        self.zed.screenshot(shot)
+                    except Failure:
+                        shot = "(none: the screen could not be read)"
                     if os.environ.get("ORG_LSP_ZED_PAUSE"):
                         # Zed stays, for a look, until the file goes.
                         pause = os.path.join(self.zed.base, "pause")
@@ -760,6 +860,7 @@ class Scenario:
                             time.sleep(1)
                     raise Failure(f"step {index} {json.dumps(step)}: {error}\n  screenshot: {shot}") from None
         finally:
+            deadline.at = None
             self.zed.stop()
 
     def place(self, step):
@@ -1095,6 +1196,9 @@ def run_one(name, keys):
 def main():
     if not os.environ.get("ZED"):
         sys.exit("set ZED to Zed's command line (bin/zed)")
+    for number in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+        signal.signal(number, on_signal)
+    atexit.register(stop_all)
     only = os.environ.get("ORG_LSP_E2E", "")
     names = sorted(file[:-5] for file in os.listdir(os.path.join(E2E, "scenarios")) if file.endswith(".json"))
     names = [name for name in names if only in name and (not sys.argv[1:] or name in sys.argv[1:])]

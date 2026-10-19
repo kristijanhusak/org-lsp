@@ -255,7 +255,11 @@ is come from what it tells the server, which ~editors/zed/test/proxy.py~
 writes down; the current buffer is the window's title. ~snapshots.zed~ in
 the exceptions names what Zed shows otherwise as ~NAME STEP KIND~, and the
 steps it cannot take as ~NAME STEP~; ~scenarios.zed~ the scenarios it cannot
-take at all (the date prompt, column view). A failure leaves a screenshot
+take at all (the date prompt, column view). Each wait has a bound: a
+request left with no answer fails the step, and a scenario fails when it
+takes more than ~ORG_LSP_ZED_BUDGET~ seconds (600), with the step and what
+it waited for. Stopped (~SIGTERM~, ~SIGINT~), the adapter closes its Zeds
+and their displays. A failure leaves a screenshot
 in ~target/zed-e2e~; ~ORG_LSP_ZED_KEEP=1~ keeps each scenario's directory,
 and ~ORG_LSP_ZED_PAUSE=1~ leaves Zed open at a failure, to look at.
 
