@@ -77,7 +77,9 @@ local defaults = {
       ['org.journal.new.entry'] = '<Leader>jj',
     },
     org = { cycle = '<Tab>', global_cycle = '<S-Tab>', help = 'g?' },
-    agenda = { quit = 'q', help = 'g?' },
+    -- `K` in the agenda is the hover, as `K` is in Vim; Emacs's `K`
+    -- (`org.agenda.habits`) goes without a key.
+    agenda = { quit = 'q', help = 'g?', hover = 'K' },
   },
 }
 
@@ -785,9 +787,8 @@ local function keys_in(scope)
   end
   -- The keys of the mappings, the plugin's own (`q` for `quit`) and the
   -- user's, are theirs: a command of the server's with the same key goes
-  -- without it. `K` in the agenda stays Neovim's hover, which shows the
-  -- line's entry (Emacs's `K`, `org.agenda.habits`, goes without a key).
-  local mapped = scope == 'agenda' and { [vim.keycode('K')] = 'hover' } or {}
+  -- without it.
+  local mapped = {}
   for name, key in pairs(M.config.mappings[scope] or {}) do
     keys[name] = type(key) == 'table' and key or key and { key } or {}
     for _, lhs in ipairs(keys[name]) do
@@ -1126,8 +1127,6 @@ end
 ---@param client vim.lsp.Client
 ---@param bufnr integer
 local function on_attach(client, bufnr)
-  -- Neovim's hover shows Org text highlighted, as the server highlights it.
-  require('org-lsp.preview').install()
   if not M.manifest then
     return
   end

@@ -439,7 +439,7 @@ require('org-lsp').setup({
       ['org.journal.new.entry'] = '<Leader>jj',
     },
     org = { cycle = '<Tab>', global_cycle = '<S-Tab>' },
-    agenda = { quit = 'q' },
+    agenda = { quit = 'q', hover = 'K' },
   },
 })
 #+end_src

@@ -408,14 +408,8 @@ The plugin adds keys of its own, which only an editor can carry out:
 | ~<Tab>~   | ~cycle~            | ~org~           | Cycle the visibility of the subtree at the cursor       |
 | ~<S-Tab>~ | ~global_cycle~     | ~org~           | Cycle the visibility of the whole file                  |
 | ~q~       | ~quit~             | ~agenda~        | Close the agenda                                        |
-| none      | ~hover~            | ~agenda~        | Show the entry of the line in a float, highlighted      |
+| ~K~       | ~hover~            | ~agenda~        | Show the entry of the line in a float, highlighted      |
 | ~g?~      | ~help~             | ~org~, ~agenda~ | Show the keys of the buffer in a window (~q~ closes it) |
-
-In the agenda, Neovim's own ~K~ (~vim.lsp.buf.hover()~) shows the entry
-of the line: the plugin shows Org text the server answers a hover with in
-a float highlighted as Org files are, rather than as Markdown. Emacs's ~K~
-(~org.agenda.habits~) has no key there; ~hover~ maps the same float to
-another key.
 
 A capture buffer is an Org file, so it has the keys of Org files as well as
 its own; there ~<Leader>or~ refiles the captured entry rather than the

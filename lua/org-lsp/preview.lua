@@ -80,49 +80,6 @@ function M.open(client, lines)
   return win
 end
 
---- Show `lines` in a float for the buffer `source`, closed as a hover is:
---- when the cursor leaves the line, or the buffer for another window than
---- the float; from the float, when that is left.
----@param source integer
----@param client vim.lsp.Client
----@param lines string[]
----@return integer win
-local function present(source, client, lines)
-  local win = M.open(client, lines)
-  floats[source] = win
-  local group = vim.api.nvim_create_augroup('org_lsp_preview_' .. source, { clear = true })
-  local function close()
-    floats[source] = nil
-    pcall(vim.api.nvim_win_close, win, true)
-    pcall(vim.api.nvim_del_augroup_by_id, group)
-  end
-  vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI', 'InsertEnter' }, {
-    group = group,
-    buffer = source,
-    callback = close,
-  })
-  vim.api.nvim_create_autocmd('BufLeave', {
-    group = group,
-    buffer = source,
-    callback = vim.schedule_wrap(function()
-      if vim.api.nvim_get_current_win() ~= win then
-        close()
-      end
-    end),
-  })
-  vim.api.nvim_create_autocmd('WinLeave', {
-    group = group,
-    buffer = vim.api.nvim_win_get_buf(win),
-    callback = vim.schedule_wrap(close),
-  })
-  vim.api.nvim_create_autocmd('WinClosed', {
-    group = group,
-    pattern = tostring(win),
-    callback = close,
-  })
-  return win
-end
-
 --- Show the entry of the agenda line under the cursor; when its float
 --- shows already, go into it, as a second `K` does with Neovim's hover.
 function M.show()
@@ -147,46 +104,41 @@ function M.show()
     if vim.api.nvim_get_current_win() ~= from or not vim.deep_equal(vim.api.nvim_win_get_cursor(from), cursor) then
       return
     end
-    present(agenda, client, org_lines(contents.value))
+    local win = M.open(client, org_lines(contents.value))
+    floats[agenda] = win
+    local group = vim.api.nvim_create_augroup('org_lsp_preview_' .. agenda, { clear = true })
+    local function close()
+      floats[agenda] = nil
+      pcall(vim.api.nvim_win_close, win, true)
+      pcall(vim.api.nvim_del_augroup_by_id, group)
+    end
+    -- It goes when the cursor leaves the line, or the agenda for another
+    -- window than the float; from the float, when that is left.
+    vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI', 'InsertEnter' }, {
+      group = group,
+      buffer = agenda,
+      callback = close,
+    })
+    vim.api.nvim_create_autocmd('BufLeave', {
+      group = group,
+      buffer = agenda,
+      callback = vim.schedule_wrap(function()
+        if vim.api.nvim_get_current_win() ~= win then
+          close()
+        end
+      end),
+    })
+    vim.api.nvim_create_autocmd('WinLeave', {
+      group = group,
+      buffer = vim.api.nvim_win_get_buf(win),
+      callback = vim.schedule_wrap(close),
+    })
+    vim.api.nvim_create_autocmd('WinClosed', {
+      group = group,
+      pattern = tostring(win),
+      callback = close,
+    })
   end, agenda)
-end
-
---- Neovim's own hover (`K`, `vim.lsp.buf.hover()`) shows the server's Org
---- text as Markdown, which it highlights only with a tree-sitter parser
---- for Org. Org text of org-lsp's alone goes to the float of `M.open`
---- instead, highlighted by the server; a second hover goes into it, as
---- into Neovim's.
-function M.install()
-  local util = vim.lsp.util
-  if util.org_lsp_hover then
-    return
-  end
-  local original = util.open_floating_preview
-  util.org_lsp_hover = true
-  util.open_floating_preview = function(contents, syntax, opts)
-    opts = opts or {}
-    local source = vim.api.nvim_get_current_buf()
-    local client = vim.lsp.get_clients({ bufnr = source, name = 'org_lsp' })[1]
-    -- The server fences its Org text with more backticks than it holds.
-    local fence = type(contents) == 'table' and #contents >= 2 and type(contents[1]) == 'string' and contents[1]:match('^(```+)org$')
-    local org = client
-      and opts.focus_id == 'textDocument/hover'
-      and syntax == 'markdown'
-      and fence
-      and contents[#contents] == fence
-    if not org then
-      return original(contents, syntax, opts)
-    end
-    local open = floats[source]
-    if open and vim.api.nvim_win_is_valid(open) then
-      if opts.focus ~= false then
-        vim.api.nvim_set_current_win(open)
-      end
-      return vim.api.nvim_win_get_buf(open), open
-    end
-    local win = present(source, client, vim.list_slice(contents, 2, #contents - 1))
-    return vim.api.nvim_win_get_buf(win), win
-  end
 end
 
 return M
