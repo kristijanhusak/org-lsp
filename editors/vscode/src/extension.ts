@@ -586,6 +586,11 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
           return { success: true };
         }),
       },
+      // Headlines in the colors of their level, with
+      // `org-lsp.headlineLevelColors`. The server sends no deltas.
+      provideDocumentSemanticTokens: async (document, token, next) => levelColored(await next(document, token)),
+      provideDocumentRangeSemanticTokens: async (document, range, token, next) =>
+        levelColored(await next(document, range, token)),
     },
   };
   client = new LanguageClient('org-lsp', 'Org Language Server', serverOptions, clientOptions);
@@ -1665,6 +1670,44 @@ function imagesEnabled(): boolean {
   return vscode.workspace.getConfiguration('org-lsp').get<boolean>('images', true);
 }
 
+// ----- headline levels
+
+/**
+ * `org-lsp.headlineLevelColors`: the title and stars of a headline as a
+ * token of the type `outline`, with its level, which takes the theme's colors
+ * of code as Emacs's `outline-N` faces do (function, variable, keyword,
+ * comment …), in place of the one heading color themes give every level.
+ * Done and TODO headlines past their keyword, archived ones and inline tasks
+ * carry no level and keep their own look. The types and modifiers are the
+ * server's legend.
+ */
+function levelColored(tokens: vscode.SemanticTokens | null | undefined): vscode.SemanticTokens | null | undefined {
+  const legend = client?.initializeResult?.capabilities.semanticTokensProvider?.legend;
+  if (!tokens || !legend || !vscode.workspace.getConfiguration('org-lsp').get<boolean>('headlineLevelColors', false)) {
+    return tokens;
+  }
+  const outline = legend.tokenTypes.indexOf('outline');
+  const headlines = ['headline', 'stars'].map((type) => legend.tokenTypes.indexOf(type)).filter((index) => index >= 0);
+  const levels = legend.tokenModifiers.reduce((bits, name, bit) => (/^level[1-8]$/.test(name) ? bits | (1 << bit) : bits), 0);
+  if (outline < 0 || levels === 0) {
+    return tokens;
+  }
+  const data = new Uint32Array(tokens.data);
+  for (let i = 0; i + 4 < data.length; i += 5) {
+    if (headlines.includes(data[i + 3]) && (data[i + 4] & levels) !== 0) {
+      data[i + 3] = outline;
+    }
+  }
+  return new vscode.SemanticTokens(data, tokens.resultId);
+}
+
+/** Has VS Code ask for the tokens of the open documents again. */
+function refreshTokens(): void {
+  const feature = client?.getFeature('textDocument/semanticTokens');
+  const providers = new Set(vscode.workspace.textDocuments.map((document) => feature?.getProvider(document)));
+  providers.forEach((provider) => provider?.onDidChangeSemanticTokensEmitter.fire());
+}
+
 // ----- sparse trees
 
 const sparseDecoration = vscode.window.createTextEditorDecorationType({
@@ -2238,6 +2281,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
       const running = client;
       if (running) {
         setTimeout(() => void startupPreviews(running, document), 50);
+      }
+    }),
+    // Headlines in the colors of their level, or all in the heading's.
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration('org-lsp.headlineLevelColors')) {
+        refreshTokens();
       }
     }),
     // Images as high as a line.

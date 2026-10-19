@@ -47,6 +47,11 @@ describe('Screenshots', () => {
     await until('the tokens of the sample', () => tokens(sampleUri));
     editor.selection = new vscode.Selection(0, 0, 0, 0);
     await shoot('sample');
+    // Headlines in the colors of their level (`org-lsp.headlineLevelColors`).
+    const settings = () => vscode.workspace.getConfiguration('org-lsp');
+    await settings().update('headlineLevelColors', true, vscode.ConfigurationTarget.Global);
+    await shoot('sample-levels');
+    await settings().update('headlineLevelColors', undefined, vscode.ConfigurationTarget.Global);
     // The lines below the first screen.
     const lines = editor.document.lineCount;
     editor.revealRange(new vscode.Range(lines - 1, 0, lines - 1, 0), vscode.TextEditorRevealType.AtTop);

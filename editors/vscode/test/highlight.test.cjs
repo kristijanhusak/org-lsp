@@ -2,8 +2,8 @@
 // server's tokens reach VS Code for every look the extension contributes
 // (`semanticTokenScopes`), in the Org file, the week's agenda, the TODO
 // list and the date prompt; every look's scopes get a color or a font style
-// from the color theme, as VS Code probes them; and what Org hides is
-// concealed.
+// from the color theme, as VS Code probes them; what Org hides is
+// concealed; and `org-lsp.headlineLevelColors` colors headlines by level.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -147,6 +147,20 @@ describe('Highlighting', () => {
       return found?.some((token) => token.type === 'calendarJournal') && found;
     });
     await vscode.commands.executeCommand('org.calendar.cancel');
+
+    // Headlines in the colors of their level, then without them again.
+    const settings = () => vscode.workspace.getConfiguration('org-lsp');
+    await settings().update('headlineLevelColors', true, vscode.ConfigurationTarget.Global);
+    seen.levels = await until('headlines in the colors of their level', async () => {
+      const found = await tokens(sampleUri);
+      return found?.some((token) => token.type === 'outline') && found;
+    });
+    seen.org.push(...seen.levels);
+    await settings().update('headlineLevelColors', undefined, vscode.ConfigurationTarget.Global);
+    seen.plain = await until('headlines in the color of headings', async () => {
+      const found = await tokens(sampleUri);
+      return found?.every((token) => token.type !== 'outline') && found;
+    });
   });
 
   it('gets a token for every look it contributes', () => {
@@ -178,6 +192,26 @@ describe('Highlighting', () => {
       }
     }
     assert.deepEqual(plain, [], `looks ${theme.name} gives no color`);
+  });
+
+  it('colors headlines by level with org-lsp.headlineLevelColors', () => {
+    const at = (list, text) => list.filter((token) => token.text.trim() === text);
+    const look = (token) => [token.type, ...token.modifiers].join('.');
+    // On: the stars and title of each level are `outline` with the level.
+    assert.deepEqual(at(seen.levels, 'Headline level one').map(look), ['outline.level1']);
+    assert.deepEqual(at(seen.levels, 'Headline level two').map(look), ['outline.level2']);
+    assert.deepEqual(at(seen.levels, '**').map(look), ['outline.level2']);
+    // A done headline past its keyword keeps the look of done ones.
+    assert.deepEqual(at(seen.levels, 'A finished task').map(look), ['headline.done']);
+    // The levels take different scopes, none of them the heading's.
+    const scopes = contributed().org;
+    assert.notDeepEqual(scopes['outline.level1'], scopes['outline.level2']);
+    for (let level = 1; level <= 8; level++) {
+      assert.ok(!scopes[`outline.level${level}`].some((scope) => scope.startsWith('markup.heading')), `level ${level}`);
+    }
+    // Off: headlines and stars, as before.
+    assert.deepEqual(at(seen.plain, 'Headline level one').map(look), ['headline.level1']);
+    assert.deepEqual(at(seen.plain, '**').map(look), ['stars.level2']);
   });
 
   it('hides link brackets and emphasis markers', async () => {

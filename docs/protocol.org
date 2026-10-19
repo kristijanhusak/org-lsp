@@ -2198,6 +2198,7 @@ graph have no standard kind and get no token.
 |------------------+---------------------------------------------------------------------------------------------|
 | ~headline~       | The title text of a headline; ~levelN~ modifier                                             |
 | ~stars~          | The stars of a headline; ~levelN~ modifier                                                  |
+| ~outline~        | Never sent: VS Code's ~org-lsp.headlineLevelColors~ turns ~headline~ and ~stars~ into it    |
 | ~todoKeyword~    | A TODO keyword; ~done~ when it is a done state                                              |
 | ~priority~       | A priority cookie, ~[#A]~                                                                   |
 | ~tag~            | The tags of a headline, ~:a:b:~, as one token                                               |
@@ -2256,7 +2257,9 @@ faces:
 ** Modifiers
 
 - ~level1~ … ~level8~ :: On ~headline~ and ~stars~. Levels above eight wrap
-  around.
+  around. The looks of ~outline.level1~ … ~outline.level8~ are the colors of
+  ~outline-1~ … ~outline-8~ without the theme's heading color, for an
+  editor that colors levels as Emacs does on request.
 - ~done~ :: On ~todoKeyword~; on the rest of a done headline (~org-headline-done~),
   in place of its level; on a complete ~cookie~ (~[2/2]~, ~[100%]~).
 - ~inactive~ :: On ~timestamp~.

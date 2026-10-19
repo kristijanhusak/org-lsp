@@ -158,6 +158,11 @@ const EXPECTED: &[(&str, &str, &str, &str)] = &[
     ("calendar", "SCHEDULED Date+time", "SCHEDULED Date+time [2026-05-18]:", "calendarPrompt"),
 ];
 
+/// Token types the server never sends, which an editor makes of others:
+/// VS Code turns headlines and their stars into `outline`, with their
+/// level (`org-lsp.headlineLevelColors`).
+const MADE_BY_EDITORS: &[(&str, &[&str])] = &[("outline", &["headline", "stars"])];
+
 /// A client that answers what the server asks with yes.
 struct Client {
     connection: Connection,
@@ -391,6 +396,9 @@ fn the_sample_has_every_token_where_it_is_expected() {
     let parts: Vec<&str> = EXPECTED.iter().flat_map(|(_, _, _, selector)| selector.split('.')).collect();
     let types: Vec<&str> = EXPECTED.iter().map(|(_, _, _, selector)| selector.split('.').next().unwrap()).collect();
     for ty in names("tokenTypes") {
+        if MADE_BY_EDITORS.iter().any(|(made, _)| *made == ty) {
+            continue;
+        }
         assert!(types.contains(&ty.as_str()), "the token type `{ty}` is not in EXPECTED");
     }
     for modifier in names("tokenModifiers") {
@@ -399,7 +407,8 @@ fn the_sample_has_every_token_where_it_is_expected() {
 }
 
 /// Each look of the manifest (`type`, `type.modifier`, `*.modifier`) has
-/// a token of the sample to show on: what the editors' tests look at.
+/// a token of the sample to show on: what the editors' tests look at. The
+/// look of a type an editor makes shows on the tokens it is made of.
 #[test]
 fn every_look_has_a_token_to_show_on() {
     let (documents, manifest) = documents();
@@ -407,10 +416,12 @@ fn every_look_has_a_token_to_show_on() {
     for look in manifest["highlights"].as_array().unwrap() {
         let selector = look["token"].as_str().unwrap();
         let (ty, modifier) = selector.split_once('.').map_or((selector, None), |(ty, modifier)| (ty, Some(modifier)));
+        let made_of = MADE_BY_EDITORS.iter().find(|(made, _)| *made == ty).map(|(_, of)| *of);
         let found = documents.iter().flat_map(|(_, _, tokens)| tokens).any(|token| {
             let mut parts = token.selector.split('.');
             let token_type = parts.next().unwrap();
-            (ty == "*" || ty == token_type) && modifier.is_none_or(|modifier| parts.any(|part| part == modifier))
+            let of_type = ty == "*" || ty == token_type || made_of.is_some_and(|of| of.contains(&token_type));
+            of_type && modifier.is_none_or(|modifier| parts.any(|part| part == modifier))
         });
         if !found {
             missing.push(selector);

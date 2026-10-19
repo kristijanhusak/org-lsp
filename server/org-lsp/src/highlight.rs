@@ -73,6 +73,10 @@ token_types! {
     CalendarDailies => "calendarDailies",
     Quote => "quote",
     Verse => "verse",
+    // Never sent: VS Code makes it of headline and stars tokens, with their
+    // level, for `org-lsp.headlineLevelColors`. A type and not a modifier,
+    // as the modifiers fill the 32 bits LSP has for them.
+    Outline => "outline",
 }
 
 /// Token modifiers, in legend order; each is one bit.
@@ -234,7 +238,7 @@ pub mod standard {
             TokenType::Headline | TokenType::Priority | TokenType::Tag if has(modifier::DONE) => "comment",
             // `org-headline-todo`, copied from the string face.
             TokenType::Headline | TokenType::Priority | TokenType::Tag if has(modifier::TODO) => "string",
-            TokenType::Headline | TokenType::Stars => level(modifiers),
+            TokenType::Headline | TokenType::Stars | TokenType::Outline => level(modifiers),
             TokenType::TodoKeyword if has(modifier::DONE) => "string",
             TokenType::TodoKeyword | TokenType::Planning => "keyword",
             TokenType::Priority | TokenType::Cookie => "number",
