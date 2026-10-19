@@ -80,6 +80,40 @@ The server also reads [[file:configuration.org::#the-shared-configuration-file][
 ~org-lsp.settings~ goes on top of it. [[file:configuration.org][configuration.org]] has everything else:
 [[file:configuration.org::#vs-code][the extension's settings]] and [[file:configuration.org::#every-option-at-its-default][every option of the server]] with its default.
 
+** Headline levels in colors
+:PROPERTIES:
+:CUSTOM_ID: headline-levels-in-colors
+:END:
+
+Color themes give every heading the same color, so by default each level
+of headlines looks alike. With ~"org-lsp.headlineLevelColors": true~ each
+level takes a color of its own from the theme, as Emacs's ~org-level-N~
+faces take theirs from ~outline-1~ to ~outline-8~: the colors of function
+names, variables, keywords, comments, types, constants, built-ins and
+strings, the stars with the title. The text past a done keyword
+(~org_fontify_done_headline~) or a TODO one (~org_fontify_todo_headline~),
+archived headlines and inline tasks keep their own look. The change shows
+at once in the open files.
+
+The headlines then have the token type ~outline~ with the modifiers
+~level1~ to ~level8~, so ~editor.semanticTokenColorCustomizations~ picks
+other colors, for every theme or for one:
+
+#+begin_src json
+{
+  "org-lsp.headlineLevelColors": true,
+  "editor.semanticTokenColorCustomizations": {
+    "rules": {
+      "outline.level1:org": { "foreground": "#4f97d7", "bold": true },
+      "outline.level2:org": "#2d9574"
+    },
+    "[Default Light Modern]": {
+      "rules": { "outline.level1:org": "#3a81c3" }
+    }
+  }
+}
+#+end_src
+
 * Using it
 
 The commands are in the Command Palette under *Org*, and the changes that

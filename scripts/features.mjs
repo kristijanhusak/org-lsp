@@ -124,6 +124,7 @@ export const AREAS = [
     },
     checks: [
       { text: 'Headlines are colored by level; TODO and DONE keywords, priorities (`[#A]`) and tags have colors of their own' },
+      { text: 'With `"org-lsp.headlineLevelColors": true`, the stars and title of each level up to eight have a color of their own from the theme (a function\'s, a variable\'s, a keyword\'s, a comment\'s …), as Emacs\'s `outline-N` faces; a DONE headline is still in the look of done ones past its keyword; turned off, every level has the heading\'s color again', only: ['vscode'] },
       { text: 'With `org_fontify_todo_headline = true` the text of a TODO headline, and with `org_fontify_quote_and_verse_blocks = true` the lines of a quote block, take a look of their own', not: ['helix'] },
       { text: '`*bold*`, `/italic/`, `_underline_`, `+strike+`, `=verbatim=` and `~code~` are colored' },
       { text: 'A link shows its description alone; its brackets and target show when the cursor is on its line', not: ['vim', 'sublime', 'zed'] },

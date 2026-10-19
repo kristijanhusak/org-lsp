@@ -60,6 +60,9 @@ fn describe_type(ty: TokenType) -> &'static str {
         TokenType::CalendarDailies => "Date prompt: a day with a daily note of org-roam",
         TokenType::Quote => "The text of a quote block, with org_fontify_quote_and_verse_blocks",
         TokenType::Verse => "The text of a verse block, with org_fontify_quote_and_verse_blocks",
+        TokenType::Outline => {
+            "A headline or its stars in the color of its level, as Emacs's outline-N faces; never sent by the server: VS Code's org-lsp.headlineLevelColors turns headline and stars tokens into it"
+        }
     }
 }
 
@@ -125,6 +128,19 @@ pub const LOOKS: &[Look] = &[
     look("headline.level6", &["@org.headline.level6", "Type"], &["markup.heading.6.org", "constant.language"]),
     look("headline.level7", &["@org.headline.level7", "Special"], &["markup.heading.7.org", "support.function"]),
     look("headline.level8", &["@org.headline.level8", "String"], &["markup.heading.8.org", "string"]),
+    // The faces `org-level-N` inherit, `outline-1` to `outline-8`, in the
+    // theme's colors of code, without `markup.heading`, which themes give
+    // every level alike: what VS Code shows with
+    // `org-lsp.headlineLevelColors` (the server never sends `outline`).
+    look("outline", &[], &[]),
+    look("outline.level1", &[], &["entity.name.function.outline-1.org", "entity.name.function"]),
+    look("outline.level2", &[], &["variable.parameter.outline-2.org", "variable.parameter"]),
+    look("outline.level3", &[], &["keyword.outline-3.org", "keyword"]),
+    look("outline.level4", &[], &["comment.outline-4.org", "comment"]),
+    look("outline.level5", &[], &["storage.type.outline-5.org", "storage.type"]),
+    look("outline.level6", &[], &["constant.language.outline-6.org", "constant.language"]),
+    look("outline.level7", &[], &["support.function.outline-7.org", "support.function"]),
+    look("outline.level8", &[], &["string.outline-8.org", "string"]),
     look("stars", &[], &["punctuation.definition.heading.org", "markup.heading"]),
     look("stars.level1", &["@org.headline.level1", "Title"], &[]),
     look("stars.level2", &["@org.headline.level2", "Constant"], &[]),

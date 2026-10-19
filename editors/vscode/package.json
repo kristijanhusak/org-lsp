@@ -1640,6 +1640,11 @@
           "default": true,
           "markdownDescription": "Show images in place of links to image files and of LaTeX fragments (`C-c C-x C-v`, `C-c C-x C-l`; `#+STARTUP: inlineimages`, `latexpreview`). VS Code cannot leave lines free for an image: an image takes the height of a line, and shows whole on hover. LaTeX previews need Emacs, `latex` and `dvipng`."
         },
+        "org-lsp.headlineLevelColors": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Color each level of headlines as Emacs does (`outline-1` to `outline-8`), in the theme's colors of function names, variables, keywords, comments, types, constants, built-ins and strings. Off, every level has the theme's heading color. The text past a done or TODO keyword (`org_fontify_done_headline`, `org_fontify_todo_headline`), archived headlines and inline tasks keep their own look."
+        },
         "org-lsp.latexForeground": {
           "type": "string",
           "default": "",
@@ -6223,6 +6228,10 @@
       {
         "id": "verse",
         "description": "The text of a verse block, with org_fontify_quote_and_verse_blocks"
+      },
+      {
+        "id": "outline",
+        "description": "A headline or its stars in the color of its level, as Emacs's outline-N faces; never sent by the server: VS Code's org-lsp.headlineLevelColors turns headline and stars tokens into it"
       }
     ],
     "semanticTokenModifiers": [
@@ -6394,6 +6403,38 @@
           ],
           "headline.level8": [
             "markup.heading.8.org",
+            "string"
+          ],
+          "outline.level1": [
+            "entity.name.function.outline-1.org",
+            "entity.name.function"
+          ],
+          "outline.level2": [
+            "variable.parameter.outline-2.org",
+            "variable.parameter"
+          ],
+          "outline.level3": [
+            "keyword.outline-3.org",
+            "keyword"
+          ],
+          "outline.level4": [
+            "comment.outline-4.org",
+            "comment"
+          ],
+          "outline.level5": [
+            "storage.type.outline-5.org",
+            "storage.type"
+          ],
+          "outline.level6": [
+            "constant.language.outline-6.org",
+            "constant.language"
+          ],
+          "outline.level7": [
+            "support.function.outline-7.org",
+            "support.function"
+          ],
+          "outline.level8": [
+            "string.outline-8.org",
             "string"
           ],
           "stars": [
@@ -6735,6 +6776,38 @@
             "markup.heading.8.org",
             "string"
           ],
+          "outline.level1": [
+            "entity.name.function.outline-1.org",
+            "entity.name.function"
+          ],
+          "outline.level2": [
+            "variable.parameter.outline-2.org",
+            "variable.parameter"
+          ],
+          "outline.level3": [
+            "keyword.outline-3.org",
+            "keyword"
+          ],
+          "outline.level4": [
+            "comment.outline-4.org",
+            "comment"
+          ],
+          "outline.level5": [
+            "storage.type.outline-5.org",
+            "storage.type"
+          ],
+          "outline.level6": [
+            "constant.language.outline-6.org",
+            "constant.language"
+          ],
+          "outline.level7": [
+            "support.function.outline-7.org",
+            "support.function"
+          ],
+          "outline.level8": [
+            "string.outline-8.org",
+            "string"
+          ],
           "stars": [
             "punctuation.definition.heading.org",
             "markup.heading"
@@ -7072,6 +7145,38 @@
           ],
           "headline.level8": [
             "markup.heading.8.org",
+            "string"
+          ],
+          "outline.level1": [
+            "entity.name.function.outline-1.org",
+            "entity.name.function"
+          ],
+          "outline.level2": [
+            "variable.parameter.outline-2.org",
+            "variable.parameter"
+          ],
+          "outline.level3": [
+            "keyword.outline-3.org",
+            "keyword"
+          ],
+          "outline.level4": [
+            "comment.outline-4.org",
+            "comment"
+          ],
+          "outline.level5": [
+            "storage.type.outline-5.org",
+            "storage.type"
+          ],
+          "outline.level6": [
+            "constant.language.outline-6.org",
+            "constant.language"
+          ],
+          "outline.level7": [
+            "support.function.outline-7.org",
+            "support.function"
+          ],
+          "outline.level8": [
+            "string.outline-8.org",
             "string"
           ],
           "stars": [
