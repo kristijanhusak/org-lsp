@@ -335,8 +335,8 @@ Where editors fall short:
 Where editors fall short:
 
 - VS Code ❓: Tags are at column 80, not at the window's edge (~org_agenda_tags_column~ ~"auto"~): VS Code does not tell an extension how many columns an editor shows.
-- Sublime Text ❓: Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot.
-- Zed ❓: The agenda is a file, its commands code actions (or keys through Zed's tasks); for a search and a date, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Follow mode and the outline path of the cursor's entry are left out: Zed reports no cursor moves to an extension. Column view in the agenda is left out: it draws over the lines.
+- Sublime Text ❓: Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot. The days of a habit's graph take the colors of text, not Org's backgrounds: Sublime Text colors a token by its color scheme.
+- Zed ❓: The agenda is a file, its commands code actions (or keys through Zed's tasks); for a search and a date, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Follow mode and the outline path of the cursor's entry are left out: Zed reports no cursor moves to an extension. Column view in the agenda is left out: it draws over the lines. The days of a habit's graph have Org's backgrounds for a dark background, a little transparent, with any theme: an extension's colors for tokens are the same with every theme.
 - Helix ❓: The agenda is a file, ~Agenda.org~, its commands code actions, a view's choices first in them once asked for; for a search and a date, the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Follow mode, the outline path of the cursor's entry and the entry in another window are left out: Helix tells a server no cursor moves, and knows no other window of the server's. Column view in the agenda is left out: it draws over the lines. The server's edits leave the agenda's buffer changed: ~:buffer-close!~ closes it.
 
 * Clocking

@@ -124,7 +124,7 @@ server first, with a tab that says so and closes when the agenda opens.
 | [[file:parity.org::#tags][Tags]] | 88% | ❓ | Faces of particular tags are not shown: Sublime Text colors text by its color scheme only. |
 | [[file:parity.org::#properties-and-column-view][Properties and column view]] | 90% | ❓ | A property's name and value are typed in an input panel, without completion. Column view is left out: it draws over the headlines, which Sublime Text cannot. |
 | [[file:parity.org::#dates-and-times][Dates and times]] | 100% | ❓ | Dates are typed, without the calendar: the package asks with an input panel. |
-| [[file:parity.org::#agenda][Agenda]] | 100% | ❓ | Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot. |
+| [[file:parity.org::#agenda][Agenda]] | 100% | ❓ | Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot. The days of a habit's graph take the colors of text, not Org's backgrounds: Sublime Text colors a token by its color scheme. |
 | [[file:parity.org::#clocking][Clocking]] | 100% | ✅ |  |
 | [[file:parity.org::#capture][Capture]] | 100% | ✅ |  |
 | [[file:parity.org::#notes-org-roam][Notes (org-roam)]] | 88% | ✅ |  |

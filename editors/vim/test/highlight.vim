@@ -2,7 +2,8 @@
 " manifest's `highlights` table, a text property of its type in the shared
 " sample (tests/e2e/highlight: an Org file, the week's agenda, the TODO list
 " and the date prompt) where the server put a token it applies to, its
-" group linked to a group that the default colorscheme defines. run.sh
+" group linked to a group that the default colorscheme defines, or for a
+" habit's days with Org's background, which shows there. run.sh
 " sources it as vimrc sources test.vim (ORG_LSP_TEST_FILE); it writes
 " TAP-like lines to $ORG_LSP_TEST_RESULT.
 let s:work = $ORG_LSP_TEST_WORK
@@ -59,6 +60,10 @@ function! s:check_looks(nr, where) abort
     let prop = {}
     for lnum in range(1, len(getbufline(a:nr, 1, '$')))
       let found = prop_list(lnum, {'bufnr': a:nr, 'types': [type]})
+      " Of a look with a background, a place where it shows.
+      if has_key(look, 'background')
+        call filter(found, {_, p -> s:background_at(a:nr, lnum, p.col) ==# type})
+      endif
       if !empty(found)
         let prop = extend(found[0], {'lnum': lnum})
         break
@@ -73,12 +78,36 @@ function! s:check_looks(nr, where) abort
     let place = printf('%s line %d %s', a:where, prop.lnum, string(text))
     let group = prop_type_get(type).highlight
     let target = s:resolved(group)
-    if target ==# group || empty(target)
+    if has_key(look, 'background') && target ==# group
+      " Org's background (a habit's days), over the other properties there.
+      let wanted = get(look.background, &background)
+      let shown = s:background_at(a:nr, prop.lnum, prop.col)
+      if get(get(hlget(group), 0, {}), 'guibg', '') !=? wanted
+        call add(s:failures, printf('%s: %s has not the background of Org, %s, at %s', look.token, group, wanted, place))
+      elseif shown !=# type
+        call add(s:failures, printf('%s: %s shows the background of %s, at %s', look.token, group, shown, place))
+      endif
+    elseif target ==# group || empty(target)
       call add(s:failures, printf('%s: %s links to nothing, at %s', look.token, group, place))
     elseif !s:defined(target)
       call add(s:failures, printf('%s: %s (%s) has no definition, at %s', look.token, group, target, place))
     endif
   endfor
+endfunction
+
+" The property type whose background shows at a place: of those with one
+" there, the one of the highest priority.
+function! s:background_at(nr, lnum, col) abort
+  let best = ['', -1]
+  for found in prop_list(a:lnum, {'bufnr': a:nr})
+    let definition = prop_type_get(found.type)
+    let group = s:resolved(get(definition, 'highlight', ''))
+    if found.col <= a:col && a:col < found.col + found.length && !empty(get(get(hlget(group), 0, {}), 'guibg', ''))
+          \ && get(definition, 'priority', 0) > best[1]
+      let best = [found.type, get(definition, 'priority', 0)]
+    endif
+  endfor
+  return best[0]
 endfunction
 
 function! s:window(filetype) abort

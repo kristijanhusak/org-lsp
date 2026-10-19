@@ -16,12 +16,15 @@ editor that is there is taken. The server is built first.
   screen.
 - Zed (`ZED`, its `bin/zed`; `ZED_ORG_GRAMMAR`, an `org.wasm`) is set up as
   editors/zed/test/run.py sets it up, the extension built with
-  `cargo build --release --target wasm32-wasip2` in editors/zed.
+  `cargo build --release --target wasm32-wasip2` in editors/zed. Zed has
+  no highlighting test of its own: here it fails when a background its
+  rules give (a habit's days) shows nowhere in the agenda.
 
 Helix has no semantic tokens: what it shows is its own tree-sitter
 highlighting, the server's tokens left aside.
 """
 
+import collections
 import importlib.util
 import json
 import os
@@ -146,6 +149,22 @@ def vscode():
     subprocess.run(command, cwd=os.path.join(ROOT, "editors", "vscode"), env=env, check=True)
 
 
+def zed_backgrounds(screen, wanted):
+    """Which tokens of `wanted` ({token: color of its rule, `#rrggbbaa`})
+    show nowhere on `screen` (rows of r, g, b bytes): their color laid over
+    the editor's background, the color most of the screen has."""
+    counts = collections.Counter(screen[at : at + 3] for at in range(0, len(screen) - 2, 3))
+    background = counts.most_common(1)[0][0]
+    missing = []
+    for token, color in wanted.items():
+        rgb = [int(color[i : i + 2], 16) for i in (1, 3, 5)]
+        alpha = int(color[7:9] or "ff", 16) / 255
+        shown = [round(alpha * c + (1 - alpha) * b) for c, b in zip(rgb, background)]
+        if not any(all(abs(p - s) <= 2 for p, s in zip(pixel, shown)) for pixel in counts):
+            missing.append(f"{token} ({color}, as {bytes(shown).hex()})")
+    return missing
+
+
 def zed():
     os.environ.setdefault("ZED_ORG_GRAMMAR", "/root/zed/org.wasm")
     harness = load("zed_run", os.path.join(ROOT, "editors", "zed", "test", "run.py"))
@@ -170,12 +189,25 @@ def zed():
         # The tasks of these commands have no key: their command, as the
         # task runs it.
         script = os.path.join(editor.home, ".local", "state", "org-lsp", "agenda-command")
+        with open(os.path.join(ROOT, "editors", "zed", "languages", "org", "semantic_token_rules.json")) as file:
+            rules = json.load(file)
+        # The backgrounds the rules give: the days of a habit's graph.
+        backgrounds = {
+            ".".join([rule["token_type"], *rule.get("token_modifiers", [])]): rule["background_color"]
+            for rule in rules
+            if "background_color" in rule and rule.get("token_type") == "agendaHabit"
+        }
+        missing = []
         for command, view in (("org.agenda.list", "agenda"), ("org.agenda.todos", "todo")):
             subprocess.run([script, command], env=editor.environment(), cwd=editor.work, timeout=60, check=True)
             editor.settle(1.0, 30)
             time.sleep(3)
             editor.screenshot(os.path.join(OUT, f"zed-{view}.png"))
+            if view == "agenda":
+                missing = zed_backgrounds(editor.pixels(), backgrounds)
             editor.open(sample)
+        if missing:
+            raise RuntimeError("not shown in the agenda: " + ", ".join(missing))
     finally:
         editor.stop()
 

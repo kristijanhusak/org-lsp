@@ -105,7 +105,8 @@ const MODIFIER_DESCRIPTIONS: &[&str] = &[
 
 /// The default look of the tokens a selector matches.
 pub struct Look {
-    /// `type`, `type.modifier` or `*.modifier`.
+    /// `type`, `type.modifier` or `*.modifier`; or, for a look with a
+    /// background only, `type.modifier.modifier`: tokens with both.
     pub selector: &'static str,
     /// Vim highlight groups: the first one that is defined is used. The
     /// `@org.*` names are the groups nvim-orgmode colorschemes define.
@@ -113,10 +114,24 @@ pub struct Look {
     /// TextMate scopes, most specific first, as themes for VS Code and
     /// similar editors match them.
     pub textmate: &'static [&'static str],
+    /// For a look that is a background only, the background of Org's
+    /// face on a light and on a dark background: what an editor shows
+    /// when its theme has none of the groups above.
+    pub background: Option<(&'static str, &'static str)>,
 }
 
 const fn look(selector: &'static str, vim: &'static [&'static str], textmate: &'static [&'static str]) -> Look {
-    Look { selector, vim, textmate }
+    Look { selector, vim, textmate, background: None }
+}
+
+/// A look with the background of Org's face, `(light, dark)`.
+const fn look_on(
+    selector: &'static str,
+    vim: &'static [&'static str],
+    textmate: &'static [&'static str],
+    background: (&'static str, &'static str),
+) -> Look {
+    Look { selector, vim, textmate, background: Some(background) }
 }
 
 pub const LOOKS: &[Look] = &[
@@ -304,28 +319,40 @@ pub const LOOKS: &[Look] = &[
     look("agendaEvent", &[], &[]),
     look("agendaDone", &["@org.agenda.done", "Comment"], &["comment.done.agenda.org", "comment"]),
     // A habit's graph: Org colors the days' backgrounds, blue before a
-    // habit is due, green while it is, yellow on the day it must be done
-    // by and red after.
-    look(
+    // habit is due (`org-habit-clear-face`), green while it is
+    // (`org-habit-ready-face`), yellow on the day it must be done by
+    // (`org-habit-alert-face`) and red after (`org-habit-overdue-face`).
+    // No standard group has those backgrounds (Neovim's `DiffDelete` has
+    // none at all), so the editors take Org's colors.
+    look_on(
         "agendaHabit",
-        &["@org.agenda.habit.clear", "DiffChange"],
+        &["@org.agenda.habit.clear"],
         &["markup.changed.habit.agenda.org", "markup.changed"],
+        ("#8270f9", "#0000ff"),
     ),
-    look(
+    look_on(
         "agendaHabit.ready",
-        &["@org.agenda.habit.ready", "DiffAdd"],
+        &["@org.agenda.habit.ready"],
         &["markup.inserted.habit.agenda.org", "markup.inserted"],
+        ("#4df946", "#228b22"),
     ),
-    look(
+    look_on(
         "agendaHabit.alert",
-        &["@org.agenda.habit.alert", "DiffText"],
+        &["@org.agenda.habit.alert"],
         &["markup.changed.alert.habit.agenda.org", "markup.changed", "constant.numeric"],
+        ("#f5f946", "#ffd700"),
     ),
-    look(
+    look_on(
         "agendaHabit.overdue",
-        &["@org.agenda.habit.overdue", "DiffDelete"],
+        &["@org.agenda.habit.overdue"],
         &["markup.deleted.habit.agenda.org", "markup.deleted"],
+        ("#f9372d", "#b22222"),
     ),
+    // The `-future` faces, paler: a token has `future` with the others.
+    look_on("agendaHabit.future", &[], &[], ("#d6e4fc", "#191970")),
+    look_on("agendaHabit.ready.future", &[], &[], ("#acfca9", "#006400")),
+    look_on("agendaHabit.alert.future", &[], &[], ("#fafca9", "#b8860b")),
+    look_on("agendaHabit.overdue.future", &[], &[], ("#fc9590", "#8b0000")),
     look("agendaTimeGrid", &["@org.agenda.time_grid", "Comment"], &["comment.time-grid.agenda.org", "comment"]),
     look(
         "agendaTimeGrid.current",
@@ -384,7 +411,8 @@ pub const LOOKS: &[Look] = &[
 /// The legend with descriptions, and the default looks:
 /// `{ "tokenTypes": [{ "id", "description", "standard" }],
 ///    "tokenModifiers": [{ "id", "description" }],
-///    "highlights": [{ "token", "vim": [...], "textmate": [...] }] }`.
+///    "highlights": [{ "token", "vim": [...], "textmate": [...],
+///                     "background"?: { "light", "dark" } }] }`.
 pub fn manifest() -> Value {
     let types: Vec<Value> = TokenType::ALL
         .iter()
@@ -399,8 +427,14 @@ pub fn manifest() -> Value {
         .collect();
     let highlights: Vec<Value> = LOOKS
         .iter()
-        .filter(|look| !look.vim.is_empty() || !look.textmate.is_empty())
-        .map(|look| json!({ "token": look.selector, "vim": look.vim, "textmate": look.textmate }))
+        .filter(|look| !look.vim.is_empty() || !look.textmate.is_empty() || look.background.is_some())
+        .map(|look| {
+            let mut entry = json!({ "token": look.selector, "vim": look.vim, "textmate": look.textmate });
+            if let Some((light, dark)) = look.background {
+                entry["background"] = json!({ "light": light, "dark": dark });
+            }
+            entry
+        })
         .collect();
     json!({ "tokenTypes": types, "tokenModifiers": modifiers, "highlights": highlights })
 }
@@ -419,14 +453,18 @@ mod tests {
         let types: Vec<&str> = TokenType::ALL.iter().map(|ty| ty.name()).collect();
         let mut seen = Vec::new();
         for look in LOOKS {
-            let (ty, modifier) = match look.selector.split_once('.') {
-                Some((ty, modifier)) => (ty, Some(modifier)),
-                None => (look.selector, None),
-            };
+            let mut parts = look.selector.split('.');
+            let ty = parts.next().unwrap_or_default();
+            let modifiers: Vec<&str> = parts.collect();
             assert!(ty == "*" || types.contains(&ty), "unknown type in `{}`", look.selector);
             assert!(
-                modifier.is_none_or(|name| modifier::NAMES.contains(&name)),
+                modifiers.iter().all(|name| modifier::NAMES.contains(name)),
                 "unknown modifier in `{}`",
+                look.selector
+            );
+            assert!(
+                modifiers.len() < 2 || (ty != "*" && look.vim.is_empty() && look.textmate.is_empty()),
+                "`{}`: only a background can be given to several modifiers",
                 look.selector
             );
             assert!(!seen.contains(&look.selector), "`{}` is listed twice", look.selector);

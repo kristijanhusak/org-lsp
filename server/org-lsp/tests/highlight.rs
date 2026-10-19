@@ -149,6 +149,13 @@ const EXPECTED: &[(&str, &str, &str, &str)] = &[
     ("agenda", "Shave", "!", "agendaHabit.ready"),
     ("agenda", "Shave", "", "agendaHabit.alert.future"),
     ("agenda", "Shave", "", "agendaHabit.overdue.future"),
+    // One done on the 11th, due by the 12th: the days since overdue.
+    ("agenda", "Water the plants", "*", "agendaHabit"),
+    ("agenda", "Water the plants", "", "agendaHabit.alert.future"),
+    ("agenda", "Water the plants", "", "agendaHabit.overdue"),
+    ("agenda", "Water the plants", "!", "agendaHabit.overdue"),
+    // Done yesterday, due today.
+    ("agenda", "Stretch", "!", "agendaHabit.alert"),
     ("calendar", "May 2026", "May 2026", "calendarHeader"),
     ("calendar", "Mo Tu We", "Mo", "calendarWeekday"),
     ("calendar", "Mo Tu We", "Sa", "calendarWeekday.weekend"),
@@ -407,7 +414,8 @@ fn the_sample_has_every_token_where_it_is_expected() {
     }
 }
 
-/// Each look of the manifest (`type`, `type.modifier`, `*.modifier`) has
+/// Each look of the manifest (`type`, `type.modifier`, `*.modifier`,
+/// `type.modifier.modifier`) has
 /// a token of the sample to show on: what the editors' tests look at. The
 /// look of a type an editor makes shows on the tokens it is made of.
 #[test]
@@ -416,13 +424,16 @@ fn every_look_has_a_token_to_show_on() {
     let mut missing = Vec::new();
     for look in manifest["highlights"].as_array().unwrap() {
         let selector = look["token"].as_str().unwrap();
-        let (ty, modifier) = selector.split_once('.').map_or((selector, None), |(ty, modifier)| (ty, Some(modifier)));
+        let mut wanted = selector.split('.');
+        let ty = wanted.next().unwrap();
+        let modifiers: Vec<&str> = wanted.collect();
         let made_of = MADE_BY_EDITORS.iter().find(|(made, _)| *made == ty).map(|(_, of)| *of);
         let found = documents.iter().flat_map(|(_, _, tokens)| tokens).any(|token| {
             let mut parts = token.selector.split('.');
             let token_type = parts.next().unwrap();
+            let parts: Vec<&str> = parts.collect();
             let of_type = ty == "*" || ty == token_type || made_of.is_some_and(|of| of.contains(&token_type));
-            of_type && modifier.is_none_or(|modifier| parts.any(|part| part == modifier))
+            of_type && modifiers.iter().all(|modifier| parts.contains(modifier))
         });
         if !found {
             missing.push(selector);

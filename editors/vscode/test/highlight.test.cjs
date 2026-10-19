@@ -222,6 +222,40 @@ describe('Highlighting', () => {
     assert.deepEqual(at(seen.plain, '**').map(look), ['stars.level2']);
   });
 
+  it("draws a habit's days in the backgrounds of org-habit's faces", async () => {
+    await vscode.commands.executeCommand('org.agenda.list');
+    const editor = await until('the agenda', () => {
+      const shown = vscode.window.activeTextEditor;
+      return shown?.document.languageId === 'org-agenda' && shown.document.lineAt(0).text.startsWith('Week-agenda') && shown;
+    });
+    const api = extension().exports;
+    const lines = editor.document.getText().split('\n');
+    // The face of the day marked `mark` on the habit's line.
+    const day = (habit, mark) => {
+      const line = lines.findIndex((text) => text.includes(habit));
+      const character = lines[line].lastIndexOf(mark);
+      return api.habitDays(editor).find(([l, c]) => l === line && c === character)?.[2];
+    };
+    await until("the habits' days", () => day('Shave', '!'));
+    // Done on the 11th, due by the 12th, overdue since; due today; done on
+    // the 15th, in its time to be done today; days to come paler.
+    assert.equal(day('Water the plants', '*'), 'Clear');
+    assert.equal(day('Water the plants', '!'), 'Overdue');
+    assert.equal(day('Stretch', '!'), 'Alert');
+    assert.equal(day('Shave', '!'), 'Ready');
+    const faces = new Set(api.habitDays(editor).map(([, , face]) => face));
+    for (const face of ['Clear', 'ClearFuture', 'Ready', 'ReadyFuture', 'Alert', 'AlertFuture', 'Overdue', 'OverdueFuture']) {
+      assert.ok(faces.has(face), `a day in ${face}`);
+    }
+    // Each face's background is a color the extension contributes, Org's.
+    const colors = extension().packageJSON.contributes.colors;
+    const overdue = colors.find((color) => color.id === 'org.agendaHabitOverdueBackground');
+    assert.deepEqual([overdue?.defaults.light, overdue?.defaults.dark], ['#f9372d', '#b22222']);
+    for (const face of faces) {
+      assert.ok(colors.some((color) => color.id === `org.agendaHabit${face}Background`), face);
+    }
+  });
+
   it('hides link brackets and emphasis markers', async () => {
     const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(sampleUri));
     editor.selection = new vscode.Selection(0, 0, 0, 0);

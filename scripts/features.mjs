@@ -489,9 +489,9 @@ export const AREAS = [
       ['Appointment reminders (`org-agenda-to-appt`, through Emacs\'s `appt.el`): today\'s entries with a time, checked each minute, the reminders shown as messages', true],
     ],
     editors: {
-      sublime: ['part', 'Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot.'],
+      sublime: ['part', 'Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot. The days of a habit\'s graph take the colors of text, not Org\'s backgrounds: Sublime Text colors a token by its color scheme.'],
       vscode: ['part', 'Tags are at column 80, not at the window\'s edge (`org_agenda_tags_column` `"auto"`): VS Code does not tell an extension how many columns an editor shows.'],
-      zed: ['part', `The agenda is a file, its commands code actions (or keys through Zed's tasks); for a search and a date, ${ZED_TEXT}. Follow mode and the outline path of the cursor's entry are left out: Zed reports no cursor moves to an extension. Column view in the agenda is left out: it draws over the lines.`],
+      zed: ['part', `The agenda is a file, its commands code actions (or keys through Zed's tasks); for a search and a date, ${ZED_TEXT}. Follow mode and the outline path of the cursor's entry are left out: Zed reports no cursor moves to an extension. Column view in the agenda is left out: it draws over the lines. The days of a habit's graph have Org's backgrounds for a dark background, a little transparent, with any theme: an extension's colors for tokens are the same with every theme.`],
       helix: ['part', `The agenda is a file, \`Agenda.org\`, its commands code actions, a view's choices first in them once asked for; for a search and a date, ${HELIX_TEXT}. Follow mode, the outline path of the cursor's entry and the entry in another window are left out: Helix tells a server no cursor moves, and knows no other window of the server's. Column view in the agenda is left out: it draws over the lines. The server's edits leave the agenda's buffer changed: \`:buffer-close!\` closes it.`],
     },
     checks: [
@@ -499,6 +499,7 @@ export const AREAS = [
       { text: 'The week view: scheduled entries, deadlines with their warnings, the time grid', cmd: 'org.agenda.list', in: 'global' },
       { text: 'Later, earlier, today; day, week, month views; going to a date', in: 'agenda', cmd: ['org.agenda.later', 'org.agenda.earlier', 'org.agenda.today', 'org.agenda.day', 'org.agenda.week', 'org.agenda.month', 'org.agenda.goto.date'] },
       { text: 'Tags at the right edge of the window, following it as it is resized', only: ['neovim', 'vim', 'sublime'] },
+      { text: 'With `org_modules = ["org-habit"]`, a habit\'s consistency graph shows its days on the backgrounds of `org-habit`\'s faces: blue before it is due, green in its time to be done, yellow on the day it is due by, red past it, paler for the days the `-future` faces are for', cmd: 'org.agenda.list', in: 'global', not: ['sublime', 'helix'] },
       { text: 'The TODO list, a tag search (`work+urgent`), a word search', cmd: 'org.agenda.dispatch', in: 'global' },
       { text: 'With `org_super_agenda_mode` on and `org_super_agenda_groups` set (`[{ name = "Today", time-grid = true }, { auto-category = true }]`), each day of the agenda is in groups under their headers, and the TODO list too', cmd: 'org.agenda.list', in: 'global' },
       { text: 'With `org_agenda_prefix_format` `{ todo = " %-12:c%-4(org-entry-get nil \"EFFORT\") " }`, the TODO list shows each entry\'s effort after its category, `nil` without one (needs Emacs)', cmd: 'org.agenda.todos', in: 'global' },

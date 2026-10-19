@@ -1127,6 +1127,7 @@ local function on_attach(client, bufnr)
     return
   end
   require('org-lsp.highlights').attach_faces(bufnr)
+  require('org-lsp.highlights').attach_looks(bufnr, M.manifest)
   journal_files(client)
   if vim.bo[bufnr].filetype == M.manifest.agenda.languageId then
     return set_keys('agenda', bufnr)
