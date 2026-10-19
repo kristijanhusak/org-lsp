@@ -2,7 +2,7 @@
 // server's tokens reach VS Code for every look the extension contributes
 // (`semanticTokenScopes`), in the Org file, the week's agenda, the TODO
 // list and the date prompt; every look's scopes get a color or a font style
-// from the color theme, and from the defaults of older versions, as VS Code
+// from the color theme, and from every theme VS Code comes with, as VS Code
 // probes them; what Org hides is
 // concealed; and `org-lsp.headlineLevelColors` colors headlines by level.
 const assert = require('node:assert/strict');
@@ -75,25 +75,29 @@ function themeRules(file) {
   return included.concat(colors);
 }
 
-/**
- * The defaults of older versions of VS Code, which users keep: Dark+ and
- * Light+ before 1.78, Dark Modern and Light Modern after.
- */
-const OLDER_DEFAULTS = ['Dark+', 'Light+', 'Dark Modern', 'Light Modern'];
-
-/** The file of the color theme VS Code shows, or of the theme `name`. */
-function theme(name = vscode.workspace.getConfiguration('workbench').get('colorTheme')) {
+/** The color themes of the extensions installed, or of those VS Code comes with, as `{ name, file }`. */
+function themes(builtin = false) {
+  const found = [];
   for (const candidate of vscode.extensions.all) {
+    if (builtin && !candidate.extensionPath.startsWith(path.join(vscode.env.appRoot, 'extensions'))) {
+      continue;
+    }
     const nls = path.join(candidate.extensionPath, 'package.nls.json');
     const labels = fs.existsSync(nls) ? JSON.parse(fs.readFileSync(nls, 'utf8')) : {};
     for (const theme of candidate.packageJSON.contributes?.themes ?? []) {
       const label = theme.label?.replace(/^%(.*)%$/, (_, key) => labels[key] ?? key);
-      if (theme.id === name || label === name) {
-        return { name, file: path.join(candidate.extensionPath, theme.path) };
-      }
+      found.push({ name: theme.id ?? label, label, file: path.join(candidate.extensionPath, theme.path) });
     }
   }
-  throw new Error(`no color theme ${name}`);
+  return found;
+}
+
+/** The file of the color theme VS Code shows. */
+function shownTheme() {
+  const name = vscode.workspace.getConfiguration('workbench').get('colorTheme');
+  const found = themes().find((theme) => theme.name === name || theme.label === name);
+  assert.ok(found, `no color theme ${name}`);
+  return found;
 }
 
 /**
@@ -188,9 +192,16 @@ describe('Highlighting', () => {
   });
 
   it('gives every look a color or a font style from the color theme', () => {
-    const shown = theme();
+    const shown = shownTheme();
+    const bundled = themes(true);
+    // Every theme VS Code comes with: among them Dark+ and Light+, the
+    // defaults before 1.78, and Dark Modern and Light Modern after, which
+    // users keep.
+    for (const name of ['Dark+', 'Light+', 'Dark Modern', 'Light Modern']) {
+      assert.ok(bundled.some((theme) => theme.name === name), `VS Code comes with ${name}`);
+    }
     const plain = {};
-    for (const { name, file } of [shown, ...OLDER_DEFAULTS.filter((name) => name !== shown.name).map(theme)]) {
+    for (const { name, file } of [shown, ...bundled.filter((theme) => theme.file !== shown.file)]) {
       const rules = themeRules(file);
       assert.ok(rules.length > 0, `the token colors of ${name}`);
       for (const [selector, scopes] of Object.entries(contributed().org)) {

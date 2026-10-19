@@ -6411,11 +6411,13 @@
           ],
           "outline.level1": [
             "entity.name.function.outline-1.org",
-            "entity.name.function"
+            "entity.name.function",
+            "entity.name.function.preprocessor"
           ],
           "outline.level2": [
             "variable.parameter.outline-2.org",
-            "variable.parameter"
+            "variable.parameter",
+            "variable.language"
           ],
           "outline.level3": [
             "keyword.outline-3.org",
@@ -6435,7 +6437,8 @@
           ],
           "outline.level7": [
             "support.function.outline-7.org",
-            "support.function"
+            "support.function",
+            "support.type.property-name"
           ],
           "outline.level8": [
             "string.outline-8.org",
@@ -6586,15 +6589,19 @@
           ],
           "target": [
             "entity.name.label.org",
-            "entity.name.label"
+            "entity.name.label",
+            "markup.underline.link",
+            "string.other.link"
           ],
           "latex": [
             "markup.math.org",
-            "support.function"
+            "support.function",
+            "string.other.math"
           ],
           "entity": [
             "constant.character.entity.org",
-            "constant.character.entity"
+            "constant.character.entity",
+            "string.other.math"
           ],
           "macro": [
             "entity.name.function.macro.org",
@@ -6610,7 +6617,8 @@
           ],
           "*.underline": [
             "markup.underline.org",
-            "markup.underline"
+            "markup.underline",
+            "string.other.link"
           ],
           "*.strikethrough": [
             "markup.strikethrough.org",
@@ -6668,11 +6676,13 @@
           ],
           "agendaHabit": [
             "markup.changed.habit.agenda.org",
-            "markup.changed"
+            "markup.changed",
+            "markup.changed.git_gutter"
           ],
           "agendaHabit.ready": [
             "markup.inserted.habit.agenda.org",
-            "markup.inserted"
+            "markup.inserted",
+            "markup.inserted.git_gutter"
           ],
           "agendaHabit.alert": [
             "markup.changed.alert.habit.agenda.org",
@@ -6681,7 +6691,8 @@
           ],
           "agendaHabit.overdue": [
             "markup.deleted.habit.agenda.org",
-            "markup.deleted"
+            "markup.deleted",
+            "markup.deleted.git_gutter"
           ],
           "agendaTimeGrid": [
             "comment.time-grid.agenda.org",
@@ -6694,11 +6705,13 @@
           ],
           "agendaClocking": [
             "markup.highlight.clocking.agenda.org",
-            "markup.inserted"
+            "markup.inserted",
+            "markup.inserted.git_gutter"
           ],
           "*.clocking": [
             "markup.highlight.clocking.agenda.org",
-            "markup.inserted"
+            "markup.inserted",
+            "markup.inserted.git_gutter"
           ],
           "agendaDimmed": [
             "comment.dimmed.agenda.org",
@@ -6714,7 +6727,8 @@
           ],
           "calendarHeader": [
             "entity.name.function.month.calendar.org",
-            "entity.name.function"
+            "entity.name.function",
+            "entity.name.function.preprocessor"
           ],
           "calendarWeekday": [
             "constant.other.weekday.calendar.org",
@@ -6789,11 +6803,13 @@
           ],
           "outline.level1": [
             "entity.name.function.outline-1.org",
-            "entity.name.function"
+            "entity.name.function",
+            "entity.name.function.preprocessor"
           ],
           "outline.level2": [
             "variable.parameter.outline-2.org",
-            "variable.parameter"
+            "variable.parameter",
+            "variable.language"
           ],
           "outline.level3": [
             "keyword.outline-3.org",
@@ -6813,7 +6829,8 @@
           ],
           "outline.level7": [
             "support.function.outline-7.org",
-            "support.function"
+            "support.function",
+            "support.type.property-name"
           ],
           "outline.level8": [
             "string.outline-8.org",
@@ -6964,15 +6981,19 @@
           ],
           "target": [
             "entity.name.label.org",
-            "entity.name.label"
+            "entity.name.label",
+            "markup.underline.link",
+            "string.other.link"
           ],
           "latex": [
             "markup.math.org",
-            "support.function"
+            "support.function",
+            "string.other.math"
           ],
           "entity": [
             "constant.character.entity.org",
-            "constant.character.entity"
+            "constant.character.entity",
+            "string.other.math"
           ],
           "macro": [
             "entity.name.function.macro.org",
@@ -6988,7 +7009,8 @@
           ],
           "*.underline": [
             "markup.underline.org",
-            "markup.underline"
+            "markup.underline",
+            "string.other.link"
           ],
           "*.strikethrough": [
             "markup.strikethrough.org",
@@ -7046,11 +7068,13 @@
           ],
           "agendaHabit": [
             "markup.changed.habit.agenda.org",
-            "markup.changed"
+            "markup.changed",
+            "markup.changed.git_gutter"
           ],
           "agendaHabit.ready": [
             "markup.inserted.habit.agenda.org",
-            "markup.inserted"
+            "markup.inserted",
+            "markup.inserted.git_gutter"
           ],
           "agendaHabit.alert": [
             "markup.changed.alert.habit.agenda.org",
@@ -7059,7 +7083,8 @@
           ],
           "agendaHabit.overdue": [
             "markup.deleted.habit.agenda.org",
-            "markup.deleted"
+            "markup.deleted",
+            "markup.deleted.git_gutter"
           ],
           "agendaTimeGrid": [
             "comment.time-grid.agenda.org",
@@ -7072,11 +7097,13 @@
           ],
           "agendaClocking": [
             "markup.highlight.clocking.agenda.org",
-            "markup.inserted"
+            "markup.inserted",
+            "markup.inserted.git_gutter"
           ],
           "*.clocking": [
             "markup.highlight.clocking.agenda.org",
-            "markup.inserted"
+            "markup.inserted",
+            "markup.inserted.git_gutter"
           ],
           "agendaDimmed": [
             "comment.dimmed.agenda.org",
@@ -7092,7 +7119,8 @@
           ],
           "calendarHeader": [
             "entity.name.function.month.calendar.org",
-            "entity.name.function"
+            "entity.name.function",
+            "entity.name.function.preprocessor"
           ],
           "calendarWeekday": [
             "constant.other.weekday.calendar.org",
@@ -7167,11 +7195,13 @@
           ],
           "outline.level1": [
             "entity.name.function.outline-1.org",
-            "entity.name.function"
+            "entity.name.function",
+            "entity.name.function.preprocessor"
           ],
           "outline.level2": [
             "variable.parameter.outline-2.org",
-            "variable.parameter"
+            "variable.parameter",
+            "variable.language"
           ],
           "outline.level3": [
             "keyword.outline-3.org",
@@ -7191,7 +7221,8 @@
           ],
           "outline.level7": [
             "support.function.outline-7.org",
-            "support.function"
+            "support.function",
+            "support.type.property-name"
           ],
           "outline.level8": [
             "string.outline-8.org",
@@ -7342,15 +7373,19 @@
           ],
           "target": [
             "entity.name.label.org",
-            "entity.name.label"
+            "entity.name.label",
+            "markup.underline.link",
+            "string.other.link"
           ],
           "latex": [
             "markup.math.org",
-            "support.function"
+            "support.function",
+            "string.other.math"
           ],
           "entity": [
             "constant.character.entity.org",
-            "constant.character.entity"
+            "constant.character.entity",
+            "string.other.math"
           ],
           "macro": [
             "entity.name.function.macro.org",
@@ -7366,7 +7401,8 @@
           ],
           "*.underline": [
             "markup.underline.org",
-            "markup.underline"
+            "markup.underline",
+            "string.other.link"
           ],
           "*.strikethrough": [
             "markup.strikethrough.org",
@@ -7424,11 +7460,13 @@
           ],
           "agendaHabit": [
             "markup.changed.habit.agenda.org",
-            "markup.changed"
+            "markup.changed",
+            "markup.changed.git_gutter"
           ],
           "agendaHabit.ready": [
             "markup.inserted.habit.agenda.org",
-            "markup.inserted"
+            "markup.inserted",
+            "markup.inserted.git_gutter"
           ],
           "agendaHabit.alert": [
             "markup.changed.alert.habit.agenda.org",
@@ -7437,7 +7475,8 @@
           ],
           "agendaHabit.overdue": [
             "markup.deleted.habit.agenda.org",
-            "markup.deleted"
+            "markup.deleted",
+            "markup.deleted.git_gutter"
           ],
           "agendaTimeGrid": [
             "comment.time-grid.agenda.org",
@@ -7450,11 +7489,13 @@
           ],
           "agendaClocking": [
             "markup.highlight.clocking.agenda.org",
-            "markup.inserted"
+            "markup.inserted",
+            "markup.inserted.git_gutter"
           ],
           "*.clocking": [
             "markup.highlight.clocking.agenda.org",
-            "markup.inserted"
+            "markup.inserted",
+            "markup.inserted.git_gutter"
           ],
           "agendaDimmed": [
             "comment.dimmed.agenda.org",
@@ -7470,7 +7511,8 @@
           ],
           "calendarHeader": [
             "entity.name.function.month.calendar.org",
-            "entity.name.function"
+            "entity.name.function",
+            "entity.name.function.preprocessor"
           ],
           "calendarWeekday": [
             "constant.other.weekday.calendar.org",

@@ -148,14 +148,21 @@ pub const LOOKS: &[Look] = &[
     // theme's colors of code, without `markup.heading`, which themes give
     // every level alike: what VS Code shows with
     // `org-lsp.headlineLevelColors` (the server never sends `outline`).
+    // Visual Studio Dark and Light color no function names, parameters or
+    // `support.function`, and Solarized no parameters: a macro's name, the
+    // language's own variables and built-in property names stand in.
     look("outline", &[], &[]),
-    look("outline.level1", &[], &["entity.name.function.outline-1.org", "entity.name.function"]),
-    look("outline.level2", &[], &["variable.parameter.outline-2.org", "variable.parameter"]),
+    look(
+        "outline.level1",
+        &[],
+        &["entity.name.function.outline-1.org", "entity.name.function", "entity.name.function.preprocessor"],
+    ),
+    look("outline.level2", &[], &["variable.parameter.outline-2.org", "variable.parameter", "variable.language"]),
     look("outline.level3", &[], &["keyword.outline-3.org", "keyword"]),
     look("outline.level4", &[], &["comment.outline-4.org", "comment"]),
     look("outline.level5", &[], &["storage.type.outline-5.org", "storage.type"]),
     look("outline.level6", &[], &["constant.language.outline-6.org", "constant.language"]),
-    look("outline.level7", &[], &["support.function.outline-7.org", "support.function"]),
+    look("outline.level7", &[], &["support.function.outline-7.org", "support.function", "support.type.property-name"]),
     look("outline.level8", &[], &["string.outline-8.org", "string"]),
     look("stars", &[], &["punctuation.definition.heading.org", "markup.heading"]),
     look("stars.level1", &["@org.headline.level1", "Title"], &[]),
@@ -253,9 +260,21 @@ pub const LOOKS: &[Look] = &[
     look("*.todo", &["@org.headline.todo", "String"], &["string.todo.org", "string"]),
     look("documentTitle", &["@org.document.title", "Title"], &["markup.heading.title.org", "entity.name.section"]),
     look("documentInfo", &["@org.document.info", "Special"], &["string.other.info.org", "string"]),
-    look("target", &["@org.hyperlink.desc", "@markup.link.label"], &["entity.name.label.org", "entity.name.label"]),
-    look("latex", &["@org.latex", "@markup.math"], &["markup.math.org", "support.function"]),
-    look("entity", &["@org.latex", "@markup.math"], &["constant.character.entity.org", "constant.character.entity"]),
+    // `org-target`: underlined. Themes without a color for labels give
+    // it a link's underline or color.
+    look(
+        "target",
+        &["@org.hyperlink.desc", "@markup.link.label"],
+        &["entity.name.label.org", "entity.name.label", "markup.underline.link", "string.other.link"],
+    ),
+    // `org-latex-and-related`, burlywood or saddle brown: TeX's math is
+    // `string.other.math`, a string where a theme has no other color.
+    look("latex", &["@org.latex", "@markup.math"], &["markup.math.org", "support.function", "string.other.math"]),
+    look(
+        "entity",
+        &["@org.latex", "@markup.math"],
+        &["constant.character.entity.org", "constant.character.entity", "string.other.math"],
+    ),
     look(
         "macro",
         &["@org.directive", "@function.macro"],
@@ -263,7 +282,13 @@ pub const LOOKS: &[Look] = &[
     ),
     look("*.bold", &["@org.bold", "@markup.strong"], &["markup.bold.org", "markup.bold"]),
     look("*.italic", &["@org.italic", "@markup.italic"], &["markup.italic.org", "markup.italic"]),
-    look("*.underline", &["@org.underline", "@markup.underline"], &["markup.underline.org", "markup.underline"]),
+    // A theme cannot underline through a fallback scope: without
+    // `markup.underline`, the color of links, the text Emacs underlines.
+    look(
+        "*.underline",
+        &["@org.underline", "@markup.underline"],
+        &["markup.underline.org", "markup.underline", "string.other.link"],
+    ),
     look(
         "*.strikethrough",
         &["@org.strikethrough", "@markup.strikethrough"],
@@ -323,17 +348,19 @@ pub const LOOKS: &[Look] = &[
     // (`org-habit-ready-face`), yellow on the day it must be done by
     // (`org-habit-alert-face`) and red after (`org-habit-overdue-face`).
     // No standard group has those backgrounds (Neovim's `DiffDelete` has
-    // none at all), so the editors take Org's colors.
+    // none at all), so the editors take Org's colors. Tomorrow Night Blue
+    // colors insertions, changes and deletions only in the gutter
+    // (`*.git_gutter`).
     look_on(
         "agendaHabit",
         &["@org.agenda.habit.clear"],
-        &["markup.changed.habit.agenda.org", "markup.changed"],
+        &["markup.changed.habit.agenda.org", "markup.changed", "markup.changed.git_gutter"],
         ("#8270f9", "#0000ff"),
     ),
     look_on(
         "agendaHabit.ready",
         &["@org.agenda.habit.ready"],
-        &["markup.inserted.habit.agenda.org", "markup.inserted"],
+        &["markup.inserted.habit.agenda.org", "markup.inserted", "markup.inserted.git_gutter"],
         ("#4df946", "#228b22"),
     ),
     look_on(
@@ -345,7 +372,7 @@ pub const LOOKS: &[Look] = &[
     look_on(
         "agendaHabit.overdue",
         &["@org.agenda.habit.overdue"],
-        &["markup.deleted.habit.agenda.org", "markup.deleted"],
+        &["markup.deleted.habit.agenda.org", "markup.deleted", "markup.deleted.git_gutter"],
         ("#f9372d", "#b22222"),
     ),
     // The `-future` faces, paler: a token has `future` with the others.
@@ -365,13 +392,13 @@ pub const LOOKS: &[Look] = &[
     look_on(
         "agendaClocking",
         &["@org.agenda.clocking", "Visual"],
-        &["markup.highlight.clocking.agenda.org", "markup.inserted"],
+        &["markup.highlight.clocking.agenda.org", "markup.inserted", "markup.inserted.git_gutter"],
         ("#ffff00", "#4a708b"),
     ),
     look_on(
         "*.clocking",
         &["@org.agenda.clocking", "Visual"],
-        &["markup.highlight.clocking.agenda.org", "markup.inserted"],
+        &["markup.highlight.clocking.agenda.org", "markup.inserted", "markup.inserted.git_gutter"],
         ("#ffff00", "#4a708b"),
     ),
     // `org-agenda-dimmed-todo-face`: a task its dependencies block.
@@ -381,7 +408,11 @@ pub const LOOKS: &[Look] = &[
     // `org-inlinetask`, which inherits `shadow`.
     look("*.inlinetask", &["@org.inlinetask", "Comment"], &["comment.inlinetask.org", "comment"]),
     // The date prompt, after Emacs's calendar and minibuffer faces.
-    look("calendarHeader", &["Function"], &["entity.name.function.month.calendar.org", "entity.name.function"]),
+    look(
+        "calendarHeader",
+        &["Function"],
+        &["entity.name.function.month.calendar.org", "entity.name.function", "entity.name.function.preprocessor"],
+    ),
     // `calendar-weekday-header`, `font-lock-constant-face`: Dark+, Light+
     // and the Modern themes color `constant.language`, not `constant.other`.
     look(
