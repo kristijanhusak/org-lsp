@@ -6232,6 +6232,10 @@
       {
         "id": "outline",
         "description": "A headline or its stars in the color of its level, as Emacs's outline-N faces; never sent by the server: VS Code's org-lsp.headlineLevelColors turns headline and stars tokens into it"
+      },
+      {
+        "id": "descriptionTerm",
+        "description": "The term of a description list item, with its ::"
       }
     ],
     "semanticTokenModifiers": [
@@ -6515,6 +6519,10 @@
             "markup.list.checked.org",
             "markup.inserted",
             "string"
+          ],
+          "descriptionTerm": [
+            "markup.bold.term.org",
+            "markup.bold"
           ],
           "link": [
             "markup.underline.link.org",
@@ -6887,6 +6895,10 @@
             "markup.inserted",
             "string"
           ],
+          "descriptionTerm": [
+            "markup.bold.term.org",
+            "markup.bold"
+          ],
           "link": [
             "markup.underline.link.org",
             "markup.underline.link",
@@ -7257,6 +7269,10 @@
             "markup.list.checked.org",
             "markup.inserted",
             "string"
+          ],
+          "descriptionTerm": [
+            "markup.bold.term.org",
+            "markup.bold"
           ],
           "link": [
             "markup.underline.link.org",

@@ -77,6 +77,7 @@ token_types! {
     // level, for `org-lsp.headlineLevelColors`. A type and not a modifier,
     // as the modifiers fill the 32 bits LSP has for them.
     Outline => "outline",
+    DescriptionTerm => "descriptionTerm",
 }
 
 /// Token modifiers, in legend order; each is one bit.
@@ -277,6 +278,9 @@ pub mod standard {
             // `org-quote` and `org-verse` are `org-block`, which has no color.
             TokenType::Quote | TokenType::Verse if struck != 0 => "variable",
             TokenType::Quote | TokenType::Verse => return None,
+            // `org-list-dt` is bold, with no color.
+            TokenType::DescriptionTerm if struck != 0 => "variable",
+            TokenType::DescriptionTerm => return None,
         };
         Some((name, struck))
     }
@@ -753,6 +757,7 @@ impl Walker<'_> {
             ENTITY => self.push(range, TokenType::Entity, 0),
             MACRO => self.macro_call(node),
             BLOCK | DYNAMIC_BLOCK => self.block(node),
+            LIST_ITEM => self.list_item(node, style),
             _ => self.children(node, style),
         }
     }
@@ -780,6 +785,59 @@ impl Walker<'_> {
                 self.push(node.text_range(), style.text.unwrap_or(TokenType::Text), style.modifiers)
             }
             _ => self.children(node, style),
+        }
+    }
+
+    /// A list item; the term of a description item in `org-list-dt`, over
+    /// what Org's font-lock rule for it covers: from past the bullet (and
+    /// the checkbox, which keeps its own token) to the first `::` with a
+    /// blank before it and a blank or the end of the line after, the `::`
+    /// included. The parser ends the term at the last such `::`, as
+    /// `org-list-full-item-re` does; past the first one, the term's text
+    /// is plain again.
+    fn list_item(&mut self, node: &SyntaxNode, style: Style) {
+        let term = Style { text: Some(TokenType::DescriptionTerm), modifiers: style.modifiers };
+        let (mut start, mut end) = (None, None);
+        for child in node.children_with_tokens() {
+            let range = child.text_range();
+            match child.kind() {
+                ITEM_TAG => {
+                    start = Some(range.start());
+                    self.children(&child.into_node().expect("ITEM_TAG is a node"), term);
+                }
+                WHITESPACE if child.next_sibling_or_token().is_some_and(|next| next.kind() == TAG_SEPARATOR) => {
+                    start.get_or_insert(range.start());
+                    self.push(range, TokenType::DescriptionTerm, style.modifiers);
+                }
+                TAG_SEPARATOR => {
+                    self.push(range, TokenType::DescriptionTerm, style.modifiers);
+                    end = Some(range.end());
+                }
+                _ => self.element(node, child, style),
+            }
+        }
+        let (Some(start), Some(end)) = (start, end) else { return };
+        let offset = node.text_range().start();
+        let term_text = node.text().slice(start - offset..end - offset).to_string();
+        let Some(first) = first_tag_separator(&term_text) else { return };
+        let first = start + TextSize::from(first as u32 + 2);
+        if first == end {
+            return;
+        }
+        for token in std::mem::take(&mut self.out) {
+            let inside = token.range.end() > first && token.range.start() < end;
+            if !inside || token.ty != TokenType::DescriptionTerm {
+                self.out.push(token);
+                continue;
+            }
+            if token.range.start() < first {
+                self.out.push(Token { range: TextRange::new(token.range.start(), first), ..token });
+            }
+            // What is left takes the style around the item, if it has one.
+            if token.modifiers != 0 || style.text.is_some() {
+                let range = TextRange::new(token.range.start().max(first), token.range.end());
+                self.out.push(Token { range, ty: style.text.unwrap_or(TokenType::Text), ..token });
+            }
         }
     }
 
@@ -924,6 +982,18 @@ impl Walker<'_> {
             }
         }
     }
+}
+
+/// Where the first `::` of a description item's term is in `text`, which
+/// starts with the term: as `.*?[ \t]+::\([ \t]+\|$\)` finds it in Org's
+/// font-lock rule, with a blank before it and a blank or nothing after.
+fn first_tag_separator(text: &str) -> Option<usize> {
+    let bytes = text.as_bytes();
+    text.match_indices("::").map(|(index, _)| index).find(|index| {
+        *index > 0
+            && matches!(bytes[index - 1], b' ' | b'\t')
+            && bytes.get(index + 2).is_none_or(|b| matches!(b, b' ' | b'\t'))
+    })
 }
 
 /// Whether a statistics cookie is complete: `[100%]`, or `[n/n]` with both
@@ -1397,6 +1467,7 @@ mod tests {
                 8:2 "[X]" checkbox +checked
                 9:0 "-" bullet
                 9:2 "[-]" checkbox +partial
+                9:6 "b ::" descriptionTerm
                 10:0 "1." bullet
                 10:3 "[ ]" checkbox
                 11:0 "|" tableDelimiter
@@ -1414,6 +1485,29 @@ mod tests {
                 14:36 "$x$" latex
                 14:40 "{{{m}}}" macro
             "##]],
+        );
+    }
+
+    #[test]
+    fn description_terms() {
+        // `org-list-dt`: unordered items only, to the first `::`, past a
+        // checkbox; emphasis in a term keeps its modifiers.
+        check(
+            "- term :: its description\n+ *b* t :: d\n- [ ] boxed ::\n- a :: b :: c\n- a::b\n1. n :: d\n",
+            expect![[r#"
+                0:0 "-" bullet
+                0:2 "term ::" descriptionTerm
+                1:0 "+" bullet
+                1:2 "*b*" descriptionTerm +bold
+                1:5 " t ::" descriptionTerm
+                2:0 "-" bullet
+                2:2 "[ ]" checkbox
+                2:6 "boxed ::" descriptionTerm
+                3:0 "-" bullet
+                3:2 "a ::" descriptionTerm
+                4:0 "-" bullet
+                5:0 "1." bullet
+            "#]],
         );
     }
 

@@ -46,6 +46,8 @@ const looks = {
   checkbox: ['punctuation.list_marker'],
   'checkbox.checked': ['comment'],
   'checkbox.partial': ['punctuation.list_marker'],
+  // `org-list-dt`: bold, with no color of its own.
+  descriptionTerm: { font_weight: 'bold' },
   link: ['link_uri'],
   code: ['text.literal'],
   verbatim: ['text.literal'],
