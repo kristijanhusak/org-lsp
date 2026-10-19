@@ -58,6 +58,7 @@ vim.g.org_lsp = {
     org_n_level_faces = 2,
     org_cycle_level_faces = false,
     org_fontify_whole_heading_line = true,
+    org_custom_properties = { 'ID' },
   },
 }
 vim.opt.runtimepath:prepend(root)
@@ -830,6 +831,33 @@ wait('the tokens of the level faces', function()
   local tokens = vim.lsp.semantic_tokens.get_at_pos(whole_buf, 3, 0) or {}
   return tokens[1] ~= nil and tokens[1].modifiers.level2 == true
 end)
+
+-- 21c. `org-toggle-custom-properties-visibility`: the properties of
+-- `org_custom_properties` hidden, whole lines, and shown again; the hidden
+-- lines go with the text.
+local custom = vim.fn.tempname() .. '.org'
+vim.fn.writefile({ '* A', ':PROPERTIES:', ':ID: 1', ':CATEGORY: x', ':END:', 'text' }, custom)
+vim.cmd.edit(custom)
+local custom_buf = vim.api.nvim_get_current_buf()
+wait('the server on the file', function()
+  return #vim.lsp.get_clients({ bufnr = custom_buf, name = 'org_lsp' }) == 1
+end)
+vim.api.nvim_win_set_cursor(0, { 6, 0 })
+require('org-lsp').run('org.custom.properties.toggle')
+wait('the ID hidden', function()
+  return #require('org-lsp.hidden').lines(custom_buf) == 1
+end)
+eq(require('org-lsp.hidden').lines(custom_buf), { 2 }, 'the line of the ID hidden')
+vim.cmd('redraw')
+eq(vim.fn.screenstring(vim.fn.screenpos(0, 4, 1).row - 1, 1), ':', 'the line above it is the drawer\'s first')
+eq(vim.api.nvim_win_text_height(0, { start_row = 2, end_row = 2 }).all, 0, 'the line takes no room')
+vim.api.nvim_buf_set_lines(custom_buf, 0, 0, false, { 'new' })
+eq(require('org-lsp.hidden').lines(custom_buf), { 3 }, 'the hidden line goes with the text')
+require('org-lsp').run('org.custom.properties.toggle')
+wait('the ID shown again', function()
+  return #require('org-lsp.hidden').lines(custom_buf) == 0
+end)
+vim.cmd('silent! undo')
 
 -- An entity shows as its character off the cursor's line, as links do:
 -- its text concealed, its last character replaced. Gone with the entity.

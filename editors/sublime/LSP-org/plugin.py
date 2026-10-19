@@ -225,6 +225,9 @@ class OrgLsp(AbstractPlugin):
         # Lines of the agenda highlighted from edge to edge, as regions
         # (`org-lsp/lineHighlights`).
         options.set('line_highlights', True)
+        # Lines hidden (the custom properties of
+        # `org.custom.properties.toggle`), each in a fold of its own.
+        options.set('hidden_lines', True)
         # Images in place of links and of LaTeX fragments, as phantoms
         # below their lines (`org.link.preview`, `org-lsp/images`).
         options.set('images', settings().get('org_images', True) is not False)
@@ -894,6 +897,9 @@ class OrgLspRunCommand(LspWindowCommand):
             apply_preview(result['preview'])
         if isinstance(result.get('close'), str):
             close(result['close'])
+        # Lines to hide, those hidden before shown again.
+        if isinstance(result.get('hiddenLines'), dict):
+            hide_lines(result['hiddenLines'])
         request = result.get('input')
         if isinstance(request, dict):
             ask(self.window, request,
@@ -1087,6 +1093,35 @@ SPARSE_KEY = 'org-lsp-sparse'
 # The views whose sparse tree highlights stay through changes
 # (`org-remove-highlights-with-change`).
 sparse_kept = set()
+
+
+HIDDEN_LINES_KEY = 'org-lsp-hidden-lines'
+
+
+def hide_lines(params) -> None:
+    """Hide the lines the server names (`hiddenLines`: the custom properties
+    `org-toggle-custom-properties-visibility` hides), those hidden before
+    shown again. Sublime Text hides text only in a fold: each line in one
+    from the end of the line before, which shows its marker there. The
+    folds are kept as regions too, which go with the text, to open them
+    again as Emacs deletes its overlays."""
+    view = view_for((params or {}).get('uri', ''))
+    if not view:
+        return
+    view.unfold(view.get_regions(HIDDEN_LINES_KEY))
+    rows = view.rowcol(view.size())[0] + 1
+    regions = []
+    for line in params.get('lines', []):
+        if 0 < line < rows:
+            start = view.text_point(line, 0)
+            regions.append(sublime.Region(start - 1, view.line(start).end()))
+        elif line == 0 and rows > 1:
+            regions.append(sublime.Region(0, view.text_point(1, 0)))
+    if regions:
+        view.fold(regions)
+        view.add_regions(HIDDEN_LINES_KEY, regions, '', '', sublime.HIDDEN)
+    else:
+        view.erase_regions(HIDDEN_LINES_KEY)
 
 
 def show_sparse(session, view, sparse) -> None:

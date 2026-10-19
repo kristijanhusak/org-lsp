@@ -499,6 +499,9 @@ pub struct Options {
     pub fontify_todo_headline: Option<bool>,
     #[serde(rename = "org_fontify_quote_and_verse_blocks")]
     pub fontify_quote_and_verse_blocks: Option<bool>,
+    /// `org-custom-properties`
+    #[serde(rename = "org_custom_properties")]
+    pub custom_properties: Option<Vec<String>>,
     /// `org-n-level-faces`, `org-cycle-level-faces`,
     /// `org-fontify-whole-heading-line`
     #[serde(rename = "org_n_level_faces")]
@@ -606,6 +609,10 @@ pub struct Options {
     /// The client shows `org-lsp/lineHighlights`, as one announcing
     /// `experimental.orgLineHighlights` does.
     pub line_highlights: Option<bool>,
+    /// The client hides the lines a command's answer names
+    /// (`hiddenLines`), as one announcing `experimental.orgHiddenLines`
+    /// does.
+    pub hidden_lines: Option<bool>,
     /// The client shows images in place of text (`org.link.preview`,
     /// `org.latex.preview`), as one announcing `experimental.orgImages` does.
     pub images: Option<bool>,

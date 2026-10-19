@@ -2064,6 +2064,15 @@ pub const SETTINGS: &[Setting] = &[
          types `quote` and `verse`).",
     ),
     setting(
+        "org_custom_properties",
+        "string[]",
+        "[]",
+        "org-custom-properties",
+        "The properties `org.custom.properties.toggle` (`org-toggle-custom-properties-visibility`) hides in the \
+         property drawers, and shows again: `[\"ID\", \"CUSTOM_ID\"]`. Editors that can hide them: Neovim from \
+         0.11, and Sublime Text, in a fold.",
+    ),
+    setting(
         "org_n_level_faces",
         "integer",
         "8",
@@ -3631,6 +3640,18 @@ pub const SETTINGS: &[Setting] = &[
     Setting {
         integration: true,
         ..setting(
+            "hidden_lines",
+            "boolean",
+            "false",
+            "",
+            "Whether the client hides the lines a command's answer names (`hiddenLines`: the custom properties of \
+             `org.custom.properties.toggle`), as a client announcing `experimental.orgHiddenLines` does: for the \
+             Sublime Text package.",
+        )
+    },
+    Setting {
+        integration: true,
+        ..setting(
             "images",
             "boolean",
             "false",
@@ -4072,6 +4093,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_fontify_done_headline", BOOLEAN),
     ("org_fontify_todo_headline", BOOLEAN),
     ("org_fontify_quote_and_verse_blocks", BOOLEAN),
+    ("org_custom_properties", r#"{ "type": "array", "items": { "type": "string" } }"#),
     ("org_n_level_faces", r#"{ "type": "integer", "minimum": 1, "maximum": 8 }"#),
     ("org_cycle_level_faces", BOOLEAN),
     ("org_fontify_whole_heading_line", BOOLEAN),
@@ -4363,6 +4385,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("message_prompts", BOOLEAN),
     ("message_requests", BOOLEAN),
     ("line_highlights", BOOLEAN),
+    ("hidden_lines", BOOLEAN),
     ("images", BOOLEAN),
     ("view_changed", BOOLEAN),
     ("date_prompt", BOOLEAN),

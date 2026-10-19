@@ -138,7 +138,7 @@ its sections says what it should look like.
 
 * Properties and column view
 
-*Partly:* Column view's header is in the status bar, with the column picked in brackets.
+*Partly:* Column view's header is in the status bar, with the column picked in brackets. Custom properties are not hidden (~org.custom.properties.toggle~): VS Code hides lines only in a fold of the folding ranges, which keeps its first line showing, and a decoration cannot hide a line.
 
 - [ ] Column view: the headlines covered by their columns (~#+COLUMNS:~ or the default), the header above, effort sums on parents (needs Emacs): ~Ctrl+C Ctrl+X Ctrl+C~
 - [ ] In column view, picking a column, editing its value (~e~), the next and previous allowed value (~n~, ~p~), its value shown (~v~); quitting (~q~)

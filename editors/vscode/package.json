@@ -336,6 +336,11 @@
         "category": "Org"
       },
       {
+        "command": "org.custom.properties.toggle",
+        "title": "Hide the properties of org_custom_properties, or show them again",
+        "category": "Org"
+      },
+      {
         "command": "org.clock.report",
         "title": "Insert or update a clock table",
         "category": "Org"
@@ -3974,6 +3979,14 @@
               "type": "boolean",
               "markdownDescription": "Show the lines inside quote and verse blocks in their own look (`org-quote`, `org-verse`: the token types `quote` and `verse`). (`org-fontify-quote-and-verse-blocks`)",
               "default": false
+            },
+            "org_custom_properties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "markdownDescription": "The properties `org.custom.properties.toggle` (`org-toggle-custom-properties-visibility`) hides in the property drawers, and shows again: `[\"ID\", \"CUSTOM_ID\"]`. Editors that can hide them: Neovim from 0.11, and Sublime Text, in a fold. (`org-custom-properties`)",
+              "default": []
             },
             "org_n_level_faces": {
               "type": "integer",

@@ -97,10 +97,12 @@ class View:
         return len(self.text)
 
     def fold(self, region):
-        self.folds.add(region)
+        for one in region if isinstance(region, list) else [region]:
+            self.folds.add(one)
 
     def unfold(self, region):
-        self.folds = {f for f in self.folds if f.end() < region.begin() or f.begin() > region.end()}
+        for one in region if isinstance(region, list) else [region]:
+            self.folds = {f for f in self.folds if f.end() < one.begin() or f.begin() > one.end()}
 
     def folded_regions(self):
         return sorted(self.folds, key=lambda region: region.begin())
@@ -544,6 +546,18 @@ class Tests(unittest.TestCase):
         self.assertIn('markup.highlight.clocking.agenda.org', scope)
         self.plugin.show_line_highlights({'uri': 'file:///notes/work.org', 'lines': []})
         self.assertNotIn('org-lsp-line-agendaClocking', self.view.regions)
+
+    def test_hides_the_lines_a_result_names_in_folds(self):
+        self.sublime.windows = lambda: [self.window]
+        self.run_command([('result', {'hiddenLines': {'uri': 'file:///notes/work.org', 'lines': [1, 99]}})],
+                         command='org.custom.properties.toggle')
+        start = self.view.text_point(1, 0)
+        hidden = Region(start - 1, self.view.line(start).end())
+        self.assertEqual(self.view.folded_regions(), [hidden], 'the line, from the end of the one before')
+        self.run_command([('result', {'hiddenLines': {'uri': 'file:///notes/work.org', 'lines': []}})],
+                         command='org.custom.properties.toggle')
+        self.assertEqual(self.view.folded_regions(), [], 'shown again')
+        self.assertNotIn('org-lsp-hidden-lines', self.view.regions)
 
     def test_a_key_keeps_its_own_meaning_where_the_command_does_not_apply(self):
         fallback = {'command': 'move', 'args': {'by': 'lines', 'forward': False, 'extend': True}}

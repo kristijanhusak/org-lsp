@@ -1077,6 +1077,34 @@ fn shows_sub_and_superscripts() {
     assert_eq!(hints, [(0, 23, "α".to_string())]);
 }
 
+/// `org-toggle-custom-properties-visibility`: the lines of the properties
+/// of `org_custom_properties` for a client that hides lines, then none,
+/// for it to show them again; a client that cannot is told so.
+#[test]
+fn hides_custom_properties_and_shows_them_again() {
+    let toggle = |client: &mut Client| {
+        let context = json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": 0, "character": 0 } });
+        client.raw_request(
+            "workspace/executeCommand",
+            json!({ "command": "org.custom.properties.toggle", "arguments": [context] }),
+        )
+    };
+    let text = "* A\n:PROPERTIES:\n:ID: 1\n:CATEGORY: x\n:END:\n* B\n:PROPERTIES:\n:id: 2\n:END:\n";
+    let options = json!({ "org_custom_properties": ["ID"] });
+    let mut client = Client::start(json!({ "experimental": { "orgHiddenLines": true } }), options.clone());
+    client.open(&uri(), text);
+    let hidden = toggle(&mut client).response_result.expect("a result");
+    assert_eq!(hidden, json!({ "hiddenLines": { "uri": uri().as_str(), "lines": [2, 7] } }));
+    let shown = toggle(&mut client).response_result.expect("a result");
+    assert_eq!(shown, json!({ "hiddenLines": { "uri": uri().as_str(), "lines": [] } }));
+    client.shutdown();
+    let mut client = Client::start(json!({}), options);
+    client.open(&uri(), text);
+    let refused = toggle(&mut client).response_result.expect_err("an error");
+    assert_eq!(refused.message, "This editor cannot hide lines");
+    client.shutdown();
+}
+
 /// RET (`org-return`): the result carries the edit and where the cursor
 /// goes, for the editor to apply as the key is typed; in a source block's
 /// code the command does not apply, and the editor's own RET does.

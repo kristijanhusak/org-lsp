@@ -2154,6 +2154,12 @@ org_num_skip_tags = []
 # property unnumbered. (org-num-skip-unnumbered)
 org_num_skip_unnumbered = false
 
+# The properties `org.custom.properties.toggle`
+# (`org-toggle-custom-properties-visibility`) hides in the property drawers,
+# and shows again: `["ID", "CUSTOM_ID"]`. Editors that can hide them: Neovim
+# from 0.11, and Sublime Text, in a fold. (org-custom-properties)
+org_custom_properties = []
+
 # How many looks headlines take by level, from 1 to 8 (the token modifiers
 # `level1` to `level8`, Org's `org-level-1` to `org-level-8`): with 4, a
 # headline of level 5 looks as one of level 1, or as one of level 4 with

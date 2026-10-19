@@ -159,7 +159,7 @@ with the cursor on them, until the agenda is built again with ~r~.
 | [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ✅ |  |
 | [[file:parity.org::#priorities][Priorities]] | 100% | ✅ |  |
 | [[file:parity.org::#tags][Tags]] | 88% | ✅ |  |
-| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 90% | ❓ | Column view's header is in the status bar, with the column picked in brackets. |
+| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 100% | ❓ | Column view's header is in the status bar, with the column picked in brackets. Custom properties are not hidden (~org.custom.properties.toggle~): VS Code hides lines only in a fold of the folding ranges, which keeps its first line showing, and a decoration cannot hide a line. |
 | [[file:parity.org::#dates-and-times][Dates and times]] | 100% | ✅ |  |
 | [[file:parity.org::#agenda][Agenda]] | 100% | ❓ | Tags are at column 80, not at the window's edge (~org_agenda_tags_column~ ~"auto"~): VS Code does not tell an extension how many columns an editor shows. |
 | [[file:parity.org::#clocking][Clocking]] | 100% | ✅ |  |

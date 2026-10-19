@@ -852,7 +852,7 @@
   "org-level-color-stars-only": "emacs-only",
   "org-hide-leading-stars": "setting",
   "org-hidden-keywords": "setting",
-  "org-custom-properties": "missing",
+  "org-custom-properties": "setting",
   "org-fontify-todo-headline": "setting",
   "org-fontify-done-headline": "setting",
   "org-fontify-emphasized-text": "setting",

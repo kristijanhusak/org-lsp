@@ -7660,6 +7660,24 @@ unnumbered.
 org_num_skip_unnumbered = false
 #+end_src
 
+*** org_custom_properties
+:PROPERTIES:
+:CUSTOM_ID: org_custom_properties
+:END:
+
+The properties ~org.custom.properties.toggle~
+(~org-toggle-custom-properties-visibility~) hides in the property drawers, and
+shows again: ~["ID", "CUSTOM_ID"]~. Editors that can hide them: Neovim from
+0.11, and Sublime Text, in a fold.
+
+- Org's option :: ~org-custom-properties~
+- Type :: string[]
+- Default :: ~[]~
+
+#+begin_src toml
+org_custom_properties = []
+#+end_src
+
 *** org_n_level_faces
 :PROPERTIES:
 :CUSTOM_ID: org_n_level_faces
