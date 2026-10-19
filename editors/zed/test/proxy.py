@@ -43,15 +43,20 @@ def relay(source, target, who):
         if message is None:
             break
         header, body = message
-        target.write(header + body)
-        target.flush()
         try:
             parsed = json.loads(body)
         except ValueError:
             parsed = None
+        # Written down before it is passed on: the answer to a request can
+        # only come after the other side has it, so the log has every
+        # request before its answer. Passed on first, the answer could be
+        # written down first by the other thread (more often under load),
+        # and run.py would wait for an answer that came already.
         with log_lock:
             log.write(json.dumps({"from": who, "message": parsed}) + "\n")
             log.flush()
+        target.write(header + body)
+        target.flush()
     try:
         target.close()
     except OSError:
