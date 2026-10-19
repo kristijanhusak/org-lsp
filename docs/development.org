@@ -93,7 +93,10 @@ others), as close to Emacs Org mode as it can get.
   is its adapter of the scenarios.
 - VS Code: in ~editors/vscode~, ~npm run generate -- --check~,
   ~npm run check~, ~npm run build~, ~xvfb-run -a npm test~ (VSCodium works locally
-  through ~VSCODE_EXECUTABLE~).
+  through ~VSCODE_EXECUTABLE~, set to its ~codium~ binary, not the
+  launcher in ~bin/~). The tests of the extension run first, then
+  ~editors/vscode/test/scenarios.test.cjs~, its adapter of the scenarios,
+  which presses keys with ~xdotool~.
 - Vim: ~CLIENTS=dir editors/vim/test/run.sh~, with the four clients
   checked out in ~dir~ (~lsp~, ~vim-lsp~, ~coc.nvim~ on its ~release~
   branch, ~ale~); Vim runs in tmux. ~editors/vim/test/scenarios.vim~ is its
@@ -173,7 +176,27 @@ A scenario has:
 a key in the agenda, the date prompt or a capture buffer is in no scenario,
 unless ~tests/e2e/exceptions.json~ names it under ~commands~ with the reason.
 An adapter fails on a command that has no key in its editor, unless
-~editors.EDITOR~ there says why.
+~editors.EDITOR~ there says why; it then runs the command as from the
+editor's command list. ~snapshots.EDITOR~ names, as ~NAME STEP KIND~, what
+an editor shows otherwise on purpose, and why.
+
+VS Code's adapter is ~editors/vscode/test/scenarios.test.cjs~, run by
+~npm test~ after the extension's tests (~npm test -- scenarios~ for the
+scenarios only, ~npm test -- scenarios vim~ for one preset;
+~ORG_LSP_E2E=NAME~ as above). Each scenario runs in a VS Code of its own,
+with each preset of ~org-lsp.keys~: ~emacs~ (~editors.vscode~ in the
+exceptions) and ~vim~ (~editors.vscode-vim~, which leaves the keys of Vim's
+normal mode in Org files to VSCodeVim). The adapter finds the key
+~package.json~ binds to the step's command where the cursor is, by its
+~when~ clause, and presses it in VS Code's window with ~xdotool~, so that
+VS Code's own key dispatch runs; it checks that the key ran that command.
+VS Code gives a key no count: for a step with a count, ~test/run.mjs~
+binds a key of the user's with ~"args": { "count": N }~, as
+[[file:keys/vscode.org::#changing-them][a user does]]. A step ~below~ puts
+the cursor at the end of its line first, as ~C-e M-RET~ in Emacs. What is
+asked is answered by stubs of VS Code's quick pick and input box. It needs
+~xdotool~ and a display of its own, ~xvfb-run -a npm test~: the keys go to
+the window that has the focus.
 
 * Setting up the tools
 :PROPERTIES:

@@ -6,10 +6,11 @@
 //! the agenda, files, the current buffer and the messages. This runner is
 //! the reference: what it sees is written down in
 //! `tests/e2e/expected/<scenario>.txt`, and each editor's adapter
-//! (`tests/nvim/scenarios.lua` for Neovim) presses the editor's keys for
-//! the same steps and must see the same. `ORG_LSP_UPDATE_E2E=1` writes the
-//! expected files again; `ORG_LSP_E2E=name` runs the scenarios whose name
-//! contains `name`.
+//! (`tests/nvim/scenarios.lua` for Neovim,
+//! `editors/vscode/test/scenarios.test.cjs` for VS Code) presses the
+//! editor's keys for the same steps and must see the same.
+//! `ORG_LSP_UPDATE_E2E=1` writes the expected files again;
+//! `ORG_LSP_E2E=name` runs the scenarios whose name contains `name`.
 //!
 //! `coverage` checks that every command with a key in the agenda, the date
 //! prompt or a capture buffer is run by some scenario, or listed in

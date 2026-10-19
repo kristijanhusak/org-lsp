@@ -374,6 +374,31 @@ fn closing_the_agenda_stops_rebuilding_it() {
     client.shutdown();
 }
 
+/// VS Code keeps the agenda document a while after its editor closed, and
+/// opens it to a server that starts again before it has an agenda. The
+/// agenda shown later is that document, which VS Code does not open once
+/// more: the server knows its text, and moves the cursor once it is current.
+#[test]
+fn takes_the_agenda_document_the_client_kept() {
+    let mut client = Client::editor(clock(), None);
+    client.open("file:///org/work.org", WORK);
+    client.open_as(VIEW, "org-agenda", "The agenda of an earlier server\n");
+    client.view_version = 1;
+    client.command("org.agenda.todos", "file:///org/work.org", 0);
+    let text = client.refetch_view();
+    client.settle();
+    let line_of = |needle: &str| text.lines().position(|line| line.contains(needle)).unwrap();
+    // `m` marks the line, and the cursor goes to the next entry.
+    let (requests, marked) = client.view_command("org.agenda.bulk.mark", line_of("Write report") as u32);
+    assert!(marked.lines().nth(line_of("Write report")).unwrap().starts_with("> "), "{marked}");
+    let shown = requests.iter().rev().find(|request| request.method == "window/showDocument");
+    assert_eq!(
+        shown.map(|request| request.params["selection"]["start"]["line"].clone()),
+        Some(json!(line_of("TODO Call")))
+    );
+    client.shutdown();
+}
+
 #[test]
 fn opens_the_agenda_from_open_documents() {
     let mut client = Client::editor(clock(), None);
@@ -5509,6 +5534,64 @@ fn archives_from_the_agenda_to_a_new_file_left_unsaved() {
     assert_eq!(changes[0], json!({ "kind": "create", "uri": archive_uri }));
     let made = changes.iter().find(|change| change["textDocument"]["uri"] == archive_uri).unwrap();
     assert!(made["edits"][0]["newText"].as_str().unwrap().contains("* TODO Old\n"));
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// The bulk action `$` makes the new archive file too: its staged edits
+/// keep the `create` they were made with.
+#[test]
+fn bulk_archives_to_a_new_file() {
+    let root = workspace("bulk-archive-new");
+    let mut options = clock();
+    options["org_agenda_files"] = json!([root.display().to_string()]);
+    let capabilities = json!({
+        "workspace": {
+            "textDocumentContent": { "dynamicRegistration": true },
+            "workspaceEdit": { "documentChanges": true, "resourceOperations": ["create"] }
+        },
+        "window": { "showDocument": { "support": true } },
+        "general": { "positionEncodings": ["utf-8"] }
+    });
+    let mut client = Client::start(capabilities, options, None);
+    let work = format!("file://{}/work.org", root.display());
+    client.open(&work, "* TODO Old\n* TODO New\n");
+    client.command("org.agenda.todos", VIEW, 0);
+    let view = client.show_view();
+    let line = view.lines().position(|line| line.contains("Old")).unwrap() as u32;
+    client.command("org.agenda.bulk.mark", VIEW, line);
+    let run = |client: &mut Client, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client.received.clear();
+        let result = client.request(
+            "workspace/executeCommand",
+            json!({ "command": "org.agenda.bulk.action", "arguments": [context] }),
+        );
+        client.settle();
+        result.unwrap()
+    };
+    let asked = run(&mut client, json!({}));
+    let done =
+        run(&mut client, json!({ "step": "action", "input": "$", "answers": asked["input"]["context"]["answers"] }));
+    assert_eq!(done["message"], "Acted on 1 entries");
+    let archive_uri = format!("file://{}", root.join("work.org_archive").display());
+    let edits: Vec<&Request> =
+        client.received.iter().filter(|request| request.method == "workspace/applyEdit").collect();
+    let made = edits
+        .iter()
+        .find_map(|edit| {
+            let changes = edit.params["edit"]["documentChanges"].as_array()?;
+            (changes[0] == json!({ "kind": "create", "uri": archive_uri })).then(|| changes[1].clone())
+        })
+        .unwrap_or_else(|| panic!("no edit makes the archive: {edits:?}"));
+    assert_eq!(made["textDocument"]["uri"], archive_uri);
+    assert!(made["edits"][0]["newText"].as_str().unwrap().contains("* TODO Old\n"));
+    let source = edits.iter().find(|edit| edit.params["edit"].to_string().contains(&format!("\"{work}\""))).unwrap();
+    let (_, changes) = edits_of(source);
+    assert_eq!(apply("* TODO Old\n* TODO New\n", &changes), "* TODO New\n");
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
 }

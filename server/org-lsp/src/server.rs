@@ -1361,6 +1361,11 @@ struct Server {
     documents: HashMap<String, Document>,
     workspace: Workspace,
     view: Option<OpenView>,
+    /// The client's copy of the agenda document while no agenda is open:
+    /// a client may keep it after its editor closed, and open it to a
+    /// server that starts again (VS Code), so that it does not open it once
+    /// more when the agenda shows.
+    view_copy: Option<Document>,
     /// Files the server asked the client to edit and has not seen change yet.
     edited: HashSet<String>,
     /// Where to put the cursor once the client shows the current view.
@@ -1823,6 +1828,7 @@ pub fn run(connection: Connection) -> Result<()> {
             workspace
         },
         view: None,
+        view_copy: None,
         edited: HashSet::new(),
         reveal: None,
         held: Vec::new(),
@@ -3300,6 +3306,8 @@ impl Server {
                         open.client = Some(Document::new(document.text, document.version, &self.todo));
                         open.highlighted = None;
                         open.forget_shown();
+                    } else if self.view.is_none() && document.uri.as_str() == views::VIRTUAL_URI {
+                        self.view_copy = Some(Document::new(document.text, document.version, &self.todo));
                     }
                     // An older text than the agenda's, read from the file.
                     if self.client.edit_view {
@@ -3337,6 +3345,12 @@ impl Server {
                 }
                 // The client's copy of the agenda follows the server's.
                 let (encoding, todo) = (self.client.encoding, &self.todo);
+                if let Some(copy) =
+                    self.view_copy.as_mut().filter(|_| params.text_document.uri.as_str() == views::VIRTUAL_URI)
+                {
+                    copy.apply(params.content_changes, params.text_document.version, encoding, todo);
+                    return;
+                }
                 let view = self.view.as_mut().filter(|open| open.uri == params.text_document.uri);
                 if let Some(open) = view.filter(|open| open.client.is_some()) {
                     if let Some(copy) = open.client.as_mut() {
@@ -3460,6 +3474,9 @@ impl Server {
                 if params.text_document.uri == self.prompt_uri {
                     self.prompt_copy = None;
                     return;
+                }
+                if params.text_document.uri.as_str() == views::VIRTUAL_URI {
+                    self.view_copy = None;
                 }
                 self.documents.remove(params.text_document.uri.as_str());
                 // What was said of the file goes with it: the problems an
@@ -6044,7 +6061,9 @@ impl Server {
                         uri,
                         file: None,
                         view,
-                        client: None,
+                        // A copy the client kept: it shows that text until
+                        // it fetches the new one.
+                        client: self.view_copy.take(),
                         shown: None,
                         closing: false,
                         highlighted: None,
