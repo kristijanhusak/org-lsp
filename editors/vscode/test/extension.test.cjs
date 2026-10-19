@@ -1286,11 +1286,15 @@ describe('The agenda', () => {
     const journal = process.env.ORG_LSP_TEST_JOURNAL;
     await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(path.join(workspace, 'work.org')));
     await vscode.commands.executeCommand('org.journal.new.entry');
-    // An Org file, though its name does not say so.
+    // An Org file, though its name does not say so. Shown, once the
+    // extension is done showing it: VS Code makes the editor active at the
+    // top of the file, and gives it the selection asked for a moment later,
+    // before `showTextDocument` returns.
+    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
     const today = await until("today's file", () => {
       const editor = vscode.window.activeTextEditor;
       const shown = editor?.document.uri.fsPath === path.join(journal, '20260518');
-      return shown && editor.document.languageId === 'org' && editor;
+      return shown && editor.document.languageId === 'org' && api.commands().running === 0 && editor;
     });
     assert.equal(today.document.getText(), '* Monday, 05/18/26\n** TODO carried\na note\n** 10:30 ');
     assert.deepEqual([today.selection.active.line, today.selection.active.character], [3, 9]);
