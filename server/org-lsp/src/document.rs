@@ -102,7 +102,14 @@ impl Document {
                 Some(range) => {
                     let range = index.text_range(&text, range, encoding);
                     let (start, end) = (usize::from(range.start()), usize::from(range.end()));
-                    changed.push(Change { start, end, length: change.text.len() });
+                    // What changed of it: a client may send whole lines
+                    // (vim-lsp), and the places in them stay.
+                    let narrowed = Change::between(&text[start..end], &change.text);
+                    changed.push(Change {
+                        start: start + narrowed.start,
+                        end: start + narrowed.end,
+                        length: narrowed.length,
+                    });
                     text.replace_range(start..end, &change.text);
                 }
                 None => {
@@ -146,6 +153,21 @@ mod tests {
         assert_eq!(change.moved(5), 5);
         assert_eq!(change.moved(0), 0);
         assert_eq!(Change::between("same", "same"), Change { start: 4, end: 4, length: 0 });
+    }
+
+    #[test]
+    fn narrows_a_change_of_whole_lines_to_what_changed() {
+        let todo = TodoKeywords::default();
+        let mut document = Document::new("* a\nSCHEDULED: <2026-05-16 Sat>\n".to_string(), 1, &todo);
+        let changes = document.apply(
+            vec![change(Some((1, 0, 2, 0)), "SCHEDULED: <2026-05-18 Mon>\n")],
+            2,
+            Encoding::Utf16,
+            &todo,
+        );
+        // The timestamp's bracket stays where it is.
+        assert_eq!(changes, vec![Change { start: 25, end: 30, length: 5 }]);
+        assert_eq!(changes[0].moved(15), 15);
     }
 
     #[test]

@@ -2451,7 +2451,9 @@ fn writes_the_agenda_to_a_file() {
     let asked = write(&mut client, json!({})).unwrap();
     assert_eq!(asked["input"]["prompt"], "Write agenda to file");
     let org = root.join("out.org");
-    assert_eq!(write(&mut client, json!({ "input": org.display().to_string() })), Ok(Value::Null));
+    // Emacs's message, in the result.
+    let written = write(&mut client, json!({ "input": org.display().to_string() })).unwrap();
+    assert_eq!(written["message"], format!("Org file written to {}", org.display()));
     assert_eq!(std::fs::read_to_string(&org).unwrap(), "* TODO A\nbody a\n* TODO B :t:\n* TODO C deep\ntext c\n");
     // Again: asked first.
     let asked = write(&mut client, json!({ "input": org.display().to_string() })).unwrap();
@@ -2459,7 +2461,8 @@ fn writes_the_agenda_to_a_file() {
     let refused = write(&mut client, json!({ "input": "n", "answers": asked["input"]["context"]["answers"] }));
     assert!(refused.unwrap_err().starts_with("Cannot write agenda to file"));
     let text = root.join("out.txt");
-    assert_eq!(write(&mut client, json!({ "input": text.display().to_string() })), Ok(Value::Null));
+    let written = write(&mut client, json!({ "input": text.display().to_string() })).unwrap();
+    assert_eq!(written["message"], format!("Plain text written to {}", text.display()));
     assert_eq!(std::fs::read_to_string(&text).unwrap(), shown);
     client.shutdown();
     std::fs::remove_dir_all(root).unwrap();
@@ -2500,7 +2503,7 @@ fn writes_entry_text_under_the_agenda_lines() {
         });
         let written = client
             .request("workspace/executeCommand", json!({ "command": "org.agenda.write", "arguments": [context] }));
-        assert_eq!(written, Ok(Value::Null));
+        assert_eq!(written.unwrap()["message"], format!("Plain text written to {}", out.display()));
         // The lines Emacs added under those of `A` and `C`.
         let mut expected = String::new();
         for line in shown.lines() {
@@ -3927,6 +3930,7 @@ fn changes_priority_from_the_agenda_on_its_line() {
     client.edit("org.priority.down", "file:///org/work.org", (4, 3), json!({}), &mut work);
     assert_eq!(work.lines().nth(3).unwrap(), "* TODO Call [[https://example.com][the client]]");
     // Something else happened in between: the cycle starts over.
+    work.push_str("Some text.\n");
     client.notify(
         "textDocument/didChange",
         json!({ "textDocument": { "uri": "file:///org/work.org", "version": 50 }, "contentChanges": [{ "text": work }] }),

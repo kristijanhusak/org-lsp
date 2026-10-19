@@ -1,5 +1,6 @@
 " The configuration the tests run Vim with: the plugin, one LSP client
-" ($ORG_LSP_TEST_CLIENT) and the tests.
+" ($ORG_LSP_TEST_CLIENT) and the tests, or one of the shared scenarios
+" ($ORG_LSP_TEST_SCENARIO).
 set nocompatible
 " As in a UTF-8 locale, which the terminal the tests run in may not have.
 set encoding=utf-8
@@ -12,6 +13,8 @@ let &runtimepath = s:plugin . ',' . s:clients . '/' . s:dirs[s:client] . ',' . &
 let g:coc_data_home = $ORG_LSP_TEST_WORK . '/coc'
 let g:coc_config_home = $ORG_LSP_TEST_WORK . '/coc'
 let g:ale_lint_on_text_changed = 'never'
+" ALE tells of its server started, and Vim says nobody listens.
+autocmd User ALELSPStarted :
 let g:lsp_diagnostics_enabled = 0
 let g:org_lsp = {
       \ 'cmd': [$ORG_LSP_BIN],
@@ -35,4 +38,10 @@ endif
 set hidden
 filetype plugin indent on
 syntax on
-autocmd VimEnter * ++once call timer_start(100, {-> execute('source ' . (empty($ORG_LSP_TEST_FILE) ? s:here . '/test.vim' : $ORG_LSP_TEST_FILE))})
+if !empty($ORG_LSP_TEST_SCENARIO)
+  " One of the shared scenarios, with its files and options, which the
+  " server starts with.
+  execute 'source' fnameescape(s:here . '/scenarios.vim')
+else
+  autocmd VimEnter * ++once call timer_start(100, {-> execute('source ' . (empty($ORG_LSP_TEST_FILE) ? s:here . '/test.vim' : $ORG_LSP_TEST_FILE))})
+endif

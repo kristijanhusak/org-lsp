@@ -162,3 +162,7 @@ checked out (~lsp~, ~vim-lsp~, ~coc.nvim~ from its ~release~ branch, ~ale~):
 CLIENTS=~/vim-clients editors/vim/test/run.sh           # all four
 CLIENTS=~/vim-clients editors/vim/test/run.sh vim_lsp   # one
 #+end_src
+
+After the plugin's own tests it runs the shared end-to-end scenarios,
+pressing the plugin's keys for each step
+([[file:development.org::#end-to-end-scenarios][development.org]]).
