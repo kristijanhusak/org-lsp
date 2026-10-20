@@ -7,30 +7,45 @@ instead of nvim-orgmode for them, not next to it.
 
 * Installing
 
-Install ~kristijanhusak/org-lsp~ with your plugin manager. With
-[[https://github.com/folke/lazy.nvim][lazy.nvim]]:
+Install ~kristijanhusak/org-lsp~ with Neovim's own plugin manager,
+~vim.pack~ (~:help vim.pack~), in your =init.lua=:
 
 #+begin_src lua
-{
-  'kristijanhusak/org-lsp',
-  build = ':OrgLspDownload',
-  init = function()
-    vim.g.org_lsp = { settings = { org_agenda_files = { '~/org' } } }
+-- Download the server again whenever vim.pack updates the plugin.
+vim.api.nvim_create_autocmd('PackChanged', {
+  callback = function(ev)
+    if ev.data.spec.name == 'org-lsp' and ev.data.kind == 'update' then
+      if not ev.data.active then
+        vim.cmd.packadd('org-lsp')
+      end
+      vim.cmd('OrgLspDownload')
+    end
   end,
-}
+})
+
+vim.g.org_lsp = { settings = { org_agenda_files = { '~/org' } } }
+vim.pack.add({ 'https://github.com/kristijanhusak/org-lsp' })
 #+end_src
+
+~vim.pack.update()~ updates it. The autocommand comes before
+~vim.pack.add()~, which loads the plugin, and ~vim.g.org_lsp~ is set before
+it too. Another plugin manager works as well; with
+[[https://github.com/folke/lazy.nvim][lazy.nvim]], the same is
+~{ 'kristijanhusak/org-lsp', build = ':OrgLspDownload', init = function()
+vim.g.org_lsp = { … } end }~.
 
 Opening an Org file the first time downloads the server for your platform
 from the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]] (with ~curl~ and ~tar~; on Windows, Windows' own ~tar~, not one Git put first on the ~PATH~) and starts it;
-~:OrgLspDownload~ downloads it again, to update it, and the ~build~ above
-does that on each update of the plugin. ~release = 'v0.2.0'~ picks a
+~:OrgLspDownload~ downloads it again, to update it, and the autocommand
+above does that on each update of the plugin. ~release = 'v0.2.0'~ picks a
 release instead of the nightly build, and ~download = false~ turns the
 download off. A release that needs a GitHub login, as one of a private
 repository, is downloaded with the GitHub CLI (~gh~) when it is installed
 and logged in.
 
-To build the server instead (with [[https://rustup.rs][cargo]]), set
-~build = 'cargo build --release -p org-lsp'~, or run ~:OrgLspBuild~. A
+To build the server instead (with [[https://rustup.rs][cargo]]), run
+~:OrgLspBuild~, in the autocommand in place of ~OrgLspDownload~ to build it
+on each update. A
 build in the plugin's directory and ~org-lsp~ on PATH come before the
 download.
 
@@ -39,7 +54,7 @@ from, and the agenda files.
 
 * Setting it up
 
-Set ~vim.g.org_lsp~ before the plugin loads (lazy.nvim's ~init~, as above),
+Set ~vim.g.org_lsp~ before the plugin loads (before ~vim.pack.add()~, as above),
 or call ~setup()~ at any time. The server's options go in ~settings~, the
 plugin's own beside it. The server reads its options when it starts: once it
 runs, settings changed by ~setup()~ take effect after ~:lsp restart~.
