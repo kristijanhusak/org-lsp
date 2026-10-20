@@ -835,11 +835,12 @@ fn scenarios_match_their_snapshots() {
     let only = std::env::var("ORG_LSP_E2E").ok();
     let emacs = emacs_found();
     let mut failures = Vec::new();
-    let mut ran = 0;
+    let (mut matched, mut ran) = (0, 0);
     for scenario in scenarios() {
         if only.as_ref().is_some_and(|only| !scenario.name.contains(only.as_str())) {
             continue;
         }
+        matched += 1;
         if scenario.spec["emacs"] == json!(true) && !emacs {
             assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
             eprintln!("{}: no Emacs, skipped", scenario.name);
@@ -860,6 +861,10 @@ fn scenarios_match_their_snapshots() {
             }
             Err(error) => failures.push(format!("{}: {error}", scenario.name)),
         }
+    }
+    // A name in `ORG_LSP_E2E` that no scenario has is a mistake, not a pass.
+    if let Some(only) = &only {
+        assert!(matched > 0, "no scenario has {only:?} in its name");
     }
     assert!(ran > 0 || only.is_some(), "no scenarios ran");
     assert!(failures.is_empty(), "{} scenarios failed:\n\n{}", failures.len(), failures.join("\n\n"));

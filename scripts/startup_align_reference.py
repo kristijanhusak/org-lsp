@@ -57,7 +57,8 @@ def reference(cases):
         with open(driver, "w", encoding="utf-8") as handle:
             handle.write("\n".join(forms))
         subprocess.run(["emacs", "--batch", "-Q", *org_path, "-l", driver], check=True,
-                       stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                       stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                       timeout=1200)
         for case, target in outputs:
             with open(target, encoding="utf-8") as handle:
                 case["expected"] = handle.read()

@@ -167,7 +167,10 @@ def zed_backgrounds(screen, wanted):
 
 
 def zed():
-    os.environ.setdefault("ZED_ORG_GRAMMAR", "/root/zed/org.wasm")
+    # The Org grammar Zed's extension is built with: given, or built from
+    # its sources (editors/zed/test/run.py).
+    if not os.environ.get("ZED_ORG_GRAMMAR") and not os.environ.get("ZED_TREE_SITTER_ORG"):
+        sys.exit("zed: set ZED_ORG_GRAMMAR to the Org grammar (org.wasm), or ZED_TREE_SITTER_ORG and WASI_SDK to build it")
     harness = load("zed_run", os.path.join(ROOT, "editors", "zed", "test", "run.py"))
     keys = harness.Keys()
     editor = harness.Zed(None, keys)
