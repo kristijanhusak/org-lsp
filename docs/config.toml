@@ -2234,9 +2234,9 @@ emacs = "emacs"
 # association list; a string is a symbol where the option takes one. Each is
 # set when Emacs loads the library it is in, after `emacs_config_file` and
 # `emacs_config`, and so wins over them. A value the option does not take is
-# left out, with a message. The options are those marked `emacs` in the
-# Options section of `docs/parity.org`; the others are settings of the server,
-# or Lisp (functions, hooks), which goes in `emacs_config`.
+# left out, with a message. The options, each with Org's documentation of it,
+# are in `docs/emacs-options.org`; the others are settings of the server, or
+# Lisp (functions, hooks), which goes in `emacs_config`.
 emacs_options = {}
 
 # Save the files a command changes other than the one it was run in: an

@@ -14,6 +14,9 @@
 //                                    each of Org's options and what
 //                                    org-lsp does with it, from
 //                                    scripts/org-options.json
+//   docs/emacs-options.org           each option `emacs_options` takes,
+//                                    with Org's documentation of it, from
+//                                    scripts/emacs-options.json
 //   editors/<editor>/TESTING.org     what to try by hand (whole)
 //   docs/config.schema.json          the JSON Schema of the shared file
 //   docs/config.toml                 the shared file, every option at its default
@@ -57,12 +60,15 @@ const STATUSES = {
   setting: 'A setting of the same name',
   missing: 'org-lsp does what the option is about, but the option cannot be set yet',
   other: 'Done another way, as its note says',
-  emacs: 'Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_options~ (or ~emacs_config~)',
+  emacs: 'Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_options~ (or ~emacs_config~); [[file:emacs-options.org][emacs-options.org]] lists them',
   lisp: 'Its value is Lisp (a function, a hook), which the server does not run',
   absent: 'Part of something org-lsp does not do',
   'emacs-only': 'About Emacs itself (windows, faces, menus, the mouse, the mode line): nothing to do in an editor',
 };
 const statusOf = (value) => (Array.isArray(value) ? value[0] : value);
+/** What Emacs says of each option marked `emacs`, by file: its docstring,
+ * default, type and version (scripts/emacs_options_reference.py). */
+const EMACS_OPTIONS = JSON.parse(readFileSync(join(root, 'scripts', 'emacs-options.json'), 'utf8'));
 
 /** What is wrong with scripts/org-options.json: an option marked as a
  * setting that the server does not have, or the other way round, a status
@@ -92,6 +98,23 @@ function optionProblems() {
       }
     }
     for (const name of listed) if (!found.has(name)) problems.push(`${name} is no longer an option of Org`);
+  }
+  // scripts/emacs-options.json has the options marked `emacs`, no more.
+  const recorded = new Map(
+    Object.entries(EMACS_OPTIONS).flatMap(([file, options]) => Object.keys(options).map((name) => [`${file} ${name}`, options[name]])),
+  );
+  for (const [file, options] of Object.entries(OPTIONS)) {
+    for (const [name, value] of Object.entries(options)) {
+      if (statusOf(value) !== 'emacs') continue;
+      const entry = recorded.get(`${file} ${name}`);
+      if (!entry) problems.push(`${name} (${file}) is not in scripts/emacs-options.json: run scripts/emacs_options_reference.py`);
+      else if (entry.error) problems.push(`${name} (${file}) has no documentation in scripts/emacs-options.json: ${entry.error}`);
+      recorded.delete(`${file} ${name}`);
+    }
+  }
+  for (const key of recorded.keys()) {
+    const [file, name] = key.split(' ');
+    problems.push(`${name} (${file}) is in scripts/emacs-options.json, not marked \`emacs\`: run scripts/emacs_options_reference.py`);
   }
   return problems;
 }
@@ -1024,6 +1047,154 @@ function optionsSection() {
   return lines.join('\n') + '\n';
 }
 
+// ----- the options of emacs_options (scripts/emacs-options.json)
+
+/** A word of a docstring that Org would read as more than text (a link,
+ * a footnote, emphasis, a LaTeX fragment or an entity, a macro, an export
+ * snippet, inline code), as code; any other word as it is. */
+function docWord(word) {
+  const [, open, body, close] = word.match(/^([("']*)(.*?)([)"'.,;:!?]*)$/s);
+  if (!body) return word;
+  const markup =
+    /\[\[|\]\]|\[fn:|@@|\{\{\{|<<|^\\|^(src|call)_/.test(body) ||
+    (/^[*/_=~+]/.test(body) && body.slice(1).includes(body[0])) ||
+    /^[~=]/.test(body);
+  return markup ? open + code(body) + close : word;
+}
+
+/** A line of a docstring's text as Org: `foo' is ~foo~, and what Org
+ * would read as markup is code. */
+function docLine(line) {
+  const parts = line.split(/(`[^`'\n]+')/);
+  return parts
+    .map((part, index) => {
+      if (index % 2 === 1) {
+        // As `org` does, a zero-width space where Org would not see it.
+        const before = parts[index - 1].slice(-1);
+        const after = parts[index + 1]?.[0] ?? '';
+        const open = before === '' || PRE.test(before) ? '' : '​';
+        const close = after === '' || POST.test(after) ? '' : '​';
+        return open + code(part.slice(1, -1)) + close;
+      }
+      return part.replace(/[^\s]+/g, (word) => (word.includes('`') ? word : docWord(word)));
+    })
+    .join('');
+}
+
+/** Whether a line of a docstring is text rather than laid out by hand
+ * (indented, a table of values) or what Org would read as more than a
+ * line of text (a heading, a comment or keyword, a table, a drawer, a
+ * footnote, a rule, a LaTeX environment) or a line of a template (`%t
+ * is the title.`), which goes in an example block as it is. */
+const docProse = (line) =>
+  !/^(\s|\*|#|\||:|\[fn:|-{5}|\\begin\{|%|<-|\.\.\.)/.test(line) && !/^[^\s.:,;]+ {2,}\S/.test(line) && !/^\S+\s*:\s{2,}/.test(line);
+
+/** An option's docstring as Org: its text with Org's markup, and the
+ * lines laid out by hand as they are, in example blocks. */
+function docOrg(doc) {
+  const lines = doc.replace(/\s+$/, '').split('\n');
+  const out = [];
+  let literal = [];
+  const flush = () => {
+    while (literal.length > 0 && literal[literal.length - 1].trim() === '') literal.pop();
+    if (literal.length === 0) return;
+    const indent = Math.min(...literal.filter((line) => line.trim()).map((line) => line.match(/^ */)[0].length));
+    const kept = literal.map((line) => line.slice(indent).replace(/^(\s*)(\*|#\+|,\*|,#\+)/, '$1,$2'));
+    if (out.length > 0 && out[out.length - 1] !== '') out.push('');
+    out.push('#+begin_example', ...kept, '#+end_example', '');
+    literal = [];
+  };
+  let item = false;
+  for (const raw of lines) {
+    const line = raw.replace(/\t/g, '        ');
+    if (line.trim() === '') {
+      if (literal.length > 0) literal.push('');
+      else if (out.length > 0 && out[out.length - 1] !== '') out.push('');
+      item = false;
+      continue;
+    }
+    // A line going on with an item of a list (`- `), indented under it.
+    const more = item && literal.length === 0 && /^ {2,}\S/.test(line) && docProse(line.trim());
+    if (more || (docProse(line) && !/^\s/.test(line))) {
+      flush();
+      if (!more) item = line.startsWith('- ');
+      out.push(more ? `  ${docLine(line.trim())}` : docLine(line));
+    } else {
+      literal.push(line);
+      item = false;
+    }
+  }
+  flush();
+  while (out[out.length - 1] === '') out.pop();
+  return out.join('\n');
+}
+
+/** Lisp printed by Emacs, as an item's text when it is short, else as a
+ * block under the item, of `most` lines at most. */
+function lispItem(name, text, most) {
+  if (!text.includes('\n') && text.length <= 60) return `- ${name} :: ${code(text)}`;
+  let shown = text.split('\n');
+  if (shown.length > most) shown = [...shown.slice(0, most - 1), '…'];
+  const block = ['#+begin_src emacs-lisp', ...shown.map((line) => line.replace(/^(\s*)(\*|#\+|,\*|,#\+)/, '$1,$2')), '#+end_src'];
+  return [`- ${name} ::`, ...block.map((line) => `  ${line}`)].join('\n');
+}
+
+/** The id of the option heading `name`, as GitHub makes it (lower case,
+ * no punctuation but `-` and `_`), `-1`, `-2`… after the first that
+ * `seen` has. */
+function githubId(name, seen) {
+  const base = name.toLowerCase().replace(/[^\p{L}\p{N}_ -]/gu, '').replaceAll(' ', '-');
+  const count = seen.get(base) ?? 0;
+  seen.set(base, count + 1);
+  return count === 0 ? base : `${base}-${count}`;
+}
+
+/** The headings of docs/emacs-options.org: the ids of its options. */
+function emacsOptionIds() {
+  const seen = new Map();
+  const ids = new Map();
+  for (const [file, options] of Object.entries(EMACS_OPTIONS)) {
+    githubId(file, seen);
+    for (const name of Object.keys(options)) ids.set(name, githubId(name, seen));
+  }
+  return ids;
+}
+
+/** Each option of `emacs_options`, under the file of Org it is in: Org's
+ * documentation of it, its default, its type, the version of Org it came
+ * in, and its default in the shared file, when TOML can say it. */
+function emacsOptions() {
+  const ids = emacsOptionIds();
+  const count = Object.values(EMACS_OPTIONS).reduce((sum, options) => sum + Object.keys(options).length, 0);
+  const lines = [
+    `The ${count} options, by the file of Org they are in. Each has Org's own`,
+    'documentation of it, as ~C-h v~ shows it in Emacs, then its default as',
+    'Emacs prints it, its type as Customize has it, and its default in the',
+    'shared file, where TOML can say it.',
+  ];
+  for (const [file, options] of Object.entries(EMACS_OPTIONS)) {
+    if (lines[lines.length - 1] !== '') lines.push('');
+    lines.push(heading(2, file));
+    for (const [name, entry] of Object.entries(options)) {
+      if (lines[lines.length - 1] !== '') lines.push('');
+      lines.push(heading(3, name), ':PROPERTIES:', `:CUSTOM_ID: ${ids.get(name)}`, ':END:', '');
+      lines.push(docOrg(entry.doc), '');
+      if (entry.default !== undefined) lines.push(lispItem('Default', entry.default, 20));
+      else lines.push(lispItem('Default', entry.form, 20).replace(' ::', ' :: computed when Org loads:'));
+      lines.push(lispItem('Type', entry.type, 12));
+      if (entry.version) lines.push(`- Since :: ${entry.version}`);
+      lines.push('');
+      const value = entry.json === undefined ? undefined : toml(entry.json);
+      if (value !== undefined) {
+        const key = /^[A-Za-z0-9_-]+$/.test(name) ? name : JSON.stringify(name);
+        lines.push(block('toml', ['[emacs_options]', `${key} = ${value}`]), '');
+      }
+    }
+  }
+  while (lines[lines.length - 1] === '') lines.pop();
+  return lines.join('\n');
+}
+
 /** The manual tests of `id`, with the boxes ticked in `before` kept. */
 function testingPage(id, before) {
   const editor = EDITORS.find((one) => one.id === id);
@@ -1095,6 +1266,7 @@ const PAGES = {
   'docs/keys/zed.org': { keys: zedKeys },
   'docs/protocol.org': { options: protocolOptions },
   'docs/configuration.org': { options: fileOptions },
+  'docs/emacs-options.org': { options: emacsOptions },
   'README.org': { features: featureTable },
   ...Object.fromEntries(EDITORS.map((editor) => [`docs/${editor.id}.org`, { features: () => editorFeatureTable(editor.id) }])),
 };

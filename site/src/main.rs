@@ -47,6 +47,7 @@ const NAV: &[(&str, &[(&str, &str)])] = &[
         "Reference",
         &[
             ("docs/configuration.org", "Configuration"),
+            ("docs/emacs-options.org", "Emacs options"),
             ("docs/plugins.org", "Plugins"),
             ("docs/org-protocol.org", "org-protocol"),
             ("docs/parity.org", "Parity with Emacs"),

@@ -28,7 +28,11 @@ others), as close to Emacs Org mode as it can get.
   options are part of it: each of Org's options is in
   ~scripts/org-options.json~, with what org-lsp does with it (a setting,
   missing, read by Emacs, and so on), and [[file:parity.org::#options][parity.org]] lists those
-  missing.
+  missing. What Emacs says of those it reads (their docstrings, defaults
+  and types, for [[file:emacs-options.org][emacs-options.org]] and the schema of ~emacs_options~)
+  is in ~scripts/emacs-options.json~, which
+  ~scripts/emacs_options_reference.py~ records again when an option
+  changes status.
 - /One repository/, Neovim files at the root (~plugin/~, ~lua/~), other
   editors under ~editors/~.
 - /Small changes./ Each is one pull request, with its tests, its docs and

@@ -350,10 +350,10 @@ org-babel-load-languages = { emacs-lisp = true, python = true }
 Emacs sets each, as Customize would, when it loads the library the option
 is in (~org-attach~ for ~org-attach-method~), and checks it against the
 option's type: a value the option does not take is left out, with a
-message saying what it takes. The options are those Emacs reads, marked
-~emacs~ in [[file:parity.org::#options][the Options section of parity.org]]; for the others the
-server says why it leaves them out: most are settings of the server, and a
-function or a hook is Lisp.
+message saying what it takes. The options are those Emacs reads:
+[[file:emacs-options.org][emacs-options.org]] lists each, with Org's documentation of it, its default
+and its type. For the others the server says why it leaves them out: most
+are settings of the server, and a function or a hook is Lisp.
 
 Lisp goes in a file Emacs loads before Org, or inline. Emacs loads
 ~emacs_config_file~, then evaluates ~emacs_config~, then sets
@@ -372,6 +372,9 @@ emacs_config = '''
 Emacs asks before it evaluates code, and the editor shows the question.
 
 ** When something is wrong
+:PROPERTIES:
+:CUSTOM_ID: when-something-is-wrong
+:END:
 
 The server never refuses to start because of its options:
 
@@ -7908,9 +7911,9 @@ Customize does: ~{ "org-attach-method": "mv", "org-export-with-toc": false }~.
 list; a string is a symbol where the option takes one. Each is set when Emacs
 loads the library it is in, after ~emacs_config_file~ and ~emacs_config~, and
 so wins over them. A value the option does not take is left out, with a
-message. The options are those marked ~emacs~ in the Options section of
-[[file:parity.org][docs/parity.org]]; the others are settings of the server,
-or Lisp (functions, hooks), which goes in ~emacs_config~.
+message. The options, each with Org's documentation of it, are in
+[[file:emacs-options.org][docs/emacs-options.org]]; the others are settings of
+the server, or Lisp (functions, hooks), which goes in ~emacs_config~.
 
 - Type :: { [option]: value }
 - Default :: ~{}~
