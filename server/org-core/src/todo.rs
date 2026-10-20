@@ -1614,7 +1614,7 @@ impl<'a> Editor<'a> {
             .trim_start_matches('+')
             .bytes()
             .take_while(u8::is_ascii_digit)
-            .fold(0, |n, b| n * 10 + i64::from(b - b'0'));
+            .fold(0, |n, b| n.saturating_mul(10).saturating_add(i64::from(b - b'0')));
         if count == 0 {
             return Ok(());
         }
@@ -2466,6 +2466,22 @@ mod tests {
             Some("Entry repeats: Plain: <2026-10-12 Mon 10:00 ++1w> Plain: <2026-10-07 Wed +1d>")
         );
         assert_eq!(message("* TODO Once\nSCHEDULED: <2026-10-05 Mon>\n"), None);
+    }
+
+    /// A repeater too long for a number does not overflow when the entry
+    /// is marked done.
+    #[test]
+    fn survives_a_huge_repeater() {
+        let keywords = TodoKeywords::default();
+        let settings = Settings { log_done: None, log_repeat: None, ..Settings::default() };
+        let now = DateTime::new(crate::date::Date::new(2026, 10, 7), 10, 0);
+        let done = Target::State(Some("DONE".to_string()));
+        for repeater in
+            ["++99999999999999999999d", "+99999999999999999999d", ".+9223372036854775807d", "+999999999999y"]
+        {
+            let text = format!("* TODO a\n<2026-01-01 Thu {repeater}>\n");
+            let _ = change_state_noted(&text, &keywords, 0, &done, &settings, now, NoteText::Skip);
+        }
     }
 
     #[test]

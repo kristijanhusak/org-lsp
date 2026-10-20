@@ -273,23 +273,14 @@ impl Server {
             return Err("Not in a daily-note".into());
         };
         let n = context.count.unwrap_or(1);
-        let n = if id == commands::ROAM_DAILIES_GOTO_PREVIOUS { -n } else { n };
+        let previous = id == commands::ROAM_DAILIES_GOTO_PREVIOUS;
         let notes = daily_files(&directory, &settings.extensions);
         let here = self.canonical(&current);
         let position = notes
             .iter()
             .position(|note| self.canonical(note) == here)
             .ok_or("Can't find current note file - have you saved it yet?")?;
-        if n >= 0 && position + 1 == notes.len() {
-            return Err("Already at newest note".into());
-        }
-        if n < 0 && position == 0 {
-            return Err("Already at oldest note".into());
-        }
-        let note = usize::try_from(position as i64 + n)
-            .ok()
-            .and_then(|index| notes.get(index))
-            .ok_or("Wrong type argument: stringp, nil")?;
+        let note = &notes[step(position, notes.len(), n, previous)?];
         let uri = self.uri_for_path(note).ok_or("Cannot name the daily note")?;
         self.send_request::<ShowDocument>(
             ShowDocumentParams { uri, external: None, take_focus: Some(true), selection: None },
@@ -297,6 +288,25 @@ impl Server {
         );
         Ok(Value::Null)
     }
+}
+
+/// Where `org-roam-dailies--goto-next-note` goes from the note at
+/// `position` of `len`, `n` notes on, or back when `previous`; a count
+/// too large for a number goes past the last note as well.
+fn step(position: usize, len: usize, n: i64, previous: bool) -> Result<usize, &'static str> {
+    let n = if previous { n.saturating_neg() } else { n };
+    if n >= 0 && position + 1 == len {
+        return Err("Already at newest note");
+    }
+    if n < 0 && position == 0 {
+        return Err("Already at oldest note");
+    }
+    i64::try_from(position)
+        .ok()
+        .and_then(|position| position.checked_add(n))
+        .and_then(|index| usize::try_from(index).ok())
+        .filter(|index| *index < len)
+        .ok_or("Wrong type argument: stringp, nil")
 }
 
 /// `org-parse-time-string` of a file's name without its extension: the
@@ -351,5 +361,17 @@ mod tests {
         assert_eq!(file_date("notes-2026-05-18-work"), Some(Date::new(2026, 5, 18).to_day()));
         assert_eq!(file_date("2026-02-30"), None);
         assert_eq!(file_date("journal"), None);
+    }
+
+    #[test]
+    fn steps_between_notes_with_any_count() {
+        assert_eq!(step(1, 3, 1, false), Ok(2));
+        assert_eq!(step(1, 3, 1, true), Ok(0));
+        assert_eq!(step(2, 3, 1, false), Err("Already at newest note"));
+        assert_eq!(step(0, 3, 1, true), Err("Already at oldest note"));
+        assert_eq!(step(1, 3, 5, false), Err("Wrong type argument: stringp, nil"));
+        assert_eq!(step(1, 3, i64::MIN, true), Err("Wrong type argument: stringp, nil"));
+        assert_eq!(step(1, 3, i64::MIN, false), Err("Wrong type argument: stringp, nil"));
+        assert_eq!(step(1, 3, i64::MAX, false), Err("Wrong type argument: stringp, nil"));
     }
 }
