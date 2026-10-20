@@ -460,6 +460,8 @@ pub enum FileState {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Opened {
     pub file: Option<String>,
+    /// The working directory of the project that maps the URL to `file`.
+    pub working_directory: Option<String>,
     pub messages: Vec<String>,
     /// The error it stopped with, after those messages.
     pub error: Option<String>,
@@ -523,6 +525,7 @@ fn map_source(
                     };
                     let replaced = format!("{}{}", &f1[..group.start()], &f1[group.end()..]);
                     opened.file = Some(format!("{wdir}{}{replacement}", directory_file_name(&replaced)));
+                    opened.working_directory = Some(wdir.clone());
                     return Ok(());
                 }
             }
@@ -530,6 +533,7 @@ fn map_source(
         match state(&the_file) {
             FileState::Readable => {
                 opened.file = Some(the_file);
+                opened.working_directory = Some(wdir.clone());
                 return Ok(());
             }
             FileState::Unreadable => opened.messages.push(format!("{the_file}: permission denied!")),

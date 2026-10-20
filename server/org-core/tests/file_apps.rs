@@ -61,3 +61,27 @@ fn files_open_as_emacs_opens_them() {
     }
     assert!(failures.is_empty(), "{} failures:\n{}", failures.len(), failures.join("\n"));
 }
+
+/// `shell-quote-argument` on Windows, for `cmd`, as Emacs's `windows-nt`
+/// branch quotes (with `w32-shell-dos-semantics`), whichever system the
+/// tests run on.
+#[test]
+fn quotes_for_cmd_as_emacs_does_on_windows() {
+    for (argument, quoted) in [
+        ("plain", r#""plain""#),
+        ("a b", r#""a b""#),
+        (r"C:\dir\", r#""C:\dir\\""#),
+        (r#"say "hi""#, r#"^"say \^"hi\^"^""#),
+        ("50%", r#"^"50^%^""#),
+        ("a!b", r#"^"a^!b^""#),
+        (r#"x\"y"#, r#"^"x\\\^"y^""#),
+        ("a&b|c", r#""a&b|c""#),
+        ("(p) <q> ^", r#""(p) <q> ^""#),
+        ("100% (a&b)", r#"^"100^% ^(a^&b^)^""#),
+        ("two\\\nlines", "\"two\\\\\nlines\""),
+        ("", r#""""#),
+    ] {
+        assert_eq!(org_core::file_apps::shell_quote_for(argument, true), quoted, "{argument:?}");
+    }
+    assert_eq!(org_core::file_apps::shell_quote_for("a b", false), r"a\ b");
+}

@@ -2154,7 +2154,8 @@ org_cycle_level_after_item_entry_creation = true
 # Whether the images of `http:` and `https:` links show (`C-c C-x C-v`):
 # `"skip"` not; `"download"` downloaded each time they show; `"cache"`
 # downloaded once and kept for the session. The download follows
-# `org_resource_download_policy`. (org-display-remote-inline-images)
+# `org_resource_download_policy`; an image larger than 20 MB is not
+# downloaded. (org-display-remote-inline-images)
 org_display_remote_inline_images = "skip"
 
 # Which remote resources are downloaded (the images of links): `true` all of

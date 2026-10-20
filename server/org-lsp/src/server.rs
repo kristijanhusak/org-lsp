@@ -1947,6 +1947,7 @@ pub fn run(connection: Connection) -> Result<()> {
     server.protocol_listen(protocol_sender);
     let mut protocol_pending = crossbeam_channel::after(std::time::Duration::from_secs(1));
     let emacs_events = server.emacs.events().clone();
+    let downloads = server.remote.downloads();
     // After `shutdown`, requests are refused and notifications dropped
     // until `exit`, which ends the server; an `exit` before it ends it as
     // having failed.
@@ -2014,6 +2015,11 @@ pub fn run(connection: Connection) -> Result<()> {
             recv(emacs_events) -> event => {
                 if let Ok(event) = event {
                     let _ = guarded(&mut server, "Emacs's answer", |server| server.emacs_event(event));
+                }
+            }
+            recv(downloads) -> done => {
+                if let Ok(done) = done {
+                    let _ = guarded(&mut server, "the images downloaded", |server| server.images_downloaded(done));
                 }
             }
             recv(alarm) -> _ => { let _ = guarded(&mut server, "the timer", Server::countdown_done); }
@@ -5477,14 +5483,16 @@ impl Server {
     /// of the file the link is in, its output and errors together, and
     /// once it ends, the output as a message, or what Emacs says when
     /// there is none. Emacs shows longer output in a buffer,
-    /// `*Org Shell Output*`; here it is a message all the same. The
-    /// command runs on its own thread so that the server goes on.
+    /// `*Org Shell Output*`; here it is a message all the same, its start
+    /// only when it is long ([`shell_message`]). The command runs on its
+    /// own thread so that the server goes on, and is waited for as long as
+    /// it runs, as Emacs waits.
     fn run_shell_link(&self, command: &str, directory: Option<PathBuf>) {
         let sender = self.sender.clone();
         let command = command.to_string();
         std::thread::spawn(move || {
-            let message = match shell_output(&command, directory.as_deref()) {
-                Ok((output, _)) if !output.is_empty() => output.strip_suffix('\n').unwrap_or(&output).to_string(),
+            let message = match crate::process::shell_output(&command, directory.as_deref(), None) {
+                Ok((output, _)) if !output.is_empty() => shell_message(&output),
                 Ok((_, Some(0))) => "(Shell command succeeded with no output)".to_string(),
                 Ok((_, code)) => {
                     format!("(Shell command failed with code {} and no output)", code.unwrap_or(-1))
@@ -5713,16 +5721,50 @@ impl Server {
 
     /// `org-id-find`: the file and the headline of the entry with this
     /// `ID`, in `from` (the file of the link), then in the files IDs are
-    /// looked for in.
+    /// looked for in: the open files first, then those on disk that have
+    /// it as `ids_on_disk` keeps their `ID`s (`org-id-locations`), the
+    /// only ones read. When none has it, or none has it any more, the
+    /// files on disk are looked at again (`org-id-update-id-locations`).
     fn find_id(&mut self, id: &str, from: Option<&Uri>) -> Option<(Uri, usize)> {
-        let own = from.and_then(uri::to_path);
-        for path in own.into_iter().chain(self.id_paths()) {
-            let Some((target, text)) = self.file_text(&path) else { continue };
-            if let Some(offset) = open::find_id(&org_syntax::parse(&text, &self.todo), id) {
-                return Some((target, offset));
+        let in_file = |server: &Server, path: &Path| {
+            let (target, text) = server.file_text(path)?;
+            open::find_id(&org_syntax::parse(&text, &server.todo), id).map(|offset| (target, offset))
+        };
+        if let Some(found) = from.and_then(uri::to_path).and_then(|own| in_file(self, &own)) {
+            return Some(found);
+        }
+        if !self.id_lookup.0.track_globally {
+            return None;
+        }
+        let mut open: Vec<(&String, &Document)> = self.documents.iter().collect();
+        open.sort_by_key(|(key, _)| key.as_str());
+        for (key, document) in open {
+            let Some(uri) = key.parse::<Uri>().ok().filter(|uri| uri::to_path(uri).is_some()) else { continue };
+            if !property_ids(&document.text).iter().any(|found| found == id) {
+                continue;
+            }
+            if let Some(offset) = open::find_id(&document.parse, id) {
+                return Some((uri, offset));
             }
         }
-        None
+        let on_disk = |server: &Server| {
+            let mut paths: Vec<PathBuf> = server
+                .id_files
+                .iter()
+                .filter(|(_, (_, ids))| ids.iter().any(|found| found == id))
+                .map(|(path, _)| path.clone())
+                .collect();
+            paths.sort();
+            paths
+        };
+        for path in on_disk(self) {
+            if let Some(found) = in_file(self, &path) {
+                return Some(found);
+            }
+        }
+        let found = self.ids_on_disk();
+        self.ids_on_disk = Some((std::time::Instant::now(), found));
+        on_disk(self).into_iter().find_map(|path| in_file(self, &path))
     }
 
     /// The error when an `ID` is not found: without `org-id-track-globally`
@@ -6363,7 +6405,11 @@ impl Server {
         let Some(directory) = crate::protocol::directory(&|name| std::env::var(name).ok()) else { return };
         match crate::protocol::Listener::open(&directory, sender) {
             Ok(listener) => self.protocol = Some(listener),
-            Err(error) => eprintln!("org-lsp: cannot listen for org-protocol URLs in {}: {error}", directory.display()),
+            // Said once: the server goes on without org-protocol.
+            Err(error) => self.show_message(
+                MessageType::INFO,
+                format!("org-lsp cannot listen for org-protocol URLs in {}: {error}", directory.display()),
+            ),
         }
         self.protocol_touched = Some(std::time::Instant::now());
         for link in crate::protocol::take_stored_links(&directory) {
@@ -6455,16 +6501,21 @@ impl Server {
                     crate::protocol::file_state(&home(name))
                 });
                 let said = opened.error.clone().or_else(|| opened.messages.last().cloned());
-                let Some(file) = opened.file else {
-                    if let Some(said) = &said {
-                        self.show_message(MessageType::INFO, said.clone());
+                let path = match crate::protocol::source_file(&opened, &home) {
+                    Ok(Some(path)) => path,
+                    Ok(None) => {
+                        if let Some(said) = &said {
+                            self.show_message(MessageType::INFO, said.clone());
+                        }
+                        return Err(
+                            said.unwrap_or_else(|| format!("No project of `org_protocol_project_alist` maps {url}"))
+                        );
                     }
-                    return Err(
-                        said.unwrap_or_else(|| format!("No project of `org_protocol_project_alist` maps {url}"))
-                    );
+                    Err(refused) => {
+                        self.show_message(MessageType::INFO, refused.clone());
+                        return Err(refused);
+                    }
                 };
-                let path = home(&file);
-                let path = std::path::absolute(&path).unwrap_or(path);
                 let uri = uri::from_path(&path).ok_or_else(|| format!("Cannot name {}", path.display()))?;
                 let params = ShowDocumentParams { uri, external: None, take_focus: Some(true), selection: None };
                 self.send_request::<ShowDocument>(params, None);
@@ -13548,7 +13599,7 @@ impl Server {
         let remote = self.remote.mode != config::RemoteImages::Skip;
         let found =
             org_core::link_preview::previews(&text, &parse, &self.link_abbreviations, include_linked, remote, from, to);
-        // The images of URLs, downloaded first; or what to ask before.
+        // The images of URLs, there or to download; or what to ask before.
         let remote_files = match self.remote_images(&uri, &found, context, startup) {
             Ok(files) => files,
             Err(question) => return Ok(question),
@@ -13557,37 +13608,38 @@ impl Server {
         // wide at most one shown at its own width (`org-image-max-width`).
         let outline = (!found.is_empty()).then(|| org_core::outline::Outline::new(&parse, &text, ""));
         let (actual_width, max_width) = (self.image_actual_width, self.image_max_width.clone());
-        let items: Vec<Value> = found
+        let items: Vec<remote_images::Item> = found
             .into_iter()
             .filter_map(|found| {
-                let path = if found.remote {
-                    remote_files.get(&found.start)?.clone()
+                let source = if found.remote {
+                    remote_images::Source::Remote(found.start)
                 } else if found.attachment {
-                    self.attachment_path(&uri, &text, found.start, &found.path)?
+                    remote_images::Source::File(self.attachment_path(&uri, &text, found.start, &found.path)?)
                 } else {
-                    self.link_path(&uri, &found.path)?
+                    remote_images::Source::File(self.link_path(&uri, &found.path)?)
                 };
-                // `a/./b.png` as `a/b.png`.
-                let path: PathBuf = path.components().collect();
-                let path = Some(path).filter(|path| path.is_file())?;
-                let mut item = json!({ "range": range(found.start, found.end), "path": path.to_string_lossy() });
                 let width = outline.as_ref().and_then(|outline| {
                     org_core::link_preview::image_width_in(outline, &parse, found.start, actual_width)
                 });
-                match width {
+                let width = match width {
                     Some(org_core::link_preview::ImageWidth::Pixels(pixels)) => {
-                        item["width"] = json!({ "pixels": pixels })
+                        Some(("width", json!({ "pixels": pixels })))
                     }
                     Some(org_core::link_preview::ImageWidth::Fraction(part)) => {
-                        item["width"] = json!({ "fraction": part })
+                        Some(("width", json!({ "fraction": part })))
                     }
-                    None if !max_width.is_null() => item["maxWidth"] = max_width.clone(),
-                    None => {}
-                }
-                Some(item)
+                    None if !max_width.is_null() => Some(("maxWidth", max_width.clone())),
+                    None => None,
+                };
+                Some(remote_images::Item { range: json!(range(found.start, found.end)), width, source })
             })
             .collect();
-        preview["items"] = json!(items);
+        // Images to download first: the previews come once they are there.
+        if !remote_files.wanted.is_empty() {
+            self.download_images(uri, version, preview, items, remote_files, startup);
+            return Ok(Value::Null);
+        }
+        preview["items"] = json!(remote_images::finish(&items, &remote_files.files));
         Ok(json!({ "preview": preview }))
     }
 
@@ -16368,15 +16420,7 @@ fn system_name() -> String {
 /// `start-process-shell-command`: run `command` in the background from
 /// `directory`, as Emacs does from the buffer's `default-directory`.
 fn run_shell(command: &str, directory: Option<&std::path::Path>) -> std::io::Result<()> {
-    let mut shell = if cfg!(windows) {
-        let mut shell = std::process::Command::new("cmd");
-        shell.arg("/C").arg(command);
-        shell
-    } else {
-        let mut shell = std::process::Command::new("sh");
-        shell.arg("-c").arg(command);
-        shell
-    };
+    let mut shell = crate::process::shell(command);
     if let Some(directory) = directory {
         shell.current_dir(directory);
     }
@@ -16390,31 +16434,38 @@ fn run_shell(command: &str, directory: Option<&std::path::Path>) -> std::io::Res
     Ok(())
 }
 
-/// Run `command` in the shell and wait for it: what it wrote to its
-/// output and its errors, in the order it wrote them, and its exit code.
-fn shell_output(command: &str, directory: Option<&std::path::Path>) -> std::io::Result<(String, Option<i32>)> {
-    use std::io::Read;
-    let mut shell = if cfg!(windows) {
-        let mut shell = std::process::Command::new("cmd");
-        shell.arg("/C").arg(command);
-        shell
-    } else {
-        let mut shell = std::process::Command::new("sh");
-        shell.arg("-c").arg(command);
-        shell
-    };
-    if let Some(directory) = directory {
-        shell.current_dir(directory);
+/// The lines of a `shell:` link's output that a message shows.
+const SHELL_MESSAGE_LINES: usize = 50;
+/// The characters of a `shell:` link's output that a message shows.
+const SHELL_MESSAGE_CHARS: usize = 8000;
+
+/// A `shell:` link's output as a message: without its last newline, and
+/// cut after [`SHELL_MESSAGE_LINES`] lines or [`SHELL_MESSAGE_CHARS`]
+/// characters, saying how much is left out.
+fn shell_message(output: &str) -> String {
+    let output = output.strip_suffix('\n').unwrap_or(output);
+    let lines = output.split('\n').count();
+    let mut end = output.len();
+    if let Some((at, _)) = output.match_indices('\n').nth(SHELL_MESSAGE_LINES - 1) {
+        end = at;
     }
-    let (mut reader, writer) = std::io::pipe()?;
-    let mut child = shell.stdin(std::process::Stdio::null()).stdout(writer.try_clone()?).stderr(writer).spawn()?;
-    // The pipe's ends the server held are gone with `shell`, so reading
-    // ends when the command does.
-    drop(shell);
-    let mut output = Vec::new();
-    reader.read_to_end(&mut output)?;
-    let status = child.wait()?;
-    Ok((String::from_utf8_lossy(&output).into_owned(), status.code()))
+    if let Some((at, _)) = output.char_indices().nth(SHELL_MESSAGE_CHARS) {
+        end = end.min(at);
+    }
+    if end == output.len() {
+        return output.to_string();
+    }
+    let shown = &output[..end];
+    let left = lines - shown.split('\n').count();
+    let rest = output[end..].chars().count();
+    format!("{shown}\n[The output goes on: {rest} more characters, {left} more lines]")
+}
+
+/// Run `command` in the shell and wait for it, stopped if it takes longer
+/// than [`crate::process::PROGRAM_TIME`]: what it wrote to its output and
+/// its errors, in the order it wrote them, and its exit code.
+fn shell_output(command: &str, directory: Option<&std::path::Path>) -> std::io::Result<(String, Option<i32>)> {
+    crate::process::shell_output(command, directory, Some(crate::process::PROGRAM_TIME))
 }
 
 /// `org-format-outline-path` with the width of the frame, `width`
@@ -16467,6 +16518,22 @@ pub(crate) fn abbreviate_path(path: &Path) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A `shell:` link's output: whole when short, else its start, saying
+    /// how much more there is.
+    #[test]
+    fn shell_messages_show_the_start_of_long_output() {
+        assert_eq!(shell_message("one\ntwo\n"), "one\ntwo");
+        let long: String = (1..=60).map(|n| format!("{n}\n")).collect();
+        let message = shell_message(&long);
+        assert!(message.starts_with("1\n2\n"), "{message}");
+        assert!(message.ends_with("49\n50\n[The output goes on: 30 more characters, 10 more lines]"), "{message}");
+        let wide = "x".repeat(SHELL_MESSAGE_CHARS + 5);
+        assert_eq!(
+            shell_message(&wide),
+            format!("{}\n[The output goes on: 5 more characters, 0 more lines]", "x".repeat(SHELL_MESSAGE_CHARS))
+        );
+    }
 
     /// `org-goto-calendar`'s date: the timestamp at the cursor, active or
     /// not, else the line's last active one.

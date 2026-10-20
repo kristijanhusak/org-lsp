@@ -168,7 +168,10 @@ And these notifications:
   ~experimental.orgImages: true~ (or sets the option ~images~): the images
   of the LaTeX fragments ~org.latex.preview~ asked for, once Emacs has made
   them, in the form the preview commands answer with (see
-  ~org.link.preview~), ~kind~ ~latex~.
+  ~org.link.preview~), ~kind~ ~latex~; and those of ~org.link.preview~,
+  ~kind~ ~link~, once the images of its URLs are downloaded. With
+  ~"startup": true~, the previews a file opens with: the client says
+  nothing of them.
 - ~experimental.orgHiddenLines~ :: A client that announces it (or sets the
   option ~hidden_lines~) hides the lines a command's result names,
   ~{ "hiddenLines": { "uri", "lines" } }~, each a line from 0, whole, and
@@ -507,7 +510,7 @@ Each option with its type, its default and what it means:
 - ~org_adapt_indentation~ :: boolean | "headline-data", ~false~. Indent the lines of an entry past its headline's stars: ~true~ for all of them, ~"headline-data"~ for the planning line, drawers and clock lines right below the headline. Applies to new lines, to re-indenting (range formatting) and to what commands write. (~org-adapt-indentation~)
 - ~org_image_actual_width~ :: boolean, number, or [number], ~true~. How wide the image of a link shows: ~true~ at its own width; a number, that many pixels; ~false~ or a list of one number, the ~:width~ of the paragraph's ~#+ATTR_ORG:~ or else of another ~#+ATTR_…:~ (pixels, ~50%~ or a fraction up to 2 of the text's width, ~t~ for its own width), else the list's number. An entry's ~ORG-IMAGE-ACTUAL-WIDTH~ property decides for its own text. (~org-image-actual-width~)
 - ~org_image_max_width~ :: "fill-column", "window", number, or null, ~"fill-column"~. How wide at most an image shown at its own width is: ~"fill-column"~, 70 columns; ~"window"~, the window's width; an integer, that many pixels; a float, that part of the window's width; null for no limit. (~org-image-max-width~)
-- ~org_display_remote_inline_images~ :: "skip", "download" or "cache", ~"skip"~. Whether the images of ~http:~ and ~https:~ links show (~C-c C-x C-v~): ~"skip"~ not; ~"download"~ downloaded each time they show; ~"cache"~ downloaded once and kept for the session. The download follows ~org_resource_download_policy~. (~org-display-remote-inline-images~)
+- ~org_display_remote_inline_images~ :: "skip", "download" or "cache", ~"skip"~. Whether the images of ~http:~ and ~https:~ links show (~C-c C-x C-v~): ~"skip"~ not; ~"download"~ downloaded each time they show; ~"cache"~ downloaded once and kept for the session. The download follows ~org_resource_download_policy~; an image larger than 20 MB is not downloaded. (~org-display-remote-inline-images~)
 - ~org_resource_download_policy~ :: true, "prompt", "safe" or false, ~"prompt"~. Which remote resources are downloaded (the images of links): ~true~ all of them; ~"prompt"~ those considered safe, and the others when the answer to Emacs's question says so; ~"safe"~ only those considered safe; ~false~ none but those. (~org-resource-download-policy~)
 - ~org_safe_remote_resources~ :: string[], ~[]~. The remote resources considered safe: Emacs regexps matched against a resource's URL and against the ~file://~ URL of the file asking for it. The answers ~!~, ~d~ and ~f~ to the download question add one for the rest of the session. (~org-safe-remote-resources~)
 - ~org_startup_with_link_previews~ :: boolean, ~false~. Show the images of links to image files in place when a file opens, as ~C-c C-x C-v~ (~org.link.preview~) shows them. ~#+STARTUP: inlineimages~ (or ~linkpreviews~) and ~noinlineimages~ decide for a file. Editors that can show images: Neovim from 0.13 (~vim.ui.img~), in a terminal with the Kitty graphics protocol. (~org-startup-with-link-previews~)
@@ -1228,7 +1231,11 @@ increments a number.
   else null. ~attachment:~ links are left out. With
   ~org_display_remote_inline_images~ ~download~ or ~cache~, ~http:~ and
   ~https:~ links to images are among them, the ~path~ of each the file the
-  server downloaded it to, in a private directory of its own; a URL that
+  server downloaded it to, in a private directory of its own (by ~curl~,
+  20 MB at most, the same file for a URL each time). When there are images
+  to download, the command answers null and the preview comes in
+  ~org-lsp/images~ once they are there, so that the server does not wait
+  for them (Emacs does); a URL that
   ~org_resource_download_policy~ and ~org_safe_remote_resources~ do not let
   through is first asked about as Emacs asks (~org--confirm-resource-safe~):
   an input of kind ~key~, the choices ~!~, ~d~, ~f~, ~y~ and ~n~, with the URL

@@ -3528,6 +3528,38 @@ fn bibtex_entries_as_headlines() {
     std::fs::remove_dir_all(directory).unwrap();
 }
 
+/// What the server says as it starts (here a problem with the options)
+/// waits for the client's `initialized`: nothing but the answer to
+/// `initialize` comes before it.
+#[test]
+fn says_nothing_before_initialized() {
+    private_state();
+    let (server_side, connection) = Connection::memory();
+    let server = std::thread::spawn(move || org_lsp::run(server_side).expect("server runs"));
+    let params = json!({ "capabilities": {}, "initializationOptions": { "config_file": 5 } });
+    let request = Request { id: RequestId::from(1), method: "initialize".to_string(), params };
+    connection.sender.send(Message::Request(request)).unwrap();
+    match connection.receiver.recv().unwrap() {
+        Message::Response(response) => assert_eq!(response.id, RequestId::from(1)),
+        other => panic!("not the answer to initialize: {other:?}"),
+    }
+    let early = connection.receiver.recv_timeout(std::time::Duration::from_millis(300));
+    assert!(early.is_err(), "before initialized: {early:?}");
+    let client = Client {
+        connection,
+        server: Some(server),
+        next_id: 1,
+        initialize: InitializeResult::default(),
+        asked: Vec::new(),
+    };
+    client.notify::<Initialized>(lsp_types::InitializedParams {});
+    let said = client.connection.receiver.recv_timeout(std::time::Duration::from_secs(10)).expect("a message");
+    let Message::Notification(said) = said else { panic!("not a message: {said:?}") };
+    assert_eq!(said.method, "window/showMessage");
+    assert!(said.params["message"].as_str().unwrap().contains("`config_file` is malformed"), "{said:?}");
+    client.shutdown();
+}
+
 /// The servers of the tests keep what they leave for others (where they
 /// listen for org-protocol URLs) in a state directory of their own, not
 /// the user's.

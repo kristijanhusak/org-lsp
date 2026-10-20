@@ -284,9 +284,11 @@ class OrgLsp(AbstractPlugin):
         args = {'command': params['command'], 'argument': params.get('argument') or {}}
         sublime.set_timeout(lambda: window.run_command('org_lsp_run', args))
 
-    # Images in place of LaTeX fragments, made by Emacs.
+    # Images in place of LaTeX fragments, made by Emacs, and of links to
+    # images downloaded first; quiet for those a file opens with.
     def m_org_lsp_images(self, params) -> None:
-        sublime.set_timeout(lambda: apply_preview(params))
+        quiet = isinstance(params, dict) and params.get('startup') is True
+        sublime.set_timeout(lambda: apply_preview(params, quiet=quiet))
 
     # The folds org-journal opens and closes in the entry it shows
     # (`org-journal-hide-entries-p`), and those of the subtrees a yank or
