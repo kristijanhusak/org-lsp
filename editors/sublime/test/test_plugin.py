@@ -962,7 +962,7 @@ class Server(unittest.TestCase):
         os.symlink(os.path.join(checkout, 'editors', 'sublime', 'LSP-org'), os.path.join(self.sublime.packages, 'LSP-org'))
         self.assertEqual(self.plugin.server_path(self.storage), build)
 
-    def test_downloads_the_nightly_build_when_there_is_none(self):
+    def test_downloads_its_own_release_when_there_is_none(self):
         self.assertTrue(self.plugin.OrgLsp.needs_update_or_installation())
         self.assertIsNotNone(self.plugin.OrgLsp.can_start(None, None, [], None))
         asked = []
@@ -979,7 +979,9 @@ class Server(unittest.TestCase):
             return Response(archive(b'server'))
         self.plugin.urllib.request.urlopen = urlopen
         self.plugin.OrgLsp.install_or_update()
-        self.assertEqual(asked, ['https://github.com/kristijanhusak/org-lsp/releases/download/nightly/org-lsp-linux-x86_64.tar.gz'])
+        release = 'v' + self.plugin.VERSION
+        self.assertEqual(self.plugin.RELEASE, release)
+        self.assertEqual(asked, ['https://github.com/kristijanhusak/org-lsp/releases/download/{}/org-lsp-linux-x86_64.tar.gz'.format(release)])
         binary = os.path.join(self.storage, 'LSP-org', 'org-lsp')
         with open(binary, 'rb') as written:
             self.assertEqual(written.read(), b'server')

@@ -38,10 +38,11 @@ The server needs nothing more. The package starts the first of:
    has a shorter PATH than a terminal);
 3. the build in the checkout the package is linked from
    (~target/release/org-lsp~, then ~target/debug/org-lsp~);
-4. the nightly build for your platform, downloaded once into Sublime
-   Text's ~Package Storage/LSP-org~.
+4. the server of the package's own release for your platform (the
+   nightly build for the nightly package, ~v0.2.0~ for version 0.2.0),
+   downloaded once into Sublime Text's ~Package Storage/LSP-org~.
 
-/Org: Download the latest server/ fetches the nightly build again and
+/Org: Download the latest server/ fetches that release's server again and
 restarts the server.
 
 * Setting it up

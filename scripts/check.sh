@@ -2,7 +2,8 @@
 # The fast checks, as CI runs them, minus the editors' own end-to-end tests
 # (scripts/test-all.sh): formatting, clippy, the Rust tests, the generated
 # files against the server, VS Code's type check, the Sublime Text
-# plugin's tests and the links of the docs (the website).
+# plugin's tests, the links of the docs (the website) and the version,
+# the same everywhere it is written (scripts/version.sh).
 #
 # With Emacs installed, the Rust tests that need it run against the Org of
 # ORG_LISP_DIR (the `lisp` directory of an Org 9.8.10 checkout); a few of
@@ -10,6 +11,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 [ -n "${ORG_LISP_DIR:-}" ] || echo "note: ORG_LISP_DIR is not set; tests that run Emacs use the Org it ships with" >&2
+scripts/version.sh > /dev/null
 cargo fmt --all -- --check
 cargo clippy -q --workspace --all-targets -- -D warnings
 cargo test -q --workspace

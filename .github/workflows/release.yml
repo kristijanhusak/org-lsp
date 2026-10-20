@@ -8,8 +8,12 @@
 #   .../releases/download/nightly/org-lsp-<platform>.tar.gz
 #   It has what built: the files of a platform whose build failed are
 #   taken off, not left from an older build.
-# - a version tag (`v0.2.0`) makes that release, only when every build
-#   succeeded.
+# - a version tag (`v0.2.0`, the version scripts/version.sh set) makes
+#   that release, only when every build succeeded.
+#
+# The Zed extension and the Sublime Text package download the server of
+# their own release (`v0.2.0`); those of the nightly build download the
+# nightly server.
 #
 # Pushes to main and pull requests do not run it, to save Actions minutes;
 # put `branches: [main]` under `push` back to build each push to main.
@@ -116,12 +120,26 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
+      - name: The tag is the version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          version=$(scripts/version.sh)
+          [ "$GITHUB_REF_NAME" = "v$version" ] ||
+            { echo "::error::The tag $GITHUB_REF_NAME is not v$version, the version scripts/version.sh set"; exit 1; }
       - name: Install Rust
         run: |
           rustup toolchain install stable --profile minimal --target wasm32-wasip2
           rustup default stable
       - name: Package the Zed extension
         run: |
+          # The release whose server it downloads: its own version's, or
+          # the nightly one (ORG_LSP_RELEASE, read when it is built).
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            release=v$(scripts/version.sh)
+          else
+            release=nightly
+            export ORG_LSP_RELEASE=nightly
+          fi
           curl -fsSL -o "$RUNNER_TEMP/zed-extension" "https://zed-extension-cli.nyc3.digitaloceanspaces.com/$ZED_EXTENSION_CLI_SHA/x86_64-unknown-linux-gnu/zed-extension"
           echo "$ZED_EXTENSION_SHA256  $RUNNER_TEMP/zed-extension" | sha256sum -c -
           chmod +x "$RUNNER_TEMP/zed-extension"
@@ -131,6 +149,8 @@ jobs:
           for file in extension.toml extension.wasm grammars/org.wasm languages/org/config.toml; do
             tar -tzf org-lsp-zed.tar.gz | grep -qx "./$file" || { echo "org-lsp-zed.tar.gz has no $file"; exit 1; }
           done
+          tar -xzOf org-lsp-zed.tar.gz ./extension.wasm | grep -aq "$release" ||
+            { echo "The extension does not download the server of $release"; exit 1; }
           # Its tasks and keys, which scripts/install.sh adds to Zed's.
           cp editors/zed/tasks.json org-lsp-zed-tasks.json
           cp editors/zed/keymap.json org-lsp-zed-keymap.json
@@ -157,6 +177,12 @@ jobs:
           merge-multiple: true
       - name: Package the Sublime Text package, Helix's queries and the install script
         run: |
+          # The nightly package downloads the nightly server; a version's,
+          # its own (`'v' + VERSION`).
+          if [[ "$GITHUB_REF" != refs/tags/* ]]; then
+            sed -i "s/^RELEASE = 'v' + VERSION .*/RELEASE = 'nightly'/" editors/sublime/LSP-org/plugin.py
+            grep -qx "RELEASE = 'nightly'" editors/sublime/LSP-org/plugin.py || { echo "plugin.py has no RELEASE to set"; exit 1; }
+          fi
           (cd editors/sublime && zip -qr "$GITHUB_WORKSPACE/dist/org-lsp-sublime.zip" LSP-org -x '*__pycache__*')
           tar -czf dist/org-lsp-helix.tar.gz -C editors/helix/runtime queries
           cp scripts/install.sh dist/install.sh
@@ -186,3 +212,4 @@ jobs:
             [ -e "dist/$asset" ] || gh release delete-asset nightly "$asset" --yes
           done
           gh release upload nightly dist/* --clobber
+
