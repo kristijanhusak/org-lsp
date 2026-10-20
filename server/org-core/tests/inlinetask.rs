@@ -146,3 +146,23 @@ fn hides_the_stars_of_inline_tasks() {
     assert_eq!(shown(false, false), Vec::<[usize; 4]>::new());
     inlinetask::set_show_first_star(false);
 }
+
+/// With inline tasks on, the tests of each line take the shortest task's
+/// stars found once for the text: an outline of many headlines builds,
+/// and the stars of a long text are looked over, in linear time.
+#[test]
+fn many_lines_are_looked_over_fast() {
+    let _turn = OPTIONS.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    inlinetask::set_min_level(Some(15));
+    let stars = "*".repeat(15);
+    let text = "* a\nb\n".repeat(4000) + &format!("{stars} Task :x:\nbody\n{stars} END\n");
+    let start = std::time::Instant::now();
+    let parse = org_syntax::parse(&text, &TodoKeywords::default());
+    let outline = org_core::outline::Outline::new(&parse, &text, "notes");
+    assert_eq!(outline.entries.len(), 4002);
+    assert_eq!(outline.entries[4001].tags.iter().map(|tag| tag.name.as_str()).collect::<Vec<_>>(), ["x"]);
+    assert!(inlinetask::hides_stars(&text));
+    assert!(!inlinetask::hides_stars(&"* a\nb\n".repeat(4000)));
+    // Generous: this takes a fraction of a second in a debug build.
+    assert!(start.elapsed() < std::time::Duration::from_secs(5), "took {:?}", start.elapsed());
+}
