@@ -99,7 +99,7 @@ Where editors fall short:
 - ✅ Narrowing to a subtree or block (~C-x n s~, ~C-x n b~) and the subtree in an indirect buffer (~C-c C-x b~): it in a file of its own, all there is to see there, written back each time it is saved
 - ✅ Showing the context of the cursor (~org-reveal~, ~C-c C-r~): its entry, the next headline, its siblings and its ancestors, the other folds left as they are; ~org.reveal.siblings~ (~C-u~) each level with its children, ~org.reveal.tree~ (~C-u C-u~) the parent's whole tree
 - ✅ ~TAB~ on a new, empty headline or item changing its level (~org-cycle-level-after-item/entry-creation~), and at the start of the file cycling the file (~org-cycle-global-at-bob~); list items folding, as part of the outline or not at all (~org-cycle-include-plain-lists~); headlines folding to a level (~org-cycle-max-level~)
-- ❌ The other options of cycling (~org-cycle-emulate-tab~, ~org-show-context-detail~, ~org-fold-catch-invisible-edits~)
+- ❌ The other options of cycling (~org-cycle-emulate-tab~, ~org-fold-show-context-detail~: the context shown after a jump is always the same, ~org-fold-catch-invisible-edits~)
 
 Where editors fall short:
 
@@ -820,12 +820,12 @@ when Org has an option it does not list.
 | Status | Options | Meaning |
 |---+---+---|
 | setting | 348 | A setting of the same name |
-| missing | 0 | org-lsp does what the option is about, but the option cannot be set yet |
-| other | 12 | Done another way, as its note says |
+| missing | 1 | org-lsp does what the option is about, but the option cannot be set yet |
+| other | 11 | Done another way, as its note says |
 | emacs | 480 | Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~ |
 | lisp | 48 | Its value is Lisp (a function, a hook), which the server does not run |
-| absent | 34 | Part of something org-lsp does not do |
-| emacs-only | 103 | About Emacs itself (windows, faces, menus, the mouse, the mode line): nothing to do in an editor |
+| absent | 35 | Part of something org-lsp does not do |
+| emacs-only | 102 | About Emacs itself (windows, faces, menus, the mouse, the mode line): nothing to do in an editor |
 
 ** Done another way
 
@@ -835,7 +835,6 @@ when Org has an option it does not list.
 - ~org-id-locations-file-relative~ :: org-lsp reads the locations file and never writes it; names in it that are not absolute are relative to its directory, as Emacs reads them
 - ~org-tab-follows-link~ :: TAB is the editor's key for folding and tables; a link is followed with org.open (C-c C-o), go to definition, or RET with org_return_follows_link
 - ~org-protocol-reverse-list-of-files~ :: ~org-lsp protocol~ takes one URL at a time, as the system gives it: there is no list of file names from ~emacsclient~ to put back in order
-- ~org-table-auto-blank-field~ :: the editor types into a field as into any text: TAB leaves the cursor at the start of the field's text, as in Emacs, and the first character typed does not blank it
 - ~org-table-formula-use-constants~ :: only for a formula evaluated on its own (~C-c =~, a field starting with ~=~), which org-lsp does not do; the formulas of ~#+TBLFM:~ lines always use the constants, in Emacs too
 - ~org-startup-truncated~ :: the editor decides how long lines wrap
 - ~org-special-ctrl-a/e~ :: the setting ~org_special_ctrl_a_e~, its name without the ~/~
@@ -846,3 +845,4 @@ when Org has an option it does not list.
 
 Options of what org-lsp does that cannot be set yet, by the file of Org they are in.
 
+- org-fold.el (1) :: ~org-fold-show-context-detail~
