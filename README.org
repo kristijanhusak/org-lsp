@@ -47,7 +47,7 @@ Each editor's page says how to install org-lsp there, how to set it up,
 and what works:
 
 - [[file:docs/neovim.org][Neovim]] (0.12 or newer): the repository is the plugin.
-- [[file:docs/vim.org][Vim]] (9.1 or newer), on top of yegappan/lsp, vim-lsp, coc.nvim or ALE.
+- [[file:docs/vim.org][Vim]] (9.0.1485 or newer), on top of yegappan/lsp, vim-lsp, coc.nvim or ALE.
 - [[file:docs/vscode.org][VS Code]], and VSCodium, Cursor and the like.
 - [[file:docs/sublime.org][Sublime Text]], with sublimelsp/LSP.
 - [[file:docs/zed.org][Zed]].
@@ -111,12 +111,12 @@ does not work there and why.
 | [[file:docs/parity.org::#org-protocol][org-protocol]] | 86% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#notes-org-roam][Notes (org-roam)]] | 94% | ✅ / ✅ / ✅ / ✅ / ❓ / ❌ |
 | [[file:docs/parity.org::#a-journal-org-journal][A journal (org-journal)]] | 93% | ✅ / ✅ / ✅ / ❓ / ❓ / ❌ |
-| [[file:docs/parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ❓ |
+| [[file:docs/parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#links][Links]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#footnotes][Footnotes]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ❓ |
 | [[file:docs/parity.org::#tables][Tables]] | 100% | ✅ / ❓ / ✅ / ❓ / ❓ / ❓ |
-| [[file:docs/parity.org::#table-formulas][Table formulas]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ✅ |
-| [[file:docs/parity.org::#code-blocks-babel][Code blocks (Babel)]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ❓ |
+| [[file:docs/parity.org::#table-formulas][Table formulas]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
+| [[file:docs/parity.org::#code-blocks-babel][Code blocks (Babel)]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#export-and-publishing][Export and publishing]] | 100% | ✅ / ✅ / ❓ / ✅ / ✅ / ❌ |
 | [[file:docs/parity.org::#citations][Citations]] | 82% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ✅ |
@@ -125,7 +125,7 @@ does not work there and why.
 | [[file:docs/parity.org::#completion-and-editing-helpers][Completion and editing helpers]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ❓ |
 | [[file:docs/parity.org::#timers][Timers]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❌ |
 | [[file:docs/parity.org::#attachments][Attachments]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
-| [[file:docs/parity.org::#encryption][Encryption]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ✅ |
+| [[file:docs/parity.org::#encryption][Encryption]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | ❓ / ❌ / ❓ / ❓ / ❌ / ❌ |
 | *All of Org* | *98%* |  |
 

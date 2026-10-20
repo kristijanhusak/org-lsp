@@ -40,155 +40,167 @@ its sections says what it should look like.
 *Partly:* Zed folds with its own folding: Org's cycling and sparse trees need folds an extension can set, which Zed does not offer.
 
 - [ ] On a headline, cycling goes folded → children → subtree
-- [ ] Narrowing to the subtree opens it in a file of its own; saving that file writes it back into the Org file and saves it: the code action /Narrow to the subtree: it in a file of its own/
-- [ ] Widening in the narrowed file writes it back and closes it (~C-c '~ there does the same): the code action /Widen: the narrowed file written back and closed/
+- [ ] Narrowing to the subtree opens it in a file of its own; saving that file writes it back into the Org file and saves it: ~ctrl-x n s~
+- [ ] Widening in the narrowed file writes it back and closes it (~C-c '~ there does the same): ~ctrl-x n w~
 - [ ] Zed's own folds open and close on headlines, drawers and blocks
 
 * Headings and structure
 
-*Partly:* A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. ~C-a~, ~C-e~, ~C-k~ and ~C-y~ keep Zed's own meaning, and nothing pasted is folded: Zed lets no server fold.
+*Partly:* A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Turning a line into a heading (~org.toggle.heading~) is left out: it has no key in keymap.json and is not among the code actions. ~C-a~, ~C-e~, ~C-k~ and ~C-y~ keep Zed's own meaning, and nothing pasted is folded: Zed lets no server fold.
 
-- [ ] On a headline, a new heading of the same level goes below: the code action /New heading, item or table row/
-- [ ] A new TODO heading: the code action /New TODO heading, or item with a checkbox/
-- [ ] A new heading after the subtree, and a TODO one: the code action /New heading after the subtree/, the code action /New TODO heading after the subtree/
+- [ ] On a headline, a new heading of the same level goes below: ~alt-enter~
+- [ ] A new TODO heading: ~alt-shift-enter~
+- [ ] A new heading after the subtree, and a TODO one: ~ctrl-enter~, ~ctrl-shift-enter~
 - [ ] Promoting and demoting a heading; its tags stay aligned: the code action /Promote the heading; outdent the item; move the table column left/, the code action /Demote the heading; indent the item, the drawer or the block; move the table column right/
 - [ ] Promoting and demoting a subtree: the code action /Promote the subtree; outdent the item with its children; delete the table column/, the code action /Demote the subtree; indent the item with its children; insert a table column/
 - [ ] Moving a subtree up and down past its siblings: the code action /Move the subtree, the item or the table row up/, the code action /Move the subtree, the item or the table row down/
-- [ ] Inserting an inline task gives 15 stars and an ~END~ line; demoting it changes both; the outline leaves it out, and folding it hides its text and its ~END~ line: the code action /Insert an inline task/, the code action /Demote the heading; indent the item, the drawer or the block; move the table column right/
-- [ ] Cutting a subtree and pasting it under another heading: its level fits there: the code action /Cut the subtree/, the code action /Paste the subtree/
-- [ ] Copying a subtree and pasting it: the code action /Copy the subtree/, the code action /Paste the subtree/
+- [ ] Inserting an inline task gives 15 stars and an ~END~ line; demoting it changes both; the outline leaves it out, and folding it hides its text and its ~END~ line: ~ctrl-c ctrl-x t~, the code action /Demote the heading; indent the item, the drawer or the block; move the table column right/
+- [ ] Cutting a subtree and pasting it under another heading: its level fits there: ~ctrl-c ctrl-x ctrl-w~, ~ctrl-c ctrl-x ctrl-y~
+- [ ] Copying a subtree and pasting it: ~ctrl-c ctrl-x alt-w~, ~ctrl-c ctrl-x ctrl-y~
 - [ ] With ~org_allow_promoting_top_level_subtree~ on, promoting ~* A~ makes it ~# A~: the code action /Promote the heading; outdent the item; move the table column left/
-- [ ] Sorting the children of a heading alphabetically, then by TODO state: the code action /Sort the entries, the items or the table rows/
-- [ ] Moving to the next and previous heading; with a count, that many: the code action /Move to the next heading/, the code action /Move to the previous heading/
-- [ ] Moving to the next and previous heading of the same level, stopping at the parent's end: the code action /Move to the next heading of the same level/, the code action /Move to the previous heading of the same level/
-- [ ] Moving to the parent heading; on a top heading Org says it is at the top level: the code action /Move to the parent heading/
-- [ ] Going to a heading picked by its outline path (~A/B/~): the code action /Go to a heading of the file/
-- [ ] Off a table, turning a line into a heading and back (needs Emacs): the code action /Turn the line into a heading, or the heading into a line/
-- [ ] Toggling ~COMMENT~ on the heading (needs Emacs): the code action /Toggle the COMMENT keyword of the heading/
-- [ ] Cloning the subtree twice a week apart (~+1w~): the copies follow it with their dates moved (needs Emacs): the code action /Clone the subtree, shifting its dates/
+- [ ] Sorting the children of a heading alphabetically, then by TODO state: ~ctrl-c ^~
+- [ ] Moving to the next and previous heading; with a count, that many: ~ctrl-c ctrl-n~, ~ctrl-c ctrl-p~
+- [ ] Moving to the next and previous heading of the same level, stopping at the parent's end: ~ctrl-c ctrl-f~, ~ctrl-c ctrl-b~
+- [ ] Moving to the parent heading; on a top heading Org says it is at the top level: ~ctrl-c ctrl-u~
+- [ ] Going to a heading picked by its outline path (~A/B/~): ~ctrl-c ctrl-j~
+- [ ] Toggling ~COMMENT~ on the heading (needs Emacs): ~ctrl-c ;~
+- [ ] Cloning the subtree twice a week apart (~+1w~): the copies follow it with their dates moved (needs Emacs): ~ctrl-c ctrl-x c~
 - [ ] The outline lists the headings nested, also in pickers that filter symbols by kind: the outline panel
+
+Not in Zed:
+
+- Off a table, turning a line into a heading and back (needs Emacs): /Turn the line into a heading, or the heading into a line/ is not among its keys or code actions
 
 * Lists and checkboxes
 
 *Partly:* ~RET~ stays Zed's own, and so do Shift and Alt with the arrows, which cycle bullets and move items in Org.
 
-- [ ] On an item, the next item goes below; in a numbered list the numbers go on, after a checkbox item the new one has ~[ ]~: the code action /New heading, item or table row/
+- [ ] On an item, the next item goes below; in a numbered list the numbers go on, after a checkbox item the new one has ~[ ]~: ~alt-enter~
 - [ ] Indenting and outdenting an item; and with its children: the code action /Demote the heading; indent the item, the drawer or the block; move the table column right/, the code action /Promote the heading; outdent the item; move the table column left/, the code action /Demote the subtree; indent the item with its children; insert a table column/, the code action /Promote the subtree; outdent the item with its children; delete the table column/
 - [ ] Moving an item up and down: the code action /Move the subtree, the item or the table row up/, the code action /Move the subtree, the item or the table row down/
-- [ ] Toggling a checkbox: its parent box and the ~[1/3]~ cookie follow: the code action /Toggle the checkbox/
-- [ ] On a list numbered 1, 3, 2, the same command renumbers and repairs it: the code action /Toggle the checkbox/
-- [ ] Sorting a list's items alphabetically: the code action /Sort the entries, the items or the table rows/
-- [ ] Off a table, turning lines into items and back (needs Emacs); in a table the same key inserts a rule below the row: the code action /Insert a rule below the table row/
+- [ ] Toggling a checkbox: its parent box and the ~[1/3]~ cookie follow: ~ctrl-c ctrl-c~
+- [ ] On a list numbered 1, 3, 2, the same command renumbers and repairs it: ~ctrl-c ctrl-c~
+- [ ] Sorting a list's items alphabetically: ~ctrl-c ^~
+- [ ] Off a table, turning lines into items and back (needs Emacs); in a table the same key inserts a rule below the row: ~ctrl-c -~
 
 * TODO keywords
 
 *Partly:* States are picked with buttons; for a note for a state change (~@~), the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Faces of particular keywords and priorities are not shown: Zed colors tokens by its theme only.
 
-- [ ] With ~org_enforce_todo_dependencies~, a parent with a child not done cannot be done: the change is refused with ~blocked (by "TODO Child")~; with ~org_enforce_todo_checkbox_dependencies~, an entry with an unchecked box cannot either: the code action /Change the TODO state/
+- [ ] With ~org_enforce_todo_dependencies~, a parent with a child not done cannot be done: the change is refused with ~blocked (by "TODO Child")~; with ~org_enforce_todo_checkbox_dependencies~, an entry with an unchecked box cannot either: ~ctrl-c ctrl-t~
 - [ ] Those tasks are dimmed in the agenda and the TODO list
-- [ ] Changing the TODO state of a headline (with ~org_todo_keywords~ keys, picked by key): the code action /Change the TODO state/
+- [ ] Changing the TODO state of a headline (with ~org_todo_keywords~ keys, picked by key): ~ctrl-c ctrl-t~
 - [ ] Cycling to the next and previous state: the code action /Cycle TODO state forward/, the code action /Cycle TODO state backward/
-- [ ] Done with ~org_log_done = "time"~ writes ~CLOSED: [...]~ below the headline: the code action /Change the TODO state/
-- [ ] A state with ~@~ (~WAIT(w@)~) asks for a note, written below the headline: the code action /Change the TODO state/
-- [ ] Done on a repeating entry (~<2026-01-01 Thu +1w>~) moves its date a week on and keeps it TODO: the code action /Change the TODO state/
-- [ ] The parent's ~[1/2]~ cookie is recounted: the code action /Change the TODO state/
-- [ ] A ~#+TODO: A B | C~ line in the file is used instead of the settings: the code action /Change the TODO state/
-- [ ] With ~#+TODO: TODO | DONE~ and ~#+TODO: REPORT BUG | FIXED~, changing the state without keys goes ~BUG~, ~FIXED~, none, then back to ~REPORT~: the code action /Change the TODO state/
-- [ ] Switching to the next and previous keyword set says ~Keyword-Set 2/2: REPORT BUG FIXED~: the code action /Switch to the next TODO keyword set/, the code action /Switch to the previous TODO keyword set/
+- [ ] Done with ~org_log_done = "time"~ writes ~CLOSED: [...]~ below the headline: ~ctrl-c ctrl-t~
+- [ ] A state with ~@~ (~WAIT(w@)~) asks for a note, written below the headline: ~ctrl-c ctrl-t~
+- [ ] Done on a repeating entry (~<2026-01-01 Thu +1w>~) moves its date a week on and keeps it TODO: ~ctrl-c ctrl-t~
+- [ ] The parent's ~[1/2]~ cookie is recounted: ~ctrl-c ctrl-t~
+- [ ] A ~#+TODO: A B | C~ line in the file is used instead of the settings: ~ctrl-c ctrl-t~
+- [ ] With ~#+TODO: TODO | DONE~ and ~#+TODO: REPORT BUG | FIXED~, changing the state without keys goes ~BUG~, ~FIXED~, none, then back to ~REPORT~: ~ctrl-c ctrl-t~
+- [ ] Switching to the next and previous keyword set says ~Keyword-Set 2/2: REPORT BUG FIXED~: ~ctrl-shift-right~, ~ctrl-shift-left~
 
 * Priorities
 
 - [ ] Raising and lowering the priority of a headline: the code action /Raise the priority/, the code action /Lower the priority/
-- [ ] Setting it by key; ~SPC~ removes it: the code action /Set the priority/
+- [ ] Setting it by key; ~SPC~ removes it: ~ctrl-c ,~
 - [ ] ~#+PRIORITIES: 1 5 3~ makes the priorities numbers: the code action /Raise the priority/
 
 * Tags
 
 *Partly:* Tags are typed, not set with keys pressed in turn: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Completion and renaming work. Faces of particular tags are not shown: Zed colors tokens by its theme only.
 
-- [ ] Typing tags when none have keys; they are sorted and aligned to ~org_tags_column~: the code action /Set the tags of the headline/
+- [ ] Typing tags when none have keys; they are sorted and aligned to ~org_tags_column~: ~ctrl-c ctrl-q~
 - [ ] Tags are completed after ~:~ at the end of a headline
 - [ ] Renaming a tag renames it in every headline and ~#+FILETAGS:~: ~F2~ on the tag
 
 * Properties and column view
 
-*Partly:* A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Column view is left out: it draws over the headlines. Custom properties are not hidden (~org.custom.properties.toggle~): Zed lets no server hide text.
+*Partly:* A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Column view is left out: it draws over the headlines. Custom properties are not hidden (~org.custom.properties.toggle~): Zed lets no server hide text. Deleting a property has no key in keymap.json and is not among the code actions; cycling a property's allowed values needs Shift with the arrows, which stay Zed's.
 
-- [ ] Setting a property: the name and the value are asked for: the code action /Set a property of the entry/
-- [ ] On a property line with ~NAME_ALL~, cycling through its values: the code action /Move the date a day later, or cycle the TODO state or the list's bullets forward/, the code action /Move the date a day earlier, or cycle the TODO state or the list's bullets backward/
-- [ ] Deleting a property from the entry, and from the whole file: the code action /Delete a property of the entry/, the code action /Delete a property from every entry of the file/
-- [ ] Setting the effort: the code action /Set the effort of the entry/
-- [ ] Toggling ~ORDERED~: the code action /Toggle whether subtasks must be done in order (ORDERED)/
+- [ ] Setting a property: the name and the value are asked for: ~ctrl-c ctrl-x p~
+- [ ] Setting the effort: ~ctrl-c ctrl-x e~
+- [ ] Toggling ~ORDERED~: ~ctrl-c ctrl-x o~
 - [ ] Property names are completed in a drawer
+
+Not in Zed:
+
+- On a property line with ~NAME_ALL~, cycling through its values: /Move the date a day later, or cycle the TODO state or the list's bullets forward/, /Move the date a day earlier, or cycle the TODO state or the list's bullets backward/ are not among its keys or code actions
+- Deleting a property from the entry, and from the whole file: /Delete a property of the entry/, /Delete a property from every entry of the file/ are not among its keys or code actions
 
 * Dates and times
 
-*Partly:* Dates are typed (~+2d~, ~fri 10:00~), with no calendar: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Changing a timestamp works.
+*Partly:* Dates are typed (~+2d~, ~fri 10:00~), with no calendar: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Changing a timestamp works. Removing the scheduled date or the deadline is left out: those commands have no key in keymap.json and are not among the code actions.
 
-- [ ] Scheduling with ~+2d~: ~SCHEDULED: <…>~ goes below the headline: the code action /Schedule the entry/
-- [ ] A deadline on ~fri 10:00~: the code action /Set the deadline of the entry/
-- [ ] Removing the scheduled date and the deadline: the code action /Remove the scheduled date of the entry/, the code action /Remove the deadline of the entry/
-- [ ] Inserting an active and an inactive timestamp; a second one right after makes a range: the code action /Insert or change a timestamp/, the code action /Insert or change an inactive timestamp/
+- [ ] Scheduling with ~+2d~: ~SCHEDULED: <…>~ goes below the headline: ~ctrl-c ctrl-s~
+- [ ] A deadline on ~fri 10:00~: ~ctrl-c ctrl-d~
+- [ ] Inserting an active and an inactive timestamp; a second one right after makes a range: ~ctrl-c .~, ~ctrl-c !~
 - [ ] On a timestamp, changing the day, month, year, hour and minute under the cursor; with a count: the code action /Increase the part of the timestamp at the cursor/, the code action /Decrease the part of the timestamp at the cursor/
 - [ ] Moving a timestamp by days: the code action /Move the date one day later/, the code action /Move the date one day earlier/
 - [ ] A repeater (~+1w~) and a warning (~-2d~) are kept as the date changes
 
+Not in Zed:
+
+- Removing the scheduled date and the deadline: /Remove the scheduled date of the entry/, /Remove the deadline of the entry/ are not among its keys or code actions
+
 * Agenda
 
-*Partly:* The agenda is a file, its commands code actions (or keys through Zed's tasks); for a search and a date, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Follow mode and the outline path of the cursor's entry are left out: Zed reports no cursor moves to an extension. Column view in the agenda is left out: it draws over the lines. The days of a habit's graph have Org's backgrounds for a dark background, a little transparent, with any theme: an extension's colors for tokens are the same with every theme.
+*Partly:* The agenda is a file, its commands keys through Zed's tasks (keymap.json), ~enter~ and ~tab~ going to an entry; adding today's appointments (~org.agenda.appt~) has no key and is not among the code actions; for a search and a date, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Follow mode and the outline path of the cursor's entry are left out: Zed reports no cursor moves to an extension. Column view in the agenda is left out: it draws over the lines. The days of a habit's graph have Org's backgrounds for a dark background, a little transparent, with any theme: an extension's colors for tokens are the same with every theme.
 
-- [ ] The agenda menu lists the views and the custom commands: the code action /Agenda commands/
+- [ ] The agenda menu lists the views and the custom commands: ~ctrl-c a~
 - [ ] The week view: scheduled entries, deadlines with their warnings, the time grid: the code action /Agenda for the current week or day/
-- [ ] Later, earlier, today; day, week, month views; going to a date: the code action /Agenda: go forward in time/, the code action /Agenda: go backward in time/, the code action /Agenda: go to today/, the code action /Agenda: day view/, the code action /Agenda: week view/, the code action /Agenda: month view/, the code action /Agenda: go to a date/
+- [ ] Later, earlier, today; day, week, month views; going to a date: ~f~, ~b~, ~.~, ~v d~, ~v w~, ~v m~, ~shift-j~
 - [ ] With ~org_modules = ["org-habit"]~, a habit's consistency graph shows its days on the backgrounds of ~org-habit~'s faces: blue before it is due, green in its time to be done, yellow on the day it is due by, red past it, paler for the days the ~-future~ faces are for: the code action /Agenda for the current week or day/
-- [ ] The TODO list, a tag search (~work+urgent~), a word search: the code action /Agenda commands/
+- [ ] The TODO list, a tag search (~work+urgent~), a word search: ~ctrl-c a~
 - [ ] With ~org_super_agenda_mode~ on and ~org_super_agenda_groups~ set (~[{ name = "Today", time-grid = true }, { auto-category = true }]~), each day of the agenda is in groups under their headers, and the TODO list too: the code action /Agenda for the current week or day/
 - [ ] With ~org_agenda_prefix_format~ ~{ todo = " %-12:c%-4(org-entry-get nil "EFFORT") " }~, the TODO list shows each entry's effort after its category, ~nil~ without one (needs Emacs): the code action /List of all TODO entries/
-- [ ] Going to the line's entry in another window, and where the agenda is: the code action /Agenda: go to the entry in another window/, the code action /Agenda: go to the entry/
-- [ ] Changing the line's TODO state and priority; the line follows: the code action /Change the TODO state/, the code action /Raise the priority/
-- [ ] Scheduling the line's entry and setting its deadline: the code action /Schedule the entry/, the code action /Set the deadline of the entry/
-- [ ] Marking lines and a bulk action on them: the code action /Agenda: mark the entry for a bulk action/, the code action /Agenda: an action on the marked entries/
-- [ ] Entry text, log mode, the clock report, archives mode: the code action /Agenda: entry text mode, some text of each entry under its line/, the code action /Agenda: log mode, what was closed and clocked/, the code action /Agenda: the clock report/, the code action /Agenda: include archived trees/
-- [ ] In the week view, inactive timestamps show after ~[~ with /Display now includes inactive timestamps as well/, marked ~[~, and are gone again when the agenda is rebuilt: the code action /Agenda: search for another word, or show inactive timestamps/, the code action /Agenda: show inactive timestamps once/, the code action /Agenda: rebuild/
+- [ ] Going to the line's entry in another window, and where the agenda is: ~tab~, ~enter~
+- [ ] Changing the line's TODO state and priority; the line follows: ~t~, ~+~ or ~shift-up~
+- [ ] Scheduling the line's entry and setting its deadline: ~ctrl-c ctrl-s~, ~ctrl-c ctrl-d~
+- [ ] Marking lines and a bulk action on them: ~m~, ~shift-b~
+- [ ] Entry text, log mode, the clock report, archives mode: ~shift-e~ or ~v shift-e~, ~v l~, ~shift-r~ or ~v shift-r~, ~v a~
+- [ ] In the week view, inactive timestamps show after ~[~ with /Display now includes inactive timestamps as well/, marked ~[~, and are gone again when the agenda is rebuilt: ~[~, ~v [~, ~r~
 - [ ] Hovering a line shows its entry: the mouse
-- [ ] Rebuilding the agenda, saving the changed files, quitting: the code action /Agenda: rebuild/, the code action /Save all Org files/
+- [ ] Rebuilding the agenda, saving the changed files, quitting: ~r~, ~s~ or ~ctrl-x ctrl-s~
 - [ ] An entry changed in its file shows in the agenda when it is rebuilt
-- [ ] Adding today's appointments: an entry timed a few minutes from now is reminded of every three minutes until it is due (needs Emacs): the code action /Add today's appointments from the agenda files/
 - [ ] Pressing ~f~ many times in a row moves the agenda a week each time, in the editor too
 - [ ] With no Org file open and no server running, the /Org: Agenda for the current week or day/ task opens the Org file last opened and the agenda
 - [ ] Zed started again with the agenda's tab open shows the current week there, and its keys work
 - [ ] ~ctrl-c a~ in an Org file asks for the agenda view with buttons; ~ctrl-c c~ captures
 
+Not in Zed:
+
+- Adding today's appointments: an entry timed a few minutes from now is reminded of every three minutes until it is due (needs Emacs): /Add today's appointments from the agenda files/ is not among its keys or code actions
+
 * Clocking
 
 *Partly:* No clock in the status line: Zed has no place there for an extension's text. In the agenda, the clocked entry's line has the background of ~org-agenda-clocking~ under its text, not to the window's edge: Zed lets no extension highlight a line, only give its tokens a background, and the tokens end with the text.
 
-- [ ] Clocking into an entry whose effort its time passes shows ~Task ‘…’ should be finished by now. (0:30)~, once: the code action /Clock in/
-- [ ] Clocking in: ~:LOGBOOK:~ gets a ~CLOCK:~ line and the clock shows (~[0:01] (Task)~): the code action /Clock in/
-- [ ] Clocking out writes the end and the duration: the code action /Clock out/
-- [ ] Cancelling the clock takes its line out: the code action /Cancel the clock/
-- [ ] Going to the clocked entry from another file: the code action /Go to the clocked entry/
-- [ ] Clocking in the last entry again: the code action /Clock in the last clocked task/
-- [ ] The time clocked under each headline shows next to it: the code action /Show the time clocked under each headline/
-- [ ] A clock table: inserted, then updated; shifting its ~:block~ on the ~#+BEGIN:~ line: the code action /Insert or update a clock table/, the code action /Update the dynamic block/
-- [ ] A clock left running when the editor closed is asked about (~Dangling clock started N mins ago [jkKtTgGSscCiq]? ~); ~K~ and Enter stops it now: the code action /Resolve open clocks/
-- [ ] With a clock left running and none clocked, clocking into another entry asks about it first: the code action /Clock in/
-- [ ] In the agenda, clocking in and out; the clocked line's text is highlighted: the code action /Clock in/, the code action /Clock out/
+- [ ] Clocking into an entry whose effort its time passes shows ~Task ‘…’ should be finished by now. (0:30)~, once: ~ctrl-c ctrl-x ctrl-i~
+- [ ] Clocking in: ~:LOGBOOK:~ gets a ~CLOCK:~ line and the clock shows (~[0:01] (Task)~): ~ctrl-c ctrl-x ctrl-i~
+- [ ] Clocking out writes the end and the duration: ~ctrl-c ctrl-x ctrl-o~
+- [ ] Cancelling the clock takes its line out: ~ctrl-c ctrl-x ctrl-q~
+- [ ] Going to the clocked entry from another file: ~ctrl-c ctrl-x ctrl-j~
+- [ ] Clocking in the last entry again: ~ctrl-c ctrl-x ctrl-x~
+- [ ] The time clocked under each headline shows next to it: ~ctrl-c ctrl-x ctrl-d~
+- [ ] A clock table: inserted, then updated; shifting its ~:block~ on the ~#+BEGIN:~ line: ~ctrl-c ctrl-x ctrl-r~, ~ctrl-c ctrl-x ctrl-u~
+- [ ] A clock left running when the editor closed is asked about (~Dangling clock started N mins ago [jkKtTgGSscCiq]? ~); ~K~ and Enter stops it now: ~ctrl-c ctrl-x ctrl-z~
+- [ ] With a clock left running and none clocked, clocking into another entry asks about it first: ~ctrl-c ctrl-x ctrl-i~
+- [ ] In the agenda, clocking in and out; the clocked line's text is highlighted: ~shift-i~, ~shift-o~
 
 * Capture
 
 *Partly:* For a template's prompts, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The capture buffer's tab stays open once the entry is filed: Zed lets no server close a tab.
 
-- [ ] The menu lists the templates by key: the code action /Capture/
-- [ ] An entry template opens the capture buffer with the cursor at ~%?~: the code action /Capture/
-- [ ] A ~%^{Name}~ prompt asks for text: the code action /Capture/
-- [ ] Finishing puts the entry under its target: the code action /Capture: finish/
-- [ ] Aborting leaves the target unchanged: the code action /Capture: abort/
-- [ ] A date tree target files under year, month and day: the code action /Capture/
-- [ ] ~%a~ links back to where the capture started: the code action /Capture/
-- [ ] ~%c~ puts in what was copied last (in Neovim and Vim, the register the key was typed with): the code action /Capture/
-- [ ] ~%[snippet.txt]~ puts in the file's text, relative to the file captured from: the code action /Capture/
-- [ ] ~%(upcase "abc")~ puts in ~ABC~, what Emacs makes of it (needs Emacs): the code action /Capture/
+- [ ] The menu lists the templates by key: ~ctrl-c c~
+- [ ] An entry template opens the capture buffer with the cursor at ~%?~: ~ctrl-c c~
+- [ ] A ~%^{Name}~ prompt asks for text: ~ctrl-c c~
+- [ ] Finishing puts the entry under its target: ~ctrl-c ctrl-c~
+- [ ] Aborting leaves the target unchanged: ~ctrl-c ctrl-k~
+- [ ] A date tree target files under year, month and day: ~ctrl-c c~
+- [ ] ~%a~ links back to where the capture started: ~ctrl-c c~
+- [ ] ~%c~ puts in what was copied last (in Neovim and Vim, the register the key was typed with): ~ctrl-c c~
+- [ ] ~%[snippet.txt]~ puts in the file's text, relative to the file captured from: ~ctrl-c c~
+- [ ] ~%(upcase "abc")~ puts in ~ABC~, what Emacs makes of it (needs Emacs): ~ctrl-c c~
 
 * org-protocol
 
@@ -201,139 +213,166 @@ its sections says what it should look like.
 
 * Notes (org-roam)
 
-*Partly:* A node's title is typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The org-roam buffer does not follow the cursor: Zed reports no cursor moves to an extension.
+*Partly:* A node's title is typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The org-roam buffer does not follow the cursor: Zed reports no cursor moves to an extension. The commands without a key of Org's (a random node, aliases, tags, the buffer of a node and refreshing it) are left out: Zed runs a server's commands only from the keys of keymap.json and the code actions, and those are not among them.
 
-- [ ] With ~org_roam_enabled~ on and ~org_roam_directory~ set, finding a node offers the titles and aliases of its files and visits the one picked: the code action /Roam: find a node/
-- [ ] Inserting a node puts ~[[id:…][title]]~ at the cursor; on a selection, the selection is typed first and the link takes its place: the code action /Roam: insert a link to a node/
-- [ ] A title no node has opens a capture buffer with the new file's ~ID~ and ~#+title:~; finishing writes the file and, from insert, puts the link in: the code action /Roam: insert a link to a node/
-- [ ] A random node is visited: the code action /Roam: visit a random node/
-- [ ] Adding an alias puts it in the node's ~ROAM_ALIASES~; removing it offers the aliases and takes the one picked out: the code action /Roam: add an alias/, the code action /Roam: remove an alias/
-- [ ] Adding tags to a file's node writes ~#+filetags:~; on a headline's node, its tags: the code action /Roam: add tags/
-- [ ] Following ~[[roam:Title]]~ visits the node and turns the link into ~[[id:…][Title]]~; saving does it for the others: the code action /Open the link or thing at the cursor/
+- [ ] With ~org_roam_enabled~ on and ~org_roam_directory~ set, finding a node offers the titles and aliases of its files and visits the one picked: ~ctrl-c n f~
+- [ ] Inserting a node puts ~[[id:…][title]]~ at the cursor; on a selection, the selection is typed first and the link takes its place: ~ctrl-c n i~
+- [ ] A title no node has opens a capture buffer with the new file's ~ID~ and ~#+title:~; finishing writes the file and, from insert, puts the link in: ~ctrl-c n i~
+- [ ] Following ~[[roam:Title]]~ visits the node and turns the link into ~[[id:…][Title]]~; saving does it for the others: ~ctrl-c ctrl-o~
 - [ ] Typing ~[[roam:~ or ~[[id:~ offers the titles of the nodes; the one picked becomes an ~id:~ link
-- [ ] Toggling the org-roam buffer in a node another links to shows it beside, the cursor staying in the note, with /Backlinks (1)/ and the linking node's heading and text; toggling again hides it: the code action /Roam: show or hide the org-roam buffer/
-- [ ] Following an item of the buffer visits the line of the link: the code action /Open the link or thing at the cursor/
-- [ ] A dedicated buffer for a node asked for opens in a file of its own and stays on that node: the code action /Roam: show the org-roam buffer of a node/
-- [ ] With ~"unlinked-references"~ in ~org_roam_mode_sections~, a line naming the node's title without a link is listed under /Unlinked References/: the code action /Roam: refresh the org-roam buffer/
-- [ ] Going to today's daily note makes ~daily/YYYY-MM-DD.org~ with its ~ID~ and ~#+title:~; capturing to it adds an entry at its end; the next and previous notes go from one to the other: the code action /Roam: go to today's daily note/, the code action /Roam: capture to today's daily note/, the code action /Roam: go to the next daily note/
-- [ ] Opening the directory of the daily notes offers its notes; the one picked is visited: the code action /Roam: open the directory of the daily notes/
+- [ ] Toggling the org-roam buffer in a node another links to shows it beside, the cursor staying in the note, with /Backlinks (1)/ and the linking node's heading and text; toggling again hides it: ~ctrl-c n l~
+- [ ] Following an item of the buffer visits the line of the link: ~ctrl-c ctrl-o~
+- [ ] Going to today's daily note makes ~daily/YYYY-MM-DD.org~ with its ~ID~ and ~#+title:~; capturing to it adds an entry at its end; the next and previous notes go from one to the other: ~ctrl-c n d d~, ~ctrl-c n d n~, ~ctrl-c n d f~
+- [ ] Opening the directory of the daily notes offers its notes; the one picked is visited: ~ctrl-c n d .~
+
+Not in Zed:
+
+- A random node is visited: /Roam: visit a random node/ is not among its keys or code actions
+- Adding an alias puts it in the node's ~ROAM_ALIASES~; removing it offers the aliases and takes the one picked out: /Roam: add an alias/, /Roam: remove an alias/ are not among its keys or code actions
+- Adding tags to a file's node writes ~#+filetags:~; on a headline's node, its tags: /Roam: add tags/ is not among its keys or code actions
+- A dedicated buffer for a node asked for opens in a file of its own and stays on that node: /Roam: show the org-roam buffer of a node/ is not among its keys or code actions
+- With ~"unlinked-references"~ in ~org_roam_mode_sections~, a line naming the node's title without a link is listed under /Unlinked References/: /Roam: refresh the org-roam buffer/ is not among its keys or code actions
 
 * A journal (org-journal)
 
-*Partly:* For the dates and searches the commands ask for, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with ~file_types~ in Zed's settings. The calendar and the keys org-journal adds to it are left out: Zed shows no date prompt.
+*Partly:* For the dates and searches the commands ask for, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with ~file_types~ in Zed's settings. The calendar and the keys org-journal adds to it are left out: Zed shows no date prompt. The entries to come (TODO, and with a date) are left out: they have no key in keymap.json and are not among the code actions.
 
-- [ ] With ~org_journal_enabled~ on, a new entry makes today's file in ~org_journal_dir~ (a file without an extension, opened as Org) with today's date and an entry with the time, the cursor after it: the code action /Journal: new entry/
-- [ ] With a journal file of yesterday holding a TODO entry, the first new entry of today moves it to today's file: the code action /Journal: new entry/
-- [ ] In a journal file, the previous entry goes to the day before; on the first, it says /No journal entry before this one/: the code action /Journal: previous entry/
+- [ ] With ~org_journal_enabled~ on, a new entry makes today's file in ~org_journal_dir~ (a file without an extension, opened as Org) with today's date and an entry with the time, the cursor after it: ~ctrl-c j j~
+- [ ] With a journal file of yesterday holding a TODO entry, the first new entry of today moves it to today's file: ~ctrl-c j j~
+- [ ] In a journal file, the previous entry goes to the day before; on the first, it says /No journal entry before this one/: ~ctrl-c j b~
 - [ ] With ~org_journal_enable_agenda_integration~, the TODO entries of today's journal file are in the week view: the code action /Agenda for the current week or day/
-- [ ] A search asks for the string, then the first and the last day; the results list each line found under its day, which links to the line: the code action /Journal: search between two dates/
-- [ ] Searching the TODO entries to come lists those of the days after today: the code action /Journal: the TODO entries to come/
-- [ ] The schedule lists the entries to come with a timestamp, under their days: the code action /Journal: the entries to come with a date/
+- [ ] A search asks for the string, then the first and the last day; the results list each line found under its day, which links to the line: ~ctrl-c j s~
+
+Not in Zed:
+
+- Searching the TODO entries to come lists those of the days after today: /Journal: the TODO entries to come/ is not among its keys or code actions
+- The schedule lists the entries to come with a timestamp, under their days: /Journal: the entries to come with a date/ is not among its keys or code actions
 
 * Refile and archive
 
-- [ ] Refiling a subtree under a heading of the same file, and of another file: the code action /Refile the entry/
-- [ ] Archiving a subtree: it goes to ~FILE_archive~ with its ~ARCHIVE_…~ properties: the code action /Archive the subtree/
-- [ ] Archiving to the archive sibling: the code action /Archive the subtree under its Archive sibling/
-- [ ] Toggling the ~ARCHIVE~ tag: the code action /Toggle the ARCHIVE tag/
-- [ ] Archiving every done subtree after confirming each: the code action /Archive the subtrees without open TODO items/
-- [ ] In the agenda: archiving the line's entry; archives mode shows archived entries: the code action /Archive with the default command/, the code action /Agenda: include archived trees/
+*Partly:* Archiving every done subtree (~org.archive.done~) is left out: it has no key in keymap.json and is not among the code actions.
+
+- [ ] Refiling a subtree under a heading of the same file, and of another file: ~ctrl-c ctrl-w~
+- [ ] Archiving a subtree: it goes to ~FILE_archive~ with its ~ARCHIVE_…~ properties: ~ctrl-c ctrl-x ctrl-s~ or ~ctrl-c $~
+- [ ] Archiving to the archive sibling: ~ctrl-c ctrl-x shift-a~
+- [ ] Toggling the ~ARCHIVE~ tag: ~ctrl-c ctrl-x a~
+- [ ] In the agenda: archiving the line's entry; archives mode shows archived entries: ~ctrl-c ctrl-x ctrl-a~, ~v a~
+
+Not in Zed:
+
+- Archiving every done subtree after confirming each: /Archive the subtrees without open TODO items/ is not among its keys or code actions
 
 * Links
 
-*Partly:* A link's target is typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Following works through go to definition, for links inside Org files and to files.
+*Partly:* A link's target is typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Following works through go to definition, for links inside Org files and to files. Creating an ID (~org.id.create~) is left out: it has no key in keymap.json and is not among the code actions.
 
-- [ ] A ~#+LINK: gh https://github.com/%s~ line makes ~[[gh:org-lsp]]~ follow ~https://github.com/org-lsp~; ~org_link_abbrev_alist~ does the same from the settings: the code action /Open the link or thing at the cursor/
-- [ ] Following a link to a headline, a custom ID and a ~<<target>>~: the code action /Open the link or thing at the cursor/
-- [ ] Following a ~file:~ link with a search (~file:notes.org::*Heading~) and an ~id:~ link: the code action /Open the link or thing at the cursor/
-- [ ] Following ~[[No such heading]]~ asks whether to make it; yes adds ~* No such heading~ at the end of the file and goes there: the code action /Open the link or thing at the cursor/
-- [ ] Following a URL opens the browser; a timestamp opens its day's agenda: the code action /Open the link or thing at the cursor/
-- [ ] Following ~[[shell:echo hi]]~ asks ~Execute echo hi in shell?~; yes says ~hi~, no says ~Abort~: the code action /Open the link or thing at the cursor/
-- [ ] With ~org_modules~ ~["ol-man"]~, following ~[[man:ls::-l]]~ shows the man page of ~ls~ as text, near ~-l~; ~[[info:elisp#Buffers]]~ opens the Elisp manual on the web at ~Buffers~: the code action /Open the link or thing at the cursor/
+- [ ] A ~#+LINK: gh https://github.com/%s~ line makes ~[[gh:org-lsp]]~ follow ~https://github.com/org-lsp~; ~org_link_abbrev_alist~ does the same from the settings: ~ctrl-c ctrl-o~
+- [ ] Following a link to a headline, a custom ID and a ~<<target>>~: ~ctrl-c ctrl-o~
+- [ ] Following a ~file:~ link with a search (~file:notes.org::*Heading~) and an ~id:~ link: ~ctrl-c ctrl-o~
+- [ ] Following ~[[No such heading]]~ asks whether to make it; yes adds ~* No such heading~ at the end of the file and goes there: ~ctrl-c ctrl-o~
+- [ ] Following a URL opens the browser; a timestamp opens its day's agenda: ~ctrl-c ctrl-o~
+- [ ] Following ~[[shell:echo hi]]~ asks ~Execute echo hi in shell?~; yes says ~hi~, no says ~Abort~: ~ctrl-c ctrl-o~
+- [ ] With ~org_modules~ ~["ol-man"]~, following ~[[man:ls::-l]]~ shows the man page of ~ls~ as text, near ~-l~; ~[[info:elisp#Buffers]]~ opens the Elisp manual on the web at ~Buffers~: ~ctrl-c ctrl-o~
 - [ ] Go to definition on a link does the same: ~F12~
-- [ ] Storing a link to a headline and inserting it elsewhere with a description: the code action /Store a link to the place at the cursor/, the code action /Insert a link, or edit the one at the cursor/
-- [ ] Inserting a link on an existing link edits it: the code action /Insert a link, or edit the one at the cursor/
-- [ ] Creating an ID for the entry: the code action /Create an ID for the entry/
-- [ ] Moving to the next and previous link; after the last, again from the start of the file: the code action /Move to the next link/, the code action /Move to the previous link/
+- [ ] Storing a link to a headline and inserting it elsewhere with a description: ~ctrl-c l~, ~ctrl-c ctrl-l~
+- [ ] Inserting a link on an existing link edits it: ~ctrl-c ctrl-l~
+- [ ] Moving to the next and previous link; after the last, again from the start of the file: ~ctrl-c ctrl-x ctrl-n~, ~ctrl-c ctrl-x ctrl-p~
 - [ ] In ~[[~, file names, headlines and custom IDs are completed
 - [ ] Hovering a link shows where it leads
 - [ ] References on a headline list the links to it, in every file
 - [ ] Renaming a headline updates the links that search for it
 - [ ] Workspace symbols find headlines of every file
 
+Not in Zed:
+
+- Creating an ID for the entry: /Create an ID for the entry/ is not among its keys or code actions
+
 * Footnotes
 
-- [ ] Following ~[fn:1]~ goes to its definition, and from the definition back to the reference: the code action /Open the link or thing at the cursor/
+- [ ] Following ~[fn:1]~ goes to its definition, and from the definition back to the reference: ~ctrl-c ctrl-o~
 - [ ] A reference without a definition is reported
-- [ ] A new footnote (needs Emacs): ~[fn:1]~ at the cursor, its definition in the ~Footnotes~ section, the cursor there: the code action /Make a footnote, or go between a footnote and its definition/
-- [ ] On a reference without a definition, Emacs asks whether to make one, in the editor: the code action /Make a footnote, or go between a footnote and its definition/
+- [ ] A new footnote (needs Emacs): ~[fn:1]~ at the cursor, its definition in the ~Footnotes~ section, the cursor there: ~ctrl-c ctrl-x f~
+- [ ] On a reference without a definition, Emacs asks whether to make one, in the editor: ~ctrl-c ctrl-x f~
 
 * Tables
 
 *Partly:* Moving between fields with ~TAB~ and copying down (~S-RET~) are left out: those keys stay Zed's own. For a new table's size, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. A shrunk column shows its whole text and ~…~: Zed lets no server hide text.
 
-- [ ] Shrinking a column with a ~<5>~ cookie puts ~…~ after each of its fields, their text left whole; again, the ~…~ go; a file with ~#+STARTUP: shrink~ opens with them: the code action /Shrink or expand the table column/
+- [ ] Shrinking a column with a ~<5>~ cookie puts ~…~ after each of its fields, their text left whole; again, the ~…~ go; a file with ~#+STARTUP: shrink~ opens with them: ~ctrl-c tab~
 - [ ] Formatting the file aligns the tables: editor: format
 - [ ] Moving a column left and right, a row up and down: the code action /Promote the heading; outdent the item; move the table column left/, the code action /Demote the heading; indent the item, the drawer or the block; move the table column right/, the code action /Move the subtree, the item or the table row up/, the code action /Move the subtree, the item or the table row down/
 - [ ] Inserting and deleting a column and a row: the code action /Demote the subtree; indent the item with its children; insert a table column/, the code action /Promote the subtree; outdent the item with its children; delete the table column/, the code action /Insert a table row above/, the code action /Delete the table row/
-- [ ] A rule below the row; a rule and a move to the row below: the code action /Insert a rule below the table row/, the code action /Insert a rule below the table row and go below it/
+- [ ] A rule below the row; a rule and a move to the row below: ~ctrl-c -~, ~ctrl-c enter~
 - [ ] Blanking the field: the code action /Blank the table field/
-- [ ] The sum of the column and the field's references are shown as messages (needs Emacs): the code action /Sum the numbers of the table column/, the code action /Show the references of the table field/
-- [ ] Creating a table asks for its size (~3x2~; empty for Org's default) (needs Emacs): the code action /Insert an empty table/
-- [ ] Sorting the rows by the cursor's column: the code action /Sort the entries, the items or the table rows/
-- [ ] A table under ~#+PLOT: file:"plot.png"~ is plotted to ~plot.png~ (needs Emacs with gnuplot.el, and gnuplot); the bars of a column of numbers go in a column of their own with its ~#+TBLFM:~ (needs Emacs): the code action /Plot the table with gnuplot/, the code action /Draw the column at the cursor as bars/
+- [ ] The sum of the column and the field's references are shown as messages (needs Emacs): ~ctrl-c +~, ~ctrl-c ?~
+- [ ] Creating a table asks for its size (~3x2~; empty for Org's default) (needs Emacs): ~ctrl-c |~
+- [ ] Sorting the rows by the cursor's column: ~ctrl-c ^~
+- [ ] A table under ~#+PLOT: file:"plot.png"~ is plotted to ~plot.png~ (needs Emacs with gnuplot.el, and gnuplot); the bars of a column of numbers go in a column of their own with its ~#+TBLFM:~ (needs Emacs): ~ctrl-c " g~, ~ctrl-c " a~
 - [ ] The ~#+TBLFM:~ line follows a moved column
 
 * Table formulas
 
+*Partly:* Iterating until the table is stable (~org.table.iterate~) is left out: it has no key in keymap.json and is not among the code actions.
+
 - [ ] ~#+TBLFM: $3=$1*$2~ fills the third column: the code action /Recalculate the table/
-- [ ] Recalculating the cursor's line only: the code action /Recalculate the table's current line/
-- [ ] ~C-c C-c~ on the ~#+TBLFM:~ line applies it: the code action /Toggle the checkbox/
+- [ ] Recalculating the cursor's line only: ~ctrl-c *~
+- [ ] ~C-c C-c~ on the ~#+TBLFM:~ line applies it: ~ctrl-c ctrl-c~
 - [ ] A range sum ~@>$2=vsum(@2..@-1)~ and a format ~;%.2f~
 - [ ] Date arithmetic (~$2=$1+7~) on timestamps
-- [ ] Iterating until the table is stable: the code action /Recalculate the table until it does not change/
 - [ ] An Emacs Lisp formula ~$3='(+ $1 $2);N~ and a remote reference ~remote(name,@1$1)~ are computed by Emacs (needs Emacs): the code action /Recalculate the table/
-- [ ] With the formula debugger on, recalculating shows each formula's substitution history and asks whether to go on (needs Emacs): the code action /Turn the formula debugger on or off/
-- [ ] Editing the formulas in a file of their own: saving it writes them to the ~#+TBLFM:~ line (needs Emacs): the code action /Edit the block in a file of its own/
-- [ ] Editing a field in a file of its own: saving it puts the text back on one line and realigns the table (needs Emacs): the code action /Edit the table field in a file of its own/
+- [ ] With the formula debugger on, recalculating shows each formula's substitution history and asks whether to go on (needs Emacs): ~ctrl-c {~
+- [ ] Editing the formulas in a file of their own: saving it writes them to the ~#+TBLFM:~ line (needs Emacs): ~ctrl-c '~
+- [ ] Editing a field in a file of its own: saving it puts the text back on one line and realigns the table (needs Emacs): ~ctrl-c `~
+
+Not in Zed:
+
+- Iterating until the table is stable: /Recalculate the table until it does not change/ is not among its keys or code actions
 
 * Code blocks (Babel)
 
-- [ ] Adding the file's named blocks to the Library of Babel; a ~#+CALL:~ in another file runs one (needs Emacs): the code action /Add the file's named code blocks to the Library of Babel/
-- [ ] Tangling writes each block to its ~:tangle~ file, ~:mkdirp~ and ~:shebang~ applied: the code action /Tangle the file's code blocks/
-- [ ] A ~:tangle (concat "out" ".el")~ block is tangled by Emacs to ~out.el~ (needs Emacs): the code action /Tangle the file's code blocks/
-- [ ] After tangling a block with ~:comments link~ and changing its code in the tangled file, detangling puts the new code back into the block (needs Emacs): the code action /Put the code of a tangled file back into its blocks/
-- [ ] Evaluating an ~emacs-lisp~ block asks first (yes or no), then puts ~#+RESULTS:~ below it (needs Emacs): the code action /Evaluate the code block or call at the cursor through Emacs/
-- [ ] ~src_emacs-lisp{(* 6 7)}~ gets ~{{{results(=42=)}}}~; a ~#+CALL:~ line its results: the code action /Evaluate the code block or call at the cursor through Emacs/
-- [ ] Evaluating the file's and the subtree's blocks: the code action /Evaluate the file's code blocks through Emacs/, the code action /Evaluate the subtree's code blocks through Emacs/
-- [ ] Removing a block's results: the code action /Remove the results of the code block at the cursor/
-- [ ] Moving to the next and previous code block, and to any block (needs Emacs): the code action /Move to the next code block/, the code action /Move to the previous code block/, the code action /Move to the next block/, the code action /Move to the previous block/
-- [ ] Going to a named code block, picked from the names (needs Emacs): the code action /Go to a named code block/
+*Partly:* Detangling (~org.babel.detangle~) is left out: it has no key in keymap.json and is not among the code actions.
+
+- [ ] Adding the file's named blocks to the Library of Babel; a ~#+CALL:~ in another file runs one (needs Emacs): ~ctrl-c ctrl-v i~
+- [ ] Tangling writes each block to its ~:tangle~ file, ~:mkdirp~ and ~:shebang~ applied: ~ctrl-c ctrl-v t~ or ~ctrl-c ctrl-v ctrl-t~
+- [ ] A ~:tangle (concat "out" ".el")~ block is tangled by Emacs to ~out.el~ (needs Emacs): ~ctrl-c ctrl-v t~ or ~ctrl-c ctrl-v ctrl-t~
+- [ ] Evaluating an ~emacs-lisp~ block asks first (yes or no), then puts ~#+RESULTS:~ below it (needs Emacs): ~ctrl-c ctrl-v e~ or ~ctrl-c ctrl-v ctrl-e~
+- [ ] ~src_emacs-lisp{(* 6 7)}~ gets ~{{{results(=42=)}}}~; a ~#+CALL:~ line its results: ~ctrl-c ctrl-v e~ or ~ctrl-c ctrl-v ctrl-e~
+- [ ] Evaluating the file's and the subtree's blocks: ~ctrl-c ctrl-v b~ or ~ctrl-c ctrl-v ctrl-b~, ~ctrl-c ctrl-v s~ or ~ctrl-c ctrl-v ctrl-s~
+- [ ] Removing a block's results: ~ctrl-c ctrl-v k~
+- [ ] Moving to the next and previous code block, and to any block (needs Emacs): ~ctrl-c ctrl-v n~ or ~ctrl-c ctrl-v ctrl-n~, ~ctrl-c ctrl-v p~ or ~ctrl-c ctrl-v ctrl-p~, ~ctrl-c alt-f~, ~ctrl-c alt-b~
+- [ ] Going to a named code block, picked from the names (needs Emacs): ~ctrl-c ctrl-v g~
 - [ ] Typing in the file while a slow block runs: the results are dropped with a warning
-- [ ] Editing a code block in a file of its own: the file has the language's extension, its lines unindented and ~,*~ unescaped; saving it writes the block back and saves the Org file; the same block again shows the same file (needs Emacs): the code action /Edit the block in a file of its own/
-- [ ] The same at a footnote reference (its definition, the label kept), a LaTeX fragment and an export block; at ~#+INCLUDE:~ the file included is shown (needs Emacs): the code action /Edit the block in a file of its own/
+- [ ] Editing a code block in a file of its own: the file has the language's extension, its lines unindented and ~,*~ unescaped; saving it writes the block back and saves the Org file; the same block again shows the same file (needs Emacs): ~ctrl-c '~
+- [ ] The same at a footnote reference (its definition, the label kept), a LaTeX fragment and an export block; at ~#+INCLUDE:~ the file included is shown (needs Emacs): ~ctrl-c '~
+
+Not in Zed:
+
+- After tangling a block with ~:comments link~ and changing its code in the tangled file, detangling puts the new code back into the block (needs Emacs): /Put the code of a tangled file back into its blocks/ is not among its keys or code actions
 
 * Export and publishing
 
-- [ ] ~#~ in the export menu inserts the options template of the backend picked (~default~ for all): the code action /Export the file through Emacs/
-- [ ] The menu shows Emacs's backends, ~C-b~, ~C-s~ and ~C-f~ toggle the options (needs Emacs): the code action /Export the file through Emacs/
-- [ ] To an HTML file: the file is written next to the Org file and announced: the code action /Export the file through Emacs/
-- [ ] To an HTML file and opened: the browser opens it: the code action /Export the file through Emacs/
-- [ ] The subtree at the cursor as UTF-8 text in a buffer: a file of it is shown: the code action /Export the file through Emacs/
-- [ ] Unsaved changes are in the export: the code action /Export the file through Emacs/
-- [ ] ~&~ in the export menu lists what the exports made, the last first; picking one shows it again: the code action /Export the file through Emacs/
+- [ ] ~#~ in the export menu inserts the options template of the backend picked (~default~ for all): ~ctrl-c ctrl-e~
+- [ ] The menu shows Emacs's backends, ~C-b~, ~C-s~ and ~C-f~ toggle the options (needs Emacs): ~ctrl-c ctrl-e~
+- [ ] To an HTML file: the file is written next to the Org file and announced: ~ctrl-c ctrl-e~
+- [ ] To an HTML file and opened: the browser opens it: ~ctrl-c ctrl-e~
+- [ ] The subtree at the cursor as UTF-8 text in a buffer: a file of it is shown: ~ctrl-c ctrl-e~
+- [ ] Unsaved changes are in the export: ~ctrl-c ctrl-e~
+- [ ] ~&~ in the export menu lists what the exports made, the last first; picking one shows it again: ~ctrl-c ctrl-e~
 - [ ] ~emacs_config~ adds Markdown (~org-export-backends~): it is in the menu after a restart
 
 * Citations
 
-*Partly:* The BibTeX commands' fields are asked for in turn, and the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text.
+*Partly:* The BibTeX commands' fields are asked for in turn, and the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Those without a key of Org's (a new entry, copying, exporting, pasting and importing BibTeX) are left out: they are not among the code actions.
 
 - [ ] Keys are completed after ~[cite:@~
 - [ ] Hovering a key shows its entry; following it opens the bibliography there
 - [ ] An unknown key is reported, with close keys to put instead
-- [ ] A new BibTeX entry asks for its type (completed), title, required fields and key, then is a headline with those properties: the code action /BibTeX: new entry, its fields asked for/
-- [ ] The entry at the cursor copied as BibTeX; the file's entries exported to the ~.bib~ file asked for: the code action /BibTeX: copy the entry at the cursor as BibTeX/, the code action /BibTeX: export the entries of the file to a .bib file/
-- [ ] A BibTeX entry copied from elsewhere pasted as a headline; a ~.bib~ file imported: the code action /BibTeX: paste a BibTeX entry as a heading/, the code action /BibTeX: import the entries of a BibTeX file as headings/
+
+Not in Zed:
+
+- A new BibTeX entry asks for its type (completed), title, required fields and key, then is a headline with those properties: /BibTeX: new entry, its fields asked for/ is not among its keys or code actions
+- The entry at the cursor copied as BibTeX; the file's entries exported to the ~.bib~ file asked for: /BibTeX: copy the entry at the cursor as BibTeX/, /BibTeX: export the entries of the file to a .bib file/ are not among its keys or code actions
+- A BibTeX entry copied from elsewhere pasted as a headline; a ~.bib~ file imported: /BibTeX: paste a BibTeX entry as a heading/, /BibTeX: import the entries of a BibTeX file as headings/ are not among its keys or code actions
 
 * Diagnostics (org-lint)
 
@@ -343,22 +382,28 @@ its sections says what it should look like.
 
 * Indentation and formatting
 
-*Partly:* Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. With soft wrap on, the lines a long line wraps into line up with the prefix and its own indentation, not with a headline's title or an item's text: Zed wraps under a line's leading blanks, inlay hints among them.
+*Partly:* Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. With soft wrap on, the lines a long line wraps into line up with the prefix and its own indentation, not with a headline's title or an item's text: Zed wraps under a line's leading blanks, inlay hints among them. Numbering the headlines by command (~org-num-mode~) is left out: it has no key in keymap.json and is not among the code actions; ~#+STARTUP: num~ numbers them.
 
 - [ ] A file with ~#+STARTUP: indent~ shows its text indented by level, the file unchanged
 - [ ] In a file with ~#+STARTUP: indent~, with soft wrap on, a long line of text goes on under its text
 - [ ] Re-indenting a selection indents it as Org does: format selections
 - [ ] Formatting the file aligns tables and puts tags in their column
-- [ ] A file with ~#+STARTUP: num~ shows ~1~, ~1.1~​… after the stars of its headlines; the command turns them off and on: the code action /Number the headlines, or stop numbering them/
+
+Not in Zed:
+
+- A file with ~#+STARTUP: num~ shows ~1~, ~1.1~​… after the stars of its headlines; the command turns them off and on: /Number the headlines, or stop numbering them/ is not among its keys or code actions
 
 * Notes and logging
 
-*Partly:* A note is one line, with no buffer to write it in: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text.
+*Partly:* A note is one line, with no buffer to write it in: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Changing a TODO state as if it were yesterday is left out: it has no key in keymap.json and is not among the code actions.
 
-- [ ] Adding a note: it is asked for, and goes in the entry's log: the code action /Add a note to the entry/
-- [ ] With ~LOG_INTO_DRAWER~, the note goes in ~:LOGBOOK:~: the code action /Add a note to the entry/
-- [ ] Adding a note from the agenda: the code action /Add a note to the entry/
-- [ ] With ~org_log_done~ ~"time"~, ~org.todo.yesterday~ marks an entry done with ~CLOSED:~ at 23:59 of yesterday: the code action /Change the TODO state as if it were yesterday/
+- [ ] Adding a note: it is asked for, and goes in the entry's log: ~ctrl-c ctrl-z~
+- [ ] With ~LOG_INTO_DRAWER~, the note goes in ~:LOGBOOK:~: ~ctrl-c ctrl-z~
+- [ ] Adding a note from the agenda: ~z~
+
+Not in Zed:
+
+- With ~org_log_done~ ~"time"~, ~org.todo.yesterday~ marks an entry done with ~CLOSED:~ at 23:59 of yesterday: /Change the TODO state as if it were yesterday/ is not among its keys or code actions
 
 * Completion and editing helpers
 
@@ -366,32 +411,37 @@ its sections says what it should look like.
 - [ ] ~#+~ keywords, and the values after ~#+STARTUP:~
 - [ ] Block names after ~#+begin_~, drawer names after ~:~
 - [ ] Entities after ~\~ (~\alp~ → ~\alpha~)
-- [ ] A block from the structure templates (~s~ for a source block) (needs Emacs): the code action /Insert a block (structure template)/
-- [ ] Emphasis markers around the cursor, ~*~ for bold (needs Emacs): the code action /Insert emphasis markers/
-- [ ] A drawer, its name completed from the file's (needs Emacs): the code action /Insert a drawer/
+- [ ] A block from the structure templates (~s~ for a source block) (needs Emacs): ~ctrl-c ctrl-,~
+- [ ] Emphasis markers around the cursor, ~*~ for bold (needs Emacs): ~ctrl-c ctrl-x ctrl-f~
+- [ ] A drawer, its name completed from the file's (needs Emacs): ~ctrl-c ctrl-x d~
 
 * Timers
 
 *Partly:* For a countdown's length, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. No timer in the status line: Zed has no place there for an extension's text.
 
-- [ ] Starting the timer says when it started (needs Emacs): the code action /Start the relative timer/
-- [ ] Inserting the timer's value (~0:00:12~) and a timer item (~- 0:00:15 ::~): the code action /Insert the timer's value/, the code action /Insert a list item with the timer's value/
-- [ ] Pausing and continuing; stopping: the code action /Pause or continue the timer/, the code action /Stop the timer/
-- [ ] A countdown asks for its length (~1~ for a minute); when it ends, ~Heading: time out~ is shown: the code action /Set a countdown timer/
-- [ ] On an entry with an effort the countdown takes it, without asking: the code action /Set a countdown timer/
+- [ ] Starting the timer says when it started (needs Emacs): ~ctrl-c ctrl-x 0~
+- [ ] Inserting the timer's value (~0:00:12~) and a timer item (~- 0:00:15 ::~): ~ctrl-c ctrl-x .~, ~ctrl-c ctrl-x -~
+- [ ] Pausing and continuing; stopping: ~ctrl-c ctrl-x ,~, ~ctrl-c ctrl-x _~
+- [ ] A countdown asks for its length (~1~ for a minute); when it ends, ~Heading: time out~ is shown: ~ctrl-c ctrl-x ;~
+- [ ] On an entry with an effort the countdown takes it, without asking: ~ctrl-c ctrl-x ;~
 
 * Attachments
 
 *Partly:* ~attachment:~ links open; the dispatcher's keys come as buttons, and for the file to attach, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text.
 
-- [ ] Attaching a file by copying it: the entry gets an ID and the ~ATTACH~ tag, the file goes in its directory (needs Emacs): the code action /Attachments of the entry/
-- [ ] An ~attachment:~ link opens the attached file (needs Emacs): the code action /Open the link or thing at the cursor/
+- [ ] Attaching a file by copying it: the entry gets an ID and the ~ATTACH~ tag, the file goes in its directory (needs Emacs): ~ctrl-c ctrl-a~
+- [ ] An ~attachment:~ link opens the attached file (needs Emacs): ~ctrl-c ctrl-o~
 
 * Encryption
 
-- [ ] With ~org-crypt-key~ set in the Emacs configuration, encrypting an entry replaces its text with a PGP message; decrypting brings it back (needs Emacs and GnuPG): the code action /Encrypt the entry/, the code action /Decrypt the entry/
-- [ ] Encrypting and decrypting every entry tagged ~crypt~ (needs Emacs and GnuPG): the code action /Encrypt the entries tagged crypt/, the code action /Decrypt the encrypted entries/
+*Partly:* Encrypting and decrypting by command are left out: they have no key in keymap.json and are not among the code actions. Encrypting before saving needs an editor that sends LSP's ~willSaveWaitUntil~.
+
 - [ ] With ~(org-crypt-use-before-save-magic)~ in the Emacs configuration, saving a file encrypts its entries tagged ~crypt~ (needs Emacs and GnuPG)
+
+Not in Zed:
+
+- With ~org-crypt-key~ set in the Emacs configuration, encrypting an entry replaces its text with a PGP message; decrypting brings it back (needs Emacs and GnuPG): /Encrypt the entry/, /Decrypt the entry/ are not among its keys or code actions
+- Encrypting and decrypting every entry tagged ~crypt~ (needs Emacs and GnuPG): /Encrypt the entries tagged crypt/, /Decrypt the encrypted entries/ are not among its keys or code actions
 
 * Inline images and LaTeX previews
 

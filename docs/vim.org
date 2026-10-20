@@ -3,7 +3,7 @@
 
 The Vim plugin (~editors/vim~) runs Org through the server on top of an
 LSP client: [[https://github.com/yegappan/lsp][yegappan/lsp]], [[https://github.com/prabirshrestha/vim-lsp][vim-lsp]], [[https://github.com/neoclide/coc.nvim][coc.nvim]] or [[https://github.com/dense-analysis/ale][ALE]]. It needs Vim
-9.1.
+9.0.1485 or newer.
 
 The client starts the server and keeps it up to date with the buffers; the
 plugin does the rest the same way for all four: it runs the server's

@@ -228,8 +228,8 @@ export const AREAS = [
     ],
     editors: {
       vscode: ['part', 'VS Code does not tell an extension which folds are closed: `C-k` on a folded headline is VS Code\'s own (`org-ctrl-k-protect-subtree`), and a subtree cut or copied folded is not folded again when it is pasted.'],
-      zed: ['part', `A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, ${ZED_TEXT}. \`C-a\`, \`C-e\`, \`C-k\` and \`C-y\` keep Zed's own meaning, and nothing pasted is folded: Zed lets no server fold.`],
-      helix: ['part', 'Moving between headings, `org-goto` and Org\'s `C-a`, `C-e`, `C-k` and `C-y` are left out: they need keys, and Helix cannot bind a key to a server\'s command; nor are the commands run by Emacs (`C-c *`, `C-c ;`, cloning) among its code actions. New headings are code actions.'],
+      zed: ['part', `A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, ${ZED_TEXT}. Turning a line into a heading (\`org.toggle.heading\`) is left out: it has no key in keymap.json and is not among the code actions. \`C-a\`, \`C-e\`, \`C-k\` and \`C-y\` keep Zed's own meaning, and nothing pasted is folded: Zed lets no server fold.`],
+      helix: ['part', 'Moving between headings, `org-goto` and Org\'s `C-a`, `C-e`, `C-k` and `C-y` are left out: they need keys, and Helix cannot bind a key to a server\'s command; nor are inserting an inline task and the commands run by Emacs (`C-c *`, `C-c ;`, cloning) among its code actions. New headings are code actions.'],
     },
     checks: [
       { text: 'On a headline, a new heading of the same level goes below', cmd: 'org.meta.return' },
@@ -314,7 +314,7 @@ export const AREAS = [
     editors: {
       sublime: ['part', 'Faces of particular keywords and priorities are not shown in the file: Sublime Text colors text by its color scheme only. The list of TODO states shows them in the color of each item\'s kind, the nearest of those Sublime Text has.'],
       zed: ['part', `States are picked with buttons; for a note for a state change (\`@\`), ${ZED_TEXT}. Faces of particular keywords and priorities are not shown: Zed colors tokens by its theme only.`],
-      helix: ['part', `States are picked from the code actions, where they come first once asked for; for a note for a state change (\`@\`), ${HELIX_TEXT}. Faces of particular keywords and priorities are not shown.`],
+      helix: ['part', `States are picked from the code actions, where they come first once asked for; for a note for a state change (\`@\`), ${HELIX_TEXT}. Switching to another keyword set is left out: it is not among Helix's code actions. Faces of particular keywords and priorities are not shown.`],
     },
     checks: [
       { text: 'With `org_enforce_todo_dependencies`, a parent with a child not done cannot be done: the change is refused with `blocked (by "TODO Child")`; with `org_enforce_todo_checkbox_dependencies`, an entry with an unchecked box cannot either', cmd: 'org.todo' },
@@ -393,8 +393,8 @@ export const AREAS = [
       vim: ['part', 'Column view\'s header is in the window\'s status line, shown when the window has one (`laststatus`). Custom properties are not hidden (`org.custom.properties.toggle`): Vim cannot hide a line, a closed fold still shows a line of its own, and text with text properties is not concealed.'],
       vscode: ['part', 'Column view\'s header is in the status bar, with the column picked in brackets. Custom properties are not hidden (`org.custom.properties.toggle`): VS Code hides lines only in a fold of the folding ranges, which keeps its first line showing, and a decoration cannot hide a line.'],
       sublime: ['part', 'A property\'s name and value are typed in an input panel, without completion. Column view is left out: it draws over the headlines, which Sublime Text cannot. A custom property hidden (`org.custom.properties.toggle`) is in a fold from the end of the line before, which shows the fold\'s marker: Sublime Text hides text only in folds.'],
-      zed: ['part', `A property, its value and the effort are typed, without completion: ${ZED_TEXT}. Column view is left out: it draws over the headlines. Custom properties are not hidden (\`org.custom.properties.toggle\`): Zed lets no server hide text.`],
-      helix: ['part', `A property, its value and the effort are typed, without completion: ${HELIX_TEXT}. Column view is left out: it draws over the headlines. Custom properties are not hidden (\`org.custom.properties.toggle\`): Helix lets no server hide text.`],
+      zed: ['part', `A property, its value and the effort are typed, without completion: ${ZED_TEXT}. Column view is left out: it draws over the headlines. Custom properties are not hidden (\`org.custom.properties.toggle\`): Zed lets no server hide text. Deleting a property has no key in keymap.json and is not among the code actions; cycling a property's allowed values needs Shift with the arrows, which stay Zed's.`],
+      helix: ['part', `A property, its value and the effort are typed, without completion: ${HELIX_TEXT}. Column view is left out: it draws over the headlines. Custom properties are not hidden (\`org.custom.properties.toggle\`): Helix lets no server hide text. Deleting a property, cycling a property's allowed values and toggling \`ORDERED\` are left out: they are not among Helix's code actions.`],
     },
     checks: [
       { text: 'Column view: the headlines covered by their columns (`#+COLUMNS:` or the default), the header above, effort sums on parents (needs Emacs)', cmd: 'org.columns', only: ['neovim', 'vim', 'vscode'] },
@@ -427,8 +427,8 @@ export const AREAS = [
     ],
     editors: {
       sublime: ['part', 'Dates are typed, without the calendar: the package asks with an input panel.'],
-      zed: ['part', `Dates are typed (\`+2d\`, \`fri 10:00\`), with no calendar: ${ZED_TEXT}. Changing a timestamp works.`],
-      helix: ['part', `Dates are typed (\`+2d\`, \`fri 10:00\`), with no calendar: ${HELIX_TEXT}; Helix reads no file again that the server writes, as the calendar is. New timestamps are left out: they are not among Helix's code actions. Changing a timestamp works.`],
+      zed: ['part', `Dates are typed (\`+2d\`, \`fri 10:00\`), with no calendar: ${ZED_TEXT}. Changing a timestamp works. Removing the scheduled date or the deadline is left out: those commands have no key in keymap.json and are not among the code actions.`],
+      helix: ['part', `Dates are typed (\`+2d\`, \`fri 10:00\`), with no calendar: ${HELIX_TEXT}; Helix reads no file again that the server writes, as the calendar is. New timestamps and removing the scheduled date or the deadline are left out: they are not among Helix's code actions. Changing a timestamp works.`],
     },
     checks: [
       { text: 'Scheduling with `+2d`: `SCHEDULED: <…>` goes below the headline', cmd: 'org.schedule' },
@@ -496,7 +496,7 @@ export const AREAS = [
     editors: {
       sublime: ['part', 'Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot. The days of a habit\'s graph take the colors of text, not Org\'s backgrounds: Sublime Text colors a token by its color scheme.'],
       vscode: ['part', 'Tags are at column 80, not at the window\'s edge (`org_agenda_tags_column` `"auto"`): VS Code does not tell an extension how many columns an editor shows.'],
-      zed: ['part', `The agenda is a file, its commands code actions (or keys through Zed's tasks); for a search and a date, ${ZED_TEXT}. Follow mode and the outline path of the cursor's entry are left out: Zed reports no cursor moves to an extension. Column view in the agenda is left out: it draws over the lines. The days of a habit's graph have Org's backgrounds for a dark background, a little transparent, with any theme: an extension's colors for tokens are the same with every theme.`],
+      zed: ['part', `The agenda is a file, its commands keys through Zed's tasks (keymap.json), \`enter\` and \`tab\` going to an entry; adding today's appointments (\`org.agenda.appt\`) has no key and is not among the code actions; for a search and a date, ${ZED_TEXT}. Follow mode and the outline path of the cursor's entry are left out: Zed reports no cursor moves to an extension. Column view in the agenda is left out: it draws over the lines. The days of a habit's graph have Org's backgrounds for a dark background, a little transparent, with any theme: an extension's colors for tokens are the same with every theme.`],
       helix: ['part', `The agenda is a file, \`Agenda.org\`, its commands code actions, a view's choices first in them once asked for; for a search and a date, ${HELIX_TEXT}. Follow mode, the outline path of the cursor's entry and the entry in another window are left out: Helix tells a server no cursor moves, and knows no other window of the server's. Column view in the agenda is left out: it draws over the lines. The server's edits leave the agenda's buffer changed: \`:buffer-close!\` closes it.`],
     },
     checks: [
@@ -553,7 +553,7 @@ export const AREAS = [
     ],
     editors: {
       zed: ['part', 'No clock in the status line: Zed has no place there for an extension\'s text. In the agenda, the clocked entry\'s line has the background of `org-agenda-clocking` under its text, not to the window\'s edge: Zed lets no extension highlight a line, only give its tokens a background, and the tokens end with the text.'],
-      helix: ['part', 'No clock in the status line: Helix has no place there for a server\'s text.'],
+      helix: ['part', 'No clock in the status line: Helix has no place there for a server\'s text. Showing the time clocked under each headline and resolving open clocks are left out: they are not among Helix\'s code actions.'],
     },
     checks: [
       { text: 'Clocking into an entry whose effort its time passes shows `Task ‘…’ should be finished by now. (0:30)`, once', cmd: 'org.clock.in' },
@@ -650,7 +650,7 @@ export const AREAS = [
       ['Lisp that formats a link\'s description or chooses the nodes (`org-roam-node-formatter` as a function, `org-roam-db-node-include-function`)', false],
     ],
     editors: {
-      zed: ['part', `A node's title is typed, without completion: ${ZED_TEXT}. The org-roam buffer does not follow the cursor: Zed reports no cursor moves to an extension.`],
+      zed: ['part', `A node's title is typed, without completion: ${ZED_TEXT}. The org-roam buffer does not follow the cursor: Zed reports no cursor moves to an extension. The commands without a key of Org's (a random node, aliases, tags, the buffer of a node and refreshing it) are left out: Zed runs a server's commands only from the keys of keymap.json and the code actions, and those are not among them.`],
       helix: ['no', 'The commands are not among Helix\'s code actions yet.'],
     },
     checks: [
@@ -692,7 +692,7 @@ export const AREAS = [
       ['Remembering the dates between commands (`org-journal-enable-cache`) is not needed: it only spares Emacs reading the files again, and the days are the same; the server reads the directory each time', true],
     ],
     editors: {
-      zed: ['part', `For the dates and searches the commands ask for, ${ZED_TEXT}. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with \`file_types\` in Zed's settings. The calendar and the keys org-journal adds to it are left out: Zed shows no date prompt.`],
+      zed: ['part', `For the dates and searches the commands ask for, ${ZED_TEXT}. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with \`file_types\` in Zed's settings. The calendar and the keys org-journal adds to it are left out: Zed shows no date prompt. The entries to come (TODO, and with a date) are left out: they have no key in keymap.json and are not among the code actions.`],
       sublime: ['part', 'The calendar and the keys org-journal adds to it are left out: the package shows no date prompt.'],
       helix: ['no', 'The commands are not among Helix\'s code actions yet.'],
     },
@@ -732,7 +732,8 @@ export const AREAS = [
       ['`org-refile-target-verify-function` (the function run by Emacs at each headline)', true],
     ],
     editors: {
-      helix: ['part', 'Copying an entry to a target, going to a target and to the entry refiled last are left out: they are not among Helix\'s code actions. Refiling picks the target from the code actions, where the targets come first once asked for.'],
+      zed: ['part', 'Archiving every done subtree (`org.archive.done`) is left out: it has no key in keymap.json and is not among the code actions.'],
+      helix: ['part', 'Copying an entry to a target, going to a target and to the entry refiled last, and archiving every done subtree, are left out: they are not among Helix\'s code actions. Refiling picks the target from the code actions, where the targets come first once asked for.'],
     },
     checks: [
       { text: 'Copying an entry to a target keeps it where it was; going to a target and to the entry refiled last moves the cursor there', cmd: ['org.refile.copy', 'org.refile.goto', 'org.refile.goto.last'], not: ['zed', 'helix'] },
@@ -772,8 +773,8 @@ export const AREAS = [
       ['`org-ctags` in `org_modules`: a link to a headline, a target or a custom ID goes first to the tag of the `TAGS` file of its directory, or, as `org-ctags-open-link-functions` says, makes that file again (`org-ctags-create-tags`), appends a topic (`org-ctags-new-topic-template`) or opens an Org file of that name; `org.ctags.create` and `org.ctags.find` (`org-ctags-find-tag-interactive`). The `TAGS` file is the directory\'s, never asked for (`visit-tags-table`); of several tags of a name, the first', true],
     ],
     editors: {
-      zed: ['part', `A link's target is typed, without completion: ${ZED_TEXT}. Following works through go to definition, for links inside Org files and to files.`],
-      helix: ['part', 'Storing and inserting links in an Org file are left out: they are not among Helix\'s code actions there (the agenda stores a link to its line\'s entry); moving between links needs a key. Following works through go to definition.'],
+      zed: ['part', `A link's target is typed, without completion: ${ZED_TEXT}. Following works through go to definition, for links inside Org files and to files. Creating an ID (\`org.id.create\`) is left out: it has no key in keymap.json and is not among the code actions.`],
+      helix: ['part', 'Storing and inserting links in an Org file, and creating an ID, are left out: they are not among Helix\'s code actions there (the agenda stores a link to its line\'s entry); moving between links needs a key. Following works through go to definition.'],
     },
     checks: [
       { text: 'A `#+LINK: gh https://github.com/%s` line makes `[[gh:org-lsp]]` follow `https://github.com/org-lsp`; `org_link_abbrev_alist` does the same from the settings', cmd: 'org.open' },
@@ -844,7 +845,7 @@ export const AREAS = [
       vim: ['part', 'A shrunk column shows its whole text and `…`: Vim cannot hide text that has text properties.'],
       sublime: ['part', 'A shrunk column shows its whole text and `…`: Sublime Text cannot hide text in a view.'],
       zed: ['part', `Moving between fields with \`TAB\` and copying down (\`S-RET\`) are left out: those keys stay Zed's own. For a new table's size, ${ZED_TEXT}. A shrunk column shows its whole text and \`…\`: Zed lets no server hide text.`],
-      helix: ['part', `Moving between fields with \`TAB\`, copying down, summing, field information and creating a table are left out: ${NO_KEY_HELIX}, and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and \`…\`: Helix lets no server hide text.`],
+      helix: ['part', `Moving between fields with \`TAB\`, copying down, summing, field information creating a table and a rule with a move below it are left out: ${NO_KEY_HELIX}, and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and \`…\`: Helix lets no server hide text.`],
     },
     checks: [
       { text: '`C-c TAB` in a column with a `<5>` cookie shows five characters of each field and `…`; again, the whole column; a file with `#+STARTUP: shrink` opens so', cmd: 'org.table.toggle.column.width', only: ['neovim', 'vscode'] },
@@ -881,6 +882,10 @@ export const AREAS = [
       ['The formula editor (`C-c \'`, through Emacs): the table\'s formulas in a file of their own, installed each time it is saved', true],
       ['The formula debugger (`C-c {`, through Emacs): while it is on, recalculating asks after each formula whether to go on, its substitution history with the question; answered no, what was computed so far stays', true],
     ],
+    editors: {
+      zed: ['part', 'Iterating until the table is stable (`org.table.iterate`) is left out: it has no key in keymap.json and is not among the code actions.'],
+      helix: ['part', 'Recalculating the current line only, iterating until the table is stable and the formula debugger are left out: they are not among Helix\'s code actions, which recalculate the whole table.'],
+    },
     checks: [
       { text: '`#+TBLFM: $3=$1*$2` fills the third column', cmd: 'org.table.recalculate' },
       { text: 'Recalculating the cursor\'s line only', cmd: 'org.table.recalculate.line' },
@@ -911,7 +916,8 @@ export const AREAS = [
       ['The Library of Babel (`C-c C-v i`, through Emacs)', true],
     ],
     editors: {
-      helix: ['part', 'Only tangling, the block at the cursor and editing it in a file of its own are offered (code actions in a block): the file\'s and the subtree\'s evaluation, removing results and moving between blocks need keys, which Helix cannot give a server.'],
+      zed: ['part', 'Detangling (`org.babel.detangle`) is left out: it has no key in keymap.json and is not among the code actions.'],
+      helix: ['part', 'Only tangling, the block at the cursor and editing it in a file of its own are offered (code actions in a block): the file\'s and the subtree\'s evaluation, removing results, detangling and moving between blocks need keys, which Helix cannot give a server.'],
     },
     checks: [
       { text: 'Adding the file\'s named blocks to the Library of Babel; a `#+CALL:` in another file runs one (needs Emacs)', cmd: 'org.babel.lob.ingest', not: ['helix'] },
@@ -975,7 +981,7 @@ export const AREAS = [
       ['The rest of `ol-bibtex.el`: the help on a field while it is asked for (`*BibTeX Help*`); `org-bibtex-headline-format-function`, a Lisp function (its default, the title, is what a headline gets); searching the agenda files for entries (`org-bibtex-search`); reading an entry in a `.bib` file and storing a link to it (`org-bibtex-read`, `org-bibtex-store-link`): org-lsp serves no BibTeX files', false],
     ],
     editors: {
-      zed: ['part', `The BibTeX commands' fields are asked for in turn, and ${ZED_TEXT}.`],
+      zed: ['part', `The BibTeX commands' fields are asked for in turn, and ${ZED_TEXT}. Those without a key of Org's (a new entry, copying, exporting, pasting and importing BibTeX) are left out: they are not among the code actions.`],
       helix: ['part', 'Inserting citations and the BibTeX commands are not offered as code actions yet. Completion, hover and following work.'],
     },
     checks: [
@@ -1014,8 +1020,8 @@ export const AREAS = [
       vim: ['part', 'The lines a long line wraps into line up with its own indentation, a headline\'s title or an item\'s text (\'breakindent\'), without the prefix of virtual indentation before them: Vim repeats no virtual text on them, and \'breakindentopt\' shifts all the lines of a window alike.'],
       vscode: ['part', 'The lines a long line wraps into are not indented as Org does: VS Code indents them by the line\'s own leading whitespace (`editor.wrappingIndent`), the same way for every line, without the prefix of virtual indentation, a decoration it does not count.'],
       sublime: ['part', 'Virtual indentation shows as phantoms, the leading stars still showing; new lines are not indented as they are typed. The lines a long line wraps into are not indented as Org does: Sublime Text indents them by the line\'s own leading whitespace (`indent_subsequent_lines`).'],
-      zed: ['part', 'Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. With soft wrap on, the lines a long line wraps into line up with the prefix and its own indentation, not with a headline\'s title or an item\'s text: Zed wraps under a line\'s leading blanks, inlay hints among them.'],
-      helix: ['part', 'Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. With soft wrap on (`soft-wrap.enable`), the lines a long line wraps into line up with the prefix and its own indentation, not with a headline\'s title or an item\'s text: Helix wraps under a line\'s leading blanks, inlay hints among them.'],
+      zed: ['part', 'Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. With soft wrap on, the lines a long line wraps into line up with the prefix and its own indentation, not with a headline\'s title or an item\'s text: Zed wraps under a line\'s leading blanks, inlay hints among them. Numbering the headlines by command (`org-num-mode`) is left out: it has no key in keymap.json and is not among the code actions; `#+STARTUP: num` numbers them.'],
+      helix: ['part', 'Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. With soft wrap on (`soft-wrap.enable`), the lines a long line wraps into line up with the prefix and its own indentation, not with a headline\'s title or an item\'s text: Helix wraps under a line\'s leading blanks, inlay hints among them. Numbering the headlines by command (`org-num-mode`) is left out: it is not among Helix\'s code actions; `#+STARTUP: num` numbers them.'],
     },
     checks: [
       { text: 'A file with `#+STARTUP: indent` shows its text indented by level, the file unchanged' },
@@ -1039,7 +1045,7 @@ export const AREAS = [
       ['Late-night changes counted on the day before (`org-use-effective-time`, `org-todo-yesterday`, `org-agenda-todo-yesterday`), or at the last clock-out (`org-use-last-clock-out-time-as-effective-time`)', true],
     ],
     editors: {
-      zed: ['part', `A note is one line, with no buffer to write it in: ${ZED_TEXT}.`],
+      zed: ['part', `A note is one line, with no buffer to write it in: ${ZED_TEXT}. Changing a TODO state as if it were yesterday is left out: it has no key in keymap.json and is not among the code actions.`],
       helix: ['part', `A note is one line, with no buffer to write it in: ${HELIX_TEXT}. Adding a note is a code action in the agenda, not in an Org file.`],
     },
     checks: [
@@ -1117,6 +1123,10 @@ export const AREAS = [
       ['Encrypting and decrypting an entry, and the entries tagged `crypt` (`org-crypt`, through Emacs and GnuPG): for `org-crypt-key` or the `CRYPTKEY` property, or with a passphrase GnuPG\'s pinentry asks for', true],
       ['Encrypting before saving, with `org-crypt-use-before-save-magic` in the Emacs configuration (LSP\'s `willSaveWaitUntil`, for editors that send it)', true],
     ],
+    editors: {
+      zed: ['part', 'Encrypting and decrypting by command are left out: they have no key in keymap.json and are not among the code actions. Encrypting before saving needs an editor that sends LSP\'s `willSaveWaitUntil`.'],
+      helix: ['part', 'Encrypting and decrypting by command are left out: they are not among Helix\'s code actions. Encrypting before saving needs an editor that sends LSP\'s `willSaveWaitUntil`.'],
+    },
     checks: [
       { text: 'With `org-crypt-key` set in the Emacs configuration, encrypting an entry replaces its text with a PGP message; decrypting brings it back (needs Emacs and GnuPG)', cmd: ['org.crypt.encrypt', 'org.crypt.decrypt'] },
       { text: 'Encrypting and decrypting every entry tagged `crypt` (needs Emacs and GnuPG)', cmd: ['org.crypt.encrypt.all', 'org.crypt.decrypt.all'] },
