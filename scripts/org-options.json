@@ -522,7 +522,7 @@
   "org-fold-core-style": "emacs-only"
  },
  "org-fold.el": {
-  "org-fold-show-context-detail": "emacs-only",
+  "org-fold-show-context-detail": "missing",
   "org-fold-catch-invisible-edits": "emacs-only",
   "org-fold-catch-invisible-edits-commands": "emacs-only"
  },
@@ -682,7 +682,7 @@
   "org-table-number-fraction": "setting",
   "org-table-formula-field-format": "emacs",
   "org-table-automatic-realign": "setting",
-  "org-table-auto-blank-field": ["other", "the editor types into a field as into any text: TAB leaves the cursor at the start of the field's text, as in Emacs, and the first character typed does not blank it"],
+  "org-table-auto-blank-field": "absent",
   "org-table-exit-follow-field-mode-when-leaving-table": "absent",
   "org-table-fix-formulas-confirm": "emacs",
   "org-table-tab-jumps-over-hlines": "setting",
