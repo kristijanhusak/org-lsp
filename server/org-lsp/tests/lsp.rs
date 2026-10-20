@@ -3024,7 +3024,11 @@ fn edits_through_emacs() {
     let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
     let config =
         std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
-    let options = json!({ "emacs_config": config, "org_table_formula_constants": { "k": "10" } });
+    let options = json!({
+        "emacs_config": config,
+        "emacs_options": { "org-attach-method": "mv" },
+        "org_table_formula_constants": { "k": "10" }
+    });
     let mut client = Client::start(json!({}), options);
     let mut version = 1;
     let mut text = "* Head\nSome text here.\nline\n".to_string();
@@ -3251,6 +3255,14 @@ fn edits_through_emacs() {
     let id = text.lines().find_map(|line| line.trim().strip_prefix(":ID:")).unwrap().trim().to_string();
     let copied = directory.join("data").join(&id[..2]).join(&id[2..]).join("doc.txt");
     assert_eq!(std::fs::read_to_string(&copied).unwrap(), "attached\n");
+    // `C-c C-a a`: by `org-attach-method`, which `emacs_options` makes `mv`.
+    std::fs::write(directory.join("moved.txt"), "moved\n").unwrap();
+    replace(&mut client, &mut text, &mut version, "* Other\n".to_string());
+    run(&mut client, &mut text, &mut version, "org.attach", (0, 0), json!({ "input": "moved.txt", "step": "a" }));
+    let id = text.lines().find_map(|line| line.trim().strip_prefix(":ID:")).unwrap().trim().to_string();
+    let moved = directory.join("data").join(&id[..2]).join(&id[2..]).join("moved.txt");
+    assert_eq!(std::fs::read_to_string(&moved).unwrap(), "moved\n");
+    assert!(!directory.join("moved.txt").exists(), "the file is moved, not copied");
     // A column view inserted (`C-c C-x x`), then filled in again by
     // `C-c C-c` on its `#+BEGIN:` line, both by Emacs.
     replace(&mut client, &mut text, &mut version, "* TODO A\n* B\n\n".to_string());

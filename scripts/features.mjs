@@ -1105,7 +1105,7 @@ export const AREAS = [
   {
     name: 'Attachments',
     emacs: [
-      ['Attaching files to an entry (`C-c C-a`): attaching, opening, deleting, synchronizing, the directory set (through Emacs, whose options, such as `org-attach-method` and `org-attach-id-dir`, are set in `emacs_config`)', true],
+      ['Attaching files to an entry (`C-c C-a`): attaching, opening, deleting, synchronizing, the directory set (through Emacs, whose options, such as `org-attach-method` and `org-attach-id-dir`, are set in `emacs_options`)', true],
       ['`attachment:` links (through Emacs)', true],
     ],
     editors: {

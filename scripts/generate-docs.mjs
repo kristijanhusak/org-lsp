@@ -57,7 +57,7 @@ const STATUSES = {
   setting: 'A setting of the same name',
   missing: 'org-lsp does what the option is about, but the option cannot be set yet',
   other: 'Done another way, as its note says',
-  emacs: 'Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~',
+  emacs: 'Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_options~ (or ~emacs_config~)',
   lisp: 'Its value is Lisp (a function, a hook), which the server does not run',
   absent: 'Part of something org-lsp does not do',
   'emacs-only': 'About Emacs itself (windows, faces, menus, the mouse, the mode line): nothing to do in an editor',
@@ -567,12 +567,12 @@ function configToml() {
 }
 
 /** `text` (the server's, with code in backticks) as Org lines of at most 78
- * columns, a code span never broken over two. */
-function filled(text, indent = '') {
+ * columns, a code span never broken over two; `convert` makes it Org. */
+function filled(text, indent = '', convert = org) {
   const kept = text.replace(/`[^`]+`/g, (span) => span.replaceAll(' ', '\u0001'));
   const lines = [];
   let line = '';
-  for (const word of org(kept).split(/\s+/).filter(Boolean)) {
+  for (const word of convert(kept).split(/\s+/).filter(Boolean)) {
     if (line && indent.length + line.length + 1 + word.length > 78) {
       lines.push(line);
       line = word;
@@ -583,6 +583,11 @@ function filled(text, indent = '') {
   if (line) lines.push(line);
   return lines.map((line, index) => (index > 0 ? indent : '') + line.replaceAll('\u0001', ' ')).join('\n');
 }
+
+/** What an option means, as Org on a page of docs/: a page of docs/ it
+ * names (`docs/parity.org`) is a link to it. */
+const optionDoc = (text) =>
+  org(text).replace(/~docs\/([\w-]+\.org)~/g, (_, file) => link(`file:${file}`, `docs/${file}`));
 
 /** The options on docs/configuration.org: a heading for each, under the
  * heading of its group, with what it means, its type and its default. */
@@ -595,7 +600,7 @@ function fileOptions() {
     for (const setting of group) {
       // GitHub's anchor of the heading, which keeps `_`.
       lines.push(heading(3, setting.name), ':PROPERTIES:', `:CUSTOM_ID: ${setting.name.toLowerCase()}`, ':END:', '');
-      lines.push(filled(setting.doc), '');
+      lines.push(filled(setting.doc, '', optionDoc), '');
       if (setting.org) lines.push(`- Org's option :: ${code(setting.org)}`);
       lines.push(`- Type :: ${org(setting.type)}`);
       if (setting.default === undefined) {
@@ -617,7 +622,7 @@ function protocolOptions() {
   return settings
     .map((setting) => {
       const fallback = setting.default === undefined ? org(setting.unset) : code(json(setting.default));
-      const meaning = org(setting.doc) + (setting.org ? ` (${code(setting.org)})` : '');
+      const meaning = optionDoc(setting.doc) + (setting.org ? ` (${code(setting.org)})` : '');
       return `- ${code(setting.name)} :: ${setting.type}, ${fallback}. ${meaning}`;
     })
     .join('\n');

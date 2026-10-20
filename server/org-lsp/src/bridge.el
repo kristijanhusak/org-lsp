@@ -17,7 +17,10 @@
 ;;   \x1eorg-lsp {"ask": {"prompt": "Evaluate this emacs-lisp code block? "}}
 ;;
 ;; whose answer comes as the next line, {"answer": true}; any other
-;; question is an error.
+;; question is an error. What the user should know, such as an option
+;; of `emacs_options' that was not set, comes on a line of its own:
+;;
+;;   \x1eorg-lsp {"notice": "`emacs_options` leaves out ..."}
 
 (require 'json)
 (require 'subr-x)
@@ -83,12 +86,214 @@
       (with-temp-buffer
         (insert config)
         (eval-buffer)))
+    ;; After the user's Lisp, so that these win over it.
+    (org-lsp-bridge--set-options (append (alist-get 'options params) nil))
     (require 'org)
     (require 'ox)
     (require 'ox-publish)
     ;; Opening is the editor's: the file is reported instead.
     (advice-add 'org-open-file :override #'org-lsp-bridge--report-open)
     `((org . ,(org-version)) (emacs . ,emacs-version))))
+
+;;; Org's options (`emacs_options')
+
+;; Each option comes with the library it is in and its value as JSON,
+;; which Emacs reads here: true is t, false nil, a list a list and a table
+;; an alist with strings for keys. What the option's type (`custom-type')
+;; wants decides the rest: a string where it wants a symbol is that
+;; symbol, a table where it wants a list is a list of its pairs. The
+;; value is set once the library is loaded, as Customize sets it (with
+;; the option's `:set'), if the type matches it; if not, the user is
+;; told.
+
+(defun org-lsp-bridge--notice (format &rest args)
+  "Tell the user what FORMAT and ARGS say."
+  (org-lsp-bridge--send `((notice . ,(apply #'format format args)))))
+
+(defun org-lsp-bridge--set-options (options)
+  "Set each of OPTIONS once its library is loaded: by `name' to the value of
+`json', after `feature' is."
+  (dolist (option options)
+    (let ((name (alist-get 'name option))
+          (json (alist-get 'json option)))
+      (with-eval-after-load (intern (alist-get 'feature option))
+        ;; Whatever goes wrong, the library loads all the same.
+        (condition-case err
+            (org-lsp-bridge--set-option name json)
+          (error (org-lsp-bridge--notice "`emacs_options` could not set `%s`: %s"
+                                         name (error-message-string err))))))))
+
+(defun org-lsp-bridge--set-option (name json)
+  "Set the option NAME to JSON's value, as Customize would."
+  (require 'cl-lib)
+  (require 'seq)
+  (require 'wid-edit)
+  (let* ((symbol (intern name))
+         (type (get symbol 'custom-type))
+         (value (let ((json-object-type 'alist)
+                      (json-array-type 'vector)
+                      (json-key-type 'string)
+                      (json-false :false)
+                      (json-null nil))
+                  (json-read-from-string json))))
+    (if (not type)
+        (org-lsp-bridge--notice "`emacs_options` leaves out `%s`: it is not an option of Org %s"
+                                name (if (fboundp 'org-version) (org-version) ""))
+      (let ((lisp (org-lsp-bridge--option-value type value)))
+        (if (not (org-lsp-bridge--type-matches type lisp))
+            (org-lsp-bridge--notice "`emacs_options` leaves out `%s`: %s is not %s"
+                                    name json (org-lsp-bridge--type-text type))
+          (condition-case err
+              (funcall (or (get symbol 'custom-set) #'set-default) symbol lisp)
+            (error (org-lsp-bridge--notice "`emacs_options` could not set `%s`: %s"
+                                           name (error-message-string err)))))))))
+
+(defun org-lsp-bridge--type-matches (type value)
+  "Whether VALUE is of the custom TYPE, as Customize checks it."
+  (condition-case nil
+      (widget-apply (widget-convert type) :match value)
+    (error nil)))
+
+(defun org-lsp-bridge--type-keywords (type)
+  "The keywords of the custom TYPE (`:tag', `:key-type'…), as a plist."
+  (let ((rest (and (consp type) (cdr type)))
+        keywords)
+    (while (keywordp (car rest))
+      (setq keywords (append keywords (list (car rest) (cadr rest)))
+            rest (cddr rest)))
+    keywords))
+
+(defun org-lsp-bridge--type-args (type)
+  "The arguments of the custom TYPE after its keywords."
+  (let ((rest (and (consp type) (cdr type))))
+    (while (keywordp (car rest))
+      (setq rest (cddr rest)))
+    rest))
+
+(defun org-lsp-bridge--plain-value (value)
+  "VALUE as JSON gave it, made Lisp without a type to say more: false is
+nil, a list a list, a table an alist."
+  (cond ((eq value :false) nil)
+        ((vectorp value) (mapcar #'org-lsp-bridge--plain-value value))
+        ((consp value)
+         (mapcar (lambda (pair) (cons (car pair) (org-lsp-bridge--plain-value (cdr pair)))) value))
+        (t value)))
+
+(defun org-lsp-bridge--pairs (value)
+  "The pairs of the table VALUE as lists of two, for a type that wants a
+list of them; any other VALUE as it is."
+  (if (consp value)
+      (vconcat (mapcar (lambda (pair) (vector (car pair) (cdr pair))) value))
+    value))
+
+(defun org-lsp-bridge--option-value (type value)
+  "VALUE, read from JSON, as the custom TYPE wants it."
+  (let* ((head (if (consp type) (car type) type))
+         (keywords (org-lsp-bridge--type-keywords type))
+         (args (org-lsp-bridge--type-args type)))
+    (pcase head
+      ((or 'const 'other)
+       (let ((constant (if (plist-member keywords :value) (plist-get keywords :value) (car args))))
+         (if (and (stringp value) (symbolp constant) (string= value (symbol-name constant)))
+             constant
+           (org-lsp-bridge--plain-value value))))
+      ((or 'symbol 'variable 'face 'coding-system)
+       (if (stringp value) (intern value) (org-lsp-bridge--plain-value value)))
+      ('character
+       (if (and (stringp value) (= (length value) 1)) (aref value 0) value))
+      ('float (if (integerp value) (float value) value))
+      ((or 'choice 'radio)
+       (let ((found nil) (done nil))
+         (while (and args (not done))
+           (let ((lisp (org-lsp-bridge--option-value (car args) value)))
+             (when (org-lsp-bridge--type-matches (car args) lisp)
+               (setq found lisp done t)))
+           (setq args (cdr args)))
+         (if done found (org-lsp-bridge--plain-value value))))
+      ((or 'repeat 'set)
+       (let ((value (org-lsp-bridge--pairs value)))
+         (if (not (vectorp value))
+             (org-lsp-bridge--plain-value value)
+           (mapcar (lambda (item)
+                     (org-lsp-bridge--option-value
+                      (if (eq head 'repeat) (car args) `(choice ,@args))
+                      item))
+                   value))))
+      ((or 'list 'group 'vector)
+       (let ((value (org-lsp-bridge--pairs value)))
+         (if (and (vectorp value) (= (length value) (length args)))
+             (let ((items (cl-mapcar #'org-lsp-bridge--option-value args (append value nil))))
+               (if (eq head 'vector) (vconcat items) items))
+           (org-lsp-bridge--plain-value value))))
+      ('cons
+       (if (and (vectorp value) (= (length value) 2))
+           (cons (org-lsp-bridge--option-value (nth 0 args) (aref value 0))
+                 (org-lsp-bridge--option-value (nth 1 args) (aref value 1)))
+         (org-lsp-bridge--plain-value value)))
+      ((or 'alist 'plist)
+       (let ((key-type (or (plist-get keywords :key-type) (if (eq head 'plist) 'symbol 'sexp)))
+             (value-type (or (plist-get keywords :value-type) 'sexp))
+             (pairs (cond ((consp value) (mapcar (lambda (pair) (vector (car pair) (cdr pair))) value))
+                          ((vectorp value) (append value nil))
+                          (t 'none))))
+         (if (or (eq pairs 'none) (not (seq-every-p (lambda (pair) (and (vectorp pair) (= (length pair) 2))) pairs)))
+             (org-lsp-bridge--plain-value value)
+           (let ((key (lambda (key)
+                        ;; A property list's keys are keywords: `scale' is
+                        ;; `:scale'.
+                        (if (and (eq head 'plist) (eq key-type 'symbol) (stringp key)
+                                 (not (string-prefix-p ":" key)))
+                            (intern (concat ":" key))
+                          (org-lsp-bridge--option-value key-type key)))))
+             (if (eq head 'plist)
+                 (mapcan (lambda (pair)
+                           (list (funcall key (aref pair 0))
+                                 (org-lsp-bridge--option-value value-type (aref pair 1))))
+                         pairs)
+               (mapcar (lambda (pair)
+                         (cons (funcall key (aref pair 0))
+                               (org-lsp-bridge--option-value value-type (aref pair 1))))
+                       pairs))))))
+      (_
+       ;; A type of its own (`define-widget'), which may stand for another.
+       (let ((other (and (symbolp head) (get head 'widget-type)
+                         (condition-case nil (widget-get (widget-convert type) :type) (error nil)))))
+         (if other
+             (org-lsp-bridge--option-value other value)
+           (org-lsp-bridge--plain-value value)))))))
+
+(defun org-lsp-bridge--json-text (value)
+  "VALUE, a constant of a custom type, as it is written in the options."
+  (cond ((eq value t) "true")
+        ((null value) "false")
+        ((symbolp value) (json-encode-string (symbol-name value)))
+        ((stringp value) (json-encode-string value))
+        (t (format "%S" value))))
+
+(defun org-lsp-bridge--type-text (type)
+  "What the custom TYPE takes, in a few words."
+  (let* ((head (if (consp type) (car type) type))
+         (keywords (org-lsp-bridge--type-keywords type))
+         (args (org-lsp-bridge--type-args type)))
+    (pcase head
+      ((or 'const 'other)
+       (org-lsp-bridge--json-text (if (plist-member keywords :value) (plist-get keywords :value) (car args))))
+      ((or 'choice 'radio)
+       (let ((texts (delete-dups (mapcar #'org-lsp-bridge--type-text args))))
+         (if (cdr texts)
+             (concat (string-join (butlast texts) ", ") " or " (car (last texts)))
+           (car texts))))
+      ('boolean "true or false")
+      ((or 'string 'regexp 'file 'directory 'color 'key) "a string")
+      ((or 'integer 'natnum) "an integer")
+      ((or 'number 'float) "a number")
+      ((or 'symbol 'variable 'face 'coding-system) "a name")
+      ('character "a character")
+      ((or 'function 'command) "a function, which goes in `emacs_config`")
+      ((or 'repeat 'set) "a list")
+      ((or 'list 'group 'vector 'cons) (format "a list of %d" (if (eq head 'cons) 2 (length args))))
+      ((or 'alist 'plist) "a table")
+      (_ "what Customize allows"))))
 
 ;;; Export
 

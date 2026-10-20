@@ -993,6 +993,9 @@ pub struct Options {
     pub emacs_config_file: Option<String>,
     /// Emacs Lisp that Emacs evaluates before loading Org.
     pub emacs_config: Option<String>,
+    /// Org's options Emacs sets, by name, after `emacs_config`.
+    #[serde(deserialize_with = "table_or_empty_list")]
+    pub emacs_options: Option<serde_json::Map<String, serde_json::Value>>,
     /// The shared configuration file: `false` for none, or a path instead
     /// of the usual one. Read by `load`, before the options are.
     pub config_file: Option<serde_json::Value>,
@@ -1932,6 +1935,44 @@ impl Options {
             _ => org_syntax::Terminator::Both,
         };
         org_syntax::ListSyntax { alphabetical: self.list_allow_alphabetical == Some(true), terminator }
+    }
+
+    /// The options of `emacs_options` Emacs sets: those Org's options
+    /// Emacs reads (`emacs` in `scripts/org-options.json`), each with the
+    /// library it is in. Of the others, what to tell the user.
+    pub fn emacs_options(&self) -> (Vec<crate::emacs::OrgOption>, Vec<String>) {
+        let mut options = Vec::new();
+        let mut problems = Vec::new();
+        for (name, value) in self.emacs_options.iter().flatten() {
+            let Some(option) = crate::org_options::find(name) else {
+                let meant = match crate::org_options::closest(name) {
+                    Some(meant) => format!(" (did you mean `{meant}`?)"),
+                    None => String::new(),
+                };
+                problems.push(format!("`emacs_options` leaves out `{name}`: Org has no such option{meant}"));
+                continue;
+            };
+            let why = match option.status.as_str() {
+                "emacs" => {
+                    let feature = option.feature().to_string();
+                    options.push(crate::emacs::OrgOption { name: name.clone(), feature, value: value.clone() });
+                    continue;
+                }
+                "setting" => format!("it is the setting `{}`", name.replace('-', "_")),
+                "lisp" => "its value is Lisp (a function, a hook), which goes in `emacs_config`".to_string(),
+                "missing" => "org-lsp does what it is about, but the option cannot be set yet".to_string(),
+                "other" => {
+                    let note = option.note.as_deref().unwrap_or_default().replace('~', "`");
+                    format!("org-lsp does it another way: {note}")
+                }
+                "absent" => "it is part of something org-lsp does not do".to_string(),
+                _ => "it is about Emacs itself (windows, faces, menus, the mouse, the mode line), \
+                      with nothing to do in an editor"
+                    .to_string(),
+            };
+            problems.push(format!("`emacs_options` leaves out `{name}`: {why}"));
+        }
+        (options, problems)
     }
 
     /// The options Emacs must know, as Emacs Lisp: `org-entities-user`, the
@@ -3122,6 +3163,20 @@ pub fn expand_home(path: &str, var: &dyn Fn(&str) -> Option<String>) -> PathBuf 
     }
 }
 
+/// A table, or an empty list for one: Neovim sends an empty Lua table,
+/// `{}`, as `[]`.
+fn table_or_empty_list<'de, D>(deserializer: D) -> Result<Option<serde_json::Map<String, serde_json::Value>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    match serde_json::Value::deserialize(deserializer)? {
+        serde_json::Value::Null => Ok(None),
+        serde_json::Value::Object(table) => Ok(Some(table)),
+        serde_json::Value::Array(list) if list.is_empty() => Ok(Some(serde_json::Map::new())),
+        _ => Err(serde::de::Error::custom("is not a table")),
+    }
+}
+
 /// The options: those of the shared configuration file, with the
 /// editor's (`initializationOptions`) on top. An object such as `agenda`
 /// is merged key by key; anything else the editor gives replaces the
@@ -3192,6 +3247,7 @@ pub fn load(editor: Option<serde_json::Value>, var: &dyn Fn(&str) -> Option<Stri
     }
     let (options, dropped) = Options::read(merged.clone());
     problems.extend(dropped.into_iter().map(|name| format!("the option `{name}` is malformed and is ignored")));
+    problems.extend(options.emacs_options().1);
     Loaded { options, file, read, merged, problems }
 }
 
@@ -4629,6 +4685,57 @@ mod tests {
         // Neovim sends an empty table as `[]`.
         assert!(Options::read(serde_json::json!([])).1.is_empty());
         assert!(Options::read(serde_json::Value::Null).1.is_empty());
+    }
+
+    #[test]
+    fn emacs_options_are_the_options_emacs_reads() {
+        let file = temp_file(
+            "emacs-options",
+            "[emacs_options]\norg-attach-method = \"mv\"\norg-log-done = \"time\"\n\
+             org-agenda-skip-function-global = \"f\"\norg-atach-id-dir = \"~/data\"\n\
+             org-export-with-toc = false\norg-tab-follows-link = true\norg-startup-truncated = false\n\
+             org-mouse-features = []\n",
+        );
+        let loaded = load(Some(serde_json::json!({ "config_file": file.display().to_string() })), &no_env);
+        assert_eq!(
+            loaded.problems,
+            [
+                "`emacs_options` leaves out `org-log-done`: it is the setting `org_log_done`",
+                "`emacs_options` leaves out `org-agenda-skip-function-global`: its value is Lisp (a function, a \
+                 hook), which goes in `emacs_config`",
+                "`emacs_options` leaves out `org-atach-id-dir`: Org has no such option (did you mean \
+                 `org-attach-id-dir`?)",
+                "`emacs_options` leaves out `org-tab-follows-link`: org-lsp does it another way: TAB is the \
+                 editor's key for folding and tables; a link is followed with org.open (C-c C-o), go to \
+                 definition, or RET with org_return_follows_link",
+                "`emacs_options` leaves out `org-startup-truncated`: org-lsp does it another way: the editor \
+                 decides how long lines wrap",
+                "`emacs_options` leaves out `org-mouse-features`: it is about Emacs itself (windows, faces, \
+                 menus, the mouse, the mode line), with nothing to do in an editor",
+            ]
+        );
+        // The others go to Emacs, in their order, each with its library.
+        let (options, _) = loaded.options.emacs_options();
+        let given: Vec<(&str, &str, &serde_json::Value)> =
+            options.iter().map(|option| (option.name.as_str(), option.feature.as_str(), &option.value)).collect();
+        assert_eq!(
+            given,
+            [
+                ("org-attach-method", "org-attach", &serde_json::json!("mv")),
+                ("org-export-with-toc", "ox", &serde_json::json!(false)),
+            ]
+        );
+        std::fs::remove_dir_all(file.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn emacs_options_may_come_as_an_empty_list() {
+        // Neovim sends an empty Lua table as `[]`.
+        let loaded = load(Some(serde_json::json!({ "config_file": false, "emacs_options": [] })), &no_env);
+        assert!(loaded.problems.is_empty(), "{:?}", loaded.problems);
+        assert!(loaded.options.emacs_options().0.is_empty());
+        let loaded = load(Some(serde_json::json!({ "config_file": false, "emacs_options": ["x"] })), &no_env);
+        assert_eq!(loaded.problems, ["the option `emacs_options` is malformed and is ignored"]);
     }
 
     fn temp_file(name: &str, text: &str) -> PathBuf {

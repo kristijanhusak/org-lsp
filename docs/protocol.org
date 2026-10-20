@@ -494,7 +494,8 @@ Each option with its type, its default and what it means:
 - ~calendar_week_start_day~ :: 0 to 6 (0 is Sunday), ~0~. The day the weeks of the date prompt's calendar start on: 1 starts them on Monday. (~calendar-week-start-day~)
 - ~emacs~ :: string, ~"emacs"~. The Emacs program, for what only Org itself does: export (~org.export.dispatch~). The server starts it (~emacs --batch -Q~) when that is first asked for and keeps it running, so that Org loads once. Without Emacs, everything else works as before.
 - ~emacs_config_file~ :: string, none. A file of Emacs Lisp that Emacs loads before Org, for the variables export reads (~org-export-backends~, ~org-html-…~, ~org-latex-…~, ~org-publish-project-alist~): a file of its own, or your init file. =~/= is the home directory.
-- ~emacs_config~ :: string, none. Emacs Lisp that Emacs evaluates after ~emacs_config_file~ and before loading Org, for a few settings without a file: ~(setq org-export-with-toc nil)~, or ~(add-to-list 'load-path "~/src/org-mode/lisp")~ for another Org. A yes-or-no question Emacs asks while it works (~org-confirm-babel-evaluate~) is asked in the editor.
+- ~emacs_config~ :: string, none. Emacs Lisp that Emacs evaluates after ~emacs_config_file~ and before loading Org, for a few settings without a file that ~emacs_options~ cannot say: a function or a hook, or ~(add-to-list 'load-path "~/src/org-mode/lisp")~ for another Org. A yes-or-no question Emacs asks while it works (~org-confirm-babel-evaluate~) is asked in the editor.
+- ~emacs_options~ :: { [option]: value }, ~{}~. Org's options for what Emacs does, by their names in Org, which Emacs sets as Customize does: ~{ "org-attach-method": "mv", "org-export-with-toc": false }~. ~true~ is ~t~ and ~false~ ~nil~, a list is a list and a table an association list; a string is a symbol where the option takes one. Each is set when Emacs loads the library it is in, after ~emacs_config_file~ and ~emacs_config~, and so wins over them. A value the option does not take is left out, with a message. The options are those marked ~emacs~ in the Options section of [[file:parity.org][docs/parity.org]]; the others are settings of the server, or Lisp (functions, hooks), which goes in ~emacs_config~.
 - ~auto_save~ :: boolean, ~true~. Save the files a command changes other than the one it was run in: an entry's file changed from the agenda, the target of a capture or of a refile. The editor saves them once it has made the change. Off, they are left with unsaved changes, as Emacs leaves them.
 - ~org_cycle_separator_lines~ :: number, ~2~. With at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. ~0~: none does. (~org-cycle-separator-lines~)
 - ~org_cycle_include_plain_lists~ :: true, false, "integrate", ~true~. Whether list items fold, as subtrees do. ~integrate~ makes them part of the outline: TAB showing a headline's children folds its lists to their top items too. ~false~: they do not fold. (~org-cycle-include-plain-lists~)
@@ -1042,7 +1043,7 @@ increments a number.
 - ~org.attach~ :: ~org-attach~ (~C-c C-a~): Org's dispatcher of attachment
   commands, by key (input kind ~key~): ~a~, ~c~, ~m~, ~l~, ~y~ attach a file
   asked for (relative to the document's directory) as ~org-attach-method~
-  (Emacs's option, set in ~emacs_config~) says, by copying, moving or linking it; ~u~ one from a URL; ~n~ a new one,
+  (Emacs's option, set in ~emacs_options~) says, by copying, moving or linking it; ~u~ one from a URL; ~n~ a new one,
   which the editor opens; ~z~ synchronizes; ~o~ opens one (picked among them
   when there are several), ~f~ the directory, by the system; ~d~ deletes one
   (picked), ~D~ all of them (after Emacs asks); ~s~ and ~S~ set and unset
@@ -1768,7 +1769,7 @@ increments a number.
   (~The file changed while Emacs ran the code; nothing was changed. Run it again.~).
   Emacs asks before it evaluates (~org-confirm-babel-evaluate~) with
   ~window/showMessageRequest~; the languages are those
-  ~org-babel-load-languages~ loads (set in ~emacs_config~). Sessions
+  ~org-babel-load-languages~ loads (set in ~emacs_options~). Sessions
   (~:session~) live as long as the server's Emacs. ~org.babel.lob.ingest~
   (~C-c C-v i~) adds the file's named code blocks to the Library of Babel of
   the server's Emacs (~org-babel-lob-ingest~), for ~#+CALL:~ lines in any
@@ -2058,7 +2059,14 @@ export never holds up the server's other answers. Emacs loads, in this
 order, ~emacs_config_file~, then evaluates ~emacs_config~, then loads Org
 (~org~, ~ox~, ~ox-publish~): settings made before Org loads are kept
 (~org-export-backends~ to add Markdown, a ~load-path~ for another Org), and
-the configuration may load Org itself. A request carries the document's
+the configuration may load Org itself. Then each option of ~emacs_options~
+is set when the library it is in loads (~org-attach-method~ when
+~org-attach~ does), as Customize sets it, its ~:set~ function and all, and
+so after the user's Lisp; the value is read as JSON, made what the
+option's ~custom-type~ wants (a string a symbol, a table an association
+list…) and checked against that type. A value it does not match is left
+out, and the editor told with ~window/showMessage~ (a warning, as for the
+options the server cannot read). A request carries the document's
 text as the editor has it, unsaved changes and all, in a buffer that
 visits the file's path (so that ~#+INCLUDE:~, ~#+SETUPFILE:~ and the output's
 name work as they would in Emacs), with the file's safe local variables.
