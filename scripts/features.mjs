@@ -166,7 +166,7 @@ export const AREAS = [
       ['Narrowing to a subtree or block (`C-x n s`, `C-x n b`) and the subtree in an indirect buffer (`C-c C-x b`): it in a file of its own, all there is to see there, written back each time it is saved', true],
       ['Showing the context of the cursor (`org-reveal`, `C-c C-r`): its entry, the next headline, its siblings and its ancestors, the other folds left as they are; `org.reveal.siblings` (`C-u`) each level with its children, `org.reveal.tree` (`C-u C-u`) the parent\'s whole tree', true],
       ['`TAB` on a new, empty headline or item changing its level (`org-cycle-level-after-item/entry-creation`), and at the start of the file cycling the file (`org-cycle-global-at-bob`); list items folding, as part of the outline or not at all (`org-cycle-include-plain-lists`); headlines folding to a level (`org-cycle-max-level`)', true],
-      ['The other options of cycling (`org-cycle-emulate-tab`, `org-show-context-detail`, `org-fold-catch-invisible-edits`)', false],
+      ['The other options of cycling (`org-cycle-emulate-tab`, `org-fold-show-context-detail`: the context shown after a jump is always the same, `org-fold-catch-invisible-edits`)', false],
     ],
     editors: {
       neovim: ['part', 'Cycling the whole file goes between overview and everything: it has no contents state, which needs folds of a headline\'s own text that Neovim\'s fold levels do not make. `<Tab>` changes the level of a new entry in Normal mode; in Insert mode it is a tab.'],
