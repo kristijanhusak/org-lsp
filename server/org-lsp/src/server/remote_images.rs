@@ -15,10 +15,13 @@
 //!
 //! Emacs downloads while it waits. Here `curl` runs on a thread of its
 //! own, as Emacs makes LaTeX previews on its own: the command answers
-//! with nothing, and the previews come in `org-lsp/images` once the
-//! images are there. An image larger than [`LARGEST`] is not downloaded.
+//! with the images of files, or nothing when there are none, and the
+//! preview comes again in `org-lsp/images`, with all its images, once the
+//! downloads are there. The previews download one after the other, and
+//! one whose document changed or closed before its turn does not. An
+//! image larger than [`LARGEST`] is not downloaded.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
 
 use crossbeam_channel::{Receiver, Sender};
@@ -33,6 +36,13 @@ use crate::uri;
 
 /// The largest image downloaded, as `curl --max-filesize` takes it.
 pub(super) const LARGEST: &str = "20M";
+/// [`LARGEST`] in bytes.
+const LARGEST_BYTES: u64 = 20 << 20;
+
+/// The most bytes of the name of a downloaded file, which ends as its URL
+/// does: with the number before it and a partial download's ending
+/// after, within the 255 bytes a file's name has.
+const NAME_BYTES: usize = 200;
 
 /// What the server knows of remote images.
 pub(super) struct Remote {
@@ -52,6 +62,10 @@ pub(super) struct Remote {
     jobs: u64,
     /// The previews waiting for their downloads, by their number.
     waiting: HashMap<u64, Waiting>,
+    /// The previews whose downloads have not started, the first first.
+    queue: VecDeque<u64>,
+    /// Whether the downloads of a preview are running: one at a time.
+    downloading: bool,
     /// The downloads done, sent by their threads.
     done: (Sender<Downloaded>, Receiver<Downloaded>),
 }
@@ -67,6 +81,8 @@ impl Remote {
             named: 0,
             jobs: 0,
             waiting: HashMap::new(),
+            queue: VecDeque::new(),
+            downloading: false,
             done: crossbeam_channel::unbounded(),
         }
     }
@@ -108,6 +124,8 @@ struct Waiting {
     files: HashMap<usize, PathBuf>,
     wanted: Vec<(usize, String)>,
     startup: bool,
+    /// The URLs to download and their files, until the downloads start.
+    urls: Vec<(String, PathBuf)>,
 }
 
 /// The downloads of a preview, done: each URL's file, or none.
@@ -230,8 +248,9 @@ impl Server {
     }
 
     /// Download the images `remote` wants for `preview` of the document
-    /// `uri` at `version`, on a thread of their own; once they are there,
-    /// the preview with `items` goes to the client in `org-lsp/images`.
+    /// `uri` at `version`, on a thread of their own once those of the
+    /// previews before are done; once they are there, the preview with
+    /// `items` goes to the client in `org-lsp/images`.
     pub(super) fn download_images(
         &mut self,
         uri: Uri,
@@ -249,27 +268,59 @@ impl Server {
         }
         self.remote.jobs += 1;
         let job = self.remote.jobs;
-        let sender = self.remote.done.0.clone();
-        std::thread::spawn(move || {
-            let files = urls
-                .into_iter()
-                .enumerate()
-                .map(|(index, (url, path))| {
-                    let downloaded = download(&url, &path, &format!("{job}-{index}"));
-                    (url, downloaded.then_some(path))
-                })
-                .collect();
-            let _ = sender.send(Downloaded { job, files });
-        });
         let RemoteFiles { files, wanted } = remote;
-        self.remote.waiting.insert(job, Waiting { uri, version, preview, items, files, wanted, startup });
+        self.remote.waiting.insert(job, Waiting { uri, version, preview, items, files, wanted, startup, urls });
+        self.remote.queue.push_back(job);
+        self.next_download();
     }
 
-    /// The downloads of a preview are done: what could not be downloaded
-    /// is said, and the preview goes to the client while the document is
-    /// as it was.
+    /// Start the downloads of the next preview whose document is as it
+    /// was, unless those of another are running; those of the previews
+    /// before it, whose document changed or closed, are left out.
+    fn next_download(&mut self) {
+        if self.remote.downloading {
+            return;
+        }
+        while let Some(job) = self.remote.queue.pop_front() {
+            let Some(waiting) = self.remote.waiting.get(&job) else { continue };
+            if self.document(&waiting.uri).map(|document| document.version) != Some(waiting.version) {
+                self.remote.waiting.remove(&job);
+                continue;
+            }
+            let urls = self.remote.waiting.get_mut(&job).map(|waiting| std::mem::take(&mut waiting.urls));
+            let sender = self.remote.done.0.clone();
+            std::thread::spawn(move || {
+                let files = urls
+                    .into_iter()
+                    .flatten()
+                    .enumerate()
+                    .map(|(index, (url, path))| {
+                        let downloaded = download(&url, &path, &format!("{job}-{index}"));
+                        (url, downloaded.then_some(path))
+                    })
+                    .collect();
+                let _ = sender.send(Downloaded { job, files });
+            });
+            self.remote.downloading = true;
+            return;
+        }
+    }
+
+    /// The downloads of a preview are done: those of the next start.
     pub(super) fn images_downloaded(&mut self, done: Downloaded) {
+        self.remote.downloading = false;
+        self.preview_downloaded(done);
+        self.next_download();
+    }
+
+    /// While the document of the preview whose downloads are `done` is as
+    /// it was, what could not be downloaded is said, and the preview goes
+    /// to the client.
+    fn preview_downloaded(&mut self, done: Downloaded) {
         let Some(mut waiting) = self.remote.waiting.remove(&done.job) else { return };
+        if self.document(&waiting.uri).map(|document| document.version) != Some(waiting.version) {
+            return;
+        }
         for (url, path) in &done.files {
             if path.is_none() && !waiting.startup {
                 self.show_message(MessageType::INFO, format!("Unable to fetch file from {url:?}"));
@@ -281,9 +332,6 @@ impl Server {
             if let Some(path) = fetched.get(url.as_str()) {
                 waiting.files.insert(*start, (*path).clone());
             }
-        }
-        if self.document(&waiting.uri).map(|document| document.version) != Some(waiting.version) {
-            return;
         }
         waiting.preview["items"] = json!(finish(&waiting.items, &waiting.files));
         let notification = lsp_server::Notification::new(PREVIEW_IMAGES.to_string(), waiting.preview);
@@ -298,28 +346,43 @@ impl Server {
             return path.clone();
         }
         self.remote.named += 1;
-        let name: String = url
-            .rsplit('/')
-            .next()
-            .unwrap_or_default()
-            .chars()
-            .map(|c| if c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_' { c } else { '_' })
-            .collect();
-        let path = self.remote.directory.path().join(format!("{}-{name}", self.remote.named));
+        let path = self.remote.directory.path().join(format!("{}-{}", self.remote.named, file_name(url)));
         self.remote.files.insert(url.to_string(), path.clone());
         path
     }
 }
 
+/// The end of the name of the file `url` is downloaded to: the last part
+/// of the URL, what is not a letter, a digit, `.`, `-` or `_` made `_`,
+/// its start cut to [`NAME_BYTES`] bytes, its extension kept.
+fn file_name(url: &str) -> String {
+    let name: String = url
+        .rsplit('/')
+        .next()
+        .unwrap_or_default()
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_' { c } else { '_' })
+        .collect();
+    if name.len() <= NAME_BYTES {
+        return name;
+    }
+    // Only ASCII is left, a byte each.
+    let extension = name.rfind('.').map(|at| &name[at..]).filter(|extension| extension.len() <= 16).unwrap_or("");
+    format!("{}{extension}", &name[..NAME_BYTES - extension.len()])
+}
+
 /// Download `url` with `curl` into `path`: into a file beside it named
 /// with `part` first, then renamed over it, so that the image shown from
-/// it before stays whole until the new one is there. Whether it was.
+/// it before stays whole until the new one is there. Whether it was: not
+/// when it is larger than [`LARGEST`], which a `curl` before 8.4 finds
+/// out only from a `Content-Length`. The URL is as it is: `{a,b}` and
+/// `[1-3]` are no patterns of URLs to download (`--globoff`).
 fn download(url: &str, path: &std::path::Path, part: &str) -> bool {
     let mut partial = path.as_os_str().to_owned();
     partial.push(format!(".part-{part}"));
     let partial = PathBuf::from(partial);
     let status = std::process::Command::new("curl")
-        .args(["--silent", "--fail", "--location", "--max-time", "30", "--max-filesize", LARGEST])
+        .args(["--silent", "--fail", "--location", "--globoff", "--max-time", "30", "--max-filesize", LARGEST])
         .args(["--proto", "=http,https", "--proto-redir", "=http,https"])
         .arg("--output")
         .arg(&partial)
@@ -329,10 +392,27 @@ fn download(url: &str, path: &std::path::Path, part: &str) -> bool {
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .status();
-    let renamed =
-        status.is_ok_and(|status| status.success()) && partial.is_file() && std::fs::rename(&partial, path).is_ok();
+    let whole = std::fs::metadata(&partial).is_ok_and(|file| file.is_file() && file.len() <= LARGEST_BYTES);
+    let renamed = status.is_ok_and(|status| status.success()) && whole && std::fs::rename(&partial, path).is_ok();
     if !renamed {
         let _ = std::fs::remove_file(&partial);
     }
     renamed
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn names_files_as_their_urls_end() {
+        assert_eq!(file_name("https://example.com/a/x[1-3]%20b.png"), "x_1-3__20b.png");
+        // Within the length of a file's name, keeping the extension.
+        let long = format!("https://example.com/{}.jpeg", "é".repeat(300));
+        let name = file_name(&long);
+        assert_eq!(name.len(), NAME_BYTES);
+        assert!(name.starts_with("___") && name.ends_with("_.jpeg"), "{name}");
+        let dotless = file_name(&format!("https://example.com/{}", "x".repeat(400)));
+        assert_eq!(dotless, "x".repeat(NAME_BYTES));
+    }
 }

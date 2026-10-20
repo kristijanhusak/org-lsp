@@ -64,7 +64,7 @@ impl Server {
             .arg(&picture)
             .stdin(std::process::Stdio::null());
         // A graph too big to draw in time is given up.
-        let drawn = crate::process::output(&mut command, crate::process::PROGRAM_TIME)
+        let drawn = crate::process::output(&mut command, crate::process::PROGRAM_TIME, crate::process::PROGRAM_SIZE)
             .map_err(|error| format!("Cannot run {}: {error}", executable.display()))?;
         // Emacs shows nothing when Graphviz fails; org-lsp says why.
         if !drawn.status.success() {

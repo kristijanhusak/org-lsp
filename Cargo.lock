@@ -294,6 +294,7 @@ dependencies = [
  "chrono",
  "crossbeam-channel",
  "expect-test",
+ "libc",
  "lsp-server",
  "lsp-types",
  "org-core",

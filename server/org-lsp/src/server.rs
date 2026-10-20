@@ -5486,16 +5486,18 @@ impl Server {
     /// `*Org Shell Output*`; here it is a message all the same, its start
     /// only when it is long ([`shell_message`]). The command runs on its
     /// own thread so that the server goes on, and is waited for as long as
-    /// it runs, as Emacs waits.
+    /// it runs, as Emacs waits; but once it has written more than a
+    /// message shows ([`SHELL_OUTPUT_SIZE`]), it is stopped.
     fn run_shell_link(&self, command: &str, directory: Option<PathBuf>) {
         let sender = self.sender.clone();
         let command = command.to_string();
         std::thread::spawn(move || {
-            let message = match crate::process::shell_output(&command, directory.as_deref(), None) {
-                Ok((output, _)) if !output.is_empty() => shell_message(&output),
-                Ok((_, Some(0))) => "(Shell command succeeded with no output)".to_string(),
-                Ok((_, code)) => {
-                    format!("(Shell command failed with code {} and no output)", code.unwrap_or(-1))
+            let ran = crate::process::shell_output(&command, directory.as_deref(), None, SHELL_OUTPUT_SIZE);
+            let message = match ran {
+                Ok(ran) if !ran.text.is_empty() => shell_message(&ran.text, ran.cut),
+                Ok(ran) if ran.code == Some(0) => "(Shell command succeeded with no output)".to_string(),
+                Ok(ran) => {
+                    format!("(Shell command failed with code {} and no output)", ran.code.unwrap_or(-1))
                 }
                 Err(error) => format!("{command}: {error}"),
             };
@@ -13634,10 +13636,17 @@ impl Server {
                 Some(remote_images::Item { range: json!(range(found.start, found.end)), width, source })
             })
             .collect();
-        // Images to download first: the previews come once they are there.
+        // Images to download first: those there already show at once, and
+        // the preview comes again with them all once the others are there.
         if !remote_files.wanted.is_empty() {
+            let there = remote_images::finish(&items, &remote_files.files);
+            let mut now = preview.clone();
             self.download_images(uri, version, preview, items, remote_files, startup);
-            return Ok(Value::Null);
+            if there.is_empty() {
+                return Ok(Value::Null);
+            }
+            now["items"] = json!(there);
+            return Ok(json!({ "preview": now }));
         }
         preview["items"] = json!(remote_images::finish(&items, &remote_files.files));
         Ok(json!({ "preview": preview }))
@@ -16438,11 +16447,15 @@ fn run_shell(command: &str, directory: Option<&std::path::Path>) -> std::io::Res
 const SHELL_MESSAGE_LINES: usize = 50;
 /// The characters of a `shell:` link's output that a message shows.
 const SHELL_MESSAGE_CHARS: usize = 8000;
+/// The bytes of a `shell:` link's output read, far more than a message
+/// shows: the command is stopped past them.
+const SHELL_OUTPUT_SIZE: usize = 1 << 20;
 
 /// A `shell:` link's output as a message: without its last newline, and
 /// cut after [`SHELL_MESSAGE_LINES`] lines or [`SHELL_MESSAGE_CHARS`]
-/// characters, saying how much is left out.
-fn shell_message(output: &str) -> String {
+/// characters, saying how much is left out; or, when the command wrote
+/// so much it was stopped (`cut`), that it was.
+fn shell_message(output: &str, cut: bool) -> String {
     let output = output.strip_suffix('\n').unwrap_or(output);
     let lines = output.split('\n').count();
     let mut end = output.len();
@@ -16456,16 +16469,26 @@ fn shell_message(output: &str) -> String {
         return output.to_string();
     }
     let shown = &output[..end];
+    if cut {
+        let size = SHELL_OUTPUT_SIZE >> 20;
+        return format!("{shown}\n[The output goes on past {size} MB, where the command was stopped]");
+    }
     let left = lines - shown.split('\n').count();
     let rest = output[end..].chars().count();
     format!("{shown}\n[The output goes on: {rest} more characters, {left} more lines]")
 }
 
 /// Run `command` in the shell and wait for it, stopped if it takes longer
-/// than [`crate::process::PROGRAM_TIME`]: what it wrote to its output and
-/// its errors, in the order it wrote them, and its exit code.
+/// than [`crate::process::PROGRAM_TIME`] or writes more than
+/// [`crate::process::PROGRAM_SIZE`]: what it wrote to its output and its
+/// errors, in the order it wrote them, and its exit code.
 fn shell_output(command: &str, directory: Option<&std::path::Path>) -> std::io::Result<(String, Option<i32>)> {
-    crate::process::shell_output(command, directory, Some(crate::process::PROGRAM_TIME))
+    let size = crate::process::PROGRAM_SIZE;
+    let ran = crate::process::shell_output(command, directory, Some(crate::process::PROGRAM_TIME), size)?;
+    if ran.cut {
+        return Err(std::io::Error::other(format!("stopped after writing more than {} MB", size >> 20)));
+    }
+    Ok((ran.text, ran.code))
 }
 
 /// `org-format-outline-path` with the width of the frame, `width`
@@ -16523,15 +16546,23 @@ mod tests {
     /// how much more there is.
     #[test]
     fn shell_messages_show_the_start_of_long_output() {
-        assert_eq!(shell_message("one\ntwo\n"), "one\ntwo");
+        assert_eq!(shell_message("one\ntwo\n", false), "one\ntwo");
         let long: String = (1..=60).map(|n| format!("{n}\n")).collect();
-        let message = shell_message(&long);
+        let message = shell_message(&long, false);
         assert!(message.starts_with("1\n2\n"), "{message}");
         assert!(message.ends_with("49\n50\n[The output goes on: 30 more characters, 10 more lines]"), "{message}");
         let wide = "x".repeat(SHELL_MESSAGE_CHARS + 5);
         assert_eq!(
-            shell_message(&wide),
+            shell_message(&wide, false),
             format!("{}\n[The output goes on: 5 more characters, 0 more lines]", "x".repeat(SHELL_MESSAGE_CHARS))
+        );
+        // A command stopped for writing too much.
+        assert_eq!(
+            shell_message(&wide, true),
+            format!(
+                "{}\n[The output goes on past 1 MB, where the command was stopped]",
+                "x".repeat(SHELL_MESSAGE_CHARS)
+            )
         );
     }
 
