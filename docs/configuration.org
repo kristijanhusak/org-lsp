@@ -401,8 +401,8 @@ where the server comes from, the keys, how windows open, what is shown.
 :CUSTOM_ID: neovim
 :END:
 
-Set ~vim.g.org_lsp~ before the plugin loads, which suits lazy.nvim's
-~init~, or call ~require('org-lsp').setup()~ at any time; calling it more
+Set ~vim.g.org_lsp~ before the plugin loads (before ~vim.pack.add()~, or
+in lazy.nvim's ~init~), or call ~require('org-lsp').setup()~ at any time; calling it more
 than once merges each call into what was there. What you set is merged
 into the defaults, so you only write what you want to change. These are
 the defaults:

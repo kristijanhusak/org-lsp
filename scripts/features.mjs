@@ -23,7 +23,7 @@ export const EDITORS = [
     name: 'Neovim',
     dir: 'editors/neovim',
     setup: [
-      'Installed with lazy.nvim (`build = \':OrgLspDownload\'`), no server around: opening an Org file downloads the server and starts it',
+      'Installed with `vim.pack.add()` (the `PackChanged` autocommand of docs/neovim.org runs `:OrgLspDownload` on updates), no server around: opening an Org file downloads the server and starts it',
       '`:checkhealth org-lsp` reports the server, where it came from and the agenda files',
       '`:OrgLspDownload` downloads the server again and restarts it in the open Org files',
       '`g?` in an Org file and in the agenda lists the keys; `<Leader>oa` works in any buffer',
