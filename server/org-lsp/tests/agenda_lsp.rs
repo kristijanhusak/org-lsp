@@ -2665,8 +2665,8 @@ fn shown_document(client: &Client) -> Value {
 /// `org-man-open` with `ol-man` in `org-modules`: the page
 /// `org_man_command` writes, without its overstrikes, in a file of the
 /// server's, shown at the line before the search's first match;
-/// `Can’t find …` when there is none. Without `ol-man`, `man:` is no link
-/// type.
+/// `Can’t find …` when there is none; a link that would give `man` an
+/// option is refused. Without `ol-man`, `man:` is no link type.
 #[cfg(unix)]
 #[test]
 fn follows_man_links() {
@@ -2680,7 +2680,7 @@ fn follows_man_links() {
     .unwrap();
     std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o755)).unwrap();
     let file = directory.join("index.org");
-    let text = "[[man:ls::-L]] [[man:printf(3)]] [[man:nosuch]]\n";
+    let text = "[[man:ls::-L]] [[man:printf(3)]] [[man:nosuch]] [[man:-l /etc/hostname]]\n";
     std::fs::write(&file, text).unwrap();
     let uri = format!("file://{}", file.display());
     let mut options = clock();
@@ -2699,6 +2699,8 @@ fn follows_man_links() {
     let page = shown_document(&client)["uri"].as_str().unwrap().strip_prefix("file://").unwrap().to_string();
     assert!(std::fs::read_to_string(&page).unwrap().starts_with("MANWIDTH=80 ARGS=3 printf\n"));
     assert_eq!(open_at(&mut client, &uri, 36, json!({})), Err("Can’t find the nosuch manpage".to_string()));
+    // An option is not given to `man`, as Emacs would give it.
+    assert_eq!(open_at(&mut client, &uri, 52, json!({})), Err("A man: link names pages, not options: -l".to_string()));
     client.shutdown();
     // Without `ol-man`: a headline to make.
     let mut client = Client::editor(clock(), None);
@@ -8167,7 +8169,20 @@ fn looks_for_ids_where_the_id_options_say() {
     client.open(&uri, text);
     assert_eq!(open(&mut client, 3).as_deref(), Ok("kept.org"));
     assert_eq!(open(&mut client, 20).as_deref(), Ok("agenda.org_archive"));
+    // The IDs of the files are kept; an ID that moved to another file is
+    // looked for again, and found there.
+    let rewrite = |name: &str, text: &str| {
+        std::fs::write(root.join(name), text).unwrap();
+        let later = std::time::SystemTime::now() + std::time::Duration::from_secs(5);
+        std::fs::File::options().write(true).open(root.join(name)).unwrap().set_modified(later).unwrap();
+    };
+    rewrite("far/kept.org", "* Kept\n");
+    rewrite("agenda.org", "* Top\n** Sub\n:PROPERTIES:\n:ID: kept-id\n:END:\n");
+    assert_eq!(open(&mut client, 3).as_deref(), Ok("agenda.org"));
+    rewrite("agenda.org", "* Top\n** Sub\n");
+    assert_eq!(open(&mut client, 3), Err("Cannot find entry with ID \"kept-id\"".to_string()));
     client.shutdown();
+    std::fs::write(root.join("far/kept.org"), "* Kept\n:PROPERTIES:\n:ID: kept-id\n:END:\n").unwrap();
 
     // `org-id-search-archives` off: not in the archives.
     options["org_id_search_archives"] = json!(false);
@@ -8766,10 +8781,21 @@ fn previews_remote_images() {
     let a = format!("{base}/a.png");
     let text = format!("* Pictures\n[[{a}]]\n{base}/b.png\n[[{base}/missing.png]]\n");
     let capabilities = json!({ "experimental": { "orgImages": true }, "general": { "positionEncodings": ["utf-8"] } });
+    // With images to download, the command answers at once, and the
+    // preview comes in `org-lsp/images` once they are there.
     let run = |client: &mut Client, context: &Value| {
-        client
+        let result = client
             .request("workspace/executeCommand", json!({ "command": "org.link.preview", "arguments": [context] }))
-            .unwrap()
+            .unwrap();
+        if !result.is_null() {
+            return result;
+        }
+        let images = |client: &mut Client| {
+            client.notifications.iter().position(|notification| notification.method == "org-lsp/images")
+        };
+        client.wait_until(|client| images(client).is_some());
+        let at = images(client).unwrap();
+        json!({ "preview": client.notifications.remove(at).params })
     };
     let start = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 0 }, "count": 16 });
     let paths = |result: &Value| -> Vec<String> {
@@ -8849,8 +8875,23 @@ fn previews_remote_images() {
     let (done, _) = answer(&mut client, start.clone(), &question, "f");
     assert_eq!(paths(&done), ["png a", "png b"]);
     let before = asked.lock().unwrap().len();
-    assert_eq!(paths(&run(&mut client, &start)), ["png a", "png b"]);
+    let again = run(&mut client, &start);
+    assert_eq!(paths(&again), ["png a", "png b"]);
     assert_eq!(asked.lock().unwrap().len(), before + 3);
+    // Into the same file for the same URL: one file each.
+    assert_eq!(again["preview"]["items"], done["preview"]["items"]);
+    let images =
+        std::path::Path::new(again["preview"]["items"][0]["path"].as_str().unwrap()).parent().unwrap().to_path_buf();
+    assert_eq!(std::fs::read_dir(&images).unwrap().count(), 2);
+    assert_eq!(
+        client.request(
+            "workspace/executeCommand",
+            json!({ "command": "org.link.preview", "arguments": [start.clone()] })
+        ),
+        Ok(Value::Null)
+    );
+    client.wait_until(|client| client.notifications.iter().any(|notification| notification.method == "org-lsp/images"));
+    client.notifications.clear();
     // When the file opens, nothing is asked.
     client.shutdown();
     let mut client = Client::start(capabilities.clone(), options.clone(), None);
@@ -10201,6 +10242,13 @@ fn keeps_the_clock_between_sessions() {
             format!("(setq org-clock-stored-history '(({name:?} . 1) ({name:?} . 60)))"),
         ]
     );
+    // Written beside it and renamed over it: nothing else is left there.
+    let mut names: Vec<String> = std::fs::read_dir(&root)
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    names.sort();
+    assert_eq!(names, ["org-clock-save.el", "work.org"]);
     let _ = std::fs::remove_dir_all(&root);
 }
 

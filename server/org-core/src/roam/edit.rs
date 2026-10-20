@@ -307,29 +307,38 @@ pub fn extracted_heading(text: &str, at: usize) -> Result<usize, Refusal> {
 }
 
 /// `org-roam-extract-new-file-path` filled for the headline at
-/// `heading`, with the `ID` `id`: `%<…>` the time as `format-time-string`
-/// writes it, `${title}`, `${slug}` and `${id}` the node's.
+/// `heading`, with the `ID` `id`: first as `org-capture-fill-template`
+/// fills a capture template (`%<…>` the time, `%n`, `%f`…, from
+/// `context`), then `${title}`, `${slug}` and `${id}` the node's. A
+/// template that asks something (`%^{…}`) is refused: org-lsp asks
+/// nothing there.
 pub fn extract_file_name(
     template: &str,
     text: &str,
     heading: usize,
     id: &str,
     keywords: &TodoKeywords,
-    time: crate::date::DateTime,
-) -> String {
+    context: &crate::capture::Context,
+    read_date: &crate::read_date::Settings,
+) -> Result<String, Refusal> {
     let line = line_at(text, heading);
     let title = crate::outline::complex_heading_title(line, level_of(text, heading), keywords)
         .map_or("", |(start, end)| &line[start..end]);
-    static TIME: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"%<([^>]*)>").expect("a valid regex"));
     static FIELD: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\$\{([^}=]+)(?:=[^}]*)?\}").expect("a valid regex"));
-    let timed = TIME.replace_all(template, |found: &regex::Captures| crate::journal::format_time(&found[1], time));
-    let filled = FIELD.replace_all(&timed, |found: &regex::Captures| match &found[1] {
+    let (filled, _) = crate::capture::fill_counting(template, context, &[], read_date, None)?;
+    let crate::capture::Filled::Text(captured) = filled else {
+        return Err(Refusal::Failed(
+            "`org_roam_extract_new_file_path` asks a question, which is not asked".to_string(),
+        ));
+    };
+    let captured = captured.trim();
+    let filled = FIELD.replace_all(captured, |found: &regex::Captures| match &found[1] {
         "title" => title.to_string(),
         "slug" => crate::roam::slugify(title),
         "id" => id.to_string(),
         _ => found[0].to_string(),
     });
-    filled.trim().to_string()
+    Ok(filled.into_owned())
 }
 
 /// Every headline's level changed by `change`, from the last up

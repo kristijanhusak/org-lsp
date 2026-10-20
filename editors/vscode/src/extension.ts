@@ -688,8 +688,9 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
     client.onNotification('org-lsp/lineHighlights', (params: LineHighlights) => showLineHighlights(params));
     // Faces of particular keywords and priorities.
     setFaces(client.initializeResult?.capabilities.experimental?.orgFaces);
-    // Images in place of LaTeX fragments, made by Emacs.
-    client.onNotification('org-lsp/images', (params: Preview) => applyPreview(params));
+    // Images in place of LaTeX fragments, made by Emacs, and of links to
+    // images downloaded first; quiet for those a file opens with.
+    client.onNotification('org-lsp/images', (params: Preview) => applyPreview(params, params.startup === true));
     // org-journal's files, Org files whose name need not say so.
     journalDirectory = client.initializeResult?.capabilities.experimental?.orgJournal?.directory;
     vscode.workspace.textDocuments.forEach((document) => void asJournalFile(document));

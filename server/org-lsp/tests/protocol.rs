@@ -427,7 +427,24 @@ working_suffix = ".org"
     let said = format!("{}/worg/none.org: no such file or directory.", place.root.display());
     assert_eq!(err, format!("org-lsp protocol: {said}"));
     server.shown(&said);
+    // `..` in the URL, decoded after Emacs resolved the URL's own: a file
+    // outside the project's directory, which Org would show, is not.
+    std::fs::write(place.root.join("secret.org"), "* Secret\n").unwrap();
+    let escape = "org-protocol://open-source?url=https%3A%2F%2Forgmode.org%2Fworg%2F%2e%2e%2Fsecret.html";
+    let refused = format!(
+        "{}/secret.org is not in the working directory of its project ({}/worg/), and is not opened",
+        place.root.display(),
+        place.root.display()
+    );
+    let (ok, _, err) = place.protocol(escape);
+    assert!(!ok);
+    assert_eq!(err, format!("org-lsp protocol: {refused}"));
+    server.shown(&refused);
     server.stop();
+    // Nor is it given to the editor started when no server runs.
+    let (ok, _, err) = place.protocol(escape);
+    assert!(!ok);
+    assert_eq!(err, format!("org-lsp protocol: {refused}"));
 }
 
 #[test]

@@ -144,7 +144,11 @@ impl Server {
         let Some(answer) = context.input.clone().filter(|_| context.step.as_deref() == Some("file")) else {
             let id = org_core::properties::entry_get(&text, heading, "ID", &property_context).unwrap_or_default();
             let template = roam.settings.extract_new_file_path.clone();
-            let value = edit::extract_file_name(&template, &text, heading, &id, &keywords, self.date_time());
+            let clipboard = context.clipboard.clone().unwrap_or_default();
+            let now = self.date_time();
+            let fill_context = self.capture_fill_context(Some(&uri), context.position, now, clipboard);
+            let read_date = self.read_date;
+            let value = edit::extract_file_name(&template, &text, heading, &id, &keywords, &fill_context, &read_date)?;
             return Ok(json!({ "input": {
                 "kind": "text",
                 "prompt": "Extract node to: ",

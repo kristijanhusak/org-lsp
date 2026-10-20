@@ -850,9 +850,10 @@ M.handlers = {
     end
   end,
 
-  --- Images in place of LaTeX fragments, made by Emacs.
+  --- Images in place of LaTeX fragments, made by Emacs, and of links to
+  --- images downloaded first; quiet for those a file opens with.
   ['org-lsp/images'] = function(_, params)
-    require('org-lsp.images').apply(params)
+    require('org-lsp.images').apply(params, params.startup == true)
   end,
 
   --- Lines highlighted from edge to edge, as Emacs's overlays and faces

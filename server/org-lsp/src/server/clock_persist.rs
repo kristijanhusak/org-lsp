@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 
 use lsp_types::{MessageActionItem, MessageType, ShowMessageRequestParams};
 
-use super::{running_lines, ClockTask, Pending, RunningClock, Server};
+use super::{replace_whole, running_lines, ClockTask, Pending, RunningClock, Server};
 use crate::uri;
 
 use crate::config::ClockPersist as Settings;
@@ -237,10 +237,9 @@ impl Server {
         }
         let stamp = org_core::stamp::format_timestamp(self.date_time(), true, false, "");
         let text = render(file, &host_name(), &stamp, &stored);
-        if let Some(directory) = file.parent() {
-            let _ = std::fs::create_dir_all(directory);
-        }
-        let _ = std::fs::write(file, text);
+        // Written whole or not at all: a server stopped while writing
+        // leaves Emacs the file as it was.
+        let _ = replace_whole(file, text.as_bytes());
     }
 }
 

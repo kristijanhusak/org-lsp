@@ -129,9 +129,19 @@ impl Listener {
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
-            let socket = directory.join(format!("{name}.sock"));
-            let _ = std::fs::remove_file(&socket);
-            let listener = std::os::unix::net::UnixListener::bind(&socket)?;
+            let bind = |socket: PathBuf| {
+                let _ = std::fs::remove_file(&socket);
+                std::os::unix::net::UnixListener::bind(&socket).map(|listener| (socket, listener))
+            };
+            // A socket's name is short (`sun_path`): one too long for the
+            // state directory goes in a private directory of `/tmp`, which
+            // the entry names.
+            let (socket, listener) = match bind(directory.join(format!("{name}.sock"))) {
+                Ok(bound) => bound,
+                Err(error) => short_socket_directory(directory)
+                    .and_then(|short| bind(short.join(format!("{name}.sock"))))
+                    .map_err(|short| std::io::Error::new(error.kind(), format!("{error}; in /tmp: {short}")))?,
+            };
             // Only the user may connect, in a directory only the user
             // may enter.
             std::fs::set_permissions(&socket, std::fs::Permissions::from_mode(0o600))?;
@@ -325,6 +335,39 @@ fn create_private_dir(directory: &Path) -> std::io::Result<()> {
     std::fs::set_permissions(directory, std::fs::Permissions::from_mode(0o700))
 }
 
+/// The directory for a socket whose name would be too long in the state
+/// directory `directory`: `/tmp/org-lsp-UID`, made only the user's, or
+/// taken when it is the user's already and only the user's.
+#[cfg(unix)]
+fn short_socket_directory(directory: &Path) -> std::io::Result<PathBuf> {
+    use std::os::unix::fs::{DirBuilderExt, MetadataExt};
+    // The user's, as the state directory is.
+    let uid = std::fs::metadata(directory)?.uid();
+    let short = PathBuf::from(format!("/tmp/org-lsp-{uid}"));
+    match std::fs::DirBuilder::new().mode(0o700).create(&short) {
+        Ok(()) => {}
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+        Err(error) => return Err(error),
+    }
+    own_private_directory(&short, uid)?;
+    Ok(short)
+}
+
+/// Whether `directory` is a directory (not a link) of the user `uid`'s
+/// that only that user may enter.
+#[cfg(unix)]
+fn own_private_directory(directory: &Path, uid: u32) -> std::io::Result<()> {
+    use std::os::unix::fs::MetadataExt;
+    let metadata = std::fs::symlink_metadata(directory)?;
+    if metadata.is_dir() && metadata.uid() == uid && metadata.mode() & 0o777 == 0o700 {
+        return Ok(());
+    }
+    Err(std::io::Error::new(
+        std::io::ErrorKind::PermissionDenied,
+        format!("{} is not a directory only this user may enter", directory.display()),
+    ))
+}
+
 #[cfg(not(unix))]
 fn create_private_dir(directory: &Path) -> std::io::Result<()> {
     // `%LOCALAPPDATA%` is the user's alone.
@@ -495,7 +538,7 @@ pub fn run(arguments: &[String], var: &dyn Fn(&str) -> Option<String>) -> Result
             if let Some(error) = opened.error {
                 return Err(error);
             }
-            let Some(file) = opened.file else {
+            let Some(file) = source_file(&opened, &home)? else {
                 return Err(opened
                     .messages
                     .last()
@@ -503,12 +546,66 @@ pub fn run(arguments: &[String], var: &dyn Fn(&str) -> Option<String>) -> Result
                     .unwrap_or_else(|| format!("No project of `org_protocol_project_alist` maps {url}")));
             };
             match editor {
-                Some(editor) => start(editor, &home(&file)).map(|()| String::new()),
+                Some(editor) => start(editor, &file).map(|()| String::new()),
                 None => Err(format!(
                     "No org-lsp is running, and `org_protocol_editor` names no editor to open {}",
-                    home(&file).display()
+                    file.display()
                 )),
             }
+        }
+    }
+}
+
+/// The file `open-source` shows: the one `opened` names, `~` expanded
+/// by `home`, once it is found to be in the working directory of the
+/// project that maps the URL to it, both with their links and `..`
+/// resolved. Org shows any file the URL leads to, and `%2e%2e` in a URL
+/// goes up out of the project's directory; org-lsp shows none outside.
+pub fn source_file(
+    opened: &org_core::protocol::Opened,
+    home: &dyn Fn(&str) -> PathBuf,
+) -> Result<Option<PathBuf>, String> {
+    let Some(file) = &opened.file else { return Ok(None) };
+    let path = resolved(&home(file));
+    let directory = opened.working_directory.as_deref().map(|directory| resolved(&home(directory)));
+    match directory {
+        Some(directory) if path.starts_with(&directory) => Ok(Some(path)),
+        _ => Err(format!(
+            "{} is not in the working directory of its project ({}), and is not opened",
+            path.display(),
+            opened.working_directory.as_deref().unwrap_or_default()
+        )),
+    }
+}
+
+/// `path` made absolute, `.` and `..` resolved, and its links: those of
+/// the part of it that is there.
+fn resolved(path: &Path) -> PathBuf {
+    use std::path::Component;
+    let absolute = std::path::absolute(path).unwrap_or_else(|_| path.to_path_buf());
+    let mut lexical = PathBuf::new();
+    for component in absolute.components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                lexical.pop();
+            }
+            other => lexical.push(other),
+        }
+    }
+    let mut existing = lexical.as_path();
+    let mut rest = Vec::new();
+    loop {
+        if let Ok(mut real) = std::fs::canonicalize(existing) {
+            real.extend(rest.into_iter().rev());
+            return real;
+        }
+        match (existing.parent(), existing.file_name()) {
+            (Some(parent), Some(name)) => {
+                rest.push(name.to_os_string());
+                existing = parent;
+            }
+            _ => return lexical,
         }
     }
 }
@@ -607,6 +704,42 @@ mod tests {
         assert_eq!(words(r#"'/My Apps/zed' "a b" c\ d"#), ["/My Apps/zed", "a b", "c d"]);
         assert_eq!(words(r#"x "" ''"#), ["x", "", ""]);
         assert!(split_command_line("'open").is_err());
+    }
+
+    /// A state directory whose socket's name would be too long: the socket
+    /// is in `/tmp/org-lsp-UID`, which the entry names, and takes URLs.
+    #[cfg(unix)]
+    #[test]
+    fn listens_in_tmp_when_the_state_directory_is_too_deep() {
+        use std::os::unix::fs::{MetadataExt, PermissionsExt};
+        let root = std::env::temp_dir().join(format!("org-lsp-long-state-{}", std::process::id()));
+        let directory = root.join("d".repeat(120)).join("protocol");
+        let (sender, receiver) = crossbeam_channel::unbounded();
+        let listener = Listener::open(&directory, sender).unwrap();
+        let entry: Value = serde_json::from_str(&std::fs::read_to_string(&listener.entry).unwrap()).unwrap();
+        let socket = PathBuf::from(entry["socket"].as_str().unwrap());
+        let uid = std::fs::metadata(&directory).unwrap().uid();
+        assert_eq!(socket.parent(), Some(PathBuf::from(format!("/tmp/org-lsp-{uid}")).as_path()));
+        assert_eq!(std::fs::metadata(socket.parent().unwrap()).unwrap().permissions().mode() & 0o777, 0o700);
+        let answering = std::thread::spawn(move || {
+            let sent = receiver.recv().unwrap();
+            let _ = sent.answer.send(Ok(format!("got {}", sent.url)));
+        });
+        let answer = deliver(&entry, "org-protocol://store-link?url=x").ok().unwrap();
+        assert_eq!(answer, Ok("got org-protocol://store-link?url=x".to_string()));
+        answering.join().unwrap();
+        listener.close();
+        assert!(!socket.exists());
+        let _ = std::fs::remove_dir_all(&root);
+        // A directory there that is not the user's alone is not used.
+        let open = root.join("open");
+        std::fs::create_dir_all(&open).unwrap();
+        std::fs::set_permissions(&open, std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert!(own_private_directory(&open, uid).is_err());
+        std::fs::set_permissions(&open, std::fs::Permissions::from_mode(0o700)).unwrap();
+        assert!(own_private_directory(&open, uid).is_ok());
+        assert!(own_private_directory(&open, uid + 1).is_err());
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     #[test]

@@ -231,8 +231,60 @@ fn extension(file: &str) -> Option<String> {
     re.captures(file).map(|found| found[1].to_string())
 }
 
-/// `shell-quote-argument` on a POSIX shell.
+/// `shell-quote-argument` for the shell commands run in: `cmd` on
+/// Windows, a POSIX shell elsewhere.
 pub fn shell_quote(argument: &str) -> String {
+    shell_quote_for(argument, cfg!(windows))
+}
+
+/// `shell-quote-argument` as on Windows (`windows-nt` with
+/// `w32-shell-dos-semantics`, for `cmd`) or as on a POSIX shell.
+pub fn shell_quote_for(argument: &str, windows: bool) -> String {
+    if windows {
+        shell_quote_w32(argument)
+    } else {
+        shell_quote_posix(argument)
+    }
+}
+
+/// `shell-quote-argument` on Windows: quoted for `CommandLineToArgvW`
+/// (the backslashes before a double quote and at the end of a line
+/// doubled, the quote escaped), then put in double quotes; with a `%`, a
+/// `!` or a double quote in it, those quotes and each of `cmd`'s special
+/// characters come after a caret.
+fn shell_quote_w32(argument: &str) -> String {
+    let mut quoted = String::new();
+    let mut backslashes = 0;
+    for c in argument.chars() {
+        if c == '\\' {
+            backslashes += 1;
+            continue;
+        }
+        let doubled = if matches!(c, '"' | '\n') { backslashes * 2 } else { backslashes };
+        quoted.extend(std::iter::repeat_n('\\', doubled));
+        if c == '"' {
+            quoted.push('\\');
+        }
+        quoted.push(c);
+        backslashes = 0;
+    }
+    quoted.extend(std::iter::repeat_n('\\', backslashes * 2));
+    if !quoted.contains(['%', '!', '"']) {
+        return format!("\"{quoted}\"");
+    }
+    let mut out = String::from("^\"");
+    for c in quoted.chars() {
+        if matches!(c, '%' | '!' | '(' | ')' | '"' | '<' | '>' | '&' | '|' | '^') {
+            out.push('^');
+        }
+        out.push(c);
+    }
+    out.push_str("^\"");
+    out
+}
+
+/// `shell-quote-argument` on a POSIX shell.
+fn shell_quote_posix(argument: &str) -> String {
     if argument.is_empty() {
         return "''".to_string();
     }
