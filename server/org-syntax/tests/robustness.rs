@@ -145,6 +145,10 @@ fn hostile_inputs_stay_fast_and_shallow() {
         repeat("<http://a\n", 20_000) + "> x\n",
         repeat("a_{b ", 20_000) + "}\n",
         repeat("[cite:@a ", 20_000),
+        repeat("[cite:@ ", 20_000) + &repeat("]", 20_000),
+        repeat("(src_a", 20_000),
+        repeat("{call_a", 20_000),
+        repeat("<%%(a ", 20_000) + ">",
         repeat("{{{m(a ", 20_000),
         repeat("@@a:b ", 20_001),
         repeat("[[a][b ", 20_000),
@@ -174,4 +178,14 @@ fn nesting_is_capped() {
     assert!(depth_of(&bold) < 80, "{}", depth_of(&bold));
     let list: String = (0..500).map(|depth| format!("{}- item\n", " ".repeat(depth))).collect();
     assert!(depth_of(&list) < 200, "{}", depth_of(&list));
+}
+
+/// `plain_link_end` asked within a character or past the end finds no
+/// link, rather than slicing the text there.
+#[test]
+fn plain_links_are_not_found_within_a_character() {
+    let text = "é https://example.com";
+    assert_eq!(org_syntax::plain_link_end(text, 1), None);
+    assert_eq!(org_syntax::plain_link_end(text, text.len() + 1), None);
+    assert_eq!(org_syntax::plain_link_end(text, 3), Some(text.len()));
 }

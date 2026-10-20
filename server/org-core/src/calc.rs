@@ -254,6 +254,10 @@ fn date_form(chars: &[char]) -> Result<Option<(Number, usize)>, String> {
 
 // ----- parsing and evaluating
 
+/// The furthest day from day 0 whose calendar date `year`, `month` and
+/// `day` give: some 27 billion years.
+const MAX_DATE_DAY: f64 = 1e13;
+
 /// Evaluation itself does not fail: what Calc cannot compute stays a
 /// formula.
 type Outcome = Result<Value, Infallible>;
@@ -626,11 +630,17 @@ fn call(name: &str, arguments: Vec<Value>, modes: &Modes) -> Outcome {
         let value = date.as_f64();
         let day = value.floor() as i64;
         let seconds = ((value - value.floor()) * 86400.0).round() as i64;
-        let civil = crate::date::Date::from_day(day);
+        // The calendar date only for the functions that ask for it, and of
+        // a day within some billions of years: Calc takes ages on days
+        // further off, which would overflow here; their formula stays.
+        let civil = || (value.abs() <= MAX_DATE_DAY).then(|| crate::date::Date::from_day(day));
+        if matches!(name, "year" | "month" | "day") && civil().is_none() {
+            return keep(&arguments);
+        }
         let part = match name {
-            "year" => Some(civil.year),
-            "month" => Some(civil.month),
-            "day" => Some(civil.day),
+            "year" => civil().map(|civil| civil.year),
+            "month" => civil().map(|civil| civil.month),
+            "day" => civil().map(|civil| civil.day),
             "weekday" => Some(crate::date::weekday(day) as i64),
             "hour" => Some(seconds / 3600),
             "minute" => Some(seconds % 3600 / 60),
@@ -665,7 +675,9 @@ fn call(name: &str, arguments: Vec<Value>, modes: &Modes) -> Outcome {
                 return keep(&arguments);
             }
             match x {
-                Number::Int(n) if (root.round() as i128).pow(2) == *n => Number::Int(root.round() as i128),
+                Number::Int(n) if (root.round() as i128).checked_pow(2) == Some(*n) => {
+                    Number::Int(root.round() as i128)
+                }
                 _ => float(root),
             }
         }
@@ -1118,6 +1130,22 @@ mod tests {
         ] {
             assert_eq!(calc(formula), expected, "{formula}");
         }
+    }
+
+    /// Huge numbers given to one-argument functions do not overflow: the
+    /// day they would be is only made a date for the parts of dates, and
+    /// the formula stays for a day billions of years off, on which Calc
+    /// takes ages.
+    #[test]
+    fn huge_numbers_do_not_overflow() {
+        assert_eq!(calc("abs(-1.7e38)"), "1.7e38");
+        assert_eq!(calc("sqrt(170141183460469231731687303715884105727)"), "1.3043818e19");
+        assert_eq!(calc("year(1e12)"), "2737907007");
+        assert_eq!(calc("year(-1e30)"), "year(-1e30)");
+        assert_eq!(calc("month(1e40)"), "month(1e40)");
+        let _ = calc("trunc(-1e40)");
+        let _ = calc("weekday(1e30)");
+        let _ = calc("hour(-1e30)");
     }
 
     #[test]

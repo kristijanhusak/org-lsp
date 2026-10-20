@@ -37,7 +37,11 @@ pub fn show_first_star() -> bool {
 
 /// Whether `text` has an inline task whose stars are hidden.
 pub fn hides_stars(text: &str) -> bool {
-    !show_first_star() && text.split('\n').any(|line| is_task_line(text, line) || is_end_line(text, line))
+    if show_first_star() {
+        return false;
+    }
+    let Some(min) = min_stars_in(text) else { return false };
+    text.split('\n').any(|line| task_stars(line, min).is_some())
 }
 
 /// Set `org-inlinetask-min-level` for the process: `None` turns inline
@@ -58,14 +62,18 @@ pub fn min_stars(odd: bool) -> Option<usize> {
     min_level().map(|level| if odd { 2 * level - 1 } else { level })
 }
 
-/// [`min_stars`] in `text`, with its `#+STARTUP:` words about odd levels.
+/// [`min_stars`] in `text`, with its `#+STARTUP:` words about odd levels,
+/// which are only read when inline tasks are on. It reads the whole text:
+/// the tests of one line below take what it found once for the text.
 pub fn min_stars_in(text: &str) -> Option<usize> {
-    min_stars(odd_levels_in(text))
+    let level = min_level()?;
+    Some(if odd_levels_in(text) { 2 * level - 1 } else { level })
 }
 
-/// Whether a headline of `stars` stars is an inline task in `text`.
-pub fn is_task_level(text: &str, stars: usize) -> bool {
-    min_stars_in(text).is_some_and(|min| stars >= min)
+/// Whether a headline of `stars` stars is an inline task, where the
+/// shortest one has `min` stars ([`min_stars_in`]).
+pub fn is_task_level(min: Option<usize>, stars: usize) -> bool {
+    min.is_some_and(|min| stars >= min)
 }
 
 /// The most stars of a headline that is part of the outline
@@ -83,8 +91,9 @@ pub fn outline_stars(odd: bool) -> Option<usize> {
 }
 
 /// [`outline_stars`] in `text`, with its `#+STARTUP:` words about odd
-/// levels.
+/// levels, which are only read when inline tasks are on.
 pub fn outline_stars_in(text: &str) -> Option<usize> {
+    min_level()?;
     outline_stars(odd_levels_in(text))
 }
 
@@ -101,15 +110,17 @@ fn end_line(line: &str, min: usize) -> bool {
     task_stars(line, min).is_some_and(|stars| line[stars..].trim_matches([' ', '\t']).eq_ignore_ascii_case("END"))
 }
 
-/// Whether `line` is an inline task's `END` line in `text`.
-pub fn is_end_line(text: &str, line: &str) -> bool {
-    min_stars_in(text).is_some_and(|min| end_line(line, min))
+/// Whether `line` is an inline task's `END` line, where the shortest task
+/// has `min` stars ([`min_stars_in`]).
+pub fn is_end_line(min: Option<usize>, line: &str) -> bool {
+    min.is_some_and(|min| end_line(line, min))
 }
 
-/// Whether `line` is the first line of an inline task in `text`
-/// (`org-inlinetask-at-task-p`).
-pub fn is_task_line(text: &str, line: &str) -> bool {
-    min_stars_in(text).is_some_and(|min| task_stars(line, min).is_some() && !end_line(line, min))
+/// Whether `line` is the first line of an inline task
+/// (`org-inlinetask-at-task-p`), where the shortest task has `min` stars
+/// ([`min_stars_in`]).
+pub fn is_task_line(min: Option<usize>, line: &str) -> bool {
+    min.is_some_and(|min| task_stars(line, min).is_some() && !end_line(line, min))
 }
 
 /// `^\*+[ \t]+`: the line could be a headline, as `org-inlinetask-in-task-p`
@@ -238,12 +249,12 @@ impl Tasks<'_> {
 /// Where the inline task at the line at `at` hides its text when it is
 /// folded (`org-inlinetask-toggle-visibility`): from the end of its first
 /// line to the end of its `END` line, as byte offsets. None where it hides
-/// nothing, or the line is no task.
-pub fn fold_range(text: &str, at: usize) -> Option<(usize, usize)> {
-    let min = min_stars_in(text)?;
+/// nothing, or the line is no task. The shortest task has `min` stars
+/// ([`min_stars_in`]).
+pub fn fold_range(text: &str, at: usize, min: usize) -> Option<(usize, usize)> {
     let tasks = Tasks { text, min };
     let start = line_start(text, at);
-    if !is_task_line(text, line(text, start)) {
+    if !is_task_line(Some(min), line(text, start)) {
         return None;
     }
     let end = tasks.goto_end(start);
@@ -265,7 +276,7 @@ pub fn insert_task(
     let min = min_stars_in(text).ok_or_else(|| Refusal::NotHere("Inline tasks are off".to_string()))?;
     let tasks = Tasks { text, min };
     let start = line_start(text, at);
-    if tasks.in_task_p(at) && !(is_task_line(text, line(text, start)) && at == start) {
+    if tasks.in_task_p(at) && !(is_task_line(Some(min), line(text, start)) && at == start) {
         return Err(Refusal::Failed("Cannot nest inline tasks".to_string()));
     }
     let mut text = text.to_string();

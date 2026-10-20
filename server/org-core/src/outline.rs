@@ -515,13 +515,14 @@ impl Outline {
         // that the next headline does not close has no text.
         let next_heading =
             text[line_end..].split('\n').skip(1).find(|line| crate::todo::headline_level(line).is_some()).unwrap_or("");
-        let task = crate::inlinetask::is_task_line(text, line);
-        let bare_inlinetask = task && !crate::inlinetask::is_end_line(text, next_heading);
-        let inlinetask_end = crate::inlinetask::is_end_line(text, line)
+        let tasks = crate::inlinetask::min_stars(self.odd_levels);
+        let task = crate::inlinetask::is_task_line(tasks, line);
+        let bare_inlinetask = task && !crate::inlinetask::is_end_line(tasks, next_heading);
+        let inlinetask_end = crate::inlinetask::is_end_line(tasks, line)
             && self
                 .entries
                 .last()
-                .is_some_and(|before| crate::inlinetask::is_task_line(text, &text[before.offset..before.line_end]));
+                .is_some_and(|before| crate::inlinetask::is_task_line(tasks, &text[before.offset..before.line_end]));
         let section = headline.section().filter(|_| !bare_inlinetask);
         let planning = section.as_ref().and_then(|section| section.children().find(|child| child.kind() == PLANNING));
         // A property drawer counts right below the headline or its planning
@@ -1346,6 +1347,18 @@ mod tests {
 
     fn tag_names(entry: &Entry) -> Vec<String> {
         entry.tags.iter().map(|tag| format!("{}{}", if tag.inherited { "^" } else { "" }, tag.name)).collect()
+    }
+
+    /// The `#+STARTUP:` words are read once for the whole outline, not
+    /// once for each headline: many headlines build in linear time.
+    #[test]
+    fn many_headlines_build_fast() {
+        let text = "* a\nb\n".repeat(4000);
+        let start = std::time::Instant::now();
+        let outline = outline(&text);
+        assert_eq!(outline.entries.len(), 4000);
+        // Generous: this takes a fraction of a second in a debug build.
+        assert!(start.elapsed() < std::time::Duration::from_secs(5), "took {:?}", start.elapsed());
     }
 
     /// `org-property-separators`: the values of `X` and `X+` joined with

@@ -428,14 +428,12 @@ fn cookie(line: &str) -> Option<i64> {
             Some(b'/') => {
                 let second = digits(after + 1);
                 if bytes.get(after + 1 + second) == Some(&b']') {
+                    // An empty denominator is 0 (`string-to-number`), as
+                    // is the value then.
                     let numerator = number(at + 1, first);
-                    found = Some(if second == 0 {
-                        numerator
-                    } else {
-                        match number(after + 1, second) {
-                            0 => 0,
-                            denominator => numerator * 100 / denominator,
-                        }
+                    found = Some(match number(after + 1, second) {
+                        0 => 0,
+                        denominator => numerator.saturating_mul(100) / denominator,
                     });
                 }
             }
@@ -804,6 +802,8 @@ mod tests {
         assert_eq!(cookie("* TODO Plan [1/4] and [50%]"), Some(50));
         assert_eq!(cookie("* TODO Plan [3/4]"), Some(75));
         assert_eq!(cookie("* TODO Plan [0/0]"), Some(0));
+        assert_eq!(cookie("* TODO Plan [3/]"), Some(0));
+        assert_eq!(cookie("* TODO Plan [99999999999999999/1]"), Some(i64::MAX));
         assert_eq!(cookie("* TODO Plan [x]"), None);
     }
 }
