@@ -27,10 +27,7 @@ The script downloads the package for your platform from the [[https://github.com
 ~code --install-extension~. Run it again to update, then reload the window.
 ~CODE=codium~ (or ~code-insiders~, ~cursor~) installs into another editor.
 On Windows without a shell, download ~org-lsp-win32-x64.vsix~ from the
-release and run *Extensions: Install from VSIX…*. While the repository is
-private, its files need a GitHub login: the script downloads them with the
-GitHub CLI (~gh~) when it is installed and logged in, and the ~curl~ line
-above does not work.
+release and run *Extensions: Install from VSIX…*.
 
 The package has the server inside. The extension looks for the server in
 this order: the ~org-lsp.server.path~ setting, the one inside the

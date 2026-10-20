@@ -30,7 +30,7 @@ others), as close to Emacs Org mode as it can get.
   missing, read by Emacs, and so on), and [[file:parity.org::#options][parity.org]] lists those
   missing.
 - /One repository/, Neovim files at the root (~plugin/~, ~lua/~), other
-  editors under ~editors/~. The repository is private and stays private.
+  editors under ~editors/~.
 - /Small changes./ Each is one pull request, with its tests, its docs and
   the parity table, merged by squashing once the checks pass.
 

@@ -22,9 +22,7 @@ when it cannot), puts the package there as ~LSP-org~, adds LSP to Package
 Control's packages, so that it is installed when Sublime Text starts, and
 puts the server in =~/.local/bin= (~ORG_LSP_BIN_DIR~ names another
 directory). Then restart Sublime Text and open an ~.org~ file. Run it
-again to update. While the repository is private, its files need a GitHub
-login: the script downloads them with the GitHub CLI (~gh~) when it is
-installed and logged in, and the ~curl~ line above does not work.
+again to update.
 
 By hand: install LSP with Package Control, and copy or link
 ~editors/sublime/LSP-org~ into the ~Packages~ folder (*Preferences › Browse

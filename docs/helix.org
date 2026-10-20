@@ -23,9 +23,7 @@ the checkout). The script puts the server from the [[https://github.com/kristija
 ~# BEGIN org-lsp~ and ~# END org-lsp~ comments that it replaces when run
 again; a file that sets up Org already is left as it is. It puts Org's
 colors in =~/.config/helix/runtime/queries/org= and =org-agenda=, in place
-of what is there. Run it again to update. While the repository is private, its files need a GitHub login:
-the script downloads them with the GitHub CLI (~gh~) when it is installed
-and logged in, and the ~curl~ line above does not work.
+of what is there. Run it again to update.
 
 By hand: put ~org-lsp~ on your PATH (~cargo install --path server/org-lsp~
 in a checkout), and add [[file:../editors/helix/languages.toml][editors/helix/languages.toml]] to

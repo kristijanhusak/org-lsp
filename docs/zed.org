@@ -35,10 +35,7 @@ the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly re
   ~// END org-lsp~ comments, which it replaces when run again. Your own
   keys come after them, and win.
 
-Restart Zed afterwards; run the script again to update. While the
-repository is private, its files need a GitHub login: the script downloads
-them with the GitHub CLI (~gh~) when it is installed and logged in, and
-the ~curl~ line above does not work.
+Restart Zed afterwards; run the script again to update.
 
 Without the script, the extension starts ~org-lsp~ from your PATH, or else
 downloads the server of its own release for your platform once (~v0.2.0~
