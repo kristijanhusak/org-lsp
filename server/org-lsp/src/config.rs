@@ -994,6 +994,7 @@ pub struct Options {
     /// Emacs Lisp that Emacs evaluates before loading Org.
     pub emacs_config: Option<String>,
     /// Org's options Emacs sets, by name, after `emacs_config`.
+    #[serde(deserialize_with = "table_or_empty_list")]
     pub emacs_options: Option<serde_json::Map<String, serde_json::Value>>,
     /// The shared configuration file: `false` for none, or a path instead
     /// of the usual one. Read by `load`, before the options are.
@@ -3162,6 +3163,20 @@ pub fn expand_home(path: &str, var: &dyn Fn(&str) -> Option<String>) -> PathBuf 
     }
 }
 
+/// A table, or an empty list for one: Neovim sends an empty Lua table,
+/// `{}`, as `[]`.
+fn table_or_empty_list<'de, D>(deserializer: D) -> Result<Option<serde_json::Map<String, serde_json::Value>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    match serde_json::Value::deserialize(deserializer)? {
+        serde_json::Value::Null => Ok(None),
+        serde_json::Value::Object(table) => Ok(Some(table)),
+        serde_json::Value::Array(list) if list.is_empty() => Ok(Some(serde_json::Map::new())),
+        _ => Err(serde::de::Error::custom("is not a table")),
+    }
+}
+
 /// The options: those of the shared configuration file, with the
 /// editor's (`initializationOptions`) on top. An object such as `agenda`
 /// is merged key by key; anything else the editor gives replaces the
@@ -4711,6 +4726,16 @@ mod tests {
             ]
         );
         std::fs::remove_dir_all(file.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn emacs_options_may_come_as_an_empty_list() {
+        // Neovim sends an empty Lua table as `[]`.
+        let loaded = load(Some(serde_json::json!({ "config_file": false, "emacs_options": [] })), &no_env);
+        assert!(loaded.problems.is_empty(), "{:?}", loaded.problems);
+        assert!(loaded.options.emacs_options().0.is_empty());
+        let loaded = load(Some(serde_json::json!({ "config_file": false, "emacs_options": ["x"] })), &no_env);
+        assert_eq!(loaded.problems, ["the option `emacs_options` is malformed and is ignored"]);
     }
 
     fn temp_file(name: &str, text: &str) -> PathBuf {
