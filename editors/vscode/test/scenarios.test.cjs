@@ -257,13 +257,15 @@ function xdotoolKeys(key) {
 async function press(key, command) {
   // The keys go to the editor at hand.
   await vscode.commands.executeCommand('workbench.action.focusActiveEditorGroup');
-  const before = api.commands().run.length;
+  const before = api.commands().count;
   await new Promise((resolve, reject) =>
     execFile('xdotool', ['key', '--delay', '30', ...xdotoolKeys(key)], (error) => (error ? reject(error) : resolve())),
   );
   if (command) {
-    await until(`\`${key}\` to run ${command}`, () => api.commands().run.length > before, 5000);
-    const ran = api.commands().run[before];
+    await until(`\`${key}\` to run ${command}`, () => api.commands().count > before, 5000);
+    // The first command run since: the extension keeps the last ones.
+    const { run, count } = api.commands();
+    const ran = run[run.length - (count - before)];
     assert.equal(ran, command, `\`${key}\` ran ${ran}, not ${command}`);
   }
   await settle();

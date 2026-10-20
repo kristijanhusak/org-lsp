@@ -41,7 +41,7 @@ its sections says what it should look like.
 
 * Headings and structure
 
-*Partly:* Moving between headings, ~org-goto~ and Org's ~C-a~, ~C-e~, ~C-k~ and ~C-y~ are left out: they need keys, and Helix cannot bind a key to a server's command; nor are the commands run by Emacs (~C-c *~, ~C-c ;~, cloning) among its code actions. New headings are code actions.
+*Partly:* Moving between headings, ~org-goto~ and Org's ~C-a~, ~C-e~, ~C-k~ and ~C-y~ are left out: they need keys, and Helix cannot bind a key to a server's command; nor are inserting an inline task and the commands run by Emacs (~C-c *~, ~C-c ;~, cloning) among its code actions. New headings are code actions.
 
 - [ ] On a headline, a new heading of the same level goes below: the code action /New heading, item or table row/
 - [ ] A new TODO heading: the code action /New TODO heading, or item with a checkbox/
@@ -49,12 +49,15 @@ its sections says what it should look like.
 - [ ] Promoting and demoting a heading; its tags stay aligned: the code action /Promote the heading; outdent the item; move the table column left/, the code action /Demote the heading; indent the item, the drawer or the block; move the table column right/
 - [ ] Promoting and demoting a subtree: the code action /Promote the subtree; outdent the item with its children; delete the table column/, the code action /Demote the subtree; indent the item with its children; insert a table column/
 - [ ] Moving a subtree up and down past its siblings: the code action /Move the subtree, the item or the table row up/, the code action /Move the subtree, the item or the table row down/
-- [ ] Inserting an inline task gives 15 stars and an ~END~ line; demoting it changes both; the outline leaves it out, and folding it hides its text and its ~END~ line: the code action /Insert an inline task/, the code action /Demote the heading; indent the item, the drawer or the block; move the table column right/
 - [ ] Cutting a subtree and pasting it under another heading: its level fits there: the code action /Cut the subtree/, the code action /Paste the subtree/
 - [ ] Copying a subtree and pasting it: the code action /Copy the subtree/, the code action /Paste the subtree/
 - [ ] With ~org_allow_promoting_top_level_subtree~ on, promoting ~* A~ makes it ~# A~: the code action /Promote the heading; outdent the item; move the table column left/
 - [ ] Sorting the children of a heading alphabetically, then by TODO state: the code action /Sort the entries, the items or the table rows/
 - [ ] The outline lists the headings nested, also in pickers that filter symbols by kind: ~Space s~
+
+Not in Helix:
+
+- Inserting an inline task gives 15 stars and an ~END~ line; demoting it changes both; the outline leaves it out, and folding it hides its text and its ~END~ line: /Insert an inline task/ is not among its code actions
 
 * Lists and checkboxes
 
@@ -69,7 +72,7 @@ its sections says what it should look like.
 
 * TODO keywords
 
-*Partly:* States are picked from the code actions, where they come first once asked for; for a note for a state change (~@~), the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Faces of particular keywords and priorities are not shown.
+*Partly:* States are picked from the code actions, where they come first once asked for; for a note for a state change (~@~), the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Switching to another keyword set is left out: it is not among Helix's code actions. Faces of particular keywords and priorities are not shown.
 
 - [ ] With ~org_enforce_todo_dependencies~, a parent with a child not done cannot be done: the change is refused with ~blocked (by "TODO Child")~; with ~org_enforce_todo_checkbox_dependencies~, an entry with an unchecked box cannot either: the code action /Change the TODO state/
 - [ ] Those tasks are dimmed in the agenda and the TODO list
@@ -81,7 +84,10 @@ its sections says what it should look like.
 - [ ] The parent's ~[1/2]~ cookie is recounted: the code action /Change the TODO state/
 - [ ] A ~#+TODO: A B | C~ line in the file is used instead of the settings: the code action /Change the TODO state/
 - [ ] With ~#+TODO: TODO | DONE~ and ~#+TODO: REPORT BUG | FIXED~, changing the state without keys goes ~BUG~, ~FIXED~, none, then back to ~REPORT~: the code action /Change the TODO state/
-- [ ] Switching to the next and previous keyword set says ~Keyword-Set 2/2: REPORT BUG FIXED~: the code action /Switch to the next TODO keyword set/, the code action /Switch to the previous TODO keyword set/
+
+Not in Helix:
+
+- Switching to the next and previous keyword set says ~Keyword-Set 2/2: REPORT BUG FIXED~: /Switch to the next TODO keyword set/, /Switch to the previous TODO keyword set/ are not among its code actions
 
 * Priorities
 
@@ -99,24 +105,30 @@ its sections says what it should look like.
 
 * Properties and column view
 
-*Partly:* A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Column view is left out: it draws over the headlines. Custom properties are not hidden (~org.custom.properties.toggle~): Helix lets no server hide text.
+*Partly:* A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Column view is left out: it draws over the headlines. Custom properties are not hidden (~org.custom.properties.toggle~): Helix lets no server hide text. Deleting a property, cycling a property's allowed values and toggling ~ORDERED~ are left out: they are not among Helix's code actions.
 
-- [ ] On a property line with ~NAME_ALL~, cycling through its values: the code action /Move the date a day later, or cycle the TODO state or the list's bullets forward/, the code action /Move the date a day earlier, or cycle the TODO state or the list's bullets backward/
-- [ ] Deleting a property from the entry, and from the whole file: the code action /Delete a property of the entry/, the code action /Delete a property from every entry of the file/
 - [ ] Setting the effort: the code action /Set the effort of the entry/
-- [ ] Toggling ~ORDERED~: the code action /Toggle whether subtasks must be done in order (ORDERED)/
 - [ ] Property names are completed in a drawer
+
+Not in Helix:
+
+- On a property line with ~NAME_ALL~, cycling through its values: /Move the date a day later, or cycle the TODO state or the list's bullets forward/, /Move the date a day earlier, or cycle the TODO state or the list's bullets backward/ are not among its code actions
+- Deleting a property from the entry, and from the whole file: /Delete a property of the entry/, /Delete a property from every entry of the file/ are not among its code actions
+- Toggling ~ORDERED~: /Toggle whether subtasks must be done in order (ORDERED)/ is not among its code actions
 
 * Dates and times
 
-*Partly:* Dates are typed (~+2d~, ~fri 10:00~), with no calendar: the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text; Helix reads no file again that the server writes, as the calendar is. New timestamps are left out: they are not among Helix's code actions. Changing a timestamp works.
+*Partly:* Dates are typed (~+2d~, ~fri 10:00~), with no calendar: the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text; Helix reads no file again that the server writes, as the calendar is. New timestamps and removing the scheduled date or the deadline are left out: they are not among Helix's code actions. Changing a timestamp works.
 
 - [ ] Scheduling with ~+2d~: ~SCHEDULED: <…>~ goes below the headline: the code action /Schedule the entry/
 - [ ] A deadline on ~fri 10:00~: the code action /Set the deadline of the entry/
-- [ ] Removing the scheduled date and the deadline: the code action /Remove the scheduled date of the entry/, the code action /Remove the deadline of the entry/
 - [ ] On a timestamp, changing the day, month, year, hour and minute under the cursor; with a count: the code action /Increase the part of the timestamp at the cursor/, the code action /Decrease the part of the timestamp at the cursor/
 - [ ] Moving a timestamp by days: the code action /Move the date one day later/, the code action /Move the date one day earlier/
 - [ ] A repeater (~+1w~) and a warning (~-2d~) are kept as the date changes
+
+Not in Helix:
+
+- Removing the scheduled date and the deadline: /Remove the scheduled date of the entry/, /Remove the deadline of the entry/ are not among its code actions
 
 * Agenda
 
@@ -139,11 +151,14 @@ its sections says what it should look like.
 - [ ] Hovering a line shows its entry: ~Space k~
 - [ ] Rebuilding the agenda, saving the changed files, quitting: the code action /Agenda: rebuild/, the code action /Save all Org files/
 - [ ] An entry changed in its file shows in the agenda when it is rebuilt
-- [ ] Adding today's appointments: an entry timed a few minutes from now is reminded of every three minutes until it is due (needs Emacs): the code action /Add today's appointments from the agenda files/
+
+Not in Helix:
+
+- Adding today's appointments: an entry timed a few minutes from now is reminded of every three minutes until it is due (needs Emacs): /Add today's appointments from the agenda files/ is not among its code actions
 
 * Clocking
 
-*Partly:* No clock in the status line: Helix has no place there for a server's text.
+*Partly:* No clock in the status line: Helix has no place there for a server's text. Showing the time clocked under each headline and resolving open clocks are left out: they are not among Helix's code actions.
 
 - [ ] Clocking into an entry whose effort its time passes shows ~Task ‘…’ should be finished by now. (0:30)~, once: the code action /Clock in/
 - [ ] Clocking in: ~:LOGBOOK:~ gets a ~CLOCK:~ line and the clock shows (~[0:01] (Task)~): the code action /Clock in/
@@ -151,11 +166,14 @@ its sections says what it should look like.
 - [ ] Cancelling the clock takes its line out: the code action /Cancel the clock/
 - [ ] Going to the clocked entry from another file: the code action /Go to the clocked entry/
 - [ ] Clocking in the last entry again: the code action /Clock in the last clocked task/
-- [ ] The time clocked under each headline shows next to it: the code action /Show the time clocked under each headline/
 - [ ] A clock table: inserted, then updated; shifting its ~:block~ on the ~#+BEGIN:~ line: the code action /Insert or update a clock table/, the code action /Update the dynamic block/
-- [ ] A clock left running when the editor closed is asked about (~Dangling clock started N mins ago [jkKtTgGSscCiq]? ~); ~K~ and Enter stops it now: the code action /Resolve open clocks/
 - [ ] With a clock left running and none clocked, clocking into another entry asks about it first: the code action /Clock in/
 - [ ] In the agenda, clocking in and out; the clocked line is highlighted from edge to edge: the code action /Clock in/, the code action /Clock out/
+
+Not in Helix:
+
+- The time clocked under each headline shows next to it: /Show the time clocked under each headline/ is not among its code actions
+- A clock left running when the editor closed is asked about (~Dangling clock started N mins ago [jkKtTgGSscCiq]? ~); ~K~ and Enter stops it now: /Resolve open clocks/ is not among its code actions
 
 * Capture
 
@@ -192,72 +210,89 @@ its sections says what it should look like.
 
 * Refile and archive
 
-*Partly:* Copying an entry to a target, going to a target and to the entry refiled last are left out: they are not among Helix's code actions. Refiling picks the target from the code actions, where the targets come first once asked for.
+*Partly:* Copying an entry to a target, going to a target and to the entry refiled last, and archiving every done subtree, are left out: they are not among Helix's code actions. Refiling picks the target from the code actions, where the targets come first once asked for.
 
 - [ ] Refiling a subtree under a heading of the same file, and of another file: the code action /Refile the entry/
 - [ ] Archiving a subtree: it goes to ~FILE_archive~ with its ~ARCHIVE_…~ properties: the code action /Archive the subtree/
 - [ ] Archiving to the archive sibling: the code action /Archive the subtree under its Archive sibling/
 - [ ] Toggling the ~ARCHIVE~ tag: the code action /Toggle the ARCHIVE tag/
-- [ ] Archiving every done subtree after confirming each: the code action /Archive the subtrees without open TODO items/
 - [ ] In the agenda: archiving the line's entry; archives mode shows archived entries: the code action /Archive with the default command/, the code action /Agenda: include archived trees/
+
+Not in Helix:
+
+- Archiving every done subtree after confirming each: /Archive the subtrees without open TODO items/ is not among its code actions
 
 * Links
 
-*Partly:* Storing and inserting links in an Org file are left out: they are not among Helix's code actions there (the agenda stores a link to its line's entry); moving between links needs a key. Following works through go to definition.
+*Partly:* Storing and inserting links in an Org file, and creating an ID, are left out: they are not among Helix's code actions there (the agenda stores a link to its line's entry); moving between links needs a key. Following works through go to definition.
 
-- [ ] A ~#+LINK: gh https://github.com/%s~ line makes ~[[gh:org-lsp]]~ follow ~https://github.com/org-lsp~; ~org_link_abbrev_alist~ does the same from the settings: the code action /Open the link or thing at the cursor/
-- [ ] Following a link to a headline, a custom ID and a ~<<target>>~: the code action /Open the link or thing at the cursor/
-- [ ] Following a ~file:~ link with a search (~file:notes.org::*Heading~) and an ~id:~ link: the code action /Open the link or thing at the cursor/
+- [ ] A ~#+LINK: gh https://github.com/%s~ line makes ~[[gh:org-lsp]]~ follow ~https://github.com/org-lsp~; ~org_link_abbrev_alist~ does the same from the settings: ~gd~
+- [ ] Following a link to a headline, a custom ID and a ~<<target>>~: ~gd~
+- [ ] Following a ~file:~ link with a search (~file:notes.org::*Heading~) and an ~id:~ link: ~gd~
 - [ ] Go to definition on a link does the same: ~gd~
-- [ ] Creating an ID for the entry: the code action /Create an ID for the entry/
 - [ ] In ~[[~, file names, headlines and custom IDs are completed
 - [ ] Hovering a link shows where it leads
 - [ ] References on a headline list the links to it, in every file
 - [ ] Renaming a headline updates the links that search for it
 - [ ] Workspace symbols find headlines of every file
 
+Not in Helix:
+
+- Creating an ID for the entry: /Create an ID for the entry/ is not among its code actions
+
 * Footnotes
 
 *Partly:* Making footnotes and their menu are left out: they are not among Helix's code actions. Following them works.
 
-- [ ] Following ~[fn:1]~ goes to its definition, and from the definition back to the reference: the code action /Open the link or thing at the cursor/
+- [ ] Following ~[fn:1]~ goes to its definition, and from the definition back to the reference: ~gd~
 - [ ] A reference without a definition is reported
 
 * Tables
 
-*Partly:* Moving between fields with ~TAB~, copying down, summing, field information and creating a table are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and ~…~: Helix lets no server hide text.
+*Partly:* Moving between fields with ~TAB~, copying down, summing, field information creating a table and a rule with a move below it are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and ~…~: Helix lets no server hide text.
 
 - [ ] Shrinking a column with a ~<5>~ cookie puts ~…~ after each of its fields, their text left whole; again, the ~…~ go; a file with ~#+STARTUP: shrink~ opens with them: the code action /Shrink or expand the table column/
 - [ ] Formatting the file aligns the tables: ~:format~
 - [ ] Moving a column left and right, a row up and down: the code action /Promote the heading; outdent the item; move the table column left/, the code action /Demote the heading; indent the item, the drawer or the block; move the table column right/, the code action /Move the subtree, the item or the table row up/, the code action /Move the subtree, the item or the table row down/
 - [ ] Inserting and deleting a column and a row: the code action /Demote the subtree; indent the item with its children; insert a table column/, the code action /Promote the subtree; outdent the item with its children; delete the table column/, the code action /Insert a table row above/, the code action /Delete the table row/
-- [ ] A rule below the row; a rule and a move to the row below: the code action /Insert a rule below the table row/, the code action /Insert a rule below the table row and go below it/
 - [ ] Blanking the field: the code action /Blank the table field/
 - [ ] Sorting the rows by the cursor's column: the code action /Sort the entries, the items or the table rows/
 - [ ] The ~#+TBLFM:~ line follows a moved column
 
+Not in Helix:
+
+- A rule below the row; a rule and a move to the row below: /Insert a rule below the table row and go below it/ is not among its code actions
+
 * Table formulas
 
+*Partly:* Recalculating the current line only, iterating until the table is stable and the formula debugger are left out: they are not among Helix's code actions, which recalculate the whole table.
+
 - [ ] ~#+TBLFM: $3=$1*$2~ fills the third column: the code action /Recalculate the table/
-- [ ] Recalculating the cursor's line only: the code action /Recalculate the table's current line/
 - [ ] ~C-c C-c~ on the ~#+TBLFM:~ line applies it: the code action /Toggle the checkbox/
 - [ ] A range sum ~@>$2=vsum(@2..@-1)~ and a format ~;%.2f~
 - [ ] Date arithmetic (~$2=$1+7~) on timestamps
-- [ ] Iterating until the table is stable: the code action /Recalculate the table until it does not change/
 - [ ] An Emacs Lisp formula ~$3='(+ $1 $2);N~ and a remote reference ~remote(name,@1$1)~ are computed by Emacs (needs Emacs): the code action /Recalculate the table/
-- [ ] With the formula debugger on, recalculating shows each formula's substitution history and asks whether to go on (needs Emacs): the code action /Turn the formula debugger on or off/
+
+Not in Helix:
+
+- Recalculating the cursor's line only: /Recalculate the table's current line/ is not among its code actions
+- Iterating until the table is stable: /Recalculate the table until it does not change/ is not among its code actions
+- With the formula debugger on, recalculating shows each formula's substitution history and asks whether to go on (needs Emacs): /Turn the formula debugger on or off/ is not among its code actions
 
 * Code blocks (Babel)
 
-*Partly:* Only tangling, the block at the cursor and editing it in a file of its own are offered (code actions in a block): the file's and the subtree's evaluation, removing results and moving between blocks need keys, which Helix cannot give a server.
+*Partly:* Only tangling, the block at the cursor and editing it in a file of its own are offered (code actions in a block): the file's and the subtree's evaluation, removing results, detangling and moving between blocks need keys, which Helix cannot give a server.
 
 - [ ] Tangling writes each block to its ~:tangle~ file, ~:mkdirp~ and ~:shebang~ applied: the code action /Tangle the file's code blocks/
 - [ ] A ~:tangle (concat "out" ".el")~ block is tangled by Emacs to ~out.el~ (needs Emacs): the code action /Tangle the file's code blocks/
-- [ ] After tangling a block with ~:comments link~ and changing its code in the tangled file, detangling puts the new code back into the block (needs Emacs): the code action /Put the code of a tangled file back into its blocks/
 - [ ] Evaluating an ~emacs-lisp~ block asks first (yes or no), then puts ~#+RESULTS:~ below it (needs Emacs): the code action /Evaluate the code block or call at the cursor through Emacs/
 - [ ] ~src_emacs-lisp{(* 6 7)}~ gets ~{{{results(=42=)}}}~; a ~#+CALL:~ line its results: the code action /Evaluate the code block or call at the cursor through Emacs/
 - [ ] Typing in the file while a slow block runs: the results are dropped with a warning
 - [ ] Editing a code block in a file of its own: the file has the language's extension, its lines unindented and ~,*~ unescaped; saving it writes the block back and saves the Org file; the same block again shows the same file (needs Emacs): the code action /Edit the block in a file of its own/
+
+Not in Helix:
+
+- After tangling a block with ~:comments link~ and changing its code in the tangled file, detangling puts the new code back into the block (needs Emacs): /Put the code of a tangled file back into its blocks/ is not among its code actions
 
 * Export and publishing
 
@@ -279,13 +314,16 @@ its sections says what it should look like.
 
 * Indentation and formatting
 
-*Partly:* Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. With soft wrap on (~soft-wrap.enable~), the lines a long line wraps into line up with the prefix and its own indentation, not with a headline's title or an item's text: Helix wraps under a line's leading blanks, inlay hints among them.
+*Partly:* Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. With soft wrap on (~soft-wrap.enable~), the lines a long line wraps into line up with the prefix and its own indentation, not with a headline's title or an item's text: Helix wraps under a line's leading blanks, inlay hints among them. Numbering the headlines by command (~org-num-mode~) is left out: it is not among Helix's code actions; ~#+STARTUP: num~ numbers them.
 
 - [ ] A file with ~#+STARTUP: indent~ shows its text indented by level, the file unchanged
 - [ ] In a file with ~#+STARTUP: indent~, with soft wrap on, a long line of text goes on under its text
 - [ ] Re-indenting a selection indents it as Org does: ~=~
 - [ ] Formatting the file aligns tables and puts tags in their column
-- [ ] A file with ~#+STARTUP: num~ shows ~1~, ~1.1~​… after the stars of its headlines; the command turns them off and on: the code action /Number the headlines, or stop numbering them/
+
+Not in Helix:
+
+- A file with ~#+STARTUP: num~ shows ~1~, ~1.1~​… after the stars of its headlines; the command turns them off and on: /Number the headlines, or stop numbering them/ is not among its code actions
 
 * Notes and logging
 
@@ -310,13 +348,18 @@ its sections says what it should look like.
 
 *Partly:* ~attachment:~ links open; the dispatcher (~C-c C-a~) is left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and it is not among them.
 
-- [ ] An ~attachment:~ link opens the attached file (needs Emacs): the code action /Open the link or thing at the cursor/
+- [ ] An ~attachment:~ link opens the attached file (needs Emacs): ~gd~
 
 * Encryption
 
-- [ ] With ~org-crypt-key~ set in the Emacs configuration, encrypting an entry replaces its text with a PGP message; decrypting brings it back (needs Emacs and GnuPG): the code action /Encrypt the entry/, the code action /Decrypt the entry/
-- [ ] Encrypting and decrypting every entry tagged ~crypt~ (needs Emacs and GnuPG): the code action /Encrypt the entries tagged crypt/, the code action /Decrypt the encrypted entries/
+*Partly:* Encrypting and decrypting by command are left out: they are not among Helix's code actions. Encrypting before saving needs an editor that sends LSP's ~willSaveWaitUntil~.
+
 - [ ] With ~(org-crypt-use-before-save-magic)~ in the Emacs configuration, saving a file encrypts its entries tagged ~crypt~ (needs Emacs and GnuPG)
+
+Not in Helix:
+
+- With ~org-crypt-key~ set in the Emacs configuration, encrypting an entry replaces its text with a PGP message; decrypting brings it back (needs Emacs and GnuPG): /Encrypt the entry/, /Decrypt the entry/ are not among its code actions
+- Encrypting and decrypting every entry tagged ~crypt~ (needs Emacs and GnuPG): /Encrypt the entries tagged crypt/, /Decrypt the encrypted entries/ are not among its code actions
 
 * Inline images and LaTeX previews
 

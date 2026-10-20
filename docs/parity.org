@@ -147,8 +147,8 @@ Where editors fall short:
 Where editors fall short:
 
 - VS Code ❓: VS Code does not tell an extension which folds are closed: ~C-k~ on a folded headline is VS Code's own (~org-ctrl-k-protect-subtree~), and a subtree cut or copied folded is not folded again when it is pasted.
-- Zed ❓: A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. ~C-a~, ~C-e~, ~C-k~ and ~C-y~ keep Zed's own meaning, and nothing pasted is folded: Zed lets no server fold.
-- Helix ❓: Moving between headings, ~org-goto~ and Org's ~C-a~, ~C-e~, ~C-k~ and ~C-y~ are left out: they need keys, and Helix cannot bind a key to a server's command; nor are the commands run by Emacs (~C-c *~, ~C-c ;~, cloning) among its code actions. New headings are code actions.
+- Zed ❓: A command on a selection acts on the cursor's line: Zed tells a server no selection. The commands go through the keys of keymap.json (Zed's tasks); for cloning, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Turning a line into a heading (~org.toggle.heading~) is left out: it has no key in keymap.json and is not among the code actions. ~C-a~, ~C-e~, ~C-k~ and ~C-y~ keep Zed's own meaning, and nothing pasted is folded: Zed lets no server fold.
+- Helix ❓: Moving between headings, ~org-goto~ and Org's ~C-a~, ~C-e~, ~C-k~ and ~C-y~ are left out: they need keys, and Helix cannot bind a key to a server's command; nor are inserting an inline task and the commands run by Emacs (~C-c *~, ~C-c ;~, cloning) among its code actions. New headings are code actions.
 
 * Lists and checkboxes
 :PROPERTIES:
@@ -202,7 +202,7 @@ Where editors fall short:
 
 - Sublime Text ❓: Faces of particular keywords and priorities are not shown in the file: Sublime Text colors text by its color scheme only. The list of TODO states shows them in the color of each item's kind, the nearest of those Sublime Text has.
 - Zed ❓: States are picked with buttons; for a note for a state change (~@~), the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Faces of particular keywords and priorities are not shown: Zed colors tokens by its theme only.
-- Helix ❓: States are picked from the code actions, where they come first once asked for; for a note for a state change (~@~), the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Faces of particular keywords and priorities are not shown.
+- Helix ❓: States are picked from the code actions, where they come first once asked for; for a note for a state change (~@~), the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Switching to another keyword set is left out: it is not among Helix's code actions. Faces of particular keywords and priorities are not shown.
 
 * Priorities
 :PROPERTIES:
@@ -261,8 +261,8 @@ Where editors fall short:
 - Vim ❓: Column view's header is in the window's status line, shown when the window has one (~laststatus~). Custom properties are not hidden (~org.custom.properties.toggle~): Vim cannot hide a line, a closed fold still shows a line of its own, and text with text properties is not concealed.
 - VS Code ❓: Column view's header is in the status bar, with the column picked in brackets. Custom properties are not hidden (~org.custom.properties.toggle~): VS Code hides lines only in a fold of the folding ranges, which keeps its first line showing, and a decoration cannot hide a line.
 - Sublime Text ❓: A property's name and value are typed in an input panel, without completion. Column view is left out: it draws over the headlines, which Sublime Text cannot. A custom property hidden (~org.custom.properties.toggle~) is in a fold from the end of the line before, which shows the fold's marker: Sublime Text hides text only in folds.
-- Zed ❓: A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Column view is left out: it draws over the headlines. Custom properties are not hidden (~org.custom.properties.toggle~): Zed lets no server hide text.
-- Helix ❓: A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Column view is left out: it draws over the headlines. Custom properties are not hidden (~org.custom.properties.toggle~): Helix lets no server hide text.
+- Zed ❓: A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Column view is left out: it draws over the headlines. Custom properties are not hidden (~org.custom.properties.toggle~): Zed lets no server hide text. Deleting a property has no key in keymap.json and is not among the code actions; cycling a property's allowed values needs Shift with the arrows, which stay Zed's.
+- Helix ❓: A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Column view is left out: it draws over the headlines. Custom properties are not hidden (~org.custom.properties.toggle~): Helix lets no server hide text. Deleting a property, cycling a property's allowed values and toggling ~ORDERED~ are left out: they are not among Helix's code actions.
 
 * Dates and times
 :PROPERTIES:
@@ -285,8 +285,8 @@ Where editors fall short:
 Where editors fall short:
 
 - Sublime Text ❓: Dates are typed, without the calendar: the package asks with an input panel.
-- Zed ❓: Dates are typed (~+2d~, ~fri 10:00~), with no calendar: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Changing a timestamp works.
-- Helix ❓: Dates are typed (~+2d~, ~fri 10:00~), with no calendar: the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text; Helix reads no file again that the server writes, as the calendar is. New timestamps are left out: they are not among Helix's code actions. Changing a timestamp works.
+- Zed ❓: Dates are typed (~+2d~, ~fri 10:00~), with no calendar: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Changing a timestamp works. Removing the scheduled date or the deadline is left out: those commands have no key in keymap.json and are not among the code actions.
+- Helix ❓: Dates are typed (~+2d~, ~fri 10:00~), with no calendar: the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text; Helix reads no file again that the server writes, as the calendar is. New timestamps and removing the scheduled date or the deadline are left out: they are not among Helix's code actions. Changing a timestamp works.
 
 * Agenda
 :PROPERTIES:
@@ -338,7 +338,7 @@ Where editors fall short:
 
 - VS Code ❓: Tags are at column 80, not at the window's edge (~org_agenda_tags_column~ ~"auto"~): VS Code does not tell an extension how many columns an editor shows.
 - Sublime Text ❓: Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot. The days of a habit's graph take the colors of text, not Org's backgrounds: Sublime Text colors a token by its color scheme.
-- Zed ❓: The agenda is a file, its commands code actions (or keys through Zed's tasks); for a search and a date, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Follow mode and the outline path of the cursor's entry are left out: Zed reports no cursor moves to an extension. Column view in the agenda is left out: it draws over the lines. The days of a habit's graph have Org's backgrounds for a dark background, a little transparent, with any theme: an extension's colors for tokens are the same with every theme.
+- Zed ❓: The agenda is a file, its commands keys through Zed's tasks (keymap.json), ~enter~ and ~tab~ going to an entry; adding today's appointments (~org.agenda.appt~) has no key and is not among the code actions; for a search and a date, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Follow mode and the outline path of the cursor's entry are left out: Zed reports no cursor moves to an extension. Column view in the agenda is left out: it draws over the lines. The days of a habit's graph have Org's backgrounds for a dark background, a little transparent, with any theme: an extension's colors for tokens are the same with every theme.
 - Helix ❓: The agenda is a file, ~Agenda.org~, its commands code actions, a view's choices first in them once asked for; for a search and a date, the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Follow mode, the outline path of the cursor's entry and the entry in another window are left out: Helix tells a server no cursor moves, and knows no other window of the server's. Column view in the agenda is left out: it draws over the lines. The server's edits leave the agenda's buffer changed: ~:buffer-close!~ closes it.
 
 * Clocking
@@ -366,7 +366,7 @@ Where editors fall short:
 Where editors fall short:
 
 - Zed ❓: No clock in the status line: Zed has no place there for an extension's text. In the agenda, the clocked entry's line has the background of ~org-agenda-clocking~ under its text, not to the window's edge: Zed lets no extension highlight a line, only give its tokens a background, and the tokens end with the text.
-- Helix ❓: No clock in the status line: Helix has no place there for a server's text.
+- Helix ❓: No clock in the status line: Helix has no place there for a server's text. Showing the time clocked under each headline and resolving open clocks are left out: they are not among Helix's code actions.
 
 * Capture
 :PROPERTIES:
@@ -439,7 +439,7 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❓: A node's title is typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The org-roam buffer does not follow the cursor: Zed reports no cursor moves to an extension.
+- Zed ❓: A node's title is typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The org-roam buffer does not follow the cursor: Zed reports no cursor moves to an extension. The commands without a key of Org's (a random node, aliases, tags, the buffer of a node and refreshing it) are left out: Zed runs a server's commands only from the keys of keymap.json and the code actions, and those are not among them.
 - Helix ❌: The commands are not among Helix's code actions yet.
 
 * A journal (org-journal)
@@ -468,7 +468,7 @@ Where editors fall short:
 Where editors fall short:
 
 - Sublime Text ❓: The calendar and the keys org-journal adds to it are left out: the package shows no date prompt.
-- Zed ❓: For the dates and searches the commands ask for, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with ~file_types~ in Zed's settings. The calendar and the keys org-journal adds to it are left out: Zed shows no date prompt.
+- Zed ❓: For the dates and searches the commands ask for, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. The other entries stay as they show: Zed lets no server fold. Files without an extension are Org files only with ~file_types~ in Zed's settings. The calendar and the keys org-journal adds to it are left out: Zed shows no date prompt. The entries to come (TODO, and with a date) are left out: they have no key in keymap.json and are not among the code actions.
 - Helix ❌: The commands are not among Helix's code actions yet.
 
 * Refile and archive
@@ -494,7 +494,8 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Helix ❓: Copying an entry to a target, going to a target and to the entry refiled last are left out: they are not among Helix's code actions. Refiling picks the target from the code actions, where the targets come first once asked for.
+- Zed ❓: Archiving every done subtree (~org.archive.done~) is left out: it has no key in keymap.json and is not among the code actions.
+- Helix ❓: Copying an entry to a target, going to a target and to the entry refiled last, and archiving every done subtree, are left out: they are not among Helix's code actions. Refiling picks the target from the code actions, where the targets come first once asked for.
 
 * Links
 :PROPERTIES:
@@ -528,8 +529,8 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❓: A link's target is typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Following works through go to definition, for links inside Org files and to files.
-- Helix ❓: Storing and inserting links in an Org file are left out: they are not among Helix's code actions there (the agenda stores a link to its line's entry); moving between links needs a key. Following works through go to definition.
+- Zed ❓: A link's target is typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Following works through go to definition, for links inside Org files and to files. Creating an ID (~org.id.create~) is left out: it has no key in keymap.json and is not among the code actions.
+- Helix ❓: Storing and inserting links in an Org file, and creating an ID, are left out: they are not among Helix's code actions there (the agenda stores a link to its line's entry); moving between links needs a key. Following works through go to definition.
 
 * Footnotes
 :PROPERTIES:
@@ -579,7 +580,7 @@ Where editors fall short:
 - Vim ❓: A shrunk column shows its whole text and ~…~: Vim cannot hide text that has text properties.
 - Sublime Text ❓: A shrunk column shows its whole text and ~…~: Sublime Text cannot hide text in a view.
 - Zed ❓: Moving between fields with ~TAB~ and copying down (~S-RET~) are left out: those keys stay Zed's own. For a new table's size, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. A shrunk column shows its whole text and ~…~: Zed lets no server hide text.
-- Helix ❓: Moving between fields with ~TAB~, copying down, summing, field information and creating a table are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and ~…~: Helix lets no server hide text.
+- Helix ❓: Moving between fields with ~TAB~, copying down, summing, field information creating a table and a rule with a move below it are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and ~…~: Helix lets no server hide text.
 
 * Table formulas
 :PROPERTIES:
@@ -601,6 +602,11 @@ Where editors fall short:
 - ✅ Calc's fractions, symbolic mode and engineering notation (through Emacs)
 - ✅ The formula editor (~C-c '~, through Emacs): the table's formulas in a file of their own, installed each time it is saved
 - ✅ The formula debugger (~C-c {~, through Emacs): while it is on, recalculating asks after each formula whether to go on, its substitution history with the question; answered no, what was computed so far stays
+
+Where editors fall short:
+
+- Zed ❓: Iterating until the table is stable (~org.table.iterate~) is left out: it has no key in keymap.json and is not among the code actions.
+- Helix ❓: Recalculating the current line only, iterating until the table is stable and the formula debugger are left out: they are not among Helix's code actions, which recalculate the whole table.
 
 * Code blocks (Babel)
 :PROPERTIES:
@@ -624,7 +630,8 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Helix ❓: Only tangling, the block at the cursor and editing it in a file of its own are offered (code actions in a block): the file's and the subtree's evaluation, removing results and moving between blocks need keys, which Helix cannot give a server.
+- Zed ❓: Detangling (~org.babel.detangle~) is left out: it has no key in keymap.json and is not among the code actions.
+- Helix ❓: Only tangling, the block at the cursor and editing it in a file of its own are offered (code actions in a block): the file's and the subtree's evaluation, removing results, detangling and moving between blocks need keys, which Helix cannot give a server.
 
 * Export and publishing
 :PROPERTIES:
@@ -669,7 +676,7 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❓: The BibTeX commands' fields are asked for in turn, and the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text.
+- Zed ❓: The BibTeX commands' fields are asked for in turn, and the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Those without a key of Org's (a new entry, copying, exporting, pasting and importing BibTeX) are left out: they are not among the code actions.
 - Helix ❓: Inserting citations and the BibTeX commands are not offered as code actions yet. Completion, hover and following work.
 
 * Diagnostics (org-lint)
@@ -703,8 +710,8 @@ Where editors fall short:
 - Vim ❓: The lines a long line wraps into line up with its own indentation, a headline's title or an item's text ('breakindent'), without the prefix of virtual indentation before them: Vim repeats no virtual text on them, and 'breakindentopt' shifts all the lines of a window alike.
 - VS Code ❓: The lines a long line wraps into are not indented as Org does: VS Code indents them by the line's own leading whitespace (~editor.wrappingIndent~), the same way for every line, without the prefix of virtual indentation, a decoration it does not count.
 - Sublime Text ❓: Virtual indentation shows as phantoms, the leading stars still showing; new lines are not indented as they are typed. The lines a long line wraps into are not indented as Org does: Sublime Text indents them by the line's own leading whitespace (~indent_subsequent_lines~).
-- Zed ❓: Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. With soft wrap on, the lines a long line wraps into line up with the prefix and its own indentation, not with a headline's title or an item's text: Zed wraps under a line's leading blanks, inlay hints among them.
-- Helix ❓: Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. With soft wrap on (~soft-wrap.enable~), the lines a long line wraps into line up with the prefix and its own indentation, not with a headline's title or an item's text: Helix wraps under a line's leading blanks, inlay hints among them.
+- Zed ❓: Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. With soft wrap on, the lines a long line wraps into line up with the prefix and its own indentation, not with a headline's title or an item's text: Zed wraps under a line's leading blanks, inlay hints among them. Numbering the headlines by command (~org-num-mode~) is left out: it has no key in keymap.json and is not among the code actions; ~#+STARTUP: num~ numbers them.
+- Helix ❓: Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. With soft wrap on (~soft-wrap.enable~), the lines a long line wraps into line up with the prefix and its own indentation, not with a headline's title or an item's text: Helix wraps under a line's leading blanks, inlay hints among them. Numbering the headlines by command (~org-num-mode~) is left out: it is not among Helix's code actions; ~#+STARTUP: num~ numbers them.
 
 * Notes and logging
 :PROPERTIES:
@@ -722,7 +729,7 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Zed ❓: A note is one line, with no buffer to write it in: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text.
+- Zed ❓: A note is one line, with no buffer to write it in: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Changing a TODO state as if it were yesterday is left out: it has no key in keymap.json and is not among the code actions.
 - Helix ❓: A note is one line, with no buffer to write it in: the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Adding a note is a code action in the agenda, not in an Org file.
 
 * Completion and editing helpers
@@ -783,6 +790,11 @@ Where editors fall short:
 
 - ✅ Encrypting and decrypting an entry, and the entries tagged ~crypt~ (~org-crypt~, through Emacs and GnuPG): for ~org-crypt-key~ or the ~CRYPTKEY~ property, or with a passphrase GnuPG's pinentry asks for
 - ✅ Encrypting before saving, with ~org-crypt-use-before-save-magic~ in the Emacs configuration (LSP's ~willSaveWaitUntil~, for editors that send it)
+
+Where editors fall short:
+
+- Zed ❓: Encrypting and decrypting by command are left out: they have no key in keymap.json and are not among the code actions. Encrypting before saving needs an editor that sends LSP's ~willSaveWaitUntil~.
+- Helix ❓: Encrypting and decrypting by command are left out: they are not among Helix's code actions. Encrypting before saving needs an editor that sends LSP's ~willSaveWaitUntil~.
 
 * Inline images and LaTeX previews
 :PROPERTIES:

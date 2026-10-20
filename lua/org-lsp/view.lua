@@ -996,7 +996,12 @@ function M.setup(manifest)
         params.width = vim.o.columns
         -- `org-agenda-show-outline-path`: the entry's outline path, in the
         -- echo area and not in the message history, as Emacs shows it.
+        -- The answer comes later: echoed only if the user is still in the
+        -- agenda, and not typing.
         client:request('org-lsp/agendaCursor', params, function(_, result)
+          if vim.api.nvim_get_current_buf() ~= args.buf or vim.api.nvim_get_mode().mode ~= 'n' then
+            return
+          end
           if type(result) == 'table' and type(result.echo) == 'string' then
             vim.api.nvim_echo({ { result.echo } }, false, {})
           end

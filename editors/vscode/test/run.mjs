@@ -12,7 +12,7 @@
 // Downloads VS Code unless VSCODE_EXECUTABLE names one. Needs a display;
 // on a headless machine run it under `xvfb-run -a`. The scenarios press
 // keys with `xdotool`, in the display VS Code is in.
-import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { runTests } from '@vscode/test-electron';
@@ -221,6 +221,11 @@ async function runScenarios() {
         await run('scenarios', folder, { ORG_LSP_TEST_PRESET: preset, ORG_LSP_TEST_SCENARIO: name, ORG_LSP_TEST_USER_DATA: user }, user);
       } catch {
         failed.push(`${name} (${preset})`);
+      } finally {
+        // A folder and a VS Code state for each run: gone with it.
+        for (const directory of [folder, user]) {
+          rmSync(directory, { recursive: true, force: true, maxRetries: 5 });
+        }
       }
     }
   }

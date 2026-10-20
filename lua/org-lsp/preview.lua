@@ -226,6 +226,15 @@ function M.watch()
   vim.api.nvim_create_autocmd('BufWinEnter', {
     group = group,
     callback = function(args)
+      -- Only a buffer that may be the float of an Org block (Neovim
+      -- writes the hover's lines before it opens its window): the floats
+      -- of other plugins are left alone.
+      if
+        vim.bo[args.buf].buftype ~= 'nofile'
+        or not (vim.api.nvim_buf_get_lines(args.buf, 0, 1, false)[1] or ''):match('^```+org$')
+      then
+        return
+      end
       -- The options of a float as it is shown, before anything else.
       local shown = {}
       for _, win in ipairs(vim.fn.win_findbuf(args.buf)) do

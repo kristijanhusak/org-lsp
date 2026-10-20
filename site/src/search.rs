@@ -1,6 +1,6 @@
 //! The search: each section of each page with its text, written as a
-//! script the pages load (it works from files on disk too, where a page
-//! may not fetch another file).
+//! script the pages load when the search first opens (a script works
+//! from files on disk too, where a page may not fetch another file).
 
 use crate::html::Section;
 use crate::Page;

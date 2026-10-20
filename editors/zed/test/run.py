@@ -539,11 +539,14 @@ class Zed:
 
         # Once more when no window comes: now and then Zed starts with none.
         for attempt in range(2):
-            self.zed = subprocess.Popen(
-                [os.environ["ZED"], "--foreground", self.work],
-                env=self.environment(), cwd=self.work, start_new_session=True,
-                stdout=open(os.path.join(self.base, "zed.log"), "a"), stderr=subprocess.STDOUT,
-            )
+            # Zed writes to the log; this process needs it no more once
+            # Zed has it.
+            with open(os.path.join(self.base, "zed.log"), "a") as log:
+                self.zed = subprocess.Popen(
+                    [os.environ["ZED"], "--foreground", self.work],
+                    env=self.environment(), cwd=self.work, start_new_session=True,
+                    stdout=log, stderr=subprocess.STDOUT,
+                )
             try:
                 self.window = until("Zed's window", window, 60)
                 break

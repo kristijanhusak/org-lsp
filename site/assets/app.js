@@ -246,8 +246,24 @@
     input.setAttribute('aria-activedescendant', items[selected].id);
   }
 
+  // The index is large, so it is loaded the first time the search
+  // opens, as a script (a page opened from disk may not fetch a file),
+  // and the results are shown again once it is there.
+  var indexRequested = false;
+  function loadIndex() {
+    if (indexRequested || window.ORG_SITE_SEARCH) return;
+    indexRequested = true;
+    var script = document.createElement('script');
+    script.src = root + 'assets/search.js';
+    script.addEventListener('load', function () {
+      if (!dialog.hidden) render();
+    });
+    document.head.appendChild(script);
+  }
+
   function open() {
     if (!dialog) return;
+    loadIndex();
     lastFocus = document.activeElement;
     dialog.hidden = false;
     input.focus();

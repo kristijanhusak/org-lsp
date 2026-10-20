@@ -766,8 +766,105 @@ function emacsKeyName(key) {
 /** Code in running text. */
 const inline = code;
 
-/** How a command is run in `editor`, from where `scope` says. */
-function commandKey(editor, id, scope = 'org') {
+/**
+ * The commands a client without keys for a server's commands finds among
+ * its code actions (Helix, and Zed with `command_actions`), by where the
+ * cursor is: as the server offers them (`code_actions_at` in
+ * server/org-lsp/src/server.rs, the kinds of server/org-lsp/src/actions.rs).
+ * Keep them in step.
+ */
+const ACTIONS_IN_FILES = new Set([
+  // actions.rs `KINDS`
+  'org.todo.next', 'org.todo.previous', 'org.priority.up', 'org.priority.down', 'org.timestamp.up',
+  'org.timestamp.down', 'org.date.later', 'org.date.earlier', 'org.clock.in', 'org.clock.out', 'org.clock.cancel',
+  'org.checkbox.toggle', 'org.table.recalculate',
+  // On a headline, an item or in a table.
+  'org.meta.left', 'org.meta.right', 'org.shiftmeta.left', 'org.shiftmeta.right', 'org.meta.up', 'org.meta.down',
+  'org.shiftmeta.up', 'org.shiftmeta.down', 'org.table.insert.row.below', 'org.table.hline', 'org.table.hline.above',
+  'org.table.blank.field',
+  // As commands.
+  'org.babel.tangle', 'org.table.toggle.column.width', 'org.babel.execute', 'org.edit.special', 'org.archive.subtree',
+  'org.archive.sibling', 'org.archive.tag', 'org.todo', 'org.priority', 'org.refile', 'org.schedule', 'org.deadline',
+  'org.tags.set', 'org.property.set', 'org.effort.set', 'org.sort', 'org.clock.goto', 'org.clock.in.last',
+  'org.clock.report', 'org.dblock.update', 'org.agenda.list', 'org.agenda.todos', 'org.agenda.dispatch', 'org.capture',
+  'org.meta.return', 'org.insert.todo.heading', 'org.insert.heading.after', 'org.insert.todo.heading.after',
+  'org.cut.subtree', 'org.copy.subtree', 'org.paste.subtree',
+]);
+/** In a capture buffer. */
+const ACTIONS_IN_CAPTURE = new Set(['org.capture.finish', 'org.capture.abort', 'org.capture.refile']);
+/** On an agenda line (not in Zed, whose agenda runs its keys through
+ * tasks): every command of the agenda's but those that need an editor's
+ * code. */
+const IN_AGENDA_TOO = [
+  'org.todo.yesterday',
+  'org.tags.set',
+  'org.schedule.remove',
+  'org.deadline.remove',
+  'org.schedule.delay',
+  'org.deadline.warning',
+];
+const ACTIONS_IN_AGENDA = new Set([
+  ...manifest.commands
+    .filter(
+      (command) =>
+        IN_AGENDA_TOO.includes(command.command) || command.keys.some((key) => key.preset === 'emacs' && key.in === 'agenda'),
+    )
+    .map((command) => command.command)
+    .filter((id) => !['org.agenda.follow', 'org.agenda.columns', 'org.agenda.goto.other'].includes(id)),
+  'org.agenda.dispatch',
+]);
+
+/** Whether the command `id` is a code action in `editor` where `scope`
+ * says. */
+function isAction(id, scope, editor) {
+  if (scope === 'agenda') return editor !== 'zed' && ACTIONS_IN_AGENDA.has(id);
+  if (scope === 'capture') return ACTIONS_IN_CAPTURE.has(id);
+  return ACTIONS_IN_FILES.has(id);
+}
+
+/** Commands that are a request of the protocol's own too, by editor. */
+const OWN_ROUTES = {
+  helix: { 'org.open': '`gd`' },
+  // In Zed's agenda, `enter` and `tab` are go to definition (keymap.json).
+  zed: { 'org.open': '`F12`', 'org.agenda.goto': '`enter`', 'org.agenda.goto.other': '`tab`' },
+};
+
+/**
+ * Zed's keys of each command, in Org files (`org`) and in the agenda,
+ * from the keymap and tasks editors/zed/generate.mjs writes: a key runs a
+ * task, the task the command (`key:KEY`: the command the key has where
+ * the cursor is).
+ */
+const zedKeysOf = (() => {
+  const dir = join(root, 'editors', 'zed');
+  const keymap = JSON.parse(readFileSync(join(dir, 'keymap.json'), 'utf8'));
+  const tasks = JSON.parse(readFileSync(join(dir, 'tasks.json'), 'utf8'));
+  const runs = Object.fromEntries(
+    tasks.map((task) => [task.label, /agenda-command ('[^']+'|\S+)/.exec(task.command)[1].replaceAll("'", '').replace(/^file:/, '')]),
+  );
+  const found = { org: new Map(), agenda: new Map() };
+  for (const bindings of keymap) {
+    const scope = bindings.context.endsWith('extension == org-agenda') ? 'agenda' : 'org';
+    for (const [key, action] of Object.entries(bindings.bindings)) {
+      if (!Array.isArray(action)) continue;
+      const run = runs[action[1].task_name];
+      const ids = run.startsWith('key:')
+        ? manifest.commands
+            .filter((command) => command.keys.some((bound) => bound.preset === 'emacs' && bound.key === run.slice('key:'.length)))
+            .map((command) => command.command)
+        : [run];
+      for (const id of ids) {
+        if (!found[scope].has(id)) found[scope].set(id, []);
+        found[scope].get(id).push(key);
+      }
+    }
+  }
+  return (id, scope) => found[scope === 'agenda' ? 'agenda' : 'org'].get(id) ?? [];
+})();
+
+/** How a command is run in `editor`, from where `scope` says; nothing
+ * where it cannot be. */
+function commandRoute(editor, id, scope = 'org') {
   const command = commandsById[id];
   if (!command) throw new Error(`scripts/features.mjs names an unknown command: ${id}`);
   const keys = (preset) =>
@@ -783,20 +880,34 @@ function commandKey(editor, id, scope = 'org') {
       const found = keys('emacs');
       return found.length > 0 ? found.map((key) => inline(emacsKeyName(key))).join(' or ') : `/Org: ${org(command.title)}/`;
     }
-    default:
-      return `the code action /${org(command.title)}/`;
+    default: {
+      // Zed: its keys (tasks), else the code actions; Helix: the code
+      // actions.
+      const found = editor === 'zed' ? zedKeysOf(id, scope) : [];
+      if (found.length > 0) return found.map(inline).join(' or ');
+      if (isAction(id, scope, editor)) return `the code action /${org(command.title)}/`;
+      return OWN_ROUTES[editor]?.[id] ? org(OWN_ROUTES[editor][id]) : '';
+    }
   }
 }
 
 /** Whether `check` applies to `editor`. */
 const applies = (check, editor) => (!check.only || check.only.includes(editor)) && !check.not?.includes(editor);
 
-/** The keys of a check in `editor`, or nothing. */
+/** The keys of a check in `editor`, or nothing; `missing`, the titles of
+ * its commands that cannot be run there. */
 function checkKeys(check, editor) {
-  if (check.keys) return org(check.keys[editor] ?? '');
-  if (!check.cmd) return '';
+  if (check.keys) return { keys: org(check.keys[editor] ?? ''), missing: [] };
+  if (!check.cmd) return { keys: '', missing: [] };
   const ids = Array.isArray(check.cmd) ? check.cmd : [check.cmd];
-  return ids.map((id) => commandKey(editor, id, check.in)).join(', ');
+  const routes = ids.map((id) => [id, commandRoute(editor, id, check.in)]);
+  return {
+    keys: routes
+      .map(([, route]) => route)
+      .filter(Boolean)
+      .join(', '),
+    missing: routes.filter(([, route]) => !route).map(([id]) => `/${org(commandsById[id].title)}/`),
+  };
 }
 
 /** Every area and every editor: README.org's table. */
@@ -949,10 +1060,19 @@ function testingPage(id, before) {
     }
     if (status === 'part') lines.push(`*Partly:* ${org(why)}`, '');
     const checks = (area.checks ?? []).filter((check) => applies(check, id));
+    // A check that needs a command the editor cannot run is no box to
+    // tick: it is listed after the others, with what it lacks.
+    const left = [];
     for (const check of checks) {
-      const keys = checkKeys(check, id);
-      lines.push(box(keys ? `${org(check.text)}: ${keys}` : org(check.text)));
+      const { keys, missing } = checkKeys(check, id);
+      if (missing.length > 0) {
+        const where = id === 'zed' ? 'its keys or code actions' : 'its code actions';
+        left.push(`- ${org(check.text)}: ${missing.join(', ')} ${missing.length > 1 ? 'are' : 'is'} not among ${where}`);
+      } else {
+        lines.push(box(keys ? `${org(check.text)}: ${keys}` : org(check.text)));
+      }
     }
+    if (left.length > 0) lines.push('', `Not in ${editor.name}:`, '', ...left);
   }
   return lines.join('\n') + '\n';
 }

@@ -103,7 +103,8 @@ today, weekends and overdue items, the clocked entry.
 Files with ~org-indent-mode~ (~org_startup_indented~, ~#+STARTUP: indent~)
 show indented by level, without being changed: blanks before the lines, as
 phantoms. The leading stars still show, and the lines a long line wraps
-into are not indented.
+into are indented only by the line's own leading whitespace (Sublime
+Text's ~indent_subsequent_lines~), not as Org indents them.
 
 The agenda and capture need no Org file open: from the Command Palette
 (/Org: Agenda commands/, /Org: Capture/ …) in any view, the package starts the

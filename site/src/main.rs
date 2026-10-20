@@ -305,7 +305,6 @@ impl Site {
 <link rel="icon" href="{up}assets/logo.svg" type="image/svg+xml">
 <link rel="stylesheet" href="{up}assets/style.css">
 <script>try{{var t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t}}catch(e){{}}</script>
-<script defer src="{up}assets/search.js"></script>
 <script defer src="{up}assets/app.js"></script>
 </head>
 <body data-root="{up}">
