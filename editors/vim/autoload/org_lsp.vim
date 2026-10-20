@@ -1534,12 +1534,18 @@ function! org_lsp#tell_agenda_cursor() abort
   let b:org_lsp_cursor_line = line('.')
   let params = {'textDocument': {'uri': org_lsp#uri(bufnr())},
         \ 'position': {'line': line('.') - 1, 'character': 0}, 'width': &columns}
-  call org_lsp#request(bufnr(), 'org-lsp/agendaCursor', params, {_error, result -> s:echo_path(result)})
+  let buf = bufnr()
+  call org_lsp#request(buf, 'org-lsp/agendaCursor', params, {_error, result -> s:echo_path(buf, result)})
 endfunction
 
 let s:echoed = ''
 
-function! s:echo_path(result) abort
+" The answer comes later: echoed only if the user is still in the agenda
+" it was asked for, and not typing.
+function! s:echo_path(buf, result) abort
+  if bufnr() != a:buf || mode() !=# 'n'
+    return
+  endif
   if type(a:result) == v:t_dict && type(get(a:result, 'echo', 0)) == v:t_string
     let s:echoed = a:result.echo
     echo a:result.echo

@@ -201,25 +201,44 @@ function M.global_cycle()
   end
 end
 
---- The highlight groups of the semantic tokens at `col` of `row`, as
---- Neovim names them, in the order it applies them.
----@param bufnr integer
+--- The highlight groups of the semantic tokens over `row`, from the
+--- marks Neovim set for them (`@lsp.type.…`, `@lsp.mod.…`,
+--- `@lsp.typemod.…`): a function giving those at a column, in the order
+--- Neovim applies them.
+---@param marks vim.api.keyset.get_extmark_item[]
 ---@param row integer
----@param col integer
----@return string[]
-local function token_groups(bufnr, row, col)
-  local groups = {}
-  local filetype = vim.bo[bufnr].filetype
-  for _, token in ipairs(vim.lsp.semantic_tokens.get_at_pos(bufnr, row, col) or {}) do
-    table.insert(groups, ('@lsp.type.%s.%s'):format(token.type, filetype))
-    for modifier, on in pairs(token.modifiers) do
-      if on then
-        table.insert(groups, ('@lsp.mod.%s.%s'):format(modifier, filetype))
-        table.insert(groups, ('@lsp.typemod.%s.%s.%s'):format(token.type, modifier, filetype))
-      end
+---@param width integer
+---@return fun(col: integer): string[]
+local function token_groups(marks, row, width)
+  local tokens = {}
+  for index, mark in ipairs(marks) do
+    local details = mark[4]
+    local group = details.hl_group
+    if type(group) == 'string' and group:match('^@lsp%.') then
+      table.insert(tokens, {
+        first = mark[2] < row and 0 or mark[3],
+        last = (details.end_row or mark[2]) > row and width or (details.end_col or width),
+        group = group,
+        priority = details.priority or 0,
+        index = index,
+      })
     end
   end
-  return groups
+  table.sort(tokens, function(a, b)
+    if a.priority ~= b.priority then
+      return a.priority < b.priority
+    end
+    return a.index < b.index
+  end)
+  return function(col)
+    local groups = {}
+    for _, token in ipairs(tokens) do
+      if token.first <= col and col < token.last then
+        table.insert(groups, token.group)
+      end
+    end
+    return groups
+  end
 end
 
 --- 'foldtext' of Org windows: a closed fold shows its first line as it
@@ -231,10 +250,13 @@ function M.foldtext()
   local row = vim.v.foldstart - 1
   local line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, false)[1] or ''
   local concealed, inline = {}, {}
-  local marks = vim.api.nvim_buf_get_extmarks(bufnr, -1, { row, 0 }, { row, -1 }, { details = true })
+  local marks = vim.api.nvim_buf_get_extmarks(bufnr, -1, { row, 0 }, { row, -1 }, { details = true, overlap = true })
+  local groups_at = token_groups(marks, row, #line)
   for _, mark in ipairs(marks) do
     local col, details = mark[3], mark[4]
-    if details.conceal and details.end_col and (details.end_row or row) == row and vim.wo.conceallevel > 0 then
+    if mark[2] ~= row then
+      -- A mark from a line before, kept for the tokens over this one.
+    elseif details.conceal and details.end_col and (details.end_row or row) == row and vim.wo.conceallevel > 0 then
       table.insert(concealed, { col, details.end_col, details.conceal, details.hl_group or 'Conceal' })
     elseif details.virt_text_pos == 'inline' and details.virt_text then
       inline[col] = vim.list_extend(inline[col] or {}, details.virt_text)
@@ -271,7 +293,7 @@ function M.foldtext()
       end
     else
       local text = line:sub(col + 1, after)
-      add(text == '\t' and (' '):rep(vim.bo[bufnr].tabstop) or text, token_groups(bufnr, row, col))
+      add(text == '\t' and (' '):rep(vim.bo[bufnr].tabstop) or text, groups_at(col))
     end
     col = after
   end
