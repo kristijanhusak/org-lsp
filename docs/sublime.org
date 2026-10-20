@@ -22,9 +22,7 @@ when it cannot), puts the package there as ~LSP-org~, adds LSP to Package
 Control's packages, so that it is installed when Sublime Text starts, and
 puts the server in =~/.local/bin= (~ORG_LSP_BIN_DIR~ names another
 directory). Then restart Sublime Text and open an ~.org~ file. Run it
-again to update. While the repository is private, its files need a GitHub
-login: the script downloads them with the GitHub CLI (~gh~) when it is
-installed and logged in, and the ~curl~ line above does not work.
+again to update.
 
 By hand: install LSP with Package Control, and copy or link
 ~editors/sublime/LSP-org~ into the ~Packages~ folder (*Preferences › Browse
@@ -38,10 +36,11 @@ The server needs nothing more. The package starts the first of:
    has a shorter PATH than a terminal);
 3. the build in the checkout the package is linked from
    (~target/release/org-lsp~, then ~target/debug/org-lsp~);
-4. the nightly build for your platform, downloaded once into Sublime
-   Text's ~Package Storage/LSP-org~.
+4. the server of the package's own release for your platform (the
+   nightly build for the nightly package, ~v0.2.0~ for version 0.2.0),
+   downloaded once into Sublime Text's ~Package Storage/LSP-org~.
 
-/Org: Download the latest server/ fetches the nightly build again and
+/Org: Download the latest server/ fetches that release's server again and
 restarts the server.
 
 * Setting it up

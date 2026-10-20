@@ -1,6 +1,6 @@
 id = "org-lsp"
 name = "Org (org-lsp)"
-description = "Org mode through the org-lsp language server: highlighting, completion, outline, formatting, TODO states, priorities, timestamps and clocking."
+description = "Org mode through the org-lsp language server: highlighting, completion, outline, TODO states, clocking, the agenda and capture. Org's keys and tasks come from `install.sh zed` (see docs/zed.org)."
 version = "0.1.0"
 schema_version = 1
 authors = ["Kristijan Husak"]

@@ -46,7 +46,10 @@ STARTING_TRIES = 150
 # How long to wait for a journal file to load, in steps of 100 ms.
 JOURNAL_TRIES = 50
 REPOSITORY = 'kristijanhusak/org-lsp'
-RELEASE = 'nightly'
+# The package's version (scripts/version.sh), and the release whose server
+# it downloads: its own, or `nightly` in the nightly build's package.
+VERSION = '0.1.0'
+RELEASE = 'v' + VERSION  # The nightly build puts 'nightly' here.
 # The release's name for each platform Sublime Text runs on.
 PLATFORMS = {
     ('linux', 'x64'): 'linux-x86_64',
@@ -148,8 +151,8 @@ def server_path(storage: str):
 
 
 def download(storage: str) -> str:
-    """Fetch the nightly build of the server for this platform into the
-    package's storage, and return its path."""
+    """Fetch the server of `RELEASE` for this platform into the package's
+    storage, and return its path."""
     platform = PLATFORMS.get((sublime.platform(), sublime.arch()))
     if not platform:
         raise RuntimeError('org-lsp has no build for this platform; put org-lsp on PATH or set "command"')
@@ -319,7 +322,7 @@ class OrgLsp(AbstractPlugin):
 
 
 class OrgLspUpdateServerCommand(sublime_plugin.WindowCommand):
-    """Download the nightly build of the server again, then restart it."""
+    """Download the server of `RELEASE` again, then restart it."""
 
     def run(self) -> None:
         sublime.status_message('org-lsp: downloading the server…')

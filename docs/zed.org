@@ -8,14 +8,24 @@ keys go through Zed's tasks.
 
 * Installing
 
+Install /Org (org-lsp)/ from Zed's extensions (*zed: extensions*), once
+it is in Zed's registry. A Zed extension cannot bring keys or tasks of its
+own, so add those afterwards: the [[file:keys/zed.org::#keys-through-tasks][keys through tasks]] are the release's
+~org-lsp-zed-keymap.json~ and ~org-lsp-zed-tasks.json~, whose entries go at
+the start of the arrays in your ~keymap.json~ and ~tasks.json~ (in
+=~/.config/zed=, or ~%APPDATA%\Zed~ on Windows). ~install.sh zed~, below,
+adds them for you.
+
+The script installs everything at once:
+
 #+begin_src sh
 curl -fsSL https://github.com/kristijanhusak/org-lsp/releases/download/nightly/install.sh | bash -s -- zed
 #+end_src
 
 or, in a checkout of this repository, ~scripts/install.sh zed~
 (~--release v0.2.0~ for a release, ~--source~ for the server built from
-the checkout). The script puts in place what Zed's extension registry
-would, from the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]]:
+the checkout). It puts in place what Zed's extension registry would, from
+the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]]:
 
 - the extension, built, in Zed's ~extensions/installed/org-lsp~;
 - the server beside it, in ~extensions/work/org-lsp~, where the extension
@@ -25,16 +35,15 @@ would, from the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly
   ~// END org-lsp~ comments, which it replaces when run again. Your own
   keys come after them, and win.
 
-Restart Zed afterwards; run the script again to update. While the
-repository is private, its files need a GitHub login: the script downloads
-them with the GitHub CLI (~gh~) when it is installed and logged in, and
-the ~curl~ line above does not work.
+Restart Zed afterwards; run the script again to update.
 
 Without the script, the extension starts ~org-lsp~ from your PATH, or else
-downloads the nightly build for your platform once (which needs the
-repository to be public); ~lsp.org-lsp.binary.path~ names a server binary
-of your own. To work on the extension, run *zed: install dev extension*
-and pick ~editors/zed~ of a checkout (Zed builds it with Rust).
+downloads the server of its own release for your platform once (~v0.2.0~
+for version 0.2.0 of the extension, the nightly build for the nightly
+one), which needs the repository to be public; ~lsp.org-lsp.binary.path~
+names a server binary of your own. To work on the extension, run *zed:
+install dev extension* and pick ~editors/zed~ of a checkout (Zed builds it
+with Rust).
 
 * Setting it up
 

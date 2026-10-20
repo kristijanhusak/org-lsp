@@ -96,7 +96,7 @@ describe('Org files', () => {
   // In restricted mode VS Code reads these from the user's settings only:
   // a folder's settings could name a program for the server to run.
   it('declares the settings that name programs restricted in untrusted workspaces', () => {
-    const declared = vscode.extensions.getExtension('org-lsp.org-lsp').packageJSON.capabilities.untrustedWorkspaces;
+    const declared = vscode.extensions.getExtension('kristijanhusak.org-lsp').packageJSON.capabilities.untrustedWorkspaces;
     assert.equal(declared.supported, 'limited');
     assert.deepEqual(declared.restrictedConfigurations, ['org-lsp.server.path', 'org-lsp.settings']);
   });
@@ -116,7 +116,7 @@ describe('Org files', () => {
   });
 
   it('gives keywords, priorities and tags their faces', async () => {
-    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    const api = vscode.extensions.getExtension('kristijanhusak.org-lsp').exports;
     const editor = await vscode.window.showTextDocument(document);
     const shown = await until('the faces', () => {
       const found = api.faces(editor);
@@ -395,7 +395,7 @@ describe('Org files', () => {
     const file = path.join(workspace, 'links.org');
     fs.writeFileSync(file, '* Links\nRead [[https://example.org][the site]] now\n');
     const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
-    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    const api = vscode.extensions.getExtension('kristijanhusak.org-lsp').exports;
     editor.selection = new vscode.Selection(0, 0, 0, 0);
     await until('the link to be concealed', () =>
       JSON.stringify(api.concealed(editor)) === JSON.stringify(['[[https://example.org][', ']]']),
@@ -413,7 +413,7 @@ describe('Org files', () => {
     const file = path.join(workspace, 'entities.org');
     fs.writeFileSync(file, '#+STARTUP: entitiespretty\n* Entities\nAn \\alpha here\n');
     const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
-    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    const api = vscode.extensions.getExtension('kristijanhusak.org-lsp').exports;
     editor.selection = new vscode.Selection(0, 0, 0, 0);
     await until('the entity shown as its character', () =>
       JSON.stringify(api.standIns(editor)) === JSON.stringify(['α']) && api.concealed(editor).includes('\\alpha'),
@@ -435,7 +435,7 @@ describe('Org files', () => {
     fs.writeFileSync(file, '* Clocked\n:PROPERTIES:\n:EFFORT: 1:00\n:END:\n');
     const clockDocument = await vscode.workspace.openTextDocument(file);
     const editor = await vscode.window.showTextDocument(clockDocument);
-    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    const api = vscode.extensions.getExtension('kristijanhusak.org-lsp').exports;
     const lineOf = (number) => (number < clockDocument.lineCount ? clockDocument.lineAt(number).text : '');
     assert.equal(api.clock(), '');
     editor.selection = new vscode.Selection(0, 0, 0, 0);
@@ -471,7 +471,7 @@ describe('Org files', () => {
     const file = vscode.Uri.file(path.join(workspace, 'virtual.org'));
     await vscode.workspace.fs.writeFile(file, Buffer.from('#+STARTUP: indent\n* A\ntext\n** B\n'));
     const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
-    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    const api = vscode.extensions.getExtension('kristijanhusak.org-lsp').exports;
     await until('the lines indented', () =>
       JSON.stringify(api.virtualIndent(editor)) === JSON.stringify([[2, 2, 0], [3, 1, 1]]),
     );
@@ -484,10 +484,10 @@ describe('Org files', () => {
     const file = vscode.Uri.file(path.join(workspace, 'whole.org'));
     await vscode.workspace.fs.writeFile(file, Buffer.from('* A\ntext\n** B\n'));
     const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
-    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    const api = vscode.extensions.getExtension('kristijanhusak.org-lsp').exports;
     await until('the headlines highlighted', () => api.lineHighlights(editor).length === 2);
     assert.deepEqual(api.lineHighlights(editor), [[0, 'headline.level1'], [2, 'headline.level2']]);
-    const colors = vscode.extensions.getExtension('org-lsp.org-lsp').packageJSON.contributes.colors.map((color) => color.id);
+    const colors = vscode.extensions.getExtension('kristijanhusak.org-lsp').packageJSON.contributes.colors.map((color) => color.id);
     assert.ok(colors.includes('org.headlineLevel8Background'), 'a colour for each level');
     await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
     await vscode.workspace.fs.delete(file);
@@ -500,7 +500,7 @@ describe('Org files', () => {
     const file = vscode.Uri.file(path.join(workspace, 'images.org'));
     await vscode.workspace.fs.writeFile(file, Buffer.from('* Pictures\nA [[file:red.png]] here.\n'));
     const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
-    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    const api = vscode.extensions.getExtension('kristijanhusak.org-lsp').exports;
     moveTo(1, 5);
     await vscode.commands.executeCommand('org.link.preview');
     // As high as it is: smaller than a line.
@@ -622,7 +622,7 @@ describe('Org files', () => {
   });
 
   it('lists the keys of the editor at hand', async () => {
-    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    const api = vscode.extensions.getExtension('kristijanhusak.org-lsp').exports;
     const shown = api.help(vscode.window.activeTextEditor);
     assert.ok(shown.some(([key, title]) => key === 'Ctrl+C Ctrl+T' && title === 'Change the TODO state'), JSON.stringify(shown));
     assert.ok(shown.some(([key]) => key === 'Tab'));
@@ -800,7 +800,7 @@ describe('Org files', () => {
     await vscode.workspace.fs.writeFile(file, Buffer.from('#+COLUMNS: %25ITEM %TODO\n* Project\n** Task\n'));
     const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
     await until('the server', async () => (await tokens(file)) !== undefined);
-    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    const api = vscode.extensions.getExtension('kristijanhusak.org-lsp').exports;
     moveTo(0);
     await vscode.commands.executeCommand('org.columns');
     await until('column view', () => api.columnsShown(editor).length === 2, 60000);
@@ -868,7 +868,7 @@ describe('Org files', () => {
     await vscode.workspace.fs.writeFile(file, Buffer.from('* A\nan apple\n* B :work:\nnothing\n** C\nApple pie\n* D\nnone\n'));
     const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
     await until('the server', async () => (await tokens(file)) !== undefined);
-    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    const api = vscode.extensions.getExtension('kristijanhusak.org-lsp').exports;
     const showQuickPick = vscode.window.showQuickPick;
     const showInputBox = vscode.window.showInputBox;
     vscode.window.showQuickPick = async (items) => items.find((item) => item.key === 'r');
@@ -993,7 +993,7 @@ describe('The agenda', () => {
 
   it('highlights the line of the clocked entry from edge to edge', async () => {
     const editor = vscode.window.activeTextEditor;
-    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    const api = vscode.extensions.getExtension('kristijanhusak.org-lsp').exports;
     moveTo(3);
     await vscode.commands.executeCommand('org.clock.in');
     await until('the clocked line highlighted', () => api.lineHighlights(editor).length > 0);
@@ -1224,7 +1224,7 @@ describe('The agenda', () => {
     await until('the entry of the new line', () => shownLine() === call);
     assert.equal(vscode.window.activeTextEditor, agendaEditor, 'still in the agenda');
     // The outline path of its entry in the status bar (`org-agenda-show-outline-path`).
-    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    const api = vscode.extensions.getExtension('kristijanhusak.org-lsp').exports;
     await until('the outline path', () => api.echoed() === 'work.org');
     await vscode.commands.executeCommand('org.agenda.follow');
   });
@@ -1325,7 +1325,7 @@ describe('The agenda', () => {
     // extension is done showing it: VS Code makes the editor active at the
     // top of the file, and gives it the selection asked for a moment later,
     // before `showTextDocument` returns.
-    const api = vscode.extensions.getExtension('org-lsp.org-lsp').exports;
+    const api = vscode.extensions.getExtension('kristijanhusak.org-lsp').exports;
     const today = await until("today's file", () => {
       const editor = vscode.window.activeTextEditor;
       const shown = editor?.document.uri.fsPath === path.join(journal, '20260518');
