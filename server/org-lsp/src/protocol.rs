@@ -134,11 +134,12 @@ impl Listener {
                 std::os::unix::net::UnixListener::bind(&socket).map(|listener| (socket, listener))
             };
             // A socket's name is short (`sun_path`): one too long for the
-            // state directory goes in a private directory of `/tmp`, which
-            // the entry names.
+            // state directory, which Rust refuses as invalid, goes in a
+            // private directory of `/tmp`, which the entry names.
             let (socket, listener) = match bind(directory.join(format!("{name}.sock"))) {
                 Ok(bound) => bound,
-                Err(error) => short_socket_directory(directory)
+                Err(error) if error.kind() != std::io::ErrorKind::InvalidInput => return Err(error),
+                Err(error) => short_socket_directory()
                     .and_then(|short| bind(short.join(format!("{name}.sock"))))
                     .map_err(|short| std::io::Error::new(error.kind(), format!("{error}; in /tmp: {short}")))?,
             };
@@ -336,13 +337,14 @@ fn create_private_dir(directory: &Path) -> std::io::Result<()> {
 }
 
 /// The directory for a socket whose name would be too long in the state
-/// directory `directory`: `/tmp/org-lsp-UID`, made only the user's, or
+/// directory: `/tmp/org-lsp-UID`, made only the user's, or
 /// taken when it is the user's already and only the user's.
 #[cfg(unix)]
-fn short_socket_directory(directory: &Path) -> std::io::Result<PathBuf> {
-    use std::os::unix::fs::{DirBuilderExt, MetadataExt};
-    // The user's, as the state directory is.
-    let uid = std::fs::metadata(directory)?.uid();
+fn short_socket_directory() -> std::io::Result<PathBuf> {
+    use std::os::unix::fs::DirBuilderExt;
+    // The user's, who runs the server.
+    // SAFETY: `getuid` only reads the process's user, and cannot fail.
+    let uid = unsafe { libc::getuid() };
     let short = PathBuf::from(format!("/tmp/org-lsp-{uid}"));
     match std::fs::DirBuilder::new().mode(0o700).create(&short) {
         Ok(()) => {}
@@ -560,14 +562,21 @@ pub fn run(arguments: &[String], var: &dyn Fn(&str) -> Option<String>) -> Result
 /// by `home`, once it is found to be in the working directory of the
 /// project that maps the URL to it, both with their links and `..`
 /// resolved. Org shows any file the URL leads to, and `%2e%2e` in a URL
-/// goes up out of the project's directory; org-lsp shows none outside.
+/// goes up out of the project's directory; org-lsp shows none outside,
+/// and none for a working directory that is not absolute (empty, or
+/// relative to wherever the server runs).
 pub fn source_file(
     opened: &org_core::protocol::Opened,
     home: &dyn Fn(&str) -> PathBuf,
 ) -> Result<Option<PathBuf>, String> {
     let Some(file) = &opened.file else { return Ok(None) };
     let path = resolved(&home(file));
-    let directory = opened.working_directory.as_deref().map(|directory| resolved(&home(directory)));
+    let directory = opened
+        .working_directory
+        .as_deref()
+        .map(home)
+        .filter(|directory| directory.is_absolute())
+        .map(|directory| resolved(&directory));
     match directory {
         Some(directory) if path.starts_with(&directory) => Ok(Some(path)),
         _ => Err(format!(
@@ -695,6 +704,30 @@ pub fn split_command_line(line: &str) -> Result<Vec<String>, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn shows_a_source_only_in_an_absolute_working_directory() {
+        let root = std::env::temp_dir().join(format!("org-lsp-source-{}", std::process::id()));
+        let file = root.join("worg/index.org");
+        let home = |path: &str| PathBuf::from(path.replace('~', &root.to_string_lossy()));
+        let opened = |directory: &str| org_core::protocol::Opened {
+            file: Some(file.to_string_lossy().into_owned()),
+            working_directory: Some(directory.to_string()),
+            ..Default::default()
+        };
+        assert_eq!(source_file(&opened("~/worg/"), &home), Ok(Some(file.clone())));
+        // An empty or relative directory would be that of the server.
+        for directory in ["", ".", "worg"] {
+            assert_eq!(
+                source_file(&opened(directory), &home),
+                Err(format!(
+                    "{} is not in the working directory of its project ({directory}), and is not opened",
+                    file.display()
+                )),
+                "{directory:?}"
+            );
+        }
+    }
 
     #[test]
     fn splits_a_command_line_into_words() {

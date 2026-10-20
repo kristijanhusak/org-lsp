@@ -45,7 +45,7 @@ fn run(program: &str, arguments: &[&str]) -> std::io::Result<Option<String>> {
         .env("GROFF_NO_SGR", "1")
         .env_remove("MAN_KEEP_FORMATTING")
         .stdin(std::process::Stdio::null());
-    let output = crate::process::output(&mut command, crate::process::PROGRAM_TIME)?;
+    let output = crate::process::output(&mut command, crate::process::PROGRAM_TIME, crate::process::PROGRAM_SIZE)?;
     let text = String::from_utf8_lossy(&output.stdout).into_owned();
     Ok((output.status.success() && !text.trim().is_empty()).then_some(text))
 }

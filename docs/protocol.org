@@ -1233,9 +1233,12 @@ increments a number.
   ~https:~ links to images are among them, the ~path~ of each the file the
   server downloaded it to, in a private directory of its own (by ~curl~,
   20 MB at most, the same file for a URL each time). When there are images
-  to download, the command answers null and the preview comes in
-  ~org-lsp/images~ once they are there, so that the server does not wait
-  for them (Emacs does); a URL that
+  to download, the command answers with the images of files only (null
+  when there are none), and the preview comes again in ~org-lsp/images~,
+  with all its images, once the downloads are there, so that the server
+  does not wait for them (Emacs does). The previews download one after
+  the other; one whose document changed or closed meanwhile is not sent,
+  nor downloaded if its turn had not come. A URL that
   ~org_resource_download_policy~ and ~org_safe_remote_resources~ do not let
   through is first asked about as Emacs asks (~org--confirm-resource-safe~):
   an input of kind ~key~, the choices ~!~, ~d~, ~f~, ~y~ and ~n~, with the URL

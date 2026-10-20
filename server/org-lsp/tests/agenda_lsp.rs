@@ -8728,8 +8728,10 @@ fn previews_the_images_of_links() {
 }
 
 /// A tiny HTTP server for the remote images: `/a.png` and `/b.png` are
-/// pictures, anything else is not found. It counts the requests it
-/// answered, by path.
+/// pictures; `/slow.png` too, after a second and a half; `/huge.png` is
+/// 21 MB with no `Content-Length`; a path with `a,b` or `1-3` in it, or
+/// ending in `-long.png`, is a picture; anything else is not found. It
+/// counts the requests it answered, by path.
 fn image_server() -> (String, std::sync::Arc<std::sync::Mutex<Vec<String>>>) {
     use std::io::{BufRead, BufReader, Write};
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
@@ -8751,10 +8753,24 @@ fn image_server() -> (String, std::sync::Arc<std::sync::Mutex<Vec<String>>>) {
                 }
             }
             counted.lock().unwrap().push(path.clone());
+            let picture =
+                |name: &str| format!("HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\npng {name}");
             let response = match path.as_str() {
-                "/a.png" | "/b.png" => {
-                    format!("HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\npng {}", &path[1..2])
+                "/a.png" | "/b.png" => picture(&path[1..2]),
+                "/slow.png" => {
+                    std::thread::sleep(std::time::Duration::from_millis(1500));
+                    picture("s")
                 }
+                "/huge.png" => {
+                    let _ = stream.write_all(b"HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n");
+                    let chunk = vec![0u8; 1 << 20];
+                    for _ in 0..21 {
+                        let _ = stream.write_all(&chunk);
+                    }
+                    continue;
+                }
+                _ if path.contains("a,b") || path.contains("1-3") => picture("g"),
+                _ if path.ends_with("-long.png") => picture("l"),
                 _ => "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_string(),
             };
             let _ = stream.write_all(response.as_bytes());
@@ -8925,6 +8941,103 @@ fn previews_remote_images() {
         assert!(asked.lock().unwrap().is_empty());
         client.shutdown();
     }
+    let _ = std::fs::remove_dir_all(&directory);
+}
+
+/// The images of files show at once, and the preview comes again with
+/// the downloads; a URL is downloaded as it is written, not as a pattern
+/// of URLs (`{a,b}`, `[1-3]`), one too large is not, nor is one whose
+/// name is too long for a file's lost. The previews download one after
+/// the other, and one whose document changed before its turn does not.
+#[test]
+fn remote_images_download_in_turn_as_written() {
+    if !std::process::Command::new("curl").arg("--version").output().is_ok_and(|out| out.status.success()) {
+        eprintln!("remote_images_download_in_turn_as_written: no curl, skipped");
+        return;
+    }
+    let (base, asked) = image_server();
+    let directory = std::env::temp_dir().join(format!("org-lsp-remote-turn-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    std::fs::write(directory.join("local.png"), "png local").unwrap();
+    let uri = |name: &str| format!("file://{}", directory.join(name).display());
+    let capabilities = json!({ "experimental": { "orgImages": true }, "general": { "positionEncodings": ["utf-8"] } });
+    let mut options = clock();
+    options["org_display_remote_inline_images"] = json!("download");
+    options["org_safe_remote_resources"] = json!([format!("\\`{}/", base.replace('.', "\\."))]);
+    let mut client = Client::start(capabilities, options, None);
+    let preview = |client: &mut Client, uri: &str| {
+        let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 0 }, "count": 16 });
+        client
+            .request("workspace/executeCommand", json!({ "command": "org.link.preview", "arguments": [context] }))
+            .unwrap()
+    };
+    let images = |client: &mut Client| -> Vec<Value> {
+        client.settle();
+        let (images, others) =
+            client.notifications.drain(..).partition(|notification| notification.method == "org-lsp/images");
+        client.notifications = others;
+        images.into_iter().map(|notification| notification.params).collect()
+    };
+    let contents = |preview: &Value| -> Vec<String> {
+        preview["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| std::fs::read_to_string(item["path"].as_str().unwrap()).unwrap())
+            .collect()
+    };
+    let long = format!("{}-long.png", "n".repeat(300));
+    let text = format!(
+        "* Pictures\n[[file:local.png]]\n{base}/x{{a,b}}.png\n[[{base}/y\\[1-3\\].png]]\n{base}/huge.png\n{base}/{long}\n"
+    );
+    client.open(&uri("pictures.org"), &text);
+    let answered = preview(&mut client, &uri("pictures.org"));
+    assert_eq!(contents(&answered["preview"]), ["png local"]);
+    client.wait_until(|client| client.notifications.iter().any(|notification| notification.method == "org-lsp/images"));
+    let later = images(&mut client);
+    assert_eq!(later.len(), 1);
+    assert_eq!(contents(&later[0]), ["png local", "png g", "png g", "png l"]);
+    let said: Vec<Value> = client
+        .notifications
+        .drain(..)
+        .filter(|notification| notification.method == "window/showMessage")
+        .map(|notification| notification.params["message"].clone())
+        .collect();
+    assert_eq!(said, [json!(format!("Unable to fetch file from \"{base}/huge.png\""))]);
+    // One request for each URL, its path as written.
+    let requests = asked.lock().unwrap().clone();
+    assert_eq!(requests.len(), 4, "{requests:?}");
+    assert!(requests.iter().filter(|path| path.contains("a,b")).count() == 1, "{requests:?}");
+    assert!(requests.iter().filter(|path| path.contains("1-3")).count() == 1, "{requests:?}");
+    // No part of a large download is left.
+    let files = std::path::Path::new(later[0]["items"][1]["path"].as_str().unwrap()).parent().unwrap().to_path_buf();
+    assert_eq!(std::fs::read_dir(&files).unwrap().count(), 3);
+
+    // In turn: the slow one first; the second, changed before its turn,
+    // is not downloaded; the third comes after the first.
+    asked.lock().unwrap().clear();
+    client.open(&uri("slow.org"), &format!("{base}/slow.png\n"));
+    client.open(&uri("changed.org"), &format!("{base}/b.png\n"));
+    client.open(&uri("third.org"), &format!("{base}/a.png\n"));
+    for name in ["slow.org", "changed.org", "third.org"] {
+        assert_eq!(preview(&mut client, &uri(name)), Value::Null);
+    }
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": uri("changed.org"), "version": 2 }, "contentChanges": [{ "text": "Changed\n" }] }),
+    );
+    client.wait_until(|client| {
+        client.notifications.iter().filter(|notification| notification.method == "org-lsp/images").count() == 2
+    });
+    let sent = images(&mut client);
+    let sent: Vec<(&str, Vec<String>)> =
+        sent.iter().map(|preview| (preview["uri"].as_str().unwrap(), contents(preview))).collect();
+    assert_eq!(
+        sent,
+        [(uri("slow.org").as_str(), vec!["png s".to_string()]), (uri("third.org").as_str(), vec!["png a".to_string()])]
+    );
+    assert_eq!(*asked.lock().unwrap(), ["/slow.png", "/a.png"]);
+    client.shutdown();
     let _ = std::fs::remove_dir_all(&directory);
 }
 
