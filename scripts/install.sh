@@ -64,29 +64,57 @@ fetch() {
       fail "Could not download $name from the $release release ($releases/$release). Releases: https://github.com/$repo/releases"
     fi
   fi
-  # A release without SHA256SUMS is not checked; `SHA256SUMS.none` says
-  # it has none, so that it is asked once.
+  # A release without SHA256SUMS (not found, as curl says with 404) is not
+  # checked; `SHA256SUMS.none` says it has none, so that it is asked once.
+  # Any other failure to get them stops the install.
   if [ ! -f "$work/SHA256SUMS" ] && [ ! -f "$work/SHA256SUMS.none" ]; then
-    curl -fsSL -o "$work/SHA256SUMS" "$releases/$release/SHA256SUMS" 2> /dev/null ||
-      { command -v gh > /dev/null && gh release download "$release" --repo "$repo" --pattern SHA256SUMS --dir "$work" --clobber 2> /dev/null; } ||
-      { rm -f "$work/SHA256SUMS" && : > "$work/SHA256SUMS.none"; }
+    local code status=0
+    code=$(curl -fsSL --retry 2 -w '%{http_code}' -o "$work/SHA256SUMS" "$releases/$release/SHA256SUMS" 2> "$work/curl.log") ||
+      status=$?
+    if [ "$status" -ne 0 ]; then
+      rm -f "$work/SHA256SUMS"
+      # A private repository's files need GitHub's login, which `gh` has;
+      # without it, they are not found.
+      if [ "$status" -eq 22 ] && [ "$code" = 404 ]; then
+        if ! { command -v gh > /dev/null &&
+          gh release download "$release" --repo "$repo" --pattern SHA256SUMS --dir "$work" --clobber 2> /dev/null; }; then
+          rm -f "$work/SHA256SUMS"
+          : > "$work/SHA256SUMS.none"
+        fi
+      else
+        cat "$work/curl.log" >&2 2> /dev/null || true
+        checksum_fail "Could not download SHA256SUMS from the $release release ($releases/$release) to check $name against."
+      fi
+    fi
   fi
-  [ -f "$work/SHA256SUMS" ] || return 0
+  if [ ! -f "$work/SHA256SUMS" ]; then
+    printf '%s\n' "The $release release has no SHA256SUMS: $name is not checked." >&2
+    return 0
+  fi
   local sum
   sum=$(awk -v name="$name" '$2 == name || $2 == "*" name { print $1 }' "$work/SHA256SUMS")
   # The files built together are all in SHA256SUMS: one that is not is
   # left from an older build (a platform whose build failed).
   [ -n "$sum" ] ||
-    fail "$name is not in the SHA256SUMS of the $release release: it is not from the same build, so it is not installed. Releases: https://github.com/$repo/releases"
+    checksum_fail "$name is not in the SHA256SUMS of the $release release: it is not from the same build, so it is not installed. Releases: https://github.com/$repo/releases"
   local actual
   if command -v sha256sum > /dev/null; then
     actual=$(sha256sum "$dest" | awk '{ print $1 }')
   elif command -v shasum > /dev/null; then
     actual=$(shasum -a 256 "$dest" | awk '{ print $1 }')
   else
+    printf '%s\n' "Neither sha256sum nor shasum is installed: $name is not checked." >&2
     return 0
   fi
-  [ "$actual" = "$sum" ] || fail "$name does not match its checksum in SHA256SUMS: the download is broken."
+  [ "$actual" = "$sum" ] || checksum_fail "$name does not match its checksum in SHA256SUMS: the download is broken."
+}
+
+# A download that could not be checked, or did not match: exit status 3,
+# which a caller trying a file the release may not have (Helix's colors)
+# tells from the file not being there.
+checksum_fail() {
+  printf '%s\n' "$*" >&2
+  exit 3
 }
 
 # Unpack the archive `file` into the directory `dest`.
@@ -497,11 +525,18 @@ install_helix() {
   # those of an earlier install.
   if $source; then
     cp -R "$root/editors/helix/runtime" "$work/helix"
-  elif (fetch org-lsp-helix.tar.gz "$work/org-lsp-helix.tar.gz"); then
-    unpack "$work/org-lsp-helix.tar.gz" "$work/helix"
   else
-    say "The $release release has no colors for Helix; none were installed."
-    return
+    # In a subshell, as the release may not have them: a download that
+    # fails its check still stops the install.
+    local status=0
+    (fetch org-lsp-helix.tar.gz "$work/org-lsp-helix.tar.gz") || status=$?
+    if [ "$status" -eq 3 ]; then
+      exit 3
+    elif [ "$status" -ne 0 ]; then
+      say "The $release release has no colors for Helix; none were installed."
+      return
+    fi
+    unpack "$work/org-lsp-helix.tar.gz" "$work/helix"
   fi
   local language
   mkdir -p "$config/runtime/queries"
