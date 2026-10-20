@@ -15603,7 +15603,7 @@ impl Server {
     /// opens, the editor or the system opens.
     fn attach(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
         const COMMANDS: [(&str, &str); 14] = [
-            ("a", "Attach a file, as org_attach_method says"),
+            ("a", "Attach a file by org-attach-method (Emacs's, copying unless emacs_config sets it)"),
             ("c", "Attach a file by copying it"),
             ("m", "Attach a file by moving it"),
             ("l", "Attach a file by a hard link"),

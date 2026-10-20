@@ -1041,8 +1041,8 @@ increments a number.
   "Emacs" below).
 - ~org.attach~ :: ~org-attach~ (~C-c C-a~): Org's dispatcher of attachment
   commands, by key (input kind ~key~): ~a~, ~c~, ~m~, ~l~, ~y~ attach a file
-  asked for (relative to the document's directory) as ~org_attach_method~
-  says, by copying, moving or linking it; ~u~ one from a URL; ~n~ a new one,
+  asked for (relative to the document's directory) as ~org-attach-method~
+  (Emacs's option, set in ~emacs_config~) says, by copying, moving or linking it; ~u~ one from a URL; ~n~ a new one,
   which the editor opens; ~z~ synchronizes; ~o~ opens one (picked among them
   when there are several), ~f~ the directory, by the system; ~d~ deletes one
   (picked), ~D~ all of them (after Emacs asks); ~s~ and ~S~ set and unset
