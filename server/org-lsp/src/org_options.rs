@@ -55,6 +55,63 @@ pub fn find(name: &str) -> Option<&'static OrgOption> {
     OPTIONS.iter().find(|option| option.name == name)
 }
 
+/// What Emacs says of the options marked `emacs`, by file
+/// (`scripts/emacs-options.json`, which docs/emacs-options.org is written
+/// from): each one's docstring, default and type, and a JSON Schema of
+/// what it takes where its type is simple.
+static EMACS_OPTIONS: LazyLock<serde_json::Map<String, Value>> = LazyLock::new(|| {
+    serde_json::from_str(include_str!("../../../scripts/emacs-options.json")).expect("emacs-options.json is JSON")
+});
+
+/// The JSON Schema of each option `emacs_options` takes, by its name: the
+/// first sentence of Org's documentation of it, what it takes where its
+/// type says it simply, and its default where JSON can say it.
+pub fn emacs_schemas() -> serde_json::Map<String, Value> {
+    let mut schemas = serde_json::Map::new();
+    for options in EMACS_OPTIONS.values() {
+        for (name, entry) in options.as_object().into_iter().flatten() {
+            let mut schema = match entry.get("schema") {
+                Some(Value::Object(schema)) => schema.clone(),
+                _ => serde_json::Map::new(),
+            };
+            let doc = entry.get("doc").and_then(Value::as_str).unwrap_or_default();
+            schema.insert("description".to_string(), Value::String(first_sentence(doc)));
+            if let Some(default) = entry.get("json") {
+                schema.insert("default".to_string(), default.clone());
+            }
+            schemas.insert(name.clone(), Value::Object(schema));
+        }
+    }
+    schemas
+}
+
+/// The first sentence of a docstring, on one line, with Emacs's `foo'
+/// quoting as `foo`.
+fn first_sentence(doc: &str) -> String {
+    let paragraph = doc.split("\n\n").next().unwrap_or_default();
+    let text = paragraph.split_whitespace().collect::<Vec<_>>().join(" ");
+    let end = text
+        .char_indices()
+        .find(|&(at, c)| matches!(c, '.' | '?' | '!') && text[at + 1..].starts_with(' '))
+        .map_or(text.len(), |(at, _)| at + 1);
+    let mut sentence = String::new();
+    let mut quoted = false;
+    for c in text[..end].chars() {
+        match c {
+            '`' => {
+                quoted = true;
+                sentence.push('`');
+            }
+            '\'' if quoted => {
+                quoted = false;
+                sentence.push('`');
+            }
+            c => sentence.push(c),
+        }
+    }
+    sentence
+}
+
 /// The option whose name is closest to `name`, a few letters away at
 /// most: what a misspelt name was meant to be.
 pub fn closest(name: &str) -> Option<&'static str> {
@@ -94,6 +151,19 @@ mod tests {
         assert_eq!(find("org-log-done").unwrap().status, "setting");
         assert!(find("org-tab-follows-link").unwrap().note.is_some());
         assert!(all().len() > 1000);
+    }
+
+    #[test]
+    fn describes_each_option_emacs_reads() {
+        let schemas = emacs_schemas();
+        let emacs = all().iter().filter(|option| option.status == "emacs");
+        assert!(emacs.clone().all(|option| schemas.contains_key(&option.name)));
+        assert_eq!(schemas.len(), emacs.count());
+        let method = &schemas["org-attach-method"];
+        assert_eq!(method["description"], "The preferred method to attach a file.");
+        assert_eq!(method["enum"], serde_json::json!(["cp", "mv", "ln", "lns"]));
+        assert_eq!(method["default"], "cp");
+        assert_eq!(first_sentence("Non-nil means `foo' is\nused.  Then more."), "Non-nil means `foo` is used.");
     }
 
     #[test]

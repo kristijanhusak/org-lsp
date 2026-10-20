@@ -3792,491 +3792,3060 @@
             },
             "emacs_options": {
               "type": "object",
-              "propertyNames": {
-                "enum": [
-                  "org-babel-C-compiler",
-                  "org-babel-C++-compiler",
-                  "org-babel-D-compiler",
-                  "org-babel-R-command",
-                  "org-babel-clojure-backend",
-                  "org-babel-clojurescript-backend",
-                  "org-babel-clojure-default-ns",
-                  "ob-clojure-babashka-command",
-                  "ob-clojure-nbb-command",
-                  "ob-clojure-cli-command",
-                  "org-babel-comint-fallback-regexp-threshold",
-                  "org-confirm-babel-evaluate",
-                  "org-babel-no-eval-on-ctrl-c-ctrl-c",
-                  "org-babel-results-keyword",
-                  "org-babel-inline-result-wrap",
-                  "org-babel-hash-show-time",
-                  "org-babel-uppercase-example-markers",
-                  "org-babel-remote-temporary-directory",
-                  "org-babel-csharp-compiler",
-                  "org-babel-csharp-default-target-framework",
-                  "org-babel-csharp-generate-compile-command",
-                  "org-babel-csharp-generate-restore-command",
-                  "org-babel-csharp-additional-project-flags",
-                  "org-ditaa-default-exec-mode",
-                  "org-ditaa-exec",
-                  "org-ditaa-java-exec",
-                  "org-ditaa-jar-path",
-                  "org-ditaa-eps-jar-path",
-                  "org-export-use-babel",
-                  "org-babel-exp-call-line-template",
-                  "org-babel-exp-code-template",
-                  "org-babel-exp-inline-code-template",
-                  "org-babel-fortran-compiler",
-                  "*org-babel-gnuplot-terms*",
-                  "org-babel-groovy-command",
-                  "org-babel-haskell-compiler",
-                  "org-babel-java-command",
-                  "org-babel-java-compiler",
-                  "org-babel-java-hline-to",
-                  "org-babel-java-null-to",
-                  "org-babel-js-cmd",
-                  "org-babel-julia-command",
-                  "org-babel-latex-htlatex",
-                  "org-babel-latex-preamble",
-                  "org-babel-latex-begin-env",
-                  "org-babel-latex-end-env",
-                  "org-babel-latex-pdf-svg-process",
-                  "org-babel-latex-htlatex-packages",
-                  "org-babel-latex-process-alist",
-                  "org-babel-lilypond-commands",
-                  "org-babel-lisp-eval-fn",
-                  "org-babel-lisp-dir-fmt",
-                  "org-babel-lua-command",
-                  "org-babel-lua-mode",
-                  "org-babel-lua-hline-to",
-                  "org-babel-lua-None-to",
-                  "org-babel-lua-multiple-values-separator",
-                  "org-babel-maxima-command",
-                  "org-babel-ocaml-command",
-                  "org-plantuml-jar-path",
-                  "org-plantuml-exec-mode",
-                  "org-plantuml-executable-path",
-                  "org-plantuml-args",
-                  "org-babel-plantuml-svg-text-to-path",
-                  "org-babel-python-command",
-                  "org-babel-python-command-session",
-                  "org-babel-python-command-nonsession",
-                  "org-babel-python-hline-to",
-                  "org-babel-python-None-to",
-                  "org-babel-ruby-hline-to",
-                  "org-babel-ruby-nil-to",
-                  "org-babel-scheme-null-to",
-                  "org-babel-shell-names",
-                  "org-babel-shell-results-defaults-to-output",
-                  "org-cite-biblatex-options",
-                  "org-cite-biblatex-styles",
-                  "org-cite-biblatex-style-shortcuts",
-                  "org-cite-bibtex-bibliography-style",
-                  "org-cite-csl-locales-dir",
-                  "org-cite-csl-styles-dir",
-                  "org-cite-csl-link-cites",
-                  "org-cite-csl-no-citelinks-backends",
-                  "org-cite-csl-html-hanging-indent",
-                  "org-cite-csl-html-label-width-per-char",
-                  "org-cite-csl-latex-hanging-indent",
-                  "org-cite-csl-latex-label-separator",
-                  "org-cite-csl-latex-label-width-per-char",
-                  "org-cite-csl-latex-preamble",
-                  "org-cite-csl-bibtex-titles-to-sentence-case",
-                  "org-cite-natbib-options",
-                  "org-cite-natbib-bibliography-style",
-                  "org-cite-export-processors",
-                  "org-cite-adjust-note-numbers",
-                  "org-cite-note-rules",
-                  "org-cite-punctuation-marks",
-                  "org-agenda-columns-show-summaries",
-                  "org-agenda-columns-compute-summary-properties",
-                  "org-agenda-columns-add-appointments-to-effort-sum",
-                  "org-attach-git-annex-cutoff",
-                  "org-attach-git-annex-auto-get",
-                  "org-attach-git-dir",
-                  "org-attach-id-dir",
-                  "org-attach-dir-relative",
-                  "org-attach-auto-tag",
-                  "org-attach-preferred-new-method",
-                  "org-attach-method",
-                  "org-attach-expert",
-                  "org-attach-use-inheritance",
-                  "org-attach-store-link-p",
-                  "org-attach-archive-delete",
-                  "org-attach-id-to-path-function-list",
-                  "org-attach-commands",
-                  "org-attach-sync-delete-empty-dir",
-                  "org-columns-checkbox-allowed-values",
-                  "org-columns-summary-types",
-                  "org-publish-sitemap-file-entry-format",
-                  "org-crypt-tag-matcher",
-                  "org-crypt-key",
-                  "org-crypt-disable-auto-save",
-                  "org-datetree-add-timestamp",
-                  "org-footnote-section",
-                  "org-footnote-define-inline",
-                  "org-footnote-auto-label",
-                  "org-footnote-auto-adjust",
-                  "org-footnote-fill-after-inline-note-extraction",
-                  "org-plot/gnuplot-script-preamble",
-                  "org-plot/preset-plot-types",
-                  "org-plot/gnuplot-term-extra",
-                  "org-edit-src-turn-on-auto-save",
-                  "org-edit-src-auto-save-idle-delay",
-                  "org-coderef-label-format",
-                  "org-edit-fixed-width-region-mode",
-                  "org-edit-src-persistent-message",
-                  "org-src-ask-before-returning-to-edit-buffer",
-                  "org-src-window-setup",
-                  "org-src-lang-modes",
-                  "org-table-default-size",
-                  "org-table-formula-field-format",
-                  "org-table-fix-formulas-confirm",
-                  "org-table-use-standard-references",
-                  "org-table-copy-increment",
-                  "org-table-export-default-format",
-                  "org-table-convert-region-max-lines",
-                  "org-timer-format",
-                  "org-timer-default-timer",
-                  "org-timer-display",
-                  "org-babel-load-languages",
-                  "org-clone-delete-id",
-                  "org-export-backends",
-                  "org-columns-default-format",
-                  "org-columns-default-format-for-agenda",
-                  "org-columns-ellipses",
-                  "org-format-latex-options",
-                  "org-format-latex-signal-error",
-                  "org-latex-to-mathml-jar-file",
-                  "org-latex-to-mathml-convert-command",
-                  "org-latex-to-html-convert-command",
-                  "org-preview-latex-default-process",
-                  "org-preview-latex-process-alist",
-                  "org-preview-latex-image-directory",
-                  "org-latex-mathml-directory",
-                  "org-format-latex-header",
-                  "org-latex-default-packages-alist",
-                  "org-latex-packages-alist",
-                  "org-columns-skip-archived-trees",
-                  "org-structure-template-alist",
-                  "org-ascii-text-width",
-                  "org-ascii-global-margin",
-                  "org-ascii-inner-margin",
-                  "org-ascii-quote-margin",
-                  "org-ascii-list-margin",
-                  "org-ascii-inlinetask-width",
-                  "org-ascii-headline-spacing",
-                  "org-ascii-indented-line-width",
-                  "org-ascii-paragraph-spacing",
-                  "org-ascii-charset",
-                  "org-ascii-underline",
-                  "org-ascii-bullets",
-                  "org-ascii-links-to-notes",
-                  "org-ascii-table-keep-all-vertical-lines",
-                  "org-ascii-table-widen-columns",
-                  "org-ascii-table-use-ascii-art",
-                  "org-ascii-caption-above",
-                  "org-ascii-verbatim-format",
-                  "org-ascii-format-drawer-function",
-                  "org-ascii-format-inlinetask-function",
-                  "org-beamer-frame-level",
-                  "org-beamer-frame-default-options",
-                  "org-beamer-column-view-format",
-                  "org-beamer-theme",
-                  "org-beamer-environments-extra",
-                  "org-beamer-outline-frame-title",
-                  "org-beamer-outline-frame-options",
-                  "org-beamer-subtitle-format",
-                  "org-beamer-frame-environment",
-                  "org-html-scripts",
-                  "org-html-style-default",
-                  "org-html-use-infojs",
-                  "org-html-infojs-options",
-                  "org-html-infojs-template",
-                  "org-html-text-markup-alist",
-                  "org-html-indent",
-                  "org-html-format-drawer-function",
-                  "org-html-footnotes-section",
-                  "org-html-footnote-format",
-                  "org-html-footnote-separator",
-                  "org-html-toplevel-hlevel",
-                  "org-html-format-headline-function",
-                  "org-html-allow-name-attribute-in-anchors",
-                  "org-html-self-link-headlines",
-                  "org-html-prefer-user-labels",
-                  "org-html-format-inlinetask-function",
-                  "org-html-equation-reference-format",
-                  "org-html-with-latex",
-                  "org-html-link-org-files-as-html",
-                  "org-html-inline-images",
-                  "org-html-inline-image-rules",
-                  "org-html-htmlize-output-type",
-                  "org-html-htmlize-font-prefix",
-                  "org-html-wrap-src-lines",
-                  "org-html-table-default-attributes",
-                  "org-html-table-header-tags",
-                  "org-html-table-data-tags",
-                  "org-html-table-row-open-tag",
-                  "org-html-table-row-close-tag",
-                  "org-html-table-align-individual-fields",
-                  "org-html-table-use-header-tags-for-first-column",
-                  "org-html-table-caption-above",
-                  "org-html-tag-class-prefix",
-                  "org-html-extension",
-                  "org-html-xml-declaration",
-                  "org-html-coding-system",
-                  "org-html-doctype",
-                  "org-html-html5-fancy",
-                  "org-html-container-element",
-                  "org-html-content-class",
-                  "org-html-divs",
-                  "org-html-checkbox-type",
-                  "org-html-metadata-timestamp-format",
-                  "org-html-datetime-formats",
-                  "org-html-mathjax-options",
-                  "org-html-mathjax-template",
-                  "org-html-postamble",
-                  "org-html-postamble-format",
-                  "org-html-validation-link",
-                  "org-html-creator-string",
-                  "org-html-preamble",
-                  "org-html-preamble-format",
-                  "org-html-link-up",
-                  "org-html-link-home",
-                  "org-html-link-use-abs-url",
-                  "org-html-home/up-format",
-                  "org-html-head-include-scripts",
-                  "org-html-meta-tags",
-                  "org-html-head-include-default-style",
-                  "org-html-head",
-                  "org-html-head-extra",
-                  "org-html-viewport",
-                  "org-html-klipsify-src",
-                  "org-html-klipse-css",
-                  "org-html-klipse-js",
-                  "org-html-klipse-selection-script",
-                  "org-html-todo-kwd-class-prefix",
-                  "org-icalendar-combined-agenda-file",
-                  "org-icalendar-alarm-time",
-                  "org-icalendar-force-alarm",
-                  "org-icalendar-combined-name",
-                  "org-icalendar-combined-description",
-                  "org-icalendar-exclude-tags",
-                  "org-icalendar-scheduled-summary-prefix",
-                  "org-icalendar-deadline-summary-prefix",
-                  "org-icalendar-use-deadline",
-                  "org-icalendar-use-scheduled",
-                  "org-icalendar-categories",
-                  "org-icalendar-with-timestamps",
-                  "org-icalendar-include-todo",
-                  "org-icalendar-todo-unscheduled-start",
-                  "org-icalendar-include-bbdb-anniversaries",
-                  "org-icalendar-include-sexps",
-                  "org-icalendar-include-body",
-                  "org-icalendar-store-UID",
-                  "org-icalendar-timezone",
-                  "org-icalendar-date-time-format",
-                  "org-icalendar-ttl",
-                  "org-koma-letter-class-option-file",
-                  "org-koma-letter-author",
-                  "org-koma-letter-email",
-                  "org-koma-letter-from-address",
-                  "org-koma-letter-phone-number",
-                  "org-koma-letter-url",
-                  "org-koma-letter-from-logo",
-                  "org-koma-letter-place",
-                  "org-koma-letter-location",
-                  "org-koma-letter-opening",
-                  "org-koma-letter-closing",
-                  "org-koma-letter-signature",
-                  "org-koma-letter-prefer-special-headings",
-                  "org-koma-letter-subject-format",
-                  "org-koma-letter-use-backaddress",
-                  "org-koma-letter-use-foldmarks",
-                  "org-koma-letter-use-phone",
-                  "org-koma-letter-use-url",
-                  "org-koma-letter-use-from-logo",
-                  "org-koma-letter-use-email",
-                  "org-koma-letter-use-place",
-                  "org-koma-letter-default-class",
-                  "org-koma-letter-headline-is-opening-maybe",
-                  "org-koma-letter-prefer-subject",
-                  "org-latex-caption-above",
-                  "org-latex-prefer-user-labels",
-                  "org-latex-reference-command",
-                  "org-latex-default-class",
-                  "org-latex-classes",
-                  "org-latex-inputenc-alist",
-                  "org-latex-title-command",
-                  "org-latex-subtitle-format",
-                  "org-latex-subtitle-separate",
-                  "org-latex-toc-command",
-                  "org-latex-hyperref-template",
-                  "org-latex-format-headline-function",
-                  "org-latex-default-footnote-command",
-                  "org-latex-footnote-separator",
-                  "org-latex-footnote-defined-format",
-                  "org-latex-active-timestamp-format",
-                  "org-latex-inactive-timestamp-format",
-                  "org-latex-diary-timestamp-format",
-                  "org-latex-images-centered",
-                  "org-latex-image-default-option",
-                  "org-latex-image-default-width",
-                  "org-latex-image-default-scale",
-                  "org-latex-image-default-height",
-                  "org-latex-default-figure-position",
-                  "org-latex-inline-image-rules",
-                  "org-latex-link-with-unknown-path-format",
-                  "org-latex-default-table-environment",
-                  "org-latex-default-quote-environment",
-                  "org-latex-default-table-mode",
-                  "org-latex-tables-centered",
-                  "org-latex-tables-booktabs",
-                  "org-latex-table-scientific-notation",
-                  "org-latex-text-markup-alist",
-                  "org-latex-format-drawer-function",
-                  "org-latex-format-inlinetask-function",
-                  "org-latex-src-block-backend",
-                  "org-latex-listings-langs",
-                  "org-latex-listings-src-omit-language",
-                  "org-latex-listings-options",
-                  "org-latex-minted-langs",
-                  "org-latex-minted-options",
-                  "org-latex-custom-lang-environments",
-                  "org-latex-engraved-preamble",
-                  "org-latex-engraved-options",
-                  "org-latex-engraved-theme",
-                  "org-latex-compiler-file-string",
-                  "org-latex-compiler",
-                  "org-latex-bib-compiler",
-                  "org-latex-pdf-process",
-                  "org-latex-logfiles-extensions",
-                  "org-latex-remove-logfiles",
-                  "org-latex-known-warnings",
-                  "org-latex-toc-include-unnumbered",
-                  "org-latex-use-sans",
-                  "org-man-tables-centered",
-                  "org-man-tables-verbatim",
-                  "org-man-table-scientific-notation",
-                  "org-man-source-highlight",
-                  "org-man-source-highlight-langs",
-                  "org-man-pdf-process",
-                  "org-man-logfiles-extensions",
-                  "org-man-remove-logfiles",
-                  "org-md-headline-style",
-                  "org-md-footnotes-section",
-                  "org-md-footnote-format",
-                  "org-md-toplevel-hlevel",
-                  "org-md-link-org-files-as-md",
-                  "org-odt-with-forbidden-chars",
-                  "org-odt-prettify-xml",
-                  "org-odt-schema-dir",
-                  "org-odt-content-template-file",
-                  "org-odt-styles-file",
-                  "org-odt-display-outline-level",
-                  "org-odt-convert-processes",
-                  "org-odt-convert-process",
-                  "org-odt-convert-capabilities",
-                  "org-odt-preferred-output-format",
-                  "org-odt-format-drawer-function",
-                  "org-odt-format-headline-function",
-                  "org-odt-format-inlinetask-function",
-                  "org-odt-with-latex",
-                  "org-odt-inline-formula-rules",
-                  "org-odt-inline-image-rules",
-                  "org-odt-pixels-per-inch",
-                  "org-odt-create-custom-styles-for-srcblocks",
-                  "org-odt-fontify-srcblocks",
-                  "org-odt-table-styles",
-                  "org-odt-use-date-fields",
-                  "org-org-htmlized-css-url",
-                  "org-org-with-special-rows",
-                  "org-org-with-cite-processors",
-                  "org-publish-project-alist",
-                  "org-publish-use-timestamps-flag",
-                  "org-publish-timestamp-directory",
-                  "org-publish-list-skipped-files",
-                  "org-publish-sitemap-sort-files",
-                  "org-publish-sitemap-sort-folders",
-                  "org-publish-sitemap-sort-ignore-case",
-                  "org-texinfo-coding-system",
-                  "org-texinfo-default-class",
-                  "org-texinfo-classes",
-                  "org-texinfo-format-headline-function",
-                  "org-texinfo-node-description-column",
-                  "org-texinfo-active-timestamp-format",
-                  "org-texinfo-inactive-timestamp-format",
-                  "org-texinfo-diary-timestamp-format",
-                  "org-texinfo-link-with-unknown-path-format",
-                  "org-texinfo-tables-verbatim",
-                  "org-texinfo-table-scientific-notation",
-                  "org-texinfo-table-default-markup",
-                  "org-texinfo-text-markup-alist",
-                  "org-texinfo-format-drawer-function",
-                  "org-texinfo-format-inlinetask-function",
-                  "org-texinfo-with-latex",
-                  "org-texinfo-compact-itemx",
-                  "org-texinfo-info-process",
-                  "org-texinfo-logfiles-extensions",
-                  "org-texinfo-remove-logfiles",
-                  "org-export-with-archived-trees",
-                  "org-export-with-author",
-                  "org-export-with-clocks",
-                  "org-export-with-creator",
-                  "org-export-with-date",
-                  "org-export-process-citations",
-                  "org-export-date-timestamp-format",
-                  "org-export-creator-string",
-                  "org-export-with-drawers",
-                  "org-export-with-email",
-                  "org-export-with-emphasize",
-                  "org-export-exclude-tags",
-                  "org-export-with-fixed-width",
-                  "org-export-with-footnotes",
-                  "org-export-with-latex",
-                  "org-export-headline-levels",
-                  "org-export-default-language",
-                  "org-export-preserve-breaks",
-                  "org-export-with-entities",
-                  "org-export-with-inlinetasks",
-                  "org-export-with-planning",
-                  "org-export-with-priority",
-                  "org-export-with-properties",
-                  "org-export-with-section-numbers",
-                  "org-export-select-tags",
-                  "org-export-with-smart-quotes",
-                  "org-export-with-special-strings",
-                  "org-export-with-statistics-cookies",
-                  "org-export-with-sub-superscripts",
-                  "org-export-with-toc",
-                  "org-export-with-tables",
-                  "org-export-with-tags",
-                  "org-export-with-tasks",
-                  "org-export-with-title",
-                  "org-export-timestamp-file",
-                  "org-export-with-timestamps",
-                  "org-export-with-todo-keywords",
-                  "org-export-allow-bind-keywords",
-                  "org-export-with-broken-links",
-                  "org-export-expand-links",
-                  "org-export-replace-macros",
-                  "org-export-snippet-translation-alist",
-                  "org-export-global-macros",
-                  "org-export-coding-system",
-                  "org-export-copy-to-kill-ring",
-                  "org-export-initial-scope",
-                  "org-export-show-temporary-export-buffer",
-                  "org-export-body-only",
-                  "org-export-visible-only",
-                  "org-export-force-publishing",
-                  "org-export-in-background",
-                  "org-export-async-init-file",
-                  "org-export-dispatch-use-expert-ui",
-                  "org-export-smart-quotes-alist"
-                ]
+              "properties": {
+                "org-babel-C-compiler": {
+                  "type": "string",
+                  "description": "Command used to compile a C source code file into an executable.",
+                  "default": "gcc"
+                },
+                "org-babel-C++-compiler": {
+                  "type": "string",
+                  "description": "Command used to compile a C++ source code file into an executable.",
+                  "default": "g++"
+                },
+                "org-babel-D-compiler": {
+                  "type": "string",
+                  "description": "Command used to compile and execute a D source code file.",
+                  "default": "rdmd"
+                },
+                "org-babel-R-command": {
+                  "type": "string",
+                  "description": "Name of command to use for executing R code.",
+                  "default": "R --slave --no-save"
+                },
+                "org-babel-clojure-backend": {
+                  "enum": [
+                    "babashka",
+                    "clojure-cli",
+                    "cider",
+                    "inf-clojure",
+                    "slime",
+                    false
+                  ],
+                  "description": "Backend used to evaluate Clojure code blocks."
+                },
+                "org-babel-clojurescript-backend": {
+                  "enum": [
+                    "nbb",
+                    "cider",
+                    false
+                  ],
+                  "description": "Backend used to evaluate ClojureScript code blocks."
+                },
+                "org-babel-clojure-default-ns": {
+                  "type": "string",
+                  "description": "Default Clojure namespace for source block when finding ns failed.",
+                  "default": "user"
+                },
+                "ob-clojure-babashka-command": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Babashka command used by the Clojure `babashka` backend."
+                },
+                "ob-clojure-nbb-command": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Nbb command used by the ClojureScript `nbb` backend."
+                },
+                "ob-clojure-cli-command": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Clojure CLI command used by the Clojure `clojure-cli` backend."
+                },
+                "org-babel-comint-fallback-regexp-threshold": {
+                  "type": "number",
+                  "description": "Waiting time until trying to use fallback regexp to detect prompt.",
+                  "default": 5
+                },
+                "org-confirm-babel-evaluate": {
+                  "description": "Confirm before evaluation.",
+                  "default": true
+                },
+                "org-babel-no-eval-on-ctrl-c-ctrl-c": {
+                  "type": "boolean",
+                  "description": "Uses keymap `org-mode-map`, which is not currently defined.",
+                  "default": false
+                },
+                "org-babel-results-keyword": {
+                  "type": "string",
+                  "description": "Keyword used to name results generated by code blocks.",
+                  "default": "RESULTS"
+                },
+                "org-babel-inline-result-wrap": {
+                  "type": "string",
+                  "description": "Format string used to wrap inline results.",
+                  "default": "=%s="
+                },
+                "org-babel-hash-show-time": {
+                  "type": "boolean",
+                  "description": "Non-nil means show the time the code block was evaluated in the result hash.",
+                  "default": false
+                },
+                "org-babel-uppercase-example-markers": {
+                  "type": "boolean",
+                  "description": "When non-nil, begin/end example markers will be inserted in upper case.",
+                  "default": false
+                },
+                "org-babel-remote-temporary-directory": {
+                  "type": "string",
+                  "description": "Directory to hold temporary files on remote hosts.",
+                  "default": "/tmp/"
+                },
+                "org-babel-csharp-compiler": {
+                  "type": "string",
+                  "description": "The program to call for compiling a csharp project.",
+                  "default": "dotnet"
+                },
+                "org-babel-csharp-default-target-framework": {
+                  "type": "string",
+                  "description": "The desired target framework to use."
+                },
+                "org-babel-csharp-generate-compile-command": {
+                  "description": "A function creating the compile command."
+                },
+                "org-babel-csharp-generate-restore-command": {
+                  "description": "A function creating a project restore command."
+                },
+                "org-babel-csharp-additional-project-flags": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Will be passed in the \"PropertyGroup\" defining the project.",
+                  "default": false
+                },
+                "org-ditaa-default-exec-mode": {
+                  "enum": [
+                    "jar",
+                    "ditaa"
+                  ],
+                  "description": "Method to use for ditaa diagram generation when generating png or svg output.",
+                  "default": "jar"
+                },
+                "org-ditaa-exec": {
+                  "type": "string",
+                  "description": "File name of the ditaa executable.",
+                  "default": "ditaa"
+                },
+                "org-ditaa-java-exec": {
+                  "type": "string",
+                  "description": "Java executable to use when evaluating ditaa blocks using a JAR.",
+                  "default": "java"
+                },
+                "org-ditaa-jar-path": {
+                  "type": "string",
+                  "description": "Path to the ditaa.jar file."
+                },
+                "org-ditaa-eps-jar-path": {
+                  "type": "string",
+                  "description": "Path to the DitaaEps.jar executable."
+                },
+                "org-export-use-babel": {
+                  "enum": [
+                    false,
+                    true
+                  ],
+                  "description": "Switch controlling code evaluation and header processing during export.",
+                  "default": true
+                },
+                "org-babel-exp-call-line-template": {
+                  "type": "string",
+                  "description": "Template used to export call lines.",
+                  "default": ""
+                },
+                "org-babel-exp-code-template": {
+                  "type": "string",
+                  "description": "Template used to export the body of code blocks.",
+                  "default": "#+begin_src %lang%switches%header-args\n%body\n#+end_src"
+                },
+                "org-babel-exp-inline-code-template": {
+                  "type": "string",
+                  "description": "Template used to export the body of inline code blocks.",
+                  "default": "src_%lang[%switches%header-args]{%body}"
+                },
+                "org-babel-fortran-compiler": {
+                  "type": "string",
+                  "description": "Fortran command used to compile Fortran source code file.",
+                  "default": "gfortran"
+                },
+                "*org-babel-gnuplot-terms*": {
+                  "description": "List of file extensions and the associated gnuplot terminal.",
+                  "default": {
+                    "eps": "postscript eps"
+                  }
+                },
+                "org-babel-groovy-command": {
+                  "type": "string",
+                  "description": "Name of the command to use for executing Groovy code.",
+                  "default": "groovy"
+                },
+                "org-babel-haskell-compiler": {
+                  "type": "string",
+                  "description": "Command used to compile a Haskell source code file into an executable.",
+                  "default": "ghc"
+                },
+                "org-babel-java-command": {
+                  "type": "string",
+                  "description": "Name of the java command.",
+                  "default": "java"
+                },
+                "org-babel-java-compiler": {
+                  "type": "string",
+                  "description": "Name of the java compiler.",
+                  "default": "javac"
+                },
+                "org-babel-java-hline-to": {
+                  "type": "string",
+                  "description": "Replace hlines in incoming tables with this when translating to java.",
+                  "default": "null"
+                },
+                "org-babel-java-null-to": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        true,
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Replace `null` in java tables with this before returning.",
+                  "default": "hline"
+                },
+                "org-babel-js-cmd": {
+                  "enum": [
+                    "node",
+                    "mozrepl",
+                    "skewer-mode",
+                    "indium",
+                    "js-comint"
+                  ],
+                  "description": "Name of command used to evaluate js blocks.",
+                  "default": "node"
+                },
+                "org-babel-julia-command": {
+                  "type": "string",
+                  "description": "Name of command to use for executing julia code.",
+                  "default": "julia"
+                },
+                "org-babel-latex-htlatex": {
+                  "type": "string",
+                  "description": "The htlatex command to enable conversion of LaTeX to SVG or HTML.",
+                  "default": "htlatex"
+                },
+                "org-babel-latex-preamble": {
+                  "description": "Closure which evaluates at runtime to the LaTeX preamble."
+                },
+                "org-babel-latex-begin-env": {
+                  "description": "Function that evaluates to the begin part of the document environment."
+                },
+                "org-babel-latex-end-env": {
+                  "description": "Closure which evaluates at runtime to the end part of the document environment."
+                },
+                "org-babel-latex-pdf-svg-process": {
+                  "type": "string",
+                  "description": "Command to convert a PDF file to an SVG file.",
+                  "default": "inkscape --pdf-poppler --export-area-drawing --export-text-to-path --export-plain-svg --export-filename=%O %f"
+                },
+                "org-babel-latex-htlatex-packages": {
+                  "description": "Packages to use for htlatex export.",
+                  "default": [
+                    "[usenames]{color}",
+                    "{tikz}",
+                    "{color}",
+                    "{listings}",
+                    "{amsmath}"
+                  ]
+                },
+                "org-babel-latex-process-alist": {
+                  "description": "Definitions of external processes for LaTeX result generation."
+                },
+                "org-babel-lilypond-commands": {
+                  "description": "Commands to run lilypond and view or play the results."
+                },
+                "org-babel-lisp-eval-fn": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        true,
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "The function to be called to evaluate code on the Lisp side.",
+                  "default": "slime-eval"
+                },
+                "org-babel-lisp-dir-fmt": {
+                  "type": "string",
+                  "description": "Format string used to wrap code bodies to set the current directory.",
+                  "default": "(cl:let ((cl:*default-pathname-defaults* #P%S\n)) %%s\n)"
+                },
+                "org-babel-lua-command": {
+                  "type": "string",
+                  "description": "Name of the command for executing Lua code.",
+                  "default": "lua"
+                },
+                "org-babel-lua-mode": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        true,
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Preferred Lua mode for use in running Lua interactively.",
+                  "default": "lua-mode"
+                },
+                "org-babel-lua-hline-to": {
+                  "type": "string",
+                  "description": "Replace `hlines` in incoming tables with this when translating to Lua.",
+                  "default": "None"
+                },
+                "org-babel-lua-None-to": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        true,
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Replace `None` in Lua tables with this before returning.",
+                  "default": "hline"
+                },
+                "org-babel-lua-multiple-values-separator": {
+                  "type": "string",
+                  "description": "Separate multiple values with this string.",
+                  "default": ", "
+                },
+                "org-babel-maxima-command": {
+                  "type": "string",
+                  "description": "Command used to call maxima on the shell."
+                },
+                "org-babel-ocaml-command": {
+                  "type": "string",
+                  "description": "Name of the command for executing Ocaml code.",
+                  "default": "ocaml"
+                },
+                "org-plantuml-jar-path": {
+                  "type": "string",
+                  "description": "Path to the plantuml.jar file.",
+                  "default": ""
+                },
+                "org-plantuml-exec-mode": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        true,
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Method to use for PlantUML diagram generation.",
+                  "default": "jar"
+                },
+                "org-plantuml-executable-path": {
+                  "type": "string",
+                  "description": "File name of the PlantUML executable.",
+                  "default": "plantuml"
+                },
+                "org-plantuml-args": {
+                  "description": "The arguments passed to plantuml when executing PlantUML.",
+                  "default": [
+                    "-headless"
+                  ]
+                },
+                "org-babel-plantuml-svg-text-to-path": {
+                  "type": "boolean",
+                  "description": "When non-nil, export text in SVG images to paths using Inkscape.",
+                  "default": false
+                },
+                "org-babel-python-command": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "auto"
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Command (including arguments) for interactive and non-interactive Python code."
+                },
+                "org-babel-python-command-session": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "auto"
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Command (including arguments) for starting interactive Python sessions."
+                },
+                "org-babel-python-command-nonsession": {
+                  "type": "string",
+                  "description": "Command (including arguments) for executing non-interactive Python code.",
+                  "default": "python"
+                },
+                "org-babel-python-hline-to": {
+                  "type": "string",
+                  "description": "Replace hlines in incoming tables with this when translating to python.",
+                  "default": "None"
+                },
+                "org-babel-python-None-to": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        true,
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Replace `None` in python tables with this before returning.",
+                  "default": "hline"
+                },
+                "org-babel-ruby-hline-to": {
+                  "type": "string",
+                  "description": "Replace hlines in incoming tables with this when translating to ruby.",
+                  "default": "nil"
+                },
+                "org-babel-ruby-nil-to": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        true,
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Replace nil in ruby tables with this before returning.",
+                  "default": "hline"
+                },
+                "org-babel-scheme-null-to": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        true,
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Replacement for `()` and `null` in tabulated Scheme results.",
+                  "default": "hline"
+                },
+                "org-babel-shell-names": {
+                  "description": "List of names of shell supported by babel shell code blocks.",
+                  "default": [
+                    "sh",
+                    "bash",
+                    "zsh",
+                    "fish",
+                    "csh",
+                    "ash",
+                    "dash",
+                    "ksh",
+                    "mksh",
+                    "posh"
+                  ]
+                },
+                "org-babel-shell-results-defaults-to-output": {
+                  "type": "boolean",
+                  "description": "Let shell execution defaults to \":results output\".",
+                  "default": true
+                },
+                "org-cite-biblatex-options": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Options added to \"biblatex\" package.",
+                  "default": false
+                },
+                "org-cite-biblatex-styles": {
+                  "description": "List of styles and variants, with associated BibLaTeX commands."
+                },
+                "org-cite-biblatex-style-shortcuts": {
+                  "description": "List of shortcuts associated to style or variant names."
+                },
+                "org-cite-bibtex-bibliography-style": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "plain",
+                        "abbrv",
+                        "unsrt",
+                        "alpha",
+                        "acm",
+                        "apalike",
+                        "ieeetr",
+                        "siam"
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Default BibTeX bibliography style.",
+                  "default": "plain"
+                },
+                "org-cite-csl-locales-dir": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Directory of CSL locale files.",
+                  "default": false
+                },
+                "org-cite-csl-styles-dir": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Directory of CSL style files.",
+                  "default": false
+                },
+                "org-cite-csl-link-cites": {
+                  "type": "boolean",
+                  "description": "When non-nil, link cites to references.",
+                  "default": true
+                },
+                "org-cite-csl-no-citelinks-backends": {
+                  "description": "List of export backends for which cite linking is disabled.",
+                  "default": [
+                    "ascii"
+                  ]
+                },
+                "org-cite-csl-html-hanging-indent": {
+                  "type": "string",
+                  "description": "Size of hanging-indent for HTML output in valid CSS units.",
+                  "default": "1.5em"
+                },
+                "org-cite-csl-html-label-width-per-char": {
+                  "type": "string",
+                  "description": "Character width in CSS units for calculating entry label widths.",
+                  "default": "0.6em"
+                },
+                "org-cite-csl-latex-hanging-indent": {
+                  "type": "string",
+                  "description": "Size of hanging-indent for LaTeX output in valid LaTeX units.",
+                  "default": "1.5em"
+                },
+                "org-cite-csl-latex-label-separator": {
+                  "type": "string",
+                  "description": "Distance between citation label and bibliography item for LaTeX output.",
+                  "default": "0.6em"
+                },
+                "org-cite-csl-latex-label-width-per-char": {
+                  "type": "string",
+                  "description": "Character width in LaTeX units for calculating entry label widths.",
+                  "default": "0.45em"
+                },
+                "org-cite-csl-latex-preamble": {
+                  "type": "string",
+                  "description": "LaTeX preamble content inserted by the `csl` citation processor.",
+                  "default": "\\usepackage{calc}\n\\newlength{\\cslhangindent}\n\\setlength{\\cslhangindent}{[CSL-HANGINDENT]}\n\\newlength{\\csllabelsep}\n\\setlength{\\csllabelsep}{[CSL-LABELSEP]}\n\\newlength{\\csllabelwidth}\n\\setlength{\\csllabelwidth}{[CSL-LABELWIDTH-PER-CHAR] * [CSL-MAXLABEL-CHARS]}\n\\newenvironment{cslbibliography}[2] % 1st arg. is hanging-indent, 2nd entry spacing.\n {% By default, paragraphs are not indented.\n  \\setlength{\\parindent}{0pt}\n  % Hanging indent is turned on when first argument is 1.\n  \\ifodd #1\n  \\let\\oldpar\\par\n  \\def\\par{\\hangindent=\\cslhangindent\\oldpar}\n  \\fi\n  % Set entry spacing based on the second argument.\n  \\setlength{\\parskip}{\\parskip +  #2\\baselineskip}\n }%\n {}\n\\newcommand{\\cslblock}[1]{#1\\hfill\\break}\n\\newcommand{\\cslleftmargin}[1]{\\parbox[t]{\\csllabelsep + \\csllabelwidth}{#1}}\n\\newcommand{\\cslrightinline}[1]\n  {\\parbox[t]{\\linewidth - \\csllabelsep - \\csllabelwidth}{#1}\\break}\n\\newcommand{\\cslindent}[1]{\\hspace{\\cslhangindent}#1}\n\\newcommand{\\cslbibitem}[2]\n  {\\leavevmode\\vadjust pre{\\hypertarget{citeproc_bib_item_#1}{}}#2}\n\\makeatletter\n\\newcommand{\\cslcitation}[2]\n {\\protect\\hyper@linkstart{cite}{citeproc_bib_item_#1}#2\\hyper@linkend}\n\\makeatother"
+                },
+                "org-cite-csl-bibtex-titles-to-sentence-case": {
+                  "type": "boolean",
+                  "description": "Convert bibtex title fields to sentence-case by default.",
+                  "default": true
+                },
+                "org-cite-natbib-options": {
+                  "description": "List of options added to \"natbib\" package.",
+                  "default": []
+                },
+                "org-cite-natbib-bibliography-style": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "unsrtnat",
+                        true,
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Default bibliography style.",
+                  "default": "unsrtnat"
+                },
+                "org-cite-export-processors": {
+                  "description": "Processor used for exporting citations, as a triplet, or nil."
+                },
+                "org-cite-adjust-note-numbers": {
+                  "enum": [
+                    true,
+                    false
+                  ],
+                  "description": "When non-nil, allow process to modify location of note numbers.",
+                  "default": true
+                },
+                "org-cite-note-rules": {
+                  "description": "Alist between languages and typographic rules for citations in note style."
+                },
+                "org-cite-punctuation-marks": {
+                  "description": "List of strings that can be moved around when placing note numbers.",
+                  "default": [
+                    ".",
+                    ",",
+                    ";",
+                    ":",
+                    "!",
+                    "?"
+                  ]
+                },
+                "org-agenda-columns-show-summaries": {
+                  "type": "boolean",
+                  "description": "Non-nil means show summaries for columns displayed in the agenda view.",
+                  "default": true
+                },
+                "org-agenda-columns-compute-summary-properties": {
+                  "type": "boolean",
+                  "description": "Non-nil means recompute all summary properties before column view.",
+                  "default": true
+                },
+                "org-agenda-columns-add-appointments-to-effort-sum": {
+                  "type": "boolean",
+                  "description": "Non-nil means the duration of an appointment will add to day effort.",
+                  "default": false
+                },
+                "org-attach-git-annex-cutoff": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "integer"
+                    }
+                  ],
+                  "description": "If non-nil, files larger than this will be annexed instead of stored.",
+                  "default": 32768
+                },
+                "org-attach-git-annex-auto-get": {
+                  "enum": [
+                    "ask",
+                    true,
+                    false
+                  ],
+                  "description": "Confirmation preference for automatically getting annex files.",
+                  "default": "ask"
+                },
+                "org-attach-git-dir": {
+                  "enum": [
+                    "default",
+                    "individual-repository"
+                  ],
+                  "description": "Attachment directory with the Git repository to use.",
+                  "default": "default"
+                },
+                "org-attach-id-dir": {
+                  "type": "string",
+                  "description": "The directory where attachments are stored.",
+                  "default": "data/"
+                },
+                "org-attach-dir-relative": {
+                  "type": "boolean",
+                  "description": "Non-nil means directories in DIR property are added as relative links.",
+                  "default": false
+                },
+                "org-attach-auto-tag": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Tag that will be triggered automatically when an entry has an attachment.",
+                  "default": "ATTACH"
+                },
+                "org-attach-preferred-new-method": {
+                  "enum": [
+                    "id",
+                    "dir",
+                    "ask",
+                    false
+                  ],
+                  "description": "Preferred way to attach to nodes without existing ID and DIR property.",
+                  "default": "id"
+                },
+                "org-attach-method": {
+                  "enum": [
+                    "cp",
+                    "mv",
+                    "ln",
+                    "lns"
+                  ],
+                  "description": "The preferred method to attach a file.",
+                  "default": "cp"
+                },
+                "org-attach-expert": {
+                  "type": "boolean",
+                  "description": "Non-nil means do not show the splash buffer with the attach dispatcher.",
+                  "default": false
+                },
+                "org-attach-use-inheritance": {
+                  "enum": [
+                    false,
+                    true,
+                    "selective"
+                  ],
+                  "description": "Attachment inheritance for the outline.",
+                  "default": "selective"
+                },
+                "org-attach-store-link-p": {
+                  "enum": [
+                    false,
+                    true,
+                    "attached",
+                    "file"
+                  ],
+                  "description": "Non-nil means store a link to a file when attaching it.",
+                  "default": "attached"
+                },
+                "org-attach-archive-delete": {
+                  "enum": [
+                    false,
+                    true,
+                    "query"
+                  ],
+                  "description": "Non-nil means attachments are deleted upon archiving a subtree.",
+                  "default": false
+                },
+                "org-attach-id-to-path-function-list": {
+                  "description": "List of functions used to derive attachment path from an ID string."
+                },
+                "org-attach-commands": {
+                  "description": "The list of commands for the attachment dispatcher."
+                },
+                "org-attach-sync-delete-empty-dir": {
+                  "enum": [
+                    false,
+                    true,
+                    "query"
+                  ],
+                  "description": "Determine what to do with an empty attachment directory on sync.",
+                  "default": "query"
+                },
+                "org-columns-checkbox-allowed-values": {
+                  "description": "Allowed values for columns with SUMMARY-TYPE that uses checkbox.",
+                  "default": [
+                    "[ ]",
+                    "[X]"
+                  ]
+                },
+                "org-columns-summary-types": {
+                  "description": "Alist between operators and summarize functions.",
+                  "default": []
+                },
+                "org-publish-sitemap-file-entry-format": {
+                  "type": "string",
+                  "description": "Format string for site-map file entry.",
+                  "default": "%t"
+                },
+                "org-crypt-tag-matcher": {
+                  "type": "string",
+                  "description": "The tag matcher used to find headings whose contents should be encrypted.",
+                  "default": "crypt"
+                },
+                "org-crypt-key": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "The default key to use when encrypting the contents of a heading.",
+                  "default": ""
+                },
+                "org-crypt-disable-auto-save": {
+                  "enum": [
+                    true,
+                    false,
+                    "ask",
+                    "encrypt"
+                  ],
+                  "description": "What org-decrypt should do if `auto-save-mode` is enabled.",
+                  "default": "ask"
+                },
+                "org-datetree-add-timestamp": {
+                  "enum": [
+                    false,
+                    "inactive",
+                    "active"
+                  ],
+                  "description": "When non-nil, add a time stamp matching date of entry.",
+                  "default": false
+                },
+                "org-footnote-section": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Outline heading containing footnote definitions.",
+                  "default": "Footnotes"
+                },
+                "org-footnote-define-inline": {
+                  "type": "boolean",
+                  "description": "Non-nil means define footnotes inline, at reference location.",
+                  "default": false
+                },
+                "org-footnote-auto-label": {
+                  "enum": [
+                    false,
+                    true,
+                    "confirm",
+                    "anonymous",
+                    "random"
+                  ],
+                  "description": "Non-nil means define automatically new labels for footnotes.",
+                  "default": true
+                },
+                "org-footnote-auto-adjust": {
+                  "enum": [
+                    false,
+                    "renumber",
+                    "sort",
+                    true
+                  ],
+                  "description": "Non-nil means automatically adjust footnotes after insert/delete.",
+                  "default": false
+                },
+                "org-footnote-fill-after-inline-note-extraction": {
+                  "type": "boolean",
+                  "description": "Non-nil means fill paragraphs after extracting footnotes.",
+                  "default": false
+                },
+                "org-plot/gnuplot-script-preamble": {
+                  "description": "String of function to be inserted before the gnuplot plot command is run.",
+                  "default": ""
+                },
+                "org-plot/preset-plot-types": {
+                  "description": "List of plists describing the available plot types."
+                },
+                "org-plot/gnuplot-term-extra": {
+                  "description": "String or function which provides the extra term options.",
+                  "default": ""
+                },
+                "org-edit-src-turn-on-auto-save": {
+                  "type": "boolean",
+                  "description": "Non-nil means turn `auto-save-mode` on when editing a source block.",
+                  "default": false
+                },
+                "org-edit-src-auto-save-idle-delay": {
+                  "type": "integer",
+                  "description": "Delay before saving a source code buffer back into its base buffer.",
+                  "default": 0
+                },
+                "org-coderef-label-format": {
+                  "type": "string",
+                  "description": "The default coderef format.",
+                  "default": "(ref:%s)"
+                },
+                "org-edit-fixed-width-region-mode": {
+                  "description": "The mode that should be used to edit fixed-width regions.",
+                  "default": "artist-mode"
+                },
+                "org-edit-src-persistent-message": {
+                  "type": "boolean",
+                  "description": "Non-nil means show persistent exit help message while editing src examples.",
+                  "default": true
+                },
+                "org-src-ask-before-returning-to-edit-buffer": {
+                  "type": "boolean",
+                  "description": "Non-nil means ask before switching to an existing edit buffer.",
+                  "default": true
+                },
+                "org-src-window-setup": {
+                  "enum": [
+                    "plain",
+                    "current-window",
+                    "split-window-below",
+                    "split-window-right",
+                    "other-frame",
+                    "other-window",
+                    "reorganize-frame"
+                  ],
+                  "description": "How the source code edit buffer should be displayed.",
+                  "default": "reorganize-frame"
+                },
+                "org-src-lang-modes": {
+                  "description": "Alist mapping languages to their major mode."
+                },
+                "org-table-default-size": {
+                  "type": "string",
+                  "description": "The default size for newly created tables, Columns x Rows.",
+                  "default": "5x2"
+                },
+                "org-table-formula-field-format": {
+                  "type": "string",
+                  "description": "Format for fields which contain the result of a formula.",
+                  "default": "%s"
+                },
+                "org-table-fix-formulas-confirm": {
+                  "enum": [
+                    "yes-or-no-p",
+                    "y-or-n-p",
+                    false
+                  ],
+                  "description": "Whether the user should confirm when Org fixes formulas.",
+                  "default": false
+                },
+                "org-table-use-standard-references": {
+                  "enum": [
+                    false,
+                    true,
+                    "from"
+                  ],
+                  "description": "Non-nil means using table references like B3 instead of @3$2.",
+                  "default": "from"
+                },
+                "org-table-copy-increment": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        true,
+                        false
+                      ]
+                    },
+                    {
+                      "type": "integer"
+                    }
+                  ],
+                  "description": "Non-nil means increment when copying current field with `M-x org-table-copy-down`.",
+                  "default": true
+                },
+                "org-table-export-default-format": {
+                  "type": "string",
+                  "description": "Default export parameters for `org-table-export`.",
+                  "default": "orgtbl-to-tsv"
+                },
+                "org-table-convert-region-max-lines": {
+                  "type": "integer",
+                  "description": "Max lines that `org-table-convert-region` will attempt to process.",
+                  "default": 999
+                },
+                "org-timer-format": {
+                  "type": "string",
+                  "description": "The format to insert the time of the timer.",
+                  "default": "%s "
+                },
+                "org-timer-default-timer": {
+                  "type": "string",
+                  "description": "The default timer when a timer is set, in minutes or hh:mm:ss format.",
+                  "default": "0"
+                },
+                "org-timer-display": {
+                  "enum": [
+                    "mode-line",
+                    "frame-title",
+                    "both",
+                    false
+                  ],
+                  "description": "Define where running timer is displayed, if at all.",
+                  "default": "mode-line"
+                },
+                "org-babel-load-languages": {
+                  "description": "Languages which can be evaluated in Org buffers.",
+                  "default": {
+                    "emacs-lisp": true
+                  }
+                },
+                "org-clone-delete-id": {
+                  "type": "boolean",
+                  "description": "Remove ID property of clones of a subtree.",
+                  "default": false
+                },
+                "org-export-backends": {
+                  "description": "List of export backends that should be always available.",
+                  "default": [
+                    "ascii",
+                    "html",
+                    "icalendar",
+                    "latex",
+                    "odt"
+                  ]
+                },
+                "org-columns-default-format": {
+                  "type": "string",
+                  "description": "The default column format, if no other format has been defined.",
+                  "default": "%25ITEM %TODO %3PRIORITY %TAGS"
+                },
+                "org-columns-default-format-for-agenda": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "The default column format in an agenda buffer.",
+                  "default": false
+                },
+                "org-columns-ellipses": {
+                  "type": "string",
+                  "description": "The ellipses to be used when a field in column view is truncated.",
+                  "default": ".."
+                },
+                "org-format-latex-options": {
+                  "description": "Options for creating images from LaTeX fragments."
+                },
+                "org-format-latex-signal-error": {
+                  "type": "boolean",
+                  "description": "Non-nil means signal an error when image creation of LaTeX snippets fails.",
+                  "default": true
+                },
+                "org-latex-to-mathml-jar-file": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Value of\"%j\" in `org-latex-to-mathml-convert-command`.",
+                  "default": false
+                },
+                "org-latex-to-mathml-convert-command": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Command to convert LaTeX fragments to MathML.",
+                  "default": false
+                },
+                "org-latex-to-html-convert-command": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Shell command to convert LaTeX fragments to HTML.",
+                  "default": false
+                },
+                "org-preview-latex-default-process": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        true,
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "The default process to convert LaTeX fragments to image files.",
+                  "default": "dvipng"
+                },
+                "org-preview-latex-process-alist": {
+                  "description": "Definitions of external processes for LaTeX previewing."
+                },
+                "org-preview-latex-image-directory": {
+                  "type": "string",
+                  "description": "Path to store latex preview images.",
+                  "default": "ltximg/"
+                },
+                "org-latex-mathml-directory": {
+                  "type": "string",
+                  "description": "Path to store MathML files converted from LaTeX fragments.",
+                  "default": "ltxmathml/"
+                },
+                "org-format-latex-header": {
+                  "type": "string",
+                  "description": "The document header used for processing LaTeX fragments.",
+                  "default": "\\documentclass{article}\n\\usepackage[usenames]{color}\n[DEFAULT-PACKAGES]\n[PACKAGES]\n\\pagestyle{empty}             % do not remove\n% The settings below are copied from fullpage.sty\n\\setlength{\\textwidth}{\\paperwidth}\n\\addtolength{\\textwidth}{-3cm}\n\\setlength{\\oddsidemargin}{1.5cm}\n\\addtolength{\\oddsidemargin}{-2.54cm}\n\\setlength{\\evensidemargin}{\\oddsidemargin}\n\\setlength{\\textheight}{\\paperheight}\n\\addtolength{\\textheight}{-\\headheight}\n\\addtolength{\\textheight}{-\\headsep}\n\\addtolength{\\textheight}{-\\footskip}\n\\addtolength{\\textheight}{-3cm}\n\\setlength{\\topmargin}{1.5cm}\n\\addtolength{\\topmargin}{-2.54cm}"
+                },
+                "org-latex-default-packages-alist": {
+                  "description": "Alist of default packages to be inserted in the header."
+                },
+                "org-latex-packages-alist": {
+                  "description": "Alist of packages to be inserted in every LaTeX header.",
+                  "default": []
+                },
+                "org-columns-skip-archived-trees": {
+                  "type": "boolean",
+                  "description": "Non-nil means ignore archived trees when creating column view.",
+                  "default": true
+                },
+                "org-structure-template-alist": {
+                  "description": "An alist of keys and block types."
+                },
+                "org-ascii-text-width": {
+                  "type": "integer",
+                  "description": "Maximum width of exported text.",
+                  "default": 72
+                },
+                "org-ascii-global-margin": {
+                  "type": "integer",
+                  "description": "Width of the left margin, in number of characters.",
+                  "default": 0
+                },
+                "org-ascii-inner-margin": {
+                  "type": "integer",
+                  "description": "Width of the inner margin, in number of characters.",
+                  "default": 2
+                },
+                "org-ascii-quote-margin": {
+                  "type": "integer",
+                  "description": "Width of margin used for quoting text, in characters.",
+                  "default": 6
+                },
+                "org-ascii-list-margin": {
+                  "type": "integer",
+                  "description": "Width of margin used for plain lists, in characters.",
+                  "default": 0
+                },
+                "org-ascii-inlinetask-width": {
+                  "type": "integer",
+                  "description": "Width of inline tasks, in number of characters.",
+                  "default": 30
+                },
+                "org-ascii-headline-spacing": {
+                  "description": "Number of blank lines inserted around headlines."
+                },
+                "org-ascii-indented-line-width": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "auto"
+                      ]
+                    },
+                    {
+                      "type": "integer"
+                    }
+                  ],
+                  "description": "Additional indentation width for the first line in a paragraph.",
+                  "default": "auto"
+                },
+                "org-ascii-paragraph-spacing": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "auto"
+                      ]
+                    },
+                    {
+                      "type": "integer"
+                    }
+                  ],
+                  "description": "Number of white lines between paragraphs.",
+                  "default": "auto"
+                },
+                "org-ascii-charset": {
+                  "enum": [
+                    "ascii",
+                    "latin1",
+                    "utf-8"
+                  ],
+                  "description": "The charset allowed to represent various elements and objects.",
+                  "default": "ascii"
+                },
+                "org-ascii-underline": {
+                  "description": "Characters for underlining headings in ASCII export."
+                },
+                "org-ascii-bullets": {
+                  "description": "Bullet characters for headlines converted to lists in ASCII export."
+                },
+                "org-ascii-links-to-notes": {
+                  "type": "boolean",
+                  "description": "Non-nil means convert links to notes before the next headline.",
+                  "default": true
+                },
+                "org-ascii-table-keep-all-vertical-lines": {
+                  "type": "boolean",
+                  "description": "Non-nil means keep all vertical lines in ASCII tables.",
+                  "default": false
+                },
+                "org-ascii-table-widen-columns": {
+                  "type": "boolean",
+                  "description": "Non-nil means widen narrowed columns for export.",
+                  "default": true
+                },
+                "org-ascii-table-use-ascii-art": {
+                  "type": "boolean",
+                  "description": "Non-nil means \"table.el\" tables are turned into ASCII art.",
+                  "default": false
+                },
+                "org-ascii-caption-above": {
+                  "type": "boolean",
+                  "description": "When non-nil, place caption string before the element.",
+                  "default": false
+                },
+                "org-ascii-verbatim-format": {
+                  "type": "string",
+                  "description": "Format string used for verbatim text and inline code.",
+                  "default": "`%s'"
+                },
+                "org-ascii-format-drawer-function": {
+                  "description": "Function called to format a drawer in ASCII."
+                },
+                "org-ascii-format-inlinetask-function": {
+                  "description": "Function called to format an inlinetask in ASCII."
+                },
+                "org-beamer-frame-level": {
+                  "type": "integer",
+                  "description": "The level at which headlines become frames.",
+                  "default": 1
+                },
+                "org-beamer-frame-default-options": {
+                  "type": "string",
+                  "description": "Default options string to use for frames.",
+                  "default": ""
+                },
+                "org-beamer-column-view-format": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Column view format that should be used to fill the template.",
+                  "default": "%45ITEM %10BEAMER_env(Env) %10BEAMER_act(Act) %4BEAMER_col(Col) %8BEAMER_opt(Opt)"
+                },
+                "org-beamer-theme": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Default theme used in Beamer presentations.",
+                  "default": "default"
+                },
+                "org-beamer-environments-extra": {
+                  "description": "Environments triggered by tags in Beamer export.",
+                  "default": []
+                },
+                "org-beamer-outline-frame-title": {
+                  "type": "string",
+                  "description": "Default title of a frame containing an outline.",
+                  "default": "Outline"
+                },
+                "org-beamer-outline-frame-options": {
+                  "type": "string",
+                  "description": "Outline frame options appended after \\begin{frame}.",
+                  "default": ""
+                },
+                "org-beamer-subtitle-format": {
+                  "type": "string",
+                  "description": "Format string used for transcoded subtitle.",
+                  "default": "\\subtitle{%s}"
+                },
+                "org-beamer-frame-environment": {
+                  "type": "string",
+                  "description": "Name of the alternative beamer frame environment.",
+                  "default": "orgframe"
+                },
+                "org-html-scripts": {
+                  "type": "string",
+                  "description": "Basic JavaScript to allow highlighting references in code blocks.",
+                  "default": "<script>\n// @license magnet:?xt=urn:btih:1f739d935676111cfff4b4693e3816e664797050&amp;dn=gpl-3.0.txt GPL-v3-or-Later\n     function CodeHighlightOn(elem, id)\n     {\n       var target = document.getElementById(id);\n       if(null != target) {\n         elem.classList.add(\"code-highlighted\");\n         target.classList.add(\"code-highlighted\");\n       }\n     }\n     function CodeHighlightOff(elem, id)\n     {\n       var target = document.getElementById(id);\n       if(null != target) {\n         elem.classList.remove(\"code-highlighted\");\n         target.classList.remove(\"code-highlighted\");\n       }\n     }\n// @license-end\n</script>"
+                },
+                "org-html-style-default": {
+                  "type": "string",
+                  "description": "The default style specification for exported HTML files.",
+                  "default": "<style type=\"text/css\">\n  #content { max-width: 60em; margin: auto; }\n  .title  { text-align: center;\n             margin-bottom: .2em; }\n  .subtitle { text-align: center;\n              font-size: medium;\n              font-weight: bold;\n              margin-top:0; }\n  .todo   { font-family: monospace; color: red; }\n  .done   { font-family: monospace; color: green; }\n  .priority { font-family: monospace; color: orange; }\n  .tag    { background-color: #eee; font-family: monospace;\n            padding: 2px; font-size: 80%; font-weight: normal; }\n  .timestamp { color: #bebebe; }\n  .timestamp-kwd { color: #5f9ea0; }\n  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }\n  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }\n  .org-center { margin-left: auto; margin-right: auto; text-align: center; }\n  .underline { text-decoration: underline; }\n  #postamble p, #preamble p { font-size: 90%; margin: .2em; }\n  p.verse { margin-left: 3%; }\n  pre {\n    border: 1px solid #e6e6e6;\n    border-radius: 3px;\n    background-color: #f2f2f2;\n    padding: 8pt;\n    font-family: monospace;\n    overflow: auto;\n    margin: 1.2em;\n  }\n  pre.src {\n    position: relative;\n    overflow: auto;\n  }\n  pre.src:before {\n    display: none;\n    position: absolute;\n    top: -8px;\n    right: 12px;\n    padding: 3px;\n    color: #555;\n    background-color: #f2f2f299;\n  }\n  pre.src:hover:before { display: inline; margin-top: 14px;}\n  /* Languages per Org manual */\n  pre.src-asymptote:before { content: 'Asymptote'; }\n  pre.src-awk:before { content: 'Awk'; }\n  pre.src-authinfo::before { content: 'Authinfo'; }\n  pre.src-c:before { content: 'C'; }\n  pre.src-C:before { content: 'C'; }\n  /* pre.src-C++ doesn't work in CSS */\n  pre.src-clojure:before { content: 'Clojure'; }\n  pre.src-css:before { content: 'CSS'; }\n  pre.src-D:before { content: 'D'; }\n  pre.src-ditaa:before { content: 'ditaa'; }\n  pre.src-dot:before { content: 'Graphviz'; }\n  pre.src-calc:before { content: 'Emacs Calc'; }\n  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }\n  pre.src-fortran:before { content: 'Fortran'; }\n  pre.src-gnuplot:before { content: 'gnuplot'; }\n  pre.src-haskell:before { content: 'Haskell'; }\n  pre.src-hledger:before { content: 'hledger'; }\n  pre.src-java:before { content: 'Java'; }\n  pre.src-js:before { content: 'JavaScript'; }\n  pre.src-latex:before { content: 'LaTeX'; }\n  pre.src-ledger:before { content: 'Ledger'; }\n  pre.src-lisp:before { content: 'Lisp'; }\n  pre.src-lilypond:before { content: 'Lilypond'; }\n  pre.src-lua:before { content: 'Lua'; }\n  pre.src-matlab:before { content: 'MATLAB'; }\n  pre.src-mscgen:before { content: 'Mscgen'; }\n  pre.src-ocaml:before { content: 'Objective Caml'; }\n  pre.src-octave:before { content: 'Octave'; }\n  pre.src-org:before { content: 'Org mode'; }\n  pre.src-oz:before { content: 'OZ'; }\n  pre.src-plantuml:before { content: 'Plantuml'; }\n  pre.src-processing:before { content: 'Processing.js'; }\n  pre.src-python:before { content: 'Python'; }\n  pre.src-R:before { content: 'R'; }\n  pre.src-ruby:before { content: 'Ruby'; }\n  pre.src-sass:before { content: 'Sass'; }\n  pre.src-scheme:before { content: 'Scheme'; }\n  pre.src-screen:before { content: 'Gnu Screen'; }\n  pre.src-sed:before { content: 'Sed'; }\n  pre.src-sh:before { content: 'shell'; }\n  pre.src-sql:before { content: 'SQL'; }\n  pre.src-sqlite:before { content: 'SQLite'; }\n  /* additional languages in org.el's org-babel-load-languages alist */\n  pre.src-forth:before { content: 'Forth'; }\n  pre.src-io:before { content: 'IO'; }\n  pre.src-J:before { content: 'J'; }\n  pre.src-makefile:before { content: 'Makefile'; }\n  pre.src-maxima:before { content: 'Maxima'; }\n  pre.src-perl:before { content: 'Perl'; }\n  pre.src-picolisp:before { content: 'Pico Lisp'; }\n  pre.src-scala:before { content: 'Scala'; }\n  pre.src-shell:before { content: 'Shell Script'; }\n  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }\n  /* additional language identifiers per \"defun org-babel-execute\"\n       in ob-*.el */\n  pre.src-cpp:before  { content: 'C++'; }\n  pre.src-abc:before  { content: 'ABC'; }\n  pre.src-coq:before  { content: 'Coq'; }\n  pre.src-groovy:before  { content: 'Groovy'; }\n  /* additional language identifiers from org-babel-shell-names in\n     ob-shell.el: ob-shell is the only babel language using a lambda to put\n     the execution function name together. */\n  pre.src-bash:before  { content: 'bash'; }\n  pre.src-csh:before  { content: 'csh'; }\n  pre.src-ash:before  { content: 'ash'; }\n  pre.src-dash:before  { content: 'dash'; }\n  pre.src-ksh:before  { content: 'ksh'; }\n  pre.src-mksh:before  { content: 'mksh'; }\n  pre.src-posh:before  { content: 'posh'; }\n  /* Additional Emacs modes also supported by the LaTeX listings package */\n  pre.src-ada:before { content: 'Ada'; }\n  pre.src-asm:before { content: 'Assembler'; }\n  pre.src-caml:before { content: 'Caml'; }\n  pre.src-delphi:before { content: 'Delphi'; }\n  pre.src-html:before { content: 'HTML'; }\n  pre.src-idl:before { content: 'IDL'; }\n  pre.src-mercury:before { content: 'Mercury'; }\n  pre.src-metapost:before { content: 'MetaPost'; }\n  pre.src-modula-2:before { content: 'Modula-2'; }\n  pre.src-pascal:before { content: 'Pascal'; }\n  pre.src-ps:before { content: 'PostScript'; }\n  pre.src-prolog:before { content: 'Prolog'; }\n  pre.src-simula:before { content: 'Simula'; }\n  pre.src-tcl:before { content: 'tcl'; }\n  pre.src-tex:before { content: 'TeX'; }\n  pre.src-plain-tex:before { content: 'Plain TeX'; }\n  pre.src-verilog:before { content: 'Verilog'; }\n  pre.src-vhdl:before { content: 'VHDL'; }\n  pre.src-xml:before { content: 'XML'; }\n  pre.src-nxml:before { content: 'XML'; }\n  /* add a generic configuration mode; LaTeX export needs an additional\n     (add-to-list 'org-latex-listings-langs '(conf \" \")) in .emacs */\n  pre.src-conf:before { content: 'Configuration File'; }\n\n  table { border-collapse:collapse; }\n  caption.t-above { caption-side: top; }\n  caption.t-bottom { caption-side: bottom; }\n  td, th { vertical-align:top;  }\n  th.org-right  { text-align: center;  }\n  th.org-left   { text-align: center;   }\n  th.org-center { text-align: center; }\n  td.org-right  { text-align: right;  }\n  td.org-left   { text-align: left;   }\n  td.org-center { text-align: center; }\n  dt { font-weight: bold; }\n  .footpara { display: inline; }\n  .footdef  { margin-bottom: 1em; }\n  .figure { padding: 1em; }\n  .figure p { text-align: center; }\n  .equation-container {\n    display: table;\n    text-align: center;\n    width: 100%;\n  }\n  .equation {\n    vertical-align: middle;\n  }\n  .equation-label {\n    display: table-cell;\n    text-align: right;\n    vertical-align: middle;\n  }\n  .inlinetask {\n    padding: 10px;\n    border: 2px solid gray;\n    margin: 10px;\n    background: #ffffcc;\n  }\n  #org-div-home-and-up\n   { text-align: right; font-size: 70%; white-space: nowrap; }\n  textarea { overflow-x: auto; }\n  .linenr { font-size: smaller }\n  .code-highlighted { background-color: #ffff00; }\n  .org-info-js_info-navigation { border-style: none; }\n  #org-info-js_console-label\n    { font-size: 10px; font-weight: bold; white-space: nowrap; }\n  .org-info-js_search-highlight\n    { background-color: #ffff00; color: #000000; font-weight: bold; }\n  .org-svg { }\n</style>"
+                },
+                "org-html-use-infojs": {
+                  "enum": [
+                    false,
+                    "when-configured",
+                    true
+                  ],
+                  "description": "Non-nil when Sebastian Rose's Java Script org-info.js should be active.",
+                  "default": "when-configured"
+                },
+                "org-html-infojs-options": {
+                  "description": "Options settings for the INFOJS JavaScript."
+                },
+                "org-html-infojs-template": {
+                  "type": "string",
+                  "description": "The template for the export style additions when org-info.js is used.",
+                  "default": "<script src=\"%SCRIPT_PATH\">\n// @license magnet:?xt=urn:btih:1f739d935676111cfff4b4693e3816e664797050&amp;dn=gpl-3.0.txt GPL-v3-or-Later\n// @license-end\n</script>\n\n<script>\n// @license magnet:?xt=urn:btih:1f739d935676111cfff4b4693e3816e664797050&amp;dn=gpl-3.0.txt GPL-v3-or-Later\n%MANAGER_OPTIONS\norg_html_manager.setup();  // activate after the parameters are set\n// @license-end\n</script>"
+                },
+                "org-html-text-markup-alist": {
+                  "description": "Alist of HTML expressions to convert text markup.",
+                  "default": {
+                    "bold": "<b>%s</b>",
+                    "code": "<code>%s</code>",
+                    "italic": "<i>%s</i>",
+                    "strike-through": "<del>%s</del>",
+                    "underline": "<span class=\"underline\">%s</span>",
+                    "verbatim": "<code>%s</code>"
+                  }
+                },
+                "org-html-indent": {
+                  "type": "boolean",
+                  "description": "Non-nil means to indent the generated HTML.",
+                  "default": false
+                },
+                "org-html-format-drawer-function": {
+                  "description": "Function called to format a drawer in HTML code."
+                },
+                "org-html-footnotes-section": {
+                  "type": "string",
+                  "description": "Format for the footnotes section.",
+                  "default": "<div id=\"footnotes\">\n<h2 class=\"footnotes\">%s: </h2>\n<div id=\"text-footnotes\">\n%s\n</div>\n</div>"
+                },
+                "org-html-footnote-format": {
+                  "type": "string",
+                  "description": "The format for the footnote reference.",
+                  "default": "<sup>%s</sup>"
+                },
+                "org-html-footnote-separator": {
+                  "type": "string",
+                  "description": "Text used to separate footnotes.",
+                  "default": "<sup>, </sup>"
+                },
+                "org-html-toplevel-hlevel": {
+                  "type": "integer",
+                  "description": "The <H> level for level 1 headings in HTML export.",
+                  "default": 2
+                },
+                "org-html-format-headline-function": {
+                  "description": "Function to format headline text."
+                },
+                "org-html-allow-name-attribute-in-anchors": {
+                  "type": "boolean",
+                  "description": "When nil, do not set \"name\" attribute in anchors.",
+                  "default": false
+                },
+                "org-html-self-link-headlines": {
+                  "type": "boolean",
+                  "description": "When non-nil, the headlines contain a hyperlink to themselves.",
+                  "default": false
+                },
+                "org-html-prefer-user-labels": {
+                  "type": "boolean",
+                  "description": "When non-nil use user-defined names and ID over internal ones.",
+                  "default": false
+                },
+                "org-html-format-inlinetask-function": {
+                  "description": "Function called to format an inlinetask in HTML code."
+                },
+                "org-html-equation-reference-format": {
+                  "type": "string",
+                  "description": "The MathJax command to use when referencing equations.",
+                  "default": "\\eqref{%s}"
+                },
+                "org-html-with-latex": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false,
+                        "verbatim",
+                        "mathjax",
+                        true
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Non-nil means process LaTeX math snippets.",
+                  "default": true
+                },
+                "org-html-link-org-files-as-html": {
+                  "type": "boolean",
+                  "description": "Non-nil means make file links to \"file.org\" point to \"file.html\".",
+                  "default": true
+                },
+                "org-html-inline-images": {
+                  "type": "boolean",
+                  "description": "Non-nil means inline images into exported HTML pages.",
+                  "default": true
+                },
+                "org-html-inline-image-rules": {
+                  "description": "Rules characterizing image files that can be inlined into HTML."
+                },
+                "org-html-htmlize-output-type": {
+                  "enum": [
+                    "css",
+                    "inline-css",
+                    false
+                  ],
+                  "description": "Output type to be used by htmlize when formatting code snippets.",
+                  "default": "inline-css"
+                },
+                "org-html-htmlize-font-prefix": {
+                  "type": "string",
+                  "description": "The prefix for CSS class names for htmlize font specifications.",
+                  "default": "org-"
+                },
+                "org-html-wrap-src-lines": {
+                  "type": "boolean",
+                  "description": "If non-nil, wrap individual lines of source blocks in \"code\" elements.",
+                  "default": false
+                },
+                "org-html-table-default-attributes": {
+                  "description": "Default attributes and values which will be used in table tags."
+                },
+                "org-html-table-header-tags": {
+                  "description": "The opening and ending tags for table header fields."
+                },
+                "org-html-table-data-tags": {
+                  "description": "The opening and ending tags for table data fields."
+                },
+                "org-html-table-row-open-tag": {
+                  "description": "The opening tag for table rows.",
+                  "default": "<tr>"
+                },
+                "org-html-table-row-close-tag": {
+                  "description": "The closing tag for table rows.",
+                  "default": "</tr>"
+                },
+                "org-html-table-align-individual-fields": {
+                  "type": "boolean",
+                  "description": "Non-nil means attach style attributes for alignment to each table field.",
+                  "default": true
+                },
+                "org-html-table-use-header-tags-for-first-column": {
+                  "type": "boolean",
+                  "description": "Non-nil means format column one in tables with header tags.",
+                  "default": false
+                },
+                "org-html-table-caption-above": {
+                  "type": "boolean",
+                  "description": "When non-nil, place caption string at the beginning of the table.",
+                  "default": true
+                },
+                "org-html-tag-class-prefix": {
+                  "type": "string",
+                  "description": "Prefix to class names for TODO keywords.",
+                  "default": ""
+                },
+                "org-html-extension": {
+                  "type": "string",
+                  "description": "The extension for exported HTML files.",
+                  "default": "html"
+                },
+                "org-html-xml-declaration": {
+                  "description": "The extension for exported HTML files."
+                },
+                "org-html-coding-system": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        true,
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Coding system for HTML export.",
+                  "default": "utf-8"
+                },
+                "org-html-doctype": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "html4-strict",
+                        "html4-transitional",
+                        "html4-frameset",
+                        "xhtml-strict",
+                        "xhtml-transitional",
+                        "xhtml-frameset",
+                        "xhtml-11",
+                        "html5",
+                        "xhtml5"
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Document type definition to use for exported HTML files.",
+                  "default": "xhtml-strict"
+                },
+                "org-html-html5-fancy": {
+                  "type": "boolean",
+                  "description": "Non-nil means using new HTML5 elements.",
+                  "default": false
+                },
+                "org-html-container-element": {
+                  "type": "string",
+                  "description": "HTML element to use for wrapping top level sections.",
+                  "default": "div"
+                },
+                "org-html-content-class": {
+                  "type": "string",
+                  "description": "CSS class name to use for the top level content wrapper.",
+                  "default": "content"
+                },
+                "org-html-divs": {
+                  "description": "Alist of the three section elements for HTML export."
+                },
+                "org-html-checkbox-type": {
+                  "enum": [
+                    "ascii",
+                    "unicode",
+                    "html"
+                  ],
+                  "description": "The type of checkboxes to use for HTML export.",
+                  "default": "ascii"
+                },
+                "org-html-metadata-timestamp-format": {
+                  "type": "string",
+                  "description": "Format used for timestamps in preamble, postamble and metadata.",
+                  "default": "%Y-%m-%d %a %H:%M"
+                },
+                "org-html-datetime-formats": {
+                  "description": "Formats used for the timestamp added as metadata to the time HTML element."
+                },
+                "org-html-mathjax-options": {
+                  "description": "Options for MathJax setup."
+                },
+                "org-html-mathjax-template": {
+                  "type": "string",
+                  "description": "The MathJax template.",
+                  "default": "<script>\n  window.MathJax = {\n    tex: {\n      ams: {\n        multlineWidth: '%MULTLINEWIDTH'\n      },\n      tags: '%TAGS',\n      tagSide: '%TAGSIDE',\n      tagIndent: '%TAGINDENT'\n    },\n    chtml: {\n      scale: %SCALE,\n      displayAlign: '%ALIGN',\n      displayIndent: '%INDENT'\n    },\n    svg: {\n      scale: %SCALE,\n      displayAlign: '%ALIGN',\n      displayIndent: '%INDENT'\n    },\n    output: {\n      font: '%FONT',\n      displayOverflow: '%OVERFLOW'\n    }\n  };\n</script>\n\n<script\n  id=\"MathJax-script\"\n  async\n  src=\"%PATH\">\n</script>"
+                },
+                "org-html-postamble": {
+                  "description": "Non-nil means insert a postamble in HTML export.",
+                  "default": "auto"
+                },
+                "org-html-postamble-format": {
+                  "description": "Alist of languages and format strings for the HTML postamble."
+                },
+                "org-html-validation-link": {
+                  "type": "string",
+                  "description": "Link to HTML validation service.",
+                  "default": "<a href=\"https://validator.w3.org/check?uri=referer\">Validate</a>"
+                },
+                "org-html-creator-string": {
+                  "type": "string",
+                  "description": "Information about the creator of the HTML document."
+                },
+                "org-html-preamble": {
+                  "description": "Non-nil means insert a preamble in HTML export.",
+                  "default": true
+                },
+                "org-html-preamble-format": {
+                  "description": "Alist of languages and format strings for the HTML preamble."
+                },
+                "org-html-link-up": {
+                  "type": "string",
+                  "description": "Where should the \"UP\" link of exported HTML pages lead?",
+                  "default": ""
+                },
+                "org-html-link-home": {
+                  "type": "string",
+                  "description": "Where should the \"HOME\" link of exported HTML pages lead?",
+                  "default": ""
+                },
+                "org-html-link-use-abs-url": {
+                  "type": "boolean",
+                  "description": "Should we prepend relative links with HTML_LINK_HOME?",
+                  "default": false
+                },
+                "org-html-home/up-format": {
+                  "type": "string",
+                  "description": "Snippet used to insert the HOME and UP links.",
+                  "default": "<div id=\"org-div-home-and-up\">\n <a accesskey=\"h\" href=\"%s\"> UP </a>\n |\n <a accesskey=\"H\" href=\"%s\"> HOME </a>\n</div>"
+                },
+                "org-html-head-include-scripts": {
+                  "type": "boolean",
+                  "description": "Non-nil means include the JavaScript snippets in exported HTML files.",
+                  "default": false
+                },
+                "org-html-meta-tags": {
+                  "description": "Form that is used to produce meta tags in the HTML head."
+                },
+                "org-html-head-include-default-style": {
+                  "type": "boolean",
+                  "description": "Non-nil means include the default style in exported HTML files.",
+                  "default": true
+                },
+                "org-html-head": {
+                  "description": "Org-wide head definitions for exported HTML files.",
+                  "default": ""
+                },
+                "org-html-head-extra": {
+                  "description": "More head information to add in the HTML output.",
+                  "default": ""
+                },
+                "org-html-viewport": {
+                  "description": "Viewport options for mobile-optimized sites."
+                },
+                "org-html-klipsify-src": {
+                  "type": "boolean",
+                  "description": "When non-nil, source code blocks are editable in exported presentation.",
+                  "default": false
+                },
+                "org-html-klipse-css": {
+                  "type": "string",
+                  "description": "Location of the codemirror CSS file for use with klipse.",
+                  "default": "https://storage.googleapis.com/app.klipse.tech/css/codemirror.css"
+                },
+                "org-html-klipse-js": {
+                  "type": "string",
+                  "description": "Location of the klipse javascript file.",
+                  "default": "https://storage.googleapis.com/app.klipse.tech/plugin_prod/js/klipse_plugin.min.js"
+                },
+                "org-html-klipse-selection-script": {
+                  "type": "string",
+                  "description": "JavaScript snippet to activate klipse.",
+                  "default": "window.klipse_settings = {selector_eval_html: '.src-html',\n                             selector_eval_js: '.src-js',\n                             selector_eval_python_client: '.src-python',\n                             selector_eval_scheme: '.src-scheme',\n                             selector: '.src-clojure',\n                             selector_eval_ruby: '.src-ruby'};"
+                },
+                "org-html-todo-kwd-class-prefix": {
+                  "type": "string",
+                  "description": "Prefix to class names for TODO keywords.",
+                  "default": ""
+                },
+                "org-icalendar-combined-agenda-file": {
+                  "type": "string",
+                  "description": "The file name for the iCalendar file covering all agenda files.",
+                  "default": "~/org.ics"
+                },
+                "org-icalendar-alarm-time": {
+                  "type": "integer",
+                  "description": "Number of minutes for triggering an alarm for exported timed events.",
+                  "default": 0
+                },
+                "org-icalendar-force-alarm": {
+                  "type": "boolean",
+                  "description": "Non-nil means alarm will be created even if is set to zero.",
+                  "default": false
+                },
+                "org-icalendar-combined-name": {
+                  "type": "string",
+                  "description": "Calendar name for the combined iCalendar representing all agenda files.",
+                  "default": "OrgMode"
+                },
+                "org-icalendar-combined-description": {
+                  "type": "string",
+                  "description": "Calendar description for the combined iCalendar (all agenda files).",
+                  "default": ""
+                },
+                "org-icalendar-exclude-tags": {
+                  "description": "Tags that exclude a tree from export.",
+                  "default": []
+                },
+                "org-icalendar-scheduled-summary-prefix": {
+                  "type": "string",
+                  "description": "String prepended to exported scheduled headlines.",
+                  "default": "S: "
+                },
+                "org-icalendar-deadline-summary-prefix": {
+                  "type": "string",
+                  "description": "String prepended to exported headlines with a deadline.",
+                  "default": "DL: "
+                },
+                "org-icalendar-use-deadline": {
+                  "description": "Contexts where iCalendar export should use a deadline time stamp.",
+                  "default": [
+                    "event-if-not-todo",
+                    "todo-due"
+                  ]
+                },
+                "org-icalendar-use-scheduled": {
+                  "description": "Contexts where iCalendar export should use a scheduling time stamp.",
+                  "default": [
+                    "todo-start"
+                  ]
+                },
+                "org-icalendar-categories": {
+                  "description": "Items that should be entered into the \"categories\" field.",
+                  "default": [
+                    "local-tags",
+                    "category"
+                  ]
+                },
+                "org-icalendar-with-timestamps": {
+                  "enum": [
+                    true,
+                    "active",
+                    "active-exclude-diary",
+                    "inactive",
+                    false
+                  ],
+                  "description": "Non-nil means make an event from plain time stamps.",
+                  "default": "active"
+                },
+                "org-icalendar-include-todo": {
+                  "description": "Non-nil means create VTODO components from TODO items.",
+                  "default": []
+                },
+                "org-icalendar-todo-unscheduled-start": {
+                  "enum": [
+                    "recurring-deadline-warning",
+                    "deadline-warning",
+                    "current-datetime",
+                    false
+                  ],
+                  "description": "Exported start date of unscheduled TODOs.",
+                  "default": "recurring-deadline-warning"
+                },
+                "org-icalendar-include-bbdb-anniversaries": {
+                  "type": "boolean",
+                  "description": "Non-nil means a combined iCalendar file should include anniversaries.",
+                  "default": false
+                },
+                "org-icalendar-include-sexps": {
+                  "type": "boolean",
+                  "description": "Non-nil means export to iCalendar files should also cover sexp entries.",
+                  "default": true
+                },
+                "org-icalendar-include-body": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false,
+                        true
+                      ]
+                    },
+                    {
+                      "type": "integer"
+                    }
+                  ],
+                  "description": "Amount of text below headline to be included in iCalendar export.",
+                  "default": true
+                },
+                "org-icalendar-store-UID": {
+                  "type": "boolean",
+                  "description": "Non-nil means store any created UIDs in properties.",
+                  "default": false
+                },
+                "org-icalendar-timezone": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "The time zone string for iCalendar export."
+                },
+                "org-icalendar-date-time-format": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        ":%Y%m%dT%H%M%S",
+                        ";TZID=%Z:%Y%m%dT%H%M%S",
+                        ":%Y%m%dT%H%M%SZ"
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Format-string for exporting icalendar DATE-TIME.",
+                  "default": ":%Y%m%dT%H%M%S"
+                },
+                "org-icalendar-ttl": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false,
+                        "PT1H",
+                        "PT1D",
+                        "PT7D"
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Time to live for the exported calendar.",
+                  "default": false
+                },
+                "org-koma-letter-class-option-file": {
+                  "type": "string",
+                  "description": "Letter Class Option File.",
+                  "default": "NF"
+                },
+                "org-koma-letter-author": {
+                  "description": "Sender's name."
+                },
+                "org-koma-letter-email": {
+                  "description": "Sender's email address."
+                },
+                "org-koma-letter-from-address": {
+                  "type": "string",
+                  "description": "Sender's address, as a string.",
+                  "default": ""
+                },
+                "org-koma-letter-phone-number": {
+                  "type": "string",
+                  "description": "Sender's phone number, as a string.",
+                  "default": ""
+                },
+                "org-koma-letter-url": {
+                  "type": "string",
+                  "description": "Sender's URL, e.",
+                  "default": ""
+                },
+                "org-koma-letter-from-logo": {
+                  "type": "string",
+                  "description": "Commands for inserting the sender's logo, e.",
+                  "default": ""
+                },
+                "org-koma-letter-place": {
+                  "type": "string",
+                  "description": "Place from which the letter is sent, as a string.",
+                  "default": ""
+                },
+                "org-koma-letter-location": {
+                  "type": "string",
+                  "description": "Sender's extension field, as a string.",
+                  "default": ""
+                },
+                "org-koma-letter-opening": {
+                  "type": "string",
+                  "description": "Letter's opening, as a string.",
+                  "default": ""
+                },
+                "org-koma-letter-closing": {
+                  "type": "string",
+                  "description": "Letter's closing, as a string.",
+                  "default": ""
+                },
+                "org-koma-letter-signature": {
+                  "type": "string",
+                  "description": "Signature, as a string.",
+                  "default": ""
+                },
+                "org-koma-letter-prefer-special-headings": {
+                  "type": "boolean",
+                  "description": "Non-nil means prefer headlines over keywords for TO and FROM.",
+                  "default": false
+                },
+                "org-koma-letter-subject-format": {
+                  "description": "Non-nil means include the subject.",
+                  "default": true
+                },
+                "org-koma-letter-use-backaddress": {
+                  "type": "boolean",
+                  "description": "Non-nil prints return address in line above to address.",
+                  "default": false
+                },
+                "org-koma-letter-use-foldmarks": {
+                  "description": "Configure appearance of folding marks.",
+                  "default": true
+                },
+                "org-koma-letter-use-phone": {
+                  "type": "boolean",
+                  "description": "Non-nil prints sender's phone number.",
+                  "default": false
+                },
+                "org-koma-letter-use-url": {
+                  "type": "boolean",
+                  "description": "Non-nil prints sender's URL.",
+                  "default": false
+                },
+                "org-koma-letter-use-from-logo": {
+                  "type": "boolean",
+                  "description": "Non-nil prints sender's FROM_LOGO.",
+                  "default": false
+                },
+                "org-koma-letter-use-email": {
+                  "type": "boolean",
+                  "description": "Non-nil prints sender's email address.",
+                  "default": false
+                },
+                "org-koma-letter-use-place": {
+                  "type": "boolean",
+                  "description": "Non-nil prints the letter's place next to the date.",
+                  "default": true
+                },
+                "org-koma-letter-default-class": {
+                  "type": "string",
+                  "description": "Default class for `org-koma-letter`.",
+                  "default": "default-koma-letter"
+                },
+                "org-koma-letter-headline-is-opening-maybe": {
+                  "type": "boolean",
+                  "description": "Non-nil means a headline may be used as an opening and closing.",
+                  "default": true
+                },
+                "org-koma-letter-prefer-subject": {
+                  "type": "boolean",
+                  "description": "Non-nil means title should be interpreted as subject if subject is missing.",
+                  "default": false
+                },
+                "org-latex-caption-above": {
+                  "description": "When non-nil, place caption string at the beginning of elements.",
+                  "default": [
+                    "table"
+                  ]
+                },
+                "org-latex-prefer-user-labels": {
+                  "type": "boolean",
+                  "description": "Use user-provided labels instead of internal ones when non-nil.",
+                  "default": false
+                },
+                "org-latex-reference-command": {
+                  "type": "string",
+                  "description": "Format string that takes a reference to produce a LaTeX reference command.",
+                  "default": "\\ref{%s}"
+                },
+                "org-latex-default-class": {
+                  "type": "string",
+                  "description": "The default LaTeX class.",
+                  "default": "article"
+                },
+                "org-latex-classes": {
+                  "description": "Alist of LaTeX classes and associated header and structure."
+                },
+                "org-latex-inputenc-alist": {
+                  "description": "Alist of inputenc coding system names, and what should really be used.",
+                  "default": []
+                },
+                "org-latex-title-command": {
+                  "type": "string",
+                  "description": "The command used to insert the title just after \\begin{document}.",
+                  "default": "\\maketitle"
+                },
+                "org-latex-subtitle-format": {
+                  "type": "string",
+                  "description": "Format string used for transcoded subtitle.",
+                  "default": "\\\\\\medskip\n\\large %s"
+                },
+                "org-latex-subtitle-separate": {
+                  "type": "boolean",
+                  "description": "Non-nil means the subtitle is not typeset as part of title.",
+                  "default": false
+                },
+                "org-latex-toc-command": {
+                  "type": "string",
+                  "description": "LaTeX command to set the table of contents, list of figures, etc.",
+                  "default": "\\tableofcontents\n\n"
+                },
+                "org-latex-hyperref-template": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Template for hyperref package options.",
+                  "default": "\\hypersetup{\n pdfauthor={%a},\n pdftitle={%t},\n pdfkeywords={%k},\n pdfsubject={%d},\n pdfcreator={%c},\n pdflang={%L}}\n"
+                },
+                "org-latex-format-headline-function": {
+                  "description": "Function for formatting the headline's text."
+                },
+                "org-latex-default-footnote-command": {
+                  "type": "string",
+                  "description": "Default command used to insert footnotes.",
+                  "default": "\\footnote{%s%s}"
+                },
+                "org-latex-footnote-separator": {
+                  "type": "string",
+                  "description": "Text used to separate footnotes.",
+                  "default": "\\textsuperscript{,}\\,"
+                },
+                "org-latex-footnote-defined-format": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "\\textsuperscript{\\ref{%s}}",
+                        "\\footref{%s}"
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Format string used to format reference to footnote already defined.",
+                  "default": "\\textsuperscript{\\ref{%s}}"
+                },
+                "org-latex-active-timestamp-format": {
+                  "type": "string",
+                  "description": "A `format` string to be applied to active timestamps.",
+                  "default": "\\textit{%s}"
+                },
+                "org-latex-inactive-timestamp-format": {
+                  "type": "string",
+                  "description": "A `format` string to be applied to inactive timestamps.",
+                  "default": "\\textit{%s}"
+                },
+                "org-latex-diary-timestamp-format": {
+                  "type": "string",
+                  "description": "A `format` string to be applied to diary timestamps.",
+                  "default": "\\textit{%s}"
+                },
+                "org-latex-images-centered": {
+                  "type": "boolean",
+                  "description": "When non-nil, images are centered.",
+                  "default": true
+                },
+                "org-latex-image-default-option": {
+                  "type": "string",
+                  "description": "Default option for images.",
+                  "default": ""
+                },
+                "org-latex-image-default-width": {
+                  "type": "string",
+                  "description": "Default width for images.",
+                  "default": ".9\\linewidth"
+                },
+                "org-latex-image-default-scale": {
+                  "type": "string",
+                  "description": "Default scale for images.",
+                  "default": ""
+                },
+                "org-latex-image-default-height": {
+                  "type": "string",
+                  "description": "Default height for images.",
+                  "default": ""
+                },
+                "org-latex-default-figure-position": {
+                  "type": "string",
+                  "description": "Default position for LaTeX figures.",
+                  "default": "htbp"
+                },
+                "org-latex-inline-image-rules": {
+                  "description": "Rules characterizing image files that can be inlined into LaTeX."
+                },
+                "org-latex-link-with-unknown-path-format": {
+                  "type": "string",
+                  "description": "Format string for links with unknown path type.",
+                  "default": "\\texttt{%s}"
+                },
+                "org-latex-default-table-environment": {
+                  "type": "string",
+                  "description": "Default environment used to build tables.",
+                  "default": "tabular"
+                },
+                "org-latex-default-quote-environment": {
+                  "type": "string",
+                  "description": "Default environment used to `quote` blocks.",
+                  "default": "quote"
+                },
+                "org-latex-default-table-mode": {
+                  "enum": [
+                    "table",
+                    "math",
+                    "inline-math",
+                    "verbatim"
+                  ],
+                  "description": "Default mode for tables.",
+                  "default": "table"
+                },
+                "org-latex-tables-centered": {
+                  "type": "boolean",
+                  "description": "When non-nil, tables are exported in a center environment.",
+                  "default": true
+                },
+                "org-latex-tables-booktabs": {
+                  "type": "boolean",
+                  "description": "When non-nil, display tables in a formal \"booktabs\" style.",
+                  "default": false
+                },
+                "org-latex-table-scientific-notation": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Format string to display numbers in scientific notation.",
+                  "default": false
+                },
+                "org-latex-text-markup-alist": {
+                  "description": "Alist of LaTeX expressions to convert text markup."
+                },
+                "org-latex-format-drawer-function": {
+                  "description": "Function called to format a drawer in LaTeX code."
+                },
+                "org-latex-format-inlinetask-function": {
+                  "description": "Function called to format an inlinetask in LaTeX code."
+                },
+                "org-latex-src-block-backend": {
+                  "enum": [
+                    "listings",
+                    "minted",
+                    "engraved",
+                    "verbatim"
+                  ],
+                  "description": "Backend used to generate source code listings.",
+                  "default": "verbatim"
+                },
+                "org-latex-listings-langs": {
+                  "description": "Alist mapping languages to their listing language counterpart."
+                },
+                "org-latex-listings-src-omit-language": {
+                  "type": "boolean",
+                  "description": "Discard src block language parameter in listings.",
+                  "default": false
+                },
+                "org-latex-listings-options": {
+                  "description": "Association list of options for the latex listings package.",
+                  "default": []
+                },
+                "org-latex-minted-langs": {
+                  "description": "Alist mapping languages to their minted language counterpart."
+                },
+                "org-latex-minted-options": {
+                  "description": "Association list of options for the latex minted package.",
+                  "default": []
+                },
+                "org-latex-custom-lang-environments": {
+                  "description": "Alist mapping languages to language-specific LaTeX environments.",
+                  "default": []
+                },
+                "org-latex-engraved-preamble": {
+                  "type": "string",
+                  "description": "Preamble content injected when using engrave-faces-latex for source blocks.",
+                  "default": "\\usepackage{fvextra}\n\n[FVEXTRA-SETUP]\n\n% Make line numbers smaller and grey.\n\\renewcommand\\theFancyVerbLine{\\footnotesize\\color{black!40!white}\\arabic{FancyVerbLine}}\n\n\\usepackage{xcolor}\n\n% In case engrave-faces-latex-gen-preamble has not been run.\n\\providecolor{EfD}{HTML}{f7f7f7}\n\\providecolor{EFD}{HTML}{28292e}\n\n% Define a Code environment to prettily wrap the fontified code.\n\\usepackage[breakable,xparse]{tcolorbox}\n\\DeclareTColorBox[]{Code}{o}%\n{colback=EfD!98!EFD, colframe=EfD!95!EFD,\n  fontupper=\\footnotesize\\setlength{\\fboxsep}{0pt},\n  colupper=EFD,\n  IfNoValueTF={#1}%\n  {boxsep=2pt, arc=2.5pt, outer arc=2.5pt,\n    boxrule=0.5pt, left=2pt}%\n  {boxsep=2.5pt, arc=0pt, outer arc=0pt,\n    boxrule=0pt, leftrule=1.5pt, left=0.5pt},\n  right=2pt, top=1pt, bottom=0.5pt,\n  breakable}\n\n[LISTINGS-SETUP]"
+                },
+                "org-latex-engraved-options": {
+                  "description": "Association list of options for the latex fvextra package when engraving code."
+                },
+                "org-latex-engraved-theme": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        true,
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "The theme that should be used for engraved code, when non-nil.",
+                  "default": false
+                },
+                "org-latex-compiler-file-string": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "%% Intended LaTeX compiler: %s\n",
+                        "%% -*- latex-run-command: %s -*-\n",
+                        "%% -*- LaTeX-command: %s -*-\n"
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "LaTeX compiler format-string.",
+                  "default": "%% Intended LaTeX compiler: %s\n"
+                },
+                "org-latex-compiler": {
+                  "enum": [
+                    "pdflatex",
+                    "xelatex",
+                    "lualatex",
+                    ""
+                  ],
+                  "description": "LaTeX compiler to use.",
+                  "default": "pdflatex"
+                },
+                "org-latex-bib-compiler": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "bibtex",
+                        "biber"
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Command to process a LaTeX file's bibliography.",
+                  "default": "bibtex"
+                },
+                "org-latex-pdf-process": {
+                  "description": "Commands to process a LaTeX file to a PDF file."
+                },
+                "org-latex-logfiles-extensions": {
+                  "description": "The list of file extensions to consider as LaTeX logfiles.",
+                  "default": [
+                    "aux",
+                    "bcf",
+                    "blg",
+                    "fdb_latexmk",
+                    "fls",
+                    "figlist",
+                    "idx",
+                    "log",
+                    "nav",
+                    "out",
+                    "ptc",
+                    "run.xml",
+                    "snm",
+                    "toc",
+                    "vrb",
+                    "xdv"
+                  ]
+                },
+                "org-latex-remove-logfiles": {
+                  "type": "boolean",
+                  "description": "Non-nil means remove the logfiles produced by PDF production.",
+                  "default": true
+                },
+                "org-latex-known-warnings": {
+                  "description": "Alist of regular expressions and associated messages for the user."
+                },
+                "org-latex-toc-include-unnumbered": {
+                  "type": "boolean",
+                  "description": "Whether to include unnumbered headings in the table of contents.",
+                  "default": false
+                },
+                "org-latex-use-sans": {
+                  "type": "boolean",
+                  "description": "Whether to typeset the document with the Sans font family.",
+                  "default": false
+                },
+                "org-man-tables-centered": {
+                  "type": "boolean",
+                  "description": "When non-nil, tables are exported in a center environment.",
+                  "default": true
+                },
+                "org-man-tables-verbatim": {
+                  "type": "boolean",
+                  "description": "When non-nil, tables are exported verbatim.",
+                  "default": false
+                },
+                "org-man-table-scientific-notation": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Format string to display numbers in scientific notation.",
+                  "default": "%sE%s"
+                },
+                "org-man-source-highlight": {
+                  "type": "boolean",
+                  "description": "Use GNU source highlight to embellish source blocks.",
+                  "default": false
+                },
+                "org-man-source-highlight-langs": {
+                  "description": "Alist mapping languages to their listing language counterpart."
+                },
+                "org-man-pdf-process": {
+                  "description": "Commands to process a Man file to a PDF file.",
+                  "default": [
+                    "tbl %f | eqn | groff -man | ps2pdf - > %b.pdf",
+                    "tbl %f | eqn | groff -man | ps2pdf - > %b.pdf",
+                    "tbl %f | eqn | groff -man | ps2pdf - > %b.pdf"
+                  ]
+                },
+                "org-man-logfiles-extensions": {
+                  "description": "The list of file extensions to consider as Man logfiles.",
+                  "default": [
+                    "log",
+                    "out",
+                    "toc"
+                  ]
+                },
+                "org-man-remove-logfiles": {
+                  "type": "boolean",
+                  "description": "Non-nil means remove the logfiles produced by PDF production.",
+                  "default": true
+                },
+                "org-md-headline-style": {
+                  "enum": [
+                    "atx",
+                    "setext",
+                    "mixed"
+                  ],
+                  "description": "Style used to format headlines.",
+                  "default": "atx"
+                },
+                "org-md-footnotes-section": {
+                  "type": "string",
+                  "description": "Format string for the footnotes section.",
+                  "default": "%s%s"
+                },
+                "org-md-footnote-format": {
+                  "type": "string",
+                  "description": "Format string for the footnote reference.",
+                  "default": "<sup>%s</sup>"
+                },
+                "org-md-toplevel-hlevel": {
+                  "type": "integer",
+                  "description": "Heading level to use for level 1 Org headings in markdown export.",
+                  "default": 1
+                },
+                "org-md-link-org-files-as-md": {
+                  "type": "boolean",
+                  "description": "Non-nil means make file links to \"file.org\" point to \"file.md\".",
+                  "default": true
+                },
+                "org-odt-with-forbidden-chars": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        true,
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "String to replace forbidden XML characters.",
+                  "default": ""
+                },
+                "org-odt-prettify-xml": {
+                  "type": "boolean",
+                  "description": "Specify whether or not the xml output should be prettified.",
+                  "default": false
+                },
+                "org-odt-schema-dir": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Directory that contains OpenDocument schema files."
+                },
+                "org-odt-content-template-file": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Template file for \"content.xml\".",
+                  "default": false
+                },
+                "org-odt-styles-file": {
+                  "description": "Default styles file for use with ODT export.",
+                  "default": false
+                },
+                "org-odt-display-outline-level": {
+                  "type": "integer",
+                  "description": "Outline levels considered for enumerating captioned entities.",
+                  "default": 2
+                },
+                "org-odt-convert-processes": {
+                  "description": "Specify a list of document converters and their usage."
+                },
+                "org-odt-convert-process": {
+                  "description": "Use this converter to convert from \"odt\" format to other formats.",
+                  "default": "LibreOffice"
+                },
+                "org-odt-convert-capabilities": {
+                  "description": "Specify input and output formats of `org-odt-convert-process`."
+                },
+                "org-odt-preferred-output-format": {
+                  "description": "Automatically post-process to this format after exporting to \"odt\".",
+                  "default": false
+                },
+                "org-odt-format-drawer-function": {
+                  "description": "Function called to format a drawer in ODT code."
+                },
+                "org-odt-format-headline-function": {
+                  "description": "Function to format headline text."
+                },
+                "org-odt-format-inlinetask-function": {
+                  "description": "Function called to format an inlinetask in ODT code."
+                },
+                "org-odt-with-latex": {
+                  "description": "Non-nil means process LaTeX math snippets.",
+                  "default": true
+                },
+                "org-odt-inline-formula-rules": {
+                  "description": "Rules characterizing formula files that can be inlined into ODT."
+                },
+                "org-odt-inline-image-rules": {
+                  "description": "Rules characterizing image files that can be inlined into ODT."
+                },
+                "org-odt-pixels-per-inch": {
+                  "type": "number",
+                  "description": "Scaling factor for converting images pixels to inches.",
+                  "default": 96
+                },
+                "org-odt-create-custom-styles-for-srcblocks": {
+                  "type": "boolean",
+                  "description": "Whether custom styles for colorized source blocks be automatically created.",
+                  "default": true
+                },
+                "org-odt-fontify-srcblocks": {
+                  "type": "boolean",
+                  "description": "Specify whether or not source blocks need to be fontified.",
+                  "default": true
+                },
+                "org-odt-table-styles": {
+                  "description": "Specify how Table Styles should be derived from a Table Template."
+                },
+                "org-odt-use-date-fields": {
+                  "type": "boolean",
+                  "description": "Non-nil, if timestamps should be exported as date fields.",
+                  "default": false
+                },
+                "org-org-htmlized-css-url": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "URL pointing to the CSS defining colors for htmlized Emacs buffers.",
+                  "default": false
+                },
+                "org-org-with-special-rows": {
+                  "type": "boolean",
+                  "description": "Non-nil means export special table rows.",
+                  "default": true
+                },
+                "org-org-with-cite-processors": {
+                  "type": "boolean",
+                  "description": "Non-nil means use citation processors when exporting citations.",
+                  "default": false
+                },
+                "org-publish-project-alist": {
+                  "description": "Association list to control publishing behavior.",
+                  "default": []
+                },
+                "org-publish-use-timestamps-flag": {
+                  "type": "boolean",
+                  "description": "Non-nil means use timestamp checking to publish only changed files.",
+                  "default": true
+                },
+                "org-publish-timestamp-directory": {
+                  "type": "string",
+                  "description": "Name of directory in which to store publishing timestamps."
+                },
+                "org-publish-list-skipped-files": {
+                  "type": "boolean",
+                  "description": "Non-nil means show message about files *not* published.",
+                  "default": true
+                },
+                "org-publish-sitemap-sort-files": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        true,
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Method to sort files in site-maps.",
+                  "default": "alphabetically"
+                },
+                "org-publish-sitemap-sort-folders": {
+                  "enum": [
+                    "first",
+                    "last",
+                    "ignore",
+                    false
+                  ],
+                  "description": "A symbol, denoting if folders are sorted first in site-maps.",
+                  "default": "ignore"
+                },
+                "org-publish-sitemap-sort-ignore-case": {
+                  "type": "boolean",
+                  "description": "Non-nil when site-map sorting should ignore case.",
+                  "default": false
+                },
+                "org-texinfo-coding-system": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        true,
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Default document encoding for Texinfo output.",
+                  "default": false
+                },
+                "org-texinfo-default-class": {
+                  "type": "string",
+                  "description": "The default Texinfo class.",
+                  "default": "info"
+                },
+                "org-texinfo-classes": {
+                  "description": "Alist of Texinfo classes and associated header and structure."
+                },
+                "org-texinfo-format-headline-function": {
+                  "description": "Function to format headline text."
+                },
+                "org-texinfo-node-description-column": {
+                  "type": "integer",
+                  "description": "Column at which to start the description in the node listings.",
+                  "default": 32
+                },
+                "org-texinfo-active-timestamp-format": {
+                  "type": "string",
+                  "description": "A `format` string to be applied to active timestamps.",
+                  "default": "@emph{%s}"
+                },
+                "org-texinfo-inactive-timestamp-format": {
+                  "type": "string",
+                  "description": "A `format` string to be applied to inactive timestamps.",
+                  "default": "@emph{%s}"
+                },
+                "org-texinfo-diary-timestamp-format": {
+                  "type": "string",
+                  "description": "A `format` string to be applied to diary timestamps.",
+                  "default": "@emph{%s}"
+                },
+                "org-texinfo-link-with-unknown-path-format": {
+                  "type": "string",
+                  "description": "Format string for links with unknown path type.",
+                  "default": "@indicateurl{%s}"
+                },
+                "org-texinfo-tables-verbatim": {
+                  "type": "boolean",
+                  "description": "When non-nil, tables are exported verbatim.",
+                  "default": false
+                },
+                "org-texinfo-table-scientific-notation": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Format string to display numbers in scientific notation.",
+                  "default": false
+                },
+                "org-texinfo-table-default-markup": {
+                  "type": "string",
+                  "description": "Default markup for first column in two-column tables.",
+                  "default": "@asis"
+                },
+                "org-texinfo-text-markup-alist": {
+                  "description": "Alist of Texinfo expressions to convert text markup."
+                },
+                "org-texinfo-format-drawer-function": {
+                  "description": "Function called to format a drawer in Texinfo code."
+                },
+                "org-texinfo-format-inlinetask-function": {
+                  "description": "Function called to format an inlinetask in Texinfo code."
+                },
+                "org-texinfo-with-latex": {
+                  "enum": [
+                    "detect",
+                    true,
+                    false
+                  ],
+                  "description": "When non-nil, the Texinfo exporter attempts to process LaTeX math.",
+                  "default": "detect"
+                },
+                "org-texinfo-compact-itemx": {
+                  "type": "boolean",
+                  "description": "Non-nil means certain items in description list become `@itemx`.",
+                  "default": false
+                },
+                "org-texinfo-info-process": {
+                  "description": "Commands to process a Texinfo file to an INFO file.",
+                  "default": [
+                    "makeinfo --no-split %f"
+                  ]
+                },
+                "org-texinfo-logfiles-extensions": {
+                  "description": "The list of file extensions to consider as Texinfo logfiles.",
+                  "default": [
+                    "aux",
+                    "toc",
+                    "cp",
+                    "fn",
+                    "ky",
+                    "pg",
+                    "tp",
+                    "vr"
+                  ]
+                },
+                "org-texinfo-remove-logfiles": {
+                  "type": "boolean",
+                  "description": "Non-nil means remove the logfiles produced by compiling a Texinfo file.",
+                  "default": true
+                },
+                "org-export-with-archived-trees": {
+                  "enum": [
+                    false,
+                    "headline",
+                    true
+                  ],
+                  "description": "Whether sub-trees with the ARCHIVE tag should be exported.",
+                  "default": "headline"
+                },
+                "org-export-with-author": {
+                  "type": "boolean",
+                  "description": "Non-nil means insert author name into the exported file.",
+                  "default": true
+                },
+                "org-export-with-clocks": {
+                  "type": "boolean",
+                  "description": "Non-nil means export CLOCK keywords.",
+                  "default": false
+                },
+                "org-export-with-creator": {
+                  "type": "boolean",
+                  "description": "Non-nil means the postamble should contain a creator sentence.",
+                  "default": false
+                },
+                "org-export-with-date": {
+                  "type": "boolean",
+                  "description": "Non-nil means insert date in the exported document.",
+                  "default": true
+                },
+                "org-export-process-citations": {
+                  "type": "boolean",
+                  "description": "Non-nil means process citations using citation processors.",
+                  "default": true
+                },
+                "org-export-date-timestamp-format": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Timestamp format string to use for DATE keyword.",
+                  "default": false
+                },
+                "org-export-creator-string": {
+                  "type": "string",
+                  "description": "Information about the creator of the document."
+                },
+                "org-export-with-drawers": {
+                  "description": "Non-nil means export contents of standard drawers."
+                },
+                "org-export-with-email": {
+                  "type": "boolean",
+                  "description": "Non-nil means insert author email into the exported file.",
+                  "default": false
+                },
+                "org-export-with-emphasize": {
+                  "type": "boolean",
+                  "description": "Non-nil means interpret *word*, /word/, _word_ and +word+.",
+                  "default": true
+                },
+                "org-export-exclude-tags": {
+                  "description": "Tags that exclude a tree from export.",
+                  "default": [
+                    "noexport"
+                  ]
+                },
+                "org-export-with-fixed-width": {
+                  "type": "boolean",
+                  "description": "Non-nil means export lines starting with \":\".",
+                  "default": true
+                },
+                "org-export-with-footnotes": {
+                  "type": "boolean",
+                  "description": "Non-nil means Org footnotes should be exported.",
+                  "default": true
+                },
+                "org-export-with-latex": {
+                  "enum": [
+                    false,
+                    true,
+                    "verbatim"
+                  ],
+                  "description": "Non-nil means process LaTeX environments and fragments.",
+                  "default": true
+                },
+                "org-export-headline-levels": {
+                  "type": "integer",
+                  "description": "This level and its ancestors will be exported as a headline.",
+                  "default": 3
+                },
+                "org-export-default-language": {
+                  "type": "string",
+                  "description": "The default language for export and clocktable translations, as a string.",
+                  "default": "en"
+                },
+                "org-export-preserve-breaks": {
+                  "type": "boolean",
+                  "description": "Non-nil means preserve all line breaks when exporting.",
+                  "default": false
+                },
+                "org-export-with-entities": {
+                  "type": "boolean",
+                  "description": "Non-nil means interpret entities when exporting.",
+                  "default": true
+                },
+                "org-export-with-inlinetasks": {
+                  "type": "boolean",
+                  "description": "Non-nil means inlinetasks should be exported.",
+                  "default": true
+                },
+                "org-export-with-planning": {
+                  "type": "boolean",
+                  "description": "Non-nil means include planning info in export.",
+                  "default": false
+                },
+                "org-export-with-priority": {
+                  "type": "boolean",
+                  "description": "Non-nil means include priority cookies in export.",
+                  "default": false
+                },
+                "org-export-with-properties": {
+                  "description": "Non-nil means export contents of properties drawers.",
+                  "default": []
+                },
+                "org-export-with-section-numbers": {
+                  "type": "boolean",
+                  "description": "Non-nil means add section numbers to headlines when exporting.",
+                  "default": true
+                },
+                "org-export-select-tags": {
+                  "description": "Tags that select a tree for export.",
+                  "default": [
+                    "export"
+                  ]
+                },
+                "org-export-with-smart-quotes": {
+                  "type": "boolean",
+                  "description": "Non-nil means activate smart quotes during export.",
+                  "default": false
+                },
+                "org-export-with-special-strings": {
+                  "type": "boolean",
+                  "description": "Non-nil means interpret \"\\-\", \"--\" and \"---\" for export.",
+                  "default": true
+                },
+                "org-export-with-statistics-cookies": {
+                  "type": "boolean",
+                  "description": "Non-nil means include statistics cookies in export.",
+                  "default": true
+                },
+                "org-export-with-sub-superscripts": {
+                  "enum": [
+                    true,
+                    "{}",
+                    false
+                  ],
+                  "description": "Non-nil means interpret \"_\" and \"^\" for export.",
+                  "default": true
+                },
+                "org-export-with-toc": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false,
+                        true
+                      ]
+                    },
+                    {
+                      "type": "integer"
+                    }
+                  ],
+                  "description": "Non-nil means create a table of contents in exported files.",
+                  "default": true
+                },
+                "org-export-with-tables": {
+                  "type": "boolean",
+                  "description": "Non-nil means export tables.",
+                  "default": true
+                },
+                "org-export-with-tags": {
+                  "enum": [
+                    false,
+                    "not-in-toc",
+                    true
+                  ],
+                  "description": "If nil, do not export tags, just remove them from headlines.",
+                  "default": true
+                },
+                "org-export-with-tasks": {
+                  "description": "Non-nil means include TODO items for export.",
+                  "default": true
+                },
+                "org-export-with-title": {
+                  "type": "boolean",
+                  "description": "Non-nil means print title into the exported file.",
+                  "default": true
+                },
+                "org-export-timestamp-file": {
+                  "type": "boolean",
+                  "description": "Non-nil means insert a time stamp into the exported file.",
+                  "default": true
+                },
+                "org-export-with-timestamps": {
+                  "enum": [
+                    true,
+                    "active",
+                    "active-exclude-diary",
+                    "inactive",
+                    false
+                  ],
+                  "description": "Non-nil means allow timestamps in export.",
+                  "default": true
+                },
+                "org-export-with-todo-keywords": {
+                  "type": "boolean",
+                  "description": "Non-nil means include TODO keywords in export.",
+                  "default": true
+                },
+                "org-export-allow-bind-keywords": {
+                  "type": "boolean",
+                  "description": "Non-nil means BIND keywords can define local variable values.",
+                  "default": false
+                },
+                "org-export-with-broken-links": {
+                  "enum": [
+                    true,
+                    "mark",
+                    false
+                  ],
+                  "description": "Non-nil means do not raise an error on broken links.",
+                  "default": false
+                },
+                "org-export-expand-links": {
+                  "type": "boolean",
+                  "description": "When non-nil, expand environment variables in file paths.",
+                  "default": true
+                },
+                "org-export-replace-macros": {
+                  "type": "boolean",
+                  "description": "When non-nil, replace macros before export.",
+                  "default": true
+                },
+                "org-export-snippet-translation-alist": {
+                  "description": "Alist between export snippets backends and exporter backends.",
+                  "default": []
+                },
+                "org-export-global-macros": {
+                  "description": "Alist between macro names and expansion templates.",
+                  "default": []
+                },
+                "org-export-coding-system": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        true,
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Coding system for the exported file.",
+                  "default": false
+                },
+                "org-export-copy-to-kill-ring": {
+                  "enum": [
+                    true,
+                    "if-interactive",
+                    false
+                  ],
+                  "description": "Non-nil means pushing export output to the kill ring.",
+                  "default": false
+                },
+                "org-export-initial-scope": {
+                  "enum": [
+                    "buffer",
+                    "subtree"
+                  ],
+                  "description": "The initial scope when exporting with `org-export-dispatch`.",
+                  "default": "buffer"
+                },
+                "org-export-show-temporary-export-buffer": {
+                  "type": "boolean",
+                  "description": "Non-nil means show buffer after exporting to temp buffer.",
+                  "default": true
+                },
+                "org-export-body-only": {
+                  "type": "boolean",
+                  "description": "The initial \"Body only\" setting when exporting with `org-export-dispatch`.",
+                  "default": false
+                },
+                "org-export-visible-only": {
+                  "type": "boolean",
+                  "description": "The initial \"Visible only\" setting when exporting with `org-export-dispatch`.",
+                  "default": false
+                },
+                "org-export-force-publishing": {
+                  "type": "boolean",
+                  "description": "The initial \"Force publishing\" setting for `org-export-dispatch`.",
+                  "default": false
+                },
+                "org-export-in-background": {
+                  "type": "boolean",
+                  "description": "Non-nil means export and publishing commands will run in background.",
+                  "default": false
+                },
+                "org-export-async-init-file": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        false
+                      ]
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ],
+                  "description": "File used to initialize external export process.",
+                  "default": false
+                },
+                "org-export-dispatch-use-expert-ui": {
+                  "type": "boolean",
+                  "description": "Non-nil means using a non-intrusive `org-export-dispatch`.",
+                  "default": false
+                },
+                "org-export-smart-quotes-alist": {
+                  "description": "Smart quotes translations."
+                }
               },
-              "markdownDescription": "Org's options for what Emacs does, by their names in Org, which Emacs sets as Customize does: `{ \"org-attach-method\": \"mv\", \"org-export-with-toc\": false }`. `true` is `t` and `false` `nil`, a list is a list and a table an association list; a string is a symbol where the option takes one. Each is set when Emacs loads the library it is in, after `emacs_config_file` and `emacs_config`, and so wins over them. A value the option does not take is left out, with a message. The options are those marked `emacs` in the Options section of `docs/parity.org`; the others are settings of the server, or Lisp (functions, hooks), which goes in `emacs_config`.",
+              "additionalProperties": false,
+              "markdownDescription": "Org's options for what Emacs does, by their names in Org, which Emacs sets as Customize does: `{ \"org-attach-method\": \"mv\", \"org-export-with-toc\": false }`. `true` is `t` and `false` `nil`, a list is a list and a table an association list; a string is a symbol where the option takes one. Each is set when Emacs loads the library it is in, after `emacs_config_file` and `emacs_config`, and so wins over them. A value the option does not take is left out, with a message. The options, each with Org's documentation of it, are in `docs/emacs-options.org`; the others are settings of the server, or Lisp (functions, hooks), which goes in `emacs_config`.",
               "default": {}
             },
             "auto_save": {

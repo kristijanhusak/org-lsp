@@ -265,8 +265,10 @@ fn scan(spec: &Spec, code: &str) -> String {
         let word_char = |c: char| {
             is_word(c) || (spec.lisp_symbols && c == '-') || c == ':' && spec.constants.iter().any(|k| k.contains(':'))
         };
+        // TOML's bare keys go on over `-` (`org-attach-method = "mv"`).
+        let word_goes_on = |c: char| word_char(c) || (spec.keys == Keys::BeforeEquals && c == '-');
         if word_char(c) || (spec.keywords.iter().any(|k| k.ends_with('!')) && c == '!') {
-            let mut end = at + rest.find(|c: char| !word_char(c)).unwrap_or(rest.len());
+            let mut end = at + rest.find(|c: char| !word_goes_on(c)).unwrap_or(rest.len());
             if code[end..].starts_with('!') && spec.keywords.contains(&format!("{}!", &code[at..end]).as_str()) {
                 end += 1;
             }
@@ -390,6 +392,10 @@ mod tests {
         assert_eq!(
             code("toml", "[x]\nkey = 1"),
             "<span class=\"tok-heading\">[x]</span>\n<span class=\"tok-property\">key</span> = <span class=\"tok-number\">1</span>"
+        );
+        assert_eq!(
+            code("toml", "org-attach-method = -1"),
+            "<span class=\"tok-property\">org-attach-method</span> = -<span class=\"tok-number\">1</span>"
         );
     }
 

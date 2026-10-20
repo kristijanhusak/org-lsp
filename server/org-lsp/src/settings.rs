@@ -1810,8 +1810,8 @@ pub const SETTINGS: &[Setting] = &[
          `{ \"org-attach-method\": \"mv\", \"org-export-with-toc\": false }`. `true` is `t` and `false` `nil`, \
          a list is a list and a table an association list; a string is a symbol where the option takes one. \
          Each is set when Emacs loads the library it is in, after `emacs_config_file` and `emacs_config`, \
-         and so wins over them. A value the option does not take is left out, with a message. The options \
-         are those marked `emacs` in the Options section of `docs/parity.org`; the others are settings of \
+         and so wins over them. A value the option does not take is left out, with a message. The options, \
+         each with Org's documentation of it, are in `docs/emacs-options.org`; the others are settings of \
          the server, or Lisp (functions, hooks), which goes in `emacs_config`.",
     ),
     setting(
@@ -4543,14 +4543,11 @@ const PRIORITY: &str = r#"{ "anyOf": [{ "type": "string", "pattern": "^[A-Za-z]$
 pub fn schema(name: &str) -> Option<Value> {
     let (_, schema) = SCHEMAS.iter().find(|(known, _)| *known == name)?;
     let mut schema: Value = serde_json::from_str(schema).ok()?;
-    // Org's options that Emacs reads.
+    // Org's options that Emacs reads, each with what Org says of it, so
+    // that an editor completes their names and describes them.
     if name == "emacs_options" {
-        let names: Vec<&str> = crate::org_options::all()
-            .iter()
-            .filter(|option| option.status == "emacs")
-            .map(|option| option.name.as_str())
-            .collect();
-        schema["propertyNames"] = json!({ "enum": names });
+        schema["properties"] = Value::Object(crate::org_options::emacs_schemas());
+        schema["additionalProperties"] = json!(false);
     }
     Some(schema)
 }
@@ -4703,12 +4700,14 @@ mod tests {
                 None => true,
             }),
             "object" => value.as_object().is_some_and(|fields| {
-                fields.iter().all(|(key, field)| match schema.pointer(&format!("/properties/{key}")) {
-                    Some(property) => allows(property, field),
-                    // A schema for the fields not named.
-                    None => schema
-                        .get("additionalProperties")
-                        .is_some_and(|other| other.is_object() && allows(other, field)),
+                fields.iter().all(|(key, field)| {
+                    match schema.get("properties").and_then(|properties| properties.get(key)) {
+                        Some(property) => allows(property, field),
+                        // A schema for the fields not named.
+                        None => schema
+                            .get("additionalProperties")
+                            .is_some_and(|other| other.is_object() && allows(other, field)),
+                    }
                 })
             }),
             _ => false,
@@ -4716,6 +4715,9 @@ mod tests {
         match &schema["type"] {
             Value::String(name) => of_type(name),
             Value::Array(names) => names.iter().filter_map(Value::as_str).any(of_type),
+            // No type: anything (an option of `emacs_options` whose type
+            // is not simple).
+            Value::Null => true,
             _ => false,
         }
     }
@@ -4734,6 +4736,22 @@ mod tests {
         assert!(!allows(&schema("org_log_done").unwrap(), &json!("yes")));
         assert!(!allows(&schema("org_capture_templates").unwrap(), &json!([{ "key": "t", "taget": [] }])));
         assert!(allows(&schema("org_agenda_span").unwrap(), &json!(3)));
+    }
+
+    #[test]
+    fn the_schema_of_emacs_options_allows_their_defaults() {
+        let schema = schema("emacs_options").unwrap();
+        for (name, property) in schema["properties"].as_object().unwrap() {
+            if let Some(default) = property.get("default") {
+                assert!(
+                    allows(&schema, &json!({ name: default })),
+                    "the default of `{name}` is not what its schema allows"
+                );
+            }
+        }
+        assert!(!allows(&schema, &json!({ "org-attach-method": "move" })));
+        assert!(!allows(&schema, &json!({ "org-atach-method": "mv" })));
+        assert!(allows(&schema, &json!({ "org-attach-method": "mv", "org-export-with-toc": false })));
     }
 
     #[test]
