@@ -53,7 +53,7 @@ function matches(selector, token) {
   return (type === '*' || type === token.type) && (modifier === undefined || token.modifiers.includes(modifier));
 }
 
-const extension = () => vscode.extensions.getExtension('org-lsp.org-lsp');
+const extension = () => vscode.extensions.getExtension('kristijanhusak.org-lsp');
 
 /** The looks the extension contributes, by language: `{ language: { selector: scopes } }`. */
 function contributed() {

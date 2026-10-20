@@ -365,6 +365,11 @@ install_vscode() {
     vsix=$work/org-lsp-$target.vsix
     fetch "org-lsp-$target.vsix" "$vsix"
   fi
+  # The extension was `org-lsp.org-lsp` before it had a publisher on the
+  # Marketplace; that one goes, so that the two do not both run.
+  if "$code" --list-extensions 2> /dev/null | grep -ix 'org-lsp\.org-lsp' > /dev/null; then
+    "$code" --uninstall-extension org-lsp.org-lsp
+  fi
   "$code" --install-extension "$vsix" --force
   say "Installed. Reload VS Code (\"Developer: Reload Window\") to use it."
 }

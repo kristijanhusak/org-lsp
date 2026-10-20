@@ -146,7 +146,7 @@ let userBindings = [];
 
 /** The keys package.json binds, then the user's. */
 function bindings() {
-  const own = vscode.extensions.getExtension('org-lsp.org-lsp').packageJSON.contributes.keybindings;
+  const own = vscode.extensions.getExtension('kristijanhusak.org-lsp').packageJSON.contributes.keybindings;
   return [...own, ...userBindings];
 }
 
@@ -594,7 +594,7 @@ describe(`The scenarios, with the ${preset} keys`, function () {
 
   before(async () => {
     // Started without an Org file, the extension is not active yet.
-    api = await vscode.extensions.getExtension('org-lsp.org-lsp').activate();
+    api = await vscode.extensions.getExtension('kristijanhusak.org-lsp').activate();
     const keybindings = path.join(process.env.ORG_LSP_TEST_USER_DATA ?? '', 'User', 'keybindings.json');
     userBindings = fs.existsSync(keybindings) ? JSON.parse(fs.readFileSync(keybindings, 'utf8')) : [];
     stubPrompts();

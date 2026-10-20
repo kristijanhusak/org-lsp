@@ -6,3 +6,4 @@
 !syntaxes/**
 !dist/extension.js
 !server/**
+!icon.png
