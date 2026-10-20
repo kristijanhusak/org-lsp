@@ -8,7 +8,8 @@
 //! ([`Emacs::call`], for what is quick, such as the export menu) or is
 //! answered later as an [`Event`] the server's loop receives
 //! ([`Emacs::start`]). Questions Emacs asks on the way (`y-or-n-p`) come
-//! as events too, and wait for their answer.
+//! as events too, and wait for their answer, as do notices for the user
+//! (an option of `emacs_options` Emacs did not set).
 
 use std::collections::VecDeque;
 use std::io::{BufRead, BufReader, Write};
@@ -37,6 +38,18 @@ pub struct Settings {
     pub config_file: Option<String>,
     /// Emacs Lisp to evaluate after it (`emacs_config`).
     pub config: Option<String>,
+    /// Org's options to set after both, each once its library is loaded
+    /// (`emacs_options`).
+    pub options: Vec<OrgOption>,
+}
+
+/// An option of Org that Emacs sets to `value` once the library it is in,
+/// `feature`, is loaded, as Customize would.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OrgOption {
+    pub name: String,
+    pub feature: String,
+    pub value: Value,
 }
 
 /// What the Emacs thread has for the server's loop.
@@ -48,6 +61,9 @@ pub enum Event {
     /// Emacs asked a question while the server waited for it, which could
     /// not be put to the user: it was answered no.
     Declined { prompt: String },
+    /// Emacs has something to tell the user: an option of `emacs_options`
+    /// it did not set.
+    Notice { text: String },
 }
 
 struct Job {
@@ -296,7 +312,14 @@ fn start(settings: &Settings, events: &Sender<Event>) -> Result<Process, String>
         }
     });
     let mut process = Process { child, stdin, lines, stderr: kept, next_id: 0 };
-    let params = json!({ "config_file": settings.config_file, "config": settings.config });
+    // Each option's value as JSON text, which Emacs reads as it reads a
+    // value of its own: no Lisp is written from what the user gave.
+    let options: Vec<Value> = settings
+        .options
+        .iter()
+        .map(|option| json!({ "name": option.name, "feature": option.feature, "json": option.value.to_string() }))
+        .collect();
+    let params = json!({ "config_file": settings.config_file, "config": settings.config, "options": options });
     request(&mut process, "setup", params, events, Instant::now() + SETUP_TIME, false)
         .map_err(|error| format!("Emacs could not load Org with your configuration: {error}"))?;
     Ok(process)
@@ -351,6 +374,10 @@ fn request(
             if writeln!(process.stdin, "{reply}").and_then(|()| process.stdin.flush()).is_err() {
                 return Err(stopped(process));
             }
+            continue;
+        }
+        if let Some(text) = message.get("notice").and_then(Value::as_str) {
+            let _ = events.send(Event::Notice { text: text.to_string() });
             continue;
         }
         if message.get("id").and_then(Value::as_u64) != Some(id) {
@@ -472,6 +499,79 @@ done
         assert_eq!(first, again, "the same Emacs answers both");
         drop(emacs);
         std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    /// `emacs_options` in a real Emacs: each value made what the option's
+    /// type wants, set after the user's Lisp, or left out with a notice.
+    #[test]
+    fn sets_org_options_as_their_types_want() {
+        let found = Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+        if !found {
+            assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+            eprintln!("sets_org_options_as_their_types_want: no Emacs, skipped");
+            return;
+        }
+        let load =
+            std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
+        let option = |name: &str, feature: &str, value: Value| OrgOption {
+            name: name.to_string(),
+            feature: feature.to_string(),
+            value,
+        };
+        let emacs = Emacs::new(Settings {
+            program: "emacs".to_string(),
+            config: Some(format!(
+                "{load}\n(setq org-attach-method 'ln)\n\
+                 (with-eval-after-load 'ox (setq org-export-with-toc 3))"
+            )),
+            options: vec![
+                // A choice of constants, a string for a symbol.
+                option("org-attach-method", "org-attach", json!("mv")),
+                option("org-attach-use-inheritance", "org-attach", json!(true)),
+                // A choice of constants and an integer.
+                option("org-export-with-toc", "ox", json!(false)),
+                option("org-export-with-sub-superscripts", "ox", json!("{}")),
+                option("org-export-exclude-tags", "ox", json!(["private", "draft"])),
+                // An alist with symbols for keys, and a list of pairs
+                // from a table.
+                option("org-html-text-markup-alist", "ox-html", json!({ "bold": "<b>%s</b>" })),
+                option("org-structure-template-alist", "org", json!({ "q": "quote", "x": "example" })),
+                // A property list.
+                option("org-format-latex-options", "org", json!({ "scale": 2.0 })),
+                // Not what they take.
+                option("org-attach-store-link-p", "org-attach", json!("move")),
+                option("org-html-format-drawer-function", "ox-html", json!("my-drawer")),
+            ],
+            ..Settings::default()
+        });
+        let value = |name: &str| {
+            let sexp = format!("(progn (require 'org-attach) (require 'ox-html) (format \"%S\" {name}))");
+            emacs.call("eval", json!({ "sexp": sexp }), Duration::from_secs(60)).unwrap()
+        };
+        assert_eq!(value("org-attach-method"), "mv", "after `emacs_config`, over it");
+        assert_eq!(value("org-attach-use-inheritance"), "t");
+        assert_eq!(value("org-export-with-toc"), "nil", "after the user's `with-eval-after-load`");
+        assert_eq!(value("org-export-with-sub-superscripts"), "{}");
+        assert_eq!(value("org-export-exclude-tags"), r#"("private" "draft")"#);
+        assert_eq!(value("org-html-text-markup-alist"), r#"((bold . "<b>%s</b>"))"#);
+        assert_eq!(value("org-structure-template-alist"), r#"(("q" . "quote") ("x" . "example"))"#);
+        assert_eq!(value("org-format-latex-options"), "(:scale 2.0)");
+        assert_eq!(value("org-attach-store-link-p"), "attached", "left as it was");
+        let mut notices = Vec::new();
+        while let Ok(event) = emacs.events().try_recv() {
+            if let Event::Notice { text } = event {
+                notices.push(text);
+            }
+        }
+        assert_eq!(
+            notices,
+            [
+                "`emacs_options` leaves out `org-attach-store-link-p`: \"move\" is not false, true, \"attached\" \
+                 or \"file\"",
+                "`emacs_options` leaves out `org-html-format-drawer-function`: \"my-drawer\" is not a function, \
+                 which goes in `emacs_config`",
+            ]
+        );
     }
 
     #[test]

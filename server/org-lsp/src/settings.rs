@@ -1796,11 +1796,24 @@ pub const SETTINGS: &[Setting] = &[
             "",
             "",
             "Emacs Lisp that Emacs evaluates after `emacs_config_file` and before loading Org, for a few \
-             settings without a file: `(setq org-export-with-toc nil)`, or `(add-to-list 'load-path \
-             \"~/src/org-mode/lisp\")` for another Org. A yes-or-no question Emacs asks while it works \
-             (`org-confirm-babel-evaluate`) is asked in the editor.",
+             settings without a file that `emacs_options` cannot say: a function or a hook, or \
+             `(add-to-list 'load-path \"~/src/org-mode/lisp\")` for another Org. A yes-or-no question Emacs \
+             asks while it works (`org-confirm-babel-evaluate`) is asked in the editor.",
         )
     },
+    setting(
+        "emacs_options",
+        "{ [option]: value }",
+        "{}",
+        "",
+        "Org's options for what Emacs does, by their names in Org, which Emacs sets as Customize does: \
+         `{ \"org-attach-method\": \"mv\", \"org-export-with-toc\": false }`. `true` is `t` and `false` `nil`, \
+         a list is a list and a table an association list; a string is a symbol where the option takes one. \
+         Each is set when Emacs loads the library it is in, after `emacs_config_file` and `emacs_config`, \
+         and so wins over them. A value the option does not take is left out, with a message. The options \
+         are those marked `emacs` in the Options section of `docs/parity.org`; the others are settings of \
+         the server, or Lisp (functions, hooks), which goes in `emacs_config`.",
+    ),
     setting(
         "auto_save",
         "boolean",
@@ -4116,6 +4129,8 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("emacs", STRING),
     ("emacs_config_file", STRING),
     ("emacs_config", STRING),
+    // The names it takes, from `scripts/org-options.json` (see `schema`).
+    ("emacs_options", r#"{ "type": "object" }"#),
     ("auto_save", BOOLEAN),
     ("org_cycle_separator_lines", r#"{ "type": "integer" }"#),
     ("org_cycle_include_plain_lists", r#"{ "enum": [true, false, "integrate"] }"#),
@@ -4527,7 +4542,17 @@ const PRIORITY: &str = r#"{ "anyOf": [{ "type": "string", "pattern": "^[A-Za-z]$
 /// The schema of the option `name`.
 pub fn schema(name: &str) -> Option<Value> {
     let (_, schema) = SCHEMAS.iter().find(|(known, _)| *known == name)?;
-    serde_json::from_str(schema).ok()
+    let mut schema: Value = serde_json::from_str(schema).ok()?;
+    // Org's options that Emacs reads.
+    if name == "emacs_options" {
+        let names: Vec<&str> = crate::org_options::all()
+            .iter()
+            .filter(|option| option.status == "emacs")
+            .map(|option| option.name.as_str())
+            .collect();
+        schema["propertyNames"] = json!({ "enum": names });
+    }
+    Some(schema)
 }
 
 /// The table as JSON: a list of `{ "name", "type", "default"?, "unset"?,

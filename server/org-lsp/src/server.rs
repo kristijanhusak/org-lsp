@@ -1636,6 +1636,7 @@ pub fn run(connection: Connection) -> Result<()> {
                 (entities, config) => entities.or(config),
             }
         },
+        options: options.emacs_options().0,
     });
     let mut agenda = options.agenda_config();
     // The diary sexps the agenda cannot read, read by Emacs
@@ -11900,8 +11901,8 @@ impl Server {
         Ok(Value::Null)
     }
 
-    /// What Emacs has for the server: a question to ask in the editor, or
-    /// what an export made, to show.
+    /// What Emacs has for the server: a question to ask in the editor, an
+    /// option it did not set, or what an export made, to show.
     fn emacs_event(&mut self, event: crate::emacs::Event) {
         match event {
             crate::emacs::Event::Ask { prompt, answer } => {
@@ -11922,6 +11923,10 @@ impl Server {
             // As Emacs's echo area shows a question and its answer.
             crate::emacs::Event::Declined { prompt } => {
                 self.show_message(MessageType::INFO, format!("{prompt} (y or n) n"));
+            }
+            // As a problem with the options is told when the server starts.
+            crate::emacs::Event::Notice { text } => {
+                self.show_message(MessageType::WARNING, format!("org-lsp: {text}"));
             }
             crate::emacs::Event::Done { tag, result } => match (self.emacs_jobs.remove(&tag), result) {
                 (Some(EmacsJob::Prefixes { forms, all }), result) => self.prefixes_evaluated(tag, &forms, all, result),
@@ -15603,7 +15608,7 @@ impl Server {
     /// opens, the editor or the system opens.
     fn attach(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
         const COMMANDS: [(&str, &str); 14] = [
-            ("a", "Attach a file by org-attach-method (Emacs's, copying unless emacs_config sets it)"),
+            ("a", "Attach a file by org-attach-method (Emacs's, copying unless emacs_options sets it)"),
             ("c", "Attach a file by copying it"),
             ("m", "Attach a file by moving it"),
             ("l", "Attach a file by a hard link"),

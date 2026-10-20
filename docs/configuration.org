@@ -332,16 +332,40 @@ evaluating code blocks (~C-c C-c~ on a block, ~C-c C-v b~ for the file's),
 LaTeX previews, encryption and a few others. The server starts Emacs the
 first time and keeps it running.
 
-Emacs's own settings for these go in a file Emacs loads before Org, or
-inline:
+Org's options for these go in ~emacs_options~, by their names in Org, with
+values as the other options have them: ~true~ is ~t~, ~false~ is ~nil~, a
+string is a symbol where the option takes one (~"mv"~ is ~mv~), and a table
+is an association list.
+
+#+begin_src toml
+# ~/.config/org-lsp/config.toml
+[emacs_options]
+org-attach-method = "mv"
+org-attach-id-dir = "~/org/data/"
+org-export-with-toc = false
+org-export-backends = ["ascii", "html", "icalendar", "latex", "md", "odt"]
+org-babel-load-languages = { emacs-lisp = true, python = true }
+#+end_src
+
+Emacs sets each, as Customize would, when it loads the library the option
+is in (~org-attach~ for ~org-attach-method~), and checks it against the
+option's type: a value the option does not take is left out, with a
+message saying what it takes. The options are those Emacs reads, marked
+~emacs~ in [[file:parity.org::#options][the Options section of parity.org]]; for the others the
+server says why it leaves them out: most are settings of the server, and a
+function or a hook is Lisp.
+
+Lisp goes in a file Emacs loads before Org, or inline. Emacs loads
+~emacs_config_file~, then evaluates ~emacs_config~, then sets
+~emacs_options~, which so win over both:
 
 #+begin_src toml
 # ~/.config/org-lsp/config.toml
 emacs_config_file = "~/.config/org-lsp/export.el"
 emacs_config = '''
-(setq org-export-backends '(ascii html icalendar latex md odt))
-(setq org-html-validation-link nil)
-(org-babel-do-load-languages 'org-babel-load-languages '((emacs-lisp . t) (python . t)))
+(add-to-list 'load-path "~/src/org-mode/lisp")
+(setq org-html-format-drawer-function #'my-drawer)
+(add-hook 'org-export-before-processing-functions #'my-before-export)
 '''
 #+end_src
 
@@ -7865,13 +7889,35 @@ the home directory.
 :END:
 
 Emacs Lisp that Emacs evaluates after ~emacs_config_file~ and before loading
-Org, for a few settings without a file: ~(setq org-export-with-toc nil)~, or
-~(add-to-list 'load-path "~/src/org-mode/lisp")~ for another Org. A yes-or-no
-question Emacs asks while it works (~org-confirm-babel-evaluate~) is asked in
-the editor.
+Org, for a few settings without a file that ~emacs_options~ cannot say: a
+function or a hook, or ~(add-to-list 'load-path "~/src/org-mode/lisp")~ for
+another Org. A yes-or-no question Emacs asks while it works
+(~org-confirm-babel-evaluate~) is asked in the editor.
 
 - Type :: string
 - Default :: unset: none
+
+*** emacs_options
+:PROPERTIES:
+:CUSTOM_ID: emacs_options
+:END:
+
+Org's options for what Emacs does, by their names in Org, which Emacs sets as
+Customize does: ~{ "org-attach-method": "mv", "org-export-with-toc": false }~.
+~true~ is ~t~ and ~false~ ~nil~, a list is a list and a table an association
+list; a string is a symbol where the option takes one. Each is set when Emacs
+loads the library it is in, after ~emacs_config_file~ and ~emacs_config~, and
+so wins over them. A value the option does not take is left out, with a
+message. The options are those marked ~emacs~ in the Options section of
+[[file:parity.org][docs/parity.org]]; the others are settings of the server,
+or Lisp (functions, hooks), which goes in ~emacs_config~.
+
+- Type :: { [option]: value }
+- Default :: ~{}~
+
+#+begin_src toml
+emacs_options = {}
+#+end_src
 
 *** auto_save
 :PROPERTIES:
