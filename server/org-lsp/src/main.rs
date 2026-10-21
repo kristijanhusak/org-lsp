@@ -25,8 +25,13 @@ fn print(text: &str) {
 fn main() -> ExitCode {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
     if arguments.first().is_some_and(|argument| argument == "agenda") {
-        return match org_lsp::cli::agenda(&arguments[1..]) {
-            Ok(output) => {
+        let folder = std::env::current_dir().ok();
+        let env = |name: &str| std::env::var(name).ok();
+        return match org_lsp::cli::agenda_configured(&arguments[1..], &env, folder.as_deref()) {
+            Ok((output, problems)) => {
+                for problem in problems {
+                    eprintln!("org-lsp agenda: {problem}");
+                }
                 print(&output);
                 ExitCode::SUCCESS
             }

@@ -324,7 +324,7 @@ fn call(
 }
 
 /// The files the agenda is built from, as the server finds them.
-fn agenda_paths(options: &Options, folder: Option<&Path>) -> Vec<PathBuf> {
+pub(crate) fn agenda_paths(options: &Options, folder: Option<&Path>) -> Vec<PathBuf> {
     let mut workspace =
         crate::workspace::Workspace::new(options.agenda_files.clone(), folder.into_iter().map(Into::into).collect());
     workspace.file_regexp =

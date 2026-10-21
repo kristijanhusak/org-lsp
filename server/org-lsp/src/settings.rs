@@ -4679,6 +4679,43 @@ mod tests {
         assert_eq!(resolved(&loaded.options), resolved(&none));
     }
 
+    /// Each option of docs/config.toml comes out of TOML as the same value
+    /// as its default written as JSON (an editor's options), not only the
+    /// settings made of it. Numbers compare by value (TOML writes `1.0` as
+    /// `1`); TOML has no null, so options without a default are left out
+    /// there, as are those only an editor gives.
+    #[test]
+    fn docs_config_toml_gives_every_option_its_json_value() {
+        fn same(one: &Value, other: &Value) -> bool {
+            match (one, other) {
+                (Value::Number(one), Value::Number(other)) => one.as_f64() == other.as_f64(),
+                (Value::Array(one), Value::Array(other)) => {
+                    one.len() == other.len() && one.iter().zip(other).all(|(one, other)| same(one, other))
+                }
+                (Value::Object(one), Value::Object(other)) => {
+                    one.len() == other.len()
+                        && one.iter().all(|(key, value)| other.get(key).is_some_and(|found| same(value, found)))
+                }
+                _ => one == other,
+            }
+        }
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/config.toml");
+        let var = |name: &str| (name == "ORG_LSP_CONFIG").then(|| path.to_string());
+        let loaded = crate::config::load(None, &var);
+        let mut differ = Vec::new();
+        for setting in SETTINGS.iter().filter(|setting| !setting.integration && !setting.editor_only) {
+            let Some(default) = setting.default else { continue };
+            let value: Value = serde_json::from_str(default).unwrap();
+            let pointer = format!("/{}", setting.name.replace('.', "/"));
+            match loaded.merged.pointer(&pointer) {
+                None if value.is_null() => {}
+                Some(found) if same(found, &value) => {}
+                found => differ.push(format!("{}: {found:?} for {value}", setting.name)),
+            }
+        }
+        assert!(differ.is_empty(), "options read differently from TOML:\n{}", differ.join("\n"));
+    }
+
     #[test]
     fn the_defaults_of_org_roam_are_the_ones_that_apply() {
         let on = |mut value: Value| {
