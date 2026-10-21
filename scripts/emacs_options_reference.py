@@ -213,7 +213,11 @@ JSON values it takes and the JSON types; or nil."
 (defun org-lsp-options-version (symbol)
   (let ((package (get symbol 'custom-package-version))
         (emacs (get symbol 'custom-version)))
-    (cond (package (format "%s %s" (car package) (cdr package)))
+    ;; As Org writes it, or as a few of its libraries do: `(Org . "9.4")',
+    ;; `(Org "9.4")', `(Org. "9.8")'.
+    (cond (package (format "%s %s"
+                           (string-remove-suffix "." (format "%s" (car package)))
+                           (if (consp (cdr package)) (cadr package) (cdr package))))
           (emacs (format "Emacs %s" emacs)))))
 
 (defun org-lsp-options-record (name)
@@ -227,6 +231,9 @@ JSON values it takes and the JSON types; or nil."
                  (form (org-lsp-options-form standard))
                  (value (condition-case err (eval standard t) (error (list 'org-lsp-options-error err))))
                  (failed (eq (car-safe value) 'org-lsp-options-error))
+                 ;; A function written in the library is shown as written
+                 ;; there, not as the closure it makes.
+                 (lambda (and (not failed) (functionp value) (not (symbolp value))))
                  (type (get symbol 'custom-type))
                  (pure (org-lsp-options-pure-p form))
                  (json (and (not failed) pure
@@ -238,7 +245,7 @@ JSON values it takes and the JSON types; or nil."
                         ;; What depends on where Org loads (a program
                         ;; found, a path) is the form it is computed with.
                         (if (and pure (not failed))
-                            `(default . ,(org-lsp-options-printed value))
+                            `(default . ,(org-lsp-options-printed (if lambda form value)))
                           `(form . ,(or (org-lsp-options-source symbol) (org-lsp-options-printed form))))
                         (cons 'type (org-lsp-options-printed type))
                         (and version (cons 'version version))
@@ -248,7 +255,8 @@ JSON values it takes and the JSON types; or nil."
 
 (defun org-lsp-options-library (feature names out)
   "Load FEATURE and record each of NAMES into OUT."
-  (let ((loaded (condition-case err (progn (require (intern feature)) nil)
+  ;; Org too, whose keymap the docstrings name (`\\<org-mode-map>').
+  (let ((loaded (condition-case err (progn (require (intern feature)) (require 'org) nil)
                   (error (error-message-string err)))))
     (with-temp-file out
       (insert

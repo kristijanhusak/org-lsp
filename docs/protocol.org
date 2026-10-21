@@ -430,7 +430,7 @@ Each option with its type, its default and what it means:
 - ~org_bibtex_no_export_tags~ :: string[], ~[]~. Tags that are not exported as keywords, with ~org_bibtex_tags_are_keywords~. (~org-bibtex-no-export-tags~)
 - ~org_bibtex_inherit_tags~ :: boolean, ~false~. With ~org_bibtex_tags_are_keywords~, the tags an entry inherits are keywords too. (~org-bibtex-inherit-tags~)
 - ~org_bibtex_type_property_name~ :: string, ~"btype"~. The property that holds an entry's BibTeX type (~article~); a headline without it is no entry. (~org-bibtex-type-property-name~)
-- ~org_link_abbrev_alist~ :: { [abbreviation]: string }, ~{}~. Link abbreviations: ~[[gh:org-lsp]]~ with ~{ "gh": "https://github.com/%s" }~ follows ~https://github.com/org-lsp~. ~%s~ stands for what follows the colon, ~%h~ for it URL-encoded; without either it goes at the end. A file's ~#+LINK:~ lines come first. ~%(my-function)~ calls an Emacs function with what follows the colon (through Emacs). (~org-link-abbrev-alist~)
+- ~org_link_abbrev_alist~ :: { [abbreviation]: string }, ~{}~. Link abbreviations: ~[[gh:org-lsp]]~ with ~{ "gh": "https://github.com/%s" }~ follows ~https://github.com/org-lsp~. ~%s~ stands for what follows the colon, ~%h~ for it URL-encoded; without either it goes at the end. A file's ~#+LINK:~ lines come first. ~%(my-function)~ calls an Emacs function with what follows the colon (through Emacs), one ~emacs_config~ marks safe, as Org asks: ~(put 'my-function 'org-link-abbrev-safe t)~. (~org-link-abbrev-alist~)
 - ~org_file_apps~ :: [match, command][], ~[["auto-mode", "emacs"], ["directory", "emacs"], ["\\.mm\\'", "default"], ["\\.x?html?\\'", "default"], ["\\.pdf\\'", "default"]]~. What opens a linked file, the first entry that matches: a match is an extension (~txt~), an Emacs regular expression for the file name (~\\.pdf\\'~ in JSON; with groups ~%1~, ~%2~... in the command, it matches the file followed by the link's ~::~ part), ~directory~, ~remote~, ~system~ (what ~C-u C-u C-c C-o~ uses), ~auto-mode~ (every file the editor can show) or ~t~ (any other file). A command is ~emacs~ (the editor), ~default~ (the ~system~ entry, else the editor), ~system~ or ~mailcap~ (the system's application, through the editor), or a shell command where ~%s~ is the file. ~C-u C-c C-o~ opens the file in the editor. A Lisp function is not a command here. (~org-file-apps~)
 - ~org_open_non_existing_files~ :: boolean, ~false~. Open a linked file that is not there with the application ~org_file_apps~ gives it, rather than saying ~No such file~. The editor opens such a file either way. (~org-open-non-existing-files~)
 - ~org_open_directory_means_index_dot_org~ :: boolean, ~false~. Following a link to a directory opens the ~index.org~ in it, rather than the directory. (~org-open-directory-means-index-dot-org~)
@@ -495,7 +495,7 @@ Each option with its type, its default and what it means:
 - ~emacs~ :: string, ~"emacs"~. The Emacs program, for what only Org itself does: export (~org.export.dispatch~). The server starts it (~emacs --batch -Q~) when that is first asked for and keeps it running, so that Org loads once. Without Emacs, everything else works as before.
 - ~emacs_config_file~ :: string, none. A file of Emacs Lisp that Emacs loads before Org, for the variables export reads (~org-export-backends~, ~org-html-…~, ~org-latex-…~, ~org-publish-project-alist~): a file of its own, or your init file. =~/= is the home directory.
 - ~emacs_config~ :: string, none. Emacs Lisp that Emacs evaluates after ~emacs_config_file~ and before loading Org, for a few settings without a file that ~emacs_options~ cannot say: a function or a hook, or ~(add-to-list 'load-path "~/src/org-mode/lisp")~ for another Org. A yes-or-no question Emacs asks while it works (~org-confirm-babel-evaluate~) is asked in the editor.
-- ~emacs_options~ :: { [option]: value }, ~{}~. Org's options for what Emacs does, by their names in Org, which Emacs sets as Customize does: ~{ "org-attach-method": "mv", "org-export-with-toc": false }~. ~true~ is ~t~ and ~false~ ~nil~, a list is a list and a table an association list; a string is a symbol where the option takes one. Each is set when Emacs loads the library it is in, after ~emacs_config_file~ and ~emacs_config~, and so wins over them. A value the option does not take is left out, with a message. The options, each with Org's documentation of it, are in [[file:emacs-options.org][docs/emacs-options.org]]; the others are settings of the server, or Lisp (functions, hooks), which goes in ~emacs_config~.
+- ~emacs_options~ :: { [option]: value }, ~{}~. Org's options for what Emacs does, by their names in Org, which Emacs sets as Customize does: ~{ "org-attach-method": "mv", "org-export-with-toc": false }~. ~true~ is ~t~ and ~false~ ~nil~, a list is a list and a table an association list; a string is a symbol where the option takes one, or a function, by its name. Each is set when Emacs loads the library it is in, after ~emacs_config_file~ and ~emacs_config~, and so wins over them. A value the option does not take is left out, with a message naming the part that does not fit. The editor's go over the shared file's option by option. The options, each with Org's documentation of it, are in [[file:emacs-options.org][docs/emacs-options.org]]; the others are settings of the server, or Lisp (hooks, functions written out), which goes in ~emacs_config~.
 - ~auto_save~ :: boolean, ~true~. Save the files a command changes other than the one it was run in: an entry's file changed from the agenda, the target of a capture or of a refile. The editor saves them once it has made the change. Off, they are left with unsaved changes, as Emacs leaves them.
 - ~org_cycle_separator_lines~ :: number, ~2~. With at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. ~0~: none does. (~org-cycle-separator-lines~)
 - ~org_cycle_include_plain_lists~ :: true, false, "integrate", ~true~. Whether list items fold, as subtrees do. ~integrate~ makes them part of the outline: TAB showing a headline's children folds its lists to their top items too. ~false~: they do not fold. (~org-cycle-include-plain-lists~)
@@ -512,8 +512,8 @@ Each option with its type, its default and what it means:
 - ~org_image_actual_width~ :: boolean, number, or [number], ~true~. How wide the image of a link shows: ~true~ at its own width; a number, that many pixels; ~false~ or a list of one number, the ~:width~ of the paragraph's ~#+ATTR_ORG:~ or else of another ~#+ATTR_…:~ (pixels, ~50%~ or a fraction up to 2 of the text's width, ~t~ for its own width), else the list's number. An entry's ~ORG-IMAGE-ACTUAL-WIDTH~ property decides for its own text. (~org-image-actual-width~)
 - ~org_image_max_width~ :: "fill-column", "window", number, or null, ~"fill-column"~. How wide at most an image shown at its own width is: ~"fill-column"~, 70 columns; ~"window"~, the window's width; an integer, that many pixels; a float, that part of the window's width; null for no limit. (~org-image-max-width~)
 - ~org_display_remote_inline_images~ :: "skip", "download" or "cache", ~"skip"~. Whether the images of ~http:~ and ~https:~ links show (~C-c C-x C-v~): ~"skip"~ not; ~"download"~ downloaded each time they show; ~"cache"~ downloaded once and kept for the session. The download follows ~org_resource_download_policy~; an image larger than 20 MB is not downloaded. (~org-display-remote-inline-images~)
-- ~org_resource_download_policy~ :: true, "prompt", "safe" or false, ~"prompt"~. Which remote resources are downloaded (the images of links): ~true~ all of them; ~"prompt"~ those considered safe, and the others when the answer to Emacs's question says so; ~"safe"~ only those considered safe; ~false~ none but those. (~org-resource-download-policy~)
-- ~org_safe_remote_resources~ :: string[], ~[]~. The remote resources considered safe: Emacs regexps matched against a resource's URL and against the ~file://~ URL of the file asking for it. The answers ~!~, ~d~ and ~f~ to the download question add one for the rest of the session. (~org-safe-remote-resources~)
+- ~org_resource_download_policy~ :: true, "prompt", "safe" or false, ~"prompt"~. Which remote resources are downloaded (the images of links, and in Emacs a file attached from a URL, ~C-c C-a u~, or a remote ~#+INCLUDE:~ or ~#+SETUPFILE:~ in an export): ~true~ all of them; ~"prompt"~ those considered safe, and the others when the answer to Emacs's question says so (in Emacs, a yes or no: yes downloads it this once); ~"safe"~ only those considered safe; ~false~ none but those. (~org-resource-download-policy~)
+- ~org_safe_remote_resources~ :: string[], ~[]~. The remote resources considered safe: Emacs regexps matched against a resource's URL and against the ~file://~ URL of the file asking for it. The answers ~!~, ~d~ and ~f~ to the download question add one for the rest of the session. Emacs has them too, for what it downloads. (~org-safe-remote-resources~)
 - ~org_startup_with_link_previews~ :: boolean, ~false~. Show the images of links to image files in place when a file opens, as ~C-c C-x C-v~ (~org.link.preview~) shows them. ~#+STARTUP: inlineimages~ (or ~linkpreviews~) and ~noinlineimages~ decide for a file. Editors that can show images: Neovim from 0.13 (~vim.ui.img~), in a terminal with the Kitty graphics protocol. (~org-startup-with-link-previews~)
 - ~org_startup_with_latex_preview~ :: boolean, ~false~. Show the LaTeX fragments as images when a file opens, as ~C-c C-x C-l~ (~org.latex.preview~) shows them, made by Emacs. ~#+STARTUP: latexpreview~ and ~nolatexpreview~ decide for a file. (~org-startup-with-latex-preview~)
 - ~org_startup_indented~ :: boolean, ~false~. Show files indented by level without changing them (~org-indent-mode~): the text under a headline lines up with its title, and leading stars are hidden. ~#+STARTUP: indent~ and ~noindent~ decide for a file. It turns ~org_adapt_indentation~ off in such files, unless that is ~"headline-data"~. The lines a long line wraps into go on under its text, a headline's title or an item's text (~wrap-prefix~) in Neovim and Vim, without the prefix; under the prefix in Zed and Helix. (~org-startup-indented~)
@@ -1047,7 +1047,9 @@ increments a number.
   which the editor opens; ~z~ synchronizes; ~o~ opens one (picked among them
   when there are several), ~f~ the directory, by the system; ~d~ deletes one
   (picked), ~D~ all of them (after Emacs asks); ~s~ and ~S~ set and unset
-  the ~DIR~ property. Run by the server's Emacs (see "Emacs" below), which
+  the ~DIR~ property; ~q~ aborts. ~b~, ~O~ and ~F~ (an Emacs buffer, Emacs,
+  Dired) are left out, and ~org-attach-commands~ does not change the keys.
+  Run by the server's Emacs (see "Emacs" below), which
   makes the directory, gives the entry an ID or ~DIR~ and the ~ATTACH~ tag.
   ~org.open~ on an ~attachment:~ link opens the file there
   (~org-attach-expand~).
@@ -2059,14 +2061,26 @@ export never holds up the server's other answers. Emacs loads, in this
 order, ~emacs_config_file~, then evaluates ~emacs_config~, then loads Org
 (~org~, ~ox~, ~ox-publish~): settings made before Org loads are kept
 (~org-export-backends~ to add Markdown, a ~load-path~ for another Org), and
-the configuration may load Org itself. Then each option of ~emacs_options~
+the configuration may load Org itself. A request whose answer is Emacs's
+(the export menu, a capture template's ~%(…)~, a diary sexp, an agenda
+prefix's ~%(…)~, the attachments to pick) waits for it, and holds up the
+server's other answers meanwhile. It has a time of its own (10 to 120
+seconds), past which Emacs is taken for stuck and started again (/Emacs
+did not answer in time: `eval` took over 30 s …/); the time Emacs takes
+to start is not counted in it, but waited for 15 seconds at most (/Emacs
+is still starting …/, and Emacs goes on starting for the next request),
+and a request behind another command (an export) after 3 seconds
+(/Emacs is busy with another command …/). When the server exits, it
+stops its Emacs, busy or not, with the programs Emacs started. Making these requests answer
+later, as exports do, is still to be done. Then each option of ~emacs_options~
 is set when the library it is in loads (~org-attach-method~ when
 ~org-attach~ does), as Customize sets it, its ~:set~ function and all, and
 so after the user's Lisp; the value is read as JSON, made what the
 option's ~custom-type~ wants (a string a symbol, a table an association
 list…) and checked against that type. A value it does not match is left
 out, and the editor told with ~window/showMessage~ (a warning, as for the
-options the server cannot read). A request carries the document's
+options the server cannot read), once in a session though Emacs starts
+again. A request carries the document's
 text as the editor has it, unsaved changes and all, in a buffer that
 visits the file's path (so that ~#+INCLUDE:~, ~#+SETUPFILE:~ and the output's
 name work as they would in Emacs), with the file's safe local variables.
@@ -2074,9 +2088,16 @@ name work as they would in Emacs), with the file's safe local variables.
 
 Emacs must not read the terminal: a yes-or-no question it asks comes to the
 editor as ~window/showMessageRequest~; any other question it would ask fails
-the command with /Emacs asked a question org-lsp cannot answer: …/. When
-Emacs stops (an error in the configuration), the command fails with what it
-last wrote on its standard error, and the next one starts it again.
+the command with /Emacs asked a question org-lsp cannot answer: …/. A
+download Org does not consider safe (~org-attach-url~, a remote
+~#+INCLUDE:~) is such a question, yes downloading it this once; the
+settings ~org_resource_download_policy~ and ~org_safe_remote_resources~
+are Emacs's too. What Emacs says last (~message~) is shown after the
+command's edit, as the echo area shows it, and what Babel shows of a
+block that fails (~*Org-Babel Error Output*~: its standard error and exit
+code) as a warning. When Emacs stops (an error in the configuration), the
+command fails with what it last wrote on its standard error, or its exit
+status, and the next one starts it again.
 
 * The manifest
 :PROPERTIES:

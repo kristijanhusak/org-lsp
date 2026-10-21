@@ -64,6 +64,9 @@ pub enum Event {
     /// Emacs has something to tell the user: an option of `emacs_options`
     /// it did not set.
     Notice { text: String },
+    /// What Org said where nothing else gives it back (a diary sexp that
+    /// failed), as the echo area shows it.
+    Message { text: String },
 }
 
 struct Job {
@@ -98,11 +101,22 @@ enum Reply {
     Later(u64),
 }
 
-/// The link to Emacs. Dropping it stops Emacs.
+/// The link to Emacs. Dropping it stops Emacs, busy or not, with what it
+/// started (a code block's program).
 pub struct Emacs {
     jobs: Sender<Job>,
     events: Receiver<Event>,
     starting: Arc<AtomicBool>,
+    /// The process id of the Emacs running, whose process group it leads.
+    running: Arc<Mutex<Option<u32>>>,
+}
+
+impl Drop for Emacs {
+    fn drop(&mut self) {
+        if let Some(id) = self.running.lock().ok().and_then(|mut running| running.take()) {
+            stop_group(id);
+        }
+    }
 }
 
 impl Emacs {
@@ -110,11 +124,12 @@ impl Emacs {
         let (jobs, job_receiver) = crossbeam_channel::unbounded::<Job>();
         let (event_sender, events) = crossbeam_channel::unbounded();
         let starting = Arc::new(AtomicBool::new(false));
-        let flag = Arc::clone(&starting);
+        let running = Arc::new(Mutex::new(None));
+        let (flag, process_id) = (Arc::clone(&starting), Arc::clone(&running));
         let _ = std::thread::Builder::new()
             .name("org-lsp-emacs".to_string())
-            .spawn(move || serve(&settings, &job_receiver, &event_sender, &flag));
-        Emacs { jobs, events, starting }
+            .spawn(move || serve(&settings, &job_receiver, &event_sender, &flag, &process_id));
+        Emacs { jobs, events, starting, running }
     }
 
     /// What the server's loop listens to.
@@ -123,7 +138,8 @@ impl Emacs {
     }
 
     /// Run `method` and wait for its answer: at most `timeout` once Emacs
-    /// has it, and while Emacs starts, until it has started.
+    /// has it, and while Emacs starts, [`START_WAIT`] at most (the server holds
+    /// up its other answers meanwhile); an answer that is late says so.
     pub fn call(&self, method: &str, params: Value, timeout: Duration) -> Result<Value, String> {
         self.caller().call(method, params, timeout)
     }
@@ -155,7 +171,8 @@ impl Caller {
         let (begun, abandoned) = (Arc::clone(&job.begun), Arc::clone(&job.abandoned));
         self.jobs.send(job).map_err(|_| "Emacs is not running".to_string())?;
         let asked = Instant::now();
-        let mut until = asked + timeout;
+        // Looked at often until Emacs has the job.
+        let mut until = asked + Duration::from_millis(50);
         loop {
             match receiver.recv_deadline(until) {
                 Ok(result) => return result,
@@ -164,16 +181,28 @@ impl Caller {
             }
             let now = Instant::now();
             let sent = begun.lock().ok().and_then(|begun| *begun);
+            let starting = self.starting.load(Ordering::SeqCst);
             match sent {
                 // Emacs has the job: it has its own time from then on.
                 Some(sent) if sent + timeout > now => until = sent + timeout,
-                // Emacs is starting: its start is not the job's time.
-                None if self.starting.load(Ordering::SeqCst) && now < asked + SETUP_TIME => {
-                    until = now + Duration::from_millis(50);
-                }
-                _ => {
+                Some(_) => {
                     abandoned.store(true, Ordering::SeqCst);
-                    return Err(LATE.to_string());
+                    return Err(late(method, timeout));
+                }
+                // Emacs is starting: its start is not the job's time, but
+                // the server waits for it only so long. Emacs goes on
+                // starting, for the next job.
+                None if starting && now < asked + START_WAIT => until = now + Duration::from_millis(50),
+                None if starting => {
+                    abandoned.store(true, Ordering::SeqCst);
+                    return Err(STARTING.to_string());
+                }
+                // Emacs is busy with a job before this one (an export): the
+                // server waits for it only a moment.
+                None if now < asked + BUSY_WAIT.min(timeout) => until = now + Duration::from_millis(50),
+                None => {
+                    abandoned.store(true, Ordering::SeqCst);
+                    return Err(BUSY.to_string());
                 }
             }
         }
@@ -191,14 +220,36 @@ struct Process {
 
 impl Drop for Process {
     fn drop(&mut self) {
+        stop_group(self.child.id());
         let _ = self.child.kill();
         let _ = self.child.wait();
     }
 }
 
+/// Stop the Emacs of process id `id` and what it started: its process
+/// group, which [`start`] made.
+fn stop_group(id: u32) {
+    #[cfg(unix)]
+    if let Ok(group) = libc::pid_t::try_from(id) {
+        // SAFETY: `kill` only sends a signal; a group already gone is an
+        // error, ignored.
+        unsafe {
+            libc::kill(-group, libc::SIGKILL);
+        }
+    }
+    #[cfg(not(unix))]
+    let _ = id;
+}
+
 /// The thread: run each job in Emacs, which starts with the first one and
 /// again after it stopped.
-fn serve(settings: &Settings, jobs: &Receiver<Job>, events: &Sender<Event>, starting: &AtomicBool) {
+fn serve(
+    settings: &Settings,
+    jobs: &Receiver<Job>,
+    events: &Sender<Event>,
+    starting: &AtomicBool,
+    process_id: &Mutex<Option<u32>>,
+) {
     let mut process: Option<Process> = None;
     for job in jobs {
         // A job the server no longer waits for, behind a long one.
@@ -218,7 +269,12 @@ fn serve(settings: &Settings, jobs: &Receiver<Job>, events: &Sender<Event>, star
             }
             starting.store(false, Ordering::SeqCst);
             match started {
-                Ok(started) => process = Some(started),
+                Ok(started) => {
+                    if let Ok(mut running) = process_id.lock() {
+                        *running = Some(started.child.id());
+                    }
+                    process = Some(started);
+                }
                 Err(error) => {
                     answer(job.reply, Err(error), events);
                     continue;
@@ -246,7 +302,12 @@ fn serve(settings: &Settings, jobs: &Receiver<Job>, events: &Sender<Event>, star
         // a new one, and this one goes with `process`.
         if result.as_ref().is_err_and(|error| error.starts_with(STOPPED) || error == LATE) {
             process = None;
+            if let Ok(mut running) = process_id.lock() {
+                *running = None;
+            }
         }
+        let waited = job.timeout.unwrap_or(LATER_TIME);
+        let result = result.map_err(|error| if error == LATE { late(&job.method, waited) } else { error });
         answer(job.reply, result, events);
     }
 }
@@ -264,10 +325,26 @@ fn answer(reply: Reply, result: Result<Value, String>, events: &Sender<Event>) {
 
 const STOPPED: &str = "Emacs stopped";
 const LATE: &str = "Emacs did not answer in time";
+const STARTING: &str = "Emacs is still starting (loading `emacs_config_file`, `emacs_config` and Org); \
+                        try again once it has";
+const BUSY: &str = "Emacs is busy with another command (an export, a code block); try again once it is done";
+
+/// [`LATE`], with what Emacs was asked (the bridge's method) and how long
+/// it had: Emacs is then started again.
+fn late(method: &str, waited: Duration) -> String {
+    format!("{LATE}: `{method}` took over {} s; it is started again", waited.as_secs().max(1))
+}
 
 /// The longest Emacs may take to start and load Org and the user's
 /// configuration, and to answer a question the user is asked.
 const SETUP_TIME: Duration = Duration::from_secs(120);
+/// The longest the server waits, holding up its other answers, for Emacs
+/// to be done with another job before one it waits for ([`Emacs::call`]).
+const BUSY_WAIT: Duration = Duration::from_millis(if cfg!(test) { 300 } else { 3000 });
+/// The longest the server waits, holding up its other answers, for Emacs
+/// to start before a job it waits for ([`Emacs::call`]); Emacs goes on
+/// starting.
+const START_WAIT: Duration = Duration::from_secs(if cfg!(test) { 2 } else { 15 });
 const QUESTION_TIME: Duration = Duration::from_secs(600);
 /// The longest a job the server does not wait for may take (an export, a
 /// publication, a preview), questions to the user included; a second in
@@ -277,13 +354,17 @@ const LATER_TIME: Duration = Duration::from_secs(if cfg!(test) { 1 } else { 1800
 /// Start Emacs and set it up: the user's configuration, then Org.
 fn start(settings: &Settings, events: &Sender<Event>) -> Result<Process, String> {
     let program = if settings.program.is_empty() { "emacs" } else { &settings.program };
-    let mut child = Command::new(program)
+    let mut command = Command::new(program);
+    command
         .args(["--batch", "-Q", "--eval", &format!("(progn {BRIDGE})")])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|error| format!("Cannot start Emacs (`{program}`, the `emacs` option): {error}"))?;
+        .stderr(Stdio::piped());
+    // A process group of its own, which goes with it when it is stopped.
+    #[cfg(unix)]
+    std::os::unix::process::CommandExt::process_group(&mut command, 0);
+    let mut child =
+        command.spawn().map_err(|error| format!("Cannot start Emacs (`{program}`, the `emacs` option): {error}"))?;
     let stdin = child.stdin.take().ok_or("Emacs has no input")?;
     let stdout = child.stdout.take().ok_or("Emacs has no output")?;
     let stderr = child.stderr.take().ok_or("Emacs has no error output")?;
@@ -320,8 +401,10 @@ fn start(settings: &Settings, events: &Sender<Event>) -> Result<Process, String>
         .map(|option| json!({ "name": option.name, "feature": option.feature, "json": option.value.to_string() }))
         .collect();
     let params = json!({ "config_file": settings.config_file, "config": settings.config, "options": options });
-    request(&mut process, "setup", params, events, Instant::now() + SETUP_TIME, false)
-        .map_err(|error| format!("Emacs could not load Org with your configuration: {error}"))?;
+    request(&mut process, "setup", params, events, Instant::now() + SETUP_TIME, false).map_err(|error| {
+        let error = if error == LATE { format!("it took over {} s", SETUP_TIME.as_secs()) } else { error };
+        format!("Emacs could not load Org with your configuration: {error}")
+    })?;
     Ok(process)
 }
 
@@ -342,10 +425,21 @@ fn request(
     let stopped = |process: &mut Process| {
         let said: Vec<String> = process.stderr.lock().map(|kept| kept.iter().cloned().collect()).unwrap_or_default();
         let said = said.join("\n");
-        if said.trim().is_empty() {
-            STOPPED.to_string()
-        } else {
-            format!("{STOPPED}: {}", said.trim())
+        if !said.trim().is_empty() {
+            return format!("{STOPPED}: {}", said.trim());
+        }
+        // Nothing said: how it ended, once it has (its output closes
+        // first).
+        let until = Instant::now() + Duration::from_secs(1);
+        loop {
+            match process.child.try_wait() {
+                Ok(Some(status)) => match status.code() {
+                    Some(code) => return format!("{STOPPED} (exit status {code})"),
+                    None => return format!("{STOPPED} ({status})"),
+                },
+                Ok(None) if Instant::now() < until => std::thread::sleep(Duration::from_millis(20)),
+                _ => return STOPPED.to_string(),
+            }
         }
     };
     if writeln!(process.stdin, "{line}").and_then(|()| process.stdin.flush()).is_err() {
@@ -380,6 +474,10 @@ fn request(
             let _ = events.send(Event::Notice { text: text.to_string() });
             continue;
         }
+        if let Some(text) = message.get("message").and_then(Value::as_str) {
+            let _ = events.send(Event::Message { text: text.to_string() });
+            continue;
+        }
         if message.get("id").and_then(Value::as_u64) != Some(id) {
             continue;
         }
@@ -412,8 +510,8 @@ fn ascii_json(value: &Value) -> String {
 mod tests {
     use super::*;
 
-    /// An Emacs that answers each request with its process id, and never
-    /// answers `hang`.
+    /// An Emacs that answers each request with its process id, never
+    /// answers `hang`, and ends with the status 3 at `quit`.
     #[cfg(unix)]
     fn fake_emacs(directory: &std::path::Path) -> String {
         use std::os::unix::fs::PermissionsExt;
@@ -423,6 +521,7 @@ while IFS= read -r line; do
   id=$(printf '%s' "$line" | sed -n 's/.*"id":\([0-9]*\).*/\1/p')
   case "$line" in
     *'"method":"hang"'*) ;;
+    *'"method":"quit"'*) exit 3 ;;
     *) printf '\036org-lsp {"id":%s,"result":%s}\n' "$id" "$$" ;;
   esac
 done
@@ -441,10 +540,74 @@ done
         let emacs = Emacs::new(Settings { program: fake_emacs(&directory), ..Settings::default() });
         let second = Duration::from_secs(5);
         let first = emacs.call("ping", Value::Null, second).unwrap();
-        assert_eq!(emacs.call("hang", Value::Null, Duration::from_millis(300)), Err(LATE.to_string()));
+        assert_eq!(
+            emacs.call("hang", Value::Null, Duration::from_millis(300)),
+            Err(late("hang", Duration::from_millis(300)))
+        );
         // The stuck Emacs is gone: a new one answers.
         let again = emacs.call("ping", Value::Null, second).unwrap();
         assert_ne!(first, again);
+        drop(emacs);
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    /// A call behind a long job waits for it only a moment.
+    #[cfg(unix)]
+    #[test]
+    fn says_emacs_is_busy_with_another_job() {
+        let directory = std::env::temp_dir().join(format!("org-lsp-taken-emacs-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&directory);
+        std::fs::create_dir_all(&directory).unwrap();
+        let emacs = Emacs::new(Settings { program: fake_emacs(&directory), ..Settings::default() });
+        emacs.call("ping", Value::Null, Duration::from_secs(5)).unwrap();
+        emacs.start(1, "hang", Value::Null);
+        let asked = Instant::now();
+        assert_eq!(emacs.call("ping", Value::Null, Duration::from_secs(30)), Err(BUSY.to_string()));
+        assert!(asked.elapsed() < Duration::from_secs(1), "{:?}", asked.elapsed());
+        drop(emacs);
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    /// Dropped while Emacs is busy, Emacs is stopped, with what it started.
+    #[cfg(unix)]
+    #[test]
+    fn stops_a_busy_emacs_when_dropped() {
+        use std::os::unix::fs::PermissionsExt;
+        let directory = std::env::temp_dir().join(format!("org-lsp-busy-emacs-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&directory);
+        std::fs::create_dir_all(&directory).unwrap();
+        let marker = directory.join("ran-on");
+        let path = directory.join("emacs");
+        let script = format!(
+            "#!/bin/sh\nwhile IFS= read -r line; do\n  case \"$line\" in\n    *'\"method\":\"setup\"'*) \
+             printf '\\036org-lsp {{\"id\":1,\"result\":{{}}}}\\n' ;;\n    *) (sleep 1; touch {}) & sleep 30 ;;\n  \
+             esac\ndone\n",
+            marker.display()
+        );
+        std::fs::write(&path, script).unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let emacs = Emacs::new(Settings { program: path.display().to_string(), ..Settings::default() });
+        emacs.start(1, "run", Value::Null);
+        std::thread::sleep(Duration::from_millis(300));
+        drop(emacs);
+        std::thread::sleep(Duration::from_millis(1500));
+        assert!(!marker.exists(), "what the busy Emacs started ran on");
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    /// An Emacs that stops with nothing on its standard error: how it
+    /// ended is said.
+    #[cfg(unix)]
+    #[test]
+    fn says_how_emacs_stopped() {
+        let directory = std::env::temp_dir().join(format!("org-lsp-quit-emacs-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&directory);
+        std::fs::create_dir_all(&directory).unwrap();
+        let emacs = Emacs::new(Settings { program: fake_emacs(&directory), ..Settings::default() });
+        let second = Duration::from_secs(5);
+        assert_eq!(emacs.call("quit", Value::Null, second), Err("Emacs stopped (exit status 3)".to_string()));
+        // The next job starts another.
+        assert!(emacs.call("ping", Value::Null, second).is_ok());
         drop(emacs);
         std::fs::remove_dir_all(directory).unwrap();
     }
@@ -463,7 +626,7 @@ done
         match emacs.events().recv_timeout(Duration::from_secs(10)) {
             Ok(Event::Done { tag, result }) => {
                 assert_eq!(tag, 7);
-                assert_eq!(result, Err(LATE.to_string()));
+                assert_eq!(result, Err(late("hang", LATER_TIME)));
             }
             _ => panic!("the job did not end"),
         }
@@ -483,6 +646,24 @@ done
         std::fs::write(&path, format!("#!/bin/sh\nsleep {seconds}\nexec {fast}\n")).unwrap();
         std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
         path.display().to_string()
+    }
+
+    /// An Emacs that takes long to start holds up a call only so long, and
+    /// goes on starting for the next.
+    #[cfg(unix)]
+    #[test]
+    fn waits_for_emacs_to_start_only_so_long() {
+        let directory = std::env::temp_dir().join(format!("org-lsp-slower-emacs-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&directory);
+        std::fs::create_dir_all(&directory).unwrap();
+        let emacs = Emacs::new(Settings { program: slow_emacs(&directory, 4.0), ..Settings::default() });
+        let asked = Instant::now();
+        assert_eq!(emacs.call("ping", Value::Null, Duration::from_millis(500)), Err(STARTING.to_string()));
+        assert!(asked.elapsed() < Duration::from_secs(3), "{:?}", asked.elapsed());
+        // The same Emacs, started.
+        assert!(emacs.call("ping", Value::Null, Duration::from_secs(10)).is_ok());
+        drop(emacs);
+        std::fs::remove_dir_all(directory).unwrap();
     }
 
     #[cfg(unix)]
@@ -518,34 +699,65 @@ done
             feature: feature.to_string(),
             value,
         };
+        let mut options = vec![
+            // A choice of constants, a string for a symbol.
+            option("org-attach-method", "org-attach", json!("mv")),
+            option("org-attach-use-inheritance", "org-attach", json!(true)),
+            // A choice of constants and an integer.
+            option("org-export-with-toc", "ox", json!(false)),
+            option("org-export-with-sub-superscripts", "ox", json!("{}")),
+            option("org-export-exclude-tags", "ox", json!(["private", "draft"])),
+            // An alist with symbols for keys, and a list of pairs
+            // from a table.
+            option("org-html-text-markup-alist", "ox-html", json!({ "bold": "<b>%s</b>" })),
+            option("org-structure-template-alist", "org", json!({ "q": "quote", "x": "example" })),
+            // A property list.
+            option("org-format-latex-options", "org", json!({ "scale": 2.0 })),
+            option("org-html-table-default-attributes", "ox-html", json!({ "border": "1" })),
+            // A list that ends with an inline repeat.
+            option(
+                "org-latex-classes",
+                "ox-latex",
+                json!([["mini", "\\documentclass{article}", ["\\section{%s}", "\\section*{%s}"]]]),
+            ),
+            // In a choice, a constant's name is that constant, a string
+            // a string where strings are taken (a keyword aside), and a
+            // list that starts with a constant's name is that list.
+            option("org-html-infojs-options", "ox-html", json!({ "path": "x.js", "toc": ":with-toc" })),
+            option("org-export-with-drawers", "ox", json!(["not", "LOGBOOK"])),
+            // A function, by its name.
+            option("org-html-format-headline-function", "ox-html", json!("my-headline")),
+            // Not what they take.
+            option("org-attach-store-link-p", "org-attach", json!("move")),
+            option("org-html-format-drawer-function", "ox-html", json!("my-drawer")),
+            option("org-export-backends", "ox", json!(["ascii", "nosuch"])),
+        ];
+        // Org 9.8's (`ORG_LISP_DIR`), not 9.6's: keywords for constants in
+        // a property list, and a constant's name in a choice with a string.
+        let org_98 = std::env::var_os("ORG_LISP_DIR").is_some();
+        if org_98 {
+            options.push(option(
+                "org-export-smart-quotes-alist",
+                "ox",
+                json!({ "xx": { "primary-opening": { "utf-8": "«", ":html": "&laquo;" } } }),
+            ));
+            options.push(option("org-babel-python-command-session", "ob-python", json!("auto")));
+        }
         let emacs = Emacs::new(Settings {
             program: "emacs".to_string(),
             config: Some(format!(
                 "{load}\n(setq org-attach-method 'ln)\n\
-                 (with-eval-after-load 'ox (setq org-export-with-toc 3))"
+                 (with-eval-after-load 'ox (setq org-export-with-toc 3))\n\
+                 (defun my-headline (&rest _) \"\")"
             )),
-            options: vec![
-                // A choice of constants, a string for a symbol.
-                option("org-attach-method", "org-attach", json!("mv")),
-                option("org-attach-use-inheritance", "org-attach", json!(true)),
-                // A choice of constants and an integer.
-                option("org-export-with-toc", "ox", json!(false)),
-                option("org-export-with-sub-superscripts", "ox", json!("{}")),
-                option("org-export-exclude-tags", "ox", json!(["private", "draft"])),
-                // An alist with symbols for keys, and a list of pairs
-                // from a table.
-                option("org-html-text-markup-alist", "ox-html", json!({ "bold": "<b>%s</b>" })),
-                option("org-structure-template-alist", "org", json!({ "q": "quote", "x": "example" })),
-                // A property list.
-                option("org-format-latex-options", "org", json!({ "scale": 2.0 })),
-                // Not what they take.
-                option("org-attach-store-link-p", "org-attach", json!("move")),
-                option("org-html-format-drawer-function", "ox-html", json!("my-drawer")),
-            ],
+            options,
             ..Settings::default()
         });
         let value = |name: &str| {
-            let sexp = format!("(progn (require 'org-attach) (require 'ox-html) (format \"%S\" {name}))");
+            let sexp = format!(
+                "(progn (require 'org-attach) (require 'ox-html) (require 'ox-latex) (require 'ob-python) \
+                 (format \"%S\" {name}))"
+            );
             emacs.call("eval", json!({ "sexp": sexp }), Duration::from_secs(60)).unwrap()
         };
         assert_eq!(value("org-attach-method"), "mv", "after `emacs_config`, over it");
@@ -556,6 +768,21 @@ done
         assert_eq!(value("org-html-text-markup-alist"), r#"((bold . "<b>%s</b>"))"#);
         assert_eq!(value("org-structure-template-alist"), r#"(("q" . "quote") ("x" . "example"))"#);
         assert_eq!(value("org-format-latex-options"), "(:scale 2.0)");
+        assert_eq!(value("org-html-table-default-attributes"), r#"(:border "1")"#);
+        assert_eq!(
+            value("org-latex-classes"),
+            r#"(("mini" "\\documentclass{article}" ("\\section{%s}" . "\\section*{%s}")))"#
+        );
+        if org_98 {
+            assert_eq!(
+                value("org-export-smart-quotes-alist"),
+                r#"(("xx" (primary-opening :utf-8 "«" :html "&laquo;")))"#
+            );
+            assert_eq!(value("org-babel-python-command-session"), "auto");
+        }
+        assert_eq!(value("org-html-infojs-options"), r#"((path . "x.js") (toc . :with-toc))"#);
+        assert_eq!(value("org-export-with-drawers"), r#"(not "LOGBOOK")"#);
+        assert_eq!(value("org-html-format-headline-function"), "my-headline");
         assert_eq!(value("org-attach-store-link-p"), "attached", "left as it was");
         let mut notices = Vec::new();
         while let Ok(event) = emacs.events().try_recv() {
@@ -568,8 +795,13 @@ done
             [
                 "`emacs_options` leaves out `org-attach-store-link-p`: \"move\" is not false, true, \"attached\" \
                  or \"file\"",
-                "`emacs_options` leaves out `org-html-format-drawer-function`: \"my-drawer\" is not a function, \
-                 which goes in `emacs_config`",
+                // The item that is not what the option takes.
+                "`emacs_options` leaves out `org-export-backends`: \"nosuch\" is not \"ascii\", \"beamer\", \
+                 \"html\", \"icalendar\", \"latex\", \"man\", \"md\", \"odt\", \"org\", \"texinfo\", \
+                 \"confluence\", \"deck\", \"freemind\", \"groff\", \"koma-letter\", \"rss\", \"s5\" or \
+                 \"taskjuggler\"",
+                "`emacs_options` leaves out `org-html-format-drawer-function`: \"my-drawer\" is not the name of a \
+                 defined function",
             ]
         );
     }
