@@ -1832,9 +1832,10 @@ pub const SETTINGS: &[Setting] = &[
         "boolean",
         "false",
         "",
-        "Let the assistants `org-lsp mcp` serves change files: its tools `set_todo_state` and `capture`, \
-         which write the agenda files and the capture targets directly. Off, it only reads. It is read from \
-         the shared configuration file, as everything `org-lsp mcp` reads.",
+        "Let the assistants `org-lsp mcp` serves change files: its tools `set_todo_state`, `capture` and \
+         `refile`, which write the agenda files, the capture targets and the files of `org_refile_targets` \
+         directly. Off, it only reads. It is read from the shared configuration file, as everything \
+         `org-lsp mcp` reads.",
     ),
     setting(
         "org_cycle_separator_lines",
