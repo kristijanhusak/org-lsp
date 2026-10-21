@@ -29,3 +29,5 @@ Target dir on /dev/shm/fix-editors-target (worktree `target` symlinked there).
 - vim-15: matches Emacs (C-c C-o right after a definition's label says "No link found" in Emacs 9.8.10 too; checked in batch); TESTING wording fixed.
 - vim-16, neovim-3, helix-3: docs (features.mjs, settings.rs, keys/helix.org).
 - neovim-19: covered by #366's emacs-8 fix (Emacs's message shown after its edit).
+- 1046759 vim-12 fixed (org-core table Done.message, FORMULAS_UPDATED; test org-core tests/table.rs).
+- 888de27: helix-4/helix-5 fixed in highlights.scm (checked with hx_hl.py); neovim-10 fixed (link hover → Org float, test agenda.lua 16); neovim-14 mitigated (roam window nowrap) + documented; helix-8 documented (features.mjs); vim-10 documented (docs/vim.org coc paragraph).

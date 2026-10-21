@@ -120,25 +120,25 @@ Each issue: a heading `## <part>-<n>: <one line>`, then
 - Expected: Vim counts work as docs/keys/neovim.org says ("Counts work as in Vim"), and as Emacs's `calendar-forward-day`/`calendar-forward-week` take a prefix argument in the calendar. Got: the count is dropped.
 
 ## lsp-1: citation keys are completed (and quick-fixed) twice when the same .bib is named by `#+BIBLIOGRAPHY:` and `org_cite_global_bibliography`
-- State: open
+- State: fixed (#367)
 - Where: server, `textDocument/completion` after `[cite:@`, `org.cite.insert`'s choices, and the quick fixes of the "Unknown citation key" diagnostic (`server/org-lsp/src/server.rs` near the `Suggestions:` hover, ~15134).
 - Repro: `.claude/e2e/repro/lsp/completion.py plain` (sample workspace of `workspace.py`: `gtd.org` has `#+BIBLIOGRAPHY: refs.bib`, the options name the same file absolutely). Completion at `[cite:@` gives `['knuth1984', 'lamport1994', 'knuth1984', 'lamport1994']`; `org.cite.insert` offers four choices; code actions on `@knuht1984` give two identical "Replace with @knuth1984".
 - Expected: each key once, as Emacs's completion table (`org-cite-basic--key-completion-table`, a hash keyed by the completion string) has it. Emacs does list the file twice (`org-cite-list-bibliography-files` gives "refs.bib" and the absolute path, `delete-dups` keeps both), and its help echo of an unknown key does say `knuth1984 knuth1984`, so the hover and the diagnostic message matching Emacs is fine; the completion items, the `org.cite.insert` choices and the duplicate quick fixes are not.
 
 ## lsp-2: protocol.org's list of requests leaves out several the server answers (references, rename, workspace symbols, document links, inlay hints, formatting)
-- State: open
+- State: fixed (#367)
 - Where: `docs/protocol.org`, "Capabilities": the server announces `referencesProvider`, `renameProvider` (with prepare), `workspaceSymbolProvider`, `documentLinkProvider` (with resolve), `inlayHintProvider`, `documentFormattingProvider`, and `org.cycle` / `org.date.preview` among `executeCommandProvider`'s commands (315, the manifest has 313).
 - Repro: `.claude/e2e/repro/lsp/caps.py` prints the capabilities.
 - Expected: each listed with what it does; e.g. that `textDocument/references` gives the links that lead to the *entry* at the cursor (by ID, headline search or CUSTOM_ID: references on a `<<target>>` or a tag give only the enclosing headline), that a rename renames a headline or a tag (and answers prompts), what the inlay hints are. Got: only `rangeFormatting` mentions `textDocument/formatting` in passing; the rest is not described (any-editor.org names some in one line).
 
 ## lsp-3: the TODO list and tags views leave out Emacs's "Press ‘N r’ … to search again: (0)[ALL] (1)CANCELLED …" lines, a difference written down nowhere
-- State: open
+- State: written down as a difference (#367)
 - Where: `org.agenda.todos`, `org.agenda.dispatch` `t` / `m` / `M`; `scripts/agenda_reference.py` `clean()` drops those lines from the recorded cases ("what a server cannot or should not reproduce"), but no doc says so.
 - Repro: `.claude/e2e/repro/lsp/emacs_agenda.py <ws> "(org-todo-list)"` vs the server's `org.agenda.todos` in the same workspace (`sweep.py full org.agenda.todos`).
 - Expected (CLAUDE.md: "Write down any deliberate difference"): the difference in `docs/parity.org` (agenda section), or the line kept without its Emacs key hint (the keyword list with its numbers is what tells the user which `N r` to type; the server has no `N r` anyway). Got: silently missing.
 
 ## lsp-4: org-lint flags `[[roam:Title]]` as "Unknown fuzzy location" though org-roam is on, and for a node that exists until something loads org-roam's index
-- State: open
+- State: fixed (#367)
 - Where: diagnostics (org-lint `invalid-fuzzy-link`) of a file with `roam:` links, `org_roam_enabled = true`.
 - Repro: `.claude/e2e/repro/lsp/roamdiag.py`: open `gtd.org` (has `[[roam:Beta]]`, and `roam/beta.org` is the node "Beta"); the only `publishDiagnostics` (waits 3 s) has `Unknown fuzzy location "roam:Beta"`. After an `org.open` on a roam link (`roamlink.py`) the warning on `roam:Beta` is gone, and `[[roam:Nope]]` (no such node) in `roam/beta.org` still says `Unknown fuzzy location "roam:Nope"`.
 - Expected: with org-roam loaded, Emacs registers the `roam` link type, so org-lint (which checks only links of type `fuzzy`) says nothing about `roam:` links, existing or not (following one to a missing node starts a capture, which the server does). Got: the warning, depending on whether the roam index has been loaded yet.
@@ -150,7 +150,7 @@ Each issue: a heading `## <part>-<n>: <one line>`, then
 - Expected: other requests (symbols, highlighting, completion, edits) answered while Emacs starts or works: make these commands answer later (as `start` does for exports), or at least cap the wait while Emacs starts and say that the configuration is still loading/too slow.
 
 ## lsp-5: column view `e` (org.columns.edit) asks other questions than Emacs: "KEY value [v]: " with no allowed values, no TODO state asked, and " value: " before the view has come
-- State: open
+- State: fixed (#367)
 - Where: `server/org-lsp/src/server.rs` `columns_question` (~2171) and `columns_command`; `bridge.el` `org-lsp-bridge-columns-command` (fast selection off).
 - Repro: `.claude/e2e/repro/lsp/columns.py` (full client, sample workspace; `gtd.org` has `#+PROPERTY: Effort_ALL 0:10 0:30 1:00 2:00` and `#+TODO: TODO NEXT WAIT(w@) | DONE(d!) CANCELLED(c@)`): `org.columns` on "Write the report", then `org.columns.edit` with `column` 2 (Effort), 1 (TODO), 0 (ITEM). Emacs side: `org-columns`, point on the Effort column, `org-columns-edit-value` (see the `emacs.py` one-liner in notes-lsp.md).
 - Expected (`org-columns-edit-value`, org-colview.el:647): a property with allowed values is read with `completing-read "Value: "` over them (here 0:10 0:30 1:00 2:00, a match required); one without is `read-string "Edit: "` with the value as initial input; the TODO column runs `org-todo` interactively, which with keys in `#+TODO` asks the state by fast selection. Got: `{"kind":"text","prompt":"EFFORT value [1:00]: "}` with no completions (any text accepted), a free-text property gets "KEY value [v]: " too, and the TODO column cycles to the next state without asking. Also, `org.columns.edit` sent before the view has come back from Emacs (right after `org.columns`, first Emacs start ~1 s) asks `" value: "` (no key) even on the TODO column, and the answer then goes to whatever the column is. (What Emacs then writes, `:EFFORT:` renamed from `:Effort:`, the format stored as `%EFFORT(Effort){:}`, and the tags pulled to column ~56 in column view, Emacs batch does exactly the same.)
@@ -175,7 +175,7 @@ Each issue: a heading `## <part>-<n>: <one line>`, then
 - Expected (Emacs): `‘org-plot/gnuplot’ failed to load required package "gnuplot"`. Bind `this-command` (and `real-this-command`) to the command around the call; other Org code reads it too (`org-table-sum`'s message is already special-cased).
 
 ## lsp-6: C-c C-c (org.checkbox.toggle) on a headline's statistics cookie toggles the boxes below (or fails "No item in subtree") instead of counting the cookie again
-- State: open
+- State: fixed (#367)
 - Where: `org.checkbox.toggle` (the `C-c C-c` of the manifest) with the cursor on a cookie of a headline (`[33%]`, `[1/3]`).
 - Repro: `.claude/e2e/repro/lsp/cookie.py`: `gtd.org` of the sample workspace with `** TODO Groceries [10%]` (wrong count, items `[X] milk`, `[ ] bread`, `[ ] 卵`); `org.checkbox.toggle` with the cursor on `[`, `1`, `%` or `]` of the cookie gives `[0%]` with every box unchecked. `cookie2.py`: on `[0/3]` of `** TODO Project Alpha [0/3]` (counts TODO children, no checkboxes) it fails with `No item in subtree`.
 - Expected (docs/protocol.org, `org.checkbox.toggle`: "on a statistics cookie the cookies are counted again"; Emacs `org-ctrl-c-ctrl-c`, context `statistics-cookie` → `org-update-statistics-cookies`): `** TODO Groceries [33%]` with the boxes untouched (Emacs batch, `.claude/e2e/repro/lsp/emacs.py`: `(search-forward "[10%") (org-ctrl-c-ctrl-c)` gives `[33%]`), and `[1/3]` for Project Alpha. Got: boxes toggled, or the error.
@@ -206,13 +206,13 @@ Each issue: a heading `## <part>-<n>: <one line>`, then
 - Expected: `org_agenda_files`, `org_todo_keywords`, `org_log_done` (and maybe an `emacs_options` example).
 
 ## lsp-7: TODO list: an entry marked done from the agenda loses its keyword on its line when its parent's cookie is recounted and the parent's tags move
-- State: open
+- State: fixed (#367)
 - Where: the agenda's in-place line change (`org-agenda-change-all-lines`) in the TODO list (`org.agenda.todos`); the week agenda is right.
 - Repro: `.claude/e2e/repro/lsp/done_keyword_lost.py`: `a.org` is `* TODO Project [0/2] :work:` / `** TODO Build it` / `** TODO Ship it`; open the TODO list, `org.todo.next` on the "Ship it" line. Also in the sample workspace (`agenda_flow.py full todo-list-done`, "Build it" / "Ship it" under `** TODO Project Alpha [1/3]`, whose tags are not in their column).
 - Expected (Emacs batch, `agenda_flow.py`): `  a:          DONE Ship it      …      :work::`. Got: `  a:          Ship it      …      :work::` (no keyword) while the file has `** DONE Ship it` and the parent `[1/2]` with its tags moved to their column. With the parent's tags already in their column, or without the cookie, the line is right; `org.agenda.redo` shows it right too.
 
 ## lsp-8: a habit marked done from the agenda keeps its graph on its line, where Emacs shows it with its scheduled leader and no graph
-- State: open (minor: the line until the agenda is built again)
+- State: fixed (#367) (minor: the line until the agenda is built again)
 - Where: agenda, `org.todo` on a habit's line (`org-agenda-change-all-lines` for a habit).
 - Repro: `.claude/e2e/repro/lsp/agenda_flow.py full habit-done` (sample workspace, "Water the plants", `STYLE: habit`, scheduled yesterday `.+2d`; answer `d`).
 - Expected (Emacs batch): `  gtd:        Sched. 1x:  DONE Water the plants` — Emacs formats the changed line again from its `extra` property (the leader) without the habit flag, so the leader appears and the consistency graph goes until the next redo. Got: `  gtd:        DONE Water the plants                   * * *  !` (graph kept, no leader). The file is the same as Emacs's.
@@ -317,25 +317,25 @@ Each issue: a heading `## <part>-<n>: <one line>`, then
 - Expected: the entry moves (fall back to `org-move-subtree-down` + redo, as `org-columns--move-row` does), or the docs name the Org version column view's row moves need. Got: a Lisp error.
 
 ## lsp-11: formatting a CRLF file gives `\r\r\n` line endings: each edit's range takes the `\r` (one character past the line's end) and its text ends with `\r`
-- State: open
+- State: fixed (#367)
 - Where: `textDocument/formatting` and `textDocument/rangeFormatting` on a file whose lines end with `\r\n` (protocol.org: "A file whose every line ends with \r\n keeps its endings in the edits of formatting"). The table commands' `{ "edits" }` are right (`org.table.next.field` spans `\r\n` whole).
 - Repro: `.claude/e2e/repro/lsp/crlf.py`: `* TODO A :x:\r\n|a|bb|\r\n…`; formatting answers e.g. line 1 (6 characters) `range 1:0-1:7, newText "| a | bb |\r"`.
 - Expected (LSP: `\r\n` ends a line, so line 1 has 6 characters and a character past the end means the end of the line): `range 1:0-1:6, newText "| a | bb |"`. Got: the extra `\r` in the text and the range end at 7, which a client clamps to 6: the result is `| a | bb |\r\r\n` on every changed line (the harness applies edits as the spec says; VS Code and Neovim clamp the same way).
 
 ## lsp-12: opening and editing large files is slow and grows faster than the file (debug build): 6000 lines with planning and links take 5 s to open and ~3 s per keystroke; 60 000 lines answered nothing in 5 minutes
-- State: open (measured on `target/debug/org-lsp`; a release build is faster, the growth is the point)
+- State: fixed (#367) (measured on `target/debug/org-lsp`; a release build is faster, the growth is the point)
 - Where: didOpen / didChange of a large Org file (re-parse, diagnostics, …), then any request.
 - Repro: `.claude/e2e/repro/lsp/scale.py full 250 500 1000 2000` (entries of `* TODO Heading N :tN:` / `SCHEDULED:` / a link): open + folding 0.36 s, 0.72 s, 1.81 s, 5.16 s (about n^1.5); one typed character then a hover: 0.23 s, 0.50 s, 1.15 s, 2.81 s. Plain text grows linearly (12 000 lines: 1.2 s per keystroke). `robust.py` "huge file" (20 000 entries, 60 000 lines): tokens, folding, hover, a command all time out at 60 s, then `shutdown` times out and the server keeps a CPU at 98% after its stdin closed (killed by hand after 5 min).
 - Expected: per-keystroke work bounded (or at least linear and cheap), the server still answering `shutdown` and exiting when stdin closes. Got: the above.
 
 ## lsp-13: one malformed message (bad JSON, or a JSON array) stops the server
-- State: open
+- State: fixed (#367)
 - Where: the server's message loop (`lsp-server`): `org-lsp: malformed LSP payload Error("key must be a string", …)` on stderr, then exit.
 - Repro: `.claude/e2e/repro/lsp/robust.py`, section "malformed JSON": send `Content-Length: 10\r\n\r\n{not json}`.
 - Expected (JSON-RPC 2.0): an error response with code -32700 (Parse error), or the message dropped with a log line, and the server going on. Got: the server exits, losing the editor's whole session (the editor has to restart it).
 
 ## lsp-14: an edit the client refuses (`workspace/applyEdit` answered `applied: false`) is dropped silently
-- State: open (minor)
+- State: not a bug (the state asked for a note first, so no edit was sent; a refused edit already says so), notes-fix-lsp.md (minor)
 - Where: every command that edits through `workspace/applyEdit` (here `org.todo.next` in a file).
 - Repro: `.claude/e2e/repro/lsp/robust.py`, section "edits refused by the client" (the harness answers `{"applied": false, "failureReason": …}`).
 - Expected: the user told that the change was not made (a `window/showMessage` with the failure reason), as Emacs would signal an error when a buffer is read-only. Got: the command answers `null`, no message.
@@ -347,13 +347,13 @@ Each issue: a heading `## <part>-<n>: <one line>`, then
 - Expected: `* TODO Captured` in inbox.org. A third-party bug, but it loses notes silently; the plugin could apply edits to an empty buffer itself (as it does for ALE) or report it upstream. Any other command whose edit goes to an empty file (refile/archive to a new empty file, roam/journal files created empty) is hit the same way.
 
 ## lsp-15: export through Emacs aborts on links the server itself resolves: `id:` links into org-roam files and `[[roam:…]]` links
-- State: open
+- State: fixed (#367)
 - Where: `org.export.dispatch` (Emacs, `bridge.el`) with `org_roam_enabled`; Emacs runs without org-roam and with an empty `org-id-locations`.
 - Repro: `.claude/e2e/repro/lsp/emacs_cmds.py` (sample workspace: `gtd.org` links `[[id:0a1b2c3d-…-000000000002][Alpha node]]`, a node in `roam/alpha.org`, and `[[roam:Beta]]`): export `h h` (and `t U`, `h H`, `l l`) says `As HTML file: Org export aborted.  Unable to resolve link: "0a1b2c3d-0000-4000-8000-000000000002"`; with that link removed (`NO_ROAM_ID=1`), `… Unable to resolve link: "roam:Beta"`. The server follows both links (`org.open`, `textDocument/definition` for the id).
 - Expected: what Emacs with org-roam does: the id is in `org-id-locations` (org-roam keeps it up to date), so the export links to it; `roam:` is a link type of org-roam, exported as a link, not a fuzzy search that fails. The server could give Emacs the ID locations it knows (and register `roam` as a link type) before exporting. Got: no export at all for any file that links to an org-roam node.
 
 ## lsp-16: `elisp:`, `help:`, `eshell:`, `eww:`, `irc:`, `gnus:`, `docview:`, `bbdb:` links are completed after `[[` but refused when followed ("Links of type "elisp" are not supported"); parity.org says links are 22 of 22
-- State: open
+- State: fixed (#367)
 - Where: `server/org-core/src/open.rs:523`; `textDocument/completion` after `[[` offers those types (`completion.py`).
 - Repro: `org.open` on `[[elisp:(+ 1 2)]]` in the sample `gtd.org` (`emacs_cmds.py`): error -32803 `Links of type "elisp" are not supported`.
 - Expected (Emacs): `elisp:` asks "Execute (+ 1 2) as Elisp? " (`org-link-elisp-confirm-function`) and shows `=> 3`; `help:` shows the documentation; the server has Emacs for that (as for `shell:` links, which it does run after asking). Or, if left out on purpose, the types not offered in completion and the gap written in parity.org's Links section. Got: offered, then refused, and parity claims full coverage.
@@ -377,7 +377,7 @@ Each issue: a heading `## <part>-<n>: <one line>`, then
 - Expected: as with the other clients (and docs/keys/vim.org: "typing goes on there, in insert mode"), or written down in docs/vim.org's coc.nvim paragraph. Also each edit coc applies to a file not loaded echoes `[coc.nvim] Use ':wa' to save changes or ':CocCommand workspace.inspectEdit' to inspect.` though the plugin saves it.
 
 ## lsp-17: pasting, archiving and archiving to the sibling shift an inline task's stars with the subtree; shifted up they become two ordinary headlines (`TODO An inline task` and `END`)
-- State: open
+- State: fixed (#367)
 - Where: `org.paste.subtree` / `org.yank` (level adjusted), `org.archive.subtree` (the subtree goes to level 1 of the archive file), `org.archive.sibling` (one level down). `org.shiftmeta.left/right` and `org.refile` are right (same as Emacs).
 - Repro: `.claude/e2e/repro/lsp/compare.py` scenarios (run as in notes-lsp.md): sample `gtd.org`, `** CANCELLED Old idea` followed by `*************** TODO An inline task` / `*************** END` (15 stars, `org-inlinetask-min-level`). `org.archive.subtree` on it: the archive file gets `************** TODO An inline task` / `************** END` (14 stars). `org.paste.subtree` of `** Old\n*************** TODO Inline\n*************** END\n` before `* Archive` (pasted at level 1): 14 stars. `org.archive.sibling`: 16 stars.
 - Expected (Emacs batch, Org 9.8.10, `org-inlinetask` loaded): the inline task keeps its 15 stars in all three (`org-paste-subtree` and the archive commands shift headlines, not inline tasks). Got: shifted; at 14 stars they are no longer an inline task but a level-14 headline and a headline titled "END" (the agenda, the outline and the TODO list then show them as such).
@@ -389,7 +389,7 @@ Each issue: a heading `## <part>-<n>: <one line>`, then
 - Expected: Emacs's prompt as it is (`…[jkKtTgGSscCiq]? `). Append `: ` only when the prompt does not already end in `? `/`: ` (or have the server always send it whole).
 
 ## lsp-18: org.ctags.create says nothing when ctags fails (no TAGS file made), where Emacs shows ctags's error
-- State: open (minor)
+- State: fixed (#367) (minor)
 - Where: `server/org-lsp/src/server/manual.rs` `ctags_create` (`shell_output`, its output and exit status dropped).
 - Repro: `org_modules = ["org-habit", "org-ctags"]`, `/usr/bin/ctags` being Emacs's own ctags (`ctags (GNU Emacs 29.3)`, no `--langdef`, the one installed here); `org.ctags.create` in the sample `gtd.org`: answer `null`, no message, no `TAGS`. `org.ctags.find` then offers to rebuild, and again finds nothing, silently.
 - Expected (Emacs batch, `(org-ctags-create-tags)` from the file): `shell-command` shows ctags's output, `ctags: unrecognized option '--langdef=orgmode'`, so the user knows Exuberant/Universal ctags is needed. Got: silence, as if it worked.

@@ -30,7 +30,7 @@ Base: `main` at bad79cc (#365).
 ## Rounds of fixes
 
 - emacs-1 to emacs-19, with lsp-9, lsp-10, lsp-19 (the same bridge): merged in #366 (notes-fix-emacs.md). Left: the rest of emacs-11/lsp-10 (the synchronous Emacs calls answered later, plan in notes-fix-emacs.md and docs/protocol.org) and fix-1, for an agent once disk allows.
-- lsp-1 to lsp-18 but lsp-9, lsp-10: a second fix agent (notes-fix-lsp.md), one PR when done.
+- lsp-1 to lsp-18 but lsp-9, lsp-10: merged in #367 (notes-fix-lsp.md).
 - neovim-*, vim-*, helix-*: a third fix agent (notes-fix-editors.md), one PR when done.
 - vscode-1, zed-1, sublime-1 to sublime-4, fix-1, and the rest of emacs-11/lsp-10: a fourth fix agent, on top of the Emacs fixes (notes-fix-rest.md).
 
