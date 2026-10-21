@@ -23,7 +23,10 @@ for a server to ask for typed text, so the commands that want a date
 (schedule, deadline) or text (a template's ~%^{…}~ prompts, a tags search)
 say what they ask for and /answer with a rename at the cursor/: rename at
 the cursor (~F2~) and type the answer (~+2d~, ~fri 10:00~, a search) for
-the new name. Until then a rename answers the question, not renames.
+the new name. Zed sends no empty new name: ~-~ alone is the empty answer,
+the prompt's default (/Insert link (default …)/, /Table size Columns x Rows
+(empty for Org's default)/, today for a date). Until then a rename answers
+the question, not renames.
 
 [[file:../zed.org][zed.org]] says how to install and set up the extension.
 

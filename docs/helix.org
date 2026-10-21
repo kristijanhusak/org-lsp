@@ -125,7 +125,8 @@ it waits for in the status line:
   Another command drops the question.
 - /Schedule: answer with a rename at the cursor/ :: text or a date
   (~+2d~, ~fri 10:00~), typed as a rename: ~Space r~, type the answer as
-  the new name, ~Enter~. There is no calendar.
+  the new name, ~Enter~; ~-~ alone is an empty answer, the prompt's
+  default. There is no calendar.
 
 The agenda opens as a file, ~Agenda.org~, in the window you are in, with
 the cursor on today. Its commands are code actions there too: on an

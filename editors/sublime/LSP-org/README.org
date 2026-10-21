@@ -6,8 +6,8 @@ outline, TODO states, timestamps, clocking, tables, links, capture and
 the agenda. It is a package for [[https://github.com/sublimelsp/LSP][LSP]], which it needs.
 
 The package starts ~org-lsp~ from your PATH, or else downloads the server
-of its own release from [[https://github.com/kristijanhusak/org-lsp/releases][GitHub]] once, into Sublime Text's ~Package
-Storage/LSP-org~.
+of its own release from [[https://github.com/kristijanhusak/org-lsp/releases][GitHub]] into Sublime Text's ~Package
+Storage/LSP-org~, again when the package is updated.
 
 [[https://kristijanhusak.github.io/org-lsp/sublime.html][Org in Sublime Text]] says how to set it up, and which keys it has (Org's,
 as Emacs has them, only in Org files and only while the ~org_keys~ setting

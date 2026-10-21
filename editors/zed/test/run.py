@@ -1091,6 +1091,8 @@ class Scenario:
                 answer = answers.popleft()
                 if not isinstance(answer, str):
                     raise Failure(f"`{asked[-1]}` asks for text, not {json.dumps(answer)}")
+                # Zed sends no empty new name: `-` alone is the empty answer.
+                answer = answer or "-"
                 zed.tasks_done()
                 renames = zed.log.renames
                 prepared = zed.log.prepared
