@@ -162,7 +162,9 @@ have types for lua-language-server, and VS Code completes and checks
 An editor's options go on top of the file's:
 
 - an option the editor sets replaces the file's;
-- an object, such as ~org_agenda_prefix_format~, is merged key by key;
+- an object, such as ~org_agenda_prefix_format~ or ~emacs_options~, is
+  merged key by key, the value of each key it has replacing the file's
+  whole;
 - a list, such as ~org_capture_templates~ or ~org_agenda_files~, is
   replaced whole.
 

@@ -3093,7 +3093,20 @@ fn parse_config(path: &std::path::Path, text: &str) -> Result<serde_json::Value,
         }
     } else {
         let table = text.parse::<toml::Table>().map_err(|error| format!("is not valid TOML: {error}"))?;
-        Ok(serde_json::to_value(table).unwrap_or_default())
+        Ok(toml_json(toml::Value::Table(table)))
+    }
+}
+
+/// A TOML value as JSON, a date or a time as its text (`2026-10-21`),
+/// which no option takes but which an option's message can then show.
+fn toml_json(value: toml::Value) -> serde_json::Value {
+    match value {
+        toml::Value::Datetime(datetime) => serde_json::Value::String(datetime.to_string()),
+        toml::Value::Array(items) => serde_json::Value::Array(items.into_iter().map(toml_json).collect()),
+        toml::Value::Table(table) => {
+            serde_json::Value::Object(table.into_iter().map(|(key, value)| (key, toml_json(value))).collect())
+        }
+        other => serde_json::to_value(other).unwrap_or_default(),
     }
 }
 
@@ -3526,14 +3539,19 @@ fn old_agenda_option(key: &str, field: serde_json::Value) -> Option<(String, ser
     Some((new.to_string(), field))
 }
 
-/// `over` on top of `base`: objects key by key, anything else replaced.
+/// The options `over` on top of `base`: an option that is an object (such
+/// as `org_agenda_prefix_format` or `emacs_options`) key by key, each of
+/// its values replaced whole (an alist among `emacs_options` is the
+/// editor's alone); anything else replaced. An empty list for an object
+/// is an empty object (Neovim sends `{}` as `[]`), which changes nothing.
 pub(crate) fn merge(base: &mut serde_json::Value, over: serde_json::Value) {
     match (base, over) {
         (serde_json::Value::Object(base), serde_json::Value::Object(over)) => {
             for (key, value) in over {
-                match base.get_mut(&key) {
-                    Some(slot) if slot.is_object() && value.is_object() => merge(slot, value),
-                    _ => {
+                match (base.get_mut(&key), value) {
+                    (Some(serde_json::Value::Object(slot)), serde_json::Value::Object(value)) => slot.extend(value),
+                    (Some(serde_json::Value::Object(_)), serde_json::Value::Array(items)) if items.is_empty() => {}
+                    (_, value) => {
                         base.insert(key, value);
                     }
                 }
@@ -4736,6 +4754,39 @@ mod tests {
         assert!(loaded.options.emacs_options().0.is_empty());
         let loaded = load(Some(serde_json::json!({ "config_file": false, "emacs_options": ["x"] })), &no_env);
         assert_eq!(loaded.problems, ["the option `emacs_options` is malformed and is ignored"]);
+    }
+
+    #[test]
+    fn the_editors_emacs_options_go_over_the_files_option_by_option() {
+        let file = temp_file(
+            "emacs-options-merge",
+            "[emacs_options]\norg-attach-method = \"mv\"\norg-export-with-toc = false\n\
+             org-export-default-language = 2026-10-21\n\
+             org-babel-load-languages = { python = true, emacs-lisp = true }\n",
+        );
+        let given = |editor: serde_json::Value| {
+            let mut editor = editor;
+            editor["config_file"] = serde_json::json!(file.display().to_string());
+            let (options, _) = load(Some(editor), &no_env).options.emacs_options();
+            options.into_iter().map(|option| (option.name, option.value)).collect::<Vec<_>>()
+        };
+        // An option's value, a table here, is the editor's whole.
+        assert_eq!(
+            given(serde_json::json!({ "emacs_options": {
+                "org-babel-load-languages": { "shell": true },
+                "org-export-with-toc": 3
+            } })),
+            [
+                ("org-attach-method".to_string(), serde_json::json!("mv")),
+                ("org-export-with-toc".to_string(), serde_json::json!(3)),
+                // A TOML date, as its text.
+                ("org-export-default-language".to_string(), serde_json::json!("2026-10-21")),
+                ("org-babel-load-languages".to_string(), serde_json::json!({ "shell": true })),
+            ]
+        );
+        // Neovim's `{}`, `[]`, keeps the file's.
+        assert_eq!(given(serde_json::json!({ "emacs_options": [] })).len(), 4);
+        std::fs::remove_dir_all(file.parent().unwrap()).unwrap();
     }
 
     fn temp_file(name: &str, text: &str) -> PathBuf {

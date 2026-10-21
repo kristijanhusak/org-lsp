@@ -2120,7 +2120,7 @@
         },
         "org-babel-no-eval-on-ctrl-c-ctrl-c": {
           "type": "boolean",
-          "description": "Uses keymap `org-mode-map`, which is not currently defined.",
+          "description": "Remove code block evaluation from the `C-c C-c` key binding.",
           "default": false
         },
         "org-babel-results-keyword": {
@@ -2158,10 +2158,12 @@
           "description": "The desired target framework to use."
         },
         "org-babel-csharp-generate-compile-command": {
-          "description": "A function creating the compile command."
+          "description": "A function creating the compile command.",
+          "default": "org-babel-csharp--default-compile-command"
         },
         "org-babel-csharp-generate-restore-command": {
-          "description": "A function creating a project restore command."
+          "description": "A function creating a project restore command.",
+          "default": "org-babel-csharp--default-restore-command"
         },
         "org-babel-csharp-additional-project-flags": {
           "anyOf": [
@@ -2449,7 +2451,8 @@
               "type": "string"
             }
           ],
-          "description": "Command (including arguments) for interactive and non-interactive Python code."
+          "description": "Command (including arguments) for interactive and non-interactive Python code.",
+          "default": "auto"
         },
         "org-babel-python-command-session": {
           "anyOf": [
@@ -2462,7 +2465,8 @@
               "type": "string"
             }
           ],
-          "description": "Command (including arguments) for starting interactive Python sessions."
+          "description": "Command (including arguments) for starting interactive Python sessions.",
+          "default": "auto"
         },
         "org-babel-python-command-nonsession": {
           "type": "string",
@@ -2828,7 +2832,12 @@
           "default": false
         },
         "org-attach-id-to-path-function-list": {
-          "description": "List of functions used to derive attachment path from an ID string."
+          "description": "List of functions used to derive attachment path from an ID string.",
+          "default": [
+            "org-attach-id-uuid-folder-format",
+            "org-attach-id-ts-folder-format",
+            "org-attach-id-fallback-folder-format"
+          ]
         },
         "org-attach-commands": {
           "description": "The list of commands for the attachment dispatcher."
@@ -3323,7 +3332,8 @@
           "description": "Function called to format a drawer in ASCII."
         },
         "org-ascii-format-inlinetask-function": {
-          "description": "Function called to format an inlinetask in ASCII."
+          "description": "Function called to format an inlinetask in ASCII.",
+          "default": "org-ascii-format-inlinetask-default"
         },
         "org-beamer-frame-level": {
           "type": "integer",
@@ -3454,7 +3464,8 @@
           "default": 2
         },
         "org-html-format-headline-function": {
-          "description": "Function to format headline text."
+          "description": "Function to format headline text.",
+          "default": "org-html-format-headline-default-function"
         },
         "org-html-allow-name-attribute-in-anchors": {
           "type": "boolean",
@@ -3472,7 +3483,8 @@
           "default": false
         },
         "org-html-format-inlinetask-function": {
-          "description": "Function called to format an inlinetask in HTML code."
+          "description": "Function called to format an inlinetask in HTML code.",
+          "default": "org-html-format-inlinetask-default-function"
         },
         "org-html-equation-reference-format": {
           "type": "string",
@@ -3702,7 +3714,8 @@
           "default": false
         },
         "org-html-meta-tags": {
-          "description": "Form that is used to produce meta tags in the HTML head."
+          "description": "Form that is used to produce meta tags in the HTML head.",
+          "default": "org-html-meta-tags-default"
         },
         "org-html-head-include-default-style": {
           "type": "boolean",
@@ -4082,7 +4095,8 @@
           "default": "\\hypersetup{\n pdfauthor={%a},\n pdftitle={%t},\n pdfkeywords={%k},\n pdfsubject={%d},\n pdfcreator={%c},\n pdflang={%L}}\n"
         },
         "org-latex-format-headline-function": {
-          "description": "Function for formatting the headline's text."
+          "description": "Function for formatting the headline's text.",
+          "default": "org-latex-format-headline-default-function"
         },
         "org-latex-default-footnote-command": {
           "type": "string",
@@ -4213,7 +4227,8 @@
           "description": "Function called to format a drawer in LaTeX code."
         },
         "org-latex-format-inlinetask-function": {
-          "description": "Function called to format an inlinetask in LaTeX code."
+          "description": "Function called to format an inlinetask in LaTeX code.",
+          "default": "org-latex-format-inlinetask-default-function"
         },
         "org-latex-src-block-backend": {
           "enum": [
@@ -4510,10 +4525,12 @@
           "description": "Function called to format a drawer in ODT code."
         },
         "org-odt-format-headline-function": {
-          "description": "Function to format headline text."
+          "description": "Function to format headline text.",
+          "default": "org-odt-format-headline-default-function"
         },
         "org-odt-format-inlinetask-function": {
-          "description": "Function called to format an inlinetask in ODT code."
+          "description": "Function called to format an inlinetask in ODT code.",
+          "default": "org-odt-format-inlinetask-default-function"
         },
         "org-odt-with-latex": {
           "description": "Non-nil means process LaTeX math snippets.",
@@ -4644,7 +4661,8 @@
           "description": "Alist of Texinfo classes and associated header and structure."
         },
         "org-texinfo-format-headline-function": {
-          "description": "Function to format headline text."
+          "description": "Function to format headline text.",
+          "default": "org-texinfo-format-headline-default-function"
         },
         "org-texinfo-node-description-column": {
           "type": "integer",
@@ -4702,7 +4720,8 @@
           "description": "Function called to format a drawer in Texinfo code."
         },
         "org-texinfo-format-inlinetask-function": {
-          "description": "Function called to format an inlinetask in Texinfo code."
+          "description": "Function called to format an inlinetask in Texinfo code.",
+          "default": "org-texinfo-format-inlinetask-default-function"
         },
         "org-texinfo-with-latex": {
           "enum": [
@@ -4795,7 +4814,11 @@
           "description": "Information about the creator of the document."
         },
         "org-export-with-drawers": {
-          "description": "Non-nil means export contents of standard drawers."
+          "description": "Non-nil means export contents of standard drawers.",
+          "default": [
+            "not",
+            "LOGBOOK"
+          ]
         },
         "org-export-with-email": {
           "type": "boolean",

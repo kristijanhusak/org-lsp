@@ -141,8 +141,10 @@
                                 name (if (fboundp 'org-version) (org-version) ""))
       (let ((lisp (org-lsp-bridge--option-value type value)))
         (if (not (org-lsp-bridge--type-matches type lisp))
-            (org-lsp-bridge--notice "`emacs_options` leaves out `%s`: %s is not %s"
-                                    name json (org-lsp-bridge--type-text type))
+            (let ((fault (org-lsp-bridge--fault type value)))
+              (org-lsp-bridge--notice "`emacs_options` leaves out `%s`: %s is not %s"
+                                      name (org-lsp-bridge--json (car fault))
+                                      (org-lsp-bridge--type-text (cdr fault))))
           (condition-case err
               (funcall (or (get symbol 'custom-set) #'set-default) symbol lisp)
             (error (org-lsp-bridge--notice "`emacs_options` could not set `%s`: %s"
@@ -158,7 +160,9 @@
   "The keywords of the custom TYPE (`:tag', `:key-type'…), as a plist."
   (let ((rest (and (consp type) (cdr type)))
         keywords)
-    (while (keywordp (car rest))
+    ;; A keyword with nothing after it is an argument: the value of
+    ;; `(const :utf-8)', as `widget-convert' reads it.
+    (while (and (keywordp (car rest)) (cdr rest))
       (setq keywords (append keywords (list (car rest) (cadr rest)))
             rest (cddr rest)))
     keywords))
@@ -166,7 +170,7 @@
 (defun org-lsp-bridge--type-args (type)
   "The arguments of the custom TYPE after its keywords."
   (let ((rest (and (consp type) (cdr type))))
-    (while (keywordp (car rest))
+    (while (and (keywordp (car rest)) (cdr rest))
       (setq rest (cddr rest)))
     rest))
 
@@ -186,6 +190,56 @@ list of them; any other VALUE as it is."
       (vconcat (mapcar (lambda (pair) (vector (car pair) (cdr pair))) value))
     value))
 
+(defun org-lsp-bridge--names-p (type value)
+  "Whether the custom TYPE names VALUE: a constant whose name VALUE is,
+or a list whose first item is such a constant, as `(not \"LOGBOOK\")'
+is for `(list (const not) …)'."
+  (let ((head (if (consp type) (car type) type))
+        (keywords (org-lsp-bridge--type-keywords type))
+        (args (org-lsp-bridge--type-args type)))
+    (pcase head
+      ((or 'const 'other)
+       (let ((constant (if (plist-member keywords :value) (plist-get keywords :value) (car args))))
+         (and (stringp value) constant (symbolp constant) (not (eq constant t))
+              (string= value (symbol-name constant)))))
+      ((or 'choice 'radio)
+       (seq-some (lambda (type) (org-lsp-bridge--names-p type value)) args))
+      ((or 'list 'group 'vector 'cons)
+       (and (vectorp value) (> (length value) 0) args
+            (memq (if (consp (car args)) (caar args) (car args)) '(const other))
+            (org-lsp-bridge--names-p (car args) (aref value 0)))))))
+
+(defun org-lsp-bridge--string-type-p (type)
+  "Whether the custom TYPE takes strings."
+  (let ((head (if (consp type) (car type) type)))
+    (or (memq head '(string regexp file directory color))
+        (and (memq head '(choice radio))
+             (seq-some #'org-lsp-bridge--string-type-p (org-lsp-bridge--type-args type))))))
+
+(defun org-lsp-bridge--inline-p (type)
+  "Whether the custom TYPE, an argument of a list, stands for several of
+its items (`(repeat :inline t …)')."
+  (and (consp type) (memq (car type) '(repeat set))
+       (plist-get (org-lsp-bridge--type-keywords type) :inline)))
+
+(defun org-lsp-bridge--list-items (args items)
+  "ITEMS, of a list, as the arguments ARGS of its custom type want them:
+one item each, and the rest for an inline repeat (`org-latex-classes''s
+sectioning). The symbol `none' when the count does not fit."
+  (let ((inline (seq-find #'org-lsp-bridge--inline-p args)))
+    (cond
+     ((and (not inline) (= (length items) (length args)))
+      (cl-mapcar #'org-lsp-bridge--option-value args items))
+     ((and inline (>= (length items) (1- (length args))))
+      (let* ((before (seq-take-while (lambda (type) (not (eq type inline))) args))
+             (after (cdr (memq inline args)))
+             (middle (- (length items) (length before) (length after))))
+        (append (cl-mapcar #'org-lsp-bridge--option-value before items)
+                (org-lsp-bridge--option-value inline (vconcat (seq-subseq items (length before)
+                                                                          (+ (length before) middle))))
+                (cl-mapcar #'org-lsp-bridge--option-value after (nthcdr (+ (length before) middle) items)))))
+     (t 'none))))
+
 (defun org-lsp-bridge--option-value (type value)
   "VALUE, read from JSON, as the custom TYPE wants it."
   (let* ((head (if (consp type) (car type) type))
@@ -203,12 +257,24 @@ list of them; any other VALUE as it is."
        (if (and (stringp value) (= (length value) 1)) (aref value 0) value))
       ('float (if (integerp value) (float value) value))
       ((or 'choice 'radio)
+       ;; Where Customize's user picks the alternative, the value alone
+       ;; says it here: first an alternative that names the value (a
+       ;; constant `auto' for "auto", a list that starts with the
+       ;; constant `not' for ["not", …]), then for a string one that
+       ;; takes strings (unless it is written as a keyword, `:with-toc',
+       ;; Org's way to name a property), then the first the value fits.
        (let ((found nil) (done nil))
-         (while (and args (not done))
-           (let ((lisp (org-lsp-bridge--option-value (car args) value)))
-             (when (org-lsp-bridge--type-matches (car args) lisp)
-               (setq found lisp done t)))
-           (setq args (cdr args)))
+         (dolist (fits (list (lambda (type) (org-lsp-bridge--names-p type value))
+                             (lambda (type) (and (stringp value) (not (string-prefix-p ":" value))
+                                                 (org-lsp-bridge--string-type-p type)))
+                             (lambda (_) t)))
+           (let ((rest args))
+             (while (and rest (not done))
+               (when (funcall fits (car rest))
+                 (let ((lisp (org-lsp-bridge--option-value (car rest) value)))
+                   (when (org-lsp-bridge--type-matches (car rest) lisp)
+                     (setq found lisp done t))))
+               (setq rest (cdr rest)))))
          (if done found (org-lsp-bridge--plain-value value))))
       ((or 'repeat 'set)
        (let ((value (org-lsp-bridge--pairs value)))
@@ -221,10 +287,17 @@ list of them; any other VALUE as it is."
                    value))))
       ((or 'list 'group 'vector)
        (let ((value (org-lsp-bridge--pairs value)))
-         (if (and (vectorp value) (= (length value) (length args)))
-             (let ((items (cl-mapcar #'org-lsp-bridge--option-value args (append value nil))))
-               (if (eq head 'vector) (vconcat items) items))
-           (org-lsp-bridge--plain-value value))))
+         (if (not (vectorp value))
+             (org-lsp-bridge--plain-value value)
+           (let ((items (org-lsp-bridge--list-items args (append value nil))))
+             (cond ((eq items 'none) (org-lsp-bridge--plain-value value))
+                   ((eq head 'vector) (vconcat items))
+                   (t items))))))
+      ((or 'function 'command)
+       ;; A function's name, as Customize takes it: one defined by then,
+       ;; in `emacs_config' or a library.
+       (let ((symbol (and (stringp value) (intern-soft value))))
+         (if (and symbol (fboundp symbol)) symbol (org-lsp-bridge--plain-value value))))
       ('cons
        (if (and (vectorp value) (= (length value) 2))
            (cons (org-lsp-bridge--option-value (nth 0 args) (aref value 0))
@@ -240,10 +313,13 @@ list of them; any other VALUE as it is."
              (org-lsp-bridge--plain-value value)
            (let ((key (lambda (key)
                         ;; A property list's keys are keywords: `scale' is
-                        ;; `:scale'.
-                        (if (and (eq head 'plist) (eq key-type 'symbol) (stringp key)
-                                 (not (string-prefix-p ":" key)))
-                            (intern (concat ":" key))
+                        ;; `:scale', for a symbol as for a choice of
+                        ;; keywords.
+                        (if (and (eq head 'plist) (stringp key) (not (string-prefix-p ":" key)))
+                            (let ((keyword (org-lsp-bridge--option-value key-type (concat ":" key))))
+                              (if (org-lsp-bridge--type-matches key-type keyword)
+                                  keyword
+                                (org-lsp-bridge--option-value key-type key)))
                           (org-lsp-bridge--option-value key-type key)))))
              (if (eq head 'plist)
                  (mapcan (lambda (pair)
@@ -261,6 +337,46 @@ list of them; any other VALUE as it is."
          (if other
              (org-lsp-bridge--option-value other value)
            (org-lsp-bridge--plain-value value)))))))
+
+(defun org-lsp-bridge--fault (type value)
+  "The part of VALUE, read from JSON, that the custom TYPE does not take,
+with the type it should have been: an item of a list, a key or a value of
+a table, or VALUE itself."
+  (let* ((head (if (consp type) (car type) type))
+         (keywords (org-lsp-bridge--type-keywords type))
+         (args (org-lsp-bridge--type-args type))
+         (inner
+          (unless (org-lsp-bridge--type-matches type (org-lsp-bridge--option-value type value))
+            (pcase head
+              ((or 'repeat 'set)
+               (let ((items (org-lsp-bridge--pairs value)))
+                 (and (vectorp items)
+                      (seq-some (lambda (item)
+                                  (org-lsp-bridge--fault
+                                   (if (eq head 'repeat) (car args) `(choice ,@args)) item))
+                                items))))
+              ((or 'list 'group 'vector 'cons)
+               (let ((items (org-lsp-bridge--pairs value)))
+                 (and (vectorp items) (= (length items) (length args))
+                      (not (seq-some #'org-lsp-bridge--inline-p args))
+                      (seq-some #'identity (cl-mapcar #'org-lsp-bridge--fault args (append items nil))))))
+              ((or 'alist 'plist)
+               (and (consp value)
+                    (let ((key-type (or (plist-get keywords :key-type) (if (eq head 'plist) 'symbol 'sexp)))
+                          (value-type (or (plist-get keywords :value-type) 'sexp)))
+                      (seq-some (lambda (pair)
+                                  (or (and (not (eq head 'plist))
+                                           (org-lsp-bridge--fault key-type (car pair)))
+                                      (org-lsp-bridge--fault value-type (cdr pair))))
+                                value))))))))
+    (cond ((org-lsp-bridge--type-matches type (org-lsp-bridge--option-value type value)) nil)
+          (inner)
+          (t (cons value type)))))
+
+(defun org-lsp-bridge--json (value)
+  "VALUE, read from JSON, as JSON again."
+  (let ((json-false :false) (json-null nil))
+    (json-encode value)))
 
 (defun org-lsp-bridge--json-text (value)
   "VALUE, a constant of a custom type, as it is written in the options."
@@ -289,7 +405,7 @@ list of them; any other VALUE as it is."
       ((or 'number 'float) "a number")
       ((or 'symbol 'variable 'face 'coding-system) "a name")
       ('character "a character")
-      ((or 'function 'command) "a function, which goes in `emacs_config`")
+      ((or 'function 'command) "the name of a defined function")
       ((or 'repeat 'set) "a list")
       ((or 'list 'group 'vector 'cons) (format "a list of %d" (if (eq head 'cons) 2 (length args))))
       ((or 'alist 'plist) "a table")

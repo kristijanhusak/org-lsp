@@ -522,7 +522,8 @@ done
             program: "emacs".to_string(),
             config: Some(format!(
                 "{load}\n(setq org-attach-method 'ln)\n\
-                 (with-eval-after-load 'ox (setq org-export-with-toc 3))"
+                 (with-eval-after-load 'ox (setq org-export-with-toc 3))\n\
+                 (defun my-headline (&rest _) \"\")"
             )),
             options: vec![
                 // A choice of constants, a string for a symbol.
@@ -538,14 +539,39 @@ done
                 option("org-structure-template-alist", "org", json!({ "q": "quote", "x": "example" })),
                 // A property list.
                 option("org-format-latex-options", "org", json!({ "scale": 2.0 })),
+                option("org-html-table-default-attributes", "ox-html", json!({ "border": "1" })),
+                // Keywords for constants, in a property list.
+                option(
+                    "org-export-smart-quotes-alist",
+                    "ox",
+                    json!({ "xx": { "primary-opening": { "utf-8": "«", ":html": "&laquo;" } } }),
+                ),
+                // A list that ends with an inline repeat.
+                option(
+                    "org-latex-classes",
+                    "ox-latex",
+                    json!([["mini", "\\documentclass{article}", ["\\section{%s}", "\\section*{%s}"]]]),
+                ),
+                // In a choice, a constant's name is that constant, a string
+                // a string where strings are taken (a keyword aside), and a
+                // list that starts with a constant's name is that list.
+                option("org-babel-python-command-session", "ob-python", json!("auto")),
+                option("org-html-infojs-options", "ox-html", json!({ "path": "x.js", "toc": ":with-toc" })),
+                option("org-export-with-drawers", "ox", json!(["not", "LOGBOOK"])),
+                // A function, by its name.
+                option("org-html-format-headline-function", "ox-html", json!("my-headline")),
                 // Not what they take.
                 option("org-attach-store-link-p", "org-attach", json!("move")),
                 option("org-html-format-drawer-function", "ox-html", json!("my-drawer")),
+                option("org-export-backends", "ox", json!(["ascii", "nosuch"])),
             ],
             ..Settings::default()
         });
         let value = |name: &str| {
-            let sexp = format!("(progn (require 'org-attach) (require 'ox-html) (format \"%S\" {name}))");
+            let sexp = format!(
+                "(progn (require 'org-attach) (require 'ox-html) (require 'ox-latex) (require 'ob-python) \
+                 (format \"%S\" {name}))"
+            );
             emacs.call("eval", json!({ "sexp": sexp }), Duration::from_secs(60)).unwrap()
         };
         assert_eq!(value("org-attach-method"), "mv", "after `emacs_config`, over it");
@@ -556,6 +582,16 @@ done
         assert_eq!(value("org-html-text-markup-alist"), r#"((bold . "<b>%s</b>"))"#);
         assert_eq!(value("org-structure-template-alist"), r#"(("q" . "quote") ("x" . "example"))"#);
         assert_eq!(value("org-format-latex-options"), "(:scale 2.0)");
+        assert_eq!(value("org-html-table-default-attributes"), r#"(:border "1")"#);
+        assert_eq!(value("org-export-smart-quotes-alist"), r#"(("xx" (primary-opening :utf-8 "«" :html "&laquo;")))"#);
+        assert_eq!(
+            value("org-latex-classes"),
+            r#"(("mini" "\\documentclass{article}" ("\\section{%s}" . "\\section*{%s}")))"#
+        );
+        assert_eq!(value("org-babel-python-command-session"), "auto");
+        assert_eq!(value("org-html-infojs-options"), r#"((path . "x.js") (toc . :with-toc))"#);
+        assert_eq!(value("org-export-with-drawers"), r#"(not "LOGBOOK")"#);
+        assert_eq!(value("org-html-format-headline-function"), "my-headline");
         assert_eq!(value("org-attach-store-link-p"), "attached", "left as it was");
         let mut notices = Vec::new();
         while let Ok(event) = emacs.events().try_recv() {
@@ -568,8 +604,13 @@ done
             [
                 "`emacs_options` leaves out `org-attach-store-link-p`: \"move\" is not false, true, \"attached\" \
                  or \"file\"",
-                "`emacs_options` leaves out `org-html-format-drawer-function`: \"my-drawer\" is not a function, \
-                 which goes in `emacs_config`",
+                // The item that is not what the option takes.
+                "`emacs_options` leaves out `org-export-backends`: \"nosuch\" is not \"ascii\", \"beamer\", \
+                 \"html\", \"icalendar\", \"latex\", \"man\", \"md\", \"odt\", \"org\", \"texinfo\", \
+                 \"confluence\", \"deck\", \"freemind\", \"groff\", \"koma-letter\", \"rss\", \"s5\" or \
+                 \"taskjuggler\"",
+                "`emacs_options` leaves out `org-html-format-drawer-function`: \"my-drawer\" is not the name of a \
+                 defined function",
             ]
         );
     }
