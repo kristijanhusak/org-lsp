@@ -260,6 +260,15 @@ fn has_word(text: &str, word: &str) -> bool {
     text.split(|c: char| !c.is_alphanumeric()).any(|part| part == word)
 }
 
+/// Whether byte `offset` is on a statistics cookie, or right after one, as
+/// `org-element-context` has it.
+pub fn on_statistics_cookie(root: &SyntaxNode, offset: usize) -> bool {
+    root.descendants().filter(|node| node.kind() == STATISTICS_COOKIE).any(|node| {
+        let (start, end) = span(&node);
+        (start..=end).contains(&offset)
+    })
+}
+
 /// `C-c C-c` on the line of an item (`org-ctrl-c-ctrl-c`): its checkbox
 /// toggled if it has one, the list's indentation, bullets, numbers and
 /// checkboxes put right, and the cookies counted again. `ordered` is the
@@ -275,12 +284,8 @@ pub fn ctrl_c_ctrl_c(
 ) -> Result<(String, usize, Option<String>), Refusal> {
     let root = parse(text, keywords);
     // On a statistics cookie, the cookies are counted again
-    // (`org-update-statistics-cookies`), and that is all. Right after one
-    // is on it too, as `org-element-context` has it.
-    let on_cookie = root.descendants().filter(|node| node.kind() == STATISTICS_COOKIE).any(|node| {
-        let (start, end) = span(&node);
-        (start..=end).contains(&offset)
-    });
+    // (`org-update-statistics-cookies`), and that is all.
+    let on_cookie = on_statistics_cookie(&root, offset);
     let lists = Lists::new(text, &root);
     let line = line_start(text, offset);
     if on_cookie && lists.items.iter().any(|item| item.begin == line) {

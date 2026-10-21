@@ -247,7 +247,15 @@ impl Server {
         let file = uri::to_path(&context.text_document.uri).ok_or("Assertion failed: (buffer-file-name)")?;
         let directory = file.parent().map(PathBuf::from).ok_or("Assertion failed: (buffer-file-name)")?;
         let command = ctags::create_command(&settings.program, &format!("{}/", directory.display()));
-        shell_output(&command, Some(&directory)).map_err(|error| Refusal::Failed(format!("{command}: {error}")))?;
+        let (output, code) =
+            shell_output(&command, Some(&directory)).map_err(|error| Refusal::Failed(format!("{command}: {error}")))?;
+        // What `shell-command` shows, whatever the exit code, which Org
+        // ignores: a ctags without `--langdef` says so.
+        self.message = Some(match code {
+            _ if !output.is_empty() => super::shell_message(&output, false),
+            Some(0) => "(Shell command succeeded with no output)".to_string(),
+            code => format!("(Shell command failed with code {} and no output)", code.unwrap_or(-1)),
+        });
         Ok(Value::Null)
     }
 

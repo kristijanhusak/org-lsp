@@ -27,6 +27,7 @@ pub mod prompt;
 pub mod protocol;
 pub mod server;
 pub mod settings;
+pub mod stdio;
 pub mod symbols;
 pub mod uri;
 pub mod views;

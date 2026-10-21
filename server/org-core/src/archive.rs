@@ -650,7 +650,7 @@ fn up_heading(text: &str, heading: usize) -> Option<usize> {
 }
 
 /// `org-update-statistics-cookies` at `at`.
-fn update_statistics(
+pub(crate) fn update_statistics(
     text: String,
     at: usize,
     keywords: &TodoKeywords,

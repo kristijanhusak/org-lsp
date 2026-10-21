@@ -1176,7 +1176,7 @@ fn at_date_range(text: &str, point: usize) -> bool {
 
 /// The token that holds byte `offset`.
 fn token_at(root: &SyntaxNode, offset: usize) -> Option<org_syntax::SyntaxToken> {
-    match root.token_at_offset((offset as u32).into()) {
+    match org_syntax::token_at_offset(root, (offset as u32).into()) {
         TokenAtOffset::None => None,
         TokenAtOffset::Single(token) => Some(token),
         TokenAtOffset::Between(_, right) => Some(right),

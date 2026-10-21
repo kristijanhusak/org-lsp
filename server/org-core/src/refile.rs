@@ -571,10 +571,14 @@ pub(crate) fn subtree_end(text: &str, heading: usize) -> usize {
 /// `org-adapt-indentation`, each entry's text moves too, a level at a time
 /// as `org-demote` does it. With `align_top`, the first headline's tags are
 /// aligned even when nothing moves, as `org-refile` does after pasting
-/// (`org-align-tags`).
+/// (`org-align-tags`). Inline tasks keep their stars, as Emacs leaves them
+/// (`org-odd-levels-only` is off while it shifts).
 pub(crate) fn shift_levels(tree: &str, level: usize, settings: &Settings, align_top: bool) -> String {
     let first = headline_level(tree).unwrap_or(level);
     let shift = level as i64 - first as i64;
+    let tasks = crate::inlinetask::min_stars(false);
+    let headline_level =
+        |line: &str| headline_level(line).filter(|stars| !crate::inlinetask::is_task_level(tasks, *stars));
     let mut tree = tree.to_string();
     if settings.adapt != Adapt::Off && shift != 0 {
         let indent = indent::Settings {
@@ -611,7 +615,7 @@ pub(crate) fn shift_levels(tree: &str, level: usize, settings: &Settings, align_
         }
         top = false;
         let stars = if settings.adapt != Adapt::Off { stars } else { (stars as i64 + shift).max(1) as usize };
-        let mut changed = format!("{}{}", "*".repeat(stars), &body[headline_level(body).unwrap_or(0)..]);
+        let mut changed = format!("{}{}", "*".repeat(stars), body.trim_start_matches('*'));
         if let Some((blanks, tags, padding)) = tags_padding(&changed, settings.tags_column) {
             changed.replace_range(blanks..tags, &padding);
         }

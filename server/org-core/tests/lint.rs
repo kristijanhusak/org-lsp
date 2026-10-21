@@ -43,6 +43,7 @@ fn run(case: &Value) -> Vec<Value> {
         read_file: &read,
         file_name: &name,
         id_known: &|_| None,
+        link_types: &[],
     };
     let parse = org_syntax::parse(text, &Default::default());
     lint::lint(text, &parse, &context)
@@ -106,4 +107,30 @@ fn lint_matches_emacs() {
         }
     }
     assert!(failed == 0, "{failed} of {} cases differ from Emacs:{failures}", cases.len());
+}
+
+/// With org-roam on, `roam` is a link type (`org-roam-link-follow-link`'s):
+/// org-lint checks only fuzzy links, so `[[roam:Title]]` is never an
+/// unknown fuzzy location, whether the node exists or not.
+#[test]
+fn roam_links_are_no_fuzzy_links_with_org_roam() {
+    let text = "* A\n[[roam:Beta]] [[Nowhere]]\n";
+    let parse = org_syntax::parse(text, &Default::default());
+    let fuzzy = |link_types: &[&str]| -> Vec<String> {
+        let context = Context {
+            file_exists: &|_| true,
+            priorities: org_core::priority::Priorities::default(),
+            read_file: &|_| None,
+            file_name: &|| None,
+            id_known: &|_| None,
+            link_types,
+        };
+        lint::lint(text, &parse, &context)
+            .into_iter()
+            .filter(|report| report.checker == "invalid-fuzzy-link")
+            .map(|report| report.message)
+            .collect()
+    };
+    assert_eq!(fuzzy(&[]), ["Unknown fuzzy location \"roam:Beta\"", "Unknown fuzzy location \"Nowhere\""]);
+    assert_eq!(fuzzy(&["roam"]), ["Unknown fuzzy location \"Nowhere\""]);
 }

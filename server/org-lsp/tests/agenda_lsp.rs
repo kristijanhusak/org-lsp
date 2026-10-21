@@ -2390,6 +2390,42 @@ fn dims_blocked_tasks_in_the_agenda() {
     client.shutdown();
 }
 
+/// `org-agenda-change-all-lines` as Emacs (Org 9.8.10) leaves the line: an
+/// entry of the TODO list marked done keeps its new keyword when its
+/// parent's cookie, counted again, moves the parent's tags; a habit marked
+/// done is formatted again as a scheduled line, its leader shown and its
+/// graph gone.
+#[test]
+fn changed_lines_show_the_new_state() {
+    let mut options = clock();
+    options["org_modules"] = json!(["org-habit"]);
+    let mut client = Client::editor(options, None);
+    let uri = "file:///org/a.org";
+    let mut text = "* TODO Project [0/2] :work:\n** TODO Build it\n** TODO Ship it\n".to_string();
+    client.open(uri, &text);
+    client.command("org.agenda.todos", uri, 0);
+    let view = client.show_view();
+    let ship = view.lines().position(|line| line.contains("Ship it")).unwrap() as u32;
+    client.edit("org.todo.next", VIEW, (ship, 0), json!({}), &mut text);
+    assert!(text.starts_with(&format!("* TODO Project [1/2]{}:work:\n", " ".repeat(51))), "{text}");
+    let view = client.refetch_view();
+    let line = view.lines().find(|line| line.contains("Ship it")).unwrap();
+    assert!(line.starts_with("  a:          DONE Ship it "), "{view}");
+
+    let habits = "file:///org/gtd.org";
+    let mut text =
+        "* TODO Water the plants\nSCHEDULED: <2026-05-17 Sun .+2d>\n:PROPERTIES:\n:STYLE: habit\n:END:\n".to_string();
+    client.open(habits, &text);
+    client.command("org.agenda.list", habits, 0);
+    let view = client.refetch_view();
+    let water = view.lines().position(|line| line.contains("Water the plants")).unwrap() as u32;
+    client.edit("org.todo.next", VIEW, (water, 0), json!({}), &mut text);
+    assert!(text.contains("SCHEDULED: <2026-05-20 Wed .+2d>"), "{text}");
+    let view = client.refetch_view();
+    assert_eq!(view.lines().nth(water as usize).unwrap(), "  gtd:        Sched. 1x:  DONE Water the plants", "{view}");
+    client.shutdown();
+}
+
 /// `org-habit`: a habit's line carries its consistency graph, each day a
 /// token of its face; `K` hides habits and shows them again.
 #[test]
@@ -2637,6 +2673,37 @@ fn runs_shell_links() {
     std::fs::remove_dir_all(directory).unwrap();
 }
 
+/// `org-link--open-elisp`: following an `elisp:` link asks first, then
+/// Emacs evaluates it and its value is said as Emacs says it; `Abort` on
+/// no, and Emacs's error for a form that fails. A link that opens one of
+/// Emacs's own programs is refused.
+#[test]
+fn evaluates_elisp_links() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("evaluates_elisp_links: no Emacs, skipped");
+        return;
+    }
+    let mut options = clock();
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        options["emacs_config"] = json!(format!("(add-to-list 'load-path {dir:?})"));
+    }
+    let mut client = Client::editor(options, None);
+    let uri = "file:///org/links.org";
+    client.open(uri, "[[elisp:(+ 1 2)]] [[elisp:(concat \"a\" \"b\")]] [[elisp:(error \"Boom\")]] [[help:car]]\n");
+    let asked = open_at(&mut client, uri, 3, json!({})).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Execute (+ 1 2) as Elisp? ");
+    let step = asked["input"]["context"].clone();
+    let answer = |input: &str| json!({ "input": input, "step": step["step"], "answers": step["answers"] });
+    assert_eq!(open_at(&mut client, uri, 3, answer("n")), Err("Abort".to_string()));
+    assert_eq!(open_at(&mut client, uri, 3, answer("y")).unwrap()["message"], "(+ 1 2) => 3");
+    assert_eq!(open_at(&mut client, uri, 20, answer("y")).unwrap()["message"], "(concat \"a\" \"b\") => ab");
+    assert_eq!(open_at(&mut client, uri, 50, answer("y")), Err("Boom".to_string()));
+    assert_eq!(open_at(&mut client, uri, 75, json!({})), Err("Links of type \"help\" are not supported".to_string()));
+    client.shutdown();
+}
+
 /// Runs `org.open` at `character` of the first line of `uri`, with more
 /// of the context in `extra`.
 fn open_at(client: &mut Client, uri: &str, character: u32, extra: Value) -> Result<Value, String> {
@@ -2797,6 +2864,18 @@ fn follows_links_to_ctags_tags() {
     open_at(&mut client, &uri, 20, json!({ "input": "y", "step": step["step"], "answers": step["answers"] })).unwrap();
     let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the topic");
     assert_eq!(apply(text, &edits_of(edit).1), format!("{text}\n\n* <<Topic>>\n\n\n\n\n\n"));
+    // `org-ctags-create-tags`: what ctags says is shown, as `shell-command`
+    // shows it, also when it fails (Emacs's own ctags has no `--langdef`).
+    let create = |client: &mut Client| {
+        let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 0 } });
+        client.request("workspace/executeCommand", json!({ "command": "org.ctags.create", "arguments": [context] }))
+    };
+    assert_eq!(create(&mut client).unwrap()["message"], "(Shell command succeeded with no output)");
+    std::fs::write(&program, "#!/bin/sh\necho \"ctags: unrecognized option '--langdef=orgmode'\" >&2\nexit 1\n")
+        .unwrap();
+    assert_eq!(create(&mut client).unwrap()["message"], "ctags: unrecognized option '--langdef=orgmode'");
+    std::fs::write(&program, "#!/bin/sh\nexit 3\n").unwrap();
+    assert_eq!(create(&mut client).unwrap()["message"], "(Shell command failed with code 3 and no output)");
     client.shutdown();
     std::fs::remove_dir_all(directory).unwrap();
 }
@@ -3665,7 +3744,7 @@ fn shows_column_view() {
     assert!(text.contains("** TODO B\n"), "{text}");
     // `e` on its effort asks for the value first.
     let asked = run(&mut client, &mut text, "org.columns.edit", 6, json!({ "column": 2 }));
-    assert_eq!(asked["input"]["prompt"], "EFFORT value [0:30]: ");
+    assert_eq!(asked["input"], json!({ "kind": "text", "prompt": "Edit: ", "value": "0:30" }));
     let view = run(&mut client, &mut text, "org.columns.edit", 6, json!({ "column": 2, "input": "2:00" }));
     assert_eq!(view["lines"][0][1], "* Project                 | TODO | 3:00   |");
     // `q`: off.
@@ -8549,7 +8628,7 @@ fn agenda_column_view_goes_to_emacs() {
     // `e` on the effort of `Read`: asked, then changed in its file.
     client.notifications.clear();
     let asked = run(&mut client, "org.columns.edit", read, json!({ "column": 2 })).unwrap();
-    assert_eq!(asked["input"]["prompt"], "EFFORT value [0:30]: ", "{asked}");
+    assert_eq!(asked["input"]["prompt"], "Edit: ", "{asked}");
     client.received.clear();
     run(&mut client, "org.columns.edit", read, json!({ "column": 2, "input": "2:00" })).unwrap();
     let start = std::time::Instant::now();
