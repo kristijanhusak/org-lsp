@@ -281,7 +281,7 @@ export const AREAS = [
       helix: ['part', `\`RET\` stays Helix's own; cycled bullets and lines turned into items are left out: ${NO_KEY_HELIX}, and those are not among them. New items are code actions.`],
     },
     checks: [
-      { text: 'On an item, the next item goes below; in a numbered list the numbers go on, after a checkbox item the new one has `[ ]`', cmd: 'org.meta.return' },
+      { text: 'On an item, the next item goes below; in a numbered list the numbers go on; after a checkbox item the new one has none, as in Emacs (`[ ]` comes with `org.insert.todo.heading`, M-S-RET)', cmd: 'org.meta.return' },
       { text: '`RET` in the middle of an item\'s line keeps the rest of the line in the item', cmd: 'org.return', not: ['zed', 'helix'] },
       { text: 'The next item from the end of an item\'s line', cmd: 'org.return.item', only: ['neovim', 'vim'] },
       { text: 'Indenting and outdenting an item; and with its children', cmd: ['org.meta.right', 'org.meta.left', 'org.shiftmeta.right', 'org.shiftmeta.left'] },
@@ -314,7 +314,7 @@ export const AREAS = [
     editors: {
       sublime: ['part', 'Faces of particular keywords and priorities are not shown in the file: Sublime Text colors text by its color scheme only. The list of TODO states shows them in the color of each item\'s kind, the nearest of those Sublime Text has.'],
       zed: ['part', `States are picked with buttons; for a note for a state change (\`@\`), ${ZED_TEXT}. Faces of particular keywords and priorities are not shown: Zed colors tokens by its theme only.`],
-      helix: ['part', `States are picked from the code actions, where they come first once asked for; for a note for a state change (\`@\`), ${HELIX_TEXT}. Switching to another keyword set is left out: it is not among Helix's code actions. Faces of particular keywords and priorities are not shown.`],
+      helix: ['part', `States are picked from the code actions, where they come first once asked for; for a note for a state change (\`@\`), ${HELIX_TEXT}. Switching to another keyword set is left out in an Org file, where it is not among Helix's code actions; on an agenda line it is one. Faces of particular keywords and priorities are not shown.`],
     },
     checks: [
       { text: 'With `org_enforce_todo_dependencies`, a parent with a child not done cannot be done: the change is refused with `blocked (by "TODO Child")`; with `org_enforce_todo_checkbox_dependencies`, an entry with an unchecked box cannot either', cmd: 'org.todo' },
@@ -331,6 +331,7 @@ export const AREAS = [
       { text: 'A `#+TODO: A B | C` line in the file is used instead of the settings', cmd: 'org.todo' },
       { text: 'With `#+TODO: TODO | DONE` and `#+TODO: REPORT BUG | FIXED`, changing the state without keys goes `BUG`, `FIXED`, none, then back to `REPORT`', cmd: 'org.todo' },
       { text: 'Switching to the next and previous keyword set says `Keyword-Set 2/2: REPORT BUG FIXED`', cmd: ['org.todo.nextset', 'org.todo.previousset'] },
+      { text: 'On an agenda line, /Switch to the next TODO keyword set/ and /Switch to the previous TODO keyword set/ are code actions', only: ['helix'] },
       { text: 'With `org_todo_keyword_faces = { WAIT = ":foreground orange :weight bold" }`, `WAIT` shows in bold orange, in the file and in the agenda', only: ['neovim', 'vim', 'vscode'] },
     ],
   },
@@ -434,6 +435,7 @@ export const AREAS = [
       { text: 'Scheduling with `+2d`: `SCHEDULED: <…>` goes below the headline', cmd: 'org.schedule' },
       { text: 'A deadline on `fri 10:00`', cmd: 'org.deadline' },
       { text: 'Removing the scheduled date and the deadline', cmd: ['org.schedule.remove', 'org.deadline.remove'] },
+      { text: 'On an agenda line, /Remove the scheduled date of the entry/ and /Remove the deadline of the entry/ are code actions', only: ['helix'] },
       { text: 'Delaying the scheduled date to a day (`-3d`) and setting the deadline\'s warning period', cmd: ['org.schedule.delay', 'org.deadline.warning'], not: ['zed', 'helix'] },
       { text: 'Inserting an active and an inactive timestamp; a second one right after makes a range', cmd: ['org.timestamp.insert', 'org.timestamp.insert.inactive'], not: ['helix'] },
       { text: 'While typing the date, the answer shows what it means (`=> <2026-10-09 Fri>`)', only: ['neovim', 'vscode'] },
@@ -521,7 +523,8 @@ export const AREAS = [
       { text: 'Entry text, log mode, the clock report, archives mode', in: 'agenda', cmd: ['org.agenda.entry.text', 'org.agenda.log', 'org.agenda.clockreport', 'org.agenda.archives'] },
       { text: 'In the week view, inactive timestamps show after `[` with *Display now includes inactive timestamps as well*, marked `[`, and are gone again when the agenda is rebuilt', in: 'agenda', cmd: ['org.agenda.query.add', 'org.agenda.inactive', 'org.agenda.redo'] },
       { text: 'Hovering a line shows its entry', in: 'agenda', keys: { neovim: '`K`', vim: '`K`', vscode: 'the mouse, `Ctrl+K Ctrl+I`', sublime: 'the mouse', zed: 'the mouse', helix: '`Space k`' } },
-      { text: 'Rebuilding the agenda, saving the changed files, quitting', in: 'agenda', cmd: ['org.agenda.redo', 'org.agenda.save'] },
+      { text: 'Rebuilding the agenda, saving the changed files, quitting', in: 'agenda', cmd: ['org.agenda.redo', 'org.agenda.save'], not: ['helix'] },
+      { text: 'Rebuilding the agenda; the files its edits changed are saved with `:write-all` (Helix does nothing with the files a server names to save, so /Save all Org files/ is not offered)', in: 'agenda', cmd: 'org.agenda.redo', only: ['helix'] },
       { text: 'An entry changed in its file shows in the agenda when it is rebuilt' },
       { text: 'Adding today\'s appointments: an entry timed a few minutes from now is reminded of every three minutes until it is due (needs Emacs)', cmd: 'org.agenda.appt' },
       { text: 'Pressing `f` many times in a row moves the agenda a week each time, in the editor too', only: ['zed'] },
@@ -811,7 +814,7 @@ export const AREAS = [
       helix: ['part', 'Making footnotes and their menu are left out: they are not among Helix\'s code actions. Following them works.'],
     },
     checks: [
-      { text: 'Following `[fn:1]` goes to its definition, and from the definition back to the reference', cmd: 'org.open' },
+      { text: 'Following `[fn:1]` goes to its definition, after its label, and from the definition\'s label back to the reference; right after the label, where following leaves the cursor, it says *No link found*, as Emacs\'s `C-c C-o` does there', cmd: 'org.open' },
       { text: 'A reference without a definition is reported' },
       { text: 'A new footnote (needs Emacs): `[fn:1]` at the cursor, its definition in the `Footnotes` section, the cursor there', cmd: 'org.footnote.action', not: ['helix'] },
       { text: 'On a reference without a definition, Emacs asks whether to make one, in the editor', cmd: 'org.footnote.action', not: ['helix'] },
@@ -998,7 +1001,7 @@ export const AREAS = [
     name: 'Diagnostics (org-lint)',
     emacs: [['org-lint\'s checkers', 61, 61]],
     checks: [
-      { text: 'A heading in a paragraph (`text ** heading`), a link to nowhere and a block left open are reported' },
+      { text: 'A heading in a paragraph (`text** heading`), a link to nowhere and a block left open are reported' },
       { text: 'An unknown header argument (`:foo 1`) on a source block is reported, as information: nothing is ever an error or a warning, only information (or a hint, where org-lint trusts its finding less)' },
       { text: '`org_lint_ignore = ["link-to-local-file"]` silences that checker' },
     ],

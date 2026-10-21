@@ -332,7 +332,9 @@ What only Emacs can do, the server has Emacs do, when Emacs (with Org 9.6
 or newer) is installed: export (~C-c C-e~, ~<Leader>oe~ in Vim and Neovim),
 evaluating code blocks (~C-c C-c~ on a block, ~C-c C-v b~ for the file's),
 LaTeX previews, encryption and a few others. The server starts Emacs the
-first time and keeps it running.
+first time and keeps it running. Moving rows in column view
+(~org-columns-move-row-up~, ~M-<up>~) needs a newer Org than the 9.6.15
+that Emacs 29 comes with.
 
 Org's options for these go in ~emacs_options~, by their names in Org, with
 values as the other options have them: ~true~ is ~t~, ~false~ is ~nil~, a
@@ -454,7 +456,8 @@ require('org-lsp').setup({
 
   -- Conceal what the server marks hidden: link brackets and targets
   -- (`org_link_descriptive`), emphasis markers (`org_hide_emphasis_markers`).
-  -- Sets 'conceallevel' 2 in Org windows; the cursor line shows everything.
+  -- Sets 'conceallevel' 2 in Org windows (a level set before, as by a
+  -- `FileType` autocommand, stays); the cursor line shows everything.
   conceal = true,
 
   -- Indent as Org does, with the server: new lines through 'indentexpr'

@@ -98,7 +98,11 @@ others), as close to Emacs Org mode as it can get.
   the same steps.
 - Neovim: ~scripts/test-nvim.sh~ (set ~NVIM~ to the binary), on 0.12.0 and
   stable. Tests run headless against the real server; ~tests/nvim/scenarios.lua~
-  is its adapter of the scenarios.
+  is its adapter of the scenarios. On a nightly build of 0.13,
+  ~tests/nvim/highlight.lua~ may stop on Neovim's own assertion
+  (~grid_line_flush: Assertion `grid_line_clear_to <= grid_line_maxcol'~)
+  when it redraws the date prompt's calendar in its headless 140 by 50
+  screen; the same calendar draws in a terminal of that size, and on 0.12.
 - VS Code: in ~editors/vscode~, ~npm run generate -- --check~,
   ~npm run check~, ~npm run build~, ~xvfb-run -a npm test~ (VSCodium works locally
   through ~VSCODE_EXECUTABLE~, set to its ~codium~ binary, not the
