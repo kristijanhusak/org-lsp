@@ -212,6 +212,7 @@ fn tools(options: &Options) -> Value {
             &[],
         ),
     ];
+    tools.extend(reading_tools());
     if options.mcp_edits != Some(true) {
         return Value::Array(tools);
     }
@@ -357,6 +358,9 @@ fn call(
     env: &dyn Fn(&str) -> Option<String>,
 ) -> Result<String, Call> {
     let arguments = Arguments(arguments);
+    if let Some(result) = reading(name, &arguments, folder, env) {
+        return result;
+    }
     match name {
         "capture_templates" => Ok(capture_templates(&crate::config::load(None, env).options, folder)),
         "refile_targets" => refile_targets(&arguments, &crate::config::load(None, env).options, folder),
@@ -1366,6 +1370,641 @@ fn refile(arguments: &Arguments, options: &Options, folder: Option<&Path>) -> Re
     Ok(out.trim_end().to_string())
 }
 
+// ----- reading: an entry, the clock report, org-roam and org-journal
+
+/// What the org-roam tools answer while org-roam is off.
+const ROAM_OFF: &str = "org-roam is not enabled: set `org_roam_enabled = true` in the configuration file \
+                        (`org-lsp config` shows which one) to use it.";
+
+/// What the org-journal tool answers while org-journal is off.
+const JOURNAL_OFF: &str = "org-journal is not enabled: set `org_journal_enabled = true` in the configuration file \
+                           (`org-lsp config` shows which one) to use it.";
+
+/// What [`readable_files`] are, in a refusal.
+const READABLE: &str = "neither an agenda file, nor a journal file, nor an org-roam file";
+
+/// The tools that read an entry, the clock report, org-roam's nodes and
+/// org-journal's entries: listed whatever the options, as the views are.
+fn reading_tools() -> Vec<Value> {
+    let tool = |name: &str, title: &str, description: &str, properties: Value, required: &[&str]| {
+        json!({
+            "name": name,
+            "title": title,
+            "description": description,
+            "inputSchema": { "type": "object", "properties": properties, "required": required },
+            "annotations": { "readOnlyHint": true, "openWorldHint": false },
+        })
+    };
+    let date = |about: &str| json!({ "type": "string", "description": format!("YYYY-MM-DD: {about}") });
+    vec![
+        tool(
+            "entry",
+            "Entry",
+            "The whole text of an entry, the [file:line] a view gives: its subtree, with its outline \
+             path, planning (SCHEDULED, DEADLINE, CLOSED), tags and properties (its own and those it \
+             inherits, as the inheritance options say) and the time clocked in it.",
+            json!({
+                "file": { "type": "string", "description": "The entry's file: its path, or its name in the views" },
+                "line": { "type": "integer", "minimum": 1, "description": "The line of the entry's headline, from 1" },
+                "headline": {
+                    "type": "string",
+                    "description": "Text the headline has, such as its title: refused if the line no longer has it",
+                },
+                "subtree": {
+                    "type": "boolean",
+                    "description": "false for the entry alone, up to its first child; the default is its whole subtree",
+                },
+            }),
+            &["file", "line"],
+        ),
+        tool(
+            "clock_report",
+            "Clock report",
+            "The clock table of the agenda files (org-clock-report), with the user's clock table \
+             options, as Org writes it: the time clocked under each headline, over a span of days.",
+            json!({
+                "span": {
+                    "type": "string",
+                    "description": "today, yesterday, thisweek, lastweek, thismonth, lastmonth, thisyear, \
+                                    lastyear, or a period such as 2026-10, 2026-W42 or 2026-10-21 (:block); \
+                                    the default is all the time clocked",
+                },
+                "start": date("the first day, instead of span"),
+                "end": date("the last day, included, instead of span"),
+                "file": { "type": "string", "description": "Only this agenda file, as org-clock-report in it" },
+                "maxlevel": { "type": "integer", "minimum": 1, "description": "The deepest level of headlines shown" },
+            }),
+            &[],
+        ),
+        tool(
+            "roam_find",
+            "Find org-roam nodes",
+            "The org-roam nodes (org-roam-node-find), each title and alias on a line as offered there, \
+             with its tags, ID and [file:line]; with query, those whose line has its words.",
+            json!({ "query": { "type": "string", "description": "Words the node's line has, in any case" } }),
+            &[],
+        ),
+        tool(
+            "roam_node",
+            "org-roam node",
+            "An org-roam node's text, then what the org-roam buffer shows for it: its backlinks, \
+             reflinks and, as org_roam_mode_sections says or with unlinked, its unlinked references, \
+             each with the text around it and [file:line].",
+            json!({
+                "node": { "type": "string", "description": "The node's title, one of its aliases, or its ID" },
+                "unlinked": { "type": "boolean", "description": "Also the unlinked references" },
+            }),
+            &["node"],
+        ),
+        tool(
+            "journal_entries",
+            "Journal entries",
+            "The org-journal entries of a day, or of the days from start to end, each with its \
+             [file:line] (org-journal-read-entry).",
+            json!({
+                "date": date("the day; the default is today"),
+                "start": date("the first day, instead of date"),
+                "end": date("the last day, included"),
+            }),
+            &[],
+        ),
+    ]
+}
+
+/// The reading tools, by name; `None` for another tool.
+fn reading(
+    name: &str,
+    arguments: &Arguments,
+    folder: Option<&Path>,
+    env: &dyn Fn(&str) -> Option<String>,
+) -> Option<Result<String, Call>> {
+    if !matches!(name, "entry" | "clock_report" | "roam_find" | "roam_node" | "journal_entries") {
+        return None;
+    }
+    let options = crate::config::load(None, env).options;
+    // Org's variables the server sets when it starts.
+    org_core::duration::set(options.durations());
+    org_core::inlinetask::set_min_level(options.inlinetask_min_level());
+    org_core::structure::set_odd_levels_default(options.odd_levels_only.unwrap_or(false));
+    Some(match name {
+        "entry" => entry(arguments, &options, folder),
+        "clock_report" => clock_report(arguments, &options, folder),
+        "roam_find" => roam_find(arguments, &options),
+        "roam_node" => roam_node(arguments, &options),
+        _ => journal_entries(arguments, &options),
+    })
+}
+
+/// The files of org-journal's directory that are journal files, by their
+/// names relative to it, when org-journal is on.
+fn journal_names(journal: &crate::config::JournalSettings) -> (PathBuf, Vec<String>) {
+    let directory = crate::server::roam::expand(&journal.directory);
+    let mut names = Vec::new();
+    crate::server::roam::list_files(&directory, "", 0, &mut names);
+    names.retain(|name| org_core::journal::is_journal_file(name, &journal.core));
+    names.sort();
+    (directory, names)
+}
+
+/// The files of org-roam's directory that are org-roam's, when it is on.
+fn roam_paths(roam: &crate::config::RoamSettings) -> Vec<PathBuf> {
+    let directory = crate::server::roam::expand(&roam.directory);
+    let mut names = Vec::new();
+    crate::server::roam::list_files(&directory, "", 0, &mut names);
+    names.retain(|name| org_core::roam::is_roam_file(name, &roam.files));
+    org_core::roam::sync_order(&mut names);
+    names.iter().map(|name| directory.join(name)).collect()
+}
+
+/// The files the reading tools read: the agenda files, the journal's and
+/// org-roam's.
+fn readable_files(options: &Options, folder: Option<&Path>) -> Vec<PathBuf> {
+    let mut files = agenda_paths(options, folder);
+    if let Some(journal) = options.journal() {
+        let (directory, names) = journal_names(&journal);
+        files.extend(names.iter().map(|name| directory.join(name)));
+    }
+    if let Some(roam) = options.roam() {
+        files.extend(roam_paths(&roam));
+    }
+    files
+}
+
+/// The file `given` names among `files`, as [`editable_file`] finds it,
+/// saying that the tool reads rather than changes.
+fn readable_file(given: &str, files: &[PathBuf], kinds: &str, folder: Option<&Path>) -> Result<PathBuf, Call> {
+    editable_file(given, files, kinds, folder).map_err(|refusal| match refusal {
+        Call::Failed(message) => {
+            Call::Failed(message.replace("org-lsp mcp changes only those", "this tool reads only those"))
+        }
+        other => other,
+    })
+}
+
+/// The line, from 1, of `offset` in `text`.
+fn line_of(text: &str, offset: usize) -> usize {
+    text[..offset.min(text.len())].matches('\n').count() + 1
+}
+
+/// A day as `YYYY-MM-DD`.
+fn day_text(day: org_core::date::Day) -> String {
+    let date = org_core::date::Date::from_day(day);
+    format!("{:04}-{:02}-{:02}", date.year, date.month, date.day)
+}
+
+/// The text of `file`, read whole.
+fn read_text(path: &Path) -> Result<String, Call> {
+    std::fs::read(path)
+        .map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
+        .map_err(|error| format!("Cannot read {}: {error}", path.display()).into())
+}
+
+/// The outline of `text`, the file `path`, with what entries inherit.
+fn outline_of(text: &str, path: &Path, options: &Options) -> (org_syntax::Parse, org_core::outline::Outline) {
+    let parse = org_syntax::parse(text, &options.todo_keywords());
+    let name = crate::cli::file_name(path);
+    let outline = org_core::outline::Outline::with_inheritance(&parse, text, &name, &options.inheritance());
+    (parse, outline)
+}
+
+/// Where the entry of the headline at `heading` ends, before its first
+/// child, and where its subtree does.
+fn entry_ends(outline: &org_core::outline::Outline, index: usize) -> (usize, usize) {
+    let entry = &outline.entries[index];
+    let after = &outline.entries[index + 1..];
+    let subtree =
+        after.iter().find(|other| other.level <= entry.level).map_or(outline.text.len(), |other| other.offset);
+    let own = after.first().map_or(subtree, |other| other.offset).min(subtree);
+    (own, subtree)
+}
+
+/// The text of the subtree of the headline at `offset` of `text`, or of
+/// the whole file when `offset` is not at a headline (a file's node, a
+/// day's journal file without a headline for its date).
+fn subtree_text(text: &str, offset: usize, path: &Path, options: &Options) -> String {
+    let (_, outline) = outline_of(text, path, options);
+    match outline.entries.iter().position(|entry| entry.offset == offset) {
+        Some(index) => text[offset..entry_ends(&outline, index).1].to_string(),
+        None => text.to_string(),
+    }
+}
+
+/// `entry`: the text of the entry at `line` of `file`, with what Org
+/// makes of it.
+fn entry(arguments: &Arguments, options: &Options, folder: Option<&Path>) -> Result<String, Call> {
+    let given = arguments.required("file")?;
+    let line = arguments.line()?;
+    let files = readable_files(options, folder);
+    let path = readable_file(&given, &files, READABLE, folder)?;
+    let text = read_text(&path)?;
+    let name = path.display().to_string();
+    let heading = headline_at_line(&text, line, &name, arguments)?;
+    let (parse, outline) = outline_of(&text, &path, options);
+    let index = outline
+        .entries
+        .iter()
+        .position(|entry| entry.offset == heading)
+        .ok_or_else(|| format!("Line {line} of {name} is not a headline"))?;
+    let entry = &outline.entries[index];
+    let (own_end, subtree_end) = entry_ends(&outline, index);
+
+    let labels: Vec<String> = files.iter().map(|file| file.display().to_string()).collect();
+    let mut out = format!("[{}:{line}]\n", file_label(&name, &labels));
+    let path_parts = org_core::refile::outline_path(&text, heading, parse.todo_keywords());
+    if !path_parts.is_empty() {
+        out.push_str(&format!("Outline path: {}\n", path_parts.join("/")));
+    }
+    out.push_str(&format!("Category: {}\n", entry.category));
+    if let Some(todo) = &entry.todo {
+        let state = if entry.done { "done" } else { "not done" };
+        out.push_str(&format!("TODO keyword: {todo} ({state})\n"));
+    }
+    for (keyword, planning) in
+        [("SCHEDULED", &entry.scheduled), ("DEADLINE", &entry.deadline), ("CLOSED", &entry.closed)]
+    {
+        if let Some(planning) = planning {
+            let (open, close) = if planning.active { ('<', '>') } else { ('[', ']') };
+            out.push_str(&format!("{keyword}: {open}{}{close}\n", planning.raw));
+        }
+    }
+    let tags = |inherited: bool| -> Vec<&str> {
+        entry.tags.iter().filter(|tag| tag.inherited == inherited).map(|tag| tag.name.as_str()).collect()
+    };
+    for (what, names) in [("Tags", tags(false)), ("Inherited tags", tags(true))] {
+        if !names.is_empty() {
+            out.push_str(&format!("{what}: :{}:\n", names.join(":")));
+        }
+    }
+    // `org-entry-get` with inheritance, for the properties set above the
+    // entry that it does not set itself.
+    let mut inherited: Vec<(String, String)> = Vec::new();
+    let mut above: Vec<&str> = Vec::new();
+    let mut parent = entry.parent;
+    while let Some(at) = parent {
+        above.extend(outline.entries[at].properties.iter().map(|(key, _)| key.as_str()));
+        parent = outline.entries[at].parent;
+    }
+    above.extend(outline.file_properties.iter().map(|(key, _)| key.as_str()));
+    above.extend(outline.keyword_properties.iter().map(|(key, _)| key.as_str()));
+    for key in above {
+        let key = key.trim_end_matches('+');
+        let known = |name: &str| name.eq_ignore_ascii_case(key);
+        if entry.properties.iter().any(|(own, _)| known(own)) || inherited.iter().any(|(seen, _)| known(seen)) {
+            continue;
+        }
+        if outline.inheritance.inherits_property(key) {
+            if let Some(value) = outline.property(index, key) {
+                inherited.push((key.to_string(), value));
+            }
+        }
+    }
+    if !entry.properties.is_empty() || !inherited.is_empty() {
+        out.push_str("Properties:\n");
+        for (key, value) in &entry.properties {
+            out.push_str(&format!("  {key}: {value}\n"));
+        }
+        for (key, value) in &inherited {
+            out.push_str(&format!("  {key}: {value} (inherited)\n"));
+        }
+    }
+    // `org-clock-sum-current-item`: the subtree's time, and the entry's own.
+    let total = org_core::clock::subtree_minutes(&text, heading, None);
+    let own = org_core::clock::subtree_minutes(&text[..own_end], heading, None);
+    if total > 0 {
+        let mut clocked = format!("Clocked: {}", org_core::clock::duration(total));
+        if own != total {
+            clocked.push_str(&format!(" (the entry itself {})", org_core::clock::duration(own)));
+        }
+        out.push_str(&clocked);
+        out.push('\n');
+    }
+    if let Some(start) = org_core::clock::unclosed(&text, heading) {
+        let date = org_core::date::Date::from_day(start.day);
+        out.push_str(&format!(
+            "Clocked in since {:04}-{:02}-{:02} {:02}:{:02}\n",
+            date.year,
+            date.month,
+            date.day,
+            start.minute / 60,
+            start.minute % 60
+        ));
+    }
+    let end = if arguments.0.get("subtree").and_then(Value::as_bool) == Some(false) { own_end } else { subtree_end };
+    out.push('\n');
+    out.push_str(text[heading..end].trim_end_matches('\n'));
+    Ok(out)
+}
+
+/// The files a clock table reads, from disk.
+struct DiskFiles {
+    agenda: Vec<String>,
+}
+
+impl org_core::clocktable::Files for DiskFiles {
+    fn agenda_files(&self) -> Vec<String> {
+        self.agenda.clone()
+    }
+
+    fn archive_files(&self, path: &str, _: &str) -> Vec<String> {
+        crate::cli::archive_files_of(path).unwrap_or_default()
+    }
+
+    fn read(&self, path: &str) -> Option<String> {
+        std::fs::read_to_string(path).ok()
+    }
+}
+
+/// `clock_report`: `org-clock-report` with a table of the agenda files,
+/// or in `file`, over the span asked.
+fn clock_report(arguments: &Arguments, options: &Options, folder: Option<&Path>) -> Result<String, Call> {
+    use org_core::clocktable;
+    let agenda = agenda_paths(options, folder);
+    if agenda.is_empty() {
+        return Err(
+            "No agenda files: set org_agenda_files in the configuration file (`org-lsp config` shows it).".into()
+        );
+    }
+    let config = options.agenda_config();
+    let settings = clocktable::Settings { now: now(), ..config.clocktable };
+    // The block `org-clock-report` makes, with
+    // `org-clock-clocktable-default-properties` and then the arguments,
+    // which take their place.
+    let mut parameters = settings.default_properties.trim().to_string();
+    let file = arguments.text("file").filter(|file| !file.trim().is_empty());
+    let path = match &file {
+        Some(given) => Some(readable_file(given, &agenda, "not an agenda file", folder)?),
+        None => None,
+    };
+    parameters.push_str(if path.is_some() { " :scope file" } else { " :scope agenda" });
+    let span = arguments.text("span").filter(|span| !span.trim().is_empty());
+    let (start, end) = (arguments.text("start"), arguments.text("end"));
+    if span.is_some() && (start.is_some() || end.is_some()) {
+        return Err("Give either `span`, or `start` and `end`".into());
+    }
+    if let Some(span) = span {
+        let span = span.trim();
+        if !span.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+            return Err(format!("`{span}` is not a span: today, thisweek, lastmonth, 2026-10, 2026-W42…").into());
+        }
+        parameters.push_str(&format!(" :block {span}"));
+    }
+    if let Some(start) = start {
+        let day = crate::cli::parse_date(&start)?;
+        parameters.push_str(&format!(" :tstart \"<{}>\"", day_text(day)));
+    }
+    if let Some(end) = end {
+        // The last day is counted whole: the table stops where the next
+        // one starts.
+        let day = crate::cli::parse_date(&end)?;
+        parameters.push_str(&format!(" :tend \"<{}>\"", day_text(day + 1)));
+    }
+    if let Some(level) = arguments.0.get("maxlevel").and_then(Value::as_u64).filter(|level| *level > 0) {
+        parameters.push_str(&format!(" :maxlevel {level}"));
+    }
+    let block = format!("#+BEGIN: clocktable {parameters}\n#+END:\n");
+    let (text, name) = match &path {
+        // At the top of the file, before its first headline.
+        Some(path) => (format!("{block}{}", read_text(path)?), Some(path.display().to_string())),
+        None => (block, None),
+    };
+    let files = DiskFiles { agenda: agenda.iter().map(|path| path.display().to_string()).collect() };
+    let context = clocktable::Context { path: name.as_deref(), settings: &settings, files: &files };
+    let done = clocktable::update(&text, 0, false, &context)?;
+    // What is between the block's `#+BEGIN:` and `#+END:` lines.
+    let mut table = String::new();
+    for line in done.text.lines().skip(1) {
+        if line.trim_start().to_ascii_uppercase().starts_with("#+END:") {
+            break;
+        }
+        table.push_str(line);
+        table.push('\n');
+    }
+    Ok(table.trim_end().to_string())
+}
+
+/// org-roam's database, as `org-roam-db-sync` makes it of the files now.
+fn roam_db(
+    options: &Options,
+) -> Result<(crate::config::RoamSettings, org_core::roam::Db, std::collections::HashMap<String, u64>), Call> {
+    let roam = options.roam().ok_or(ROAM_OFF)?;
+    let (db, mtimes) = crate::server::roam::disk_db(&roam, &options.todo_keywords(), &options.inheritance());
+    Ok((roam, db, mtimes))
+}
+
+/// Where a node is, `[file:line]`, its file named as among the files of
+/// `db`; `texts` keeps the files read.
+fn node_reference(
+    db: &org_core::roam::Db,
+    file: &str,
+    offset: usize,
+    texts: &mut std::collections::HashMap<String, String>,
+) -> String {
+    let labels: Vec<String> = db.files.iter().map(|(name, _)| name.clone()).collect();
+    let text = texts.entry(file.to_string()).or_insert_with(|| std::fs::read_to_string(file).unwrap_or_default());
+    format!("[{}:{}]", file_label(file, &labels), line_of(text, offset))
+}
+
+/// A node's aliases and tags, in the order org-roam lists them.
+fn node_names<'a>(db: &'a org_core::roam::Db, id: &str) -> (Vec<&'a str>, Vec<&'a str>) {
+    let of = |rows: &'a [(String, String)]| {
+        let mut found: Vec<&str> =
+            rows.iter().filter(|(owner, _)| owner == id).map(|(_, name)| name.as_str()).collect();
+        found.dedup();
+        found
+    };
+    (of(&db.aliases), of(&db.tags))
+}
+
+/// `roam_find`: the lines `org-roam-node-find` offers, with where each node is.
+fn roam_find(arguments: &Arguments, options: &Options) -> Result<String, Call> {
+    let (roam, db, mtimes) = roam_db(options)?;
+    let candidates = db.candidates(&roam.display_template, crate::server::roam::WIDTH, &|file| {
+        mtimes.get(file).copied().unwrap_or(0)
+    })?;
+    if candidates.is_empty() {
+        return Ok("No org-roam nodes.".to_string());
+    }
+    let query = arguments.text("query").unwrap_or_default().to_lowercase();
+    let words: Vec<&str> = query.split_whitespace().collect();
+    let mut texts = std::collections::HashMap::new();
+    let mut out = String::new();
+    for candidate in &candidates {
+        let lowered = candidate.display.to_lowercase();
+        if !words.iter().all(|word| lowered.contains(word)) {
+            continue;
+        }
+        let Some((file, node)) = db.nodes.iter().find(|(_, node)| node.id == candidate.id) else { continue };
+        let mut line = candidate.display.trim_end().to_string();
+        if candidate.title != node.title {
+            line.push_str(&format!(" (alias of {})", node.title));
+        }
+        let (_, tags) = node_names(&db, &node.id);
+        if !tags.is_empty() {
+            line.push_str(&format!("  :{}:", tags.join(":")));
+        }
+        line.push_str(&format!("  id:{}  {}", node.id, node_reference(&db, file, node.offset, &mut texts)));
+        out.push_str(&line);
+        out.push('\n');
+    }
+    if out.is_empty() {
+        return Ok(format!("No org-roam node has \"{}\".", arguments.text("query").unwrap_or_default()));
+    }
+    Ok(out.trim_end().to_string())
+}
+
+/// `roam_node`: a node's text and its org-roam buffer.
+fn roam_node(arguments: &Arguments, options: &Options) -> Result<String, Call> {
+    use org_core::roam::buffer::{self, Item, Kind};
+    let wanted = arguments.required("node")?;
+    let wanted = wanted.trim();
+    let (roam, db, _) = roam_db(options)?;
+    // By `ID`, else by title, else by alias; in any case at last.
+    let ids: Vec<&str> = db.nodes.iter().map(|(_, node)| node.id.as_str()).collect();
+    let by = |same: &dyn Fn(&str) -> bool| -> Vec<String> {
+        let mut found: Vec<String> =
+            db.nodes.iter().filter(|(_, node)| same(&node.title)).map(|(_, node)| node.id.clone()).collect();
+        if found.is_empty() {
+            found = db.aliases.iter().filter(|(_, alias)| same(alias)).map(|(id, _)| id.clone()).collect();
+        }
+        found.dedup();
+        found
+    };
+    let mut found = match ids.iter().find(|id| **id == wanted) {
+        Some(id) => vec![id.to_string()],
+        None => by(&|name| name == wanted),
+    };
+    if found.is_empty() {
+        found = by(&|name| name.to_lowercase() == wanted.to_lowercase());
+    }
+    let id = match &found[..] {
+        [one] => one.clone(),
+        [] => return Err(format!("No org-roam node is \"{wanted}\": roam_find lists them").into()),
+        _ => {
+            let mut texts = std::collections::HashMap::new();
+            let listed: Vec<String> = found
+                .iter()
+                .filter_map(|id| db.nodes.iter().find(|(_, node)| node.id == *id))
+                .map(|(file, node)| {
+                    format!("{} id:{} {}", node.title, node.id, node_reference(&db, file, node.offset, &mut texts))
+                })
+                .collect();
+            return Err(format!("More than one node is \"{wanted}\": give its ID ({})", listed.join("; ")).into());
+        }
+    };
+    let (file, node) = db.nodes.iter().find(|(_, node)| node.id == id).ok_or("No such node")?;
+    let mut texts = std::collections::HashMap::new();
+    let mut out = format!("{}  id:{}  {}\n", node.title, node.id, node_reference(&db, file, node.offset, &mut texts));
+    let (aliases, tags) = node_names(&db, &id);
+    if !aliases.is_empty() {
+        out.push_str(&format!("Aliases: {}\n", aliases.join(", ")));
+    }
+    if !tags.is_empty() {
+        out.push_str(&format!("Tags: :{}:\n", tags.join(":")));
+    }
+    let refs: Vec<&str> =
+        db.refs.iter().filter(|reference| reference.node == id).map(|reference| reference.reference.as_str()).collect();
+    if !refs.is_empty() {
+        out.push_str(&format!("Refs: {}\n", refs.join(" ")));
+    }
+    let text = texts.get(file.as_str()).cloned().unwrap_or_default();
+    let shown = if node.level == 0 { text.clone() } else { subtree_text(&text, node.offset, Path::new(file), options) };
+    out.push('\n');
+    out.push_str(shown.trim_end_matches('\n'));
+    out.push('\n');
+
+    // The org-roam buffer, as `org_roam_mode_sections` says.
+    let mut kinds = roam.sections.clone();
+    if arguments.flag("unlinked") && !kinds.contains(&Kind::UnlinkedReferences) {
+        kinds.push(Kind::UnlinkedReferences);
+    }
+    let directory = crate::server::roam::expand(&roam.directory);
+    let grep = crate::server::roam::buffer::grep_files(&directory, &roam.files.extensions);
+    let read = |file: &str| std::fs::read_to_string(file).ok();
+    let sections = buffer::sections(&db, &id, &kinds, &read, &grep);
+    for section in &sections {
+        out.push_str(&format!("\n{}\n", buffer::heading(section)));
+        for item in &section.items {
+            match item {
+                Item::Node { title, outline, preview, file, offset } => {
+                    let reference = node_reference(&db, file, *offset, &mut texts);
+                    out.push_str(&format!("- {title} ({})  {reference}\n", buffer::outline_text(outline)));
+                    for line in preview.lines() {
+                        out.push_str(&format!("  {line}\n").replace("  \n", "\n"));
+                    }
+                }
+                Item::Grep { file, row, line, .. } => {
+                    let labels: Vec<String> = grep.clone();
+                    out.push_str(&format!("- {}  [{}:{row}]\n", line.trim(), file_label(file, &labels)));
+                }
+            }
+        }
+    }
+    Ok(out.trim_end().to_string())
+}
+
+/// `journal_entries`: `org-journal-read-entry` for each day with an entry.
+fn journal_entries(arguments: &Arguments, options: &Options) -> Result<String, Call> {
+    use org_core::journal::{self, Command, Request};
+    let journal = options.journal().ok_or(JOURNAL_OFF)?;
+    let today = now().day;
+    let day = |key: &str| -> Result<Option<org_core::date::Day>, Call> {
+        match arguments.text(key).filter(|text| !text.trim().is_empty()) {
+            Some(text) => Ok(Some(crate::cli::parse_date(text.trim())?)),
+            None => Ok(None),
+        }
+    };
+    let (first, last) = match (day("date")?, day("start")?, day("end")?) {
+        (Some(_), Some(_), _) | (Some(_), _, Some(_)) => return Err("Give either `date`, or `start` and `end`".into()),
+        (Some(date), None, None) => (date, date),
+        (None, Some(start), end) => (start, end.unwrap_or(today)),
+        (None, None, Some(end)) => (end, end),
+        (None, None, None) => (today, today),
+    };
+    if last < first {
+        return Err("Period end cannot be before the start".into());
+    }
+    let (directory, names) = journal_names(&journal);
+    let files: std::collections::BTreeMap<String, String> = names
+        .iter()
+        .filter_map(|name| Some((name.clone(), std::fs::read_to_string(directory.join(name)).ok()?)))
+        .collect();
+    let mut settings = journal.core.clone();
+    let shown = std::fs::canonicalize(&directory).unwrap_or_else(|_| directory.clone());
+    settings.directory = format!("{}/", shown.display()).replace("//", "/");
+    let edit = options.edit_settings();
+    settings.properties = org_core::edit::property_context(&org_syntax::parse("", &options.todo_keywords()), &edit, "");
+    let labels: Vec<String> = names.iter().map(|name| directory.join(name).display().to_string()).collect();
+    let mut days = journal::entry_days(&files, &settings);
+    days.retain(|day| (first..=last).contains(day));
+    days.sort();
+    days.dedup();
+    let mut out = String::new();
+    for day in days {
+        let request = Request { files: &files, now: now(), from: None, answers: &[] };
+        let Ok(outcome) = journal::run(&Command::ReadEntry { day, display: true }, &request, &settings) else {
+            continue;
+        };
+        let Some(visit) = outcome.visit else { continue };
+        let Some(text) = files.get(&visit.file) else { continue };
+        let path = directory.join(&visit.file);
+        let offset = visit.offset.min(text.len());
+        let shown = subtree_text(text, offset, &path, options);
+        let start = if shown.len() == text.len() { 0 } else { offset };
+        let label = file_label(&path.display().to_string(), &labels);
+        out.push_str(&format!("{}  [{label}:{}]\n", day_text(day), line_of(text, start)));
+        out.push_str(shown.trim_end_matches('\n'));
+        out.push_str("\n\n");
+    }
+    if out.is_empty() {
+        return Ok(if first == last {
+            "No journal entry for this date.".to_string()
+        } else {
+            format!("No journal entry from {} to {}.", day_text(first), day_text(last))
+        });
+    }
+    Ok(out.trim_end().to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1403,7 +2042,12 @@ mod tests {
                 "custom_agenda",
                 "agenda_files",
                 "capture_templates",
-                "refile_targets"
+                "refile_targets",
+                "entry",
+                "clock_report",
+                "roam_find",
+                "roam_node",
+                "journal_entries"
             ]
         );
 
@@ -1869,5 +2513,184 @@ template = "* %(format-time-string \"%Y\") %?"
         let (text, error) = setup.call("refile", json!({ "file": "tasks.org", "line": 3, "target": "Garden" }));
         assert!(error && text.contains("needs Emacs"), "{text}");
         assert_eq!(setup.read("tasks.org"), TASKS);
+    }
+
+    const CLOCKED: &str = "#+title: Tasks\n#+PROPERTY: OWNER Ana\n* Projects :work:\n:PROPERTIES:\n:CATEGORY: proj\n:END:\n\
+                           ** TODO Write the report :urgent:\nSCHEDULED: <2026-10-21 Wed> DEADLINE: <2026-10-23 Fri>\n\
+                           :PROPERTIES:\n:EFFORT: 1:00\n:END:\n:LOGBOOK:\n\
+                           CLOCK: [2026-10-20 Tue 09:00]--[2026-10-20 Tue 10:30] =>  1:30\n:END:\nSome notes.\n\
+                           *** Part one\n:LOGBOOK:\nCLOCK: [2026-10-21 Wed 09:00]--[2026-10-21 Wed 09:45] =>  0:45\n:END:\n\
+                           * Other\n";
+
+    #[test]
+    fn reads_an_entry_with_what_it_inherits() {
+        let config = "org_use_property_inheritance = true";
+        let setup = Setup::new("entry", config, &[("tasks.org", CLOCKED), ("other.org", "* Elsewhere\n")]);
+        let (text, error) = setup.call("entry", json!({ "file": "tasks.org", "line": 7, "headline": "Write" }));
+        assert!(!error, "{text}");
+        assert!(text.starts_with("[tasks.org:7]\nOutline path: Projects\nCategory: proj\n"), "{text}");
+        assert!(
+            text.contains("TODO keyword: TODO (not done)\nSCHEDULED: <2026-10-21 Wed>\nDEADLINE: <2026-10-23 Fri>\n")
+        );
+        assert!(text.contains("Tags: :urgent:\nInherited tags: :work:\n"), "{text}");
+        assert!(text.contains("  EFFORT: 1:00\n  CATEGORY: proj (inherited)\n  OWNER: Ana (inherited)\n"), "{text}");
+        assert!(text.contains("Clocked: 2:15 (the entry itself 1:30)\n\n** TODO Write the report"), "{text}");
+        assert!(text.ends_with(
+            "*** Part one\n:LOGBOOK:\nCLOCK: [2026-10-21 Wed 09:00]--[2026-10-21 Wed 09:45] =>  0:45\n:END:"
+        ));
+
+        // The entry alone, up to its first child.
+        let (text, _) = setup.call("entry", json!({ "file": "tasks.org", "line": 7, "subtree": false }));
+        assert!(text.ends_with(":END:\nSome notes."), "{text}");
+
+        // Without inheritance of properties, none is inherited.
+        let plain = Setup::new("entry-plain", "", &[("tasks.org", CLOCKED)]);
+        let (text, _) = plain.call("entry", json!({ "file": "tasks.org", "line": 7 }));
+        assert!(text.contains("Properties:\n  EFFORT: 1:00\nClocked"), "{text}");
+
+        let (text, error) = setup.call("entry", json!({ "file": "tasks.org", "line": 7, "headline": "Other" }));
+        assert!(error && text.contains("not the entry"), "{text}");
+        let (text, error) = setup.call("entry", json!({ "file": "tasks.org", "line": 2 }));
+        assert!(error && text.contains("not a headline"), "{text}");
+        let (text, error) = setup.call("entry", json!({ "file": "other.org", "line": 1 }));
+        assert!(error && text.contains("neither an agenda file") && text.contains("reads only those"), "{text}");
+    }
+
+    #[test]
+    fn builds_the_clock_report() {
+        let setup = Setup::new("clock-report", "", &[("tasks.org", CLOCKED)]);
+        let (text, error) = setup.call("clock_report", json!({}));
+        assert!(!error, "{text}");
+        assert!(text.starts_with("#+CAPTION: Clock summary at ["), "{text}");
+        assert!(text.contains("| tasks.org | *File time*          | *2:15* |      |\n"), "{text}");
+        assert!(text.ends_with("|           | \\_  Write the report |        | 2:15 |"), "{text}");
+
+        // One day, its end included, three levels deep.
+        let arguments = json!({ "start": "2026-10-21", "end": "2026-10-21", "maxlevel": 3 });
+        let (text, error) = setup.call("clock_report", arguments);
+        assert!(!error, "{text}");
+        assert!(text.contains("ALL *Total time*     | *0:45*"), "{text}");
+        assert!(text.ends_with("|           | \\_    Part one       |        |      | 0:45 |"), "{text}");
+
+        // In the file, as org-clock-report there: no file column.
+        let (text, error) = setup.call("clock_report", json!({ "span": "2026-10", "file": "tasks.org" }));
+        assert!(!error, "{text}");
+        assert!(text.contains(", for October 2026.\n| Headline "), "{text}");
+        assert!(text.contains("| *Total time*         | *2:15* |"), "{text}");
+        let (text, error) = setup.call("clock_report", json!({ "span": "2026-09" }));
+        assert!(!error && text.contains("ALL *Total time* | *0:00*"), "{text}");
+
+        let (text, error) = setup.call("clock_report", json!({ "span": "today", "start": "2026-10-21" }));
+        assert!(error && text.contains("either"), "{text}");
+        let (text, error) = setup.call("clock_report", json!({ "span": "today) (x" }));
+        assert!(error && text.contains("is not a span"), "{text}");
+    }
+
+    /// A setup with org-roam's and org-journal's directories in its folder.
+    fn plugins_setup(name: &str, files: &[(&str, &str)]) -> Setup {
+        let folder = std::env::temp_dir().join(format!("org-lsp-mcp-{name}-{}", std::process::id()));
+        let config = format!(
+            "org_roam_enabled = true\norg_roam_directory = {:?}\norg_journal_enabled = true\norg_journal_dir = {:?}\n",
+            folder.join("roam").display().to_string(),
+            folder.join("journal").display().to_string()
+        );
+        let setup = Setup::new(name, &config, &[("tasks.org", TASKS)]);
+        for (file, text) in files {
+            let path = setup.folder.join(file);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(path, text).unwrap();
+        }
+        setup
+    }
+
+    const GARDEN: &str =
+        ":PROPERTIES:\n:ID: garden-id\n:ROAM_ALIASES: Yard\n:END:\n#+title: Garden\n#+filetags: :home:\n\n\
+                          Plants and beds.\n";
+    const HERBS: &str =
+        ":PROPERTIES:\n:ID: herbs-id\n:END:\n#+title: Herbs\n\nHerbs grow in the [[id:garden-id][Garden]].\n\
+                         * Basil\n:PROPERTIES:\n:ID: basil-id\n:END:\nBasil likes the garden sun.\n* Mint\n";
+
+    #[test]
+    fn finds_org_roam_nodes_and_their_backlinks() {
+        let off = Setup::new("roam-off", "", &[("tasks.org", TASKS)]);
+        let (text, error) = off.call("roam_find", json!({}));
+        assert!(error && text.starts_with("org-roam is not enabled"), "{text}");
+        let (text, error) = off.call("roam_node", json!({ "node": "Garden" }));
+        assert!(error && text.starts_with("org-roam is not enabled"), "{text}");
+
+        let setup = plugins_setup("roam", &[("roam/garden.org", GARDEN), ("roam/herbs.org", HERBS)]);
+        let (text, error) = setup.call("roam_find", json!({}));
+        assert!(!error, "{text}");
+        assert!(text.contains("Garden  :home:  id:garden-id  [garden.org:1]\n"), "{text}");
+        assert!(text.contains("Basil  id:basil-id  [herbs.org:7]"), "{text}");
+        let (text, _) = setup.call("roam_find", json!({ "query": "YAR" }));
+        assert_eq!(text, "Yard (alias of Garden)  :home:  id:garden-id  [garden.org:1]");
+        let (text, _) = setup.call("roam_find", json!({ "query": "nothing" }));
+        assert_eq!(text, "No org-roam node has \"nothing\".");
+
+        // By alias: the file's text, then its backlinks.
+        let (text, error) = setup.call("roam_node", json!({ "node": "yard" }));
+        assert!(!error, "{text}");
+        assert!(text.starts_with("Garden  id:garden-id  [garden.org:1]\nAliases: Yard\nTags: :home:\n\n:PROPERTIES:"));
+        assert!(text.contains("\nPlants and beds.\n\nBacklinks (1)\n- Herbs (Top)  [herbs.org:6]\n"), "{text}");
+        assert!(!text.contains("Unlinked"), "{text}");
+        let (text, _) = setup.call("roam_node", json!({ "node": "garden-id", "unlinked": true }));
+        assert!(text.contains("Unlinked References (") && text.contains("[herbs.org:11]"), "{text}");
+
+        // By ID, a headline's node: its subtree only.
+        let (text, error) = setup.call("roam_node", json!({ "node": "basil-id" }));
+        assert!(!error, "{text}");
+        assert!(
+            text.ends_with("[herbs.org:7]\n\n* Basil\n:PROPERTIES:\n:ID: basil-id\n:END:\nBasil likes the garden sun.")
+        );
+        let (text, error) = setup.call("roam_node", json!({ "node": "Nowhere" }));
+        assert!(error && text.contains("roam_find"), "{text}");
+
+        // An org-roam file is one entry reads.
+        let (text, error) = setup.call("entry", json!({ "file": "herbs.org", "line": 7 }));
+        assert!(!error && text.starts_with("[herbs.org:7]\n"), "{text}");
+    }
+
+    #[test]
+    fn reads_the_journal_of_some_days() {
+        let off = Setup::new("journal-off", "", &[("tasks.org", TASKS)]);
+        let (text, error) = off.call("journal_entries", json!({}));
+        assert!(error && text.starts_with("org-journal is not enabled"), "{text}");
+
+        let setup = plugins_setup(
+            "journal-days",
+            &[
+                ("journal/20261019", "* Monday, 10/19/26\n** 10:00 Start\n"),
+                ("journal/20261021", "* Wednesday, 10/21/26\n** 09:00 Morning\nWrote things.\n"),
+            ],
+        );
+        let (text, error) = setup.call("journal_entries", json!({ "date": "2026-10-21" }));
+        assert!(!error, "{text}");
+        assert_eq!(text, "2026-10-21  [20261021:1]\n* Wednesday, 10/21/26\n** 09:00 Morning\nWrote things.");
+        let (text, _) = setup.call("journal_entries", json!({ "start": "2026-10-01", "end": "2026-10-31" }));
+        assert!(
+            text.starts_with("2026-10-19  [20261019:1]\n* Monday, 10/19/26\n** 10:00 Start\n\n2026-10-21"),
+            "{text}"
+        );
+        let (text, error) = setup.call("journal_entries", json!({ "date": "2026-10-22" }));
+        assert!(!error && text == "No journal entry for this date.", "{text}");
+        let (text, error) = setup.call("journal_entries", json!({ "start": "2026-10-22", "end": "2026-10-01" }));
+        assert!(error && text == "Period end cannot be before the start", "{text}");
+        // A journal file is one entry reads.
+        let (text, error) = setup.call("entry", json!({ "file": "20261021", "line": 2 }));
+        assert!(!error && text.ends_with("** 09:00 Morning\nWrote things."), "{text}");
+    }
+
+    #[test]
+    fn a_weekly_journal_has_an_entry_a_day() {
+        let weekly = "* Monday, 10/19/26\n:PROPERTIES:\n:CREATED:  20261019\n:END:\n** 10:00 Start\n\
+                      * Wednesday, 10/21/26\n:PROPERTIES:\n:CREATED:  20261021\n:END:\n** 09:00 Morning\n";
+        let setup = plugins_setup("journal-weekly", &[("journal/20261019", weekly)]);
+        let config = format!("{}org_journal_file_type = \"weekly\"\n", std::fs::read_to_string(&setup.config).unwrap());
+        std::fs::write(&setup.config, config).unwrap();
+        let (text, error) = setup.call("journal_entries", json!({ "date": "2026-10-21" }));
+        assert!(!error, "{text}");
+        assert!(text.starts_with("2026-10-21  [20261019:6]\n* Wednesday, 10/21/26\n"), "{text}");
+        assert!(!text.contains("Monday"), "{text}");
     }
 }

@@ -4,7 +4,9 @@
 ~org-lsp mcp~ is a [[https://modelcontextprotocol.io][Model Context Protocol]] server: it gives an AI
 assistant (Claude Code, Claude Desktop, Cursor and others) your agenda as
 Org builds it, so it can answer "what is due this week" or "what is tagged
-~work~" from your Org files rather than from searching their text. It only
+~work~" from your Org files rather than from searching their text, and
+reads an entry whole, the clock report, org-roam's notes and org-journal's
+entries. It only
 reads, unless you let it change TODO states, capture and refile
 ([[#changing-files][Changing files]]).
 
@@ -87,6 +89,48 @@ its path. It is what ~set_todo_state~ and ~refile~ take.
   agenda files' headlines, and every target names its file, as from the
   agenda. ~filter~ keeps the targets whose name has its text. It is there
   with ~mcp_edits~ off too.
+- ~entry~ :: the whole text of an entry: ~file~ and ~line~ are the
+  ~[file:line]~ of a view, and ~headline~, as for ~set_todo_state~, text the
+  headline has. It answers where the entry is, its outline path, category,
+  TODO keyword, ~SCHEDULED~, ~DEADLINE~ and ~CLOSED~, its tags and those it
+  inherits (~org_use_tag_inheritance~, ~org_tags_exclude_from_inheritance~),
+  its properties and those it inherits (~org_use_property_inheritance~,
+  marked ~(inherited)~), the time clocked in its subtree and in the entry
+  itself, and a clock running in it; then its subtree, or with
+  ~subtree~ ~false~ the entry alone, up to its first child. It reads the
+  agenda files, and org-journal's and org-roam's files when they are on.
+- ~clock_report~ :: the clock table ~org-clock-report~ writes for the
+  agenda files (~:scope agenda~), with ~org_clock_clocktable_default_properties~,
+  ~org_clocktable_defaults~ and the other clock table options: what is
+  between its ~#+BEGIN:~ and ~#+END:~ lines, the caption and the table. ~span~
+  is its ~:block~ (~today~, ~yesterday~, ~thisweek~, ~lastweek~, ~thismonth~,
+  ~lastmonth~, ~thisyear~, ~lastyear~, or a period such as ~2026-10~,
+  ~2026-W42~ or ~2026-10-21~); or ~start~ and ~end~ are days, ~end~ included
+  (~:tstart~, and ~:tend~ the day after); with none of them, all the time
+  clocked. ~file~ makes the table of one agenda file, as ~org-clock-report~
+  in it (~:scope file~); ~maxlevel~ is its ~:maxlevel~.
+- ~roam_find~ :: org-roam's nodes as ~org-roam-node-find~ offers them, a
+  line for each title and alias formatted with
+  ~org_roam_node_display_template~, the files changed last first; then, for
+  an alias, the node's title, its tags, its ID and where it is. ~query~
+  keeps the lines that have all its words, in any case.
+- ~roam_node~ :: an org-roam node, by its title, an alias or its ~ID~
+  (~node~): where it is, its aliases, tags and references, its text (the
+  file for a file's node, else its subtree), then the sections of the
+  org-roam buffer that ~org_roam_mode_sections~ lists, as it shows them:
+  /Backlinks/ and /Reflinks/, each place with the outline path to it, where
+  it is and the text around it, and /Unlinked References/, also with
+  ~unlinked~, each line that names the node.
+- ~journal_entries~ :: org-journal's entries of the day ~date~ (by default
+  today), or of the days from ~start~ to ~end~, each as
+  ~org-journal-read-entry~ finds it, with its day and where it is: the
+  headline of its date and its subtree, or the whole file of the day when
+  ~org_journal_date_prefix~ makes no headline.
+
+~roam_find~ and ~roam_node~ say that org-roam is not enabled unless
+~org_roam_enabled~ is on, and ~journal_entries~ the same of org-journal and
+~org_journal_enabled~. They read the files on disk again at each call, as
+~org-roam-db-sync~ would, and keep no database.
 
 * What differs from the editor's agenda
 :PROPERTIES:
@@ -99,6 +143,9 @@ commands, org-journal's files), but start no Emacs: a diary sexp that
 calls other Lisp (~%%(my-function)~) shows nothing, and a ~%(…)~ in
 ~org_agenda_prefix_format~ is left empty. Settings given only in the
 editor (its own options rather than the configuration file) are not seen.
+~clock_report~ does not know the editor's clock, so the time of a clock
+running counts only once it is stopped
+(~org_clock_report_include_clocking_task~ has nothing to count).
 
 * Changing files
 :PROPERTIES:

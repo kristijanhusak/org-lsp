@@ -20,7 +20,7 @@ use org_core::{capture, edit, link, refile, Refusal};
 use serde::Deserialize;
 use serde_json::{json, Value};
 
-pub mod buffer;
+pub(crate) mod buffer;
 mod dailies;
 mod graph;
 mod move_node;
@@ -36,7 +36,7 @@ const OFF: &str = "org-roam is off: set org_roam_enabled to use it";
 
 /// The window's width for `org-roam-node-display-template`, as Emacs has
 /// it in a frame 80 columns wide.
-const WIDTH: usize = 79;
+pub(crate) const WIDTH: usize = 79;
 
 /// org-roam's settings, and what its files gave when last read.
 pub(super) struct Roam {
@@ -75,8 +75,48 @@ impl Roam {
     }
 }
 
+/// org-roam's database as `org-roam-db-sync` makes it of the files on
+/// disk, and when each was modified: what [`Server::roam_db`] makes
+/// without an editor, for `org-lsp mcp`.
+pub(crate) fn disk_db(
+    settings: &RoamSettings,
+    todo: &org_syntax::TodoKeywords,
+    inheritance: &org_core::outline::Inheritance,
+) -> (Db, HashMap<String, u64>) {
+    let directory = expand(&settings.directory);
+    let mut names = Vec::new();
+    list_files(&directory, "", 0, &mut names);
+    names.retain(|name| roam::is_roam_file(name, &settings.files));
+    roam::sync_order(&mut names);
+    let mut db = Db::default();
+    db.directory = format!("{}/", directory.display()).replace("//", "/");
+    let mut mtimes: HashMap<String, u64> = HashMap::new();
+    for name in names {
+        let path = directory.join(&name);
+        let file = path.to_string_lossy().to_string();
+        let modified = std::fs::metadata(&path).ok().and_then(|metadata| metadata.modified().ok());
+        mtimes.insert(file.clone(), nanos(modified));
+        // An encrypted file cannot be read without its key.
+        let data = if name.ends_with(".gpg") || name.ends_with(".age") {
+            Err("encrypted".to_string())
+        } else {
+            match std::fs::read(&path) {
+                Ok(bytes) => {
+                    let text = String::from_utf8_lossy(&bytes).into_owned();
+                    let stem = path.file_stem().map(|stem| stem.to_string_lossy().into_owned()).unwrap_or_default();
+                    let source = crate::workspace::Source::new(text, &stem, todo, inheritance);
+                    roam::scan_with(&source.text, &source.parse, &source.outline, &file, &settings.extra_links)
+                }
+                Err(_) => Err("unreadable".to_string()),
+            }
+        };
+        db.add(&file, data);
+    }
+    (db, mtimes)
+}
+
 /// A path with `~/` standing for the home directory.
-pub(super) fn expand(path: &str) -> PathBuf {
+pub(crate) fn expand(path: &str) -> PathBuf {
     let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
     match (path.strip_prefix("~/").or(if path == "~" { Some("") } else { None }), home) {
         (Some(rest), Some(home)) => home.join(rest),
@@ -87,7 +127,7 @@ pub(super) fn expand(path: &str) -> PathBuf {
 /// The files under `directory`, by their names relative to it with `/`
 /// between directories (`org-roam--directory-files-recursively`, which
 /// follows links to directories).
-pub(super) fn list_files(directory: &Path, prefix: &str, depth: usize, out: &mut Vec<String>) {
+pub(crate) fn list_files(directory: &Path, prefix: &str, depth: usize, out: &mut Vec<String>) {
     let mut seen = std::collections::HashSet::new();
     walk_files(directory, prefix, depth, out, &mut seen);
 }
