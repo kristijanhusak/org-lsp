@@ -5,13 +5,16 @@
 //!
 //! A thread of its own talks to Emacs, so that a long export never holds
 //! up the server. A request either waits for its answer
-//! ([`Emacs::call`], for what is quick, such as the export menu) or is
-//! answered later as an [`Event`] the server's loop receives
-//! ([`Emacs::start`]). Questions Emacs asks on the way (`y-or-n-p`) come
-//! as events too, and wait for their answer, as do notices for the user
-//! (an option of `emacs_options` Emacs did not set).
+//! ([`Emacs::call`], for what is quick and has no request of the editor's
+//! to answer later) or is answered later as an [`Event`] the server's loop
+//! receives ([`Emacs::start`], and [`Emacs::wait`] for a request of the
+//! editor's that is answered once Emacs is done). Questions Emacs asks on
+//! the way (`y-or-n-p`) come as events too, and wait for their answer, as
+//! do notices for the user (an option of `emacs_options` Emacs did not
+//! set). A job may be canceled ([`Emacs::cancel`]): one that runs stops
+//! Emacs, which the next job starts again.
 
-use std::collections::VecDeque;
+use std::collections::{HashSet, VecDeque};
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -73,10 +76,13 @@ struct Job {
     method: String,
     params: Value,
     reply: Reply,
-    /// How long Emacs may take over a job the server waits for
-    /// (`Reply::Now`), from when the job is sent to it: the time Emacs
-    /// takes to start is not the job's.
+    /// How long Emacs may take over the job, from when it is sent to it:
+    /// the time Emacs takes to start is not the job's. None: as long as an
+    /// export may take ([`LATER_TIME`]).
     timeout: Option<Duration>,
+    /// Whether the questions Emacs asks go to the user (the server does
+    /// not wait for the job), or are answered no.
+    asks: bool,
     /// When the job was sent to Emacs, for the server that waits.
     begun: Arc<Mutex<Option<Instant>>>,
     /// The server stopped waiting before the job was sent to Emacs.
@@ -88,6 +94,7 @@ impl Job {
         Job {
             method: method.to_string(),
             params,
+            asks: matches!(reply, Reply::Later(_)),
             reply,
             timeout,
             begun: Arc::new(Mutex::new(None)),
@@ -109,6 +116,10 @@ pub struct Emacs {
     starting: Arc<AtomicBool>,
     /// The process id of the Emacs running, whose process group it leads.
     running: Arc<Mutex<Option<u32>>>,
+    /// The tag of the job Emacs runs, of those answered later.
+    current: Arc<Mutex<Option<u64>>>,
+    /// The tags of jobs canceled before Emacs runs them.
+    canceled: Arc<Mutex<HashSet<u64>>>,
 }
 
 impl Drop for Emacs {
@@ -125,11 +136,18 @@ impl Emacs {
         let (event_sender, events) = crossbeam_channel::unbounded();
         let starting = Arc::new(AtomicBool::new(false));
         let running = Arc::new(Mutex::new(None));
-        let (flag, process_id) = (Arc::clone(&starting), Arc::clone(&running));
+        let current = Arc::new(Mutex::new(None));
+        let canceled = Arc::new(Mutex::new(HashSet::new()));
+        let shared = Shared {
+            starting: Arc::clone(&starting),
+            process_id: Arc::clone(&running),
+            current: Arc::clone(&current),
+            canceled: Arc::clone(&canceled),
+        };
         let _ = std::thread::Builder::new()
             .name("org-lsp-emacs".to_string())
-            .spawn(move || serve(&settings, &job_receiver, &event_sender, &flag, &process_id));
-        Emacs { jobs, events, starting, running }
+            .spawn(move || serve(&settings, &job_receiver, &event_sender, &shared));
+        Emacs { jobs, events, starting, running, current, canceled }
     }
 
     /// What the server's loop listens to.
@@ -154,6 +172,37 @@ impl Emacs {
     pub fn start(&self, tag: u64, method: &str, params: Value) {
         let _ = self.jobs.send(Job::new(method, params, Reply::Later(tag), None));
     }
+
+    /// Run `method` for a request of the editor's that waits for it,
+    /// without holding up the server: its answer comes as [`Event::Done`]
+    /// with `tag`, at most `timeout` after Emacs has it. The questions
+    /// Emacs asks go to the user.
+    pub fn wait(&self, tag: u64, method: &str, params: Value, timeout: Duration) {
+        let _ = self.jobs.send(Job::new(method, params, Reply::Later(tag), Some(timeout)));
+    }
+
+    /// Give up the job of `tag`: one that waits is left out, and one that
+    /// runs stops Emacs (and what it started), which the next job starts
+    /// again. Its answer comes still, as a failure.
+    pub fn cancel(&self, tag: u64) {
+        if let Ok(mut canceled) = self.canceled.lock() {
+            canceled.insert(tag);
+        }
+        let running = self.current.lock().ok().and_then(|current| *current) == Some(tag);
+        if running {
+            if let Some(id) = self.running.lock().ok().and_then(|running| *running) {
+                stop_group(id);
+            }
+        }
+    }
+}
+
+/// What the server and the Emacs thread both look at.
+struct Shared {
+    starting: Arc<AtomicBool>,
+    process_id: Arc<Mutex<Option<u32>>>,
+    current: Arc<Mutex<Option<u64>>>,
+    canceled: Arc<Mutex<HashSet<u64>>>,
 }
 
 /// See [`Emacs::caller`].
@@ -243,18 +292,21 @@ fn stop_group(id: u32) {
 
 /// The thread: run each job in Emacs, which starts with the first one and
 /// again after it stopped.
-fn serve(
-    settings: &Settings,
-    jobs: &Receiver<Job>,
-    events: &Sender<Event>,
-    starting: &AtomicBool,
-    process_id: &Mutex<Option<u32>>,
-) {
+fn serve(settings: &Settings, jobs: &Receiver<Job>, events: &Sender<Event>, shared: &Shared) {
+    let (starting, process_id) = (&shared.starting, &shared.process_id);
     let mut process: Option<Process> = None;
     for job in jobs {
         // A job the server no longer waits for, behind a long one.
         if job.abandoned.load(Ordering::SeqCst) {
             answer(job.reply, Err(LATE.to_string()), events);
+            continue;
+        }
+        let tag = match job.reply {
+            Reply::Later(tag) => Some(tag),
+            Reply::Now(_) => None,
+        };
+        if tag.is_some_and(|tag| shared.canceled.lock().is_ok_and(|mut canceled| canceled.remove(&tag))) {
+            answer(job.reply, Err(CANCELED.to_string()), events);
             continue;
         }
         if process.is_none() {
@@ -292,15 +344,30 @@ fn serve(
         if let Ok(mut begun) = job.begun.lock() {
             *begun = Some(now);
         }
-        // A job the server does not wait for may ask the user, and has
-        // a long time; past it, Emacs is taken for stuck.
-        let asks = job.timeout.is_none();
+        // A job the server does not wait for may ask the user; past its
+        // time, Emacs is taken for stuck.
         let deadline = now + job.timeout.unwrap_or(LATER_TIME);
-        let result = request(running, &job.method, job.params, events, deadline, asks);
+        if let Ok(mut current) = shared.current.lock() {
+            *current = tag;
+        }
+        // Canceled while Emacs started: the job is not run. Canceled from
+        // now on, Emacs is stopped.
+        let skipped = tag.is_some_and(|tag| shared.canceled.lock().is_ok_and(|canceled| canceled.contains(&tag)));
+        let result = if skipped {
+            Err(CANCELED.to_string())
+        } else {
+            request(running, &job.method, job.params, events, deadline, job.asks)
+        };
+        if let Ok(mut current) = shared.current.lock() {
+            *current = None;
+        }
+        // Canceled while it ran: Emacs was stopped.
+        let canceled = tag.is_some_and(|tag| shared.canceled.lock().is_ok_and(|mut canceled| canceled.remove(&tag)));
+        let result = if canceled { Err(CANCELED.to_string()) } else { result };
         // An Emacs that stopped, or that is stuck past the time the server
         // waits (a question no one answers, a loop): the next job starts
         // a new one, and this one goes with `process`.
-        if result.as_ref().is_err_and(|error| error.starts_with(STOPPED) || error == LATE) {
+        if (canceled && !skipped) || result.as_ref().is_err_and(|error| error.starts_with(STOPPED) || error == LATE) {
             process = None;
             if let Ok(mut running) = process_id.lock() {
                 *running = None;
@@ -324,6 +391,8 @@ fn answer(reply: Reply, result: Result<Value, String>, events: &Sender<Event>) {
 }
 
 const STOPPED: &str = "Emacs stopped";
+/// The answer of a job given up ([`Emacs::cancel`]).
+pub const CANCELED: &str = "Canceled";
 const LATE: &str = "Emacs did not answer in time";
 const STARTING: &str = "Emacs is still starting (loading `emacs_config_file`, `emacs_config` and Org); \
                         try again once it has";
