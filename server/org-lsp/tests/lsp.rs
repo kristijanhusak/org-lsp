@@ -2685,6 +2685,117 @@ fn shows_what_babel_shows_of_a_block_that_fails() {
     std::fs::remove_dir_all(directory).unwrap();
 }
 
+/// Emacs's yes-or-no question for a client that shows no
+/// `window/showMessageRequest` (`message_requests` off): the Vim plugin
+/// (org-lsp's editor code, `run_command`) is told to run
+/// `org.emacs.answer`, which asks it as a command's question, one key, and
+/// its messages come as `org-lsp/message` (`message_notifications`); a
+/// client without org-lsp's editor code (Helix) finds Yes and No first in
+/// the code actions.
+#[test]
+fn asks_emacs_questions_without_message_requests() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("asks_emacs_questions_without_message_requests: no Emacs, skipped");
+        return;
+    }
+    let directory = std::env::temp_dir().join(format!("org-lsp-babel-ask-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let file = directory.join("code.org");
+    let text = "* Code\n#+begin_src emacs-lisp\n(+ 1 2)\n#+end_src\n";
+    std::fs::write(&file, text).unwrap();
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let config =
+        std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
+    let argument = json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 2, "character": 0 } });
+    let execute = |client: &mut Client, command: &str, argument: Value| {
+        client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [argument] }))
+            .response_result
+            .expect("a result")
+    };
+    let results = |client: &Client| -> String {
+        let Message::Request(request) = next_from_server(
+            client,
+            |message| matches!(message, Message::Request(request) if request.method == "workspace/applyEdit"),
+        ) else {
+            unreachable!()
+        };
+        client
+            .connection
+            .sender
+            .send(Message::Response(Response::new_ok(request.id, json!({ "applied": true }))))
+            .unwrap();
+        request.params["edit"].to_string()
+    };
+
+    // The Vim plugin.
+    let options = json!({
+        "emacs_config": config,
+        "run_command": true,
+        "message_requests": false,
+        "message_notifications": true,
+    });
+    let mut client = Client::start(json!({}), options);
+    client.open(&uri, text);
+    assert_eq!(execute(&mut client, "org.babel.execute", argument.clone()), Value::Null);
+    let Message::Notification(run) = next_from_server(
+        &client,
+        |message| matches!(message, Message::Notification(notification) if notification.method == "org-lsp/runCommand"),
+    ) else {
+        unreachable!()
+    };
+    assert_eq!(run.params["command"], "org.emacs.answer");
+    let asked = execute(&mut client, "org.emacs.answer", run.params["argument"].clone());
+    assert_eq!(asked["input"]["kind"], "key");
+    assert_eq!(asked["input"]["prompt"], "Evaluate this emacs-lisp code block on your system? (y or n) ");
+    assert_eq!(execute(&mut client, "org.emacs.answer", json!({ "input": "y" })), Value::Null);
+    assert!(results(&client).contains(": 3"));
+    // Its messages, as the plugin shows them.
+    let response = client.raw_request(
+        "workspace/executeCommand",
+        json!({ "command": "org.emacs.answer", "arguments": [{ "input": "y" }] }),
+    );
+    assert_eq!(response.response_result.unwrap_err().message, "Emacs is not asking anything");
+    client.shutdown();
+
+    // Helix.
+    let options = json!({ "emacs_config": config, "message_requests": false, "show_document": true });
+    let mut client = Client::start(json!({ "experimental": { "orgClient": false } }), options);
+    client.open(&uri, text);
+    execute(&mut client, "org.babel.execute", argument.clone());
+    let Message::Notification(said) = next_from_server(&client, |message| {
+        matches!(message, Message::Notification(notification) if notification.method == "window/showMessage"
+            && notification.params["message"].as_str().is_some_and(|text| text.contains("pick the answer")))
+    }) else {
+        unreachable!()
+    };
+    assert_eq!(
+        said.params["message"],
+        "Evaluate this emacs-lisp code block on your system? (y or n): pick the answer from the code actions"
+    );
+    let actions = client
+        .raw_request(
+            "textDocument/codeAction",
+            json!({
+                "textDocument": { "uri": uri.as_str() },
+                "range": { "start": { "line": 2, "character": 0 }, "end": { "line": 2, "character": 0 } },
+                "context": { "diagnostics": [] }
+            }),
+        )
+        .response_result
+        .unwrap();
+    let yes = &actions[0];
+    assert_eq!((yes["title"].as_str(), yes["kind"].as_str()), (Some("Yes [y]"), Some("org.answer")), "{actions}");
+    let command = yes["command"].clone();
+    execute(&mut client, command["command"].as_str().unwrap(), command["arguments"][0].clone());
+    assert!(results(&client).contains(": 3"));
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
 #[test]
 fn moves_about_as_org_does() {
     let mut client = Client::start(json!({}), Value::Null);

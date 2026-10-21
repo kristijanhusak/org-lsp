@@ -5,12 +5,14 @@ if exists('g:loaded_org_lsp') || !has('patch-9.0.1485')
 endif
 let g:loaded_org_lsp = 1
 
-command! -nargs=* -complete=customlist,org_lsp#complete Org call org_lsp#user_command(<f-args>)
+command! -nargs=* -range -complete=customlist,org_lsp#complete Org call org_lsp#org_command(<range>, <line1>, <line2>, <f-args>)
 command! OrgLspDownload call org_lsp#download()
 
 augroup org_lsp
   autocmd!
   autocmd FileType org,org-agenda,org-date call org_lsp#attach()
+  " An Org buffer read again from its file (`:e!`, 'autoread').
+  autocmd BufReadPost * if getbufvar(str2nr(expand('<abuf>')), 'org_lsp_attached', 0) | call org_lsp#reread(str2nr(expand('<abuf>'))) | endif
   autocmd ColorScheme * call org_lsp#define_highlights()
   " A client maps keys of its own (yegappan/lsp's `<CR>`) when it attaches.
   autocmd User LspAttached,lsp_buffer_enabled call org_lsp#remap_insert_keys(bufnr())

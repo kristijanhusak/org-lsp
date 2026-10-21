@@ -56,6 +56,14 @@ local function before_folding(bufnr)
     return {}
   end
   local context = vim.lsp.util.make_position_params(0, client.offset_encoding)
+  -- On the blank that ends a line (a new `** `, left with <Esc>), TAB is
+  -- at the end of the line, where Emacs's point is once it is typed: the
+  -- level keeps cycling from there.
+  local text = vim.api.nvim_get_current_line()
+  local column = vim.api.nvim_win_get_cursor(0)[2]
+  if vim.api.nvim_get_mode().mode == 'n' and column == #text - 1 and text:sub(-1):match('%s') then
+    context.position.character = vim.str_utfindex(text, client.offset_encoding, #text, false)
+  end
   local params = { command = 'org.cycle', arguments = { context } }
   local response = client:request_sync('workspace/executeCommand', params, 1000, bufnr)
   if not response then

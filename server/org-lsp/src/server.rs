@@ -67,6 +67,9 @@ type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
 const TEXT_DOCUMENT_CONTENT: &str = "workspace/textDocumentContent";
 const TEXT_DOCUMENT_CONTENT_REFRESH: &str = "workspace/textDocumentContent/refresh";
 const LINE_HIGHLIGHTS: &str = "org-lsp/lineHighlights";
+/// A message for the user, `window/showMessage`'s, for a client that shows
+/// it itself (`message_notifications`).
+const MESSAGE: &str = "org-lsp/message";
 
 /// The commands that set or delete properties.
 const PROPERTY_COMMANDS: [&str; 6] = [
@@ -123,8 +126,14 @@ struct Client {
     /// Ask with `window/showMessageRequest` (`message_prompts`).
     message_prompts: bool,
     /// The client shows `window/showMessageRequest`; without
-    /// (`message_requests`), a question's choices are code actions.
+    /// (`message_requests`), a question's choices are code actions, or,
+    /// for a client with org-lsp's editor code that runs commands when
+    /// told (`run_command`), a command's question.
     message_requests: bool,
+    /// The client shows the server's messages sent as `org-lsp/message`
+    /// rather than `window/showMessage`: `experimental.orgMessages`, or
+    /// the option `message_notifications`.
+    message_notifications: bool,
     /// The standard token types of LSP rather than Org's own: a client
     /// without org-lsp's editor code (`org_client`).
     standard_tokens: bool,
@@ -212,7 +221,7 @@ enum EmacsJob {
     Edit { uri: Uri, version: i32, text: String, point: usize },
     /// A command of column view on the document `uri`, run on `text`, its
     /// `version`: its edit, and what the view shows then.
-    Columns { uri: Uri, version: i32, text: String },
+    Columns { uri: Uri, version: i32, text: String, point: usize },
     /// What column view shows of the document `uri`, at its `version`.
     ColumnsView { uri: Uri, version: i32 },
     /// Column view of the agenda `uri`, for the view's text.
@@ -1148,6 +1157,9 @@ struct Server {
     /// cannot ask for text (`message_prompts`): the next rename answers
     /// it, its new name being the answer.
     question: Option<Question>,
+    /// A yes-or-no question of Emacs's waiting for `org.emacs.answer`
+    /// (`message_requests` off): its prompt, and where the answer goes.
+    emacs_question: Option<(String, crossbeam_channel::Sender<bool>)>,
     /// An edit of the agenda's file is with the client (`edit_view`),
     /// made against this version of its copy: the next waits until the
     /// client has applied it and said so with `didChange`, since an edit
@@ -1560,6 +1572,9 @@ pub fn run(connection: Connection) -> Result<()> {
             .unwrap_or(false),
         message_prompts: options.message_prompts.unwrap_or(!org_client),
         message_requests: options.message_requests.unwrap_or(true),
+        message_notifications: raw_params.pointer("/capabilities/experimental/orgMessages").and_then(Value::as_bool)
+            == Some(true)
+            || options.message_notifications == Some(true),
         standard_tokens: !org_client,
         view_file_name: if org_client { views::FILE_NAME } else { views::PLAIN_FILE_NAME },
         edit_view: !org_client,
@@ -1795,6 +1810,7 @@ pub fn run(connection: Connection) -> Result<()> {
         prompt_file,
         date_prompt: None,
         question: None,
+        emacs_question: None,
         view_edit_waiting: None,
         view_edit_due: false,
         prompt_copy: None,
@@ -2797,6 +2813,11 @@ fn planning_command(id: &str) -> Option<PlanningCommand> {
 /// one, so it is left alone and the write refused. The text goes to a new
 /// file renamed over the old one, with the old one's permissions, so that
 /// a write cut short leaves the old file whole.
+/// Whether `path` is a file with nothing in it.
+fn is_empty_file(path: &Path) -> bool {
+    std::fs::metadata(path).is_ok_and(|metadata| metadata.is_file() && metadata.len() == 0)
+}
+
 pub(crate) fn write_whole(path: &Path, text: &str) -> std::result::Result<(), String> {
     let refused = |error: &dyn std::fmt::Display| format!("Cannot write {}: {error}", path.display());
     match std::fs::read(path) {
@@ -3184,7 +3205,10 @@ impl Server {
 
     fn show_message(&self, typ: MessageType, message: impl Into<String>) {
         let params = ShowMessageParams { typ, message: message.into() };
-        let notification = Notification::new(ShowMessage::METHOD.to_string(), params);
+        // A client whose LSP plugin shows no messages, or shows them after
+        // its own name, shows them itself as Emacs's echo area does.
+        let method = if self.client.message_notifications { MESSAGE } else { ShowMessage::METHOD };
+        let notification = Notification::new(method.to_string(), params);
         let _ = self.sender.send(Message::Notification(notification));
     }
 
@@ -3324,11 +3348,16 @@ impl Server {
                             match self.run_command(params) {
                                 Ok(value) => {
                                     // A code action of Zed's (`apply` in its
-                                    // context): what the command does is
-                                    // applied here, the cursor moved where it
-                                    // says, as from the command port.
+                                    // context), or any command of a client
+                                    // that does nothing with a result
+                                    // (Helix's sorting, clock table): what
+                                    // the command does is applied here, the
+                                    // cursor moved where it says, as from
+                                    // the command port.
                                     let argument = argument.unwrap_or(Value::Null);
-                                    if argument.get("apply").and_then(Value::as_bool) == Some(true) {
+                                    if argument.get("apply").and_then(Value::as_bool) == Some(true)
+                                        || self.client.message_prompts
+                                    {
                                         self.apply_result(&argument, &value);
                                     }
                                     if self.client.message_prompts {
@@ -4330,8 +4359,12 @@ impl Server {
                                 | commands::AGENDA_FILTER_TOP_HEADLINE
                         )
                 };
+                // Nor saving, for a client that does nothing with the files
+                // a result names (Helix): the server cannot save them.
+                let saves = !self.client.message_prompts;
                 let offered = commands::in_agenda().filter(|id| {
                     !matches!(*id, commands::AGENDA_FOLLOW | commands::AGENDA_COLUMNS | commands::AGENDA_GOTO_OTHER)
+                        && (saves || *id != commands::AGENDA_SAVE)
                 });
                 let (on_entry, on_view): (Vec<&str>, Vec<&str>) = offered.partition(|id| needs_entry(id));
                 let on_entry = if entry.is_some() { on_entry } else { Vec::new() };
@@ -7148,6 +7181,26 @@ impl Server {
         self.send_request::<ShowDocument>(params, None);
     }
 
+    /// `org.emacs.answer`: without an answer, Emacs's yes-or-no question as
+    /// `y-or-n-p` asks it, one key; with one, the answer, `y` for yes.
+    fn emacs_answer(&mut self, answer: Option<&str>) -> std::result::Result<Value, Refusal> {
+        let Some((prompt, _)) = &self.emacs_question else {
+            return Err("Emacs is not asking anything".into());
+        };
+        let Some(answer) = answer else {
+            return Ok(json!({ "input": {
+                "kind": "key",
+                "prompt": format!("{prompt} (y or n) "),
+                "value": "",
+                "choices": [{ "key": "y", "label": "Yes" }, { "key": "n", "label": "No" }],
+            } }));
+        };
+        if let Some((_, sender)) = self.emacs_question.take() {
+            let _ = sender.send(matches!(answer, "y" | "Y"));
+        }
+        Ok(Value::Null)
+    }
+
     /// The answer to a question asked by [`Server::prompt_with_messages`]:
     /// run the command again with it, as an editor does.
     fn answer_prompt(&mut self, command: String, argument: Value, input: &Value, picked: &str) {
@@ -7172,9 +7225,10 @@ impl Server {
         };
         match self.run_command(params) {
             Ok(value) => {
-                // A command run from the command port: what it does is
-                // applied here too (`org-goto`'s heading picked).
-                if argument.get("apply").and_then(Value::as_bool) == Some(true) {
+                // A command run from the command port, or for a client that
+                // does nothing with a result: what it does is applied here
+                // too (`org-goto`'s heading picked, the entries sorted).
+                if argument.get("apply").and_then(Value::as_bool) == Some(true) || self.client.message_prompts {
                     self.apply_result(&argument, &value);
                 }
                 self.prompt_with_messages(command, argument, &value)
@@ -7198,6 +7252,10 @@ impl Server {
         } else {
             argument
         };
+        if params.command == commands::EMACS_ANSWER {
+            let answer = argument.as_ref().and_then(|value| value.get("input")?.as_str().map(str::to_string));
+            return self.emacs_answer(answer.as_deref());
+        }
         // Capturing and the agenda menu need no document.
         if params.command == commands::AGENDA_DISPATCH {
             return self.dispatch(argument.as_ref());
@@ -7307,6 +7365,9 @@ impl Server {
             // `org-save-all-org-buffers`: the server cannot save; the
             // editor saves the files it names that have changes, and says
             // what Emacs says when it is done.
+            commands::AGENDA_SAVE if self.client.message_prompts => {
+                Err("The editor saves the files: the server cannot".into())
+            }
             commands::AGENDA_SAVE => {
                 let mut files: Vec<&String> = self.documents.keys().collect();
                 files.sort();
@@ -7624,8 +7685,8 @@ impl Server {
         ) {
             return Err(Refusal::NotHere("This command works in Org files".to_string()));
         }
-        let (line, row) = self.view_line(uri, context.position.line).ok_or("No entry on this line")?;
-        row.entry.as_ref().ok_or("No entry on this line")?;
+        let (line, row) = self.view_line(uri, context.position.line).ok_or(NOT_ON_ENTRY)?;
+        row.entry.as_ref().ok_or(NOT_ON_ENTRY)?;
         Ok(Target::Entry { view: uri.clone(), line, character: context.position.character, row: row.clone() })
     }
 
@@ -7646,7 +7707,7 @@ impl Server {
             Target::Dailies { .. } => Err("The daily notes' commands change their own files".into()),
             Target::Calendar { .. } => Err(NO_DATE_ASKED.into()),
             Target::Entry { row, .. } => {
-                let reference = row.entry.as_ref().ok_or("No entry on this line")?;
+                let reference = row.entry.as_ref().ok_or(NOT_ON_ENTRY)?;
                 self.with_source(&reference.uri, |text, _, _, outline, version| {
                     let entry = views::resolve(reference, outline).ok_or("The entry is gone; rebuild the agenda")?;
                     let heading = outline.entries[entry].offset;
@@ -8061,6 +8122,9 @@ impl Server {
             .and_then(|context| open.day_at(context.position))
             .unwrap_or(open.selected);
         let date = Date::from_day(at);
+        // A count moves that many times, as Emacs's calendar takes a prefix
+        // argument (`calendar-forward-day`, `calendar-forward-week` …).
+        let times = context.and_then(|context| context.count).filter(|count| *count > 0).unwrap_or(1);
         let by_months = |months: i64| {
             let target = Date::new(date.year, date.month + months, 1);
             let length = org_core::date::days_in_month(
@@ -8070,16 +8134,16 @@ impl Server {
             Date::new(target.year, target.month, date.day.min(length)).to_day()
         };
         match id {
-            commands::CALENDAR_DAY_LATER => open.select(at + 1, now, &settings),
-            commands::CALENDAR_DAY_EARLIER => open.select(at - 1, now, &settings),
-            commands::CALENDAR_WEEK_LATER => open.select(at + 7, now, &settings),
-            commands::CALENDAR_WEEK_EARLIER => open.select(at - 7, now, &settings),
-            commands::CALENDAR_MONTH_LATER => open.select(by_months(1), now, &settings),
-            commands::CALENDAR_MONTH_EARLIER => open.select(by_months(-1), now, &settings),
-            commands::CALENDAR_YEAR_LATER => open.select(by_months(12), now, &settings),
-            commands::CALENDAR_YEAR_EARLIER => open.select(by_months(-12), now, &settings),
-            commands::CALENDAR_SCROLL_LATER => open.scroll(1, now, &settings),
-            commands::CALENDAR_SCROLL_EARLIER => open.scroll(-1, now, &settings),
+            commands::CALENDAR_DAY_LATER => open.select(at + times, now, &settings),
+            commands::CALENDAR_DAY_EARLIER => open.select(at - times, now, &settings),
+            commands::CALENDAR_WEEK_LATER => open.select(at + 7 * times, now, &settings),
+            commands::CALENDAR_WEEK_EARLIER => open.select(at - 7 * times, now, &settings),
+            commands::CALENDAR_MONTH_LATER => open.select(by_months(times), now, &settings),
+            commands::CALENDAR_MONTH_EARLIER => open.select(by_months(-times), now, &settings),
+            commands::CALENDAR_YEAR_LATER => open.select(by_months(12 * times), now, &settings),
+            commands::CALENDAR_YEAR_EARLIER => open.select(by_months(-12 * times), now, &settings),
+            commands::CALENDAR_SCROLL_LATER => open.scroll(times, now, &settings),
+            commands::CALENDAR_SCROLL_EARLIER => open.scroll(-times, now, &settings),
             commands::CALENDAR_TODAY => open.select(now.day, now, &settings),
             commands::CALENDAR_TIME => open.toggle_time(step, now, &settings),
             commands::CALENDAR_SELECT => {
@@ -8402,7 +8466,7 @@ impl Server {
                 Ok(())
             }
             commands::AGENDA_GOTO | commands::AGENDA_GOTO_OTHER => {
-                let reference = self.entry_at(context.as_ref()).ok_or("No entry on this line")?;
+                let reference = self.entry_at(context.as_ref()).ok_or(NOT_ON_ENTRY)?;
                 let location = self.locate(&reference).ok_or("The entry is gone; rebuild the agenda")?;
                 let params = ShowDocumentParams {
                     uri: location.uri,
@@ -8881,6 +8945,12 @@ impl Server {
             self.agenda_entry_text = None;
             message.get_or_insert_with(|| "Entry text mode is off".to_string());
         }
+        // The lines are those of the filters: changes made from the agenda
+        // show as their files have them, as they do once those files are
+        // saved, rather than on lines of the view before.
+        if before != after || self.agenda_filters != filters {
+            self.release_held();
+        }
         self.agenda_filters = filters;
         self.refresh_view();
         let message = message.or_else(|| {
@@ -9108,7 +9178,7 @@ impl Server {
         let from_agenda = self.is_view(uri);
         // The entry: its file and a place in it.
         let (file, offset) = if from_agenda {
-            let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
+            let reference = self.entry_at(Some(context)).ok_or(NOT_ON_ENTRY)?;
             let offset = self
                 .with_source(&reference.uri, |_, _, _, outline, _| {
                     views::resolve(&reference, outline).map(|entry| outline.entries[entry].offset)
@@ -9239,7 +9309,7 @@ impl Server {
         // The entry: its file and a place in it.
         let uri = &context.text_document.uri;
         let (file, offset) = if self.is_view(uri) {
-            let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
+            let reference = self.entry_at(Some(context)).ok_or(NOT_ON_ENTRY)?;
             let offset = self
                 .with_source(&reference.uri, |_, _, _, outline, _| {
                     views::resolve(&reference, outline).map(|entry| outline.entries[entry].offset)
@@ -10576,7 +10646,12 @@ impl Server {
     /// that does not exist yet is written here, as Emacs saves it: no
     /// editor has it open, and an edit cannot make it.
     fn apply_capture(&mut self, target: &Uri, version: Option<i32>, now: &str, done: &str) {
-        let missing = uri::to_path(target).filter(|path| self.document(target).is_none() && !path.exists());
+        // A file the editor does not have open, not there or empty, is
+        // written: some of Vim's clients leave an empty file's line
+        // after the text an edit puts in it, or lose the text.
+        let missing = uri::to_path(target).filter(|path| {
+            self.document(target).is_none() && (!path.exists() || (now.is_empty() && is_empty_file(path)))
+        });
         if let Some(path) = missing {
             if let Some(directory) = path.parent() {
                 let _ = std::fs::create_dir_all(directory);
@@ -10828,7 +10903,7 @@ impl Server {
         let settings = self.edit_settings.priorities;
         // The priorities of the file the entry is in.
         let priorities = if self.is_view(uri) {
-            let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
+            let reference = self.entry_at(Some(context)).ok_or(NOT_ON_ENTRY)?;
             self.with_source(&reference.uri, |_, _, parse, _, _| edit::document_priorities(parse))
                 .ok_or("Cannot read the file of this entry")?
         } else {
@@ -10890,7 +10965,7 @@ impl Server {
             self.view_line(&uri, position.line).map(|(number, line)| (number, line.clone()));
         let dated_view = self.view_at(&uri).is_some_and(|view| matches!(view.query, Query::Agenda { .. }));
         let (file, reference, command) = if on_view {
-            let reference = line.as_ref().and_then(|(_, line)| line.entry.clone()).ok_or("No entry on this line")?;
+            let reference = line.as_ref().and_then(|(_, line)| line.entry.clone()).ok_or(NOT_ON_ENTRY)?;
             let command = match id {
                 id if commands::AGENDA_DATE_COMMANDS.contains(&id) && !dated_view => {
                     return Err("The TODO list shows no dates to change".into());
@@ -11244,7 +11319,7 @@ impl Server {
     fn command_place(&mut self, context: &Context) -> std::result::Result<(Uri, usize), Refusal> {
         let uri = &context.text_document.uri;
         if self.is_view(uri) {
-            let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
+            let reference = self.entry_at(Some(context)).ok_or(NOT_ON_ENTRY)?;
             let offset = self
                 .with_source(&reference.uri, |_, _, _, outline, _| {
                     views::resolve(&reference, outline).map(|entry| outline.entries[entry].offset)
@@ -11448,7 +11523,7 @@ impl Server {
         use org_core::tags::{self, Selection, State, Step};
         let uri = &context.text_document.uri;
         let (file, offset) = if self.is_view(uri) {
-            let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
+            let reference = self.entry_at(Some(context)).ok_or(NOT_ON_ENTRY)?;
             let offset = self
                 .with_source(&reference.uri, |_, _, _, outline, _| {
                     views::resolve(&reference, outline).map(|entry| outline.entries[entry].offset)
@@ -12071,6 +12146,19 @@ impl Server {
     /// option it did not set, or what an export made, to show.
     fn emacs_event(&mut self, event: crate::emacs::Event) {
         match event {
+            crate::emacs::Event::Ask { prompt, answer } if !self.client.message_requests => {
+                // A question of a command's for the editor to ask: run
+                // from the editor (`org-lsp/runCommand`), or among the
+                // code actions.
+                self.emacs_question = Some((prompt.clone(), answer));
+                if self.client.org_client && self.client.run_command {
+                    let params = json!({ "command": commands::EMACS_ANSWER, "argument": {} });
+                    let notification = Notification::new(RUN_COMMAND.to_string(), params);
+                    let _ = self.sender.send(Message::Notification(notification));
+                } else if let Ok(result) = self.emacs_answer(None) {
+                    self.prompt_with_messages(commands::EMACS_ANSWER.to_string(), json!({}), &result);
+                }
+            }
             crate::emacs::Event::Ask { prompt, answer } => {
                 let actions = ["Yes", "No"]
                     .into_iter()
@@ -12165,13 +12253,31 @@ impl Server {
                 (Some(EmacsJob::AgendaColumnsCommand { uri, files }), Ok(result)) => {
                     self.agenda_columns_done(&uri, files, &result);
                 }
-                (Some(EmacsJob::Columns { .. }), Err(error)) => self.show_message(MessageType::ERROR, error),
-                (Some(EmacsJob::Columns { uri, version, text }), Ok(mut result)) => {
-                    // The cursor stays where it is; the view says the rest.
-                    if let Some(fields) = result.as_object_mut() {
-                        fields.remove("point");
+                (Some(EmacsJob::Columns { .. }), Err(error)) => {
+                    // An Org without the command (Emacs 29's own, 9.6.15)
+                    // says so in Lisp's words: said in the user's.
+                    let error = match ["org-columns-move-row-up", "org-columns-move-row-down"]
+                        .into_iter()
+                        .find(|command| error.contains(&format!("commandp, {command}")))
+                    {
+                        Some(command) => format!(
+                            "This Org has no `{command}`: moving rows in column view needs a newer Org \
+                             than Emacs 29's own (9.6.15), loaded in `emacs_config`"
+                        ),
+                        None => error,
+                    };
+                    self.show_message(MessageType::ERROR, error)
+                }
+                (Some(EmacsJob::Columns { uri, version, text, point }), Ok(mut result)) => {
+                    // The cursor stays on its line; the column it is on in
+                    // Emacs is the one picked (`org-columns-move-left`
+                    // takes it along with the column it moves).
+                    let at = result.as_object_mut().and_then(|fields| fields.remove("point"));
+                    let column = at.and_then(|at| at.as_u64()).and_then(|at| (at as usize).checked_sub(point));
+                    let mut view = result.get("extra").cloned().filter(|view| !view.is_null());
+                    if let (Some(view), Some(column)) = (view.as_mut(), column) {
+                        view["column"] = json!(column);
                     }
-                    let view = result.get("extra").cloned().filter(|view| !view.is_null());
                     self.columns_shown(&uri, version + 1, view);
                     self.emacs_edited(&uri, version, &text, 0, &result);
                 }
@@ -12640,7 +12746,7 @@ impl Server {
             "command": "org-lsp-bridge-columns-command",
             "args": args,
         });
-        let job = EmacsJob::Columns { uri: uri.clone(), version: document.version, text: document.text.clone() };
+        let job = EmacsJob::Columns { uri: uri.clone(), version: document.version, text: document.text.clone(), point };
         self.next_export += 1;
         let tag = self.next_export;
         self.emacs_jobs.insert(tag, job);
@@ -14325,6 +14431,9 @@ impl Server {
         if let (Some(killed), Some(fields)) = (done.killed, result.as_object_mut()) {
             fields.insert("copy".to_string(), json!(killed));
         }
+        if let Some(message) = done.message {
+            result["message"] = json!(message);
+        }
         Ok(result)
     }
 
@@ -14879,11 +14988,7 @@ impl Server {
     /// sequence.
     fn fast_keys(&mut self, context: &Context) -> std::result::Result<Vec<(String, char, bool, bool)>, Refusal> {
         let uri = &context.text_document.uri;
-        let file = if self.is_view(uri) {
-            self.entry_at(Some(context)).ok_or("No entry on this line")?.uri
-        } else {
-            uri.clone()
-        };
+        let file = if self.is_view(uri) { self.entry_at(Some(context)).ok_or(NOT_ON_ENTRY)?.uri } else { uri.clone() };
         let keys = self.with_source(&file, |_, _, parse, _, _| {
             let keywords = parse.todo_keywords();
             let heads = keywords.heads();
@@ -16338,7 +16443,7 @@ impl Server {
         let encoding = self.client.encoding;
         let uri = context.text_document.uri.clone();
         let (file, heading) = if self.is_view(&uri) {
-            let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
+            let reference = self.entry_at(Some(context)).ok_or(NOT_ON_ENTRY)?;
             let heading = self
                 .with_source(&reference.uri, |_, _, _, outline, _| {
                     views::resolve(&reference, outline).map(|entry| outline.entries[entry].offset)
@@ -16757,6 +16862,10 @@ fn fit_outline_path(path: &str, width: usize) -> String {
 /// What the calendar on its own says to the keys that answer a date
 /// prompt.
 const NO_DATE_ASKED: &str = "No date is asked for: the calendar is open on its own";
+
+/// What an agenda command on a line without an entry says, as
+/// `org-agenda-error` does.
+const NOT_ON_ENTRY: &str = "Command not allowed in this line";
 
 /// The date `org-goto-calendar` goes to from `offset` in `text`: the
 /// timestamp at it, active or not (`org-at-timestamp-p` with `lax`), or

@@ -204,7 +204,7 @@ Where editors fall short:
 
 - Sublime Text ❓: Faces of particular keywords and priorities are not shown in the file: Sublime Text colors text by its color scheme only. The list of TODO states shows them in the color of each item's kind, the nearest of those Sublime Text has.
 - Zed ❓: States are picked with buttons; for a note for a state change (~@~), the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Faces of particular keywords and priorities are not shown: Zed colors tokens by its theme only.
-- Helix ❓: States are picked from the code actions, where they come first once asked for; for a note for a state change (~@~), the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Switching to another keyword set is left out: it is not among Helix's code actions. Faces of particular keywords and priorities are not shown.
+- Helix ❓: States are picked from the code actions, where they come first once asked for; for a note for a state change (~@~), the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Switching to another keyword set is left out in an Org file, where it is not among Helix's code actions; on an agenda line it is one. Faces of particular keywords and priorities are not shown.
 
 * Priorities
 :PROPERTIES:
@@ -585,7 +585,7 @@ Where editors fall short:
 - Vim ❓: A shrunk column shows its whole text and ~…~: Vim cannot hide text that has text properties.
 - Sublime Text ❓: A shrunk column shows its whole text and ~…~: Sublime Text cannot hide text in a view.
 - Zed ❓: Moving between fields with ~TAB~ and copying down (~S-RET~) are left out: those keys stay Zed's own. For a new table's size, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. A shrunk column shows its whole text and ~…~: Zed lets no server hide text.
-- Helix ❓: Moving between fields with ~TAB~, copying down, summing, field information creating a table and a rule with a move below it are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and ~…~: Helix lets no server hide text.
+- Helix ❓: Moving between fields with ~TAB~, copying down, summing, field information creating a table and a rule with a move below it are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and ~…~: Helix lets no server hide text; the ~…~ of /Shrink or expand the table column/ shows once the text changes, when Helix asks for inlay hints again (it cannot be told to sooner).
 
 * Table formulas
 :PROPERTIES:
@@ -711,7 +711,7 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Neovim ❓: The lines a long line wraps into line up with its own indentation, a headline's title or an item's text ('breakindent'), without the prefix of virtual indentation before them: Neovim repeats no inline virtual text on them, and 'breakindentopt' shifts all the lines of a window alike.
+- Neovim ❓: The lines a long line wraps into line up with its own indentation, a headline's title or an item's text ('breakindent'), without the prefix of virtual indentation before them: Neovim repeats no inline virtual text on them, and 'breakindentopt' shifts all the lines of a window alike. A line with a long link wraps as if the link's hidden target took room: Neovim counts concealed text when it wraps; the org-roam buffer, whose links are long, does not wrap.
 - Vim ❓: The lines a long line wraps into line up with its own indentation, a headline's title or an item's text ('breakindent'), without the prefix of virtual indentation before them: Vim repeats no virtual text on them, and 'breakindentopt' shifts all the lines of a window alike.
 - VS Code ❓: The lines a long line wraps into are not indented as Org does: VS Code indents them by the line's own leading whitespace (~editor.wrappingIndent~), the same way for every line, without the prefix of virtual indentation, a decoration it does not count.
 - Sublime Text ❓: Virtual indentation shows as phantoms, the leading stars still showing; new lines are not indented as they are typed. The lines a long line wraps into are not indented as Org does: Sublime Text indents them by the line's own leading whitespace (~indent_subsequent_lines~).

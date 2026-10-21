@@ -59,7 +59,13 @@ pub struct Done {
     pub cursor: usize,
     /// What went to the kill ring (`org-table-kill-row`).
     pub killed: Option<String>,
+    /// What Org says after it (`org-table-fix-formulas`'s message).
+    pub message: Option<String>,
 }
+
+/// What `org-table-fix-formulas` says for each `#+TBLFM:` line after a
+/// table whose structure changed.
+pub const FORMULAS_UPDATED: &str = "The formulas in #+TBLFM have been updated";
 
 /// The table commands.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -139,7 +145,7 @@ pub fn run_with(
         let (lf, at) = crate::text::to_lf(text, at);
         let done = run_with(&lf, at, command, property, settings)?;
         let (text, cursor) = crate::text::from_lf(&done.text, done.cursor);
-        return Ok(Done { text, cursor, killed: done.killed });
+        return Ok(Done { text, cursor, killed: done.killed, message: done.message });
     }
     let mut buffer = Buffer::new(text, at);
     buffer.property = property;
@@ -170,7 +176,7 @@ pub fn run_with(
         }
         Command::Sort { kind, column } => buffer.sort_lines(kind, column)?,
     }
-    Ok(Done { text: buffer.text, cursor: buffer.point, killed })
+    Ok(Done { text: buffer.text, cursor: buffer.point, killed, message: buffer.message })
 }
 
 /// The text and the point, edited as Emacs edits a buffer, with the
@@ -189,6 +195,8 @@ struct Buffer<'a> {
     /// recalculated on the way.
     property: &'a dyn Fn(&str) -> Option<String>,
     settings: &'a Settings,
+    /// What the command says, Emacs's last message.
+    message: Option<String>,
 }
 
 /// `org-link-bracket-re`
@@ -229,6 +237,7 @@ impl Buffer<'_> {
             hidden: hidden_parts(text, 0, text.len()),
             property: &|_| None,
             settings: &DEFAULT_SETTINGS,
+            message: None,
         }
     }
 
@@ -1301,6 +1310,7 @@ impl Buffer<'_> {
             }
             out.push_str(&line[last..]);
             self.replace(at, end, &out, &[]);
+            self.message = Some(FORMULAS_UPDATED.to_string());
             let new_end = at + out.len();
             if new_end >= self.text.len() {
                 break;

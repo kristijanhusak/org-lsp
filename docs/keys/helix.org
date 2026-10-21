@@ -14,8 +14,8 @@ at the cursor:
 
 | Action                  | What it does                                              |
 |-------------------------+-----------------------------------------------------------|
-| ~org.todo.next~         | Cycle the TODO state forward                              |
-| ~org.todo.previous~     | Cycle the TODO state backward                             |
+| ~org.todo.next~         | Cycle TODO state forward (→ the state it goes to)         |
+| ~org.todo.previous~     | Cycle TODO state backward (→ the state it goes to)        |
 | ~org.priority.up~       | Raise the priority                                        |
 | ~org.priority.down~     | Lower the priority                                        |
 | ~org.timestamp.up~      | Increase the part of the timestamp at the cursor          |
@@ -31,27 +31,27 @@ at the cursor:
 More where they apply: on a headline, a list item or a table, in a code
 block, and in an entry:
 
-| Action                          | What it does                                                                     |
-|---------------------------------+----------------------------------------------------------------------------------|
-| ~org.meta.left~                 | Promote the heading; outdent the item; move the table column left                |
-| ~org.meta.right~                | Demote the heading; indent the item; move the table column right                 |
-| ~org.shiftmeta.left~            | Promote the subtree; outdent the item with its children; delete the table column |
-| ~org.shiftmeta.right~           | Demote the subtree; indent the item with its children; insert a table column     |
-| ~org.meta.up~                   | Move the subtree, the item or the table row up                                   |
-| ~org.meta.down~                 | Move the subtree, the item or the table row down                                 |
-| ~org.shiftmeta.up~              | Delete the table row                                                             |
-| ~org.shiftmeta.down~            | Insert a table row above                                                         |
-| ~org.table.insert.row.below~    | Insert a table row below                                                         |
-| ~org.table.hline~               | Insert a rule below the table row                                                |
-| ~org.table.hline.above~         | Insert a rule above the table row                                                |
-| ~org.table.blank.field~         | Blank the table field                                                            |
-| ~org.table.toggle.column.width~ | Shrink or expand the table column                                                |
-| ~org.babel.tangle~              | Tangle the file's code blocks (in a code block)                                  |
-| ~org.babel.execute~             | Evaluate the code block through Emacs                                            |
-| ~org.edit.special~              | Edit the block in a file of its own                                              |
-| ~org.archive.subtree~           | Archive the subtree                                                              |
-| ~org.archive.sibling~           | Archive the subtree under its Archive sibling                                    |
-| ~org.archive.tag~               | Toggle the ARCHIVE tag                                                           |
+| Action                          | What it does                                                                              |
+|---------------------------------+-------------------------------------------------------------------------------------------|
+| ~org.meta.left~                 | Promote the heading; outdent the item; move the table column left                         |
+| ~org.meta.right~                | Demote the heading; indent the item, the drawer or the block; move the table column right |
+| ~org.shiftmeta.left~            | Promote the subtree; outdent the item with its children; delete the table column          |
+| ~org.shiftmeta.right~           | Demote the subtree; indent the item with its children; insert a table column              |
+| ~org.meta.up~                   | Move the subtree, the item or the table row up                                            |
+| ~org.meta.down~                 | Move the subtree, the item or the table row down                                          |
+| ~org.shiftmeta.up~              | Delete the table row                                                                      |
+| ~org.shiftmeta.down~            | Insert a table row above                                                                  |
+| ~org.table.insert.row.below~    | Insert a table row below                                                                  |
+| ~org.table.hline~               | Insert a rule below the table row                                                         |
+| ~org.table.hline.above~         | Insert a rule above the table row                                                         |
+| ~org.table.blank.field~         | Blank the table field                                                                     |
+| ~org.table.toggle.column.width~ | Shrink or expand the table column                                                         |
+| ~org.babel.tangle~              | Tangle the file's code blocks (in a code block)                                           |
+| ~org.babel.execute~             | Evaluate the code block through Emacs                                                     |
+| ~org.edit.special~              | Edit the block in a file of its own                                                       |
+| ~org.archive.subtree~           | Archive the subtree                                                                       |
+| ~org.archive.sibling~           | Archive the subtree under its Archive sibling                                             |
+| ~org.archive.tag~               | Toggle the ARCHIVE tag                                                                    |
 
 An unknown citation key also offers the keys close to it (/Replace with @key/).
 
@@ -65,28 +65,28 @@ With ~show_document~ and ~message_requests~ set as [[file:../helix.org][helix.or
 commands are code actions in an Org file, those that ask for something or
 open a document:
 
-| Action                        | What it does                                         |
-|-------------------------------+------------------------------------------------------|
-| ~org.todo~                    | Change the TODO state, picked from a list            |
-| ~org.priority~                | Set the priority, picked from a list                 |
-| ~org.schedule~                | Schedule the entry: the date is typed                |
-| ~org.deadline~                | Set the deadline of the entry: the date is typed     |
-| ~org.tags.set~                | Set the tags of the headline: they are typed         |
-| ~org.property.set~            | Set a property of the entry: it and its value typed  |
-| ~org.effort.set~              | Set the effort of the entry: it is typed             |
-| ~org.refile~                  | Refile the entry, the target picked from a list      |
-| ~org.sort~                    | Sort the entries, the items or the table rows        |
-| ~org.clock.report~            | Insert or update a clock table                       |
-| ~org.clock.goto~              | Go to the clocked entry, while a clock runs          |
-| ~org.clock.in.last~           | Clock in the last clocked task                       |
-| ~org.meta.return~             | A new heading, item or table row                     |
-| ~org.insert.todo.heading~     | A new TODO heading, or item with a checkbox          |
-| ~org.insert.heading.after~    | A new heading after the subtree                      |
-| ~org.cut.subtree~             | Cut the subtree (and ~org.copy.subtree~, paste)      |
-| ~org.agenda.list~             | The agenda for the current week or day               |
-| ~org.agenda.todos~            | The list of all TODO entries                         |
-| ~org.agenda.dispatch~         | /Agenda commands/: the agenda menu, its views picked |
-| ~org.capture~                 | Capture, the template picked from a list             |
+| Action                     | What it does                                         |
+|----------------------------+------------------------------------------------------|
+| ~org.todo~                 | Change the TODO state, picked from a list            |
+| ~org.priority~             | Set the priority, picked from a list                 |
+| ~org.schedule~             | Schedule the entry: the date is typed                |
+| ~org.deadline~             | Set the deadline of the entry: the date is typed     |
+| ~org.tags.set~             | Set the tags of the headline: they are typed         |
+| ~org.property.set~         | Set a property of the entry: it and its value typed  |
+| ~org.effort.set~           | Set the effort of the entry: it is typed             |
+| ~org.refile~               | Refile the entry, the target picked from a list      |
+| ~org.sort~                 | Sort the entries, the items or the table rows        |
+| ~org.clock.report~         | Insert or update a clock table                       |
+| ~org.clock.goto~           | Go to the clocked entry, while a clock runs          |
+| ~org.clock.in.last~        | Clock in the last clocked task                       |
+| ~org.meta.return~          | A new heading, item or table row                     |
+| ~org.insert.todo.heading~  | A new TODO heading, or item with a checkbox          |
+| ~org.insert.heading.after~ | A new heading after the subtree                      |
+| ~org.cut.subtree~          | Cut the subtree (and ~org.copy.subtree~, paste)      |
+| ~org.agenda.list~          | The agenda for the current week or day               |
+| ~org.agenda.todos~         | The list of all TODO entries                         |
+| ~org.agenda.dispatch~      | /Agenda commands/: the agenda menu, its views picked |
+| ~org.capture~              | Capture, the template picked from a list             |
 
 What is picked from a list comes first in the code actions once the
 command has asked: ~Space a~ again, and the choices head the menu, each
@@ -106,7 +106,7 @@ the view's.
 | /Agenda: go to the entry/ (also ~gd~)      | /Agenda: go forward in time/, /backward/   |
 | /Change the TODO state/, the priority      | /Agenda: go to today/, /go to a date/      |
 | /Schedule the entry/, the deadline         | /Agenda: day view/, week, fortnight, month |
-| /Set the tags of the headline/             | /Agenda: rebuild/, /Save all Org files/    |
+| /Set the tags of the headline/             | /Agenda: rebuild/                          |
 | /Clock in/, /Clock out/                    | /Agenda: filter by …/, remove all filters  |
 | /Refile the entry/, /Archive the subtree/  | /Agenda: log mode/, the clock report       |
 | /Add a note to the entry/                  | /Agenda: mark all entries/, a bulk action  |
@@ -117,15 +117,18 @@ Follow mode, going to the entry in another window and column view are
 not among them: they need to know where the cursor goes, or draw over the
 lines. ~Space k~ on a line shows its entry. The buffer picker (~Space b~)
 goes back to the agenda where its cursor was. The server's edits leave the
-buffer changed: ~:buffer-close!~ closes it.
+buffer changed: ~:buffer-close!~ closes it. Saving the files the agenda's
+commands changed is Helix's own ~:write-all~: /Save all Org files/ is not
+offered, as the server cannot save a file and Helix does nothing with the
+files a server names to save.
 
 * In a capture buffer
 
-| Action                | What it does                              |
-|-----------------------+-------------------------------------------|
-| ~org.capture.finish~  | /Capture: finish/, filing the entry       |
-| ~org.capture.abort~   | /Capture: abort/, leaving the target      |
-| ~org.capture.refile~  | /Capture: refile the entry/, to a target  |
+| Action               | What it does                             |
+|----------------------+------------------------------------------|
+| ~org.capture.finish~ | /Capture: finish/, filing the entry      |
+| ~org.capture.abort~  | /Capture: abort/, leaving the target     |
+| ~org.capture.refile~ | /Capture: refile the entry/, to a target |
 
 The buffer stays open once the entry is filed: Helix closes no buffer for
 a server, which shows where capture started instead.

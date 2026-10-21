@@ -100,3 +100,17 @@ fn keeps_the_line_ends_of_a_windows_file() {
     assert_eq!(done.text, "| a   | bb |\r\n|-----+----|\r\n| ccc |  1 |\r\n");
     assert_eq!(&done.text[done.cursor..done.cursor + 2], "bb");
 }
+
+/// A change of a table's structure with a `#+TBLFM:` line after it says
+/// what `org-table-fix-formulas` says, even when no reference moved; one
+/// without says nothing.
+#[test]
+fn says_the_formulas_were_updated() {
+    let text = "| a | b |\n| 1 | 2 |\n#+TBLFM: $2=$1*2\n";
+    let done = table::run(text, 2, Command::MoveRow { up: false }).unwrap();
+    assert_eq!(done.message.as_deref(), Some(table::FORMULAS_UPDATED));
+    let done = table::run("| a | b |\n| 1 | 2 |\n", 2, Command::MoveRow { up: false }).unwrap();
+    assert_eq!(done.message, None);
+    let done = table::run(text, 2, Command::NextField).unwrap();
+    assert_eq!(done.message, None);
+}

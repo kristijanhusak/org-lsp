@@ -91,6 +91,7 @@
   },
   "steps": {
     "helix": {
+      "agenda-entries 14": "Helix does nothing with the files a result names to save, and the server cannot save a file: Save all Org files is not among its code actions, :write-all saves them (docs/keys/helix.org).",
       "agenda-entry-edits 21": "Helix has no note buffer: the note is one line, typed as a rename at the cursor (docs/helix.org).",
       "agenda-entry-edits 22": "Typed in the note buffer of step 21, which Helix does not have.",
       "agenda-entry-edits 23": "Files the note of step 21, which Helix asks for as a rename."

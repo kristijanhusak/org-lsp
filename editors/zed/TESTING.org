@@ -75,7 +75,7 @@ Not in Zed:
 
 *Partly:* ~RET~ stays Zed's own, and so do Shift and Alt with the arrows, which cycle bullets and move items in Org.
 
-- [ ] On an item, the next item goes below; in a numbered list the numbers go on, after a checkbox item the new one has ~[ ]~: ~alt-enter~
+- [ ] On an item, the next item goes below; in a numbered list the numbers go on; after a checkbox item the new one has none, as in Emacs (~[ ]~ comes with ~org.insert.todo.heading~, M-S-RET): ~alt-enter~
 - [ ] Indenting and outdenting an item; and with its children: the code action /Demote the heading; indent the item, the drawer or the block; move the table column right/, the code action /Promote the heading; outdent the item; move the table column left/, the code action /Demote the subtree; indent the item with its children; insert a table column/, the code action /Promote the subtree; outdent the item with its children; delete the table column/
 - [ ] Moving an item up and down: the code action /Move the subtree, the item or the table row up/, the code action /Move the subtree, the item or the table row down/
 - [ ] Toggling a checkbox: its parent box and the ~[1/3]~ cookie follow: ~ctrl-c ctrl-c~
@@ -289,7 +289,7 @@ Not in Zed:
 
 * Footnotes
 
-- [ ] Following ~[fn:1]~ goes to its definition, and from the definition back to the reference: ~ctrl-c ctrl-o~
+- [ ] Following ~[fn:1]~ goes to its definition, after its label, and from the definition's label back to the reference; right after the label, where following leaves the cursor, it says /No link found/, as Emacs's ~C-c C-o~ does there: ~ctrl-c ctrl-o~
 - [ ] A reference without a definition is reported
 - [ ] A new footnote (needs Emacs): ~[fn:1]~ at the cursor, its definition in the ~Footnotes~ section, the cursor there: ~ctrl-c ctrl-x f~
 - [ ] On a reference without a definition, Emacs asks whether to make one, in the editor: ~ctrl-c ctrl-x f~
@@ -376,7 +376,7 @@ Not in Zed:
 
 * Diagnostics (org-lint)
 
-- [ ] A heading in a paragraph (~text ** heading~), a link to nowhere and a block left open are reported
+- [ ] A heading in a paragraph (~text** heading~), a link to nowhere and a block left open are reported
 - [ ] An unknown header argument (~:foo 1~) on a source block is reported, as information: nothing is ever an error or a warning, only information (or a hint, where org-lint trusts its finding less)
 - [ ] ~org_lint_ignore = ["link-to-local-file"]~ silences that checker
 

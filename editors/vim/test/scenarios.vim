@@ -105,12 +105,11 @@ function! s:until(what, Probe, ...) abort
 endfunction
 
 " What the server said, as the user sees it: the messages since they were
-" last looked at, without the plugin's `org-lsp: ` before its warnings.
+" last looked at.
 function! s:messages() abort
   " Not Vim's own about the files it reads (`"Agenda.org-agenda" 3L, 70B`),
   " nor coc.nvim's about the files it edits.
-  let lines = filter(split(execute('messages'), "\n"), {_, line -> line !~# '^".*" .*\d\+L, \d\+B$' && line !~# '^\[coc\.nvim\] '})
-  return map(lines, {_, line -> substitute(line, '^org-lsp: ', '', '')})
+  return filter(split(execute('messages'), "\n"), {_, line -> line !~# '^".*" .*\d\+L, \d\+B$' && line !~# '^\[coc\.nvim\] '})
 endfunction
 
 " A buffer the server knows, to ask it through.

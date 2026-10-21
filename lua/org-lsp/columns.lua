@@ -190,7 +190,9 @@ function M.show(params)
     view.rows[line[1]] = { text = line[2], values = line[3] }
   end
   shown[bufnr] = view
-  vim.b[bufnr].org_lsp_column = math.max(0, math.min(#view.columns - 1, M.column(bufnr)))
+  -- Where Emacs's cursor went, when the server says (a column moved).
+  local column = type(params.column) == 'number' and params.column or M.column(bufnr)
+  vim.b[bufnr].org_lsp_column = math.max(0, math.min(#view.columns - 1, column))
   if first then
     attach(bufnr)
   end

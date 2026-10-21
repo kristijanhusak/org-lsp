@@ -106,7 +106,9 @@ command. [[file:keys/vim.org][keys/vim.org]] lists every key and how to change i
   its own unless that is set (~""~ loads it without showing it, as the
   other clients do). Since coc.nvim passes on only an error's message, a
   key that keeps its own meaning (~<C-a>~ off a timestamp) falls back to it
-  whenever the server refuses.
+  whenever the server refuses. A capture buffer coc.nvim shows starts in
+  Normal mode (the plugin cannot start Insert mode there): ~A~ or ~i~ to
+  type.
 - With ALE, one server serves the session, started for the directory of
   the first Org file.
 
