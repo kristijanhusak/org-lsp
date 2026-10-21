@@ -7572,11 +7572,11 @@ org_open_directory_means_index_dot_org = false
 :CUSTOM_ID: return_uses_meta_return
 :END:
 
-RET on the first line of a list item makes the next item, numbered and with a
-checkbox as M-RET (~org-meta-return~) makes it, the items after it renumbered,
-as nvim-orgmode's ~org_return_uses_meta_return~ does. Off, RET is Org's: a new
-line in the item. ~org.return.item~ (~<S-CR>~, Shift+Enter, with the vim keys)
-always does it.
+RET on the first line of a list item makes the next item, numbered as M-RET
+(~org-meta-return~) makes it (without a checkbox, which M-S-RET adds), the
+items after it renumbered, as nvim-orgmode's ~org_return_uses_meta_return~
+does. Off, RET is Org's: a new line in the item. ~org.return.item~ (~<S-CR>~,
+Shift+Enter, with the vim keys) always does it.
 
 - Type :: boolean
 - Default :: ~false~
