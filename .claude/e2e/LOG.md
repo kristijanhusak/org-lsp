@@ -31,7 +31,7 @@ Base: `main` at bad79cc (#365).
 
 - emacs-1 to emacs-19, with lsp-9, lsp-10, lsp-19 (the same bridge): merged in #366 (notes-fix-emacs.md). Left: the rest of emacs-11/lsp-10 (the synchronous Emacs calls answered later, plan in notes-fix-emacs.md and docs/protocol.org) and fix-1, for an agent once disk allows.
 - lsp-1 to lsp-18 but lsp-9, lsp-10: merged in #367 (notes-fix-lsp.md).
-- neovim-*, vim-*, helix-*: done (notes-fix-editors.md), merged into this branch as fe3c3d0; full suites running before its PR.
+- neovim-*, vim-*, helix-*, and Zed's Save All: merged in #368 (notes-fix-editors.md).
 - vscode-1, zed-1, sublime-1 to sublime-4, fix-1, and the rest of emacs-11/lsp-10: done (notes-fix-rest.md), on branch worktree-agent-a92ff95f01afdaa8f; merged after the editors' PR.
 
 All five parts are tested; what is left is fixing, then one PR per fix agent.
