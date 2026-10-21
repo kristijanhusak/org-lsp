@@ -23,9 +23,9 @@ Base: `main` at bad79cc (#365).
 | --- | --- | --- |
 | lsp | A plain LSP client (no `orgClient`, no `experimental`), and one announcing everything, driving every command of the manifest over stdio | tested: lsp-1 to lsp-19 (notes-lsp.md); fixing |
 | emacs | `emacs_options`, `emacs_config`, everything that goes through Emacs (export, Babel, attachments, crypt, column view, plot, timers, formula editor, appointments, tangling fallbacks), with and without Emacs | tested: emacs-1 to emacs-19 (notes-emacs.md); fixing |
-| neovim | The Neovim suites (0.12.0, stable, nightly), then `editors/neovim/TESTING.org` by script, `vim.pack` install | started |
+| neovim | The Neovim suites (0.12.0, stable, nightly), then `editors/neovim/TESTING.org` by script, `vim.pack` install | tested: neovim-1 to neovim-20 (notes-neovim.md); to fix |
 | vim-helix | Vim with its four clients, Helix | started |
-| vscode-zed-sublime | VS Code (VSCodium), Zed, Sublime Text's tests | waiting |
+| vscode-zed-sublime | VS Code (VSCodium), Zed, Sublime Text's tests | started |
 
 ## Rounds of fixes
 

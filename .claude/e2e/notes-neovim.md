@@ -27,3 +27,22 @@ suites `suite.sh <version>`). Scratch data under the session scratchpad
 - neovim-1 narrowed: `.claude/e2e/repro/neovim/nightly-crash.lua` aborts nightly deterministically: headless, `vim.o.lines = 50; vim.o.columns = 140` (no UI attached), `<Leader>ois`, cursor `{7, 46}` in the calendar, `normal! zz`, `:redraw`. With 80x24 it passes; in a real TUI (tmux, 140x50) it does not crash. So it is most likely a Neovim nightly assertion about a headless grid wider than the default, triggered by the calendar's extmark highlights; tests/nvim/highlight.lua hits it on nightly only.
 - Also seen: `zz` in the calendar scrolls its month header out of view (the plugin sets scrolloff 0 but nothing pins topline); cosmetic.
 - links2.lua: references across files, workspace symbols, rename updating links in both files, timestamp link → day agenda, info: link → gnu.org URL via vim.ui.open: work. man: and org-ctags not testable here (no man pages in this minimized image, `ctags` is Emacs's etags ctags, not Universal Ctags).
+- super agenda groups (`Today` time-grid + auto-category) and `org_agenda_prefix_format` with `%-4(org-entry-get nil "EFFORT")` (Emacs): both show as TESTING.org says (TUI).
+- versions: my scripts on 0.12.0 and nightly give the same results as stable (differences only from headless timing; nightly's `:checkhealth` opens a new tab asynchronously, fine in the TUI). vim.pack install/update/OrgLspDownload passes on 0.12.0, 0.12.5 and nightly.
+
+## TESTING.org coverage (by section; A = automated headless, T = tmux TUI, S = covered by tests/nvim suite)
+- Setup 5/5 A (vim.pack with fake file:// release, checkhealth, OrgLspDownload via PackChanged, g?/<Leader>oa, config.toml+setup).
+- Highlighting: S (highlight.lua 89 looks, e2e) + T spot checks of bullets, pretty entities/sub/superscripts, custom times + toggle, hidden keywords, macro/emphasis markers. Not separately: another color scheme, ARCHIVE shading.
+- Folding 13/15 A/T pass; TAB level cycling fails (neovim-16); `org_remove_highlights_with_change = false` and `org_cycle_include_plain_lists = "integrate"` not run.
+- Headings 24/25 pass (C-k `"error"` variant not run).
+- Lists 10/10 behave as Emacs; the `[ ]` wording is wrong (neovim-3).
+- TODO 12/15 pass; dependencies (`org_enforce_todo_dependencies`, dimmed in agenda) not run; faces/expert covered by e2e (S).
+- Priorities 3/3, Tags 7/7 (typed tags are not sorted, as in Emacs: wording), Properties/column view 11/11 behave, with neovim-11/12/13.
+- Dates 16/18 pass; live answer (neovim-6) fails; counts in calendar (neovim-7).
+- Agenda 24/24 exercised (T + A + S); `appt` answered "No event to add" (no timed entry within the window here).
+- Clocking 12/12, Capture 11/11, Refile/archive 8/8, Notes 5/5, Completion 7/7, Encryption 3/3, Footnotes 5/5 (Emacs-identical), Timers 4/6 (countdown not run), Attachments 1/2 (attachment: link not opened), Diagnostics 3/3 (example `text ** heading` not an Emacs lint either).
+- org-protocol 3/4 (store-link via a desktop bookmarklet + install.sh not automatable here).
+- Roam 14/16 pass, issues neovim-14/15; Journal 15/15.
+- Links 17/20 (man: no man pages in image; org-ctags needs Universal Ctags; `file:x::*H` to a missing file not judged).
+- Tables 12/14 (gnuplot absent; ascii plot not run), Formulas 8/10 (debugger, remote() not run), Babel 13/14 (detangle message neovim-19), Export 7/9 (C-v visible-only, "and opened" not run), Citations 4/7 (bibtex create/copy/yank/import not run).
+- Indentation 7/7 (wrap limitation documented), Images/LaTeX: S (images.lua, latex.lua with stand-ins) + remote download prompt (A).

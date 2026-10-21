@@ -495,3 +495,27 @@ Each issue: a heading `## <part>-<n>: <one line>`, then
 - Where: server, `org.open` and `textDocument/definition` at a footnote definition: the place is taken as the definition only on its label, not right after it, which is where the server itself puts the cursor (`[fn:1]|` = Emacs's point after `org-footnote-action`).
 - Repro: `* A`, `See [fn:1].`, ``, `[fn:1] The note.`; in Vim `<Leader>oo` on the reference → 4:7; `<Leader>oo` again → `org-lsp: No link found` (from 4:3 it goes back to 2:5). Helix: `gd` twice the same (`hx_flows2.py`, (13, 7) twice).
 - Expected (Emacs 9.8.10, `em.sh fn.org 4 7 '(org-footnote-action)'`): back to the reference, 2:5. TESTING.org: "Following [fn:1] goes to its definition, and from the definition back to the reference".
+
+## vim-16: TESTING.org's org-lint check "A heading in a paragraph (`text ** heading`)" cannot pass: neither Emacs nor the server reports that text
+- State: open
+- Where: `scripts/features.mjs` → every `editors/*/TESTING.org` (Diagnostics): the example `text ** heading`. Emacs's `misplaced-heading` checker (org-lint.el:410) wants a non-blank character right before the stars (`text** heading`); `org-lint` in Emacs 9.8.10 on `text ** heading in a paragraph` reports nothing, and the server neither (`.claude/e2e/repro/vim-helix/diag.py`).
+- Repro: diag.py; or open such a file in Vim/Helix: only the fuzzy link, the header argument and the open block are reported.
+- Expected: the example `text** heading` (or `Some text*** heading`), which Emacs reports.
+
+## neovim-19: detangling (`<Leader>obd`) says nothing; Emacs says `Detangled 1 code blocks`
+- State: open (low)
+- Where: server, `org.babel.detangle` through Emacs (`org-babel-detangle`): its `message` is not passed on as the result's `message`.
+- Repro: `.claude/e2e/repro/neovim/detangle.lua`: a block with `:tangle out.el :comments link`, `<Leader>obt` (says `Tangled 1 code block from t.org`), change the code in out.el, `<Leader>obd`: the block gets the new code (`  (* 3 3)`, as Emacs writes it) but no notification within 6 s.
+- Expected (CLAUDE.md "Say what Emacs says"; Org 9.6/9.8 `ob-tangle.el`: `(message "Detangled %d code blocks" counter)`): `Detangled 1 code blocks`. Got: nothing.
+
+## neovim-20: tests/nvim/e2e.lua times out under load (5 s waits): "the server to attach" (0.12.0), "the lines selected made headings" (stable)
+- State: open (low; test robustness)
+- Where: `tests/nvim/e2e.lua` `wait()` (5000 ms) for the first attach and for Emacs-backed steps (`org.toggle.heading` on a selection starts Emacs).
+- Repro: the first `ORG_LISP_DIR=/root/org-mode/lisp NVIM=… scripts/test-nvim.sh` of this round, run while other testers built and ran servers (load ~4 on 4 cores): 0.12.0 failed at "timed out waiting for the server to attach", stable at "timed out waiting for the lines selected made headings". Three re-runs each (`.claude/e2e/repro/neovim/suite.sh <v> e2e`) passed (376 checks), as did every other file.
+- Expected: the suite passes on a busy machine. Got: an occasional false failure; a longer wait for Emacs's first start (as highlight.lua's 10 s) would avoid it.
+
+## vim-17: Emacs's yes/no questions (Babel's "Evaluate this emacs-lisp code block on your system?", during export too) come as `window/showMessageRequest`, which vim-lsp never answers and ALE ignores: `<Leader>obe` does nothing in Vim with those clients
+- State: open
+- Where: server: the bridge's confirmation goes out as `window/showMessageRequest` even to org-lsp's own Vim plugin (which asks everything else with `{ "input": … }` and `org_lsp#prompt`). vim-lsp's handler (`autoload/lsp/internal/show_message_request.vim`) shows an inputlist but then sends no response (its log has the request and nothing after; it also checks `l:index <= len(l:index)`, so only choice 1 could ever pass); ALE shows nothing at all. yegappan/lsp (inputlist) and coc.nvim (`[1]Yes, (2)No:`) work; Helix refuses it (helix-7).
+- Repro: `.claude/e2e/repro/vim-helix/babel_clients.sh vim_lsp` / `ale` / `coc` (Emacs with ORG_LISP_DIR): `#+begin_src emacs-lisp` `(* 6 7)`, `<Leader>obe`, answer 1: vim-lsp and ALE → no `#+RESULTS:`, no message; coc → `: 42`. vim-lsp log: `g:lsp_log_file`.
+- Expected: `#+RESULTS:` `: 42` with every client: ask through the plugin's own prompt (an `input` of kind `key` y/n, as `Execute echo hi in shell?` is asked) for clients with `orgClient`.
