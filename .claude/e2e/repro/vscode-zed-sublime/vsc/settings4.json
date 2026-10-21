@@ -1,0 +1,12 @@
+{
+  "folder": {
+    "org-lsp.settings": {
+      "clock": { "today": "2026-05-18", "now": "10:30" },
+      "emacs_config": "(add-to-list 'load-path \"/root/org-mode/lisp\")\n(with-eval-after-load 'org-crypt (setq org-crypt-key \"test@example.com\"))\n(setq epg-pinentry-mode 'loopback)",
+      "org_agenda_files": ["$WS/work.org", "$WS/work2.org"],
+      "org_refile_targets": [["org_agenda_files", "maxlevel", 3]],
+      "org_file_apps": [["txt", "cp %s copy.txt"]],
+      "org_modules": ["ol-man"]
+    }
+  }
+}

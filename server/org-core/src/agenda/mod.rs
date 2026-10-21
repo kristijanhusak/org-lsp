@@ -859,7 +859,8 @@ impl Builder<'_> {
     fn sexps(&self, file: usize, current: Day, out: &mut Vec<Item>) {
         let outline = self.files[file];
         for line in &outline.sexps {
-            let Some(results) = diary::entries_with(&line.sexp, &line.text, current, &self.config.diary) else {
+            let place = diary::Place { file: outline.file.clone(), line: line_number(&outline.text, line.offset) };
+            let Some(results) = diary::entries_with(&line.sexp, &line.text, current, &self.config.diary, &place) else {
                 continue;
             };
             // Org has no entry for one before the first headline, and stops.
@@ -1187,7 +1188,14 @@ impl Builder<'_> {
                 let entry = &outline.entries[shown.entry];
                 if entry.skipped_by(self.config)
                     || (entry.done && self.config.skip_timestamp_if_done)
-                    || diary::entries_with(sexp, "", current, &self.config.diary).is_none()
+                    || diary::entries_with(
+                        sexp,
+                        "",
+                        current,
+                        &self.config.diary,
+                        &diary::Place { file: outline.file.clone(), line: line_number(&outline.text, stamp.offset) },
+                    )
+                    .is_none()
                 {
                     continue;
                 }
@@ -2157,6 +2165,11 @@ pub(crate) fn effort(entry: &Entry) -> Option<&str> {
 /// The entry an agenda line was made from.
 pub fn entry<'a>(files: &[&'a Outline], source: Source) -> &'a Entry {
     &files[source.file].entries[source.entry]
+}
+
+/// The line of `text` at the byte `offset`, from 1 (`org-current-line`).
+fn line_number(text: &str, offset: usize) -> usize {
+    text.as_bytes()[..offset.min(text.len())].iter().filter(|&&byte| byte == b'\n').count() + 1
 }
 
 #[cfg(test)]

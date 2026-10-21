@@ -1130,6 +1130,9 @@ struct Server {
     export_stack: Vec<(String, PathBuf, bool)>,
     /// What Emacs is doing, by tag.
     emacs_jobs: HashMap<u64, EmacsJob>,
+    /// The notices of Emacs's shown (an option of `emacs_options` left out),
+    /// which an Emacs started again gives again: shown once.
+    emacs_notices: HashSet<String>,
     /// Where exports to a buffer are written to be shown.
     export_directory: Private,
     next_export: u64,
@@ -1647,9 +1650,15 @@ pub fn run(connection: Connection) -> Result<()> {
     // The diary sexps the agenda cannot read, read by Emacs
     // (`org-diary-sexp-entry`).
     let caller = emacs.caller();
-    agenda.diary = org_core::agenda::diary::Outside(Some(std::sync::Arc::new(move |sexp, entry, day| {
+    agenda.diary = org_core::agenda::diary::Outside(Some(std::sync::Arc::new(move |sexp, entry, day, place| {
         let date = org_core::date::Date::from_day(day);
-        let params = json!({ "sexp": sexp, "entry": entry, "date": [date.month, date.day, date.year] });
+        let params = json!({
+            "sexp": sexp,
+            "entry": entry,
+            "date": [date.month, date.day, date.year],
+            "file": place.file,
+            "line": place.line,
+        });
         let result = caller.call("diary-sexp", params, std::time::Duration::from_secs(30)).ok()?;
         let lines: Vec<String> =
             result.as_array()?.iter().filter_map(|line| line.as_str().map(str::to_string)).collect();
@@ -1777,6 +1786,7 @@ pub fn run(connection: Connection) -> Result<()> {
         capture_lisp: HashMap::new(),
         publish_projects: None,
         emacs_jobs: HashMap::new(),
+        emacs_notices: HashSet::new(),
         export_stack: Vec::new(),
         export_directory: Private::new("export"),
         next_export: 0,
@@ -5936,12 +5946,10 @@ impl Server {
     fn agenda_files(&mut self) -> Vec<(Uri, Held)> {
         let inheritance = self.workspace.inheritance.clone();
         let open = |document: &Document, uri: &Uri| {
-            Held::Open(Box::new(Outline::with_inheritance(
-                &document.parse,
-                &document.text,
-                &uri::file_stem(uri),
-                &inheritance,
-            )))
+            let mut outline =
+                Outline::with_inheritance(&document.parse, &document.text, &uri::file_stem(uri), &inheritance);
+            outline.file = uri::to_path(uri).map(|path| path.display().to_string());
+            Held::Open(Box::new(outline))
         };
         if !self.workspace.is_configured() {
             // Nothing says where the agenda files are: use the files that
@@ -6062,12 +6070,13 @@ impl Server {
         match open.get(path) {
             Some(key) => key.parse::<Uri>().ok().map(|uri| {
                 let document = &self.documents[key];
-                let outline = Outline::with_inheritance(
+                let mut outline = Outline::with_inheritance(
                     &document.parse,
                     &document.text,
                     &uri::file_stem(&uri),
                     &self.workspace.inheritance,
                 );
+                outline.file = Some(path.display().to_string());
                 (uri, Held::Open(Box::new(outline)))
             }),
             None => match (uri::from_path(path), self.workspace.read(path, &self.todo)) {
@@ -6155,8 +6164,9 @@ impl Server {
             None
         };
         let replaced_text = replaced.as_ref().map(|(uri, _, text)| ((*uri).clone(), text.to_string()));
-        if let Some((uri, outline, _)) = replaced {
+        if let Some((uri, mut outline, _)) = replaced {
             if let Some(file) = files.iter_mut().find(|(file, _)| file == uri) {
+                outline.file = uri::to_path(uri).map(|path| path.display().to_string());
                 file.1 = Held::Open(Box::new(outline));
             }
         }
@@ -12082,8 +12092,11 @@ impl Server {
             }
             // As a problem with the options is told when the server starts.
             crate::emacs::Event::Notice { text } => {
-                self.show_message(MessageType::WARNING, format!("org-lsp: {text}"));
+                if self.emacs_notices.insert(text.clone()) {
+                    self.show_message(MessageType::WARNING, format!("org-lsp: {text}"));
+                }
             }
+            crate::emacs::Event::Message { text } => self.show_message(MessageType::INFO, text),
             crate::emacs::Event::Done { tag, result } => match (self.emacs_jobs.remove(&tag), result) {
                 (Some(EmacsJob::Prefixes { forms, all }), result) => self.prefixes_evaluated(tag, &forms, all, result),
                 (Some(EmacsJob::Export(label)), Err(error)) => {
@@ -12104,6 +12117,10 @@ impl Server {
                         .map(|left| std::time::Instant::now() + std::time::Duration::from_secs_f64(left));
                     self.timer_said(&result);
                     self.emacs_edited(&uri, version, &text, point, &result);
+                    // What Emacs shows in `*Org-Babel Error Output*`.
+                    if let Some(errors) = result.get("babel_errors").and_then(Value::as_str) {
+                        self.show_message(MessageType::WARNING, errors);
+                    }
                     // What the command opened (an attachment, its
                     // directory), the system opens; what it visited (a new
                     // attachment), the editor.
@@ -14054,6 +14071,10 @@ impl Server {
             Some(position) => self.apply_edit(params, Pending::EditAndMove { uri: uri.clone(), position }),
             None => self.apply_edit(params, Pending::Edit),
         }
+        // What Emacs said last, as its echo area shows it after the edit.
+        if let Some(message) = said {
+            self.show_message(MessageType::INFO, message);
+        }
     }
 
     /// Show what an export made: the text of an export to a buffer as a
@@ -15820,7 +15841,9 @@ impl Server {
     /// or changed, the entry's `ID` or `DIR` and `ATTACH` tag set; what it
     /// opens, the editor or the system opens.
     fn attach(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
-        const COMMANDS: [(&str, &str); 14] = [
+        // Org's keys (`org-attach-commands`), but `b`, `O` and `F`, which
+        // are of Emacs's buffers and Dired.
+        const COMMANDS: [(&str, &str); 15] = [
             ("a", "Attach a file by org-attach-method (Emacs's, copying unless emacs_options sets it)"),
             ("c", "Attach a file by copying it"),
             ("m", "Attach a file by moving it"),
@@ -15835,6 +15858,7 @@ impl Server {
             ("D", "Delete all attachments"),
             ("s", "Set the attachment directory (DIR)"),
             ("S", "Unset the attachment directory"),
+            ("q", "Abort"),
         ];
         let key = context.step.clone().or_else(|| context.input.clone());
         let Some(key) = key else {
@@ -15843,7 +15867,11 @@ impl Server {
             return Ok(json!({ "input": { "kind": "key", "prompt": "Attachments", "value": "", "choices": choices } }));
         };
         if !COMMANDS.iter().any(|(known, _)| *known == key) {
-            return Err(format!("No attachment command under {key}").into());
+            return Err(format!("No such attachment command: {key}").into());
+        }
+        if key == "q" {
+            self.message = Some("Abort".to_string());
+            return Ok(Value::Null);
         }
         // What the command reads, answered: the input once the key is the
         // step.

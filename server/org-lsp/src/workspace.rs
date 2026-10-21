@@ -270,7 +270,9 @@ impl Workspace {
         }
         let text = String::from_utf8_lossy(&std::fs::read(path).ok()?).into_owned();
         let name = path.file_stem().map(|stem| stem.to_string_lossy().into_owned()).unwrap_or_default();
-        let source = Rc::new(Source::new(text, &name, todo, &self.inheritance));
+        let mut source = Source::new(text, &name, todo, &self.inheritance);
+        source.outline.file = Some(path.display().to_string());
+        let source = Rc::new(source);
         self.cache.insert(path.to_path_buf(), Cached { modified, len, source: source.clone() });
         Some(source)
     }

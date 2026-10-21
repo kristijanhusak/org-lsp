@@ -151,14 +151,14 @@
  },
  "ob-core.el": {
   "org-confirm-babel-evaluate": {
-   "doc": "Confirm before evaluation.\n\nUses keymap `org-mode-map', which is not currently defined.\nRequire confirmation before interactively evaluating code\nblocks in Org buffers.  The default value of this variable is t,\nmeaning confirmation is required for any code block evaluation.\nThis variable can be set to nil to inhibit any future\nconfirmation requests.  This variable can also be set to a\nfunction which takes two arguments the language of the code block\nand the body of the code block.  Such a function should then\nreturn a non-nil value if the user should be prompted for\nexecution or nil if no prompt is required.\n\nWarning: Disabling confirmation may result in accidental\nevaluation of potentially harmful code.  It may be advisable\nremove code block execution from `M-x org-ctrl-c-ctrl-c' as further protection\nagainst accidental code block evaluation.  The\n`org-babel-no-eval-on-ctrl-c-ctrl-c' variable can be used to\nremove code block execution from the `M-x org-ctrl-c-ctrl-c' keybinding.",
+   "doc": "Confirm before evaluation.\nRequire confirmation before interactively evaluating code\nblocks in Org buffers.  The default value of this variable is t,\nmeaning confirmation is required for any code block evaluation.\nThis variable can be set to nil to inhibit any future\nconfirmation requests.  This variable can also be set to a\nfunction which takes two arguments the language of the code block\nand the body of the code block.  Such a function should then\nreturn a non-nil value if the user should be prompted for\nexecution or nil if no prompt is required.\n\nWarning: Disabling confirmation may result in accidental\nevaluation of potentially harmful code.  It may be advisable\nremove code block execution from `C-c C-c' as further protection\nagainst accidental code block evaluation.  The\n`org-babel-no-eval-on-ctrl-c-ctrl-c' variable can be used to\nremove code block execution from the `C-c C-c' keybinding.",
    "default": "t",
    "type": "(choice boolean function)",
    "version": "Emacs 24.1",
    "json": true
   },
   "org-babel-no-eval-on-ctrl-c-ctrl-c": {
-   "doc": "\nUses keymap `org-mode-map', which is not currently defined.\nRemove code block evaluation from the `M-x org-ctrl-c-ctrl-c' key binding.",
+   "doc": "Remove code block evaluation from the `C-c C-c' key binding.",
    "default": "nil",
    "type": "boolean",
    "version": "Emacs 24.1",
@@ -221,7 +221,7 @@
    "doc": "The program to call for compiling a csharp project.",
    "default": "\"dotnet\"",
    "type": "string",
-   "version": "Org. (9.8)",
+   "version": "Org 9.8",
    "json": "dotnet",
    "schema": {
     "type": "string"
@@ -231,7 +231,7 @@
    "doc": "The desired target framework to use.",
    "form": "(format \"net%s.0\"\n        (let ((net-sdks (org-babel-csharp--find-dotnet-version)))\n          (when net-sdks\n            (apply #'max net-sdks))))",
    "type": "string",
-   "version": "Org. (9.8)",
+   "version": "Org 9.8",
    "schema": {
     "type": "string"
    }
@@ -240,19 +240,21 @@
    "doc": "A function creating the compile command.\n\nIt must take two parameters intended for the target binary directory and\na .sln file, .csproj file, or a base directory where either can be found.",
    "default": "org-babel-csharp--default-compile-command",
    "type": "function",
-   "version": "Org. (9.8)"
+   "version": "Org 9.8",
+   "json": "org-babel-csharp--default-compile-command"
   },
   "org-babel-csharp-generate-restore-command": {
    "doc": "A function creating a project restore command.\n\nIt must take one parameter defining the project to perform a restore on.",
    "default": "org-babel-csharp--default-restore-command",
    "type": "function",
-   "version": "Org. (9.8)"
+   "version": "Org 9.8",
+   "json": "org-babel-csharp--default-restore-command"
   },
   "org-babel-csharp-additional-project-flags": {
    "doc": "Will be passed in the \"PropertyGroup\" defining the project.\n\nThis is taken as-is. It should be a string in XML-format.",
    "default": "nil",
    "type": "(choice string\n        (const nil))",
-   "version": "Org. (9.8)",
+   "version": "Org 9.8",
    "json": false,
    "schema": {
     "anyOf": [
@@ -403,7 +405,7 @@
    "doc": "Command used to compile a Haskell source code file into an executable.\nMay be either a command in the path, like \"ghc\" or an absolute\npath name, like \"/usr/local/bin/ghc\".  The command can include\na parameter, such as \"ghc -v\".",
    "default": "\"ghc\"",
    "type": "string",
-   "version": "Org (9.4)",
+   "version": "Org 9.4",
    "json": "ghc",
    "schema": {
     "type": "string"
@@ -504,18 +506,18 @@
   },
   "org-babel-latex-preamble": {
    "doc": "Closure which evaluates at runtime to the LaTeX preamble.\n\nIt takes 1 argument which is the parameters of the source block.",
-   "default": "(closure\n    (org-preview-latex-process-alist org-latex-packages-alist org-latex-default-packages-alist org-format-latex-options org-format-latex-header t)\n    (_)\n  \"\\\\documentclass[preview]{standalone}\\n\")",
+   "default": "#'(lambda\n    (_)\n    \"\\\\documentclass[preview]{standalone}\\n\")",
    "type": "function",
    "version": "Org 9.8"
   },
   "org-babel-latex-begin-env": {
    "doc": "Function that evaluates to the begin part of the document environment.\n\nIt takes 1 argument which is the parameters of the source block.\nThis allows adding additional code that will be ignored when\nexporting the literal LaTeX source.",
-   "default": "(closure\n    (org-preview-latex-process-alist org-latex-packages-alist org-latex-default-packages-alist org-format-latex-options org-format-latex-header t)\n    (_)\n  \"\\\\begin{document}\")",
+   "default": "#'(lambda\n    (_)\n    \"\\\\begin{document}\")",
    "type": "function"
   },
   "org-babel-latex-end-env": {
    "doc": "Closure which evaluates at runtime to the end part of the document environment.\n\nIt takes 1 argument which is the parameters of the source block.\nThis allows adding additional code that will be ignored when\nexporting the literal LaTeX source.",
-   "default": "(closure\n    (org-preview-latex-process-alist org-latex-packages-alist org-latex-default-packages-alist org-format-latex-options org-format-latex-header t)\n    (_)\n  \"\\\\end{document}\")",
+   "default": "#'(lambda\n    (_)\n    \"\\\\end{document}\")",
    "type": "function"
   },
   "org-babel-latex-pdf-svg-process": {
@@ -748,6 +750,7 @@
    "default": "auto",
    "type": "(choice string\n        (const auto))",
    "version": "Org 9.7",
+   "json": "auto",
    "schema": {
     "anyOf": [
      {
@@ -766,6 +769,7 @@
    "default": "auto",
    "type": "(choice string\n        (const auto))",
    "version": "Org 9.7",
+   "json": "auto",
    "schema": {
     "anyOf": [
      {
@@ -1363,7 +1367,12 @@
    "doc": "List of functions used to derive attachment path from an ID string.\nThe functions are called with a single ID argument until the return\nvalue is an existing folder.  If no folder has been created yet for\nthe given ID, then the first non-nil value defines the attachment\ndir to be created.\n\nUsually, the ID format passed to the functions is defined by\n`org-id-method'.  It is advised that the first function in the list do\nnot generate all the attachment dirs inside the same parent dir.  Some\nfile systems may have performance issues in such scenario.\n\nCare should be taken when customizing this variable.  Previously\ncreated attachment folders might not be correctly mapped upon removing\nfunctions from the list.  Then, Org will not be able to detect the\nexisting attachments.",
    "default": "(org-attach-id-uuid-folder-format org-attach-id-ts-folder-format org-attach-id-fallback-folder-format)",
    "type": "(repeat\n (function :tag \"Function with ID as input\"))",
-   "version": "Org 9.6"
+   "version": "Org 9.6",
+   "json": [
+    "org-attach-id-uuid-folder-format",
+    "org-attach-id-ts-folder-format",
+    "org-attach-id-fallback-folder-format"
+   ]
   },
   "org-attach-commands": {
    "doc": "The list of commands for the attachment dispatcher.\nEach entry in this list is a list of three elements:\n- A list of keys (characters) to select the command (the fist\n  character in the list is shown in the attachment dispatcher's\n  splash buffer and minibuffer prompt).\n- A command that is called interactively when one of these keys\n  is pressed.\n- A docstring for this command in the attachment dispatcher's\n  splash buffer.",
@@ -2182,7 +2191,7 @@
   },
   "org-ascii-format-drawer-function": {
    "doc": "Function called to format a drawer in ASCII.\n\nThe function must accept three parameters:\n  NAME      the drawer name, like \"LOGBOOK\"\n  CONTENTS  the contents of the drawer.\n  WIDTH     the text width within the drawer.\n\nThe function should return either the string to be exported or\nnil to ignore the drawer.\n\nThe default value simply returns the value of CONTENTS.",
-   "default": "(closure\n    (t)\n    (_name contents _width)\n  contents)",
+   "default": "#'(lambda\n    (_name contents _width)\n    contents)",
    "type": "function",
    "version": "Org 8.0"
   },
@@ -2190,7 +2199,8 @@
    "doc": "Function called to format an inlinetask in ASCII.\n\nThe function must accept nine parameters:\n  TODO       the todo keyword, as a string\n  TODO-TYPE  the todo type, a symbol among `todo', `done' and nil.\n  PRIORITY   the inlinetask priority, as a string\n  NAME       the inlinetask name, as a string.\n  TAGS       the inlinetask tags, as a list of strings.\n  CONTENTS   the contents of the inlinetask, as a string.\n  WIDTH      the width of the inlinetask, as a number.\n  INLINETASK the inlinetask itself.\n  INFO       the info channel.\n\nThe function should return either the string to be exported or\nnil to ignore the inline task.",
    "default": "org-ascii-format-inlinetask-default",
    "type": "function",
-   "version": "Org 8.3"
+   "version": "Org 8.3",
+   "json": "org-ascii-format-inlinetask-default"
   }
  },
  "ox-beamer.el": {
@@ -2373,7 +2383,7 @@
   },
   "org-html-format-drawer-function": {
    "doc": "Function called to format a drawer in HTML code.\n\nThe function must accept two parameters:\n  NAME      the drawer name, like \"LOGBOOK\"\n  CONTENTS  the contents of the drawer.\n\nThe function should return the string to be exported.\n\nThe default value simply returns the value of CONTENTS.",
-   "default": "(closure\n    (htmlize-buffer-places org-html-format-table-no-css htmlize-css-name-prefix htmlize-output-type htmlize-output-type htmlize-css-name-prefix t)\n    (_name contents)\n  contents)",
+   "default": "#'(lambda\n    (_name contents)\n    contents)",
    "type": "function",
    "version": "Org 8.0"
   },
@@ -2417,7 +2427,8 @@
    "doc": "Function to format headline text.\n\nThis function will be called with six arguments:\nTODO      the todo keyword (string or nil).\nTODO-TYPE the type of todo (symbol: `todo', `done', nil)\nPRIORITY  the priority of the headline (integer or nil)\nTEXT      the main headline text (string).\nTAGS      the tags (string or nil).\nINFO      the export options (plist).\n\nThe function result will be used in the section format string.",
    "default": "org-html-format-headline-default-function",
    "type": "function",
-   "version": "Org 8.3"
+   "version": "Org 8.3",
+   "json": "org-html-format-headline-default-function"
   },
   "org-html-allow-name-attribute-in-anchors": {
    "doc": "When nil, do not set \"name\" attribute in anchors.\nBy default, when appropriate, anchors are formatted with \"id\"\nbut without \"name\" attribute.",
@@ -2453,7 +2464,8 @@
    "doc": "Function called to format an inlinetask in HTML code.\n\nThe function must accept seven parameters:\n  TODO      the todo keyword, as a string\n  TODO-TYPE the todo type, a symbol among `todo', `done' and nil.\n  PRIORITY  the inlinetask priority, as a string\n  NAME      the inlinetask name, as a string.\n  TAGS      the inlinetask tags, as a list of strings.\n  CONTENTS  the contents of the inlinetask, as a string.\n  INFO      the export options, as a plist\n\nThe function should return the string to be exported.",
    "default": "org-html-format-inlinetask-default-function",
    "type": "function",
-   "version": "Org 8.3"
+   "version": "Org 8.3",
+   "json": "org-html-format-inlinetask-default-function"
   },
   "org-html-equation-reference-format": {
    "doc": "The MathJax command to use when referencing equations.\n\nThis is a format control string that expects a single string argument\nspecifying the label that is being referenced.  The argument is\ngenerated automatically on export.\n\nThe default is to wrap equations in parentheses (using \"\\eqref{%s})\".\n\nMost common values are:\n\n  \\eqref{%s}    Wrap the equation in parentheses\n  \\ref{%s}      Do not wrap the equation in parentheses",
@@ -2842,7 +2854,8 @@
    "doc": "Form that is used to produce meta tags in the HTML head.\n\nCan be a list where each item is a list of arguments to be passed\nto `org-html--build-meta-entry'.  Any nil items are ignored.\n\nAlso accept a function which gives such a list when called with a\nsingle argument (INFO, a communication plist).",
    "default": "org-html-meta-tags-default",
    "type": "(choice\n (repeat\n  (list\n   (string :tag \"Meta label\")\n   (string :tag \"label value\")\n   (string :tag \"Content value\")))\n function)",
-   "version": "Org 9.5"
+   "version": "Org 9.5",
+   "json": "org-html-meta-tags-default"
   },
   "org-html-head-include-default-style": {
    "doc": "Non-nil means include the default style in exported HTML files.\nThe actual style is defined in `org-html-style-default' and\nshould not be modified.  Use `org-html-head' to use your own\nstyle information.",
@@ -3482,7 +3495,8 @@
    "doc": "Function for formatting the headline's text.\n\nThis function will be called with six arguments:\nTODO      the todo keyword (string or nil)\nTODO-TYPE the type of todo (symbol: `todo', `done', nil)\nPRIORITY  the priority of the headline (integer or nil)\nTEXT      the main headline text (string)\nTAGS      the tags (list of strings or nil)\nINFO      the export options (plist)\n\nThe function result will be used in the section format string.",
    "default": "org-latex-format-headline-default-function",
    "type": "function",
-   "version": "Org 8.0"
+   "version": "Org 8.0",
+   "json": "org-latex-format-headline-default-function"
   },
   "org-latex-default-footnote-command": {
    "doc": "Default command used to insert footnotes.\nCustomize this command if the LaTeX class provides a different\ncommand like \"\\sidenote{%s%s}\" that you want to use.\nThe value will be passed as an argument to `format' as the following\n  (format org-latex-default-footnote-command\n     footnote-description footnote-label)",
@@ -3706,7 +3720,7 @@
   },
   "org-latex-format-drawer-function": {
    "doc": "Function called to format a drawer in LaTeX code.\n\nThe function must accept two parameters:\n  NAME      the drawer name, like \"LOGBOOK\"\n  CONTENTS  the contents of the drawer.\n\nThe function should return the string to be exported.\n\nThe default function simply returns the value of CONTENTS.",
-   "default": "(closure\n    (engrave-faces-latex-mathescape engrave-faces-current-preset-style engrave-faces-latex-output-style t)\n    (_ contents)\n  contents)",
+   "default": "#'(lambda\n    (_ contents)\n    contents)",
    "type": "function",
    "version": "Org 8.3"
   },
@@ -3714,7 +3728,8 @@
    "doc": "Function called to format an inlinetask in LaTeX code.\n\nThe function must accept seven parameters:\n  TODO      the todo keyword (string or nil)\n  TODO-TYPE the todo type (symbol: `todo', `done', nil)\n  PRIORITY  the inlinetask priority (integer or nil)\n  NAME      the inlinetask name (string)\n  TAGS      the inlinetask tags (list of strings or nil)\n  CONTENTS  the contents of the inlinetask (string or nil)\n  INFO      the export options (plist)\n\nThe function should return the string to be exported.",
    "default": "org-latex-format-inlinetask-default-function",
    "type": "function",
-   "version": "Org 8.3"
+   "version": "Org 8.3",
+   "json": "org-latex-format-inlinetask-default-function"
   },
   "org-latex-src-block-backend": {
    "doc": "Backend used to generate source code listings.\n\nThis sets the behavior for fontifying source code, possibly even with\ncolor.  There are four implementations of this functionality you may\nchoose from (ordered from least to most capable):\n1. Verbatim\n2. Listings\n3. Minted\n4. Engraved\n\nThe first two options provide basic syntax\nhighlighting (listings), or none at all (verbatim).\n\nWhen using listings, you also need to make use of LaTeX package\n\"listings\".  The \"xcolor\" LaTeX package is also needed for\ncolor management.  These can simply be added to\n`org-latex-packages-alist', using customize or something like:\n\n  (require 'ox-latex)\n  (add-to-list 'org-latex-packages-alist '(\"\" \"listings\"))\n  (add-to-list 'org-latex-packages-alist '(\"\" \"xcolor\"))\n\nThere are two further options for more comprehensive\nfontification.  The first can be set with,\n\n  (setq org-latex-src-block-backend 'minted)\n\nwhich causes source code to be exported using the LaTeX package\nminted as opposed to listings.  If you want to use minted, you\nneed to add the minted package to `org-latex-packages-alist', for\nexample using customize, or with\n\n  (require 'ox-latex)\n  (add-to-list 'org-latex-packages-alist '(\"newfloat\" \"minted\"))\n\nIn addition, it is necessary to install pygments\n(URL `https://pygments.org>'), and to configure the variable\n`org-latex-pdf-process' so that the -shell-escape option is\npassed to pdflatex.\n\nThe minted choice has possible repercussions on the preview of\nlatex fragments (see `org-latex-preview').  If you run\ninto previewing problems, please consult\nURL `https://orgmode.org/worg/org-tutorials/org-latex-preview.html'.\n\nThe most comprehensive option can be set with,\n\n  (setq org-latex-src-block-backend 'engraved)\n\nwhich causes source code to be run through\n`engrave-faces-latex-buffer', which generates colorings using\nEmacs's font-lock information.  This requires the Emacs package\nengrave-faces (available from GNU ELPA), and the LaTeX package\nfvextra be installed.\n\nThe styling of the engraved result can be customized with\n`org-latex-engraved-preamble' and `org-latex-engraved-options'.\nThe default preamble also uses the LaTeX package tcolorbox in\naddition to fvextra.",
@@ -4185,7 +4200,7 @@
   },
   "org-odt-format-drawer-function": {
    "doc": "Function called to format a drawer in ODT code.\n\nThe function must accept two parameters:\n  NAME      the drawer name, like \"LOGBOOK\"\n  CONTENTS  the contents of the drawer.\n\nThe function should return the string to be exported.\n\nThe default value simply returns the value of CONTENTS.",
-   "default": "(closure\n    (hfy-user-sheet-assoc hfy-html-quote-regex hfy-html-quote-map hfy-face-to-css hfy-begin-span-handler hfy-end-span-handler archive-zip-extract nxml-auto-insert-xml-declaration-flag t)\n    (_name contents)\n  contents)",
+   "default": "#'(lambda\n    (_name contents)\n    contents)",
    "type": "function",
    "version": "Org 8.3"
   },
@@ -4193,13 +4208,15 @@
    "doc": "Function to format headline text.\n\nThis function will be called with 5 arguments:\nTODO      the todo keyword (string or nil).\nTODO-TYPE the type of todo (symbol: `todo', `done', nil)\nPRIORITY  the priority of the headline (integer or nil)\nTEXT      the main headline text (string).\nTAGS      the tags string, separated with colons (string or nil).\n\nThe function result will be used as headline text.",
    "default": "org-odt-format-headline-default-function",
    "type": "function",
-   "version": "Org 8.3"
+   "version": "Org 8.3",
+   "json": "org-odt-format-headline-default-function"
   },
   "org-odt-format-inlinetask-function": {
    "doc": "Function called to format an inlinetask in ODT code.\n\nThe function must accept six parameters:\n  TODO      the todo keyword, as a string\n  TODO-TYPE the todo type, a symbol among `todo', `done' and nil.\n  PRIORITY  the inlinetask priority, as a string\n  NAME      the inlinetask name, as a string.\n  TAGS      the inlinetask tags, as a string.\n  CONTENTS  the contents of the inlinetask, as a string.\n\nThe function should return the string to be exported.",
    "default": "org-odt-format-inlinetask-default-function",
    "type": "function",
-   "version": "Org 8.3"
+   "version": "Org 8.3",
+   "json": "org-odt-format-inlinetask-default-function"
   },
   "org-odt-with-latex": {
    "doc": "Non-nil means process LaTeX math snippets.\n\nWhen set, the exporter will process LaTeX environments and\nfragments.\n\nThis option can also be set with the +OPTIONS line,\ne.g. \"tex:dvipng\".  Allowed values are:\n\nnil            Ignore math snippets.\nt, `mathml'    Convert the LaTeX fragments to MathML if the\n               `org-latex-to-mathml-convert-command' is usable.\nSYMBOL         Convert the LaTeX fragments to images using any symbol\n               defined in `org-preview-latex-process-alist', e.g.,\n               `dvipng'.\n`verbatim'     Keep everything in verbatim.\n\nIf the desired converter is not available or any other symbol is\nprovided, process as `verbatim'.",
@@ -4423,7 +4440,8 @@
    "doc": "Function to format headline text.\n\nThis function will be called with 5 arguments:\nTODO      the todo keyword (string or nil).\nTODO-TYPE the type of todo (symbol: `todo', `done', nil)\nPRIORITY  the priority of the headline (integer or nil)\nTEXT      the main headline text (string).\nTAGS      the tags as a list of strings (list of strings or nil).\n\nThe function result will be used in the section format string.",
    "default": "org-texinfo-format-headline-default-function",
    "type": "function",
-   "version": "Org 8.3"
+   "version": "Org 8.3",
+   "json": "org-texinfo-format-headline-default-function"
   },
   "org-texinfo-node-description-column": {
    "doc": "Column at which to start the description in the node listings.\nIf a node title is greater than this length, the description will\nbe placed after the end of the title.",
@@ -4515,14 +4533,15 @@
   },
   "org-texinfo-format-drawer-function": {
    "doc": "Function called to format a drawer in Texinfo code.\n\nThe function must accept two parameters:\n  NAME      the drawer name, like \"LOGBOOK\"\n  CONTENTS  the contents of the drawer.\n\nThe function should return the string to be exported.\n\nThe default function simply returns the value of CONTENTS.",
-   "default": "(closure\n    (org-texinfo-supports-math--cache t)\n    (_name contents)\n  contents)",
+   "default": "#'(lambda\n    (_name contents)\n    contents)",
    "type": "function",
    "version": "Org 8.2"
   },
   "org-texinfo-format-inlinetask-function": {
    "doc": "Function called to format an inlinetask in Texinfo code.\n\nThe function must accept six parameters:\n  TODO      the todo keyword, as a string\n  TODO-TYPE the todo type, a symbol among `todo', `done' and nil.\n  PRIORITY  the inlinetask priority, as a string\n  NAME      the inlinetask name, as a string.\n  TAGS      the inlinetask tags, as a list of strings.\n  CONTENTS  the contents of the inlinetask, as a string.\n\nThe function should return the string to be exported.",
    "default": "org-texinfo-format-inlinetask-default-function",
-   "type": "function"
+   "type": "function",
+   "json": "org-texinfo-format-inlinetask-default-function"
   },
   "org-texinfo-with-latex": {
    "doc": "When non-nil, the Texinfo exporter attempts to process LaTeX math.\n\nWhen set to t, the exporter will process LaTeX environments and\nfragments as Texinfo \"@displaymath\" and \"@math\" commands\nrespectively.  Alternatively, when set to `detect', the exporter\ndoes so only if the installed version of Texinfo supports the\nnecessary commands.",
@@ -4673,7 +4692,11 @@
    "doc": "Non-nil means export contents of standard drawers.\n\nWhen t, all drawers are exported.  This may also be a list of\ndrawer names to export, as strings.  If that list starts with\n`not', only drawers with such names will be ignored.\n\nThis variable doesn't apply to properties drawers.  See\n`org-export-with-properties' instead.\n\nThis option can also be set with the OPTIONS keyword,\ne.g. \"d:nil\".",
    "default": "(not \"LOGBOOK\")",
    "type": "(choice\n (const :tag \"All drawers\" t)\n (const :tag \"None\" nil)\n (repeat :tag \"Selected drawers\"\n         (string :tag \"Drawer name\"))\n (list :tag \"Ignored drawers\"\n       (const :format \"\" not)\n       (repeat :tag \"Specify names of drawers to ignore during export\" :inline t\n               (string :tag \"Drawer name\"))))",
-   "version": "Org 8.0"
+   "version": "Org 8.0",
+   "json": [
+    "not",
+    "LOGBOOK"
+   ]
   },
   "org-export-with-email": {
    "doc": "Non-nil means insert author email into the exported file.\nThis option can also be set with the OPTIONS keyword,\ne.g. \"email:t\".",
