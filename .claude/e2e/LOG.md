@@ -29,12 +29,12 @@ Base: `main` at bad79cc (#365).
 
 ## Rounds of fixes
 
-- emacs-1 to emacs-19, with lsp-9, lsp-10, lsp-19 (the same bridge): merged in #366 (notes-fix-emacs.md). Left: the rest of emacs-11/lsp-10 (the synchronous Emacs calls answered later, plan in notes-fix-emacs.md and docs/protocol.org) and fix-1, for an agent once disk allows.
+- emacs-1 to emacs-19, with lsp-9, lsp-10, lsp-19 (the same bridge): merged in #366 (notes-fix-emacs.md). The rest of emacs-11/lsp-10 and fix-1 in #369.
 - lsp-1 to lsp-18 but lsp-9, lsp-10: merged in #367 (notes-fix-lsp.md).
 - neovim-*, vim-*, helix-*, and Zed's Save All: merged in #368 (notes-fix-editors.md).
-- vscode-1, zed-1, sublime-1 to sublime-4, fix-1, and the rest of emacs-11/lsp-10: done (notes-fix-rest.md), on branch worktree-agent-a92ff95f01afdaa8f; merged after the editors' PR.
+- vscode-1, zed-1, sublime-1 to sublime-4, fix-1, and the rest of emacs-11/lsp-10: merged in #369 (notes-fix-rest.md).
 
-All five parts are tested; what is left is fixing, then one PR per fix agent.
+All five parts are tested and every issue is fixed, written down or found not a bug (#366 to #369). The round is done.
 
 ## 10:10 UTC: the usage limit stopped the three fix agents
 
