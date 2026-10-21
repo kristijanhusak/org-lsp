@@ -57,7 +57,7 @@ mod emacs_wait;
 mod journal;
 mod manual;
 mod remote_images;
-mod roam;
+pub(crate) mod roam;
 use crate::views::{self, EntryRef, Query, View, ViewLine};
 use crate::workspace::{Source, Workspace};
 use crate::{actions, cli, commands, completion, custom, faces, folding, highlight, manifest, port, symbols, uri};

@@ -364,7 +364,7 @@ pub fn plain(sections: &[Section]) -> String {
 
 /// `Backlinks (2)`: magit shows the count of a section's items in place
 /// of the colon its heading ends with.
-fn heading(section: &Section) -> String {
+pub fn heading(section: &Section) -> String {
     if section.items.is_empty() {
         format!("{}:", section.name)
     } else {
@@ -373,7 +373,7 @@ fn heading(section: &Section) -> String {
 }
 
 /// The outline path of a place, `Top` for none.
-fn outline_text(outline: &[String]) -> String {
+pub fn outline_text(outline: &[String]) -> String {
     if outline.is_empty() {
         "Top".to_string()
     } else {
