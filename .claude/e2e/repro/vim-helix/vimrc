@@ -1,0 +1,33 @@
+" Interactive e2e vimrc: plugin + one client ($VH_CLIENT), settings from $VH_SETTINGS (a JSON file), work dir $VH_WORK.
+set nocompatible
+set encoding=utf-8
+let s:clients = '/root/vimclients'
+let s:dirs = {'lsp': 'lsp', 'vim_lsp': 'vim-lsp', 'coc': 'coc.nvim', 'ale': 'ale'}
+let &runtimepath = '/home/user/org-lsp/editors/vim,' . s:clients . '/' . s:dirs[$VH_CLIENT] . ',' . &runtimepath
+let g:coc_data_home = $VH_WORK . '/.coc'
+let g:coc_config_home = $VH_WORK . '/.coc'
+let mapleader = ' '
+let s:settings = filereadable($VH_SETTINGS) ? json_decode(join(readfile($VH_SETTINGS), "\n")) : {}
+let g:org_lsp = {'cmd': ['/home/user/org-lsp/target/debug/org-lsp'], 'settings': s:settings}
+if filereadable($VH_EXTRA) | execute 'source' $VH_EXTRA | endif
+set hidden laststatus=2 noswapfile
+set statusline=%f\ %l:%c\ %{org_lsp#clock_status()}
+filetype plugin indent on
+syntax on
+function! VHDump(...) abort
+  let out = []
+  call add(out, '== cur ' . bufname('%') . ' ft=' . &ft . ' cursor=' . line('.') . ':' . col('.') . ' mode=' . mode())
+  for w in range(1, winnr('$'))
+    call add(out, '== win ' . w . ' ' . bufname(winbufnr(w)) . ' h=' . winheight(w))
+  endfor
+  for b in getbufinfo({'buflisted': 0})
+    if b.loaded && (getbufvar(b.bufnr, '&ft') =~# 'org' || a:0)
+      call add(out, '== buf ' . b.bufnr . ' ' . b.name . ' changed=' . b.changed)
+      call extend(out, getbufline(b.bufnr, 1, '$'))
+    endif
+  endfor
+  call add(out, '== messages')
+  call extend(out, split(execute('messages'), "\n"))
+  call writefile(out, $VH_WORK . '/dump.txt')
+endfunction
+command! -nargs=? VHDump call VHDump(<args>)

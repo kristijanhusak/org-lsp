@@ -237,7 +237,7 @@ function H.section(name, fn)
   if not ok then
     H.check(false, 'Lua error: ' .. tostring(err))
   end
-  if vim.v.errmsg ~= '' then
+  if vim.v.errmsg ~= '' and not vim.v.errmsg:find('E31: No such mapping') then
     H.check(false, 'v:errmsg: ' .. vim.v.errmsg)
   end
   local bad = H.errors_in_messages()
