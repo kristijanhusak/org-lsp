@@ -429,3 +429,9 @@ Each issue: a heading `## <part>-<n>: <one line>`, then
 - Where: `editors/vim/autoload/org_lsp.vim:2419` `org_lsp#refold`: `if &l:fillchars !~# 'fold:' && &fillchars !~# 'fold:'` — Vim's default is `vert:|,fold:-,eob:~,lastline:@`, so the condition is false unless the user removed `fold:` (Neovim's default has no `fold:`, so lua/org-lsp/init.lua:1051 works there).
 - Repro: any Org file with a closed fold in Vim (vh.sh, `#+STARTUP: content`): `* A...-------------------------------------------…` across the window.
 - Expected (comment there: "A closed fold shows its first line and `org-ellipsis`, nothing after"; TESTING.org "A folded headline shows as it does open, followed by ..."): `* A...` and blanks. Compare with Vim's default value (or `&fillchars ==# 'vert:|,fold:-,eob:~,lastline:@'`) rather than the presence of `fold:`.
+
+## neovim-16: TAB on a new empty heading changes its level once; a second TAB folds instead of cycling the level again
+- State: open
+- Where: `<Tab>` (`cycle`, `lua/org-lsp/folds.lua`) → the server's level cycling (`org-cycle-level`); after the edit the cursor is put at column 0 of the headline.
+- Repro: `.claude/e2e/repro/neovim/fold2.lua` (and TUI): `* A` / `** `, cursor at the end of line 2 (Normal mode, on the last space), `<Tab>` → `* ` with the cursor at `{2, 0}`; `<Tab>` again leaves `* ` (the cursor is no longer at the end of an empty headline, so it is plain cycling).
+- Expected (TESTING.org "Under `* A`, TAB at the end of a new `** ` makes it `* `, again `** `"; Emacs `org-cycle-level` keeps point at the end, so `* ` → `** ` → `* `…): the cursor stays at the end of the headline (its last column in Normal mode) and TAB keeps cycling. Got: stuck at `* `.
