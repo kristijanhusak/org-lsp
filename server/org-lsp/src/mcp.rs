@@ -1,6 +1,7 @@
 //! `org-lsp mcp`: a Model Context Protocol server over standard input and
 //! output, for AI assistants to read the agenda as Org builds it, and with
-//! `mcp_edits` to change TODO states, capture and refile.
+//! `mcp_edits` to change TODO states, capture, refile, and change entries
+//! where they are or archive them ([`entry`]).
 //!
 //! The view tools build a view of the agenda files with `org-lsp agenda`
 //! ([`crate::cli::agenda_lines`]) and answer its text, each entry's line
@@ -26,6 +27,8 @@ use serde_json::{json, Value};
 use crate::config::{CaptureTemplateOption, Options};
 use crate::server::TargetSpec;
 
+mod entry;
+
 pub const USAGE: &str = "\
 Usage: org-lsp mcp
 
@@ -33,7 +36,8 @@ Run a Model Context Protocol server over standard input and output, which
 gives AI assistants the agenda, the TODO list and searches of the agenda
 files of the shared configuration file (`org-lsp config`). It only reads,
 unless that file sets `mcp_edits = true`: then it also changes TODO states,
-captures and refiles, writing the files.";
+dates, tags, properties, priorities and efforts, adds notes, captures,
+refiles and archives, writing the files.";
 
 /// The protocol versions this server speaks, the newest first.
 const VERSIONS: [&str; 3] = ["2025-06-18", "2025-03-26", "2024-11-05"];
@@ -84,7 +88,7 @@ pub fn answer(line: &str, folder: Option<&Path>, env: &dyn Fn(&str) -> Option<St
                 "instructions": "The user's Org mode agenda, read as Emacs's Org builds it. \
                     Dates are YYYY-MM-DD. The views are text as Org's agenda shows them: \
                     category, time, TODO keyword, headline and tags on each line, then where \
-                    the entry's headline is, [file:line], which set_todo_state and refile take.",
+                    the entry's headline is, [file:line], which the edit tools take.",
             })
         }
         "ping" => json!({}),
@@ -302,6 +306,7 @@ fn tools(options: &Options) -> Value {
         }),
         &["file", "line", "target"],
     );
+    tools.extend(entry::tools());
     Value::Array(tools)
 }
 
@@ -374,6 +379,13 @@ fn call(
                 "refile" => refile(&arguments, &options, folder),
                 _ => set_todo_state(&arguments, &options, folder),
             }
+        }
+        name if entry::NAMES.contains(&name) => {
+            let options = crate::config::load(None, env).options;
+            if options.mcp_edits != Some(true) {
+                return Err(EDITS_OFF.into());
+            }
+            entry::call(name, &arguments, &options, folder)
         }
         _ => view(name, &arguments, folder, env),
     }
