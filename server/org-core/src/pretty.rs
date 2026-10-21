@@ -177,7 +177,9 @@ fn script_body(line: &str, at: usize, braces_only: bool) -> Option<usize> {
 /// references, tags, keywords) nor in a verbatim block.
 fn raised_here(root: &org_syntax::SyntaxNode, at: usize) -> bool {
     use org_syntax::SyntaxKind::*;
-    let Some(token) = root.token_at_offset(org_syntax::TextSize::from(at as u32)).right_biased() else { return true };
+    let Some(token) = org_syntax::token_at_offset(root, org_syntax::TextSize::from(at as u32)).right_biased() else {
+        return true;
+    };
     if matches!(token.kind(), PROPERTY_KEY | PLANNING_KEYWORD | CLOCK_KEYWORD) {
         return false;
     }

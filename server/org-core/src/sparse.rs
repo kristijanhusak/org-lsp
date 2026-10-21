@@ -323,7 +323,8 @@ impl DateType {
 /// `org-element-context` finds it there: not one of a planning line.
 fn in_timestamp(parse: &org_syntax::Parse, end: usize) -> bool {
     let Some(at) = end.checked_sub(1).and_then(|at| u32::try_from(at).ok()) else { return false };
-    let Some(token) = parse.syntax().token_at_offset(org_syntax::TextSize::from(at)).right_biased() else {
+    let Some(token) = org_syntax::token_at_offset(&parse.syntax(), org_syntax::TextSize::from(at)).right_biased()
+    else {
         return false;
     };
     let mut timestamp = false;

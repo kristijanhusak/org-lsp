@@ -1433,7 +1433,7 @@ impl<'a> Editor<'a> {
     /// is in a timestamp, on a planning line or in a property drawer.
     fn in_timestamp(&self, parse: &org_syntax::Parse, at: usize) -> bool {
         let offset = (at - self.heading) as u32;
-        let token = match parse.syntax().token_at_offset(offset.into()) {
+        let token = match org_syntax::token_at_offset(&parse.syntax(), offset.into()) {
             TokenAtOffset::None => return false,
             TokenAtOffset::Single(token) => token,
             TokenAtOffset::Between(_, right) => right,

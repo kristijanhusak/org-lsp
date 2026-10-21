@@ -114,7 +114,7 @@ fn main() -> ExitCode {
     // The main thread's stack is small on some platforms and cannot be
     // resized; the syntax tree walks recurse once per outline level.
     let server = std::thread::Builder::new().name("org-lsp".to_string()).stack_size(16 * 1024 * 1024).spawn(|| {
-        let (connection, io_threads) = lsp_server::Connection::stdio();
+        let (connection, io_threads) = org_lsp::stdio::connection()?;
         org_lsp::run(connection)?;
         // `run` dropped the connection, which lets the I/O threads end.
         io_threads.join()?;

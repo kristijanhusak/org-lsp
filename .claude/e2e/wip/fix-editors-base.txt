@@ -1,0 +1,1 @@
+bad79cc docs/emacs-options.org: every option emacs_options takes, with Org's documentation (#365)

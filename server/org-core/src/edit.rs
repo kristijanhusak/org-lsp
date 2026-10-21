@@ -359,6 +359,21 @@ pub fn run(
                 before_repeat: None,
             })
         }
+        // `C-c C-c` on a statistics cookie of a headline counts the cookies
+        // again (`org-update-statistics-cookies`), the boxes left as they
+        // are.
+        Command::Checkbox
+            if on_headline(text, offset) && crate::checkbox::on_statistics_cookie(&parse.syntax(), offset) =>
+        {
+            let counted = crate::archive::update_statistics(
+                text.to_string(),
+                offset,
+                parse.todo_keywords(),
+                &settings.todo,
+                call.now,
+            );
+            Ok(unplaced(counted))
+        }
         Command::Checkbox => crate::checkbox::toggle(
             text,
             parse.todo_keywords(),

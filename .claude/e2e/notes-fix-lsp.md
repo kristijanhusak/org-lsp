@@ -100,3 +100,18 @@
   with org-roam loaded). Relies on the job queue staying in order (emacs.rs,
   other fixer). Test `exports_links_the_server_follows` (tests/lsp.rs).
   protocol.org's org.export.dispatch says so.
+- lsp-12 final numbers (release, after merging #366, scale2.py, PLAIN
+  client): 6000 lines open+folding 0.16 s, keystroke+hover 43 ms; 60000
+  lines open+folding 2.1 s (incl. the lint published at open), keystroke+
+  hover ~1.8 s when lint runs between keystrokes — but the harness itself
+  spends 0.48 s per keystroke applying the edit to its 3 MB copy (Python
+  UTF-16 offsets), a pause longer than DIAGNOSTICS_DELAY, so lint fires; with
+  `org_lint = false` the same loop is 0.45 s, i.e. almost all client time.
+  Before: 6000 lines 5.0 s / 232 ms; 60000 lines 9.8 s / 5.5 s.
+  Remaining: org-lint is ~1.5 s at 60k lines whenever it runs (linear);
+  open still lints at once.
+- Commits: e52d113 (lsp-13), 331f831 (lsp-12 token lookup), 37ddd63 (the
+  rest), 0d234c2 (merge of origin/main incl. #366, no conflicts).
+  check.sh (ORG_LISP_DIR=/root/org-mode/lisp) passes after the merge (VS
+  Code type check needs editors/vscode/node_modules: symlinked from the
+  main checkout for the run, removed after).

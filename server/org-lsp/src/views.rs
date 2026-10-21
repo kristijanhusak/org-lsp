@@ -368,6 +368,30 @@ fn with_keyword(line: &agenda::Line, keyword: Option<&str>, done: bool, other: O
         heading + text[heading..].bytes().take_while(|b| *b == b'.').count()
     };
     let start = after_dots(text, item.heading);
+    // A habit's line is made again as a scheduled line: Emacs formats it
+    // without the habit, so with the leader it left out and no graph.
+    if let (Some(prefix), Some((graph, _))) = (&item.habit_prefix, &item.graph) {
+        let head = text[start..(*graph).max(start).min(text.len())].trim_end_matches([' ', '\t']);
+        let title = if item.keyword_len > 0 {
+            head.get(item.keyword_len.min(head.len())..).unwrap_or("").trim_start_matches(' ')
+        } else {
+            head
+        };
+        let new = keyword.map(|keyword| format!("{keyword} ")).unwrap_or_default();
+        let changed = format!("{prefix}{new}{title}");
+        let mut item = item.clone();
+        item.heading = prefix.len();
+        item.graph = None;
+        item.habit = None;
+        item.habit_prefix = None;
+        item.text = changed.clone();
+        item.keyword_len = keyword.map_or(0, str::len);
+        item.keyword_done = done;
+        if done {
+            item.face = agenda::Face::Done;
+        }
+        return agenda::Line { text: changed, kind: line.kind, item: Some(item) };
+    }
     // A habit's graph stands on the headline: only the keyword changes.
     let other = other
         .filter(|_| item.graph.is_none())

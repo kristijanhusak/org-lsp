@@ -552,7 +552,7 @@ pub fn drawer_or_block_at(
         return Ok(None);
     }
     let at = org_syntax::TextSize::new(start as u32);
-    let element = root.token_at_offset(at).right_biased().and_then(|token| {
+    let element = org_syntax::token_at_offset(root, at).right_biased().and_then(|token| {
         token.parent_ancestors().find(|node| matches!(node.kind(), DRAWER | PROPERTY_DRAWER | BLOCK | DYNAMIC_BLOCK))
     });
     let Some(element) = element else {
@@ -919,12 +919,13 @@ fn paste(
     let mut end = start + pasted.len();
     let first = start + (pasted.len() - pasted.trim_start_matches([' ', '\t', '\n', '\r']).len());
     // `org-map-region` of `org-promote` or `org-demote`, a level at a time,
-    // over the headlines pasted.
+    // over the headlines pasted; inline tasks keep their stars, as Emacs
+    // leaves them (`org-odd-levels-only` is off meanwhile).
     let step = shift.signum();
     for _ in 0..shift.unsigned_abs() {
         let mut heading = first;
         while heading < end {
-            if level_at(&buffer.text, heading).is_some() {
+            if outline_level_at(&buffer.text, heading, false).is_some() {
                 let before = buffer.text.len();
                 change_level_within(&mut buffer, heading, step, end, settings)?;
                 end = end + buffer.text.len() - before;

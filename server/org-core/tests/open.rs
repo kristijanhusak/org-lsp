@@ -222,6 +222,7 @@ fn opening_matches_emacs() {
             Ok(Open::Create(search)) => missing(&text, &search),
             Ok(Open::Shell { command, confirm }) if create || !confirm => json!({ "shell": command }),
             Ok(Open::Shell { .. }) => json!({ "error": "Abort" }),
+            Ok(Open::Elisp(form)) => json!({ "elisp": form }),
             // `man` shows `man_page` whatever the page; point goes to the
             // line before the search's match.
             Ok(Open::Man { page, search: None }) => json!({ "man": page }),
