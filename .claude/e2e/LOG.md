@@ -21,7 +21,7 @@ Base: `main` at bad79cc (#365).
 
 | Part | What | State |
 | --- | --- | --- |
-| lsp | A plain LSP client (no `orgClient`, no `experimental`), and one announcing everything, driving every command of the manifest over stdio | started |
+| lsp | A plain LSP client (no `orgClient`, no `experimental`), and one announcing everything, driving every command of the manifest over stdio | tested: lsp-1 to lsp-19 (notes-lsp.md); fixing |
 | emacs | `emacs_options`, `emacs_config`, everything that goes through Emacs (export, Babel, attachments, crypt, column view, plot, timers, formula editor, appointments, tangling fallbacks), with and without Emacs | tested: emacs-1 to emacs-19 (notes-emacs.md); fixing |
 | neovim | The Neovim suites (0.12.0, stable, nightly), then `editors/neovim/TESTING.org` by script, `vim.pack` install | started |
 | vim-helix | Vim with its four clients, Helix | started |
@@ -29,4 +29,5 @@ Base: `main` at bad79cc (#365).
 
 ## Rounds of fixes
 
-- emacs-1 to emacs-19: a fix agent in a worktree (notes-fix-emacs.md), one PR when done.
+- emacs-1 to emacs-19, with lsp-9, lsp-10, lsp-19 (the same bridge): a fix agent in a worktree (notes-fix-emacs.md), one PR when done.
+- lsp-1 to lsp-18 but lsp-9, lsp-10: a second fix agent (notes-fix-lsp.md), one PR when done.

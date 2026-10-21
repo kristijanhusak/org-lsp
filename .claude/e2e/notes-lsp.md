@@ -87,3 +87,127 @@ tester's server running at the same time (a command of theirs through Emacs
 would then have failed with Emacs stopping, and their server starts Emacs
 again on the next request). The scripts now kill only Emacs processes whose
 parent is their own server (`my_emacs`).
+
+## Second part (06:00–06:30 UTC)
+
+- `compare.py` (≈120 scenarios, org-lsp full client vs Emacs batch, files
+  diffed) — the SAME ones: TODO cycling/fast selection/logging (`!`, `@`
+  note through the CAPTURE-Note buffer), repeaters and habits, statistics
+  cookies, ORDERED blocking, priorities, schedule/deadline with `+2d`,
+  `fri 10:00`, `2026-11-02`, `10:00-11:30`, `w44`, repeater kept, CLOSED
+  taken out, removal; timestamps up/down on each part, brackets,
+  repeaters, CLOCK lines, ranges; shift keys (TODO, bullets, priority);
+  meta/shiftmeta on headings, items, checkboxes, tables; M-RET/C-RET/
+  M-S-RET in headings, items, checkboxes, tables; RET; toggle heading/item
+  (also on a region), COMMENT; checkboxes; sort a A o p n s d, lists,
+  tables; table align/recalc (all, line, iterate)/insert/kill row/delete,
+  insert, move column/hline/blank/copy down/sum/create/convert region;
+  archive subtree/sibling/tag/done; refile (plain and `file` outline
+  path); property set/delete; tags (CJK); effort; ID; clock in/out; notes;
+  inline tasks; cut/paste/yank subtree; kill line; C-a special; sparse
+  TODO tree; footnotes new/sort/normalize; clone; bibtex create; emphasis
+  (with and without region); drawer; structure template; ascii plot.
+  Differences found: lsp-6 (C-c C-c on a cookie). `org.levels.odd`: Emacs
+  gives an inline task's END line one star more than its opening line (30
+  vs 29); org-lsp keeps them equal — Emacs's oddity, not logged.
+- Agenda edits writing back (`agenda_flow.py full|plain`, against Emacs
+  batch `org-agenda-list` / `org-todo-list`): TODO state, repeat, habit,
+  priority, schedule, deadline, date later/earlier (past dates go to today
+  first), tags, archive, clock in, property, effort: files identical to
+  Emacs; agenda lines identical except lsp-7 and lsp-8 (and the
+  `S => Scheduled to …` / `=> <date>` suffix the server writes as text where
+  Emacs puts a `display` property: what Emacs shows, as documented).
+- Plain client: agenda as `Agenda.org` via the code action, 68 code actions
+  on an entry line, 34 on a date line; edits come as applyEdit with
+  versions, no failures; no diagnostics on Agenda.org; tokens standard.
+  `message_requests=false`: choices as `org.answer` code actions (and a
+  rename with the key) work for TODO, capture templates, the agenda menu.
+  Bare client (no showDocument): `org.agenda.list` refused "This editor
+  cannot open documents on the server's request"; `show_document=true`
+  turns it on; questions still come as showMessageRequest (allowed by LSP).
+- Date prompt document (`dateprompt.py`): every calendar key, type,
+  select, time picking (Time: line, hour/minute steps), today, cancel,
+  preview; `close` returned and honoured. `org.date.preview` of nonsense
+  (`zzz`) answers the default date instead of failing as protocol.org
+  says ("fails while the answer means nothing"): Emacs's `org-read-date`
+  shows the default for nonsense too, so the doc is what is off (not
+  logged as an issue).
+- Capture (`capture.py`, both profiles): templates t (file+headline), n
+  (file), j (datetree), finish/abort/refile; `%?` cursor; org-lsp/save with
+  auto_save; CJK/emoji text. All right.
+- Clocking (`clock.py`): in, switch, out, in last, cancel, goto,
+  org-lsp/clock contents, effort notification, display as inlay hints, a
+  dangling clock at start and `org.clock.resolve`. Right.
+- Emacs-backed (`emacs_cmds.py`, `elispblock.py`): export menu (only
+  ascii/html/icalendar/latex/odt: Emacs's default backends), export aborts
+  (lsp-15); Babel confirmation as showMessageRequest (No → aborted message,
+  Yes → runs; python has no `org-babel-execute` without configuration,
+  Emacs's own message), emacs-lisp block result written; tangle writes
+  out/hello.sh. Links: https external, #custom, *heading, file, timestamp
+  (agenda of the day), citation (refs.bib), footnote, id; elisp refused
+  (lsp-16).
+- Encodings (`encodings.py`): UTF-8, UTF-16, UTF-32 on a line with CJK,
+  accents and an emoji: rename ranges, code action edits, tag alignment
+  (same as Emacs), tokens after typing after the emoji: all consistent.
+- Robustness (`robust.py`, `storm.py`, `crlf.py`, `scale.py`, `orphan.py`,
+  `busy*.py`): unknown command → -32803 with a message; missing
+  position → "This command needs the cursor position"; unknown method
+  -32601; null params -32602; documents not open → null; didChange to an
+  unknown document ignored; 500-edit storms with CJK/emoji keep the server
+  in sync (tokens equal a fresh server's), UTF-16 and UTF-8; shutdown then
+  requests → -32600, exit 0; exit without shutdown → 1; stdin closed → 0.
+  Issues: lsp-9 (orphaned Emacs), lsp-10 (main thread blocked by a
+  synchronous Emacs call), lsp-11 (CRLF formatting), lsp-12 (large files),
+  lsp-13 (malformed JSON kills the server), lsp-14 (refused edit silent).
+  `$/cancelRequest` on a running Babel command: the request is still
+  answered normally (null); nothing is cancelled (Emacs keeps working).
+- org-protocol (`protocol.py`): `org-lsp protocol` store-link and capture
+  reach the running server; full client gets `org-lsp/runCommand`
+  (org.capture with keys and orgProtocol props), plain one gets the
+  capture buffer and "Item captured.".
+- Display notifications (`notifs.py`): full client gets virtualIndent,
+  display (entities, superscripts, bullets, checkbox), lineHighlights;
+  plain gets them as inlay hints; startupFolds honours overview and
+  VISIBILITY.
+
+## Coverage (end of round)
+
+- Every one of the 313 manifest commands run in the full profile (313/313,
+  no InternalError, no timeout, no exception; 29 contextual refusals in
+  Emacs's words) and in the plain profile (298 run; the 15
+  `org.calendar.*` need the date prompt document a plain client does not
+  get, as documented; 26 contextual refusals). Emacs-backed commands
+  re-run with a 3 s quiet wait (`sweep-full-slow.jsonl`) to see their
+  edits. Answers: full by `input`/`context`, plain by showMessageRequest
+  buttons and renames, `message_requests=false` by `org.answer` code
+  actions.
+- Compared with Emacs (Org 9.8.10, batch) on file contents: ~140 editing
+  scenarios (compare.py), 17 agenda edits × 2 profiles (agenda_flow.py),
+  9 agenda views (views.py: tags/property matches, search, stuck, TODO
+  list: identical), org-lint, tag alignment with CJK/emoji, column view
+  edits, table recalculation, journal search periods.
+- Not compared with Emacs: roam commands (org-roam not loadable in plain
+  batch here without its dependencies), journal entry creation (checked
+  for sense only), export output (blocked by lsp-15 in the sample; plain
+  export of a file without roam links not run), Babel beyond emacs-lisp.
+- Not exercised: org.table.formula.debugger beyond toggling, the formula
+  editor, LaTeX preview images (no latex/dvipng), link image previews
+  (no images in the sample), crypt (no GPG key: Emacs's GPG error),
+  workspace folders added after start, `willSaveWaitUntil` with crypt.
+
+## Ambiguities (not logged as issues)
+
+- protocol.org says "The agenda is built anew with r, another view, a
+  change typed in a file, …"; typing (even adding an entry) does not
+  rebuild the agenda, a save does (server.rs: a typed change only
+  releases the held lines). Emacs never rebuilds on its own either; the
+  sentence reads as if typing rebuilds. `typing_agenda.py`.
+- `org.date.preview` of nonsense answers the default date (as Emacs's
+  prompt shows), protocol.org says it fails.
+- `org.columns.*` and `org.custom.properties.toggle` run for a plain client
+  (columns through Emacs, the file changes) though it cannot show column
+  view; the latter refuses ("This editor cannot hide lines").
+- Hover over an agenda line collapses the headline's tag spacing
+  (`** TODO [#A] Write the report :work:`).
+- Plain clients get `org-lsp/display` items as inlay hints (`◉` before
+  `*`, `α` before `\alpha`): the original text stays, so both show.

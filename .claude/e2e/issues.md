@@ -357,3 +357,51 @@ Each issue: a heading `## <part>-<n>: <one line>`, then
 - Where: `server/org-core/src/open.rs:523`; `textDocument/completion` after `[[` offers those types (`completion.py`).
 - Repro: `org.open` on `[[elisp:(+ 1 2)]]` in the sample `gtd.org` (`emacs_cmds.py`): error -32803 `Links of type "elisp" are not supported`.
 - Expected (Emacs): `elisp:` asks "Execute (+ 1 2) as Elisp? " (`org-link-elisp-confirm-function`) and shows `=> 3`; `help:` shows the documentation; the server has Emacs for that (as for `shell:` links, which it does run after asking). Or, if left out on purpose, the types not offered in completion and the gap written in parity.org's Links section. Got: offered, then refused, and parity claims full coverage.
+
+## vim-8: with vim-lsp, an Org buffer read again from disk (`:e!`, `:checktime`/'autoread') is not told to the server: the agenda keeps the old text until the next typed change
+- State: open
+- Where: Vim + vim-lsp (prabirshrestha/vim-lsp sends no `didChange`/`didOpen` when a loaded buffer is reloaded). yegappan/lsp, coc.nvim and ALE do see it. CLAUDE.md's pitfall names this for the agenda only (`s:give_view`); ordinary Org buffers are not covered.
+- Repro: `.claude/e2e/repro/vim-helix/clients.sh vim_lsp` (step 6), or by hand: agenda files `notes/`, `other.org` loaded in a window; append `* TODO Fourth` + `SCHEDULED: <today>` to other.org on disk; in its window `:e!` (the buffer now has it); agenda `r`: Fourth is missing. Type anything in other.org, `r`: it shows.
+- Expected: the agenda built from the buffer as Vim has it (Emacs builds it from the buffer too, which `revert-buffer`/auto-revert has read again). Got: stale agenda (also stale edits: a later `t` on such a line edits the old text).
+
+## vim-9: a capture into an empty (0-byte) target ends with an extra blank line in Vim (vim-lsp, coc.nvim, ALE)
+- State: open
+- Where: Vim; ALE through the plugin's own `s:apply_text_edit` (`editors/vim/autoload/org_lsp.vim:1996`): an empty buffer's single `''` line is kept after the inserted text, so the file is written `* TODO Cap empty\n\n`; vim-lsp and coc.nvim's appliers do the same. (yegappan/lsp loses the text instead: vim-7.)
+- Repro: `.claude/e2e/repro/vim-helix/clients.sh ale` step 2 (`od -c notes/inbox.org`).
+- Expected: `* TODO Cap empty\n` (Emacs, and the server's edit: insert at 0:0 of an empty document). Got: `* TODO Cap empty\n\n`.
+
+## vim-10: with coc.nvim the capture buffer opens in Normal mode (the other clients start Insert mode at `%?`), so typing right away runs Normal commands
+- State: open
+- Where: Vim + coc.nvim: coc handles `window/showDocument` itself, so `org_lsp#show_document` (`org_lsp.vim:1838`, `feedkeys(... 'A' : 'i')` for a capture buffer) never runs. yegappan/lsp, vim-lsp, ALE: `-- INSERT --` at `%?`.
+- Repro: `<Leader>oc t` (template `* TODO %?`), wait 4 s: status line `CAPTURE-inbox.org 1:7`, Normal mode; typing `Cap empty` gives `* TODOap empty` (`C` changed to the end of the line). `.claude/e2e/repro/vim-helix/clients.sh coc` step 2.
+- Expected: as with the other clients (and docs/keys/vim.org: "typing goes on there, in insert mode"), or written down in docs/vim.org's coc.nvim paragraph. Also each edit coc applies to a file not loaded echoes `[coc.nvim] Use ':wa' to save changes or ':CocCommand workspace.inspectEdit' to inspect.` though the plugin saves it.
+
+## lsp-17: pasting, archiving and archiving to the sibling shift an inline task's stars with the subtree; shifted up they become two ordinary headlines (`TODO An inline task` and `END`)
+- State: open
+- Where: `org.paste.subtree` / `org.yank` (level adjusted), `org.archive.subtree` (the subtree goes to level 1 of the archive file), `org.archive.sibling` (one level down). `org.shiftmeta.left/right` and `org.refile` are right (same as Emacs).
+- Repro: `.claude/e2e/repro/lsp/compare.py` scenarios (run as in notes-lsp.md): sample `gtd.org`, `** CANCELLED Old idea` followed by `*************** TODO An inline task` / `*************** END` (15 stars, `org-inlinetask-min-level`). `org.archive.subtree` on it: the archive file gets `************** TODO An inline task` / `************** END` (14 stars). `org.paste.subtree` of `** Old\n*************** TODO Inline\n*************** END\n` before `* Archive` (pasted at level 1): 14 stars. `org.archive.sibling`: 16 stars.
+- Expected (Emacs batch, Org 9.8.10, `org-inlinetask` loaded): the inline task keeps its 15 stars in all three (`org-paste-subtree` and the archive commands shift headlines, not inline tasks). Got: shifted; at 14 stars they are no longer an inline task but a level-14 headline and a headline titled "END" (the agenda, the outline and the TODO list then show them as such).
+
+## vim-11: prompts that already end in `? ` or `: ` get another `: ` in Vim (and Neovim): `[jkKtTgGSscCiq]? :`, `(default 0): :`, `Tags :work::`
+- State: open
+- Where: `editors/vim/autoload/org_lsp.vim` `org_lsp#read_key` (`echo a:prompt . ': '`) and `org_lsp#prompt` (`inputdialog(a:input.prompt . ': ', …)`); `lua/org-lsp/init.lua:554` and its `vim.ui.input` the same. The server gives some prompts whole, as Emacs words them (`Dangling clock started N mins ago [jkKtTgGSscCiq]? `, `Execute echo hi in shell? `, `No match - create this as a new heading? `, `Overwrite existing file …? `, `Create new node "…"? `, `You stopped another clock N mins ago; start this one from then? `, `Keep how many minutes (default 0): `), others bare (`Select a TODO state`).
+- Repro: Vim + yegappan/lsp: a clock left running across a restart, `<Leader>oxz`: `Dangling clock started 0 mins ago [jkKtTgGSscCiq]? :`; `K`: `Keep how many minutes (default 0): :`. `<Leader>ot` on `:work:`: `Tags :work::`.
+- Expected: Emacs's prompt as it is (`…[jkKtTgGSscCiq]? `). Append `: ` only when the prompt does not already end in `? `/`: ` (or have the server always send it whole).
+
+## lsp-18: org.ctags.create says nothing when ctags fails (no TAGS file made), where Emacs shows ctags's error
+- State: open (minor)
+- Where: `server/org-lsp/src/server/manual.rs` `ctags_create` (`shell_output`, its output and exit status dropped).
+- Repro: `org_modules = ["org-habit", "org-ctags"]`, `/usr/bin/ctags` being Emacs's own ctags (`ctags (GNU Emacs 29.3)`, no `--langdef`, the one installed here); `org.ctags.create` in the sample `gtd.org`: answer `null`, no message, no `TAGS`. `org.ctags.find` then offers to rebuild, and again finds nothing, silently.
+- Expected (Emacs batch, `(org-ctags-create-tags)` from the file): `shell-command` shows ctags's output, `ctags: unrecognized option '--langdef=orgmode'`, so the user knows Exuberant/Universal ctags is needed. Got: silence, as if it worked.
+
+## lsp-19: Emacs's messages that name the command say `nil`: "‘nil’ failed to load required package "gnuplot"" (the bridge leaves `this-command` unset)
+- State: open (minor)
+- Where: `bridge.el`, the call of an Org command for `org.plot.gnuplot` (and any other command run through Emacs that reads `this-command`/`last-command`).
+- Repro: `sweep.py full org.plot.gnuplot` with `SWEEP_QUIET=3` (gnuplot.el not installed): message `‘nil’ failed to load required package "gnuplot"`.
+- Expected (say what Emacs says; `org-require-package` formats `this-command`): `‘org-plot/gnuplot’ failed to load required package "gnuplot"`. The bridge should bind `this-command` (and `real-this-command`) to the command it calls, as `call-interactively` from a key does; `org-priority` and others also look at `last-command`/`this-command`.
+
+## vim-12: table structure edits under a `#+TBLFM:` line never say Emacs's "The formulas in #+TBLFM have been updated"
+- State: open
+- Where: server (`org.meta.left/right`, `org.shiftmeta.*`, `org.meta.up/down`, `org.table.insert.row.below` in a table), seen in Vim + yegappan/lsp: `:messages` stays empty. No such text anywhere in `server/`.
+- Repro: `| a | bb | c |`, `|-`, `| 1 | 2 | 3 |`, `| 4 | 5 | 6 |`, `#+TBLFM: $3=$1*$2`; on `1`: `<Leader>oTd`, `<Leader>oJ`, `<Leader>oTO`, `<s` (`.claude/e2e/repro/vim-helix/step.sh`). The text changes as Emacs's (checked with `em.sh`: same tables, `$2=$INVALID*$1` after `<s`).
+- Expected: Emacs's `org-table-fix-formulas` (org-table.el:2315) messages `The formulas in #+TBLFM have been updated` each time such an edit runs with a `#+TBLFM:` line after the table (even when no reference moved). Got: no message.

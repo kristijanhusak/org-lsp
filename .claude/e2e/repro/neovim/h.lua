@@ -89,6 +89,8 @@ end
 
 --- Write `lines` to `path` and edit it; waits for the server to attach.
 function H.open(path, lines)
+  -- A late showDocument of the last command would take the window back.
+  H.sleep(tonumber(os.getenv('OPEN_DELAY') or '1000'))
   if lines then
     vim.fn.mkdir(vim.fs.dirname(path), 'p')
     vim.fn.writefile(lines, path)
