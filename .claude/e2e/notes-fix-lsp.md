@@ -81,3 +81,13 @@
   shown yet". (Agenda column view: same questions; its TODO column still
   goes to Emacs, which cycles.) Unit test `column_view_asks_as_emacs_does`;
   the two Emacs tests now expect "Edit: ". Checked with columns.py.
+- lsp-7: fixed. The state an agenda line shows after a change was read at
+  the headline's old offset in the new text; the parent's line, made
+  longer by its cookie and tags, moved it. Now read on the same line of the
+  new text. Test `changed_lines_show_the_new_state` (agenda_lsp).
+- lsp-8: fixed. A habit's line changed from the agenda is formatted again
+  as a scheduled line, as Emacs's `org-agenda-change-all-lines` does (it
+  calls `org-agenda-format-item` without habitp): the prefix with the
+  leader (`Item::habit_prefix`, made when the habit line is) + new headline,
+  no graph. Same test. agenda_flow.py full: every scenario SAME (but the
+  documented ` => date` display difference).
