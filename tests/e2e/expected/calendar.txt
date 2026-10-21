@@ -15,11 +15,11 @@ date prompt:6:      19 20 21 22 23 24 25     17 18 19 20 21 22 23     21 22 23 2
 === 3 cursor
 date prompt:6:      19 20 21 22 23 24 25     17 18 19 20 21 22 23     21 22 23 24 25 26 27
 === 4 cursor
-date prompt:7:      26 27 28 29 30           24 25 26 27 28 29 30     28 29 30
+date prompt:3:                1  2  3  4                     1  2         1  2  3  4  5  6
 === 5 cursor
-date prompt:7:      26 27 28 29 30           24 25 26 27 28 29 30     28 29 30
+date prompt:3:                1  2  3  4                     1  2         1  2  3  4  5  6
 === 6 cursor
-date prompt:6:      19 20 21 22 23 24 25     17 18 19 20 21 22 23     21 22 23 24 25 26 27
+date prompt:7:      26 27 28 29 30           24 25 26 27 28 29 30     28 29 30
 === 7 buffer
 [date prompt]
           April 2026                May 2026                June 2026
@@ -31,15 +31,15 @@ date prompt:6:      19 20 21 22 23 24 25     17 18 19 20 21 22 23     21 22 23 2
      26 27 28 29 30           24 25 26 27 28 29 30     28 29 30
                               31
 
-SCHEDULED Date+time [2026-05-18]:    => <2026-06-18 Thu>
+SCHEDULED Date+time [2026-05-18]:    => <2026-06-25 Thu>
 === 7 cursor
-date prompt:5:      12 13 14 15 16 17 18     10 11 12 13 14 15 16     14 15 16 17 18 19 20
+date prompt:6:      19 20 21 22 23 24 25     17 18 19 20 21 22 23     21 22 23 24 25 26 27
 === 8 cursor
-date prompt:6:      19 20 21 22 23 24 25     17 18 19 20 21 22 23     21 22 23 24 25 26 27
+date prompt:7:      26 27 28 29 30           24 25 26 27 28 29 30     28 29 30
 === 9 cursor
-date prompt:6:      18 19 20 21 22 23 24     16 17 18 19 20 21 22     20 21 22 23 24 25 26
+date prompt:7:      25 26 27 28 29 30        23 24 25 26 27 28 29     27 28 29 30
 === 10 cursor
-date prompt:6:      19 20 21 22 23 24 25     17 18 19 20 21 22 23     21 22 23 24 25 26 27
+date prompt:7:      26 27 28 29 30           24 25 26 27 28 29 30     28 29 30
 === 11 buffer
 [date prompt]
            May 2026                June 2026                July 2026
@@ -51,7 +51,7 @@ date prompt:6:      19 20 21 22 23 24 25     17 18 19 20 21 22 23     21 22 23 2
      24 25 26 27 28 29 30     28 29 30                 26 27 28 29 30 31
      31
 
-SCHEDULED Date+time [2026-05-18]:    => <2026-05-18 Mon>
+SCHEDULED Date+time [2026-05-18]:    => <2026-05-25 Mon>
 === 12 buffer
 [date prompt]
           April 2026                May 2026                June 2026
@@ -63,18 +63,18 @@ SCHEDULED Date+time [2026-05-18]:    => <2026-05-18 Mon>
      26 27 28 29 30           24 25 26 27 28 29 30     28 29 30
                               31
 
-SCHEDULED Date+time [2026-05-18]:    => <2026-05-18 Mon>
+SCHEDULED Date+time [2026-05-18]:    => <2026-05-25 Mon>
 === 13 cursor
 date prompt:6:      19 20 21 22 23 24 25     17 18 19 20 21 22 23     21 22 23 24 25 26 27
 === 15 cursor
 work.org:1: * TODO Write report
 === 15 file:work.org
 * TODO Write report
-SCHEDULED: <2026-05-19 Tue>
+SCHEDULED: <2026-05-21 Thu>
 * TODO Call the client
 SCHEDULED: <2026-05-20 Wed 10:00>
 === 15 messages
-Scheduled to <2026-05-19 Tue>
+Scheduled to <2026-05-21 Thu>
 === 16 buffer
 [date prompt]
           April 2026                May 2026                June 2026
@@ -143,7 +143,7 @@ SCHEDULED Date+time [2026-05-20]: 08:55    => <2026-05-20 Wed 08:55>
 work.org:3: * TODO Call the client
 === 23 file:work.org
 * TODO Write report
-SCHEDULED: <2026-05-19 Tue>
+SCHEDULED: <2026-05-21 Thu>
 * TODO Call the client
 SCHEDULED: <2026-05-21 Thu 08:55>
 === 23 messages
@@ -152,7 +152,7 @@ Scheduled to <2026-05-21 Thu 08:55>
 work.org:3: * TODO Call the client
 === 26 file:work.org
 * TODO Write report
-SCHEDULED: <2026-05-19 Tue>
+SCHEDULED: <2026-05-21 Thu>
 * TODO Call the client
 SCHEDULED: <2026-05-21 Thu 08:55>
 === 26 messages
@@ -160,7 +160,7 @@ SCHEDULED: <2026-05-21 Thu 08:55>
 work.org:3: * TODO Call the client
 === 28 file:work.org
 * TODO Write report
-SCHEDULED: <2026-05-19 Tue>
+SCHEDULED: <2026-05-21 Thu>
 * TODO Call the client
 DEADLINE: <2026-05-22 Fri> SCHEDULED: <2026-05-21 Thu 08:55>
 === 28 messages

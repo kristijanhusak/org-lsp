@@ -158,7 +158,7 @@ local plugin = require('org-lsp')
 -- What the server said, as the user sees it: notifications.
 local messages = {}
 vim.notify = function(message)
-  table.insert(messages, (tostring(message):gsub('^org%-lsp: ', '')))
+  table.insert(messages, tostring(message))
 end
 
 -- What is asked is answered from the step's answers, in turn: keys,

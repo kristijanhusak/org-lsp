@@ -117,6 +117,7 @@ its motions.
 | ~q~ | ~pane::CloseActiveItem~ | Close the agenda |
 | ~enter~ | ~editor::GoToDefinition~ | Go to the entry of the line |
 | ~tab~ | ~editor::GoToDefinitionSplit~ | Show the entry of the line in a split |
+| ~s~, ~ctrl-x ctrl-s~ | ~workspace::SaveAll~ |  |
 | ~f~ | ~org.agenda.later~ | Agenda: go forward in time |
 | ~b~ | ~org.agenda.earlier~ | Agenda: go backward in time |
 | ~.~ | ~org.agenda.today~ | Agenda: go to today |
@@ -131,7 +132,6 @@ its motions.
 | ~v m~ | ~org.agenda.month~ | Agenda: month view |
 | ~v y~ | ~org.agenda.year~ | Agenda: year view |
 | ~r~ | ~org.agenda.redo~ | Agenda: rebuild |
-| ~s~, ~ctrl-x ctrl-s~ | ~org.agenda.save~ | Save all Org files |
 | ~v l~ | ~org.agenda.log~ | Agenda: log mode, what was closed and clocked |
 | ~shift-k~ | ~org.agenda.habits~ | Agenda: show or hide habits |
 | ~ctrl-x ctrl-w~ | ~org.agenda.write~ | Agenda: write it to a file |

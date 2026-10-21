@@ -63,7 +63,7 @@ Not in Helix:
 
 *Partly:* ~RET~ stays Helix's own; cycled bullets and lines turned into items are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and those are not among them. New items are code actions.
 
-- [ ] On an item, the next item goes below; in a numbered list the numbers go on, after a checkbox item the new one has ~[ ]~: the code action /New heading, item or table row/
+- [ ] On an item, the next item goes below; in a numbered list the numbers go on; after a checkbox item the new one has none, as in Emacs (~[ ]~ comes with ~org.insert.todo.heading~, M-S-RET): the code action /New heading, item or table row/
 - [ ] Indenting and outdenting an item; and with its children: the code action /Demote the heading; indent the item, the drawer or the block; move the table column right/, the code action /Promote the heading; outdent the item; move the table column left/, the code action /Demote the subtree; indent the item with its children; insert a table column/, the code action /Promote the subtree; outdent the item with its children; delete the table column/
 - [ ] Moving an item up and down: the code action /Move the subtree, the item or the table row up/, the code action /Move the subtree, the item or the table row down/
 - [ ] Toggling a checkbox: its parent box and the ~[1/3]~ cookie follow: the code action /Toggle the checkbox/
@@ -72,7 +72,7 @@ Not in Helix:
 
 * TODO keywords
 
-*Partly:* States are picked from the code actions, where they come first once asked for; for a note for a state change (~@~), the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Switching to another keyword set is left out: it is not among Helix's code actions. Faces of particular keywords and priorities are not shown.
+*Partly:* States are picked from the code actions, where they come first once asked for; for a note for a state change (~@~), the answer is typed as a rename at the cursor (~Space r~), as Helix has no box of its own for a server to ask for text. Switching to another keyword set is left out in an Org file, where it is not among Helix's code actions; on an agenda line it is one. Faces of particular keywords and priorities are not shown.
 
 - [ ] With ~org_enforce_todo_dependencies~, a parent with a child not done cannot be done: the change is refused with ~blocked (by "TODO Child")~; with ~org_enforce_todo_checkbox_dependencies~, an entry with an unchecked box cannot either: the code action /Change the TODO state/
 - [ ] Those tasks are dimmed in the agenda and the TODO list
@@ -84,6 +84,7 @@ Not in Helix:
 - [ ] The parent's ~[1/2]~ cookie is recounted: the code action /Change the TODO state/
 - [ ] A ~#+TODO: A B | C~ line in the file is used instead of the settings: the code action /Change the TODO state/
 - [ ] With ~#+TODO: TODO | DONE~ and ~#+TODO: REPORT BUG | FIXED~, changing the state without keys goes ~BUG~, ~FIXED~, none, then back to ~REPORT~: the code action /Change the TODO state/
+- [ ] On an agenda line, /Switch to the next TODO keyword set/ and /Switch to the previous TODO keyword set/ are code actions
 
 Not in Helix:
 
@@ -122,6 +123,7 @@ Not in Helix:
 
 - [ ] Scheduling with ~+2d~: ~SCHEDULED: <…>~ goes below the headline: the code action /Schedule the entry/
 - [ ] A deadline on ~fri 10:00~: the code action /Set the deadline of the entry/
+- [ ] On an agenda line, /Remove the scheduled date of the entry/ and /Remove the deadline of the entry/ are code actions
 - [ ] On a timestamp, changing the day, month, year, hour and minute under the cursor; with a count: the code action /Increase the part of the timestamp at the cursor/, the code action /Decrease the part of the timestamp at the cursor/
 - [ ] Moving a timestamp by days: the code action /Move the date one day later/, the code action /Move the date one day earlier/
 - [ ] A repeater (~+1w~) and a warning (~-2d~) are kept as the date changes
@@ -149,7 +151,7 @@ Not in Helix:
 - [ ] Entry text, log mode, the clock report, archives mode: the code action /Agenda: entry text mode, some text of each entry under its line/, the code action /Agenda: log mode, what was closed and clocked/, the code action /Agenda: the clock report/, the code action /Agenda: include archived trees/
 - [ ] In the week view, inactive timestamps show after ~[~ with /Display now includes inactive timestamps as well/, marked ~[~, and are gone again when the agenda is rebuilt: the code action /Agenda: search for another word, or show inactive timestamps/, the code action /Agenda: show inactive timestamps once/, the code action /Agenda: rebuild/
 - [ ] Hovering a line shows its entry: ~Space k~
-- [ ] Rebuilding the agenda, saving the changed files, quitting: the code action /Agenda: rebuild/, the code action /Save all Org files/
+- [ ] Rebuilding the agenda; the files its edits changed are saved with ~:write-all~ (Helix does nothing with the files a server names to save, so /Save all Org files/ is not offered): the code action /Agenda: rebuild/
 - [ ] An entry changed in its file shows in the agenda when it is rebuilt
 
 Not in Helix:
@@ -244,12 +246,12 @@ Not in Helix:
 
 *Partly:* Making footnotes and their menu are left out: they are not among Helix's code actions. Following them works.
 
-- [ ] Following ~[fn:1]~ goes to its definition, and from the definition back to the reference: ~gd~
+- [ ] Following ~[fn:1]~ goes to its definition, after its label, and from the definition's label back to the reference; right after the label, where following leaves the cursor, it says /No link found/, as Emacs's ~C-c C-o~ does there: ~gd~
 - [ ] A reference without a definition is reported
 
 * Tables
 
-*Partly:* Moving between fields with ~TAB~, copying down, summing, field information creating a table and a rule with a move below it are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and ~…~: Helix lets no server hide text.
+*Partly:* Moving between fields with ~TAB~, copying down, summing, field information creating a table and a rule with a move below it are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and ~…~: Helix lets no server hide text; the ~…~ of /Shrink or expand the table column/ shows once the text changes, when Helix asks for inlay hints again (it cannot be told to sooner).
 
 - [ ] Shrinking a column with a ~<5>~ cookie puts ~…~ after each of its fields, their text left whole; again, the ~…~ go; a file with ~#+STARTUP: shrink~ opens with them: the code action /Shrink or expand the table column/
 - [ ] Formatting the file aligns the tables: ~:format~
@@ -308,7 +310,7 @@ Not in Helix:
 
 * Diagnostics (org-lint)
 
-- [ ] A heading in a paragraph (~text ** heading~), a link to nowhere and a block left open are reported
+- [ ] A heading in a paragraph (~text** heading~), a link to nowhere and a block left open are reported
 - [ ] An unknown header argument (~:foo 1~) on a source block is reported, as information: nothing is ever an error or a warning, only information (or a hint, where org-lint trusts its finding less)
 - [ ] ~org_lint_ignore = ["link-to-local-file"]~ silences that checker
 

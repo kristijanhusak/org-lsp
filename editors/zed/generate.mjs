@@ -195,8 +195,11 @@ const opening = manifest.commands
   .filter((command) => OPENING.includes(command.command) || keysIn(command, ['global']).length > 0)
   .map((command) => task(`Org: ${command.title}`, command.command, 'org', keysIn(command, ['global'])));
 const openingIds = new Set(opening.map((task) => task.run));
+// `org-save-all-org-buffers` is Zed's own Save All: a task, like the
+// server, cannot save Zed's files.
+const SAVE_ALL = 'org.agenda.save';
 const inAgenda = manifest.commands
-  .filter((command) => keysIn(command, ['agenda']).length > 0)
+  .filter((command) => keysIn(command, ['agenda']).length > 0 && command.command !== SAVE_ALL)
   .map((command) =>
     task(`Org agenda: ${command.title.replace(/^Agenda: /, '')}`, command.command, 'org-agenda', keysIn(command, ['agenda'])),
   );
@@ -250,6 +253,12 @@ const keymap = [
         q: 'pane::CloseActiveItem',
         enter: 'editor::GoToDefinition',
         tab: 'editor::GoToDefinitionSplit',
+        ...Object.fromEntries(
+          keysIn(
+            manifest.commands.find((command) => command.command === SAVE_ALL),
+            ['agenda'],
+          ).map((key) => [zedKey(key), 'workspace::SaveAll']),
+        ),
       },
       [...inAgenda, ...opening],
     ),

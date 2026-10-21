@@ -31,3 +31,6 @@ Target dir on /dev/shm/fix-editors-target (worktree `target` symlinked there).
 - neovim-19: covered by #366's emacs-8 fix (Emacs's message shown after its edit).
 - 1046759 vim-12 fixed (org-core table Done.message, FORMULAS_UPDATED; test org-core tests/table.rs).
 - 888de27: helix-4/helix-5 fixed in highlights.scm (checked with hx_hl.py); neovim-10 fixed (link hover → Org float, test agenda.lua 16); neovim-14 mitigated (roam window nowrap) + documented; helix-8 documented (features.mjs); vim-10 documented (docs/vim.org coc paragraph).
+- ba9d1cf tests updated (command count, capture into empty file read from disk); ce822e0 Helix exception for agenda-entries step 14 (Save all not offered).
+- Final runs (branch rebased on 1b72453): check.sh all passed; Neovim stable and 0.12.0 all files pass (e2e 401, agenda 224, scenarios 16/16, …); Vim all four clients: cases + highlighting ok (256 ok lines), scenarios 16/16 each; Helix run.py 13 ok, 3 skip, then agenda-entries ok after its exception.
+- Not fixed: vim-9 for an *open* empty buffer with vim-lsp/coc (their own appliers); neovim-1 (Neovim nightly assertion, documented); vim-2 not a bug.
