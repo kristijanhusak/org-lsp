@@ -395,7 +395,7 @@ its sections says what it should look like.
 
 * Indentation and formatting
 
-*Partly:* The lines a long line wraps into line up with its own indentation, a headline's title or an item's text ('breakindent'), without the prefix of virtual indentation before them: Neovim repeats no inline virtual text on them, and 'breakindentopt' shifts all the lines of a window alike.
+*Partly:* The lines a long line wraps into line up with its own indentation, a headline's title or an item's text ('breakindent'), without the prefix of virtual indentation before them: Neovim repeats no inline virtual text on them, and 'breakindentopt' shifts all the lines of a window alike. A line with a long link wraps as if the link's hidden target took room: Neovim counts concealed text when it wraps; the org-roam buffer, whose links are long, does not wrap.
 
 - [ ] A file with ~#+STARTUP: indent~ shows its text indented by level, the file unchanged
 - [ ] With ~#+STARTUP: hidestars~ only the last star shows

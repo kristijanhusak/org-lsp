@@ -922,6 +922,31 @@ wait('the float to close', function()
   return not vim.api.nvim_win_is_valid(float)
 end)
 only_window()
+-- A link's hover too: its target, then the Org it leads to.
+do
+  local linked = vim.fs.joinpath(directory, 'linked.org')
+  vim.fn.writefile({ '* Here [[*Other][other]]', '* Other', 'Its text.' }, linked)
+  vim.cmd.edit(linked)
+  wait('the server on the linked file', function()
+    return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) > 0
+  end)
+  vim.api.nvim_win_set_cursor(0, { 1, 10 })
+  vim.lsp.buf.hover()
+  local link_float
+  wait('the link in a float', function()
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+      if vim.api.nvim_win_get_config(win).relative ~= '' then
+        link_float = win
+        return vim.bo[vim.api.nvim_win_get_buf(win)].filetype == 'org'
+      end
+    end
+  end)
+  local shown_lines = vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(link_float), 0, -1, false)
+  eq({ shown_lines[1], shown_lines[3] }, { 'LINK: *Other', '* Other' }, "the link's target and its Org")
+  eq(vim.wo[link_float].spell, false, "Markdown's spelling gone from the link's float")
+  vim.api.nvim_win_close(link_float, true)
+  only_window()
+end
 -- Spelling on in Org files instead: the float, an Org file, has it.
 vim.api.nvim_clear_autocmds({ group = spell_group })
 vim.api.nvim_create_autocmd('FileType', { group = spell_group, pattern = 'org', command = 'setlocal spell' })

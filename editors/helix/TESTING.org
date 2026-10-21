@@ -251,7 +251,7 @@ Not in Helix:
 
 * Tables
 
-*Partly:* Moving between fields with ~TAB~, copying down, summing, field information creating a table and a rule with a move below it are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and ~…~: Helix lets no server hide text.
+*Partly:* Moving between fields with ~TAB~, copying down, summing, field information creating a table and a rule with a move below it are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and ~…~: Helix lets no server hide text; the ~…~ of /Shrink or expand the table column/ shows once the text changes, when Helix asks for inlay hints again (it cannot be told to sooner).
 
 - [ ] Shrinking a column with a ~<5>~ cookie puts ~…~ after each of its fields, their text left whole; again, the ~…~ go; a file with ~#+STARTUP: shrink~ opens with them: the code action /Shrink or expand the table column/
 - [ ] Formatting the file aligns the tables: ~:format~

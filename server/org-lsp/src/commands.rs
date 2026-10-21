@@ -2113,7 +2113,7 @@ mod tests {
         let mut ids = ids();
         ids.sort();
         ids.dedup();
-        assert_eq!(ids.len(), COMMANDS.len() + 2);
+        assert_eq!(ids.len(), COMMANDS.len() + 3);
         for preset in [|command: &Command| command.emacs, |command: &Command| command.vim] {
             let mut keys: Vec<(&str, &str)> = COMMANDS
                 .iter()

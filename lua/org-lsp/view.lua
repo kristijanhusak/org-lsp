@@ -724,6 +724,9 @@ local function show_document(err, params, ctx)
     if not win then
       vim.bo[bufnr].bufhidden = 'wipe'
       win = open_window(bufnr, 'botright vsplit')
+      -- Its links to files, long but concealed, would wrap as if they took
+      -- their room: Neovim counts concealed text when it wraps.
+      vim.wo[win][0].wrap = false
     end
     if params.takeFocus == false and vim.api.nvim_win_is_valid(from) then
       vim.api.nvim_set_current_win(from)
