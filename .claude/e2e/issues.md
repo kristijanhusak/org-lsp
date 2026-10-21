@@ -549,3 +549,15 @@ Each issue: a heading `## <part>-<n>: <one line>`, then
 - Where: server + Helix 25.07: Helix announces `workspace.inlayHint.refreshSupport: false` and asks for hints only on open, change and scroll; `org.table.toggle.column.width` returns `null` and changes no text, so the `…` hints come only after some unrelated edit. (Same root as vim-21 for Vim's clients.)
 - Repro: `.claude/e2e/repro/vim-helix/hx_shrink.py` (`display-inlay-hints = true`): `| <5> |` table, the action → the screen unchanged, no inlayHint request in Helix's log; type `x` on line 1 → `| <5>  … |`, `|  long …text here |`.
 - Expected (TESTING.org, Tables): the `…` right after the action. A no-op edit (or a version bump) after the toggle would make Helix ask again; or say so in docs/helix.org.
+
+## vscode-1: clocking in while a clock is left running in the same file: the clock-in edit names a stale version, VS Code refuses it ("The editor did not make the change")
+- State: open
+- Where: server, `org.clock.in` after resolving a dangling clock (`org-resolve-clocks` answered `K`): it sends two `workspace/applyEdit`s for the same file, both with `textDocument.version` 1 (the resolve edit, then the new `:LOGBOOK:`/`CLOCK:` lines). The second is refused by any client that checks versions; VS Code does (`applied: false`), so the entry is never clocked in and the server shows the warning `The editor did not make the change` (server.rs:3148). TESTING.org: "With a clock left running and none clocked, clocking into another entry asks about it first".
+- Repro: VS Code (`.claude/e2e/repro/vscode-zed-sublime/vsc/cases4.cjs`, case `dangling-clock`: `ONLY=dangling node run.mjs cases4.cjs out.json settings4.json` under `xvfb-run -a`); over plain LSP `.claude/e2e/repro/vscode-zed-sublime/lsp/dangling.py` prints both edits with `"version": 1` (and the client's "version mismatch … edit 1, document 2"). File: `* TODO Left running\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* TODO Other\n`, `org.clock.in` on `Other`, answer `K`, then Enter for the minutes.
+- Expected (Emacs): the dangling clock closed (`--[… 10:30] =>  1:30`) and `Other` clocked in (`:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:` under it), the clock running. Got: the first edit only; `Other` not clocked; warning `The editor did not make the change`.
+
+## fix-1: a server test reads the real ~/.emacs.d/.org-id-locations
+- State: open
+- Where: `server/org-lsp/tests/agenda_lsp.rs` `completes_id_links_to_entries` (found by the emacs fixer); the test's server reads `org-id-locations-file` from the real home, so a locations file left by any Emacs run (here a tester's, 06:12) changes its completions and fails it.
+- Repro: have `/root/.emacs.d/.org-id-locations` list some other file with IDs, run `cargo test -p org-lsp --test agenda_lsp completes_id_links_to_entries`.
+- Expected: the tests that start a server give it a HOME (or `org_id_locations_file`) of their own. Got: failure depending on the machine. (The file was moved aside to the scratchpad, `org-id-locations.from-testers`.)
