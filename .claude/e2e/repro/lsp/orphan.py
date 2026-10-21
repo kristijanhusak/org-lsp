@@ -24,7 +24,8 @@ for how in ("shutdown+exit", "stdin closed", "idle shutdown+exit"):
         # A job that keeps Emacs busy (a table of 3000 x 3000 empty fields).
         c.command("org.table.create", c.at(g, 73, 0, input="3000x3000"))
         time.sleep(2)
-    print(how, "emacs running before exit:", emacs_children(before))
+    mine = [int(l.split()[0]) for l in emacs_children(before) if int(l.split()[1]) == c.proc.pid]
+    print(how, "my emacs before exit:", mine)
     t0 = time.time()
     if how == "stdin closed":
         c.proc.stdin.close()
@@ -33,7 +34,7 @@ for how in ("shutdown+exit", "stdin closed", "idle shutdown+exit"):
         code = c.shutdown()
     print("   server exit", code, "after", round(time.time() - t0, 2), "s")
     time.sleep(3)
-    left = emacs_children(before)
-    print("   emacs left running 3 s later:", left)
-    for l in left:
-        os.kill(int(l.split()[0]), 9)
+    left = [p for p in mine if os.path.exists(f"/proc/{p}")]
+    print("   my emacs left running 3 s later:", left)
+    for p in left:
+        os.kill(p, 9)

@@ -78,3 +78,12 @@ key (hangs without stdin).
   `Not on a date!`, `No more buttons` (org-journal's own when a search
   finds nothing), `Wrong type argument: stringp, nil` (org-bibtex-copy off
   a BibTeX entry: Emacs's own error too)).
+
+## Incident: Emacs processes killed that may not have been mine (06:0x UTC)
+`busy.py` (first version) killed every `bridge.el` Emacs that started after
+it did, to clean up the orphan of lsp-9: three pids, 12480, 16905, 17125.
+Only one was certainly its own; the others may have belonged to another
+tester's server running at the same time (a command of theirs through Emacs
+would then have failed with Emacs stopping, and their server starts Emacs
+again on the next request). The scripts now kill only Emacs processes whose
+parent is their own server (`my_emacs`).

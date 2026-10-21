@@ -243,3 +243,117 @@ Each issue: a heading `## <part>-<n>: <one line>`, then
 - Where: `lua/org-lsp/preview.lua` `to_org`/`watch`: only a float whose first line is ```` ```org ```` (the agenda's hover) is made an Org buffer. A link's hover is `` `LINK: *Other` `` + blank + ```` ```org … ``` ```` (`.claude/e2e/repro/neovim/hover.lua` prints it).
 - Repro (TUI): `:autocmd FileType markdown setlocal spell number cursorline`, then `K` on `[[*Other][other]]`: the float shows line numbers (`1 LINK: *Other`, `4 * TODO Other`), wraps the planning line at the narrow width, and the target's headline is not in Org's colors (no Org tree-sitter parser). In the agenda the same autocmd is undone (`org false false false` for filetype/spell/number/cursorline): that part works.
 - Expected: the link's preview looks as the agenda's does (Org highlighting, Markdown settings undone), or the docs say only agenda hovers are converted. Got: Markdown float with the user's Markdown options.
+
+## vim-1: `<Leader>o,` (org.priority) asks with a line to type and Enter, where Emacs reads one key
+- State: open
+- Where: Vim, all four clients (Neovim the same: `lua/org-lsp/init.lua` sends any input that is not kind `key` to `vim.ui.input`). The server asks with an input of kind `priority` (`server.rs` `ask_priority`), which `org_lsp#prompt` (`editors/vim/autoload/org_lsp.vim:605`) does not know, so it falls to `inputdialog()`.
+- Repro: Vim + yegappan/lsp, `* TODO Write report`, `<Leader>o,` then `A`: nothing happens, the command line shows `Priority A-C, SPC to remove: A` and waits for Enter; `SPC` types a space. (`.claude/e2e/repro/vim-helix/vh.sh`.)
+- Expected: as `org-priority` (`read-char-exclusive`): one key sets the priority, SPC removes it, at once. Got: a text prompt that needs Enter (and SPC then Enter to remove). docs/protocol.org names the kind `priority` without saying how a client should read it.
+
+## lsp-9: when the server exits while its Emacs is busy, the Emacs is left running (orphaned, at full CPU, memory growing)
+- State: open
+- Where: `server/org-lsp/src/emacs.rs` (the bridge process); on `shutdown`+`exit` and when stdin closes (editor crash), the server exits at once without killing Emacs. An idle Emacs goes away (its stdin closes); a busy one keeps working until its job ends, then stays reparented to init.
+- Repro: `.claude/e2e/repro/lsp/orphan.py`: `org.table.create` with input `3000x3000` (a long Emacs job), wait 2 s, then shutdown+exit (or close stdin); the bridge Emacs is still there 3 s later, ppid 1. With `999999x999999` it grew past 600 MB in seconds (it had to be killed by hand).
+- Expected: the server stops its Emacs (kill the child) when it exits, as Emacs's own `C-g`/quitting would end the work. Got: an orphaned `emacs --batch -Q --eval (progn ;;; bridge.el …)` process.
+
+## lsp-10: a synchronous Emacs call (org.edit.special and its kin) blocks every other answer of the server while Emacs is busy, up to its 60 s timeout
+- State: open
+- Where: `server/org-lsp/src/server.rs` `edit_special` (and the other `self.emacs.call(…, Duration::from_secs(60))` on the main thread); protocol.org says Emacs runs "from a thread of its own: an export never holds up the server's other answers".
+- Repro: `.claude/e2e/repro/lsp/busy2.py`: start a long Emacs job (`org.table.create` `2000x2000`), then send `org.edit.special` on a source block and right after it a `textDocument/hover`: the hover is answered only when the edit-special answers (27 s here; 60 s and "Emacs did not answer in time" in `busy.py`). `org.export.dispatch` sent while Emacs is busy did not answer within 90 s.
+- Expected: requests that do not need Emacs (hover, tokens, completion, typing-time commands) answered at once while Emacs works; the Emacs-backed ones answered when Emacs is free, or refused with a message, without holding up the rest. Also no way to stop a runaway Emacs job: `$/cancelRequest` does nothing (see notes).
+
+## vim-2: toggling a checkbox turns the numbered items that follow in the same list into `-` items (Emacs leaves them)
+- State: open
+- Where: server (`org.checkbox.toggle`), seen in Vim with yegappan/lsp (`:Org checkbox toggle`).
+- Repro: a file `* Lists`, `- [ ] one`, `- [ ] two`, `- [X] three`, `1. a`, `3. b`, `2. c` (one list: the items share their indentation). Cursor on `- [ ] one`, `:Org checkbox toggle`.
+- Expected (Emacs 9.8.10, `emacs --batch -Q … (org-toggle-checkbox)` on that line): only `- [X] one` changes; `1. a`, `3. b`, `2. c` stay as they are. Got: `- [X] one` and the last three become `- a`, `- b`, `- c`.
+
+## vim-3: `<C-Space>` (org.checkbox.toggle, C-c C-c) does nothing in terminal Vim: the terminal sends NUL (`<C-@>`), which nothing maps
+- State: open
+- Where: Vim in a terminal (tmux, TERM=tmux-256color; also any terminal without modifyOtherKeys/kitty keys), all clients. `commands.rs:798` gives the `vim` preset `<C-Space>` only; the plugin maps `<C-Space>` (`:verbose nmap <C-Space>` → org_lsp.vim:991), `:nmap <C-@>` says "No mapping found".
+- Repro: `vh.sh start …` (Vim in tmux), on `- [ ] one`, press Ctrl-Space (`tmux send-keys C-Space`): nothing changes; `:Org checkbox toggle` works.
+- Expected: Ctrl-Space toggles the box (Neovim's TUI reads NUL as `<C-Space>`; Vim does not). Map `<C-@>`/`<Nul>` too in Vim when `<C-Space>` is a key, or say in docs/keys/vim.org that terminal Vim needs it mapped. Every TESTING.org check that uses `<C-Space>` (checkbox, renumber, property drawer C-c C-c, TBLFM, code block) fails as written in terminal Vim.
+
+## vim-2: (correction) not a bug: the checkbox toggle is `org-ctrl-c-ctrl-c`, which turns those items into `-` items too
+- State: not a bug (vim-2 above compared with `org-toggle-checkbox`; `org.checkbox.toggle` is C-c C-c, and `(org-ctrl-c-ctrl-c)` on `- [ ] one` in Emacs 9.8.10 gives `- [X] one … - a - b - c`, as org-lsp does: `.claude/e2e/repro/vim-helix/em.sh`)
+- Where: —
+- Repro: as vim-2.
+- Expected: as got.
+
+## neovim-11: prompts that Emacs words (column view `e`) show with a doubled colon: `EFFORT value [1:00]: : `
+- State: open (low)
+- Where: `lua/org-lsp/init.lua` `M.run` appends `': '` to every `input.prompt` (`vim.ui.input({ prompt = input.prompt .. ': ' …})`, also for `vim.ui.select`); the prompts the server takes from Emacs (column view's `org-columns-edit-value`) already end in `": "`.
+- Repro: `.claude/e2e/repro/neovim/columns.lua` (headless, Emacs): `<Leader>oxc` in a file with `#+COLUMNS: %25ITEM %TODO %Effort{:}`, `ll`, `e`: `vim.ui.input` is asked `EFFORT value [1:00]: : `; in the agenda's column view the same, and on the PRI column `Priority A-C, SPC to remove: : ` (TUI). The edit itself works and writes `:EFFORT:   2:00`, exactly as Emacs 9.8.10 does (checked in batch).
+- Expected: one colon, as Emacs shows `EFFORT value [1:00]: `. Got: `: : `. (Either the server strips the trailing `": "` of Emacs's prompts, or the plugin adds `': '` only when the prompt does not end with one.)
+
+## vim-4: Vim shows a command's error as `org-lsp: <Emacs's text>` in WarningMsg, not Emacs's text alone (as neovim-4)
+- State: open
+- Where: `editors/vim/autoload/org_lsp.vim:123` `s:warn` (`echomsg 'org-lsp: ' . a:message`), used by `s:executed` for every refused command; all four clients.
+- Repro: agenda (`<Leader>oa a`), cursor on a date line (`Saturday 24 October 2026`), `+`: `org-lsp: No entry on this line`. Same for any refusal (`g{` on a top heading etc.).
+- Expected: Emacs's message as it is (CLAUDE.md "Say what Emacs says"); for an agenda command on a line without an entry Emacs's `org-agenda-error` says `Command not allowed in this line` (org-agenda.el:9706), not "No entry on this line" (server.rs:7513 and 11 more places).
+
+## vim-5: a count does nothing in the date prompt's calendar in Vim either (`3l` moves one day), as neovim-7
+- State: open
+- Where: Vim, yegappan/lsp (the calendar keys are the plugin's `calendar` scope, run without the count).
+- Repro: agenda, a line's `C-c C-s`, in the calendar `.` then `3l`: the selection is `=> <2026-10-22 Thu>` (one day on), the cursor on 22.
+- Expected: as Emacs's calendar (`calendar-forward-day` takes the prefix argument): three days on, 24.
+
+## vim-6: every typed answer with completions fails in Vim: `input()` is called with a dictionary (Neovim's form), E731
+- State: open
+- Where: `editors/vim/autoload/org_lsp.vim:626` `org_lsp#prompt`: `input({'prompt': …, 'default': …, 'completion': …, 'cancelreturn': …})`. Vim's `input()` takes `input({prompt} [, {text} [, {completion}]])` only; a Dictionary is E731. All four clients. The Vim tests replace `org_lsp#prompt` (test.vim:36), so they never reach it.
+- Repro: Vim 9.1 + any client: `<Leader>oxp` on a headline (org.property.set); or `/` in the agenda (filter); or `<Leader>ot` in a file without `#+TAGS` keys; `<Leader>oli` (link insert), `<Leader>oiD` (drawer), capture `%^{Name|a|b}` / `%^g`, `:Org bibtex create`, `<Leader>oix`. `:echo input({'prompt': 'x'})` alone shows the error.
+- Expected: the prompt, completed from the list. Got: `Error detected while processing function …<SNR>26_ask[1]..org_lsp#prompt: line 21: E731: Using a Dictionary as a String`, and nothing asked. Use `input(prompt, default, 'customlist,org_lsp#complete_input')` (and a cancel check, e.g. an `inputsave()`/`<Esc>` mapping or `inputdialog` with the cancel value).
+
+## neovim-12: column view: after `<M-Left>`/`<M-Right>` the picked column stays put instead of following the moved column
+- State: open
+- Where: `lua/org-lsp/columns.lua` (the picked column of the buffer) / the server's `org-lsp/columns` answer to `org.columns.move.left|right`.
+- Repro: `.claude/e2e/repro/neovim/colmove.lua`: `#+COLUMNS: %25ITEM %TODO %Effort %Size`, `<Leader>oxc`, `lll` (Size, column 3), `<M-Left>`: `#+COLUMNS:` becomes `… %SIZE(Size) %EFFORT(Effort)` but the picked column is still 3 (now Effort); a second `<M-Left>`… moves Effort, and `<M-Right>` says `Cannot shift this column further to the right`.
+- Expected (Emacs `org-columns-move-left`: `(backward-char 1) (org-columns-move-right) (backward-char 1)`, `org-columns-move-right` ends with `(forward-char 1)`): the cursor stays on the column it moved, so `<M-Left><M-Right>` is a no-op. Got: it stays on the index.
+
+## neovim-13: column view `<M-Up>`/`<M-Down>` fail with Emacs 29's own Org (9.6): `Wrong type argument: commandp, org-columns-move-row-down`
+- State: open
+- Where: server `server/org-lsp/src/server.rs:12433` runs `org-columns-move-row-up/down`, which Org added after 9.6 (Emacs 29.3 ships 9.6.15; /root/org-mode 9.8.10 has them). docs/configuration.org says Emacs "with Org 9.6 or newer".
+- Repro: `.claude/e2e/repro/neovim/colmove.lua` (server's Emacs is the system one, Org 9.6.15; `ORG_LISP_DIR` only reaches the tests, not the server): `<Leader>oxc`, `<M-Down>` → notification `Wrong type argument: commandp, org-columns-move-row-down`, nothing moves.
+- Expected: the entry moves (fall back to `org-move-subtree-down` + redo, as `org-columns--move-row` does), or the docs name the Org version column view's row moves need. Got: a Lisp error.
+
+## lsp-11: formatting a CRLF file gives `\r\r\n` line endings: each edit's range takes the `\r` (one character past the line's end) and its text ends with `\r`
+- State: open
+- Where: `textDocument/formatting` and `textDocument/rangeFormatting` on a file whose lines end with `\r\n` (protocol.org: "A file whose every line ends with \r\n keeps its endings in the edits of formatting"). The table commands' `{ "edits" }` are right (`org.table.next.field` spans `\r\n` whole).
+- Repro: `.claude/e2e/repro/lsp/crlf.py`: `* TODO A :x:\r\n|a|bb|\r\n…`; formatting answers e.g. line 1 (6 characters) `range 1:0-1:7, newText "| a | bb |\r"`.
+- Expected (LSP: `\r\n` ends a line, so line 1 has 6 characters and a character past the end means the end of the line): `range 1:0-1:6, newText "| a | bb |"`. Got: the extra `\r` in the text and the range end at 7, which a client clamps to 6: the result is `| a | bb |\r\r\n` on every changed line (the harness applies edits as the spec says; VS Code and Neovim clamp the same way).
+
+## lsp-12: opening and editing large files is slow and grows faster than the file (debug build): 6000 lines with planning and links take 5 s to open and ~3 s per keystroke; 60 000 lines answered nothing in 5 minutes
+- State: open (measured on `target/debug/org-lsp`; a release build is faster, the growth is the point)
+- Where: didOpen / didChange of a large Org file (re-parse, diagnostics, …), then any request.
+- Repro: `.claude/e2e/repro/lsp/scale.py full 250 500 1000 2000` (entries of `* TODO Heading N :tN:` / `SCHEDULED:` / a link): open + folding 0.36 s, 0.72 s, 1.81 s, 5.16 s (about n^1.5); one typed character then a hover: 0.23 s, 0.50 s, 1.15 s, 2.81 s. Plain text grows linearly (12 000 lines: 1.2 s per keystroke). `robust.py` "huge file" (20 000 entries, 60 000 lines): tokens, folding, hover, a command all time out at 60 s, then `shutdown` times out and the server keeps a CPU at 98% after its stdin closed (killed by hand after 5 min).
+- Expected: per-keystroke work bounded (or at least linear and cheap), the server still answering `shutdown` and exiting when stdin closes. Got: the above.
+
+## lsp-13: one malformed message (bad JSON, or a JSON array) stops the server
+- State: open
+- Where: the server's message loop (`lsp-server`): `org-lsp: malformed LSP payload Error("key must be a string", …)` on stderr, then exit.
+- Repro: `.claude/e2e/repro/lsp/robust.py`, section "malformed JSON": send `Content-Length: 10\r\n\r\n{not json}`.
+- Expected (JSON-RPC 2.0): an error response with code -32700 (Parse error), or the message dropped with a log line, and the server going on. Got: the server exits, losing the editor's whole session (the editor has to restart it).
+
+## lsp-14: an edit the client refuses (`workspace/applyEdit` answered `applied: false`) is dropped silently
+- State: open (minor)
+- Where: every command that edits through `workspace/applyEdit` (here `org.todo.next` in a file).
+- Repro: `.claude/e2e/repro/lsp/robust.py`, section "edits refused by the client" (the harness answers `{"applied": false, "failureReason": …}`).
+- Expected: the user told that the change was not made (a `window/showMessage` with the failure reason), as Emacs would signal an error when a buffer is read-only. Got: the command answers `null`, no message.
+
+## vim-7: with yegappan/lsp, a capture (any edit) into an empty target file is lost: the file is written empty and the capture buffer closed
+- State: open
+- Where: Vim + yegappan/lsp: its `lsp/textedit.vim` `ApplyTextEdits` leaves an empty buffer `['']` for an insert at 0:0 (the server's edit is right: `{"range": 0:0-0:0, "newText": "* TODO Captured\n"}`, `.claude/e2e/repro/vim-helix/capture_empty.py`). The plugin then saves the (modified, still empty) buffer.
+- Repro: `org_capture_templates` target `['file', '~/notes/inbox.org']`, `inbox.org` exists with 0 bytes; `<Leader>oc t`, type `Captured`, `C-c`: no message, inbox.org stays empty on disk and in its buffer; the capture is gone. A missing or non-empty inbox.org works. Client alone: `:so .claude/e2e/repro/vim-helix/te_empty.vim` prints `TE [''] mod=true` (empty file) and `TE2 ['* TODO X', 'x']` (one line).
+- Expected: `* TODO Captured` in inbox.org. A third-party bug, but it loses notes silently; the plugin could apply edits to an empty buffer itself (as it does for ALE) or report it upstream. Any other command whose edit goes to an empty file (refile/archive to a new empty file, roam/journal files created empty) is hit the same way.
+
+## lsp-15: export through Emacs aborts on links the server itself resolves: `id:` links into org-roam files and `[[roam:…]]` links
+- State: open
+- Where: `org.export.dispatch` (Emacs, `bridge.el`) with `org_roam_enabled`; Emacs runs without org-roam and with an empty `org-id-locations`.
+- Repro: `.claude/e2e/repro/lsp/emacs_cmds.py` (sample workspace: `gtd.org` links `[[id:0a1b2c3d-…-000000000002][Alpha node]]`, a node in `roam/alpha.org`, and `[[roam:Beta]]`): export `h h` (and `t U`, `h H`, `l l`) says `As HTML file: Org export aborted.  Unable to resolve link: "0a1b2c3d-0000-4000-8000-000000000002"`; with that link removed (`NO_ROAM_ID=1`), `… Unable to resolve link: "roam:Beta"`. The server follows both links (`org.open`, `textDocument/definition` for the id).
+- Expected: what Emacs with org-roam does: the id is in `org-id-locations` (org-roam keeps it up to date), so the export links to it; `roam:` is a link type of org-roam, exported as a link, not a fuzzy search that fails. The server could give Emacs the ID locations it knows (and register `roam` as a link type) before exporting. Got: no export at all for any file that links to an org-roam node.
+
+## lsp-16: `elisp:`, `help:`, `eshell:`, `eww:`, `irc:`, `gnus:`, `docview:`, `bbdb:` links are completed after `[[` but refused when followed ("Links of type "elisp" are not supported"); parity.org says links are 22 of 22
+- State: open
+- Where: `server/org-core/src/open.rs:523`; `textDocument/completion` after `[[` offers those types (`completion.py`).
+- Repro: `org.open` on `[[elisp:(+ 1 2)]]` in the sample `gtd.org` (`emacs_cmds.py`): error -32803 `Links of type "elisp" are not supported`.
+- Expected (Emacs): `elisp:` asks "Execute (+ 1 2) as Elisp? " (`org-link-elisp-confirm-function`) and shows `=> 3`; `help:` shows the documentation; the server has Emacs for that (as for `shell:` links, which it does run after asking). Or, if left out on purpose, the types not offered in completion and the gap written in parity.org's Links section. Got: offered, then refused, and parity claims full coverage.

@@ -10,7 +10,7 @@ let mapleader = ' '
 let s:settings = filereadable($VH_SETTINGS) ? json_decode(join(readfile($VH_SETTINGS), "\n")) : {}
 let g:org_lsp = {'cmd': ['/home/user/org-lsp/target/debug/org-lsp'], 'settings': s:settings}
 if filereadable($VH_EXTRA) | execute 'source' $VH_EXTRA | endif
-set hidden laststatus=2 noswapfile
+set hidden laststatus=2 noswapfile ttimeout ttimeoutlen=50
 set statusline=%f\ %l:%c\ %{org_lsp#clock_status()}
 filetype plugin indent on
 syntax on
@@ -31,3 +31,12 @@ function! VHDump(...) abort
   call writefile(out, $VH_WORK . '/dump.txt')
 endfunction
 command! -nargs=? VHDump call VHDump(<args>)
+function! VHCur() abort
+  let out = ['== cur ' . bufname('%') . ' ft=' . &ft . ' cursor=' . line('.') . ':' . col('.') . ' mode=' . mode() . ' wins=' . winnr('$')]
+  call extend(out, getline(1, '$'))
+  call add(out, '== messages')
+  call extend(out, split(execute('messages'), "\n")[-6:])
+  call writefile(out, $VH_WORK . '/dump.txt')
+  messages clear
+endfunction
+command! VHCur call VHCur()

@@ -20,7 +20,7 @@ case $cmd in
   screen) $T capture-pane -p -t "$name" ;;
   dump)
     work=$(cat /tmp/claude-0/-home-user-org-lsp/25b18cf7-c433-5d20-a6ec-4b7d33312b78/scratchpad/vim-helix/.work-$name)
-    rm -f "$work/dump.txt"; $T send-keys -t "$name" Escape; $T send-keys -t "$name" -l ":VHDump ${1:-}"; $T send-keys -t "$name" Enter
+    rm -f "$work/dump.txt"; $T send-keys -t "$name" Escape; $T send-keys -t "$name" -l ":${VHCMD:-VHDump} ${1:-}"; $T send-keys -t "$name" Enter
     for i in $(seq 50); do [ -f "$work/dump.txt" ] && break; sleep 0.1; done; cat "$work/dump.txt" ;;
   stop) $T kill-session -t "$name" ;;
 esac

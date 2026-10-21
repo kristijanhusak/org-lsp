@@ -4,12 +4,19 @@ import os, sys, time, threading, subprocess
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from client import *
 import workspace
+
+def my_emacs(server_pid):
+    """The bridge Emacs processes the server `server_pid` started (also
+    after it exited, by their recorded pid)."""
+    out = subprocess.run(["ps", "-eo", "pid,ppid,args"], capture_output=True, text=True).stdout
+    return [int(l.split()[0]) for l in out.splitlines()[1:] if "bridge.el" in l and int(l.split()[1]) == server_pid]
 ws, options = workspace.make(os.path.join(SCRATCH, "ws-busy"))
 c = Client(profile=FULL, root=ws, options=options, name="busy", timeout=90)
 g = c.open(os.path.join(ws, "gtd.org")); c.settle(0.3, 5)
-before = {int(l.split()[0]) for l in subprocess.run(["ps","-eo","pid,args"],capture_output=True,text=True).stdout.splitlines()[1:] if "bridge.el" in l}
 c.command("org.table.create", c.at(g, 73, 0, input="2000x2000"))
 time.sleep(1)
+mine = my_emacs(c.proc.pid)
+print('my emacs:', mine)
 def timed(label, method, params, timeout=90):
     t0 = time.time()
     try:
@@ -23,6 +30,8 @@ timed("org.edit.special (sync Emacs call)", "workspace/executeCommand", {"comman
 timed("hover right after", "textDocument/hover", {"textDocument": {"uri": g}, "position": {"line": 64, "character": 22}})
 timed("org.export.dispatch (menu)", "workspace/executeCommand", {"command": "org.export.dispatch", "arguments": [c.at(g, 10, 3)]})
 c.shutdown()
-for l in subprocess.run(["ps","-eo","pid,args"],capture_output=True,text=True).stdout.splitlines()[1:]:
-    if "bridge.el" in l and int(l.split()[0]) not in before:
-        os.kill(int(l.split()[0]), 9); print("  killed orphan", l.split()[0])
+for pid in mine:
+    try:
+        os.kill(pid, 9); print('killed my orphaned Emacs', pid)
+    except ProcessLookupError:
+        pass

@@ -45,8 +45,8 @@ for method, params in [
     ("workspace/executeCommand", {"command": "org.schedule", "arguments": [{"textDocument": {"uri": g}, "position": {"line": 10, "character": 0}, "input": 12}]}),
     ("workspace/executeCommand", {"command": "org.todo", "arguments": [{"textDocument": {"uri": g}, "position": {"line": 10, "character": 0}, "input": "Z"}]}),
     ("workspace/executeCommand", {"command": "org.priority", "arguments": [{"textDocument": {"uri": g}, "position": {"line": 10, "character": 0}, "input": "Q"}]}),
-    ("workspace/executeCommand", {"command": "org.table.create", "arguments": [{"textDocument": {"uri": g}, "position": {"line": 73, "character": 0}, "input": "999999x999999"}]}),
-    ("workspace/executeCommand", {"command": "org.subtree.clone", "arguments": [{"textDocument": {"uri": g}, "position": {"line": 52, "character": 0}, "input": "100000"}]}),
+    ("workspace/executeCommand", {"command": "org.table.create", "arguments": [{"textDocument": {"uri": g}, "position": {"line": 73, "character": 0}, "input": "0x0"}]}),
+    ("workspace/executeCommand", {"command": "org.subtree.clone", "arguments": [{"textDocument": {"uri": g}, "position": {"line": 52, "character": 0}, "input": "-3"}]}),
     ("workspace/executeCommand", {"command": "org.columns.edit", "arguments": [{"textDocument": {"uri": g}, "position": {"line": 10, "character": 0}, "column": 99}]}),
     ("workspace/executeCommand", None),
     ("textDocument/hover", {"textDocument": {"uri": "file:///nope.org"}, "position": {"line": 0, "character": 0}}),
@@ -94,17 +94,22 @@ print("  outline path still:", srv_text)
 section("didChange storm (500 random incremental edits), then compare the server's view")
 random.seed(7)
 text = c.text(g)
+from client import position_of
 for i in range(500):
-    lines = c.text(g).split("\n")
+    cur = c.text(g)
+    lines = cur.split("\n")
     ln = random.randrange(len(lines))
     ch = random.randrange(len(lines[ln]) + 1)
+    start_off = sum(len(l) + 1 for l in lines[:ln]) + ch
     kind = random.random()
+    p0 = position_of(cur, start_off, c.encoding)
     if kind < 0.6:
         s = random.choice(["a", "日", "🎉", "*", " ", "\n", ":tag:", "[ ] ", "TODO "])
-        c.type_at(g, ln, ch, s)
+        c.type_at(g, p0["line"], p0["character"], s)
     else:
-        end_ch = min(len(lines[ln]), ch + random.randrange(4))
-        c.change(g, [{"range": {"start": {"line": ln, "character": ch}, "end": {"line": ln, "character": end_ch}}, "newText": ""}])
+        end_off = min(sum(len(l) + 1 for l in lines[:ln]) + len(lines[ln]), start_off + random.randrange(4))
+        p1 = position_of(cur, end_off, c.encoding)
+        c.change(g, [{"range": {"start": p0, "end": p1}, "newText": ""}])
 t0 = time.time()
 st = try_req(c, "textDocument/semanticTokens/full", {"textDocument": {"uri": g}}, timeout=30)
 print("  tokens after storm:", st[0], round(time.time() - t0, 2), "s")
