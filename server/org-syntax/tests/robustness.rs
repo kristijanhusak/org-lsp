@@ -189,3 +189,19 @@ fn plain_links_are_not_found_within_a_character() {
     assert_eq!(org_syntax::plain_link_end(text, text.len() + 1), None);
     assert_eq!(org_syntax::plain_link_end(text, 3), Some(text.len()));
 }
+
+/// `org_syntax::token_at_offset` finds what rowan's `token_at_offset`
+/// does, at every offset of a document with most kinds of nodes.
+#[test]
+fn token_at_offset_is_rowans() {
+    let text = "#+TITLE: x\n\n* TODO [#A] Head *bold* :a:b:\n  SCHEDULED: <2026-10-21 Wed +1d>\n  :PROPERTIES:\n  :ID: 1\n  :END:\n- [ ] item [[https://e.com][link]]\n  1. sub\n\n| a | b |\n|---+---|\n#+begin_src sh\necho é日🎉\n#+end_src\n** Child\nText\\alpha x^2\n*** \n* Last";
+    for text in [text, "", "*", "* a\n", "\n\n", "text"] {
+        let root = parse(text, &TodoKeywords::default()).syntax();
+        for offset in 0..=text.len() as u32 {
+            let offset = offset.into();
+            let theirs = format!("{:?}", root.token_at_offset(offset).collect::<Vec<_>>());
+            let ours = format!("{:?}", org_syntax::token_at_offset(&root, offset).collect::<Vec<_>>());
+            assert_eq!(ours, theirs, "at {offset:?} of {text:?}");
+        }
+    }
+}

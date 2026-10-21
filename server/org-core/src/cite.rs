@@ -199,7 +199,7 @@ pub fn references(text: &str, offset: usize) -> Vec<Reference> {
 pub fn citation_at(parse: &org_syntax::Parse, offset: usize) -> Option<(usize, String)> {
     let root = parse.syntax();
     let offset = org_syntax::TextSize::try_from(offset).ok()?;
-    let token = match root.token_at_offset(offset) {
+    let token = match org_syntax::token_at_offset(&root, offset) {
         org_syntax::TokenAtOffset::None => return None,
         org_syntax::TokenAtOffset::Single(token) => token,
         // Between two tokens, the one on the left when it is the end of a
@@ -1734,7 +1734,7 @@ fn place(text: &str, parse: &org_syntax::Parse, pos: usize) -> Place {
     use org_syntax::SyntaxKind as K;
     let root = parse.syntax();
     let Ok(at) = org_syntax::TextSize::try_from(pos) else { return Place::Allowed(false) };
-    let token = match root.token_at_offset(at) {
+    let token = match org_syntax::token_at_offset(&root, at) {
         org_syntax::TokenAtOffset::None => return Place::Allowed(true),
         org_syntax::TokenAtOffset::Single(token) => token,
         org_syntax::TokenAtOffset::Between(_, right) => right,
