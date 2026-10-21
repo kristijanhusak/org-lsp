@@ -14,3 +14,10 @@
   `window/logMessage` type Error) and skipped; broken headers still end the
   connection (no way to find the next message). No -32700 response: its id
   would be null, matching no request. Unit tests in stdio.rs.
+- lsp-14: not a bug. In robust.py the line is `** NEXT …` and the next
+  state `WAIT(w@)` asks for a note: the server opened `CAPTURE-Note.org`
+  (showDocument) and sent no edit, so nothing was refused. A refused edit
+  does give `window/showMessage` WARNING "The editor did not make the
+  change: <failureReason>" and takes back the clock/edited state
+  (server.rs `response`; test in tests/lsp.rs "read-only"). Checked with a
+  plain `* TODO A` file, both profiles (scratch refuse.py).

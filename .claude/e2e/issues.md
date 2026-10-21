@@ -435,3 +435,9 @@ Each issue: a heading `## <part>-<n>: <one line>`, then
 - Where: `<Tab>` (`cycle`, `lua/org-lsp/folds.lua`) → the server's level cycling (`org-cycle-level`); after the edit the cursor is put at column 0 of the headline.
 - Repro: `.claude/e2e/repro/neovim/fold2.lua` (and TUI): `* A` / `** `, cursor at the end of line 2 (Normal mode, on the last space), `<Tab>` → `* ` with the cursor at `{2, 0}`; `<Tab>` again leaves `* ` (the cursor is no longer at the end of an empty headline, so it is plain cycling).
 - Expected (TESTING.org "Under `* A`, TAB at the end of a new `** ` makes it `* `, again `** `"; Emacs `org-cycle-level` keeps point at the end, so `* ` → `** ` → `* `…): the cursor stays at the end of the headline (its last column in Normal mode) and TAB keeps cycling. Got: stuck at `* `.
+
+## neovim-17: `:Org` completion offers dotted names and ignores the words typed; an unknown command errors about `….dispatch`
+- State: open (low)
+- Where: `lua/org-lsp/init.lua` `complete_user_command` (completes only the argument under the cursor against `command:gsub('^org%.', '')`) and `user_command` (falls back to `id .. '.dispatch'`).
+- Repro: `.claude/e2e/repro/neovim/cmdcomp.lua`: `getcompletion('Org ag', 'cmdline')` → `agenda.dispatch`, `agenda.list`… (docs and TESTING.org write `:Org agenda list`); `getcompletion('Org agenda l', 'cmdline')` → `levels.odd`, `link.next`, `latex.preview`… (the first word is ignored); `getcompletion('Org schedule ', 'cmdline')` → every command. `:Org nosuch command` → ``Language server `org_lsp` does not support command `org.nosuch.command.dispatch`. This command may require a client extension.``
+- Expected: completion word by word as the command is typed (`:Org agenda <Tab>` → `list`, `todos`, `dispatch`…; after `:Org schedule ` → `remove`, `delay`), and an unknown command named as typed. Got: the above. (`:Org agenda.list` does work, since the dots survive the join.)
