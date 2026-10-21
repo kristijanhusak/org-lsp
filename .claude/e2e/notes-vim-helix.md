@@ -58,3 +58,10 @@ Harness: `.claude/e2e/repro/vim-helix/vh.sh` (Vim in tmux socket `vh`,
 - Completion: `[[` pops link types with yegappan autocomplete.
 - Inlay hints: vim-21.
 - tests/visual.org: virtual indent shows; hidestars' hidden star drawn white on a dark terminal when 'background' is light (Vim's default when undetected) — user setting, not logged.
+
+## Summary (end of round)
+- Suites: Vim lsp/vim_lsp/ale 58 ok each; coc 55/58 once under heavy load (3 timeouts), then 42/42 cases alone, ×3 in parallel and with all four clients in parallel: flake not reproduced. Helix runner: 13 ok, 3 skip, 0 fail. download.sh: 16 ok.
+- Issues: vim-1 … vim-21 (vim-2 withdrawn by its correction entry), helix-1 … helix-8.
+- Biggest: vim-6 (every completed text prompt fails in Vim: E731), vim-7 (yegappan loses captures into empty files), vim-17/vim-18 (Emacs's questions and messages lost with vim-lsp/ALE), helix-6/helix-7 (Helix: sort, clock table, dblock, Babel do nothing), helix-1 (Save all lies).
+- Not covered by hand: org-protocol, crypt (GnuPG), ctags, ol-man, LaTeX, bibtex commands, org-roam capture/alias/tag/refs, journal search/schedule/calendar keys, super-agenda, habits colors, appointments, Zed/VS Code (other part).
+- Harness notes: tmux treats a trailing `;` as a command separator (send `'\;'`); `S-Tab` is `BTab`; there is no `S-Enter` key name; in the agenda `/` is the filter, so position with `:call search()`.
