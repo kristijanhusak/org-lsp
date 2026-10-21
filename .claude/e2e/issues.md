@@ -441,3 +441,57 @@ Each issue: a heading `## <part>-<n>: <one line>`, then
 - Where: `lua/org-lsp/init.lua` `complete_user_command` (completes only the argument under the cursor against `command:gsub('^org%.', '')`) and `user_command` (falls back to `id .. '.dispatch'`).
 - Repro: `.claude/e2e/repro/neovim/cmdcomp.lua`: `getcompletion('Org ag', 'cmdline')` → `agenda.dispatch`, `agenda.list`… (docs and TESTING.org write `:Org agenda list`); `getcompletion('Org agenda l', 'cmdline')` → `levels.odd`, `link.next`, `latex.preview`… (the first word is ignored); `getcompletion('Org schedule ', 'cmdline')` → every command. `:Org nosuch command` → ``Language server `org_lsp` does not support command `org.nosuch.command.dispatch`. This command may require a client extension.``
 - Expected: completion word by word as the command is typed (`:Org agenda <Tab>` → `list`, `todos`, `dispatch`…; after `:Org schedule ` → `remove`, `delay`), and an unknown command named as typed. Got: the above. (`:Org agenda.list` does work, since the dots survive the join.)
+
+## neovim-18: `win_split_mode = 'tabnew'` with `win_split_size` makes the command line half the screen ('cmdheight' 11)
+- State: open (low)
+- Where: `lua/org-lsp/view.lua` `open_window`: the size is set on the window the Ex command opened (`nvim_win_set_height`) even when it is the only window of a new tab, where Neovim gives the lines to the command line.
+- Repro: `.claude/e2e/repro/neovim/variants.lua` with `SPLIT=tabnew SIZE=0.5`: `setup({ win_split_mode = 'tabnew', win_split_size = 0.5 })`, `<Leader>oa a` → agenda window height 11, `vim.o.cmdheight` 11 (1 without `win_split_size`). docs/configuration.org gives `'tabnew'` as an example of `win_split_mode`.
+- Expected: the size only applies to a split (a window that has a neighbour), 'cmdheight' untouched. Got: 'cmdheight' 11 until the user resets it.
+
+## helix-1: the code action /Save all Org files/ says "Saving all Org buffers... done" in Helix but saves nothing
+- State: open
+- Where: `server.rs:7195` `AGENDA_SAVE` only returns `{ "save": [uris], "message": … }` for the editor to act on; Helix does nothing with a command's result, so the buffers the agenda's edits changed stay unsaved (a.org, which Helix has open, and b.org, which it opened for the edit). TESTING.org (Agenda) lists it as working: "Rebuilding the agenda, saving the changed files, quitting: … /Save all Org files/".
+- Repro: `.claude/e2e/repro/vim-helix/hx_save.py`: agenda, /Change the TODO state/ on two lines (DONE in Helix's buffers), /Save all Org files/: message `Saving all Org buffers... done`; both files on disk still `* TODO …`.
+- Expected: the files written (the server has their text, or offer `:write-all` in the docs and leave the action out for clients that ignore results), or at least not Emacs's "done" message when nothing was saved.
+
+## helix-2: after an edit on an agenda line, a filter no longer changes the agenda in Helix (message only)
+- State: open
+- Where: server with a client without org-lsp's editor code (Helix: `show_document`, `message_requests = false`); the filter commands (`org.agenda.filter.category`, seen also with the other filters in a longer run).
+- Repro: `.claude/e2e/repro/vim-helix/hx_filter2.py`: week agenda of a.org (Write report) and b.org (Bee), /Change the TODO state/ on the Bee line (the server edits the agenda's line, Helix sends didChange, version 1), then /Agenda: filter by the line's category/: the server answers `Agenda filters: [+b]` and sends no `workspace/applyEdit` for Agenda.org (Helix log, kept with ORG_LSP_HX_KEEP=1); the `a:` line stays. Without the TODO change first (`hx_filter.py`) the same filter rewrites the agenda and hides `a:`. In Vim (which reads the agenda file again) the filter works after edits.
+- Expected: the filtered agenda, as Emacs's `<` shows it.
+
+## helix-3: TESTING.org/keys say switching the keyword set and removing dates are not code actions in Helix, but the agenda offers them
+- State: open
+- Where: `editors/helix/TESTING.org` (TODO keywords: "Switching to another keyword set is left out: it is not among Helix's code actions"; Dates: "Not in Helix: Removing the scheduled date and the deadline"), generated from `scripts/features.mjs`. On an agenda entry's line Helix's code actions include /Switch to the next TODO keyword set/, /Switch to the previous TODO keyword set/, /Remove the scheduled date of the entry/, /Remove the deadline of the entry/, /Delay the scheduled date until a day/, /Warn of the deadline from a day/, /Change the TODO state as if it were yesterday/ (`hx_agenda.py`, "actions on an entry line"); in an Org file they are not.
+- Repro: `.claude/e2e/repro/vim-helix/hx_agenda.py`.
+- Expected: the lists say "in an Org file" (or the agenda's are checks of their own). Also docs/keys/helix.org's tables give titles that are not the menu's: `org.todo.next` "Cycle the TODO state forward" (menu: "Cycle TODO state forward (→ WAIT)"), `org.meta.right` "…indent the item; move the table column right" (menu: "…indent the item, the drawer or the block; …"), agenda "/Archive the subtree/" where TESTING.org says "/Archive with the default command/".
+
+## helix-4: Helix's queries color emphasis, links, entities and timestamps inside comments, example blocks and fixed-width lines
+- State: open
+- Where: `editors/helix/runtime/queries/org/highlights.scm`: the word-by-word patterns for markup (`*bold*`, `[[link]]`, `\alpha`, `<timestamp>`) are not kept out of `(comment)`, an example block's contents or a `: ` fixed-width line, and come after `(comment) @comment` / `@markup.raw.block`, so they win.
+- Repro: `.claude/e2e/repro/vim-helix/hx_hl.py FILE` (prints each run of text with its scope) on `# \alpha in a comment and *bold* and [[link]]` → `\alpha<constant.character.escape.entity>`, `*bold*<markup.bold>`, `[[link]]<markup.link.url>`; `#+begin_example` / `*not bold* [[nolink]] <2026-05-18 Mon>` / `#+end_example` → bold, link and timestamp scopes, no `markup.raw.block`; `: fixed *not bold*` → bold. tests/visual.org line 114 too (`*not bold*.` in its example block).
+- Expected: as Emacs: a comment line all `org-comment`, an example block and a fixed-width line verbatim (`org-block`/`org-code`), no markup inside.
+
+## helix-5: in Helix, a `#` comment line right after a `#+KEYWORD:` line has no color; `<<two words>>`, `\there4`, `\frac12` are not colored
+- State: open
+- Where: `editors/helix/runtime/queries/org/highlights.scm` (and the grammar's parse: the comment after a directive is not a `(comment)` node; targets and entities are matched word by word / by a pattern without digits).
+- Repro: `hx_hl.py` on `#+AUTHOR: A keyword line.` then `# A comment after a keyword.` → the second line plain (the same comment after a text line or a blank line is `<comment>`); tests/visual.org line 87 (`# A comment line.` after `#+AUTHOR:`) the same. `<<one>>` is `label.target` but `<<two words>>` (tests/visual.org line 94, `<<the target>>`, which TESTING.org says is colored) is plain; `\alpha` is an entity, `\there4` (visual.org line 57) and `\frac12` are plain.
+- Expected: all colored, as in the other editors (semantic tokens) and Emacs.
+
+## helix-6: in Helix, /Sort the entries…/, /Insert or update a clock table/ and /Update the dynamic block/ change nothing (sort even says "Sorting entries...done")
+- State: open
+- Where: server, code actions for a client without org-lsp's editor code. These commands return their edit in the result (`{ "edits": [...], "cursor": … }`, `Server::carried`, server.rs:14581), which only the Neovim/Vim plugins apply; the server applies it itself only with `"apply": true` in the argument, which the code action list (server.rs:~4483) gives META_RETURN/INSERT_*/CUT/COPY/PASTE but not SORT, CLOCK_REPORT, DBLOCK_UPDATE (nor the answer of a question they asked). Helix log: `org.clock.report` → `{"result":{"edits":[{… "#+BEGIN: clocktable :scope subtree :maxlevel 2 …"}],"cursor":…}}`, no applyEdit.
+- Repro: `.claude/e2e/repro/vim-helix/hx_dblock.py` (`* Top`, `** b`, `** a`, an empty `#+BEGIN: clocktable` block): update → block unchanged; sort `a` → `Sorting entries...done`, still b, a; insert clock table → nothing. TESTING.org (Helix) lists all three as working.
+- Expected: the edits applied, as in Vim (where the same commands work: clock table inserted, `<Leader>o^` sorts).
+
+## helix-7: evaluating a code block in Helix is always aborted: Emacs's yes/no comes as `window/showMessageRequest`, which Helix refuses, though `message_requests = false`
+- State: open
+- Where: server, the Babel confirmation (`org-confirm-babel-evaluate` through the bridge) when the client has `message_requests` off: it still sends `window/showMessageRequest` ("Evaluate this emacs-lisp code block on your system?", Yes/No) instead of the `PROMPT: pick the answer from the code actions` question; Helix answers `Method not found: window/showMessageRequest` and the server says `Evaluation of this emacs-lisp code block is aborted.`
+- Repro: `.claude/e2e/repro/vim-helix/hx_babel.py` (Emacs with ORG_LISP_DIR): a `#+begin_src emacs-lisp` `(+ 1 2)` block, /Evaluate the code block or call at the cursor through Emacs/: no question in the code actions, no `#+RESULTS:`, the abort message. TESTING.org (Helix): "Evaluating an emacs-lisp block asks first (yes or no), then puts #+RESULTS: below it".
+- Expected: the yes/no among the code actions (as for the server's own questions), then the results.
+
+## vim-15: following a footnote leaves the cursor just after `[fn:1]`, where following again says "No link found" instead of going back (Vim `<Leader>oo`, Helix `gd`)
+- State: open
+- Where: server, `org.open` and `textDocument/definition` at a footnote definition: the place is taken as the definition only on its label, not right after it, which is where the server itself puts the cursor (`[fn:1]|` = Emacs's point after `org-footnote-action`).
+- Repro: `* A`, `See [fn:1].`, ``, `[fn:1] The note.`; in Vim `<Leader>oo` on the reference → 4:7; `<Leader>oo` again → `org-lsp: No link found` (from 4:3 it goes back to 2:5). Helix: `gd` twice the same (`hx_flows2.py`, (13, 7) twice).
+- Expected (Emacs 9.8.10, `em.sh fn.org 4 7 '(org-footnote-action)'`): back to the reference, 2:5. TESTING.org: "Following [fn:1] goes to its definition, and from the definition back to the reference".

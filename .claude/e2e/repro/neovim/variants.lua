@@ -4,8 +4,9 @@ local H = dofile('/home/user/org-lsp/.claude/e2e/repro/neovim/h.lua')
 local dir = H.tmpdir('variants')
 vim.fn.writefile({ '* TODO Task', 'SCHEDULED: <2026-10-21 Wed>' }, dir .. '/w.org')
 local mode = os.getenv('SPLIT') or 'split'
-H.init({ settings = { org_agenda_files = { dir }, clock = { today = '2026-10-21', now = '10:30' } },
-  config = { conceal = false, win_split_mode = mode, win_split_size = 0.5, folding = os.getenv('NOFOLD') == nil, mappings = os.getenv('NOMAP') and false or nil, virtual_indent = false } })
+local config = { conceal = false, win_split_mode = mode, win_split_size = os.getenv('SIZE') and tonumber(os.getenv('SIZE')) or nil, folding = os.getenv('NOFOLD') == nil, virtual_indent = false }
+if os.getenv('NOMAP') then config.mappings = false end
+H.init({ settings = { org_agenda_files = { dir }, clock = { today = '2026-10-21', now = '10:30' } }, config = config })
 H.section('variants (' .. mode .. ')', function()
   H.open(dir .. '/l.org', { '#+STARTUP: indent', '* Read [[https://example.org][the site]] now', 'text' })
   H.sleep(800)
@@ -24,6 +25,7 @@ H.section('variants (' .. mode .. ')', function()
   H.wait('agenda', function() return vim.bo.filetype == 'org-agenda' end)
   local w = vim.api.nvim_get_current_win()
   local cfg = vim.api.nvim_win_get_config(w)
+  H.out('  cmdheight=' .. vim.o.cmdheight .. ' lines=' .. vim.o.lines)
   H.out(('  %s: relative=%q wins %d->%d layout=%s height=%d width=%d'):format(mode, cfg.relative, wins, #vim.api.nvim_list_wins(), vim.fn.winlayout()[1], vim.api.nvim_win_get_height(w), vim.api.nvim_win_get_width(w)))
   -- capture opens the same way
   H.press('q')
