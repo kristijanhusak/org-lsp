@@ -35,3 +35,9 @@ Base: `main` at bad79cc (#365).
 - vscode-1, zed-1, sublime-1 to sublime-4, fix-1, and the rest of emacs-11/lsp-10: a fourth fix agent, on top of the Emacs fixes (notes-fix-rest.md).
 
 All five parts are tested; what is left is fixing, then one PR per fix agent.
+
+## 10:10 UTC: the usage limit stopped the three fix agents
+
+Their work so far is saved in `wip/` (the editors fixer's uncommitted
+changes as a diff on the commit in `fix-editors-base.txt`; the other two as
+`git format-patch` series) and they were resumed from where they stopped.

@@ -1,0 +1,2544 @@
+diff --git a/docs/configuration.org b/docs/configuration.org
+index 5f78002..358968a 100644
+--- a/docs/configuration.org
++++ b/docs/configuration.org
+@@ -330,7 +330,9 @@ What only Emacs can do, the server has Emacs do, when Emacs (with Org 9.6
+ or newer) is installed: export (~C-c C-e~, ~<Leader>oe~ in Vim and Neovim),
+ evaluating code blocks (~C-c C-c~ on a block, ~C-c C-v b~ for the file's),
+ LaTeX previews, encryption and a few others. The server starts Emacs the
+-first time and keeps it running.
++first time and keeps it running. Moving rows in column view
++(~org-columns-move-row-up~, ~M-<up>~) needs a newer Org than the 9.6.15
++that Emacs 29 comes with.
+ 
+ Org's options for these go in ~emacs_options~, by their names in Org, with
+ values as the other options have them: ~true~ is ~t~, ~false~ is ~nil~, a
+@@ -452,7 +454,8 @@ require('org-lsp').setup({
+ 
+   -- Conceal what the server marks hidden: link brackets and targets
+   -- (`org_link_descriptive`), emphasis markers (`org_hide_emphasis_markers`).
+-  -- Sets 'conceallevel' 2 in Org windows; the cursor line shows everything.
++  -- Sets 'conceallevel' 2 in Org windows (a level set before, as by a
++  -- `FileType` autocommand, stays); the cursor line shows everything.
+   conceal = true,
+ 
+   -- Indent as Org does, with the server: new lines through 'indentexpr'
+diff --git a/docs/development.org b/docs/development.org
+index a35c086..e5853b1 100644
+--- a/docs/development.org
++++ b/docs/development.org
+@@ -98,7 +98,11 @@ others), as close to Emacs Org mode as it can get.
+   the same steps.
+ - Neovim: ~scripts/test-nvim.sh~ (set ~NVIM~ to the binary), on 0.12.0 and
+   stable. Tests run headless against the real server; ~tests/nvim/scenarios.lua~
+-  is its adapter of the scenarios.
++  is its adapter of the scenarios. On a nightly build of 0.13,
++  ~tests/nvim/highlight.lua~ may stop on Neovim's own assertion
++  (~grid_line_flush: Assertion `grid_line_clear_to <= grid_line_maxcol'~)
++  when it redraws the date prompt's calendar in its headless 140 by 50
++  screen; the same calendar draws in a terminal of that size, and on 0.12.
+ - VS Code: in ~editors/vscode~, ~npm run generate -- --check~,
+   ~npm run check~, ~npm run build~, ~xvfb-run -a npm test~ (VSCodium works locally
+   through ~VSCODE_EXECUTABLE~, set to its ~codium~ binary, not the
+diff --git a/docs/keys/helix.org b/docs/keys/helix.org
+index 9cbd76b..23f8126 100644
+--- a/docs/keys/helix.org
++++ b/docs/keys/helix.org
+@@ -14,8 +14,8 @@ at the cursor:
+ 
+ | Action                  | What it does                                              |
+ |-------------------------+-----------------------------------------------------------|
+-| ~org.todo.next~         | Cycle the TODO state forward                              |
+-| ~org.todo.previous~     | Cycle the TODO state backward                             |
++| ~org.todo.next~         | Cycle TODO state forward (→ the state it goes to)         |
++| ~org.todo.previous~     | Cycle TODO state backward (→ the state it goes to)        |
+ | ~org.priority.up~       | Raise the priority                                        |
+ | ~org.priority.down~     | Lower the priority                                        |
+ | ~org.timestamp.up~      | Increase the part of the timestamp at the cursor          |
+@@ -31,27 +31,27 @@ at the cursor:
+ More where they apply: on a headline, a list item or a table, in a code
+ block, and in an entry:
+ 
+-| Action                          | What it does                                                                     |
+-|---------------------------------+----------------------------------------------------------------------------------|
+-| ~org.meta.left~                 | Promote the heading; outdent the item; move the table column left                |
+-| ~org.meta.right~                | Demote the heading; indent the item; move the table column right                 |
+-| ~org.shiftmeta.left~            | Promote the subtree; outdent the item with its children; delete the table column |
+-| ~org.shiftmeta.right~           | Demote the subtree; indent the item with its children; insert a table column     |
+-| ~org.meta.up~                   | Move the subtree, the item or the table row up                                   |
+-| ~org.meta.down~                 | Move the subtree, the item or the table row down                                 |
+-| ~org.shiftmeta.up~              | Delete the table row                                                             |
+-| ~org.shiftmeta.down~            | Insert a table row above                                                         |
+-| ~org.table.insert.row.below~    | Insert a table row below                                                         |
+-| ~org.table.hline~               | Insert a rule below the table row                                                |
+-| ~org.table.hline.above~         | Insert a rule above the table row                                                |
+-| ~org.table.blank.field~         | Blank the table field                                                            |
+-| ~org.table.toggle.column.width~ | Shrink or expand the table column                                                |
+-| ~org.babel.tangle~              | Tangle the file's code blocks (in a code block)                                  |
+-| ~org.babel.execute~             | Evaluate the code block through Emacs                                            |
+-| ~org.edit.special~              | Edit the block in a file of its own                                              |
+-| ~org.archive.subtree~           | Archive the subtree                                                              |
+-| ~org.archive.sibling~           | Archive the subtree under its Archive sibling                                    |
+-| ~org.archive.tag~               | Toggle the ARCHIVE tag                                                           |
++| Action                          | What it does                                                                              |
++|---------------------------------+-------------------------------------------------------------------------------------------|
++| ~org.meta.left~                 | Promote the heading; outdent the item; move the table column left                         |
++| ~org.meta.right~                | Demote the heading; indent the item, the drawer or the block; move the table column right |
++| ~org.shiftmeta.left~            | Promote the subtree; outdent the item with its children; delete the table column          |
++| ~org.shiftmeta.right~           | Demote the subtree; indent the item with its children; insert a table column              |
++| ~org.meta.up~                   | Move the subtree, the item or the table row up                                            |
++| ~org.meta.down~                 | Move the subtree, the item or the table row down                                          |
++| ~org.shiftmeta.up~              | Delete the table row                                                                      |
++| ~org.shiftmeta.down~            | Insert a table row above                                                                  |
++| ~org.table.insert.row.below~    | Insert a table row below                                                                  |
++| ~org.table.hline~               | Insert a rule below the table row                                                         |
++| ~org.table.hline.above~         | Insert a rule above the table row                                                         |
++| ~org.table.blank.field~         | Blank the table field                                                                     |
++| ~org.table.toggle.column.width~ | Shrink or expand the table column                                                         |
++| ~org.babel.tangle~              | Tangle the file's code blocks (in a code block)                                           |
++| ~org.babel.execute~             | Evaluate the code block through Emacs                                                     |
++| ~org.edit.special~              | Edit the block in a file of its own                                                       |
++| ~org.archive.subtree~           | Archive the subtree                                                                       |
++| ~org.archive.sibling~           | Archive the subtree under its Archive sibling                                             |
++| ~org.archive.tag~               | Toggle the ARCHIVE tag                                                                    |
+ 
+ An unknown citation key also offers the keys close to it (/Replace with @key/).
+ 
+@@ -65,28 +65,28 @@ With ~show_document~ and ~message_requests~ set as [[file:../helix.org][helix.or
+ commands are code actions in an Org file, those that ask for something or
+ open a document:
+ 
+-| Action                        | What it does                                         |
+-|-------------------------------+------------------------------------------------------|
+-| ~org.todo~                    | Change the TODO state, picked from a list            |
+-| ~org.priority~                | Set the priority, picked from a list                 |
+-| ~org.schedule~                | Schedule the entry: the date is typed                |
+-| ~org.deadline~                | Set the deadline of the entry: the date is typed     |
+-| ~org.tags.set~                | Set the tags of the headline: they are typed         |
+-| ~org.property.set~            | Set a property of the entry: it and its value typed  |
+-| ~org.effort.set~              | Set the effort of the entry: it is typed             |
+-| ~org.refile~                  | Refile the entry, the target picked from a list      |
+-| ~org.sort~                    | Sort the entries, the items or the table rows        |
+-| ~org.clock.report~            | Insert or update a clock table                       |
+-| ~org.clock.goto~              | Go to the clocked entry, while a clock runs          |
+-| ~org.clock.in.last~           | Clock in the last clocked task                       |
+-| ~org.meta.return~             | A new heading, item or table row                     |
+-| ~org.insert.todo.heading~     | A new TODO heading, or item with a checkbox          |
+-| ~org.insert.heading.after~    | A new heading after the subtree                      |
+-| ~org.cut.subtree~             | Cut the subtree (and ~org.copy.subtree~, paste)      |
+-| ~org.agenda.list~             | The agenda for the current week or day               |
+-| ~org.agenda.todos~            | The list of all TODO entries                         |
+-| ~org.agenda.dispatch~         | /Agenda commands/: the agenda menu, its views picked |
+-| ~org.capture~                 | Capture, the template picked from a list             |
++| Action                     | What it does                                         |
++|----------------------------+------------------------------------------------------|
++| ~org.todo~                 | Change the TODO state, picked from a list            |
++| ~org.priority~             | Set the priority, picked from a list                 |
++| ~org.schedule~             | Schedule the entry: the date is typed                |
++| ~org.deadline~             | Set the deadline of the entry: the date is typed     |
++| ~org.tags.set~             | Set the tags of the headline: they are typed         |
++| ~org.property.set~         | Set a property of the entry: it and its value typed  |
++| ~org.effort.set~           | Set the effort of the entry: it is typed             |
++| ~org.refile~               | Refile the entry, the target picked from a list      |
++| ~org.sort~                 | Sort the entries, the items or the table rows        |
++| ~org.clock.report~         | Insert or update a clock table                       |
++| ~org.clock.goto~           | Go to the clocked entry, while a clock runs          |
++| ~org.clock.in.last~        | Clock in the last clocked task                       |
++| ~org.meta.return~          | A new heading, item or table row                     |
++| ~org.insert.todo.heading~  | A new TODO heading, or item with a checkbox          |
++| ~org.insert.heading.after~ | A new heading after the subtree                      |
++| ~org.cut.subtree~          | Cut the subtree (and ~org.copy.subtree~, paste)      |
++| ~org.agenda.list~          | The agenda for the current week or day               |
++| ~org.agenda.todos~         | The list of all TODO entries                         |
++| ~org.agenda.dispatch~      | /Agenda commands/: the agenda menu, its views picked |
++| ~org.capture~              | Capture, the template picked from a list             |
+ 
+ What is picked from a list comes first in the code actions once the
+ command has asked: ~Space a~ again, and the choices head the menu, each
+@@ -106,7 +106,7 @@ the view's.
+ | /Agenda: go to the entry/ (also ~gd~)      | /Agenda: go forward in time/, /backward/   |
+ | /Change the TODO state/, the priority      | /Agenda: go to today/, /go to a date/      |
+ | /Schedule the entry/, the deadline         | /Agenda: day view/, week, fortnight, month |
+-| /Set the tags of the headline/             | /Agenda: rebuild/, /Save all Org files/    |
++| /Set the tags of the headline/             | /Agenda: rebuild/                          |
+ | /Clock in/, /Clock out/                    | /Agenda: filter by …/, remove all filters  |
+ | /Refile the entry/, /Archive the subtree/  | /Agenda: log mode/, the clock report       |
+ | /Add a note to the entry/                  | /Agenda: mark all entries/, a bulk action  |
+@@ -117,15 +117,18 @@ Follow mode, going to the entry in another window and column view are
+ not among them: they need to know where the cursor goes, or draw over the
+ lines. ~Space k~ on a line shows its entry. The buffer picker (~Space b~)
+ goes back to the agenda where its cursor was. The server's edits leave the
+-buffer changed: ~:buffer-close!~ closes it.
++buffer changed: ~:buffer-close!~ closes it. Saving the files the agenda's
++commands changed is Helix's own ~:write-all~: /Save all Org files/ is not
++offered, as the server cannot save a file and Helix does nothing with the
++files a server names to save.
+ 
+ * In a capture buffer
+ 
+-| Action                | What it does                              |
+-|-----------------------+-------------------------------------------|
+-| ~org.capture.finish~  | /Capture: finish/, filing the entry       |
+-| ~org.capture.abort~   | /Capture: abort/, leaving the target      |
+-| ~org.capture.refile~  | /Capture: refile the entry/, to a target  |
++| Action               | What it does                             |
++|----------------------+------------------------------------------|
++| ~org.capture.finish~ | /Capture: finish/, filing the entry      |
++| ~org.capture.abort~  | /Capture: abort/, leaving the target     |
++| ~org.capture.refile~ | /Capture: refile the entry/, to a target |
+ 
+ The buffer stays open once the entry is filed: Helix closes no buffer for
+ a server, which shows where capture started instead.
+diff --git a/docs/keys/vim.org b/docs/keys/vim.org
+index 209f989..f32c370 100644
+--- a/docs/keys/vim.org
++++ b/docs/keys/vim.org
+@@ -423,6 +423,17 @@ with ~i~, as at Org's prompt (~fri 10:00~, ~+2d~). With coc.nvim, which
+ passes on only an error's message, a key marked ¹ falls back to its own
+ meaning whenever the server refuses.
+ 
++In a terminal, Vim reads a key with a modifier only as the terminal sends
++it. ~<C-Space>~ comes as NUL, which the plugin binds too (~<C-@>~).
++~<S-CR>~ and the keys with ~<M-…>~ or ~<C-S-…>~ need a terminal that reports
++modifiers, as xterm does once Vim turns its ~modifyOtherKeys~ on; in tmux,
++GNU screen or the Linux console Shift-Enter arrives as ~<CR>~. There, bind the command to a
++key that arrives, with ~mappings~ (below) or ~:Org return item~:
++
++#+begin_src vim
++let g:org_lsp = {'mappings': {'org': {'org.return.item': ['<S-CR>', '<C-j>']}}}
++#+end_src
++
+ * Changing them
+ 
+ Keys are set with ~mappings~ in ~g:org_lsp~, before the plugin loads. It has
+diff --git a/docs/protocol.org b/docs/protocol.org
+index f2679c5..ddb64bc 100644
+--- a/docs/protocol.org
++++ b/docs/protocol.org
+@@ -131,7 +131,9 @@ And these notifications:
+   null when it goes off. Sent when it is turned on (~org.columns~), after
+   each of its commands and each change of the document. Its commands
+   (~org.columns.*~, in the ~columns~ scope of the manifest) take the column
+-  picked, from 0, as ~column~ in their argument.
++  picked, from 0, as ~column~ in their argument; after one, ~column~ is
++  where Emacs's cursor went, the column to pick then (~org.columns.move.left~
++  takes it along with the column it moves).
+ - ~org-lsp/timer~ :: ~{ "seconds", "countdown", "paused" }~ when the
+   relative timer or a countdown of Org in Emacs starts, pauses, goes on or
+   changes, and null when it stops (unless ~org-timer-display~ is nil): its
+@@ -723,7 +725,8 @@ Each option with its type, its default and what it means:
+ - ~create_files~ :: boolean, from the client's capabilities. Whether an edit may make the files it is for (a ~create~ resource operation), as a new archive file from the agenda; else the server writes them itself. The Vim plugin turns it off: coc.nvim has the empty file it makes as one empty line, which the edit's text would then end with.
+ - ~org_client~ :: boolean, ~false~. The client has org-lsp's editor code: it knows the server's own token types and does what a command's result asks. A client that can announce it does so with ~experimental.orgClient~; the Vim, Sublime Text and Zed plugins set this. Without it, the server sends the standard token types of LSP, which editors color without being told, ~message_prompts~ is on, and so are more code actions when the client shows message requests (~window.showMessage~) or ~message_prompts~ is set.
+ - ~message_prompts~ :: boolean, true for a client without org-lsp's editor code (~org_client~). Ask what commands ask for with ~window/showMessageRequest~ (a key, one of a list) or, for text and dates, through a rename at the cursor (~textDocument/rename~, whose new name is the answer), and say what they have to say with ~window/showMessage~, for a client that does nothing with a command's result.
+-- ~message_requests~ :: boolean, ~true~. Whether the client shows the questions of ~message_prompts~ that have choices (~window/showMessageRequest~). Off, for a client that cannot (Helix), the server says ~PROMPT: pick the answer from the code actions~, and until it is answered the code actions start with the choices; a rename with the choice's key answers too.
++- ~message_requests~ :: boolean, ~true~. Whether the client shows the questions of ~message_prompts~ that have choices, and Emacs's yes-or-no questions (~window/showMessageRequest~). Off, for a client that cannot (Helix), the server says ~PROMPT: pick the answer from the code actions~, and until it is answered the code actions start with the choices; a rename with the choice's key answers too. A client with org-lsp's editor code that runs commands when told (~run_command~) is asked Emacs's questions as a command's (~org.emacs.answer~): the Vim plugin, as some of Vim's LSP clients answer no message request.
++- ~message_notifications~ :: boolean, ~false~. Whether the client shows the server's messages (Emacs's, as its echo area shows them) sent as ~org-lsp/message~, ~{ type, message }~ as ~window/showMessage~'s, rather than with ~window/showMessage~, as a client announcing ~experimental.orgMessages~ does: for the Vim plugin, as some of Vim's LSP clients show no messages, or show them after their own name.
+ - ~line_highlights~ :: boolean, ~false~. Whether the client highlights lines from edge to edge as the server sends them (~org-lsp/lineHighlights~): the agenda's entry the clock runs on, and headlines with ~org_fontify_whole_heading_line~. As a client announcing ~experimental.orgLineHighlights~ does: for the Vim plugin and the Sublime Text package.
+ - ~run_command~ :: boolean, ~false~. Whether the client runs a command when the server asks (~org-lsp/runCommand~: a capture an ~org-protocol~ URL starts), as one it runs from a key, as a client announcing ~experimental.orgRunCommand~ does: for the Vim plugin and the Sublime Text package. Without it, the server runs the command itself, and asks what it asks with ~window/showMessageRequest~.
+ - ~hidden_lines~ :: boolean, ~false~. Whether the client hides the lines a command's answer names (~hiddenLines~: the custom properties of ~org.custom.properties.toggle~), as a client announcing ~experimental.orgHiddenLines~ does: for the Sublime Text package.
+diff --git a/editors/helix/TESTING.org b/editors/helix/TESTING.org
+index 6eec815..e795aec 100644
+--- a/editors/helix/TESTING.org
++++ b/editors/helix/TESTING.org
+@@ -149,7 +149,7 @@ Not in Helix:
+ - [ ] Entry text, log mode, the clock report, archives mode: the code action /Agenda: entry text mode, some text of each entry under its line/, the code action /Agenda: log mode, what was closed and clocked/, the code action /Agenda: the clock report/, the code action /Agenda: include archived trees/
+ - [ ] In the week view, inactive timestamps show after ~[~ with /Display now includes inactive timestamps as well/, marked ~[~, and are gone again when the agenda is rebuilt: the code action /Agenda: search for another word, or show inactive timestamps/, the code action /Agenda: show inactive timestamps once/, the code action /Agenda: rebuild/
+ - [ ] Hovering a line shows its entry: ~Space k~
+-- [ ] Rebuilding the agenda, saving the changed files, quitting: the code action /Agenda: rebuild/, the code action /Save all Org files/
++- [ ] Rebuilding the agenda; the files its edits changed are saved with ~:write-all~ (Helix does nothing with the files a server names to save, so /Save all Org files/ is not offered): the code action /Agenda: rebuild/
+ - [ ] An entry changed in its file shows in the agenda when it is rebuilt
+ 
+ Not in Helix:
+diff --git a/editors/vim/autoload/org_lsp.vim b/editors/vim/autoload/org_lsp.vim
+index f648335..49da51f 100644
+--- a/editors/vim/autoload/org_lsp.vim
++++ b/editors/vim/autoload/org_lsp.vim
+@@ -99,8 +99,11 @@ endfunction
+ 
+ " The options the server starts with: the user's, and that this plugin
+ " shows the documents the server asks for, the agenda as the file the
+-" server writes, whatever the client says; and that the server writes the
+-" files it makes, which coc.nvim would have as an empty line.
++" server writes, whatever the client says; that the server writes the
++" files it makes, which coc.nvim would have as an empty line; and that
++" this plugin shows the server's messages and asks Emacs's questions, as
++" vim-lsp and ALE show neither, and the others put their name before the
++" messages.
+ function! org_lsp#init_options() abort
+   return extend(deepcopy(org_lsp#config().settings), {
+         \ 'org_client': v:true,
+@@ -112,6 +115,8 @@ function! org_lsp#init_options() abort
+         \ 'virtual_indent': org_lsp#config().virtual_indent && s:has_virtual_text() ? v:true : v:false,
+         \ 'line_highlights': v:true,
+         \ 'run_command': v:true,
++        \ 'message_requests': v:false,
++        \ 'message_notifications': v:true,
+         \ })
+ endfunction
+ 
+@@ -126,6 +131,16 @@ function! s:warn(message) abort
+   echohl None
+ endfunction
+ 
++" What the server says (Emacs's text, as its echo area shows it), in the
++" look of its `type`: 1 an error, 2 a warning, else a message.
++function! s:say(message, type) abort
++  execute 'echohl' get({1: 'ErrorMsg', 2: 'WarningMsg'}, a:type, 'None')
++  for line in split(a:message, "\n")
++    echomsg line
++  endfor
++  echohl None
++endfunction
++
+ " ----- the client
+ 
+ " The adapter for the installed client: `lsp` (yegappan/lsp), `vim_lsp`,
+@@ -223,6 +238,14 @@ function! s:org_buffer() abort
+   return nr
+ endfunction
+ 
++" An Org buffer read again from its file: vim-lsp does not tell the
++" server, whose agenda and edits would go on from the old text.
++function! org_lsp#reread(nr) abort
++  if org_lsp#adapter() ==# 'vim_lsp' && getbufvar(a:nr, '&filetype') ==# 'org'
++    call org_lsp#adapter#vim_lsp#reread(a:nr)
++  endif
++endfunction
++
+ " Send a request about buffer `bufnr`; `Callback(error, result)` gets the
+ " answer, `error` being {} when there is none. Changes not yet sent go
+ " first.
+@@ -410,6 +433,11 @@ function! org_lsp#run(name, ...) abort
+     let context.range = s:selection_range()
+     let context.position = context.range.start
+   endif
++  " The lines of a range given to `:Org`.
++  if has_key(opts, 'lines') && nr == bufnr()
++    let context.range = {'start': {'line': opts.lines[0] - 1, 'character': 0}, 'end': {'line': opts.lines[1], 'character': 0}}
++    let context.position = context.range.start
++  endif
+   " The register the key was typed with (`"a`), as `y` and `p` take it;
+   " what the command reads as Emacs's latest kill comes from there.
+   let opts = extend(copy(opts), {'register': v:register}, 'keep')
+@@ -472,7 +500,7 @@ function! s:executed(bufnr, name, context, opts, error, result) abort
+       let times = get(a:opts, 'count', 0)
+       call feedkeys((times > 0 ? times : '') . s:keycode(a:opts.key), 'n')
+     else
+-      call s:warn(get(a:error, 'message', 'the command failed'))
++      call s:say(get(a:error, 'message', 'the command failed'), 2)
+     endif
+     return
+   endif
+@@ -511,6 +539,11 @@ function! s:executed(bufnr, name, context, opts, error, result) abort
+     " Asked from a callback, the prompt waits for the screen to settle.
+     call timer_start(0, {-> s:ask(a:bufnr, a:name, a:context, a:opts, result.input)})
+   endif
++  " What the command showed as inlay hints (the clock's times, a shrunk
++  " column), for clients that ask for them again only after a change.
++  if index(['lsp', 'vim_lsp'], org_lsp#adapter()) >= 0
++    call s:call('inlay_hints', a:bufnr)
++  endif
+ endfunction
+ 
+ " The closed folds of the current window, as their first and last lines,
+@@ -610,25 +643,60 @@ function! org_lsp#prompt(input) abort
+       return org_lsp#read_key(a:input.prompt, [], 1)
+     endif
+     return org_lsp#read_key(a:input.prompt, get(a:input, 'choices', []))
++  elseif a:input.kind ==# 'priority'
++    " One key, as `org-priority` reads it: a letter, or SPC to remove it.
++    return org_lsp#read_key(a:input.prompt, [])
+   elseif has_key(a:input, 'choices')
+-    let lines = [a:input.prompt . ':']
++    let lines = [org_lsp#prompt_text(a:input.prompt)]
+     for i in range(len(a:input.choices))
+       call add(lines, (i + 1) . '. ' . a:input.choices[i].label)
+     endfor
+     let picked = inputlist(lines)
+     return picked > 0 && picked <= len(a:input.choices) ? a:input.choices[picked - 1].key : v:null
+   endif
+-  let cancelled = "\x01cancelled"
+-  if !empty(get(a:input, 'completions', []))
+-    " Typed, completed from a list (Emacs's `completing-read`).
+-    let s:completions = a:input.completions
+-    let s:separator = get(a:input, 'separator', '')
+-    let answer = input({'prompt': a:input.prompt . ': ', 'default': get(a:input, 'value', ''),
+-          \ 'completion': 'customlist,org_lsp#complete_input', 'cancelreturn': cancelled})
+-    return answer ==# cancelled ? v:null : answer
++  return org_lsp#read_text(a:input)
++endfunction
++
++" A prompt as it is shown: Emacs's own words (`Execute this? `, ending in
++" a space) as they are, a title (`Select a TODO state`) followed by `: `.
++function! org_lsp#prompt_text(prompt) abort
++  if a:prompt =~# '\s$'
++    return a:prompt
+   endif
+-  let answer = inputdialog(a:input.prompt . ': ', get(a:input, 'value', ''), cancelled)
+-  return answer ==# cancelled ? v:null : answer
++  return a:prompt . (a:prompt =~# '[:?]$' ? ' ' : ': ')
++endfunction
++
++let s:cancelled = 0
++
++" <Esc> while text is typed for a command: the answer is no answer.
++function! org_lsp#cancel_input() abort
++  let s:cancelled = 1
++  return ''
++endfunction
++
++" Text typed for a command (`{prompt, value, completions}`), completed from
++" the list when there is one (Emacs's `completing-read`); v:null when
++" cancelled with <Esc> or CTRL-C.
++function! org_lsp#read_text(input) abort
++  let s:completions = get(a:input, 'completions', [])
++  let s:separator = get(a:input, 'separator', '')
++  " `input()` gives <Esc> the meaning of an empty answer: a mapping of
++  " its own says it is none, the user's own put back after.
++  let kept = maparg('<Esc>', 'c', 0, 1)
++  cnoremap <Esc> <C-\>eorg_lsp#cancel_input()<CR><CR>
++  let s:cancelled = 0
++  try
++    let answer = input(org_lsp#prompt_text(a:input.prompt), get(a:input, 'value', ''),
++          \ 'customlist,org_lsp#complete_input')
++  catch /^Vim:Interrupt$/
++    let s:cancelled = 1
++  finally
++    cunmap <Esc>
++    if !empty(kept)
++      call mapset('c', 0, kept)
++    endif
++  endtry
++  return s:cancelled ? v:null : answer
+ endfunction
+ 
+ let s:completions = []
+@@ -691,7 +759,7 @@ function! org_lsp#read_key(prompt, choices, ...) abort
+           \ })
+   endif
+   " With a third argument, the prompt as it is.
+-  echo a:0 > 0 && a:1 ? a:prompt : a:prompt . ': '
++  echo a:0 > 0 && a:1 ? a:prompt : org_lsp#prompt_text(a:prompt)
+   redraw
+   try
+     let key = getcharstr()
+@@ -708,13 +776,34 @@ endfunction
+ " `:Org agenda list` runs `org.agenda.list`; a group stands for its
+ " dispatcher: `:Org agenda` runs `org.agenda.dispatch`.
+ function! org_lsp#user_command(...) abort
++  call call('org_lsp#org_command', [0, 0, 0] + a:000)
++endfunction
++
++" `:Org` with its range: `:'<,'>Org toggle heading` works on those lines,
++" as on a selection of whole lines.
++function! org_lsp#org_command(range, first, last, ...) abort
+   let id = 'org.' . join(a:0 > 0 ? a:000 : ['agenda'], '.')
+-  call org_lsp#run(empty(s:command(id)) && !has_key(s:own, id) ? id . '.dispatch' : id)
++  if empty(s:command(id)) && !has_key(s:own, id) && !empty(s:command(id . '.dispatch'))
++    let id .= '.dispatch'
++  endif
++  call org_lsp#run(id, a:range > 0 ? {'lines': [a:first, a:last]} : {})
+ endfunction
+ 
++" The next word of `:Org`'s command after those typed: `:Org agenda <Tab>`
++" offers `list`, `todos`, `dispatch`, ….
+ function! org_lsp#complete(lead, line, pos) abort
+-  let names = map(copy(get(org_lsp#manifest(), 'commands', [])), {_, c -> substitute(c.command, '^org\.', '', '')})
+-  return filter(map(names, {_, n -> substitute(n, '\.', ' ', 'g')}), {_, n -> n =~# '^' . escape(a:lead, '.\')})
++  let typed = split(a:line[: a:pos - 1 - len(a:lead)])[1:]
++  let prefix = join(['org'] + typed, '.') . '.'
++  let words = []
++  for command in get(org_lsp#manifest(), 'commands', [])
++    if stridx(command.command, prefix) == 0
++      let word = matchstr(command.command[len(prefix):], '^[^.]\+')
++      if !empty(word) && stridx(word, a:lead) == 0 && index(words, word) < 0
++        call add(words, word)
++      endif
++    endif
++  endfor
++  return sort(words)
+ endfunction
+ 
+ " ----- keys
+@@ -779,6 +868,7 @@ function! s:apply_carried(uri, result) abort
+   let text = getline(a:result.cursor.line + 1)
+   let column = s:byte(text, a:result.cursor.character)
+   call cursor(a:result.cursor.line + 1, column + 1)
++  redrawstatus
+   return column >= len(text)
+ endfunction
+ 
+@@ -962,6 +1052,17 @@ function! s:map_lhs(key) abort
+   return out
+ endfunction
+ 
++" The keys as a terminal sends them too: CTRL-Space comes as NUL, which
++" Vim reads as `<C-@>` (Neovim as `<C-Space>`).
++function! s:with_terminal_keys(list) abort
++  if has('gui_running')
++    return a:list
++  endif
++  let terminal = map(filter(copy(a:list), {_, lhs -> lhs =~? '<C-Space>'}),
++        \ {_, lhs -> substitute(lhs, '\c<C-Space>', '<C-@>', 'g')})
++  return a:list + terminal
++endfunction
++
+ function! org_lsp#set_keys(scope) abort
+   let [keys, native] = s:keys_in(a:scope)
+   let buffer = a:scope ==# 'global' ? '' : '<buffer>'
+@@ -970,7 +1071,7 @@ function! org_lsp#set_keys(scope) abort
+   let all = flatten(values(copy(keys)))
+   for [name, list] in items(keys)
+     let command = s:command(name)
+-    for lhs in list
++    for lhs in s:with_terminal_keys(list)
+       let mapped = s:map_lhs(lhs)
+       call add(s:mapped, {'name': name, 'native': get(native, lhs, 0) ? lhs : '', 'lhs': lhs, 'buffer': empty(buffer) ? 0 : bufnr()})
+       let index = len(s:mapped) - 1
+@@ -1112,7 +1213,8 @@ function! s:columns_show(params) abort
+     let view.rows[line] = text
+   endfor
+   let s:columns[nr] = view
+-  let column = getbufvar(nr, 'org_lsp_column', 0)
++  " Where Emacs's cursor went, when the server says (a column moved).
++  let column = type(get(a:params, 'column', v:null)) == v:t_number ? a:params.column : getbufvar(nr, 'org_lsp_column', 0)
+   call setbufvar(nr, 'org_lsp_column', max([0, min([len(view.columns) - 1, column])]))
+   if first
+     call s:columns_attach(nr)
+@@ -1844,6 +1946,9 @@ function! org_lsp#show_document(params) abort
+   if keep_focus
+     call win_gotoid(from)
+   endif
++  " The status line follows the cursor, moved from a callback, as after
++  " Vim's own motions.
++  redrawstatus
+   return {'success': v:true}
+ endfunction
+ 
+@@ -2060,6 +2165,8 @@ function! org_lsp#handle_notification(method, params) abort
+     " client's callback: a capture an org-protocol URL started.
+     let Run = {-> org_lsp#run(a:params.command, {'argument': get(a:params, 'argument', {})})}
+     call timer_start(0, {-> Run()})
++  elseif a:method ==# 'org-lsp/message' && type(a:params) == v:t_dict
++    call s:say(get(a:params, 'message', ''), get(a:params, 'type', 3))
+   elseif a:method ==# 'org-lsp/viewChanged'
+     " The agenda's file is new: read it again, outside the client's
+     " callback.
+@@ -2416,8 +2523,10 @@ function! org_lsp#refold() abort
+   if first
+     " A closed fold shows its first line and `org-ellipsis`, nothing after.
+     setlocal foldtext=org_lsp#foldtext()
+-    if &l:fillchars !~# 'fold:' && &fillchars !~# 'fold:'
+-      let &l:fillchars = &fillchars . (empty(&fillchars) ? '' : ',') . 'fold: '
++    " Vim's own `fold:-` gives way; a character the user chose stays.
++    if &l:fillchars !~# 'fold:' && index(['', '-'], matchstr(&fillchars, 'fold:\zs.')) >= 0
++      let others = filter(split(&fillchars, ','), {_, item -> item !~# '^fold:'})
++      let &l:fillchars = join(others + ['fold: '], ',')
+     endif
+     if !exists('s:ellipsis')
+       let s:ellipsis = '...'
+@@ -2482,6 +2591,13 @@ function! org_lsp#cycle() abort
+   let integrate = v:false
+   if !empty(org_lsp#adapter()) && org_lsp#ready(bufnr())
+     let [nr, context] = s:cursor_context()
++    " On the blank that ends a line (a new `** `, left with <Esc>), TAB is
++    " at the end of the line, where Emacs's point is once it is typed: the
++    " level keeps cycling from there.
++    let text = getline('.')
++    if mode() ==# 'n' && col('.') == len(text) && text =~# '\s$'
++      let context.position.character = s:character(text, len(text))
++    endif
+     let answer = org_lsp#request_sync(nr, 'workspace/executeCommand', {'command': 'org.cycle', 'arguments': [context]}, 1000)
+     let result = get(answer, 'result', v:null)
+     if !empty(get(answer, 'error', {}))
+@@ -2644,7 +2760,7 @@ function! s:show_preview(win, position, error, result) abort
+     return s:warn(get(a:error, 'message', 'no entry to show'))
+   endif
+   if type(a:result) != v:t_dict
+-    echomsg 'org-lsp: No entry on this line'
++    echomsg 'Command not allowed in this line'
+     return
+   endif
+   " The cursor moved on while the server answered.
+diff --git a/editors/vim/autoload/org_lsp/adapter/coc.vim b/editors/vim/autoload/org_lsp/adapter/coc.vim
+index 49fb90c..57a6adf 100644
+--- a/editors/vim/autoload/org_lsp/adapter/coc.vim
++++ b/editors/vim/autoload/org_lsp/adapter/coc.vim
+@@ -11,7 +11,7 @@ function! org_lsp#adapter#coc#register(cmd, options, filetypes) abort
+         \ 'filetypes': a:filetypes,
+         \ 'initializationOptions': a:options,
+         \ })
+-  for method in ['org-lsp/save', 'org-lsp/clock', 'org-lsp/timer', 'org-lsp/virtualIndent', 'org-lsp/lineHighlights', 'org-lsp/viewChanged', 'org-lsp/columns', 'org-lsp/folds', 'org-lsp/runCommand']
++  for method in ['org-lsp/save', 'org-lsp/clock', 'org-lsp/timer', 'org-lsp/virtualIndent', 'org-lsp/lineHighlights', 'org-lsp/viewChanged', 'org-lsp/columns', 'org-lsp/folds', 'org-lsp/runCommand', 'org-lsp/message']
+     call CocRegisterNotification(s:name, method, function('org_lsp#handle_notification', [method]))
+   endfor
+ endfunction
+diff --git a/editors/vim/autoload/org_lsp/adapter/lsp.vim b/editors/vim/autoload/org_lsp/adapter/lsp.vim
+index 17a2f19..1dfc67d 100644
+--- a/editors/vim/autoload/org_lsp/adapter/lsp.vim
++++ b/editors/vim/autoload/org_lsp/adapter/lsp.vim
+@@ -22,6 +22,7 @@ function! org_lsp#adapter#lsp#register(cmd, options, filetypes) abort
+         \   'org-lsp/columns': function('s:notification'),
+         \   'org-lsp/folds': function('s:notification'),
+         \   'org-lsp/runCommand': function('s:notification'),
++        \   'org-lsp/message': function('s:notification'),
+         \ },
+         \ }])
+ endfunction
+@@ -70,3 +71,12 @@ function! org_lsp#adapter#lsp#flush(bufnr) abort
+     call listener_flush(a:bufnr)
+   endif
+ endfunction
++
++" Show the inlay hints of buffer `bufnr` again: yegappan/lsp asks for them
++" after a change of the text, not when the server has new ones (the
++" clock's times, shrunk columns), as it announces no `refreshSupport`.
++function! org_lsp#adapter#lsp#inlay_hints(bufnr) abort
++  if get(g:LspOptionsGet(), 'showInlayHints', v:false) && a:bufnr == bufnr()
++    call lsp#inlayhints#LspInlayHintsUpdateNow(a:bufnr)
++  endif
++endfunction
+diff --git a/editors/vim/autoload/org_lsp/adapter/vim_lsp.vim b/editors/vim/autoload/org_lsp/adapter/vim_lsp.vim
+index 3344291..d1a76fd 100644
+--- a/editors/vim/autoload/org_lsp/adapter/vim_lsp.vim
++++ b/editors/vim/autoload/org_lsp/adapter/vim_lsp.vim
+@@ -80,3 +80,39 @@ function! org_lsp#adapter#vim_lsp#flush(bufnr) abort
+     call lsp#ensure_flush_all(a:bufnr, [s:name])
+   endif
+ endfunction
++
++" Tell the server the text of buffer `bufnr`, read again from its file:
++" vim-lsp hears of changes from Vim's listener, which a buffer read again
++" does not call. Told of more than one change, its listener sends the
++" whole text, with vim-lsp's own version.
++function! org_lsp#adapter#vim_lsp#reread(bufnr) abort
++  if lsp#get_server_status(s:name) !=# 'running' || !lsp#internal#listener#is_enabled()
++    return
++  endif
++  let scripts = getscriptinfo({'name': 'autoload/lsp/internal/listener\.vim$'})
++  if empty(scripts)
++    return
++  endif
++  let OnChange = function('<SNR>' . scripts[0].sid . '_on_change')
++  let whole = {'lnum': 1, 'end': 1, 'added': 0}
++  call OnChange(a:bufnr, 1, 1, 0, [whole, whole])
++  call lsp#ensure_flush_all(a:bufnr, [s:name])
++endfunction
++
++" Show the inlay hints of the current buffer again: vim-lsp asks for them
++" when the cursor moves, not when the server has new ones (the clock's
++" times, shrunk columns), and its server never tells it.
++function! org_lsp#adapter#vim_lsp#inlay_hints(bufnr) abort
++  if !get(g:, 'lsp_inlay_hints_enabled', 0) || a:bufnr != bufnr()
++    return
++  endif
++  let scripts = getscriptinfo({'name': 'autoload/lsp/internal/inlay_hints\.vim$'})
++  if empty(scripts)
++    return
++  endif
++  let prefix = '<SNR>' . scripts[0].sid . '_'
++  call lsp#callbag#pipe(
++        \ call(prefix . 'send_inlay_hints_request', []),
++        \ lsp#callbag#subscribe({'next': function(prefix . 'set_inlay_hints')}),
++        \ )
++endfunction
+diff --git a/editors/vim/plugin/org_lsp.vim b/editors/vim/plugin/org_lsp.vim
+index 222d9de..c7a79ad 100644
+--- a/editors/vim/plugin/org_lsp.vim
++++ b/editors/vim/plugin/org_lsp.vim
+@@ -5,12 +5,14 @@ if exists('g:loaded_org_lsp') || !has('patch-9.0.1485')
+ endif
+ let g:loaded_org_lsp = 1
+ 
+-command! -nargs=* -complete=customlist,org_lsp#complete Org call org_lsp#user_command(<f-args>)
++command! -nargs=* -range -complete=customlist,org_lsp#complete Org call org_lsp#org_command(<range>, <line1>, <line2>, <f-args>)
+ command! OrgLspDownload call org_lsp#download()
+ 
+ augroup org_lsp
+   autocmd!
+   autocmd FileType org,org-agenda,org-date call org_lsp#attach()
++  " An Org buffer read again from its file (`:e!`, 'autoread').
++  autocmd BufReadPost * if getbufvar(str2nr(expand('<abuf>')), 'org_lsp_attached', 0) | call org_lsp#reread(str2nr(expand('<abuf>'))) | endif
+   autocmd ColorScheme * call org_lsp#define_highlights()
+   " A client maps keys of its own (yegappan/lsp's `<CR>`) when it attaches.
+   autocmd User LspAttached,lsp_buffer_enabled call org_lsp#remap_insert_keys(bufnr())
+diff --git a/editors/vim/test/scenarios.vim b/editors/vim/test/scenarios.vim
+index 7125173..a768e60 100644
+--- a/editors/vim/test/scenarios.vim
++++ b/editors/vim/test/scenarios.vim
+@@ -105,12 +105,11 @@ function! s:until(what, Probe, ...) abort
+ endfunction
+ 
+ " What the server said, as the user sees it: the messages since they were
+-" last looked at, without the plugin's `org-lsp: ` before its warnings.
++" last looked at.
+ function! s:messages() abort
+   " Not Vim's own about the files it reads (`"Agenda.org-agenda" 3L, 70B`),
+   " nor coc.nvim's about the files it edits.
+-  let lines = filter(split(execute('messages'), "\n"), {_, line -> line !~# '^".*" .*\d\+L, \d\+B$' && line !~# '^\[coc\.nvim\] '})
+-  return map(lines, {_, line -> substitute(line, '^org-lsp: ', '', '')})
++  return filter(split(execute('messages'), "\n"), {_, line -> line !~# '^".*" .*\d\+L, \d\+B$' && line !~# '^\[coc\.nvim\] '})
+ endfunction
+ 
+ " A buffer the server knows, to ask it through.
+diff --git a/editors/vim/test/test.vim b/editors/vim/test/test.vim
+index aa2032c..0dfccff 100644
+--- a/editors/vim/test/test.vim
++++ b/editors/vim/test/test.vim
+@@ -977,6 +977,95 @@ function! s:journal() abort
+ endfunction
+ call s:test('org-journal makes an entry in a file without the extension', function('s:journal'))
+ 
++" Text a command asks for is typed with `input()` (the tests answer the
++" others): completed from the list, the default there, <Esc> no answer.
++" Prompts that are Emacs's own words show as they are, titles with `: `.
++function! s:typed_answers() abort
++  call assert_equal('Owner: ', org_lsp#prompt_text('Owner'))
++  call assert_equal('Execute this? ', org_lsp#prompt_text('Execute this? '))
++  call assert_equal('Tags :work: ', org_lsp#prompt_text('Tags :work:'))
++  call feedkeys("al\<Tab>\<CR>", 't')
++  call assert_equal('alpha', org_lsp#read_text({'prompt': 'Owner', 'value': '', 'completions': ['alpha', 'beta']}))
++  call feedkeys("\<CR>", 't')
++  call assert_equal('1:00', org_lsp#read_text({'prompt': 'Effort', 'value': '1:00'}))
++  call feedkeys("x\<Esc>", 't')
++  call assert_equal(v:null, org_lsp#read_text({'prompt': 'Owner', 'value': ''}))
++  call assert_equal('', maparg('<Esc>', 'c'), 'the mapping for <Esc> gone')
++endfunction
++call s:test('reads typed answers with completion, and <Esc> cancels', function('s:typed_answers'))
++
++" The server's messages come as `org-lsp/message`, which the plugin shows
++" as they are, whatever the client; Emacs's questions are asked by the
++" plugin too.
++function! s:messages() abort
++  call assert_true(org_lsp#init_options().message_notifications, 'messages as notifications')
++  call assert_false(org_lsp#init_options().message_requests, 'no message requests')
++  " (The tests run silent, which keeps messages out of the history.)
++  unsilent call org_lsp#handle_notification('org-lsp/message', {'type': 3, 'message': 'Sum of 2 items: 5'})
++  call assert_equal('Sum of 2 items: 5', split(execute('messages'), "\n")[-1])
++endfunction
++call s:test("shows the server's messages as they are", function('s:messages'))
++
++" TAB at the end of a new, empty headline cycles its level, again and again
++" (`org-cycle-level`), from the blank the cursor is on in Normal mode.
++function! s:cycle_level() abort
++  let file = s:work . '/notes/level.org'
++  call writefile(['* A', '** '], file)
++  execute 'edit' fnameescape(file)
++  call s:until('the server', {-> org_lsp#ready(bufnr())})
++  call cursor(2, 3)
++  call org_lsp#cycle()
++  call s:until('a level up', {-> getline(2) ==# '* '})
++  call org_lsp#cycle()
++  call s:until('a level down again', {-> getline(2) ==# '** '})
++  silent! write
++  execute 'buffer' s:work_buf
++endfunction
++call s:test('TAB on a new headline cycles its level', function('s:cycle_level'))
++
++" `:Org` takes a range, as a selection of whole lines: `:2,3Org meta right`
++" demotes both headlines. `:Org agenda <Tab>` completes the next word.
++function! s:org_range() abort
++  let file = s:work . '/notes/range.org'
++  call writefile(['* C', '* D', '* E'], file)
++  execute 'edit' fnameescape(file)
++  call s:until('the server', {-> org_lsp#ready(bufnr())})
++  2,3Org meta right
++  call s:until('both demoted', {-> getline(1, '$') == ['* C', '** D', '** E']})
++  let words = org_lsp#complete('', 'Org agenda ', 11)
++  call assert_true(index(words, 'list') >= 0 && index(words, 'dispatch') >= 0, string(words))
++  call assert_equal(['list'], org_lsp#complete('li', 'Org agenda li', 13))
++  silent! write
++  execute 'buffer' s:work_buf
++endfunction
++call s:test(':Org takes a range and completes word by word', function('s:org_range'))
++
++" A closed fold's line has blanks after its text, not Vim's dashes, and
++" CTRL-Space works in a terminal, which sends it as NUL.
++function! s:terminal_keys() abort
++  call assert_match('fold: ', &l:fillchars)
++  call assert_notmatch('fold:-', &l:fillchars)
++  call assert_match('^org_lsp#repeatable', maparg('<C-@>', 'n'))
++  call assert_notequal('', maparg('<C-@>', 'n'))
++endfunction
++call s:test('fills folds with blanks and binds CTRL-Space as NUL', function('s:terminal_keys'))
++
++" A buffer read again from its file (`:e!`) is what the server has after.
++function! s:reread() abort
++  let file = s:work . '/notes/reread.org'
++  call writefile(['* One'], file)
++  execute 'edit' fnameescape(file)
++  call s:until('the server', {-> org_lsp#ready(bufnr())})
++  call writefile(['* One', '* Two'], file)
++  edit!
++  let nr = bufnr()
++  let Names = {-> map(copy(get(org_lsp#request_sync(nr, 'textDocument/documentSymbol',
++        \ {'textDocument': {'uri': org_lsp#uri(nr)}}, 2000), 'result', [])), 'v:val.name')}
++  call s:until('the new heading in the server', {-> Names() == ['One', 'Two']})
++  execute 'buffer' s:work_buf
++endfunction
++call s:test('a buffer read again is told to the server', function('s:reread'))
++
+ for error in v:errors
+   call add(s:results, 'not ok - ' . error)
+ endfor
+diff --git a/editors/vscode/src/extension.ts b/editors/vscode/src/extension.ts
+index 08984fe..2e77731 100644
+--- a/editors/vscode/src/extension.ts
++++ b/editors/vscode/src/extension.ts
+@@ -887,6 +887,8 @@ interface ColumnsShown {
+   columns?: { key: string; title: string; width: number }[];
+   /** Each headline's line, the text it shows, its values; null when off. */
+   lines: [number, string, string[]][] | null;
++  /** The column Emacs's cursor went to, after a command that moves it. */
++  column?: number;
+ }
+ 
+ const columnsShown = new Map<string, ColumnsShown>();
+@@ -953,7 +955,8 @@ function showColumns(params: ColumnsShown): void {
+   if (params.lines) {
+     columnsShown.set(params.uri, params);
+     const count = params.columns?.length ?? 1;
+-    columnsPicked.set(params.uri, Math.min(columnsPicked.get(params.uri) ?? 0, count - 1));
++    const picked = params.column ?? columnsPicked.get(params.uri) ?? 0;
++    columnsPicked.set(params.uri, Math.max(0, Math.min(picked, count - 1)));
+   } else {
+     columnsShown.delete(params.uri);
+   }
+diff --git a/lua/org-lsp/columns.lua b/lua/org-lsp/columns.lua
+index 1d9f6cf..34958c5 100644
+--- a/lua/org-lsp/columns.lua
++++ b/lua/org-lsp/columns.lua
+@@ -190,7 +190,9 @@ function M.show(params)
+     view.rows[line[1]] = { text = line[2], values = line[3] }
+   end
+   shown[bufnr] = view
+-  vim.b[bufnr].org_lsp_column = math.max(0, math.min(#view.columns - 1, M.column(bufnr)))
++  -- Where Emacs's cursor went, when the server says (a column moved).
++  local column = type(params.column) == 'number' and params.column or M.column(bufnr)
++  vim.b[bufnr].org_lsp_column = math.max(0, math.min(#view.columns - 1, column))
+   if first then
+     attach(bufnr)
+   end
+diff --git a/lua/org-lsp/folds.lua b/lua/org-lsp/folds.lua
+index 9eaad86..4632e38 100644
+--- a/lua/org-lsp/folds.lua
++++ b/lua/org-lsp/folds.lua
+@@ -56,6 +56,14 @@ local function before_folding(bufnr)
+     return {}
+   end
+   local context = vim.lsp.util.make_position_params(0, client.offset_encoding)
++  -- On the blank that ends a line (a new `** `, left with <Esc>), TAB is
++  -- at the end of the line, where Emacs's point is once it is typed: the
++  -- level keeps cycling from there.
++  local text = vim.api.nvim_get_current_line()
++  local column = vim.api.nvim_win_get_cursor(0)[2]
++  if vim.api.nvim_get_mode().mode == 'n' and column == #text - 1 and text:sub(-1):match('%s') then
++    context.position.character = vim.str_utfindex(text, client.offset_encoding, #text, false)
++  end
+   local params = { command = 'org.cycle', arguments = { context } }
+   local response = client:request_sync('workspace/executeCommand', params, 1000, bufnr)
+   if not response then
+diff --git a/lua/org-lsp/init.lua b/lua/org-lsp/init.lua
+index e6e6bf9..560640b 100644
+--- a/lua/org-lsp/init.lua
++++ b/lua/org-lsp/init.lua
+@@ -30,7 +30,7 @@ local SERVER = 'org_lsp'
+ ---@field folding? boolean Whether to fold with the server's folding ranges.
+ ---@field replace_syntax? boolean Whether to turn off Vim's regex syntax once semantic tokens arrive.
+ ---@field src_highlight? boolean Whether the code of source and export blocks and of inline source blocks (`#+begin_src python`, `src_python{…}`) is highlighted by the tree-sitter parser of its language, or its Vim syntax file when there is no parser, as Emacs's `org-src-fontify-natively` shows it.
+----@field conceal? boolean Whether to conceal what the server marks hidden (link brackets and targets; emphasis markers with `org_hide_emphasis_markers`), with 'conceallevel' 2 in Org windows.
++---@field conceal? boolean Whether to conceal what the server marks hidden (link brackets and targets; emphasis markers with `org_hide_emphasis_markers`), with 'conceallevel' 2 in Org windows (a level set already, as by a `FileType` autocommand, stays).
+ ---@field indent? boolean Whether the server indents as Org does: new lines through 'indentexpr' (`org-indent-line`), and `=` (`org-indent-region`), following `org_adapt_indentation`.
+ ---@field virtual_indent? boolean Whether files with `org-indent-mode` (`org_startup_indented`, `#+STARTUP: indent`) show indented by level, without being changed, and with hidden leading stars (`org_hide_leading_stars`, `#+STARTUP: hidestars`).
+ ---@field win_split_mode? 'split'|'vsplit'|'float'|'current'|string|fun(bufnr: integer): integer? How the agenda and capture buffers open: 'split', 'vsplit', 'float', 'current', another Ex command that opens a window ('botright split', 'tabnew'), or a function that opens a window for the buffer and returns it.
+@@ -209,9 +209,13 @@ function M.run(name, opts)
+   local count = opts.count and opts.count > 0 and opts.count or nil
+   -- The register the key was typed with (`"a`), as `y` and `p` take it.
+   local register = vim.v.register
+-  -- In Visual mode, the selection: the region the command works on.
++  -- In Visual mode, the selection: the region the command works on; the
++  -- lines of a range given to `:Org`.
+   local selection = opts.region and M.selection() or nil
+-  if selection then
++  if opts.lines then
++    selection = { start = { opts.lines[1] - 1, 0 }, ['end'] = { opts.lines[2], 0 }, cursor_at_end = false }
++  end
++  if selection and not opts.lines then
+     vim.api.nvim_feedkeys(vim.keycode('<Esc>'), 'nx', false)
+   end
+   with_client(function(client)
+@@ -224,7 +228,7 @@ function M.run(name, opts)
+     if selection then
+       local function position(at)
+         local line = vim.api.nvim_buf_get_lines(0, at[1], at[1] + 1, false)[1] or ''
+-        local character = at[2] > 0 and vim.lsp.util.character_offset(0, at[1], math.min(at[2], #line), client.offset_encoding) or 0
++        local character = at[2] > 0 and vim.str_utfindex(line, client.offset_encoding, math.min(at[2], #line), false) or 0
+         return { line = at[1], character = character }
+       end
+       context.range = { start = position(selection.start), ['end'] = position(selection['end']) }
+@@ -261,13 +265,32 @@ function M.run(name, opts)
+     end
+     local command = { title = name, command = name, arguments = { context } }
+     local bufnr = vim.api.nvim_get_current_buf()
++    --- Run `command`. With keys typed ahead (a mapping or a macro that
++    --- goes on after the command's key), the answer is waited for, so that
++    --- those keys answer what it asks (`<Leader>oaa`) or go where it leaves
++    --- the cursor, as Emacs reads the next key only once the command is
++    --- done. (An `<Esc>` alone, which ends what a mapping started, is not
++    --- an answer.)
++    local function exec(command, callback)
++      local ahead = vim.fn.getchar(1)
++      if ahead == 0 or ahead == 27 then
++        return client:exec_cmd(command, { bufnr = bufnr }, callback)
++      end
++      local params = { command = command.command, arguments = command.arguments }
++      local response, err = client:request_sync('workspace/executeCommand', params, 10000, bufnr)
++      if not response then
++        return callback({ message = tostring(err) }, nil)
++      end
++      callback(response.err, response.result)
++    end
+     local function handle(err, result)
+       if err then
+         if opts.key and type(err.data) == 'table' and err.data.notApplicable then
+           -- Not an Org matter here: the key does what it does elsewhere.
+           vim.api.nvim_feedkeys((count or '') .. vim.keycode(opts.key), 'n', false)
+         else
+-          notify('org-lsp: ' .. tostring(err.message), vim.log.levels.WARN)
++          -- Emacs's text, as its echo area shows a `user-error`.
++          notify(tostring(err.message), vim.log.levels.WARN)
+         end
+         return
+       end
+@@ -323,18 +346,23 @@ function M.run(name, opts)
+               context[key] = value
+             end
+             context.input = answer
+-            client:exec_cmd(command, { bufnr = bufnr }, handle)
++            exec(command, handle)
+           end
+         end
+         if input.kind == 'key' then
+           return answered(M.read_key(input.prompt, input.choices, input.expert))
+         end
++        -- A priority is one key, as `org-priority` reads it: a letter, or
++        -- SPC to remove it.
++        if input.kind == 'priority' then
++          return answered(M.read_key(input.prompt))
++        end
+         if input.choices then
+           -- One of a list, such as the targets of a refile.
+           local format = function(choice)
+             return choice.label
+           end
+-          return vim.ui.select(input.choices, { prompt = input.prompt .. ': ', format_item = format }, function(choice)
++          return vim.ui.select(input.choices, { prompt = M.prompt_text(input.prompt), format_item = format }, function(choice)
+             answered(choice and choice.key)
+           end)
+         end
+@@ -346,7 +374,26 @@ function M.run(name, opts)
+           M.completion_separator = input.separator
+           completion = 'customlist,v:lua.OrgLspCompleteInput'
+         end
+-        vim.ui.input({ prompt = input.prompt .. ': ', default = input.value, completion = completion }, function(answer)
++        -- What a date typed so far means, shown as it is typed, as
++        -- `org-read-date` shows it in the minibuffer: the server writes it
++        -- on the calendar's last line.
++        local previewing
++        if input.kind == 'date' then
++          previewing = vim.api.nvim_create_autocmd('CmdlineChanged', {
++            group = vim.api.nvim_create_augroup('org_lsp_date_preview', { clear = true }),
++            callback = function()
++              local arguments = vim.tbl_extend('force', context, { command = name, input = vim.fn.getcmdline() })
++              local params = { command = 'org.date.preview', arguments = { arguments } }
++              client:request('workspace/executeCommand', params, function()
++                vim.cmd.redraw()
++              end, bufnr)
++            end,
++          })
++        end
++        vim.ui.input({ prompt = M.prompt_text(input.prompt), default = input.value, completion = completion }, function(answer)
++          if previewing then
++            pcall(vim.api.nvim_del_autocmd, previewing)
++          end
+           -- An input that runs in insert mode may leave it behind in the
+           -- calendar it was asked from, which is never typed into.
+           vim.schedule(function()
+@@ -359,10 +406,21 @@ function M.run(name, opts)
+         end)
+       end
+     end
+-    client:exec_cmd(command, { bufnr = bufnr }, handle)
++    exec(command, handle)
+   end)
+ end
+ 
++--- A prompt as it is shown: Emacs's own words (`Execute this? `, ending in
++--- a space) as they are, a title (`Select a TODO state`) followed by `: `.
++---@param prompt string
++---@return string
++function M.prompt_text(prompt)
++  if prompt:match('%s$') then
++    return prompt
++  end
++  return prompt .. (prompt:match('[:?]$') and ' ' or ': ')
++end
++
+ --- The completions of the text a command asks for, beginning with what is
+ --- typed, without regard to case.
+ ---@param lead string
+@@ -551,7 +609,7 @@ function M.read_key(prompt, choices, expert)
+   -- `expert` (`org-use-fast-todo-selection`): the keys are in the prompt,
+   -- which shows alone, as Emacs's message does.
+   local win = not expert and choices and #choices > 0 and show_choices(prompt, choices) or nil
+-  vim.api.nvim_echo({ { expert and prompt or prompt .. ': ' } }, false, {})
++  vim.api.nvim_echo({ { expert and prompt or M.prompt_text(prompt) } }, false, {})
+   vim.cmd.redraw()
+   local ok, key = pcall(vim.fn.getcharstr)
+   vim.api.nvim_echo({ { '' } }, false, {})
+@@ -1096,8 +1154,11 @@ local function conceal(bufnr)
+       })
+     end,
+   })
++  -- A level of the user's own (a `FileType` autocommand's) stays.
+   local function set_window(win)
+-    vim.wo[win][0].conceallevel = 2
++    if vim.wo[win][0].conceallevel == 0 then
++      vim.wo[win][0].conceallevel = 2
++    end
+   end
+   for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
+     set_window(win)
+@@ -1303,26 +1364,42 @@ local function build()
+ end
+ 
+ --- `:Org agenda list` runs `org.agenda.list`. A group of commands stands
+---- for its dispatcher: `:Org agenda` runs `org.agenda.dispatch`.
++--- for its dispatcher: `:Org agenda` runs `org.agenda.dispatch`. With a
++--- range (`:'<,'>Org toggle heading`), its lines are the region.
+ ---@param words string[]
+-local function user_command(words)
++---@param range? integer[] the first and last line
++local function user_command(words, range)
+   local id = 'org.' .. table.concat(#words > 0 and words or { 'agenda' }, '.')
+   with_client(function()
+-    M.run(server_command(id) and id or id .. '.dispatch')
++    if not server_command(id) and server_command(id .. '.dispatch') then
++      id = id .. '.dispatch'
++    end
++    M.run(id, { lines = range })
+   end)
+ end
+ 
+----@param lead string what has been typed of the argument
++--- The next word of `:Org`'s command after those typed: `:Org agenda <Tab>`
++--- offers `list`, `todos`, `dispatch`, ….
++---@param lead string what has been typed of the word
++---@param line string the command line
++---@param pos integer where the cursor is in it
+ ---@return string[]
+-local function complete_user_command(lead)
+-  local names = {}
++local function complete_user_command(lead, line, pos)
++  local typed = line:sub(1, pos - #lead):gsub('^%s*%S+', '', 1)
++  local before = vim.split(vim.trim(typed), '%s+', { trimempty = true })
++  local prefix = table.concat(vim.list_extend({ 'org' }, before), '.') .. '.'
++  local words, seen = {}, {}
+   for _, command in ipairs(M.manifest and M.manifest.commands or {}) do
+-    local name = command.command:gsub('^org%.', '')
+-    if name:sub(1, #lead) == lead then
+-      table.insert(names, name)
++    if vim.startswith(command.command, prefix) then
++      local word = command.command:sub(#prefix + 1):match('^[^.]+')
++      if word and vim.startswith(word, lead) and not seen[word] then
++        seen[word] = true
++        table.insert(words, word)
++      end
+     end
+   end
+-  return names
++  table.sort(words)
++  return words
+ end
+ 
+ local started = false
+@@ -1371,8 +1448,8 @@ function M.start()
+   vim.api.nvim_create_user_command('OrgLspBuild', build, { desc = 'Build the org-lsp server with cargo' })
+   vim.api.nvim_create_user_command('OrgLspDownload', download, { desc = 'Download the org-lsp server' })
+   vim.api.nvim_create_user_command('Org', function(opts)
+-    user_command(opts.fargs)
+-  end, { nargs = '*', complete = complete_user_command, desc = 'Run an Org command' })
++    user_command(opts.fargs, opts.range > 0 and { opts.line1, opts.line2 } or nil)
++  end, { nargs = '*', range = true, complete = complete_user_command, desc = 'Run an Org command' })
+   set_keys('global')
+   if not enable() then
+     vim.api.nvim_create_autocmd('FileType', {
+diff --git a/lua/org-lsp/preview.lua b/lua/org-lsp/preview.lua
+index de85fba..8da0c4e 100644
+--- a/lua/org-lsp/preview.lua
++++ b/lua/org-lsp/preview.lua
+@@ -100,7 +100,7 @@ function M.show()
+   client:request('textDocument/hover', params, function(err, result)
+     local contents = type(result) == 'table' and result.contents or nil
+     if err or type(contents) ~= 'table' or type(contents.value) ~= 'string' then
+-      return notify('org-lsp: No entry on this line', vim.log.levels.INFO)
++      return notify('Command not allowed in this line', vim.log.levels.INFO)
+     end
+     -- The cursor moved on while the server answered.
+     if vim.api.nvim_get_current_win() ~= from or not vim.deep_equal(vim.api.nvim_win_get_cursor(from), cursor) then
+diff --git a/lua/org-lsp/view.lua b/lua/org-lsp/view.lua
+index 2b7ed04..25cbd84 100644
+--- a/lua/org-lsp/view.lua
++++ b/lua/org-lsp/view.lua
+@@ -199,7 +199,9 @@ local function open_window(bufnr, mode, cursor)
+   else
+     vim.cmd(mode)
+     win = vim.api.nvim_get_current_win()
+-    if size then
++    -- The only window of a new tab (`tabnew`) has no size to set: its
++    -- lines would go to the command line.
++    if size and #vim.api.nvim_tabpage_list_wins(0) > 1 then
+       -- `vsplit`, `vnew`, `vertical …`: the width; else the height.
+       if mode:match('^%s*%S*%s*v') or mode:match('vert') then
+         vim.api.nvim_win_set_width(win, sized(vim.o.columns))
+@@ -701,6 +703,87 @@ local function at_last_line(uri, edits, client_id)
+   end
+ end
+ 
++--- Show a document the server asks for: the agenda, or the file of an
++--- entry. Neovim's own handler fails when the cursor is on an empty line
++--- (it asks for the word under the cursor), so this one does the same
++--- without it.
++local function show_document(err, params, ctx)
++  local client = vim.lsp.get_client_by_id(ctx.client_id)
++  if params.external or not client then
++    return vim.lsp.handlers['window/showDocument'](err, params, ctx)
++  end
++  local bufnr = vim.uri_to_bufnr(params.uri)
++  local win
++  local from = vim.api.nvim_get_current_win()
++  if documents.datePrompt and params.uri == documents.datePrompt.uri then
++    win = prompt_window(bufnr)
++  elseif is_roam_buffer(params.uri) then
++    -- The org-roam buffer beside the file, as Emacs shows it in a window
++    -- of its own; gone with its window, which tells the server.
++    win = vim.fn.win_findbuf(bufnr)[1]
++    if not win then
++      vim.bo[bufnr].bufhidden = 'wipe'
++      win = open_window(bufnr, 'botright vsplit')
++    end
++    if params.takeFocus == false and vim.api.nvim_win_is_valid(from) then
++      vim.api.nvim_set_current_win(from)
++    end
++  elseif opens_apart(params.uri) then
++    -- The agenda and capture buffers open as `win_split_mode` says, or
++    -- in the window that already shows them.
++    win = vim.fn.win_findbuf(bufnr)[1]
++    if not win then
++      vim.bo[bufnr].buflisted = true
++      win = open_window(bufnr, require('org-lsp').config.win_split_mode or 'split', is_capture(params.uri))
++    end
++  elseif params.orgOtherWindow and not is_float(vim.api.nvim_get_current_win()) then
++    -- An entry's file in another window (TAB in the agenda, and follow
++    -- mode, which keeps the cursor in the agenda).
++    if params.takeFocus ~= false then
++      vim.cmd("normal! m'")
++    end
++    win = other_window(vim.api.nvim_get_current_win(), bufnr)
++    vim.bo[bufnr].buflisted = true
++    vim.api.nvim_win_set_buf(win, bufnr)
++  else
++    -- A file, such as an entry's from the agenda. From a floating
++    -- window, it opens in the window under it.
++    local current = vim.api.nvim_get_current_win()
++    if is_float(current) and #vim.api.nvim_list_wins() > 1 then
++      vim.api.nvim_win_close(current, false)
++    end
++    vim.cmd("normal! m'")
++    win = vim.fn.win_findbuf(bufnr)[1] or vim.api.nvim_get_current_win()
++    -- Not in the org-roam buffer's window, which stays beside the file, as
++    -- `org-roam-preview-visit` shows the file in the other window.
++    if win == current and is_roam_buffer(vim.uri_from_bufnr(vim.api.nvim_win_get_buf(current))) then
++      win = other_window(current, bufnr)
++    end
++    vim.bo[bufnr].buflisted = true
++    vim.api.nvim_win_set_buf(win, bufnr)
++  end
++  if params.takeFocus ~= false then
++    vim.api.nvim_set_current_win(win)
++  end
++  local start = params.selection and params.selection.start
++  if start then
++    local text = vim.api.nvim_buf_get_lines(bufnr, start.line, start.line + 1, false)[1] or ''
++    local column = vim.str_byteindex(text, client.offset_encoding, start.character, false)
++    pcall(vim.api.nvim_win_set_cursor, win, { start.line + 1, column })
++    if params.orgOtherWindow then
++      -- The entry unfolded, as `org-agenda-show` shows its context.
++      vim.api.nvim_win_call(win, function()
++        vim.cmd('normal! zv')
++      end)
++    end
++    -- A capture buffer is for typing in, from where `%?` was.
++    if is_capture(params.uri) and vim.api.nvim_get_current_win() == win then
++      vim.cmd(column >= #text and 'startinsert!' or 'startinsert')
++    end
++  end
++  return { success = true }
++end
++
+ M.handlers = {
+   --- A message of the server, titled `Org`. Neovim's own handler sends it
+   --- without a title, as `LSP[org-lsp] …`.
+@@ -735,80 +818,20 @@ M.handlers = {
+     return result
+   end,
+ 
+-  --- The server asks for a document to be shown: the agenda, or the file
+-  --- of an entry. Neovim's own handler fails when the cursor is on an empty
+-  --- line (it asks for the word under the cursor), so this one does the
+-  --- same without it.
++  --- The server asks for a document to be shown.
+   ['window/showDocument'] = function(err, params, ctx)
+-    local client = vim.lsp.get_client_by_id(ctx.client_id)
+-    if params.external or not client then
+-      return vim.lsp.handlers['window/showDocument'](err, params, ctx)
+-    end
+-    local bufnr = vim.uri_to_bufnr(params.uri)
+-    local win
+-    local from = vim.api.nvim_get_current_win()
+-    if documents.datePrompt and params.uri == documents.datePrompt.uri then
+-      win = prompt_window(bufnr)
+-    elseif is_roam_buffer(params.uri) then
+-      -- The org-roam buffer beside the file, as Emacs shows it in a window
+-      -- of its own; gone with its window, which tells the server.
+-      win = vim.fn.win_findbuf(bufnr)[1]
+-      if not win then
+-        vim.bo[bufnr].bufhidden = 'wipe'
+-        win = open_window(bufnr, 'botright vsplit')
+-      end
+-      if params.takeFocus == false and vim.api.nvim_win_is_valid(from) then
+-        vim.api.nvim_set_current_win(from)
+-      end
+-    elseif opens_apart(params.uri) then
+-      -- The agenda and capture buffers open as `win_split_mode` says, or
+-      -- in the window that already shows them.
+-      win = vim.fn.win_findbuf(bufnr)[1]
+-      if not win then
+-        vim.bo[bufnr].buflisted = true
+-        win = open_window(bufnr, require('org-lsp').config.win_split_mode or 'split', is_capture(params.uri))
+-      end
+-    elseif params.orgOtherWindow and not is_float(vim.api.nvim_get_current_win()) then
+-      -- An entry's file in another window (TAB in the agenda, and follow
+-      -- mode, which keeps the cursor in the agenda).
+-      if params.takeFocus ~= false then
+-        vim.cmd("normal! m'")
+-      end
+-      win = other_window(vim.api.nvim_get_current_win(), bufnr)
+-      vim.bo[bufnr].buflisted = true
+-      vim.api.nvim_win_set_buf(win, bufnr)
+-    else
+-      -- A file, such as an entry's from the agenda. From a floating
+-      -- window, it opens in the window under it.
+-      local current = vim.api.nvim_get_current_win()
+-      if is_float(current) and #vim.api.nvim_list_wins() > 1 then
+-        vim.api.nvim_win_close(current, false)
+-      end
+-      vim.cmd("normal! m'")
+-      win = vim.fn.win_findbuf(bufnr)[1] or vim.api.nvim_get_current_win()
+-      vim.bo[bufnr].buflisted = true
+-      vim.api.nvim_win_set_buf(win, bufnr)
+-    end
+-    if params.takeFocus ~= false then
+-      vim.api.nvim_set_current_win(win)
+-    end
+-    local start = params.selection and params.selection.start
+-    if start then
+-      local text = vim.api.nvim_buf_get_lines(bufnr, start.line, start.line + 1, false)[1] or ''
+-      local column = vim.str_byteindex(text, client.offset_encoding, start.character, false)
+-      pcall(vim.api.nvim_win_set_cursor, win, { start.line + 1, column })
+-      if params.orgOtherWindow then
+-        -- The entry unfolded, as `org-agenda-show` shows its context.
+-        vim.api.nvim_win_call(win, function()
+-          vim.cmd('normal! zv')
+-        end)
+-      end
+-      -- A capture buffer is for typing in, from where `%?` was.
+-      if is_capture(params.uri) and vim.api.nvim_get_current_win() == win then
+-        vim.cmd(column >= #text and 'startinsert!' or 'startinsert')
+-      end
++    -- Asked while text may not change (an 'indentexpr' that waits for the
++    -- server), the document is shown once that is over.
++    local ok, result = pcall(show_document, err, params, ctx)
++    if ok then
++      return result
++    elseif tostring(result):find('E565') then
++      vim.schedule(function()
++        show_document(err, params, ctx)
++      end)
++      return { success = true }
+     end
+-    return { success = true }
++    error(result, 0)
+   end,
+ 
+   --- The server made changes to files the user is not editing (from the
+diff --git a/scripts/features.mjs b/scripts/features.mjs
+index a862bd9..90500e1 100644
+--- a/scripts/features.mjs
++++ b/scripts/features.mjs
+@@ -281,7 +281,7 @@ export const AREAS = [
+       helix: ['part', `\`RET\` stays Helix's own; cycled bullets and lines turned into items are left out: ${NO_KEY_HELIX}, and those are not among them. New items are code actions.`],
+     },
+     checks: [
+-      { text: 'On an item, the next item goes below; in a numbered list the numbers go on, after a checkbox item the new one has `[ ]`', cmd: 'org.meta.return' },
++      { text: 'On an item, the next item goes below; in a numbered list the numbers go on; after a checkbox item the new one has none, as in Emacs (`[ ]` comes with `org.insert.todo.heading`, M-S-RET)', cmd: 'org.meta.return' },
+       { text: '`RET` in the middle of an item\'s line keeps the rest of the line in the item', cmd: 'org.return', not: ['zed', 'helix'] },
+       { text: 'The next item from the end of an item\'s line', cmd: 'org.return.item', only: ['neovim', 'vim'] },
+       { text: 'Indenting and outdenting an item; and with its children', cmd: ['org.meta.right', 'org.meta.left', 'org.shiftmeta.right', 'org.shiftmeta.left'] },
+@@ -314,7 +314,7 @@ export const AREAS = [
+     editors: {
+       sublime: ['part', 'Faces of particular keywords and priorities are not shown in the file: Sublime Text colors text by its color scheme only. The list of TODO states shows them in the color of each item\'s kind, the nearest of those Sublime Text has.'],
+       zed: ['part', `States are picked with buttons; for a note for a state change (\`@\`), ${ZED_TEXT}. Faces of particular keywords and priorities are not shown: Zed colors tokens by its theme only.`],
+-      helix: ['part', `States are picked from the code actions, where they come first once asked for; for a note for a state change (\`@\`), ${HELIX_TEXT}. Switching to another keyword set is left out: it is not among Helix's code actions. Faces of particular keywords and priorities are not shown.`],
++      helix: ['part', `States are picked from the code actions, where they come first once asked for; for a note for a state change (\`@\`), ${HELIX_TEXT}. Switching to another keyword set is left out in an Org file, where it is not among Helix's code actions; on an agenda line it is one. Faces of particular keywords and priorities are not shown.`],
+     },
+     checks: [
+       { text: 'With `org_enforce_todo_dependencies`, a parent with a child not done cannot be done: the change is refused with `blocked (by "TODO Child")`; with `org_enforce_todo_checkbox_dependencies`, an entry with an unchecked box cannot either', cmd: 'org.todo' },
+@@ -331,6 +331,7 @@ export const AREAS = [
+       { text: 'A `#+TODO: A B | C` line in the file is used instead of the settings', cmd: 'org.todo' },
+       { text: 'With `#+TODO: TODO | DONE` and `#+TODO: REPORT BUG | FIXED`, changing the state without keys goes `BUG`, `FIXED`, none, then back to `REPORT`', cmd: 'org.todo' },
+       { text: 'Switching to the next and previous keyword set says `Keyword-Set 2/2: REPORT BUG FIXED`', cmd: ['org.todo.nextset', 'org.todo.previousset'] },
++      { text: 'On an agenda line, /Switch to the next TODO keyword set/ and /Switch to the previous TODO keyword set/ are code actions', only: ['helix'] },
+       { text: 'With `org_todo_keyword_faces = { WAIT = ":foreground orange :weight bold" }`, `WAIT` shows in bold orange, in the file and in the agenda', only: ['neovim', 'vim', 'vscode'] },
+     ],
+   },
+@@ -434,6 +435,7 @@ export const AREAS = [
+       { text: 'Scheduling with `+2d`: `SCHEDULED: <…>` goes below the headline', cmd: 'org.schedule' },
+       { text: 'A deadline on `fri 10:00`', cmd: 'org.deadline' },
+       { text: 'Removing the scheduled date and the deadline', cmd: ['org.schedule.remove', 'org.deadline.remove'] },
++      { text: 'On an agenda line, /Remove the scheduled date of the entry/ and /Remove the deadline of the entry/ are code actions', only: ['helix'] },
+       { text: 'Delaying the scheduled date to a day (`-3d`) and setting the deadline\'s warning period', cmd: ['org.schedule.delay', 'org.deadline.warning'], not: ['zed', 'helix'] },
+       { text: 'Inserting an active and an inactive timestamp; a second one right after makes a range', cmd: ['org.timestamp.insert', 'org.timestamp.insert.inactive'], not: ['helix'] },
+       { text: 'While typing the date, the answer shows what it means (`=> <2026-10-09 Fri>`)', only: ['neovim', 'vscode'] },
+@@ -521,7 +523,8 @@ export const AREAS = [
+       { text: 'Entry text, log mode, the clock report, archives mode', in: 'agenda', cmd: ['org.agenda.entry.text', 'org.agenda.log', 'org.agenda.clockreport', 'org.agenda.archives'] },
+       { text: 'In the week view, inactive timestamps show after `[` with *Display now includes inactive timestamps as well*, marked `[`, and are gone again when the agenda is rebuilt', in: 'agenda', cmd: ['org.agenda.query.add', 'org.agenda.inactive', 'org.agenda.redo'] },
+       { text: 'Hovering a line shows its entry', in: 'agenda', keys: { neovim: '`K`', vim: '`K`', vscode: 'the mouse, `Ctrl+K Ctrl+I`', sublime: 'the mouse', zed: 'the mouse', helix: '`Space k`' } },
+-      { text: 'Rebuilding the agenda, saving the changed files, quitting', in: 'agenda', cmd: ['org.agenda.redo', 'org.agenda.save'] },
++      { text: 'Rebuilding the agenda, saving the changed files, quitting', in: 'agenda', cmd: ['org.agenda.redo', 'org.agenda.save'], not: ['helix'] },
++      { text: 'Rebuilding the agenda; the files its edits changed are saved with `:write-all` (Helix does nothing with the files a server names to save, so /Save all Org files/ is not offered)', in: 'agenda', cmd: 'org.agenda.redo', only: ['helix'] },
+       { text: 'An entry changed in its file shows in the agenda when it is rebuilt' },
+       { text: 'Adding today\'s appointments: an entry timed a few minutes from now is reminded of every three minutes until it is due (needs Emacs)', cmd: 'org.agenda.appt' },
+       { text: 'Pressing `f` many times in a row moves the agenda a week each time, in the editor too', only: ['zed'] },
+@@ -811,7 +814,7 @@ export const AREAS = [
+       helix: ['part', 'Making footnotes and their menu are left out: they are not among Helix\'s code actions. Following them works.'],
+     },
+     checks: [
+-      { text: 'Following `[fn:1]` goes to its definition, and from the definition back to the reference', cmd: 'org.open' },
++      { text: 'Following `[fn:1]` goes to its definition, after its label, and from the definition\'s label back to the reference; right after the label, where following leaves the cursor, it says *No link found*, as Emacs\'s `C-c C-o` does there', cmd: 'org.open' },
+       { text: 'A reference without a definition is reported' },
+       { text: 'A new footnote (needs Emacs): `[fn:1]` at the cursor, its definition in the `Footnotes` section, the cursor there', cmd: 'org.footnote.action', not: ['helix'] },
+       { text: 'On a reference without a definition, Emacs asks whether to make one, in the editor', cmd: 'org.footnote.action', not: ['helix'] },
+@@ -998,7 +1001,7 @@ export const AREAS = [
+     name: 'Diagnostics (org-lint)',
+     emacs: [['org-lint\'s checkers', 61, 61]],
+     checks: [
+-      { text: 'A heading in a paragraph (`text ** heading`), a link to nowhere and a block left open are reported' },
++      { text: 'A heading in a paragraph (`text** heading`), a link to nowhere and a block left open are reported' },
+       { text: 'An unknown header argument (`:foo 1`) on a source block is reported, as information: nothing is ever an error or a warning, only information (or a hint, where org-lint trusts its finding less)' },
+       { text: '`org_lint_ignore = ["link-to-local-file"]` silences that checker' },
+     ],
+diff --git a/server/org-lsp/src/commands.rs b/server/org-lsp/src/commands.rs
+index 6badc85..c7a2b2b 100644
+--- a/server/org-lsp/src/commands.rs
++++ b/server/org-lsp/src/commands.rs
+@@ -422,6 +422,10 @@ pub const DATE_PREVIEW: &str = "org.date.preview";
+ /// What TAB does in an Org file before it folds, for an editor's own TAB
+ /// (`org-cycle`). Not a command of its own for users.
+ pub const CYCLE: &str = "org.cycle";
++/// The answer to a yes-or-no question of Emacs's, asked as a command's
++/// question for a client that shows no `window/showMessageRequest`. Not a
++/// command of its own for users.
++pub const EMACS_ANSWER: &str = "org.emacs.answer";
+ pub const CALENDAR_DAY_LATER: &str = "org.calendar.day.later";
+ pub const CALENDAR_DAY_EARLIER: &str = "org.calendar.day.earlier";
+ pub const CALENDAR_WEEK_LATER: &str = "org.calendar.week.later";
+@@ -1902,7 +1906,7 @@ pub const COMMANDS: &[Command] = &[
+ /// Every command the server runs: the table's, and those editors call
+ /// on their own.
+ pub fn ids() -> Vec<String> {
+-    COMMANDS.iter().map(|command| command.id).chain([DATE_PREVIEW, CYCLE]).map(str::to_string).collect()
++    COMMANDS.iter().map(|command| command.id).chain([DATE_PREVIEW, CYCLE, EMACS_ANSWER]).map(str::to_string).collect()
+ }
+ 
+ /// The input the command `id` asks for, if any.
+diff --git a/server/org-lsp/src/config.rs b/server/org-lsp/src/config.rs
+index 7872951..0915364 100644
+--- a/server/org-lsp/src/config.rs
++++ b/server/org-lsp/src/config.rs
+@@ -588,8 +588,12 @@ pub struct Options {
+     /// command's result (Zed).
+     pub message_prompts: Option<bool>,
+     /// Whether the client shows `window/showMessageRequest`; without, a
+-    /// question's choices are code actions (Helix).
++    /// question's choices are code actions (Helix), or a command's
++    /// question for a client that runs commands when told (`run_command`).
+     pub message_requests: Option<bool>,
++    /// The client shows the server's messages sent as `org-lsp/message`,
++    /// as one announcing `experimental.orgMessages` does.
++    pub message_notifications: Option<bool>,
+     /// The client has org-lsp's editor code: it knows the server's own
+     /// token types, asks what a command's result asks for, binds the keys.
+     /// A client that can announce it says `experimental.orgClient`.
+diff --git a/server/org-lsp/src/server.rs b/server/org-lsp/src/server.rs
+index aa34fa0..ca3d718 100644
+--- a/server/org-lsp/src/server.rs
++++ b/server/org-lsp/src/server.rs
+@@ -67,6 +67,9 @@ type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
+ const TEXT_DOCUMENT_CONTENT: &str = "workspace/textDocumentContent";
+ const TEXT_DOCUMENT_CONTENT_REFRESH: &str = "workspace/textDocumentContent/refresh";
+ const LINE_HIGHLIGHTS: &str = "org-lsp/lineHighlights";
++/// A message for the user, `window/showMessage`'s, for a client that shows
++/// it itself (`message_notifications`).
++const MESSAGE: &str = "org-lsp/message";
+ 
+ /// The commands that set or delete properties.
+ const PROPERTY_COMMANDS: [&str; 6] = [
+@@ -123,8 +126,14 @@ struct Client {
+     /// Ask with `window/showMessageRequest` (`message_prompts`).
+     message_prompts: bool,
+     /// The client shows `window/showMessageRequest`; without
+-    /// (`message_requests`), a question's choices are code actions.
++    /// (`message_requests`), a question's choices are code actions, or,
++    /// for a client with org-lsp's editor code that runs commands when
++    /// told (`run_command`), a command's question.
+     message_requests: bool,
++    /// The client shows the server's messages sent as `org-lsp/message`
++    /// rather than `window/showMessage`: `experimental.orgMessages`, or
++    /// the option `message_notifications`.
++    message_notifications: bool,
+     /// The standard token types of LSP rather than Org's own: a client
+     /// without org-lsp's editor code (`org_client`).
+     standard_tokens: bool,
+@@ -212,7 +221,7 @@ enum EmacsJob {
+     Edit { uri: Uri, version: i32, text: String, point: usize },
+     /// A command of column view on the document `uri`, run on `text`, its
+     /// `version`: its edit, and what the view shows then.
+-    Columns { uri: Uri, version: i32, text: String },
++    Columns { uri: Uri, version: i32, text: String, point: usize },
+     /// What column view shows of the document `uri`, at its `version`.
+     ColumnsView { uri: Uri, version: i32 },
+     /// Column view of the agenda `uri`, for the view's text.
+@@ -1145,6 +1154,9 @@ struct Server {
+     /// cannot ask for text (`message_prompts`): the next rename answers
+     /// it, its new name being the answer.
+     question: Option<Question>,
++    /// A yes-or-no question of Emacs's waiting for `org.emacs.answer`
++    /// (`message_requests` off): its prompt, and where the answer goes.
++    emacs_question: Option<(String, crossbeam_channel::Sender<bool>)>,
+     /// An edit of the agenda's file is with the client (`edit_view`),
+     /// made against this version of its copy: the next waits until the
+     /// client has applied it and said so with `didChange`, since an edit
+@@ -1552,6 +1564,9 @@ pub fn run(connection: Connection) -> Result<()> {
+             .unwrap_or(false),
+         message_prompts: options.message_prompts.unwrap_or(!org_client),
+         message_requests: options.message_requests.unwrap_or(true),
++        message_notifications: raw_params.pointer("/capabilities/experimental/orgMessages").and_then(Value::as_bool)
++            == Some(true)
++            || options.message_notifications == Some(true),
+         standard_tokens: !org_client,
+         view_file_name: if org_client { views::FILE_NAME } else { views::PLAIN_FILE_NAME },
+         edit_view: !org_client,
+@@ -1780,6 +1795,7 @@ pub fn run(connection: Connection) -> Result<()> {
+         prompt_file,
+         date_prompt: None,
+         question: None,
++        emacs_question: None,
+         view_edit_waiting: None,
+         view_edit_due: false,
+         prompt_copy: None,
+@@ -2731,6 +2747,11 @@ fn planning_command(id: &str) -> Option<PlanningCommand> {
+ /// one, so it is left alone and the write refused. The text goes to a new
+ /// file renamed over the old one, with the old one's permissions, so that
+ /// a write cut short leaves the old file whole.
++/// Whether `path` is a file with nothing in it.
++fn is_empty_file(path: &Path) -> bool {
++    std::fs::metadata(path).is_ok_and(|metadata| metadata.is_file() && metadata.len() == 0)
++}
++
+ pub(crate) fn write_whole(path: &Path, text: &str) -> std::result::Result<(), String> {
+     let refused = |error: &dyn std::fmt::Display| format!("Cannot write {}: {error}", path.display());
+     match std::fs::read(path) {
+@@ -3118,7 +3139,10 @@ impl Server {
+ 
+     fn show_message(&self, typ: MessageType, message: impl Into<String>) {
+         let params = ShowMessageParams { typ, message: message.into() };
+-        let notification = Notification::new(ShowMessage::METHOD.to_string(), params);
++        // A client whose LSP plugin shows no messages, or shows them after
++        // its own name, shows them itself as Emacs's echo area does.
++        let method = if self.client.message_notifications { MESSAGE } else { ShowMessage::METHOD };
++        let notification = Notification::new(method.to_string(), params);
+         let _ = self.sender.send(Message::Notification(notification));
+     }
+ 
+@@ -3258,11 +3282,16 @@ impl Server {
+                             match self.run_command(params) {
+                                 Ok(value) => {
+                                     // A code action of Zed's (`apply` in its
+-                                    // context): what the command does is
+-                                    // applied here, the cursor moved where it
+-                                    // says, as from the command port.
++                                    // context), or any command of a client
++                                    // that does nothing with a result
++                                    // (Helix's sorting, clock table): what
++                                    // the command does is applied here, the
++                                    // cursor moved where it says, as from
++                                    // the command port.
+                                     let argument = argument.unwrap_or(Value::Null);
+-                                    if argument.get("apply").and_then(Value::as_bool) == Some(true) {
++                                    if argument.get("apply").and_then(Value::as_bool) == Some(true)
++                                        || self.client.message_prompts
++                                    {
+                                         self.apply_result(&argument, &value);
+                                     }
+                                     if self.client.message_prompts {
+@@ -4264,8 +4293,12 @@ impl Server {
+                                 | commands::AGENDA_FILTER_TOP_HEADLINE
+                         )
+                 };
++                // Nor saving, for a client that does nothing with the files
++                // a result names (Helix): the server cannot save them.
++                let saves = !self.client.message_prompts;
+                 let offered = commands::in_agenda().filter(|id| {
+                     !matches!(*id, commands::AGENDA_FOLLOW | commands::AGENDA_COLUMNS | commands::AGENDA_GOTO_OTHER)
++                        && (saves || *id != commands::AGENDA_SAVE)
+                 });
+                 let (on_entry, on_view): (Vec<&str>, Vec<&str>) = offered.partition(|id| needs_entry(id));
+                 let on_entry = if entry.is_some() { on_entry } else { Vec::new() };
+@@ -7034,6 +7067,26 @@ impl Server {
+         self.send_request::<ShowDocument>(params, None);
+     }
+ 
++    /// `org.emacs.answer`: without an answer, Emacs's yes-or-no question as
++    /// `y-or-n-p` asks it, one key; with one, the answer, `y` for yes.
++    fn emacs_answer(&mut self, answer: Option<&str>) -> std::result::Result<Value, Refusal> {
++        let Some((prompt, _)) = &self.emacs_question else {
++            return Err("Emacs is not asking anything".into());
++        };
++        let Some(answer) = answer else {
++            return Ok(json!({ "input": {
++                "kind": "key",
++                "prompt": format!("{prompt} (y or n) "),
++                "value": "",
++                "choices": [{ "key": "y", "label": "Yes" }, { "key": "n", "label": "No" }],
++            } }));
++        };
++        if let Some((_, sender)) = self.emacs_question.take() {
++            let _ = sender.send(matches!(answer, "y" | "Y"));
++        }
++        Ok(Value::Null)
++    }
++
+     /// The answer to a question asked by [`Server::prompt_with_messages`]:
+     /// run the command again with it, as an editor does.
+     fn answer_prompt(&mut self, command: String, argument: Value, input: &Value, picked: &str) {
+@@ -7058,9 +7111,10 @@ impl Server {
+         };
+         match self.run_command(params) {
+             Ok(value) => {
+-                // A command run from the command port: what it does is
+-                // applied here too (`org-goto`'s heading picked).
+-                if argument.get("apply").and_then(Value::as_bool) == Some(true) {
++                // A command run from the command port, or for a client that
++                // does nothing with a result: what it does is applied here
++                // too (`org-goto`'s heading picked, the entries sorted).
++                if argument.get("apply").and_then(Value::as_bool) == Some(true) || self.client.message_prompts {
+                     self.apply_result(&argument, &value);
+                 }
+                 self.prompt_with_messages(command, argument, &value)
+@@ -7084,6 +7138,10 @@ impl Server {
+         } else {
+             argument
+         };
++        if params.command == commands::EMACS_ANSWER {
++            let answer = argument.as_ref().and_then(|value| value.get("input")?.as_str().map(str::to_string));
++            return self.emacs_answer(answer.as_deref());
++        }
+         // Capturing and the agenda menu need no document.
+         if params.command == commands::AGENDA_DISPATCH {
+             return self.dispatch(argument.as_ref());
+@@ -7193,6 +7251,9 @@ impl Server {
+             // `org-save-all-org-buffers`: the server cannot save; the
+             // editor saves the files it names that have changes, and says
+             // what Emacs says when it is done.
++            commands::AGENDA_SAVE if self.client.message_prompts => {
++                Err("The editor saves the files: the server cannot".into())
++            }
+             commands::AGENDA_SAVE => {
+                 let mut files: Vec<&String> = self.documents.keys().collect();
+                 files.sort();
+@@ -7510,8 +7571,8 @@ impl Server {
+         ) {
+             return Err(Refusal::NotHere("This command works in Org files".to_string()));
+         }
+-        let (line, row) = self.view_line(uri, context.position.line).ok_or("No entry on this line")?;
+-        row.entry.as_ref().ok_or("No entry on this line")?;
++        let (line, row) = self.view_line(uri, context.position.line).ok_or(NOT_ON_ENTRY)?;
++        row.entry.as_ref().ok_or(NOT_ON_ENTRY)?;
+         Ok(Target::Entry { view: uri.clone(), line, character: context.position.character, row: row.clone() })
+     }
+ 
+@@ -7532,7 +7593,7 @@ impl Server {
+             Target::Dailies { .. } => Err("The daily notes' commands change their own files".into()),
+             Target::Calendar { .. } => Err(NO_DATE_ASKED.into()),
+             Target::Entry { row, .. } => {
+-                let reference = row.entry.as_ref().ok_or("No entry on this line")?;
++                let reference = row.entry.as_ref().ok_or(NOT_ON_ENTRY)?;
+                 self.with_source(&reference.uri, |text, _, _, outline, version| {
+                     let entry = views::resolve(reference, outline).ok_or("The entry is gone; rebuild the agenda")?;
+                     let heading = outline.entries[entry].offset;
+@@ -7947,6 +8008,9 @@ impl Server {
+             .and_then(|context| open.day_at(context.position))
+             .unwrap_or(open.selected);
+         let date = Date::from_day(at);
++        // A count moves that many times, as Emacs's calendar takes a prefix
++        // argument (`calendar-forward-day`, `calendar-forward-week` …).
++        let times = context.and_then(|context| context.count).filter(|count| *count > 0).unwrap_or(1);
+         let by_months = |months: i64| {
+             let target = Date::new(date.year, date.month + months, 1);
+             let length = org_core::date::days_in_month(
+@@ -7956,16 +8020,16 @@ impl Server {
+             Date::new(target.year, target.month, date.day.min(length)).to_day()
+         };
+         match id {
+-            commands::CALENDAR_DAY_LATER => open.select(at + 1, now, &settings),
+-            commands::CALENDAR_DAY_EARLIER => open.select(at - 1, now, &settings),
+-            commands::CALENDAR_WEEK_LATER => open.select(at + 7, now, &settings),
+-            commands::CALENDAR_WEEK_EARLIER => open.select(at - 7, now, &settings),
+-            commands::CALENDAR_MONTH_LATER => open.select(by_months(1), now, &settings),
+-            commands::CALENDAR_MONTH_EARLIER => open.select(by_months(-1), now, &settings),
+-            commands::CALENDAR_YEAR_LATER => open.select(by_months(12), now, &settings),
+-            commands::CALENDAR_YEAR_EARLIER => open.select(by_months(-12), now, &settings),
+-            commands::CALENDAR_SCROLL_LATER => open.scroll(1, now, &settings),
+-            commands::CALENDAR_SCROLL_EARLIER => open.scroll(-1, now, &settings),
++            commands::CALENDAR_DAY_LATER => open.select(at + times, now, &settings),
++            commands::CALENDAR_DAY_EARLIER => open.select(at - times, now, &settings),
++            commands::CALENDAR_WEEK_LATER => open.select(at + 7 * times, now, &settings),
++            commands::CALENDAR_WEEK_EARLIER => open.select(at - 7 * times, now, &settings),
++            commands::CALENDAR_MONTH_LATER => open.select(by_months(times), now, &settings),
++            commands::CALENDAR_MONTH_EARLIER => open.select(by_months(-times), now, &settings),
++            commands::CALENDAR_YEAR_LATER => open.select(by_months(12 * times), now, &settings),
++            commands::CALENDAR_YEAR_EARLIER => open.select(by_months(-12 * times), now, &settings),
++            commands::CALENDAR_SCROLL_LATER => open.scroll(times, now, &settings),
++            commands::CALENDAR_SCROLL_EARLIER => open.scroll(-times, now, &settings),
+             commands::CALENDAR_TODAY => open.select(now.day, now, &settings),
+             commands::CALENDAR_TIME => open.toggle_time(step, now, &settings),
+             commands::CALENDAR_SELECT => {
+@@ -8288,7 +8352,7 @@ impl Server {
+                 Ok(())
+             }
+             commands::AGENDA_GOTO | commands::AGENDA_GOTO_OTHER => {
+-                let reference = self.entry_at(context.as_ref()).ok_or("No entry on this line")?;
++                let reference = self.entry_at(context.as_ref()).ok_or(NOT_ON_ENTRY)?;
+                 let location = self.locate(&reference).ok_or("The entry is gone; rebuild the agenda")?;
+                 let params = ShowDocumentParams {
+                     uri: location.uri,
+@@ -8767,6 +8831,12 @@ impl Server {
+             self.agenda_entry_text = None;
+             message.get_or_insert_with(|| "Entry text mode is off".to_string());
+         }
++        // The lines are those of the filters: changes made from the agenda
++        // show as their files have them, as they do once those files are
++        // saved, rather than on lines of the view before.
++        if before != after || self.agenda_filters != filters {
++            self.release_held();
++        }
+         self.agenda_filters = filters;
+         self.refresh_view();
+         let message = message.or_else(|| {
+@@ -8994,7 +9064,7 @@ impl Server {
+         let from_agenda = self.is_view(uri);
+         // The entry: its file and a place in it.
+         let (file, offset) = if from_agenda {
+-            let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
++            let reference = self.entry_at(Some(context)).ok_or(NOT_ON_ENTRY)?;
+             let offset = self
+                 .with_source(&reference.uri, |_, _, _, outline, _| {
+                     views::resolve(&reference, outline).map(|entry| outline.entries[entry].offset)
+@@ -9125,7 +9195,7 @@ impl Server {
+         // The entry: its file and a place in it.
+         let uri = &context.text_document.uri;
+         let (file, offset) = if self.is_view(uri) {
+-            let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
++            let reference = self.entry_at(Some(context)).ok_or(NOT_ON_ENTRY)?;
+             let offset = self
+                 .with_source(&reference.uri, |_, _, _, outline, _| {
+                     views::resolve(&reference, outline).map(|entry| outline.entries[entry].offset)
+@@ -10462,7 +10532,12 @@ impl Server {
+     /// that does not exist yet is written here, as Emacs saves it: no
+     /// editor has it open, and an edit cannot make it.
+     fn apply_capture(&mut self, target: &Uri, version: Option<i32>, now: &str, done: &str) {
+-        let missing = uri::to_path(target).filter(|path| self.document(target).is_none() && !path.exists());
++        // A file the editor does not have open, not there or empty, is
++        // written: some of Vim's clients leave an empty file's line
++        // after the text an edit puts in it, or lose the text.
++        let missing = uri::to_path(target).filter(|path| {
++            self.document(target).is_none() && (!path.exists() || (now.is_empty() && is_empty_file(path)))
++        });
+         if let Some(path) = missing {
+             if let Some(directory) = path.parent() {
+                 let _ = std::fs::create_dir_all(directory);
+@@ -10714,7 +10789,7 @@ impl Server {
+         let settings = self.edit_settings.priorities;
+         // The priorities of the file the entry is in.
+         let priorities = if self.is_view(uri) {
+-            let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
++            let reference = self.entry_at(Some(context)).ok_or(NOT_ON_ENTRY)?;
+             self.with_source(&reference.uri, |_, _, parse, _, _| edit::document_priorities(parse))
+                 .ok_or("Cannot read the file of this entry")?
+         } else {
+@@ -10776,7 +10851,7 @@ impl Server {
+             self.view_line(&uri, position.line).map(|(number, line)| (number, line.clone()));
+         let dated_view = self.view_at(&uri).is_some_and(|view| matches!(view.query, Query::Agenda { .. }));
+         let (file, reference, command) = if on_view {
+-            let reference = line.as_ref().and_then(|(_, line)| line.entry.clone()).ok_or("No entry on this line")?;
++            let reference = line.as_ref().and_then(|(_, line)| line.entry.clone()).ok_or(NOT_ON_ENTRY)?;
+             let command = match id {
+                 id if commands::AGENDA_DATE_COMMANDS.contains(&id) && !dated_view => {
+                     return Err("The TODO list shows no dates to change".into());
+@@ -11118,7 +11193,7 @@ impl Server {
+     fn command_place(&mut self, context: &Context) -> std::result::Result<(Uri, usize), Refusal> {
+         let uri = &context.text_document.uri;
+         if self.is_view(uri) {
+-            let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
++            let reference = self.entry_at(Some(context)).ok_or(NOT_ON_ENTRY)?;
+             let offset = self
+                 .with_source(&reference.uri, |_, _, _, outline, _| {
+                     views::resolve(&reference, outline).map(|entry| outline.entries[entry].offset)
+@@ -11322,7 +11397,7 @@ impl Server {
+         use org_core::tags::{self, Selection, State, Step};
+         let uri = &context.text_document.uri;
+         let (file, offset) = if self.is_view(uri) {
+-            let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
++            let reference = self.entry_at(Some(context)).ok_or(NOT_ON_ENTRY)?;
+             let offset = self
+                 .with_source(&reference.uri, |_, _, _, outline, _| {
+                     views::resolve(&reference, outline).map(|entry| outline.entries[entry].offset)
+@@ -11905,6 +11980,19 @@ impl Server {
+     /// option it did not set, or what an export made, to show.
+     fn emacs_event(&mut self, event: crate::emacs::Event) {
+         match event {
++            crate::emacs::Event::Ask { prompt, answer } if !self.client.message_requests => {
++                // A question of a command's for the editor to ask: run
++                // from the editor (`org-lsp/runCommand`), or among the
++                // code actions.
++                self.emacs_question = Some((prompt.clone(), answer));
++                if self.client.org_client && self.client.run_command {
++                    let params = json!({ "command": commands::EMACS_ANSWER, "argument": {} });
++                    let notification = Notification::new(RUN_COMMAND.to_string(), params);
++                    let _ = self.sender.send(Message::Notification(notification));
++                } else if let Ok(result) = self.emacs_answer(None) {
++                    self.prompt_with_messages(commands::EMACS_ANSWER.to_string(), json!({}), &result);
++                }
++            }
+             crate::emacs::Event::Ask { prompt, answer } => {
+                 let actions = ["Yes", "No"]
+                     .into_iter()
+@@ -11992,13 +12080,31 @@ impl Server {
+                 (Some(EmacsJob::AgendaColumnsCommand { uri, files }), Ok(result)) => {
+                     self.agenda_columns_done(&uri, files, &result);
+                 }
+-                (Some(EmacsJob::Columns { .. }), Err(error)) => self.show_message(MessageType::ERROR, error),
+-                (Some(EmacsJob::Columns { uri, version, text }), Ok(mut result)) => {
+-                    // The cursor stays where it is; the view says the rest.
+-                    if let Some(fields) = result.as_object_mut() {
+-                        fields.remove("point");
++                (Some(EmacsJob::Columns { .. }), Err(error)) => {
++                    // An Org without the command (Emacs 29's own, 9.6.15)
++                    // says so in Lisp's words: said in the user's.
++                    let error = match ["org-columns-move-row-up", "org-columns-move-row-down"]
++                        .into_iter()
++                        .find(|command| error.contains(&format!("commandp, {command}")))
++                    {
++                        Some(command) => format!(
++                            "This Org has no `{command}`: moving rows in column view needs a newer Org \
++                             than Emacs 29's own (9.6.15), loaded in `emacs_config`"
++                        ),
++                        None => error,
++                    };
++                    self.show_message(MessageType::ERROR, error)
++                }
++                (Some(EmacsJob::Columns { uri, version, text, point }), Ok(mut result)) => {
++                    // The cursor stays on its line; the column it is on in
++                    // Emacs is the one picked (`org-columns-move-left`
++                    // takes it along with the column it moves).
++                    let at = result.as_object_mut().and_then(|fields| fields.remove("point"));
++                    let column = at.and_then(|at| at.as_u64()).and_then(|at| (at as usize).checked_sub(point));
++                    let mut view = result.get("extra").cloned().filter(|view| !view.is_null());
++                    if let (Some(view), Some(column)) = (view.as_mut(), column) {
++                        view["column"] = json!(column);
+                     }
+-                    let view = result.get("extra").cloned().filter(|view| !view.is_null());
+                     self.columns_shown(&uri, version + 1, view);
+                     self.emacs_edited(&uri, version, &text, 0, &result);
+                 }
+@@ -12460,7 +12566,7 @@ impl Server {
+             "command": "org-lsp-bridge-columns-command",
+             "args": args,
+         });
+-        let job = EmacsJob::Columns { uri: uri.clone(), version: document.version, text: document.text.clone() };
++        let job = EmacsJob::Columns { uri: uri.clone(), version: document.version, text: document.text.clone(), point };
+         self.next_export += 1;
+         let tag = self.next_export;
+         self.emacs_jobs.insert(tag, job);
+@@ -14671,7 +14777,7 @@ impl Server {
+     fn fast_keys(&mut self, context: &Context) -> std::result::Result<Vec<(String, char, bool, bool)>, Refusal> {
+         let uri = &context.text_document.uri;
+         let file = if self.is_view(uri) {
+-            self.entry_at(Some(context)).ok_or("No entry on this line")?.uri
++            self.entry_at(Some(context)).ok_or(NOT_ON_ENTRY)?.uri
+         } else {
+             uri.clone()
+         };
+@@ -16097,7 +16203,7 @@ impl Server {
+         let encoding = self.client.encoding;
+         let uri = context.text_document.uri.clone();
+         let (file, heading) = if self.is_view(&uri) {
+-            let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
++            let reference = self.entry_at(Some(context)).ok_or(NOT_ON_ENTRY)?;
+             let heading = self
+                 .with_source(&reference.uri, |_, _, _, outline, _| {
+                     views::resolve(&reference, outline).map(|entry| outline.entries[entry].offset)
+@@ -16515,6 +16621,10 @@ fn fit_outline_path(path: &str, width: usize) -> String {
+ /// prompt.
+ const NO_DATE_ASKED: &str = "No date is asked for: the calendar is open on its own";
+ 
++/// What an agenda command on a line without an entry says, as
++/// `org-agenda-error` does.
++const NOT_ON_ENTRY: &str = "Command not allowed in this line";
++
+ /// The date `org-goto-calendar` goes to from `offset` in `text`: the
+ /// timestamp at it, active or not (`org-at-timestamp-p` with `lax`), or
+ /// else the last active one of its line (`org-ts-regexp` after `.*`).
+diff --git a/server/org-lsp/src/settings.rs b/server/org-lsp/src/settings.rs
+index 54e31ba..fd2c7ff 100644
+--- a/server/org-lsp/src/settings.rs
++++ b/server/org-lsp/src/settings.rs
+@@ -1729,8 +1729,8 @@ pub const SETTINGS: &[Setting] = &[
+         "boolean",
+         "false",
+         "",
+-        "RET on the first line of a list item makes the next item, numbered and with a checkbox as M-RET \
+-         (`org-meta-return`) makes it, the items after it renumbered, as nvim-orgmode's \
++        "RET on the first line of a list item makes the next item, numbered as M-RET (`org-meta-return`) \
++         makes it (without a checkbox, which M-S-RET adds), the items after it renumbered, as nvim-orgmode's \
+          `org_return_uses_meta_return` does. Off, RET is Org's: a new line in the item. \
+          `org.return.item` (`<S-CR>`, Shift+Enter, with the vim keys) always does it.",
+     ),
+@@ -3685,10 +3685,25 @@ pub const SETTINGS: &[Setting] = &[
+             "boolean",
+             "true",
+             "",
+-            "Whether the client shows the questions of `message_prompts` that have choices \
+-             (`window/showMessageRequest`). Off, for a client that cannot (Helix), the server says \
++            "Whether the client shows the questions of `message_prompts` that have choices, and Emacs's yes-or-no \
++             questions (`window/showMessageRequest`). Off, for a client that cannot (Helix), the server says \
+              `PROMPT: pick the answer from the code actions`, and until it is answered the code actions start \
+-             with the choices; a rename with the choice's key answers too.",
++             with the choices; a rename with the choice's key answers too. A client with org-lsp's editor code \
++             that runs commands when told (`run_command`) is asked Emacs's questions as a command's \
++             (`org.emacs.answer`): the Vim plugin, as some of Vim's LSP clients answer no message request.",
++        )
++    },
++    Setting {
++        integration: true,
++        ..setting(
++            "message_notifications",
++            "boolean",
++            "false",
++            "",
++            "Whether the client shows the server's messages (Emacs's, as its echo area shows them) sent as \
++             `org-lsp/message`, `{ type, message }` as `window/showMessage`'s, rather than with \
++             `window/showMessage`, as a client announcing `experimental.orgMessages` does: for the Vim plugin, \
++             as some of Vim's LSP clients show no messages, or show them after their own name.",
+         )
+     },
+     Setting {
+@@ -4471,6 +4486,7 @@ const SCHEMAS: &[(&str, &str)] = &[
+     ("org_client", BOOLEAN),
+     ("message_prompts", BOOLEAN),
+     ("message_requests", BOOLEAN),
++    ("message_notifications", BOOLEAN),
+     ("line_highlights", BOOLEAN),
+     ("run_command", BOOLEAN),
+     ("hidden_lines", BOOLEAN),
+diff --git a/server/org-lsp/tests/agenda_lsp.rs b/server/org-lsp/tests/agenda_lsp.rs
+index 1ccfbea..ea509c3 100644
+--- a/server/org-lsp/tests/agenda_lsp.rs
++++ b/server/org-lsp/tests/agenda_lsp.rs
+@@ -708,7 +708,7 @@ fn changes_an_entry_from_the_agenda() {
+             json!({ "command": "org.agenda.goto", "arguments": [{ "textDocument": { "uri": VIEW }, "position": { "line": 0, "character": 0 } }] }),
+         )
+         .unwrap_err();
+-    assert_eq!(error, "No entry on this line");
++    assert_eq!(error, "Command not allowed in this line");
+     client.shutdown();
+ }
+ 
+@@ -4174,7 +4174,7 @@ fn changes_timestamps_and_priorities_in_a_file() {
+     client.open("file:///org/empty.org", "* a\n");
+     client.command("org.agenda.todos", VIEW, 0);
+     let error = run(&mut client, "org.timestamp.up", VIEW, (0, 0)).unwrap_err();
+-    assert_eq!((error.message.as_str(), error.data), ("No entry on this line", None));
++    assert_eq!((error.message.as_str(), error.data), ("Command not allowed in this line", None));
+ 
+     // The actions at a timestamp.
+     let actions = client
+@@ -4754,7 +4754,7 @@ fn schedules_from_the_agenda() {
+     let header = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 1, "character": 0 } });
+     let refused =
+         client.request("workspace/executeCommand", json!({ "command": "org.schedule", "arguments": [header] }));
+-    assert_eq!(refused, Err("No entry on this line".to_string()));
++    assert_eq!(refused, Err("Command not allowed in this line".to_string()));
+ 
+     // What an answer means, for an input box, as in a file.
+     let mut preview = context.clone();
+@@ -10477,3 +10477,111 @@ fn private_state() {
+         std::env::set_var("XDG_STATE_HOME", state);
+     });
+ }
++
++/// A client that does nothing with a command's result (Helix): the server
++/// applies the edit a result carries, as for sorting, and leaves out the
++/// agenda's /Save all Org files/, which it cannot do; a filter after a
++/// change made from the agenda still filters the lines.
++#[test]
++fn a_plain_client_gets_the_edits_of_results_and_filters_after_changes() {
++    let mut options = clock();
++    options["show_document"] = json!(true);
++    options["message_requests"] = json!(false);
++    let root = std::env::temp_dir().join(format!("org-lsp-plain-results-{}", std::process::id()));
++    let _ = std::fs::remove_dir_all(&root);
++    std::fs::create_dir_all(&root).unwrap();
++    let (a, b) = (root.join("a.org"), root.join("b.org"));
++    let a_text = "* TODO Write report\nSCHEDULED: <2026-05-18 Mon 09:00>\n";
++    let mut b_text = "* TODO Bee\nSCHEDULED: <2026-05-18 Mon>\n* Top\n** b\n** a\n".to_string();
++    std::fs::write(&a, a_text).unwrap();
++    std::fs::write(&b, &b_text).unwrap();
++    options["org_agenda_files"] = json!([root.to_string_lossy()]);
++    let capabilities = json!({
++        "experimental": { "orgClient": false },
++        "workspace": { "workspaceEdit": { "documentChanges": true } },
++    });
++    let mut client = Client::start(capabilities, options, None);
++    let (a_uri, b_uri) = (format!("file://{}", a.display()), format!("file://{}", b.display()));
++    client.open(&a_uri, a_text);
++    client.open(&b_uri, &b_text);
++
++    // Sorting `* Top`'s entries alphabetically: the edit comes.
++    let requests = client.edit("org.sort", &b_uri, (2, 0), json!({ "input": "a" }), &mut b_text);
++    assert!(methods(&requests).contains(&"workspace/applyEdit"), "{:?}", methods(&requests));
++    assert!(b_text.ends_with("* Top\n** a\n** b\n"), "{b_text}");
++
++    // The agenda, an Org file the client opens.
++    let requests = client.command("org.agenda.list", &a_uri, 0);
++    let shown = requests.iter().find(|request| request.method == "window/showDocument").expect("the agenda");
++    let agenda_uri = shown.params["uri"].as_str().unwrap().to_string();
++    let mut agenda = std::fs::read_to_string(agenda_uri.trim_start_matches("file://")).unwrap();
++    client.open(&agenda_uri, &agenda);
++    let actions = client
++        .request(
++            "textDocument/codeAction",
++            json!({
++                "textDocument": { "uri": agenda_uri },
++                "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 0, "character": 0 } },
++                "context": { "diagnostics": [] }
++            }),
++        )
++        .unwrap();
++    let kinds: Vec<&str> = actions.as_array().unwrap().iter().filter_map(|action| action["kind"].as_str()).collect();
++    assert!(kinds.contains(&"org.agenda.redo") && !kinds.contains(&"org.agenda.save"), "{kinds:?}");
++
++    // The agenda's new text, as the client applies it and tells.
++    let mut version = 1;
++    let mut follow = |client: &mut Client, requests: &[Request], agenda: &mut String| {
++        for request in requests.iter().filter(|request| request.method == "workspace/applyEdit") {
++            let (file, edits) = edits_of(request);
++            if file == agenda_uri {
++                *agenda = apply(agenda, &edits);
++                version += 1;
++                client.notify(
++                    "textDocument/didChange",
++                    json!({ "textDocument": { "uri": agenda_uri, "version": version }, "contentChanges": [{ "text": agenda }] }),
++                );
++                client.settle();
++            }
++        }
++    };
++    let bee = agenda.lines().position(|line| line.contains("Bee")).unwrap() as u32;
++    let mut requests = client.edit("org.todo.next", &agenda_uri, (bee, 3), json!({}), &mut b_text);
++    client.settle();
++    requests.append(&mut client.received);
++    follow(&mut client, &requests, &mut agenda);
++    assert!(agenda.contains("DONE Bee") && agenda.contains("Write report"), "{agenda}");
++    // The category filter of the Bee line hides the other.
++    let bee = agenda.lines().position(|line| line.contains("Bee")).unwrap() as u32;
++    let mut requests = client.command("org.agenda.filter.category", &agenda_uri, bee);
++    client.settle();
++    requests.append(&mut client.received);
++    follow(&mut client, &requests, &mut agenda);
++    assert!(agenda.contains("DONE Bee") && !agenda.contains("Write report"), "{agenda}");
++    client.shutdown();
++    std::fs::remove_dir_all(root).unwrap();
++}
++
++/// A target that is there but empty, and not open in the editor, is
++/// written as a missing one is: an edit into an empty file leaves an empty
++/// line after the entry in some of Vim's clients, and yegappan/lsp loses
++/// the entry.
++#[test]
++fn a_capture_into_an_empty_file_writes_it() {
++    let root = workspace("capture-empty");
++    let notes = root.join("inbox.org");
++    std::fs::write(&notes, "").unwrap();
++    let mut options = clock();
++    options["org_default_notes_file"] = json!(notes.display().to_string());
++    options["org_capture_templates"] =
++        json!([{ "key": "n", "description": "Note", "template": "* TODO Captured", "immediate_finish": true }]);
++    let mut client = Client::editor(options, None);
++    let at = json!({ "textDocument": { "uri": format!("file://{}", root.join("a.org").display()) }, "position": { "line": 0, "character": 0 }, "input": "n" });
++    let done = client.request("workspace/executeCommand", json!({ "command": "org.capture", "arguments": [at] }));
++    assert_eq!(done, Ok(Value::Null));
++    client.settle();
++    assert!(client.received.iter().all(|request| request.method != "workspace/applyEdit"), "{:?}", client.received);
++    assert_eq!(std::fs::read_to_string(&notes).unwrap(), "* TODO Captured\n");
++    client.shutdown();
++    std::fs::remove_dir_all(root).unwrap();
++}
+diff --git a/server/org-lsp/tests/lsp.rs b/server/org-lsp/tests/lsp.rs
+index c326f63..f33f0af 100644
+--- a/server/org-lsp/tests/lsp.rs
++++ b/server/org-lsp/tests/lsp.rs
+@@ -2354,6 +2354,117 @@ fn evaluates_code_through_emacs() {
+     std::fs::remove_dir_all(directory).unwrap();
+ }
+ 
++/// Emacs's yes-or-no question for a client that shows no
++/// `window/showMessageRequest` (`message_requests` off): the Vim plugin
++/// (org-lsp's editor code, `run_command`) is told to run
++/// `org.emacs.answer`, which asks it as a command's question, one key, and
++/// its messages come as `org-lsp/message` (`message_notifications`); a
++/// client without org-lsp's editor code (Helix) finds Yes and No first in
++/// the code actions.
++#[test]
++fn asks_emacs_questions_without_message_requests() {
++    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
++    if !found {
++        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
++        eprintln!("asks_emacs_questions_without_message_requests: no Emacs, skipped");
++        return;
++    }
++    let directory = std::env::temp_dir().join(format!("org-lsp-babel-ask-{}", std::process::id()));
++    let _ = std::fs::remove_dir_all(&directory);
++    std::fs::create_dir_all(&directory).unwrap();
++    let file = directory.join("code.org");
++    let text = "* Code\n#+begin_src emacs-lisp\n(+ 1 2)\n#+end_src\n";
++    std::fs::write(&file, text).unwrap();
++    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
++    let config =
++        std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
++    let argument = json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 2, "character": 0 } });
++    let execute = |client: &mut Client, command: &str, argument: Value| {
++        client
++            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [argument] }))
++            .response_result
++            .expect("a result")
++    };
++    let results = |client: &Client| -> String {
++        let Message::Request(request) = next_from_server(
++            client,
++            |message| matches!(message, Message::Request(request) if request.method == "workspace/applyEdit"),
++        ) else {
++            unreachable!()
++        };
++        client
++            .connection
++            .sender
++            .send(Message::Response(Response::new_ok(request.id, json!({ "applied": true }))))
++            .unwrap();
++        request.params["edit"].to_string()
++    };
++
++    // The Vim plugin.
++    let options = json!({
++        "emacs_config": config,
++        "run_command": true,
++        "message_requests": false,
++        "message_notifications": true,
++    });
++    let mut client = Client::start(json!({}), options);
++    client.open(&uri, text);
++    assert_eq!(execute(&mut client, "org.babel.execute", argument.clone()), Value::Null);
++    let Message::Notification(run) = next_from_server(
++        &client,
++        |message| matches!(message, Message::Notification(notification) if notification.method == "org-lsp/runCommand"),
++    ) else {
++        unreachable!()
++    };
++    assert_eq!(run.params["command"], "org.emacs.answer");
++    let asked = execute(&mut client, "org.emacs.answer", run.params["argument"].clone());
++    assert_eq!(asked["input"]["kind"], "key");
++    assert_eq!(asked["input"]["prompt"], "Evaluate this emacs-lisp code block on your system? (y or n) ");
++    assert_eq!(execute(&mut client, "org.emacs.answer", json!({ "input": "y" })), Value::Null);
++    assert!(results(&client).contains(": 3"));
++    // Its messages, as the plugin shows them.
++    let response = client.raw_request(
++        "workspace/executeCommand",
++        json!({ "command": "org.emacs.answer", "arguments": [{ "input": "y" }] }),
++    );
++    assert_eq!(response.response_result.unwrap_err().message, "Emacs is not asking anything");
++    client.shutdown();
++
++    // Helix.
++    let options = json!({ "emacs_config": config, "message_requests": false, "show_document": true });
++    let mut client = Client::start(json!({ "experimental": { "orgClient": false } }), options);
++    client.open(&uri, text);
++    execute(&mut client, "org.babel.execute", argument.clone());
++    let Message::Notification(said) = next_from_server(&client, |message| {
++        matches!(message, Message::Notification(notification) if notification.method == "window/showMessage"
++            && notification.params["message"].as_str().is_some_and(|text| text.contains("pick the answer")))
++    }) else {
++        unreachable!()
++    };
++    assert_eq!(
++        said.params["message"],
++        "Evaluate this emacs-lisp code block on your system? (y or n): pick the answer from the code actions"
++    );
++    let actions = client
++        .raw_request(
++            "textDocument/codeAction",
++            json!({
++                "textDocument": { "uri": uri.as_str() },
++                "range": { "start": { "line": 2, "character": 0 }, "end": { "line": 2, "character": 0 } },
++                "context": { "diagnostics": [] }
++            }),
++        )
++        .response_result
++        .unwrap();
++    let yes = &actions[0];
++    assert_eq!((yes["title"].as_str(), yes["kind"].as_str()), (Some("Yes [y]"), Some("org.answer")), "{actions}");
++    let command = yes["command"].clone();
++    execute(&mut client, command["command"].as_str().unwrap(), command["arguments"][0].clone());
++    assert!(results(&client).contains(": 3"));
++    client.shutdown();
++    std::fs::remove_dir_all(directory).unwrap();
++}
++
+ #[test]
+ fn moves_about_as_org_does() {
+     let mut client = Client::start(json!({}), Value::Null);
+diff --git a/tests/e2e/expected/calendar.txt b/tests/e2e/expected/calendar.txt
+index 0cc9cc8..0771421 100644
+--- a/tests/e2e/expected/calendar.txt
++++ b/tests/e2e/expected/calendar.txt
+@@ -15,11 +15,11 @@ date prompt:6:      19 20 21 22 23 24 25     17 18 19 20 21 22 23     21 22 23 2
+ === 3 cursor
+ date prompt:6:      19 20 21 22 23 24 25     17 18 19 20 21 22 23     21 22 23 24 25 26 27
+ === 4 cursor
+-date prompt:7:      26 27 28 29 30           24 25 26 27 28 29 30     28 29 30
++date prompt:3:                1  2  3  4                     1  2         1  2  3  4  5  6
+ === 5 cursor
+-date prompt:7:      26 27 28 29 30           24 25 26 27 28 29 30     28 29 30
++date prompt:3:                1  2  3  4                     1  2         1  2  3  4  5  6
+ === 6 cursor
+-date prompt:6:      19 20 21 22 23 24 25     17 18 19 20 21 22 23     21 22 23 24 25 26 27
++date prompt:7:      26 27 28 29 30           24 25 26 27 28 29 30     28 29 30
+ === 7 buffer
+ [date prompt]
+           April 2026                May 2026                June 2026
+@@ -31,15 +31,15 @@ date prompt:6:      19 20 21 22 23 24 25     17 18 19 20 21 22 23     21 22 23 2
+      26 27 28 29 30           24 25 26 27 28 29 30     28 29 30
+                               31
+ 
+-SCHEDULED Date+time [2026-05-18]:    => <2026-06-18 Thu>
++SCHEDULED Date+time [2026-05-18]:    => <2026-06-25 Thu>
+ === 7 cursor
+-date prompt:5:      12 13 14 15 16 17 18     10 11 12 13 14 15 16     14 15 16 17 18 19 20
+-=== 8 cursor
+ date prompt:6:      19 20 21 22 23 24 25     17 18 19 20 21 22 23     21 22 23 24 25 26 27
++=== 8 cursor
++date prompt:7:      26 27 28 29 30           24 25 26 27 28 29 30     28 29 30
+ === 9 cursor
+-date prompt:6:      18 19 20 21 22 23 24     16 17 18 19 20 21 22     20 21 22 23 24 25 26
++date prompt:7:      25 26 27 28 29 30        23 24 25 26 27 28 29     27 28 29 30
+ === 10 cursor
+-date prompt:6:      19 20 21 22 23 24 25     17 18 19 20 21 22 23     21 22 23 24 25 26 27
++date prompt:7:      26 27 28 29 30           24 25 26 27 28 29 30     28 29 30
+ === 11 buffer
+ [date prompt]
+            May 2026                June 2026                July 2026
+@@ -51,7 +51,7 @@ date prompt:6:      19 20 21 22 23 24 25     17 18 19 20 21 22 23     21 22 23 2
+      24 25 26 27 28 29 30     28 29 30                 26 27 28 29 30 31
+      31
+ 
+-SCHEDULED Date+time [2026-05-18]:    => <2026-05-18 Mon>
++SCHEDULED Date+time [2026-05-18]:    => <2026-05-25 Mon>
+ === 12 buffer
+ [date prompt]
+           April 2026                May 2026                June 2026
+@@ -63,18 +63,18 @@ SCHEDULED Date+time [2026-05-18]:    => <2026-05-18 Mon>
+      26 27 28 29 30           24 25 26 27 28 29 30     28 29 30
+                               31
+ 
+-SCHEDULED Date+time [2026-05-18]:    => <2026-05-18 Mon>
++SCHEDULED Date+time [2026-05-18]:    => <2026-05-25 Mon>
+ === 13 cursor
+ date prompt:6:      19 20 21 22 23 24 25     17 18 19 20 21 22 23     21 22 23 24 25 26 27
+ === 15 cursor
+ work.org:1: * TODO Write report
+ === 15 file:work.org
+ * TODO Write report
+-SCHEDULED: <2026-05-19 Tue>
++SCHEDULED: <2026-05-21 Thu>
+ * TODO Call the client
+ SCHEDULED: <2026-05-20 Wed 10:00>
+ === 15 messages
+-Scheduled to <2026-05-19 Tue>
++Scheduled to <2026-05-21 Thu>
+ === 16 buffer
+ [date prompt]
+           April 2026                May 2026                June 2026
+@@ -143,7 +143,7 @@ SCHEDULED Date+time [2026-05-20]: 08:55    => <2026-05-20 Wed 08:55>
+ work.org:3: * TODO Call the client
+ === 23 file:work.org
+ * TODO Write report
+-SCHEDULED: <2026-05-19 Tue>
++SCHEDULED: <2026-05-21 Thu>
+ * TODO Call the client
+ SCHEDULED: <2026-05-21 Thu 08:55>
+ === 23 messages
+@@ -152,7 +152,7 @@ Scheduled to <2026-05-21 Thu 08:55>
+ work.org:3: * TODO Call the client
+ === 26 file:work.org
+ * TODO Write report
+-SCHEDULED: <2026-05-19 Tue>
++SCHEDULED: <2026-05-21 Thu>
+ * TODO Call the client
+ SCHEDULED: <2026-05-21 Thu 08:55>
+ === 26 messages
+@@ -160,7 +160,7 @@ SCHEDULED: <2026-05-21 Thu 08:55>
+ work.org:3: * TODO Call the client
+ === 28 file:work.org
+ * TODO Write report
+-SCHEDULED: <2026-05-19 Tue>
++SCHEDULED: <2026-05-21 Thu>
+ * TODO Call the client
+ DEADLINE: <2026-05-22 Fri> SCHEDULED: <2026-05-21 Thu 08:55>
+ === 28 messages
+diff --git a/tests/nvim/agenda.lua b/tests/nvim/agenda.lua
+index 282240f..632fe3a 100644
+--- a/tests/nvim/agenda.lua
++++ b/tests/nvim/agenda.lua
+@@ -85,6 +85,7 @@ vim.cmd('runtime plugin/org-lsp.lua')
+ 
+ -- The dispatcher asks which view to show, by key, as Emacs's menu does.
+ local choice, menu
++local real_read_key = require('org-lsp').read_key
+ require('org-lsp').read_key = function(prompt, choices)
+   menu = { prompt = prompt, keys = vim.tbl_map(function(item)
+     return item.key .. ' ' .. item.label
+@@ -397,12 +398,13 @@ wait('the priority to be gone', function()
+   return home_line(1) == '* TODO Water plants'
+ end)
+ wait_for_cursor('  home:       Sched. 2x:  TODO Water plants')
+--- `org-agenda-priority` asks which one.
++-- `org-agenda-priority` asks which one, one key.
+ do
+-  local input = vim.ui.input
++  local plugin = require('org-lsp')
++  local read_key = plugin.read_key
+   local answers = { 'a', ' ' }
+-  vim.ui.input = function(_, on_confirm)
+-    on_confirm(table.remove(answers, 1))
++  plugin.read_key = function()
++    return table.remove(answers, 1)
+   end
+   press(',')
+   wait('the priority typed in the file', function()
+@@ -414,7 +416,7 @@ do
+     return home_line(1) == '* TODO Water plants'
+   end)
+   wait_for_cursor('  home:       Sched. 2x:  TODO Water plants')
+-  vim.ui.input = input
++  plugin.read_key = read_key
+ end
+ 
+ -- 6b. Scheduling from the agenda (`org-agenda-schedule`) opens the
+@@ -618,7 +620,7 @@ vim.cmd('Org agenda list')
+ wait_for_view('Week-agenda (W21):')
+ vim.cmd('Org agenda todos')
+ wait_for_view('Global list of TODO items of type: ALL')
+-eq(vim.fn.getcompletion('Org agenda.l', 'cmdline'), { 'agenda.list', 'agenda.later', 'agenda.log' }, 'commands complete')
++eq(vim.fn.getcompletion('Org agenda l', 'cmdline'), { 'later', 'list', 'log' }, 'commands complete word by word')
+ 
+ -- 9. A command that cannot work says why.
+ local messages, titles = {}, {}
+@@ -630,7 +632,7 @@ press('f')
+ wait('the message of a failed command', function()
+   return #messages > 0
+ end)
+-eq(messages, { 'org-lsp: The TODO list has no dates to move through' }, 'the server explains')
++eq(messages, { 'The TODO list has no dates to move through' }, 'the server explains')
+ eq(titles, { 'Org' }, 'in a notification titled Org')
+ -- So are the messages the server sends of its own (`window/showMessage`).
+ local levels = {}
+@@ -724,6 +726,14 @@ wait_for_view('Global list of TODO items of type: ALL')
+ eq(vim.api.nvim_win_get_width(0), math.floor(vim.o.columns * 0.25), 'a quarter of the editor wide')
+ press('q')
+ 
++-- A new tab's only window takes no size: the command line keeps its own.
++org_lsp.setup({ win_split_mode = 'tabnew', win_split_size = 0.5 })
++local cmdheight = vim.o.cmdheight
++press('<F7>')
++wait_for_view('Global list of TODO items of type: ALL')
++eq({ vim.fn.tabpagenr('$'), vim.o.cmdheight }, { 2, cmdheight }, 'tabnew: a tab, the command line as it was')
++vim.cmd('tabclose')
++
+ org_lsp.setup({ win_split_mode = 'float' })
+ press('<F7>')
+ wait_for_view('Global list of TODO items of type: ALL')
+@@ -987,5 +997,17 @@ do
+ end
+ only_window()
+ 
++-- 19. Keys typed ahead of the menu answer it, as in Emacs a mapping or a
++-- macro of `C-c a t` shows the TODO list: `<Leader>oat` in one go.
++require('org-lsp').read_key = real_read_key
++vim.cmd.edit(work)
++local work_lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
++local work_buf = vim.api.nvim_get_current_buf()
++press('\\oat')
++wait_for_view('Global list of TODO items of type: ALL')
++eq(vim.api.nvim_get_mode().mode, 'n', 'the key after the menu went to it')
++eq(vim.api.nvim_buf_get_lines(work_buf, 0, -1, false), work_lines, 'and not to the file')
++only_window()
++
+ print(('ok: %d checks passed'):format(checks))
+ vim.cmd('qall!')
+diff --git a/tests/nvim/e2e.lua b/tests/nvim/e2e.lua
+index 52cdcf3..90f8717 100644
+--- a/tests/nvim/e2e.lua
++++ b/tests/nvim/e2e.lua
+@@ -22,7 +22,7 @@ end
+ 
+ --- Wait until `predicate` holds; fail the test if it never does.
+ local function wait(message, predicate)
+-  check(vim.wait(5000, predicate, 10), 'timed out waiting for ' .. message)
++  check(vim.wait(15000, predicate, 10), 'timed out waiting for ' .. message)
+ end
+ 
+ --- Type keys in normal mode, with mappings applied.
+@@ -309,14 +309,16 @@ press('.')
+ becomes(1, '* TODO [#A] Call them', '`.` raises it again')
+ press('cir')
+ becomes(1, '* TODO [#B] Call them', 'and down')
+--- `org-priority` asks which one; a space removes it.
++-- `org-priority` asks which one, one key, as Emacs reads it; a space
++-- removes it.
+ do
+-  local input = vim.ui.input
++  local plugin = require('org-lsp')
++  local read_key = plugin.read_key
+   local prompts = {}
+   local answers = { 'c', ' ', 'b' }
+-  vim.ui.input = function(opts, on_confirm)
+-    table.insert(prompts, opts.prompt)
+-    on_confirm(table.remove(answers, 1))
++  plugin.read_key = function(prompt, choices)
++    table.insert(prompts, { prompt, choices })
++    return table.remove(answers, 1)
+   end
+   press('<Leader>o,')
+   becomes(1, '* TODO [#C] Call them', 'the priority typed')
+@@ -324,8 +326,9 @@ do
+   becomes(1, '* TODO Call them', 'a space removes it')
+   press('<Leader>o,')
+   becomes(1, '* TODO [#B] Call them', 'and back')
+-  eq(prompts[1], 'Priority A-C, SPC to remove: ', 'Org\'s question')
+-  vim.ui.input = input
++  eq(prompts[1], { 'Priority A-C, SPC to remove' }, 'Org\'s question, one key')
++  eq(plugin.prompt_text(prompts[1][1]), 'Priority A-C, SPC to remove: ', 'shown as Emacs shows it')
++  plugin.read_key = read_key
+ end
+ 
+ -- 10. Timestamps: the part under the cursor, with counts and `.`.
+@@ -535,7 +538,85 @@ vim.api.nvim_win_set_cursor(0, { 2, 0 })
+ wait('the cursor to stay on the day', function()
+   return vim.deep_equal(vim.api.nvim_win_get_cursor(0), { 2, 21 })
+ end)
++-- A count moves the day that many times (`3l`), as Emacs's calendar takes
++-- a prefix argument. What is typed at the prompt shows on the calendar's
++-- last line while it is typed, as `org-read-date` shows its meaning in the
++-- minibuffer; keys typed ahead of the prompt (a mapping, a macro) answer
++-- it.
++press('<Leader>ois')
++wait('the calendar to type in', on_prompt_day('12'))
++press('3l')
++wait('three days later', on_prompt_day('15'))
++-- The answer typed so far, as Neovim's own `vim.ui.input` has it.
++local confirm
++vim.ui.input = function(_, on_confirm)
++  confirm = on_confirm
++end
++press('i')
++wait('the prompt', function()
++  return confirm ~= nil
++end)
++local getcmdline = vim.fn.getcmdline
++vim.fn.getcmdline = function()
++  return 'fri'
++end
++vim.api.nvim_exec_autocmds('CmdlineChanged', {})
++vim.fn.getcmdline = getcmdline
++local function last_line()
++  local win = prompt_window()
++  return win and vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(win), -2, -1, false)[1]
++end
++-- (`fri` is the Friday after today, whatever day the test runs.)
++wait('the answer shown as it is typed', function()
++  return (last_line() or ''):match('^SCHEDULED Date%+time %[2026%-06%-12%]: fri    => <%d+%-%d+%-%d+ Fri>$') ~= nil
++end)
++confirm('fri')
+ vim.ui.input = input
++wait('scheduled as typed', function()
++  return line(2):match('^SCHEDULED: <%d+%-%d+%-%d+ Fri %+2w>$') ~= nil
++end)
++wait('the calendar to close after the typed answer', function()
++  return prompt_window() == nil
++end)
++-- RET and the keys after it in one go: the calendar is gone before they
++-- run.
++local before = vim.api.nvim_buf_line_count(0)
++press('<Leader>ois')
++wait('the calendar before RET and o', function()
++  return prompt_window() ~= nil and vim.api.nvim_get_current_win() == prompt_window()
++end)
++press('l<CR>oNew line<Esc>')
++wait('the day taken', function()
++  return line(2):match('^SCHEDULED: <%d+%-%d+%-%d+ Sat %+2w>$') ~= nil
++end)
++wait('the line typed in the file', function()
++  return vim.api.nvim_buf_line_count(0) == before + 1 and line(3) == 'New line'
++end)
++vim.cmd('undo')
++-- A document the server asks to show while text may not change (an
++-- 'indentexpr' that waits for the server, and runs the requests that came
++-- meanwhile) is shown once that is over.
++do
++  local other = vim.fn.tempname() .. '.org'
++  vim.fn.writefile({ '* Other' }, other)
++  local here = vim.api.nvim_get_current_buf()
++  local indentexpr = vim.bo.indentexpr
++  local shown_result
++  function _G.OrgLspTestIndent()
++    local params = { uri = vim.uri_from_fname(other) }
++    shown_result = require('org-lsp.view').handlers['window/showDocument'](nil, params, { client_id = client.id })
++    return 0
++  end
++  vim.bo.indentexpr = 'v:lua.OrgLspTestIndent()'
++  press('o<Esc>')
++  eq(shown_result, { success = true }, 'answered at once')
++  wait('the document shown after', function()
++    return vim.api.nvim_buf_get_name(0) == other
++  end)
++  vim.api.nvim_set_current_buf(here)
++  vim.bo.indentexpr = indentexpr
++  vim.cmd('undo')
++end
+ 
+ -- 14. With keys on the keywords, `org.todo` (`cit` by default, `gt` as
+ -- configured above) asks for one key (`org-todo`'s fast selection); a
+@@ -592,6 +673,14 @@ local windows = #vim.api.nvim_list_wins()
+ vim.api.nvim_feedkeys('t', 'n', false)
+ eq(plugin.read_key('[a-z..]:Set [SPC]:clear\n{[t] TODO }', { { key = 't', label = 'TODO' } }, true), 't', 'the key read')
+ eq(#vim.api.nvim_list_wins(), windows, 'no window for the choices')
++-- Prompts that are Emacs's own words show as they are, titles with `: `.
++eq(plugin.prompt_text('Select a TODO state'), 'Select a TODO state: ', 'a title')
++eq(plugin.prompt_text('Execute this? '), 'Execute this? ', "Emacs's words")
++eq(plugin.prompt_text('Tags :work:'), 'Tags :work: ', 'a title ending in a colon')
++-- `:Org` completes word by word.
++eq(vim.fn.getcompletion('Org agenda li', 'cmdline'), { 'list' }, 'the next word')
++check(vim.tbl_contains(vim.fn.getcompletion('Org agenda ', 'cmdline'), 'dispatch'), 'the words of the agenda')
++eq(vim.fn.getcompletion('Org schedule ', 'cmdline'), { 'delay', 'remove' }, 'the words after schedule')
+ 
+ -- 14b. `<Leader>ot` sets tags a key at a time, each turning its tag on or
+ -- off, until RET; the tags go to their column.
+@@ -1784,6 +1873,17 @@ do
+   eq(vim.api.nvim_get_current_win(), here, 'the cursor stays in the file')
+   local shown = vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(roam_win), 0, -1, false)
+   eq({ shown[1], shown[3] }, { '#+title: Fresh idea', '* Backlinks (1)' }, 'its backlinks')
++  -- Following the backlink there shows its file in the other window, the
++  -- org-roam buffer staying beside it.
++  vim.api.nvim_set_current_win(roam_win)
++  vim.api.nvim_win_set_cursor(0, { 4, 3 })
++  require('org-lsp').run('org.open')
++  wait('the backlink followed in the other window', function()
++    return vim.api.nvim_win_get_buf(here) == vim.fn.bufnr(vim.fs.normalize(index))
++  end)
++  check(vim.api.nvim_buf_get_name(vim.api.nvim_win_get_buf(roam_win)):find('org%-roam%-buffer%.org$') ~= nil, 'the org-roam buffer stays')
++  vim.api.nvim_set_current_win(here)
++  vim.cmd.edit(written)
+   require('org-lsp').run('org.roam.buffer.toggle')
+   wait('the org-roam buffer to go', function()
+     return not vim.api.nvim_win_is_valid(roam_win)
+@@ -1883,5 +1983,37 @@ do
+   eq(line(3), ('[[file:%s::2][%s]]  ** TODO carried'):format(today, os.date('%A, %m/%d/%y')), 'the result')
+ end
+ 
++-- A 'conceallevel' of the user's own (a `FileType` autocommand's) stays.
++do
++  local group = vim.api.nvim_create_augroup('org_lsp_test_conceal', { clear = true })
++  vim.api.nvim_create_autocmd('FileType', { group = group, pattern = 'org', command = 'setlocal conceallevel=1' })
++  local own = vim.fn.tempname() .. '.org'
++  vim.fn.writefile({ '* A [[https://example.org][link]]' }, own)
++  vim.cmd.edit(own)
++  wait('the server on the file', function()
++    return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) > 0
++  end)
++  vim.wait(200)
++  eq(vim.wo.conceallevel, 1, "the user's conceallevel")
++  vim.api.nvim_del_augroup_by_id(group)
++end
++
++-- TAB at the end of a new, empty headline cycles its level, again and
++-- again (`org-cycle-level`), from the blank the cursor is on.
++do
++  local new = vim.fn.tempname() .. '.org'
++  vim.fn.writefile({ '* A', '** ' }, new)
++  vim.cmd.edit(new)
++  wait('the server on the new headline', function()
++    return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) > 0
++  end)
++  vim.api.nvim_win_set_cursor(0, { 2, 2 })
++  -- (The keys of Org files are off by now: TAB's function.)
++  require('org-lsp.folds').cycle()
++  becomes(2, '* ', 'a level up')
++  require('org-lsp.folds').cycle()
++  becomes(2, '** ', 'and down again')
++end
++
+ print(('ok: %d checks passed'):format(checks))
+ vim.cmd('qall!')
+diff --git a/tests/nvim/scenarios.lua b/tests/nvim/scenarios.lua
+index 728d048..8641e4b 100644
+--- a/tests/nvim/scenarios.lua
++++ b/tests/nvim/scenarios.lua
+@@ -158,7 +158,7 @@ local plugin = require('org-lsp')
+ -- What the server said, as the user sees it: notifications.
+ local messages = {}
+ vim.notify = function(message)
+-  table.insert(messages, (tostring(message):gsub('^org%-lsp: ', '')))
++  table.insert(messages, tostring(message))
+ end
+ 
+ -- What is asked is answered from the step's answers, in turn: keys,
