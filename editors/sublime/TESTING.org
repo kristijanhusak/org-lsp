@@ -130,10 +130,10 @@ its sections says what it should look like.
 
 * Properties and column view
 
-*Partly:* A property's name and value are typed in an input panel, without completion. Column view is left out: it draws over the headlines, which Sublime Text cannot. A custom property hidden (~org.custom.properties.toggle~) is in a fold from the end of the line before, which shows the fold's marker: Sublime Text hides text only in folds.
+*Partly:* Column view is left out: it draws over the headlines, which Sublime Text cannot. A custom property hidden (~org.custom.properties.toggle~) is in a fold from the end of the line before, which shows the fold's marker: Sublime Text hides text only in folds.
 
 - [ ] With ~org_custom_properties = ["ID"]~, the command hides the ~:ID:~ lines of the property drawers, and run again shows them: /Org: Hide the properties of org_custom_properties, or show them again/
-- [ ] Setting a property: the name and the value are asked for: ~Ctrl+C Ctrl+X p~
+- [ ] Setting a property: the name and the value are completed, ~NAME_ALL~'s values offered: ~Ctrl+C Ctrl+X p~
 - [ ] On a property line with ~NAME_ALL~, cycling through its values: ~Shift+Right~, ~Shift+Left~
 - [ ] Deleting a property from the entry, and from the whole file: /Org: Delete a property of the entry/, /Org: Delete a property from every entry of the file/
 - [ ] ~C-c C-c~ in a property drawer asks what to do with the property: ~Ctrl+C Ctrl+C~
@@ -250,7 +250,6 @@ its sections says what it should look like.
 - [ ] Searching the TODO entries to come lists those of the days after today: /Org: Journal: the TODO entries to come/
 - [ ] The schedule lists the entries to come with a timestamp, under their days: /Org: Journal: the entries to come with a date/
 - [ ] Rescheduling an entry to come moves it to the day asked for, with that day's timestamp: /Org: Journal: move the entry to come to another day/
-- [ ] The date prompt's calendar marks the days with a journal entry: /Org: Journal: new entry for a date/
 
 * Refile and archive
 

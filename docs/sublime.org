@@ -38,7 +38,9 @@ The server needs nothing more. The package starts the first of:
    (~target/release/org-lsp~, then ~target/debug/org-lsp~);
 4. the server of the package's own release for your platform (the
    nightly build for the nightly package, ~v0.2.0~ for version 0.2.0),
-   downloaded once into Sublime Text's ~Package Storage/LSP-org~.
+   downloaded into a folder of that release in Sublime Text's ~Package
+   Storage/LSP-org~; a package updated to another release downloads its
+   own, and the old server goes.
 
 /Org: Download the latest server/ fetches that release's server again and
 restarts the server.
@@ -122,7 +124,7 @@ server first, with a tab that says so and closes when the agenda opens.
 | [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ❓ | Faces of particular keywords and priorities are not shown in the file: Sublime Text colors text by its color scheme only. The list of TODO states shows them in the color of each item's kind, the nearest of those Sublime Text has. |
 | [[file:parity.org::#priorities][Priorities]] | 100% | ✅ |  |
 | [[file:parity.org::#tags][Tags]] | 88% | ❓ | Faces of particular tags are not shown: Sublime Text colors text by its color scheme only. |
-| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 100% | ❓ | A property's name and value are typed in an input panel, without completion. Column view is left out: it draws over the headlines, which Sublime Text cannot. A custom property hidden (~org.custom.properties.toggle~) is in a fold from the end of the line before, which shows the fold's marker: Sublime Text hides text only in folds. |
+| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 100% | ❓ | Column view is left out: it draws over the headlines, which Sublime Text cannot. A custom property hidden (~org.custom.properties.toggle~) is in a fold from the end of the line before, which shows the fold's marker: Sublime Text hides text only in folds. |
 | [[file:parity.org::#dates-and-times][Dates and times]] | 100% | ❓ | Dates are typed, without the calendar: the package asks with an input panel. |
 | [[file:parity.org::#agenda][Agenda]] | 100% | ❓ | Column view in the agenda is left out: it draws over the lines, which Sublime Text cannot. The days of a habit's graph take the colors of text, not Org's backgrounds: Sublime Text colors a token by its color scheme. |
 | [[file:parity.org::#clocking][Clocking]] | 100% | ✅ |  |
