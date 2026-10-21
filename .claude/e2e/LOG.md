@@ -29,6 +29,6 @@ Base: `main` at bad79cc (#365).
 
 ## Rounds of fixes
 
-- emacs-1 to emacs-19, with lsp-9, lsp-10, lsp-19 (the same bridge): a fix agent in a worktree (notes-fix-emacs.md), one PR when done.
+- emacs-1 to emacs-19, with lsp-9, lsp-10, lsp-19 (the same bridge): fixed in e5b71a8 and 54d18eb on this branch (notes-fix-emacs.md); waiting for check.sh before its PR. Left: the rest of emacs-11/lsp-10 (the synchronous Emacs calls answered later, plan in notes-fix-emacs.md and docs/protocol.org) and fix-1, for an agent once disk allows.
 - lsp-1 to lsp-18 but lsp-9, lsp-10: a second fix agent (notes-fix-lsp.md), one PR when done.
 - neovim-*, vim-*, helix-*: a third fix agent (notes-fix-editors.md), one PR when done.
