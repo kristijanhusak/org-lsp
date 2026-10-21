@@ -446,7 +446,7 @@ impl Server {
                     let start = self.clock_time(true);
                     self.clock_in_after(clock.uri.clone(), heading, start, vec![change])?;
                 } else {
-                    self.send_texts(vec![change]);
+                    self.send_resolution(change);
                     self.publish_clock();
                 }
             }
@@ -500,8 +500,28 @@ impl Server {
         if self.running.as_ref() == Some(clock) {
             self.running = None;
         }
-        self.send_texts(vec![(clock.uri.clone(), version, text, new_text)]);
+        self.send_resolution((clock.uri.clone(), version, text, new_text));
         self.publish_clock();
         Ok(())
+    }
+
+    /// A change a resolution makes: sent, unless the resolution is for a
+    /// clock-in, which sends it with its own change in one edit (both
+    /// change the text of the same version).
+    fn send_resolution(&mut self, change: (Uri, Option<i32>, String, String)) {
+        if self.resolving.as_ref().is_some_and(|resolving| resolving.clocking_in) {
+            self.resolved_changes.push(change);
+        } else {
+            self.send_texts(vec![change]);
+        }
+    }
+
+    /// The changes of a resolution before a clock-in that clocked nothing
+    /// in (it asks something first, or fails), sent alone.
+    pub(super) fn send_resolved_changes(&mut self) {
+        let changes = std::mem::take(&mut self.resolved_changes);
+        if !changes.is_empty() {
+            self.send_texts(changes);
+        }
     }
 }

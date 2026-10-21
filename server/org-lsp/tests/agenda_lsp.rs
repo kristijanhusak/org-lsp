@@ -55,6 +55,9 @@ impl Client {
         let mut options = if options.is_null() { json!({}) } else { options };
         if let Some(fields) = options.as_object_mut() {
             fields.entry("config_file").or_insert(json!(false));
+            // The IDs an Emacs of the machine left in its
+            // `org-id-locations-file` are not read.
+            fields.entry("org_id_locations_file").or_insert(json!(NO_ID_LOCATIONS));
         }
         // An editor with org-lsp's plugin, unless the test says otherwise.
         let mut capabilities = capabilities;
@@ -1510,6 +1513,39 @@ fn resumes_a_clock_left_running() {
     run(&mut client, &mut text, "org.clock.out").unwrap();
     assert!(text.contains("CLOCK: [2026-05-18 Mon 09:00]--[2026-05-18 Mon 10:30] =>  1:30\n"), "{text}");
     assert_eq!(text.matches("CLOCK:").count(), 3, "{text}");
+    client.shutdown();
+}
+
+/// Clocking in after resolving a clock left running in the same file:
+/// both changes go in one edit, as an editor that checks versions takes
+/// only one edit for each version of the file.
+#[test]
+fn clocks_in_after_resolving_in_one_edit() {
+    const URI: &str = "file:///org/dangling.org";
+    let mut text = "* TODO Left running\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* TODO Other\n".to_string();
+    let mut client = Client::editor(clock(), None);
+    client.open(URI, &text);
+    let asked = run_applying(&mut client, URI, &mut text, "org.clock.in", 4, json!({}));
+    assert_eq!(asked["input"]["prompt"], "Dangling clock started 90 mins ago [jkKtTgGSscCiq]? ");
+    let mut context = asked["input"]["context"].clone();
+    context["input"] = json!("K");
+    let asked = run_applying(&mut client, URI, &mut text, "org.clock.in", 4, context);
+    assert_eq!(asked["input"]["prompt"], "Keep how many minutes (default 90): ");
+    let mut context = asked["input"]["context"].clone();
+    context["input"] = json!("");
+    let at = json!({ "textDocument": { "uri": URI }, "position": { "line": 4, "character": 0 }, "input": "", "step": context["step"], "answers": context["answers"] });
+    client.received.clear();
+    client.request("workspace/executeCommand", json!({ "command": "org.clock.in", "arguments": [at] })).unwrap();
+    client.settle();
+    let edits: Vec<&Request> =
+        client.received.iter().filter(|request| request.method == "workspace/applyEdit").collect();
+    assert_eq!(edits.len(), 1, "{:?}", client.received);
+    assert_eq!(edits[0].params["edit"]["documentChanges"][0]["textDocument"]["version"], json!(client.file_version));
+    apply_received(&mut client, URI, &mut text);
+    assert_eq!(
+        text,
+        "* TODO Left running\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]--[2026-05-18 Mon 10:30] =>  1:30\n:END:\n* TODO Other\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n"
+    );
     client.shutdown();
 }
 
@@ -6175,7 +6211,24 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
     let (_, edits) = edits_of(edit);
     assert!(apply(&text, &edits).contains("DEADLINE: <2026-05-25 Mon>"), "{edits:?}");
     // Answered, the question is gone: a rename is a rename again.
-    assert_eq!(client.request("textDocument/prepareRename", place).unwrap()["placeholder"], "Write report");
+    assert_eq!(client.request("textDocument/prepareRename", place.clone()).unwrap()["placeholder"], "Write report");
+    // `-` alone is the empty answer, for a client that sends no empty new
+    // name (Zed): the prompt's default.
+    let mut answered = Vec::new();
+    for answer in ["", "-"] {
+        client
+            .request("workspace/executeCommand", json!({ "command": "org.deadline", "arguments": [context] }))
+            .unwrap();
+        client.settle();
+        client.received.clear();
+        rename["newName"] = json!(answer);
+        client.request("textDocument/rename", rename.clone()).unwrap();
+        client.settle();
+        let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+        answered.push(apply(&text, &edits_of(edit).1));
+    }
+    assert!(answered[0].contains("DEADLINE: <"), "{}", answered[0]);
+    assert_eq!(answered[0], answered[1]);
 
     // The keys that insert a heading are actions too, which the server
     // applies, the cursor then moved to the new heading.
@@ -10566,6 +10619,9 @@ fn bibtex_keys_come_from_emacs() {
     assert!(error.starts_with("Year or date field ") && error.ends_with(" invalid"), "{error}");
     client.shutdown();
 }
+
+/// An `org-id-locations-file` that is not there.
+const NO_ID_LOCATIONS: &str = "/nonexistent/org-lsp-test/.org-id-locations";
 
 /// The servers of the tests keep what they leave for others (where they
 /// listen for org-protocol URLs) in a state directory of their own, not

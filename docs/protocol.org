@@ -1964,8 +1964,10 @@ answers too. LSP has no request for text, so for text and
 dates the server says /PROMPT: answer with a rename at the cursor/ (with
 ~window/showMessage~) and the next rename answers: ~textDocument/prepareRename~
 offers ~value~ as the placeholder, and the new name of ~textDocument/rename~ is
-the answer, the rename itself an empty edit. Another command first drops the
-question, and rename renames again.
+the answer, the rename itself an empty edit. A new name of ~-~ alone is the
+empty answer (the prompt's default), for a client that sends no empty new
+name (Zed). Another command first drops the question, and rename renames
+again.
 
 An input may say more:
 
@@ -2110,18 +2112,33 @@ export never holds up the server's other answers. Emacs loads, in this
 order, ~emacs_config_file~, then evaluates ~emacs_config~, then loads Org
 (~org~, ~ox~, ~ox-publish~): settings made before Org loads are kept
 (~org-export-backends~ to add Markdown, a ~load-path~ for another Org), and
-the configuration may load Org itself. A request whose answer is Emacs's
-(the export menu, a capture template's ~%(…)~, a diary sexp, an agenda
-prefix's ~%(…)~, the attachments to pick) waits for it, and holds up the
-server's other answers meanwhile. It has a time of its own (10 to 120
-seconds), past which Emacs is taken for stuck and started again (/Emacs
-did not answer in time: `eval` took over 30 s …/); the time Emacs takes
-to start is not counted in it, but waited for 15 seconds at most (/Emacs
-is still starting …/, and Emacs goes on starting for the next request),
-and a request behind another command (an export) after 3 seconds
-(/Emacs is busy with another command …/). When the server exits, it
-stops its Emacs, busy or not, with the programs Emacs started. Making these requests answer
-later, as exports do, is still to be done. Then each option of ~emacs_options~
+the configuration may load Org itself. A command the editor asks for
+(~workspace/executeCommand~) that needs an answer of Emacs's (the export
+menu, a capture template's ~%(…)~ and a target function, the block
+~org-edit-special~ edits, the attachments to pick, refile targets a
+function verifies, the countdown's default, the named blocks, the
+structure templates, ~org-agenda-to-appt~, a heading made of a region)
+holds up no other answer: the request is answered once Emacs has
+answered, the server answering the others meanwhile (responses may come
+in another order than their requests), and Emacs may ask the user its
+questions. It runs again from the start then, Emacs's answer at hand; a
+command asks Emacs nothing before it has taken a step of its own.
+~$/cancelRequest~ gives up such a request (answered ~RequestCancelled~),
+and stops Emacs if it works on it (a ~%(…)~ that loops), with the
+programs it started; the next request starts Emacs again. The rest waits
+for Emacs and holds up the server's other answers meanwhile: what is not
+a command (a diary sexp and an agenda prefix's ~%(…)~ while the agenda is
+built, the attachment of an image to preview, ~org-crypt~ before a save,
+a link abbreviation that calls a function), a command from the command
+port, and what the timers run (~appt-check~, the end of a countdown). Each
+request has a time of its own (10 to 120 seconds), past which Emacs is
+taken for stuck and started again (/Emacs did not answer in time: `eval`
+took over 30 s …/); the time Emacs takes to start is not counted in it.
+One that holds up the server waits for Emacs to start 15 seconds at most
+(/Emacs is still starting …/, and Emacs goes on starting for the next
+request), and for another command (an export) 3 seconds (/Emacs is busy
+with another command …/). When the server exits, it stops its Emacs, busy
+or not, with the programs Emacs started. Then each option of ~emacs_options~
 is set when the library it is in loads (~org-attach-method~ when
 ~org-attach~ does), as Customize sets it, its ~:set~ function and all, and
 so after the user's Lisp; the value is read as JSON, made what the

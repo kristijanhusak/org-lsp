@@ -49,6 +49,9 @@ impl Client {
         let mut options = if options.is_null() { json!({}) } else { options };
         if let Some(fields) = options.as_object_mut() {
             fields.entry("config_file").or_insert(json!(false));
+            // The IDs an Emacs of the machine left in its
+            // `org-id-locations-file` are not read.
+            fields.entry("org_id_locations_file").or_insert(json!(NO_ID_LOCATIONS));
         }
         // An editor with org-lsp's plugin, unless the test says otherwise.
         let mut capabilities = capabilities;
@@ -4055,6 +4058,98 @@ fn says_nothing_before_initialized() {
     assert!(said.params["message"].as_str().unwrap().contains("`config_file` is malformed"), "{said:?}");
     client.shutdown();
 }
+
+/// A command that waits for Emacs holds up no other answer: a hover is
+/// answered while Emacs works on `org-edit-special`, which is answered
+/// once Emacs is done. `$/cancelRequest` gives up a command whose Emacs is
+/// stuck: Emacs is stopped, and the next command starts another.
+#[cfg(unix)]
+#[test]
+fn answers_other_requests_while_emacs_works() {
+    use std::os::unix::fs::PermissionsExt;
+    let directory = std::env::temp_dir().join(format!("org-lsp-working-emacs-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    // An Emacs that takes a second over `edit-special` and answers with its
+    // process id, and never answers `export-menu` (once it has it, there
+    // is a file `stuck`).
+    let emacs = directory.join("emacs");
+    let script = r#"#!/bin/sh
+while IFS= read -r line; do
+  id=$(printf '%s' "$line" | sed -n 's/.*"id":\([0-9]*\).*/\1/p')
+  case "$line" in
+    *'"method":"export-menu"'*) touch "$(dirname "$0")/stuck" ;;
+    *'"method":"edit-special"'*) sleep 1; printf '\036org-lsp {"id":%s,"error":"Emacs %s"}\n' "$id" "$$" ;;
+    *) printf '\036org-lsp {"id":%s,"result":{}}\n' "$id" ;;
+  esac
+done
+"#;
+    std::fs::write(&emacs, script).unwrap();
+    std::fs::set_permissions(&emacs, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let mut client = Client::start(json!({}), json!({ "emacs": emacs.display().to_string() }));
+    let path = directory.join("notes.org");
+    let uri: Uri = format!("file://{}", path.display()).parse().unwrap();
+    client.open(&uri, "* Heading\n#+begin_src sh\necho hi\n#+end_src\n");
+    let at = json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 2, "character": 0 } });
+    let send = |client: &mut Client, method: &str, params: Value| {
+        client.next_id += 1;
+        let id = RequestId::from(client.next_id);
+        let request = Request { id: id.clone(), method: method.to_string(), params };
+        client.connection.sender.send(Message::Request(request)).unwrap();
+        id
+    };
+    let command = |name: &str| json!({ "command": name, "arguments": [at.clone()] });
+    // The answers in the order they come, and how long each took.
+    let answers = |client: &mut Client, count: usize| {
+        let began = std::time::Instant::now();
+        let mut answered = Vec::new();
+        while answered.len() < count {
+            let message = client.connection.receiver.recv_timeout(std::time::Duration::from_secs(10));
+            if let Message::Response(response) = message.expect("the server answers") {
+                answered.push((response, began.elapsed()));
+            }
+        }
+        answered
+    };
+
+    let special = send(&mut client, "workspace/executeCommand", command("org.edit.special"));
+    let hover = send(&mut client, "textDocument/hover", at.clone());
+    let answered = answers(&mut client, 2);
+    assert_eq!(answered[0].0.id, hover);
+    assert_eq!(answered[1].0.id, special);
+    let first = answered[1].0.response_result.as_ref().expect_err("Emacs's error").message.clone();
+    assert!(first.starts_with("Emacs "), "{first}");
+
+    // Stuck: canceled, the command is answered so, and Emacs stopped.
+    let export = send(&mut client, "workspace/executeCommand", command("org.export.dispatch"));
+    let hover = send(&mut client, "textDocument/hover", at.clone());
+    let answered = answers(&mut client, 1);
+    assert_eq!(answered[0].0.id, hover);
+    let began = std::time::Instant::now();
+    while !directory.join("stuck").exists() {
+        assert!(began.elapsed() < std::time::Duration::from_secs(10), "Emacs has the job");
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    let params = json!({ "id": export.clone() });
+    client
+        .connection
+        .sender
+        .send(Message::Notification(Notification { method: "$/cancelRequest".into(), params }))
+        .unwrap();
+    let answered = answers(&mut client, 1);
+    assert_eq!(answered[0].0.id, export);
+    assert_eq!(answered[0].0.response_result.as_ref().expect_err("an error").code, -32800);
+    let special = send(&mut client, "workspace/executeCommand", command("org.edit.special"));
+    let answered = answers(&mut client, 1);
+    assert_eq!(answered[0].0.id, special);
+    let second = answered[0].0.response_result.as_ref().expect_err("Emacs's error").message.clone();
+    assert!(second.starts_with("Emacs ") && second != first, "another Emacs answers: {first}, {second}");
+    client.shutdown();
+    let _ = std::fs::remove_dir_all(directory);
+}
+
+/// An `org-id-locations-file` that is not there.
+const NO_ID_LOCATIONS: &str = "/nonexistent/org-lsp-test/.org-id-locations";
 
 /// The servers of the tests keep what they leave for others (where they
 /// listen for org-protocol URLs) in a state directory of their own, not

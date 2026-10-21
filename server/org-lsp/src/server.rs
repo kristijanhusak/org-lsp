@@ -53,6 +53,7 @@ use crate::prompt::{self, DatePrompt, Target, TimeField};
 mod bulk;
 mod clock_persist;
 mod clock_resolve;
+mod emacs_wait;
 mod journal;
 mod manual;
 mod remote_images;
@@ -414,6 +415,10 @@ enum DimBlocked {
 
 /// The largest count a command takes, either way.
 const COUNT_MAX: i64 = 100_000;
+
+/// The new name of a rename that answers a question with nothing, for a
+/// client that sends no empty one (`message_prompts`).
+const EMPTY_ANSWER: &str = "-";
 
 /// A file an `#+INCLUDE:` line names: its time of change and size when it
 /// was read, and its text.
@@ -1139,6 +1144,8 @@ struct Server {
     export_stack: Vec<(String, PathBuf, bool)>,
     /// What Emacs is doing, by tag.
     emacs_jobs: HashMap<u64, EmacsJob>,
+    /// The editor's requests that wait for Emacs.
+    emacs_waits: emacs_wait::Waits,
     /// The notices of Emacs's shown (an option of `emacs_options` left out),
     /// which an Emacs started again gives again: shown once.
     emacs_notices: HashSet<String>,
@@ -1350,6 +1357,9 @@ struct Server {
     last_activity: Option<i64>,
     /// `org-resolve-clocks` under way: the clocks still to ask about.
     resolving: Option<clock_resolve::Resolving>,
+    /// The changes a resolution before a clock-in made, for the clock-in
+    /// to send with its own in one edit.
+    resolved_changes: Vec<(Uri, Option<i32>, String, String)>,
     /// The clock found running in the files rather than clocked into:
     /// Emacs would have no clock (`org-clock-is-active`), and for clocking
     /// in and resolving it is a dangling clock. It is still the clock the
@@ -1801,6 +1811,7 @@ pub fn run(connection: Connection) -> Result<()> {
         capture_lisp: HashMap::new(),
         publish_projects: None,
         emacs_jobs: HashMap::new(),
+        emacs_waits: emacs_wait::Waits::default(),
         emacs_notices: HashSet::new(),
         export_stack: Vec::new(),
         export_directory: Private::new("export"),
@@ -1900,6 +1911,7 @@ pub fn run(connection: Connection) -> Result<()> {
         clock_report_running: options.clock_report_include_clocking_task.unwrap_or(false),
         last_activity: None,
         resolving: None,
+        resolved_changes: Vec::new(),
         found_clock: None,
         clock_leftover: None,
         clock_auto_resolution: clock_resolve::AutoResolution::of(options.clock_auto_clock_resolution.as_ref()),
@@ -2017,9 +2029,12 @@ pub fn run(connection: Connection) -> Result<()> {
                         continue;
                     }
                     let (id, method) = (request.id.clone(), request.method.clone());
+                    // None: the request waits for Emacs, and is answered then.
                     let response = guarded(&mut server, &method, |server| server.request(request))
-                        .unwrap_or_else(|message| Response::new_err(id, ErrorCode::InternalError as i32, message));
-                    connection.sender.send(Message::Response(response))?;
+                        .unwrap_or_else(|message| Some(Response::new_err(id, ErrorCode::InternalError as i32, message)));
+                    if let Some(response) = response {
+                        connection.sender.send(Message::Response(response))?;
+                    }
                 }
                 Ok(Message::Notification(notification)) => {
                     from_editor = true;
@@ -3327,7 +3342,9 @@ impl Server {
 
     // ----- requests
 
-    fn request(&mut self, request: Request) -> Response {
+    /// The answer to `request`; None when it waits for Emacs (a command),
+    /// to be answered once Emacs has answered.
+    fn request(&mut self, request: Request) -> Option<Response> {
         // Only for one about the agenda: coc.nvim, as it reads the agenda
         // anew, may be asked others in between (about the file an edit was
         // for, or none).
@@ -3335,6 +3352,13 @@ impl Server {
             self.drop_closed_view();
         }
         self.notice_activity();
+        let command = request.method == ExecuteCommand::METHOD;
+        self.emacs_waits.begin(command.then(|| request.clone()));
+        let response = self.answer_request(request);
+        (!self.emacs_waits.end()).then_some(response)
+    }
+
+    fn answer_request(&mut self, request: Request) -> Response {
         macro_rules! dispatch {
             ($($request:ty => $handler:ident,)*) => {
                 match request.method.as_str() {
@@ -3346,6 +3370,8 @@ impl Server {
                         Ok((id, params)) => {
                             let (command, argument) = (params.command.clone(), params.arguments.first().cloned());
                             match self.run_command(params) {
+                                // Run again once Emacs has answered.
+                                _ if self.emacs_waits.waiting() => Response::new_ok(id, Value::Null),
                                 Ok(value) => {
                                     // A code action of Zed's (`apply` in its
                                     // context), or any command of a client
@@ -3488,6 +3514,18 @@ impl Server {
         // to answer one, and the next full sync repairs any lost change.
         fn parse<P: DeserializeOwned>(notification: Notification) -> Option<P> {
             serde_json::from_value(notification.params).ok()
+        }
+        // A command that waits for Emacs given up, and what Emacs does for
+        // it.
+        if notification.method == lsp_types::notification::Cancel::METHOD {
+            let id = notification.params.get("id").cloned().and_then(|id| serde_json::from_value::<RequestId>(id).ok());
+            if let Some(tag) = id.as_ref().and_then(|id| self.emacs_waits.cancel(id)) {
+                self.emacs.cancel(tag);
+                let id = id.expect("the request's id");
+                let response = Response::new_err(id, ErrorCode::RequestCanceled as i32, "Canceled".to_string());
+                let _ = self.sender.send(Message::Response(response));
+            }
+            return;
         }
         // A fixed clock moved on, for tests.
         if notification.method == SET_CLOCK && self.clock.is_some() {
@@ -5121,7 +5159,10 @@ impl Server {
         use org_core::rename::{self, Target};
         // The answer to a command's question: the command goes on.
         if let Some(Question { command, argument, input }) = self.question.take() {
-            self.answer_prompt(command, argument, &input, &params.new_name);
+            // A client may send no empty new name (Zed): `-` alone is the
+            // empty answer, the prompt's default.
+            let answer = if params.new_name.trim() == EMPTY_ANSWER { "" } else { params.new_name.as_str() };
+            self.answer_prompt(command, argument, &input, answer);
             return Some(WorkspaceEdit::default());
         }
         let encoding = self.client.encoding;
@@ -5356,10 +5397,8 @@ impl Server {
             let path = uri::to_path(&uri).ok_or("Only a file on disk has attachments")?;
             let point = text[..offset].chars().count() + 1;
             let params = json!({ "file": path.to_string_lossy(), "text": text, "point": point, "name": name });
-            let found = self
-                .emacs
-                .call("attach-expand", params, std::time::Duration::from_secs(60))
-                .map_err(Refusal::Failed)?;
+            let found =
+                self.ask_emacs("attach-expand", params, std::time::Duration::from_secs(60)).map_err(Refusal::Failed)?;
             let full = found.as_str().ok_or("No attachment directory for this entry")?;
             opened = open::file_link(&format!("{full}{}", search.unwrap_or("")));
         }
@@ -9240,7 +9279,7 @@ impl Server {
             "args": [],
             "variables": [],
         });
-        let result = self.emacs.call("run", params, std::time::Duration::from_secs(30)).map_err(Refusal::Failed)?;
+        let result = self.ask_emacs("run", params, std::time::Duration::from_secs(30)).map_err(Refusal::Failed)?;
         let new = result.get("text").and_then(Value::as_str).ok_or("Emacs did not answer")?.to_string();
         let line_end = |text: &str| text[start..].find('\n').map_or(text.len(), |at| start + at);
         let grown = line_end(&new) as isize - line_end(&text) as isize;
@@ -9608,8 +9647,7 @@ impl Server {
                 let params =
                     json!({ "file": readable_file.path, "text": text, "function": function, "points": points });
                 let said = self
-                    .emacs
-                    .call("refile-verify", params, std::time::Duration::from_secs(60))
+                    .ask_emacs("refile-verify", params, std::time::Duration::from_secs(60))
                     .map_err(Refusal::Failed)?;
                 let verdicts: Vec<bool> = said
                     .as_array()
@@ -9930,13 +9968,13 @@ impl Server {
             self.capture_lisp.clear();
         }
         let mut evaluated = std::mem::take(&mut self.capture_lisp);
-        let emacs = &self.emacs;
+        let (emacs, waits) = (&self.emacs, &mut self.emacs_waits);
         let mut eval = |sexp: &str| -> std::result::Result<Option<String>, String> {
             if let Some(value) = evaluated.get(sexp) {
                 return Ok(value.clone());
             }
             let params = json!({ "sexp": sexp, "directory": directory.as_ref().map(|path| path.to_string_lossy()) });
-            let result = emacs.call("eval", params, std::time::Duration::from_secs(30))?;
+            let result = waits.call(emacs, "eval", params, std::time::Duration::from_secs(30))?;
             let value = result.as_str().map(str::to_string);
             evaluated.insert(sexp.to_string(), value.clone());
             Ok(value)
@@ -10040,8 +10078,7 @@ impl Server {
                     params["text"] = json!(text);
                 }
                 let found = self
-                    .emacs
-                    .call("capture-target", params, std::time::Duration::from_secs(60))
+                    .ask_emacs("capture-target", params, std::time::Duration::from_secs(60))
                     .map_err(Refusal::Failed)?;
                 let path = found.get("file").and_then(Value::as_str).ok_or("The target function visited no file")?;
                 let uri = uri::from_path(Path::new(path)).ok_or("Cannot name the target file")?;
@@ -11921,8 +11958,7 @@ impl Server {
             // `#`: `org-export-insert-default-template`, for a backend.
             None if key == "#" => {
                 let backends = self
-                    .emacs
-                    .call("export-backends", json!({}), std::time::Duration::from_secs(60))
+                    .ask_emacs("export-backends", json!({}), std::time::Duration::from_secs(60))
                     .map_err(Refusal::Failed)?;
                 let choices: Vec<Value> = backends
                     .as_array()
@@ -11993,8 +12029,7 @@ impl Server {
                             Some(projects) => projects.clone(),
                             None => {
                                 let projects = self
-                                    .emacs
-                                    .call("publish-projects", json!({}), std::time::Duration::from_secs(60))
+                                    .ask_emacs("publish-projects", json!({}), std::time::Duration::from_secs(60))
                                     .map_err(Refusal::Failed)?;
                                 self.publish_projects = Some(projects.clone());
                                 projects
@@ -12045,7 +12080,7 @@ impl Server {
             return Ok(menu.clone());
         }
         let menu =
-            self.emacs.call("export-menu", json!({}), std::time::Duration::from_secs(120)).map_err(Refusal::Failed)?;
+            self.ask_emacs("export-menu", json!({}), std::time::Duration::from_secs(120)).map_err(Refusal::Failed)?;
         self.export_menu = Some(menu.clone());
         Ok(menu)
     }
@@ -12142,6 +12177,19 @@ impl Server {
         Ok(Value::Null)
     }
 
+    /// `method` in Emacs, for a command: the answer, or, for one the editor
+    /// asked for, [`emacs_wait::WAITING`] and the command run again once
+    /// Emacs has answered (see [`emacs_wait`]). A command that does not
+    /// stop at an error of this has taken no step of its own before.
+    fn ask_emacs(
+        &mut self,
+        method: &str,
+        params: Value,
+        timeout: std::time::Duration,
+    ) -> std::result::Result<Value, String> {
+        self.emacs_waits.call(&self.emacs, method, params, timeout)
+    }
+
     /// What Emacs has for the server: a question to ask in the editor, an
     /// option it did not set, or what an export made, to show.
     fn emacs_event(&mut self, event: crate::emacs::Event) {
@@ -12185,6 +12233,13 @@ impl Server {
                 }
             }
             crate::emacs::Event::Message { text } => self.show_message(MessageType::INFO, text),
+            crate::emacs::Event::Done { tag, result } if emacs_wait::Waits::owns(tag) => {
+                if let Some(request) = self.emacs_waits.answered(tag, result) {
+                    if let Some(response) = self.request(request) {
+                        let _ = self.sender.send(Message::Response(response));
+                    }
+                }
+            }
             crate::emacs::Event::Done { tag, result } => match (self.emacs_jobs.remove(&tag), result) {
                 (Some(EmacsJob::Prefixes { forms, all }), result) => self.prefixes_evaluated(tag, &forms, all, result),
                 (Some(EmacsJob::Export(label)), Err(error)) => {
@@ -12817,7 +12872,7 @@ impl Server {
             "variables": self.src_variables(),
         });
         let method = if table_field { "edit-field" } else { "edit-special" };
-        let result = self.emacs.call(method, params, std::time::Duration::from_secs(60)).map_err(Refusal::Failed)?;
+        let result = self.ask_emacs(method, params, std::time::Duration::from_secs(60)).map_err(Refusal::Failed)?;
         if let Some(file) = result.get("visit").and_then(Value::as_str) {
             let target = uri::from_path(Path::new(file)).ok_or("This file cannot be shown")?;
             let params = ShowDocumentParams { uri: target, external: None, take_focus: Some(true), selection: None };
@@ -13157,7 +13212,7 @@ impl Server {
             files.push(path);
         }
         let params = json!({ "files": files, "texts": texts, "refresh": refresh });
-        let result = self.emacs.call("appt", params, std::time::Duration::from_secs(60)).map_err(Refusal::Failed)?;
+        let result = self.ask_emacs("appt", params, std::time::Duration::from_secs(60)).map_err(Refusal::Failed)?;
         self.message = result.get("message").and_then(Value::as_str).map(str::to_string);
         self.appt_said(&result);
         Ok(Value::Null)
@@ -13504,8 +13559,7 @@ impl Server {
                     let point = document.text[..offset].chars().count() + 1;
                     let params = json!({ "file": path.to_string_lossy(), "text": document.text, "point": point });
                     let default = self
-                        .emacs
-                        .call("timer-default", params, std::time::Duration::from_secs(60))
+                        .ask_emacs("timer-default", params, std::time::Duration::from_secs(60))
                         .map_err(Refusal::Failed)?;
                     if default.get("effort").and_then(Value::as_bool) == Some(true) {
                         return self.emacs_run("org-timer-set-timer", context);
@@ -13551,8 +13605,7 @@ impl Server {
                     let document = self.document(uri).ok_or("This file is not open")?;
                     let params = json!({ "file": path.to_string_lossy(), "text": document.text });
                     let names = self
-                        .emacs
-                        .call("src-block-names", params, std::time::Duration::from_secs(60))
+                        .ask_emacs("src-block-names", params, std::time::Duration::from_secs(60))
                         .map_err(Refusal::Failed)?;
                     let choices: Vec<Value> = names
                         .as_array()
@@ -13621,8 +13674,7 @@ impl Server {
                     Some(templates) => templates.clone(),
                     None => {
                         let found = self
-                            .emacs
-                            .call("structure-templates", json!({}), std::time::Duration::from_secs(120))
+                            .ask_emacs("structure-templates", json!({}), std::time::Duration::from_secs(120))
                             .map_err(Refusal::Failed)?;
                         self.structure_templates = Some(found.clone());
                         found
@@ -13976,7 +14028,7 @@ impl Server {
         let file = uri::to_path(uri)?;
         let point = text[..offset].chars().count() + 1;
         let params = json!({ "file": file.to_string_lossy(), "text": text, "point": point, "name": name });
-        let found = self.emacs.call("attach-expand", params, std::time::Duration::from_secs(60)).ok()?;
+        let found = self.ask_emacs("attach-expand", params, std::time::Duration::from_secs(60)).ok()?;
         found.as_str().map(PathBuf::from)
     }
 
@@ -15996,8 +16048,7 @@ impl Server {
                 let point = document.text[..offset].chars().count() + 1;
                 let params = json!({ "file": path.to_string_lossy(), "text": document.text, "point": point });
                 let files = self
-                    .emacs
-                    .call("attach-files", params, std::time::Duration::from_secs(60))
+                    .ask_emacs("attach-files", params, std::time::Duration::from_secs(60))
                     .map_err(Refusal::Failed)?;
                 let files: Vec<String> = files
                     .as_array()
@@ -16120,8 +16171,16 @@ impl Server {
     fn clock_command(&mut self, id: &str, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
         self.last = None;
         match id {
-            commands::CLOCK_IN => self.clock_in(context.ok_or("This command needs the cursor position")?),
-            commands::CLOCK_IN_LAST => self.clock_in_last(context.ok_or("This command needs the cursor position")?),
+            commands::CLOCK_IN => {
+                let result = self.clock_in(context.ok_or("This command needs the cursor position")?);
+                self.send_resolved_changes();
+                result
+            }
+            commands::CLOCK_IN_LAST => {
+                let result = self.clock_in_last(context.ok_or("This command needs the cursor position")?);
+                self.send_resolved_changes();
+                result
+            }
             commands::CLOCK_RESOLVE => self.resolve_clocks(context),
             commands::CLOCK_RESOLVE_IDLE => self.resolve_idle(context),
             commands::CLOCK_OUT | commands::CLOCK_CANCEL => {
@@ -16479,13 +16538,23 @@ impl Server {
         file: Uri,
         heading: usize,
         start: DateTime,
-        changes: Vec<(Uri, Option<i32>, String, String)>,
+        changes_before: Vec<(Uri, Option<i32>, String, String)>,
     ) -> std::result::Result<Value, Refusal> {
         // The clock that runs stops as `org-clock-out` stops it.
         let now = self.clock_time(false);
-        let mut changes = changes;
+        let mut changes = std::mem::take(&mut self.resolved_changes);
+        changes.extend(changes_before);
+        // Where the headline is in the file's text, and where it is once
+        // the changes before are made.
+        let in_text = heading;
         let mut heading = heading;
-        let task = self.clock_task(&file, heading);
+        if let Some((_, _, old, new)) = changes.iter().find(|(uri, ..)| *uri == file) {
+            let same = old.bytes().zip(new.bytes()).take_while(|(a, b)| a == b).count();
+            if same < heading {
+                heading = heading + new.len() - old.len();
+            }
+        }
+        let task = self.clock_task(&file, in_text);
         let mut interrupted = None;
         if let Some(running) = self.running.clone() {
             // Its line, in the text a change before made of its file.
@@ -16557,7 +16626,7 @@ impl Server {
                 Some(_) => (base.clone(), heading),
                 None => clock::clock_in(&base, parse.todo_keywords(), heading, &settings, start)?,
             };
-            let entry = &outline.entries[outline.entry_at(heading).ok_or("Before first headline")?];
+            let entry = &outline.entries[outline.entry_at(in_text).ok_or("Before first headline")?];
             let repeat = entry.properties.iter().any(|(key, _)| key == "LAST_REPEAT");
             // The headline as the clock leaves it, its state switched.
             let head = base[heading..].lines().next().unwrap_or("").trim_start_matches('*').trim().to_string();

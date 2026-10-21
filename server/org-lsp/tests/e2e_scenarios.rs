@@ -600,6 +600,9 @@ fn options_of(spec: &Value, directory: &str) -> Value {
     let clock = spec.get("clock").cloned().unwrap_or(json!({ "today": "2026-05-18", "now": "10:30" }));
     let mut options = json!({
         "config_file": false,
+        // The IDs an Emacs of the machine left in its
+        // `org-id-locations-file` are not read.
+        "org_id_locations_file": "/nonexistent/org-lsp-test/.org-id-locations",
         "clock": clock,
         "org_agenda_files": [directory],
         "org_directory": directory,
