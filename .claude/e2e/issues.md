@@ -173,3 +173,73 @@ Each issue: a heading `## <part>-<n>: <one line>`, then
 - Where: `bridge.el` `org-lsp-bridge-run` calls the command with `apply`/`call-interactively` without binding `this-command` (and `last-command`); Org's `org-require-package` formats `this-command` into its message.
 - Repro: `.claude/e2e/repro/emacs/t_edit.py`, `org.plot.gnuplot` on a table (no gnuplot.el installed): ERROR `‘nil’ failed to load required package "gnuplot"`.
 - Expected (Emacs): `‘org-plot/gnuplot’ failed to load required package "gnuplot"`. Bind `this-command` (and `real-this-command`) to the command around the call; other Org code reads it too (`org-table-sum`'s message is already special-cased).
+
+## lsp-6: C-c C-c (org.checkbox.toggle) on a headline's statistics cookie toggles the boxes below (or fails "No item in subtree") instead of counting the cookie again
+- State: open
+- Where: `org.checkbox.toggle` (the `C-c C-c` of the manifest) with the cursor on a cookie of a headline (`[33%]`, `[1/3]`).
+- Repro: `.claude/e2e/repro/lsp/cookie.py`: `gtd.org` of the sample workspace with `** TODO Groceries [10%]` (wrong count, items `[X] milk`, `[ ] bread`, `[ ] 卵`); `org.checkbox.toggle` with the cursor on `[`, `1`, `%` or `]` of the cookie gives `[0%]` with every box unchecked. `cookie2.py`: on `[0/3]` of `** TODO Project Alpha [0/3]` (counts TODO children, no checkboxes) it fails with `No item in subtree`.
+- Expected (docs/protocol.org, `org.checkbox.toggle`: "on a statistics cookie the cookies are counted again"; Emacs `org-ctrl-c-ctrl-c`, context `statistics-cookie` → `org-update-statistics-cookies`): `** TODO Groceries [33%]` with the boxes untouched (Emacs batch, `.claude/e2e/repro/lsp/emacs.py`: `(search-forward "[10%") (org-ctrl-c-ctrl-c)` gives `[33%]`), and `[1/3]` for Project Alpha. Got: boxes toggled, or the error.
+- Note: elsewhere on a headline the server runs `org-toggle-checkbox` (documented), where Emacs's `C-c C-c` runs `org-set-tags-command` (org.el:18169); that difference is not marked as one in the docs or parity.org.
+
+## emacs-14: a link abbreviation calling a function fails with "Disabling unsafe link abbrev: %(my-abbrev)…" unless the function is marked safe, which the docs do not say
+- State: open (docs)
+- Where: docs/protocol.org and docs/configuration.org, `org_link_abbrev_alist`: "~%(my-function)~ calls an Emacs function with what follows the colon (through Emacs)". Org 9.8 refuses a function not marked `org-link-abbrev-safe`; `bridge.el` `org-lsp-bridge-expand-abbrev` turns the warning into the error.
+- Repro: `.claude/e2e/repro/emacs/t_lisp.py` with `org_link_abbrev_alist = { ex = "%(my-abbrev)" }` and `(defun my-abbrev …)` in `emacs_config`: `org.open` on `[[ex:foo]]` → ERROR "Disabling unsafe link abbrev: %(my-abbrev)\nYou may mark function safe via (put 'my-abbrev 'org-link-abbrev-safe t)". With the `put` in `emacs_config` it opens `https://example.org/FOO`.
+- Expected: the option's description says the function must be marked safe in `emacs_config` (`(put 'my-abbrev 'org-link-abbrev-safe t)`), as Org's own docstring of `org-link-abbrev-alist` does.
+
+## emacs-15: a diary sexp that signals an error is left out of the agenda silently; Emacs says "Bad sexp at line N in FILE: …"
+- State: open (minor)
+- Where: `bridge.el` `org-lsp-bridge-diary-sexp` (`org-diary-sexp-entry`, `beep`/`sleep-for` stubbed); the message goes to Emacs's stderr; the server shows nothing.
+- Repro: `t_lisp.py`: an agenda file with `%%(error "boom")`: the day view has no line for it and no message (the other sexps, `%%(diary-float t 3 3)` and one defined in `emacs_config`, show).
+- Expected: the message shown once (as an agenda `%(…)` error is: "the error is said once"), with the file and line, as Emacs's echo area shows it.
+
+## emacs-16: a code block that fails (non-zero exit, stderr) shows nothing: Emacs's *Org-Babel Error Output* is lost
+- State: open
+- Where: `bridge.el` `org-lsp-bridge-run` returns the text, point and last `message`; `org-babel-eval-error-notify` writes stderr and "[ Babel evaluation exited with code N ]" to the buffer `*Org-Babel Error Output*` and displays it (no `message`), which the bridge neither reports nor clears.
+- Repro: `.claude/e2e/repro/emacs/t_babel_err.py` (Babel through `emacs_options` org-babel-load-languages python/shell): `raise ValueError("bad")` in python → only an empty `#+RESULTS:` is inserted, no message; `echo out; echo err >&2; exit 3` in shell → `: out`, nothing about `err` or the exit code. Emacs batch on the same text: the error buffer holds the traceback / `err` and `[ Babel evaluation exited with code 1 ]` (`… code 3 ]`). (Elisp errors, unknown languages and `read-string` are reported: "Wrong type argument: listp, 1", "No org-babel-execute function for nosuchlang!", "Emacs asked a question org-lsp cannot answer: Your name:".)
+- Expected: what Emacs shows reaches the editor: the error buffer's text as a file shown with `window/showDocument` (as an export to a buffer is), or at least a WARNING/ERROR message with its last line ("[ Babel evaluation exited with code 1 ]") and the stderr.
+
+## emacs-17: VS Code's `org-lsp.settings` description gives its example with the old option names (agendaFiles, todoKeywords, logDone)
+- State: open (minor, VS Code; found checking the emacs_options schema)
+- Where: `editors/vscode/package.json` line ~1765, `org-lsp.settings` `markdownDescription` (written by hand).
+- Repro: read it: "for example `{ "agendaFiles": ["~/org"], "todoKeywords": [...], "logDone": "time" }`. Without `agendaFiles`…". The server takes these but says "options are named after Org's variables now: …" (docs/configuration.org "Names").
+- Expected: `org_agenda_files`, `org_todo_keywords`, `org_log_done` (and maybe an `emacs_options` example).
+
+## lsp-7: TODO list: an entry marked done from the agenda loses its keyword on its line when its parent's cookie is recounted and the parent's tags move
+- State: open
+- Where: the agenda's in-place line change (`org-agenda-change-all-lines`) in the TODO list (`org.agenda.todos`); the week agenda is right.
+- Repro: `.claude/e2e/repro/lsp/done_keyword_lost.py`: `a.org` is `* TODO Project [0/2] :work:` / `** TODO Build it` / `** TODO Ship it`; open the TODO list, `org.todo.next` on the "Ship it" line. Also in the sample workspace (`agenda_flow.py full todo-list-done`, "Build it" / "Ship it" under `** TODO Project Alpha [1/3]`, whose tags are not in their column).
+- Expected (Emacs batch, `agenda_flow.py`): `  a:          DONE Ship it      …      :work::`. Got: `  a:          Ship it      …      :work::` (no keyword) while the file has `** DONE Ship it` and the parent `[1/2]` with its tags moved to their column. With the parent's tags already in their column, or without the cookie, the line is right; `org.agenda.redo` shows it right too.
+
+## lsp-8: a habit marked done from the agenda keeps its graph on its line, where Emacs shows it with its scheduled leader and no graph
+- State: open (minor: the line until the agenda is built again)
+- Where: agenda, `org.todo` on a habit's line (`org-agenda-change-all-lines` for a habit).
+- Repro: `.claude/e2e/repro/lsp/agenda_flow.py full habit-done` (sample workspace, "Water the plants", `STYLE: habit`, scheduled yesterday `.+2d`; answer `d`).
+- Expected (Emacs batch): `  gtd:        Sched. 1x:  DONE Water the plants` — Emacs formats the changed line again from its `extra` property (the leader) without the habit flag, so the leader appears and the consistency graph goes until the next redo. Got: `  gtd:        DONE Water the plants                   * * *  !` (graph kept, no leader). The file is the same as Emacs's.
+
+## emacs-18: each time Emacs starts again, the emacs_options warnings come again; "Emacs stopped" says nothing of the exit status
+- State: open (minor)
+- Where: `bridge.el` `--set-option` notices are sent at every start (`emacs.rs` `start` → `setup`); `emacs.rs` `request`'s `stopped` only adds stderr.
+- Repro: `.claude/e2e/repro/emacs/t_restart.py`: `emacs_options = { org-export-with-toc = "bad" }` and a block `(kill-emacs 3)` run twice, then another block: three times the same WARNING "`emacs_options` leaves out `org-export-with-toc`: "bad" is not false, true or an integer", and ERROR "Emacs stopped" twice (no "exit status 3", stderr empty because the bridge inhibits messages).
+- Expected: a notice already shown in this session not repeated (the server can remember the texts it showed); "Emacs stopped (exit status 3)" when there is no stderr to show.
+
+## emacs-19: emacs_options messages for a compound value name the whole value, not the part that is wrong; a TOML date shows the parser's internals
+- State: open (minor)
+- Where: `bridge.el` `--set-option` / `--type-text` (one text per type head: "a table", "a list"); the TOML reader's datetime representation reaches Emacs as JSON.
+- Repro: `t_names.py`, `t_edge.py`:
+  - `org-export-backends = ["ascii", "html", "nosuch"]` → "`emacs_options` leaves out `org-export-backends`: ["ascii","html","nosuch"] is not a list" (it is a list; `nosuch` is not a backend);
+  - `org-babel-load-languages = { emacs-lisp = true, nosuchlang = true }` → "… {…} is not a table" (it is; `nosuchlang` is not a language);
+  - `org-export-default-language = 2026-10-21` (TOML date) → "… {"$__toml_private_datetime":"2026-10-21"} is not a string".
+- Expected: the item that does not fit, and what that item may be ("`nosuch` is not one of ascii, beamer, html, …"); a TOML date/time given as its text (or said to be a date, which no option takes). Also worth a line in docs/emacs-options.org: JSON `null` is `nil` (`"org-export-with-toc": null` sets it to nil, it does not reset it).
+
+## neovim-9: keys typed ahead of a one-key prompt (agenda menu, TODO keys, capture templates) run as normal commands: `nmap <F5> <Leader>oaa` does not work
+- State: open
+- Where: `lua/org-lsp/init.lua` `M.run`: the command goes to the server first and `M.read_key` (`getcharstr`) runs only when the answer comes back; keys already in the typeahead have been executed by then.
+- Repro (tmux TUI, `.claude/e2e/repro/neovim/tui.sh`, server already running): `:nmap <F5> \oaa`, then `<F5>`: the `a` appends in the Org file (`-- INSERT --`) and the agenda menu then waits for a key. The same with `\oa` and `a` sent in one go (a macro, a fast typist); with 30 ms between them it works.
+- Expected: as in Emacs, where `C-c a a` in a keyboard macro or bound to a key opens the week agenda, the key after the prefix answers the menu. Got: it is run as a Normal-mode command, and the menu stays open. The same race holds for every `input.kind == 'key'` prompt (fast TODO selection `cit` + key, `<Leader>oc` + template key, the export menu).
+
+## neovim-10: Neovim's hover on a link in an Org file stays Markdown: its Org block is not highlighted, and a user's `FileType markdown` settings apply
+- State: open (low)
+- Where: `lua/org-lsp/preview.lua` `to_org`/`watch`: only a float whose first line is ```` ```org ```` (the agenda's hover) is made an Org buffer. A link's hover is `` `LINK: *Other` `` + blank + ```` ```org … ``` ```` (`.claude/e2e/repro/neovim/hover.lua` prints it).
+- Repro (TUI): `:autocmd FileType markdown setlocal spell number cursorline`, then `K` on `[[*Other][other]]`: the float shows line numbers (`1 LINK: *Other`, `4 * TODO Other`), wraps the planning line at the narrow width, and the target's headline is not in Org's colors (no Org tree-sitter parser). In the agenda the same autocmd is undone (`org false false false` for filetype/spell/number/cursorline): that part works.
+- Expected: the link's preview looks as the agenda's does (Org highlighting, Markdown settings undone), or the docs say only agenda hovers are converted. Got: Markdown float with the user's Markdown options.

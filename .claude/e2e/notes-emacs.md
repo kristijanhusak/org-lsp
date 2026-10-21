@@ -22,3 +22,19 @@ Server: target/debug/org-lsp (main at 5f01da5 / bad79cc).
 - t_babel.py: execute.buffer result identical to Emacs batch (elisp, python output, shell value, python :session twice, :var, noweb, #+call, inline src/call, table). Confirmation asked via showMessageRequest; No → "Evaluation of this emacs-lisp code block (one) is aborted." (Emacs's text); remove_result ok.
 - t_attach.py: a(mv)/c/l/y/m make the right kinds of files in org-attach-id-dir; n opens the new file; o/f open externally; d picks; D asks twice (Emacs's "Recursive?"), s/S. Issues emacs-7 (u), emacs-8 (message lost on edit), emacs-9 (keys).
 - Docs page: all 480 checked (cmp_options.py), parse_page.el, page_toml.py → emacs-10.
+- t_noemacs.py (PATH without emacs, and `emacs = "/nonexistent/emacs"`): every Emacs command → "Cannot start Emacs (`emacs`, the `emacs` option): No such file or directory (os error 2)" (as a JSON-RPC error for the synchronous ones, an ERROR showMessage for the async ones); org.todo etc. fine; server-side emacs_options name check still reported.
+- t_failures.py: Lisp error in emacs_config → "Emacs could not load Org with your configuration: Wrong type argument: listp, 1", every command; killed Emacs → "Emacs stopped", next command restarts it; stuck call → "Emacs did not answer in time" after 30 s, Emacs replaced. emacs-11 (server frozen meanwhile).
+- t_crypt.py (gpg key in a short /tmp GNUPGHOME, org-crypt-key via emacs_options): encrypt/decrypt/encrypt.all/decrypt.all OK; symmetric (no key, no pinentry): GPG's 'GPG error: "Encrypt failed", "Exit"' (environment: no pinentry; with a desktop pinentry it may work); before-save magic: first willSaveWaitUntil 1.06 s (Emacs start; VS Code's budget is 1.5 s, a slower start would save plaintext), then 0.01 s.
+- t_columns.py: column view values/edit/next/quit and EFFORT key case identical to Emacs; columnview dblock; agenda columns (summary on the header line, as Emacs's org-agenda-colview-summarize); appt "Added 1 event for today".
+- t_timer.py / t_countdown*.py: start/insert/pause/continue/item/stop with org-timer-format from emacs_options; countdown fires "Task: time out"; emacs-12 (replace countdown).
+- t_edit.py / t_edit2.py: C-c ' src (indentation as Emacs), formulas editor (save writes TBLFM), C-c ` field, formula debugger (questions with substitution history, No → "Abort"), table export (format choice, "Export done."), import, ascii plot. Plot: emacs-13. C-c ` on a hline opens an editor as Emacs does.
+- t_lisp.py: capture %(sexp) incl. error form `%![Error: (wrong-type-argument listp 1)]`, %\1 inside %() same as Emacs (\x01), file+function and function targets, refile verify function, diary sexps, agenda prefix %(…) (grid lines evaluated outside Org: "-"), link abbrev function (emacs-14), bad diary sexp (emacs-15).
+- t_tangle.py: Lisp :tangle and noweb call (Emacs fallback): same files, modes (shebang 755) and message as Emacs.
+- t_edits.py: footnote r/s/n, C-c - / C-c * / C-c ; , drawer, structure template, copy-down, table create: identical to Emacs batch (with emacs_options footnote/table options).
+- t_visible.py: visible-only export follows the editor's folds as Emacs's folds do.
+- t_babel_err.py: emacs-16 (error output lost); read-string → "Emacs asked a question org-lsp cannot answer: Your name:".
+- t_configfile.py: emacs_options from `config_file` (JSON) and $ORG_LSP_CONFIG (TOML) both apply.
+- t_restart.py: emacs-18.
+- t_misc.py: a failing :set → WARNING "`emacs_options` could not set `org-attach-method`: set failed for mv", Emacs keeps going; a :set that fails when the defcustom itself initializes → "Emacs could not load Org with your configuration: …" on every command.
+- Not through Emacs (server-side, not tested here): ctags, man:, info: links.
+- Export dispatcher has no C-a (async) toggle: all exports run in the background anyway (not logged).

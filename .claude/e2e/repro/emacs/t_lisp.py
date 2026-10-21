@@ -53,6 +53,7 @@ for key, ans in [('a', ['a', 'zed']), ('b', ['b']), ('c', ['c']), ('d', ['d'])]:
     if d:
         r = c.cmd('org.capture.finish', d[-1]['uri'], (0, 0)); c.settle(1)
         print('    finish ->', json.dumps(r)[:150], c.messages[m:])
+print('applyEdit to visited:', [json.dumps(p)[:300] for m2, p in c.requests if m2 == 'workspace/applyEdit' and 'visited' in json.dumps(p)])
 print('ag.org now:', repr(c.text(u)), 'visited.org:', repr(open(D + '/visited.org').read()))
 m = len(c.messages)
 r = c.cmd('org.refile', u, (0, 2)); print('refile targets ->', [ch.get('label') for ch in (r or {}).get('input', {}).get('choices', [])] if isinstance(r, dict) else r, c.messages[m:])

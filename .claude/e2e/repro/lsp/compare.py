@@ -404,6 +404,59 @@ sc(name="bibtex-create-mid", file="gtd.org", needle="Meeting with Bob", command=
 sc(name="promote-alpha-region", file="gtd.org", needle="Plan it", command="org.levels.odd",
    emacs="(org-convert-to-odd-levels)")
 
+# ---- second round
+sc(name="bibtex-create2", file="gtd.org", needle="** Meeting with Bob", command="org.bibtex.create",
+   answers=["book", "TITLE", "author", "AUTH", "PUB", "1999", "key1"],
+   emacs="(org-bibtex-create)", emacs_answers=["book", "TITLE", "author", "AUTH", "PUB", "1999", "key1"])
+sc(name="levels-odd", file="gtd.org", needle="Plan it", command="org.levels.odd", answers=["y"],
+   emacs="(org-convert-to-odd-levels)")
+sc(name="emphasize-bold-nosel", file="gtd.org", needle="A paragraph.", delta=2, command="org.emphasize", answers=["*"],
+   emacs="(org-emphasize ?*)")
+sc(name="emphasize-bold-region", file="gtd.org", needle="A paragraph.", delta=2, command="org.emphasize", answers=["*"],
+   arg={"range": {"start": {"line": 73, "character": 5}, "end": {"line": 73, "character": 14}}},
+   emacs="(set-mark (point)) (forward-char 9) (activate-mark) (transient-mark-mode 1) (org-emphasize ?*)")
+sc(name="drawer-insert", file="gtd.org", needle="A paragraph.", command="org.drawer.insert", answers=["NOTES"],
+   emacs="(org-insert-drawer nil \"NOTES\")")
+sc(name="footnote-sort", file="gtd.org", needle="[fn:1]", delta=1, command="org.footnote.menu", answers=["s"],
+   emacs="(org-footnote-sort)")
+sc(name="footnote-normalize", file="gtd.org", needle="[fn:1]", delta=1, command="org.footnote.menu", answers=["n"],
+   emacs="(org-footnote-normalize)")
+sc(name="ascii-plot", file="tables.org", needle="|   3 |", delta=3, command="org.table.ascii.plot",
+   emacs="(require 'org-table) (orgtbl-ascii-plot)")
+sc(name="structure-src", file="gtd.org", needle="A paragraph.", command="org.structure.template", answers=["s"],
+   emacs="(org-insert-structure-template \"src\")")
+sc(name="table-convert-region", file="gtd.org", needle="A paragraph.", command="org.table.create", answers=[""],
+   arg={"range": {"start": {"line": 73, "character": 3}, "end": {"line": 73, "character": 15}}},
+   emacs="(set-mark (point)) (end-of-line) (activate-mark) (transient-mark-mode 1) (org-table-create-or-convert-from-region nil)")
+sc(name="archive-done", file="gtd.org", needle="* Tasks", command="org.archive.done", answers=["y", "y", "y"],
+   emacs="(org-archive-subtree '(4))")
+sc(name="clock-out", file="gtd.org", needle="Weekly review", command="org.clock.out",
+   pre=lambda c, uri: c.command("org.clock.in", c.at_text(uri, "Weekly review")),
+   emacs="(org-clock-in) (org-clock-out)")
+sc(name="kill-line-tags", file="gtd.org", needle="Call the plumber", delta=5, command="org.kill.line",
+   emacs="(org-kill-line)", options={"org_special_ctrl_k": True}, emacs_extra="(setq org-special-ctrl-k t)")
+sc(name="beginning-of-line-special", file="gtd.org", needle="Write the report", delta=5, command="org.beginning.of.line",
+   options={"org_special_ctrl_a_e": True}, emacs="(org-beginning-of-line)", emacs_extra="(setq org-special-ctrl-a/e t)")
+sc(name="sparse-todo", file="gtd.org", needle="* Tasks", command="org.sparse.tree", answers=["t"],
+   emacs="(org-show-todo-tree nil)")
+sc(name="toggle-item-region", file="gtd.org", needle="1. first", command="org.toggle.item",
+   arg={"range": {"start": {"line": 74, "character": 0}, "end": {"line": 78, "character": 0}}},
+   emacs="(set-mark (point)) (forward-line 4) (activate-mark) (transient-mark-mode 1) (org-toggle-item nil)")
+sc(name="paste-subtree-level", file="gtd.org", needle="** Meeting with Bob", command="org.paste.subtree",
+   arg={"clipboard": "* Pasted\n** Child\n"}, emacs="(kill-new \"* Pasted\\n** Child\\n\") (org-paste-subtree)")
+sc(name="yank-subtree", file="gtd.org", needle="** Meeting with Bob", command="org.yank",
+   arg={"clipboard": "* Pasted\n** Child\n"}, emacs="(kill-new \"* Pasted\\n** Child\\n\") (org-yank)")
+sc(name="refile-notes-olp", file="gtd.org", needle="Call the plumber", command="org.refile", answers=["notes.org/Projects"],
+   options={"org_refile_use_outline_path": "file"},
+   emacs="(org-refile)", emacs_answers=["notes.org/Projects/"],
+   emacs_extra="(setq org-refile-use-outline-path 'file)")
+sc(name="set-tags-cjk-region", file="gtd.org", needle="Ideas about", command="org.tags.set", answers=[""],
+   emacs="(org-set-tags nil)")
+sc(name="todo-state-trigger-done-cookie", file="gtd.org", needle="Ship it", command="org.todo", answers=["d"],
+   emacs="(org-todo \"DONE\")")
+sc(name="ordered-blocked", file="gtd.org", needle="Ship it", command="org.todo.next", emacs="(org-todo 'right)",
+   options={"org_enforce_todo_dependencies": True}, emacs_extra="(setq org-enforce-todo-dependencies t)")
+
 
 def main():
     want = sys.argv[1:]
