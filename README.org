@@ -21,6 +21,10 @@ Emacs (Org 9.8.10) on a test corpus and on random documents, and matches it
 there. Export and Babel's evaluation are Emacs itself, run by the server
 when Emacs is installed.
 
+AI assistants (Claude Code, Claude Desktop, Cursor and others) can use your
+Org files the same way, through the MCP server ~org-lsp mcp~
+([[#ai-assistants-mcp][AI assistants (MCP)]]).
+
 #+attr_html: :alt An Org file in Neovim, highlighted by org-lsp
 [[file:docs/images/org-file.png]]
 
@@ -138,6 +142,29 @@ Emacs Org does in that area that org-lsp does; [[file:docs/parity.org][parity.or
 Tested with Neovim 0.12.0 and 0.12.5, VSCodium 1.135, Vim 9.1 (with
 yegappan/lsp, vim-lsp, coc.nvim and ALE) and Helix 25.07.1.
 
+* AI assistants (MCP)
+:PROPERTIES:
+:CUSTOM_ID: ai-assistants-mcp
+:END:
+
+~org-lsp mcp~ is a [[https://modelcontextprotocol.io][Model Context Protocol]] server: an AI assistant reads
+your agenda files as Org reads them, from the shared configuration file.
+
+#+begin_src sh
+claude mcp add org-lsp -- org-lsp mcp    # Claude Code
+#+end_src
+
+- Reading :: the agenda, the TODO list, tags and text searches, custom
+  agenda commands, an entry whole, the clock report, capture templates and
+  refile targets, org-roam's nodes and backlinks, org-journal's entries.
+  Each entry comes with its ~[file:line]~.
+- Changing, with ~mcp_edits = true~ :: TODO states, capture, refile,
+  scheduling and deadlines, tags, properties, priority, effort, notes and
+  archiving, through the same code as the editor's commands, each with a
+  ~dry_run~ that shows the change first.
+
+See [[file:docs/mcp.org][docs/mcp.org]] for the setup in each assistant and every tool.
+
 * Without an editor
 
 #+begin_src sh
@@ -153,11 +180,6 @@ server does, with ~--options~ on top; ~--no-config~ leaves it out.
 Bookmarklets that store a link to a web page or capture it, as Emacs's
 org-protocol does, reach the editor with org-lsp through
 ~org-lsp protocol URL~: see [[file:docs/org-protocol.org][docs/org-protocol.org]].
-
-AI assistants read the agenda, entries, the clock report, org-roam's notes
-and org-journal's entries through ~org-lsp mcp~, a Model Context
-Protocol server, and with ~mcp_edits~ change TODO states, capture and refile: see
-[[file:docs/mcp.org][docs/mcp.org]].
 
 * Layout
 
