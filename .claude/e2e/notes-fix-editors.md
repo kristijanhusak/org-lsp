@@ -22,3 +22,10 @@ Target dir on /dev/shm/fix-editors-target (worktree `target` symlinked there).
 - neovim-16 (and Vim): TAB on the trailing blank of a new headline sends the end of line, so level cycling goes on.
 - neovim-2: vim.str_utfindex. neovim-5: conceallevel only raised from 0. neovim-6: CmdlineChanged → org.date.preview while a date is typed. neovim-7/vim-5: server honours count in calendar commands (scenario calendar.txt updated: its counts now count). neovim-8: commands run synchronously when keys are typed ahead (so RET then o goes to the file); showDocument retried after E565. neovim-9: same sync (keys typed ahead answer the menu). neovim-15: following from the org-roam buffer opens in the other window. neovim-18: no size for a new tab's only window. neovim-20: e2e waits 15 s.
 - neovim-1: documented in docs/development.org (Neovim nightly assertion; calendar marks are within lines, not avoidable cheaply).
+- Committed (rebased on main 1b72453, #366): 01fcbb2 server, 1ce8bd1 Vim, 69bf673 Neovim, f1470f0 docs.
+- neovim-12: fixed (server sends `column` = Emacs's cursor column after a column view command; Neovim, Vim, VS Code pick it).
+- neovim-13: server says in words that column row moves need a newer Org than Emacs 29's 9.6.15; documented in configuration.org.
+- vim-4 agenda message: "Command not allowed in this line" (org-agenda-error) instead of "No entry on this line".
+- vim-15: matches Emacs (C-c C-o right after a definition's label says "No link found" in Emacs 9.8.10 too; checked in batch); TESTING wording fixed.
+- vim-16, neovim-3, helix-3: docs (features.mjs, settings.rs, keys/helix.org).
+- neovim-19: covered by #366's emacs-8 fix (Emacs's message shown after its edit).
