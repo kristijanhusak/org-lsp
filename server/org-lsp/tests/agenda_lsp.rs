@@ -1513,6 +1513,39 @@ fn resumes_a_clock_left_running() {
     client.shutdown();
 }
 
+/// Clocking in after resolving a clock left running in the same file:
+/// both changes go in one edit, as an editor that checks versions takes
+/// only one edit for each version of the file.
+#[test]
+fn clocks_in_after_resolving_in_one_edit() {
+    const URI: &str = "file:///org/dangling.org";
+    let mut text = "* TODO Left running\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* TODO Other\n".to_string();
+    let mut client = Client::editor(clock(), None);
+    client.open(URI, &text);
+    let asked = run_applying(&mut client, URI, &mut text, "org.clock.in", 4, json!({}));
+    assert_eq!(asked["input"]["prompt"], "Dangling clock started 90 mins ago [jkKtTgGSscCiq]? ");
+    let mut context = asked["input"]["context"].clone();
+    context["input"] = json!("K");
+    let asked = run_applying(&mut client, URI, &mut text, "org.clock.in", 4, context);
+    assert_eq!(asked["input"]["prompt"], "Keep how many minutes (default 90): ");
+    let mut context = asked["input"]["context"].clone();
+    context["input"] = json!("");
+    let at = json!({ "textDocument": { "uri": URI }, "position": { "line": 4, "character": 0 }, "input": "", "step": context["step"], "answers": context["answers"] });
+    client.received.clear();
+    client.request("workspace/executeCommand", json!({ "command": "org.clock.in", "arguments": [at] })).unwrap();
+    client.settle();
+    let edits: Vec<&Request> =
+        client.received.iter().filter(|request| request.method == "workspace/applyEdit").collect();
+    assert_eq!(edits.len(), 1, "{:?}", client.received);
+    assert_eq!(edits[0].params["edit"]["documentChanges"][0]["textDocument"]["version"], json!(client.file_version));
+    apply_received(&mut client, URI, &mut text);
+    assert_eq!(
+        text,
+        "* TODO Left running\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]--[2026-05-18 Mon 10:30] =>  1:30\n:END:\n* TODO Other\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n"
+    );
+    client.shutdown();
+}
+
 /// `org-clock-goto-may-find-recent-task` off: with no clock running,
 /// `org-clock-goto` finds no entry.
 #[test]
@@ -10489,11 +10522,18 @@ fn bibtex_keys_come_from_emacs() {
 
 /// The servers of the tests keep what they leave for others (where they
 /// listen for org-protocol URLs) in a state directory of their own, not
-/// the user's.
+/// the user's, and read nothing of the user's home.
 fn private_state() {
     static ONCE: std::sync::Once = std::sync::Once::new();
     ONCE.call_once(|| {
         let state = std::env::temp_dir().join(format!("org-lsp-test-state-{}", std::process::id()));
         std::env::set_var("XDG_STATE_HOME", state);
+        // A home of their own: what Emacs left in the machine's (its
+        // `.org-id-locations`, `org-clock-save.el`, org-roam's files) is
+        // not read.
+        let home = std::env::temp_dir().join(format!("org-lsp-test-home-{}", std::process::id()));
+        std::fs::create_dir_all(&home).unwrap();
+        std::env::set_var("HOME", home);
+        std::env::remove_var("XDG_CONFIG_HOME");
     });
 }

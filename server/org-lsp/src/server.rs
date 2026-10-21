@@ -1338,6 +1338,9 @@ struct Server {
     last_activity: Option<i64>,
     /// `org-resolve-clocks` under way: the clocks still to ask about.
     resolving: Option<clock_resolve::Resolving>,
+    /// The changes a resolution before a clock-in made, for the clock-in
+    /// to send with its own in one edit.
+    resolved_changes: Vec<(Uri, Option<i32>, String, String)>,
     /// The clock found running in the files rather than clocked into:
     /// Emacs would have no clock (`org-clock-is-active`), and for clocking
     /// in and resolving it is a dangling clock. It is still the clock the
@@ -1877,6 +1880,7 @@ pub fn run(connection: Connection) -> Result<()> {
         clock_report_running: options.clock_report_include_clocking_task.unwrap_or(false),
         last_activity: None,
         resolving: None,
+        resolved_changes: Vec::new(),
         found_clock: None,
         clock_leftover: None,
         clock_auto_resolution: clock_resolve::AutoResolution::of(options.clock_auto_clock_resolution.as_ref()),
@@ -15802,8 +15806,16 @@ impl Server {
     fn clock_command(&mut self, id: &str, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
         self.last = None;
         match id {
-            commands::CLOCK_IN => self.clock_in(context.ok_or("This command needs the cursor position")?),
-            commands::CLOCK_IN_LAST => self.clock_in_last(context.ok_or("This command needs the cursor position")?),
+            commands::CLOCK_IN => {
+                let result = self.clock_in(context.ok_or("This command needs the cursor position")?);
+                self.send_resolved_changes();
+                result
+            }
+            commands::CLOCK_IN_LAST => {
+                let result = self.clock_in_last(context.ok_or("This command needs the cursor position")?);
+                self.send_resolved_changes();
+                result
+            }
             commands::CLOCK_RESOLVE => self.resolve_clocks(context),
             commands::CLOCK_RESOLVE_IDLE => self.resolve_idle(context),
             commands::CLOCK_OUT | commands::CLOCK_CANCEL => {
@@ -16161,13 +16173,23 @@ impl Server {
         file: Uri,
         heading: usize,
         start: DateTime,
-        changes: Vec<(Uri, Option<i32>, String, String)>,
+        changes_before: Vec<(Uri, Option<i32>, String, String)>,
     ) -> std::result::Result<Value, Refusal> {
         // The clock that runs stops as `org-clock-out` stops it.
         let now = self.clock_time(false);
-        let mut changes = changes;
+        let mut changes = std::mem::take(&mut self.resolved_changes);
+        changes.extend(changes_before);
+        // Where the headline is in the file's text, and where it is once
+        // the changes before are made.
+        let in_text = heading;
         let mut heading = heading;
-        let task = self.clock_task(&file, heading);
+        if let Some((_, _, old, new)) = changes.iter().find(|(uri, ..)| *uri == file) {
+            let same = old.bytes().zip(new.bytes()).take_while(|(a, b)| a == b).count();
+            if same < heading {
+                heading = heading + new.len() - old.len();
+            }
+        }
+        let task = self.clock_task(&file, in_text);
         let mut interrupted = None;
         if let Some(running) = self.running.clone() {
             // Its line, in the text a change before made of its file.
@@ -16239,7 +16261,7 @@ impl Server {
                 Some(_) => (base.clone(), heading),
                 None => clock::clock_in(&base, parse.todo_keywords(), heading, &settings, start)?,
             };
-            let entry = &outline.entries[outline.entry_at(heading).ok_or("Before first headline")?];
+            let entry = &outline.entries[outline.entry_at(in_text).ok_or("Before first headline")?];
             let repeat = entry.properties.iter().any(|(key, _)| key == "LAST_REPEAT");
             // The headline as the clock leaves it, its state switched.
             let head = base[heading..].lines().next().unwrap_or("").trim_start_matches('*').trim().to_string();
