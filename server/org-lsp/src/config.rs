@@ -588,8 +588,12 @@ pub struct Options {
     /// command's result (Zed).
     pub message_prompts: Option<bool>,
     /// Whether the client shows `window/showMessageRequest`; without, a
-    /// question's choices are code actions (Helix).
+    /// question's choices are code actions (Helix), or a command's
+    /// question for a client that runs commands when told (`run_command`).
     pub message_requests: Option<bool>,
+    /// The client shows the server's messages sent as `org-lsp/message`,
+    /// as one announcing `experimental.orgMessages` does.
+    pub message_notifications: Option<bool>,
     /// The client has org-lsp's editor code: it knows the server's own
     /// token types, asks what a command's result asks for, binds the keys.
     /// A client that can announce it says `experimental.orgClient`.

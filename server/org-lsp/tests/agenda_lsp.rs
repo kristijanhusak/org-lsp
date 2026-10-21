@@ -708,7 +708,7 @@ fn changes_an_entry_from_the_agenda() {
             json!({ "command": "org.agenda.goto", "arguments": [{ "textDocument": { "uri": VIEW }, "position": { "line": 0, "character": 0 } }] }),
         )
         .unwrap_err();
-    assert_eq!(error, "No entry on this line");
+    assert_eq!(error, "Command not allowed in this line");
     client.shutdown();
 }
 
@@ -4194,7 +4194,7 @@ fn changes_timestamps_and_priorities_in_a_file() {
     client.open("file:///org/empty.org", "* a\n");
     client.command("org.agenda.todos", VIEW, 0);
     let error = run(&mut client, "org.timestamp.up", VIEW, (0, 0)).unwrap_err();
-    assert_eq!((error.message.as_str(), error.data), ("No entry on this line", None));
+    assert_eq!((error.message.as_str(), error.data), ("Command not allowed in this line", None));
 
     // The actions at a timestamp.
     let actions = client
@@ -4774,7 +4774,7 @@ fn schedules_from_the_agenda() {
     let header = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 1, "character": 0 } });
     let refused =
         client.request("workspace/executeCommand", json!({ "command": "org.schedule", "arguments": [header] }));
-    assert_eq!(refused, Err("No entry on this line".to_string()));
+    assert_eq!(refused, Err("Command not allowed in this line".to_string()));
 
     // What an answer means, for an input box, as in a file.
     let mut preview = context.clone();
@@ -10496,4 +10496,112 @@ fn private_state() {
         let state = std::env::temp_dir().join(format!("org-lsp-test-state-{}", std::process::id()));
         std::env::set_var("XDG_STATE_HOME", state);
     });
+}
+
+/// A client that does nothing with a command's result (Helix): the server
+/// applies the edit a result carries, as for sorting, and leaves out the
+/// agenda's /Save all Org files/, which it cannot do; a filter after a
+/// change made from the agenda still filters the lines.
+#[test]
+fn a_plain_client_gets_the_edits_of_results_and_filters_after_changes() {
+    let mut options = clock();
+    options["show_document"] = json!(true);
+    options["message_requests"] = json!(false);
+    let root = std::env::temp_dir().join(format!("org-lsp-plain-results-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).unwrap();
+    let (a, b) = (root.join("a.org"), root.join("b.org"));
+    let a_text = "* TODO Write report\nSCHEDULED: <2026-05-18 Mon 09:00>\n";
+    let mut b_text = "* TODO Bee\nSCHEDULED: <2026-05-18 Mon>\n* Top\n** b\n** a\n".to_string();
+    std::fs::write(&a, a_text).unwrap();
+    std::fs::write(&b, &b_text).unwrap();
+    options["org_agenda_files"] = json!([root.to_string_lossy()]);
+    let capabilities = json!({
+        "experimental": { "orgClient": false },
+        "workspace": { "workspaceEdit": { "documentChanges": true } },
+    });
+    let mut client = Client::start(capabilities, options, None);
+    let (a_uri, b_uri) = (format!("file://{}", a.display()), format!("file://{}", b.display()));
+    client.open(&a_uri, a_text);
+    client.open(&b_uri, &b_text);
+
+    // Sorting `* Top`'s entries alphabetically: the edit comes.
+    let requests = client.edit("org.sort", &b_uri, (2, 0), json!({ "input": "a" }), &mut b_text);
+    assert!(methods(&requests).contains(&"workspace/applyEdit"), "{:?}", methods(&requests));
+    assert!(b_text.ends_with("* Top\n** a\n** b\n"), "{b_text}");
+
+    // The agenda, an Org file the client opens.
+    let requests = client.command("org.agenda.list", &a_uri, 0);
+    let shown = requests.iter().find(|request| request.method == "window/showDocument").expect("the agenda");
+    let agenda_uri = shown.params["uri"].as_str().unwrap().to_string();
+    let mut agenda = std::fs::read_to_string(agenda_uri.trim_start_matches("file://")).unwrap();
+    client.open(&agenda_uri, &agenda);
+    let actions = client
+        .request(
+            "textDocument/codeAction",
+            json!({
+                "textDocument": { "uri": agenda_uri },
+                "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 0, "character": 0 } },
+                "context": { "diagnostics": [] }
+            }),
+        )
+        .unwrap();
+    let kinds: Vec<&str> = actions.as_array().unwrap().iter().filter_map(|action| action["kind"].as_str()).collect();
+    assert!(kinds.contains(&"org.agenda.redo") && !kinds.contains(&"org.agenda.save"), "{kinds:?}");
+
+    // The agenda's new text, as the client applies it and tells.
+    let mut version = 1;
+    let mut follow = |client: &mut Client, requests: &[Request], agenda: &mut String| {
+        for request in requests.iter().filter(|request| request.method == "workspace/applyEdit") {
+            let (file, edits) = edits_of(request);
+            if file == agenda_uri {
+                *agenda = apply(agenda, &edits);
+                version += 1;
+                client.notify(
+                    "textDocument/didChange",
+                    json!({ "textDocument": { "uri": agenda_uri, "version": version }, "contentChanges": [{ "text": agenda }] }),
+                );
+                client.settle();
+            }
+        }
+    };
+    let bee = agenda.lines().position(|line| line.contains("Bee")).unwrap() as u32;
+    let mut requests = client.edit("org.todo.next", &agenda_uri, (bee, 3), json!({}), &mut b_text);
+    client.settle();
+    requests.append(&mut client.received);
+    follow(&mut client, &requests, &mut agenda);
+    assert!(agenda.contains("DONE Bee") && agenda.contains("Write report"), "{agenda}");
+    // The category filter of the Bee line hides the other.
+    let bee = agenda.lines().position(|line| line.contains("Bee")).unwrap() as u32;
+    let mut requests = client.command("org.agenda.filter.category", &agenda_uri, bee);
+    client.settle();
+    requests.append(&mut client.received);
+    follow(&mut client, &requests, &mut agenda);
+    assert!(agenda.contains("DONE Bee") && !agenda.contains("Write report"), "{agenda}");
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// A target that is there but empty, and not open in the editor, is
+/// written as a missing one is: an edit into an empty file leaves an empty
+/// line after the entry in some of Vim's clients, and yegappan/lsp loses
+/// the entry.
+#[test]
+fn a_capture_into_an_empty_file_writes_it() {
+    let root = workspace("capture-empty");
+    let notes = root.join("inbox.org");
+    std::fs::write(&notes, "").unwrap();
+    let mut options = clock();
+    options["org_default_notes_file"] = json!(notes.display().to_string());
+    options["org_capture_templates"] =
+        json!([{ "key": "n", "description": "Note", "template": "* TODO Captured", "immediate_finish": true }]);
+    let mut client = Client::editor(options, None);
+    let at = json!({ "textDocument": { "uri": format!("file://{}", root.join("a.org").display()) }, "position": { "line": 0, "character": 0 }, "input": "n" });
+    let done = client.request("workspace/executeCommand", json!({ "command": "org.capture", "arguments": [at] }));
+    assert_eq!(done, Ok(Value::Null));
+    client.settle();
+    assert!(client.received.iter().all(|request| request.method != "workspace/applyEdit"), "{:?}", client.received);
+    assert_eq!(std::fs::read_to_string(&notes).unwrap(), "* TODO Captured\n");
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
 }

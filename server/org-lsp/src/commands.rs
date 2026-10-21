@@ -422,6 +422,10 @@ pub const DATE_PREVIEW: &str = "org.date.preview";
 /// What TAB does in an Org file before it folds, for an editor's own TAB
 /// (`org-cycle`). Not a command of its own for users.
 pub const CYCLE: &str = "org.cycle";
+/// The answer to a yes-or-no question of Emacs's, asked as a command's
+/// question for a client that shows no `window/showMessageRequest`. Not a
+/// command of its own for users.
+pub const EMACS_ANSWER: &str = "org.emacs.answer";
 pub const CALENDAR_DAY_LATER: &str = "org.calendar.day.later";
 pub const CALENDAR_DAY_EARLIER: &str = "org.calendar.day.earlier";
 pub const CALENDAR_WEEK_LATER: &str = "org.calendar.week.later";
@@ -1902,7 +1906,7 @@ pub const COMMANDS: &[Command] = &[
 /// Every command the server runs: the table's, and those editors call
 /// on their own.
 pub fn ids() -> Vec<String> {
-    COMMANDS.iter().map(|command| command.id).chain([DATE_PREVIEW, CYCLE]).map(str::to_string).collect()
+    COMMANDS.iter().map(|command| command.id).chain([DATE_PREVIEW, CYCLE, EMACS_ANSWER]).map(str::to_string).collect()
 }
 
 /// The input the command `id` asks for, if any.

@@ -1731,8 +1731,8 @@ pub const SETTINGS: &[Setting] = &[
         "boolean",
         "false",
         "",
-        "RET on the first line of a list item makes the next item, numbered and with a checkbox as M-RET \
-         (`org-meta-return`) makes it, the items after it renumbered, as nvim-orgmode's \
+        "RET on the first line of a list item makes the next item, numbered as M-RET (`org-meta-return`) \
+         makes it (without a checkbox, which M-S-RET adds), the items after it renumbered, as nvim-orgmode's \
          `org_return_uses_meta_return` does. Off, RET is Org's: a new line in the item. \
          `org.return.item` (`<S-CR>`, Shift+Enter, with the vim keys) always does it.",
     ),
@@ -3691,10 +3691,25 @@ pub const SETTINGS: &[Setting] = &[
             "boolean",
             "true",
             "",
-            "Whether the client shows the questions of `message_prompts` that have choices \
-             (`window/showMessageRequest`). Off, for a client that cannot (Helix), the server says \
+            "Whether the client shows the questions of `message_prompts` that have choices, and Emacs's yes-or-no \
+             questions (`window/showMessageRequest`). Off, for a client that cannot (Helix), the server says \
              `PROMPT: pick the answer from the code actions`, and until it is answered the code actions start \
-             with the choices; a rename with the choice's key answers too.",
+             with the choices; a rename with the choice's key answers too. A client with org-lsp's editor code \
+             that runs commands when told (`run_command`) is asked Emacs's questions as a command's \
+             (`org.emacs.answer`): the Vim plugin, as some of Vim's LSP clients answer no message request.",
+        )
+    },
+    Setting {
+        integration: true,
+        ..setting(
+            "message_notifications",
+            "boolean",
+            "false",
+            "",
+            "Whether the client shows the server's messages (Emacs's, as its echo area shows them) sent as \
+             `org-lsp/message`, `{ type, message }` as `window/showMessage`'s, rather than with \
+             `window/showMessage`, as a client announcing `experimental.orgMessages` does: for the Vim plugin, \
+             as some of Vim's LSP clients show no messages, or show them after their own name.",
         )
     },
     Setting {
@@ -4477,6 +4492,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_client", BOOLEAN),
     ("message_prompts", BOOLEAN),
     ("message_requests", BOOLEAN),
+    ("message_notifications", BOOLEAN),
     ("line_highlights", BOOLEAN),
     ("run_command", BOOLEAN),
     ("hidden_lines", BOOLEAN),
