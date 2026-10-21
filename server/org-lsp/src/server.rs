@@ -14243,6 +14243,9 @@ impl Server {
         if let (Some(killed), Some(fields)) = (done.killed, result.as_object_mut()) {
             fields.insert("copy".to_string(), json!(killed));
         }
+        if let Some(message) = done.message {
+            result["message"] = json!(message);
+        }
         Ok(result)
     }
 
