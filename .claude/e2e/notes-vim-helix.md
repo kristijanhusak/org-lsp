@@ -42,3 +42,19 @@ Harness: `.claude/e2e/repro/vim-helix/vh.sh` (Vim in tmux socket `vh`,
 - hx_agenda.py: week agenda, t, +, schedule `S => Scheduled to`, Space k hover, filter, gd, Space b back, later, Agenda commands → t. Save all does not save (helix-1); filter after an in-place edit does nothing (helix-2).
 - hx_flows2.py: Space k on link, gr refs (3), rename Beta→Gamma updates links in both files, Space S workspace symbols, diagnostics picker, tangle ok; babel aborted (helix-7); clock table / dblock / sort lost (helix-6); edit special opens a-edit.sh. Footnote back (vim-15).
 - Highlighting (hx_hl.py over tests/visual.org and a sample): helix-4 (markup inside comments/example/fixed-width), helix-5 (comment after keyword line; multi-word targets; \there4). Also uncolored but not claimed: radio targets, inline footnotes, `$E = mc^2$`, export snippets, `-----`, `src_python{}`, COMMENT headlines; `#+LINK:` value's URL colored as a link.
+
+## Vim, more (lsp unless said)
+- Column view (Emacs): header in status line, `1:30` sum, `e` → `EFFORT value [0:30]: :` (vim-11, lsp-5), the property becomes `:EFFORT:` as Emacs's org-entry-put does; `q` quits.
+- Timers (Emacs): start/insert/item/pause/stop messages through showMessage (`Info: Lsp(org-lsp) …`), statusline `<0:00:10>`; countdown `How much time left? (minutes or h:mm:ss):` then `TODO Parent: time out` (Emacs's org-get-heading keeps TODO). Harness: tmux send-keys treats a trailing `;` as a separator: send `'\;'`.
+- Export: menu, `h h` → Emacs's Babel yes/no (yegappan inputlist) → e.html written, `Exported to …`; the screen keeps the inputlist prompt until a key (yegappan).
+- Babel `<Leader>obe`: lsp ok (`: 42`), coc ok, vim-lsp/ALE never (vim-17).
+- showMessage per client: vim-18.
+- download.sh: 4 clients × 4 ok.
+- config.toml (HOME/.config/org-lsp) keywords + g:org_lsp settings on top: ok.
+- Visual `>>` on two headlines ok; `.` repeats `>>`; `:Org toggle heading` on a selection impossible (vim-19).
+- Insert `<CR>` mid item → `- first` / `  item text` (Emacs's); `<S-CR>` cannot be typed in tmux (vim-20); TAB on new `** ` → `* `.
+- Dates: C-a/C-x on day, month, year, hour, minute, repeater; counts; S-Up/S-Down/S-Right; ois/oid typed with `i` (+2d, fri 10:00); cid; oi. twice → range; o> opens the calendar on the day without a prompt line.
+- Refile (inputlist of targets) and archive (r.org_archive with ARCHIVE_* props): ok.
+- Completion: `[[` pops link types with yegappan autocomplete.
+- Inlay hints: vim-21.
+- tests/visual.org: virtual indent shows; hidestars' hidden star drawn white on a dark terminal when 'background' is light (Vim's default when undetected) — user setting, not logged.

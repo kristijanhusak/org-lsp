@@ -525,3 +525,21 @@ Each issue: a heading `## <part>-<n>: <one line>`, then
 - Where: Vim; the plugin leaves `window/showMessage` to the client. vim-lsp drops Info messages by default (`g:lsp_show_message_log_level`), ALE does not show them; yegappan/lsp and coc.nvim prefix them. The plugin shows only a command's `result.message` itself (`echomsg`, bare).
 - Repro: `.claude/e2e/repro/vim-helix/msg_clients.sh CLIENT`: an entry with `Effort 0:30` and 0:40 clocked, `<Leader>oxi`: lsp → `Info: Lsp(org-lsp) Task ‘Long task’ should be finished by now. (0:30)`; coc → `[coc.nvim] Task ‘…’ …`; vim-lsp and ALE → nothing on screen or in `:messages` (only `Clock starts at …`). Same for every message that comes this way: table sum (`Sum of 2 items: 5 …`), field info, timers (`Timer start time set to …`, `TODO Parent: time out`), `hi` from a shell link, `Exported to …`, countdown done.
 - Expected: Emacs's text as it is, with every client (CLAUDE.md "Say what Emacs says"): have the plugin handle `window/showMessage` for Org buffers (as Neovim's plugin can), or announce/route these messages as command results.
+
+## vim-19: `:Org …` takes no range, so TESTING.org's "lines turned into headings: `:Org toggle heading`" on a selection cannot be done in Vim
+- State: open
+- Where: `editors/vim/plugin/org_lsp.vim:8` `command! -nargs=* … Org call org_lsp#user_command(<f-args>)` (no `-range`); `org_lsp#run` sends a region only for Visual-mode keys.
+- Repro: lines `plain line`, `another` under `* C`; `Vj` then `:` gives `:'<,'>Org toggle heading` → `E481: No range allowed`. With `:<C-u>Org toggle heading` the selection is lost: only the cursor's line changes (`** plain line`). (`>>` on a Visual selection works: two headlines demoted.)
+- Expected (TESTING.org, Headings: "On a selection of whole lines: … lines turned into headings (needs Emacs): `>>`, `:Org toggle heading`"): both lines turned into headings, as `C-c *` on a region in Emacs. Give `:Org` `-range` and pass the region when a range is given, or a key for org.toggle.heading in Visual mode.
+
+## vim-20: `<S-CR>` (org.return.item) cannot be typed in terminal Vim outside xterm-like terminals (tmux, screen, the Linux console): it arrives as `<CR>`
+- State: open
+- Where: Vim in a terminal without modifyOtherKeys/kitty keys (Vim turns modifyOtherKeys on only for TERM=xterm*): Shift-Enter sends CR. Same family as vim-3 (`<C-Space>` arrives as NUL). docs/keys/vim.org lists both with no word on terminals.
+- Repro: Vim in tmux (TERM=tmux-256color), on `- first item text`, `A` then Shift-Enter: a plain new line (`org.return`), not `- ` (the next item). `:Org return item` works.
+- Expected: either a second default key that terminals can send, or docs/keys/vim.org (and docs/vim.org) saying which keys need a terminal that reports modifiers, with the `mappings` to set instead.
+
+## vim-21: with yegappan/lsp and vim-lsp, the clock display (`<Leader>oxd`) and shrunk columns never show: nothing asks for inlay hints again after the command
+- State: open
+- Where: Vim; the server only sends `workspace/inlayHint/refresh` to clients that announce `refreshSupport` (server.rs:1550, 15495); yegappan/lsp and vim-lsp announce none and re-request hints only after a text change (yegappan: `TextChanged` sets `LspInlayHintsNeedsUpdate`, then `CursorHold`), and any change removes the clock display (as Emacs's overlays go). The plugin does not ask the client to update its hints after these commands.
+- Repro: yegappan with `LspOptionsSet({'showInlayHints': v:true})` (or vim-lsp `g:lsp_inlay_hints_enabled = 1`), an entry with a 0:40 CLOCK line, `<Leader>oxd`: `Total file time: 0:40 …`, but no `0:40` after the headline, even after 10 s and cursor moves; `:LspInlayHints disable | LspInlayHints enable` then shows `* Task·····…      0:40` (the server had the hint: `.claude/e2e/repro/vim-helix/inlay.py`). yegappan's debug log: its only `textDocument/inlayHint` was before the command (`[]`).
+- Expected (TESTING.org, Setup and Clocking): the times next to the headlines right after the command; the plugin could trigger the client's update (`LspInlayHintsUpdateNow`-like, vim-lsp's refresh) when a command's result or `org-lsp/…` notification says hints changed.

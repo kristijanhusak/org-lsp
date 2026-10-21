@@ -26,8 +26,16 @@ function nextAnswer(kind, prompt, items) {
 function stub() {
   for (const kind of ['showInformationMessage', 'showWarningMessage', 'showErrorMessage']) {
     vscode.window[kind] = (message, ...rest) => {
-      log.push({ kind, message: String(message) });
-      return Promise.resolve(undefined);
+      const items = rest.filter((r) => typeof r === 'string' || (r && typeof r.title === 'string'));
+      const modal = rest.some((r) => r && r.modal);
+      if (items.length === 0) {
+        log.push({ kind, message: String(message), modal });
+        return Promise.resolve(undefined);
+      }
+      const labels = items.map((i) => (typeof i === 'string' ? i : i.title));
+      const a = nextAnswer(`${kind}${modal ? ' (modal)' : ''}`, String(message), labels);
+      if (a === undefined) return Promise.resolve(undefined);
+      return Promise.resolve(items.find((i) => (typeof i === 'string' ? i : i.title) === a) ?? items.find((i) => (typeof i === 'string' ? i : i.title).toLowerCase().startsWith(String(a).toLowerCase())));
     };
   }
   const status = vscode.window.setStatusBarMessage;
@@ -115,6 +123,25 @@ async function withTimeout(promise, ms, what) {
   }
 }
 
+// What the extension and its language client write to their output
+// channels, to find errors in.
+const output = [];
+for (const name of ['createOutputChannel']) {
+  const original = vscode.window[name];
+  vscode.window[name] = (...args) => {
+    const channel = original(...args);
+    const label = args[0];
+    const wrap = (f) => (text, ...rest) => {
+      output.push(`[${label}] ${String(text)}`);
+      return f.call(channel, text, ...rest);
+    };
+    for (const m of ['append', 'appendLine', 'error', 'warn', 'info', 'debug', 'trace']) {
+      if (typeof channel[m] === 'function') channel[m] = wrap(channel[m]);
+    }
+    return channel;
+  };
+}
+
 exports.run = async function run() {
   stub();
   const extension = vscode.extensions.getExtension('kristijanhusak.org-lsp');
@@ -195,5 +222,6 @@ exports.run = async function run() {
     } catch {}
     fs.writeFileSync(process.env.OUT, JSON.stringify(results, null, 1));
   }
+  results.push({ name: '(output channels)', steps: [], output });
   fs.writeFileSync(process.env.OUT, JSON.stringify(results, null, 1));
 };
