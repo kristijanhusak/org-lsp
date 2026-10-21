@@ -16841,7 +16841,7 @@ fn column_ranges(input: &str, count: usize) -> std::collections::BTreeSet<usize>
 
 /// The files Emacs's `org-id-locations-file` lists (`org-id-locations-load`):
 /// names relative to its directory, `~` the home directory.
-fn id_location_files(file: &Path) -> Vec<PathBuf> {
+pub(crate) fn id_location_files(file: &Path) -> Vec<PathBuf> {
     let Ok(text) = std::fs::read_to_string(file) else { return Vec::new() };
     let directory = file.parent().unwrap_or(Path::new("."));
     let home = std::env::var_os("HOME").map(PathBuf::from);

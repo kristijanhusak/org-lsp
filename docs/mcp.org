@@ -5,8 +5,8 @@
 assistant (Claude Code, Claude Desktop, Cursor and others) your agenda as
 Org builds it, so it can answer "what is due this week" or "what is tagged
 ~work~" from your Org files rather than from searching their text. It only
-reads, unless you let it change TODO states and capture ([[#changing-files][Changing
-files]]).
+reads, unless you let it change TODO states, capture and refile
+([[#changing-files][Changing files]]).
 
 * Setting it up
 :PROPERTIES:
@@ -58,7 +58,7 @@ Global list of TODO items of type: ALL
 #+end_example
 
 The file goes by its name when no other agenda file has the same, else by
-its path. It is what ~set_todo_state~ takes.
+its path. It is what ~set_todo_state~ and ~refile~ take.
 
 - ~agenda~ :: the agenda of some days (~org-agenda-list~); ~span~ (~day~,
   ~week~, the default, ~fortnight~, ~month~, ~year~ or a number of days),
@@ -76,6 +76,17 @@ its path. It is what ~set_todo_state~ takes.
 - ~capture_templates~ :: the capture templates (~org_capture_templates~):
   each one's key, description, type, target and template, and the
   questions it asks.
+- ~refile_targets~ :: the places an entry can be refiled to, as
+  ~org-refile~ finds them (~org_refile_targets~, by default the top-level
+  headlines of the entry's file) and names them in its prompt
+  (~org_refile_use_outline_path~), each followed by where it is:
+  ~Projects/Garden/  [projects.org:4]~, or ~[projects.org]~ for the top
+  level of a file. ~file~ is the file of the entry to refile: the targets
+  of the current file are its headlines, and its own are named without
+  their file, as ~org-refile~ offers them there; without it, those are the
+  agenda files' headlines, and every target names its file, as from the
+  agenda. ~filter~ keeps the targets whose name has its text. It is there
+  with ~mcp_edits~ off too.
 
 * What differs from the editor's agenda
 :PROPERTIES:
@@ -94,7 +105,7 @@ editor (its own options rather than the configuration file) are not seen.
 :CUSTOM_ID: changing-files
 :END:
 
-With ~mcp_edits~ on in the configuration file, the assistant also gets two
+With ~mcp_edits~ on in the configuration file, the assistant also gets three
 tools that change files. They go through the code the editor's commands
 go through, with the same settings, and say what Emacs says.
 
@@ -124,18 +135,40 @@ mcp_edits = true
   an answer is refused, with the list of the questions, for the assistant
   to ask you. The target file is made when it is not there. It answers
   the file, the line and the text filed.
+- ~refile~ :: move an entry and its subtree under another headline, as
+  ~org-refile~ does: its levels change to fit there, and it goes last
+  among the target's children, or first with ~org_reverse_note_order~.
+  ~file~, ~line~ and ~headline~ are as for ~set_todo_state~; ~target~ is a
+  name ~refile_targets~ gives (from the entry's file or without one), the
+  ~[file:line]~ of a target, or a file alone for its top level when the
+  files are targets (~org_refile_use_outline_path~ ~"file"~, ~"title"~ or
+  ~"full-file-path"~). With ~copy~ the entry stays where it is too
+  (~org-refile-copy~). It logs as ~org_log_refile~ says: with ~"note"~, the
+  note is ~note~, and without one it is refused. With
+  ~org_refile_allow_creating_parent_nodes~, a target, a ~/~ and a new
+  headline make that headline under the target first (~"confirm"~ wants
+  ~create~ too). An entry refiled into itself or its own subtree is
+  refused with Org's message. It answers Org's message (~Refile to
+  "Garden/" in file /home/me/org/projects.org: done~) and where the entry
+  is now: its file, line and headline.
 
-Both take ~dry_run~: they answer the change as a diff, and write nothing.
+All three take ~dry_run~: they answer the change as a diff of each file
+it changes, and write nothing.
 
 They change only the agenda files and the targets of the capture
-templates. What needs Emacs or the editor is refused: a template with
-~%(…)~ or a ~function~ target, and a ~clock~ target or ~clock_in~, as
-there is no clock. ~org_capture_templates_contexts~ is not looked at:
+templates, and ~refile~ the files of ~org_refile_targets~ too. What needs
+Emacs or the editor is refused: a template with ~%(…)~ or a ~function~
+target, a ~clock~ target or ~clock_in~, as there is no clock, and
+refiling while ~org_refile_target_verify_function~ is set (both
+~refile_targets~ and ~refile~ refuse then). ~org_capture_templates_contexts~ is not looked at:
 every template can be used. Stopping the clock of an entry that is done
 (~org_clock_out_when_done~) is left to the editor.
 
 The files are written directly, each at once (into a file beside it,
-which then takes its place), and read again at each call. No editor is
+which then takes its place), and read again at each call. A refile to
+another file writes two: the target first, then the file the entry came
+from, so that if the second write fails the entry is in both files, never
+in none; refiling within a file is one write. No editor is
 asked: one that has the file open with unsaved changes may save over the
 change, or ask which to keep. Save your files before an assistant changes
 them, and use ~dry_run~ to see a change first.

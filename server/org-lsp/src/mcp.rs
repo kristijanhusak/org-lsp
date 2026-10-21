@@ -1,6 +1,6 @@
 //! `org-lsp mcp`: a Model Context Protocol server over standard input and
 //! output, for AI assistants to read the agenda as Org builds it, and with
-//! `mcp_edits` to change TODO states and capture.
+//! `mcp_edits` to change TODO states, capture and refile.
 //!
 //! The view tools build a view of the agenda files with `org-lsp agenda`
 //! ([`crate::cli::agenda_lines`]) and answer its text, each entry's line
@@ -11,8 +11,8 @@
 //!
 //! The edit tools go through the code the server's commands go through
 //! (`org-todo` with [`org_core::edit::run`], `org-capture` with
-//! [`org_core::capture`]), and write the file directly: no editor is
-//! asked, and no Emacs is started.
+//! [`org_core::capture`], `org-refile` with [`org_core::refile`]), and
+//! write the files directly: no editor is asked, and no Emacs is started.
 //!
 //! Messages are JSON-RPC, one per line, as MCP's stdio transport has them.
 
@@ -32,8 +32,8 @@ Usage: org-lsp mcp
 Run a Model Context Protocol server over standard input and output, which
 gives AI assistants the agenda, the TODO list and searches of the agenda
 files of the shared configuration file (`org-lsp config`). It only reads,
-unless that file sets `mcp_edits = true`: then it also changes TODO states
-and captures, writing the files.";
+unless that file sets `mcp_edits = true`: then it also changes TODO states,
+captures and refiles, writing the files.";
 
 /// The protocol versions this server speaks, the newest first.
 const VERSIONS: [&str; 3] = ["2025-06-18", "2025-03-26", "2024-11-05"];
@@ -84,7 +84,7 @@ pub fn answer(line: &str, folder: Option<&Path>, env: &dyn Fn(&str) -> Option<St
                 "instructions": "The user's Org mode agenda, read as Emacs's Org builds it. \
                     Dates are YYYY-MM-DD. The views are text as Org's agenda shows them: \
                     category, time, TODO keyword, headline and tags on each line, then where \
-                    the entry's headline is, [file:line], which set_todo_state takes.",
+                    the entry's headline is, [file:line], which set_todo_state and refile take.",
             })
         }
         "ping" => json!({}),
@@ -196,6 +196,21 @@ fn tools(options: &Options) -> Value {
             json!({}),
             &[],
         ),
+        tool(
+            "refile_targets",
+            "Refile targets",
+            "The places an entry can be refiled to (org_refile_targets), each named as org-refile \
+             offers it, which refile takes, then where it is, [file:line].",
+            json!({
+                "file": {
+                    "type": "string",
+                    "description": "The file of the entry to refile, whose headlines are the targets that \
+                                    org_refile_targets says are the current file's, named as from there",
+                },
+                "filter": { "type": "string", "description": "Only the targets whose name has this text" },
+            }),
+            &[],
+        ),
     ];
     if options.mcp_edits != Some(true) {
         return Value::Array(tools);
@@ -256,6 +271,36 @@ fn tools(options: &Options) -> Value {
         }),
         &["template"],
     );
+    edit(
+        "refile",
+        "Refile",
+        "Move an entry and its subtree under another headline (org-refile), its levels adjusted, \
+         logged as org_log_refile says; with copy, keep it where it is too (org-refile-copy). Writes \
+         the files. The entry is the [file:line] a view gives; the target, a name refile_targets gives."
+            .to_string(),
+        json!({
+            "file": { "type": "string", "description": "The entry's file: its path, or its name in the views" },
+            "line": { "type": "integer", "minimum": 1, "description": "The line of the entry's headline, from 1" },
+            "target": {
+                "type": "string",
+                "description": "A target as refile_targets names it, or its [file:line], or a file alone for its \
+                                top level when the targets have files; with \
+                                org_refile_allow_creating_parent_nodes, a target, / and a new headline",
+            },
+            "copy": { "type": "boolean", "description": "Keep the entry where it is too (org-refile-copy)" },
+            "note": { "type": "string", "description": "The note, when org_log_refile asks for one" },
+            "create": {
+                "type": "boolean",
+                "description": "Make the new headline when org_refile_allow_creating_parent_nodes is confirm",
+            },
+            "headline": {
+                "type": "string",
+                "description": "Text the headline has, such as its title: refused if the line no longer has it",
+            },
+            "dry_run": dry_run,
+        }),
+        &["file", "line", "target"],
+    );
     Value::Array(tools)
 }
 
@@ -294,6 +339,12 @@ impl Arguments<'_> {
         self.0.get(key).and_then(Value::as_bool).unwrap_or(false)
     }
 
+    /// The `line` of an entry's headline.
+    fn line(&self) -> Result<usize, Call> {
+        let line = self.0.get("line").and_then(Value::as_u64).filter(|line| *line > 0);
+        Ok(line.ok_or("`line` is required: the line of the entry's headline, from 1")? as usize)
+    }
+
     fn required(&self, key: &str) -> Result<String, Call> {
         self.text(key).filter(|value| !value.trim().is_empty()).ok_or_else(|| format!("`{key}` is required").into())
     }
@@ -308,15 +359,16 @@ fn call(
     let arguments = Arguments(arguments);
     match name {
         "capture_templates" => Ok(capture_templates(&crate::config::load(None, env).options, folder)),
-        "set_todo_state" | "capture" => {
+        "refile_targets" => refile_targets(&arguments, &crate::config::load(None, env).options, folder),
+        "set_todo_state" | "capture" | "refile" => {
             let options = crate::config::load(None, env).options;
             if options.mcp_edits != Some(true) {
                 return Err(EDITS_OFF.into());
             }
-            if name == "capture" {
-                capture(&arguments, &options, folder)
-            } else {
-                set_todo_state(&arguments, &options, folder)
+            match name {
+                "capture" => capture(&arguments, &options, folder),
+                "refile" => refile(&arguments, &options, folder),
+                _ => set_todo_state(&arguments, &options, folder),
             }
         }
         _ => view(name, &arguments, folder, env),
@@ -325,11 +377,7 @@ fn call(
 
 /// The files the agenda is built from, as the server finds them.
 pub(crate) fn agenda_paths(options: &Options, folder: Option<&Path>) -> Vec<PathBuf> {
-    let mut workspace =
-        crate::workspace::Workspace::new(options.agenda_files.clone(), folder.into_iter().map(Into::into).collect());
-    workspace.file_regexp =
-        options.agenda_file_regexp.as_deref().and_then(org_core::agenda::matcher::emacs_regex_with_case);
-    let mut paths = workspace.files();
+    let mut paths = workspace(options, folder).files();
     // `org-journal-enable-agenda-integration`: the journal's files of
     // today and the days to come in place of the others, as the server has.
     if let Some(journal) = options.journal() {
@@ -339,6 +387,16 @@ pub(crate) fn agenda_paths(options: &Options, folder: Option<&Path>) -> Vec<Path
         }
     }
     paths
+}
+
+/// The agenda files and the folder the server runs in, as the server
+/// looks for files there.
+fn workspace(options: &Options, folder: Option<&Path>) -> crate::workspace::Workspace {
+    let mut workspace =
+        crate::workspace::Workspace::new(options.agenda_files.clone(), folder.into_iter().map(Into::into).collect());
+    workspace.file_regexp =
+        options.agenda_file_regexp.as_deref().and_then(org_core::agenda::matcher::emacs_regex_with_case);
+    workspace
 }
 
 fn now() -> DateTime {
@@ -446,6 +504,9 @@ fn editable_files(options: &Options, folder: Option<&Path>) -> Vec<PathBuf> {
     files
 }
 
+/// What [`editable_files`] are, in a refusal.
+const EDITABLE: &str = "neither an agenda file nor the target of a capture template";
+
 /// The file a template files into.
 fn target_path(template: &CaptureTemplateOption, options: &Options) -> PathBuf {
     let path = template.target.get(1).map(String::as_str).unwrap_or("");
@@ -457,11 +518,11 @@ fn canonical(path: &Path) -> PathBuf {
     std::fs::canonicalize(path).or_else(|_| std::path::absolute(path)).unwrap_or_else(|_| path.to_path_buf())
 }
 
-/// The file `given` names, among those the edit tools may change: by its
+/// The file `given` names, among `files`, those a tool may change: by its
 /// path (`~/` the home directory, relative to the folder the server runs
 /// in), or by its name as the views give it.
-fn editable_file(given: &str, options: &Options, folder: Option<&Path>) -> Result<PathBuf, Call> {
-    let files = editable_files(options, folder);
+/// `kinds` says which files those are, when `given` is none of them.
+fn editable_file(given: &str, files: &[PathBuf], kinds: &str, folder: Option<&Path>) -> Result<PathBuf, Call> {
     let home = std::env::var_os("HOME").map(PathBuf::from);
     let path = match (given.strip_prefix("~/"), &home) {
         (Some(rest), Some(home)) => home.join(rest),
@@ -487,10 +548,7 @@ fn editable_file(given: &str, options: &Options, folder: Option<&Path>) -> Resul
             [] => {}
         }
     }
-    Err(format!(
-        "{given} is neither an agenda file nor the target of a capture template: org-lsp mcp changes only those"
-    )
-    .into())
+    Err(format!("{given} is {kinds}: org-lsp mcp changes only those").into())
 }
 
 /// Write `text` to `path` at once: into a file beside it, which then
@@ -551,23 +609,10 @@ fn is_headline(line: &str) -> bool {
     stars > 0 && line.as_bytes().get(stars) == Some(&b' ')
 }
 
-/// `org-todo` on the headline at `line` of `file`, to `state`.
-fn set_todo_state(arguments: &Arguments, options: &Options, folder: Option<&Path>) -> Result<String, Call> {
-    let given = arguments.required("file")?;
-    let line = arguments
-        .0
-        .get("line")
-        .and_then(Value::as_u64)
-        .filter(|line| *line > 0)
-        .ok_or("`line` is required: the line of the entry's headline, from 1")? as usize;
-    let state = arguments.text("state").ok_or("`state` is required: a TODO keyword, or \"\" for none")?;
-    let state = state.trim();
-    let path = editable_file(&given, options, folder)?;
-    let text = std::fs::read_to_string(&path).map_err(|error| format!("Cannot read {}: {error}", path.display()))?;
-    let name = path.display().to_string();
-
-    let parse = org_syntax::parse(&text, &options.todo_keywords());
-    let keywords = parse.todo_keywords();
+/// The start of `line` (from 1) of `text`, the file `name`, which is a
+/// headline, and one with the text of the `headline` argument when that is
+/// given: else the file has changed since the line was taken.
+fn headline_at_line(text: &str, line: usize, name: &str, arguments: &Arguments) -> Result<usize, Call> {
     let heading = match line {
         1 => 0,
         _ => text
@@ -591,6 +636,22 @@ fn set_todo_state(arguments: &Arguments, options: &Options, folder: Option<&Path
             .into());
         }
     }
+    Ok(heading)
+}
+
+/// `org-todo` on the headline at `line` of `file`, to `state`.
+fn set_todo_state(arguments: &Arguments, options: &Options, folder: Option<&Path>) -> Result<String, Call> {
+    let given = arguments.required("file")?;
+    let line = arguments.line()?;
+    let state = arguments.text("state").ok_or("`state` is required: a TODO keyword, or \"\" for none")?;
+    let state = state.trim();
+    let path = editable_file(&given, &editable_files(options, folder), EDITABLE, folder)?;
+    let text = std::fs::read_to_string(&path).map_err(|error| format!("Cannot read {}: {error}", path.display()))?;
+    let name = path.display().to_string();
+
+    let parse = org_syntax::parse(&text, &options.todo_keywords());
+    let keywords = parse.todo_keywords();
+    let heading = headline_at_line(&text, line, &name, arguments)?;
     let target = match state {
         "" => None,
         state if keywords.contains(state) => Some(state.to_string()),
@@ -960,6 +1021,351 @@ fn capture_templates(options: &Options, folder: Option<&Path>) -> String {
     out.trim_end().to_string()
 }
 
+// ----- refile
+
+/// What the refile tools answer when `org_refile_target_verify_function`
+/// is set: Emacs would call it at each target.
+const VERIFY_NEEDS_EMACS: &str = "org_refile_target_verify_function is set, which needs Emacs, which org-lsp mcp \
+                                  does not start: refile in the editor.";
+
+/// A file refile targets are taken from, read.
+struct TargetFile {
+    path: PathBuf,
+    text: String,
+    keywords: org_syntax::TodoKeywords,
+    title: Option<String>,
+    /// Its name, without directories.
+    name: String,
+    /// Its path, as Org shows it.
+    full: String,
+}
+
+impl TargetFile {
+    fn read(path: &Path, options: &Options) -> Option<TargetFile> {
+        let text = std::fs::read_to_string(path).ok()?;
+        let parse = org_syntax::parse(&text, &options.todo_keywords());
+        Some(TargetFile {
+            path: path.to_path_buf(),
+            keywords: parse.todo_keywords().clone(),
+            title: org_core::refile::file_title(&parse),
+            name: path.file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default(),
+            full: path.display().to_string(),
+            text,
+        })
+    }
+
+    fn file(&self) -> org_core::refile::File<'_> {
+        org_core::refile::File {
+            text: &self.text,
+            keywords: &self.keywords,
+            name: &self.name,
+            path: &self.full,
+            title: self.title.as_deref(),
+        }
+    }
+}
+
+/// The selections of `org_refile_targets`, each with the files it looks
+/// in (indexes into the files read, `source` first).
+type Selections = Vec<(org_core::refile::Select, Vec<usize>)>;
+
+/// The files of `org_refile_targets`, `source` (the file refiled from)
+/// first, and which of them each entry of it looks in, as the server
+/// gathers them for `org-refile`. Files that cannot be read have no
+/// targets. Without a source, `current` stands for every agenda file.
+fn refile_files(options: &Options, folder: Option<&Path>, source: Option<&Path>) -> (Vec<TargetFile>, Selections) {
+    use crate::config::RefileFiles;
+    let mut files: Vec<TargetFile> = Vec::new();
+    let mut canonicals: Vec<PathBuf> = Vec::new();
+    let mut add = |path: &Path, files: &mut Vec<TargetFile>| -> Option<usize> {
+        let wanted = canonical(path);
+        if let Some(index) = canonicals.iter().position(|known| *known == wanted) {
+            return Some(index);
+        }
+        let read = TargetFile::read(path, options)?;
+        canonicals.push(wanted);
+        files.push(read);
+        Some(files.len() - 1)
+    };
+    if let Some(source) = source {
+        add(source, &mut files);
+    }
+    let workspace = workspace(options, folder);
+    let agenda = agenda_paths(options, folder);
+    let mut selections = Vec::new();
+    for target in options.refile_targets() {
+        let found: Vec<PathBuf> = match &target.files {
+            RefileFiles::Current => source.map_or_else(|| agenda.clone(), |source| vec![source.to_path_buf()]),
+            RefileFiles::Agenda => agenda.clone(),
+            RefileFiles::Paths(patterns) => patterns.iter().flat_map(|pattern| workspace.org_files(pattern)).collect(),
+            // `org-id-files`: the agenda files, `org-id-extra-files` and
+            // those `org-id-locations-file` lists, with IDs.
+            RefileFiles::IdFiles => {
+                let lookup = options.id_lookup();
+                let mut paths = Vec::new();
+                if lookup.track_globally {
+                    paths.extend(agenda.iter().cloned());
+                    for pattern in lookup.extra_files.iter().filter(|extra| *extra != "agenda-archives") {
+                        paths.extend(workspace.org_files(pattern));
+                    }
+                    if let Some(file) = &lookup.locations_file {
+                        paths.extend(crate::server::id_location_files(file));
+                    }
+                }
+                paths
+                    .into_iter()
+                    .filter(|path| std::fs::read_to_string(path).is_ok_and(|text| org_core::link::has_ids(&text)))
+                    .collect()
+            }
+        };
+        let indexes = found.iter().filter_map(|path| add(path, &mut files)).collect();
+        selections.push((target.select, indexes));
+    }
+    (files, selections)
+}
+
+/// The files a refile may change: the agenda files, the targets of the
+/// capture templates (as the other edit tools), and the files of
+/// `org_refile_targets`.
+fn refile_editable(options: &Options, folder: Option<&Path>) -> Vec<PathBuf> {
+    let mut files = editable_files(options, folder);
+    files.extend(refile_files(options, folder, None).0.into_iter().map(|file| file.path));
+    files
+}
+
+/// What [`refile_editable`] are, in a refusal.
+const REFILE_EDITABLE: &str =
+    "neither an agenda file, nor the target of a capture template, nor a file of org_refile_targets";
+
+/// Where a target is, as the views say where entries are: `[file:line]`,
+/// or `[file]` for a file's top level.
+fn target_reference(files: &[TargetFile], file: usize, offset: Option<usize>) -> String {
+    let paths: Vec<String> = files.iter().map(|file| file.full.clone()).collect();
+    let label = file_label(&files[file].full, &paths);
+    match offset {
+        Some(at) => format!("[{label}:{}]", files[file].text[..at].matches('\n').count() + 1),
+        None => format!("[{label}]"),
+    }
+}
+
+/// Whether `org_refile_target_verify_function` is set.
+fn verifies(options: &Options) -> bool {
+    options.refile_target_verify_function.as_deref().is_some_and(|name| !name.trim().is_empty())
+}
+
+/// `org-refile-get-targets`: the targets, each named as `org-refile`
+/// offers it, and where it is.
+fn refile_targets(arguments: &Arguments, options: &Options, folder: Option<&Path>) -> Result<String, Call> {
+    if verifies(options) {
+        return Err(VERIFY_NEEDS_EMACS.into());
+    }
+    let source = match arguments.text("file").filter(|file| !file.trim().is_empty()) {
+        Some(given) => Some(editable_file(&given, &refile_editable(options, folder), REFILE_EDITABLE, folder)?),
+        None => None,
+    };
+    let (files, selections) = refile_files(options, folder, source.as_deref());
+    if let (Some(source), true) = (&source, files.is_empty()) {
+        return Err(format!("Cannot read {}", source.display()).into());
+    }
+    let readable: Vec<org_core::refile::File> = files.iter().map(TargetFile::file).collect();
+    let current = source.is_some().then_some(0);
+    let all = org_core::refile::all_targets(&selections, &readable, current, options.refile_outline_path());
+    if all.is_empty() {
+        return Err("No refile targets".into());
+    }
+    let filter = arguments.text("filter").filter(|filter| !filter.is_empty());
+    let lowered = filter.as_ref().map(|filter| filter.to_lowercase());
+    let mut out = String::new();
+    let mut seen: Vec<&str> = Vec::new();
+    for (file, target) in &all {
+        if seen.contains(&target.name.as_str()) {
+            continue;
+        }
+        seen.push(&target.name);
+        if lowered.as_ref().is_some_and(|filter| !target.name.to_lowercase().contains(filter)) {
+            continue;
+        }
+        out.push_str(&format!("{}  {}\n", target.name, target_reference(&files, *file, target.offset)));
+    }
+    if out.is_empty() {
+        return Ok(format!("No refile target has \"{}\".", filter.unwrap_or_default()));
+    }
+    Ok(out.trim_end().to_string())
+}
+
+/// The target `given` is, among `all`: by its name as `org-refile` offers
+/// it from the file refiled from (`files[0]`), or as `refile_targets`
+/// gives it without a file (`unnamed`, the same targets); else by the
+/// `file:line` of a target, or a file alone for its top level.
+fn find_target<'a>(
+    given: &str,
+    all: &'a [(usize, org_core::refile::Target)],
+    unnamed: &'a [(usize, org_core::refile::Target)],
+    files: &[TargetFile],
+    folder: Option<&Path>,
+) -> Result<Option<&'a (usize, org_core::refile::Target)>, Call> {
+    if let Some(found) = org_core::refile::find(all, given).or_else(|| org_core::refile::find(unnamed, given)) {
+        return Ok(Some(found));
+    }
+    // `[file:line]`, as a view or `refile_targets` gives it.
+    let reference = given.trim().trim_start_matches('[').trim_end_matches(']');
+    let (file, line) = match reference.rsplit_once(':') {
+        Some((file, line)) if !file.is_empty() && line.parse::<usize>().is_ok_and(|line| line > 0) => {
+            (file, line.parse::<usize>().ok())
+        }
+        _ => (reference, None),
+    };
+    let paths: Vec<PathBuf> = files.iter().map(|file| file.path.clone()).collect();
+    let labels: Vec<String> = files.iter().map(|file| file.full.clone()).collect();
+    let index = files.iter().position(|known| file_label(&known.full, &labels) == file).or_else(|| {
+        let path = editable_file(file, &paths, "", folder).ok()?;
+        paths.iter().position(|known| *known == path)
+    });
+    let Some(index) = index else { return Ok(None) };
+    let offset = match line {
+        Some(line) => {
+            let text = &files[index].text;
+            let at = match line {
+                1 => Some(0),
+                _ => text.match_indices('\n').nth(line - 2).map(|(at, _)| at + 1).filter(|at| *at < text.len()),
+            };
+            Some(at.ok_or_else(|| format!("{file} has {} lines", text.lines().count()))?)
+        }
+        None => None,
+    };
+    match (all.iter().find(|(at, target)| *at == index && target.offset == offset), offset) {
+        (Some(found), _) => Ok(Some(found)),
+        (None, Some(_)) => {
+            Err(format!("{reference} is not a refile target (org_refile_targets): refile_targets lists them").into())
+        }
+        (None, None) => Err(format!(
+            "{file} is not a refile target: a file is one, for its top level, when org_refile_use_outline_path \
+             is \"file\", \"full-file-path\" or \"title\""
+        )
+        .into()),
+    }
+}
+
+/// `org-refile` (`org-refile-copy` with `copy`) of the entry at `line` of
+/// `file`, to `target`.
+fn refile(arguments: &Arguments, options: &Options, folder: Option<&Path>) -> Result<String, Call> {
+    use org_core::refile::{self, NewNodes};
+    let given = arguments.required("file")?;
+    let line = arguments.line()?;
+    let wanted = arguments.required("target")?;
+    if verifies(options) {
+        return Err(VERIFY_NEEDS_EMACS.into());
+    }
+    let path = editable_file(&given, &refile_editable(options, folder), REFILE_EDITABLE, folder)?;
+    let (files, selections) = refile_files(options, folder, Some(&path));
+    if files.is_empty() {
+        return Err(format!("Cannot read {}", path.display()).into());
+    }
+    let heading = headline_at_line(&files[0].text, line, &files[0].full, arguments)?;
+    let readable: Vec<refile::File> = files.iter().map(TargetFile::file).collect();
+    let outline_path = options.refile_outline_path();
+    let all = refile::all_targets(&selections, &readable, Some(0), outline_path);
+    if all.is_empty() {
+        return Err("No refile targets".into());
+    }
+    let unnamed = refile::all_targets(&selections, &readable, None, outline_path);
+    let copy = arguments.flag("copy");
+    let action = if copy { "Copy" } else { "Refile" };
+
+    // `org-refile-allow-creating-parent-nodes`: a target named after an
+    // existing one, a `/` and a new headline is made, in the text it goes in.
+    let mut made: Option<(usize, String)> = None;
+    let (target_file, target_name, target_offset) = match find_target(&wanted, &all, &unnamed, &files, folder)? {
+        Some((file, target)) => (*file, target.name.clone(), target.offset),
+        None => {
+            let new_nodes = options.refile_new_nodes();
+            let found = refile::new_node(&all, &wanted).or_else(|| refile::new_node(&unnamed, &wanted));
+            match found.filter(|_| new_nodes != NewNodes::No) {
+                Some(((file, parent), child)) => {
+                    if new_nodes == NewNodes::Confirm && !arguments.flag("create") {
+                        return Err(format!(
+                            "Create new node \"{child}\"? org_refile_allow_creating_parent_nodes is \"confirm\": \
+                             give `create: true` to make it"
+                        )
+                        .into());
+                    }
+                    let (text, heading) = refile::new_child(&files[*file].text, parent.offset, &child);
+                    made = Some((*file, text));
+                    (*file, format!("{}/{child}", parent.name), Some(heading))
+                }
+                None => return Err("Invalid target location".into()),
+            }
+        }
+    };
+    let made_in = made.as_ref().map(|(file, _)| *file);
+    // The entry, after a new target made above it in its own file.
+    let heading = match (&made, target_offset) {
+        (Some((0, text)), Some(new)) if new - 1 <= heading => heading + text.len() - files[0].text.len(),
+        _ => heading,
+    };
+    let made_text = made.map(|(_, text)| text);
+    let source = if made_in == Some(0) { made_text.as_deref().expect("made") } else { files[0].text.as_str() };
+    let other = (target_file != 0).then(|| match made_in {
+        Some(file) if file != 0 => made_text.as_deref().expect("made"),
+        _ => files[target_file].text.as_str(),
+    });
+    // The target file's `org-adapt-indentation`, as Emacs pastes there.
+    let settings = refile::Settings {
+        adapt: options.display().adapt(other.unwrap_or(source), options.indent_settings().adapt),
+        ..options.refile_settings()
+    };
+    let mut refiled = refile::refile(source, heading, None, other, target_offset, &settings, copy)?;
+
+    // `org-log-refile`: the time, or a note, logged in the refiled entry.
+    let todo = options.edit_settings().todo;
+    if let Some(at) = refiled.pasted {
+        let text = refiled.target.as_mut().unwrap_or(&mut refiled.source);
+        let note = match org_core::todo::refile_logging(&todo, text) {
+            Some(org_syntax::Logging::Note) => match arguments.text("note").filter(|note| !note.trim().is_empty()) {
+                Some(note) => Some(note),
+                None => return Err("Refiling asks for a note (Note for refiling): give its text as `note`".into()),
+            },
+            Some(org_syntax::Logging::Time) => Some(String::new()),
+            None => None,
+        };
+        if let Some(note) = note {
+            let keywords = org_syntax::parse(text, &options.todo_keywords()).todo_keywords().clone();
+            *text = org_core::todo::log_refile(text, &keywords, at, &todo, now(), &note)?;
+        }
+    }
+
+    let target_path = &files[target_file].full;
+    let mut out = format!("{action} to \"{target_name}\" in file {target_path}: done\n");
+    // The target first: a failure between the two writes leaves the entry
+    // in both files, never in none.
+    let mut changes: Vec<(&TargetFile, &str)> = Vec::new();
+    if let Some(changed) = &refiled.target {
+        changes.push((&files[target_file], changed));
+    }
+    changes.push((&files[0], &refiled.source));
+    changes.retain(|(file, text)| file.text != *text);
+    if changes.is_empty() {
+        out.push_str("Nothing changed.\n");
+    } else if arguments.flag("dry_run") {
+        out.push_str("Dry run: nothing was written. The change would be:\n");
+        for (file, text) in &changes {
+            out.push_str(&diff(&file.full, &file.text, text));
+        }
+    } else {
+        for (file, text) in &changes {
+            write_file(&file.path, text)?;
+        }
+    }
+    // Where the entry is now.
+    if let Some(at) = refiled.pasted {
+        let text = refiled.target.as_ref().unwrap_or(&refiled.source);
+        let line = text[..at].matches('\n').count() + 1;
+        let headline = text[at..].lines().next().unwrap_or("");
+        out.push_str(&format!("{target_path}:{line}: {headline}"));
+    }
+    Ok(out.trim_end().to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -989,7 +1395,16 @@ mod tests {
             list["result"]["tools"].as_array().unwrap().iter().filter_map(|tool| tool["name"].as_str()).collect();
         assert_eq!(
             names,
-            ["agenda", "todo_list", "tags_search", "text_search", "custom_agenda", "agenda_files", "capture_templates"]
+            [
+                "agenda",
+                "todo_list",
+                "tags_search",
+                "text_search",
+                "custom_agenda",
+                "agenda_files",
+                "capture_templates",
+                "refile_targets"
+            ]
         );
 
         let text = |answer: &Value| answer["result"]["content"][0]["text"].as_str().unwrap_or_default().to_string();
@@ -1277,5 +1692,182 @@ template = "* %(format-time-string \"%Y\") %?"
         let (text, error) = setup.call("capture", json!({ "template": "l", "text": "x" }));
         assert!(error && text.contains("needs Emacs"), "{text}");
         assert!(!setup.folder.join("notes.org").exists());
+    }
+
+    const PROJECTS: &str = "* Garden\n** Beds\n* House\n";
+
+    /// Targets: the top two levels of the agenda files, and the top level
+    /// of `projects.org`, by their outline paths.
+    const REFILE: &str = "mcp_edits = true\norg_refile_use_outline_path = true\n\
+                          org_refile_targets = [{ files = \"agenda\", maxlevel = 2 }, \
+                          { files = \"projects.org\", level = 1 }]\n";
+
+    fn refile_setup(name: &str, config: &str) -> Setup {
+        Setup::new(name, &format!("{REFILE}{config}"), &[("tasks.org", TASKS), ("projects.org", PROJECTS)])
+    }
+
+    #[test]
+    fn lists_the_refile_targets() {
+        let setup = refile_setup("targets", "");
+        let (text, error) = setup.call("refile_targets", json!({}));
+        assert!(!error, "{text}");
+        assert!(text.contains("Inbox/ (tasks.org)  [tasks.org:2]\n"), "{text}");
+        assert!(text.contains("Garden/ (projects.org)  [projects.org:1]\n"), "{text}");
+        assert!(text.ends_with("House/ (projects.org)  [projects.org:3]"), "{text}");
+        assert!(!text.contains("Beds"), "{text}");
+        // From the entry's file, its own targets go without its name.
+        let (text, _) = setup.call("refile_targets", json!({ "file": "tasks.org" }));
+        assert!(text.starts_with("Inbox/  [tasks.org:2]\n"), "{text}");
+        let (text, _) = setup.call("refile_targets", json!({ "filter": "gar" }));
+        assert_eq!(text, "Garden/ (projects.org)  [projects.org:1]");
+        let (text, error) = setup.call("refile_targets", json!({ "filter": "nothing" }));
+        assert!(!error && text == "No refile target has \"nothing\".", "{text}");
+
+        // Listed with mcp_edits off too, and refile is not.
+        let off = Setup::new("targets-off", "", &[("tasks.org", TASKS)]);
+        let (text, error) = off.call("refile_targets", json!({ "file": "tasks.org" }));
+        assert_eq!(text, "Inbox  [tasks.org:2]\nWrite the report  [tasks.org:3]\nWater the plants  [tasks.org:4]");
+        assert!(!error);
+        let list = off.ask("tools/list", json!({}));
+        let names: Vec<&str> =
+            list["result"]["tools"].as_array().unwrap().iter().filter_map(|tool| tool["name"].as_str()).collect();
+        assert!(names.contains(&"refile_targets") && !names.contains(&"refile"), "{names:?}");
+        let (text, error) = off.call("refile", json!({ "file": "tasks.org", "line": 3, "target": "Inbox" }));
+        assert!(error && text.contains("mcp_edits = true"), "{text}");
+        assert_eq!(off.read("tasks.org"), TASKS);
+    }
+
+    #[test]
+    fn refiles_to_another_file() {
+        let setup = refile_setup("across", "");
+        let arguments = json!({
+            "file": "tasks.org",
+            "line": 4,
+            "headline": "Water the plants",
+            "target": "Garden/ (projects.org)",
+        });
+        let (text, error) = setup.call("refile", arguments);
+        assert!(!error, "{text}");
+        let projects = setup.folder.join("projects.org").display().to_string();
+        assert!(
+            text.starts_with(&format!("Refile to \"Garden/ (projects.org)\" in file {projects}: done\n")),
+            "{text}"
+        );
+        assert!(text.ends_with(&format!("{projects}:3: ** TODO Water the plants")), "{text}");
+        assert_eq!(
+            setup.read("projects.org"),
+            "* Garden\n** Beds\n** TODO Water the plants\nSCHEDULED: <2026-10-21 Wed +1w>\n* House\n"
+        );
+        assert_eq!(setup.read("tasks.org"), "#+title: Tasks\n* Inbox\n* TODO Write the report :work:\n");
+
+        // By where the target is, and kept with copy.
+        let arguments = json!({ "file": "tasks.org", "line": 3, "target": "[projects.org:5]", "copy": true });
+        let (text, error) = setup.call("refile", arguments);
+        assert!(!error && text.starts_with("Copy to \"House/ (projects.org)\""), "{text}");
+        assert_eq!(setup.read("tasks.org"), "#+title: Tasks\n* Inbox\n* TODO Write the report :work:\n");
+        assert!(
+            setup.read("projects.org").contains("* House\n** TODO Write the report"),
+            "{}",
+            setup.read("projects.org")
+        );
+    }
+
+    #[test]
+    fn refiles_in_the_same_file() {
+        let setup = refile_setup("same", "");
+        let (text, error) = setup.call("refile", json!({ "file": "tasks.org", "line": 3, "target": "Inbox/" }));
+        assert!(!error, "{text}");
+        assert!(text.contains(":3: ** TODO Write the report ") && text.ends_with(":work:"), "{text}");
+        let tasks = setup.read("tasks.org");
+        assert!(tasks.starts_with("#+title: Tasks\n* Inbox\n** TODO Write the report "), "{tasks}");
+        assert!(tasks.ends_with(":work:\n* TODO Water the plants\nSCHEDULED: <2026-10-21 Wed +1w>\n"), "{tasks}");
+
+        // Not into itself or its own subtree, as Org says.
+        let (text, error) =
+            setup.call("refile", json!({ "file": "tasks.org", "line": 2, "target": "Inbox/Write the report/" }));
+        assert!(error && text == "Cannot refile to position inside the tree or region", "{text}");
+        let (text, error) = setup.call("refile", json!({ "file": "tasks.org", "line": 2, "target": "Inbox" }));
+        assert!(error && text == "Cannot refile to position inside the tree or region", "{text}");
+        let (text, error) = setup.call("refile", json!({ "file": "tasks.org", "line": 2, "target": "Nowhere" }));
+        assert!(error && text == "Invalid target location", "{text}");
+        assert_eq!(setup.read("tasks.org"), tasks);
+    }
+
+    #[test]
+    fn a_dry_run_or_a_stale_line_writes_nothing() {
+        let setup = refile_setup("refile-dry", "");
+        let arguments = json!({ "file": "tasks.org", "line": 3, "target": "House/ (projects.org)", "dry_run": true });
+        let (text, error) = setup.call("refile", arguments);
+        assert!(!error, "{text}");
+        assert!(text.contains("Dry run: nothing was written"), "{text}");
+        assert!(text.contains("+** TODO Write the report"), "{text}");
+        assert!(text.contains("-* TODO Write the report :work:"), "{text}");
+        // The target's diff first, as it is written first.
+        assert!(text.find("projects.org\n+++").unwrap() < text.find("tasks.org\n+++").unwrap(), "{text}");
+        assert_eq!(setup.read("tasks.org"), TASKS);
+        assert_eq!(setup.read("projects.org"), PROJECTS);
+
+        let arguments = json!({ "file": "tasks.org", "line": 3, "target": "House", "headline": "Water the plants" });
+        let (text, error) = setup.call("refile", arguments);
+        assert!(error && text.contains("not the entry"), "{text}");
+        assert_eq!(setup.read("tasks.org"), TASKS);
+        assert_eq!(setup.read("projects.org"), PROJECTS);
+    }
+
+    #[test]
+    fn refiling_logs_as_org_log_refile_says() {
+        let setup = refile_setup("refile-log", "org_log_refile = \"time\"\n");
+        let (text, error) = setup.call("refile", json!({ "file": "tasks.org", "line": 3, "target": "Garden" }));
+        assert!(!error, "{text}");
+        let projects = setup.read("projects.org");
+        assert!(projects.contains("** Beds\n** TODO Write the report"), "{projects}");
+        assert!(projects.contains(":work:\n- Refiled on ["), "{projects}");
+
+        let setup = refile_setup("refile-note", "org_log_refile = \"note\"\n");
+        let (text, error) = setup.call("refile", json!({ "file": "tasks.org", "line": 3, "target": "Garden" }));
+        assert!(error && text.contains("`note`"), "{text}");
+        assert_eq!(setup.read("projects.org"), PROJECTS);
+        let arguments = json!({ "file": "tasks.org", "line": 3, "target": "Garden", "note": "For the spring" });
+        let (text, error) = setup.call("refile", arguments);
+        assert!(!error, "{text}");
+        let projects = setup.read("projects.org");
+        assert!(projects.contains("- Refiled on [") && projects.contains("\\\\\n  For the spring"), "{projects}");
+    }
+
+    #[test]
+    fn makes_new_parents_and_files_at_the_top_level() {
+        let config = "org_refile_allow_creating_parent_nodes = \"confirm\"\n";
+        let setup = refile_setup("refile-new", config);
+        let arguments = json!({ "file": "tasks.org", "line": 3, "target": "Garden/Herbs" });
+        let (text, error) = setup.call("refile", arguments.clone());
+        assert!(error && text.starts_with("Create new node \"Herbs\"?"), "{text}");
+        assert_eq!(setup.read("projects.org"), PROJECTS);
+        let mut arguments = arguments;
+        arguments["create"] = json!(true);
+        let (text, error) = setup.call("refile", arguments);
+        assert!(!error && text.contains("Refile to \"Garden/ (projects.org)/Herbs\""), "{text}");
+        let projects = setup.read("projects.org");
+        assert!(projects.starts_with("* Garden\n** Beds\n\n** Herbs\n*** TODO Write the report"), "{projects}");
+
+        // With the files as targets, a file alone is its top level.
+        let config = "mcp_edits = true\norg_refile_use_outline_path = \"file\"\n\
+                      org_refile_targets = [{ files = \"projects.org\", level = 1 }]\n";
+        let setup = Setup::new("refile-file", config, &[("tasks.org", TASKS), ("projects.org", PROJECTS)]);
+        let (text, _) = setup.call("refile_targets", json!({}));
+        assert!(text.starts_with("projects.org/  [projects.org]\nprojects.org/Garden/  [projects.org:1]"), "{text}");
+        let (text, error) = setup.call("refile", json!({ "file": "tasks.org", "line": 3, "target": "projects.org" }));
+        assert!(!error, "{text}");
+        let projects = setup.read("projects.org");
+        assert!(projects.starts_with("* Garden\n** Beds\n* House\n* TODO Write the report "), "{projects}");
+    }
+
+    #[test]
+    fn a_verify_function_needs_emacs() {
+        let setup = refile_setup("refile-verify", "org_refile_target_verify_function = \"my-verify\"\n");
+        let (text, error) = setup.call("refile_targets", json!({}));
+        assert!(error && text.contains("needs Emacs"), "{text}");
+        let (text, error) = setup.call("refile", json!({ "file": "tasks.org", "line": 3, "target": "Garden" }));
+        assert!(error && text.contains("needs Emacs"), "{text}");
+        assert_eq!(setup.read("tasks.org"), TASKS);
     }
 }
