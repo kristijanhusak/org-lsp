@@ -92,6 +92,40 @@ fn difference(expected: &str, actual: &str) -> String {
 
 #[test]
 fn agenda_matches_emacs() {
+    compare(&|_, arguments| org_lsp::cli::agenda(arguments));
+}
+
+/// The same runs with each case's options and files in a configuration
+/// file instead, as `org-lsp agenda` reads them from the command line.
+#[test]
+fn agenda_from_a_configuration_file_matches_emacs() {
+    let config = std::env::temp_dir().join(format!("org-lsp-agenda-config-{}.json", std::process::id()));
+    compare(&|directory, arguments| {
+        let mut options = serde_json::Map::new();
+        let mut rest = Vec::new();
+        let mut arguments = arguments.iter();
+        while let Some(argument) = arguments.next() {
+            if argument == "--options" {
+                let json = arguments.next().unwrap();
+                options = serde_json::from_str(json).unwrap();
+            } else if argument.ends_with(".org") && Path::new(argument).starts_with(directory) {
+                // Files are named last: the configuration file has them.
+            } else {
+                rest.push(argument.clone());
+            }
+        }
+        options.insert("org_agenda_files".to_string(), serde_json::json!(org_files(directory)));
+        std::fs::write(&config, serde_json::Value::Object(options).to_string()).unwrap();
+        let env = |name: &str| (name == "ORG_LSP_CONFIG").then(|| config.display().to_string());
+        org_lsp::cli::agenda_configured(&rest, &env, None).map(|(output, _)| output)
+    });
+    let _ = std::fs::remove_file(&config);
+}
+
+/// How one run is made from its case's directory and arguments.
+type Build<'a> = &'a dyn Fn(&Path, &[String]) -> Result<String, String>;
+
+fn compare(build: Build) {
     let root = cases_directory();
     let mut directories: Vec<PathBuf> = std::fs::read_dir(&root)
         .unwrap_or_else(|error| panic!("{}: {error}", root.display()))
@@ -114,7 +148,7 @@ fn agenda_matches_emacs() {
                 continue;
             }
             let arguments = arguments(directory, &case, run);
-            let actual = org_lsp::cli::agenda(&arguments).unwrap_or_else(|error| format!("ERROR: {error}\n"));
+            let actual = build(directory, &arguments).unwrap_or_else(|error| format!("ERROR: {error}\n"));
             // The clock report links to the files: by where the case is.
             let actual = actual.replace(&format!("{}/", directory.display()), "{dir}/");
             // The recordings end at their last line that is not empty.

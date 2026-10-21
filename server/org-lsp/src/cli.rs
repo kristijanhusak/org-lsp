@@ -5,8 +5,13 @@
 //!                [--key KEYS] [--span day|week|N] [--start DATE]
 //!                [--log] [--clockreport] [--inactive] [--archives trees|files]
 //!                [--entry-text N] [--filters JSON]
-//!                [--today DATE] [--now HH:MM] [--options JSON] FILE...
+//!                [--today DATE] [--now HH:MM] [--options JSON]
+//!                [--no-config] [FILE...]
 //! ```
+//!
+//! From the command line ([`agenda_configured`]) the options are those of
+//! the shared configuration file with `--options` on top, as an editor's
+//! are, and the files those of `org_agenda_files` when none is given.
 //!
 //! This is what Emacs's `org-batch-agenda` is to Org, and it is how the
 //! test suite compares the two.
@@ -22,9 +27,11 @@ use crate::config::{AgendaOptions, SpanOption};
 use crate::views::{self, Block, BlockKind};
 
 pub const USAGE: &str = "\
-Usage: org-lsp agenda [OPTIONS] FILE...
+Usage: org-lsp agenda [OPTIONS] [FILE...]
 
-Print the agenda built from the given Org files.
+Print the agenda built from the given Org files, or from the agenda files
+of the shared configuration file (`org-lsp config` shows it) when none is
+given. The options are that file's, with --options on top.
 
 Options:
   --view VIEW          agenda (the default), todo (the TODO list), tags or
@@ -43,7 +50,9 @@ Options:
   --start YYYY-MM-DD   a day the agenda should include (default: today)
   --today YYYY-MM-DD   pretend this is today
   --now HH:MM          pretend this is the current time
-  --options JSON       agenda and inheritance options, named as the server's
+  --options JSON       options, named as the server's, over those of the
+                       configuration file
+  --no-config          read no configuration file: --options alone
   --filters JSON       the agenda's filters, as a list of steps:
                        {\"type\": \"tag\", \"filter\": [\"+work\"]} (category,
                        regexp, effort too), {\"string\": \"+work<0:10\"} (`/`),
@@ -83,6 +92,73 @@ pub fn file_name(path: &Path) -> String {
 }
 
 /// Run `org-lsp agenda` with the arguments after the subcommand.
+/// `org-lsp agenda` as run from the command line: the options of the
+/// shared configuration file with those of `--options` on top (unless
+/// `--no-config`), and its agenda files when no file is named, the
+/// directory `folder` standing for no `org_agenda_files`. What is wrong
+/// with the configuration comes second, to be told.
+pub fn agenda_configured(
+    arguments: &[String],
+    env: &dyn Fn(&str) -> Option<String>,
+    folder: Option<&Path>,
+) -> Result<(String, Vec<String>), String> {
+    const WITH_VALUE: [&str; 11] = [
+        "--view",
+        "--match",
+        "--key",
+        "--archives",
+        "--entry-text",
+        "--filters",
+        "--span",
+        "--start",
+        "--today",
+        "--now",
+        "--options",
+    ];
+    let mut rest = Vec::new();
+    let mut editor: Option<serde_json::Value> = None;
+    let mut use_file = true;
+    let mut named_files = false;
+    let mut arguments = arguments.iter();
+    while let Some(argument) = arguments.next() {
+        match argument.as_str() {
+            "--help" | "-h" => return Ok((format!("{USAGE}\n"), Vec::new())),
+            "--no-config" => use_file = false,
+            "--options" => {
+                let json = arguments.next().ok_or("--options needs a value")?;
+                editor = Some(serde_json::from_str(json).map_err(|error| format!("--options: {error}"))?);
+            }
+            flag if WITH_VALUE.contains(&flag) => {
+                rest.push(argument.clone());
+                rest.extend(arguments.next().cloned());
+            }
+            flag if flag.starts_with("--") => rest.push(argument.clone()),
+            _ => {
+                named_files = true;
+                rest.push(argument.clone());
+            }
+        }
+    }
+    let mut editor = match editor {
+        Some(serde_json::Value::Object(fields)) => fields,
+        Some(_) => return Err("--options: not an object".to_string()),
+        None => serde_json::Map::new(),
+    };
+    if !use_file {
+        editor.insert("config_file".to_string(), serde_json::Value::Bool(false));
+    }
+    let loaded = crate::config::load(Some(serde_json::Value::Object(editor)), env);
+    rest.extend(["--options".to_string(), loaded.merged.to_string()]);
+    if !named_files {
+        let files = crate::mcp::agenda_paths(&loaded.options, folder);
+        if files.is_empty() {
+            return Err("no files given, and no org_agenda_files in the configuration file".to_string());
+        }
+        rest.extend(files.iter().map(|path| path.display().to_string()));
+    }
+    Ok((agenda(&rest)?, loaded.problems))
+}
+
 pub fn agenda(arguments: &[String]) -> Result<String, String> {
     Ok(match agenda_view(arguments)? {
         Agenda::Help => format!("{USAGE}\n"),
@@ -424,6 +500,36 @@ mod tests {
         let found = agenda(&arguments).unwrap();
         assert!(found.find("Cee") < found.find("Plain"), "{found}");
         std::fs::remove_file(&file).unwrap();
+    }
+
+    #[test]
+    fn the_command_line_reads_the_configuration_file_under_its_options() {
+        let folder = std::env::temp_dir().join(format!("org-lsp-cli-config-{}", std::process::id()));
+        std::fs::create_dir_all(&folder).unwrap();
+        let file = folder.join("a.org");
+        std::fs::write(&file, "* WAIT Call\n* NEXT Write\n").unwrap();
+        let config = folder.join("config.toml");
+        std::fs::write(
+            &config,
+            format!("org_agenda_files = [\"{}\"]\norg_todo_keywords = [\"WAIT\", \"|\", \"DONE\"]\n", file.display()),
+        )
+        .unwrap();
+        let env = |name: &str| (name == "ORG_LSP_CONFIG").then(|| config.display().to_string());
+        let run = |arguments: &[&str]| {
+            let arguments: Vec<String> = arguments.iter().map(|argument| argument.to_string()).collect();
+            agenda_configured(&arguments, &env, None).map(|(output, _)| output)
+        };
+        // The file's agenda files and keywords.
+        let todo = run(&["--view", "todo"]).unwrap();
+        assert!(todo.contains("WAIT Call") && !todo.contains("Write"), "{todo}");
+        // --options over the file's.
+        let todo = run(&["--view", "todo", "--options", r#"{ "org_todo_keywords": ["NEXT", "|", "DONE"] }"#]).unwrap();
+        assert!(todo.contains("NEXT Write") && !todo.contains("Call"), "{todo}");
+        // --no-config: no agenda files, so files must be named.
+        assert!(run(&["--no-config", "--view", "todo"]).is_err());
+        let named = run(&["--no-config", "--view", "todo", &file.display().to_string()]).unwrap();
+        assert!(!named.contains("Call") && !named.contains("Write"), "{named}");
+        std::fs::remove_dir_all(&folder).unwrap();
     }
 
     #[test]

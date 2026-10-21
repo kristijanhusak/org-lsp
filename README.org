@@ -141,10 +141,14 @@ yegappan/lsp, vim-lsp, coc.nvim and ALE) and Helix 25.07.1.
 * Without an editor
 
 #+begin_src sh
-org-lsp agenda ~/org/*.org              # this week
-org-lsp agenda --span day --view todo ~/org/*.org
+org-lsp agenda                          # this week, from org_agenda_files
+org-lsp agenda --span day --view todo
+org-lsp agenda ~/org/work.org           # these files only
 org-lsp agenda --help
 #+end_src
+
+It reads the shared configuration file (~org-lsp config~ shows it) as the
+server does, with ~--options~ on top; ~--no-config~ leaves it out.
 
 Bookmarklets that store a link to a web page or capture it, as Emacs's
 org-protocol does, reach the editor with org-lsp through
