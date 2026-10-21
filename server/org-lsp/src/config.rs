@@ -1981,6 +1981,7 @@ impl Options {
     pub fn emacs_lisp(&self) -> Option<String> {
         let mut forms: Vec<String> = self.user_entities_lisp().into_iter().collect();
         forms.extend(self.tangle_lisp());
+        forms.extend(self.resource_lisp());
         let syntax = self.list_syntax();
         if syntax != org_syntax::ListSyntax::default() {
             let terminator = match syntax.terminator {
@@ -2044,6 +2045,28 @@ impl Options {
 
     /// The tangling options the server's Emacs is told, as Emacs Lisp
     /// (for tangling and detangling it does).
+    /// `org-resource-download-policy` and `org-safe-remote-resources`, for
+    /// what Emacs downloads (`C-c C-a u`, a remote `#+INCLUDE:` or
+    /// `#+SETUPFILE:` in an export).
+    fn resource_lisp(&self) -> Vec<String> {
+        let lisp_string = |text: &str| format!("\"{}\"", text.replace('\\', "\\\\").replace('"', "\\\""));
+        let mut forms = Vec::new();
+        if self.resource_download_policy.is_some() {
+            let policy = match self.download_policy() {
+                org_core::remote_resource::Policy::Always => "t",
+                org_core::remote_resource::Policy::Never => "nil",
+                org_core::remote_resource::Policy::Safe => "'safe",
+                org_core::remote_resource::Policy::Prompt => "'prompt",
+            };
+            forms.push(format!("(setq org-resource-download-policy {policy})"));
+        }
+        if let Some(safe) = &self.safe_remote_resources {
+            let regexps: Vec<String> = safe.iter().map(|regexp| lisp_string(regexp)).collect();
+            forms.push(format!("(setq org-safe-remote-resources '({}))", regexps.join(" ")));
+        }
+        forms
+    }
+
     fn tangle_lisp(&self) -> Vec<String> {
         let lisp_string = |text: &str| format!("\"{}\"", text.replace('\\', "\\\\").replace('"', "\\\""));
         let mut forms = Vec::new();

@@ -337,14 +337,23 @@ fn evaluate(form: &Value, scope: &Scope) -> Option<Value> {
 }
 
 /// What another evaluator, Emacs's, makes of a diary sexp this one cannot
-/// read: `(sexp, entry, day)` to the lines it shows, none when it does not
-/// apply.
+/// read: `(sexp, entry, day, place)` to the lines it shows, none when it
+/// does not apply.
 #[derive(Clone, Default)]
 pub struct Outside(pub Option<std::sync::Arc<Evaluate>>);
 
-/// `(sexp, entry, day)` to the lines shown, none when the sexp does not
-/// apply.
-pub type Evaluate = dyn Fn(&str, &str, Day) -> Option<Vec<String>> + Send + Sync;
+/// `(sexp, entry, day, place)` to the lines shown, none when the sexp does
+/// not apply. `place` is where the sexp is, for what Emacs says of one
+/// that fails.
+pub type Evaluate = dyn Fn(&str, &str, Day, &Place) -> Option<Vec<String>> + Send + Sync;
+
+/// Where a diary sexp is: its file's path, when known, and its line,
+/// from 1.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Place {
+    pub file: Option<String>,
+    pub line: usize,
+}
 
 impl std::fmt::Debug for Outside {
     fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -364,17 +373,18 @@ impl Eq for Outside {}
 /// `org-diary-sexp-entry`: what the diary sexp `sexp` (with its `(` and
 /// `)`) with the text `entry` gives on `day`: none when it does not apply,
 /// else the lines it shows. One this evaluator cannot read goes to
-/// `outside`, when there is one; without it, it does not apply.
-pub fn entries_with(sexp: &str, entry: &str, day: Day, outside: &Outside) -> Option<Vec<String>> {
+/// `outside`, when there is one, with its `place`; without it, it does not
+/// apply.
+pub fn entries_with(sexp: &str, entry: &str, day: Day, outside: &Outside, place: &Place) -> Option<Vec<String>> {
     match evaluated(sexp, entry, day) {
         Some(result) => result,
-        None => outside.0.as_ref().and_then(|outside| outside(sexp, entry, day)),
+        None => outside.0.as_ref().and_then(|outside| outside(sexp, entry, day, place)),
     }
 }
 
 /// [`entries_with`], with nothing outside.
 pub fn entries(sexp: &str, entry: &str, day: Day) -> Option<Vec<String>> {
-    entries_with(sexp, entry, day, &Outside::default())
+    entries_with(sexp, entry, day, &Outside::default(), &Place::default())
 }
 
 /// What this evaluator makes of the sexp: none when it cannot read it.

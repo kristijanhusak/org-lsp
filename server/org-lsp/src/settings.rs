@@ -1235,7 +1235,9 @@ pub const SETTINGS: &[Setting] = &[
         "org-link-abbrev-alist",
         "Link abbreviations: `[[gh:org-lsp]]` with `{ \"gh\": \"https://github.com/%s\" }` follows \
          `https://github.com/org-lsp`. `%s` stands for what follows the colon, `%h` for it URL-encoded; without \
-         either it goes at the end. A file's `#+LINK:` lines come first. `%(my-function)` calls an Emacs function with what follows the colon (through Emacs).",
+         either it goes at the end. A file's `#+LINK:` lines come first. `%(my-function)` calls an Emacs \
+         function with what follows the colon (through Emacs), one `emacs_config` marks safe, as Org asks: \
+         `(put 'my-function 'org-link-abbrev-safe t)`.",
     ),
     setting(
         "org_file_apps",
@@ -1808,11 +1810,13 @@ pub const SETTINGS: &[Setting] = &[
         "",
         "Org's options for what Emacs does, by their names in Org, which Emacs sets as Customize does: \
          `{ \"org-attach-method\": \"mv\", \"org-export-with-toc\": false }`. `true` is `t` and `false` `nil`, \
-         a list is a list and a table an association list; a string is a symbol where the option takes one. \
-         Each is set when Emacs loads the library it is in, after `emacs_config_file` and `emacs_config`, \
-         and so wins over them. A value the option does not take is left out, with a message. The options, \
-         each with Org's documentation of it, are in `docs/emacs-options.org`; the others are settings of \
-         the server, or Lisp (functions, hooks), which goes in `emacs_config`.",
+         a list is a list and a table an association list; a string is a symbol where the option takes one, \
+         or a function, by its name. Each is set when Emacs loads the library it is in, after \
+         `emacs_config_file` and `emacs_config`, and so wins over them. A value the option does not take is \
+         left out, with a message naming the part that does not fit. The editor's go over the shared file's \
+         option by option. The options, each with Org's documentation of it, are in \
+         `docs/emacs-options.org`; the others are settings of the server, or Lisp (hooks, functions written \
+         out), which goes in `emacs_config`.",
     ),
     setting(
         "auto_save",
@@ -1958,9 +1962,11 @@ pub const SETTINGS: &[Setting] = &[
         "true, \"prompt\", \"safe\" or false",
         r#""prompt""#,
         "org-resource-download-policy",
-        "Which remote resources are downloaded (the images of links): `true` all of them; `\"prompt\"` those \
-         considered safe, and the others when the answer to Emacs's question says so; `\"safe\"` only those \
-         considered safe; `false` none but those.",
+        "Which remote resources are downloaded (the images of links, and in Emacs a file attached from a URL, \
+         `C-c C-a u`, or a remote `#+INCLUDE:` or `#+SETUPFILE:` in an export): `true` all of them; \
+         `\"prompt\"` those considered safe, and the others when the answer to Emacs's question says so (in \
+         Emacs, a yes or no: yes downloads it this once); `\"safe\"` only those considered safe; `false` none \
+         but those.",
     ),
     setting(
         "org_safe_remote_resources",
@@ -1969,7 +1975,7 @@ pub const SETTINGS: &[Setting] = &[
         "org-safe-remote-resources",
         "The remote resources considered safe: Emacs regexps matched against a resource's URL and against the \
          `file://` URL of the file asking for it. The answers `!`, `d` and `f` to the download question add one \
-         for the rest of the session.",
+         for the rest of the session. Emacs has them too, for what it downloads.",
     ),
     setting(
         "org_startup_with_link_previews",

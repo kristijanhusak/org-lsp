@@ -21,6 +21,11 @@
 ;; of `emacs_options' that was not set, comes on a line of its own:
 ;;
 ;;   \x1eorg-lsp {"notice": "`emacs_options` leaves out ..."}
+;;
+;; and so does what Org says on the way where nothing else gives it back,
+;; as the echo area would show it:
+;;
+;;   \x1eorg-lsp {"message": "Bad sexp at line 3 in ..."}
 
 (require 'json)
 (require 'subr-x)
@@ -93,6 +98,9 @@
     (require 'ox-publish)
     ;; Opening is the editor's: the file is reported instead.
     (advice-add 'org-open-file :override #'org-lsp-bridge--report-open)
+    ;; A download not considered safe is the editor's question, where
+    ;; Emacs in batch mode refuses it.
+    (advice-add 'org--confirm-resource-safe :override #'org-lsp-bridge--confirm-resource-safe)
     `((org . ,(org-version)) (emacs . ,emacs-version))))
 
 ;;; Org's options (`emacs_options')
@@ -622,6 +630,8 @@ wants one), else interactively."
           org-lsp-bridge--opened nil
           org-lsp-bridge--visited nil
           org-lsp-bridge--extra nil)
+    ;; What Babel shows of a block that fails is this command's alone.
+    (org-lsp-bridge--babel-errors)
     (org-lsp-bridge--in-document params
       (org-lsp-bridge--bind (alist-get 'variables params))
       ;; The selection, as the active region.
@@ -631,7 +641,11 @@ wants one), else interactively."
         (activate-mark))
       (advice-add 'message :around #'org-lsp-bridge--record-message)
       (unwind-protect
-          (let ((current-prefix-arg nil))
+          ;; As the command loop runs it: Org reads `this-command' too
+          ;; (`org-require-package' names it).
+          (let ((current-prefix-arg nil)
+                (this-command command)
+                (real-this-command command))
             (if (or args (not (commandp command)))
                 (apply command args)
               (call-interactively command)))
@@ -643,7 +657,24 @@ wants one), else interactively."
         (visited . ,org-lsp-bridge--visited)
         (extra . ,org-lsp-bridge--extra)
         (countdown . ,(org-lsp-bridge--countdown))
-        (timer . ,(org-lsp-bridge--timer))))))
+        (timer . ,(org-lsp-bridge--timer))
+        (babel_errors . ,(org-lsp-bridge--babel-errors))))))
+
+(defun org-lsp-bridge--babel-errors ()
+  "What Babel showed of the code blocks that failed (the standard error
+and exit code `org-babel-eval-error-notify' puts in its buffer), none
+after that."
+  (when-let* ((buffer (get-buffer "*Org-Babel Error Output*")))
+    (prog1 (org-string-nw-p (with-current-buffer buffer (string-trim (buffer-string))))
+      (kill-buffer buffer))))
+
+(defun org-lsp-bridge--confirm-resource-safe (uri)
+  "`org--confirm-resource-safe', a yes-or-no question to the editor: yes
+downloads URI this once (Emacs's `y'). Marking it safe for good (`!',
+`d', `f') is `org_safe_remote_resources''s."
+  (y-or-n-p (format "An org-mode document would like to download %s, which is not considered safe.
+
+Do you want to download this? " uri)))
 
 (defun org-lsp-bridge--report-open (path &rest _)
   "`org-open-file', for the editor: PATH reported to open."
@@ -749,9 +780,13 @@ none), for the subtree when SUBTREE is t."
 ;;; Timers
 
 (defun org-lsp-bridge-timer-set (minutes)
-  "`org-timer-set-timer' for MINUTES (`10', `1:30:00'), the effort aside."
-  (cl-letf (((symbol-function 'read-from-minibuffer) (lambda (&rest _) minutes)))
-    (org-timer-set-timer '(64))))
+  "`org-timer-set-timer' for MINUTES (`10', `1:30:00'), the effort aside.
+The editor's answer to \"Replace current timer?\" is read as before."
+  (let ((read (symbol-function 'read-from-minibuffer)))
+    (cl-letf (((symbol-function 'read-from-minibuffer)
+               (lambda (&rest args)
+                 (if org-lsp-bridge--reading (apply read args) minutes))))
+      (org-timer-set-timer '(64)))))
 
 (defun org-lsp-bridge--countdown ()
   "The seconds before the countdown ends, or nil when none runs (or it
@@ -838,14 +873,37 @@ the regexps of the dialect, which only `bibtex-mode' sets otherwise."
 
 ;;; What the server asks about
 
+(defvar org-lsp-bridge--bad-sexps nil
+  "The diary sexps that failed, each (FILE LINE SEXP), which Org's message
+was sent for.")
+
 (defun org-lsp-bridge-diary-sexp (params)
   "What the diary sexp of PARAMS, with its entry, gives on its date
-\(`org-diary-sexp-entry'): the lines it shows, or nil."
+\(`org-diary-sexp-entry'): the lines it shows, or nil. For one that
+fails, at the `line' of the `file' of PARAMS, what Org says is sent as a
+message, once."
   (require 'diary-lib)
   (let* ((date (append (alist-get 'date params) nil))
-         (result (cl-letf (((symbol-function 'sleep-for) #'ignore)
-                           ((symbol-function 'beep) #'ignore))
-                   (org-diary-sexp-entry (alist-get 'sexp params) (alist-get 'entry params) date))))
+         (file (alist-get 'file params))
+         (line (alist-get 'line params))
+         (org-lsp-bridge--message nil)
+         (result (with-temp-buffer
+                   ;; Where the sexp is, for what Org says of one that
+                   ;; fails: "Bad sexp at line N in FILE: …".
+                   (setq buffer-file-name file)
+                   (cl-letf (((symbol-function 'sleep-for) #'ignore)
+                             ((symbol-function 'beep) #'ignore)
+                             ((symbol-function 'org-current-line) (lambda (&rest _) (or line 1))))
+                     (advice-add 'message :around #'org-lsp-bridge--record-message)
+                     (unwind-protect
+                         (org-diary-sexp-entry (alist-get 'sexp params) (alist-get 'entry params) date)
+                       (advice-remove 'message #'org-lsp-bridge--record-message)
+                       (setq buffer-file-name nil))))))
+    ;; Said once for each sexp, though the agenda asks for each of its days.
+    (let ((key (list file line (alist-get 'sexp params))))
+      (when (and org-lsp-bridge--message (not (member key org-lsp-bridge--bad-sexps)))
+        (push key org-lsp-bridge--bad-sexps)
+        (org-lsp-bridge--send `((message . ,org-lsp-bridge--message)))))
     (cond ((null result) nil)
           ((stringp result) (vector result))
           (t (vconcat (seq-filter #'stringp result))))))
@@ -994,7 +1052,7 @@ asks: a file, a URL, a name, a directory or an attachment."
       ("D" (org-attach-delete-all))
       ("s" (org-attach-set-directory))
       ("S" (org-attach-unset-directory))
-      (_ (error "No attachment command under %s" key)))))
+      (_ (error "No such attachment command: %s" key)))))
 
 (defun org-lsp-bridge-src-block-names (params)
   "The names of the code blocks of the document of PARAMS, in its order."

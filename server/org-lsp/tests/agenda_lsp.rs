@@ -2934,12 +2934,32 @@ fn diary_sexps_go_to_emacs() {
         options["emacs_config"] = json!(format!("(add-to-list 'load-path {dir:?})"));
     }
     let mut client = Client::editor(options, None);
-    client.open("file:///org/diary.org", "* Days\n%%(cl-evenp (calendar-extract-day date)) Even day\n");
+    client.open(
+        "file:///org/diary.org",
+        "* Days\n%%(cl-evenp (calendar-extract-day date)) Even day\n%%(error \"boom\") Never\n",
+    );
     client.command("org.agenda.list", "file:///org/diary.org", 0);
     let text = client.view_text(VIEW);
     let even: Vec<&str> = text.lines().filter(|line| line.contains("Even day")).collect();
     // Monday 18 to Sunday 24: the 18th, 20th, 22nd and 24th.
     assert_eq!(even.len(), 4, "{text}");
+    assert!(!text.contains("Never"), "{text}");
+    // A sexp that fails is left out, and what Org says of it said once,
+    // not for each day.
+    let said = |client: &Client| -> Vec<String> {
+        client
+            .notifications
+            .iter()
+            .filter(|notification| notification.method == "window/showMessage")
+            .filter_map(|notification| notification.params["message"].as_str().map(str::to_string))
+            .collect()
+    };
+    client.wait_until(|client| !said(client).is_empty());
+    client.command("org.agenda.list", "file:///org/diary.org", 0);
+    client.settle();
+    let said = said(&client);
+    assert_eq!(said.len(), 1, "{said:?}");
+    assert!(said[0].starts_with("Bad sexp at line 3 in /org/diary.org: (let ((entry Never)"), "{said:?}");
     client.shutdown();
 }
 
