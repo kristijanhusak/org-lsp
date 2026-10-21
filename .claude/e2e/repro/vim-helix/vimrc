@@ -40,3 +40,18 @@ function! VHCur() abort
   messages clear
 endfunction
 command! VHCur call VHCur()
+function! VHFolds() abort
+  let out = []
+  let l = 1
+  while l <= line('$')
+    let c = foldclosed(l)
+    if c != -1
+      call add(out, c . '-' . foldclosedend(l))
+      let l = foldclosedend(l) + 1
+    else
+      let l += 1
+    endif
+  endwhile
+  call writefile(['folds ' . join(out, ' ') . ' cursor=' . line('.') . ':' . col('.')], $VH_WORK . '/dump.txt')
+endfunction
+command! VHFolds call VHFolds()

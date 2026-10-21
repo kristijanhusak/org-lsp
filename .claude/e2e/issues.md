@@ -405,3 +405,27 @@ Each issue: a heading `## <part>-<n>: <one line>`, then
 - Where: server (`org.meta.left/right`, `org.shiftmeta.*`, `org.meta.up/down`, `org.table.insert.row.below` in a table), seen in Vim + yegappan/lsp: `:messages` stays empty. No such text anywhere in `server/`.
 - Repro: `| a | bb | c |`, `|-`, `| 1 | 2 | 3 |`, `| 4 | 5 | 6 |`, `#+TBLFM: $3=$1*$2`; on `1`: `<Leader>oTd`, `<Leader>oJ`, `<Leader>oTO`, `<s` (`.claude/e2e/repro/vim-helix/step.sh`). The text changes as Emacs's (checked with `em.sh`: same tables, `$2=$INVALID*$1` after `<s`).
 - Expected: Emacs's `org-table-fix-formulas` (org-table.el:2315) messages `The formulas in #+TBLFM have been updated` each time such an edit runs with a `#+TBLFM:` line after the table (even when no reference moved). Got: no message.
+
+## neovim-14: a long link wraps as if its concealed target took room: `** [[file:/long/path::6][Note B]] (Top)` shows as `**` / `Note B (Top)` on two screen lines
+- State: open (low; Neovim's wrapping counts concealed text)
+- Where: Neovim with 'wrap' (the default) and the plugin's conceal (`conceal()` in `lua/org-lsp/init.lua`); most visible in the org-roam buffer, whose backlink headings are `[[file:<absolute path>::N][Title]]`.
+- Repro (tmux TUI, 60 columns): a file with `** [[file:/tmp/claude-0/very/long/path/that/goes/on/and/on/and/on/b.org::6][Note B]] (Top)`; off the cursor's line it shows `**` on one screen line and `Note B (Top)` on the next. `\nl` in a note with backlinks, in the default vertical split of an 120-column terminal: `**` / `Head (Head)`, `**` / `N` / `ote B (Top)`.
+- Expected (Emacs, `org-link-descriptive`): `** Note B (Top)` on one line. Got: the line broken where the hidden text would have ended. Possible mitigations: 'nowrap' in the org-roam buffer's window, or links relative to the roam directory there.
+
+## vim-13: after a command moves the cursor (`]l`, `[l`, `}` …), the status line / ruler keeps the old line:col until the next key
+- State: open
+- Where: Vim (seen with yegappan/lsp): the cursor is moved from the server's reply callback (`cursor()`), with no `redrawstatus`/`redraw`; the terminal cursor moves, the status line does not.
+- Repro: `set laststatus=2 statusline=%f\ %l:%c` (or 'ruler'), links.org with a link on line 3, cursor 1:1, `]l`: the cursor shows on line 3, the status line says `1:1` (3 s later still), the next key redraws it (`.claude/e2e/repro/vim-helix/vh.sh`, checked with `tmux display -p '#{cursor_y}'` and `:VHCur`).
+- Expected: the status line follows the cursor, as after Vim's own motions. (The clock in the statusline, `org_lsp#clock_status()`, may be stale the same way after clock in/out from a key; it was right in the cases tried.)
+
+## neovim-15: following an item of the org-roam buffer opens the file in the org-roam buffer's own window, which goes
+- State: open (low)
+- Where: `lua/org-lsp/view.lua` `window/showDocument` (the plain-file branch reuses the current window) when `<Leader>oo` is run in the org-roam buffer.
+- Repro (tmux TUI, `.claude/e2e/repro/neovim/tui.sh`): note A with backlinks from B, `\nl`, `<C-w>l`, cursor on `** [[file:…/b.org::6][Note B]] (Top)`, `\oo`: b.org line 6 shows in window 2, where the org-roam buffer was; window 1 still shows A; the org-roam buffer is no longer visible (`\nl` needed again).
+- Expected (org-roam: the buffer is a side window, and `org-roam-preview-visit`'s `pop-to-buffer-same-window` cannot use it, so the file shows in the other window): the file in the window of the note, the org-roam buffer still beside it. Got: the org-roam buffer replaced.
+
+## vim-14: a closed fold's line is filled with `-` to the edge: the plugin's `fold: ` never applies, since Vim's default 'fillchars' already has `fold:-`
+- State: open
+- Where: `editors/vim/autoload/org_lsp.vim:2419` `org_lsp#refold`: `if &l:fillchars !~# 'fold:' && &fillchars !~# 'fold:'` — Vim's default is `vert:|,fold:-,eob:~,lastline:@`, so the condition is false unless the user removed `fold:` (Neovim's default has no `fold:`, so lua/org-lsp/init.lua:1051 works there).
+- Repro: any Org file with a closed fold in Vim (vh.sh, `#+STARTUP: content`): `* A...-------------------------------------------…` across the window.
+- Expected (comment there: "A closed fold shows its first line and `org-ellipsis`, nothing after"; TESTING.org "A folded headline shows as it does open, followed by ..."): `* A...` and blanks. Compare with Vim's default value (or `&fillchars ==# 'vert:|,fold:-,eob:~,lastline:@'`) rather than the presence of `fold:`.
