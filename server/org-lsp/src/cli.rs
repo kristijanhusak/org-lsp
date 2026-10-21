@@ -145,16 +145,9 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
         tag_options.as_ref().map_or(Some(15), crate::config::Options::inlinetask_min_level),
     );
 
-    let mut config = options.to_config();
-    if let Some(tag_options) = &tag_options {
-        let tags = tag_options.tag_settings();
-        config.tag_alist = tags.alist;
-        config.tag_persistent_alist = tags.persistent;
-        config.group_tags = tag_options.group_tags.unwrap_or(true);
-        config.extend_today_until = tag_options.extend_today_until.unwrap_or(0);
-        config.sorting.tags_sort = tags.sort;
-        tag_options.habit_notes(&mut config);
-    }
+    // The agenda's settings as the server makes them: priorities, tags,
+    // the clock report's and the habits' with the agenda's own.
+    let mut config = tag_options.as_ref().map_or_else(|| options.to_config(), crate::config::Options::agenda_config);
     config.show_log |= log;
     config.clockreport |= clockreport;
     config.include_inactive |= inactive;
@@ -241,7 +234,10 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
             let key = key.ok_or("--view custom needs --key")?;
             let commands = options.custom_commands.as_deref().unwrap_or_default();
             let command = crate::custom::find(commands, &key).ok_or_else(|| format!("no custom command `{key}`"))?;
-            let read = crate::config::Options::default().read_date_settings();
+            let read = tag_options.as_ref().map_or_else(
+                || crate::config::Options::default().read_date_settings(),
+                crate::config::Options::read_date_settings,
+            );
             crate::custom::blocks(command, &options, &config, now, &read, None)?
         }
         other => {
@@ -368,6 +364,23 @@ mod tests {
         assert!(!today.contains("Old plan"), "{today}");
         let todo = agenda(&arguments(&["--view", "todo"])).unwrap();
         assert!(todo.contains("PROGRESS Now") && !todo.contains("Old plan"), "{todo}");
+        std::fs::remove_file(&file).unwrap();
+    }
+
+    #[test]
+    fn builds_the_agenda_with_the_configured_priorities() {
+        // A task without a cookie has `org-priority-default`, which the
+        // TODO list sorts by.
+        let file = std::env::temp_dir().join(format!("org-lsp-cli-priority-{}.org", std::process::id()));
+        std::fs::write(&file, "* TODO Plain\n* TODO [#C] Cee\n").unwrap();
+        let options = r#"{ "org_priority_lowest": "E", "org_priority_default": "E" }"#;
+        let arguments: Vec<String> = ["--options", options, "--view", "todo"]
+            .iter()
+            .map(|argument| argument.to_string())
+            .chain([file.display().to_string()])
+            .collect();
+        let found = agenda(&arguments).unwrap();
+        assert!(found.find("Cee") < found.find("Plain"), "{found}");
         std::fs::remove_file(&file).unwrap();
     }
 

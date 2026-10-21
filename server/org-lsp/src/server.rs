@@ -2641,6 +2641,29 @@ fn guarded<T>(server: &mut Server, what: &str, work: impl FnOnce(&mut Server) ->
 /// cursor moves, so that the server knows where it is in the agenda
 /// (`command_actions`).
 /// `{ "directory" }` of org-journal, when it is on.
+/// `org-journal-enable-agenda-integration`: the journal's directory and
+/// the names in it of its files of today and the days to come, which
+/// `org-journal--update-org-agenda-files` adds to the agenda files.
+pub fn journal_agenda_files(journal: &crate::config::JournalSettings, now: DateTime) -> Option<(PathBuf, Vec<String>)> {
+    if !journal.agenda_integration {
+        return None;
+    }
+    let directory = roam::expand(&journal.directory);
+    let mut names = Vec::new();
+    roam::list_files(&directory, "", 0, &mut names);
+    let agenda = org_core::journal::agenda_files(&names, now, &journal.core).ok()?;
+    Some((directory, agenda))
+}
+
+/// Whether `path` is one of the journal's files, which the agenda takes
+/// as `journal_agenda_files` says rather than from `org_agenda_files`.
+pub fn is_journal(path: &Path, journal: &crate::config::JournalSettings) -> bool {
+    let directory = roam::expand(&journal.directory);
+    path.strip_prefix(&directory).is_ok_and(|relative| {
+        org_core::journal::is_journal_file(&relative.to_string_lossy().replace('\\', "/"), &journal.core)
+    })
+}
+
 fn journal_directory(journal: Option<&crate::config::JournalSettings>) -> Value {
     match journal {
         Some(journal) => {
@@ -6067,21 +6090,12 @@ impl Server {
     /// today and the days to come, after the other agenda files, as
     /// `org-journal--update-org-agenda-files` leaves them.
     fn with_journal_files(&mut self, files: Vec<(Uri, Held)>) -> Vec<(Uri, Held)> {
-        let Some(journal) = self.journal.clone().filter(|journal| journal.agenda_integration) else { return files };
-        let directory = roam::expand(&journal.directory);
-        let mut names = Vec::new();
-        roam::list_files(&directory, "", 0, &mut names);
-        let Ok(agenda) = org_core::journal::agenda_files(&names, self.date_time(), &journal.core) else {
-            return files;
-        };
-        let is_journal = |uri: &Uri| {
-            uri::to_path(uri).is_some_and(|path| {
-                path.strip_prefix(&directory).is_ok_and(|relative| {
-                    org_core::journal::is_journal_file(&relative.to_string_lossy().replace('\\', "/"), &journal.core)
-                })
-            })
-        };
-        let mut out: Vec<(Uri, Held)> = files.into_iter().filter(|(uri, _)| !is_journal(uri)).collect();
+        let Some(journal) = self.journal.clone() else { return files };
+        let Some((directory, agenda)) = journal_agenda_files(&journal, self.date_time()) else { return files };
+        let mut out: Vec<(Uri, Held)> = files
+            .into_iter()
+            .filter(|(uri, _)| !uri::to_path(uri).is_some_and(|path| is_journal(&path, &journal)))
+            .collect();
         let open: HashMap<PathBuf, String> = self
             .documents
             .keys()
