@@ -827,7 +827,14 @@ done
                 "(progn (require 'org-attach) (require 'ox-html) (require 'ox-latex) (require 'ob-python) \
                  (format \"%S\" {name}))"
             );
-            emacs.call("eval", json!({ "sexp": sexp }), Duration::from_secs(60)).unwrap()
+            // A machine under load takes longer to load Org than a call
+            // waits for Emacs to start.
+            loop {
+                match emacs.call("eval", json!({ "sexp": sexp.clone() }), Duration::from_secs(60)) {
+                    Err(error) if error == STARTING => continue,
+                    result => return result.unwrap(),
+                }
+            }
         };
         assert_eq!(value("org-attach-method"), "mv", "after `emacs_config`, over it");
         assert_eq!(value("org-attach-use-inheritance"), "t");
