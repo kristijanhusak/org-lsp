@@ -7950,5 +7950,22 @@ changes, as Emacs leaves them.
 auto_save = true
 #+end_src
 
+*** mcp_edits
+:PROPERTIES:
+:CUSTOM_ID: mcp_edits
+:END:
+
+Let the assistants ~org-lsp mcp~ serves change files: its tools
+~set_todo_state~ and ~capture~, which write the agenda files and the capture
+targets directly. Off, it only reads. It is read from the shared configuration
+file, as everything ~org-lsp mcp~ reads.
+
+- Type :: boolean
+- Default :: ~false~
+
+#+begin_src toml
+mcp_edits = false
+#+end_src
+
 # END generated
 

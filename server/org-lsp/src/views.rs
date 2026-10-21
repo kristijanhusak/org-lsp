@@ -588,6 +588,34 @@ pub fn org_text(
     block_lines(blocks, files, search, now, true, filters).0.into_iter().map(|(_, line)| line.text + "\n").collect()
 }
 
+/// [`org_text`] line by line, each with the entry it shows when it is an
+/// entry's line: the index of its file in `files` and the byte offset of
+/// its headline.
+pub fn org_lines(
+    blocks: &[Block],
+    files: &[(&Outline, String, String)],
+    search: Option<&SearchFiles>,
+    now: Now,
+    filters: Option<&agenda::filter::Filters>,
+) -> Vec<(String, Option<(usize, usize)>)> {
+    let outlines: Vec<&Outline> = files.iter().map(|(outline, _, _)| *outline).collect();
+    block_lines(blocks, files, search, now, true, filters)
+        .0
+        .into_iter()
+        .map(|(_, line)| {
+            let entry = match line.kind {
+                LineKind::Item => line
+                    .item
+                    .as_ref()
+                    .and_then(|item| item.source)
+                    .map(|source| (source.file, agenda::entry(&outlines, source).offset)),
+                _ => None,
+            };
+            (line.text, entry)
+        })
+        .collect()
+}
+
 type BlockLines = (Vec<(usize, agenda::Line)>, Vec<Option<(Day, Span)>>);
 
 /// The tags and the categories of the lines of the view `blocks` make,
