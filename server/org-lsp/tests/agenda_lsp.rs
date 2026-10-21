@@ -6129,7 +6129,24 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
     let (_, edits) = edits_of(edit);
     assert!(apply(&text, &edits).contains("DEADLINE: <2026-05-25 Mon>"), "{edits:?}");
     // Answered, the question is gone: a rename is a rename again.
-    assert_eq!(client.request("textDocument/prepareRename", place).unwrap()["placeholder"], "Write report");
+    assert_eq!(client.request("textDocument/prepareRename", place.clone()).unwrap()["placeholder"], "Write report");
+    // `-` alone is the empty answer, for a client that sends no empty new
+    // name (Zed): the prompt's default.
+    let mut answered = Vec::new();
+    for answer in ["", "-"] {
+        client
+            .request("workspace/executeCommand", json!({ "command": "org.deadline", "arguments": [context] }))
+            .unwrap();
+        client.settle();
+        client.received.clear();
+        rename["newName"] = json!(answer);
+        client.request("textDocument/rename", rename.clone()).unwrap();
+        client.settle();
+        let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+        answered.push(apply(&text, &edits_of(edit).1));
+    }
+    assert!(answered[0].contains("DEADLINE: <"), "{}", answered[0]);
+    assert_eq!(answered[0], answered[1]);
 
     // The keys that insert a heading are actions too, which the server
     // applies, the cursor then moved to the new heading.

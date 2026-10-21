@@ -88,7 +88,8 @@ What a command asks for is asked with buttons: a TODO state, a priority, a
 refile target, a capture template, yes or no. Zed has no box of its own
 for a server to ask for typed text, so a command that wants a date or text
 says /PROMPT: answer with a rename at the cursor/: rename at the cursor
-(~F2~) and type the answer for the new name.
+(~F2~) and type the answer for the new name, or ~-~ alone for an empty
+answer (the prompt's default), as Zed sends no empty new name.
 
 Org's keys, and the agenda's, run the commands once two files of the
 extension are pasted into your tasks and keymap. The agenda, the TODO

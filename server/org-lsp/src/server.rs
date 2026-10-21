@@ -406,6 +406,10 @@ enum DimBlocked {
 /// The largest count a command takes, either way.
 const COUNT_MAX: i64 = 100_000;
 
+/// The new name of a rename that answers a question with nothing, for a
+/// client that sends no empty one (`message_prompts`).
+const EMPTY_ANSWER: &str = "-";
+
 /// A file an `#+INCLUDE:` line names: its time of change and size when it
 /// was read, and its text.
 type Included = (Option<std::time::SystemTime>, u64, Option<String>);
@@ -5032,7 +5036,10 @@ impl Server {
         use org_core::rename::{self, Target};
         // The answer to a command's question: the command goes on.
         if let Some(Question { command, argument, input }) = self.question.take() {
-            self.answer_prompt(command, argument, &input, &params.new_name);
+            // A client may send no empty new name (Zed): `-` alone is the
+            // empty answer, the prompt's default.
+            let answer = if params.new_name.trim() == EMPTY_ANSWER { "" } else { params.new_name.as_str() };
+            self.answer_prompt(command, argument, &input, answer);
             return Some(WorkspaceEdit::default());
         }
         let encoding = self.client.encoding;
