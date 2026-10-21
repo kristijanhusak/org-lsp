@@ -99,8 +99,11 @@ endfunction
 
 " The options the server starts with: the user's, and that this plugin
 " shows the documents the server asks for, the agenda as the file the
-" server writes, whatever the client says; and that the server writes the
-" files it makes, which coc.nvim would have as an empty line.
+" server writes, whatever the client says; that the server writes the
+" files it makes, which coc.nvim would have as an empty line; and that
+" this plugin shows the server's messages and asks Emacs's questions, as
+" vim-lsp and ALE show neither, and the others put their name before the
+" messages.
 function! org_lsp#init_options() abort
   return extend(deepcopy(org_lsp#config().settings), {
         \ 'org_client': v:true,
@@ -112,6 +115,8 @@ function! org_lsp#init_options() abort
         \ 'virtual_indent': org_lsp#config().virtual_indent && s:has_virtual_text() ? v:true : v:false,
         \ 'line_highlights': v:true,
         \ 'run_command': v:true,
+        \ 'message_requests': v:false,
+        \ 'message_notifications': v:true,
         \ })
 endfunction
 
@@ -123,6 +128,16 @@ endfunction
 function! s:warn(message) abort
   echohl WarningMsg
   echomsg 'org-lsp: ' . a:message
+  echohl None
+endfunction
+
+" What the server says (Emacs's text, as its echo area shows it), in the
+" look of its `type`: 1 an error, 2 a warning, else a message.
+function! s:say(message, type) abort
+  execute 'echohl' get({1: 'ErrorMsg', 2: 'WarningMsg'}, a:type, 'None')
+  for line in split(a:message, "\n")
+    echomsg line
+  endfor
   echohl None
 endfunction
 
@@ -221,6 +236,14 @@ function! s:org_buffer() abort
     call setbufvar(nr, '&filetype', 'org')
   endif
   return nr
+endfunction
+
+" An Org buffer read again from its file: vim-lsp does not tell the
+" server, whose agenda and edits would go on from the old text.
+function! org_lsp#reread(nr) abort
+  if org_lsp#adapter() ==# 'vim_lsp' && getbufvar(a:nr, '&filetype') ==# 'org'
+    call org_lsp#adapter#vim_lsp#reread(a:nr)
+  endif
 endfunction
 
 " Send a request about buffer `bufnr`; `Callback(error, result)` gets the
@@ -410,6 +433,11 @@ function! org_lsp#run(name, ...) abort
     let context.range = s:selection_range()
     let context.position = context.range.start
   endif
+  " The lines of a range given to `:Org`.
+  if has_key(opts, 'lines') && nr == bufnr()
+    let context.range = {'start': {'line': opts.lines[0] - 1, 'character': 0}, 'end': {'line': opts.lines[1], 'character': 0}}
+    let context.position = context.range.start
+  endif
   " The register the key was typed with (`"a`), as `y` and `p` take it;
   " what the command reads as Emacs's latest kill comes from there.
   let opts = extend(copy(opts), {'register': v:register}, 'keep')
@@ -472,7 +500,7 @@ function! s:executed(bufnr, name, context, opts, error, result) abort
       let times = get(a:opts, 'count', 0)
       call feedkeys((times > 0 ? times : '') . s:keycode(a:opts.key), 'n')
     else
-      call s:warn(get(a:error, 'message', 'the command failed'))
+      call s:say(get(a:error, 'message', 'the command failed'), 2)
     endif
     return
   endif
@@ -510,6 +538,11 @@ function! s:executed(bufnr, name, context, opts, error, result) abort
   if type(get(result, 'input', 0)) == v:t_dict
     " Asked from a callback, the prompt waits for the screen to settle.
     call timer_start(0, {-> s:ask(a:bufnr, a:name, a:context, a:opts, result.input)})
+  endif
+  " What the command showed as inlay hints (the clock's times, a shrunk
+  " column), for clients that ask for them again only after a change.
+  if index(['lsp', 'vim_lsp'], org_lsp#adapter()) >= 0
+    call s:call('inlay_hints', a:bufnr)
   endif
 endfunction
 
@@ -610,25 +643,60 @@ function! org_lsp#prompt(input) abort
       return org_lsp#read_key(a:input.prompt, [], 1)
     endif
     return org_lsp#read_key(a:input.prompt, get(a:input, 'choices', []))
+  elseif a:input.kind ==# 'priority'
+    " One key, as `org-priority` reads it: a letter, or SPC to remove it.
+    return org_lsp#read_key(a:input.prompt, [])
   elseif has_key(a:input, 'choices')
-    let lines = [a:input.prompt . ':']
+    let lines = [org_lsp#prompt_text(a:input.prompt)]
     for i in range(len(a:input.choices))
       call add(lines, (i + 1) . '. ' . a:input.choices[i].label)
     endfor
     let picked = inputlist(lines)
     return picked > 0 && picked <= len(a:input.choices) ? a:input.choices[picked - 1].key : v:null
   endif
-  let cancelled = "\x01cancelled"
-  if !empty(get(a:input, 'completions', []))
-    " Typed, completed from a list (Emacs's `completing-read`).
-    let s:completions = a:input.completions
-    let s:separator = get(a:input, 'separator', '')
-    let answer = input({'prompt': a:input.prompt . ': ', 'default': get(a:input, 'value', ''),
-          \ 'completion': 'customlist,org_lsp#complete_input', 'cancelreturn': cancelled})
-    return answer ==# cancelled ? v:null : answer
+  return org_lsp#read_text(a:input)
+endfunction
+
+" A prompt as it is shown: Emacs's own words (`Execute this? `, ending in
+" a space) as they are, a title (`Select a TODO state`) followed by `: `.
+function! org_lsp#prompt_text(prompt) abort
+  if a:prompt =~# '\s$'
+    return a:prompt
   endif
-  let answer = inputdialog(a:input.prompt . ': ', get(a:input, 'value', ''), cancelled)
-  return answer ==# cancelled ? v:null : answer
+  return a:prompt . (a:prompt =~# '[:?]$' ? ' ' : ': ')
+endfunction
+
+let s:cancelled = 0
+
+" <Esc> while text is typed for a command: the answer is no answer.
+function! org_lsp#cancel_input() abort
+  let s:cancelled = 1
+  return ''
+endfunction
+
+" Text typed for a command (`{prompt, value, completions}`), completed from
+" the list when there is one (Emacs's `completing-read`); v:null when
+" cancelled with <Esc> or CTRL-C.
+function! org_lsp#read_text(input) abort
+  let s:completions = get(a:input, 'completions', [])
+  let s:separator = get(a:input, 'separator', '')
+  " `input()` gives <Esc> the meaning of an empty answer: a mapping of
+  " its own says it is none, the user's own put back after.
+  let kept = maparg('<Esc>', 'c', 0, 1)
+  cnoremap <Esc> <C-\>eorg_lsp#cancel_input()<CR><CR>
+  let s:cancelled = 0
+  try
+    let answer = input(org_lsp#prompt_text(a:input.prompt), get(a:input, 'value', ''),
+          \ 'customlist,org_lsp#complete_input')
+  catch /^Vim:Interrupt$/
+    let s:cancelled = 1
+  finally
+    cunmap <Esc>
+    if !empty(kept)
+      call mapset('c', 0, kept)
+    endif
+  endtry
+  return s:cancelled ? v:null : answer
 endfunction
 
 let s:completions = []
@@ -691,7 +759,7 @@ function! org_lsp#read_key(prompt, choices, ...) abort
           \ })
   endif
   " With a third argument, the prompt as it is.
-  echo a:0 > 0 && a:1 ? a:prompt : a:prompt . ': '
+  echo a:0 > 0 && a:1 ? a:prompt : org_lsp#prompt_text(a:prompt)
   redraw
   try
     let key = getcharstr()
@@ -708,13 +776,34 @@ endfunction
 " `:Org agenda list` runs `org.agenda.list`; a group stands for its
 " dispatcher: `:Org agenda` runs `org.agenda.dispatch`.
 function! org_lsp#user_command(...) abort
-  let id = 'org.' . join(a:0 > 0 ? a:000 : ['agenda'], '.')
-  call org_lsp#run(empty(s:command(id)) && !has_key(s:own, id) ? id . '.dispatch' : id)
+  call call('org_lsp#org_command', [0, 0, 0] + a:000)
 endfunction
 
+" `:Org` with its range: `:'<,'>Org toggle heading` works on those lines,
+" as on a selection of whole lines.
+function! org_lsp#org_command(range, first, last, ...) abort
+  let id = 'org.' . join(a:0 > 0 ? a:000 : ['agenda'], '.')
+  if empty(s:command(id)) && !has_key(s:own, id) && !empty(s:command(id . '.dispatch'))
+    let id .= '.dispatch'
+  endif
+  call org_lsp#run(id, a:range > 0 ? {'lines': [a:first, a:last]} : {})
+endfunction
+
+" The next word of `:Org`'s command after those typed: `:Org agenda <Tab>`
+" offers `list`, `todos`, `dispatch`, ….
 function! org_lsp#complete(lead, line, pos) abort
-  let names = map(copy(get(org_lsp#manifest(), 'commands', [])), {_, c -> substitute(c.command, '^org\.', '', '')})
-  return filter(map(names, {_, n -> substitute(n, '\.', ' ', 'g')}), {_, n -> n =~# '^' . escape(a:lead, '.\')})
+  let typed = split(a:line[: a:pos - 1 - len(a:lead)])[1:]
+  let prefix = join(['org'] + typed, '.') . '.'
+  let words = []
+  for command in get(org_lsp#manifest(), 'commands', [])
+    if stridx(command.command, prefix) == 0
+      let word = matchstr(command.command[len(prefix):], '^[^.]\+')
+      if !empty(word) && stridx(word, a:lead) == 0 && index(words, word) < 0
+        call add(words, word)
+      endif
+    endif
+  endfor
+  return sort(words)
 endfunction
 
 " ----- keys
@@ -779,6 +868,7 @@ function! s:apply_carried(uri, result) abort
   let text = getline(a:result.cursor.line + 1)
   let column = s:byte(text, a:result.cursor.character)
   call cursor(a:result.cursor.line + 1, column + 1)
+  redrawstatus
   return column >= len(text)
 endfunction
 
@@ -962,6 +1052,17 @@ function! s:map_lhs(key) abort
   return out
 endfunction
 
+" The keys as a terminal sends them too: CTRL-Space comes as NUL, which
+" Vim reads as `<C-@>` (Neovim as `<C-Space>`).
+function! s:with_terminal_keys(list) abort
+  if has('gui_running')
+    return a:list
+  endif
+  let terminal = map(filter(copy(a:list), {_, lhs -> lhs =~? '<C-Space>'}),
+        \ {_, lhs -> substitute(lhs, '\c<C-Space>', '<C-@>', 'g')})
+  return a:list + terminal
+endfunction
+
 function! org_lsp#set_keys(scope) abort
   let [keys, native] = s:keys_in(a:scope)
   let buffer = a:scope ==# 'global' ? '' : '<buffer>'
@@ -970,7 +1071,7 @@ function! org_lsp#set_keys(scope) abort
   let all = flatten(values(copy(keys)))
   for [name, list] in items(keys)
     let command = s:command(name)
-    for lhs in list
+    for lhs in s:with_terminal_keys(list)
       let mapped = s:map_lhs(lhs)
       call add(s:mapped, {'name': name, 'native': get(native, lhs, 0) ? lhs : '', 'lhs': lhs, 'buffer': empty(buffer) ? 0 : bufnr()})
       let index = len(s:mapped) - 1
@@ -1112,7 +1213,8 @@ function! s:columns_show(params) abort
     let view.rows[line] = text
   endfor
   let s:columns[nr] = view
-  let column = getbufvar(nr, 'org_lsp_column', 0)
+  " Where Emacs's cursor went, when the server says (a column moved).
+  let column = type(get(a:params, 'column', v:null)) == v:t_number ? a:params.column : getbufvar(nr, 'org_lsp_column', 0)
   call setbufvar(nr, 'org_lsp_column', max([0, min([len(view.columns) - 1, column])]))
   if first
     call s:columns_attach(nr)
@@ -1844,6 +1946,9 @@ function! org_lsp#show_document(params) abort
   if keep_focus
     call win_gotoid(from)
   endif
+  " The status line follows the cursor, moved from a callback, as after
+  " Vim's own motions.
+  redrawstatus
   return {'success': v:true}
 endfunction
 
@@ -2060,6 +2165,8 @@ function! org_lsp#handle_notification(method, params) abort
     " client's callback: a capture an org-protocol URL started.
     let Run = {-> org_lsp#run(a:params.command, {'argument': get(a:params, 'argument', {})})}
     call timer_start(0, {-> Run()})
+  elseif a:method ==# 'org-lsp/message' && type(a:params) == v:t_dict
+    call s:say(get(a:params, 'message', ''), get(a:params, 'type', 3))
   elseif a:method ==# 'org-lsp/viewChanged'
     " The agenda's file is new: read it again, outside the client's
     " callback.
@@ -2416,8 +2523,10 @@ function! org_lsp#refold() abort
   if first
     " A closed fold shows its first line and `org-ellipsis`, nothing after.
     setlocal foldtext=org_lsp#foldtext()
-    if &l:fillchars !~# 'fold:' && &fillchars !~# 'fold:'
-      let &l:fillchars = &fillchars . (empty(&fillchars) ? '' : ',') . 'fold: '
+    " Vim's own `fold:-` gives way; a character the user chose stays.
+    if &l:fillchars !~# 'fold:' && index(['', '-'], matchstr(&fillchars, 'fold:\zs.')) >= 0
+      let others = filter(split(&fillchars, ','), {_, item -> item !~# '^fold:'})
+      let &l:fillchars = join(others + ['fold: '], ',')
     endif
     if !exists('s:ellipsis')
       let s:ellipsis = '...'
@@ -2482,6 +2591,13 @@ function! org_lsp#cycle() abort
   let integrate = v:false
   if !empty(org_lsp#adapter()) && org_lsp#ready(bufnr())
     let [nr, context] = s:cursor_context()
+    " On the blank that ends a line (a new `** `, left with <Esc>), TAB is
+    " at the end of the line, where Emacs's point is once it is typed: the
+    " level keeps cycling from there.
+    let text = getline('.')
+    if mode() ==# 'n' && col('.') == len(text) && text =~# '\s$'
+      let context.position.character = s:character(text, len(text))
+    endif
     let answer = org_lsp#request_sync(nr, 'workspace/executeCommand', {'command': 'org.cycle', 'arguments': [context]}, 1000)
     let result = get(answer, 'result', v:null)
     if !empty(get(answer, 'error', {}))
@@ -2644,7 +2760,7 @@ function! s:show_preview(win, position, error, result) abort
     return s:warn(get(a:error, 'message', 'no entry to show'))
   endif
   if type(a:result) != v:t_dict
-    echomsg 'org-lsp: No entry on this line'
+    echomsg 'Command not allowed in this line'
     return
   endif
   " The cursor moved on while the server answered.
