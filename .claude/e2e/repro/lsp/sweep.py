@@ -16,6 +16,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from client import BARE, FULL, PLAIN, SCRATCH, Client, ResponseError, Timeout, path_of  # noqa
 import workspace  # noqa
 
+QUIET = float(os.environ.get("SWEEP_QUIET", "0"))
+OUT_SUFFIX = os.environ.get("SWEEP_SUFFIX", "")
 MANIFEST = json.load(open(os.path.join(SCRATCH, "..", "manifest.json")))
 
 # Answers to text prompts, by the start of the prompt.
@@ -293,6 +295,9 @@ def run_one(profile, command, record):
                     rec.setdefault("rename_errors", []).append([q, str(err)])
                     break
         rec["result"] = result
+        if QUIET:
+            c.settle(QUIET, 25)
+            c.run_fetches()
     except ResponseError as err:
         rec["error"] = {"code": err.code, "message": err.message, "data": err.data}
     except Timeout as err:
@@ -335,7 +340,7 @@ def _diff(a, b):
 def main():
     profile = sys.argv[1]
     prefixes = sys.argv[2:]
-    out = os.path.join(SCRATCH, f"sweep-{profile}.jsonl")
+    out = os.path.join(SCRATCH, f"sweep-{profile}{OUT_SUFFIX}.jsonl")
     mode = "a" if prefixes else "w"
     with open(out, mode) as f:
         for command in MANIFEST["commands"]:

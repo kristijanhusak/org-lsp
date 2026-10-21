@@ -1,0 +1,26 @@
+local H = dofile('/home/user/org-lsp/.claude/e2e/repro/neovim/h.lua')
+local dir = H.tmpdir('pick')
+H.init({ settings = { clock = { today = '2026-10-21', now = '12:44' } } })
+local function cal() return H.calendar_win() ~= nil and vim.api.nvim_get_current_win() == H.calendar_win() and vim.api.nvim_get_mode().mode == 'n' end
+local function closed() return H.calendar_win() == nil end
+H.section('pick', function()
+  H.open(dir .. '/t.org', { '* A', 'x' })
+  vim.api.nvim_win_set_cursor(0, { 2, 0 })
+  H.press('<Leader>oi!')
+  H.wait('cal', cal)
+  H.press('<CR>')
+  H.wait('ts', function() return H.line(2):find('%[2026') end)
+  H.wait('closed', closed)
+  local c = H.open(dir .. '/c.org', { '* A', 'SCHEDULED: <2026-10-21 Wed>' })
+  vim.api.nvim_win_set_cursor(0, { 2, 14 })
+  H.press('<Leader>ois')
+  H.wait('cal', cal)
+  for _, k in ipairs({ os.getenv('K1') or 'l', os.getenv('K2') or '<M-S-Down>' }) do
+    H.press(k); H.sleep(500)
+  end
+  H.out('last: ' .. H.lines(vim.api.nvim_win_get_buf(H.calendar_win()))[9])
+  H.press('<CR>')
+  H.sleep(1000)
+  H.out('cur=' .. vim.fs.basename(vim.api.nvim_buf_get_name(0)) .. ' c.org=' .. vim.inspect(H.lines(c)))
+end)
+H.done()

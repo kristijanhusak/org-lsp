@@ -240,6 +240,12 @@ function H.section(name, fn)
   if vim.v.errmsg ~= '' then
     H.check(false, 'v:errmsg: ' .. vim.v.errmsg)
   end
+  local bad = H.errors_in_messages()
+  H.seen_bad = H.seen_bad or 0
+  if #bad > H.seen_bad then
+    H.check(false, 'new errors in :messages: ' .. table.concat(vim.list_slice(bad, H.seen_bad + 1), ' | '))
+    H.seen_bad = #bad
+  end
   -- Close stray floating windows and leave insert mode between sections.
   pcall(vim.cmd, 'stopinsert')
   out(('-- %s: %s'):format(name, #H.fails == before and 'ok' or ('%d failed'):format(#H.fails - before)))
@@ -276,7 +282,7 @@ end
 function H.done()
   H.current = 'end'
   local bad = H.errors_in_messages()
-  H.check(#bad == 0, ':messages has errors: ' .. table.concat(bad, ' | '))
+  H.check(#bad <= (H.seen_bad or 0), ':messages has errors: ' .. table.concat(bad, ' | '))
   local warn = {}
   for _, n in ipairs(H.notes) do
     if n[2] and n[2] >= vim.log.levels.WARN then
