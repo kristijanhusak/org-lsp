@@ -406,7 +406,7 @@ fn same_file(one: &str, other: &str) -> bool {
 }
 
 /// `org-all-archive-files`: the files `file` archives to that exist.
-fn archive_files_of(file: &str) -> Result<Vec<String>, String> {
+pub(crate) fn archive_files_of(file: &str) -> Result<Vec<String>, String> {
     let text = std::fs::read_to_string(file).map_err(|error| format!("{file}: {error}"))?;
     let path = std::path::absolute(file).map_err(|error| format!("{file}: {error}"))?;
     let home = std::env::var_os("HOME").map(std::path::PathBuf::from);
