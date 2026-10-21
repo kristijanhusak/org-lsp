@@ -759,7 +759,7 @@ pub const CAPTURE_PREFIX: &str = "CAPTURE-";
 pub const ROAM_BUFFER_PREFIX: &str = roam::buffer::FILE_PREFIX;
 
 /// Where a capture template goes, before the server finds it.
-enum TargetSpec {
+pub(crate) enum TargetSpec {
     /// In the target file.
     File(capture::Target),
     /// `(clock)`: under the entry clocked now.
@@ -774,7 +774,9 @@ enum TargetSpec {
 }
 
 /// The kind and target of a capture template.
-fn capture_spec(template: &CaptureTemplateOption) -> std::result::Result<(capture::Kind, TargetSpec), Refusal> {
+pub(crate) fn capture_spec(
+    template: &CaptureTemplateOption,
+) -> std::result::Result<(capture::Kind, TargetSpec), Refusal> {
     let kind = match template.kind.as_deref() {
         None | Some("entry") => capture::Kind::Entry,
         Some("plain") => capture::Kind::Plain,
@@ -832,7 +834,7 @@ fn template_choices(templates: &[CaptureTemplateOption], keys: &str) -> Vec<Valu
 
 /// The template of a capture template, or the default of its type when
 /// it has none (`org-capture-set-plist`).
-fn template_text(template: &CaptureTemplateOption) -> String {
+pub(crate) fn template_text(template: &CaptureTemplateOption) -> String {
     let text = template.template.as_ref().map(|text| text.text()).unwrap_or_default();
     if !text.trim().is_empty() {
         return text;
@@ -2131,10 +2133,29 @@ pub fn run(connection: Connection) -> Result<()> {
     Ok(())
 }
 
+/// A path as Org names a capture target (`org-capture-expand-file`):
+/// empty for `org-default-notes-file`, relative to `org-directory`.
+pub(crate) fn capture_path(path: &str, org_directory: &str, default_notes_file: &str) -> PathBuf {
+    let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
+    let expand = |path: &str| match (path.strip_prefix("~/"), &home) {
+        (Some(rest), Some(home)) => home.join(rest),
+        _ => PathBuf::from(path),
+    };
+    if path.is_empty() {
+        return expand(default_notes_file);
+    }
+    let path = expand(path);
+    if path.is_absolute() {
+        path
+    } else {
+        expand(org_directory).join(path)
+    }
+}
+
 /// What `%[name]` puts in a capture: the file's text, or Org's note that
 /// it could not read it. `~/` is the home directory; a relative name is
 /// relative to `directory`.
-fn capture_file_text(name: &str, directory: Option<&Path>) -> String {
+pub(crate) fn capture_file_text(name: &str, directory: Option<&Path>) -> String {
     let path = match name.strip_prefix("~/") {
         Some(rest) => std::env::var_os("HOME").map(PathBuf::from).unwrap_or_default().join(rest),
         None if Path::new(name).is_absolute() => PathBuf::from(name),
@@ -2394,7 +2415,7 @@ fn headline_keyword(text: &str, heading: usize, keywords: &TodoKeywords) -> Opti
     (line.starts_with('*') && keywords.contains(word)).then(|| word.to_string())
 }
 
-fn headline_message(
+pub(crate) fn headline_message(
     old: &str,
     new: &str,
     heading: usize,
@@ -9856,20 +9877,7 @@ impl Server {
     /// A path as Org names a capture target (`org-capture-expand-file`):
     /// empty for `org-default-notes-file`, relative to `org-directory`.
     fn capture_file(&self, path: &str) -> PathBuf {
-        let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
-        let expand = |path: &str| match (path.strip_prefix("~/"), &home) {
-            (Some(rest), Some(home)) => home.join(rest),
-            _ => PathBuf::from(path),
-        };
-        if path.is_empty() {
-            return expand(&self.default_notes_file);
-        }
-        let path = expand(path);
-        if path.is_absolute() {
-            path
-        } else {
-            expand(&self.org_directory).join(path)
-        }
+        capture_path(path, &self.org_directory, &self.default_notes_file)
     }
 
     /// `org-capture`: pick a template by its keys, answer its questions,

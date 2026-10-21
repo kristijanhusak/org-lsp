@@ -2251,3 +2251,9 @@ emacs_options = {}
 # refile. The editor saves them once it has made the change. Off, they are
 # left with unsaved changes, as Emacs leaves them.
 auto_save = true
+
+# Let the assistants `org-lsp mcp` serves change files: its tools
+# `set_todo_state` and `capture`, which write the agenda files and the capture
+# targets directly. Off, it only reads. It is read from the shared
+# configuration file, as everything `org-lsp mcp` reads.
+mcp_edits = false

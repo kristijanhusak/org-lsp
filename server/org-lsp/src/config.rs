@@ -978,6 +978,9 @@ pub struct Options {
     pub hide_macro_markers: Option<bool>,
     /// Save the files a command changes other than the one it was run in.
     pub auto_save: Option<bool>,
+    /// `org-lsp mcp` may change files: the tools that set TODO states and
+    /// capture.
+    pub mcp_edits: Option<bool>,
     /// RET on the first line of a list item makes the next item, as M-RET.
     pub return_uses_meta_return: Option<bool>,
     /// `org-return-follows-link`

@@ -6876,6 +6876,11 @@
               "markdownDescription": "Save the files a command changes other than the one it was run in: an entry's file changed from the agenda, the target of a capture or of a refile. The editor saves them once it has made the change. Off, they are left with unsaved changes, as Emacs leaves them.",
               "default": true
             },
+            "mcp_edits": {
+              "type": "boolean",
+              "markdownDescription": "Let the assistants `org-lsp mcp` serves change files: its tools `set_todo_state` and `capture`, which write the agenda files and the capture targets directly. Off, it only reads. It is read from the shared configuration file, as everything `org-lsp mcp` reads.",
+              "default": false
+            },
             "org_cycle_separator_lines": {
               "type": "integer",
               "markdownDescription": "With at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. `0`: none does. (`org-cycle-separator-lines`)",
