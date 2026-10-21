@@ -95,9 +95,6 @@
       "agenda-entry-edits 21": "Helix has no note buffer: the note is one line, typed as a rename at the cursor (docs/helix.org).",
       "agenda-entry-edits 22": "Typed in the note buffer of step 21, which Helix does not have.",
       "agenda-entry-edits 23": "Files the note of step 21, which Helix asks for as a rename."
-    },
-    "zed": {
-      "agenda-entries 14": "A task cannot save Zed's files, nor can the server: the agenda's s and C-x C-s are Zed's own workspace::SaveAll, which the runner does not drive (docs/keys/zed.org)."
     }
   },
   "snapshots": {
@@ -109,6 +106,7 @@
       "agenda-navigation 18 cursor": "The agenda's buffer is closed (:buffer-close!, as the server's edits leave it changed), and Helix shows the buffer opened last, home.org, not the one the agenda was opened from: Helix has no window of the agenda's to delete."
     },
     "zed": {
+      "agenda-entries 14": "A task cannot save Zed's files, nor can the server: the agenda's s and C-x C-s are Zed's own workspace::SaveAll, which the runner does not drive (docs/keys/zed.org).",
       "agenda-entry-edits 21": "Zed has no note buffer: the note is one line, typed as a rename at the cursor (docs/zed.org).",
       "agenda-entry-edits 22": "Typed in the note buffer of step 21, which Zed does not have.",
       "agenda-entry-edits 23": "Files the note of step 21, which Zed asks for as a rename.",
