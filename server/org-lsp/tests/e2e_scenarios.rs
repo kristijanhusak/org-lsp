@@ -600,6 +600,9 @@ fn options_of(spec: &Value, directory: &str) -> Value {
     let clock = spec.get("clock").cloned().unwrap_or(json!({ "today": "2026-05-18", "now": "10:30" }));
     let mut options = json!({
         "config_file": false,
+        // The IDs an Emacs of the machine left in its
+        // `org-id-locations-file` are not read.
+        "org_id_locations_file": "/nonexistent/org-lsp-test/.org-id-locations",
         "clock": clock,
         "org_agenda_files": [directory],
         "org_directory": directory,
@@ -931,18 +934,11 @@ fn scenarios_cover_the_agenda_calendar_and_capture() {
 
 /// The servers of the tests keep what they leave for others (where they
 /// listen for org-protocol URLs) in a state directory of their own, not
-/// the user's, and read nothing of the user's home.
+/// the user's.
 fn private_state() {
     static ONCE: std::sync::Once = std::sync::Once::new();
     ONCE.call_once(|| {
         let state = std::env::temp_dir().join(format!("org-lsp-test-state-{}", std::process::id()));
         std::env::set_var("XDG_STATE_HOME", state);
-        // A home of their own: what Emacs left in the machine's (its
-        // `.org-id-locations`, `org-clock-save.el`, org-roam's files) is
-        // not read.
-        let home = std::env::temp_dir().join(format!("org-lsp-test-home-{}", std::process::id()));
-        std::fs::create_dir_all(&home).unwrap();
-        std::env::set_var("HOME", home);
-        std::env::remove_var("XDG_CONFIG_HOME");
     });
 }

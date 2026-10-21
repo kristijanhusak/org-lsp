@@ -55,6 +55,9 @@ impl Client {
         let mut options = if options.is_null() { json!({}) } else { options };
         if let Some(fields) = options.as_object_mut() {
             fields.entry("config_file").or_insert(json!(false));
+            // The IDs an Emacs of the machine left in its
+            // `org-id-locations-file` are not read.
+            fields.entry("org_id_locations_file").or_insert(json!(NO_ID_LOCATIONS));
         }
         // An editor with org-lsp's plugin, unless the test says otherwise.
         let mut capabilities = capabilities;
@@ -10537,20 +10540,16 @@ fn bibtex_keys_come_from_emacs() {
     client.shutdown();
 }
 
+/// An `org-id-locations-file` that is not there.
+const NO_ID_LOCATIONS: &str = "/nonexistent/org-lsp-test/.org-id-locations";
+
 /// The servers of the tests keep what they leave for others (where they
 /// listen for org-protocol URLs) in a state directory of their own, not
-/// the user's, and read nothing of the user's home.
+/// the user's.
 fn private_state() {
     static ONCE: std::sync::Once = std::sync::Once::new();
     ONCE.call_once(|| {
         let state = std::env::temp_dir().join(format!("org-lsp-test-state-{}", std::process::id()));
         std::env::set_var("XDG_STATE_HOME", state);
-        // A home of their own: what Emacs left in the machine's (its
-        // `.org-id-locations`, `org-clock-save.el`, org-roam's files) is
-        // not read.
-        let home = std::env::temp_dir().join(format!("org-lsp-test-home-{}", std::process::id()));
-        std::fs::create_dir_all(&home).unwrap();
-        std::env::set_var("HOME", home);
-        std::env::remove_var("XDG_CONFIG_HOME");
     });
 }

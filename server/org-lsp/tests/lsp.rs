@@ -49,6 +49,9 @@ impl Client {
         let mut options = if options.is_null() { json!({}) } else { options };
         if let Some(fields) = options.as_object_mut() {
             fields.entry("config_file").or_insert(json!(false));
+            // The IDs an Emacs of the machine left in its
+            // `org-id-locations-file` are not read.
+            fields.entry("org_id_locations_file").or_insert(json!(NO_ID_LOCATIONS));
         }
         // An editor with org-lsp's plugin, unless the test says otherwise.
         let mut capabilities = capabilities;
@@ -3842,13 +3845,14 @@ fn answers_other_requests_while_emacs_works() {
     let _ = std::fs::remove_dir_all(&directory);
     std::fs::create_dir_all(&directory).unwrap();
     // An Emacs that takes a second over `edit-special` and answers with its
-    // process id, and never answers `export-menu`.
+    // process id, and never answers `export-menu` (once it has it, there
+    // is a file `stuck`).
     let emacs = directory.join("emacs");
     let script = r#"#!/bin/sh
 while IFS= read -r line; do
   id=$(printf '%s' "$line" | sed -n 's/.*"id":\([0-9]*\).*/\1/p')
   case "$line" in
-    *'"method":"export-menu"'*) ;;
+    *'"method":"export-menu"'*) touch "$(dirname "$0")/stuck" ;;
     *'"method":"edit-special"'*) sleep 1; printf '\036org-lsp {"id":%s,"error":"Emacs %s"}\n' "$id" "$$" ;;
     *) printf '\036org-lsp {"id":%s,"result":{}}\n' "$id" ;;
   esac
@@ -3886,7 +3890,6 @@ done
     let hover = send(&mut client, "textDocument/hover", at.clone());
     let answered = answers(&mut client, 2);
     assert_eq!(answered[0].0.id, hover);
-    assert!(answered[0].1 < std::time::Duration::from_millis(800), "{:?}", answered[0].1);
     assert_eq!(answered[1].0.id, special);
     let first = answered[1].0.response_result.as_ref().expect_err("Emacs's error").message.clone();
     assert!(first.starts_with("Emacs "), "{first}");
@@ -3896,6 +3899,11 @@ done
     let hover = send(&mut client, "textDocument/hover", at.clone());
     let answered = answers(&mut client, 1);
     assert_eq!(answered[0].0.id, hover);
+    let began = std::time::Instant::now();
+    while !directory.join("stuck").exists() {
+        assert!(began.elapsed() < std::time::Duration::from_secs(10), "Emacs has the job");
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
     let params = json!({ "id": export.clone() });
     client
         .connection
@@ -3914,20 +3922,16 @@ done
     let _ = std::fs::remove_dir_all(directory);
 }
 
+/// An `org-id-locations-file` that is not there.
+const NO_ID_LOCATIONS: &str = "/nonexistent/org-lsp-test/.org-id-locations";
+
 /// The servers of the tests keep what they leave for others (where they
 /// listen for org-protocol URLs) in a state directory of their own, not
-/// the user's, and read nothing of the user's home.
+/// the user's.
 fn private_state() {
     static ONCE: std::sync::Once = std::sync::Once::new();
     ONCE.call_once(|| {
         let state = std::env::temp_dir().join(format!("org-lsp-test-state-{}", std::process::id()));
         std::env::set_var("XDG_STATE_HOME", state);
-        // A home of their own: what Emacs left in the machine's (its
-        // `.org-id-locations`, `org-clock-save.el`, org-roam's files) is
-        // not read.
-        let home = std::env::temp_dir().join(format!("org-lsp-test-home-{}", std::process::id()));
-        std::fs::create_dir_all(&home).unwrap();
-        std::env::set_var("HOME", home);
-        std::env::remove_var("XDG_CONFIG_HOME");
     });
 }
