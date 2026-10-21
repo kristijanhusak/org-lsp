@@ -100,7 +100,7 @@ function M.show()
   client:request('textDocument/hover', params, function(err, result)
     local contents = type(result) == 'table' and result.contents or nil
     if err or type(contents) ~= 'table' or type(contents.value) ~= 'string' then
-      return notify('org-lsp: No entry on this line', vim.log.levels.INFO)
+      return notify('Command not allowed in this line', vim.log.levels.INFO)
     end
     -- The cursor moved on while the server answered.
     if vim.api.nvim_get_current_win() ~= from or not vim.deep_equal(vim.api.nvim_win_get_cursor(from), cursor) then

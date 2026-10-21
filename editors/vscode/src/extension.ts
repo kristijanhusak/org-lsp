@@ -887,6 +887,8 @@ interface ColumnsShown {
   columns?: { key: string; title: string; width: number }[];
   /** Each headline's line, the text it shows, its values; null when off. */
   lines: [number, string, string[]][] | null;
+  /** The column Emacs's cursor went to, after a command that moves it. */
+  column?: number;
 }
 
 const columnsShown = new Map<string, ColumnsShown>();
@@ -953,7 +955,8 @@ function showColumns(params: ColumnsShown): void {
   if (params.lines) {
     columnsShown.set(params.uri, params);
     const count = params.columns?.length ?? 1;
-    columnsPicked.set(params.uri, Math.min(columnsPicked.get(params.uri) ?? 0, count - 1));
+    const picked = params.column ?? columnsPicked.get(params.uri) ?? 0;
+    columnsPicked.set(params.uri, Math.max(0, Math.min(picked, count - 1)));
   } else {
     columnsShown.delete(params.uri);
   }

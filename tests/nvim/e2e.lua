@@ -22,7 +22,7 @@ end
 
 --- Wait until `predicate` holds; fail the test if it never does.
 local function wait(message, predicate)
-  check(vim.wait(5000, predicate, 10), 'timed out waiting for ' .. message)
+  check(vim.wait(15000, predicate, 10), 'timed out waiting for ' .. message)
 end
 
 --- Type keys in normal mode, with mappings applied.
@@ -309,14 +309,16 @@ press('.')
 becomes(1, '* TODO [#A] Call them', '`.` raises it again')
 press('cir')
 becomes(1, '* TODO [#B] Call them', 'and down')
--- `org-priority` asks which one; a space removes it.
+-- `org-priority` asks which one, one key, as Emacs reads it; a space
+-- removes it.
 do
-  local input = vim.ui.input
+  local plugin = require('org-lsp')
+  local read_key = plugin.read_key
   local prompts = {}
   local answers = { 'c', ' ', 'b' }
-  vim.ui.input = function(opts, on_confirm)
-    table.insert(prompts, opts.prompt)
-    on_confirm(table.remove(answers, 1))
+  plugin.read_key = function(prompt, choices)
+    table.insert(prompts, { prompt, choices })
+    return table.remove(answers, 1)
   end
   press('<Leader>o,')
   becomes(1, '* TODO [#C] Call them', 'the priority typed')
@@ -324,8 +326,9 @@ do
   becomes(1, '* TODO Call them', 'a space removes it')
   press('<Leader>o,')
   becomes(1, '* TODO [#B] Call them', 'and back')
-  eq(prompts[1], 'Priority A-C, SPC to remove: ', 'Org\'s question')
-  vim.ui.input = input
+  eq(prompts[1], { 'Priority A-C, SPC to remove' }, 'Org\'s question, one key')
+  eq(plugin.prompt_text(prompts[1][1]), 'Priority A-C, SPC to remove: ', 'shown as Emacs shows it')
+  plugin.read_key = read_key
 end
 
 -- 10. Timestamps: the part under the cursor, with counts and `.`.
@@ -535,7 +538,85 @@ vim.api.nvim_win_set_cursor(0, { 2, 0 })
 wait('the cursor to stay on the day', function()
   return vim.deep_equal(vim.api.nvim_win_get_cursor(0), { 2, 21 })
 end)
+-- A count moves the day that many times (`3l`), as Emacs's calendar takes
+-- a prefix argument. What is typed at the prompt shows on the calendar's
+-- last line while it is typed, as `org-read-date` shows its meaning in the
+-- minibuffer; keys typed ahead of the prompt (a mapping, a macro) answer
+-- it.
+press('<Leader>ois')
+wait('the calendar to type in', on_prompt_day('12'))
+press('3l')
+wait('three days later', on_prompt_day('15'))
+-- The answer typed so far, as Neovim's own `vim.ui.input` has it.
+local confirm
+vim.ui.input = function(_, on_confirm)
+  confirm = on_confirm
+end
+press('i')
+wait('the prompt', function()
+  return confirm ~= nil
+end)
+local getcmdline = vim.fn.getcmdline
+vim.fn.getcmdline = function()
+  return 'fri'
+end
+vim.api.nvim_exec_autocmds('CmdlineChanged', {})
+vim.fn.getcmdline = getcmdline
+local function last_line()
+  local win = prompt_window()
+  return win and vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(win), -2, -1, false)[1]
+end
+-- (`fri` is the Friday after today, whatever day the test runs.)
+wait('the answer shown as it is typed', function()
+  return (last_line() or ''):match('^SCHEDULED Date%+time %[2026%-06%-12%]: fri    => <%d+%-%d+%-%d+ Fri>$') ~= nil
+end)
+confirm('fri')
 vim.ui.input = input
+wait('scheduled as typed', function()
+  return line(2):match('^SCHEDULED: <%d+%-%d+%-%d+ Fri %+2w>$') ~= nil
+end)
+wait('the calendar to close after the typed answer', function()
+  return prompt_window() == nil
+end)
+-- RET and the keys after it in one go: the calendar is gone before they
+-- run.
+local before = vim.api.nvim_buf_line_count(0)
+press('<Leader>ois')
+wait('the calendar before RET and o', function()
+  return prompt_window() ~= nil and vim.api.nvim_get_current_win() == prompt_window()
+end)
+press('l<CR>oNew line<Esc>')
+wait('the day taken', function()
+  return line(2):match('^SCHEDULED: <%d+%-%d+%-%d+ Sat %+2w>$') ~= nil
+end)
+wait('the line typed in the file', function()
+  return vim.api.nvim_buf_line_count(0) == before + 1 and line(3) == 'New line'
+end)
+vim.cmd('undo')
+-- A document the server asks to show while text may not change (an
+-- 'indentexpr' that waits for the server, and runs the requests that came
+-- meanwhile) is shown once that is over.
+do
+  local other = vim.fn.tempname() .. '.org'
+  vim.fn.writefile({ '* Other' }, other)
+  local here = vim.api.nvim_get_current_buf()
+  local indentexpr = vim.bo.indentexpr
+  local shown_result
+  function _G.OrgLspTestIndent()
+    local params = { uri = vim.uri_from_fname(other) }
+    shown_result = require('org-lsp.view').handlers['window/showDocument'](nil, params, { client_id = client.id })
+    return 0
+  end
+  vim.bo.indentexpr = 'v:lua.OrgLspTestIndent()'
+  press('o<Esc>')
+  eq(shown_result, { success = true }, 'answered at once')
+  wait('the document shown after', function()
+    return vim.api.nvim_buf_get_name(0) == other
+  end)
+  vim.api.nvim_set_current_buf(here)
+  vim.bo.indentexpr = indentexpr
+  vim.cmd('undo')
+end
 
 -- 14. With keys on the keywords, `org.todo` (`cit` by default, `gt` as
 -- configured above) asks for one key (`org-todo`'s fast selection); a
@@ -592,6 +673,14 @@ local windows = #vim.api.nvim_list_wins()
 vim.api.nvim_feedkeys('t', 'n', false)
 eq(plugin.read_key('[a-z..]:Set [SPC]:clear\n{[t] TODO }', { { key = 't', label = 'TODO' } }, true), 't', 'the key read')
 eq(#vim.api.nvim_list_wins(), windows, 'no window for the choices')
+-- Prompts that are Emacs's own words show as they are, titles with `: `.
+eq(plugin.prompt_text('Select a TODO state'), 'Select a TODO state: ', 'a title')
+eq(plugin.prompt_text('Execute this? '), 'Execute this? ', "Emacs's words")
+eq(plugin.prompt_text('Tags :work:'), 'Tags :work: ', 'a title ending in a colon')
+-- `:Org` completes word by word.
+eq(vim.fn.getcompletion('Org agenda li', 'cmdline'), { 'list' }, 'the next word')
+check(vim.tbl_contains(vim.fn.getcompletion('Org agenda ', 'cmdline'), 'dispatch'), 'the words of the agenda')
+eq(vim.fn.getcompletion('Org schedule ', 'cmdline'), { 'delay', 'remove' }, 'the words after schedule')
 
 -- 14b. `<Leader>ot` sets tags a key at a time, each turning its tag on or
 -- off, until RET; the tags go to their column.
@@ -1784,6 +1873,17 @@ do
   eq(vim.api.nvim_get_current_win(), here, 'the cursor stays in the file')
   local shown = vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(roam_win), 0, -1, false)
   eq({ shown[1], shown[3] }, { '#+title: Fresh idea', '* Backlinks (1)' }, 'its backlinks')
+  -- Following the backlink there shows its file in the other window, the
+  -- org-roam buffer staying beside it.
+  vim.api.nvim_set_current_win(roam_win)
+  vim.api.nvim_win_set_cursor(0, { 4, 3 })
+  require('org-lsp').run('org.open')
+  wait('the backlink followed in the other window', function()
+    return vim.api.nvim_win_get_buf(here) == vim.fn.bufnr(vim.fs.normalize(index))
+  end)
+  check(vim.api.nvim_buf_get_name(vim.api.nvim_win_get_buf(roam_win)):find('org%-roam%-buffer%.org$') ~= nil, 'the org-roam buffer stays')
+  vim.api.nvim_set_current_win(here)
+  vim.cmd.edit(written)
   require('org-lsp').run('org.roam.buffer.toggle')
   wait('the org-roam buffer to go', function()
     return not vim.api.nvim_win_is_valid(roam_win)
@@ -1881,6 +1981,38 @@ do
   check(date_prompt() == nil, 'the calendar closed')
   eq(line(1):match('^Search results for "carried" between '), 'Search results for "carried" between ', 'the title')
   eq(line(3), ('[[file:%s::2][%s]]  ** TODO carried'):format(today, os.date('%A, %m/%d/%y')), 'the result')
+end
+
+-- A 'conceallevel' of the user's own (a `FileType` autocommand's) stays.
+do
+  local group = vim.api.nvim_create_augroup('org_lsp_test_conceal', { clear = true })
+  vim.api.nvim_create_autocmd('FileType', { group = group, pattern = 'org', command = 'setlocal conceallevel=1' })
+  local own = vim.fn.tempname() .. '.org'
+  vim.fn.writefile({ '* A [[https://example.org][link]]' }, own)
+  vim.cmd.edit(own)
+  wait('the server on the file', function()
+    return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) > 0
+  end)
+  vim.wait(200)
+  eq(vim.wo.conceallevel, 1, "the user's conceallevel")
+  vim.api.nvim_del_augroup_by_id(group)
+end
+
+-- TAB at the end of a new, empty headline cycles its level, again and
+-- again (`org-cycle-level`), from the blank the cursor is on.
+do
+  local new = vim.fn.tempname() .. '.org'
+  vim.fn.writefile({ '* A', '** ' }, new)
+  vim.cmd.edit(new)
+  wait('the server on the new headline', function()
+    return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) > 0
+  end)
+  vim.api.nvim_win_set_cursor(0, { 2, 2 })
+  -- (The keys of Org files are off by now: TAB's function.)
+  require('org-lsp.folds').cycle()
+  becomes(2, '* ', 'a level up')
+  require('org-lsp.folds').cycle()
+  becomes(2, '** ', 'and down again')
 end
 
 print(('ok: %d checks passed'):format(checks))

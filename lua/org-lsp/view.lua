@@ -199,7 +199,9 @@ local function open_window(bufnr, mode, cursor)
   else
     vim.cmd(mode)
     win = vim.api.nvim_get_current_win()
-    if size then
+    -- The only window of a new tab (`tabnew`) has no size to set: its
+    -- lines would go to the command line.
+    if size and #vim.api.nvim_tabpage_list_wins(0) > 1 then
       -- `vsplit`, `vnew`, `vertical …`: the width; else the height.
       if mode:match('^%s*%S*%s*v') or mode:match('vert') then
         vim.api.nvim_win_set_width(win, sized(vim.o.columns))
@@ -701,6 +703,87 @@ local function at_last_line(uri, edits, client_id)
   end
 end
 
+--- Show a document the server asks for: the agenda, or the file of an
+--- entry. Neovim's own handler fails when the cursor is on an empty line
+--- (it asks for the word under the cursor), so this one does the same
+--- without it.
+local function show_document(err, params, ctx)
+  local client = vim.lsp.get_client_by_id(ctx.client_id)
+  if params.external or not client then
+    return vim.lsp.handlers['window/showDocument'](err, params, ctx)
+  end
+  local bufnr = vim.uri_to_bufnr(params.uri)
+  local win
+  local from = vim.api.nvim_get_current_win()
+  if documents.datePrompt and params.uri == documents.datePrompt.uri then
+    win = prompt_window(bufnr)
+  elseif is_roam_buffer(params.uri) then
+    -- The org-roam buffer beside the file, as Emacs shows it in a window
+    -- of its own; gone with its window, which tells the server.
+    win = vim.fn.win_findbuf(bufnr)[1]
+    if not win then
+      vim.bo[bufnr].bufhidden = 'wipe'
+      win = open_window(bufnr, 'botright vsplit')
+    end
+    if params.takeFocus == false and vim.api.nvim_win_is_valid(from) then
+      vim.api.nvim_set_current_win(from)
+    end
+  elseif opens_apart(params.uri) then
+    -- The agenda and capture buffers open as `win_split_mode` says, or
+    -- in the window that already shows them.
+    win = vim.fn.win_findbuf(bufnr)[1]
+    if not win then
+      vim.bo[bufnr].buflisted = true
+      win = open_window(bufnr, require('org-lsp').config.win_split_mode or 'split', is_capture(params.uri))
+    end
+  elseif params.orgOtherWindow and not is_float(vim.api.nvim_get_current_win()) then
+    -- An entry's file in another window (TAB in the agenda, and follow
+    -- mode, which keeps the cursor in the agenda).
+    if params.takeFocus ~= false then
+      vim.cmd("normal! m'")
+    end
+    win = other_window(vim.api.nvim_get_current_win(), bufnr)
+    vim.bo[bufnr].buflisted = true
+    vim.api.nvim_win_set_buf(win, bufnr)
+  else
+    -- A file, such as an entry's from the agenda. From a floating
+    -- window, it opens in the window under it.
+    local current = vim.api.nvim_get_current_win()
+    if is_float(current) and #vim.api.nvim_list_wins() > 1 then
+      vim.api.nvim_win_close(current, false)
+    end
+    vim.cmd("normal! m'")
+    win = vim.fn.win_findbuf(bufnr)[1] or vim.api.nvim_get_current_win()
+    -- Not in the org-roam buffer's window, which stays beside the file, as
+    -- `org-roam-preview-visit` shows the file in the other window.
+    if win == current and is_roam_buffer(vim.uri_from_bufnr(vim.api.nvim_win_get_buf(current))) then
+      win = other_window(current, bufnr)
+    end
+    vim.bo[bufnr].buflisted = true
+    vim.api.nvim_win_set_buf(win, bufnr)
+  end
+  if params.takeFocus ~= false then
+    vim.api.nvim_set_current_win(win)
+  end
+  local start = params.selection and params.selection.start
+  if start then
+    local text = vim.api.nvim_buf_get_lines(bufnr, start.line, start.line + 1, false)[1] or ''
+    local column = vim.str_byteindex(text, client.offset_encoding, start.character, false)
+    pcall(vim.api.nvim_win_set_cursor, win, { start.line + 1, column })
+    if params.orgOtherWindow then
+      -- The entry unfolded, as `org-agenda-show` shows its context.
+      vim.api.nvim_win_call(win, function()
+        vim.cmd('normal! zv')
+      end)
+    end
+    -- A capture buffer is for typing in, from where `%?` was.
+    if is_capture(params.uri) and vim.api.nvim_get_current_win() == win then
+      vim.cmd(column >= #text and 'startinsert!' or 'startinsert')
+    end
+  end
+  return { success = true }
+end
+
 M.handlers = {
   --- A message of the server, titled `Org`. Neovim's own handler sends it
   --- without a title, as `LSP[org-lsp] …`.
@@ -735,80 +818,20 @@ M.handlers = {
     return result
   end,
 
-  --- The server asks for a document to be shown: the agenda, or the file
-  --- of an entry. Neovim's own handler fails when the cursor is on an empty
-  --- line (it asks for the word under the cursor), so this one does the
-  --- same without it.
+  --- The server asks for a document to be shown.
   ['window/showDocument'] = function(err, params, ctx)
-    local client = vim.lsp.get_client_by_id(ctx.client_id)
-    if params.external or not client then
-      return vim.lsp.handlers['window/showDocument'](err, params, ctx)
+    -- Asked while text may not change (an 'indentexpr' that waits for the
+    -- server), the document is shown once that is over.
+    local ok, result = pcall(show_document, err, params, ctx)
+    if ok then
+      return result
+    elseif tostring(result):find('E565') then
+      vim.schedule(function()
+        show_document(err, params, ctx)
+      end)
+      return { success = true }
     end
-    local bufnr = vim.uri_to_bufnr(params.uri)
-    local win
-    local from = vim.api.nvim_get_current_win()
-    if documents.datePrompt and params.uri == documents.datePrompt.uri then
-      win = prompt_window(bufnr)
-    elseif is_roam_buffer(params.uri) then
-      -- The org-roam buffer beside the file, as Emacs shows it in a window
-      -- of its own; gone with its window, which tells the server.
-      win = vim.fn.win_findbuf(bufnr)[1]
-      if not win then
-        vim.bo[bufnr].bufhidden = 'wipe'
-        win = open_window(bufnr, 'botright vsplit')
-      end
-      if params.takeFocus == false and vim.api.nvim_win_is_valid(from) then
-        vim.api.nvim_set_current_win(from)
-      end
-    elseif opens_apart(params.uri) then
-      -- The agenda and capture buffers open as `win_split_mode` says, or
-      -- in the window that already shows them.
-      win = vim.fn.win_findbuf(bufnr)[1]
-      if not win then
-        vim.bo[bufnr].buflisted = true
-        win = open_window(bufnr, require('org-lsp').config.win_split_mode or 'split', is_capture(params.uri))
-      end
-    elseif params.orgOtherWindow and not is_float(vim.api.nvim_get_current_win()) then
-      -- An entry's file in another window (TAB in the agenda, and follow
-      -- mode, which keeps the cursor in the agenda).
-      if params.takeFocus ~= false then
-        vim.cmd("normal! m'")
-      end
-      win = other_window(vim.api.nvim_get_current_win(), bufnr)
-      vim.bo[bufnr].buflisted = true
-      vim.api.nvim_win_set_buf(win, bufnr)
-    else
-      -- A file, such as an entry's from the agenda. From a floating
-      -- window, it opens in the window under it.
-      local current = vim.api.nvim_get_current_win()
-      if is_float(current) and #vim.api.nvim_list_wins() > 1 then
-        vim.api.nvim_win_close(current, false)
-      end
-      vim.cmd("normal! m'")
-      win = vim.fn.win_findbuf(bufnr)[1] or vim.api.nvim_get_current_win()
-      vim.bo[bufnr].buflisted = true
-      vim.api.nvim_win_set_buf(win, bufnr)
-    end
-    if params.takeFocus ~= false then
-      vim.api.nvim_set_current_win(win)
-    end
-    local start = params.selection and params.selection.start
-    if start then
-      local text = vim.api.nvim_buf_get_lines(bufnr, start.line, start.line + 1, false)[1] or ''
-      local column = vim.str_byteindex(text, client.offset_encoding, start.character, false)
-      pcall(vim.api.nvim_win_set_cursor, win, { start.line + 1, column })
-      if params.orgOtherWindow then
-        -- The entry unfolded, as `org-agenda-show` shows its context.
-        vim.api.nvim_win_call(win, function()
-          vim.cmd('normal! zv')
-        end)
-      end
-      -- A capture buffer is for typing in, from where `%?` was.
-      if is_capture(params.uri) and vim.api.nvim_get_current_win() == win then
-        vim.cmd(column >= #text and 'startinsert!' or 'startinsert')
-      end
-    end
-    return { success = true }
+    error(result, 0)
   end,
 
   --- The server made changes to files the user is not editing (from the

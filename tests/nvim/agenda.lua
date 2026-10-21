@@ -85,6 +85,7 @@ vim.cmd('runtime plugin/org-lsp.lua')
 
 -- The dispatcher asks which view to show, by key, as Emacs's menu does.
 local choice, menu
+local real_read_key = require('org-lsp').read_key
 require('org-lsp').read_key = function(prompt, choices)
   menu = { prompt = prompt, keys = vim.tbl_map(function(item)
     return item.key .. ' ' .. item.label
@@ -397,12 +398,13 @@ wait('the priority to be gone', function()
   return home_line(1) == '* TODO Water plants'
 end)
 wait_for_cursor('  home:       Sched. 2x:  TODO Water plants')
--- `org-agenda-priority` asks which one.
+-- `org-agenda-priority` asks which one, one key.
 do
-  local input = vim.ui.input
+  local plugin = require('org-lsp')
+  local read_key = plugin.read_key
   local answers = { 'a', ' ' }
-  vim.ui.input = function(_, on_confirm)
-    on_confirm(table.remove(answers, 1))
+  plugin.read_key = function()
+    return table.remove(answers, 1)
   end
   press(',')
   wait('the priority typed in the file', function()
@@ -414,7 +416,7 @@ do
     return home_line(1) == '* TODO Water plants'
   end)
   wait_for_cursor('  home:       Sched. 2x:  TODO Water plants')
-  vim.ui.input = input
+  plugin.read_key = read_key
 end
 
 -- 6b. Scheduling from the agenda (`org-agenda-schedule`) opens the
@@ -618,7 +620,7 @@ vim.cmd('Org agenda list')
 wait_for_view('Week-agenda (W21):')
 vim.cmd('Org agenda todos')
 wait_for_view('Global list of TODO items of type: ALL')
-eq(vim.fn.getcompletion('Org agenda.l', 'cmdline'), { 'agenda.list', 'agenda.later', 'agenda.log' }, 'commands complete')
+eq(vim.fn.getcompletion('Org agenda l', 'cmdline'), { 'later', 'list', 'log' }, 'commands complete word by word')
 
 -- 9. A command that cannot work says why.
 local messages, titles = {}, {}
@@ -630,7 +632,7 @@ press('f')
 wait('the message of a failed command', function()
   return #messages > 0
 end)
-eq(messages, { 'org-lsp: The TODO list has no dates to move through' }, 'the server explains')
+eq(messages, { 'The TODO list has no dates to move through' }, 'the server explains')
 eq(titles, { 'Org' }, 'in a notification titled Org')
 -- So are the messages the server sends of its own (`window/showMessage`).
 local levels = {}
@@ -723,6 +725,14 @@ press('<F7>')
 wait_for_view('Global list of TODO items of type: ALL')
 eq(vim.api.nvim_win_get_width(0), math.floor(vim.o.columns * 0.25), 'a quarter of the editor wide')
 press('q')
+
+-- A new tab's only window takes no size: the command line keeps its own.
+org_lsp.setup({ win_split_mode = 'tabnew', win_split_size = 0.5 })
+local cmdheight = vim.o.cmdheight
+press('<F7>')
+wait_for_view('Global list of TODO items of type: ALL')
+eq({ vim.fn.tabpagenr('$'), vim.o.cmdheight }, { 2, cmdheight }, 'tabnew: a tab, the command line as it was')
+vim.cmd('tabclose')
 
 org_lsp.setup({ win_split_mode = 'float' })
 press('<F7>')
@@ -985,6 +995,18 @@ do
   eq(lines(), { 'Search words: +water -plants' }, 'no entry left')
   vim.ui.input = input
 end
+only_window()
+
+-- 19. Keys typed ahead of the menu answer it, as in Emacs a mapping or a
+-- macro of `C-c a t` shows the TODO list: `<Leader>oat` in one go.
+require('org-lsp').read_key = real_read_key
+vim.cmd.edit(work)
+local work_lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+local work_buf = vim.api.nvim_get_current_buf()
+press('\\oat')
+wait_for_view('Global list of TODO items of type: ALL')
+eq(vim.api.nvim_get_mode().mode, 'n', 'the key after the menu went to it')
+eq(vim.api.nvim_buf_get_lines(work_buf, 0, -1, false), work_lines, 'and not to the file')
 only_window()
 
 print(('ok: %d checks passed'):format(checks))

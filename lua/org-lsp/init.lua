@@ -30,7 +30,7 @@ local SERVER = 'org_lsp'
 ---@field folding? boolean Whether to fold with the server's folding ranges.
 ---@field replace_syntax? boolean Whether to turn off Vim's regex syntax once semantic tokens arrive.
 ---@field src_highlight? boolean Whether the code of source and export blocks and of inline source blocks (`#+begin_src python`, `src_python{…}`) is highlighted by the tree-sitter parser of its language, or its Vim syntax file when there is no parser, as Emacs's `org-src-fontify-natively` shows it.
----@field conceal? boolean Whether to conceal what the server marks hidden (link brackets and targets; emphasis markers with `org_hide_emphasis_markers`), with 'conceallevel' 2 in Org windows.
+---@field conceal? boolean Whether to conceal what the server marks hidden (link brackets and targets; emphasis markers with `org_hide_emphasis_markers`), with 'conceallevel' 2 in Org windows (a level set already, as by a `FileType` autocommand, stays).
 ---@field indent? boolean Whether the server indents as Org does: new lines through 'indentexpr' (`org-indent-line`), and `=` (`org-indent-region`), following `org_adapt_indentation`.
 ---@field virtual_indent? boolean Whether files with `org-indent-mode` (`org_startup_indented`, `#+STARTUP: indent`) show indented by level, without being changed, and with hidden leading stars (`org_hide_leading_stars`, `#+STARTUP: hidestars`).
 ---@field win_split_mode? 'split'|'vsplit'|'float'|'current'|string|fun(bufnr: integer): integer? How the agenda and capture buffers open: 'split', 'vsplit', 'float', 'current', another Ex command that opens a window ('botright split', 'tabnew'), or a function that opens a window for the buffer and returns it.
@@ -209,9 +209,13 @@ function M.run(name, opts)
   local count = opts.count and opts.count > 0 and opts.count or nil
   -- The register the key was typed with (`"a`), as `y` and `p` take it.
   local register = vim.v.register
-  -- In Visual mode, the selection: the region the command works on.
+  -- In Visual mode, the selection: the region the command works on; the
+  -- lines of a range given to `:Org`.
   local selection = opts.region and M.selection() or nil
-  if selection then
+  if opts.lines then
+    selection = { start = { opts.lines[1] - 1, 0 }, ['end'] = { opts.lines[2], 0 }, cursor_at_end = false }
+  end
+  if selection and not opts.lines then
     vim.api.nvim_feedkeys(vim.keycode('<Esc>'), 'nx', false)
   end
   with_client(function(client)
@@ -224,7 +228,7 @@ function M.run(name, opts)
     if selection then
       local function position(at)
         local line = vim.api.nvim_buf_get_lines(0, at[1], at[1] + 1, false)[1] or ''
-        local character = at[2] > 0 and vim.lsp.util.character_offset(0, at[1], math.min(at[2], #line), client.offset_encoding) or 0
+        local character = at[2] > 0 and vim.str_utfindex(line, client.offset_encoding, math.min(at[2], #line), false) or 0
         return { line = at[1], character = character }
       end
       context.range = { start = position(selection.start), ['end'] = position(selection['end']) }
@@ -261,13 +265,32 @@ function M.run(name, opts)
     end
     local command = { title = name, command = name, arguments = { context } }
     local bufnr = vim.api.nvim_get_current_buf()
+    --- Run `command`. With keys typed ahead (a mapping or a macro that
+    --- goes on after the command's key), the answer is waited for, so that
+    --- those keys answer what it asks (`<Leader>oaa`) or go where it leaves
+    --- the cursor, as Emacs reads the next key only once the command is
+    --- done. (An `<Esc>` alone, which ends what a mapping started, is not
+    --- an answer.)
+    local function exec(command, callback)
+      local ahead = vim.fn.getchar(1)
+      if ahead == 0 or ahead == 27 then
+        return client:exec_cmd(command, { bufnr = bufnr }, callback)
+      end
+      local params = { command = command.command, arguments = command.arguments }
+      local response, err = client:request_sync('workspace/executeCommand', params, 10000, bufnr)
+      if not response then
+        return callback({ message = tostring(err) }, nil)
+      end
+      callback(response.err, response.result)
+    end
     local function handle(err, result)
       if err then
         if opts.key and type(err.data) == 'table' and err.data.notApplicable then
           -- Not an Org matter here: the key does what it does elsewhere.
           vim.api.nvim_feedkeys((count or '') .. vim.keycode(opts.key), 'n', false)
         else
-          notify('org-lsp: ' .. tostring(err.message), vim.log.levels.WARN)
+          -- Emacs's text, as its echo area shows a `user-error`.
+          notify(tostring(err.message), vim.log.levels.WARN)
         end
         return
       end
@@ -323,18 +346,23 @@ function M.run(name, opts)
               context[key] = value
             end
             context.input = answer
-            client:exec_cmd(command, { bufnr = bufnr }, handle)
+            exec(command, handle)
           end
         end
         if input.kind == 'key' then
           return answered(M.read_key(input.prompt, input.choices, input.expert))
+        end
+        -- A priority is one key, as `org-priority` reads it: a letter, or
+        -- SPC to remove it.
+        if input.kind == 'priority' then
+          return answered(M.read_key(input.prompt))
         end
         if input.choices then
           -- One of a list, such as the targets of a refile.
           local format = function(choice)
             return choice.label
           end
-          return vim.ui.select(input.choices, { prompt = input.prompt .. ': ', format_item = format }, function(choice)
+          return vim.ui.select(input.choices, { prompt = M.prompt_text(input.prompt), format_item = format }, function(choice)
             answered(choice and choice.key)
           end)
         end
@@ -346,7 +374,26 @@ function M.run(name, opts)
           M.completion_separator = input.separator
           completion = 'customlist,v:lua.OrgLspCompleteInput'
         end
-        vim.ui.input({ prompt = input.prompt .. ': ', default = input.value, completion = completion }, function(answer)
+        -- What a date typed so far means, shown as it is typed, as
+        -- `org-read-date` shows it in the minibuffer: the server writes it
+        -- on the calendar's last line.
+        local previewing
+        if input.kind == 'date' then
+          previewing = vim.api.nvim_create_autocmd('CmdlineChanged', {
+            group = vim.api.nvim_create_augroup('org_lsp_date_preview', { clear = true }),
+            callback = function()
+              local arguments = vim.tbl_extend('force', context, { command = name, input = vim.fn.getcmdline() })
+              local params = { command = 'org.date.preview', arguments = { arguments } }
+              client:request('workspace/executeCommand', params, function()
+                vim.cmd.redraw()
+              end, bufnr)
+            end,
+          })
+        end
+        vim.ui.input({ prompt = M.prompt_text(input.prompt), default = input.value, completion = completion }, function(answer)
+          if previewing then
+            pcall(vim.api.nvim_del_autocmd, previewing)
+          end
           -- An input that runs in insert mode may leave it behind in the
           -- calendar it was asked from, which is never typed into.
           vim.schedule(function()
@@ -359,8 +406,19 @@ function M.run(name, opts)
         end)
       end
     end
-    client:exec_cmd(command, { bufnr = bufnr }, handle)
+    exec(command, handle)
   end)
+end
+
+--- A prompt as it is shown: Emacs's own words (`Execute this? `, ending in
+--- a space) as they are, a title (`Select a TODO state`) followed by `: `.
+---@param prompt string
+---@return string
+function M.prompt_text(prompt)
+  if prompt:match('%s$') then
+    return prompt
+  end
+  return prompt .. (prompt:match('[:?]$') and ' ' or ': ')
 end
 
 --- The completions of the text a command asks for, beginning with what is
@@ -551,7 +609,7 @@ function M.read_key(prompt, choices, expert)
   -- `expert` (`org-use-fast-todo-selection`): the keys are in the prompt,
   -- which shows alone, as Emacs's message does.
   local win = not expert and choices and #choices > 0 and show_choices(prompt, choices) or nil
-  vim.api.nvim_echo({ { expert and prompt or prompt .. ': ' } }, false, {})
+  vim.api.nvim_echo({ { expert and prompt or M.prompt_text(prompt) } }, false, {})
   vim.cmd.redraw()
   local ok, key = pcall(vim.fn.getcharstr)
   vim.api.nvim_echo({ { '' } }, false, {})
@@ -1096,8 +1154,11 @@ local function conceal(bufnr)
       })
     end,
   })
+  -- A level of the user's own (a `FileType` autocommand's) stays.
   local function set_window(win)
-    vim.wo[win][0].conceallevel = 2
+    if vim.wo[win][0].conceallevel == 0 then
+      vim.wo[win][0].conceallevel = 2
+    end
   end
   for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
     set_window(win)
@@ -1303,26 +1364,42 @@ local function build()
 end
 
 --- `:Org agenda list` runs `org.agenda.list`. A group of commands stands
---- for its dispatcher: `:Org agenda` runs `org.agenda.dispatch`.
+--- for its dispatcher: `:Org agenda` runs `org.agenda.dispatch`. With a
+--- range (`:'<,'>Org toggle heading`), its lines are the region.
 ---@param words string[]
-local function user_command(words)
+---@param range? integer[] the first and last line
+local function user_command(words, range)
   local id = 'org.' .. table.concat(#words > 0 and words or { 'agenda' }, '.')
   with_client(function()
-    M.run(server_command(id) and id or id .. '.dispatch')
+    if not server_command(id) and server_command(id .. '.dispatch') then
+      id = id .. '.dispatch'
+    end
+    M.run(id, { lines = range })
   end)
 end
 
----@param lead string what has been typed of the argument
+--- The next word of `:Org`'s command after those typed: `:Org agenda <Tab>`
+--- offers `list`, `todos`, `dispatch`, ….
+---@param lead string what has been typed of the word
+---@param line string the command line
+---@param pos integer where the cursor is in it
 ---@return string[]
-local function complete_user_command(lead)
-  local names = {}
+local function complete_user_command(lead, line, pos)
+  local typed = line:sub(1, pos - #lead):gsub('^%s*%S+', '', 1)
+  local before = vim.split(vim.trim(typed), '%s+', { trimempty = true })
+  local prefix = table.concat(vim.list_extend({ 'org' }, before), '.') .. '.'
+  local words, seen = {}, {}
   for _, command in ipairs(M.manifest and M.manifest.commands or {}) do
-    local name = command.command:gsub('^org%.', '')
-    if name:sub(1, #lead) == lead then
-      table.insert(names, name)
+    if vim.startswith(command.command, prefix) then
+      local word = command.command:sub(#prefix + 1):match('^[^.]+')
+      if word and vim.startswith(word, lead) and not seen[word] then
+        seen[word] = true
+        table.insert(words, word)
+      end
     end
   end
-  return names
+  table.sort(words)
+  return words
 end
 
 local started = false
@@ -1371,8 +1448,8 @@ function M.start()
   vim.api.nvim_create_user_command('OrgLspBuild', build, { desc = 'Build the org-lsp server with cargo' })
   vim.api.nvim_create_user_command('OrgLspDownload', download, { desc = 'Download the org-lsp server' })
   vim.api.nvim_create_user_command('Org', function(opts)
-    user_command(opts.fargs)
-  end, { nargs = '*', complete = complete_user_command, desc = 'Run an Org command' })
+    user_command(opts.fargs, opts.range > 0 and { opts.line1, opts.line2 } or nil)
+  end, { nargs = '*', range = true, complete = complete_user_command, desc = 'Run an Org command' })
   set_keys('global')
   if not enable() then
     vim.api.nvim_create_autocmd('FileType', {
