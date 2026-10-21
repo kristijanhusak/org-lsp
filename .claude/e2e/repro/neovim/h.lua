@@ -95,7 +95,7 @@ function H.open(path, lines)
     vim.fn.mkdir(vim.fs.dirname(path), 'p')
     vim.fn.writefile(lines, path)
   end
-  vim.cmd.edit(vim.fn.fnameescape(path))
+  vim.cmd('hide edit ' .. vim.fn.fnameescape(path))
   local buf = vim.api.nvim_get_current_buf()
   H.wait('the server on ' .. vim.fs.basename(path), function()
     local c = vim.lsp.get_clients({ bufnr = buf, name = 'org_lsp' })[1]

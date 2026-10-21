@@ -77,6 +77,7 @@ H.section('roam: links', function()
   -- completion of [[roam:
   vim.api.nvim_buf_set_lines(0, -1, -1, false, { 'x [[roam:' })
   local n = vim.api.nvim_buf_line_count(0)
+  H.sleep(500)
   local c = H.client()
   local r = c:request_sync('textDocument/completion', { textDocument = { uri = vim.uri_from_bufnr(0) }, position = { line = n - 1, character = 9 } }, 3000, 0)
   local items = r and r.result and (r.result.items or r.result) or {}
@@ -103,13 +104,14 @@ H.section('roam buffer', function()
   check(vim.iter(rl):any(function(l) return l:find('Unlinked References') end), 'Unlinked References section')
   -- follow an item
   vim.api.nvim_set_current_win(rw)
-  for i, l in ipairs(H.lines()) do if l:find('Note B') and i > 3 then vim.api.nvim_win_set_cursor(0, { i, 0 }) break end end
+  for i, l in ipairs(H.lines()) do if l:find('Note B') and i > 3 then vim.api.nvim_win_set_cursor(0, { i, (l:find('%[%[')) + 2 }) break end end
   local item = vim.api.nvim_get_current_line()
   press('<Leader>oo')
   H.sleep(1500)
   H.out('  followed item "' .. item .. '" -> ' .. name() .. ':' .. H.cursor()[1] .. ' ' .. tostring(vim.api.nvim_get_current_line()))
   check(name():find('/b%.org$') and vim.api.nvim_get_current_line():find('note%-a') ~= nil, 'item visits the line of the link')
   -- moving into another node updates the buffer
+  H.open(roam .. '/b.org')
   vim.api.nvim_win_set_cursor(0, { 11, 0 })
   H.press('j')
   H.press('k')
