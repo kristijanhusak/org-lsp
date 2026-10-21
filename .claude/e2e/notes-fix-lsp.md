@@ -91,3 +91,12 @@
   leader (`Item::habit_prefix`, made when the habit line is) + new headline,
   no graph. Same test. agenda_flow.py full: every scenario SAME (but the
   documented ` => date` display difference).
+- lsp-15: fixed without a bridge change: before an export the server
+  queues (emacs.start, not waited for) an `eval` job — the existing bridge
+  method — with `(org-id-add-location ID FILE)` for each `id:` link of the
+  document it can resolve and, with org-roam on, `(org-link-set-parameters
+  "roam")`. Export then gives `<a href="roam/alpha.html#ID-…">` and
+  `<a href="roam:Beta">` (what ox-html does for a type without :export, as
+  with org-roam loaded). Relies on the job queue staying in order (emacs.rs,
+  other fixer). Test `exports_links_the_server_follows` (tests/lsp.rs).
+  protocol.org's org.export.dispatch says so.
