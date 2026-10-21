@@ -43,7 +43,6 @@ Then:
 * Emphasis and objects
 Text in *bold*, /italic/, _underline_, +strike-through+, =verbatim= and ~code~.
 Nested: *bold with /italic/ inside*.
-Struck: +a [[https://orgmode.org][struck link]] and <2026-05-19 Tue>+.
 A [[https://orgmode.org][described link]], a bare one [[https://example.com]] and https://example.org.
 A <<target>>, a footnote[fn:1] and a macro {{{greet(world)}}}.
 Entities \alpha and \rightarrow, LaTeX $x^2$ and \(a + b\).

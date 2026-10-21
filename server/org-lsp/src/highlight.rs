@@ -545,7 +545,7 @@ pub fn tokens(root: &SyntaxNode, todo: &TodoKeywords, conceal: Conceal) -> Vec<T
 
 /// [`tokens`], headlines and blocks shown as `fontify` says.
 pub fn tokens_with(root: &SyntaxNode, todo: &TodoKeywords, conceal: Conceal, fontify: Fontify) -> Vec<Token> {
-    let mut walker = Walker { todo, conceal, fontify, out: Vec::new(), around: 0 };
+    let mut walker = Walker { todo, conceal, fontify, out: Vec::new() };
     walker.children(root, Style::PLAIN);
     walker.out
 }
@@ -559,16 +559,12 @@ pub fn without_cookies(mut tokens: Vec<Token>) -> Vec<Token> {
     tokens
 }
 
-/// The modifiers of emphasis, which Org prepends to the faces of what
-/// the emphasis holds (`org-do-emphasis-faces`).
-const EMPHASIS: u32 = modifier::BOLD | modifier::ITALIC | modifier::UNDERLINE | modifier::STRIKETHROUGH;
-
 pub fn with_radio_links(tokens: Vec<Token>, ranges: &[(usize, usize)]) -> Vec<Token> {
     if ranges.is_empty() {
         return tokens;
     }
     let mut out: Vec<Token> = Vec::with_capacity(tokens.len() + ranges.len());
-    let emphasis = EMPHASIS;
+    let emphasis = modifier::BOLD | modifier::ITALIC | modifier::UNDERLINE | modifier::STRIKETHROUGH;
     let mut links: Vec<Token> = ranges
         .iter()
         .map(|(start, end)| Token {
@@ -660,10 +656,6 @@ struct Walker<'a> {
     conceal: Conceal,
     fontify: Fontify,
     out: Vec<Token>,
-    /// The emphasis around the node walked: links, timestamps and the
-    /// other objects inside it take its look on top of their own, as
-    /// Org's faces compose.
-    around: u32,
 }
 
 impl Walker<'_> {
@@ -671,7 +663,6 @@ impl Walker<'_> {
         if range.is_empty() {
             return;
         }
-        let modifiers = modifiers | self.around;
         // Adjacent pieces with the same style read as one token.
         if let Some(last) = self.out.last_mut() {
             if last.range.end() == range.start() && last.ty == ty && last.modifiers == modifiers {
@@ -780,12 +771,6 @@ impl Walker<'_> {
     }
 
     fn node(&mut self, node: &SyntaxNode, style: Style) {
-        let around = std::mem::replace(&mut self.around, style.modifiers & EMPHASIS);
-        self.object(node, style);
-        self.around = around;
-    }
-
-    fn object(&mut self, node: &SyntaxNode, style: Style) {
         let range = node.text_range();
         match node.kind() {
             HEADLINE => self.headline(node),
@@ -1355,33 +1340,6 @@ mod tests {
     }
 
     #[test]
-    fn objects_in_emphasis_take_its_look_too() {
-        // `org-do-emphasis-faces` prepends its face over links, dates and
-        // the rest, which keep theirs.
-        check(
-            "+[[https://x.org][x]] y <2026-10-21 Wed> [fn:1]+\n",
-            expect![[r#"
-                0:0 "+" text +strikethrough
-                0:1 "[[https://x.org][x]]" link +strikethrough
-                0:21 " y " text +strikethrough
-                0:24 "<2026-10-21 Wed>" timestamp +strikethrough
-                0:40 " " text +strikethrough
-                0:41 "[fn:1]" footnote +strikethrough
-                0:47 "+" text +strikethrough
-            "#]],
-        );
-        let links = Conceal { links: true, emphasis: false };
-        expect![[r#"
-            0:0 "/" text +italic
-            0:1 "[[https://x.org][" link +italic +hidden
-            0:18 "x" link +italic
-            0:19 "]]" link +italic +hidden
-            0:21 "/" text +italic
-        "#]]
-        .assert_eq(&render_concealed("/[[https://x.org][x]]/\n", Encoding::Utf16, links));
-    }
-
-    #[test]
     fn hidden_parts_of_links_as_org_link_descriptive_shows_them() {
         let links = Conceal { links: true, emphasis: false };
         expect![[r#"
@@ -1536,7 +1494,7 @@ mod tests {
                 0:22 "=f=" verbatim
                 0:26 "~g~" code
                 0:30 "*" text +bold
-                0:31 "~h~" code +bold
+                0:31 "~h~" code
                 0:34 "*" text +bold
             "#]],
         );

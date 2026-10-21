@@ -304,22 +304,6 @@ for _, case in ipairs({
   check(vim.deep_equal(found, case[2]), ('concealed on %q: %s'):format(case[1], vim.inspect(found)))
 end
 
--- Links and dates in emphasis keep its look on top of theirs, as Org's
--- faces compose (`org-do-emphasis-faces` prepends).
-do
-  local row = row_of('Struck: ')
-  local text = lines[row + 1]
-  for _, word in ipairs({ 'struck link', '2026-05-19' }) do
-    local col = text:find(word, 1, true) - 1
-    local shown
-    vim.wait(3000, function()
-      shown = effective(sample, row, col)
-      return shown.strikethrough
-    end, 20)
-    check(shown.strikethrough, ('%q in +…+ struck through: %s'):format(word, vim.inspect(shown)))
-  end
-end
-
 -- 3. The week's agenda.
 local function wait_for_view(title)
   wait('the agenda `' .. title .. '`', function()
