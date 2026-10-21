@@ -155,7 +155,7 @@ org-protocol does, reach the editor with org-lsp through
 ~org-lsp protocol URL~: see [[file:docs/org-protocol.org][docs/org-protocol.org]].
 
 AI assistants read the agenda through ~org-lsp mcp~, a Model Context
-Protocol server, and with ~mcp_edits~ change TODO states and capture: see
+Protocol server, and with ~mcp_edits~ change TODO states, capture and refile: see
 [[file:docs/mcp.org][docs/mcp.org]].
 
 * Layout
