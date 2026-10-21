@@ -160,7 +160,6 @@ Not in Zed:
 - [ ] Entry text, log mode, the clock report, archives mode: ~shift-e~ or ~v shift-e~, ~v l~, ~shift-r~ or ~v shift-r~, ~v a~
 - [ ] In the week view, inactive timestamps show after ~[~ with /Display now includes inactive timestamps as well/, marked ~[~, and are gone again when the agenda is rebuilt: ~[~, ~v [~, ~r~
 - [ ] Hovering a line shows its entry: the mouse
-- [ ] Rebuilding the agenda, saving the changed files, quitting: ~r~, ~s~ or ~ctrl-x ctrl-s~
 - [ ] An entry changed in its file shows in the agenda when it is rebuilt
 - [ ] Pressing ~f~ many times in a row moves the agenda a week each time, in the editor too
 - [ ] With no Org file open and no server running, the /Org: Agenda for the current week or day/ task opens the Org file last opened and the agenda
@@ -169,6 +168,7 @@ Not in Zed:
 
 Not in Zed:
 
+- Rebuilding the agenda, saving the changed files, quitting: /Save all Org files/ is not among its keys or code actions
 - Adding today's appointments: an entry timed a few minutes from now is reminded of every three minutes until it is due (needs Emacs): /Add today's appointments from the agenda files/ is not among its keys or code actions
 
 * Clocking
