@@ -318,8 +318,8 @@ fn announces_the_agenda() {
     let manifest = &capabilities["experimental"]["org"];
     let table = manifest["commands"].as_array().unwrap();
     // Every command but those editors call on their own: while a date is
-    // typed, and before TAB folds.
-    assert_eq!(table.len() + 2, commands.len());
+    // typed, before TAB folds, and to answer Emacs's question.
+    assert_eq!(table.len() + 3, commands.len());
     assert!(commands.contains(&"org.date.preview") && commands.contains(&"org.cycle"));
     let find = |id: &str| table.iter().find(|command| command["command"] == id).unwrap();
     assert_eq!(
@@ -6443,13 +6443,14 @@ fn captures_with_the_date_of_the_agenda_line() {
             .request("workspace/executeCommand", json!({ "command": "org.capture.finish", "arguments": [context] }))
             .unwrap();
         client.settle();
-        let filed = client.received.iter().find(|request| request.method == "workspace/applyEdit").map(edits_of);
-        (captured, filed.map(|(_, edits)| apply("", &edits)))
+        captured
     };
-    assert_eq!(capture(&mut client, "n", line("Write")).0, "* Note <2026-05-20 Wed> [2026-05-20 Wed 00:00]\n");
-    assert_eq!(capture(&mut client, "n", line("Thursday")).0, "* Note <2026-05-21 Thu> [2026-05-21 Thu 00:00]\n");
-    let (captured, filed) = capture(&mut client, "d", line("Write"));
+    assert_eq!(capture(&mut client, "n", line("Write")), "* Note <2026-05-20 Wed> [2026-05-20 Wed 00:00]\n");
+    assert_eq!(capture(&mut client, "n", line("Thursday")), "* Note <2026-05-21 Thu> [2026-05-21 Thu 00:00]\n");
+    let captured = capture(&mut client, "d", line("Write"));
     assert_eq!(captured, "**** Day <2026-05-20 Wed>\n");
+    // The empty diary, not open, is written.
+    let filed = std::fs::read_to_string(&diary).ok();
     // Under the day of the line; an empty file starts with a blank line,
     // as Emacs leaves it (tests/capture/cases.json).
     let tree = "\n* 2026\n** 2026-05 May\n*** 2026-05-20 Wednesday\n**** Day <2026-05-20 Wed>\n";
