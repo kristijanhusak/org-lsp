@@ -5,7 +5,8 @@
 assistant (Claude Code, Claude Desktop, Cursor and others) your agenda as
 Org builds it, so it can answer "what is due this week" or "what is tagged
 ~work~" from your Org files rather than from searching their text. It only
-reads; it changes no file.
+reads, unless you let it change TODO states and capture ([[#changing-files][Changing
+files]]).
 
 * Setting it up
 :PROPERTIES:
@@ -47,8 +48,17 @@ starts it with (where the editor plugins downloaded it, for example).
 :CUSTOM_ID: tools
 :END:
 
-Each answers the view's text, as ~org-lsp agenda~ prints it and Org's
-agenda shows it.
+Each view answers its text, as ~org-lsp agenda~ prints it and Org's
+agenda shows it, and each entry's line ends with where its headline is:
+its file and line, from 1.
+
+#+begin_example
+Global list of TODO items of type: ALL
+  tasks:      TODO Write the report                                    :work:  [tasks.org:12]
+#+end_example
+
+The file goes by its name when no other agenda file has the same, else by
+its path. It is what ~set_todo_state~ takes.
 
 - ~agenda~ :: the agenda of some days (~org-agenda-list~); ~span~ (~day~,
   ~week~, the default, ~fortnight~, ~month~, ~year~ or a number of days),
@@ -63,6 +73,9 @@ agenda shows it.
 - ~custom_agenda~ :: a command of ~org_agenda_custom_commands~, by its
   ~key~.
 - ~agenda_files~ :: the files the agenda is built from.
+- ~capture_templates~ :: the capture templates (~org_capture_templates~):
+  each one's key, description, type, target and template, and the
+  questions it asks.
 
 * What differs from the editor's agenda
 :PROPERTIES:
@@ -75,3 +88,54 @@ commands, org-journal's files), but start no Emacs: a diary sexp that
 calls other Lisp (~%%(my-function)~) shows nothing, and a ~%(…)~ in
 ~org_agenda_prefix_format~ is left empty. Settings given only in the
 editor (its own options rather than the configuration file) are not seen.
+
+* Changing files
+:PROPERTIES:
+:CUSTOM_ID: changing-files
+:END:
+
+With ~mcp_edits~ on in the configuration file, the assistant also gets two
+tools that change files. They go through the code the editor's commands
+go through, with the same settings, and say what Emacs says.
+
+#+begin_src toml
+mcp_edits = true
+#+end_src
+
+- ~set_todo_state~ :: change the TODO state of an entry, as ~org-todo~
+  does. ~file~ and ~line~ are the ~[file:line]~ of a view (a path works
+  too); ~state~ is a keyword, or ~""~ for none; ~note~ is the note of a
+  state that asks for one (~@~ in ~org_todo_keywords~, or ~org_log_done~
+  ~"note"~); ~headline~ is text the headline has, such as its title, and
+  when the line no longer has it the file has changed and nothing is done.
+  It logs as ~org_log_done~, ~org_log_into_drawer~ and the keywords' ~!~
+  and ~@~ say; a repeating entry gets its next date and stays not done;
+  with ~org_enforce_todo_dependencies~, a blocked entry is refused with
+  Org's message. It answers Org's message, if there is one, and the new
+  headline.
+- ~capture~ :: file a new entry with one of the capture templates, as
+  ~org-capture~ does with ~:immediate-finish~. ~template~ is its key;
+  ~text~ is what ~%i~ puts in, or, in a template without ~%i~, what goes
+  where ~%?~ is, as if typed in the capture buffer; ~answers~ answers the
+  template's questions (~%^{Prompt}~, ~%^t~, ~%^g~, ~%^{NAME}p~, and
+  ~Date for tree entry~ with ~time_prompt~), as an object from each
+  prompt to its answer or a list in the order they are asked; ~link~ and
+  ~description~ are the link of ~%a~ and ~%l~. A question left without
+  an answer is refused, with the list of the questions, for the assistant
+  to ask you. The target file is made when it is not there. It answers
+  the file, the line and the text filed.
+
+Both take ~dry_run~: they answer the change as a diff, and write nothing.
+
+They change only the agenda files and the targets of the capture
+templates. What needs Emacs or the editor is refused: a template with
+~%(…)~ or a ~function~ target, and a ~clock~ target or ~clock_in~, as
+there is no clock. ~org_capture_templates_contexts~ is not looked at:
+every template can be used. Stopping the clock of an entry that is done
+(~org_clock_out_when_done~) is left to the editor.
+
+The files are written directly, each at once (into a file beside it,
+which then takes its place), and read again at each call. No editor is
+asked: one that has the file open with unsaved changes may save over the
+change, or ask which to keep. Save your files before an assistant changes
+them, and use ~dry_run~ to see a change first.

@@ -84,6 +84,34 @@ pub fn file_name(path: &Path) -> String {
 
 /// Run `org-lsp agenda` with the arguments after the subcommand.
 pub fn agenda(arguments: &[String]) -> Result<String, String> {
+    Ok(match agenda_view(arguments)? {
+        Agenda::Help => format!("{USAGE}\n"),
+        Agenda::Lines(lines) => lines.into_iter().map(|line| line.text + "\n").collect(),
+    })
+}
+
+/// A line of the view `org-lsp agenda` prints, with the entry it shows:
+/// its file, as given, and the line of its headline, from 1.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AgendaLine {
+    pub text: String,
+    pub entry: Option<(String, usize)>,
+}
+
+pub enum Agenda {
+    Help,
+    Lines(Vec<AgendaLine>),
+}
+
+/// [`agenda`], line by line with the entries the lines show.
+pub fn agenda_lines(arguments: &[String]) -> Result<Vec<AgendaLine>, String> {
+    match agenda_view(arguments)? {
+        Agenda::Help => Ok(vec![AgendaLine { text: USAGE.to_string(), entry: None }]),
+        Agenda::Lines(lines) => Ok(lines),
+    }
+}
+
+fn agenda_view(arguments: &[String]) -> Result<Agenda, String> {
     let mut view = "agenda".to_string();
     let mut matching = None;
     let mut key = None;
@@ -132,7 +160,7 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
                     .inheritance();
                 tag_options = serde_json::from_str::<crate::config::Options>(json).ok();
             }
-            "--help" | "-h" => return Ok(format!("{USAGE}\n")),
+            "--help" | "-h" => return Ok(Agenda::Help),
             flag if flag.starts_with("--") => return Err(format!("unknown option `{flag}`")),
             file => files.push(file.to_string()),
         }
@@ -211,10 +239,12 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
     // `org-todo-keywords`, which a file's own #+TODO lines replace.
     let todo = tag_options.as_ref().map(crate::config::Options::todo_keywords).unwrap_or_default();
     let mut outlines = Vec::new();
+    let mut texts = Vec::new();
     for file in &files {
         let text = std::fs::read_to_string(file).map_err(|error| format!("{file}: {error}"))?;
         let parse = org_syntax::parse(&text, &todo);
         outlines.push(Outline::with_inheritance(&parse, &text, &file_name(Path::new(file)), &inheritance));
+        texts.push(text);
     }
     let block = |kind| vec![Block { kind, header: None, config: config.clone() }];
     let mut blocks = match view.as_str() {
@@ -267,7 +297,19 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
         }
         None => None,
     };
-    Ok(views::org_text(&blocks, &named, search.as_ref(), now, filters.as_ref()))
+    let lines = views::org_lines(&blocks, &named, search.as_ref(), now, filters.as_ref());
+    Ok(Agenda::Lines(
+        lines
+            .into_iter()
+            .map(|(text, entry)| AgendaLine {
+                text,
+                entry: entry.map(|(file, offset)| {
+                    let before = &texts[file][..offset.min(texts[file].len())];
+                    (files[file].clone(), before.matches('\n').count() + 1)
+                }),
+            })
+            .collect(),
+    ))
 }
 
 /// Whether the view asked for has a search block.

@@ -1828,6 +1828,15 @@ pub const SETTINGS: &[Setting] = &[
          change. Off, they are left with unsaved changes, as Emacs leaves them.",
     ),
     setting(
+        "mcp_edits",
+        "boolean",
+        "false",
+        "",
+        "Let the assistants `org-lsp mcp` serves change files: its tools `set_todo_state` and `capture`, \
+         which write the agenda files and the capture targets directly. Off, it only reads. It is read from \
+         the shared configuration file, as everything `org-lsp mcp` reads.",
+    ),
+    setting(
         "org_cycle_separator_lines",
         "number",
         "2",
@@ -4153,6 +4162,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     // The names it takes, from `scripts/org-options.json` (see `schema`).
     ("emacs_options", r#"{ "type": "object" }"#),
     ("auto_save", BOOLEAN),
+    ("mcp_edits", BOOLEAN),
     ("org_cycle_separator_lines", r#"{ "type": "integer" }"#),
     ("org_cycle_include_plain_lists", r#"{ "enum": [true, false, "integrate"] }"#),
     ("org_cycle_max_level", r#"{ "type": "integer", "minimum": 1 }"#),
