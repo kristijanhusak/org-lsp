@@ -1832,9 +1832,10 @@ pub const SETTINGS: &[Setting] = &[
         "boolean",
         "false",
         "",
-        "Let the assistants `org-lsp mcp` serves change files: its tools `set_todo_state`, `capture` and \
-         `refile`, which write the agenda files, the capture targets and the files of `org_refile_targets` \
-         directly. Off, it only reads. It is read from the shared configuration file, as everything \
+        "Let the assistants `org-lsp mcp` serves change files: its tools `set_todo_state`, `capture`, \
+         `refile`, `schedule`, `deadline`, `set_tags`, `set_property`, `delete_property`, `set_priority`, \
+         `set_effort`, `add_note` and `archive`, which write the agenda files, the capture targets, the files \
+         of `org_refile_targets` and the archive files directly. Off, it only reads. It is read from the shared configuration file, as everything \
          `org-lsp mcp` reads.",
     ),
     setting(
