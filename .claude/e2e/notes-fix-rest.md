@@ -11,3 +11,5 @@
   -> committed c588335. check.sh (ORG_LISP_DIR, ORG_LSP_REQUIRE_EMACS=1) passes on the branch with all the above (incl. completes_id_links_to_entries).
 - VS Code e2e (after c588335): 32 scenario runs, 0 failed (+ unit 1 passing), exit 0.
 - Merged origin/main (#366) into the branch: e63f4a1 (code conflicts only from the squash; branch code == main's for the base, kept ours; .claude/e2e logs taken from main). Final check.sh + Zed runner running on the merge.
+- After merge: 2251920 (emacs_options unit test retries while Emacs is "still starting" under load), d2a90f6 (fix-1 reworked: a per-process HOME made concurrent Emacs starts fail with exit 255 (likely native-comp trampolines into an empty eln-cache) -> agenda_column_view_goes_to_emacs flaked; now test clients default `org_id_locations_file` to a nonexistent path instead (lsp.rs, agenda_lsp.rs, e2e_scenarios options_of); cancel test waits until fake Emacs has the job).
+- Final: check.sh passes (twice, plus workspace tests 2x); Zed runner 16/16 on the merge (e63f4a1); VS Code 32/32 at c588335. Target dirs deleted.
