@@ -40,7 +40,7 @@ try {
     vscodeExecutablePath: process.env.VSCODE_EXECUTABLE || '/root/vscodium/codium',
     extensionDevelopmentPath: copy,
     extensionTestsPath: join(copy, 'explore', 'explore.cjs'),
-    extensionTestsEnv: { CASES: resolve(cases), OUT: resolve(out), WS: ws, ORG_LSP_CONFIG: '/nonexistent/org-lsp/config.toml', ORG_LISP_DIR: process.env.ORG_LISP_DIR ?? '/root/org-mode/lisp', ONLY: process.env.ONLY ?? '' },
+    extensionTestsEnv: { CASES: resolve(cases), OUT: resolve(out), WS: ws, ORG_LSP_CONFIG: process.env.ORG_LSP_CONFIG ?? '/nonexistent/org-lsp/config.toml', ORG_LISP_DIR: process.env.ORG_LISP_DIR ?? '/root/org-mode/lisp', ONLY: process.env.ONLY ?? '' },
     launchArgs: [ws, '--disable-extensions', '--disable-gpu', '--no-sandbox', '--disable-workspace-trust', '--user-data-dir', user],
   });
 } catch (e) { console.error('runTests failed', e); process.exitCode = 1; }

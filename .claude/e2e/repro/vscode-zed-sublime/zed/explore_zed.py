@@ -108,6 +108,28 @@ SCENARIOS = {
             {"command": "org.timer.stop", "expect": ["messages"]},
         ],
     },
+    "empty-answer": {
+        "files": {"e.org": "* Target\n* B\nhere \n| 1 |\n"},
+        "steps": [
+            {"open": "e.org"},
+            {"at": "Target", "command": "org.link.store", "expect": ["messages"]},
+            {"at": "here", "column": 5, "command": "org.link.insert", "answers": ["", "Desc"], "expect": B},
+            {"at": "here", "column": 5, "command": "org.link.insert", "answers": ["*Target", "Desc2"], "expect": B},
+            {"at": "| 1", "command": "org.table.create", "answers": [""], "expect": B},
+        ],
+    },
+    "roam-buffer": {
+        "files": {
+            "roam/a.org": ":PROPERTIES:\n:ID:       a-id\n:END:\n#+title: A note\n\nText.\n",
+            "roam/b.org": ":PROPERTIES:\n:ID:       b-id\n:END:\n#+title: B note\n\nSee [[id:a-id][A]].\n",
+        },
+        "options": {"org_roam_enabled": True, "org_roam_directory": "$DIR/roam"},
+        "steps": [
+            {"open": "roam/a.org"},
+            {"line": 6, "command": "org.roam.buffer.toggle", "expect": ["buffer", "messages"]},
+            {"command": "org.roam.dailies.goto.today", "expect": ["buffer", "messages"]},
+        ],
+    },
     "structure-misc": {
         "files": {"s.org": "* B\n* A\n* C\n** inner\n#+TODO: TODO | DONE\n"},
         "steps": [
