@@ -8,6 +8,7 @@ Usage: org-lsp [--stdio]
        org-lsp agenda [OPTIONS] FILE...
        org-lsp config [--options JSON]
        org-lsp manifest
+       org-lsp mcp
        org-lsp settings
        org-lsp command ADDRESS TOKEN COMMAND ROW COLUMN
        org-lsp protocol URL
@@ -82,6 +83,21 @@ fn main() -> ExitCode {
             }
             Err(error) => {
                 eprintln!("org-lsp protocol: {error}");
+                ExitCode::FAILURE
+            }
+        };
+    }
+    if arguments.first().is_some_and(|argument| argument == "mcp") {
+        // A Model Context Protocol server, for AI assistants to read the
+        // agenda (`mcp`).
+        if arguments[1..].iter().any(|argument| argument == "--help" || argument == "-h") {
+            print(&format!("{}\n", org_lsp::mcp::USAGE));
+            return ExitCode::SUCCESS;
+        }
+        return match org_lsp::mcp::run() {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(error) => {
+                eprintln!("org-lsp mcp: {error}");
                 ExitCode::FAILURE
             }
         };

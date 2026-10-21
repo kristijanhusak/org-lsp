@@ -20,6 +20,7 @@ pub mod highlight;
 pub mod legend;
 pub mod line_index;
 pub mod manifest;
+pub mod mcp;
 pub mod org_options;
 pub mod port;
 pub mod process;

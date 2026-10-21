@@ -1,0 +1,65 @@
+#+title: MCP
+#+options: ^:{} toc:1
+
+~org-lsp mcp~ is a [[https://modelcontextprotocol.io][Model Context Protocol]] server: it gives an AI
+assistant (Claude Code, Claude Desktop, Cursor and others) your agenda as
+Org builds it, so it can answer "what is due this week" or "what is tagged
+~work~" from your Org files rather than from searching their text. It only
+reads; it changes no file.
+
+* Setting it up
+:PROPERTIES:
+:CUSTOM_ID: setting-it-up
+:END:
+
+The agenda files and options are those of the shared configuration file
+(~~/.config/org-lsp/config.toml~, see [[file:configuration.org][Configuration]]): set
+~org_agenda_files~ there, and ~org-lsp config~ shows what is read. They are
+read again at each call. With no ~org_agenda_files~, the agenda is built
+from the Org files under the directory the server runs in.
+
+#+begin_src toml
+org_agenda_files = ["~/org"]
+#+end_src
+
+The assistant runs ~org-lsp mcp~ over standard input and output. In Claude
+Code:
+
+#+begin_src sh
+claude mcp add org-lsp -- org-lsp mcp
+#+end_src
+
+In Claude Desktop, Cursor and the like, in their MCP settings:
+
+#+begin_src json
+{
+  "mcpServers": {
+    "org-lsp": { "command": "org-lsp", "args": ["mcp"] }
+  }
+}
+#+end_src
+
+Give the full path of ~org-lsp~ when it is not on the ~PATH~ the assistant
+starts it with (where the editor plugins downloaded it, for example).
+
+* Tools
+:PROPERTIES:
+:CUSTOM_ID: tools
+:END:
+
+Each answers the view's text, as ~org-lsp agenda~ prints it and Org's
+agenda shows it.
+
+- ~agenda~ :: the agenda of some days (~org-agenda-list~); ~span~ (~day~,
+  ~week~, the default, ~fortnight~, ~month~, ~year~ or a number of days),
+  ~start~ (a day it includes, ~YYYY-MM-DD~), ~log~ (what was closed and
+  clocked).
+- ~todo_list~ :: the TODO entries not done (~org-todo-list~), or those of
+  ~keywords~ (~NEXT|WAIT~).
+- ~tags_search~ :: the entries a ~match~ string selects (~org-tags-view~),
+  only those with a TODO keyword with ~todo_only~.
+- ~text_search~ :: the entries whose text has the words of ~query~
+  (~org-search-view~).
+- ~custom_agenda~ :: a command of ~org_agenda_custom_commands~, by its
+  ~key~.
+- ~agenda_files~ :: the files the agenda is built from.

@@ -150,6 +150,9 @@ Bookmarklets that store a link to a web page or capture it, as Emacs's
 org-protocol does, reach the editor with org-lsp through
 ~org-lsp protocol URL~: see [[file:docs/org-protocol.org][docs/org-protocol.org]].
 
+AI assistants read the agenda through ~org-lsp mcp~, a Model Context
+Protocol server: see [[file:docs/mcp.org][docs/mcp.org]].
+
 * Layout
 
 #+begin_example
