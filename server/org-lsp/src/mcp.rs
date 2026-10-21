@@ -218,7 +218,18 @@ fn call(
         crate::workspace::Workspace::new(options.agenda_files.clone(), folder.into_iter().map(Into::into).collect());
     workspace.file_regexp =
         options.agenda_file_regexp.as_deref().and_then(org_core::agenda::matcher::emacs_regex_with_case);
-    let files: Vec<String> = workspace.files().iter().map(|path| path.display().to_string()).collect();
+    let mut paths = workspace.files();
+    // `org-journal-enable-agenda-integration`: the journal's files of
+    // today and the days to come in place of the others, as the server has.
+    if let Some(journal) = options.journal() {
+        let now = crate::cli::now();
+        let now = org_core::date::DateTime { day: now.today, minute: now.minute };
+        if let Some((directory, names)) = crate::server::journal_agenda_files(&journal, now) {
+            paths.retain(|path| !crate::server::is_journal(path, &journal));
+            paths.extend(names.iter().map(|name| directory.join(name)));
+        }
+    }
+    let files: Vec<String> = paths.iter().map(|path| path.display().to_string()).collect();
     if name == "agenda_files" {
         return Ok(if files.is_empty() { "No agenda files.".to_string() } else { files.join("\n") });
     }
@@ -292,6 +303,37 @@ mod tests {
         assert_eq!(unknown["error"]["code"], -32602);
         let method = ask(r#"{"jsonrpc":"2.0","id":8,"method":"resources/list"}"#, &folder);
         assert_eq!(method["error"]["code"], -32601);
+        std::fs::remove_dir_all(&folder).unwrap();
+    }
+
+    #[test]
+    fn lists_the_journal_files_the_agenda_takes() {
+        let folder = std::env::temp_dir().join(format!("org-lsp-mcp-journal-{}", std::process::id()));
+        let journal = folder.join("journal");
+        std::fs::create_dir_all(&journal).unwrap();
+        std::fs::write(folder.join("tasks.org"), "* TODO Task\n").unwrap();
+        std::fs::write(journal.join("20000101"), "* Old day\n").unwrap();
+        std::fs::write(journal.join("20301230"), "* TODO Far ahead\n").unwrap();
+        let config = folder.join("config.toml");
+        std::fs::write(
+            &config,
+            format!(
+                "org_agenda_files = [\"{}\"]\norg_journal_enabled = true\norg_journal_dir = \"{}\"\n\
+                 org_journal_enable_agenda_integration = true\n",
+                folder.join("tasks.org").display(),
+                journal.display()
+            ),
+        )
+        .unwrap();
+        let env = |name: &str| (name == "ORG_LSP_CONFIG").then(|| config.display().to_string());
+        let files = answer(
+            r#"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"agenda_files","arguments":{}}}"#,
+            Some(&folder),
+            &env,
+        )
+        .unwrap();
+        let text = files["result"]["content"][0]["text"].as_str().unwrap_or_default();
+        assert!(text.contains("tasks.org") && text.contains("20301230") && !text.contains("20000101"), "{files}");
         std::fs::remove_dir_all(&folder).unwrap();
     }
 }

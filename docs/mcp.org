@@ -63,3 +63,15 @@ agenda shows it.
 - ~custom_agenda~ :: a command of ~org_agenda_custom_commands~, by its
   ~key~.
 - ~agenda_files~ :: the files the agenda is built from.
+
+* What differs from the editor's agenda
+:PROPERTIES:
+:CUSTOM_ID: what-differs-from-the-editors-agenda
+:END:
+
+The tools build the agenda with the settings the server builds it with
+(TODO keywords, priorities, tags, habits, the clock report, custom
+commands, org-journal's files), but start no Emacs: a diary sexp that
+calls other Lisp (~%%(my-function)~) shows nothing, and a ~%(…)~ in
+~org_agenda_prefix_format~ is left empty. Settings given only in the
+editor (its own options rather than the configuration file) are not seen.
