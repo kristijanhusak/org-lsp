@@ -215,11 +215,12 @@ pub fn agenda(arguments: &[String]) -> Result<String, String> {
         search = Some(views::SearchFiles { agenda: agenda_count, search: order });
     }
 
-    let default_todo = TodoKeywords::default();
+    // `org-todo-keywords`, which a file's own #+TODO lines replace.
+    let todo = tag_options.as_ref().map(crate::config::Options::todo_keywords).unwrap_or_default();
     let mut outlines = Vec::new();
     for file in &files {
         let text = std::fs::read_to_string(file).map_err(|error| format!("{file}: {error}"))?;
-        let parse = org_syntax::parse(&text, &default_todo);
+        let parse = org_syntax::parse(&text, &todo);
         outlines.push(Outline::with_inheritance(&parse, &text, &file_name(Path::new(file)), &inheritance));
     }
     let block = |kind| vec![Block { kind, header: None, config: config.clone() }];
@@ -342,6 +343,33 @@ pub fn config(arguments: &[String], var: &dyn Fn(&str) -> Option<String>) -> Res
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reads_the_files_with_the_configured_todo_keywords() {
+        let file = std::env::temp_dir().join(format!("org-lsp-cli-todo-{}.org", std::process::id()));
+        std::fs::write(
+            &file,
+            "* REJECTED Old plan\nSCHEDULED: <2026-10-19 Mon>\n* PROGRESS Now\nSCHEDULED: <2026-10-19 Mon>\n",
+        )
+        .unwrap();
+        let options = r#"{ "org_todo_keywords": ["TODO(t)", "PROGRESS(p)", "|", "DONE(d)", "REJECTED(r@)"] }"#;
+        let arguments = |rest: &[&str]| -> Vec<String> {
+            let mut all: Vec<String> = ["--options", options, "--today", "2026-10-21", "--span", "day"]
+                .iter()
+                .chain(rest)
+                .map(|argument| argument.to_string())
+                .collect();
+            all.push(file.display().to_string());
+            all
+        };
+        // A done task scheduled in the past is not carried to today.
+        let today = agenda(&arguments(&[])).unwrap();
+        assert!(today.contains("PROGRESS Now"), "{today}");
+        assert!(!today.contains("Old plan"), "{today}");
+        let todo = agenda(&arguments(&["--view", "todo"])).unwrap();
+        assert!(todo.contains("PROGRESS Now") && !todo.contains("Old plan"), "{todo}");
+        std::fs::remove_file(&file).unwrap();
+    }
 
     #[test]
     fn config_shows_the_file_and_the_options() {
