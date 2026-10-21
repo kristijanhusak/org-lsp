@@ -333,6 +333,7 @@ mod tests {
                 keyword_len,
                 keyword_done: false,
                 habit: None,
+                habit_prefix: None,
                 graph: None,
                 ts_date: None,
                 log: None,

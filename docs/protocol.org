@@ -94,6 +94,48 @@ The requests the server answers:
   whole (~org-table-align~) and the tags of the headlines in the range put
   in their column (~org-align-tags~). A range that ends at the start of a
   line leaves that line out. One edit per changed line.
+- ~textDocument/formatting~ :: Every table of the file aligned
+  (~org-table-align~) and every headline's tags put in their column
+  (~org-align-tags~). One edit per changed line.
+- ~textDocument/documentLink~, ~documentLink/resolve~ :: The links of an
+  Org file, each with the tooltip Emacs shows over a link (/LINK: …/). A
+  URL or a file without a search has its target at once; a link to a place
+  in a file (~*Heading~, ~#custom-id~, ~id:~, ~file:…::search~) gets it
+  when resolved: the file with ~#L~, its line and column
+  (~file:///…/notes.org#L12,1~). The other links (~shell:~, a timestamp, a
+  citation…) are left out; ~org.open~ follows them.
+- ~textDocument/references~ :: Backlinks: the links in the Org files the
+  server knows (the agenda files and those open) that lead to the /entry/
+  at the cursor, by its ~ID~ (~id:~), by a search for its headline
+  (~*Heading~, ~file:x.org::*Heading~) or its ~CUSTOM_ID~ (~#custom-id~),
+  from another file or the same one. On a link, the backlinks of the entry
+  it leads to. With ~includeDeclaration~, the entry's headline first. A
+  link to a ~<<target>>~ or to a word of the entry is not one of them;
+  the cursor on a target or a tag counts as on its entry.
+- ~textDocument/prepareRename~, ~rename~ :: On a tag: the tag in every Org
+  file the server knows, in its headlines (their tags aligned again) and
+  its ~#+FILETAGS:~ and ~#+TAGS:~ lines. On a headline's title: the title,
+  and the links that search for it (~*Old title~, ~file:x.org::*Old
+  title~). Elsewhere the rename is refused. While a command waits for a
+  text (see [[#commands][Commands]]), a rename anywhere is the answer:
+  ~prepareRename~ gives what it suggests as the placeholder.
+- ~workspace/symbol~ :: The headlines of the Org files the server knows
+  whose title has the letters of the query in order, without regard to
+  case, at most 1000, each with its file and its parent headline as
+  container (~notes.org › Projects~).
+- ~textDocument/inlayHint~ :: What Emacs shows over the text where a
+  client has no other way: ~org-indent-mode~'s indentation as blanks at
+  the start of lines (for a client without ~org-lsp/virtualIndent~); the
+  entities, sub- and superscripts and shrunk table fields of
+  ~org-lsp/display~ (for a client without it); the numbers of
+  ~org-num-mode~ after the stars; and the times of ~org.clock.display~
+  after the headlines, the line filled with dots up to column 60.
+- ~textDocument/documentHighlight~ :: Never anything: the request tells
+  the server where the cursor is, which the agenda's keys want.
+
+~executeCommandProvider~ lists the manifest's commands, and ~org.cycle~ and
+~org.date.preview~, two that are for the editors' code (see their entries in
+[[#commands][Commands]]).
 
 The server sends ~textDocument/publishDiagnostics~ for the citation keys of
 a document that no file of its bibliography has (~oc-basic~ shows them with
@@ -1742,7 +1784,11 @@ increments a number.
   menu); ~P~ for ~f~, ~p~, ~x~ (then a project of
   ~org-publish-project-alist~, kind ~choice~, step ~P:x~) or ~a~. The entry
   then runs in Emacs on the document as the editor has it, the point where
-  the cursor is, and the command returns at once (~As HTML file…~). When
+  the cursor is, and the command returns at once (~As HTML file…~). Emacs
+  is told first where the entries of the document's ~id:~ links are, as the
+  server finds them (~org-id-add-location~), and, with org-roam, of its
+  ~roam~ link type: links the server follows export as Emacs with org-roam
+  exports them, not as links it cannot resolve. When
   Emacs is done: an export to a buffer is written to a file of the server's
   (~Org HTML Export.html~) and shown with ~window/showDocument~; a file to
   be opened is shown in the editor when it is text (~.org~, ~.txt~, ~.md~,

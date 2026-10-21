@@ -550,7 +550,8 @@ fn formats_tables_and_tags() {
     );
     assert!(edits.iter().all(|edit| edit.range.start.character == 0 && edit.range.end.line == edit.range.start.line));
 
-    // A Windows file's lines the same, their `\r`s kept.
+    // A Windows file's lines the same, their `\r`s kept: `\r\n` ends a
+    // line, so the edits stop before it.
     client.notify::<lsp_types::notification::DidChangeTextDocument>(lsp_types::DidChangeTextDocumentParams {
         text_document: lsp_types::VersionedTextDocumentIdentifier { uri: uri(), version: 2 },
         content_changes: vec![lsp_types::TextDocumentContentChangeEvent {
@@ -570,12 +571,7 @@ fn formats_tables_and_tags() {
         edits.iter().map(|edit| (edit.range.start.line, edit.range.end.character, edit.new_text.as_str())).collect();
     assert_eq!(
         changed,
-        [
-            (0, 10, "* Ünï            :t:\r"),
-            (1, 7, "| a   | bb |\r"),
-            (2, 3, "|-----+----|\r"),
-            (3, 9, "| ccc | 12 |\r"),
-        ]
+        [(0, 9, "* Ünï            :t:"), (1, 6, "| a   | bb |"), (2, 2, "|-----+----|"), (3, 8, "| ccc | 12 |"),]
     );
 }
 
@@ -2064,6 +2060,72 @@ fn citations_follow_the_bibliography() {
     std::fs::remove_dir_all(directory).unwrap();
 }
 
+/// A bibliography named twice, by `#+BIBLIOGRAPHY:` and by
+/// `org_cite_global_bibliography`: Emacs reads it twice and says its keys
+/// twice, but completes each key once (its table is a hash).
+#[test]
+fn citation_keys_once_when_the_bibliography_is_named_twice() {
+    let directory = std::env::temp_dir().join(format!("org-lsp-cite-twice-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let bib = directory.join("refs.bib");
+    std::fs::write(
+        &bib,
+        "@Book{knuth1984,\n  author = {Knuth, Donald E.},\n  title = {The {\\TeX}book},\n  year = 1984\n}\n",
+    )
+    .unwrap();
+    let file = directory.join("notes.org");
+    let text = "#+bibliography: refs.bib\n\nAs [cite:@knuht1984] says, [cite:@\n";
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let options = json!({ "org_cite_global_bibliography": [bib.display().to_string()] });
+    let mut client = Client::start(json!({}), options);
+    client.open(&uri, text);
+    let published = client.notification("textDocument/publishDiagnostics");
+    let diagnostics: Vec<Value> = published["diagnostics"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|diagnostic| diagnostic["source"] == "org-lsp")
+        .cloned()
+        .collect();
+    assert_eq!(diagnostics[0]["message"], "Unknown citation key: @knuht1984 (suggestions: knuth1984 knuth1984)");
+    let actions = client
+        .raw_request(
+            "textDocument/codeAction",
+            json!({
+                "textDocument": { "uri": uri.as_str() },
+                "range": diagnostics[0]["range"],
+                "context": { "diagnostics": diagnostics },
+            }),
+        )
+        .response_result
+        .unwrap();
+    let fixes =
+        actions.as_array().unwrap().iter().filter(|action| action["title"] == "Replace with @knuth1984").count();
+    assert_eq!(fixes, 1, "{actions}");
+    let completion = client
+        .raw_request(
+            "textDocument/completion",
+            json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 2, "character": 34 } }),
+        )
+        .response_result
+        .unwrap();
+    let labels: Vec<&str> = completion.as_array().unwrap().iter().map(|item| item["label"].as_str().unwrap()).collect();
+    assert_eq!(labels, ["knuth1984"]);
+    let asked = client
+        .raw_request(
+            "workspace/executeCommand",
+            json!({ "command": "org.cite.insert", "arguments": [{
+                "textDocument": { "uri": uri.as_str() }, "position": { "line": 2, "character": 0 },
+            }] }),
+        )
+        .response_result
+        .unwrap();
+    assert_eq!(asked["input"]["choices"].as_array().unwrap().len(), 1, "{asked}");
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
 /// The next message from the server that `wanted` picks, within a minute.
 fn next_from_server(client: &Client, wanted: impl Fn(&Message) -> bool) -> Message {
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
@@ -2074,6 +2136,59 @@ fn next_from_server(client: &Client, wanted: impl Fn(&Message) -> bool) -> Messa
             return message;
         }
     }
+}
+
+/// What the server follows itself, Emacs exports too: an `id:` link to
+/// an entry of another file, whose place it is told (`org-id-locations`,
+/// which org-roam keeps in Emacs), and with org-roam a `roam:` link, a link
+/// of its own type rather than a fuzzy link that cannot be resolved.
+#[test]
+fn exports_links_the_server_follows() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("exports_links_the_server_follows: no Emacs, skipped");
+        return;
+    }
+    let directory = std::env::temp_dir().join(format!("org-lsp-export-links-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    std::fs::write(directory.join("node.org"), "* Node\n:PROPERTIES:\n:ID: node-1\n:END:\n").unwrap();
+    let file = directory.join("notes.org");
+    let text = "* Notes\nSee [[id:node-1][the node]] and [[roam:Beta]].\n";
+    std::fs::write(&file, text).unwrap();
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let config =
+        std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
+    let options = json!({
+        "emacs_config": config,
+        "org_roam_enabled": true,
+        "org_roam_directory": directory.display().to_string(),
+    });
+    let mut client = Client::start(json!({}), options);
+    client.open(&uri, text);
+    let argument = json!({
+        "textDocument": { "uri": uri.as_str() },
+        "position": { "line": 0, "character": 0 },
+        "input": "h", "answers": "", "step": "h",
+    });
+    client
+        .raw_request("workspace/executeCommand", json!({ "command": "org.export.dispatch", "arguments": [argument] }))
+        .response_result
+        .expect("a result");
+    let Message::Notification(done) = next_from_server(
+        &client,
+        |message| matches!(message, Message::Notification(notification) if notification.method == "window/showMessage"),
+    ) else {
+        unreachable!()
+    };
+    let html_file = directory.join("notes.html");
+    assert_eq!(done.params["message"], format!("Exported to {}", html_file.display()));
+    let written = std::fs::read_to_string(&html_file).unwrap();
+    assert!(written.contains(r#"<a href="node.html#ID-node-1">the node</a>"#), "{written}");
+    assert!(written.contains(r#"<a href="roam:Beta">roam:Beta</a>"#), "{written}");
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
 }
 
 #[test]

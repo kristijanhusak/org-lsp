@@ -1359,6 +1359,11 @@ struct Server {
     clocktable: org_core::clocktable::Settings,
     /// The clock's status waits for the edit that writes its line.
     clock_pending: bool,
+    /// The documents whose diagnostics are to be sent, and when: a moment
+    /// after the last change, as linting a long file after each keystroke
+    /// of a burst would hold up the answers to the requests that follow.
+    diagnostics_due: Vec<String>,
+    diagnostics_at: Option<std::time::Instant>,
     /// Log mode (`l`) and the clock report (`R`) in the agenda.
     agenda_log: bool,
     agenda_clockreport: bool,
@@ -1817,6 +1822,8 @@ pub fn run(connection: Connection) -> Result<()> {
         clock: options.clock.as_ref().and_then(|clock| clock.to_now()),
         running: None,
         clock_pending: false,
+        diagnostics_due: Vec::new(),
+        diagnostics_at: None,
         last_clocked: None,
         clock_goto_recent: options.clock_goto_may_find_recent_task.unwrap_or(true),
         clock_history: Vec::new(),
@@ -1953,16 +1960,24 @@ pub fn run(connection: Connection) -> Result<()> {
     // until `exit`, which ends the server; an `exit` before it ends it as
     // having failed.
     let (mut shut_down, mut exited) = (false, false);
+    // The diagnostics wait for a quiet moment after the editor's messages
+    // have been handled, however long that took.
+    let mut from_editor = false;
     loop {
+        if std::mem::take(&mut from_editor) && !server.diagnostics_due.is_empty() {
+            server.diagnostics_at = Some(std::time::Instant::now() + DIAGNOSTICS_DELAY);
+        }
         let alarm = server.countdown.map_or_else(crossbeam_channel::never, crossbeam_channel::at);
         let appt = server.appt_check.map_or_else(crossbeam_channel::never, crossbeam_channel::at);
         let special =
             if server.special_edits.is_empty() { crossbeam_channel::never() } else { server.special_tick.clone() };
         let overrun =
             server.overrun.as_ref().map_or_else(crossbeam_channel::never, |(at, _)| crossbeam_channel::at(*at));
+        let lint = server.diagnostics_at.map_or_else(crossbeam_channel::never, crossbeam_channel::at);
         crossbeam_channel::select! {
             recv(connection.receiver) -> message => match message {
                 Ok(Message::Request(request)) => {
+                    from_editor = true;
                     server.protocol_touch();
                     if shut_down || request.method == lsp_types::request::Shutdown::METHOD {
                         let response = if shut_down {
@@ -1981,6 +1996,7 @@ pub fn run(connection: Connection) -> Result<()> {
                     connection.sender.send(Message::Response(response))?;
                 }
                 Ok(Message::Notification(notification)) => {
+                    from_editor = true;
                     server.protocol_touch();
                     if notification.method == lsp_types::notification::Exit::METHOD {
                         exited = true;
@@ -2027,6 +2043,14 @@ pub fn run(connection: Connection) -> Result<()> {
             recv(overrun) -> _ => { let _ = guarded(&mut server, "the clock", Server::overrun_done); }
             recv(appt) -> _ => { let _ = guarded(&mut server, "the appointments", Server::appt_check); }
             recv(special) -> _ => { let _ = guarded(&mut server, "the edit buffers", Server::check_special_edits); }
+            // Not while messages wait: a change among them puts it off.
+            recv(lint) -> _ => {
+                if connection.receiver.is_empty() {
+                    let _ = guarded(&mut server, "the diagnostics", Server::publish_due_diagnostics);
+                } else {
+                    server.diagnostics_at = Some(std::time::Instant::now() + DIAGNOSTICS_DELAY);
+                }
+            }
         }
     }
     // `org-clock-save`, as Emacs runs it when it is killed.
@@ -2165,12 +2189,24 @@ fn startup_words(text: &str) -> Vec<String> {
     org_core::text::startup_words(text).into_iter().map(str::to_ascii_lowercase).collect()
 }
 
-/// What a column view command asks, Org's question with its default, as
-/// one line of text: for `id` on the `column`th column of `line` in what
-/// the view shows.
-fn columns_question(id: &str, view: &Value, line: usize, column: usize) -> Option<(String, String)> {
+/// The key of the `column`th column of what column view shows.
+fn columns_key(view: &Value, column: usize) -> &str {
+    view["columns"][column]["key"].as_str().unwrap_or_default()
+}
+
+/// What a column view command asks, as `org-columns-edit-value` asks it,
+/// an input: for `id` on the `column`th column of `line` in what the view
+/// shows, `allowed` the values the column's property may take
+/// (`org-property-get-allowed-values`). None when it asks nothing.
+fn columns_question(
+    id: &str,
+    view: &Value,
+    line: usize,
+    column: usize,
+    allowed: Option<org_core::properties::Allowed>,
+) -> std::result::Result<Option<Value>, Refusal> {
     // The column's key, and its value on the line.
-    let key = view["columns"][column]["key"].as_str().unwrap_or_default().to_string();
+    let key = columns_key(view, column);
     let value = view["lines"]
         .as_array()
         .into_iter()
@@ -2179,21 +2215,34 @@ fn columns_question(id: &str, view: &Value, line: usize, column: usize) -> Optio
         .and_then(|row| row[2][column].as_str())
         .unwrap_or_default()
         .to_string();
-    match id {
-        commands::COLUMNS_EDIT => match key.as_str() {
-            "ITEM" => Some(("Edit: ".to_string(), value)),
-            "PRIORITY" => Some(("Priority A-C, SPC to remove: ".to_string(), String::new())),
-            "TAGS" => Some(("Tags: ".to_string(), value)),
-            "DEADLINE" | "SCHEDULED" => Some(("Date+time: ".to_string(), String::new())),
+    let text = |prompt: &str, value: String| Some(json!({ "kind": "text", "prompt": prompt, "value": value }));
+    Ok(match id {
+        // Before Emacs has said what the view shows, there is no column.
+        commands::COLUMNS_EDIT if key.is_empty() => return Err("Column view is not shown yet".into()),
+        commands::COLUMNS_EDIT => match key {
+            "ITEM" => text("Edit: ", value),
+            "PRIORITY" => text("Priority A-C, SPC to remove: ", String::new()),
+            "TAGS" => text("Tags: ", value),
+            "DEADLINE" | "SCHEDULED" => text("Date+time: ", String::new()),
             "TODO" | "CLOCKSUM" | "CLOCKSUM_T" => None,
-            _ => {
-                let current = if value.is_empty() { String::new() } else { format!(" [{value}]") };
-                Some((format!("{key} value{current}: "), value))
-            }
+            // `completing-read` over the allowed values, one of them
+            // unless `:ETC` allows others; else `read-string` with the
+            // value to edit.
+            _ => match allowed.filter(|allowed| !allowed.values.is_empty()) {
+                Some(allowed) if allowed.unrestricted => Some(json!({
+                    "kind": "text", "prompt": "Value: ", "value": "", "completions": allowed.values, "select": true,
+                })),
+                Some(allowed) => {
+                    let choices: Vec<Value> =
+                        allowed.values.iter().map(|value| json!({ "key": value, "label": value })).collect();
+                    Some(json!({ "kind": "choice", "prompt": "Value: ", "value": "", "choices": choices }))
+                }
+                None => text("Edit: ", value),
+            },
         },
-        commands::COLUMNS_ALLOWED => Some(("Allowed: ".to_string(), String::new())),
+        commands::COLUMNS_ALLOWED => text("Allowed: ", String::new()),
         _ => None,
-    }
+    })
 }
 
 /// The question of `org.export.dispatch` at `step` (none for the first
@@ -2657,6 +2706,13 @@ fn line_edits(text: &str, index: &LineIndex, encoding: Encoding, new: &str) -> V
     let mut edits = Vec::new();
     let mut start = 0;
     for (old, new) in text.split('\n').zip(new.split('\n')) {
+        let next = start + old.len() + 1;
+        // A `\r` before the `\n` ends the line too: the edit stops before
+        // it, at what LSP calls the end of the line.
+        let (old, new) = match (old.strip_suffix('\r'), new.strip_suffix('\r')) {
+            (Some(old), Some(new)) => (old, new),
+            _ => (old, new),
+        };
         let end = start + old.len();
         if old != new {
             edits.push(indent_edit(
@@ -2666,7 +2722,7 @@ fn line_edits(text: &str, index: &LineIndex, encoding: Encoding, new: &str) -> V
                 org_core::indent::Edit { start, end, text: new.to_string() },
             ));
         }
-        start = end + 1;
+        start = next;
     }
     edits
 }
@@ -2852,7 +2908,7 @@ fn at_org_table(text: &str, root: &org_syntax::SyntaxNode, offset: usize) -> boo
     }
     let line = text[..offset].rfind('\n').map_or(0, |at| at + 1);
     let first = line + text[line..].len() - text[line..].trim_start_matches([' ', '\t']).len();
-    let Some(token) = root.token_at_offset(org_syntax::TextSize::from(first as u32)).right_biased() else {
+    let Some(token) = org_syntax::token_at_offset(root, org_syntax::TextSize::from(first as u32)).right_biased() else {
         return false;
     };
     token.parent_ancestors().any(|node| node.kind() == org_syntax::SyntaxKind::TABLE)
@@ -2882,7 +2938,7 @@ fn table_command(id: &str) -> Option<org_core::table::Command> {
 }
 
 fn in_src_block(root: &org_syntax::SyntaxNode, offset: usize) -> bool {
-    let Some(token) = root.token_at_offset(org_syntax::TextSize::from(offset as u32)).left_biased() else {
+    let Some(token) = org_syntax::token_at_offset(root, org_syntax::TextSize::from(offset as u32)).left_biased() else {
         return false;
     };
     token.parent_ancestors().filter(|node| node.kind() == org_syntax::SyntaxKind::BLOCK).any(|block| {
@@ -2897,7 +2953,7 @@ fn in_src_block(root: &org_syntax::SyntaxNode, offset: usize) -> bool {
 /// its bullet.
 fn on_item_line(root: &org_syntax::SyntaxNode, text: &str, offset: usize) -> bool {
     let line_start = text[..offset].rfind('\n').map_or(0, |at| at + 1);
-    let Some(token) = root.token_at_offset(org_syntax::TextSize::from(offset as u32)).left_biased() else {
+    let Some(token) = org_syntax::token_at_offset(root, org_syntax::TextSize::from(offset as u32)).left_biased() else {
         return false;
     };
     token
@@ -3599,7 +3655,7 @@ impl Server {
                 self.publish_virtual_indent(key);
                 self.publish_heading_lines(key);
                 self.publish_display(key);
-                self.publish_diagnostics(key);
+                self.diagnostics_later(key);
                 self.fold_after_edit(key);
                 // The clock's times go with the next change, as Emacs's
                 // overlays do (`org-remove-highlights-with-change`); the
@@ -4635,9 +4691,13 @@ impl Server {
             let line_start = document.text[..offset].rfind('\n').map_or(0, |at| at + 1);
             if completion::citation_key_start(&document.text[line_start..offset]).is_some() {
                 let text = document.text.clone();
+                // Each key once, as in Emacs's table (a hash keyed by its
+                // line), though the bibliography may list a file twice.
+                let mut seen = HashSet::new();
                 self.bibliography(&uri, &text)
                     .iter()
                     .flat_map(|file| file.entries.iter())
+                    .filter(|entry| seen.insert(entry.key.clone()))
                     .map(|entry| (entry.key.clone(), entry.completion().unwrap_or_default()))
                     .collect()
             } else {
@@ -5219,11 +5279,12 @@ impl Server {
         // So is it when answering whether to run a `shell:` link's command.
         let creating = context.step.as_deref() == Some("create");
         let shell = context.step.as_deref() == Some("shell");
-        let answer = if creating || shell { context.answers.as_deref() } else { context.input.as_deref() }
+        let elisp = context.step.as_deref() == Some("elisp");
+        let answer = if creating || shell || elisp { context.answers.as_deref() } else { context.input.as_deref() }
             .and_then(|input| input.chars().next());
         // `org-ctags`'s functions in `org-open-link-functions`, which Org
         // runs first for an internal link.
-        if self.ctags.is_some() && !creating && !shell && !self.is_view(&context.text_document.uri) {
+        if self.ctags.is_some() && !creating && !shell && !elisp && !self.is_view(&context.text_document.uri) {
             if let Some(name) =
                 open::internal_path(&text, &parse, offset, &self.link_abbreviations, &self.open_settings)
             {
@@ -5368,6 +5429,26 @@ impl Server {
                 self.run_shell_link(command, directory);
                 self.message = Some(format!("Executing {command}"));
             }
+            // `org-link--open-elisp`: asked first, as
+            // `org-link-elisp-confirm-function` (`yes-or-no-p`) asks, then
+            // evaluated by Emacs and its value said.
+            Open::Elisp(form) => {
+                if !elisp {
+                    return Ok(json!({ "input": {
+                        "kind": "key",
+                        "prompt": format!("Execute {form} as Elisp? "),
+                        "value": "",
+                        "choices": [{ "key": "y", "label": "yes" }, { "key": "n", "label": "no" }],
+                        "context": { "step": "elisp", "answers": answer.map(String::from).unwrap_or_default() },
+                    } }));
+                }
+                if !matches!(context.input.as_deref(), Some("y" | "Y" | "yes")) {
+                    return Err("Abort".into());
+                }
+                let directory = uri::to_path(&uri).and_then(|path| path.parent().map(PathBuf::from));
+                let value = self.eval_elisp_link(form, directory.as_deref())?;
+                self.message = Some(format!("{form} => {value}"));
+            }
             Open::Create(_) => {}
             Open::Man { page, search } => return self.open_man(page, search.as_deref()),
             Open::Info { file, node } => return self.open_info(file, node),
@@ -5489,6 +5570,29 @@ impl Server {
     /// own thread so that the server goes on, and is waited for as long as
     /// it runs, as Emacs waits; but once it has written more than a
     /// message shows ([`SHELL_OUTPUT_SIZE`]), it is stopped.
+    /// What `org-link--open-elisp` makes of `form`, as its message shows
+    /// it (`%s`): a form evaluated, or a command's name called
+    /// interactively. Emacs evaluates it in a buffer of its own, in the
+    /// link's directory: not in the file, which only the editor has.
+    /// Emacs's error, when it signals one.
+    fn eval_elisp_link(&self, form: &str, directory: Option<&Path>) -> std::result::Result<String, String> {
+        let read = format!("(read \"{}\")", form.replace('\\', "\\\\").replace('"', "\\\""));
+        let call =
+            if form.starts_with('(') { format!("(eval {read})") } else { format!("(call-interactively {read})") };
+        // An error comes back as its text after a NUL, which no text
+        // `format` makes of a value starts with.
+        let sexp = format!(
+            "(condition-case error (format \"%s\" {call}) (error (concat \"\\0\" (error-message-string error))))"
+        );
+        let params = json!({ "sexp": sexp, "directory": directory.map(|path| path.to_string_lossy()) });
+        let value = self.emacs.call("eval", params, std::time::Duration::from_secs(30))?;
+        let value = value.as_str().unwrap_or_default();
+        match value.strip_prefix('\0') {
+            Some(error) => Err(error.to_string()),
+            None => Ok(value.to_string()),
+        }
+    }
+
     fn run_shell_link(&self, command: &str, directory: Option<PathBuf>) {
         let sender = self.sender.clone();
         let command = command.to_string();
@@ -10887,15 +10991,27 @@ impl Server {
                     .into_iter()
                     .map(|edit| TextEdit { range: index.range(text, edit.range, encoding), new_text: edit.new_text })
                     .collect();
+                // The headline in the new text: on the same line, which the
+                // lines before it may have made longer (a parent's cookie
+                // counted again, its tags put back in their column).
+                let changed_heading = heading.map(|heading| {
+                    let line = text[..heading.min(text.len())].matches('\n').count();
+                    let at: usize = outcome.text.split_inclusive('\n').take(line).map(str::len).sum();
+                    if outcome.text[at..].starts_with('*') {
+                        at
+                    } else {
+                        heading
+                    }
+                });
                 // The sequence to come back to when the keyword is gone.
-                let forget = heading.map(|heading| {
-                    let keyword = headline_keyword(&outcome.text, heading, keywords);
+                let forget = heading.zip(changed_heading).map(|(heading, changed_heading)| {
+                    let keyword = headline_keyword(&outcome.text, changed_heading, keywords);
                     let head = old_keyword.as_deref().and_then(|old| keywords.head(old)).map(str::to_string);
                     (heading, keyword.is_none().then(|| head.or(remembered.clone())).flatten())
                 });
                 // `Keyword-Set 2/3: REPORT BUG | FIXED`, as Emacs says it.
                 let set_message = switching_sets
-                    .then(|| heading.and_then(|heading| headline_keyword(&outcome.text, heading, keywords)))
+                    .then(|| changed_heading.and_then(|heading| headline_keyword(&outcome.text, heading, keywords)))
                     .flatten()
                     .and_then(|head| {
                         let (number, total) = keywords.set_number(&head)?;
@@ -10914,7 +11030,7 @@ impl Server {
                     })
                 });
                 // What the agenda's lines of the entry show of the change.
-                let shown = heading.map(|heading| {
+                let shown = changed_heading.map(|heading| {
                     let state = |text: &str, at: usize| {
                         let keyword = headline_keyword(text, at, keywords);
                         let done = keyword.as_deref().is_some_and(|keyword| keywords.is_done(keyword));
@@ -11099,7 +11215,7 @@ impl Server {
                 })
             })
         };
-        let tokens = root.token_at_offset(at);
+        let tokens = org_syntax::token_at_offset(&root, at);
         inline(tokens.clone().right_biased()) || inline(tokens.left_biased())
     }
 
@@ -11849,6 +11965,45 @@ impl Server {
         Ok(menu)
     }
 
+    /// What Emacs needs to export the links of the document `uri` that the
+    /// server follows itself: where the entries of its `id:` links are
+    /// (`org-id-add-location`, which org-roam keeps up to date in Emacs),
+    /// and, with org-roam, its `roam` link type, so that `[[roam:Title]]`
+    /// is no fuzzy link that fails to resolve.
+    fn export_links(&mut self, uri: &Uri) {
+        let Some(document) = self.document(uri) else { return };
+        let (text, parse) = (document.text.clone(), document.parse.clone());
+        let ids: Vec<String> = open::links(&text, &parse, &self.link_abbreviations, &self.open_settings)
+            .into_iter()
+            .filter_map(|link| match link.open {
+                Ok(Open::Id(id)) => Some(id),
+                _ => None,
+            })
+            .collect();
+        let lisp = |text: &str| format!("\"{}\"", text.replace('\\', "\\\\").replace('"', "\\\""));
+        let mut forms = Vec::new();
+        if self.roam.is_some() {
+            forms.push("(org-link-set-parameters \"roam\")".to_string());
+        }
+        let mut seen = HashSet::new();
+        for id in ids.into_iter().filter(|id| seen.insert(id.clone())) {
+            let Some(path) = self.find_id(&id, Some(uri)).and_then(|(found, _)| uri::to_path(&found)) else {
+                continue;
+            };
+            forms.push(format!("(org-id-add-location {} {})", lisp(&id), lisp(&path.to_string_lossy())));
+        }
+        if forms.is_empty() {
+            return;
+        }
+        let sexp = format!("(progn (require 'org-id) {} nil)", forms.join(" "));
+        let directory = uri::to_path(uri).and_then(|path| path.parent().map(Path::to_path_buf));
+        let params = json!({ "sexp": sexp, "directory": directory.map(|path| path.to_string_lossy().into_owned()) });
+        // Before the export, in Emacs's order; its answer is not waited
+        // for: a failure leaves the export to say what it cannot resolve.
+        self.next_export += 1;
+        self.emacs.start(self.next_export, "eval", params);
+    }
+
     /// Have Emacs run the menu entry `first` `second` on the document of
     /// `context`, at its cursor.
     #[allow(clippy::too_many_arguments)]
@@ -11893,6 +12048,7 @@ impl Server {
             // `org-display-custom-times`, as the file shows: the formats.
             "custom_times": custom_times.then(|| json!([self.custom_formats.0, self.custom_formats.1])),
         });
+        self.export_links(&context.text_document.uri);
         self.next_export += 1;
         let tag = self.next_export;
         self.emacs_jobs.insert(tag, EmacsJob::Export(label.clone()));
@@ -12300,10 +12456,11 @@ impl Server {
         };
         let column = context.column.unwrap_or(0);
         let line = context.position.line as usize;
-        let answer = match columns_question(id, &on.view, line, column) {
-            Some((prompt, value)) => match context.input.clone() {
+        let allowed = self.columns_allowed(&uri, line, columns_key(&on.view, column));
+        let answer = match columns_question(id, &on.view, line, column, allowed)? {
+            Some(input) => match context.input.clone() {
                 Some(answer) => Some(answer),
-                None => return Ok(json!({ "input": { "kind": "text", "prompt": prompt, "value": value } })),
+                None => return Ok(json!({ "input": input })),
             },
             None => None,
         };
@@ -12436,15 +12593,21 @@ impl Server {
         };
         let column = context.column.unwrap_or(0);
         let path = uri::to_path(&uri).ok_or("Only a file on disk can show column view through Emacs")?;
-        let document = self.document(&uri).ok_or("This file is not open")?;
         let line = context.position.line as usize;
-        let answer = match columns_question(id, &on.view, line, column) {
-            Some((prompt, value)) => match context.input.clone() {
+        // The TODO column: `org-todo` on the headline, as from its key,
+        // with its fast selection; the view follows the change.
+        if id == commands::COLUMNS_EDIT && columns_key(&on.view, column) == "TODO" {
+            return self.run_edit(commands::TODO, Some(context.clone()));
+        }
+        let allowed = self.columns_allowed(&uri, line, columns_key(&on.view, column));
+        let answer = match columns_question(id, &on.view, line, column, allowed)? {
+            Some(input) => match context.input.clone() {
                 Some(answer) => Some(answer),
-                None => return Ok(json!({ "input": { "kind": "text", "prompt": prompt, "value": value } })),
+                None => return Ok(json!({ "input": input })),
             },
             None => None,
         };
+        let document = self.document(&uri).ok_or("This file is not open")?;
         // The start of the cursor's line: Emacs's columns are its first
         // characters, padded as long as the line is too short.
         let line_start = document.index.offset(&document.text, Position::new(line as u32, 0), self.client.encoding);
@@ -12466,6 +12629,31 @@ impl Server {
         self.emacs_jobs.insert(tag, job);
         self.emacs.start(tag, "run", params);
         Ok(Value::Null)
+    }
+
+    /// The values the property `key` may take on the entry of `line` of
+    /// `uri`, an Org file or the agenda (`org-property-get-allowed-values`).
+    fn columns_allowed(&mut self, uri: &Uri, line: usize, key: &str) -> Option<org_core::properties::Allowed> {
+        if key.is_empty() {
+            return None;
+        }
+        let settings = self.edit_settings.clone();
+        let allowed = |text: &str, parse: &Parse, offset: usize| {
+            let context = org_core::edit::property_context(parse, &settings, "");
+            org_core::properties::allowed(text, offset, key, &context).ok()
+        };
+        if self.is_view(uri) {
+            let reference = self.view_line(uri, line as u32)?.1.entry.clone()?;
+            return self
+                .with_source(&reference.uri, |text, _, parse, outline, _| {
+                    let entry = views::resolve(&reference, outline)?;
+                    allowed(text, parse, outline.entries[entry].offset)
+                })
+                .flatten();
+        }
+        let document = self.document(uri)?;
+        let offset = document.index.offset(&document.text, Position::new(line as u32, 0), self.client.encoding);
+        allowed(&document.text, &document.parse, offset)
     }
 
     /// The indentation of source blocks as the settings have it
@@ -15004,8 +15192,9 @@ impl Server {
         let table = |server: &mut Self| -> std::result::Result<Vec<Value>, Refusal> {
             let files = server.bibliography(&uri, &text);
             let mut choices = Vec::new();
+            let mut seen = HashSet::new();
             for file in &files {
-                for entry in &file.entries {
+                for entry in file.entries.iter().filter(|entry| seen.insert(entry.key.clone())) {
                     let line = entry.completion().map_err(Refusal::Failed)?;
                     choices.push(json!({ "key": entry.key, "label": line.trim_end() }));
                 }
@@ -15150,6 +15339,24 @@ impl Server {
         })
     }
 
+    /// The diagnostics of the document `key`, sent once no change has come
+    /// for `DIAGNOSTICS_DELAY` (`publish_due_diagnostics`).
+    fn diagnostics_later(&mut self, key: &str) {
+        if !self.diagnostics_due.iter().any(|due| due == key) {
+            self.diagnostics_due.push(key.to_string());
+        }
+        self.diagnostics_at = Some(std::time::Instant::now() + DIAGNOSTICS_DELAY);
+    }
+
+    /// The diagnostics put off by `diagnostics_later`, of the documents
+    /// still open.
+    fn publish_due_diagnostics(&mut self) {
+        self.diagnostics_at = None;
+        for key in std::mem::take(&mut self.diagnostics_due) {
+            self.publish_diagnostics(&key);
+        }
+    }
+
     /// The diagnostics of the document `key`: what Org's linter finds
     /// (`org-lint`), and the citation keys its bibliography does not have
     /// (the `error` face of `oc-basic`), with the keys close to each
@@ -15177,6 +15384,11 @@ impl Server {
                     if !close.is_empty() {
                         message.push_str(&format!(" (suggestions: {})", close.join(" ")));
                     }
+                    // A key the bibliography has twice (its file listed
+                    // twice) is said twice, as Emacs does, but offered once.
+                    let mut close = close;
+                    let mut seen = HashSet::new();
+                    close.retain(|key| seen.insert(key.clone()));
                     let range = Range::new(
                         document.index.position(&text, reference.start, encoding),
                         document.index.position(&text, reference.end, encoding),
@@ -15273,6 +15485,7 @@ impl Server {
             read_file: &read,
             file_name: &file_name,
             id_known: &id_known,
+            link_types: if self.roam.is_some() { &["roam"] } else { &[] },
         };
         let encoding = self.client.encoding;
         org_core::lint::lint(text, parse, &context)
@@ -16455,6 +16668,8 @@ const SHELL_MESSAGE_CHARS: usize = 8000;
 /// The bytes of a `shell:` link's output read, far more than a message
 /// shows: the command is stopped past them.
 const SHELL_OUTPUT_SIZE: usize = 1 << 20;
+/// How long after the last change of a document its diagnostics wait.
+const DIAGNOSTICS_DELAY: std::time::Duration = std::time::Duration::from_millis(200);
 
 /// A `shell:` link's output as a message: without its last newline, and
 /// cut after [`SHELL_MESSAGE_LINES`] lines or [`SHELL_MESSAGE_CHARS`]
@@ -16546,6 +16761,33 @@ pub(crate) fn abbreviate_path(path: &Path) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// `org-columns-edit-value`'s questions (Org 9.8.10): `completing-read
+    /// "Value: "` over a property's allowed values, which must match unless
+    /// `:ETC` is among them; `read-string "Edit: "` with the value when it
+    /// has none; nothing before the view has come from Emacs.
+    #[test]
+    fn column_view_asks_as_emacs_does() {
+        let view = json!({
+            "columns": [{ "key": "ITEM" }, { "key": "TODO" }, { "key": "EFFORT" }],
+            "lines": [[3, "", ["Write", "TODO", "1:00"]]],
+        });
+        let allowed = |values: &[&str], unrestricted: bool| {
+            Some(org_core::properties::Allowed { values: values.iter().map(|v| v.to_string()).collect(), unrestricted })
+        };
+        let ask = |column, allowed| columns_question(commands::COLUMNS_EDIT, &view, 3, column, allowed).ok().flatten();
+        assert_eq!(ask(2, None), Some(json!({ "kind": "text", "prompt": "Edit: ", "value": "1:00" })));
+        let asked = ask(2, allowed(&["0:30", "1:00"], false)).unwrap();
+        assert_eq!(asked["prompt"], "Value: ");
+        assert_eq!(asked["kind"], "choice");
+        assert_eq!(asked["choices"], json!([{ "key": "0:30", "label": "0:30" }, { "key": "1:00", "label": "1:00" }]));
+        let asked = ask(2, allowed(&["0:30"], true)).unwrap();
+        assert_eq!((asked["kind"].as_str(), asked["completions"].clone()), (Some("text"), json!(["0:30"])));
+        assert_eq!(ask(0, None), Some(json!({ "kind": "text", "prompt": "Edit: ", "value": "Write" })));
+        assert_eq!(ask(1, None), None);
+        let empty = json!({ "columns": null, "lines": null });
+        assert!(columns_question(commands::COLUMNS_EDIT, &empty, 3, 0, None).is_err());
+    }
 
     /// A `shell:` link's output: whole when short, else its start, saying
     /// how much more there is.

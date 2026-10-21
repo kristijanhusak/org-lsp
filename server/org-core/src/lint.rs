@@ -44,6 +44,9 @@ pub struct Context<'a> {
     /// Whether an entry has this `ID` (`org-id-find-id-file`), or None
     /// when that is not known: the IDs of other files are the editor's.
     pub id_known: &'a dyn Fn(&str) -> Option<bool>,
+    /// The link types that packages add to Org's (org-roam's `roam`): a
+    /// link of one is no fuzzy link.
+    pub link_types: &'a [&'a str],
 }
 
 /// A checker's reports: places and messages.
@@ -561,6 +564,10 @@ impl Doc<'_> {
         self.links()
             .into_iter()
             .filter(|link| link.kind == "fuzzy" && !abbreviated(&link.path))
+            .filter(|link| {
+                let kind = link.path.split_once(':').map(|(kind, _)| kind);
+                !kind.is_some_and(|kind| self.context.link_types.iter().any(|known| known.eq_ignore_ascii_case(kind)))
+            })
             .filter(|link| {
                 let path = &link.path;
                 let wanted: Vec<(&'static str, Vec<String>)> = match path.strip_prefix('*') {
@@ -1591,7 +1598,7 @@ impl Doc<'_> {
         let Ok(offset) = org_syntax::TextSize::try_from(at.min(self.text.len().saturating_sub(1))) else {
             return false;
         };
-        let Some(token) = self.root.token_at_offset(offset).left_biased() else { return false };
+        let Some(token) = org_syntax::token_at_offset(&self.root, offset).left_biased() else { return false };
         for node in token.parent_ancestors() {
             match node.kind() {
                 SyntaxKind::LATEX_FRAGMENT => return true,

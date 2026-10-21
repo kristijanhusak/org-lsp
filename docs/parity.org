@@ -8,7 +8,7 @@ An area's parity is the share of its features done; all of Org is the
 mean of the areas. Every feature done is checked against Emacs where Org
 decides the outcome (see "How the work is checked" in [[file:development.org::#how-the-work-is-checked][development.org]]).
 
-*All of Org: 98%*
+*All of Org: 97%*
 
 Org's options, one by one, are under [[#options][Options]].
 
@@ -17,20 +17,20 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#highlighting][Highlighting]] | 100% | 21 of 21 |
 | [[#folding-and-visibility][Folding and visibility]] | 91% | 10 of 11 |
 | [[#headings-and-structure][Headings and structure]] | 96% | 25 of 26 |
-| [[#lists-and-checkboxes][Lists and checkboxes]] | 100% | 13 of 13 |
+| [[#lists-and-checkboxes][Lists and checkboxes]] | 93% | 14 of 15 |
 | [[#todo-keywords][TODO keywords]] | 100% | 14 of 14 |
 | [[#priorities][Priorities]] | 100% | 4 of 4 |
 | [[#tags][Tags]] | 88% | 7 of 8 |
 | [[#properties-and-column-view][Properties and column view]] | 100% | 10 of 10 |
 | [[#dates-and-times][Dates and times]] | 100% | 10 of 10 |
-| [[#agenda][Agenda]] | 100% | 38 of 38 |
+| [[#agenda][Agenda]] | 97% | 38 of 39 |
 | [[#clocking][Clocking]] | 100% | 14 of 14 |
 | [[#capture][Capture]] | 100% | 12 of 12 |
 | [[#org-protocol][org-protocol]] | 86% | 6 of 7 |
 | [[#notes-org-roam][Notes (org-roam)]] | 94% | 15 of 16 |
 | [[#a-journal-org-journal][A journal (org-journal)]] | 93% | 14 of 15 |
 | [[#refile-and-archive][Refile and archive]] | 100% | 13 of 13 |
-| [[#links][Links]] | 100% | 22 of 22 |
+| [[#links][Links]] | 96% | 23 of 24 |
 | [[#footnotes][Footnotes]] | 100% | 4 of 4 |
 | [[#tables][Tables]] | 100% | 19 of 19 |
 | [[#table-formulas][Table formulas]] | 100% | 13 of 13 |
@@ -155,7 +155,7 @@ Where editors fall short:
 :CUSTOM_ID: lists-and-checkboxes
 :END:
 
-100% (13 of 13)
+93% (14 of 15)
 
 - ✅ New items, numbered and with checkboxes (~M-RET~, ~M-S-RET~)
 - ✅ ~RET~ in an item (~org-return~)
@@ -163,6 +163,8 @@ Where editors fall short:
 - ✅ Cycling bullets (~S-<left>~, ~S-<right>~)
 - ✅ Repairing and renumbering a list (~C-c C-c~)
 - ✅ Checkboxes, with their parents and ~[1/3]~ or ~[33%]~ cookies
+- ✅ Counting a cookie again with ~C-c C-c~ on it (~org-update-statistics-cookies~), from the boxes or, on a headline, its children's TODO keywords
+- ❌ ~C-c C-c~ elsewhere on a headline: org-lsp toggles the boxes below it (~org-toggle-checkbox~, as ~C-c C-x C-b~ does), where Emacs sets the tags (~org-set-tags-command~, ~org.tags.set~ here)
 - ✅ Sorting items
 - ✅ Moving to the next and previous item
 - ✅ Turning lines into items and back (~C-c -~, through Emacs)
@@ -293,10 +295,11 @@ Where editors fall short:
 :CUSTOM_ID: agenda
 :END:
 
-100% (38 of 38)
+97% (38 of 39)
 
 - ✅ Day, week, fortnight, month and year views, going to a date
 - ✅ The list of TODO entries
+- ❌ The lines under the heading of the TODO list, a tags match and a search that name Emacs's keys (~Press ‘N r’ (e.g. ‘0 r’) to search again: (0)[ALL] (1)TODO …~, ~Press ‘C-u r’ to search again~, ~Press ‘[’, ‘]’ to add/sub word …~), and ~N r~ itself: left out, the keys being the editor's; ~T~ in the agenda dispatcher asks for the keyword instead
 - ✅ Directories of agenda files read by a regexp (~org-agenda-file-regexp~); a listed file that is not there asked about, removed or aborting, or left out (~org-agenda-skip-unavailable-files~)
 - ✅ Tag, property and group tag searches
 - ✅ Searches for words, phrases and regexps
@@ -502,7 +505,7 @@ Where editors fall short:
 :CUSTOM_ID: links
 :END:
 
-100% (22 of 22)
+96% (23 of 24)
 
 - ✅ Following links: headlines, targets, custom IDs, files with searches, IDs, URLs, timestamps, tags
 - ✅ Storing and inserting links, with descriptions, editing the link at the cursor
@@ -522,6 +525,8 @@ Where editors fall short:
 - ✅ Opening a linked file that is not there with its program rather than saying ~No such file~ (~org-open-non-existing-files~)
 - ✅ A link to a directory opening the ~index.org~ in it (~org-open-directory-means-index-dot-org~)
 - ✅ Following a ~shell:~ link: its command runs once the user says yes to ~Execute … in shell?~, or at once when ~org-link-shell-skip-confirm-regexp~ matches it; what it writes is a message (its first 50 lines, 8000 characters at most), which Emacs shows in a buffer when long
+- ✅ Following an ~elisp:~ link (~org-link--open-elisp~): once the user says yes to ~Execute … as Elisp?~, Emacs evaluates the form (or calls the command it names) and its value is said, ~(+ 1 2) => 3~; in a buffer of Emacs's own in the link's directory, not in the file, which only the editor has
+- ❌ Links that open one of Emacs's own programs (~help:~, ~eshell:~, ~eww:~, ~w3m:~, ~irc:~, ~gnus:~, ~rmail:~, ~mhe:~, ~bbdb:~, ~docview:~, ~shortdoc:~): following one says ~Links of type "help" are not supported~, and they are not completed after ~[[~
 - ✅ Following a ~bibtex:~ link, or a ~file:~ link into a ~.bib~ file, to the entry of the key after ~::~ (~org-bibtex-open~, ~org-execute-file-search-in-bibtex~)
 - ✅ Following a ~man:~ link with ~ol-man~ in ~org_modules~ (~org-man-open~): the page ~org_man_command~ writes, as text in a file of the server's rather than a ~*Man*~ buffer, at the line before the first match of the search after ~::~; in brackets only, the parser knowing no ~man:~ type (~woman~ is ~man~); unlike Emacs, a link that would give ~man~ an option or a file (~man:-l /etc/hostname~, ~man:/etc/hostname~) is refused
 - ✅ Following an ~info:~ link (~org-info-open~): Emacs's manuals and those of ~org-info-other-documents~ open on the web at the node, as Org's export links them (~org-info-map-html-url~); another manual is the node the ~info~ program writes, as text, rather than Emacs's Info reader

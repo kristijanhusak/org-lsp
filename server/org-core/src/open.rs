@@ -50,6 +50,10 @@ pub enum Open {
     /// A `shell:` link (`org-link--open-shell`): the command, and whether
     /// to ask `Execute … in shell? ` before running it.
     Shell { command: String, confirm: bool },
+    /// An `elisp:` link (`org-link--open-elisp`): the form, or the name of
+    /// a command, for Emacs to evaluate once `Execute … as Elisp? ` is
+    /// answered yes.
+    Elisp(String),
     /// A `man:` link (`org-man-open`): the page, and the text to look for
     /// in it after `::`.
     Man { page: String, search: Option<String> },
@@ -397,7 +401,7 @@ fn token_at(root: &SyntaxNode, offset: usize) -> Option<org_syntax::SyntaxToken>
     if offset >= end {
         return root.last_token();
     }
-    root.token_at_offset(TextSize::try_from(offset).ok()?).right_biased()
+    org_syntax::token_at_offset(root, TextSize::try_from(offset).ok()?).right_biased()
 }
 
 /// `src`, `comment`… of a block.
@@ -520,6 +524,7 @@ fn open_link(node: &SyntaxNode, text: &str, parse: &Parse, abbreviations: &Abbre
                 command: path.to_string(),
                 confirm: !skips_confirm(&abbreviations.settings.shell_skip_confirm_regexp, path),
             }),
+            "elisp" => Ok(Open::Elisp(path.to_string())),
             other => Err(format!("Links of type \"{other}\" are not supported")),
         };
     }

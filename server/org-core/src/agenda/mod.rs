@@ -827,6 +827,7 @@ impl Builder<'_> {
             keyword_len,
             keyword_done,
             habit: None,
+            habit_prefix: None,
             graph: None,
             ts_date: None,
             log: None,
@@ -1088,13 +1089,8 @@ impl Builder<'_> {
                 continue;
             }
             let [first, later] = &self.config.scheduled_leaders;
-            let extra = if is_habit {
-                String::new()
-            } else if is_today && past {
-                format_numbers(later, &[diff])
-            } else {
-                first.clone()
-            };
+            let leader = if is_today && past { format_numbers(later, &[diff]) } else { first.clone() };
+            let extra = if is_habit { String::new() } else { leader.clone() };
             let face = if entry.element_done || (is_habit && future) {
                 Face::Done
             } else if past && !is_habit {
@@ -1113,6 +1109,8 @@ impl Builder<'_> {
                 Some(habit) => {
                     item.priority = habit.urgency(self.today);
                     item.habit = Some(Box::new(habit));
+                    let plain = self.item(file, index, ItemKind::Scheduled, face, &leader, time.as_dotime());
+                    item.habit_prefix = Some(Box::new(plain.text[..plain.heading].to_string()));
                 }
                 None => item.priority += 99 + diff,
             }
@@ -1338,6 +1336,7 @@ impl Builder<'_> {
                 keyword_len,
                 keyword_done,
                 habit: None,
+                habit_prefix: None,
                 graph: None,
                 ts_date: None,
                 log: Some(match log.kind {
@@ -1418,6 +1417,7 @@ impl Builder<'_> {
                 keyword_len: 0,
                 keyword_done: false,
                 habit: None,
+                habit_prefix: None,
                 graph: None,
                 ts_date: None,
                 log: None,

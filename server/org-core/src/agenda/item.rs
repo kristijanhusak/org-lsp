@@ -94,6 +94,10 @@ pub struct Item {
     pub keyword_done: bool,
     /// The habit a scheduled line is (`org-habit-p`), with `org-habit`.
     pub habit: Option<Box<super::habit::Habit>>,
+    /// What a habit's line shows before its headline when it is formatted
+    /// as a scheduled line, with the leader it leaves out (`extra`,
+    /// `Sched.%2dx: `): how it shows once changed from the agenda.
+    pub habit_prefix: Option<Box<String>>,
     /// Where the line's consistency graph starts, and the face of each of
     /// its days.
     pub graph: Option<(usize, Vec<super::habit::Face>)>,
