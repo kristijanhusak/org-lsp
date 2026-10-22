@@ -261,6 +261,16 @@ static BRACKET: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"\[\[((?:[^\[\]\\]|\\(?:\\\\)*[\[\]]|\\+[^\[\]])+)\](?:\[((?s:.)+?)\])?\]").expect("a valid regex")
 });
 
+/// `(replace-regexp-in-string org-link-bracket-re "\\2" text)`: each
+/// bracket link as its description, or as nothing when it has none.
+pub fn descriptions_only(text: &str) -> String {
+    BRACKET
+        .replace_all(text, |captures: &regex::Captures| {
+            captures.get(2).map_or(String::new(), |found| found.as_str().to_string())
+        })
+        .into_owned()
+}
+
 /// `org-link-angle-re`
 static ANGLE: LazyLock<Regex> = LazyLock::new(|| {
     let types: Vec<String> = org_syntax::link_types().iter().map(|ty| regex::escape(ty)).collect();

@@ -1,0 +1,35 @@
+#+TODO: TODO NEXT | DONE CANCELLED
+* TODO Meeting with [[https://x.org][Bob]]                      :work:meeting:
+SCHEDULED: <2026-10-22 Thu 10:00>
+* DONE Finished call
+SCHEDULED: <2026-10-22 Thu 11:00>
+* Plain stamp <2026-10-22 Thu 14:30>
+* Range <2026-10-22 Thu 15:00-16:00>
+* NEXT Weekly
+SCHEDULED: <2026-10-01 Thu 09:15 +1w>
+* TODO Deadline timed
+DEADLINE: <2026-10-22 Thu 17:00>
+* TODO Overdue deadline timed
+DEADLINE: <2026-10-20 Tue 08:00>
+* TODO Future deadline
+DEADLINE: <2026-10-25 Sun 08:00>
+* TODO Sched untimed
+SCHEDULED: <2026-10-22 Thu>
+* TODO Sched past timed
+SCHEDULED: <2026-10-20 Tue 12:00>
+* Warn
+:PROPERTIES:
+:APPT_WARNTIME: 30
+:END:
+<2026-10-22 Thu 18:00>
+* Diary
+<%%(diary-float t 4 4) 19:00>
+* Habit-like daily
+<2026-10-15 Thu 07:30 +1d>
+* CANCELLED Cancelled one <2026-10-22 Thu 20:00>
+* Two stamps <2026-10-22 Thu 21:00> and <2026-10-22 Thu 22:00>
+* Timed range dates <2026-10-21 Wed 10:00>--<2026-10-23 Fri 11:00>
+* Sexp entry
+%%(diary-float t 4 4) 06:45 sexp says hi
+* TODO Sched with end time
+SCHEDULED: <2026-10-22 Thu 13:00-13:30>

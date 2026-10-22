@@ -6881,6 +6881,50 @@
               "markdownDescription": "Let the assistants `org-lsp mcp` serves change files: its tools `set_todo_state`, `capture`, `refile`, `schedule`, `deadline`, `set_tags`, `set_property`, `delete_property`, `set_priority`, `set_effort`, `add_note`, `archive` and `delete_entry`, which write the agenda files, the capture targets, the files of `org_refile_targets` and the archive files directly. Off, it only reads. It is read from the shared configuration file, as everything `org-lsp mcp` reads.",
               "default": false
             },
+            "appt_message_warning_time": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              ],
+              "markdownDescription": "How many minutes before an appointment (an entry of today's agenda with a time of day) its reminders start: one then, and one each `appt_display_interval` minutes after, as Emacs's `appt.el` reminds; an entry's `APPT_WARNTIME` property says it for that entry. As org-lsp's own, a list gives the minutes before the appointment of each reminder: `[10, 0]` reminds ten minutes before and when it is due. `org-lsp notify` reminds this way; through Emacs (Add today's appointments from the agenda files), a list stands for its largest number. (`appt-message-warning-time`)",
+              "default": 12
+            },
+            "appt_display_interval": {
+              "type": "integer",
+              "minimum": 1,
+              "markdownDescription": "Minutes between two reminders of an appointment, from the first, `appt_message_warning_time` minutes before it. (`appt-display-interval`)",
+              "default": 3
+            },
+            "notification_deadline_summary_time": {
+              "type": "string",
+              "pattern": "^[0-2]?[0-9]:[0-5][0-9]$",
+              "markdownDescription": "The time of day, as `HH:MM`, at which `org-lsp notify` lists the deadlines the day's agenda shows that are not done: those of the day, those whose warning period has begun, and those past."
+            },
+            "notification_match": {
+              "type": "string",
+              "markdownDescription": "The entries `org-lsp notify` reminds of: a match string of the tags view, such as `+meeting|+call` or `-private`."
+            },
+            "notification_command": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "markdownDescription": "A program `org-lsp notify` runs for each notification, and its arguments, in which `%t` stands for the title, `%b` for the text and `%%` for `%`: `[\"ntfy\", \"publish\", \"--title\", \"%t\", \"mytopic\", \"%b\"]`. It runs instead of the desktop notification, unless `notification_desktop` is on. No shell reads it."
+            },
+            "notification_desktop": {
+              "type": "boolean",
+              "markdownDescription": "Whether `org-lsp notify` shows a desktop notification: with `notify-send` on Linux and the other Unix systems, `osascript` on macOS, PowerShell on Windows (BurntToast if it is installed)."
+            },
             "org_cycle_separator_lines": {
               "type": "integer",
               "markdownDescription": "With at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. `0`: none does. (`org-cycle-separator-lines`)",

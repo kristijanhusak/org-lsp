@@ -1,4 +1,8 @@
 {
+ "appt.el": {
+  "appt-message-warning-time": "setting",
+  "appt-display-interval": "setting"
+ },
  "ob-C.el": {
   "org-babel-C-compiler": "emacs",
   "org-babel-C++-compiler": "emacs",

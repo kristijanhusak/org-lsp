@@ -1005,6 +1005,9 @@ struct Server {
     /// The day the calendar's weeks start on (`calendar_week_start_day`).
     calendar_week_start: usize,
     auto_save: bool,
+    /// `appt-message-warning-time` and `appt-display-interval` for Emacs's
+    /// `appt.el`: a list of minutes stands for its largest.
+    appt_warning: (Option<i64>, Option<i64>),
     /// What the highlighting marks as hidden.
     conceal: highlight::Conceal,
     /// `org-pretty-entities`
@@ -1726,6 +1729,13 @@ pub fn run(connection: Connection) -> Result<()> {
         folds_after_edit: None,
         origin: None,
         auto_save: options.auto_save.unwrap_or(true),
+        appt_warning: (
+            options.appt_message_warning_time.as_ref().and_then(|warning| match warning {
+                crate::config::WarningTime::Minutes(minutes) => Some(*minutes),
+                crate::config::WarningTime::Each(minutes) => minutes.iter().copied().max(),
+            }),
+            options.appt_display_interval,
+        ),
         return_uses_meta_return: options.return_uses_meta_return.unwrap_or(false),
         return_follows_link: options.return_follows_link.unwrap_or(false),
         calendar_months: options.calendar_months.unwrap_or(3),
@@ -13233,7 +13243,10 @@ impl Server {
             }
             files.push(path);
         }
-        let params = json!({ "files": files, "texts": texts, "refresh": refresh });
+        let (warning, interval) = self.appt_warning;
+        let params = json!({
+            "files": files, "texts": texts, "refresh": refresh, "warning_time": warning, "interval": interval,
+        });
         let result = self.ask_emacs("appt", params, std::time::Duration::from_secs(60)).map_err(Refusal::Failed)?;
         self.message = result.get("message").and_then(Value::as_str).map(str::to_string);
         self.appt_said(&result);
