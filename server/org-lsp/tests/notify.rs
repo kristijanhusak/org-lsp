@@ -43,6 +43,7 @@ impl Place {
             .env("ORG_LSP_CONFIG", self.root.join("config.toml"))
             .env("HOME", &self.root)
             .env("XDG_CONFIG_HOME", self.root.join("xdg"))
+            .env("XDG_DATA_HOME", self.root.join("data"))
             .env("PATH", path)
             .current_dir(&self.root)
             .output()
@@ -70,6 +71,13 @@ impl Place {
         use std::os::unix::fs::PermissionsExt;
         std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o755)).unwrap();
         out
+    }
+}
+
+impl Place {
+    /// Where the logo is written: the data directory of the runs.
+    fn icon(&self) -> PathBuf {
+        self.root.join("data").join("org-lsp").join("icon.png")
     }
 }
 
@@ -150,7 +158,11 @@ fn runs_the_notification_command_with_the_title_and_text() {
     // With it, when asked for.
     let output = place.run(&["--now", "2026-10-22 10:00", "--options", r#"{ "notification_desktop": true }"#]);
     assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
-    assert_eq!(read(&desktop), format!("--app-name=org-lsp\n--\nAppointment now\n{STANDUP}\n"));
+    let icon = place.icon();
+    assert_eq!(
+        read(&desktop),
+        format!("--app-name=org-lsp\n--icon={}\n--\nAppointment now\n{STANDUP}\n", icon.display())
+    );
 }
 
 #[test]
@@ -159,7 +171,11 @@ fn shows_a_desktop_notification_with_notify_send() {
     let out = place.stand_in("notify-send");
     let output = place.run(&["--now", "2026-10-22 09:48"]);
     assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
-    assert_eq!(read(&out), format!("--app-name=org-lsp\n--\nAppointment in 12 minutes\n{STANDUP}\n"));
+    let icon = place.icon();
+    assert_eq!(
+        read(&out),
+        format!("--app-name=org-lsp\n--icon={}\n--\nAppointment in 12 minutes\n{STANDUP}\n", icon.display())
+    );
     // Nothing due: nothing run, and no failure.
     std::fs::remove_file(&out).unwrap();
     let output = place.run(&["--now", "2026-10-22 09:49"]);
@@ -305,4 +321,60 @@ fn writes_the_deadlines_as_the_line_format_says() {
     let default = project("deadline-default-project", "notification_deadline_summary_time = \"08:30\"");
     assert_eq!(place.dry("08:30"), default.dry("08:30"));
     assert_eq!(place.dry("08:30"), "Deadlines\nproj: In 2 d.: NEXT [#A] Review the plan :home:work::meeting:\n\n");
+}
+
+/// The logo the server holds, as the VS Code extension shows it.
+const LOGO: &[u8] = include_bytes!("../../../editors/vscode/icon.png");
+
+#[test]
+fn shows_the_logo_written_to_the_data_directory() {
+    let place = Place::new("icon", "");
+    let out = place.stand_in("notify-send");
+    let icon = place.icon();
+    // Not by a dry run.
+    place.dry("10:00");
+    assert!(!icon.exists());
+    let output = place.run(&["--now", "2026-10-22 10:00"]);
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert_eq!(std::fs::read(&icon).unwrap(), LOGO);
+    assert!(read(&out).starts_with(&format!("--app-name=org-lsp\n--icon={}\n--\n", icon.display())));
+    // Another image in its place is written over.
+    std::fs::write(&icon, b"not the logo").unwrap();
+    let output = place.run(&["--now", "2026-10-22 10:00"]);
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert_eq!(std::fs::read(&icon).unwrap(), LOGO);
+    assert_eq!(std::fs::read_dir(icon.parent().unwrap()).unwrap().count(), 1);
+    // Where it cannot be written: no image, and no failure.
+    std::fs::remove_file(&out).unwrap();
+    std::fs::write(place.root.join("blocked"), "").unwrap();
+    let blocked = place.root.join("blocked").display().to_string();
+    let output = Command::new(BINARY)
+        .args(["notify", "--now", "2026-10-22 10:00"])
+        .env("ORG_LSP_CONFIG", place.root.join("config.toml"))
+        .env("HOME", &place.root)
+        .env("XDG_CONFIG_HOME", place.root.join("xdg"))
+        .env("XDG_DATA_HOME", &blocked)
+        .env("PATH", format!("{}:{}", place.root.join("bin").display(), std::env::var("PATH").unwrap_or_default()))
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert_eq!(read(&out), format!("--app-name=org-lsp\n--\nAppointment now\n{STANDUP}\n"));
+}
+
+#[test]
+fn shows_the_icon_of_the_configuration() {
+    let place = Place::new("no-icon", "notification_icon = \"\"");
+    let out = place.stand_in("notify-send");
+    let output = place.run(&["--now", "2026-10-22 10:00"]);
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert_eq!(read(&out), format!("--app-name=org-lsp\n--\nAppointment now\n{STANDUP}\n"));
+    assert!(!place.icon().exists());
+    // A path of one's own, from the home directory.
+    let place = Place::new("own-icon", "notification_icon = \"~/pictures/bell.png\"");
+    let out = place.stand_in("notify-send");
+    let output = place.run(&["--now", "2026-10-22 10:00"]);
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    let bell = place.root.join("pictures").join("bell.png");
+    assert_eq!(read(&out), format!("--app-name=org-lsp\n--icon={}\n--\nAppointment now\n{STANDUP}\n", bell.display()));
+    assert!(!place.icon().exists());
 }
