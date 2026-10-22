@@ -5380,6 +5380,25 @@ Minutes between two reminders of an appointment, from the first,
 appt_display_interval = 3
 #+end_src
 
+*** notification_use_timestamp_warning
+:PROPERTIES:
+:CUSTOM_ID: notification_use_timestamp_warning
+:END:
+
+As org-lsp's own, ~org-lsp notify~ also reminds of an appointment from a
+deadline or a timestamp as many hours before it as the timestamp's warning
+cookie says: once, 60 minutes before ~<2026-10-22 Thu 21:00 -1h>~, besides the
+reminders of ~appt_message_warning_time~. A scheduled date's cookie is a delay
+and does not count, nor do cookies in days, weeks, months or years. Emacs's
+~appt.el~ reads no cookie.
+
+- Type :: boolean
+- Default :: ~false~
+
+#+begin_src toml
+notification_use_timestamp_warning = false
+#+end_src
+
 *** notification_deadline_summary_time
 :PROPERTIES:
 :CUSTOM_ID: notification_deadline_summary_time

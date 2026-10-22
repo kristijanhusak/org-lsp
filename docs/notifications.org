@@ -144,6 +144,43 @@ matches, as ~org-lsp agenda --view tags --match~ takes it:
 notification_match = "+meeting|+call"
 #+end_src
 
+** Warnings in hours
+:PROPERTIES:
+:CUSTOM_ID: warnings-in-hours
+:END:
+
+With ~notification_use_timestamp_warning~, a deadline or timestamp with
+a time and a warning cookie in hours (~-1h~, or ~--1h~) is reminded of
+once that many hours before it as well, besides the reminders above
+(~appt_message_warning_time~ or its ~APPT_WARNTIME~):
+
+#+begin_src toml
+notification_use_timestamp_warning = true
+#+end_src
+
+#+begin_src org
+,* TODO Call Anna
+DEADLINE: <2026-10-22 Thu 21:00 -1h>
+#+end_src
+
+#+begin_example
+Appointment in 60 minutes
+21:00 TODO Call Anna
+#+end_example
+
+comes at 20:00, then the usual ones from 20:48. It is said as the other
+reminders are, with the formats of [[#saying-it-your-way][Saying it your way]], and comes in one
+notification with the appointments due that minute. A warning may fall
+on the day before: ~<2026-10-23 Fri 01:00 -3h>~ is reminded of at 22:00
+on the 22nd. A repeater's occurrence is reminded of on its day: a
+timestamp repeats in the agenda when its repeater comes last
+(~<2026-10-15 Thu 18:45 -1h +1w>~), and a repeating deadline is the
+day's once the one before is done.
+
+A scheduled date's cookie is a delay, which hides the entry until then,
+not a warning: it is not reminded of. Cookies in days, weeks, months or
+years (~-2d~) are left to the agenda and the deadlines of the day.
+
 ** The deadlines of the day
 :PROPERTIES:
 :CUSTOM_ID: the-deadlines-of-the-day
@@ -290,6 +327,10 @@ and files to look at in place of the agenda files.
   change to the files shows the next minute here.
 - The list of minutes of ~appt_message_warning_time~, the deadlines of
   the day and the formats of titles, texts and lines are org-lsp's own.
+- ~notification_use_timestamp_warning~ is org-lsp's own: ~appt.el~
+  reads no warning cookie, and Org counts them in days, so that ~-1h~ is
+  no warning at all (~org-get-wdays~ takes an hour for 0.041667 days and
+  rounds down).
 - ~appt-display-format~, ~appt-display-duration~, ~appt-audible~ and the
   mode line are the desktop's business: how long a notification stays and
   whether it makes a sound.
