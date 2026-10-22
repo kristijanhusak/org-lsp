@@ -237,6 +237,25 @@ And these notifications:
   file, after it opens and after each change that moves its headlines.
   With no lines when none is highlighted. The text of those lines also has
   the token, for clients that show only tokens.
+- ~org-lsp/codeBlocks~ :: For a client that announces
+  ~experimental.orgCodeBlocks: true~ (or sets the option ~code_blocks~):
+  where the code of an Org file is that the client colors in its own
+  language, as Emacs does with ~org-src-fontify-natively~. ~{ "uri",
+  "version", "blocks" }~, each block ~{ "range", "language", "name",
+  "kind" }~: ~range~ covers the code alone, the lines between ~#+begin_src~
+  and ~#+end_src~ (to the end of the last, without its newline) or what is
+  between the braces of ~src_python{…}~; ~name~ is the language as written
+  (~emacs-lisp~); ~language~ the client's name for it (~elisp~), the major
+  mode Org edits it in (~org-src-lang-modes~, and the setting
+  ~org_src_lang_modes~ over it) by the names tree-sitter's parsers have
+  (~emacs-lisp~ → ~elisp~, ~sh~ and the other shells → ~bash~, ~C++~ →
+  ~cpp~); ~kind~ is ~src~, ~export~ or ~inline~. The blocks are those the
+  parser finds: what an example block holds is text, and a block without
+  a language or without code is left out. Sent after a file opens, after
+  every change while it has code (the code may change where the ranges do
+  not), and once with no blocks when the last goes. Only for the version
+  given: for older text than the client has, newer blocks are on their
+  way. The server's semantic tokens leave that code out.
 - ~org-lsp/folds~ :: ~{ "uri", "open": [FoldingRange…], "close": [FoldingRange…] }~:
   after a journal command has shown a file (~window/showDocument~), the
   headlines' folds to open, then those to close (innermost first), as
@@ -597,6 +616,7 @@ Each option with its type, its default and what it means:
 - ~org_bullets_bullet_list~ :: string[], ~["◉", "○", "✸", "✿"]~. The bullets of ~org_bullets_mode~, one a level, repeating after the last. (~org-bullets-bullet-list~)
 - ~org_bullets_list_bullet~ :: false, or a string, ~"•"~. What ~org_bullets_mode~ shows in place of the ~-~, ~+~ or ~*~ of an item, as org-bullets.nvim does; ~false~ leaves them as they are.
 - ~org_bullets_checkboxes~ :: false, or { todo, half, done }, ~{ "todo": " ", "half": "-", "done": "✓" }~. What ~org_bullets_mode~ shows between the brackets of a checkbox, ~[ ]~, ~[-]~ and ~[X]~, as org-bullets.nvim does; ~false~ leaves them as they are. A state left out keeps its default.
+- ~org_src_lang_modes~ :: { [language]: mode }, ~{}~. The major mode, without ~-mode~, of a language of source blocks, over Org's own (~elisp~ → ~emacs-lisp~, ~sh~ → ~sh~): ~{ "ipython": "python" }~. Neovim and Vim color the code of a block in the language of its mode (~org-lsp/codeBlocks~), by their name for it (~emacs-lisp~ → ~elisp~, ~sh~ → ~bash~); Emacs, where it edits or exports a block, takes it too. (~org-src-lang-modes~)
 - ~org_src_preserve_indentation~ :: boolean, ~false~. Leave the code of source blocks as it is indented when re-indenting. (~org-src-preserve-indentation~)
 - ~org_babel_tangle_lang_exts~ :: object, ~{}~. By language, the extension of the file ~:tangle yes~ writes its blocks to, before Org's own (~emacs-lisp~ → ~el~): ~{ "python": "py" }~. A language without one gives its name. (~org-babel-tangle-lang-exts~)
 - ~org_babel_tangle_use_relative_file_links~ :: boolean, ~true~. Whether the link comments of tangled files (~:comments link~) point back to the Org file by a relative path; with ~false~ by its whole path. (~org-babel-tangle-use-relative-file-links~)
@@ -782,6 +802,7 @@ Each option with its type, its default and what it means:
 - ~message_requests~ :: boolean, ~true~. Whether the client shows the questions of ~message_prompts~ that have choices, and Emacs's yes-or-no questions (~window/showMessageRequest~). Off, for a client that cannot (Helix), the server says ~PROMPT: pick the answer from the code actions~, and until it is answered the code actions start with the choices; a rename with the choice's key answers too. A client with org-lsp's editor code that runs commands when told (~run_command~) is asked Emacs's questions as a command's (~org.emacs.answer~): the Vim plugin, as some of Vim's LSP clients answer no message request.
 - ~message_notifications~ :: boolean, ~false~. Whether the client shows the server's messages (Emacs's, as its echo area shows them) sent as ~org-lsp/message~, ~{ type, message }~ as ~window/showMessage~'s, rather than with ~window/showMessage~, as a client announcing ~experimental.orgMessages~ does: for the Vim plugin, as some of Vim's LSP clients show no messages, or show them after their own name.
 - ~line_highlights~ :: boolean, ~false~. Whether the client highlights lines from edge to edge as the server sends them (~org-lsp/lineHighlights~): the agenda's entry the clock runs on, and headlines with ~org_fontify_whole_heading_line~. As a client announcing ~experimental.orgLineHighlights~ does: for the Vim plugin and the Sublime Text package.
+- ~code_blocks~ :: boolean, ~false~. Whether the client colors the code of source, export and inline source blocks in its language where the server says (~org-lsp/codeBlocks~), as a client announcing ~experimental.orgCodeBlocks~ does: for the Vim plugin.
 - ~run_command~ :: boolean, ~false~. Whether the client runs a command when the server asks (~org-lsp/runCommand~: a capture an ~org-protocol~ URL starts), as one it runs from a key, as a client announcing ~experimental.orgRunCommand~ does: for the Vim plugin and the Sublime Text package. Without it, the server runs the command itself, and asks what it asks with ~window/showMessageRequest~.
 - ~hidden_lines~ :: boolean, ~false~. Whether the client hides the lines a command's answer names (~hiddenLines~: the custom properties of ~org.custom.properties.toggle~), as a client announcing ~experimental.orgHiddenLines~ does: for the Sublime Text package.
 - ~images~ :: boolean, ~false~. Whether the client shows images in place of links to image files and of LaTeX fragments (~org.link.preview~, ~org.latex.preview~, ~org-lsp/images~). As a client announcing ~experimental.orgImages~ does: for the Sublime Text package.

@@ -737,6 +737,88 @@ fn sends_the_lines_of_headlines_with_whole_heading_lines() {
     client.shutdown();
 }
 
+/// `org-src-fontify-natively`: where the code of source, export and inline
+/// source blocks is, for a client that colors it in its language, with
+/// the editor's name of the language; not what an example block holds.
+/// Again after each change, and once with no blocks when they are gone.
+#[test]
+fn sends_the_code_blocks() {
+    let capabilities = json!({ "experimental": { "orgCodeBlocks": true } });
+    let client = Client::start(capabilities, json!({ "org_src_lang_modes": { "ipython": "python" } }));
+    let text = "* Code\n#+begin_src emacs-lisp :results none\n(defun f ()\n  1)\n#+end_src\n\
+                #+BEGIN_EXPORT html\n<b>é</b>\n#+END_EXPORT\n\
+                é src_sh[:exports code]{ls -l} and src_ipython{1}\n\
+                #+begin_example\n#+begin_src python\nx = 1\n#+end_src\n#+end_example\n";
+    client.open(&uri(), text);
+    let sent = client.notification("org-lsp/codeBlocks");
+    assert_eq!(sent["uri"], uri().as_str());
+    assert_eq!(sent["version"], 1);
+    let range = |a: u32, b: u32, c: u32, d: u32| json!({ "start": { "line": a, "character": b }, "end": { "line": c, "character": d } });
+    assert_eq!(
+        sent["blocks"],
+        json!([
+            { "range": range(2, 0, 3, 4), "language": "elisp", "name": "emacs-lisp", "kind": "src" },
+            { "range": range(6, 0, 6, 8), "language": "html", "name": "html", "kind": "export" },
+            { "range": range(8, 24, 8, 29), "language": "bash", "name": "sh", "kind": "inline" },
+            { "range": range(8, 47, 8, 48), "language": "python", "name": "ipython", "kind": "inline" },
+        ])
+    );
+    let change = |version: i32, text: &str| {
+        client.notify::<lsp_types::notification::DidChangeTextDocument>(lsp_types::DidChangeTextDocumentParams {
+            text_document: lsp_types::VersionedTextDocumentIdentifier { uri: uri(), version },
+            content_changes: vec![lsp_types::TextDocumentContentChangeEvent {
+                range: None,
+                range_length: None,
+                text: text.to_string(),
+            }],
+        });
+    };
+    change(2, "Moved\n\n#+begin_src C++\nint x;\n#+end_src\n");
+    let sent = client.notification("org-lsp/codeBlocks");
+    assert_eq!(sent["version"], 2);
+    assert_eq!(
+        sent["blocks"],
+        json!([{ "range": range(3, 0, 3, 6), "language": "cpp", "name": "C++", "kind": "src" }])
+    );
+    // The code changed where its range did not.
+    change(3, "Moved\n\n#+begin_src C++\nint y;\n#+end_src\n");
+    let sent = client.notification("org-lsp/codeBlocks");
+    assert_eq!(sent["version"], 3);
+    change(4, "No code\n");
+    let sent = client.notification("org-lsp/codeBlocks");
+    assert_eq!((sent["version"].clone(), sent["blocks"].clone()), (json!(4), json!([])));
+    client.shutdown();
+    // The option says the same for clients that cannot announce it.
+    let client = Client::start(json!({}), json!({ "code_blocks": true }));
+    client.open(&uri(), "#+begin_src sh\necho\n#+end_src\n");
+    let sent = client.notification("org-lsp/codeBlocks");
+    assert_eq!(sent["blocks"][0]["language"], "bash");
+    client.shutdown();
+}
+
+/// A client that did not ask is not told where code is.
+#[test]
+fn no_code_blocks_unless_asked() {
+    let mut client = Client::start(json!({}), Value::Null);
+    client.open(&uri(), "#+begin_src sh\necho\n#+end_src\n");
+    // An answer comes after what the server sent for the opening.
+    client.next_id += 1;
+    let id = RequestId::from(client.next_id);
+    let params = json!({ "textDocument": { "uri": uri() } });
+    let request = Request { id: id.clone(), method: "textDocument/foldingRange".to_string(), params };
+    client.connection.sender.send(Message::Request(request)).unwrap();
+    loop {
+        match client.connection.receiver.recv_timeout(std::time::Duration::from_secs(5)).expect("an answer") {
+            Message::Response(response) if response.id == id => break,
+            Message::Notification(notification) => {
+                assert_ne!(notification.method, "org-lsp/codeBlocks", "{notification:?}")
+            }
+            _ => {}
+        }
+    }
+    client.shutdown();
+}
+
 /// A client that does not show `org-lsp/virtualIndent` (Zed, Helix) gets
 /// `org-indent-mode`'s prefixes as inlay hints of blanks; one that does,
 /// or says so with the `virtualIndent` option, gets none of those.
