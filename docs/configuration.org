@@ -7957,10 +7957,11 @@ auto_save = true
 
 Let the assistants ~org-lsp mcp~ serves change files: its tools
 ~set_todo_state~, ~capture~, ~refile~, ~schedule~, ~deadline~, ~set_tags~,
-~set_property~, ~delete_property~, ~set_priority~, ~set_effort~, ~add_note~
-and ~archive~, which write the agenda files, the capture targets, the files of
-~org_refile_targets~ and the archive files directly. Off, it only reads. It is
-read from the shared configuration file, as everything ~org-lsp mcp~ reads.
+~set_property~, ~delete_property~, ~set_priority~, ~set_effort~, ~add_note~,
+~archive~ and ~delete_entry~, which write the agenda files, the capture
+targets, the files of ~org_refile_targets~ and the archive files directly.
+Off, it only reads. It is read from the shared configuration file, as
+everything ~org-lsp mcp~ reads.
 
 - Type :: boolean
 - Default :: ~false~

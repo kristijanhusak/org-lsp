@@ -1,7 +1,9 @@
 //! `org-lsp mcp`: a Model Context Protocol server over standard input and
 //! output, for AI assistants to read the agenda as Org builds it, and with
 //! `mcp_edits` to change TODO states, capture, refile, and change entries
-//! where they are or archive them ([`entry`]).
+//! where they are, archive or delete them ([`entry`]). Its prompts
+//! ([`prompts`]) give the assistant the data of a task, such as planning
+//! the day, with what to do with it.
 //!
 //! The view tools build a view of the agenda files with `org-lsp agenda`
 //! ([`crate::cli::agenda_lines`]) and answer its text, each entry's line
@@ -28,6 +30,7 @@ use crate::config::{CaptureTemplateOption, Options};
 use crate::server::TargetSpec;
 
 mod entry;
+mod prompts;
 
 pub const USAGE: &str = "\
 Usage: org-lsp mcp
@@ -37,7 +40,7 @@ gives AI assistants the agenda, the TODO list and searches of the agenda
 files of the shared configuration file (`org-lsp config`). It only reads,
 unless that file sets `mcp_edits = true`: then it also changes TODO states,
 dates, tags, properties, priorities and efforts, adds notes, captures,
-refiles and archives, writing the files.";
+refiles, archives and deletes entries, writing the files.";
 
 /// The protocol versions this server speaks, the newest first.
 const VERSIONS: [&str; 3] = ["2025-06-18", "2025-03-26", "2024-11-05"];
@@ -83,7 +86,7 @@ pub fn answer(line: &str, folder: Option<&Path>, env: &dyn Fn(&str) -> Option<St
             let version = asked.filter(|asked| VERSIONS.contains(asked)).unwrap_or(VERSIONS[0]);
             json!({
                 "protocolVersion": version,
-                "capabilities": { "tools": {} },
+                "capabilities": { "tools": {}, "prompts": {} },
                 "serverInfo": { "name": "org-lsp", "version": env!("CARGO_PKG_VERSION") },
                 "instructions": "The user's Org mode agenda, read as Emacs's Org builds it. \
                     Dates are YYYY-MM-DD. The views are text as Org's agenda shows them: \
@@ -93,6 +96,15 @@ pub fn answer(line: &str, folder: Option<&Path>, env: &dyn Fn(&str) -> Option<St
         }
         "ping" => json!({}),
         "tools/list" => json!({ "tools": tools(&crate::config::load(None, env).options) }),
+        "prompts/list" => json!({ "prompts": prompts::list() }),
+        "prompts/get" => {
+            let name = params.get("name").and_then(Value::as_str).unwrap_or_default();
+            let arguments = params.get("arguments").cloned().unwrap_or_else(|| json!({}));
+            match prompts::get(name, &arguments, folder, env) {
+                Ok(prompt) => prompt,
+                Err(message) => return Some(failure(id, -32602, &message)),
+            }
+        }
         "tools/call" => {
             let name = params.get("name").and_then(Value::as_str).unwrap_or_default();
             let arguments = params.get("arguments").cloned().unwrap_or_else(|| json!({}));
@@ -427,7 +439,7 @@ fn view(
     folder: Option<&Path>,
     env: &dyn Fn(&str) -> Option<String>,
 ) -> Result<String, Call> {
-    let mut view: Vec<String> = match name {
+    let view: Vec<String> = match name {
         "agenda" => {
             let mut view = vec!["--view".into(), "agenda".into()];
             let span = match arguments.0.get("span") {
@@ -462,11 +474,21 @@ fn view(
         "agenda_files" => vec![],
         _ => return Err(Call::Unknown),
     };
+    build_view(view, folder, env)
+}
 
+/// The view `org-lsp agenda` builds with the arguments `view` from the
+/// agenda files, with where each entry's headline is; no arguments for the
+/// list of the agenda files.
+fn build_view(
+    mut view: Vec<String>,
+    folder: Option<&Path>,
+    env: &dyn Fn(&str) -> Option<String>,
+) -> Result<String, Call> {
     let loaded = crate::config::load(None, env);
     let files: Vec<String> =
         agenda_paths(&loaded.options, folder).iter().map(|path| path.display().to_string()).collect();
-    if name == "agenda_files" {
+    if view.is_empty() {
         return Ok(if files.is_empty() { "No agenda files.".to_string() } else { files.join("\n") });
     }
     if files.is_empty() {
@@ -1494,10 +1516,7 @@ fn reading(
         return None;
     }
     let options = crate::config::load(None, env).options;
-    // Org's variables the server sets when it starts.
-    org_core::duration::set(options.durations());
-    org_core::inlinetask::set_min_level(options.inlinetask_min_level());
-    org_core::structure::set_odd_levels_default(options.odd_levels_only.unwrap_or(false));
+    set_variables(&options);
     Some(match name {
         "entry" => entry(arguments, &options, folder),
         "clock_report" => clock_report(arguments, &options, folder),
@@ -1505,6 +1524,14 @@ fn reading(
         "roam_node" => roam_node(arguments, &options),
         _ => journal_entries(arguments, &options),
     })
+}
+
+/// Org's variables the server sets when it starts, which the outline and
+/// the clock table read.
+fn set_variables(options: &Options) {
+    org_core::duration::set(options.durations());
+    org_core::inlinetask::set_min_level(options.inlinetask_min_level());
+    org_core::structure::set_odd_levels_default(options.odd_levels_only.unwrap_or(false));
 }
 
 /// The files of org-journal's directory that are journal files, by their

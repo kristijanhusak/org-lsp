@@ -159,9 +159,13 @@ claude mcp add org-lsp -- org-lsp mcp    # Claude Code
   refile targets, org-roam's nodes and backlinks, org-journal's entries.
   Each entry comes with its ~[file:line]~.
 - Changing, with ~mcp_edits = true~ :: TODO states, capture, refile,
-  scheduling and deadlines, tags, properties, priority, effort, notes and
-  archiving, through the same code as the editor's commands, each with a
-  ~dry_run~ that shows the change first.
+  scheduling and deadlines, tags, properties, priority, effort, notes,
+  archiving and deleting an entry with its subtree, through the same code
+  as the editor's commands, each with a ~dry_run~ that shows the change
+  first.
+- Prompts :: plan the day, review the week, process the inbox, a daily
+  standup and stale tasks, each with its data; in Claude Code,
+  ~/mcp__org-lsp__plan_my_day~ and the like.
 
 See [[file:docs/mcp.org][docs/mcp.org]] for the setup in each assistant and every tool.
 

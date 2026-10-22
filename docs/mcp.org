@@ -7,8 +7,10 @@ Org builds it, so it can answer "what is due this week" or "what is tagged
 ~work~" from your Org files rather than from searching their text, and
 reads an entry whole, the clock report, org-roam's notes and org-journal's
 entries. It only reads, unless you let it change TODO states, dates, tags,
-properties and notes, capture, refile and archive
-([[#changing-files][Changing files]]).
+properties and notes, capture, refile, archive and delete
+([[#changing-files][Changing files]]). Its prompts ask the assistant to plan
+your day, review your week or go through your inbox, with the data that
+takes ([[#prompts][Prompts]]).
 
 * Setting it up
 :PROPERTIES:
@@ -249,6 +251,13 @@ mcp_edits = true
   ~ARCHIVE~ tag (~org-toggle-archive-tag~). It archives only from an
   agenda file. It answers Org's message (~Subtree archived in file:
   /home/me/org/tasks.org_archive~) and where the entry is now.
+- ~delete_entry~ :: delete the entry and its subtree, as ~org-cut-subtree~
+  takes it out: from its headline to the next headline of its level or
+  above, with the blank lines before that one. ~headline~ is required
+  here, so that the entry deleted is the one meant. It deletes only in an
+  agenda file. It answers Org's message (~Cut: Subtree(s) with 51
+  characters~) and the text deleted, which put back at the entry's line
+  restores it.
 
 These tools take the entry as ~set_todo_state~ does: ~file~, ~line~ and
 ~headline~. They answer Org's message, if there is one, and the entry's
@@ -258,8 +267,9 @@ All of them take ~dry_run~: they answer the change as a diff of each file
 it changes, and write nothing.
 
 They change only the agenda files and the targets of the capture
-templates, ~refile~ the files of ~org_refile_targets~ too, and ~archive~
-only the agenda files and their archive files. What needs
+templates, ~refile~ the files of ~org_refile_targets~ too, ~archive~
+only the agenda files and their archive files, and ~delete_entry~ only the
+agenda files. What needs
 Emacs or the editor is refused: a template with ~%(…)~ or a ~function~
 target, a ~clock~ target or ~clock_in~, as there is no clock, and
 refiling while ~org_refile_target_verify_function~ is set (both
@@ -276,3 +286,50 @@ writes it first in the same way, then the file the entry came from. No editor is
 asked: one that has the file open with unsaved changes may save over the
 change, or ask which to keep. Save your files before an assistant changes
 them, and use ~dry_run~ to see a change first.
+
+* Prompts
+:PROPERTIES:
+:CUSTOM_ID: prompts
+:END:
+
+The server also has prompts: messages you send the assistant, which
+bring the data of a task, read from your files at that moment as the
+tools read them, and say what to do with it. Claude Code shows them as
+slash commands, ~/mcp__org-lsp__plan_my_day~ and so on, their arguments
+after them (~/mcp__org-lsp__plan_my_day 2026-10-23~); other assistants
+list them in their own way. Dates are ~YYYY-MM-DD~.
+
+- ~plan_my_day~ :: the agenda of the day ~date~ (by default today), the
+  TODO entries with a deadline in the next 14 days or past, and those in
+  progress (the keywords not done that start no sequence and say no
+  waiting, such as ~NEXT~; the whole TODO list when there are none). It
+  asks for a plan of the day in time blocks, its conflicts, and to
+  schedule what the plan gives a time.
+- ~weekly_review~ :: the agenda of the week of ~week~ (a day of it; by
+  default this week) in log mode, what was closed and clocked, the clock
+  report of the week, the stuck projects (~org_stuck_projects~) and the
+  agenda of the next week. It asks for a review: what got done, what
+  slipped, what is stuck, the priorities of the next week, and changes.
+- ~process_inbox~ :: the entries of the inbox, each with its
+  ~[file:line]~ and text, the refile targets from the inbox's file, the tags
+  in use (~org_tag_alist~ and the agenda files') and the TODO keywords.
+  The inbox is the headline ~headline~ (a title, or an outline path
+  ~A/B~) of ~file~, or its top level without ~headline~; by default the
+  target of the first capture template (a file, or a headline or outline
+  path in it), else the first ~Inbox~ headline of the agenda files. It
+  asks for a refile target, tags, a TODO state and a date for each entry.
+- ~daily_standup~ :: the agenda of the day before ~date~ (by default
+  today) in log mode and its clock report, the agenda of ~date~, and the
+  TODO entries whose keyword says they wait (~WAITING~, ~HOLD~,
+  ~BLOCKED~, ~DELEGATED~ and the like). It asks for a short standup:
+  yesterday, today, blockers.
+- ~find_stale_tasks~ :: the open TODO entries of the agenda files with no
+  date in the last ~days~ days (30 by default) nor one ahead: no
+  ~SCHEDULED~ or ~DEADLINE~, clock, logged note or other timestamp in the
+  entry since then; the oldest first. It asks what to do with each:
+  reschedule, close, archive, delete or keep.
+
+The prompts that may lead to changes (all but ~daily_standup~) tell the
+assistant to propose them first, show each with ~dry_run~, ask you to
+confirm, and only then make them with the edit tools, which are there
+with ~mcp_edits~ on; without it, to tell you what to change.
