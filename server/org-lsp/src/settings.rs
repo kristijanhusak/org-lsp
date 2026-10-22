@@ -1858,6 +1858,17 @@ pub const SETTINGS: &[Setting] = &[
         "Minutes between two reminders of an appointment, from the first, `appt_message_warning_time` \
          minutes before it.",
     ),
+    setting(
+        "notification_use_timestamp_warning",
+        "boolean",
+        "false",
+        "",
+        "As org-lsp's own, `org-lsp notify` also reminds of an appointment from a deadline or a timestamp \
+         as many hours before it as the timestamp's warning cookie says: once, 60 minutes before \
+         `<2026-10-22 Thu 21:00 -1h>`, besides the reminders of `appt_message_warning_time`. A scheduled \
+         date's cookie is a delay and does not count, nor do cookies in days, weeks, months or years. \
+         Emacs's `appt.el` reads no cookie.",
+    ),
     Setting {
         default: None,
         unset: "no summary",
@@ -4296,6 +4307,7 @@ const SCHEMAS: &[(&str, &str)] = &[
         r#"{ "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "array", "items": { "type": "integer", "minimum": 0 } }] }"#,
     ),
     ("appt_display_interval", r#"{ "type": "integer", "minimum": 1 }"#),
+    ("notification_use_timestamp_warning", BOOLEAN),
     ("notification_deadline_summary_time", r#"{ "type": "string", "pattern": "^[0-2]?[0-9]:[0-5][0-9]$" }"#),
     ("notification_match", STRING),
     ("notification_command", r#"{ "type": "array", "items": { "type": "string" }, "minItems": 1 }"#),

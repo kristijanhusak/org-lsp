@@ -26,10 +26,15 @@ struct Place {
 
 impl Place {
     fn new(name: &str, config: &str) -> Place {
+        Place::with(name, config, TASKS)
+    }
+
+    /// A place whose agenda file is `tasks`.
+    fn with(name: &str, config: &str, tasks: &str) -> Place {
         let root = std::env::temp_dir().join(format!("org-lsp-notify-{name}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(root.join("bin")).unwrap();
-        std::fs::write(root.join("tasks.org"), TASKS).unwrap();
+        std::fs::write(root.join("tasks.org"), tasks).unwrap();
         let config = format!("org_agenda_files = [\"$DIR/tasks.org\"]\n{config}");
         std::fs::write(root.join("config.toml"), config.replace("$DIR", &root.display().to_string())).unwrap();
         Place { root }
@@ -377,4 +382,86 @@ fn shows_the_icon_of_the_configuration() {
     let bell = place.root.join("pictures").join("bell.png");
     assert_eq!(read(&out), format!("--app-name=org-lsp\n--icon={}\n--\nAppointment now\n{STANDUP}\n", bell.display()));
     assert!(!place.icon().exists());
+}
+
+/// Timestamps with warning cookies, on and around 22 October 2026.
+const WARNINGS: &str = "\
+* TODO Call Anna
+DEADLINE: <2026-10-22 Thu 21:00 -1h>
+* Concert
+<2026-10-22 Thu 19:30 --2h>
+* TODO Prepare slides
+SCHEDULED: <2026-10-22 Thu 18:00 -1h>
+* TODO Pay rent
+DEADLINE: <2026-10-22 Thu 13:00 -1d>
+* Early flight
+<2026-10-23 Fri 01:00 -3h>
+* TODO Weekly report
+DEADLINE: <2026-10-22 Thu 17:00 +1w -1h>
+* Gym
+<2026-10-15 Thu 18:45 -1h +1w>
+* Doctor
+:PROPERTIES:
+:APPT_WARNTIME: 30
+:END:
+<2026-10-22 Thu 11:00 -1h>
+* Coffee
+<2026-10-22 Thu 10:00>
+";
+
+#[test]
+fn leaves_warning_cookies_alone_by_default() {
+    let place = Place::with("cookies-off", "", WARNINGS);
+    for time in ["20:00", "17:30", "22:00", "16:00"] {
+        assert_eq!(place.dry(time), "", "{time}");
+    }
+    assert_eq!(place.dry("20:48"), "Appointment in 12 minutes\n21:00 TODO Call Anna\n\n");
+}
+
+#[test]
+fn reminds_as_many_hours_before_as_the_warning_cookie_says() {
+    let place = Place::with("cookies", "notification_use_timestamp_warning = true", WARNINGS);
+    // A deadline, at the minute only; `appt.el`'s reminders as before.
+    assert_eq!(place.dry("20:00"), "Appointment in 60 minutes\n21:00 TODO Call Anna\n\n");
+    for time in ["19:59", "20:01", "20:03"] {
+        assert_eq!(place.dry(time), "", "{time}");
+    }
+    assert_eq!(place.dry("20:48"), "Appointment in 12 minutes\n21:00 TODO Call Anna\n\n");
+    // A timestamp, with `--`.
+    assert_eq!(place.dry("17:30"), "Appointment in 120 minutes\n19:30 Concert\n\n");
+    // A scheduled date's cookie is a delay, and one in days is the agenda's.
+    assert_eq!(place.dry("17:00"), "Appointment now\n17:00 TODO Weekly report\n\n");
+    assert_eq!(place.dry("12:00"), "");
+    assert_eq!(place.dry("12:48"), "Appointment in 12 minutes\n13:00 TODO Pay rent\n\n");
+    // Tomorrow's appointment at 01:00, three hours before.
+    assert_eq!(place.dry("22:00"), "Appointment in 180 minutes\n01:00 Early flight\n\n");
+    let output = place.run(&["--dry-run", "--now", "2026-10-23 00:48"]);
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "Appointment in 12 minutes\n01:00 Early flight\n\n");
+}
+
+#[test]
+fn reminds_of_each_occurrence_of_a_repeater_at_its_warning() {
+    let place = Place::with("cookies-repeat", "notification_use_timestamp_warning = true", WARNINGS);
+    assert_eq!(place.dry("16:00"), "Appointment in 60 minutes\n17:00 TODO Weekly report\n\n");
+    // A timestamp repeats in the agenda with its repeater last, as Org's
+    // regexp wants it.
+    assert_eq!(place.dry("17:45"), "Appointment in 60 minutes\n18:45 Gym\n\n");
+    let at = |time: &str| String::from_utf8(place.run(&["--dry-run", "--now", time]).stdout).unwrap();
+    assert_eq!(at("2026-10-29 17:45"), "Appointment in 60 minutes\n18:45 Gym\n\n");
+    assert_eq!(at("2026-10-23 17:45"), "");
+}
+
+#[test]
+fn reminds_at_the_warning_besides_appt_warntime_and_with_the_others_due() {
+    let place = Place::with("cookies-warntime", "notification_use_timestamp_warning = true", WARNINGS);
+    // `APPT_WARNTIME` still gives its reminders.
+    assert_eq!(place.dry("10:30"), "Appointment in 30 minutes\n11:00 Doctor\n\n");
+    // The warning comes with the appointment due then, in one notification.
+    assert_eq!(place.dry("10:00"), "Appointments in 0,60 minutes\n0m: 10:00 Coffee\n60m: 11:00 Doctor\n\n");
+    let place = Place::with(
+        "cookies-format",
+        "notification_use_timestamp_warning = true\nnotification_title_format = \"%h in %m\"",
+        WARNINGS,
+    );
+    assert_eq!(place.dry("20:00"), "Call Anna in 60\n21:00 TODO Call Anna\n\n");
 }

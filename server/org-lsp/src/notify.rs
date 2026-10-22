@@ -80,12 +80,15 @@ const ENTRY_PLACEHOLDERS: &[char] = &['h', 'k', 'p', 'T', 'c', 's', 'd', 'w', 'm
 /// An appointment of `appt.el`: its time in minutes after midnight, its
 /// message (`HH:MM` and the entry's text), and the minutes before it that
 /// its `APPT_WARNTIME` property gives; and the values of its entry's
-/// placeholders.
+/// placeholders. `lead` is org-lsp's own: the minutes of the warning
+/// cookie in hours of its deadline or timestamp (`-1h`), which
+/// `notification_use_timestamp_warning` reminds at.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Appointment {
     pub minute: i64,
     pub message: String,
     pub warntime: Option<i64>,
+    pub lead: Option<i64>,
     pub values: Values,
 }
 
@@ -268,12 +271,24 @@ pub fn due(files: &[String], options: &Options, now: Now, problems: &mut Vec<Str
     let mut notifications = Vec::new();
     let warning = options.appt_message_warning_time.clone().unwrap_or(WarningTime::Minutes(12));
     let interval = options.appt_display_interval.unwrap_or(3).max(1);
+    let use_lead = options.notification_use_timestamp_warning.unwrap_or(false);
     let mut reminded = Vec::new();
-    for appointment in appointments(&outlines, now.today, &config, &wanted) {
+    for appointment in appointments(&outlines, now.today, now.today, &config, &wanted) {
         let left = appointment.minute - now.minute;
         let warning = appointment.warntime.map_or_else(|| warning.clone(), WarningTime::Minutes);
-        if reminds(&warning, interval, left) {
+        if reminds(&warning, interval, left) || (use_lead && appointment.lead == Some(left)) {
             reminded.push((left, appointment));
+        }
+    }
+    // A warning in hours of tomorrow's appointments may fall today: `-3h`
+    // at 01:00 reminds at 22:00. Only that one; `appt.el` has today's
+    // appointments alone.
+    if use_lead {
+        for appointment in appointments(&outlines, now.today + 1, now.today, &config, &wanted) {
+            let left = appointment.minute + 24 * 60 - now.minute;
+            if appointment.lead == Some(left) {
+                reminded.push((left, appointment));
+            }
         }
     }
     if !reminded.is_empty() {
@@ -367,9 +382,11 @@ fn entry_values(files: &[&Outline], source: agenda::Source, config: &agenda::Con
 /// `org-agenda-to-appt` with its defaults: the entries of the agenda of
 /// `today` (`:deadline*`, `:scheduled*` and `:timestamp`) that have a time
 /// of day and are not done, as `appt-add` keeps them: by time, each
-/// once. `wanted` says which entries to look at.
+/// once. `wanted` says which entries to look at. `day` is the day whose
+/// agenda it reads, `today` for all but the warnings of tomorrow.
 pub fn appointments(
     files: &[&Outline],
+    day: org_core::date::Day,
     today: org_core::date::Day,
     config: &agenda::Config,
     wanted: &dyn Fn(Option<agenda::Source>) -> bool,
@@ -379,7 +396,7 @@ pub fn appointments(
     let mut config = config.clone();
     config.prefix_format.agenda = "%s".to_string();
     let mut found: Vec<Appointment> = Vec::new();
-    for item in agenda::day_items(files, today, today, &config) {
+    for item in agenda::day_items(files, day, today, &config) {
         if !matches!(item.kind, ItemKind::Deadline | ItemKind::Scheduled | ItemKind::Timestamp) || !wanted(item.source)
         {
             continue;
@@ -398,19 +415,47 @@ pub fn appointments(
         let mut values = entry_values(files, source, &config);
         values.set('w', time_string_padded(time));
         values.set('a', message.clone());
-        let appointment = Appointment { minute: time / 100 * 60 + time % 100, message, warntime, values };
-        // `appt-add` keeps one of each time, text and warning time.
-        let same = |other: &Appointment| {
+        let lead = lead_minutes(files, &item);
+        let appointment = Appointment { minute: time / 100 * 60 + time % 100, message, warntime, lead, values };
+        // `appt-add` keeps one of each time, text and warning time; the
+        // one kept takes the other's warning in hours if it has none.
+        let same = |other: &&mut Appointment| {
             (other.minute, &other.message, other.warntime)
                 == (appointment.minute, &appointment.message, appointment.warntime)
         };
-        if !found.iter().any(same) {
-            found.push(appointment);
+        match found.iter_mut().find(same) {
+            Some(kept) => kept.lead = kept.lead.or(appointment.lead),
+            None => found.push(appointment),
         }
     }
     // `appt-sort-list`
     found.sort_by_key(|appointment| appointment.minute);
     found
+}
+
+/// The minutes of the warning cookie in hours (`-1h`, `--1h`) of the
+/// deadline or timestamp `item` stands for. A scheduled date's cookie is
+/// a delay, which hides the entry, and cookies in days, weeks, months or
+/// years are the agenda's: neither counts.
+fn lead_minutes(files: &[&Outline], item: &agenda::Item) -> Option<i64> {
+    let source = item.source?;
+    let outline = files[source.file];
+    let stamp = match item.kind {
+        ItemKind::Deadline => agenda::entry(files, source).deadline.as_ref()?.raw.clone(),
+        ItemKind::Timestamp => {
+            let text = outline.text.get(item.marker?..)?.strip_prefix('<')?;
+            text[..text.find('>')?].to_string()
+        }
+        _ => return None,
+    };
+    stamp.split_whitespace().find_map(|word| {
+        let word = word.strip_prefix("--").or_else(|| word.strip_prefix('-'))?;
+        let hours = word.strip_suffix('h')?;
+        if hours.is_empty() || !hours.bytes().all(|byte| byte.is_ascii_digit()) {
+            return None;
+        }
+        hours.parse::<i64>().ok().map(|hours| hours * 60)
+    })
 }
 
 /// The time `org-agenda-to-appt` gives `appt-add` for the military time
@@ -779,10 +824,13 @@ mod tests {
             let text = std::fs::read_to_string(&path).unwrap();
             let parse = org_syntax::parse(&text, &options.todo_keywords());
             let outline = Outline::with_inheritance(&parse, &text, "file", &options.inheritance());
-            let found: Vec<serde_json::Value> = appointments(&[&outline], today, &options.agenda_config(), &|_| true)
-                .into_iter()
-                .map(|appointment| serde_json::json!([appointment.minute, appointment.message, appointment.warntime]))
-                .collect();
+            let found: Vec<serde_json::Value> =
+                appointments(&[&outline], today, today, &options.agenda_config(), &|_| true)
+                    .into_iter()
+                    .map(|appointment| {
+                        serde_json::json!([appointment.minute, appointment.message, appointment.warntime])
+                    })
+                    .collect();
             let expected: serde_json::Value =
                 serde_json::from_str(&std::fs::read_to_string(path.with_extension("json")).unwrap()).unwrap();
             assert_eq!(serde_json::Value::Array(found), expected, "{}", path.display());
