@@ -1631,7 +1631,7 @@ impl Config {
     /// (`org-agenda-show-inherited-tags`, `org-agenda-use-tag-inheritance`).
     /// A TODO entry, a search result and a log line count as `todo`, the
     /// lines of a day as `agenda`; a tags match always has them.
-    fn inherited_tags(&self, kind: ItemKind) -> bool {
+    pub fn inherited_tags(&self, kind: ItemKind) -> bool {
         let view = match kind {
             ItemKind::Tags => return true,
             ItemKind::Todo | ItemKind::Search | ItemKind::Log => "todo",
@@ -2158,7 +2158,7 @@ pub fn block_separator(config: &Config) -> Vec<Line> {
 }
 
 /// `%e`: the entry's effort (`org-effort-property`).
-pub(crate) fn effort(entry: &Entry) -> Option<&str> {
+pub fn effort(entry: &Entry) -> Option<&str> {
     entry.properties.iter().find(|(name, _)| name == "EFFORT").map(|(_, value)| value.as_str())
 }
 

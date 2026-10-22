@@ -39,21 +39,54 @@ Options:
   --options JSON            options over those of the configuration file
   --no-config               read no configuration file: --options alone";
 
-/// A notification: its title and its text.
+/// A notification: its title and its text, and for appointments, each
+/// appointment's own title, text and values, which `notification_command`
+/// runs with when it has a placeholder of an entry.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Notification {
     pub title: String,
     pub body: String,
+    pub parts: Vec<Part>,
 }
+
+/// One appointment of a notification.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Part {
+    pub title: String,
+    pub body: String,
+    pub values: Values,
+}
+
+/// What the placeholders of an entry stand for, by their letter.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Values(Vec<(char, String)>);
+
+impl Values {
+    fn get(&self, letter: char) -> Option<String> {
+        self.0.iter().find(|(name, _)| *name == letter).map(|(_, value)| value.clone())
+    }
+
+    fn set(&mut self, letter: char, value: String) {
+        self.0.retain(|(name, _)| *name != letter);
+        self.0.push((letter, value));
+    }
+}
+
+/// The placeholders of an entry: headline, keyword, priority, tags,
+/// category, scheduled, deadline, time, minutes left, effort, file path,
+/// file name, line and the line `appt.el` shows.
+const ENTRY_PLACEHOLDERS: &[char] = &['h', 'k', 'p', 'T', 'c', 's', 'd', 'w', 'm', 'e', 'f', 'F', 'l', 'a'];
 
 /// An appointment of `appt.el`: its time in minutes after midnight, its
 /// message (`HH:MM` and the entry's text), and the minutes before it that
-/// its `APPT_WARNTIME` property gives.
+/// its `APPT_WARNTIME` property gives; and the values of its entry's
+/// placeholders.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Appointment {
     pub minute: i64,
     pub message: String,
     pub warntime: Option<i64>,
+    pub values: Values,
 }
 
 /// What a run comes to: the notifications due, how they are sent, and
@@ -145,7 +178,9 @@ pub fn due(files: &[String], options: &Options, now: Now, problems: &mut Vec<Str
                 let text = String::from_utf8_lossy(&bytes);
                 let parse = org_syntax::parse(&text, &todo);
                 let name = crate::cli::file_name(Path::new(file));
-                outlines.push(Outline::with_inheritance(&parse, &text, &name, &inheritance));
+                let mut outline = Outline::with_inheritance(&parse, &text, &name, &inheritance);
+                outline.file = Some(file.clone());
+                outlines.push(outline);
             }
             Err(error) => problems.push(format!("{file}: {error}")),
         }
@@ -164,28 +199,100 @@ pub fn due(files: &[String], options: &Options, now: Now, problems: &mut Vec<Str
     let mut notifications = Vec::new();
     let warning = options.appt_message_warning_time.clone().unwrap_or(WarningTime::Minutes(12));
     let interval = options.appt_display_interval.unwrap_or(3).max(1);
-    let (mut minutes, mut messages) = (Vec::new(), Vec::new());
+    let mut reminded = Vec::new();
     for appointment in appointments(&outlines, now.today, &config, &wanted) {
         let left = appointment.minute - now.minute;
         let warning = appointment.warntime.map_or_else(|| warning.clone(), WarningTime::Minutes);
         if reminds(&warning, interval, left) {
-            minutes.push(left);
-            messages.push(appointment.message);
+            reminded.push((left, appointment));
         }
     }
-    if !minutes.is_empty() {
-        notifications.push(appt_display(&minutes, &messages));
+    if !reminded.is_empty() {
+        let format = |format: &Option<String>| format.clone().filter(|format| !format.is_empty());
+        let (title, body) = (format(&options.notification_title_format), format(&options.notification_body_format));
+        notifications.push(remind(&reminded, title.as_deref(), body.as_deref()));
     }
 
     let summary =
         options.notification_deadline_summary_time.as_deref().and_then(|time| crate::cli::parse_time(time).ok());
     if summary == Some(now.minute) {
-        let lines = deadlines(&outlines, now.org_today(config.extend_today_until), &config, &wanted);
+        let format = options.notification_deadline_line_format.as_deref().filter(|format| !format.is_empty());
+        let lines = deadlines(&outlines, now.org_today(config.extend_today_until), &config, &wanted, format);
         if !lines.is_empty() {
-            notifications.push(Notification { title: "Deadlines".to_string(), body: lines.join("\n") });
+            notifications.push(Notification { title: "Deadlines".to_string(), body: lines.join("\n"), parts: vec![] });
         }
     }
     notifications
+}
+
+/// The notification of the appointments `reminded`, each with the
+/// minutes left before it: `appt.el`'s title and text, or those of the
+/// formats `title` and `body`, a line of text each, the title the first
+/// one's.
+fn remind(reminded: &[(i64, Appointment)], title: Option<&str>, body: Option<&str>) -> Notification {
+    let parts: Vec<Part> = reminded
+        .iter()
+        .map(|(left, appointment)| {
+            let mut values = appointment.values.clone();
+            values.set('m', left.to_string());
+            let lookup = |letter| values.get(letter);
+            Part {
+                title: title.map_or_else(|| appt_mode_line(&[*left]), |format| expand(format, &lookup)),
+                body: body.map_or_else(|| appointment.message.clone(), |format| expand(format, &lookup)),
+                values,
+            }
+        })
+        .collect();
+    let minutes: Vec<i64> = reminded.iter().map(|(left, _)| *left).collect();
+    let messages: Vec<String> = parts.iter().map(|part| part.body.clone()).collect();
+    let mut notification = match body {
+        None => appt_display(&minutes, &messages),
+        Some(_) => Notification { title: appt_mode_line(&minutes), body: messages.join("\n"), parts: vec![] },
+    };
+    if title.is_some() {
+        notification.title = parts[0].title.clone();
+    }
+    notification.parts = parts;
+    notification
+}
+
+/// The values of the placeholders of the entry `source` stands for:
+/// headline, keyword, priority, tags as the agenda shows them, category,
+/// planning timestamps, effort, file and line.
+fn entry_values(files: &[&Outline], source: agenda::Source, config: &agenda::Config) -> Values {
+    let outline = files[source.file];
+    let entry = agenda::entry(files, source);
+    let line = &outline.text[entry.offset..entry.line_end];
+    let parts = org_core::outline::complex_heading_parts(line, entry.level, &outline.todo);
+    let part = |span: Option<(usize, usize)>| span.map_or("", |(start, end)| &line[start..end]);
+    let priority = part(parts.priority).trim_start_matches("[#").trim_end_matches(']');
+    let inherited = config.inherited_tags(ItemKind::Scheduled);
+    let tags: Vec<&str> =
+        entry.tags.iter().filter(|tag| inherited || !tag.inherited).map(|tag| tag.name.as_str()).collect();
+    let stamp = |planning: &Option<org_core::outline::Planning>| {
+        planning.as_ref().map_or_else(String::new, |planning| {
+            if planning.active {
+                format!("<{}>", planning.raw)
+            } else {
+                format!("[{}]", planning.raw)
+            }
+        })
+    };
+    let path = outline.file.clone().unwrap_or_default();
+    let name = Path::new(&path).file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default();
+    let mut values = Values::default();
+    values.set('h', org_core::link::descriptions_only(part(parts.title)).trim().to_string());
+    values.set('k', part(parts.keyword).to_string());
+    values.set('p', priority.to_string());
+    values.set('T', if tags.is_empty() { String::new() } else { format!(":{}:", tags.join(":")) });
+    values.set('c', entry.category.clone());
+    values.set('s', stamp(&entry.scheduled));
+    values.set('d', stamp(&entry.deadline));
+    values.set('e', agenda::effort(entry).unwrap_or_default().to_string());
+    values.set('f', path);
+    values.set('F', name);
+    values.set('l', (outline.text[..entry.offset].matches('\n').count() + 1).to_string());
+    values
 }
 
 /// `org-agenda-to-appt` with its defaults: the entries of the agenda of
@@ -218,12 +325,17 @@ pub fn appointments(
             continue;
         }
         let warntime = outline.property(source.entry, "APPT_WARNTIME").and_then(|value| string_to_number(&value));
-        let appointment = Appointment {
-            minute: time / 100 * 60 + time % 100,
-            message: format!("{} {event}", time_string(time)),
-            warntime,
+        let message = format!("{} {event}", time_string(time));
+        let mut values = entry_values(files, source, &config);
+        values.set('w', time_string_padded(time));
+        values.set('a', message.clone());
+        let appointment = Appointment { minute: time / 100 * 60 + time % 100, message, warntime, values };
+        // `appt-add` keeps one of each time, text and warning time.
+        let same = |other: &Appointment| {
+            (other.minute, &other.message, other.warntime)
+                == (appointment.minute, &appointment.message, appointment.warntime)
         };
-        if !found.contains(&appointment) {
+        if !found.iter().any(same) {
             found.push(appointment);
         }
     }
@@ -240,6 +352,11 @@ fn time_string(time: i64) -> String {
     let hour_at = digits.len().saturating_sub(4);
     let minute_at = digits.len() - 2;
     format!("{}:{}", &digits[hour_at..minute_at], &digits[minute_at..])
+}
+
+/// The military time `time` as `HH:MM`, for `%w`.
+fn time_string_padded(time: i64) -> String {
+    format!("{:02}:{:02}", time / 100, time % 100)
 }
 
 /// Whether `org-agenda-to-appt` leaves out the entry whose text is
@@ -315,23 +432,37 @@ fn appt_display(minutes: &[i64], messages: &[String]) -> Notification {
             .collect::<Vec<_>>()
             .join("\n")
     };
-    Notification { title: appt_mode_line(minutes), body }
+    Notification { title: appt_mode_line(minutes), body, parts: vec![] }
 }
 
 /// The deadlines the agenda of `today` shows that are not done, each as
-/// its category and the line's leader say it: `work: In 3 d.: TODO Report`.
+/// its category and the line's leader say it: `work: In 3 d.: TODO Report`,
+/// or as the format `line` says it.
 fn deadlines(
     files: &[&Outline],
     today: org_core::date::Day,
     config: &agenda::Config,
     wanted: &dyn Fn(Option<agenda::Source>) -> bool,
+    line: Option<&str>,
 ) -> Vec<String> {
     let mut config = config.clone();
-    config.prefix_format.agenda = "%c: %s".to_string();
+    config.prefix_format.agenda = if line.is_some() { "%s" } else { "%c: %s" }.to_string();
+    let words = |text: &str| text.split_whitespace().collect::<Vec<_>>().join(" ");
     agenda::day_items(files, today, today, &config)
         .into_iter()
         .filter(|item| item.kind == ItemKind::Deadline && !item.keyword_done && wanted(item.source))
-        .map(|item| org_core::link::descriptions_only(&item.text).split_whitespace().collect::<Vec<_>>().join(" "))
+        .map(|item| {
+            let (Some(format), Some(source)) = (line, item.source) else {
+                return words(&org_core::link::descriptions_only(&item.text));
+            };
+            let (leader, heading) = item.text.split_at(item.heading.min(item.text.len()));
+            let mut values = entry_values(files, source, &config);
+            values.set('w', item.time_of_day.map(time_string_padded).unwrap_or_default());
+            values.set('m', String::new());
+            values.set('a', words(&org_core::link::descriptions_only(heading)));
+            values.set('D', words(leader));
+            expand(format, &|letter| values.get(letter))
+        })
         .collect()
 }
 
@@ -343,11 +474,22 @@ impl Delivery {
     pub fn send(&self, notification: &Notification) -> Result<(), String> {
         let mut errors = Vec::new();
         if let Some(command) = &self.command {
-            let arguments: Vec<String> = command.iter().map(|argument| fill(argument, notification)).collect();
-            let mut program = Command::new(&arguments[0]);
-            program.args(&arguments[1..]);
-            if let Err(error) = run(&mut program) {
-                errors.push(format!("{}: {error}", arguments[0]));
+            // Once for each appointment when the command says something
+            // of an entry, else once for them all.
+            let each = command.iter().any(|argument| has_entry_placeholder(argument));
+            let runs: Vec<(&str, &str, Option<&Values>)> = if each && !notification.parts.is_empty() {
+                notification.parts.iter().map(|part| (&*part.title, &*part.body, Some(&part.values))).collect()
+            } else {
+                vec![(&notification.title, &notification.body, None)]
+            };
+            for (title, body, values) in runs {
+                let arguments: Vec<String> =
+                    command.iter().map(|argument| fill(argument, title, body, values)).collect();
+                let mut program = Command::new(&arguments[0]);
+                program.args(&arguments[1..]);
+                if let Err(error) = run(&mut program) {
+                    errors.push(format!("{}: {error}", arguments[0]));
+                }
             }
         }
         if self.desktop {
@@ -365,23 +507,52 @@ impl Delivery {
 }
 
 /// An argument of `notification_command` with `%t` the title, `%b` the
-/// text and `%%` a `%`.
-fn fill(argument: &str, notification: &Notification) -> String {
+/// text, the placeholders of an entry its `values` (empty without them)
+/// and `%%` a `%`.
+fn fill(argument: &str, title: &str, body: &str, values: Option<&Values>) -> String {
+    expand(argument, &|letter| match letter {
+        't' => Some(title.to_string()),
+        'b' => Some(body.to_string()),
+        letter => values
+            .and_then(|values| values.get(letter))
+            .or_else(|| ENTRY_PLACEHOLDERS.contains(&letter).then(String::new)),
+    })
+}
+
+/// `template` with each `%x` that `value` knows replaced by its value,
+/// `%%` by `%`, and any other `%x` left as it is.
+fn expand(template: &str, value: &dyn Fn(char) -> Option<String>) -> String {
     let mut filled = String::new();
-    let mut chars = argument.chars().peekable();
+    let mut chars = template.chars().peekable();
     while let Some(c) = chars.next() {
-        match (c, chars.peek()) {
-            ('%', Some('t')) => filled.push_str(&notification.title),
-            ('%', Some('b')) => filled.push_str(&notification.body),
-            ('%', Some('%')) => filled.push('%'),
-            _ => {
-                filled.push(c);
-                continue;
+        let found = match (c, chars.peek()) {
+            ('%', Some('%')) => Some("%".to_string()),
+            ('%', Some(letter)) => value(*letter),
+            _ => None,
+        };
+        match found {
+            Some(text) => {
+                filled.push_str(&text);
+                chars.next();
             }
+            None => filled.push(c),
         }
-        chars.next();
     }
     filled
+}
+
+/// Whether `template` has a placeholder of an entry.
+fn has_entry_placeholder(template: &str) -> bool {
+    let mut chars = template.chars();
+    while let Some(c) = chars.next() {
+        if c == '%' {
+            match chars.next() {
+                Some(letter) if ENTRY_PLACEHOLDERS.contains(&letter) => return true,
+                _ => {}
+            }
+        }
+    }
+    false
 }
 
 /// Run `program` and wait for it, until [`SEND_TIME`].
@@ -525,8 +696,13 @@ mod tests {
 
     #[test]
     fn fills_in_the_title_and_text() {
-        let notification = Notification { title: "T".to_string(), body: "B 100%".to_string() };
-        assert_eq!(fill("%t: %b (%%t) %x", &notification), "T: B 100% (%t) %x");
+        assert_eq!(fill("%t: %b (%%t) %x", "T", "B 100%", None), "T: B 100% (%t) %x");
+        let mut values = Values::default();
+        values.set('h', "Standup".to_string());
+        assert_eq!(fill("%t %h%k%", "T", "B", Some(&values)), "T Standup%");
+        assert_eq!(fill("%h|%k", "T", "B", None), "|");
+        assert!(has_entry_placeholder("Tags: %T"));
+        assert!(!has_entry_placeholder("%t %b %%h %x"));
     }
 
     #[test]

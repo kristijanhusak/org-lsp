@@ -995,6 +995,15 @@ pub struct Options {
     /// The program `org-lsp notify` runs for a notification, with its
     /// arguments.
     pub notification_command: Option<Vec<String>>,
+    /// The title of an appointment's notification, with the entry's
+    /// placeholders (`%h`, `%k`, `%w`…); unset, `appt.el`'s mode line.
+    pub notification_title_format: Option<String>,
+    /// The text of an appointment's notification, with the entry's
+    /// placeholders; unset, the line `appt.el` shows (`%a`).
+    pub notification_body_format: Option<String>,
+    /// A line of the deadline summary, with the entry's placeholders and
+    /// `%D` the agenda's leader.
+    pub notification_deadline_line_format: Option<String>,
     /// Whether `org-lsp notify` shows desktop notifications.
     pub notification_desktop: Option<bool>,
     /// RET on the first line of a list item makes the next item, as M-RET.
