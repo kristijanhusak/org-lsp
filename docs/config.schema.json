@@ -5168,7 +5168,11 @@
     },
     "notification_desktop": {
       "type": "boolean",
-      "description": "Whether `org-lsp notify` shows a desktop notification: with `notify-send` on Linux and the other Unix systems, `osascript` on macOS, PowerShell on Windows (BurntToast if it is installed)."
+      "description": "Whether `org-lsp notify` shows a desktop notification: with `notify-send` on Linux and the other Unix systems, `terminal-notifier` on macOS when it is installed and `osascript` otherwise, PowerShell on Windows (BurntToast if it is installed)."
+    },
+    "notification_icon": {
+      "type": "string",
+      "description": "The image of the desktop notifications of `org-lsp notify`: the path of a PNG file (`~/` for the home directory), or `\"\"` for none. Unset, the logo, which it writes to `org-lsp/icon.png` in the user's data directory (`~/.local/share` on Linux). `osascript` shows no image: on macOS it takes `terminal-notifier`."
     },
     "org_cycle_separator_lines": {
       "type": "integer",

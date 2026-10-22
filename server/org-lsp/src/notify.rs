@@ -11,7 +11,7 @@
 //! minutes before it and each `appt-display-interval` minutes after that,
 //! as `appt-check` does, said as `appt-disp-window` says it.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Duration;
 
@@ -104,6 +104,70 @@ pub struct Run {
 pub struct Delivery {
     pub desktop: bool,
     pub command: Option<Vec<String>>,
+    pub icon: Icon,
+}
+
+/// The image of desktop notifications (`notification_icon`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Icon {
+    /// None.
+    None,
+    /// An image of one's own.
+    File(PathBuf),
+    /// The logo, written to this file of the data directory the first
+    /// time it is shown; with no data directory, none.
+    Logo(Option<PathBuf>),
+}
+
+/// The org-lsp logo, as the VS Code extension shows it.
+pub const LOGO: &[u8] = include_bytes!("../../../editors/vscode/icon.png");
+
+impl Icon {
+    /// The image to show: the logo written out first if it is not there
+    /// yet, or none if it cannot be.
+    fn path(&self) -> Option<PathBuf> {
+        match self {
+            Icon::None | Icon::Logo(None) => None,
+            Icon::File(path) => Some(path.clone()),
+            Icon::Logo(Some(path)) => write_logo(path).then(|| path.clone()),
+        }
+    }
+}
+
+/// Whether [`LOGO`] is at `path`: written there unless it already is,
+/// through a file of its own renamed into place, so that a notification
+/// never shows half of it.
+fn write_logo(path: &Path) -> bool {
+    if std::fs::read(path).is_ok_and(|bytes| bytes == LOGO) {
+        return true;
+    }
+    let Some(directory) = path.parent() else { return false };
+    let temporary = directory.join(format!(".icon.png.{}", std::process::id()));
+    let written = std::fs::create_dir_all(directory)
+        .and_then(|()| std::fs::write(&temporary, LOGO))
+        .and_then(|()| std::fs::rename(&temporary, path));
+    if written.is_err() {
+        let _ = std::fs::remove_file(&temporary);
+    }
+    written.is_ok()
+}
+
+/// Where org-lsp keeps its data: `$XDG_DATA_HOME/org-lsp`, else
+/// `~/.local/share/org-lsp`; on macOS `~/Library/Application
+/// Support/org-lsp`, on Windows `%LOCALAPPDATA%\org-lsp`.
+pub fn data_directory(var: &dyn Fn(&str) -> Option<String>) -> Option<PathBuf> {
+    let set = |name: &str| var(name).filter(|value| !value.is_empty());
+    if cfg!(windows) {
+        return set("LOCALAPPDATA").map(|local| PathBuf::from(local).join("org-lsp"));
+    }
+    let home = set("HOME");
+    if cfg!(target_os = "macos") {
+        return home.map(|home| PathBuf::from(home).join("Library").join("Application Support").join("org-lsp"));
+    }
+    if let Some(data) = set("XDG_DATA_HOME") {
+        return Some(PathBuf::from(data).join("org-lsp"));
+    }
+    home.map(|home| PathBuf::from(home).join(".local").join("share").join("org-lsp"))
 }
 
 /// `org-lsp notify` with the arguments after the subcommand: the options
@@ -152,7 +216,12 @@ pub fn prepare(arguments: &[String], env: &dyn Fn(&str) -> Option<String>) -> Re
         }
     }
     let command = options.notification_command.clone().filter(|command| !command.is_empty());
-    let delivery = Delivery { desktop: options.notification_desktop.unwrap_or(command.is_none()), command };
+    let icon = match options.notification_icon.as_deref() {
+        Some("") => Icon::None,
+        Some(path) => Icon::File(crate::config::expand_home(path, env)),
+        None => Icon::Logo(data_directory(env).map(|directory| directory.join("icon.png"))),
+    };
+    let delivery = Delivery { desktop: options.notification_desktop.unwrap_or(command.is_none()), command, icon };
     let notifications = due(&files, options, now, &mut problems);
     Ok(Run { notifications, dry_run, delivery, problems })
 }
@@ -493,7 +562,8 @@ impl Delivery {
             }
         }
         if self.desktop {
-            let (name, mut program) = desktop(notification);
+            let icon = self.icon.path();
+            let (name, mut program) = desktop(System::current(), notification, icon.as_deref(), &find_program);
             if let Err(error) = run(&mut program) {
                 errors.push(format!("{name}: {error}"));
             }
@@ -573,48 +643,115 @@ fn run(program: &mut Command) -> Result<(), String> {
     Err(if said.is_empty() { output.status.to_string() } else { said })
 }
 
-/// The program that shows `notification` on the desktop, and its name:
-/// `notify-send` (Linux and other Unix systems), `osascript` (macOS) or
-/// PowerShell (Windows). Title and text are arguments of their own, or
-/// the environment, never part of a script.
-fn desktop(notification: &Notification) -> (&'static str, Command) {
-    if cfg!(target_os = "macos") {
-        let mut program = Command::new("osascript");
-        program.args([
-            "-e",
-            "on run argv",
-            "-e",
-            "display notification (item 2 of argv) with title (item 1 of argv)",
-            "-e",
-            "end run",
-            &notification.title,
-            &notification.body,
-        ]);
-        ("osascript", program)
-    } else if cfg!(windows) {
-        let mut program = Command::new("powershell.exe");
-        program.args(["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", WINDOWS_TOAST]);
-        program.env("ORG_LSP_TITLE", &notification.title).env("ORG_LSP_BODY", &notification.body);
-        ("powershell.exe", program)
-    } else {
-        let mut program = Command::new("notify-send");
-        program.args(["--app-name=org-lsp", "--", &notification.title, &notification.body]);
-        ("notify-send", program)
+/// The kinds of system whose desktop notifications differ.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum System {
+    MacOs,
+    Windows,
+    /// Linux and the other Unix systems.
+    Other,
+}
+
+impl System {
+    fn current() -> System {
+        if cfg!(target_os = "macos") {
+            System::MacOs
+        } else if cfg!(windows) {
+            System::Windows
+        } else {
+            System::Other
+        }
     }
 }
 
-/// A toast with the title and text of `ORG_LSP_TITLE` and `ORG_LSP_BODY`:
-/// BurntToast's when it is installed, else Windows's own, in the name of
-/// PowerShell.
-const WINDOWS_TOAST: &str = "$title = $env:ORG_LSP_TITLE; $body = $env:ORG_LSP_BODY; \
+/// The program named `name` in a directory of `PATH`, or on macOS in
+/// one of Homebrew's, which launchd leaves out of the `PATH` of a
+/// LaunchAgent.
+fn find_program(name: &str) -> Option<PathBuf> {
+    let path = std::env::var_os("PATH").unwrap_or_default();
+    let homebrew = if cfg!(target_os = "macos") { &["/opt/homebrew/bin", "/usr/local/bin"][..] } else { &[] };
+    std::env::split_paths(&path)
+        .chain(homebrew.iter().map(PathBuf::from))
+        .map(|directory| directory.join(name))
+        .find(|program| program.is_file())
+}
+
+/// The program that shows `notification` on the desktop of `system`,
+/// with the image `icon`, and its name: `notify-send` (Linux and other
+/// Unix systems); on macOS `terminal-notifier` when `find` finds it,
+/// else `osascript`, which shows no image; PowerShell on Windows. Title
+/// and text are arguments of their own, or the environment, never part
+/// of a script.
+fn desktop(
+    system: System,
+    notification: &Notification,
+    icon: Option<&Path>,
+    find: &dyn Fn(&str) -> Option<PathBuf>,
+) -> (&'static str, Command) {
+    let terminal_notifier = if system == System::MacOs { find("terminal-notifier") } else { None };
+    match (system, terminal_notifier) {
+        (System::MacOs, Some(terminal_notifier)) => {
+            let mut program = Command::new(terminal_notifier);
+            program.args(["-title", &notification.title, "-message", &notification.body, "-group", "org-lsp"]);
+            if let Some(icon) = icon {
+                program.arg("-appIcon").arg(icon);
+            }
+            ("terminal-notifier", program)
+        }
+        (System::MacOs, None) => {
+            let mut program = Command::new("osascript");
+            program.args([
+                "-e",
+                "on run argv",
+                "-e",
+                "display notification (item 2 of argv) with title (item 1 of argv)",
+                "-e",
+                "end run",
+                &notification.title,
+                &notification.body,
+            ]);
+            ("osascript", program)
+        }
+        (System::Windows, _) => {
+            let mut program = Command::new("powershell.exe");
+            program.args(["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", WINDOWS_TOAST]);
+            program.env("ORG_LSP_TITLE", &notification.title).env("ORG_LSP_BODY", &notification.body);
+            program.env("ORG_LSP_ICON", icon.map(Path::as_os_str).unwrap_or_default());
+            ("powershell.exe", program)
+        }
+        (System::Other, _) => {
+            let mut program = Command::new("notify-send");
+            program.arg("--app-name=org-lsp");
+            if let Some(icon) = icon {
+                let mut argument = std::ffi::OsString::from("--icon=");
+                argument.push(icon);
+                program.arg(argument);
+            }
+            program.args(["--", &notification.title, &notification.body]);
+            ("notify-send", program)
+        }
+    }
+}
+
+/// A toast with the title and text of `ORG_LSP_TITLE` and `ORG_LSP_BODY`
+/// and the image of `ORG_LSP_ICON` if it is set: BurntToast's when it is
+/// installed, else Windows's own, in the name of PowerShell.
+const WINDOWS_TOAST: &str = "$title = $env:ORG_LSP_TITLE; $body = $env:ORG_LSP_BODY; $icon = $env:ORG_LSP_ICON; \
 if (Get-Module -ListAvailable -Name BurntToast) { \
-Import-Module BurntToast; New-BurntToastNotification -Text $title, $body \
+Import-Module BurntToast; \
+if ($icon) { New-BurntToastNotification -Text $title, $body -AppLogo $icon } \
+else { New-BurntToastNotification -Text $title, $body } \
 } else { \
 [Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null; \
-$xml = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent([Windows.UI.Notifications.ToastTemplateType]::ToastText02); \
+$template = if ($icon) { [Windows.UI.Notifications.ToastTemplateType]::ToastImageAndText02 } \
+else { [Windows.UI.Notifications.ToastTemplateType]::ToastText02 }; \
+$xml = [Windows.UI.Notifications.ToastNotificationManager]::GetTemplateContent($template); \
 $texts = $xml.GetElementsByTagName('text'); \
 [void]$texts.Item(0).AppendChild($xml.CreateTextNode($title)); \
 [void]$texts.Item(1).AppendChild($xml.CreateTextNode($body)); \
+if ($icon) { \
+$xml.GetElementsByTagName('image').Item(0).Attributes.GetNamedItem('src').NodeValue = ([System.Uri]$icon).AbsoluteUri \
+}; \
 $toast = [Windows.UI.Notifications.ToastNotification]::new($xml); \
 $app = '{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\\WindowsPowerShell\\v1.0\\powershell.exe'; \
 [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($app).Show($toast) \
@@ -715,5 +852,67 @@ mod tests {
         // Any word, as the regexps find it.
         assert!(is_done("Call about DONE things", &keywords));
         assert!(!is_done("TODO Review DONE things", &keywords));
+    }
+
+    /// The program and arguments of `program`.
+    fn command_line(program: &Command) -> Vec<String> {
+        std::iter::once(program.get_program())
+            .chain(program.get_args())
+            .map(|argument| argument.to_string_lossy().into_owned())
+            .collect()
+    }
+
+    #[test]
+    fn shows_the_icon_with_the_program_of_each_system() {
+        let notification = Notification { title: "T".to_string(), body: "B".to_string(), parts: Vec::new() };
+        let icon = Path::new("/data/org-lsp/icon.png");
+        let brew = "/opt/homebrew/bin/terminal-notifier";
+        let with = |name: &str| (name == "terminal-notifier").then(|| PathBuf::from(brew));
+        let without = |_: &str| None;
+        let (name, program) = desktop(System::MacOs, &notification, Some(icon), &with);
+        assert_eq!(name, "terminal-notifier");
+        assert_eq!(
+            command_line(&program),
+            [brew, "-title", "T", "-message", "B", "-group", "org-lsp", "-appIcon", "/data/org-lsp/icon.png"]
+        );
+        let (_, program) = desktop(System::MacOs, &notification, None, &with);
+        assert_eq!(command_line(&program), [brew, "-title", "T", "-message", "B", "-group", "org-lsp"]);
+        // Elsewhere it is not looked for.
+        let (name, _) = desktop(System::Other, &notification, None, &with);
+        assert_eq!(name, "notify-send");
+        let (name, program) = desktop(System::MacOs, &notification, Some(icon), &without);
+        assert_eq!(name, "osascript");
+        assert_eq!(command_line(&program)[7..], ["T", "B"]);
+        let (_, program) = desktop(System::Other, &notification, Some(icon), &without);
+        assert_eq!(
+            command_line(&program),
+            ["notify-send", "--app-name=org-lsp", "--icon=/data/org-lsp/icon.png", "--", "T", "B"]
+        );
+        let (_, program) = desktop(System::Windows, &notification, Some(icon), &without);
+        let icon_variable = program.get_envs().find(|(name, _)| *name == "ORG_LSP_ICON").and_then(|(_, value)| value);
+        assert_eq!(icon_variable, Some(icon.as_os_str()));
+        let (_, program) = desktop(System::Windows, &notification, None, &without);
+        let icon_variable = program.get_envs().find(|(name, _)| *name == "ORG_LSP_ICON").and_then(|(_, value)| value);
+        assert_eq!(icon_variable, Some(std::ffi::OsStr::new("")));
+    }
+
+    #[test]
+    fn writes_the_logo_once() {
+        let directory = std::env::temp_dir().join(format!("org-lsp-notify-logo-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&directory);
+        let path = directory.join("org-lsp").join("icon.png");
+        assert_eq!(Icon::Logo(Some(path.clone())).path(), Some(path.clone()));
+        assert_eq!(std::fs::read(&path).unwrap(), LOGO);
+        // Another image there is replaced.
+        std::fs::write(&path, b"old").unwrap();
+        assert_eq!(Icon::Logo(Some(path.clone())).path(), Some(path.clone()));
+        assert_eq!(std::fs::read(&path).unwrap(), LOGO);
+        assert_eq!(std::fs::read_dir(path.parent().unwrap()).unwrap().count(), 1);
+        // Where it cannot be written: no image.
+        let blocked = directory.join("file");
+        std::fs::write(&blocked, b"").unwrap();
+        assert_eq!(Icon::Logo(Some(blocked.join("icon.png"))).path(), None);
+        assert_eq!(Icon::Logo(None).path(), None);
+        let _ = std::fs::remove_dir_all(&directory);
     }
 }
