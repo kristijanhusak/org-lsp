@@ -51,6 +51,7 @@ const NAV: &[(&str, &[(&str, &str)])] = &[
             ("docs/plugins.org", "Plugins"),
             ("docs/org-protocol.org", "org-protocol"),
             ("docs/mcp.org", "MCP"),
+            ("docs/notifications.org", "Notifications"),
             ("docs/parity.org", "Parity with Emacs"),
         ],
     ),

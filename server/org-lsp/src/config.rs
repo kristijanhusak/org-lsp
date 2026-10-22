@@ -981,6 +981,22 @@ pub struct Options {
     /// `org-lsp mcp` may change files: the tools that set TODO states and
     /// capture.
     pub mcp_edits: Option<bool>,
+    /// `appt-message-warning-time`: how many minutes before an appointment
+    /// `org-lsp notify` starts reminding of it, or the minutes it reminds
+    /// at.
+    pub appt_message_warning_time: Option<WarningTime>,
+    /// `appt-display-interval`
+    pub appt_display_interval: Option<i64>,
+    /// The time of day (`HH:MM`) `org-lsp notify` lists the deadlines at.
+    pub notification_deadline_summary_time: Option<String>,
+    /// The entries `org-lsp notify` reminds of: a match string of the tags
+    /// view.
+    pub notification_match: Option<String>,
+    /// The program `org-lsp notify` runs for a notification, with its
+    /// arguments.
+    pub notification_command: Option<Vec<String>>,
+    /// Whether `org-lsp notify` shows desktop notifications.
+    pub notification_desktop: Option<bool>,
     /// RET on the first line of a list item makes the next item, as M-RET.
     pub return_uses_meta_return: Option<bool>,
     /// `org-return-follows-link`
@@ -3636,6 +3652,16 @@ impl ClockOption {
         };
         Some(org_core::agenda::Now { today, minute })
     }
+}
+
+/// `appt-message-warning-time`: the minutes before an appointment its
+/// reminders start, one each `appt-display-interval` minutes from then, as
+/// in Emacs; or, as org-lsp's own, the minutes before it of each reminder.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum WarningTime {
+    Minutes(i64),
+    Each(Vec<i64>),
 }
 
 /// A span given as a name or as a number of days.

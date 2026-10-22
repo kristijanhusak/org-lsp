@@ -11,12 +11,19 @@
 #   scripts/install.sh protocol    org-lsp as the handler of org-protocol:// URLs
 #                                  (docs/org-protocol.org), the server too if
 #                                  it is not there
+#   scripts/install.sh notifications
+#                                  reminders of appointments (`org-lsp notify`
+#                                  each minute, docs/notifications.org): a
+#                                  systemd user timer or a crontab line, a
+#                                  LaunchAgent on macOS, a scheduled task on
+#                                  Windows; the server too if it is not there
 #
 # Options, before the editor:
 #   --release v0.2.0   a release other than the nightly build
 #   --source           the server built from this checkout (cargo), and the
 #                      VS Code extension too (npm); the Sublime Text package
 #                      linked from it
+#   --remove           with notifications: take the reminders away
 #
 # Without a checkout:
 #   curl -fsSL https://github.com/kristijanhusak/org-lsp/releases/download/nightly/install.sh | bash -s -- zed
@@ -37,9 +44,9 @@ releases=${ORG_LSP_RELEASES:-https://github.com/$repo/releases/download}
 # to read it from.
 usage() {
   if [ -f "${BASH_SOURCE[0]:-}" ]; then
-    sed -n '2,28s/^# \{0,1\}//p' "${BASH_SOURCE[0]}"
+    sed -n '2,35s/^# \{0,1\}//p' "${BASH_SOURCE[0]}"
   else
-    say "Usage: install.sh [--release TAG] [--source] vscode|sublime|zed|helix|server|protocol"
+    say "Usage: install.sh [--release TAG] [--source] [--remove] vscode|sublime|zed|helix|server|protocol|notifications"
     say "See https://github.com/$repo/blob/main/scripts/install.sh for more."
   fi
 }
@@ -190,6 +197,195 @@ install_protocol() {
     windows) register_protocol_windows "$path" ;;
     *) fail "org-protocol cannot be registered on $(uname -s) by this script: see docs/org-protocol.org." ;;
   esac
+}
+
+# `org-lsp notify` each minute, the way the platform runs a program on a
+# schedule: it reminds of the appointments due that minute. The server in
+# ~/.local/bin, installed there first unless it is there already. With
+# --remove, what an earlier run made goes.
+install_notifications() {
+  if $remove; then
+    case "$os" in
+      linux) remove_notifications_linux ;;
+      macos) remove_notifications_macos ;;
+      windows) remove_notifications_windows ;;
+      *) fail "There are no notifications to remove on $(uname -s): see docs/notifications.org." ;;
+    esac
+    return
+  fi
+  local dir=${ORG_LSP_BIN_DIR:-$HOME/.local/bin} path
+  if $source || [ ! -x "$dir/$exe" ]; then
+    path=$(install_server "$dir")
+  else
+    path=$dir/$exe
+  fi
+  case "$os" in
+    linux) notifications_linux "$path" ;;
+    macos) notifications_macos "$path" ;;
+    windows) notifications_windows "$path" ;;
+    *) fail "Notifications cannot be set up on $(uname -s) by this script: run \`$path notify\` each minute (docs/notifications.org)." ;;
+  esac
+  say "To see what it would send at a time: $path notify --dry-run --now \"$(date '+%Y-%m-%d') 09:48\""
+}
+
+# Whether the user's systemd instance runs: then it has the timers.
+systemd_user() {
+  command -v systemctl > /dev/null && systemctl --user show-environment > /dev/null 2>&1
+}
+
+# What marks the crontab's line, to find it again.
+cron_mark='# org-lsp notify (scripts/install.sh notifications)'
+
+# Linux: a systemd user timer when systemd runs the user's session, else a
+# line of the user's crontab, added once.
+notifications_linux() {
+  local path=$1
+  if systemd_user; then
+    local units=${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user
+    mkdir -p "$units"
+    # systemd's quoting: the path in double quotes, `"` and `\` escaped,
+    # `%` and `$` doubled.
+    local quoted
+    quoted=$(printf '%s' "$path" | sed 's/[\\"]/\\&/g; s/%/%%/g; s/\$/$$/g')
+    cat > "$units/org-lsp-notify.service" << EOF
+[Unit]
+Description=Reminders of Org appointments (org-lsp notify)
+
+[Service]
+Type=oneshot
+ExecStart="$quoted" notify
+EOF
+    cat > "$units/org-lsp-notify.timer" << 'EOF'
+[Unit]
+Description=Run org-lsp notify each minute
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target
+EOF
+    systemctl --user daemon-reload
+    systemctl --user enable --now org-lsp-notify.timer
+    say "Wrote $units/org-lsp-notify.service and .timer; the timer runs it each minute (systemctl --user list-timers)."
+    return
+  fi
+  command -v crontab > /dev/null ||
+    fail "There is neither a systemd user instance nor crontab: run \`$path notify\` each minute another way (docs/notifications.org)."
+  local current
+  current=$(crontab -l 2> /dev/null || true)
+  if printf '%s\n' "$current" | grep -qF "$cron_mark"; then
+    say "The crontab runs org-lsp notify already (crontab -l)."
+    return
+  fi
+  # The shell's quoting, and cron's: a `%` ends the command unless escaped.
+  # notify-send reaches the desktop through the session's bus, which cron
+  # does not say where to find.
+  local quoted
+  quoted="'$(printf '%s' "$path" | sed "s/'/'\\\\''/g; s/%/\\\\%/g")'"
+  local line="* * * * * DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus $quoted notify $cron_mark"
+  {
+    [ -n "$current" ] && printf '%s\n' "$current"
+    printf '%s\n' "$line"
+  } | crontab -
+  say "Added to the crontab: $line"
+}
+
+remove_notifications_linux() {
+  local units=${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user
+  if [ -f "$units/org-lsp-notify.timer" ]; then
+    if systemd_user; then
+      systemctl --user disable --now org-lsp-notify.timer || true
+    fi
+    rm -f "$units/org-lsp-notify.timer" "$units/org-lsp-notify.service"
+    if systemd_user; then
+      systemctl --user daemon-reload || true
+    fi
+    say "Removed the org-lsp-notify timer."
+  fi
+  if command -v crontab > /dev/null; then
+    local current
+    current=$(crontab -l 2> /dev/null || true)
+    if printf '%s\n' "$current" | grep -qF "$cron_mark"; then
+      # grep fails when no line is left.
+      { printf '%s\n' "$current" | grep -vF "$cron_mark" || true; } | crontab -
+      say "Removed org-lsp notify from the crontab."
+    fi
+  fi
+}
+
+# macOS: a LaunchAgent that runs it at the start of each minute (a calendar
+# interval with no fields).
+launch_agent() {
+  printf '%s\n' "$HOME/Library/LaunchAgents/org.org-lsp.notify.plist"
+}
+
+notifications_macos() {
+  local path=$1 plist
+  plist=$(launch_agent)
+  mkdir -p "$(dirname "$plist")"
+  # XML's escapes for the path.
+  local escaped
+  escaped=$(printf '%s' "$path" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g')
+  cat > "$plist" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>org.org-lsp.notify</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>$escaped</string>
+    <string>notify</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict/>
+</dict>
+</plist>
+EOF
+  launchctl bootout "gui/$(id -u)" "$plist" 2> /dev/null || true
+  launchctl bootstrap "gui/$(id -u)" "$plist" 2> /dev/null || launchctl load -w "$plist"
+  say "Wrote $plist, which runs org-lsp notify each minute."
+}
+
+remove_notifications_macos() {
+  local plist
+  plist=$(launch_agent)
+  if [ -f "$plist" ]; then
+    launchctl bootout "gui/$(id -u)" "$plist" 2> /dev/null || launchctl unload "$plist" 2> /dev/null || true
+    rm -f "$plist"
+    say "Removed $plist."
+  fi
+}
+
+# Windows: a scheduled task each minute. It runs a script of the Windows
+# Script Host, which starts org-lsp with no window: one would flash each
+# minute.
+notify_script() {
+  printf '%s\n' "${LOCALAPPDATA:-$HOME/AppData/Local}/org-lsp/notify.vbs"
+}
+
+notifications_windows() {
+  local path=$1 windows_path script windows_script
+  windows_path=$(cygpath -w "$path" 2> /dev/null || printf '%s' "$path")
+  script=$(notify_script)
+  mkdir -p "$(dirname "$script")"
+  # VBScript's quoting: `"` doubled.
+  printf 'CreateObject("WScript.Shell").Run """%s"" notify", 0, False\r\n' "${windows_path//\"/\"\"}" > "$script"
+  windows_script=$(cygpath -w "$script" 2> /dev/null || printf '%s' "$script")
+  MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' schtasks /Create /F /SC MINUTE /MO 1 /TN org-lsp-notify \
+    /TR "wscript.exe //B //Nologo \"$windows_script\"" > /dev/null
+  say "Made the scheduled task org-lsp-notify, which runs org-lsp notify each minute."
+}
+
+remove_notifications_windows() {
+  if MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' schtasks /Query /TN org-lsp-notify > /dev/null 2>&1; then
+    MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' schtasks /Delete /F /TN org-lsp-notify > /dev/null
+    say "Removed the scheduled task org-lsp-notify."
+  fi
+  rm -f "$(notify_script)"
 }
 
 # Linux: a desktop entry that takes the scheme, hidden from menus, made the
@@ -555,6 +751,7 @@ install_helix() {
 main() {
   release=nightly
   source=false
+  remove=false
   editor=
   while [ $# -gt 0 ]; do
     case "$1" in
@@ -564,11 +761,12 @@ main() {
         ;;
       --release=*) release=${1#*=} ;;
       --source) source=true ;;
+      --remove) remove=true ;;
       -h | --help)
         usage
         exit 0
         ;;
-      vscode | sublime | zed | helix | server | protocol) editor=$1 ;;
+      vscode | sublime | zed | helix | server | protocol | notifications) editor=$1 ;;
       *)
         echo "Unknown argument: $1 (see --help)" >&2
         exit 2
@@ -618,6 +816,7 @@ main() {
     helix) install_helix ;;
     server) install_server_on_path ;;
     protocol) install_protocol ;;
+    notifications) install_notifications ;;
   esac
 }
 

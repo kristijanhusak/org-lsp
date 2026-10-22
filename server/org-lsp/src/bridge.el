@@ -1501,8 +1501,14 @@ the appointment window showed, and how many appointments are left."
 (defun org-lsp-bridge-appt (params)
   "`org-agenda-to-appt' on the agenda files of PARAMS (`files'), those the
 editor has open as it has them (`texts', each a file and its text), with
-`C-u' when `refresh'."
+`C-u' when `refresh'; `appt-message-warning-time' and
+`appt-display-interval' are `warning_time' and `interval' when given."
   (require 'org-agenda)
+  (require 'appt)
+  (when (natnump (alist-get 'warning_time params))
+    (setq appt-message-warning-time (alist-get 'warning_time params)))
+  (when (and (natnump (alist-get 'interval params)) (> (alist-get 'interval params) 0))
+    (setq appt-display-interval (alist-get 'interval params)))
   (let ((org-agenda-files (append (alist-get 'files params) nil))
         (buffers nil))
     (unwind-protect

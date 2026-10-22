@@ -1,0 +1,25 @@
+* Talk about DONE things <2026-10-22 Thu 09:00>
+* TODO Review DONE work <2026-10-22 Thu 09:30>
+* Project
+:PROPERTIES:
+:APPT_WARNTIME: 45
+:END:
+** Child of a project with a warning time <2026-10-22 Thu 11:15>
+* Late night <2026-10-22 Thu 23:59>
+* Early <2026-10-22 Thu 0:05>
+* Monthly <2026-09-22 Tue 16:45 +1m>
+* Not today <2026-10-23 Fri 10:00>
+* Every other day <2026-10-20 Tue 08:10 ++2d>
+* Inactive [2026-10-22 Thu 12:30]
+* TODO Scheduled timed with a warning
+SCHEDULED: <2026-10-22 Thu 19:30>
+:PROPERTIES:
+:APPT_WARNTIME: 5
+:END:
+* Duplicate <2026-10-22 Thu 12:00>
+* Duplicate <2026-10-22 Thu 12:00>
+* A [[file:x.org]] bare link <2026-10-22 Thu 12:45>
+* TODO Deadline in the warning period
+DEADLINE: <2026-10-24 Sat 09:00>
+* DONE Done deadline today
+DEADLINE: <2026-10-22 Thu 15:00>
