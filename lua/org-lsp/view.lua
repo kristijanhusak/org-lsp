@@ -867,6 +867,13 @@ M.handlers = {
     end
   end,
 
+  --- Where the code of source, export and inline source blocks is, to
+  --- color in its language.
+  ['org-lsp/codeBlocks'] = function(_, params, ctx)
+    local client = vim.lsp.get_client_by_id(ctx.client_id)
+    require('org-lsp.src').apply(params, client and client.offset_encoding or 'utf-16')
+  end,
+
   --- What stands in for hidden text: entities, sub- and superscripts,
   --- shrunk table fields.
   ['org-lsp/display'] = function(_, params, ctx)

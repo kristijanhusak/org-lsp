@@ -29,7 +29,7 @@ local SERVER = 'org_lsp'
 ---@field startup_folded? 'showeverything'|'overview' How a newly opened file shows when neither the settings' `org_startup_folded` nor its `#+STARTUP:` say: everything open or every subtree folded. The file's `#+STARTUP:` and `VISIBILITY` properties always decide for it.
 ---@field folding? boolean Whether to fold with the server's folding ranges.
 ---@field replace_syntax? boolean Whether to turn off Vim's regex syntax once semantic tokens arrive.
----@field src_highlight? boolean Whether the code of source and export blocks and of inline source blocks (`#+begin_src python`, `src_python{…}`) is highlighted by the tree-sitter parser of its language, or its Vim syntax file when there is no parser, as Emacs's `org-src-fontify-natively` shows it.
+---@field src_highlight? boolean Whether the code of source and export blocks and of inline source blocks (`#+begin_src python`, `src_python{…}`) is highlighted where the server says it is (`org-lsp/codeBlocks`) by the tree-sitter parser of its language, or its Vim syntax file in regions of the buffer's syntax when there is no parser, as Emacs's `org-src-fontify-natively` shows it.
 ---@field conceal? boolean Whether to conceal what the server marks hidden (link brackets and targets; emphasis markers with `org_hide_emphasis_markers`), with 'conceallevel' 2 in Org windows (a level set already, as by a `FileType` autocommand, stays).
 ---@field indent? boolean Whether the server indents as Org does: new lines through 'indentexpr' (`org-indent-line`), and `=` (`org-indent-region`), following `org_adapt_indentation`.
 ---@field virtual_indent? boolean Whether files with `org-indent-mode` (`org_startup_indented`, `#+STARTUP: indent`) show indented by level, without being changed, and with hidden leading stars (`org_hide_leading_stars`, `#+STARTUP: hidestars`).
@@ -1126,6 +1126,8 @@ local function replace_syntax(bufnr)
     callback = function()
       if vim.bo[bufnr].syntax == 'org' then
         vim.bo[bufnr].syntax = ''
+        -- The regions of code in the syntax of its language go with it.
+        require('org-lsp.src').reapply(bufnr)
       end
     end,
   })
@@ -1234,9 +1236,6 @@ local function on_attach(client, bufnr)
   if M.config.conceal then
     conceal(bufnr)
   end
-  if M.config.src_highlight then
-    require('org-lsp.src').attach(bufnr)
-  end
   if preview then
     return
   end
@@ -1299,9 +1298,13 @@ local function enable()
     cmd = cmd,
     filetypes = { 'org' },
     init_options = M.server_settings(),
-    -- Images in place of text, where Neovim can draw them.
+    -- Images in place of text, where Neovim can draw them; code in its
+    -- language's colors, where the server says it is.
     capabilities = vim.tbl_deep_extend('force', view.capabilities, {
-      experimental = { orgImages = require('org-lsp.images').supported() },
+      experimental = {
+        orgImages = require('org-lsp.images').supported(),
+        orgCodeBlocks = M.config.src_highlight and true or false,
+      },
     }),
     handlers = view.handlers,
     on_init = on_init,

@@ -114,6 +114,7 @@ function! org_lsp#init_options() abort
         \ 'virtual_documents': v:false,
         \ 'virtual_indent': org_lsp#config().virtual_indent && s:has_virtual_text() ? v:true : v:false,
         \ 'line_highlights': v:true,
+        \ 'code_blocks': org_lsp#config().src_highlight ? v:true : v:false,
         \ 'run_command': v:true,
         \ 'message_requests': v:false,
         \ 'message_notifications': v:true,
@@ -2156,6 +2157,8 @@ function! org_lsp#handle_notification(method, params) abort
     call s:virtual_indent(a:params)
   elseif a:method ==# 'org-lsp/lineHighlights'
     call s:line_highlights(a:params)
+  elseif a:method ==# 'org-lsp/codeBlocks'
+    call s:code_blocks(a:params)
   elseif a:method ==# 'org-lsp/columns'
     call s:columns_show(a:params)
   elseif a:method ==# 'org-lsp/folds'
@@ -3038,54 +3041,57 @@ function! org_lsp#attach() abort
   call s:first_refresh(nr, 0)
 endfunction
 
-" Org's names for languages (`org-src-lang-modes`, Emacs's mode names)
+" The editor's names of languages (the server's, `org-lsp/codeBlocks`)
 " where Vim's syntax file has another.
-let s:src_aliases = {
-      \ 'emacs-lisp': 'lisp', 'elisp': 'lisp', 'shell': 'sh', 'bash': 'sh',
-      \ 'js': 'javascript', 'ts': 'typescript', 'py': 'python', 'rb': 'ruby',
-      \ 'c++': 'cpp', 'yml': 'yaml', 'sqlite': 'sql', 'rs': 'rust',
-      \ }
+let s:src_syntaxes = {'elisp': 'lisp', 'bash': 'sh'}
 
-" Source blocks (`#+begin_src python`) in their language's syntax, as Emacs
-" shows them with `org-src-fontify-natively`: the language's syntax file
-" included once for each language the buffer has, as Vim's Markdown does
-" for fenced code. The server leaves a block's code to the editor.
-function! s:src_syntax() abort
-  if !org_lsp#config().src_highlight
+" Where the code of a file's source, export and inline source blocks is
+" (`org-lsp/codeBlocks`): `blocks` of `{range, language, name, kind}`.
+" Kept with the buffer, and shown when it is the current one, as syntax
+" works in the current buffer.
+function! s:code_blocks(params) abort
+  let nr = bufnr(org_lsp#uri_to_path(a:params.uri))
+  if nr < 0 || !bufloaded(nr)
     return
   endif
-  let done = get(b:, 'org_lsp_src_languages', {})
-  " Source and export blocks (`#+begin_src LANG`, `#+begin_export LANG`),
-  " and inline source blocks (`src_LANG{CODE}`), by language.
-  let wanted = []
-  for line in getline(1, '$')
-    let block = matchlist(line, '\c^\s*#+begin_\(src\|export\)\s\+\(\S\+\)')
-    if !empty(block)
-      call add(wanted, [tolower(block[1]), block[2]])
-      continue
-    endif
-    let at = 0
-    while 1
-      let [name, start, end] = matchstrpos(line, '\%(^\|[^[:alnum:]_-]\)\@<=src_\zs[^ \t[{]\+', at)
-      if start < 0
-        break
-      endif
-      call add(wanted, ['inline', name])
-      let at = end
-    endwhile
+  call setbufvar(nr, 'org_lsp_code_blocks', get(a:params, 'blocks', []))
+  if bufnr() == nr
+    call s:src_syntax()
+  endif
+endfunction
+
+" The code of source and export blocks (`#+begin_src python`) and inline
+" source blocks (`src_python{…}`) in its language's syntax, as Emacs shows
+" it with `org-src-fontify-natively`, where the server says it is: the
+" language's syntax file included once, as Vim's Markdown does for fenced
+" code, and a region for each piece of code from where it starts to where
+" it ends, made again each time the server says. For older text than the
+" buffer has, newer blocks are on their way.
+function! s:src_syntax() abort
+  let blocks = get(b:, 'org_lsp_code_blocks', [])
+  let groups = get(b:, 'org_lsp_src_groups', [])
+  for group in groups
+    execute 'silent! syntax clear ' . group
   endfor
-  for [kind, name] in wanted
-    if has_key(done, kind . ':' . name)
+  let b:org_lsp_src_groups = []
+  if !org_lsp#config().src_highlight || empty(blocks)
+    return
+  endif
+  let last = line('$')
+  let groups = {}
+  for block in blocks
+    let lang = get(s:src_syntaxes, block.language, block.language)
+    if type(lang) != v:t_string || lang !~# '^\w\+$' || empty(globpath(&runtimepath, 'syntax/' . lang . '.vim'))
       continue
     endif
-    let done[kind . ':' . name] = 1
-    let lang = get(s:src_aliases, tolower(name), tolower(name))
-    if lang !~# '^\w\+$' || empty(globpath(&runtimepath, 'syntax/' . lang . '.vim'))
+    let start = block.range.start
+    let end = block.range.end
+    if end.line >= last
       continue
     endif
     let cluster = 'orgLspSrc_' . lang
-    if !has_key(done, '@' . lang)
-      let done['@' . lang] = 1
+    " Vim's syntax for the buffer forgets the file when it is set again.
+    if execute('silent! syntax list @' . cluster) !~# '\<' . cluster . ' cluster='
       let current = get(b:, 'current_syntax', v:null)
       unlet! b:current_syntax
       execute 'silent! syntax include @' . cluster . ' syntax/' . lang . '.vim'
@@ -3095,19 +3101,16 @@ function! s:src_syntax() abort
         let b:current_syntax = current
       endif
     endif
-    let pattern = escape(name, '/\.*$^~[]')
-    if kind ==# 'inline'
-      " To the first `}`: braces in the code end it early.
-      execute 'syntax region ' . cluster . ' oneline keepend matchgroup=orgLspSrcDelimiter'
-            \ . ' start=/\%(^\|[^[:alnum:]_-]\)\@<=src_' . pattern . '\%(\[[^]]*\]\)\={/'
-            \ . ' end=/}/ contains=@' . cluster
-    else
-      execute 'syntax region ' . cluster . ' keepend matchgroup=orgLspSrcDelimiter'
-            \ . ' start=/\c^\s*#+begin_' . kind . '\s\+' . pattern . '\%(\s\|$\).*$/'
-            \ . ' end=/\c^\s*#+end_' . kind . '\>.*$/ contains=@' . cluster
-    endif
+    let group = 'orgLspSrcCode_' . lang
+    let groups[group] = 1
+    let col = s:byte(getline(start.line + 1), start.character)
+    let end_col = s:byte(getline(end.line + 1), end.character)
+    execute printf('syntax region %s start=/\%%%dl\%%%dc/ end=/\%%%dl\%%%dc/ keepend contains=@%s',
+          \ group, start.line + 1, col + 1, end.line + 1, end_col + 1, cluster)
   endfor
-  let b:org_lsp_src_languages = done
+  " The files included sync as suits their language alone.
+  syntax sync fromstart
+  let b:org_lsp_src_groups = keys(groups)
 endfunction
 
 " Whether the server answers for buffer `nr`.

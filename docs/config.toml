@@ -1691,6 +1691,14 @@ org_bullets_checkboxes = { todo = " ", half = "-", done = "✓" }
 
 # ----- Source blocks and tangling
 
+# The major mode, without `-mode`, of a language of source blocks, over Org's
+# own (`elisp` → `emacs-lisp`, `sh` → `sh`): `{ "ipython": "python" }`. Neovim
+# and Vim color the code of a block in the language of its mode
+# (`org-lsp/codeBlocks`), by their name for it (`emacs-lisp` → `elisp`, `sh` →
+# `bash`); Emacs, where it edits or exports a block, takes it too.
+# (org-src-lang-modes)
+org_src_lang_modes = {}
+
 # Leave the code of source blocks as it is indented when re-indenting.
 # (org-src-preserve-indentation)
 org_src_preserve_indentation = false

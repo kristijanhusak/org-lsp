@@ -4770,9 +4770,6 @@
                   "description": "How the source code edit buffer should be displayed.",
                   "default": "reorganize-frame"
                 },
-                "org-src-lang-modes": {
-                  "description": "Alist mapping languages to their major mode."
-                },
                 "org-table-default-size": {
                   "type": "string",
                   "description": "The default size for newly created tables, Columns x Rows.",
@@ -7337,6 +7334,14 @@
                 "half": "-",
                 "done": "✓"
               }
+            },
+            "org_src_lang_modes": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "markdownDescription": "The major mode, without `-mode`, of a language of source blocks, over Org's own (`elisp` → `emacs-lisp`, `sh` → `sh`): `{ \"ipython\": \"python\" }`. Neovim and Vim color the code of a block in the language of its mode (`org-lsp/codeBlocks`), by their name for it (`emacs-lisp` → `elisp`, `sh` → `bash`); Emacs, where it edits or exports a block, takes it too. (`org-src-lang-modes`)",
+              "default": {}
             },
             "org_src_preserve_indentation": {
               "type": "boolean",

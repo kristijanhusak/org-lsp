@@ -508,6 +508,164 @@ pub fn heading_lines(root: &SyntaxNode, text: &str, fontify: &Fontify) -> Vec<(u
     out
 }
 
+/// Code the editor colors in its own language, as Emacs does with
+/// `org-src-fontify-natively` (`org-lsp/codeBlocks`): the code between the
+/// lines of a source or export block, or in the braces of an inline
+/// source block.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CodeBlock {
+    /// Where the code starts and ends in the text, in bytes.
+    pub start: usize,
+    pub end: usize,
+    /// The language as written (`emacs-lisp`).
+    pub name: String,
+    /// `src`, `export` or `inline`.
+    pub kind: &'static str,
+}
+
+/// The code of the source and export blocks and inline source blocks of
+/// the document `root`, as the parser finds them: what an example block
+/// holds is text, whatever it looks like. Blocks without a language or
+/// without code are left out.
+pub fn code_blocks(root: &SyntaxNode, text: &str) -> Vec<CodeBlock> {
+    let mut out = Vec::new();
+    for node in root.descendants() {
+        let range = node.text_range();
+        let (start, end) = (usize::from(range.start()), usize::from(range.end()));
+        match node.kind() {
+            BLOCK => {
+                let token = |kind: SyntaxKind| {
+                    node.children_with_tokens().find(|child| child.kind() == kind).and_then(|child| child.into_token())
+                };
+                let Some(begin) = token(BLOCK_BEGIN) else { continue };
+                let kind = match begin.text().to_ascii_lowercase().as_str() {
+                    "#+begin_src" => "src",
+                    "#+begin_export" => "export",
+                    _ => continue,
+                };
+                let Some(name) = token(BLOCK_PARAMETERS)
+                    .and_then(|parameters| parameters.text().split_whitespace().next().map(str::to_string))
+                else {
+                    continue;
+                };
+                let Some(close) = token(BLOCK_END) else { continue };
+                let begin_at = usize::from(begin.text_range().start());
+                let Some(code_start) = text[begin_at..end].find('\n').map(|at| begin_at + at + 1) else { continue };
+                // The line of `#+end_src`, and the newline before it.
+                let close_at = usize::from(close.text_range().start());
+                let Some(newline) = text[code_start.saturating_sub(1)..close_at].rfind('\n') else { continue };
+                let mut code_end = code_start.saturating_sub(1) + newline;
+                if code_end < code_start {
+                    continue;
+                }
+                if text[..code_end].ends_with('\r') && code_end > code_start {
+                    code_end -= 1;
+                }
+                if code_end > code_start {
+                    out.push(CodeBlock { start: code_start, end: code_end, name, kind });
+                }
+            }
+            INLINE_SRC_BLOCK => {
+                let own = &text[start..end];
+                let Some(name_end) = own.get(4..).and_then(|rest| rest.find(['[', '{'])).map(|at| at + 4) else {
+                    continue;
+                };
+                if let Some((from, to)) = inline_src_body(own) {
+                    out.push(CodeBlock {
+                        start: start + from,
+                        end: start + to,
+                        name: own[4..name_end].to_string(),
+                        kind: "inline",
+                    });
+                }
+            }
+            _ => {}
+        }
+    }
+    out
+}
+
+/// `org-src-lang-modes` as Org 9.8 has it: the major mode, without
+/// `-mode`, of the languages whose mode has another name. The shells are
+/// those of `sh-ancestor-alist`.
+const SRC_LANG_MODES: &[(&str, &str)] = &[
+    ("C", "c"),
+    ("C++", "c++"),
+    ("asymptote", "asy"),
+    ("beamer", "latex"),
+    ("calc", "fundamental"),
+    ("cpp", "c++"),
+    ("ditaa", "artist"),
+    ("desktop", "conf-desktop"),
+    ("dot", "graphviz-dot"),
+    ("elisp", "emacs-lisp"),
+    ("ocaml", "tuareg"),
+    ("screen", "shell-script"),
+    ("sqlite", "sql"),
+    ("toml", "conf-toml"),
+    ("shell", "sh"),
+    ("ash", "sh"),
+    ("sh", "sh"),
+    ("bash", "sh"),
+    ("jsh", "sh"),
+    ("bash2", "sh"),
+    ("dash", "sh"),
+    ("dtksh", "sh"),
+    ("ksh", "sh"),
+    ("es", "sh"),
+    ("rc", "sh"),
+    ("itcsh", "sh"),
+    ("tcsh", "sh"),
+    ("jcsh", "sh"),
+    ("csh", "sh"),
+    ("ksh88", "sh"),
+    ("oash", "sh"),
+    ("pdksh", "sh"),
+    ("mksh", "sh"),
+    ("posix", "sh"),
+    ("wksh", "sh"),
+    ("wsh", "sh"),
+    ("zsh", "sh"),
+    ("rpm", "sh"),
+];
+
+/// Emacs's modes by the name editors give their language (tree-sitter's
+/// parsers, Neovim's and Zed's languages), where it is another.
+const EDITOR_LANGUAGES: &[(&str, &str)] = &[
+    ("emacs-lisp", "elisp"),
+    ("sh", "bash"),
+    ("shell-script", "bash"),
+    ("c++", "cpp"),
+    ("conf-toml", "toml"),
+    ("conf-desktop", "desktop"),
+    ("graphviz-dot", "dot"),
+    ("tuareg", "ocaml"),
+    ("js", "javascript"),
+    ("js2", "javascript"),
+    ("ts", "typescript"),
+    ("py", "python"),
+    ("rb", "ruby"),
+    ("rs", "rust"),
+    ("yml", "yaml"),
+];
+
+/// The language an editor knows the code of a block by, for Org's name
+/// of it (`emacs-lisp`, `sh`): the major mode Org edits it in
+/// (`org-src-lang-modes`, where `modes`, the user's, come first), by the
+/// editor's name for it (`elisp`, `bash`). A name Org does not know is
+/// the mode's own name, in lower case.
+pub fn src_language(name: &str, modes: &[(String, String)]) -> String {
+    let mode = modes
+        .iter()
+        .find(|(key, _)| key == name)
+        .map(|(_, mode)| mode.as_str())
+        .or_else(|| SRC_LANG_MODES.iter().find(|(key, _)| *key == name).map(|(_, mode)| *mode))
+        .map(str::to_string)
+        .unwrap_or_else(|| name.to_lowercase());
+    let mode = mode.strip_suffix("-mode").unwrap_or(&mode);
+    EDITOR_LANGUAGES.iter().find(|(key, _)| *key == mode).map_or(mode, |(_, editor)| editor).to_string()
+}
+
 /// The keywords `org-hidden-keywords` can hide, before their values.
 pub const HIDDEN_KEYWORDS: [&str; 5] = ["title", "subtitle", "author", "email", "date"];
 
@@ -1709,5 +1867,63 @@ mod tests {
                 token(12, 14, TokenType::Tag, 0),
             ]
         );
+    }
+
+    /// The code blocks of `text`, as `kind name "code"`.
+    fn code_of(text: &str) -> Vec<String> {
+        let parse = org_syntax::parse(text, &TodoKeywords::default());
+        code_blocks(&parse.syntax(), text)
+            .iter()
+            .map(|block| format!("{} {} {:?}", block.kind, block.name, &text[block.start..block.end]))
+            .collect()
+    }
+
+    #[test]
+    fn code_of_blocks() {
+        let text = "* Code\n#+BEGIN_SRC emacs-lisp :tangle yes\n(defun f ()\n  1)\n#+END_SRC\n\
+                    #+begin_export html\n<b>x</b>\n#+end_export\n\
+                    Then src_python[:exports code]{print({1})} and src_sh{ls}.\n\
+                    #+begin_example\n#+begin_src python\nnot = code\n#+end_src\n#+end_example\n\
+                    #+begin_src python\n#+end_src\n#+begin_src\nno language\n#+end_src\n\
+                    #+begin_quote\n  #+begin_src c\n  int x;\n  #+end_src\n#+end_quote\n";
+        assert_eq!(
+            code_of(text),
+            vec![
+                r#"src emacs-lisp "(defun f ()\n  1)""#,
+                r#"export html "<b>x</b>""#,
+                r#"inline python "print({1})""#,
+                r#"inline sh "ls""#,
+                r#"src c "  int x;""#,
+            ]
+        );
+        // Lines that end in a carriage return.
+        assert_eq!(code_of("#+begin_src c\r\nint x;\r\n#+end_src\r\n"), vec![r#"src c "int x;""#]);
+    }
+
+    #[test]
+    fn languages_for_editors() {
+        let none: Vec<(String, String)> = Vec::new();
+        for (name, language) in [
+            ("emacs-lisp", "elisp"),
+            ("elisp", "elisp"),
+            ("sh", "bash"),
+            ("shell", "bash"),
+            ("zsh", "bash"),
+            ("screen", "bash"),
+            ("C++", "cpp"),
+            ("cpp", "cpp"),
+            ("C", "c"),
+            ("js", "javascript"),
+            ("sqlite", "sql"),
+            ("ocaml", "ocaml"),
+            ("Python", "python"),
+            ("rust", "rust"),
+        ] {
+            assert_eq!(src_language(name, &none), language, "{name}");
+        }
+        let modes = vec![("sh".to_string(), "fish".to_string()), ("conf".to_string(), "toml-mode".to_string())];
+        assert_eq!(src_language("sh", &modes), "fish");
+        assert_eq!(src_language("conf", &modes), "toml");
+        assert_eq!(src_language("bash", &modes), "bash");
     }
 }

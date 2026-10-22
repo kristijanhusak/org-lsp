@@ -125,7 +125,7 @@ org-html-format-drawer-function = "my-drawer"
 
 # BEGIN generated: options
 
-The 480 options, by the file of Org they are in. Each has Org's own
+The 479 options, by the file of Org they are in. Each has Org's own
 documentation of it, as ~C-h v~ shows it in Emacs, then its default as
 Emacs prints it, its type as Customize has it, and its default in the
 shared file, where TOML can say it.
@@ -3448,49 +3448,6 @@ split-window-right) will restore the layout after exiting the edit buffer.
 [emacs_options]
 org-src-window-setup = "reorganize-frame"
 #+end_src
-
-*** org-src-lang-modes
-:PROPERTIES:
-:CUSTOM_ID: org-src-lang-modes
-:END:
-
-Alist mapping languages to their major mode.
-
-The key is the language name.  The value is the mode name, as
-a string or a symbol, without the "-mode" suffix.
-
-For many languages this is simple, but for language where this is
-not the case, this variable provides a way to simplify things on
-the user side.  For example, there is no ~ocaml-mode~ in Emacs,
-but the mode to use is ~tuareg-mode~.
-
-- Default :: computed when Org loads:
-  #+begin_src emacs-lisp
-  `(("C" . c)
-    ("C++" . c++)
-    ("asymptote" . asy)
-    ("beamer" . latex)
-    ("calc" . fundamental)
-    ("cpp" . c++)
-    ("ditaa" . artist)
-    ("desktop" . conf-desktop)
-    ("dot" . graphviz-dot)
-    ("elisp" . emacs-lisp)
-    ("ocaml" . tuareg)
-    ("screen" . shell-script)
-    ("sqlite" . sql)
-    ("toml" . conf-toml)
-    ("shell" . sh)
-    ,@(org-src--get-known-shells))
-  #+end_src
-- Type ::
-  #+begin_src emacs-lisp
-  (repeat
-   (cons
-    (string :tag "Language name")
-    (symbol :tag "Major mode")))
-  #+end_src
-- Since :: Org 9.8
 
 ** org-table.el
 

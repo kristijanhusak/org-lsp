@@ -784,17 +784,44 @@ function! s:code_link_note() abort
   let file = s:work . '/notes/code.org'
   call writefile(['* Code', '#+begin_src python :results output', 'def greet():', '#+end_src', 'See [[*Code]].',
         \ '#+begin_export python', 'def bye():', '#+end_export', 'Then src_python[:exports code]{def hi(): pass} too.',
-        \ '#+begin_src emacs-lisp', '(defun f () 1)', '#+end_src'], file)
+        \ '#+begin_src emacs-lisp', '(defun f () 1)', '#+end_src',
+        \ '#+begin_example', '#+begin_src python', 'def no():', '#+end_src', '#+end_example'], file)
   execute 'edit' fnameescape(file)
   call s:until('the server', {-> org_lsp#ready(bufnr())})
-  " The code of a source block in its language's syntax.
-  call assert_match('^python', synIDattr(synID(3, 1, 1), 'name'))
-  call assert_notmatch('^python', synIDattr(synID(5, 1, 1), 'name'))
+  let Syntax = {line, col -> join(map(synstack(line, col), 'synIDattr(v:val, "name")'))}
+  " The code of a source block in its language's syntax, in a region where
+  " the server says the code is (`org-lsp/codeBlocks`).
+  call s:until('the code in its syntax', {-> Syntax(3, 1) =~# 'orgLspSrcCode_python python'})
+  call assert_notmatch('python', Syntax(2, 3))
+  call assert_notmatch('python', Syntax(5, 1))
   " Export blocks, inline source blocks and Emacs Lisp too.
-  call assert_match('^python', synIDattr(synID(7, 1, 1), 'name'))
-  call assert_match('^python', synIDattr(synID(9, 32, 1), 'name'))
-  call assert_notmatch('^python', synIDattr(synID(9, 50, 1), 'name'))
-  call assert_match('^lisp', synIDattr(synID(11, 2, 1), 'name'))
+  call assert_match('python', Syntax(7, 1))
+  call assert_match('python', Syntax(9, 32))
+  call assert_notmatch('python', Syntax(9, 30))
+  call assert_notmatch('python', Syntax(9, 50))
+  call assert_match('lisp', Syntax(11, 2))
+  " What an example block holds is no block.
+  call assert_notmatch('python', Syntax(15, 1))
+  " The regions move with the code, and go with it.
+  call append(0, 'Moved down.')
+  doautocmd TextChanged
+  call s:until('the region moved', {-> Syntax(4, 1) =~# 'python' && Syntax(3, 1) !~# 'python'})
+  call deletebufline('%', 3, 5)
+  doautocmd TextChanged
+  call s:until('the region gone with its block', {-> Syntax(3, 1) !~# 'python' && Syntax(5, 1) =~# 'python'})
+  call append(2, ['#+begin_src python :results output', 'def greet():', '#+end_src'])
+  call deletebufline('%', 1)
+  doautocmd TextChanged
+  call s:until('the block back', {-> Syntax(3, 1) =~# 'python' && Syntax(7, 1) =~# 'python'})
+  " No regions with `src_highlight` off.
+  let g:org_lsp = extend(get(g:, 'org_lsp', {}), {'src_highlight': 0})
+  call setline(5, 'See [[*Code]]. ')
+  doautocmd TextChanged
+  call s:until('the regions gone', {-> Syntax(3, 1) !~# 'python' && Syntax(7, 1) !~# 'python'})
+  let g:org_lsp.src_highlight = 1
+  call setline(5, 'See [[*Code]].')
+  doautocmd TextChanged
+  call s:until('the regions back', {-> Syntax(3, 1) =~# 'python'})
   " `<Leader>oo` follows the link at the cursor.
   call cursor(5, 8)
   call feedkeys("\\oo", 'xt')
