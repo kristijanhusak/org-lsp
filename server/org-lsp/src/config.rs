@@ -987,6 +987,9 @@ pub struct Options {
     pub appt_message_warning_time: Option<WarningTime>,
     /// `appt-display-interval`
     pub appt_display_interval: Option<i64>,
+    /// `org-lsp notify` also reminds of a deadline or timestamp as many
+    /// hours before it as its warning cookie says (`-1h`).
+    pub notification_use_timestamp_warning: Option<bool>,
     /// The time of day (`HH:MM`) `org-lsp notify` lists the deadlines at.
     pub notification_deadline_summary_time: Option<String>,
     /// The entries `org-lsp notify` reminds of: a match string of the tags
