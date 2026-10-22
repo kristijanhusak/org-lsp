@@ -1472,9 +1472,17 @@ appt_display_interval = 3
 # notification_deadline_line_format = … (unset: `%c: %D %a`)
 
 # Whether `org-lsp notify` shows a desktop notification: with `notify-send` on
-# Linux and the other Unix systems, `osascript` on macOS, PowerShell on
-# Windows (BurntToast if it is installed).
+# Linux and the other Unix systems, `terminal-notifier` on macOS when it is
+# installed and `osascript` otherwise, PowerShell on Windows (BurntToast if it
+# is installed).
 # notification_desktop = … (unset: on unless `notification_command` is set)
+
+# The image of the desktop notifications of `org-lsp notify`: the path of a
+# PNG file (`~/` for the home directory), or `""` for none. Unset, the logo,
+# which it writes to `org-lsp/icon.png` in the user's data directory
+# (`~/.local/share` on Linux). `osascript` shows no image: on macOS it takes
+# `terminal-notifier`.
+# notification_icon = … (unset: the org-lsp logo)
 
 
 # ----- Display

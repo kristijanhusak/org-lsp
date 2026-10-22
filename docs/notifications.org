@@ -68,8 +68,11 @@ What the script makes, which can be made by hand as well:
 - macOS :: a LaunchAgent, =~/Library/LaunchAgents/org.org-lsp.notify.plist=,
   that runs ~org-lsp notify~ at the start of each minute (a
   ~StartCalendarInterval~ with no fields), loaded with ~launchctl
-  bootstrap~. The notifications are those of ~osascript~ (Script Editor's
-  in System Settings > Notifications).
+  bootstrap~. The notifications are those of [[https://github.com/julienXX/terminal-notifier][terminal-notifier]] when it is
+  installed (~brew install terminal-notifier~; looked for on the ~PATH~
+  and in Homebrew's =bin= directories), with the logo, else of
+  ~osascript~ (Script Editor's in System Settings > Notifications), which
+  shows no image of its own.
 - Windows :: a scheduled task, ~org-lsp-notify~, each minute
   (~schtasks /SC MINUTE~). It runs
   =%LOCALAPPDATA%\org-lsp\notify.vbs= with ~wscript~, which starts
@@ -78,6 +81,32 @@ What the script makes, which can be made by hand as well:
   Windows's own, in the name of PowerShell.
 
 Elsewhere, run ~org-lsp notify~ each minute in any way the system has.
+
+** The icon
+:PROPERTIES:
+:CUSTOM_ID: the-icon
+:END:
+
+A desktop notification shows the org-lsp logo. The server holds it, and
+writes it, the first time it shows a notification, to =org-lsp/icon.png=
+in the user's data directory, where the programs that show notifications
+can read it: =$XDG_DATA_HOME=, else =~/.local/share=, on Linux,
+=~/Library/Application Support= on macOS, =%LOCALAPPDATA%= on Windows.
+Where it cannot be written, the notification comes without it.
+~--dry-run~ writes nothing.
+
+~notification_icon~ gives an image of one's own, or none:
+
+#+begin_src toml
+notification_icon = "~/pictures/bell.png"
+# or no image:
+notification_icon = ""
+#+end_src
+
+The image goes to ~notify-send --icon~, ~terminal-notifier -appIcon~,
+BurntToast's ~-AppLogo~, or Windows's own toast as its picture.
+~osascript~ cannot show one, whatever the setting says: install
+~terminal-notifier~ for the logo on macOS.
 
 * What it reminds of
 :PROPERTIES:

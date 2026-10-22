@@ -1946,7 +1946,22 @@ pub const SETTINGS: &[Setting] = &[
             "",
             "",
             "Whether `org-lsp notify` shows a desktop notification: with `notify-send` on Linux and the other \
-             Unix systems, `osascript` on macOS, PowerShell on Windows (BurntToast if it is installed).",
+             Unix systems, `terminal-notifier` on macOS when it is installed and `osascript` otherwise, \
+             PowerShell on Windows (BurntToast if it is installed).",
+        )
+    },
+    Setting {
+        default: None,
+        unset: "the org-lsp logo",
+        ..setting(
+            "notification_icon",
+            "string",
+            "",
+            "",
+            "The image of the desktop notifications of `org-lsp notify`: the path of a PNG file (`~/` for the \
+             home directory), or `\"\"` for none. Unset, the logo, which it writes to `org-lsp/icon.png` in the \
+             user's data directory (`~/.local/share` on Linux). `osascript` shows no image: on macOS it takes \
+             `terminal-notifier`.",
         )
     },
     setting(
@@ -4288,6 +4303,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("notification_body_format", STRING),
     ("notification_deadline_line_format", STRING),
     ("notification_desktop", BOOLEAN),
+    ("notification_icon", STRING),
     ("org_cycle_separator_lines", r#"{ "type": "integer" }"#),
     ("org_cycle_include_plain_lists", r#"{ "enum": [true, false, "integrate"] }"#),
     ("org_cycle_max_level", r#"{ "type": "integer", "minimum": 1 }"#),

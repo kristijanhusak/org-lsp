@@ -1006,6 +1006,8 @@ pub struct Options {
     pub notification_deadline_line_format: Option<String>,
     /// Whether `org-lsp notify` shows desktop notifications.
     pub notification_desktop: Option<bool>,
+    /// The image of desktop notifications: unset, the logo; empty, none.
+    pub notification_icon: Option<String>,
     /// RET on the first line of a list item makes the next item, as M-RET.
     pub return_uses_meta_return: Option<bool>,
     /// `org-return-follows-link`

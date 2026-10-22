@@ -5466,11 +5466,25 @@ A line of the deadline summary of ~org-lsp notify~, with the placeholders of
 :END:
 
 Whether ~org-lsp notify~ shows a desktop notification: with ~notify-send~ on
-Linux and the other Unix systems, ~osascript~ on macOS, PowerShell on Windows
-(BurntToast if it is installed).
+Linux and the other Unix systems, ~terminal-notifier~ on macOS when it is
+installed and ~osascript~ otherwise, PowerShell on Windows (BurntToast if it
+is installed).
 
 - Type :: boolean
 - Default :: unset: on unless ~notification_command~ is set
+
+*** notification_icon
+:PROPERTIES:
+:CUSTOM_ID: notification_icon
+:END:
+
+The image of the desktop notifications of ~org-lsp notify~: the path of a PNG
+file (=~/= for the home directory), or ~""~ for none. Unset, the logo, which
+it writes to ~org-lsp/icon.png~ in the user's data directory (=~/.local/share=
+on Linux). ~osascript~ shows no image: on macOS it takes ~terminal-notifier~.
+
+- Type :: string
+- Default :: unset: the org-lsp logo
 
 ** Display
 :PROPERTIES:
