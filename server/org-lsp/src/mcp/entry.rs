@@ -1,17 +1,19 @@
 //! The edit tools of `org-lsp mcp` that change an entry where it is, or
-//! archive it: `schedule`, `deadline`, `set_tags`, `set_property`,
-//! `delete_property`, `set_priority`, `set_effort`, `add_note` and
-//! `archive`. Each goes through the code the server's command goes
-//! through (`org-schedule` with [`org_core::planning`], `org-set-tags`
-//! and the property commands with [`org_core::edit::run`],
-//! `org-archive-subtree` with [`org_core::archive`]), with the settings of
-//! the configuration file, and takes the entry as `set_todo_state` does.
+//! archive or delete it: `schedule`, `deadline`, `set_tags`,
+//! `set_property`, `delete_property`, `set_priority`, `set_effort`,
+//! `add_note`, `archive` and `delete_entry`. Each goes through the code the
+//! server's command goes through (`org-schedule` with
+//! [`org_core::planning`], `org-set-tags` and the property commands with
+//! [`org_core::edit::run`], `org-archive-subtree` with
+//! [`org_core::archive`], `org-cut-subtree` with
+//! [`org_core::structure::copy_subtree`]), with the settings of the
+//! configuration file, and takes the entry as `set_todo_state` does.
 
 use std::path::{Path, PathBuf};
 
 use org_core::edit::{self, Command};
 use org_core::planning::{self, Command as PlanningCommand};
-use org_core::{archive, priority, properties, tags, todo};
+use org_core::{archive, priority, properties, structure, tags, todo};
 use serde_json::{json, Value};
 
 use super::{
@@ -21,7 +23,7 @@ use super::{
 use crate::config::Options;
 
 /// The tools of this module, by name.
-pub(super) const NAMES: [&str; 9] = [
+pub(super) const NAMES: [&str; 10] = [
     "schedule",
     "deadline",
     "set_tags",
@@ -31,6 +33,7 @@ pub(super) const NAMES: [&str; 9] = [
     "set_effort",
     "archive",
     "add_note",
+    "delete_entry",
 ];
 
 /// The definitions of the tools, for `tools/list` with `mcp_edits` on.
@@ -193,6 +196,27 @@ pub(super) fn tools() -> Vec<Value> {
             &["note"],
             false,
         ),
+        {
+            let mut delete = tool(
+                "delete_entry",
+                "Delete entry",
+                "Delete an entry and its subtree, as org-cut-subtree takes it out: from its headline to the \
+                 next headline of its level or above, the blank lines before that one included. Only in an \
+                 agenda file, and only with `headline`. Answers Org's message and the text deleted. Writes \
+                 the file.",
+                json!({
+                    "headline": {
+                        "type": "string",
+                        "description": "Text the headline has, such as its title: required, and refused if the \
+                                        line does not have it",
+                    },
+                }),
+                &["headline"],
+                false,
+            );
+            delete["annotations"]["destructiveHint"] = json!(true);
+            delete
+        },
     ]
 }
 
@@ -212,6 +236,7 @@ pub(super) fn call(
         "set_priority" => set_priority(arguments, options, folder),
         "set_effort" => set_effort(arguments, options, folder),
         "archive" => archive(arguments, options, folder),
+        "delete_entry" => delete_entry(arguments, options, folder),
         _ => {
             let note = arguments.text("note").ok_or("`note` is required: the note's text")?;
             edit_entry(arguments, options, folder, &|_| Ok(Some(Command::Note)), Some(note))
@@ -481,7 +506,7 @@ fn set_effort(arguments: &Arguments, options: &Options, folder: Option<&Path>) -
 
 /// The title of the headline that starts `line`, as Org has it, without
 /// keyword, priority and tags.
-fn title(line: &str, keywords: &org_syntax::TodoKeywords) -> Option<String> {
+pub(super) fn title(line: &str, keywords: &org_syntax::TodoKeywords) -> Option<String> {
     let parse = org_syntax::parse(line, keywords);
     Some(org_syntax::ast::headline_at(&parse.syntax(), 0.into())?.title_text().trim().to_string())
 }
@@ -600,6 +625,35 @@ fn archive(arguments: &Arguments, options: &Options, folder: Option<&Path>) -> R
         out.push_str(&format!("{name}:{line}: {headline}"));
     }
     Ok(out.trim_end().to_string())
+}
+
+// ----- delete
+
+/// `org-cut-subtree` on the entry, its text not kept anywhere but in the
+/// answer. The `headline` argument is required: the entry deleted must be
+/// the one meant.
+fn delete_entry(arguments: &Arguments, options: &Options, folder: Option<&Path>) -> Result<String, Call> {
+    if !arguments.text("headline").is_some_and(|headline| !headline.trim().is_empty()) {
+        return Err("`headline` is required: text the headline has, such as its title, so that the entry \
+                    deleted is the one meant"
+            .into());
+    }
+    let entry = Entry::read(arguments, &agenda_paths(options, folder), "not an agenda file", folder)?;
+    let (outcome, cut, message) = structure::copy_subtree(&entry.text, entry.heading, 1, true)?;
+    let mut out = format!("{message}\n");
+    if arguments.flag("dry_run") {
+        out.push_str("Dry run: nothing was written. The change would be:\n");
+        out.push_str(&diff(&entry.name, &entry.text, &outcome.text));
+        out.push_str("The text it would delete:\n");
+    } else {
+        write_file(&entry.path, &outcome.text)?;
+        out.push_str(&format!(
+            "Deleted from {}:{}. The text deleted, which put back at that line restores the entry:\n",
+            entry.name, entry.line
+        ));
+    }
+    out.push_str(&cut);
+    Ok(out)
 }
 
 #[cfg(test)]
@@ -823,6 +877,64 @@ mod tests {
         let tasks = setup.read("tasks.org");
         assert!(tasks.starts_with("* Projects\n** Archive "), "{tasks}");
         assert!(tasks.contains(":ARCHIVE:\n*** TODO Water the plants\n"), "{tasks}");
+    }
+
+    #[test]
+    fn deletes_an_entry_with_its_subtree_as_org_cut_subtree() {
+        let tasks = "* Projects\n** TODO Write the report :work:\n*** Outline\nText.\n\n** TODO Water the plants\n";
+        let setup = Setup::new("delete", "", &[("tasks.org", tasks), ("other.org", "* TODO Elsewhere\n")]);
+        let list = setup.call("delete_entry", json!({}));
+        assert!(list.1, "{list:?}");
+
+        // The headline is required, and must be the line's.
+        let (text, error) = setup.call("delete_entry", json!({ "file": "tasks.org", "line": 2 }));
+        assert!(error && text.contains("`headline` is required"), "{text}");
+        let arguments = json!({ "file": "tasks.org", "line": 2, "headline": "Water" });
+        let (text, error) = setup.call("delete_entry", arguments);
+        assert!(error && text.contains("not the entry `Water`"), "{text}");
+        let arguments = json!({ "file": "other.org", "line": 1, "headline": "Elsewhere" });
+        let (text, error) = setup.call("delete_entry", arguments);
+        assert!(error && text.contains("not an agenda file"), "{text}");
+        assert_eq!(setup.read("tasks.org"), tasks);
+
+        let arguments = json!({ "file": "tasks.org", "line": 2, "headline": "report", "dry_run": true });
+        let (text, error) = setup.call("delete_entry", arguments);
+        assert!(!error && text.starts_with("Cut: Subtree(s) with 51 characters\nDry run"), "{text}");
+        assert!(
+            text.contains("-*** Outline\n")
+                && text.ends_with("would delete:\n** TODO Write the report :work:\n*** Outline\nText.\n\n")
+        );
+        assert_eq!(setup.read("tasks.org"), tasks);
+
+        // Its subtree goes, with the blank line before the next headline.
+        let (text, error) = setup.call("delete_entry", json!({ "file": "tasks.org", "line": 2, "headline": "report" }));
+        assert!(!error && text.starts_with("Cut: Subtree(s) with 51 characters\nDeleted from "), "{text}");
+        assert!(
+            text.ends_with(
+                ":2. The text deleted, which put back at that line restores the entry:\n\
+                                ** TODO Write the report :work:\n*** Outline\nText.\n\n"
+            ),
+            "{text}"
+        );
+        assert_eq!(setup.read("tasks.org"), "* Projects\n** TODO Water the plants\n");
+
+        std::fs::write(&setup.config, format!("org_agenda_files = [{:?}]", setup.folder.join("tasks.org"))).unwrap();
+        let (text, error) = setup.call("delete_entry", json!({ "file": "tasks.org", "line": 2, "headline": "Water" }));
+        assert!(error && text.contains("mcp_edits = true"), "{text}");
+        assert_eq!(setup.read("tasks.org"), "* Projects\n** TODO Water the plants\n");
+    }
+
+    #[test]
+    fn delete_entry_is_destructive() {
+        let setup = Setup::new("delete-hint", "", &[("tasks.org", TASKS)]);
+        let config = setup.config.display().to_string();
+        let env = |name: &str| (name == "ORG_LSP_CONFIG").then(|| config.clone());
+        let list = answer(r#"{"jsonrpc":"2.0","id":1,"method":"tools/list"}"#, Some(&setup.folder), &env).unwrap();
+        let tools = list["result"]["tools"].as_array().unwrap();
+        let delete = tools.iter().find(|tool| tool["name"] == "delete_entry").expect("delete_entry");
+        assert_eq!(delete["annotations"]["destructiveHint"], true);
+        assert_eq!(delete["annotations"]["readOnlyHint"], false);
+        assert_eq!(delete["inputSchema"]["required"], json!(["file", "line", "headline"]));
     }
 
     #[test]
