@@ -1893,7 +1893,48 @@ pub const SETTINGS: &[Setting] = &[
             "A program `org-lsp notify` runs for each notification, and its arguments, in which `%t` stands \
              for the title, `%b` for the text and `%%` for `%`: `[\"ntfy\", \"publish\", \"--title\", \"%t\", \
              \"mytopic\", \"%b\"]`. It runs instead of the desktop notification, unless `notification_desktop` \
-             is on. No shell reads it.",
+             is on. No shell reads it. With a placeholder of an entry (those of `notification_title_format`), it \
+             runs once for each appointment, with that appointment's title, text and values.",
+        )
+    },
+    Setting {
+        default: None,
+        unset: "the mode line of `appt.el`, such as `Appointment in 10 minutes`",
+        ..setting(
+            "notification_title_format",
+            "string",
+            "",
+            "",
+            "The title of an appointment's notification from `org-lsp notify`, in which `%h` stands for the \
+             headline, `%k` its TODO keyword, `%p` its priority, `%T` its tags, `%c` its category, `%s` and `%d` \
+             its scheduled and deadline timestamps, `%w` the appointment's time, `%m` the minutes left, `%e` the \
+             effort, `%f` and `%F` the file's path and name, `%l` the headline's line, `%a` the line `appt.el` \
+             shows and `%%` `%`: `\"%k %h\"`. Appointments due together share the first one's.",
+        )
+    },
+    Setting {
+        default: None,
+        unset: "`%a`, the line `appt.el` shows",
+        ..setting(
+            "notification_body_format",
+            "string",
+            "",
+            "",
+            "The text of an appointment's notification from `org-lsp notify`, with the placeholders of \
+             `notification_title_format`: `\"%w %c %T\"`. Appointments due together have a line each.",
+        )
+    },
+    Setting {
+        default: None,
+        unset: "`%c: %D %a`",
+        ..setting(
+            "notification_deadline_line_format",
+            "string",
+            "",
+            "",
+            "A line of the deadline summary of `org-lsp notify`, with the placeholders of \
+             `notification_title_format` and `%D` for the agenda's leader (`In 3 d.:`, `2 d. ago:`, \
+             `Deadline:`); there `%a` is the headline as the agenda shows it.",
         )
     },
     Setting {
@@ -4243,6 +4284,9 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("notification_deadline_summary_time", r#"{ "type": "string", "pattern": "^[0-2]?[0-9]:[0-5][0-9]$" }"#),
     ("notification_match", STRING),
     ("notification_command", r#"{ "type": "array", "items": { "type": "string" }, "minItems": 1 }"#),
+    ("notification_title_format", STRING),
+    ("notification_body_format", STRING),
+    ("notification_deadline_line_format", STRING),
     ("notification_desktop", BOOLEAN),
     ("org_cycle_separator_lines", r#"{ "type": "integer" }"#),
     ("org_cycle_include_plain_lists", r#"{ "enum": [true, false, "integrate"] }"#),

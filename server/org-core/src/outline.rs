@@ -825,7 +825,7 @@ type Span = Option<(usize, usize)>;
 
 /// The groups of `org-complex-heading-regexp`, as byte ranges of a line.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct HeadingParts {
+pub struct HeadingParts {
     /// The TODO keyword (the second group).
     pub keyword: Span,
     /// The priority cookie, `[#A]` (the third).
@@ -838,7 +838,7 @@ pub(crate) struct HeadingParts {
 
 /// The keyword, priority cookie and title of a headline line as
 /// `org-complex-heading-regexp` reads them.
-pub(crate) fn complex_heading_parts(line: &str, level: usize, todo: &TodoKeywords) -> HeadingParts {
+pub fn complex_heading_parts(line: &str, level: usize, todo: &TodoKeywords) -> HeadingParts {
     // What may end the line after any of the parts: blanks, with tags or without.
     let is_tail = |rest: &str| {
         let trimmed = rest.trim_end_matches([' ', '\t']);
