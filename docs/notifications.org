@@ -136,7 +136,8 @@ work: 2 d. ago: TODO Taxes
 work: In 3 d.: TODO Report
 #+end_example
 
-No deadlines, no notification.
+No deadlines, no notification. ~notification_deadline_line_format~ writes
+the lines otherwise ([[#saying-it-your-way][Saying it your way]]).
 
 * Sending them elsewhere
 :PROPERTIES:
@@ -160,6 +161,74 @@ notification_command = ["curl", "-fsS", "-H", "Title: %t", "-d", "%b", "https://
 With ~notification_desktop = true~ the desktop's comes too. A program that
 fails, or takes longer than 30 seconds, is said on standard error, and the
 command ends with status 1.
+
+The command may say more of the entry with the placeholders of the next
+section. With any of them it runs once for each appointment, with that
+appointment's title, text and values, rather than once for the
+appointments due together. To ntfy, the category as a tag:
+
+#+begin_src toml
+notification_command = ["ntfy", "publish", "--title", "%k %h", "--tags", "%c", "my-org-reminders", "%w %T"]
+#+end_src
+
+* Saying it your way
+:PROPERTIES:
+:CUSTOM_ID: saying-it-your-way
+:END:
+
+~notification_title_format~ and ~notification_body_format~ write an
+appointment's title and text from its entry, in place of ~appt.el~'s mode
+line and line:
+
+#+begin_src toml
+notification_title_format = "%k %h"
+notification_body_format = "%w %c %T"
+#+end_src
+
+#+begin_example
+NEXT Review the plan
+10:00 proj :home:work:meeting:
+#+end_example
+
+| Placeholder | Stands for                                                                  | Example                   |
+|-------------+-----------------------------------------------------------------------------+---------------------------|
+| ~%h~        | the headline, without keyword, priority or tags; links by their description | =Review the plan=         |
+| ~%k~        | the TODO keyword                                                            | =NEXT=                    |
+| ~%p~        | the priority, empty without a cookie                                        | =A=                       |
+| ~%T~        | the tags, inherited ones too when the agenda shows them                     | =:home:work:meeting:=     |
+| ~%c~        | the category                                                                | =proj=                    |
+| ~%s~        | the scheduled timestamp, as written                                         | =<2026-10-22 Thu 10:00>=  |
+| ~%d~        | the deadline timestamp, as written                                          | =<2026-10-24 Sat>=        |
+| ~%w~        | the appointment's time                                                      | =10:00=                   |
+| ~%m~        | the minutes left                                                            | =10=                      |
+| ~%e~        | the effort (~EFFORT~)                                                       | =0:30=                    |
+| ~%f~        | the file's path                                                             | =/home/me/org/work.org=   |
+| ~%F~        | the file's name                                                             | =work.org=                |
+| ~%l~        | the headline's line in the file                                             | =7=                       |
+| ~%a~        | the line ~appt.el~ shows, the default text                                  | =10:00 NEXT [#A] Review…= |
+| ~%D~        | the deadline summary only: the agenda's leader                              | =In 2 d.:=                |
+| ~%%~        | ~%~                                                                         |                           |
+
+Any other ~%~ stays as it is; in ~notification_command~, ~%t~ and ~%b~
+are the title and text. Appointments due together come in one
+notification with the first one's title and a line of text each (the
+minutes before the lines, as in ~5m: 10:00 Standup~, only with the
+default text).
+
+The deadline summary keeps its title; ~notification_deadline_line_format~
+writes each of its lines, ~%c: %D %a~ unless set, where ~%a~ is the
+headline as the agenda shows it and ~%w~ the deadline's time, if it has
+one:
+
+#+begin_src toml
+notification_deadline_line_format = "%D %h (%c)"
+#+end_src
+
+#+begin_example
+Deadlines
+2 d. ago: Taxes (work)
+In 3 d.: Report (work)
+#+end_example
 
 * Trying it
 :PROPERTIES:
@@ -190,8 +259,8 @@ and files to look at in place of the agenda files.
   minutes of the first.
 - Emacs makes the appointments once, when ~org-agenda-to-appt~ runs; a
   change to the files shows the next minute here.
-- The list of minutes of ~appt_message_warning_time~ and the deadlines of
-  the day are org-lsp's own.
+- The list of minutes of ~appt_message_warning_time~, the deadlines of
+  the day and the formats of titles, texts and lines are org-lsp's own.
 - ~appt-display-format~, ~appt-display-duration~, ~appt-audible~ and the
   mode line are the desktop's business: how long a notification stays and
   whether it makes a sound.

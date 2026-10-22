@@ -180,3 +180,129 @@ fn says_what_failed() {
     assert_eq!(output.status.code(), Some(2));
     assert!(String::from_utf8_lossy(&output.stderr).contains("no org_agenda_files"));
 }
+
+/// Entries with all a placeholder can say: keyword, priority, a link in
+/// the title, own and inherited tags, a category, scheduled and deadline
+/// timestamps, an effort.
+const PROJECT: &str = "#+TODO: TODO NEXT | DONE
+#+FILETAGS: :home:
+* Projects :work:
+:PROPERTIES:
+:CATEGORY: proj
+:END:
+** NEXT [#A] Review [[https://example.org][the plan]] :meeting:
+SCHEDULED: <2026-10-22 Thu 10:00> DEADLINE: <2026-10-24 Sat>
+:PROPERTIES:
+:EFFORT: 0:30
+:END:
+** TODO Call Ana :call:
+<2026-10-22 Thu 9:55>
+";
+
+/// What `org-agenda-to-appt` makes of the entries of [`PROJECT`].
+const ANA: &str = "09:55 TODO Call Ana                   :home:work::call:";
+const REVIEW: &str = "10:00 NEXT [#A] Review the plan :home:work::meeting:";
+
+/// A [`Place`] whose agenda file is [`PROJECT`].
+fn project(name: &str, config: &str) -> Place {
+    let place = Place::new(name, config);
+    std::fs::write(place.root.join("tasks.org"), PROJECT).unwrap();
+    place
+}
+
+#[test]
+fn fills_in_the_placeholders_of_the_entry() {
+    let place = project(
+        "placeholders",
+        "appt_message_warning_time = [5, 10]\n\
+         notification_title_format = \"%k %h\"\n\
+         notification_body_format = \"%w|%m|%h|%k|%p|%T|%c|%s|%d|%e|%F|%l|%x|%%|%a\"",
+    );
+    // Due together: the first one's title, a line of text each.
+    assert_eq!(
+        place.dry("09:50"),
+        format!(
+            "TODO Call Ana\n\
+             09:55|5|Call Ana|TODO||:home:work:call:|proj||||tasks.org|12|%x|%|{ANA}\n\
+             10:00|10|Review the plan|NEXT|A|:home:work:meeting:|proj|<2026-10-22 Thu 10:00>|<2026-10-24 Sat>|0:30|\
+             tasks.org|7|%x|%|{REVIEW}\n\n"
+        )
+    );
+    let output = place.run(&[
+        "--dry-run",
+        "--now",
+        "2026-10-22 09:55",
+        "--options",
+        r#"{ "notification_title_format": "%f", "notification_body_format": "%T" }"#,
+    ]);
+    let path = place.root.join("tasks.org");
+    assert_eq!(String::from_utf8_lossy(&output.stdout), format!("{}\n:home:work:meeting:\n\n", path.display()));
+    // Inherited tags left out where the agenda leaves them out.
+    let output = place.run(&[
+        "--dry-run",
+        "--now",
+        "2026-10-22 09:50",
+        "--options",
+        r#"{ "notification_body_format": "%T", "org_agenda_show_inherited_tags": false }"#,
+    ]);
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "TODO Call Ana\n:call:\n:meeting:\n\n");
+}
+
+#[test]
+fn keeps_the_minutes_before_the_lines_only_by_default() {
+    let place = project("format-minutes", "appt_message_warning_time = [5, 10]\nnotification_body_format = \"%a\"");
+    assert_eq!(place.dry("09:50"), format!("Appointments in 5,10 minutes\n{ANA}\n{REVIEW}\n\n"));
+    let place = project("default-minutes", "appt_message_warning_time = [5, 10]");
+    assert_eq!(place.dry("09:50"), format!("Appointments in 5,10 minutes\n5m: {ANA}\n10m: {REVIEW}\n\n"));
+}
+
+#[test]
+fn runs_the_command_for_each_appointment_when_it_names_an_entry() {
+    let both = "appt_message_warning_time = [5, 10]\n";
+    let place = project("each", &format!("{both}notification_command = [\"fake-ntfy\", \"%t\", \"%T\", \"%b\"]"));
+    let out = place.stand_in("fake-ntfy");
+    let output = place.run(&["--now", "2026-10-22 09:50"]);
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert_eq!(
+        read(&out),
+        format!(
+            "Appointment in 5 minutes\n:home:work:call:\n{ANA}\n\
+             Appointment in 10 minutes\n:home:work:meeting:\n{REVIEW}\n"
+        )
+    );
+    // Without one: once for both.
+    let place = project("group", &format!("{both}notification_command = [\"fake-ntfy\", \"%t\", \"%%T\"]"));
+    let out = place.stand_in("fake-ntfy");
+    let output = place.run(&["--now", "2026-10-22 09:50"]);
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert_eq!(read(&out), "Appointments in 5,10 minutes\n%T\n");
+    // The deadline summary is of no one entry: their placeholders are empty.
+    let place = project(
+        "deadline-command",
+        "notification_deadline_summary_time = \"08:30\"\nnotification_command = [\"fake-ntfy\", \"%t\", \"<%h>\"]",
+    );
+    let out = place.stand_in("fake-ntfy");
+    let output = place.run(&["--now", "2026-10-22 08:30"]);
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert_eq!(read(&out), "Deadlines\n<>\n");
+}
+
+#[test]
+fn writes_the_deadlines_as_the_line_format_says() {
+    let place = Place::new(
+        "deadline-format",
+        "notification_deadline_summary_time = \"08:30\"\nnotification_deadline_line_format = \"[%D] %k %h %d (%c)\"",
+    );
+    assert_eq!(
+        place.dry("08:30"),
+        "Deadlines\n[2 d. ago:] TODO Taxes <2026-10-20 Tue> (tasks)\n[In 3 d.:] TODO Report <2026-10-25 Sun> (tasks)\n\n"
+    );
+    // The default, written out.
+    let place = project(
+        "deadline-format-project",
+        "notification_deadline_summary_time = \"08:30\"\nnotification_deadline_line_format = \"%c: %D %a\"",
+    );
+    let default = project("deadline-default-project", "notification_deadline_summary_time = \"08:30\"");
+    assert_eq!(place.dry("08:30"), default.dry("08:30"));
+    assert_eq!(place.dry("08:30"), "Deadlines\nproj: In 2 d.: NEXT [#A] Review the plan :home:work::meeting:\n\n");
+}

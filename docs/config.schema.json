@@ -5152,7 +5152,19 @@
         "type": "string"
       },
       "minItems": 1,
-      "description": "A program `org-lsp notify` runs for each notification, and its arguments, in which `%t` stands for the title, `%b` for the text and `%%` for `%`: `[\"ntfy\", \"publish\", \"--title\", \"%t\", \"mytopic\", \"%b\"]`. It runs instead of the desktop notification, unless `notification_desktop` is on. No shell reads it."
+      "description": "A program `org-lsp notify` runs for each notification, and its arguments, in which `%t` stands for the title, `%b` for the text and `%%` for `%`: `[\"ntfy\", \"publish\", \"--title\", \"%t\", \"mytopic\", \"%b\"]`. It runs instead of the desktop notification, unless `notification_desktop` is on. No shell reads it. With a placeholder of an entry (those of `notification_title_format`), it runs once for each appointment, with that appointment's title, text and values."
+    },
+    "notification_title_format": {
+      "type": "string",
+      "description": "The title of an appointment's notification from `org-lsp notify`, in which `%h` stands for the headline, `%k` its TODO keyword, `%p` its priority, `%T` its tags, `%c` its category, `%s` and `%d` its scheduled and deadline timestamps, `%w` the appointment's time, `%m` the minutes left, `%e` the effort, `%f` and `%F` the file's path and name, `%l` the headline's line, `%a` the line `appt.el` shows and `%%` `%`: `\"%k %h\"`. Appointments due together share the first one's."
+    },
+    "notification_body_format": {
+      "type": "string",
+      "description": "The text of an appointment's notification from `org-lsp notify`, with the placeholders of `notification_title_format`: `\"%w %c %T\"`. Appointments due together have a line each."
+    },
+    "notification_deadline_line_format": {
+      "type": "string",
+      "description": "A line of the deadline summary of `org-lsp notify`, with the placeholders of `notification_title_format` and `%D` for the agenda's leader (`In 3 d.:`, `2 d. ago:`, `Deadline:`); there `%a` is the headline as the agenda shows it."
     },
     "notification_desktop": {
       "type": "boolean",
