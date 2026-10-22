@@ -370,6 +370,10 @@ pub struct Options {
     /// stands for (`%s` the tag, `%h` the tag URL-encoded).
     #[serde(rename = "org_link_abbrev_alist")]
     pub link_abbrev_alist: Option<std::collections::BTreeMap<String, String>>,
+    /// `org-src-lang-modes`: the major mode of a source block's language,
+    /// over Org's own, by which editors know the language of its code.
+    #[serde(rename = "org_src_lang_modes")]
+    pub src_lang_modes: Option<std::collections::BTreeMap<String, String>>,
     /// `org-tag-alist`: the tags offered when a file has no `#+TAGS:`
     /// line, written like one (`"work(w) { @office(o) @home(h) }"`), or as
     /// its words.
@@ -613,6 +617,9 @@ pub struct Options {
     /// The client shows `org-lsp/lineHighlights`, as one announcing
     /// `experimental.orgLineHighlights` does.
     pub line_highlights: Option<bool>,
+    /// The client colors code in its language where `org-lsp/codeBlocks`
+    /// says, as one announcing `experimental.orgCodeBlocks` does.
+    pub code_blocks: Option<bool>,
     /// The client runs a command when the server asks
     /// (`org-lsp/runCommand`), as one announcing
     /// `experimental.orgRunCommand` does.
@@ -2119,6 +2126,17 @@ impl Options {
                     ),
                 );
             }
+        }
+        // `org-src-lang-modes`: the mode a block is edited and exported in.
+        for (lang, mode) in self.src_lang_modes.iter().flatten() {
+            set(
+                "org-src-lang-modes",
+                format!(
+                    "(cons (cons {} (intern {})) org-src-lang-modes)",
+                    lisp_string(lang),
+                    lisp_string(mode.strip_suffix("-mode").unwrap_or(mode))
+                ),
+            );
         }
         if self.babel_tangle_use_relative_file_links == Some(false) {
             set("org-babel-tangle-use-relative-file-links", "nil".to_string());
@@ -4610,6 +4628,17 @@ mod tests {
                 r#"(setq org-babel-noweb-wrap-start "{{")"#,
             ]
             .join("\n")
+        );
+    }
+
+    /// `org-src-lang-modes`, as the server's Emacs is told it.
+    #[test]
+    fn src_lang_modes_for_emacs() {
+        let options: Options =
+            serde_json::from_value(serde_json::json!({ "org_src_lang_modes": { "ipython": "python-mode" } })).unwrap();
+        assert_eq!(
+            options.emacs_lisp().unwrap(),
+            r#"(setq org-src-lang-modes (cons (cons "ipython" (intern "python")) org-src-lang-modes))"#
         );
     }
 

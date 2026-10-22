@@ -2355,6 +2355,16 @@ pub const SETTINGS: &[Setting] = &[
          org-bullets.nvim does; `false` leaves them as they are. A state left out keeps its default.",
     ),
     setting(
+        "org_src_lang_modes",
+        "{ [language]: mode }",
+        "{}",
+        "org-src-lang-modes",
+        "The major mode, without `-mode`, of a language of source blocks, over Org's own (`elisp` → \
+         `emacs-lisp`, `sh` → `sh`): `{ \"ipython\": \"python\" }`. Neovim and Vim color the code of a block in the \
+         language of its mode (`org-lsp/codeBlocks`), by their name for it (`emacs-lisp` → `elisp`, `sh` → \
+         `bash`); Emacs, where it edits or exports a block, takes it too.",
+    ),
+    setting(
         "org_src_preserve_indentation",
         "boolean",
         "false",
@@ -3876,6 +3886,18 @@ pub const SETTINGS: &[Setting] = &[
     Setting {
         integration: true,
         ..setting(
+            "code_blocks",
+            "boolean",
+            "false",
+            "",
+            "Whether the client colors the code of source, export and inline source blocks in its language \
+             where the server says (`org-lsp/codeBlocks`), as a client announcing \
+             `experimental.orgCodeBlocks` does: for the Vim plugin.",
+        )
+    },
+    Setting {
+        integration: true,
+        ..setting(
             "run_command",
             "boolean",
             "false",
@@ -4375,6 +4397,7 @@ const SCHEMAS: &[(&str, &str)] = &[
         "org_bullets_checkboxes",
         r#"{ "anyOf": [{ "const": false }, { "type": "object", "properties": { "todo": { "type": "string" }, "half": { "type": "string" }, "done": { "type": "string" } }, "additionalProperties": false }] }"#,
     ),
+    ("org_src_lang_modes", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
     ("org_src_preserve_indentation", BOOLEAN),
     ("org_babel_tangle_lang_exts", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
     ("org_babel_tangle_use_relative_file_links", BOOLEAN),
@@ -4657,6 +4680,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("message_requests", BOOLEAN),
     ("message_notifications", BOOLEAN),
     ("line_highlights", BOOLEAN),
+    ("code_blocks", BOOLEAN),
     ("run_command", BOOLEAN),
     ("hidden_lines", BOOLEAN),
     ("images", BOOLEAN),

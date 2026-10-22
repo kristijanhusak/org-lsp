@@ -1644,12 +1644,6 @@
      "reorganize-frame"
     ]
    }
-  },
-  "org-src-lang-modes": {
-   "doc": "Alist mapping languages to their major mode.\n\nThe key is the language name.  The value is the mode name, as\na string or a symbol, without the \"-mode\" suffix.\n\nFor many languages this is simple, but for language where this is\nnot the case, this variable provides a way to simplify things on\nthe user side.  For example, there is no `ocaml-mode' in Emacs,\nbut the mode to use is `tuareg-mode'.",
-   "form": "`((\"C\" . c)\n  (\"C++\" . c++)\n  (\"asymptote\" . asy)\n  (\"beamer\" . latex)\n  (\"calc\" . fundamental)\n  (\"cpp\" . c++)\n  (\"ditaa\" . artist)\n  (\"desktop\" . conf-desktop)\n  (\"dot\" . graphviz-dot)\n  (\"elisp\" . emacs-lisp)\n  (\"ocaml\" . tuareg)\n  (\"screen\" . shell-script)\n  (\"sqlite\" . sql)\n  (\"toml\" . conf-toml)\n  (\"shell\" . sh)\n  ,@(org-src--get-known-shells))",
-   "type": "(repeat\n (cons\n  (string :tag \"Language name\")\n  (symbol :tag \"Major mode\")))",
-   "version": "Org 9.8"
   }
  },
  "org-table.el": {

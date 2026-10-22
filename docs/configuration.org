@@ -447,11 +447,12 @@ require('org-lsp').setup({
   replace_syntax = true,
 
   -- Highlight the code of source and export blocks (`#+begin_src python`,
-  -- `#+begin_export html`) and of inline source blocks (`src_python{…}`)
-  -- with the tree-sitter parser of its language and its highlight query,
-  -- as Emacs's `org-src-fontify-natively` does; a language without a
-  -- parser (Emacs Lisp) with its Vim syntax file. A language with neither
-  -- stays as it is.
+  -- `#+begin_export html`) and of inline source blocks (`src_python{…}`),
+  -- where the server says it is, with the tree-sitter parser of its
+  -- language and its highlight query, as Emacs's
+  -- `org-src-fontify-natively` does; a language without a parser (Emacs
+  -- Lisp) with its Vim syntax file, in regions of the buffer's own syntax.
+  -- A language with neither stays as it is.
   src_highlight = true,
 
   -- Conceal what the server marks hidden: link brackets and targets
@@ -713,7 +714,7 @@ what you set is merged into the defaults.
 | ~highlight~         | ~1~                | Highlight with the server's tokens.                                                                                                                                                                                                                 |
 | ~indent~            | ~1~                | Indent as Org does, with the server: new lines through 'indentexpr' (~org-indent-line~), and ~=~ (~org-indent-region~), following ~org_adapt_indentation~.                                                                                          |
 | ~virtual_indent~    | ~1~                | Show files with ~org-indent-mode~ (~org_startup_indented~, ~#+STARTUP: indent~) indented by level without changing them, and their hidden leading stars in the color of the background, as Org's ~org-hide~ face does. Needs Vim 9.0.0067 or later. |
-| ~src_highlight~     | ~1~                | Highlight the code of source and export blocks and of inline source blocks (to the first ~}~) with the syntax file of its language, as Emacs's ~org-src-fontify-natively~ does.                                                                     |
+| ~src_highlight~     | ~1~                | Highlight the code of source and export blocks and of inline source blocks with the syntax file of its language, where the server says it is, as Emacs's ~org-src-fontify-natively~ does.                                                           |
 | ~win_split_mode~    | ~'split'~          | How the agenda and capture buffers open: ~'split'~, ~'vsplit'~, ~'current'~, or an Ex command that opens a window (~'botright split'~, ~'tabnew'~).                                                                                                 |
 | ~win_split_size~    | ~0~                | How big that window is: lines for a split, columns for a vertical one (~vsplit~, ~vnew~, ~vertical~), or below 1 that part of the editor. ~0~ leaves it as the command makes it.                                                                    |
 | ~calendar~          | ~1~                | Pick dates in Org's calendar, as Emacs shows it while it asks for a date; ~i~ there types the date. ~0~ asks for the date as text only.                                                                                                             |
@@ -6099,6 +6100,25 @@ org_bullets_checkboxes = { todo = " ", half = "-", done = "✓" }
 :PROPERTIES:
 :CUSTOM_ID: source-blocks-and-tangling
 :END:
+
+*** org_src_lang_modes
+:PROPERTIES:
+:CUSTOM_ID: org_src_lang_modes
+:END:
+
+The major mode, without ~-mode~, of a language of source blocks, over Org's
+own (~elisp~ → ~emacs-lisp~, ~sh~ → ~sh~): ~{ "ipython": "python" }~. Neovim
+and Vim color the code of a block in the language of its mode
+(~org-lsp/codeBlocks~), by their name for it (~emacs-lisp~ → ~elisp~, ~sh~ →
+~bash~); Emacs, where it edits or exports a block, takes it too.
+
+- Org's option :: ~org-src-lang-modes~
+- Type :: { [language]: mode }
+- Default :: ~{}~
+
+#+begin_src toml
+org_src_lang_modes = {}
+#+end_src
 
 *** org_src_preserve_indentation
 :PROPERTIES:

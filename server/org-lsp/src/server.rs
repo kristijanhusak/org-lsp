@@ -68,6 +68,7 @@ type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
 const TEXT_DOCUMENT_CONTENT: &str = "workspace/textDocumentContent";
 const TEXT_DOCUMENT_CONTENT_REFRESH: &str = "workspace/textDocumentContent/refresh";
 const LINE_HIGHLIGHTS: &str = "org-lsp/lineHighlights";
+const CODE_BLOCKS: &str = "org-lsp/codeBlocks";
 /// A message for the user, `window/showMessage`'s, for a client that shows
 /// it itself (`message_notifications`).
 const MESSAGE: &str = "org-lsp/message";
@@ -110,6 +111,10 @@ struct Client {
     /// says (`org-lsp/lineHighlights`): `experimental.orgLineHighlights`,
     /// or the option `line_highlights`.
     line_highlights: bool,
+    /// Colors code in its language where the server says
+    /// (`org-lsp/codeBlocks`): `experimental.orgCodeBlocks`, or the
+    /// option `code_blocks`.
+    code_blocks: bool,
     /// Hides the lines a command's answer names (`hiddenLines`):
     /// `experimental.orgHiddenLines`, or the option `hidden_lines`.
     hidden_lines: bool,
@@ -1213,6 +1218,8 @@ struct Server {
     /// of the window (`org-fontify-whole-heading-line`): line and level
     /// face.
     heading_lines: HashMap<String, Vec<(usize, usize)>>,
+    /// The documents last sent with code in `org-lsp/codeBlocks`.
+    code_blocks_sent: HashSet<String>,
     /// The documents last sent with something in `org-lsp/display`.
     displayed: HashSet<String>,
     /// `org-cite-global-bibliography`
@@ -1223,6 +1230,8 @@ struct Server {
     bibtex: org_core::bibtex::Settings,
     /// `org-link-abbrev-alist`.
     link_abbreviations: Vec<(String, String)>,
+    /// `org-src-lang-modes`, the user's.
+    src_lang_modes: Vec<(String, String)>,
     /// `org-agenda-dim-blocked-tasks`.
     /// `org-agenda-dim-blocked-tasks`
     dim_blocked: DimBlocked,
@@ -1574,6 +1583,9 @@ pub fn run(connection: Connection) -> Result<()> {
         line_highlights: raw_params.pointer("/capabilities/experimental/orgLineHighlights").and_then(Value::as_bool)
             == Some(true)
             || options.line_highlights == Some(true),
+        code_blocks: raw_params.pointer("/capabilities/experimental/orgCodeBlocks").and_then(Value::as_bool)
+            == Some(true)
+            || options.code_blocks == Some(true),
         hidden_lines: raw_params.pointer("/capabilities/experimental/orgHiddenLines").and_then(Value::as_bool)
             == Some(true)
             || options.hidden_lines == Some(true),
@@ -1850,6 +1862,7 @@ pub fn run(connection: Connection) -> Result<()> {
         display: options.display(),
         virtually_indented: HashSet::new(),
         heading_lines: HashMap::new(),
+        code_blocks_sent: HashSet::new(),
         displayed: HashSet::new(),
         cite_global: options.cite_global_bibliography.clone().unwrap_or_default(),
         cite_insert_processor: options.cite_insert_processor(),
@@ -1861,6 +1874,7 @@ pub fn run(connection: Connection) -> Result<()> {
         },
         last_refiled: None,
         link_abbreviations: options.link_abbrev_alist.clone().unwrap_or_default().into_iter().collect(),
+        src_lang_modes: options.src_lang_modes.clone().unwrap_or_default().into_iter().collect(),
         bibliographies: HashMap::new(),
         diagnosed: HashSet::new(),
         id_files: HashMap::new(),
@@ -3680,6 +3694,7 @@ impl Server {
                 self.sync_clock(&key);
                 self.publish_virtual_indent(&key);
                 self.publish_heading_lines(&key);
+                self.publish_code_blocks(&key);
                 self.publish_display(&key);
                 self.publish_diagnostics(&key);
                 // An edit the server asked for, of a file no buffer had:
@@ -3785,6 +3800,7 @@ impl Server {
                 }
                 self.publish_virtual_indent(key);
                 self.publish_heading_lines(key);
+                self.publish_code_blocks(key);
                 self.publish_display(key);
                 self.diagnostics_later(key);
                 self.fold_after_edit(key);
@@ -3857,6 +3873,7 @@ impl Server {
                 }
                 self.virtually_indented.remove(params.text_document.uri.as_str());
                 self.heading_lines.remove(params.text_document.uri.as_str());
+                self.code_blocks_sent.remove(params.text_document.uri.as_str());
                 self.custom_properties_hidden.remove(params.text_document.uri.as_str());
                 self.displayed.remove(params.text_document.uri.as_str());
                 if let Some(path) = uri::to_path(&params.text_document.uri) {
@@ -15791,6 +15808,47 @@ impl Server {
         let params = json!({ "uri": key, "lines": json_lines });
         self.heading_lines.insert(key.to_string(), lines);
         let notification = lsp_server::Notification::new(LINE_HIGHLIGHTS.to_string(), params);
+        let _ = self.sender.send(Message::Notification(notification));
+    }
+
+    /// `org-src-fontify-natively`: where the code of the document `key`
+    /// is that the editor colors in its language, as `org-lsp/codeBlocks`
+    /// `{ uri, version, blocks }`, each block `{ range, language, name,
+    /// kind }`: the range of the code alone, the language by the editor's
+    /// name for it (`org-src-lang-modes`), the language as written, and
+    /// `src`, `export` or `inline`. Sent after every change of a document
+    /// with code, as the code may have changed where the ranges did not,
+    /// and once with no blocks when the last goes.
+    fn publish_code_blocks(&mut self, key: &str) {
+        if !self.client.code_blocks {
+            return;
+        }
+        let Some(document) = self.documents.get(key) else { return };
+        let text = &document.text;
+        let encoding = self.client.encoding;
+        let blocks: Vec<Value> = highlight::code_blocks(&document.syntax(), text)
+            .into_iter()
+            .map(|block| {
+                let range = Range::new(
+                    document.index.position(text, block.start, encoding),
+                    document.index.position(text, block.end, encoding),
+                );
+                json!({
+                    "range": range,
+                    "language": highlight::src_language(&block.name, &self.src_lang_modes),
+                    "name": block.name,
+                    "kind": block.kind,
+                })
+            })
+            .collect();
+        if blocks.is_empty() && !self.code_blocks_sent.remove(key) {
+            return;
+        }
+        if !blocks.is_empty() {
+            self.code_blocks_sent.insert(key.to_string());
+        }
+        let params = json!({ "uri": key, "version": document.version, "blocks": blocks });
+        let notification = lsp_server::Notification::new(CODE_BLOCKS.to_string(), params);
         let _ = self.sender.send(Message::Notification(notification));
     }
 
