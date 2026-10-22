@@ -405,11 +405,16 @@ fn call(
 
 /// The files the agenda is built from, as the server finds them.
 pub(crate) fn agenda_paths(options: &Options, folder: Option<&Path>) -> Vec<PathBuf> {
+    agenda_paths_at(options, folder, now())
+}
+
+/// [`agenda_paths`] as they are at `now`.
+pub(crate) fn agenda_paths_at(options: &Options, folder: Option<&Path>, now: DateTime) -> Vec<PathBuf> {
     let mut paths = workspace(options, folder).files();
     // `org-journal-enable-agenda-integration`: the journal's files of
     // today and the days to come in place of the others, as the server has.
     if let Some(journal) = options.journal() {
-        if let Some((directory, names)) = crate::server::journal_agenda_files(&journal, now()) {
+        if let Some((directory, names)) = crate::server::journal_agenda_files(&journal, now) {
             paths.retain(|path| !crate::server::is_journal(path, &journal));
             paths.extend(names.iter().map(|name| directory.join(name)));
         }
@@ -1528,7 +1533,7 @@ fn reading(
 
 /// Org's variables the server sets when it starts, which the outline and
 /// the clock table read.
-fn set_variables(options: &Options) {
+pub(crate) fn set_variables(options: &Options) {
     org_core::duration::set(options.durations());
     org_core::inlinetask::set_min_level(options.inlinetask_min_level());
     org_core::structure::set_odd_levels_default(options.odd_levels_only.unwrap_or(false));

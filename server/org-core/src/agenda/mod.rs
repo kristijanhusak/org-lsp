@@ -472,7 +472,7 @@ pub fn tag_groups(files: &[&Outline], config: &Config) -> Vec<(String, Vec<Strin
 }
 
 /// The matcher with the group tags of the files expanded.
-fn expanded(matcher: &Matcher, files: &[&Outline], config: &Config) -> Matcher {
+pub fn expanded(matcher: &Matcher, files: &[&Outline], config: &Config) -> Matcher {
     if !config.group_tags {
         return matcher.clone();
     }

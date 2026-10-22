@@ -66,6 +66,11 @@ const STATUSES = {
   'emacs-only': 'About Emacs itself (windows, faces, menus, the mouse, the mode line): nothing to do in an editor',
 };
 const statusOf = (value) => (Array.isArray(value) ? value[0] : value);
+/** The libraries of Emacs, not of Org, that Org hands its work to
+ * (`org-agenda-to-appt` gives `appt.el` its appointments): those of their
+ * options org-lsp has as settings are listed too, and are not counted as
+ * Org's. */
+const EMACS_FILES = new Set(['appt.el']);
 /** What Emacs says of each option marked `emacs`, by file: its docstring,
  * default, type and version (scripts/emacs_options_reference.py). */
 const EMACS_OPTIONS = JSON.parse(readFileSync(join(root, 'scripts', 'emacs-options.json'), 'utf8'));
@@ -97,7 +102,10 @@ function optionProblems() {
         if (!listed.has(match[1])) problems.push(`${match[1]} (${file}) is not in scripts/org-options.json`);
       }
     }
-    for (const name of listed) if (!found.has(name)) problems.push(`${name} is no longer an option of Org`);
+    for (const [file, options] of Object.entries(OPTIONS)) {
+      if (EMACS_FILES.has(file)) continue;
+      for (const name of Object.keys(options)) if (!found.has(name)) problems.push(`${name} is no longer an option of Org`);
+    }
   }
   // scripts/emacs-options.json has the options marked `emacs`, no more.
   const recorded = new Map(
@@ -521,6 +529,7 @@ const OPTION_GROUPS = [
   ['Clocking', /^org_clock|^org_agenda_clock/],
   ['Habits', /^org_habit_|^org_modules$/],
   ['The agenda', /^org_agenda_|^agenda_|^org_(deadline|scheduled)_|^org_stuck_projects$|^org_tags_match_list_sublevels$/],
+  ['Notifications', /^appt_|^notification_/],
   [
     'Display',
     /^org_(hide|fontify|emphasis|hidden_keywords|entities|pretty|use_sub|image|startup|adapt_indentation|indent|ellipsis|bullets|cycle_hide|cycle_open)/,
@@ -1012,7 +1021,9 @@ function parityPage() {
 /** Every option of Org and what org-lsp does with it: how many there are
  * of each status, and those that are missing, file by file. */
 function optionsSection() {
-  const all = Object.entries(OPTIONS).flatMap(([file, options]) => Object.entries(options).map(([name, value]) => ({ file, name, value })));
+  const all = Object.entries(OPTIONS)
+    .filter(([file]) => !EMACS_FILES.has(file))
+    .flatMap(([file, options]) => Object.entries(options).map(([name, value]) => ({ file, name, value })));
   const count = (status) => all.filter((option) => statusOf(option.value) === status).length;
   const settable = count('setting') + count('missing') + count('other');
   const lines = [

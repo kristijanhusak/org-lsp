@@ -1417,6 +1417,44 @@ org_agenda_custom_commands_contexts = []
 org_agenda_custom_commands = []
 
 
+# ----- Notifications
+
+# How many minutes before an appointment (an entry of today's agenda with a
+# time of day) its reminders start: one then, and one each
+# `appt_display_interval` minutes after, as Emacs's `appt.el` reminds; an
+# entry's `APPT_WARNTIME` property says it for that entry. As org-lsp's own, a
+# list gives the minutes before the appointment of each reminder: `[10, 0]`
+# reminds ten minutes before and when it is due. `org-lsp notify` reminds this
+# way; through Emacs (Add today's appointments from the agenda files), a list
+# stands for its largest number. (appt-message-warning-time)
+appt_message_warning_time = 12
+
+# Minutes between two reminders of an appointment, from the first,
+# `appt_message_warning_time` minutes before it. (appt-display-interval)
+appt_display_interval = 3
+
+# The time of day, as `HH:MM`, at which `org-lsp notify` lists the deadlines
+# the day's agenda shows that are not done: those of the day, those whose
+# warning period has begun, and those past.
+# notification_deadline_summary_time = … (unset: no summary)
+
+# The entries `org-lsp notify` reminds of: a match string of the tags view,
+# such as `+meeting|+call` or `-private`.
+# notification_match = … (unset: every entry)
+
+# A program `org-lsp notify` runs for each notification, and its arguments, in
+# which `%t` stands for the title, `%b` for the text and `%%` for `%`:
+# `["ntfy", "publish", "--title", "%t", "mytopic", "%b"]`. It runs instead of
+# the desktop notification, unless `notification_desktop` is on. No shell
+# reads it.
+# notification_command = … (unset: none)
+
+# Whether `org-lsp notify` shows a desktop notification: with `notify-send` on
+# Linux and the other Unix systems, `osascript` on macOS, PowerShell on
+# Windows (BurntToast if it is installed).
+# notification_desktop = … (unset: on unless `notification_command` is set)
+
+
 # ----- Display
 
 # Hide the markers around `*bold*`, `/italic/`, `_underline_`,

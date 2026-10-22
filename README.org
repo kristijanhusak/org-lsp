@@ -181,6 +181,11 @@ org-lsp agenda --help
 It reads the shared configuration file (~org-lsp config~ shows it) as the
 server does, with ~--options~ on top; ~--no-config~ leaves it out.
 
+~org-lsp notify~, run each minute by cron or a timer
+(~scripts/install.sh notifications~ sets it up), reminds of the day's
+appointments with desktop notifications, as Emacs's ~appt.el~ does, and
+can list the day's deadlines: see [[file:docs/notifications.org][docs/notifications.org]].
+
 Bookmarklets that store a link to a web page or capture it, as Emacs's
 org-protocol does, reach the editor with org-lsp through
 ~org-lsp protocol URL~: see [[file:docs/org-protocol.org][docs/org-protocol.org]].

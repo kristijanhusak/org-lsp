@@ -1,0 +1,19 @@
+#+TODO: TODO NEXT | DONE CANCELLED
+* TODO Standup :meeting:
+SCHEDULED: <2026-10-22 Thu 10:00>
+* DONE Call that is done :call:
+SCHEDULED: <2026-10-22 Thu 10:00>
+* Weekly review <2026-10-01 Thu 16:00 +1w>
+* Lunch <2026-10-22 Thu 12:30-13:30>
+* Dentist <2026-10-22 Thu 14:15>
+* CANCELLED Party <2026-10-22 Thu 14:15>
+* Phone the bank :call:
+<2026-10-22 Thu 15:00>
+* TODO Report
+DEADLINE: <2026-10-25 Sun>
+* TODO Taxes
+DEADLINE: <2026-10-20 Tue>
+* DONE Filed
+DEADLINE: <2026-10-22 Thu>
+* TODO Far away
+DEADLINE: <2026-12-25 Fri>

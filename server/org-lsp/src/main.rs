@@ -9,6 +9,7 @@ Usage: org-lsp [--stdio]
        org-lsp config [--options JSON]
        org-lsp manifest
        org-lsp mcp
+       org-lsp notify [--dry-run] [--now \"YYYY-MM-DD HH:MM\"]
        org-lsp settings
        org-lsp command ADDRESS TOKEN COMMAND ROW COLUMN
        org-lsp protocol URL
@@ -106,6 +107,35 @@ fn main() -> ExitCode {
                 ExitCode::FAILURE
             }
         };
+    }
+    if arguments.first().is_some_and(|argument| argument == "notify") {
+        // Reminders of the appointments due this minute, for cron or a
+        // timer to run each minute (`notify`).
+        if arguments[1..].iter().any(|argument| argument == "--help" || argument == "-h") {
+            print(&format!("{}\n", org_lsp::notify::USAGE));
+            return ExitCode::SUCCESS;
+        }
+        let env = |name: &str| std::env::var(name).ok();
+        let run = match org_lsp::notify::prepare(&arguments[1..], &env) {
+            Ok(run) => run,
+            Err(error) => {
+                eprintln!("org-lsp notify: {error}\n\n{}", org_lsp::notify::USAGE);
+                return ExitCode::from(2);
+            }
+        };
+        for problem in &run.problems {
+            eprintln!("org-lsp notify: {problem}");
+        }
+        let mut failed = false;
+        for notification in &run.notifications {
+            if run.dry_run {
+                print(&format!("{}\n{}\n\n", notification.title, notification.body));
+            } else if let Err(error) = run.delivery.send(notification) {
+                eprintln!("org-lsp notify: {error}");
+                failed = true;
+            }
+        }
+        return if failed { ExitCode::FAILURE } else { ExitCode::SUCCESS };
     }
     if arguments.first().is_some_and(|argument| argument == "settings") {
         // The options with their types, defaults and meanings, which the

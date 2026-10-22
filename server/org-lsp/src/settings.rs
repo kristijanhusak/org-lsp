@@ -1839,6 +1839,76 @@ pub const SETTINGS: &[Setting] = &[
          is read from the shared configuration file, as everything `org-lsp mcp` reads.",
     ),
     setting(
+        "appt_message_warning_time",
+        "number, or number[]",
+        "12",
+        "appt-message-warning-time",
+        "How many minutes before an appointment (an entry of today's agenda with a time of day) its \
+         reminders start: one then, and one each `appt_display_interval` minutes after, as Emacs's `appt.el` \
+         reminds; an entry's `APPT_WARNTIME` property says it for that entry. As org-lsp's own, a list \
+         gives the minutes before the appointment of each reminder: `[10, 0]` reminds ten minutes before \
+         and when it is due. `org-lsp notify` reminds this way; through Emacs (Add today's appointments \
+         from the agenda files), a list stands for its largest number.",
+    ),
+    setting(
+        "appt_display_interval",
+        "number",
+        "3",
+        "appt-display-interval",
+        "Minutes between two reminders of an appointment, from the first, `appt_message_warning_time` \
+         minutes before it.",
+    ),
+    Setting {
+        default: None,
+        unset: "no summary",
+        ..setting(
+            "notification_deadline_summary_time",
+            "string",
+            "",
+            "",
+            "The time of day, as `HH:MM`, at which `org-lsp notify` lists the deadlines the day's agenda shows \
+             that are not done: those of the day, those whose warning period has begun, and those past.",
+        )
+    },
+    Setting {
+        default: None,
+        unset: "every entry",
+        ..setting(
+            "notification_match",
+            "string",
+            "",
+            "",
+            "The entries `org-lsp notify` reminds of: a match string of the tags view, such as \
+             `+meeting|+call` or `-private`.",
+        )
+    },
+    Setting {
+        default: None,
+        unset: "none",
+        ..setting(
+            "notification_command",
+            "string[]",
+            "",
+            "",
+            "A program `org-lsp notify` runs for each notification, and its arguments, in which `%t` stands \
+             for the title, `%b` for the text and `%%` for `%`: `[\"ntfy\", \"publish\", \"--title\", \"%t\", \
+             \"mytopic\", \"%b\"]`. It runs instead of the desktop notification, unless `notification_desktop` \
+             is on. No shell reads it.",
+        )
+    },
+    Setting {
+        default: None,
+        unset: "on unless `notification_command` is set",
+        ..setting(
+            "notification_desktop",
+            "boolean",
+            "",
+            "",
+            "Whether `org-lsp notify` shows a desktop notification: with `notify-send` on Linux and the other \
+             Unix systems, `osascript` on macOS, PowerShell on Windows (BurntToast if it is installed).",
+        )
+    },
+    setting(
         "org_cycle_separator_lines",
         "number",
         "2",
@@ -4165,6 +4235,15 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("emacs_options", r#"{ "type": "object" }"#),
     ("auto_save", BOOLEAN),
     ("mcp_edits", BOOLEAN),
+    (
+        "appt_message_warning_time",
+        r#"{ "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "array", "items": { "type": "integer", "minimum": 0 } }] }"#,
+    ),
+    ("appt_display_interval", r#"{ "type": "integer", "minimum": 1 }"#),
+    ("notification_deadline_summary_time", r#"{ "type": "string", "pattern": "^[0-2]?[0-9]:[0-5][0-9]$" }"#),
+    ("notification_match", STRING),
+    ("notification_command", r#"{ "type": "array", "items": { "type": "string" }, "minItems": 1 }"#),
+    ("notification_desktop", BOOLEAN),
     ("org_cycle_separator_lines", r#"{ "type": "integer" }"#),
     ("org_cycle_include_plain_lists", r#"{ "enum": [true, false, "integrate"] }"#),
     ("org_cycle_max_level", r#"{ "type": "integer", "minimum": 1 }"#),
