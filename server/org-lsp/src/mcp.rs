@@ -19,6 +19,7 @@
 //!
 //! Messages are JSON-RPC, one per line, as MCP's stdio transport has them.
 
+use std::collections::HashMap;
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
 
@@ -535,11 +536,13 @@ pub(crate) fn no_agenda_files(loaded: &crate::config::Loaded, folder: Option<&Pa
 /// The lines of a view, each entry's ending with `[file:line]`: the line
 /// of its headline in its file, named as `file_label` names it.
 fn with_references(lines: Vec<crate::cli::AgendaLine>, files: &[String]) -> String {
+    let labels = file_labels(files.iter().map(String::as_str));
     let mut out = String::new();
     for line in lines {
         out.push_str(&line.text);
         if let Some((file, number)) = &line.entry {
-            out.push_str(&format!("  [{}:{number}]", file_label(file, files)));
+            let label = labels.get(file.as_str()).cloned().unwrap_or_else(|| file_label(file, files));
+            out.push_str(&format!("  [{label}:{number}]"));
         }
         out.push('\n');
     }
@@ -556,6 +559,22 @@ fn file_label(file: &str, files: &[String]) -> String {
     } else {
         file.to_string()
     }
+}
+
+/// [`file_label`] of each of `files`, all at once.
+fn file_labels<'a>(files: impl Iterator<Item = &'a str> + Clone) -> HashMap<&'a str, String> {
+    let name = |file: &str| Path::new(file).file_name().map(|name| name.to_string_lossy().into_owned());
+    let mut counts: HashMap<Option<String>, usize> = HashMap::new();
+    for file in files.clone() {
+        *counts.entry(name(file)).or_default() += 1;
+    }
+    files
+        .map(|file| {
+            let own = name(file);
+            let alone = own.is_some() && counts.get(&own) == Some(&1);
+            (file, if alone { own.unwrap_or_default() } else { file.to_string() })
+        })
+        .collect()
 }
 
 // ----- edits
@@ -1212,12 +1231,24 @@ const REFILE_EDITABLE: &str =
     "neither an agenda file, nor the target of a capture template, nor a file of org_refile_targets";
 
 /// Where a target is, as the views say where entries are: `[file:line]`,
-/// or `[file]` for a file's top level.
-fn target_reference(files: &[TargetFile], file: usize, offset: Option<usize>) -> String {
-    let paths: Vec<String> = files.iter().map(|file| file.full.clone()).collect();
-    let label = file_label(&files[file].full, &paths);
+/// or `[file]` for a file's top level. `labels` are the files' labels,
+/// and `starts` where their lines start, found once for all the targets.
+fn target_reference(
+    files: &[TargetFile],
+    labels: &HashMap<&str, String>,
+    starts: &mut HashMap<usize, Vec<usize>>,
+    file: usize,
+    offset: Option<usize>,
+) -> String {
+    let label = labels.get(files[file].full.as_str()).cloned().unwrap_or_else(|| files[file].full.clone());
     match offset {
-        Some(at) => format!("[{label}:{}]", files[file].text[..at].matches('\n').count() + 1),
+        Some(at) => {
+            let text = &files[file].text;
+            let starts = starts.entry(file).or_insert_with(|| {
+                std::iter::once(0).chain(text.match_indices('\n').map(|(at, _)| at + 1)).collect()
+            });
+            format!("[{label}:{}]", starts.partition_point(|start| *start <= at).max(1))
+        }
         None => format!("[{label}]"),
     }
 }
@@ -1250,16 +1281,18 @@ fn refile_targets(arguments: &Arguments, options: &Options, folder: Option<&Path
     let filter = arguments.text("filter").filter(|filter| !filter.is_empty());
     let lowered = filter.as_ref().map(|filter| filter.to_lowercase());
     let mut out = String::new();
-    let mut seen: Vec<&str> = Vec::new();
+    let labels = file_labels(files.iter().map(|file| file.full.as_str()));
+    let mut starts = HashMap::new();
+    let mut seen = std::collections::HashSet::new();
     for (file, target) in &all {
-        if seen.contains(&target.name.as_str()) {
+        if !seen.insert(target.name.as_str()) {
             continue;
         }
-        seen.push(&target.name);
         if lowered.as_ref().is_some_and(|filter| !target.name.to_lowercase().contains(filter)) {
             continue;
         }
-        out.push_str(&format!("{}  {}\n", target.name, target_reference(&files, *file, target.offset)));
+        let reference = target_reference(&files, &labels, &mut starts, *file, target.offset);
+        out.push_str(&format!("{}  {reference}\n", target.name));
     }
     if out.is_empty() {
         return Ok(format!("No refile target has \"{}\".", filter.unwrap_or_default()));
@@ -1866,28 +1899,78 @@ fn roam_db(
     Ok((roam, db, mtimes))
 }
 
-/// Where a node is, `[file:line]`, its file named as among the files of
-/// `db`; `texts` keeps the files read.
-fn node_reference(
-    db: &org_core::roam::Db,
-    file: &str,
-    offset: usize,
-    texts: &mut std::collections::HashMap<String, String>,
-) -> String {
-    let labels: Vec<String> = db.files.iter().map(|(name, _)| name.clone()).collect();
-    let text = texts.entry(file.to_string()).or_insert_with(|| std::fs::read_to_string(file).unwrap_or_default());
-    format!("[{}:{}]", file_label(file, &labels), line_of(text, offset))
+/// org-roam's database looked up by node: each node by its ID, its
+/// aliases and tags, how the views name its file, and the files read,
+/// made once for a call so that listing every node stays linear.
+struct RoamIndex<'a> {
+    nodes: HashMap<&'a str, (&'a str, &'a org_core::roam::Node)>,
+    aliases: HashMap<&'a str, Vec<&'a str>>,
+    tags: HashMap<&'a str, Vec<&'a str>>,
+    /// How the views name each file of the database.
+    labels: HashMap<&'a str, String>,
+    /// The files read, with where their lines start.
+    texts: HashMap<String, (String, Vec<usize>)>,
 }
 
-/// A node's aliases and tags, in the order org-roam lists them.
-fn node_names<'a>(db: &'a org_core::roam::Db, id: &str) -> (Vec<&'a str>, Vec<&'a str>) {
-    let of = |rows: &'a [(String, String)]| {
-        let mut found: Vec<&str> =
-            rows.iter().filter(|(owner, _)| owner == id).map(|(_, name)| name.as_str()).collect();
-        found.dedup();
-        found
-    };
-    (of(&db.aliases), of(&db.tags))
+impl<'a> RoamIndex<'a> {
+    fn new(db: &'a org_core::roam::Db) -> RoamIndex<'a> {
+        let mut nodes = HashMap::new();
+        for (file, node) in &db.nodes {
+            nodes.entry(node.id.as_str()).or_insert((file.as_str(), node));
+        }
+        // In the order org-roam lists them, a name repeated in a row once.
+        let by_owner = |rows: &'a [(String, String)]| {
+            let mut found: HashMap<&str, Vec<&str>> = HashMap::new();
+            for (owner, name) in rows {
+                let names = found.entry(owner.as_str()).or_default();
+                if names.last() != Some(&name.as_str()) {
+                    names.push(name.as_str());
+                }
+            }
+            found
+        };
+        let labels = file_labels(db.files.iter().map(|(file, _)| file.as_str()));
+        RoamIndex {
+            nodes,
+            aliases: by_owner(&db.aliases),
+            tags: by_owner(&db.tags),
+            labels,
+            texts: HashMap::new(),
+        }
+    }
+
+    /// The node whose ID is `id`, and its file.
+    fn node(&self, id: &str) -> Option<(&'a str, &'a org_core::roam::Node)> {
+        self.nodes.get(id).copied()
+    }
+
+    /// A node's aliases and tags, in the order org-roam lists them.
+    fn names(&self, id: &str) -> (Vec<&'a str>, Vec<&'a str>) {
+        let of = |map: &HashMap<&'a str, Vec<&'a str>>| map.get(id).cloned().unwrap_or_default();
+        (of(&self.aliases), of(&self.tags))
+    }
+
+    /// How the views name `file`.
+    fn label(&self, file: &str) -> String {
+        self.labels.get(file).cloned().unwrap_or_else(|| file.to_string())
+    }
+
+    /// The text of `file`, read once.
+    fn text(&mut self, file: &str) -> &(String, Vec<usize>) {
+        self.texts.entry(file.to_string()).or_insert_with(|| {
+            let text = std::fs::read_to_string(file).unwrap_or_default();
+            let starts = std::iter::once(0).chain(text.match_indices('\n').map(|(at, _)| at + 1)).collect();
+            (text, starts)
+        })
+    }
+
+    /// Where a node is, `[file:line]`, its file named as among the files
+    /// of the database.
+    fn reference(&mut self, file: &str, offset: usize) -> String {
+        let (_, starts) = self.text(file);
+        let line = starts.partition_point(|start| *start <= offset).max(1);
+        format!("[{}:{line}]", self.label(file))
+    }
 }
 
 /// `roam_find`: the lines `org-roam-node-find` offers, with where each node is.
@@ -1901,23 +1984,23 @@ fn roam_find(arguments: &Arguments, options: &Options) -> Result<String, Call> {
     }
     let query = arguments.text("query").unwrap_or_default().to_lowercase();
     let words: Vec<&str> = query.split_whitespace().collect();
-    let mut texts = std::collections::HashMap::new();
+    let mut index = RoamIndex::new(&db);
     let mut out = String::new();
     for candidate in &candidates {
         let lowered = candidate.display.to_lowercase();
         if !words.iter().all(|word| lowered.contains(word)) {
             continue;
         }
-        let Some((file, node)) = db.nodes.iter().find(|(_, node)| node.id == candidate.id) else { continue };
+        let Some((file, node)) = index.node(&candidate.id) else { continue };
         let mut line = candidate.display.trim_end().to_string();
         if candidate.title != node.title {
             line.push_str(&format!(" (alias of {})", node.title));
         }
-        let (_, tags) = node_names(&db, &node.id);
+        let (_, tags) = index.names(&node.id);
         if !tags.is_empty() {
             line.push_str(&format!("  :{}:", tags.join(":")));
         }
-        line.push_str(&format!("  id:{}  {}", node.id, node_reference(&db, file, node.offset, &mut texts)));
+        line.push_str(&format!("  id:{}  {}", node.id, index.reference(file, node.offset)));
         out.push_str(&line);
         out.push('\n');
     }
@@ -1933,8 +2016,8 @@ fn roam_node(arguments: &Arguments, options: &Options) -> Result<String, Call> {
     let wanted = arguments.required("node")?;
     let wanted = wanted.trim();
     let (roam, db, _) = roam_db(options)?;
+    let mut index = RoamIndex::new(&db);
     // By `ID`, else by title, else by alias; in any case at last.
-    let ids: Vec<&str> = db.nodes.iter().map(|(_, node)| node.id.as_str()).collect();
     let by = |same: &dyn Fn(&str) -> bool| -> Vec<String> {
         let mut found: Vec<String> =
             db.nodes.iter().filter(|(_, node)| same(&node.title)).map(|(_, node)| node.id.clone()).collect();
@@ -1944,8 +2027,8 @@ fn roam_node(arguments: &Arguments, options: &Options) -> Result<String, Call> {
         found.dedup();
         found
     };
-    let mut found = match ids.iter().find(|id| **id == wanted) {
-        Some(id) => vec![id.to_string()],
+    let mut found = match index.node(wanted) {
+        Some((_, node)) => vec![node.id.clone()],
         None => by(&|name| name == wanted),
     };
     if found.is_empty() {
@@ -1955,21 +2038,17 @@ fn roam_node(arguments: &Arguments, options: &Options) -> Result<String, Call> {
         [one] => one.clone(),
         [] => return Err(format!("No org-roam node is \"{wanted}\": roam_find lists them").into()),
         _ => {
-            let mut texts = std::collections::HashMap::new();
-            let listed: Vec<String> = found
-                .iter()
-                .filter_map(|id| db.nodes.iter().find(|(_, node)| node.id == *id))
-                .map(|(file, node)| {
-                    format!("{} id:{} {}", node.title, node.id, node_reference(&db, file, node.offset, &mut texts))
-                })
+            let nodes: Vec<_> = found.iter().filter_map(|id| index.node(id)).collect();
+            let listed: Vec<String> = nodes
+                .into_iter()
+                .map(|(file, node)| format!("{} id:{} {}", node.title, node.id, index.reference(file, node.offset)))
                 .collect();
             return Err(format!("More than one node is \"{wanted}\": give its ID ({})", listed.join("; ")).into());
         }
     };
-    let (file, node) = db.nodes.iter().find(|(_, node)| node.id == id).ok_or("No such node")?;
-    let mut texts = std::collections::HashMap::new();
-    let mut out = format!("{}  id:{}  {}\n", node.title, node.id, node_reference(&db, file, node.offset, &mut texts));
-    let (aliases, tags) = node_names(&db, &id);
+    let (file, node) = index.node(&id).ok_or("No such node")?;
+    let mut out = format!("{}  id:{}  {}\n", node.title, node.id, index.reference(file, node.offset));
+    let (aliases, tags) = index.names(&id);
     if !aliases.is_empty() {
         out.push_str(&format!("Aliases: {}\n", aliases.join(", ")));
     }
@@ -1981,7 +2060,7 @@ fn roam_node(arguments: &Arguments, options: &Options) -> Result<String, Call> {
     if !refs.is_empty() {
         out.push_str(&format!("Refs: {}\n", refs.join(" ")));
     }
-    let text = texts.get(file.as_str()).cloned().unwrap_or_default();
+    let text = index.text(file).0.clone();
     let shown = if node.level == 0 { text.clone() } else { subtree_text(&text, node.offset, Path::new(file), options) };
     out.push('\n');
     out.push_str(shown.trim_end_matches('\n'));
@@ -1996,20 +2075,21 @@ fn roam_node(arguments: &Arguments, options: &Options) -> Result<String, Call> {
     let grep = crate::server::roam::buffer::grep_files(&directory, &roam.files.extensions);
     let read = |file: &str| std::fs::read_to_string(file).ok();
     let sections = buffer::sections(&db, &id, &kinds, &read, &grep);
+    let grep_labels = file_labels(grep.iter().map(String::as_str));
     for section in &sections {
         out.push_str(&format!("\n{}\n", buffer::heading(section)));
         for item in &section.items {
             match item {
                 Item::Node { title, outline, preview, file, offset } => {
-                    let reference = node_reference(&db, file, *offset, &mut texts);
+                    let reference = index.reference(file, *offset);
                     out.push_str(&format!("- {title} ({})  {reference}\n", buffer::outline_text(outline)));
                     for line in preview.lines() {
                         out.push_str(&format!("  {line}\n").replace("  \n", "\n"));
                     }
                 }
                 Item::Grep { file, row, line, .. } => {
-                    let labels: Vec<String> = grep.clone();
-                    out.push_str(&format!("- {}  [{}:{row}]\n", line.trim(), file_label(file, &labels)));
+                    let label = grep_labels.get(file.as_str()).cloned().unwrap_or_else(|| file.clone());
+                    out.push_str(&format!("- {}  [{label}:{row}]\n", line.trim()));
                 }
             }
         }
