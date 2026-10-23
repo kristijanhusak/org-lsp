@@ -29,7 +29,7 @@ fn describe_type(ty: TokenType) -> &'static str {
         TokenType::Comment => "A comment",
         TokenType::Bullet => "A list bullet",
         TokenType::Checkbox => "A list checkbox",
-        TokenType::Link => "A link",
+        TokenType::Link => "The brackets of a link, and its target when it has a description and Org hides it; a radio link; a citation",
         TokenType::Code => "Inline code",
         TokenType::Verbatim => "Verbatim text",
         TokenType::Text => "Text that carries emphasis",
@@ -37,7 +37,7 @@ fn describe_type(ty: TokenType) -> &'static str {
         TokenType::Footnote => "A footnote reference or label",
         TokenType::Cookie => "A statistics cookie such as [1/3]",
         TokenType::Target => "A link target",
-        TokenType::Latex => "A LaTeX fragment or environment",
+        TokenType::Latex => "A LaTeX fragment",
         TokenType::Entity => "An entity such as \\alpha",
         TokenType::Macro => "A macro call",
         TokenType::DocumentTitle => "The value of #+TITLE:",
@@ -64,6 +64,10 @@ fn describe_type(ty: TokenType) -> &'static str {
             "A headline or its stars in the color of its level, as Emacs's outline-N faces; never sent by the server: VS Code's org-lsp.headlineLevelColors turns headline and stars tokens into it"
         }
         TokenType::DescriptionTerm => "The term of a description list item, with its ::",
+        TokenType::LinkDescription => "The description of a link, [[target][description]]",
+        TokenType::LinkUrl => "The target of a link: a link without a description, a plain or angle link, or the target of a described one Org shows",
+        TokenType::LatexEnvironment => "A LaTeX environment, \\begin{…} to \\end{…}",
+        TokenType::TableHeader => "The cells of a table's header: the rows above its first rule, when rows follow it",
     }
 }
 
@@ -232,6 +236,22 @@ pub const LOOKS: &[Look] = &[
         &["@org.hyperlink", "@markup.link"],
         &["markup.underline.link.org", "markup.underline.link", "string.other.link"],
     ),
+    // The parts of a link as nvim-orgmode colors them.
+    look(
+        "linkDescription",
+        &["@org.hyperlink.desc", "@markup.link.label"],
+        &[
+            "markup.underline.link.description.org",
+            "markup.underline.link",
+            "string.other.link.description",
+            "string.other.link",
+        ],
+    ),
+    look(
+        "linkUrl",
+        &["@org.hyperlink.url", "@markup.link.url"],
+        &["markup.underline.link.url.org", "markup.underline.link", "string.other.link"],
+    ),
     look("code", &["@org.code", "@markup.raw"], &["markup.inline.raw.org", "markup.inline.raw", "string"]),
     look("verbatim", &["@org.verbatim", "@markup.raw"], &["markup.inline.raw.org", "markup.inline.raw", "string"]),
     look("text", &[], &[]),
@@ -239,6 +259,14 @@ pub const LOOKS: &[Look] = &[
         "tableDelimiter",
         &["@org.table.delimiter", "@punctuation.special"],
         &["punctuation.separator.table.org", "punctuation.definition.table", "comment"],
+    ),
+    // The header of a table: Org colors it only in the header line of
+    // `org-table-header-line-mode` (`org-table-header`); org-lsp in the
+    // table, as nvim-orgmode does.
+    look(
+        "tableHeader",
+        &["@org.table.heading", "@markup.heading"],
+        &["markup.heading.table.org", "markup.heading", "entity.name.section"],
     ),
     look(
         "footnote",
@@ -270,6 +298,11 @@ pub const LOOKS: &[Look] = &[
     // `org-latex-and-related`, burlywood or saddle brown: TeX's math is
     // `string.other.math`, a string where a theme has no other color.
     look("latex", &["@org.latex", "@markup.math"], &["markup.math.org", "support.function", "string.other.math"]),
+    look(
+        "latexEnvironment",
+        &["@org.latex_env", "@markup.environment"],
+        &["markup.math.environment.org", "support.function", "string.other.math"],
+    ),
     look(
         "entity",
         &["@org.latex", "@markup.math"],
