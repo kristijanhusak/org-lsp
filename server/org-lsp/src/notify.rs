@@ -516,14 +516,23 @@ fn reminds(warning: &WarningTime, interval: i64, left: i64) -> bool {
 }
 
 /// `appt-mode-line`: `Appointment in 10 minutes`, `Appointments in 5,10
-/// minutes`, `Appointment now`.
+/// minutes`, `Appointment now`; and, org-lsp's own, whole hours as hours,
+/// as the reminder of a warning in hours comes (`Appointment in 3 hours`),
+/// where `appt.el` says `in 180 minutes`.
 fn appt_mode_line(minutes: &[i64]) -> String {
     let multiple = minutes.len() > 1;
     let same = minutes.iter().all(|minute| *minute == minutes[0]);
     let first = (!multiple || same).then(|| minutes[0]);
+    let hours = minutes.iter().all(|minute| *minute >= 60 && minute % 60 == 0);
+    let plural = |count: i64, unit: &str| format!("{count} {unit}{}", if count == 1 { "" } else { "s" });
     let when = match first {
         Some(0) => "now".to_string(),
-        Some(minute) => format!("in {minute} minute{}", if minute == 1 { "" } else { "s" }),
+        Some(minute) if hours => format!("in {}", plural(minute / 60, "hour")),
+        Some(minute) => format!("in {}", plural(minute, "minute")),
+        None if hours => {
+            let all: Vec<String> = minutes.iter().map(|minute| (minute / 60).to_string()).collect();
+            format!("in {} hours", all.join(","))
+        }
         None => {
             let all: Vec<String> = minutes.iter().map(i64::to_string).collect();
             format!("in {} minutes", all.join(","))
@@ -542,7 +551,10 @@ fn appt_display(minutes: &[i64], messages: &[String]) -> Notification {
         minutes
             .iter()
             .zip(messages)
-            .map(|(minute, message)| format!("{minute}m: {message}"))
+            .map(|(minute, message)| match minute {
+                minute if *minute >= 60 && minute % 60 == 0 => format!("{}h: {message}", minute / 60),
+                minute => format!("{minute}m: {message}"),
+            })
             .collect::<Vec<_>>()
             .join("\n")
     };
@@ -848,6 +860,10 @@ mod tests {
     #[test]
     fn says_what_appt_says() {
         assert_eq!(appt_mode_line(&[10]), "Appointment in 10 minutes");
+        assert_eq!(appt_mode_line(&[60]), "Appointment in 1 hour");
+        assert_eq!(appt_mode_line(&[180]), "Appointment in 3 hours");
+        assert_eq!(appt_mode_line(&[90]), "Appointment in 90 minutes");
+        assert_eq!(appt_mode_line(&[60, 120]), "Appointments in 1,2 hours");
         assert_eq!(appt_mode_line(&[1]), "Appointment in 1 minute");
         assert_eq!(appt_mode_line(&[0]), "Appointment now");
         assert_eq!(appt_mode_line(&[5, 5]), "Appointments in 5 minutes");
