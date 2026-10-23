@@ -72,13 +72,15 @@ pub fn create_command(ctags: &str, directory: &str) -> String {
     )
 }
 
-/// `capitalize`: each word with its first letter upper case, the others
-/// lower case. Letters and digits make words.
+/// `capitalize` in an Org buffer: each word with its first letter upper
+/// case, the others lower case. Letters, digits and the apostrophe make
+/// words, as `text-mode-syntax-table` has it, so `it's` is one word and
+/// a word that starts with an apostrophe keeps its letters lower case.
 pub fn capitalize(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     let mut in_word = false;
     for c in text.chars() {
-        if c.is_alphanumeric() {
+        if c.is_alphanumeric() || c == '\'' {
             if in_word {
                 out.extend(c.to_lowercase());
             } else {
@@ -285,7 +287,10 @@ mod tests {
 
     #[test]
     fn words_are_capitalized_as_emacs_does() {
-        assert_eq!(capitalize("it's a fooBar foo-bar"), "It'S A Foobar Foo-Bar");
+        assert_eq!(capitalize("it's a fooBar foo-bar"), "It's A Foobar Foo-Bar");
         assert_eq!(capitalize("été x2y tag_name"), "Été X2y Tag_Name");
+        // `(with-temp-buffer (org-mode) (capitalize …))` in Emacs.
+        assert_eq!(capitalize("o'neil don't 'quoted' x''y it’s"), "O'neil Don't 'quoted' X''y It’S");
+        assert_eq!(capitalize("a_b c@d g.h 1st"), "A_B C@D G.H 1st");
     }
 }

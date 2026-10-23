@@ -313,6 +313,10 @@ pub struct Outline {
     /// `org-odd-levels-only` in the file: levels are counted two stars a
     /// level (`org-reduced-level`).
     pub odd_levels: bool,
+    /// The path of the file, when the outline is of one and its maker
+    /// says it: for what Emacs says of a line of it (a diary sexp that
+    /// fails).
+    pub file: Option<String>,
 }
 
 const ARCHIVE_TAG: &str = "ARCHIVE";
@@ -339,6 +343,7 @@ impl Outline {
         let category = category_values(&top_properties, &from_file);
 
         let mut outline = Outline {
+            file: None,
             odd_levels: crate::structure::odd_levels(text, crate::structure::odd_levels_default()),
             text: text.to_string(),
             category: shown_category(&category),
@@ -515,13 +520,14 @@ impl Outline {
         // that the next headline does not close has no text.
         let next_heading =
             text[line_end..].split('\n').skip(1).find(|line| crate::todo::headline_level(line).is_some()).unwrap_or("");
-        let task = crate::inlinetask::is_task_line(text, line);
-        let bare_inlinetask = task && !crate::inlinetask::is_end_line(text, next_heading);
-        let inlinetask_end = crate::inlinetask::is_end_line(text, line)
+        let tasks = crate::inlinetask::min_stars(self.odd_levels);
+        let task = crate::inlinetask::is_task_line(tasks, line);
+        let bare_inlinetask = task && !crate::inlinetask::is_end_line(tasks, next_heading);
+        let inlinetask_end = crate::inlinetask::is_end_line(tasks, line)
             && self
                 .entries
                 .last()
-                .is_some_and(|before| crate::inlinetask::is_task_line(text, &text[before.offset..before.line_end]));
+                .is_some_and(|before| crate::inlinetask::is_task_line(tasks, &text[before.offset..before.line_end]));
         let section = headline.section().filter(|_| !bare_inlinetask);
         let planning = section.as_ref().and_then(|section| section.children().find(|child| child.kind() == PLANNING));
         // A property drawer counts right below the headline or its planning
@@ -819,7 +825,7 @@ type Span = Option<(usize, usize)>;
 
 /// The groups of `org-complex-heading-regexp`, as byte ranges of a line.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct HeadingParts {
+pub struct HeadingParts {
     /// The TODO keyword (the second group).
     pub keyword: Span,
     /// The priority cookie, `[#A]` (the third).
@@ -832,7 +838,7 @@ pub(crate) struct HeadingParts {
 
 /// The keyword, priority cookie and title of a headline line as
 /// `org-complex-heading-regexp` reads them.
-pub(crate) fn complex_heading_parts(line: &str, level: usize, todo: &TodoKeywords) -> HeadingParts {
+pub fn complex_heading_parts(line: &str, level: usize, todo: &TodoKeywords) -> HeadingParts {
     // What may end the line after any of the parts: blanks, with tags or without.
     let is_tail = |rest: &str| {
         let trimmed = rest.trim_end_matches([' ', '\t']);
@@ -1170,7 +1176,7 @@ fn at_date_range(text: &str, point: usize) -> bool {
 
 /// The token that holds byte `offset`.
 fn token_at(root: &SyntaxNode, offset: usize) -> Option<org_syntax::SyntaxToken> {
-    match root.token_at_offset((offset as u32).into()) {
+    match org_syntax::token_at_offset(root, (offset as u32).into()) {
         TokenAtOffset::None => None,
         TokenAtOffset::Single(token) => Some(token),
         TokenAtOffset::Between(_, right) => Some(right),
@@ -1346,6 +1352,18 @@ mod tests {
 
     fn tag_names(entry: &Entry) -> Vec<String> {
         entry.tags.iter().map(|tag| format!("{}{}", if tag.inherited { "^" } else { "" }, tag.name)).collect()
+    }
+
+    /// The `#+STARTUP:` words are read once for the whole outline, not
+    /// once for each headline: many headlines build in linear time.
+    #[test]
+    fn many_headlines_build_fast() {
+        let text = "* a\nb\n".repeat(4000);
+        let start = std::time::Instant::now();
+        let outline = outline(&text);
+        assert_eq!(outline.entries.len(), 4000);
+        // Generous: this takes a fraction of a second in a debug build.
+        assert!(start.elapsed() < std::time::Duration::from_secs(5), "took {:?}", start.elapsed());
     }
 
     /// `org-property-separators`: the values of `X` and `X+` joined with

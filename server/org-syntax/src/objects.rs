@@ -149,6 +149,9 @@ pub(crate) fn parse_objects(builder: &mut GreenNodeBuilder<'static>, text: &str,
     // at the same address.
     LAST_CLOSER.set(Scan::NONE);
     LAST_DIARY_CLOSER.set(Scan::NONE);
+    LAST_DIARY_PAREN.set(Scan::NONE);
+    LAST_SRC_NAME_END.set(Scan::NONE);
+    LAST_CALL_NAME_END.set(Scan::NONE);
     parse_nested(builder, text, mode, 0);
 }
 
@@ -277,6 +280,9 @@ struct Scanner<'t> {
     /// cannot continue them.
     angle_blocked: usize,
     pairs: [Option<Pairs>; 3],
+    /// The last search for a citation key: from where, and the first `@`
+    /// at or after it that a key character follows.
+    key: (usize, Option<usize>),
 }
 
 impl<'t> Scanner<'t> {
@@ -289,6 +295,7 @@ impl<'t> Scanner<'t> {
             absent: [usize::MAX; Needle::COUNT],
             angle_blocked: 0,
             pairs: [None, None, None],
+            key: (usize::MAX, None),
         }
     }
 
@@ -651,12 +658,20 @@ impl Scanner<'_> {
 
 // ----- snippets, macros and inline code
 
-/// Length of the name after `src_` or `call_`: anything up to a blank or one
-/// of the two `stop` brackets, which must then follow.
-fn inline_name_len(rest: &str, stop: [u8; 2]) -> Option<usize> {
-    let bytes = rest.as_bytes();
-    let len = bytes.iter().take_while(|b| !matches!(b, b' ' | b'\t' | b'\n') && !stop.contains(b)).count();
-    (len > 0 && bytes.get(len).is_some_and(|b| stop.contains(b))).then_some(len)
+/// Length of the name of `text` at `from`, after `src_` (`last` is
+/// [`LAST_SRC_NAME_END`]) or `call_` ([`LAST_CALL_NAME_END`]): anything up
+/// to a blank or one of the brackets `stops` also stops at, which must then
+/// follow. The search is remembered, so that a line of many names is gone
+/// over once.
+fn inline_name_len(
+    last: &'static LocalKey<Cell<Scan>>,
+    text: &str,
+    from: usize,
+    stops: fn(u8) -> bool,
+) -> Option<usize> {
+    let bytes = text.as_bytes();
+    let stop = scan_to(last, bytes, from, stops)?;
+    (stop > from && !matches!(bytes[stop], b' ' | b'\t' | b'\n')).then_some(stop - from)
 }
 
 impl Scanner<'_> {
@@ -693,7 +708,8 @@ impl Scanner<'_> {
         if !at_word_start(self.text, i) {
             return None;
         }
-        let mut j = i + 4 + inline_name_len(&self.text[i + 4..], *b"[{")?;
+        let stops = |b: u8| matches!(b, b' ' | b'\t' | b'\n' | b'[' | b'{');
+        let mut j = i + 4 + inline_name_len(&LAST_SRC_NAME_END, self.text, i + 4, stops)?;
         j = self.balanced_end(j, Bracket::Square, usize::MAX).unwrap_or(j);
         self.balanced_end(j, Bracket::Curly, usize::MAX)
     }
@@ -703,7 +719,8 @@ impl Scanner<'_> {
         if !at_word_start(self.text, i) {
             return None;
         }
-        let mut j = i + 5 + inline_name_len(&self.text[i + 5..], *b"[(")?;
+        let stops = |b: u8| matches!(b, b' ' | b'\t' | b'\n' | b'[' | b'(');
+        let mut j = i + 5 + inline_name_len(&LAST_CALL_NAME_END, self.text, i + 5, stops)?;
         j = self.balanced_end(j, Bracket::Square, usize::MAX).unwrap_or(j);
         j = self.balanced_end(j, Bracket::Round, usize::MAX)?;
         Some(self.balanced_end(j, Bracket::Square, usize::MAX).unwrap_or(j))
@@ -731,11 +748,28 @@ impl Scanner<'_> {
         }
         let prefix_end = i + 5 + style + 1;
         let end = self.balanced_end(i, Bracket::Square, usize::MAX)?;
+        // A key in the body: the closing `]` is no key character, so the
+        // first key from the body's start on is in the body if it starts
+        // before the bracket.
+        self.key_from(prefix_end).is_some_and(|key| key < end - 1).then_some(end)
+    }
+
+    /// The first `@` at or after `from` that a character of a citation key
+    /// follows. Citations nested in others search from further on, within
+    /// what the last search went over: that search's result holds for them.
+    fn key_from(&mut self, from: usize) -> Option<usize> {
+        let (known_from, known) = self.key;
+        if known_from <= from && known.is_none_or(|key| from <= key) {
+            return known;
+        }
         let is_key_char = |c: char| c.is_alphanumeric() || "-.:?!`'/*@+|(){}<>&_^$#%~".contains(c);
-        let body = &text[prefix_end..end - 1];
-        body.match_indices('@')
-            .any(|(index, _)| body[index + 1..].chars().next().is_some_and(is_key_char))
-            .then_some(end)
+        let rest = self.text.get(from..)?;
+        let key = rest
+            .match_indices('@')
+            .find(|(index, _)| rest[index + 1..].chars().next().is_some_and(is_key_char))
+            .map(|(index, _)| from + index);
+        self.key = (from, key);
+        key
     }
 }
 
@@ -848,7 +882,9 @@ fn link_group_end(text: &str, start: usize) -> Option<usize> {
 /// group, a slash, a dash or a character that is not punctuation, and holds
 /// at least one unit before that.
 pub(crate) fn match_plain_link(text: &str, i: usize) -> Option<usize> {
-    if !at_word_start(text, i) {
+    // Callers outside the parser may ask at any byte: none starts within a
+    // character.
+    if !text.is_char_boundary(i) || !at_word_start(text, i) {
         return None;
     }
     let mut pos = link_type_at(text, i)?;
@@ -909,6 +945,11 @@ thread_local! {
     /// end of a diary timestamp, in the text being parsed.
     static LAST_CLOSER: Cell<Scan> = const { Cell::new(Scan::NONE) };
     static LAST_DIARY_CLOSER: Cell<Scan> = const { Cell::new(Scan::NONE) };
+    /// The last search for a `)` that closes a diary timestamp's sexp.
+    static LAST_DIARY_PAREN: Cell<Scan> = const { Cell::new(Scan::NONE) };
+    /// The last searches for the end of the name after `src_` and `call_`.
+    static LAST_SRC_NAME_END: Cell<Scan> = const { Cell::new(Scan::NONE) };
+    static LAST_CALL_NAME_END: Cell<Scan> = const { Cell::new(Scan::NONE) };
 }
 
 /// A search that stopped at byte `stop` of the text at `text` (its address
@@ -945,8 +986,12 @@ fn match_diary_timestamp(text: &str, i: usize) -> Option<usize> {
     let bytes = text.as_bytes();
     let inner_start = i + text[i..].starts_with("<%%(").then_some(4)?;
     let close = scan_to(&LAST_DIARY_CLOSER, bytes, inner_start, |b| matches!(b, b'>' | b'\n'))?;
-    let closes_sexp = bytes[inner_start..close].iter().skip(1).any(|b| *b == b')');
-    if bytes[close] != b'>' || !closes_sexp {
+    if bytes[close] != b'>' {
+        return None;
+    }
+    // A `)` after the sexp's first character, before the bracket.
+    let paren = scan_to(&LAST_DIARY_PAREN, bytes, inner_start + 1, |b| b == b')');
+    if paren.is_none_or(|paren| paren >= close) {
         return None;
     }
     first_closer(bytes, i + 1)

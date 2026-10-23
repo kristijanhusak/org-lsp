@@ -62,6 +62,36 @@ pub fn entity_utf8(name: &str) -> Option<&'static str> {
 pub use kind::{OrgLanguage, SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken};
 pub use rowan::{TextRange, TextSize, TokenAtOffset};
 
+/// The token at `offset` under `node`, as rowan's `token_at_offset` has it
+/// (both tokens where two meet), found by halving the children of each
+/// node on the way down: rowan's looks at every child of each, which over
+/// a document of thousands of headlines is slow enough to count.
+/// `TokenAtOffset::None` for an offset outside the node.
+pub fn token_at_offset(node: &SyntaxNode, offset: TextSize) -> TokenAtOffset<SyntaxToken> {
+    let range = node.text_range();
+    if range.is_empty() || offset < range.start() || offset > range.end() {
+        return TokenAtOffset::None;
+    }
+    // The children that hold the byte before the offset and the byte at it.
+    let before = (offset > range.start())
+        .then(|| node.child_or_token_at_range(TextRange::new(offset - TextSize::from(1), offset)))
+        .flatten();
+    let at = (offset < range.end()).then(|| node.child_or_token_at_range(TextRange::at(offset, 1.into()))).flatten();
+    let down = |element: SyntaxElement| match element {
+        rowan::NodeOrToken::Token(token) => TokenAtOffset::Single(token),
+        rowan::NodeOrToken::Node(node) => token_at_offset(&node, offset),
+    };
+    match (before, at) {
+        (Some(before), Some(at)) if before == at => down(at),
+        (Some(before), Some(at)) => match (down(before), down(at)) {
+            (TokenAtOffset::Single(left), TokenAtOffset::Single(right)) => TokenAtOffset::Between(left, right),
+            (_, right) => right,
+        },
+        (Some(only), None) | (None, Some(only)) => down(only),
+        (None, None) => TokenAtOffset::None,
+    }
+}
+
 /// The result of parsing a document.
 #[derive(Debug, Clone)]
 pub struct Parse {

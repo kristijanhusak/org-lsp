@@ -115,9 +115,11 @@ async function applyCarried(running: LanguageClient, result: unknown): Promise<v
   }
 }
 
-/** The server's commands run so far, in turn: what the tests see of the
- * keys they press. */
+/** The server's commands run last, in turn (`COMMANDS_KEPT` of them), and
+ * how many ran in all: what the tests see of the keys they press. */
 const commandsRun: string[] = [];
+const COMMANDS_KEPT = 100;
+let commandsCount = 0;
 /** How many commands, and documents the server asked to show, are not done yet. */
 let busy = 0;
 
@@ -132,6 +134,10 @@ async function whileBusy<T>(run: () => Promise<T>): Promise<T> {
 
 function counted<T>(name: string, run: () => Promise<T>): Promise<T> {
   commandsRun.push(name);
+  if (commandsRun.length > COMMANDS_KEPT) {
+    commandsRun.shift();
+  }
+  commandsCount += 1;
   return whileBusy(run);
 }
 
@@ -660,13 +666,18 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
       // status bar for a while, as Emacs shows it in the echo area.
       void client
         .sendRequest('org-lsp/agendaCursor', { textDocument: { uri: uri.toString() }, position: { line, character: 0 } })
-        .then((result) => {
-          const echo = (result as { echo?: unknown } | null)?.echo;
-          if (typeof echo === 'string') {
-            echoed = echo;
-            vscode.window.setStatusBarMessage(echo, 5000);
-          }
-        });
+        .then(
+          (result) => {
+            const echo = (result as { echo?: unknown } | null)?.echo;
+            if (typeof echo === 'string') {
+              echoed = echo;
+              vscode.window.setStatusBarMessage(echo, 5000);
+            }
+          },
+          // No outline path for a line the server could not answer for (the
+          // agenda gone, the server stopping): nothing to show.
+          () => undefined,
+        );
     }),
   );
   try {
@@ -688,8 +699,9 @@ async function startClient(context: vscode.ExtensionContext): Promise<void> {
     client.onNotification('org-lsp/lineHighlights', (params: LineHighlights) => showLineHighlights(params));
     // Faces of particular keywords and priorities.
     setFaces(client.initializeResult?.capabilities.experimental?.orgFaces);
-    // Images in place of LaTeX fragments, made by Emacs.
-    client.onNotification('org-lsp/images', (params: Preview) => applyPreview(params));
+    // Images in place of LaTeX fragments, made by Emacs, and of links to
+    // images downloaded first; quiet for those a file opens with.
+    client.onNotification('org-lsp/images', (params: Preview) => applyPreview(params, params.startup === true));
     // org-journal's files, Org files whose name need not say so.
     journalDirectory = client.initializeResult?.capabilities.experimental?.orgJournal?.directory;
     vscode.workspace.textDocuments.forEach((document) => void asJournalFile(document));
@@ -875,6 +887,8 @@ interface ColumnsShown {
   columns?: { key: string; title: string; width: number }[];
   /** Each headline's line, the text it shows, its values; null when off. */
   lines: [number, string, string[]][] | null;
+  /** The column Emacs's cursor went to, after a command that moves it. */
+  column?: number;
 }
 
 const columnsShown = new Map<string, ColumnsShown>();
@@ -941,7 +955,8 @@ function showColumns(params: ColumnsShown): void {
   if (params.lines) {
     columnsShown.set(params.uri, params);
     const count = params.columns?.length ?? 1;
-    columnsPicked.set(params.uri, Math.min(columnsPicked.get(params.uri) ?? 0, count - 1));
+    const picked = params.column ?? columnsPicked.get(params.uri) ?? 0;
+    columnsPicked.set(params.uri, Math.max(0, Math.min(picked, count - 1)));
   } else {
     columnsShown.delete(params.uri);
   }
@@ -2299,9 +2314,9 @@ export interface Api {
   images(editor: vscode.TextEditor): [string, number, string, number, number][];
   /** The outline path of the agenda line shown last (`org-agenda-show-outline-path`). */
   echoed(): string;
-  /** The server's commands run so far, in turn, and how many commands and
-   * documents to show are not done yet. */
-  commands(): { run: string[]; running: number };
+  /** The server's commands run last, in turn, how many ran in all, and
+   * how many commands and documents to show are not done yet. */
+  commands(): { run: string[]; count: number; running: number };
   /** What the server said column view shows, last (`org-lsp/columns`). */
   columnsReported(): unknown;
   /** Done when the server has handled what it was sent before. */
@@ -2409,7 +2424,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     clock: clockText,
     columns: () => columnsItem?.text ?? '',
     echoed: () => echoed,
-    commands: () => ({ run: [...commandsRun], running: busy }),
+    commands: () => ({ run: [...commandsRun], count: commandsCount, running: busy }),
     columnsReported: () => columnsReported,
     // A request the server does not know is answered all the same, in turn.
     sync: async () => {

@@ -443,6 +443,40 @@ class Tests(unittest.TestCase):
             command='org.capture')
         self.assertEqual(self.window.panels[1], ('quick', ['[t] Task'], 'Template'))
 
+    def test_adds_a_colon_only_to_prompts_without_one(self):
+        self.window.typed = ''
+        self.run_command(
+            [('result', {'input': {'kind': 'text', 'prompt': 'Keep how many minutes (default 90): ', 'value': ''}}),
+             ('result', None)],
+            command='org.clock.in')
+        self.run_command(
+            [('result', {'input': {'kind': 'text', 'prompt': 'Really? ', 'value': ''}}), ('result', None)],
+            command='org.clock.in')
+        self.assertEqual([panel[1] for panel in self.window.panels],
+                         ['Keep how many minutes (default 90): ', 'Really? '])
+
+    def test_offers_the_completions_of_a_prompt(self):
+        # A completion picked is the answer.
+        self.window.pick = 2
+        input = {'kind': 'text', 'prompt': 'Node', 'value': '', 'completions': ['B note', 'A note'], 'select': True}
+        session = self.run_command([('result', {'input': input}), ('result', None)], command='org.roam.node.find')
+        self.assertEqual(self.window.panels[0], ('quick', ['Type an answer…', 'B note', 'A note'], 'Node'))
+        self.assertEqual(session.sent[1][1]['arguments'][0]['input'], 'A note')
+        # The first item: anything typed, here nothing (the default).
+        self.window.panels.clear()
+        self.window.pick, self.window.typed = 0, ''
+        input = {'kind': 'text', 'prompt': 'Property [Owner]', 'value': '', 'completions': ['Owner', 'Effort']}
+        session = self.run_command([('result', {'input': input}), ('result', None)], command='org.property.set')
+        self.assertEqual(self.window.panels[1], ('input', 'Property [Owner]:', ''))
+        self.assertEqual(session.sent[1][1]['arguments'][0]['input'], '')
+        # Tags: the one picked joins those there, in the input panel.
+        self.window.panels.clear()
+        self.window.pick, self.window.typed = 1, ':work:home:'
+        input = {'kind': 'text', 'prompt': 'Tags', 'value': ':work:', 'completions': ['home'], 'separator': ':'}
+        session = self.run_command([('result', {'input': input}), ('result', None)], command='org.tags.set')
+        self.assertEqual(self.window.panels[1], ('input', 'Tags:', ':work:home:'))
+        self.assertEqual(session.sent[1][1]['arguments'][0]['input'], ':work:home:')
+
     def test_offers_todo_keywords_in_their_colors(self):
         # As `org-fast-todo-selection` shows them: the kind of each item in
         # the keyword's color, its own face or that of a TODO or done keyword.
@@ -962,9 +996,15 @@ class Server(unittest.TestCase):
         os.symlink(os.path.join(checkout, 'editors', 'sublime', 'LSP-org'), os.path.join(self.sublime.packages, 'LSP-org'))
         self.assertEqual(self.plugin.server_path(self.storage), build)
 
-    def test_downloads_the_nightly_build_when_there_is_none(self):
+    def test_downloads_its_own_release_when_there_is_none(self):
         self.assertTrue(self.plugin.OrgLsp.needs_update_or_installation())
         self.assertIsNotNone(self.plugin.OrgLsp.can_start(None, None, [], None))
+        # What packages before kept, with no release in its path, is not
+        # the package's release.
+        unversioned = os.path.join(self.storage, 'LSP-org', 'org-lsp')
+        os.makedirs(os.path.dirname(unversioned), exist_ok=True)
+        open(unversioned, 'w').close()
+        self.assertTrue(self.plugin.OrgLsp.needs_update_or_installation())
         asked = []
 
         class Response(io.BytesIO):
@@ -979,14 +1019,28 @@ class Server(unittest.TestCase):
             return Response(archive(b'server'))
         self.plugin.urllib.request.urlopen = urlopen
         self.plugin.OrgLsp.install_or_update()
-        self.assertEqual(asked, ['https://github.com/kristijanhusak/org-lsp/releases/download/nightly/org-lsp-linux-x86_64.tar.gz'])
-        binary = os.path.join(self.storage, 'LSP-org', 'org-lsp')
+        release = 'v' + self.plugin.VERSION
+        self.assertEqual(self.plugin.RELEASE, release)
+        self.assertEqual(asked, ['https://github.com/kristijanhusak/org-lsp/releases/download/{}/org-lsp-linux-x86_64.tar.gz'.format(release)])
+        binary = os.path.join(self.storage, 'LSP-org', release, 'org-lsp')
         with open(binary, 'rb') as written:
             self.assertEqual(written.read(), b'server')
         self.assertTrue(os.stat(binary).st_mode & stat.S_IXUSR)
+        self.assertFalse(os.path.exists(unversioned))
         self.assertEqual(self.plugin.server_path(self.storage), binary)
         self.assertFalse(self.plugin.OrgLsp.needs_update_or_installation())
         self.assertIsNone(self.plugin.OrgLsp.can_start(None, None, [], None))
+
+        # The package updated to another release: its own server is
+        # downloaded, and the old one goes.
+        self.plugin.RELEASE = 'v9.9.9'
+        self.assertTrue(self.plugin.OrgLsp.needs_update_or_installation())
+        self.plugin.OrgLsp.install_or_update()
+        self.assertEqual(asked[-1], 'https://github.com/kristijanhusak/org-lsp/releases/download/v9.9.9/org-lsp-linux-x86_64.tar.gz')
+        newer = os.path.join(self.storage, 'LSP-org', 'v9.9.9', 'org-lsp')
+        self.assertEqual(self.plugin.server_path(self.storage), newer)
+        self.assertFalse(os.path.exists(binary))
+        self.assertFalse(self.plugin.OrgLsp.needs_update_or_installation())
 
 
 class Help(unittest.TestCase):

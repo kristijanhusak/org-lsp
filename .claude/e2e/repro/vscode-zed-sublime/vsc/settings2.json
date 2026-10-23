@@ -1,0 +1,15 @@
+{
+  "folder": {
+    "org-lsp.settings": {
+      "clock": { "today": "2026-05-18", "now": "10:30" },
+      "emacs_config": "(add-to-list 'load-path \"/root/org-mode/lisp\")",
+      "org_refile_targets": [["org_agenda_files", "maxlevel", 3]],
+      "org_agenda_files": ["$WS/ref.org"],
+      "org_log_refile": "time",
+      "org_capture_templates": [
+        { "key": "p", "description": "Person", "target": ["file", "$WS/inbox.org"], "template": "* %^{Name} %(upcase \"abc\")\n%c\n%a" },
+        { "key": "d", "description": "Diary", "target": ["file+olp+datetree", "$WS/tree.org"], "template": "* %?" }
+      ]
+    }
+  }
+}

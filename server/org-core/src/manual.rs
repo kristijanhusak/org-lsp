@@ -42,6 +42,21 @@ pub fn man_arguments(page: &str) -> Vec<String> {
     translated.split(' ').filter(|word| !word.is_empty()).map(str::to_string).collect()
 }
 
+/// Why the arguments of a `man:` link are not given to `man`: one of them
+/// is an option (`man:-l /etc/hostname` would read any file as a page),
+/// or a file, which man-db reads as a page all the same
+/// (`man:/etc/hostname`). Emacs passes them on; org-lsp gives a link
+/// pages and sections only. No `--` goes before them: with every word a
+/// page or a section, there is no option left to end, and not every
+/// `org_man_command` would take it.
+pub fn man_refused(arguments: &[String]) -> Option<String> {
+    if let Some(option) = arguments.iter().find(|word| word.starts_with('-')) {
+        return Some(format!("A man: link names pages, not options: {option}"));
+    }
+    let file = arguments.iter().find(|word| word.contains('/'))?;
+    Some(format!("A man: link names pages, not files: {file}"))
+}
+
 /// What Emacs says when `man` finds no page (`Man-bgproc-sentinel`), the
 /// options left out of the arguments (`Man-page-from-arguments`).
 pub fn man_not_found(arguments: &[String]) -> String {
@@ -248,6 +263,23 @@ mod tests {
         assert_eq!(man_arguments("  ls   1 "), ["ls", "1"]);
         assert_eq!(man_arguments("chmod(2V)"), ["2v", "chmod"]);
         assert_eq!(man_not_found(&man_arguments("-a ls")), "Can’t find the ls manpage");
+    }
+
+    #[test]
+    fn man_links_give_no_options() {
+        for page in ["ls", "ls(1)", "5 crontab", "chmod(2V)", "git-log"] {
+            assert_eq!(man_refused(&man_arguments(page)), None, "{page}");
+        }
+        assert_eq!(
+            man_refused(&man_arguments("-l /etc/hostname")),
+            Some("A man: link names pages, not options: -l".to_string())
+        );
+        assert!(man_refused(&man_arguments("ls --html=firefox")).is_some());
+        assert_eq!(
+            man_refused(&man_arguments("/etc/hostname")),
+            Some("A man: link names pages, not files: /etc/hostname".to_string())
+        );
+        assert!(man_refused(&man_arguments("1 ./notes")).is_some());
     }
 
     #[test]

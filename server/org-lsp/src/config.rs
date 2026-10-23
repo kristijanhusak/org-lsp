@@ -370,6 +370,10 @@ pub struct Options {
     /// stands for (`%s` the tag, `%h` the tag URL-encoded).
     #[serde(rename = "org_link_abbrev_alist")]
     pub link_abbrev_alist: Option<std::collections::BTreeMap<String, String>>,
+    /// `org-src-lang-modes`: the major mode of a source block's language,
+    /// over Org's own, by which editors know the language of its code.
+    #[serde(rename = "org_src_lang_modes")]
+    pub src_lang_modes: Option<std::collections::BTreeMap<String, String>>,
     /// `org-tag-alist`: the tags offered when a file has no `#+TAGS:`
     /// line, written like one (`"work(w) { @office(o) @home(h) }"`), or as
     /// its words.
@@ -588,8 +592,12 @@ pub struct Options {
     /// command's result (Zed).
     pub message_prompts: Option<bool>,
     /// Whether the client shows `window/showMessageRequest`; without, a
-    /// question's choices are code actions (Helix).
+    /// question's choices are code actions (Helix), or a command's
+    /// question for a client that runs commands when told (`run_command`).
     pub message_requests: Option<bool>,
+    /// The client shows the server's messages sent as `org-lsp/message`,
+    /// as one announcing `experimental.orgMessages` does.
+    pub message_notifications: Option<bool>,
     /// The client has org-lsp's editor code: it knows the server's own
     /// token types, asks what a command's result asks for, binds the keys.
     /// A client that can announce it says `experimental.orgClient`.
@@ -609,6 +617,9 @@ pub struct Options {
     /// The client shows `org-lsp/lineHighlights`, as one announcing
     /// `experimental.orgLineHighlights` does.
     pub line_highlights: Option<bool>,
+    /// The client colors code in its language where `org-lsp/codeBlocks`
+    /// says, as one announcing `experimental.orgCodeBlocks` does.
+    pub code_blocks: Option<bool>,
     /// The client runs a command when the server asks
     /// (`org-lsp/runCommand`), as one announcing
     /// `experimental.orgRunCommand` does.
@@ -974,6 +985,39 @@ pub struct Options {
     pub hide_macro_markers: Option<bool>,
     /// Save the files a command changes other than the one it was run in.
     pub auto_save: Option<bool>,
+    /// `org-lsp mcp` may change files: the tools that set TODO states and
+    /// capture.
+    pub mcp_edits: Option<bool>,
+    /// `appt-message-warning-time`: how many minutes before an appointment
+    /// `org-lsp notify` starts reminding of it, or the minutes it reminds
+    /// at.
+    pub appt_message_warning_time: Option<WarningTime>,
+    /// `appt-display-interval`
+    pub appt_display_interval: Option<i64>,
+    /// `org-lsp notify` also reminds of a deadline or timestamp as many
+    /// hours before it as its warning cookie says (`-1h`).
+    pub notification_use_timestamp_warning: Option<bool>,
+    /// The time of day (`HH:MM`) `org-lsp notify` lists the deadlines at.
+    pub notification_deadline_summary_time: Option<String>,
+    /// The entries `org-lsp notify` reminds of: a match string of the tags
+    /// view.
+    pub notification_match: Option<String>,
+    /// The program `org-lsp notify` runs for a notification, with its
+    /// arguments.
+    pub notification_command: Option<Vec<String>>,
+    /// The title of an appointment's notification, with the entry's
+    /// placeholders (`%h`, `%k`, `%w`…); unset, `appt.el`'s mode line.
+    pub notification_title_format: Option<String>,
+    /// The text of an appointment's notification, with the entry's
+    /// placeholders; unset, the line `appt.el` shows (`%a`).
+    pub notification_body_format: Option<String>,
+    /// A line of the deadline summary, with the entry's placeholders and
+    /// `%D` the agenda's leader.
+    pub notification_deadline_line_format: Option<String>,
+    /// Whether `org-lsp notify` shows desktop notifications.
+    pub notification_desktop: Option<bool>,
+    /// The image of desktop notifications: unset, the logo; empty, none.
+    pub notification_icon: Option<String>,
     /// RET on the first line of a list item makes the next item, as M-RET.
     pub return_uses_meta_return: Option<bool>,
     /// `org-return-follows-link`
@@ -993,6 +1037,9 @@ pub struct Options {
     pub emacs_config_file: Option<String>,
     /// Emacs Lisp that Emacs evaluates before loading Org.
     pub emacs_config: Option<String>,
+    /// Org's options Emacs sets, by name, after `emacs_config`.
+    #[serde(deserialize_with = "table_or_empty_list")]
+    pub emacs_options: Option<serde_json::Map<String, serde_json::Value>>,
     /// The shared configuration file: `false` for none, or a path instead
     /// of the usual one. Read by `load`, before the options are.
     pub config_file: Option<serde_json::Value>,
@@ -1934,12 +1981,51 @@ impl Options {
         org_syntax::ListSyntax { alphabetical: self.list_allow_alphabetical == Some(true), terminator }
     }
 
+    /// The options of `emacs_options` Emacs sets: those Org's options
+    /// Emacs reads (`emacs` in `scripts/org-options.json`), each with the
+    /// library it is in. Of the others, what to tell the user.
+    pub fn emacs_options(&self) -> (Vec<crate::emacs::OrgOption>, Vec<String>) {
+        let mut options = Vec::new();
+        let mut problems = Vec::new();
+        for (name, value) in self.emacs_options.iter().flatten() {
+            let Some(option) = crate::org_options::find(name) else {
+                let meant = match crate::org_options::closest(name) {
+                    Some(meant) => format!(" (did you mean `{meant}`?)"),
+                    None => String::new(),
+                };
+                problems.push(format!("`emacs_options` leaves out `{name}`: Org has no such option{meant}"));
+                continue;
+            };
+            let why = match option.status.as_str() {
+                "emacs" => {
+                    let feature = option.feature().to_string();
+                    options.push(crate::emacs::OrgOption { name: name.clone(), feature, value: value.clone() });
+                    continue;
+                }
+                "setting" => format!("it is the setting `{}`", name.replace('-', "_")),
+                "lisp" => "its value is Lisp (a function, a hook), which goes in `emacs_config`".to_string(),
+                "missing" => "org-lsp does what it is about, but the option cannot be set yet".to_string(),
+                "other" => {
+                    let note = option.note.as_deref().unwrap_or_default().replace('~', "`");
+                    format!("org-lsp does it another way: {note}")
+                }
+                "absent" => "it is part of something org-lsp does not do".to_string(),
+                _ => "it is about Emacs itself (windows, faces, menus, the mouse, the mode line), \
+                      with nothing to do in an editor"
+                    .to_string(),
+            };
+            problems.push(format!("`emacs_options` leaves out `{name}`: {why}"));
+        }
+        (options, problems)
+    }
+
     /// The options Emacs must know, as Emacs Lisp: `org-entities-user`, the
     /// tangling options, `org-list-allow-alphabetical`,
     /// `org-plain-list-ordered-item-terminator`.
     pub fn emacs_lisp(&self) -> Option<String> {
         let mut forms: Vec<String> = self.user_entities_lisp().into_iter().collect();
         forms.extend(self.tangle_lisp());
+        forms.extend(self.resource_lisp());
         let syntax = self.list_syntax();
         if syntax != org_syntax::ListSyntax::default() {
             let terminator = match syntax.terminator {
@@ -2003,6 +2089,28 @@ impl Options {
 
     /// The tangling options the server's Emacs is told, as Emacs Lisp
     /// (for tangling and detangling it does).
+    /// `org-resource-download-policy` and `org-safe-remote-resources`, for
+    /// what Emacs downloads (`C-c C-a u`, a remote `#+INCLUDE:` or
+    /// `#+SETUPFILE:` in an export).
+    fn resource_lisp(&self) -> Vec<String> {
+        let lisp_string = |text: &str| format!("\"{}\"", text.replace('\\', "\\\\").replace('"', "\\\""));
+        let mut forms = Vec::new();
+        if self.resource_download_policy.is_some() {
+            let policy = match self.download_policy() {
+                org_core::remote_resource::Policy::Always => "t",
+                org_core::remote_resource::Policy::Never => "nil",
+                org_core::remote_resource::Policy::Safe => "'safe",
+                org_core::remote_resource::Policy::Prompt => "'prompt",
+            };
+            forms.push(format!("(setq org-resource-download-policy {policy})"));
+        }
+        if let Some(safe) = &self.safe_remote_resources {
+            let regexps: Vec<String> = safe.iter().map(|regexp| lisp_string(regexp)).collect();
+            forms.push(format!("(setq org-safe-remote-resources '({}))", regexps.join(" ")));
+        }
+        forms
+    }
+
     fn tangle_lisp(&self) -> Vec<String> {
         let lisp_string = |text: &str| format!("\"{}\"", text.replace('\\', "\\\\").replace('"', "\\\""));
         let mut forms = Vec::new();
@@ -2018,6 +2126,17 @@ impl Options {
                     ),
                 );
             }
+        }
+        // `org-src-lang-modes`: the mode a block is edited and exported in.
+        for (lang, mode) in self.src_lang_modes.iter().flatten() {
+            set(
+                "org-src-lang-modes",
+                format!(
+                    "(cons (cons {} (intern {})) org-src-lang-modes)",
+                    lisp_string(lang),
+                    lisp_string(mode.strip_suffix("-mode").unwrap_or(mode))
+                ),
+            );
         }
         if self.babel_tangle_use_relative_file_links == Some(false) {
             set("org-babel-tangle-use-relative-file-links", "nil".to_string());
@@ -3052,7 +3171,20 @@ fn parse_config(path: &std::path::Path, text: &str) -> Result<serde_json::Value,
         }
     } else {
         let table = text.parse::<toml::Table>().map_err(|error| format!("is not valid TOML: {error}"))?;
-        Ok(serde_json::to_value(table).unwrap_or_default())
+        Ok(toml_json(toml::Value::Table(table)))
+    }
+}
+
+/// A TOML value as JSON, a date or a time as its text (`2026-10-21`),
+/// which no option takes but which an option's message can then show.
+fn toml_json(value: toml::Value) -> serde_json::Value {
+    match value {
+        toml::Value::Datetime(datetime) => serde_json::Value::String(datetime.to_string()),
+        toml::Value::Array(items) => serde_json::Value::Array(items.into_iter().map(toml_json).collect()),
+        toml::Value::Table(table) => {
+            serde_json::Value::Object(table.into_iter().map(|(key, value)| (key, toml_json(value))).collect())
+        }
+        other => serde_json::to_value(other).unwrap_or_default(),
     }
 }
 
@@ -3119,6 +3251,20 @@ pub fn expand_home(path: &str, var: &dyn Fn(&str) -> Option<String>) -> PathBuf 
     match (path.strip_prefix("~/"), var("HOME").or_else(|| var("USERPROFILE"))) {
         (Some(rest), Some(home)) => PathBuf::from(home).join(rest),
         _ => PathBuf::from(path),
+    }
+}
+
+/// A table, or an empty list for one: Neovim sends an empty Lua table,
+/// `{}`, as `[]`.
+fn table_or_empty_list<'de, D>(deserializer: D) -> Result<Option<serde_json::Map<String, serde_json::Value>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    match serde_json::Value::deserialize(deserializer)? {
+        serde_json::Value::Null => Ok(None),
+        serde_json::Value::Object(table) => Ok(Some(table)),
+        serde_json::Value::Array(list) if list.is_empty() => Ok(Some(serde_json::Map::new())),
+        _ => Err(serde::de::Error::custom("is not a table")),
     }
 }
 
@@ -3192,6 +3338,7 @@ pub fn load(editor: Option<serde_json::Value>, var: &dyn Fn(&str) -> Option<Stri
     }
     let (options, dropped) = Options::read(merged.clone());
     problems.extend(dropped.into_iter().map(|name| format!("the option `{name}` is malformed and is ignored")));
+    problems.extend(options.emacs_options().1);
     Loaded { options, file, read, merged, problems }
 }
 
@@ -3470,14 +3617,19 @@ fn old_agenda_option(key: &str, field: serde_json::Value) -> Option<(String, ser
     Some((new.to_string(), field))
 }
 
-/// `over` on top of `base`: objects key by key, anything else replaced.
+/// The options `over` on top of `base`: an option that is an object (such
+/// as `org_agenda_prefix_format` or `emacs_options`) key by key, each of
+/// its values replaced whole (an alist among `emacs_options` is the
+/// editor's alone); anything else replaced. An empty list for an object
+/// is an empty object (Neovim sends `{}` as `[]`), which changes nothing.
 pub(crate) fn merge(base: &mut serde_json::Value, over: serde_json::Value) {
     match (base, over) {
         (serde_json::Value::Object(base), serde_json::Value::Object(over)) => {
             for (key, value) in over {
-                match base.get_mut(&key) {
-                    Some(slot) if slot.is_object() && value.is_object() => merge(slot, value),
-                    _ => {
+                match (base.get_mut(&key), value) {
+                    (Some(serde_json::Value::Object(slot)), serde_json::Value::Object(value)) => slot.extend(value),
+                    (Some(serde_json::Value::Object(_)), serde_json::Value::Array(items)) if items.is_empty() => {}
+                    (_, value) => {
                         base.insert(key, value);
                     }
                 }
@@ -3532,6 +3684,16 @@ impl ClockOption {
         };
         Some(org_core::agenda::Now { today, minute })
     }
+}
+
+/// `appt-message-warning-time`: the minutes before an appointment its
+/// reminders start, one each `appt-display-interval` minutes from then, as
+/// in Emacs; or, as org-lsp's own, the minutes before it of each reminder.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum WarningTime {
+    Minutes(i64),
+    Each(Vec<i64>),
 }
 
 /// A span given as a name or as a number of days.
@@ -4469,6 +4631,17 @@ mod tests {
         );
     }
 
+    /// `org-src-lang-modes`, as the server's Emacs is told it.
+    #[test]
+    fn src_lang_modes_for_emacs() {
+        let options: Options =
+            serde_json::from_value(serde_json::json!({ "org_src_lang_modes": { "ipython": "python-mode" } })).unwrap();
+        assert_eq!(
+            options.emacs_lisp().unwrap(),
+            r#"(setq org-src-lang-modes (cons (cons "ipython" (intern "python")) org-src-lang-modes))"#
+        );
+    }
+
     /// `org-todo-interpretation`: a list of keywords alone is a sequence,
     /// or with `type` one of types, each going straight to done.
     #[test]
@@ -4629,6 +4802,90 @@ mod tests {
         // Neovim sends an empty table as `[]`.
         assert!(Options::read(serde_json::json!([])).1.is_empty());
         assert!(Options::read(serde_json::Value::Null).1.is_empty());
+    }
+
+    #[test]
+    fn emacs_options_are_the_options_emacs_reads() {
+        let file = temp_file(
+            "emacs-options",
+            "[emacs_options]\norg-attach-method = \"mv\"\norg-log-done = \"time\"\n\
+             org-agenda-skip-function-global = \"f\"\norg-atach-id-dir = \"~/data\"\n\
+             org-export-with-toc = false\norg-tab-follows-link = true\norg-startup-truncated = false\n\
+             org-mouse-features = []\n",
+        );
+        let loaded = load(Some(serde_json::json!({ "config_file": file.display().to_string() })), &no_env);
+        assert_eq!(
+            loaded.problems,
+            [
+                "`emacs_options` leaves out `org-log-done`: it is the setting `org_log_done`",
+                "`emacs_options` leaves out `org-agenda-skip-function-global`: its value is Lisp (a function, a \
+                 hook), which goes in `emacs_config`",
+                "`emacs_options` leaves out `org-atach-id-dir`: Org has no such option (did you mean \
+                 `org-attach-id-dir`?)",
+                "`emacs_options` leaves out `org-tab-follows-link`: org-lsp does it another way: TAB is the \
+                 editor's key for folding and tables; a link is followed with org.open (C-c C-o), go to \
+                 definition, or RET with org_return_follows_link",
+                "`emacs_options` leaves out `org-startup-truncated`: org-lsp does it another way: the editor \
+                 decides how long lines wrap",
+                "`emacs_options` leaves out `org-mouse-features`: it is about Emacs itself (windows, faces, \
+                 menus, the mouse, the mode line), with nothing to do in an editor",
+            ]
+        );
+        // The others go to Emacs, in their order, each with its library.
+        let (options, _) = loaded.options.emacs_options();
+        let given: Vec<(&str, &str, &serde_json::Value)> =
+            options.iter().map(|option| (option.name.as_str(), option.feature.as_str(), &option.value)).collect();
+        assert_eq!(
+            given,
+            [
+                ("org-attach-method", "org-attach", &serde_json::json!("mv")),
+                ("org-export-with-toc", "ox", &serde_json::json!(false)),
+            ]
+        );
+        std::fs::remove_dir_all(file.parent().unwrap()).unwrap();
+    }
+
+    #[test]
+    fn emacs_options_may_come_as_an_empty_list() {
+        // Neovim sends an empty Lua table as `[]`.
+        let loaded = load(Some(serde_json::json!({ "config_file": false, "emacs_options": [] })), &no_env);
+        assert!(loaded.problems.is_empty(), "{:?}", loaded.problems);
+        assert!(loaded.options.emacs_options().0.is_empty());
+        let loaded = load(Some(serde_json::json!({ "config_file": false, "emacs_options": ["x"] })), &no_env);
+        assert_eq!(loaded.problems, ["the option `emacs_options` is malformed and is ignored"]);
+    }
+
+    #[test]
+    fn the_editors_emacs_options_go_over_the_files_option_by_option() {
+        let file = temp_file(
+            "emacs-options-merge",
+            "[emacs_options]\norg-attach-method = \"mv\"\norg-export-with-toc = false\n\
+             org-export-default-language = 2026-10-21\n\
+             org-babel-load-languages = { python = true, emacs-lisp = true }\n",
+        );
+        let given = |editor: serde_json::Value| {
+            let mut editor = editor;
+            editor["config_file"] = serde_json::json!(file.display().to_string());
+            let (options, _) = load(Some(editor), &no_env).options.emacs_options();
+            options.into_iter().map(|option| (option.name, option.value)).collect::<Vec<_>>()
+        };
+        // An option's value, a table here, is the editor's whole.
+        assert_eq!(
+            given(serde_json::json!({ "emacs_options": {
+                "org-babel-load-languages": { "shell": true },
+                "org-export-with-toc": 3
+            } })),
+            [
+                ("org-attach-method".to_string(), serde_json::json!("mv")),
+                ("org-export-with-toc".to_string(), serde_json::json!(3)),
+                // A TOML date, as its text.
+                ("org-export-default-language".to_string(), serde_json::json!("2026-10-21")),
+                ("org-babel-load-languages".to_string(), serde_json::json!({ "shell": true })),
+            ]
+        );
+        // Neovim's `{}`, `[]`, keeps the file's.
+        assert_eq!(given(serde_json::json!({ "emacs_options": [] })).len(), 4);
+        std::fs::remove_dir_all(file.parent().unwrap()).unwrap();
     }
 
     fn temp_file(name: &str, text: &str) -> PathBuf {

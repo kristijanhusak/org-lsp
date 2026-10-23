@@ -34,8 +34,12 @@ status=0
 start() {
   local client="$1" session="$2" size="$3" work="$4"
   shift 4
-  tmux new-session -d -s "$session" -x "${size%x*}" -y "${size#*x}" \
-    "env ORG_LSP_TEST_CLIENT=$client ORG_LSP_TEST_WORK=$work ORG_LSP_TEST_CLIENTS=$clients ORG_LSP_TEST_RESULT=$work/result.txt ORG_LSP_BIN=$server ORG_LSP_CONFIG=/nonexistent/config.toml HOME=$work $* $vim -N -u $here/vimrc -i NONE; sleep 1"
+  # The command tmux gives a shell, each word quoted: paths may have spaces.
+  local command
+  command="$(printf '%q ' env "ORG_LSP_TEST_CLIENT=$client" "ORG_LSP_TEST_WORK=$work" "ORG_LSP_TEST_CLIENTS=$clients" \
+    "ORG_LSP_TEST_RESULT=$work/result.txt" "ORG_LSP_BIN=$server" ORG_LSP_CONFIG=/nonexistent/config.toml "HOME=$work" "$@" \
+    "$vim" -N -u "$here/vimrc" -i NONE)"
+  tmux new-session -d -s "$session" -x "${size%x*}" -y "${size#*x}" "$command; sleep 1"
 }
 
 # The result of the Vim in `session`, once it is written, then the session

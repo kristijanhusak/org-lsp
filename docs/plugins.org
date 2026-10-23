@@ -232,7 +232,9 @@ The commands are org-roam's:
   ~org_roam_extract_new_file_path~ names it) where its headline is the
   file's node. In the name offered, ~${title}~, ~${slug}~ and ~${id}~ are
   the node's, and other ~${…}~ are left for you to replace rather than
-  asked for.
+  asked for. Unlike Emacs, which asks the questions of
+  ~org-capture-fill-template~ while it fills the name, org-lsp refuses a
+  name that asks one (~%^{…}~, ~%^t~), saying so.
 - ~org.roam.tag.add~, ~org.roam.tag.remove~ :: ~org-roam-tag-add~ and
   ~org-roam-tag-remove~: tags, separated by colons, added to the node or
   taken out (/Tag/): on its headline, or in ~#+filetags:~ for the file's

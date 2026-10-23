@@ -46,7 +46,10 @@ STARTING_TRIES = 150
 # How long to wait for a journal file to load, in steps of 100 ms.
 JOURNAL_TRIES = 50
 REPOSITORY = 'kristijanhusak/org-lsp'
-RELEASE = 'nightly'
+# The package's version (scripts/version.sh), and the release whose server
+# it downloads: its own, or `nightly` in the nightly build's package.
+VERSION = '0.1.0'
+RELEASE = 'v' + VERSION  # The nightly build puts 'nightly' here.
 # The release's name for each platform Sublime Text runs on.
 PLATFORMS = {
     ('linux', 'x64'): 'linux-x86_64',
@@ -131,7 +134,9 @@ def checkout_build():
 
 
 def downloaded_path(storage: str) -> str:
-    return os.path.join(storage, PACKAGE, executable())
+    """Where the server of `RELEASE` is downloaded to: a folder for each
+    release, so that the package of another release downloads its own."""
+    return os.path.join(storage, PACKAGE, RELEASE, executable())
 
 
 def server_path(storage: str):
@@ -148,8 +153,8 @@ def server_path(storage: str):
 
 
 def download(storage: str) -> str:
-    """Fetch the nightly build of the server for this platform into the
-    package's storage, and return its path."""
+    """Fetch the server of `RELEASE` for this platform into the package's
+    storage, and return its path."""
     platform = PLATFORMS.get((sublime.platform(), sublime.arch()))
     if not platform:
         raise RuntimeError('org-lsp has no build for this platform; put org-lsp on PATH or set "command"')
@@ -174,6 +179,17 @@ def download(storage: str) -> str:
         out.write(binary)
     os.chmod(partial, 0o755)
     os.replace(partial, target)
+    # The servers of other releases (and the one of the packages that kept
+    # it without a release) are no longer used.
+    folder = os.path.join(storage, PACKAGE)
+    for name in os.listdir(folder):
+        path = os.path.join(folder, name)
+        if name == RELEASE:
+            continue
+        if os.path.isdir(path) and os.path.isfile(os.path.join(path, executable())):
+            shutil.rmtree(path, ignore_errors=True)
+        elif name == executable():
+            os.remove(path)
     return target
 
 
@@ -284,9 +300,11 @@ class OrgLsp(AbstractPlugin):
         args = {'command': params['command'], 'argument': params.get('argument') or {}}
         sublime.set_timeout(lambda: window.run_command('org_lsp_run', args))
 
-    # Images in place of LaTeX fragments, made by Emacs.
+    # Images in place of LaTeX fragments, made by Emacs, and of links to
+    # images downloaded first; quiet for those a file opens with.
     def m_org_lsp_images(self, params) -> None:
-        sublime.set_timeout(lambda: apply_preview(params))
+        quiet = isinstance(params, dict) and params.get('startup') is True
+        sublime.set_timeout(lambda: apply_preview(params, quiet=quiet))
 
     # The folds org-journal opens and closes in the entry it shows
     # (`org-journal-hide-entries-p`), and those of the subtrees a yank or
@@ -317,7 +335,7 @@ class OrgLsp(AbstractPlugin):
 
 
 class OrgLspUpdateServerCommand(sublime_plugin.WindowCommand):
-    """Download the nightly build of the server again, then restart it."""
+    """Download the server of `RELEASE` again, then restart it."""
 
     def run(self) -> None:
         sublime.status_message('org-lsp: downloading the server…')
@@ -980,10 +998,15 @@ def choice_kind(choice):
     return (getattr(sublime, 'KIND_ID_COLOR_' + name), key_name(choice['key']), '')
 
 
+# The quick panel's item that opens the input panel, before a prompt's
+# completions.
+TYPE_ANSWER = 'Type an answer…'
+
+
 def ask(window, request, then, cancelled=None) -> None:
     """Ask what a command asks for: a key or one of a list in the quick
-    panel, or text in the input panel. `cancelled` runs when it is given
-    up."""
+    panel, or text in the input panel, its completions offered in the quick
+    panel first. `cancelled` runs when it is given up."""
     choices = request.get('choices')
     if choices:
         if request.get('kind') == 'key':
@@ -1002,7 +1025,36 @@ def ask(window, request, then, cancelled=None) -> None:
                 cancelled()
         window.show_quick_panel(items, picked, placeholder=request.get('prompt', ''))
         return
-    window.show_input_panel(request.get('prompt', '') + ':', request.get('value', ''), then, None, cancelled)
+    prompt = request.get('prompt', '')
+    # Emacs's own prompts end in `: ` or `? ` already.
+    caption = prompt if prompt.rstrip().endswith((':', '?')) else prompt + ':'
+    value = request.get('value', '')
+
+    def typed(initial: str) -> None:
+        window.show_input_panel(caption, initial, then, None, cancelled)
+    completions = request.get('completions')
+    if not completions:
+        typed(value)
+        return
+    # Emacs's `completing-read`: one of the completions, or anything typed
+    # (an empty answer is the default the prompt shows). The quick panel
+    # reads no text of its own, so its first item opens the input panel.
+    separator = request.get('separator')
+
+    def completed(index: int) -> None:
+        if index < 0:
+            if cancelled:
+                cancelled()
+        elif index == 0:
+            typed(value)
+        elif separator:
+            # The `:` between tags: the one picked joins those there, and
+            # more may be typed.
+            before = value if not value or value.endswith(separator) else value + separator
+            typed(before + completions[index - 1] + separator)
+        else:
+            then(completions[index - 1])
+    window.show_quick_panel([TYPE_ANSWER] + completions, completed, placeholder=prompt)
 
 
 # ----- help

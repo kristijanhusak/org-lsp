@@ -283,7 +283,7 @@ fn unreadable(value: Option<&str>) -> bool {
 /// joined by a space, in the order they first come.
 fn paragraph_attributes(parse: &Parse, start: usize) -> Vec<(String, String)> {
     let mut out: Vec<(String, String)> = Vec::new();
-    let token = parse.syntax().token_at_offset(org_syntax::TextSize::from(start as u32)).right_biased();
+    let token = org_syntax::token_at_offset(&parse.syntax(), org_syntax::TextSize::from(start as u32)).right_biased();
     let Some(paragraph) =
         token.and_then(|token| token.parent_ancestors().find(|node| node.kind() == SyntaxKind::PARAGRAPH))
     else {

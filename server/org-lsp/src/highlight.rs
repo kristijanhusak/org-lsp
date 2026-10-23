@@ -78,6 +78,12 @@ token_types! {
     // as the modifiers fill the 32 bits LSP has for them.
     Outline => "outline",
     DescriptionTerm => "descriptionTerm",
+    // Parts of links and tables, and LaTeX environments, each with a look
+    // of its own: types, as no bit of the modifiers is left.
+    LinkDescription => "linkDescription",
+    LinkUrl => "linkUrl",
+    LatexEnvironment => "latexEnvironment",
+    TableHeader => "tableHeader",
 }
 
 /// Token modifiers, in legend order; each is one bit.
@@ -246,12 +252,18 @@ pub mod standard {
             TokenType::Tag => "decorator",
             TokenType::Timestamp if has(modifier::INACTIVE) => "comment",
             TokenType::Timestamp => "enumMember",
-            TokenType::Drawer | TokenType::Latex | TokenType::Entity | TokenType::Macro => "macro",
+            TokenType::Drawer
+            | TokenType::Latex
+            | TokenType::LatexEnvironment
+            | TokenType::Entity
+            | TokenType::Macro => "macro",
             TokenType::Property => "property",
             // `org-meta-line` and `org-block-begin-line` are comments.
             TokenType::Keyword | TokenType::Block | TokenType::Comment => "comment",
             TokenType::Bullet | TokenType::Checkbox | TokenType::TableDelimiter => "operator",
-            TokenType::Link | TokenType::Target => "namespace",
+            TokenType::Link | TokenType::LinkDescription | TokenType::LinkUrl | TokenType::Target => "namespace",
+            // The header of a table, as a title is.
+            TokenType::TableHeader => "type",
             TokenType::Code | TokenType::Verbatim => "string",
             TokenType::Footnote => "parameter",
             TokenType::DocumentTitle => "type",
@@ -508,6 +520,164 @@ pub fn heading_lines(root: &SyntaxNode, text: &str, fontify: &Fontify) -> Vec<(u
     out
 }
 
+/// Code the editor colors in its own language, as Emacs does with
+/// `org-src-fontify-natively` (`org-lsp/codeBlocks`): the code between the
+/// lines of a source or export block, or in the braces of an inline
+/// source block.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CodeBlock {
+    /// Where the code starts and ends in the text, in bytes.
+    pub start: usize,
+    pub end: usize,
+    /// The language as written (`emacs-lisp`).
+    pub name: String,
+    /// `src`, `export` or `inline`.
+    pub kind: &'static str,
+}
+
+/// The code of the source and export blocks and inline source blocks of
+/// the document `root`, as the parser finds them: what an example block
+/// holds is text, whatever it looks like. Blocks without a language or
+/// without code are left out.
+pub fn code_blocks(root: &SyntaxNode, text: &str) -> Vec<CodeBlock> {
+    let mut out = Vec::new();
+    for node in root.descendants() {
+        let range = node.text_range();
+        let (start, end) = (usize::from(range.start()), usize::from(range.end()));
+        match node.kind() {
+            BLOCK => {
+                let token = |kind: SyntaxKind| {
+                    node.children_with_tokens().find(|child| child.kind() == kind).and_then(|child| child.into_token())
+                };
+                let Some(begin) = token(BLOCK_BEGIN) else { continue };
+                let kind = match begin.text().to_ascii_lowercase().as_str() {
+                    "#+begin_src" => "src",
+                    "#+begin_export" => "export",
+                    _ => continue,
+                };
+                let Some(name) = token(BLOCK_PARAMETERS)
+                    .and_then(|parameters| parameters.text().split_whitespace().next().map(str::to_string))
+                else {
+                    continue;
+                };
+                let Some(close) = token(BLOCK_END) else { continue };
+                let begin_at = usize::from(begin.text_range().start());
+                let Some(code_start) = text[begin_at..end].find('\n').map(|at| begin_at + at + 1) else { continue };
+                // The line of `#+end_src`, and the newline before it.
+                let close_at = usize::from(close.text_range().start());
+                let Some(newline) = text[code_start.saturating_sub(1)..close_at].rfind('\n') else { continue };
+                let mut code_end = code_start.saturating_sub(1) + newline;
+                if code_end < code_start {
+                    continue;
+                }
+                if text[..code_end].ends_with('\r') && code_end > code_start {
+                    code_end -= 1;
+                }
+                if code_end > code_start {
+                    out.push(CodeBlock { start: code_start, end: code_end, name, kind });
+                }
+            }
+            INLINE_SRC_BLOCK => {
+                let own = &text[start..end];
+                let Some(name_end) = own.get(4..).and_then(|rest| rest.find(['[', '{'])).map(|at| at + 4) else {
+                    continue;
+                };
+                if let Some((from, to)) = inline_src_body(own) {
+                    out.push(CodeBlock {
+                        start: start + from,
+                        end: start + to,
+                        name: own[4..name_end].to_string(),
+                        kind: "inline",
+                    });
+                }
+            }
+            _ => {}
+        }
+    }
+    out
+}
+
+/// `org-src-lang-modes` as Org 9.8 has it: the major mode, without
+/// `-mode`, of the languages whose mode has another name. The shells are
+/// those of `sh-ancestor-alist`.
+const SRC_LANG_MODES: &[(&str, &str)] = &[
+    ("C", "c"),
+    ("C++", "c++"),
+    ("asymptote", "asy"),
+    ("beamer", "latex"),
+    ("calc", "fundamental"),
+    ("cpp", "c++"),
+    ("ditaa", "artist"),
+    ("desktop", "conf-desktop"),
+    ("dot", "graphviz-dot"),
+    ("elisp", "emacs-lisp"),
+    ("ocaml", "tuareg"),
+    ("screen", "shell-script"),
+    ("sqlite", "sql"),
+    ("toml", "conf-toml"),
+    ("shell", "sh"),
+    ("ash", "sh"),
+    ("sh", "sh"),
+    ("bash", "sh"),
+    ("jsh", "sh"),
+    ("bash2", "sh"),
+    ("dash", "sh"),
+    ("dtksh", "sh"),
+    ("ksh", "sh"),
+    ("es", "sh"),
+    ("rc", "sh"),
+    ("itcsh", "sh"),
+    ("tcsh", "sh"),
+    ("jcsh", "sh"),
+    ("csh", "sh"),
+    ("ksh88", "sh"),
+    ("oash", "sh"),
+    ("pdksh", "sh"),
+    ("mksh", "sh"),
+    ("posix", "sh"),
+    ("wksh", "sh"),
+    ("wsh", "sh"),
+    ("zsh", "sh"),
+    ("rpm", "sh"),
+];
+
+/// Emacs's modes by the name editors give their language (tree-sitter's
+/// parsers, Neovim's and Zed's languages), where it is another.
+const EDITOR_LANGUAGES: &[(&str, &str)] = &[
+    ("emacs-lisp", "elisp"),
+    ("sh", "bash"),
+    ("shell-script", "bash"),
+    ("c++", "cpp"),
+    ("conf-toml", "toml"),
+    ("conf-desktop", "desktop"),
+    ("graphviz-dot", "dot"),
+    ("tuareg", "ocaml"),
+    ("js", "javascript"),
+    ("js2", "javascript"),
+    ("ts", "typescript"),
+    ("py", "python"),
+    ("rb", "ruby"),
+    ("rs", "rust"),
+    ("yml", "yaml"),
+];
+
+/// The language an editor knows the code of a block by, for Org's name
+/// of it (`emacs-lisp`, `sh`): the major mode Org edits it in
+/// (`org-src-lang-modes`, where `modes`, the user's, come first), by the
+/// editor's name for it (`elisp`, `bash`). A name Org does not know is
+/// the mode's own name, in lower case.
+pub fn src_language(name: &str, modes: &[(String, String)]) -> String {
+    let mode = modes
+        .iter()
+        .find(|(key, _)| key == name)
+        .map(|(_, mode)| mode.as_str())
+        .or_else(|| SRC_LANG_MODES.iter().find(|(key, _)| *key == name).map(|(_, mode)| *mode))
+        .map(str::to_string)
+        .unwrap_or_else(|| name.to_lowercase());
+    let mode = mode.strip_suffix("-mode").unwrap_or(&mode);
+    EDITOR_LANGUAGES.iter().find(|(key, _)| *key == mode).map_or(mode, |(_, editor)| editor).to_string()
+}
+
 /// The keywords `org-hidden-keywords` can hide, before their values.
 pub const HIDDEN_KEYWORDS: [&str; 5] = ["title", "subtitle", "author", "email", "date"];
 
@@ -545,7 +715,7 @@ pub fn tokens(root: &SyntaxNode, todo: &TodoKeywords, conceal: Conceal) -> Vec<T
 
 /// [`tokens`], headlines and blocks shown as `fontify` says.
 pub fn tokens_with(root: &SyntaxNode, todo: &TodoKeywords, conceal: Conceal, fontify: Fontify) -> Vec<Token> {
-    let mut walker = Walker { todo, conceal, fontify, out: Vec::new() };
+    let mut walker = Walker { todo, conceal, fontify, out: Vec::new(), around: 0 };
     walker.children(root, Style::PLAIN);
     walker.out
 }
@@ -559,12 +729,16 @@ pub fn without_cookies(mut tokens: Vec<Token>) -> Vec<Token> {
     tokens
 }
 
+/// The modifiers of emphasis, which Org prepends to the faces of what
+/// the emphasis holds (`org-do-emphasis-faces`).
+const EMPHASIS: u32 = modifier::BOLD | modifier::ITALIC | modifier::UNDERLINE | modifier::STRIKETHROUGH;
+
 pub fn with_radio_links(tokens: Vec<Token>, ranges: &[(usize, usize)]) -> Vec<Token> {
     if ranges.is_empty() {
         return tokens;
     }
     let mut out: Vec<Token> = Vec::with_capacity(tokens.len() + ranges.len());
-    let emphasis = modifier::BOLD | modifier::ITALIC | modifier::UNDERLINE | modifier::STRIKETHROUGH;
+    let emphasis = EMPHASIS;
     let mut links: Vec<Token> = ranges
         .iter()
         .map(|(start, end)| Token {
@@ -656,6 +830,10 @@ struct Walker<'a> {
     conceal: Conceal,
     fontify: Fontify,
     out: Vec<Token>,
+    /// The emphasis around the node walked: links, timestamps and the
+    /// other objects inside it take its look on top of their own, as
+    /// Org's faces compose.
+    around: u32,
 }
 
 impl Walker<'_> {
@@ -663,6 +841,7 @@ impl Walker<'_> {
         if range.is_empty() {
             return;
         }
+        let modifiers = modifiers | self.around;
         // Adjacent pieces with the same style read as one token.
         if let Some(last) = self.out.last_mut() {
             if last.range.end() == range.start() && last.ty == ty && last.modifiers == modifiers {
@@ -744,21 +923,27 @@ impl Walker<'_> {
         }
     }
 
-    /// A bracket link as `org-link-descriptive` shows it: the description,
-    /// or the target when there is none, with the rest hidden.
+    /// A bracket link: its brackets, its target and its description.
+    /// With `org-link-descriptive`, as Org shows it: the description, or
+    /// the target when there is none, with the rest hidden. What is shown
+    /// is `linkDescription` or `linkUrl`.
     fn link(&mut self, node: &SyntaxNode) {
+        let conceal = self.conceal.links;
+        let hidden = if conceal { modifier::HIDDEN } else { 0 };
         let described = node.children_with_tokens().any(|child| child.kind() == LINK_SEPARATOR);
+        let shown = if described { TokenType::LinkDescription } else { TokenType::LinkUrl };
         let (mut shown_start, mut shown_end) = (None, None);
         for child in node.children_with_tokens() {
             let range = child.text_range();
             match child.kind() {
                 LINK_OPEN | LINK_SEPARATOR | LINK_CLOSE => {
                     if let (Some(start), Some(end)) = (shown_start.take(), shown_end.take()) {
-                        self.push(TextRange::new(start, end), TokenType::Link, 0);
+                        self.push(TextRange::new(start, end), shown, 0);
                     }
-                    self.push(range, TokenType::Link, modifier::HIDDEN);
+                    self.push(range, TokenType::Link, hidden);
                 }
-                LINK_PATH if described => self.push(range, TokenType::Link, modifier::HIDDEN),
+                LINK_PATH if described && conceal => self.push(range, TokenType::Link, hidden),
+                LINK_PATH if described => self.push(range, TokenType::LinkUrl, 0),
                 _ => {
                     shown_start.get_or_insert(range.start());
                     shown_end = Some(range.end());
@@ -766,18 +951,48 @@ impl Walker<'_> {
             }
         }
         if let (Some(start), Some(end)) = (shown_start, shown_end) {
-            self.push(TextRange::new(start, end), TokenType::Link, 0);
+            self.push(TextRange::new(start, end), shown, 0);
+        }
+    }
+
+    /// A table, the rows of its header (`org-export-table-has-header-p`:
+    /// the first group of rows, when a rule parts it from others) in
+    /// `tableHeader`.
+    fn table(&mut self, node: &SyntaxNode, style: Style) {
+        let rule = |row: &SyntaxNode| row.children_with_tokens().any(|child| child.kind() == TABLE_RULE);
+        let rows: Vec<SyntaxNode> = node.children().filter(|child| child.kind() == TABLE_ROW).collect();
+        let first = rows.iter().position(|row| !rule(row)).unwrap_or(rows.len());
+        let end = rows[first..].iter().position(rule).map_or(rows.len(), |offset| first + offset);
+        let header = if rows[end..].iter().any(|row| !rule(row)) { end } else { 0 };
+        let mut index = 0;
+        for child in node.children_with_tokens() {
+            if child.kind() == TABLE_ROW {
+                index += 1;
+                if index <= header {
+                    let header = Style { text: Some(TokenType::TableHeader), modifiers: style.modifiers };
+                    self.element(node, child, header);
+                    continue;
+                }
+            }
+            self.element(node, child, style);
         }
     }
 
     fn node(&mut self, node: &SyntaxNode, style: Style) {
+        let around = std::mem::replace(&mut self.around, style.modifiers & EMPHASIS);
+        self.object(node, style);
+        self.around = around;
+    }
+
+    fn object(&mut self, node: &SyntaxNode, style: Style) {
         let range = node.text_range();
         match node.kind() {
             HEADLINE => self.headline(node),
             // Tags, links and the like are single tokens whatever they contain.
             TAGS => self.push(range, TokenType::Tag, 0),
-            LINK if self.conceal.links => self.link(node),
-            LINK | PLAIN_LINK | ANGLE_LINK | CITATION => self.push(range, TokenType::Link, 0),
+            LINK => self.link(node),
+            PLAIN_LINK | ANGLE_LINK => self.push(range, TokenType::LinkUrl, 0),
+            CITATION => self.push(range, TokenType::Link, 0),
             // The code of `src_LANG{CODE}` is the editor's to color in its
             // language, as Emacs does with `org-src-fontify-natively`.
             INLINE_SRC_BLOCK => match inline_src_body(&node.text().to_string()) {
@@ -806,7 +1021,7 @@ impl Walker<'_> {
             LATEX_ENVIRONMENT => {
                 for child in node.children_with_tokens() {
                     match child.kind() {
-                        TEXT => self.push(child.text_range(), TokenType::Latex, 0),
+                        TEXT => self.push(child.text_range(), TokenType::LatexEnvironment, 0),
                         _ => self.element(node, child, Style::PLAIN),
                     }
                 }
@@ -814,6 +1029,7 @@ impl Walker<'_> {
             ENTITY => self.push(range, TokenType::Entity, 0),
             MACRO => self.macro_call(node),
             BLOCK | DYNAMIC_BLOCK => self.block(node),
+            TABLE => self.table(node, style),
             LIST_ITEM => self.list_item(node, style),
             _ => self.children(node, style),
         }
@@ -1340,18 +1556,49 @@ mod tests {
     }
 
     #[test]
+    fn objects_in_emphasis_take_its_look_too() {
+        // `org-do-emphasis-faces` prepends its face over links, dates and
+        // the rest, which keep theirs.
+        check(
+            "+[[https://x.org][x]] y <2026-10-21 Wed> [fn:1]+\n",
+            expect![[r#"
+                0:0 "+" text +strikethrough
+                0:1 "[[" link +strikethrough
+                0:3 "https://x.org" linkUrl +strikethrough
+                0:16 "][" link +strikethrough
+                0:18 "x" linkDescription +strikethrough
+                0:19 "]]" link +strikethrough
+                0:21 " y " text +strikethrough
+                0:24 "<2026-10-21 Wed>" timestamp +strikethrough
+                0:40 " " text +strikethrough
+                0:41 "[fn:1]" footnote +strikethrough
+                0:47 "+" text +strikethrough
+            "#]],
+        );
+        let links = Conceal { links: true, emphasis: false };
+        expect![[r#"
+            0:0 "/" text +italic
+            0:1 "[[https://x.org][" link +italic +hidden
+            0:18 "x" linkDescription +italic
+            0:19 "]]" link +italic +hidden
+            0:21 "/" text +italic
+        "#]]
+        .assert_eq(&render_concealed("/[[https://x.org][x]]/\n", Encoding::Utf16, links));
+    }
+
+    #[test]
     fn hidden_parts_of_links_as_org_link_descriptive_shows_them() {
         let links = Conceal { links: true, emphasis: false };
         expect![[r#"
             0:0 "[[https://x.org][" link +hidden
-            0:17 "the *site*" link
+            0:17 "the *site*" linkDescription
             0:27 "]]" link +hidden
             0:30 "[[" link +hidden
-            0:32 "file:a.org" link
+            0:32 "file:a.org" linkUrl
             0:42 "]]" link +hidden
             1:0 "[[a][" link +hidden
-            1:5 "two" link
-            2:0 "lines" link
+            1:5 "two" linkDescription
+            2:0 "lines" linkDescription
             2:5 "]]" link +hidden
         "#]]
         .assert_eq(&render_concealed(
@@ -1405,7 +1652,11 @@ mod tests {
                 0:13 "Write " headline +level2
                 0:19 "*the*" headline +level2 +bold
                 0:24 " " headline +level2
-                0:25 "[[a][parser]]" link
+                0:25 "[[" link
+                0:27 "a" linkUrl
+                0:28 "][" link
+                0:30 "parser" linkDescription
+                0:36 "]]" link
                 0:39 ":work:rust:" tag
                 1:0 "***" stars +level3
                 1:4 "DONE" todoKeyword +done
@@ -1494,7 +1745,7 @@ mod tests {
                 0:22 "=f=" verbatim
                 0:26 "~g~" code
                 0:30 "*" text +bold
-                0:31 "~h~" code
+                0:31 "~h~" code +bold
                 0:34 "*" text +bold
             "#]],
         );
@@ -1546,6 +1797,66 @@ mod tests {
     }
 
     #[test]
+    fn table_headers() {
+        // The rows above the first rule, past rules that open the table,
+        // when rows follow it (`org-export-table-has-header-p`); none in a
+        // table with no row below its rule, or with no rule.
+        check(
+            "|---|\n| *a* | b |\n| c |\n|---|\n| 1 |\n|---|\n| 2 |\n\n| x |\n|---|\n\n| y |\n| z |\n",
+            expect![[r#"
+                0:0 "|---|" tableDelimiter
+                1:0 "|" tableDelimiter
+                1:2 "*a*" tableHeader +bold
+                1:6 "|" tableDelimiter
+                1:8 "b" tableHeader
+                1:10 "|" tableDelimiter
+                2:0 "|" tableDelimiter
+                2:2 "c" tableHeader
+                2:4 "|" tableDelimiter
+                3:0 "|---|" tableDelimiter
+                4:0 "|" tableDelimiter
+                4:4 "|" tableDelimiter
+                5:0 "|---|" tableDelimiter
+                6:0 "|" tableDelimiter
+                6:4 "|" tableDelimiter
+                8:0 "|" tableDelimiter
+                8:4 "|" tableDelimiter
+                9:0 "|---|" tableDelimiter
+                11:0 "|" tableDelimiter
+                11:4 "|" tableDelimiter
+                12:0 "|" tableDelimiter
+                12:4 "|" tableDelimiter
+            "#]],
+        );
+    }
+
+    #[test]
+    fn links_latex_environments() {
+        // What a link shows, its description or its target; plain and
+        // angle links whole; a LaTeX environment apart from fragments.
+        check(
+            "https://a.org <https://b.org> [[c][d]] [[e]] [cite:@f] $x$\n\\begin{equation}\nE = mc^2\n\\end{equation}\n",
+            expect![[r#"
+                0:0 "https://a.org" linkUrl
+                0:14 "<https://b.org>" linkUrl
+                0:30 "[[" link
+                0:32 "c" linkUrl
+                0:33 "][" link
+                0:35 "d" linkDescription
+                0:36 "]]" link
+                0:39 "[[" link
+                0:41 "e" linkUrl
+                0:42 "]]" link
+                0:45 "[cite:@f]" link
+                0:55 "$x$" latex
+                1:0 "\\begin{equation}" latexEnvironment
+                2:0 "E = mc^2" latexEnvironment
+                3:0 "\\end{equation}" latexEnvironment
+            "#]],
+        );
+    }
+
+    #[test]
     fn description_terms() {
         // `org-list-dt`: unordered items only, to the first `::`, past a
         // checkbox; emphasis in a term keeps its modifiers.
@@ -1593,8 +1904,12 @@ mod tests {
             expect![[r#"
             0:0 "*bold" text +bold
             1:2 "more*" text +bold
-            1:12 "[[a][two" link
-            2:2 "lines]]" link
+            1:12 "[[" link
+            1:14 "a" linkUrl
+            1:15 "][" link
+            1:17 "two" linkDescription
+            2:2 "lines" linkDescription
+            2:7 "]]" link
         "#]],
         );
     }
@@ -1667,5 +1982,63 @@ mod tests {
                 token(12, 14, TokenType::Tag, 0),
             ]
         );
+    }
+
+    /// The code blocks of `text`, as `kind name "code"`.
+    fn code_of(text: &str) -> Vec<String> {
+        let parse = org_syntax::parse(text, &TodoKeywords::default());
+        code_blocks(&parse.syntax(), text)
+            .iter()
+            .map(|block| format!("{} {} {:?}", block.kind, block.name, &text[block.start..block.end]))
+            .collect()
+    }
+
+    #[test]
+    fn code_of_blocks() {
+        let text = "* Code\n#+BEGIN_SRC emacs-lisp :tangle yes\n(defun f ()\n  1)\n#+END_SRC\n\
+                    #+begin_export html\n<b>x</b>\n#+end_export\n\
+                    Then src_python[:exports code]{print({1})} and src_sh{ls}.\n\
+                    #+begin_example\n#+begin_src python\nnot = code\n#+end_src\n#+end_example\n\
+                    #+begin_src python\n#+end_src\n#+begin_src\nno language\n#+end_src\n\
+                    #+begin_quote\n  #+begin_src c\n  int x;\n  #+end_src\n#+end_quote\n";
+        assert_eq!(
+            code_of(text),
+            vec![
+                r#"src emacs-lisp "(defun f ()\n  1)""#,
+                r#"export html "<b>x</b>""#,
+                r#"inline python "print({1})""#,
+                r#"inline sh "ls""#,
+                r#"src c "  int x;""#,
+            ]
+        );
+        // Lines that end in a carriage return.
+        assert_eq!(code_of("#+begin_src c\r\nint x;\r\n#+end_src\r\n"), vec![r#"src c "int x;""#]);
+    }
+
+    #[test]
+    fn languages_for_editors() {
+        let none: Vec<(String, String)> = Vec::new();
+        for (name, language) in [
+            ("emacs-lisp", "elisp"),
+            ("elisp", "elisp"),
+            ("sh", "bash"),
+            ("shell", "bash"),
+            ("zsh", "bash"),
+            ("screen", "bash"),
+            ("C++", "cpp"),
+            ("cpp", "cpp"),
+            ("C", "c"),
+            ("js", "javascript"),
+            ("sqlite", "sql"),
+            ("ocaml", "ocaml"),
+            ("Python", "python"),
+            ("rust", "rust"),
+        ] {
+            assert_eq!(src_language(name, &none), language, "{name}");
+        }
+        let modes = vec![("sh".to_string(), "fish".to_string()), ("conf".to_string(), "toml-mode".to_string())];
+        assert_eq!(src_language("sh", &modes), "fish");
+        assert_eq!(src_language("conf", &modes), "toml");
+        assert_eq!(src_language("bash", &modes), "bash");
     }
 }

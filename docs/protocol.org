@@ -94,6 +94,48 @@ The requests the server answers:
   whole (~org-table-align~) and the tags of the headlines in the range put
   in their column (~org-align-tags~). A range that ends at the start of a
   line leaves that line out. One edit per changed line.
+- ~textDocument/formatting~ :: Every table of the file aligned
+  (~org-table-align~) and every headline's tags put in their column
+  (~org-align-tags~). One edit per changed line.
+- ~textDocument/documentLink~, ~documentLink/resolve~ :: The links of an
+  Org file, each with the tooltip Emacs shows over a link (/LINK: …/). A
+  URL or a file without a search has its target at once; a link to a place
+  in a file (~*Heading~, ~#custom-id~, ~id:~, ~file:…::search~) gets it
+  when resolved: the file with ~#L~, its line and column
+  (~file:///…/notes.org#L12,1~). The other links (~shell:~, a timestamp, a
+  citation…) are left out; ~org.open~ follows them.
+- ~textDocument/references~ :: Backlinks: the links in the Org files the
+  server knows (the agenda files and those open) that lead to the /entry/
+  at the cursor, by its ~ID~ (~id:~), by a search for its headline
+  (~*Heading~, ~file:x.org::*Heading~) or its ~CUSTOM_ID~ (~#custom-id~),
+  from another file or the same one. On a link, the backlinks of the entry
+  it leads to. With ~includeDeclaration~, the entry's headline first. A
+  link to a ~<<target>>~ or to a word of the entry is not one of them;
+  the cursor on a target or a tag counts as on its entry.
+- ~textDocument/prepareRename~, ~rename~ :: On a tag: the tag in every Org
+  file the server knows, in its headlines (their tags aligned again) and
+  its ~#+FILETAGS:~ and ~#+TAGS:~ lines. On a headline's title: the title,
+  and the links that search for it (~*Old title~, ~file:x.org::*Old
+  title~). Elsewhere the rename is refused. While a command waits for a
+  text (see [[#commands][Commands]]), a rename anywhere is the answer:
+  ~prepareRename~ gives what it suggests as the placeholder.
+- ~workspace/symbol~ :: The headlines of the Org files the server knows
+  whose title has the letters of the query in order, without regard to
+  case, at most 1000, each with its file and its parent headline as
+  container (~notes.org › Projects~).
+- ~textDocument/inlayHint~ :: What Emacs shows over the text where a
+  client has no other way: ~org-indent-mode~'s indentation as blanks at
+  the start of lines (for a client without ~org-lsp/virtualIndent~); the
+  entities, sub- and superscripts and shrunk table fields of
+  ~org-lsp/display~ (for a client without it); the numbers of
+  ~org-num-mode~ after the stars; and the times of ~org.clock.display~
+  after the headlines, the line filled with dots up to column 60.
+- ~textDocument/documentHighlight~ :: Never anything: the request tells
+  the server where the cursor is, which the agenda's keys want.
+
+~executeCommandProvider~ lists the manifest's commands, and ~org.cycle~ and
+~org.date.preview~, two that are for the editors' code (see their entries in
+[[#commands][Commands]]).
 
 The server sends ~textDocument/publishDiagnostics~ for the citation keys of
 a document that no file of its bibliography has (~oc-basic~ shows them with
@@ -131,7 +173,9 @@ And these notifications:
   null when it goes off. Sent when it is turned on (~org.columns~), after
   each of its commands and each change of the document. Its commands
   (~org.columns.*~, in the ~columns~ scope of the manifest) take the column
-  picked, from 0, as ~column~ in their argument.
+  picked, from 0, as ~column~ in their argument; after one, ~column~ is
+  where Emacs's cursor went, the column to pick then (~org.columns.move.left~
+  takes it along with the column it moves).
 - ~org-lsp/timer~ :: ~{ "seconds", "countdown", "paused" }~ when the
   relative timer or a countdown of Org in Emacs starts, pauses, goes on or
   changes, and null when it stops (unless ~org-timer-display~ is nil): its
@@ -168,7 +212,10 @@ And these notifications:
   ~experimental.orgImages: true~ (or sets the option ~images~): the images
   of the LaTeX fragments ~org.latex.preview~ asked for, once Emacs has made
   them, in the form the preview commands answer with (see
-  ~org.link.preview~), ~kind~ ~latex~.
+  ~org.link.preview~), ~kind~ ~latex~; and those of ~org.link.preview~,
+  ~kind~ ~link~, once the images of its URLs are downloaded. With
+  ~"startup": true~, the previews a file opens with: the client says
+  nothing of them.
 - ~experimental.orgHiddenLines~ :: A client that announces it (or sets the
   option ~hidden_lines~) hides the lines a command's result names,
   ~{ "hiddenLines": { "uri", "lines" } }~, each a line from 0, whole, and
@@ -190,6 +237,25 @@ And these notifications:
   file, after it opens and after each change that moves its headlines.
   With no lines when none is highlighted. The text of those lines also has
   the token, for clients that show only tokens.
+- ~org-lsp/codeBlocks~ :: For a client that announces
+  ~experimental.orgCodeBlocks: true~ (or sets the option ~code_blocks~):
+  where the code of an Org file is that the client colors in its own
+  language, as Emacs does with ~org-src-fontify-natively~. ~{ "uri",
+  "version", "blocks" }~, each block ~{ "range", "language", "name",
+  "kind" }~: ~range~ covers the code alone, the lines between ~#+begin_src~
+  and ~#+end_src~ (to the end of the last, without its newline) or what is
+  between the braces of ~src_python{…}~; ~name~ is the language as written
+  (~emacs-lisp~); ~language~ the client's name for it (~elisp~), the major
+  mode Org edits it in (~org-src-lang-modes~, and the setting
+  ~org_src_lang_modes~ over it) by the names tree-sitter's parsers have
+  (~emacs-lisp~ → ~elisp~, ~sh~ and the other shells → ~bash~, ~C++~ →
+  ~cpp~); ~kind~ is ~src~, ~export~ or ~inline~. The blocks are those the
+  parser finds: what an example block holds is text, and a block without
+  a language or without code is left out. Sent after a file opens, after
+  every change while it has code (the code may change where the ranges do
+  not), and once with no blocks when the last goes. Only for the version
+  given: for older text than the client has, newer blocks are on their
+  way. The server's semantic tokens leave that code out.
 - ~org-lsp/folds~ :: ~{ "uri", "open": [FoldingRange…], "close": [FoldingRange…] }~:
   after a journal command has shown a file (~window/showDocument~), the
   headlines' folds to open, then those to close (innermost first), as
@@ -427,7 +493,7 @@ Each option with its type, its default and what it means:
 - ~org_bibtex_no_export_tags~ :: string[], ~[]~. Tags that are not exported as keywords, with ~org_bibtex_tags_are_keywords~. (~org-bibtex-no-export-tags~)
 - ~org_bibtex_inherit_tags~ :: boolean, ~false~. With ~org_bibtex_tags_are_keywords~, the tags an entry inherits are keywords too. (~org-bibtex-inherit-tags~)
 - ~org_bibtex_type_property_name~ :: string, ~"btype"~. The property that holds an entry's BibTeX type (~article~); a headline without it is no entry. (~org-bibtex-type-property-name~)
-- ~org_link_abbrev_alist~ :: { [abbreviation]: string }, ~{}~. Link abbreviations: ~[[gh:org-lsp]]~ with ~{ "gh": "https://github.com/%s" }~ follows ~https://github.com/org-lsp~. ~%s~ stands for what follows the colon, ~%h~ for it URL-encoded; without either it goes at the end. A file's ~#+LINK:~ lines come first. ~%(my-function)~ calls an Emacs function with what follows the colon (through Emacs). (~org-link-abbrev-alist~)
+- ~org_link_abbrev_alist~ :: { [abbreviation]: string }, ~{}~. Link abbreviations: ~[[gh:org-lsp]]~ with ~{ "gh": "https://github.com/%s" }~ follows ~https://github.com/org-lsp~. ~%s~ stands for what follows the colon, ~%h~ for it URL-encoded; without either it goes at the end. A file's ~#+LINK:~ lines come first. ~%(my-function)~ calls an Emacs function with what follows the colon (through Emacs), one ~emacs_config~ marks safe, as Org asks: ~(put 'my-function 'org-link-abbrev-safe t)~. (~org-link-abbrev-alist~)
 - ~org_file_apps~ :: [match, command][], ~[["auto-mode", "emacs"], ["directory", "emacs"], ["\\.mm\\'", "default"], ["\\.x?html?\\'", "default"], ["\\.pdf\\'", "default"]]~. What opens a linked file, the first entry that matches: a match is an extension (~txt~), an Emacs regular expression for the file name (~\\.pdf\\'~ in JSON; with groups ~%1~, ~%2~... in the command, it matches the file followed by the link's ~::~ part), ~directory~, ~remote~, ~system~ (what ~C-u C-u C-c C-o~ uses), ~auto-mode~ (every file the editor can show) or ~t~ (any other file). A command is ~emacs~ (the editor), ~default~ (the ~system~ entry, else the editor), ~system~ or ~mailcap~ (the system's application, through the editor), or a shell command where ~%s~ is the file. ~C-u C-c C-o~ opens the file in the editor. A Lisp function is not a command here. (~org-file-apps~)
 - ~org_open_non_existing_files~ :: boolean, ~false~. Open a linked file that is not there with the application ~org_file_apps~ gives it, rather than saying ~No such file~. The editor opens such a file either way. (~org-open-non-existing-files~)
 - ~org_open_directory_means_index_dot_org~ :: boolean, ~false~. Following a link to a directory opens the ~index.org~ in it, rather than the directory. (~org-open-directory-means-index-dot-org~)
@@ -484,15 +550,28 @@ Each option with its type, its default and what it means:
 - ~org_pretty_entities~ :: boolean, ~false~. Show entities (~\alpha~, ~\to~) as their character (~α~, ~→~): the entity is hidden as link brackets are, and its character is an inlay hint in its place. (~org-pretty-entities~)
 - ~org_pretty_entities_include_sub_superscripts~ :: boolean, ~true~. With ~org_pretty_entities~, show sub- and superscripts (~x^2~, ~H_{2}O~, ~a_{n}~) raised and lowered: in Unicode (~x²~, ~H₂O~, ~aₙ~) where every character has a raised or lowered form, as an inlay hint in place of the hidden text; the others are left as they are. (~org-pretty-entities-include-sub-superscripts~)
 - ~org_use_sub_superscripts~ :: true, "{}" or false, ~true~. Which sub- and superscripts ~org_pretty_entities~ shows: all, only those in braces (~a_{b}~, ~"{}"~), or none. (~org-use-sub-superscripts~)
-- ~return_uses_meta_return~ :: boolean, ~false~. RET on the first line of a list item makes the next item, numbered and with a checkbox as M-RET (~org-meta-return~) makes it, the items after it renumbered, as nvim-orgmode's ~org_return_uses_meta_return~ does. Off, RET is Org's: a new line in the item. ~org.return.item~ (~<S-CR>~, Shift+Enter, with the vim keys) always does it.
+- ~return_uses_meta_return~ :: boolean, ~false~. RET on the first line of a list item makes the next item, numbered as M-RET (~org-meta-return~) makes it (without a checkbox, which M-S-RET adds), the items after it renumbered, as nvim-orgmode's ~org_return_uses_meta_return~ does. Off, RET is Org's: a new line in the item. ~org.return.item~ (~<S-CR>~, Shift+Enter, with the vim keys) always does it.
 - ~org_return_follows_link~ :: boolean, ~false~. RET (~org.return~) on a link, a timestamp or a citation follows it, as ~org.open~ (~C-c C-o~) does. In a table RET still moves down. (~org-return-follows-link~)
 - ~org_goto_max_level~ :: number, ~5~. The deepest headings ~org.goto~ (~C-c C-j~) offers. (~org-goto-max-level~)
 - ~calendar_months~ :: 1 | 3, ~3~. How many months the calendar of the date prompt shows: 3 side by side, as Emacs's calendar shows them, the one with the selected day in the middle; or 1, that month alone, for a narrow window, with the answer on a line under the prompt.
 - ~calendar_week_start_day~ :: 0 to 6 (0 is Sunday), ~0~. The day the weeks of the date prompt's calendar start on: 1 starts them on Monday. (~calendar-week-start-day~)
 - ~emacs~ :: string, ~"emacs"~. The Emacs program, for what only Org itself does: export (~org.export.dispatch~). The server starts it (~emacs --batch -Q~) when that is first asked for and keeps it running, so that Org loads once. Without Emacs, everything else works as before.
 - ~emacs_config_file~ :: string, none. A file of Emacs Lisp that Emacs loads before Org, for the variables export reads (~org-export-backends~, ~org-html-…~, ~org-latex-…~, ~org-publish-project-alist~): a file of its own, or your init file. =~/= is the home directory.
-- ~emacs_config~ :: string, none. Emacs Lisp that Emacs evaluates after ~emacs_config_file~ and before loading Org, for a few settings without a file: ~(setq org-export-with-toc nil)~, or ~(add-to-list 'load-path "~/src/org-mode/lisp")~ for another Org. A yes-or-no question Emacs asks while it works (~org-confirm-babel-evaluate~) is asked in the editor.
+- ~emacs_config~ :: string, none. Emacs Lisp that Emacs evaluates after ~emacs_config_file~ and before loading Org, for a few settings without a file that ~emacs_options~ cannot say: a function or a hook, or ~(add-to-list 'load-path "~/src/org-mode/lisp")~ for another Org. A yes-or-no question Emacs asks while it works (~org-confirm-babel-evaluate~) is asked in the editor.
+- ~emacs_options~ :: { [option]: value }, ~{}~. Org's options for what Emacs does, by their names in Org, which Emacs sets as Customize does: ~{ "org-attach-method": "mv", "org-export-with-toc": false }~. ~true~ is ~t~ and ~false~ ~nil~, a list is a list and a table an association list; a string is a symbol where the option takes one, or a function, by its name. Each is set when Emacs loads the library it is in, after ~emacs_config_file~ and ~emacs_config~, and so wins over them. A value the option does not take is left out, with a message naming the part that does not fit. The editor's go over the shared file's option by option. The options, each with Org's documentation of it, are in [[file:emacs-options.org][docs/emacs-options.org]]; the others are settings of the server, or Lisp (hooks, functions written out), which goes in ~emacs_config~.
 - ~auto_save~ :: boolean, ~true~. Save the files a command changes other than the one it was run in: an entry's file changed from the agenda, the target of a capture or of a refile. The editor saves them once it has made the change. Off, they are left with unsaved changes, as Emacs leaves them.
+- ~mcp_edits~ :: boolean, ~false~. Let the assistants ~org-lsp mcp~ serves change files: its tools ~set_todo_state~, ~capture~, ~refile~, ~schedule~, ~deadline~, ~set_tags~, ~set_property~, ~delete_property~, ~set_priority~, ~set_effort~, ~add_note~, ~archive~ and ~delete_entry~, which write the agenda files, the capture targets, the files of ~org_refile_targets~ and the archive files directly. Off, it only reads. It is read from the shared configuration file, as everything ~org-lsp mcp~ reads.
+- ~appt_message_warning_time~ :: number, or number[], ~12~. How many minutes before an appointment (an entry of today's agenda with a time of day) its reminders start: one then, and one each ~appt_display_interval~ minutes after, as Emacs's ~appt.el~ reminds; an entry's ~APPT_WARNTIME~ property says it for that entry. As org-lsp's own, a list gives the minutes before the appointment of each reminder: ~[10, 0]~ reminds ten minutes before and when it is due. ~org-lsp notify~ reminds this way; through Emacs (Add today's appointments from the agenda files), a list stands for its largest number. (~appt-message-warning-time~)
+- ~appt_display_interval~ :: number, ~3~. Minutes between two reminders of an appointment, from the first, ~appt_message_warning_time~ minutes before it. (~appt-display-interval~)
+- ~notification_use_timestamp_warning~ :: boolean, ~false~. As org-lsp's own, ~org-lsp notify~ also reminds of an appointment from a deadline or a timestamp as many hours before it as the timestamp's warning cookie says: once, 60 minutes before ~<2026-10-22 Thu 21:00 -1h>~, besides the reminders of ~appt_message_warning_time~. A scheduled date's cookie is a delay and does not count, nor do cookies in days, weeks, months or years. Emacs's ~appt.el~ reads no cookie.
+- ~notification_deadline_summary_time~ :: string, no summary. The time of day, as ~HH:MM~, at which ~org-lsp notify~ lists the deadlines the day's agenda shows that are not done: those of the day, those whose warning period has begun, and those past.
+- ~notification_match~ :: string, every entry. The entries ~org-lsp notify~ reminds of: a match string of the tags view, such as ~+meeting|+call~ or ~-private~.
+- ~notification_command~ :: string[], none. A program ~org-lsp notify~ runs for each notification, and its arguments, in which ~%t~ stands for the title, ~%b~ for the text and ~%%~ for ~%~: ~["ntfy", "publish", "--title", "%t", "mytopic", "%b"]~. It runs instead of the desktop notification, unless ~notification_desktop~ is on. No shell reads it. With a placeholder of an entry (those of ~notification_title_format~), it runs once for each appointment, with that appointment's title, text and values.
+- ~notification_title_format~ :: string, the mode line of ~appt.el~, such as ~Appointment in 10 minutes~. The title of an appointment's notification from ~org-lsp notify~, in which ~%h~ stands for the headline, ~%k~ its TODO keyword, ~%p~ its priority, ~%T~ its tags, ~%c~ its category, ~%s~ and ~%d~ its scheduled and deadline timestamps, ~%w~ the appointment's time, ~%m~ the minutes left, ~%e~ the effort, ~%f~ and ~%F~ the file's path and name, ~%l~ the headline's line, ~%a~ the line ~appt.el~ shows and ~%%~ ~%~: ~"%k %h"~. Appointments due together share the first one's.
+- ~notification_body_format~ :: string, ~%a~, the line ~appt.el~ shows. The text of an appointment's notification from ~org-lsp notify~, with the placeholders of ~notification_title_format~: ~"%w %c %T"~. Appointments due together have a line each.
+- ~notification_deadline_line_format~ :: string, ~%c: %D %a~. A line of the deadline summary of ~org-lsp notify~, with the placeholders of ~notification_title_format~ and ~%D~ for the agenda's leader (~In 3 d.:~, ~2 d. ago:~, ~Deadline:~); there ~%a~ is the headline as the agenda shows it.
+- ~notification_desktop~ :: boolean, on unless ~notification_command~ is set. Whether ~org-lsp notify~ shows a desktop notification: with ~notify-send~ on Linux and the other Unix systems, ~terminal-notifier~ on macOS when it is installed and ~osascript~ otherwise, PowerShell on Windows (BurntToast if it is installed).
+- ~notification_icon~ :: string, the org-lsp logo. The image of the desktop notifications of ~org-lsp notify~: the path of a PNG file (=~/= for the home directory), or ~""~ for none. Unset, the logo, which it writes to ~org-lsp/icon.png~ in the user's data directory (=~/.local/share= on Linux). ~osascript~ shows no image: on macOS it takes ~terminal-notifier~.
 - ~org_cycle_separator_lines~ :: number, ~2~. With at least this many blank lines after a subtree, the last one stays outside its fold. Negative: all of them stay outside. ~0~: none does. (~org-cycle-separator-lines~)
 - ~org_cycle_include_plain_lists~ :: true, false, "integrate", ~true~. Whether list items fold, as subtrees do. ~integrate~ makes them part of the outline: TAB showing a headline's children folds its lists to their top items too. ~false~: they do not fold. (~org-cycle-include-plain-lists~)
 - ~org_cycle_max_level~ :: number, every level. The deepest headlines that fold; deeper ones are text of the subtree they are in. (~org-cycle-max-level~)
@@ -507,9 +586,9 @@ Each option with its type, its default and what it means:
 - ~org_adapt_indentation~ :: boolean | "headline-data", ~false~. Indent the lines of an entry past its headline's stars: ~true~ for all of them, ~"headline-data"~ for the planning line, drawers and clock lines right below the headline. Applies to new lines, to re-indenting (range formatting) and to what commands write. (~org-adapt-indentation~)
 - ~org_image_actual_width~ :: boolean, number, or [number], ~true~. How wide the image of a link shows: ~true~ at its own width; a number, that many pixels; ~false~ or a list of one number, the ~:width~ of the paragraph's ~#+ATTR_ORG:~ or else of another ~#+ATTR_…:~ (pixels, ~50%~ or a fraction up to 2 of the text's width, ~t~ for its own width), else the list's number. An entry's ~ORG-IMAGE-ACTUAL-WIDTH~ property decides for its own text. (~org-image-actual-width~)
 - ~org_image_max_width~ :: "fill-column", "window", number, or null, ~"fill-column"~. How wide at most an image shown at its own width is: ~"fill-column"~, 70 columns; ~"window"~, the window's width; an integer, that many pixels; a float, that part of the window's width; null for no limit. (~org-image-max-width~)
-- ~org_display_remote_inline_images~ :: "skip", "download" or "cache", ~"skip"~. Whether the images of ~http:~ and ~https:~ links show (~C-c C-x C-v~): ~"skip"~ not; ~"download"~ downloaded each time they show; ~"cache"~ downloaded once and kept for the session. The download follows ~org_resource_download_policy~. (~org-display-remote-inline-images~)
-- ~org_resource_download_policy~ :: true, "prompt", "safe" or false, ~"prompt"~. Which remote resources are downloaded (the images of links): ~true~ all of them; ~"prompt"~ those considered safe, and the others when the answer to Emacs's question says so; ~"safe"~ only those considered safe; ~false~ none but those. (~org-resource-download-policy~)
-- ~org_safe_remote_resources~ :: string[], ~[]~. The remote resources considered safe: Emacs regexps matched against a resource's URL and against the ~file://~ URL of the file asking for it. The answers ~!~, ~d~ and ~f~ to the download question add one for the rest of the session. (~org-safe-remote-resources~)
+- ~org_display_remote_inline_images~ :: "skip", "download" or "cache", ~"skip"~. Whether the images of ~http:~ and ~https:~ links show (~C-c C-x C-v~): ~"skip"~ not; ~"download"~ downloaded each time they show; ~"cache"~ downloaded once and kept for the session. The download follows ~org_resource_download_policy~; an image larger than 20 MB is not downloaded. (~org-display-remote-inline-images~)
+- ~org_resource_download_policy~ :: true, "prompt", "safe" or false, ~"prompt"~. Which remote resources are downloaded (the images of links, and in Emacs a file attached from a URL, ~C-c C-a u~, or a remote ~#+INCLUDE:~ or ~#+SETUPFILE:~ in an export): ~true~ all of them; ~"prompt"~ those considered safe, and the others when the answer to Emacs's question says so (in Emacs, a yes or no: yes downloads it this once); ~"safe"~ only those considered safe; ~false~ none but those. (~org-resource-download-policy~)
+- ~org_safe_remote_resources~ :: string[], ~[]~. The remote resources considered safe: Emacs regexps matched against a resource's URL and against the ~file://~ URL of the file asking for it. The answers ~!~, ~d~ and ~f~ to the download question add one for the rest of the session. Emacs has them too, for what it downloads. (~org-safe-remote-resources~)
 - ~org_startup_with_link_previews~ :: boolean, ~false~. Show the images of links to image files in place when a file opens, as ~C-c C-x C-v~ (~org.link.preview~) shows them. ~#+STARTUP: inlineimages~ (or ~linkpreviews~) and ~noinlineimages~ decide for a file. Editors that can show images: Neovim from 0.13 (~vim.ui.img~), in a terminal with the Kitty graphics protocol. (~org-startup-with-link-previews~)
 - ~org_startup_with_latex_preview~ :: boolean, ~false~. Show the LaTeX fragments as images when a file opens, as ~C-c C-x C-l~ (~org.latex.preview~) shows them, made by Emacs. ~#+STARTUP: latexpreview~ and ~nolatexpreview~ decide for a file. (~org-startup-with-latex-preview~)
 - ~org_startup_indented~ :: boolean, ~false~. Show files indented by level without changing them (~org-indent-mode~): the text under a headline lines up with its title, and leading stars are hidden. ~#+STARTUP: indent~ and ~noindent~ decide for a file. It turns ~org_adapt_indentation~ off in such files, unless that is ~"headline-data"~. The lines a long line wraps into go on under its text, a headline's title or an item's text (~wrap-prefix~) in Neovim and Vim, without the prefix; under the prefix in Zed and Helix. (~org-startup-indented~)
@@ -537,6 +616,7 @@ Each option with its type, its default and what it means:
 - ~org_bullets_bullet_list~ :: string[], ~["◉", "○", "✸", "✿"]~. The bullets of ~org_bullets_mode~, one a level, repeating after the last. (~org-bullets-bullet-list~)
 - ~org_bullets_list_bullet~ :: false, or a string, ~"•"~. What ~org_bullets_mode~ shows in place of the ~-~, ~+~ or ~*~ of an item, as org-bullets.nvim does; ~false~ leaves them as they are.
 - ~org_bullets_checkboxes~ :: false, or { todo, half, done }, ~{ "todo": " ", "half": "-", "done": "✓" }~. What ~org_bullets_mode~ shows between the brackets of a checkbox, ~[ ]~, ~[-]~ and ~[X]~, as org-bullets.nvim does; ~false~ leaves them as they are. A state left out keeps its default.
+- ~org_src_lang_modes~ :: { [language]: mode }, ~{}~. The major mode, without ~-mode~, of a language of source blocks, over Org's own (~elisp~ → ~emacs-lisp~, ~sh~ → ~sh~): ~{ "ipython": "python" }~. Neovim and Vim color the code of a block in the language of its mode (~org-lsp/codeBlocks~), by their name for it (~emacs-lisp~ → ~elisp~, ~sh~ → ~bash~); Emacs, where it edits or exports a block, takes it too. (~org-src-lang-modes~)
 - ~org_src_preserve_indentation~ :: boolean, ~false~. Leave the code of source blocks as it is indented when re-indenting. (~org-src-preserve-indentation~)
 - ~org_babel_tangle_lang_exts~ :: object, ~{}~. By language, the extension of the file ~:tangle yes~ writes its blocks to, before Org's own (~emacs-lisp~ → ~el~): ~{ "python": "py" }~. A language without one gives its name. (~org-babel-tangle-lang-exts~)
 - ~org_babel_tangle_use_relative_file_links~ :: boolean, ~true~. Whether the link comments of tangled files (~:comments link~) point back to the Org file by a relative path; with ~false~ by its whole path. (~org-babel-tangle-use-relative-file-links~)
@@ -719,8 +799,10 @@ Each option with its type, its default and what it means:
 - ~create_files~ :: boolean, from the client's capabilities. Whether an edit may make the files it is for (a ~create~ resource operation), as a new archive file from the agenda; else the server writes them itself. The Vim plugin turns it off: coc.nvim has the empty file it makes as one empty line, which the edit's text would then end with.
 - ~org_client~ :: boolean, ~false~. The client has org-lsp's editor code: it knows the server's own token types and does what a command's result asks. A client that can announce it does so with ~experimental.orgClient~; the Vim, Sublime Text and Zed plugins set this. Without it, the server sends the standard token types of LSP, which editors color without being told, ~message_prompts~ is on, and so are more code actions when the client shows message requests (~window.showMessage~) or ~message_prompts~ is set.
 - ~message_prompts~ :: boolean, true for a client without org-lsp's editor code (~org_client~). Ask what commands ask for with ~window/showMessageRequest~ (a key, one of a list) or, for text and dates, through a rename at the cursor (~textDocument/rename~, whose new name is the answer), and say what they have to say with ~window/showMessage~, for a client that does nothing with a command's result.
-- ~message_requests~ :: boolean, ~true~. Whether the client shows the questions of ~message_prompts~ that have choices (~window/showMessageRequest~). Off, for a client that cannot (Helix), the server says ~PROMPT: pick the answer from the code actions~, and until it is answered the code actions start with the choices; a rename with the choice's key answers too.
+- ~message_requests~ :: boolean, ~true~. Whether the client shows the questions of ~message_prompts~ that have choices, and Emacs's yes-or-no questions (~window/showMessageRequest~). Off, for a client that cannot (Helix), the server says ~PROMPT: pick the answer from the code actions~, and until it is answered the code actions start with the choices; a rename with the choice's key answers too. A client with org-lsp's editor code that runs commands when told (~run_command~) is asked Emacs's questions as a command's (~org.emacs.answer~): the Vim plugin, as some of Vim's LSP clients answer no message request.
+- ~message_notifications~ :: boolean, ~false~. Whether the client shows the server's messages (Emacs's, as its echo area shows them) sent as ~org-lsp/message~, ~{ type, message }~ as ~window/showMessage~'s, rather than with ~window/showMessage~, as a client announcing ~experimental.orgMessages~ does: for the Vim plugin, as some of Vim's LSP clients show no messages, or show them after their own name.
 - ~line_highlights~ :: boolean, ~false~. Whether the client highlights lines from edge to edge as the server sends them (~org-lsp/lineHighlights~): the agenda's entry the clock runs on, and headlines with ~org_fontify_whole_heading_line~. As a client announcing ~experimental.orgLineHighlights~ does: for the Vim plugin and the Sublime Text package.
+- ~code_blocks~ :: boolean, ~false~. Whether the client colors the code of source, export and inline source blocks in its language where the server says (~org-lsp/codeBlocks~), as a client announcing ~experimental.orgCodeBlocks~ does: for the Vim plugin.
 - ~run_command~ :: boolean, ~false~. Whether the client runs a command when the server asks (~org-lsp/runCommand~: a capture an ~org-protocol~ URL starts), as one it runs from a key, as a client announcing ~experimental.orgRunCommand~ does: for the Vim plugin and the Sublime Text package. Without it, the server runs the command itself, and asks what it asks with ~window/showMessageRequest~.
 - ~hidden_lines~ :: boolean, ~false~. Whether the client hides the lines a command's answer names (~hiddenLines~: the custom properties of ~org.custom.properties.toggle~), as a client announcing ~experimental.orgHiddenLines~ does: for the Sublime Text package.
 - ~images~ :: boolean, ~false~. Whether the client shows images in place of links to image files and of LaTeX fragments (~org.link.preview~, ~org.latex.preview~, ~org-lsp/images~). As a client announcing ~experimental.orgImages~ does: for the Sublime Text package.
@@ -1038,12 +1120,14 @@ increments a number.
   "Emacs" below).
 - ~org.attach~ :: ~org-attach~ (~C-c C-a~): Org's dispatcher of attachment
   commands, by key (input kind ~key~): ~a~, ~c~, ~m~, ~l~, ~y~ attach a file
-  asked for (relative to the document's directory) as ~org_attach_method~
-  says, by copying, moving or linking it; ~u~ one from a URL; ~n~ a new one,
+  asked for (relative to the document's directory) as ~org-attach-method~
+  (Emacs's option, set in ~emacs_options~) says, by copying, moving or linking it; ~u~ one from a URL; ~n~ a new one,
   which the editor opens; ~z~ synchronizes; ~o~ opens one (picked among them
   when there are several), ~f~ the directory, by the system; ~d~ deletes one
   (picked), ~D~ all of them (after Emacs asks); ~s~ and ~S~ set and unset
-  the ~DIR~ property. Run by the server's Emacs (see "Emacs" below), which
+  the ~DIR~ property; ~q~ aborts. ~b~, ~O~ and ~F~ (an Emacs buffer, Emacs,
+  Dired) are left out, and ~org-attach-commands~ does not change the keys.
+  Run by the server's Emacs (see "Emacs" below), which
   makes the directory, gives the entry an ID or ~DIR~ and the ~ATTACH~ tag.
   ~org.open~ on an ~attachment:~ link opens the file there
   (~org-attach-expand~).
@@ -1228,7 +1312,14 @@ increments a number.
   else null. ~attachment:~ links are left out. With
   ~org_display_remote_inline_images~ ~download~ or ~cache~, ~http:~ and
   ~https:~ links to images are among them, the ~path~ of each the file the
-  server downloaded it to, in a private directory of its own; a URL that
+  server downloaded it to, in a private directory of its own (by ~curl~,
+  20 MB at most, the same file for a URL each time). When there are images
+  to download, the command answers with the images of files only (null
+  when there are none), and the preview comes again in ~org-lsp/images~,
+  with all its images, once the downloads are there, so that the server
+  does not wait for them (Emacs does). The previews download one after
+  the other; one whose document changed or closed meanwhile is not sent,
+  nor downloaded if its turn had not come. A URL that
   ~org_resource_download_policy~ and ~org_safe_remote_resources~ do not let
   through is first asked about as Emacs asks (~org--confirm-resource-safe~):
   an input of kind ~key~, the choices ~!~, ~d~, ~f~, ~y~ and ~n~, with the URL
@@ -1731,7 +1822,11 @@ increments a number.
   menu); ~P~ for ~f~, ~p~, ~x~ (then a project of
   ~org-publish-project-alist~, kind ~choice~, step ~P:x~) or ~a~. The entry
   then runs in Emacs on the document as the editor has it, the point where
-  the cursor is, and the command returns at once (~As HTML file…~). When
+  the cursor is, and the command returns at once (~As HTML file…~). Emacs
+  is told first where the entries of the document's ~id:~ links are, as the
+  server finds them (~org-id-add-location~), and, with org-roam, of its
+  ~roam~ link type: links the server follows export as Emacs with org-roam
+  exports them, not as links it cannot resolve. When
   Emacs is done: an export to a buffer is written to a file of the server's
   (~Org HTML Export.html~) and shown with ~window/showDocument~; a file to
   be opened is shown in the editor when it is text (~.org~, ~.txt~, ~.md~,
@@ -1758,7 +1853,7 @@ increments a number.
   (~The file changed while Emacs ran the code; nothing was changed. Run it again.~).
   Emacs asks before it evaluates (~org-confirm-babel-evaluate~) with
   ~window/showMessageRequest~; the languages are those
-  ~org-babel-load-languages~ loads (set in ~emacs_config~). Sessions
+  ~org-babel-load-languages~ loads (set in ~emacs_options~). Sessions
   (~:session~) live as long as the server's Emacs. ~org.babel.lob.ingest~
   (~C-c C-v i~) adds the file's named code blocks to the Library of Babel of
   the server's Emacs (~org-babel-lob-ingest~), for ~#+CALL:~ lines in any
@@ -1902,8 +1997,10 @@ answers too. LSP has no request for text, so for text and
 dates the server says /PROMPT: answer with a rename at the cursor/ (with
 ~window/showMessage~) and the next rename answers: ~textDocument/prepareRename~
 offers ~value~ as the placeholder, and the new name of ~textDocument/rename~ is
-the answer, the rename itself an empty edit. Another command first drops the
-question, and rename renames again.
+the answer, the rename itself an empty edit. A new name of ~-~ alone is the
+empty answer (the prompt's default), for a client that sends no empty new
+name (Zed). Another command first drops the question, and rename renames
+again.
 
 An input may say more:
 
@@ -2048,7 +2145,41 @@ export never holds up the server's other answers. Emacs loads, in this
 order, ~emacs_config_file~, then evaluates ~emacs_config~, then loads Org
 (~org~, ~ox~, ~ox-publish~): settings made before Org loads are kept
 (~org-export-backends~ to add Markdown, a ~load-path~ for another Org), and
-the configuration may load Org itself. A request carries the document's
+the configuration may load Org itself. A command the editor asks for
+(~workspace/executeCommand~) that needs an answer of Emacs's (the export
+menu, a capture template's ~%(…)~ and a target function, the block
+~org-edit-special~ edits, the attachments to pick, refile targets a
+function verifies, the countdown's default, the named blocks, the
+structure templates, ~org-agenda-to-appt~, a heading made of a region)
+holds up no other answer: the request is answered once Emacs has
+answered, the server answering the others meanwhile (responses may come
+in another order than their requests), and Emacs may ask the user its
+questions. It runs again from the start then, Emacs's answer at hand; a
+command asks Emacs nothing before it has taken a step of its own.
+~$/cancelRequest~ gives up such a request (answered ~RequestCancelled~),
+and stops Emacs if it works on it (a ~%(…)~ that loops), with the
+programs it started; the next request starts Emacs again. The rest waits
+for Emacs and holds up the server's other answers meanwhile: what is not
+a command (a diary sexp and an agenda prefix's ~%(…)~ while the agenda is
+built, the attachment of an image to preview, ~org-crypt~ before a save,
+a link abbreviation that calls a function), a command from the command
+port, and what the timers run (~appt-check~, the end of a countdown). Each
+request has a time of its own (10 to 120 seconds), past which Emacs is
+taken for stuck and started again (/Emacs did not answer in time: `eval`
+took over 30 s …/); the time Emacs takes to start is not counted in it.
+One that holds up the server waits for Emacs to start 15 seconds at most
+(/Emacs is still starting …/, and Emacs goes on starting for the next
+request), and for another command (an export) 3 seconds (/Emacs is busy
+with another command …/). When the server exits, it stops its Emacs, busy
+or not, with the programs Emacs started. Then each option of ~emacs_options~
+is set when the library it is in loads (~org-attach-method~ when
+~org-attach~ does), as Customize sets it, its ~:set~ function and all, and
+so after the user's Lisp; the value is read as JSON, made what the
+option's ~custom-type~ wants (a string a symbol, a table an association
+list…) and checked against that type. A value it does not match is left
+out, and the editor told with ~window/showMessage~ (a warning, as for the
+options the server cannot read), once in a session though Emacs starts
+again. A request carries the document's
 text as the editor has it, unsaved changes and all, in a buffer that
 visits the file's path (so that ~#+INCLUDE:~, ~#+SETUPFILE:~ and the output's
 name work as they would in Emacs), with the file's safe local variables.
@@ -2056,9 +2187,16 @@ name work as they would in Emacs), with the file's safe local variables.
 
 Emacs must not read the terminal: a yes-or-no question it asks comes to the
 editor as ~window/showMessageRequest~; any other question it would ask fails
-the command with /Emacs asked a question org-lsp cannot answer: …/. When
-Emacs stops (an error in the configuration), the command fails with what it
-last wrote on its standard error, and the next one starts it again.
+the command with /Emacs asked a question org-lsp cannot answer: …/. A
+download Org does not consider safe (~org-attach-url~, a remote
+~#+INCLUDE:~) is such a question, yes downloading it this once; the
+settings ~org_resource_download_policy~ and ~org_safe_remote_resources~
+are Emacs's too. What Emacs says last (~message~) is shown after the
+command's edit, as the echo area shows it, and what Babel shows of a
+block that fails (~*Org-Babel Error Output*~: its standard error and exit
+code) as a warning. When Emacs stops (an error in the configuration), the
+command fails with what it last wrote on its standard error, or its exit
+status, and the next one starts it again.
 
 * The manifest
 :PROPERTIES:
@@ -2292,22 +2430,23 @@ to the token types and modifiers of the LSP specification, which editors and
 their color schemes color without being told. Org's tokens become the
 standard ones whose colors come closest to Emacs's faces:
 
-| Org                                                  | Standard                                                      |
-|------------------------------------------------------+---------------------------------------------------------------|
-| headline and stars, levels 1 to 8 (~outline-1~ …)    | ~function~, ~property~, ~keyword~, ~comment~, ~type~, ~enumMember~, ~macro~, ~string~ |
-| TODO keyword, planning keyword                       | ~keyword~                                                     |
-| done keyword                                         | ~string~                                                      |
-| priority, statistics cookie                          | ~number~                                                      |
-| tag                                                  | ~decorator~                                                   |
-| timestamp; inactive                                  | ~enumMember~; ~comment~                                       |
-| ~#+KEY:~, block lines, comment, hidden text, archived | ~comment~                                                     |
-| drawer, LaTeX, entity, macro                         | ~macro~                                                       |
-| property key                                         | ~property~                                                    |
-| bullet, checkbox, table delimiter                    | ~operator~                                                    |
-| link, target                                         | ~namespace~                                                   |
-| code, verbatim                                       | ~string~                                                      |
-| footnote                                             | ~parameter~                                                   |
-| struck-through text                                  | ~variable~ with ~deprecated~                                  |
+| Org                                                   | Standard                                                                              |
+|-------------------------------------------------------+---------------------------------------------------------------------------------------|
+| headline and stars, levels 1 to 8 (~outline-1~ …)     | ~function~, ~property~, ~keyword~, ~comment~, ~type~, ~enumMember~, ~macro~, ~string~ |
+| TODO keyword, planning keyword                        | ~keyword~                                                                             |
+| done keyword                                          | ~string~                                                                              |
+| priority, statistics cookie                           | ~number~                                                                              |
+| tag                                                   | ~decorator~                                                                           |
+| timestamp; inactive                                   | ~enumMember~; ~comment~                                                               |
+| ~#+KEY:~, block lines, comment, hidden text, archived | ~comment~                                                                             |
+| drawer, LaTeX, entity, macro                          | ~macro~                                                                               |
+| property key                                          | ~property~                                                                            |
+| bullet, checkbox, table delimiter                     | ~operator~                                                                            |
+| link and its parts, target                            | ~namespace~                                                                           |
+| table header                                          | ~type~                                                                                |
+| code, verbatim                                        | ~string~                                                                              |
+| footnote                                              | ~parameter~                                                                           |
+| struck-through text                                   | ~variable~ with ~deprecated~                                                          |
 
 In the agenda: the title ~namespace~, dates ~function~ (today ~keyword~, a
 weekend ~type~), scheduled entries ~string~ (from earlier days ~number~),
@@ -2317,36 +2456,40 @@ graph have no standard kind and get no token.
 
 ** In Org files
 
-| Type             | Covers                                                                                      |
-|------------------+---------------------------------------------------------------------------------------------|
-| ~headline~       | The title text of a headline; ~levelN~ modifier                                             |
-| ~stars~          | The stars of a headline; ~levelN~ modifier                                                  |
-| ~outline~        | Never sent: VS Code's ~org-lsp.headlineLevelColors~ turns ~headline~ and ~stars~ into it    |
-| ~todoKeyword~    | A TODO keyword; ~done~ when it is a done state                                              |
-| ~priority~       | A priority cookie, ~[#A]~                                                                   |
-| ~tag~            | The tags of a headline, ~:a:b:~, as one token                                               |
-| ~planning~       | ~SCHEDULED:~, ~DEADLINE:~, ~CLOSED:~, ~CLOCK:~ and a headline's ~COMMENT~                   |
-| ~timestamp~      | A timestamp or timestamp range; ~inactive~ for ~[…]~                                        |
-| ~drawer~         | The ~:NAME:~ and ~:END:~ lines of a drawer                                                  |
-| ~property~       | The ~:KEY:~ of a property                                                                   |
-| ~keyword~        | The ~#+KEY:~ of a keyword line                                                              |
-| ~block~          | The ~#+BEGIN…~ line, with its parameters, and the ~#+END…~ line                             |
-| ~comment~        | Comment lines and the contents of comment blocks                                            |
-| ~bullet~         | A list bullet or counter                                                                    |
-| ~checkbox~       | A checkbox; ~checked~ or ~partial~                                                          |
-| ~link~           | A link of any form, and citations                                                           |
-| ~code~           | =~code~=, and inline source blocks but for their code, which is left to the editor to color |
-| ~verbatim~       | ~=verbatim=~ and fixed-width lines                                                          |
-| ~text~           | Plain text that carries emphasis modifiers                                                  |
-| ~tableDelimiter~ | Table borders and rule lines                                                                |
-| ~footnote~       | Footnote references and definition labels                                                   |
-| ~cookie~         | A statistics cookie, ~[1/3]~                                                                |
-| ~target~         | ~<<target>>~ and ~<<<radio target>>>~                                                       |
-| ~latex~          | LaTeX fragments and environments                                                            |
-| ~entity~         | An entity such as ~\alpha~                                                                  |
-| ~macro~          | ~{{{macro}}}~                                                                               |
-| ~documentTitle~  | The value of ~#+TITLE:~ (~org-document-title~)                                              |
-| ~documentInfo~   | The values of ~#+SUBTITLE:~, ~#+AUTHOR:~, ~#+EMAIL:~ and ~#+DATE:~ (~org-document-info~)    |
+| Type               | Covers                                                                                      |
+|--------------------+---------------------------------------------------------------------------------------------|
+| ~headline~         | The title text of a headline; ~levelN~ modifier                                             |
+| ~stars~            | The stars of a headline; ~levelN~ modifier                                                  |
+| ~outline~          | Never sent: VS Code's ~org-lsp.headlineLevelColors~ turns ~headline~ and ~stars~ into it    |
+| ~todoKeyword~      | A TODO keyword; ~done~ when it is a done state                                              |
+| ~priority~         | A priority cookie, ~[#A]~                                                                   |
+| ~tag~              | The tags of a headline, ~:a:b:~, as one token                                               |
+| ~planning~         | ~SCHEDULED:~, ~DEADLINE:~, ~CLOSED:~, ~CLOCK:~ and a headline's ~COMMENT~                   |
+| ~timestamp~        | A timestamp or timestamp range; ~inactive~ for ~[…]~                                        |
+| ~drawer~           | The ~:NAME:~ and ~:END:~ lines of a drawer                                                  |
+| ~property~         | The ~:KEY:~ of a property                                                                   |
+| ~keyword~          | The ~#+KEY:~ of a keyword line                                                              |
+| ~block~            | The ~#+BEGIN…~ line, with its parameters, and the ~#+END…~ line                             |
+| ~comment~          | Comment lines and the contents of comment blocks                                            |
+| ~bullet~           | A list bullet or counter                                                                    |
+| ~checkbox~         | A checkbox; ~checked~ or ~partial~                                                          |
+| ~link~             | The brackets of a bracket link, and its target where Org hides it; radio links; citations   |
+| ~linkDescription~  | The description of a bracket link, ~[[target][description]]~                                |
+| ~linkUrl~          | The target of a bracket link where it shows; plain and angle links                          |
+| ~code~             | =~code~=, and inline source blocks but for their code, which is left to the editor to color |
+| ~verbatim~         | ~=verbatim=~ and fixed-width lines                                                          |
+| ~text~             | Plain text that carries emphasis modifiers                                                  |
+| ~tableDelimiter~   | Table borders and rule lines                                                                |
+| ~tableHeader~      | The cells of a table's header: the rows above its first rule, when rows follow it           |
+| ~footnote~         | Footnote references and definition labels                                                   |
+| ~cookie~           | A statistics cookie, ~[1/3]~                                                                |
+| ~target~           | ~<<target>>~ and ~<<<radio target>>>~                                                       |
+| ~latex~            | LaTeX fragments                                                                             |
+| ~latexEnvironment~ | A LaTeX environment, ~\begin{…}~ to ~\end{…}~                                               |
+| ~entity~           | An entity such as ~\alpha~                                                                  |
+| ~macro~            | ~{{{macro}}}~                                                                               |
+| ~documentTitle~    | The value of ~#+TITLE:~ (~org-document-title~)                                              |
+| ~documentInfo~     | The values of ~#+SUBTITLE:~, ~#+AUTHOR:~, ~#+EMAIL:~ and ~#+DATE:~ (~org-document-info~)    |
 
 Plain text gets no token, and neither do the contents of source and example
 blocks.

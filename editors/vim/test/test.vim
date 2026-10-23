@@ -784,17 +784,44 @@ function! s:code_link_note() abort
   let file = s:work . '/notes/code.org'
   call writefile(['* Code', '#+begin_src python :results output', 'def greet():', '#+end_src', 'See [[*Code]].',
         \ '#+begin_export python', 'def bye():', '#+end_export', 'Then src_python[:exports code]{def hi(): pass} too.',
-        \ '#+begin_src emacs-lisp', '(defun f () 1)', '#+end_src'], file)
+        \ '#+begin_src emacs-lisp', '(defun f () 1)', '#+end_src',
+        \ '#+begin_example', '#+begin_src python', 'def no():', '#+end_src', '#+end_example'], file)
   execute 'edit' fnameescape(file)
   call s:until('the server', {-> org_lsp#ready(bufnr())})
-  " The code of a source block in its language's syntax.
-  call assert_match('^python', synIDattr(synID(3, 1, 1), 'name'))
-  call assert_notmatch('^python', synIDattr(synID(5, 1, 1), 'name'))
+  let Syntax = {line, col -> join(map(synstack(line, col), 'synIDattr(v:val, "name")'))}
+  " The code of a source block in its language's syntax, in a region where
+  " the server says the code is (`org-lsp/codeBlocks`).
+  call s:until('the code in its syntax', {-> Syntax(3, 1) =~# 'orgLspSrcCode_python python'})
+  call assert_notmatch('python', Syntax(2, 3))
+  call assert_notmatch('python', Syntax(5, 1))
   " Export blocks, inline source blocks and Emacs Lisp too.
-  call assert_match('^python', synIDattr(synID(7, 1, 1), 'name'))
-  call assert_match('^python', synIDattr(synID(9, 32, 1), 'name'))
-  call assert_notmatch('^python', synIDattr(synID(9, 50, 1), 'name'))
-  call assert_match('^lisp', synIDattr(synID(11, 2, 1), 'name'))
+  call assert_match('python', Syntax(7, 1))
+  call assert_match('python', Syntax(9, 32))
+  call assert_notmatch('python', Syntax(9, 30))
+  call assert_notmatch('python', Syntax(9, 50))
+  call assert_match('lisp', Syntax(11, 2))
+  " What an example block holds is no block.
+  call assert_notmatch('python', Syntax(15, 1))
+  " The regions move with the code, and go with it.
+  call append(0, 'Moved down.')
+  doautocmd TextChanged
+  call s:until('the region moved', {-> Syntax(4, 1) =~# 'python' && Syntax(3, 1) !~# 'python'})
+  call deletebufline('%', 3, 5)
+  doautocmd TextChanged
+  call s:until('the region gone with its block', {-> Syntax(3, 1) !~# 'python' && Syntax(5, 1) =~# 'python'})
+  call append(2, ['#+begin_src python :results output', 'def greet():', '#+end_src'])
+  call deletebufline('%', 1)
+  doautocmd TextChanged
+  call s:until('the block back', {-> Syntax(3, 1) =~# 'python' && Syntax(7, 1) =~# 'python'})
+  " No regions with `src_highlight` off.
+  let g:org_lsp = extend(get(g:, 'org_lsp', {}), {'src_highlight': 0})
+  call setline(5, 'See [[*Code]]. ')
+  doautocmd TextChanged
+  call s:until('the regions gone', {-> Syntax(3, 1) !~# 'python' && Syntax(7, 1) !~# 'python'})
+  let g:org_lsp.src_highlight = 1
+  call setline(5, 'See [[*Code]].')
+  doautocmd TextChanged
+  call s:until('the regions back', {-> Syntax(3, 1) =~# 'python'})
   " `<Leader>oo` follows the link at the cursor.
   call cursor(5, 8)
   call feedkeys("\\oo", 'xt')
@@ -976,6 +1003,95 @@ function! s:journal() abort
   call assert_equal(-1, foldclosed(1), "the date's headline open")
 endfunction
 call s:test('org-journal makes an entry in a file without the extension', function('s:journal'))
+
+" Text a command asks for is typed with `input()` (the tests answer the
+" others): completed from the list, the default there, <Esc> no answer.
+" Prompts that are Emacs's own words show as they are, titles with `: `.
+function! s:typed_answers() abort
+  call assert_equal('Owner: ', org_lsp#prompt_text('Owner'))
+  call assert_equal('Execute this? ', org_lsp#prompt_text('Execute this? '))
+  call assert_equal('Tags :work: ', org_lsp#prompt_text('Tags :work:'))
+  call feedkeys("al\<Tab>\<CR>", 't')
+  call assert_equal('alpha', org_lsp#read_text({'prompt': 'Owner', 'value': '', 'completions': ['alpha', 'beta']}))
+  call feedkeys("\<CR>", 't')
+  call assert_equal('1:00', org_lsp#read_text({'prompt': 'Effort', 'value': '1:00'}))
+  call feedkeys("x\<Esc>", 't')
+  call assert_equal(v:null, org_lsp#read_text({'prompt': 'Owner', 'value': ''}))
+  call assert_equal('', maparg('<Esc>', 'c'), 'the mapping for <Esc> gone')
+endfunction
+call s:test('reads typed answers with completion, and <Esc> cancels', function('s:typed_answers'))
+
+" The server's messages come as `org-lsp/message`, which the plugin shows
+" as they are, whatever the client; Emacs's questions are asked by the
+" plugin too.
+function! s:messages() abort
+  call assert_true(org_lsp#init_options().message_notifications, 'messages as notifications')
+  call assert_false(org_lsp#init_options().message_requests, 'no message requests')
+  " (The tests run silent, which keeps messages out of the history.)
+  unsilent call org_lsp#handle_notification('org-lsp/message', {'type': 3, 'message': 'Sum of 2 items: 5'})
+  call assert_equal('Sum of 2 items: 5', split(execute('messages'), "\n")[-1])
+endfunction
+call s:test("shows the server's messages as they are", function('s:messages'))
+
+" TAB at the end of a new, empty headline cycles its level, again and again
+" (`org-cycle-level`), from the blank the cursor is on in Normal mode.
+function! s:cycle_level() abort
+  let file = s:work . '/notes/level.org'
+  call writefile(['* A', '** '], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  call cursor(2, 3)
+  call org_lsp#cycle()
+  call s:until('a level up', {-> getline(2) ==# '* '})
+  call org_lsp#cycle()
+  call s:until('a level down again', {-> getline(2) ==# '** '})
+  silent! write
+  execute 'buffer' s:work_buf
+endfunction
+call s:test('TAB on a new headline cycles its level', function('s:cycle_level'))
+
+" `:Org` takes a range, as a selection of whole lines: `:2,3Org meta right`
+" demotes both headlines. `:Org agenda <Tab>` completes the next word.
+function! s:org_range() abort
+  let file = s:work . '/notes/range.org'
+  call writefile(['* C', '* D', '* E'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  2,3Org meta right
+  call s:until('both demoted', {-> getline(1, '$') == ['* C', '** D', '** E']})
+  let words = org_lsp#complete('', 'Org agenda ', 11)
+  call assert_true(index(words, 'list') >= 0 && index(words, 'dispatch') >= 0, string(words))
+  call assert_equal(['list'], org_lsp#complete('li', 'Org agenda li', 13))
+  silent! write
+  execute 'buffer' s:work_buf
+endfunction
+call s:test(':Org takes a range and completes word by word', function('s:org_range'))
+
+" A closed fold's line has blanks after its text, not Vim's dashes, and
+" CTRL-Space works in a terminal, which sends it as NUL.
+function! s:terminal_keys() abort
+  call assert_match('fold: ', &l:fillchars)
+  call assert_notmatch('fold:-', &l:fillchars)
+  call assert_match('^org_lsp#repeatable', maparg('<C-@>', 'n'))
+  call assert_notequal('', maparg('<C-@>', 'n'))
+endfunction
+call s:test('fills folds with blanks and binds CTRL-Space as NUL', function('s:terminal_keys'))
+
+" A buffer read again from its file (`:e!`) is what the server has after.
+function! s:reread() abort
+  let file = s:work . '/notes/reread.org'
+  call writefile(['* One'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  call writefile(['* One', '* Two'], file)
+  edit!
+  let nr = bufnr()
+  let Names = {-> map(copy(get(org_lsp#request_sync(nr, 'textDocument/documentSymbol',
+        \ {'textDocument': {'uri': org_lsp#uri(nr)}}, 2000), 'result', [])), 'v:val.name')}
+  call s:until('the new heading in the server', {-> Names() == ['One', 'Two']})
+  execute 'buffer' s:work_buf
+endfunction
+call s:test('a buffer read again is told to the server', function('s:reread'))
 
 for error in v:errors
   call add(s:results, 'not ok - ' . error)

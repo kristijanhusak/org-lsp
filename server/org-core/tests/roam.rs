@@ -706,3 +706,32 @@ fn roam_buffer_matches_emacs() {
     }
     assert!(failures.is_empty(), "{} differences from Emacs:\n{}", failures.len(), failures.join("\n"));
 }
+
+/// `org-roam-extract-new-file-path` is filled by
+/// `org-capture-fill-template` first (`%n`, `%<…>`), then by org-roam
+/// (`${slug}`), as `org-roam-extract-subtree` fills it.
+#[test]
+fn extract_file_names_are_capture_templates_first() {
+    let text = "* First\n** TODO Second :tag:\n";
+    let keywords = org_syntax::TodoKeywords::from_document(text).unwrap_or_default();
+    let context = org_core::capture::Context {
+        now: org_core::date::DateTime::new(org_core::date::Date::new(2026, 5, 18), 10, 30),
+        file: None,
+        initial: String::new(),
+        annotation: String::new(),
+        link_props: Vec::new(),
+        user_name: "Me".to_string(),
+        clock_heading: String::new(),
+        clock_link: String::new(),
+        tags_column: -77,
+        clipboard: String::new(),
+    };
+    let read_date = org_core::read_date::Settings::default();
+    let name = |template: &str| {
+        roam::edit::extract_file_name(template, text, 8, "an-id", &keywords, &context, &read_date)
+            .map_err(|refusal| refusal.message().to_string())
+    };
+    assert_eq!(name("  %n/%<%Y>-${slug}.org\n").as_deref(), Ok("Me/2026-second.org"));
+    assert_eq!(name("%<%Y%m%d%H%M%S>-${id}.org").as_deref(), Ok("20260518103000-an-id.org"));
+    assert!(name("%^{Directory}/${slug}.org").is_err());
+}

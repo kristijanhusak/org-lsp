@@ -100,7 +100,7 @@ function M.show()
   client:request('textDocument/hover', params, function(err, result)
     local contents = type(result) == 'table' and result.contents or nil
     if err or type(contents) ~= 'table' or type(contents.value) ~= 'string' then
-      return notify('org-lsp: No entry on this line', vim.log.levels.INFO)
+      return notify('Command not allowed in this line', vim.log.levels.INFO)
     end
     -- The cursor moved on while the server answered.
     if vim.api.nvim_get_current_win() ~= from or not vim.deep_equal(vim.api.nvim_win_get_cursor(from), cursor) then
@@ -173,11 +173,25 @@ local function window_options(win)
   return options
 end
 
+--- The line of the Org block in a hover's Markdown: first (an agenda
+--- line's entry), or after a line of its own (`` `LINK: *Other` `` and a
+--- blank line, a link's target).
+---@param lines string[]
+---@return integer? the index of the fence
+local function org_fence(lines)
+  for index = 1, math.min(3, #lines) do
+    if lines[index]:match('^```+org$') then
+      return index
+    end
+  end
+end
+
 --- Neovim's own hover (`K`, `vim.lsp.buf.hover()`) shows the entry of an
---- agenda line as Markdown, an Org block it colors only with a tree-sitter
---- parser for Org. Once Neovim has shown the float and set it up, the
---- float is made an Org buffer of the server's as `M.open` makes one, so
---- the server highlights it: the fence goes, and the float fits the rest.
+--- agenda line, or the target of a link, as Markdown, an Org block it
+--- colors only with a tree-sitter parser for Org. Once Neovim has shown the
+--- float and set it up, the float is made an Org buffer of the server's as
+--- `M.open` makes one, so the server highlights it: the fence goes, the
+--- line before it as text, and the float fits the rest.
 ---@param buf integer
 local function to_org(buf)
   if not vim.api.nvim_buf_is_valid(buf) then
@@ -194,10 +208,15 @@ local function to_org(buf)
   end
   local client = vim.lsp.get_clients({ bufnr = source, name = 'org_lsp' })[1]
   local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-  local fence = #lines >= 2 and lines[1]:match('^(```+)org$')
-  if not client or not fence or lines[#lines] ~= fence then
+  local at = org_fence(lines)
+  local fence = at and lines[at]:match('^(```+)org$')
+  if not client or not fence or #lines < at + 1 or lines[#lines] ~= fence then
     return
   end
+  -- What comes before the block, as text (`` `LINK: *Other` ``).
+  local before = vim.tbl_map(function(line)
+    return (line:gsub('^`(.*)`$', '%1'))
+  end, vim.list_slice(lines, 1, at - 1))
   pcall(vim.treesitter.stop, buf)
   -- Markdown's window settings go, Org's come with the filetype: the
   -- float is as Neovim showed it, but for what it set on it since.
@@ -209,7 +228,7 @@ local function to_org(buf)
     end
   end
   vim.bo[buf].modifiable = true
-  vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.list_slice(lines, 2, #lines - 1))
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.list_extend(before, vim.list_slice(lines, at + 1, #lines - 1)))
   vim.bo[buf].modifiable = false
   count = count + 1
   vim.api.nvim_buf_set_name(buf, ('org-preview:/%d'):format(count))
@@ -226,6 +245,12 @@ function M.watch()
   vim.api.nvim_create_autocmd('BufWinEnter', {
     group = group,
     callback = function(args)
+      -- Only a buffer that may be the float of an Org block (Neovim
+      -- writes the hover's lines before it opens its window): the floats
+      -- of other plugins are left alone.
+      if vim.bo[args.buf].buftype ~= 'nofile' or not org_fence(vim.api.nvim_buf_get_lines(args.buf, 0, 3, false)) then
+        return
+      end
       -- The options of a float as it is shown, before anything else.
       local shown = {}
       for _, win in ipairs(vim.fn.win_findbuf(args.buf)) do

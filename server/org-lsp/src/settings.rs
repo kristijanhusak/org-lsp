@@ -1235,7 +1235,9 @@ pub const SETTINGS: &[Setting] = &[
         "org-link-abbrev-alist",
         "Link abbreviations: `[[gh:org-lsp]]` with `{ \"gh\": \"https://github.com/%s\" }` follows \
          `https://github.com/org-lsp`. `%s` stands for what follows the colon, `%h` for it URL-encoded; without \
-         either it goes at the end. A file's `#+LINK:` lines come first. `%(my-function)` calls an Emacs function with what follows the colon (through Emacs).",
+         either it goes at the end. A file's `#+LINK:` lines come first. `%(my-function)` calls an Emacs \
+         function with what follows the colon (through Emacs), one `emacs_config` marks safe, as Org asks: \
+         `(put 'my-function 'org-link-abbrev-safe t)`.",
     ),
     setting(
         "org_file_apps",
@@ -1729,8 +1731,8 @@ pub const SETTINGS: &[Setting] = &[
         "boolean",
         "false",
         "",
-        "RET on the first line of a list item makes the next item, numbered and with a checkbox as M-RET \
-         (`org-meta-return`) makes it, the items after it renumbered, as nvim-orgmode's \
+        "RET on the first line of a list item makes the next item, numbered as M-RET (`org-meta-return`) \
+         makes it (without a checkbox, which M-S-RET adds), the items after it renumbered, as nvim-orgmode's \
          `org_return_uses_meta_return` does. Off, RET is Org's: a new line in the item. \
          `org.return.item` (`<S-CR>`, Shift+Enter, with the vim keys) always does it.",
     ),
@@ -1796,11 +1798,26 @@ pub const SETTINGS: &[Setting] = &[
             "",
             "",
             "Emacs Lisp that Emacs evaluates after `emacs_config_file` and before loading Org, for a few \
-             settings without a file: `(setq org-export-with-toc nil)`, or `(add-to-list 'load-path \
-             \"~/src/org-mode/lisp\")` for another Org. A yes-or-no question Emacs asks while it works \
-             (`org-confirm-babel-evaluate`) is asked in the editor.",
+             settings without a file that `emacs_options` cannot say: a function or a hook, or \
+             `(add-to-list 'load-path \"~/src/org-mode/lisp\")` for another Org. A yes-or-no question Emacs \
+             asks while it works (`org-confirm-babel-evaluate`) is asked in the editor.",
         )
     },
+    setting(
+        "emacs_options",
+        "{ [option]: value }",
+        "{}",
+        "",
+        "Org's options for what Emacs does, by their names in Org, which Emacs sets as Customize does: \
+         `{ \"org-attach-method\": \"mv\", \"org-export-with-toc\": false }`. `true` is `t` and `false` `nil`, \
+         a list is a list and a table an association list; a string is a symbol where the option takes one, \
+         or a function, by its name. Each is set when Emacs loads the library it is in, after \
+         `emacs_config_file` and `emacs_config`, and so wins over them. A value the option does not take is \
+         left out, with a message naming the part that does not fit. The editor's go over the shared file's \
+         option by option. The options, each with Org's documentation of it, are in \
+         `docs/emacs-options.org`; the others are settings of the server, or Lisp (hooks, functions written \
+         out), which goes in `emacs_config`.",
+    ),
     setting(
         "auto_save",
         "boolean",
@@ -1810,6 +1827,154 @@ pub const SETTINGS: &[Setting] = &[
          the agenda, the target of a capture or of a refile. The editor saves them once it has made the \
          change. Off, they are left with unsaved changes, as Emacs leaves them.",
     ),
+    setting(
+        "mcp_edits",
+        "boolean",
+        "false",
+        "",
+        "Let the assistants `org-lsp mcp` serves change files: its tools `set_todo_state`, `capture`, \
+         `refile`, `schedule`, `deadline`, `set_tags`, `set_property`, `delete_property`, `set_priority`, \
+         `set_effort`, `add_note`, `archive` and `delete_entry`, which write the agenda files, the capture \
+         targets, the files of `org_refile_targets` and the archive files directly. Off, it only reads. It \
+         is read from the shared configuration file, as everything `org-lsp mcp` reads.",
+    ),
+    setting(
+        "appt_message_warning_time",
+        "number, or number[]",
+        "12",
+        "appt-message-warning-time",
+        "How many minutes before an appointment (an entry of today's agenda with a time of day) its \
+         reminders start: one then, and one each `appt_display_interval` minutes after, as Emacs's `appt.el` \
+         reminds; an entry's `APPT_WARNTIME` property says it for that entry. As org-lsp's own, a list \
+         gives the minutes before the appointment of each reminder: `[10, 0]` reminds ten minutes before \
+         and when it is due. `org-lsp notify` reminds this way; through Emacs (Add today's appointments \
+         from the agenda files), a list stands for its largest number.",
+    ),
+    setting(
+        "appt_display_interval",
+        "number",
+        "3",
+        "appt-display-interval",
+        "Minutes between two reminders of an appointment, from the first, `appt_message_warning_time` \
+         minutes before it.",
+    ),
+    setting(
+        "notification_use_timestamp_warning",
+        "boolean",
+        "false",
+        "",
+        "As org-lsp's own, `org-lsp notify` also reminds of an appointment from a deadline or a timestamp \
+         as many hours before it as the timestamp's warning cookie says: once, 60 minutes before \
+         `<2026-10-22 Thu 21:00 -1h>`, besides the reminders of `appt_message_warning_time`. A scheduled \
+         date's cookie is a delay and does not count, nor do cookies in days, weeks, months or years. \
+         Emacs's `appt.el` reads no cookie.",
+    ),
+    Setting {
+        default: None,
+        unset: "no summary",
+        ..setting(
+            "notification_deadline_summary_time",
+            "string",
+            "",
+            "",
+            "The time of day, as `HH:MM`, at which `org-lsp notify` lists the deadlines the day's agenda shows \
+             that are not done: those of the day, those whose warning period has begun, and those past.",
+        )
+    },
+    Setting {
+        default: None,
+        unset: "every entry",
+        ..setting(
+            "notification_match",
+            "string",
+            "",
+            "",
+            "The entries `org-lsp notify` reminds of: a match string of the tags view, such as \
+             `+meeting|+call` or `-private`.",
+        )
+    },
+    Setting {
+        default: None,
+        unset: "none",
+        ..setting(
+            "notification_command",
+            "string[]",
+            "",
+            "",
+            "A program `org-lsp notify` runs for each notification, and its arguments, in which `%t` stands \
+             for the title, `%b` for the text and `%%` for `%`: `[\"ntfy\", \"publish\", \"--title\", \"%t\", \
+             \"mytopic\", \"%b\"]`. It runs instead of the desktop notification, unless `notification_desktop` \
+             is on. No shell reads it. With a placeholder of an entry (those of `notification_title_format`), it \
+             runs once for each appointment, with that appointment's title, text and values.",
+        )
+    },
+    Setting {
+        default: None,
+        unset: "the mode line of `appt.el`, such as `Appointment in 10 minutes`",
+        ..setting(
+            "notification_title_format",
+            "string",
+            "",
+            "",
+            "The title of an appointment's notification from `org-lsp notify`, in which `%h` stands for the \
+             headline, `%k` its TODO keyword, `%p` its priority, `%T` its tags, `%c` its category, `%s` and `%d` \
+             its scheduled and deadline timestamps, `%w` the appointment's time, `%m` the minutes left, `%e` the \
+             effort, `%f` and `%F` the file's path and name, `%l` the headline's line, `%a` the line `appt.el` \
+             shows and `%%` `%`: `\"%k %h\"`. Appointments due together share the first one's.",
+        )
+    },
+    Setting {
+        default: None,
+        unset: "`%a`, the line `appt.el` shows",
+        ..setting(
+            "notification_body_format",
+            "string",
+            "",
+            "",
+            "The text of an appointment's notification from `org-lsp notify`, with the placeholders of \
+             `notification_title_format`: `\"%w %c %T\"`. Appointments due together have a line each.",
+        )
+    },
+    Setting {
+        default: None,
+        unset: "`%c: %D %a`",
+        ..setting(
+            "notification_deadline_line_format",
+            "string",
+            "",
+            "",
+            "A line of the deadline summary of `org-lsp notify`, with the placeholders of \
+             `notification_title_format` and `%D` for the agenda's leader (`In 3 d.:`, `2 d. ago:`, \
+             `Deadline:`); there `%a` is the headline as the agenda shows it.",
+        )
+    },
+    Setting {
+        default: None,
+        unset: "on unless `notification_command` is set",
+        ..setting(
+            "notification_desktop",
+            "boolean",
+            "",
+            "",
+            "Whether `org-lsp notify` shows a desktop notification: with `notify-send` on Linux and the other \
+             Unix systems, `terminal-notifier` on macOS when it is installed and `osascript` otherwise, \
+             PowerShell on Windows (BurntToast if it is installed).",
+        )
+    },
+    Setting {
+        default: None,
+        unset: "the org-lsp logo",
+        ..setting(
+            "notification_icon",
+            "string",
+            "",
+            "",
+            "The image of the desktop notifications of `org-lsp notify`: the path of a PNG file (`~/` for the \
+             home directory), or `\"\"` for none. Unset, the logo, which it writes to `org-lsp/icon.png` in the \
+             user's data directory (`~/.local/share` on Linux). `osascript` shows no image: on macOS it takes \
+             `terminal-notifier`.",
+        )
+    },
     setting(
         "org_cycle_separator_lines",
         "number",
@@ -1938,16 +2103,18 @@ pub const SETTINGS: &[Setting] = &[
         "org-display-remote-inline-images",
         "Whether the images of `http:` and `https:` links show (`C-c C-x C-v`): `\"skip\"` not; `\"download\"` \
          downloaded each time they show; `\"cache\"` downloaded once and kept for the session. The download \
-         follows `org_resource_download_policy`.",
+         follows `org_resource_download_policy`; an image larger than 20 MB is not downloaded.",
     ),
     setting(
         "org_resource_download_policy",
         "true, \"prompt\", \"safe\" or false",
         r#""prompt""#,
         "org-resource-download-policy",
-        "Which remote resources are downloaded (the images of links): `true` all of them; `\"prompt\"` those \
-         considered safe, and the others when the answer to Emacs's question says so; `\"safe\"` only those \
-         considered safe; `false` none but those.",
+        "Which remote resources are downloaded (the images of links, and in Emacs a file attached from a URL, \
+         `C-c C-a u`, or a remote `#+INCLUDE:` or `#+SETUPFILE:` in an export): `true` all of them; \
+         `\"prompt\"` those considered safe, and the others when the answer to Emacs's question says so (in \
+         Emacs, a yes or no: yes downloads it this once); `\"safe\"` only those considered safe; `false` none \
+         but those.",
     ),
     setting(
         "org_safe_remote_resources",
@@ -1956,7 +2123,7 @@ pub const SETTINGS: &[Setting] = &[
         "org-safe-remote-resources",
         "The remote resources considered safe: Emacs regexps matched against a resource's URL and against the \
          `file://` URL of the file asking for it. The answers `!`, `d` and `f` to the download question add one \
-         for the rest of the session.",
+         for the rest of the session. Emacs has them too, for what it downloads.",
     ),
     setting(
         "org_startup_with_link_previews",
@@ -2186,6 +2353,16 @@ pub const SETTINGS: &[Setting] = &[
         "",
         "What `org_bullets_mode` shows between the brackets of a checkbox, `[ ]`, `[-]` and `[X]`, as \
          org-bullets.nvim does; `false` leaves them as they are. A state left out keeps its default.",
+    ),
+    setting(
+        "org_src_lang_modes",
+        "{ [language]: mode }",
+        "{}",
+        "org-src-lang-modes",
+        "The major mode, without `-mode`, of a language of source blocks, over Org's own (`elisp` → \
+         `emacs-lisp`, `sh` → `sh`): `{ \"ipython\": \"python\" }`. Neovim and Vim color the code of a block in the \
+         language of its mode (`org-lsp/codeBlocks`), by their name for it (`emacs-lisp` → `elisp`, `sh` → \
+         `bash`); Emacs, where it edits or exports a block, takes it too.",
     ),
     setting(
         "org_src_preserve_indentation",
@@ -3672,10 +3849,25 @@ pub const SETTINGS: &[Setting] = &[
             "boolean",
             "true",
             "",
-            "Whether the client shows the questions of `message_prompts` that have choices \
-             (`window/showMessageRequest`). Off, for a client that cannot (Helix), the server says \
+            "Whether the client shows the questions of `message_prompts` that have choices, and Emacs's yes-or-no \
+             questions (`window/showMessageRequest`). Off, for a client that cannot (Helix), the server says \
              `PROMPT: pick the answer from the code actions`, and until it is answered the code actions start \
-             with the choices; a rename with the choice's key answers too.",
+             with the choices; a rename with the choice's key answers too. A client with org-lsp's editor code \
+             that runs commands when told (`run_command`) is asked Emacs's questions as a command's \
+             (`org.emacs.answer`): the Vim plugin, as some of Vim's LSP clients answer no message request.",
+        )
+    },
+    Setting {
+        integration: true,
+        ..setting(
+            "message_notifications",
+            "boolean",
+            "false",
+            "",
+            "Whether the client shows the server's messages (Emacs's, as its echo area shows them) sent as \
+             `org-lsp/message`, `{ type, message }` as `window/showMessage`'s, rather than with \
+             `window/showMessage`, as a client announcing `experimental.orgMessages` does: for the Vim plugin, \
+             as some of Vim's LSP clients show no messages, or show them after their own name.",
         )
     },
     Setting {
@@ -3689,6 +3881,18 @@ pub const SETTINGS: &[Setting] = &[
              (`org-lsp/lineHighlights`): the agenda's entry the clock runs on, and headlines with \
              `org_fontify_whole_heading_line`. As a client announcing \
              `experimental.orgLineHighlights` does: for the Vim plugin and the Sublime Text package.",
+        )
+    },
+    Setting {
+        integration: true,
+        ..setting(
+            "code_blocks",
+            "boolean",
+            "false",
+            "",
+            "Whether the client colors the code of source, export and inline source blocks in its language \
+             where the server says (`org-lsp/codeBlocks`), as a client announcing \
+             `experimental.orgCodeBlocks` does: for the Vim plugin.",
         )
     },
     Setting {
@@ -4116,7 +4320,24 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("emacs", STRING),
     ("emacs_config_file", STRING),
     ("emacs_config", STRING),
+    // The names it takes, from `scripts/org-options.json` (see `schema`).
+    ("emacs_options", r#"{ "type": "object" }"#),
     ("auto_save", BOOLEAN),
+    ("mcp_edits", BOOLEAN),
+    (
+        "appt_message_warning_time",
+        r#"{ "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "array", "items": { "type": "integer", "minimum": 0 } }] }"#,
+    ),
+    ("appt_display_interval", r#"{ "type": "integer", "minimum": 1 }"#),
+    ("notification_use_timestamp_warning", BOOLEAN),
+    ("notification_deadline_summary_time", r#"{ "type": "string", "pattern": "^[0-2]?[0-9]:[0-5][0-9]$" }"#),
+    ("notification_match", STRING),
+    ("notification_command", r#"{ "type": "array", "items": { "type": "string" }, "minItems": 1 }"#),
+    ("notification_title_format", STRING),
+    ("notification_body_format", STRING),
+    ("notification_deadline_line_format", STRING),
+    ("notification_desktop", BOOLEAN),
+    ("notification_icon", STRING),
     ("org_cycle_separator_lines", r#"{ "type": "integer" }"#),
     ("org_cycle_include_plain_lists", r#"{ "enum": [true, false, "integrate"] }"#),
     ("org_cycle_max_level", r#"{ "type": "integer", "minimum": 1 }"#),
@@ -4176,6 +4397,7 @@ const SCHEMAS: &[(&str, &str)] = &[
         "org_bullets_checkboxes",
         r#"{ "anyOf": [{ "const": false }, { "type": "object", "properties": { "todo": { "type": "string" }, "half": { "type": "string" }, "done": { "type": "string" } }, "additionalProperties": false }] }"#,
     ),
+    ("org_src_lang_modes", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
     ("org_src_preserve_indentation", BOOLEAN),
     ("org_babel_tangle_lang_exts", r#"{ "type": "object", "additionalProperties": { "type": "string" } }"#),
     ("org_babel_tangle_use_relative_file_links", BOOLEAN),
@@ -4456,7 +4678,9 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("org_client", BOOLEAN),
     ("message_prompts", BOOLEAN),
     ("message_requests", BOOLEAN),
+    ("message_notifications", BOOLEAN),
     ("line_highlights", BOOLEAN),
+    ("code_blocks", BOOLEAN),
     ("run_command", BOOLEAN),
     ("hidden_lines", BOOLEAN),
     ("images", BOOLEAN),
@@ -4527,7 +4751,14 @@ const PRIORITY: &str = r#"{ "anyOf": [{ "type": "string", "pattern": "^[A-Za-z]$
 /// The schema of the option `name`.
 pub fn schema(name: &str) -> Option<Value> {
     let (_, schema) = SCHEMAS.iter().find(|(known, _)| *known == name)?;
-    serde_json::from_str(schema).ok()
+    let mut schema: Value = serde_json::from_str(schema).ok()?;
+    // Org's options that Emacs reads, each with what Org says of it, so
+    // that an editor completes their names and describes them.
+    if name == "emacs_options" {
+        schema["properties"] = Value::Object(crate::org_options::emacs_schemas());
+        schema["additionalProperties"] = json!(false);
+    }
+    Some(schema)
 }
 
 /// The table as JSON: a list of `{ "name", "type", "default"?, "unset"?,
@@ -4625,6 +4856,43 @@ mod tests {
         assert_eq!(resolved(&loaded.options), resolved(&none));
     }
 
+    /// Each option of docs/config.toml comes out of TOML as the same value
+    /// as its default written as JSON (an editor's options), not only the
+    /// settings made of it. Numbers compare by value (TOML writes `1.0` as
+    /// `1`); TOML has no null, so options without a default are left out
+    /// there, as are those only an editor gives.
+    #[test]
+    fn docs_config_toml_gives_every_option_its_json_value() {
+        fn same(one: &Value, other: &Value) -> bool {
+            match (one, other) {
+                (Value::Number(one), Value::Number(other)) => one.as_f64() == other.as_f64(),
+                (Value::Array(one), Value::Array(other)) => {
+                    one.len() == other.len() && one.iter().zip(other).all(|(one, other)| same(one, other))
+                }
+                (Value::Object(one), Value::Object(other)) => {
+                    one.len() == other.len()
+                        && one.iter().all(|(key, value)| other.get(key).is_some_and(|found| same(value, found)))
+                }
+                _ => one == other,
+            }
+        }
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/config.toml");
+        let var = |name: &str| (name == "ORG_LSP_CONFIG").then(|| path.to_string());
+        let loaded = crate::config::load(None, &var);
+        let mut differ = Vec::new();
+        for setting in SETTINGS.iter().filter(|setting| !setting.integration && !setting.editor_only) {
+            let Some(default) = setting.default else { continue };
+            let value: Value = serde_json::from_str(default).unwrap();
+            let pointer = format!("/{}", setting.name.replace('.', "/"));
+            match loaded.merged.pointer(&pointer) {
+                None if value.is_null() => {}
+                Some(found) if same(found, &value) => {}
+                found => differ.push(format!("{}: {found:?} for {value}", setting.name)),
+            }
+        }
+        assert!(differ.is_empty(), "options read differently from TOML:\n{}", differ.join("\n"));
+    }
+
     #[test]
     fn the_defaults_of_org_roam_are_the_ones_that_apply() {
         let on = |mut value: Value| {
@@ -4678,12 +4946,14 @@ mod tests {
                 None => true,
             }),
             "object" => value.as_object().is_some_and(|fields| {
-                fields.iter().all(|(key, field)| match schema.pointer(&format!("/properties/{key}")) {
-                    Some(property) => allows(property, field),
-                    // A schema for the fields not named.
-                    None => schema
-                        .get("additionalProperties")
-                        .is_some_and(|other| other.is_object() && allows(other, field)),
+                fields.iter().all(|(key, field)| {
+                    match schema.get("properties").and_then(|properties| properties.get(key)) {
+                        Some(property) => allows(property, field),
+                        // A schema for the fields not named.
+                        None => schema
+                            .get("additionalProperties")
+                            .is_some_and(|other| other.is_object() && allows(other, field)),
+                    }
                 })
             }),
             _ => false,
@@ -4691,6 +4961,9 @@ mod tests {
         match &schema["type"] {
             Value::String(name) => of_type(name),
             Value::Array(names) => names.iter().filter_map(Value::as_str).any(of_type),
+            // No type: anything (an option of `emacs_options` whose type
+            // is not simple).
+            Value::Null => true,
             _ => false,
         }
     }
@@ -4709,6 +4982,22 @@ mod tests {
         assert!(!allows(&schema("org_log_done").unwrap(), &json!("yes")));
         assert!(!allows(&schema("org_capture_templates").unwrap(), &json!([{ "key": "t", "taget": [] }])));
         assert!(allows(&schema("org_agenda_span").unwrap(), &json!(3)));
+    }
+
+    #[test]
+    fn the_schema_of_emacs_options_allows_their_defaults() {
+        let schema = schema("emacs_options").unwrap();
+        for (name, property) in schema["properties"].as_object().unwrap() {
+            if let Some(default) = property.get("default") {
+                assert!(
+                    allows(&schema, &json!({ name: default })),
+                    "the default of `{name}` is not what its schema allows"
+                );
+            }
+        }
+        assert!(!allows(&schema, &json!({ "org-attach-method": "move" })));
+        assert!(!allows(&schema, &json!({ "org-atach-method": "mv" })));
+        assert!(allows(&schema, &json!({ "org-attach-method": "mv", "org-export-with-toc": false })));
     }
 
     #[test]

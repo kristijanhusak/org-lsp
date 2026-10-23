@@ -16,7 +16,7 @@ its sections says what it should look like.
 
 * Setup
 
-- [ ] Installed with lazy.nvim (~build = ':OrgLspDownload'~), no server around: opening an Org file downloads the server and starts it
+- [ ] Installed with ~vim.pack.add()~ (the ~PackChanged~ autocommand of docs/neovim.org runs ~:OrgLspDownload~ on updates), no server around: opening an Org file downloads the server and starts it
 - [ ] ~:checkhealth org-lsp~ reports the server, where it came from and the agenda files
 - [ ] ~:OrgLspDownload~ downloads the server again and restarts it in the open Org files
 - [ ] ~g?~ in an Org file and in the agenda lists the keys; ~<Leader>oa~ works in any buffer
@@ -96,7 +96,7 @@ its sections says what it should look like.
 
 * Lists and checkboxes
 
-- [ ] On an item, the next item goes below; in a numbered list the numbers go on, after a checkbox item the new one has ~[ ]~: ~<Leader><CR>~
+- [ ] On an item, the next item goes below; in a numbered list the numbers go on; after a checkbox item the new one has none, as in Emacs (~[ ]~ comes with ~org.insert.todo.heading~, M-S-RET): ~<Leader><CR>~
 - [ ] ~RET~ in the middle of an item's line keeps the rest of the line in the item: ~<CR>~
 - [ ] The next item from the end of an item's line: ~<S-CR>~
 - [ ] Indenting and outdenting an item; and with its children: ~>>~, ~<<~, ~>s~, ~<s~
@@ -312,7 +312,7 @@ its sections says what it should look like.
 
 * Footnotes
 
-- [ ] Following ~[fn:1]~ goes to its definition, and from the definition back to the reference: ~<Leader>oo~
+- [ ] Following ~[fn:1]~ goes to its definition, after its label, and from the definition's label back to the reference; right after the label, where following leaves the cursor, it says /No link found/, as Emacs's ~C-c C-o~ does there: ~<Leader>oo~
 - [ ] A reference without a definition is reported
 - [ ] A new footnote (needs Emacs): ~[fn:1]~ at the cursor, its definition in the ~Footnotes~ section, the cursor there: ~<Leader>of~
 - [ ] On a reference without a definition, Emacs asks whether to make one, in the editor: ~<Leader>of~
@@ -389,13 +389,13 @@ its sections says what it should look like.
 
 * Diagnostics (org-lint)
 
-- [ ] A heading in a paragraph (~text ** heading~), a link to nowhere and a block left open are reported
+- [ ] A heading in a paragraph (~text** heading~), a link to nowhere and a block left open are reported
 - [ ] An unknown header argument (~:foo 1~) on a source block is reported, as information: nothing is ever an error or a warning, only information (or a hint, where org-lint trusts its finding less)
 - [ ] ~org_lint_ignore = ["link-to-local-file"]~ silences that checker
 
 * Indentation and formatting
 
-*Partly:* The lines a long line wraps into line up with its own indentation, a headline's title or an item's text ('breakindent'), without the prefix of virtual indentation before them: Neovim repeats no inline virtual text on them, and 'breakindentopt' shifts all the lines of a window alike.
+*Partly:* The lines a long line wraps into line up with its own indentation, a headline's title or an item's text ('breakindent'), without the prefix of virtual indentation before them: Neovim repeats no inline virtual text on them, and 'breakindentopt' shifts all the lines of a window alike. A line with a long link wraps as if the link's hidden target took room: Neovim counts concealed text when it wraps; the org-roam buffer, whose links are long, does not wrap.
 
 - [ ] A file with ~#+STARTUP: indent~ shows its text indented by level, the file unchanged
 - [ ] With ~#+STARTUP: hidestars~ only the last star shows

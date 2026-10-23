@@ -146,7 +146,7 @@ let userBindings = [];
 
 /** The keys package.json binds, then the user's. */
 function bindings() {
-  const own = vscode.extensions.getExtension('org-lsp.org-lsp').packageJSON.contributes.keybindings;
+  const own = vscode.extensions.getExtension('kristijanhusak.org-lsp').packageJSON.contributes.keybindings;
   return [...own, ...userBindings];
 }
 
@@ -257,13 +257,15 @@ function xdotoolKeys(key) {
 async function press(key, command) {
   // The keys go to the editor at hand.
   await vscode.commands.executeCommand('workbench.action.focusActiveEditorGroup');
-  const before = api.commands().run.length;
+  const before = api.commands().count;
   await new Promise((resolve, reject) =>
     execFile('xdotool', ['key', '--delay', '30', ...xdotoolKeys(key)], (error) => (error ? reject(error) : resolve())),
   );
   if (command) {
-    await until(`\`${key}\` to run ${command}`, () => api.commands().run.length > before, 5000);
-    const ran = api.commands().run[before];
+    await until(`\`${key}\` to run ${command}`, () => api.commands().count > before, 5000);
+    // The first command run since: the extension keeps the last ones.
+    const { run, count } = api.commands();
+    const ran = run[run.length - (count - before)];
     assert.equal(ran, command, `\`${key}\` ran ${ran}, not ${command}`);
   }
   await settle();
@@ -592,7 +594,7 @@ describe(`The scenarios, with the ${preset} keys`, function () {
 
   before(async () => {
     // Started without an Org file, the extension is not active yet.
-    api = await vscode.extensions.getExtension('org-lsp.org-lsp').activate();
+    api = await vscode.extensions.getExtension('kristijanhusak.org-lsp').activate();
     const keybindings = path.join(process.env.ORG_LSP_TEST_USER_DATA ?? '', 'User', 'keybindings.json');
     userBindings = fs.existsSync(keybindings) ? JSON.parse(fs.readFileSync(keybindings, 'utf8')) : [];
     stubPrompts();

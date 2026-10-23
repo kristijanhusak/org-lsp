@@ -1,0 +1,341 @@
+#+title: Notifications
+#+options: ^:{} toc:1
+
+Reminders of the day's appointments, with no editor open, as Emacs's
+~appt.el~ gives them once ~org-agenda-to-appt~ has made the appointments
+of the agenda files. ~org-lsp notify~ looks at the agenda files and sends
+the reminders due that minute; the system runs it each minute (cron, a
+systemd timer, launchd, the Task Scheduler). It keeps nothing between runs.
+
+#+begin_example
+Appointment in 12 minutes
+10:00 TODO Standup                            :meeting:
+#+end_example
+
+* Setting it up
+:PROPERTIES:
+:CUSTOM_ID: setting-it-up
+:END:
+
+#+begin_src sh
+scripts/install.sh notifications
+# or, without a checkout:
+curl -fsSL https://github.com/kristijanhusak/org-lsp/releases/download/nightly/install.sh | bash -s -- notifications
+# and to take it away again:
+scripts/install.sh --remove notifications
+#+end_src
+
+The server goes in =~/.local/bin= first if it is not there
+(~ORG_LSP_BIN_DIR~ for another directory). The agenda files are those of
+the shared configuration file, =~/.config/org-lsp/config.toml= (~org-lsp
+config~ shows which and what it says):
+
+#+begin_src toml
+org_agenda_files = ["~/org"]
+#+end_src
+
+What the script makes, which can be made by hand as well:
+
+- Linux, with systemd :: a user timer,
+  =~/.config/systemd/user/org-lsp-notify.timer=, that runs
+  =org-lsp-notify.service= at the start of each minute:
+
+  #+begin_src conf
+  [Service]
+  Type=oneshot
+  ExecStart="/home/me/.local/bin/org-lsp" notify
+
+  [Timer]
+  OnCalendar=*-*-* *:*:00
+  AccuracySec=1s
+  #+end_src
+
+  ~systemctl --user list-timers~ shows it, ~journalctl --user -u
+  org-lsp-notify~ what it said. ~notify-send~ needs the session's bus: if
+  no notification comes, ~systemctl --user import-environment DISPLAY
+  WAYLAND_DISPLAY DBUS_SESSION_BUS_ADDRESS~ in the session's startup gives
+  the timer what it needs.
+- Linux, without systemd :: a line of the crontab (~crontab -l~), added
+  once:
+
+  #+begin_src sh
+  ,* * * * * DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus '/home/me/.local/bin/org-lsp' notify
+  #+end_src
+
+  Cron gives its commands little of the session: the address of the
+  session's bus is there for ~notify-send~. ~1000~ is your user's number
+  (~id -u~).
+- macOS :: a LaunchAgent, =~/Library/LaunchAgents/org.org-lsp.notify.plist=,
+  that runs ~org-lsp notify~ at the start of each minute (a
+  ~StartCalendarInterval~ with no fields), loaded with ~launchctl
+  bootstrap~. The notifications are those of [[https://github.com/julienXX/terminal-notifier][terminal-notifier]] when it is
+  installed (~brew install terminal-notifier~; looked for on the ~PATH~
+  and in Homebrew's =bin= directories), with the logo, else of
+  ~osascript~ (Script Editor's in System Settings > Notifications), which
+  shows no image of its own.
+- Windows :: a scheduled task, ~org-lsp-notify~, each minute
+  (~schtasks /SC MINUTE~). It runs
+  =%LOCALAPPDATA%\org-lsp\notify.vbs= with ~wscript~, which starts
+  ~org-lsp.exe notify~ without a window. The notifications are toasts of
+  [[https://github.com/Windos/BurntToast][BurntToast]] when that PowerShell module is installed, else of
+  Windows's own, in the name of PowerShell.
+
+Elsewhere, run ~org-lsp notify~ each minute in any way the system has.
+
+** The icon
+:PROPERTIES:
+:CUSTOM_ID: the-icon
+:END:
+
+A desktop notification shows the org-lsp logo. The server holds it, and
+writes it, the first time it shows a notification, to =org-lsp/icon.png=
+in the user's data directory, where the programs that show notifications
+can read it: =$XDG_DATA_HOME=, else =~/.local/share=, on Linux,
+=~/Library/Application Support= on macOS, =%LOCALAPPDATA%= on Windows.
+Where it cannot be written, the notification comes without it.
+~--dry-run~ writes nothing.
+
+~notification_icon~ gives an image of one's own, or none:
+
+#+begin_src toml
+notification_icon = "~/pictures/bell.png"
+# or no image:
+notification_icon = ""
+#+end_src
+
+The image goes to ~notify-send --icon~, ~terminal-notifier -appIcon~,
+BurntToast's ~-AppLogo~, or Windows's own toast as its picture.
+~osascript~ cannot show one, whatever the setting says: install
+~terminal-notifier~ for the logo on macOS.
+
+* What it reminds of
+:PROPERTIES:
+:CUSTOM_ID: what-it-reminds-of
+:END:
+
+The appointments are what ~org-agenda-to-appt~ takes with its defaults:
+the entries of today's agenda that have a time of day, from a scheduled
+date, a deadline or a timestamp, with repeaters and diary sexps in
+timestamps on the days they fall; a time range at its start. Entries in a
+done state are left out, as Org leaves out any whose text has a done
+keyword and no other. ~scripts/appt_reference.py~ records the appointments
+Emacs makes of the files of =tests/appt=, and the tests compare.
+
+Each is reminded of ~appt_message_warning_time~ minutes before it (12),
+then each ~appt_display_interval~ minutes (3) until it is due: at 9:48,
+9:51, 9:54, 9:57 and 10:00 for a meeting at 10:00. An entry's
+~APPT_WARNTIME~ property gives its own minutes. A list gives the minutes
+of each reminder instead:
+
+#+begin_src toml
+appt_message_warning_time = [30, 5, 0]
+#+end_src
+
+Appointments due together come in one notification, as ~appt.el~ shows
+them in one window: its mode line (~Appointment in 12 minutes~,
+~Appointments in 5,10 minutes~, ~Appointment now~) is the title, and each
+appointment a line of the text, its time and its headline, after the
+minutes when they differ (~5m: 10:00 Standup~).
+
+~notification_match~ keeps the entries a match string of the tags view
+matches, as ~org-lsp agenda --view tags --match~ takes it:
+
+#+begin_src toml
+notification_match = "+meeting|+call"
+#+end_src
+
+** Warnings in hours
+:PROPERTIES:
+:CUSTOM_ID: warnings-in-hours
+:END:
+
+With ~notification_use_timestamp_warning~, a deadline or timestamp with
+a time and a warning cookie in hours (~-1h~, or ~--1h~) is reminded of
+once that many hours before it as well, besides the reminders above
+(~appt_message_warning_time~ or its ~APPT_WARNTIME~):
+
+#+begin_src toml
+notification_use_timestamp_warning = true
+#+end_src
+
+#+begin_src org
+,* TODO Call Anna
+DEADLINE: <2026-10-22 Thu 21:00 -1h>
+#+end_src
+
+#+begin_example
+Appointment in 1 hour
+21:00 TODO Call Anna
+#+end_example
+
+comes at 20:00, then the usual ones from 20:48. It is said as the other
+reminders are, with the formats of [[#saying-it-your-way][Saying it your way]], and comes in one
+notification with the appointments due that minute. A warning may fall
+on the day before: ~<2026-10-23 Fri 01:00 -3h>~ is reminded of at 22:00
+on the 22nd. A repeater's occurrence is reminded of on its day: a
+timestamp repeats in the agenda when its repeater comes last
+(~<2026-10-15 Thu 18:45 -1h +1w>~), and a repeating deadline is the
+day's once the one before is done.
+
+A scheduled date's cookie is a delay, which hides the entry until then,
+not a warning: it is not reminded of. Cookies in days, weeks, months or
+years (~-2d~) are left to the agenda and the deadlines of the day.
+
+** The deadlines of the day
+:PROPERTIES:
+:CUSTOM_ID: the-deadlines-of-the-day
+:END:
+
+With ~notification_deadline_summary_time~, once a day, at that time, one
+notification lists the deadlines today's agenda shows that are not done:
+due today, coming within their warning period (~org_deadline_warning_days~,
+or the timestamp's own ~-3d~), and past, each with its category and the
+agenda's words for it:
+
+#+begin_src toml
+notification_deadline_summary_time = "08:30"
+#+end_src
+
+#+begin_example
+Deadlines
+work: 2 d. ago: TODO Taxes
+work: In 3 d.: TODO Report
+#+end_example
+
+No deadlines, no notification. ~notification_deadline_line_format~ writes
+the lines otherwise ([[#saying-it-your-way][Saying it your way]]).
+
+* Sending them elsewhere
+:PROPERTIES:
+:CUSTOM_ID: sending-them-elsewhere
+:END:
+
+~notification_command~ is a program and its arguments, run for each
+notification in place of the desktop's, with ~%t~ for the title and ~%b~
+for the text. No shell reads it. To a phone with [[https://ntfy.sh][ntfy]]:
+
+#+begin_src toml
+notification_command = ["ntfy", "publish", "--title", "%t", "my-org-reminders", "%b"]
+#+end_src
+
+or with ~curl~:
+
+#+begin_src toml
+notification_command = ["curl", "-fsS", "-H", "Title: %t", "-d", "%b", "https://ntfy.sh/my-org-reminders"]
+#+end_src
+
+With ~notification_desktop = true~ the desktop's comes too. A program that
+fails, or takes longer than 30 seconds, is said on standard error, and the
+command ends with status 1.
+
+The command may say more of the entry with the placeholders of the next
+section. With any of them it runs once for each appointment, with that
+appointment's title, text and values, rather than once for the
+appointments due together. To ntfy, the category as a tag:
+
+#+begin_src toml
+notification_command = ["ntfy", "publish", "--title", "%k %h", "--tags", "%c", "my-org-reminders", "%w %T"]
+#+end_src
+
+* Saying it your way
+:PROPERTIES:
+:CUSTOM_ID: saying-it-your-way
+:END:
+
+~notification_title_format~ and ~notification_body_format~ write an
+appointment's title and text from its entry, in place of ~appt.el~'s mode
+line and line:
+
+#+begin_src toml
+notification_title_format = "%k %h"
+notification_body_format = "%w %c %T"
+#+end_src
+
+#+begin_example
+NEXT Review the plan
+10:00 proj :home:work:meeting:
+#+end_example
+
+| Placeholder | Stands for                                                                  | Example                   |
+|-------------+-----------------------------------------------------------------------------+---------------------------|
+| ~%h~        | the headline, without keyword, priority or tags; links by their description | =Review the plan=         |
+| ~%k~        | the TODO keyword                                                            | =NEXT=                    |
+| ~%p~        | the priority, empty without a cookie                                        | =A=                       |
+| ~%T~        | the tags, inherited ones too when the agenda shows them                     | =:home:work:meeting:=     |
+| ~%c~        | the category                                                                | =proj=                    |
+| ~%s~        | the scheduled timestamp, as written                                         | =<2026-10-22 Thu 10:00>=  |
+| ~%d~        | the deadline timestamp, as written                                          | =<2026-10-24 Sat>=        |
+| ~%w~        | the appointment's time                                                      | =10:00=                   |
+| ~%m~        | the minutes left                                                            | =10=                      |
+| ~%e~        | the effort (~EFFORT~)                                                       | =0:30=                    |
+| ~%f~        | the file's path                                                             | =/home/me/org/work.org=   |
+| ~%F~        | the file's name                                                             | =work.org=                |
+| ~%l~        | the headline's line in the file                                             | =7=                       |
+| ~%a~        | the line ~appt.el~ shows, the default text                                  | =10:00 NEXT [#A] Review…= |
+| ~%D~        | the deadline summary only: the agenda's leader                              | =In 2 d.:=                |
+| ~%%~        | ~%~                                                                         |                           |
+
+Any other ~%~ stays as it is; in ~notification_command~, ~%t~ and ~%b~
+are the title and text. Appointments due together come in one
+notification with the first one's title and a line of text each (the
+minutes before the lines, as in ~5m: 10:00 Standup~, only with the
+default text).
+
+The deadline summary keeps its title; ~notification_deadline_line_format~
+writes each of its lines, ~%c: %D %a~ unless set, where ~%a~ is the
+headline as the agenda shows it and ~%w~ the deadline's time, if it has
+one:
+
+#+begin_src toml
+notification_deadline_line_format = "%D %h (%c)"
+#+end_src
+
+#+begin_example
+Deadlines
+2 d. ago: Taxes (work)
+In 3 d.: Report (work)
+#+end_example
+
+* Trying it
+:PROPERTIES:
+:CUSTOM_ID: trying-it
+:END:
+
+#+begin_src sh
+org-lsp notify --dry-run --now "2026-10-22 09:48"
+org-lsp notify --dry-run --now "2026-10-22 08:30" --options '{ "notification_deadline_summary_time": "08:30" }'
+org-lsp notify --help
+#+end_src
+
+~--dry-run~ prints each notification, its title and then its text, and
+sends none; ~--now~ pretends a date and time. As ~org-lsp agenda~, it
+takes ~--options~ over the configuration file's, ~--no-config~ for none,
+and files to look at in place of the agenda files.
+
+* What differs from Emacs
+:PROPERTIES:
+:CUSTOM_ID: what-differs-from-emacs
+:END:
+
+- ~appt.el~ keeps its appointments and counts its reminders from the first
+  one it showed; ~org-lsp notify~ keeps nothing, and reminds of each
+  appointment on its own at the minutes ~appt_message_warning_time~ and
+  ~appt_display_interval~ give. Two appointments due a minute apart are
+  reminded of at the minutes of each, where Emacs reminds of both at the
+  minutes of the first.
+- Emacs makes the appointments once, when ~org-agenda-to-appt~ runs; a
+  change to the files shows the next minute here.
+- The list of minutes of ~appt_message_warning_time~, the deadlines of
+  the day and the formats of titles, texts and lines are org-lsp's own.
+- Whole hours are said as hours: ~Appointment in 1 hour~,
+  ~Appointments in 1,2 hours~, ~1h: 11:00 Doctor~, where ~appt.el~ says
+  ~in 60 minutes~. Other times are minutes, as in Emacs.
+- ~notification_use_timestamp_warning~ is org-lsp's own: ~appt.el~
+  reads no warning cookie, and Org counts them in days, so that ~-1h~ is
+  no warning at all (~org-get-wdays~ takes an hour for 0.041667 days and
+  rounds down).
+- ~appt-display-format~, ~appt-display-duration~, ~appt-audible~ and the
+  mode line are the desktop's business: how long a notification stays and
+  whether it makes a sound.
+- Appointments from the diary file (~appt-check~ reads it too) are not
+  read.

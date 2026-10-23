@@ -368,6 +368,30 @@ fn with_keyword(line: &agenda::Line, keyword: Option<&str>, done: bool, other: O
         heading + text[heading..].bytes().take_while(|b| *b == b'.').count()
     };
     let start = after_dots(text, item.heading);
+    // A habit's line is made again as a scheduled line: Emacs formats it
+    // without the habit, so with the leader it left out and no graph.
+    if let (Some(prefix), Some((graph, _))) = (&item.habit_prefix, &item.graph) {
+        let head = text[start..(*graph).max(start).min(text.len())].trim_end_matches([' ', '\t']);
+        let title = if item.keyword_len > 0 {
+            head.get(item.keyword_len.min(head.len())..).unwrap_or("").trim_start_matches(' ')
+        } else {
+            head
+        };
+        let new = keyword.map(|keyword| format!("{keyword} ")).unwrap_or_default();
+        let changed = format!("{prefix}{new}{title}");
+        let mut item = item.clone();
+        item.heading = prefix.len();
+        item.graph = None;
+        item.habit = None;
+        item.habit_prefix = None;
+        item.text = changed.clone();
+        item.keyword_len = keyword.map_or(0, str::len);
+        item.keyword_done = done;
+        if done {
+            item.face = agenda::Face::Done;
+        }
+        return agenda::Line { text: changed, kind: line.kind, item: Some(item) };
+    }
     // A habit's graph stands on the headline: only the keyword changes.
     let other = other
         .filter(|_| item.graph.is_none())
@@ -562,6 +586,34 @@ pub fn org_text(
     filters: Option<&agenda::filter::Filters>,
 ) -> String {
     block_lines(blocks, files, search, now, true, filters).0.into_iter().map(|(_, line)| line.text + "\n").collect()
+}
+
+/// [`org_text`] line by line, each with the entry it shows when it is an
+/// entry's line: the index of its file in `files` and the byte offset of
+/// its headline.
+pub fn org_lines(
+    blocks: &[Block],
+    files: &[(&Outline, String, String)],
+    search: Option<&SearchFiles>,
+    now: Now,
+    filters: Option<&agenda::filter::Filters>,
+) -> Vec<(String, Option<(usize, usize)>)> {
+    let outlines: Vec<&Outline> = files.iter().map(|(outline, _, _)| *outline).collect();
+    block_lines(blocks, files, search, now, true, filters)
+        .0
+        .into_iter()
+        .map(|(_, line)| {
+            let entry = match line.kind {
+                LineKind::Item => line
+                    .item
+                    .as_ref()
+                    .and_then(|item| item.source)
+                    .map(|source| (source.file, agenda::entry(&outlines, source).offset)),
+                _ => None,
+            };
+            (line.text, entry)
+        })
+        .collect()
 }
 
 type BlockLines = (Vec<(usize, agenda::Line)>, Vec<Option<(Day, Span)>>);

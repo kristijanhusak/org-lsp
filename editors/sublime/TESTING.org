@@ -85,7 +85,7 @@ its sections says what it should look like.
 
 * Lists and checkboxes
 
-- [ ] On an item, the next item goes below; in a numbered list the numbers go on, after a checkbox item the new one has ~[ ]~: ~Alt+Enter~
+- [ ] On an item, the next item goes below; in a numbered list the numbers go on; after a checkbox item the new one has none, as in Emacs (~[ ]~ comes with ~org.insert.todo.heading~, M-S-RET): ~Alt+Enter~
 - [ ] ~RET~ in the middle of an item's line keeps the rest of the line in the item: ~Enter~
 - [ ] Indenting and outdenting an item; and with its children: ~Alt+Right~, ~Alt+Left~, ~Alt+Shift+Right~, ~Alt+Shift+Left~
 - [ ] Moving an item up and down: ~Alt+Up~, ~Alt+Down~
@@ -130,10 +130,10 @@ its sections says what it should look like.
 
 * Properties and column view
 
-*Partly:* A property's name and value are typed in an input panel, without completion. Column view is left out: it draws over the headlines, which Sublime Text cannot. A custom property hidden (~org.custom.properties.toggle~) is in a fold from the end of the line before, which shows the fold's marker: Sublime Text hides text only in folds.
+*Partly:* Column view is left out: it draws over the headlines, which Sublime Text cannot. A custom property hidden (~org.custom.properties.toggle~) is in a fold from the end of the line before, which shows the fold's marker: Sublime Text hides text only in folds.
 
 - [ ] With ~org_custom_properties = ["ID"]~, the command hides the ~:ID:~ lines of the property drawers, and run again shows them: /Org: Hide the properties of org_custom_properties, or show them again/
-- [ ] Setting a property: the name and the value are asked for: ~Ctrl+C Ctrl+X p~
+- [ ] Setting a property: the name and the value are completed, ~NAME_ALL~'s values offered: ~Ctrl+C Ctrl+X p~
 - [ ] On a property line with ~NAME_ALL~, cycling through its values: ~Shift+Right~, ~Shift+Left~
 - [ ] Deleting a property from the entry, and from the whole file: /Org: Delete a property of the entry/, /Org: Delete a property from every entry of the file/
 - [ ] ~C-c C-c~ in a property drawer asks what to do with the property: ~Ctrl+C Ctrl+C~
@@ -250,7 +250,6 @@ its sections says what it should look like.
 - [ ] Searching the TODO entries to come lists those of the days after today: /Org: Journal: the TODO entries to come/
 - [ ] The schedule lists the entries to come with a timestamp, under their days: /Org: Journal: the entries to come with a date/
 - [ ] Rescheduling an entry to come moves it to the day asked for, with that day's timestamp: /Org: Journal: move the entry to come to another day/
-- [ ] The date prompt's calendar marks the days with a journal entry: /Org: Journal: new entry for a date/
 
 * Refile and archive
 
@@ -288,7 +287,7 @@ its sections says what it should look like.
 
 * Footnotes
 
-- [ ] Following ~[fn:1]~ goes to its definition, and from the definition back to the reference: ~Ctrl+C Ctrl+O~
+- [ ] Following ~[fn:1]~ goes to its definition, after its label, and from the definition's label back to the reference; right after the label, where following leaves the cursor, it says /No link found/, as Emacs's ~C-c C-o~ does there: ~Ctrl+C Ctrl+O~
 - [ ] A reference without a definition is reported
 - [ ] A new footnote (needs Emacs): ~[fn:1]~ at the cursor, its definition in the ~Footnotes~ section, the cursor there: ~Ctrl+C Ctrl+X f~
 - [ ] On a reference without a definition, Emacs asks whether to make one, in the editor: ~Ctrl+C Ctrl+X f~
@@ -367,7 +366,7 @@ its sections says what it should look like.
 
 * Diagnostics (org-lint)
 
-- [ ] A heading in a paragraph (~text ** heading~), a link to nowhere and a block left open are reported
+- [ ] A heading in a paragraph (~text** heading~), a link to nowhere and a block left open are reported
 - [ ] An unknown header argument (~:foo 1~) on a source block is reported, as information: nothing is ever an error or a warning, only information (or a hint, where org-lint trusts its finding less)
 - [ ] ~org_lint_ignore = ["link-to-local-file"]~ silences that checker
 

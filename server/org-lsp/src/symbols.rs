@@ -12,16 +12,19 @@ const KIND: SymbolKind = SymbolKind::MODULE;
 
 /// The outline as a tree, for clients with hierarchical symbol support.
 pub fn document_symbols(root: &SyntaxNode, text: &str, index: &LineIndex, encoding: Encoding) -> Vec<DocumentSymbol> {
+    let deepest = org_core::inlinetask::outline_stars_in(text);
     ast::headlines(root)
-        .filter(|headline| in_outline(headline, text))
-        .map(|headline| symbol(&headline, text, index, encoding))
+        .filter(|headline| in_outline(headline, deepest))
+        .map(|headline| symbol(&headline, (text, index, encoding, deepest)))
         .collect()
 }
 
 /// Whether a headline is part of the outline: inline tasks are not
 /// (`org-imenu-get-tree` searches with `org-get-limited-outline-regexp`).
-fn in_outline(headline: &Headline, text: &str) -> bool {
-    org_core::inlinetask::outline_stars_in(text).is_none_or(|deepest| headline.level() <= deepest)
+/// `deepest` is the most stars of a headline of the outline
+/// (`org_core::inlinetask::outline_stars_in`, found once for the text).
+fn in_outline(headline: &Headline, deepest: Option<usize>) -> bool {
+    deepest.is_none_or(|deepest| headline.level() <= deepest)
 }
 
 /// The outline as a flat list, for clients without it.
@@ -35,10 +38,10 @@ pub fn symbol_information(
     fn collect(
         headline: &Headline,
         parent: Option<&str>,
-        context: (&str, &LineIndex, Encoding, &Uri),
+        context: (&str, &LineIndex, Encoding, &Uri, Option<usize>),
         out: &mut Vec<SymbolInformation>,
     ) {
-        let (text, index, encoding, uri) = context;
+        let (text, index, encoding, uri, deepest) = context;
         let name = name(headline);
         #[allow(deprecated)]
         out.push(SymbolInformation {
@@ -49,23 +52,22 @@ pub fn symbol_information(
             location: Location { uri: uri.clone(), range: index.range(text, subtree_range(headline, text), encoding) },
             container_name: parent.map(str::to_string),
         });
-        for child in headline.children().filter(|child| in_outline(child, text)) {
+        for child in headline.children().filter(|child| in_outline(child, deepest)) {
             collect(&child, Some(&name), context, out);
         }
     }
+    let deepest = org_core::inlinetask::outline_stars_in(text);
     let mut out = Vec::new();
-    for headline in ast::headlines(root).filter(|headline| in_outline(headline, text)) {
-        collect(&headline, None, (text, index, encoding, uri), &mut out);
+    for headline in ast::headlines(root).filter(|headline| in_outline(headline, deepest)) {
+        collect(&headline, None, (text, index, encoding, uri, deepest), &mut out);
     }
     out
 }
 
-fn symbol(headline: &Headline, text: &str, index: &LineIndex, encoding: Encoding) -> DocumentSymbol {
-    let children: Vec<DocumentSymbol> = headline
-        .children()
-        .filter(|child| in_outline(child, text))
-        .map(|child| symbol(&child, text, index, encoding))
-        .collect();
+fn symbol(headline: &Headline, context: (&str, &LineIndex, Encoding, Option<usize>)) -> DocumentSymbol {
+    let (text, index, encoding, deepest) = context;
+    let children: Vec<DocumentSymbol> =
+        headline.children().filter(|child| in_outline(child, deepest)).map(|child| symbol(&child, context)).collect();
     let range = subtree_range(headline, text);
     let selection = headline.title().map_or_else(|| headline.line_range(), |title| title.text_range());
     #[allow(deprecated)]
@@ -175,6 +177,22 @@ First *bold* [TODO :a:b:] lines 1..5
         // The selection is the title and lies inside the symbol's range.
         let first = &symbols[0];
         assert_eq!((first.selection_range.start.character, first.selection_range.end.character), (12, 24));
+    }
+
+    /// Whether a headline is an inline task is not read from the whole
+    /// text again for each one: many headlines make their symbols in
+    /// linear time.
+    #[test]
+    fn many_headlines_make_symbols_fast() {
+        let text = "* a\nb\n".repeat(4000);
+        let parse = org_syntax::parse(&text, &TodoKeywords::default());
+        let index = LineIndex::new(&text);
+        let uri: Uri = "file:///tmp/a.org".parse().unwrap();
+        let start = std::time::Instant::now();
+        assert_eq!(document_symbols(&parse.syntax(), &text, &index, Encoding::Utf16).len(), 4000);
+        assert_eq!(symbol_information(&parse.syntax(), &text, &index, Encoding::Utf16, &uri).len(), 4000);
+        // Generous: this takes a fraction of a second in a debug build.
+        assert!(start.elapsed() < std::time::Duration::from_secs(5), "took {:?}", start.elapsed());
     }
 
     #[test]

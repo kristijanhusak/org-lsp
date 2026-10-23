@@ -1,0 +1,11 @@
+{
+  "folder": {
+    "org-lsp.settings": {
+      "clock": { "today": "2026-05-18", "now": "10:30" },
+      "emacs_config": "(add-to-list 'load-path \"/root/org-mode/lisp\")",
+      "org_image_actual_width": false,
+      "org_display_remote_inline_images": "download"
+    }
+  },
+  "user": { "org-lsp.messages": "statusBar" }
+}

@@ -162,7 +162,9 @@ have types for lua-language-server, and VS Code completes and checks
 An editor's options go on top of the file's:
 
 - an option the editor sets replaces the file's;
-- an object, such as ~org_agenda_prefix_format~, is merged key by key;
+- an object, such as ~org_agenda_prefix_format~ or ~emacs_options~, is
+  merged key by key, the value of each key it has replacing the file's
+  whole;
 - a list, such as ~org_capture_templates~ or ~org_agenda_files~, is
   replaced whole.
 
@@ -330,24 +332,53 @@ What only Emacs can do, the server has Emacs do, when Emacs (with Org 9.6
 or newer) is installed: export (~C-c C-e~, ~<Leader>oe~ in Vim and Neovim),
 evaluating code blocks (~C-c C-c~ on a block, ~C-c C-v b~ for the file's),
 LaTeX previews, encryption and a few others. The server starts Emacs the
-first time and keeps it running.
+first time and keeps it running. Moving rows in column view
+(~org-columns-move-row-up~, ~M-<up>~) needs a newer Org than the 9.6.15
+that Emacs 29 comes with.
 
-Emacs's own settings for these go in a file Emacs loads before Org, or
-inline:
+Org's options for these go in ~emacs_options~, by their names in Org, with
+values as the other options have them: ~true~ is ~t~, ~false~ is ~nil~, a
+string is a symbol where the option takes one (~"mv"~ is ~mv~), and a table
+is an association list.
+
+#+begin_src toml
+# ~/.config/org-lsp/config.toml
+[emacs_options]
+org-attach-method = "mv"
+org-attach-id-dir = "~/org/data/"
+org-export-with-toc = false
+org-export-backends = ["ascii", "html", "icalendar", "latex", "md", "odt"]
+org-babel-load-languages = { emacs-lisp = true, python = true }
+#+end_src
+
+Emacs sets each, as Customize would, when it loads the library the option
+is in (~org-attach~ for ~org-attach-method~), and checks it against the
+option's type: a value the option does not take is left out, with a
+message saying what it takes. The options are those Emacs reads:
+[[file:emacs-options.org][emacs-options.org]] lists each, with Org's documentation of it, its default
+and its type. For the others the server says why it leaves them out: most
+are settings of the server, and a function or a hook is Lisp.
+
+Lisp goes in a file Emacs loads before Org, or inline. Emacs loads
+~emacs_config_file~, then evaluates ~emacs_config~, then sets
+~emacs_options~, which so win over both:
 
 #+begin_src toml
 # ~/.config/org-lsp/config.toml
 emacs_config_file = "~/.config/org-lsp/export.el"
 emacs_config = '''
-(setq org-export-backends '(ascii html icalendar latex md odt))
-(setq org-html-validation-link nil)
-(org-babel-do-load-languages 'org-babel-load-languages '((emacs-lisp . t) (python . t)))
+(add-to-list 'load-path "~/src/org-mode/lisp")
+(setq org-html-format-drawer-function #'my-drawer)
+(add-hook 'org-export-before-processing-functions #'my-before-export)
 '''
 #+end_src
 
 Emacs asks before it evaluates code, and the editor shows the question.
 
 ** When something is wrong
+:PROPERTIES:
+:CUSTOM_ID: when-something-is-wrong
+:END:
 
 The server never refuses to start because of its options:
 
@@ -377,8 +408,8 @@ where the server comes from, the keys, how windows open, what is shown.
 :CUSTOM_ID: neovim
 :END:
 
-Set ~vim.g.org_lsp~ before the plugin loads, which suits lazy.nvim's
-~init~, or call ~require('org-lsp').setup()~ at any time; calling it more
+Set ~vim.g.org_lsp~ before the plugin loads (before ~vim.pack.add()~, or
+in lazy.nvim's ~init~), or call ~require('org-lsp').setup()~ at any time; calling it more
 than once merges each call into what was there. What you set is merged
 into the defaults, so you only write what you want to change. These are
 the defaults:
@@ -416,16 +447,18 @@ require('org-lsp').setup({
   replace_syntax = true,
 
   -- Highlight the code of source and export blocks (`#+begin_src python`,
-  -- `#+begin_export html`) and of inline source blocks (`src_python{…}`)
-  -- with the tree-sitter parser of its language and its highlight query,
-  -- as Emacs's `org-src-fontify-natively` does; a language without a
-  -- parser (Emacs Lisp) with its Vim syntax file. A language with neither
-  -- stays as it is.
+  -- `#+begin_export html`) and of inline source blocks (`src_python{…}`),
+  -- where the server says it is, with the tree-sitter parser of its
+  -- language and its highlight query, as Emacs's
+  -- `org-src-fontify-natively` does; a language without a parser (Emacs
+  -- Lisp) with its Vim syntax file, in regions of the buffer's own syntax.
+  -- A language with neither stays as it is.
   src_highlight = true,
 
   -- Conceal what the server marks hidden: link brackets and targets
   -- (`org_link_descriptive`), emphasis markers (`org_hide_emphasis_markers`).
-  -- Sets 'conceallevel' 2 in Org windows; the cursor line shows everything.
+  -- Sets 'conceallevel' 2 in Org windows (a level set before, as by a
+  -- `FileType` autocommand, stays); the cursor line shows everything.
   conceal = true,
 
   -- Indent as Org does, with the server: new lines through 'indentexpr'
@@ -681,7 +714,7 @@ what you set is merged into the defaults.
 | ~highlight~         | ~1~                | Highlight with the server's tokens.                                                                                                                                                                                                                 |
 | ~indent~            | ~1~                | Indent as Org does, with the server: new lines through 'indentexpr' (~org-indent-line~), and ~=~ (~org-indent-region~), following ~org_adapt_indentation~.                                                                                          |
 | ~virtual_indent~    | ~1~                | Show files with ~org-indent-mode~ (~org_startup_indented~, ~#+STARTUP: indent~) indented by level without changing them, and their hidden leading stars in the color of the background, as Org's ~org-hide~ face does. Needs Vim 9.0.0067 or later. |
-| ~src_highlight~     | ~1~                | Highlight the code of source and export blocks and of inline source blocks (to the first ~}~) with the syntax file of its language, as Emacs's ~org-src-fontify-natively~ does.                                                                     |
+| ~src_highlight~     | ~1~                | Highlight the code of source and export blocks and of inline source blocks with the syntax file of its language, where the server says it is, as Emacs's ~org-src-fontify-natively~ does.                                                           |
 | ~win_split_mode~    | ~'split'~          | How the agenda and capture buffers open: ~'split'~, ~'vsplit'~, ~'current'~, or an Ex command that opens a window (~'botright split'~, ~'tabnew'~).                                                                                                 |
 | ~win_split_size~    | ~0~                | How big that window is: lines for a split, columns for a vertical one (~vsplit~, ~vnew~, ~vertical~), or below 1 that part of the editor. ~0~ leaves it as the command makes it.                                                                    |
 | ~calendar~          | ~1~                | Pick dates in Org's calendar, as Emacs shows it while it asks for a date; ~i~ there types the date. ~0~ asks for the date as text only.                                                                                                             |
@@ -2528,7 +2561,8 @@ Link abbreviations: ~[[gh:org-lsp]]~ with ~{ "gh": "https://github.com/%s" }~
 follows ~https://github.com/org-lsp~. ~%s~ stands for what follows the colon,
 ~%h~ for it URL-encoded; without either it goes at the end. A file's ~#+LINK:~
 lines come first. ~%(my-function)~ calls an Emacs function with what follows
-the colon (through Emacs).
+the colon (through Emacs), one ~emacs_config~ marks safe, as Org asks:
+~(put 'my-function 'org-link-abbrev-safe t)~.
 
 - Org's option :: ~org-link-abbrev-alist~
 - Type :: { [abbreviation]: string }
@@ -5304,6 +5338,174 @@ the commands whose keys start with its key.
 org_agenda_custom_commands = []
 #+end_src
 
+** Notifications
+:PROPERTIES:
+:CUSTOM_ID: notifications
+:END:
+
+*** appt_message_warning_time
+:PROPERTIES:
+:CUSTOM_ID: appt_message_warning_time
+:END:
+
+How many minutes before an appointment (an entry of today's agenda with a time
+of day) its reminders start: one then, and one each ~appt_display_interval~
+minutes after, as Emacs's ~appt.el~ reminds; an entry's ~APPT_WARNTIME~
+property says it for that entry. As org-lsp's own, a list gives the minutes
+before the appointment of each reminder: ~[10, 0]~ reminds ten minutes before
+and when it is due. ~org-lsp notify~ reminds this way; through Emacs (Add
+today's appointments from the agenda files), a list stands for its largest
+number.
+
+- Org's option :: ~appt-message-warning-time~
+- Type :: number, or number[]
+- Default :: ~12~
+
+#+begin_src toml
+appt_message_warning_time = 12
+#+end_src
+
+*** appt_display_interval
+:PROPERTIES:
+:CUSTOM_ID: appt_display_interval
+:END:
+
+Minutes between two reminders of an appointment, from the first,
+~appt_message_warning_time~ minutes before it.
+
+- Org's option :: ~appt-display-interval~
+- Type :: number
+- Default :: ~3~
+
+#+begin_src toml
+appt_display_interval = 3
+#+end_src
+
+*** notification_use_timestamp_warning
+:PROPERTIES:
+:CUSTOM_ID: notification_use_timestamp_warning
+:END:
+
+As org-lsp's own, ~org-lsp notify~ also reminds of an appointment from a
+deadline or a timestamp as many hours before it as the timestamp's warning
+cookie says: once, 60 minutes before ~<2026-10-22 Thu 21:00 -1h>~, besides the
+reminders of ~appt_message_warning_time~. A scheduled date's cookie is a delay
+and does not count, nor do cookies in days, weeks, months or years. Emacs's
+~appt.el~ reads no cookie.
+
+- Type :: boolean
+- Default :: ~false~
+
+#+begin_src toml
+notification_use_timestamp_warning = false
+#+end_src
+
+*** notification_deadline_summary_time
+:PROPERTIES:
+:CUSTOM_ID: notification_deadline_summary_time
+:END:
+
+The time of day, as ~HH:MM~, at which ~org-lsp notify~ lists the deadlines the
+day's agenda shows that are not done: those of the day, those whose warning
+period has begun, and those past.
+
+- Type :: string
+- Default :: unset: no summary
+
+*** notification_match
+:PROPERTIES:
+:CUSTOM_ID: notification_match
+:END:
+
+The entries ~org-lsp notify~ reminds of: a match string of the tags view, such
+as ~+meeting|+call~ or ~-private~.
+
+- Type :: string
+- Default :: unset: every entry
+
+*** notification_command
+:PROPERTIES:
+:CUSTOM_ID: notification_command
+:END:
+
+A program ~org-lsp notify~ runs for each notification, and its arguments, in
+which ~%t~ stands for the title, ~%b~ for the text and ~%%~ for ~%~:
+~["ntfy", "publish", "--title", "%t", "mytopic", "%b"]~. It runs instead of
+the desktop notification, unless ~notification_desktop~ is on. No shell reads
+it. With a placeholder of an entry (those of ~notification_title_format~), it
+runs once for each appointment, with that appointment's title, text and
+values.
+
+- Type :: string[]
+- Default :: unset: none
+
+*** notification_title_format
+:PROPERTIES:
+:CUSTOM_ID: notification_title_format
+:END:
+
+The title of an appointment's notification from ~org-lsp notify~, in which
+~%h~ stands for the headline, ~%k~ its TODO keyword, ~%p~ its priority, ~%T~
+its tags, ~%c~ its category, ~%s~ and ~%d~ its scheduled and deadline
+timestamps, ~%w~ the appointment's time, ~%m~ the minutes left, ~%e~ the
+effort, ~%f~ and ~%F~ the file's path and name, ~%l~ the headline's line, ~%a~
+the line ~appt.el~ shows and ~%%~ ~%~: ~"%k %h"~. Appointments due together
+share the first one's.
+
+- Type :: string
+- Default :: unset: the mode line of ~appt.el~, such as
+  ~Appointment in 10 minutes~
+
+*** notification_body_format
+:PROPERTIES:
+:CUSTOM_ID: notification_body_format
+:END:
+
+The text of an appointment's notification from ~org-lsp notify~, with the
+placeholders of ~notification_title_format~: ~"%w %c %T"~. Appointments due
+together have a line each.
+
+- Type :: string
+- Default :: unset: ~%a~, the line ~appt.el~ shows
+
+*** notification_deadline_line_format
+:PROPERTIES:
+:CUSTOM_ID: notification_deadline_line_format
+:END:
+
+A line of the deadline summary of ~org-lsp notify~, with the placeholders of
+~notification_title_format~ and ~%D~ for the agenda's leader (~In 3 d.:~,
+~2 d. ago:~, ~Deadline:~); there ~%a~ is the headline as the agenda shows it.
+
+- Type :: string
+- Default :: unset: ~%c: %D %a~
+
+*** notification_desktop
+:PROPERTIES:
+:CUSTOM_ID: notification_desktop
+:END:
+
+Whether ~org-lsp notify~ shows a desktop notification: with ~notify-send~ on
+Linux and the other Unix systems, ~terminal-notifier~ on macOS when it is
+installed and ~osascript~ otherwise, PowerShell on Windows (BurntToast if it
+is installed).
+
+- Type :: boolean
+- Default :: unset: on unless ~notification_command~ is set
+
+*** notification_icon
+:PROPERTIES:
+:CUSTOM_ID: notification_icon
+:END:
+
+The image of the desktop notifications of ~org-lsp notify~: the path of a PNG
+file (=~/= for the home directory), or ~""~ for none. Unset, the logo, which
+it writes to ~org-lsp/icon.png~ in the user's data directory (=~/.local/share=
+on Linux). ~osascript~ shows no image: on macOS it takes ~terminal-notifier~.
+
+- Type :: string
+- Default :: unset: the org-lsp logo
+
 ** Display
 :PROPERTIES:
 :CUSTOM_ID: display
@@ -5898,6 +6100,25 @@ org_bullets_checkboxes = { todo = " ", half = "-", done = "✓" }
 :PROPERTIES:
 :CUSTOM_ID: source-blocks-and-tangling
 :END:
+
+*** org_src_lang_modes
+:PROPERTIES:
+:CUSTOM_ID: org_src_lang_modes
+:END:
+
+The major mode, without ~-mode~, of a language of source blocks, over Org's
+own (~elisp~ → ~emacs-lisp~, ~sh~ → ~sh~): ~{ "ipython": "python" }~. Neovim
+and Vim color the code of a block in the language of its mode
+(~org-lsp/codeBlocks~), by their name for it (~emacs-lisp~ → ~elisp~, ~sh~ →
+~bash~); Emacs, where it edits or exports a block, takes it too.
+
+- Org's option :: ~org-src-lang-modes~
+- Type :: { [language]: mode }
+- Default :: ~{}~
+
+#+begin_src toml
+org_src_lang_modes = {}
+#+end_src
 
 *** org_src_preserve_indentation
 :PROPERTIES:
@@ -7539,11 +7760,11 @@ org_open_directory_means_index_dot_org = false
 :CUSTOM_ID: return_uses_meta_return
 :END:
 
-RET on the first line of a list item makes the next item, numbered and with a
-checkbox as M-RET (~org-meta-return~) makes it, the items after it renumbered,
-as nvim-orgmode's ~org_return_uses_meta_return~ does. Off, RET is Org's: a new
-line in the item. ~org.return.item~ (~<S-CR>~, Shift+Enter, with the vim keys)
-always does it.
+RET on the first line of a list item makes the next item, numbered as M-RET
+(~org-meta-return~) makes it (without a checkbox, which M-S-RET adds), the
+items after it renumbered, as nvim-orgmode's ~org_return_uses_meta_return~
+does. Off, RET is Org's: a new line in the item. ~org.return.item~ (~<S-CR>~,
+Shift+Enter, with the vim keys) always does it.
 
 - Type :: boolean
 - Default :: ~false~
@@ -7653,7 +7874,7 @@ org_cycle_level_after_item_entry_creation = true
 Whether the images of ~http:~ and ~https:~ links show (~C-c C-x C-v~):
 ~"skip"~ not; ~"download"~ downloaded each time they show; ~"cache"~
 downloaded once and kept for the session. The download follows
-~org_resource_download_policy~.
+~org_resource_download_policy~; an image larger than 20 MB is not downloaded.
 
 - Org's option :: ~org-display-remote-inline-images~
 - Type :: "skip", "download" or "cache"
@@ -7668,10 +7889,12 @@ org_display_remote_inline_images = "skip"
 :CUSTOM_ID: org_resource_download_policy
 :END:
 
-Which remote resources are downloaded (the images of links): ~true~ all of
-them; ~"prompt"~ those considered safe, and the others when the answer to
-Emacs's question says so; ~"safe"~ only those considered safe; ~false~ none
-but those.
+Which remote resources are downloaded (the images of links, and in Emacs a
+file attached from a URL, ~C-c C-a u~, or a remote ~#+INCLUDE:~ or
+~#+SETUPFILE:~ in an export): ~true~ all of them; ~"prompt"~ those considered
+safe, and the others when the answer to Emacs's question says so (in Emacs, a
+yes or no: yes downloads it this once); ~"safe"~ only those considered safe;
+~false~ none but those.
 
 - Org's option :: ~org-resource-download-policy~
 - Type :: true, "prompt", "safe" or false
@@ -7689,7 +7912,7 @@ org_resource_download_policy = "prompt"
 The remote resources considered safe: Emacs regexps matched against a
 resource's URL and against the ~file://~ URL of the file asking for it. The
 answers ~!~, ~d~ and ~f~ to the download question add one for the rest of the
-session.
+session. Emacs has them too, for what it downloads.
 
 - Org's option :: ~org-safe-remote-resources~
 - Type :: string[]
@@ -7865,13 +8088,38 @@ the home directory.
 :END:
 
 Emacs Lisp that Emacs evaluates after ~emacs_config_file~ and before loading
-Org, for a few settings without a file: ~(setq org-export-with-toc nil)~, or
-~(add-to-list 'load-path "~/src/org-mode/lisp")~ for another Org. A yes-or-no
-question Emacs asks while it works (~org-confirm-babel-evaluate~) is asked in
-the editor.
+Org, for a few settings without a file that ~emacs_options~ cannot say: a
+function or a hook, or ~(add-to-list 'load-path "~/src/org-mode/lisp")~ for
+another Org. A yes-or-no question Emacs asks while it works
+(~org-confirm-babel-evaluate~) is asked in the editor.
 
 - Type :: string
 - Default :: unset: none
+
+*** emacs_options
+:PROPERTIES:
+:CUSTOM_ID: emacs_options
+:END:
+
+Org's options for what Emacs does, by their names in Org, which Emacs sets as
+Customize does: ~{ "org-attach-method": "mv", "org-export-with-toc": false }~.
+~true~ is ~t~ and ~false~ ~nil~, a list is a list and a table an association
+list; a string is a symbol where the option takes one, or a function, by its
+name. Each is set when Emacs loads the library it is in, after
+~emacs_config_file~ and ~emacs_config~, and so wins over them. A value the
+option does not take is left out, with a message naming the part that does not
+fit. The editor's go over the shared file's option by option. The options,
+each with Org's documentation of it, are in
+[[file:emacs-options.org][docs/emacs-options.org]]; the others are settings of
+the server, or Lisp (hooks, functions written out), which goes in
+~emacs_config~.
+
+- Type :: { [option]: value }
+- Default :: ~{}~
+
+#+begin_src toml
+emacs_options = {}
+#+end_src
 
 *** auto_save
 :PROPERTIES:
@@ -7888,6 +8136,26 @@ changes, as Emacs leaves them.
 
 #+begin_src toml
 auto_save = true
+#+end_src
+
+*** mcp_edits
+:PROPERTIES:
+:CUSTOM_ID: mcp_edits
+:END:
+
+Let the assistants ~org-lsp mcp~ serves change files: its tools
+~set_todo_state~, ~capture~, ~refile~, ~schedule~, ~deadline~, ~set_tags~,
+~set_property~, ~delete_property~, ~set_priority~, ~set_effort~, ~add_note~,
+~archive~ and ~delete_entry~, which write the agenda files, the capture
+targets, the files of ~org_refile_targets~ and the archive files directly.
+Off, it only reads. It is read from the shared configuration file, as
+everything ~org-lsp mcp~ reads.
+
+- Type :: boolean
+- Default :: ~false~
+
+#+begin_src toml
+mcp_edits = false
 #+end_src
 
 # END generated

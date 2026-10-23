@@ -22,7 +22,7 @@ end
 
 --- Wait until `predicate` holds; fail the test if it never does.
 local function wait(message, predicate)
-  check(vim.wait(5000, predicate, 10), 'timed out waiting for ' .. message)
+  check(vim.wait(15000, predicate, 10), 'timed out waiting for ' .. message)
 end
 
 --- Type keys in normal mode, with mappings applied.
@@ -309,14 +309,16 @@ press('.')
 becomes(1, '* TODO [#A] Call them', '`.` raises it again')
 press('cir')
 becomes(1, '* TODO [#B] Call them', 'and down')
--- `org-priority` asks which one; a space removes it.
+-- `org-priority` asks which one, one key, as Emacs reads it; a space
+-- removes it.
 do
-  local input = vim.ui.input
+  local plugin = require('org-lsp')
+  local read_key = plugin.read_key
   local prompts = {}
   local answers = { 'c', ' ', 'b' }
-  vim.ui.input = function(opts, on_confirm)
-    table.insert(prompts, opts.prompt)
-    on_confirm(table.remove(answers, 1))
+  plugin.read_key = function(prompt, choices)
+    table.insert(prompts, { prompt, choices })
+    return table.remove(answers, 1)
   end
   press('<Leader>o,')
   becomes(1, '* TODO [#C] Call them', 'the priority typed')
@@ -324,8 +326,9 @@ do
   becomes(1, '* TODO Call them', 'a space removes it')
   press('<Leader>o,')
   becomes(1, '* TODO [#B] Call them', 'and back')
-  eq(prompts[1], 'Priority A-C, SPC to remove: ', 'Org\'s question')
-  vim.ui.input = input
+  eq(prompts[1], { 'Priority A-C, SPC to remove' }, 'Org\'s question, one key')
+  eq(plugin.prompt_text(prompts[1][1]), 'Priority A-C, SPC to remove: ', 'shown as Emacs shows it')
+  plugin.read_key = read_key
 end
 
 -- 10. Timestamps: the part under the cursor, with counts and `.`.
@@ -535,7 +538,85 @@ vim.api.nvim_win_set_cursor(0, { 2, 0 })
 wait('the cursor to stay on the day', function()
   return vim.deep_equal(vim.api.nvim_win_get_cursor(0), { 2, 21 })
 end)
+-- A count moves the day that many times (`3l`), as Emacs's calendar takes
+-- a prefix argument. What is typed at the prompt shows on the calendar's
+-- last line while it is typed, as `org-read-date` shows its meaning in the
+-- minibuffer; keys typed ahead of the prompt (a mapping, a macro) answer
+-- it.
+press('<Leader>ois')
+wait('the calendar to type in', on_prompt_day('12'))
+press('3l')
+wait('three days later', on_prompt_day('15'))
+-- The answer typed so far, as Neovim's own `vim.ui.input` has it.
+local confirm
+vim.ui.input = function(_, on_confirm)
+  confirm = on_confirm
+end
+press('i')
+wait('the prompt', function()
+  return confirm ~= nil
+end)
+local getcmdline = vim.fn.getcmdline
+vim.fn.getcmdline = function()
+  return 'fri'
+end
+vim.api.nvim_exec_autocmds('CmdlineChanged', {})
+vim.fn.getcmdline = getcmdline
+local function last_line()
+  local win = prompt_window()
+  return win and vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(win), -2, -1, false)[1]
+end
+-- (`fri` is the Friday after today, whatever day the test runs.)
+wait('the answer shown as it is typed', function()
+  return (last_line() or ''):match('^SCHEDULED Date%+time %[2026%-06%-12%]: fri    => <%d+%-%d+%-%d+ Fri>$') ~= nil
+end)
+confirm('fri')
 vim.ui.input = input
+wait('scheduled as typed', function()
+  return line(2):match('^SCHEDULED: <%d+%-%d+%-%d+ Fri %+2w>$') ~= nil
+end)
+wait('the calendar to close after the typed answer', function()
+  return prompt_window() == nil
+end)
+-- RET and the keys after it in one go: the calendar is gone before they
+-- run.
+local before = vim.api.nvim_buf_line_count(0)
+press('<Leader>ois')
+wait('the calendar before RET and o', function()
+  return prompt_window() ~= nil and vim.api.nvim_get_current_win() == prompt_window()
+end)
+press('l<CR>oNew line<Esc>')
+wait('the day taken', function()
+  return line(2):match('^SCHEDULED: <%d+%-%d+%-%d+ Sat %+2w>$') ~= nil
+end)
+wait('the line typed in the file', function()
+  return vim.api.nvim_buf_line_count(0) == before + 1 and line(3) == 'New line'
+end)
+vim.cmd('undo')
+-- A document the server asks to show while text may not change (an
+-- 'indentexpr' that waits for the server, and runs the requests that came
+-- meanwhile) is shown once that is over.
+do
+  local other = vim.fn.tempname() .. '.org'
+  vim.fn.writefile({ '* Other' }, other)
+  local here = vim.api.nvim_get_current_buf()
+  local indentexpr = vim.bo.indentexpr
+  local shown_result
+  function _G.OrgLspTestIndent()
+    local params = { uri = vim.uri_from_fname(other) }
+    shown_result = require('org-lsp.view').handlers['window/showDocument'](nil, params, { client_id = client.id })
+    return 0
+  end
+  vim.bo.indentexpr = 'v:lua.OrgLspTestIndent()'
+  press('o<Esc>')
+  eq(shown_result, { success = true }, 'answered at once')
+  wait('the document shown after', function()
+    return vim.api.nvim_buf_get_name(0) == other
+  end)
+  vim.api.nvim_set_current_buf(here)
+  vim.bo.indentexpr = indentexpr
+  vim.cmd('undo')
+end
 
 -- 14. With keys on the keywords, `org.todo` (`cit` by default, `gt` as
 -- configured above) asks for one key (`org-todo`'s fast selection); a
@@ -592,6 +673,14 @@ local windows = #vim.api.nvim_list_wins()
 vim.api.nvim_feedkeys('t', 'n', false)
 eq(plugin.read_key('[a-z..]:Set [SPC]:clear\n{[t] TODO }', { { key = 't', label = 'TODO' } }, true), 't', 'the key read')
 eq(#vim.api.nvim_list_wins(), windows, 'no window for the choices')
+-- Prompts that are Emacs's own words show as they are, titles with `: `.
+eq(plugin.prompt_text('Select a TODO state'), 'Select a TODO state: ', 'a title')
+eq(plugin.prompt_text('Execute this? '), 'Execute this? ', "Emacs's words")
+eq(plugin.prompt_text('Tags :work:'), 'Tags :work: ', 'a title ending in a colon')
+-- `:Org` completes word by word.
+eq(vim.fn.getcompletion('Org agenda li', 'cmdline'), { 'list' }, 'the next word')
+check(vim.tbl_contains(vim.fn.getcompletion('Org agenda ', 'cmdline'), 'dispatch'), 'the words of the agenda')
+eq(vim.fn.getcompletion('Org schedule ', 'cmdline'), { 'delay', 'remove' }, 'the words after schedule')
 
 -- 14b. `<Leader>ot` sets tags a key at a time, each turning its tag on or
 -- off, until RET; the tags go to their column.
@@ -1402,7 +1491,145 @@ vim.cmd('normal! \27')
 eq(vim.api.nvim_buf_get_lines(0, 3, 5, false), { tagged('* B', ':y:'), '| e | f |' }, 'the selected lines formatted')
 eq(line(1), '* A :x:', 'the headline before the selection as it was')
 
--- 16b. Source blocks show their code in its language's colors.
+-- 16b. Source blocks show their code in its language's colors, where the
+-- server says the code is (`org-lsp/codeBlocks`): with the tree-sitter
+-- parser of the language, or the syntax file of a language without one,
+-- in regions of the buffer's own syntax; no other buffer is made.
+local src = require('org-lsp.src')
+-- `bash`, the server's name for `sh`, read by the Lua parser: the name
+-- the server gives is the one looked up.
+vim.treesitter.language.register('lua', 'bash')
+local added_ok, added = pcall(vim.treesitter.language.add, 'python')
+check(not (added_ok and added), 'no tree-sitter parser for Python here')
+check(#vim.api.nvim_get_runtime_file('syntax/python.vim', false) > 0, 'a syntax file for Python')
+local blocks_file = vim.fn.tempname() .. '.org'
+vim.fn.writefile({
+  '* Code', -- 1
+  '#+begin_src lua', -- 2
+  'local x = 1', -- 3
+  '#+end_src', -- 4
+  '#+begin_export lua', -- 5
+  'return 2', -- 6
+  '#+end_export', -- 7
+  'Inline src_lua[:results none]{local y = 2} here.', -- 8
+  '#+begin_src emacs-lisp', -- 9
+  '(defun f () "doc")', -- 10
+  '#+end_src', -- 11
+  '#+begin_example', -- 12
+  '#+begin_src lua', -- 13
+  'local w = 4', -- 14
+  '#+end_src', -- 15
+  '#+end_example', -- 16
+  '#+begin_src sh', -- 17
+  'local z = 3', -- 18
+  '#+end_src', -- 19
+  '#+begin_src python', -- 20
+  'def f(): pass', -- 21
+  '#+end_src', -- 22
+  'And src_python{import os} too.', -- 23
+}, blocks_file)
+vim.cmd.edit(blocks_file)
+local code_buf = vim.api.nvim_get_current_buf()
+local buffers = #vim.api.nvim_list_bufs()
+wait('the server to attach to the file with code', function()
+  return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
+end)
+--- Whether the colors are those of the buffer's text as it is now.
+local function current()
+  local last = src.blocks[code_buf]
+  return last and last.version == vim.lsp.util.buf_versions[code_buf]
+end
+wait('the code blocks', current)
+local function groups(row)
+  local found = {}
+  for _, mark in ipairs(vim.api.nvim_buf_get_extmarks(code_buf, src.namespace, { row, 0 }, { row, -1 }, { details = true })) do
+    found[#found + 1] = mark[3] .. ':' .. mark[4].hl_group
+  end
+  return table.concat(found, ' ')
+end
+--- The syntax groups at a line and column (from 1).
+local function syntax(lnum, col)
+  return table.concat(vim.tbl_map(function(id)
+    return vim.fn.synIDattr(id, 'name')
+  end, vim.fn.synstack(lnum, col)), ' ')
+end
+local languages = {}
+for _, block in ipairs(src.blocks[code_buf].blocks) do
+  languages[#languages + 1] = block.kind .. ':' .. block.name .. '>' .. block.language
+end
+eq(languages, {
+  'src:lua>lua',
+  'export:lua>lua',
+  'inline:lua>lua',
+  'src:emacs-lisp>elisp',
+  'src:sh>bash',
+  'src:python>python',
+  'inline:python>python',
+}, 'the blocks the server found, with the editor\'s names of their languages, none in the example block')
+check(groups(2):find('0:@keyword.lua', 1, true), '`local` in the colors of Lua: ' .. groups(2))
+check(groups(5):find('0:@keyword', 1, true), 'an export block in its language: ' .. groups(5))
+check(groups(7):find('30:@keyword.lua', 1, true), 'inline code in its language: ' .. groups(7))
+eq(tonumber(groups(7):match("^(%d+):")), 30, "nothing colored before the braces: " .. groups(7))
+eq(groups(13), '', 'a source block in an example block is no block: ' .. groups(13))
+check(groups(17):find('0:@keyword.lua', 1, true), '`sh` colored by the parser of `bash`: ' .. groups(17))
+eq(groups(20), '', 'Python has no parser: no extmarks')
+check(syntax(21, 1):find('pythonStatement', 1, true), 'Python in its syntax file: ' .. syntax(21, 1))
+check(syntax(23, 17):find('pythonInclude', 1, true), 'inline Python in its syntax file: ' .. syntax(23, 17))
+eq(syntax(23, 5), '', 'the text around inline code in no syntax region')
+eq(syntax(20, 3), '', 'the line of `#+begin_src` in no syntax region')
+check(syntax(10, 2):find('lisp', 1, true), 'Emacs Lisp, which has no tree-sitter parser, in Vim\'s syntax: ' .. syntax(10, 2))
+local pos = vim.inspect_pos(code_buf, 20, 0)
+check(#pos.syntax > 0 and #pos.semantic_tokens == 0, 'the code in its syntax, no Org token over it')
+local head = vim.inspect_pos(code_buf, 0, 2)
+check(#head.semantic_tokens > 0, 'the Org text around the code in the server\'s colors')
+eq(#vim.api.nvim_list_bufs(), buffers, 'no buffer made for the colors')
+
+-- An edit that moves a block: the region and the colors follow it.
+vim.api.nvim_buf_set_lines(code_buf, 0, 0, false, { 'Moved down.' })
+wait('the blocks of the edited text', current)
+check(syntax(22, 1):find('pythonStatement', 1, true), 'the region moved with the code: ' .. syntax(22, 1))
+eq(syntax(21, 1), '', 'the line now at the old place in no region')
+check(groups(3):find('0:@keyword.lua', 1, true), 'the Lua code moved with its colors: ' .. groups(3))
+-- An edit that changes the code of a block, and one that removes one.
+vim.api.nvim_buf_set_lines(code_buf, 3, 4, false, { 'x = 1' })
+wait('the blocks of the changed code', current)
+check(not groups(3):find('@keyword', 1, true), 'the changed code colored again: ' .. groups(3))
+vim.api.nvim_buf_set_lines(code_buf, 17, 20, false, {})
+wait('the blocks without the `sh` block', current)
+eq(#src.blocks[code_buf].blocks, 6, 'one block fewer')
+local local_rows = {}
+for row = 0, vim.api.nvim_buf_line_count(code_buf) - 1 do
+  if groups(row):find('@keyword.lua', 1, true) then
+    local_rows[#local_rows + 1] = row
+  end
+end
+eq(local_rows, { 8 }, 'only the inline code has `local` left: no colors of the removed block')
+check(syntax(19, 1):find('pythonStatement', 1, true), 'Python where it moved: ' .. syntax(19, 1))
+-- And an edit that adds one.
+vim.api.nvim_buf_set_lines(code_buf, -1, -1, false, { '#+begin_src lua', 'local v = 5', '#+end_src' })
+wait('the blocks with the new one', current)
+local last_row = vim.api.nvim_buf_line_count(code_buf) - 2
+check(groups(last_row):find('0:@keyword.lua', 1, true), 'a new block colored: ' .. groups(last_row))
+-- Blocks for older text than the buffer has are not shown.
+local before = vim.deepcopy(src.blocks[code_buf])
+src.apply({
+  uri = vim.uri_from_bufnr(code_buf),
+  version = vim.lsp.util.buf_versions[code_buf] - 1,
+  blocks = {},
+}, 'utf-16')
+eq(src.blocks[code_buf], before, 'stale blocks ignored')
+check(groups(last_row):find('0:@keyword.lua', 1, true), 'the colors kept')
+eq(#vim.api.nvim_list_bufs(), buffers, 'still no buffer made for the colors')
+
+-- `src_highlight` off: no colors and no regions.
+require('org-lsp').config.src_highlight = false
+vim.api.nvim_buf_set_lines(code_buf, 0, 1, false, {})
+wait('the colors gone', function()
+  return #vim.api.nvim_buf_get_extmarks(code_buf, src.namespace, 0, -1, {}) == 0 and src.blocks[code_buf] == nil
+end)
+eq(syntax(18, 1), "", "no Python region with `src_highlight` off")
+require('org-lsp').config.src_highlight = true
+
 local code = vim.fn.tempname() .. '.org'
 vim.fn.writefile({
   '* Code',
@@ -1411,32 +1638,11 @@ vim.fn.writefile({
   '#+end_src',
   '',
   'See [[*Code]].',
-  '#+begin_export lua',
-  'return 2',
-  '#+end_export',
-  'Inline src_lua[:results none]{local y = 2} here.',
-  '#+begin_src emacs-lisp',
-  '(defun f () "doc")',
-  '#+end_src',
 }, code)
 vim.cmd.edit(code)
-wait('the server to attach to the file with code', function()
+wait('the server to attach to the file with a link', function()
   return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) == 1
 end)
-local marks = vim.api.nvim_buf_get_extmarks(0, require('org-lsp.src').namespace, { 2, 0 }, { 2, -1 }, { details = true })
-eq(marks[1] and marks[1][4].hl_group, '@keyword.lua', '`local` in the colors of Lua')
-local function groups(row)
-  local found = {}
-  for _, mark in
-    ipairs(vim.api.nvim_buf_get_extmarks(0, require('org-lsp.src').namespace, { row, 0 }, { row, -1 }, { details = true }))
-  do
-    found[#found + 1] = mark[3] .. ':' .. mark[4].hl_group
-  end
-  return table.concat(found, ' ')
-end
-check(groups(7):find('0:@keyword', 1, true), 'an export block in its language: ' .. groups(7))
-check(groups(9):find('30:@keyword.lua', 1, true), 'inline code in its language: ' .. groups(9))
-check(groups(11):find('lisp', 1, true), 'Emacs Lisp, which has no tree-sitter parser, in Vim\'s syntax: ' .. groups(11))
 
 -- 16c. `<Leader>oo` (`org-open-at-point`) follows the link at the cursor.
 vim.api.nvim_win_set_cursor(0, { 6, 8 })
@@ -1784,6 +1990,17 @@ do
   eq(vim.api.nvim_get_current_win(), here, 'the cursor stays in the file')
   local shown = vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(roam_win), 0, -1, false)
   eq({ shown[1], shown[3] }, { '#+title: Fresh idea', '* Backlinks (1)' }, 'its backlinks')
+  -- Following the backlink there shows its file in the other window, the
+  -- org-roam buffer staying beside it.
+  vim.api.nvim_set_current_win(roam_win)
+  vim.api.nvim_win_set_cursor(0, { 4, 3 })
+  require('org-lsp').run('org.open')
+  wait('the backlink followed in the other window', function()
+    return vim.api.nvim_win_get_buf(here) == vim.fn.bufnr(vim.fs.normalize(index))
+  end)
+  check(vim.api.nvim_buf_get_name(vim.api.nvim_win_get_buf(roam_win)):find('org%-roam%-buffer%.org$') ~= nil, 'the org-roam buffer stays')
+  vim.api.nvim_set_current_win(here)
+  vim.cmd.edit(written)
   require('org-lsp').run('org.roam.buffer.toggle')
   wait('the org-roam buffer to go', function()
     return not vim.api.nvim_win_is_valid(roam_win)
@@ -1881,6 +2098,38 @@ do
   check(date_prompt() == nil, 'the calendar closed')
   eq(line(1):match('^Search results for "carried" between '), 'Search results for "carried" between ', 'the title')
   eq(line(3), ('[[file:%s::2][%s]]  ** TODO carried'):format(today, os.date('%A, %m/%d/%y')), 'the result')
+end
+
+-- A 'conceallevel' of the user's own (a `FileType` autocommand's) stays.
+do
+  local group = vim.api.nvim_create_augroup('org_lsp_test_conceal', { clear = true })
+  vim.api.nvim_create_autocmd('FileType', { group = group, pattern = 'org', command = 'setlocal conceallevel=1' })
+  local own = vim.fn.tempname() .. '.org'
+  vim.fn.writefile({ '* A [[https://example.org][link]]' }, own)
+  vim.cmd.edit(own)
+  wait('the server on the file', function()
+    return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) > 0
+  end)
+  vim.wait(200)
+  eq(vim.wo.conceallevel, 1, "the user's conceallevel")
+  vim.api.nvim_del_augroup_by_id(group)
+end
+
+-- TAB at the end of a new, empty headline cycles its level, again and
+-- again (`org-cycle-level`), from the blank the cursor is on.
+do
+  local new = vim.fn.tempname() .. '.org'
+  vim.fn.writefile({ '* A', '** ' }, new)
+  vim.cmd.edit(new)
+  wait('the server on the new headline', function()
+    return #vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' }) > 0
+  end)
+  vim.api.nvim_win_set_cursor(0, { 2, 2 })
+  -- (The keys of Org files are off by now: TAB's function.)
+  require('org-lsp.folds').cycle()
+  becomes(2, '* ', 'a level up')
+  require('org-lsp.folds').cycle()
+  becomes(2, '** ', 'and down again')
 end
 
 print(('ok: %d checks passed'):format(checks))

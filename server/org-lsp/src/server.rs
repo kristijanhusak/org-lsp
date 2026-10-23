@@ -53,10 +53,11 @@ use crate::prompt::{self, DatePrompt, Target, TimeField};
 mod bulk;
 mod clock_persist;
 mod clock_resolve;
+mod emacs_wait;
 mod journal;
 mod manual;
 mod remote_images;
-mod roam;
+pub(crate) mod roam;
 use crate::views::{self, EntryRef, Query, View, ViewLine};
 use crate::workspace::{Source, Workspace};
 use crate::{actions, cli, commands, completion, custom, faces, folding, highlight, manifest, port, symbols, uri};
@@ -67,6 +68,10 @@ type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
 const TEXT_DOCUMENT_CONTENT: &str = "workspace/textDocumentContent";
 const TEXT_DOCUMENT_CONTENT_REFRESH: &str = "workspace/textDocumentContent/refresh";
 const LINE_HIGHLIGHTS: &str = "org-lsp/lineHighlights";
+const CODE_BLOCKS: &str = "org-lsp/codeBlocks";
+/// A message for the user, `window/showMessage`'s, for a client that shows
+/// it itself (`message_notifications`).
+const MESSAGE: &str = "org-lsp/message";
 
 /// The commands that set or delete properties.
 const PROPERTY_COMMANDS: [&str; 6] = [
@@ -106,6 +111,10 @@ struct Client {
     /// says (`org-lsp/lineHighlights`): `experimental.orgLineHighlights`,
     /// or the option `line_highlights`.
     line_highlights: bool,
+    /// Colors code in its language where the server says
+    /// (`org-lsp/codeBlocks`): `experimental.orgCodeBlocks`, or the
+    /// option `code_blocks`.
+    code_blocks: bool,
     /// Hides the lines a command's answer names (`hiddenLines`):
     /// `experimental.orgHiddenLines`, or the option `hidden_lines`.
     hidden_lines: bool,
@@ -123,8 +132,14 @@ struct Client {
     /// Ask with `window/showMessageRequest` (`message_prompts`).
     message_prompts: bool,
     /// The client shows `window/showMessageRequest`; without
-    /// (`message_requests`), a question's choices are code actions.
+    /// (`message_requests`), a question's choices are code actions, or,
+    /// for a client with org-lsp's editor code that runs commands when
+    /// told (`run_command`), a command's question.
     message_requests: bool,
+    /// The client shows the server's messages sent as `org-lsp/message`
+    /// rather than `window/showMessage`: `experimental.orgMessages`, or
+    /// the option `message_notifications`.
+    message_notifications: bool,
     /// The standard token types of LSP rather than Org's own: a client
     /// without org-lsp's editor code (`org_client`).
     standard_tokens: bool,
@@ -212,7 +227,7 @@ enum EmacsJob {
     Edit { uri: Uri, version: i32, text: String, point: usize },
     /// A command of column view on the document `uri`, run on `text`, its
     /// `version`: its edit, and what the view shows then.
-    Columns { uri: Uri, version: i32, text: String },
+    Columns { uri: Uri, version: i32, text: String, point: usize },
     /// What column view shows of the document `uri`, at its `version`.
     ColumnsView { uri: Uri, version: i32 },
     /// Column view of the agenda `uri`, for the view's text.
@@ -405,6 +420,10 @@ enum DimBlocked {
 
 /// The largest count a command takes, either way.
 const COUNT_MAX: i64 = 100_000;
+
+/// The new name of a rename that answers a question with nothing, for a
+/// client that sends no empty one (`message_prompts`).
+const EMPTY_ANSWER: &str = "-";
 
 /// A file an `#+INCLUDE:` line names: its time of change and size when it
 /// was read, and its text.
@@ -745,7 +764,7 @@ pub const CAPTURE_PREFIX: &str = "CAPTURE-";
 pub const ROAM_BUFFER_PREFIX: &str = roam::buffer::FILE_PREFIX;
 
 /// Where a capture template goes, before the server finds it.
-enum TargetSpec {
+pub(crate) enum TargetSpec {
     /// In the target file.
     File(capture::Target),
     /// `(clock)`: under the entry clocked now.
@@ -760,7 +779,9 @@ enum TargetSpec {
 }
 
 /// The kind and target of a capture template.
-fn capture_spec(template: &CaptureTemplateOption) -> std::result::Result<(capture::Kind, TargetSpec), Refusal> {
+pub(crate) fn capture_spec(
+    template: &CaptureTemplateOption,
+) -> std::result::Result<(capture::Kind, TargetSpec), Refusal> {
     let kind = match template.kind.as_deref() {
         None | Some("entry") => capture::Kind::Entry,
         Some("plain") => capture::Kind::Plain,
@@ -818,7 +839,7 @@ fn template_choices(templates: &[CaptureTemplateOption], keys: &str) -> Vec<Valu
 
 /// The template of a capture template, or the default of its type when
 /// it has none (`org-capture-set-plist`).
-fn template_text(template: &CaptureTemplateOption) -> String {
+pub(crate) fn template_text(template: &CaptureTemplateOption) -> String {
     let text = template.template.as_ref().map(|text| text.text()).unwrap_or_default();
     if !text.trim().is_empty() {
         return text;
@@ -989,6 +1010,9 @@ struct Server {
     /// The day the calendar's weeks start on (`calendar_week_start_day`).
     calendar_week_start: usize,
     auto_save: bool,
+    /// `appt-message-warning-time` and `appt-display-interval` for Emacs's
+    /// `appt.el`: a list of minutes stands for its largest.
+    appt_warning: (Option<i64>, Option<i64>),
     /// What the highlighting marks as hidden.
     conceal: highlight::Conceal,
     /// `org-pretty-entities`
@@ -1130,6 +1154,11 @@ struct Server {
     export_stack: Vec<(String, PathBuf, bool)>,
     /// What Emacs is doing, by tag.
     emacs_jobs: HashMap<u64, EmacsJob>,
+    /// The editor's requests that wait for Emacs.
+    emacs_waits: emacs_wait::Waits,
+    /// The notices of Emacs's shown (an option of `emacs_options` left out),
+    /// which an Emacs started again gives again: shown once.
+    emacs_notices: HashSet<String>,
     /// Where exports to a buffer are written to be shown.
     export_directory: Private,
     next_export: u64,
@@ -1145,6 +1174,9 @@ struct Server {
     /// cannot ask for text (`message_prompts`): the next rename answers
     /// it, its new name being the answer.
     question: Option<Question>,
+    /// A yes-or-no question of Emacs's waiting for `org.emacs.answer`
+    /// (`message_requests` off): its prompt, and where the answer goes.
+    emacs_question: Option<(String, crossbeam_channel::Sender<bool>)>,
     /// An edit of the agenda's file is with the client (`edit_view`),
     /// made against this version of its copy: the next waits until the
     /// client has applied it and said so with `didChange`, since an edit
@@ -1186,6 +1218,8 @@ struct Server {
     /// of the window (`org-fontify-whole-heading-line`): line and level
     /// face.
     heading_lines: HashMap<String, Vec<(usize, usize)>>,
+    /// The documents last sent with code in `org-lsp/codeBlocks`.
+    code_blocks_sent: HashSet<String>,
     /// The documents last sent with something in `org-lsp/display`.
     displayed: HashSet<String>,
     /// `org-cite-global-bibliography`
@@ -1196,6 +1230,8 @@ struct Server {
     bibtex: org_core::bibtex::Settings,
     /// `org-link-abbrev-alist`.
     link_abbreviations: Vec<(String, String)>,
+    /// `org-src-lang-modes`, the user's.
+    src_lang_modes: Vec<(String, String)>,
     /// `org-agenda-dim-blocked-tasks`.
     /// `org-agenda-dim-blocked-tasks`
     dim_blocked: DimBlocked,
@@ -1335,6 +1371,9 @@ struct Server {
     last_activity: Option<i64>,
     /// `org-resolve-clocks` under way: the clocks still to ask about.
     resolving: Option<clock_resolve::Resolving>,
+    /// The changes a resolution before a clock-in made, for the clock-in
+    /// to send with its own in one edit.
+    resolved_changes: Vec<(Uri, Option<i32>, String, String)>,
     /// The clock found running in the files rather than clocked into:
     /// Emacs would have no clock (`org-clock-is-active`), and for clocking
     /// in and resolving it is a dangling clock. It is still the clock the
@@ -1359,6 +1398,11 @@ struct Server {
     clocktable: org_core::clocktable::Settings,
     /// The clock's status waits for the edit that writes its line.
     clock_pending: bool,
+    /// The documents whose diagnostics are to be sent, and when: a moment
+    /// after the last change, as linting a long file after each keystroke
+    /// of a burst would hold up the answers to the requests that follow.
+    diagnostics_due: Vec<String>,
+    diagnostics_at: Option<std::time::Instant>,
     /// Log mode (`l`) and the clock report (`R`) in the agenda.
     agenda_log: bool,
     agenda_clockreport: bool,
@@ -1539,6 +1583,9 @@ pub fn run(connection: Connection) -> Result<()> {
         line_highlights: raw_params.pointer("/capabilities/experimental/orgLineHighlights").and_then(Value::as_bool)
             == Some(true)
             || options.line_highlights == Some(true),
+        code_blocks: raw_params.pointer("/capabilities/experimental/orgCodeBlocks").and_then(Value::as_bool)
+            == Some(true)
+            || options.code_blocks == Some(true),
         hidden_lines: raw_params.pointer("/capabilities/experimental/orgHiddenLines").and_then(Value::as_bool)
             == Some(true)
             || options.hidden_lines == Some(true),
@@ -1552,6 +1599,9 @@ pub fn run(connection: Connection) -> Result<()> {
             .unwrap_or(false),
         message_prompts: options.message_prompts.unwrap_or(!org_client),
         message_requests: options.message_requests.unwrap_or(true),
+        message_notifications: raw_params.pointer("/capabilities/experimental/orgMessages").and_then(Value::as_bool)
+            == Some(true)
+            || options.message_notifications == Some(true),
         standard_tokens: !org_client,
         view_file_name: if org_client { views::FILE_NAME } else { views::PLAIN_FILE_NAME },
         edit_view: !org_client,
@@ -1636,14 +1686,21 @@ pub fn run(connection: Connection) -> Result<()> {
                 (entities, config) => entities.or(config),
             }
         },
+        options: options.emacs_options().0,
     });
     let mut agenda = options.agenda_config();
     // The diary sexps the agenda cannot read, read by Emacs
     // (`org-diary-sexp-entry`).
     let caller = emacs.caller();
-    agenda.diary = org_core::agenda::diary::Outside(Some(std::sync::Arc::new(move |sexp, entry, day| {
+    agenda.diary = org_core::agenda::diary::Outside(Some(std::sync::Arc::new(move |sexp, entry, day, place| {
         let date = org_core::date::Date::from_day(day);
-        let params = json!({ "sexp": sexp, "entry": entry, "date": [date.month, date.day, date.year] });
+        let params = json!({
+            "sexp": sexp,
+            "entry": entry,
+            "date": [date.month, date.day, date.year],
+            "file": place.file,
+            "line": place.line,
+        });
         let result = caller.call("diary-sexp", params, std::time::Duration::from_secs(30)).ok()?;
         let lines: Vec<String> =
             result.as_array()?.iter().filter_map(|line| line.as_str().map(str::to_string)).collect();
@@ -1684,6 +1741,13 @@ pub fn run(connection: Connection) -> Result<()> {
         folds_after_edit: None,
         origin: None,
         auto_save: options.auto_save.unwrap_or(true),
+        appt_warning: (
+            options.appt_message_warning_time.as_ref().and_then(|warning| match warning {
+                crate::config::WarningTime::Minutes(minutes) => Some(*minutes),
+                crate::config::WarningTime::Each(minutes) => minutes.iter().copied().max(),
+            }),
+            options.appt_display_interval,
+        ),
         return_uses_meta_return: options.return_uses_meta_return.unwrap_or(false),
         return_follows_link: options.return_follows_link.unwrap_or(false),
         calendar_months: options.calendar_months.unwrap_or(3),
@@ -1771,6 +1835,8 @@ pub fn run(connection: Connection) -> Result<()> {
         capture_lisp: HashMap::new(),
         publish_projects: None,
         emacs_jobs: HashMap::new(),
+        emacs_waits: emacs_wait::Waits::default(),
+        emacs_notices: HashSet::new(),
         export_stack: Vec::new(),
         export_directory: Private::new("export"),
         next_export: 0,
@@ -1779,6 +1845,7 @@ pub fn run(connection: Connection) -> Result<()> {
         prompt_file,
         date_prompt: None,
         question: None,
+        emacs_question: None,
         view_edit_waiting: None,
         view_edit_due: false,
         prompt_copy: None,
@@ -1795,6 +1862,7 @@ pub fn run(connection: Connection) -> Result<()> {
         display: options.display(),
         virtually_indented: HashSet::new(),
         heading_lines: HashMap::new(),
+        code_blocks_sent: HashSet::new(),
         displayed: HashSet::new(),
         cite_global: options.cite_global_bibliography.clone().unwrap_or_default(),
         cite_insert_processor: options.cite_insert_processor(),
@@ -1806,6 +1874,7 @@ pub fn run(connection: Connection) -> Result<()> {
         },
         last_refiled: None,
         link_abbreviations: options.link_abbrev_alist.clone().unwrap_or_default().into_iter().collect(),
+        src_lang_modes: options.src_lang_modes.clone().unwrap_or_default().into_iter().collect(),
         bibliographies: HashMap::new(),
         diagnosed: HashSet::new(),
         id_files: HashMap::new(),
@@ -1816,6 +1885,8 @@ pub fn run(connection: Connection) -> Result<()> {
         clock: options.clock.as_ref().and_then(|clock| clock.to_now()),
         running: None,
         clock_pending: false,
+        diagnostics_due: Vec::new(),
+        diagnostics_at: None,
         last_clocked: None,
         clock_goto_recent: options.clock_goto_may_find_recent_task.unwrap_or(true),
         clock_history: Vec::new(),
@@ -1866,6 +1937,7 @@ pub fn run(connection: Connection) -> Result<()> {
         clock_report_running: options.clock_report_include_clocking_task.unwrap_or(false),
         last_activity: None,
         resolving: None,
+        resolved_changes: Vec::new(),
         found_clock: None,
         clock_leftover: None,
         clock_auto_resolution: clock_resolve::AutoResolution::of(options.clock_auto_clock_resolution.as_ref()),
@@ -1947,20 +2019,29 @@ pub fn run(connection: Connection) -> Result<()> {
     server.protocol_listen(protocol_sender);
     let mut protocol_pending = crossbeam_channel::after(std::time::Duration::from_secs(1));
     let emacs_events = server.emacs.events().clone();
+    let downloads = server.remote.downloads();
     // After `shutdown`, requests are refused and notifications dropped
     // until `exit`, which ends the server; an `exit` before it ends it as
     // having failed.
     let (mut shut_down, mut exited) = (false, false);
+    // The diagnostics wait for a quiet moment after the editor's messages
+    // have been handled, however long that took.
+    let mut from_editor = false;
     loop {
+        if std::mem::take(&mut from_editor) && !server.diagnostics_due.is_empty() {
+            server.diagnostics_at = Some(std::time::Instant::now() + DIAGNOSTICS_DELAY);
+        }
         let alarm = server.countdown.map_or_else(crossbeam_channel::never, crossbeam_channel::at);
         let appt = server.appt_check.map_or_else(crossbeam_channel::never, crossbeam_channel::at);
         let special =
             if server.special_edits.is_empty() { crossbeam_channel::never() } else { server.special_tick.clone() };
         let overrun =
             server.overrun.as_ref().map_or_else(crossbeam_channel::never, |(at, _)| crossbeam_channel::at(*at));
+        let lint = server.diagnostics_at.map_or_else(crossbeam_channel::never, crossbeam_channel::at);
         crossbeam_channel::select! {
             recv(connection.receiver) -> message => match message {
                 Ok(Message::Request(request)) => {
+                    from_editor = true;
                     server.protocol_touch();
                     if shut_down || request.method == lsp_types::request::Shutdown::METHOD {
                         let response = if shut_down {
@@ -1974,11 +2055,15 @@ pub fn run(connection: Connection) -> Result<()> {
                         continue;
                     }
                     let (id, method) = (request.id.clone(), request.method.clone());
+                    // None: the request waits for Emacs, and is answered then.
                     let response = guarded(&mut server, &method, |server| server.request(request))
-                        .unwrap_or_else(|message| Response::new_err(id, ErrorCode::InternalError as i32, message));
-                    connection.sender.send(Message::Response(response))?;
+                        .unwrap_or_else(|message| Some(Response::new_err(id, ErrorCode::InternalError as i32, message)));
+                    if let Some(response) = response {
+                        connection.sender.send(Message::Response(response))?;
+                    }
                 }
                 Ok(Message::Notification(notification)) => {
+                    from_editor = true;
                     server.protocol_touch();
                     if notification.method == lsp_types::notification::Exit::METHOD {
                         exited = true;
@@ -2016,10 +2101,23 @@ pub fn run(connection: Connection) -> Result<()> {
                     let _ = guarded(&mut server, "Emacs's answer", |server| server.emacs_event(event));
                 }
             }
+            recv(downloads) -> done => {
+                if let Ok(done) = done {
+                    let _ = guarded(&mut server, "the images downloaded", |server| server.images_downloaded(done));
+                }
+            }
             recv(alarm) -> _ => { let _ = guarded(&mut server, "the timer", Server::countdown_done); }
             recv(overrun) -> _ => { let _ = guarded(&mut server, "the clock", Server::overrun_done); }
             recv(appt) -> _ => { let _ = guarded(&mut server, "the appointments", Server::appt_check); }
             recv(special) -> _ => { let _ = guarded(&mut server, "the edit buffers", Server::check_special_edits); }
+            // Not while messages wait: a change among them puts it off.
+            recv(lint) -> _ => {
+                if connection.receiver.is_empty() {
+                    let _ = guarded(&mut server, "the diagnostics", Server::publish_due_diagnostics);
+                } else {
+                    server.diagnostics_at = Some(std::time::Instant::now() + DIAGNOSTICS_DELAY);
+                }
+            }
         }
     }
     // `org-clock-save`, as Emacs runs it when it is killed.
@@ -2059,10 +2157,29 @@ pub fn run(connection: Connection) -> Result<()> {
     Ok(())
 }
 
+/// A path as Org names a capture target (`org-capture-expand-file`):
+/// empty for `org-default-notes-file`, relative to `org-directory`.
+pub(crate) fn capture_path(path: &str, org_directory: &str, default_notes_file: &str) -> PathBuf {
+    let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
+    let expand = |path: &str| match (path.strip_prefix("~/"), &home) {
+        (Some(rest), Some(home)) => home.join(rest),
+        _ => PathBuf::from(path),
+    };
+    if path.is_empty() {
+        return expand(default_notes_file);
+    }
+    let path = expand(path);
+    if path.is_absolute() {
+        path
+    } else {
+        expand(org_directory).join(path)
+    }
+}
+
 /// What `%[name]` puts in a capture: the file's text, or Org's note that
 /// it could not read it. `~/` is the home directory; a relative name is
 /// relative to `directory`.
-fn capture_file_text(name: &str, directory: Option<&Path>) -> String {
+pub(crate) fn capture_file_text(name: &str, directory: Option<&Path>) -> String {
     let path = match name.strip_prefix("~/") {
         Some(rest) => std::env::var_os("HOME").map(PathBuf::from).unwrap_or_default().join(rest),
         None if Path::new(name).is_absolute() => PathBuf::from(name),
@@ -2158,12 +2275,24 @@ fn startup_words(text: &str) -> Vec<String> {
     org_core::text::startup_words(text).into_iter().map(str::to_ascii_lowercase).collect()
 }
 
-/// What a column view command asks, Org's question with its default, as
-/// one line of text: for `id` on the `column`th column of `line` in what
-/// the view shows.
-fn columns_question(id: &str, view: &Value, line: usize, column: usize) -> Option<(String, String)> {
+/// The key of the `column`th column of what column view shows.
+fn columns_key(view: &Value, column: usize) -> &str {
+    view["columns"][column]["key"].as_str().unwrap_or_default()
+}
+
+/// What a column view command asks, as `org-columns-edit-value` asks it,
+/// an input: for `id` on the `column`th column of `line` in what the view
+/// shows, `allowed` the values the column's property may take
+/// (`org-property-get-allowed-values`). None when it asks nothing.
+fn columns_question(
+    id: &str,
+    view: &Value,
+    line: usize,
+    column: usize,
+    allowed: Option<org_core::properties::Allowed>,
+) -> std::result::Result<Option<Value>, Refusal> {
     // The column's key, and its value on the line.
-    let key = view["columns"][column]["key"].as_str().unwrap_or_default().to_string();
+    let key = columns_key(view, column);
     let value = view["lines"]
         .as_array()
         .into_iter()
@@ -2172,21 +2301,34 @@ fn columns_question(id: &str, view: &Value, line: usize, column: usize) -> Optio
         .and_then(|row| row[2][column].as_str())
         .unwrap_or_default()
         .to_string();
-    match id {
-        commands::COLUMNS_EDIT => match key.as_str() {
-            "ITEM" => Some(("Edit: ".to_string(), value)),
-            "PRIORITY" => Some(("Priority A-C, SPC to remove: ".to_string(), String::new())),
-            "TAGS" => Some(("Tags: ".to_string(), value)),
-            "DEADLINE" | "SCHEDULED" => Some(("Date+time: ".to_string(), String::new())),
+    let text = |prompt: &str, value: String| Some(json!({ "kind": "text", "prompt": prompt, "value": value }));
+    Ok(match id {
+        // Before Emacs has said what the view shows, there is no column.
+        commands::COLUMNS_EDIT if key.is_empty() => return Err("Column view is not shown yet".into()),
+        commands::COLUMNS_EDIT => match key {
+            "ITEM" => text("Edit: ", value),
+            "PRIORITY" => text("Priority A-C, SPC to remove: ", String::new()),
+            "TAGS" => text("Tags: ", value),
+            "DEADLINE" | "SCHEDULED" => text("Date+time: ", String::new()),
             "TODO" | "CLOCKSUM" | "CLOCKSUM_T" => None,
-            _ => {
-                let current = if value.is_empty() { String::new() } else { format!(" [{value}]") };
-                Some((format!("{key} value{current}: "), value))
-            }
+            // `completing-read` over the allowed values, one of them
+            // unless `:ETC` allows others; else `read-string` with the
+            // value to edit.
+            _ => match allowed.filter(|allowed| !allowed.values.is_empty()) {
+                Some(allowed) if allowed.unrestricted => Some(json!({
+                    "kind": "text", "prompt": "Value: ", "value": "", "completions": allowed.values, "select": true,
+                })),
+                Some(allowed) => {
+                    let choices: Vec<Value> =
+                        allowed.values.iter().map(|value| json!({ "key": value, "label": value })).collect();
+                    Some(json!({ "kind": "choice", "prompt": "Value: ", "value": "", "choices": choices }))
+                }
+                None => text("Edit: ", value),
+            },
         },
-        commands::COLUMNS_ALLOWED => Some(("Allowed: ".to_string(), String::new())),
+        commands::COLUMNS_ALLOWED => text("Allowed: ", String::new()),
         _ => None,
-    }
+    })
 }
 
 /// The question of `org.export.dispatch` at `step` (none for the first
@@ -2297,7 +2439,7 @@ fn headline_keyword(text: &str, heading: usize, keywords: &TodoKeywords) -> Opti
     (line.starts_with('*') && keywords.contains(word)).then(|| word.to_string())
 }
 
-fn headline_message(
+pub(crate) fn headline_message(
     old: &str,
     new: &str,
     heading: usize,
@@ -2544,6 +2686,29 @@ fn guarded<T>(server: &mut Server, what: &str, work: impl FnOnce(&mut Server) ->
 /// cursor moves, so that the server knows where it is in the agenda
 /// (`command_actions`).
 /// `{ "directory" }` of org-journal, when it is on.
+/// `org-journal-enable-agenda-integration`: the journal's directory and
+/// the names in it of its files of today and the days to come, which
+/// `org-journal--update-org-agenda-files` adds to the agenda files.
+pub fn journal_agenda_files(journal: &crate::config::JournalSettings, now: DateTime) -> Option<(PathBuf, Vec<String>)> {
+    if !journal.agenda_integration {
+        return None;
+    }
+    let directory = roam::expand(&journal.directory);
+    let mut names = Vec::new();
+    roam::list_files(&directory, "", 0, &mut names);
+    let agenda = org_core::journal::agenda_files(&names, now, &journal.core).ok()?;
+    Some((directory, agenda))
+}
+
+/// Whether `path` is one of the journal's files, which the agenda takes
+/// as `journal_agenda_files` says rather than from `org_agenda_files`.
+pub fn is_journal(path: &Path, journal: &crate::config::JournalSettings) -> bool {
+    let directory = roam::expand(&journal.directory);
+    path.strip_prefix(&directory).is_ok_and(|relative| {
+        org_core::journal::is_journal_file(&relative.to_string_lossy().replace('\\', "/"), &journal.core)
+    })
+}
+
 fn journal_directory(journal: Option<&crate::config::JournalSettings>) -> Value {
     match journal {
         Some(journal) => {
@@ -2650,6 +2815,13 @@ fn line_edits(text: &str, index: &LineIndex, encoding: Encoding, new: &str) -> V
     let mut edits = Vec::new();
     let mut start = 0;
     for (old, new) in text.split('\n').zip(new.split('\n')) {
+        let next = start + old.len() + 1;
+        // A `\r` before the `\n` ends the line too: the edit stops before
+        // it, at what LSP calls the end of the line.
+        let (old, new) = match (old.strip_suffix('\r'), new.strip_suffix('\r')) {
+            (Some(old), Some(new)) => (old, new),
+            _ => (old, new),
+        };
         let end = start + old.len();
         if old != new {
             edits.push(indent_edit(
@@ -2659,7 +2831,7 @@ fn line_edits(text: &str, index: &LineIndex, encoding: Encoding, new: &str) -> V
                 org_core::indent::Edit { start, end, text: new.to_string() },
             ));
         }
-        start = end + 1;
+        start = next;
     }
     edits
 }
@@ -2724,6 +2896,11 @@ fn planning_command(id: &str) -> Option<PlanningCommand> {
 /// one, so it is left alone and the write refused. The text goes to a new
 /// file renamed over the old one, with the old one's permissions, so that
 /// a write cut short leaves the old file whole.
+/// Whether `path` is a file with nothing in it.
+fn is_empty_file(path: &Path) -> bool {
+    std::fs::metadata(path).is_ok_and(|metadata| metadata.is_file() && metadata.len() == 0)
+}
+
 pub(crate) fn write_whole(path: &Path, text: &str) -> std::result::Result<(), String> {
     let refused = |error: &dyn std::fmt::Display| format!("Cannot write {}: {error}", path.display());
     match std::fs::read(path) {
@@ -2845,7 +3022,7 @@ fn at_org_table(text: &str, root: &org_syntax::SyntaxNode, offset: usize) -> boo
     }
     let line = text[..offset].rfind('\n').map_or(0, |at| at + 1);
     let first = line + text[line..].len() - text[line..].trim_start_matches([' ', '\t']).len();
-    let Some(token) = root.token_at_offset(org_syntax::TextSize::from(first as u32)).right_biased() else {
+    let Some(token) = org_syntax::token_at_offset(root, org_syntax::TextSize::from(first as u32)).right_biased() else {
         return false;
     };
     token.parent_ancestors().any(|node| node.kind() == org_syntax::SyntaxKind::TABLE)
@@ -2875,7 +3052,7 @@ fn table_command(id: &str) -> Option<org_core::table::Command> {
 }
 
 fn in_src_block(root: &org_syntax::SyntaxNode, offset: usize) -> bool {
-    let Some(token) = root.token_at_offset(org_syntax::TextSize::from(offset as u32)).left_biased() else {
+    let Some(token) = org_syntax::token_at_offset(root, org_syntax::TextSize::from(offset as u32)).left_biased() else {
         return false;
     };
     token.parent_ancestors().filter(|node| node.kind() == org_syntax::SyntaxKind::BLOCK).any(|block| {
@@ -2890,7 +3067,7 @@ fn in_src_block(root: &org_syntax::SyntaxNode, offset: usize) -> bool {
 /// its bullet.
 fn on_item_line(root: &org_syntax::SyntaxNode, text: &str, offset: usize) -> bool {
     let line_start = text[..offset].rfind('\n').map_or(0, |at| at + 1);
-    let Some(token) = root.token_at_offset(org_syntax::TextSize::from(offset as u32)).left_biased() else {
+    let Some(token) = org_syntax::token_at_offset(root, org_syntax::TextSize::from(offset as u32)).left_biased() else {
         return false;
     };
     token
@@ -3111,7 +3288,10 @@ impl Server {
 
     fn show_message(&self, typ: MessageType, message: impl Into<String>) {
         let params = ShowMessageParams { typ, message: message.into() };
-        let notification = Notification::new(ShowMessage::METHOD.to_string(), params);
+        // A client whose LSP plugin shows no messages, or shows them after
+        // its own name, shows them itself as Emacs's echo area does.
+        let method = if self.client.message_notifications { MESSAGE } else { ShowMessage::METHOD };
+        let notification = Notification::new(method.to_string(), params);
         let _ = self.sender.send(Message::Notification(notification));
     }
 
@@ -3230,7 +3410,9 @@ impl Server {
 
     // ----- requests
 
-    fn request(&mut self, request: Request) -> Response {
+    /// The answer to `request`; None when it waits for Emacs (a command),
+    /// to be answered once Emacs has answered.
+    fn request(&mut self, request: Request) -> Option<Response> {
         // Only for one about the agenda: coc.nvim, as it reads the agenda
         // anew, may be asked others in between (about the file an edit was
         // for, or none).
@@ -3238,6 +3420,13 @@ impl Server {
             self.drop_closed_view();
         }
         self.notice_activity();
+        let command = request.method == ExecuteCommand::METHOD;
+        self.emacs_waits.begin(command.then(|| request.clone()));
+        let response = self.answer_request(request);
+        (!self.emacs_waits.end()).then_some(response)
+    }
+
+    fn answer_request(&mut self, request: Request) -> Response {
         macro_rules! dispatch {
             ($($request:ty => $handler:ident,)*) => {
                 match request.method.as_str() {
@@ -3249,13 +3438,20 @@ impl Server {
                         Ok((id, params)) => {
                             let (command, argument) = (params.command.clone(), params.arguments.first().cloned());
                             match self.run_command(params) {
+                                // Run again once Emacs has answered.
+                                _ if self.emacs_waits.waiting() => Response::new_ok(id, Value::Null),
                                 Ok(value) => {
                                     // A code action of Zed's (`apply` in its
-                                    // context): what the command does is
-                                    // applied here, the cursor moved where it
-                                    // says, as from the command port.
+                                    // context), or any command of a client
+                                    // that does nothing with a result
+                                    // (Helix's sorting, clock table): what
+                                    // the command does is applied here, the
+                                    // cursor moved where it says, as from
+                                    // the command port.
                                     let argument = argument.unwrap_or(Value::Null);
-                                    if argument.get("apply").and_then(Value::as_bool) == Some(true) {
+                                    if argument.get("apply").and_then(Value::as_bool) == Some(true)
+                                        || self.client.message_prompts
+                                    {
                                         self.apply_result(&argument, &value);
                                     }
                                     if self.client.message_prompts {
@@ -3387,6 +3583,18 @@ impl Server {
         fn parse<P: DeserializeOwned>(notification: Notification) -> Option<P> {
             serde_json::from_value(notification.params).ok()
         }
+        // A command that waits for Emacs given up, and what Emacs does for
+        // it.
+        if notification.method == lsp_types::notification::Cancel::METHOD {
+            let id = notification.params.get("id").cloned().and_then(|id| serde_json::from_value::<RequestId>(id).ok());
+            if let Some(tag) = id.as_ref().and_then(|id| self.emacs_waits.cancel(id)) {
+                self.emacs.cancel(tag);
+                let id = id.expect("the request's id");
+                let response = Response::new_err(id, ErrorCode::RequestCanceled as i32, "Canceled".to_string());
+                let _ = self.sender.send(Message::Response(response));
+            }
+            return;
+        }
         // A fixed clock moved on, for tests.
         if notification.method == SET_CLOCK && self.clock.is_some() {
             let clock: Option<crate::config::ClockOption> = parse(notification);
@@ -3486,6 +3694,7 @@ impl Server {
                 self.sync_clock(&key);
                 self.publish_virtual_indent(&key);
                 self.publish_heading_lines(&key);
+                self.publish_code_blocks(&key);
                 self.publish_display(&key);
                 self.publish_diagnostics(&key);
                 // An edit the server asked for, of a file no buffer had:
@@ -3591,8 +3800,9 @@ impl Server {
                 }
                 self.publish_virtual_indent(key);
                 self.publish_heading_lines(key);
+                self.publish_code_blocks(key);
                 self.publish_display(key);
-                self.publish_diagnostics(key);
+                self.diagnostics_later(key);
                 self.fold_after_edit(key);
                 // The clock's times go with the next change, as Emacs's
                 // overlays do (`org-remove-highlights-with-change`); the
@@ -3663,6 +3873,7 @@ impl Server {
                 }
                 self.virtually_indented.remove(params.text_document.uri.as_str());
                 self.heading_lines.remove(params.text_document.uri.as_str());
+                self.code_blocks_sent.remove(params.text_document.uri.as_str());
                 self.custom_properties_hidden.remove(params.text_document.uri.as_str());
                 self.displayed.remove(params.text_document.uri.as_str());
                 if let Some(path) = uri::to_path(&params.text_document.uri) {
@@ -4257,8 +4468,12 @@ impl Server {
                                 | commands::AGENDA_FILTER_TOP_HEADLINE
                         )
                 };
+                // Nor saving, for a client that does nothing with the files
+                // a result names (Helix): the server cannot save them.
+                let saves = !self.client.message_prompts;
                 let offered = commands::in_agenda().filter(|id| {
                     !matches!(*id, commands::AGENDA_FOLLOW | commands::AGENDA_COLUMNS | commands::AGENDA_GOTO_OTHER)
+                        && (saves || *id != commands::AGENDA_SAVE)
                 });
                 let (on_entry, on_view): (Vec<&str>, Vec<&str>) = offered.partition(|id| needs_entry(id));
                 let on_entry = if entry.is_some() { on_entry } else { Vec::new() };
@@ -4628,9 +4843,13 @@ impl Server {
             let line_start = document.text[..offset].rfind('\n').map_or(0, |at| at + 1);
             if completion::citation_key_start(&document.text[line_start..offset]).is_some() {
                 let text = document.text.clone();
+                // Each key once, as in Emacs's table (a hash keyed by its
+                // line), though the bibliography may list a file twice.
+                let mut seen = HashSet::new();
                 self.bibliography(&uri, &text)
                     .iter()
                     .flat_map(|file| file.entries.iter())
+                    .filter(|entry| seen.insert(entry.key.clone()))
                     .map(|entry| (entry.key.clone(), entry.completion().unwrap_or_default()))
                     .collect()
             } else {
@@ -5011,7 +5230,10 @@ impl Server {
         use org_core::rename::{self, Target};
         // The answer to a command's question: the command goes on.
         if let Some(Question { command, argument, input }) = self.question.take() {
-            self.answer_prompt(command, argument, &input, &params.new_name);
+            // A client may send no empty new name (Zed): `-` alone is the
+            // empty answer, the prompt's default.
+            let answer = if params.new_name.trim() == EMPTY_ANSWER { "" } else { params.new_name.as_str() };
+            self.answer_prompt(command, argument, &input, answer);
             return Some(WorkspaceEdit::default());
         }
         let encoding = self.client.encoding;
@@ -5212,11 +5434,12 @@ impl Server {
         // So is it when answering whether to run a `shell:` link's command.
         let creating = context.step.as_deref() == Some("create");
         let shell = context.step.as_deref() == Some("shell");
-        let answer = if creating || shell { context.answers.as_deref() } else { context.input.as_deref() }
+        let elisp = context.step.as_deref() == Some("elisp");
+        let answer = if creating || shell || elisp { context.answers.as_deref() } else { context.input.as_deref() }
             .and_then(|input| input.chars().next());
         // `org-ctags`'s functions in `org-open-link-functions`, which Org
         // runs first for an internal link.
-        if self.ctags.is_some() && !creating && !shell && !self.is_view(&context.text_document.uri) {
+        if self.ctags.is_some() && !creating && !shell && !elisp && !self.is_view(&context.text_document.uri) {
             if let Some(name) =
                 open::internal_path(&text, &parse, offset, &self.link_abbreviations, &self.open_settings)
             {
@@ -5245,10 +5468,8 @@ impl Server {
             let path = uri::to_path(&uri).ok_or("Only a file on disk has attachments")?;
             let point = text[..offset].chars().count() + 1;
             let params = json!({ "file": path.to_string_lossy(), "text": text, "point": point, "name": name });
-            let found = self
-                .emacs
-                .call("attach-expand", params, std::time::Duration::from_secs(60))
-                .map_err(Refusal::Failed)?;
+            let found =
+                self.ask_emacs("attach-expand", params, std::time::Duration::from_secs(60)).map_err(Refusal::Failed)?;
             let full = found.as_str().ok_or("No attachment directory for this entry")?;
             opened = open::file_link(&format!("{full}{}", search.unwrap_or("")));
         }
@@ -5360,6 +5581,26 @@ impl Server {
                 let directory = uri::to_path(&uri).and_then(|path| path.parent().map(PathBuf::from));
                 self.run_shell_link(command, directory);
                 self.message = Some(format!("Executing {command}"));
+            }
+            // `org-link--open-elisp`: asked first, as
+            // `org-link-elisp-confirm-function` (`yes-or-no-p`) asks, then
+            // evaluated by Emacs and its value said.
+            Open::Elisp(form) => {
+                if !elisp {
+                    return Ok(json!({ "input": {
+                        "kind": "key",
+                        "prompt": format!("Execute {form} as Elisp? "),
+                        "value": "",
+                        "choices": [{ "key": "y", "label": "yes" }, { "key": "n", "label": "no" }],
+                        "context": { "step": "elisp", "answers": answer.map(String::from).unwrap_or_default() },
+                    } }));
+                }
+                if !matches!(context.input.as_deref(), Some("y" | "Y" | "yes")) {
+                    return Err("Abort".into());
+                }
+                let directory = uri::to_path(&uri).and_then(|path| path.parent().map(PathBuf::from));
+                let value = self.eval_elisp_link(form, directory.as_deref())?;
+                self.message = Some(format!("{form} => {value}"));
             }
             Open::Create(_) => {}
             Open::Man { page, search } => return self.open_man(page, search.as_deref()),
@@ -5477,17 +5718,44 @@ impl Server {
     /// of the file the link is in, its output and errors together, and
     /// once it ends, the output as a message, or what Emacs says when
     /// there is none. Emacs shows longer output in a buffer,
-    /// `*Org Shell Output*`; here it is a message all the same. The
-    /// command runs on its own thread so that the server goes on.
+    /// `*Org Shell Output*`; here it is a message all the same, its start
+    /// only when it is long ([`shell_message`]). The command runs on its
+    /// own thread so that the server goes on, and is waited for as long as
+    /// it runs, as Emacs waits; but once it has written more than a
+    /// message shows ([`SHELL_OUTPUT_SIZE`]), it is stopped.
+    /// What `org-link--open-elisp` makes of `form`, as its message shows
+    /// it (`%s`): a form evaluated, or a command's name called
+    /// interactively. Emacs evaluates it in a buffer of its own, in the
+    /// link's directory: not in the file, which only the editor has.
+    /// Emacs's error, when it signals one.
+    fn eval_elisp_link(&self, form: &str, directory: Option<&Path>) -> std::result::Result<String, String> {
+        let read = format!("(read \"{}\")", form.replace('\\', "\\\\").replace('"', "\\\""));
+        let call =
+            if form.starts_with('(') { format!("(eval {read})") } else { format!("(call-interactively {read})") };
+        // An error comes back as its text after a NUL, which no text
+        // `format` makes of a value starts with.
+        let sexp = format!(
+            "(condition-case error (format \"%s\" {call}) (error (concat \"\\0\" (error-message-string error))))"
+        );
+        let params = json!({ "sexp": sexp, "directory": directory.map(|path| path.to_string_lossy()) });
+        let value = self.emacs.call("eval", params, std::time::Duration::from_secs(30))?;
+        let value = value.as_str().unwrap_or_default();
+        match value.strip_prefix('\0') {
+            Some(error) => Err(error.to_string()),
+            None => Ok(value.to_string()),
+        }
+    }
+
     fn run_shell_link(&self, command: &str, directory: Option<PathBuf>) {
         let sender = self.sender.clone();
         let command = command.to_string();
         std::thread::spawn(move || {
-            let message = match shell_output(&command, directory.as_deref()) {
-                Ok((output, _)) if !output.is_empty() => output.strip_suffix('\n').unwrap_or(&output).to_string(),
-                Ok((_, Some(0))) => "(Shell command succeeded with no output)".to_string(),
-                Ok((_, code)) => {
-                    format!("(Shell command failed with code {} and no output)", code.unwrap_or(-1))
+            let ran = crate::process::shell_output(&command, directory.as_deref(), None, SHELL_OUTPUT_SIZE);
+            let message = match ran {
+                Ok(ran) if !ran.text.is_empty() => shell_message(&ran.text, ran.cut),
+                Ok(ran) if ran.code == Some(0) => "(Shell command succeeded with no output)".to_string(),
+                Ok(ran) => {
+                    format!("(Shell command failed with code {} and no output)", ran.code.unwrap_or(-1))
                 }
                 Err(error) => format!("{command}: {error}"),
             };
@@ -5713,16 +5981,50 @@ impl Server {
 
     /// `org-id-find`: the file and the headline of the entry with this
     /// `ID`, in `from` (the file of the link), then in the files IDs are
-    /// looked for in.
+    /// looked for in: the open files first, then those on disk that have
+    /// it as `ids_on_disk` keeps their `ID`s (`org-id-locations`), the
+    /// only ones read. When none has it, or none has it any more, the
+    /// files on disk are looked at again (`org-id-update-id-locations`).
     fn find_id(&mut self, id: &str, from: Option<&Uri>) -> Option<(Uri, usize)> {
-        let own = from.and_then(uri::to_path);
-        for path in own.into_iter().chain(self.id_paths()) {
-            let Some((target, text)) = self.file_text(&path) else { continue };
-            if let Some(offset) = open::find_id(&org_syntax::parse(&text, &self.todo), id) {
-                return Some((target, offset));
+        let in_file = |server: &Server, path: &Path| {
+            let (target, text) = server.file_text(path)?;
+            open::find_id(&org_syntax::parse(&text, &server.todo), id).map(|offset| (target, offset))
+        };
+        if let Some(found) = from.and_then(uri::to_path).and_then(|own| in_file(self, &own)) {
+            return Some(found);
+        }
+        if !self.id_lookup.0.track_globally {
+            return None;
+        }
+        let mut open: Vec<(&String, &Document)> = self.documents.iter().collect();
+        open.sort_by_key(|(key, _)| key.as_str());
+        for (key, document) in open {
+            let Some(uri) = key.parse::<Uri>().ok().filter(|uri| uri::to_path(uri).is_some()) else { continue };
+            if !property_ids(&document.text).iter().any(|found| found == id) {
+                continue;
+            }
+            if let Some(offset) = open::find_id(&document.parse, id) {
+                return Some((uri, offset));
             }
         }
-        None
+        let on_disk = |server: &Server| {
+            let mut paths: Vec<PathBuf> = server
+                .id_files
+                .iter()
+                .filter(|(_, (_, ids))| ids.iter().any(|found| found == id))
+                .map(|(path, _)| path.clone())
+                .collect();
+            paths.sort();
+            paths
+        };
+        for path in on_disk(self) {
+            if let Some(found) = in_file(self, &path) {
+                return Some(found);
+            }
+        }
+        let found = self.ids_on_disk();
+        self.ids_on_disk = Some((std::time::Instant::now(), found));
+        on_disk(self).into_iter().find_map(|path| in_file(self, &path))
     }
 
     /// The error when an `ID` is not found: without `org-id-track-globally`
@@ -5787,12 +6089,10 @@ impl Server {
     fn agenda_files(&mut self) -> Vec<(Uri, Held)> {
         let inheritance = self.workspace.inheritance.clone();
         let open = |document: &Document, uri: &Uri| {
-            Held::Open(Box::new(Outline::with_inheritance(
-                &document.parse,
-                &document.text,
-                &uri::file_stem(uri),
-                &inheritance,
-            )))
+            let mut outline =
+                Outline::with_inheritance(&document.parse, &document.text, &uri::file_stem(uri), &inheritance);
+            outline.file = uri::to_path(uri).map(|path| path.display().to_string());
+            Held::Open(Box::new(outline))
         };
         if !self.workspace.is_configured() {
             // Nothing says where the agenda files are: use the files that
@@ -5838,21 +6138,12 @@ impl Server {
     /// today and the days to come, after the other agenda files, as
     /// `org-journal--update-org-agenda-files` leaves them.
     fn with_journal_files(&mut self, files: Vec<(Uri, Held)>) -> Vec<(Uri, Held)> {
-        let Some(journal) = self.journal.clone().filter(|journal| journal.agenda_integration) else { return files };
-        let directory = roam::expand(&journal.directory);
-        let mut names = Vec::new();
-        roam::list_files(&directory, "", 0, &mut names);
-        let Ok(agenda) = org_core::journal::agenda_files(&names, self.date_time(), &journal.core) else {
-            return files;
-        };
-        let is_journal = |uri: &Uri| {
-            uri::to_path(uri).is_some_and(|path| {
-                path.strip_prefix(&directory).is_ok_and(|relative| {
-                    org_core::journal::is_journal_file(&relative.to_string_lossy().replace('\\', "/"), &journal.core)
-                })
-            })
-        };
-        let mut out: Vec<(Uri, Held)> = files.into_iter().filter(|(uri, _)| !is_journal(uri)).collect();
+        let Some(journal) = self.journal.clone() else { return files };
+        let Some((directory, agenda)) = journal_agenda_files(&journal, self.date_time()) else { return files };
+        let mut out: Vec<(Uri, Held)> = files
+            .into_iter()
+            .filter(|(uri, _)| !uri::to_path(uri).is_some_and(|path| is_journal(&path, &journal)))
+            .collect();
         let open: HashMap<PathBuf, String> = self
             .documents
             .keys()
@@ -5913,12 +6204,13 @@ impl Server {
         match open.get(path) {
             Some(key) => key.parse::<Uri>().ok().map(|uri| {
                 let document = &self.documents[key];
-                let outline = Outline::with_inheritance(
+                let mut outline = Outline::with_inheritance(
                     &document.parse,
                     &document.text,
                     &uri::file_stem(&uri),
                     &self.workspace.inheritance,
                 );
+                outline.file = Some(path.display().to_string());
                 (uri, Held::Open(Box::new(outline)))
             }),
             None => match (uri::from_path(path), self.workspace.read(path, &self.todo)) {
@@ -6006,8 +6298,9 @@ impl Server {
             None
         };
         let replaced_text = replaced.as_ref().map(|(uri, _, text)| ((*uri).clone(), text.to_string()));
-        if let Some((uri, outline, _)) = replaced {
+        if let Some((uri, mut outline, _)) = replaced {
             if let Some(file) = files.iter_mut().find(|(file, _)| file == uri) {
+                outline.file = uri::to_path(uri).map(|path| path.display().to_string());
                 file.1 = Held::Open(Box::new(outline));
             }
         }
@@ -6363,7 +6656,11 @@ impl Server {
         let Some(directory) = crate::protocol::directory(&|name| std::env::var(name).ok()) else { return };
         match crate::protocol::Listener::open(&directory, sender) {
             Ok(listener) => self.protocol = Some(listener),
-            Err(error) => eprintln!("org-lsp: cannot listen for org-protocol URLs in {}: {error}", directory.display()),
+            // Said once: the server goes on without org-protocol.
+            Err(error) => self.show_message(
+                MessageType::INFO,
+                format!("org-lsp cannot listen for org-protocol URLs in {}: {error}", directory.display()),
+            ),
         }
         self.protocol_touched = Some(std::time::Instant::now());
         for link in crate::protocol::take_stored_links(&directory) {
@@ -6455,16 +6752,21 @@ impl Server {
                     crate::protocol::file_state(&home(name))
                 });
                 let said = opened.error.clone().or_else(|| opened.messages.last().cloned());
-                let Some(file) = opened.file else {
-                    if let Some(said) = &said {
-                        self.show_message(MessageType::INFO, said.clone());
+                let path = match crate::protocol::source_file(&opened, &home) {
+                    Ok(Some(path)) => path,
+                    Ok(None) => {
+                        if let Some(said) = &said {
+                            self.show_message(MessageType::INFO, said.clone());
+                        }
+                        return Err(
+                            said.unwrap_or_else(|| format!("No project of `org_protocol_project_alist` maps {url}"))
+                        );
                     }
-                    return Err(
-                        said.unwrap_or_else(|| format!("No project of `org_protocol_project_alist` maps {url}"))
-                    );
+                    Err(refused) => {
+                        self.show_message(MessageType::INFO, refused.clone());
+                        return Err(refused);
+                    }
                 };
-                let path = home(&file);
-                let path = std::path::absolute(&path).unwrap_or(path);
                 let uri = uri::from_path(&path).ok_or_else(|| format!("Cannot name {}", path.display()))?;
                 let params = ShowDocumentParams { uri, external: None, take_focus: Some(true), selection: None };
                 self.send_request::<ShowDocument>(params, None);
@@ -6980,6 +7282,26 @@ impl Server {
         self.send_request::<ShowDocument>(params, None);
     }
 
+    /// `org.emacs.answer`: without an answer, Emacs's yes-or-no question as
+    /// `y-or-n-p` asks it, one key; with one, the answer, `y` for yes.
+    fn emacs_answer(&mut self, answer: Option<&str>) -> std::result::Result<Value, Refusal> {
+        let Some((prompt, _)) = &self.emacs_question else {
+            return Err("Emacs is not asking anything".into());
+        };
+        let Some(answer) = answer else {
+            return Ok(json!({ "input": {
+                "kind": "key",
+                "prompt": format!("{prompt} (y or n) "),
+                "value": "",
+                "choices": [{ "key": "y", "label": "Yes" }, { "key": "n", "label": "No" }],
+            } }));
+        };
+        if let Some((_, sender)) = self.emacs_question.take() {
+            let _ = sender.send(matches!(answer, "y" | "Y"));
+        }
+        Ok(Value::Null)
+    }
+
     /// The answer to a question asked by [`Server::prompt_with_messages`]:
     /// run the command again with it, as an editor does.
     fn answer_prompt(&mut self, command: String, argument: Value, input: &Value, picked: &str) {
@@ -7004,9 +7326,10 @@ impl Server {
         };
         match self.run_command(params) {
             Ok(value) => {
-                // A command run from the command port: what it does is
-                // applied here too (`org-goto`'s heading picked).
-                if argument.get("apply").and_then(Value::as_bool) == Some(true) {
+                // A command run from the command port, or for a client that
+                // does nothing with a result: what it does is applied here
+                // too (`org-goto`'s heading picked, the entries sorted).
+                if argument.get("apply").and_then(Value::as_bool) == Some(true) || self.client.message_prompts {
                     self.apply_result(&argument, &value);
                 }
                 self.prompt_with_messages(command, argument, &value)
@@ -7030,6 +7353,10 @@ impl Server {
         } else {
             argument
         };
+        if params.command == commands::EMACS_ANSWER {
+            let answer = argument.as_ref().and_then(|value| value.get("input")?.as_str().map(str::to_string));
+            return self.emacs_answer(answer.as_deref());
+        }
         // Capturing and the agenda menu need no document.
         if params.command == commands::AGENDA_DISPATCH {
             return self.dispatch(argument.as_ref());
@@ -7139,6 +7466,9 @@ impl Server {
             // `org-save-all-org-buffers`: the server cannot save; the
             // editor saves the files it names that have changes, and says
             // what Emacs says when it is done.
+            commands::AGENDA_SAVE if self.client.message_prompts => {
+                Err("The editor saves the files: the server cannot".into())
+            }
             commands::AGENDA_SAVE => {
                 let mut files: Vec<&String> = self.documents.keys().collect();
                 files.sort();
@@ -7456,8 +7786,8 @@ impl Server {
         ) {
             return Err(Refusal::NotHere("This command works in Org files".to_string()));
         }
-        let (line, row) = self.view_line(uri, context.position.line).ok_or("No entry on this line")?;
-        row.entry.as_ref().ok_or("No entry on this line")?;
+        let (line, row) = self.view_line(uri, context.position.line).ok_or(NOT_ON_ENTRY)?;
+        row.entry.as_ref().ok_or(NOT_ON_ENTRY)?;
         Ok(Target::Entry { view: uri.clone(), line, character: context.position.character, row: row.clone() })
     }
 
@@ -7478,7 +7808,7 @@ impl Server {
             Target::Dailies { .. } => Err("The daily notes' commands change their own files".into()),
             Target::Calendar { .. } => Err(NO_DATE_ASKED.into()),
             Target::Entry { row, .. } => {
-                let reference = row.entry.as_ref().ok_or("No entry on this line")?;
+                let reference = row.entry.as_ref().ok_or(NOT_ON_ENTRY)?;
                 self.with_source(&reference.uri, |text, _, _, outline, version| {
                     let entry = views::resolve(reference, outline).ok_or("The entry is gone; rebuild the agenda")?;
                     let heading = outline.entries[entry].offset;
@@ -7893,6 +8223,9 @@ impl Server {
             .and_then(|context| open.day_at(context.position))
             .unwrap_or(open.selected);
         let date = Date::from_day(at);
+        // A count moves that many times, as Emacs's calendar takes a prefix
+        // argument (`calendar-forward-day`, `calendar-forward-week` …).
+        let times = context.and_then(|context| context.count).filter(|count| *count > 0).unwrap_or(1);
         let by_months = |months: i64| {
             let target = Date::new(date.year, date.month + months, 1);
             let length = org_core::date::days_in_month(
@@ -7902,16 +8235,16 @@ impl Server {
             Date::new(target.year, target.month, date.day.min(length)).to_day()
         };
         match id {
-            commands::CALENDAR_DAY_LATER => open.select(at + 1, now, &settings),
-            commands::CALENDAR_DAY_EARLIER => open.select(at - 1, now, &settings),
-            commands::CALENDAR_WEEK_LATER => open.select(at + 7, now, &settings),
-            commands::CALENDAR_WEEK_EARLIER => open.select(at - 7, now, &settings),
-            commands::CALENDAR_MONTH_LATER => open.select(by_months(1), now, &settings),
-            commands::CALENDAR_MONTH_EARLIER => open.select(by_months(-1), now, &settings),
-            commands::CALENDAR_YEAR_LATER => open.select(by_months(12), now, &settings),
-            commands::CALENDAR_YEAR_EARLIER => open.select(by_months(-12), now, &settings),
-            commands::CALENDAR_SCROLL_LATER => open.scroll(1, now, &settings),
-            commands::CALENDAR_SCROLL_EARLIER => open.scroll(-1, now, &settings),
+            commands::CALENDAR_DAY_LATER => open.select(at + times, now, &settings),
+            commands::CALENDAR_DAY_EARLIER => open.select(at - times, now, &settings),
+            commands::CALENDAR_WEEK_LATER => open.select(at + 7 * times, now, &settings),
+            commands::CALENDAR_WEEK_EARLIER => open.select(at - 7 * times, now, &settings),
+            commands::CALENDAR_MONTH_LATER => open.select(by_months(times), now, &settings),
+            commands::CALENDAR_MONTH_EARLIER => open.select(by_months(-times), now, &settings),
+            commands::CALENDAR_YEAR_LATER => open.select(by_months(12 * times), now, &settings),
+            commands::CALENDAR_YEAR_EARLIER => open.select(by_months(-12 * times), now, &settings),
+            commands::CALENDAR_SCROLL_LATER => open.scroll(times, now, &settings),
+            commands::CALENDAR_SCROLL_EARLIER => open.scroll(-times, now, &settings),
             commands::CALENDAR_TODAY => open.select(now.day, now, &settings),
             commands::CALENDAR_TIME => open.toggle_time(step, now, &settings),
             commands::CALENDAR_SELECT => {
@@ -8234,7 +8567,7 @@ impl Server {
                 Ok(())
             }
             commands::AGENDA_GOTO | commands::AGENDA_GOTO_OTHER => {
-                let reference = self.entry_at(context.as_ref()).ok_or("No entry on this line")?;
+                let reference = self.entry_at(context.as_ref()).ok_or(NOT_ON_ENTRY)?;
                 let location = self.locate(&reference).ok_or("The entry is gone; rebuild the agenda")?;
                 let params = ShowDocumentParams {
                     uri: location.uri,
@@ -8713,6 +9046,12 @@ impl Server {
             self.agenda_entry_text = None;
             message.get_or_insert_with(|| "Entry text mode is off".to_string());
         }
+        // The lines are those of the filters: changes made from the agenda
+        // show as their files have them, as they do once those files are
+        // saved, rather than on lines of the view before.
+        if before != after || self.agenda_filters != filters {
+            self.release_held();
+        }
         self.agenda_filters = filters;
         self.refresh_view();
         let message = message.or_else(|| {
@@ -8940,7 +9279,7 @@ impl Server {
         let from_agenda = self.is_view(uri);
         // The entry: its file and a place in it.
         let (file, offset) = if from_agenda {
-            let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
+            let reference = self.entry_at(Some(context)).ok_or(NOT_ON_ENTRY)?;
             let offset = self
                 .with_source(&reference.uri, |_, _, _, outline, _| {
                     views::resolve(&reference, outline).map(|entry| outline.entries[entry].offset)
@@ -9002,7 +9341,7 @@ impl Server {
             "args": [],
             "variables": [],
         });
-        let result = self.emacs.call("run", params, std::time::Duration::from_secs(30)).map_err(Refusal::Failed)?;
+        let result = self.ask_emacs("run", params, std::time::Duration::from_secs(30)).map_err(Refusal::Failed)?;
         let new = result.get("text").and_then(Value::as_str).ok_or("Emacs did not answer")?.to_string();
         let line_end = |text: &str| text[start..].find('\n').map_or(text.len(), |at| start + at);
         let grown = line_end(&new) as isize - line_end(&text) as isize;
@@ -9071,7 +9410,7 @@ impl Server {
         // The entry: its file and a place in it.
         let uri = &context.text_document.uri;
         let (file, offset) = if self.is_view(uri) {
-            let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
+            let reference = self.entry_at(Some(context)).ok_or(NOT_ON_ENTRY)?;
             let offset = self
                 .with_source(&reference.uri, |_, _, _, outline, _| {
                     views::resolve(&reference, outline).map(|entry| outline.entries[entry].offset)
@@ -9370,8 +9709,7 @@ impl Server {
                 let params =
                     json!({ "file": readable_file.path, "text": text, "function": function, "points": points });
                 let said = self
-                    .emacs
-                    .call("refile-verify", params, std::time::Duration::from_secs(60))
+                    .ask_emacs("refile-verify", params, std::time::Duration::from_secs(60))
                     .map_err(Refusal::Failed)?;
                 let verdicts: Vec<bool> = said
                     .as_array()
@@ -9566,20 +9904,7 @@ impl Server {
     /// A path as Org names a capture target (`org-capture-expand-file`):
     /// empty for `org-default-notes-file`, relative to `org-directory`.
     fn capture_file(&self, path: &str) -> PathBuf {
-        let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
-        let expand = |path: &str| match (path.strip_prefix("~/"), &home) {
-            (Some(rest), Some(home)) => home.join(rest),
-            _ => PathBuf::from(path),
-        };
-        if path.is_empty() {
-            return expand(&self.default_notes_file);
-        }
-        let path = expand(path);
-        if path.is_absolute() {
-            path
-        } else {
-            expand(&self.org_directory).join(path)
-        }
+        capture_path(path, &self.org_directory, &self.default_notes_file)
     }
 
     /// `org-capture`: pick a template by its keys, answer its questions,
@@ -9692,13 +10017,13 @@ impl Server {
             self.capture_lisp.clear();
         }
         let mut evaluated = std::mem::take(&mut self.capture_lisp);
-        let emacs = &self.emacs;
+        let (emacs, waits) = (&self.emacs, &mut self.emacs_waits);
         let mut eval = |sexp: &str| -> std::result::Result<Option<String>, String> {
             if let Some(value) = evaluated.get(sexp) {
                 return Ok(value.clone());
             }
             let params = json!({ "sexp": sexp, "directory": directory.as_ref().map(|path| path.to_string_lossy()) });
-            let result = emacs.call("eval", params, std::time::Duration::from_secs(30))?;
+            let result = waits.call(emacs, "eval", params, std::time::Duration::from_secs(30))?;
             let value = result.as_str().map(str::to_string);
             evaluated.insert(sexp.to_string(), value.clone());
             Ok(value)
@@ -9802,8 +10127,7 @@ impl Server {
                     params["text"] = json!(text);
                 }
                 let found = self
-                    .emacs
-                    .call("capture-target", params, std::time::Duration::from_secs(60))
+                    .ask_emacs("capture-target", params, std::time::Duration::from_secs(60))
                     .map_err(Refusal::Failed)?;
                 let path = found.get("file").and_then(Value::as_str).ok_or("The target function visited no file")?;
                 let uri = uri::from_path(Path::new(path)).ok_or("Cannot name the target file")?;
@@ -10408,7 +10732,12 @@ impl Server {
     /// that does not exist yet is written here, as Emacs saves it: no
     /// editor has it open, and an edit cannot make it.
     fn apply_capture(&mut self, target: &Uri, version: Option<i32>, now: &str, done: &str) {
-        let missing = uri::to_path(target).filter(|path| self.document(target).is_none() && !path.exists());
+        // A file the editor does not have open, not there or empty, is
+        // written: some of Vim's clients leave an empty file's line
+        // after the text an edit puts in it, or lose the text.
+        let missing = uri::to_path(target).filter(|path| {
+            self.document(target).is_none() && (!path.exists() || (now.is_empty() && is_empty_file(path)))
+        });
         if let Some(path) = missing {
             if let Some(directory) = path.parent() {
                 let _ = std::fs::create_dir_all(directory);
@@ -10660,7 +10989,7 @@ impl Server {
         let settings = self.edit_settings.priorities;
         // The priorities of the file the entry is in.
         let priorities = if self.is_view(uri) {
-            let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
+            let reference = self.entry_at(Some(context)).ok_or(NOT_ON_ENTRY)?;
             self.with_source(&reference.uri, |_, _, parse, _, _| edit::document_priorities(parse))
                 .ok_or("Cannot read the file of this entry")?
         } else {
@@ -10722,7 +11051,7 @@ impl Server {
             self.view_line(&uri, position.line).map(|(number, line)| (number, line.clone()));
         let dated_view = self.view_at(&uri).is_some_and(|view| matches!(view.query, Query::Agenda { .. }));
         let (file, reference, command) = if on_view {
-            let reference = line.as_ref().and_then(|(_, line)| line.entry.clone()).ok_or("No entry on this line")?;
+            let reference = line.as_ref().and_then(|(_, line)| line.entry.clone()).ok_or(NOT_ON_ENTRY)?;
             let command = match id {
                 id if commands::AGENDA_DATE_COMMANDS.contains(&id) && !dated_view => {
                     return Err("The TODO list shows no dates to change".into());
@@ -10833,15 +11162,27 @@ impl Server {
                     .into_iter()
                     .map(|edit| TextEdit { range: index.range(text, edit.range, encoding), new_text: edit.new_text })
                     .collect();
+                // The headline in the new text: on the same line, which the
+                // lines before it may have made longer (a parent's cookie
+                // counted again, its tags put back in their column).
+                let changed_heading = heading.map(|heading| {
+                    let line = text[..heading.min(text.len())].matches('\n').count();
+                    let at: usize = outcome.text.split_inclusive('\n').take(line).map(str::len).sum();
+                    if outcome.text[at..].starts_with('*') {
+                        at
+                    } else {
+                        heading
+                    }
+                });
                 // The sequence to come back to when the keyword is gone.
-                let forget = heading.map(|heading| {
-                    let keyword = headline_keyword(&outcome.text, heading, keywords);
+                let forget = heading.zip(changed_heading).map(|(heading, changed_heading)| {
+                    let keyword = headline_keyword(&outcome.text, changed_heading, keywords);
                     let head = old_keyword.as_deref().and_then(|old| keywords.head(old)).map(str::to_string);
                     (heading, keyword.is_none().then(|| head.or(remembered.clone())).flatten())
                 });
                 // `Keyword-Set 2/3: REPORT BUG | FIXED`, as Emacs says it.
                 let set_message = switching_sets
-                    .then(|| heading.and_then(|heading| headline_keyword(&outcome.text, heading, keywords)))
+                    .then(|| changed_heading.and_then(|heading| headline_keyword(&outcome.text, heading, keywords)))
                     .flatten()
                     .and_then(|head| {
                         let (number, total) = keywords.set_number(&head)?;
@@ -10860,7 +11201,7 @@ impl Server {
                     })
                 });
                 // What the agenda's lines of the entry show of the change.
-                let shown = heading.map(|heading| {
+                let shown = changed_heading.map(|heading| {
                     let state = |text: &str, at: usize| {
                         let keyword = headline_keyword(text, at, keywords);
                         let done = keyword.as_deref().is_some_and(|keyword| keywords.is_done(keyword));
@@ -11045,7 +11386,7 @@ impl Server {
                 })
             })
         };
-        let tokens = root.token_at_offset(at);
+        let tokens = org_syntax::token_at_offset(&root, at);
         inline(tokens.clone().right_biased()) || inline(tokens.left_biased())
     }
 
@@ -11064,7 +11405,7 @@ impl Server {
     fn command_place(&mut self, context: &Context) -> std::result::Result<(Uri, usize), Refusal> {
         let uri = &context.text_document.uri;
         if self.is_view(uri) {
-            let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
+            let reference = self.entry_at(Some(context)).ok_or(NOT_ON_ENTRY)?;
             let offset = self
                 .with_source(&reference.uri, |_, _, _, outline, _| {
                     views::resolve(&reference, outline).map(|entry| outline.entries[entry].offset)
@@ -11268,7 +11609,7 @@ impl Server {
         use org_core::tags::{self, Selection, State, Step};
         let uri = &context.text_document.uri;
         let (file, offset) = if self.is_view(uri) {
-            let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
+            let reference = self.entry_at(Some(context)).ok_or(NOT_ON_ENTRY)?;
             let offset = self
                 .with_source(&reference.uri, |_, _, _, outline, _| {
                     views::resolve(&reference, outline).map(|entry| outline.entries[entry].offset)
@@ -11666,8 +12007,7 @@ impl Server {
             // `#`: `org-export-insert-default-template`, for a backend.
             None if key == "#" => {
                 let backends = self
-                    .emacs
-                    .call("export-backends", json!({}), std::time::Duration::from_secs(60))
+                    .ask_emacs("export-backends", json!({}), std::time::Duration::from_secs(60))
                     .map_err(Refusal::Failed)?;
                 let choices: Vec<Value> = backends
                     .as_array()
@@ -11738,8 +12078,7 @@ impl Server {
                             Some(projects) => projects.clone(),
                             None => {
                                 let projects = self
-                                    .emacs
-                                    .call("publish-projects", json!({}), std::time::Duration::from_secs(60))
+                                    .ask_emacs("publish-projects", json!({}), std::time::Duration::from_secs(60))
                                     .map_err(Refusal::Failed)?;
                                 self.publish_projects = Some(projects.clone());
                                 projects
@@ -11790,9 +12129,48 @@ impl Server {
             return Ok(menu.clone());
         }
         let menu =
-            self.emacs.call("export-menu", json!({}), std::time::Duration::from_secs(120)).map_err(Refusal::Failed)?;
+            self.ask_emacs("export-menu", json!({}), std::time::Duration::from_secs(120)).map_err(Refusal::Failed)?;
         self.export_menu = Some(menu.clone());
         Ok(menu)
+    }
+
+    /// What Emacs needs to export the links of the document `uri` that the
+    /// server follows itself: where the entries of its `id:` links are
+    /// (`org-id-add-location`, which org-roam keeps up to date in Emacs),
+    /// and, with org-roam, its `roam` link type, so that `[[roam:Title]]`
+    /// is no fuzzy link that fails to resolve.
+    fn export_links(&mut self, uri: &Uri) {
+        let Some(document) = self.document(uri) else { return };
+        let (text, parse) = (document.text.clone(), document.parse.clone());
+        let ids: Vec<String> = open::links(&text, &parse, &self.link_abbreviations, &self.open_settings)
+            .into_iter()
+            .filter_map(|link| match link.open {
+                Ok(Open::Id(id)) => Some(id),
+                _ => None,
+            })
+            .collect();
+        let lisp = |text: &str| format!("\"{}\"", text.replace('\\', "\\\\").replace('"', "\\\""));
+        let mut forms = Vec::new();
+        if self.roam.is_some() {
+            forms.push("(org-link-set-parameters \"roam\")".to_string());
+        }
+        let mut seen = HashSet::new();
+        for id in ids.into_iter().filter(|id| seen.insert(id.clone())) {
+            let Some(path) = self.find_id(&id, Some(uri)).and_then(|(found, _)| uri::to_path(&found)) else {
+                continue;
+            };
+            forms.push(format!("(org-id-add-location {} {})", lisp(&id), lisp(&path.to_string_lossy())));
+        }
+        if forms.is_empty() {
+            return;
+        }
+        let sexp = format!("(progn (require 'org-id) {} nil)", forms.join(" "));
+        let directory = uri::to_path(uri).and_then(|path| path.parent().map(Path::to_path_buf));
+        let params = json!({ "sexp": sexp, "directory": directory.map(|path| path.to_string_lossy().into_owned()) });
+        // Before the export, in Emacs's order; its answer is not waited
+        // for: a failure leaves the export to say what it cannot resolve.
+        self.next_export += 1;
+        self.emacs.start(self.next_export, "eval", params);
     }
 
     /// Have Emacs run the menu entry `first` `second` on the document of
@@ -11839,6 +12217,7 @@ impl Server {
             // `org-display-custom-times`, as the file shows: the formats.
             "custom_times": custom_times.then(|| json!([self.custom_formats.0, self.custom_formats.1])),
         });
+        self.export_links(&context.text_document.uri);
         self.next_export += 1;
         let tag = self.next_export;
         self.emacs_jobs.insert(tag, EmacsJob::Export(label.clone()));
@@ -11847,10 +12226,36 @@ impl Server {
         Ok(Value::Null)
     }
 
-    /// What Emacs has for the server: a question to ask in the editor, or
-    /// what an export made, to show.
+    /// `method` in Emacs, for a command: the answer, or, for one the editor
+    /// asked for, [`emacs_wait::WAITING`] and the command run again once
+    /// Emacs has answered (see [`emacs_wait`]). A command that does not
+    /// stop at an error of this has taken no step of its own before.
+    fn ask_emacs(
+        &mut self,
+        method: &str,
+        params: Value,
+        timeout: std::time::Duration,
+    ) -> std::result::Result<Value, String> {
+        self.emacs_waits.call(&self.emacs, method, params, timeout)
+    }
+
+    /// What Emacs has for the server: a question to ask in the editor, an
+    /// option it did not set, or what an export made, to show.
     fn emacs_event(&mut self, event: crate::emacs::Event) {
         match event {
+            crate::emacs::Event::Ask { prompt, answer } if !self.client.message_requests => {
+                // A question of a command's for the editor to ask: run
+                // from the editor (`org-lsp/runCommand`), or among the
+                // code actions.
+                self.emacs_question = Some((prompt.clone(), answer));
+                if self.client.org_client && self.client.run_command {
+                    let params = json!({ "command": commands::EMACS_ANSWER, "argument": {} });
+                    let notification = Notification::new(RUN_COMMAND.to_string(), params);
+                    let _ = self.sender.send(Message::Notification(notification));
+                } else if let Ok(result) = self.emacs_answer(None) {
+                    self.prompt_with_messages(commands::EMACS_ANSWER.to_string(), json!({}), &result);
+                }
+            }
             crate::emacs::Event::Ask { prompt, answer } => {
                 let actions = ["Yes", "No"]
                     .into_iter()
@@ -11869,6 +12274,20 @@ impl Server {
             // As Emacs's echo area shows a question and its answer.
             crate::emacs::Event::Declined { prompt } => {
                 self.show_message(MessageType::INFO, format!("{prompt} (y or n) n"));
+            }
+            // As a problem with the options is told when the server starts.
+            crate::emacs::Event::Notice { text } => {
+                if self.emacs_notices.insert(text.clone()) {
+                    self.show_message(MessageType::WARNING, format!("org-lsp: {text}"));
+                }
+            }
+            crate::emacs::Event::Message { text } => self.show_message(MessageType::INFO, text),
+            crate::emacs::Event::Done { tag, result } if emacs_wait::Waits::owns(tag) => {
+                if let Some(request) = self.emacs_waits.answered(tag, result) {
+                    if let Some(response) = self.request(request) {
+                        let _ = self.sender.send(Message::Response(response));
+                    }
+                }
             }
             crate::emacs::Event::Done { tag, result } => match (self.emacs_jobs.remove(&tag), result) {
                 (Some(EmacsJob::Prefixes { forms, all }), result) => self.prefixes_evaluated(tag, &forms, all, result),
@@ -11890,6 +12309,10 @@ impl Server {
                         .map(|left| std::time::Instant::now() + std::time::Duration::from_secs_f64(left));
                     self.timer_said(&result);
                     self.emacs_edited(&uri, version, &text, point, &result);
+                    // What Emacs shows in `*Org-Babel Error Output*`.
+                    if let Some(errors) = result.get("babel_errors").and_then(Value::as_str) {
+                        self.show_message(MessageType::WARNING, errors);
+                    }
                     // What the command opened (an attachment, its
                     // directory), the system opens; what it visited (a new
                     // attachment), the editor.
@@ -11934,13 +12357,31 @@ impl Server {
                 (Some(EmacsJob::AgendaColumnsCommand { uri, files }), Ok(result)) => {
                     self.agenda_columns_done(&uri, files, &result);
                 }
-                (Some(EmacsJob::Columns { .. }), Err(error)) => self.show_message(MessageType::ERROR, error),
-                (Some(EmacsJob::Columns { uri, version, text }), Ok(mut result)) => {
-                    // The cursor stays where it is; the view says the rest.
-                    if let Some(fields) = result.as_object_mut() {
-                        fields.remove("point");
+                (Some(EmacsJob::Columns { .. }), Err(error)) => {
+                    // An Org without the command (Emacs 29's own, 9.6.15)
+                    // says so in Lisp's words: said in the user's.
+                    let error = match ["org-columns-move-row-up", "org-columns-move-row-down"]
+                        .into_iter()
+                        .find(|command| error.contains(&format!("commandp, {command}")))
+                    {
+                        Some(command) => format!(
+                            "This Org has no `{command}`: moving rows in column view needs a newer Org \
+                             than Emacs 29's own (9.6.15), loaded in `emacs_config`"
+                        ),
+                        None => error,
+                    };
+                    self.show_message(MessageType::ERROR, error)
+                }
+                (Some(EmacsJob::Columns { uri, version, text, point }), Ok(mut result)) => {
+                    // The cursor stays on its line; the column it is on in
+                    // Emacs is the one picked (`org-columns-move-left`
+                    // takes it along with the column it moves).
+                    let at = result.as_object_mut().and_then(|fields| fields.remove("point"));
+                    let column = at.and_then(|at| at.as_u64()).and_then(|at| (at as usize).checked_sub(point));
+                    let mut view = result.get("extra").cloned().filter(|view| !view.is_null());
+                    if let (Some(view), Some(column)) = (view.as_mut(), column) {
+                        view["column"] = json!(column);
                     }
-                    let view = result.get("extra").cloned().filter(|view| !view.is_null());
                     self.columns_shown(&uri, version + 1, view);
                     self.emacs_edited(&uri, version, &text, 0, &result);
                 }
@@ -12242,10 +12683,11 @@ impl Server {
         };
         let column = context.column.unwrap_or(0);
         let line = context.position.line as usize;
-        let answer = match columns_question(id, &on.view, line, column) {
-            Some((prompt, value)) => match context.input.clone() {
+        let allowed = self.columns_allowed(&uri, line, columns_key(&on.view, column));
+        let answer = match columns_question(id, &on.view, line, column, allowed)? {
+            Some(input) => match context.input.clone() {
                 Some(answer) => Some(answer),
-                None => return Ok(json!({ "input": { "kind": "text", "prompt": prompt, "value": value } })),
+                None => return Ok(json!({ "input": input })),
             },
             None => None,
         };
@@ -12378,15 +12820,21 @@ impl Server {
         };
         let column = context.column.unwrap_or(0);
         let path = uri::to_path(&uri).ok_or("Only a file on disk can show column view through Emacs")?;
-        let document = self.document(&uri).ok_or("This file is not open")?;
         let line = context.position.line as usize;
-        let answer = match columns_question(id, &on.view, line, column) {
-            Some((prompt, value)) => match context.input.clone() {
+        // The TODO column: `org-todo` on the headline, as from its key,
+        // with its fast selection; the view follows the change.
+        if id == commands::COLUMNS_EDIT && columns_key(&on.view, column) == "TODO" {
+            return self.run_edit(commands::TODO, Some(context.clone()));
+        }
+        let allowed = self.columns_allowed(&uri, line, columns_key(&on.view, column));
+        let answer = match columns_question(id, &on.view, line, column, allowed)? {
+            Some(input) => match context.input.clone() {
                 Some(answer) => Some(answer),
-                None => return Ok(json!({ "input": { "kind": "text", "prompt": prompt, "value": value } })),
+                None => return Ok(json!({ "input": input })),
             },
             None => None,
         };
+        let document = self.document(&uri).ok_or("This file is not open")?;
         // The start of the cursor's line: Emacs's columns are its first
         // characters, padded as long as the line is too short.
         let line_start = document.index.offset(&document.text, Position::new(line as u32, 0), self.client.encoding);
@@ -12402,12 +12850,37 @@ impl Server {
             "command": "org-lsp-bridge-columns-command",
             "args": args,
         });
-        let job = EmacsJob::Columns { uri: uri.clone(), version: document.version, text: document.text.clone() };
+        let job = EmacsJob::Columns { uri: uri.clone(), version: document.version, text: document.text.clone(), point };
         self.next_export += 1;
         let tag = self.next_export;
         self.emacs_jobs.insert(tag, job);
         self.emacs.start(tag, "run", params);
         Ok(Value::Null)
+    }
+
+    /// The values the property `key` may take on the entry of `line` of
+    /// `uri`, an Org file or the agenda (`org-property-get-allowed-values`).
+    fn columns_allowed(&mut self, uri: &Uri, line: usize, key: &str) -> Option<org_core::properties::Allowed> {
+        if key.is_empty() {
+            return None;
+        }
+        let settings = self.edit_settings.clone();
+        let allowed = |text: &str, parse: &Parse, offset: usize| {
+            let context = org_core::edit::property_context(parse, &settings, "");
+            org_core::properties::allowed(text, offset, key, &context).ok()
+        };
+        if self.is_view(uri) {
+            let reference = self.view_line(uri, line as u32)?.1.entry.clone()?;
+            return self
+                .with_source(&reference.uri, |text, _, parse, outline, _| {
+                    let entry = views::resolve(&reference, outline)?;
+                    allowed(text, parse, outline.entries[entry].offset)
+                })
+                .flatten();
+        }
+        let document = self.document(uri)?;
+        let offset = document.index.offset(&document.text, Position::new(line as u32, 0), self.client.encoding);
+        allowed(&document.text, &document.parse, offset)
     }
 
     /// The indentation of source blocks as the settings have it
@@ -12448,7 +12921,7 @@ impl Server {
             "variables": self.src_variables(),
         });
         let method = if table_field { "edit-field" } else { "edit-special" };
-        let result = self.emacs.call(method, params, std::time::Duration::from_secs(60)).map_err(Refusal::Failed)?;
+        let result = self.ask_emacs(method, params, std::time::Duration::from_secs(60)).map_err(Refusal::Failed)?;
         if let Some(file) = result.get("visit").and_then(Value::as_str) {
             let target = uri::from_path(Path::new(file)).ok_or("This file cannot be shown")?;
             let params = ShowDocumentParams { uri: target, external: None, take_focus: Some(true), selection: None };
@@ -12787,8 +13260,11 @@ impl Server {
             }
             files.push(path);
         }
-        let params = json!({ "files": files, "texts": texts, "refresh": refresh });
-        let result = self.emacs.call("appt", params, std::time::Duration::from_secs(60)).map_err(Refusal::Failed)?;
+        let (warning, interval) = self.appt_warning;
+        let params = json!({
+            "files": files, "texts": texts, "refresh": refresh, "warning_time": warning, "interval": interval,
+        });
+        let result = self.ask_emacs("appt", params, std::time::Duration::from_secs(60)).map_err(Refusal::Failed)?;
         self.message = result.get("message").and_then(Value::as_str).map(str::to_string);
         self.appt_said(&result);
         Ok(Value::Null)
@@ -13135,8 +13611,7 @@ impl Server {
                     let point = document.text[..offset].chars().count() + 1;
                     let params = json!({ "file": path.to_string_lossy(), "text": document.text, "point": point });
                     let default = self
-                        .emacs
-                        .call("timer-default", params, std::time::Duration::from_secs(60))
+                        .ask_emacs("timer-default", params, std::time::Duration::from_secs(60))
                         .map_err(Refusal::Failed)?;
                     if default.get("effort").and_then(Value::as_bool) == Some(true) {
                         return self.emacs_run("org-timer-set-timer", context);
@@ -13182,8 +13657,7 @@ impl Server {
                     let document = self.document(uri).ok_or("This file is not open")?;
                     let params = json!({ "file": path.to_string_lossy(), "text": document.text });
                     let names = self
-                        .emacs
-                        .call("src-block-names", params, std::time::Duration::from_secs(60))
+                        .ask_emacs("src-block-names", params, std::time::Duration::from_secs(60))
                         .map_err(Refusal::Failed)?;
                     let choices: Vec<Value> = names
                         .as_array()
@@ -13252,8 +13726,7 @@ impl Server {
                     Some(templates) => templates.clone(),
                     None => {
                         let found = self
-                            .emacs
-                            .call("structure-templates", json!({}), std::time::Duration::from_secs(120))
+                            .ask_emacs("structure-templates", json!({}), std::time::Duration::from_secs(120))
                             .map_err(Refusal::Failed)?;
                         self.structure_templates = Some(found.clone());
                         found
@@ -13548,7 +14021,7 @@ impl Server {
         let remote = self.remote.mode != config::RemoteImages::Skip;
         let found =
             org_core::link_preview::previews(&text, &parse, &self.link_abbreviations, include_linked, remote, from, to);
-        // The images of URLs, downloaded first; or what to ask before.
+        // The images of URLs, there or to download; or what to ask before.
         let remote_files = match self.remote_images(&uri, &found, context, startup) {
             Ok(files) => files,
             Err(question) => return Ok(question),
@@ -13557,37 +14030,45 @@ impl Server {
         // wide at most one shown at its own width (`org-image-max-width`).
         let outline = (!found.is_empty()).then(|| org_core::outline::Outline::new(&parse, &text, ""));
         let (actual_width, max_width) = (self.image_actual_width, self.image_max_width.clone());
-        let items: Vec<Value> = found
+        let items: Vec<remote_images::Item> = found
             .into_iter()
             .filter_map(|found| {
-                let path = if found.remote {
-                    remote_files.get(&found.start)?.clone()
+                let source = if found.remote {
+                    remote_images::Source::Remote(found.start)
                 } else if found.attachment {
-                    self.attachment_path(&uri, &text, found.start, &found.path)?
+                    remote_images::Source::File(self.attachment_path(&uri, &text, found.start, &found.path)?)
                 } else {
-                    self.link_path(&uri, &found.path)?
+                    remote_images::Source::File(self.link_path(&uri, &found.path)?)
                 };
-                // `a/./b.png` as `a/b.png`.
-                let path: PathBuf = path.components().collect();
-                let path = Some(path).filter(|path| path.is_file())?;
-                let mut item = json!({ "range": range(found.start, found.end), "path": path.to_string_lossy() });
                 let width = outline.as_ref().and_then(|outline| {
                     org_core::link_preview::image_width_in(outline, &parse, found.start, actual_width)
                 });
-                match width {
+                let width = match width {
                     Some(org_core::link_preview::ImageWidth::Pixels(pixels)) => {
-                        item["width"] = json!({ "pixels": pixels })
+                        Some(("width", json!({ "pixels": pixels })))
                     }
                     Some(org_core::link_preview::ImageWidth::Fraction(part)) => {
-                        item["width"] = json!({ "fraction": part })
+                        Some(("width", json!({ "fraction": part })))
                     }
-                    None if !max_width.is_null() => item["maxWidth"] = max_width.clone(),
-                    None => {}
-                }
-                Some(item)
+                    None if !max_width.is_null() => Some(("maxWidth", max_width.clone())),
+                    None => None,
+                };
+                Some(remote_images::Item { range: json!(range(found.start, found.end)), width, source })
             })
             .collect();
-        preview["items"] = json!(items);
+        // Images to download first: those there already show at once, and
+        // the preview comes again with them all once the others are there.
+        if !remote_files.wanted.is_empty() {
+            let there = remote_images::finish(&items, &remote_files.files);
+            let mut now = preview.clone();
+            self.download_images(uri, version, preview, items, remote_files, startup);
+            if there.is_empty() {
+                return Ok(Value::Null);
+            }
+            now["items"] = json!(there);
+            return Ok(json!({ "preview": now }));
+        }
+        preview["items"] = json!(remote_images::finish(&items, &remote_files.files));
         Ok(json!({ "preview": preview }))
     }
 
@@ -13599,7 +14080,7 @@ impl Server {
         let file = uri::to_path(uri)?;
         let point = text[..offset].chars().count() + 1;
         let params = json!({ "file": file.to_string_lossy(), "text": text, "point": point, "name": name });
-        let found = self.emacs.call("attach-expand", params, std::time::Duration::from_secs(60)).ok()?;
+        let found = self.ask_emacs("attach-expand", params, std::time::Duration::from_secs(60)).ok()?;
         found.as_str().map(PathBuf::from)
     }
 
@@ -13799,6 +14280,10 @@ impl Server {
         match position {
             Some(position) => self.apply_edit(params, Pending::EditAndMove { uri: uri.clone(), position }),
             None => self.apply_edit(params, Pending::Edit),
+        }
+        // What Emacs said last, as its echo area shows it after the edit.
+        if let Some(message) = said {
+            self.show_message(MessageType::INFO, message);
         }
     }
 
@@ -14049,6 +14534,9 @@ impl Server {
         let mut result = self.carried(context, outcome)?;
         if let (Some(killed), Some(fields)) = (done.killed, result.as_object_mut()) {
             fields.insert("copy".to_string(), json!(killed));
+        }
+        if let Some(message) = done.message {
+            result["message"] = json!(message);
         }
         Ok(result)
     }
@@ -14604,11 +15092,7 @@ impl Server {
     /// sequence.
     fn fast_keys(&mut self, context: &Context) -> std::result::Result<Vec<(String, char, bool, bool)>, Refusal> {
         let uri = &context.text_document.uri;
-        let file = if self.is_view(uri) {
-            self.entry_at(Some(context)).ok_or("No entry on this line")?.uri
-        } else {
-            uri.clone()
-        };
+        let file = if self.is_view(uri) { self.entry_at(Some(context)).ok_or(NOT_ON_ENTRY)?.uri } else { uri.clone() };
         let keys = self.with_source(&file, |_, _, parse, _, _| {
             let keywords = parse.todo_keywords();
             let heads = keywords.heads();
@@ -14938,8 +15422,9 @@ impl Server {
         let table = |server: &mut Self| -> std::result::Result<Vec<Value>, Refusal> {
             let files = server.bibliography(&uri, &text);
             let mut choices = Vec::new();
+            let mut seen = HashSet::new();
             for file in &files {
-                for entry in &file.entries {
+                for entry in file.entries.iter().filter(|entry| seen.insert(entry.key.clone())) {
                     let line = entry.completion().map_err(Refusal::Failed)?;
                     choices.push(json!({ "key": entry.key, "label": line.trim_end() }));
                 }
@@ -15084,6 +15569,24 @@ impl Server {
         })
     }
 
+    /// The diagnostics of the document `key`, sent once no change has come
+    /// for `DIAGNOSTICS_DELAY` (`publish_due_diagnostics`).
+    fn diagnostics_later(&mut self, key: &str) {
+        if !self.diagnostics_due.iter().any(|due| due == key) {
+            self.diagnostics_due.push(key.to_string());
+        }
+        self.diagnostics_at = Some(std::time::Instant::now() + DIAGNOSTICS_DELAY);
+    }
+
+    /// The diagnostics put off by `diagnostics_later`, of the documents
+    /// still open.
+    fn publish_due_diagnostics(&mut self) {
+        self.diagnostics_at = None;
+        for key in std::mem::take(&mut self.diagnostics_due) {
+            self.publish_diagnostics(&key);
+        }
+    }
+
     /// The diagnostics of the document `key`: what Org's linter finds
     /// (`org-lint`), and the citation keys its bibliography does not have
     /// (the `error` face of `oc-basic`), with the keys close to each
@@ -15111,6 +15614,11 @@ impl Server {
                     if !close.is_empty() {
                         message.push_str(&format!(" (suggestions: {})", close.join(" ")));
                     }
+                    // A key the bibliography has twice (its file listed
+                    // twice) is said twice, as Emacs does, but offered once.
+                    let mut close = close;
+                    let mut seen = HashSet::new();
+                    close.retain(|key| seen.insert(key.clone()));
                     let range = Range::new(
                         document.index.position(&text, reference.start, encoding),
                         document.index.position(&text, reference.end, encoding),
@@ -15207,6 +15715,7 @@ impl Server {
             read_file: &read,
             file_name: &file_name,
             id_known: &id_known,
+            link_types: if self.roam.is_some() { &["roam"] } else { &[] },
         };
         let encoding = self.client.encoding;
         org_core::lint::lint(text, parse, &context)
@@ -15299,6 +15808,47 @@ impl Server {
         let params = json!({ "uri": key, "lines": json_lines });
         self.heading_lines.insert(key.to_string(), lines);
         let notification = lsp_server::Notification::new(LINE_HIGHLIGHTS.to_string(), params);
+        let _ = self.sender.send(Message::Notification(notification));
+    }
+
+    /// `org-src-fontify-natively`: where the code of the document `key`
+    /// is that the editor colors in its language, as `org-lsp/codeBlocks`
+    /// `{ uri, version, blocks }`, each block `{ range, language, name,
+    /// kind }`: the range of the code alone, the language by the editor's
+    /// name for it (`org-src-lang-modes`), the language as written, and
+    /// `src`, `export` or `inline`. Sent after every change of a document
+    /// with code, as the code may have changed where the ranges did not,
+    /// and once with no blocks when the last goes.
+    fn publish_code_blocks(&mut self, key: &str) {
+        if !self.client.code_blocks {
+            return;
+        }
+        let Some(document) = self.documents.get(key) else { return };
+        let text = &document.text;
+        let encoding = self.client.encoding;
+        let blocks: Vec<Value> = highlight::code_blocks(&document.syntax(), text)
+            .into_iter()
+            .map(|block| {
+                let range = Range::new(
+                    document.index.position(text, block.start, encoding),
+                    document.index.position(text, block.end, encoding),
+                );
+                json!({
+                    "range": range,
+                    "language": highlight::src_language(&block.name, &self.src_lang_modes),
+                    "name": block.name,
+                    "kind": block.kind,
+                })
+            })
+            .collect();
+        if blocks.is_empty() && !self.code_blocks_sent.remove(key) {
+            return;
+        }
+        if !blocks.is_empty() {
+            self.code_blocks_sent.insert(key.to_string());
+        }
+        let params = json!({ "uri": key, "version": document.version, "blocks": blocks });
+        let notification = lsp_server::Notification::new(CODE_BLOCKS.to_string(), params);
         let _ = self.sender.send(Message::Notification(notification));
     }
 
@@ -15541,8 +16091,10 @@ impl Server {
     /// or changed, the entry's `ID` or `DIR` and `ATTACH` tag set; what it
     /// opens, the editor or the system opens.
     fn attach(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
-        const COMMANDS: [(&str, &str); 14] = [
-            ("a", "Attach a file, as org_attach_method says"),
+        // Org's keys (`org-attach-commands`), but `b`, `O` and `F`, which
+        // are of Emacs's buffers and Dired.
+        const COMMANDS: [(&str, &str); 15] = [
+            ("a", "Attach a file by org-attach-method (Emacs's, copying unless emacs_options sets it)"),
             ("c", "Attach a file by copying it"),
             ("m", "Attach a file by moving it"),
             ("l", "Attach a file by a hard link"),
@@ -15556,6 +16108,7 @@ impl Server {
             ("D", "Delete all attachments"),
             ("s", "Set the attachment directory (DIR)"),
             ("S", "Unset the attachment directory"),
+            ("q", "Abort"),
         ];
         let key = context.step.clone().or_else(|| context.input.clone());
         let Some(key) = key else {
@@ -15564,7 +16117,11 @@ impl Server {
             return Ok(json!({ "input": { "kind": "key", "prompt": "Attachments", "value": "", "choices": choices } }));
         };
         if !COMMANDS.iter().any(|(known, _)| *known == key) {
-            return Err(format!("No attachment command under {key}").into());
+            return Err(format!("No such attachment command: {key}").into());
+        }
+        if key == "q" {
+            self.message = Some("Abort".to_string());
+            return Ok(Value::Null);
         }
         // What the command reads, answered: the input once the key is the
         // step.
@@ -15584,8 +16141,7 @@ impl Server {
                 let point = document.text[..offset].chars().count() + 1;
                 let params = json!({ "file": path.to_string_lossy(), "text": document.text, "point": point });
                 let files = self
-                    .emacs
-                    .call("attach-files", params, std::time::Duration::from_secs(60))
+                    .ask_emacs("attach-files", params, std::time::Duration::from_secs(60))
                     .map_err(Refusal::Failed)?;
                 let files: Vec<String> = files
                     .as_array()
@@ -15708,8 +16264,16 @@ impl Server {
     fn clock_command(&mut self, id: &str, context: Option<&Context>) -> std::result::Result<Value, Refusal> {
         self.last = None;
         match id {
-            commands::CLOCK_IN => self.clock_in(context.ok_or("This command needs the cursor position")?),
-            commands::CLOCK_IN_LAST => self.clock_in_last(context.ok_or("This command needs the cursor position")?),
+            commands::CLOCK_IN => {
+                let result = self.clock_in(context.ok_or("This command needs the cursor position")?);
+                self.send_resolved_changes();
+                result
+            }
+            commands::CLOCK_IN_LAST => {
+                let result = self.clock_in_last(context.ok_or("This command needs the cursor position")?);
+                self.send_resolved_changes();
+                result
+            }
             commands::CLOCK_RESOLVE => self.resolve_clocks(context),
             commands::CLOCK_RESOLVE_IDLE => self.resolve_idle(context),
             commands::CLOCK_OUT | commands::CLOCK_CANCEL => {
@@ -16031,7 +16595,7 @@ impl Server {
         let encoding = self.client.encoding;
         let uri = context.text_document.uri.clone();
         let (file, heading) = if self.is_view(&uri) {
-            let reference = self.entry_at(Some(context)).ok_or("No entry on this line")?;
+            let reference = self.entry_at(Some(context)).ok_or(NOT_ON_ENTRY)?;
             let heading = self
                 .with_source(&reference.uri, |_, _, _, outline, _| {
                     views::resolve(&reference, outline).map(|entry| outline.entries[entry].offset)
@@ -16067,13 +16631,23 @@ impl Server {
         file: Uri,
         heading: usize,
         start: DateTime,
-        changes: Vec<(Uri, Option<i32>, String, String)>,
+        changes_before: Vec<(Uri, Option<i32>, String, String)>,
     ) -> std::result::Result<Value, Refusal> {
         // The clock that runs stops as `org-clock-out` stops it.
         let now = self.clock_time(false);
-        let mut changes = changes;
+        let mut changes = std::mem::take(&mut self.resolved_changes);
+        changes.extend(changes_before);
+        // Where the headline is in the file's text, and where it is once
+        // the changes before are made.
+        let in_text = heading;
         let mut heading = heading;
-        let task = self.clock_task(&file, heading);
+        if let Some((_, _, old, new)) = changes.iter().find(|(uri, ..)| *uri == file) {
+            let same = old.bytes().zip(new.bytes()).take_while(|(a, b)| a == b).count();
+            if same < heading {
+                heading = heading + new.len() - old.len();
+            }
+        }
+        let task = self.clock_task(&file, in_text);
         let mut interrupted = None;
         if let Some(running) = self.running.clone() {
             // Its line, in the text a change before made of its file.
@@ -16145,7 +16719,7 @@ impl Server {
                 Some(_) => (base.clone(), heading),
                 None => clock::clock_in(&base, parse.todo_keywords(), heading, &settings, start)?,
             };
-            let entry = &outline.entries[outline.entry_at(heading).ok_or("Before first headline")?];
+            let entry = &outline.entries[outline.entry_at(in_text).ok_or("Before first headline")?];
             let repeat = entry.properties.iter().any(|(key, _)| key == "LAST_REPEAT");
             // The headline as the clock leaves it, its state switched.
             let head = base[heading..].lines().next().unwrap_or("").trim_start_matches('*').trim().to_string();
@@ -16338,7 +16912,7 @@ fn column_ranges(input: &str, count: usize) -> std::collections::BTreeSet<usize>
 
 /// The files Emacs's `org-id-locations-file` lists (`org-id-locations-load`):
 /// names relative to its directory, `~` the home directory.
-fn id_location_files(file: &Path) -> Vec<PathBuf> {
+pub(crate) fn id_location_files(file: &Path) -> Vec<PathBuf> {
     let Ok(text) = std::fs::read_to_string(file) else { return Vec::new() };
     let directory = file.parent().unwrap_or(Path::new("."));
     let home = std::env::var_os("HOME").map(PathBuf::from);
@@ -16368,15 +16942,7 @@ fn system_name() -> String {
 /// `start-process-shell-command`: run `command` in the background from
 /// `directory`, as Emacs does from the buffer's `default-directory`.
 fn run_shell(command: &str, directory: Option<&std::path::Path>) -> std::io::Result<()> {
-    let mut shell = if cfg!(windows) {
-        let mut shell = std::process::Command::new("cmd");
-        shell.arg("/C").arg(command);
-        shell
-    } else {
-        let mut shell = std::process::Command::new("sh");
-        shell.arg("-c").arg(command);
-        shell
-    };
+    let mut shell = crate::process::shell(command);
     if let Some(directory) = directory {
         shell.current_dir(directory);
     }
@@ -16390,31 +16956,54 @@ fn run_shell(command: &str, directory: Option<&std::path::Path>) -> std::io::Res
     Ok(())
 }
 
-/// Run `command` in the shell and wait for it: what it wrote to its
-/// output and its errors, in the order it wrote them, and its exit code.
-fn shell_output(command: &str, directory: Option<&std::path::Path>) -> std::io::Result<(String, Option<i32>)> {
-    use std::io::Read;
-    let mut shell = if cfg!(windows) {
-        let mut shell = std::process::Command::new("cmd");
-        shell.arg("/C").arg(command);
-        shell
-    } else {
-        let mut shell = std::process::Command::new("sh");
-        shell.arg("-c").arg(command);
-        shell
-    };
-    if let Some(directory) = directory {
-        shell.current_dir(directory);
+/// The lines of a `shell:` link's output that a message shows.
+const SHELL_MESSAGE_LINES: usize = 50;
+/// The characters of a `shell:` link's output that a message shows.
+const SHELL_MESSAGE_CHARS: usize = 8000;
+/// The bytes of a `shell:` link's output read, far more than a message
+/// shows: the command is stopped past them.
+const SHELL_OUTPUT_SIZE: usize = 1 << 20;
+/// How long after the last change of a document its diagnostics wait.
+const DIAGNOSTICS_DELAY: std::time::Duration = std::time::Duration::from_millis(200);
+
+/// A `shell:` link's output as a message: without its last newline, and
+/// cut after [`SHELL_MESSAGE_LINES`] lines or [`SHELL_MESSAGE_CHARS`]
+/// characters, saying how much is left out; or, when the command wrote
+/// so much it was stopped (`cut`), that it was.
+fn shell_message(output: &str, cut: bool) -> String {
+    let output = output.strip_suffix('\n').unwrap_or(output);
+    let lines = output.split('\n').count();
+    let mut end = output.len();
+    if let Some((at, _)) = output.match_indices('\n').nth(SHELL_MESSAGE_LINES - 1) {
+        end = at;
     }
-    let (mut reader, writer) = std::io::pipe()?;
-    let mut child = shell.stdin(std::process::Stdio::null()).stdout(writer.try_clone()?).stderr(writer).spawn()?;
-    // The pipe's ends the server held are gone with `shell`, so reading
-    // ends when the command does.
-    drop(shell);
-    let mut output = Vec::new();
-    reader.read_to_end(&mut output)?;
-    let status = child.wait()?;
-    Ok((String::from_utf8_lossy(&output).into_owned(), status.code()))
+    if let Some((at, _)) = output.char_indices().nth(SHELL_MESSAGE_CHARS) {
+        end = end.min(at);
+    }
+    if end == output.len() {
+        return output.to_string();
+    }
+    let shown = &output[..end];
+    if cut {
+        let size = SHELL_OUTPUT_SIZE >> 20;
+        return format!("{shown}\n[The output goes on past {size} MB, where the command was stopped]");
+    }
+    let left = lines - shown.split('\n').count();
+    let rest = output[end..].chars().count();
+    format!("{shown}\n[The output goes on: {rest} more characters, {left} more lines]")
+}
+
+/// Run `command` in the shell and wait for it, stopped if it takes longer
+/// than [`crate::process::PROGRAM_TIME`] or writes more than
+/// [`crate::process::PROGRAM_SIZE`]: what it wrote to its output and its
+/// errors, in the order it wrote them, and its exit code.
+fn shell_output(command: &str, directory: Option<&std::path::Path>) -> std::io::Result<(String, Option<i32>)> {
+    let size = crate::process::PROGRAM_SIZE;
+    let ran = crate::process::shell_output(command, directory, Some(crate::process::PROGRAM_TIME), size)?;
+    if ran.cut {
+        return Err(std::io::Error::other(format!("stopped after writing more than {} MB", size >> 20)));
+    }
+    Ok((ran.text, ran.code))
 }
 
 /// `org-format-outline-path` with the width of the frame, `width`
@@ -16435,6 +17024,10 @@ fn fit_outline_path(path: &str, width: usize) -> String {
 /// What the calendar on its own says to the keys that answer a date
 /// prompt.
 const NO_DATE_ASKED: &str = "No date is asked for: the calendar is open on its own";
+
+/// What an agenda command on a line without an entry says, as
+/// `org-agenda-error` does.
+const NOT_ON_ENTRY: &str = "Command not allowed in this line";
 
 /// The date `org-goto-calendar` goes to from `offset` in `text`: the
 /// timestamp at it, active or not (`org-at-timestamp-p` with `lax`), or
@@ -16467,6 +17060,57 @@ pub(crate) fn abbreviate_path(path: &Path) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// `org-columns-edit-value`'s questions (Org 9.8.10): `completing-read
+    /// "Value: "` over a property's allowed values, which must match unless
+    /// `:ETC` is among them; `read-string "Edit: "` with the value when it
+    /// has none; nothing before the view has come from Emacs.
+    #[test]
+    fn column_view_asks_as_emacs_does() {
+        let view = json!({
+            "columns": [{ "key": "ITEM" }, { "key": "TODO" }, { "key": "EFFORT" }],
+            "lines": [[3, "", ["Write", "TODO", "1:00"]]],
+        });
+        let allowed = |values: &[&str], unrestricted: bool| {
+            Some(org_core::properties::Allowed { values: values.iter().map(|v| v.to_string()).collect(), unrestricted })
+        };
+        let ask = |column, allowed| columns_question(commands::COLUMNS_EDIT, &view, 3, column, allowed).ok().flatten();
+        assert_eq!(ask(2, None), Some(json!({ "kind": "text", "prompt": "Edit: ", "value": "1:00" })));
+        let asked = ask(2, allowed(&["0:30", "1:00"], false)).unwrap();
+        assert_eq!(asked["prompt"], "Value: ");
+        assert_eq!(asked["kind"], "choice");
+        assert_eq!(asked["choices"], json!([{ "key": "0:30", "label": "0:30" }, { "key": "1:00", "label": "1:00" }]));
+        let asked = ask(2, allowed(&["0:30"], true)).unwrap();
+        assert_eq!((asked["kind"].as_str(), asked["completions"].clone()), (Some("text"), json!(["0:30"])));
+        assert_eq!(ask(0, None), Some(json!({ "kind": "text", "prompt": "Edit: ", "value": "Write" })));
+        assert_eq!(ask(1, None), None);
+        let empty = json!({ "columns": null, "lines": null });
+        assert!(columns_question(commands::COLUMNS_EDIT, &empty, 3, 0, None).is_err());
+    }
+
+    /// A `shell:` link's output: whole when short, else its start, saying
+    /// how much more there is.
+    #[test]
+    fn shell_messages_show_the_start_of_long_output() {
+        assert_eq!(shell_message("one\ntwo\n", false), "one\ntwo");
+        let long: String = (1..=60).map(|n| format!("{n}\n")).collect();
+        let message = shell_message(&long, false);
+        assert!(message.starts_with("1\n2\n"), "{message}");
+        assert!(message.ends_with("49\n50\n[The output goes on: 30 more characters, 10 more lines]"), "{message}");
+        let wide = "x".repeat(SHELL_MESSAGE_CHARS + 5);
+        assert_eq!(
+            shell_message(&wide, false),
+            format!("{}\n[The output goes on: 5 more characters, 0 more lines]", "x".repeat(SHELL_MESSAGE_CHARS))
+        );
+        // A command stopped for writing too much.
+        assert_eq!(
+            shell_message(&wide, true),
+            format!(
+                "{}\n[The output goes on past 1 MB, where the command was stopped]",
+                "x".repeat(SHELL_MESSAGE_CHARS)
+            )
+        );
+    }
 
     /// `org-goto-calendar`'s date: the timestamp at the cursor, active or
     /// not, else the line's last active one.

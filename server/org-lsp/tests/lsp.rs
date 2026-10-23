@@ -49,6 +49,9 @@ impl Client {
         let mut options = if options.is_null() { json!({}) } else { options };
         if let Some(fields) = options.as_object_mut() {
             fields.entry("config_file").or_insert(json!(false));
+            // The IDs an Emacs of the machine left in its
+            // `org-id-locations-file` are not read.
+            fields.entry("org_id_locations_file").or_insert(json!(NO_ID_LOCATIONS));
         }
         // An editor with org-lsp's plugin, unless the test says otherwise.
         let mut capabilities = capabilities;
@@ -550,7 +553,8 @@ fn formats_tables_and_tags() {
     );
     assert!(edits.iter().all(|edit| edit.range.start.character == 0 && edit.range.end.line == edit.range.start.line));
 
-    // A Windows file's lines the same, their `\r`s kept.
+    // A Windows file's lines the same, their `\r`s kept: `\r\n` ends a
+    // line, so the edits stop before it.
     client.notify::<lsp_types::notification::DidChangeTextDocument>(lsp_types::DidChangeTextDocumentParams {
         text_document: lsp_types::VersionedTextDocumentIdentifier { uri: uri(), version: 2 },
         content_changes: vec![lsp_types::TextDocumentContentChangeEvent {
@@ -570,12 +574,7 @@ fn formats_tables_and_tags() {
         edits.iter().map(|edit| (edit.range.start.line, edit.range.end.character, edit.new_text.as_str())).collect();
     assert_eq!(
         changed,
-        [
-            (0, 10, "* Ünï            :t:\r"),
-            (1, 7, "| a   | bb |\r"),
-            (2, 3, "|-----+----|\r"),
-            (3, 9, "| ccc | 12 |\r"),
-        ]
+        [(0, 9, "* Ünï            :t:"), (1, 6, "| a   | bb |"), (2, 2, "|-----+----|"), (3, 8, "| ccc | 12 |"),]
     );
 }
 
@@ -735,6 +734,88 @@ fn sends_the_lines_of_headlines_with_whole_heading_lines() {
     change(3, "text\n");
     let sent = client.notification("org-lsp/lineHighlights");
     assert_eq!(sent["lines"], json!([]));
+    client.shutdown();
+}
+
+/// `org-src-fontify-natively`: where the code of source, export and inline
+/// source blocks is, for a client that colors it in its language, with
+/// the editor's name of the language; not what an example block holds.
+/// Again after each change, and once with no blocks when they are gone.
+#[test]
+fn sends_the_code_blocks() {
+    let capabilities = json!({ "experimental": { "orgCodeBlocks": true } });
+    let client = Client::start(capabilities, json!({ "org_src_lang_modes": { "ipython": "python" } }));
+    let text = "* Code\n#+begin_src emacs-lisp :results none\n(defun f ()\n  1)\n#+end_src\n\
+                #+BEGIN_EXPORT html\n<b>é</b>\n#+END_EXPORT\n\
+                é src_sh[:exports code]{ls -l} and src_ipython{1}\n\
+                #+begin_example\n#+begin_src python\nx = 1\n#+end_src\n#+end_example\n";
+    client.open(&uri(), text);
+    let sent = client.notification("org-lsp/codeBlocks");
+    assert_eq!(sent["uri"], uri().as_str());
+    assert_eq!(sent["version"], 1);
+    let range = |a: u32, b: u32, c: u32, d: u32| json!({ "start": { "line": a, "character": b }, "end": { "line": c, "character": d } });
+    assert_eq!(
+        sent["blocks"],
+        json!([
+            { "range": range(2, 0, 3, 4), "language": "elisp", "name": "emacs-lisp", "kind": "src" },
+            { "range": range(6, 0, 6, 8), "language": "html", "name": "html", "kind": "export" },
+            { "range": range(8, 24, 8, 29), "language": "bash", "name": "sh", "kind": "inline" },
+            { "range": range(8, 47, 8, 48), "language": "python", "name": "ipython", "kind": "inline" },
+        ])
+    );
+    let change = |version: i32, text: &str| {
+        client.notify::<lsp_types::notification::DidChangeTextDocument>(lsp_types::DidChangeTextDocumentParams {
+            text_document: lsp_types::VersionedTextDocumentIdentifier { uri: uri(), version },
+            content_changes: vec![lsp_types::TextDocumentContentChangeEvent {
+                range: None,
+                range_length: None,
+                text: text.to_string(),
+            }],
+        });
+    };
+    change(2, "Moved\n\n#+begin_src C++\nint x;\n#+end_src\n");
+    let sent = client.notification("org-lsp/codeBlocks");
+    assert_eq!(sent["version"], 2);
+    assert_eq!(
+        sent["blocks"],
+        json!([{ "range": range(3, 0, 3, 6), "language": "cpp", "name": "C++", "kind": "src" }])
+    );
+    // The code changed where its range did not.
+    change(3, "Moved\n\n#+begin_src C++\nint y;\n#+end_src\n");
+    let sent = client.notification("org-lsp/codeBlocks");
+    assert_eq!(sent["version"], 3);
+    change(4, "No code\n");
+    let sent = client.notification("org-lsp/codeBlocks");
+    assert_eq!((sent["version"].clone(), sent["blocks"].clone()), (json!(4), json!([])));
+    client.shutdown();
+    // The option says the same for clients that cannot announce it.
+    let client = Client::start(json!({}), json!({ "code_blocks": true }));
+    client.open(&uri(), "#+begin_src sh\necho\n#+end_src\n");
+    let sent = client.notification("org-lsp/codeBlocks");
+    assert_eq!(sent["blocks"][0]["language"], "bash");
+    client.shutdown();
+}
+
+/// A client that did not ask is not told where code is.
+#[test]
+fn no_code_blocks_unless_asked() {
+    let mut client = Client::start(json!({}), Value::Null);
+    client.open(&uri(), "#+begin_src sh\necho\n#+end_src\n");
+    // An answer comes after what the server sent for the opening.
+    client.next_id += 1;
+    let id = RequestId::from(client.next_id);
+    let params = json!({ "textDocument": { "uri": uri() } });
+    let request = Request { id: id.clone(), method: "textDocument/foldingRange".to_string(), params };
+    client.connection.sender.send(Message::Request(request)).unwrap();
+    loop {
+        match client.connection.receiver.recv_timeout(std::time::Duration::from_secs(5)).expect("an answer") {
+            Message::Response(response) if response.id == id => break,
+            Message::Notification(notification) => {
+                assert_ne!(notification.method, "org-lsp/codeBlocks", "{notification:?}")
+            }
+            _ => {}
+        }
+    }
     client.shutdown();
 }
 
@@ -2064,6 +2145,72 @@ fn citations_follow_the_bibliography() {
     std::fs::remove_dir_all(directory).unwrap();
 }
 
+/// A bibliography named twice, by `#+BIBLIOGRAPHY:` and by
+/// `org_cite_global_bibliography`: Emacs reads it twice and says its keys
+/// twice, but completes each key once (its table is a hash).
+#[test]
+fn citation_keys_once_when_the_bibliography_is_named_twice() {
+    let directory = std::env::temp_dir().join(format!("org-lsp-cite-twice-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let bib = directory.join("refs.bib");
+    std::fs::write(
+        &bib,
+        "@Book{knuth1984,\n  author = {Knuth, Donald E.},\n  title = {The {\\TeX}book},\n  year = 1984\n}\n",
+    )
+    .unwrap();
+    let file = directory.join("notes.org");
+    let text = "#+bibliography: refs.bib\n\nAs [cite:@knuht1984] says, [cite:@\n";
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let options = json!({ "org_cite_global_bibliography": [bib.display().to_string()] });
+    let mut client = Client::start(json!({}), options);
+    client.open(&uri, text);
+    let published = client.notification("textDocument/publishDiagnostics");
+    let diagnostics: Vec<Value> = published["diagnostics"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|diagnostic| diagnostic["source"] == "org-lsp")
+        .cloned()
+        .collect();
+    assert_eq!(diagnostics[0]["message"], "Unknown citation key: @knuht1984 (suggestions: knuth1984 knuth1984)");
+    let actions = client
+        .raw_request(
+            "textDocument/codeAction",
+            json!({
+                "textDocument": { "uri": uri.as_str() },
+                "range": diagnostics[0]["range"],
+                "context": { "diagnostics": diagnostics },
+            }),
+        )
+        .response_result
+        .unwrap();
+    let fixes =
+        actions.as_array().unwrap().iter().filter(|action| action["title"] == "Replace with @knuth1984").count();
+    assert_eq!(fixes, 1, "{actions}");
+    let completion = client
+        .raw_request(
+            "textDocument/completion",
+            json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 2, "character": 34 } }),
+        )
+        .response_result
+        .unwrap();
+    let labels: Vec<&str> = completion.as_array().unwrap().iter().map(|item| item["label"].as_str().unwrap()).collect();
+    assert_eq!(labels, ["knuth1984"]);
+    let asked = client
+        .raw_request(
+            "workspace/executeCommand",
+            json!({ "command": "org.cite.insert", "arguments": [{
+                "textDocument": { "uri": uri.as_str() }, "position": { "line": 2, "character": 0 },
+            }] }),
+        )
+        .response_result
+        .unwrap();
+    assert_eq!(asked["input"]["choices"].as_array().unwrap().len(), 1, "{asked}");
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
 /// The next message from the server that `wanted` picks, within a minute.
 fn next_from_server(client: &Client, wanted: impl Fn(&Message) -> bool) -> Message {
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
@@ -2074,6 +2221,59 @@ fn next_from_server(client: &Client, wanted: impl Fn(&Message) -> bool) -> Messa
             return message;
         }
     }
+}
+
+/// What the server follows itself, Emacs exports too: an `id:` link to
+/// an entry of another file, whose place it is told (`org-id-locations`,
+/// which org-roam keeps in Emacs), and with org-roam a `roam:` link, a link
+/// of its own type rather than a fuzzy link that cannot be resolved.
+#[test]
+fn exports_links_the_server_follows() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("exports_links_the_server_follows: no Emacs, skipped");
+        return;
+    }
+    let directory = std::env::temp_dir().join(format!("org-lsp-export-links-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    std::fs::write(directory.join("node.org"), "* Node\n:PROPERTIES:\n:ID: node-1\n:END:\n").unwrap();
+    let file = directory.join("notes.org");
+    let text = "* Notes\nSee [[id:node-1][the node]] and [[roam:Beta]].\n";
+    std::fs::write(&file, text).unwrap();
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let config =
+        std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
+    let options = json!({
+        "emacs_config": config,
+        "org_roam_enabled": true,
+        "org_roam_directory": directory.display().to_string(),
+    });
+    let mut client = Client::start(json!({}), options);
+    client.open(&uri, text);
+    let argument = json!({
+        "textDocument": { "uri": uri.as_str() },
+        "position": { "line": 0, "character": 0 },
+        "input": "h", "answers": "", "step": "h",
+    });
+    client
+        .raw_request("workspace/executeCommand", json!({ "command": "org.export.dispatch", "arguments": [argument] }))
+        .response_result
+        .expect("a result");
+    let Message::Notification(done) = next_from_server(
+        &client,
+        |message| matches!(message, Message::Notification(notification) if notification.method == "window/showMessage"),
+    ) else {
+        unreachable!()
+    };
+    let html_file = directory.join("notes.html");
+    assert_eq!(done.params["message"], format!("Exported to {}", html_file.display()));
+    let written = std::fs::read_to_string(&html_file).unwrap();
+    assert!(written.contains(r#"<a href="node.html#ID-node-1">the node</a>"#), "{written}");
+    assert!(written.contains(r#"<a href="roam:Beta">roam:Beta</a>"#), "{written}");
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
 }
 
 #[test]
@@ -2350,6 +2550,333 @@ fn evaluates_code_through_emacs() {
     assert_eq!(edits.len(), 1, "{edits:?}");
     assert_eq!(edits[0].new_text, "");
     assert_eq!(edits[0].range, Range::new(Position::new(5, 0), Position::new(8, 0)));
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
+/// An Emacs that stops, started again: what it says each time it starts
+/// (an option of `emacs_options` left out) is shown once, and how it
+/// stopped each time.
+#[cfg(unix)]
+#[test]
+fn says_once_what_each_emacs_says() {
+    use std::os::unix::fs::PermissionsExt;
+    let directory = std::env::temp_dir().join(format!("org-lsp-emacs-again-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    // Set up with a notice, then stop at the first command.
+    let emacs = directory.join("emacs");
+    let script = r#"#!/bin/sh
+while IFS= read -r line; do
+  id=$(printf '%s' "$line" | sed -n 's/.*"id":\([0-9]*\).*/\1/p')
+  case "$line" in
+    *'"method":"setup"'*)
+      printf '\036org-lsp {"notice":"`emacs_options` leaves out `org-export-with-toc`: \\"bad\\" is not false, true or an integer"}\n'
+      printf '\036org-lsp {"id":%s,"result":{}}\n' "$id" ;;
+    *) exit 3 ;;
+  esac
+done
+"#;
+    std::fs::write(&emacs, script).unwrap();
+    std::fs::set_permissions(&emacs, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let file = directory.join("notes.org");
+    std::fs::write(&file, "| a |\n").unwrap();
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let mut client = Client::start(json!({}), json!({ "emacs": emacs.display().to_string() }));
+    client.open(&uri, "| a |\n");
+    let mut said = Vec::new();
+    for _ in 0..2 {
+        let argument = json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 0, "character": 2 } });
+        client
+            .raw_request("workspace/executeCommand", json!({ "command": "org.plot.gnuplot", "arguments": [argument] }))
+            .response_result
+            .expect("a result");
+        loop {
+            let Message::Notification(note) = next_from_server(
+                &client,
+                |message| matches!(message, Message::Notification(note) if note.method == "window/showMessage"),
+            ) else {
+                unreachable!()
+            };
+            let text = note.params["message"].as_str().unwrap().to_string();
+            let stopped = text.starts_with("Emacs stopped");
+            said.push(text);
+            if stopped {
+                break;
+            }
+        }
+    }
+    assert_eq!(
+        said,
+        [
+            "org-lsp: `emacs_options` leaves out `org-export-with-toc`: \"bad\" is not false, true or an integer",
+            "Emacs stopped (exit status 3)",
+            "Emacs stopped (exit status 3)",
+        ]
+    );
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
+/// The attachment dispatcher's `q`, a key it does not have, and `u`: a
+/// download not considered safe is the editor's question; with
+/// `org_resource_download_policy` true, none.
+#[test]
+fn attaches_from_a_url_through_emacs() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("attaches_from_a_url_through_emacs: no Emacs, skipped");
+        return;
+    }
+    let directory = std::env::temp_dir().join(format!("org-lsp-attach-url-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let source = directory.join("source.txt");
+    std::fs::write(&source, "fetched\n").unwrap();
+    let url = format!("file://{}", source.display());
+    let file = directory.join("notes.org");
+    let text = "* Task\n";
+    std::fs::write(&file, text).unwrap();
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let config =
+        std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
+    for policy in [None, Some(true)] {
+        let mut settings = json!({ "emacs_config": config });
+        if let Some(policy) = policy {
+            settings["org_resource_download_policy"] = json!(policy);
+        }
+        let mut client = Client::start(json!({}), settings);
+        client.open(&uri, text);
+        let attach = |client: &mut Client, extra: Value| {
+            let mut argument =
+                json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 0, "character": 0 } });
+            for (key, value) in extra.as_object().unwrap() {
+                argument[key] = value.clone();
+            }
+            client.raw_request("workspace/executeCommand", json!({ "command": "org.attach", "arguments": [argument] }))
+        };
+        assert_eq!(
+            attach(&mut client, json!({ "input": "q" })).response_result.unwrap(),
+            json!({ "message": "Abort" })
+        );
+        let error = attach(&mut client, json!({ "input": "x" })).response_result.expect_err("an error");
+        assert_eq!(error.message, "No such attachment command: x");
+        attach(&mut client, json!({ "input": url, "step": "u" })).response_result.expect("a result");
+        if policy.is_none() {
+            let Message::Request(question) = next_from_server(
+                &client,
+                |message| matches!(message, Message::Request(request) if request.method == "window/showMessageRequest"),
+            ) else {
+                unreachable!()
+            };
+            let asked = question.params["message"].as_str().unwrap();
+            assert!(asked.starts_with(&format!("An org-mode document would like to download {url}")), "{asked}");
+            client
+                .connection
+                .sender
+                .send(Message::Response(Response::new_ok(question.id, json!({ "title": "Yes" }))))
+                .unwrap();
+        }
+        let Message::Request(edit) = next_from_server(&client, |message| {
+            matches!(message, Message::Request(request) if request.method == "workspace/applyEdit")
+                || matches!(message, Message::Notification(note) if note.method == "window/showMessage")
+        }) else {
+            panic!("Emacs did not attach the file")
+        };
+        let edits: Vec<TextEdit> =
+            serde_json::from_value(edit.params["edit"]["changes"][uri.as_str()].clone()).unwrap();
+        let attached = apply_text_edits(text, &edits);
+        client
+            .connection
+            .sender
+            .send(Message::Response(Response::new_ok(edit.id, json!({ "applied": true }))))
+            .unwrap();
+        let id = attached.lines().find_map(|line| line.trim().strip_prefix(":ID:")).unwrap().trim().to_string();
+        let fetched = directory.join("data").join(&id[..2]).join(&id[2..]).join("source.txt");
+        assert_eq!(std::fs::read_to_string(&fetched).unwrap(), "fetched\n");
+        // What Emacs says after the edit.
+        let Message::Notification(said) = next_from_server(
+            &client,
+            |message| matches!(message, Message::Notification(note) if note.method == "window/showMessage"),
+        ) else {
+            unreachable!()
+        };
+        assert_eq!(said.params["message"], "File \"source.txt\" is now an attachment");
+        client.shutdown();
+    }
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
+/// A code block that fails: its results go in, then what Emacs says after
+/// the edit, and what it shows in `*Org-Babel Error Output*`.
+#[test]
+fn shows_what_babel_shows_of_a_block_that_fails() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("shows_what_babel_shows_of_a_block_that_fails: no Emacs, skipped");
+        return;
+    }
+    let directory = std::env::temp_dir().join(format!("org-lsp-babel-error-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let file = directory.join("code.org");
+    let text = "#+begin_src sh :results output\necho out; echo err >&2; exit 3\n#+end_src\n";
+    std::fs::write(&file, text).unwrap();
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let config =
+        std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
+    let mut client = Client::start(
+        json!({}),
+        json!({
+            "emacs_config": config,
+            "emacs_options": { "org-babel-load-languages": { "shell": true }, "org-confirm-babel-evaluate": false },
+        }),
+    );
+    client.open(&uri, text);
+    let argument = json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 1, "character": 0 } });
+    client
+        .raw_request("workspace/executeCommand", json!({ "command": "org.checkbox.toggle", "arguments": [argument] }))
+        .response_result
+        .expect("a result");
+    let Message::Request(edit) = next_from_server(
+        &client,
+        |message| matches!(message, Message::Request(request) if request.method == "workspace/applyEdit"),
+    ) else {
+        unreachable!()
+    };
+    let edits: Vec<TextEdit> = serde_json::from_value(edit.params["edit"]["changes"][uri.as_str()].clone()).unwrap();
+    assert_eq!(edits[0].new_text, "\n\n#+RESULTS:\n: out", "{edits:?}");
+    client.connection.sender.send(Message::Response(Response::new_ok(edit.id, json!({ "applied": true })))).unwrap();
+    let mut said = Vec::new();
+    while said.len() < 2 {
+        let Message::Notification(note) = next_from_server(
+            &client,
+            |message| matches!(message, Message::Notification(note) if note.method == "window/showMessage"),
+        ) else {
+            unreachable!()
+        };
+        said.push((note.params["type"].as_i64().unwrap(), note.params["message"].as_str().unwrap().to_string()));
+    }
+    assert_eq!(
+        said,
+        [
+            (3, "Babel evaluation exited with code 3".to_string()),
+            (2, "err\n[ Babel evaluation exited with code 3 ]".to_string()),
+        ]
+    );
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
+/// Emacs's yes-or-no question for a client that shows no
+/// `window/showMessageRequest` (`message_requests` off): the Vim plugin
+/// (org-lsp's editor code, `run_command`) is told to run
+/// `org.emacs.answer`, which asks it as a command's question, one key, and
+/// its messages come as `org-lsp/message` (`message_notifications`); a
+/// client without org-lsp's editor code (Helix) finds Yes and No first in
+/// the code actions.
+#[test]
+fn asks_emacs_questions_without_message_requests() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("asks_emacs_questions_without_message_requests: no Emacs, skipped");
+        return;
+    }
+    let directory = std::env::temp_dir().join(format!("org-lsp-babel-ask-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let file = directory.join("code.org");
+    let text = "* Code\n#+begin_src emacs-lisp\n(+ 1 2)\n#+end_src\n";
+    std::fs::write(&file, text).unwrap();
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let config =
+        std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
+    let argument = json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 2, "character": 0 } });
+    let execute = |client: &mut Client, command: &str, argument: Value| {
+        client
+            .raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [argument] }))
+            .response_result
+            .expect("a result")
+    };
+    let results = |client: &Client| -> String {
+        let Message::Request(request) = next_from_server(
+            client,
+            |message| matches!(message, Message::Request(request) if request.method == "workspace/applyEdit"),
+        ) else {
+            unreachable!()
+        };
+        client
+            .connection
+            .sender
+            .send(Message::Response(Response::new_ok(request.id, json!({ "applied": true }))))
+            .unwrap();
+        request.params["edit"].to_string()
+    };
+
+    // The Vim plugin.
+    let options = json!({
+        "emacs_config": config,
+        "run_command": true,
+        "message_requests": false,
+        "message_notifications": true,
+    });
+    let mut client = Client::start(json!({}), options);
+    client.open(&uri, text);
+    assert_eq!(execute(&mut client, "org.babel.execute", argument.clone()), Value::Null);
+    let Message::Notification(run) = next_from_server(
+        &client,
+        |message| matches!(message, Message::Notification(notification) if notification.method == "org-lsp/runCommand"),
+    ) else {
+        unreachable!()
+    };
+    assert_eq!(run.params["command"], "org.emacs.answer");
+    let asked = execute(&mut client, "org.emacs.answer", run.params["argument"].clone());
+    assert_eq!(asked["input"]["kind"], "key");
+    assert_eq!(asked["input"]["prompt"], "Evaluate this emacs-lisp code block on your system? (y or n) ");
+    assert_eq!(execute(&mut client, "org.emacs.answer", json!({ "input": "y" })), Value::Null);
+    assert!(results(&client).contains(": 3"));
+    // Its messages, as the plugin shows them.
+    let response = client.raw_request(
+        "workspace/executeCommand",
+        json!({ "command": "org.emacs.answer", "arguments": [{ "input": "y" }] }),
+    );
+    assert_eq!(response.response_result.unwrap_err().message, "Emacs is not asking anything");
+    client.shutdown();
+
+    // Helix.
+    let options = json!({ "emacs_config": config, "message_requests": false, "show_document": true });
+    let mut client = Client::start(json!({ "experimental": { "orgClient": false } }), options);
+    client.open(&uri, text);
+    execute(&mut client, "org.babel.execute", argument.clone());
+    let Message::Notification(said) = next_from_server(&client, |message| {
+        matches!(message, Message::Notification(notification) if notification.method == "window/showMessage"
+            && notification.params["message"].as_str().is_some_and(|text| text.contains("pick the answer")))
+    }) else {
+        unreachable!()
+    };
+    assert_eq!(
+        said.params["message"],
+        "Evaluate this emacs-lisp code block on your system? (y or n): pick the answer from the code actions"
+    );
+    let actions = client
+        .raw_request(
+            "textDocument/codeAction",
+            json!({
+                "textDocument": { "uri": uri.as_str() },
+                "range": { "start": { "line": 2, "character": 0 }, "end": { "line": 2, "character": 0 } },
+                "context": { "diagnostics": [] }
+            }),
+        )
+        .response_result
+        .unwrap();
+    let yes = &actions[0];
+    assert_eq!((yes["title"].as_str(), yes["kind"].as_str()), (Some("Yes [y]"), Some("org.answer")), "{actions}");
+    let command = yes["command"].clone();
+    execute(&mut client, command["command"].as_str().unwrap(), command["arguments"][0].clone());
+    assert!(results(&client).contains(": 3"));
     client.shutdown();
     std::fs::remove_dir_all(directory).unwrap();
 }
@@ -2704,6 +3231,31 @@ fn keeps_timers_through_emacs() {
     assert_eq!(asked["input"]["kind"], "text", "{asked}");
     request(&mut client, "org.timer.set", (0, 0), Some("0:00:01"));
     assert_eq!(said(&mut client), "Meeting: time out");
+    // Another while one runs: Emacs asks whether to replace it.
+    request(&mut client, "org.timer.set", (0, 0), Some("10"));
+    for (answer, then) in [("No", Some("No timer set")), ("Yes", None)] {
+        request(&mut client, "org.timer.set", (0, 0), Some("20"));
+        let Message::Request(question) = next_from_server(
+            &client,
+            |message| matches!(message, Message::Request(request) if request.method == "window/showMessageRequest"),
+        ) else {
+            unreachable!()
+        };
+        assert_eq!(question.params["message"], "Replace current timer?");
+        client
+            .connection
+            .sender
+            .send(Message::Response(Response::new_ok(question.id, json!({ "title": answer }))))
+            .unwrap();
+        if let Some(then) = then {
+            assert_eq!(said(&mut client), then);
+        }
+    }
+    request(&mut client, "org.timer.pause", (0, 0), None);
+    let paused = said(&mut client);
+    assert!(paused.starts_with("Timer paused at 0:19:5") || paused == "Timer paused at 0:20:00 ", "{paused}");
+    request(&mut client, "org.timer.stop", (0, 0), None);
+    assert_eq!(said(&mut client), "Timer stopped");
     // With an effort, Org takes its minutes and asks nothing.
     let asked = request(&mut client, "org.timer.set", (2, 0), None);
     assert_eq!(asked, Value::Null);
@@ -2942,6 +3494,23 @@ fn plots_tables_through_emacs() {
     assert!(plotted.contains("#+TBLFM: $3='(orgtbl-ascii-draw $2 10 30 12)"), "{plotted}");
     client.connection.sender.send(Message::Response(Response::new_ok(edit.id, json!({ "applied": true })))).unwrap();
     client.shutdown();
+    // Without gnuplot.el, Org names the command it runs (`this-command`).
+    let mut client = Client::start(json!({}), json!({ "emacs_config": load }));
+    client.open(&uri, text);
+    client
+        .raw_request("workspace/executeCommand", json!({ "command": "org.plot.gnuplot", "arguments": [at(3, 2)] }))
+        .response_result
+        .expect("a result");
+    let Message::Notification(said) = next_from_server(
+        &client,
+        |message| matches!(message, Message::Notification(note) if note.method == "window/showMessage"),
+    ) else {
+        unreachable!()
+    };
+    // Quoted as the locale lets Emacs: ‘…’ or `…'.
+    let message = said.params["message"].as_str().unwrap().replace(['‘', '’', '`', '\''], "");
+    assert_eq!(message, "org-plot/gnuplot failed to load required package \"gnuplot\"");
+    client.shutdown();
     let _ = std::fs::remove_dir_all(&directory);
 }
 
@@ -3024,7 +3593,11 @@ fn edits_through_emacs() {
     let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
     let config =
         std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
-    let options = json!({ "emacs_config": config, "org_table_formula_constants": { "k": "10" } });
+    let options = json!({
+        "emacs_config": config,
+        "emacs_options": { "org-attach-method": "mv" },
+        "org_table_formula_constants": { "k": "10" }
+    });
     let mut client = Client::start(json!({}), options);
     let mut version = 1;
     let mut text = "* Head\nSome text here.\nline\n".to_string();
@@ -3251,6 +3824,14 @@ fn edits_through_emacs() {
     let id = text.lines().find_map(|line| line.trim().strip_prefix(":ID:")).unwrap().trim().to_string();
     let copied = directory.join("data").join(&id[..2]).join(&id[2..]).join("doc.txt");
     assert_eq!(std::fs::read_to_string(&copied).unwrap(), "attached\n");
+    // `C-c C-a a`: by `org-attach-method`, which `emacs_options` makes `mv`.
+    std::fs::write(directory.join("moved.txt"), "moved\n").unwrap();
+    replace(&mut client, &mut text, &mut version, "* Other\n".to_string());
+    run(&mut client, &mut text, &mut version, "org.attach", (0, 0), json!({ "input": "moved.txt", "step": "a" }));
+    let id = text.lines().find_map(|line| line.trim().strip_prefix(":ID:")).unwrap().trim().to_string();
+    let moved = directory.join("data").join(&id[..2]).join(&id[2..]).join("moved.txt");
+    assert_eq!(std::fs::read_to_string(&moved).unwrap(), "moved\n");
+    assert!(!directory.join("moved.txt").exists(), "the file is moved, not copied");
     // A column view inserted (`C-c C-x x`), then filled in again by
     // `C-c C-c` on its `#+BEGIN:` line, both by Emacs.
     replace(&mut client, &mut text, &mut version, "* TODO A\n* B\n\n".to_string());
@@ -3527,6 +4108,130 @@ fn bibtex_entries_as_headlines() {
     client.shutdown();
     std::fs::remove_dir_all(directory).unwrap();
 }
+
+/// What the server says as it starts (here a problem with the options)
+/// waits for the client's `initialized`: nothing but the answer to
+/// `initialize` comes before it.
+#[test]
+fn says_nothing_before_initialized() {
+    private_state();
+    let (server_side, connection) = Connection::memory();
+    let server = std::thread::spawn(move || org_lsp::run(server_side).expect("server runs"));
+    let params = json!({ "capabilities": {}, "initializationOptions": { "config_file": 5 } });
+    let request = Request { id: RequestId::from(1), method: "initialize".to_string(), params };
+    connection.sender.send(Message::Request(request)).unwrap();
+    match connection.receiver.recv().unwrap() {
+        Message::Response(response) => assert_eq!(response.id, RequestId::from(1)),
+        other => panic!("not the answer to initialize: {other:?}"),
+    }
+    let early = connection.receiver.recv_timeout(std::time::Duration::from_millis(300));
+    assert!(early.is_err(), "before initialized: {early:?}");
+    let client = Client {
+        connection,
+        server: Some(server),
+        next_id: 1,
+        initialize: InitializeResult::default(),
+        asked: Vec::new(),
+    };
+    client.notify::<Initialized>(lsp_types::InitializedParams {});
+    let said = client.connection.receiver.recv_timeout(std::time::Duration::from_secs(10)).expect("a message");
+    let Message::Notification(said) = said else { panic!("not a message: {said:?}") };
+    assert_eq!(said.method, "window/showMessage");
+    assert!(said.params["message"].as_str().unwrap().contains("`config_file` is malformed"), "{said:?}");
+    client.shutdown();
+}
+
+/// A command that waits for Emacs holds up no other answer: a hover is
+/// answered while Emacs works on `org-edit-special`, which is answered
+/// once Emacs is done. `$/cancelRequest` gives up a command whose Emacs is
+/// stuck: Emacs is stopped, and the next command starts another.
+#[cfg(unix)]
+#[test]
+fn answers_other_requests_while_emacs_works() {
+    use std::os::unix::fs::PermissionsExt;
+    let directory = std::env::temp_dir().join(format!("org-lsp-working-emacs-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    // An Emacs that takes a second over `edit-special` and answers with its
+    // process id, and never answers `export-menu` (once it has it, there
+    // is a file `stuck`).
+    let emacs = directory.join("emacs");
+    let script = r#"#!/bin/sh
+while IFS= read -r line; do
+  id=$(printf '%s' "$line" | sed -n 's/.*"id":\([0-9]*\).*/\1/p')
+  case "$line" in
+    *'"method":"export-menu"'*) touch "$(dirname "$0")/stuck" ;;
+    *'"method":"edit-special"'*) sleep 1; printf '\036org-lsp {"id":%s,"error":"Emacs %s"}\n' "$id" "$$" ;;
+    *) printf '\036org-lsp {"id":%s,"result":{}}\n' "$id" ;;
+  esac
+done
+"#;
+    std::fs::write(&emacs, script).unwrap();
+    std::fs::set_permissions(&emacs, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let mut client = Client::start(json!({}), json!({ "emacs": emacs.display().to_string() }));
+    let path = directory.join("notes.org");
+    let uri: Uri = format!("file://{}", path.display()).parse().unwrap();
+    client.open(&uri, "* Heading\n#+begin_src sh\necho hi\n#+end_src\n");
+    let at = json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 2, "character": 0 } });
+    let send = |client: &mut Client, method: &str, params: Value| {
+        client.next_id += 1;
+        let id = RequestId::from(client.next_id);
+        let request = Request { id: id.clone(), method: method.to_string(), params };
+        client.connection.sender.send(Message::Request(request)).unwrap();
+        id
+    };
+    let command = |name: &str| json!({ "command": name, "arguments": [at.clone()] });
+    // The answers in the order they come, and how long each took.
+    let answers = |client: &mut Client, count: usize| {
+        let began = std::time::Instant::now();
+        let mut answered = Vec::new();
+        while answered.len() < count {
+            let message = client.connection.receiver.recv_timeout(std::time::Duration::from_secs(10));
+            if let Message::Response(response) = message.expect("the server answers") {
+                answered.push((response, began.elapsed()));
+            }
+        }
+        answered
+    };
+
+    let special = send(&mut client, "workspace/executeCommand", command("org.edit.special"));
+    let hover = send(&mut client, "textDocument/hover", at.clone());
+    let answered = answers(&mut client, 2);
+    assert_eq!(answered[0].0.id, hover);
+    assert_eq!(answered[1].0.id, special);
+    let first = answered[1].0.response_result.as_ref().expect_err("Emacs's error").message.clone();
+    assert!(first.starts_with("Emacs "), "{first}");
+
+    // Stuck: canceled, the command is answered so, and Emacs stopped.
+    let export = send(&mut client, "workspace/executeCommand", command("org.export.dispatch"));
+    let hover = send(&mut client, "textDocument/hover", at.clone());
+    let answered = answers(&mut client, 1);
+    assert_eq!(answered[0].0.id, hover);
+    let began = std::time::Instant::now();
+    while !directory.join("stuck").exists() {
+        assert!(began.elapsed() < std::time::Duration::from_secs(10), "Emacs has the job");
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    let params = json!({ "id": export.clone() });
+    client
+        .connection
+        .sender
+        .send(Message::Notification(Notification { method: "$/cancelRequest".into(), params }))
+        .unwrap();
+    let answered = answers(&mut client, 1);
+    assert_eq!(answered[0].0.id, export);
+    assert_eq!(answered[0].0.response_result.as_ref().expect_err("an error").code, -32800);
+    let special = send(&mut client, "workspace/executeCommand", command("org.edit.special"));
+    let answered = answers(&mut client, 1);
+    assert_eq!(answered[0].0.id, special);
+    let second = answered[0].0.response_result.as_ref().expect_err("Emacs's error").message.clone();
+    assert!(second.starts_with("Emacs ") && second != first, "another Emacs answers: {first}, {second}");
+    client.shutdown();
+    let _ = std::fs::remove_dir_all(directory);
+}
+
+/// An `org-id-locations-file` that is not there.
+const NO_ID_LOCATIONS: &str = "/nonexistent/org-lsp-test/.org-id-locations";
 
 /// The servers of the tests keep what they leave for others (where they
 /// listen for org-protocol URLs) in a state directory of their own, not

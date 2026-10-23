@@ -245,9 +245,34 @@ pub fn run(
 ) -> Result<Outcome, Refusal> {
     let prompt = prompt(command, text, offset)?;
     match command {
-        Command::Schedule | Command::Deadline => schedule(command, text, offset, answer, &prompt, now, settings, adapt),
+        Command::Schedule | Command::Deadline => {
+            schedule(command, text, offset, answer, &prompt, now, settings, adapt, false)
+        }
         Command::Timestamp { inactive } => timestamp(text, offset, answer, &prompt, inactive, repeated, now, settings),
         Command::Delay { deadline } => delay(deadline, text, offset, answer, &prompt, now, settings),
+    }
+}
+
+/// `org-schedule` or `org-deadline` (`command`) called with TIME, a
+/// string, for the entry at byte `offset`: TIME is read as [`run`] reads
+/// an answer, and when it is a timestamp with a repeater or a delay
+/// (`<2026-11-03 Tue +1w>`), that goes in, before the old date's.
+#[allow(clippy::too_many_arguments)]
+pub fn run_with_time(
+    command: Command,
+    text: &str,
+    offset: usize,
+    time: &str,
+    now: DateTime,
+    settings: &Settings,
+    adapt: Adapt,
+) -> Result<Outcome, Refusal> {
+    let prompt = prompt(command, text, offset)?;
+    match command {
+        Command::Schedule | Command::Deadline => {
+            schedule(command, text, offset, time, &prompt, now, settings, adapt, true)
+        }
+        _ => run(command, text, offset, time, false, now, settings, adapt),
     }
 }
 
@@ -325,20 +350,24 @@ fn schedule(
     now: DateTime,
     settings: &Settings,
     adapt: Adapt,
+    with_time: bool,
 ) -> Result<Outcome, Refusal> {
     let heading = heading_at(text, offset)?;
     let keyword = keyword(command);
-    // The repeater of the old date (`org-entry-get`), put back afterwards.
+    // The repeater of TIME when it is a timestamp (`org-ts-regexp-both`),
+    // else of the old date (`org-entry-get`), put back afterwards.
     let planning_line = next_line(text, heading);
     let planning = is_planning(text, planning_line);
     let old_date = old_date(text, heading, keyword);
     if let Some(old) = &old_date {
         time_string_to_time(old)?;
     }
-    let repeater = old_date.as_deref().and_then(|old| {
+    let repeater_of = |stamp: &str| {
         let pattern = regex!(r"(?i)([.+-]+[0-9]+[hdwmy](?:[/ ][-+]?[0-9]+[hdwmy])?)");
-        pattern.captures(old).map(|captures| captures[1].to_string())
-    });
+        pattern.captures(stamp).map(|captures| captures[1].to_string())
+    };
+    let given = with_time && regex!(r"[\[<][0-9]{4}-[0-9]{2}-[0-9]{2}[^\]\r\n>]*?[\]>]").is_match(answer);
+    let repeater = given.then(|| repeater_of(answer)).flatten().or_else(|| old_date.as_deref().and_then(repeater_of));
 
     let read = read_date(answer, prompt.default, now, settings)?;
     let mut out = text.to_string();
@@ -592,6 +621,20 @@ mod tests {
             run_at("* TODO a\nSCHEDULED: <2026-05-20 Wed 10:00 +1w>\n¦", Command::Schedule, "++1"),
             "* TODO a\nSCHEDULED: <2026-05-21 Thu +1w>\n"
         );
+    }
+
+    #[test]
+    fn a_time_given_as_a_timestamp_keeps_its_repeater() {
+        let now = DateTime::new(Date::new(2026, 5, 18), 10, 30);
+        let with_time = |text: &str, time: &str| {
+            run_with_time(Command::Deadline, text, 0, time, now, &Settings::default(), Adapt::Off).unwrap()
+        };
+        let outcome = with_time("* TODO a\nDEADLINE: <2026-05-20 Wed +1w>\n", "<2026-06-01 .+2d>");
+        assert_eq!(outcome.text, "* TODO a\nDEADLINE: <2026-06-01 Mon .+2d>\n");
+        assert_eq!(outcome.message.as_deref(), Some("Deadline on <2026-06-01 Mon .+2d>"));
+        // Not a timestamp: read as an answer, the old repeater kept.
+        let outcome = with_time("* TODO a\nDEADLINE: <2026-05-20 Wed +1w>\n", "2026-06-01 .+2d");
+        assert_eq!(outcome.text, "* TODO a\nDEADLINE: <2026-06-01 Mon +1w>\n");
     }
 
     #[test]

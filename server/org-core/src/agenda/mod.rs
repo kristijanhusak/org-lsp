@@ -472,7 +472,7 @@ pub fn tag_groups(files: &[&Outline], config: &Config) -> Vec<(String, Vec<Strin
 }
 
 /// The matcher with the group tags of the files expanded.
-fn expanded(matcher: &Matcher, files: &[&Outline], config: &Config) -> Matcher {
+pub fn expanded(matcher: &Matcher, files: &[&Outline], config: &Config) -> Matcher {
     if !config.group_tags {
         return matcher.clone();
     }
@@ -827,6 +827,7 @@ impl Builder<'_> {
             keyword_len,
             keyword_done,
             habit: None,
+            habit_prefix: None,
             graph: None,
             ts_date: None,
             log: None,
@@ -858,7 +859,8 @@ impl Builder<'_> {
     fn sexps(&self, file: usize, current: Day, out: &mut Vec<Item>) {
         let outline = self.files[file];
         for line in &outline.sexps {
-            let Some(results) = diary::entries_with(&line.sexp, &line.text, current, &self.config.diary) else {
+            let place = diary::Place { file: outline.file.clone(), line: line_number(&outline.text, line.offset) };
+            let Some(results) = diary::entries_with(&line.sexp, &line.text, current, &self.config.diary, &place) else {
                 continue;
             };
             // Org has no entry for one before the first headline, and stops.
@@ -1088,13 +1090,8 @@ impl Builder<'_> {
                 continue;
             }
             let [first, later] = &self.config.scheduled_leaders;
-            let extra = if is_habit {
-                String::new()
-            } else if is_today && past {
-                format_numbers(later, &[diff])
-            } else {
-                first.clone()
-            };
+            let leader = if is_today && past { format_numbers(later, &[diff]) } else { first.clone() };
+            let extra = if is_habit { String::new() } else { leader.clone() };
             let face = if entry.element_done || (is_habit && future) {
                 Face::Done
             } else if past && !is_habit {
@@ -1113,6 +1110,8 @@ impl Builder<'_> {
                 Some(habit) => {
                     item.priority = habit.urgency(self.today);
                     item.habit = Some(Box::new(habit));
+                    let plain = self.item(file, index, ItemKind::Scheduled, face, &leader, time.as_dotime());
+                    item.habit_prefix = Some(Box::new(plain.text[..plain.heading].to_string()));
                 }
                 None => item.priority += 99 + diff,
             }
@@ -1189,7 +1188,14 @@ impl Builder<'_> {
                 let entry = &outline.entries[shown.entry];
                 if entry.skipped_by(self.config)
                     || (entry.done && self.config.skip_timestamp_if_done)
-                    || diary::entries_with(sexp, "", current, &self.config.diary).is_none()
+                    || diary::entries_with(
+                        sexp,
+                        "",
+                        current,
+                        &self.config.diary,
+                        &diary::Place { file: outline.file.clone(), line: line_number(&outline.text, stamp.offset) },
+                    )
+                    .is_none()
                 {
                     continue;
                 }
@@ -1338,6 +1344,7 @@ impl Builder<'_> {
                 keyword_len,
                 keyword_done,
                 habit: None,
+                habit_prefix: None,
                 graph: None,
                 ts_date: None,
                 log: Some(match log.kind {
@@ -1418,6 +1425,7 @@ impl Builder<'_> {
                 keyword_len: 0,
                 keyword_done: false,
                 habit: None,
+                habit_prefix: None,
                 graph: None,
                 ts_date: None,
                 log: None,
@@ -1623,7 +1631,7 @@ impl Config {
     /// (`org-agenda-show-inherited-tags`, `org-agenda-use-tag-inheritance`).
     /// A TODO entry, a search result and a log line count as `todo`, the
     /// lines of a day as `agenda`; a tags match always has them.
-    fn inherited_tags(&self, kind: ItemKind) -> bool {
+    pub fn inherited_tags(&self, kind: ItemKind) -> bool {
         let view = match kind {
             ItemKind::Tags => return true,
             ItemKind::Todo | ItemKind::Search | ItemKind::Log => "todo",
@@ -2150,13 +2158,18 @@ pub fn block_separator(config: &Config) -> Vec<Line> {
 }
 
 /// `%e`: the entry's effort (`org-effort-property`).
-pub(crate) fn effort(entry: &Entry) -> Option<&str> {
+pub fn effort(entry: &Entry) -> Option<&str> {
     entry.properties.iter().find(|(name, _)| name == "EFFORT").map(|(_, value)| value.as_str())
 }
 
 /// The entry an agenda line was made from.
 pub fn entry<'a>(files: &[&'a Outline], source: Source) -> &'a Entry {
     &files[source.file].entries[source.entry]
+}
+
+/// The line of `text` at the byte `offset`, from 1 (`org-current-line`).
+fn line_number(text: &str, offset: usize) -> usize {
+    text.as_bytes()[..offset.min(text.len())].iter().filter(|&&byte| byte == b'\n').count() + 1
 }
 
 #[cfg(test)]

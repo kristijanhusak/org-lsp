@@ -1,0 +1,12 @@
+{
+  "folder": {
+    "org-lsp.settings": {
+      "clock": { "today": "2026-05-18", "now": "10:30" },
+      "emacs_config": "(add-to-list 'load-path \"/root/org-mode/lisp\")",
+      "org_enforce_todo_dependencies": true,
+      "org_enforce_todo_checkbox_dependencies": true,
+      "org_log_done": "time",
+      "org_cite_global_bibliography": []
+    }
+  }
+}

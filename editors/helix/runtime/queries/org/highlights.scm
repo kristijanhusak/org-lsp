@@ -157,13 +157,13 @@
 (row "|" @punctuation.special.table)
 (cell "|" @punctuation.special.table)
 (hr) @punctuation.special.table
+; The header: the first row or two above the first rule, with a row
+; below it (past a rule that opens the table).
+(table . (row (cell (contents) @markup.heading.table)) . (hr) . (row))
+(table . (hr) . (row (cell (contents) @markup.heading.table)) . (hr) . (row))
+(table . (row (cell (contents) @markup.heading.table)) . (row) . (hr) . (row))
+(table . (row) . (row (cell (contents) @markup.heading.table)) . (hr) . (row))
 (formula "#+tblfm:" @comment.keyword)
-
-; Fixed-width lines (`: text`), as verbatim.
-((paragraph . (expr ":") @_colon @markup.raw.inline.fixed . (expr)* @markup.raw.inline.fixed . "\n")
- (#eq? @_colon ":"))
-(("\n" . (expr ":") @_colon @markup.raw.inline.fixed . (expr)* @markup.raw.inline.fixed . "\n")
- (#eq? @_colon ":"))
 
 ; What Org finds in text. A thing of more than one word goes from the
 ; word that opens it to the word that closes it, on one line.
@@ -213,10 +213,16 @@
 ; Targets, macros, entities and LaTeX fragments.
 ((expr "<") @label.target
  (#match? @label.target "<<[^<>]+>>"))
+((expr "<") @_open @label.target
+ . (expr)* @_middle @label.target
+ . (expr ">") @_close @label.target
+ (#match? @_open "^<<[^<>]+$")
+ (#not-match? @_middle "[<>]")
+ (#match? @_close "^[^<>]+>>"))
 ((expr "{") @function.macro
  (#match? @function.macro "\\{\\{\\{.*\\}\\}\\}"))
 ((expr "\\") @constant.character.escape.entity
- (#match? @constant.character.escape.entity "^\\\\[a-zA-Z]+(\\{\\})?[-.,:;!?'\")}\\]]*$"))
+ (#match? @constant.character.escape.entity "^\\\\[a-zA-Z]+[0-9]*(\\{\\})?[-.,:;!?'\")}\\]]*$"))
 ((expr "$") @markup.raw.inline.latex
  (#match? @markup.raw.inline.latex "^\\$[^$\\s]([^$]*[^$\\s])?\\$[-.,:;!?'\")}\\]]*$"))
 ((expr "\\") @_open @markup.raw.inline.latex
@@ -277,3 +283,22 @@
  (#match? @markup.raw.inline.verbatim "^[-('\"{]*=[^=\\s]([^=]*[^=\\s])?=[-.,:;!?'\")}\\[\\\\]*$"))
 ((expr "~") @markup.raw.inline.code
  (#match? @markup.raw.inline.code "^[-('\"{]*~[^~\\s]([^~]*[^~\\s])?~[-.,:;!?'\")}\\[\\\\]*$"))
+
+; Where Org sees no markup: a comment, an example block and a fixed-width
+; line (`: text`) show as they are, Emacs's `org-comment`, `org-block`
+; and `org-code`. Last, to win over the words' patterns above.
+(comment (expr) @comment)
+((block
+   name: (expr) @_name @comment.block
+   contents: (contents (expr) @markup.raw.block))
+ (#match? @_name "(?i)^example$"))
+; A comment line the grammar reads as text (after a `#+KEYWORD:` line).
+((paragraph (directive) . (expr) @_hash @comment . (expr)* @comment . "\n")
+ (#eq? @_hash "#"))
+(("\n" . (expr) @_hash @comment . (expr)* @comment . "\n")
+ (#eq? @_hash "#"))
+; Fixed-width lines (`: text`), as verbatim.
+((paragraph . (expr ":") @_colon @markup.raw.inline.fixed . (expr)* @markup.raw.inline.fixed . "\n")
+ (#eq? @_colon ":"))
+(("\n" . (expr ":") @_colon @markup.raw.inline.fixed . (expr)* @markup.raw.inline.fixed . "\n")
+ (#eq? @_colon ":"))

@@ -20,6 +20,25 @@ use crate::{commands, uri};
 /// it too.
 pub const FILE_PREFIX: &str = "org-roam-buffer";
 
+/// What ripgrep searches for unlinked references: the files of each
+/// extension under `directory`, encrypted too, but not hidden ones.
+pub(crate) fn grep_files(directory: &Path, extensions: &[String]) -> Vec<String> {
+    let mut names = Vec::new();
+    super::list_files(directory, "", 0, &mut names);
+    names
+        .iter()
+        .filter(|name| !name.split('/').any(|part| part.starts_with('.')))
+        .filter(|name| {
+            extensions.iter().any(|extension| {
+                [format!(".{extension}"), format!(".{extension}.gpg"), format!(".{extension}.age")]
+                    .iter()
+                    .any(|ending| name.ends_with(ending.as_str()))
+            })
+        })
+        .map(|name| directory.join(name).to_string_lossy().to_string())
+        .collect()
+}
+
 impl Server {
     /// The file of the persistent buffer, or of the dedicated buffer of a
     /// node.
@@ -44,24 +63,7 @@ impl Server {
         let (db, _) = self.roam_db()?;
         let roam = self.roam.as_ref().ok_or(super::OFF)?;
         let kinds = roam.settings.sections.clone();
-        let directory = roam.directory.clone();
-        let extensions = roam.settings.files.extensions.clone();
-        // What ripgrep searches for unlinked references: the files of each
-        // extension, encrypted too, but not hidden ones.
-        let mut names = Vec::new();
-        super::list_files(&directory, "", 0, &mut names);
-        let files: Vec<String> = names
-            .iter()
-            .filter(|name| !name.split('/').any(|part| part.starts_with('.')))
-            .filter(|name| {
-                extensions.iter().any(|extension| {
-                    [format!(".{extension}"), format!(".{extension}.gpg"), format!(".{extension}.age")]
-                        .iter()
-                        .any(|ending| name.ends_with(ending.as_str()))
-                })
-            })
-            .map(|name| directory.join(name).to_string_lossy().to_string())
-            .collect();
+        let files = grep_files(&roam.directory, &roam.settings.files.extensions);
         let read = |file: &str| -> Option<String> {
             let path = Path::new(file);
             let open = self.documents.iter().find_map(|(key, document)| {

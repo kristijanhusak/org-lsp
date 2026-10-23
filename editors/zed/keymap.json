@@ -5,6 +5,8 @@
       "q": "pane::CloseActiveItem",
       "enter": "editor::GoToDefinition",
       "tab": "editor::GoToDefinitionSplit",
+      "s": "workspace::SaveAll",
+      "ctrl-x ctrl-s": "workspace::SaveAll",
       "f": [
         "task::Spawn",
         {
@@ -87,18 +89,6 @@
         "task::Spawn",
         {
           "task_name": "Org agenda: rebuild"
-        }
-      ],
-      "s": [
-        "task::Spawn",
-        {
-          "task_name": "Org agenda: Save all Org files"
-        }
-      ],
-      "ctrl-x ctrl-s": [
-        "task::Spawn",
-        {
-          "task_name": "Org agenda: Save all Org files"
         }
       ],
       "v l": [

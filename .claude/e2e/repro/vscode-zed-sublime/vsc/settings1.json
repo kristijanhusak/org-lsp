@@ -1,0 +1,9 @@
+{
+  "folder": {
+    "org-lsp.settings": {
+      "clock": { "today": "2026-05-18", "now": "10:30" },
+      "org_agenda_files": ["$WS/*.org"],
+      "emacs_options": { "org-attach-method": "mv", "org-export-with-toc": false }
+    }
+  }
+}

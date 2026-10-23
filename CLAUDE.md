@@ -62,6 +62,7 @@ they are out of date.
 | Between `# BEGIN generated: NAME` and `# END generated` in the Org docs (key tables, option lists); `docs/config.schema.json`; `docs/config.toml`; `lua/org-lsp/types.lua` | `settings.rs` and the manifest |
 | What works (`README.org`, `docs/<editor>.org`), `docs/parity.org`, `editors/*/TESTING.org` | `scripts/features.mjs` |
 | The Options section of `docs/parity.org` | `scripts/org-options.json` |
+| The options of `docs/emacs-options.org` (between its `# BEGIN generated` lines), and the `emacs_options` schema | `scripts/emacs-options.json`, recorded from Org by `scripts/emacs_options_reference.py` |
 | `editors/vscode/README.md` (written when the extension is packaged, not kept) | `docs/vscode.org`, by `editors/vscode/scripts/readme.mjs` |
 
 Written by hand: the `configuration` section of `package.json` (the

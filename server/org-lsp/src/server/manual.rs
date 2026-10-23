@@ -31,9 +31,11 @@ fn page_file(name: &str) -> String {
     format!("{name}.txt")
 }
 
-/// Run `program` with `arguments`, its output as text when it ends well.
+/// Run `program` with `arguments`, its output as text when it ends well;
+/// stopped when it takes too long ([`crate::process::PROGRAM_TIME`]).
 fn run(program: &str, arguments: &[&str]) -> std::io::Result<Option<String>> {
-    let output = std::process::Command::new(program)
+    let mut command = std::process::Command::new(program);
+    command
         .args(arguments)
         // One page, as text: no pager, no colors, the width Emacs's `man`
         // gives a frame of 80 columns.
@@ -42,9 +44,8 @@ fn run(program: &str, arguments: &[&str]) -> std::io::Result<Option<String>> {
         .env("PAGER", "cat")
         .env("GROFF_NO_SGR", "1")
         .env_remove("MAN_KEEP_FORMATTING")
-        .stdin(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .output()?;
+        .stdin(std::process::Stdio::null());
+    let output = crate::process::output(&mut command, crate::process::PROGRAM_TIME, crate::process::PROGRAM_SIZE)?;
     let text = String::from_utf8_lossy(&output.stdout).into_owned();
     Ok((output.status.success() && !text.trim().is_empty()).then_some(text))
 }
@@ -54,6 +55,9 @@ impl Server {
     /// line before the first match of the search, if any.
     pub(super) fn open_man(&mut self, page: &str, search: Option<&str>) -> Result<Value, Refusal> {
         let arguments = manual::man_arguments(page);
+        if let Some(refused) = manual::man_refused(&arguments) {
+            return Err(refused.into());
+        }
         let words: Vec<&str> = arguments.iter().map(String::as_str).collect();
         let program = self.man_command.clone();
         let written = run(&program, &words).map_err(|error| Refusal::Failed(format!("{program}: {error}")))?;
@@ -243,7 +247,15 @@ impl Server {
         let file = uri::to_path(&context.text_document.uri).ok_or("Assertion failed: (buffer-file-name)")?;
         let directory = file.parent().map(PathBuf::from).ok_or("Assertion failed: (buffer-file-name)")?;
         let command = ctags::create_command(&settings.program, &format!("{}/", directory.display()));
-        shell_output(&command, Some(&directory)).map_err(|error| Refusal::Failed(format!("{command}: {error}")))?;
+        let (output, code) =
+            shell_output(&command, Some(&directory)).map_err(|error| Refusal::Failed(format!("{command}: {error}")))?;
+        // What `shell-command` shows, whatever the exit code, which Org
+        // ignores: a ctags without `--langdef` says so.
+        self.message = Some(match code {
+            _ if !output.is_empty() => super::shell_message(&output, false),
+            Some(0) => "(Shell command succeeded with no output)".to_string(),
+            code => format!("(Shell command failed with code {} and no output)", code.unwrap_or(-1)),
+        });
         Ok(Value::Null)
     }
 

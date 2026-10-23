@@ -433,6 +433,18 @@
     ]
   },
   {
+    "token_type": "linkDescription",
+    "style": [
+      "link_text"
+    ]
+  },
+  {
+    "token_type": "linkUrl",
+    "style": [
+      "link_uri"
+    ]
+  },
+  {
     "token_type": "code",
     "style": [
       "text.literal"
@@ -448,6 +460,12 @@
     "token_type": "tableDelimiter",
     "style": [
       "punctuation.delimiter"
+    ]
+  },
+  {
+    "token_type": "tableHeader",
+    "style": [
+      "title"
     ]
   },
   {
@@ -482,6 +500,12 @@
   },
   {
     "token_type": "latex",
+    "style": [
+      "string.special"
+    ]
+  },
+  {
+    "token_type": "latexEnvironment",
     "style": [
       "string.special"
     ]

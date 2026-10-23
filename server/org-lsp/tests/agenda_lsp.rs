@@ -55,6 +55,9 @@ impl Client {
         let mut options = if options.is_null() { json!({}) } else { options };
         if let Some(fields) = options.as_object_mut() {
             fields.entry("config_file").or_insert(json!(false));
+            // The IDs an Emacs of the machine left in its
+            // `org-id-locations-file` are not read.
+            fields.entry("org_id_locations_file").or_insert(json!(NO_ID_LOCATIONS));
         }
         // An editor with org-lsp's plugin, unless the test says otherwise.
         let mut capabilities = capabilities;
@@ -318,8 +321,8 @@ fn announces_the_agenda() {
     let manifest = &capabilities["experimental"]["org"];
     let table = manifest["commands"].as_array().unwrap();
     // Every command but those editors call on their own: while a date is
-    // typed, and before TAB folds.
-    assert_eq!(table.len() + 2, commands.len());
+    // typed, before TAB folds, and to answer Emacs's question.
+    assert_eq!(table.len() + 3, commands.len());
     assert!(commands.contains(&"org.date.preview") && commands.contains(&"org.cycle"));
     let find = |id: &str| table.iter().find(|command| command["command"] == id).unwrap();
     assert_eq!(
@@ -708,7 +711,7 @@ fn changes_an_entry_from_the_agenda() {
             json!({ "command": "org.agenda.goto", "arguments": [{ "textDocument": { "uri": VIEW }, "position": { "line": 0, "character": 0 } }] }),
         )
         .unwrap_err();
-    assert_eq!(error, "No entry on this line");
+    assert_eq!(error, "Command not allowed in this line");
     client.shutdown();
 }
 
@@ -1510,6 +1513,39 @@ fn resumes_a_clock_left_running() {
     run(&mut client, &mut text, "org.clock.out").unwrap();
     assert!(text.contains("CLOCK: [2026-05-18 Mon 09:00]--[2026-05-18 Mon 10:30] =>  1:30\n"), "{text}");
     assert_eq!(text.matches("CLOCK:").count(), 3, "{text}");
+    client.shutdown();
+}
+
+/// Clocking in after resolving a clock left running in the same file:
+/// both changes go in one edit, as an editor that checks versions takes
+/// only one edit for each version of the file.
+#[test]
+fn clocks_in_after_resolving_in_one_edit() {
+    const URI: &str = "file:///org/dangling.org";
+    let mut text = "* TODO Left running\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]\n:END:\n* TODO Other\n".to_string();
+    let mut client = Client::editor(clock(), None);
+    client.open(URI, &text);
+    let asked = run_applying(&mut client, URI, &mut text, "org.clock.in", 4, json!({}));
+    assert_eq!(asked["input"]["prompt"], "Dangling clock started 90 mins ago [jkKtTgGSscCiq]? ");
+    let mut context = asked["input"]["context"].clone();
+    context["input"] = json!("K");
+    let asked = run_applying(&mut client, URI, &mut text, "org.clock.in", 4, context);
+    assert_eq!(asked["input"]["prompt"], "Keep how many minutes (default 90): ");
+    let mut context = asked["input"]["context"].clone();
+    context["input"] = json!("");
+    let at = json!({ "textDocument": { "uri": URI }, "position": { "line": 4, "character": 0 }, "input": "", "step": context["step"], "answers": context["answers"] });
+    client.received.clear();
+    client.request("workspace/executeCommand", json!({ "command": "org.clock.in", "arguments": [at] })).unwrap();
+    client.settle();
+    let edits: Vec<&Request> =
+        client.received.iter().filter(|request| request.method == "workspace/applyEdit").collect();
+    assert_eq!(edits.len(), 1, "{:?}", client.received);
+    assert_eq!(edits[0].params["edit"]["documentChanges"][0]["textDocument"]["version"], json!(client.file_version));
+    apply_received(&mut client, URI, &mut text);
+    assert_eq!(
+        text,
+        "* TODO Left running\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 09:00]--[2026-05-18 Mon 10:30] =>  1:30\n:END:\n* TODO Other\n:LOGBOOK:\nCLOCK: [2026-05-18 Mon 10:30]\n:END:\n"
+    );
     client.shutdown();
 }
 
@@ -2390,6 +2426,42 @@ fn dims_blocked_tasks_in_the_agenda() {
     client.shutdown();
 }
 
+/// `org-agenda-change-all-lines` as Emacs (Org 9.8.10) leaves the line: an
+/// entry of the TODO list marked done keeps its new keyword when its
+/// parent's cookie, counted again, moves the parent's tags; a habit marked
+/// done is formatted again as a scheduled line, its leader shown and its
+/// graph gone.
+#[test]
+fn changed_lines_show_the_new_state() {
+    let mut options = clock();
+    options["org_modules"] = json!(["org-habit"]);
+    let mut client = Client::editor(options, None);
+    let uri = "file:///org/a.org";
+    let mut text = "* TODO Project [0/2] :work:\n** TODO Build it\n** TODO Ship it\n".to_string();
+    client.open(uri, &text);
+    client.command("org.agenda.todos", uri, 0);
+    let view = client.show_view();
+    let ship = view.lines().position(|line| line.contains("Ship it")).unwrap() as u32;
+    client.edit("org.todo.next", VIEW, (ship, 0), json!({}), &mut text);
+    assert!(text.starts_with(&format!("* TODO Project [1/2]{}:work:\n", " ".repeat(51))), "{text}");
+    let view = client.refetch_view();
+    let line = view.lines().find(|line| line.contains("Ship it")).unwrap();
+    assert!(line.starts_with("  a:          DONE Ship it "), "{view}");
+
+    let habits = "file:///org/gtd.org";
+    let mut text =
+        "* TODO Water the plants\nSCHEDULED: <2026-05-17 Sun .+2d>\n:PROPERTIES:\n:STYLE: habit\n:END:\n".to_string();
+    client.open(habits, &text);
+    client.command("org.agenda.list", habits, 0);
+    let view = client.refetch_view();
+    let water = view.lines().position(|line| line.contains("Water the plants")).unwrap() as u32;
+    client.edit("org.todo.next", VIEW, (water, 0), json!({}), &mut text);
+    assert!(text.contains("SCHEDULED: <2026-05-20 Wed .+2d>"), "{text}");
+    let view = client.refetch_view();
+    assert_eq!(view.lines().nth(water as usize).unwrap(), "  gtd:        Sched. 1x:  DONE Water the plants", "{view}");
+    client.shutdown();
+}
+
 /// `org-habit`: a habit's line carries its consistency graph, each day a
 /// token of its face; `K` hides habits and shows them again.
 #[test]
@@ -2637,6 +2709,37 @@ fn runs_shell_links() {
     std::fs::remove_dir_all(directory).unwrap();
 }
 
+/// `org-link--open-elisp`: following an `elisp:` link asks first, then
+/// Emacs evaluates it and its value is said as Emacs says it; `Abort` on
+/// no, and Emacs's error for a form that fails. A link that opens one of
+/// Emacs's own programs is refused.
+#[test]
+fn evaluates_elisp_links() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("evaluates_elisp_links: no Emacs, skipped");
+        return;
+    }
+    let mut options = clock();
+    if let Ok(dir) = std::env::var("ORG_LISP_DIR") {
+        options["emacs_config"] = json!(format!("(add-to-list 'load-path {dir:?})"));
+    }
+    let mut client = Client::editor(options, None);
+    let uri = "file:///org/links.org";
+    client.open(uri, "[[elisp:(+ 1 2)]] [[elisp:(concat \"a\" \"b\")]] [[elisp:(error \"Boom\")]] [[help:car]]\n");
+    let asked = open_at(&mut client, uri, 3, json!({})).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Execute (+ 1 2) as Elisp? ");
+    let step = asked["input"]["context"].clone();
+    let answer = |input: &str| json!({ "input": input, "step": step["step"], "answers": step["answers"] });
+    assert_eq!(open_at(&mut client, uri, 3, answer("n")), Err("Abort".to_string()));
+    assert_eq!(open_at(&mut client, uri, 3, answer("y")).unwrap()["message"], "(+ 1 2) => 3");
+    assert_eq!(open_at(&mut client, uri, 20, answer("y")).unwrap()["message"], "(concat \"a\" \"b\") => ab");
+    assert_eq!(open_at(&mut client, uri, 50, answer("y")), Err("Boom".to_string()));
+    assert_eq!(open_at(&mut client, uri, 75, json!({})), Err("Links of type \"help\" are not supported".to_string()));
+    client.shutdown();
+}
+
 /// Runs `org.open` at `character` of the first line of `uri`, with more
 /// of the context in `extra`.
 fn open_at(client: &mut Client, uri: &str, character: u32, extra: Value) -> Result<Value, String> {
@@ -2665,8 +2768,8 @@ fn shown_document(client: &Client) -> Value {
 /// `org-man-open` with `ol-man` in `org-modules`: the page
 /// `org_man_command` writes, without its overstrikes, in a file of the
 /// server's, shown at the line before the search's first match;
-/// `Can’t find …` when there is none. Without `ol-man`, `man:` is no link
-/// type.
+/// `Can’t find …` when there is none; a link that would give `man` an
+/// option is refused. Without `ol-man`, `man:` is no link type.
 #[cfg(unix)]
 #[test]
 fn follows_man_links() {
@@ -2680,7 +2783,7 @@ fn follows_man_links() {
     .unwrap();
     std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o755)).unwrap();
     let file = directory.join("index.org");
-    let text = "[[man:ls::-L]] [[man:printf(3)]] [[man:nosuch]]\n";
+    let text = "[[man:ls::-L]] [[man:printf(3)]] [[man:nosuch]] [[man:-l /etc/hostname]]\n";
     std::fs::write(&file, text).unwrap();
     let uri = format!("file://{}", file.display());
     let mut options = clock();
@@ -2699,6 +2802,8 @@ fn follows_man_links() {
     let page = shown_document(&client)["uri"].as_str().unwrap().strip_prefix("file://").unwrap().to_string();
     assert!(std::fs::read_to_string(&page).unwrap().starts_with("MANWIDTH=80 ARGS=3 printf\n"));
     assert_eq!(open_at(&mut client, &uri, 36, json!({})), Err("Can’t find the nosuch manpage".to_string()));
+    // An option is not given to `man`, as Emacs would give it.
+    assert_eq!(open_at(&mut client, &uri, 52, json!({})), Err("A man: link names pages, not options: -l".to_string()));
     client.shutdown();
     // Without `ol-man`: a headline to make.
     let mut client = Client::editor(clock(), None);
@@ -2795,6 +2900,18 @@ fn follows_links_to_ctags_tags() {
     open_at(&mut client, &uri, 20, json!({ "input": "y", "step": step["step"], "answers": step["answers"] })).unwrap();
     let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("the topic");
     assert_eq!(apply(text, &edits_of(edit).1), format!("{text}\n\n* <<Topic>>\n\n\n\n\n\n"));
+    // `org-ctags-create-tags`: what ctags says is shown, as `shell-command`
+    // shows it, also when it fails (Emacs's own ctags has no `--langdef`).
+    let create = |client: &mut Client| {
+        let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 0 } });
+        client.request("workspace/executeCommand", json!({ "command": "org.ctags.create", "arguments": [context] }))
+    };
+    assert_eq!(create(&mut client).unwrap()["message"], "(Shell command succeeded with no output)");
+    std::fs::write(&program, "#!/bin/sh\necho \"ctags: unrecognized option '--langdef=orgmode'\" >&2\nexit 1\n")
+        .unwrap();
+    assert_eq!(create(&mut client).unwrap()["message"], "ctags: unrecognized option '--langdef=orgmode'");
+    std::fs::write(&program, "#!/bin/sh\nexit 3\n").unwrap();
+    assert_eq!(create(&mut client).unwrap()["message"], "(Shell command failed with code 3 and no output)");
     client.shutdown();
     std::fs::remove_dir_all(directory).unwrap();
 }
@@ -2932,12 +3049,32 @@ fn diary_sexps_go_to_emacs() {
         options["emacs_config"] = json!(format!("(add-to-list 'load-path {dir:?})"));
     }
     let mut client = Client::editor(options, None);
-    client.open("file:///org/diary.org", "* Days\n%%(cl-evenp (calendar-extract-day date)) Even day\n");
+    client.open(
+        "file:///org/diary.org",
+        "* Days\n%%(cl-evenp (calendar-extract-day date)) Even day\n%%(error \"boom\") Never\n",
+    );
     client.command("org.agenda.list", "file:///org/diary.org", 0);
     let text = client.view_text(VIEW);
     let even: Vec<&str> = text.lines().filter(|line| line.contains("Even day")).collect();
     // Monday 18 to Sunday 24: the 18th, 20th, 22nd and 24th.
     assert_eq!(even.len(), 4, "{text}");
+    assert!(!text.contains("Never"), "{text}");
+    // A sexp that fails is left out, and what Org says of it said once,
+    // not for each day.
+    let said = |client: &Client| -> Vec<String> {
+        client
+            .notifications
+            .iter()
+            .filter(|notification| notification.method == "window/showMessage")
+            .filter_map(|notification| notification.params["message"].as_str().map(str::to_string))
+            .collect()
+    };
+    client.wait_until(|client| !said(client).is_empty());
+    client.command("org.agenda.list", "file:///org/diary.org", 0);
+    client.settle();
+    let said = said(&client);
+    assert_eq!(said.len(), 1, "{said:?}");
+    assert!(said[0].starts_with("Bad sexp at line 3 in /org/diary.org: (let ((entry Never)"), "{said:?}");
     client.shutdown();
 }
 
@@ -3643,7 +3780,7 @@ fn shows_column_view() {
     assert!(text.contains("** TODO B\n"), "{text}");
     // `e` on its effort asks for the value first.
     let asked = run(&mut client, &mut text, "org.columns.edit", 6, json!({ "column": 2 }));
-    assert_eq!(asked["input"]["prompt"], "EFFORT value [0:30]: ");
+    assert_eq!(asked["input"], json!({ "kind": "text", "prompt": "Edit: ", "value": "0:30" }));
     let view = run(&mut client, &mut text, "org.columns.edit", 6, json!({ "column": 2, "input": "2:00" }));
     assert_eq!(view["lines"][0][1], "* Project                 | TODO | 3:00   |");
     // `q`: off.
@@ -4172,7 +4309,7 @@ fn changes_timestamps_and_priorities_in_a_file() {
     client.open("file:///org/empty.org", "* a\n");
     client.command("org.agenda.todos", VIEW, 0);
     let error = run(&mut client, "org.timestamp.up", VIEW, (0, 0)).unwrap_err();
-    assert_eq!((error.message.as_str(), error.data), ("No entry on this line", None));
+    assert_eq!((error.message.as_str(), error.data), ("Command not allowed in this line", None));
 
     // The actions at a timestamp.
     let actions = client
@@ -4752,7 +4889,7 @@ fn schedules_from_the_agenda() {
     let header = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 1, "character": 0 } });
     let refused =
         client.request("workspace/executeCommand", json!({ "command": "org.schedule", "arguments": [header] }));
-    assert_eq!(refused, Err("No entry on this line".to_string()));
+    assert_eq!(refused, Err("Command not allowed in this line".to_string()));
 
     // What an answer means, for an input box, as in a file.
     let mut preview = context.clone();
@@ -6074,7 +6211,24 @@ fn offers_commands_as_actions_and_asks_with_buttons() {
     let (_, edits) = edits_of(edit);
     assert!(apply(&text, &edits).contains("DEADLINE: <2026-05-25 Mon>"), "{edits:?}");
     // Answered, the question is gone: a rename is a rename again.
-    assert_eq!(client.request("textDocument/prepareRename", place).unwrap()["placeholder"], "Write report");
+    assert_eq!(client.request("textDocument/prepareRename", place.clone()).unwrap()["placeholder"], "Write report");
+    // `-` alone is the empty answer, for a client that sends no empty new
+    // name (Zed): the prompt's default.
+    let mut answered = Vec::new();
+    for answer in ["", "-"] {
+        client
+            .request("workspace/executeCommand", json!({ "command": "org.deadline", "arguments": [context] }))
+            .unwrap();
+        client.settle();
+        client.received.clear();
+        rename["newName"] = json!(answer);
+        client.request("textDocument/rename", rename.clone()).unwrap();
+        client.settle();
+        let edit = client.received.iter().find(|request| request.method == "workspace/applyEdit").expect("an edit");
+        answered.push(apply(&text, &edits_of(edit).1));
+    }
+    assert!(answered[0].contains("DEADLINE: <"), "{}", answered[0]);
+    assert_eq!(answered[0], answered[1]);
 
     // The keys that insert a heading are actions too, which the server
     // applies, the cursor then moved to the new heading.
@@ -6421,13 +6575,14 @@ fn captures_with_the_date_of_the_agenda_line() {
             .request("workspace/executeCommand", json!({ "command": "org.capture.finish", "arguments": [context] }))
             .unwrap();
         client.settle();
-        let filed = client.received.iter().find(|request| request.method == "workspace/applyEdit").map(edits_of);
-        (captured, filed.map(|(_, edits)| apply("", &edits)))
+        captured
     };
-    assert_eq!(capture(&mut client, "n", line("Write")).0, "* Note <2026-05-20 Wed> [2026-05-20 Wed 00:00]\n");
-    assert_eq!(capture(&mut client, "n", line("Thursday")).0, "* Note <2026-05-21 Thu> [2026-05-21 Thu 00:00]\n");
-    let (captured, filed) = capture(&mut client, "d", line("Write"));
+    assert_eq!(capture(&mut client, "n", line("Write")), "* Note <2026-05-20 Wed> [2026-05-20 Wed 00:00]\n");
+    assert_eq!(capture(&mut client, "n", line("Thursday")), "* Note <2026-05-21 Thu> [2026-05-21 Thu 00:00]\n");
+    let captured = capture(&mut client, "d", line("Write"));
     assert_eq!(captured, "**** Day <2026-05-20 Wed>\n");
+    // The empty diary, not open, is written.
+    let filed = std::fs::read_to_string(&diary).ok();
     // Under the day of the line; an empty file starts with a blank line,
     // as Emacs leaves it (tests/capture/cases.json).
     let tree = "\n* 2026\n** 2026-05 May\n*** 2026-05-20 Wednesday\n**** Day <2026-05-20 Wed>\n";
@@ -8167,7 +8322,20 @@ fn looks_for_ids_where_the_id_options_say() {
     client.open(&uri, text);
     assert_eq!(open(&mut client, 3).as_deref(), Ok("kept.org"));
     assert_eq!(open(&mut client, 20).as_deref(), Ok("agenda.org_archive"));
+    // The IDs of the files are kept; an ID that moved to another file is
+    // looked for again, and found there.
+    let rewrite = |name: &str, text: &str| {
+        std::fs::write(root.join(name), text).unwrap();
+        let later = std::time::SystemTime::now() + std::time::Duration::from_secs(5);
+        std::fs::File::options().write(true).open(root.join(name)).unwrap().set_modified(later).unwrap();
+    };
+    rewrite("far/kept.org", "* Kept\n");
+    rewrite("agenda.org", "* Top\n** Sub\n:PROPERTIES:\n:ID: kept-id\n:END:\n");
+    assert_eq!(open(&mut client, 3).as_deref(), Ok("agenda.org"));
+    rewrite("agenda.org", "* Top\n** Sub\n");
+    assert_eq!(open(&mut client, 3), Err("Cannot find entry with ID \"kept-id\"".to_string()));
     client.shutdown();
+    std::fs::write(root.join("far/kept.org"), "* Kept\n:PROPERTIES:\n:ID: kept-id\n:END:\n").unwrap();
 
     // `org-id-search-archives` off: not in the archives.
     options["org_id_search_archives"] = json!(false);
@@ -8514,7 +8682,7 @@ fn agenda_column_view_goes_to_emacs() {
     // `e` on the effort of `Read`: asked, then changed in its file.
     client.notifications.clear();
     let asked = run(&mut client, "org.columns.edit", read, json!({ "column": 2 })).unwrap();
-    assert_eq!(asked["input"]["prompt"], "EFFORT value [0:30]: ", "{asked}");
+    assert_eq!(asked["input"]["prompt"], "Edit: ", "{asked}");
     client.received.clear();
     run(&mut client, "org.columns.edit", read, json!({ "column": 2, "input": "2:00" })).unwrap();
     let start = std::time::Instant::now();
@@ -8713,8 +8881,10 @@ fn previews_the_images_of_links() {
 }
 
 /// A tiny HTTP server for the remote images: `/a.png` and `/b.png` are
-/// pictures, anything else is not found. It counts the requests it
-/// answered, by path.
+/// pictures; `/slow.png` too, after a second and a half; `/huge.png` is
+/// 21 MB with no `Content-Length`; a path with `a,b` or `1-3` in it, or
+/// ending in `-long.png`, is a picture; anything else is not found. It
+/// counts the requests it answered, by path.
 fn image_server() -> (String, std::sync::Arc<std::sync::Mutex<Vec<String>>>) {
     use std::io::{BufRead, BufReader, Write};
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
@@ -8736,10 +8906,24 @@ fn image_server() -> (String, std::sync::Arc<std::sync::Mutex<Vec<String>>>) {
                 }
             }
             counted.lock().unwrap().push(path.clone());
+            let picture =
+                |name: &str| format!("HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\npng {name}");
             let response = match path.as_str() {
-                "/a.png" | "/b.png" => {
-                    format!("HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\npng {}", &path[1..2])
+                "/a.png" | "/b.png" => picture(&path[1..2]),
+                "/slow.png" => {
+                    std::thread::sleep(std::time::Duration::from_millis(1500));
+                    picture("s")
                 }
+                "/huge.png" => {
+                    let _ = stream.write_all(b"HTTP/1.1 200 OK\r\nConnection: close\r\n\r\n");
+                    let chunk = vec![0u8; 1 << 20];
+                    for _ in 0..21 {
+                        let _ = stream.write_all(&chunk);
+                    }
+                    continue;
+                }
+                _ if path.contains("a,b") || path.contains("1-3") => picture("g"),
+                _ if path.ends_with("-long.png") => picture("l"),
                 _ => "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_string(),
             };
             let _ = stream.write_all(response.as_bytes());
@@ -8766,10 +8950,21 @@ fn previews_remote_images() {
     let a = format!("{base}/a.png");
     let text = format!("* Pictures\n[[{a}]]\n{base}/b.png\n[[{base}/missing.png]]\n");
     let capabilities = json!({ "experimental": { "orgImages": true }, "general": { "positionEncodings": ["utf-8"] } });
+    // With images to download, the command answers at once, and the
+    // preview comes in `org-lsp/images` once they are there.
     let run = |client: &mut Client, context: &Value| {
-        client
+        let result = client
             .request("workspace/executeCommand", json!({ "command": "org.link.preview", "arguments": [context] }))
-            .unwrap()
+            .unwrap();
+        if !result.is_null() {
+            return result;
+        }
+        let images = |client: &mut Client| {
+            client.notifications.iter().position(|notification| notification.method == "org-lsp/images")
+        };
+        client.wait_until(|client| images(client).is_some());
+        let at = images(client).unwrap();
+        json!({ "preview": client.notifications.remove(at).params })
     };
     let start = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 0 }, "count": 16 });
     let paths = |result: &Value| -> Vec<String> {
@@ -8849,8 +9044,23 @@ fn previews_remote_images() {
     let (done, _) = answer(&mut client, start.clone(), &question, "f");
     assert_eq!(paths(&done), ["png a", "png b"]);
     let before = asked.lock().unwrap().len();
-    assert_eq!(paths(&run(&mut client, &start)), ["png a", "png b"]);
+    let again = run(&mut client, &start);
+    assert_eq!(paths(&again), ["png a", "png b"]);
     assert_eq!(asked.lock().unwrap().len(), before + 3);
+    // Into the same file for the same URL: one file each.
+    assert_eq!(again["preview"]["items"], done["preview"]["items"]);
+    let images =
+        std::path::Path::new(again["preview"]["items"][0]["path"].as_str().unwrap()).parent().unwrap().to_path_buf();
+    assert_eq!(std::fs::read_dir(&images).unwrap().count(), 2);
+    assert_eq!(
+        client.request(
+            "workspace/executeCommand",
+            json!({ "command": "org.link.preview", "arguments": [start.clone()] })
+        ),
+        Ok(Value::Null)
+    );
+    client.wait_until(|client| client.notifications.iter().any(|notification| notification.method == "org-lsp/images"));
+    client.notifications.clear();
     // When the file opens, nothing is asked.
     client.shutdown();
     let mut client = Client::start(capabilities.clone(), options.clone(), None);
@@ -8884,6 +9094,103 @@ fn previews_remote_images() {
         assert!(asked.lock().unwrap().is_empty());
         client.shutdown();
     }
+    let _ = std::fs::remove_dir_all(&directory);
+}
+
+/// The images of files show at once, and the preview comes again with
+/// the downloads; a URL is downloaded as it is written, not as a pattern
+/// of URLs (`{a,b}`, `[1-3]`), one too large is not, nor is one whose
+/// name is too long for a file's lost. The previews download one after
+/// the other, and one whose document changed before its turn does not.
+#[test]
+fn remote_images_download_in_turn_as_written() {
+    if !std::process::Command::new("curl").arg("--version").output().is_ok_and(|out| out.status.success()) {
+        eprintln!("remote_images_download_in_turn_as_written: no curl, skipped");
+        return;
+    }
+    let (base, asked) = image_server();
+    let directory = std::env::temp_dir().join(format!("org-lsp-remote-turn-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    std::fs::write(directory.join("local.png"), "png local").unwrap();
+    let uri = |name: &str| format!("file://{}", directory.join(name).display());
+    let capabilities = json!({ "experimental": { "orgImages": true }, "general": { "positionEncodings": ["utf-8"] } });
+    let mut options = clock();
+    options["org_display_remote_inline_images"] = json!("download");
+    options["org_safe_remote_resources"] = json!([format!("\\`{}/", base.replace('.', "\\."))]);
+    let mut client = Client::start(capabilities, options, None);
+    let preview = |client: &mut Client, uri: &str| {
+        let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 0 }, "count": 16 });
+        client
+            .request("workspace/executeCommand", json!({ "command": "org.link.preview", "arguments": [context] }))
+            .unwrap()
+    };
+    let images = |client: &mut Client| -> Vec<Value> {
+        client.settle();
+        let (images, others) =
+            client.notifications.drain(..).partition(|notification| notification.method == "org-lsp/images");
+        client.notifications = others;
+        images.into_iter().map(|notification| notification.params).collect()
+    };
+    let contents = |preview: &Value| -> Vec<String> {
+        preview["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|item| std::fs::read_to_string(item["path"].as_str().unwrap()).unwrap())
+            .collect()
+    };
+    let long = format!("{}-long.png", "n".repeat(300));
+    let text = format!(
+        "* Pictures\n[[file:local.png]]\n{base}/x{{a,b}}.png\n[[{base}/y\\[1-3\\].png]]\n{base}/huge.png\n{base}/{long}\n"
+    );
+    client.open(&uri("pictures.org"), &text);
+    let answered = preview(&mut client, &uri("pictures.org"));
+    assert_eq!(contents(&answered["preview"]), ["png local"]);
+    client.wait_until(|client| client.notifications.iter().any(|notification| notification.method == "org-lsp/images"));
+    let later = images(&mut client);
+    assert_eq!(later.len(), 1);
+    assert_eq!(contents(&later[0]), ["png local", "png g", "png g", "png l"]);
+    let said: Vec<Value> = client
+        .notifications
+        .drain(..)
+        .filter(|notification| notification.method == "window/showMessage")
+        .map(|notification| notification.params["message"].clone())
+        .collect();
+    assert_eq!(said, [json!(format!("Unable to fetch file from \"{base}/huge.png\""))]);
+    // One request for each URL, its path as written.
+    let requests = asked.lock().unwrap().clone();
+    assert_eq!(requests.len(), 4, "{requests:?}");
+    assert!(requests.iter().filter(|path| path.contains("a,b")).count() == 1, "{requests:?}");
+    assert!(requests.iter().filter(|path| path.contains("1-3")).count() == 1, "{requests:?}");
+    // No part of a large download is left.
+    let files = std::path::Path::new(later[0]["items"][1]["path"].as_str().unwrap()).parent().unwrap().to_path_buf();
+    assert_eq!(std::fs::read_dir(&files).unwrap().count(), 3);
+
+    // In turn: the slow one first; the second, changed before its turn,
+    // is not downloaded; the third comes after the first.
+    asked.lock().unwrap().clear();
+    client.open(&uri("slow.org"), &format!("{base}/slow.png\n"));
+    client.open(&uri("changed.org"), &format!("{base}/b.png\n"));
+    client.open(&uri("third.org"), &format!("{base}/a.png\n"));
+    for name in ["slow.org", "changed.org", "third.org"] {
+        assert_eq!(preview(&mut client, &uri(name)), Value::Null);
+    }
+    client.notify(
+        "textDocument/didChange",
+        json!({ "textDocument": { "uri": uri("changed.org"), "version": 2 }, "contentChanges": [{ "text": "Changed\n" }] }),
+    );
+    client.wait_until(|client| {
+        client.notifications.iter().filter(|notification| notification.method == "org-lsp/images").count() == 2
+    });
+    let sent = images(&mut client);
+    let sent: Vec<(&str, Vec<String>)> =
+        sent.iter().map(|preview| (preview["uri"].as_str().unwrap(), contents(preview))).collect();
+    assert_eq!(
+        sent,
+        [(uri("slow.org").as_str(), vec!["png s".to_string()]), (uri("third.org").as_str(), vec!["png a".to_string()])]
+    );
+    assert_eq!(*asked.lock().unwrap(), ["/slow.png", "/a.png"]);
+    client.shutdown();
     let _ = std::fs::remove_dir_all(&directory);
 }
 
@@ -10201,6 +10508,13 @@ fn keeps_the_clock_between_sessions() {
             format!("(setq org-clock-stored-history '(({name:?} . 1) ({name:?} . 60)))"),
         ]
     );
+    // Written beside it and renamed over it: nothing else is left there.
+    let mut names: Vec<String> = std::fs::read_dir(&root)
+        .unwrap()
+        .map(|entry| entry.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    names.sort();
+    assert_eq!(names, ["org-clock-save.el", "work.org"]);
     let _ = std::fs::remove_dir_all(&root);
 }
 
@@ -10306,6 +10620,9 @@ fn bibtex_keys_come_from_emacs() {
     client.shutdown();
 }
 
+/// An `org-id-locations-file` that is not there.
+const NO_ID_LOCATIONS: &str = "/nonexistent/org-lsp-test/.org-id-locations";
+
 /// The servers of the tests keep what they leave for others (where they
 /// listen for org-protocol URLs) in a state directory of their own, not
 /// the user's.
@@ -10315,4 +10632,112 @@ fn private_state() {
         let state = std::env::temp_dir().join(format!("org-lsp-test-state-{}", std::process::id()));
         std::env::set_var("XDG_STATE_HOME", state);
     });
+}
+
+/// A client that does nothing with a command's result (Helix): the server
+/// applies the edit a result carries, as for sorting, and leaves out the
+/// agenda's /Save all Org files/, which it cannot do; a filter after a
+/// change made from the agenda still filters the lines.
+#[test]
+fn a_plain_client_gets_the_edits_of_results_and_filters_after_changes() {
+    let mut options = clock();
+    options["show_document"] = json!(true);
+    options["message_requests"] = json!(false);
+    let root = std::env::temp_dir().join(format!("org-lsp-plain-results-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    std::fs::create_dir_all(&root).unwrap();
+    let (a, b) = (root.join("a.org"), root.join("b.org"));
+    let a_text = "* TODO Write report\nSCHEDULED: <2026-05-18 Mon 09:00>\n";
+    let mut b_text = "* TODO Bee\nSCHEDULED: <2026-05-18 Mon>\n* Top\n** b\n** a\n".to_string();
+    std::fs::write(&a, a_text).unwrap();
+    std::fs::write(&b, &b_text).unwrap();
+    options["org_agenda_files"] = json!([root.to_string_lossy()]);
+    let capabilities = json!({
+        "experimental": { "orgClient": false },
+        "workspace": { "workspaceEdit": { "documentChanges": true } },
+    });
+    let mut client = Client::start(capabilities, options, None);
+    let (a_uri, b_uri) = (format!("file://{}", a.display()), format!("file://{}", b.display()));
+    client.open(&a_uri, a_text);
+    client.open(&b_uri, &b_text);
+
+    // Sorting `* Top`'s entries alphabetically: the edit comes.
+    let requests = client.edit("org.sort", &b_uri, (2, 0), json!({ "input": "a" }), &mut b_text);
+    assert!(methods(&requests).contains(&"workspace/applyEdit"), "{:?}", methods(&requests));
+    assert!(b_text.ends_with("* Top\n** a\n** b\n"), "{b_text}");
+
+    // The agenda, an Org file the client opens.
+    let requests = client.command("org.agenda.list", &a_uri, 0);
+    let shown = requests.iter().find(|request| request.method == "window/showDocument").expect("the agenda");
+    let agenda_uri = shown.params["uri"].as_str().unwrap().to_string();
+    let mut agenda = std::fs::read_to_string(agenda_uri.trim_start_matches("file://")).unwrap();
+    client.open(&agenda_uri, &agenda);
+    let actions = client
+        .request(
+            "textDocument/codeAction",
+            json!({
+                "textDocument": { "uri": agenda_uri },
+                "range": { "start": { "line": 0, "character": 0 }, "end": { "line": 0, "character": 0 } },
+                "context": { "diagnostics": [] }
+            }),
+        )
+        .unwrap();
+    let kinds: Vec<&str> = actions.as_array().unwrap().iter().filter_map(|action| action["kind"].as_str()).collect();
+    assert!(kinds.contains(&"org.agenda.redo") && !kinds.contains(&"org.agenda.save"), "{kinds:?}");
+
+    // The agenda's new text, as the client applies it and tells.
+    let mut version = 1;
+    let mut follow = |client: &mut Client, requests: &[Request], agenda: &mut String| {
+        for request in requests.iter().filter(|request| request.method == "workspace/applyEdit") {
+            let (file, edits) = edits_of(request);
+            if file == agenda_uri {
+                *agenda = apply(agenda, &edits);
+                version += 1;
+                client.notify(
+                    "textDocument/didChange",
+                    json!({ "textDocument": { "uri": agenda_uri, "version": version }, "contentChanges": [{ "text": agenda }] }),
+                );
+                client.settle();
+            }
+        }
+    };
+    let bee = agenda.lines().position(|line| line.contains("Bee")).unwrap() as u32;
+    let mut requests = client.edit("org.todo.next", &agenda_uri, (bee, 3), json!({}), &mut b_text);
+    client.settle();
+    requests.append(&mut client.received);
+    follow(&mut client, &requests, &mut agenda);
+    assert!(agenda.contains("DONE Bee") && agenda.contains("Write report"), "{agenda}");
+    // The category filter of the Bee line hides the other.
+    let bee = agenda.lines().position(|line| line.contains("Bee")).unwrap() as u32;
+    let mut requests = client.command("org.agenda.filter.category", &agenda_uri, bee);
+    client.settle();
+    requests.append(&mut client.received);
+    follow(&mut client, &requests, &mut agenda);
+    assert!(agenda.contains("DONE Bee") && !agenda.contains("Write report"), "{agenda}");
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// A target that is there but empty, and not open in the editor, is
+/// written as a missing one is: an edit into an empty file leaves an empty
+/// line after the entry in some of Vim's clients, and yegappan/lsp loses
+/// the entry.
+#[test]
+fn a_capture_into_an_empty_file_writes_it() {
+    let root = workspace("capture-empty");
+    let notes = root.join("inbox.org");
+    std::fs::write(&notes, "").unwrap();
+    let mut options = clock();
+    options["org_default_notes_file"] = json!(notes.display().to_string());
+    options["org_capture_templates"] =
+        json!([{ "key": "n", "description": "Note", "template": "* TODO Captured", "immediate_finish": true }]);
+    let mut client = Client::editor(options, None);
+    let at = json!({ "textDocument": { "uri": format!("file://{}", root.join("a.org").display()) }, "position": { "line": 0, "character": 0 }, "input": "n" });
+    let done = client.request("workspace/executeCommand", json!({ "command": "org.capture", "arguments": [at] }));
+    assert_eq!(done, Ok(Value::Null));
+    client.settle();
+    assert!(client.received.iter().all(|request| request.method != "workspace/applyEdit"), "{:?}", client.received);
+    assert_eq!(std::fs::read_to_string(&notes).unwrap(), "* TODO Captured\n");
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
 }

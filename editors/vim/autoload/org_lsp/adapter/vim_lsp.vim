@@ -80,3 +80,39 @@ function! org_lsp#adapter#vim_lsp#flush(bufnr) abort
     call lsp#ensure_flush_all(a:bufnr, [s:name])
   endif
 endfunction
+
+" Tell the server the text of buffer `bufnr`, read again from its file:
+" vim-lsp hears of changes from Vim's listener, which a buffer read again
+" does not call. Told of more than one change, its listener sends the
+" whole text, with vim-lsp's own version.
+function! org_lsp#adapter#vim_lsp#reread(bufnr) abort
+  if lsp#get_server_status(s:name) !=# 'running' || !lsp#internal#listener#is_enabled()
+    return
+  endif
+  let scripts = getscriptinfo({'name': 'autoload/lsp/internal/listener\.vim$'})
+  if empty(scripts)
+    return
+  endif
+  let OnChange = function('<SNR>' . scripts[0].sid . '_on_change')
+  let whole = {'lnum': 1, 'end': 1, 'added': 0}
+  call OnChange(a:bufnr, 1, 1, 0, [whole, whole])
+  call lsp#ensure_flush_all(a:bufnr, [s:name])
+endfunction
+
+" Show the inlay hints of the current buffer again: vim-lsp asks for them
+" when the cursor moves, not when the server has new ones (the clock's
+" times, shrunk columns), and its server never tells it.
+function! org_lsp#adapter#vim_lsp#inlay_hints(bufnr) abort
+  if !get(g:, 'lsp_inlay_hints_enabled', 0) || a:bufnr != bufnr()
+    return
+  endif
+  let scripts = getscriptinfo({'name': 'autoload/lsp/internal/inlay_hints\.vim$'})
+  if empty(scripts)
+    return
+  endif
+  let prefix = '<SNR>' . scripts[0].sid . '_'
+  call lsp#callbag#pipe(
+        \ call(prefix . 'send_inlay_hints_request', []),
+        \ lsp#callbag#subscribe({'next': function(prefix . 'set_inlay_hints')}),
+        \ )
+endfunction

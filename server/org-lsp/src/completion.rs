@@ -345,34 +345,25 @@ fn keyword_line(before: &str, after_blank: bool) -> Option<(usize, Vec<Candidate
 
 // ----- links
 
-/// `org-link-parameters`: the link types Org knows.
+/// `org-link-parameters`: the link types Org knows, but for those that
+/// open one of Emacs's own programs (`help:`, `eshell:`, `gnus:`, `eww:`…),
+/// which a link followed from another editor cannot.
 const LINK_TYPES: &[&str] = &[
     "attachment",
-    "bbdb",
     "bibtex",
-    "docview",
     "doi",
     "elisp",
-    "eshell",
-    "eww",
     "file",
     "file+emacs",
     "file+sys",
-    "gnus",
-    "help",
     "http",
     "https",
     "id",
     "info",
-    "irc",
     "mailto",
     "man",
-    "mhe",
     "news",
-    "rmail",
     "shell",
-    "shortdoc",
-    "w3m",
 ];
 
 fn link(text: &str, before: &str, context: &Context) -> Option<(usize, Vec<Candidate>)> {

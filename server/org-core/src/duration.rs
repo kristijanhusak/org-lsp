@@ -7,6 +7,7 @@
 //! once from its settings ([`set`]).
 
 use std::cell::RefCell;
+use std::rc::Rc;
 
 use regex::Regex;
 
@@ -96,6 +97,9 @@ impl Durations {
 
 thread_local! {
     static CURRENT: RefCell<Durations> = RefCell::new(Durations::default());
+    /// The regexps of the units last read with, by their names: tables
+    /// and the agenda read many durations with the same units.
+    static PATTERNS: RefCell<Option<(Vec<String>, Rc<Patterns>)>> = const { RefCell::new(None) };
 }
 
 /// Write and read durations with `durations` from now on, on this thread.
@@ -110,14 +114,16 @@ pub fn current() -> Durations {
 
 /// `org-duration-from-minutes` with the format and units in use.
 pub fn from_minutes(minutes: f64) -> String {
-    let durations = current();
-    from_minutes_with(minutes, &durations.format, &durations.units, false)
+    CURRENT.with(|current| {
+        let durations = current.borrow();
+        from_minutes_with(minutes, &durations.format, &durations.units, false)
+    })
 }
 
 /// `org-duration-to-minutes` with the units in use: none for what is no
 /// duration.
 pub fn to_minutes(text: &str) -> Option<f64> {
-    to_minutes_with(text, &current().units, false)
+    CURRENT.with(|current| to_minutes_with(text, &current.borrow().units, false))
 }
 
 /// The unit called `name`: among the canonical units with `canonical`.
@@ -224,12 +230,43 @@ fn unit_re(units: &[Unit]) -> String {
     format!(r"([0-9]+(?:\.[0-9]*)?)[ \t]*({})", alternatives.join("|"))
 }
 
+/// The regexps of durations written with some units.
+struct Patterns {
+    /// A number and a unit.
+    one: Regex,
+    /// `org-duration-full-regexp`: numbers and units only.
+    full: Regex,
+    /// `org-duration-mixed-regexp`: numbers and units, then `H:MM` or
+    /// `H:MM:SS`.
+    mixed: Regex,
+}
+
+/// The [`Patterns`] of `units`, made once for as long as the units stay
+/// the same.
+fn patterns(units: &[Unit]) -> Rc<Patterns> {
+    PATTERNS.with(|cache| {
+        let mut cache = cache.borrow_mut();
+        if let Some((names, patterns)) = cache.as_ref() {
+            if names.len() == units.len() && names.iter().zip(units).all(|(name, unit)| *name == unit.name) {
+                return patterns.clone();
+            }
+        }
+        let unit = unit_re(units);
+        let patterns = Rc::new(Patterns {
+            one: Regex::new(&unit).expect("a valid regexp"),
+            full: Regex::new(&format!(r"^(?:[ \t]*{unit})+[ \t]*$")).expect("a valid regexp"),
+            mixed: Regex::new(&format!(r"^((?:[ \t]*{unit})+)[ \t]*([0-9]+(?::[0-9][0-9]){{1,2}})[ \t]*$"))
+                .expect("a valid regexp"),
+        });
+        *cache = Some((units.iter().map(|unit| unit.name.clone()).collect(), patterns.clone()));
+        patterns
+    })
+}
+
 /// `org-duration-p`
 pub fn is_duration(text: &str, units: &[Unit]) -> bool {
-    let unit = unit_re(units);
-    let full = Regex::new(&format!(r"^(?:[ \t]*{unit})+[ \t]*$")).expect("a valid regexp");
-    let mixed = Regex::new(&format!(r"^(?:[ \t]*{unit})+[ \t]*[0-9]+(?::[0-9][0-9]){{1,2}}[ \t]*$")).expect("valid");
-    full.is_match(text) || mixed.is_match(text) || h_mm().is_match(text)
+    let patterns = patterns(units);
+    patterns.full.is_match(text) || patterns.mixed.is_match(text) || h_mm().is_match(text)
 }
 
 /// `org-duration-to-minutes`: the empty text is 0, a bare number minutes;
@@ -242,12 +279,10 @@ pub fn to_minutes_with(text: &str, units: &[Unit], canonical_units: bool) -> Opt
         let numbers: Vec<f64> = text.trim().split(':').map(|part| part.parse().unwrap_or(0.0)).collect();
         return Some(numbers.get(2).copied().unwrap_or(0.0) / 60.0 + numbers[1] + 60.0 * numbers[0]);
     }
-    let unit = unit_re(units);
-    let one = Regex::new(&unit).expect("a valid regexp");
-    let full = Regex::new(&format!(r"^(?:[ \t]*{unit})+[ \t]*$")).expect("a valid regexp");
-    if full.is_match(text) {
+    let patterns = patterns(units);
+    if patterns.full.is_match(text) {
         let mut minutes = 0.0;
-        for found in one.captures_iter(text) {
+        for found in patterns.one.captures_iter(text) {
             let value: f64 = found[1].parse().unwrap_or(0.0);
             let unit = modifier(&found[2], units, canonical_units);
             if !canonical_units && !units.iter().any(|known| known.name == unit.name) {
@@ -258,14 +293,13 @@ pub fn to_minutes_with(text: &str, units: &[Unit], canonical_units: bool) -> Opt
         }
         return Some(minutes);
     }
-    let mixed = Regex::new(&format!(r"^((?:[ \t]*{unit})+)[ \t]*([0-9]+(?::[0-9][0-9]){{1,2}})[ \t]*$"))
-        .expect("a valid regexp");
-    if let Some(found) = mixed.captures(text) {
+    if let Some(found) = patterns.mixed.captures(text) {
         let (units_part, hms) = (found.get(1)?.as_str(), found.get(found.len() - 1)?.as_str());
         return Some(to_minutes_with(units_part, units, false)? + to_minutes_with(hms, units, false)?);
     }
-    let bare = Regex::new(r"^[0-9]+(\.[0-9]*)?$").expect("a valid regexp");
-    bare.is_match(text).then(|| text.parse().unwrap_or(0.0))
+    static BARE: std::sync::LazyLock<Regex> =
+        std::sync::LazyLock::new(|| Regex::new(r"^[0-9]+(\.[0-9]*)?$").expect("a valid regexp"));
+    BARE.is_match(text).then(|| text.parse().unwrap_or(0.0))
 }
 
 #[cfg(test)]
@@ -290,5 +324,21 @@ mod tests {
         assert_eq!(read("1h 30min"), Some(90.0));
         assert_eq!(read("1d 2:00"), Some(1560.0));
         assert_eq!(read("soon"), None);
+    }
+
+    /// The regexps of the units are made once, not at each duration read,
+    /// and made again when the units change.
+    #[test]
+    fn keeps_the_regexps_of_the_units() {
+        let units = default_units();
+        let first = patterns(&units);
+        assert!(is_duration("2h", &units));
+        assert_eq!(to_minutes_with("1d 2:00", &units, false), Some(1560.0));
+        assert!(Rc::ptr_eq(&first, &patterns(&units)));
+        let mut other = default_units();
+        other.push(Unit::new("q", 5.0, false));
+        assert!(!Rc::ptr_eq(&first, &patterns(&other)));
+        assert_eq!(to_minutes_with("2q", &other, false), Some(10.0));
+        assert_eq!(to_minutes_with("2q", &units, false), None);
     }
 }

@@ -14,6 +14,9 @@
 //                                    each of Org's options and what
 //                                    org-lsp does with it, from
 //                                    scripts/org-options.json
+//   docs/emacs-options.org           each option `emacs_options` takes,
+//                                    with Org's documentation of it, from
+//                                    scripts/emacs-options.json
 //   editors/<editor>/TESTING.org     what to try by hand (whole)
 //   docs/config.schema.json          the JSON Schema of the shared file
 //   docs/config.toml                 the shared file, every option at its default
@@ -57,12 +60,20 @@ const STATUSES = {
   setting: 'A setting of the same name',
   missing: 'org-lsp does what the option is about, but the option cannot be set yet',
   other: 'Done another way, as its note says',
-  emacs: 'Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_config~',
+  emacs: 'Read by Emacs, through which org-lsp does that part of Org (export, Babel, attachments, column view…): set it in ~emacs_options~ (or ~emacs_config~); [[file:emacs-options.org][emacs-options.org]] lists them',
   lisp: 'Its value is Lisp (a function, a hook), which the server does not run',
   absent: 'Part of something org-lsp does not do',
   'emacs-only': 'About Emacs itself (windows, faces, menus, the mouse, the mode line): nothing to do in an editor',
 };
 const statusOf = (value) => (Array.isArray(value) ? value[0] : value);
+/** The libraries of Emacs, not of Org, that Org hands its work to
+ * (`org-agenda-to-appt` gives `appt.el` its appointments): those of their
+ * options org-lsp has as settings are listed too, and are not counted as
+ * Org's. */
+const EMACS_FILES = new Set(['appt.el']);
+/** What Emacs says of each option marked `emacs`, by file: its docstring,
+ * default, type and version (scripts/emacs_options_reference.py). */
+const EMACS_OPTIONS = JSON.parse(readFileSync(join(root, 'scripts', 'emacs-options.json'), 'utf8'));
 
 /** What is wrong with scripts/org-options.json: an option marked as a
  * setting that the server does not have, or the other way round, a status
@@ -91,7 +102,27 @@ function optionProblems() {
         if (!listed.has(match[1])) problems.push(`${match[1]} (${file}) is not in scripts/org-options.json`);
       }
     }
-    for (const name of listed) if (!found.has(name)) problems.push(`${name} is no longer an option of Org`);
+    for (const [file, options] of Object.entries(OPTIONS)) {
+      if (EMACS_FILES.has(file)) continue;
+      for (const name of Object.keys(options)) if (!found.has(name)) problems.push(`${name} is no longer an option of Org`);
+    }
+  }
+  // scripts/emacs-options.json has the options marked `emacs`, no more.
+  const recorded = new Map(
+    Object.entries(EMACS_OPTIONS).flatMap(([file, options]) => Object.keys(options).map((name) => [`${file} ${name}`, options[name]])),
+  );
+  for (const [file, options] of Object.entries(OPTIONS)) {
+    for (const [name, value] of Object.entries(options)) {
+      if (statusOf(value) !== 'emacs') continue;
+      const entry = recorded.get(`${file} ${name}`);
+      if (!entry) problems.push(`${name} (${file}) is not in scripts/emacs-options.json: run scripts/emacs_options_reference.py`);
+      else if (entry.error) problems.push(`${name} (${file}) has no documentation in scripts/emacs-options.json: ${entry.error}`);
+      recorded.delete(`${file} ${name}`);
+    }
+  }
+  for (const key of recorded.keys()) {
+    const [file, name] = key.split(' ');
+    problems.push(`${name} (${file}) is in scripts/emacs-options.json, not marked \`emacs\`: run scripts/emacs_options_reference.py`);
   }
   return problems;
 }
@@ -498,6 +529,7 @@ const OPTION_GROUPS = [
   ['Clocking', /^org_clock|^org_agenda_clock/],
   ['Habits', /^org_habit_|^org_modules$/],
   ['The agenda', /^org_agenda_|^agenda_|^org_(deadline|scheduled)_|^org_stuck_projects$|^org_tags_match_list_sublevels$/],
+  ['Notifications', /^appt_|^notification_/],
   [
     'Display',
     /^org_(hide|fontify|emphasis|hidden_keywords|entities|pretty|use_sub|image|startup|adapt_indentation|indent|ellipsis|bullets|cycle_hide|cycle_open)/,
@@ -567,12 +599,12 @@ function configToml() {
 }
 
 /** `text` (the server's, with code in backticks) as Org lines of at most 78
- * columns, a code span never broken over two. */
-function filled(text, indent = '') {
+ * columns, a code span never broken over two; `convert` makes it Org. */
+function filled(text, indent = '', convert = org) {
   const kept = text.replace(/`[^`]+`/g, (span) => span.replaceAll(' ', '\u0001'));
   const lines = [];
   let line = '';
-  for (const word of org(kept).split(/\s+/).filter(Boolean)) {
+  for (const word of convert(kept).split(/\s+/).filter(Boolean)) {
     if (line && indent.length + line.length + 1 + word.length > 78) {
       lines.push(line);
       line = word;
@@ -583,6 +615,11 @@ function filled(text, indent = '') {
   if (line) lines.push(line);
   return lines.map((line, index) => (index > 0 ? indent : '') + line.replaceAll('\u0001', ' ')).join('\n');
 }
+
+/** What an option means, as Org on a page of docs/: a page of docs/ it
+ * names (`docs/parity.org`) is a link to it. */
+const optionDoc = (text) =>
+  org(text).replace(/~docs\/([\w-]+\.org)~/g, (_, file) => link(`file:${file}`, `docs/${file}`));
 
 /** The options on docs/configuration.org: a heading for each, under the
  * heading of its group, with what it means, its type and its default. */
@@ -595,7 +632,7 @@ function fileOptions() {
     for (const setting of group) {
       // GitHub's anchor of the heading, which keeps `_`.
       lines.push(heading(3, setting.name), ':PROPERTIES:', `:CUSTOM_ID: ${setting.name.toLowerCase()}`, ':END:', '');
-      lines.push(filled(setting.doc), '');
+      lines.push(filled(setting.doc, '', optionDoc), '');
       if (setting.org) lines.push(`- Org's option :: ${code(setting.org)}`);
       lines.push(`- Type :: ${org(setting.type)}`);
       if (setting.default === undefined) {
@@ -617,7 +654,7 @@ function protocolOptions() {
   return settings
     .map((setting) => {
       const fallback = setting.default === undefined ? org(setting.unset) : code(json(setting.default));
-      const meaning = org(setting.doc) + (setting.org ? ` (${code(setting.org)})` : '');
+      const meaning = optionDoc(setting.doc) + (setting.org ? ` (${code(setting.org)})` : '');
       return `- ${code(setting.name)} :: ${setting.type}, ${fallback}. ${meaning}`;
     })
     .join('\n');
@@ -766,8 +803,105 @@ function emacsKeyName(key) {
 /** Code in running text. */
 const inline = code;
 
-/** How a command is run in `editor`, from where `scope` says. */
-function commandKey(editor, id, scope = 'org') {
+/**
+ * The commands a client without keys for a server's commands finds among
+ * its code actions (Helix, and Zed with `command_actions`), by where the
+ * cursor is: as the server offers them (`code_actions_at` in
+ * server/org-lsp/src/server.rs, the kinds of server/org-lsp/src/actions.rs).
+ * Keep them in step.
+ */
+const ACTIONS_IN_FILES = new Set([
+  // actions.rs `KINDS`
+  'org.todo.next', 'org.todo.previous', 'org.priority.up', 'org.priority.down', 'org.timestamp.up',
+  'org.timestamp.down', 'org.date.later', 'org.date.earlier', 'org.clock.in', 'org.clock.out', 'org.clock.cancel',
+  'org.checkbox.toggle', 'org.table.recalculate',
+  // On a headline, an item or in a table.
+  'org.meta.left', 'org.meta.right', 'org.shiftmeta.left', 'org.shiftmeta.right', 'org.meta.up', 'org.meta.down',
+  'org.shiftmeta.up', 'org.shiftmeta.down', 'org.table.insert.row.below', 'org.table.hline', 'org.table.hline.above',
+  'org.table.blank.field',
+  // As commands.
+  'org.babel.tangle', 'org.table.toggle.column.width', 'org.babel.execute', 'org.edit.special', 'org.archive.subtree',
+  'org.archive.sibling', 'org.archive.tag', 'org.todo', 'org.priority', 'org.refile', 'org.schedule', 'org.deadline',
+  'org.tags.set', 'org.property.set', 'org.effort.set', 'org.sort', 'org.clock.goto', 'org.clock.in.last',
+  'org.clock.report', 'org.dblock.update', 'org.agenda.list', 'org.agenda.todos', 'org.agenda.dispatch', 'org.capture',
+  'org.meta.return', 'org.insert.todo.heading', 'org.insert.heading.after', 'org.insert.todo.heading.after',
+  'org.cut.subtree', 'org.copy.subtree', 'org.paste.subtree',
+]);
+/** In a capture buffer. */
+const ACTIONS_IN_CAPTURE = new Set(['org.capture.finish', 'org.capture.abort', 'org.capture.refile']);
+/** On an agenda line (not in Zed, whose agenda runs its keys through
+ * tasks): every command of the agenda's but those that need an editor's
+ * code. */
+const IN_AGENDA_TOO = [
+  'org.todo.yesterday',
+  'org.tags.set',
+  'org.schedule.remove',
+  'org.deadline.remove',
+  'org.schedule.delay',
+  'org.deadline.warning',
+];
+const ACTIONS_IN_AGENDA = new Set([
+  ...manifest.commands
+    .filter(
+      (command) =>
+        IN_AGENDA_TOO.includes(command.command) || command.keys.some((key) => key.preset === 'emacs' && key.in === 'agenda'),
+    )
+    .map((command) => command.command)
+    .filter((id) => !['org.agenda.follow', 'org.agenda.columns', 'org.agenda.goto.other'].includes(id)),
+  'org.agenda.dispatch',
+]);
+
+/** Whether the command `id` is a code action in `editor` where `scope`
+ * says. */
+function isAction(id, scope, editor) {
+  if (scope === 'agenda') return editor !== 'zed' && ACTIONS_IN_AGENDA.has(id);
+  if (scope === 'capture') return ACTIONS_IN_CAPTURE.has(id);
+  return ACTIONS_IN_FILES.has(id);
+}
+
+/** Commands that are a request of the protocol's own too, by editor. */
+const OWN_ROUTES = {
+  helix: { 'org.open': '`gd`' },
+  // In Zed's agenda, `enter` and `tab` are go to definition (keymap.json).
+  zed: { 'org.open': '`F12`', 'org.agenda.goto': '`enter`', 'org.agenda.goto.other': '`tab`' },
+};
+
+/**
+ * Zed's keys of each command, in Org files (`org`) and in the agenda,
+ * from the keymap and tasks editors/zed/generate.mjs writes: a key runs a
+ * task, the task the command (`key:KEY`: the command the key has where
+ * the cursor is).
+ */
+const zedKeysOf = (() => {
+  const dir = join(root, 'editors', 'zed');
+  const keymap = JSON.parse(readFileSync(join(dir, 'keymap.json'), 'utf8'));
+  const tasks = JSON.parse(readFileSync(join(dir, 'tasks.json'), 'utf8'));
+  const runs = Object.fromEntries(
+    tasks.map((task) => [task.label, /agenda-command ('[^']+'|\S+)/.exec(task.command)[1].replaceAll("'", '').replace(/^file:/, '')]),
+  );
+  const found = { org: new Map(), agenda: new Map() };
+  for (const bindings of keymap) {
+    const scope = bindings.context.endsWith('extension == org-agenda') ? 'agenda' : 'org';
+    for (const [key, action] of Object.entries(bindings.bindings)) {
+      if (!Array.isArray(action)) continue;
+      const run = runs[action[1].task_name];
+      const ids = run.startsWith('key:')
+        ? manifest.commands
+            .filter((command) => command.keys.some((bound) => bound.preset === 'emacs' && bound.key === run.slice('key:'.length)))
+            .map((command) => command.command)
+        : [run];
+      for (const id of ids) {
+        if (!found[scope].has(id)) found[scope].set(id, []);
+        found[scope].get(id).push(key);
+      }
+    }
+  }
+  return (id, scope) => found[scope === 'agenda' ? 'agenda' : 'org'].get(id) ?? [];
+})();
+
+/** How a command is run in `editor`, from where `scope` says; nothing
+ * where it cannot be. */
+function commandRoute(editor, id, scope = 'org') {
   const command = commandsById[id];
   if (!command) throw new Error(`scripts/features.mjs names an unknown command: ${id}`);
   const keys = (preset) =>
@@ -783,20 +917,34 @@ function commandKey(editor, id, scope = 'org') {
       const found = keys('emacs');
       return found.length > 0 ? found.map((key) => inline(emacsKeyName(key))).join(' or ') : `/Org: ${org(command.title)}/`;
     }
-    default:
-      return `the code action /${org(command.title)}/`;
+    default: {
+      // Zed: its keys (tasks), else the code actions; Helix: the code
+      // actions.
+      const found = editor === 'zed' ? zedKeysOf(id, scope) : [];
+      if (found.length > 0) return found.map(inline).join(' or ');
+      if (isAction(id, scope, editor)) return `the code action /${org(command.title)}/`;
+      return OWN_ROUTES[editor]?.[id] ? org(OWN_ROUTES[editor][id]) : '';
+    }
   }
 }
 
 /** Whether `check` applies to `editor`. */
 const applies = (check, editor) => (!check.only || check.only.includes(editor)) && !check.not?.includes(editor);
 
-/** The keys of a check in `editor`, or nothing. */
+/** The keys of a check in `editor`, or nothing; `missing`, the titles of
+ * its commands that cannot be run there. */
 function checkKeys(check, editor) {
-  if (check.keys) return org(check.keys[editor] ?? '');
-  if (!check.cmd) return '';
+  if (check.keys) return { keys: org(check.keys[editor] ?? ''), missing: [] };
+  if (!check.cmd) return { keys: '', missing: [] };
   const ids = Array.isArray(check.cmd) ? check.cmd : [check.cmd];
-  return ids.map((id) => commandKey(editor, id, check.in)).join(', ');
+  const routes = ids.map((id) => [id, commandRoute(editor, id, check.in)]);
+  return {
+    keys: routes
+      .map(([, route]) => route)
+      .filter(Boolean)
+      .join(', '),
+    missing: routes.filter(([, route]) => !route).map(([id]) => `/${org(commandsById[id].title)}/`),
+  };
 }
 
 /** Every area and every editor: README.org's table. */
@@ -873,7 +1021,9 @@ function parityPage() {
 /** Every option of Org and what org-lsp does with it: how many there are
  * of each status, and those that are missing, file by file. */
 function optionsSection() {
-  const all = Object.entries(OPTIONS).flatMap(([file, options]) => Object.entries(options).map(([name, value]) => ({ file, name, value })));
+  const all = Object.entries(OPTIONS)
+    .filter(([file]) => !EMACS_FILES.has(file))
+    .flatMap(([file, options]) => Object.entries(options).map(([name, value]) => ({ file, name, value })));
   const count = (status) => all.filter((option) => statusOf(option.value) === status).length;
   const settable = count('setting') + count('missing') + count('other');
   const lines = [
@@ -906,6 +1056,154 @@ function optionsSection() {
     lines.push(`- ${file} (${names.length}) :: ${names.join(', ')}`);
   }
   return lines.join('\n') + '\n';
+}
+
+// ----- the options of emacs_options (scripts/emacs-options.json)
+
+/** A word of a docstring that Org would read as more than text (a link,
+ * a footnote, emphasis, a LaTeX fragment or an entity, a macro, an export
+ * snippet, inline code), as code; any other word as it is. */
+function docWord(word) {
+  const [, open, body, close] = word.match(/^([("']*)(.*?)([)"'.,;:!?]*)$/s);
+  if (!body) return word;
+  const markup =
+    /\[\[|\]\]|\[fn:|@@|\{\{\{|<<|^\\|^(src|call)_/.test(body) ||
+    (/^[*/_=~+]/.test(body) && body.slice(1).includes(body[0])) ||
+    /^[~=]/.test(body);
+  return markup ? open + code(body) + close : word;
+}
+
+/** A line of a docstring's text as Org: `foo' is ~foo~, and what Org
+ * would read as markup is code. */
+function docLine(line) {
+  const parts = line.split(/(`[^`'\n]+')/);
+  return parts
+    .map((part, index) => {
+      if (index % 2 === 1) {
+        // As `org` does, a zero-width space where Org would not see it.
+        const before = parts[index - 1].slice(-1);
+        const after = parts[index + 1]?.[0] ?? '';
+        const open = before === '' || PRE.test(before) ? '' : '​';
+        const close = after === '' || POST.test(after) ? '' : '​';
+        return open + code(part.slice(1, -1)) + close;
+      }
+      return part.replace(/[^\s]+/g, (word) => (word.includes('`') ? word : docWord(word)));
+    })
+    .join('');
+}
+
+/** Whether a line of a docstring is text rather than laid out by hand
+ * (indented, a table of values) or what Org would read as more than a
+ * line of text (a heading, a comment or keyword, a table, a drawer, a
+ * footnote, a rule, a LaTeX environment) or a line of a template (`%t
+ * is the title.`), which goes in an example block as it is. */
+const docProse = (line) =>
+  !/^(\s|\*|#|\||:|\[fn:|-{5}|\\begin\{|%|<-|\.\.\.)/.test(line) && !/^[^\s.:,;]+ {2,}\S/.test(line) && !/^\S+\s*:\s{2,}/.test(line);
+
+/** An option's docstring as Org: its text with Org's markup, and the
+ * lines laid out by hand as they are, in example blocks. */
+function docOrg(doc) {
+  const lines = doc.replace(/\s+$/, '').split('\n');
+  const out = [];
+  let literal = [];
+  const flush = () => {
+    while (literal.length > 0 && literal[literal.length - 1].trim() === '') literal.pop();
+    if (literal.length === 0) return;
+    const indent = Math.min(...literal.filter((line) => line.trim()).map((line) => line.match(/^ */)[0].length));
+    const kept = literal.map((line) => line.slice(indent).replace(/^(\s*)(\*|#\+|,\*|,#\+)/, '$1,$2'));
+    if (out.length > 0 && out[out.length - 1] !== '') out.push('');
+    out.push('#+begin_example', ...kept, '#+end_example', '');
+    literal = [];
+  };
+  let item = false;
+  for (const raw of lines) {
+    const line = raw.replace(/\t/g, '        ');
+    if (line.trim() === '') {
+      if (literal.length > 0) literal.push('');
+      else if (out.length > 0 && out[out.length - 1] !== '') out.push('');
+      item = false;
+      continue;
+    }
+    // A line going on with an item of a list (`- `), indented under it.
+    const more = item && literal.length === 0 && /^ {2,}\S/.test(line) && docProse(line.trim());
+    if (more || (docProse(line) && !/^\s/.test(line))) {
+      flush();
+      if (!more) item = line.startsWith('- ');
+      out.push(more ? `  ${docLine(line.trim())}` : docLine(line));
+    } else {
+      literal.push(line);
+      item = false;
+    }
+  }
+  flush();
+  while (out[out.length - 1] === '') out.pop();
+  return out.join('\n');
+}
+
+/** Lisp printed by Emacs, as an item's text when it is short, else as a
+ * block under the item, of `most` lines at most. */
+function lispItem(name, text, most) {
+  if (!text.includes('\n') && text.length <= 60) return `- ${name} :: ${code(text)}`;
+  let shown = text.split('\n');
+  if (shown.length > most) shown = [...shown.slice(0, most - 1), '…'];
+  const block = ['#+begin_src emacs-lisp', ...shown.map((line) => line.replace(/^(\s*)(\*|#\+|,\*|,#\+)/, '$1,$2')), '#+end_src'];
+  return [`- ${name} ::`, ...block.map((line) => `  ${line}`)].join('\n');
+}
+
+/** The id of the option heading `name`, as GitHub makes it (lower case,
+ * no punctuation but `-` and `_`), `-1`, `-2`… after the first that
+ * `seen` has. */
+function githubId(name, seen) {
+  const base = name.toLowerCase().replace(/[^\p{L}\p{N}_ -]/gu, '').replaceAll(' ', '-');
+  const count = seen.get(base) ?? 0;
+  seen.set(base, count + 1);
+  return count === 0 ? base : `${base}-${count}`;
+}
+
+/** The headings of docs/emacs-options.org: the ids of its options. */
+function emacsOptionIds() {
+  const seen = new Map();
+  const ids = new Map();
+  for (const [file, options] of Object.entries(EMACS_OPTIONS)) {
+    githubId(file, seen);
+    for (const name of Object.keys(options)) ids.set(name, githubId(name, seen));
+  }
+  return ids;
+}
+
+/** Each option of `emacs_options`, under the file of Org it is in: Org's
+ * documentation of it, its default, its type, the version of Org it came
+ * in, and its default in the shared file, when TOML can say it. */
+function emacsOptions() {
+  const ids = emacsOptionIds();
+  const count = Object.values(EMACS_OPTIONS).reduce((sum, options) => sum + Object.keys(options).length, 0);
+  const lines = [
+    `The ${count} options, by the file of Org they are in. Each has Org's own`,
+    'documentation of it, as ~C-h v~ shows it in Emacs, then its default as',
+    'Emacs prints it, its type as Customize has it, and its default in the',
+    'shared file, where TOML can say it.',
+  ];
+  for (const [file, options] of Object.entries(EMACS_OPTIONS)) {
+    if (lines[lines.length - 1] !== '') lines.push('');
+    lines.push(heading(2, file));
+    for (const [name, entry] of Object.entries(options)) {
+      if (lines[lines.length - 1] !== '') lines.push('');
+      lines.push(heading(3, name), ':PROPERTIES:', `:CUSTOM_ID: ${ids.get(name)}`, ':END:', '');
+      lines.push(docOrg(entry.doc), '');
+      if (entry.default !== undefined) lines.push(lispItem('Default', entry.default, 20));
+      else lines.push(lispItem('Default', entry.form, 20).replace(' ::', ' :: computed when Org loads:'));
+      lines.push(lispItem('Type', entry.type, 12));
+      if (entry.version) lines.push(`- Since :: ${entry.version}`);
+      lines.push('');
+      const value = entry.json === undefined ? undefined : toml(entry.json);
+      if (value !== undefined) {
+        const key = /^[A-Za-z0-9_-]+$/.test(name) ? name : JSON.stringify(name);
+        lines.push(block('toml', ['[emacs_options]', `${key} = ${value}`]), '');
+      }
+    }
+  }
+  while (lines[lines.length - 1] === '') lines.pop();
+  return lines.join('\n');
 }
 
 /** The manual tests of `id`, with the boxes ticked in `before` kept. */
@@ -949,10 +1247,19 @@ function testingPage(id, before) {
     }
     if (status === 'part') lines.push(`*Partly:* ${org(why)}`, '');
     const checks = (area.checks ?? []).filter((check) => applies(check, id));
+    // A check that needs a command the editor cannot run is no box to
+    // tick: it is listed after the others, with what it lacks.
+    const left = [];
     for (const check of checks) {
-      const keys = checkKeys(check, id);
-      lines.push(box(keys ? `${org(check.text)}: ${keys}` : org(check.text)));
+      const { keys, missing } = checkKeys(check, id);
+      if (missing.length > 0) {
+        const where = id === 'zed' ? 'its keys or code actions' : 'its code actions';
+        left.push(`- ${org(check.text)}: ${missing.join(', ')} ${missing.length > 1 ? 'are' : 'is'} not among ${where}`);
+      } else {
+        lines.push(box(keys ? `${org(check.text)}: ${keys}` : org(check.text)));
+      }
     }
+    if (left.length > 0) lines.push('', `Not in ${editor.name}:`, '', ...left);
   }
   return lines.join('\n') + '\n';
 }
@@ -970,6 +1277,7 @@ const PAGES = {
   'docs/keys/zed.org': { keys: zedKeys },
   'docs/protocol.org': { options: protocolOptions },
   'docs/configuration.org': { options: fileOptions },
+  'docs/emacs-options.org': { options: emacsOptions },
   'README.org': { features: featureTable },
   ...Object.fromEntries(EDITORS.map((editor) => [`docs/${editor.id}.org`, { features: () => editorFeatureTable(editor.id) }])),
 };

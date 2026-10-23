@@ -241,7 +241,11 @@ says so in the state directory (~$XDG_STATE_HOME/org-lsp~, else
 
 On Linux and macOS the socket is a Unix socket only its owner may use, in
 a directory only its owner may enter: nothing on the network reaches it,
-nor any other user. On Windows it is a port of the loopback address, which
+nor any other user. A state directory too deep for a socket's name (a
+socket's path has about a hundred characters at most) has the socket in
+=/tmp/org-lsp-UID= instead, which the entry names: org-lsp makes that
+directory for the user alone, and uses one already there only if it is the
+user's and only the user's. On Windows it is a port of the loopback address, which
 takes a URL only with a token written in that directory, in the user's own
 =%LOCALAPPDATA%=. org-lsp takes only ~org-protocol:~ URLs there, reads them
 as Org does, and runs nothing from them: it stores a link, starts a
@@ -272,5 +276,11 @@ capture or shows a file.
   rewrite's first group taken out, then its path; a rewrite without a
   group (Org's own example, ~("org/?$" . "index.php")~) fails with
   /replace-match subexpression does not exist: 1/.
+- ~open-source~ shows no file outside the working directory of the
+  project that maps the URL to it, as both are once their links and ~..~
+  are resolved. Org decodes the URL's ~%2e%2e~ after Emacs has resolved
+  its ~..~, and would show any file the URL leads up to; org-lsp says
+  /… is not in the working directory of its project (…), and is not
+  opened/.
 - Of what ~open-source~ says on the way (/File … does not exist./, the
   rewrites it tries), the editor shows the last message only.

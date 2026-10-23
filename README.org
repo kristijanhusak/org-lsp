@@ -21,6 +21,10 @@ Emacs (Org 9.8.10) on a test corpus and on random documents, and matches it
 there. Export and Babel's evaluation are Emacs itself, run by the server
 when Emacs is installed.
 
+AI assistants (Claude Code, Claude Desktop, Cursor and others) can use your
+Org files the same way, through the MCP server ~org-lsp mcp~
+([[#ai-assistants-mcp][AI assistants (MCP)]]).
+
 #+attr_html: :alt An Org file in Neovim, highlighted by org-lsp
 [[file:docs/images/org-file.png]]
 
@@ -47,7 +51,7 @@ Each editor's page says how to install org-lsp there, how to set it up,
 and what works:
 
 - [[file:docs/neovim.org][Neovim]] (0.12 or newer): the repository is the plugin.
-- [[file:docs/vim.org][Vim]] (9.1 or newer), on top of yegappan/lsp, vim-lsp, coc.nvim or ALE.
+- [[file:docs/vim.org][Vim]] (9.0.1485 or newer), on top of yegappan/lsp, vim-lsp, coc.nvim or ALE.
 - [[file:docs/vscode.org][VS Code]], and VSCodium, Cursor and the like.
 - [[file:docs/sublime.org][Sublime Text]], with sublimelsp/LSP.
 - [[file:docs/zed.org][Zed]].
@@ -99,24 +103,24 @@ does not work there and why.
 | [[file:docs/parity.org::#highlighting][Highlighting]] | 100% | ✅ / ❓ / ✅ / ❓ / ❓ / ❓ |
 | [[file:docs/parity.org::#folding-and-visibility][Folding and visibility]] | 91% | ❓ / ❓ / ❓ / ❓ / ❓ / ❌ |
 | [[file:docs/parity.org::#headings-and-structure][Headings and structure]] | 96% | ✅ / ✅ / ❓ / ✅ / ❓ / ❓ |
-| [[file:docs/parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
+| [[file:docs/parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 93% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#todo-keywords][TODO keywords]] | 100% | ✅ / ✅ / ✅ / ❓ / ❓ / ❓ |
 | [[file:docs/parity.org::#priorities][Priorities]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ✅ |
 | [[file:docs/parity.org::#tags][Tags]] | 88% | ✅ / ✅ / ✅ / ❓ / ❓ / ❓ |
 | [[file:docs/parity.org::#properties-and-column-view][Properties and column view]] | 100% | ✅ / ❓ / ❓ / ❓ / ❓ / ❓ |
 | [[file:docs/parity.org::#dates-and-times][Dates and times]] | 100% | ✅ / ✅ / ✅ / ❓ / ❓ / ❓ |
-| [[file:docs/parity.org::#agenda][Agenda]] | 100% | ✅ / ✅ / ❓ / ❓ / ❓ / ❓ |
+| [[file:docs/parity.org::#agenda][Agenda]] | 97% | ✅ / ✅ / ❓ / ❓ / ❓ / ❓ |
 | [[file:docs/parity.org::#clocking][Clocking]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#capture][Capture]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#org-protocol][org-protocol]] | 86% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#notes-org-roam][Notes (org-roam)]] | 94% | ✅ / ✅ / ✅ / ✅ / ❓ / ❌ |
 | [[file:docs/parity.org::#a-journal-org-journal][A journal (org-journal)]] | 93% | ✅ / ✅ / ✅ / ❓ / ❓ / ❌ |
-| [[file:docs/parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ❓ |
-| [[file:docs/parity.org::#links][Links]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
+| [[file:docs/parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
+| [[file:docs/parity.org::#links][Links]] | 96% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#footnotes][Footnotes]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ❓ |
 | [[file:docs/parity.org::#tables][Tables]] | 100% | ✅ / ❓ / ✅ / ❓ / ❓ / ❓ |
-| [[file:docs/parity.org::#table-formulas][Table formulas]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ✅ |
-| [[file:docs/parity.org::#code-blocks-babel][Code blocks (Babel)]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ❓ |
+| [[file:docs/parity.org::#table-formulas][Table formulas]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
+| [[file:docs/parity.org::#code-blocks-babel][Code blocks (Babel)]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#export-and-publishing][Export and publishing]] | 100% | ✅ / ✅ / ❓ / ✅ / ✅ / ❌ |
 | [[file:docs/parity.org::#citations][Citations]] | 82% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ✅ |
@@ -125,9 +129,9 @@ does not work there and why.
 | [[file:docs/parity.org::#completion-and-editing-helpers][Completion and editing helpers]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ❓ |
 | [[file:docs/parity.org::#timers][Timers]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❌ |
 | [[file:docs/parity.org::#attachments][Attachments]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
-| [[file:docs/parity.org::#encryption][Encryption]] | 100% | ✅ / ✅ / ✅ / ✅ / ✅ / ✅ |
+| [[file:docs/parity.org::#encryption][Encryption]] | 100% | ✅ / ✅ / ✅ / ✅ / ❓ / ❓ |
 | [[file:docs/parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | ❓ / ❌ / ❓ / ❓ / ❌ / ❌ |
-| *All of Org* | *98%* |  |
+| *All of Org* | *97%* |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the editor's page says what and why),
 ❌ none does, — nothing to support yet. Parity is the share of what
@@ -138,13 +142,49 @@ Emacs Org does in that area that org-lsp does; [[file:docs/parity.org][parity.or
 Tested with Neovim 0.12.0 and 0.12.5, VSCodium 1.135, Vim 9.1 (with
 yegappan/lsp, vim-lsp, coc.nvim and ALE) and Helix 25.07.1.
 
+* AI assistants (MCP)
+:PROPERTIES:
+:CUSTOM_ID: ai-assistants-mcp
+:END:
+
+~org-lsp mcp~ is a [[https://modelcontextprotocol.io][Model Context Protocol]] server: an AI assistant reads
+your agenda files as Org reads them, from the shared configuration file.
+
+#+begin_src sh
+claude mcp add org-lsp -- org-lsp mcp    # Claude Code
+#+end_src
+
+- Reading :: the agenda, the TODO list, tags and text searches, custom
+  agenda commands, an entry whole, the clock report, capture templates and
+  refile targets, org-roam's nodes and backlinks, org-journal's entries.
+  Each entry comes with its ~[file:line]~.
+- Changing, with ~mcp_edits = true~ :: TODO states, capture, refile,
+  scheduling and deadlines, tags, properties, priority, effort, notes,
+  archiving and deleting an entry with its subtree, through the same code
+  as the editor's commands, each with a ~dry_run~ that shows the change
+  first.
+- Prompts :: plan the day, review the week, process the inbox, a daily
+  standup and stale tasks, each with its data; in Claude Code,
+  ~/mcp__org-lsp__plan_my_day~ and the like.
+
+See [[file:docs/mcp.org][docs/mcp.org]] for the setup in each assistant and every tool.
+
 * Without an editor
 
 #+begin_src sh
-org-lsp agenda ~/org/*.org              # this week
-org-lsp agenda --span day --view todo ~/org/*.org
+org-lsp agenda                          # this week, from org_agenda_files
+org-lsp agenda --span day --view todo
+org-lsp agenda ~/org/work.org           # these files only
 org-lsp agenda --help
 #+end_src
+
+It reads the shared configuration file (~org-lsp config~ shows it) as the
+server does, with ~--options~ on top; ~--no-config~ leaves it out.
+
+~org-lsp notify~, run each minute by cron or a timer
+(~scripts/install.sh notifications~ sets it up), reminds of the day's
+appointments with desktop notifications, as Emacs's ~appt.el~ does, and
+can list the day's deadlines: see [[file:docs/notifications.org][docs/notifications.org]].
 
 Bookmarklets that store a link to a web page or capture it, as Emacs's
 org-protocol does, reach the editor with org-lsp through

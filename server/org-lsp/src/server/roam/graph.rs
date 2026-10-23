@@ -55,14 +55,16 @@ impl Server {
         let source = directory.join("graph.dot");
         let picture = directory.join(format!("graph.{}", settings.graph_filetype));
         std::fs::write(&source, dot).map_err(|error| format!("Cannot write {}: {error}", source.display()))?;
-        let drawn = std::process::Command::new(&executable)
+        let mut command = std::process::Command::new(&executable);
+        command
             .arg(&source)
             .arg("-T")
             .arg(&settings.graph_filetype)
             .arg("-o")
             .arg(&picture)
-            .stdin(std::process::Stdio::null())
-            .output()
+            .stdin(std::process::Stdio::null());
+        // A graph too big to draw in time is given up.
+        let drawn = crate::process::output(&mut command, crate::process::PROGRAM_TIME, crate::process::PROGRAM_SIZE)
             .map_err(|error| format!("Cannot run {}: {error}", executable.display()))?;
         // Emacs shows nothing when Graphviz fails; org-lsp says why.
         if !drawn.status.success() {

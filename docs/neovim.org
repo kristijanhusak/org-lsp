@@ -7,30 +7,45 @@ instead of nvim-orgmode for them, not next to it.
 
 * Installing
 
-Install ~kristijanhusak/org-lsp~ with your plugin manager. With
-[[https://github.com/folke/lazy.nvim][lazy.nvim]]:
+Install ~kristijanhusak/org-lsp~ with Neovim's own plugin manager,
+~vim.pack~ (~:help vim.pack~), in your =init.lua=:
 
 #+begin_src lua
-{
-  'kristijanhusak/org-lsp',
-  build = ':OrgLspDownload',
-  init = function()
-    vim.g.org_lsp = { settings = { org_agenda_files = { '~/org' } } }
+-- Download the server again whenever vim.pack updates the plugin.
+vim.api.nvim_create_autocmd('PackChanged', {
+  callback = function(ev)
+    if ev.data.spec.name == 'org-lsp' and ev.data.kind == 'update' then
+      if not ev.data.active then
+        vim.cmd.packadd('org-lsp')
+      end
+      vim.cmd('OrgLspDownload')
+    end
   end,
-}
+})
+
+vim.g.org_lsp = { settings = { org_agenda_files = { '~/org' } } }
+vim.pack.add({ 'https://github.com/kristijanhusak/org-lsp' })
 #+end_src
+
+~vim.pack.update()~ updates it. The autocommand comes before
+~vim.pack.add()~, which loads the plugin, and ~vim.g.org_lsp~ is set before
+it too. Another plugin manager works as well; with
+[[https://github.com/folke/lazy.nvim][lazy.nvim]], the same is
+~{ 'kristijanhusak/org-lsp', build = ':OrgLspDownload', init = function()
+vim.g.org_lsp = { … } end }~.
 
 Opening an Org file the first time downloads the server for your platform
 from the [[https://github.com/kristijanhusak/org-lsp/releases/tag/nightly][nightly release]] (with ~curl~ and ~tar~; on Windows, Windows' own ~tar~, not one Git put first on the ~PATH~) and starts it;
-~:OrgLspDownload~ downloads it again, to update it, and the ~build~ above
-does that on each update of the plugin. ~release = 'v0.2.0'~ picks a
+~:OrgLspDownload~ downloads it again, to update it, and the autocommand
+above does that on each update of the plugin. ~release = 'v0.2.0'~ picks a
 release instead of the nightly build, and ~download = false~ turns the
 download off. A release that needs a GitHub login, as one of a private
 repository, is downloaded with the GitHub CLI (~gh~) when it is installed
 and logged in.
 
-To build the server instead (with [[https://rustup.rs][cargo]]), set
-~build = 'cargo build --release -p org-lsp'~, or run ~:OrgLspBuild~. A
+To build the server instead (with [[https://rustup.rs][cargo]]), run
+~:OrgLspBuild~, in the autocommand in place of ~OrgLspDownload~ to build it
+on each update. A
 build in the plugin's directory and ~org-lsp~ on PATH come before the
 download.
 
@@ -39,7 +54,7 @@ from, and the agenda files.
 
 * Setting it up
 
-Set ~vim.g.org_lsp~ before the plugin loads (lazy.nvim's ~init~, as above),
+Set ~vim.g.org_lsp~ before the plugin loads (before ~vim.pack.add()~, as above),
 or call ~setup()~ at any time. The server's options go in ~settings~, the
 plugin's own beside it. The server reads its options when it starts: once it
 runs, settings changed by ~setup()~ take effect after ~:lsp restart~.
@@ -102,20 +117,20 @@ calendar, or typed as at Org's prompt (~fri 10:00~, ~+2d~, ~2/15~, ~++1w~).
 | [[file:parity.org::#highlighting][Highlighting]] | 100% | ✅ |  |
 | [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 91% | ❓ | Cycling the whole file goes between overview and everything: it has no contents state, which needs folds of a headline's own text that Neovim's fold levels do not make. ~<Tab>~ changes the level of a new entry in Normal mode; in Insert mode it is a tab. |
 | [[file:parity.org::#headings-and-structure][Headings and structure]] | 96% | ✅ |  |
-| [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 100% | ✅ |  |
+| [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 93% | ✅ |  |
 | [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ✅ |  |
 | [[file:parity.org::#priorities][Priorities]] | 100% | ✅ |  |
 | [[file:parity.org::#tags][Tags]] | 88% | ✅ |  |
 | [[file:parity.org::#properties-and-column-view][Properties and column view]] | 100% | ✅ |  |
 | [[file:parity.org::#dates-and-times][Dates and times]] | 100% | ✅ |  |
-| [[file:parity.org::#agenda][Agenda]] | 100% | ✅ |  |
+| [[file:parity.org::#agenda][Agenda]] | 97% | ✅ |  |
 | [[file:parity.org::#clocking][Clocking]] | 100% | ✅ |  |
 | [[file:parity.org::#capture][Capture]] | 100% | ✅ |  |
 | [[file:parity.org::#org-protocol][org-protocol]] | 86% | ✅ |  |
 | [[file:parity.org::#notes-org-roam][Notes (org-roam)]] | 94% | ✅ |  |
 | [[file:parity.org::#a-journal-org-journal][A journal (org-journal)]] | 93% | ✅ |  |
 | [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ |  |
-| [[file:parity.org::#links][Links]] | 100% | ✅ |  |
+| [[file:parity.org::#links][Links]] | 96% | ✅ |  |
 | [[file:parity.org::#footnotes][Footnotes]] | 100% | ✅ |  |
 | [[file:parity.org::#tables][Tables]] | 100% | ✅ |  |
 | [[file:parity.org::#table-formulas][Table formulas]] | 100% | ✅ |  |
@@ -123,14 +138,14 @@ calendar, or typed as at Org's prompt (~fri 10:00~, ~+2d~, ~2/15~, ~++1w~).
 | [[file:parity.org::#export-and-publishing][Export and publishing]] | 100% | ✅ |  |
 | [[file:parity.org::#citations][Citations]] | 82% | ✅ |  |
 | [[file:parity.org::#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% | ✅ |  |
-| [[file:parity.org::#indentation-and-formatting][Indentation and formatting]] | 100% | ❓ | The lines a long line wraps into line up with its own indentation, a headline's title or an item's text ('breakindent'), without the prefix of virtual indentation before them: Neovim repeats no inline virtual text on them, and 'breakindentopt' shifts all the lines of a window alike. |
+| [[file:parity.org::#indentation-and-formatting][Indentation and formatting]] | 100% | ❓ | The lines a long line wraps into line up with its own indentation, a headline's title or an item's text ('breakindent'), without the prefix of virtual indentation before them: Neovim repeats no inline virtual text on them, and 'breakindentopt' shifts all the lines of a window alike. A line with a long link wraps as if the link's hidden target took room: Neovim counts concealed text when it wraps; the org-roam buffer, whose links are long, does not wrap. |
 | [[file:parity.org::#notes-and-logging][Notes and logging]] | 100% | ✅ |  |
 | [[file:parity.org::#completion-and-editing-helpers][Completion and editing helpers]] | 100% | ✅ | Completion needs an LSP completion plugin (or ~vim.lsp.completion~). |
 | [[file:parity.org::#timers][Timers]] | 100% | ✅ |  |
 | [[file:parity.org::#attachments][Attachments]] | 100% | ✅ |  |
 | [[file:parity.org::#encryption][Encryption]] | 100% | ✅ |  |
 | [[file:parity.org::#inline-images-and-latex-previews][Inline images and LaTeX previews]] | 100% | ❓ | From Neovim 0.13 (~vim.ui.img~), in a terminal with the Kitty graphics protocol: an image shows below its line, not over the link; images other than PNG need ImageMagick. |
-| *All of Org* | *98%* |  |  |
+| *All of Org* | *97%* |  |  |
 
 ✅ all that org-lsp does works there, ❓ some does not (the last column says what and why),
 ❌ none does, — nothing to support yet. Parity is the share of what

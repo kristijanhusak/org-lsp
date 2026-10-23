@@ -1,4 +1,8 @@
 {
+ "appt.el": {
+  "appt-message-warning-time": "setting",
+  "appt-display-interval": "setting"
+ },
  "ob-C.el": {
   "org-babel-C-compiler": "emacs",
   "org-babel-C++-compiler": "emacs",
@@ -669,7 +673,7 @@
   "org-edit-src-persistent-message": "emacs",
   "org-src-ask-before-returning-to-edit-buffer": "emacs",
   "org-src-window-setup": "emacs",
-  "org-src-lang-modes": "emacs",
+  "org-src-lang-modes": "setting",
   "org-src-block-faces": "emacs-only",
   "org-src-tab-acts-natively": "emacs-only"
  },

@@ -146,3 +146,64 @@ fn hides_the_stars_of_inline_tasks() {
     assert_eq!(shown(false, false), Vec::<[usize; 4]>::new());
     inlinetask::set_show_first_star(false);
 }
+
+/// Pasting a subtree, archiving it and archiving it to the sibling shift
+/// its headlines, not its inline tasks, which keep their stars. The texts
+/// are Emacs's (Org 9.8.10, batch, `org-inlinetask` loaded).
+#[test]
+fn shifting_a_subtree_leaves_its_inline_tasks() {
+    use org_core::archive;
+    use org_core::date::{Date, DateTime};
+    let _turn = OPTIONS.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    inlinetask::set_min_level(Some(15));
+    let stars = "*".repeat(15);
+    let keywords = TodoKeywords::default();
+    // `org-paste-subtree` up a level, and with no END line.
+    let settings = Settings {
+        tags_column: -77,
+        indent: indent::Settings::default(),
+        allow_promoting_top_level: false,
+        odd_levels: false,
+    };
+    let tree = format!("** Old\n{stars} TODO Inline\n{stars} END\n*** Kid\n");
+    let text = "* Top\n* Archive\n";
+    let (pasted, _) = structure::paste_subtree(text, text.len(), &tree, None, &settings).unwrap();
+    assert_eq!(pasted.text, format!("* Top\n* Archive\n* Old\n{stars} TODO Inline\n{stars} END\n** Kid\n"));
+    let tree = format!("** Old\n{stars} Inline no end\nText\n*** Kid\n");
+    let (pasted, _) = structure::paste_subtree(text, text.len(), &tree, None, &settings).unwrap();
+    assert_eq!(pasted.text, format!("* Top\n* Archive\n* Old\n{stars} Inline no end\nText\n** Kid\n"));
+    // `org-archive-to-archive-sibling`: one level down.
+    let now = DateTime::new(Date::new(2026, 10, 21), 6, 54);
+    let source = format!("* Top\n** Old\n{stars} TODO Inline\n{stars} END\n** Other\n");
+    let mut archive_settings = archive::Settings { context_info: Vec::new(), ..Default::default() };
+    let (sibling, _) = archive::to_sibling(&source, 8, &keywords, now, &archive_settings).unwrap();
+    let expected = format!(
+        "*** Old\n:PROPERTIES:\n:ARCHIVE_TIME: 2026-10-21 Wed 06:54\n:END:\n{stars} TODO Inline\n{stars} END\n"
+    );
+    assert!(sibling.ends_with(&expected), "{sibling}");
+    // `org-archive-subtree` to the end of the file, at level 1.
+    archive_settings.location = "::".to_string();
+    let context = archive::Context { path: std::path::Path::new("/org/a.org"), home: None, now };
+    let archived = archive::archive_subtree(&source, 8, &keywords, &context, &archive_settings, &mut |_| None).unwrap();
+    assert!(archived.source.ends_with(&format!("\n* Old\n{stars} TODO Inline\n{stars} END\n")), "{}", archived.source);
+}
+
+/// With inline tasks on, the tests of each line take the shortest task's
+/// stars found once for the text: an outline of many headlines builds,
+/// and the stars of a long text are looked over, in linear time.
+#[test]
+fn many_lines_are_looked_over_fast() {
+    let _turn = OPTIONS.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    inlinetask::set_min_level(Some(15));
+    let stars = "*".repeat(15);
+    let text = "* a\nb\n".repeat(4000) + &format!("{stars} Task :x:\nbody\n{stars} END\n");
+    let start = std::time::Instant::now();
+    let parse = org_syntax::parse(&text, &TodoKeywords::default());
+    let outline = org_core::outline::Outline::new(&parse, &text, "notes");
+    assert_eq!(outline.entries.len(), 4002);
+    assert_eq!(outline.entries[4001].tags.iter().map(|tag| tag.name.as_str()).collect::<Vec<_>>(), ["x"]);
+    assert!(inlinetask::hides_stars(&text));
+    assert!(!inlinetask::hides_stars(&"* a\nb\n".repeat(4000)));
+    // Generous: this takes a fraction of a second in a debug build.
+    assert!(start.elapsed() < std::time::Duration::from_secs(5), "took {:?}", start.elapsed());
+}

@@ -57,7 +57,8 @@ vim.api.nvim_create_autocmd('LspAttach', {
   comes as a list to pick from (~window/showMessageRequest~). LSP has no way
   to ask for text, so a command that wants text or a date (a search, a date
   to schedule) says /PROMPT: answer with a rename at the cursor/: run the
-  editor's rename (~grn~ in Neovim) and type the answer as the new name.
+  editor's rename (~grn~ in Neovim) and type the answer as the new name;
+  ~-~ alone is an empty answer, the prompt's default.
 - The agenda :: A file, ~Agenda.org~, that the editor opens as an Org file:
   colored, and with every command its keys have in Emacs as a code action:
   on an entry's line the entry's first (its TODO state, dates, tags,

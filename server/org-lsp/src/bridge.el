@@ -17,7 +17,15 @@
 ;;   \x1eorg-lsp {"ask": {"prompt": "Evaluate this emacs-lisp code block? "}}
 ;;
 ;; whose answer comes as the next line, {"answer": true}; any other
-;; question is an error.
+;; question is an error. What the user should know, such as an option
+;; of `emacs_options' that was not set, comes on a line of its own:
+;;
+;;   \x1eorg-lsp {"notice": "`emacs_options` leaves out ..."}
+;;
+;; and so does what Org says on the way where nothing else gives it back,
+;; as the echo area would show it:
+;;
+;;   \x1eorg-lsp {"message": "Bad sexp at line 3 in ..."}
 
 (require 'json)
 (require 'subr-x)
@@ -83,12 +91,333 @@
       (with-temp-buffer
         (insert config)
         (eval-buffer)))
+    ;; After the user's Lisp, so that these win over it.
+    (org-lsp-bridge--set-options (append (alist-get 'options params) nil))
     (require 'org)
     (require 'ox)
     (require 'ox-publish)
     ;; Opening is the editor's: the file is reported instead.
     (advice-add 'org-open-file :override #'org-lsp-bridge--report-open)
+    ;; A download not considered safe is the editor's question, where
+    ;; Emacs in batch mode refuses it.
+    (advice-add 'org--confirm-resource-safe :override #'org-lsp-bridge--confirm-resource-safe)
     `((org . ,(org-version)) (emacs . ,emacs-version))))
+
+;;; Org's options (`emacs_options')
+
+;; Each option comes with the library it is in and its value as JSON,
+;; which Emacs reads here: true is t, false nil, a list a list and a table
+;; an alist with strings for keys. What the option's type (`custom-type')
+;; wants decides the rest: a string where it wants a symbol is that
+;; symbol, a table where it wants a list is a list of its pairs. The
+;; value is set once the library is loaded, as Customize sets it (with
+;; the option's `:set'), if the type matches it; if not, the user is
+;; told.
+
+(defun org-lsp-bridge--notice (format &rest args)
+  "Tell the user what FORMAT and ARGS say."
+  (org-lsp-bridge--send `((notice . ,(apply #'format format args)))))
+
+(defun org-lsp-bridge--set-options (options)
+  "Set each of OPTIONS once its library is loaded: by `name' to the value of
+`json', after `feature' is."
+  (dolist (option options)
+    (let ((name (alist-get 'name option))
+          (json (alist-get 'json option)))
+      (with-eval-after-load (intern (alist-get 'feature option))
+        ;; Whatever goes wrong, the library loads all the same.
+        (condition-case err
+            (org-lsp-bridge--set-option name json)
+          (error (org-lsp-bridge--notice "`emacs_options` could not set `%s`: %s"
+                                         name (error-message-string err))))))))
+
+(defun org-lsp-bridge--set-option (name json)
+  "Set the option NAME to JSON's value, as Customize would."
+  (require 'cl-lib)
+  (require 'seq)
+  (require 'wid-edit)
+  (let* ((symbol (intern name))
+         (type (get symbol 'custom-type))
+         (value (let ((json-object-type 'alist)
+                      (json-array-type 'vector)
+                      (json-key-type 'string)
+                      (json-false :false)
+                      (json-null nil))
+                  (json-read-from-string json))))
+    (if (not type)
+        (org-lsp-bridge--notice "`emacs_options` leaves out `%s`: it is not an option of Org %s"
+                                name (if (fboundp 'org-version) (org-version) ""))
+      (let ((lisp (org-lsp-bridge--option-value type value)))
+        (if (not (org-lsp-bridge--type-matches type lisp))
+            (let ((fault (org-lsp-bridge--fault type value)))
+              (org-lsp-bridge--notice "`emacs_options` leaves out `%s`: %s is not %s"
+                                      name (org-lsp-bridge--json (car fault))
+                                      (org-lsp-bridge--type-text (cdr fault))))
+          (condition-case err
+              (funcall (or (get symbol 'custom-set) #'set-default) symbol lisp)
+            (error (org-lsp-bridge--notice "`emacs_options` could not set `%s`: %s"
+                                           name (error-message-string err)))))))))
+
+(defun org-lsp-bridge--type-matches (type value)
+  "Whether VALUE is of the custom TYPE, as Customize checks it."
+  (condition-case nil
+      (widget-apply (widget-convert type) :match value)
+    (error nil)))
+
+(defun org-lsp-bridge--type-keywords (type)
+  "The keywords of the custom TYPE (`:tag', `:key-type'…), as a plist."
+  (let ((rest (and (consp type) (cdr type)))
+        keywords)
+    ;; A keyword with nothing after it is an argument: the value of
+    ;; `(const :utf-8)', as `widget-convert' reads it.
+    (while (and (keywordp (car rest)) (cdr rest))
+      (setq keywords (append keywords (list (car rest) (cadr rest)))
+            rest (cddr rest)))
+    keywords))
+
+(defun org-lsp-bridge--type-args (type)
+  "The arguments of the custom TYPE after its keywords."
+  (let ((rest (and (consp type) (cdr type))))
+    (while (and (keywordp (car rest)) (cdr rest))
+      (setq rest (cddr rest)))
+    rest))
+
+(defun org-lsp-bridge--plain-value (value)
+  "VALUE as JSON gave it, made Lisp without a type to say more: false is
+nil, a list a list, a table an alist."
+  (cond ((eq value :false) nil)
+        ((vectorp value) (mapcar #'org-lsp-bridge--plain-value value))
+        ((consp value)
+         (mapcar (lambda (pair) (cons (car pair) (org-lsp-bridge--plain-value (cdr pair)))) value))
+        (t value)))
+
+(defun org-lsp-bridge--pairs (value)
+  "The pairs of the table VALUE as lists of two, for a type that wants a
+list of them; any other VALUE as it is."
+  (if (consp value)
+      (vconcat (mapcar (lambda (pair) (vector (car pair) (cdr pair))) value))
+    value))
+
+(defun org-lsp-bridge--names-p (type value)
+  "Whether the custom TYPE names VALUE: a constant whose name VALUE is,
+or a list whose first item is such a constant, as `(not \"LOGBOOK\")'
+is for `(list (const not) …)'."
+  (let ((head (if (consp type) (car type) type))
+        (keywords (org-lsp-bridge--type-keywords type))
+        (args (org-lsp-bridge--type-args type)))
+    (pcase head
+      ((or 'const 'other)
+       (let ((constant (if (plist-member keywords :value) (plist-get keywords :value) (car args))))
+         (and (stringp value) constant (symbolp constant) (not (eq constant t))
+              (string= value (symbol-name constant)))))
+      ((or 'choice 'radio)
+       (seq-some (lambda (type) (org-lsp-bridge--names-p type value)) args))
+      ((or 'list 'group 'vector 'cons)
+       (and (vectorp value) (> (length value) 0) args
+            (memq (if (consp (car args)) (caar args) (car args)) '(const other))
+            (org-lsp-bridge--names-p (car args) (aref value 0)))))))
+
+(defun org-lsp-bridge--string-type-p (type)
+  "Whether the custom TYPE takes strings."
+  (let ((head (if (consp type) (car type) type)))
+    (or (memq head '(string regexp file directory color))
+        (and (memq head '(choice radio))
+             (seq-some #'org-lsp-bridge--string-type-p (org-lsp-bridge--type-args type))))))
+
+(defun org-lsp-bridge--inline-p (type)
+  "Whether the custom TYPE, an argument of a list, stands for several of
+its items (`(repeat :inline t …)')."
+  (and (consp type) (memq (car type) '(repeat set))
+       (plist-get (org-lsp-bridge--type-keywords type) :inline)))
+
+(defun org-lsp-bridge--list-items (args items)
+  "ITEMS, of a list, as the arguments ARGS of its custom type want them:
+one item each, and the rest for an inline repeat (`org-latex-classes''s
+sectioning). The symbol `none' when the count does not fit."
+  (let ((inline (seq-find #'org-lsp-bridge--inline-p args)))
+    (cond
+     ((and (not inline) (= (length items) (length args)))
+      (cl-mapcar #'org-lsp-bridge--option-value args items))
+     ((and inline (>= (length items) (1- (length args))))
+      (let* ((before (seq-take-while (lambda (type) (not (eq type inline))) args))
+             (after (cdr (memq inline args)))
+             (middle (- (length items) (length before) (length after))))
+        (append (cl-mapcar #'org-lsp-bridge--option-value before items)
+                (org-lsp-bridge--option-value inline (vconcat (seq-subseq items (length before)
+                                                                          (+ (length before) middle))))
+                (cl-mapcar #'org-lsp-bridge--option-value after (nthcdr (+ (length before) middle) items)))))
+     (t 'none))))
+
+(defun org-lsp-bridge--option-value (type value)
+  "VALUE, read from JSON, as the custom TYPE wants it."
+  (let* ((head (if (consp type) (car type) type))
+         (keywords (org-lsp-bridge--type-keywords type))
+         (args (org-lsp-bridge--type-args type)))
+    (pcase head
+      ((or 'const 'other)
+       (let ((constant (if (plist-member keywords :value) (plist-get keywords :value) (car args))))
+         (if (and (stringp value) (symbolp constant) (string= value (symbol-name constant)))
+             constant
+           (org-lsp-bridge--plain-value value))))
+      ((or 'symbol 'variable 'face 'coding-system)
+       (if (stringp value) (intern value) (org-lsp-bridge--plain-value value)))
+      ('character
+       (if (and (stringp value) (= (length value) 1)) (aref value 0) value))
+      ('float (if (integerp value) (float value) value))
+      ((or 'choice 'radio)
+       ;; Where Customize's user picks the alternative, the value alone
+       ;; says it here: first an alternative that names the value (a
+       ;; constant `auto' for "auto", a list that starts with the
+       ;; constant `not' for ["not", …]), then for a string one that
+       ;; takes strings (unless it is written as a keyword, `:with-toc',
+       ;; Org's way to name a property), then the first the value fits.
+       (let ((found nil) (done nil))
+         (dolist (fits (list (lambda (type) (org-lsp-bridge--names-p type value))
+                             (lambda (type) (and (stringp value) (not (string-prefix-p ":" value))
+                                                 (org-lsp-bridge--string-type-p type)))
+                             (lambda (_) t)))
+           (let ((rest args))
+             (while (and rest (not done))
+               (when (funcall fits (car rest))
+                 (let ((lisp (org-lsp-bridge--option-value (car rest) value)))
+                   (when (org-lsp-bridge--type-matches (car rest) lisp)
+                     (setq found lisp done t))))
+               (setq rest (cdr rest)))))
+         (if done found (org-lsp-bridge--plain-value value))))
+      ((or 'repeat 'set)
+       (let ((value (org-lsp-bridge--pairs value)))
+         (if (not (vectorp value))
+             (org-lsp-bridge--plain-value value)
+           (mapcar (lambda (item)
+                     (org-lsp-bridge--option-value
+                      (if (eq head 'repeat) (car args) `(choice ,@args))
+                      item))
+                   value))))
+      ((or 'list 'group 'vector)
+       (let ((value (org-lsp-bridge--pairs value)))
+         (if (not (vectorp value))
+             (org-lsp-bridge--plain-value value)
+           (let ((items (org-lsp-bridge--list-items args (append value nil))))
+             (cond ((eq items 'none) (org-lsp-bridge--plain-value value))
+                   ((eq head 'vector) (vconcat items))
+                   (t items))))))
+      ((or 'function 'command)
+       ;; A function's name, as Customize takes it: one defined by then,
+       ;; in `emacs_config' or a library.
+       (let ((symbol (and (stringp value) (intern-soft value))))
+         (if (and symbol (fboundp symbol)) symbol (org-lsp-bridge--plain-value value))))
+      ('cons
+       (if (and (vectorp value) (= (length value) 2))
+           (cons (org-lsp-bridge--option-value (nth 0 args) (aref value 0))
+                 (org-lsp-bridge--option-value (nth 1 args) (aref value 1)))
+         (org-lsp-bridge--plain-value value)))
+      ((or 'alist 'plist)
+       (let ((key-type (or (plist-get keywords :key-type) (if (eq head 'plist) 'symbol 'sexp)))
+             (value-type (or (plist-get keywords :value-type) 'sexp))
+             (pairs (cond ((consp value) (mapcar (lambda (pair) (vector (car pair) (cdr pair))) value))
+                          ((vectorp value) (append value nil))
+                          (t 'none))))
+         (if (or (eq pairs 'none) (not (seq-every-p (lambda (pair) (and (vectorp pair) (= (length pair) 2))) pairs)))
+             (org-lsp-bridge--plain-value value)
+           (let ((key (lambda (key)
+                        ;; A property list's keys are keywords: `scale' is
+                        ;; `:scale', for a symbol as for a choice of
+                        ;; keywords.
+                        (if (and (eq head 'plist) (stringp key) (not (string-prefix-p ":" key)))
+                            (let ((keyword (org-lsp-bridge--option-value key-type (concat ":" key))))
+                              (if (org-lsp-bridge--type-matches key-type keyword)
+                                  keyword
+                                (org-lsp-bridge--option-value key-type key)))
+                          (org-lsp-bridge--option-value key-type key)))))
+             (if (eq head 'plist)
+                 (mapcan (lambda (pair)
+                           (list (funcall key (aref pair 0))
+                                 (org-lsp-bridge--option-value value-type (aref pair 1))))
+                         pairs)
+               (mapcar (lambda (pair)
+                         (cons (funcall key (aref pair 0))
+                               (org-lsp-bridge--option-value value-type (aref pair 1))))
+                       pairs))))))
+      (_
+       ;; A type of its own (`define-widget'), which may stand for another.
+       (let ((other (and (symbolp head) (get head 'widget-type)
+                         (condition-case nil (widget-get (widget-convert type) :type) (error nil)))))
+         (if other
+             (org-lsp-bridge--option-value other value)
+           (org-lsp-bridge--plain-value value)))))))
+
+(defun org-lsp-bridge--fault (type value)
+  "The part of VALUE, read from JSON, that the custom TYPE does not take,
+with the type it should have been: an item of a list, a key or a value of
+a table, or VALUE itself."
+  (let* ((head (if (consp type) (car type) type))
+         (keywords (org-lsp-bridge--type-keywords type))
+         (args (org-lsp-bridge--type-args type))
+         (inner
+          (unless (org-lsp-bridge--type-matches type (org-lsp-bridge--option-value type value))
+            (pcase head
+              ((or 'repeat 'set)
+               (let ((items (org-lsp-bridge--pairs value)))
+                 (and (vectorp items)
+                      (seq-some (lambda (item)
+                                  (org-lsp-bridge--fault
+                                   (if (eq head 'repeat) (car args) `(choice ,@args)) item))
+                                items))))
+              ((or 'list 'group 'vector 'cons)
+               (let ((items (org-lsp-bridge--pairs value)))
+                 (and (vectorp items) (= (length items) (length args))
+                      (not (seq-some #'org-lsp-bridge--inline-p args))
+                      (seq-some #'identity (cl-mapcar #'org-lsp-bridge--fault args (append items nil))))))
+              ((or 'alist 'plist)
+               (and (consp value)
+                    (let ((key-type (or (plist-get keywords :key-type) (if (eq head 'plist) 'symbol 'sexp)))
+                          (value-type (or (plist-get keywords :value-type) 'sexp)))
+                      (seq-some (lambda (pair)
+                                  (or (and (not (eq head 'plist))
+                                           (org-lsp-bridge--fault key-type (car pair)))
+                                      (org-lsp-bridge--fault value-type (cdr pair))))
+                                value))))))))
+    (cond ((org-lsp-bridge--type-matches type (org-lsp-bridge--option-value type value)) nil)
+          (inner)
+          (t (cons value type)))))
+
+(defun org-lsp-bridge--json (value)
+  "VALUE, read from JSON, as JSON again."
+  (let ((json-false :false) (json-null nil))
+    (json-encode value)))
+
+(defun org-lsp-bridge--json-text (value)
+  "VALUE, a constant of a custom type, as it is written in the options."
+  (cond ((eq value t) "true")
+        ((null value) "false")
+        ((symbolp value) (json-encode-string (symbol-name value)))
+        ((stringp value) (json-encode-string value))
+        (t (format "%S" value))))
+
+(defun org-lsp-bridge--type-text (type)
+  "What the custom TYPE takes, in a few words."
+  (let* ((head (if (consp type) (car type) type))
+         (keywords (org-lsp-bridge--type-keywords type))
+         (args (org-lsp-bridge--type-args type)))
+    (pcase head
+      ((or 'const 'other)
+       (org-lsp-bridge--json-text (if (plist-member keywords :value) (plist-get keywords :value) (car args))))
+      ((or 'choice 'radio)
+       (let ((texts (delete-dups (mapcar #'org-lsp-bridge--type-text args))))
+         (if (cdr texts)
+             (concat (string-join (butlast texts) ", ") " or " (car (last texts)))
+           (car texts))))
+      ('boolean "true or false")
+      ((or 'string 'regexp 'file 'directory 'color 'key) "a string")
+      ((or 'integer 'natnum) "an integer")
+      ((or 'number 'float) "a number")
+      ((or 'symbol 'variable 'face 'coding-system) "a name")
+      ('character "a character")
+      ((or 'function 'command) "the name of a defined function")
+      ((or 'repeat 'set) "a list")
+      ((or 'list 'group 'vector 'cons) (format "a list of %d" (if (eq head 'cons) 2 (length args))))
+      ((or 'alist 'plist) "a table")
+      (_ "what Customize allows"))))
 
 ;;; Export
 
@@ -301,6 +630,8 @@ wants one), else interactively."
           org-lsp-bridge--opened nil
           org-lsp-bridge--visited nil
           org-lsp-bridge--extra nil)
+    ;; What Babel shows of a block that fails is this command's alone.
+    (org-lsp-bridge--babel-errors)
     (org-lsp-bridge--in-document params
       (org-lsp-bridge--bind (alist-get 'variables params))
       ;; The selection, as the active region.
@@ -310,7 +641,11 @@ wants one), else interactively."
         (activate-mark))
       (advice-add 'message :around #'org-lsp-bridge--record-message)
       (unwind-protect
-          (let ((current-prefix-arg nil))
+          ;; As the command loop runs it: Org reads `this-command' too
+          ;; (`org-require-package' names it).
+          (let ((current-prefix-arg nil)
+                (this-command command)
+                (real-this-command command))
             (if (or args (not (commandp command)))
                 (apply command args)
               (call-interactively command)))
@@ -322,7 +657,24 @@ wants one), else interactively."
         (visited . ,org-lsp-bridge--visited)
         (extra . ,org-lsp-bridge--extra)
         (countdown . ,(org-lsp-bridge--countdown))
-        (timer . ,(org-lsp-bridge--timer))))))
+        (timer . ,(org-lsp-bridge--timer))
+        (babel_errors . ,(org-lsp-bridge--babel-errors))))))
+
+(defun org-lsp-bridge--babel-errors ()
+  "What Babel showed of the code blocks that failed (the standard error
+and exit code `org-babel-eval-error-notify' puts in its buffer), none
+after that."
+  (when-let* ((buffer (get-buffer "*Org-Babel Error Output*")))
+    (prog1 (org-string-nw-p (with-current-buffer buffer (string-trim (buffer-string))))
+      (kill-buffer buffer))))
+
+(defun org-lsp-bridge--confirm-resource-safe (uri)
+  "`org--confirm-resource-safe', a yes-or-no question to the editor: yes
+downloads URI this once (Emacs's `y'). Marking it safe for good (`!',
+`d', `f') is `org_safe_remote_resources''s."
+  (y-or-n-p (format "An org-mode document would like to download %s, which is not considered safe.
+
+Do you want to download this? " uri)))
 
 (defun org-lsp-bridge--report-open (path &rest _)
   "`org-open-file', for the editor: PATH reported to open."
@@ -428,9 +780,13 @@ none), for the subtree when SUBTREE is t."
 ;;; Timers
 
 (defun org-lsp-bridge-timer-set (minutes)
-  "`org-timer-set-timer' for MINUTES (`10', `1:30:00'), the effort aside."
-  (cl-letf (((symbol-function 'read-from-minibuffer) (lambda (&rest _) minutes)))
-    (org-timer-set-timer '(64))))
+  "`org-timer-set-timer' for MINUTES (`10', `1:30:00'), the effort aside.
+The editor's answer to \"Replace current timer?\" is read as before."
+  (let ((read (symbol-function 'read-from-minibuffer)))
+    (cl-letf (((symbol-function 'read-from-minibuffer)
+               (lambda (&rest args)
+                 (if org-lsp-bridge--reading (apply read args) minutes))))
+      (org-timer-set-timer '(64)))))
 
 (defun org-lsp-bridge--countdown ()
   "The seconds before the countdown ends, or nil when none runs (or it
@@ -517,14 +873,37 @@ the regexps of the dialect, which only `bibtex-mode' sets otherwise."
 
 ;;; What the server asks about
 
+(defvar org-lsp-bridge--bad-sexps nil
+  "The diary sexps that failed, each (FILE LINE SEXP), which Org's message
+was sent for.")
+
 (defun org-lsp-bridge-diary-sexp (params)
   "What the diary sexp of PARAMS, with its entry, gives on its date
-\(`org-diary-sexp-entry'): the lines it shows, or nil."
+\(`org-diary-sexp-entry'): the lines it shows, or nil. For one that
+fails, at the `line' of the `file' of PARAMS, what Org says is sent as a
+message, once."
   (require 'diary-lib)
   (let* ((date (append (alist-get 'date params) nil))
-         (result (cl-letf (((symbol-function 'sleep-for) #'ignore)
-                           ((symbol-function 'beep) #'ignore))
-                   (org-diary-sexp-entry (alist-get 'sexp params) (alist-get 'entry params) date))))
+         (file (alist-get 'file params))
+         (line (alist-get 'line params))
+         (org-lsp-bridge--message nil)
+         (result (with-temp-buffer
+                   ;; Where the sexp is, for what Org says of one that
+                   ;; fails: "Bad sexp at line N in FILE: …".
+                   (setq buffer-file-name file)
+                   (cl-letf (((symbol-function 'sleep-for) #'ignore)
+                             ((symbol-function 'beep) #'ignore)
+                             ((symbol-function 'org-current-line) (lambda (&rest _) (or line 1))))
+                     (advice-add 'message :around #'org-lsp-bridge--record-message)
+                     (unwind-protect
+                         (org-diary-sexp-entry (alist-get 'sexp params) (alist-get 'entry params) date)
+                       (advice-remove 'message #'org-lsp-bridge--record-message)
+                       (setq buffer-file-name nil))))))
+    ;; Said once for each sexp, though the agenda asks for each of its days.
+    (let ((key (list file line (alist-get 'sexp params))))
+      (when (and org-lsp-bridge--message (not (member key org-lsp-bridge--bad-sexps)))
+        (push key org-lsp-bridge--bad-sexps)
+        (org-lsp-bridge--send `((message . ,org-lsp-bridge--message)))))
     (cond ((null result) nil)
           ((stringp result) (vector result))
           (t (vconcat (seq-filter #'stringp result))))))
@@ -673,7 +1052,7 @@ asks: a file, a URL, a name, a directory or an attachment."
       ("D" (org-attach-delete-all))
       ("s" (org-attach-set-directory))
       ("S" (org-attach-unset-directory))
-      (_ (error "No attachment command under %s" key)))))
+      (_ (error "No such attachment command: %s" key)))))
 
 (defun org-lsp-bridge-src-block-names (params)
   "The names of the code blocks of the document of PARAMS, in its order."
@@ -1122,8 +1501,14 @@ the appointment window showed, and how many appointments are left."
 (defun org-lsp-bridge-appt (params)
   "`org-agenda-to-appt' on the agenda files of PARAMS (`files'), those the
 editor has open as it has them (`texts', each a file and its text), with
-`C-u' when `refresh'."
+`C-u' when `refresh'; `appt-message-warning-time' and
+`appt-display-interval' are `warning_time' and `interval' when given."
   (require 'org-agenda)
+  (require 'appt)
+  (when (natnump (alist-get 'warning_time params))
+    (setq appt-message-warning-time (alist-get 'warning_time params)))
+  (when (and (natnump (alist-get 'interval params)) (> (alist-get 'interval params) 0))
+    (setq appt-display-interval (alist-get 'interval params)))
   (let ((org-agenda-files (append (alist-get 'files params) nil))
         (buffers nil))
     (unwind-protect

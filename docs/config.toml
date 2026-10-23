@@ -528,7 +528,9 @@ org_bibtex_type_property_name = "btype"
 # }` follows `https://github.com/org-lsp`. `%s` stands for what follows the
 # colon, `%h` for it URL-encoded; without either it goes at the end. A file's
 # `#+LINK:` lines come first. `%(my-function)` calls an Emacs function with
-# what follows the colon (through Emacs). (org-link-abbrev-alist)
+# what follows the colon (through Emacs), one `emacs_config` marks safe, as
+# Org asks: `(put 'my-function 'org-link-abbrev-safe t)`.
+# (org-link-abbrev-alist)
 org_link_abbrev_alist = {}
 
 # What opens a linked file, the first entry that matches: a match is an
@@ -1415,6 +1417,82 @@ org_agenda_custom_commands_contexts = []
 org_agenda_custom_commands = []
 
 
+# ----- Notifications
+
+# How many minutes before an appointment (an entry of today's agenda with a
+# time of day) its reminders start: one then, and one each
+# `appt_display_interval` minutes after, as Emacs's `appt.el` reminds; an
+# entry's `APPT_WARNTIME` property says it for that entry. As org-lsp's own, a
+# list gives the minutes before the appointment of each reminder: `[10, 0]`
+# reminds ten minutes before and when it is due. `org-lsp notify` reminds this
+# way; through Emacs (Add today's appointments from the agenda files), a list
+# stands for its largest number. (appt-message-warning-time)
+appt_message_warning_time = 12
+
+# Minutes between two reminders of an appointment, from the first,
+# `appt_message_warning_time` minutes before it. (appt-display-interval)
+appt_display_interval = 3
+
+# As org-lsp's own, `org-lsp notify` also reminds of an appointment from a
+# deadline or a timestamp as many hours before it as the timestamp's warning
+# cookie says: once, 60 minutes before `<2026-10-22 Thu 21:00 -1h>`, besides
+# the reminders of `appt_message_warning_time`. A scheduled date's cookie is a
+# delay and does not count, nor do cookies in days, weeks, months or years.
+# Emacs's `appt.el` reads no cookie.
+notification_use_timestamp_warning = false
+
+# The time of day, as `HH:MM`, at which `org-lsp notify` lists the deadlines
+# the day's agenda shows that are not done: those of the day, those whose
+# warning period has begun, and those past.
+# notification_deadline_summary_time = … (unset: no summary)
+
+# The entries `org-lsp notify` reminds of: a match string of the tags view,
+# such as `+meeting|+call` or `-private`.
+# notification_match = … (unset: every entry)
+
+# A program `org-lsp notify` runs for each notification, and its arguments, in
+# which `%t` stands for the title, `%b` for the text and `%%` for `%`:
+# `["ntfy", "publish", "--title", "%t", "mytopic", "%b"]`. It runs instead of
+# the desktop notification, unless `notification_desktop` is on. No shell
+# reads it. With a placeholder of an entry (those of
+# `notification_title_format`), it runs once for each appointment, with that
+# appointment's title, text and values.
+# notification_command = … (unset: none)
+
+# The title of an appointment's notification from `org-lsp notify`, in which
+# `%h` stands for the headline, `%k` its TODO keyword, `%p` its priority, `%T`
+# its tags, `%c` its category, `%s` and `%d` its scheduled and deadline
+# timestamps, `%w` the appointment's time, `%m` the minutes left, `%e` the
+# effort, `%f` and `%F` the file's path and name, `%l` the headline's line,
+# `%a` the line `appt.el` shows and `%%` `%`: `"%k %h"`. Appointments due
+# together share the first one's.
+# notification_title_format = … (unset: the mode line of `appt.el`, such as
+# `Appointment in 10 minutes`)
+
+# The text of an appointment's notification from `org-lsp notify`, with the
+# placeholders of `notification_title_format`: `"%w %c %T"`. Appointments due
+# together have a line each.
+# notification_body_format = … (unset: `%a`, the line `appt.el` shows)
+
+# A line of the deadline summary of `org-lsp notify`, with the placeholders of
+# `notification_title_format` and `%D` for the agenda's leader (`In 3 d.:`, `2
+# d. ago:`, `Deadline:`); there `%a` is the headline as the agenda shows it.
+# notification_deadline_line_format = … (unset: `%c: %D %a`)
+
+# Whether `org-lsp notify` shows a desktop notification: with `notify-send` on
+# Linux and the other Unix systems, `terminal-notifier` on macOS when it is
+# installed and `osascript` otherwise, PowerShell on Windows (BurntToast if it
+# is installed).
+# notification_desktop = … (unset: on unless `notification_command` is set)
+
+# The image of the desktop notifications of `org-lsp notify`: the path of a
+# PNG file (`~/` for the home directory), or `""` for none. Unset, the logo,
+# which it writes to `org-lsp/icon.png` in the user's data directory
+# (`~/.local/share` on Linux). `osascript` shows no image: on macOS it takes
+# `terminal-notifier`.
+# notification_icon = … (unset: the org-lsp logo)
+
+
 # ----- Display
 
 # Hide the markers around `*bold*`, `/italic/`, `_underline_`,
@@ -1612,6 +1690,14 @@ org_bullets_checkboxes = { todo = " ", half = "-", done = "✓" }
 
 
 # ----- Source blocks and tangling
+
+# The major mode, without `-mode`, of a language of source blocks, over Org's
+# own (`elisp` → `emacs-lisp`, `sh` → `sh`): `{ "ipython": "python" }`. Neovim
+# and Vim color the code of a block in the language of its mode
+# (`org-lsp/codeBlocks`), by their name for it (`emacs-lisp` → `elisp`, `sh` →
+# `bash`); Emacs, where it edits or exports a block, takes it too.
+# (org-src-lang-modes)
+org_src_lang_modes = {}
 
 # Leave the code of source blocks as it is indented when re-indenting.
 # (org-src-preserve-indentation)
@@ -2118,11 +2204,11 @@ org_open_non_existing_files = false
 # directory. (org-open-directory-means-index-dot-org)
 org_open_directory_means_index_dot_org = false
 
-# RET on the first line of a list item makes the next item, numbered and with
-# a checkbox as M-RET (`org-meta-return`) makes it, the items after it
-# renumbered, as nvim-orgmode's `org_return_uses_meta_return` does. Off, RET
-# is Org's: a new line in the item. `org.return.item` (`<S-CR>`, Shift+Enter,
-# with the vim keys) always does it.
+# RET on the first line of a list item makes the next item, numbered as M-RET
+# (`org-meta-return`) makes it (without a checkbox, which M-S-RET adds), the
+# items after it renumbered, as nvim-orgmode's `org_return_uses_meta_return`
+# does. Off, RET is Org's: a new line in the item. `org.return.item`
+# (`<S-CR>`, Shift+Enter, with the vim keys) always does it.
 return_uses_meta_return = false
 
 # The deepest headings `org.goto` (`C-c C-j`) offers. (org-goto-max-level)
@@ -2154,19 +2240,23 @@ org_cycle_level_after_item_entry_creation = true
 # Whether the images of `http:` and `https:` links show (`C-c C-x C-v`):
 # `"skip"` not; `"download"` downloaded each time they show; `"cache"`
 # downloaded once and kept for the session. The download follows
-# `org_resource_download_policy`. (org-display-remote-inline-images)
+# `org_resource_download_policy`; an image larger than 20 MB is not
+# downloaded. (org-display-remote-inline-images)
 org_display_remote_inline_images = "skip"
 
-# Which remote resources are downloaded (the images of links): `true` all of
-# them; `"prompt"` those considered safe, and the others when the answer to
-# Emacs's question says so; `"safe"` only those considered safe; `false` none
-# but those. (org-resource-download-policy)
+# Which remote resources are downloaded (the images of links, and in Emacs a
+# file attached from a URL, `C-c C-a u`, or a remote `#+INCLUDE:` or
+# `#+SETUPFILE:` in an export): `true` all of them; `"prompt"` those
+# considered safe, and the others when the answer to Emacs's question says so
+# (in Emacs, a yes or no: yes downloads it this once); `"safe"` only those
+# considered safe; `false` none but those. (org-resource-download-policy)
 org_resource_download_policy = "prompt"
 
 # The remote resources considered safe: Emacs regexps matched against a
 # resource's URL and against the `file://` URL of the file asking for it. The
 # answers `!`, `d` and `f` to the download question add one for the rest of
-# the session. (org-safe-remote-resources)
+# the session. Emacs has them too, for what it downloads.
+# (org-safe-remote-resources)
 org_safe_remote_resources = []
 
 # The deepest level `org-num-mode` numbers. (org-num-max-level)
@@ -2221,14 +2311,36 @@ emacs = "emacs"
 # emacs_config_file = … (unset: none)
 
 # Emacs Lisp that Emacs evaluates after `emacs_config_file` and before loading
-# Org, for a few settings without a file: `(setq org-export-with-toc nil)`, or
-# `(add-to-list 'load-path "~/src/org-mode/lisp")` for another Org. A
-# yes-or-no question Emacs asks while it works (`org-confirm-babel-evaluate`)
-# is asked in the editor.
+# Org, for a few settings without a file that `emacs_options` cannot say: a
+# function or a hook, or `(add-to-list 'load-path "~/src/org-mode/lisp")` for
+# another Org. A yes-or-no question Emacs asks while it works
+# (`org-confirm-babel-evaluate`) is asked in the editor.
 # emacs_config = … (unset: none)
+
+# Org's options for what Emacs does, by their names in Org, which Emacs sets
+# as Customize does: `{ "org-attach-method": "mv", "org-export-with-toc":
+# false }`. `true` is `t` and `false` `nil`, a list is a list and a table an
+# association list; a string is a symbol where the option takes one, or a
+# function, by its name. Each is set when Emacs loads the library it is in,
+# after `emacs_config_file` and `emacs_config`, and so wins over them. A value
+# the option does not take is left out, with a message naming the part that
+# does not fit. The editor's go over the shared file's option by option. The
+# options, each with Org's documentation of it, are in
+# `docs/emacs-options.org`; the others are settings of the server, or Lisp
+# (hooks, functions written out), which goes in `emacs_config`.
+emacs_options = {}
 
 # Save the files a command changes other than the one it was run in: an
 # entry's file changed from the agenda, the target of a capture or of a
 # refile. The editor saves them once it has made the change. Off, they are
 # left with unsaved changes, as Emacs leaves them.
 auto_save = true
+
+# Let the assistants `org-lsp mcp` serves change files: its tools
+# `set_todo_state`, `capture`, `refile`, `schedule`, `deadline`, `set_tags`,
+# `set_property`, `delete_property`, `set_priority`, `set_effort`, `add_note`,
+# `archive` and `delete_entry`, which write the agenda files, the capture
+# targets, the files of `org_refile_targets` and the archive files directly.
+# Off, it only reads. It is read from the shared configuration file, as
+# everything `org-lsp mcp` reads.
+mcp_edits = false

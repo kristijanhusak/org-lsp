@@ -1,0 +1,16 @@
+#+title: LSP-org
+
+Org mode in Sublime Text through [[https://github.com/kristijanhusak/org-lsp][org-lsp]], a language server that
+works as close to Emacs Org mode as it can: highlighting, folding, the
+outline, TODO states, timestamps, clocking, tables, links, capture and
+the agenda. It is a package for [[https://github.com/sublimelsp/LSP][LSP]], which it needs.
+
+The package starts ~org-lsp~ from your PATH, or else downloads the server
+of its own release from [[https://github.com/kristijanhusak/org-lsp/releases][GitHub]] into Sublime Text's ~Package
+Storage/LSP-org~, again when the package is updated.
+
+[[https://kristijanhusak.github.io/org-lsp/sublime.html][Org in Sublime Text]] says how to set it up, and which keys it has (Org's,
+as Emacs has them, only in Org files and only while the ~org_keys~ setting
+asks for them). Bugs and questions go to [[https://github.com/kristijanhusak/org-lsp/issues][org-lsp's issues]]; this package is
+written in the [[https://github.com/kristijanhusak/org-lsp/tree/main/editors/sublime/LSP-org][org-lsp repository]], and a copy of it is published for
+Package Control.

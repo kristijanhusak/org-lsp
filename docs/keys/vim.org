@@ -423,6 +423,17 @@ with ~i~, as at Org's prompt (~fri 10:00~, ~+2d~). With coc.nvim, which
 passes on only an error's message, a key marked ¹ falls back to its own
 meaning whenever the server refuses.
 
+In a terminal, Vim reads a key with a modifier only as the terminal sends
+it. ~<C-Space>~ comes as NUL, which the plugin binds too (~<C-@>~).
+~<S-CR>~ and the keys with ~<M-…>~ or ~<C-S-…>~ need a terminal that reports
+modifiers, as xterm does once Vim turns its ~modifyOtherKeys~ on; in tmux,
+GNU screen or the Linux console Shift-Enter arrives as ~<CR>~. There, bind the command to a
+key that arrives, with ~mappings~ (below) or ~:Org return item~:
+
+#+begin_src vim
+let g:org_lsp = {'mappings': {'org': {'org.return.item': ['<S-CR>', '<C-j>']}}}
+#+end_src
+
 * Changing them
 
 Keys are set with ~mappings~ in ~g:org_lsp~, before the plugin loads. It has

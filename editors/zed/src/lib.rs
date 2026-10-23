@@ -1,12 +1,12 @@
 //! Zed extension for the org-lsp language server.
 //!
 //! Starts `org-lsp` for Org files: the one `scripts/install.sh` put beside
-//! the extension, the one on PATH, or else the nightly build, downloaded
-//! once. The server's options come from Zed's `lsp.org-lsp`
-//! settings. Zed cannot run a server's command from a key, so the commands
-//! are in its code actions (the agenda and capture among them), and what
-//! they ask for is asked with buttons; questions that want typed text (a
-//! date) cannot be asked.
+//! the extension, the one on PATH, or else the server of the extension's
+//! own release (`RELEASE`), downloaded once. The server's options come
+//! from Zed's `lsp.org-lsp` settings. Zed cannot run a server's command
+//! from a key, so the commands are in its code actions (the agenda and
+//! capture among them), and what they ask for is asked with buttons;
+//! questions that want typed text (a date) cannot be asked.
 
 use std::fs;
 
@@ -14,14 +14,20 @@ use zed::settings::LspSettings;
 use zed_extension_api::{self as zed, serde_json, LanguageServerId, Result};
 
 const REPOSITORY: &str = "kristijanhusak/org-lsp";
-const RELEASE: &str = "nightly";
+/// The release whose server is downloaded: the extension's own (`v0.2.0`
+/// for version 0.2.0), or the one named by `ORG_LSP_RELEASE` when it is
+/// built, as the nightly build is with `nightly`.
+const RELEASE: &str = match option_env!("ORG_LSP_RELEASE") {
+    Some(release) => release,
+    None => concat!("v", env!("CARGO_PKG_VERSION")),
+};
 
 struct OrgLsp {
     cached: Option<String>,
 }
 
 impl OrgLsp {
-    /// The server from the nightly release, downloaded on first use.
+    /// The server from `RELEASE`, downloaded on first use.
     fn downloaded(&mut self, id: &LanguageServerId) -> Result<String> {
         if let Some(path) = &self.cached {
             if fs::metadata(path).is_ok_and(|stat| stat.is_file()) {
@@ -93,7 +99,7 @@ impl zed::Extension for OrgLsp {
             Some(path) => path,
             None => self.downloaded(id).map_err(|error| {
                 format!(
-                    "org-lsp is not on PATH, and its nightly build could not be downloaded ({error}). \
+                    "org-lsp is not on PATH, and its {RELEASE} build could not be downloaded ({error}). \
                      Put `org-lsp` on PATH (`cargo install --path server/org-lsp` in a checkout), or name \
                      the binary in Zed's settings: \"lsp\": {{ \"org-lsp\": {{ \"binary\": {{ \"path\": \"/path/to/org-lsp\" }} }} }}"
                 )

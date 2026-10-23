@@ -103,9 +103,9 @@ fn folds(root: &SyntaxNode, text: &str, index: &LineIndex, folding: Folding) -> 
         let stars = || node.first_token().map_or(0, |stars| stars.text().trim_end().len());
         // An inline task has no subtree: it folds its text up to its `END`
         // line (`org-inlinetask-toggle-visibility`).
-        if node.kind() == HEADLINE && inline_tasks.is_some_and(|min| stars() >= min) {
+        if let Some(min) = inline_tasks.filter(|min| node.kind() == HEADLINE && stars() >= *min) {
             let start = usize::from(node.text_range().start());
-            if let Some((first, end)) = org_core::inlinetask::fold_range(text, start) {
+            if let Some((first, end)) = org_core::inlinetask::fold_range(text, start, min) {
                 let (start_line, end_line) = (index.line_of(first), index.line_of(end));
                 if end_line > start_line {
                     ranges.push(fold(&node, start_line, end_line));

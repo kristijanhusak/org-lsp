@@ -8,6 +8,8 @@ Usage: org-lsp [--stdio]
        org-lsp agenda [OPTIONS] FILE...
        org-lsp config [--options JSON]
        org-lsp manifest
+       org-lsp mcp
+       org-lsp notify [--dry-run] [--now \"YYYY-MM-DD HH:MM\"]
        org-lsp settings
        org-lsp command ADDRESS TOKEN COMMAND ROW COLUMN
        org-lsp protocol URL
@@ -24,8 +26,13 @@ fn print(text: &str) {
 fn main() -> ExitCode {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
     if arguments.first().is_some_and(|argument| argument == "agenda") {
-        return match org_lsp::cli::agenda(&arguments[1..]) {
-            Ok(output) => {
+        let folder = std::env::current_dir().ok();
+        let env = |name: &str| std::env::var(name).ok();
+        return match org_lsp::cli::agenda_configured(&arguments[1..], &env, folder.as_deref()) {
+            Ok((output, problems)) => {
+                for problem in problems {
+                    eprintln!("org-lsp agenda: {problem}");
+                }
                 print(&output);
                 ExitCode::SUCCESS
             }
@@ -86,6 +93,50 @@ fn main() -> ExitCode {
             }
         };
     }
+    if arguments.first().is_some_and(|argument| argument == "mcp") {
+        // A Model Context Protocol server, for AI assistants to read the
+        // agenda (`mcp`).
+        if arguments[1..].iter().any(|argument| argument == "--help" || argument == "-h") {
+            print(&format!("{}\n", org_lsp::mcp::USAGE));
+            return ExitCode::SUCCESS;
+        }
+        return match org_lsp::mcp::run() {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(error) => {
+                eprintln!("org-lsp mcp: {error}");
+                ExitCode::FAILURE
+            }
+        };
+    }
+    if arguments.first().is_some_and(|argument| argument == "notify") {
+        // Reminders of the appointments due this minute, for cron or a
+        // timer to run each minute (`notify`).
+        if arguments[1..].iter().any(|argument| argument == "--help" || argument == "-h") {
+            print(&format!("{}\n", org_lsp::notify::USAGE));
+            return ExitCode::SUCCESS;
+        }
+        let env = |name: &str| std::env::var(name).ok();
+        let run = match org_lsp::notify::prepare(&arguments[1..], &env) {
+            Ok(run) => run,
+            Err(error) => {
+                eprintln!("org-lsp notify: {error}\n\n{}", org_lsp::notify::USAGE);
+                return ExitCode::from(2);
+            }
+        };
+        for problem in &run.problems {
+            eprintln!("org-lsp notify: {problem}");
+        }
+        let mut failed = false;
+        for notification in &run.notifications {
+            if run.dry_run {
+                print(&format!("{}\n{}\n\n", notification.title, notification.body));
+            } else if let Err(error) = run.delivery.send(notification) {
+                eprintln!("org-lsp notify: {error}");
+                failed = true;
+            }
+        }
+        return if failed { ExitCode::FAILURE } else { ExitCode::SUCCESS };
+    }
     if arguments.first().is_some_and(|argument| argument == "settings") {
         // The options with their types, defaults and meanings, which the
         // documentation is written from.
@@ -114,7 +165,7 @@ fn main() -> ExitCode {
     // The main thread's stack is small on some platforms and cannot be
     // resized; the syntax tree walks recurse once per outline level.
     let server = std::thread::Builder::new().name("org-lsp".to_string()).stack_size(16 * 1024 * 1024).spawn(|| {
-        let (connection, io_threads) = lsp_server::Connection::stdio();
+        let (connection, io_threads) = org_lsp::stdio::connection()?;
         org_lsp::run(connection)?;
         // `run` dropped the connection, which lets the I/O threads end.
         io_threads.join()?;

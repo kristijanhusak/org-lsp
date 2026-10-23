@@ -1,8 +1,9 @@
 #+title: Developing org-lsp
 #+options: ^:{} toc:nil
 
-How org-lsp is built and checked: the rules the work follows, the checks
-each change goes through, and the decisions taken on the way. What Emacs
+How org-lsp is built, checked and published: the rules the work
+follows, the checks each change goes through, how a version is released,
+and the decisions taken on the way. What Emacs
 Org does that org-lsp does not yet is in [[file:parity.org][parity.org]]; what an editor
 integration has to do, in [[file:protocol.org][protocol.org]].
 
@@ -27,9 +28,13 @@ others), as close to Emacs Org mode as it can get.
   options are part of it: each of Org's options is in
   ~scripts/org-options.json~, with what org-lsp does with it (a setting,
   missing, read by Emacs, and so on), and [[file:parity.org::#options][parity.org]] lists those
-  missing.
+  missing. What Emacs says of those it reads (their docstrings, defaults
+  and types, for [[file:emacs-options.org][emacs-options.org]] and the schema of ~emacs_options~)
+  is in ~scripts/emacs-options.json~, which
+  ~scripts/emacs_options_reference.py~ records again when an option
+  changes status.
 - /One repository/, Neovim files at the root (~plugin/~, ~lua/~), other
-  editors under ~editors/~. The repository is private and stays private.
+  editors under ~editors/~.
 - /Small changes./ Each is one pull request, with its tests, its docs and
   the parity table, merged by squashing once the checks pass.
 
@@ -93,7 +98,11 @@ others), as close to Emacs Org mode as it can get.
   the same steps.
 - Neovim: ~scripts/test-nvim.sh~ (set ~NVIM~ to the binary), on 0.12.0 and
   stable. Tests run headless against the real server; ~tests/nvim/scenarios.lua~
-  is its adapter of the scenarios.
+  is its adapter of the scenarios. On a nightly build of 0.13,
+  ~tests/nvim/highlight.lua~ may stop on Neovim's own assertion
+  (~grid_line_flush: Assertion `grid_line_clear_to <= grid_line_maxcol'~)
+  when it redraws the date prompt's calendar in its headless 140 by 50
+  screen; the same calendar draws in a terminal of that size, and on 0.12.
 - VS Code: in ~editors/vscode~, ~npm run generate -- --check~,
   ~npm run check~, ~npm run build~, ~xvfb-run -a npm test~ (VSCodium works locally
   through ~VSCODE_EXECUTABLE~, set to its ~codium~ binary, not the
@@ -312,6 +321,194 @@ faketime~; Org 9.8.10 from its GitHub mirror (~git clone --depth 1 --branch
 release_9.8.10 https://github.com/bzg/org-mode~, then ~make autoloads~),
 with ~ORG_LISP_DIR~ set to its ~lisp~ directory; Neovim and VSCodium from
 their GitHub releases.
+
+* Publishing
+:PROPERTIES:
+:CUSTOM_ID: publishing
+:END:
+
+org-lsp has one version, written in every place that needs it: the
+server's workspace (~Cargo.toml~, ~Cargo.lock~), the VS Code extension
+(~package.json~, ~package-lock.json~), the Zed extension
+(~extension.toml~, its ~Cargo.toml~ and ~Cargo.lock~) and the Sublime Text
+package (~VERSION~ in ~plugin.py~). ~scripts/version.sh 0.2.0~ sets it in
+all of them; ~scripts/version.sh~ alone prints it, and fails when they
+disagree, which ~scripts/check.sh~ checks.
+
+A release is a version tag. Set the version, merge that change as any
+other, then tag the commit on main and push the tag:
+
+#+begin_src sh
+scripts/version.sh 0.2.0
+# … pull request, merged …
+git fetch origin
+git tag v0.2.0 origin/main
+git push origin v0.2.0
+#+end_src
+
+The Release workflow (~.github/workflows/release.yml~) fails when the tag
+is not ~v~ and the version, builds everything, makes the GitHub release,
+then publishes it: each of these jobs is skipped while its secret is not
+set, and the nightly build (the workflow run by hand on main) publishes
+none of them.
+
+- ~vscode-marketplace~ (secret ~VSCE_PAT~) :: the VS Code packages, one a
+  platform, on the VS Code Marketplace;
+- ~open-vsx~ (~OVSX_PAT~) :: the same packages on Open VSX;
+- ~zed-registry~ (~ZED_EXTENSIONS_TOKEN~) :: a pull request to Zed's
+  extension registry for the new version;
+- ~sublime-mirror~ (~SUBLIME_MIRROR_TOKEN~) :: ~editors/sublime/LSP-org~
+  and the tag to ~kristijanhusak/LSP-org~, which Package Control reads.
+
+The VS Code packages have the server inside. The Zed extension and the
+Sublime Text package download the server of their own release (~v0.2.0~
+for version 0.2.0); those of the nightly build, the nightly server. The
+VS Code extension is marked as a preview (~"preview": true~ in
+~package.json~) until that line goes.
+
+The secrets go in the repository's settings, under /Secrets and
+variables › Actions/
+([[https://github.com/kristijanhusak/org-lsp/settings/secrets/actions]]).
+What has to be done once, by hand, before each job can publish:
+
+** VS Code Marketplace
+:PROPERTIES:
+:CUSTOM_ID: vs-code-marketplace
+:END:
+
+- [ ] The publisher ~kristijanhusak~ (/Kristijan Husak/) exists:
+  [[https://marketplace.visualstudio.com/manage/publishers/kristijanhusak]].
+- [ ] An Azure DevOps organization, created at [[https://dev.azure.com]] with
+  the Microsoft account of the publisher.
+- [ ] A personal access token of that account: in Azure DevOps, /User
+  settings › Personal access tokens › New Token/, with /Organization/ set
+  to /All accessible organizations/ and /Scopes/ to /Custom defined/, then
+  /Show all scopes › Marketplace › Manage/.
+  ~npx vsce verify-pat kristijanhusak~ (in ~editors/vscode~, after ~npm
+  ci~) checks it.
+- [ ] The token as the secret ~VSCE_PAT~.
+
+When the Azure DevOps sign-up is stuck, a separate Microsoft account made
+for publishing can do it: add it to the publisher as a /Contributor/
+([[https://marketplace.visualstudio.com/manage/publishers/kristijanhusak]],
+/Members/), and let it own the organization and the token.
+
+Azure DevOps retires tokens for all accessible organizations on December
+1, 2026, and the Marketplace takes no other kind
+([[https://code.visualstudio.com/api/working-with-extensions/publishing-extension][Publishing Extensions]]). After that, publishing goes through Microsoft
+Entra ID (~vsce publish --azure-credential~, with an Azure identity that
+GitHub Actions logs in as and that is a member of the publisher), which
+the job does not do yet; the packages of the GitHub release can be
+uploaded by hand at [[https://marketplace.visualstudio.com/manage]] meanwhile.
+
+** Open VSX
+:PROPERTIES:
+:CUSTOM_ID: open-vsx
+:END:
+
+- [ ] An Eclipse account ([[https://accounts.eclipse.org/user/register]]) whose
+  /GitHub Username/ is ~kristijanhusak~.
+- [ ] At [[https://open-vsx.org]], log in with GitHub; in
+  [[https://open-vsx.org/user-settings/profile][Settings › Profile]], /Log in with Eclipse/, then /Show Publisher
+  Agreement/ and /Agree/ (the Eclipse Foundation's Open VSX Publisher
+  Agreement).
+- [ ] A token: [[https://open-vsx.org/user-settings/tokens][Settings › Access Tokens]], /Generate New Token/.
+- [ ] The namespace, named as the publisher: in ~editors/vscode~, after
+  ~npm ci~, ~npx ovsx create-namespace kristijanhusak -p TOKEN~. To have
+  the extension shown as verified, claim the namespace as the Open VSX
+  wiki says ([[https://github.com/eclipse/openvsx/wiki/Namespace-Access][Namespace Access]]).
+- [ ] The token as the secret ~OVSX_PAT~.
+
+** Zed
+:PROPERTIES:
+:CUSTOM_ID: zed
+:END:
+
+The registry is the repository ~zed-industries/extensions~, where each
+extension is a submodule and an entry of ~extensions.toml~
+([[https://zed.dev/docs/extensions/publishing/publishing-guide][Publishing Guide]]). The job updates an extension that is there already,
+so the first version goes in by hand, once its tag is released:
+
+- [ ] Fork [[https://github.com/zed-industries/extensions]] to
+  ~kristijanhusak/extensions~ (a personal account, so that Zed's staff can
+  push to the pull request), and clone the fork:
+  #+begin_src sh
+  git clone https://github.com/kristijanhusak/extensions
+  cd extensions
+  git submodule init
+  git submodule update
+  #+end_src
+- [ ] Add org-lsp as a submodule, at the released tag (its commit is on
+  main, as the registry wants):
+  #+begin_src sh
+  git submodule add https://github.com/kristijanhusak/org-lsp.git extensions/org-lsp
+  git -C extensions/org-lsp checkout v0.2.0
+  git add extensions/org-lsp
+  #+end_src
+- [ ] Add its entry to ~extensions.toml~; ~version~ is that of
+  ~editors/zed/extension.toml~ at the tag:
+  #+begin_src toml
+  [org-lsp]
+  submodule = "extensions/org-lsp"
+  path = "editors/zed"
+  version = "0.2.0"
+  #+end_src
+- [ ] ~pnpm sort-extensions~, which sorts ~extensions.toml~ and
+  ~.gitmodules~; commit, push, and open the pull request to
+  ~zed-industries/extensions~. A pull request adds or updates one
+  extension, and is closed after three weeks without an answer to the
+  maintainers. The registry has an extension for Org already (~org~,
+  from ~hron/zed-org~), and Zed's [[https://zed.dev/docs/extensions/publishing/prerequisites][prerequisites]] ask for no second
+  extension that does the same: the pull request should say what org-lsp
+  adds (the server).
+- [ ] For the versions after it: a classic token of ~kristijanhusak~
+  ([[https://github.com/settings/tokens/new]]) with the ~public_repo~ and
+  ~workflow~ scopes, as the secret ~ZED_EXTENSIONS_TOKEN~. The job
+  ([[https://github.com/huacnlee/zed-extension-action][huacnlee/zed-extension-action]]) pushes the new version to a branch of
+  the fork and opens the pull request.
+
+The extension's licence is ~editors/zed/LICENSE~ (the GNU GPL, version
+3), which Zed accepts and wants at the extension's root.
+
+** Package Control
+:PROPERTIES:
+:CUSTOM_ID: package-control
+:END:
+
+Package Control installs a package from the root of a repository of its
+own, at its version tags (~v0.2.0~ is read as 0.2.0), so
+~editors/sublime/LSP-org~ is copied to ~kristijanhusak/LSP-org~ with each
+version. The packages for LSP are listed in ~sublimelsp/repository~,
+not in Package Control's default channel ([[https://github.com/wbond/package_control_channel][wbond/package_control_channel]]
+says so).
+
+- [ ] An empty public repository ~kristijanhusak/LSP-org~
+  ([[https://github.com/new]]; no README, licence or ~.gitignore~: the job
+  pushes the package's), with a description, such as /Org mode in Sublime
+  Text through org-lsp (a copy of editors/sublime/LSP-org)/.
+- [ ] A fine-grained token
+  ([[https://github.com/settings/personal-access-tokens/new]]): /Only select
+  repositories/, ~kristijanhusak/LSP-org~; /Repository permissions ›
+  Contents/: /Read and write/. It is the secret ~SUBLIME_MIRROR_TOKEN~.
+- [ ] Once a version's tag has been copied there: fork
+  [[https://github.com/sublimelsp/repository]], add the package to the
+  ~packages~ of ~repository.json~, in alphabetical order, and open the
+  pull request:
+  #+begin_src json
+  {
+    "details": "https://github.com/kristijanhusak/LSP-org",
+    "name": "LSP-org",
+    "labels": ["language syntax", "lsp", "org"],
+    "releases": [
+      {
+        "sublime_text": ">=4132",
+        "tags": true
+      }
+    ]
+  }
+  #+end_src
+  4132 is the oldest build of Sublime Text that the LSP package's
+  releases are for.
 
 * Decisions
 :PROPERTIES:

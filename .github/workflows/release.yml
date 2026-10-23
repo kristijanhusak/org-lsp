@@ -8,8 +8,18 @@
 #   .../releases/download/nightly/org-lsp-<platform>.tar.gz
 #   It has what built: the files of a platform whose build failed are
 #   taken off, not left from an older build.
-# - a version tag (`v0.2.0`) makes that release, only when every build
-#   succeeded.
+# - a version tag (`v0.2.0`, the version scripts/version.sh set) makes
+#   that release, only when every build succeeded, and then publishes it
+#   (docs/development.org, Publishing): the VS Code packages on the VS Code
+#   Marketplace (secret VSCE_PAT) and Open VSX (OVSX_PAT), a pull request
+#   to Zed's extension registry (ZED_EXTENSIONS_TOKEN), and the Sublime
+#   Text package to the repository Package Control reads,
+#   kristijanhusak/LSP-org (SUBLIME_MIRROR_TOKEN). Each is skipped while
+#   its secret is not set.
+#
+# The Zed extension and the Sublime Text package download the server of
+# their own release (`v0.2.0`); those of the nightly build download the
+# nightly server.
 #
 # Pushes to main and pull requests do not run it, to save Actions minutes;
 # put `branches: [main]` under `push` back to build each push to main.
@@ -116,12 +126,26 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
+      - name: The tag is the version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          version=$(scripts/version.sh)
+          [ "$GITHUB_REF_NAME" = "v$version" ] ||
+            { echo "::error::The tag $GITHUB_REF_NAME is not v$version, the version scripts/version.sh set"; exit 1; }
       - name: Install Rust
         run: |
           rustup toolchain install stable --profile minimal --target wasm32-wasip2
           rustup default stable
       - name: Package the Zed extension
         run: |
+          # The release whose server it downloads: its own version's, or
+          # the nightly one (ORG_LSP_RELEASE, read when it is built).
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            release=v$(scripts/version.sh)
+          else
+            release=nightly
+            export ORG_LSP_RELEASE=nightly
+          fi
           curl -fsSL -o "$RUNNER_TEMP/zed-extension" "https://zed-extension-cli.nyc3.digitaloceanspaces.com/$ZED_EXTENSION_CLI_SHA/x86_64-unknown-linux-gnu/zed-extension"
           echo "$ZED_EXTENSION_SHA256  $RUNNER_TEMP/zed-extension" | sha256sum -c -
           chmod +x "$RUNNER_TEMP/zed-extension"
@@ -131,6 +155,8 @@ jobs:
           for file in extension.toml extension.wasm grammars/org.wasm languages/org/config.toml; do
             tar -tzf org-lsp-zed.tar.gz | grep -qx "./$file" || { echo "org-lsp-zed.tar.gz has no $file"; exit 1; }
           done
+          tar -xzOf org-lsp-zed.tar.gz ./extension.wasm | grep -aq "$release" ||
+            { echo "The extension does not download the server of $release"; exit 1; }
           # Its tasks and keys, which scripts/install.sh adds to Zed's.
           cp editors/zed/tasks.json org-lsp-zed-tasks.json
           cp editors/zed/keymap.json org-lsp-zed-keymap.json
@@ -157,6 +183,12 @@ jobs:
           merge-multiple: true
       - name: Package the Sublime Text package, Helix's queries and the install script
         run: |
+          # The nightly package downloads the nightly server; a version's,
+          # its own (`'v' + VERSION`).
+          if [[ "$GITHUB_REF" != refs/tags/* ]]; then
+            sed -i "s/^RELEASE = 'v' + VERSION .*/RELEASE = 'nightly'/" editors/sublime/LSP-org/plugin.py
+            grep -qx "RELEASE = 'nightly'" editors/sublime/LSP-org/plugin.py || { echo "plugin.py has no RELEASE to set"; exit 1; }
+          fi
           (cd editors/sublime && zip -qr "$GITHUB_WORKSPACE/dist/org-lsp-sublime.zip" LSP-org -x '*__pycache__*')
           tar -czf dist/org-lsp-helix.tar.gz -C editors/helix/runtime queries
           cp scripts/install.sh dist/install.sh
@@ -186,3 +218,129 @@ jobs:
             [ -e "dist/$asset" ] || gh release delete-asset nightly "$asset" --yes
           done
           gh release upload nightly dist/* --clobber
+
+  # The jobs below publish a version's release once it is made. Each is
+  # skipped while its secret is not set (a secret cannot be tested in a
+  # job's `if`, so its steps test it in `env`). The VS Code tools are
+  # those of editors/vscode's package-lock.json.
+  vscode-marketplace:
+    needs: publish
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    env:
+      # A token of the Azure DevOps organization of the `kristijanhusak`
+      # publisher, with Marketplace > Manage.
+      VSCE_PAT: ${{ secrets.VSCE_PAT }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        if: env.VSCE_PAT != ''
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: env.VSCE_PAT != ''
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        if: env.VSCE_PAT != ''
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish the VS Code packages on the VS Code Marketplace
+        if: env.VSCE_PAT != ''
+        working-directory: editors/vscode
+        run: |
+          npm ci
+          # A version already there (the job run again) is not an error.
+          npx --no-install vsce publish --skip-duplicate --packagePath "$GITHUB_WORKSPACE"/dist/*.vsix
+
+  open-vsx:
+    needs: publish
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    env:
+      # A token of the open-vsx.org account that owns the `kristijanhusak`
+      # namespace.
+      OVSX_PAT: ${{ secrets.OVSX_PAT }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        if: env.OVSX_PAT != ''
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: env.OVSX_PAT != ''
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        if: env.OVSX_PAT != ''
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish the VS Code packages on Open VSX
+        if: env.OVSX_PAT != ''
+        working-directory: editors/vscode
+        run: |
+          npm ci
+          npx --no-install ovsx publish --skip-duplicate --packagePath "$GITHUB_WORKSPACE"/dist/*.vsix
+
+  zed-registry:
+    needs: publish
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    env:
+      # A classic token of kristijanhusak with the `public_repo` and
+      # `workflow` scopes: it pushes to the fork kristijanhusak/extensions
+      # and opens the pull request to zed-industries/extensions.
+      COMMITTER_TOKEN: ${{ secrets.ZED_EXTENSIONS_TOKEN }}
+    steps:
+      # It moves the submodule of org-lsp to this tag's commit and sets the
+      # `version` of `[org-lsp]` in extensions.toml: it updates an
+      # extension already in the registry, so the first submission is made
+      # by hand (docs/development.org, Publishing). The commit is that of
+      # its v2 branch, after v2.0.0, which misses a `version` that comes
+      # after a `path` line, as org-lsp's does.
+      - uses: huacnlee/zed-extension-action@82920ff0876879f65ffbcfa3403589114a8919c6 # v2
+        if: env.COMMITTER_TOKEN != ''
+        with:
+          extension-name: org-lsp
+          push-to: kristijanhusak/extensions
+
+  sublime-mirror:
+    needs: publish
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    env:
+      # A fine-grained token with Contents: read and write on
+      # kristijanhusak/LSP-org alone.
+      SUBLIME_MIRROR_TOKEN: ${{ secrets.SUBLIME_MIRROR_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        if: env.SUBLIME_MIRROR_TOKEN != ''
+        with:
+          persist-credentials: false
+      # Package Control installs a package from the root of its own
+      # repository, at its version tags: kristijanhusak/LSP-org gets
+      # editors/sublime/LSP-org as it is at this tag (its plugin downloads
+      # this release's server), and the same tag.
+      - name: Push the Sublime Text package to kristijanhusak/LSP-org
+        if: env.SUBLIME_MIRROR_TOKEN != ''
+        run: |
+          # The token reaches git through its environment, never a command
+          # line or the log.
+          auth=$(printf 'x-access-token:%s' "$SUBLIME_MIRROR_TOKEN" | base64 -w0)
+          echo "::add-mask::$auth"
+          export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.https://github.com/.extraheader GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth"
+          mirror=$RUNNER_TEMP/LSP-org
+          git clone --quiet https://github.com/kristijanhusak/LSP-org.git "$mirror"
+          # The first push makes `main` of the empty repository.
+          git -C "$mirror" rev-parse -q --verify HEAD > /dev/null || git -C "$mirror" symbolic-ref HEAD refs/heads/main
+          find "$mirror" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a editors/sublime/LSP-org/. "$mirror/"
+          find "$mirror" -name __pycache__ -prune -exec rm -rf {} +
+          cd "$mirror"
+          git add -A
+          # Nothing to commit when the job runs again for the same tag.
+          git diff --cached --quiet ||
+            git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit --quiet -m "LSP-org $GITHUB_REF_NAME" -m "editors/sublime/LSP-org of $GITHUB_REPOSITORY at $GITHUB_SHA."
+          git tag -f "$GITHUB_REF_NAME"
+          git push --quiet origin HEAD "refs/tags/$GITHUB_REF_NAME"
