@@ -2114,30 +2114,33 @@ impl Options {
     fn tangle_lisp(&self) -> Vec<String> {
         let lisp_string = |text: &str| format!("\"{}\"", text.replace('\\', "\\\\").replace('"', "\\\""));
         let mut forms = Vec::new();
-        let mut set = |name: &str, value: String| forms.push(format!("(setq {name} {value})"));
-        if let Some(exts) = self.babel_tangle_lang_exts.as_ref().filter(|exts| !exts.is_empty()) {
-            for (lang, extension) in exts {
-                set(
-                    "org-babel-tangle-lang-exts",
-                    format!(
-                        "(cons (cons {} {}) org-babel-tangle-lang-exts)",
-                        lisp_string(lang),
-                        lisp_string(extension)
-                    ),
-                );
+        // Pairs added to a list of Org's once its library has defined it:
+        // this runs before Org is loaded.
+        let mut add = |feature: &str, list: &str, pairs: Vec<String>| {
+            if !pairs.is_empty() {
+                let adds: Vec<String> = pairs.iter().map(|pair| format!("(push {pair} {list})")).collect();
+                forms.push(format!("(with-eval-after-load '{feature} {})", adds.join(" ")));
             }
-        }
+        };
+        let exts = self.babel_tangle_lang_exts.iter().flatten();
+        add(
+            "ob-tangle",
+            "org-babel-tangle-lang-exts",
+            exts.map(|(lang, extension)| format!("(cons {} {})", lisp_string(lang), lisp_string(extension))).collect(),
+        );
         // `org-src-lang-modes`: the mode a block is edited and exported in.
-        for (lang, mode) in self.src_lang_modes.iter().flatten() {
-            set(
-                "org-src-lang-modes",
-                format!(
-                    "(cons (cons {} (intern {})) org-src-lang-modes)",
-                    lisp_string(lang),
-                    lisp_string(mode.strip_suffix("-mode").unwrap_or(mode))
-                ),
-            );
-        }
+        let modes = self.src_lang_modes.iter().flatten();
+        add(
+            "org-src",
+            "org-src-lang-modes",
+            modes
+                .map(|(lang, mode)| {
+                    let mode = mode.strip_suffix("-mode").unwrap_or(mode);
+                    format!("(cons {} (intern {}))", lisp_string(lang), lisp_string(mode))
+                })
+                .collect(),
+        );
+        let mut set = |name: &str, value: String| forms.push(format!("(setq {name} {value})"));
         if self.babel_tangle_use_relative_file_links == Some(false) {
             set("org-babel-tangle-use-relative-file-links", "nil".to_string());
         }
@@ -4619,7 +4622,7 @@ mod tests {
         assert_eq!(
             options.emacs_lisp().unwrap(),
             [
-                r#"(setq org-babel-tangle-lang-exts (cons (cons "python" "py") org-babel-tangle-lang-exts))"#,
+                r#"(with-eval-after-load 'ob-tangle (push (cons "python" "py") org-babel-tangle-lang-exts))"#,
                 "(setq org-babel-tangle-use-relative-file-links nil)",
                 r#"(setq org-babel-tangle-comment-format-end "end \"%source-name\"")"#,
                 "(setq org-babel-process-comment-text 'identity)",
@@ -4638,7 +4641,7 @@ mod tests {
             serde_json::from_value(serde_json::json!({ "org_src_lang_modes": { "ipython": "python-mode" } })).unwrap();
         assert_eq!(
             options.emacs_lisp().unwrap(),
-            r#"(setq org-src-lang-modes (cons (cons "ipython" (intern "python")) org-src-lang-modes))"#
+            r#"(with-eval-after-load 'org-src (push (cons "ipython" (intern "python")) org-src-lang-modes))"#
         );
     }
 

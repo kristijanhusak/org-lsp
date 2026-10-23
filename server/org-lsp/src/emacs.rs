@@ -882,6 +882,42 @@ done
         );
     }
 
+    /// The Lisp of the settings Emacs is told (`org_src_lang_modes`, the
+    /// tangling options), which runs before Org is loaded, in a real
+    /// Emacs: what adds to Org's lists waits for their library.
+    #[test]
+    fn sets_the_settings_emacs_is_told_before_org_is_loaded() {
+        let found = Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+        if !found {
+            assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+            eprintln!("sets_the_settings_emacs_is_told_before_org_is_loaded: no Emacs, skipped");
+            return;
+        }
+        let load =
+            std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
+        let options: crate::config::Options = serde_json::from_value(json!({
+            "org_src_lang_modes": { "ipython": "python-mode" },
+            "org_babel_tangle_lang_exts": { "ipython": "py" },
+            "org_babel_tangle_use_relative_file_links": false,
+        }))
+        .unwrap();
+        let emacs = Emacs::new(Settings {
+            program: "emacs".to_string(),
+            config: Some(format!("{load}\n{}", options.emacs_lisp().unwrap())),
+            ..Settings::default()
+        });
+        let sexp = "(progn (require 'org-src) (require 'ob-tangle) \
+                    (format \"%S %S %S\" (assoc \"ipython\" org-src-lang-modes) \
+                    (assoc \"ipython\" org-babel-tangle-lang-exts) org-babel-tangle-use-relative-file-links))";
+        let value = loop {
+            match emacs.call("eval", json!({ "sexp": sexp }), Duration::from_secs(60)) {
+                Err(error) if error == STARTING => continue,
+                result => break result.unwrap(),
+            }
+        };
+        assert_eq!(value, r#"("ipython" . python) ("ipython" . "py") nil"#);
+    }
+
     #[test]
     fn escapes_beyond_ascii() {
         assert_eq!(ascii_json(&json!("\u{e9}\u{1f600}")), r#""\u00e9\ud83d\ude00""#);
