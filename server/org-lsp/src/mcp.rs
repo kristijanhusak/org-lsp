@@ -62,26 +62,61 @@ pub fn run() -> std::io::Result<()> {
     for problem in crate::config::load(None, &|name| std::env::var(name).ok()).problems {
         eprintln!("org-lsp mcp: {problem}");
     }
-    for line in stdin.lock().lines() {
-        let line = line?;
-        if line.trim().is_empty() {
-            continue;
-        }
-        let env = |name: &str| std::env::var(name).ok();
-        if let Some(answer) = answer(&line, folder.as_deref(), &env) {
-            writeln!(stdout, "{answer}")?;
-            stdout.flush()?;
-        }
-    }
-    Ok(())
+    let env = |name: &str| std::env::var(name).ok();
+    serve(stdin.lock(), &mut stdout, folder.as_deref(), &env)
 }
 
-/// The answer to one message, or `None` for a notification.
+/// Answer each line of `input` on `output` until `input` ends.
+fn serve(
+    mut input: impl BufRead,
+    output: &mut impl Write,
+    folder: Option<&Path>,
+    env: &dyn Fn(&str) -> Option<String>,
+) -> std::io::Result<()> {
+    let mut bytes = Vec::new();
+    loop {
+        bytes.clear();
+        if input.read_until(b'\n', &mut bytes)? == 0 {
+            return Ok(());
+        }
+        // A line that is not UTF-8 is a message that cannot be parsed,
+        // not the end of the session.
+        let answer = match std::str::from_utf8(&bytes) {
+            Ok(line) if line.trim().is_empty() => continue,
+            Ok(line) => answer(line, folder, env),
+            Err(error) => Some(failure(Value::Null, -32700, &format!("Parse error: {error}"))),
+        };
+        if let Some(answer) = answer {
+            writeln!(output, "{answer}")?;
+            output.flush()?;
+        }
+    }
+}
+
+/// The answer to one line, or `None` for a notification: to a batch (an
+/// array of messages, which the protocol before 2025-06-18 allows), the
+/// answers to its requests, or `None` when it has only notifications.
 pub fn answer(line: &str, folder: Option<&Path>, env: &dyn Fn(&str) -> Option<String>) -> Option<Value> {
     let message: Value = match serde_json::from_str(line) {
         Ok(message) => message,
         Err(error) => return Some(failure(Value::Null, -32700, &format!("Parse error: {error}"))),
     };
+    match message {
+        Value::Array(messages) if messages.is_empty() => Some(failure(Value::Null, -32600, "Invalid Request")),
+        Value::Array(messages) => {
+            let answers: Vec<Value> =
+                messages.into_iter().filter_map(|message| answer_message(message, folder, env)).collect();
+            (!answers.is_empty()).then_some(Value::Array(answers))
+        }
+        message => answer_message(message, folder, env),
+    }
+}
+
+/// The answer to one message, or `None` for a notification.
+fn answer_message(message: Value, folder: Option<&Path>, env: &dyn Fn(&str) -> Option<String>) -> Option<Value> {
+    if !message.is_object() {
+        return Some(failure(Value::Null, -32600, "Invalid Request"));
+    }
     let id = message.get("id").cloned()?;
     let method = message.get("method").and_then(Value::as_str).unwrap_or_default();
     let params = message.get("params").cloned().unwrap_or(Value::Null);
@@ -605,6 +640,26 @@ fn canonical(path: &Path) -> PathBuf {
     std::fs::canonicalize(path).or_else(|_| std::path::absolute(path)).unwrap_or_else(|_| path.to_path_buf())
 }
 
+/// [`canonical`] for a file that may not be there yet: the directories
+/// that are there as the file system has them, then the rest.
+fn resolved(path: &Path) -> PathBuf {
+    let absolute = std::path::absolute(path).unwrap_or_else(|_| path.to_path_buf());
+    let mut rest = Vec::new();
+    let mut there = absolute.as_path();
+    loop {
+        if let Ok(found) = std::fs::canonicalize(there) {
+            return rest.iter().rev().fold(found, |path, part| path.join(part));
+        }
+        match (there.parent(), there.file_name()) {
+            (Some(parent), Some(name)) => {
+                rest.push(name.to_os_string());
+                there = parent;
+            }
+            _ => return absolute,
+        }
+    }
+}
+
 /// The file `given` names, among `files`, those a tool may change: by its
 /// path (`~/` the home directory, relative to the folder the server runs
 /// in), or by its name as the views give it.
@@ -644,9 +699,36 @@ fn editable_file(given: &str, files: &[PathBuf], kinds: &str, folder: Option<&Pa
     Err(format!("{given} is {kinds}: org-lsp mcp changes only those").into())
 }
 
-/// Write `text` to `path` at once: into a file beside it, which then
-/// takes its place, so that no one reads it half written.
-fn write_file(path: &Path, text: &str) -> Result<(), Call> {
+/// Whether the tool may write `path`, whose text it read as `read` (`None`
+/// when it was not there): not when the file is read-only, as Emacs does
+/// not change a read-only buffer, nor when it has changed since, as an
+/// editor's save would be lost.
+fn may_write(path: &Path, read: Option<&str>) -> Result<(), Call> {
+    let now = match std::fs::read(path) {
+        Ok(bytes) => Some(bytes),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+        Err(error) => return Err(format!("Cannot read {}: {error}", path.display()).into()),
+    };
+    if now.as_deref() != read.map(str::as_bytes) {
+        return Err(format!(
+            "{} has changed since it was read, and nothing was written: look for the entry again",
+            path.display()
+        )
+        .into());
+    }
+    if std::fs::metadata(path).is_ok_and(|metadata| metadata.permissions().readonly()) {
+        let name = path.file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default();
+        return Err(format!("Buffer is read-only: #<buffer {name}>").into());
+    }
+    Ok(())
+}
+
+/// Write `text` to `path`, whose text the tool read as `read` (`None` when
+/// it was not there), at once: into a file beside it, which then takes its
+/// place, so that no one reads it half written. Refused as [`may_write`]
+/// refuses it.
+fn write_file(path: &Path, read: Option<&str>, text: &str) -> Result<(), Call> {
+    may_write(path, read)?;
     // A link stays a link: the file it points to is written.
     let path = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
     let directory = path.parent().filter(|parent| !parent.as_os_str().is_empty()).unwrap_or(Path::new("."));
@@ -782,7 +864,7 @@ fn set_todo_state(arguments: &Arguments, options: &Options, folder: Option<&Path
         out.push_str("Dry run: nothing was written. The change would be:\n");
         out.push_str(&diff(&name, &text, &outcome.text));
     } else {
-        write_file(&path, &outcome.text)?;
+        write_file(&path, Some(&text), &outcome.text)?;
     }
     let headline = outcome.text.lines().nth(line - 1).unwrap_or("");
     out.push_str(&format!("{name}:{line}: {headline}"));
@@ -1025,11 +1107,12 @@ fn capture(arguments: &Arguments, options: &Options, folder: Option<&Path>) -> R
         TargetSpec::Clock => return Err("No running clock that could be used as capture target".into()),
         TargetSpec::Function { .. } => return Err(NEEDS_EMACS.into()),
     };
-    let before = match std::fs::read_to_string(&path) {
-        Ok(text) => text,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
+    let read = match std::fs::read_to_string(&path) {
+        Ok(text) => Some(text),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
         Err(error) => return Err(format!("Cannot read {}: {error}", path.display()).into()),
     };
+    let before = read.clone().unwrap_or_default();
     let keywords = org_syntax::parse(&before, &options.todo_keywords()).todo_keywords().clone();
     let properties = capture::Properties {
         prepend: template.prepend.unwrap_or(false),
@@ -1062,7 +1145,7 @@ fn capture(arguments: &Arguments, options: &Options, folder: Option<&Path>) -> R
             diff(&name, &before, &done)
         ));
     }
-    write_file(&path, &done)?;
+    write_file(&path, read.as_deref(), &done)?;
     Ok(format!("Filed in {name} at line {line}:\n{filed}"))
 }
 
@@ -1244,9 +1327,9 @@ fn target_reference(
     match offset {
         Some(at) => {
             let text = &files[file].text;
-            let starts = starts.entry(file).or_insert_with(|| {
-                std::iter::once(0).chain(text.match_indices('\n').map(|(at, _)| at + 1)).collect()
-            });
+            let starts = starts
+                .entry(file)
+                .or_insert_with(|| std::iter::once(0).chain(text.match_indices('\n').map(|(at, _)| at + 1)).collect());
             format!("[{label}:{}]", starts.partition_point(|start| *start <= at).max(1))
         }
         None => format!("[{label}]"),
@@ -1459,8 +1542,11 @@ fn refile(arguments: &Arguments, options: &Options, folder: Option<&Path>) -> Re
             out.push_str(&diff(&file.full, &file.text, text));
         }
     } else {
+        for (file, _) in &changes {
+            may_write(&file.path, Some(&file.text))?;
+        }
         for (file, text) in &changes {
-            write_file(&file.path, text)?;
+            write_file(&file.path, Some(&file.text), text)?;
         }
     }
     // Where the entry is now.
@@ -1930,13 +2016,7 @@ impl<'a> RoamIndex<'a> {
             found
         };
         let labels = file_labels(db.files.iter().map(|(file, _)| file.as_str()));
-        RoamIndex {
-            nodes,
-            aliases: by_owner(&db.aliases),
-            tags: by_owner(&db.tags),
-            labels,
-            texts: HashMap::new(),
-        }
+        RoamIndex { nodes, aliases: by_owner(&db.aliases), tags: by_owner(&db.tags), labels, texts: HashMap::new() }
     }
 
     /// The node whose ID is `id`, and its file.
@@ -2360,8 +2440,55 @@ mod tests {
     }
 
     #[test]
+    fn answers_past_a_line_that_is_not_utf8_and_answers_batches() {
+        let no_env = |_: &str| None;
+        let input: &[u8] = b"\xff\xfe\n{\"jsonrpc\":\"2.0\",\"id\":9,\"method\":\"ping\"}\n\
+            [{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"},{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"},\
+            {\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"nothing\"}]\n\
+            [{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}]\n[]\n5\n";
+        let mut output = Vec::new();
+        serve(input, &mut output, None, &no_env).unwrap();
+        let answers: Vec<Value> =
+            String::from_utf8(output).unwrap().lines().map(|line| serde_json::from_str(line).unwrap()).collect();
+        assert_eq!(answers.len(), 5, "{answers:?}");
+        assert_eq!(answers[0]["error"]["code"], -32700);
+        assert_eq!(answers[1], json!({ "jsonrpc": "2.0", "id": 9, "result": {} }));
+        let batch = answers[2].as_array().expect("a batch");
+        assert_eq!(batch.len(), 2, "{batch:?}");
+        assert_eq!((batch[0]["id"].clone(), batch[1]["error"]["code"].clone()), (json!(1), json!(-32601)));
+        assert_eq!(
+            (answers[3]["error"]["code"].clone(), answers[4]["error"]["code"].clone()),
+            (json!(-32600), json!(-32600))
+        );
+    }
+
+    #[test]
+    fn a_read_only_or_changed_file_is_not_written() {
+        let setup = Setup::new("read-only", "mcp_edits = true", &[("tasks.org", TASKS)]);
+        let path = setup.folder.join("tasks.org");
+        let mut permissions = std::fs::metadata(&path).unwrap().permissions();
+        permissions.set_readonly(true);
+        std::fs::set_permissions(&path, permissions.clone()).unwrap();
+        let (text, error) = setup.call("set_todo_state", json!({ "file": "tasks.org", "line": 3, "state": "DONE" }));
+        assert!(error && text == "Buffer is read-only: #<buffer tasks.org>", "{text}");
+        assert_eq!(setup.read("tasks.org"), TASKS);
+        #[allow(clippy::permissions_set_readonly_false)]
+        permissions.set_readonly(false);
+        std::fs::set_permissions(&path, permissions).unwrap();
+        // Changed since it was read, as by an editor's save.
+        let refused = write_file(&path, Some("* TODO Something else\n"), "* DONE Something else\n");
+        assert!(matches!(refused, Err(Call::Failed(message)) if message.contains("has changed since it was read")));
+        assert_eq!(setup.read("tasks.org"), TASKS);
+        // Not there when read, and there now.
+        assert!(write_file(&path, None, "* New\n").is_err());
+        assert!(write_file(&path, Some(TASKS), "* New\n").is_ok());
+        assert_eq!(setup.read("tasks.org"), "* New\n");
+    }
+
+    #[test]
     fn a_malformed_option_leaves_the_others_to_the_views() {
-        let config = "org_todo_keywords = [\"TODO\", \"NEXT\", \"|\", \"DONE\"]\norg_log_done = 5\norg_agenda_span = {}";
+        let config =
+            "org_todo_keywords = [\"TODO\", \"NEXT\", \"|\", \"DONE\"]\norg_log_done = 5\norg_agenda_span = {}";
         let setup = Setup::new("malformed", config, &[("tasks.org", "* NEXT Call the plumber\n")]);
         let (todo, error) = setup.call("todo_list", json!({}));
         assert!(!error && todo.contains("NEXT Call the plumber"), "{todo}");
