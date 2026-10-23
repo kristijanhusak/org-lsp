@@ -221,12 +221,20 @@ notification_command = ["ntfy", "publish", "--title", "%t", "my-org-reminders", 
 or with ~curl~:
 
 #+begin_src toml
-notification_command = ["curl", "-fsS", "-H", "Title: %t", "-d", "%b", "https://ntfy.sh/my-org-reminders"]
+notification_command = ["curl", "-fsS", "-H", "Title: %t", "--data-raw", "%b", "https://ntfy.sh/my-org-reminders"]
 #+end_src
+
+The program may read a value that starts an argument as one of its
+options, or as more than text: a headline =-v= that ~%h~ puts there, or
+one that starts with =@=, which ~curl -d~ takes for a file to send
+(~--data-raw~ does not). Put the placeholder after an option that takes
+it (~--title=%t~), or after other text (~<%h>~), where the program
+allows.
 
 With ~notification_desktop = true~ the desktop's comes too. A program that
 fails, or takes longer than 30 seconds, is said on standard error, and the
-command ends with status 1.
+command ends with status 1, as it does when an agenda file cannot be read
+(the other files are reminded of all the same).
 
 The command may say more of the entry with the placeholders of the next
 section. With any of them it runs once for each appointment, with that
@@ -339,3 +347,8 @@ and files to look at in place of the agenda files.
   whether it makes a sound.
 - Appointments from the diary file (~appt-check~ reads it too) are not
   read.
+- An ~APPT_WARNTIME~ that is not an integer, as ~30.5~, makes ~appt-add~
+  fail with ~Argument WARNTIME must be an integer~, and
+  ~org-agenda-to-appt~ with it, for every appointment. Here its leading
+  integer is taken (30), as ~string-to-number~ reads it, and a number too
+  large for one is 0.
