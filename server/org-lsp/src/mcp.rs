@@ -57,6 +57,10 @@ pub fn run() -> std::io::Result<()> {
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();
     let folder = std::env::current_dir().ok();
+    // What the configuration file has wrong, in the client's log.
+    for problem in crate::config::load(None, &|name| std::env::var(name).ok()).problems {
+        eprintln!("org-lsp mcp: {problem}");
+    }
     for line in stdin.lock().lines() {
         let line = line?;
         if line.trim().is_empty() {
@@ -422,6 +426,11 @@ pub(crate) fn agenda_paths_at(options: &Options, folder: Option<&Path>, now: Dat
     paths
 }
 
+/// The files `org_agenda_files` names that are not there.
+pub(crate) fn missing_agenda_files(options: &Options, folder: Option<&Path>) -> Vec<PathBuf> {
+    workspace(options, folder).missing()
+}
+
 /// The agenda files and the folder the server runs in, as the server
 /// looks for files there.
 fn workspace(options: &Options, folder: Option<&Path>) -> crate::workspace::Workspace {
@@ -494,17 +503,33 @@ fn build_view(
     let files: Vec<String> =
         agenda_paths(&loaded.options, folder).iter().map(|path| path.display().to_string()).collect();
     if view.is_empty() {
-        return Ok(if files.is_empty() { "No agenda files.".to_string() } else { files.join("\n") });
+        return Ok(if files.is_empty() { no_agenda_files(&loaded, folder) } else { files.join("\n") });
     }
     if files.is_empty() {
-        return Err(
-            "No agenda files: set org_agenda_files in the configuration file (`org-lsp config` shows it).".into()
-        );
+        return Err(no_agenda_files(&loaded, folder).into());
     }
-    view.extend(["--options".into(), loaded.merged.to_string()]);
+    view.extend(["--options".into(), loaded.readable.to_string()]);
     view.extend(files.iter().cloned());
     let lines = crate::cli::agenda_lines(&view)?;
     Ok(with_references(lines, &files))
+}
+
+/// Why there are no agenda files: what `org_agenda_files` names that is
+/// not there, and what the configuration file has wrong.
+pub(crate) fn no_agenda_files(loaded: &crate::config::Loaded, folder: Option<&Path>) -> String {
+    let missing = missing_agenda_files(&loaded.options, folder);
+    let mut out = if loaded.options.agenda_files.is_empty() {
+        "No agenda files: set org_agenda_files in the configuration file (`org-lsp config` shows it).".to_string()
+    } else if missing.is_empty() {
+        "No agenda files: org_agenda_files names no Org file.".to_string()
+    } else {
+        let missing: Vec<String> = missing.iter().map(|path| path.display().to_string()).collect();
+        format!("No agenda files: these are not there: {}", missing.join(", "))
+    };
+    for problem in &loaded.problems {
+        out.push_str(&format!("\nThe configuration: {problem}"));
+    }
+    out
 }
 
 /// The lines of a view, each entry's ending with `[file:line]`: the line
@@ -2252,6 +2277,19 @@ mod tests {
         assert_eq!(edit["annotations"]["destructiveHint"], false);
         assert_eq!(edit["annotations"]["idempotentHint"], false);
         assert!(tools.iter().any(|tool| tool["name"] == "capture"));
+    }
+
+    #[test]
+    fn a_malformed_option_leaves_the_others_to_the_views() {
+        let config = "org_todo_keywords = [\"TODO\", \"NEXT\", \"|\", \"DONE\"]\norg_log_done = 5\norg_agenda_span = {}";
+        let setup = Setup::new("malformed", config, &[("tasks.org", "* NEXT Call the plumber\n")]);
+        let (todo, error) = setup.call("todo_list", json!({}));
+        assert!(!error && todo.contains("NEXT Call the plumber"), "{todo}");
+        // No agenda files: what is not there, and what the file has wrong.
+        std::fs::remove_file(setup.folder.join("tasks.org")).unwrap();
+        let (text, error) = setup.call("todo_list", json!({}));
+        assert!(error && text.contains("these are not there") && text.contains("tasks.org"), "{text}");
+        assert!(text.contains("`org_log_done` is malformed"), "{text}");
     }
 
     #[test]

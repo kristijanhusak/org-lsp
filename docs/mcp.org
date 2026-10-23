@@ -74,7 +74,8 @@ change an entry take.
 - ~tags_search~ :: the entries a ~match~ string selects (~org-tags-view~),
   only those with a TODO keyword with ~todo_only~.
 - ~text_search~ :: the entries whose text has the words of ~query~
-  (~org-search-view~).
+  (~org-search-view~), only those with a TODO keyword not done with
+  ~todo_only~.
 - ~custom_agenda~ :: a command of ~org_agenda_custom_commands~, by its
   ~key~.
 - ~agenda_files~ :: the files the agenda is built from.
