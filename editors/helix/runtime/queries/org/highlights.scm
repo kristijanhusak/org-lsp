@@ -157,6 +157,12 @@
 (row "|" @punctuation.special.table)
 (cell "|" @punctuation.special.table)
 (hr) @punctuation.special.table
+; The header: the first row or two above the first rule, with a row
+; below it (past a rule that opens the table).
+(table . (row (cell (contents) @markup.heading.table)) . (hr) . (row))
+(table . (hr) . (row (cell (contents) @markup.heading.table)) . (hr) . (row))
+(table . (row (cell (contents) @markup.heading.table)) . (row) . (hr) . (row))
+(table . (row) . (row (cell (contents) @markup.heading.table)) . (hr) . (row))
 (formula "#+tblfm:" @comment.keyword)
 
 ; What Org finds in text. A thing of more than one word goes from the
