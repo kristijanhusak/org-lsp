@@ -133,9 +133,9 @@ The requests the server answers:
 - ~textDocument/documentHighlight~ :: Never anything: the request tells
   the server where the cursor is, which the agenda's keys want.
 
-~executeCommandProvider~ lists the manifest's commands, and ~org.cycle~ and
-~org.date.preview~, two that are for the editors' code (see their entries in
-[[#commands][Commands]]).
+~executeCommandProvider~ lists the manifest's commands, and ~org.cycle~,
+~org.date.preview~ and ~org.emacs.answer~, three that are for the editors'
+code (see their entries in [[#commands][Commands]]).
 
 The server sends ~textDocument/publishDiagnostics~ for the citation keys of
 a document that no file of its bibliography has (~oc-basic~ shows them with
@@ -1903,6 +1903,12 @@ increments a number.
   overlays removed~).
 - ~org.date.preview~ :: Not for users: what an answer to a date prompt
   means; see below. Not in the manifest.
+- ~org.emacs.answer~ :: Not for users: the answer to a question of Emacs's
+  (a yes-or-no question of a command run in Emacs), for a client that
+  does not show it with ~window/showMessageRequest~ (~message_requests~
+  off). Run with no argument, it gives the question as a command's
+  ~input~, a key of ~y~ or ~n~; run with ~{ "input": "y" }~ (or ~"n"~),
+  it answers it. Not in the manifest.
 - ~org.cycle~ :: Not for users: what an editor's own TAB in an Org file does
   before it folds (~org-cycle~). Not in the manifest. On a new, empty
   headline (the cursor at its end, with stars and perhaps a TODO keyword)
