@@ -9421,7 +9421,7 @@
       },
       {
         "id": "link",
-        "description": "A link"
+        "description": "The brackets of a link, and its target when it has a description and Org hides it; a radio link; a citation"
       },
       {
         "id": "code",
@@ -9453,7 +9453,7 @@
       },
       {
         "id": "latex",
-        "description": "A LaTeX fragment or environment"
+        "description": "A LaTeX fragment"
       },
       {
         "id": "entity",
@@ -9546,6 +9546,22 @@
       {
         "id": "descriptionTerm",
         "description": "The term of a description list item, with its ::"
+      },
+      {
+        "id": "linkDescription",
+        "description": "The description of a link, [[target][description]]"
+      },
+      {
+        "id": "linkUrl",
+        "description": "The target of a link: a link without a description, a plain or angle link, or the target of a described one Org shows"
+      },
+      {
+        "id": "latexEnvironment",
+        "description": "A LaTeX environment, \\begin{…} to \\end{…}"
+      },
+      {
+        "id": "tableHeader",
+        "description": "The cells of a table's header: the rows above its first rule, when rows follow it"
       }
     ],
     "semanticTokenModifiers": [
@@ -9844,6 +9860,17 @@
             "markup.underline.link",
             "string.other.link"
           ],
+          "linkDescription": [
+            "markup.underline.link.description.org",
+            "markup.underline.link",
+            "string.other.link.description",
+            "string.other.link"
+          ],
+          "linkUrl": [
+            "markup.underline.link.url.org",
+            "markup.underline.link",
+            "string.other.link"
+          ],
           "code": [
             "markup.inline.raw.org",
             "markup.inline.raw",
@@ -9858,6 +9885,11 @@
             "punctuation.separator.table.org",
             "punctuation.definition.table",
             "comment"
+          ],
+          "tableHeader": [
+            "markup.heading.table.org",
+            "markup.heading",
+            "entity.name.section"
           ],
           "footnote": [
             "markup.underline.link.footnote.org",
@@ -9905,6 +9937,11 @@
           ],
           "latex": [
             "markup.math.org",
+            "support.function",
+            "string.other.math"
+          ],
+          "latexEnvironment": [
+            "markup.math.environment.org",
             "support.function",
             "string.other.math"
           ],
@@ -10236,6 +10273,17 @@
             "markup.underline.link",
             "string.other.link"
           ],
+          "linkDescription": [
+            "markup.underline.link.description.org",
+            "markup.underline.link",
+            "string.other.link.description",
+            "string.other.link"
+          ],
+          "linkUrl": [
+            "markup.underline.link.url.org",
+            "markup.underline.link",
+            "string.other.link"
+          ],
           "code": [
             "markup.inline.raw.org",
             "markup.inline.raw",
@@ -10250,6 +10298,11 @@
             "punctuation.separator.table.org",
             "punctuation.definition.table",
             "comment"
+          ],
+          "tableHeader": [
+            "markup.heading.table.org",
+            "markup.heading",
+            "entity.name.section"
           ],
           "footnote": [
             "markup.underline.link.footnote.org",
@@ -10297,6 +10350,11 @@
           ],
           "latex": [
             "markup.math.org",
+            "support.function",
+            "string.other.math"
+          ],
+          "latexEnvironment": [
+            "markup.math.environment.org",
             "support.function",
             "string.other.math"
           ],
@@ -10628,6 +10686,17 @@
             "markup.underline.link",
             "string.other.link"
           ],
+          "linkDescription": [
+            "markup.underline.link.description.org",
+            "markup.underline.link",
+            "string.other.link.description",
+            "string.other.link"
+          ],
+          "linkUrl": [
+            "markup.underline.link.url.org",
+            "markup.underline.link",
+            "string.other.link"
+          ],
           "code": [
             "markup.inline.raw.org",
             "markup.inline.raw",
@@ -10642,6 +10711,11 @@
             "punctuation.separator.table.org",
             "punctuation.definition.table",
             "comment"
+          ],
+          "tableHeader": [
+            "markup.heading.table.org",
+            "markup.heading",
+            "entity.name.section"
           ],
           "footnote": [
             "markup.underline.link.footnote.org",
@@ -10689,6 +10763,11 @@
           ],
           "latex": [
             "markup.math.org",
+            "support.function",
+            "string.other.math"
+          ],
+          "latexEnvironment": [
+            "markup.math.environment.org",
             "support.function",
             "string.other.math"
           ],

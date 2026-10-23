@@ -78,6 +78,12 @@ token_types! {
     // as the modifiers fill the 32 bits LSP has for them.
     Outline => "outline",
     DescriptionTerm => "descriptionTerm",
+    // Parts of links and tables, and LaTeX environments, each with a look
+    // of its own: types, as no bit of the modifiers is left.
+    LinkDescription => "linkDescription",
+    LinkUrl => "linkUrl",
+    LatexEnvironment => "latexEnvironment",
+    TableHeader => "tableHeader",
 }
 
 /// Token modifiers, in legend order; each is one bit.
@@ -246,12 +252,18 @@ pub mod standard {
             TokenType::Tag => "decorator",
             TokenType::Timestamp if has(modifier::INACTIVE) => "comment",
             TokenType::Timestamp => "enumMember",
-            TokenType::Drawer | TokenType::Latex | TokenType::Entity | TokenType::Macro => "macro",
+            TokenType::Drawer
+            | TokenType::Latex
+            | TokenType::LatexEnvironment
+            | TokenType::Entity
+            | TokenType::Macro => "macro",
             TokenType::Property => "property",
             // `org-meta-line` and `org-block-begin-line` are comments.
             TokenType::Keyword | TokenType::Block | TokenType::Comment => "comment",
             TokenType::Bullet | TokenType::Checkbox | TokenType::TableDelimiter => "operator",
-            TokenType::Link | TokenType::Target => "namespace",
+            TokenType::Link | TokenType::LinkDescription | TokenType::LinkUrl | TokenType::Target => "namespace",
+            // The header of a table, as a title is.
+            TokenType::TableHeader => "type",
             TokenType::Code | TokenType::Verbatim => "string",
             TokenType::Footnote => "parameter",
             TokenType::DocumentTitle => "type",
@@ -911,21 +923,27 @@ impl Walker<'_> {
         }
     }
 
-    /// A bracket link as `org-link-descriptive` shows it: the description,
-    /// or the target when there is none, with the rest hidden.
+    /// A bracket link: its brackets, its target and its description.
+    /// With `org-link-descriptive`, as Org shows it: the description, or
+    /// the target when there is none, with the rest hidden. What is shown
+    /// is `linkDescription` or `linkUrl`.
     fn link(&mut self, node: &SyntaxNode) {
+        let conceal = self.conceal.links;
+        let hidden = if conceal { modifier::HIDDEN } else { 0 };
         let described = node.children_with_tokens().any(|child| child.kind() == LINK_SEPARATOR);
+        let shown = if described { TokenType::LinkDescription } else { TokenType::LinkUrl };
         let (mut shown_start, mut shown_end) = (None, None);
         for child in node.children_with_tokens() {
             let range = child.text_range();
             match child.kind() {
                 LINK_OPEN | LINK_SEPARATOR | LINK_CLOSE => {
                     if let (Some(start), Some(end)) = (shown_start.take(), shown_end.take()) {
-                        self.push(TextRange::new(start, end), TokenType::Link, 0);
+                        self.push(TextRange::new(start, end), shown, 0);
                     }
-                    self.push(range, TokenType::Link, modifier::HIDDEN);
+                    self.push(range, TokenType::Link, hidden);
                 }
-                LINK_PATH if described => self.push(range, TokenType::Link, modifier::HIDDEN),
+                LINK_PATH if described && conceal => self.push(range, TokenType::Link, hidden),
+                LINK_PATH if described => self.push(range, TokenType::LinkUrl, 0),
                 _ => {
                     shown_start.get_or_insert(range.start());
                     shown_end = Some(range.end());
@@ -933,7 +951,30 @@ impl Walker<'_> {
             }
         }
         if let (Some(start), Some(end)) = (shown_start, shown_end) {
-            self.push(TextRange::new(start, end), TokenType::Link, 0);
+            self.push(TextRange::new(start, end), shown, 0);
+        }
+    }
+
+    /// A table, the rows of its header (`org-export-table-has-header-p`:
+    /// the first group of rows, when a rule parts it from others) in
+    /// `tableHeader`.
+    fn table(&mut self, node: &SyntaxNode, style: Style) {
+        let rule = |row: &SyntaxNode| row.children_with_tokens().any(|child| child.kind() == TABLE_RULE);
+        let rows: Vec<SyntaxNode> = node.children().filter(|child| child.kind() == TABLE_ROW).collect();
+        let first = rows.iter().position(|row| !rule(row)).unwrap_or(rows.len());
+        let end = rows[first..].iter().position(rule).map_or(rows.len(), |offset| first + offset);
+        let header = if rows[end..].iter().any(|row| !rule(row)) { end } else { 0 };
+        let mut index = 0;
+        for child in node.children_with_tokens() {
+            if child.kind() == TABLE_ROW {
+                index += 1;
+                if index <= header {
+                    let header = Style { text: Some(TokenType::TableHeader), modifiers: style.modifiers };
+                    self.element(node, child, header);
+                    continue;
+                }
+            }
+            self.element(node, child, style);
         }
     }
 
@@ -949,8 +990,9 @@ impl Walker<'_> {
             HEADLINE => self.headline(node),
             // Tags, links and the like are single tokens whatever they contain.
             TAGS => self.push(range, TokenType::Tag, 0),
-            LINK if self.conceal.links => self.link(node),
-            LINK | PLAIN_LINK | ANGLE_LINK | CITATION => self.push(range, TokenType::Link, 0),
+            LINK => self.link(node),
+            PLAIN_LINK | ANGLE_LINK => self.push(range, TokenType::LinkUrl, 0),
+            CITATION => self.push(range, TokenType::Link, 0),
             // The code of `src_LANG{CODE}` is the editor's to color in its
             // language, as Emacs does with `org-src-fontify-natively`.
             INLINE_SRC_BLOCK => match inline_src_body(&node.text().to_string()) {
@@ -979,7 +1021,7 @@ impl Walker<'_> {
             LATEX_ENVIRONMENT => {
                 for child in node.children_with_tokens() {
                     match child.kind() {
-                        TEXT => self.push(child.text_range(), TokenType::Latex, 0),
+                        TEXT => self.push(child.text_range(), TokenType::LatexEnvironment, 0),
                         _ => self.element(node, child, Style::PLAIN),
                     }
                 }
@@ -987,6 +1029,7 @@ impl Walker<'_> {
             ENTITY => self.push(range, TokenType::Entity, 0),
             MACRO => self.macro_call(node),
             BLOCK | DYNAMIC_BLOCK => self.block(node),
+            TABLE => self.table(node, style),
             LIST_ITEM => self.list_item(node, style),
             _ => self.children(node, style),
         }
@@ -1520,7 +1563,11 @@ mod tests {
             "+[[https://x.org][x]] y <2026-10-21 Wed> [fn:1]+\n",
             expect![[r#"
                 0:0 "+" text +strikethrough
-                0:1 "[[https://x.org][x]]" link +strikethrough
+                0:1 "[[" link +strikethrough
+                0:3 "https://x.org" linkUrl +strikethrough
+                0:16 "][" link +strikethrough
+                0:18 "x" linkDescription +strikethrough
+                0:19 "]]" link +strikethrough
                 0:21 " y " text +strikethrough
                 0:24 "<2026-10-21 Wed>" timestamp +strikethrough
                 0:40 " " text +strikethrough
@@ -1532,7 +1579,7 @@ mod tests {
         expect![[r#"
             0:0 "/" text +italic
             0:1 "[[https://x.org][" link +italic +hidden
-            0:18 "x" link +italic
+            0:18 "x" linkDescription +italic
             0:19 "]]" link +italic +hidden
             0:21 "/" text +italic
         "#]]
@@ -1544,14 +1591,14 @@ mod tests {
         let links = Conceal { links: true, emphasis: false };
         expect![[r#"
             0:0 "[[https://x.org][" link +hidden
-            0:17 "the *site*" link
+            0:17 "the *site*" linkDescription
             0:27 "]]" link +hidden
             0:30 "[[" link +hidden
-            0:32 "file:a.org" link
+            0:32 "file:a.org" linkUrl
             0:42 "]]" link +hidden
             1:0 "[[a][" link +hidden
-            1:5 "two" link
-            2:0 "lines" link
+            1:5 "two" linkDescription
+            2:0 "lines" linkDescription
             2:5 "]]" link +hidden
         "#]]
         .assert_eq(&render_concealed(
@@ -1605,7 +1652,11 @@ mod tests {
                 0:13 "Write " headline +level2
                 0:19 "*the*" headline +level2 +bold
                 0:24 " " headline +level2
-                0:25 "[[a][parser]]" link
+                0:25 "[[" link
+                0:27 "a" linkUrl
+                0:28 "][" link
+                0:30 "parser" linkDescription
+                0:36 "]]" link
                 0:39 ":work:rust:" tag
                 1:0 "***" stars +level3
                 1:4 "DONE" todoKeyword +done
@@ -1746,6 +1797,66 @@ mod tests {
     }
 
     #[test]
+    fn table_headers() {
+        // The rows above the first rule, past rules that open the table,
+        // when rows follow it (`org-export-table-has-header-p`); none in a
+        // table with no row below its rule, or with no rule.
+        check(
+            "|---|\n| *a* | b |\n| c |\n|---|\n| 1 |\n|---|\n| 2 |\n\n| x |\n|---|\n\n| y |\n| z |\n",
+            expect![[r#"
+                0:0 "|---|" tableDelimiter
+                1:0 "|" tableDelimiter
+                1:2 "*a*" tableHeader +bold
+                1:6 "|" tableDelimiter
+                1:8 "b" tableHeader
+                1:10 "|" tableDelimiter
+                2:0 "|" tableDelimiter
+                2:2 "c" tableHeader
+                2:4 "|" tableDelimiter
+                3:0 "|---|" tableDelimiter
+                4:0 "|" tableDelimiter
+                4:4 "|" tableDelimiter
+                5:0 "|---|" tableDelimiter
+                6:0 "|" tableDelimiter
+                6:4 "|" tableDelimiter
+                8:0 "|" tableDelimiter
+                8:4 "|" tableDelimiter
+                9:0 "|---|" tableDelimiter
+                11:0 "|" tableDelimiter
+                11:4 "|" tableDelimiter
+                12:0 "|" tableDelimiter
+                12:4 "|" tableDelimiter
+            "#]],
+        );
+    }
+
+    #[test]
+    fn links_latex_environments() {
+        // What a link shows, its description or its target; plain and
+        // angle links whole; a LaTeX environment apart from fragments.
+        check(
+            "https://a.org <https://b.org> [[c][d]] [[e]] [cite:@f] $x$\n\\begin{equation}\nE = mc^2\n\\end{equation}\n",
+            expect![[r#"
+                0:0 "https://a.org" linkUrl
+                0:14 "<https://b.org>" linkUrl
+                0:30 "[[" link
+                0:32 "c" linkUrl
+                0:33 "][" link
+                0:35 "d" linkDescription
+                0:36 "]]" link
+                0:39 "[[" link
+                0:41 "e" linkUrl
+                0:42 "]]" link
+                0:45 "[cite:@f]" link
+                0:55 "$x$" latex
+                1:0 "\\begin{equation}" latexEnvironment
+                2:0 "E = mc^2" latexEnvironment
+                3:0 "\\end{equation}" latexEnvironment
+            "#]],
+        );
+    }
+
+    #[test]
     fn description_terms() {
         // `org-list-dt`: unordered items only, to the first `::`, past a
         // checkbox; emphasis in a term keeps its modifiers.
@@ -1793,8 +1904,12 @@ mod tests {
             expect![[r#"
             0:0 "*bold" text +bold
             1:2 "more*" text +bold
-            1:12 "[[a][two" link
-            2:2 "lines]]" link
+            1:12 "[[" link
+            1:14 "a" linkUrl
+            1:15 "][" link
+            1:17 "two" linkDescription
+            2:2 "lines" linkDescription
+            2:7 "]]" link
         "#]],
         );
     }

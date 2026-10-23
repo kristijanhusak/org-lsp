@@ -897,6 +897,10 @@ SAMPLE_COLORS = [
     ("Commented out.", "Commented out.", "comment"),
     ("\\begin{equation}", "\\begin{equation}", "markup.raw.block"),
     ("|------+-------|", "|------+-------|", "punctuation.special.table"),
+    ("| Name | Value |", "Name", "markup.heading.table"),
+    ("| Name | Value |", "Value", "markup.heading.table"),
+    # The rows below the rule in no color.
+    ("| a    |", "a", None),
     (": Fixed-width text", ": Fixed-width text", "markup.raw.inline.fixed"),
     ("An inline task", "An inline task", "comment.inlinetask"),
     ("The footnote's text.", "[fn:1]", "markup.link.url.footnote"),
