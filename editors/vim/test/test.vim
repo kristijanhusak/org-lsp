@@ -799,7 +799,13 @@ function! s:code_link_note() abort
   call assert_match('python', Syntax(9, 32))
   call assert_notmatch('python', Syntax(9, 30))
   call assert_notmatch('python', Syntax(9, 50))
-  call assert_match('lisp', Syntax(11, 2))
+  call assert_match('lispDecl', Syntax(11, 2))
+  " Within the blocks of a syntax for Org whose regions take the whole
+  " block, as Vim's own `syntax/org.vim` has them.
+  syntax region orgCodeBlock start="\c^\s*#+BEGIN_SRC.*" end="\c^\s*#+END_SRC" keepend
+  doautocmd TextChanged
+  call s:until('the code within the block of the syntax for Org', {-> Syntax(3, 1) =~# 'orgCodeBlock orgLspSrcCode_python python'})
+  syntax clear orgCodeBlock
   " What an example block holds is no block.
   call assert_notmatch('python', Syntax(15, 1))
   " The regions move with the code, and go with it.
