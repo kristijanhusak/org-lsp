@@ -580,8 +580,14 @@ fn editable_file(given: &str, files: &[PathBuf], kinds: &str, folder: Option<&Pa
         return Ok(found.clone());
     }
     if !given.contains(['/', '\\']) {
-        let named: Vec<&PathBuf> =
-            files.iter().filter(|file| file.file_name().is_some_and(|name| name == given)).collect();
+        // A file listed twice (an agenda file that a capture template or
+        // `org_refile_targets` names too) is one file.
+        let mut seen = std::collections::HashSet::new();
+        let named: Vec<&PathBuf> = files
+            .iter()
+            .filter(|file| file.file_name().is_some_and(|name| name == given))
+            .filter(|file| seen.insert(canonical(file)))
+            .collect();
         match named[..] {
             [one] => return Ok(one.clone()),
             [_, _, ..] => {
@@ -2188,15 +2194,25 @@ mod tests {
         }
 
         fn ask(&self, method: &str, params: Value) -> Value {
+            self.ask_in(&self.folder, method, params)
+        }
+
+        /// [`Setup::ask`] of a server started in `folder`.
+        fn ask_in(&self, folder: &std::path::Path, method: &str, params: Value) -> Value {
             let config = self.config.display().to_string();
             let env = |name: &str| (name == "ORG_LSP_CONFIG").then(|| config.clone());
             let line = json!({ "jsonrpc": "2.0", "id": 1, "method": method, "params": params }).to_string();
-            answer(&line, Some(&self.folder), &env).expect("an answer")
+            answer(&line, Some(folder), &env).expect("an answer")
         }
 
         /// The text a tool answers, and whether it is an error.
         fn call(&self, name: &str, arguments: Value) -> (String, bool) {
-            let answer = self.ask("tools/call", json!({ "name": name, "arguments": arguments }));
+            self.call_in(&self.folder, name, arguments)
+        }
+
+        /// [`Setup::call`] of a server started in `folder`.
+        fn call_in(&self, folder: &std::path::Path, name: &str, arguments: Value) -> (String, bool) {
+            let answer = self.ask_in(folder, "tools/call", json!({ "name": name, "arguments": arguments }));
             let text = answer["result"]["content"][0]["text"].as_str().unwrap_or_default().to_string();
             (text, answer["result"]["isError"] == true)
         }
@@ -2423,6 +2439,24 @@ template = "* %(format-time-string \"%Y\") %?"
         let (text, error) = off.call("refile", json!({ "file": "tasks.org", "line": 3, "target": "Inbox" }));
         assert!(error && text.contains("mcp_edits = true"), "{text}");
         assert_eq!(off.read("tasks.org"), TASKS);
+    }
+
+    #[test]
+    fn a_file_listed_twice_is_named_by_its_name() {
+        // The agenda file is a capture target and, by default, the refile
+        // targets' file too; the server runs in another folder.
+        let config = "mcp_edits = true\n[[org_capture_templates]]\nkey = \"t\"\ndescription = \"Task\"\n\
+                      target = [\"file+headline\", \"tasks.org\", \"Inbox\"]\ntemplate = \"* TODO %?\"\n";
+        let setup = Setup::new("twice", config, &[("tasks.org", TASKS)]);
+        let elsewhere = std::env::temp_dir();
+        let arguments = json!({ "file": "tasks.org", "line": 3, "state": "DONE", "dry_run": true });
+        let (text, error) = setup.call_in(&elsewhere, "set_todo_state", arguments);
+        assert!(!error && text.contains("Dry run"), "{text}");
+        let (text, error) = setup.call_in(&elsewhere, "refile_targets", json!({ "file": "tasks.org" }));
+        assert!(!error && text.starts_with("Inbox  [tasks.org:2]"), "{text}");
+        let arguments = json!({ "file": "tasks.org", "line": 4, "target": "Inbox", "dry_run": true });
+        let (text, error) = setup.call_in(&elsewhere, "refile", arguments);
+        assert!(!error && text.contains("Dry run"), "{text}");
     }
 
     #[test]
