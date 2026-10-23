@@ -1042,6 +1042,35 @@ class Server(unittest.TestCase):
         self.assertFalse(os.path.exists(binary))
         self.assertFalse(self.plugin.OrgLsp.needs_update_or_installation())
 
+    def test_a_download_is_kept_when_the_old_server_cannot_go(self):
+        # On Windows the server of packages before, still running, cannot
+        # be removed: the new one is downloaded all the same.
+        unversioned = os.path.join(self.storage, 'LSP-org', 'org-lsp')
+        os.makedirs(os.path.dirname(unversioned), exist_ok=True)
+        open(unversioned, 'w').close()
+
+        class Response(io.BytesIO):
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+        self.plugin.urllib.request.urlopen = lambda url, timeout=None: Response(archive(b'server'))
+        remove = self.plugin.os.remove
+
+        def refuse(path):
+            raise PermissionError(path)
+        self.plugin.os.remove = refuse
+        try:
+            self.plugin.OrgLsp.install_or_update()
+        finally:
+            self.plugin.os.remove = remove
+        binary = os.path.join(self.storage, 'LSP-org', self.plugin.RELEASE, 'org-lsp')
+        self.assertEqual(self.plugin.server_path(self.storage), binary)
+        self.assertTrue(os.path.exists(unversioned))
+        self.assertFalse(self.plugin.OrgLsp.needs_update_or_installation())
+
 
 class Help(unittest.TestCase):
     def setUp(self):

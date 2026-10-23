@@ -189,7 +189,12 @@ def download(storage: str) -> str:
         if os.path.isdir(path) and os.path.isfile(os.path.join(path, executable())):
             shutil.rmtree(path, ignore_errors=True)
         elif name == executable():
-            os.remove(path)
+            # On Windows a server still running cannot be removed: it goes
+            # the next time.
+            try:
+                os.remove(path)
+            except OSError:
+                pass
     return target
 
 
