@@ -422,19 +422,19 @@ fn leaves_warning_cookies_alone_by_default() {
 fn reminds_as_many_hours_before_as_the_warning_cookie_says() {
     let place = Place::with("cookies", "notification_use_timestamp_warning = true", WARNINGS);
     // A deadline, at the minute only; `appt.el`'s reminders as before.
-    assert_eq!(place.dry("20:00"), "Appointment in 60 minutes\n21:00 TODO Call Anna\n\n");
+    assert_eq!(place.dry("20:00"), "Appointment in 1 hour\n21:00 TODO Call Anna\n\n");
     for time in ["19:59", "20:01", "20:03"] {
         assert_eq!(place.dry(time), "", "{time}");
     }
     assert_eq!(place.dry("20:48"), "Appointment in 12 minutes\n21:00 TODO Call Anna\n\n");
     // A timestamp, with `--`.
-    assert_eq!(place.dry("17:30"), "Appointment in 120 minutes\n19:30 Concert\n\n");
+    assert_eq!(place.dry("17:30"), "Appointment in 2 hours\n19:30 Concert\n\n");
     // A scheduled date's cookie is a delay, and one in days is the agenda's.
     assert_eq!(place.dry("17:00"), "Appointment now\n17:00 TODO Weekly report\n\n");
     assert_eq!(place.dry("12:00"), "");
     assert_eq!(place.dry("12:48"), "Appointment in 12 minutes\n13:00 TODO Pay rent\n\n");
     // Tomorrow's appointment at 01:00, three hours before.
-    assert_eq!(place.dry("22:00"), "Appointment in 180 minutes\n01:00 Early flight\n\n");
+    assert_eq!(place.dry("22:00"), "Appointment in 3 hours\n01:00 Early flight\n\n");
     let output = place.run(&["--dry-run", "--now", "2026-10-23 00:48"]);
     assert_eq!(String::from_utf8_lossy(&output.stdout), "Appointment in 12 minutes\n01:00 Early flight\n\n");
 }
@@ -442,12 +442,12 @@ fn reminds_as_many_hours_before_as_the_warning_cookie_says() {
 #[test]
 fn reminds_of_each_occurrence_of_a_repeater_at_its_warning() {
     let place = Place::with("cookies-repeat", "notification_use_timestamp_warning = true", WARNINGS);
-    assert_eq!(place.dry("16:00"), "Appointment in 60 minutes\n17:00 TODO Weekly report\n\n");
+    assert_eq!(place.dry("16:00"), "Appointment in 1 hour\n17:00 TODO Weekly report\n\n");
     // A timestamp repeats in the agenda with its repeater last, as Org's
     // regexp wants it.
-    assert_eq!(place.dry("17:45"), "Appointment in 60 minutes\n18:45 Gym\n\n");
+    assert_eq!(place.dry("17:45"), "Appointment in 1 hour\n18:45 Gym\n\n");
     let at = |time: &str| String::from_utf8(place.run(&["--dry-run", "--now", time]).stdout).unwrap();
-    assert_eq!(at("2026-10-29 17:45"), "Appointment in 60 minutes\n18:45 Gym\n\n");
+    assert_eq!(at("2026-10-29 17:45"), "Appointment in 1 hour\n18:45 Gym\n\n");
     assert_eq!(at("2026-10-23 17:45"), "");
 }
 
@@ -457,7 +457,7 @@ fn reminds_at_the_warning_besides_appt_warntime_and_with_the_others_due() {
     // `APPT_WARNTIME` still gives its reminders.
     assert_eq!(place.dry("10:30"), "Appointment in 30 minutes\n11:00 Doctor\n\n");
     // The warning comes with the appointment due then, in one notification.
-    assert_eq!(place.dry("10:00"), "Appointments in 0,60 minutes\n0m: 10:00 Coffee\n60m: 11:00 Doctor\n\n");
+    assert_eq!(place.dry("10:00"), "Appointments in 0,60 minutes\n0m: 10:00 Coffee\n1h: 11:00 Doctor\n\n");
     let place = Place::with(
         "cookies-format",
         "notification_use_timestamp_warning = true\nnotification_title_format = \"%h in %m\"",

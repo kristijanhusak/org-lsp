@@ -164,7 +164,7 @@ DEADLINE: <2026-10-22 Thu 21:00 -1h>
 #+end_src
 
 #+begin_example
-Appointment in 60 minutes
+Appointment in 1 hour
 21:00 TODO Call Anna
 #+end_example
 
@@ -327,6 +327,9 @@ and files to look at in place of the agenda files.
   change to the files shows the next minute here.
 - The list of minutes of ~appt_message_warning_time~, the deadlines of
   the day and the formats of titles, texts and lines are org-lsp's own.
+- Whole hours are said as hours: ~Appointment in 1 hour~,
+  ~Appointments in 1,2 hours~, ~1h: 11:00 Doctor~, where ~appt.el~ says
+  ~in 60 minutes~. Other times are minutes, as in Emacs.
 - ~notification_use_timestamp_warning~ is org-lsp's own: ~appt.el~
   reads no warning cookie, and Org counts them in days, so that ~-1h~ is
   no warning at all (~org-get-wdays~ takes an hour for 0.041667 days and
