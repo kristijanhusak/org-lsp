@@ -636,6 +636,9 @@ struct Builder<'a> {
     /// `org-agenda-hide-tags-regexp`, matched with case (as in the TODO
     /// list, where Org binds `case-fold-search` to nil) and without.
     hide_tags: Option<(regex::Regex, regex::Regex)>,
+    /// Where the newlines of each file are, found once for the first diary
+    /// sexp Emacs evaluates, for the line it says a failing one is on.
+    newlines: Vec<std::cell::OnceCell<Vec<usize>>>,
 }
 
 /// Which of `org-agenda-prefix-format`'s formats a view uses.
@@ -662,7 +665,16 @@ impl<'a> Builder<'a> {
             let without = regex::RegexBuilder::new(&pattern).case_insensitive(true).build().ok()?;
             Some((with_case, without))
         });
-        Builder { files, config, today, format: PrefixFormat::new(format), error: Default::default(), hide_tags }
+        let newlines = files.iter().map(|_| std::cell::OnceCell::new()).collect();
+        Builder {
+            files,
+            config,
+            today,
+            format: PrefixFormat::new(format),
+            error: Default::default(),
+            hide_tags,
+            newlines,
+        }
     }
 
     /// `%b`: the titles above the entry, each followed by the separator
@@ -837,6 +849,16 @@ impl Builder<'_> {
         }
     }
 
+    /// Where the byte `offset` of the file `file` is, for a diary sexp
+    /// there: the line is that of `org-current-line`, from 1.
+    fn place(&self, file: usize, offset: usize) -> diary::Place {
+        let outline = self.files[file];
+        let newlines = self.newlines[file].get_or_init(|| {
+            outline.text.bytes().enumerate().filter(|(_, byte)| *byte == b'\n').map(|(at, _)| at).collect()
+        });
+        diary::Place { file: outline.file.clone(), line: newlines.partition_point(|at| *at < offset) + 1 }
+    }
+
     /// How the lines of the file `file` show their priority cookies.
     fn fontify(&self, file: usize) -> Option<display::Fontify> {
         let own = self.files[file].priorities.as_ref().unwrap_or(&self.config.priorities);
@@ -859,8 +881,8 @@ impl Builder<'_> {
     fn sexps(&self, file: usize, current: Day, out: &mut Vec<Item>) {
         let outline = self.files[file];
         for line in &outline.sexps {
-            let place = diary::Place { file: outline.file.clone(), line: line_number(&outline.text, line.offset) };
-            let Some(results) = diary::entries_with(&line.sexp, &line.text, current, &self.config.diary, &place) else {
+            let place = || self.place(file, line.offset);
+            let Some(results) = diary::entries_with(&line.sexp, &line.text, current, &self.config.diary, place) else {
                 continue;
             };
             // Org has no entry for one before the first headline, and stops.
@@ -1188,14 +1210,8 @@ impl Builder<'_> {
                 let entry = &outline.entries[shown.entry];
                 if entry.skipped_by(self.config)
                     || (entry.done && self.config.skip_timestamp_if_done)
-                    || diary::entries_with(
-                        sexp,
-                        "",
-                        current,
-                        &self.config.diary,
-                        &diary::Place { file: outline.file.clone(), line: line_number(&outline.text, stamp.offset) },
-                    )
-                    .is_none()
+                    || diary::entries_with(sexp, "", current, &self.config.diary, || self.place(file, stamp.offset))
+                        .is_none()
                 {
                     continue;
                 }
@@ -2167,11 +2183,6 @@ pub fn entry<'a>(files: &[&'a Outline], source: Source) -> &'a Entry {
     &files[source.file].entries[source.entry]
 }
 
-/// The line of `text` at the byte `offset`, from 1 (`org-current-line`).
-fn line_number(text: &str, offset: usize) -> usize {
-    text.as_bytes()[..offset.min(text.len())].iter().filter(|&&byte| byte == b'\n').count() + 1
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2184,6 +2195,61 @@ mod tests {
             let _ = span.shift(today, -100_000);
         }
         assert_eq!(Span::from_days(i64::MAX), Span::Days(DAYS_MAX));
+    }
+
+    /// Many lines of one day sort in order, each looked up once: looking
+    /// each up among all made the day quadratic.
+    #[test]
+    fn many_lines_of_one_day() {
+        let text: String =
+            (0..30_000).map(|index| format!("* TODO Task {index}\nSCHEDULED: <2029-12-01 Sat>\n")).collect();
+        let parse = org_syntax::parse(&text, &Default::default());
+        let outline = crate::outline::Outline::new(&parse, &text, "a.org");
+        let today = Date::new(2029, 12, 1).to_day();
+        let started = std::time::Instant::now();
+        let items = day_items(&[&outline], today, today, &Config::default());
+        let elapsed = started.elapsed();
+        assert_eq!(items.len(), 30_000);
+        assert!(items.windows(2).all(|pair| pair[0].source.unwrap().entry < pair[1].source.unwrap().entry));
+        assert!(elapsed < std::time::Duration::from_secs(20), "{elapsed:?}");
+    }
+
+    /// A diary sexp this evaluator cannot read goes to Emacs with the line
+    /// it is on; one it reads does not, nor is its line counted, which
+    /// made a view of many sexps quadratic in the size of the file.
+    #[test]
+    fn diary_sexps_go_outside_with_their_line() {
+        use std::sync::{Arc, Mutex};
+        let mut text = String::from("* One\n%%(my-sexp 1)\n* Two <%%(my-stamp)>\n");
+        for _ in 0..2_000 {
+            text.push_str("* Dated\n%%(diary-date 1 1 2030)\nSome text of the entry.\n");
+        }
+        text.push_str("* Last\n%%(my-sexp 2)\n");
+        let parse = org_syntax::parse(&text, &Default::default());
+        let outline = crate::outline::Outline::new(&parse, &text, "a.org");
+        let asked = Arc::new(Mutex::new(Vec::new()));
+        let seen = asked.clone();
+        let outside = diary::Outside(Some(Arc::new(move |sexp: &str, _: &str, _: Day, place: &diary::Place| {
+            seen.lock().unwrap().push((sexp.to_string(), place.line));
+            None
+        })));
+        let config = Config { diary: outside, ..Config::default() };
+        let today = Date::new(2029, 12, 1).to_day();
+        let started = std::time::Instant::now();
+        for day in today..today + 60 {
+            let _ = day_items(&[&outline], day, today, &config);
+        }
+        let elapsed = started.elapsed();
+        let mut asked = asked.lock().unwrap().clone();
+        asked.sort();
+        asked.dedup();
+        let last = 3 + 2_000 * 3 + 2;
+        assert_eq!(
+            asked,
+            [("(my-sexp 1)".to_string(), 2), ("(my-sexp 2)".to_string(), last), ("(my-stamp)".to_string(), 3)]
+        );
+        // About 30 ms in a debug build; days × sexps × size took seconds.
+        assert!(elapsed < std::time::Duration::from_secs(10), "{elapsed:?}");
     }
 }
 
