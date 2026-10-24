@@ -9194,6 +9194,47 @@ fn remote_images_download_in_turn_as_written() {
     let _ = std::fs::remove_dir_all(&directory);
 }
 
+/// The same preview asked again while a download runs downloads once:
+/// of those waiting, only the last goes on, and with `cache` it finds the
+/// file there.
+#[test]
+fn previews_asked_again_download_once() {
+    if !std::process::Command::new("curl").arg("--version").output().is_ok_and(|out| out.status.success()) {
+        eprintln!("previews_asked_again_download_once: no curl, skipped");
+        return;
+    }
+    let (base, asked) = image_server();
+    let directory = std::env::temp_dir().join(format!("org-lsp-remote-again-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let uri = format!("file://{}", directory.join("slow.org").display());
+    let capabilities = json!({ "experimental": { "orgImages": true }, "general": { "positionEncodings": ["utf-8"] } });
+    let mut options = clock();
+    options["org_display_remote_inline_images"] = json!("cache");
+    options["org_safe_remote_resources"] = json!([format!("\\`{}/", base.replace('.', "\\."))]);
+    let mut client = Client::start(capabilities, options, None);
+    client.open(&uri, &format!("{base}/slow.png\n"));
+    let context = json!({ "textDocument": { "uri": uri }, "position": { "line": 0, "character": 0 }, "count": 16 });
+    for _ in 0..3 {
+        let answered = client
+            .request("workspace/executeCommand", json!({ "command": "org.link.preview", "arguments": [context] }))
+            .unwrap();
+        assert_eq!(answered, Value::Null);
+    }
+    let sent = |client: &Client| {
+        client.notifications.iter().filter(|notification| notification.method == "org-lsp/images").count()
+    };
+    client.wait_until(|client| sent(client) == 2);
+    client.settle();
+    assert_eq!(sent(&client), 2);
+    for notification in client.notifications.iter().filter(|notification| notification.method == "org-lsp/images") {
+        let path = notification.params["items"][0]["path"].as_str().unwrap();
+        assert_eq!(std::fs::read_to_string(path).unwrap(), "png s");
+    }
+    assert_eq!(*asked.lock().unwrap(), ["/slow.png"]);
+    client.shutdown();
+    let _ = std::fs::remove_dir_all(&directory);
+}
+
 /// `org-latex-preview` (`C-c C-x C-l`): Emacs makes the images of the
 /// fragments as Org does (`org--latex-preview-region`), and the server says
 /// where each one goes (`org-lsp/images`). Programs stand in for `latex`

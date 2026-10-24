@@ -1403,6 +1403,8 @@ struct Server {
     /// of a burst would hold up the answers to the requests that follow.
     diagnostics_due: Vec<String>,
     diagnostics_at: Option<std::time::Instant>,
+    /// When the last change made diagnostics due.
+    diagnostics_changed: Option<std::time::Instant>,
     /// Log mode (`l`) and the clock report (`R`) in the agenda.
     agenda_log: bool,
     agenda_clockreport: bool,
@@ -1887,6 +1889,7 @@ pub fn run(connection: Connection) -> Result<()> {
         clock_pending: false,
         diagnostics_due: Vec::new(),
         diagnostics_at: None,
+        diagnostics_changed: None,
         last_clocked: None,
         clock_goto_recent: options.clock_goto_may_find_recent_task.unwrap_or(true),
         clock_history: Vec::new(),
@@ -2025,11 +2028,13 @@ pub fn run(connection: Connection) -> Result<()> {
     // having failed.
     let (mut shut_down, mut exited) = (false, false);
     // The diagnostics wait for a quiet moment after the editor's messages
-    // have been handled, however long that took.
+    // have been handled, however long that took; messages other than the
+    // changes put them off for `DIAGNOSTICS_MOST` at most, so that a
+    // client that asks for something all the time still gets them.
     let mut from_editor = false;
     loop {
         if std::mem::take(&mut from_editor) && !server.diagnostics_due.is_empty() {
-            server.diagnostics_at = Some(std::time::Instant::now() + DIAGNOSTICS_DELAY);
+            server.diagnostics_at = Some(server.diagnostics_put_off());
         }
         let alarm = server.countdown.map_or_else(crossbeam_channel::never, crossbeam_channel::at);
         let appt = server.appt_check.map_or_else(crossbeam_channel::never, crossbeam_channel::at);
@@ -2112,10 +2117,11 @@ pub fn run(connection: Connection) -> Result<()> {
             recv(special) -> _ => { let _ = guarded(&mut server, "the edit buffers", Server::check_special_edits); }
             // Not while messages wait: a change among them puts it off.
             recv(lint) -> _ => {
-                if connection.receiver.is_empty() {
+                let waited = server.diagnostics_changed.is_none_or(|at| at.elapsed() >= DIAGNOSTICS_MOST);
+                if connection.receiver.is_empty() || waited {
                     let _ = guarded(&mut server, "the diagnostics", Server::publish_due_diagnostics);
                 } else {
-                    server.diagnostics_at = Some(std::time::Instant::now() + DIAGNOSTICS_DELAY);
+                    server.diagnostics_at = Some(server.diagnostics_put_off());
                 }
             }
         }
@@ -5986,13 +5992,26 @@ impl Server {
     /// only ones read. When none has it, or none has it any more, the
     /// files on disk are looked at again (`org-id-update-id-locations`).
     fn find_id(&mut self, id: &str, from: Option<&Uri>) -> Option<(Uri, usize)> {
-        let in_file = |server: &Server, path: &Path| {
-            let (target, text) = server.file_text(path)?;
-            open::find_id(&org_syntax::parse(&text, &server.todo), id).map(|offset| (target, offset))
-        };
-        if let Some(found) = from.and_then(uri::to_path).and_then(|own| in_file(self, &own)) {
+        if let Some(found) = from.and_then(uri::to_path).and_then(|own| self.id_in_file(id, &own)) {
             return Some(found);
         }
+        self.find_id_elsewhere(id, None)
+    }
+
+    /// Where the entry with this `ID` is in the file `path`, read again.
+    fn id_in_file(&self, id: &str, path: &Path) -> Option<(Uri, usize)> {
+        let (target, text) = self.file_text(path)?;
+        open::find_id(&org_syntax::parse(&text, &self.todo), id).map(|offset| (target, offset))
+    }
+
+    /// [`Server::find_id`] past the file of the link. `open_ids` are the
+    /// `ID`s of each open document by its key, when they were found
+    /// once for many lookups; without them each document is read again.
+    fn find_id_elsewhere(
+        &mut self,
+        id: &str,
+        open_ids: Option<&HashMap<String, HashSet<String>>>,
+    ) -> Option<(Uri, usize)> {
         if !self.id_lookup.0.track_globally {
             return None;
         }
@@ -6000,7 +6019,11 @@ impl Server {
         open.sort_by_key(|(key, _)| key.as_str());
         for (key, document) in open {
             let Some(uri) = key.parse::<Uri>().ok().filter(|uri| uri::to_path(uri).is_some()) else { continue };
-            if !property_ids(&document.text).iter().any(|found| found == id) {
+            let has = match open_ids {
+                Some(open_ids) => open_ids.get(key).is_some_and(|ids| ids.contains(id)),
+                None => property_ids(&document.text).iter().any(|found| found == id),
+            };
+            if !has {
                 continue;
             }
             if let Some(offset) = open::find_id(&document.parse, id) {
@@ -6018,13 +6041,13 @@ impl Server {
             paths
         };
         for path in on_disk(self) {
-            if let Some(found) = in_file(self, &path) {
+            if let Some(found) = self.id_in_file(id, &path) {
                 return Some(found);
             }
         }
         let found = self.ids_on_disk();
         self.ids_on_disk = Some((std::time::Instant::now(), found));
-        on_disk(self).into_iter().find_map(|path| in_file(self, &path))
+        on_disk(self).into_iter().find_map(|path| self.id_in_file(id, &path))
     }
 
     /// The error when an `ID` is not found: without `org-id-track-globally`
@@ -12154,9 +12177,24 @@ impl Server {
         if self.roam.is_some() {
             forms.push("(org-link-set-parameters \"roam\")".to_string());
         }
+        // `find_id` for each, with the `ID`s of this file and of the open
+        // ones found once rather than once per link.
+        let own = uri::to_path(uri);
+        let own_ids = open::id_values(&parse);
+        let mut open_ids: Option<HashMap<String, HashSet<String>>> = None;
         let mut seen = HashSet::new();
         for id in ids.into_iter().filter(|id| seen.insert(id.clone())) {
-            let Some(path) = self.find_id(&id, Some(uri)).and_then(|(found, _)| uri::to_path(&found)) else {
+            let found = match &own {
+                Some(own) if own_ids.contains(&id.trim().to_lowercase()) => Some(own.clone()),
+                _ => {
+                    let open_ids = open_ids.get_or_insert_with(|| {
+                        let ids = |document: &Document| property_ids(&document.text).into_iter().collect();
+                        self.documents.iter().map(|(key, document)| (key.clone(), ids(document))).collect()
+                    });
+                    self.find_id_elsewhere(&id, Some(open_ids)).and_then(|(found, _)| uri::to_path(&found))
+                }
+            };
+            let Some(path) = found else {
                 continue;
             };
             forms.push(format!("(org-id-add-location {} {})", lisp(&id), lisp(&path.to_string_lossy())));
@@ -15575,13 +15613,24 @@ impl Server {
         if !self.diagnostics_due.iter().any(|due| due == key) {
             self.diagnostics_due.push(key.to_string());
         }
-        self.diagnostics_at = Some(std::time::Instant::now() + DIAGNOSTICS_DELAY);
+        let now = std::time::Instant::now();
+        self.diagnostics_at = Some(now + DIAGNOSTICS_DELAY);
+        self.diagnostics_changed = Some(now);
+    }
+
+    /// When the diagnostics due go out after a message other than a
+    /// change: `DIAGNOSTICS_DELAY` from now, and no later than
+    /// `DIAGNOSTICS_MOST` after the last change.
+    fn diagnostics_put_off(&self) -> std::time::Instant {
+        let later = std::time::Instant::now() + DIAGNOSTICS_DELAY;
+        self.diagnostics_changed.map_or(later, |changed| later.min(changed + DIAGNOSTICS_MOST))
     }
 
     /// The diagnostics put off by `diagnostics_later`, of the documents
     /// still open.
     fn publish_due_diagnostics(&mut self) {
         self.diagnostics_at = None;
+        self.diagnostics_changed = None;
         for key in std::mem::take(&mut self.diagnostics_due) {
             self.publish_diagnostics(&key);
         }
@@ -16965,6 +17014,9 @@ const SHELL_MESSAGE_CHARS: usize = 8000;
 const SHELL_OUTPUT_SIZE: usize = 1 << 20;
 /// How long after the last change of a document its diagnostics wait.
 const DIAGNOSTICS_DELAY: std::time::Duration = std::time::Duration::from_millis(200);
+/// The longest messages other than changes put the diagnostics off, from
+/// the last change.
+const DIAGNOSTICS_MOST: std::time::Duration = std::time::Duration::from_secs(1);
 
 /// A `shell:` link's output as a message: without its last newline, and
 /// cut after [`SHELL_MESSAGE_LINES`] lines or [`SHELL_MESSAGE_CHARS`]
