@@ -2239,8 +2239,14 @@ fn exports_links_the_server_follows() {
     let _ = std::fs::remove_dir_all(&directory);
     std::fs::create_dir_all(&directory).unwrap();
     std::fs::write(directory.join("node.org"), "* Node\n:PROPERTIES:\n:ID: node-1\n:END:\n").unwrap();
+    // One open too, saved: Emacs reads it to link to it.
+    let opened = directory.join("opened.org");
+    let opened_text = "* Opened\n:PROPERTIES:\n:ID: opened-1\n:END:\n";
+    std::fs::write(&opened, opened_text).unwrap();
     let file = directory.join("notes.org");
-    let text = "* Notes\nSee [[id:node-1][the node]] and [[roam:Beta]].\n";
+    let text =
+        "* Notes\nSee [[id:node-1][the node]] and [[roam:Beta]], [[id:opened-1][opened]], [[id:node-1][again]].\n\
+                * Own\n:PROPERTIES:\n:ID: own-1\n:END:\nAnd [[id:own-1][this one]].\n";
     std::fs::write(&file, text).unwrap();
     let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
     let config =
@@ -2251,6 +2257,7 @@ fn exports_links_the_server_follows() {
         "org_roam_directory": directory.display().to_string(),
     });
     let mut client = Client::start(json!({}), options);
+    client.open(&format!("file://{}", opened.display()).parse().unwrap(), opened_text);
     client.open(&uri, text);
     let argument = json!({
         "textDocument": { "uri": uri.as_str() },
@@ -2272,6 +2279,9 @@ fn exports_links_the_server_follows() {
     let written = std::fs::read_to_string(&html_file).unwrap();
     assert!(written.contains(r#"<a href="node.html#ID-node-1">the node</a>"#), "{written}");
     assert!(written.contains(r#"<a href="roam:Beta">roam:Beta</a>"#), "{written}");
+    assert!(written.contains(r#"<a href="opened.html#ID-opened-1">opened</a>"#), "{written}");
+    // Its own entry, by the anchor of its headline.
+    assert!(written.contains(r##"And <a href="#org"##), "{written}");
     client.shutdown();
     std::fs::remove_dir_all(directory).unwrap();
 }
@@ -3947,6 +3957,30 @@ fn clears_the_diagnostics_of_a_closed_file() {
     let published = client.notification("textDocument/publishDiagnostics");
     assert_eq!(published["uri"], uri().as_str());
     assert_eq!(published["diagnostics"], json!([]));
+}
+
+/// A client that sends something more often than the diagnostics wait
+/// for (a cursor that moves, tokens of the range scrolled to) still gets
+/// them, a second after the change at most.
+#[test]
+fn diagnostics_come_while_other_messages_do() {
+    let client = Client::start(json!({}), json!({}));
+    let started = std::time::Instant::now();
+    client.open(&uri(), "* Note\nSee [[*Missing]].\n");
+    let mut published = None;
+    while published.is_none() && started.elapsed() < std::time::Duration::from_secs(5) {
+        let notification = Notification { method: "$/cursorMoved".to_string(), params: json!({}) };
+        client.connection.sender.send(Message::Notification(notification)).unwrap();
+        if let Ok(Message::Notification(notification)) =
+            client.connection.receiver.recv_timeout(std::time::Duration::from_millis(50))
+        {
+            if notification.method == "textDocument/publishDiagnostics" {
+                published = Some(started.elapsed());
+            }
+        }
+    }
+    let published = published.expect("diagnostics within 5 s");
+    assert!(published < std::time::Duration::from_secs(3), "{published:?}");
 }
 
 /// After `shutdown`, a request is refused (`InvalidRequest`) and a

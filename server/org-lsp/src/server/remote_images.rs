@@ -18,8 +18,9 @@
 //! with the images of files, or nothing when there are none, and the
 //! preview comes again in `org-lsp/images`, with all its images, once the
 //! downloads are there. The previews download one after the other, and
-//! one whose document changed or closed before its turn does not. An
-//! image larger than [`LARGEST`] is not downloaded.
+//! one whose document changed or closed before its turn does not, nor
+//! one asked again the same before its turn. An image larger than
+//! [`LARGEST`] is not downloaded.
 
 use std::collections::{HashMap, VecDeque};
 use std::path::PathBuf;
@@ -276,7 +277,9 @@ impl Server {
 
     /// Start the downloads of the next preview whose document is as it
     /// was, unless those of another are running; those of the previews
-    /// before it, whose document changed or closed, are left out.
+    /// before it, whose document changed or closed, are left out, and so
+    /// is one asked again the same before its turn: the later one shows
+    /// what it would.
     fn next_download(&mut self) {
         if self.remote.downloading {
             return;
@@ -287,15 +290,29 @@ impl Server {
                 self.remote.waiting.remove(&job);
                 continue;
             }
+            let asked_again =
+                self.remote.queue.iter().filter_map(|later| self.remote.waiting.get(later)).any(|later| {
+                    later.uri == waiting.uri
+                        && later.version == waiting.version
+                        && later.startup == waiting.startup
+                        && later.preview == waiting.preview
+                        && later.urls == waiting.urls
+                });
+            if asked_again {
+                self.remote.waiting.remove(&job);
+                continue;
+            }
             let urls = self.remote.waiting.get_mut(&job).map(|waiting| std::mem::take(&mut waiting.urls));
             let sender = self.remote.done.0.clone();
+            // With `cache`, a file downloaded for a preview before is kept.
+            let cache = self.remote.mode == RemoteImages::Cache;
             std::thread::spawn(move || {
                 let files = urls
                     .into_iter()
                     .flatten()
                     .enumerate()
                     .map(|(index, (url, path))| {
-                        let downloaded = download(&url, &path, &format!("{job}-{index}"));
+                        let downloaded = (cache && path.is_file()) || download(&url, &path, &format!("{job}-{index}"));
                         (url, downloaded.then_some(path))
                     })
                     .collect();

@@ -635,6 +635,12 @@ mod tests {
         // Not a timestamp: read as an answer, the old repeater kept.
         let outcome = with_time("* TODO a\nDEADLINE: <2026-05-20 Wed +1w>\n", "2026-06-01 .+2d");
         assert_eq!(outcome.text, "* TODO a\nDEADLINE: <2026-06-01 Mon +1w>\n");
+        // The old date's delay or warning too: Org's `[.+-]+` takes `-`,
+        // as Emacs 9.8.10 answers.
+        let outcome = with_time("* TODO a\nDEADLINE: <2026-05-20 Wed -2d>\n", "2026-06-01");
+        assert_eq!(outcome.text, "* TODO a\nDEADLINE: <2026-06-01 Mon -2d>\n");
+        let outcome = with_time("* TODO a\nDEADLINE: <2026-05-20 Wed .+1w -2d>\n", "2026-06-01");
+        assert_eq!(outcome.text, "* TODO a\nDEADLINE: <2026-06-01 Mon .+1w -2d>\n");
     }
 
     #[test]

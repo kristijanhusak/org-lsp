@@ -1012,6 +1012,24 @@ fn find_property(root: &SyntaxNode, name: &str, value: &str) -> Option<usize> {
     Some(headline.map_or(0, |headline| usize::from(headline.text_range().start())))
 }
 
+/// The values of the `ID` properties of the document, as [`find_id`]
+/// compares them: without blanks around, in lower case.
+pub fn id_values(parse: &Parse) -> std::collections::HashSet<String> {
+    parse
+        .syntax()
+        .descendants()
+        .filter(|node| node.kind() == SyntaxKind::PROPERTY_DRAWER)
+        .flat_map(|drawer| drawer.children().filter(|node| node.kind() == SyntaxKind::NODE_PROPERTY))
+        .filter(|property| {
+            token_of(property, SyntaxKind::PROPERTY_KEY)
+                .unwrap_or_default()
+                .trim_matches(':')
+                .eq_ignore_ascii_case("ID")
+        })
+        .map(|property| token_of(&property, SyntaxKind::PROPERTY_VALUE).unwrap_or_default().trim().to_lowercase())
+        .collect()
+}
+
 /// `org-id-find-id-in-file`: where the entry with this `ID` starts.
 pub fn find_id(parse: &Parse, id: &str) -> Option<usize> {
     find_property(&parse.syntax(), "ID", id)

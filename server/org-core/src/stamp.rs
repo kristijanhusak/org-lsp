@@ -285,7 +285,7 @@ fn modify_extra(extra: &str, pos: usize, n: i64, step: i64, fold: bool) -> Resul
             // Org stops with an error on a capital letter.
             _ => return Err(Refusal::Failed("Cannot change this unit".to_string())),
         };
-        Ok(match index + n {
+        Ok(match n.saturating_add(index) {
             -1 | 0 => "d",
             1 => "w",
             2 => "m",
@@ -297,26 +297,30 @@ fn modify_extra(extra: &str, pos: usize, n: i64, step: i64, fold: bool) -> Resul
     let (start, end, new) = if range && within(1, 6) {
         let (mut hour, mut minute) = (number(1, 3), number(4, 6));
         if within(1, 3) {
-            hour += n;
+            hour = hour.saturating_add(n);
         } else {
-            let n = step * n;
+            let n = step.saturating_mul(n);
             let rest = minute % step;
             if rest != 0 {
                 minute += if n > 0 { -rest } else { step - rest };
             }
-            minute += n;
+            minute = minute.saturating_add(n);
         }
         // Org carries a single hour, and writes minutes like `70` or `-5`
         // after a larger step. A range has to stay readable, so every
         // hour is carried here.
-        let total = (hour * 60 + minute).rem_euclid(1440);
+        let total = hour.rem_euclid(24).saturating_mul(60).saturating_add(minute).rem_euclid(1440);
         (0, 6, format!("-{:02}:{:02}", total / 60, total % 60))
     } else {
         match (repeater, warning) {
             (Some((_, at)), _) if within(at, at + 1) => (at, at + 1, unit(at)?),
-            (Some((from, at)), _) if within(from, at) => (from, at, (n + number(from, at)).max(1).to_string()),
+            (Some((from, at)), _) if within(from, at) => {
+                (from, at, n.saturating_add(number(from, at)).max(1).to_string())
+            }
             (_, Some((_, at))) if within(at, at + 1) => (at, at + 1, unit(at)?),
-            (_, Some((from, at))) if within(from, at) => (from, at, (n + number(from, at)).max(0).to_string()),
+            (_, Some((from, at))) if within(from, at) => {
+                (from, at, n.saturating_add(number(from, at)).max(0).to_string())
+            }
             _ => return Ok(extra.to_string()),
         }
     };
@@ -524,6 +528,20 @@ pub(crate) fn change_in_place(
         }
     } else {
         step = 1;
+    }
+    // `encode-time` takes the fields as those of a C `struct tm`, each an
+    // `int`: one that does not fit is not representable. Nothing larger
+    // is computed here.
+    let field = match unit {
+        Some(Unit::Year) => parsed.date.year - 1900,
+        Some(Unit::Month) => parsed.date.month - 1,
+        Some(Unit::Day) => parsed.date.day,
+        Some(Unit::Hour) => hour,
+        Some(Unit::Minute) => minute,
+        None => 0,
+    };
+    if unit.is_some() && i32::try_from(i128::from(field) + i128::from(increment)).is_err() {
+        return Err(Refusal::Failed("Specified time is not representable".to_string()));
     }
     let add = |what: Unit| if unit == Some(what) { increment } else { 0 };
     let date = Date::new(

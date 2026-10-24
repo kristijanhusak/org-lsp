@@ -15,6 +15,21 @@ pub fn width(text: &str) -> usize {
     text.chars().map(char_width).sum()
 }
 
+/// The widest field a width written in a format pads to, in columns.
+/// Emacs pads to any width it can allocate, and fails past it (`Memory
+/// exhausted`); a width written larger pads to this one here, rather
+/// than ending the server.
+pub const WIDEST: usize = 1 << 16;
+
+/// The field width written as the ASCII digits `digits`: none is 0, and
+/// it is at most [`WIDEST`].
+pub fn field_width(digits: &str) -> usize {
+    digits
+        .bytes()
+        .fold(0usize, |width, digit| width.saturating_mul(10).saturating_add(usize::from(digit - b'0')))
+        .min(WIDEST)
+}
+
 /// `format` with strings only: each `%s`, with a `-` flag, a width and
 /// a precision (`%-10s`, `%.3s`), takes the next of `args`; `%%` is `%`.
 /// Anything else stays as it is.
@@ -51,7 +66,7 @@ pub fn format_strings(format: &str, args: &[&str]) -> String {
         if let Some(precision) = precision {
             value = value.chars().take(precision).collect();
         }
-        let min = after_flag[..width_len].parse::<usize>().unwrap_or(0);
+        let min = field_width(&after_flag[..width_len]);
         out.push_str(&if left { pad_right(&value, min) } else { pad_left(&value, min) });
         rest = after;
     }
@@ -284,7 +299,7 @@ pub fn replace_escapes(template: &str, value: impl Fn(char) -> Option<String>) -
         if let Some(precision) = precision {
             text = text.chars().take(precision).collect();
         }
-        let width = width.parse::<usize>().unwrap_or(0);
+        let width = field_width(width);
         out.push_str(&if left { pad_right(&text, width) } else { pad_left(&text, width) });
         rest = &spec[digits + c.len_utf8()..];
     }
