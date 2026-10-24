@@ -265,7 +265,8 @@ fn eval_sexps(text: &str, mut outside: Option<&mut Outside>) -> Result<String, R
 /// `format-time-string` in the C locale, in UTC: the directives of
 /// gnulib's `nstrftime`, with its flags (`-` no padding, `_` blanks, `0`
 /// zeros, `^` upper case, `#` the other case) and a width. Seconds are
-/// always 0. Unknown directives stay as they are.
+/// always 0. Unknown directives stay as they are. A width is at most
+/// [`crate::text::WIDEST`].
 pub(crate) fn format_time(format: &str, time: DateTime) -> String {
     let date = time.date();
     let day = time.day;
@@ -292,7 +293,8 @@ pub(crate) fn format_time(format: &str, time: DateTime) -> String {
         }
         let mut width: Option<usize> = None;
         while let Some(&digit) = chars.peek().filter(|c| c.is_ascii_digit()) {
-            width = Some(width.unwrap_or(0) * 10 + digit.to_digit(10).unwrap_or(0) as usize);
+            let value = digit.to_digit(10).unwrap_or(0) as usize;
+            width = Some(width.unwrap_or(0).saturating_mul(10).saturating_add(value).min(crate::text::WIDEST));
             directive.push(digit);
             chars.next();
         }
@@ -1801,6 +1803,23 @@ mod tests {
 
     fn now() -> DateTime {
         DateTime::new(Date::new(2026, 5, 18), 10, 30)
+    }
+
+    /// A width too large for memory, or for a number, pads to the widest
+    /// field instead of ending the server.
+    #[test]
+    fn widths_past_any_use_pad_to_the_widest() {
+        let widest = crate::text::WIDEST;
+        for format in ["%99999999999Y", "%18446744073709551615Y", "%99999999999999999999999A", "%_99999999999d"] {
+            let text = format_time(format, now());
+            assert_eq!(text.chars().count(), widest, "{format}");
+        }
+        assert_eq!(format_time("%6Y|%-3d|%5a", now()), "002026|18|  Mon");
+        let padded = crate::text::format_strings("%99999999999s|%-18446744073709551616s|", &["a", "b"]);
+        assert_eq!(padded.len(), 2 * widest + 2);
+        assert_eq!(crate::text::format_strings("%4s|%-3s|", &["a", "b"]), "   a|b  |");
+        let escaped = crate::text::replace_escapes("%99999999999999999999x", |_| Some("v".to_string()));
+        assert_eq!(escaped.len(), widest);
     }
 
     #[test]

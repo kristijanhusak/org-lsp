@@ -126,7 +126,7 @@ fn main() -> ExitCode {
         for problem in &run.problems {
             eprintln!("org-lsp notify: {problem}");
         }
-        let mut failed = false;
+        let mut failed = run.unread;
         for notification in &run.notifications {
             if run.dry_run {
                 print(&format!("{}\n{}\n\n", notification.title, notification.body));

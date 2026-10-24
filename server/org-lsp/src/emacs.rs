@@ -439,8 +439,7 @@ fn start(settings: &Settings, events: &Sender<Event>) -> Result<Process, String>
     let stderr = child.stderr.take().ok_or("Emacs has no error output")?;
     let (line_sender, lines) = crossbeam_channel::unbounded();
     let _ = std::thread::Builder::new().name("org-lsp-emacs-out".to_string()).spawn(move || {
-        for line in BufReader::new(stdout).lines() {
-            let Ok(line) = line else { break };
+        for line in lossy_lines(stdout) {
             if let Some(answer) = line.strip_prefix(MARKER) {
                 if line_sender.send(answer.to_string()).is_err() {
                     break;
@@ -451,8 +450,7 @@ fn start(settings: &Settings, events: &Sender<Event>) -> Result<Process, String>
     let kept = Arc::new(Mutex::new(VecDeque::new()));
     let keeping = Arc::clone(&kept);
     let _ = std::thread::Builder::new().name("org-lsp-emacs-err".to_string()).spawn(move || {
-        for line in BufReader::new(stderr).lines() {
-            let Ok(line) = line else { break };
+        for line in lossy_lines(stderr) {
             if let Ok(mut kept) = keeping.lock() {
                 if kept.len() == STDERR_LINES {
                     kept.pop_front();
@@ -477,6 +475,27 @@ fn start(settings: &Settings, events: &Sender<Event>) -> Result<Process, String>
     Ok(process)
 }
 
+/// The lines of `output` until it ends or cannot be read, what is not
+/// UTF-8 in them (printed by the user's Lisp or a package) replaced.
+fn lossy_lines(output: impl std::io::Read) -> impl Iterator<Item = String> {
+    let mut output = BufReader::new(output);
+    std::iter::from_fn(move || {
+        let mut line = Vec::new();
+        match output.read_until(b'\n', &mut line) {
+            Ok(0) | Err(_) => None,
+            Ok(_) => {
+                if line.ends_with(b"\n") {
+                    line.pop();
+                    if line.ends_with(b"\r") {
+                        line.pop();
+                    }
+                }
+                Some(String::from_utf8_lossy(&line).into_owned())
+            }
+        }
+    })
+}
+
 /// Send one request and wait for its answer until `deadline`. The
 /// questions Emacs asks meanwhile go to the user when it `asks`, or are
 /// answered no.
@@ -490,6 +509,11 @@ fn request(
 ) -> Result<Value, String> {
     process.next_id += 1;
     let id = process.next_id;
+    // What Emacs said on its standard error before this request (the
+    // warnings of an earlier one) is not why it stops during this one.
+    if let Ok(mut kept) = process.stderr.lock() {
+        kept.clear();
+    }
     let line = ascii_json(&json!({ "id": id, "method": method, "params": params }));
     let stopped = |process: &mut Process| {
         let said: Vec<String> = process.stderr.lock().map(|kept| kept.iter().cloned().collect()).unwrap_or_default();
@@ -580,7 +604,9 @@ mod tests {
     use super::*;
 
     /// An Emacs that answers each request with its process id, never
-    /// answers `hang`, and ends with the status 3 at `quit`.
+    /// answers `hang`, and ends with the status 3 at `quit`; at `bytes` it
+    /// prints lines that are not UTF-8 first, at `warn` a warning on its
+    /// standard error.
     #[cfg(unix)]
     fn fake_emacs(directory: &std::path::Path) -> String {
         use std::os::unix::fs::PermissionsExt;
@@ -591,6 +617,8 @@ while IFS= read -r line; do
   case "$line" in
     *'"method":"hang"'*) ;;
     *'"method":"quit"'*) exit 3 ;;
+    *'"method":"bytes"'*) printf '\377 \036org-lsp \376\n\036org-lsp {"id":%s,"result":%s}\n' "$id" "$$" ;;
+    *'"method":"warn"'*) echo 'Warning: old' >&2; printf '\036org-lsp {"id":%s,"result":%s}\n' "$id" "$$" ;;
     *) printf '\036org-lsp {"id":%s,"result":%s}\n' "$id" "$$" ;;
   esac
 done
@@ -681,6 +709,41 @@ done
         std::fs::remove_dir_all(directory).unwrap();
     }
 
+    /// A line that is not UTF-8 is read all the same, and the answer
+    /// after it comes from the same Emacs.
+    #[cfg(unix)]
+    #[test]
+    fn reads_what_is_not_utf8_from_emacs() {
+        let directory = std::env::temp_dir().join(format!("org-lsp-bytes-emacs-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&directory);
+        std::fs::create_dir_all(&directory).unwrap();
+        let emacs = Emacs::new(Settings { program: fake_emacs(&directory), ..Settings::default() });
+        let second = Duration::from_secs(5);
+        let first = emacs.call("ping", Value::Null, second).unwrap();
+        assert_eq!(emacs.call("bytes", Value::Null, second), Ok(first.clone()));
+        assert_eq!(emacs.call("ping", Value::Null, second), Ok(first));
+        drop(emacs);
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
+    /// An Emacs that stops with nothing said is not reported with the
+    /// warnings of an earlier job.
+    #[cfg(unix)]
+    #[test]
+    fn says_why_emacs_stopped_from_what_it_said_meanwhile() {
+        let directory = std::env::temp_dir().join(format!("org-lsp-warned-emacs-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&directory);
+        std::fs::create_dir_all(&directory).unwrap();
+        let emacs = Emacs::new(Settings { program: fake_emacs(&directory), ..Settings::default() });
+        let second = Duration::from_secs(5);
+        assert!(emacs.call("warn", Value::Null, second).is_ok());
+        // The warning reaches the server's side before the next job.
+        std::thread::sleep(Duration::from_millis(200));
+        assert_eq!(emacs.call("quit", Value::Null, second), Err("Emacs stopped (exit status 3)".to_string()));
+        drop(emacs);
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+
     /// A job the server does not wait for has a deadline too: an Emacs
     /// stuck on it is stopped, the job fails, and the next starts anew.
     #[cfg(unix)]
@@ -725,7 +788,9 @@ done
         let directory = std::env::temp_dir().join(format!("org-lsp-slower-emacs-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&directory);
         std::fs::create_dir_all(&directory).unwrap();
-        let emacs = Emacs::new(Settings { program: slow_emacs(&directory, 4.0), ..Settings::default() });
+        // Started a second after the first call gives up (`START_WAIT`),
+        // and a second before the next one would.
+        let emacs = Emacs::new(Settings { program: slow_emacs(&directory, 3.0), ..Settings::default() });
         let asked = Instant::now();
         assert_eq!(emacs.call("ping", Value::Null, Duration::from_millis(500)), Err(STARTING.to_string()));
         assert!(asked.elapsed() < Duration::from_secs(3), "{:?}", asked.elapsed());
@@ -880,6 +945,42 @@ done
                  defined function",
             ]
         );
+    }
+
+    /// The Lisp of the settings Emacs is told (`org_src_lang_modes`, the
+    /// tangling options), which runs before Org is loaded, in a real
+    /// Emacs: what adds to Org's lists waits for their library.
+    #[test]
+    fn sets_the_settings_emacs_is_told_before_org_is_loaded() {
+        let found = Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+        if !found {
+            assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+            eprintln!("sets_the_settings_emacs_is_told_before_org_is_loaded: no Emacs, skipped");
+            return;
+        }
+        let load =
+            std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
+        let options: crate::config::Options = serde_json::from_value(json!({
+            "org_src_lang_modes": { "ipython": "python-mode" },
+            "org_babel_tangle_lang_exts": { "ipython": "py" },
+            "org_babel_tangle_use_relative_file_links": false,
+        }))
+        .unwrap();
+        let emacs = Emacs::new(Settings {
+            program: "emacs".to_string(),
+            config: Some(format!("{load}\n{}", options.emacs_lisp().unwrap())),
+            ..Settings::default()
+        });
+        let sexp = "(progn (require 'org-src) (require 'ob-tangle) \
+                    (format \"%S %S %S\" (assoc \"ipython\" org-src-lang-modes) \
+                    (assoc \"ipython\" org-babel-tangle-lang-exts) org-babel-tangle-use-relative-file-links))";
+        let value = loop {
+            match emacs.call("eval", json!({ "sexp": sexp }), Duration::from_secs(60)) {
+                Err(error) if error == STARTING => continue,
+                result => break result.unwrap(),
+            }
+        };
+        assert_eq!(value, r#"("ipython" . python) ("ipython" . "py") nil"#);
     }
 
     #[test]

@@ -830,7 +830,12 @@ M.handlers = {
       return result
     elseif tostring(result):find('E565') then
       vim.schedule(function()
-        show_document(err, params, ctx)
+        -- Nobody waits for this answer any more: a failure is said, not
+        -- raised in a callback.
+        local shown, failure = pcall(show_document, err, params, ctx)
+        if not shown then
+          notify(tostring(failure), vim.log.levels.ERROR)
+        end
       end)
       return { success = true }
     end

@@ -37,7 +37,7 @@ start() {
   # The command tmux gives a shell, each word quoted: paths may have spaces.
   local command
   command="$(printf '%q ' env "ORG_LSP_TEST_CLIENT=$client" "ORG_LSP_TEST_WORK=$work" "ORG_LSP_TEST_CLIENTS=$clients" \
-    "ORG_LSP_TEST_RESULT=$work/result.txt" "ORG_LSP_BIN=$server" ORG_LSP_CONFIG=/nonexistent/config.toml "HOME=$work" "$@" \
+    "ORG_LSP_TEST_RESULT=$work/result.txt" "ORG_LSP_BIN=$server" ORG_LSP_CONFIG=/dev/null "HOME=$work" "$@" \
     "$vim" -N -u "$here/vimrc" -i NONE)"
   tmux new-session -d -s "$session" -x "${size%x*}" -y "${size#*x}" "$command; sleep 1"
 }

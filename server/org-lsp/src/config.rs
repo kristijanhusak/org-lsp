@@ -1484,9 +1484,19 @@ impl Options {
         if value.is_null() || value.as_array().is_some_and(Vec::is_empty) {
             return (Options::default(), Vec::new());
         }
-        let mut dropped = Vec::new();
-        let value = keep_readable(&mut Vec::new(), value, &mut dropped).unwrap_or_default();
+        let (value, dropped) = Options::readable(value);
         (serde_json::from_value(value).unwrap_or_default(), dropped)
+    }
+
+    /// `value` without the options [`Options::read`] leaves out, and their
+    /// dotted names.
+    pub fn readable(value: serde_json::Value) -> (serde_json::Value, Vec<String>) {
+        if value.is_null() || value.as_array().is_some_and(Vec::is_empty) {
+            return (serde_json::json!({}), Vec::new());
+        }
+        let mut dropped = Vec::new();
+        let value = keep_readable(&mut Vec::new(), value, &mut dropped).unwrap_or_else(|| serde_json::json!({}));
+        (value, dropped)
     }
 
     /// The default TODO sequence: `org_todo_keywords`, or Org's `TODO | DONE`.
@@ -2114,30 +2124,33 @@ impl Options {
     fn tangle_lisp(&self) -> Vec<String> {
         let lisp_string = |text: &str| format!("\"{}\"", text.replace('\\', "\\\\").replace('"', "\\\""));
         let mut forms = Vec::new();
-        let mut set = |name: &str, value: String| forms.push(format!("(setq {name} {value})"));
-        if let Some(exts) = self.babel_tangle_lang_exts.as_ref().filter(|exts| !exts.is_empty()) {
-            for (lang, extension) in exts {
-                set(
-                    "org-babel-tangle-lang-exts",
-                    format!(
-                        "(cons (cons {} {}) org-babel-tangle-lang-exts)",
-                        lisp_string(lang),
-                        lisp_string(extension)
-                    ),
-                );
+        // Pairs added to a list of Org's once its library has defined it:
+        // this runs before Org is loaded.
+        let mut add = |feature: &str, list: &str, pairs: Vec<String>| {
+            if !pairs.is_empty() {
+                let adds: Vec<String> = pairs.iter().map(|pair| format!("(push {pair} {list})")).collect();
+                forms.push(format!("(with-eval-after-load '{feature} {})", adds.join(" ")));
             }
-        }
+        };
+        let exts = self.babel_tangle_lang_exts.iter().flatten();
+        add(
+            "ob-tangle",
+            "org-babel-tangle-lang-exts",
+            exts.map(|(lang, extension)| format!("(cons {} {})", lisp_string(lang), lisp_string(extension))).collect(),
+        );
         // `org-src-lang-modes`: the mode a block is edited and exported in.
-        for (lang, mode) in self.src_lang_modes.iter().flatten() {
-            set(
-                "org-src-lang-modes",
-                format!(
-                    "(cons (cons {} (intern {})) org-src-lang-modes)",
-                    lisp_string(lang),
-                    lisp_string(mode.strip_suffix("-mode").unwrap_or(mode))
-                ),
-            );
-        }
+        let modes = self.src_lang_modes.iter().flatten();
+        add(
+            "org-src",
+            "org-src-lang-modes",
+            modes
+                .map(|(lang, mode)| {
+                    let mode = mode.strip_suffix("-mode").unwrap_or(mode);
+                    format!("(cons {} (intern {}))", lisp_string(lang), lisp_string(mode))
+                })
+                .collect(),
+        );
+        let mut set = |name: &str, value: String| forms.push(format!("(setq {name} {value})"));
         if self.babel_tangle_use_relative_file_links == Some(false) {
             set("org-babel-tangle-use-relative-file-links", "nil".to_string());
         }
@@ -3117,6 +3130,9 @@ pub struct Loaded {
     pub read: bool,
     /// The options as given: the file's, with the editor's on top.
     pub merged: serde_json::Value,
+    /// `merged` without what is malformed, which `options` is made of:
+    /// what `org-lsp agenda --options` takes.
+    pub readable: serde_json::Value,
     /// What could not be read, to tell the user.
     pub problems: Vec<String>,
 }
@@ -3285,11 +3301,12 @@ pub fn load(editor: Option<serde_json::Value>, var: &dyn Fn(&str) -> Option<Stri
             serde_json::Map::new()
         }
     };
-    // A file the editor names must be there; the usual one may not be.
+    // A file the editor or `ORG_LSP_CONFIG` names must be there; the usual
+    // one may not be.
     let usual = |problems: &mut Vec<String>| {
         let (file, warning) = default_config_file(var);
         problems.extend(warning);
-        (file, false)
+        (file, var("ORG_LSP_CONFIG").is_some_and(|path| !path.is_empty()))
     };
     let mut renamed = Vec::new();
     let mut editor = match current_names(serde_json::Value::Object(editor), &mut renamed) {
@@ -3336,10 +3353,11 @@ pub fn load(editor: Option<serde_json::Value>, var: &dyn Fn(&str) -> Option<Stri
     if !unknown.is_empty() {
         problems.push(format!("unknown options, which are ignored: {}", unknown.join(", ")));
     }
-    let (options, dropped) = Options::read(merged.clone());
+    let (readable, dropped) = Options::readable(merged.clone());
+    let options: Options = serde_json::from_value(readable.clone()).unwrap_or_default();
     problems.extend(dropped.into_iter().map(|name| format!("the option `{name}` is malformed and is ignored")));
     problems.extend(options.emacs_options().1);
-    Loaded { options, file, read, merged, problems }
+    Loaded { options, file, read, merged, readable, problems }
 }
 
 // ----- names of before
@@ -3654,6 +3672,7 @@ fn keep_readable(
         dropped.push(path.join("."));
         return None;
     };
+    let before = dropped.len();
     let mut kept = serde_json::Map::new();
     for (key, field) in fields {
         path.push(key.clone());
@@ -3662,7 +3681,16 @@ fn keep_readable(
         }
         path.pop();
     }
-    Some(serde_json::Value::Object(kept))
+    let kept = serde_json::Value::Object(kept);
+    // An option that is an object and still cannot be read without those
+    // fields (`org_agenda_span = {}`) is left out whole.
+    let alone = path.iter().rev().fold(kept.clone(), |inner, key| serde_json::json!({ key: inner }));
+    if !path.is_empty() && serde_json::from_value::<Options>(alone).is_err() {
+        dropped.truncate(before);
+        dropped.push(path.join("."));
+        return None;
+    }
+    Some(kept)
 }
 
 /// `{ "today": "2026-05-18", "now": "10:30" }`
@@ -4619,7 +4647,7 @@ mod tests {
         assert_eq!(
             options.emacs_lisp().unwrap(),
             [
-                r#"(setq org-babel-tangle-lang-exts (cons (cons "python" "py") org-babel-tangle-lang-exts))"#,
+                r#"(with-eval-after-load 'ob-tangle (push (cons "python" "py") org-babel-tangle-lang-exts))"#,
                 "(setq org-babel-tangle-use-relative-file-links nil)",
                 r#"(setq org-babel-tangle-comment-format-end "end \"%source-name\"")"#,
                 "(setq org-babel-process-comment-text 'identity)",
@@ -4638,7 +4666,7 @@ mod tests {
             serde_json::from_value(serde_json::json!({ "org_src_lang_modes": { "ipython": "python-mode" } })).unwrap();
         assert_eq!(
             options.emacs_lisp().unwrap(),
-            r#"(setq org-src-lang-modes (cons (cons "ipython" (intern "python")) org-src-lang-modes))"#
+            r#"(with-eval-after-load 'org-src (push (cons "ipython" (intern "python")) org-src-lang-modes))"#
         );
     }
 
@@ -4799,6 +4827,10 @@ mod tests {
         let (whole, none) = Options::read(serde_json::json!({ "org_log_done": "time" }));
         assert!(none.is_empty() && whole.log_done.is_some());
         assert!(Options::read(serde_json::json!([1])).1 == [""]);
+        // An object that no field of makes readable goes whole.
+        let (options, dropped) =
+            Options::read(serde_json::json!({ "org_agenda_span": {}, "org_agenda_files": ["a.org"] }));
+        assert_eq!((dropped, options.agenda_files), (vec!["org_agenda_span".to_string()], vec!["a.org".to_string()]));
         // Neovim sends an empty table as `[]`.
         assert!(Options::read(serde_json::json!([])).1.is_empty());
         assert!(Options::read(serde_json::Value::Null).1.is_empty());

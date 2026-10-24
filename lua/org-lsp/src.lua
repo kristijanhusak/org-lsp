@@ -22,16 +22,44 @@ local syntaxes = {
   bash = 'sh',
 }
 
+--- Whether each tree-sitter parser and Vim syntax file was found, by
+--- name: finding them looks through the runtime path, and every block of
+--- every `org-lsp/codeBlocks` needs one. A missing one is looked for again
+--- after a while, and when the runtime path changed, in case it was
+--- installed since.
+---@type { runtimepath: string?, [string]: { found: boolean, at: integer } }
+local found = {}
+
+--- How long a missing parser or syntax file is taken as missing, in ms.
+local missing_for = 10000
+
+--- Whether `look` finds the thing `key` names, from `found` while it holds.
+---@param key string
+---@param look fun(): boolean
+---@return boolean
+local function memo(key, look)
+  if found.runtimepath ~= vim.o.runtimepath then
+    found = { runtimepath = vim.o.runtimepath }
+  end
+  local now = vim.uv.now()
+  local known = found[key]
+  if not known or (not known.found and now - known.at > missing_for) then
+    known = { found = look(), at = now }
+    found[key] = known
+  end
+  return known.found
+end
+
 --- The tree-sitter parser of a language, when there is one.
 ---@param name string
 ---@return string?
 local function parser_for(name)
   local lang = vim.treesitter.language.get_lang(name) or name
-  pcall(vim.treesitter.language.add, lang)
-  if not pcall(vim.treesitter.language.inspect, lang) then
-    return nil
-  end
-  return lang
+  local there = memo('parser\0' .. lang, function()
+    pcall(vim.treesitter.language.add, lang)
+    return pcall(vim.treesitter.language.inspect, lang)
+  end)
+  return there and lang or nil
 end
 
 --- Vim's syntax file of a language, when there is one.
@@ -39,10 +67,13 @@ end
 ---@return string?
 local function syntax_for(name)
   local lang = syntaxes[name] or name
-  if lang:match('^[%w_]+$') and #vim.api.nvim_get_runtime_file('syntax/' .. lang .. '.vim', false) > 0 then
-    return lang
+  if not lang:match('^[%w_]+$') then
+    return nil
   end
-  return nil
+  local there = memo('syntax\0' .. lang, function()
+    return #vim.api.nvim_get_runtime_file('syntax/' .. lang .. '.vim', false) > 0
+  end)
+  return there and lang or nil
 end
 
 ---@class org_lsp.SrcCode
@@ -115,8 +146,10 @@ local function syntax_regions(bufnr, codes)
     for _, each in ipairs(codes) do
       local cluster = 'orgLspSrc_' .. each.syntax
       -- The syntax file once: Vim's syntax for the buffer forgets it when
-      -- it is set again.
-      if not pcall(vim.api.nvim_exec2, 'syntax list @' .. cluster, { output = true }) then
+      -- it is set again. The listing says whether the cluster is there; it
+      -- is no error when the buffer has no syntax items at all.
+      local ok, listed = pcall(vim.api.nvim_exec2, 'silent! syntax list @' .. cluster, { output = true })
+      if not (ok and listed.output:find('\n' .. cluster .. ' cluster=', 1, true)) then
         local current = vim.b.current_syntax
         vim.b.current_syntax = nil
         pcall(vim.cmd, 'silent! syntax include @' .. cluster .. ' syntax/' .. each.syntax .. '.vim')
@@ -128,8 +161,10 @@ local function syntax_regions(bufnr, codes)
         table.insert(groups, group)
       end
       local code = each.code
+      -- Within the blocks of Vim's own syntax for Org too, when it stays
+      -- (`replace_syntax` off): its regions take the whole block.
       vim.cmd(
-        ('syntax region %s start=/\\%%%dl\\%%%dc/ end=/\\%%%dl\\%%%dc/ keepend contains=@%s'):format(
+        ('syntax region %s start=/\\%%%dl\\%%%dc/ end=/\\%%%dl\\%%%dc/ keepend contains=@%s containedin=orgCodeBlock,orgVerbatimBlock'):format(
           group,
           code.row + 1,
           code.col + 1,

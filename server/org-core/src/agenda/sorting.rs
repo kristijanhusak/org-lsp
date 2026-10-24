@@ -606,8 +606,14 @@ pub fn sort_members(
         .iter()
         .flat_map(|outline| outline.todo.names().filter(|name| outline.todo.is_done(name)).map(str::to_string))
         .collect();
-    let keys: Vec<Option<Keys>> =
-        (0..items.len()).map(|index| members.contains(&index).then(|| keys(&items[index], files))).collect();
+    // Once for each member: looking each line up among the members made
+    // a day of many lines quadratic.
+    let mut keys: Vec<Option<Keys>> = (0..items.len()).map(|_| None).collect();
+    for index in members.iter() {
+        if keys[*index].is_none() {
+            keys[*index] = Some(self::keys(&items[*index], files));
+        }
+    }
     let key = |index: &usize| keys[*index].as_ref().expect("a key for each member");
     emacs_sort(members, |a, b| lessp(key(a), key(b), strategies, sorting, &done));
 }
@@ -803,6 +809,10 @@ mod tests {
         assert_eq!(cookie("* TODO Plan [3/4]"), Some(75));
         assert_eq!(cookie("* TODO Plan [0/0]"), Some(0));
         assert_eq!(cookie("* TODO Plan [3/]"), Some(0));
+        // As `org-refresh-stats-properties` gives them: its regexp takes
+        // an empty denominator, and a zero one makes the value 0.
+        assert_eq!(cookie("* TODO Plan [50%] [3/]"), Some(0));
+        assert_eq!(cookie("* TODO Plan [3/00]"), Some(0));
         assert_eq!(cookie("* TODO Plan [99999999999999999/1]"), Some(i64::MAX));
         assert_eq!(cookie("* TODO Plan [x]"), None);
     }

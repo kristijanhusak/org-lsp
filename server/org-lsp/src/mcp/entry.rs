@@ -17,8 +17,8 @@ use org_core::{archive, priority, properties, structure, tags, todo};
 use serde_json::{json, Value};
 
 use super::{
-    agenda_paths, answer_text, canonical, diff, editable_file, editable_files, headline_at_line, is_headline, now,
-    write_file, Arguments, Call, EDITABLE,
+    agenda_paths, answer_text, canonical, diff, editable_file, editable_files, headline_at_line, is_headline,
+    may_write, now, resolved, write_file, Arguments, Call, EDITABLE,
 };
 use crate::config::Options;
 
@@ -279,7 +279,7 @@ impl Entry {
             out.push_str("Dry run: nothing was written. The change would be:\n");
             out.push_str(&diff(&self.name, &self.text, changed));
         } else {
-            write_file(&self.path, changed)?;
+            write_file(&self.path, Some(&self.text), changed)?;
         }
         let headline = changed.lines().nth(self.line - 1).unwrap_or("");
         out.push_str(&format!("{}:{}: {headline}", self.name, self.line));
@@ -570,18 +570,28 @@ fn archive(arguments: &Arguments, options: &Options, folder: Option<&Path>) -> R
             let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
             let context = archive::Context { path: &path, home: home.as_deref(), now };
             // The files it archives to, which it may write besides the
-            // agenda files.
+            // agenda files: that of `org_archive_location`, and those the
+            // file names (`#+ARCHIVE:`, `ARCHIVE` properties) in the
+            // directory of an agenda file or below, as what the assistant
+            // writes there could name any file.
             let mut writable: Vec<PathBuf> = agenda.iter().map(|file| canonical(file)).collect();
+            writable.extend(
+                archive::archive_files("", &keywords, &context, &settings.location).iter().map(|file| resolved(file)),
+            );
+            let directories: Vec<PathBuf> =
+                agenda.iter().filter_map(|file| canonical(file).parent().map(Path::to_path_buf)).collect();
             writable.extend(
                 archive::archive_files(text, &keywords, &context, &settings.location)
                     .iter()
-                    .map(|file| canonical(file)),
+                    .map(|file| resolved(file))
+                    .filter(|file| directories.iter().any(|directory| file.starts_with(directory))),
             );
             let mut read = |wanted: &Path| std::fs::read_to_string(wanted).ok();
             let archived = archive::archive_subtree(text, entry.heading, &keywords, &context, &settings, &mut read)?;
-            if let Some(other) = archived.files.iter().find(|file| !writable.contains(&canonical(&file.path))) {
+            if let Some(other) = archived.files.iter().find(|file| !writable.contains(&resolved(&file.path))) {
                 return Err(format!(
-                    "{} is neither an agenda file nor one of its archive files: org-lsp mcp changes only those",
+                    "{} is not an archive file org-lsp mcp changes: those are the file of org_archive_location, \
+                     and the others in the directory of an agenda file or below",
                     other.path.display()
                 )
                 .into());
@@ -606,8 +616,11 @@ fn archive(arguments: &Arguments, options: &Options, folder: Option<&Path>) -> R
             out.push_str(&diff(name, before.unwrap_or(""), after));
         }
     } else {
-        for (path, _, _, after) in &changes {
-            write_file(path, after)?;
+        for (path, _, before, _) in &changes {
+            may_write(path, *before)?;
+        }
+        for (path, _, before, after) in &changes {
+            write_file(path, *before, after)?;
         }
     }
     // Where the entry is now.
@@ -646,7 +659,7 @@ fn delete_entry(arguments: &Arguments, options: &Options, folder: Option<&Path>)
         out.push_str(&diff(&entry.name, &entry.text, &outcome.text));
         out.push_str("The text it would delete:\n");
     } else {
-        write_file(&entry.path, &outcome.text)?;
+        write_file(&entry.path, Some(&entry.text), &outcome.text)?;
         out.push_str(&format!(
             "Deleted from {}:{}. The text deleted, which put back at that line restores the entry:\n",
             entry.name, entry.line
@@ -877,6 +890,22 @@ mod tests {
         let tasks = setup.read("tasks.org");
         assert!(tasks.starts_with("* Projects\n** Archive "), "{tasks}");
         assert!(tasks.contains(":ARCHIVE:\n*** TODO Water the plants\n"), "{tasks}");
+    }
+
+    #[test]
+    fn archives_only_beside_the_agenda_files_where_the_file_says() {
+        let outside = std::env::temp_dir().join(format!("org-lsp-mcp-outside-{}.org", std::process::id()));
+        let tasks = format!(
+            "* TODO Out\n:PROPERTIES:\n:ARCHIVE: {}::\n:END:\n* TODO In\n:PROPERTIES:\n:ARCHIVE: old/done.org::\n:END:\n",
+            outside.display()
+        );
+        let setup = Setup::new("archive-beside", "", &[("tasks.org", &tasks)]);
+        let (text, error) = setup.call("archive", json!({ "file": "tasks.org", "line": 1, "headline": "Out" }));
+        assert!(error && text.contains("is not an archive file org-lsp mcp changes"), "{text}");
+        assert!(!outside.exists());
+        let (text, error) = setup.call("archive", json!({ "file": "tasks.org", "line": 5, "headline": "In" }));
+        assert!(!error, "{text}");
+        assert!(setup.read("old/done.org").contains("* TODO In"));
     }
 
     #[test]

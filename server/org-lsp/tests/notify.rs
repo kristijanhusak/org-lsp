@@ -465,3 +465,49 @@ fn reminds_at_the_warning_besides_appt_warntime_and_with_the_others_due() {
     );
     assert_eq!(place.dry("20:00"), "Call Anna in 60\n21:00 TODO Call Anna\n\n");
 }
+
+#[test]
+fn reads_a_warning_of_too_many_hours_as_none() {
+    let tasks = "* Call\n<2026-10-22 Thu 12:00 -999999999999999999h>\n";
+    let place = Place::with("cookies-overflow", "notification_use_timestamp_warning = true", tasks);
+    assert_eq!(place.dry("12:00"), "Appointment now\n12:00 Call\n\n");
+    let place = Place::with("cookies-overflow-off", "", tasks);
+    assert_eq!(place.dry("11:48"), "Appointment in 12 minutes\n12:00 Call\n\n");
+}
+
+#[test]
+fn says_a_deadline_summary_time_it_cannot_read() {
+    for time in ["29:00", "noon"] {
+        let place = Place::new("summary-bad", &format!("notification_deadline_summary_time = \"{time}\""));
+        let output = place.run(&["--dry-run", "--now", "2026-10-22 08:30"]);
+        assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+        assert_eq!(
+            String::from_utf8_lossy(&output.stderr),
+            format!(
+                "org-lsp notify: `notification_deadline_summary_time` is ignored: `{time}` is not a time; expected \
+                 HH:MM\n"
+            )
+        );
+    }
+}
+
+#[test]
+fn fails_when_a_file_cannot_be_read() {
+    let place = Place::new("unread", "");
+    let missing = place.root.join("missing.org").display().to_string();
+    let tasks = place.root.join("tasks.org").display().to_string();
+    let output = place.run(&["--dry-run", "--now", "2026-10-22 10:00", &missing, &tasks]);
+    assert_eq!(output.status.code(), Some(1));
+    assert!(String::from_utf8_lossy(&output.stderr).contains(&format!("org-lsp notify: {missing}: ")));
+    // The other files are reminded of all the same.
+    assert_eq!(String::from_utf8_lossy(&output.stdout), format!("Appointment now\n{STANDUP}\n\n"));
+}
+
+#[test]
+fn says_markup_of_a_headline_to_notify_send_as_it_is() {
+    let place = Place::with("markup", "", "* Q&A <b>here</b>\n<2026-10-22 Thu 10:00>\n");
+    let out = place.stand_in("notify-send");
+    let output = place.run(&["--now", "2026-10-22 10:00", "--options", r#"{ "notification_icon": "" }"#]);
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    assert_eq!(read(&out), "--app-name=org-lsp\n--\nAppointment now\n10:00 Q&amp;A &lt;b&gt;here&lt;/b&gt;\n");
+}
