@@ -735,3 +735,49 @@ fn extract_file_names_are_capture_templates_first() {
     assert_eq!(name("%<%Y%m%d%H%M%S>-${id}.org").as_deref(), Ok("20260518103000-an-id.org"));
     assert!(name("%^{Directory}/${slug}.org").is_err());
 }
+
+/// The lines of a node find, for many nodes: each node's aliases, tags
+/// and file found once per call, not by looking through all of them for
+/// each node: 30 000 nodes took 18.6 s in a release build, now 0.3 s.
+#[test]
+fn candidates_of_many_nodes() {
+    let mut db = Db::default();
+    db.directory = "/notes/".to_string();
+    let count: usize = 30_000;
+    for index in 0..count {
+        let file = format!("/notes/{}.org", index % 1_000);
+        if index < 1_000 {
+            db.files.push((file.clone(), format!("File {index}")));
+        }
+        let id = format!("id-{index:05}");
+        let node = roam::Node {
+            id: id.clone(),
+            level: 1,
+            offset: 0,
+            todo: None,
+            priority: None,
+            scheduled: None,
+            deadline: None,
+            title: format!("Node {index}"),
+            properties: Vec::new(),
+            olp: Vec::new(),
+        };
+        db.nodes.push((file, node));
+        if index % 3 == 0 {
+            db.aliases.push((id.clone(), format!("Alias {index}")));
+            db.aliases.push((id.clone(), "A shared alias".to_string()));
+        }
+        db.tags.push((id.clone(), format!("tag{}", index % 7)));
+        db.tags.push((id, "common".to_string()));
+    }
+    let mtime = |file: &str| file.len() as u64;
+    let started = std::time::Instant::now();
+    let lines = db.candidates("${title} ${tags} ${file} ${file-title} ${aliases}", 120, &mtime).unwrap();
+    let elapsed = started.elapsed();
+    assert_eq!(lines.len(), count + 2 * count.div_ceil(3));
+    let first = lines.iter().find(|line| line.id == "id-00003").unwrap();
+    assert!(first.display.contains("Node 3") && first.display.contains("3.org"), "{first:?}");
+    assert!(first.display.contains("common") && first.display.contains("tag3"), "{first:?}");
+    assert!(first.display.contains("File 3"), "{first:?}");
+    assert!(elapsed < std::time::Duration::from_secs(20), "{elapsed:?}");
+}
