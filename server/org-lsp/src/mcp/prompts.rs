@@ -244,7 +244,11 @@ fn section(out: &mut String, title: &str, data: Result<String, Call>) {
         Err(Call::Failed(message)) => format!("(not available: {message})"),
         Err(Call::Unknown) => "(not available)".to_string(),
     };
-    out.push_str(&format!("## {title}\n\n```\n{}\n```\n\n", body.trim_end()));
+    // A fence longer than any run of backticks in the data, which then
+    // cannot end it early.
+    let longest = body.split(|c| c != '`').map(str::len).max().unwrap_or(0);
+    let fence = "`".repeat(longest.max(2) + 1);
+    out.push_str(&format!("## {title}\n\n{fence}\n{}\n{fence}\n\n", body.trim_end()));
 }
 
 /// How the prompts start: what the data is, and how entries are named.
@@ -675,6 +679,13 @@ mod tests {
         assert!(text.contains("## 2026-10-21 (the day before)") && text.contains("DONE Finished"), "{text}");
         assert!(text.contains("## Waiting (WAITING)") && text.contains("WAITING Answer from Bob"), "{text}");
         assert!(text.contains("Change nothing."), "{text}");
+    }
+
+    #[test]
+    fn a_fence_in_the_data_does_not_end_its_section() {
+        let mut out = String::new();
+        super::section(&mut out, "Entries", Ok("* Notes\n```\nnot the end\n```".to_string()));
+        assert_eq!(out, "## Entries\n\n````\n* Notes\n```\nnot the end\n```\n````\n\n");
     }
 
     #[test]
