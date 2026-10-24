@@ -93,7 +93,13 @@ function! org_lsp#adapter#vim_lsp#reread(bufnr) abort
   if empty(scripts)
     return
   endif
-  let OnChange = function('<SNR>' . scripts[0].sid . '_on_change')
+  " vim-lsp's own function, by its script-local name: none when a
+  " version of vim-lsp names it otherwise.
+  let name = '<SNR>' . scripts[0].sid . '_on_change'
+  if !exists('*' . name)
+    return
+  endif
+  let OnChange = function(name)
   let whole = {'lnum': 1, 'end': 1, 'added': 0}
   call OnChange(a:bufnr, 1, 1, 0, [whole, whole])
   call lsp#ensure_flush_all(a:bufnr, [s:name])
@@ -111,6 +117,9 @@ function! org_lsp#adapter#vim_lsp#inlay_hints(bufnr) abort
     return
   endif
   let prefix = '<SNR>' . scripts[0].sid . '_'
+  if !exists('*' . prefix . 'send_inlay_hints_request') || !exists('*' . prefix . 'set_inlay_hints')
+    return
+  endif
   call lsp#callbag#pipe(
         \ call(prefix . 'send_inlay_hints_request', []),
         \ lsp#callbag#subscribe({'next': function(prefix . 'set_inlay_hints')}),

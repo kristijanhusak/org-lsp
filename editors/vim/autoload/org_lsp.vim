@@ -3046,6 +3046,25 @@ endfunction
 " where Vim's syntax file has another.
 let s:src_syntaxes = {'elisp': 'lisp', 'bash': 'sh'}
 
+" Whether each language has a syntax file, by name, for the runtime path
+" it was looked for in: looking goes through the whole runtime path, for
+" every block each time the code is shown. A missing one is looked for
+" again after a while, in case it was installed since.
+let s:syntax_files = {'runtimepath': '', 'found': {}}
+
+function! s:has_syntax(lang) abort
+  if s:syntax_files.runtimepath !=# &runtimepath
+    let s:syntax_files = {'runtimepath': &runtimepath, 'found': {}}
+  endif
+  let now = reltimefloat(reltime())
+  let known = get(s:syntax_files.found, a:lang, v:null)
+  if known is v:null || (!known.found && now - known.at > 10)
+    let known = {'found': !empty(globpath(&runtimepath, 'syntax/' . a:lang . '.vim')), 'at': now}
+    let s:syntax_files.found[a:lang] = known
+  endif
+  return known.found
+endfunction
+
 " Where the code of a file's source, export and inline source blocks is
 " (`org-lsp/codeBlocks`): `blocks` of `{range, language, name, kind}`.
 " Kept with the buffer, and shown when it is the current one, as syntax
@@ -3082,7 +3101,7 @@ function! s:src_syntax() abort
   let groups = {}
   for block in blocks
     let lang = get(s:src_syntaxes, block.language, block.language)
-    if type(lang) != v:t_string || lang !~# '^\w\+$' || empty(globpath(&runtimepath, 'syntax/' . lang . '.vim'))
+    if type(lang) != v:t_string || lang !~# '^\w\+$' || !s:has_syntax(lang)
       continue
     endif
     let start = block.range.start
@@ -3106,7 +3125,9 @@ function! s:src_syntax() abort
     let groups[group] = 1
     let col = s:byte(getline(start.line + 1), start.character)
     let end_col = s:byte(getline(end.line + 1), end.character)
-    execute printf('syntax region %s start=/\%%%dl\%%%dc/ end=/\%%%dl\%%%dc/ keepend contains=@%s',
+    " Within the blocks of Vim's own syntax for Org too, whose regions take
+    " the whole block.
+    execute printf('syntax region %s start=/\%%%dl\%%%dc/ end=/\%%%dl\%%%dc/ keepend contains=@%s containedin=orgCodeBlock,orgVerbatimBlock',
           \ group, start.line + 1, col + 1, end.line + 1, end_col + 1, cluster)
   endfor
   " The files included sync as suits their language alone.

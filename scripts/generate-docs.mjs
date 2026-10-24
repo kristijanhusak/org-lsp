@@ -854,7 +854,9 @@ const ACTIONS_IN_AGENDA = new Set([
 /** Whether the command `id` is a code action in `editor` where `scope`
  * says. */
 function isAction(id, scope, editor) {
-  if (scope === 'agenda') return editor !== 'zed' && ACTIONS_IN_AGENDA.has(id);
+  // Nor saving the agenda's files for Helix, which does nothing with the
+  // files a result names (`saves` in `code_actions_at`).
+  if (scope === 'agenda') return editor !== 'zed' && ACTIONS_IN_AGENDA.has(id) && !(editor === 'helix' && id === 'org.agenda.save');
   if (scope === 'capture') return ACTIONS_IN_CAPTURE.has(id);
   return ACTIONS_IN_FILES.has(id);
 }

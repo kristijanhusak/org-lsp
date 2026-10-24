@@ -1577,12 +1577,24 @@ check(syntax(21, 1):find('pythonStatement', 1, true), 'Python in its syntax file
 check(syntax(23, 17):find('pythonInclude', 1, true), 'inline Python in its syntax file: ' .. syntax(23, 17))
 eq(syntax(23, 5), '', 'the text around inline code in no syntax region')
 eq(syntax(20, 3), '', 'the line of `#+begin_src` in no syntax region')
-check(syntax(10, 2):find('lisp', 1, true), 'Emacs Lisp, which has no tree-sitter parser, in Vim\'s syntax: ' .. syntax(10, 2))
+check(syntax(10, 2):find('lispDecl', 1, true), 'Emacs Lisp, which has no tree-sitter parser, in Vim\'s syntax: ' .. syntax(10, 2))
 local pos = vim.inspect_pos(code_buf, 20, 0)
 check(#pos.syntax > 0 and #pos.semantic_tokens == 0, 'the code in its syntax, no Org token over it')
 local head = vim.inspect_pos(code_buf, 0, 2)
 check(#head.semantic_tokens > 0, 'the Org text around the code in the server\'s colors')
 eq(#vim.api.nvim_list_bufs(), buffers, 'no buffer made for the colors')
+-- With Vim's own syntax for Org kept (`replace_syntax` off), whose
+-- regions take whole blocks: the code still in its language.
+vim.api.nvim_buf_call(code_buf, function()
+  vim.bo.syntax = 'org'
+end)
+src.reapply(code_buf)
+check(syntax(21, 1):find('pythonStatement', 1, true), 'Python in its syntax file within Vim\'s Org syntax: ' .. syntax(21, 1))
+check(syntax(10, 2):find('lispDecl', 1, true), 'Emacs Lisp within Vim\'s Org syntax: ' .. syntax(10, 2))
+vim.api.nvim_buf_call(code_buf, function()
+  vim.bo.syntax = ''
+end)
+src.reapply(code_buf)
 
 -- An edit that moves a block: the region and the colors follow it.
 vim.api.nvim_buf_set_lines(code_buf, 0, 0, false, { 'Moved down.' })
