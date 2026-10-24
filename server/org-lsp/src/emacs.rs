@@ -788,7 +788,9 @@ done
         let directory = std::env::temp_dir().join(format!("org-lsp-slower-emacs-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&directory);
         std::fs::create_dir_all(&directory).unwrap();
-        let emacs = Emacs::new(Settings { program: slow_emacs(&directory, 4.0), ..Settings::default() });
+        // Started a second after the first call gives up (`START_WAIT`),
+        // and a second before the next one would.
+        let emacs = Emacs::new(Settings { program: slow_emacs(&directory, 3.0), ..Settings::default() });
         let asked = Instant::now();
         assert_eq!(emacs.call("ping", Value::Null, Duration::from_millis(500)), Err(STARTING.to_string()));
         assert!(asked.elapsed() < Duration::from_secs(3), "{:?}", asked.elapsed());
