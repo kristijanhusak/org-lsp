@@ -99,6 +99,9 @@ pub struct Run {
     pub dry_run: bool,
     pub delivery: Delivery,
     pub problems: Vec<String>,
+    /// Whether a file could not be read, whose reminders are lost: the
+    /// run ends with status 1, as when a notification cannot be sent.
+    pub unread: bool,
 }
 
 /// How notifications are sent: as desktop notifications, through a
@@ -167,7 +170,9 @@ pub fn data_directory(var: &dyn Fn(&str) -> Option<String>) -> Option<PathBuf> {
     if cfg!(target_os = "macos") {
         return home.map(|home| PathBuf::from(home).join("Library").join("Application Support").join("org-lsp"));
     }
-    if let Some(data) = set("XDG_DATA_HOME") {
+    // A relative one is ignored, as the XDG Base Directory specification
+    // says.
+    if let Some(data) = set("XDG_DATA_HOME").filter(|data| Path::new(data).is_absolute()) {
         return Some(PathBuf::from(data).join("org-lsp"));
     }
     home.map(|home| PathBuf::from(home).join(".local").join("share").join("org-lsp"))
@@ -225,8 +230,9 @@ pub fn prepare(arguments: &[String], env: &dyn Fn(&str) -> Option<String>) -> Re
         None => Icon::Logo(data_directory(env).map(|directory| directory.join("icon.png"))),
     };
     let delivery = Delivery { desktop: options.notification_desktop.unwrap_or(command.is_none()), command, icon };
-    let notifications = due(&files, options, now, &mut problems);
-    Ok(Run { notifications, dry_run, delivery, problems })
+    let mut unread = false;
+    let notifications = due(&files, options, now, &mut problems, &mut unread);
+    Ok(Run { notifications, dry_run, delivery, problems, unread })
 }
 
 /// `--now`: `YYYY-MM-DD HH:MM`.
@@ -238,8 +244,15 @@ fn parse_now(text: &str) -> Result<Now, String> {
     Ok(Now { today: crate::cli::parse_date(date)?, minute: crate::cli::parse_time(time.trim())? })
 }
 
-/// The notifications due at `now` from the Org files `files`.
-pub fn due(files: &[String], options: &Options, now: Now, problems: &mut Vec<String>) -> Vec<Notification> {
+/// The notifications due at `now` from the Org files `files`; `unread`
+/// is set when one of them cannot be read.
+pub fn due(
+    files: &[String],
+    options: &Options,
+    now: Now,
+    problems: &mut Vec<String>,
+    unread: &mut bool,
+) -> Vec<Notification> {
     crate::mcp::set_variables(options);
     let todo = options.todo_keywords();
     let inheritance = options.inheritance();
@@ -254,7 +267,10 @@ pub fn due(files: &[String], options: &Options, now: Now, problems: &mut Vec<Str
                 outline.file = Some(file.clone());
                 outlines.push(outline);
             }
-            Err(error) => problems.push(format!("{file}: {error}")),
+            Err(error) => {
+                problems.push(format!("{file}: {error}"));
+                *unread = true;
+            }
         }
     }
     let outlines: Vec<&Outline> = outlines.iter().collect();
@@ -297,8 +313,11 @@ pub fn due(files: &[String], options: &Options, now: Now, problems: &mut Vec<Str
         notifications.push(remind(&reminded, title.as_deref(), body.as_deref()));
     }
 
-    let summary =
-        options.notification_deadline_summary_time.as_deref().and_then(|time| crate::cli::parse_time(time).ok());
+    let summary = options.notification_deadline_summary_time.as_deref().and_then(|time| {
+        crate::cli::parse_time(time)
+            .map_err(|error| problems.push(format!("`notification_deadline_summary_time` is ignored: {error}")))
+            .ok()
+    });
     if summary == Some(now.minute) {
         let format = options.notification_deadline_line_format.as_deref().filter(|format| !format.is_empty());
         let lines = deadlines(&outlines, now.org_today(config.extend_today_until), &config, &wanted, format);
@@ -454,7 +473,7 @@ fn lead_minutes(files: &[&Outline], item: &agenda::Item) -> Option<i64> {
         if hours.is_empty() || !hours.bytes().all(|byte| byte.is_ascii_digit()) {
             return None;
         }
-        hours.parse::<i64>().ok().map(|hours| hours * 60)
+        hours.parse::<i64>().ok().and_then(|hours| hours.checked_mul(60))
     })
 }
 
@@ -764,6 +783,9 @@ fn desktop(
                 "display notification (item 2 of argv) with title (item 1 of argv)",
                 "-e",
                 "end run",
+                // The end of osascript's options: a title that starts with
+                // `-` is the script's argument, not an option.
+                "--",
                 &notification.title,
                 &notification.body,
             ]);
@@ -784,7 +806,10 @@ fn desktop(
                 argument.push(icon);
                 program.arg(argument);
             }
-            program.args(["--", &notification.title, &notification.body]);
+            // The text is markup to most notification servers (the title
+            // is not): `<b>` or `&` of a headline is said as it is.
+            let body = notification.body.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;");
+            program.args(["--", &notification.title, &body]);
             ("notify-send", program)
         }
     }
@@ -946,7 +971,7 @@ mod tests {
         assert_eq!(name, "notify-send");
         let (name, program) = desktop(System::MacOs, &notification, Some(icon), &without);
         assert_eq!(name, "osascript");
-        assert_eq!(command_line(&program)[7..], ["T", "B"]);
+        assert_eq!(command_line(&program)[7..], ["--", "T", "B"]);
         let (_, program) = desktop(System::Other, &notification, Some(icon), &without);
         assert_eq!(
             command_line(&program),
@@ -958,6 +983,44 @@ mod tests {
         let (_, program) = desktop(System::Windows, &notification, None, &without);
         let icon_variable = program.get_envs().find(|(name, _)| *name == "ORG_LSP_ICON").and_then(|(_, value)| value);
         assert_eq!(icon_variable, Some(std::ffi::OsStr::new("")));
+    }
+
+    /// A title that starts with `-` is no option of `osascript`'s.
+    #[test]
+    fn ends_the_options_of_osascript_before_the_title() {
+        let notification =
+            Notification { title: "-e do shell script \"x\"".to_string(), body: "-l".to_string(), parts: Vec::new() };
+        let (_, program) = desktop(System::MacOs, &notification, None, &|_| None);
+        assert_eq!(
+            command_line(&program),
+            [
+                "osascript",
+                "-e",
+                "on run argv",
+                "-e",
+                "display notification (item 2 of argv) with title (item 1 of argv)",
+                "-e",
+                "end run",
+                "--",
+                "-e do shell script \"x\"",
+                "-l"
+            ]
+        );
+    }
+
+    /// A relative `XDG_DATA_HOME` is ignored, as the specification says.
+    #[cfg(all(unix, not(target_os = "macos")))]
+    #[test]
+    fn ignores_a_relative_xdg_data_home() {
+        let env = |data: &'static str| {
+            move |name: &str| match name {
+                "HOME" => Some("/home/me".to_string()),
+                "XDG_DATA_HOME" => Some(data.to_string()),
+                _ => None,
+            }
+        };
+        assert_eq!(data_directory(&env("/data")), Some(PathBuf::from("/data/org-lsp")));
+        assert_eq!(data_directory(&env("rel")), Some(PathBuf::from("/home/me/.local/share/org-lsp")));
     }
 
     #[test]
