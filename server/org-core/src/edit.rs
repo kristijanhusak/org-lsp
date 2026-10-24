@@ -222,7 +222,14 @@ pub fn run(
     while !text.is_char_boundary(offset) {
         offset -= 1;
     }
-    let steps = |forward: bool| call.count.unwrap_or(1) * if forward { 1 } else { -1 };
+    let steps = |forward: bool| {
+        let count = call.count.unwrap_or(1);
+        if forward {
+            count
+        } else {
+            count.saturating_neg()
+        }
+    };
     let unplaced = |text: String| Outcome { text, cursor: None, note: None, message: None, before_repeat: None };
     let placed = |changed: stamp::Changed| Outcome {
         text: changed.text,
@@ -495,7 +502,7 @@ pub fn run(
             let range = stamp::date_range_at(text, offset);
             let mut days = steps(*forward);
             if *unit == Unit::Minute {
-                days *= rounding.max(1);
+                days = days.saturating_mul(rounding.max(1));
             }
             if settings.move_date_from_past_to_today && days == 1 && range.is_none() && *unit == Unit::Day {
                 // `org-agenda-move-date-from-past-immediately-to-today`: one
@@ -591,5 +598,50 @@ pub fn run(
             };
             run(&next, text, parse, offset, call, settings)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::date::Date;
+
+    /// A count at either end of what a client can send moves a timestamp
+    /// no further than `encode-time` can, and says so as Emacs does; a
+    /// large count it can represent moves it as far.
+    #[test]
+    fn counts_past_any_date_are_refused() {
+        let text = "* Task\n<2026-10-23 Fri 10:00 +1d -2d>--<2026-10-24 Sat 10:00-11:00>\n";
+        let parse = org_syntax::parse(text, &Default::default());
+        let now = DateTime::new(Date::new(2026, 10, 23), 10, 0);
+        let settings = Settings::default();
+        let run = |command: &Command, at: &str, count: i64| {
+            let call = Call { count: Some(count), repeated: false, now, note: None, skip_note: true, time_only: false };
+            run(command, text, &parse, text.find(at).unwrap() + 1, &call, &settings)
+        };
+        let not_representable = Err(Refusal::Failed("Specified time is not representable".to_string()));
+        for count in [i64::MAX, i64::MIN, i64::MIN + 1, 1 << 40, -(1 << 40)] {
+            for forward in [true, false] {
+                for at in ["2026-10-23", "10-23", "23 ", "10:00", ":00", "Sat"] {
+                    let moved = run(&Command::Timestamp { forward }, at, count).map(|outcome| outcome.text);
+                    assert_eq!(moved, not_representable, "{count} {forward} {at}");
+                    let moved = run(&Command::Date { forward }, at, count).map(|outcome| outcome.text);
+                    assert_eq!(moved, not_representable, "{count} {forward} {at}");
+                }
+                for unit in [Unit::Year, Unit::Month, Unit::Day, Unit::Hour, Unit::Minute] {
+                    let moved = run(&Command::AgendaDate { forward, unit }, "2026-10-23", count);
+                    assert!(moved.is_err(), "{count} {forward} {unit:?}");
+                }
+                // The repeater, the warning and the end of the range.
+                for at in ["+1d", "1d -", "-2d", "d>", "-11:00", "1:00>"] {
+                    let _ = run(&Command::Timestamp { forward }, at, count);
+                }
+            }
+        }
+        // As Emacs moves `<2026-10-23 Fri 10:00>` by 10⁹ of each.
+        let moved = |at: &str| run(&Command::Timestamp { forward: true }, at, 1_000_000_000).unwrap().text;
+        assert!(moved("2026-10-23").contains("<1000002026-10-23 Fri 10:00"), "{}", moved("2026-10-23"));
+        assert!(moved("23 ").contains("<2739933-10-26 Thu 10:00"), "{}", moved("23 "));
+        assert!(moved(":00").contains("<3928-02-19 Sun 20:40"), "{}", moved(":00"));
     }
 }
