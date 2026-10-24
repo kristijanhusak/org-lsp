@@ -747,10 +747,13 @@ pub fn with_radio_links(tokens: Vec<Token>, ranges: &[(usize, usize)]) -> Vec<To
             modifiers: 0,
         })
         .collect();
+    let mut window = Overlaps::new(&links);
     for token in tokens {
         let (start, end) = (token.range.start(), token.range.end());
         let mut at = start;
-        for link in links.iter_mut().filter(|link| link.range.start() < end && link.range.end() > start) {
+        let over: Vec<usize> = window.of(&links, token.range).collect();
+        for index in over {
+            let link = &mut links[index];
             link.modifiers |= token.modifiers & emphasis;
             if link.range.start() > at {
                 out.push(Token { range: TextRange::new(at, link.range.start()), ..token });
@@ -776,10 +779,11 @@ pub fn with_hidden(tokens: Vec<Token>, ranges: &[(usize, usize)]) -> Vec<Token> 
     let ranges: Vec<TextRange> =
         ranges.iter().map(|(start, end)| TextRange::new((*start as u32).into(), (*end as u32).into())).collect();
     let mut out: Vec<Token> = Vec::with_capacity(tokens.len() + ranges.len());
+    let mut window = Overlaps::new(&ranges);
     for token in &tokens {
         let (start, end) = (token.range.start(), token.range.end());
         let mut at = start;
-        for range in ranges.iter().filter(|range| range.start() < end && range.end() > start) {
+        for range in window.of(&ranges, token.range).map(|index| ranges[index]) {
             let (from, to) = (range.start().max(start), range.end().min(end));
             if from > at {
                 out.push(Token { range: TextRange::new(at, from), ..*token });
@@ -796,12 +800,10 @@ pub fn with_hidden(tokens: Vec<Token>, ranges: &[(usize, usize)]) -> Vec<Token> 
         }
     }
     // What no token covers.
+    let mut window = Overlaps::new(&tokens);
     for range in &ranges {
         let mut at = range.start();
-        let mut covering: Vec<&Token> = tokens
-            .iter()
-            .filter(|token| token.range.start() < range.end() && token.range.end() > range.start())
-            .collect();
+        let mut covering: Vec<&Token> = window.of(&tokens, *range).map(|index| &tokens[index]).collect();
         covering.sort_by_key(|token| token.range.start());
         for token in covering {
             if token.range.start() > at {
@@ -823,6 +825,72 @@ pub fn with_hidden(tokens: Vec<Token>, ranges: &[(usize, usize)]) -> Vec<Token> 
     }
     out.sort_by_key(|token| token.range.start());
     out
+}
+
+/// Something with a range, for [`Overlaps`].
+trait Ranged {
+    fn range(&self) -> TextRange;
+}
+
+impl Ranged for Token {
+    fn range(&self) -> TextRange {
+        self.range
+    }
+}
+
+impl Ranged for TextRange {
+    fn range(&self) -> TextRange {
+        *self
+    }
+}
+
+/// Which items of a list overlap each of a series of ranges, in the
+/// list's order. With the items in order of start and the ranges asked
+/// in order of start, an item is looked at only while it can overlap,
+/// not once per range: semantic tokens stay linear in hidden ranges and
+/// radio links. Anything else is answered by looking at every item.
+struct Overlaps {
+    /// Whether the items are in order of start.
+    sorted: bool,
+    /// The first item not yet among `active`.
+    next: usize,
+    /// The items that start before the end of a range asked and may
+    /// still overlap a later one, in order.
+    active: Vec<usize>,
+    /// The start of the last range asked.
+    last: TextSize,
+}
+
+impl Overlaps {
+    fn new<T: Ranged>(items: &[T]) -> Overlaps {
+        let sorted = items.windows(2).all(|pair| pair[0].range().start() <= pair[1].range().start());
+        Overlaps { sorted, next: 0, active: Vec::new(), last: TextSize::from(0) }
+    }
+
+    /// The indices of the items that overlap `range`, in order.
+    fn of<'a, T: Ranged>(&'a mut self, items: &'a [T], range: TextRange) -> impl Iterator<Item = usize> + 'a {
+        let (start, end) = (range.start(), range.end());
+        if !self.sorted {
+            self.active.clear();
+            self.active.extend(0..items.len());
+        } else {
+            if start < self.last {
+                self.next = 0;
+                self.active.clear();
+            }
+            self.last = start;
+            while self.next < items.len() && items[self.next].range().start() < end {
+                self.active.push(self.next);
+                self.next += 1;
+            }
+            // Ended before this range: before any later one too.
+            self.active.retain(|index| items[*index].range().end() > start);
+        }
+        self.active.iter().copied().filter(move |index| {
+            let item = items[*index].range();
+            item.start() < end && item.end() > start
+        })
+    }
 }
 
 struct Walker<'a> {
@@ -1965,6 +2033,134 @@ mod tests {
             assert!(encoded.iter().all(|token| token.length > 0));
         }
     }
+    /// `with_radio_links` and `with_hidden` as they were written first,
+    /// looking at every range for every token.
+    fn by_every_pair(tokens: Vec<Token>, radio: &[(usize, usize)], hidden: &[(usize, usize)]) -> Vec<Token> {
+        let range = |(start, end): (usize, usize)| TextRange::new((start as u32).into(), (end as u32).into());
+        let tokens = if radio.is_empty() {
+            tokens
+        } else {
+            let mut out = Vec::new();
+            let mut links: Vec<Token> =
+                radio.iter().map(|pair| Token { range: range(*pair), ty: TokenType::Link, modifiers: 0 }).collect();
+            for token in tokens {
+                let (start, end) = (token.range.start(), token.range.end());
+                let mut at = start;
+                for link in links.iter_mut().filter(|link| link.range.start() < end && link.range.end() > start) {
+                    link.modifiers |= token.modifiers & EMPHASIS;
+                    if link.range.start() > at {
+                        out.push(Token { range: TextRange::new(at, link.range.start()), ..token });
+                    }
+                    at = at.max(link.range.end());
+                }
+                if at < end {
+                    out.push(Token { range: TextRange::new(at, end), ..token });
+                }
+            }
+            out.extend(links);
+            out.sort_by_key(|token| token.range.start());
+            out
+        };
+        if hidden.is_empty() {
+            return tokens;
+        }
+        let ranges: Vec<TextRange> = hidden.iter().map(|pair| range(*pair)).collect();
+        let mut out = Vec::new();
+        for token in &tokens {
+            let (start, end) = (token.range.start(), token.range.end());
+            let mut at = start;
+            for range in ranges.iter().filter(|range| range.start() < end && range.end() > start) {
+                let (from, to) = (range.start().max(start), range.end().min(end));
+                if from > at {
+                    out.push(Token { range: TextRange::new(at, from), ..*token });
+                }
+                out.push(Token {
+                    range: TextRange::new(from, to),
+                    modifiers: token.modifiers | modifier::HIDDEN,
+                    ..*token
+                });
+                at = to;
+            }
+            if at < end {
+                out.push(Token { range: TextRange::new(at, end), ..*token });
+            }
+        }
+        for range in &ranges {
+            let mut at = range.start();
+            let mut covering: Vec<&Token> = tokens
+                .iter()
+                .filter(|token| token.range.start() < range.end() && token.range.end() > range.start())
+                .collect();
+            covering.sort_by_key(|token| token.range.start());
+            for token in covering {
+                if token.range.start() > at {
+                    let range = TextRange::new(at, token.range.start());
+                    out.push(Token { range, ty: TokenType::Entity, modifiers: modifier::HIDDEN });
+                }
+                at = at.max(token.range.end());
+            }
+            if at < range.end() {
+                let range = TextRange::new(at, range.end());
+                out.push(Token { range, ty: TokenType::Entity, modifiers: modifier::HIDDEN });
+            }
+        }
+        out.sort_by_key(|token| token.range.start());
+        out
+    }
+
+    /// Radio links and hidden ranges give the tokens they gave when every
+    /// range was looked at for every token, in time linear in the ranges:
+    /// the tokens of a file with an entity on each of its 10 000 lines
+    /// took seconds.
+    #[test]
+    fn hidden_ranges_and_radio_links_in_one_pass() {
+        let tokens_of = |text: &str| {
+            let parse = org_syntax::parse(text, &TodoKeywords::default());
+            tokens(&parse.syntax(), parse.todo_keywords(), Conceal::default())
+        };
+        // Every overlap: ranges inside tokens, over several, between them,
+        // nested and overlapping each other, empty, at the ends.
+        let text = "* TODO Head [[https://x.org][desc *bold*]] :tag:\nA \\alpha *b \\beta* and =v= x^2 y_{i}\n\
+                    | a | b |\n- [ ] item [[link]] text\n";
+        let base = tokens_of(text);
+        let mut seed = 7u64;
+        let mut next = |below: usize| {
+            seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            (seed >> 33) as usize % below.max(1)
+        };
+        for _ in 0..2_000 {
+            let pairs = |count: usize, next: &mut dyn FnMut(usize) -> usize| {
+                let mut pairs: Vec<(usize, usize)> = (0..count)
+                    .map(|_| {
+                        let start = next(text.len() + 1);
+                        (start, (start + next(12)).min(text.len()))
+                    })
+                    .collect();
+                pairs.sort_unstable();
+                pairs
+            };
+            let radio = pairs(next(4), &mut next);
+            let hidden = pairs(next(8), &mut next);
+            let expected = by_every_pair(base.clone(), &radio, &hidden);
+            let got = with_hidden(with_radio_links(base.clone(), &radio), &hidden);
+            assert_eq!(got, expected, "radio {radio:?} hidden {hidden:?}");
+        }
+        let mut text = String::new();
+        for line in 0..10_000 {
+            text.push_str(&format!("Line {line} \\alpha [[https://example.com/{line}][a *link*]] and =code=\n"));
+        }
+        let tokens = tokens_of(&text);
+        let hidden: Vec<(usize, usize)> =
+            text.match_indices("\\alpha").map(|(at, _)| (at, at + "\\alpha".len())).collect();
+        let radio: Vec<(usize, usize)> = text.match_indices("and").map(|(at, _)| (at, at + 3)).collect();
+        let started = std::time::Instant::now();
+        let got = with_hidden(with_radio_links(tokens, &radio), &hidden);
+        let elapsed = started.elapsed();
+        assert_eq!(got.iter().filter(|token| token.modifiers & modifier::HIDDEN != 0).count(), 10_000);
+        // 26 ms in a debug build; every pair took 26 s.
+        assert!(elapsed < std::time::Duration::from_secs(5), "{elapsed:?}");
+    }
+
     #[test]
     fn radio_links_go_over_what_is_there() {
         let token = |start: u32, end: u32, ty: TokenType, modifiers: u32| Token {
