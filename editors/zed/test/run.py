@@ -508,7 +508,7 @@ class Zed:
             "XDG_RUNTIME_DIR": self.base,
             "SHELL": "/bin/sh",
             "ORG_LSP_ZED_LOG": self.log.path,
-            "ORG_LSP_CONFIG": "/nonexistent/config.toml",
+            "ORG_LSP_CONFIG": "/dev/null",
             "ZED_ALLOW_EMULATED_GPU": "1",
             "LANG": os.environ.get("LANG", "C.UTF-8"),
         }

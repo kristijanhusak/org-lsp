@@ -80,7 +80,7 @@ def nvim():
         "SHOT_WORKSPACE": directory,
         "SHOT_SETTINGS": json.dumps(options),
         "SHOT_COLORS": "default",
-        "ORG_LSP_CONFIG": "/nonexistent/org-lsp/config.toml",
+        "ORG_LSP_CONFIG": "/dev/null",
         "XDG_STATE_HOME": os.path.join(directory, ".state"),
         "XDG_DATA_HOME": os.path.join(directory, ".data"),
     }
@@ -128,7 +128,7 @@ def helix():
         "HOME": os.path.join(work, "home"),
         "XDG_CONFIG_HOME": os.path.join(work, "config"),
         "XDG_CACHE_HOME": os.path.join(work, "cache"),
-        "ORG_LSP_CONFIG": "/nonexistent/config.toml",
+        "ORG_LSP_CONFIG": "/dev/null",
     }
     runtime = os.path.join(os.path.dirname(os.path.realpath(shutil.which(hx) or hx)), "runtime")
     if os.path.isdir(runtime):

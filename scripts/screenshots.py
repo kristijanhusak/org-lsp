@@ -53,7 +53,7 @@ class Scene:
             # `{workspace}` in a setting is the copies' directory.
             "SHOT_SETTINGS": json.dumps(settings or {}).replace("{workspace}", self.workspace),
             "SHOT_COLORS": os.environ.get("SHOT_COLORS", "habamax"),
-            "ORG_LSP_CONFIG": "/nonexistent/org-lsp/config.toml",
+            "ORG_LSP_CONFIG": "/dev/null",
             "XDG_STATE_HOME": os.path.join(self.workspace, ".state"),
             "XDG_DATA_HOME": os.path.join(self.workspace, ".data"),
         }

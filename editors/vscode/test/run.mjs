@@ -95,7 +95,7 @@ async function run(suite, folder, env, user) {
     extensionDevelopmentPath: resolve('.'),
     extensionTestsPath: resolve('test', 'suite.cjs'),
     // The tests' own options only, whatever configuration file the machine has.
-    extensionTestsEnv: { ORG_LSP_TEST_SUITE: suite, ORG_LSP_CONFIG: '/nonexistent/org-lsp/config.toml', ...env },
+    extensionTestsEnv: { ORG_LSP_TEST_SUITE: suite, ORG_LSP_CONFIG: '/dev/null', ...env },
     launchArgs: [folder, '--disable-extensions', '--disable-gpu', '--no-sandbox', '--disable-workspace-trust', '--user-data-dir', user],
   });
 }

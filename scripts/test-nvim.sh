@@ -5,7 +5,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 cargo build -q -p org-lsp
 # The tests' own options only, whatever configuration file the machine has.
-export ORG_LSP_CONFIG=/nonexistent/org-lsp/config.toml
+export ORG_LSP_CONFIG=/dev/null
 for test in tests/nvim/e2e.lua tests/nvim/highlight.lua tests/nvim/agenda.lua tests/nvim/scenarios.lua tests/nvim/images.lua tests/nvim/latex.lua tests/nvim/download.lua tests/nvim/protocol.lua; do
   echo "== $test"
   "${NVIM:-nvim}" --headless -u NONE -l "$test"

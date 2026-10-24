@@ -332,7 +332,7 @@ class Helix:
             "XDG_CACHE_HOME": os.path.join(self.work, "cache"),
             "XDG_STATE_HOME": os.path.join(self.work, "state"),
             "XDG_DATA_HOME": os.path.join(self.work, "data"),
-            "ORG_LSP_CONFIG": "/nonexistent/config.toml",
+            "ORG_LSP_CONFIG": "/dev/null",
             "TERM": "xterm-256color",
             **self.environment,
         }
