@@ -64,14 +64,14 @@ function! s:send(method, params, Callback) abort
   call CocRequestAsync(s:name, a:method, a:params, function('s:answer', [a:Callback]))
 endfunction
 
-" By buffer: when the last request held for it goes.
-let s:last_due = {}
+" When the last request held goes.
+let s:last_due = 0.0
 
 " coc.nvim tells the server about a change 150 ms after it hears of it,
 " and a request does not wait for that: after a change, requests wait
-" until the server has the text they are about. Those about one buffer go
-" in the order they were made (a command, then the cursor it moved): each
-" goes after the one held before it.
+" until the server has the text they are about. They go in the order they
+" were made (a command for the agenda's file, then the agenda's cursor it
+" follows): each goes after the one held before it.
 function! org_lsp#adapter#coc#request(bufnr, method, params, Callback) abort
   let tick = getbufvar(a:bufnr, 'changedtick')
   let known = get(s:synced, a:bufnr, {'tick': tick, 'at': 0.0})
@@ -81,12 +81,12 @@ function! org_lsp#adapter#coc#request(bufnr, method, params, Callback) abort
   endif
   let s:synced[a:bufnr] = known
   let now = s:now()
-  let last = get(s:last_due, a:bufnr, 0.0)
+  let last = s:last_due
   if known.at <= now && last <= now
     return s:send(a:method, a:params, a:Callback)
   endif
   let due = known.at > last + 0.002 ? known.at : last + 0.002
-  let s:last_due[a:bufnr] = due
+  let s:last_due = due
   call timer_start(float2nr(ceil((due - now) * 1000)), {-> s:send(a:method, a:params, a:Callback)})
 endfunction
 
