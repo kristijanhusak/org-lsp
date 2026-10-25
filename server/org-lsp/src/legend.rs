@@ -284,7 +284,11 @@ pub const LOOKS: &[Look] = &[
         &["constant.numeric.cookie.done.org", "markup.inserted", "string"],
     ),
     // `org-headline-done`: what follows a done keyword on its headline.
-    look("headline.done", &["@org.headline.done", "Comment"], &["comment.headline.done.org", "markup.heading.done.org"]),
+    look(
+        "headline.done",
+        &["@org.headline.done", "Comment"],
+        &["comment.headline.done.org", "markup.heading.done.org"],
+    ),
     look("*.done", &["@org.headline.done", "Comment"], &["comment.done.org", "comment"]),
     // `org-headline-todo`, copied from `font-lock-string-face`.
     look("headline.todo", &["@org.headline.todo", "String"], &["string.headline.todo.org", "markup.heading.todo.org"]),

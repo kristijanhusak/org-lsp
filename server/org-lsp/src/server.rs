@@ -15812,7 +15812,13 @@ impl Server {
             read_file: &read,
             file_name: &file_name,
             id_known: &id_known,
-            link_types: if self.roam.is_some() { &["roam"] } else { &[] },
+            // The link types of the modules on: org-roam's, `ol-man`'s.
+            link_types: match (self.roam.is_some(), self.open_settings.man) {
+                (true, true) => &["roam", "man"],
+                (true, false) => &["roam"],
+                (false, true) => &["man"],
+                (false, false) => &[],
+            },
         };
         let encoding = self.client.encoding;
         org_core::lint::lint(text, parse, &context)

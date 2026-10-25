@@ -2083,6 +2083,21 @@ fn lints_documents() {
             ),
         ]
     );
+    // `[[man:ls]]` is a link with `ol-man` on, a fuzzy one without.
+    let man = |modules: Value| {
+        let client = Client::start(json!({}), json!({ "org_modules": modules }));
+        client.open(&uri(), "[[man:ls]]\n[[*Missing]]\n");
+        let published = client.notification("textDocument/publishDiagnostics");
+        client.shutdown();
+        published["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|found| found["range"]["start"]["line"].clone())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(man(json!([])), [json!(0), json!(1)]);
+    assert_eq!(man(json!(["ol-man"])), [json!(1)]);
     let found = diagnostics(json!({ "org_lint_ignore": ["invalid-fuzzy-link", "deprecated-category-setup"] }));
     assert_eq!(
         found.iter().map(|found| found.2.as_str()).collect::<Vec<_>>(),
