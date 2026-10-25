@@ -138,11 +138,13 @@ function! s:warn(message) abort
 endfunction
 
 " What the server says (Emacs's text, as its echo area shows it), in the
-" look of its `type`: 1 an error, 2 a warning, else a message.
+" look of its `type`: 1 an error, 2 a warning, else a message. Shown and
+" kept in the messages even when it comes while a client does something
+" silently.
 function! s:say(message, type) abort
   execute 'echohl' get({1: 'ErrorMsg', 2: 'WarningMsg'}, a:type, 'None')
   for line in split(a:message, "\n")
-    echomsg line
+    unsilent echomsg line
   endfor
   echohl None
 endfunction
@@ -536,7 +538,9 @@ function! s:executed(bufnr, name, context, opts, error, result) abort
     call org_lsp#save(result.save)
   endif
   if type(get(result, 'message', 0)) == v:t_string
-    echomsg result.message
+    " Shown and kept in the messages, though the answer comes while a
+    " client does something silently (coc.nvim opening a file it edits).
+    unsilent echomsg result.message
   endif
   if type(get(result, 'close', 0)) == v:t_string
     call org_lsp#close(result.close)
