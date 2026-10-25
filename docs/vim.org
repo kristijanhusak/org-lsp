@@ -23,7 +23,7 @@ well (~client = 'auto'~ takes them in this order):
   itself, and inlay hints come again only when the cursor moves.
 - [[https://github.com/neoclide/coc.nvim][coc.nvim]] :: Works, but coc.nvim opens the documents the server shows
   where it opens files, not as ~win_split_mode~ says; a capture buffer
-  starts in Normal mode; a key with a meaning of its own (~<C-a>~) falls
+  starts in Normal mode; and a key with a meaning of its own (~<C-a>~) falls
   back to it whenever the server refuses. See [[*What differs from Neovim][What differs from Neovim]].
 - [[https://github.com/dense-analysis/ale][ALE]] :: Works, but it has no inlay hints (the time clocked, the ~…~
   of shrunk columns), does not apply the server's edits itself (the plugin
