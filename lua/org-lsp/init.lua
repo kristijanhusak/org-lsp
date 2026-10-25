@@ -608,13 +608,26 @@ end
 function M.read_key(prompt, choices, expert)
   -- `expert` (`org-use-fast-todo-selection`): the keys are in the prompt,
   -- which shows alone, as Emacs's message does.
+  local text = expert and prompt or M.prompt_text(prompt)
+  -- A prompt longer than the echo area would scroll it and wait for Enter
+  -- (the hit-enter prompt), which then takes the prompt away before the
+  -- key is read: the command line grows to hold it while it is asked, as
+  -- Emacs's minibuffer does.
+  local cmdheight = vim.o.cmdheight
+  local width = vim.fn.strdisplaywidth(text)
+  if width >= vim.v.echospace then
+    vim.o.cmdheight = cmdheight + math.ceil((width - vim.v.echospace + 1) / vim.o.columns)
+  end
   local win = not expert and choices and #choices > 0 and show_choices(prompt, choices) or nil
-  vim.api.nvim_echo({ { expert and prompt or M.prompt_text(prompt) } }, false, {})
+  vim.api.nvim_echo({ { text } }, false, {})
   vim.cmd.redraw()
   local ok, key = pcall(vim.fn.getcharstr)
   vim.api.nvim_echo({ { '' } }, false, {})
   if win and vim.api.nvim_win_is_valid(win) then
     vim.api.nvim_win_close(win, true)
+  end
+  if vim.o.cmdheight ~= cmdheight then
+    vim.o.cmdheight = cmdheight
   end
   if not ok or key == vim.keycode('<Esc>') or key == vim.keycode('<C-c>') then
     return nil
