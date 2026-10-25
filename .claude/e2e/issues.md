@@ -641,4 +641,4 @@ Each issue: a heading `## <part>-<n>: <one line>`, then
 - Vim 4a, property names at `:Co`: fixed ("Property names complete as pcomplete/org-mode/prop offers them").
 - Vim 4b, `man:` linted with `ol-man`: fixed ("man: links are links with ol-man on").
 - Vim 4c, the field editor keeps a newline from text above its `#` lines: not a bug, `org-table-finish-edit-field` does the same (checked in Emacs: "new line\nmore\nold").
-- Vim 4d, the first `\oe` without `[#]`/`[&]`: the server always sends both; editor-side, open.
+- Vim 4d, the first `\oe` without `[#]`/`[&]`: the server always sends both, and the first menu has them at 80x24 and 120x45 with yegappan/lsp on this build: not reproduced.
