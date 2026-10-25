@@ -642,3 +642,9 @@ Each issue: a heading `## <part>-<n>: <one line>`, then
 - Vim 4b, `man:` linted with `ol-man`: fixed ("man: links are links with ol-man on").
 - Vim 4c, the field editor keeps a newline from text above its `#` lines: not a bug, `org-table-finish-edit-field` does the same (checked in Emacs: "new line\nmore\nold").
 - Vim 4d, the first `\oe` without `[#]`/`[&]`: the server always sends both, and the first menu has them at 80x24 and 120x45 with yegappan/lsp on this build: not reproduced.
+
+## Server and doc gaps of the typed round (Zed, Helix), fixed
+- Helix 1, links Helix's go to definition cannot open (web, abbreviations, attachments): the code action /Open the link or thing at the cursor/ is offered on links for clients without keys.
+- Helix 2, a `#+TBLFM:` in Emacs Lisp had no action (the in-server recalculation fails): /Recalculate the table/ is offered as the command, which runs it in Emacs.
+- Helix 3, Babel not offered on inline source blocks and `#+CALL:` lines: the code action follows `C-c C-c`'s detection, and that now knows `#+CALL:` (`babel-call` in `org-core::indent`; before, `C-c C-c` on a `#+CALL:` line did not evaluate it either).
+- Docs: Zed and Helix no longer list encrypting on save (neither sends `willSaveWaitUntil`) nor Zed headline cycling; Zed's `s` is its own Save All; Helix's TBLFM check names /Recalculate the table/; Zed's `document_folding_ranges` is in configuration.org.
