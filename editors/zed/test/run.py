@@ -172,6 +172,8 @@ class Log:
         self.actions_came = {}
         # The commands Zed ran, from the code actions.
         self.executed = []
+        # The documents Zed asked the folding ranges of.
+        self.folded = set()
         self.renames = 0
         self.prepared = 0
         self.initialized = False
@@ -234,6 +236,8 @@ class Log:
                 self.initialized = True
             elif method == "workspace/executeCommand":
                 self.executed.append(params.get("command"))
+            elif method == "textDocument/foldingRange":
+                self.folded.add(params["textDocument"]["uri"])
         else:
             if method == "window/showMessage":
                 text = params.get("message", "")
@@ -498,7 +502,8 @@ class Zed:
             "remove_trailing_whitespace_on_save": False,
             "ensure_final_newline_on_save": False,
             "show_edit_predictions": False,
-            "languages": {"Org": {"semantic_tokens": "combined", "inlay_hints": {"enabled": True}}},
+            "languages": {"Org": {"semantic_tokens": "combined", "inlay_hints": {"enabled": True},
+                                  "document_folding_ranges": "on"}},
             "lsp": {
                 "org-lsp": {
                     "binary": {"path": sys.executable, "arguments": [os.path.join(HERE, "proxy.py"), SERVER]},
@@ -945,6 +950,10 @@ class Scenario:
             zed.open(path)
             until("the server to start", lambda: (zed.log.read(), zed.log.initialized)[1], 60)
             until(f"Zed to open {step['open']}", lambda: (zed.log.read(), zed.find_uri("file://" + path) in zed.log.documents)[1], 30)
+            # Zed folds an Org file with the server's folding ranges, as
+            # docs/zed.org sets it up (`document_folding_ranges`).
+            until(f"Zed to ask for the folding ranges of {step['open']}",
+                  lambda: (zed.log.read(), zed.find_uri("file://" + path) in zed.log.folded)[1], 30)
             zed.settle()
         if "focus" in step:
             if step["focus"] == "agenda":
