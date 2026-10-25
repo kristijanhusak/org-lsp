@@ -684,9 +684,9 @@ function! org_lsp#cancel_input() abort
   return ''
 endfunction
 
-" Text typed for a command (`{prompt, value, completions}`), completed from
-" the list when there is one (Emacs's `completing-read`); v:null when
-" cancelled with <Esc> or CTRL-C.
+" Text typed for a command (`{prompt, value, completions, complete}`),
+" completed from the list when there is one (Emacs's `completing-read`), or
+" as a file name; v:null when cancelled with <Esc> or CTRL-C.
 function! org_lsp#read_text(input) abort
   let s:completions = get(a:input, 'completions', [])
   let s:separator = get(a:input, 'separator', '')
@@ -696,8 +696,10 @@ function! org_lsp#read_text(input) abort
   cnoremap <Esc> <C-\>eorg_lsp#cancel_input()<CR><CR>
   let s:cancelled = 0
   try
-    let answer = input(org_lsp#prompt_text(a:input.prompt), get(a:input, 'value', ''),
+    " A file's or a directory's name (`read-file-name`): Vim completes it.
+    let complete = get({'file': 'file', 'directory': 'dir'}, get(a:input, 'complete', ''),
           \ 'customlist,org_lsp#complete_input')
+    let answer = input(org_lsp#prompt_text(a:input.prompt), get(a:input, 'value', ''), complete)
   catch /^Vim:Interrupt$/
     let s:cancelled = 1
   finally

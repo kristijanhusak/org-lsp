@@ -634,7 +634,7 @@ Each issue: a heading `## <part>-<n>: <one line>`, then
 ## Server bugs of the typed round (Neovim, Vim), fixed
 - Neovim S1, bulk tag completion without `#+TAGS:`/`org_tag_alist`: fixed ("Agenda: tags complete from #+TAGS and org_tag_alist too").
 - Neovim S2, column view PRIORITY read as text: fixed ("Column view: the priority is one key, as org-priority reads it").
-- Neovim S3, file-name prompts without file completion: open (a `file` prompt kind, every editor).
+- Neovim S3, file-name prompts without file completion: fixed ("File name questions say so, and start at the file's directory", and Vim and Neovim complete them); VS Code, Sublime Text, Zed and Helix ask as text, from the directory.
 - Vim 1, `\oi.` twice puts the range inside the timestamp: fixed ("Timestamp again: the range goes after the timestamp").
 - Vim 2, `#+STARTUP: shrink` forgotten after a didChange of the same text: fixed ("Shrunk columns stay when the same text is sent again").
 - Vim 3, `shell:` output ignoring `message_notifications`: fixed ("Shell links say their output as the server's other messages").

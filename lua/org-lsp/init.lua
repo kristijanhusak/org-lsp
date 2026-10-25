@@ -373,6 +373,9 @@ function M.run(name, opts)
           M.completions = input.completions
           M.completion_separator = input.separator
           completion = 'customlist,v:lua.OrgLspCompleteInput'
+        elseif input.complete == 'file' or input.complete == 'directory' then
+          -- A file's or a directory's name (`read-file-name`).
+          completion = input.complete == 'file' and 'file' or 'dir'
         end
         -- What a date typed so far means, shown as it is typed, as
         -- `org-read-date` shows it in the minibuffer: the server writes it
