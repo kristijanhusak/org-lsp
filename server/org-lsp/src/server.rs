@@ -2302,13 +2302,15 @@ fn columns_key(view: &Value, column: usize) -> &str {
 /// What a column view command asks, as `org-columns-edit-value` asks it,
 /// an input: for `id` on the `column`th column of `line` in what the view
 /// shows, `allowed` the values the column's property may take
-/// (`org-property-get-allowed-values`). None when it asks nothing.
+/// (`org-property-get-allowed-values`), `priorities` those of the file.
+/// None when it asks nothing.
 fn columns_question(
     id: &str,
     view: &Value,
     line: usize,
     column: usize,
     allowed: Option<org_core::properties::Allowed>,
+    priorities: &priority::Priorities,
 ) -> std::result::Result<Option<Value>, Refusal> {
     // The column's key, and its value on the line.
     let key = columns_key(view, column);
@@ -2326,7 +2328,8 @@ fn columns_question(
         commands::COLUMNS_EDIT if key.is_empty() => return Err("Column view is not shown yet".into()),
         commands::COLUMNS_EDIT => match key {
             "ITEM" => text("Edit: ", value),
-            "PRIORITY" => text("Priority A-C, SPC to remove: ", String::new()),
+            // `org-priority`: a key, as the priority command asks it.
+            "PRIORITY" => Some(json!({ "kind": "priority", "prompt": priority::question(priorities), "value": "" })),
             "TAGS" => text("Tags: ", value),
             "DEADLINE" | "SCHEDULED" => text("Date+time: ", String::new()),
             "TODO" | "CLOCKSUM" | "CLOCKSUM_T" => None,
@@ -12754,7 +12757,8 @@ impl Server {
         let column = context.column.unwrap_or(0);
         let line = context.position.line as usize;
         let allowed = self.columns_allowed(&uri, line, columns_key(&on.view, column));
-        let answer = match columns_question(id, &on.view, line, column, allowed)? {
+        let priorities = self.edit_settings.priorities;
+        let answer = match columns_question(id, &on.view, line, column, allowed, &priorities)? {
             Some(input) => match context.input.clone() {
                 Some(answer) => Some(answer),
                 None => return Ok(json!({ "input": input })),
@@ -12897,7 +12901,11 @@ impl Server {
             return self.run_edit(commands::TODO, Some(context.clone()));
         }
         let allowed = self.columns_allowed(&uri, line, columns_key(&on.view, column));
-        let answer = match columns_question(id, &on.view, line, column, allowed)? {
+        let priorities = self
+            .document(&uri)
+            .and_then(|document| edit::document_priorities(&document.parse))
+            .unwrap_or(self.edit_settings.priorities);
+        let answer = match columns_question(id, &on.view, line, column, allowed, &priorities)? {
             Some(input) => match context.input.clone() {
                 Some(answer) => Some(answer),
                 None => return Ok(json!({ "input": input })),
@@ -17158,7 +17166,10 @@ mod tests {
         let allowed = |values: &[&str], unrestricted: bool| {
             Some(org_core::properties::Allowed { values: values.iter().map(|v| v.to_string()).collect(), unrestricted })
         };
-        let ask = |column, allowed| columns_question(commands::COLUMNS_EDIT, &view, 3, column, allowed).ok().flatten();
+        let priorities = priority::Priorities::default();
+        let ask = |column, allowed| {
+            columns_question(commands::COLUMNS_EDIT, &view, 3, column, allowed, &priorities).ok().flatten()
+        };
         assert_eq!(ask(2, None), Some(json!({ "kind": "text", "prompt": "Edit: ", "value": "1:00" })));
         let asked = ask(2, allowed(&["0:30", "1:00"], false)).unwrap();
         assert_eq!(asked["prompt"], "Value: ");
@@ -17169,7 +17180,11 @@ mod tests {
         assert_eq!(ask(0, None), Some(json!({ "kind": "text", "prompt": "Edit: ", "value": "Write" })));
         assert_eq!(ask(1, None), None);
         let empty = json!({ "columns": null, "lines": null });
-        assert!(columns_question(commands::COLUMNS_EDIT, &empty, 3, 0, None).is_err());
+        assert!(columns_question(commands::COLUMNS_EDIT, &empty, 3, 0, None, &priorities).is_err());
+        // The priority, one key as `org-priority` reads it.
+        let view = json!({ "columns": [{ "key": "PRIORITY" }], "lines": [[3, "", ["B"]]] });
+        let asked = columns_question(commands::COLUMNS_EDIT, &view, 3, 0, None, &priorities).unwrap().unwrap();
+        assert_eq!(asked, json!({ "kind": "priority", "prompt": "Priority A-C, SPC to remove", "value": "" }));
     }
 
     /// A `shell:` link's output: whole when short, else its start, saying
