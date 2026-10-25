@@ -4961,12 +4961,14 @@ impl Server {
     }
 
     /// The tags of every agenda file (`org-global-tags-completion-table`).
+    /// `org-global-tags-completion-table`: the tags of the agenda files and
+    /// of their `#+TAGS:` lines, or else `org-tag-alist`.
     fn agenda_tags(&mut self) -> Vec<String> {
+        let settings = self.edit_settings.tags.clone();
         let mut tags: Vec<String> = self
             .agenda_files()
             .iter()
-            .flat_map(|(_, held)| held.outline().entries.iter().flat_map(|entry| entry.tags.iter()))
-            .map(|tag| tag.name.clone())
+            .flat_map(|(_, held)| org_core::tags::global_tags(&held.outline().text, &settings))
             .collect();
         tags.sort();
         tags.dedup();
