@@ -2857,6 +2857,39 @@ fn shows_what_babel_shows_of_a_block_that_fails() {
     std::fs::remove_dir_all(directory).unwrap();
 }
 
+/// What Emacs refuses, said as a warning as the server's own refusals
+/// are: S-RET (`org-table-copy-down`) on the bar that starts a row.
+#[test]
+fn says_emacs_refusals_as_warnings() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("says_emacs_refusals_as_warnings: no Emacs, skipped");
+        return;
+    }
+    let directory = std::env::temp_dir().join(format!("org-lsp-emacs-refusal-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let file = directory.join("t.org");
+    let text = "| 1 | 2 |\n|   |   |\n";
+    std::fs::write(&file, text).unwrap();
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let config =
+        std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
+    let mut client = Client::start(json!({}), json!({ "emacs_config": config }));
+    client.open(&uri, text);
+    let context = json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 1, "character": 0 } });
+    client.raw_request("workspace/executeCommand", json!({ "command": "org.table.copy.down", "arguments": [context] }));
+    let Message::Notification(said) = next_from_server(&client, |message| {
+        matches!(message, Message::Notification(notification) if notification.method == "window/showMessage")
+    }) else {
+        unreachable!()
+    };
+    assert_eq!(said.params, json!({ "type": 2, "message": "Not in table data field" }));
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
 /// Emacs's yes-or-no question for a client that shows no
 /// `window/showMessageRequest` (`message_requests` off): the Vim plugin
 /// (org-lsp's editor code, `run_command`) is told to run

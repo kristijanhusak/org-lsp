@@ -12370,7 +12370,10 @@ impl Server {
                     self.show_message(MessageType::ERROR, format!("{label}: {error}"));
                 }
                 (Some(EmacsJob::Export(label)), Ok(result)) => self.exported(&label, &result),
-                (Some(EmacsJob::Edit { .. }), Err(error)) => self.show_message(MessageType::ERROR, error),
+                // What Emacs refuses (`Not in table data field`) is said as
+                // the server's own refusals are, a warning: Emacs's echo
+                // area says both alike.
+                (Some(EmacsJob::Edit { .. }), Err(error)) => self.show_message(MessageType::WARNING, error),
                 (Some(EmacsJob::LatexPreview { .. }), Err(error)) => self.show_message(MessageType::ERROR, error),
                 (Some(EmacsJob::LatexPreview { uri, version, text, preview }), Ok(result)) => {
                     self.latex_previewed(&uri, version, &text, preview, &result);
