@@ -11,12 +11,31 @@ commands with the cursor position and asks what they ask for, shows the
 agenda and capture buffers, highlights with the server's tokens (as text
 properties), folds with its folding ranges, and shows the clock.
 
+* Which client
+
+From the one that works best with org-lsp to the one that works least
+well (~client = 'auto'~ takes them in this order):
+
+- [[https://github.com/yegappan/lsp][yegappan/lsp]] :: Everything works, with the least glue: the plugin
+  talks to the server on the client's own channel. The one to pick.
+- [[https://github.com/prabirshrestha/vim-lsp][vim-lsp]] :: Everything works too, but the plugin sends the changes of
+  buffers other than the current one, and of buffers read again from disk,
+  itself, and inlay hints come again only when the cursor moves.
+- [[https://github.com/neoclide/coc.nvim][coc.nvim]] :: Works, but coc.nvim opens the documents the server shows
+  where it opens files, not as ~win_split_mode~ says; a capture buffer
+  starts in Normal mode; and a key with a meaning of its own (~<C-a>~) falls
+  back to it whenever the server refuses. See [[*What differs from Neovim][What differs from Neovim]].
+- [[https://github.com/dense-analysis/ale][ALE]] :: Works, but it has no inlay hints (the time clocked, the ~…~
+  of shrunk columns), does not apply the server's edits itself (the plugin
+  does), and one server serves the whole session, started for the
+  directory of the first Org file.
+
 * Installing
 
 With [[https://github.com/junegunn/vim-plug][vim-plug]]:
 
 #+begin_src vim
-Plug 'yegappan/lsp'   " or vim-lsp, coc.nvim, ALE
+Plug 'yegappan/lsp'   " or vim-lsp, coc.nvim, ALE: see Which client
 Plug 'kristijanhusak/org-lsp', { 'rtp': 'editors/vim', 'do': ':OrgLspDownload' }
 #+end_src
 
