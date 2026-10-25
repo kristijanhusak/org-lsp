@@ -3073,6 +3073,26 @@ fn table_command(id: &str) -> Option<org_core::table::Command> {
     })
 }
 
+/// Whether `C-c C-c` at `offset` is Babel's: on a source block or a
+/// `#+CALL:` line (`org-element-at-point`), or an inline source block or
+/// call (`org-element-context`).
+fn babel_at(text: &str, root: &org_syntax::SyntaxNode, offset: usize) -> bool {
+    let element = org_core::indent::Elements::new(text).at(offset);
+    if element.is_some_and(|element| matches!(element.kind, "src-block" | "babel-call")) {
+        return true;
+    }
+    let at = org_syntax::TextSize::from(offset as u32);
+    let inline = |token: Option<org_syntax::SyntaxToken>| {
+        token.is_some_and(|token| {
+            std::iter::once(token.kind()).chain(token.parent_ancestors().map(|node| node.kind())).any(|kind| {
+                matches!(kind, org_syntax::SyntaxKind::INLINE_SRC_BLOCK | org_syntax::SyntaxKind::INLINE_BABEL_CALL)
+            })
+        })
+    };
+    let tokens = org_syntax::token_at_offset(root, at);
+    inline(tokens.clone().right_biased()) || inline(tokens.left_biased())
+}
+
 fn in_src_block(root: &org_syntax::SyntaxNode, offset: usize) -> bool {
     let Some(token) = org_syntax::token_at_offset(root, org_syntax::TextSize::from(offset as u32)).left_biased() else {
         return false;
@@ -4704,13 +4724,30 @@ impl Server {
         let running = self.running.is_some();
         let in_code = in_src_block(&document.parse.syntax(), offset);
         let in_table = at_org_table(&document.text, &document.parse.syntax(), offset);
+        // `C-c C-c` on an inline source block or a `#+CALL:` line runs it
+        // too.
+        let babel = babel_at(&document.text, &document.parse.syntax(), offset);
+        // A formula the server cannot compute (Emacs Lisp) is recalculated
+        // in Emacs: the command, where no edit could be offered.
+        let recalculates = org_core::tblfm::on_formula_line(&document.text, offset)
+            && !result.iter().any(|action| {
+                matches!(action, CodeActionOrCommand::CodeAction(action)
+                    if action.kind.as_ref().is_some_and(|kind| kind.as_str() == commands::TABLE_RECALCULATE))
+            });
+        // Following a link, for a client whose go-to-definition reaches
+        // only files (Helix).
+        let on_link = more
+            && open::link_at(&document.text, &document.parse, offset, &self.link_abbreviations, &self.open_settings)
+                .is_some();
         // The agenda and capture open a document, which the client must
         // be able to show.
         let shows = self.client.show_document;
         for (id, offered) in [
             (commands::TANGLE, in_code),
             (commands::TABLE_TOGGLE_COLUMN_WIDTH, in_table),
-            (commands::BABEL_EXECUTE, in_code),
+            (commands::BABEL_EXECUTE, babel),
+            (commands::TABLE_RECALCULATE, recalculates),
+            (commands::OPEN, on_link),
             (commands::EDIT_SPECIAL, in_code),
             (commands::CLOCK_IN, in_entry),
             (commands::CLOCK_OUT, running),
@@ -11433,21 +11470,7 @@ impl Server {
         let uri = &context.text_document.uri;
         let Some(document) = self.document(uri).filter(|_| !self.is_view(uri)) else { return false };
         let offset = document.index.offset(&document.text, context.position, self.client.encoding);
-        let element = org_core::indent::Elements::new(&document.text).at(offset);
-        if element.is_some_and(|element| matches!(element.kind, "src-block" | "babel-call")) {
-            return true;
-        }
-        let root = document.parse.syntax();
-        let at = org_syntax::TextSize::from(offset as u32);
-        let inline = |token: Option<org_syntax::SyntaxToken>| {
-            token.is_some_and(|token| {
-                std::iter::once(token.kind()).chain(token.parent_ancestors().map(|node| node.kind())).any(|kind| {
-                    matches!(kind, org_syntax::SyntaxKind::INLINE_SRC_BLOCK | org_syntax::SyntaxKind::INLINE_BABEL_CALL)
-                })
-            })
-        };
-        let tokens = org_syntax::token_at_offset(&root, at);
-        inline(tokens.clone().right_biased()) || inline(tokens.left_biased())
+        babel_at(&document.text, &document.parse.syntax(), offset)
     }
 
     fn at_property_drawer(&self, context: &Context) -> bool {
@@ -15392,9 +15415,7 @@ impl Server {
             })
         };
         // A file asked for, relative to the Org file's directory.
-        let ask_file = |prompt: &str, value: &str| {
-            json!({ "input": { "kind": "text", "prompt": prompt, "value": value, "complete": "file" } })
-        };
+        let ask_file = |prompt: &str, value: &str| json!({ "input": { "kind": "text", "prompt": prompt, "value": value, "complete": "file" } });
         match id {
             commands::BIBTEX_EXPORT => {
                 let Some(answer) = context.input.as_deref() else {

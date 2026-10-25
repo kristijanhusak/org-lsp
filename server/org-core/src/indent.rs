@@ -104,6 +104,7 @@ enum Kind {
     GreaterBlock,
     DynamicBlock,
     Keyword,
+    BabelCall,
     Comment,
     FixedWidth,
     HorizontalRule,
@@ -193,6 +194,8 @@ fn element_kind(node: &SyntaxNode) -> Option<Kind> {
         }
         DYNAMIC_BLOCK => Kind::DynamicBlock,
         KEYWORD if ast::is_affiliated_keyword(node) => return None,
+        // `#+CALL:` is a `babel-call` of its own in `org-element`.
+        KEYWORD if keyword_key(node).eq_ignore_ascii_case("#+CALL:") => Kind::BabelCall,
         KEYWORD => Kind::Keyword,
         COMMENT => Kind::Comment,
         FIXED_WIDTH => Kind::FixedWidth,
@@ -202,6 +205,14 @@ fn element_kind(node: &SyntaxNode) -> Option<Kind> {
         DIARY_SEXP => Kind::DiarySexp,
         _ => return None,
     })
+}
+
+fn keyword_key(node: &SyntaxNode) -> String {
+    node.children_with_tokens()
+        .filter_map(|child| child.into_token())
+        .find(|token| token.kind() == KEYWORD_KEY)
+        .map(|token| token.text().to_string())
+        .unwrap_or_default()
 }
 
 fn offset(node: &SyntaxNode) -> (usize, usize) {
@@ -284,6 +295,7 @@ impl Elements {
             },
             Kind::DynamicBlock => "dynamic-block",
             Kind::Keyword => "keyword",
+            Kind::BabelCall => "babel-call",
             Kind::Comment => "comment",
             Kind::FixedWidth => "fixed-width",
             Kind::HorizontalRule => "horizontal-rule",

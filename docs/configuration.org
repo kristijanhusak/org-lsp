@@ -839,7 +839,11 @@ The settings go in Zed's settings (*zed: open settings*):
 #+begin_src json
 {
   "languages": {
-    "Org": { "semantic_tokens": "combined", "inlay_hints": { "enabled": true } }
+    "Org": {
+      "semantic_tokens": "combined",
+      "document_folding_ranges": "on",
+      "inlay_hints": { "enabled": true }
+    }
   },
   "lsp": {
     "org-lsp": {
@@ -857,6 +861,9 @@ The settings go in Zed's settings (*zed: open settings*):
   its language's colors through the grammar's injections, with ~combined~
   only. The grammar has no node for inline source blocks
   (~src_python{…}~), so their code is not colored.
+- ~document_folding_ranges~: Zed asks the server for its folds
+  (headlines, drawers, blocks) only with ~on~; without it, an Org file has
+  no folds at all.
 - ~inlay_hints~: files with ~org-indent-mode~ (~org_startup_indented~,
   ~#+STARTUP: indent~) show indented by level, without being changed,
   through inlay hints of blanks before their lines. The leading stars still

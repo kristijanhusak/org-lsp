@@ -6004,6 +6004,48 @@ fn command_actions_leave_a_plain_client_its_agenda_actions() {
     let _ = std::fs::remove_dir_all(state);
 }
 
+/// What a client without keys (Helix) runs from its code actions where
+/// Emacs has `C-c C-c` or `C-c C-o`: Babel on an inline source block and a
+/// `#+CALL:` line, a link followed, and a formula only Emacs computes
+/// recalculated.
+#[test]
+fn offers_babel_links_and_emacs_formulas_as_actions() {
+    let capabilities = json!({
+        "experimental": { "orgClient": false },
+        "window": { "showDocument": { "support": true }, "showMessage": {} },
+    });
+    let mut client = Client::start(capabilities, clock(), None);
+    const NOTES_URI: &str = "file:///org/notes.org";
+    let text = "* Notes\nTwo is src_elisp{(+ 1 1)} here.\n#+CALL: double(n=2)\nSee [[https://orgmode.org][Org]].\n\
+| 1 | |\n#+TBLFM: $2='(+ $1 1)\n";
+    client.open(NOTES_URI, text);
+    let kinds = |client: &mut Client, line: u32, character: u32| -> Vec<String> {
+        let at = json!({ "line": line, "character": character });
+        let actions = client
+            .request(
+                "textDocument/codeAction",
+                json!({
+                    "textDocument": { "uri": NOTES_URI },
+                    "range": { "start": at, "end": at },
+                    "context": { "diagnostics": [] }
+                }),
+            )
+            .unwrap();
+        actions.as_array().unwrap().iter().map(|action| action["kind"].as_str().unwrap().to_string()).collect()
+    };
+    let has = |kinds: &[String], kind: &str| kinds.iter().any(|offered| offered == kind);
+    let inline = kinds(&mut client, 1, 12);
+    assert!(has(&inline, "org.babel.execute"), "{inline:?}");
+    let call = kinds(&mut client, 2, 3);
+    assert!(has(&call, "org.babel.execute"), "{call:?}");
+    let link = kinds(&mut client, 3, 8);
+    assert!(has(&link, "org.open") && !has(&link, "org.babel.execute"), "{link:?}");
+    assert!(!has(&kinds(&mut client, 0, 3), "org.open"));
+    let formula = kinds(&mut client, 5, 3);
+    assert_eq!(formula.iter().filter(|kind| *kind == "org.table.recalculate").count(), 1, "{formula:?}");
+    client.shutdown();
+}
+
 #[test]
 fn offers_commands_as_actions_and_asks_with_buttons() {
     let mut options = clock();

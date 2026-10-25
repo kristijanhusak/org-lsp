@@ -177,7 +177,7 @@ export const AREAS = [
       helix: ['no', 'Helix has no folding.'],
     },
     checks: [
-      { text: 'On a headline, cycling goes folded → children → subtree', keys: { neovim: '`<Tab>`', vim: '`<Tab>`', vscode: '`Tab`', sublime: '`Tab`' } },
+      { text: 'On a headline, cycling goes folded → children → subtree', keys: { neovim: '`<Tab>`', vim: '`<Tab>`', vscode: '`Tab`', sublime: '`Tab`' }, only: ['neovim', 'vim', 'vscode', 'sublime'] },
       { text: 'A folded headline shows as it does open, followed by `...`; with `org_ellipsis = " ▾"`, by ` ▾`', only: ['neovim', 'vim'] },
       { text: 'Cycling the whole file goes overview → contents → everything', keys: { vscode: '`Shift+Tab`', sublime: '`Shift+Tab`' }, only: ['vscode', 'sublime'] },
       { text: 'Cycling the whole file goes overview → everything', keys: { neovim: '`<S-Tab>`', vim: '`<S-Tab>`' }, only: ['neovim', 'vim'] },
@@ -526,7 +526,8 @@ export const AREAS = [
       { text: 'Entry text, log mode, the clock report, archives mode', in: 'agenda', cmd: ['org.agenda.entry.text', 'org.agenda.log', 'org.agenda.clockreport', 'org.agenda.archives'] },
       { text: 'In the week view, inactive timestamps show after `[` with *Display now includes inactive timestamps as well*, marked `[`, and are gone again when the agenda is rebuilt', in: 'agenda', cmd: ['org.agenda.query.add', 'org.agenda.inactive', 'org.agenda.redo'] },
       { text: 'Hovering a line shows its entry', in: 'agenda', keys: { neovim: '`K`', vim: '`K`', vscode: 'the mouse, `Ctrl+K Ctrl+I`', sublime: 'the mouse', zed: 'the mouse', helix: '`Space k`' } },
-      { text: 'Rebuilding the agenda, saving the changed files, quitting', in: 'agenda', cmd: ['org.agenda.redo', 'org.agenda.save'], not: ['helix'] },
+      { text: 'Rebuilding the agenda, saving the changed files, quitting', in: 'agenda', cmd: ['org.agenda.redo', 'org.agenda.save'], not: ['zed', 'helix'] },
+      { text: 'Rebuilding the agenda; `s` saves the changed files with Zed\'s own /Save All/', in: 'agenda', cmd: 'org.agenda.redo', only: ['zed'] },
       { text: 'Rebuilding the agenda; the files its edits changed are saved with `:write-all` (Helix does nothing with the files a server names to save, so /Save all Org files/ is not offered)', in: 'agenda', cmd: 'org.agenda.redo', only: ['helix'] },
       { text: 'An entry changed in its file shows in the agenda when it is rebuilt' },
       { text: 'Adding today\'s appointments: an entry timed a few minutes from now is reminded of every three minutes until it is due (needs Emacs)', cmd: 'org.agenda.appt' },
@@ -782,7 +783,7 @@ export const AREAS = [
     ],
     editors: {
       zed: ['part', `A link's target is typed, without completion: ${ZED_TEXT}. Following works through go to definition, for links inside Org files and to files. Creating an ID (\`org.id.create\`) is left out: it has no key in keymap.json and is not among the code actions.`],
-      helix: ['part', 'Storing and inserting links in an Org file, and creating an ID, are left out: they are not among Helix\'s code actions there (the agenda stores a link to its line\'s entry); moving between links needs a key. Following works through go to definition.'],
+      helix: ['part', 'Storing and inserting links in an Org file, and creating an ID, are left out: they are not among Helix\'s code actions there (the agenda stores a link to its line\'s entry); moving between links needs a key. Following works through go to definition, and through the code action /Open the link or thing at the cursor/ for the links it cannot open in Helix (web pages, abbreviations, attachments).'],
     },
     checks: [
       { text: 'A `#+LINK: gh https://github.com/%s` line makes `[[gh:org-lsp]]` follow `https://github.com/org-lsp`; `org_link_abbrev_alist` does the same from the settings', cmd: 'org.open' },
@@ -897,7 +898,8 @@ export const AREAS = [
     checks: [
       { text: '`#+TBLFM: $3=$1*$2` fills the third column', cmd: 'org.table.recalculate' },
       { text: 'Recalculating the cursor\'s line only', cmd: 'org.table.recalculate.line' },
-      { text: '`C-c C-c` on the `#+TBLFM:` line applies it', cmd: 'org.checkbox.toggle' },
+      { text: '`C-c C-c` on the `#+TBLFM:` line applies it', cmd: 'org.checkbox.toggle', not: ['helix'] },
+      { text: 'On the `#+TBLFM:` line, recalculating applies it; a formula in Emacs Lisp, `$2=\'(+ $1 1)`, too (needs Emacs)', cmd: 'org.table.recalculate', only: ['helix'] },
       { text: 'A range sum `@>$2=vsum(@2..@-1)` and a format `;%.2f`' },
       { text: 'Date arithmetic (`$2=$1+7`) on timestamps' },
       { text: 'Iterating until the table is stable', cmd: 'org.table.iterate' },
@@ -1138,7 +1140,7 @@ export const AREAS = [
     checks: [
       { text: 'With `org-crypt-key` set in the Emacs configuration, encrypting an entry replaces its text with a PGP message; decrypting brings it back (needs Emacs and GnuPG)', cmd: ['org.crypt.encrypt', 'org.crypt.decrypt'] },
       { text: 'Encrypting and decrypting every entry tagged `crypt` (needs Emacs and GnuPG)', cmd: ['org.crypt.encrypt.all', 'org.crypt.decrypt.all'] },
-      { text: 'With `(org-crypt-use-before-save-magic)` in the Emacs configuration, saving a file encrypts its entries tagged `crypt` (needs Emacs and GnuPG)' },
+      { text: 'With `(org-crypt-use-before-save-magic)` in the Emacs configuration, saving a file encrypts its entries tagged `crypt` (needs Emacs and GnuPG)', not: ['zed', 'helix'] },
     ],
   },
   {

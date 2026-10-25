@@ -39,7 +39,6 @@ its sections says what it should look like.
 
 *Partly:* Zed folds with its own folding: Org's cycling and sparse trees need folds an extension can set, which Zed does not offer.
 
-- [ ] On a headline, cycling goes folded → children → subtree
 - [ ] Narrowing to the subtree opens it in a file of its own; saving that file writes it back into the Org file and saves it: ~ctrl-x n s~
 - [ ] Widening in the narrowed file writes it back and closes it (~C-c '~ there does the same): ~ctrl-x n w~
 - [ ] Zed's own folds open and close on headlines, drawers and blocks
@@ -160,6 +159,7 @@ Not in Zed:
 - [ ] Entry text, log mode, the clock report, archives mode: ~shift-e~ or ~v shift-e~, ~v l~, ~shift-r~ or ~v shift-r~, ~v a~
 - [ ] In the week view, inactive timestamps show after ~[~ with /Display now includes inactive timestamps as well/, marked ~[~, and are gone again when the agenda is rebuilt: ~[~, ~v [~, ~r~
 - [ ] Hovering a line shows its entry: the mouse
+- [ ] Rebuilding the agenda; ~s~ saves the changed files with Zed's own /Save All/: ~r~
 - [ ] An entry changed in its file shows in the agenda when it is rebuilt
 - [ ] Pressing ~f~ many times in a row moves the agenda a week each time, in the editor too
 - [ ] With no Org file open and no server running, the /Org: Agenda for the current week or day/ task opens the Org file last opened and the agenda
@@ -168,7 +168,6 @@ Not in Zed:
 
 Not in Zed:
 
-- Rebuilding the agenda, saving the changed files, quitting: /Save all Org files/ is not among its keys or code actions
 - Adding today's appointments: an entry timed a few minutes from now is reminded of every three minutes until it is due (needs Emacs): /Add today's appointments from the agenda files/ is not among its keys or code actions
 
 * Clocking
@@ -436,7 +435,6 @@ Not in Zed:
 
 *Partly:* Encrypting and decrypting by command are left out: they have no key in keymap.json and are not among the code actions. Encrypting before saving needs an editor that sends LSP's ~willSaveWaitUntil~.
 
-- [ ] With ~(org-crypt-use-before-save-magic)~ in the Emacs configuration, saving a file encrypts its entries tagged ~crypt~ (needs Emacs and GnuPG)
 
 Not in Zed:
 

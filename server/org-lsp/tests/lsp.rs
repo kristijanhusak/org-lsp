@@ -2880,9 +2880,10 @@ fn says_emacs_refusals_as_warnings() {
     client.open(&uri, text);
     let context = json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 1, "character": 0 } });
     client.raw_request("workspace/executeCommand", json!({ "command": "org.table.copy.down", "arguments": [context] }));
-    let Message::Notification(said) = next_from_server(&client, |message| {
-        matches!(message, Message::Notification(notification) if notification.method == "window/showMessage")
-    }) else {
+    let Message::Notification(said) = next_from_server(
+        &client,
+        |message| matches!(message, Message::Notification(notification) if notification.method == "window/showMessage"),
+    ) else {
         unreachable!()
     };
     assert_eq!(said.params, json!({ "type": 2, "message": "Not in table data field" }));

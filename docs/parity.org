@@ -535,7 +535,7 @@ Where editors fall short:
 Where editors fall short:
 
 - Zed ❓: A link's target is typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Following works through go to definition, for links inside Org files and to files. Creating an ID (~org.id.create~) is left out: it has no key in keymap.json and is not among the code actions.
-- Helix ❓: Storing and inserting links in an Org file, and creating an ID, are left out: they are not among Helix's code actions there (the agenda stores a link to its line's entry); moving between links needs a key. Following works through go to definition.
+- Helix ❓: Storing and inserting links in an Org file, and creating an ID, are left out: they are not among Helix's code actions there (the agenda stores a link to its line's entry); moving between links needs a key. Following works through go to definition, and through the code action /Open the link or thing at the cursor/ for the links it cannot open in Helix (web pages, abbreviations, attachments).
 
 * Footnotes
 :PROPERTIES:
