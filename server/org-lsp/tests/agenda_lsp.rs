@@ -2663,7 +2663,7 @@ fn runs_shell_links() {
     std::fs::write(&file, text).unwrap();
     let mut options = clock();
     options["org_link_shell_skip_confirm_regexp"] = json!("^\\(TRUE\\|exit\\)");
-    let mut client = Client::editor(options, None);
+    let mut client = Client::editor(options.clone(), None);
     let uri = format!("file://{}", file.display());
     client.open(&uri, text);
     let open = |client: &mut Client, character: u32, extra: Value| {
@@ -2675,14 +2675,14 @@ fn runs_shell_links() {
         client.request("workspace/executeCommand", json!({ "command": "org.open", "arguments": [context] }))
     };
     // What the command said once it ended.
-    let said = |client: &mut Client| {
+    let said_as = |client: &mut Client, method: &str| {
         let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
         loop {
             client.settle();
             let message = client
                 .notifications
                 .iter()
-                .find(|notification| notification.method == "window/showMessage")
+                .find(|notification| notification.method == method)
                 .map(|notification| notification.params["message"].as_str().unwrap().to_string());
             if let Some(message) = message {
                 return message;
@@ -2691,6 +2691,7 @@ fn runs_shell_links() {
             std::thread::sleep(std::time::Duration::from_millis(50));
         }
     };
+    let said = |client: &mut Client| said_as(client, "window/showMessage");
     let asked = open(&mut client, 3, json!({})).unwrap();
     assert_eq!(asked["input"]["prompt"], "Execute echo hi; pwd in shell? ");
     let step = asked["input"]["context"].clone();
@@ -2705,6 +2706,13 @@ fn runs_shell_links() {
     assert_eq!(said(&mut client), "(Shell command succeeded with no output)");
     open(&mut client, 41, json!({})).unwrap();
     assert_eq!(said(&mut client), "(Shell command failed with code 3 and no output)");
+    client.shutdown();
+    // For a client that shows the server's messages itself, as the others.
+    options["message_notifications"] = json!(true);
+    let mut client = Client::editor(options, None);
+    client.open(&uri, text);
+    open(&mut client, 25, json!({})).unwrap();
+    assert_eq!(said_as(&mut client, "org-lsp/message"), "(Shell command succeeded with no output)");
     client.shutdown();
     std::fs::remove_dir_all(directory).unwrap();
 }

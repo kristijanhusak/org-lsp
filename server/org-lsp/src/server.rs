@@ -5790,6 +5790,8 @@ impl Server {
     fn run_shell_link(&self, command: &str, directory: Option<PathBuf>) {
         let sender = self.sender.clone();
         let command = command.to_string();
+        // Said as the server's other messages are (`message_notifications`).
+        let method = if self.client.message_notifications { MESSAGE } else { ShowMessage::METHOD };
         std::thread::spawn(move || {
             let ran = crate::process::shell_output(&command, directory.as_deref(), None, SHELL_OUTPUT_SIZE);
             let message = match ran {
@@ -5801,7 +5803,7 @@ impl Server {
                 Err(error) => format!("{command}: {error}"),
             };
             let params = ShowMessageParams { typ: MessageType::INFO, message };
-            let notification = Notification::new(ShowMessage::METHOD.to_string(), params);
+            let notification = Notification::new(method.to_string(), params);
             let _ = sender.send(Message::Notification(notification));
         });
     }
