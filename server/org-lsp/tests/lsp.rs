@@ -2083,6 +2083,21 @@ fn lints_documents() {
             ),
         ]
     );
+    // `[[man:ls]]` is a link with `ol-man` on, a fuzzy one without.
+    let man = |modules: Value| {
+        let client = Client::start(json!({}), json!({ "org_modules": modules }));
+        client.open(&uri(), "[[man:ls]]\n[[*Missing]]\n");
+        let published = client.notification("textDocument/publishDiagnostics");
+        client.shutdown();
+        published["diagnostics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|found| found["range"]["start"]["line"].clone())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(man(json!([])), [json!(0), json!(1)]);
+    assert_eq!(man(json!(["ol-man"])), [json!(1)]);
     let found = diagnostics(json!({ "org_lint_ignore": ["invalid-fuzzy-link", "deprecated-category-setup"] }));
     assert_eq!(
         found.iter().map(|found| found.2.as_str()).collect::<Vec<_>>(),
@@ -2842,6 +2857,40 @@ fn shows_what_babel_shows_of_a_block_that_fails() {
     std::fs::remove_dir_all(directory).unwrap();
 }
 
+/// What Emacs refuses, said as a warning as the server's own refusals
+/// are: S-RET (`org-table-copy-down`) on the bar that starts a row.
+#[test]
+fn says_emacs_refusals_as_warnings() {
+    let found = std::process::Command::new("emacs").arg("--version").output().is_ok_and(|out| out.status.success());
+    if !found {
+        assert!(std::env::var_os("ORG_LSP_REQUIRE_EMACS").is_none(), "Emacs is required but not found");
+        eprintln!("says_emacs_refusals_as_warnings: no Emacs, skipped");
+        return;
+    }
+    let directory = std::env::temp_dir().join(format!("org-lsp-emacs-refusal-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let file = directory.join("t.org");
+    let text = "| 1 | 2 |\n|   |   |\n";
+    std::fs::write(&file, text).unwrap();
+    let uri: Uri = format!("file://{}", file.display()).parse().unwrap();
+    let config =
+        std::env::var("ORG_LISP_DIR").map(|dir| format!("(add-to-list 'load-path {dir:?})")).unwrap_or_default();
+    let mut client = Client::start(json!({}), json!({ "emacs_config": config }));
+    client.open(&uri, text);
+    let context = json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 1, "character": 0 } });
+    client.raw_request("workspace/executeCommand", json!({ "command": "org.table.copy.down", "arguments": [context] }));
+    let Message::Notification(said) = next_from_server(
+        &client,
+        |message| matches!(message, Message::Notification(notification) if notification.method == "window/showMessage"),
+    ) else {
+        unreachable!()
+    };
+    assert_eq!(said.params, json!({ "type": 2, "message": "Not in table data field" }));
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
 /// Emacs's yes-or-no question for a client that shows no
 /// `window/showMessageRequest` (`message_requests` off): the Vim plugin
 /// (org-lsp's editor code, `run_command`) is told to run
@@ -3149,6 +3198,13 @@ fn shrinks_table_columns() {
             .collect()
     };
     // Shrunk when the file opens: `abc…`, as Emacs shows it.
+    assert_eq!(hints(&mut client), [(1, 1, " ".into()), (1, 5, "…".into()), (2, 1, " ".into()), (2, 5, "…".into())]);
+    // The same text sent again, as yegappan/lsp and vim-lsp do once the
+    // file is open: the columns stay shrunk.
+    client.notify::<DidChangeTextDocument>(DidChangeTextDocumentParams {
+        text_document: VersionedTextDocumentIdentifier { uri: uri(), version: 2 },
+        content_changes: vec![TextDocumentContentChangeEvent { range: None, range_length: None, text: text.into() }],
+    });
     assert_eq!(hints(&mut client), [(1, 1, " ".into()), (1, 5, "…".into()), (2, 1, " ".into()), (2, 5, "…".into())]);
     let toggle = |client: &mut Client, line: u32, character: u32, extra: Value| {
         let mut context =
@@ -3891,6 +3947,9 @@ fn edits_through_emacs() {
     replace(&mut client, &mut text, &mut version, "* Task\n".to_string());
     let (asked, _) = run(&mut client, &mut text, &mut version, "org.attach", (0, 0), json!({ "input": "c" }));
     assert_eq!(asked["input"]["prompt"], "File to keep as an attachment", "{asked}");
+    // A file's name, from the Org file's directory, as `read-file-name` asks.
+    assert_eq!(asked["input"]["complete"], "file", "{asked}");
+    assert_eq!(asked["input"]["value"], format!("{}/", directory.display()), "{asked}");
     run(&mut client, &mut text, &mut version, "org.attach", (0, 0), json!({ "input": "doc.txt", "step": "c" }));
     assert!(text.starts_with("* Task") && text.contains(":ATTACH:") && text.contains(":ID:"), "{text}");
     let id = text.lines().find_map(|line| line.trim().strip_prefix(":ID:")).unwrap().trim().to_string();

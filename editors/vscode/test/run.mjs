@@ -110,33 +110,41 @@ function scenarioNames() {
 }
 
 /**
- * VS Code gives a key no count: a user binds a key of their own with
- * `"args": { "count": N }` (docs/keys/vscode.org). The scenarios' steps
- * with a count press such keys, one for each command and count, where the
- * preset binds the command.
+ * The user's own keys, as docs/keys/vscode.org says to bind them. VS Code
+ * gives a key no count: a user binds a key with `"args": { "count": N }`.
+ * The scenarios' steps with a count press such keys, one for each command
+ * and count, where the preset binds the command; a command the preset
+ * leaves without a key (tests/e2e/exceptions.json) gets a key of the
+ * user's too, so that every step is typed.
  */
-function countKeys(preset) {
+function userKeys(preset) {
   const bindings = JSON.parse(readFileSync('package.json', 'utf8')).contributes.keybindings;
-  const counted = new Set();
+  const exceptions = JSON.parse(readFileSync(join('..', '..', 'tests', 'e2e', 'exceptions.json'), 'utf8'));
+  const excepted = exceptions.editors?.[preset === 'emacs' ? 'vscode' : `vscode-${preset}`] ?? {};
+  const wanted = new Set();
   for (const name of scenarioNames()) {
     for (const step of JSON.parse(readFileSync(join(scenarios, `${name}.json`), 'utf8')).steps) {
-      if (step.command && step.count) {
-        counted.add(JSON.stringify([step.command, step.count]));
+      if (step.command && (step.count || excepted[step.command])) {
+        wanted.add(JSON.stringify([step.command, step.count ?? null]));
       }
     }
   }
   const keys = [];
-  [...counted].sort().forEach((entry, index) => {
+  [...wanted].sort().forEach((entry, index) => {
     const [command, count] = JSON.parse(entry);
-    // Ctrl+Alt+Shift+F9, then a letter: a chord no preset binds.
-    const key = `ctrl+alt+shift+f9 ${String.fromCharCode(97 + index)}`;
+    // Ctrl+Alt+Shift+F9 (F10, F11), then a letter: chords no preset binds.
+    const key = `ctrl+alt+shift+f${9 + Math.floor(index / 26)} ${String.fromCharCode(97 + (index % 26))}`;
     const whens = new Set(
       bindings
         .filter((binding) => binding.command === command && binding.when?.includes(`config.org-lsp.keys == '${preset}'`))
         .map((binding) => binding.when),
     );
+    // Where the preset has no key for it, wherever the user types.
+    if (excepted[command]) {
+      whens.add('editorTextFocus');
+    }
     for (const when of whens) {
-      keys.push({ key, command, args: { count }, when });
+      keys.push({ key, command, ...(count ? { args: { count } } : {}), when });
     }
   });
   return keys;
@@ -212,7 +220,7 @@ async function runScenarios() {
       'workbench.startupEditor': 'none',
       'window.restoreWindows': 'none',
     };
-    const keys = countKeys(preset);
+    const keys = userKeys(preset);
     for (const name of scenarioNames().filter((name) => !process.env.ORG_LSP_E2E || name.includes(process.env.ORG_LSP_E2E))) {
       const folder = mkdtempSync(join(tmpdir(), 'org-lsp-vscode-e2e-'));
       const user = userData(settings, keys);

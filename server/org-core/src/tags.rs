@@ -246,6 +246,20 @@ pub fn buffer_tags(text: &str) -> Vec<String> {
     tags
 }
 
+/// What a file adds to `org-global-tags-completion-table`: its tags
+/// (`org-get-buffer-tags`) and those of `org-current-tag-alist`.
+pub fn global_tags(text: &str, settings: &Settings) -> Vec<String> {
+    let mut tags = buffer_tags(text);
+    for entry in current_alist(text, settings) {
+        if let TagEntry::Tag(tag, _) = entry {
+            if !tags.contains(&tag) {
+                tags.push(tag);
+            }
+        }
+    }
+    tags
+}
+
 /// The tags at the end of a headline, in their order.
 pub fn local_tags(headline: &str) -> Vec<String> {
     match tag_group(headline) {

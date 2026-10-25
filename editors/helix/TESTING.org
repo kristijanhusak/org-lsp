@@ -226,7 +226,7 @@ Not in Helix:
 
 * Links
 
-*Partly:* Storing and inserting links in an Org file, and creating an ID, are left out: they are not among Helix's code actions there (the agenda stores a link to its line's entry); moving between links needs a key. Following works through go to definition.
+*Partly:* Storing and inserting links in an Org file, and creating an ID, are left out: they are not among Helix's code actions there (the agenda stores a link to its line's entry); moving between links needs a key. Following works through go to definition, and through the code action /Open the link or thing at the cursor/ for the links it cannot open in Helix (web pages, abbreviations, attachments).
 
 - [ ] A ~#+LINK: gh https://github.com/%s~ line makes ~[[gh:org-lsp]]~ follow ~https://github.com/org-lsp~; ~org_link_abbrev_alist~ does the same from the settings: ~gd~
 - [ ] Following a link to a headline, a custom ID and a ~<<target>>~: ~gd~
@@ -270,7 +270,7 @@ Not in Helix:
 *Partly:* Recalculating the current line only, iterating until the table is stable and the formula debugger are left out: they are not among Helix's code actions, which recalculate the whole table.
 
 - [ ] ~#+TBLFM: $3=$1*$2~ fills the third column: the code action /Recalculate the table/
-- [ ] ~C-c C-c~ on the ~#+TBLFM:~ line applies it: the code action /Toggle the checkbox/
+- [ ] On the ~#+TBLFM:~ line, recalculating applies it; a formula in Emacs Lisp, ~$2='(+ $1 1)~, too (needs Emacs): the code action /Recalculate the table/
 - [ ] A range sum ~@>$2=vsum(@2..@-1)~ and a format ~;%.2f~
 - [ ] Date arithmetic (~$2=$1+7~) on timestamps
 - [ ] An Emacs Lisp formula ~$3='(+ $1 $2);N~ and a remote reference ~remote(name,@1$1)~ are computed by Emacs (needs Emacs): the code action /Recalculate the table/
@@ -356,7 +356,6 @@ Not in Helix:
 
 *Partly:* Encrypting and decrypting by command are left out: they are not among Helix's code actions. Encrypting before saving needs an editor that sends LSP's ~willSaveWaitUntil~.
 
-- [ ] With ~(org-crypt-use-before-save-magic)~ in the Emacs configuration, saving a file encrypts its entries tagged ~crypt~ (needs Emacs and GnuPG)
 
 Not in Helix:
 

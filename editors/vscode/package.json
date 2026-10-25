@@ -9775,13 +9775,13 @@
             "markup.heading"
           ],
           "todoKeyword": [
+            "markup.deleted.todo.org",
             "keyword.other.todo.org",
-            "markup.deleted",
             "keyword.control"
           ],
           "todoKeyword.done": [
+            "markup.inserted.done.org",
             "keyword.other.done.org",
-            "markup.inserted",
             "string"
           ],
           "priority": [
@@ -9906,16 +9906,16 @@
             "string"
           ],
           "headline.done": [
-            "markup.heading.done.org",
-            "comment"
+            "comment.headline.done.org",
+            "markup.heading.done.org"
           ],
           "*.done": [
             "comment.done.org",
             "comment"
           ],
           "headline.todo": [
-            "markup.heading.todo.org",
-            "string"
+            "string.headline.todo.org",
+            "markup.heading.todo.org"
           ],
           "*.todo": [
             "string.todo.org",
@@ -10188,13 +10188,13 @@
             "markup.heading"
           ],
           "todoKeyword": [
+            "markup.deleted.todo.org",
             "keyword.other.todo.org",
-            "markup.deleted",
             "keyword.control"
           ],
           "todoKeyword.done": [
+            "markup.inserted.done.org",
             "keyword.other.done.org",
-            "markup.inserted",
             "string"
           ],
           "priority": [
@@ -10319,16 +10319,16 @@
             "string"
           ],
           "headline.done": [
-            "markup.heading.done.org",
-            "comment"
+            "comment.headline.done.org",
+            "markup.heading.done.org"
           ],
           "*.done": [
             "comment.done.org",
             "comment"
           ],
           "headline.todo": [
-            "markup.heading.todo.org",
-            "string"
+            "string.headline.todo.org",
+            "markup.heading.todo.org"
           ],
           "*.todo": [
             "string.todo.org",
@@ -10601,13 +10601,13 @@
             "markup.heading"
           ],
           "todoKeyword": [
+            "markup.deleted.todo.org",
             "keyword.other.todo.org",
-            "markup.deleted",
             "keyword.control"
           ],
           "todoKeyword.done": [
+            "markup.inserted.done.org",
             "keyword.other.done.org",
-            "markup.inserted",
             "string"
           ],
           "priority": [
@@ -10732,16 +10732,16 @@
             "string"
           ],
           "headline.done": [
-            "markup.heading.done.org",
-            "comment"
+            "comment.headline.done.org",
+            "markup.heading.done.org"
           ],
           "*.done": [
             "comment.done.org",
             "comment"
           ],
           "headline.todo": [
-            "markup.heading.todo.org",
-            "string"
+            "string.headline.todo.org",
+            "markup.heading.todo.org"
           ],
           "*.todo": [
             "string.todo.org",

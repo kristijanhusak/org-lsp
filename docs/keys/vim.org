@@ -424,8 +424,10 @@ passes on only an error's message, a key marked ¹ falls back to its own
 meaning whenever the server refuses.
 
 In a terminal, Vim reads a key with a modifier only as the terminal sends
-it. ~<C-Space>~ comes as NUL, which the plugin binds too (~<C-@>~).
-~<S-CR>~ and the keys with ~<M-…>~ or ~<C-S-…>~ need a terminal that reports
+it. ~<C-Space>~ comes as NUL, which the plugin binds too (~<C-@>~), and Alt
+with a character (~<M-m>~) as ~<Esc>~ then the character in tmux and most
+terminals, which it binds too (~<Esc>m~). Alt with an arrow comes as Vim
+reads it in xterm and tmux. ~<S-CR>~ and the other keys with ~<M-…>~ or ~<C-S-…>~ need a terminal that reports
 modifiers, as xterm does once Vim turns its ~modifyOtherKeys~ on; in tmux,
 GNU screen or the Linux console Shift-Enter arrives as ~<CR>~. There, bind the command to a
 key that arrives, with ~mappings~ (below) or ~:Org return item~:

@@ -1,0 +1,11 @@
+{
+  "description": "The window of a key prompt's choices is as high as their lines take when they wrap: the last choices of the dangling clock's question show too.",
+  "files": {
+    "work.org": ["* TODO Write report", ":LOGBOOK:", "CLOCK: [2026-05-18 Mon 10:00]", ":END:"]
+  },
+  "steps": [
+    { "open": "work.org" },
+    { "command": "org.clock.resolve", "screen": ["[t] Like ‘k’, but will ask you", "[j] Jump to the current clock", "[J] Jump to the current clock"] },
+    { "keys": "<Esc>" }
+  ]
+}

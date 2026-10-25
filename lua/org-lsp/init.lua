@@ -373,6 +373,9 @@ function M.run(name, opts)
           M.completions = input.completions
           M.completion_separator = input.separator
           completion = 'customlist,v:lua.OrgLspCompleteInput'
+        elseif input.complete == 'file' or input.complete == 'directory' then
+          -- A file's or a directory's name (`read-file-name`).
+          completion = input.complete == 'file' and 'file' or 'dir'
         end
         -- What a date typed so far means, shown as it is typed, as
         -- `org-read-date` shows it in the minibuffer: the server writes it
@@ -582,13 +585,19 @@ local function show_choices(prompt, choices)
     end
   end
   vim.bo[buf].bufhidden = 'wipe'
-  -- Above the command line and the status line, inside the borders.
-  local height = math.max(1, math.min(#lines, vim.o.lines - vim.o.cmdheight - 4))
+  -- Above the command line and the status line, inside the borders; as
+  -- high as the lines take, those wider than the screen wrapping.
+  width = math.min(width, vim.o.columns - 2)
+  local rows = 0
+  for _, line in ipairs(lines) do
+    rows = rows + math.max(1, math.ceil(vim.fn.strdisplaywidth(line) / width))
+  end
+  local height = math.max(1, math.min(rows, vim.o.lines - vim.o.cmdheight - 4))
   return vim.api.nvim_open_win(buf, false, {
     relative = 'editor',
     row = vim.o.lines - vim.o.cmdheight - height - 3,
     col = 0,
-    width = math.min(width, vim.o.columns - 2),
+    width = width,
     height = height,
     style = 'minimal',
     border = 'rounded',
@@ -608,13 +617,26 @@ end
 function M.read_key(prompt, choices, expert)
   -- `expert` (`org-use-fast-todo-selection`): the keys are in the prompt,
   -- which shows alone, as Emacs's message does.
+  local text = expert and prompt or M.prompt_text(prompt)
+  -- A prompt longer than the echo area would scroll it and wait for Enter
+  -- (the hit-enter prompt), which then takes the prompt away before the
+  -- key is read: the command line grows to hold it while it is asked, as
+  -- Emacs's minibuffer does.
+  local cmdheight = vim.o.cmdheight
+  local width = vim.fn.strdisplaywidth(text)
+  if width >= vim.v.echospace then
+    vim.o.cmdheight = cmdheight + math.ceil((width - vim.v.echospace + 1) / vim.o.columns)
+  end
   local win = not expert and choices and #choices > 0 and show_choices(prompt, choices) or nil
-  vim.api.nvim_echo({ { expert and prompt or M.prompt_text(prompt) } }, false, {})
+  vim.api.nvim_echo({ { text } }, false, {})
   vim.cmd.redraw()
   local ok, key = pcall(vim.fn.getcharstr)
   vim.api.nvim_echo({ { '' } }, false, {})
   if win and vim.api.nvim_win_is_valid(win) then
     vim.api.nvim_win_close(win, true)
+  end
+  if vim.o.cmdheight ~= cmdheight then
+    vim.o.cmdheight = cmdheight
   end
   if not ok or key == vim.keycode('<Esc>') or key == vim.keycode('<C-c>') then
     return nil

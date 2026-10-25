@@ -1,0 +1,13 @@
+{
+  "description": "What a date typed in the calendar's minibuffer means shows on its last line as it is typed, as org-read-date shows it.",
+  "files": {
+    "work.org": ["* TODO Write report"]
+  },
+  "steps": [
+    { "open": "work.org" },
+    { "command": "org.schedule" },
+    { "command": "org.calendar.type" },
+    { "keys": "+2d", "screen": "+2d    => <2026-05-20 Wed>" },
+    { "keys": "<CR>", "screen": "SCHEDULED: <2026-05-20 Wed>" }
+  ]
+}

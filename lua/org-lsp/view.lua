@@ -638,6 +638,11 @@ local function update_prompt(bufnr, client, text)
       prompt_window(bufnr)
     end
     paint(bufnr, client, result and result.data or {})
+    -- While a date is typed below it, Neovim draws the calendar again
+    -- only when asked: what the answer means shows as it is typed.
+    if vim.fn.mode() == 'c' then
+      vim.cmd.redraw()
+    end
   end, bufnr)
 end
 

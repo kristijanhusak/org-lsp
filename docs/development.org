@@ -98,7 +98,19 @@ others), as close to Emacs Org mode as it can get.
   the same steps.
 - Neovim: ~scripts/test-nvim.sh~ (set ~NVIM~ to the binary), on 0.12.0 and
   stable. Tests run headless against the real server; ~tests/nvim/scenarios.lua~
-  is its adapter of the scenarios. On a nightly build of 0.13,
+  is its adapter of the scenarios, which runs them a second time typed: each
+  in Neovim's own terminal UI in tmux, nothing replaced, ~'updatetime'~ 100.
+  That Neovim plays the scenario on timers and writes down the keys it
+  wants typed; the runner (~--typed~) types them with ~tmux send-keys~, a
+  key at a time, and each answer as what the screen asks for takes it: a
+  key at a key prompt, text in the command line, the number of a choice in
+  the list ~vim.ui.select~ shows. It presses Enter at a hit-enter prompt, as
+  a user does, and the scenario fails when one comes before what is asked
+  could be answered. Neovim's own typed checks, of what the scenarios do
+  not see, are in ~tests/nvim/typed/NAME.json~, steps of the same kind with
+  ~keys~ typed as they are and ~screen~, text the screen must show.
+  ~ORG_LSP_NVIM_TESTS=typed scripts/test-nvim.sh [NAME…]~
+  runs only the typed ones. On a nightly build of 0.13,
   ~tests/nvim/highlight.lua~ may stop on Neovim's own assertion
   (~grid_line_flush: Assertion `grid_line_clear_to <= grid_line_maxcol'~)
   when it redraws the date prompt's calendar in its headless 140 by 50
@@ -108,20 +120,38 @@ others), as close to Emacs Org mode as it can get.
   through ~VSCODE_EXECUTABLE~, set to its ~codium~ binary, not the
   launcher in ~bin/~). The tests of the extension run first, then
   ~editors/vscode/test/scenarios.test.cjs~, its adapter of the scenarios,
-  which presses keys with ~xdotool~.
+  with each preset's keys (~npm test -- scenarios vim~ runs one). It types
+  everything with ~xdotool~ into VS Code's window, as the user types it:
+  each step's keys, its text, and the answers to what a command asks, in
+  VS Code's own quick picks and input boxes and in the date prompt (~i~,
+  the date, ~Enter~). Nothing answers for the user: the test watches what
+  VS Code shows, checks that what is typed is taken as meant (the choice
+  Enter would pick, the text the box has), then presses ~Enter~. A
+  command a preset has no key for (~tests/e2e/exceptions.json~) gets a key
+  of the user's, as a count does.
 - Vim: ~CLIENTS=dir editors/vim/test/run.sh~, with the four clients
   checked out in ~dir~ (~lsp~, ~vim-lsp~, ~coc.nvim~ on its ~release~
   branch, ~ale~); Vim runs in tmux. ~editors/vim/test/scenarios.vim~ is its
-  adapter of the scenarios. The tests and the scenarios answer prompts
-  themselves; ~editors/vim/test/typed.vim~ has keys typed through tmux
-  instead, as the user types them, with ~'updatetime'~ passing while the
-  agenda dispatcher waits for one.
+  adapter of the scenarios. The tests answer prompts themselves, and the
+  scenarios run twice: once with their keys fed and the prompts answered,
+  once typed, everything through tmux as the user types it (see
+  [[#end-to-end-scenarios][End-to-end scenarios]]); ~editors/vim/test/typed.vim~ types the agenda
+  dispatcher's key, with ~'updatetime'~ passing while it waits for one,
+  and the key of a prompt of two lines.
 - Sublime Text: ~node editors/sublime/generate.mjs --check~,
-  ~python3 editors/sublime/test/test_plugin.py~.
+  ~python3 editors/sublime/test/test_plugin.py~: the plugin against
+  stand-ins for Sublime Text and the LSP package, as Sublime itself cannot
+  run in the workspace. The stand-ins keep Sublime's order of things: what
+  ~set_timeout~ puts off and the server's answers come once the code that
+  asked has returned, in the order of their time, and a panel waits for
+  the user, who answers it a few seconds later (after a message's popup
+  has gone); a panel shown over another cancels that one, as Sublime's do.
+  Some keys are pressed through the package's keymap, its contexts asked
+  of the plugin as Sublime asks them.
 - Zed: ~node editors/zed/generate.mjs --check~,
   ~cargo build --target wasm32-wasip2~ in ~editors/zed~; the queries are compiled against the
-  grammar with the tree-sitter CLI. Zed itself cannot run in the
-  workspace.
+  grammar with the tree-sitter CLI; with ~ZED~ set, the scenarios in Zed
+  itself ([[#end-to-end-scenarios][below]]).
 - CI, started by hand, runs seven jobs: server, Neovim 0.12.0, Neovim stable, VS Code, Vim (with each of its four LSP clients), Sublime Text (generated files, the plugin against stand-ins), Zed (the build, generated rules, queries).
 
 * End-to-end scenarios
@@ -137,7 +167,7 @@ it sees is in ~tests/e2e/expected/NAME.txt~, written again with
 ~ORG_LSP_UPDATE_E2E=1~ (~ORG_LSP_E2E=NAME~ runs only the scenarios whose name
 has ~NAME~ in it). Each editor has an adapter that presses that editor's keys
 for the same steps and must see the same; Neovim's is
-~tests/nvim/scenarios.lua~ (~scripts/test-nvim.sh~ runs it), Vim's
+~tests/nvim/scenarios.lua~ (~scripts/test-nvim.sh~ runs it headless, then typed), Vim's
 ~editors/vim/test/scenarios.vim~, which ~editors/vim/test/run.sh~ runs with
 each LSP client after the plugin's own tests, each scenario in a Vim of its
 own, four at a time:
@@ -146,13 +176,31 @@ own, four at a time:
 CLIENTS=~/vim-clients editors/vim/test/run.sh                  # the tests, then the scenarios
 ORG_LSP_VIM_TESTS=scenarios ORG_LSP_E2E=capture \
   CLIENTS=~/vim-clients editors/vim/test/run.sh coc            # one scenario, one client
+ORG_LSP_VIM_TESTS=typed ORG_LSP_E2E=capture \
+  CLIENTS=~/vim-clients editors/vim/test/run.sh coc            # the same, typed
 #+end_src
 
-~ORG_LSP_VIM_TESTS~ is ~cases~ or ~scenarios~ for only those,
+~ORG_LSP_VIM_TESTS~ is ~cases~, ~scenarios~ or ~typed~ for only those,
 ~ORG_LSP_E2E_JOBS~ how many Vims run at once. Each scenario prints one line,
 with the step that failed and what it saw; a step a client cannot take as
 the others do is skipped, with the reason, from ~s:skips~ in
 ~scenarios.vim~ (coc.nvim shows the documents the server asks for itself).
+
+The first time, the plugin's prompts are replaced by the steps' answers and
+the keys are fed (~feedkeys()~). The second time (~typed~, with
+~ORG_LSP_TEST_TYPED~ set) nothing stands in for anything: Vim runs the steps
+from a timer, between turns of its main loop, with ~'updatetime'~ at 100 ms,
+so CursorHold and the client's autocommands run as for a user. Where a step
+needs keys, Vim writes them to ~keys~ in its work directory and
+~editors/vim/test/typist.py~ types them into the tmux session: the command's
+key, then each answer once its prompt waits (a key at a menu, text at
+~input()~ after ~CTRL-U~, the number of a choice in a list, ~i~ then the date
+in the date prompt's calendar), files opened with ~:edit~, text typed in
+insert mode. A step is done when the server has answered and nothing has
+changed for a while; Vim's hit-enter prompt is a failure, except after
+coc.nvim's own messages about the files it edits, where Enter is typed.
+~ORG_LSP_TEST_STOP=N~ leaves the typed Vim as it is after step ~N~, to go
+on by hand.
 
 A scenario has:
 
@@ -218,18 +266,26 @@ the window that has the focus.
 Helix's adapter is ~editors/helix/test/run.py~: each scenario in a Helix
 of its own in a tmux session, with [[file:../editors/helix/languages.toml][editors/helix/languages.toml]] pointing
 at the debug build and the scenario's options as its ~config~. It does
-what a Helix user does: picks the command's code action in the menu
-(~Space a~, then ~C-n~ and ~RET~), in Org files, the agenda and capture
-buffers, follows a link with ~gd~, picks the answer to a choice from the
-code actions, where it comes first, answers what the server asks for as
-text with a rename (~Space r~), goes back to the agenda from the buffer
-picker (~Space b~), and runs the commands that are not among the code
-actions (~editors.helix~) with ~:lsp-workspace-command~ and the cursor's
-place as their argument, as it does a step with a count: a code action
-takes none. It reads the buffers' text from what Helix tells the server
-(~didOpen~ and ~didChange~ in its log), the cursor from the status line and
-the messages from the log too. The date prompt and column view are not
-there (~scenarios.helix~). ~HX~ is the ~hx~ to run (~HELIX_RUNTIME~ its
+what a Helix user does, every key typed in Helix's terminal through tmux:
+picks the command's code action in the menu (~Space a~, then ~C-n~ and
+~RET~), in Org files, the agenda and capture buffers, follows a link with
+~gd~, saves with ~:write-all~ (the agenda's save, which Helix does not
+do for a server), picks the answer to a choice from the code actions,
+where it comes first, answers what the server asks for as text with a
+rename (~Space r~, the answer typed), goes to a line with ~:goto~ or a
+search, opens a file with ~:open~ and goes back to the agenda from the
+buffer picker (~Space b~). A code action takes no count: a step with one
+picks the action that many times, or once where Org gives the count no
+meaning (~COMMAND count~ under ~editors.helix~). A step that adds below the
+cursor's line goes past its end first (~gl l~), as ~C-e M-RET~ does, and
+after moving a subtree, whose code action leaves the cursor where it was
+in the text, the adapter goes after the subtree with a search. What Helix
+cannot do (follow mode, the entry in another window, a count Org reads
+as more than a repeat) is under ~steps.helix~, whose steps still put the
+cursor where they say for the steps after them. It reads the buffers'
+text from what Helix tells the server (~didOpen~ and ~didChange~ in its
+log), the cursor from the status line and the messages from the log too.
+The date prompt and column view are not there (~scenarios.helix~). ~HX~ is the ~hx~ to run (~HELIX_RUNTIME~ its
 ~runtime~ directory, by default the one beside it; ~ORG_LSP_HX_KEEP~ keeps
 each scenario's directory and Helix's log); ~scripts/test-all.sh~ runs it
 when ~HX~ is set:
@@ -254,13 +310,20 @@ Each scenario runs in a Zed of its own, on an X display of its own
 (~ZED_ORG_GRAMMAR~, an ~org.wasm~; or ~ZED_TREE_SITTER_ORG~, a checkout of
 tree-sitter-org, and ~WASI_SDK~ to build it), and the tasks and the keymap
 of [[file:keys/zed.org::#keys-through-tasks][keys through tasks]].
-The adapter presses with ~xdotool~ the key ~keymap.json~ binds to the step's
-command (a task, which reaches the server through its command port); a
-command with no key in Zed (~editors.zed~ in the exceptions) runs from the
-code actions (~ctrl-.~). It clicks the buttons of a question, answers typed
-text with a rename at the cursor (~F2~), goes to a line with ~ctrl-g~ and
-opens a file with Zed's command line. A key that takes a count is pressed
-that many times, as Zed gives a key none. Zed opens a file a server's edit
+Every step is typed in Zed's window with ~xdotool~, as a user types it.
+The adapter presses the key ~keymap.json~ binds to the step's command (a
+task, which reaches the server through its command port, or Zed's own
+~workspace::SaveAll~ for the agenda's save, after which the files are
+checked on disk); a command with no key in Zed (~editors.zed~ in the
+exceptions) runs from the code actions (~ctrl-.~, down to the action,
+~RET~). It clicks the buttons of a question with the mouse (Zed's
+notifications take no keys), answers typed text with a rename at the
+cursor (~F2~, the answer typed), goes to a line with ~ctrl-g~ and opens a
+file, or goes back to the agenda, with the file finder (~ctrl-p~, the
+file's name typed, ~RET~). A key that takes a count is pressed that many
+times, as Zed gives a key none. One key is the adapter's own, bound to
+Zed's ~workspace::ClearAllNotifications~: the messages it clears would
+cover a question's buttons. Zed opens a file a server's edit
 changes when no tab shows it, and takes the focus to what it is asked to
 show without it (follow mode): the adapter goes back to where it was, as a
 user does. What Zed has open, the text of its buffers and where its cursor
@@ -268,13 +331,19 @@ is come from what it tells the server, which ~editors/zed/test/proxy.py~
 writes down; the current buffer is the window's title. ~snapshots.zed~ in
 the exceptions names what Zed shows otherwise as ~NAME STEP KIND~, and the
 steps it cannot take as ~NAME STEP~; ~scenarios.zed~ the scenarios it cannot
-take at all (the date prompt, column view). Each wait has a bound: a
+take at all (the date prompt, column view). After the scenarios come
+checks of Zed's own, written as they are, with what they expect (~CHECKS~
+in ~run.py~): ~zed-capture-here~ captures with ~ctrl-c c~ in an Org file,
+whose ~%a~ links to the cursor's heading, with the agenda open too. Each
+wait has a bound: a
 request left with no answer fails the step, and a scenario fails when it
 takes more than ~ORG_LSP_ZED_BUDGET~ seconds (600), with the step and what
 it waited for. Stopped (~SIGTERM~, ~SIGINT~), the adapter closes its Zeds
 and their displays. A failure leaves a screenshot
 in ~target/zed-e2e~; ~ORG_LSP_ZED_KEEP=1~ keeps each scenario's directory,
 and ~ORG_LSP_ZED_PAUSE=1~ leaves Zed open at a failure, to look at.
+Each Zed takes the first free X display from ~ORG_LSP_ZED_DISPLAY~ (90)
+up.
 
 * Highlighting
 :PROPERTIES:

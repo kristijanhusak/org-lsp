@@ -2034,6 +2034,12 @@ An input may say more:
   (/Property [Owner]/); with ~"select": true~ there is none, and a
   completion picked with nothing typed is the answer, as completion
   frameworks take it.
+- ~"complete": "file"~ or ~"directory"~ with kind ~text~: the answer is a
+  file's or a directory's name, which the editor completes as it is typed
+  (Emacs's ~read-file-name~, ~read-directory-name~); ~"value"~ then starts
+  with the directory of the Org file, as the minibuffer starts with
+  ~default-directory~. An editor without file name completion asks as for
+  any text.
 - ~"context": { … }~: fields to send back with the answer. A TODO state
   change that records a note (~@~, or ~org-log-done~ set to ~note~) is not
   made until the note's text comes: it asks with kind ~note~ (/Note for state

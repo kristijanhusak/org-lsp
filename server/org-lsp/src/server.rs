@@ -2302,13 +2302,15 @@ fn columns_key(view: &Value, column: usize) -> &str {
 /// What a column view command asks, as `org-columns-edit-value` asks it,
 /// an input: for `id` on the `column`th column of `line` in what the view
 /// shows, `allowed` the values the column's property may take
-/// (`org-property-get-allowed-values`). None when it asks nothing.
+/// (`org-property-get-allowed-values`), `priorities` those of the file.
+/// None when it asks nothing.
 fn columns_question(
     id: &str,
     view: &Value,
     line: usize,
     column: usize,
     allowed: Option<org_core::properties::Allowed>,
+    priorities: &priority::Priorities,
 ) -> std::result::Result<Option<Value>, Refusal> {
     // The column's key, and its value on the line.
     let key = columns_key(view, column);
@@ -2326,7 +2328,8 @@ fn columns_question(
         commands::COLUMNS_EDIT if key.is_empty() => return Err("Column view is not shown yet".into()),
         commands::COLUMNS_EDIT => match key {
             "ITEM" => text("Edit: ", value),
-            "PRIORITY" => text("Priority A-C, SPC to remove: ", String::new()),
+            // `org-priority`: a key, as the priority command asks it.
+            "PRIORITY" => Some(json!({ "kind": "priority", "prompt": priority::question(priorities), "value": "" })),
             "TAGS" => text("Tags: ", value),
             "DEADLINE" | "SCHEDULED" => text("Date+time: ", String::new()),
             "TODO" | "CLOCKSUM" | "CLOCKSUM_T" => None,
@@ -3068,6 +3071,26 @@ fn table_command(id: &str) -> Option<org_core::table::Command> {
         commands::TABLE_BLANK_FIELD => Command::BlankField,
         _ => return None,
     })
+}
+
+/// Whether `C-c C-c` at `offset` is Babel's: on a source block or a
+/// `#+CALL:` line (`org-element-at-point`), or an inline source block or
+/// call (`org-element-context`).
+fn babel_at(text: &str, root: &org_syntax::SyntaxNode, offset: usize) -> bool {
+    let element = org_core::indent::Elements::new(text).at(offset);
+    if element.is_some_and(|element| matches!(element.kind, "src-block" | "babel-call")) {
+        return true;
+    }
+    let at = org_syntax::TextSize::from(offset as u32);
+    let inline = |token: Option<org_syntax::SyntaxToken>| {
+        token.is_some_and(|token| {
+            std::iter::once(token.kind()).chain(token.parent_ancestors().map(|node| node.kind())).any(|kind| {
+                matches!(kind, org_syntax::SyntaxKind::INLINE_SRC_BLOCK | org_syntax::SyntaxKind::INLINE_BABEL_CALL)
+            })
+        })
+    };
+    let tokens = org_syntax::token_at_offset(root, at);
+    inline(tokens.clone().right_biased()) || inline(tokens.left_biased())
 }
 
 fn in_src_block(root: &org_syntax::SyntaxNode, offset: usize) -> bool {
@@ -4701,13 +4724,30 @@ impl Server {
         let running = self.running.is_some();
         let in_code = in_src_block(&document.parse.syntax(), offset);
         let in_table = at_org_table(&document.text, &document.parse.syntax(), offset);
+        // `C-c C-c` on an inline source block or a `#+CALL:` line runs it
+        // too.
+        let babel = babel_at(&document.text, &document.parse.syntax(), offset);
+        // A formula the server cannot compute (Emacs Lisp) is recalculated
+        // in Emacs: the command, where no edit could be offered.
+        let recalculates = org_core::tblfm::on_formula_line(&document.text, offset)
+            && !result.iter().any(|action| {
+                matches!(action, CodeActionOrCommand::CodeAction(action)
+                    if action.kind.as_ref().is_some_and(|kind| kind.as_str() == commands::TABLE_RECALCULATE))
+            });
+        // Following a link, for a client whose go-to-definition reaches
+        // only files (Helix).
+        let on_link = more
+            && open::link_at(&document.text, &document.parse, offset, &self.link_abbreviations, &self.open_settings)
+                .is_some();
         // The agenda and capture open a document, which the client must
         // be able to show.
         let shows = self.client.show_document;
         for (id, offered) in [
             (commands::TANGLE, in_code),
             (commands::TABLE_TOGGLE_COLUMN_WIDTH, in_table),
-            (commands::BABEL_EXECUTE, in_code),
+            (commands::BABEL_EXECUTE, babel),
+            (commands::TABLE_RECALCULATE, recalculates),
+            (commands::OPEN, on_link),
             (commands::EDIT_SPECIAL, in_code),
             (commands::CLOCK_IN, in_entry),
             (commands::CLOCK_OUT, running),
@@ -4961,12 +5001,14 @@ impl Server {
     }
 
     /// The tags of every agenda file (`org-global-tags-completion-table`).
+    /// `org-global-tags-completion-table`: the tags of the agenda files and
+    /// of their `#+TAGS:` lines, or else `org-tag-alist`.
     fn agenda_tags(&mut self) -> Vec<String> {
+        let settings = self.edit_settings.tags.clone();
         let mut tags: Vec<String> = self
             .agenda_files()
             .iter()
-            .flat_map(|(_, held)| held.outline().entries.iter().flat_map(|entry| entry.tags.iter()))
-            .map(|tag| tag.name.clone())
+            .flat_map(|(_, held)| org_core::tags::global_tags(&held.outline().text, &settings))
             .collect();
         tags.sort();
         tags.dedup();
@@ -5785,6 +5827,8 @@ impl Server {
     fn run_shell_link(&self, command: &str, directory: Option<PathBuf>) {
         let sender = self.sender.clone();
         let command = command.to_string();
+        // Said as the server's other messages are (`message_notifications`).
+        let method = if self.client.message_notifications { MESSAGE } else { ShowMessage::METHOD };
         std::thread::spawn(move || {
             let ran = crate::process::shell_output(&command, directory.as_deref(), None, SHELL_OUTPUT_SIZE);
             let message = match ran {
@@ -5796,7 +5840,7 @@ impl Server {
                 Err(error) => format!("{command}: {error}"),
             };
             let params = ShowMessageParams { typ: MessageType::INFO, message };
-            let notification = Notification::new(ShowMessage::METHOD.to_string(), params);
+            let notification = Notification::new(method.to_string(), params);
             let _ = sender.send(Message::Notification(notification));
         });
     }
@@ -8816,7 +8860,7 @@ impl Server {
             seen
         };
         let Some(input) = context.and_then(|context| context.input.clone()) else {
-            return Ok(json!({ "input": { "kind": "text", "prompt": "Write agenda to file", "value": "" } }));
+            return Ok(json!({ "input": file_question("Write agenda to file", None, "file") }));
         };
         let (name, confirmed) = match context.and_then(|context| context.answers.clone()) {
             Some(name) => (name, Some(matches!(input.as_str(), "y" | "Y" | " "))),
@@ -11426,21 +11470,7 @@ impl Server {
         let uri = &context.text_document.uri;
         let Some(document) = self.document(uri).filter(|_| !self.is_view(uri)) else { return false };
         let offset = document.index.offset(&document.text, context.position, self.client.encoding);
-        let element = org_core::indent::Elements::new(&document.text).at(offset);
-        if element.is_some_and(|element| matches!(element.kind, "src-block" | "babel-call")) {
-            return true;
-        }
-        let root = document.parse.syntax();
-        let at = org_syntax::TextSize::from(offset as u32);
-        let inline = |token: Option<org_syntax::SyntaxToken>| {
-            token.is_some_and(|token| {
-                std::iter::once(token.kind()).chain(token.parent_ancestors().map(|node| node.kind())).any(|kind| {
-                    matches!(kind, org_syntax::SyntaxKind::INLINE_SRC_BLOCK | org_syntax::SyntaxKind::INLINE_BABEL_CALL)
-                })
-            })
-        };
-        let tokens = org_syntax::token_at_offset(&root, at);
-        inline(tokens.clone().right_biased()) || inline(tokens.left_biased())
+        babel_at(&document.text, &document.parse.syntax(), offset)
     }
 
     fn at_property_drawer(&self, context: &Context) -> bool {
@@ -11992,7 +12022,7 @@ impl Server {
                 match files.as_slice() {
                     [only] => Some(only.clone()),
                     [] => {
-                        return Ok(json!({ "input": { "kind": "text", "prompt": "Detangle file: ", "value": "" } }));
+                        return Ok(json!({ "input": file_question("Detangle file: ", Some(&path), "file") }));
                     }
                     _ => {
                         let dir = path.parent().unwrap_or(Path::new(""));
@@ -12363,7 +12393,10 @@ impl Server {
                     self.show_message(MessageType::ERROR, format!("{label}: {error}"));
                 }
                 (Some(EmacsJob::Export(label)), Ok(result)) => self.exported(&label, &result),
-                (Some(EmacsJob::Edit { .. }), Err(error)) => self.show_message(MessageType::ERROR, error),
+                // What Emacs refuses (`Not in table data field`) is said as
+                // the server's own refusals are, a warning: Emacs's echo
+                // area says both alike.
+                (Some(EmacsJob::Edit { .. }), Err(error)) => self.show_message(MessageType::WARNING, error),
                 (Some(EmacsJob::LatexPreview { .. }), Err(error)) => self.show_message(MessageType::ERROR, error),
                 (Some(EmacsJob::LatexPreview { uri, version, text, preview }), Ok(result)) => {
                     self.latex_previewed(&uri, version, &text, preview, &result);
@@ -12558,6 +12591,12 @@ impl Server {
     fn shrunk_after_change(&mut self, key: &str, old: &str, changed: Option<(usize, usize)>) {
         let Some(sets) = self.shrunk.remove(key) else { return };
         let Some(text) = self.documents.get(key).map(|document| document.text.clone()) else { return };
+        // The same text sent again (yegappan/lsp and vim-lsp do after
+        // opening a file): nothing changed under the columns.
+        if text == old {
+            self.shrunk.insert(key.to_string(), sets);
+            return;
+        }
         let Some((first, last)) = changed else { return };
         let before = org_core::shrink::tables(old);
         let after = org_core::shrink::tables(&text);
@@ -12752,7 +12791,8 @@ impl Server {
         let column = context.column.unwrap_or(0);
         let line = context.position.line as usize;
         let allowed = self.columns_allowed(&uri, line, columns_key(&on.view, column));
-        let answer = match columns_question(id, &on.view, line, column, allowed)? {
+        let priorities = self.edit_settings.priorities;
+        let answer = match columns_question(id, &on.view, line, column, allowed, &priorities)? {
             Some(input) => match context.input.clone() {
                 Some(answer) => Some(answer),
                 None => return Ok(json!({ "input": input })),
@@ -12895,7 +12935,11 @@ impl Server {
             return self.run_edit(commands::TODO, Some(context.clone()));
         }
         let allowed = self.columns_allowed(&uri, line, columns_key(&on.view, column));
-        let answer = match columns_question(id, &on.view, line, column, allowed)? {
+        let priorities = self
+            .document(&uri)
+            .and_then(|document| edit::document_priorities(&document.parse))
+            .unwrap_or(self.edit_settings.priorities);
+        let answer = match columns_question(id, &on.view, line, column, allowed, &priorities)? {
             Some(input) => match context.input.clone() {
                 Some(answer) => Some(answer),
                 None => return Ok(json!({ "input": input })),
@@ -13834,7 +13878,8 @@ impl Server {
             }
             commands::TABLE_IMPORT => {
                 let Some(answer) = answer else {
-                    return Ok(json!({ "input": { "kind": "text", "prompt": "Import file", "value": "" } }));
+                    let file = uri::to_path(&context.text_document.uri);
+                    return Ok(json!({ "input": file_question("Import file", file.as_deref(), "file") }));
                 };
                 // The separator found as Org finds it: tabs, commas, spaces.
                 self.emacs_run_with("org-table-import", vec![json!(answer.trim()), Value::Null], context)
@@ -13923,7 +13968,11 @@ impl Server {
             Some(file) => file,
             None => {
                 let Some(file) = answers.first().cloned() else {
-                    return Ok(ask("text", "Export table to".to_string(), "file", &answers, None));
+                    let mut asked = ask("text", "Export table to".to_string(), "file", &answers, None);
+                    let question = file_question("", uri::to_path(&uri).as_deref(), "file");
+                    asked["input"]["value"] = question["value"].clone();
+                    asked["input"]["complete"] = json!("file");
+                    return Ok(asked);
                 };
                 let directory = uri::to_path(&uri).and_then(|path| path.parent().map(Path::to_path_buf));
                 let full = directory.map_or_else(|| PathBuf::from(&file), |directory| directory.join(&file));
@@ -15366,8 +15415,7 @@ impl Server {
             })
         };
         // A file asked for, relative to the Org file's directory.
-        let ask_file =
-            |prompt: &str, value: &str| json!({ "input": { "kind": "text", "prompt": prompt, "value": value } });
+        let ask_file = |prompt: &str, value: &str| json!({ "input": { "kind": "text", "prompt": prompt, "value": value, "complete": "file" } });
         match id {
             commands::BIBTEX_EXPORT => {
                 let Some(answer) = context.input.as_deref() else {
@@ -15394,7 +15442,10 @@ impl Server {
                 return self.bibtex_outcome(context, outcome, replies);
             }
             commands::BIBTEX_IMPORT => {
-                let Some(answer) = context.input.as_deref() else { return Ok(ask_file("File", "")) };
+                let Some(answer) = context.input.as_deref() else {
+                    let question = file_question("File", uri::to_path(&uri).as_deref(), "file");
+                    return Ok(json!({ "input": question }));
+                };
                 let file = self.link_path(&uri, answer).filter(|file| file.is_file()).ok_or("[No match]")?;
                 let bib = String::from_utf8_lossy(&std::fs::read(&file).map_err(|error| error.to_string())?)
                     .replace("\r\n", "\n");
@@ -15794,7 +15845,13 @@ impl Server {
             read_file: &read,
             file_name: &file_name,
             id_known: &id_known,
-            link_types: if self.roam.is_some() { &["roam"] } else { &[] },
+            // The link types of the modules on: org-roam's, `ol-man`'s.
+            link_types: match (self.roam.is_some(), self.open_settings.man) {
+                (true, true) => &["roam", "man"],
+                (true, false) => &["roam"],
+                (false, true) => &["man"],
+                (false, false) => &[],
+            },
         };
         let encoding = self.client.encoding;
         org_core::lint::lint(text, parse, &context)
@@ -16206,11 +16263,17 @@ impl Server {
         // step.
         let answer = context.step.as_ref().and(context.input.clone());
         let ask = |prompt: &str| json!({ "input": { "kind": "text", "prompt": prompt, "value": "", "context": { "step": key } } });
+        let org_file = uri::to_path(&context.text_document.uri);
+        let ask_file = |prompt: &str, complete: &str| {
+            let mut input = file_question(prompt, org_file.as_deref(), complete);
+            input["context"] = json!({ "step": key });
+            json!({ "input": input })
+        };
         let answer = match (key.as_str(), answer) {
-            ("a" | "c" | "m" | "l" | "y", None) => return Ok(ask("File to keep as an attachment")),
+            ("a" | "c" | "m" | "l" | "y", None) => return Ok(ask_file("File to keep as an attachment", "file")),
             ("u", None) => return Ok(ask("URL of the file to attach")),
             ("n", None) => return Ok(ask("Create attachment named")),
-            ("s", None) => return Ok(ask("Attachment directory")),
+            ("s", None) => return Ok(ask_file("Attachment directory", "directory")),
             ("o" | "d", None) => {
                 // The attachments to pick from (`org-attach-file-list`).
                 let uri = &context.text_document.uri;
@@ -17131,6 +17194,19 @@ fn line_timestamp_date(text: &str, offset: usize) -> Option<Date> {
     date(&found[1], &found[2], &found[3])
 }
 
+/// A question for a file name, as `read-file-name` asks it: the answer
+/// starts with the directory of `file` (`default-directory`), and the
+/// editor completes file names, or directory names with `complete`
+/// `directory`.
+fn file_question(prompt: &str, file: Option<&Path>, complete: &str) -> Value {
+    let value = file
+        .and_then(Path::parent)
+        .filter(|directory| !directory.as_os_str().is_empty())
+        .map(|directory| format!("{}/", directory.to_string_lossy()))
+        .unwrap_or_default();
+    json!({ "kind": "text", "prompt": prompt, "value": value, "complete": complete })
+}
+
 pub(crate) fn abbreviate_path(path: &Path) -> String {
     let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")).map(PathBuf::from);
     match home.as_deref().and_then(|home| path.strip_prefix(home).ok()) {
@@ -17156,7 +17232,10 @@ mod tests {
         let allowed = |values: &[&str], unrestricted: bool| {
             Some(org_core::properties::Allowed { values: values.iter().map(|v| v.to_string()).collect(), unrestricted })
         };
-        let ask = |column, allowed| columns_question(commands::COLUMNS_EDIT, &view, 3, column, allowed).ok().flatten();
+        let priorities = priority::Priorities::default();
+        let ask = |column, allowed| {
+            columns_question(commands::COLUMNS_EDIT, &view, 3, column, allowed, &priorities).ok().flatten()
+        };
         assert_eq!(ask(2, None), Some(json!({ "kind": "text", "prompt": "Edit: ", "value": "1:00" })));
         let asked = ask(2, allowed(&["0:30", "1:00"], false)).unwrap();
         assert_eq!(asked["prompt"], "Value: ");
@@ -17167,7 +17246,11 @@ mod tests {
         assert_eq!(ask(0, None), Some(json!({ "kind": "text", "prompt": "Edit: ", "value": "Write" })));
         assert_eq!(ask(1, None), None);
         let empty = json!({ "columns": null, "lines": null });
-        assert!(columns_question(commands::COLUMNS_EDIT, &empty, 3, 0, None).is_err());
+        assert!(columns_question(commands::COLUMNS_EDIT, &empty, 3, 0, None, &priorities).is_err());
+        // The priority, one key as `org-priority` reads it.
+        let view = json!({ "columns": [{ "key": "PRIORITY" }], "lines": [[3, "", ["B"]]] });
+        let asked = columns_question(commands::COLUMNS_EDIT, &view, 3, 0, None, &priorities).unwrap().unwrap();
+        assert_eq!(asked, json!({ "kind": "priority", "prompt": "Priority A-C, SPC to remove", "value": "" }));
     }
 
     /// A `shell:` link's output: whole when short, else its start, saying

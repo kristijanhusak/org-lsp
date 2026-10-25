@@ -561,9 +561,12 @@ fn timestamp(
     let read = read_date(answer, prompt.default, now, settings)?;
     let mut out = text.to_string();
     if found.is_some() && repeated {
+        // After the timestamp, where Emacs's point is once it inserted
+        // it: an editor's cursor may be on its last character.
+        let at = Stamp::around(text, offset).map_or(offset, |stamp| stamp.end.max(offset));
         let inserted = format!("--{}", insert_timestamp(&read, inactive, false));
-        out.insert_str(offset, &inserted);
-        return Ok(Outcome { text: out, cursor: Some(offset + inserted.len()), message: None, changed: None });
+        out.insert_str(at, &inserted);
+        return Ok(Outcome { text: out, cursor: Some(at + inserted.len()), message: None, changed: None });
     }
     if found.is_some() {
         // On a timestamp; from the dashes of a range, on the one after.
@@ -607,6 +610,21 @@ mod tests {
         match outcome.cursor {
             Some(cursor) => format!("{}¦{}", &outcome.text[..cursor], &outcome.text[cursor..]),
             None => outcome.text,
+        }
+    }
+
+    /// The command again right after it: a range, from after the
+    /// timestamp, whether the cursor is after it or on its last
+    /// character.
+    #[test]
+    fn makes_a_range_when_repeated() {
+        let now = DateTime::new(Date::new(2026, 5, 18), 10, 30);
+        let range = "* A <2026-05-18 Mon>--<2026-05-20 Wed>\n";
+        for offset in ["* A <2026-05-18 Mon>".len(), "* A <2026-05-18 Mon".len()] {
+            let text = "* A <2026-05-18 Mon>\n";
+            let command = Command::Timestamp { inactive: false };
+            let outcome = run(command, text, offset, "wed", true, now, &Settings::default(), Adapt::Off).unwrap();
+            assert_eq!(outcome.text, range, "from {offset}");
         }
     }
 

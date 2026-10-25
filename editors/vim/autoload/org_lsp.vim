@@ -138,11 +138,13 @@ function! s:warn(message) abort
 endfunction
 
 " What the server says (Emacs's text, as its echo area shows it), in the
-" look of its `type`: 1 an error, 2 a warning, else a message.
+" look of its `type`: 1 an error, 2 a warning, else a message. Shown and
+" kept in the messages even when it comes while a client does something
+" silently.
 function! s:say(message, type) abort
   execute 'echohl' get({1: 'ErrorMsg', 2: 'WarningMsg'}, a:type, 'None')
   for line in split(a:message, "\n")
-    echomsg line
+    unsilent echomsg line
   endfor
   echohl None
 endfunction
@@ -536,7 +538,9 @@ function! s:executed(bufnr, name, context, opts, error, result) abort
     call org_lsp#save(result.save)
   endif
   if type(get(result, 'message', 0)) == v:t_string
-    echomsg result.message
+    " Shown and kept in the messages, though the answer comes while a
+    " client does something silently (coc.nvim opening a file it edits).
+    unsilent echomsg result.message
   endif
   if type(get(result, 'close', 0)) == v:t_string
     call org_lsp#close(result.close)
@@ -680,9 +684,9 @@ function! org_lsp#cancel_input() abort
   return ''
 endfunction
 
-" Text typed for a command (`{prompt, value, completions}`), completed from
-" the list when there is one (Emacs's `completing-read`); v:null when
-" cancelled with <Esc> or CTRL-C.
+" Text typed for a command (`{prompt, value, completions, complete}`),
+" completed from the list when there is one (Emacs's `completing-read`), or
+" as a file name; v:null when cancelled with <Esc> or CTRL-C.
 function! org_lsp#read_text(input) abort
   let s:completions = get(a:input, 'completions', [])
   let s:separator = get(a:input, 'separator', '')
@@ -692,8 +696,10 @@ function! org_lsp#read_text(input) abort
   cnoremap <Esc> <C-\>eorg_lsp#cancel_input()<CR><CR>
   let s:cancelled = 0
   try
-    let answer = input(org_lsp#prompt_text(a:input.prompt), get(a:input, 'value', ''),
+    " A file's or a directory's name (`read-file-name`): Vim completes it.
+    let complete = get({'file': 'file', 'directory': 'dir'}, get(a:input, 'complete', ''),
           \ 'customlist,org_lsp#complete_input')
+    let answer = input(org_lsp#prompt_text(a:input.prompt), get(a:input, 'value', ''), complete)
   catch /^Vim:Interrupt$/
     let s:cancelled = 1
   finally
@@ -770,21 +776,30 @@ function! org_lsp#getkey() abort
 endfunction
 
 function! org_lsp#read_key(prompt, choices, ...) abort
+  " With a third argument, the prompt as it is.
+  let text = a:0 > 0 && a:1 ? a:prompt : org_lsp#prompt_text(a:prompt)
+  " A prompt of more lines (`expert`'s keys under it, the formula
+  " debugger's history above its question) has a command line as high while
+  " it waits, as Emacs's echo area grows, not Vim's hit-enter prompt.
+  let height = &cmdheight
+  let &cmdheight = max([height, len(split(text, "\n", 1))])
   let popup = 0
   if !empty(a:choices) && exists('*popup_create')
     let lines = map(copy(a:choices), {_, c -> org_lsp#choice_line(c)})
+    " Over the command line, the question its title.
     let popup = popup_create(lines, {
           \ 'line': &lines - &cmdheight - len(lines) - 1, 'col': 1,
-          \ 'border': [], 'title': ' ' . a:prompt . ' ', 'zindex': 300,
+          \ 'border': [], 'title': ' ' . get(split(a:prompt, "\n"), -1, '') . ' ', 'zindex': 300,
           \ })
   endif
-  " With a third argument, the prompt as it is.
-  echo a:0 > 0 && a:1 ? a:prompt : org_lsp#prompt_text(a:prompt)
+  echo text
   redraw
   try
     let key = org_lsp#getkey()
   catch /^Vim:Interrupt$/
     let key = "\<Esc>"
+  finally
+    let &cmdheight = height
   endtry
   if popup
     call popup_close(popup)
@@ -860,8 +875,10 @@ function! org_lsp#insert_key(index) abort
   let [nr, context] = s:cursor_context()
   let position = getcurpos()
   let answer = org_lsp#request_sync(nr, 'workspace/executeCommand', {'command': entry.name, 'arguments': [context]}, 1000)
-  " While it waits, coc.nvim moves the cursor a column to the left.
-  if getcurpos() != position
+  " While it waits, coc.nvim moves the cursor a column to the left; a link
+  " followed meanwhile (`org_return_follows_link`) takes it to another line,
+  " where it stays.
+  if getcurpos() != position && getcurpos()[1] == position[1]
     call setpos('.', position)
   endif
   let result = get(answer, 'result', v:null)
@@ -1073,13 +1090,17 @@ function! s:map_lhs(key) abort
 endfunction
 
 " The keys as a terminal sends them too: CTRL-Space comes as NUL, which
-" Vim reads as `<C-@>` (Neovim as `<C-Space>`).
+" Vim reads as `<C-@>` (Neovim as `<C-Space>`), and Alt with a character
+" (`<M-m>`) as <Esc> then the character, as tmux and most terminals send
+" it, which Vim reads as two keys.
 function! s:with_terminal_keys(list) abort
   if has('gui_running')
     return a:list
   endif
   let terminal = map(filter(copy(a:list), {_, lhs -> lhs =~? '<C-Space>'}),
         \ {_, lhs -> substitute(lhs, '\c<C-Space>', '<C-@>', 'g')})
+  let terminal += map(filter(copy(a:list), {_, lhs -> lhs =~? '^<[MA]-[^<>]>$'}),
+        \ {_, lhs -> '<Esc>' . lhs[3]})
   return a:list + terminal
 endfunction
 
@@ -2665,6 +2686,7 @@ let s:vim_groups = {
       \ '@punctuation.special': 'Delimiter',
       \ '@markup.strong': 'OrgLspBold', '@markup.italic': 'OrgLspItalic',
       \ '@markup.underline': 'OrgLspUnderline', '@markup.strikethrough': 'OrgLspStrikethrough',
+      \ '@markup.quote': 'OrgLspItalic',
       \ 'DiagnosticError': 'WarningMsg', 'DiagnosticWarn': 'Statement', 'DiagnosticOk': 'MoreMsg',
       \ }
 
@@ -2971,12 +2993,14 @@ function! org_lsp#attach() abort
   endif
   let b:org_lsp_attached = 1
   let nr = bufnr()
+  " The agenda and the calendar are the server's to write: typing in them
+  " changes nothing, as in Emacs's read-only buffers.
   if &filetype ==# get(org_lsp#manifest().agenda, 'languageId', 'org-agenda')
-    setlocal autoread readonly noswapfile bufhidden=hide nowrap nonumber norelativenumber nofoldenable
+    setlocal autoread readonly nomodifiable noswapfile bufhidden=hide nowrap nonumber norelativenumber nofoldenable
     call org_lsp#set_keys('agenda')
   elseif &filetype ==# get(get(org_lsp#manifest(), 'datePrompt', {}), 'languageId', 'org-date')
     " A calendar to move about in, never to type into.
-    setlocal autoread readonly noswapfile bufhidden=wipe nowrap nonumber norelativenumber
+    setlocal autoread readonly nomodifiable noswapfile bufhidden=wipe nowrap nonumber norelativenumber
           \ nofoldenable nolist signcolumn=no scrolloff=0 sidescrolloff=0 winfixheight
     call org_lsp#set_keys('calendar')
   else

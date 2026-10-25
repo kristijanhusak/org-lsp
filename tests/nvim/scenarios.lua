@@ -9,6 +9,19 @@
 -- (server/org-lsp/tests/e2e_scenarios.rs, tests/e2e/expected/NAME.txt).
 -- A command with no key in Neovim fails, unless tests/e2e/exceptions.json
 -- says why under `editors.nvim`.
+--
+--   nvim --headless -u NONE -l tests/nvim/scenarios.lua --typed [NAME…]
+--
+-- runs them typed instead, as a user meets them: each in Neovim's own
+-- terminal UI in tmux, nothing replaced, 'updatetime' short so that
+-- `CursorHold` comes between keys. That Neovim plays the scenario on
+-- timers and writes down the keys of each step, and the answer to what
+-- the screen asks: a key at a key prompt, text in the command line, the
+-- number of a choice that the list shows. This runner types them through
+-- `tmux send-keys`, a key at a time, and presses Enter at a hit-enter
+-- prompt, as a user does. Neovim's own typed checks are with them, in
+-- tests/nvim/typed/NAME.json: steps that may type `keys` as they are, and
+-- look for text on the `screen`.
 
 local root = vim.fs.dirname(vim.fs.dirname(vim.fs.dirname(vim.fs.abspath(debug.getinfo(1, 'S').source:sub(2)))))
 local server = os.getenv('ORG_LSP_BIN') or vim.fs.joinpath(root, 'target', 'debug', 'org-lsp')
@@ -32,6 +45,151 @@ end
 -- ----- running every scenario
 
 local names = _G.arg or {}
+local typed_run = names[1] == '--typed'
+if typed_run then
+  table.remove(names, 1)
+end
+-- The scenario this Neovim plays typed, in tmux.
+local typed = os.getenv('ORG_LSP_TYPED')
+if typed then
+  names = { typed }
+end
+local tmux = { 'tmux', '-L', 'org-lsp-typed', '-f', '/dev/null' }
+
+-- ----- typing them, each in a terminal of its own
+
+if typed_run then
+  if #names == 0 then
+    for _, directory in ipairs({ vim.fs.joinpath(e2e, 'scenarios'), vim.fs.joinpath(root, 'tests', 'nvim', 'typed') }) do
+      for name, kind in vim.fs.dir(directory) do
+        if kind == 'file' and name:match('%.json$') then
+          table.insert(names, (name:gsub('%.json$', '')))
+        end
+      end
+    end
+    table.sort(names)
+  end
+  local jobs = tonumber(os.getenv('ORG_LSP_E2E_JOBS') or '') or 4
+  local timeout = tonumber(os.getenv('ORG_LSP_TYPED_TIMEOUT') or '') or 120
+  local script = vim.fs.abspath(debug.getinfo(1, 'S').source:sub(2))
+  local running, failed, done, next_index = {}, {}, 0, 1
+  local started = vim.uv.hrtime()
+  local function start(name)
+    local session = ('ntyped-%d-%s'):format(vim.uv.os_getpid(), name)
+    local home = vim.fn.tempname()
+    local result = home .. '/result'
+    vim.fn.mkdir(home, 'p')
+    -- This environment (tmux's server may have been started from another),
+    -- but the terminal's own, and a home of its own: no configuration,
+    -- history or swap files of the machine's.
+    local env = { 'env' }
+    for key, value in pairs(vim.fn.environ()) do
+      if not vim.tbl_contains({ 'TERM', 'COLORTERM', 'TMUX', 'TMUX_PANE', 'NVIM' }, key) then
+        table.insert(env, key .. '=' .. value)
+      end
+    end
+    vim.list_extend(env, { 'ORG_LSP_TYPED=' .. name, 'ORG_LSP_TYPED_RESULT=' .. result, 'ORG_LSP_TYPED_SESSION=' .. session })
+    for _, xdg in ipairs({ 'CONFIG', 'DATA', 'STATE', 'CACHE' }) do
+      table.insert(env, ('XDG_%s_HOME=%s/%s'):format(xdg, home, xdg:lower()))
+    end
+    local command = vim.list_extend(vim.list_extend(vim.deepcopy(tmux), { 'new-session', '-d', '-s', session, '-x', '80', '-y', '24' }), env)
+    vim.list_extend(command, { vim.v.progpath, '-u', 'NONE', '-S', script })
+    local out = vim.system(command, { text = true }):wait()
+    if out.code ~= 0 then
+      error('tmux: ' .. (out.stderr or ''))
+    end
+    running[name] = { session = session, result = result, since = vim.uv.hrtime(), typed = 0 }
+  end
+  --- Type what the scenario asks to have typed, a key at a time, as fast
+  --- as a quick typist.
+  local function type_asked(job)
+    local path = ('%s.keys.%d'):format(job.result, job.typed + 1)
+    if not vim.uv.fs_stat(path) then
+      return
+    end
+    job.typed = job.typed + 1
+    local first = true
+    for _, part in ipairs(vim.json.decode(read(path))) do
+      for _, key in ipairs(part.text and vim.fn.split(part.text, '\\zs') or { part.key }) do
+        if not first then
+          vim.wait(30)
+        end
+        first = false
+        local command = vim.list_extend(vim.deepcopy(tmux), { 'send-keys', '-t', job.session })
+        if part.text then
+          -- A character by its bytes: tmux takes a `;` as the end of its
+          -- command, even after `-l`.
+          table.insert(command, '-H')
+          for byte = 1, #key do
+            table.insert(command, ('%02x'):format(key:byte(byte)))
+          end
+        else
+          table.insert(command, key)
+        end
+        vim.system(command):wait()
+      end
+    end
+  end
+  --- Press Enter at a hit-enter prompt (a message longer than the echo
+  --- area), as a user does; while it shows, the scenario cannot go on.
+  --- How many times is written for the scenario to see, which fails when
+  --- one came before what was asked could be answered.
+  local function enter_if_asked(job)
+    local now = vim.uv.hrtime()
+    if now - (job.looked or 0) < 300e6 then
+      return
+    end
+    job.looked = now
+    local out = vim.system(vim.list_extend(vim.deepcopy(tmux), { 'capture-pane', '-p', '-t', job.session }), { text = true }):wait()
+    local lines = vim.split(vim.trim(out.stdout or ''), '\n')
+    if lines[#lines] and lines[#lines]:match('^Press ENTER or type command to continue') then
+      vim.system(vim.list_extend(vim.deepcopy(tmux), { 'send-keys', '-t', job.session, 'Enter' })):wait()
+      job.enters = (job.enters or 0) + 1
+      local file = assert(io.open(job.result .. '.enters.part', 'wb'))
+      file:write(tostring(job.enters))
+      file:close()
+      vim.uv.fs_rename(job.result .. '.enters.part', job.result .. '.enters')
+    end
+  end
+  local function finish(name, text)
+    local session = running[name].session
+    if not text then
+      local screen = vim.system(vim.list_extend(vim.deepcopy(tmux), { 'capture-pane', '-p', '-t', session }), { text = true }):wait()
+      local log = vim.uv.fs_stat(running[name].result .. '.log') and vim.split(read(running[name].result .. '.log'), '\n') or {}
+      text = ('FAIL: no result after %d s; what it did last:\n%s\nthe screen:\n%s'):format(timeout, table.concat(vim.list_slice(log, math.max(1, #log - 30)), '\n'), screen.stdout or '')
+    end
+    vim.system(vim.list_extend(vim.deepcopy(tmux), { 'kill-session', '-t', session }), { text = true }):wait()
+    running[name] = nil
+    done = done + 1
+    if text:match('^ok') then
+      io.stdout:write(('ok   %s%s\n'):format(name, (text:sub(3)):gsub('\n$', '')))
+    else
+      table.insert(failed, name)
+      io.stdout:write(('FAIL %s (typed)\n%s\n'):format(name, text))
+    end
+  end
+  while done < #names do
+    while next_index <= #names and vim.tbl_count(running) < jobs do
+      start(names[next_index])
+      next_index = next_index + 1
+    end
+    vim.wait(10)
+    for name, job in pairs(running) do
+      type_asked(job)
+      enter_if_asked(job)
+      if vim.uv.fs_stat(job.result) then
+        -- (The result is written whole, then renamed.)
+        finish(name, read(job.result))
+      elseif (vim.uv.hrtime() - job.since) / 1e9 > timeout then
+        finish(name, nil)
+      end
+    end
+  end
+  io.stdout:write(('%d scenarios typed, %d failed, %.1f s\n'):format(#names, #failed, (vim.uv.hrtime() - started) / 1e9))
+  vim.cmd(#failed > 0 and 'cquit 1' or 'qall!')
+  return
+end
+
 if #names == 0 then
   local all = {}
   for name, kind in vim.fs.dir(vim.fs.joinpath(e2e, 'scenarios')) do
@@ -72,19 +230,42 @@ end
 
 -- ----- one scenario
 
+--- The end of a typed scenario: what it gives the runner, then Neovim
+--- quits.
+local function typed_result(text)
+  local path = os.getenv('ORG_LSP_TYPED_RESULT')
+  local out = assert(io.open(path .. '.part', 'wb'))
+  out:write(text)
+  out:close()
+  vim.uv.fs_rename(path .. '.part', path)
+  vim.cmd('qall!')
+end
+
 local function fail(message)
+  if typed then
+    -- Out of the scenario, which `typed_result` ends.
+    error({ failed = message }, 0)
+  end
   io.stderr:write(('FAIL: %s\n'):format(message))
   vim.cmd('cquit 1')
 end
 
 local name = names[1]
-local spec = json(vim.fs.joinpath(e2e, 'scenarios', name .. '.json'))
+-- Neovim's own typed checks, of what a scenario does not see: the screen.
+local own = vim.fs.joinpath(root, 'tests', 'nvim', 'typed', name .. '.json')
+local spec = json(typed and vim.uv.fs_stat(own) and own or vim.fs.joinpath(e2e, 'scenarios', name .. '.json'))
 local exceptions = json(vim.fs.joinpath(e2e, 'exceptions.json'))
 local excepted = vim.tbl_get(exceptions, 'editors', 'nvim') or {}
 
 if spec.emacs and not emacs_found() then
   if os.getenv('ORG_LSP_REQUIRE_EMACS') then
+    if typed then
+      return typed_result('FAIL: Emacs is required but not found\n')
+    end
     fail('Emacs is required but not found')
+  end
+  if typed then
+    return typed_result('ok (no Emacs, skipped)\n')
   end
   io.stdout:write(' (no Emacs, skipped)\n')
   vim.cmd('qall!')
@@ -146,19 +327,32 @@ if spec.emacs then
 end
 
 vim.g.org_lsp = { cmd = { server }, settings = settings }
--- The echo area is not looked at: what a script would print of it is
--- noise.
-vim.o.showmode = false
-vim.api.nvim_echo = function() end
+if typed then
+  -- `CursorHold` and the like between the keys, as a user who types
+  -- slower than that meets them.
+  vim.o.updatetime = 100
+else
+  -- The echo area is not looked at: what a script would print of it is
+  -- noise.
+  vim.o.showmode = false
+  vim.api.nvim_echo = function() end
+end
 vim.opt.runtimepath:prepend(root)
 vim.cmd('filetype plugin on')
 vim.cmd('runtime plugin/org-lsp.lua')
 local plugin = require('org-lsp')
 
--- What the server said, as the user sees it: notifications.
+-- What the server said, as the user sees it: notifications, which a
+-- typed scenario still shows.
 local messages = {}
-vim.notify = function(message)
-  table.insert(messages, tostring(message))
+do
+  local show = vim.notify
+  vim.notify = function(message, ...)
+    table.insert(messages, tostring(message))
+    if typed then
+      return show(message, ...)
+    end
+  end
 end
 
 -- What is asked is answered from the step's answers, in turn: keys,
@@ -170,37 +364,40 @@ local function next_answer(prompt)
   end
   return table.remove(answers, 1)
 end
-plugin.read_key = function(prompt)
-  local answer = next_answer(prompt)
-  return answer
-end
-vim.ui.input = function(opts, on_confirm)
-  local answer = next_answer(opts.prompt)
-  vim.schedule(function()
-    on_confirm(answer)
-  end)
-end
-vim.ui.select = function(items, opts, on_choice)
-  local answer = next_answer(opts.prompt)
-  local label = type(answer) == 'table' and answer.choice or answer
-  local format = opts.format_item or tostring
-  local picked
-  for _, item in ipairs(items) do
-    if format(item) == label then
-      picked = picked or item
+-- (A typed scenario types them.)
+if not typed then
+  plugin.read_key = function(prompt)
+    local answer = next_answer(prompt)
+    return answer
+  end
+  vim.ui.input = function(opts, on_confirm)
+    local answer = next_answer(opts.prompt)
+    vim.schedule(function()
+      on_confirm(answer)
+    end)
+  end
+  vim.ui.select = function(items, opts, on_choice)
+    local answer = next_answer(opts.prompt)
+    local label = type(answer) == 'table' and answer.choice or answer
+    local format = opts.format_item or tostring
+    local picked
+    for _, item in ipairs(items) do
+      if format(item) == label then
+        picked = picked or item
+      end
     end
-  end
-  for _, item in ipairs(items) do
-    if not picked and format(item):find(label, 1, true) then
-      picked = item
+    for _, item in ipairs(items) do
+      if not picked and format(item):find(label, 1, true) then
+        picked = item
+      end
     end
+    if not picked then
+      fail(('no choice `%s` in %s'):format(label, vim.inspect(vim.tbl_map(format, items))))
+    end
+    vim.schedule(function()
+      on_choice(picked)
+    end)
   end
-  if not picked then
-    fail(('no choice `%s` in %s'):format(label, vim.inspect(vim.tbl_map(format, items))))
-  end
-  vim.schedule(function()
-    on_choice(picked)
-  end)
 end
 
 -- What column view shows, as the server says it.
@@ -218,6 +415,34 @@ local function client()
   return vim.lsp.get_clients({ name = 'org_lsp' })[1]
 end
 
+--- Wait `ms`. A typed scenario runs in a coroutine, and Neovim goes on
+--- meanwhile, reading what is typed.
+local function sleep(ms)
+  if not typed then
+    return vim.wait(ms)
+  end
+  local co = coroutine.running()
+  vim.defer_fn(function()
+    _G.org_lsp_typed_resume(co)
+  end, ms)
+  coroutine.yield()
+end
+
+--- Wait until `condition` holds, at most `timeout` ms.
+local function wait_until(condition, timeout, interval)
+  if not typed then
+    return vim.wait(timeout, condition, interval)
+  end
+  local deadline = vim.uv.hrtime() + timeout * 1e6
+  while not condition() do
+    if vim.uv.hrtime() > deadline then
+      return false
+    end
+    sleep(interval or 10)
+  end
+  return true
+end
+
 --- Wait until the server has handled everything, and the plugin has done
 --- what it asked: nothing changes any more between two round trips.
 local function settle()
@@ -230,17 +455,21 @@ local function settle()
         lsp:request('org-lsp/test-sync', vim.NIL, function()
           done = true
         end)
-        vim.wait(5000, function()
+        wait_until(function()
           return done
-        end, 2)
+        end, 5000, 2)
       end
     end
-    vim.wait(20)
+    -- (What the plugin does a moment later, too, when typed.)
+    sleep(typed and 60 or 20)
     local pending = false
     for _, request in pairs(lsp and lsp.requests or {}) do
       pending = pending or request.type == 'pending'
     end
     local state = { vim.api.nvim_get_current_buf(), vim.api.nvim_win_get_cursor(0), #messages, vim.fn.mode() }
+    if typed then
+      vim.list_extend(state, { vim.fn.mode(1), vim.fn.getcmdline(), #vim.api.nvim_list_wins() })
+    end
     for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
       table.insert(state, vim.api.nvim_buf_is_loaded(bufnr) and vim.api.nvim_buf_get_changedtick(bufnr) or -1)
     end
@@ -369,7 +598,8 @@ end
 local expected = {}
 do
   local current
-  for line in (read(vim.fs.joinpath(e2e, 'expected', name .. '.txt'))):gmatch('([^\n]*)\n') do
+  local path = vim.fs.joinpath(e2e, 'expected', name .. '.txt')
+  for line in (vim.uv.fs_stat(path) and read(path) or ''):gmatch('([^\n]*)\n') do
     local step, kind = line:match('^=== (%d+) (.+)$')
     if step then
       current = step .. ' ' .. kind
@@ -406,17 +636,17 @@ local function place(step)
 end
 
 local function wait_for_attach()
-  vim.wait(10000, function()
+  wait_until(function()
     local lsp = vim.lsp.get_clients({ bufnr = 0, name = 'org_lsp' })[1]
     return lsp ~= nil and lsp.initialized and plugin.manifest ~= nil
-  end, 10)
+  end, 10000, 10)
 end
 
 -- What the plugin asked of insert mode: a script never returns to the
 -- main loop, where insert mode would start, so typing goes where it was
 -- asked to start.
 local insert_at_end
-do
+if not typed then
   local command = vim.cmd
   vim.cmd = setmetatable({}, {
     __index = command,
@@ -433,6 +663,8 @@ do
     return startinsert(opts)
   end)
 end
+
+local check
 
 local function run_step(index, step)
   if step.open then
@@ -511,6 +743,11 @@ local function run_step(index, step)
       fail(('step %d: %s did not ask for %s'):format(index, step.command, vim.inspect(answers)))
     end
   end
+  check(index, step)
+end
+
+--- The step's snapshots, as they are expected.
+function check(index, step)
   for _, kind in ipairs(step.expect or {}) do
     local want = expected[index .. ' ' .. kind]
     if not want then
@@ -520,14 +757,14 @@ local function run_step(index, step)
     -- What comes later than the server's last answer (a window that
     -- closes) is given a moment more.
     local got
-    vim.wait(3000, function()
+    wait_until(function()
       got = snapshot(kind):gsub(vim.pesc(directory), '$DIR')
       if got == want_text then
         return true
       end
       settle()
       return false
-    end, 50)
+    end, 3000, 50)
     if got ~= want_text then
       fail(('%s step %d %s:\n--- expected\n%s--- actual\n%s'):format(name, index, kind, want_text, got))
     end
@@ -537,7 +774,322 @@ local function run_step(index, step)
   end
 end
 
-for index, step in ipairs(spec.steps) do
-  run_step(index, step)
+if not typed then
+  for index, step in ipairs(spec.steps) do
+    run_step(index, step)
+  end
+  vim.cmd('qall!')
+  return
 end
-vim.cmd('qall!')
+
+-- ----- one scenario, typed
+
+local session = os.getenv('ORG_LSP_TYPED_SESSION')
+
+--- What the scenario does and what Neovim reads, for the runner to show
+--- when it is stuck, and with a failure.
+local traced = {}
+local trace_file = assert(io.open(os.getenv('ORG_LSP_TYPED_RESULT') .. '.log', 'w'))
+local function trace(text)
+  table.insert(traced, text)
+  trace_file:write(text, '\n')
+  trace_file:flush()
+end
+
+-- Every key Neovim has read, as it was typed.
+local seen = ''
+vim.on_key(function(key, keys)
+  seen = seen .. (keys or '')
+  trace(('  read %s (%s) in mode %s'):format(vim.fn.keytrans(keys or ''), vim.fn.keytrans(key), vim.fn.mode(1)))
+end)
+
+--- What the terminal shows. (Not by `vim.system():wait()`, which a
+--- `<C-c>` typed meanwhile interrupts.)
+local function screen()
+  local command = vim.tbl_map(vim.fn.shellescape, vim.list_extend(vim.deepcopy(tmux), { 'capture-pane', '-p', '-t', session }))
+  local pipe = assert(io.popen(table.concat(command, ' ')))
+  local text = pipe:read('*a')
+  pipe:close()
+  return text
+end
+
+-- Keys of Vim's notation as tmux names them, and those typed as
+-- characters.
+local tmux_names = {
+  cr = 'Enter',
+  enter = 'Enter',
+  ['return'] = 'Enter',
+  esc = 'Escape',
+  tab = 'Tab',
+  space = 'Space',
+  bs = 'BSpace',
+  up = 'Up',
+  down = 'Down',
+  left = 'Left',
+  right = 'Right',
+  home = 'Home',
+  ['end'] = 'End',
+  pageup = 'PPage',
+  pagedown = 'NPage',
+  del = 'DC',
+  insert = 'IC',
+}
+local characters = { lt = '<', bslash = '\\', bar = '|', leader = vim.g.mapleader or '\\', localleader = vim.g.maplocalleader or '\\' }
+
+--- `keys` (Vim's notation) as what tmux sends: text, and keys by name.
+local function tmux_keys(keys)
+  local out, i = {}, 1
+  local function text(chars)
+    local last = out[#out]
+    if last and last.text then
+      last.text = last.text .. chars
+    else
+      table.insert(out, { text = chars })
+    end
+  end
+  while i <= #keys do
+    local token = keys:match('^<([^<>]+)>', i)
+    local modifiers, key = (token or ''):match('^(.-)([^-]+)$')
+    local lower = key and key:lower()
+    if token and modifiers == '' and characters[lower] then
+      text(characters[lower])
+    elseif token and (tmux_names[lower] or lower:match('^f%d+$') or #key == 1) then
+      local base = tmux_names[lower] or (lower:match('^f%d+$') and key:upper()) or key
+      modifiers = modifiers:upper():gsub('A%-', 'M-')
+      if modifiers == 'S-' and base == 'Tab' then
+        modifiers, base = '', 'BTab'
+      end
+      table.insert(out, { key = modifiers .. base })
+    else
+      token = nil
+      local length = vim.str_utf_end(keys, i) + 1
+      text(keys:sub(i, i + length - 1))
+      i = i + length
+    end
+    if token then
+      i = i + #token + 2
+    end
+  end
+  return out
+end
+
+--- Text as Vim's notation writes it.
+local function literal(text)
+  return (text:gsub('<', '<lt>'))
+end
+
+local typed_count = 0
+
+--- Type `keys` (Vim's notation) in the terminal, and wait until Neovim has
+--- read them.
+local function type_keys(keys)
+  trace('type ' .. keys)
+  local want = #vim.keycode(keys)
+  local before = #seen
+  -- The runner types them, from outside: this Neovim does nothing
+  -- meanwhile but read them. (Its own timers would not do: what is
+  -- scheduled waits while the keys typed so far may start a mapping.)
+  typed_count = typed_count + 1
+  local path = ('%s.keys.%d'):format(os.getenv('ORG_LSP_TYPED_RESULT'), typed_count)
+  local out = assert(io.open(path .. '.part', 'wb'))
+  out:write(vim.json.encode(tmux_keys(keys)))
+  out:close()
+  vim.uv.fs_rename(path .. '.part', path)
+  if not wait_until(function()
+    return #seen - before >= want
+  end, 10000, 10) then
+    fail(('`%s` was typed, and Neovim read %s'):format(keys, vim.inspect(seen:sub(before + 1))))
+  end
+end
+
+--- How many hit-enter prompts the runner has pressed Enter at.
+local function enters()
+  local file = io.open(os.getenv('ORG_LSP_TYPED_RESULT') .. '.enters', 'rb')
+  if not file then
+    return 0
+  end
+  local count = tonumber(file:read('*a')) or 0
+  file:close()
+  return count
+end
+
+--- Out of insert mode, or the command line, to normal mode.
+local function to_normal()
+  local mode = vim.fn.mode(1)
+  if mode:match('^r') then
+    fail(('a hit-enter prompt is open:\n%s'):format(screen()))
+  end
+  if mode ~= 'n' then
+    type_keys('<C-\\><C-n>')
+    settle()
+  end
+end
+
+--- An Ex command, typed.
+local function ex(command)
+  to_normal()
+  type_keys(':' .. literal(command) .. '<CR>')
+  settle()
+end
+
+--- Answer what is asked as a user does, by what the screen shows.
+local function answer(index, value)
+  local mode = vim.fn.mode(1)
+  if type(value) == 'table' then
+    -- A list of choices (`inputlist()`): the number of the one wanted.
+    local lines = vim.split(screen(), '\n')
+    local number
+    for _, exact in ipairs({ true, false }) do
+      for _, line in ipairs(lines) do
+        local n, label = line:match('^(%d+): (.-)%s*$')
+        if n and not number and (label == value.choice or (not exact and label:find(value.choice, 1, true))) then
+          number = n
+        end
+      end
+    end
+    if not number then
+      fail(('step %d: no choice `%s` on the screen:\n%s'):format(index, value.choice, table.concat(lines, '\n')))
+    end
+    type_keys(number .. '<CR>')
+  elseif mode == 'c' then
+    -- Text in the command line, where a default may be.
+    type_keys('<C-u>' .. literal(value) .. '<CR>')
+  elseif plugin.manifest.datePrompt and vim.bo.filetype == plugin.manifest.datePrompt.languageId then
+    -- A date is typed in the calendar's minibuffer.
+    type_keys(assert(key_of('org.calendar.type'), 'no key for org.calendar.type'))
+    settle()
+    if vim.fn.mode(1) ~= 'c' then
+      fail(('step %d: the calendar asks for no date to type:\n%s'):format(index, screen()))
+    end
+    type_keys('<C-u>' .. literal(value) .. '<CR>')
+  else
+    -- A key.
+    type_keys(literal(value))
+  end
+  settle()
+end
+
+local function run_typed_step(index, step)
+  trace(('step %d %s'):format(index, vim.json.encode(step)))
+  if step.open then
+    ex('edit ' .. vim.fn.fnameescape(vim.fs.joinpath(directory, step.open)))
+    wait_for_attach()
+    settle()
+  end
+  if step.focus then
+    local bufnr = step.focus == 'agenda' and buffer_of(agenda) or buffer_of(vim.uri_from_fname(vim.fs.joinpath(directory, step.focus)))
+    if not bufnr then
+      fail(('step %d: no buffer %s to go to'):format(index, step.focus))
+    end
+    local win = vim.fn.win_findbuf(bufnr)[1]
+    ex(win and ('%dwincmd w'):format(vim.fn.win_id2win(win)) or ('buffer %d'):format(bufnr))
+  end
+  if step.close then
+    local quit = key_of('quit')
+    if not quit then
+      fail(('step %d: no key to close %s'):format(index, name_of(0)))
+    end
+    to_normal()
+    type_keys(quit)
+    settle()
+  end
+  local row, column
+  if step.line then
+    row, column = step.line, step.column or 0
+  elseif step.at then
+    for number, text in ipairs(vim.api.nvim_buf_get_lines(0, 0, -1, false)) do
+      local at = text:find(step.at, 1, true)
+      if at then
+        row, column = number, at - 1 + (step.column or 0)
+        break
+      end
+    end
+    if not row then
+      fail(('`%s` is not in %s'):format(step.at, name_of(0)))
+    end
+  end
+  if row then
+    ex(('call cursor(%d, %d)'):format(row, column + 1))
+  end
+  if step.keys then
+    -- Keys as they are, wherever they go.
+    type_keys(step.keys)
+    settle()
+  end
+  if step.type then
+    if not vim.fn.mode():match('^[iR]') then
+      to_normal()
+      type_keys('i')
+    end
+    type_keys((literal(step.type):gsub('\n', '<CR>')))
+    settle()
+  end
+  if step.command then
+    local key = key_of(step.command)
+    if not key and not excepted[step.command] then
+      fail(('step %d: %s has no key in Neovim here (%s)'):format(index, step.command, table.concat(scopes(), ', ')))
+    end
+    if step.wait == 'columns' then
+      columns = nil
+    end
+    to_normal()
+    local before = enters()
+    if key then
+      type_keys((step.count and tostring(step.count) or '') .. key)
+    else
+      -- From the command line, as a command without a key runs.
+      type_keys(':Org ' .. step.command:gsub('^org%.', ''):gsub('%.', ' ') .. '<CR>')
+    end
+    settle()
+    for _, value in ipairs(step.answers or {}) do
+      -- What is asked shows, not a message that waits for Enter first.
+      if enters() > before then
+        fail(('step %d: a hit-enter prompt came before %s could be answered'):format(index, vim.inspect(value)))
+      end
+      answer(index, value)
+    end
+    if enters() > before then
+      trace('(Enter pressed at a hit-enter prompt)')
+    end
+    if step.wait == 'columns' then
+      wait_until(function()
+        return columns ~= nil
+      end, 30000, 50)
+      settle()
+    end
+  end
+  -- What the screen shows (Neovim's own checks).
+  for _, text in ipairs(type(step.screen) == 'string' and { step.screen } or step.screen or {}) do
+    local shown
+    if not wait_until(function()
+      shown = screen()
+      return shown:find(text, 1, true) ~= nil
+    end, 3000, 50) then
+      fail(('step %d: `%s` is not on the screen:\n%s'):format(index, text, shown))
+    end
+  end
+  check(index, step)
+end
+
+--- Play the scenario on, from where it waited.
+function _G.org_lsp_typed_resume(co)
+  local ok, err = coroutine.resume(co)
+  if not ok then
+    local message = type(err) == 'table' and err.failed or (tostring(err) .. '\n' .. debug.traceback(co))
+    local last = table.concat(vim.list_slice(traced, math.max(1, #traced - 40)), '\n')
+    typed_result(('FAIL: %s\n--- what it did last\n%s\n--- the screen\n%s'):format(message, last, screen()))
+  elseif coroutine.status(co) == 'dead' then
+    typed_result('ok\n')
+  end
+end
+
+vim.api.nvim_create_autocmd('VimEnter', {
+  once = true,
+  callback = function()
+    _G.org_lsp_typed_resume(coroutine.create(function()
+      for index, step in ipairs(spec.steps) do
+        run_typed_step(index, step)
+      end
+    end))
+  end,
+})

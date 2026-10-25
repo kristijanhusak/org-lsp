@@ -1625,6 +1625,175 @@
     "use_new_terminal": false
   },
   {
+    "label": "Org: Agenda commands (at the cursor)",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.agenda.dispatch",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Capture (at the cursor)",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.capture",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Roam: find a node (at the cursor)",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.roam.node.find",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Roam: capture to a node (at the cursor)",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.roam.capture",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Roam: capture to today's daily note (at the cursor)",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.roam.dailies.capture.today",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Roam: go to today's daily note (at the cursor)",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.roam.dailies.goto.today",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Roam: go to tomorrow's daily note (at the cursor)",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.roam.dailies.goto.tomorrow",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Roam: go to yesterday's daily note (at the cursor)",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.roam.dailies.goto.yesterday",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Roam: capture to the daily note of a date (at the cursor)",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.roam.dailies.capture.date",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Roam: go to the daily note of a date (at the cursor)",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.roam.dailies.goto.date",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Roam: open the directory of the daily notes (at the cursor)",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.roam.dailies.find.directory",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Roam: show or hide the org-roam buffer (at the cursor)",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.roam.buffer.toggle",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
+    "label": "Org: Journal: new entry (at the cursor)",
+    "command": "$HOME/.local/state/org-lsp/agenda-command file:org.journal.new.entry",
+    "tags": [
+      "org"
+    ],
+    "reveal": "never",
+    "hide": "on_success",
+    "show_summary": false,
+    "show_command": false,
+    "allow_concurrent_runs": true,
+    "use_new_terminal": false
+  },
+  {
     "label": "Org agenda: go forward in time",
     "command": "$HOME/.local/state/org-lsp/agenda-command org.agenda.later",
     "tags": [

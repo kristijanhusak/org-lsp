@@ -2663,7 +2663,7 @@ fn runs_shell_links() {
     std::fs::write(&file, text).unwrap();
     let mut options = clock();
     options["org_link_shell_skip_confirm_regexp"] = json!("^\\(TRUE\\|exit\\)");
-    let mut client = Client::editor(options, None);
+    let mut client = Client::editor(options.clone(), None);
     let uri = format!("file://{}", file.display());
     client.open(&uri, text);
     let open = |client: &mut Client, character: u32, extra: Value| {
@@ -2675,14 +2675,14 @@ fn runs_shell_links() {
         client.request("workspace/executeCommand", json!({ "command": "org.open", "arguments": [context] }))
     };
     // What the command said once it ended.
-    let said = |client: &mut Client| {
+    let said_as = |client: &mut Client, method: &str| {
         let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
         loop {
             client.settle();
             let message = client
                 .notifications
                 .iter()
-                .find(|notification| notification.method == "window/showMessage")
+                .find(|notification| notification.method == method)
                 .map(|notification| notification.params["message"].as_str().unwrap().to_string());
             if let Some(message) = message {
                 return message;
@@ -2691,6 +2691,7 @@ fn runs_shell_links() {
             std::thread::sleep(std::time::Duration::from_millis(50));
         }
     };
+    let said = |client: &mut Client| said_as(client, "window/showMessage");
     let asked = open(&mut client, 3, json!({})).unwrap();
     assert_eq!(asked["input"]["prompt"], "Execute echo hi; pwd in shell? ");
     let step = asked["input"]["context"].clone();
@@ -2705,6 +2706,13 @@ fn runs_shell_links() {
     assert_eq!(said(&mut client), "(Shell command succeeded with no output)");
     open(&mut client, 41, json!({})).unwrap();
     assert_eq!(said(&mut client), "(Shell command failed with code 3 and no output)");
+    client.shutdown();
+    // For a client that shows the server's messages itself, as the others.
+    options["message_notifications"] = json!(true);
+    let mut client = Client::editor(options, None);
+    client.open(&uri, text);
+    open(&mut client, 25, json!({})).unwrap();
+    assert_eq!(said_as(&mut client, "org-lsp/message"), "(Shell command succeeded with no output)");
     client.shutdown();
     std::fs::remove_dir_all(directory).unwrap();
 }
@@ -5994,6 +6002,48 @@ fn command_actions_leave_a_plain_client_its_agenda_actions() {
     assert!(kinds.contains(&"org.agenda.later"), "{kinds:?}");
     client.shutdown();
     let _ = std::fs::remove_dir_all(state);
+}
+
+/// What a client without keys (Helix) runs from its code actions where
+/// Emacs has `C-c C-c` or `C-c C-o`: Babel on an inline source block and a
+/// `#+CALL:` line, a link followed, and a formula only Emacs computes
+/// recalculated.
+#[test]
+fn offers_babel_links_and_emacs_formulas_as_actions() {
+    let capabilities = json!({
+        "experimental": { "orgClient": false },
+        "window": { "showDocument": { "support": true }, "showMessage": {} },
+    });
+    let mut client = Client::start(capabilities, clock(), None);
+    const NOTES_URI: &str = "file:///org/notes.org";
+    let text = "* Notes\nTwo is src_elisp{(+ 1 1)} here.\n#+CALL: double(n=2)\nSee [[https://orgmode.org][Org]].\n\
+| 1 | |\n#+TBLFM: $2='(+ $1 1)\n";
+    client.open(NOTES_URI, text);
+    let kinds = |client: &mut Client, line: u32, character: u32| -> Vec<String> {
+        let at = json!({ "line": line, "character": character });
+        let actions = client
+            .request(
+                "textDocument/codeAction",
+                json!({
+                    "textDocument": { "uri": NOTES_URI },
+                    "range": { "start": at, "end": at },
+                    "context": { "diagnostics": [] }
+                }),
+            )
+            .unwrap();
+        actions.as_array().unwrap().iter().map(|action| action["kind"].as_str().unwrap().to_string()).collect()
+    };
+    let has = |kinds: &[String], kind: &str| kinds.iter().any(|offered| offered == kind);
+    let inline = kinds(&mut client, 1, 12);
+    assert!(has(&inline, "org.babel.execute"), "{inline:?}");
+    let call = kinds(&mut client, 2, 3);
+    assert!(has(&call, "org.babel.execute"), "{call:?}");
+    let link = kinds(&mut client, 3, 8);
+    assert!(has(&link, "org.open") && !has(&link, "org.babel.execute"), "{link:?}");
+    assert!(!has(&kinds(&mut client, 0, 3), "org.open"));
+    let formula = kinds(&mut client, 5, 3);
+    assert_eq!(formula.iter().filter(|kind| *kind == "org.table.recalculate").count(), 1, "{formula:?}");
+    client.shutdown();
 }
 
 #[test]
@@ -10235,6 +10285,39 @@ fn acts_on_marked_entries_with_the_same_headline() {
     let (_, changes) = edits_of(edit);
     work = apply(&work, &changes);
     assert_eq!(work.matches("SCHEDULED: <2026-05-20 Wed>").count(), 2, "{work}");
+    client.shutdown();
+}
+
+/// Scattering (`B S`) asks `read-number`'s question: 7 days by default,
+/// said in the prompt, which an empty answer takes.
+#[test]
+fn scatters_over_seven_days_by_default() {
+    let mut client = Client::editor(clock(), None);
+    let uri = "file:///org/work.org";
+    client.open(uri, "* TODO Review\n* TODO Write\n");
+    let run = |client: &mut Client, command: &str, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 0, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client.received.clear();
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+    run(&mut client, "org.agenda.todos", json!({})).unwrap();
+    client.show_view();
+    run(&mut client, "org.agenda.bulk.mark.all", json!({})).unwrap();
+    let asked = run(&mut client, "org.agenda.bulk.action", json!({ "step": "action", "input": "S" })).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Scatter tasks across how many days (default 7)", "{asked}");
+    assert_eq!(asked["input"]["value"], "", "{asked}");
+    let done = run(
+        &mut client,
+        "org.agenda.bulk.action",
+        json!({ "step": "S", "input": "", "answers": asked["input"]["context"]["answers"] }),
+    )
+    .unwrap();
+    assert_eq!(done["message"], "Acted on 2 entries");
     client.shutdown();
 }
 

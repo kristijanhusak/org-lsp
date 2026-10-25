@@ -5,13 +5,19 @@ Each scenario runs in a Zed of its own, on an X display of its own
 (Xvfb), with a home directory of its own: the extension installed as
 scripts/install.sh installs it, and the settings, the keymap and the tasks
 docs/zed.org and docs/keys/zed.org tell users to write. The steps are
-taken as a Zed user takes them, with `xdotool`: the key keymap.json binds
-to the step's command where the cursor is (a task, which runs the command
-through the server's command port), the code actions menu for a command
-Zed has no key for, the buttons of a question (clicked), a rename at the
-cursor (`F2`) for typed text, `ctrl-g` to go to a line, Zed's command line
-to open a file. What a scenario expects is what the server's own runner
-saw (server/org-lsp/tests/e2e_scenarios.rs, tests/e2e/expected/NAME.txt).
+taken as a Zed user takes them, every key typed in Zed's window with
+`xdotool`: the key keymap.json binds to the step's command where the
+cursor is (a task, which runs the command through the server's command
+port; Zed's own `workspace::SaveAll` for the agenda's save), the code
+actions menu (`ctrl-.`, down to the action, Enter) for a command Zed has
+no key for, the buttons of a question (clicked with the mouse: Zed's
+notifications take no keys), a rename at the cursor (`F2`, the answer
+typed) for typed text, `ctrl-g` to go to a line, the file finder
+(`ctrl-p`, the file's name typed) to open a file or go back to the
+agenda. What a scenario expects is what the server's own runner saw
+(server/org-lsp/tests/e2e_scenarios.rs, tests/e2e/expected/NAME.txt).
+After the scenarios come checks of Zed's own (`CHECKS`), written and run
+as they are, with what they expect beside them.
 
 What Zed has open and where its cursor is comes from what it tells the
 server: proxy.py stands between them and writes down every message. The
@@ -36,7 +42,8 @@ steps it cannot take, as `NAME STEP`; and
 `scenarios.zed` the scenarios it cannot take at all. A failure leaves a
 screenshot in target/zed-e2e. A scenario fails when it takes more than
 `ORG_LSP_ZED_BUDGET` seconds (600); run.py stopped by a signal closes its
-Zeds and their displays.
+Zeds and their displays. Each Zed takes the first free X display from
+`ORG_LSP_ZED_DISPLAY` (90) up.
 """
 
 import atexit
@@ -167,6 +174,8 @@ class Log:
         self.actions_came = {}
         # The commands Zed ran, from the code actions.
         self.executed = []
+        # The documents Zed asked the folding ranges of.
+        self.folded = set()
         self.renames = 0
         self.prepared = 0
         self.initialized = False
@@ -229,6 +238,8 @@ class Log:
                 self.initialized = True
             elif method == "workspace/executeCommand":
                 self.executed.append(params.get("command"))
+            elif method == "textDocument/foldingRange":
+                self.folded.add(params["textDocument"]["uri"])
         else:
             if method == "window/showMessage":
                 text = params.get("message", "")
@@ -355,6 +366,9 @@ class Keys:
                     self.bound[(where, "org.agenda.goto.other")].append(key)
                 elif action == "pane::CloseActiveItem":
                     self.bound[(where, "close")].append(key)
+                elif action == "workspace::SaveAll":
+                    # Zed saves the files itself, as no task can.
+                    self.bound[(where, "org.agenda.save")].append(key)
 
     def commands_of(self, run, where):
         """The commands a task's `run` stands for: `file:COMMAND`, or `key:KEY`
@@ -426,7 +440,8 @@ def on_signal(number, _frame):
 
 
 def free_display():
-    for number in range(90, 200):
+    first = int(os.environ.get("ORG_LSP_ZED_DISPLAY", "90"))
+    for number in range(first, first + 110):
         if not os.path.exists(f"/tmp/.X11-unix/X{number}") and not os.path.exists(f"/tmp/.X{number}-lock"):
             return number
     raise Failure("no free X display")
@@ -489,7 +504,8 @@ class Zed:
             "remove_trailing_whitespace_on_save": False,
             "ensure_final_newline_on_save": False,
             "show_edit_predictions": False,
-            "languages": {"Org": {"semantic_tokens": "combined", "inlay_hints": {"enabled": True}}},
+            "languages": {"Org": {"semantic_tokens": "combined", "inlay_hints": {"enabled": True},
+                                  "document_folding_ranges": "on"}},
             "lsp": {
                 "org-lsp": {
                     "binary": {"path": sys.executable, "arguments": [os.path.join(HERE, "proxy.py"), SERVER]},
@@ -685,10 +701,30 @@ class Zed:
         self.x(["xdotool", "mousemove", "1", str(HEIGHT // 2)])
 
     def open(self, path):
-        """Open `path` with Zed's command line, in this window."""
-        subprocess.run([os.environ["ZED"], "--add", path], env=self.environment(), cwd=self.work,
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
-        until(f"{path} to be shown", lambda: self.title() == path, 30)
+        """Go to `path` as a user does, with the file finder (`ctrl-p`): its
+        path in the project typed, or the name of a file outside it, which
+        the finder has among the files opened before (the agenda), then
+        Enter."""
+        if self.title() == path:
+            return
+        work = os.path.realpath(self.work)
+        query = path[len(work) + 1:] if path.startswith(work + "/") else os.path.basename(path)
+        # Again when the finder had not found it yet (Zed still reading the
+        # project, as it starts).
+        for attempt in range(3):
+            self.press("ctrl-p")
+            time.sleep(0.4)
+            self.type(query)
+            # The finder matches as the text comes.
+            time.sleep(0.6)
+            self.press("enter")
+            try:
+                until(f"{query} to be shown from the file finder", lambda: self.title() == path, 5)
+                return
+            except Failure:
+                if attempt == 2:
+                    raise
+                self.press("escape")
 
     def pixels(self):
         """The screen, as rows of (r, g, b)."""
@@ -759,9 +795,13 @@ class Scenario:
     def __init__(self, name, keys):
         self.name = name
         self.keys = keys
-        with open(os.path.join(E2E, "scenarios", f"{name}.json"), encoding="utf-8") as file:
-            self.spec = json.load(file)
-        self.expected = expected_of(name)
+        if name in CHECKS:
+            self.spec = CHECKS[name]
+            self.expected = {key: list(lines) for key, lines in CHECKS[name]["expected"].items()}
+        else:
+            with open(os.path.join(E2E, "scenarios", f"{name}.json"), encoding="utf-8") as file:
+                self.spec = json.load(file)
+            self.expected = expected_of(name)
         self.zed = None
         self.directory = None
         self.seen = 0
@@ -916,6 +956,10 @@ class Scenario:
             zed.open(path)
             until("the server to start", lambda: (zed.log.read(), zed.log.initialized)[1], 60)
             until(f"Zed to open {step['open']}", lambda: (zed.log.read(), zed.find_uri("file://" + path) in zed.log.documents)[1], 30)
+            # Zed folds an Org file with the server's folding ranges, as
+            # docs/zed.org sets it up (`document_folding_ranges`).
+            until(f"Zed to ask for the folding ranges of {step['open']}",
+                  lambda: (zed.log.read(), zed.find_uri("file://" + path) in zed.log.folded)[1], 30)
             zed.settle()
         if "focus" in step:
             if step["focus"] == "agenda":
@@ -990,6 +1034,19 @@ class Scenario:
                 repeated = said
         if answers:
             raise Failure(f"{command} did not ask for {list(answers)}")
+        if command == "org.agenda.save":
+            # Zed's own save: each Org file as Zed has it is on disk.
+            until("Zed to save the Org files", self.saved, 10)
+
+    def saved(self):
+        self.zed.log.read()
+        for uri, text in self.zed.log.documents.items():
+            path = path_of(uri)
+            if path.startswith(self.directory + "/") and os.path.exists(path):
+                with open(path, encoding="utf-8") as file:
+                    if file.read() != text:
+                        return False
+        return True
 
     def go_back(self, command, before_uri, shows):
         """Zed shows a file a server's edit changes that no tab shows
@@ -1180,6 +1237,34 @@ def pick(titles, answer):
     return None
 
 
+# Checks of Zed's own, written as the scenarios are, with what they expect:
+# what the keys of keymap.json do in Zed that the shared scenarios do not
+# look at.
+CHECKS = {
+    # `C-c c` in an Org file captures there, as Emacs's does: `%a` links to
+    # the cursor's heading, also with the agenda open (a task of a command
+    # that needs no file would run on the agenda's line, or nowhere).
+    "zed-capture-here": {
+        "files": {"work.org": ["* TODO Write report", "Some text", "* Other"], "inbox.org": ""},
+        "options": {"org_capture_templates": [
+            {"key": "l", "description": "Link", "target": ["file", "$DIR/inbox.org"], "template": "* %a"}]},
+        "steps": [
+            {"open": "work.org"},
+            {"at": "Some text", "command": "org.capture", "answers": ["l"]},
+            {"command": "org.capture.finish", "expect": ["file:inbox.org"]},
+            {"focus": "work.org", "command": "org.agenda.dispatch", "answers": ["t"]},
+            {"focus": "work.org", "at": "* Other", "command": "org.capture", "answers": ["l"]},
+            {"command": "org.capture.finish", "expect": ["file:inbox.org"]},
+        ],
+        "expected": {
+            "3 file:inbox.org": ["* [[file:$DIR/work.org::*Write report][Write report]]"],
+            "6 file:inbox.org": ["* [[file:$DIR/work.org::*Write report][Write report]]",
+                                 "* [[file:$DIR/work.org::*Other][Other]]"],
+        },
+    },
+}
+
+
 def run_one(name, keys):
     scenario = Scenario(name, keys)
     if name in SKIPPED:
@@ -1206,6 +1291,7 @@ def main():
     atexit.register(stop_all)
     only = os.environ.get("ORG_LSP_E2E", "")
     names = sorted(file[:-5] for file in os.listdir(os.path.join(E2E, "scenarios")) if file.endswith(".json"))
+    names += sorted(CHECKS)
     names = [name for name in names if only in name and (not sys.argv[1:] or name in sys.argv[1:])]
     subprocess.run(["cargo", "build", "--release", "--target", "wasm32-wasip2", "--quiet"], cwd=EXTENSION, check=True)
     grammar_wasm()
