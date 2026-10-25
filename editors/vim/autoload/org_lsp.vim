@@ -2673,6 +2673,7 @@ let s:vim_groups = {
       \ '@punctuation.special': 'Delimiter',
       \ '@markup.strong': 'OrgLspBold', '@markup.italic': 'OrgLspItalic',
       \ '@markup.underline': 'OrgLspUnderline', '@markup.strikethrough': 'OrgLspStrikethrough',
+      \ '@markup.quote': 'OrgLspItalic',
       \ 'DiagnosticError': 'WarningMsg', 'DiagnosticWarn': 'Statement', 'DiagnosticOk': 'MoreMsg',
       \ }
 
