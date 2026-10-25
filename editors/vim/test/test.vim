@@ -451,6 +451,22 @@ function! s:agenda_clocking() abort
 endfunction
 call s:test('highlights the clocked line of the agenda', function('s:agenda_clocking'))
 
+" With `org_return_follows_link`, RET on a link in Insert mode follows it
+" and types nothing, the target in the same file.
+function! s:return_follows_link() abort
+  let file = s:work . '/notes/follow.org'
+  let lines = ['* Links', 'Go to [[*Target][the target]] end', '* Target']
+  call writefile(lines, file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  call cursor(2, 20)
+  call feedkeys("i\<CR>\<Esc>", 'xt')
+  call s:until('the target', {-> line('.') == 3})
+  call assert_equal(lines, getline(1, '$'))
+  execute 'buffer' s:work_buf
+endfunction
+call s:test('RET on a link follows it', function('s:return_follows_link'))
+
 function! s:return() abort
   let file = s:work . '/notes/return.org'
   call writefile(['* TODO Write the report :work:', '| a | bb |', '#+begin_src sh', 'echo', '#+end_src'], file)

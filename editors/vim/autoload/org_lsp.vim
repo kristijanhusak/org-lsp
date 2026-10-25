@@ -872,8 +872,10 @@ function! org_lsp#insert_key(index) abort
   let [nr, context] = s:cursor_context()
   let position = getcurpos()
   let answer = org_lsp#request_sync(nr, 'workspace/executeCommand', {'command': entry.name, 'arguments': [context]}, 1000)
-  " While it waits, coc.nvim moves the cursor a column to the left.
-  if getcurpos() != position
+  " While it waits, coc.nvim moves the cursor a column to the left; a link
+  " followed meanwhile (`org_return_follows_link`) takes it to another line,
+  " where it stays.
+  if getcurpos() != position && getcurpos()[1] == position[1]
     call setpos('.', position)
   endif
   let result = get(answer, 'result', v:null)
