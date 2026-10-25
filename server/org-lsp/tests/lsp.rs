@@ -3946,6 +3946,9 @@ fn edits_through_emacs() {
     replace(&mut client, &mut text, &mut version, "* Task\n".to_string());
     let (asked, _) = run(&mut client, &mut text, &mut version, "org.attach", (0, 0), json!({ "input": "c" }));
     assert_eq!(asked["input"]["prompt"], "File to keep as an attachment", "{asked}");
+    // A file's name, from the Org file's directory, as `read-file-name` asks.
+    assert_eq!(asked["input"]["complete"], "file", "{asked}");
+    assert_eq!(asked["input"]["value"], format!("{}/", directory.display()), "{asked}");
     run(&mut client, &mut text, &mut version, "org.attach", (0, 0), json!({ "input": "doc.txt", "step": "c" }));
     assert!(text.starts_with("* Task") && text.contains(":ATTACH:") && text.contains(":ID:"), "{text}");
     let id = text.lines().find_map(|line| line.trim().strip_prefix(":ID:")).unwrap().trim().to_string();

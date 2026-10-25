@@ -8823,7 +8823,7 @@ impl Server {
             seen
         };
         let Some(input) = context.and_then(|context| context.input.clone()) else {
-            return Ok(json!({ "input": { "kind": "text", "prompt": "Write agenda to file", "value": "" } }));
+            return Ok(json!({ "input": file_question("Write agenda to file", None, "file") }));
         };
         let (name, confirmed) = match context.and_then(|context| context.answers.clone()) {
             Some(name) => (name, Some(matches!(input.as_str(), "y" | "Y" | " "))),
@@ -11999,7 +11999,7 @@ impl Server {
                 match files.as_slice() {
                     [only] => Some(only.clone()),
                     [] => {
-                        return Ok(json!({ "input": { "kind": "text", "prompt": "Detangle file: ", "value": "" } }));
+                        return Ok(json!({ "input": file_question("Detangle file: ", Some(&path), "file") }));
                     }
                     _ => {
                         let dir = path.parent().unwrap_or(Path::new(""));
@@ -13855,7 +13855,8 @@ impl Server {
             }
             commands::TABLE_IMPORT => {
                 let Some(answer) = answer else {
-                    return Ok(json!({ "input": { "kind": "text", "prompt": "Import file", "value": "" } }));
+                    let file = uri::to_path(&context.text_document.uri);
+                    return Ok(json!({ "input": file_question("Import file", file.as_deref(), "file") }));
                 };
                 // The separator found as Org finds it: tabs, commas, spaces.
                 self.emacs_run_with("org-table-import", vec![json!(answer.trim()), Value::Null], context)
@@ -13944,7 +13945,11 @@ impl Server {
             Some(file) => file,
             None => {
                 let Some(file) = answers.first().cloned() else {
-                    return Ok(ask("text", "Export table to".to_string(), "file", &answers, None));
+                    let mut asked = ask("text", "Export table to".to_string(), "file", &answers, None);
+                    let question = file_question("", uri::to_path(&uri).as_deref(), "file");
+                    asked["input"]["value"] = question["value"].clone();
+                    asked["input"]["complete"] = json!("file");
+                    return Ok(asked);
                 };
                 let directory = uri::to_path(&uri).and_then(|path| path.parent().map(Path::to_path_buf));
                 let full = directory.map_or_else(|| PathBuf::from(&file), |directory| directory.join(&file));
@@ -15387,8 +15392,9 @@ impl Server {
             })
         };
         // A file asked for, relative to the Org file's directory.
-        let ask_file =
-            |prompt: &str, value: &str| json!({ "input": { "kind": "text", "prompt": prompt, "value": value } });
+        let ask_file = |prompt: &str, value: &str| {
+            json!({ "input": { "kind": "text", "prompt": prompt, "value": value, "complete": "file" } })
+        };
         match id {
             commands::BIBTEX_EXPORT => {
                 let Some(answer) = context.input.as_deref() else {
@@ -15415,7 +15421,10 @@ impl Server {
                 return self.bibtex_outcome(context, outcome, replies);
             }
             commands::BIBTEX_IMPORT => {
-                let Some(answer) = context.input.as_deref() else { return Ok(ask_file("File", "")) };
+                let Some(answer) = context.input.as_deref() else {
+                    let question = file_question("File", uri::to_path(&uri).as_deref(), "file");
+                    return Ok(json!({ "input": question }));
+                };
                 let file = self.link_path(&uri, answer).filter(|file| file.is_file()).ok_or("[No match]")?;
                 let bib = String::from_utf8_lossy(&std::fs::read(&file).map_err(|error| error.to_string())?)
                     .replace("\r\n", "\n");
@@ -16233,11 +16242,17 @@ impl Server {
         // step.
         let answer = context.step.as_ref().and(context.input.clone());
         let ask = |prompt: &str| json!({ "input": { "kind": "text", "prompt": prompt, "value": "", "context": { "step": key } } });
+        let org_file = uri::to_path(&context.text_document.uri);
+        let ask_file = |prompt: &str, complete: &str| {
+            let mut input = file_question(prompt, org_file.as_deref(), complete);
+            input["context"] = json!({ "step": key });
+            json!({ "input": input })
+        };
         let answer = match (key.as_str(), answer) {
-            ("a" | "c" | "m" | "l" | "y", None) => return Ok(ask("File to keep as an attachment")),
+            ("a" | "c" | "m" | "l" | "y", None) => return Ok(ask_file("File to keep as an attachment", "file")),
             ("u", None) => return Ok(ask("URL of the file to attach")),
             ("n", None) => return Ok(ask("Create attachment named")),
-            ("s", None) => return Ok(ask("Attachment directory")),
+            ("s", None) => return Ok(ask_file("Attachment directory", "directory")),
             ("o" | "d", None) => {
                 // The attachments to pick from (`org-attach-file-list`).
                 let uri = &context.text_document.uri;
@@ -17156,6 +17171,19 @@ fn line_timestamp_date(text: &str, offset: usize) -> Option<Date> {
     let end = text[offset..].find('\n').map_or(text.len(), |at| offset + at);
     let found = ACTIVE.captures(&text[start..end])?;
     date(&found[1], &found[2], &found[3])
+}
+
+/// A question for a file name, as `read-file-name` asks it: the answer
+/// starts with the directory of `file` (`default-directory`), and the
+/// editor completes file names, or directory names with `complete`
+/// `directory`.
+fn file_question(prompt: &str, file: Option<&Path>, complete: &str) -> Value {
+    let value = file
+        .and_then(Path::parent)
+        .filter(|directory| !directory.as_os_str().is_empty())
+        .map(|directory| format!("{}/", directory.to_string_lossy()))
+        .unwrap_or_default();
+    json!({ "kind": "text", "prompt": prompt, "value": value, "complete": complete })
 }
 
 pub(crate) fn abbreviate_path(path: &Path) -> String {
