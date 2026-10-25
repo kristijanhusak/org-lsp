@@ -1,0 +1,29 @@
+{
+  "folder": {
+    "org-lsp.settings": {
+      "emacs_config": "(add-to-list 'load-path \"/root/org-mode/lisp\")",
+      "org_agenda_files": ["$WS/agenda"],
+      "org_roam_enabled": true,
+      "org_roam_directory": "$WS/roam",
+      "org_roam_mode_sections": ["backlinks", "unlinked-references"],
+      "org_journal_enabled": true,
+      "org_journal_dir": "$WS/journal",
+      "org_journal_enable_agenda_integration": true,
+      "org_refile_targets": [{ "files": "$WS/r.org", "maxlevel": 2 }, { "files": "$WS/r2.org", "maxlevel": 1 }],
+      "org_capture_templates": [
+        { "key": "d", "description": "Diary", "target": ["file+olp+datetree", "$WS/diary.org"], "template": "* %?" }
+      ]
+    }
+  },
+  "files": {
+    "agenda/a.org": "* TODO x\n",
+    "roam/a.org": ":PROPERTIES:\n:ID:       a-id\n:END:\n#+title: Alpha note\n\nText of alpha. Beta note is named here.\n",
+    "roam/b.org": ":PROPERTIES:\n:ID:       b-id\n:ROAM_ALIASES: Bee\n:END:\n#+title: Beta note\n\nSee [[id:a-id][Alpha]].\n* Heading in beta\n:PROPERTIES:\n:ID:       bh-id\n:END:\nheading text\n",
+    "roam/c.org": "#+title: Gamma\n\nGo to [[roam:Alpha note]].\n",
+    "journal/20251024": "* Friday, 10/24/25\n** 09:00 standup\n** TODO carried over\na note with friday words\n",
+    "r.org": "* Inbox\n** Item one\nbody\n* Projects\n** Alpha\n* Done stuff\n** DONE old one\n** TODO open one\n",
+    "r2.org": "* Elsewhere\n"
+  },
+  "user": { "window.newWindowDimensions": "maximized", "workbench.tips.enabled": false, "editor.minimap.enabled": false },
+  "keys": [{ "key": "ctrl+alt+shift+f12", "command": "notifications.focusToasts" }]
+}

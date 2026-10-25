@@ -338,25 +338,35 @@ let iconDirectory: vscode.Uri | undefined;
 /**
  * The icon of a choice offered in a look of its own, as Org's
  * `org-fast-todo-selection` shows each keyword in its face: a dot in the
- * color of its face, or else in red or green for a TODO or a done keyword.
- * A quick pick cannot color its text.
+ * color of its face, or else in that of `org-todo` or `org-done` for a TODO
+ * or a done keyword, for light and dark themes. A quick pick cannot color
+ * its text, nor an icon of the theme's (it shows them all in one color).
  */
-function choiceIcon(choice: Choice): vscode.Uri | vscode.ThemeIcon | undefined {
+function choiceIcon(choice: Choice): vscode.Uri | { light: vscode.Uri; dark: vscode.Uri } | undefined {
   const color = choice.face?.foreground;
-  if (color && /^#?\w+$/.test(color) && iconDirectory) {
-    const icon = vscode.Uri.joinPath(iconDirectory, `dot-${color.replace('#', '')}.svg`);
-    if (!fs.existsSync(icon.fsPath)) {
-      fs.mkdirSync(iconDirectory.fsPath, { recursive: true });
-      fs.writeFileSync(
-        icon.fsPath,
-        `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><circle cx="8" cy="8" r="5" fill="${color}"/></svg>`,
-      );
-    }
-    return icon;
+  if (color && /^#?\w+$/.test(color)) {
+    return dot(color);
   }
   if (!choice.highlight) return undefined;
   const done = choice.highlight.endsWith('.done');
-  return new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor(done ? 'charts.green' : 'charts.red'));
+  // Emacs's Red1 is CSS's red.
+  const light = dot(done ? 'ForestGreen' : 'red');
+  const dark = dot(done ? 'PaleGreen' : 'Pink');
+  return light && dark ? { light, dark } : undefined;
+}
+
+/** A dot in `color` (`#ff8800`, `orange`), written once. */
+function dot(color: string): vscode.Uri | undefined {
+  if (!iconDirectory) return undefined;
+  const icon = vscode.Uri.joinPath(iconDirectory, `dot-${color.replace('#', '')}.svg`);
+  if (!fs.existsSync(icon.fsPath)) {
+    fs.mkdirSync(iconDirectory.fsPath, { recursive: true });
+    fs.writeFileSync(
+      icon.fsPath,
+      `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><circle cx="8" cy="8" r="5" fill="${color}"/></svg>`,
+    );
+  }
+  return icon;
 }
 
 /**
@@ -371,6 +381,7 @@ async function ask(input: Input, typed: (text: string) => Promise<vscode.InputBo
       key: choice.key,
       iconPath: choiceIcon(choice),
     }));
+    if (input.kind === 'key') return pickKey(input.prompt, items);
     const picked = await vscode.window.showQuickPick(items, { placeHolder: input.prompt, ignoreFocusOut: true });
     return picked?.key;
   }
@@ -378,8 +389,43 @@ async function ask(input: Input, typed: (text: string) => Promise<vscode.InputBo
   return vscode.window.showInputBox({
     prompt: input.prompt,
     value: input.value,
+    // The text it starts with stays, the cursor after it, as in Emacs's
+    // minibuffer (`11:00` of the timestamp changed, then `+1d`): VS Code
+    // would select it, for the first key typed to replace it.
+    valueSelection: [input.value?.length ?? 0, input.value?.length ?? 0],
     ignoreFocusOut: true,
     validateInput: input.kind === 'date' ? typed : undefined,
+  });
+}
+
+/**
+ * A key picked from its choices: the key typed (or its name, `SPC`) makes
+ * its choice the one Enter takes, as Org's fast selection takes the key
+ * pressed; VS Code would take the first choice whose text has it, which
+ * for `n` among `[m] Meeting` and `[n] Note` is the meeting. Other text
+ * narrows the list.
+ */
+function pickKey(prompt: string, items: (vscode.QuickPickItem & { key: string })[]): Promise<string | undefined> {
+  const pick = vscode.window.createQuickPick<vscode.QuickPickItem & { key: string }>();
+  pick.placeholder = prompt;
+  pick.ignoreFocusOut = true;
+  pick.items = items;
+  pick.onDidChangeValue((typed) => {
+    const chosen = items.find((item) => item.key === typed || keyName(item.key) === typed);
+    if (chosen) pick.activeItems = [chosen];
+  });
+  return new Promise((resolve) => {
+    let answered = false;
+    pick.onDidAccept(() => {
+      answered = true;
+      resolve(pick.selectedItems[0]?.key);
+      pick.hide();
+    });
+    pick.onDidHide(() => {
+      if (!answered) resolve(undefined);
+      pick.dispose();
+    });
+    pick.show();
   });
 }
 
@@ -403,6 +449,12 @@ function typeOrPick(input: Input, completions: string[]): Promise<string | undef
   };
   pick.items = items(input.value);
   pick.value = input.value;
+  // The text it starts with (a headline's tags) stays, typing after it, as
+  // in Emacs's minibuffer; VS Code would select it, for the first key typed
+  // to replace it. Newer versions of VS Code take a selection for a quick
+  // pick too, though its type does not say so.
+  const end = input.value?.length ?? 0;
+  (pick as { valueSelection?: readonly [number, number] }).valueSelection = [end, end];
   pick.onDidChangeValue((typed) => (pick.items = items(typed)));
   return new Promise((resolve) => {
     let answered = false;
@@ -2326,7 +2378,9 @@ export interface Api {
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<Api> {
-  iconDirectory = vscode.Uri.joinPath(context.globalStorageUri, 'icons');
+  // A file, not the `vscode-userdata:` URI the storage has, whose icons a
+  // quick pick does not show.
+  iconDirectory = vscode.Uri.file(path.join(context.globalStorageUri.fsPath, 'icons'));
   context.subscriptions.push(
     vscode.commands.registerCommand('org-lsp.restartServer', () => restartClient(context)),
     // The server reads its settings once, at start.

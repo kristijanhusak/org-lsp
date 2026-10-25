@@ -120,7 +120,15 @@ others), as close to Emacs Org mode as it can get.
   through ~VSCODE_EXECUTABLE~, set to its ~codium~ binary, not the
   launcher in ~bin/~). The tests of the extension run first, then
   ~editors/vscode/test/scenarios.test.cjs~, its adapter of the scenarios,
-  which presses keys with ~xdotool~.
+  with each preset's keys (~npm test -- scenarios vim~ runs one). It types
+  everything with ~xdotool~ into VS Code's window, as the user types it:
+  each step's keys, its text, and the answers to what a command asks, in
+  VS Code's own quick picks and input boxes and in the date prompt (~i~,
+  the date, ~Enter~). Nothing answers for the user: the test watches what
+  VS Code shows, checks that what is typed is taken as meant (the choice
+  Enter would pick, the text the box has), then presses ~Enter~. A
+  command a preset has no key for (~tests/e2e/exceptions.json~) gets a key
+  of the user's, as a count does.
 - Vim: ~CLIENTS=dir editors/vim/test/run.sh~, with the four clients
   checked out in ~dir~ (~lsp~, ~vim-lsp~, ~coc.nvim~ on its ~release~
   branch, ~ale~); Vim runs in tmux. ~editors/vim/test/scenarios.vim~ is its

@@ -931,10 +931,13 @@ Questions are asked in VS Code's own way:
   ~org_time_stamp_rounding_minutes~), and ~t~ again goes back to the days,
   keeping the time.
 - *One key*, such as a TODO keyword with a key or a capture template, is
-  picked from a list that shows each choice's key (~[t] TODO~). Type to
-  narrow the list, then press ~Enter~.
+  picked from a list that shows each choice's key (~[t] TODO~). Type the
+  key (or its name, as ~SPC~) and press ~Enter~; other text narrows the
+  list.
 - *A choice from a list*, such as a refile target, is picked from a list.
-- *Text*, such as a capture prompt, is typed in an input box.
+- *Text*, such as a capture prompt, is typed in an input box. It starts
+  with what Emacs's minibuffer starts with (a headline's tags, the time of
+  a timestamp being changed), the cursor after it.
 - *A state note* (a keyword with ~@~, as ~WAIT(w@)~) is written in a note
   buffer that opens like a capture buffer, as Emacs's =*Org Note*=:
   ~Ctrl+C Ctrl+C~ stores it, ~Ctrl+C Ctrl+K~ changes the state without it.
