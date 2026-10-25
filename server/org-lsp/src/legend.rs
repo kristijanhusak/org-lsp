@@ -116,7 +116,10 @@ pub struct Look {
     /// `@org.*` names are the groups nvim-orgmode colorschemes define.
     pub vim: &'static [&'static str],
     /// TextMate scopes, most specific first, as themes for VS Code and
-    /// similar editors match them.
+    /// similar editors match them: the first one a theme has a rule for
+    /// is used, so one that themes color apart comes before one that a
+    /// broad rule (`keyword`, `markup.heading`) would take for another
+    /// look as well.
     pub textmate: &'static [&'static str],
     /// For a look that is a background only, the background of Org's
     /// face on a light and on a dark background: what an editor shows
@@ -180,12 +183,12 @@ pub const LOOKS: &[Look] = &[
     look(
         "todoKeyword",
         &["@org.keyword.todo", "DiagnosticError"],
-        &["keyword.other.todo.org", "markup.deleted", "keyword.control"],
+        &["markup.deleted.todo.org", "keyword.other.todo.org", "keyword.control"],
     ),
     look(
         "todoKeyword.done",
         &["@org.keyword.done", "DiagnosticOk"],
-        &["keyword.other.done.org", "markup.inserted", "string"],
+        &["markup.inserted.done.org", "keyword.other.done.org", "string"],
     ),
     look(
         "priority",
@@ -281,10 +284,10 @@ pub const LOOKS: &[Look] = &[
         &["constant.numeric.cookie.done.org", "markup.inserted", "string"],
     ),
     // `org-headline-done`: what follows a done keyword on its headline.
-    look("headline.done", &["@org.headline.done", "Comment"], &["markup.heading.done.org", "comment"]),
+    look("headline.done", &["@org.headline.done", "Comment"], &["comment.headline.done.org", "markup.heading.done.org"]),
     look("*.done", &["@org.headline.done", "Comment"], &["comment.done.org", "comment"]),
     // `org-headline-todo`, copied from `font-lock-string-face`.
-    look("headline.todo", &["@org.headline.todo", "String"], &["markup.heading.todo.org", "string"]),
+    look("headline.todo", &["@org.headline.todo", "String"], &["string.headline.todo.org", "markup.heading.todo.org"]),
     look("*.todo", &["@org.headline.todo", "String"], &["string.todo.org", "string"]),
     look("documentTitle", &["@org.document.title", "Title"], &["markup.heading.title.org", "entity.name.section"]),
     look("documentInfo", &["@org.document.info", "Special"], &["string.other.info.org", "string"]),
