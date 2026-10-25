@@ -112,7 +112,10 @@ others), as close to Emacs Org mode as it can get.
 - Vim: ~CLIENTS=dir editors/vim/test/run.sh~, with the four clients
   checked out in ~dir~ (~lsp~, ~vim-lsp~, ~coc.nvim~ on its ~release~
   branch, ~ale~); Vim runs in tmux. ~editors/vim/test/scenarios.vim~ is its
-  adapter of the scenarios.
+  adapter of the scenarios. The tests and the scenarios answer prompts
+  themselves; ~editors/vim/test/typed.vim~ has keys typed through tmux
+  instead, as the user types them, with ~'updatetime'~ passing while the
+  agenda dispatcher waits for one.
 - Sublime Text: ~node editors/sublime/generate.mjs --check~,
   ~python3 editors/sublime/test/test_plugin.py~.
 - Zed: ~node editors/zed/generate.mjs --check~,

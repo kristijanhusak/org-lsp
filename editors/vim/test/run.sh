@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Run the Vim plugin's tests against the real server, once per LSP client:
 # the plugin's own cases (test.vim), the highlighting of the shared sample
-# (tests/e2e/highlight, by highlight.vim), then the shared end-to-end
+# (tests/e2e/highlight, by highlight.vim), keys typed through tmux as the
+# user types them (typed.vim), then the shared end-to-end
 # scenarios (tests/e2e/scenarios, by scenarios.vim), each scenario in a Vim
 # of its own, a few at a time.
 #
@@ -83,6 +84,28 @@ for client in "$@"; do
     done
     echo "== $client: highlighting"
     finish "$session" "$work" highlighting | tee -a "$output"
+  fi
+  # Keys typed through tmux as the user types them (typed.vim): a prompt
+  # waits for them while 'updatetime' passes.
+  if { [ -z "$only" ] || [ "$only" = cases ]; } && [ -z "${ORG_LSP_TEST_FILE:-}" ]; then
+    work="$(mktemp -d)"
+    session="org-lsp-vim-$client-typed-$$"
+    start "$client" "$session" 120x40 "$work" "ORG_LSP_TEST_FILE=$here/typed.vim"
+    for _ in $(seq 1 600); do
+      [ -f "$work/ready" ] && break
+      sleep 0.1
+    done
+    tmux send-keys -t "$session" '\' o a
+    # Past 'updatetime' and a held request.
+    sleep 1.5
+    touch "$work/picked"
+    tmux send-keys -t "$session" a
+    for _ in $(seq 1 300); do
+      [ -f "$work/result.txt" ] && break
+      sleep 0.1
+    done
+    echo "== $client: typed"
+    finish "$session" "$work" typed | tee -a "$output"
   fi
   if [ "$only" != cases ] && [ "$only" != highlight ] && [ -z "${ORG_LSP_TEST_FILE:-}" ]; then
     echo "== $client: scenarios"
