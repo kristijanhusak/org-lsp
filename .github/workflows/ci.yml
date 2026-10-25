@@ -71,6 +71,9 @@ jobs:
           curl -sSL -o nvim.tar.gz https://github.com/neovim/neovim/releases/download/${{ matrix.neovim }}/nvim-linux-x86_64.tar.gz
           mkdir -p "$HOME/nvim" && tar xzf nvim.tar.gz -C "$HOME/nvim" --strip-components=1
           echo "$HOME/nvim/bin" >> "$GITHUB_PATH"
+      # The typed scenarios run Neovim's terminal UI in tmux.
+      - name: Install tmux
+        run: sudo apt-get update -q && sudo apt-get install -y -q tmux
       - run: scripts/test-nvim.sh
 
   vscode:

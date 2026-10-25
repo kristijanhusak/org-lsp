@@ -98,7 +98,19 @@ others), as close to Emacs Org mode as it can get.
   the same steps.
 - Neovim: ~scripts/test-nvim.sh~ (set ~NVIM~ to the binary), on 0.12.0 and
   stable. Tests run headless against the real server; ~tests/nvim/scenarios.lua~
-  is its adapter of the scenarios. On a nightly build of 0.13,
+  is its adapter of the scenarios, which runs them a second time typed: each
+  in Neovim's own terminal UI in tmux, nothing replaced, ~'updatetime'~ 100.
+  That Neovim plays the scenario on timers and writes down the keys it
+  wants typed; the runner (~--typed~) types them with ~tmux send-keys~, a
+  key at a time, and each answer as what the screen asks for takes it: a
+  key at a key prompt, text in the command line, the number of a choice in
+  the list ~vim.ui.select~ shows. It presses Enter at a hit-enter prompt, as
+  a user does, and the scenario fails when one comes before what is asked
+  could be answered. Neovim's own typed checks, of what the scenarios do
+  not see, are in ~tests/nvim/typed/NAME.json~, steps of the same kind with
+  ~keys~ typed as they are and ~screen~, text the screen must show.
+  ~ORG_LSP_NVIM_TESTS=typed scripts/test-nvim.sh [NAME…]~
+  runs only the typed ones. On a nightly build of 0.13,
   ~tests/nvim/highlight.lua~ may stop on Neovim's own assertion
   (~grid_line_flush: Assertion `grid_line_clear_to <= grid_line_maxcol'~)
   when it redraws the date prompt's calendar in its headless 140 by 50
@@ -137,7 +149,7 @@ it sees is in ~tests/e2e/expected/NAME.txt~, written again with
 ~ORG_LSP_UPDATE_E2E=1~ (~ORG_LSP_E2E=NAME~ runs only the scenarios whose name
 has ~NAME~ in it). Each editor has an adapter that presses that editor's keys
 for the same steps and must see the same; Neovim's is
-~tests/nvim/scenarios.lua~ (~scripts/test-nvim.sh~ runs it), Vim's
+~tests/nvim/scenarios.lua~ (~scripts/test-nvim.sh~ runs it headless, then typed), Vim's
 ~editors/vim/test/scenarios.vim~, which ~editors/vim/test/run.sh~ runs with
 each LSP client after the plugin's own tests, each scenario in a Vim of its
 own, four at a time:
