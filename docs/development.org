@@ -106,7 +106,10 @@ others), as close to Emacs Org mode as it can get.
   key at a key prompt, text in the command line, the number of a choice in
   the list ~vim.ui.select~ shows. It presses Enter at a hit-enter prompt, as
   a user does, and the scenario fails when one comes before what is asked
-  could be answered. ~ORG_LSP_NVIM_TESTS=typed scripts/test-nvim.sh [NAME…]~
+  could be answered. Neovim's own typed checks, of what the scenarios do
+  not see, are in ~tests/nvim/typed/NAME.json~, steps of the same kind with
+  ~keys~ typed as they are and ~screen~, text the screen must show.
+  ~ORG_LSP_NVIM_TESTS=typed scripts/test-nvim.sh [NAME…]~
   runs only the typed ones. On a nightly build of 0.13,
   ~tests/nvim/highlight.lua~ may stop on Neovim's own assertion
   (~grid_line_flush: Assertion `grid_line_clear_to <= grid_line_maxcol'~)

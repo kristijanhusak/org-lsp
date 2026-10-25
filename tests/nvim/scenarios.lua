@@ -19,7 +19,9 @@
 -- the screen asks: a key at a key prompt, text in the command line, the
 -- number of a choice that the list shows. This runner types them through
 -- `tmux send-keys`, a key at a time, and presses Enter at a hit-enter
--- prompt, as a user does.
+-- prompt, as a user does. Neovim's own typed checks are with them, in
+-- tests/nvim/typed/NAME.json: steps that may type `keys` as they are, and
+-- look for text on the `screen`.
 
 local root = vim.fs.dirname(vim.fs.dirname(vim.fs.dirname(vim.fs.abspath(debug.getinfo(1, 'S').source:sub(2)))))
 local server = os.getenv('ORG_LSP_BIN') or vim.fs.joinpath(root, 'target', 'debug', 'org-lsp')
@@ -58,9 +60,11 @@ local tmux = { 'tmux', '-L', 'org-lsp-typed', '-f', '/dev/null' }
 
 if typed_run then
   if #names == 0 then
-    for name, kind in vim.fs.dir(vim.fs.joinpath(e2e, 'scenarios')) do
-      if kind == 'file' and name:match('%.json$') then
-        table.insert(names, (name:gsub('%.json$', '')))
+    for _, directory in ipairs({ vim.fs.joinpath(e2e, 'scenarios'), vim.fs.joinpath(root, 'tests', 'nvim', 'typed') }) do
+      for name, kind in vim.fs.dir(directory) do
+        if kind == 'file' and name:match('%.json$') then
+          table.insert(names, (name:gsub('%.json$', '')))
+        end
       end
     end
     table.sort(names)
@@ -238,7 +242,9 @@ local function fail(message)
 end
 
 local name = names[1]
-local spec = json(vim.fs.joinpath(e2e, 'scenarios', name .. '.json'))
+-- Neovim's own typed checks, of what a scenario does not see: the screen.
+local own = vim.fs.joinpath(root, 'tests', 'nvim', 'typed', name .. '.json')
+local spec = json(typed and vim.uv.fs_stat(own) and own or vim.fs.joinpath(e2e, 'scenarios', name .. '.json'))
 local exceptions = json(vim.fs.joinpath(e2e, 'exceptions.json'))
 local excepted = vim.tbl_get(exceptions, 'editors', 'nvim') or {}
 
@@ -583,7 +589,8 @@ end
 local expected = {}
 do
   local current
-  for line in (read(vim.fs.joinpath(e2e, 'expected', name .. '.txt'))):gmatch('([^\n]*)\n') do
+  local path = vim.fs.joinpath(e2e, 'expected', name .. '.txt')
+  for line in (vim.uv.fs_stat(path) and read(path) or ''):gmatch('([^\n]*)\n') do
     local step, kind = line:match('^=== (%d+) (.+)$')
     if step then
       current = step .. ' ' .. kind
@@ -995,6 +1002,11 @@ local function run_typed_step(index, step)
   if row then
     ex(('call cursor(%d, %d)'):format(row, column + 1))
   end
+  if step.keys then
+    -- Keys as they are, wherever they go.
+    type_keys(step.keys)
+    settle()
+  end
   if step.type then
     if not vim.fn.mode():match('^[iR]') then
       to_normal()
@@ -1035,6 +1047,16 @@ local function run_typed_step(index, step)
         return columns ~= nil
       end, 30000, 50)
       settle()
+    end
+  end
+  -- What the screen shows (Neovim's own checks).
+  for _, text in ipairs(type(step.screen) == 'string' and { step.screen } or step.screen or {}) do
+    local shown
+    if not wait_until(function()
+      shown = screen()
+      return shown:find(text, 1, true) ~= nil
+    end, 3000, 50) then
+      fail(('step %d: `%s` is not on the screen:\n%s'):format(index, text, shown))
     end
   end
   check(index, step)
