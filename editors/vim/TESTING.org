@@ -16,7 +16,7 @@ its sections says what it should look like.
 
 * Setup
 
-- [ ] Installed with one client (yegappan/lsp, vim-lsp, coc.nvim or ALE): the server starts on an Org file. Go through the list once with each client you use
+- [ ] Installed with one client (yegappan/lsp, coc.nvim, vim-lsp or ALE): the server starts on an Org file. Go through the list once with each client you use
 - [ ] Installed with vim-plug (~'do': ':OrgLspDownload'~), no server around: opening an Org file downloads the server and starts it
 - [ ] ~g?~ in an Org file and in the agenda lists the keys; ~<Leader>oa~ works in any buffer
 - [ ] Options from =~/.config/org-lsp/config.toml= apply, and ~g:org_lsp~'s ~settings~ go on top

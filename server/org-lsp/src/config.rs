@@ -583,6 +583,14 @@ pub struct Options {
     /// Whether the client shows documents on `window/showDocument`.
     /// Clients that announce the capability need not say so.
     pub show_document: Option<bool>,
+    /// The client hears of the documents to show as `org-lsp/showDocument`
+    /// and answers with `org-lsp/showDocumentResult`, for an LSP plugin
+    /// that shows them on its own (coc.nvim).
+    pub show_document_notification: Option<bool>,
+    /// A command that does not apply at the cursor answers
+    /// `{ notApplicable, message }` rather than an error, for an LSP
+    /// plugin that passes on only an error's message (coc.nvim).
+    pub refusal_results: Option<bool>,
     /// Whether a workspace edit may make files (a `create` resource
     /// operation), whatever the client announces.
     pub create_files: Option<bool>,

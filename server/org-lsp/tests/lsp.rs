@@ -1214,6 +1214,68 @@ fn returns_as_org_does() {
     client.shutdown();
 }
 
+/// For an LSP plugin that shows documents on its own and passes on only an
+/// error's message (coc.nvim): the documents to show come as
+/// `org-lsp/showDocument`, answered with `org-lsp/showDocumentResult`, and
+/// a command that does not apply says so in its result.
+#[test]
+fn shows_documents_and_refuses_with_notifications() {
+    let directory = std::env::temp_dir().join(format!("org-lsp-show-notification-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    let (from, to) = (directory.join("from.org"), directory.join("to.org"));
+    let text = "* See [[file:to.org]]\n#+begin_src sh\necho\n#+end_src\n";
+    std::fs::write(&from, text).unwrap();
+    std::fs::write(&to, "* There\n").unwrap();
+    let uri: Uri = format!("file://{}", from.display()).parse().unwrap();
+    let options = json!({ "show_document": true, "show_document_notification": true, "refusal_results": true });
+    let mut client = Client::start(json!({}), options);
+    client.open(&uri, text);
+    let run = |client: &mut Client, command: &str, line: u32, character: u32| {
+        let context =
+            json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": line, "character": character } });
+        client.raw_request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }))
+    };
+    // The answer and the notification, as they come.
+    let context = json!({ "textDocument": { "uri": uri.as_str() }, "position": { "line": 0, "character": 10 } });
+    let open = Request {
+        id: RequestId::from(1000),
+        method: "workspace/executeCommand".to_string(),
+        params: json!({ "command": "org.open", "arguments": [context] }),
+    };
+    client.connection.sender.send(Message::Request(open)).unwrap();
+    let (mut answered, mut show) = (false, None);
+    while !answered || show.is_none() {
+        match client.connection.receiver.recv_timeout(std::time::Duration::from_secs(30)).expect("the server says") {
+            Message::Response(response) if response.id == RequestId::from(1000) => {
+                response.response_result.expect("a result");
+                answered = true;
+            }
+            Message::Notification(notification) if notification.method == "org-lsp/showDocument" => {
+                show = Some(notification)
+            }
+            Message::Request(request) => {
+                assert_ne!(request.method, "window/showDocument", "shown with window/showDocument")
+            }
+            _ => {}
+        }
+    }
+    let show = show.unwrap();
+    assert_eq!(show.params["params"]["uri"], json!(format!("file://{}", to.display())), "{:?}", show.params);
+    let answer = json!({ "id": show.params["id"], "result": { "success": true } });
+    client
+        .connection
+        .sender
+        .send(Message::Notification(Notification::new("org-lsp/showDocumentResult".to_string(), answer)))
+        .unwrap();
+    // RET in a source block's code: the editor's own RET.
+    let refused = run(&mut client, "org.return", 2, 2).response_result.expect("a result");
+    assert_eq!(refused["notApplicable"], json!(true), "{refused}");
+    assert!(refused["message"].is_string(), "{refused}");
+    client.shutdown();
+    std::fs::remove_dir_all(directory).unwrap();
+}
+
 /// `org-open-line` (C-o): a new line after the cursor, which stays; in a
 /// table a row above (`org-special-ctrl-o`), unless that is off.
 #[test]

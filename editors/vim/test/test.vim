@@ -187,8 +187,7 @@ function! s:deadline() abort
 endfunction
 call s:test('picks a date in the calendar and sets the deadline', function('s:deadline'))
 
-" The window the plugin opened for the agenda: coc.nvim shows the agenda
-" in the current window first, which the plugin then puts back.
+" The window the plugin opened for the agenda.
 function! s:agenda_window() abort
   for win in range(1, winnr('$'))
     if getbufvar(winbufnr(win), '&filetype') ==# 'org-agenda' && !empty(getwinvar(win, 'org_lsp_opened', ''))
@@ -222,11 +221,7 @@ function! s:agenda() abort
   call feedkeys('q', 'x')
   call s:until('the agenda closed', {-> s:agenda_window() == 0})
   call assert_equal(s:work_buf, bufnr())
-  " `win_split_size`: lines for a split. (coc.nvim opens documents where it
-  " opens them.)
-  if $ORG_LSP_TEST_CLIENT ==# 'coc'
-    return
-  endif
+  " `win_split_size`: lines for a split.
   let g:org_lsp.win_split_size = 6
   call org_lsp#run('org.agenda.list')
   call s:until('the agenda of 6 lines', {-> s:agenda_window() != 0 && winheight(s:agenda_window()) == 6})
@@ -314,10 +309,6 @@ endfunction
 call s:test('a hover shows the entry of an agenda line', function('s:agenda_hover'))
 
 function! s:agenda_tab() abort
-  " coc.nvim opens documents where it opens them.
-  if $ORG_LSP_TEST_CLIENT ==# 'coc'
-    return
-  endif
   call org_lsp#run('org.agenda.list')
   call s:until('the agenda', {-> s:agenda_window() != 0})
   let agenda = s:agenda_window()
@@ -346,9 +337,6 @@ call s:test('TAB shows the entry in another window', function('s:agenda_tab'))
 " F (follow mode): the entry of the cursor's line in another window as the
 " cursor moves, the cursor staying in the agenda.
 function! s:agenda_follow() abort
-  if $ORG_LSP_TEST_CLIENT ==# 'coc'
-    return
-  endif
   call org_lsp#run('org.agenda.list')
   call s:until('the agenda', {-> s:agenda_window() != 0})
   let agenda = s:agenda_window()
@@ -963,10 +951,6 @@ endif
 " the node's backlinks; it follows the cursor to another node; the command
 " again hides it.
 function! s:roam_buffer() abort
-  " coc.nvim opens documents where it opens them.
-  if $ORG_LSP_TEST_CLIENT ==# 'coc'
-    return
-  endif
   let dir = s:work . '/roam'
   call mkdir(dir, 'p')
   call writefile([':PROPERTIES:', ':ID:       a-id', ':END:', '#+title: A note', '', 'Text.'], dir . '/a.org')

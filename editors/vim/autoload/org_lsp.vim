@@ -103,11 +103,16 @@ endfunction
 " files it makes, which coc.nvim would have as an empty line; and that
 " this plugin shows the server's messages and asks Emacs's questions, as
 " vim-lsp and ALE show neither, and the others put their name before the
-" messages.
+" messages. coc.nvim shows the documents the server asks for on its own,
+" and passes on only an error's message: it is told the documents to show
+" as a notification, and that a command does not apply as a result.
 function! org_lsp#init_options() abort
+  let coc = org_lsp#adapter() ==# 'coc'
   return extend(deepcopy(org_lsp#config().settings), {
         \ 'org_client': v:true,
         \ 'show_document': v:true,
+        \ 'show_document_notification': coc ? v:true : v:false,
+        \ 'refusal_results': coc ? v:true : v:false,
         \ 'create_files': v:false,
         \ 'view_changed': v:true,
         \ 'date_prompt': org_lsp#config().calendar ? v:true : v:false,
@@ -144,15 +149,15 @@ endfunction
 
 " ----- the client
 
-" The adapter for the installed client: `lsp` (yegappan/lsp), `vim_lsp`,
-" `coc` or `ale`; empty when there is none.
+" The adapter for the installed client: `lsp` (yegappan/lsp), `coc`,
+" `vim_lsp` or `ale`; empty when there is none.
 function! org_lsp#adapter() abort
   if !exists('s:adapter')
     let wanted = org_lsp#config().client
     if wanted ==# 'auto'
       let wanted = exists('g:loaded_lsp') ? 'lsp'
-            \ : exists('g:lsp_loaded') ? 'vim_lsp'
             \ : exists('g:did_coc_loaded') ? 'coc'
+            \ : exists('g:lsp_loaded') ? 'vim_lsp'
             \ : exists('g:loaded_ale') ? 'ale' : ''
     endif
     let s:adapter = substitute(wanted, '-', '_', 'g')
@@ -409,7 +414,7 @@ function! org_lsp#run(name, ...) abort
     return s:own[a:name].run()
   endif
   if empty(org_lsp#adapter())
-    return s:warn('no LSP client found: install yegappan/lsp, vim-lsp, coc.nvim or ALE')
+    return s:warn('no LSP client found: install yegappan/lsp, coc.nvim, vim-lsp or ALE')
   endif
   " Rebuilding reads the files again: those changed on disk while open
   " here, and not changed here, are read again first ('autoread'), as the
@@ -1535,60 +1540,6 @@ function! s:open_prompt(path, win) abort
   call winrestview({'topline': 1, 'leftcol': 0})
 endfunction
 
-" The date prompt in a window the plugin did not open for it (coc.nvim
-" shows it in the current one, which may be the agenda's): put it at the
-" bottom, and the window back to the buffer it showed.
-function! s:place_prompt(nr) abort
-  let win = bufwinid(a:nr)
-  if win == -1 || s:opened_for(win, a:nr)
-    return
-  endif
-  let cursor = getcurpos(win)
-  call win_gotoid(win)
-  let back = bufnr('#')
-  execute org_lsp#config().calendar_win_mode
-  let prompt = win_getid()
-  let w:org_lsp_opened = s:path_of(a:nr)
-  let w:org_lsp_from = win
-  execute 'buffer' a:nr
-  call win_execute(win, back > 0 && back != a:nr ? 'buffer ' . back : 'close')
-  call win_gotoid(prompt)
-  if org_lsp#config().calendar_win_mode !~# 'v'
-    execute 'resize' line('$')
-  endif
-  call winrestview({'topline': 1, 'leftcol': 0})
-  call setpos('.', cursor[0:3])
-endfunction
-
-" The agenda in a window the plugin did not open (coc.nvim shows it in the
-" current one): in the window that shows it already, else in one apart as
-" `win_split_mode` says, and the window back to the buffer it showed, as
-" Emacs keeps the window the agenda was called from.
-function! s:place_agenda(nr) abort
-  let win = bufwinid(a:nr)
-  let mode = org_lsp#config().win_split_mode
-  if win == -1 || s:opened_for(win, a:nr) || mode ==# 'current'
-    return
-  endif
-  let cursor = getcurpos(win)
-  call win_gotoid(win)
-  let back = bufnr('#')
-  let shown = filter(win_findbuf(a:nr), {_, other -> other != win && s:opened_for(other, a:nr)})
-  if !empty(shown)
-    call win_gotoid(shown[0])
-  else
-    execute mode
-    let w:org_lsp_opened = s:path_of(a:nr)
-    let w:org_lsp_from = win
-    call s:resize_apart(mode, org_lsp#config().win_split_size)
-    execute 'buffer' a:nr
-  endif
-  let agenda = win_getid()
-  call win_execute(win, back > 0 && back != a:nr ? 'buffer ' . back : 'close')
-  call win_gotoid(agenda)
-  call setpos('.', cursor[0:3])
-endfunction
-
 " `win_split_size`: lines for a split, columns for a vertical one (`vsplit`,
 " `vnew`, `vertical`), or below 1 that part of the editor; 0 leaves the
 " window as the command made it.
@@ -2147,7 +2098,12 @@ function! org_lsp#handle_request(method, params) abort
 endfunction
 
 function! org_lsp#handle_notification(method, params) abort
-  if a:method ==# 'org-lsp/save'
+  if a:method ==# 'org-lsp/showDocument'
+    " `window/showDocument` as a notification (`show_document_notification`),
+    " answered as one.
+    let result = org_lsp#show_document(a:params.params)
+    call s:call('notify', 'org-lsp/showDocumentResult', {'id': a:params.id, 'result': result})
+  elseif a:method ==# 'org-lsp/save'
     call org_lsp#save(get(a:params, 'uris', []))
   elseif a:method ==# 'org-lsp/clock'
     call s:clock_update(a:params)
@@ -3023,15 +2979,6 @@ function! org_lsp#attach() abort
     execute 'autocmd! * <buffer=' . nr . '>'
     execute 'autocmd TextChanged,InsertLeave,BufReadPost <buffer=' . nr . '> call s:changed(' . nr . ')'
     execute 'autocmd BufWinEnter <buffer=' . nr . '> call s:changed(' . nr . ')'
-    if &filetype ==# get(get(org_lsp#manifest(), 'datePrompt', {}), 'languageId', 'org-date')
-      " coc.nvim shows documents itself, in the window it jumps from: the
-      " calendar moves to the bottom.
-      execute 'autocmd BufWinEnter <buffer=' . nr . '> call timer_start(0, {-> s:place_prompt(' . nr . ')})'
-    endif
-    if s:is_agenda(bufname(nr)) && org_lsp#adapter() ==# 'coc'
-      " coc.nvim shows the agenda itself, in the current window.
-      execute 'autocmd BufWinEnter <buffer=' . nr . '> call timer_start(0, {-> s:place_agenda(' . nr . ')})'
-    endif
     if s:is_view_type(&filetype)
       let b:org_lsp_given = getline(1, '$')
       execute 'autocmd FileChangedShellPost,BufReadPost <buffer=' . nr . '> call s:give_view(' . nr . ')'
