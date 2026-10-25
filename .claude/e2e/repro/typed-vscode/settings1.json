@@ -1,0 +1,7 @@
+{
+  "folder": {
+    "org-lsp.settings": { "emacs_config": "(add-to-list 'load-path \"/root/org-mode/lisp\")" }
+  },
+  "user": { "window.newWindowDimensions": "maximized", "workbench.tips.enabled": false, "editor.minimap.enabled": false },
+  "keys": [{ "key": "ctrl+alt+shift+f12", "command": "notifications.focusToasts" }]
+}

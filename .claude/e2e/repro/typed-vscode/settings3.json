@@ -1,0 +1,28 @@
+{
+  "folder": {
+    "org-lsp.settings": {
+      "emacs_config": "(add-to-list 'load-path \"/root/org-mode/lisp\")",
+      "clock": { "today": "2026-05-18", "now": "10:30" },
+      "org_agenda_files": ["$WS/agenda"],
+      "org_modules": ["org-habit"],
+      "org_agenda_custom_commands": [{ "key": "x", "description": "Urgent work", "type": "tags", "match": "work+urgent" }],
+      "org_refile_targets": [{ "files": "$WS/agenda/work.org", "maxlevel": 2 }],
+      "org_capture_templates": [
+        { "key": "t", "description": "Task", "target": ["file", "$WS/inbox.org"], "template": "* TODO %?" },
+        { "key": "n", "description": "Named", "target": ["file", "$WS/inbox.org"], "template": "* %^{Name} %?" },
+        { "key": "d", "description": "Diary", "target": ["file+datetree", "$WS/diary.org"], "template": "* %?" },
+        { "key": "a", "description": "Linked", "target": ["file", "$WS/inbox.org"], "template": "* %a %?" },
+        { "key": "c", "description": "Clip", "target": ["file", "$WS/inbox.org"], "template": "* %c%?" },
+        { "key": "s", "description": "Snippet", "target": ["file", "$WS/inbox.org"], "template": "* %[snippet.txt]%?" },
+        { "key": "u", "description": "Upcase", "target": ["file", "$WS/inbox.org"], "template": "* %(upcase \"abc\")%?" }
+      ]
+    }
+  },
+  "files": {
+    "agenda/work.org": "#+TODO: TODO WAIT | DONE\n* Projects\n** TODO [#B] Write report :work:urgent:\nSCHEDULED: <2026-05-18 Mon 09:00>\n:PROPERTIES:\n:Effort: 0:30\n:END:\nreport text\n** TODO Call the client :work:\nDEADLINE: <2026-05-20 Wed>\n** Meeting <2026-05-19 Tue 14:00-15:00>\n** TODO Plan the trip :home:\n* Inbox\n** TODO Water plants\nSCHEDULED: <2026-05-14 Thu .+2d>\n:PROPERTIES:\n:STYLE: habit\n:END:\n:LOGBOOK:\n- State \"DONE\"       from \"TODO\"       [2026-05-12 Tue 10:00]\n- State \"DONE\"       from \"TODO\"       [2026-05-10 Sun 10:00]\n:END:\n** Note [2026-05-18 Mon 08:00]\n",
+    "snippet.txt": "SNIPPET",
+    "agenda/home.org": "* TODO Buy milk :home:\nSCHEDULED: <2026-05-18 Mon>\n* DONE Old\nCLOSED: [2026-05-17 Sun 10:00]\n"
+  },
+  "user": { "window.newWindowDimensions": "maximized", "workbench.tips.enabled": false, "editor.minimap.enabled": false },
+  "keys": [{ "key": "ctrl+alt+shift+f12", "command": "notifications.focusToasts" }]
+}
