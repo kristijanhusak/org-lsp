@@ -203,6 +203,8 @@ function! s:agenda() abort
   call win_gotoid(s:agenda_window())
   call s:until('its text', {-> getline(1) =~# '^Week-agenda'})
   call assert_true(search('Write report', 'n') > 0, 'an entry')
+  " Alt-m as a terminal sends it, <Esc> then `m`.
+  call assert_equal('org.agenda.bulk.toggle', org_lsp#mapped_command('<Esc>m'))
   " `org_agenda_tags_column` `"auto"`: the tags end at the window's right edge,
   " and follow it when it changes size.
   let agenda = win_getid()

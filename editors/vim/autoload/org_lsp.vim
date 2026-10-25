@@ -1073,13 +1073,17 @@ function! s:map_lhs(key) abort
 endfunction
 
 " The keys as a terminal sends them too: CTRL-Space comes as NUL, which
-" Vim reads as `<C-@>` (Neovim as `<C-Space>`).
+" Vim reads as `<C-@>` (Neovim as `<C-Space>`), and Alt with a character
+" (`<M-m>`) as <Esc> then the character, as tmux and most terminals send
+" it, which Vim reads as two keys.
 function! s:with_terminal_keys(list) abort
   if has('gui_running')
     return a:list
   endif
   let terminal = map(filter(copy(a:list), {_, lhs -> lhs =~? '<C-Space>'}),
         \ {_, lhs -> substitute(lhs, '\c<C-Space>', '<C-@>', 'g')})
+  let terminal += map(filter(copy(a:list), {_, lhs -> lhs =~? '^<[MA]-[^<>]>$'}),
+        \ {_, lhs -> '<Esc>' . lhs[3]})
   return a:list + terminal
 endfunction
 
