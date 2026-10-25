@@ -116,7 +116,16 @@ if typed_run then
         end
         first = false
         local command = vim.list_extend(vim.deepcopy(tmux), { 'send-keys', '-t', job.session })
-        vim.list_extend(command, part.text and { '-l', '--', key } or { key })
+        if part.text then
+          -- A character by its bytes: tmux takes a `;` as the end of its
+          -- command, even after `-l`.
+          table.insert(command, '-H')
+          for byte = 1, #key do
+            table.insert(command, ('%02x'):format(key:byte(byte)))
+          end
+        else
+          table.insert(command, key)
+        end
         vim.system(command):wait()
       end
     end
