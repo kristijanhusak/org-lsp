@@ -3800,6 +3800,32 @@ pub const SETTINGS: &[Setting] = &[
         )
     },
     Setting {
+        integration: true,
+        ..setting(
+            "show_document_notification",
+            "boolean",
+            "false",
+            "",
+            "Whether the server asks the client to show a document with the notification \
+             `org-lsp/showDocument`, `{ id, params }` with `window/showDocument`'s params, which the client \
+             answers with `org-lsp/showDocumentResult`, `{ id, result }`, rather than with \
+             `window/showDocument`: the Vim plugin sets it for coc.nvim, which shows those documents on its own \
+             and not as `win_split_mode` says.",
+        )
+    },
+    Setting {
+        integration: true,
+        ..setting(
+            "refusal_results",
+            "boolean",
+            "false",
+            "",
+            "Whether a command that does not apply at the cursor answers `{ notApplicable: true, message }` \
+             rather than an error whose data says `notApplicable`, so that the key keeps its own meaning: the \
+             Vim plugin sets it for coc.nvim, which passes on only an error's message.",
+        )
+    },
+    Setting {
         default: None,
         unset: "from the client's capabilities",
         integration: true,
@@ -4674,6 +4700,8 @@ const SCHEMAS: &[(&str, &str)] = &[
     ),
     ("virtual_documents", BOOLEAN),
     ("show_document", BOOLEAN),
+    ("show_document_notification", BOOLEAN),
+    ("refusal_results", BOOLEAN),
     ("create_files", BOOLEAN),
     ("org_client", BOOLEAN),
     ("message_prompts", BOOLEAN),

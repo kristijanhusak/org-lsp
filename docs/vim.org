@@ -2,7 +2,7 @@
 #+options: ^:{} toc:nil
 
 The Vim plugin (~editors/vim~) runs Org through the server on top of an
-LSP client: [[https://github.com/yegappan/lsp][yegappan/lsp]], [[https://github.com/prabirshrestha/vim-lsp][vim-lsp]], [[https://github.com/neoclide/coc.nvim][coc.nvim]] or [[https://github.com/dense-analysis/ale][ALE]]. It needs Vim
+LSP client: [[https://github.com/yegappan/lsp][yegappan/lsp]], [[https://github.com/neoclide/coc.nvim][coc.nvim]], [[https://github.com/prabirshrestha/vim-lsp][vim-lsp]] or [[https://github.com/dense-analysis/ale][ALE]]. It needs Vim
 9.0.1485 or newer.
 
 The client starts the server and keeps it up to date with the buffers; the
@@ -17,14 +17,14 @@ From the one that works best with org-lsp to the one that works least
 well (~client = 'auto'~ takes them in this order):
 
 - [[https://github.com/yegappan/lsp][yegappan/lsp]] :: Everything works, with the least glue: the plugin
-  talks to the server on the client's own channel. The one to pick.
-- [[https://github.com/prabirshrestha/vim-lsp][vim-lsp]] :: Everything works too, but the plugin sends the changes of
-  buffers other than the current one, and of buffers read again from disk,
-  itself, and inlay hints come again only when the cursor moves.
-- [[https://github.com/neoclide/coc.nvim][coc.nvim]] :: Works, but coc.nvim opens the documents the server shows
-  where it opens files, not as ~win_split_mode~ says; a capture buffer
-  starts in Normal mode; and a key with a meaning of its own (~<C-a>~) falls
-  back to it whenever the server refuses. See [[*What differs from Neovim][What differs from Neovim]].
+  talks to the server on the client's own channel.
+- [[https://github.com/neoclide/coc.nvim][coc.nvim]] :: Everything works, as with yegappan/lsp: the server tells
+  the plugin of the documents to show, rather than coc.nvim, so they open
+  as ~win_split_mode~ says. One difference is left: a file an edit is for
+  that is not loaded opens as ~workspace.openResourceCommand~ says (see
+  [[*What differs from Neovim][What differs from Neovim]]). It needs Node.js.
+- [[https://github.com/prabirshrestha/vim-lsp][vim-lsp]] :: Everything works too, but inlay hints (the time clocked,
+  the ~…~ of shrunk columns) come again only when the cursor moves.
 - [[https://github.com/dense-analysis/ale][ALE]] :: Works, but it has no inlay hints (the time clocked, the ~…~
   of shrunk columns), does not apply the server's edits itself (the plugin
   does), and one server serves the whole session, started for the
@@ -35,7 +35,7 @@ well (~client = 'auto'~ takes them in this order):
 With [[https://github.com/junegunn/vim-plug][vim-plug]]:
 
 #+begin_src vim
-Plug 'yegappan/lsp'   " or vim-lsp, coc.nvim, ALE: see Which client
+Plug 'yegappan/lsp'   " or coc.nvim, vim-lsp, ALE: see Which client
 Plug 'kristijanhusak/org-lsp', { 'rtp': 'editors/vim', 'do': ':OrgLspDownload' }
 #+end_src
 
@@ -117,17 +117,10 @@ command. [[file:keys/vim.org][keys/vim.org]] lists every key and how to change i
   the window's status line rather than above the text.
 - Nothing is concealed: Vim cannot hide text that text properties mark, so
   link brackets and emphasis markers show.
-- With coc.nvim, the documents the server asks to show open where coc.nvim
-  opens them (~coc.preferences.jumpCommand~), not as ~win_split_mode~ and
-  ~win_split_size~ say, but for the agenda and the date prompt, which the
-  plugin then moves to a window of their own. A file an edit is for that
-  is not loaded opens as ~workspace.openResourceCommand~ says, in a tab of
-  its own unless that is set (~""~ loads it without showing it, as the
-  other clients do). Since coc.nvim passes on only an error's message, a
-  key that keeps its own meaning (~<C-a>~ off a timestamp) falls back to it
-  whenever the server refuses. A capture buffer coc.nvim shows starts in
-  Normal mode (the plugin cannot start Insert mode there): ~A~ or ~i~ to
-  type.
+- With coc.nvim, a file an edit is for that is not loaded (the target of
+  a refile or a capture) opens as ~workspace.openResourceCommand~ says, in
+  a tab of its own unless that is set (~""~ loads it without showing it,
+  as the other clients do).
 - With ALE, one server serves the session, started for the directory of
   the first Org file.
 

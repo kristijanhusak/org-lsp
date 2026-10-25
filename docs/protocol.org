@@ -162,6 +162,11 @@ The server sends these requests to the client:
   else a new one. The org-roam buffer (a file whose name starts with the
   manifest's ~roamBuffer.prefix~) comes with ~takeFocus: false~: the
   editors show it beside the file it is for, the cursor staying there.
+  With the option ~show_document_notification~ it comes as the
+  notification ~org-lsp/showDocument~ instead, ~{ id, params }~ with
+  these params, which the client answers with the notification
+  ~org-lsp/showDocumentResult~, ~{ id, result }~: for an LSP plugin that
+  shows the documents on its own (coc.nvim).
 - ~workspace/textDocumentContent/refresh~ :: The agenda has new text.
 
 And these notifications:
@@ -796,6 +801,8 @@ Each option with its type, its default and what it means:
 - ~org_agenda_custom_commands~ :: object[], ~[]~. Commands of the agenda menu. Each has a ~key~ and a ~description~, and either a ~type~ (~agenda~, ~alltodo~, ~todo~, ~tags~ or ~tags-todo~) with a ~match~ (keywords such as ~NEXT|WAIT~ for ~todo~, a match string such as ~work-home~ or ~PRIORITY="A"~ for ~tags~), or ~blocks~, a list of such views shown one after the other. ~header~ replaces a view's header (empty: none), and ~settings~ holds agenda options for the command or a block (~org_agenda_span~, ~org_agenda_start_day~ …). A command with only a key and a description groups the commands whose keys start with its key. (~org-agenda-custom-commands~)
 - ~virtual_documents~ :: boolean, from the client's capabilities. Whether the client fetches the agenda with ~workspace/textDocumentContent~. A client that announces that capability need not set this.
 - ~show_document~ :: boolean, from the client's capabilities. Whether the client shows the documents the server asks it to show (~window/showDocument~): the agenda, capture buffers, an entry's file. A client that announces that capability need not set this; the Vim plugin does, for the LSP clients that leave the request to it.
+- ~show_document_notification~ :: boolean, ~false~. Whether the server asks the client to show a document with the notification ~org-lsp/showDocument~, ~{ id, params }~ with ~window/showDocument~'s params, which the client answers with ~org-lsp/showDocumentResult~, ~{ id, result }~, rather than with ~window/showDocument~: the Vim plugin sets it for coc.nvim, which shows those documents on its own and not as ~win_split_mode~ says.
+- ~refusal_results~ :: boolean, ~false~. Whether a command that does not apply at the cursor answers ~{ notApplicable: true, message }~ rather than an error whose data says ~notApplicable~, so that the key keeps its own meaning: the Vim plugin sets it for coc.nvim, which passes on only an error's message.
 - ~create_files~ :: boolean, from the client's capabilities. Whether an edit may make the files it is for (a ~create~ resource operation), as a new archive file from the agenda; else the server writes them itself. The Vim plugin turns it off: coc.nvim has the empty file it makes as one empty line, which the edit's text would then end with.
 - ~org_client~ :: boolean, ~false~. The client has org-lsp's editor code: it knows the server's own token types and does what a command's result asks. A client that can announce it does so with ~experimental.orgClient~; the Vim, Sublime Text and Zed plugins set this. Without it, the server sends the standard token types of LSP, which editors color without being told, ~message_prompts~ is on, and so are more code actions when the client shows message requests (~window.showMessage~) or ~message_prompts~ is set.
 - ~message_prompts~ :: boolean, true for a client without org-lsp's editor code (~org_client~). Ask what commands ask for with ~window/showMessageRequest~ (a key, one of a list) or, for text and dates, through a rename at the cursor (~textDocument/rename~, whose new name is the answer), and say what they have to say with ~window/showMessage~, for a client that does nothing with a command's result.
@@ -906,7 +913,9 @@ headline command before the first headline), the error's ~data~ is
 ~{ "notApplicable": true }~. An editor that bound the command to a key with
 a meaning of its own (see ~native~ in [[#the-manifest][the manifest]]) then lets the key do
 that instead: Vim's ~<C-a>~ on a timestamp changes the date and elsewhere
-increments a number.
+increments a number. With the option ~refusal_results~, for an LSP
+plugin that passes on only an error's message (coc.nvim), such a command
+answers with the result ~{ "notApplicable": true, "message" }~ instead.
 
 ** The commands
 

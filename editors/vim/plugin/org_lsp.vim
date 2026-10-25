@@ -1,5 +1,5 @@
 " org-lsp for Vim: Org mode through the org-lsp language server, on top of
-" yegappan/lsp, vim-lsp, coc.nvim or ALE. See docs/vim.org.
+" yegappan/lsp, coc.nvim, vim-lsp or ALE. See docs/vim.org.
 if exists('g:loaded_org_lsp') || !has('patch-9.0.1485')
   finish
 endif

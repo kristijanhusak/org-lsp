@@ -25,12 +25,7 @@ let s:excepted = get(get(s:json(s:e2e . '/exceptions.json'), 'editors', {}), 'vi
 
 " Steps a client cannot take as the others do, by client, scenario and
 " step (from 1), with the reason: the scenario stops before them.
-let s:skips = {
-      \ 'coc': {
-      \   'capture': {'3': 'coc.nvim shows the capture buffer itself, in Normal mode with the cursor on the line''s last character, not after it where `%?` was'},
-      \   'agenda-navigation': {'18': 'coc.nvim shows the entry''s file itself, in the current window (`coc.preferences.jumpCommand`), the agenda''s, not in the window that shows the file, which stays on the line it was'},
-      \ },
-      \ }
+let s:skips = {}
 
 " coc.nvim opens the files it edits that are not loaded
 " (`workspace.openResourceCommand`), and Vim tells of each: with the

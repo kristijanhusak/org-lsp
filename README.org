@@ -51,7 +51,7 @@ Each editor's page says how to install org-lsp there, how to set it up,
 and what works:
 
 - [[file:docs/neovim.org][Neovim]] (0.12 or newer): the repository is the plugin.
-- [[file:docs/vim.org][Vim]] (9.0.1485 or newer), on top of yegappan/lsp, vim-lsp, coc.nvim or ALE.
+- [[file:docs/vim.org][Vim]] (9.0.1485 or newer), on top of yegappan/lsp, coc.nvim, vim-lsp or ALE.
 - [[file:docs/vscode.org][VS Code]], and VSCodium, Cursor and the like.
 - [[file:docs/sublime.org][Sublime Text]], with sublimelsp/LSP.
 - [[file:docs/zed.org][Zed]].
@@ -140,7 +140,7 @@ Emacs Org does in that area that org-lsp does; [[file:docs/parity.org][parity.or
 # END generated
 
 Tested with Neovim 0.12.0 and 0.12.5, VSCodium 1.135, Vim 9.1 (with
-yegappan/lsp, vim-lsp, coc.nvim and ALE) and Helix 25.07.1.
+yegappan/lsp, coc.nvim, vim-lsp and ALE) and Helix 25.07.1.
 
 * AI assistants (MCP)
 :PROPERTIES:

@@ -72,6 +72,11 @@ const CODE_BLOCKS: &str = "org-lsp/codeBlocks";
 /// A message for the user, `window/showMessage`'s, for a client that shows
 /// it itself (`message_notifications`).
 const MESSAGE: &str = "org-lsp/message";
+/// `window/showDocument` as a notification, and its answer, for a client
+/// that would otherwise show the document on its own
+/// (`show_document_notification`).
+const SHOW_DOCUMENT: &str = "org-lsp/showDocument";
+const SHOW_DOCUMENT_RESULT: &str = "org-lsp/showDocumentResult";
 
 /// The commands that set or delete properties.
 const PROPERTY_COMMANDS: [&str; 6] = [
@@ -95,6 +100,12 @@ struct Client {
     /// The client fetches documents of the agenda scheme from the server.
     virtual_documents: bool,
     show_document: bool,
+    /// The documents to show go as `org-lsp/showDocument`
+    /// (`show_document_notification`).
+    show_document_notification: bool,
+    /// A command that does not apply answers with a result, not an error
+    /// (`refusal_results`).
+    refusal_results: bool,
     /// The client shows the date prompt document and binds its keys; it
     /// says so with `experimental.orgDatePrompt`.
     date_prompt: bool,
@@ -1572,6 +1583,8 @@ pub fn run(connection: Connection) -> Result<()> {
         show_document: options.show_document.unwrap_or_else(|| {
             window.and_then(|window| window.show_document.as_ref()).is_some_and(|show| show.support)
         }),
+        show_document_notification: options.show_document_notification == Some(true),
+        refusal_results: options.refusal_results == Some(true),
         date_prompt: raw_params.pointer("/capabilities/experimental/orgDatePrompt").and_then(Value::as_bool)
             == Some(true)
             || options.date_prompt == Some(true),
@@ -3279,6 +3292,11 @@ impl Server {
 
     fn send_raw_request(&mut self, method: &str, params: Value, pending: Option<Pending>) {
         let request = self.new_request(method, params, pending);
+        if request.method == ShowDocument::METHOD && self.client.show_document_notification {
+            let params = json!({ "id": request.id, "params": request.params });
+            let _ = self.sender.send(Message::Notification(Notification::new(SHOW_DOCUMENT.to_string(), params)));
+            return;
+        }
         // A closed channel means the client is gone; the loop ends on its own.
         let _ = self.sender.send(Message::Request(request));
     }
@@ -3465,6 +3483,9 @@ impl Server {
                                     }
                                     respond(id, value)
                                 }
+                                Err(Refusal::NotHere(message)) if self.client.refusal_results => {
+                                    respond(id, json!({ "notApplicable": true, "message": message }))
+                                }
                                 Err(refusal) => refused(id, refusal),
                             }
                         }
@@ -3598,6 +3619,15 @@ impl Server {
                 let id = id.expect("the request's id");
                 let response = Response::new_err(id, ErrorCode::RequestCanceled as i32, "Canceled".to_string());
                 let _ = self.sender.send(Message::Response(response));
+            }
+            return;
+        }
+        // A document shown, answered as `window/showDocument` is.
+        if notification.method == SHOW_DOCUMENT_RESULT {
+            let id = notification.params.get("id").cloned().and_then(|id| serde_json::from_value::<RequestId>(id).ok());
+            if let Some(id) = id {
+                let result = notification.params.get("result").cloned().unwrap_or_else(|| json!({ "success": true }));
+                self.response(Response::new_ok(id, result));
             }
             return;
         }
