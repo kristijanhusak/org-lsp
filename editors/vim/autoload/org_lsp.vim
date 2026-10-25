@@ -755,6 +755,20 @@ function! org_lsp#choice_line(choice) abort
   return line
 endfunction
 
+" What `getcharstr()` gives while it waits that no key was typed for:
+" `<CursorHold>` when it waits in a callback (coc.nvim's, after
+" 'updatetime'), and the like.
+let s:not_keys = ["\<CursorHold>", "\<Ignore>", "\<FocusGained>", "\<FocusLost>"]
+
+" The next key typed.
+function! org_lsp#getkey() abort
+  let key = getcharstr()
+  while index(s:not_keys, key) >= 0
+    let key = getcharstr()
+  endwhile
+  return key
+endfunction
+
 function! org_lsp#read_key(prompt, choices, ...) abort
   let popup = 0
   if !empty(a:choices) && exists('*popup_create')
@@ -768,7 +782,7 @@ function! org_lsp#read_key(prompt, choices, ...) abort
   echo a:0 > 0 && a:1 ? a:prompt : org_lsp#prompt_text(a:prompt)
   redraw
   try
-    let key = getcharstr()
+    let key = org_lsp#getkey()
   catch /^Vim:Interrupt$/
     let key = "\<Esc>"
   endtry
