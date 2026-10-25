@@ -92,9 +92,38 @@ function! s:tick(timer) abort
     if !empty(s:read) || s:waited() > 10
       call add(s:results, (s:read ==# 'd' && !s:hit_enter ? 'ok' : 'not ok') . ' - typed: a prompt of two lines reads its key'
             \ . (s:read ==# 'd' && !s:hit_enter ? '' : printf(' (read %s, hit-enter prompt: %d)', string(s:read), s:hit_enter)))
+      let s:read = ''
+      let s:hit_enter = 0
+      call timer_start(0, {-> s:history()})
+      call s:go('history')
+    endif
+  elseif s:step ==# 'history'
+    " The choices over the command line, the question their title.
+    let s:hit_enter = s:hit_enter || mode(1) =~# '^r'
+    for id in popup_list()
+      let s:title = popup_getoptions(id).title
+      let s:above = popup_getpos(id).line + popup_getpos(id).height <= &lines - &cmdheight + 1
+    endfor
+    if s:waited() > 1 && s:typed() && empty(s:read)
+      call s:type([['text', 'y']])
+    endif
+    if !empty(s:read) || s:waited() > 10
+      let good = s:read ==# 'y' && !s:hit_enter && s:title ==# ' Continue? (y or n)  ' && s:above
+      call add(s:results, (good ? 'ok' : 'not ok') . ' - typed: choices under lines of history'
+            \ . (good ? '' : printf(' (read %s, hit-enter prompt: %d, title %s, above the command line: %d)',
+            \ string(s:read), s:hit_enter, string(s:title), s:above)))
       return s:finish(a:timer)
     endif
   endif
+endfunction
+
+let s:title = ''
+let s:above = 0
+
+" A question after lines of history, as the formula debugger asks it.
+function! s:history() abort
+  let s:read = org_lsp#read_key("Substitution history of formula\nOrig:   $1*$2\nContinue? (y or n) ",
+        \ [{'key': 'y', 'label': 'Yes'}, {'key': 'n', 'label': 'No'}])
 endfunction
 
 call timer_start(50, function('s:tick'), {'repeat': -1})

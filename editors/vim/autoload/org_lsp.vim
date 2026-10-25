@@ -774,21 +774,22 @@ function! org_lsp#getkey() abort
 endfunction
 
 function! org_lsp#read_key(prompt, choices, ...) abort
+  " With a third argument, the prompt as it is.
+  let text = a:0 > 0 && a:1 ? a:prompt : org_lsp#prompt_text(a:prompt)
+  " A prompt of more lines (`expert`'s keys under it, the formula
+  " debugger's history above its question) has a command line as high while
+  " it waits, as Emacs's echo area grows, not Vim's hit-enter prompt.
+  let height = &cmdheight
+  let &cmdheight = max([height, len(split(text, "\n", 1))])
   let popup = 0
   if !empty(a:choices) && exists('*popup_create')
     let lines = map(copy(a:choices), {_, c -> org_lsp#choice_line(c)})
+    " Over the command line, the question its title.
     let popup = popup_create(lines, {
           \ 'line': &lines - &cmdheight - len(lines) - 1, 'col': 1,
-          \ 'border': [], 'title': ' ' . a:prompt . ' ', 'zindex': 300,
+          \ 'border': [], 'title': ' ' . get(split(a:prompt, "\n"), -1, '') . ' ', 'zindex': 300,
           \ })
   endif
-  " With a third argument, the prompt as it is.
-  let text = a:0 > 0 && a:1 ? a:prompt : org_lsp#prompt_text(a:prompt)
-  " A prompt of more lines (`expert`'s keys under it) has a command line
-  " as high while it waits, as Emacs's echo area grows, not Vim's
-  " hit-enter prompt.
-  let height = &cmdheight
-  let &cmdheight = max([height, len(split(text, "\n", 1))])
   echo text
   redraw
   try
