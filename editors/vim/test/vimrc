@@ -23,6 +23,10 @@ let g:lsp_diagnostics_enabled = 0
 " cursor stops, which narrows the agenda's window: the agenda is built
 " again for it, under a test that waits for something else.
 let g:lsp_document_code_action_signs_enabled = 0
+" Inlay hints shown, as docs/vim.org says to set them (the clock's times,
+" shrunk columns).
+autocmd User LspSetup call LspOptionsSet({'showInlayHints': v:true})
+let g:lsp_inlay_hints_enabled = 1
 let g:org_lsp = {
       \ 'cmd': [$ORG_LSP_BIN],
       \ 'settings': {

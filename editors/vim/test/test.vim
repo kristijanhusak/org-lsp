@@ -451,6 +451,27 @@ function! s:agenda_clocking() abort
 endfunction
 call s:test('highlights the clocked line of the agenda', function('s:agenda_clocking'))
 
+" A shrunk column has `…` after its fields, an inlay hint, gone when it is
+" shrunk no more (ALE shows no inlay hints).
+function! s:shrink() abort
+  if org_lsp#adapter() ==# 'ale'
+    return
+  endif
+  let file = s:work . '/notes/shrink.org'
+  call writefile(['| <3>    |', '| abcdef |'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  let nr = bufnr()
+  let Hints = {-> len(filter(prop_list(1, {'bufnr': nr, 'end_lnum': 2}), {_, p -> get(p, 'text', '') =~# '…'}))}
+  call cursor(2, 3)
+  call org_lsp#run('org.table.toggle.column.width')
+  call s:until('the column shrunk', {-> Hints() > 0})
+  call org_lsp#run('org.table.toggle.column.width')
+  call s:until('the column whole again', {-> Hints() == 0})
+  execute 'buffer' s:work_buf
+endfunction
+call s:test('a shrunk column has … after it until it is whole again', function('s:shrink'))
+
 " With `org_return_follows_link`, RET on a link in Insert mode follows it
 " and types nothing, the target in the same file.
 function! s:return_follows_link() abort
