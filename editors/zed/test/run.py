@@ -5,13 +5,17 @@ Each scenario runs in a Zed of its own, on an X display of its own
 (Xvfb), with a home directory of its own: the extension installed as
 scripts/install.sh installs it, and the settings, the keymap and the tasks
 docs/zed.org and docs/keys/zed.org tell users to write. The steps are
-taken as a Zed user takes them, with `xdotool`: the key keymap.json binds
-to the step's command where the cursor is (a task, which runs the command
-through the server's command port), the code actions menu for a command
-Zed has no key for, the buttons of a question (clicked), a rename at the
-cursor (`F2`) for typed text, `ctrl-g` to go to a line, Zed's command line
-to open a file. What a scenario expects is what the server's own runner
-saw (server/org-lsp/tests/e2e_scenarios.rs, tests/e2e/expected/NAME.txt).
+taken as a Zed user takes them, every key typed in Zed's window with
+`xdotool`: the key keymap.json binds to the step's command where the
+cursor is (a task, which runs the command through the server's command
+port; Zed's own `workspace::SaveAll` for the agenda's save), the code
+actions menu (`ctrl-.`, down to the action, Enter) for a command Zed has
+no key for, the buttons of a question (clicked with the mouse: Zed's
+notifications take no keys), a rename at the cursor (`F2`, the answer
+typed) for typed text, `ctrl-g` to go to a line, the file finder
+(`ctrl-p`, the file's name typed) to open a file or go back to the
+agenda. What a scenario expects is what the server's own runner saw
+(server/org-lsp/tests/e2e_scenarios.rs, tests/e2e/expected/NAME.txt).
 
 What Zed has open and where its cursor is comes from what it tells the
 server: proxy.py stands between them and writes down every message. The
@@ -36,7 +40,8 @@ steps it cannot take, as `NAME STEP`; and
 `scenarios.zed` the scenarios it cannot take at all. A failure leaves a
 screenshot in target/zed-e2e. A scenario fails when it takes more than
 `ORG_LSP_ZED_BUDGET` seconds (600); run.py stopped by a signal closes its
-Zeds and their displays.
+Zeds and their displays. Each Zed takes the first free X display from
+`ORG_LSP_ZED_DISPLAY` (90) up.
 """
 
 import atexit
@@ -355,6 +360,9 @@ class Keys:
                     self.bound[(where, "org.agenda.goto.other")].append(key)
                 elif action == "pane::CloseActiveItem":
                     self.bound[(where, "close")].append(key)
+                elif action == "workspace::SaveAll":
+                    # Zed saves the files itself, as no task can.
+                    self.bound[(where, "org.agenda.save")].append(key)
 
     def commands_of(self, run, where):
         """The commands a task's `run` stands for: `file:COMMAND`, or `key:KEY`
@@ -426,7 +434,8 @@ def on_signal(number, _frame):
 
 
 def free_display():
-    for number in range(90, 200):
+    first = int(os.environ.get("ORG_LSP_ZED_DISPLAY", "90"))
+    for number in range(first, first + 110):
         if not os.path.exists(f"/tmp/.X11-unix/X{number}") and not os.path.exists(f"/tmp/.X{number}-lock"):
             return number
     raise Failure("no free X display")
@@ -685,10 +694,30 @@ class Zed:
         self.x(["xdotool", "mousemove", "1", str(HEIGHT // 2)])
 
     def open(self, path):
-        """Open `path` with Zed's command line, in this window."""
-        subprocess.run([os.environ["ZED"], "--add", path], env=self.environment(), cwd=self.work,
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
-        until(f"{path} to be shown", lambda: self.title() == path, 30)
+        """Go to `path` as a user does, with the file finder (`ctrl-p`): its
+        path in the project typed, or the name of a file outside it, which
+        the finder has among the files opened before (the agenda), then
+        Enter."""
+        if self.title() == path:
+            return
+        work = os.path.realpath(self.work)
+        query = path[len(work) + 1:] if path.startswith(work + "/") else os.path.basename(path)
+        # Again when the finder had not found it yet (Zed still reading the
+        # project, as it starts).
+        for attempt in range(3):
+            self.press("ctrl-p")
+            time.sleep(0.4)
+            self.type(query)
+            # The finder matches as the text comes.
+            time.sleep(0.6)
+            self.press("enter")
+            try:
+                until(f"{query} to be shown from the file finder", lambda: self.title() == path, 5)
+                return
+            except Failure:
+                if attempt == 2:
+                    raise
+                self.press("escape")
 
     def pixels(self):
         """The screen, as rows of (r, g, b)."""
@@ -990,6 +1019,19 @@ class Scenario:
                 repeated = said
         if answers:
             raise Failure(f"{command} did not ask for {list(answers)}")
+        if command == "org.agenda.save":
+            # Zed's own save: each Org file as Zed has it is on disk.
+            until("Zed to save the Org files", self.saved, 10)
+
+    def saved(self):
+        self.zed.log.read()
+        for uri, text in self.zed.log.documents.items():
+            path = path_of(uri)
+            if path.startswith(self.directory + "/") and os.path.exists(path):
+                with open(path, encoding="utf-8") as file:
+                    if file.read() != text:
+                        return False
+        return True
 
     def go_back(self, command, before_uri, shows):
         """Zed shows a file a server's edit changes that no tab shows

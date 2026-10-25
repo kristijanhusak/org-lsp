@@ -2,8 +2,18 @@
 which cannot run here: what it sends to the server, and what it does with
 the answers.
 
+The stand-ins keep Sublime's order of things: what `set_timeout` puts off
+and LSP's answers come once the code that asked has returned, in the order
+of their time (`Loop`), and a panel waits for the user, who answers it a
+few seconds later, after what those seconds bring (a popup that goes, a
+message): a panel shown over another one cancels that one, as Sublime's
+do, and an answer to a panel no longer shown is lost. Keys are pressed
+through the package's keymap (`Tests.press`), its contexts asked of the
+plugin as Sublime asks them.
+
     python3 editors/sublime/test/test_plugin.py
 """
+import heapq
 import importlib.util
 import io
 import json
@@ -167,21 +177,73 @@ class View:
         self.closed = True
 
 
+# How long the user takes to answer a panel, in milliseconds: longer than
+# the popup of a message stays.
+USER = 5000
+
+
+class Loop:
+    """Sublime's main thread: what `set_timeout` puts off, and LSP's
+    answers, run once the code that asked has returned, in the order of
+    their time, on a clock of the loop's own (milliseconds)."""
+
+    def __init__(self):
+        self.now = 0
+        self.queue = []
+        self.count = 0
+
+    def later(self, callback, delay=0):
+        heapq.heappush(self.queue, (self.now + max(delay, 0), self.count, callback))
+        self.count += 1
+
+    def run(self, for_ms=60000):
+        """Run what comes in the next `for_ms` (a timer that ticks each
+        second goes on, so there is an end)."""
+        end = self.now + for_ms
+        while self.queue and self.queue[0][0] <= end:
+            at, _, callback = heapq.heappop(self.queue)
+            self.now = max(self.now, at)
+            callback()
+
+
 class Window:
     def __init__(self, view):
         self.view = view
         self.panels = []
+        # The panel shown, and the panels whose answer came too late.
+        self.shown_panel = None
+        self.lost = []
 
     def active_view(self):
         return self.view
 
     def show_quick_panel(self, items, on_select, placeholder=''):
         self.panels.append(('quick', items, placeholder))
-        on_select(self.pick)
+        # The user goes down to the item `pick` and presses Enter.
+        self.show_panel(lambda: on_select(-1), lambda: on_select(self.pick) if hasattr(self, 'pick') else None)
 
     def show_input_panel(self, caption, initial, on_done, on_change, on_cancel):
         self.panels.append(('input', caption, initial))
-        on_done(self.typed)
+        # The user types `typed` in place of the initial text, and Enter.
+        self.show_panel(on_cancel or (lambda: None), lambda: on_done(self.typed) if hasattr(self, 'typed') else None)
+
+    def show_panel(self, cancel, answer):
+        """A panel shown: one shown before is cancelled, as Sublime closes
+        it, and the user answers this one a few seconds later, if it is
+        still shown then."""
+        if self.shown_panel:
+            shown, self.shown_panel = self.shown_panel, None
+            shown['cancel']()
+        panel = {'cancel': cancel, 'shown': self.panels[-1]}
+        self.shown_panel = panel
+
+        def answered():
+            if self.shown_panel is not panel:
+                self.lost.append(panel['shown'])
+                return
+            self.shown_panel = None
+            answer()
+        sys.modules['sublime'].loop.later(answered, USER)
 
     def find_open_file(self, path):
         return self.view if path == self.view.name else None
@@ -214,15 +276,17 @@ class Session:
     def send_request(self, request, on_result, on_error=None):
         self.sent.append((request.method, request.params))
         kind, value = self.answers.pop(0)
-        (on_result if kind == 'result' else on_error)(value)
+        # The answer comes later, from the server.
+        sys.modules['sublime'].loop.later(lambda: (on_result if kind == 'result' else on_error)(value), 20)
 
 
 def load_plugin():
     sublime = types.ModuleType('sublime')
     sublime.Region = Region
     sublime.OP_EQUAL, sublime.OP_NOT_EQUAL = 0, 1
-    sublime.set_timeout = lambda f, delay=0: f()
-    sublime.set_timeout_async = lambda f, delay=0: f()
+    sublime.loop = Loop()
+    sublime.set_timeout = lambda f, delay=0: sublime.loop.later(f, delay)
+    sublime.set_timeout_async = lambda f, delay=0: sublime.loop.later(f, delay)
     sublime.LAYOUT_INLINE = 0
     sublime.LAYOUT_BELOW = 1
     sublime.HIDDEN = 128
@@ -335,7 +399,46 @@ class Tests(unittest.TestCase):
         session = Session(answers)
         self.Command.current = session
         self.plugin.OrgLspRunCommand(self.window).run(**args)
+        self.idle()
         return session
+
+    def idle(self, for_ms=60000):
+        """What Sublime does next, for `for_ms` or until nothing is left to
+        do."""
+        self.sublime.loop.run(for_ms)
+
+    def press(self, keys, view=None, then=60000):
+        """Press `keys` (`ctrl+c a`) in `view` as Sublime does: the last
+        binding of the package's keymap for them whose contexts all hold
+        runs, and then what follows, for `then` milliseconds."""
+        view = view or self.view
+        with open(os.path.join(HERE, '..', 'LSP-org', 'Default.sublime-keymap'), encoding='utf-8') as file:
+            keymap = json.load(file)
+        listener = self.plugin.OrgLspListener()
+        # Sublime's own contexts, as they are in a view with only a cursor.
+        own = {'auto_complete_visible': False, 'has_next_field': False, 'setting.command_mode': False,
+               'selection_empty': view.sel()[0].empty()}
+
+        def holds(context):
+            operand = context.get('operand', True)
+            equal = context.get('operator', 'equal') == 'equal'
+            if context['key'] == 'selector':
+                return view.match_selector(0, operand) == equal
+            if context['key'] in own:
+                return (own[context['key']] == operand) == equal
+            operator = self.sublime.OP_EQUAL if equal else self.sublime.OP_NOT_EQUAL
+            return listener.on_query_context(view, context['key'], operator, operand, context.get('match_all', False)) is True
+        bound = [binding for binding in keymap
+                 if binding['keys'] == keys.split(' ') and all(holds(c) for c in binding.get('context', []))]
+        self.assertTrue(bound, 'no key {} here'.format(keys))
+        binding = bound[-1]
+        name = ''.join(part.capitalize() for part in binding['command'].split('_')) + 'Command'
+        command = getattr(self.plugin, name)
+        if issubclass(command, self.Command) and command.run.__code__.co_varnames[1] == 'edit':
+            command(view).run(None, **binding.get('args', {}))
+        else:
+            command(self.window).run(**binding.get('args', {}))
+        self.idle(then)
 
     def test_runs_a_command_where_the_cursor_is_and_answers_what_it_asks(self):
         self.view.cursor = self.view.text_point(2, 1)
@@ -359,6 +462,45 @@ class Tests(unittest.TestCase):
         self.assertIn('>Org<', content)
         self.assertEqual(location, self.view.cursor)
         self.assertFalse(self.view.popup_visible)
+
+    def test_a_key_asks_and_the_menu_waits_for_the_answer_typed(self):
+        # `C-c a`: the agenda's menu, a key to press, which waits while the
+        # message said with it goes (its popup, after four seconds); the
+        # user goes down to `[t]` and presses Enter.
+        self.window.pick = 1
+        choices = [{'key': 'a', 'label': 'Agenda for current week or day'},
+                   {'key': 't', 'label': 'List of all TODO entries'}]
+        session = Session([
+            ('result', {'message': 'Agenda files changed', 'input': {
+                'kind': 'key', 'prompt': 'Press key for agenda command', 'choices': choices, 'context': {'menu': 1}}}),
+            ('result', None)])
+        self.Command.current = session
+        self.press('ctrl+c a')
+        self.assertEqual(self.window.panels, [
+            ('quick', ['[a] Agenda for current week or day', '[t] List of all TODO entries'],
+             'Press key for agenda command')])
+        self.assertEqual(self.window.lost, [])
+        self.assertFalse(self.view.popup_visible)
+        self.assertEqual([params['command'] for _, params in session.sent], ['org.agenda.dispatch'] * 2)
+        answered = session.sent[1][1]['arguments'][0]
+        self.assertEqual((answered['input'], answered['menu']), ('t', 1))
+
+    def test_a_question_asked_over_another_gives_that_one_up(self):
+        # A key that asks while the menu of another waits: Sublime closes
+        # the menu, which gives its command up, and the answer goes to the
+        # question shown.
+        self.window.pick = 0
+        menu = {'kind': 'key', 'prompt': 'Press key for agenda command', 'choices': [{'key': 'a', 'label': 'Agenda'}]}
+        states = {'kind': 'key', 'prompt': 'Select a TODO state', 'choices': [{'key': 'd', 'label': 'DONE'}]}
+        session = Session([('result', {'input': menu}), ('result', {'input': states}), ('result', None)])
+        self.Command.current = session
+        self.press('ctrl+c a', then=100)
+        self.press('ctrl+c ctrl+t')
+        self.assertEqual([panel[2] for panel in self.window.panels], ['Press key for agenda command', 'Select a TODO state'])
+        self.assertEqual(self.window.lost, [self.window.panels[0]])
+        self.assertEqual([(params['command'], (params['arguments'][0] if params['arguments'] else {}).get('input'))
+                          for _, params in session.sent],
+                         [('org.agenda.dispatch', None), ('org.todo', None), ('org.todo', 'd')])
 
     def test_sends_the_selection_as_the_region(self):
         self.view.selection = Region(self.view.text_point(1, 0), self.view.text_point(2, 1))
@@ -512,6 +654,7 @@ class Tests(unittest.TestCase):
             self.Command.current = session
         self.window.on_open = started
         self.plugin.OrgLspRunCommand(self.window).run(command='org.agenda.list')
+        self.idle()
         self.assertEqual(session.sent, [('workspace/executeCommand', {'command': 'org.agenda.list', 'arguments': []})])
         self.assertTrue(self.window.opened.closed)
         # In an Org file, the key waits for its server.
@@ -519,6 +662,7 @@ class Tests(unittest.TestCase):
         self.Command.current = None
         self.window.opened = None
         self.plugin.OrgLspRunCommand(self.window).run(command='org.agenda.list')
+        self.idle()
         self.assertIsNone(self.window.opened)
         self.assertIn('org-lsp: the server is starting', self.sublime.messages)
 
@@ -606,6 +750,7 @@ class Tests(unittest.TestCase):
         self.view.cursor = self.view.text_point(line, 0)
         self.Command.current = Session([('result', before or {'integrateLists': False}), ('result', RANGES)])
         self.plugin.OrgLspCycleCommand(self.view).run(None, **args)
+        self.idle()
 
     def folded_rows(self):
         return sorted(self.view.rowcol(f.begin())[0] for f in self.view.folds)
@@ -635,6 +780,7 @@ class Tests(unittest.TestCase):
         def cycle():
             self.Command.current = Session([('result', RANGES)])
             self.plugin.OrgLspCycleGlobalCommand(self.view).run(None)
+            self.idle()
         cycle()
         self.assertEqual(self.folded_rows(), [0, 6])
         cycle()
@@ -649,6 +795,7 @@ class Tests(unittest.TestCase):
         plugin = self.plugin.OrgLsp(lambda: session)
         opened = types.SimpleNamespace(method='textDocument/didOpen', params={'textDocument': {'uri': 'file:///notes/work.org'}})
         plugin.on_pre_send_notification_async(opened)
+        self.idle()
         self.assertEqual(session.sent[0], ('org-lsp/startupFolds', {'textDocument': {'uri': 'file:///notes/work.org'}}))
         self.assertEqual(self.folded_rows(), [0, 2])
         # And the previews it opens with (`#+STARTUP: inlineimages`, `latexpreview`).
@@ -665,8 +812,6 @@ class Tests(unittest.TestCase):
         Org, and once loaded, the folds the server names open and close."""
         journal = View('* Monday, 05/18/26\n** TODO call Bob\nnote\n** 10:30 ', '/journal/20260518')
         journal.loading = True
-        later = []
-        self.sublime.set_timeout = lambda f, delay=0: f() if delay == 0 else later.append(f)
         self.window.view = journal
         self.sublime.windows = lambda: [self.window]
         session = Session([('result', {'folds': []}), ('result', None), ('result', None)])
@@ -680,6 +825,7 @@ class Tests(unittest.TestCase):
         self.window.views = lambda: [journal, other]
         opened = types.SimpleNamespace(method='textDocument/didOpen', params={'textDocument': {'uri': 'file:///journal/20260518'}})
         plugin.on_pre_send_notification_async(opened)
+        self.idle()
         self.assertEqual(other.syntax, 'Packages/LSP-org/Org.sublime-syntax')
         self.assertEqual(session.sent[0][0], 'org-lsp/startupFolds')
         # Files with an extension, or elsewhere, are as they are.
@@ -693,7 +839,7 @@ class Tests(unittest.TestCase):
                                 'close': [{'startLine': 1, 'endLine': 2}]})
         self.assertEqual(journal.folds, {Region(17, 34)})
         journal.loading = False
-        later.pop()()
+        self.idle()
         self.assertEqual([journal.rowcol(f.begin())[0] for f in journal.folds], [1])
 
     def test_runs_the_command_the_server_asks_for(self):
@@ -707,6 +853,7 @@ class Tests(unittest.TestCase):
         plugin = self.plugin.OrgLsp(lambda: session)
         argument = {'keys': 'w', 'orgProtocol': {'props': [[':link', 'https://orgmode.org/']]}}
         plugin.m_org_lsp_runCommand({'command': 'org.capture', 'argument': argument})
+        self.idle()
         method, params = session.sent[0]
         self.assertEqual((method, params['command']), ('workspace/executeCommand', 'org.capture'))
         sent = params['arguments'][0]
@@ -844,6 +991,7 @@ class Tests(unittest.TestCase):
         handler = self.plugin.OrgLsp(lambda: session)
         params = {'uri': 'file:///cache/roam/org-roam-buffer.org', 'takeFocus': False}
         self.assertIsNone(handler.m_window_showDocument(params, 4))
+        self.idle()
         self.assertEqual(shown, [params])
         self.assertEqual((responses[0].request_id, responses[0].result), (4, {'success': True}))
         session = self.run_command([('result', None)], command='org.roam.buffer.toggle')
