@@ -582,13 +582,19 @@ local function show_choices(prompt, choices)
     end
   end
   vim.bo[buf].bufhidden = 'wipe'
-  -- Above the command line and the status line, inside the borders.
-  local height = math.max(1, math.min(#lines, vim.o.lines - vim.o.cmdheight - 4))
+  -- Above the command line and the status line, inside the borders; as
+  -- high as the lines take, those wider than the screen wrapping.
+  width = math.min(width, vim.o.columns - 2)
+  local rows = 0
+  for _, line in ipairs(lines) do
+    rows = rows + math.max(1, math.ceil(vim.fn.strdisplaywidth(line) / width))
+  end
+  local height = math.max(1, math.min(rows, vim.o.lines - vim.o.cmdheight - 4))
   return vim.api.nvim_open_win(buf, false, {
     relative = 'editor',
     row = vim.o.lines - vim.o.cmdheight - height - 3,
     col = 0,
-    width = math.min(width, vim.o.columns - 2),
+    width = width,
     height = height,
     style = 'minimal',
     border = 'rounded',
