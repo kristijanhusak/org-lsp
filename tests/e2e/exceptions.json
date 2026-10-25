@@ -51,11 +51,7 @@
       "org.todo.previous": "ciT in Neovim, a key of Vim's normal mode: the vim preset leaves those to VSCodeVim's own settings (docs/keys/vscode.org)."
     },
     "helix": {
-      "org.meta.up": "Helix's code action moves the subtree and leaves the cursor where it was in the text; Emacs's cursor goes with the subtree, as it does when the command moves it (window/showDocument).",
-      "org.meta.down": "Helix's code action moves the subtree and leaves the cursor where it was in the text; Emacs's cursor goes with the subtree, as it does when the command moves it (window/showDocument).",
-      "org.agenda.goto.other": "Not among Helix's code actions: the other window is the editor's to pick (orgOtherWindow), which Helix does not know of; from the command line, the entry shows in the agenda's window, as with org.agenda.goto.",
-      "org.agenda.follow": "Not among Helix's code actions: follow mode shows the entry of the line the cursor goes to, and Helix tells a server no cursor moves; from the command line it turns on, and the entry shows in a split, which takes the focus.",
-      "org.meta.return": "The step adds below the cursor's line, as the keys of modal editors do (below); the code action adds where the cursor is, as M-RET does: from the command line, with below in its argument."
+      "org.priority.down count": "Helix gives a code action no count, and Org changes the priority once whatever the count: the action is picked once."
     },
     "zed": {
       "org.meta.down": "Shift and Alt with the arrows keep Zed's own meaning (docs/zed.org): it runs from the code actions (ctrl-.).",
@@ -91,7 +87,11 @@
   },
   "steps": {
     "helix": {
-      "agenda-entries 14": "Helix does nothing with the files a result names to save, and the server cannot save a file: Save all Org files is not among its code actions, :write-all saves them (docs/keys/helix.org).",
+      "agenda-entries 4": "Not among Helix's code actions: the other window is the editor's to pick (orgOtherWindow), which Helix does not know of (docs/helix.org).",
+      "agenda-entries 5": "Not among Helix's code actions: follow mode shows the entry of the line the cursor goes to, and Helix tells a server no cursor moves (docs/helix.org).",
+      "agenda-entries 7": "Follow mode, off again: not among Helix's code actions (step 5).",
+      "agenda-entry-text 5": "Helix gives a code action no count, and C-u 2 E (two lines of entry text) is not E taken twice, which turns entry text mode on and off.",
+      "agenda-filters 7": "Helix gives a code action no count, and C-u C-u / is not / taken four times.",
       "agenda-entry-edits 21": "Helix has no note buffer: the note is one line, typed as a rename at the cursor (docs/helix.org).",
       "agenda-entry-edits 22": "Typed in the note buffer of step 21, which Helix does not have.",
       "agenda-entry-edits 23": "Files the note of step 21, which Helix asks for as a rename."
@@ -102,11 +102,14 @@
       "agenda-navigation 18 cursor": "q closes the agenda's tab, not its editor group as Emacs deletes the agenda's window: home.org, opened in that group since, stays in front of work.org."
     },
     "helix": {
+      "agenda-filters 9 messages": "Step 7, which Helix cannot take, says Agenda filters: -home.",
+      "agenda-entries 14 messages": "Helix does nothing with the files a result names to save, and the server cannot save a file: Save all Org files is not among its code actions, and :write-all, which saves them, says nothing (docs/keys/helix.org).",
       "org-editing 5 messages": "The code action is an edit that Helix applies itself, without running the command: nothing is said (Emacs says Priority of current item set to B).",
+      "org-editing 26 messages": "Step 6 lowers the priority with the code action, an edit that Helix applies itself, without running the command: nothing is said (Emacs says Priority of current item set to C).",
       "agenda-navigation 18 cursor": "The agenda's buffer is closed (:buffer-close!, as the server's edits leave it changed), and Helix shows the buffer opened last, home.org, not the one the agenda was opened from: Helix has no window of the agenda's to delete."
     },
     "zed": {
-      "agenda-entries 14": "A task cannot save Zed's files, nor can the server: the agenda's s and C-x C-s are Zed's own workspace::SaveAll, which the runner does not drive (docs/keys/zed.org).",
+      "agenda-entries 14 messages": "A task cannot save Zed's files, nor can the server: the agenda's s and C-x C-s are Zed's own workspace::SaveAll, which saves them and says nothing (docs/keys/zed.org).",
       "agenda-entry-edits 21": "Zed has no note buffer: the note is one line, typed as a rename at the cursor (docs/zed.org).",
       "agenda-entry-edits 22": "Typed in the note buffer of step 21, which Zed does not have.",
       "agenda-entry-edits 23": "Files the note of step 21, which Zed asks for as a rename.",

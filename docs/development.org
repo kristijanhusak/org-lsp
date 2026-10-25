@@ -139,11 +139,19 @@ others), as close to Emacs Org mode as it can get.
   dispatcher's key, with ~'updatetime'~ passing while it waits for one,
   and the key of a prompt of two lines.
 - Sublime Text: ~node editors/sublime/generate.mjs --check~,
-  ~python3 editors/sublime/test/test_plugin.py~.
+  ~python3 editors/sublime/test/test_plugin.py~: the plugin against
+  stand-ins for Sublime Text and the LSP package, as Sublime itself cannot
+  run in the workspace. The stand-ins keep Sublime's order of things: what
+  ~set_timeout~ puts off and the server's answers come once the code that
+  asked has returned, in the order of their time, and a panel waits for
+  the user, who answers it a few seconds later (after a message's popup
+  has gone); a panel shown over another cancels that one, as Sublime's do.
+  Some keys are pressed through the package's keymap, its contexts asked
+  of the plugin as Sublime asks them.
 - Zed: ~node editors/zed/generate.mjs --check~,
   ~cargo build --target wasm32-wasip2~ in ~editors/zed~; the queries are compiled against the
-  grammar with the tree-sitter CLI. Zed itself cannot run in the
-  workspace.
+  grammar with the tree-sitter CLI; with ~ZED~ set, the scenarios in Zed
+  itself ([[#end-to-end-scenarios][below]]).
 - CI, started by hand, runs seven jobs: server, Neovim 0.12.0, Neovim stable, VS Code, Vim (with each of its four LSP clients), Sublime Text (generated files, the plugin against stand-ins), Zed (the build, generated rules, queries).
 
 * End-to-end scenarios
@@ -258,18 +266,26 @@ the window that has the focus.
 Helix's adapter is ~editors/helix/test/run.py~: each scenario in a Helix
 of its own in a tmux session, with [[file:../editors/helix/languages.toml][editors/helix/languages.toml]] pointing
 at the debug build and the scenario's options as its ~config~. It does
-what a Helix user does: picks the command's code action in the menu
-(~Space a~, then ~C-n~ and ~RET~), in Org files, the agenda and capture
-buffers, follows a link with ~gd~, picks the answer to a choice from the
-code actions, where it comes first, answers what the server asks for as
-text with a rename (~Space r~), goes back to the agenda from the buffer
-picker (~Space b~), and runs the commands that are not among the code
-actions (~editors.helix~) with ~:lsp-workspace-command~ and the cursor's
-place as their argument, as it does a step with a count: a code action
-takes none. It reads the buffers' text from what Helix tells the server
-(~didOpen~ and ~didChange~ in its log), the cursor from the status line and
-the messages from the log too. The date prompt and column view are not
-there (~scenarios.helix~). ~HX~ is the ~hx~ to run (~HELIX_RUNTIME~ its
+what a Helix user does, every key typed in Helix's terminal through tmux:
+picks the command's code action in the menu (~Space a~, then ~C-n~ and
+~RET~), in Org files, the agenda and capture buffers, follows a link with
+~gd~, saves with ~:write-all~ (the agenda's save, which Helix does not
+do for a server), picks the answer to a choice from the code actions,
+where it comes first, answers what the server asks for as text with a
+rename (~Space r~, the answer typed), goes to a line with ~:goto~ or a
+search, opens a file with ~:open~ and goes back to the agenda from the
+buffer picker (~Space b~). A code action takes no count: a step with one
+picks the action that many times, or once where Org gives the count no
+meaning (~COMMAND count~ under ~editors.helix~). A step that adds below the
+cursor's line goes past its end first (~gl l~), as ~C-e M-RET~ does, and
+after moving a subtree, whose code action leaves the cursor where it was
+in the text, the adapter goes after the subtree with a search. What Helix
+cannot do (follow mode, the entry in another window, a count Org reads
+as more than a repeat) is under ~steps.helix~, whose steps still put the
+cursor where they say for the steps after them. It reads the buffers'
+text from what Helix tells the server (~didOpen~ and ~didChange~ in its
+log), the cursor from the status line and the messages from the log too.
+The date prompt and column view are not there (~scenarios.helix~). ~HX~ is the ~hx~ to run (~HELIX_RUNTIME~ its
 ~runtime~ directory, by default the one beside it; ~ORG_LSP_HX_KEEP~ keeps
 each scenario's directory and Helix's log); ~scripts/test-all.sh~ runs it
 when ~HX~ is set:
@@ -294,13 +310,20 @@ Each scenario runs in a Zed of its own, on an X display of its own
 (~ZED_ORG_GRAMMAR~, an ~org.wasm~; or ~ZED_TREE_SITTER_ORG~, a checkout of
 tree-sitter-org, and ~WASI_SDK~ to build it), and the tasks and the keymap
 of [[file:keys/zed.org::#keys-through-tasks][keys through tasks]].
-The adapter presses with ~xdotool~ the key ~keymap.json~ binds to the step's
-command (a task, which reaches the server through its command port); a
-command with no key in Zed (~editors.zed~ in the exceptions) runs from the
-code actions (~ctrl-.~). It clicks the buttons of a question, answers typed
-text with a rename at the cursor (~F2~), goes to a line with ~ctrl-g~ and
-opens a file with Zed's command line. A key that takes a count is pressed
-that many times, as Zed gives a key none. Zed opens a file a server's edit
+Every step is typed in Zed's window with ~xdotool~, as a user types it.
+The adapter presses the key ~keymap.json~ binds to the step's command (a
+task, which reaches the server through its command port, or Zed's own
+~workspace::SaveAll~ for the agenda's save, after which the files are
+checked on disk); a command with no key in Zed (~editors.zed~ in the
+exceptions) runs from the code actions (~ctrl-.~, down to the action,
+~RET~). It clicks the buttons of a question with the mouse (Zed's
+notifications take no keys), answers typed text with a rename at the
+cursor (~F2~, the answer typed), goes to a line with ~ctrl-g~ and opens a
+file, or goes back to the agenda, with the file finder (~ctrl-p~, the
+file's name typed, ~RET~). A key that takes a count is pressed that many
+times, as Zed gives a key none. One key is the adapter's own, bound to
+Zed's ~workspace::ClearAllNotifications~: the messages it clears would
+cover a question's buttons. Zed opens a file a server's edit
 changes when no tab shows it, and takes the focus to what it is asked to
 show without it (follow mode): the adapter goes back to where it was, as a
 user does. What Zed has open, the text of its buffers and where its cursor
@@ -308,13 +331,19 @@ is come from what it tells the server, which ~editors/zed/test/proxy.py~
 writes down; the current buffer is the window's title. ~snapshots.zed~ in
 the exceptions names what Zed shows otherwise as ~NAME STEP KIND~, and the
 steps it cannot take as ~NAME STEP~; ~scenarios.zed~ the scenarios it cannot
-take at all (the date prompt, column view). Each wait has a bound: a
+take at all (the date prompt, column view). After the scenarios come
+checks of Zed's own, written as they are, with what they expect (~CHECKS~
+in ~run.py~): ~zed-capture-here~ captures with ~ctrl-c c~ in an Org file,
+whose ~%a~ links to the cursor's heading, with the agenda open too. Each
+wait has a bound: a
 request left with no answer fails the step, and a scenario fails when it
 takes more than ~ORG_LSP_ZED_BUDGET~ seconds (600), with the step and what
 it waited for. Stopped (~SIGTERM~, ~SIGINT~), the adapter closes its Zeds
 and their displays. A failure leaves a screenshot
 in ~target/zed-e2e~; ~ORG_LSP_ZED_KEEP=1~ keeps each scenario's directory,
 and ~ORG_LSP_ZED_PAUSE=1~ leaves Zed open at a failure, to look at.
+Each Zed takes the first free X display from ~ORG_LSP_ZED_DISPLAY~ (90)
+up.
 
 * Highlighting
 :PROPERTIES:

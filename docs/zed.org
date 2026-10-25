@@ -48,14 +48,20 @@ with Rust).
 * Setting it up
 
 The settings go in Zed's settings (*zed: open settings*). Zed asks the
-server for its colors only with ~semantic_tokens~, and shows indentation,
-pretty entities and the clock's times as inlay hints. The server's options
-go in ~initialization_options~:
+server for its colors only with ~semantic_tokens~, and for its folds
+(headlines, drawers, blocks) only with ~document_folding_ranges~: without
+it, an Org file has no folds at all. It shows indentation, pretty entities
+and the clock's times as inlay hints. The server's options go in
+~initialization_options~:
 
 #+begin_src json
 {
   "languages": {
-    "Org": { "semantic_tokens": "combined", "inlay_hints": { "enabled": true } }
+    "Org": {
+      "semantic_tokens": "combined",
+      "document_folding_ranges": "on",
+      "inlay_hints": { "enabled": true }
+    }
   },
   "lsp": {
     "org-lsp": {

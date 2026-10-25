@@ -139,6 +139,11 @@ The server changes the agenda's buffer with edits, so Helix counts it as
 changed: close it with ~:buffer-close!~, or leave with ~:quit-all!~ (or
 ~:write~ it, the same text).
 
+Moving a subtree up or down with its code action leaves the cursor where
+it was in the text, not on the subtree as in Emacs: Helix applies the
+action's edit itself, and goes to no place a server names for it. Helix
+gives a code action no count either: pick it again.
+
 Helix has no keys for a server, so the agenda's keys are the code actions'
 titles, and what needs to know where the cursor goes is left out: follow
 mode, going to the entry in another window, column view. A document the
