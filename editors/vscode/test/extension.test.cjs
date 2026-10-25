@@ -257,10 +257,15 @@ describe('Org files', () => {
       // Each keyword in its color, as `org-fast-todo-selection` shows it:
       // TODO in its face (the tests give it one), the others as TODO and
       // done keywords.
-      assert.match(require('node:fs').readFileSync(icons[0].fsPath, 'utf8'), /fill="#ff8800"/);
+      // In the colors of `org-todo` and `org-done`, for light and dark
+      // themes: a quick pick shows an icon of the theme's in one color.
+      const fill = (icon) => require('node:fs').readFileSync(icon.fsPath, 'utf8').match(/fill="([^"]*)"/)[1];
+      assert.equal(fill(icons[0]), '#ff8800');
+      // Files: a quick pick shows no icon of a `vscode-userdata:` URI.
+      assert.deepEqual([icons[0].scheme, icons[1].light.scheme, icons[1].dark.scheme], ['file', 'file', 'file']);
       assert.deepEqual(
-        icons.slice(1).map((icon) => icon && icon.color.id),
-        ['charts.red', 'charts.green', undefined],
+        icons.slice(1).map((icon) => icon && [fill(icon.light), fill(icon.dark)]),
+        [['red', 'Pink'], ['ForestGreen', 'PaleGreen'], undefined],
       );
       await until('the note buffer to close', () =>
         vscode.window.tabGroups.all.flatMap((group) => group.tabs).every((tab) => tab.label !== 'CAPTURE-Note.org'),
@@ -844,6 +849,37 @@ describe('Org files', () => {
       assert.deepEqual(asked, ['Tags', 'Tags :work:', 'Tags :work:home:']);
     } finally {
       vscode.window.showQuickPick = showQuickPick;
+    }
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.workspace.fs.delete(file);
+    await vscode.window.showTextDocument(document);
+  });
+
+  it('keeps the tags a headline has as tags are typed after them, as Emacs does', async () => {
+    const file = vscode.Uri.file(path.join(workspace, 'typed-tags.org'));
+    await vscode.workspace.fs.writeFile(file, Buffer.from('* A :zeta:\n* B :old:\n'));
+    const editor = await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(file));
+    await until('the server', async () => (await tokens(file)) !== undefined);
+    // Typed into VS Code's own box, once it shows.
+    let shown = false;
+    const made = vscode.window.createQuickPick;
+    vscode.window.createQuickPick = (...args) => {
+      const pick = made(...args);
+      pick.onDidChangeActive(() => (shown = true));
+      return pick;
+    };
+    const type = (...args) => require('node:child_process').execFileSync('xdotool', args);
+    try {
+      moveTo(1, 2);
+      void vscode.commands.executeCommand('org.tags.set');
+      await until('the tags asked for', () => shown);
+      // Emacs's minibuffer has `:old:` in it, the cursor after it.
+      type('type', '--delay', '40', 'new');
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      type('key', 'Return');
+      await until('the tags set', () => editor.document.lineAt(1).text === '* B' + ' '.repeat(65) + ':old:new:');
+    } finally {
+      vscode.window.createQuickPick = made;
     }
     await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
     await vscode.workspace.fs.delete(file);
