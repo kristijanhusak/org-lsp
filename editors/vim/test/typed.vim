@@ -100,7 +100,8 @@ function! s:tick(timer) abort
   elseif s:step ==# 'history'
     " The choices over the command line, the question their title.
     let s:hit_enter = s:hit_enter || mode(1) =~# '^r'
-    for id in popup_list()
+    " (Not the client's own popups: coc.nvim's notifications.)
+    for id in filter(popup_list(), {_, id -> !empty(get(popup_getoptions(id), 'title', ''))})
       let s:title = popup_getoptions(id).title
       let s:above = popup_getpos(id).line + popup_getpos(id).height <= &lines - &cmdheight + 1
     endfor
