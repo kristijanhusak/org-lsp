@@ -120,9 +120,14 @@ command. [[file:keys/vim.org][keys/vim.org]] lists every key and how to change i
 - With coc.nvim, a file an edit is for that is not loaded (the target of
   a refile or a capture) opens as ~workspace.openResourceCommand~ says, in
   a tab of its own unless that is set (~""~ loads it without showing it,
-  as the other clients do).
+  as the other clients do). coc.nvim then says
+  ~Use ':wa' to save changes …~; with the command's message, that is more
+  than a narrow command line holds, and Vim waits for Enter
+  (~"coc.preferences.messageLevel": "warning"~ keeps coc.nvim's to itself).
 - With ALE, one server serves the session, started for the directory of
-  the first Org file.
+  the first Org file. ALE shows the hover where the cursor rests in the
+  command line (~g:ale_hover_cursor~): in the agenda, the entry's headline,
+  which takes the place of the command's message after ~'updatetime'~.
 
 * What works
 

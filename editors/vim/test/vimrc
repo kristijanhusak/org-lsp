@@ -15,6 +15,9 @@ let g:coc_config_home = $ORG_LSP_TEST_WORK . '/coc'
 let g:ale_lint_on_text_changed = 'never'
 " ALE tells of its server started, and Vim says nobody listens.
 autocmd User ALELSPStarted :
+" ALE echoes the hover where the cursor rests into the messages (in the
+" agenda, the entry's headline), which the tests compare.
+let g:ale_hover_cursor = 0
 let g:lsp_diagnostics_enabled = 0
 " vim-lsp's sign for code actions shows the sign column a moment after the
 " cursor stops, which narrows the agenda's window: the agenda is built
