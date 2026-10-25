@@ -3150,6 +3150,13 @@ fn shrinks_table_columns() {
     };
     // Shrunk when the file opens: `abc…`, as Emacs shows it.
     assert_eq!(hints(&mut client), [(1, 1, " ".into()), (1, 5, "…".into()), (2, 1, " ".into()), (2, 5, "…".into())]);
+    // The same text sent again, as yegappan/lsp and vim-lsp do once the
+    // file is open: the columns stay shrunk.
+    client.notify::<DidChangeTextDocument>(DidChangeTextDocumentParams {
+        text_document: VersionedTextDocumentIdentifier { uri: uri(), version: 2 },
+        content_changes: vec![TextDocumentContentChangeEvent { range: None, range_length: None, text: text.into() }],
+    });
+    assert_eq!(hints(&mut client), [(1, 1, " ".into()), (1, 5, "…".into()), (2, 1, " ".into()), (2, 5, "…".into())]);
     let toggle = |client: &mut Client, line: u32, character: u32, extra: Value| {
         let mut context =
             json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": line, "character": character } });

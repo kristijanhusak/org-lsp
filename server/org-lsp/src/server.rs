@@ -12563,6 +12563,12 @@ impl Server {
     fn shrunk_after_change(&mut self, key: &str, old: &str, changed: Option<(usize, usize)>) {
         let Some(sets) = self.shrunk.remove(key) else { return };
         let Some(text) = self.documents.get(key).map(|document| document.text.clone()) else { return };
+        // The same text sent again (yegappan/lsp and vim-lsp do after
+        // opening a file): nothing changed under the columns.
+        if text == old {
+            self.shrunk.insert(key.to_string(), sets);
+            return;
+        }
         let Some((first, last)) = changed else { return };
         let before = org_core::shrink::tables(old);
         let after = org_core::shrink::tables(&text);
