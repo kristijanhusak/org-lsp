@@ -436,6 +436,38 @@ describe('Org files', () => {
     await document.save();
   });
 
+  it('keeps the text a date prompt starts with, typing after it, as Emacs does', async () => {
+    const fs = require('node:fs');
+    // Outside the workspace, so that the agenda does not see it.
+    const file = path.join(fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'org-lsp-change-')), 'change.org');
+    fs.writeFileSync(file, '* Meeting <2026-05-18 Mon 10:00>\n');
+    const changed = await vscode.workspace.openTextDocument(file);
+    const editor = await vscode.window.showTextDocument(changed);
+    const started = [];
+    const showInputBox = vscode.window.showInputBox;
+    // ` fri` typed as VS Code types it: in place of the text selected,
+    // all of it unless the extension says otherwise.
+    vscode.window.showInputBox = async (options) => {
+      started.push(options.value);
+      const [start, end] = options.valueSelection ?? [0, options.value.length];
+      return `${options.value.slice(0, start)} fri${options.value.slice(end)}`;
+    };
+    try {
+      editor.selection = new vscode.Selection(0, 14, 0, 14);
+      await vscode.commands.executeCommand('org.timestamp.change');
+      await until('the calendar', () => vscode.window.activeTextEditor?.document.languageId === 'org-date');
+      await vscode.commands.executeCommand('org.calendar.type');
+      // Emacs's minibuffer has the time in it, the cursor after it: `10:00 fri`.
+      await until('the timestamp changed', () => changed.lineAt(0).text === '* Meeting <2026-05-22 Fri 10:00>');
+      assert.deepEqual(started, ['10:00']);
+    } finally {
+      vscode.window.showInputBox = showInputBox;
+    }
+    await vscode.window.showTextDocument(changed);
+    await vscode.commands.executeCommand('workbench.action.revertAndCloseActiveEditor');
+    await vscode.window.showTextDocument(document);
+  });
+
   it('hides what Org hides, and shows it on the line being edited', async () => {
     const fs = require('node:fs');
     const file = path.join(workspace, 'links.org');

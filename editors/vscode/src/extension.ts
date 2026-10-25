@@ -379,6 +379,10 @@ async function ask(input: Input, typed: (text: string) => Promise<vscode.InputBo
   return vscode.window.showInputBox({
     prompt: input.prompt,
     value: input.value,
+    // The text it starts with stays, the cursor after it, as in Emacs's
+    // minibuffer (`11:00` of the timestamp changed, then `+1d`): VS Code
+    // would select it, for the first key typed to replace it.
+    valueSelection: [input.value?.length ?? 0, input.value?.length ?? 0],
     ignoreFocusOut: true,
     validateInput: input.kind === 'date' ? typed : undefined,
   });
