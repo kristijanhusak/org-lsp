@@ -615,18 +615,30 @@ Each issue: a heading `## <part>-<n>: <one line>`, then
 - Repro: `* B :old:`, C-c C-q, type `new`, Enter: `:new:` (Emacs: `:old:new:`). Test: "keeps the tags a headline has as tags are typed after them, as Emacs does" (typed with xdotool).
 
 ## vscode-typed-5: DONE has TODO's color, a done headline any headline's, in VS Code's default themes
-- State: open (server-side: `server/org-lsp/src/legend.rs`, which writes package.json's `semanticTokenScopes`)
+- State: fixed ("VS Code: TODO and DONE, done and todo headlines colored apart": scopes the themes color apart come first)
 - Where: `todoKeyword` → `keyword.other.todo.org`, `todoKeyword.done` → `keyword.other.done.org`: VS Code uses the first scope of the list a theme rule matches, and every theme's `keyword` rule matches both, so both get the keyword color. The same for `headline.done` (`markup.heading.done.org` matched by `markup.heading`) and the TODO headline look.
 - Repro: VSCodium 1.135, default theme (2026 Dark; Dark+ and Dark Modern too), tests/visual.org: TODO, NEXT, DONE and CANCELLED all #FF7B72 (`.claude/e2e/repro/typed-vscode/colors.sh` on the screenshot of b1.cjs `visual`).
 - Expected (TESTING.org, visual.org): done keywords in a color of their own. A fix: scopes that only org rules or the generic fallbacks match, e.g. `markup.inserted.done.org` before `markup.inserted`, `markup.deleted.todo.org` before `markup.deleted`.
 
 ## vscode-typed-6: S-RET at the start of a table row says Emacs's refusal as an error message
-- State: open (server-side, minor)
+- State: fixed ("What Emacs refuses is said as a warning, as the server's own refusals")
 - Where: `org.table.copy.down` through Emacs: `Not in table data field` comes as `window/showMessage` type Error (an error toast in VS Code), where other refusals are error answers (`-32803`) that the extension shows as warnings; off a table the answer is `notApplicable` and the key keeps its meaning (right).
 - Repro: `python3 .claude/e2e/repro/typed-vscode/copy_down.py`: at (1, 0) of `| 1 | 2 |\n|   |   |` the result is null and the message `{'type': 1, 'message': 'Not in table data field'}`.
 
 ## vscode-typed-7: the agenda's bulk scatter (`B S`) puts its default, 7, in the box as text the answer starts with
-- State: open (server-side: `server/org-lsp/src/server/bulk.rs` `"S" => … ask("text", prompt, "7", …)`)
+- State: fixed ("Agenda: scatter's 7 days are a default, as read-number shows it")
 - Where: Emacs asks with `(read-number "Scatter tasks across how many days: " 7)`: the minibuffer is empty, the prompt says `(default 7)`, and RET alone takes 7. The server sends `value: "7"`, which docs/protocol.org defines as the text the prompt starts with (Emacs's initial input).
 - Repro: agenda-bulk.json step 27 typed in VS Code (`npm test -- scenarios`, before the adapter selected the box's text first): typing `1` gives `71`. Neovim's `vim.ui.input({ default = "7" })` gives `71` the same way.
 - Expected: `value: ""` and the default in the prompt (`Scatter tasks across how many days (default 7)`), the empty answer standing for 7, as `read-number` does.
+
+## Server bugs of the typed round (Neovim, Vim), fixed
+- Neovim S1, bulk tag completion without `#+TAGS:`/`org_tag_alist`: fixed ("Agenda: tags complete from #+TAGS and org_tag_alist too").
+- Neovim S2, column view PRIORITY read as text: fixed ("Column view: the priority is one key, as org-priority reads it").
+- Neovim S3, file-name prompts without file completion: open (a `file` prompt kind, every editor).
+- Vim 1, `\oi.` twice puts the range inside the timestamp: fixed ("Timestamp again: the range goes after the timestamp").
+- Vim 2, `#+STARTUP: shrink` forgotten after a didChange of the same text: fixed ("Shrunk columns stay when the same text is sent again").
+- Vim 3, `shell:` output ignoring `message_notifications`: fixed ("Shell links say their output as the server's other messages").
+- Vim 4a, property names at `:Co`: fixed ("Property names complete as pcomplete/org-mode/prop offers them").
+- Vim 4b, `man:` linted with `ol-man`: fixed ("man: links are links with ol-man on").
+- Vim 4c, the field editor keeps a newline from text above its `#` lines: not a bug, `org-table-finish-edit-field` does the same (checked in Emacs: "new line\nmore\nold").
+- Vim 4d, the first `\oe` without `[#]`/`[&]`: the server always sends both; editor-side, open.
