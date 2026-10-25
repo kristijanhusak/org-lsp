@@ -10238,6 +10238,39 @@ fn acts_on_marked_entries_with_the_same_headline() {
     client.shutdown();
 }
 
+/// Scattering (`B S`) asks `read-number`'s question: 7 days by default,
+/// said in the prompt, which an empty answer takes.
+#[test]
+fn scatters_over_seven_days_by_default() {
+    let mut client = Client::editor(clock(), None);
+    let uri = "file:///org/work.org";
+    client.open(uri, "* TODO Review\n* TODO Write\n");
+    let run = |client: &mut Client, command: &str, extra: Value| {
+        let mut context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": 0, "character": 0 } });
+        for (key, value) in extra.as_object().into_iter().flatten() {
+            context[key] = value.clone();
+        }
+        client.received.clear();
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+    run(&mut client, "org.agenda.todos", json!({})).unwrap();
+    client.show_view();
+    run(&mut client, "org.agenda.bulk.mark.all", json!({})).unwrap();
+    let asked = run(&mut client, "org.agenda.bulk.action", json!({ "step": "action", "input": "S" })).unwrap();
+    assert_eq!(asked["input"]["prompt"], "Scatter tasks across how many days (default 7)", "{asked}");
+    assert_eq!(asked["input"]["value"], "", "{asked}");
+    let done = run(
+        &mut client,
+        "org.agenda.bulk.action",
+        json!({ "step": "S", "input": "", "answers": asked["input"]["context"]["answers"] }),
+    )
+    .unwrap();
+    assert_eq!(done["message"], "Acted on 2 entries");
+    client.shutdown();
+}
+
 /// With `org_agenda_persistent_marks`, the marks stay on their entries
 /// once the editor has applied the bulk action, so a second one acts on
 /// all of them, two with the same headline included.
