@@ -16,6 +16,8 @@ typed) for typed text, `ctrl-g` to go to a line, the file finder
 (`ctrl-p`, the file's name typed) to open a file or go back to the
 agenda. What a scenario expects is what the server's own runner saw
 (server/org-lsp/tests/e2e_scenarios.rs, tests/e2e/expected/NAME.txt).
+After the scenarios come checks of Zed's own (`CHECKS`), written and run
+as they are, with what they expect beside them.
 
 What Zed has open and where its cursor is comes from what it tells the
 server: proxy.py stands between them and writes down every message. The
@@ -793,9 +795,13 @@ class Scenario:
     def __init__(self, name, keys):
         self.name = name
         self.keys = keys
-        with open(os.path.join(E2E, "scenarios", f"{name}.json"), encoding="utf-8") as file:
-            self.spec = json.load(file)
-        self.expected = expected_of(name)
+        if name in CHECKS:
+            self.spec = CHECKS[name]
+            self.expected = {key: list(lines) for key, lines in CHECKS[name]["expected"].items()}
+        else:
+            with open(os.path.join(E2E, "scenarios", f"{name}.json"), encoding="utf-8") as file:
+                self.spec = json.load(file)
+            self.expected = expected_of(name)
         self.zed = None
         self.directory = None
         self.seen = 0
@@ -1231,6 +1237,34 @@ def pick(titles, answer):
     return None
 
 
+# Checks of Zed's own, written as the scenarios are, with what they expect:
+# what the keys of keymap.json do in Zed that the shared scenarios do not
+# look at.
+CHECKS = {
+    # `C-c c` in an Org file captures there, as Emacs's does: `%a` links to
+    # the cursor's heading, also with the agenda open (a task of a command
+    # that needs no file would run on the agenda's line, or nowhere).
+    "zed-capture-here": {
+        "files": {"work.org": ["* TODO Write report", "Some text", "* Other"], "inbox.org": ""},
+        "options": {"org_capture_templates": [
+            {"key": "l", "description": "Link", "target": ["file", "$DIR/inbox.org"], "template": "* %a"}]},
+        "steps": [
+            {"open": "work.org"},
+            {"at": "Some text", "command": "org.capture", "answers": ["l"]},
+            {"command": "org.capture.finish", "expect": ["file:inbox.org"]},
+            {"focus": "work.org", "command": "org.agenda.dispatch", "answers": ["t"]},
+            {"focus": "work.org", "at": "* Other", "command": "org.capture", "answers": ["l"]},
+            {"command": "org.capture.finish", "expect": ["file:inbox.org"]},
+        ],
+        "expected": {
+            "3 file:inbox.org": ["* [[file:$DIR/work.org::*Write report][Write report]]"],
+            "6 file:inbox.org": ["* [[file:$DIR/work.org::*Write report][Write report]]",
+                                 "* [[file:$DIR/work.org::*Other][Other]]"],
+        },
+    },
+}
+
+
 def run_one(name, keys):
     scenario = Scenario(name, keys)
     if name in SKIPPED:
@@ -1257,6 +1291,7 @@ def main():
     atexit.register(stop_all)
     only = os.environ.get("ORG_LSP_E2E", "")
     names = sorted(file[:-5] for file in os.listdir(os.path.join(E2E, "scenarios")) if file.endswith(".json"))
+    names += sorted(CHECKS)
     names = [name for name in names if only in name and (not sys.argv[1:] or name in sys.argv[1:])]
     subprocess.run(["cargo", "build", "--release", "--target", "wasm32-wasip2", "--quiet"], cwd=EXTENSION, check=True)
     grammar_wasm()

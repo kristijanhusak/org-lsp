@@ -291,7 +291,11 @@ is come from what it tells the server, which ~editors/zed/test/proxy.py~
 writes down; the current buffer is the window's title. ~snapshots.zed~ in
 the exceptions names what Zed shows otherwise as ~NAME STEP KIND~, and the
 steps it cannot take as ~NAME STEP~; ~scenarios.zed~ the scenarios it cannot
-take at all (the date prompt, column view). Each wait has a bound: a
+take at all (the date prompt, column view). After the scenarios come
+checks of Zed's own, written as they are, with what they expect (~CHECKS~
+in ~run.py~): ~zed-capture-here~ captures with ~ctrl-c c~ in an Org file,
+whose ~%a~ links to the cursor's heading, with the agenda open too. Each
+wait has a bound: a
 request left with no answer fails the step, and a scenario fails when it
 takes more than ~ORG_LSP_ZED_BUDGET~ seconds (600), with the step and what
 it waited for. Stopped (~SIGTERM~, ~SIGINT~), the adapter closes its Zeds
