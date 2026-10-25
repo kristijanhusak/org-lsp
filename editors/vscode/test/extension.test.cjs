@@ -3,6 +3,52 @@ const assert = require('node:assert/strict');
 const path = require('node:path');
 const vscode = require('vscode');
 
+// A key is picked from a quick pick the extension makes itself
+// (`pickKey`), which follows the key typed; the scenarios type into it.
+// Here it is answered as any list is, through `showQuickPick`, which the
+// tests answer in their place.
+const createQuickPick = vscode.window.createQuickPick;
+vscode.window.createQuickPick = (...args) => {
+  const quickPick = createQuickPick.call(vscode.window, ...args);
+  const listeners = { accept: [], hide: [] };
+  const show = quickPick.show.bind(quickPick);
+  return new Proxy(quickPick, {
+    get(target, name) {
+      if (name === 'onDidAccept' || name === 'onDidHide') {
+        return (listener) => {
+          listeners[name === 'onDidAccept' ? 'accept' : 'hide'].push(listener);
+          return { dispose() {} };
+        };
+      }
+      if (name === 'show') {
+        return () => {
+          if (!target.items.some((item) => 'key' in item)) {
+            // Text with completions: VS Code's own.
+            listeners.accept.forEach((listener) => target.onDidAccept(listener));
+            listeners.hide.forEach((listener) => target.onDidHide(listener));
+            return show();
+          }
+          void vscode.window.showQuickPick(target.items, { placeHolder: target.placeholder }).then((picked) => {
+            if (picked) {
+              Object.defineProperty(target, 'selectedItems', { value: [picked] });
+              listeners.accept.forEach((listener) => listener());
+            }
+            listeners.hide.forEach((listener) => listener());
+          });
+        };
+      }
+      if (name === 'hide') {
+        return () => (target.items.some((item) => 'key' in item) ? undefined : target.hide());
+      }
+      const value = Reflect.get(target, name);
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+    set(target, name, value) {
+      return Reflect.set(target, name, value);
+    },
+  });
+};
+
 const workspace = process.env.ORG_LSP_TEST_WORKSPACE;
 const workUri = vscode.Uri.file(path.join(workspace, 'work.org'));
 

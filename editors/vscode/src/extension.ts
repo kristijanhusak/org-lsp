@@ -371,6 +371,7 @@ async function ask(input: Input, typed: (text: string) => Promise<vscode.InputBo
       key: choice.key,
       iconPath: choiceIcon(choice),
     }));
+    if (input.kind === 'key') return pickKey(input.prompt, items);
     const picked = await vscode.window.showQuickPick(items, { placeHolder: input.prompt, ignoreFocusOut: true });
     return picked?.key;
   }
@@ -380,6 +381,37 @@ async function ask(input: Input, typed: (text: string) => Promise<vscode.InputBo
     value: input.value,
     ignoreFocusOut: true,
     validateInput: input.kind === 'date' ? typed : undefined,
+  });
+}
+
+/**
+ * A key picked from its choices: the key typed (or its name, `SPC`) makes
+ * its choice the one Enter takes, as Org's fast selection takes the key
+ * pressed; VS Code would take the first choice whose text has it, which
+ * for `n` among `[m] Meeting` and `[n] Note` is the meeting. Other text
+ * narrows the list.
+ */
+function pickKey(prompt: string, items: (vscode.QuickPickItem & { key: string })[]): Promise<string | undefined> {
+  const pick = vscode.window.createQuickPick<vscode.QuickPickItem & { key: string }>();
+  pick.placeholder = prompt;
+  pick.ignoreFocusOut = true;
+  pick.items = items;
+  pick.onDidChangeValue((typed) => {
+    const chosen = items.find((item) => item.key === typed || keyName(item.key) === typed);
+    if (chosen) pick.activeItems = [chosen];
+  });
+  return new Promise((resolve) => {
+    let answered = false;
+    pick.onDidAccept(() => {
+      answered = true;
+      resolve(pick.selectedItems[0]?.key);
+      pick.hide();
+    });
+    pick.onDidHide(() => {
+      if (!answered) resolve(undefined);
+      pick.dispose();
+    });
+    pick.show();
   });
 }
 
