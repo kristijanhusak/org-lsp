@@ -605,6 +605,89 @@ fn property_name(line: &str) -> Option<&str> {
         .then_some(name)
 }
 
+/// `org-default-properties`.
+const DEFAULT_PROPERTIES: [&str; 27] = [
+    "ARCHIVE",
+    "CATEGORY",
+    "SUMMARY",
+    "DESCRIPTION",
+    "CUSTOM_ID",
+    "LOCATION",
+    "LOGGING",
+    "COLUMNS",
+    "VISIBILITY",
+    "TABLE_EXPORT_FORMAT",
+    "TABLE_EXPORT_FILE",
+    "EXPORT_OPTIONS",
+    "EXPORT_TEXT",
+    "EXPORT_FILE_NAME",
+    "EXPORT_TITLE",
+    "EXPORT_AUTHOR",
+    "EXPORT_DATE",
+    "UNNUMBERED",
+    "ORDERED",
+    "NOBLOCKING",
+    "COOKIE_DATA",
+    "LOG_INTO_DRAWER",
+    "REPEAT_TO_STATE",
+    "CLOCK_MODELINE_TOTAL",
+    "STYLE",
+    "HTML_CONTAINER_CLASS",
+    "ORG-IMAGE-ACTUAL-WIDTH",
+];
+
+/// `org-special-properties`, which column formats may name but which no
+/// drawer sets.
+const SPECIAL_PROPERTIES: [&str; 14] = [
+    "ALLTAGS",
+    "BLOCKED",
+    "CLOCKSUM",
+    "CLOCKSUM_T",
+    "CLOSED",
+    "DEADLINE",
+    "FILE",
+    "ITEM",
+    "PRIORITY",
+    "SCHEDULED",
+    "TAGS",
+    "TIMESTAMP",
+    "TIMESTAMP_IA",
+    "TODO",
+];
+
+/// The value of `#+NAME:` on `line`, in any case.
+fn keyword_value<'a>(line: &'a str, name: &str) -> Option<&'a str> {
+    let rest = line.strip_prefix("#+")?;
+    let (key, value) = rest.split_once(':')?;
+    key.eq_ignore_ascii_case(name).then_some(value.trim())
+}
+
+/// The value of the property line `:NAME: value`, in any case.
+fn node_value<'a>(line: &'a str, name: &str) -> Option<&'a str> {
+    let rest = line.strip_prefix(':')?;
+    let (key, value) = rest.split_once(':')?;
+    key.eq_ignore_ascii_case(name).then_some(value.trim())
+}
+
+/// The properties a column format names, but the special ones.
+fn column_properties(format: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut rest = format;
+    while let Some(at) = rest.find('%') {
+        rest = &rest[at + 1..];
+        let name: String = rest
+            .trim_start_matches(|c: char| c.is_ascii_digit())
+            .chars()
+            .take_while(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
+            .collect();
+        let name = name.to_uppercase();
+        if !name.is_empty() && !SPECIAL_PROPERTIES.contains(&name.as_str()) {
+            out.push(name);
+        }
+    }
+    out
+}
+
 fn drawer_or_property(
     text: &str,
     line_start: usize,
@@ -634,28 +717,38 @@ fn drawer_or_property(
     let name =
         |label: &str, insert: &str, kind| Candidate::inserting(in_case(typed, label), kind, in_case(typed, insert));
     if in_properties {
-        // `org-buffer-property-keys`: every property of the file, but not
-        // those this drawer has already.
-        let mut keys: Vec<String> = Vec::new();
+        // `pcomplete/org-mode/prop`: `org-buffer-property-keys` with the
+        // default properties and those of column formats, but not those
+        // this drawer has already.
+        let mut keys: Vec<String> = std::iter::once("EFFORT").chain(DEFAULT_PROPERTIES).map(str::to_string).collect();
         let mut inside = false;
         for line in text.lines() {
+            let trimmed = line.trim_start();
+            if let Some(value) = keyword_value(trimmed, "PROPERTY") {
+                keys.extend(value.split_whitespace().next().map(str::to_uppercase));
+            }
+            if let Some(value) = keyword_value(trimmed, "COLUMNS").or_else(|| node_value(trimmed, "COLUMNS")) {
+                keys.extend(column_properties(value));
+            }
             match drawer_name(line).map(str::to_uppercase).as_deref() {
                 Some("PROPERTIES") => inside = true,
                 Some("END") => inside = false,
                 _ if inside => {
                     if let Some(key) = property_name(line).map(str::to_uppercase) {
-                        if !keys.contains(&key) && !present.contains(&key) {
-                            keys.push(key);
-                        }
+                        keys.push(key.strip_suffix('+').map(str::to_string).unwrap_or(key));
                     }
                 }
                 _ => {}
             }
         }
+        // The bare property of each `xxx_ALL`.
+        let bare: Vec<String> = keys.iter().filter_map(|key| key.strip_suffix("_ALL").map(str::to_string)).collect();
+        keys.extend(bare);
         keys.sort();
-        let mut candidates: Vec<Candidate> =
+        keys.dedup();
+        keys.retain(|key| !present.contains(key));
+        let candidates: Vec<Candidate> =
             keys.iter().map(|key| name(&format!("{key}:"), &format!("{key}: "), Kind::Name)).collect();
-        candidates.push(name("END:", "END:", Kind::Name));
         return Some((from, candidates));
     }
     // Drawer names: `PROPERTIES`, `LOGBOOK` and those of the file.
@@ -797,8 +890,14 @@ mod tests {
         assert_eq!(start, 5);
         assert_eq!(found, ["PROPERTIES:", "LOGBOOK:", "END:"]);
         assert_eq!(at("* a\n:NOTES:\n:END:\n* b\n  :lo¦").unwrap().1, ["properties:", "logbook:", "notes:", "end:"]);
-        let file = "* a\n:PROPERTIES:\n:EFFORT: 1\n:OWNER: me\n:END:\n* b\n:PROPERTIES:\n:OWNER: you\n:¦";
-        assert_eq!(at(file).unwrap().1, ["EFFORT: ", "END:"]);
+        // As Emacs offers them: the file's, the defaults and those of
+        // column formats, sorted, but those of the drawer.
+        let file = "#+COLUMNS: %25ITEM %OWNER %Effort(E){:}\n* a\n:PROPERTIES:\n:COLOR: red\n:END:\n* b\n:PROPERTIES:\n:OWNER: you\n:¦";
+        let found = at(file).unwrap().1;
+        assert_eq!(&found[..4], ["ARCHIVE: ", "CATEGORY: ", "CLOCK_MODELINE_TOTAL: ", "COLOR: "]);
+        assert!(found.contains(&"EFFORT: ".to_string()) && found.contains(&"COOKIE_DATA: ".to_string()));
+        assert!(!found.contains(&"OWNER: ".to_string()) && !found.contains(&"END:".to_string()));
+        assert_eq!(found.len(), 29, "{found:?}");
         assert_eq!(at("* a\n:PROPERTIES: x¦"), None);
     }
 }
