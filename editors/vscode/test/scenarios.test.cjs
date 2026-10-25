@@ -130,20 +130,20 @@ function watchPrompts() {
   const createQuickPick = vscode.window.createQuickPick;
   vscode.window.createQuickPick = (...args) => {
     const quickPick = createQuickPick.call(vscode.window, ...args);
-    const prompt = { shown: false, done: false, value: '' };
+    const prompt = { shown: false, done: false };
     // What it shows is given after it is made: keys to pick (items with a
     // `key`), or text typed with completions.
     Object.defineProperties(prompt, {
       kind: { get: () => (quickPick.items.some((item) => 'key' in item) ? 'pick' : 'text') },
       title: { get: () => quickPick.title ?? quickPick.placeholder },
       items: { get: () => quickPick.items },
+      value: { get: () => quickPick.value },
     });
     prompts.push(prompt);
     quickPick.onDidChangeActive((items) => {
       prompt.active = items[0];
       prompt.shown = true;
     });
-    quickPick.onDidChangeValue((value) => (prompt.value = value));
     quickPick.onDidHide(() => (prompt.done = true));
     return quickPick;
   };
@@ -165,7 +165,7 @@ function xdotool(...args) {
 
 /** Type `text` into VS Code's window, as the user types it. */
 function typeText(text) {
-  return xdotool('type', '--delay', '40', '--', text);
+  return text ? xdotool('type', '--delay', '40', '--', text) : Promise.resolve();
 }
 
 /** How a key shows in its choice (`[SPC] …`), as the extension names it. */
@@ -194,7 +194,18 @@ async function answer(prompt, given) {
     );
   } else {
     assert.equal(typeof given, 'string', `${what} asks for text, not ${JSON.stringify(given)}`);
-    await typeText(given);
+    // The box may start with text, as Emacs's minibuffer does: what the
+    // answer adds to it is typed after it, or else the user selects it
+    // all to type over it.
+    const start = prompt.value ?? '';
+    if (start && given.startsWith(start)) {
+      await typeText(given.slice(start.length));
+    } else {
+      if (start) {
+        await xdotool('key', 'ctrl+a');
+      }
+      await typeText(given);
+    }
     await until(`${what} to take ${JSON.stringify(given)}`, () => prompt.value === given, 3000).catch(() =>
       assert.fail(`${what}: typed ${JSON.stringify(given)}, VS Code has ${JSON.stringify(prompt.value)}`),
     );

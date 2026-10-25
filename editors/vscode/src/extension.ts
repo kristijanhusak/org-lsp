@@ -448,6 +448,13 @@ function typeOrPick(input: Input, completions: string[]): Promise<string | undef
     return [{ label: typed, description: 'as typed' }, ...others];
   };
   pick.items = items(input.value);
+  pick.value = input.value;
+  // The text it starts with (a headline's tags) stays, typing after it, as
+  // in Emacs's minibuffer; VS Code would select it, for the first key typed
+  // to replace it. Newer versions of VS Code take a selection for a quick
+  // pick too, though its type does not say so.
+  const end = input.value?.length ?? 0;
+  (pick as { valueSelection?: readonly [number, number] }).valueSelection = [end, end];
   pick.onDidChangeValue((typed) => (pick.items = items(typed)));
   return new Promise((resolve) => {
     let answered = false;
@@ -462,10 +469,6 @@ function typeOrPick(input: Input, completions: string[]): Promise<string | undef
       pick.dispose();
     });
     pick.show();
-    // The text it starts with (a headline's tags) stays, typing after it,
-    // as in Emacs's minibuffer: given before it shows, VS Code selects it,
-    // for the first key typed to replace it.
-    pick.value = input.value;
   });
 }
 
