@@ -128,6 +128,9 @@ function! s:sample() abort
   for look in org_lsp#manifest().highlights
     if !empty(prop_type_get('org_lsp_' . look.token))
       call add(s:remaining, look)
+    elseif !empty(look.vim)
+      " A look the manifest gives groups for has a group in Vim.
+      call add(s:failures, look.token . ': no text property type for ' . join(look.vim, ', '))
     endif
   endfor
   let s:looks = len(s:remaining)

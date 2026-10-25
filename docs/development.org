@@ -132,10 +132,12 @@ others), as close to Emacs Org mode as it can get.
 - Vim: ~CLIENTS=dir editors/vim/test/run.sh~, with the four clients
   checked out in ~dir~ (~lsp~, ~vim-lsp~, ~coc.nvim~ on its ~release~
   branch, ~ale~); Vim runs in tmux. ~editors/vim/test/scenarios.vim~ is its
-  adapter of the scenarios. The tests and the scenarios answer prompts
-  themselves; ~editors/vim/test/typed.vim~ has keys typed through tmux
-  instead, as the user types them, with ~'updatetime'~ passing while the
-  agenda dispatcher waits for one.
+  adapter of the scenarios. The tests answer prompts themselves, and the
+  scenarios run twice: once with their keys fed and the prompts answered,
+  once typed, everything through tmux as the user types it (see
+  [[#end-to-end-scenarios][End-to-end scenarios]]); ~editors/vim/test/typed.vim~ types the agenda
+  dispatcher's key, with ~'updatetime'~ passing while it waits for one,
+  and the key of a prompt of two lines.
 - Sublime Text: ~node editors/sublime/generate.mjs --check~,
   ~python3 editors/sublime/test/test_plugin.py~.
 - Zed: ~node editors/zed/generate.mjs --check~,
@@ -166,13 +168,31 @@ own, four at a time:
 CLIENTS=~/vim-clients editors/vim/test/run.sh                  # the tests, then the scenarios
 ORG_LSP_VIM_TESTS=scenarios ORG_LSP_E2E=capture \
   CLIENTS=~/vim-clients editors/vim/test/run.sh coc            # one scenario, one client
+ORG_LSP_VIM_TESTS=typed ORG_LSP_E2E=capture \
+  CLIENTS=~/vim-clients editors/vim/test/run.sh coc            # the same, typed
 #+end_src
 
-~ORG_LSP_VIM_TESTS~ is ~cases~ or ~scenarios~ for only those,
+~ORG_LSP_VIM_TESTS~ is ~cases~, ~scenarios~ or ~typed~ for only those,
 ~ORG_LSP_E2E_JOBS~ how many Vims run at once. Each scenario prints one line,
 with the step that failed and what it saw; a step a client cannot take as
 the others do is skipped, with the reason, from ~s:skips~ in
 ~scenarios.vim~ (coc.nvim shows the documents the server asks for itself).
+
+The first time, the plugin's prompts are replaced by the steps' answers and
+the keys are fed (~feedkeys()~). The second time (~typed~, with
+~ORG_LSP_TEST_TYPED~ set) nothing stands in for anything: Vim runs the steps
+from a timer, between turns of its main loop, with ~'updatetime'~ at 100 ms,
+so CursorHold and the client's autocommands run as for a user. Where a step
+needs keys, Vim writes them to ~keys~ in its work directory and
+~editors/vim/test/typist.py~ types them into the tmux session: the command's
+key, then each answer once its prompt waits (a key at a menu, text at
+~input()~ after ~CTRL-U~, the number of a choice in a list, ~i~ then the date
+in the date prompt's calendar), files opened with ~:edit~, text typed in
+insert mode. A step is done when the server has answered and nothing has
+changed for a while; Vim's hit-enter prompt is a failure, except after
+coc.nvim's own messages about the files it edits, where Enter is typed.
+~ORG_LSP_TEST_STOP=N~ leaves the typed Vim as it is after step ~N~, to go
+on by hand.
 
 A scenario has:
 
