@@ -2988,12 +2988,14 @@ function! org_lsp#attach() abort
   endif
   let b:org_lsp_attached = 1
   let nr = bufnr()
+  " The agenda and the calendar are the server's to write: typing in them
+  " changes nothing, as in Emacs's read-only buffers.
   if &filetype ==# get(org_lsp#manifest().agenda, 'languageId', 'org-agenda')
-    setlocal autoread readonly noswapfile bufhidden=hide nowrap nonumber norelativenumber nofoldenable
+    setlocal autoread readonly nomodifiable noswapfile bufhidden=hide nowrap nonumber norelativenumber nofoldenable
     call org_lsp#set_keys('agenda')
   elseif &filetype ==# get(get(org_lsp#manifest(), 'datePrompt', {}), 'languageId', 'org-date')
     " A calendar to move about in, never to type into.
-    setlocal autoread readonly noswapfile bufhidden=wipe nowrap nonumber norelativenumber
+    setlocal autoread readonly nomodifiable noswapfile bufhidden=wipe nowrap nonumber norelativenumber
           \ nofoldenable nolist signcolumn=no scrolloff=0 sidescrolloff=0 winfixheight
     call org_lsp#set_keys('calendar')
   else

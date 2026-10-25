@@ -168,6 +168,10 @@ function! s:deadline() abort
   call s:until('the prompt line', {-> getline('$') =~# '^DEADLINE'})
   call s:until('the calendar as high as its text', {-> s:calendar_window() == win_getid() && winheight(0) == line('$')})
   call s:until('the cursor on the day', {-> expand('<cword>') ==# '20'})
+  " Not to be typed into: `x` there changes nothing.
+  silent! normal! x
+  call assert_equal(0, &l:modifiable)
+  call assert_equal(0, &l:modified)
   " `j` a week later, `<CR>` takes that day.
   call feedkeys('j', 'x')
   call s:until('the selected day a week later', {-> getline('$') =~# '=> <2026-05-27 Wed>'})
@@ -205,6 +209,10 @@ function! s:agenda() abort
   call assert_true(search('Write report', 'n') > 0, 'an entry')
   " Alt-m as a terminal sends it, <Esc> then `m`.
   call assert_equal('org.agenda.bulk.toggle', org_lsp#mapped_command('<Esc>m'))
+  " Not to be typed into: `x` there changes nothing.
+  silent! normal! x
+  call assert_equal(0, &l:modifiable)
+  call assert_equal(0, &l:modified)
   " `org_agenda_tags_column` `"auto"`: the tags end at the window's right edge,
   " and follow it when it changes size.
   let agenda = win_getid()
