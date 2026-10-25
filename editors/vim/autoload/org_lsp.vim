@@ -783,12 +783,20 @@ function! org_lsp#read_key(prompt, choices, ...) abort
           \ })
   endif
   " With a third argument, the prompt as it is.
-  echo a:0 > 0 && a:1 ? a:prompt : org_lsp#prompt_text(a:prompt)
+  let text = a:0 > 0 && a:1 ? a:prompt : org_lsp#prompt_text(a:prompt)
+  " A prompt of more lines (`expert`'s keys under it) has a command line
+  " as high while it waits, as Emacs's echo area grows, not Vim's
+  " hit-enter prompt.
+  let height = &cmdheight
+  let &cmdheight = max([height, len(split(text, "\n", 1))])
+  echo text
   redraw
   try
     let key = org_lsp#getkey()
   catch /^Vim:Interrupt$/
     let key = "\<Esc>"
+  finally
+    let &cmdheight = height
   endtry
   if popup
     call popup_close(popup)

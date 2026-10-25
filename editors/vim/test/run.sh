@@ -136,16 +136,8 @@ for client in "$@"; do
     work="$(mktemp -d)"
     session="org-lsp-vim-$client-typed-$$"
     start "$client" "$session" 120x40 "$work" "ORG_LSP_TEST_FILE=$here/typed.vim"
-    for _ in $(seq 1 600); do
-      [ -f "$work/ready" ] && break
-      sleep 0.1
-    done
-    tmux send-keys -t "$session" '\' o a
-    # Past 'updatetime' and a held request.
-    sleep 1.5
-    touch "$work/picked"
-    tmux send-keys -t "$session" a
-    for _ in $(seq 1 300); do
+    python3 "$here/typist.py" "$session" "$work" &
+    for _ in $(seq 1 900); do
       [ -f "$work/result.txt" ] && break
       sleep 0.1
     done

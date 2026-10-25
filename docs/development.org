@@ -116,7 +116,8 @@ others), as close to Emacs Org mode as it can get.
   scenarios run twice: once with their keys fed and the prompts answered,
   once typed, everything through tmux as the user types it (see
   [[#end-to-end-scenarios][End-to-end scenarios]]); ~editors/vim/test/typed.vim~ types the agenda
-  dispatcher's key, with ~'updatetime'~ passing while it waits for one.
+  dispatcher's key, with ~'updatetime'~ passing while it waits for one,
+  and the key of a prompt of two lines.
 - Sublime Text: ~node editors/sublime/generate.mjs --check~,
   ~python3 editors/sublime/test/test_plugin.py~.
 - Zed: ~node editors/zed/generate.mjs --check~,
