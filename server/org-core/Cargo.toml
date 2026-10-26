@@ -9,7 +9,9 @@ publish.workspace = true
 
 [dependencies]
 org-syntax = { path = "../org-syntax" }
-regex = { version = "1.13.1", default-features = false, features = ["std", "unicode-perl", "unicode-case", "unicode-gencat"] }
+# `perf`: the lazy DFA and literal search. Without them a pattern goes
+# through a large file some 25 times slower (radio links, on every change).
+regex = { version = "1.13.1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case", "unicode-gencat"] }
 unicode-width = "0.2"
 unicode-normalization = "0.1"
 serde_json = { version = "1", features = ["preserve_order"] }

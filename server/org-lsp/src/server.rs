@@ -4114,7 +4114,8 @@ impl Server {
             self.displayed.insert(key.to_string());
         }
         let params = json!({ "uri": key, "version": document.version, "items": items });
-        let notification = lsp_server::Notification::new("org-lsp/display".to_string(), params);
+        // The params as they are: `Notification::new` would copy them.
+        let notification = lsp_server::Notification { method: "org-lsp/display".to_string(), params };
         let _ = self.sender.send(Message::Notification(notification));
     }
 
@@ -15941,7 +15942,8 @@ impl Server {
             self.virtually_indented.insert(key.to_string());
         }
         let params = json!({ "uri": key, "version": document.version, "lines": lines });
-        let notification = lsp_server::Notification::new("org-lsp/virtualIndent".to_string(), params);
+        // The params as they are: `Notification::new` would copy them.
+        let notification = lsp_server::Notification { method: "org-lsp/virtualIndent".to_string(), params };
         let _ = self.sender.send(Message::Notification(notification));
     }
 
@@ -16007,7 +16009,8 @@ impl Server {
             self.code_blocks_sent.insert(key.to_string());
         }
         let params = json!({ "uri": key, "version": document.version, "blocks": blocks });
-        let notification = lsp_server::Notification::new(CODE_BLOCKS.to_string(), params);
+        // The params as they are: `Notification::new` would copy them.
+        let notification = lsp_server::Notification { method: CODE_BLOCKS.to_string(), params };
         let _ = self.sender.send(Message::Notification(notification));
     }
 

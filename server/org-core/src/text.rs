@@ -233,22 +233,22 @@ mod line_end_tests {
 /// does not parse (source, example, export, comment and verse blocks).
 pub fn startup_words(text: &str) -> Vec<&str> {
     let mut words = Vec::new();
+    // The line that ends the block the line is in (`#+end_src`), written
+    // once for the block, not for each of its lines.
     let mut inside: Option<String> = None;
     for line in text.lines() {
         let line = line.trim_start_matches([' ', '\t']);
-        let lower = line.get(..8).map(str::to_ascii_lowercase);
         match &inside {
-            Some(name) => {
-                let end = format!("#+end_{name}");
-                if line.get(..end.len()).is_some_and(|start| start.eq_ignore_ascii_case(&end)) {
+            Some(end) => {
+                if line.get(..end.len()).is_some_and(|start| start.eq_ignore_ascii_case(end)) {
                     inside = None;
                 }
             }
-            None if lower.as_deref() == Some("#+begin_") => {
+            None if line.get(..8).is_some_and(|start| start.eq_ignore_ascii_case("#+begin_")) => {
                 let name: String =
                     line[8..].chars().take_while(|c| !c.is_whitespace()).collect::<String>().to_ascii_lowercase();
                 if matches!(name.as_str(), "src" | "example" | "export" | "comment" | "verse") {
-                    inside = Some(name);
+                    inside = Some(format!("#+end_{name}"));
                 }
             }
             None => {
