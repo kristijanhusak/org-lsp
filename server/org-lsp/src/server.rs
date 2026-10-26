@@ -1223,6 +1223,9 @@ struct Server {
     indent: org_core::indent::Settings,
     /// `org-startup-indented` and `org-hide-leading-stars`.
     display: org_core::indent::Display,
+    /// `org-indent-mode` as `org.indent.mode` turned it, by document, until
+    /// the document is closed.
+    indent_mode: HashMap<String, bool>,
     /// The documents the client was last told to show with prefixes.
     virtually_indented: HashSet<String>,
     /// The headlines of each document last sent highlighted to the edge
@@ -1875,6 +1878,7 @@ pub fn run(connection: Connection) -> Result<()> {
         crypt_before_save: None,
         indent: options.indent_settings(),
         display: options.display(),
+        indent_mode: HashMap::new(),
         virtually_indented: HashSet::new(),
         heading_lines: HashMap::new(),
         code_blocks_sent: HashSet::new(),
@@ -3931,6 +3935,7 @@ impl Server {
                     let _ = self.sender.send(Message::Notification(notification));
                 }
                 self.virtually_indented.remove(params.text_document.uri.as_str());
+                self.indent_mode.remove(params.text_document.uri.as_str());
                 self.heading_lines.remove(params.text_document.uri.as_str());
                 self.code_blocks_sent.remove(params.text_document.uri.as_str());
                 self.custom_properties_hidden.remove(params.text_document.uri.as_str());
@@ -4247,6 +4252,7 @@ impl Server {
     /// Hidden stars and the prefixes of wrapped lines cannot be shown so.
     fn inlay_hints(&mut self, params: lsp_types::InlayHintParams) -> Option<Vec<lsp_types::InlayHint>> {
         let numbers = self.num_hints(&params.text_document.uri);
+        let display = self.display_at(params.text_document.uri.as_str());
         let document = self.document(&params.text_document.uri)?;
         let text = &document.text;
         let (first, last) = (params.range.start.line as usize, params.range.end.line as usize);
@@ -4263,8 +4269,8 @@ impl Server {
         let mut hints = Vec::new();
         // `org-indent-mode`'s prefixes, for a client that does not show
         // them otherwise.
-        if !self.client.virtual_indent && self.display.indented(text) {
-            let adapt = self.display.adapt(text, self.indent.adapt);
+        if !self.client.virtual_indent && display.indented(text) {
+            let adapt = display.adapt(text, self.indent.adapt);
             hints.extend(
                 org_core::indent::virtual_indentation(
                     text,
@@ -4272,7 +4278,7 @@ impl Server {
                     false,
                     adapt,
                     self.indent.two_spaces.as_ref(),
-                    self.display.per_level,
+                    display.per_level,
                 )
                 .into_iter()
                 .filter(|line| line.prefix > 0 && (first..=last).contains(&line.line))
@@ -4768,6 +4774,8 @@ impl Server {
             (commands::CLOCK_GOTO, more && running),
             (commands::CLOCK_IN_LAST, more && !self.clock_history.is_empty()),
             (commands::CLOCK_REPORT, more),
+            // `org-indent-mode`, which has no key, in Emacs either.
+            (commands::INDENT_MODE, more),
             (commands::DBLOCK_UPDATE, more && org_core::clocktable::in_block(&document.text, offset)),
             (commands::AGENDA_LIST, more && shows),
             (commands::AGENDA_TODOS, more && shows),
@@ -7803,6 +7811,7 @@ impl Server {
             }
             commands::CLOCK_DISPLAY => self.clock_display(&context.ok_or("This command needs the cursor position")?),
             commands::NUM_MODE => self.num_mode(&context.ok_or("This command needs the cursor position")?),
+            commands::INDENT_MODE => self.indent_mode(&context.ok_or("This command needs the cursor position")?),
             // `C-c C-c` takes the clock's times and the highlights of a
             // sparse tree away first; the editor is given no highlights,
             // its folds left as they are.
@@ -11137,7 +11146,7 @@ impl Server {
     ) -> std::result::Result<Value, Refusal> {
         let encoding = self.client.encoding;
         let (settings, now) = (self.edit_settings.clone(), self.date_time());
-        let (display, adapt) = (self.display, self.indent.adapt);
+        let adapt = self.indent.adapt;
         let uri = context.text_document.uri.clone();
         let position = context.position;
         // On an agenda line the command goes to the entry in its file.
@@ -11184,6 +11193,7 @@ impl Server {
         };
 
         let key = file.as_str().to_string();
+        let display = self.display_at(&key);
         let previous = self.last.take();
         let count = context.count;
         let heads = self.todo_heads.get(&key).cloned().unwrap_or_default();
@@ -15891,19 +15901,20 @@ impl Server {
         if !self.client.virtual_indent {
             return;
         }
+        let display = self.display_at(key);
         let Some(document) = self.documents.get(key) else { return };
         let text = &document.text;
-        let (indent, hide_stars) = (self.display.indented(text), self.display.hides_stars(text));
+        let (indent, hide_stars) = (display.indented(text), display.hides_stars(text));
         // The stars of inline tasks are hidden whatever the rest says.
         let lines: Vec<[usize; 4]> = if indent || hide_stars || org_core::inlinetask::hides_stars(text) {
-            let adapt = self.display.adapt(text, self.indent.adapt);
+            let adapt = display.adapt(text, self.indent.adapt);
             org_core::indent::virtual_indentation(
                 text,
                 indent,
                 hide_stars,
                 adapt,
                 self.indent.two_spaces.as_ref(),
-                self.display.per_level,
+                display.per_level,
             )
             .into_iter()
             .map(|line| [line.line, line.prefix, line.wrap, line.hidden_stars])
@@ -15991,7 +16002,38 @@ impl Server {
     /// `org-adapt-indentation` in a document: off where it shows with
     /// `org-indent-mode`, unless it is `headline-data`.
     fn adapt_in(&self, text: &str) -> org_core::indent::Adapt {
-        self.display.adapt(text, self.indent.adapt)
+        self.display_in(text).adapt(text, self.indent.adapt)
+    }
+
+    /// How the document `key` shows: as the options and its `#+STARTUP:`
+    /// say, unless `org.indent.mode` turned `org-indent-mode` there.
+    fn display_at(&self, key: &str) -> org_core::indent::Display {
+        org_core::indent::Display { mode: self.indent_mode.get(key).copied(), ..self.display }
+    }
+
+    /// How `text` shows: as the open document of that text where
+    /// `org.indent.mode` turned `org-indent-mode`, else as the options and
+    /// its `#+STARTUP:` say. For the edits that are given a text, not the
+    /// document it is the text of.
+    fn display_in(&self, text: &str) -> org_core::indent::Display {
+        let turned =
+            self.indent_mode.keys().find(|key| self.documents.get(*key).is_some_and(|document| document.text == text));
+        turned.map_or(self.display, |key| self.display_at(key))
+    }
+
+    /// `org-indent-mode` (`M-x org-indent-mode`): the file shown indented by
+    /// the level of its headlines, or no longer, whatever the options and
+    /// its `#+STARTUP:` say, until it is closed. What shows the indentation
+    /// is sent again: the prefixes and hidden stars, or the inlay hints.
+    fn indent_mode(&mut self, context: &Context) -> std::result::Result<Value, Refusal> {
+        let key = context.text_document.uri.as_str().to_string();
+        let text = self.document(&context.text_document.uri).ok_or("This file is not open")?.text.clone();
+        let on = !self.display_at(&key).indented(&text);
+        self.indent_mode.insert(key.clone(), on);
+        self.publish_virtual_indent(&key);
+        self.refresh_inlay_hints();
+        let state = if on { "enabled" } else { "disabled" };
+        Ok(json!({ "message": format!("Org-Indent mode {state} in current buffer") }))
     }
 
     /// The indentation settings for a document.
@@ -16842,7 +16884,7 @@ impl Server {
             _ => start,
         };
         let mut settings = self.clock_settings.clone();
-        let (display, adapt) = (self.display, self.indent.adapt);
+        let (display, adapt) = (self.display_at(file.as_str()), self.indent.adapt);
         let base = changes.iter().find(|(uri, ..)| *uri == file).map(|(_, _, _, new)| new.clone());
         let switch = self.clock_in_switch.clone().filter(|state| !state.is_empty());
         let (todo, now_time, resume) = (self.edit_settings.todo.clone(), now, self.clock_in_resume);

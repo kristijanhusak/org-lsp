@@ -2552,6 +2552,7 @@ impl Options {
             indent_hides_stars: self.indent_mode_turns_on_hiding_stars.unwrap_or(true),
             indent_turns_off_adapt: self.indent_mode_turns_off_org_adapt_indentation.unwrap_or(true),
             per_level: self.indent_indentation_per_level.unwrap_or(2),
+            mode: None,
         }
     }
 

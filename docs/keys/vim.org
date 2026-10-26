@@ -309,6 +309,7 @@ in a popup. [[file:../vim.org][vim.org]] says how to install and set up the plug
 | ~org.agenda.habits~ | Agenda: show or hide habits |
 | ~org.agenda.appt~ | Add today's appointments from the agenda files |
 | ~org.num.mode~ | Number the headlines, or stop numbering them |
+| ~org.indent.mode~ | Indent the text by the level of its headline, or stop indenting it |
 | ~org.custom.properties.toggle~ | Hide the properties of org_custom_properties, or show them again |
 | ~org.todo.yesterday~ | Change the TODO state as if it were yesterday |
 | ~org.todo.next~ | Cycle TODO state forward |

@@ -699,6 +699,101 @@ fn sends_virtual_indentation_of_other_widths() {
     client.shutdown();
 }
 
+/// `org.indent.mode` turns `org-indent-mode` on and off in a file, whatever
+/// its `#+STARTUP:` says, saying so as Emacs does: the prefixes and hidden
+/// stars are sent again, none once it is off, where `hidestars` no longer
+/// hides them either (Emacs kills the buffer's `org-hide-leading-stars`).
+/// While it is on, the file is not indented for real.
+#[test]
+fn indent_mode_turns_virtual_indentation() {
+    let capabilities = json!({ "experimental": { "orgVirtualIndent": true } });
+    let mut client = Client::start(capabilities, json!({ "org_adapt_indentation": true }));
+    // The command's message, and the prefixes sent before its answer.
+    let toggle = |client: &mut Client| -> (Value, Value) {
+        let argument = json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": 0, "character": 0 } });
+        let params = json!({ "command": "org.indent.mode", "arguments": [argument] });
+        client.next_id += 1;
+        let id = RequestId::from(client.next_id);
+        let request = Request { id: id.clone(), method: "workspace/executeCommand".to_string(), params };
+        client.connection.sender.send(Message::Request(request)).unwrap();
+        let mut lines = Value::Null;
+        loop {
+            match client.connection.receiver.recv_timeout(std::time::Duration::from_secs(5)).expect("an answer") {
+                Message::Notification(sent) if sent.method == "org-lsp/virtualIndent" => {
+                    lines = sent.params["lines"].clone();
+                }
+                Message::Response(response) if response.id == id => {
+                    return (response.response_result.unwrap()["message"].clone(), lines);
+                }
+                _ => {}
+            }
+        }
+    };
+    // The edits that indent a new line at the start of the third line.
+    let new_line = |client: &mut Client| -> usize {
+        client
+            .request::<lsp_types::request::OnTypeFormatting>(lsp_types::DocumentOnTypeFormattingParams {
+                text_document_position: lsp_types::TextDocumentPositionParams {
+                    text_document: identifier(),
+                    position: Position::new(2, 0),
+                },
+                ch: "\n".to_string(),
+                options: lsp_types::FormattingOptions { tab_size: 8, insert_spaces: true, ..Default::default() },
+            })
+            .unwrap_or_default()
+            .len()
+    };
+    client.open(&uri(), "* A\n** B\ntext\n");
+    assert_eq!(new_line(&mut client), 1);
+    let (message, lines) = toggle(&mut client);
+    assert_eq!(message, "Org-Indent mode enabled in current buffer");
+    assert_eq!(lines, json!([[0, 0, 2, 0], [1, 1, 4, 1], [2, 4, 4, 0]]));
+    assert_eq!(new_line(&mut client), 0);
+    let (message, lines) = toggle(&mut client);
+    assert_eq!(message, "Org-Indent mode disabled in current buffer");
+    assert_eq!(lines, json!([]));
+    assert_eq!(new_line(&mut client), 1);
+    // Closed, the file is as its `#+STARTUP:` says again; turned off over
+    // it, the stars `hidestars` hid show again.
+    client.notify::<DidCloseTextDocument>(DidCloseTextDocumentParams { text_document: identifier() });
+    client.open(&uri(), "#+STARTUP: indent hidestars\n* A\n** B\n");
+    assert_eq!(client.notification("org-lsp/virtualIndent")["lines"], json!([[1, 0, 2, 0], [2, 1, 4, 1]]));
+    assert_eq!(toggle(&mut client), (json!("Org-Indent mode disabled in current buffer"), json!([])));
+    client.shutdown();
+}
+
+/// For a client that gets `org-indent-mode`'s prefixes as inlay hints,
+/// `org.indent.mode` has it ask for them again.
+#[test]
+fn indent_mode_refreshes_inlay_hints() {
+    let capabilities = json!({ "workspace": { "inlayHint": { "refreshSupport": true } } });
+    let mut client = Client::start(capabilities, Value::Null);
+    client.open(&uri(), "* A\ntext\n");
+    let hints = |client: &mut Client| -> usize {
+        client
+            .request::<lsp_types::request::InlayHintRequest>(lsp_types::InlayHintParams {
+                text_document: identifier(),
+                range: Range::new(Position::new(0, 0), Position::new(2, 0)),
+                work_done_progress_params: Default::default(),
+            })
+            .unwrap()
+            .len()
+    };
+    let argument = json!({ "textDocument": { "uri": uri().as_str() }, "position": { "line": 0, "character": 0 } });
+    let params = json!({ "command": "org.indent.mode", "arguments": [argument] });
+    assert_eq!(hints(&mut client), 0);
+    for (message, shown) in
+        [("Org-Indent mode enabled in current buffer", 1), ("Org-Indent mode disabled in current buffer", 0)]
+    {
+        client.asked.clear();
+        let result = client.raw_request("workspace/executeCommand", params.clone()).response_result.unwrap();
+        assert_eq!(result["message"], message);
+        assert!(client.asked.iter().any(|asked| asked.method == "workspace/inlayHint/refresh"));
+        assert_eq!(hints(&mut client), shown);
+    }
+    client.shutdown();
+}
+
 /// `org_fontify_whole_heading_line`: the lines of the headlines, for a
 /// client that highlights lines from edge to edge, each in the look of
 /// its level as `org_n_level_faces` and `org_cycle_level_faces` say; again

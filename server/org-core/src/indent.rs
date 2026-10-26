@@ -1431,6 +1431,9 @@ pub struct Display {
     pub indent_turns_off_adapt: bool,
     /// `org-indent-indentation-per-level`
     pub per_level: usize,
+    /// `org-indent-mode` as `M-x org-indent-mode` last turned it in the
+    /// buffer, whatever the options and its `#+STARTUP:` say.
+    pub mode: Option<bool>,
 }
 
 impl Default for Display {
@@ -1442,6 +1445,7 @@ impl Default for Display {
             indent_hides_stars: true,
             indent_turns_off_adapt: true,
             per_level: 2,
+            mode: None,
         }
     }
 }
@@ -1449,16 +1453,21 @@ impl Default for Display {
 impl Display {
     /// Whether `org-indent-mode` is on in `text`.
     pub fn indented(&self, text: &str) -> bool {
-        startup(text).indent.unwrap_or(self.startup_indented)
+        self.mode.or(startup(text).indent).unwrap_or(self.startup_indented)
     }
 
     /// Whether the leading stars of headlines are hidden in `text`:
     /// `org-indent-mode` hides them (`org-indent-mode-turns-on-hiding-stars`).
+    /// Turned off by `M-x org-indent-mode`, it kills the buffer's own
+    /// `org-hide-leading-stars`, the one `#+STARTUP:` set too: the option's
+    /// value is left.
     pub fn hides_stars(&self, text: &str) -> bool {
         let startup = startup(text);
-        self.bullets
-            || (self.indent_hides_stars && startup.indent.unwrap_or(self.startup_indented))
-            || startup.hide_stars.unwrap_or(self.hide_leading_stars)
+        let own = match self.mode {
+            Some(false) => self.hide_leading_stars,
+            _ => startup.hide_stars.unwrap_or(self.hide_leading_stars),
+        };
+        self.bullets || (self.indent_hides_stars && self.indented(text)) || own
     }
 
     /// `org-adapt-indentation` in `text`: `org-indent-mode` turns it off,
@@ -1666,6 +1675,23 @@ mod tests {
         assert_eq!(display.adapt(indented, Adapt::All), Adapt::All);
         let display = Display { hide_leading_stars: true, ..display };
         assert!(display.hides_stars(indented));
+    }
+
+    /// `M-x org-indent-mode` over `#+STARTUP:`: turned off, the file is not
+    /// indented, its stars show though `hidestars` hid them, and
+    /// `org-adapt-indentation` is its own again; turned on, the other way.
+    #[test]
+    fn indent_mode_turned_by_command() {
+        let indented = "#+STARTUP: indent hidestars\n* a\n";
+        let off = Display { mode: Some(false), ..Display::default() };
+        assert!(!off.indented(indented));
+        assert!(!off.hides_stars(indented));
+        assert_eq!(off.adapt(indented, Adapt::All), Adapt::All);
+        let on = Display { mode: Some(true), ..Display::default() };
+        let plain = "#+STARTUP: noindent\n* a\n";
+        assert!(on.indented(plain));
+        assert!(on.hides_stars(plain));
+        assert_eq!(on.adapt(plain, Adapt::All), Adapt::Off);
     }
 
     /// Parsing each part on its own gives what parsing the whole text

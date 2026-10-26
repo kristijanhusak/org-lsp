@@ -192,15 +192,16 @@ And these notifications:
   applied the change. The editor saves those with changes.
 - ~org-lsp/virtualIndent~ :: For a client that announces
   ~experimental.orgVirtualIndent: true~: how the lines of a file with
-  ~org-indent-mode~ (~org_startup_indented~, ~#+STARTUP: indent~) or hidden
-  leading stars (~org_hide_leading_stars~, ~#+STARTUP: hidestars~) show.
+  ~org-indent-mode~ (~org_startup_indented~, ~#+STARTUP: indent~, or
+  ~org.indent.mode~) or hidden leading stars (~org_hide_leading_stars~,
+  ~#+STARTUP: hidestars~) show.
   ~{ "uri", "version", "lines" }~, each line
   ~[line, prefix, wrap, hiddenStars]~: the columns shown before the line
   (~line-prefix~), before the lines it wraps into (~wrap-prefix~), and how
   many of a headline's leading stars show as blanks. Lines with nothing to
   show are left out. Sent after the file opens and after every change while
-  it shows so, and once with no lines when it stops. Only for the version
-  given.
+  it shows so, and once with no lines when it stops: after ~org.indent.mode~
+  too. Only for the version given.
 - ~org-lsp/display~ :: For a client that announces
   ~experimental.orgDisplay: true~: what shows in place of hidden text, the
   entities and sub- and superscripts of ~org_pretty_entities~ (~α~, ~x²~)

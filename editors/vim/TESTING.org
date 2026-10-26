@@ -391,6 +391,7 @@ its sections says what it should look like.
 
 - [ ] A file with ~#+STARTUP: indent~ shows its text indented by level, the file unchanged
 - [ ] With ~#+STARTUP: hidestars~ only the last star shows
+- [ ] In a file without ~#+STARTUP: indent~, the command shows the text indented by level and says ~Org-Indent mode enabled in current buffer~; run again, it shows the file as it was: ~:Org indent mode~
 - [ ] In a file with ~#+STARTUP: indent~, in a narrow window that wraps lines, a long headline goes on under its title and a long item under its text
 - [ ] With ~org_adapt_indentation = true~, a new line below a headline is indented
 - [ ] Re-indenting a selection indents it as Org does: ~=~

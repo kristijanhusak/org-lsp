@@ -375,6 +375,7 @@ its sections says what it should look like.
 *Partly:* Virtual indentation shows as phantoms, the leading stars still showing; new lines are not indented as they are typed. The lines a long line wraps into are not indented as Org does: Sublime Text indents them by the line's own leading whitespace (~indent_subsequent_lines~).
 
 - [ ] A file with ~#+STARTUP: indent~ shows its text indented by level, the file unchanged
+- [ ] In a file without ~#+STARTUP: indent~, the command shows the text indented by level and says ~Org-Indent mode enabled in current buffer~; run again, it shows the file as it was: /Org: Indent the text by the level of its headline, or stop indenting it/
 - [ ] Re-indenting a selection indents it as Org does: /LSP: Format Selection/
 - [ ] Formatting the file aligns tables and puts tags in their column
 - [ ] A file with ~#+STARTUP: num~ shows ~1~, ~1.1~​… after the stars of its headlines; the command turns them off and on: /Org: Number the headlines, or stop numbering them/
