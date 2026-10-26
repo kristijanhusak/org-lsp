@@ -24,14 +24,22 @@ its sections says what it should look like.
 
 * Highlighting
 
-*Partly:* Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Vim cannot hide text that has text properties. A headline's line colored to the edge (~org_fontify_whole_heading_line~) is a sign without text, which shows the sign column.
+*Partly:* A headline's line colored to the edge (~org_fontify_whole_heading_line~) is a sign without text, which shows the sign column. A line with a long link wraps as if the link's hidden target took room: Vim counts concealed text when it wraps.
 
 - [ ] Headlines are colored by level; TODO and DONE keywords, priorities (~[#A]~) and tags have colors of their own
 - [ ] With ~org_fontify_todo_headline = true~ the text of a TODO headline, and with ~org_fontify_quote_and_verse_blocks = true~ the lines of a quote block, take a look of their own
 - [ ] With ~org_n_level_faces = 2~, a headline of level 3 has the color of level 1; with ~org_cycle_level_faces = false~ too, that of level 2
 - [ ] With ~org_fontify_whole_heading_line = true~ and a background in the look of level 1 (~@lsp.typemod.headline.level1.org~ in Neovim, ~OrgLsp_headline_level1~ in Vim, the color ~org.headlineLevel1Background~ in VS Code), a level 1 headline's line has it to the edge of the window
 - [ ] ~*bold*~, ~/italic/~, ~_underline_~, ~+strike+~, ~=verbatim=~ and =~code~= are colored
+- [ ] A link shows its description alone; its brackets and target show when the cursor is on its line
+- [ ] With ~org_hide_emphasis_markers = true~, the markers of ~*bold*~ are hidden
 - [ ] With ~org_emphasis_alist = { "*": ["bold", "italic"] }~, ~*this*~ is bold and italic and ~/that/~ plain; with ~org_fontify_emphasized_text = false~ neither has a look
+- [ ] With ~org_hidden_keywords = ["title"]~ and ~org_hide_macro_markers = true~, ~#+TITLE:~ is hidden before the title, and ~{{{x}}}~ shows as ~x~
+- [ ] With ~org_pretty_entities = true~, ~\alpha~ shows as ~α~
+- [ ] With ~org_display_custom_times = true~, ~<2026-10-05 Mon 10:00>~ shows as ~<10/05/26 Mon 10:00>~; ~C-c C-x C-t~ shows it as written again: ~:Org timestamp overlays toggle~
+- [ ] With ~org_bullets_mode = true~, ~** Two~ shows as ~○ Two~, its first star hidden
+- [ ] With ~org_bullets_mode = true~, ~- [X] a~ shows as ~• [✓] a~ and ~- [ ] b~ as ~• [ ] b~
+- [ ] With ~org_pretty_entities = true~, ~x^2~ shows as ~x²~ and ~H_{2}O~ as ~H₂O~
 - [ ] Timestamps, ~SCHEDULED:~ and ~DEADLINE:~, ~CLOCK:~ lines, drawers, ~#+~ keywords and ~#~ comments are colored
 - [ ] A ~#+begin_src python~ block shows its code in Python's colors
 - [ ] Inline code (~src_python{x = 1}~) is in Python's colors
@@ -135,7 +143,7 @@ its sections says what it should look like.
 
 * Properties and column view
 
-*Partly:* Column view's header is in the window's status line, shown when the window has one (~laststatus~). Custom properties are not hidden (~org.custom.properties.toggle~): Vim cannot hide a line, a closed fold still shows a line of its own, and text with text properties is not concealed.
+*Partly:* Column view's header is in the window's status line, shown when the window has one (~laststatus~). Custom properties are not hidden (~org.custom.properties.toggle~): Vim cannot hide a line, a closed fold still shows a line of its own, and concealing a line's text leaves the line, empty.
 
 - [ ] Column view: the headlines covered by their columns (~#+COLUMNS:~ or the default), the header above, effort sums on parents (needs Emacs): ~<Leader>oxc~
 - [ ] In column view, picking a column, editing its value (~e~), the next and previous allowed value (~n~, ~p~), its value shown (~v~); quitting (~q~)
@@ -310,9 +318,7 @@ its sections says what it should look like.
 
 * Tables
 
-*Partly:* A shrunk column shows its whole text and ~…~: Vim cannot hide text that has text properties.
-
-- [ ] Shrinking a column with a ~<5>~ cookie puts ~…~ after each of its fields, their text left whole; again, the ~…~ go; a file with ~#+STARTUP: shrink~ opens with them: ~<Leader>o<Tab>~
+- [ ] ~C-c TAB~ in a column with a ~<5>~ cookie shows five characters of each field and ~…~; again, the whole column; a file with ~#+STARTUP: shrink~ opens so: ~<Leader>o<Tab>~
 - [ ] Formatting the file aligns the tables: the client's format command
 - [ ] Moving to the next and previous field; past the last field a row is made: ~:Org table next field~, ~:Org table previous field~
 - [ ] Moving a column left and right, a row up and down: ~<<~, ~>>~, ~<Leader>oK~, ~<Leader>oJ~
