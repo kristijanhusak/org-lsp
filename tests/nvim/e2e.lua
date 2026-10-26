@@ -133,9 +133,12 @@ wait('the face on the tag', function()
   return false
 end)
 eq(vim.api.nvim_get_hl(0, { name = 'OrgLspTagFace_tag' }).fg, 0x0088ff, 'the face of the tag')
-wait('regex syntax to be replaced', function()
-  return vim.bo.syntax == ''
-end)
+-- The plugin's syntax stays under the server's colors (`replace_syntax`
+-- off), in the groups its tokens show.
+eq(vim.bo.syntax, 'org', 'the syntax for Org stays')
+eq(vim.fn.synIDattr(vim.fn.synIDtrans(vim.fn.synID(2, 1, 1)), 'name'),
+  vim.fn.synIDattr(vim.fn.synIDtrans(vim.fn.hlID('@lsp.typemod.stars.level1.org')), 'name'),
+  'the stars in the syntax as in the server\'s colors')
 
 -- 4. Folding comes from the server; the file opens unfolded.
 eq(vim.wo.foldmethod, 'expr', 'foldmethod')
@@ -533,8 +536,7 @@ becomes(2, 'SCHEDULED: <2026-06-12 Fri 09:00 +2w>', 'changed with cid')
 wait('the calendar to close after cid', function()
   return prompt_window() == nil
 end)
--- Moved away here, the server puts it back once its edit is in.
-vim.api.nvim_win_set_cursor(0, { 2, 0 })
+-- The cursor back on the day once the edit is in.
 wait('the cursor to stay on the day', function()
   return vim.deep_equal(vim.api.nvim_win_get_cursor(0), { 2, 21 })
 end)
@@ -1588,32 +1590,30 @@ check(groups(17):find('0:@keyword.lua', 1, true), '`sh` colored by the parser of
 eq(groups(20), '', 'Python has no parser: no extmarks')
 check(syntax(21, 1):find('pythonStatement', 1, true), 'Python in its syntax file: ' .. syntax(21, 1))
 check(syntax(23, 17):find('pythonInclude', 1, true), 'inline Python in its syntax file: ' .. syntax(23, 17))
-eq(syntax(23, 5), '', 'the text around inline code in no syntax region')
-eq(syntax(20, 3), '', 'the line of `#+begin_src` in no syntax region')
+check(not syntax(23, 5):find('python', 1, true), 'the text around inline code not in Python\'s syntax: ' .. syntax(23, 5))
+check(not syntax(20, 3):find('python', 1, true), 'the line of `#+begin_src` not in Python\'s syntax: ' .. syntax(20, 3))
 check(syntax(10, 2):find('lispDecl', 1, true), 'Emacs Lisp, which has no tree-sitter parser, in Vim\'s syntax: ' .. syntax(10, 2))
 local pos = vim.inspect_pos(code_buf, 20, 0)
 check(#pos.syntax > 0 and #pos.semantic_tokens == 0, 'the code in its syntax, no Org token over it')
 local head = vim.inspect_pos(code_buf, 0, 2)
 check(#head.semantic_tokens > 0, 'the Org text around the code in the server\'s colors')
 eq(#vim.api.nvim_list_bufs(), buffers, 'no buffer made for the colors')
--- With Vim's own syntax for Org kept (`replace_syntax` off), whose
--- regions take whole blocks: the code still in its language.
+-- Within the regions of the plugin's syntax for Org, which take whole
+-- blocks: the code in its language.
+check(syntax(21, 1):find('orgSyntaxRawBlock orgLspSrcCode_python', 1, true), 'Python within the block of the syntax for Org: ' .. syntax(21, 1))
+check(syntax(10, 2):find('orgSyntaxRawBlock orgLspSrcCode_lisp', 1, true), 'Emacs Lisp within the block of the syntax for Org: ' .. syntax(10, 2))
+-- And after the buffer's syntax is set again, which forgets the regions.
 vim.api.nvim_buf_call(code_buf, function()
   vim.bo.syntax = 'org'
 end)
 src.reapply(code_buf)
-check(syntax(21, 1):find('pythonStatement', 1, true), 'Python in its syntax file within Vim\'s Org syntax: ' .. syntax(21, 1))
-check(syntax(10, 2):find('lispDecl', 1, true), 'Emacs Lisp within Vim\'s Org syntax: ' .. syntax(10, 2))
-vim.api.nvim_buf_call(code_buf, function()
-  vim.bo.syntax = ''
-end)
-src.reapply(code_buf)
+check(syntax(21, 1):find('pythonStatement', 1, true), 'Python in its syntax file again: ' .. syntax(21, 1))
 
 -- An edit that moves a block: the region and the colors follow it.
 vim.api.nvim_buf_set_lines(code_buf, 0, 0, false, { 'Moved down.' })
 wait('the blocks of the edited text', current)
 check(syntax(22, 1):find('pythonStatement', 1, true), 'the region moved with the code: ' .. syntax(22, 1))
-eq(syntax(21, 1), '', 'the line now at the old place in no region')
+check(not syntax(21, 1):find('python', 1, true), 'the line now at the old place in no region of Python: ' .. syntax(21, 1))
 check(groups(3):find('0:@keyword.lua', 1, true), 'the Lua code moved with its colors: ' .. groups(3))
 -- An edit that changes the code of a block, and one that removes one.
 vim.api.nvim_buf_set_lines(code_buf, 3, 4, false, { 'x = 1' })
@@ -1652,7 +1652,7 @@ vim.api.nvim_buf_set_lines(code_buf, 0, 1, false, {})
 wait('the colors gone', function()
   return #vim.api.nvim_buf_get_extmarks(code_buf, src.namespace, 0, -1, {}) == 0 and src.blocks[code_buf] == nil
 end)
-eq(syntax(18, 1), "", "no Python region with `src_highlight` off")
+check(not syntax(18, 1):find('python', 1, true), 'no Python region with `src_highlight` off: ' .. syntax(18, 1))
 require('org-lsp').config.src_highlight = true
 
 local code = vim.fn.tempname() .. '.org'

@@ -446,9 +446,11 @@ require('org-lsp').setup({
   -- Fold with the server's folding ranges.
   folding = true,
 
-  -- Turn off Vim's regex syntax for Org once the server's highlighting
-  -- arrives.
-  replace_syntax = true,
+  -- Turn off the syntax for Org once the server's highlighting arrives.
+  -- The plugin's syntax colors what a pattern finds as the server does
+  -- (see Neovim's page), and colors what you type before the server
+  -- answers.
+  replace_syntax = false,
 
   -- Highlight the code of source and export blocks (`#+begin_src python`,
   -- `#+begin_export html`) and of inline source blocks (`src_python{…}`),

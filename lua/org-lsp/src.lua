@@ -161,10 +161,10 @@ local function syntax_regions(bufnr, codes)
         table.insert(groups, group)
       end
       local code = each.code
-      -- Within the blocks of Vim's own syntax for Org too, when it stays
-      -- (`replace_syntax` off): its regions take the whole block.
+      -- Within the blocks of the syntax for Org (syntax/org.vim), whose
+      -- regions take the whole block.
       vim.cmd(
-        ('syntax region %s start=/\\%%%dl\\%%%dc/ end=/\\%%%dl\\%%%dc/ keepend contains=@%s containedin=orgCodeBlock,orgVerbatimBlock'):format(
+        ('syntax region %s start=/\\%%%dl\\%%%dc/ end=/\\%%%dl\\%%%dc/ keepend contains=@%s containedin=orgSyntaxRawBlock'):format(
           group,
           code.row + 1,
           code.col + 1,

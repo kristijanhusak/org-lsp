@@ -28,7 +28,7 @@ local SERVER = 'org_lsp'
 ---@field settings? org_lsp.Settings The server's options, such as `org_agenda_files` and `org_todo_keywords`; see docs/configuration.org.
 ---@field startup_folded? 'showeverything'|'overview' How a newly opened file shows when neither the settings' `org_startup_folded` nor its `#+STARTUP:` say: everything open or every subtree folded. The file's `#+STARTUP:` and `VISIBILITY` properties always decide for it.
 ---@field folding? boolean Whether to fold with the server's folding ranges.
----@field replace_syntax? boolean Whether to turn off Vim's regex syntax once semantic tokens arrive.
+---@field replace_syntax? boolean Whether to turn off the syntax for Org (syntax/org.vim) once semantic tokens arrive.
 ---@field src_highlight? boolean Whether the code of source and export blocks and of inline source blocks (`#+begin_src python`, `src_python{…}`) is highlighted where the server says it is (`org-lsp/codeBlocks`) by the tree-sitter parser of its language, or its Vim syntax file in regions of the buffer's syntax when there is no parser, as Emacs's `org-src-fontify-natively` shows it.
 ---@field conceal? boolean Whether to conceal what the server marks hidden (link brackets and targets; emphasis markers with `org_hide_emphasis_markers`), with 'conceallevel' 2 in Org windows (a level set already, as by a `FileType` autocommand, stays).
 ---@field indent? boolean Whether the server indents as Org does: new lines through 'indentexpr' (`org-indent-line`), and `=` (`org-indent-region`), following `org_adapt_indentation`.
@@ -58,7 +58,7 @@ local defaults = {
   release = 'nightly',
   settings = {},
   folding = true,
-  replace_syntax = true,
+  replace_syntax = false,
   src_highlight = true,
   conceal = true,
   indent = true,
@@ -1138,9 +1138,9 @@ local function set_window_folds(win)
   close_startup_folds(win)
 end
 
---- Vim's regex syntax for Org is an approximation and disagrees with the
---- server in places. It stays on until the first semantic tokens arrive, so
---- the buffer is never without highlighting.
+--- With `replace_syntax`, the syntax for Org (syntax/org.vim) goes when
+--- the first semantic tokens arrive; the buffer is never without
+--- highlighting.
 local function replace_syntax(bufnr)
   vim.api.nvim_create_autocmd('LspTokenUpdate', {
     buffer = bufnr,
