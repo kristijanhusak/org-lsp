@@ -951,6 +951,11 @@ function! s:conceals() abort
   call assert_equal('See [[https://', s:shown(2))
   call cursor(3, 1)
   call assert_equal('See Org and α.', s:shown(2))
+  " Concealed on the cursor's line too in Normal mode ('concealcursor').
+  setlocal concealcursor=n
+  call cursor(2, 1)
+  call assert_equal('See Org and α.', s:shown(2))
+  setlocal concealcursor=
   bwipeout!
   execute 'buffer' s:work_buf
 endfunction
