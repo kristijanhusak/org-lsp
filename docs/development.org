@@ -424,8 +424,8 @@ git push origin v0.2.0
 The Release workflow (~.github/workflows/release.yml~) fails when the tag
 is not ~v~ and the version, builds everything, makes the GitHub release,
 then publishes it: each of these jobs is skipped while its secret is not
-set, and the nightly build (the workflow run by hand on main) publishes
-none of them.
+set, and the nightly build (each push to main, or the workflow run by
+hand on main) publishes none of them.
 
 - ~vscode-marketplace~ (secret ~VSCE_PAT~) :: the VS Code packages, one a
   platform, on the VS Code Marketplace;
