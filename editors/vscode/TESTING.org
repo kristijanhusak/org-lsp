@@ -395,6 +395,7 @@ its sections says what it should look like.
 
 - [ ] A file with ~#+STARTUP: indent~ shows its text indented by level, the file unchanged
 - [ ] With ~#+STARTUP: hidestars~ only the last star shows
+- [ ] In a file without ~#+STARTUP: indent~, the command shows the text indented by level and says ~Org-Indent mode enabled in current buffer~; run again, it shows the file as it was: /Org: Indent the text by the level of its headline, or stop indenting it/
 - [ ] With ~org_adapt_indentation = true~, a new line below a headline is indented
 - [ ] Re-indenting a selection indents it as Org does: Format Selection
 - [ ] Formatting the file aligns tables and puts tags in their column

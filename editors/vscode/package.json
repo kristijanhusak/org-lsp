@@ -355,6 +355,11 @@
         "category": "Org"
       },
       {
+        "command": "org.indent.mode",
+        "title": "Indent the text by the level of its headline, or stop indenting it",
+        "category": "Org"
+      },
+      {
         "command": "org.custom.properties.toggle",
         "title": "Hide the properties of org_custom_properties, or show them again",
         "category": "Org"

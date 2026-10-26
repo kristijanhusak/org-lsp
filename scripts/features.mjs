@@ -1016,7 +1016,7 @@ export const AREAS = [
   {
     name: 'Indentation and formatting',
     emacs: [
-      ['Virtual indentation (`org-indent-mode`, `#+STARTUP: indent`)', true],
+      ['Virtual indentation (`org-indent-mode`, `#+STARTUP: indent`), turned on and off in a file by command (`M-x org-indent-mode`, `org.indent.mode`)', true],
       ['Hidden leading stars (`org-hide-leading-stars`)', true],
       ['Hard indentation (`org-adapt-indentation`)', true],
       ['Indenting lines and regions (`org-indent-line`, `org-indent-region`)', true],
@@ -1036,6 +1036,7 @@ export const AREAS = [
     checks: [
       { text: 'A file with `#+STARTUP: indent` shows its text indented by level, the file unchanged' },
       { text: 'With `#+STARTUP: hidestars` only the last star shows', not: ['sublime', 'zed', 'helix'] },
+      { text: 'In a file without `#+STARTUP: indent`, the command shows the text indented by level and says `Org-Indent mode enabled in current buffer`; run again, it shows the file as it was', cmd: 'org.indent.mode' },
       { text: 'In a file with `#+STARTUP: indent`, in a narrow window that wraps lines, a long headline goes on under its title and a long item under its text', only: ['neovim', 'vim'] },
       { text: 'In a file with `#+STARTUP: indent`, with soft wrap on, a long line of text goes on under its text', only: ['zed', 'helix'] },
       { text: 'With `org_adapt_indentation = true`, a new line below a headline is indented', not: ['sublime', 'zed', 'helix'] },

@@ -892,6 +892,17 @@ eq({ screen_line(headline_row), screen_line(headline_row + 1) }, {
   '   wraps                ',
 }, 'the wrapped part of the headline under its title')
 vim.cmd('close')
+-- `org.indent.mode` (`M-x org-indent-mode`) turns it off over the file's
+-- `#+STARTUP:`, and on again.
+require('org-lsp').run('org.indent.mode')
+wait('the prefixes gone', function()
+  return #prefixes() == 0
+end)
+require('org-lsp').run('org.indent.mode')
+wait('the prefixes back', function()
+  return #prefixes() > 0
+end)
+eq(prefixes(), { { 2, 2 }, { 3, 1 }, { 3, 'star', 0 } }, 'indented as before')
 
 -- 21b. `org_fontify_whole_heading_line`: each headline's line is in the
 -- look of its level to the edge of the window; past `org_n_level_faces`
