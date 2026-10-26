@@ -16,8 +16,11 @@
 #   ZED            Zed's command line (bin/zed); the Zed scenarios are
 #                  skipped without it. ZED_ORG_GRAMMAR is the Org grammar
 #                  it needs (see editors/zed/test/run.py)
-#   ORG_LSP_SERIAL set to 1 to run the editors one after another, their
-#                  output as it comes
+#   ORG_LSP_TEST_JOBS  how many run at a time (default: half the CPUs):
+#                  the typed scenarios and the tests that wait on Emacs time
+#                  out when the machine is too busy
+#   ORG_LSP_SERIAL set to 1 to run them one after another, their output as
+#                  it comes
 #
 # The VS Code tests need a display: they run under xvfb-run when there is
 # none. Zed's scenarios take their X displays from 120 up, away from the
@@ -42,11 +45,13 @@ vscode_tests() {
   fi
 }
 
-suites=(check neovim)
+# The longest first, so that the others fill in beside them.
+suites=()
 [ -n "${CLIENTS:-}" ] && suites+=(vim) || echo "== vim: skipped (set CLIENTS)"
-[ -n "${HX:-}" ] && suites+=(helix) || echo "== helix: skipped (set HX)"
 [ -n "${ZED:-}" ] && suites+=(zed) || echo "== zed: skipped (set ZED)"
 suites+=(vscode)
+[ -n "${HX:-}" ] && suites+=(helix) || echo "== helix: skipped (set HX)"
+suites+=(check neovim)
 
 run_suite() {
   case "$1" in
@@ -68,15 +73,21 @@ if [ "${ORG_LSP_SERIAL:-}" = 1 ]; then
 fi
 
 logs="$(mktemp -d)"
+cpus="$(getconf _NPROCESSORS_ONLN 2> /dev/null || echo 2)"
+jobs="${ORG_LSP_TEST_JOBS:-$((cpus / 2 > 1 ? cpus / 2 : 1))}"
 declare -A pids=() began=()
-for suite in "${suites[@]}"; do
-  (run_suite "$suite") > "$logs/$suite.log" 2>&1 &
-  pids[$suite]=$!
-  began[$suite]=$SECONDS
-done
+next=0
 failed=0
-# Each as it finishes, with how long it took.
-while [ "${#pids[@]}" -gt 0 ]; do
+# Each as it finishes, with how long it took; the next one starts in its
+# place.
+while [ "$next" -lt "${#suites[@]}" ] || [ "${#pids[@]}" -gt 0 ]; do
+  while [ "$next" -lt "${#suites[@]}" ] && [ "${#pids[@]}" -lt "$jobs" ]; do
+    suite="${suites[$next]}"
+    next=$((next + 1))
+    (run_suite "$suite") > "$logs/$suite.log" 2>&1 &
+    pids[$suite]=$!
+    began[$suite]=$SECONDS
+  done
   wait -n "${pids[@]}" 2> /dev/null || true
   for suite in "${!pids[@]}"; do
     if ! kill -0 "${pids[$suite]}" 2> /dev/null; then

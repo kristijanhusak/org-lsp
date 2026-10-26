@@ -10846,6 +10846,29 @@ fn a_plain_client_gets_the_edits_of_results_and_filters_after_changes() {
 /// written as a missing one is: an edit into an empty file leaves an empty
 /// line after the entry in some of Vim's clients, and yegappan/lsp loses
 /// the entry.
+/// Zed's extension saves no file it is told to: a capture into a file
+/// Zed does not have open is written, not left changed in a buffer it does
+/// not show.
+#[test]
+fn a_capture_for_zed_writes_a_file_it_does_not_have_open() {
+    let root = workspace("capture-zed");
+    let notes = root.join("inbox.org");
+    std::fs::write(&notes, "* Old\n").unwrap();
+    let mut options = clock();
+    options["command_actions"] = json!(true);
+    options["org_default_notes_file"] = json!(notes.display().to_string());
+    options["org_capture_templates"] =
+        json!([{ "key": "n", "description": "Note", "template": "* TODO Captured", "immediate_finish": true }]);
+    let mut client = Client::editor(options, None);
+    let at = json!({ "textDocument": { "uri": format!("file://{}", root.join("a.org").display()) }, "position": { "line": 0, "character": 0 }, "input": "n" });
+    client.request("workspace/executeCommand", json!({ "command": "org.capture", "arguments": [at] })).unwrap();
+    client.settle();
+    assert!(client.received.iter().all(|request| request.method != "workspace/applyEdit"), "{:?}", client.received);
+    assert_eq!(std::fs::read_to_string(&notes).unwrap(), "* Old\n* TODO Captured\n");
+    client.shutdown();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
 #[test]
 fn a_capture_into_an_empty_file_writes_it() {
     let root = workspace("capture-empty");
