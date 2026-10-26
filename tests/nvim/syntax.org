@@ -1,0 +1,60 @@
+#+TITLE: What the syntax colors
+#+AUTHOR: org-lsp
+# A comment.
+* Level one :work:home:
+** Level two [1/2] [100%]
+SCHEDULED: <2026-05-18 Mon 09:00> DEADLINE: <2026-05-20 Wed>
+:PROPERTIES:
+:ID: abc
+:END:
+:LOGBOOK:
+CLOCK: [2026-05-18 Mon 09:00]--[2026-05-18 Mon 10:00] =>  1:00
+:END:
+*** Three
+**** Four
+***** Five
+****** Six
+******* Seven
+******** Eight
+********* Nine, as one again
+Some *bold*, /italic/, _underlined_, +struck+, ~code~ and =verbatim=; a
+~code that goes on~ the next line, and *bold that does
+too*.
+A [[https://orgmode.org][described link]], [[file:notes.org]], https://orgmode.org/,
+<2026-05-19 Tue>--<2026-05-20 Wed>, [2026-05-19 Tue], a footnote[fn:1], an
+inline one[fn:: with [[https://orgmode.org][a link]]], {{{macro(x)}}} and <<target>>.
+- an item
+- [ ] to do
+- [X] done
+- [-] partly
+- term :: what it means
+  + nested, with a cookie [1/3]
+1. first
+2) second
+| *bold* | /italic/ | _under_ | +struck+ | ~code~ | =verb= | <2026-05-19 Tue> |
+|--------+----------+---------+----------+--------+--------+------------------|
+| [[https://orgmode.org][link]] | [fn:1] | {{{x}}} | <<t>> | [2026-05-19 Tue] | | |
+: fixed width
+#+begin_src python
+x = "<2026-05-19 Tue> *not bold*"
+#+end_src
+#+begin_quote
+quoted *bold*
+#+end_quote
+#+begin_verse
+a /verse/
+#+end_verse
+#+begin_center
+centered
+#+end_center
+#+begin_comment
+commented
+#+end_comment
+#+begin_example
+example *not bold*
+#+end_example
+#+begin_export html
+<b>html</b>
+#+end_export
+
+[fn:1] The note.

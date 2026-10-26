@@ -149,6 +149,7 @@ export const AREAS = [
       { text: 'Table rules and bars, footnotes (`[fn:1]`), `<<targets>>`, macros (`{{{x}}}`) and entities (`\\alpha`) are colored' },
       { text: 'A subtree tagged `:ARCHIVE:` is shaded' },
       { text: 'Another color scheme keeps the colors (they follow its groups)', only: ['neovim', 'vim'] },
+      { text: 'What is typed is colored at once by the plugin\'s syntax (`syntax/org.vim`): `** Two <2026-05-19 Tue> *bold*` shows its stars and title in the colors of level 2, the timestamp and the bold text, the same colors the server\'s highlighting gives them when it comes', only: ['neovim', 'vim'] },
       { text: 'With a theme that colors `markup.heading.1` to `.6` (`catppuccin_mocha`, `kanagawa`, `emacs` …), each level has its own color; another theme colors every level as `markup.heading`', only: ['helix'] },
       { text: 'The agenda (`Agenda.org`) shows its title and days as headings, the weekend\'s days apart, the time grid shaded, entries scheduled today, scheduled earlier and with deadlines in colors of their own, and done entries shaded', only: ['helix'] },
     ],

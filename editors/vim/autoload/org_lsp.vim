@@ -3329,9 +3329,9 @@ function! s:src_syntax() abort
     let groups[group] = 1
     let col = s:byte(getline(start.line + 1), start.character)
     let end_col = s:byte(getline(end.line + 1), end.character)
-    " Within the blocks of Vim's own syntax for Org too, whose regions take
-    " the whole block.
-    execute printf('syntax region %s start=/\%%%dl\%%%dc/ end=/\%%%dl\%%%dc/ keepend contains=@%s containedin=orgCodeBlock,orgVerbatimBlock',
+    " Within the blocks of the plugin's syntax for Org (syntax/org.vim),
+    " whose regions take the whole block.
+    execute printf('syntax region %s start=/\%%%dl\%%%dc/ end=/\%%%dl\%%%dc/ keepend contains=@%s containedin=orgSyntaxRawBlock',
           \ group, start.line + 1, col + 1, end.line + 1, end_col + 1, cluster)
   endfor
   " The files included sync as suits their language alone.

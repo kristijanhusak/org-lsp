@@ -60,6 +60,18 @@ function! s:starts() abort
 endfunction
 call s:test('starts the server and highlights with its tokens', function('s:starts'))
 
+" The plugin's syntax colors what the tokens color, in their groups: the
+" stars of a level 2 headline as the token `stars.level2` shows them.
+function! s:syntax() abort
+  call assert_equal('org', &syntax)
+  let Shown = {line, col -> synIDattr(synIDtrans(synID(line, col, 1)), 'name')}
+  call assert_equal('orgSyntax_stars_level2', synIDattr(synID(5, 1, 1), 'name'))
+  call assert_equal(synIDattr(synIDtrans(hlID('OrgLsp_stars_level2')), 'name'), Shown(5, 1))
+  call assert_notequal('', Shown(5, 1))
+  call assert_equal(synIDattr(synIDtrans(hlID('OrgLsp_timestamp')), 'name'), Shown(3, 12))
+endfunction
+call s:test('colors with its syntax as the tokens do', function('s:syntax'))
+
 " `org_fontify_whole_heading_line`: each headline's line coloured from
 " edge to edge in the look of its level, with a sign without text.
 function! s:whole_heading_lines() abort
@@ -835,12 +847,9 @@ function! s:code_link_note() abort
   call assert_notmatch('python', Syntax(9, 30))
   call assert_notmatch('python', Syntax(9, 50))
   call assert_match('lispDecl', Syntax(11, 2))
-  " Within the blocks of a syntax for Org whose regions take the whole
-  " block, as Vim's own `syntax/org.vim` has them.
-  syntax region orgCodeBlock start="\c^\s*#+BEGIN_SRC.*" end="\c^\s*#+END_SRC" keepend
-  doautocmd TextChanged
-  call s:until('the code within the block of the syntax for Org', {-> Syntax(3, 1) =~# 'orgCodeBlock orgLspSrcCode_python python'})
-  syntax clear orgCodeBlock
+  " Within the block of the plugin's syntax for Org, whose region takes
+  " the whole block.
+  call assert_match('orgSyntaxRawBlock orgLspSrcCode_python python', Syntax(3, 1))
   " What an example block holds is no block.
   call assert_notmatch('python', Syntax(15, 1))
   " The regions move with the code, and go with it.

@@ -92,6 +92,16 @@ on top of it. [[file:configuration.org][configuration.org]] has everything else:
 (windows, the calendar, the statusline, highlighting, images) and [[file:configuration.org::#every-option-at-its-default][every
 option of the server]] with its default.
 
+The plugin's syntax for Org (=syntax/org.vim=) colors what a pattern can
+tell, as the server does and in the same colors: headline stars and titles
+by level, timestamps, planning and clock lines, links, emphasis, code,
+lists, tables, drawers, blocks, keywords and comments. It shows a file
+before the server's highlighting arrives, and what you type before the
+server has answered. What only the server knows (TODO keywords, priorities,
+entities, LaTeX, what the options change) waits for it. Keep ~:syntax on~
+(Neovim's default); ~replace_syntax = true~ turns the syntax off once the
+server's highlighting has come.
+
 * Keys
 
 The plugin binds nvim-orgmode's default keys: ~cit~ changes the TODO
