@@ -67,6 +67,13 @@ jobs:
             target: x86_64-pc-windows-msvc
             vscode: win32-x64
     runs-on: ${{ matrix.os }}
+    # The nightly build compiles on every core of the runner (Windows' is
+    # the slowest), as the release profile's single codegen unit and LTO
+    # compile the server's crate on one; a version tag is built as
+    # Cargo.toml says.
+    env:
+      CARGO_PROFILE_RELEASE_CODEGEN_UNITS: ${{ startsWith(github.ref, 'refs/tags/') && '1' || '16' }}
+      CARGO_PROFILE_RELEASE_LTO: ${{ startsWith(github.ref, 'refs/tags/') && 'thin' || 'false' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -76,6 +83,15 @@ jobs:
         run: |
           rustup toolchain install stable --profile minimal --target ${{ matrix.target }}
           rustup default stable
+      # The dependencies built before, for this target and this profile.
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: release-${{ matrix.target }}-${{ startsWith(github.ref, 'refs/tags/') && 'tag' || 'nightly' }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: release-${{ matrix.target }}-${{ startsWith(github.ref, 'refs/tags/') && 'tag' || 'nightly' }}-
       - name: Install musl
         if: contains(matrix.target, 'musl')
         run: sudo apt-get update && sudo apt-get install -y musl-tools

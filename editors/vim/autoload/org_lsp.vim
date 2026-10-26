@@ -2357,7 +2357,7 @@ function! s:conceal(nr) abort
   for win in win_findbuf(a:nr)
     call s:conceal_window(win, a:nr)
   endfor
-  call s:show_stand_ins(a:nr, bufnr() == a:nr ? line('.') : 0)
+  call s:show_stand_ins(a:nr, bufnr() == a:nr ? s:revealed_line() : 0)
 endfunction
 
 function! s:conceal_window(win, nr) abort
@@ -2407,16 +2407,26 @@ function! s:conceal_cursor() abort
   let nr = bufnr()
   let shown = s:stand_ins(nr)
   let before = get(b:, 'org_lsp_shown_cursor', 0)
-  if empty(shown) || before == line('.')
+  let now = s:revealed_line()
+  if empty(shown) || before == now
     return
   endif
   if has_key(shown, before)
     call s:show_line(nr, before, shown[before])
   endif
-  if has_key(shown, line('.')) && !empty(s:shown_types)
-    call prop_remove({'types': s:shown_types, 'bufnr': nr, 'all': 1}, line('.'))
+  if has_key(shown, now) && !empty(s:shown_types)
+    call prop_remove({'types': s:shown_types, 'bufnr': nr, 'all': 1}, now)
   endif
-  let b:org_lsp_shown_cursor = line('.')
+  let b:org_lsp_shown_cursor = now
+endfunction
+
+" The cursor's line when Vim shows its concealed text, in the mode at hand
+" ('concealcursor' does not name it), else 0: there the text standing in
+" goes, and elsewhere it stays, as in Neovim.
+function! s:revealed_line() abort
+  let mode = mode()
+  let letter = mode =~# '^[iR]' ? 'i' : mode =~# "^[vV\<C-v>]" ? 'v' : mode =~# '^c' ? 'c' : 'n'
+  return stridx(&l:concealcursor, letter) >= 0 ? 0 : line('.')
 endfunction
 
 " A window that showed an Org buffer and shows another now: its matches
@@ -2438,6 +2448,7 @@ endfunction
 augroup org_lsp_conceal
   autocmd!
   autocmd BufWinEnter,WinEnter * call s:conceal_enter()
+  autocmd OptionSet concealcursor if exists('b:org_lsp_attached') | call s:conceal_cursor() | endif
 augroup END
 
 " ----- the clock
@@ -3212,7 +3223,7 @@ function! org_lsp#attach() abort
     execute 'autocmd! * <buffer=' . nr . '>'
     execute 'autocmd TextChanged,InsertLeave,BufReadPost <buffer=' . nr . '> call s:changed(' . nr . ')'
     execute 'autocmd BufWinEnter <buffer=' . nr . '> call s:changed(' . nr . ')'
-    execute 'autocmd CursorMoved,CursorMovedI <buffer=' . nr . '> call s:conceal_cursor()'
+    execute 'autocmd CursorMoved,CursorMovedI,ModeChanged <buffer=' . nr . '> call s:conceal_cursor()'
     if s:is_view_type(&filetype)
       let b:org_lsp_given = getline(1, '$')
       execute 'autocmd FileChangedShellPost,BufReadPost <buffer=' . nr . '> call s:give_view(' . nr . ')'

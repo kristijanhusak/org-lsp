@@ -27,7 +27,7 @@ what Emacs Org does that org-lsp does not yet. Read them before larger work.
 ```sh
 scripts/regen.sh      # write every generated file again
 scripts/check.sh      # fmt, clippy, cargo test, generated files, VS Code types, Sublime tests
-scripts/test-all.sh   # check.sh, then Neovim, Vim, VS Code end to end
+scripts/test-all.sh   # check.sh, then every editor end to end, side by side
 scripts/screenshots.py  # docs/images: screenshots and animations of Neovim (NVIM)
 scripts/site.sh       # the website into target/site; --serve shows it
 ```

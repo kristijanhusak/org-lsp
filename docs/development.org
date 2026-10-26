@@ -44,7 +44,10 @@ others), as close to Emacs Org mode as it can get.
 :END:
 
 - All at once: ~scripts/check.sh~ (the fast checks) and
-  ~scripts/test-all.sh~ (those, then each editor end to end);
+  ~scripts/test-all.sh~ (those and each editor end to end, side by side,
+  half as many at a time as there are CPUs, ~ORG_LSP_TEST_JOBS~ to say
+  otherwise, each into a log of its own; ~ORG_LSP_SERIAL=1~ one after
+  another);
   ~scripts/regen.sh~ writes the generated files again. ~CLAUDE.md~ lists
   the environment they read.
 - Rust: ~cargo test --workspace~,

@@ -185,6 +185,13 @@ impl Client {
     fn zed_agenda(&self) -> bool {
         self.command_actions && self.org_client
     }
+
+    /// Whether the client saves the files the server names
+    /// (`org-lsp/save`): org-lsp's own code in Neovim, Vim, VS Code and
+    /// Sublime Text, not Zed's extension nor a plain client (Helix).
+    fn saves(&self) -> bool {
+        self.org_client && !self.command_actions
+    }
 }
 
 /// An outgoing request whose answer the server acts on.
@@ -10841,9 +10848,13 @@ impl Server {
     fn apply_capture(&mut self, target: &Uri, version: Option<i32>, now: &str, done: &str) {
         // A file the editor does not have open, not there or empty, is
         // written: some of Vim's clients leave an empty file's line
-        // after the text an edit puts in it, or lose the text.
+        // after the text an edit puts in it, or lose the text. So is any
+        // file it does not have open, with `auto_save`, for an editor that
+        // does not save what it is told to (Zed, Helix): it would stay
+        // changed in a buffer the user does not see.
+        let unsaved = self.auto_save && !self.client.saves();
         let missing = uri::to_path(target).filter(|path| {
-            self.document(target).is_none() && (!path.exists() || (now.is_empty() && is_empty_file(path)))
+            self.document(target).is_none() && (unsaved || !path.exists() || (now.is_empty() && is_empty_file(path)))
         });
         if let Some(path) = missing {
             if let Some(directory) = path.parent() {
