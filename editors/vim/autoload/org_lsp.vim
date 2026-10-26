@@ -832,15 +832,19 @@ function! org_lsp#org_command(range, first, last, ...) abort
 endfunction
 
 " The next word of `:Org`'s command after those typed: `:Org agenda <Tab>`
-" offers `list`, `todos`, `dispatch`, ….
+" offers `list`, `todos`, `dispatch`, …, and `:Org agenda.<Tab>` the same
+" after the dot.
 function! org_lsp#complete(lead, line, pos) abort
   let typed = split(a:line[: a:pos - 1 - len(a:lead)])[1:]
-  let prefix = join(['org'] + typed, '.') . '.'
+  " The words of `lead` up to its last dot, kept as they are.
+  let done = matchstr(a:lead, '^.*\.')
+  let partial = a:lead[len(done):]
+  let prefix = join(['org'] + typed, '.') . '.' . done
   let words = []
   for command in get(org_lsp#manifest(), 'commands', [])
     if stridx(command.command, prefix) == 0
-      let word = matchstr(command.command[len(prefix):], '^[^.]\+')
-      if !empty(word) && stridx(word, a:lead) == 0 && index(words, word) < 0
+      let word = done . matchstr(command.command[len(prefix):], '^[^.]\+')
+      if word !=# done && stridx(word, a:lead) == 0 && index(words, word) < 0
         call add(words, word)
       endif
     endif

@@ -681,6 +681,8 @@ eq(plugin.prompt_text('Tags :work:'), 'Tags :work: ', 'a title ending in a colon
 eq(vim.fn.getcompletion('Org agenda li', 'cmdline'), { 'list' }, 'the next word')
 check(vim.tbl_contains(vim.fn.getcompletion('Org agenda ', 'cmdline'), 'dispatch'), 'the words of the agenda')
 eq(vim.fn.getcompletion('Org schedule ', 'cmdline'), { 'delay', 'remove' }, 'the words after schedule')
+eq(vim.fn.getcompletion('Org indent.m', 'cmdline'), { 'indent.mode' }, 'a name with dots')
+eq(vim.fn.getcompletion('Org schedule.', 'cmdline'), { 'schedule.delay', 'schedule.remove' }, 'the words after a dot')
 
 -- 14b. `<Leader>ot` sets tags a key at a time, each turning its tag on or
 -- off, until RET; the tags go to their column.

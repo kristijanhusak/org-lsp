@@ -1404,7 +1404,8 @@ local function user_command(words, range)
 end
 
 --- The next word of `:Org`'s command after those typed: `:Org agenda <Tab>`
---- offers `list`, `todos`, `dispatch`, ….
+--- offers `list`, `todos`, `dispatch`, …, and `:Org agenda.<Tab>` the same
+--- after the dot.
 ---@param lead string what has been typed of the word
 ---@param line string the command line
 ---@param pos integer where the cursor is in it
@@ -1412,14 +1413,17 @@ end
 local function complete_user_command(lead, line, pos)
   local typed = line:sub(1, pos - #lead):gsub('^%s*%S+', '', 1)
   local before = vim.split(vim.trim(typed), '%s+', { trimempty = true })
-  local prefix = table.concat(vim.list_extend({ 'org' }, before), '.') .. '.'
+  -- The words of `lead` up to its last dot, kept as they are.
+  local done = lead:match('^.*%.') or ''
+  local partial = lead:sub(#done + 1)
+  local prefix = table.concat(vim.list_extend({ 'org' }, before), '.') .. '.' .. done
   local words, seen = {}, {}
   for _, command in ipairs(M.manifest and M.manifest.commands or {}) do
     if vim.startswith(command.command, prefix) then
       local word = command.command:sub(#prefix + 1):match('^[^.]+')
-      if word and vim.startswith(word, lead) and not seen[word] then
+      if word and vim.startswith(word, partial) and not seen[word] then
         seen[word] = true
-        table.insert(words, word)
+        table.insert(words, done .. word)
       end
     end
   end
