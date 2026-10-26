@@ -1149,6 +1149,8 @@ function! s:org_range() abort
   let words = org_lsp#complete('', 'Org agenda ', 11)
   call assert_true(index(words, 'list') >= 0 && index(words, 'dispatch') >= 0, string(words))
   call assert_equal(['list'], org_lsp#complete('li', 'Org agenda li', 13))
+  call assert_equal(['indent.mode'], org_lsp#complete('indent.m', 'Org indent.m', 12))
+  call assert_equal(['schedule.delay', 'schedule.remove'], org_lsp#complete('schedule.', 'Org schedule.', 13))
   silent! write
   execute 'buffer' s:work_buf
 endfunction
