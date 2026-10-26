@@ -3937,6 +3937,18 @@ pub const SETTINGS: &[Setting] = &[
     Setting {
         integration: true,
         ..setting(
+            "display",
+            "boolean",
+            "false",
+            "",
+            "Whether the client shows what stands in for hidden text, which the server sends (`org-lsp/display`: \
+             entities, sub- and superscripts, the bullets of `org_bullets_mode`, shrunk table fields), as a client \
+             announcing `experimental.orgDisplay` does: for the Vim plugin. Without it, they are inlay hints.",
+        )
+    },
+    Setting {
+        integration: true,
+        ..setting(
             "hidden_lines",
             "boolean",
             "false",
@@ -4711,6 +4723,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("code_blocks", BOOLEAN),
     ("run_command", BOOLEAN),
     ("hidden_lines", BOOLEAN),
+    ("display", BOOLEAN),
     ("images", BOOLEAN),
     ("view_changed", BOOLEAN),
     ("date_prompt", BOOLEAN),

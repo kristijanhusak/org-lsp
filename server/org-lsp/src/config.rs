@@ -636,6 +636,9 @@ pub struct Options {
     /// (`hiddenLines`), as one announcing `experimental.orgHiddenLines`
     /// does.
     pub hidden_lines: Option<bool>,
+    /// The client shows what stands in for hidden text (`org-lsp/display`),
+    /// as one announcing `experimental.orgDisplay` does.
+    pub display: Option<bool>,
     /// The client shows images in place of text (`org.link.preview`,
     /// `org.latex.preview`), as one announcing `experimental.orgImages` does.
     pub images: Option<bool>,

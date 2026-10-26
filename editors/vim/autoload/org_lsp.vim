@@ -23,6 +23,7 @@ let s:defaults = {
       \ 'highlight': 1,
       \ 'src_highlight': 1,
       \ 'virtual_indent': 1,
+      \ 'conceal': 1,
       \ 'indent': 1,
       \ 'win_split_mode': 'split',
       \ 'win_split_size': 0,
@@ -108,7 +109,7 @@ endfunction
 " as a notification, and that a command does not apply as a result.
 function! org_lsp#init_options() abort
   let coc = org_lsp#adapter() ==# 'coc'
-  return extend(deepcopy(org_lsp#config().settings), {
+  let integration = {
         \ 'org_client': v:true,
         \ 'show_document': v:true,
         \ 'show_document_notification': coc ? v:true : v:false,
@@ -118,12 +119,18 @@ function! org_lsp#init_options() abort
         \ 'date_prompt': org_lsp#config().calendar ? v:true : v:false,
         \ 'virtual_documents': v:false,
         \ 'virtual_indent': org_lsp#config().virtual_indent && s:has_virtual_text() ? v:true : v:false,
+        \ 'display': s:has_virtual_text() ? v:true : v:false,
         \ 'line_highlights': v:true,
         \ 'code_blocks': org_lsp#config().src_highlight ? v:true : v:false,
         \ 'run_command': v:true,
         \ 'message_requests': v:false,
         \ 'message_notifications': v:true,
-        \ })
+        \ }
+  " Those that are off by default are left out when off: a server older
+  " than the plugin does not know the newer ones.
+  let off = ['show_document_notification', 'refusal_results', 'date_prompt', 'virtual_indent', 'display', 'code_blocks']
+  call filter(integration, {key, value -> value isnot v:false || index(off, key) < 0})
+  return extend(deepcopy(org_lsp#config().settings), integration)
 endfunction
 
 " Whether text properties can be text of their own: Vim 9.0.0067 on.
@@ -2146,6 +2153,8 @@ function! org_lsp#handle_notification(method, params) abort
     call s:timer_update(a:params)
   elseif a:method ==# 'org-lsp/virtualIndent'
     call s:virtual_indent(a:params)
+  elseif a:method ==# 'org-lsp/display'
+    call s:display(a:params)
   elseif a:method ==# 'org-lsp/lineHighlights'
     call s:line_highlights(a:params)
   elseif a:method ==# 'org-lsp/codeBlocks'
@@ -2236,6 +2245,7 @@ function! s:virtual_indent(params) abort
   call prop_remove({'type': 'org_lsp_indent', 'bufnr': nr, 'all': 1})
   call prop_remove({'type': 'org_lsp_star', 'bufnr': nr, 'all': 1})
   let last = getbufinfo(nr)[0].linecount
+  let hidden_stars = {}
   for [line, prefix, wrap, stars] in a:params.lines
     " For older text than the buffer has: newer prefixes are on their way.
     if line >= last
@@ -2246,8 +2256,13 @@ function! s:virtual_indent(params) abort
     endif
     if stars > 0
       call prop_add(line + 1, 1, {'type': 'org_lsp_star', 'bufnr': nr, 'length': stars})
+      let hidden_stars[line + 1] = [[1, stars, repeat(' ', stars), '']]
     endif
   endfor
+  " Concealed and blanks in their place, where Vim conceals: the color of
+  " the background is no color when the colorscheme gives none.
+  call setbufvar(nr, 'org_lsp_stars', hidden_stars)
+  call s:conceal(nr)
   if !empty(a:params.lines)
     for win in win_findbuf(nr)
       call setwinvar(win, '&breakindent', 1)
@@ -2256,6 +2271,174 @@ function! s:virtual_indent(params) abort
     call setbufvar(nr, '&formatlistpat', '^\*\+ \|^\s*\%([-+]\|\s\*\|\d\+[.)]\)\s')
   endif
 endfunction
+
+" ----- concealing
+
+" What Org hides shows hidden: link brackets and targets and emphasis
+" markers, which the tokens mark `hidden`, and the text that something
+" else stands in for (`org-lsp/display`): an entity, shown as its
+" character, a sub- or superscript in Unicode, the stars of org-bullets'
+" bullet, a shrunk table field. Vim conceals text in a window with matches
+" (`matchaddpos()` with `conceal`), whatever text properties it has; what
+" stands in shows as text of its own before the hidden text, in the look
+" of what it stands for, as Vim colors a concealed character only as
+" `Conceal`. On the cursor's line the text shows as it is, to edit it, as
+" in Neovim: Vim shows concealed text there ('concealcursor' empty), and
+" the text standing in goes.
+
+function! s:conceal_on() abort
+  return org_lsp#config().conceal && s:has_virtual_text()
+endfunction
+
+" What stands in for hidden text in a file: `items` of `[line, character,
+" end line, end character, shown, look?]`. Kept with the buffer by line,
+" `[column, length, shown, look]` in bytes from 1.
+function! s:display(params) abort
+  let nr = bufnr(org_lsp#uri_to_path(a:params.uri))
+  if nr < 0 || !bufloaded(nr)
+    return
+  endif
+  let lines = getbufline(nr, 1, '$')
+  let shown = {}
+  for item in get(a:params, 'items', [])
+    let [line, character, end_line, end_character, text] = item[0 : 4]
+    " Within one line, as all of them are, and of the text the buffer has:
+    " newer items are on their way.
+    if line != end_line || line >= len(lines)
+      continue
+    endif
+    let start = s:byte(lines[line], character)
+    let end = s:byte(lines[line], end_character)
+    if end <= start
+      continue
+    endif
+    call add(get(extend(shown, {line + 1: []}, 'keep'), line + 1), [start + 1, end - start, text, get(item, 5, '')])
+  endfor
+  call setbufvar(nr, 'org_lsp_shown', shown)
+  call s:conceal(nr)
+endfunction
+
+" The text property type of text standing in, in the look of the token
+" `look` (`stars.level1`, `bullet`), or its type's, or the text's own.
+function! s:shown_type(look) abort
+  let type = 'org_lsp_shown_' . substitute(a:look, '\W', '_', 'g')
+  if empty(prop_type_get(type))
+    let group = ''
+    for candidate in [a:look, matchstr(a:look, '^[^.]*')]
+      if !empty(candidate) && hlexists(s:group_name(candidate))
+        let group = s:group_name(candidate)
+        break
+      endif
+    endfor
+    call prop_type_add(type, empty(group) ? {} : {'highlight': group})
+    call add(s:shown_types, type)
+  endif
+  return type
+endfunction
+
+let s:shown_types = []
+
+" The stand-ins of buffer `nr` by line: those the server sent, and blanks
+" for the hidden leading stars of headlines.
+function! s:stand_ins(nr) abort
+  let all = deepcopy(getbufvar(a:nr, 'org_lsp_shown', {}))
+  for [line, items] in items(getbufvar(a:nr, 'org_lsp_stars', {}))
+    let all[line] = items + get(all, line, [])
+  endfor
+  return all
+endfunction
+
+" Hide what the buffer `nr` hides in each window that shows it, and show
+" what stands in for it but on the cursor's line.
+function! s:conceal(nr) abort
+  if !s:conceal_on()
+    return
+  endif
+  for win in win_findbuf(a:nr)
+    call s:conceal_window(win, a:nr)
+  endfor
+  call s:show_stand_ins(a:nr, bufnr() == a:nr ? line('.') : 0)
+endfunction
+
+function! s:conceal_window(win, nr) abort
+  for id in getwinvar(a:win, 'org_lsp_conceal', [])
+    silent! call matchdelete(id, a:win)
+  endfor
+  let positions = copy(getbufvar(a:nr, 'org_lsp_hidden', []))
+  for [line, items] in items(s:stand_ins(a:nr))
+    for [column, length; _] in items
+      call add(positions, [str2nr(line), column, length])
+    endfor
+  endfor
+  let ids = []
+  if !empty(positions)
+    call add(ids, matchaddpos('Conceal', positions, 10, -1, {'window': a:win, 'conceal': ''}))
+    if getwinvar(a:win, '&conceallevel') == 0
+      call setwinvar(a:win, '&conceallevel', 2)
+    endif
+  endif
+  call setwinvar(a:win, 'org_lsp_conceal', ids)
+  call setwinvar(a:win, 'org_lsp_conceal_buffer', a:nr)
+endfunction
+
+" The text standing in for hidden text on every line but `cursor`.
+function! s:show_stand_ins(nr, cursor) abort
+  if !empty(s:shown_types)
+    call prop_remove({'types': s:shown_types, 'bufnr': a:nr, 'all': 1})
+  endif
+  let last = getbufinfo(a:nr)[0].linecount
+  for [line, items] in items(s:stand_ins(a:nr))
+    if str2nr(line) != a:cursor && str2nr(line) <= last
+      call s:show_line(a:nr, str2nr(line), items)
+    endif
+  endfor
+  call setbufvar(a:nr, 'org_lsp_shown_cursor', a:cursor)
+endfunction
+
+function! s:show_line(nr, line, items) abort
+  for [column, length, text, look] in a:items
+    silent! call prop_add(a:line, column, {'type': s:shown_type(look), 'bufnr': a:nr, 'text': text})
+  endfor
+endfunction
+
+" The cursor moved to another line: the text standing in shows again on
+" the line it left, and goes from the one it is on.
+function! s:conceal_cursor() abort
+  let nr = bufnr()
+  let shown = s:stand_ins(nr)
+  let before = get(b:, 'org_lsp_shown_cursor', 0)
+  if empty(shown) || before == line('.')
+    return
+  endif
+  if has_key(shown, before)
+    call s:show_line(nr, before, shown[before])
+  endif
+  if has_key(shown, line('.')) && !empty(s:shown_types)
+    call prop_remove({'types': s:shown_types, 'bufnr': nr, 'all': 1}, line('.'))
+  endif
+  let b:org_lsp_shown_cursor = line('.')
+endfunction
+
+" A window that showed an Org buffer and shows another now: its matches
+" were the other buffer's.
+function! s:conceal_enter() abort
+  let shown = get(w:, 'org_lsp_conceal_buffer', -1)
+  if shown >= 0 && shown != bufnr()
+    for id in get(w:, 'org_lsp_conceal', [])
+      silent! call matchdelete(id)
+    endfor
+    let w:org_lsp_conceal = []
+    let w:org_lsp_conceal_buffer = -1
+  endif
+  if exists('b:org_lsp_attached') && (!empty(get(b:, 'org_lsp_hidden', [])) || !empty(s:stand_ins(bufnr())))
+    call s:conceal(bufnr())
+  endif
+endfunction
+
+augroup org_lsp_conceal
+  autocmd!
+  autocmd BufWinEnter,WinEnter * call s:conceal_enter()
+augroup END
 
 " ----- the clock
 
@@ -2374,7 +2557,9 @@ function! s:got_folds(nr, error, result) abort
   let starts = {}
   let ranges = []
   for range in sort(copy(a:result), {a, b -> a.startLine - b.startLine})
-    if range.endLine <= range.startLine
+    " Folds of older text, which had more lines: newer ones are on their
+    " way.
+    if range.endLine <= range.startLine || range.startLine >= lines_count
       continue
     endif
     call add(ranges, [range.startLine + 1, range.endLine + 1])
@@ -2886,6 +3071,8 @@ function! s:paint_absolute(nr, lines, tokens) abort
   " Not past the buffer's lines, which it may have fewer of by now (the
   " agenda read again).
   let line_count = len(getbufline(a:nr, 1, '$'))
+  let hidden_bit = index(modifiers, 'hidden')
+  let hidden = []
   for [line, character, length, type_index, modifier_bits] in a:tokens
     if line >= line_count
       continue
@@ -2896,6 +3083,9 @@ function! s:paint_absolute(nr, lines, tokens) abort
     let end = s:byte(text, character + length)
     if end <= start
       continue
+    endif
+    if hidden_bit >= 0 && and(modifier_bits, 1 << hidden_bit)
+      call add(hidden, [line + 1, start + 1, end - start])
     endif
     let selectors = [type]
     let names = []
@@ -2945,6 +3135,10 @@ function! s:paint_absolute(nr, lines, tokens) abort
   for [selector, positions] in items(props)
     call prop_add_list({'bufnr': a:nr, 'type': s:selectors[selector]}, positions)
   endfor
+  if hidden != getbufvar(a:nr, 'org_lsp_hidden', [])
+    call setbufvar(a:nr, 'org_lsp_hidden', hidden)
+    call s:conceal(a:nr)
+  endif
 endfunction
 
 " ----- attaching
@@ -2952,12 +3146,13 @@ endfunction
 let s:pending = {}
 
 " After a change, highlighting and folds are fetched again, once typing
-" pauses.
+" pauses; at once after a change made outside Insert mode (a command's
+" edit).
 function! s:changed(nr) abort
   if has_key(s:pending, a:nr)
     call timer_stop(s:pending[a:nr])
   endif
-  let s:pending[a:nr] = timer_start(200, {-> s:refresh(a:nr)})
+  let s:pending[a:nr] = timer_start(mode() =~# '^[iR]' ? 200 : 20, {-> s:refresh(a:nr)})
 endfunction
 
 function! s:refresh(nr) abort
@@ -3017,14 +3212,23 @@ function! org_lsp#attach() abort
     execute 'autocmd! * <buffer=' . nr . '>'
     execute 'autocmd TextChanged,InsertLeave,BufReadPost <buffer=' . nr . '> call s:changed(' . nr . ')'
     execute 'autocmd BufWinEnter <buffer=' . nr . '> call s:changed(' . nr . ')'
+    execute 'autocmd CursorMoved,CursorMovedI <buffer=' . nr . '> call s:conceal_cursor()'
     if s:is_view_type(&filetype)
       let b:org_lsp_given = getline(1, '$')
       execute 'autocmd FileChangedShellPost,BufReadPost <buffer=' . nr . '> call s:give_view(' . nr . ')'
     endif
   augroup END
+  " Every change, also those an LSP client makes for the server (the TODO
+  " keyword a command changed), which Vim's `TextChanged` sees only after
+  " the next key or 'updatetime'.
+  call listener_add(function('s:listened'), nr)
   " The client may still be starting the server: ask again until it
   " answers.
   call s:first_refresh(nr, 0)
+endfunction
+
+function! s:listened(nr, start, end, added, changes) abort
+  call s:changed(a:nr)
 endfunction
 
 " The editor's names of languages (the server's, `org-lsp/codeBlocks`)

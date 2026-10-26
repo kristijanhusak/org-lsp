@@ -116,7 +116,7 @@ struct Client {
     /// Shows what stands in for hidden text (entities, sub- and
     /// superscripts, shrunk fields), which the server sends
     /// (`org-lsp/display`), rather than as inlay hints; it says so with
-    /// `experimental.orgDisplay`.
+    /// `experimental.orgDisplay`, or the option `display`.
     display: bool,
     /// Highlights lines of the agenda from edge to edge as the server
     /// says (`org-lsp/lineHighlights`): `experimental.orgLineHighlights`,
@@ -1591,7 +1591,8 @@ pub fn run(connection: Connection) -> Result<()> {
         virtual_indent: raw_params.pointer("/capabilities/experimental/orgVirtualIndent").and_then(Value::as_bool)
             == Some(true)
             || options.virtual_indent == Some(true),
-        display: raw_params.pointer("/capabilities/experimental/orgDisplay").and_then(Value::as_bool) == Some(true),
+        display: raw_params.pointer("/capabilities/experimental/orgDisplay").and_then(Value::as_bool) == Some(true)
+            || options.display == Some(true),
         images: raw_params.pointer("/capabilities/experimental/orgImages").and_then(Value::as_bool) == Some(true)
             || options.images == Some(true),
         view_changed: options.view_changed == Some(true),
