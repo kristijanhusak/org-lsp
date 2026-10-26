@@ -636,6 +636,9 @@ pub struct Options {
     /// (`hiddenLines`), as one announcing `experimental.orgHiddenLines`
     /// does.
     pub hidden_lines: Option<bool>,
+    /// The client shows what stands in for hidden text (`org-lsp/display`),
+    /// as one announcing `experimental.orgDisplay` does.
+    pub display: Option<bool>,
     /// The client shows images in place of text (`org.link.preview`,
     /// `org.latex.preview`), as one announcing `experimental.orgImages` does.
     pub images: Option<bool>,
@@ -2552,6 +2555,7 @@ impl Options {
             indent_hides_stars: self.indent_mode_turns_on_hiding_stars.unwrap_or(true),
             indent_turns_off_adapt: self.indent_mode_turns_off_org_adapt_indentation.unwrap_or(true),
             per_level: self.indent_indentation_per_level.unwrap_or(2),
+            mode: None,
         }
     }
 

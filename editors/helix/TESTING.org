@@ -319,6 +319,7 @@ Not in Helix:
 *Partly:* Virtual indentation shows as inlay hints, the leading stars still showing; new lines are not indented as they are typed. With soft wrap on (~soft-wrap.enable~), the lines a long line wraps into line up with the prefix and its own indentation, not with a headline's title or an item's text: Helix wraps under a line's leading blanks, inlay hints among them. Numbering the headlines by command (~org-num-mode~) is left out: it is not among Helix's code actions; ~#+STARTUP: num~ numbers them.
 
 - [ ] A file with ~#+STARTUP: indent~ shows its text indented by level, the file unchanged
+- [ ] In a file without ~#+STARTUP: indent~, the command shows the text indented by level and says ~Org-Indent mode enabled in current buffer~; run again, it shows the file as it was: the code action /Indent the text by the level of its headline, or stop indenting it/
 - [ ] In a file with ~#+STARTUP: indent~, with soft wrap on, a long line of text goes on under its text
 - [ ] Re-indenting a selection indents it as Org does: ~=~
 - [ ] Formatting the file aligns tables and puts tags in their column

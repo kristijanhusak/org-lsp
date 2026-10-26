@@ -397,6 +397,7 @@ line.
 | ~org.agenda.todos~ | Org: List of all TODO entries |
 | ~org.agenda.appt~ | Org: Add today's appointments from the agenda files |
 | ~org.num.mode~ | Org: Number the headlines, or stop numbering them |
+| ~org.indent.mode~ | Org: Indent the text by the level of its headline, or stop indenting it |
 | ~org.custom.properties.toggle~ | Org: Hide the properties of org_custom_properties, or show them again |
 | ~org.todo.yesterday~ | Org: Change the TODO state as if it were yesterday |
 | ~org.todo.next~ | Org: Cycle TODO state forward |

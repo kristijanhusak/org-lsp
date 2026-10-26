@@ -823,7 +823,7 @@ const ACTIONS_IN_FILES = new Set([
   'org.babel.tangle', 'org.table.toggle.column.width', 'org.babel.execute', 'org.edit.special', 'org.archive.subtree',
   'org.archive.sibling', 'org.archive.tag', 'org.todo', 'org.priority', 'org.refile', 'org.schedule', 'org.deadline',
   'org.tags.set', 'org.property.set', 'org.effort.set', 'org.sort', 'org.clock.goto', 'org.clock.in.last',
-  'org.clock.report', 'org.dblock.update', 'org.agenda.list', 'org.agenda.todos', 'org.agenda.dispatch', 'org.capture',
+  'org.clock.report', 'org.indent.mode', 'org.dblock.update', 'org.agenda.list', 'org.agenda.todos', 'org.agenda.dispatch', 'org.capture',
   'org.meta.return', 'org.insert.todo.heading', 'org.insert.heading.after', 'org.insert.todo.heading.after',
   'org.cut.subtree', 'org.copy.subtree', 'org.paste.subtree',
 ]);

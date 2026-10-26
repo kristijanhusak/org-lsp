@@ -77,7 +77,7 @@ Org's options, one by one, are under [[#options][Options]].
 
 Where editors fall short:
 
-- Vim ❓: Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Vim cannot hide text that has text properties. A headline's line colored to the edge (~org_fontify_whole_heading_line~) is a sign without text, which shows the sign column.
+- Vim ❓: A headline's line colored to the edge (~org_fontify_whole_heading_line~) is a sign without text, which shows the sign column. A line with a long link wraps as if the link's hidden target took room: Vim counts concealed text when it wraps.
 - Sublime Text ❓: Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Sublime Text cannot hide text in a view. The colors need LSP's ~semantic_highlighting~ on. A headline's look does not go on to the edge of the window (~org_fontify_whole_heading_line~): Sublime Text colors a line past its text only with a region filled in one color of the color scheme, as the agenda's clocked line, not in the look semantic tokens give the headline.
 - Zed ❓: Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Zed lets no server hide text. The colors need ~"semantic_tokens": "combined"~; code blocks take their language's colors, inline code does not. A headline's look does not go on to the edge of the window (~org_fontify_whole_heading_line~): Zed lets no server color a line past its text.
 - Helix ❓: Helix has no semantic tokens: Org and the agenda are colored by tree-sitter queries of org-lsp's that ~install.sh~ puts in Helix's runtime, which see the words of the text, not what the server knows. TODO keywords are the usual ones (~TODO~, ~NEXT~, ~WAIT~, ~DONE~, ~CANCELLED~ …), not those of the settings or ~#+TODO:~; the agenda shows neither today nor the clocked line, and its leaders and prefix are the default ones; options of how things look are not followed. Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Helix lets no server hide text; inline code is not in its language's colors.
@@ -260,7 +260,7 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Vim ❓: Column view's header is in the window's status line, shown when the window has one (~laststatus~). Custom properties are not hidden (~org.custom.properties.toggle~): Vim cannot hide a line, a closed fold still shows a line of its own, and text with text properties is not concealed.
+- Vim ❓: Column view's header is in the window's status line, shown when the window has one (~laststatus~). Custom properties are not hidden (~org.custom.properties.toggle~): Vim cannot hide a line, a closed fold still shows a line of its own, and concealing a line's text leaves the line, empty.
 - VS Code ❓: Column view's header is in the status bar, with the column picked in brackets. Custom properties are not hidden (~org.custom.properties.toggle~): VS Code hides lines only in a fold of the folding ranges, which keeps its first line showing, and a decoration cannot hide a line.
 - Sublime Text ❓: Column view is left out: it draws over the headlines, which Sublime Text cannot. A custom property hidden (~org.custom.properties.toggle~) is in a fold from the end of the line before, which shows the fold's marker: Sublime Text hides text only in folds.
 - Zed ❓: A property, its value and the effort are typed, without completion: the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. Column view is left out: it draws over the headlines. Custom properties are not hidden (~org.custom.properties.toggle~): Zed lets no server hide text. Deleting a property has no key in keymap.json and is not among the code actions; cycling a property's allowed values needs Shift with the arrows, which stay Zed's.
@@ -582,7 +582,6 @@ Where editors fall short:
 
 Where editors fall short:
 
-- Vim ❓: A shrunk column shows its whole text and ~…~: Vim cannot hide text that has text properties.
 - Sublime Text ❓: A shrunk column shows its whole text and ~…~: Sublime Text cannot hide text in a view.
 - Zed ❓: Moving between fields with ~TAB~ and copying down (~S-RET~) are left out: those keys stay Zed's own. For a new table's size, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. A shrunk column shows its whole text and ~…~: Zed lets no server hide text.
 - Helix ❓: Moving between fields with ~TAB~, copying down, summing, field information creating a table and a rule with a move below it are left out: Helix cannot bind a key to a server's command (the commands are code actions, ~Space a~), and those are not among them. The other edits are code actions in a table. A shrunk column shows its whole text and ~…~: Helix lets no server hide text; the ~…~ of /Shrink or expand the table column/ shows once the text changes, when Helix asks for inlay hints again (it cannot be told to sooner).
@@ -700,7 +699,7 @@ Where editors fall short:
 
 100% (8 of 8)
 
-- ✅ Virtual indentation (~org-indent-mode~, ~#+STARTUP: indent~)
+- ✅ Virtual indentation (~org-indent-mode~, ~#+STARTUP: indent~), turned on and off in a file by command (~M-x org-indent-mode~, ~org.indent.mode~)
 - ✅ Hidden leading stars (~org-hide-leading-stars~)
 - ✅ Hard indentation (~org-adapt-indentation~)
 - ✅ Indenting lines and regions (~org-indent-line~, ~org-indent-region~)

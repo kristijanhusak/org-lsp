@@ -2149,8 +2149,8 @@ pub const SETTINGS: &[Setting] = &[
         "false",
         "org-startup-indented",
         "Show files indented by level without changing them (`org-indent-mode`): the text under a headline lines up \
-         with its title, and leading stars are hidden. `#+STARTUP: indent` and `noindent` decide for a file. It \
-         turns `org_adapt_indentation` off in such files, unless that is `\"headline-data\"`. The lines a long line \
+         with its title, and leading stars are hidden. `#+STARTUP: indent` and `noindent` decide for a file, and \
+         `org.indent.mode` turns it on and off. It turns `org_adapt_indentation` off in such files, unless that is `\"headline-data\"`. The lines a long line \
          wraps into go on under its text, a headline's title or an item's text (`wrap-prefix`) in Neovim and Vim, \
          without the prefix; under the prefix in Zed and Helix.",
     ),
@@ -3937,6 +3937,18 @@ pub const SETTINGS: &[Setting] = &[
     Setting {
         integration: true,
         ..setting(
+            "display",
+            "boolean",
+            "false",
+            "",
+            "Whether the client shows what stands in for hidden text, which the server sends (`org-lsp/display`: \
+             entities, sub- and superscripts, the bullets of `org_bullets_mode`, shrunk table fields), as a client \
+             announcing `experimental.orgDisplay` does: for the Vim plugin. Without it, they are inlay hints.",
+        )
+    },
+    Setting {
+        integration: true,
+        ..setting(
             "hidden_lines",
             "boolean",
             "false",
@@ -4711,6 +4723,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("code_blocks", BOOLEAN),
     ("run_command", BOOLEAN),
     ("hidden_lines", BOOLEAN),
+    ("display", BOOLEAN),
     ("images", BOOLEAN),
     ("view_changed", BOOLEAN),
     ("date_prompt", BOOLEAN),

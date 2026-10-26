@@ -924,10 +924,55 @@ function! s:virtual_indent() abort
   let row = screenpos(win_getid(), 4, 1).row
   let left = win_screenpos(0)[1] + off
   let Shown = {r -> join(map(range(left, left + 23), {_, c -> screenstring(r, c)}), '')}
-  call assert_equal([' ** B and a title that  ', '   wraps                '], [Shown(row), Shown(row + 1)])
+  call assert_equal(['  * B and a title that  ', '   wraps                '], [Shown(row), Shown(row + 1)])
   close
 endfunction
 call s:test('org-indent-mode shows the file indented, unchanged', function('s:virtual_indent'))
+
+" The first 14 columns of `line` as the screen shows them, redrawn.
+function! s:shown(line) abort
+  doautocmd <nomodeline> CursorMoved
+  redraw
+  let row = screenpos(win_getid(), a:line, 1).row
+  return join(map(range(1, 14), {_, c -> screenstring(row, c)}), '')
+endfunction
+
+" What Org hides is concealed: a link's brackets and target, and an
+" entity shows as its character (`org-lsp/display`). The cursor's line
+" shows as it is.
+function! s:conceals() abort
+  let file = s:work . '/notes/concealed.org'
+  call writefile(['#+STARTUP: entitiespretty', 'See [[https://orgmode.org][Org]] and \alpha.', 'last'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  call cursor(3, 1)
+  call s:until('the link and the entity concealed', {-> s:shown(2) ==# 'See Org and α.'})
+  call cursor(2, 1)
+  call assert_equal('See [[https://', s:shown(2))
+  call cursor(3, 1)
+  call assert_equal('See Org and α.', s:shown(2))
+  bwipeout!
+  execute 'buffer' s:work_buf
+endfunction
+call s:test('conceals what Org hides, but on the cursor line', function('s:conceals'))
+
+" A command's edit (the TODO keyword cycled) is highlighted as soon as
+" the server has it, not when Vim next sees the change ('updatetime').
+function! s:highlights_edits() abort
+  let file = s:work . '/notes/cycled.org'
+  call writefile(['* TODO Cycle me'], file)
+  execute 'edit' fnameescape(file)
+  call s:until('the server', {-> org_lsp#ready(bufnr())})
+  call s:until('highlighting', {-> index(s:types(1), 'org_lsp_todoKeyword') >= 0})
+  call cursor(1, 3)
+  let start = reltime()
+  call org_lsp#run('org.todo.next')
+  call s:until('DONE highlighted', {-> getline(1) =~# 'DONE' && index(s:types(1), 'org_lsp_todoKeyword.done') >= 0}, 2000)
+  call assert_true(reltimefloat(reltime(start)) < 2.0)
+  bwipeout!
+  execute 'buffer' s:work_buf
+endfunction
+call s:test('highlights the edit of a command at once', function('s:highlights_edits'))
 
 " Indentation by the server: a line opened below a list item starts at
 " the item's text, as Org's RET has it, and `==` re-indents a line as

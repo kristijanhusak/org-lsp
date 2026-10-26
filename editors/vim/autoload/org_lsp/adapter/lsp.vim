@@ -17,6 +17,7 @@ function! org_lsp#adapter#lsp#register(cmd, options, filetypes) abort
         \   'org-lsp/clock': function('s:notification'),
         \   'org-lsp/timer': function('s:notification'),
         \   'org-lsp/virtualIndent': function('s:notification'),
+        \   'org-lsp/display': function('s:notification'),
         \   'org-lsp/lineHighlights': function('s:notification'),
         \   'org-lsp/codeBlocks': function('s:notification'),
         \   'org-lsp/viewChanged': function('s:notification'),

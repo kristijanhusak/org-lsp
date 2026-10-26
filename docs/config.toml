@@ -1613,11 +1613,12 @@ org_startup_with_latex_preview = false
 
 # Show files indented by level without changing them (`org-indent-mode`): the
 # text under a headline lines up with its title, and leading stars are hidden.
-# `#+STARTUP: indent` and `noindent` decide for a file. It turns
-# `org_adapt_indentation` off in such files, unless that is `"headline-data"`.
-# The lines a long line wraps into go on under its text, a headline's title or
-# an item's text (`wrap-prefix`) in Neovim and Vim, without the prefix; under
-# the prefix in Zed and Helix. (org-startup-indented)
+# `#+STARTUP: indent` and `noindent` decide for a file, and `org.indent.mode`
+# turns it on and off. It turns `org_adapt_indentation` off in such files,
+# unless that is `"headline-data"`. The lines a long line wraps into go on
+# under its text, a headline's title or an item's text (`wrap-prefix`) in
+# Neovim and Vim, without the prefix; under the prefix in Zed and Helix.
+# (org-startup-indented)
 org_startup_indented = false
 
 # Number the headlines of files (`org-num-mode`): `1`, `1.1`, `1.2`… after the

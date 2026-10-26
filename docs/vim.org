@@ -115,8 +115,10 @@ command. [[file:keys/vim.org][keys/vim.org]] lists every key and how to change i
   when it says they changed.
 - Column view covers each headline with a popup, and puts its header in
   the window's status line rather than above the text.
-- Nothing is concealed: Vim cannot hide text that text properties mark, so
-  link brackets and emphasis markers show.
+- What stands in for hidden text (a bullet, an entity's character, a
+  custom time) is text of its own before the hidden text, and a line with
+  a long link wraps as if the hidden target took room: Vim counts
+  concealed text when it wraps.
 - With coc.nvim, a file an edit is for that is not loaded (the target of
   a refile or a capture) opens as ~workspace.openResourceCommand~ says, in
   a tab of its own unless that is set (~""~ loads it without showing it,
@@ -135,14 +137,14 @@ command. [[file:keys/vim.org][keys/vim.org]] lists every key and how to change i
 
 | Feature | Parity | Vim | What does not work, and why |
 |---+---+---+---|
-| [[file:parity.org::#highlighting][Highlighting]] | 100% | ❓ | Links, emphasis markers, pretty entities and sub- and superscripts are not concealed: Vim cannot hide text that has text properties. A headline's line colored to the edge (~org_fontify_whole_heading_line~) is a sign without text, which shows the sign column. |
+| [[file:parity.org::#highlighting][Highlighting]] | 100% | ❓ | A headline's line colored to the edge (~org_fontify_whole_heading_line~) is a sign without text, which shows the sign column. A line with a long link wraps as if the link's hidden target took room: Vim counts concealed text when it wraps. |
 | [[file:parity.org::#folding-and-visibility][Folding and visibility]] | 91% | ❓ | Cycling the whole file goes between overview and everything: it has no contents state, which needs folds of a headline's own text that Vim's fold levels do not make. A closed fold's line is not highlighted: Vim draws it in one color. ~<Tab>~ changes the level of a new entry in Normal mode; in Insert mode it is a tab. |
 | [[file:parity.org::#headings-and-structure][Headings and structure]] | 96% | ✅ |  |
 | [[file:parity.org::#lists-and-checkboxes][Lists and checkboxes]] | 93% | ✅ |  |
 | [[file:parity.org::#todo-keywords][TODO keywords]] | 100% | ✅ |  |
 | [[file:parity.org::#priorities][Priorities]] | 100% | ✅ |  |
 | [[file:parity.org::#tags][Tags]] | 88% | ✅ |  |
-| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 100% | ❓ | Column view's header is in the window's status line, shown when the window has one (~laststatus~). Custom properties are not hidden (~org.custom.properties.toggle~): Vim cannot hide a line, a closed fold still shows a line of its own, and text with text properties is not concealed. |
+| [[file:parity.org::#properties-and-column-view][Properties and column view]] | 100% | ❓ | Column view's header is in the window's status line, shown when the window has one (~laststatus~). Custom properties are not hidden (~org.custom.properties.toggle~): Vim cannot hide a line, a closed fold still shows a line of its own, and concealing a line's text leaves the line, empty. |
 | [[file:parity.org::#dates-and-times][Dates and times]] | 100% | ✅ |  |
 | [[file:parity.org::#agenda][Agenda]] | 97% | ✅ |  |
 | [[file:parity.org::#clocking][Clocking]] | 100% | ✅ |  |
@@ -153,7 +155,7 @@ command. [[file:keys/vim.org][keys/vim.org]] lists every key and how to change i
 | [[file:parity.org::#refile-and-archive][Refile and archive]] | 100% | ✅ |  |
 | [[file:parity.org::#links][Links]] | 96% | ✅ |  |
 | [[file:parity.org::#footnotes][Footnotes]] | 100% | ✅ |  |
-| [[file:parity.org::#tables][Tables]] | 100% | ❓ | A shrunk column shows its whole text and ~…~: Vim cannot hide text that has text properties. |
+| [[file:parity.org::#tables][Tables]] | 100% | ✅ |  |
 | [[file:parity.org::#table-formulas][Table formulas]] | 100% | ✅ |  |
 | [[file:parity.org::#code-blocks-babel][Code blocks (Babel)]] | 100% | ✅ |  |
 | [[file:parity.org::#export-and-publishing][Export and publishing]] | 100% | ✅ |  |
