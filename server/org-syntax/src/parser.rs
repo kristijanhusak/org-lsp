@@ -129,7 +129,7 @@ fn starts_with_ignore_case(text: &str, prefix: &str) -> bool {
 }
 
 /// Number of stars if the line is a headline (`*+` followed by a space).
-fn headline_level(text: &str) -> Option<usize> {
+pub(crate) fn headline_level(text: &str) -> Option<usize> {
     let stars = text.bytes().take_while(|b| *b == b'*').count();
     (stars > 0 && text.as_bytes().get(stars) == Some(&b' ')).then_some(stars)
 }
