@@ -69,6 +69,15 @@ function! s:syntax() abort
   call assert_equal(synIDattr(synIDtrans(hlID('OrgLsp_stars_level2')), 'name'), Shown(5, 1))
   call assert_notequal('', Shown(5, 1))
   call assert_equal(synIDattr(synIDtrans(hlID('OrgLsp_timestamp')), 'name'), Shown(3, 12))
+  " With what the server says of the file (`org-lsp/syntax`): its keywords
+  " and the faces of keywords and tags, over the look of their tokens.
+  call s:until('org-lsp/syntax', {-> !empty(getbufvar(s:work_buf, 'org_lsp_syntax_info', {}))})
+  call s:until('the syntax again', {-> synIDattr(synID(2, 3, 1), 'name') =~# '^orgSyntax_todoKeyword__l1__face_todo_TODO'})
+  let Look = {col, attribute -> synIDattr(synIDtrans(synID(2, col, 1)), attribute, 'gui')}
+  call assert_equal(['#ff8800', '1'], [Look(3, 'fg#'), Look(3, 'bold')])
+  call assert_equal('orgSyntax_headline_level1__after', synIDattr(synID(2, 13, 1), 'name'))
+  call assert_equal('orgSyntax_tag__face_tag_office', synIDattr(synID(2, 27, 1), 'name'))
+  call assert_equal('#0088ff', Look(27, 'fg#'))
 endfunction
 call s:test('colors with its syntax as the tokens do', function('s:syntax'))
 

@@ -2,10 +2,11 @@
 " tokens arrive and while new ones are on their way: only what the server
 " colors the same way, in the groups its tokens show, so that nothing
 " changes when they come (tests/nvim/syntax.lua compares the two). The
-" rest waits for the server: TODO keywords and the headlines they start
-" (whether one is done depends on the settings and `#+TODO:`), priorities,
-" table headers, entities, LaTeX, emphasis over several lines, what options
-" change. Neovim loads it through the syntax/org.vim of the plugin's root.
+" rest waits for the server: priorities, table headers, entities, LaTeX,
+" emphasis over several lines, what options change. The TODO keywords and
+" how headlines look are what the server tells the plugins
+" (`org-lsp/syntax`), which load the syntax again when it changes. Neovim
+" loads it through the syntax/org.vim of the plugin's root.
 "
 " A group `orgSyntax_TYPE_MODIFIER` shows the token `TYPE.MODIFIER`
 " (`orgSyntax_Any_bold` is `*.bold`), and what follows `__` in a name only
@@ -136,19 +137,141 @@ syntax match orgSyntax_comment /^\s*\zs#\%(\s.*\)\?$/
 
 " ----- headlines
 
-" The stars in the color of their level, which repeat after eight
-" (`org-cycle-level-faces`), up to an inline task's fifteen; the title
-" too, unless it starts with what may be a TODO keyword (`COMMENT`, an
-" uppercase word) or a priority, or the headline is archived. Then the
-" server colors the rest of the line.
+" What the server said of the buffer's TODO keywords and headlines
+" (`org-lsp/syntax`), kept by the plugins in `b:org_lsp_syntax_info`.
+" Before it has, the keywords of the buffer's `#+TODO:` lines, and the
+" rest as the last file was told (`g:org_lsp_syntax_info`).
+function! s:keywords_of(lines) abort
+  let [todo, done] = [[], []]
+  for line in a:lines
+    let words = split(matchstr(line, '\c^\s*#+\%(seq_\|typ_\)\=todo:\zs.*'))
+    if empty(words)
+      continue
+    endif
+    " Without `|`, the last keyword of a sequence is the done one.
+    let bar = index(words, '|')
+    let [now, later] = bar < 0 ? [words[:-2], words[-1:]] : [words[:bar - 1], words[bar + 1:]]
+    call extend(todo, map(now, {_, w -> substitute(w, '(.*', '', '')}))
+    call extend(done, map(later, {_, w -> substitute(w, '(.*', '', '')}))
+  endfor
+  return empty(todo) && empty(done) ? {} : {'todo': todo, 'done': done}
+endfunction
+
+let s:info = get(b:, 'org_lsp_syntax_info', {})
+if empty(s:info)
+  let s:info = extend(copy(get(g:, 'org_lsp_syntax_info', {})), s:keywords_of(getline(1, '$')))
+endif
+let s:todo = get(s:info, 'todo', ['TODO'])
+let s:todo = type(s:todo) == v:t_list ? filter(copy(s:todo), '!empty(v:val)') : []
+let s:done = get(s:info, 'done', ['DONE'])
+let s:done = type(s:done) == v:t_list ? filter(copy(s:done), '!empty(v:val)') : []
+let s:faces = get(s:info, 'faces', {})
+let s:faces = type(s:faces) == v:t_dict ? s:faces : {}
+let s:todo_faces = type(get(s:faces, 'todo')) == v:t_dict ? s:faces.todo : {}
+let s:tag_faces = type(get(s:faces, 'tag')) == v:t_dict ? s:faces.tag : {}
+
+" The groups of keywords and tags with a face of their own, which look as
+" the server's token with that face over it: `[selector, face]` by group.
+let s:faced = {}
+function! s:faced_group(group, selector, kind, name) abort
+  let group = a:group . '__face_' . a:kind . '_' . substitute(a:name, '\W', '_', 'g')
+  let s:faced[group] = [a:selector, a:kind ==# 'todo' ? s:todo_faces[a:name] : s:tag_faces[a:name]]
+  return group
+endfunction
+
+" A word of `words` as a pattern, as written.
+function! s:any(words) abort
+  return '\%(' . join(map(copy(a:words), {_, w -> escape(w, '\/.*$^~[]')}), '\|') . '\)'
+endfunction
+
+" Which of the level faces the stars of a headline take
+" (`org-get-level-face`): that of its level, reduced with
+" `org-odd-levels-only`, past `org-n-level-faces` the first again
+" (`org-cycle-level-faces`) or the last.
+let s:odd = get(s:info, 'oddLevels', v:false) is v:true
+let s:faces_n = max([1, min([8, get(s:info, 'levelFaces', 8)])])
+let s:cycle = get(s:info, 'cycleLevelFaces', v:true) isnot v:false
+function! s:level_face(stars) abort
+  let level = max([1, s:odd ? 1 + a:stars / 2 : a:stars])
+  return s:cycle ? (level - 1) % s:faces_n + 1 : min([level, s:faces_n])
+endfunction
+
+" The stars in the color of their level, as many patterns as it takes to
+" tell the levels apart; then a TODO keyword, a priority and the title.
+" Past a keyword done, the title is `org-headline-done`
+" (`org-fontify-done-headline`), past one not done `org-headline-todo`
+" (`org-fontify-todo-headline`), or else the color of the level. What the
+" server colors otherwise is left to it: priorities, `COMMENT`, archived
+" headlines and inline tasks.
+let s:period = s:odd ? 2 * s:faces_n : s:faces_n
+let s:stars = []
+if s:cycle
+  for s:count in range(1, s:period)
+    call add(s:stars, [printf('\%%(\*\{%d}\)*\*\{%d}', s:period, s:count), s:level_face(s:count)])
+  endfor
+else
+  let s:last = max([1, s:odd ? 2 * s:faces_n - 2 : s:faces_n])
+  for s:count in range(1, s:last - 1)
+    call add(s:stars, [printf('\*\{%d}', s:count), s:level_face(s:count)])
+  endfor
+  call add(s:stars, [printf('\*\{%d,}', s:last), s:faces_n])
+endif
+
+let s:keywords = s:any(s:todo + s:done + ['COMMENT'])
+let s:not_archived = '\%(.*:ARCHIVE:\)\@!'
+let s:after = 'nextgroup=orgSyntaxPlanning,orgSyntaxProperties skipnl'
+let s:todo_title = get(s:info, 'todoHeadline', v:false) is v:true ? 'orgSyntax_Any_todo' : ''
+let s:done_title = get(s:info, 'doneHeadline', v:true) isnot v:false ? 'orgSyntax_Any_done' : ''
+
 syntax match orgSyntaxHeadlineRest /\S.*/ contained nextgroup=orgSyntaxPlanning,orgSyntaxProperties skipnl
-for s:level in range(1, 8)
-  execute printf('syntax match orgSyntax_stars_level%d /^\%%(\*\{8}\)*\*\{%d}\ze / nextgroup=orgSyntax_headline_level%d,orgSyntaxHeadlineRest skipwhite', s:level, s:level, s:level)
-  execute printf('syntax match orgSyntax_headline_level%d /\%%(\u\{2,}\%%(\s\|$\)\|\[#\|.*:ARCHIVE:\)\@!\S.*/ contained contains=orgSyntax_tag,@orgSyntaxInline nextgroup=orgSyntaxPlanning,orgSyntaxProperties skipnl', s:level)
+for s:level in range(1, s:faces_n)
+  let s:title = 'orgSyntax_headline_level' . s:level
+  " The keywords, each with a face of its own apart.
+  let s:keyword_groups = []
+  for [s:words, s:selector, s:state] in [[s:todo, 'todoKeyword', 't'], [s:done, 'todoKeyword_done', 'd']]
+    let s:group = 'orgSyntax_' . s:selector . '__l' . s:level
+    let s:then = printf('nextgroup=orgSyntaxHeadlineRest,orgSyntaxPriority__%s%d,%s skipwhite', s:state, s:level,
+          \ s:state ==# 'd' && !empty(s:done_title) ? s:done_title : s:state ==# 't' && !empty(s:todo_title) ? s:todo_title : s:title . '__after')
+    let s:plain = filter(copy(s:words), '!has_key(s:todo_faces, v:val)')
+    if !empty(s:plain)
+      execute printf('syntax match %s /%s%s\ze\%%( \|$\)/ contained %s', s:group, s:not_archived, s:any(s:plain), s:then)
+      call add(s:keyword_groups, s:group)
+    endif
+    for s:word in filter(copy(s:words), 'has_key(s:todo_faces, v:val)')
+      let s:faced_name = s:faced_group(s:group, s:selector, 'todo', s:word)
+      execute printf('syntax match %s /%s%s\ze\%%( \|$\)/ contained %s', s:faced_name, s:not_archived, s:any([s:word]), s:then)
+      call add(s:keyword_groups, s:faced_name)
+    endfor
+    execute printf('syntax match orgSyntaxPriority__%s%d /\[#\w\+\]/ contained %s', s:state, s:level, substitute(s:then, 'orgSyntaxPriority__\w\+,', '', ''))
+  endfor
+  execute printf('syntax match orgSyntaxPriority__p%d /%s\[#\w\+\]/ contained nextgroup=orgSyntaxHeadlineRest,%s__after skipwhite', s:level, s:not_archived, s:title)
+  " The title right after the stars, and after a keyword or priority.
+  execute printf('syntax match %s /\%%(%s\%%( \|$\)\|\[#\|.*:ARCHIVE:\)\@!\S.*/ contained contains=orgSyntax_tag,@orgSyntaxInline %s', s:title, s:keywords, s:after)
+  execute printf('syntax match %s__after /\%%(COMMENT\%%(\s\|$\)\|\[#\)\@!\S.*/ contained contains=orgSyntax_tag,@orgSyntaxInline %s', s:title, s:after)
+  for [s:pattern, s:face] in filter(copy(s:stars), 'v:val[1] == s:level')
+    execute printf('syntax match orgSyntax_stars_level%d /^%s\ze / nextgroup=orgSyntaxHeadlineRest,%s,orgSyntaxPriority__p%d,%s skipwhite',
+          \ s:level, s:pattern, s:title, s:level, join(s:keyword_groups, ','))
+  endfor
+endfor
+" A title past a keyword in the look of the keyword's state: what it holds
+" takes that look over its own, as the tokens do, but tags with a face of
+" their own.
+for s:state_title in filter([s:todo_title, s:done_title], '!empty(v:val)')
+  execute printf('syntax match %s /\%%(COMMENT\%%(\s\|$\)\|\[#\)\@!\S.*/ contained contains=%s__tag %s', s:state_title, s:state_title, s:after)
+  execute printf('syntax match %s__tag /\s\@1<=:[[:alnum:]_@#%%:]\+:\ze\s*$/ contained', s:state_title)
 endfor
 " An inline task, which the server colors as one.
-syntax match orgSyntaxInlineTask /^\*\{15,}\%( .*\)\?$/
+if get(s:info, 'inlinetask', 15) isnot v:null
+  execute printf('syntax match orgSyntaxInlineTask /^\*\{%d,}\%%( .*\)\?$/', get(s:info, 'inlinetask', 15))
+endif
 syntax match orgSyntax_tag /\s\@1<=:[[:alnum:]_@#%:]\+:\ze\s*$/ contained
+" `org-tag-faces`: each tag with a face of its own in it.
+for s:tag in keys(s:tag_faces)
+  for s:tags in ['orgSyntax_tag'] + map(filter([s:todo_title, s:done_title], '!empty(v:val)'), 'v:val . "__tag"')
+    let s:selector = matchstr(s:tags, '^orgSyntax_\zs.\{-}\ze\%(__\|$\)')
+    execute printf('syntax match %s /:\@1<=%s\ze:/ contained containedin=%s', s:faced_group(s:tags, s:selector, 'tag', s:tag), s:any([s:tag]), s:tags)
+  endfor
+endfor
 
 " Blocks and drawers end before the next headline: what is colored again
 " from a headline on is colored as from the start.
@@ -159,22 +282,74 @@ syntax sync match orgSyntaxSync grouphere NONE /^\*\+\s/
 " Each group linked to the one the plugin gives the token of its selector:
 " in Neovim `@lsp.typemod.stars.level1.org` for `orgSyntax_stars_level1`, in
 " Vim `OrgLsp_stars_level1`.
-function! s:link(group) abort
-  let selector = matchstr(a:group, '^orgSyntax_\zs.\{-}\ze\%(__\|$\)')
+function! s:target(selector) abort
   if !has('nvim')
-    execute 'highlight default link' a:group 'OrgLsp_' . selector
-    return
+    return 'OrgLsp_' . a:selector
   endif
-  let [type; modifier] = split(selector, '_')
-  let target = type ==# 'Any' ? printf('@lsp.mod.%s.org', modifier[0])
+  let [type; modifier] = split(a:selector, '_')
+  return type ==# 'Any' ? printf('@lsp.mod.%s.org', modifier[0])
         \ : empty(modifier) ? printf('@lsp.type.%s.org', type)
         \ : printf('@lsp.typemod.%s.%s.org', type, modifier[0])
-  execute 'highlight default link' a:group target
 endfunction
+
+function! s:link(group) abort
+  let selector = matchstr(a:group, '^orgSyntax_\zs.\{-}\ze\%(__\|$\)')
+  execute 'highlight default link' a:group s:target(selector)
+endfunction
+
+" A group of a keyword or tag with a face of its own: its token's look
+" with the face over it, as the plugins put the face over the token, the
+" face's colors in place of the look's and its attributes added.
+function! s:merge(group, selector, face) abort
+  if has('nvim')
+    let look = nvim_get_hl(0, {'name': s:target(a:selector), 'link': v:false})
+    for [key, attribute] in [['foreground', 'fg'], ['background', 'bg']]
+      if has_key(a:face, key)
+        let look[attribute] = a:face[key]
+      endif
+    endfor
+    for attribute in ['bold', 'italic', 'underline', 'strikethrough']
+      if get(a:face, attribute, v:false) is v:true
+        let look[attribute] = v:true
+      endif
+    endfor
+    silent! call nvim_set_hl(0, a:group, look)
+    return
+  endif
+  let look = get(exists('*hlget') ? hlget(s:target(a:selector), v:true) : [], 0, {})
+  call filter(look, 'index(["id", "name", "linksto", "default", "cleared"], v:key) < 0')
+  let look.name = a:group
+  for [key, gui, cterm] in [['foreground', 'guifg', 'ctermfg'], ['background', 'guibg', 'ctermbg']]
+    if has_key(a:face, key)
+      let look[gui] = a:face[key]
+      " A color name the terminal knows, without 'termguicolors'.
+      if a:face[key] =~# '^\a\+$'
+        let look[cterm] = a:face[key]
+      endif
+    endif
+  endfor
+  for attribute in ['bold', 'italic', 'underline', 'strikethrough']
+    if get(a:face, attribute, v:false) is v:true
+      for mode in ['gui', 'cterm', 'term']
+        let look[mode] = extend(get(look, mode, {}), {attribute: v:true})
+      endfor
+    endif
+  endfor
+  silent! call hlset([look])
+endfunction
+
+" In Vim the groups of the tokens' looks are the plugin's, made from the
+" server's manifest: made now if they are not yet, for the syntax to color
+" before the server has started (ALE starts it late).
+if !has('nvim') && exists('g:loaded_org_lsp') && !hlexists('OrgLsp_stars_level1')
+  silent! call org_lsp#define_highlights()
+endif
 
 for s:line in split(execute('syntax list'), "\n")
   let s:group = matchstr(s:line, '^orgSyntax_\S\+')
-  if !empty(s:group)
+  if has_key(s:faced, s:group)
+    call s:merge(s:group, s:faced[s:group][0], s:faced[s:group][1])
+  elseif !empty(s:group)
     call s:link(s:group)
   endif
 endfor

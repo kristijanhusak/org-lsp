@@ -64,10 +64,13 @@ Org files (they are off by default in all four): the plugin does both.
 The plugin's syntax for Org (=syntax/org.vim=) colors what a pattern can
 tell, as the server does and in the same colors: headline stars and titles
 by level, timestamps, planning and clock lines, links, emphasis, code,
-lists, tables, drawers, blocks, keywords and comments. It shows what you
-type before the server has answered. What only the server knows (TODO
-keywords, priorities, entities, LaTeX, what the options change) waits for
-it. It needs ~:syntax on~.
+lists, tables, drawers, blocks, keywords and comments. TODO keywords and
+the headlines they start, keywords and tags with faces of their own
+(~org_todo_keyword_faces~, ~org_tag_faces~) and the options of how
+headlines look it colors as the server tells it for each file; before it
+has, from the file's ~#+TODO:~ lines. It shows what you type before the
+server has answered. What only the server can tell (priorities, entities,
+LaTeX, what other options change) waits for it. It needs ~:syntax on~.
 
 To try it without touching your own configuration,
 [[file:../editors/vim/minimal.vim][editors/vim/minimal.vim]] is a vimrc that puts vim-plug and yegappan/lsp in

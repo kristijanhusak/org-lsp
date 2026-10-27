@@ -122,6 +122,7 @@ function! org_lsp#init_options() abort
         \ 'display': s:has_virtual_text() ? v:true : v:false,
         \ 'line_highlights': v:true,
         \ 'code_blocks': org_lsp#config().src_highlight ? v:true : v:false,
+        \ 'syntax': v:true,
         \ 'run_command': v:true,
         \ 'message_requests': v:false,
         \ 'message_notifications': v:true,
@@ -2163,6 +2164,8 @@ function! org_lsp#handle_notification(method, params) abort
     call s:line_highlights(a:params)
   elseif a:method ==# 'org-lsp/codeBlocks'
     call s:code_blocks(a:params)
+  elseif a:method ==# 'org-lsp/syntax'
+    call s:syntax(a:params)
   elseif a:method ==# 'org-lsp/columns'
     call s:columns_show(a:params)
   elseif a:method ==# 'org-lsp/folds'
@@ -3274,14 +3277,53 @@ endfunction
 " $VIMRUNTIME; the code of its blocks in their languages again.
 let s:syntax_file = expand('<sfile>:p:h:h') . '/syntax/org.vim'
 function! org_lsp#own_syntax(nr) abort
+  if !getbufvar(a:nr, 'org_lsp_syntax', 0)
+    call org_lsp#reload_syntax(a:nr)
+  endif
+endfunction
+
+" The plugin's syntax for Org loaded in buffer `nr` again, with the code
+" of its blocks; in a window, as syntax is loaded, or when the buffer next
+" shows in one.
+function! org_lsp#reload_syntax(nr) abort
   let win = bufwinid(a:nr)
-  if win < 0 || getbufvar(a:nr, '&syntax') !=# 'org' || getbufvar(a:nr, 'org_lsp_syntax', 0)
+  if getbufvar(a:nr, '&syntax') !=# 'org'
+    return
+  endif
+  call setbufvar(a:nr, 'org_lsp_syntax_stale', win < 0)
+  if win < 0
     return
   endif
   call win_execute(win, ['syntax clear', 'unlet! b:current_syntax', 'source ' . fnameescape(s:syntax_file)])
   if bufnr() == a:nr
     call s:src_syntax()
   endif
+endfunction
+
+" The TODO keywords of a file and how its headlines look
+" (`org-lsp/syntax`), for its syntax to color them before the tokens come:
+" kept in `b:org_lsp_syntax_info`, and the last in `g:org_lsp_syntax_info`
+" for files opened next.
+function! s:syntax(params) abort
+  let info = filter(copy(a:params), 'v:key !=# "uri"')
+  let g:org_lsp_syntax_info = info
+  let nr = bufnr(org_lsp#uri_to_path(a:params.uri))
+  if nr < 0 || !bufloaded(nr) || getbufvar(nr, 'org_lsp_syntax_info', {}) == info
+    return
+  endif
+  call setbufvar(nr, 'org_lsp_syntax_info', info)
+  call org_lsp#reload_syntax(nr)
+endfunction
+
+" Buffers of the plugin's syntax for Org loaded again after a new color
+" scheme, whose colors the groups of keywords and tags with faces of their
+" own are made from.
+function! org_lsp#reload_syntaxes() abort
+  for buffer in getbufinfo({'bufloaded': 1})
+    if getbufvar(buffer.bufnr, 'org_lsp_syntax', 0)
+      call org_lsp#reload_syntax(buffer.bufnr)
+    endif
+  endfor
 endfunction
 
 " Where the code of a file's source, export and inline source blocks is

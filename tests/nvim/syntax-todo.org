@@ -1,0 +1,9 @@
+#+TODO: NEXT WAIT(w@) | GONE(g!) CANCELLED
+#+STARTUP: odd
+# A file with keywords of its own, odd levels and faces (tests/nvim/syntax.lua).
+* NEXT Next, in the colour of level one
+*** WAIT Waiting, its keyword in its face :urgent:
+***** GONE Gone, in the look of done :urgent:other:
+* TODO not a keyword here
+* CANCELLED [#A] Cancelled
+** Level two, odd: still level two's colour
