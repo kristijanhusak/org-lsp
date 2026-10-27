@@ -655,6 +655,7 @@ every file; outside Org files the commands say they do not apply):
 | ~org.num.mode~ | Org: Number the headlines, or stop numbering them |
 | ~org.indent.mode~ | Org: Indent the text by the level of its headline, or stop indenting it |
 | ~org.custom.properties.toggle~ | Org: Hide the properties of org_custom_properties, or show them again |
+| ~org.version~ | Org: Show the version of the server |
 | ~org.clock.report~ | Org: Insert or update a clock table |
 | ~org.dblock.update~ | Org: Update the dynamic block |
 | ~org.dblock.insert~ | Org: Insert a dynamic block |

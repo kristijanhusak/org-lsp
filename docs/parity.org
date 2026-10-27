@@ -40,7 +40,7 @@ Org's options, one by one, are under [[#options][Options]].
 | [[#diagnostics-org-lint][Diagnostics (org-lint)]] | 100% | 61 of 61 |
 | [[#indentation-and-formatting][Indentation and formatting]] | 100% | 8 of 8 |
 | [[#notes-and-logging][Notes and logging]] | 100% | 6 of 6 |
-| [[#completion-and-editing-helpers][Completion and editing helpers]] | 100% | 4 of 4 |
+| [[#completion-and-editing-helpers][Completion and editing helpers]] | 100% | 5 of 5 |
 | [[#timers][Timers]] | 100% | 5 of 5 |
 | [[#attachments][Attachments]] | 100% | 2 of 2 |
 | [[#encryption][Encryption]] | 100% | 2 of 2 |
@@ -741,12 +741,13 @@ Where editors fall short:
 :CUSTOM_ID: completion-and-editing-helpers
 :END:
 
-100% (4 of 4)
+100% (5 of 5)
 
 - ✅ Completion: TODO keywords, tags, ~#+~ keywords and ~#+STARTUP:~ values, blocks, drawers, properties, entities, link targets
 - ✅ Structure templates (~C-c C-,~, through Emacs)
 - ✅ Emphasis (~C-c C-x C-f~, through Emacs)
 - ✅ Inserting a drawer (~C-c C-x d~, through Emacs)
+- ✅ The version (~org-version~): the server's, with the commit it was built from
 
 Where editors fall short:
 

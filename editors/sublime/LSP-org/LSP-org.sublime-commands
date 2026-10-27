@@ -392,6 +392,13 @@
     }
   },
   {
+    "caption": "Org: Show the version of the server",
+    "command": "org_lsp_run",
+    "args": {
+      "command": "org.version"
+    }
+  },
+  {
     "caption": "Org: Insert or update a clock table",
     "command": "org_lsp_run",
     "args": {

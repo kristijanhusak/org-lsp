@@ -1702,7 +1702,7 @@ pub fn run(connection: Connection) -> Result<()> {
         ),
         server_info: Some(ServerInfo {
             name: "org-lsp".to_string(),
-            version: Some(env!("CARGO_PKG_VERSION").to_string()),
+            version: Some(env!("ORG_LSP_VERSION").to_string()),
         }),
     };
     let mut result = serde_json::to_value(result)?;
@@ -4804,6 +4804,8 @@ impl Server {
             (commands::AGENDA_TODOS, more && shows),
             (commands::AGENDA_DISPATCH, more && shows),
             (commands::CAPTURE, more && shows),
+            // `org-version`: which server the editor runs.
+            (commands::VERSION, more),
         ] {
             if offered && actions::requested(id, only) {
                 result.push(as_action(id));
@@ -7613,6 +7615,7 @@ impl Server {
             id if id.starts_with("org.agenda.filter") => self.agenda_filter(id, context.as_ref()),
             commands::AGENDA_WRITE => self.agenda_write(context.as_ref()),
             commands::AGENDA_APPT => self.agenda_to_appt(context.as_ref()),
+            commands::VERSION => Ok(json!({ "message": format!("org-lsp version {}", env!("ORG_LSP_VERSION")) })),
             commands::TABLE_TOGGLE_COLUMN_WIDTH => {
                 self.toggle_column_width(&context.ok_or("This command needs the cursor position")?)
             }
