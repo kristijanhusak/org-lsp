@@ -3924,6 +3924,18 @@ pub const SETTINGS: &[Setting] = &[
     Setting {
         integration: true,
         ..setting(
+            "syntax",
+            "boolean",
+            "false",
+            "",
+            "Whether the client's own syntax colors headlines before the semantic tokens come, with the \
+             TODO keywords of each file and the looks of headlines the server sends (`org-lsp/syntax`), \
+             as a client announcing `experimental.orgSyntax` does: for the Vim plugin.",
+        )
+    },
+    Setting {
+        integration: true,
+        ..setting(
             "run_command",
             "boolean",
             "false",
@@ -4721,6 +4733,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("message_notifications", BOOLEAN),
     ("line_highlights", BOOLEAN),
     ("code_blocks", BOOLEAN),
+    ("syntax", BOOLEAN),
     ("run_command", BOOLEAN),
     ("hidden_lines", BOOLEAN),
     ("display", BOOLEAN),

@@ -150,6 +150,7 @@ export const AREAS = [
       { text: 'A subtree tagged `:ARCHIVE:` is shaded' },
       { text: 'Another color scheme keeps the colors (they follow its groups)', only: ['neovim', 'vim'] },
       { text: 'What is typed is colored at once by the plugin\'s syntax (`syntax/org.vim`): `** Two <2026-05-19 Tue> *bold*` shows its stars and title in the colors of level 2, the timestamp and the bold text, the same colors the server\'s highlighting gives them when it comes', only: ['neovim', 'vim'] },
+      { text: 'With `#+TODO: NEXT | GONE` at the top of the file and `org_todo_keyword_faces` giving `NEXT` a color, typing `* NEXT Call` and `* GONE Done` shows at once `NEXT` in its color with `Call` in the color of level 1, and `GONE` as done with `Done` in the look of done headlines, as the server colors them; `* README` stays in the color of level 1', only: ['neovim', 'vim'] },
       { text: 'With a theme that colors `markup.heading.1` to `.6` (`catppuccin_mocha`, `kanagawa`, `emacs` …), each level has its own color; another theme colors every level as `markup.heading`', only: ['helix'] },
       { text: 'The agenda (`Agenda.org`) shows its title and days as headings, the weekend\'s days apart, the time grid shaded, entries scheduled today, scheduled earlier and with deadlines in colors of their own, and done entries shaded', only: ['helix'] },
     ],

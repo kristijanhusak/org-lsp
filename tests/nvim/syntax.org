@@ -17,6 +17,12 @@ CLOCK: [2026-05-18 Mon 09:00]--[2026-05-18 Mon 10:00] =>  1:00
 ******* Seven
 ******** Eight
 ********* Nine, as one again
+* TODO A task with a [[https://orgmode.org][link]] :work:
+** DONE [#A] Finished, *bold* and [1/1] :home:urgent:
+* README in capitals, with no keyword
+* TODO [#B] Waiting on *someone*
+* COMMENT left to the server
+* Archived :ARCHIVE:
 Some *bold*, /italic/, _underlined_, +struck+, ~code~ and =verbatim=; a
 ~code that goes on~ the next line, and *bold that does
 too*.

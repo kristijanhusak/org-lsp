@@ -69,6 +69,7 @@ const TEXT_DOCUMENT_CONTENT: &str = "workspace/textDocumentContent";
 const TEXT_DOCUMENT_CONTENT_REFRESH: &str = "workspace/textDocumentContent/refresh";
 const LINE_HIGHLIGHTS: &str = "org-lsp/lineHighlights";
 const CODE_BLOCKS: &str = "org-lsp/codeBlocks";
+const SYNTAX: &str = "org-lsp/syntax";
 /// A message for the user, `window/showMessage`'s, for a client that shows
 /// it itself (`message_notifications`).
 const MESSAGE: &str = "org-lsp/message";
@@ -126,6 +127,11 @@ struct Client {
     /// (`org-lsp/codeBlocks`): `experimental.orgCodeBlocks`, or the
     /// option `code_blocks`.
     code_blocks: bool,
+    /// Colors what it can of the text before the semantic tokens come,
+    /// knowing the TODO keywords and how headlines look
+    /// (`org-lsp/syntax`): `experimental.orgSyntax`, or the option
+    /// `syntax`.
+    syntax: bool,
     /// Hides the lines a command's answer names (`hiddenLines`):
     /// `experimental.orgHiddenLines`, or the option `hidden_lines`.
     hidden_lines: bool,
@@ -1241,6 +1247,8 @@ struct Server {
     heading_lines: HashMap<String, Vec<(usize, usize)>>,
     /// The documents last sent with code in `org-lsp/codeBlocks`.
     code_blocks_sent: HashSet<String>,
+    /// What each document was last sent in `org-lsp/syntax`.
+    syntax_sent: HashMap<String, Value>,
     /// The documents last sent with something in `org-lsp/display`.
     displayed: HashSet<String>,
     /// `org-cite-global-bibliography`
@@ -1612,6 +1620,8 @@ pub fn run(connection: Connection) -> Result<()> {
         code_blocks: raw_params.pointer("/capabilities/experimental/orgCodeBlocks").and_then(Value::as_bool)
             == Some(true)
             || options.code_blocks == Some(true),
+        syntax: raw_params.pointer("/capabilities/experimental/orgSyntax").and_then(Value::as_bool) == Some(true)
+            || options.syntax == Some(true),
         hidden_lines: raw_params.pointer("/capabilities/experimental/orgHiddenLines").and_then(Value::as_bool)
             == Some(true)
             || options.hidden_lines == Some(true),
@@ -1890,6 +1900,7 @@ pub fn run(connection: Connection) -> Result<()> {
         virtually_indented: HashSet::new(),
         heading_lines: HashMap::new(),
         code_blocks_sent: HashSet::new(),
+        syntax_sent: HashMap::new(),
         displayed: HashSet::new(),
         cite_global: options.cite_global_bibliography.clone().unwrap_or_default(),
         cite_insert_processor: options.cite_insert_processor(),
@@ -3766,6 +3777,7 @@ impl Server {
                 self.publish_virtual_indent(&key);
                 self.publish_heading_lines(&key);
                 self.publish_code_blocks(&key);
+                self.publish_syntax(&key);
                 self.publish_display(&key);
                 self.publish_diagnostics(&key);
                 // An edit the server asked for, of a file no buffer had:
@@ -3872,6 +3884,7 @@ impl Server {
                 self.publish_virtual_indent(key);
                 self.publish_heading_lines(key);
                 self.publish_code_blocks(key);
+                self.publish_syntax(key);
                 self.publish_display(key);
                 self.diagnostics_later(key);
                 self.fold_after_edit(key);
@@ -3946,6 +3959,7 @@ impl Server {
                 self.indent_mode.remove(params.text_document.uri.as_str());
                 self.heading_lines.remove(params.text_document.uri.as_str());
                 self.code_blocks_sent.remove(params.text_document.uri.as_str());
+                self.syntax_sent.remove(params.text_document.uri.as_str());
                 self.custom_properties_hidden.remove(params.text_document.uri.as_str());
                 self.displayed.remove(params.text_document.uri.as_str());
                 if let Some(path) = uri::to_path(&params.text_document.uri) {
@@ -16011,6 +16025,44 @@ impl Server {
         let params = json!({ "uri": key, "version": document.version, "blocks": blocks });
         // The params as they are: `Notification::new` would copy them.
         let notification = lsp_server::Notification { method: CODE_BLOCKS.to_string(), params };
+        let _ = self.sender.send(Message::Notification(notification));
+    }
+
+    /// What the editor's own syntax needs to color headlines as the
+    /// tokens do, as `org-lsp/syntax` `{ uri, todo, done, todoHeadline,
+    /// doneHeadline, oddLevels, levelFaces, cycleLevelFaces, inlinetask,
+    /// faces }`: the TODO keywords of the document not done and done,
+    /// `org-fontify-todo-headline`, `org-fontify-done-headline`, its odd
+    /// levels, `org-n-level-faces`, `org-cycle-level-faces`, the stars of
+    /// the shortest inline task or null, and the faces of keywords and
+    /// tags `{ todo: { KEYWORD: face }, tag: { TAG: face } }`. Sent when a
+    /// document opens and when a change changes it.
+    fn publish_syntax(&mut self, key: &str) {
+        if !self.client.syntax {
+            return;
+        }
+        let Some(document) = self.documents.get(key) else { return };
+        let fontify = self.fontify_of(&document.text);
+        let keywords = document.parse.todo_keywords();
+        let (done, todo): (Vec<&str>, Vec<&str>) = keywords.names().partition(|name| keywords.is_done(name));
+        let info = json!({
+            "todo": todo,
+            "done": done,
+            "todoHeadline": fontify.todo_headline,
+            "doneHeadline": fontify.done_headline,
+            "oddLevels": fontify.odd_levels,
+            "levelFaces": fontify.n_level_faces,
+            "cycleLevelFaces": fontify.cycle_level_faces,
+            "inlinetask": fontify.inlinetask,
+            "faces": { "todo": self.faces.get("todo"), "tag": self.faces.get("tag") },
+        });
+        if self.syntax_sent.get(key) == Some(&info) {
+            return;
+        }
+        self.syntax_sent.insert(key.to_string(), info.clone());
+        let mut params = info;
+        params["uri"] = json!(key);
+        let notification = lsp_server::Notification { method: SYNTAX.to_string(), params };
         let _ = self.sender.send(Message::Notification(notification));
     }
 

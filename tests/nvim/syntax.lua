@@ -12,15 +12,22 @@
 local root = vim.fs.dirname(vim.fs.dirname(vim.fs.dirname(vim.fs.abspath(debug.getinfo(1, 'S').source:sub(2)))))
 local server = os.getenv('ORG_LSP_BIN') or vim.fs.joinpath(root, 'target', 'debug', 'org-lsp')
 
-vim.g.org_lsp = { cmd = { server } }
+vim.g.org_lsp = {
+  cmd = { server },
+  settings = {
+    org_todo_keyword_faces = { WAIT = ':foreground #ff8800 :weight bold' },
+    org_tag_faces = { urgent = '#0088ff' },
+  },
+}
 vim.opt.runtimepath:prepend(root)
+vim.o.termguicolors = true
 vim.cmd('filetype plugin on')
 vim.cmd('syntax on')
 vim.cmd('runtime plugin/org-lsp.lua')
 
 local files = _G.arg and #_G.arg > 0 and _G.arg or nil
 if not files then
-  files = { vim.fs.joinpath(root, 'tests', 'nvim', 'syntax.org') }
+  files = { vim.fs.joinpath(root, 'tests', 'nvim', 'syntax.org'), vim.fs.joinpath(root, 'tests', 'nvim', 'syntax-todo.org') }
   vim.list_extend(files, vim.fn.globpath(root, 'tests/fixtures/*.org', false, true))
   vim.list_extend(files, vim.fn.globpath(root, 'tests/e2e/**/*.org', false, true))
   -- The docs but the reference of Emacs's options, generated and longer
@@ -70,7 +77,7 @@ end
 local seen = {}
 local function syntax_at(line, col)
   local name = vim.fn.synIDattr(vim.fn.synID(line, col, 0), 'name')
-  seen[name] = true
+  seen[name:gsub('%d+', 'N')] = true
   local selector = name:match('^orgSyntax_(.-)__') or name:match('^orgSyntax_(.*)$')
   -- Code in a block's language (src.lua), an Org block's in this syntax.
   for _, id in ipairs(selector and vim.fn.synstack(line, col) or {}) do
@@ -127,6 +134,10 @@ for _, file in ipairs(files) do
     local client = vim.lsp.get_clients({ bufnr = buf, name = 'org_lsp' })[1]
     return client ~= nil and client.initialized and require('org-lsp').manifest ~= nil
   end, 20), 'no server for ' .. file)
+  -- The syntax as the server says (`org-lsp/syntax`).
+  assert(vim.wait(20000, function()
+    return vim.b[buf].org_lsp_syntax_info ~= nil
+  end, 20), 'no org-lsp/syntax for ' .. file)
   if not looks then
     looks = {}
     for _, look in ipairs(require('org-lsp').manifest.highlights) do
@@ -157,14 +168,40 @@ for _, file in ipairs(files) do
 end
 
 -- Each colored group colors something: a pattern that never matches
--- would leave its part to the server alone.
+-- would leave its part to the server alone. Groups made for each level
+-- count as one.
 vim.cmd('edit ' .. vim.fn.fnameescape(files[1]))
 for _, line in ipairs(vim.split(vim.fn.execute('syntax list'), '\n')) do
   local group = line:match('^(orgSyntax_%S+)')
-  if group and not seen[group] then
+  if group and not seen[group:gsub('%d+', 'N')] then
     table.insert(failures, group .. ' colors nothing in the files')
   end
 end
+
+-- Keywords and tags with a face of their own (`org_todo_keyword_faces`,
+-- `org_tag_faces`) in it, over their token's look; a keyword that a
+-- `#+TODO:` line makes one once it is written.
+vim.cmd('edit ' .. vim.fn.fnameescape(vim.fs.joinpath(root, 'tests', 'nvim', 'syntax-todo.org')))
+local function look_at(text, offset)
+  local row = vim.fn.search('\\V' .. text, 'nw')
+  local col = vim.fn.getline(row):find(text, 1, true) + (offset or 0)
+  local id = vim.fn.synIDtrans(vim.fn.synID(row, col, 0))
+  return { name = vim.fn.synIDattr(vim.fn.synID(row, col, 0), 'name'), fg = vim.fn.synIDattr(id, 'fg#'), bold = vim.fn.synIDattr(id, 'bold') == '1' }
+end
+for _, case in ipairs({ { 'WAIT Waiting', 0, true }, { 'face :urgent:', 6, false }, { ':urgent:other', 1, false } }) do
+  local look = look_at(case[1], case[2])
+  local want = case[1] == 'WAIT Waiting' and '#ff8800' or '#0088ff'
+  if look.fg ~= want or (case[3] and not look.bold) then
+    table.insert(failures, ('%s: %s shows %s%s, not %s'):format(case[1], look.name, look.fg, look.bold and ' bold' or '', want))
+  end
+end
+vim.api.nvim_buf_set_lines(0, 0, 1, false, { '#+TODO: TODO NEXT WAIT(w@) | GONE(g!) CANCELLED' })
+if not vim.wait(5000, function()
+  return look_at('TODO not').name:match('^orgSyntax_todoKeyword__') ~= nil
+end, 20) then
+  table.insert(failures, 'TODO written in #+TODO: still ' .. look_at('TODO not').name)
+end
+vim.cmd('bwipeout!')
 
 -- With the plugin after $VIMRUNTIME in 'runtimepath', which finds Vim's
 -- own syntax for Org first, the plugin's takes its place.

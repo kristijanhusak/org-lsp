@@ -884,6 +884,21 @@ M.handlers = {
     require('org-lsp.src').apply(params, client and client.offset_encoding or 'utf-16')
   end,
 
+  --- The TODO keywords of a document and how its headlines look, for the
+  --- syntax to color them before the tokens come: kept in
+  --- `b:org_lsp_syntax_info`, and the last in `g:org_lsp_syntax_info` for
+  --- files opened next.
+  ['org-lsp/syntax'] = function(_, params)
+    local bufnr = require('org-lsp.buffers').of(params.uri)
+    params.uri = nil
+    vim.g.org_lsp_syntax_info = params
+    if not bufnr or vim.deep_equal(vim.b[bufnr].org_lsp_syntax_info, params) then
+      return
+    end
+    vim.b[bufnr].org_lsp_syntax_info = params
+    require('org-lsp').reload_syntax(bufnr)
+  end,
+
   --- What stands in for hidden text: entities, sub- and superscripts,
   --- shrunk table fields.
   ['org-lsp/display'] = function(_, params, ctx)

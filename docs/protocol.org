@@ -262,6 +262,20 @@ And these notifications:
   not), and once with no blocks when the last goes. Only for the version
   given: for older text than the client has, newer blocks are on their
   way. The server's semantic tokens leave that code out.
+- ~org-lsp/syntax~ :: For a client that announces
+  ~experimental.orgSyntax: true~ (or sets the option ~syntax~): what a
+  syntax of the client's own needs to color headlines as the tokens do,
+  before they come. ~{ "uri", "todo", "done", "todoHeadline",
+  "doneHeadline", "oddLevels", "levelFaces", "cycleLevelFaces",
+  "inlinetask", "faces" }~: the TODO keywords of the file not done and
+  done (its ~#+TODO:~ lines, or ~org_todo_keywords~),
+  ~org_fontify_todo_headline~, ~org_fontify_done_headline~, whether its
+  levels are odd only (~org_odd_levels_only~, ~#+STARTUP: odd~),
+  ~org_n_level_faces~, ~org_cycle_level_faces~, the stars of the shortest
+  inline task or ~null~, and the faces of keywords and tags ~{ "todo": {
+  KEYWORD: face }, "tag": { TAG: face } }~ as ~org-lsp/faces~ gives them.
+  Sent after a file opens and after a change that changes it. The Neovim
+  and Vim plugins keep it with the buffer and load their syntax again.
 - ~org-lsp/folds~ :: ~{ "uri", "open": [FoldingRange…], "close": [FoldingRange…] }~:
   after a journal command has shown a file (~window/showDocument~), the
   headlines' folds to open, then those to close (innermost first), as

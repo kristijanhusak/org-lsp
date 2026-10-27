@@ -13,7 +13,7 @@ function! org_lsp#adapter#coc#register(cmd, options, filetypes) abort
         \ 'filetypes': a:filetypes,
         \ 'initializationOptions': a:options,
         \ })
-  for method in ['org-lsp/save', 'org-lsp/clock', 'org-lsp/timer', 'org-lsp/virtualIndent', 'org-lsp/display', 'org-lsp/lineHighlights', 'org-lsp/codeBlocks', 'org-lsp/viewChanged', 'org-lsp/columns', 'org-lsp/folds', 'org-lsp/runCommand', 'org-lsp/message', 'org-lsp/showDocument']
+  for method in ['org-lsp/save', 'org-lsp/clock', 'org-lsp/timer', 'org-lsp/virtualIndent', 'org-lsp/display', 'org-lsp/lineHighlights', 'org-lsp/codeBlocks', 'org-lsp/syntax', 'org-lsp/viewChanged', 'org-lsp/columns', 'org-lsp/folds', 'org-lsp/runCommand', 'org-lsp/message', 'org-lsp/showDocument']
     call CocRegisterNotification(s:name, method, function('org_lsp#handle_notification', [method]))
   endfor
 endfunction

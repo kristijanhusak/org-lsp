@@ -628,6 +628,10 @@ pub struct Options {
     /// The client colors code in its language where `org-lsp/codeBlocks`
     /// says, as one announcing `experimental.orgCodeBlocks` does.
     pub code_blocks: Option<bool>,
+    /// The client colors headlines before the tokens come as
+    /// `org-lsp/syntax` says, as one announcing `experimental.orgSyntax`
+    /// does.
+    pub syntax: Option<bool>,
     /// The client runs a command when the server asks
     /// (`org-lsp/runCommand`), as one announcing
     /// `experimental.orgRunCommand` does.

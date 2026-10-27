@@ -118,6 +118,22 @@ end
 --- directory, `org-lsp` on PATH, or the downloaded one. Returns nil when
 --- none is found.
 ---@return string[]|nil
+--- Load the plugin's syntax for Org in buffer `buf` again, with the
+--- regions of code in their languages: in place of Vim's own, or with
+--- what `org-lsp/syntax` said of the buffer.
+---@param buf integer
+function M.reload_syntax(buf)
+  if not vim.api.nvim_buf_is_valid(buf) or vim.bo[buf].syntax ~= 'org' then
+    return
+  end
+  vim.api.nvim_buf_call(buf, function()
+    vim.cmd('syntax clear')
+    vim.b.current_syntax = nil
+    vim.cmd.source(vim.fs.joinpath(plugin_root(), 'editors', 'vim', 'syntax', 'org.vim'))
+  end)
+  require('org-lsp.src').reapply(buf)
+end
+
 function M.server_command()
   if M.config.cmd then
     return M.config.cmd
@@ -1326,6 +1342,7 @@ local function enable()
       experimental = {
         orgImages = require('org-lsp.images').supported(),
         orgCodeBlocks = M.config.src_highlight and true or false,
+        orgSyntax = true,
       },
     }),
     handlers = view.handlers,
@@ -1472,6 +1489,13 @@ function M.start()
         require('org-lsp.highlights').define(M.manifest)
         require('org-lsp.highlights').define_faces()
       end
+      -- The syntax's groups of keywords and tags with faces of their own
+      -- are made from the colors of the scheme.
+      for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+        if vim.api.nvim_buf_is_loaded(buf) and vim.b[buf].org_lsp_syntax then
+          M.reload_syntax(buf)
+        end
+      end
     end,
   })
   -- Vim's own syntax for Org, found first when the plugin comes after
@@ -1482,15 +1506,9 @@ function M.start()
     callback = function(args)
       vim.schedule(function()
         local buf = args.buf
-        if not vim.api.nvim_buf_is_valid(buf) or vim.bo[buf].syntax ~= 'org' or vim.b[buf].org_lsp_syntax then
-          return
+        if vim.api.nvim_buf_is_valid(buf) and not vim.b[buf].org_lsp_syntax then
+          M.reload_syntax(buf)
         end
-        vim.api.nvim_buf_call(buf, function()
-          vim.cmd('syntax clear')
-          vim.b.current_syntax = nil
-          vim.cmd.source(vim.fs.joinpath(plugin_root(), 'editors', 'vim', 'syntax', 'org.vim'))
-        end)
-        require('org-lsp.src').reapply(buf)
       end)
     end,
   })

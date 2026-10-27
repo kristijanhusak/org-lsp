@@ -16,7 +16,9 @@ augroup org_lsp
   autocmd Syntax org let s:nr = str2nr(expand('<abuf>')) | call timer_start(0, {-> org_lsp#own_syntax(s:nr)})
   " An Org buffer read again from its file (`:e!`, 'autoread').
   autocmd BufReadPost * if getbufvar(str2nr(expand('<abuf>')), 'org_lsp_attached', 0) | call org_lsp#reread(str2nr(expand('<abuf>'))) | endif
-  autocmd ColorScheme * call org_lsp#define_highlights()
+  autocmd ColorScheme * call org_lsp#define_highlights() | call org_lsp#reload_syntaxes()
+  " A buffer whose syntax changed while it showed in no window.
+  autocmd BufWinEnter * if get(b:, 'org_lsp_syntax_stale', 0) | call org_lsp#reload_syntax(bufnr()) | endif
   " A client maps keys of its own (yegappan/lsp's `<CR>`) when it attaches.
   autocmd User LspAttached,lsp_buffer_enabled call org_lsp#remap_insert_keys(bufnr())
   " The LSP client plugins load after this one: register the server once
