@@ -3269,6 +3269,21 @@ function! s:has_syntax(lang) abort
   return known.found
 endfunction
 
+" The plugin's syntax for Org (syntax/org.vim) in buffer `nr` in place of
+" Vim's own, which 'runtimepath' finds first when the plugin comes after
+" $VIMRUNTIME; the code of its blocks in their languages again.
+let s:syntax_file = expand('<sfile>:p:h:h') . '/syntax/org.vim'
+function! org_lsp#own_syntax(nr) abort
+  let win = bufwinid(a:nr)
+  if win < 0 || getbufvar(a:nr, '&syntax') !=# 'org' || getbufvar(a:nr, 'org_lsp_syntax', 0)
+    return
+  endif
+  call win_execute(win, ['syntax clear', 'unlet! b:current_syntax', 'source ' . fnameescape(s:syntax_file)])
+  if bufnr() == a:nr
+    call s:src_syntax()
+  endif
+endfunction
+
 " Where the code of a file's source, export and inline source blocks is
 " (`org-lsp/codeBlocks`): `blocks` of `{range, language, name, kind}`.
 " Kept with the buffer, and shown when it is the current one, as syntax
