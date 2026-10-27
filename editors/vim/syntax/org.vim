@@ -338,6 +338,13 @@ function! s:merge(group, selector, face) abort
   silent! call hlset([look])
 endfunction
 
+" In Vim the groups of the tokens' looks are the plugin's, made from the
+" server's manifest: made now if they are not yet, for the syntax to color
+" before the server has started (ALE starts it late).
+if !has('nvim') && exists('g:loaded_org_lsp') && !hlexists('OrgLsp_stars_level1')
+  silent! call org_lsp#define_highlights()
+endif
+
 for s:line in split(execute('syntax list'), "\n")
   let s:group = matchstr(s:line, '^orgSyntax_\S\+')
   if has_key(s:faced, s:group)
