@@ -166,6 +166,20 @@ for _, line in ipairs(vim.split(vim.fn.execute('syntax list'), '\n')) do
   end
 end
 
+-- With the plugin after $VIMRUNTIME in 'runtimepath', which finds Vim's
+-- own syntax for Org first, the plugin's takes its place.
+vim.opt.runtimepath:remove(root)
+vim.opt.runtimepath:append(root)
+vim.cmd('enew')
+vim.api.nvim_buf_set_lines(0, 0, -1, false, { '* Level one' })
+vim.bo.filetype = 'org'
+if not vim.wait(2000, function()
+  return vim.fn.synIDattr(vim.fn.synID(1, 1, 1), 'name') == 'orgSyntax_stars_level1'
+end) then
+  table.insert(failures, 'Vim\'s own syntax for Org kept, the plugin coming after $VIMRUNTIME: '
+    .. vim.fn.synIDattr(vim.fn.synID(1, 1, 1), 'name'))
+end
+
 for i, failure in ipairs(failures) do
   if i > (tonumber(os.getenv("ORG_LSP_SYNTAX_SHOW")) or 200) then
     io.stderr:write(('… and %d more\n'):format(#failures - 200))

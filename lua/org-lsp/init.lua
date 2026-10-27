@@ -1474,6 +1474,26 @@ function M.start()
       end
     end,
   })
+  -- Vim's own syntax for Org, found first when the plugin comes after
+  -- $VIMRUNTIME in 'runtimepath', gives way to the plugin's.
+  vim.api.nvim_create_autocmd('Syntax', {
+    group = group,
+    pattern = 'org',
+    callback = function(args)
+      vim.schedule(function()
+        local buf = args.buf
+        if not vim.api.nvim_buf_is_valid(buf) or vim.bo[buf].syntax ~= 'org' or vim.b[buf].org_lsp_syntax then
+          return
+        end
+        vim.api.nvim_buf_call(buf, function()
+          vim.cmd('syntax clear')
+          vim.b.current_syntax = nil
+          vim.cmd.source(vim.fs.joinpath(plugin_root(), 'editors', 'vim', 'syntax', 'org.vim'))
+        end)
+        require('org-lsp.src').reapply(buf)
+      end)
+    end,
+  })
   vim.api.nvim_create_user_command('OrgLspBuild', build, { desc = 'Build the org-lsp server with cargo' })
   vim.api.nvim_create_user_command('OrgLspDownload', download, { desc = 'Download the org-lsp server' })
   vim.api.nvim_create_user_command('Org', function(opts)

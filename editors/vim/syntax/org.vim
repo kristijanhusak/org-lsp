@@ -179,4 +179,7 @@ for s:line in split(execute('syntax list'), "\n")
   endif
 endfor
 
+" Which syntax for Org the buffer has: the plugins put this one in place of
+" Vim's own when 'runtimepath' finds that first.
+let b:org_lsp_syntax = 1
 let b:current_syntax = 'org'
