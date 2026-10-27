@@ -1,6 +1,7 @@
 //! The server's version with the commit it was built from,
-//! `ORG_LSP_VERSION` (`0.1.0-f7e7b68`): the commit in `ORG_LSP_COMMIT`, or
-//! the checkout's; the version alone outside a checkout.
+//! `ORG_LSP_VERSION`: `0.1.0-f7e7b68` for the commit in `ORG_LSP_COMMIT`,
+//! which the release workflow sets; `0.1.0-f7e7b68-dev` for a build of the
+//! checkout's commit anywhere else; `0.1.0-dev` outside a checkout.
 
 use std::path::Path;
 use std::process::Command;
@@ -8,10 +9,11 @@ use std::process::Command;
 fn main() {
     println!("cargo:rerun-if-env-changed=ORG_LSP_COMMIT");
     let version = std::env::var("CARGO_PKG_VERSION").unwrap_or_default();
-    let commit = std::env::var("ORG_LSP_COMMIT").ok().filter(|commit| !commit.is_empty()).or_else(checkout_commit);
-    let full = match commit {
-        Some(commit) => format!("{version}-{}", &commit[..commit.len().min(7)]),
-        None => version,
+    let released = std::env::var("ORG_LSP_COMMIT").ok().filter(|commit| !commit.is_empty());
+    let full = match (released, checkout_commit()) {
+        (Some(commit), _) => format!("{version}-{}", &commit[..commit.len().min(7)]),
+        (None, Some(commit)) => format!("{version}-{commit}-dev"),
+        (None, None) => format!("{version}-dev"),
     };
     println!("cargo:rustc-env=ORG_LSP_VERSION={full}");
 }

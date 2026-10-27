@@ -56,7 +56,8 @@ To build the server instead (with [[https://rustup.rs][cargo]]), set
 ~'do': 'cargo build --release -p org-lsp'~. The plugin takes the server
 ~cmd~ names, else a build in its checkout (~target/release~), ~org-lsp~ on
 PATH, or the downloaded one. ~:Org version~ says which server runs, with
-the commit it was built from (~org-lsp version 0.1.0-f7e7b68~).
+the commit it was built from (~org-lsp version 0.1.0-f7e7b68~; ~-dev~ after
+it for a server built by hand, not by the release workflow).
 
 The plugin finds the client that is installed and registers the server
 with it. Leave the client's own semantic highlighting and folding off for

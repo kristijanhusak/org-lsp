@@ -535,12 +535,13 @@ fn binary_prints_its_version_and_rejects_unknown_arguments() {
     let version = Command::new(binary).arg("--version").output().unwrap();
     assert!(version.status.success());
     assert_eq!(String::from_utf8(version.stdout).unwrap().trim(), format!("org-lsp {}", env!("ORG_LSP_VERSION")));
-    // With the commit it was built from, in a checkout.
+    // With the commit it was built from, in a checkout: the checkout's, as
+    // a build of its own (`-dev`), but in the release workflow.
     let head =
         Command::new("git").args(["rev-parse", "--short=7", "HEAD"]).output().ok().filter(|out| out.status.success());
-    if let Some(head) = head {
+    if let (Some(head), None) = (head, option_env!("ORG_LSP_COMMIT")) {
         let head = String::from_utf8(head.stdout).unwrap();
-        assert_eq!(env!("ORG_LSP_VERSION"), format!("{}-{}", env!("CARGO_PKG_VERSION"), head.trim()));
+        assert_eq!(env!("ORG_LSP_VERSION"), format!("{}-{}-dev", env!("CARGO_PKG_VERSION"), head.trim()));
     }
 
     let unknown = Command::new(binary).arg("--bogus").output().unwrap();

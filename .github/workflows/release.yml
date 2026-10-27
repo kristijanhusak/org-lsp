@@ -96,7 +96,11 @@ jobs:
       - name: Install musl
         if: contains(matrix.target, 'musl')
         run: sudo apt-get update && sudo apt-get install -y musl-tools
+      # The commit a released server says it was built from; without it
+      # the server says it is a build of its own (`-dev`).
       - run: cargo build --release --locked -p org-lsp --target ${{ matrix.target }}
+        env:
+          ORG_LSP_COMMIT: ${{ github.sha }}
 
       - name: Archive the server
         shell: bash
