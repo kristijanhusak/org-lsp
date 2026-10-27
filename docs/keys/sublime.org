@@ -399,6 +399,7 @@ line.
 | ~org.num.mode~ | Org: Number the headlines, or stop numbering them |
 | ~org.indent.mode~ | Org: Indent the text by the level of its headline, or stop indenting it |
 | ~org.custom.properties.toggle~ | Org: Hide the properties of org_custom_properties, or show them again |
+| ~org.version~ | Org: Show the version of the server |
 | ~org.todo.yesterday~ | Org: Change the TODO state as if it were yesterday |
 | ~org.todo.next~ | Org: Cycle TODO state forward |
 | ~org.todo.previous~ | Org: Cycle TODO state backward |

@@ -365,6 +365,11 @@
         "category": "Org"
       },
       {
+        "command": "org.version",
+        "title": "Show the version of the server",
+        "category": "Org"
+      },
+      {
         "command": "org.clock.report",
         "title": "Insert or update a clock table",
         "category": "Org"

@@ -127,7 +127,7 @@ fn answer_message(message: Value, folder: Option<&Path>, env: &dyn Fn(&str) -> O
             json!({
                 "protocolVersion": version,
                 "capabilities": { "tools": {}, "prompts": {} },
-                "serverInfo": { "name": "org-lsp", "version": env!("CARGO_PKG_VERSION") },
+                "serverInfo": { "name": "org-lsp", "version": env!("ORG_LSP_VERSION") },
                 "instructions": "The user's Org mode agenda, read as Emacs's Org builds it. \
                     Dates are YYYY-MM-DD. The views are text as Org's agenda shows them: \
                     category, time, TODO keyword, headline and tags on each line, then where \

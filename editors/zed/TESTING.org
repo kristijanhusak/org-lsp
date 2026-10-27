@@ -415,6 +415,10 @@ Not in Zed:
 - [ ] Emphasis markers around the cursor, ~*~ for bold (needs Emacs): ~ctrl-c ctrl-x ctrl-f~
 - [ ] A drawer, its name completed from the file's (needs Emacs): ~ctrl-c ctrl-x d~
 
+Not in Zed:
+
+- Showing the version of the server says ~org-lsp version 0.1.0-~ and the commit the server that runs was built from, as ~org-lsp --version~ says: /Show the version of the server/ is not among its keys or code actions
+
 * Timers
 
 *Partly:* For a countdown's length, the answer is typed as a rename at the cursor (~F2~), as Zed has no box of its own for typed text. No timer in the status line: Zed has no place there for an extension's text.

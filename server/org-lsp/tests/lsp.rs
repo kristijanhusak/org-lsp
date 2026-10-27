@@ -435,6 +435,17 @@ fn positions_use_the_negotiated_encoding() {
     }
 }
 
+/// `org-version`: the server says its version, with the commit it was
+/// built from, as the message of the command's result.
+#[test]
+fn says_its_version() {
+    let mut client = Client::start(json!({}), Value::Null);
+    let params = json!({ "command": "org.version", "arguments": [] });
+    let result = client.raw_request("workspace/executeCommand", params).response_result.unwrap();
+    assert_eq!(result["message"], format!("org-lsp version {}", env!("ORG_LSP_VERSION")));
+    client.shutdown();
+}
+
 #[test]
 fn unknown_requests_and_documents() {
     let mut client = Client::start(json!({}), Value::Null);
@@ -523,7 +534,14 @@ fn binary_prints_its_version_and_rejects_unknown_arguments() {
     let binary = env!("CARGO_BIN_EXE_org-lsp");
     let version = Command::new(binary).arg("--version").output().unwrap();
     assert!(version.status.success());
-    assert_eq!(String::from_utf8(version.stdout).unwrap().trim(), format!("org-lsp {}", env!("CARGO_PKG_VERSION")));
+    assert_eq!(String::from_utf8(version.stdout).unwrap().trim(), format!("org-lsp {}", env!("ORG_LSP_VERSION")));
+    // With the commit it was built from, in a checkout.
+    let head =
+        Command::new("git").args(["rev-parse", "--short=7", "HEAD"]).output().ok().filter(|out| out.status.success());
+    if let Some(head) = head {
+        let head = String::from_utf8(head.stdout).unwrap();
+        assert_eq!(env!("ORG_LSP_VERSION"), format!("{}-{}", env!("CARGO_PKG_VERSION"), head.trim()));
+    }
 
     let unknown = Command::new(binary).arg("--bogus").output().unwrap();
     assert_eq!(unknown.status.code(), Some(2));

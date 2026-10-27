@@ -47,7 +47,8 @@ To build the server instead (with [[https://rustup.rs][cargo]]), run
 ~:OrgLspBuild~, in the autocommand in place of ~OrgLspDownload~ to build it
 on each update. A
 build in the plugin's directory and ~org-lsp~ on PATH come before the
-download.
+download. ~:Org version~ says which server runs, with the commit it was
+built from (~org-lsp version 0.1.0-f7e7b68~).
 
 ~:checkhealth org-lsp~ reports the server the plugin found, where it came
 from, and the agenda files.

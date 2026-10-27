@@ -148,7 +148,7 @@ fn main() -> ExitCode {
             // Accepted for compatibility with clients that always pass it.
             "--stdio" => {}
             "--version" | "-V" => {
-                print(&format!("org-lsp {}\n", env!("CARGO_PKG_VERSION")));
+                print(&format!("org-lsp {}\n", env!("ORG_LSP_VERSION")));
                 return ExitCode::SUCCESS;
             }
             "--help" | "-h" => {
