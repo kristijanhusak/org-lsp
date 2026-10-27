@@ -72,6 +72,16 @@ kept by the generator), and every doc outside the generated blocks.
 
 ## Rules
 
+- **Every change is tried end to end in real editors before it is
+  merged**, not only through the test harnesses: each editor it touches,
+  installed as users install it (Neovim through lazy.nvim and through
+  `pack/*/start`; Vim through `pack/*/start` with each LSP client it
+  affects; VS Code, Sublime Text, Zed and Helix from what `install.sh`
+  installs), with its own window or terminal (tmux, Xvfb): open a file,
+  type and use the feature as a user does, and look at what shows (the
+  colors, the text, where the cursor is). A harness sets things up its own
+  way (`set rtp^=`, a minimal init) and can hide what a user hits. The pull
+  request says which editors and installs were tried, and how.
 - **Emacs is the reference.** Port Org logic from the Org 9.8.10 sources,
   and check it against Emacs with recorded cases and differential fuzzing
   (`.claude/skills/port-from-emacs`). Write down any deliberate difference.
