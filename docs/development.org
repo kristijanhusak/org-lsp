@@ -50,6 +50,13 @@ others), as close to Emacs Org mode as it can get.
   another);
   ~scripts/regen.sh~ writes the generated files again. ~CLAUDE.md~ lists
   the environment they read.
+- By hand, in real editors, before a change is merged: each editor it
+  touches, installed as users install it (Neovim through lazy.nvim and
+  through =pack/*/start=, Vim through =pack/*/start= with each LSP client
+  it affects, the others from what ~install.sh~ installs), the feature
+  used as a user uses it and what shows looked at. The harnesses set the
+  editors up their own way, which can hide what a user hits; the pull
+  request says which editors and installs were tried.
 - Rust: ~cargo test --workspace~,
   ~cargo clippy --workspace --all-targets -- -D warnings~, ~cargo fmt --all~.
   CI's toolchain is newer than what
