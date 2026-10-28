@@ -10,7 +10,12 @@
 #   It has what built: the files of a platform whose build failed are
 #   taken off, not left from an older build.
 # - a version tag (`v0.2.0`, the version scripts/version.sh set) makes
-#   that release, only when every build succeeded, and then publishes it
+#   that release, only when every build succeeded, and then publishes it.
+#   Run by hand with that tag (Actions > Release > Run workflow, `tag`),
+#   it builds the tag again, puts the files on its release (made already
+#   on GitHub's page for the tag, or not), and publishes it: the workflow
+#   is then this one, of main, where a run of the tag's own again would be
+#   the tag's
 #   (docs/development.org, Publishing): the VS Code packages on the VS Code
 #   Marketplace (as the Microsoft Entra ID app of the `marketplace`
 #   environment, or with the secret VSCE_PAT) and Open VSX (OVSX_PAT), a
@@ -32,15 +37,25 @@ on:
     branches: [main]
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      tag:
+        description: A version tag to release again (v0.2.0); empty for the nightly build
+        required: false
+        default: ''
 
 # Only the job that publishes writes.
 permissions:
   contents: read
 
+# The version tag released, pushed or asked for; empty for the nightly
+# build.
+env:
+  TAG: ${{ inputs.tag || (startsWith(github.ref, 'refs/tags/') && github.ref_name || '') }}
+
 # One publish at a time; a newer push to main replaces an older one.
 concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref == 'refs/heads/main' }}
+  group: release-${{ inputs.tag || github.ref }}
+  cancel-in-progress: ${{ github.ref == 'refs/heads/main' && !inputs.tag }}
 
 jobs:
   build:
@@ -75,11 +90,12 @@ jobs:
     # compile the server's crate on one; a version tag is built as
     # Cargo.toml says.
     env:
-      CARGO_PROFILE_RELEASE_CODEGEN_UNITS: ${{ startsWith(github.ref, 'refs/tags/') && '1' || '16' }}
-      CARGO_PROFILE_RELEASE_LTO: ${{ startsWith(github.ref, 'refs/tags/') && 'thin' || 'false' }}
+      CARGO_PROFILE_RELEASE_CODEGEN_UNITS: ${{ (startsWith(github.ref, 'refs/tags/') || startsWith(inputs.tag, 'v')) && '1' || '16' }}
+      CARGO_PROFILE_RELEASE_LTO: ${{ (startsWith(github.ref, 'refs/tags/') || startsWith(inputs.tag, 'v')) && 'thin' || 'false' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          ref: ${{ inputs.tag }}
           persist-credentials: false
       - name: Install Rust
         shell: bash
@@ -93,16 +109,17 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: release-${{ matrix.target }}-${{ startsWith(github.ref, 'refs/tags/') && 'tag' || 'nightly' }}-${{ hashFiles('Cargo.lock') }}
-          restore-keys: release-${{ matrix.target }}-${{ startsWith(github.ref, 'refs/tags/') && 'tag' || 'nightly' }}-
+          key: release-${{ matrix.target }}-${{ (startsWith(github.ref, 'refs/tags/') || startsWith(inputs.tag, 'v')) && 'tag' || 'nightly' }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: release-${{ matrix.target }}-${{ (startsWith(github.ref, 'refs/tags/') || startsWith(inputs.tag, 'v')) && 'tag' || 'nightly' }}-
       - name: Install musl
         if: contains(matrix.target, 'musl')
         run: sudo apt-get update && sudo apt-get install -y musl-tools
-      # The commit a released server says it was built from; without it
+      # The commit a released server says it was built from (the one
+      # checked out: a tag's, also when run by hand on main); without it
       # the server says it is a build of its own (`-dev`).
-      - run: cargo build --release --locked -p org-lsp --target ${{ matrix.target }}
-        env:
-          ORG_LSP_COMMIT: ${{ github.sha }}
+      - name: Build the server
+        shell: bash
+        run: ORG_LSP_COMMIT=$(git rev-parse HEAD) cargo build --release --locked -p org-lsp --target ${{ matrix.target }}
 
       - name: Archive the server
         shell: bash
@@ -148,13 +165,14 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          ref: ${{ inputs.tag }}
           persist-credentials: false
       - name: The tag is the version
-        if: startsWith(github.ref, 'refs/tags/')
+        if: env.TAG != ''
         run: |
           version=$(scripts/version.sh)
-          [ "$GITHUB_REF_NAME" = "v$version" ] ||
-            { echo "::error::The tag $GITHUB_REF_NAME is not v$version, the version scripts/version.sh set"; exit 1; }
+          [ "$TAG" = "v$version" ] ||
+            { echo "::error::The tag $TAG is not v$version, the version scripts/version.sh set"; exit 1; }
       - name: Install Rust
         run: |
           rustup toolchain install stable --profile minimal --target wasm32-wasip2
@@ -163,7 +181,7 @@ jobs:
         run: |
           # The release whose server it downloads: its own version's, or
           # the nightly one (ORG_LSP_RELEASE, read when it is built).
-          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+          if [ -n "$TAG" ]; then
             release=v$(scripts/version.sh)
           else
             release=nightly
@@ -193,13 +211,15 @@ jobs:
     needs: [build, zed]
     # A version: when every build succeeded. Nightly: the platforms that
     # built, also when one failed.
-    if: ${{ !cancelled() && ((startsWith(github.ref, 'refs/tags/') && needs.build.result == 'success' && needs.zed.result == 'success') || github.ref == 'refs/heads/main') }}
+    if: ${{ !cancelled() && (((startsWith(github.ref, 'refs/tags/') || startsWith(inputs.tag, 'v')) && needs.build.result == 'success' && needs.zed.result == 'success') || (github.ref == 'refs/heads/main' && !inputs.tag)) }}
     runs-on: ubuntu-latest
     # It pushes the `nightly` tag and makes the release.
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ inputs.tag }}
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: dist
@@ -208,7 +228,7 @@ jobs:
         run: |
           # The nightly package downloads the nightly server; a version's,
           # its own (`'v' + VERSION`).
-          if [[ "$GITHUB_REF" != refs/tags/* ]]; then
+          if [ -z "$TAG" ]; then
             sed -i "s/^RELEASE = 'v' + VERSION .*/RELEASE = 'nightly'/" editors/sublime/LSP-org/plugin.py
             grep -qx "RELEASE = 'nightly'" editors/sublime/LSP-org/plugin.py || { echo "plugin.py has no RELEASE to set"; exit 1; }
           fi
@@ -222,8 +242,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           ls -l dist
-          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes --verify-tag dist/*
+          if [ -n "$TAG" ]; then
+            # A release made on GitHub's page with the tag has no files:
+            # they go to it, its title and notes as they are.
+            if gh release view "$TAG" > /dev/null 2>&1; then
+              gh release upload "$TAG" dist/* --clobber
+            else
+              gh release create "$TAG" --title "$TAG" --generate-notes --verify-tag dist/*
+            fi
             exit 0
           fi
           # nightly: the tag moves to this commit, the files are replaced,
@@ -248,7 +274,7 @@ jobs:
   # those of editors/vscode's package-lock.json.
   vscode-marketplace:
     needs: publish
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || startsWith(inputs.tag, 'v')
     runs-on: ubuntu-latest
     # Its secrets: AZURE_CLIENT_ID and AZURE_TENANT_ID, the Microsoft Entra
     # ID app the job signs in as (a federated credential for this
@@ -269,6 +295,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         if: env.PUBLISH == 'true'
         with:
+          ref: ${{ inputs.tag }}
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         if: env.PUBLISH == 'true'
@@ -301,7 +328,7 @@ jobs:
 
   open-vsx:
     needs: publish
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || startsWith(inputs.tag, 'v')
     runs-on: ubuntu-latest
     env:
       # A token of the open-vsx.org account that owns the `kristijanhusak`
@@ -311,6 +338,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         if: env.OVSX_PAT != ''
         with:
+          ref: ${{ inputs.tag }}
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         if: env.OVSX_PAT != ''
@@ -328,6 +356,8 @@ jobs:
           npm ci
           npx --no-install ovsx publish --skip-duplicate --packagePath "$GITHUB_WORKSPACE"/dist/*.vsix
 
+  # Zed's registry and the Sublime Text mirror are given a tag only when
+  # it is pushed: their tools read it from the event.
   zed-registry:
     needs: publish
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
