@@ -207,10 +207,13 @@ const palette = [
 // them, as a stack with the most specific last: Sublime Text colors a token
 // by the last scope its color scheme has a color for, so a scheme without
 // one for `constant.other.timestamp.org` still colors it as
-// `constant.numeric`.
+// `constant.numeric`. Emphasis is left to Org.sublime-syntax: LSP draws a
+// token as a region, which has the color of its scope but neither bold nor
+// italics, over the bold or italic text the syntax gave.
+const emphasis = ['*.bold', '*.italic', '*.underline', '*.strikethrough'];
 const semanticTokens = Object.fromEntries(
   manifest.highlights
-    .filter((look) => look.textmate.length > 0)
+    .filter((look) => look.textmate.length > 0 && !emphasis.includes(look.token))
     .map((look) => [look.token.replace(/^\*\./, 'text.'), [...look.textmate].reverse().join(' ')]),
 );
 

@@ -830,6 +830,31 @@ interface Faces {
 const faceDecorations = new Map<string, vscode.TextEditorDecorationType>();
 /** For tests: the keywords and priorities painted in each editor, `[line, text]`. */
 const facesShown = new WeakMap<vscode.TextEditor, [number, string][]>();
+/**
+ * Emphasis within emphasis (bold in italics), by its looks joined
+ * (`bold+italic`). A theme gives each look through a scope of its own,
+ * and VS Code takes a font style from one of them alone: `bold` turns
+ * italic off where `italic` turns bold off. These ranges have all of them.
+ */
+const emphasisDecorations = new Map<string, vscode.TextEditorDecorationType>();
+const emphasisLooks = ['bold', 'italic', 'underline', 'strikethrough'];
+/** For tests: the text of each emphasis painted with more than one look, `[line, text, looks]`. */
+const emphasisShown = new WeakMap<vscode.TextEditor, [number, string, string][]>();
+
+function emphasisDecoration(key: string): vscode.TextEditorDecorationType {
+  let decoration = emphasisDecorations.get(key);
+  if (!decoration) {
+    const looks = key.split('+');
+    const lines = [looks.includes('underline') && 'underline', looks.includes('strikethrough') && 'line-through'].filter(Boolean).join(' ');
+    decoration = vscode.window.createTextEditorDecorationType({
+      fontWeight: looks.includes('bold') ? 'bold' : undefined,
+      fontStyle: looks.includes('italic') ? 'italic' : undefined,
+      textDecoration: lines || undefined,
+    });
+    emphasisDecorations.set(key, decoration);
+  }
+  return decoration;
+}
 const faceTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 function setFaces(faces: Faces | undefined): void {
@@ -855,11 +880,14 @@ function setFaces(faces: Faces | undefined): void {
   vscode.window.visibleTextEditors.forEach((editor) => void paintFaces(editor));
 }
 
-/** Give the keywords and priorities of `editor` that have a face of their own that face. */
+/**
+ * Give the keywords and priorities of `editor` that have a face of their
+ * own that face, and emphasis within emphasis all its looks.
+ */
 async function paintFaces(editor: vscode.TextEditor): Promise<void> {
   const running = client;
   const document = editor.document;
-  if (!running || faceDecorations.size === 0 || !['org', 'org-agenda'].includes(document.languageId)) {
+  if (!running || !['org', 'org-agenda'].includes(document.languageId)) {
     return;
   }
   const legend = running.initializeResult?.capabilities.semanticTokensProvider?.legend;
@@ -872,6 +900,8 @@ async function paintFaces(editor: vscode.TextEditor): Promise<void> {
   }
   const ranges = new Map<string, vscode.Range[]>();
   const shown: [number, string][] = [];
+  const emphasis = new Map<string, vscode.Range[]>();
+  const emphasized: [number, string, string][] = [];
   const data = tokens.data;
   let line = 0;
   let character = 0;
@@ -879,6 +909,16 @@ async function paintFaces(editor: vscode.TextEditor): Promise<void> {
     line += data[i];
     character = data[i] === 0 ? character + data[i + 1] : data[i + 1];
     const type = legend.tokenTypes[data[i + 3]];
+    const looks = emphasisLooks.filter((look) => {
+      const bit = legend.tokenModifiers.indexOf(look);
+      return bit >= 0 && (data[i + 4] & (1 << bit)) !== 0;
+    });
+    if (looks.length > 1 && line < document.lineCount) {
+      const key = looks.join('+');
+      const range = new vscode.Range(line, character, line, character + data[i + 2]);
+      emphasis.set(key, [...(emphasis.get(key) ?? []), range]);
+      emphasized.push([line, document.getText(range), key]);
+    }
     // `org-tag-faces`: each tag of a headline in an Org file with a face of
     // its own, its name without the colons; the agenda shows tags in
     // `org-tag` alone.
@@ -915,6 +955,13 @@ async function paintFaces(editor: vscode.TextEditor): Promise<void> {
     editor.setDecorations(decoration, ranges.get(key) ?? []);
   }
   facesShown.set(editor, shown);
+  for (const key of emphasis.keys()) {
+    emphasisDecoration(key);
+  }
+  for (const [key, decoration] of emphasisDecorations) {
+    editor.setDecorations(decoration, emphasis.get(key) ?? []);
+  }
+  emphasisShown.set(editor, emphasized);
 }
 
 /** Paint again a while after the document changed. */
@@ -2358,6 +2405,8 @@ export interface Api {
   habitDays(editor: vscode.TextEditor): [number, number, string][];
   /** The keywords and priorities shown in a face of their own, `[line, text]`. */
   faces(editor: vscode.TextEditor): [number, string][];
+  /** Emphasis within emphasis, painted with all its looks: `[line, text, looks]`. */
+  emphasis(editor: vscode.TextEditor): [number, string, string][];
   /** The text of the matches of the sparse tree `editor` shows. */
   sparse(editor: vscode.TextEditor): string[];
   /** What `org-lsp.help` lists for `editor`: `[key, title]`. */
@@ -2495,6 +2544,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<Api> {
     lineHighlights: (editor) => lineHighlightsShown.get(editor) ?? [],
     habitDays: (editor) => habitDaysShown.get(editor) ?? [],
     faces: (editor) => facesShown.get(editor) ?? [],
+    emphasis: (editor) => emphasisShown.get(editor) ?? [],
     sparse: (editor) =>
       (sparseShown.get(editor.document.uri.toString())?.ranges ?? []).map((range) => editor.document.getText(range)),
     help: (editor) => helpItems(context.extension.packageJSON, editor).map((item) => [item.key, item.title]),
