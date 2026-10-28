@@ -433,6 +433,14 @@ git tag v0.2.0 origin/main
 git push origin v0.2.0
 #+end_src
 
+The tag can also be made on GitHub's page, /Releases › Draft a new
+release/: the workflow then puts the files on that release, its title and
+notes as written there. A release that failed is made again by running
+the workflow by hand on main with its tag (/Actions › Release › Run
+workflow/, ~tag~ ~v0.2.0~): it builds that tag again and publishes it, as
+this workflow does, where running it again for the tag would be the
+workflow as it was at the tag.
+
 The Release workflow (~.github/workflows/release.yml~) fails when the tag
 is not ~v~ and the version, builds everything, makes the GitHub release,
 then publishes it: each of these jobs is skipped while its secret is not
