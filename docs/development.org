@@ -400,9 +400,12 @@ check copies it and starts the server with those options.
 The checks against Emacs and the editors' tests need the tools installed.
 What works on a Debian or Ubuntu machine: ~apt-get install emacs-nox
 faketime~; Org 9.8.10 from its GitHub mirror (~git clone --depth 1 --branch
-release_9.8.10 https://github.com/bzg/org-mode~, then ~make autoloads~),
+release_9.8.10 https://github.com/bzg/org-mode~, then ~make compile~),
 with ~ORG_LISP_DIR~ set to its ~lisp~ directory; Neovim and VSCodium from
-their GitHub releases.
+their GitHub releases. Compiled, Org loads three times faster, and works as
+it does where users install it: a ~defsubst~ such as ~org-current-line~ is
+then part of the functions that call it, and the bridge cannot stand in for
+it.
 
 * Publishing
 :PROPERTIES:
