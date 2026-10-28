@@ -12,7 +12,9 @@
 # - a version tag (`v0.2.0`, the version scripts/version.sh set) makes
 #   that release, only when every build succeeded, and then publishes it
 #   (docs/development.org, Publishing): the VS Code packages on the VS Code
-#   Marketplace (secret VSCE_PAT) and Open VSX (OVSX_PAT), a pull request
+#   Marketplace (as the Microsoft Entra ID app of the `marketplace`
+#   environment, or with the secret VSCE_PAT) and Open VSX (OVSX_PAT), a
+#   pull request
 #   to Zed's extension registry (ZED_EXTENSIONS_TOKEN), and the Sublime
 #   Text package to the repository Package Control reads,
 #   kristijanhusak/LSP-org (SUBLIME_MIRROR_TOKEN). Each is skipped while
@@ -248,31 +250,54 @@ jobs:
     needs: publish
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
+    # Its secrets: AZURE_CLIENT_ID and AZURE_TENANT_ID, the Microsoft Entra
+    # ID app the job signs in as (a federated credential for this
+    # environment, no secret of its own), a member of the `kristijanhusak`
+    # publisher. Or VSCE_PAT, a token of an Azure DevOps organization of the
+    # publisher with Marketplace > Manage, which Azure DevOps takes until
+    # December 1, 2026.
+    environment: marketplace
+    permissions:
+      contents: read
+      id-token: write
     env:
-      # A token of the Azure DevOps organization of the `kristijanhusak`
-      # publisher, with Marketplace > Manage.
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      PUBLISH: ${{ secrets.AZURE_CLIENT_ID != '' || secrets.VSCE_PAT != '' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        if: env.VSCE_PAT != ''
+        if: env.PUBLISH == 'true'
         with:
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        if: env.VSCE_PAT != ''
+        if: env.PUBLISH == 'true'
         with:
           node-version: 22
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        if: env.VSCE_PAT != ''
+        if: env.PUBLISH == 'true'
         with:
           path: dist
           merge-multiple: true
+      - name: Sign in to Microsoft Entra ID
+        if: env.AZURE_CLIENT_ID != ''
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          allow-no-subscriptions: true
       - name: Publish the VS Code packages on the VS Code Marketplace
-        if: env.VSCE_PAT != ''
+        if: env.PUBLISH == 'true'
         working-directory: editors/vscode
         run: |
           npm ci
+          # As the app signed in above, or with the token.
+          credential=()
+          if [ -n "$AZURE_CLIENT_ID" ]; then
+            credential=(--azure-credential)
+          fi
           # A version already there (the job run again) is not an error.
-          npx --no-install vsce publish --skip-duplicate --packagePath "$GITHUB_WORKSPACE"/dist/*.vsix
+          npx --no-install vsce publish "${credential[@]}" --skip-duplicate --packagePath "$GITHUB_WORKSPACE"/dist/*.vsix
 
   open-vsx:
     needs: publish
