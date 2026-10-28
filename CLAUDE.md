@@ -32,8 +32,9 @@ scripts/screenshots.py  # docs/images: screenshots and animations of Neovim (NVI
 scripts/site.sh       # the website into target/site; --serve shows it
 ```
 
-Set `ORG_LISP_DIR` to the `lisp` directory of an Org 9.8.10 checkout: the
-tests that run Emacs use it, and
+Set `ORG_LISP_DIR` to the `lisp` directory of an Org 9.8.10 checkout,
+compiled (`make compile`: Org as users have it, and three times faster to
+load): the tests that run Emacs use it, and
 `follows_links_whose_abbreviation_calls_a_function` fails against the Org
 that Emacs ships with. `ORG_LSP_REQUIRE_EMACS=1` makes those tests fail
 instead of skipping when Emacs is missing. `test-all.sh` also reads `NVIM`,

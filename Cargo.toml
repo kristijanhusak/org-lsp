@@ -13,3 +13,19 @@ publish = false
 lto = "thin"
 codegen-units = 1
 strip = true
+
+# Line numbers alone in the debug builds' backtraces: each test binary
+# is a seventh of its size with all of the debug information (2.5 GB for all
+# of them against 17).
+[profile.dev]
+debug = "line-tables-only"
+
+# The tests parse a lot of text (every prefix of each fixture, random edits,
+# commands at every position): the parser built for speed in the debug
+# builds the tests use, still with their checks (`debug-assertions`,
+# `overflow-checks`).
+[profile.dev.package.org-syntax]
+opt-level = 2
+
+[profile.dev.package.rowan]
+opt-level = 2

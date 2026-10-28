@@ -4352,158 +4352,179 @@ fn changes_timestamps_and_priorities_in_a_file() {
 fn agenda_actions_match_emacs() {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/agenda-actions/cases.json");
     let cases: Vec<Value> = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
-    let mut failures = String::new();
-    let mut changed = 0;
-    for (index, case) in cases.iter().enumerate() {
-        let (today, now) = case["clock"].as_str().unwrap().split_once(' ').unwrap();
-        let mut options = case.get("options").cloned().unwrap_or_else(|| json!({}));
-        options["clock"] = json!({ "today": today, "now": now });
-        options["org_agenda_span"] = case.get("span").cloned().unwrap_or_else(|| json!("week"));
-        let mut client = Client::editor(options, None);
-        let files = case["files"].as_object().unwrap();
-        for (name, text) in files {
-            client.open(&format!("file:///org/{name}"), text.as_str().unwrap());
-        }
-        let todo_list = case.get("view").and_then(Value::as_str) == Some("todo");
-        client.command(if todo_list { "org.agenda.todos" } else { "org.agenda.list" }, VIEW, 0);
-        let view = client.view_text(VIEW);
-        let needle = case["line"].as_str().unwrap();
-        let line = view.lines().position(|line| line.contains(needle)).unwrap_or_else(|| panic!("no `{needle}`"));
-        let mut context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } });
-        if let Some(count) = case.get("count").filter(|count| !count.is_null()) {
-            context["count"] = count.clone();
-        }
-        let command = format!("org.{}", case["command"].as_str().unwrap().replace('-', "."));
-        // A bulk action: `m` on the lines of its marks, then `B` with the
-        // action's key and the answer to what it asks.
-        let bulk = case["command"] == "bulk";
-        if bulk {
-            for mark in case["marks"].as_array().unwrap() {
-                let text = client.view_text(VIEW);
-                let at = text.lines().position(|line| line.contains(mark.as_str().unwrap())).unwrap();
-                let at = json!({ "textDocument": { "uri": VIEW }, "position": { "line": at, "character": 0 } });
-                client
-                    .request(
-                        "workspace/executeCommand",
-                        json!({ "command": "org.agenda.bulk.mark", "arguments": [at] }),
-                    )
-                    .unwrap();
-                client.settle();
-            }
-            let text = client.view_text(VIEW);
-            let line = text.lines().position(|line| line.contains(needle)).unwrap();
-            context["position"]["line"] = json!(line);
-        }
-        // A command that asks for a date first says what the prompt
-        // starts with, and then runs with the answer.
-        if bulk {
-        } else if let Some(answer) = case.get("answer") {
-            let asked =
-                client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
-            if let (Ok(asked), Value::Object(_)) = (&asked, &case["expected"]) {
-                if asked["input"]["value"] != case["prompt"] {
-                    failures.push_str(&format!(
-                        "\ncase {index}: {command} on `{needle}` offers {} where Emacs offers {}\n",
-                        asked["input"]["value"], case["prompt"]
-                    ));
-                }
-            }
-            context["input"] = answer.clone();
-        }
-        client.received.clear();
-        let result = if bulk {
-            let action = "org.agenda.bulk.action";
-            let run = |client: &mut Client, context: &Value| {
-                let result =
-                    client.request("workspace/executeCommand", json!({ "command": action, "arguments": [context] }));
-                client.settle();
-                result
-            };
-            let mut result = run(&mut client, &context);
-            for (step, input) in
-                [(json!("action"), case["action"].clone()), (case["action"].clone(), case["answer"].clone())]
-            {
-                match &result {
-                    Ok(value) if value.get("input").is_some() => {
-                        context["step"] = step;
-                        context["input"] = input;
-                        context["answers"] = json!("");
-                        result = run(&mut client, &context);
+    // Each case has a server of its own: several at a time, each core
+    // taking the next case when it is done with one.
+    let next = std::sync::atomic::AtomicUsize::new(0);
+    let threads = std::thread::available_parallelism().map_or(1, usize::from);
+    let mut results: Vec<(usize, String, bool)> = std::thread::scope(|scope| {
+        let workers: Vec<_> = (0..threads)
+            .map(|_| {
+                scope.spawn(|| {
+                    let mut done = Vec::new();
+                    loop {
+                        let index = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                        let Some(case) = cases.get(index) else { break done };
+                        let (failures, changed) = agenda_action_case(index, case);
+                        done.push((index, failures, changed));
                     }
-                    _ => break,
-                }
-            }
-            result
-        } else {
-            let result =
-                client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
-            client.settle();
-            result
-        };
-        // The files as they read once the editor has applied the edit.
-        let mut after: serde_json::Map<String, Value> = files.clone();
-        // An archive file left unsaved, as Emacs leaves it, is no file of
-        // the case.
-        for request in client.received.iter().filter(|request| request.method == "workspace/applyEdit") {
-            for change in request.params["edit"]["documentChanges"].as_array().unwrap() {
-                let uri = change["textDocument"]["uri"].as_str().unwrap();
-                let name = uri.rsplit('/').next().unwrap().to_string();
-                let Some(now) = after.get(&name).and_then(Value::as_str) else { continue };
-                let changed = apply(now, change["edits"].as_array().unwrap());
-                after.insert(name, Value::String(changed));
-            }
-        }
-        changed += usize::from(after != *files);
-        // A command that changes the view: the new text, and where the
-        // cursor goes in it.
-        if let (Some(agenda), Ok(_)) = (case.get("agenda"), &result) {
-            // The editor applies the edits, as the server then learns.
-            for (name, text) in &after {
-                if files.get(name) != Some(text) {
-                    client.notify(
-                        "textDocument/didChange",
-                        json!({
-                            "textDocument": { "uri": format!("file:///org/{name}"), "version": 100 },
-                            "contentChanges": [{ "text": text }],
-                        }),
-                    );
-                }
-            }
-            client.settle();
-            let shown = client.view_text(VIEW);
-            let reveal = client.received.iter().rev().find(|request| request.method == "window/showDocument");
-            // Without being moved, the cursor stays on the line it was on.
-            let cursor = reveal
-                .map(|request| request.params["selection"]["start"]["line"].clone())
-                .or_else(|| Some(context["position"]["line"].clone()));
-            if shown != agenda.as_str().unwrap() || cursor.as_ref() != Some(&case["cursor"]) {
-                failures.push_str(&format!(
-                    "\ncase {index}: {command} `{}`\n--- emacs (cursor {})\n{}\n--- org-lsp (cursor {cursor:?})\n{shown}\n",
-                    case["answer"],
-                    case["cursor"],
-                    agenda.as_str().unwrap()
-                ));
-            }
-        }
-        let same = match (&case["expected"], &result) {
-            // Where Emacs refuses, so must the server.
-            (Value::String(_), Err(_)) => true,
-            (Value::Object(expected), Ok(_)) => *expected == after,
-            _ => false,
-        };
-        if !same {
-            failures.push_str(&format!(
-                "\ncase {index}: {command} on `{needle}` (count {})\n--- emacs\n{:#}\n--- org-lsp ({result:?})\n{:#}\n",
-                case["count"],
-                case["expected"],
-                Value::Object(after)
-            ));
-        }
-        client.shutdown();
-    }
+                })
+            })
+            .collect();
+        workers.into_iter().flat_map(|worker| worker.join().unwrap()).collect()
+    });
+    results.sort_by_key(|(index, ..)| *index);
+    let failures: String = results.iter().map(|(_, failures, _)| failures.as_str()).collect();
+    let changed = results.iter().filter(|(.., changed)| *changed).count();
     assert!(failures.is_empty(), "agenda commands differ from Emacs:{failures}");
     // The comparison means something only if most commands changed a file.
     assert!(changed > cases.len() / 2, "{changed} of {} cases changed a file", cases.len());
+}
+
+/// One case of `agenda_actions_match_emacs`: how it differs from Emacs,
+/// and whether the command changed a file.
+fn agenda_action_case(index: usize, case: &Value) -> (String, bool) {
+    let mut failures = String::new();
+    let (today, now) = case["clock"].as_str().unwrap().split_once(' ').unwrap();
+    let mut options = case.get("options").cloned().unwrap_or_else(|| json!({}));
+    options["clock"] = json!({ "today": today, "now": now });
+    options["org_agenda_span"] = case.get("span").cloned().unwrap_or_else(|| json!("week"));
+    let mut client = Client::editor(options, None);
+    let files = case["files"].as_object().unwrap();
+    for (name, text) in files {
+        client.open(&format!("file:///org/{name}"), text.as_str().unwrap());
+    }
+    let todo_list = case.get("view").and_then(Value::as_str) == Some("todo");
+    client.command(if todo_list { "org.agenda.todos" } else { "org.agenda.list" }, VIEW, 0);
+    let view = client.view_text(VIEW);
+    let needle = case["line"].as_str().unwrap();
+    let line = view.lines().position(|line| line.contains(needle)).unwrap_or_else(|| panic!("no `{needle}`"));
+    let mut context = json!({ "textDocument": { "uri": VIEW }, "position": { "line": line, "character": 0 } });
+    if let Some(count) = case.get("count").filter(|count| !count.is_null()) {
+        context["count"] = count.clone();
+    }
+    let command = format!("org.{}", case["command"].as_str().unwrap().replace('-', "."));
+    // A bulk action: `m` on the lines of its marks, then `B` with the
+    // action's key and the answer to what it asks.
+    let bulk = case["command"] == "bulk";
+    if bulk {
+        for mark in case["marks"].as_array().unwrap() {
+            let text = client.view_text(VIEW);
+            let at = text.lines().position(|line| line.contains(mark.as_str().unwrap())).unwrap();
+            let at = json!({ "textDocument": { "uri": VIEW }, "position": { "line": at, "character": 0 } });
+            client
+                .request("workspace/executeCommand", json!({ "command": "org.agenda.bulk.mark", "arguments": [at] }))
+                .unwrap();
+            client.settle();
+        }
+        let text = client.view_text(VIEW);
+        let line = text.lines().position(|line| line.contains(needle)).unwrap();
+        context["position"]["line"] = json!(line);
+    }
+    // A command that asks for a date first says what the prompt
+    // starts with, and then runs with the answer.
+    if bulk {
+    } else if let Some(answer) = case.get("answer") {
+        let asked = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        if let (Ok(asked), Value::Object(_)) = (&asked, &case["expected"]) {
+            if asked["input"]["value"] != case["prompt"] {
+                failures.push_str(&format!(
+                    "\ncase {index}: {command} on `{needle}` offers {} where Emacs offers {}\n",
+                    asked["input"]["value"], case["prompt"]
+                ));
+            }
+        }
+        context["input"] = answer.clone();
+    }
+    client.received.clear();
+    let result = if bulk {
+        let action = "org.agenda.bulk.action";
+        let run = |client: &mut Client, context: &Value| {
+            let result =
+                client.request("workspace/executeCommand", json!({ "command": action, "arguments": [context] }));
+            client.settle();
+            result
+        };
+        let mut result = run(&mut client, &context);
+        for (step, input) in
+            [(json!("action"), case["action"].clone()), (case["action"].clone(), case["answer"].clone())]
+        {
+            match &result {
+                Ok(value) if value.get("input").is_some() => {
+                    context["step"] = step;
+                    context["input"] = input;
+                    context["answers"] = json!("");
+                    result = run(&mut client, &context);
+                }
+                _ => break,
+            }
+        }
+        result
+    } else {
+        let result = client.request("workspace/executeCommand", json!({ "command": command, "arguments": [context] }));
+        client.settle();
+        result
+    };
+    // The files as they read once the editor has applied the edit.
+    let mut after: serde_json::Map<String, Value> = files.clone();
+    // An archive file left unsaved, as Emacs leaves it, is no file of
+    // the case.
+    for request in client.received.iter().filter(|request| request.method == "workspace/applyEdit") {
+        for change in request.params["edit"]["documentChanges"].as_array().unwrap() {
+            let uri = change["textDocument"]["uri"].as_str().unwrap();
+            let name = uri.rsplit('/').next().unwrap().to_string();
+            let Some(now) = after.get(&name).and_then(Value::as_str) else { continue };
+            let changed = apply(now, change["edits"].as_array().unwrap());
+            after.insert(name, Value::String(changed));
+        }
+    }
+    let changed = after != *files;
+    // A command that changes the view: the new text, and where the
+    // cursor goes in it.
+    if let (Some(agenda), Ok(_)) = (case.get("agenda"), &result) {
+        // The editor applies the edits, as the server then learns.
+        for (name, text) in &after {
+            if files.get(name) != Some(text) {
+                client.notify(
+                    "textDocument/didChange",
+                    json!({
+                        "textDocument": { "uri": format!("file:///org/{name}"), "version": 100 },
+                        "contentChanges": [{ "text": text }],
+                    }),
+                );
+            }
+        }
+        client.settle();
+        let shown = client.view_text(VIEW);
+        let reveal = client.received.iter().rev().find(|request| request.method == "window/showDocument");
+        // Without being moved, the cursor stays on the line it was on.
+        let cursor = reveal
+            .map(|request| request.params["selection"]["start"]["line"].clone())
+            .or_else(|| Some(context["position"]["line"].clone()));
+        if shown != agenda.as_str().unwrap() || cursor.as_ref() != Some(&case["cursor"]) {
+            failures.push_str(&format!(
+                "\ncase {index}: {command} `{}`\n--- emacs (cursor {})\n{}\n--- org-lsp (cursor {cursor:?})\n{shown}\n",
+                case["answer"],
+                case["cursor"],
+                agenda.as_str().unwrap()
+            ));
+        }
+    }
+    let same = match (&case["expected"], &result) {
+        // Where Emacs refuses, so must the server.
+        (Value::String(_), Err(_)) => true,
+        (Value::Object(expected), Ok(_)) => *expected == after,
+        _ => false,
+    };
+    if !same {
+        failures.push_str(&format!(
+            "\ncase {index}: {command} on `{needle}` (count {})\n--- emacs\n{:#}\n--- org-lsp ({result:?})\n{:#}\n",
+            case["count"],
+            case["expected"],
+            Value::Object(after)
+        ));
+    }
+    client.shutdown();
+    (failures, changed)
 }
 
 /// Keys can come faster than the agenda is redrawn. A line number then
@@ -8931,7 +8952,7 @@ fn previews_the_images_of_links() {
 }
 
 /// A tiny HTTP server for the remote images: `/a.png` and `/b.png` are
-/// pictures; `/slow.png` too, after a second and a half; `/huge.png` is
+/// pictures; `/slow.png` too, after half a second; `/huge.png` is
 /// 21 MB with no `Content-Length`; a path with `a,b` or `1-3` in it, or
 /// ending in `-long.png`, is a picture; anything else is not found. It
 /// counts the requests it answered, by path.
@@ -8961,7 +8982,7 @@ fn image_server() -> (String, std::sync::Arc<std::sync::Mutex<Vec<String>>>) {
             let response = match path.as_str() {
                 "/a.png" | "/b.png" => picture(&path[1..2]),
                 "/slow.png" => {
-                    std::thread::sleep(std::time::Duration::from_millis(1500));
+                    std::thread::sleep(std::time::Duration::from_millis(500));
                     picture("s")
                 }
                 "/huge.png" => {

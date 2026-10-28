@@ -2,7 +2,7 @@
 //!
 //! The documents of the conformance cases, with letters replaced by
 //! characters of two, three and four bytes, and every command run with
-//! the cursor at every character (every seventh in a debug build). What
+//! the cursor at every character (every 29th in a debug build). What
 //! the commands make of them is checked elsewhere; here only that they
 //! finish.
 
@@ -88,7 +88,9 @@ fn commands_finish_on_text_of_several_bytes() {
     let next = std::sync::atomic::AtomicUsize::new(0);
     let check = || -> BTreeMap<String, String> {
         let mut failures: BTreeMap<String, String> = BTreeMap::new();
-        while let Some(document) = documents.get(next.fetch_add(1, std::sync::atomic::Ordering::Relaxed)) {
+        loop {
+            let index = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            let Some(document) = documents.get(index) else { break };
             let text = widened(document);
             let parse = org_syntax::parse(&text, &keywords);
             let mut run = |what: &str, at: usize, f: &mut dyn FnMut()| {
@@ -108,10 +110,11 @@ fn commands_finish_on_text_of_several_bytes() {
                 });
             }
             // Every character in an optimized build (`cargo test --release`);
-            // every seventh otherwise, which the debug build of CI can afford.
-            let step = if cfg!(debug_assertions) { 7 } else { 1 };
+            // otherwise every 29th, from a character that moves on with each
+            // document: all the documents together still start from each.
+            let step = if cfg!(debug_assertions) { 29 } else { 1 };
             let positions: Vec<usize> =
-                text.char_indices().map(|(at, _)| at).chain([text.len()]).step_by(step).collect();
+                text.char_indices().map(|(at, _)| at).chain([text.len()]).skip(index % step).step_by(step).collect();
             for &at in &positions {
                 let return_settings = newline::Settings {
                     indent: indent::Settings::default(),

@@ -413,7 +413,7 @@ const BUSY_WAIT: Duration = Duration::from_millis(if cfg!(test) { 300 } else { 3
 /// The longest the server waits, holding up its other answers, for Emacs
 /// to start before a job it waits for ([`Emacs::call`]); Emacs goes on
 /// starting.
-const START_WAIT: Duration = Duration::from_secs(if cfg!(test) { 2 } else { 15 });
+const START_WAIT: Duration = Duration::from_millis(if cfg!(test) { 1000 } else { 15_000 });
 const QUESTION_TIME: Duration = Duration::from_secs(600);
 /// The longest a job the server does not wait for may take (an export, a
 /// publication, a preview), questions to the user included; a second in
@@ -677,7 +677,7 @@ done
         let path = directory.join("emacs");
         let script = format!(
             "#!/bin/sh\nwhile IFS= read -r line; do\n  case \"$line\" in\n    *'\"method\":\"setup\"'*) \
-             printf '\\036org-lsp {{\"id\":1,\"result\":{{}}}}\\n' ;;\n    *) (sleep 1; touch {}) & sleep 30 ;;\n  \
+             printf '\\036org-lsp {{\"id\":1,\"result\":{{}}}}\\n' ;;\n    *) (sleep 0.5; touch {}) & sleep 30 ;;\n  \
              esac\ndone\n",
             marker.display()
         );
@@ -687,7 +687,7 @@ done
         emacs.start(1, "run", Value::Null);
         std::thread::sleep(Duration::from_millis(300));
         drop(emacs);
-        std::thread::sleep(Duration::from_millis(1500));
+        std::thread::sleep(Duration::from_millis(900));
         assert!(!marker.exists(), "what the busy Emacs started ran on");
         std::fs::remove_dir_all(directory).unwrap();
     }
@@ -788,12 +788,12 @@ done
         let directory = std::env::temp_dir().join(format!("org-lsp-slower-emacs-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&directory);
         std::fs::create_dir_all(&directory).unwrap();
-        // Started a second after the first call gives up (`START_WAIT`),
-        // and a second before the next one would.
-        let emacs = Emacs::new(Settings { program: slow_emacs(&directory, 3.0), ..Settings::default() });
+        // Started half a second after the first call gives up
+        // (`START_WAIT`), and half a second before the next one would.
+        let emacs = Emacs::new(Settings { program: slow_emacs(&directory, 1.5), ..Settings::default() });
         let asked = Instant::now();
         assert_eq!(emacs.call("ping", Value::Null, Duration::from_millis(500)), Err(STARTING.to_string()));
-        assert!(asked.elapsed() < Duration::from_secs(3), "{:?}", asked.elapsed());
+        assert!(asked.elapsed() < Duration::from_millis(1500), "{:?}", asked.elapsed());
         // The same Emacs, started.
         assert!(emacs.call("ping", Value::Null, Duration::from_secs(10)).is_ok());
         drop(emacs);
@@ -806,9 +806,9 @@ done
         let directory = std::env::temp_dir().join(format!("org-lsp-slow-emacs-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&directory);
         std::fs::create_dir_all(&directory).unwrap();
-        let emacs = Emacs::new(Settings { program: slow_emacs(&directory, 1.0), ..Settings::default() });
-        // Emacs takes a second to start; the call has half a second of its
-        // own once it has started.
+        let emacs = Emacs::new(Settings { program: slow_emacs(&directory, 0.6), ..Settings::default() });
+        // Emacs takes longer to start than the call has (half a second),
+        // which has that half second of its own once it has started.
         let first = emacs.call("ping", Value::Null, Duration::from_millis(500)).unwrap();
         let again = emacs.call("ping", Value::Null, Duration::from_millis(500)).unwrap();
         assert_eq!(first, again, "the same Emacs answers both");
