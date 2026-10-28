@@ -143,17 +143,23 @@ local function syntax_regions(bufnr, codes)
       return
     end
     local groups = {}
+    -- The languages included, checked once each.
+    local included = {}
     for _, each in ipairs(codes) do
       local cluster = 'orgLspSrc_' .. each.syntax
       -- The syntax file once: Vim's syntax for the buffer forgets it when
-      -- it is set again. The listing says whether the cluster is there; it
-      -- is no error when the buffer has no syntax items at all.
-      local ok, listed = pcall(vim.api.nvim_exec2, 'silent! syntax list @' .. cluster, { output = true })
-      if not (ok and listed.output:find('\n' .. cluster .. ' cluster=', 1, true)) then
-        local current = vim.b.current_syntax
-        vim.b.current_syntax = nil
-        pcall(vim.cmd, 'silent! syntax include @' .. cluster .. ' syntax/' .. each.syntax .. '.vim')
-        vim.b.current_syntax = current
+      -- it is set again. The listing says whether the cluster is there,
+      -- with blanks after a short name; it is no error when the buffer has
+      -- no syntax items at all.
+      if not included[cluster] then
+        local ok, listed = pcall(vim.api.nvim_exec2, 'silent! syntax list @' .. cluster, { output = true })
+        if not (ok and listed.output:find('\n' .. cluster .. '%s+cluster=')) then
+          local current = vim.b.current_syntax
+          vim.b.current_syntax = nil
+          pcall(vim.cmd, 'silent! syntax include @' .. cluster .. ' syntax/' .. each.syntax .. '.vim')
+          vim.b.current_syntax = current
+        end
+        included[cluster] = true
       end
       local group = 'orgLspSrcCode_' .. each.syntax
       if not groups[group] then
@@ -174,8 +180,12 @@ local function syntax_regions(bufnr, codes)
         )
       )
     end
-    -- The included files sync as suits their language alone.
-    vim.cmd('syntax sync fromstart')
+    -- The included files sync as suits their language alone: the sync of
+    -- the syntax for Org from the headline before again, as a block ends
+    -- before the next headline. From the start, a change far in the file
+    -- takes longer than 'redrawtime'.
+    vim.cmd('syntax sync clear')
+    vim.cmd([[syntax sync match orgSyntaxSync grouphere NONE /^\*\+\s/]])
     regions[bufnr] = groups
   end)
 end
